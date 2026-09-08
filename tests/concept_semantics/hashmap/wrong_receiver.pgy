@@ -1,0 +1,1 @@
+func Main() -> Void { Log(MapSize(3)); }

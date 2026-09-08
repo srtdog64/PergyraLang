@@ -1,0 +1,120 @@
+// Concrete HashMap call facts consumed by the existing scalar-program planner.
+import "direct_mir_scalar_program_builtin_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "../semantic/builtin_signature_owner.pgy";
+import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
+
+func DirectMirScalarProgramHashMapOperation(kind: Int) -> String {
+    if kind == DirectMirScalarProgramExprMapNew() { return "MapNew"; }
+    if kind == DirectMirScalarProgramExprMapSet() { return "MapSet"; }
+    if kind == DirectMirScalarProgramExprMapGet() { return "MapGet"; }
+    if kind == DirectMirScalarProgramExprMapHas() { return "MapHas"; }
+    if kind == DirectMirScalarProgramExprMapRemove() { return "MapRemove"; }
+    if kind == DirectMirScalarProgramExprMapSize() { return "MapSize"; }
+    if kind == DirectMirScalarProgramExprMapKeys() { return "MapKeys"; }
+    return "";
+}
+
+func DirectMirScalarProgramHashMapSignatureExpected(name: String) -> Array<String> {
+    let kind: Int = DirectMirScalarProgramExprMapNew();
+    while kind <= DirectMirScalarProgramExprMapKeys() {
+        if DirectMirScalarProgramHashMapOperation(kind) == name {
+            let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+                SemanticExpressionGraphCollectionCallProtocolFromName(name);
+            if !protocol.applies || protocol.family != "HashMap" { return []; }
+            let result: String = protocol.return_kind;
+            if result == "constructor" { result = "HashMap<Unknown, Unknown>"; }
+            if result == "element" { result = "Unknown"; }
+            if result == "keys" { result = "Array<Unknown>"; }
+            let parameters: String = ""; let i: Int = 0;
+            while i < protocol.expected_arity {
+                if i > 0 { parameters = parameters + "|"; }
+                parameters = parameters + "Unknown"; i = i + 1;
+            }
+            return [result, parameters, ToString(kind)];
+        }
+        kind = kind + 1;
+    }
+    return [];
+}
+
+func DirectMirScalarProgramHashMapSignatureForCall(
+    fact: DirectMirScalarProgramBuiltinSignatureFact,
+    actual_types: Array<String>, expected_type: String
+) -> DirectMirScalarProgramBuiltinSignatureFact {
+    let invalid: DirectMirScalarProgramBuiltinSignatureFact =
+        DirectMirScalarProgramBuiltinSignatureFactInvalid();
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(fact.name);
+    if !fact.valid || !protocol.applies || protocol.family != "HashMap" ||
+        ArrayLength(actual_types) > protocol.expected_arity { return invalid; }
+    let receiver_type: String = expected_type;
+    if protocol.return_kind != "constructor" {
+        // A call marker precedes its actuals; the terminal argument owns the
+        // specialization. Keep the unspecialized marker incomplete, not valid.
+        if ArrayLength(actual_types) == 0 { return fact; }
+        receiver_type = actual_types[0];
+    }
+    let runtime: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(receiver_type);
+    if !runtime.ok { return invalid; }
+    let signature: SemanticHashMapCallSignature = SemanticHashMapCallSignatureFrom(
+        fact.name, protocol.expected_arity, receiver_type);
+    if !signature.ok { return invalid; }
+    let result: String = signature.return_type;
+    if protocol.return_kind == "constructor" { result = runtime.type_name; }
+    return DirectMirScalarProgramBuiltinSignatureFact(true, fact.registry_row,
+        fact.name, result, signature.parameter_types, fact.expression_kind, -1);
+}
+
+func DirectMirScalarProgramHashMapArgumentRows(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Array<Int> {
+    if node < 0 || node >= ArrayLength(facts.node_kinds) { return []; }
+    if facts.node_kinds[node] == DirectMirScalarProgramExprMapSet() {
+        return DirectMirScalarProgramNaryOperandRows(facts.nary_operands, node);
+    }
+    let rows: Array<Int> = [];
+    if facts.node_lefts[node] >= 0 { ArrayPush(rows, facts.node_lefts[node]); }
+    if facts.node_rights[node] >= 0 { ArrayPush(rows, facts.node_rights[node]); }
+    return rows;
+}
+
+func DirectMirScalarProgramHashMapNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    let operation: String = DirectMirScalarProgramHashMapOperation(facts.node_kinds[node]);
+    if operation == "" || facts.node_local_rows[node] != -1 ||
+        facts.node_parameter_ordinals[node] != -1 || facts.node_member_ordinals[node] != -1 ||
+        facts.node_callable_rows[node] != -1 || facts.node_runtime_call_abi_ids[node] != -1 ||
+        facts.node_literals[node] != "" { return false; }
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(operation);
+    let rows: Array<Int> = DirectMirScalarProgramHashMapArgumentRows(facts, node);
+    if !protocol.applies || ArrayLength(rows) != protocol.expected_arity { return false; }
+    if operation == "MapSet" && (facts.node_lefts[node] != -1 || facts.node_rights[node] != -1) { return false; }
+    let actual: Array<String> = []; let index: Int = 0;
+    while index < ArrayLength(rows) {
+        if rows[index] < 0 || rows[index] >= node { return false; }
+        ArrayPush(actual, facts.node_types[rows[index]]); index = index + 1;
+    }
+    let map_type: String = facts.node_types[node];
+    if ArrayLength(actual) > 0 {
+        map_type = actual[0];
+        let receiver_kind: Int = facts.node_kinds[rows[0]];
+        if receiver_kind != DirectMirScalarProgramExprLocal() &&
+            receiver_kind != DirectMirScalarProgramExprParameter() { return false; }
+    }
+    let runtime: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(map_type);
+    if !runtime.ok { return false; }
+    let signature: SemanticHashMapCallSignature = SemanticHashMapCallSignatureFrom(
+        operation, ArrayLength(actual), map_type);
+    if !signature.ok { return false; }
+    index = 0;
+    while index < ArrayLength(actual) {
+        if actual[index] != signature.parameter_types[index] { return false; }
+        index = index + 1;
+    }
+    if operation == "MapNew" { return facts.node_types[node] == runtime.type_name; }
+    return facts.node_types[node] == signature.return_type;
+}

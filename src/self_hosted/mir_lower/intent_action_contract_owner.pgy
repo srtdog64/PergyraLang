@@ -9,6 +9,7 @@ struct MirIntentActionGraphFact {
     receiver_alias: String;
     action_name: String;
     call_target_name: String;
+    call_target_syntax_id: Int;
 }
 
 struct MirIntentActionContractFact {
@@ -25,7 +26,7 @@ func MirIntentActionGraphFromInstruction(
 ) -> MirIntentActionGraphFact {
     if instruction_global_row < 0 || instruction_global_row >=
         ArrayLength(routines.instruction_starts) {
-        return MirIntentActionGraphFact(false, "", "", "");
+        return MirIntentActionGraphFact(false, "", "", "", 0);
     }
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
         routines.source_json,
@@ -40,12 +41,12 @@ func MirIntentActionGraphFromInstruction(
             MirExpressionGraphSequenceEmpty(), graph
         );
     if !sequence.ok || ArrayLength(sequence.roots) != 1 {
-        return MirIntentActionGraphFact(false, "", "", "");
+        return MirIntentActionGraphFact(false, "", "", "", 0);
     }
     let root: Int = sequence.roots[0];
     if root < 0 || root >= ArrayLength(sequence.arena.node_texts) ||
         sequence.arena.node_texts[root] != expression_text {
-        return MirIntentActionGraphFact(false, "", "", "");
+        return MirIntentActionGraphFact(false, "", "", "", 0);
     }
     let call_node: Int = root;
     while sequence.arena.topology.node_kinds[call_node] ==
@@ -54,8 +55,9 @@ func MirIntentActionGraphFromInstruction(
     }
     if sequence.arena.topology.node_kinds[call_node] !=
             AstExpressionNodeCall() ||
-        sequence.arena.call_target_names[call_node] == "" {
-        return MirIntentActionGraphFact(false, "", "", "");
+        sequence.arena.call_target_names[call_node] == "" ||
+        sequence.arena.identities.call_target_syntax_ids[call_node] <= 0 {
+        return MirIntentActionGraphFact(false, "", "", "", 0);
     }
     let member_node: Int =
         sequence.arena.topology.left_children[call_node];
@@ -66,20 +68,21 @@ func MirIntentActionGraphFromInstruction(
             sequence.arena.node_texts[member_node] !=
                 sequence.arena.call_target_names[call_node] ||
             !IsIdentifier(sequence.arena.node_texts[member_node]) {
-            return MirIntentActionGraphFact(false, "", "", "");
+            return MirIntentActionGraphFact(false, "", "", "", 0);
         }
         return MirIntentActionGraphFact(
             true, "", sequence.arena.node_texts[member_node],
-            sequence.arena.call_target_names[call_node]
+            sequence.arena.call_target_names[call_node],
+            sequence.arena.identities.call_target_syntax_ids[call_node]
         );
     }
     if sequence.arena.call_target_kinds[call_node] !=
         SemanticCallTargetMember() {
-        return MirIntentActionGraphFact(false, "", "", "");
+        return MirIntentActionGraphFact(false, "", "", "", 0);
     }
     if sequence.arena.topology.node_kinds[member_node] !=
         AstExpressionNodeMemberAccess() {
-        return MirIntentActionGraphFact(false, "", "", "");
+        return MirIntentActionGraphFact(false, "", "", "", 0);
     }
     let receiver_node: Int =
         sequence.arena.topology.left_children[member_node];
@@ -89,16 +92,17 @@ func MirIntentActionGraphFromInstruction(
             AstExpressionNodeLeaf() ||
         sequence.arena.topology.node_kinds[action_node] !=
             AstExpressionNodeLeaf() {
-        return MirIntentActionGraphFact(false, "", "", "");
+        return MirIntentActionGraphFact(false, "", "", "", 0);
     }
     let receiver_alias: String = sequence.arena.node_texts[receiver_node];
     let action_name: String = sequence.arena.node_texts[action_node];
     if !IsIdentifier(receiver_alias) || !IsIdentifier(action_name) {
-        return MirIntentActionGraphFact(false, "", "", "");
+        return MirIntentActionGraphFact(false, "", "", "", 0);
     }
     return MirIntentActionGraphFact(
         true, receiver_alias, action_name,
-        sequence.arena.call_target_names[call_node]
+        sequence.arena.call_target_names[call_node],
+            sequence.arena.identities.call_target_syntax_ids[call_node]
     );
 }
 

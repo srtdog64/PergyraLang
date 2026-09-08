@@ -1,0 +1,38 @@
+// Parsed retry metadata is not executable support. Refuse it at the common
+// body admission boundary, including declarations that are never called.
+import "ast_body_verdict_owner.pgy";
+import "ast_kind_surface_fact_owner.pgy";
+import "ast_intent_signature_fact_owner.pgy";
+
+func SemanticAstIntentRetryAdmissionFromFacts(
+    artifact: AstTreeArtifact, ref kinds: SemanticAstKindSurfaceFacts,
+    ref intents: SemanticAstIntentSignatureFacts
+) -> SemanticAstBodyVerdict {
+    if !kinds.ok || kinds.artifact_node_count != artifact.count ||
+        ArrayLength(kinds.node_ids) != artifact.count ||
+        ArrayLength(kinds.kind_tags) != artifact.count || !intents.ok ||
+        intents.artifact_node_count != artifact.count {
+        return SemanticAstBodyVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "IntentRetryAdmission"), -1);
+    }
+    let row: Int = 0;
+    while row < ArrayLength(kinds.node_ids) {
+        if kinds.node_ids[row] != row {
+            return SemanticAstBodyVerdictError("ast_artifact_invalid",
+                SemanticError1("ast_artifact_invalid", "owner", "IntentRetryIdentity"), row);
+        }
+        if kinds.kind_tags[row] == TypedAstKindIntentRetryTag() {
+            let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, row);
+            let count: Option<String> = TypedAstArenaAtomText(artifact.arena, row);
+            if !IsSome(parent) || !IsSome(count) || UnwrapOption(count) == "" ||
+                !IsSome(SemanticAstIntentSignatureIndexForNode(intents, UnwrapOption(parent))) {
+                return SemanticAstBodyVerdictError("ast_artifact_invalid",
+                    SemanticError1("ast_artifact_invalid", "owner", "IntentRetryParent"), row);
+            }
+            return SemanticAstBodyVerdictError("intent_retry_unavailable",
+                SemanticError1("intent_retry_unavailable", "retry", UnwrapOption(count)), row);
+        }
+        row = row + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

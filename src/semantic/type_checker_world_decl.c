@@ -369,6 +369,11 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Check methods */
     scope_enter(&ctx->scope, SCOPE_BLOCK);
+    if (!type_check_overlay_bind_shared_fields(shared_fields, shared_count, ctx)) {
+        scope_exit(&ctx->scope);
+        ctx->current_world = saved_world;
+        return false;
+    }
     for (size_t i = 0; i < method_count; i++) {
         type_check_func_decl(methods[i], ctx);
     }

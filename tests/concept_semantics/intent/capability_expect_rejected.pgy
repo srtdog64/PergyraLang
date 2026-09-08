@@ -1,0 +1,16 @@
+import "capability_fixture.pgy";
+
+intent CheckedPurpose(work: CapabilityZone, actor: CapabilityActor) {
+    step Pure {
+        where: CapabilityZone;
+        using: work;
+        on: actor.Pure();
+        expect: Now() >= 0;
+    }
+}
+
+func Main() -> Void with caps random {
+    let actor = CapabilityActor(0);
+    let work = CapabilityZone(Clone(actor));
+    CheckedPurpose(work, actor);
+}

@@ -1,7 +1,8 @@
 # Generic member receiver identity admission
 
-Status: LOCAL IMPLEMENTATION VERIFIED; scoped publication and remote CI pending
+Status: IMPLEMENTATION COMPLETE AND PUBLISHED; regular CI SUCCESS 30/30
 Base: `426cd694c03107d462f47f1050e9a5dab83e6278`
+Publication: `5b97f2e10ffa7ecf9cfe932829a83ffffaa3ba12`; CI `33998401657` SUCCESS (`930d14`).
 
 ## Objective card
 
@@ -117,4 +118,5 @@ installed-layout role gate passes (`30255b`). The actual batch checker now
 reports all independent failures; its new control failed before and passes
 after the repair (`4cbdef`, `938dfd`). Complete component run `32435` passed
 (`f06a35`), followed by documentation and exact-scope checks (`521164`,
-`5146a1`). Publication is pending. No shared installed binary, status or score changed.
+`5146a1`). Publication completed (`e34d7e`, `a433fa`); regular remote CI passed 30/30.
+No shared installed binary, registry status or substitution score changed.

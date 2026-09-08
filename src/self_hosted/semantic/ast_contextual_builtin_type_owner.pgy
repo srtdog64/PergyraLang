@@ -52,7 +52,8 @@ func SemanticContextualBuiltinExpectedTypeFromGraph(
     if !verdict_ok ||
         (inferred_type != "List<Unknown>" &&
          inferred_type != "Queue<Unknown>" &&
-         inferred_type != "Set<Unknown>") {
+         inferred_type != "Set<Unknown>" &&
+         inferred_type != "HashMap<Unknown, Unknown>") {
         return inferred_type;
     }
     let contextual: Option<String> =

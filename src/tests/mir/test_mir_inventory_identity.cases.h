@@ -71,3 +71,47 @@ test_mir_decl_header_storage_layout_receipt(void)
     TEST("MIR declaration header storage layout rejects partial-link skew");
     EXPECT(exact && !size_skew && !offset_skew);
 }
+
+static void
+test_mir_routine_generic_constraint_carriage(void)
+{
+    const char *source =
+        "func Bounds<T, U>(x: T, y: U) -> Int where T: Int, U: Bool { return 1; }\n"
+        "func Open<V>(x: V) -> Void { return; }\n"
+        "func Main() -> Void { Bounds(1, true); Open(2); }\n";
+    HIRProgram *hir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram *mir = NULL;
+    bool ok = lower_mir_from_source(source, &hir, &rir, &mir);
+    MIRRoutine *bounds = ok
+        ? (MIRRoutine *)find_mir_routine(mir, "Bounds", MIR_SCOPE_FUNCTION) : NULL;
+    const MIRRoutine *open = ok
+        ? find_mir_routine(mir, "Open", MIR_SCOPE_FUNCTION) : NULL;
+    bool exact = bounds != NULL && open != NULL
+        && mir_routine_generic_param_count(bounds) == 2
+        && mir_routine_generic_param_constraint(bounds, 0) != NULL
+        && mir_routine_generic_param_constraint(bounds, 1) != NULL
+        && strcmp(mir_routine_generic_param_constraint(bounds, 0), "Int") == 0
+        && strcmp(mir_routine_generic_param_constraint(bounds, 1), "Bool") == 0
+        && mir_routine_generic_param_constraint(open, 0) != NULL
+        && strcmp(mir_routine_generic_param_constraint(open, 0), "") == 0;
+    TEST("MIR signature preserves ordered bounds and explicit unbounded fact");
+    EXPECT(exact && mir_validate(mir, NULL));
+    bool missing_row_rejected = false;
+    bool missing_table_rejected = false;
+    if (exact) {
+        char *saved = bounds->generic_param_constraints[0];
+        bounds->generic_param_constraints[0] = NULL;
+        missing_row_rejected = !mir_validate(mir, NULL);
+        bounds->generic_param_constraints[0] = saved;
+        char **saved_table = bounds->generic_param_constraints;
+        bounds->generic_param_constraints = NULL;
+        missing_table_rejected = !mir_validate(mir, NULL);
+        bounds->generic_param_constraints = saved_table;
+    }
+    TEST("MIR signature rejects missing bound row or constraint table");
+    EXPECT(missing_row_rejected && missing_table_rejected && mir_validate(mir, NULL));
+    mir_destroy(mir);
+    rir_destroy(rir);
+    hir_destroy(hir);
+}

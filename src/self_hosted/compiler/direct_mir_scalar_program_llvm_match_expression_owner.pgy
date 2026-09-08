@@ -14,7 +14,6 @@ func DirectMirScalarProgramLlvmMatchExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet,
     node: Int, result: String, left: String,
     arguments: Array<String>, argument_types: Array<String>,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
@@ -30,7 +29,7 @@ func DirectMirScalarProgramLlvmMatchExpressionAt(
     let payload_match: DirectMirScalarProgramLlvmPayloadEnumExpression =
         DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
             expressions, node, result, left, arguments, argument_types,
-            nominal, logical_record, payload_free_enum, referenced_enum);
+            logical_record, payload_free_enum, referenced_enum);
     return DirectMirScalarProgramLlvmMatchExpression(
         payload_match.matched, payload_match.valid,
         payload_match.instructions, payload_match.value);

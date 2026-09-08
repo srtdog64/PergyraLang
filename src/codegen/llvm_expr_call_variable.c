@@ -11,16 +11,15 @@
 LLVMValueRef
 llvm_emit_callable_variable_call(ASTNode *node,
                                  LLVMGenCtx *ctx,
-                                 const char *callee_name,
-                                 LLVMValueRef *args,
-                                 unsigned emitted_argc)
+                                 const char *callee_name)
 {
     LLVMVarEntry callee_var;
     bool has_callee_var = false;
     LLVMValueRef fn_ptr = NULL;
     LLVMTypeRef fn_type = NULL;
     LLVMTypeRef callable_ptr_ty = NULL;
-    LLVMCallableVarEntry *callable_entry = NULL;
+    LLVMCallableVarEntry callable_snapshot;
+    const LLVMCallableVarEntry *callable_entry = NULL;
     LLVMValueRef result;
 
     if (node == NULL || ctx == NULL || callee_name == NULL
@@ -30,31 +29,56 @@ llvm_emit_callable_variable_call(ASTNode *node,
 
     has_callee_var = llvm_scope_lookup_snapshot(ctx, callee_name, &callee_var);
     if (!has_callee_var)
-        return NULL;
+        return llvm_call_error_recovery(ctx, node,
+            "LLVM callable variable call requires local storage metadata");
 
     callable_entry = llvm_lookup_callable_entry(ctx, callee_name);
+    if (callable_entry == NULL)
+        return llvm_call_error_recovery(ctx, node,
+            "LLVM callable variable call requires callable signature metadata");
+    /* Recursive argument emission can grow both registries. Do not retain
+     * their borrowed entries across it; signature payloads are owner-stable. */
+    callable_snapshot = *callable_entry;
+    callable_entry = &callable_snapshot;
+    fn_type = llvm_function_signature_from_callable_entry(ctx, callable_entry);
+    if (ctx->has_error || fn_type == NULL
+        || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind)
+        return llvm_call_error_recovery(ctx, node,
+            "LLVM callable variable call could not lower callable signature");
+
+    size_t argc = ast_call_arg_count(node);
+    bool is_closure = LLVMGetTypeKind(callee_var.type) == LLVMStructTypeKind;
+    if (argc != LLVMCountParamTypes(fn_type) || argc > 64u
+        || (is_closure && argc + 1u > 16u))
+        return llvm_call_error_recovery(ctx, node,
+            "LLVM callable variable call argument count mismatch");
+    unsigned emitted_argc = (unsigned)argc;
+    LLVMValueRef args[64];
+    for (size_t i = 0; i < argc; i++) {
+        ASTNode *arg = ast_call_argument(node, i);
+        LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx, arg);
+        if (ctx->has_error)
+            return NULL;
+        if (arg_type == ctx->type_void)
+            return llvm_call_error_recovery(ctx, node,
+                "LLVM callable variable call cannot consume a Void argument");
+        args[i] = llvm_emit_expression(arg, ctx);
+        if (ctx->has_error)
+            return NULL;
+        if (args[i] == NULL)
+            return llvm_call_arg_error_recovery(ctx, node, callee_name, i);
+    }
 
     /* A callable variable whose storage is a struct (not a bare function
      * pointer) is a closure value { fn, env } (docs/135 Stage A). The
      * is_closure registry flag is advisory; the variable type is authoritative
      * across both the AST and MIR let-lowering paths. */
-    if (callable_entry != NULL
-        && LLVMGetTypeKind(callee_var.type) == LLVMStructTypeKind) {
+    if (is_closure) {
         /* Closure dispatch: load fn from field 0 and pass &env (field 1) as the
          * hidden leading argument. */
         LLVMTypeRef clo_ty = callee_var.type;
-        LLVMTypeRef base_fn_ty =
-            llvm_function_signature_from_callable_entry(ctx, callable_entry);
-        if (ctx->has_error || base_fn_ty == NULL
-            || LLVMGetTypeKind(clo_ty) != LLVMStructTypeKind)
-            return llvm_call_error_recovery(ctx, node,
-                "LLVM closure call could not lower the callee signature");
-
+        LLVMTypeRef base_fn_ty = fn_type;
         unsigned base_argc = LLVMCountParamTypes(base_fn_ty);
-        if (base_argc != emitted_argc || emitted_argc + 1u > 16u)
-            return llvm_call_error_recovery(ctx, node,
-                "LLVM closure call argument count mismatch");
-
         LLVMTypeRef env_ty = LLVMStructGetTypeAtIndex(clo_ty, 1);
         LLVMTypeRef fn_ptr_ty = LLVMStructGetTypeAtIndex(clo_ty, 0);
         LLVMTypeRef base_params[16];
@@ -95,26 +119,7 @@ llvm_emit_callable_variable_call(ASTNode *node,
      * function type cannot be read back from it via LLVMGetElementType (that
      * dereferences a null pointee and crashes). Recover the signature from the
      * callable entry's recorded metadata instead. */
-    if (fn_type == NULL || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind) {
-        if (callable_entry != NULL) {
-            fn_type = llvm_function_signature_from_callable_entry(ctx, callable_entry);
-            if (ctx->has_error || fn_type == NULL)
-                return llvm_call_error_recovery(ctx, node,
-                    "LLVM callable variable call could not lower callable signature");
-        }
-    }
-    if (fn_type != NULL && LLVMGetTypeKind(fn_type) == LLVMFunctionTypeKind)
-        callable_ptr_ty = LLVMPointerType(fn_type, 0);
-
-    if (fn_type != NULL && LLVMGetTypeKind(fn_type) == LLVMPointerTypeKind) {
-        callable_ptr_ty = fn_type;
-        fn_type = LLVMGetElementType(fn_type);
-    }
-    if (callable_ptr_ty == NULL
-        && fn_type != NULL
-        && LLVMGetTypeKind(fn_type) == LLVMFunctionTypeKind) {
-        callable_ptr_ty = LLVMPointerType(fn_type, 0);
-    }
+    callable_ptr_ty = LLVMPointerType(fn_type, 0);
 
     fn_ptr = llvm_emit_expression(ast_call_callee(node), ctx);
     if (fn_ptr == NULL)
@@ -125,16 +130,6 @@ llvm_emit_callable_variable_call(ASTNode *node,
         fn_ptr = LLVMBuildBitCast(ctx->builder, fn_ptr, callable_ptr_ty,
             llvm_tmp_name(ctx));
     }
-    if (fn_type == NULL && LLVMGetTypeKind(LLVMTypeOf(fn_ptr)) == LLVMFunctionTypeKind)
-        fn_type = LLVMTypeOf(fn_ptr);
-    if (fn_type == NULL || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind)
-        return NULL;
-
-    unsigned fn_argc = LLVMCountParamTypes(fn_type);
-    if (fn_argc != emitted_argc || emitted_argc > 64u)
-        return llvm_call_error_recovery(ctx, node,
-            "LLVM callable variable call argument count mismatch");
-
     LLVMTypeRef param_types[64];
     LLVMValueRef coerced_args[64];
     LLVMGetParamTypes(fn_type, param_types);

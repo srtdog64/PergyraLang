@@ -7,6 +7,32 @@ func SelfMirLocalRefRoleValid(role: String) -> Bool {
         role == "match-synthetic";
 }
 
+// Producer and reader use the same collision rule over their owned inventories.
+func SelfMirLocalRefSpellingCollision(
+    ref locals: Array<String>, local_start: Int, local_count: Int,
+    ref parameters: Array<String>, parameter_start: Int, parameter_count: Int
+) -> Bool {
+    if local_start < 0 || local_count < 0 || local_start + local_count > ArrayLength(locals) ||
+        parameter_start < 0 || parameter_count < 0 || parameter_start + parameter_count > ArrayLength(parameters) {
+        Die("LocalRef spelling inventory range is invalid");
+    }
+    let row: Int = 0;
+    while row < local_count {
+        let prior: Int = 0;
+        while prior < row {
+            if locals[local_start + prior] == locals[local_start + row] { return true; }
+            prior = prior + 1;
+        }
+        let parameter: Int = 0;
+        while parameter < parameter_count {
+            if parameters[parameter_start + parameter] == locals[local_start + row] { return true; }
+            parameter = parameter + 1;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
 func SelfMirLocalRefValid(value: String) -> Bool {
     let parts: Array<String> = Split(value, ":");
     return ArrayLength(parts) == 3 &&

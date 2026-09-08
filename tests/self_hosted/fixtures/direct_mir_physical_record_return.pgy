@@ -1,0 +1,55 @@
+// The real compiler owner remains the entrypoint-return/copy-out falsifier.
+import "../../../src/self_hosted/semantic/ast_entrypoint_selection_policy_owner.pgy";
+
+struct PhysicalRecordOne { number: Int; }
+struct PhysicalRecordPair { first: Int; last: Int; }
+struct PhysicalRecordTriple { first: Int; middle: Int; last: Int; }
+struct PhysicalRecordNested { head: Int; inner: PhysicalRecordOne; tail: Int; }
+struct PhysicalRecordEight {
+    a: Int; b: Int; c: Int; d: Int; e: Int; f: Int; g: Int; h: Int;
+}
+
+func PhysicalRecordMakeTriple() -> PhysicalRecordTriple {
+    return PhysicalRecordTriple(-7, 3, 9);
+}
+func PhysicalRecordAdjust(delta: Int, inout value: PhysicalRecordTriple) -> Void {
+    value.first = value.first + delta;
+    value.last = value.last + delta;
+}
+func PhysicalRecordMakePair() -> PhysicalRecordPair {
+    return PhysicalRecordPair(-13, 17);
+}
+func PhysicalRecordMakeEight() -> PhysicalRecordEight {
+    return PhysicalRecordEight(1, 2, 3, 4, 5, 6, 7, 8);
+}
+func PhysicalRecordAdjustNested(delta: Int, inout value: PhysicalRecordNested) -> Void {
+    value.inner.number = value.inner.number + delta;
+}
+func PhysicalRecordReadNested(ref value: PhysicalRecordNested) -> Int {
+    return value.inner.number;
+}
+
+func Main() -> Void {
+    let accumulator: SemanticAstEntrypointSelectionAccumulator =
+        SemanticAstEntrypointSelectionAccumulatorEmpty();
+    SemanticAstEntrypointSelectionObserve(accumulator, "", true, "Main", 7);
+    let selection: SemanticAstEntrypointSelectionFact =
+        SemanticAstEntrypointSelectionFinish(accumulator);
+    Log(selection.candidate_count);
+    Log(selection.signature_index);
+    Log(accumulator.uppercase_count);
+    let triple: PhysicalRecordTriple = PhysicalRecordMakeTriple();
+    PhysicalRecordAdjust(5, triple);
+    Log(triple.first);
+    Log(triple.last);
+    let one: PhysicalRecordOne = PhysicalRecordOne(-11);
+    Log(one.number);
+    let pair: PhysicalRecordPair = PhysicalRecordMakePair();
+    Log(pair.first);
+    Log(pair.last);
+    let nested: PhysicalRecordNested = PhysicalRecordNested(23, one, 29);
+    PhysicalRecordAdjustNested(5, nested);
+    Log(PhysicalRecordReadNested(nested));
+    let eight: PhysicalRecordEight = PhysicalRecordMakeEight();
+    Log(eight.a + eight.h);
+}

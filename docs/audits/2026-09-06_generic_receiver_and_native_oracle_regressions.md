@@ -1,8 +1,9 @@
 # Generic receiver identity and native-oracle integration regressions
 
 Base: `426cd694c03107d462f47f1050e9a5dab83e6278` (published main/origin/main).
-Status: final combined Pergyra-seed candidate passes the bounded executable
-and structural integration checks below; scoped publication is pending.
+Status: published as `5b97f2e10ffa7ecf9cfe932829a83ffffaa3ba12`; final combined
+Pergyra-seed candidate passes the bounded executable/structural checks below.
+Regular CI `33998401657` completed SUCCESS 30/30 on that exact SHA (`930d14`).
 
 ## Counterexamples and ownership
 

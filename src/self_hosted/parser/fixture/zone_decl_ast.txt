@@ -1,10 +1,10 @@
 Program:
   Subject: A
     Fields:
-      x: Int
+      let x: Int
   Subject: B
     Fields:
-      y: Int
+      let y: Int
   Zone: Z
     SubjectSlot: a: A
     SubjectSlot: b: B
@@ -14,4 +14,3 @@ Program:
     Body:
       Block:
         Log("ok")
-

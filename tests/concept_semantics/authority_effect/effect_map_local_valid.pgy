@@ -1,0 +1,6 @@
+func Main() -> Void with effects local {
+    let values: HashMap<String, Int> = MapNew();
+    MapSet(values, "first", 4);
+    Log(MapSize(values));
+    Log(MapGet(values, "first"));
+}

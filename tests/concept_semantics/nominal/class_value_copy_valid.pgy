@@ -1,0 +1,8 @@
+class ValueCell { let mut value: Int; }
+func Main() -> Void {
+    let original = ValueCell(7);
+    let mut duplicate = original;
+    duplicate.value = 19;
+    Log(original.value);
+    Log(duplicate.value);
+}

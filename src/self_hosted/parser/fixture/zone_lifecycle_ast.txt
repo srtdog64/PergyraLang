@@ -1,8 +1,8 @@
 Program:
   Subject: Player
     Fields:
-      name: String
-      hp: Int
+      let name: String
+      let hp: Int
   Effect: Poisoned
     SubjectSlot: bearer: Player
     Shared: damage: Int
@@ -20,4 +20,3 @@ Program:
     Authority: attacker
     State: poisoned: effect poison on defender
     State: allied: relation alliance between attacker, defender
-

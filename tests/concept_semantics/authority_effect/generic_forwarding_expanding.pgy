@@ -1,0 +1,8 @@
+// Valid source, but its recursive type expansion has no finite monomorphization.
+// Admission/codegen refusal control only; never execute this fixture.
+func Nest<T>(n: Int, value: T) -> Int {
+    if n == 0 { return 0; }
+    let values: Array<T> = [value];
+    return Nest(n - 1, values);
+}
+func Main() -> Void { Log(ToString(Nest(2, 7))); }

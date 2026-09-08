@@ -429,7 +429,6 @@ stdlib_scalar_check_random(ASTNode *expr, const char *name, SemanticContext *ctx
     if (!check_call_arity(expr, 1, name, ctx))
         return TYPE_UNKNOWN;
     stdlib_scalar_require_int_arg(expr, 0, ctx);
-    semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
     semantic_record_capability(ctx, capability_for_builtin("Random"));
     return TYPE_INT;
 }
@@ -442,7 +441,6 @@ stdlib_scalar_check_seed_random(ASTNode *expr, const char *name,
         return TYPE_UNKNOWN;
     require_assignable(type_check_expression(ast_call_argument(expr, 0), ctx),
         TYPE_INT, ast_call_argument(expr, 0), ctx);
-    semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
     semantic_record_capability(ctx, capability_for_builtin("SeedRandom"));
     return TYPE_VOID;
 }
@@ -545,5 +543,7 @@ type_check_stdlib_scalar_call(ASTNode *expr, const char *name,
         return TYPE_UNKNOWN;
     if (spec->handler == NULL)
         return TYPE_UNKNOWN;
-    return spec->handler(expr, name, ctx);
+    Type *result = spec->handler(expr, name, ctx);
+    semantic_record_builtin_effect(ctx, expr, spec->name);
+    return result;
 }

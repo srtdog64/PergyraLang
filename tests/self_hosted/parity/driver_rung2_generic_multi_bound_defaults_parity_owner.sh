@@ -9,6 +9,16 @@ pgy_selfhost_verify_driver_rung2_generic_multi_bound_defaults() {
     local source mutated self_out self_err oracle_bin oracle_log fact
     [[ "$base" == "generic_multi_bound_defaults" ]] || return 0
 
+    # Role facts own extraction. A bound verdict may not reopen the typed AST
+    # through TypedAstArenaAtomText, TypedAstArenaChildAt or AstNodeMetaValueOr.
+    # The verdict type/diagnostic name itself is a legitimate consumer fact.
+    for fact in TypedAstArenaAtomText TypedAstArenaChildAt AstNodeMetaValueOr; do
+        if grep -Fq "$fact" "$ROOT_DIR/src/self_hosted/semantic/ast_ability_generic_bound_verdict_owner.pgy"; then
+            echo "[self-host-parity:driver-rung2] ability bound verdict reopened source: $fact" >&2
+            exit 1
+        fi
+    done
+
     for fact in \
         '"name":"Packable","source_syntax_id":10,' \
         '"fields":[],"methods":[{"name":"Accept","return":"Void","callable_kind":"function","contract":{"requires":[],"within":null,"causes":null,"authorized_by":[],"caps_present":false,"caps":[],"effects_present":false,"effects":[]},"params":[{"name":"value","type":"T"}],"source_syntax_id":12}],"generic_params":[{"name":"T","constraint":"Comparable + Cloneable","default_type":"Item"}]' \

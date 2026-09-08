@@ -1,7 +1,7 @@
 Program:
   Class: Counter
     Fields:
-      value: Int
+      let value: Int
     Methods:
       Function: Add
         Parameters:
@@ -16,4 +16,3 @@ Program:
     Body:
       Block:
         Log("ok")
-

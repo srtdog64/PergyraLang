@@ -108,7 +108,7 @@
         EXPECT(ok && output != NULL);
         if (ok && output != NULL) {
             EXPECT(strstr(output,
-                "Charge(&_pgy_ssa_checkout_1, &_pgy_ssa_buyer_1)") != NULL);
+                "Charge(&(_pgy_ssa_checkout_1), &(_pgy_ssa_buyer_1))") != NULL);
         }
 
         free(output);
@@ -169,7 +169,8 @@
             EXPECT(strstr(output, "PriceQuote quote") != NULL);
             EXPECT(strstr(output, "int32_t price") != NULL);
             EXPECT(strstr(output, "quote.amount") != NULL);
-            EXPECT(strstr(output, "price > 0") != NULL);
+            EXPECT(strstr(output, "= (price);") != NULL);
+            EXPECT(strstr(output, " > __pgy_binary_") != NULL);
         }
 
         free(output);

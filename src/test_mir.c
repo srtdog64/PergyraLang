@@ -18,8 +18,12 @@
 #include "compiler/mir_parallel_capture_facts.h"
 #include "compiler/mir_abi_layout.h"
 #include "compiler/mir_dce.h"
+#include "compiler/mir_ssa_rename.h"
 #include "compiler/mir_decl_headers.h"
 #include "compiler/mir_type_helpers.h"
+#include "compiler/mir_json_local_ref.h"
+#include "compiler/mir_json_expression_graph_materialize.h"
+#include "compiler/mir_fact_validate.h"
 
 static int g_pass = 0;
 static int g_fail = 0;
@@ -890,6 +894,7 @@ test_mir_carries_region_escape_facts(void)
 #include "tests/mir/test_mir_lowering_part_i.cases.h"
 #include "tests/mir/test_mir_runtime_call_abi.cases.h"
 #include "tests/mir/test_mir_inventory_identity.cases.h"
+#include "tests/mir/test_mir_lexical_binding_identity.cases.h"
 
 static void
 test_mir_lowering(void)
@@ -897,6 +902,10 @@ test_mir_lowering(void)
     test_mir_carries_function_param_flow_summary();
     test_mir_carries_region_escape_facts();
     test_mir_inventory_source_identity_lookup();
+    test_mir_lexical_binding_identity();
+    test_mir_scalar_parameter_wire_identity();
+    test_mir_nominal_field_binding_identity();
+    test_mir_routine_generic_constraint_carriage();
     test_mir_decl_header_storage_layout_receipt();
     test_mir_carries_dir_domain_topology();
     test_mir_lowering_part_a();

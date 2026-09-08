@@ -1,0 +1,203 @@
+// Storage and target projections of admitted compiler-private identity cells.
+// Each constructor has one routine-frame cell. Field initialization is ordered;
+// the cell address, never a record copy, flows through local and call values.
+import "direct_mir_identity_cell_fact_owner.pgy";
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
+
+func DirectMirIdentityCellCType(ref cells: DirectMirIdentityCellFacts, type_name: String) -> String {
+    let row: Int = DirectMirIdentityCellRow(cells, type_name);
+    if row < 0 { return ""; }
+    return Concat("pgy_identity_cell_", ToString(row));
+}
+func DirectMirIdentityCellLlvmType(ref cells: DirectMirIdentityCellFacts, type_name: String) -> String {
+    let row: Int = DirectMirIdentityCellRow(cells, type_name);
+    if row < 0 { return ""; }
+    return Concat("%pgy.identity.cell.", ToString(row));
+}
+func DirectMirIdentityCellCFieldType(ref cells: DirectMirIdentityCellFacts, type_name: String) -> String {
+    if type_name == "Int" { return "int64_t"; }
+    if type_name == "Bool" { return "bool"; }
+    if type_name == "String" { return CompilerAbiLayoutStringCValueType(); }
+    if DirectMirIdentityCellRow(cells, type_name) >= 0 {
+        return Concat(DirectMirIdentityCellCType(cells, type_name), " *");
+    }
+    return "";
+}
+func DirectMirIdentityCellLlvmFieldType(ref cells: DirectMirIdentityCellFacts, type_name: String) -> String {
+    if type_name == "Int" { return "i64"; }
+    if type_name == "Bool" { return "i1"; }
+    if type_name == "String" { return "ptr"; }
+    if DirectMirIdentityCellRow(cells, type_name) >= 0 { return "ptr"; }
+    return "";
+}
+func DirectMirIdentityCellPreamble(ref cells: DirectMirIdentityCellFacts, llvm: Bool) -> String {
+    if !DirectMirIdentityCellFactsReady(cells) { Die("identity cell declaration receipt is invalid"); }
+    let output: String = ""; let row: Int = 0;
+    // Slot types may be declared later. Forward declarations preserve source
+    // identity without reordering the admitted inventory or copying a record.
+    if !llvm {
+        while row < ArrayLength(cells.names) {
+            let name: String = DirectMirIdentityCellCType(cells, cells.names[row]);
+            output = Concat(output, Concat("typedef struct ", Concat(name, Concat(" ", Concat(name, ";\n")))));
+            row = row + 1;
+        }
+        row = 0;
+    }
+    while row < ArrayLength(cells.names) {
+        let c_type: String = DirectMirIdentityCellCType(cells, cells.names[row]);
+        if llvm { output = Concat(output, Concat(DirectMirIdentityCellLlvmType(cells, cells.names[row]), " = type { ")); }
+        else { output = Concat(output, Concat("struct ", Concat(c_type, " { "))); }
+        let field: Int = 0;
+        while field < cells.field_counts[row] {
+            let source_type: String = cells.field_types[cells.field_starts[row] + field];
+            if llvm {
+                if field > 0 { output = Concat(output, ", "); }
+                output = Concat(output, DirectMirIdentityCellLlvmFieldType(cells, source_type));
+            } else {
+                output = Concat(output, DirectMirIdentityCellCFieldType(cells, source_type));
+                output = Concat(output, Concat(" field_", Concat(ToString(field), "; ")));
+            }
+            field = field + 1;
+        }
+        if cells.nominal_kinds[row] == "zone" {
+            if llvm { output = Concat(output, ", i32"); }
+            else { output = Concat(output, "uint32_t pgy_generation; "); }
+        }
+        if llvm { output = Concat(output, " }\n"); }
+        else { output = Concat(output, "};\n"); }
+        row = row + 1;
+    }
+    return output;
+}
+
+func DirectMirIdentityCellGraphConstructors(
+    ref expressions: DirectMirScalarProgramExpressionSet, graph: Int,
+    inout nodes: Array<Int>
+) -> Void {
+    if graph < 0 { return; }
+    if graph >= ArrayLength(expressions.graph_starts) { Die("identity cell expression graph is missing"); }
+    let start: Int = expressions.graph_starts[graph];
+    let node: Int = start;
+    while node < start + expressions.graph_counts[graph] {
+        if expressions.node_kinds[node] == DirectMirScalarProgramExprIdentityCellConstructor() {
+            let prior: Int = 0;
+            while prior < ArrayLength(nodes) {
+                if nodes[prior] == node { Die("identity cell constructor has repeated graph ownership"); }
+                prior = prior + 1;
+            }
+            ArrayPush(nodes, node);
+        }
+        node = node + 1;
+    }
+}
+
+func DirectMirIdentityCellRoutineStorage(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, llvm: Bool
+) -> String {
+    if ArrayLength(plan.program.logical_record.identity_cells.names) == 0 { return ""; }
+    let nodes: Array<Int> = [];
+    let operation: Int = plan.routines.operation_starts[routine];
+    let operation_end: Int = operation + plan.routines.operation_counts[routine];
+    while operation < operation_end {
+        DirectMirIdentityCellGraphConstructors(plan.program.expressions,
+            plan.program.operation_expression_rows[operation], nodes);
+        DirectMirIdentityCellGraphConstructors(plan.program.expressions,
+            plan.program.operation_secondary_expression_rows[operation], nodes);
+        operation = operation + 1;
+    }
+    let block: Int = plan.routines.block_starts[routine];
+    let block_end: Int = block + plan.routines.block_counts[routine];
+    while block < block_end {
+        DirectMirIdentityCellGraphConstructors(plan.program.expressions,
+            plan.program.block_condition_expression_rows[block], nodes);
+        DirectMirIdentityCellGraphConstructors(plan.program.expressions,
+            plan.program.block_return_expression_rows[block], nodes);
+        block = block + 1;
+    }
+    let output: String = ""; let index: Int = 0;
+    while index < ArrayLength(nodes) {
+        let node: Int = nodes[index]; let type_name: String = plan.program.expressions.node_types[node];
+        if llvm {
+            output = Concat(output, Concat("  %pgy.identity.storage.", ToString(node)));
+            output = Concat(output, Concat(" = alloca ", DirectMirIdentityCellLlvmType(plan.program.logical_record.identity_cells, type_name)));
+            output = Concat(output, ", align 8\n");
+        } else {
+            output = Concat(output, Concat("    ", DirectMirIdentityCellCType(plan.program.logical_record.identity_cells, type_name)));
+            output = Concat(output, Concat(" pgy_identity_storage_", Concat(ToString(node), ";\n")));
+        }
+        index = index + 1;
+    }
+    return output;
+}
+
+func DirectMirIdentityCellCExpression(
+    ref cells: DirectMirIdentityCellFacts, kind: Int, node: Int,
+    type_name: String, left: String, arguments: Array<String>, member: Int
+) -> Option<String> {
+    let row: Int = DirectMirIdentityCellRow(cells, type_name);
+    if row < 0 { return None; }
+    if kind == DirectMirScalarProgramExprIdentityCellMember() {
+        if left == "" || member < 0 || member >= cells.field_counts[row] || ArrayLength(arguments) != 0 { return None; }
+        return Some(Concat("(", Concat(left, Concat(")->field_", ToString(member)))));
+    }
+    if kind != DirectMirScalarProgramExprIdentityCellConstructor() ||
+        ArrayLength(arguments) != cells.field_counts[row] || member != -1 { return None; }
+    let storage: String = Concat("pgy_identity_storage_", ToString(node));
+    let output: String = "("; let field: Int = 0;
+    while field < ArrayLength(arguments) {
+        output = Concat(output, Concat(storage, Concat(".field_", ToString(field))));
+        output = Concat(output, Concat(" = (", Concat(arguments[field], "), ")));
+        field = field + 1;
+    }
+    if cells.nominal_kinds[row] == "zone" {
+        output = Concat(output, Concat(storage, ".pgy_generation = 0, "));
+    }
+    return Some(Concat(output, Concat("&", Concat(storage, ")"))));
+}
+
+func DirectMirIdentityCellLlvmExpression(
+    ref cells: DirectMirIdentityCellFacts, kind: Int, node: Int, result: String,
+    type_name: String, left: String, arguments: Array<String>, member: Int
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let missing: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmStringExpression(false, false, "", "");
+    if kind != DirectMirScalarProgramExprIdentityCellConstructor() && kind != DirectMirScalarProgramExprIdentityCellMember() { return missing; }
+    let row: Int = DirectMirIdentityCellRow(cells, type_name);
+    if row < 0 { return DirectMirScalarProgramLlvmStringExpression(true, false, "", ""); }
+    let storage_type: String = DirectMirIdentityCellLlvmType(cells, type_name);
+    let output: String = "";
+    if kind == DirectMirScalarProgramExprIdentityCellMember() {
+        if left == "" || member < 0 || member >= cells.field_counts[row] || ArrayLength(arguments) != 0 {
+            return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
+        }
+        let pointer: String = Concat(result, ".field.ptr");
+        output = Concat("  ", Concat(pointer, Concat(" = getelementptr ", storage_type)));
+        output = Concat(output, Concat(", ptr ", Concat(left, Concat(", i32 0, i32 ", Concat(ToString(member), "\n")))));
+        output = Concat(output, Concat("  ", Concat(result, " = load ")));
+        output = Concat(output, DirectMirIdentityCellLlvmFieldType(cells, cells.field_types[cells.field_starts[row] + member]));
+        output = Concat(output, Concat(", ptr ", Concat(pointer, "\n")));
+        return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
+    }
+    if ArrayLength(arguments) != cells.field_counts[row] || member != -1 {
+        return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
+    }
+    let storage: String = Concat("%pgy.identity.storage.", ToString(node));
+    let field: Int = 0;
+    while field < ArrayLength(arguments) {
+        let pointer: String = Concat(result, Concat(".field.", ToString(field)));
+        output = Concat(output, Concat("  ", Concat(pointer, Concat(" = getelementptr ", storage_type))));
+        output = Concat(output, Concat(", ptr ", Concat(storage, Concat(", i32 0, i32 ", Concat(ToString(field), "\n")))));
+        output = Concat(output, Concat("  store ", DirectMirIdentityCellLlvmFieldType(cells, cells.field_types[cells.field_starts[row] + field])));
+        output = Concat(output, Concat(" ", Concat(arguments[field], Concat(", ptr ", Concat(pointer, "\n")))));
+        field = field + 1;
+    }
+    if cells.nominal_kinds[row] == "zone" {
+        let generation: String = Concat(result, ".generation.ptr");
+        output = Concat(output, Concat("  ", Concat(generation, Concat(" = getelementptr ", storage_type))));
+        output = Concat(output, Concat(", ptr ", Concat(storage,
+            Concat(", i32 0, i32 ", Concat(ToString(cells.field_counts[row]), "\n")))));
+        output = Concat(output, Concat("  store i32 0, ptr ", Concat(generation, ", align 4\n")));
+    }
+    return DirectMirScalarProgramLlvmStringExpression(true, true, output, storage);
+}

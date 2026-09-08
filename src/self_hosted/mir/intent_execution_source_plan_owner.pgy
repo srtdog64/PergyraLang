@@ -1,0 +1,271 @@
+// Join admitted DIR identities to the emitted routine once, before DIR retires.
+// Instruction IDs are provisional here; canonical_instruction_id_owner rebinds
+// and seals this private draft before any program publication can be ready.
+import "program_fact_owner.pgy";
+import "expression_graph_digest_owner.pgy";
+import "../dir/intent_fact_owner.pgy";
+
+func SelfMirIntentInstructionRow(
+    ref facts: SelfMirProgramFacts, routine: Int,
+    block_id: Int, name: String, anchor: String
+) -> Int {
+    let found: Int = -1;
+    let local_block: Int = 0;
+    while local_block < facts.routines.block_counts[routine] {
+        let block: Int = facts.routines.block_starts[routine] + local_block;
+        if block_id < 0 || facts.cfg.blocks.ids[block] == block_id {
+            let i: Int = facts.cfg.blocks.instruction_starts[block];
+            let end: Int = i + facts.cfg.blocks.instruction_counts[block];
+            while i < end {
+                if facts.cfg.instructions.names[i] == name &&
+                    facts.cfg.instructions.slot_anchors[i] == anchor {
+                    if found >= 0 { return -1; }
+                    found = i;
+                }
+                i = i + 1;
+            }
+        }
+        local_block = local_block + 1;
+    }
+    return found;
+}
+
+func SelfMirIntentInstructionBlock(
+    ref facts: SelfMirProgramFacts, routine: Int, instruction: Int
+) -> Int {
+    if instruction < 0 { return -1; }
+    let i: Int = 0;
+    while i < facts.routines.block_counts[routine] {
+        let block: Int = facts.routines.block_starts[routine] + i;
+        let start: Int = facts.cfg.blocks.instruction_starts[block];
+        if instruction >= start &&
+            instruction < start + facts.cfg.blocks.instruction_counts[block] {
+            return facts.cfg.blocks.ids[block];
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+func SelfMirIntentPayloadDeclarationId(
+    ref declarations: SelfMirDeclarationRows, type_name: String
+) -> Int {
+    let row: Int = SelfDirDeclarationIndexForName(declarations, type_name);
+    if row < 0 { return 0; }
+    return declarations.source_syntax_ids[row];
+}
+
+func SelfMirIntentExecutionPlanAppend(
+    facts: SelfMirProgramFacts, ref intents: SelfDirIntentFacts, intent_index: Int
+) -> SelfMirProgramFacts {
+    if !facts.ok || intents.result_modes[intent_index] != "typed_enum" {
+        return facts;
+    }
+    let routine: Int = ArrayLength(facts.routines.node_ids) - 1;
+    let routine_id: Int = intents.intent_node_ids[intent_index];
+    if routine < 0 || facts.routines.node_ids[routine] != routine_id ||
+        facts.routines.kinds[routine] != "intent" {
+        return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
+            "typed Intent plan requires its just-emitted routine identity");
+    }
+    let steps: MirIntentStepTransitionFacts = facts.intent_execution.steps;
+    let terminals: MirIntentTerminalTransitionFacts = facts.intent_execution.terminals;
+    let first: Int = intents.step_starts[intent_index];
+    let step: Int = first;
+    let end: Int = first + intents.step_counts[intent_index];
+    while step < end {
+        let name: String = intents.steps.names[step];
+        let outcome: Int = SelfMirIntentInstructionRow(facts, routine, -1,
+            "IntentEval", name);
+        // A compensation shares the step anchor, so select on by its block
+        // from the unique outcome branch instead of accepting an arbitrary eval.
+        let branch: Int = SelfMirIntentInstructionRow(facts, routine, -1,
+            "IntentOutcomeBranch", intents.steps.outcome_names[step]);
+        let branch_block: Int = SelfMirIntentInstructionBlock(facts, routine, branch);
+        if branch_block >= 0 {
+            outcome = SelfMirIntentInstructionRow(facts, routine, branch_block,
+                "IntentEval", name);
+        }
+        let completion: Int = SelfMirIntentInstructionRow(facts, routine, -1,
+            "IntentStepCompleted", name);
+        let block_row: Int = facts.routines.block_starts[routine] + branch_block;
+        if outcome < 0 || branch < 0 || completion < 0 || branch_block < 0 ||
+            facts.cfg.instructions.arg0s[outcome] != "on" ||
+            facts.cfg.blocks.has_succ_true[block_row] != 1 ||
+            facts.cfg.blocks.has_succ_false[block_row] != 1 {
+            return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
+                "typed Intent outcome, branch or completion instruction is missing");
+        }
+        let predecessor: Int = intents.transitions.predecessor_step_node_ids[step];
+        if predecessor < 0 { predecessor = 0; }
+        ArrayPush(steps.transition_ids, intents.steps.node_ids[step]);
+        ArrayPush(steps.routine_syntax_ids, routine_id);
+        ArrayPush(steps.step_syntax_ids, intents.steps.node_ids[step]);
+        ArrayPush(steps.step_names, name);
+        ArrayPush(steps.predecessor_transition_ids, predecessor);
+        ArrayPush(steps.predecessor_step_syntax_ids, predecessor);
+        ArrayPush(steps.predecessor_step_names, intents.transitions.predecessor_names[step]);
+        ArrayPush(steps.action_syntax_ids, intents.steps.target_declaration_node_ids[step]);
+        ArrayPush(steps.outcome_instruction_block_ids, branch_block);
+        ArrayPush(steps.outcome_instruction_ids, facts.cfg.instructions.ids[outcome]);
+        ArrayPush(steps.outcome_result_names, intents.steps.outcome_names[step]);
+        ArrayPush(steps.outcome_type_names, intents.steps.outcome_type_names[step]);
+        ArrayPush(steps.outcome_enum_names, intents.transitions.outcome_enum_names[step]);
+        ArrayPush(steps.outcome_enum_syntax_ids, intents.transitions.outcome_enum_node_ids[step]);
+        ArrayPush(steps.branch_block_ids, branch_block);
+        ArrayPush(steps.branch_instruction_ids, facts.cfg.instructions.ids[branch]);
+        ArrayPush(steps.success_variant_indices, intents.transitions.success_variant_indices[step]);
+        ArrayPush(steps.success_variant_names, intents.transitions.success_variant_names[step]);
+        ArrayPush(steps.success_payload_names, intents.transitions.success_payload_names[step]);
+        ArrayPush(steps.success_payload_type_names, intents.transitions.success_payload_type_names[step]);
+        ArrayPush(steps.success_payload_decl_syntax_ids, SelfMirIntentPayloadDeclarationId(
+            facts.declarations, intents.transitions.success_payload_type_names[step]));
+        ArrayPush(steps.success_successor_block_ids, facts.cfg.blocks.succ_true[block_row]);
+        ArrayPush(steps.failure_variant_indices, intents.transitions.failure_variant_indices[step]);
+        ArrayPush(steps.failure_variant_names, intents.transitions.failure_variant_names[step]);
+        ArrayPush(steps.failure_payload_names, intents.transitions.failure_payload_names[step]);
+        ArrayPush(steps.failure_payload_type_names, intents.transitions.failure_payload_type_names[step]);
+        ArrayPush(steps.failure_payload_decl_syntax_ids, SelfMirIntentPayloadDeclarationId(
+            facts.declarations, intents.transitions.failure_payload_type_names[step]));
+        ArrayPush(steps.failure_successor_block_ids, facts.cfg.blocks.succ_false[block_row]);
+        ArrayPush(steps.completion_block_ids, SelfMirIntentInstructionBlock(facts, routine, completion));
+        ArrayPush(steps.completion_instruction_ids, facts.cfg.instructions.ids[completion]);
+        ArrayPush(steps.compensation_starts, ArrayLength(steps.compensations.transition_ids));
+        let compensation_count: Int = 0;
+        let block: Int = facts.routines.block_starts[routine];
+        let block_end: Int = block + facts.routines.block_counts[routine];
+        while block < block_end {
+            let instruction: Int = facts.cfg.blocks.instruction_starts[block];
+            let instruction_end: Int = instruction + facts.cfg.blocks.instruction_counts[block];
+            while instruction < instruction_end {
+                if facts.cfg.instructions.names[instruction] == "IntentEval" &&
+                    facts.cfg.instructions.arg0s[instruction] == "compensate" &&
+                    facts.cfg.instructions.slot_anchors[instruction] == name {
+                    let graphs: SelfMirExpressionGraphRows = facts.cfg.instructions.expr0_graphs;
+                    let root: Int = graphs.roots[instruction];
+                    let target_id: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(facts.expression_graph, root);
+                    if graphs.has_roots[instruction] != 1 ||
+                        !IsSome(target_id) || compensation_count >= intents.steps.compensate_counts[step] {
+                        return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
+                            "typed Intent compensation identity is missing");
+                    }
+                    // The graph's target name is a backend-neutral canonical
+                    // callable name. The v3 row carries the declaration's
+                    // source name, selected by identity, never unmangled text.
+                    let target_name: String = "";
+                    let target_row: Int = 0;
+                    while target_row < ArrayLength(facts.routines.node_ids) {
+                        if facts.routines.node_ids[target_row] == UnwrapOption(target_id) &&
+                            (facts.routines.kinds[target_row] == "method" ||
+                             facts.routines.kinds[target_row] == "action") &&
+                            facts.routines.return_types[target_row] == "Void" {
+                            if target_name != "" {
+                                return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
+                                    "typed Intent compensation declaration is ambiguous");
+                            }
+                            target_name = facts.routines.names[target_row];
+                        }
+                        target_row = target_row + 1;
+                    }
+                    if target_name == "" {
+                        return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
+                            "typed Intent compensation declaration is missing");
+                    }
+                    let c: MirIntentCompensationFacts = steps.compensations;
+                    ArrayPush(c.transition_ids, intents.steps.node_ids[step]);
+                    ArrayPush(c.expression_syntax_ids, intents.steps.compensate_node_ids[
+                        intents.steps.compensate_starts[step] + compensation_count]);
+                    ArrayPush(c.instruction_block_ids, facts.cfg.blocks.ids[block]);
+                    ArrayPush(c.instruction_ids, facts.cfg.instructions.ids[instruction]);
+                    ArrayPush(c.graph_root_ids, root - graphs.node_starts[instruction]);
+                    ArrayPush(c.graph_digests, SelfMirExpressionGraphDigest(graphs, facts.expression_graph, instruction));
+                    ArrayPush(c.call_target_names, target_name);
+                    ArrayPush(c.call_target_syntax_ids, UnwrapOption(target_id));
+                    steps.compensations = c;
+                    compensation_count = compensation_count + 1;
+                }
+                instruction = instruction + 1;
+            }
+            block = block + 1;
+        }
+        if compensation_count != intents.steps.compensate_counts[step] {
+            return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
+                "typed Intent compensation carriage is incomplete");
+        }
+        ArrayPush(steps.compensation_counts, compensation_count);
+        ArrayPush(steps.where_zone_names, intents.steps.where_zone_names[step]);
+        ArrayPush(steps.where_zone_syntax_ids, SelfMirIntentPayloadDeclarationId(
+            facts.declarations, intents.steps.where_zone_names[step]));
+        step = step + 1;
+    }
+    let terminal: Int = intents.transitions.terminal_starts[intent_index];
+    let terminal_end: Int = terminal + intents.transitions.terminal_counts[intent_index];
+    while terminal < terminal_end {
+        let source: Int = first + intents.transitions.terminal_source_step_indices[terminal];
+        let expression_id: Int = intents.transitions.terminal_expression_node_ids[terminal];
+        let definition: String = Concat("intent.result.", ToString(expression_id));
+        let instruction: Int = -1;
+        let block: Int = facts.routines.block_starts[routine];
+        while block < facts.routines.block_starts[routine] + facts.routines.block_counts[routine] {
+            let i: Int = facts.cfg.blocks.instruction_starts[block];
+            let end_i: Int = i + facts.cfg.blocks.instruction_counts[block];
+            while i < end_i {
+                if facts.cfg.instructions.names[i] == "IntentTerminalResult" &&
+                    facts.cfg.instructions.results[i] == definition {
+                    if instruction >= 0 {
+                        return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
+                            "typed Intent terminal result is duplicated");
+                    }
+                    instruction = i;
+                }
+                i = i + 1;
+            }
+            block = block + 1;
+        }
+        if source < first || source >= end || instruction < 0 {
+            return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
+                "typed Intent terminal source or instruction is missing");
+        }
+        let variant_index: Int = intents.transitions.failure_variant_indices[source];
+        let variant: String = intents.transitions.failure_variant_names[source];
+        let payload: String = intents.transitions.failure_payload_names[source];
+        let payload_type: String = intents.transitions.failure_payload_type_names[source];
+        if intents.transitions.terminal_roles[terminal] == "success" {
+            variant_index = intents.transitions.success_variant_indices[source];
+            variant = intents.transitions.success_variant_names[source];
+            payload = intents.transitions.success_payload_names[source];
+            payload_type = intents.transitions.success_payload_type_names[source];
+        }
+        let graphs: SelfMirExpressionGraphRows = facts.cfg.instructions.expr0_graphs;
+        ArrayPush(terminals.terminal_transition_ids, expression_id);
+        ArrayPush(terminals.routine_syntax_ids, routine_id);
+        ArrayPush(terminals.roles, intents.transitions.terminal_roles[terminal]);
+        ArrayPush(terminals.source_transition_ids, intents.steps.node_ids[source]);
+        ArrayPush(terminals.source_step_syntax_ids, intents.steps.node_ids[source]);
+        ArrayPush(terminals.source_step_names, intents.steps.names[source]);
+        ArrayPush(terminals.source_variant_indices, variant_index);
+        ArrayPush(terminals.source_variant_names, variant);
+        ArrayPush(terminals.source_payload_names, payload);
+        ArrayPush(terminals.source_payload_type_names, payload_type);
+        ArrayPush(terminals.source_payload_decl_syntax_ids, SelfMirIntentPayloadDeclarationId(facts.declarations, payload_type));
+        ArrayPush(terminals.result_instruction_block_ids, SelfMirIntentInstructionBlock(facts, routine, instruction));
+        ArrayPush(terminals.result_instruction_ids, facts.cfg.instructions.ids[instruction]);
+        ArrayPush(terminals.result_definition_names, definition);
+        ArrayPush(terminals.result_type_names, intents.return_type_names[intent_index]);
+        ArrayPush(terminals.result_enum_names, intents.transitions.terminal_result_enum_names[terminal]);
+        ArrayPush(terminals.result_enum_syntax_ids, intents.transitions.terminal_result_enum_node_ids[terminal]);
+        ArrayPush(terminals.result_variant_indices, intents.transitions.terminal_variant_indices[terminal]);
+        ArrayPush(terminals.result_variant_names, intents.transitions.terminal_variant_names[terminal]);
+        ArrayPush(terminals.result_payload_names, intents.transitions.terminal_payload_source_names[terminal]);
+        ArrayPush(terminals.result_payload_type_names, intents.transitions.terminal_payload_type_names[terminal]);
+        ArrayPush(terminals.result_payload_decl_syntax_ids, SelfMirIntentPayloadDeclarationId(
+            facts.declarations, intents.transitions.terminal_payload_type_names[terminal]));
+        ArrayPush(terminals.expression_syntax_ids, expression_id);
+        ArrayPush(terminals.graph_root_ids, graphs.roots[instruction] - graphs.node_starts[instruction]);
+        ArrayPush(terminals.graph_digests, SelfMirExpressionGraphDigest(graphs, facts.expression_graph, instruction));
+        terminal = terminal + 1;
+    }
+    facts.intent_execution = MirIntentExecutionPlan(false, true,
+        MirIntentExecutionPlanSchema(), 0, steps, terminals);
+    return facts;
+}

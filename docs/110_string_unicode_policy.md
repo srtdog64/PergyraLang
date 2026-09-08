@@ -7,6 +7,12 @@ UTF-8 string payloads, but it does not claim a full Unicode text model.
 
 Executable gate: `make unicode-policy-test-smoke`.
 
+Bounded self-host projection gate:
+`make self-host-direct-mir-utf8-string-literal-test-smoke`. It compares literal
+payload bytes, byte-length and normalization-blind equality across native,
+public self-host and direct-MIR C/LLVM, with ASCII/escape controls. This does
+not extend the Unicode text model or claim a general UTF-8 scalar validator.
+
 ## Stable Surface
 
 - Source files are treated as UTF-8 byte streams.

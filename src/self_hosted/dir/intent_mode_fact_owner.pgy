@@ -96,7 +96,7 @@ func SelfDirIntentModeFactsFromArtifact(
 
 func SelfDirIntentModeFactsReady(
     artifact: AstTreeArtifact,
-    intent_node_ids: Array<Int>,
+    ref intent_node_ids: Array<Int>,
     ref facts: SelfDirIntentModeFacts
 ) -> Bool {
     if !facts.ok || facts.diagnostic_message != "" ||

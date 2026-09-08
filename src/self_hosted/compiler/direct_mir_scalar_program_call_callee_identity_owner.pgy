@@ -6,6 +6,28 @@
 
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 
+// Generic actuals are already bound by the occurrence/instance owner. This
+// projection removes only their structural wrapper, never chooses a target.
+func DirectMirScalarProgramCallCalleeBase(
+    ref sequence: MirExpressionGraphSequence, call: Int
+) -> Int {
+    if call < 0 || call >= sequence.ready_node_count ||
+        sequence.arena.topology.node_kinds[call] != AstExpressionNodeCall() { return -1; }
+    let callee: Int = sequence.arena.topology.left_children[call];
+    while callee >= 0 && callee < call &&
+        sequence.arena.topology.node_kinds[callee] == AstExpressionNodeGenericCallee() {
+        let actual: Int = sequence.arena.topology.right_children[callee];
+        let previous: Int = sequence.arena.topology.left_children[callee];
+        if actual < 0 || actual >= callee || previous < 0 || previous >= callee ||
+            sequence.arena.topology.node_kinds[actual] != AstExpressionNodeGenericTypeActual() {
+            return -1;
+        }
+        callee = previous;
+    }
+    if callee < 0 || callee >= call { return -1; }
+    return callee;
+}
+
 func DirectMirScalarProgramNamespaceCallMarkerReady(
     ref sequence: MirExpressionGraphSequence, node: Int
 ) -> Bool {
@@ -17,7 +39,7 @@ func DirectMirScalarProgramNamespaceCallMarkerReady(
         sequence.arena.identities.call_target_syntax_ids[node] <= 0 {
         return false;
     }
-    let callee: Int = sequence.arena.topology.left_children[node];
+    let callee: Int = DirectMirScalarProgramCallCalleeBase(sequence, node);
     if callee < 0 || callee >= node ||
         sequence.arena.topology.node_kinds[callee] !=
             AstExpressionNodeMemberAccess() {
@@ -34,7 +56,8 @@ func DirectMirScalarProgramNamespaceCallMarkerReady(
 func DirectMirScalarProgramCallMarkerReady(
     ref sequence: MirExpressionGraphSequence, node: Int
 ) -> Bool {
-    if DirectMirScalarProgramNamespaceCallMarkerReady(sequence, node) {
+    if DirectMirScalarProgramNamespaceCallMarkerReady(sequence, node) ||
+        DirectMirScalarProgramMemberCallMarkerReady(sequence, node) {
         return true;
     }
     if node < 1 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
@@ -42,7 +65,7 @@ func DirectMirScalarProgramCallMarkerReady(
         sequence.arena.call_target_kinds[node] != SemanticCallTargetDirect() {
         return false;
     }
-    let callee: Int = sequence.arena.topology.left_children[node];
+    let callee: Int = DirectMirScalarProgramCallCalleeBase(sequence, node);
     if callee < 0 || callee >= node ||
         sequence.arena.topology.node_kinds[callee] != AstExpressionNodeLeaf() {
         return false;
@@ -76,6 +99,25 @@ func DirectMirScalarProgramCallCalleeNodeReady(
 ) -> Bool {
     if DirectMirScalarProgramCallCalleeLeafReady(sequence, node) { return true; }
     let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
+    // A normalized explicit-actual spine consists of base, actual/wrapper
+    // pairs, then call. Type markers are not runtime values or callable values.
+    let generic: Int = node;
+    if node >= 0 && node < count && sequence.arena.topology.node_kinds[node] == AstExpressionNodeGenericTypeActual() {
+        if node + 1 >= count || sequence.arena.topology.node_kinds[node + 1] != AstExpressionNodeGenericCallee() ||
+            sequence.arena.topology.right_children[node + 1] != node { return false; }
+        generic = node + 1;
+    }
+    while generic >= 0 && generic + 2 < count &&
+        sequence.arena.topology.node_kinds[generic + 1] == AstExpressionNodeGenericTypeActual() &&
+        sequence.arena.topology.node_kinds[generic + 2] == AstExpressionNodeGenericCallee() &&
+        sequence.arena.topology.left_children[generic + 2] == generic &&
+        sequence.arena.topology.right_children[generic + 2] == generic + 1 {
+        generic = generic + 2;
+    }
+    if generic >= 0 && generic < count &&
+        sequence.arena.topology.node_kinds[generic] == AstExpressionNodeGenericCallee() &&
+        generic + 1 < count && sequence.arena.topology.left_children[generic + 1] == generic &&
+        DirectMirScalarProgramCallMarkerReady(sequence, generic + 1) { return true; }
     let callee: Int = -1; let call: Int = -1;
     if node >= 0 && node < count && sequence.arena.topology.node_kinds[node] ==
             AstExpressionNodeMemberAccess() {
@@ -91,10 +133,35 @@ func DirectMirScalarProgramCallCalleeNodeReady(
             callee = node + 2; call = node + 3;
         }
     }
+    if DirectMirScalarProgramMemberCallMarkerReady(sequence, call) &&
+        sequence.arena.topology.left_children[call] == callee {
+        // The receiver is evaluated; only selector syntax is erased.
+        return node == callee || sequence.arena.topology.right_children[callee] == node;
+    }
     return DirectMirScalarProgramNamespaceCallMarkerReady(sequence, call) &&
         sequence.arena.topology.left_children[call] == callee &&
         (node == callee || sequence.arena.topology.left_children[callee] == node ||
          sequence.arena.topology.right_children[callee] == node);
+}
+
+func DirectMirScalarProgramMemberCallMarkerReady(
+    ref sequence: MirExpressionGraphSequence, call: Int
+) -> Bool {
+    if call < 1 || call >= sequence.ready_node_count ||
+        sequence.arena.topology.node_kinds[call] != AstExpressionNodeCall() ||
+        sequence.arena.call_target_kinds[call] != SemanticCallTargetMember() ||
+        sequence.arena.call_target_names[call] == "" ||
+        sequence.arena.identities.call_target_syntax_ids[call] <= 0 { return false; }
+    let callee: Int = DirectMirScalarProgramCallCalleeBase(sequence, call);
+    if callee < 0 || callee >= call ||
+        sequence.arena.topology.node_kinds[callee] != AstExpressionNodeMemberAccess() { return false; }
+    let receiver: Int = sequence.arena.topology.left_children[callee];
+    let member: Int = sequence.arena.topology.right_children[callee];
+    return receiver >= 0 && receiver < callee && member >= 0 && member < callee &&
+        sequence.arena.topology.node_kinds[member] == AstExpressionNodeLeaf() &&
+        sequence.arena.identities.binding_kinds[member] == SemanticExpressionBindingNone() &&
+        sequence.arena.identities.binding_syntax_ids[member] == 0 &&
+        sequence.arena.identities.binding_ordinals[member] == -1;
 }
 
 func DirectMirScalarProgramBuiltinCalleeLeafReady(

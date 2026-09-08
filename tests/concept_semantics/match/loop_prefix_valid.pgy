@@ -1,0 +1,11 @@
+enum Shape { Dot, Line(Int), Rect(Int, Int) }
+func Area(s: Shape) -> Int {
+    let pass: Int = 0;
+    while pass < 1 { Log(9); pass = pass + 1; }
+    match s {
+        case Dot: return 0;
+        case Line(n): return n;
+        case Rect(w, h): return w * h;
+    }
+}
+func Main() -> Void { Log(Area(Rect(2, 3))); }

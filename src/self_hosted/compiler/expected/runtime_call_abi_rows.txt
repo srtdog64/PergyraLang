@@ -1,5 +1,5 @@
 schema=pgy.selfhost.runtime-call-abi-row.v2
-count=262
+count=267
 0|collection|array-int.new|pgy_ai_new|function|generated_runtime_helper|returns_collection
 1|collection|array-int.push|pgy_ai_push|function|generated_runtime_helper|collection_value_to_void
 2|collection|array-int.set|pgy_ai_set|function|generated_runtime_helper|collection_index_value_to_void
@@ -262,3 +262,8 @@ count=262
 259|host-io|compiler-artifact-begin|pgy_compiler_artifact_begin|function|target_library|string_to_int
 260|host-io|compiler-artifact-commit|pgy_compiler_artifact_commit|function|target_library|int_to_int
 261|host-io|compiler-artifact-abort|pgy_compiler_artifact_abort|function|target_library|int_to_int
+262|checked-arithmetic|int-add|pgy_checked_add_i32_export|function|target_library|i32_i32_to_i32
+263|checked-arithmetic|int-multiply|pgy_checked_mul_i32_export|function|target_library|i32_i32_to_i32
+264|collection|array-int.sort-data|pgy_array_sort_Int|function|target_library|data_count_to_void
+265|collection|array-int.reverse-data|pgy_array_reverse_Int|function|target_library|data_count_to_void
+266|checked-arithmetic|int-division|pgy_checked_div_i32_export|function|target_library|i32_i32_to_i32

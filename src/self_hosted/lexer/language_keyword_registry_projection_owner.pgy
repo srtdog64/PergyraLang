@@ -19,7 +19,9 @@ func LanguageWordRegistryProjectionReady() -> Bool {
             row.keyword_class < 1 || StringLength(row.class_name) == 0 ||
             row.context_mask <= 0 || row.axis < 0 ||
             StringLength(row.axis_name) == 0 ||
-            row.implementation_support <= 0 || row.tooling_flags < 0 {
+            row.implementation_support < 0 || row.implementation_support > 3 ||
+            row.tooling_flags < 0 || (row.implementation_support == 0 &&
+                (row.keyword_class != 2 || row.tooling_flags != 0)) {
             return false;
         }
         index = index + 1;

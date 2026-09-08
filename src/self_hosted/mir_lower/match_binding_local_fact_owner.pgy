@@ -23,7 +23,7 @@ struct MirMatchBindingLocalFacts {
 }
 
 func MirMatchBindingRoutineWideType(
-    names: Array<String>, types: Array<String>, wanted: String
+    ref names: Array<String>, ref types: Array<String>, wanted: String
 ) -> String {
     if ArrayLength(names) != ArrayLength(types) { return ""; }
     let found: String = "";

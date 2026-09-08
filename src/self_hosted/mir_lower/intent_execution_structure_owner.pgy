@@ -118,47 +118,23 @@ func MirIntentExecutionRoutineStructureReady(
         index.instruction_facts,
         routines.routine_block_counts[routine_row]
     ) { return false; }
-    let block0: Int = MirIntentExecutionRoutineBlockRowById(
-        routines, routine_row, 0
-    );
-    let block1: Int = MirIntentExecutionRoutineBlockRowById(
-        routines, routine_row, 1
-    );
-    let block2: Int = MirIntentExecutionRoutineBlockRowById(
-        routines, routine_row, 2
-    );
-    let block3: Int = MirIntentExecutionRoutineBlockRowById(
-        routines, routine_row, 3
-    );
-    let block4: Int = MirIntentExecutionRoutineBlockRowById(
-        routines, routine_row, 4
-    );
-    if block0 < 0 || block1 < 0 || block2 < 0 || block3 < 0 || block4 < 0 ||
-        routines.block_instruction_counts[block0] <= 0 ||
-        routines.block_instruction_counts[block1] <= 0 ||
-        routines.block_instruction_counts[block2] != 0 ||
-        routines.block_instruction_counts[block3] < 3 ||
-        routines.block_instruction_counts[block4] < 2 {
-        return false;
-    }
+    let topology: MirIntentRoutineBlockTopology =
+        MirIntentRoutineBlockTopologyFromIndex(routines, index, routine_row);
+    if !topology.valid || ArrayLength(topology.execution_rows) == 0 { return false; }
     let zero_compensation_scaffolds: Int = 0;
     let local_block: Int = 0;
     while local_block < routines.routine_block_counts[routine_row] {
         let block_row: Int = routines.routine_block_starts[routine_row] +
             local_block;
-        let block_id_text: String = MirObjectNumberFactAtBounds(
-            routines.source_json, routines.block_starts[block_row],
-            routines.block_ends[block_row], "id"
-        );
-        let block_id: Int = ToInt(block_id_text);
-        if block_id < 0 || ToString(block_id) != block_id_text {
-            return false;
-        }
-        if block_id > 4 && !MirIntentExecutionBlockOwnedByRoutinePlan(
-                plan, routine_syntax_id, block_id
-            ) {
+        let owned: Bool = MirIntentExecutionBlockOwnedByRoutinePlan(
+            plan, routine_syntax_id, local_block);
+        if routines.block_intent_roles[block_row] != "execution" {
+            if owned { return false; }
+        } else if !owned {
             if index.block_reachable[local_block] ||
-                index.block_instruction_counts[local_block] != 0 {
+                index.block_instruction_counts[local_block] != 0 ||
+                index.block_succ_true[local_block] != -1 ||
+                index.block_succ_false[local_block] != -1 {
                 return false;
             }
             zero_compensation_scaffolds =
@@ -170,20 +146,4 @@ func MirIntentExecutionRoutineStructureReady(
         MirIntentExecutionZeroCompensationScaffoldCount(
             plan, routine_syntax_id
         );
-}
-
-func MirIntentExecutionRollbackBlockId(
-    ref plan: MirIntentExecutionPlan,
-    routine_syntax_id: Int
-) -> Int {
-    if MirIntentExecutionPlanOwnsRoutine(plan, routine_syntax_id) { return 3; }
-    return 2;
-}
-
-func MirIntentExecutionInvalidationBlockId(
-    ref plan: MirIntentExecutionPlan,
-    routine_syntax_id: Int
-) -> Int {
-    if MirIntentExecutionPlanOwnsRoutine(plan, routine_syntax_id) { return 4; }
-    return 3;
 }

@@ -624,23 +624,12 @@ shared_nominal_inventory=(src/self_hosted/compiler/direct_mir_nominal_literal_*.
     fail "shared nominal literal owner inventory drifted"
 [[ "$shared_nominal_total" -le 900 ]] || \
     fail "shared nominal literal owner cap exceeded: $shared_nominal_total/900"
-passive_nominal_total=0
-while IFS='|' read -r owner cap; do
-    require_file "src/self_hosted/compiler/$owner"
-    lines="$(wc -l < "src/self_hosted/compiler/$owner")"
-    [[ "$lines" -le "$cap" ]] || fail "$owner hard cap exceeded: $lines/$cap"
-    passive_nominal_total=$((passive_nominal_total + lines))
-done <<'PASSIVE_NOMINAL_OWNER_CAPS'
-direct_mir_passive_nominal_literal_plan_owner.pgy|140
-direct_mir_passive_nominal_literal_target_projection_owner.pgy|60
-direct_mir_passive_nominal_literal_c_emission_owner.pgy|90
-direct_mir_passive_nominal_literal_llvm_emission_owner.pgy|90
-PASSIVE_NOMINAL_OWNER_CAPS
-passive_nominal_inventory=(src/self_hosted/compiler/direct_mir_passive_nominal_literal_*.pgy)
-[[ "${#passive_nominal_inventory[@]}" -eq 4 ]] || \
-    fail "passive nominal owner inventory drifted"
-[[ "$passive_nominal_total" -le 320 ]] || \
-    fail "passive nominal owner cap exceeded: $passive_nominal_total/320"
+for retired in plan target_projection c_emission llvm_emission; do
+    [[ ! -e "src/self_hosted/compiler/direct_mir_passive_nominal_literal_${retired}_owner.pgy" ]] || \
+        fail "retired passive literal owner reappeared: $retired"
+done
+! grep -R -Eq 'DirectMirPassiveNominalLiteral|direct_mir_passive_nominal_literal_' \
+    src/self_hosted/compiler || fail "passive literal bypass reappeared"
 mutable_identity_total=0
 while IFS='|' read -r owner cap; do
     require_file "src/self_hosted/compiler/$owner"
@@ -692,11 +681,11 @@ require_text \
 ! grep -R -Fq 'CompileAdmittedDirectMirPassiveNominalLiteral' \
     src/self_hosted/compiler || fail "retired passive composition root reappeared"
 require_text \
-    "src/self_hosted/compiler/direct_mir_passive_nominal_literal_plan_owner.pgy" \
-    'typed_nominal_physical_abi_absent'
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_declaration_envelope_owner.pgy" \
+    'MirAbiAllBoundsPresent(starts, ends)'
 require_text \
-    "src/self_hosted/compiler/direct_mir_passive_nominal_literal_plan_owner.pgy" \
-    'typed_nominal_abi_absence.digest'
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_declaration_envelope_owner.pgy" \
+    'MirDeclarationWireKind(declarations.nominal_kinds[declaration_row])'
 require_text \
     "src/self_hosted/compiler/direct_mir_nominal_literal_abi_absence_owner.pgy" \
     'result_capture_digest'
@@ -715,11 +704,11 @@ require_text \
     src/self_hosted/compiler/direct_mir_nominal_literal_projection_owner.pgy || \
     fail "shared nominal router recreated a mutable kind allow-list"
 require_text \
-    "src/self_hosted/compiler/direct_mir_passive_nominal_literal_target_projection_owner.pgy" \
-    'each emitter owns syntax'
+    "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    'scalar_program_route.logical_record.present'
 for passive_nominal_ratchet in \
-    '%pgy.nominal.0 = insertvalue %PlayerDto poison, i32 12, 0' \
-    '%pgy.member.0 = extractvalue %PlayerDto %pgy.nominal.0, 0' \
+    'insertvalue %pgy.scalar.logical.record.value.0 poison, i64 12, 0' \
+    'extractvalue %pgy.scalar.logical.record.value.0' \
     definition-local-drift definition-arg-type-drift \
     definition-expr-type-drift instruction-tail kind-drift method-tail host-subject \
     'subject/vessel identity split' 'scalar after passive nominal admission'; do

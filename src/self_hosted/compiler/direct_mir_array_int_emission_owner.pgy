@@ -6,7 +6,7 @@ import "direct_mir_array_int_abi_projection_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 
-func DirectMirArrayIntCElementList(values: Array<Int>) -> String {
+func DirectMirArrayIntCElementList(ref values: Array<Int>) -> String {
     let output: String = "";
     let row: Int = 0;
     while row < ArrayLength(values) {
@@ -92,7 +92,7 @@ func DirectMirArrayIntEmitC(
 }
 
 func DirectMirArrayIntEmitLlvmValue(
-    prefix: String, values: Array<Int>,
+    prefix: String, ref values: Array<Int>,
     ref abi: DirectMirArrayIntAbiProjection
 ) -> String {
     let count: Int = ArrayLength(values);

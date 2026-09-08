@@ -1,11 +1,15 @@
 // Exact passive declaration envelope admitted as one logical-record row.
 import "../mir_lower/abi_layout_fact_owner.pgy";
 import "../mir_lower/program_declaration_index_owner.pgy";
+import "direct_mir_nominal_declaration_abi_fact_owner.pgy";
+import "../semantic/callable_receiver_carriage_policy_owner.pgy";
+import "../mir/declaration_wire_kind_owner.pgy";
 
 struct DirectMirScalarProgramLogicalRecordDeclarationEnvelope {
     let valid: Bool;
     let name: String;
     let source_syntax_id: Int;
+    let physical: DirectMirNominalDeclarationAbiFact;
 }
 
 func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
@@ -13,22 +17,22 @@ func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
     declaration_row: Int
 ) -> DirectMirScalarProgramLogicalRecordDeclarationEnvelope {
     let invalid: DirectMirScalarProgramLogicalRecordDeclarationEnvelope =
-        DirectMirScalarProgramLogicalRecordDeclarationEnvelope(false, "", 0);
+        DirectMirScalarProgramLogicalRecordDeclarationEnvelope(
+            false, "", 0, InvalidDirectMirNominalDeclarationAbiFact());
     if !declarations.valid || declaration_row < 0 || declaration_row >=
             MirProgramDeclarationIndexCount(declarations) {
         return invalid;
     }
-    let passive_kind: Bool =
-        (declarations.kinds[declaration_row] == "struct" &&
-         declarations.nominal_kinds[declaration_row] == "struct") ||
-        (declarations.kinds[declaration_row] == "tobject" &&
-         declarations.nominal_kinds[declaration_row] == "tobject");
+    let passive_kind: Bool = declarations.kinds[declaration_row] ==
+            MirDeclarationWireKind(declarations.nominal_kinds[declaration_row]) &&
+        declarations.nominal_kinds[declaration_row] != "enum" &&
+        CallableReceiverNominalKindUsesValue(declarations.nominal_kinds[declaration_row]);
     if !passive_kind { return invalid; }
     let start: Int = declarations.starts[declaration_row];
     let end: Int = declarations.ends[declaration_row];
     let declaration_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
         json, start, end);
-    let is_tobject: Bool = declarations.kinds[declaration_row] == "tobject";
+    let logical_only: Bool = declarations.kinds[declaration_row] != "struct";
     let keys: Array<String> = [
         "kind", "nominal_kind", "name", "source_syntax_id",
         "source_module_path", "fields", "abi_layout_id",
@@ -36,7 +40,7 @@ func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
     ];
     let starts: Array<Int> = [-1, -1, -1, -1, -1, -1, -1, -1, -1];
     let ends: Array<Int> = [-1, -1, -1, -1, -1, -1, -1, -1, -1];
-    if is_tobject {
+    if logical_only {
         keys = ["kind", "nominal_kind", "name", "source_syntax_id",
             "source_module_path", "fields", "methods"];
         starts = [-1, -1, -1, -1, -1, -1, -1];
@@ -67,19 +71,30 @@ func DirectMirScalarProgramLogicalRecordDeclarationEnvelopeFromOwner(
         ToInt(UnwrapOption(syntax)) <= 0 {
         return invalid;
     }
-    if is_tobject {
-        if !SubEqualsWithLen(json, ends[6], starts[6], 2, "[]") {
+    let physical: DirectMirNominalDeclarationAbiFact =
+        InvalidDirectMirNominalDeclarationAbiFact();
+    if logical_only {
+        if ends[6] - starts[6] != 2 ||
+            !SubEqualsWithLen(json, ends[6], starts[6], 2, "[]") {
             return invalid;
         }
     } else {
         let abi_id: Option<String> = MirAbiIntegerValueAtBounds(
             json, starts[6], ends[6]);
-        if !IsSome(abi_id) || ToInt(UnwrapOption(abi_id)) != 0 ||
+        if !IsSome(abi_id) { return invalid; }
+        if SubEqualsWithLen(json, ends[7], starts[7], 4, "true") {
+            physical = DirectMirNominalDeclarationAbiFactFromDocument(
+                json, declarations, declaration_row);
+            if !DirectMirNominalDeclarationAbiFactReady(physical) ||
+                physical.source_syntax_id != ToInt(UnwrapOption(syntax)) {
+                return invalid;
+            }
+        } else if ToInt(UnwrapOption(abi_id)) != 0 ||
             !SubEqualsWithLen(json, ends[7], starts[7], 5, "false") ||
             !SubEqualsWithLen(json, ends[8], starts[8], 4, "null") {
             return invalid;
         }
     }
     return DirectMirScalarProgramLogicalRecordDeclarationEnvelope(
-        true, UnwrapOption(name), ToInt(UnwrapOption(syntax)));
+        true, UnwrapOption(name), ToInt(UnwrapOption(syntax)), physical);
 }

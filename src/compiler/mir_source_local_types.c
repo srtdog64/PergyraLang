@@ -45,7 +45,8 @@ static bool
 mir_source_local_type_append_name(const MIRProgram *program,
                                   MIRRoutine *routine,
                                   const char *name,
-                                  const char *type_name)
+                                  const char *type_name,
+                                  uint32_t binding_syntax_id)
 {
     const char *effective_type_name = type_name;
 
@@ -53,6 +54,8 @@ mir_source_local_type_append_name(const MIRProgram *program,
         || type_name[0] == '\0') {
         return true;
     }
+    if (binding_syntax_id == 0)
+        return false;
     if (program != NULL) {
         const char *alias_target =
             mir_decl_header_resolve_type_alias_target_type_name(
@@ -61,9 +64,11 @@ mir_source_local_type_append_name(const MIRProgram *program,
             effective_type_name = alias_target;
     }
     for (size_t i = 0; i < routine->source_local_type_count; i++) {
-        if (routine->source_local_types[i].name != NULL
-            && strcmp(routine->source_local_types[i].name, name) == 0) {
-            return true;
+        const MIRSourceLocalType *prior = &routine->source_local_types[i];
+        if (prior->binding_syntax_id == binding_syntax_id) {
+            return prior->name != NULL && prior->type_name != NULL
+                && strcmp(prior->name, name) == 0
+                && strcmp(prior->type_name, effective_type_name) == 0;
         }
     }
     if (routine->source_local_type_count
@@ -95,6 +100,8 @@ mir_source_local_type_append_name(const MIRProgram *program,
         name_copy;
     routine->source_local_types[routine->source_local_type_count].type_name =
         type_name_copy;
+    routine->source_local_types[routine->source_local_type_count].binding_syntax_id =
+        binding_syntax_id;
     routine->source_local_types[routine->source_local_type_count].is_callable =
         false;
     routine->source_local_types[routine->source_local_type_count]
@@ -113,7 +120,8 @@ static bool
 mir_source_local_type_append_callable(const MIRProgram *program,
                                       MIRRoutine *routine,
                                       const char *name,
-                                      ASTNode *type_node)
+                                      ASTNode *type_node,
+                                      uint32_t binding_syntax_id)
 {
     char **param_type_names = NULL;
     char *return_type_name = NULL;
@@ -221,7 +229,7 @@ mir_source_local_type_append_callable(const MIRProgram *program,
 
     before_count = routine->source_local_type_count;
     if (!mir_source_local_type_append_name(program, routine, name,
-            surface_type_name)) {
+            surface_type_name, binding_syntax_id)) {
         goto fail;
     }
     if (routine->source_local_type_count == before_count) {
@@ -262,7 +270,8 @@ static bool
 mir_source_local_type_append(const MIRProgram *program,
                              MIRRoutine *routine,
                              const char *name,
-                             ASTNode *type_node)
+                             ASTNode *type_node,
+                             uint32_t binding_syntax_id)
 {
     char *rendered;
     bool ok;
@@ -272,14 +281,15 @@ mir_source_local_type_append(const MIRProgram *program,
     }
     if (type_node->type == AST_EVENT_HANDLER_TYPE)
         return mir_source_local_type_append_callable(program, routine, name,
-            type_node);
+            type_node, binding_syntax_id);
     if (type_node->type != AST_TYPE)
         return true;
 
     rendered = mir_capture_type_name(type_node, NULL);
     if (rendered == NULL)
         return false;
-    ok = mir_source_local_type_append_name(program, routine, name, rendered);
+    ok = mir_source_local_type_append_name(program, routine, name, rendered,
+        binding_syntax_id);
     free(rendered);
     return ok;
 }
@@ -356,11 +366,11 @@ mir_source_local_type_capture_node(const MIRProgram *program,
             if (type_node != NULL
                 && type_node->type == AST_EVENT_HANDLER_TYPE) {
                 if (!mir_source_local_type_append_callable(program, routine,
-                        ast_let_name(node), type_node)) {
+                        ast_let_name(node), type_node, ast_node_stable_id(node))) {
                     return false;
                 }
             } else if (!mir_source_local_type_append_name(program, routine,
-                    ast_let_name(node), clo_type)) {
+                    ast_let_name(node), clo_type, ast_node_stable_id(node))) {
                 return false;
             }
             if (routine->source_local_type_count > before) {
@@ -377,17 +387,17 @@ mir_source_local_type_capture_node(const MIRProgram *program,
         }
         if (type_node != NULL)
             return mir_source_local_type_append(program, routine,
-                ast_let_name(node), type_node);
+                ast_let_name(node), type_node, ast_node_stable_id(node));
         callable_type = mir_source_local_callable_type_from_initializer(
             program, ast_let_initializer(node));
         if (callable_type != NULL) {
             return mir_source_local_type_append_callable(program, routine,
-                ast_let_name(node), callable_type);
+                ast_let_name(node), callable_type, ast_node_stable_id(node));
         }
         return mir_source_local_type_append_name(program, routine,
             ast_let_name(node),
             mir_source_local_expr_type_name(program, routine, &scratch,
-                ast_let_initializer(node)));
+                ast_let_initializer(node)), ast_node_stable_id(node));
     }
     case AST_LET_DESTRUCTURE: {
         size_t name_count = ast_let_destructure_name_count(node);
@@ -404,7 +414,7 @@ mir_source_local_type_capture_node(const MIRProgram *program,
             if (!mir_source_local_type_append_name(
                     program, routine,
                     ast_let_destructure_name(node, i),
-                    fact->binding_type_name)) {
+                    fact->binding_type_name, ast_let_destructure_binding_stable_id(node, i))) {
                 return false;
             }
         }
@@ -420,6 +430,9 @@ mir_source_local_type_capture_node(const MIRProgram *program,
         }
         return true;
     }
+    case AST_UNSAFE_BLOCK:
+        return mir_source_local_type_capture_node(program, routine,
+            ast_unsafe_block_body(node));
     case AST_IF_STMT:
         return mir_source_local_type_capture_node(program, routine,
                    ast_if_then_branch(node))
@@ -436,7 +449,7 @@ mir_source_local_type_capture_node(const MIRProgram *program,
             || fact->binding_type_name[0] == '\0')
             return false;
         return mir_source_local_type_append_name(program, routine,
-                    ast_for_variable(node), fact->binding_type_name)
+                    ast_for_variable(node), fact->binding_type_name, ast_node_stable_id(node))
             && mir_source_local_type_capture_node(program, routine,
                     ast_for_body(node));
     }
@@ -446,7 +459,7 @@ mir_source_local_type_capture_node(const MIRProgram *program,
         bool ok = true;
         if (alias != NULL && claim_type != NULL)
             ok = mir_source_local_type_append_name(program, routine, alias,
-                claim_type);
+                claim_type, ast_node_stable_id(node));
         free(claim_type);
         return ok && mir_source_local_type_capture_node(program, routine,
             ast_with_body(node));
@@ -469,7 +482,8 @@ mir_source_local_type_capture_node(const MIRProgram *program,
                     ok = mir_source_local_type_append_name(program, routine,
                         ast_identifier_name(ast_assignment_target(first)),
                         mir_source_local_expr_type_name(program, routine,
-                            &scratch, ast_assignment_value(first)));
+                            &scratch, ast_assignment_value(first)),
+                        ast_identifier_binding_syntax_id(ast_assignment_target(first)));
                     if (!ok)
                         return false;
                 }

@@ -1,0 +1,29 @@
+// Parse/check the supplied program; never execute a rejected input.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy";
+import "../../../src/self_hosted/codegen/text/text_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Die("subject boundary probe requires source and expected verdict"); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if args[1] == "accept" {
+        if !body.verdict.ok || !SemanticAstBodyTypeBundleReady(artifact, analysis, body) {
+            Log(body.verdict.diagnostic_code); Die(body.verdict.diagnostic_message);
+        }
+    } else {
+        if body.verdict.ok || body.verdict.diagnostic_code != args[1] {
+            Log(body.verdict.diagnostic_code); Die("subject boundary verdict did not match its owner");
+        }
+        let receipt: SemanticPublicDiagnosticReceipt = SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            body.verdict.diagnostic_code, body.verdict.diagnostic_message);
+        if !SemanticPublicDiagnosticReceiptReadyFor(receipt, args[1]) ||
+            receipt.code != "PGY_SEM_ANCHORED_HANDLE_COPY" {
+            Die("subject boundary diagnostic receipt identity drifted");
+        }
+    }
+    Log("subject boundary verified");
+}

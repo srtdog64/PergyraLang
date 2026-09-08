@@ -1,11 +1,11 @@
 // Typed callable identity admitted independently of CFG block topology.
 
 import "direct_mir_scalar_program_callable_fact_owner.pgy";
+import "direct_mir_routine_instance_inventory_owner.pgy";
 
 func DirectMirScalarProgramCallableFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     callable_row: Int, routine_ordinal: Int,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
@@ -32,8 +32,24 @@ func DirectMirScalarProgramCallableFactFromAdmitted(
             source.signature, source.routine_ordinal
         );
     if !DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(
-            fact, nominal, logical_record, payload_free_enum,
+            fact, logical_record, payload_free_enum,
             referenced_enum) {
+        return DirectMirScalarCfgProgramCallableFactInvalid();
+    }
+    return fact;
+}
+
+func DirectMirScalarProgramCallableFactFromInstance(
+    ref instances: DirectMirRoutineInstanceInventory, routine_ordinal: Int,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
+) -> DirectMirScalarCfgProgramCallableFact {
+    let signature: DirectMirRoutineSignatureFact = DirectMirRoutineInstanceSignatureAt(instances, routine_ordinal);
+    let source: DirectMirScalarCfgProgramCallableFact = DirectMirScalarCfgProgramCallableFact(true, 0, signature, routine_ordinal);
+    let fact: DirectMirScalarCfgProgramCallableFact = DirectMirScalarCfgProgramCallableFact(true,
+        DirectMirScalarCfgProgramCallableFactDigest(source), signature, routine_ordinal);
+    if !DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(fact, logical_record, payload_free_enum, referenced_enum) {
         return DirectMirScalarCfgProgramCallableFactInvalid();
     }
     return fact;

@@ -1,0 +1,187 @@
+// Main-first execution inventory. Source rows/IDs remain declaration handles;
+// repeated bodies have distinct closure instance rows, never invented source IDs.
+import "direct_mir_routine_instance_signature_owner.pgy";
+
+struct DirectMirRoutineInstanceInventory {
+    let valid: Bool;
+    let diagnostic: String;
+    let digest: Int;
+    let source_rows: Array<Int>;
+    let instance_rows: Array<Int>;
+    let signatures: Array<DirectMirRoutineSignatureFact>;
+    let generic_calls: MirGenericCallOccurrenceIndex;
+    let generic_instances: GenericInstanceClosure;
+    let identity_cells: DirectMirIdentityCellFacts;
+}
+
+func DirectMirRoutineInstanceInventoryEmpty(message: String) -> DirectMirRoutineInstanceInventory {
+    let rows: Array<Int> = [];
+    let signatures: Array<DirectMirRoutineSignatureFact> = [];
+    return DirectMirRoutineInstanceInventory(false, message, 0, rows, rows, signatures,
+        MirGenericCallOccurrenceIndexInvalid(), GenericInstanceClosureEmpty(), DirectMirIdentityCellFactsEmpty());
+}
+
+func DirectMirRoutineInstanceInventoryDigest(ref inventory: DirectMirRoutineInstanceInventory) -> Int {
+    if !inventory.valid { return 0; }
+    let hash: Long = DirectMirCfgHashInt(347L, ArrayLength(inventory.source_rows));
+    hash = DirectMirCfgHashInt(hash, inventory.identity_cells.digest);
+    let row: Int = 0;
+    while row < ArrayLength(inventory.source_rows) {
+        hash = DirectMirCfgHashInt(hash, inventory.source_rows[row]);
+        hash = DirectMirCfgHashInt(hash, inventory.instance_rows[row]);
+        hash = DirectMirCfgHashInt(hash, inventory.signatures[row].digest);
+        row = row + 1;
+    }
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirRoutineInstanceInventoryReady(ref inventory: DirectMirRoutineInstanceInventory) -> Bool {
+    let count: Int = ArrayLength(inventory.source_rows);
+    if !inventory.valid || count < 1 || count != ArrayLength(inventory.instance_rows) ||
+        count != ArrayLength(inventory.signatures) || !inventory.generic_calls.valid ||
+        !inventory.generic_instances.valid || !DirectMirIdentityCellFactsReady(inventory.identity_cells) || inventory.digest == 0 ||
+        inventory.digest != DirectMirRoutineInstanceInventoryDigest(inventory) { return false; }
+    let row: Int = 0;
+    while row < count {
+        let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactWithDigest(
+            inventory.signatures[row], inventory.signatures[row].digest);
+        let source: Int = inventory.source_rows[row];
+        let instance: Int = inventory.instance_rows[row];
+        if !DirectMirRoutineSignatureFactReady(signature) || signature.row != source || source < 0 ||
+            source >= ArrayLength(inventory.generic_calls.templates.syntax_ids) || instance < -1 ||
+            instance >= ArrayLength(inventory.generic_instances.template_rows) ||
+            inventory.signatures[row].source_syntax_id != inventory.generic_calls.templates.syntax_ids[source] {
+            return false;
+        }
+        if instance >= 0 {
+            if inventory.generic_instances.template_rows[instance] != source { return false; }
+        } else if inventory.generic_calls.templates.generic_counts[source] != 0 { return false; }
+        if row == 0 && (instance != -1 || inventory.signatures[row].name != "Main" ||
+                inventory.signatures[row].return_type != "Void" || inventory.signatures[row].param_count != 0) { return false; }
+        let prior: Int = 0;
+        while prior < row {
+            if inventory.signatures[prior].name == inventory.signatures[row].name ||
+                (inventory.source_rows[prior] == source && inventory.instance_rows[prior] == instance) {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirRoutineInstanceInventoryFromOwners(
+    ref routines: MirProgramRoutineIndex,
+    generic_calls: MirGenericCallOccurrenceIndex,
+    generic_instances: GenericInstanceClosure,
+    identity_cells: DirectMirIdentityCellFacts
+) -> DirectMirRoutineInstanceInventory {
+    if !generic_calls.valid || !generic_instances.valid || !DirectMirIdentityCellFactsReady(identity_cells) ||
+        ArrayLength(generic_calls.templates.syntax_ids) != MirProgramRoutineIndexCount(routines) {
+        return DirectMirRoutineInstanceInventoryEmpty("generic routine inventory requires admitted call bindings");
+    }
+    // Forward method identity was admitted by MirProgramRoutineIndex. Equal
+    // cardinality closes the reverse edge: no declared cell method is omitted.
+    let cell: Int = 0;
+    while cell < ArrayLength(identity_cells.names) {
+        let declaration: Int = identity_cells.declaration_rows[cell];
+        let bounds: Array<Int> = [0, 0];
+        if !MirObjectArrayBoundsAtBounds(routines.source_json,
+                routines.declarations.starts[declaration], routines.declarations.ends[declaration],
+                "methods", bounds) {
+            return DirectMirRoutineInstanceInventoryEmpty("identity cell method inventory is missing");
+        }
+        let methods: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(
+            routines.source_json, bounds[0], bounds[1]);
+        let bodies: Int = 0; let method_row: Int = 0;
+        while method_row < MirProgramRoutineIndexCount(routines) {
+            if routines.kinds[method_row] == "method" && routines.owner_declaration_rows[method_row] == declaration {
+                bodies = bodies + 1;
+            }
+            method_row = method_row + 1;
+        }
+        if !methods.valid || bodies != JsonArrayObjectFactCount(methods) {
+            return DirectMirRoutineInstanceInventoryEmpty("identity cell declared method has no exact routine body");
+        }
+        cell = cell + 1;
+    }
+    let main: Int = -1;
+    let row: Int = 0;
+    while row < MirProgramRoutineIndexCount(routines) {
+        if routines.names[row] == "Main" && routines.kinds[row] == "function" {
+            if main >= 0 || generic_calls.templates.generic_counts[row] != 0 {
+                return DirectMirRoutineInstanceInventoryEmpty("generic routine inventory has no unique closed Main");
+            }
+            main = row;
+        }
+        row = row + 1;
+    }
+    if main < 0 { return DirectMirRoutineInstanceInventoryEmpty("generic routine inventory is missing Main"); }
+    let sources: Array<Int> = [main];
+    let instances: Array<Int> = [-1];
+    let signatures: Array<DirectMirRoutineSignatureFact> = [];
+    ArrayPush(signatures, DirectMirRoutineSignatureFactAt(routines, main,
+        MirProgramRoutineIndexBlockInstructionCountAt(routines, main, 0)));
+    row = 0;
+    while row < MirProgramRoutineIndexCount(routines) {
+        if row != main && generic_calls.templates.generic_counts[row] == 0 {
+            ArrayPush(sources, row);
+            ArrayPush(instances, -1);
+            ArrayPush(signatures, DirectMirRoutineSignatureFactAt(routines, row,
+                MirProgramRoutineIndexBlockInstructionCountAt(routines, row, 0)));
+        }
+        row = row + 1;
+    }
+    let instance: Int = 0;
+    while instance < ArrayLength(generic_instances.template_rows) {
+        let bound: DirectMirRoutineInstanceSignatureFact = DirectMirRoutineInstanceSignatureFromClosure(
+            routines, generic_calls, generic_instances, instance, identity_cells);
+        if !bound.valid { return DirectMirRoutineInstanceInventoryEmpty(bound.diagnostic); }
+        ArrayPush(sources, bound.template_row);
+        ArrayPush(instances, instance);
+        ArrayPush(signatures, bound.signature);
+        instance = instance + 1;
+    }
+    let source: DirectMirRoutineInstanceInventory = DirectMirRoutineInstanceInventory(
+        true, "", 0, sources, instances, signatures, generic_calls, generic_instances, identity_cells);
+    let result: DirectMirRoutineInstanceInventory = DirectMirRoutineInstanceInventory(
+        true, "", DirectMirRoutineInstanceInventoryDigest(source), sources, instances,
+        signatures, generic_calls, generic_instances, identity_cells);
+    if !DirectMirRoutineInstanceInventoryReady(result) {
+        return DirectMirRoutineInstanceInventoryEmpty("generic routine inventory signature or identity did not seal");
+    }
+    return result;
+}
+
+func DirectMirRoutineInstanceCallOrdinal(
+    ref inventory: DirectMirRoutineInstanceInventory,
+    caller_ordinal: Int, instruction: Int, lane: Int, node: Int, target_syntax_id: Int
+) -> Int {
+    if !inventory.valid || caller_ordinal < 0 || caller_ordinal >= ArrayLength(inventory.source_rows) ||
+        target_syntax_id <= 0 { return -1; }
+    let target_instance: Int = MirGenericInstanceCallTarget(
+        inventory.generic_instances, inventory.generic_calls,
+        inventory.instance_rows[caller_ordinal], inventory.source_rows[caller_ordinal], instruction, lane, node);
+    let result: Int = -1;
+    let ordinal: Int = 1;
+    while ordinal < ArrayLength(inventory.source_rows) {
+        if inventory.signatures[ordinal].source_syntax_id == target_syntax_id &&
+            inventory.instance_rows[ordinal] == target_instance {
+            if result >= 0 { return -1; }
+            result = ordinal;
+        }
+        ordinal = ordinal + 1;
+    }
+    return result;
+}
+
+func DirectMirRoutineInstanceSignatureAt(
+    ref inventory: DirectMirRoutineInstanceInventory, ordinal: Int
+) -> DirectMirRoutineSignatureFact {
+    if !inventory.valid || ordinal < 0 || ordinal >= ArrayLength(inventory.signatures) {
+        return InvalidDirectMirRoutineSignatureFact();
+    }
+    return DirectMirRoutineSignatureFactWithDigest(
+        inventory.signatures[ordinal], inventory.signatures[ordinal].digest);
+}

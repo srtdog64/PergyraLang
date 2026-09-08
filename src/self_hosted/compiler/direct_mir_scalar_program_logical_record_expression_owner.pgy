@@ -42,24 +42,37 @@ func DirectMirScalarProgramLogicalRecordConstructorFromGraph(
         sequence.arena.call_target_names[chain.call_node];
     let record_row: Int = DirectMirScalarProgramLogicalRecordRow(
         record, record_type);
+    let cell_row: Int = DirectMirIdentityCellRow(record.identity_cells, record_type);
     if sequence.arena.identities.call_target_syntax_ids[chain.call_node] != 0 ||
         sequence.arena.call_target_kinds[chain.call_node] !=
             SemanticCallTargetDirect() ||
-        record_row < 0 ||
-        record_type != record.names[record_row] {
+        (record_row < 0 && cell_row < 0) || (record_row >= 0 && cell_row >= 0) {
         return missing;
     }
+    let field_count: Int = 0; let field_start: Int = 0;
+    let expression_kind: Int = DirectMirScalarProgramExprLogicalRecordConstructor();
+    if cell_row >= 0 {
+        field_count = record.identity_cells.field_counts[cell_row];
+        field_start = record.identity_cells.field_starts[cell_row];
+        expression_kind = DirectMirScalarProgramExprIdentityCellConstructor();
+    } else {
+        field_count = record.field_counts[record_row];
+        field_start = record.field_starts[record_row];
+    }
     let count: Int = ArrayLength(chain.argument_rows);
-    if count > record.field_counts[record_row] {
+    if count > field_count {
         return DirectMirScalarProgramLogicalRecordExpressionFact(
             true, false, false, 0, "", chain.argument_rows,
             chain.call_node, -1, -1);
     }
+    // Row already validated this span; this readonly query has no intervening
+    // mutation or suspension that could invalidate it between arguments.
     let ordinal: Int = 0;
     while ordinal < count {
-        if normalized_types[chain.argument_rows[ordinal]] !=
-                DirectMirScalarProgramLogicalRecordFieldType(
-                    record, record_type, ordinal) {
+        let expected: String = "";
+        if cell_row >= 0 { expected = record.identity_cells.field_types[field_start + ordinal]; }
+        else { expected = record.field_types[field_start + ordinal]; }
+        if normalized_types[chain.argument_rows[ordinal]] != expected {
             return DirectMirScalarProgramLogicalRecordExpressionFact(
                 true, false, false, 0, "", chain.argument_rows,
                 chain.call_node, -1, -1);
@@ -67,8 +80,7 @@ func DirectMirScalarProgramLogicalRecordConstructorFromGraph(
         ordinal = ordinal + 1;
     }
     return DirectMirScalarProgramLogicalRecordExpressionFact(
-        true, true, count == record.field_counts[record_row],
-        DirectMirScalarProgramExprLogicalRecordConstructor(), record_type,
+        true, true, count == field_count, expression_kind, record_type,
         chain.argument_rows, chain.call_node, -1, -1);
 }
 
@@ -77,23 +89,28 @@ func DirectMirScalarProgramLogicalRecordMemberMarkerReady(
     record_type: String,
     ref record: DirectMirScalarProgramLogicalRecordFact
 ) -> Bool {
-    if !DirectMirScalarProgramLogicalRecordFactReady(record) ||
-        !record.present || node < 0 ||
+    // Nonmember shapes need no whole-record validation; candidates still do.
+    if node < 0 ||
         node >= ArrayLength(sequence.arena.topology.node_kinds) ||
         sequence.arena.topology.node_kinds[node] != AstExpressionNodeLeaf() {
         return false;
     }
+    let parent: Int = node + 1;
+    if parent >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[parent] !=
+            AstExpressionNodeMemberAccess() {
+        return false;
+    }
+    if !DirectMirScalarProgramLogicalRecordFactReady(record) ||
+        (!record.present && ArrayLength(record.identity_cells.names) == 0) { return false; }
     let field_ready: Bool = record_type == "";
     if record_type != "" {
         field_ready = DirectMirScalarProgramLogicalRecordFieldOrdinal(
-            record, record_type, sequence.arena.node_texts[node]) >= 0;
+            record, record_type, sequence.arena.node_texts[node]) >= 0 ||
+            DirectMirIdentityCellFieldOrdinal(record.identity_cells, record_type, sequence.arena.node_texts[node]) >= 0;
     }
     if !field_ready { return false; }
-    let parent: Int = node + 1;
-    return parent < ArrayLength(sequence.arena.topology.node_kinds) &&
-        sequence.arena.topology.node_kinds[parent] ==
-            AstExpressionNodeMemberAccess() &&
-        sequence.arena.topology.right_children[parent] == node;
+    return sequence.arena.topology.right_children[parent] == node;
 }
 
 func DirectMirScalarProgramLogicalRecordMemberFromGraph(
@@ -103,13 +120,14 @@ func DirectMirScalarProgramLogicalRecordMemberFromGraph(
 ) -> DirectMirScalarProgramLogicalRecordExpressionFact {
     let missing: DirectMirScalarProgramLogicalRecordExpressionFact =
         DirectMirScalarProgramLogicalRecordExpressionMissing();
-    if !DirectMirScalarProgramLogicalRecordFactReady(record) ||
-        !record.present || node < 0 ||
+    if node < 0 ||
         node >= ArrayLength(sequence.arena.topology.node_kinds) ||
         sequence.arena.topology.node_kinds[node] !=
             AstExpressionNodeMemberAccess() {
         return missing;
     }
+    if !DirectMirScalarProgramLogicalRecordFactReady(record) ||
+        (!record.present && ArrayLength(record.identity_cells.names) == 0) { return missing; }
     let source_left: Int = sequence.arena.topology.left_children[node];
     let source_right: Int = sequence.arena.topology.right_children[node];
     let record_type: String = "";
@@ -118,7 +136,8 @@ func DirectMirScalarProgramLogicalRecordMemberFromGraph(
     }
     if source_left < 0 || source_left >= node || source_right < 0 ||
         source_right >= node || source_rows[source_left] < 0 ||
-        !DirectMirScalarProgramLogicalRecordTypeReady(record, record_type) ||
+        (!DirectMirScalarProgramLogicalRecordTypeReady(record, record_type) &&
+         DirectMirIdentityCellRow(record.identity_cells, record_type) < 0) ||
         !DirectMirScalarProgramLogicalRecordMemberMarkerReady(
             sequence, source_right, record_type, record) {
         return DirectMirScalarProgramLogicalRecordExpressionFact(
@@ -129,13 +148,19 @@ func DirectMirScalarProgramLogicalRecordMemberFromGraph(
         record, record_type, sequence.arena.node_texts[source_right]);
     let field_type: String = DirectMirScalarProgramLogicalRecordFieldType(
         record, record_type, ordinal);
+    let kind: Int = DirectMirScalarProgramExprLogicalRecordMember();
+    if DirectMirIdentityCellRow(record.identity_cells, record_type) >= 0 {
+        ordinal = DirectMirIdentityCellFieldOrdinal(record.identity_cells, record_type, sequence.arena.node_texts[source_right]);
+        field_type = DirectMirIdentityCellFieldType(record.identity_cells, record_type, ordinal);
+        kind = DirectMirScalarProgramExprIdentityCellMember();
+    }
     if ordinal < 0 || field_type == "" {
         return DirectMirScalarProgramLogicalRecordExpressionFact(
             true, false, false, 0, "", missing.argument_rows,
             -1, -1, -1);
     }
     return DirectMirScalarProgramLogicalRecordExpressionFact(
-        true, true, true, DirectMirScalarProgramExprLogicalRecordMember(),
+        true, true, true, kind,
         field_type, missing.argument_rows, -1,
         source_rows[source_left], ordinal);
 }

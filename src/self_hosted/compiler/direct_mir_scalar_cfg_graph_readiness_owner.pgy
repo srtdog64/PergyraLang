@@ -39,7 +39,7 @@ func DirectMirScalarCfgGraphPlanReady(
             plan.value_definition_blocks, block_count, plan.routines,
             plan.range_iterations, plan.foreach_iterations
         ) ||
-        operation_count < 1 ||
+        (operation_count < 1 && !plan.program.valid) ||
         block_count != ArrayLength(plan.block_succ_false) ||
         block_count != ArrayLength(plan.block_operation_starts) ||
         block_count != ArrayLength(plan.block_operation_counts) ||
@@ -153,14 +153,14 @@ func DirectMirScalarCfgGraphPlanReady(
             plan.string_arrays.accesses.kinds[indexed_row] ==
                 DirectMirScalarCfgStringArrayAccessLogRead();
         if kind < DirectMirScalarCfgOpConstInt() ||
-            kind > DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() ||
+            kind > DirectMirScalarCfgOpIdentityCellStore() ||
             result < -1 ||
             left < -1 || right < -1 || left_local < -1 ||
             right_local < -1 || result >= value_count ||
             left >= value_count || right >= value_count ||
             left_local >= local_count ||
             (right_local >= local_count && !parameter_target &&
-                kind != DirectMirScalarCfgOpLogicalRecordMemberRebind()) ||
+                kind != DirectMirScalarCfgOpLogicalRecordMemberRebind() && kind != DirectMirScalarCfgOpIdentityCellStore()) ||
             plan.operation_phi_starts[operation] != expected_phi ||
             phi_count < 0 {
             return false;

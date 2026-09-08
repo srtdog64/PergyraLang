@@ -63,19 +63,19 @@ func DirectMirScalarProgramCLogicalRecordOptionPreamble(
             fact, fact.names[row]);
         output = Concat(output, Concat("typedef struct { bool is_some; ",
             Concat(payload, Concat(" value; } ", Concat(t, ";\n")))));
-        output = Concat(output, "static "); output = Concat(output, t);
+        output = Concat(output, "static inline "); output = Concat(output, t);
         output = Concat(output, Concat(" ", Concat(t, "_some(")));
         output = Concat(output, Concat(payload, Concat(" value) { ", t)));
         output = Concat(output,
             " out = {true, value}; return out; }\n");
-        output = Concat(output, "static "); output = Concat(output, t);
+        output = Concat(output, "static inline "); output = Concat(output, t);
         output = Concat(output, Concat(" ", Concat(t, "_none(void) { ")));
         output = Concat(output, Concat(t,
             " out = {0}; return out; }\n"));
-        output = Concat(output, Concat("static bool ", t));
+        output = Concat(output, Concat("static inline bool ", t));
         output = Concat(output, Concat("_is_some(", Concat(t,
             " value) { return value.is_some; }\n")));
-        output = Concat(output, Concat("static ", payload));
+        output = Concat(output, Concat("static inline ", payload));
         output = Concat(output, Concat(" ", Concat(t, "_unwrap(")));
         output = Concat(output, Concat(t,
             " value) { if (!value.is_some) abort(); return value.value; }\n"));

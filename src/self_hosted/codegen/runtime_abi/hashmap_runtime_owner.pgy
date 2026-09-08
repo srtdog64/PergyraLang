@@ -1,0 +1,93 @@
+// HashMap C ABI projection; native runtime headers own storage and behavior.
+import "hashmap_key_abi_projection_owner.pgy";
+import "../text/text_owner.pgy";
+import "collection_runtime_owner.pgy";
+import "../../semantic/ast_type_name_canonical_owner.pgy";
+import "../../semantic/ast_expression_graph_collection_call_protocol_owner.pgy";
+import "../../compiler/abi_layout_row_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+
+struct CollectionHashMapRuntimeFact {
+    ok: Bool;
+    type_name: String;
+    key_type: String;
+    value_type: String;
+    value_c_type: String;
+    c_value_type: String;
+    value_suffix: String;
+    key_infix: String;
+}
+
+func CollectionHashMapRuntimeFactFromTypeName(type_name: String) -> CollectionHashMapRuntimeFact {
+    let missing: CollectionHashMapRuntimeFact = CollectionHashMapRuntimeFact(false, "", "", "", "", "", "", "");
+    let shape: SemanticConstructedTypeNameFact = SemanticConstructedTypeNameFactFrom(type_name);
+    if !shape.ok || shape.nominal_base_name != "HashMap" ||
+        ArrayLength(shape.actual_type_names) != 2 ||
+        SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) { return missing; }
+    let key: Option<String> = CollectionHashMapKeyCInfix(shape.actual_type_names[0]);
+    let value: Option<Int> = CompilerAbiLayoutRowIndex(shape.actual_type_names[1]);
+    if !IsSome(key) || !IsSome(value) { return missing; }
+    let c_value: String = CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(value));
+    if c_value == "" { return missing; }
+    let suffix: String = CompilerSymbolCMangledTypeName(shape.actual_type_names[1]);
+    let function_suffix: String = suffix;
+    if shape.actual_type_names[1] == "Int" { function_suffix = "int"; }
+    if shape.actual_type_names[1] == "String" { function_suffix = "string"; }
+    return CollectionHashMapRuntimeFact(true, shape.canonical_name,
+        shape.actual_type_names[0], shape.actual_type_names[1], c_value,
+        "PgyHashMap_" + suffix, function_suffix, UnwrapOption(key));
+}
+
+func CollectionHashMapRuntimeCFunction(
+    fact: CollectionHashMapRuntimeFact,
+    protocol: SemanticExpressionGraphCollectionCallProtocolFact
+) -> String {
+    if !fact.ok || !protocol.applies || protocol.family != "HashMap" {
+        Die("HashMap runtime call ABI fact is missing");
+    }
+    let operation: String = "";
+    if protocol.operation == "MapNew" { operation = "new"; }
+    if protocol.operation == "MapSet" { operation = "set"; }
+    if protocol.operation == "MapGet" { operation = "get"; }
+    if protocol.operation == "MapHas" { operation = "has"; }
+    if protocol.operation == "MapRemove" { operation = "remove"; }
+    if protocol.operation == "MapSize" { operation = "size"; }
+    if protocol.operation == "MapKeys" { operation = "keys"; }
+    if operation == "" { Die("HashMap runtime operation is missing"); }
+    let infix: String = fact.key_infix;
+    if protocol.return_kind == "constructor" || protocol.operation == "MapSize" { infix = ""; }
+    return "pgy_map_" + operation + infix + "_" + fact.value_suffix;
+}
+
+func CollectionHashMapRuntimeCKeysBridgeName(fact: CollectionHashMapRuntimeFact) -> String {
+    if !fact.ok { Die("HashMap key snapshot ABI fact is missing"); }
+    return "pgy_self_map_keys_" + CompilerSymbolCMangledTypeName(fact.type_name);
+}
+
+func CollectionHashMapRuntimeSpecializationBlock(
+    type_name: String, emitted_values: Array<String>, env: CodegenTypeEnv
+) -> String {
+    let fact: CollectionHashMapRuntimeFact = CollectionHashMapRuntimeFactFromTypeName(type_name);
+    if !fact.ok { Die("unsupported HashMap runtime ABI type: " + type_name); }
+    let block: String = "";
+    let known: Bool = fact.value_type == "Int" || fact.value_type == "String";
+    let index: Int = 0;
+    while index < ArrayLength(emitted_values) {
+        if emitted_values[index] == fact.value_type { known = true; }
+        index = index + 1;
+    }
+    if !known {
+        block = "PGY_HASHMAP_DEFINE(" + fact.value_suffix + ", " + fact.value_c_type + ")\n" +
+            "PGY_DEFINE_MAP_KEYS_EXPORTS(" + fact.value_suffix + ", " + fact.value_suffix + ")\n";
+    }
+    let keys_layout: CollectionRuntimeFact = CollectionRuntimeFactFromTypeName("Array<" + fact.key_type + ">", env);
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact = SemanticExpressionGraphCollectionCallProtocolFromName("MapKeys");
+    let key_row: Option<Int> = CompilerAbiLayoutRowIndex(fact.key_type);
+    if !IsSome(key_row) { Die("HashMap key C ABI row is missing"); }
+    let key_c_type: String = CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(key_row));
+    // Transfer the owned snapshot descriptor by fields, never by layout punning.
+    return block + "static " + keys_layout.c_array_type + " " + CollectionHashMapRuntimeCKeysBridgeName(fact) +
+        "(" + fact.c_value_type + " *map) { PgyArray_" + fact.key_type + " keys = " +
+        CollectionHashMapRuntimeCFunction(fact, protocol) + "(map); return (" + keys_layout.c_array_type +
+        "){ (" + key_c_type + " *)keys.data, (long long)keys.length, (long long)keys.capacity }; }\n";
+}

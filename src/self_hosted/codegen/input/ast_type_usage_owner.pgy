@@ -27,6 +27,7 @@ struct CodegenTypeUsageFacts {
     let has_slot: Bool;
     let has_machine_layer: Bool;
     let has_remote_future: Bool;
+    hashmap_type_names: Array<String>;
 }
 
 func CodegenTypeUsageTypeNameKnown(
@@ -152,6 +153,34 @@ func CodegenTypeUsageFactsFromSemantic(facts: SemanticAstTypeSurfaceFacts) -> Co
         SemanticAstTypeSurfaceContains(facts, "Box<Array<"),
         CodegenTypeUsageHasPlainSlot(facts),
         SemanticAstTypeSurfaceContains(facts, "DeviceSlot<"),
-        SemanticAstTypeSurfaceContains(facts, "RemoteFuture<")
+        SemanticAstTypeSurfaceContains(facts, "RemoteFuture<"),
+        CodegenTypeUsageHashMapTypeNames(facts)
     );
+}
+
+func CodegenTypeUsageHashMapTypeNames(facts: SemanticAstTypeSurfaceFacts) -> Array<String> {
+    let names: Array<String> = [];
+    let pending: Array<String> = [];
+    let index: Int = 0;
+    while index < SemanticAstTypeSurfaceCount(facts) {
+        let name: Option<String> = SemanticAstTypeSurfaceNameAt(facts, index);
+        if IsSome(name) && !CodegenTypeUsageTypeNameKnown(pending, UnwrapOption(name)) { ArrayPush(pending, UnwrapOption(name)); }
+        index = index + 1;
+    }
+    index = 0;
+    while index < ArrayLength(pending) {
+        let shape: SemanticConstructedTypeNameFact = SemanticConstructedTypeNameFactFrom(pending[index]);
+        if shape.ok {
+            if shape.nominal_base_name == "HashMap" && ArrayLength(shape.actual_type_names) == 2 &&
+                !SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) &&
+                !CodegenTypeUsageTypeNameKnown(names, shape.canonical_name) { ArrayPush(names, shape.canonical_name); }
+            let argument: Int = 0;
+            while argument < ArrayLength(shape.actual_type_names) {
+                if !CodegenTypeUsageTypeNameKnown(pending, shape.actual_type_names[argument]) { ArrayPush(pending, shape.actual_type_names[argument]); }
+                argument = argument + 1;
+            }
+        }
+        index = index + 1;
+    }
+    return names;
 }

@@ -1,0 +1,95 @@
+// Exercise the production shared GraphPlan issuer from admitted MIR.
+import "../../../../src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy";
+import "../../../../src/self_hosted/mir_lower/mir_json_input_owner.pgy";
+import "../../../../src/self_hosted/compiler/machine_layer_declaration_consumer.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_projection_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir_identity_cell_lifetime_owner.pgy";
+
+func ProbeGenericIdentityCellLifetime(inout plan: DirectMirScalarCfgGraphPlan) -> Void {
+    if ArrayLength(plan.program.logical_record.identity_cells.names) == 0 { return; }
+    let cell: String = plan.program.logical_record.identity_cells.names[0];
+    // Borrow indexed storage only; the sealed aggregate fields are not rebound.
+    // The restored digest below checks that the owner sees these exact edits.
+    let return_types: Array<String> = plan.routines.return_types;
+    let node_kinds: Array<Int> = plan.program.expressions.node_kinds;
+    let carriages: Array<String> = plan.routines.parameter_carriages;
+    let saved_return: String = return_types[0];
+    return_types[0] = cell;
+    if DirectMirIdentityCellLifetimeReady(plan) { Die("cell lifetime accepted a return escape"); }
+    return_types[0] = saved_return;
+    let definitions: Int = 0;
+    let operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        let result: Int = plan.operation_result_values[operation];
+        if result >= 0 && plan.value_types[result] == cell {
+            let expression: Int = plan.program.operation_expression_rows[operation];
+            let root: Int = plan.program.expressions.graph_roots[expression];
+            let saved_kind: Int = node_kinds[root];
+            node_kinds[root] = DirectMirScalarProgramExprLocal();
+            if DirectMirIdentityCellLifetimeReady(plan) { Die("cell lifetime accepted a copied binding"); }
+            node_kinds[root] = saved_kind;
+            definitions = definitions + 1;
+        }
+        operation = operation + 1;
+    }
+    let calls: Int = 0;
+    let node: Int = 0;
+    while node < ArrayLength(plan.program.expressions.node_kinds) {
+        if plan.program.expressions.node_kinds[node] == DirectMirScalarProgramExprDirectCall() {
+            let operands: Array<Int> = DirectMirScalarProgramLogicalRecordArgumentRows(plan.program.expressions, node);
+            let operand: Int = 0;
+            while operand < ArrayLength(operands) {
+                if plan.program.expressions.node_types[operands[operand]] == cell {
+                    node_kinds[node] = DirectMirScalarProgramExprLocal();
+                    if DirectMirIdentityCellLifetimeReady(plan) { Die("cell lifetime accepted an opaque consumer"); }
+                    node_kinds[node] = DirectMirScalarProgramExprDirectCall();
+                    let callee: Int = plan.program.expressions.node_callable_rows[node];
+                    let parameter: Int = plan.routines.parameter_starts[callee] + operand;
+                    let saved_carriage: String = carriages[parameter];
+                    carriages[parameter] = "value-result";
+                    if DirectMirIdentityCellLifetimeReady(plan) { Die("cell lifetime accepted mismatched call carriage"); }
+                    carriages[parameter] = saved_carriage;
+                    calls = calls + 1;
+                }
+                operand = operand + 1;
+            }
+        }
+        node = node + 1;
+    }
+    if definitions == 0 || calls == 0 || !DirectMirIdentityCellLifetimeReady(plan) ||
+        !DirectMirScalarCfgGraphPlanReady(plan) { Die("cell lifetime probe did not reach or restore the owned facts"); }
+    Log("cell lifetime: return, copy, opaque consumer and call-carriage negatives verified");
+}
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) < 1 || ArrayLength(args) > 2 {
+        Die("generic instance GraphPlan probe requires one MIR path and optional c/llvm projection");
+    }
+    let admitted: MirMachineLayerAdmittedJsonInput = MirJsonReadMachineAdmittedInput(
+        args[0], SelfHostMachineLayerDeclarationEmpty());
+    let calls: MirGenericCallOccurrenceIndex = MirGenericCallOccurrenceIndexFromDocument(admitted.document, admitted.routines);
+    if !calls.valid { Die("MIR generic call occurrences are missing or invalid"); }
+    let instances: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(calls);
+    if !instances.valid { Die(instances.diagnostic); }
+    let admission: DirectMirScalarProgramRouteAdmission = DirectMirScalarProgramRouteAdmissionFromAdmitted(
+        admitted, calls, instances);
+    if !DirectMirScalarProgramRouteAdmissionReady(admission) || !admission.route.claimed {
+        DirectMirScalarProgramRouteAdmissionDie(admission);
+    }
+    let route: DirectMirScalarProgramRouteFact = admission.route;
+    if ArrayLength(args) == 2 {
+        let projection: String = "";
+        if args[1] == "c" { projection = CompilerTargetCpuCProjection(); }
+        else if args[1] == "llvm" { projection = CompilerTargetCpuLlvmProjection(); }
+        else { Die("generic instance GraphPlan probe target must be c or llvm"); }
+        let target: CompilerTargetProjectionFact = CompilerTargetProjectionFactFromOwner(projection);
+        Log(CompileAdmittedDirectMirScalarProgramForTarget(admitted, route, target));
+        return;
+    }
+    let plan: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route);
+    if !DirectMirScalarCfgGraphPlanReady(plan) { Die("generic instance GraphPlan did not seal"); }
+    ProbeGenericIdentityCellLifetime(plan);
+    Log(Concat("generic instance GraphPlan verified: ", ToString(ArrayLength(plan.routines.roles))));
+}

@@ -1,0 +1,15 @@
+enum Direction { North, East, South }
+func Pick(d: Direction) -> Int {
+    match d {
+        case North:
+            match d {
+                case North: return 0;
+                case East: return 1;
+                case East: return 2;
+                case South: return 3;
+            }
+        case East: return 4;
+        case South: return 5;
+    }
+}
+func Main() -> Void { Log(Pick(Direction.North)); Log(Pick(Direction.South)); }

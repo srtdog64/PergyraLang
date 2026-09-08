@@ -1,7 +1,7 @@
 Program:
   Subject: Fighter
     Fields:
-      power: Int
+      let power: Int
   [export] Ability: Combatable
     Function: Attack
       Parameters:
@@ -38,4 +38,3 @@ Program:
         Log(team.fighter.Attack())
         BindStmt: team.fighter = Archer
         Log(team.fighter.Attack())
-

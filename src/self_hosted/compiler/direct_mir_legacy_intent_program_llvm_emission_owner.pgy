@@ -50,9 +50,9 @@ func DirectMirLegacyIntentLlvmCleanupSymbol(
 
 func DirectMirLegacyIntentLlvmCleanupGlobals(
     family: String,
-    names: Array<String>,
-    slots: Array<String>,
-    args: Array<String>
+    ref names: Array<String>,
+    ref slots: Array<String>,
+    ref args: Array<String>
 ) -> String {
     if !DirectMirLegacyIntentCleanupRowsReady(names, slots, args) {
         Die("direct MIR legacy intent LLVM cleanup facts are invalid");
@@ -79,9 +79,9 @@ func DirectMirLegacyIntentLlvmCleanupGlobals(
 
 func DirectMirLegacyIntentLlvmCleanupCalls(
     family: String,
-    names: Array<String>,
-    slots: Array<String>,
-    args: Array<String>,
+    ref names: Array<String>,
+    ref slots: Array<String>,
+    ref args: Array<String>,
     handle_value: String
 ) -> String {
     if !DirectMirLegacyIntentCleanupRowsReady(names, slots, args) ||

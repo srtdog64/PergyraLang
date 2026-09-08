@@ -26,29 +26,22 @@ func SemanticAstAbilityGenericBoundVerdictError(
 }
 
 func SemanticAstTypeImplementsAbility(
-    roles: SemanticAstRoleFacts,
+    ref roles: SemanticAstRoleFacts,
     type_name: String,
     ability_name: String
 ) -> Bool {
+    let count: Int = ArrayLength(roles.role_node_ids);
+    if !roles.ok || count != ArrayLength(roles.target_type_names) ||
+        count != ArrayLength(roles.impl_starts) || count != ArrayLength(roles.impl_counts) { return false; }
     let role_index: Int = 0;
-    while role_index < SemanticAstRoleCount(roles) {
-        let target: Option<String> = SemanticAstRoleTargetTypeAt(
-            roles, role_index
-        );
-        if IsSome(target) && UnwrapOption(target) == type_name {
-            let impl_count: Option<Int> =
-                SemanticAstRoleImplAbilityCountAt(roles, role_index);
-            if !IsSome(impl_count) { return false; }
-            let impl_index: Int = 0;
-            while impl_index < UnwrapOption(impl_count) {
-                let implemented: Option<String> =
-                    SemanticAstRoleImplAbilityNameAt(
-                        roles, role_index, impl_index
-                    );
-                if IsSome(implemented) &&
-                    UnwrapOption(implemented) == ability_name {
-                    return true;
-                }
+    while role_index < count {
+        let start: Int = roles.impl_starts[role_index];
+        let end: Int = start + roles.impl_counts[role_index];
+        if start < 0 || end < start || end > ArrayLength(roles.impl_ability_names) { return false; }
+        if roles.target_type_names[role_index] == type_name {
+            let impl_index: Int = start;
+            while impl_index < end {
+                if roles.impl_ability_names[impl_index] == ability_name { return true; }
                 impl_index = impl_index + 1;
             }
         }

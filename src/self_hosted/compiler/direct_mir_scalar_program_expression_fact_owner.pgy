@@ -105,11 +105,12 @@ func DirectMirScalarProgramExpressionSetWithDigest(
 }
 
 func DirectMirScalarProgramLiteralEmbeddable(value: String) -> Bool {
+    let length: Int = StringLength(value);
     let row: Int = 0;
-    while row < StringLength(value) {
-        let code: Int = JsonCharCodeAt(value, StringLength(value), row);
+    while row < length {
+        let code: Int = JsonCharCodeAt(value, length, row);
         if code != 9 && code != 10 && code != 13 &&
-            (code < 32 || code > 126) {
+            (code < 32 || code == 127 || code > 255) {
             return false;
         }
         row = row + 1;
@@ -122,7 +123,7 @@ func DirectMirScalarProgramExpressionSetShapeReady(
 ) -> Bool {
     let graph_count: Int = ArrayLength(facts.graph_starts);
     let node_count: Int = ArrayLength(facts.node_kinds);
-    if !facts.valid || graph_count < 1 ||
+    if !facts.valid ||
         graph_count != ArrayLength(facts.graph_global_rows) ||
         graph_count != ArrayLength(facts.graph_counts) ||
         graph_count != ArrayLength(facts.graph_roots) ||

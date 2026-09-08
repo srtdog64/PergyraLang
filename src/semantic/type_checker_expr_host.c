@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "type_checker_visibility.h"
 #include "diag_codes.h"
 
@@ -236,7 +237,7 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
     method_effects = method_func_type != NULL
         ? type_function_effects(method_func_type)
         : declared_effects;
-    semantic_record_effect(ctx, method_effects);
+    semantic_record_callee_effect_provenance(ctx, method_effects);
     semantic_record_callee_body_summary(ctx, method_func_type);
     semantic_record_callable_decl_summary(ctx, method, method_func_type,
         method_effects);
@@ -334,6 +335,7 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
             &generic_bindings, expr, method, ctx, method_display);
         resolved_ret = expr_host_method_generic_substitute(
             ret, host_decl, receiver_type, &generic_bindings);
+        callable_capability_record_method_call(ctx, expr, param_types, arg_types);
         free(param_types);
         free(arg_types);
         expr_host_method_generic_bindings_destroy(&generic_bindings);

@@ -1,0 +1,21 @@
+export subject Buyer {
+    let mut hp: Int;
+    action Promote(self) -> Void { self.hp = self.hp + 1; }
+}
+export zone CartZone { subject slot buyer: Buyer }
+export zone PaymentZone { subject slot buyer: Buyer }
+export world CartWorld {
+    zone cart: CartZone
+    func Hp(self) -> Int { return cart.buyer.hp; }
+}
+export world PayWorld {
+    zone payment: PaymentZone
+    func Hp(self) -> Int { return payment.buyer.hp; }
+}
+export intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
+    step Promote {
+        transfer: cart -> payment;
+        on: buyer.Promote();
+        expect: true;
+    }
+}

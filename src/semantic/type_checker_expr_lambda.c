@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "diag_codes.h"
 
 static Type *
@@ -19,11 +20,13 @@ lambda_normalize_type(Type *type)
 static void
 lambda_restore_context(SemanticContext *ctx,
                        uint32_t saved_effects,
+                       uint32_t saved_direct_effects,
                        uint32_t saved_capabilities,
                        uint32_t saved_body_summary,
                        bool saved_tracking)
 {
     ctx->current_function_effects = saved_effects;
+    ctx->current_function_direct_effects = saved_direct_effects;
     ctx->current_function_capabilities = saved_capabilities;
     ctx->current_function_body_summary = saved_body_summary;
     ctx->tracking_function_effects = saved_tracking;
@@ -40,6 +43,7 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
     Type *return_type = TYPE_VOID;
     Type *expected_lambda_type = ctx->expected_lambda_type;
     uint32_t saved_effects = ctx->current_function_effects;
+    uint32_t saved_direct_effects = ctx->current_function_direct_effects;
     uint32_t saved_capabilities = ctx->current_function_capabilities;
     uint32_t saved_body_summary = ctx->current_function_body_summary;
     bool saved_tracking = ctx->tracking_function_effects;
@@ -81,6 +85,7 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
             if (param_sym != NULL) {
                 param_sym->is_parameter = true;
                 param_sym->param_mode = PARAM_MODE_DEFAULT;
+                symbol_mark_declaration(param_sym, ast_node_stable_id(param), false);
                 if (semantic_type_is_future_handle(param_type)) {
                     semantic_error_with_hints(ctx,
                         PGY_CODE_SEM_TASK_LIFECYCLE,
@@ -102,6 +107,7 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
 
     ctx->tracking_function_effects = true;
     ctx->current_function_effects = EFFECT_NONE;
+    ctx->current_function_direct_effects = EFFECT_NONE;
     ctx->current_function_capabilities = 0u;
     ctx->current_function_body_summary = BODY_SUMMARY_NONE;
 
@@ -110,16 +116,20 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
     if (semantic_reject_lambda_unsupported_captures(
             expr, ctx, allow_copy_capture)) {
         scope_exit(&ctx->scope);
-        lambda_restore_context(ctx, saved_effects, saved_capabilities,
+        lambda_restore_context(ctx, saved_effects, saved_direct_effects, saved_capabilities,
                                saved_body_summary, saved_tracking);
         free(param_types);
         return TYPE_UNKNOWN;
     }
 
+    CallableCapabilityRoutine *previous_capability =
+        callable_capability_enter(ctx, expr, param_types, param_count);
     Type *body_expr_type = NULL;
     if (lambda_body != NULL && lambda_body->type != AST_BLOCK) {
         body_expr_type =
             lambda_normalize_type(type_check_expression(lambda_body, ctx));
+        if (body_expr_type->kind == TYPE_KIND_FUNCTION)
+            callable_capability_record_return(ctx, lambda_body);
     }
 
     if (lambda_return_type != NULL) {
@@ -162,7 +172,9 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
         type_function_set_capabilities(result, lambda_capabilities);
         type_function_set_body_summary(result, lambda_body_summary);
     }
-    lambda_restore_context(ctx, saved_effects, saved_capabilities,
+    callable_capability_leave(ctx, previous_capability, result,
+        lambda_capabilities, ctx->current_function_direct_effects);
+    lambda_restore_context(ctx, saved_effects, saved_direct_effects, saved_capabilities,
                            saved_body_summary, saved_tracking);
     free(param_types);
     return result != NULL ? result : TYPE_UNKNOWN;

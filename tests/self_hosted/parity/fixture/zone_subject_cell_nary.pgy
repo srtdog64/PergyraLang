@@ -1,0 +1,13 @@
+subject Counter { let mut value: Int; }
+zone CounterPair {
+    subject slot left: Counter
+    subject slot middle: Counter
+    subject slot right: Counter
+}
+func Combine(left: Int, right: Int) -> Int { return left * 10 + right; }
+func Main() -> Void {
+    let first = CounterPair(Counter(1), Counter(2), Counter(3));
+    let second = CounterPair(Counter(7), Counter(8), Counter(9));
+    Log(first.left.value * 100 + Combine(first.middle.value, first.right.value));
+    Log(second.left.value * 100 + Combine(second.middle.value, second.right.value));
+}

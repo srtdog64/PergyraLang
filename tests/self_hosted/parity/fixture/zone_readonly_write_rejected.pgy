@@ -1,0 +1,6 @@
+subject Counter { let mut value: Int; }
+zone CounterZone { subject slot counter: Counter }
+func ChangeCounterZone(ref area: CounterZone) -> Void {
+    area.counter.value = 99;
+}
+func Main() -> Void { }

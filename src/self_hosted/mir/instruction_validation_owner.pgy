@@ -20,6 +20,37 @@ func SelfMirIntentCarrierInstruction(
     index: Int
 ) -> Bool {
     let kind: String = rows.kinds[index];
+    // These are the existing v3 execution roles, not generic exemptions for
+    // arbitrary anchored instructions. The program seal requires a typed plan.
+    let name: String = rows.names[index];
+    if name == "IntentOutcomeBranch" {
+        return kind == "branch" && rows.results[index] == "" &&
+            rows.arg0s[index] != "" && rows.arg1s[index] != "" &&
+            rows.arg0s[index] != rows.arg1s[index] &&
+            rows.slot_anchors[index] != "" && rows.expr0s[index] != "" &&
+            rows.expr0_graphs.has_roots[index] == 1;
+    }
+    if name == "IntentSuccessPayload" || name == "IntentFailurePayload" {
+        return kind == "def" && rows.results[index] != "" &&
+            rows.slot_anchors[index] == rows.results[index] &&
+            rows.arg0s[index] != "" && rows.arg1s[index] != "" &&
+            rows.abi_type_names[index] != "" && rows.abi_type_names[index] != "Unknown" &&
+            rows.expr0s[index] == "" && rows.expr1s[index] == "" &&
+            rows.use_counts[index] == 0;
+    }
+    if name == "IntentStepCompleted" {
+        return kind == "stmt" && rows.results[index] == "" &&
+            rows.arg0s[index] != "" && rows.arg1s[index] != "" &&
+            rows.slot_anchors[index] == rows.arg1s[index] &&
+            rows.expr0s[index] == "" && rows.expr1s[index] == "";
+    }
+    if name == "IntentTerminalResult" {
+        return kind == "return" && rows.results[index] != "" &&
+            rows.arg0s[index] != "" && rows.arg1s[index] != "" &&
+            rows.slot_anchors[index] != "" && rows.expr0s[index] != "" &&
+            rows.expr0_graphs.has_roots[index] == 1 &&
+            rows.abi_type_names[index] != "" && rows.abi_type_names[index] != "Bool";
+    }
     if kind == "resource-op" {
         return (rows.names[index] == "CommitIntent" ||
                 rows.names[index] == "Read" ||
@@ -29,6 +60,13 @@ func SelfMirIntentCarrierInstruction(
             rows.expr0s[index] == "" && rows.expr1s[index] == "" &&
             (rows.source_types[index] == "AST_INTENT_DECL" ||
              rows.source_types[index] == "AST_INTENT_STEP");
+    }
+    if rows.names[index] == "CompensateIntentStep" {
+        return kind == "cleanup" && rows.arg0s[index] != "" && rows.arg1s[index] != "" &&
+            rows.slot_anchors[index] == rows.arg0s[index] && rows.source_types[index] == "AST_INTENT_STEP" &&
+            rows.results[index] == "" && rows.abi_type_names[index] == "" &&
+            rows.expr0s[index] == "" && rows.expr1s[index] == "" &&
+            rows.expr0_graphs.has_roots[index] == 0 && rows.expr1_graphs.has_roots[index] == 0;
     }
     if kind == "cleanup" {
         return (rows.names[index] == "cleanup-edge" ||
@@ -89,6 +127,9 @@ func SelfMirInstructionRowsValidationErrorObserved(
     observe_pressure: Bool
 ) -> String {
     let count: Int = ArrayLength(rows.ids);
+    if ArrayLength(rows.binding_source_syntax_ids) != count {
+        return "Intent binder identity row count differs";
+    }
     if ArrayLength(rows.kinds) != count { return "kind row count differs"; }
     if ArrayLength(rows.names) != count { return "name row count differs"; }
     if ArrayLength(rows.results) != count { return "result row count differs"; }
@@ -173,6 +214,12 @@ func SelfMirInstructionRowsValidationErrorObserved(
         }
         let kind: String = rows.kinds[i];
         let row_prefix: String = Concat("instruction=", ToString(i));
+        let binding_carrier: Bool = rows.names[i] == "IntentBinding" ||
+            rows.names[i] == "IntentParticipant" || rows.names[i] == "IntentValue";
+        if (binding_carrier && rows.binding_source_syntax_ids[i] <= 0) ||
+            (!binding_carrier && rows.binding_source_syntax_ids[i] != 0) {
+            return Concat(row_prefix, " Intent binder source identity is invalid");
+        }
         if rows.use_starts[i] != use_cursor {
             return Concat(row_prefix, " use-start is non-canonical");
         }
@@ -199,7 +246,7 @@ func SelfMirInstructionRowsValidationErrorObserved(
             rows.expr0_graphs.has_roots[i] != 1 {
             return Concat(row_prefix, " statement expression graph is missing");
         }
-        if kind == "def" &&
+        if kind == "def" && !intent_carrier &&
             (rows.arg0s[i] == "" || rows.expr0s[i] == "" ||
              rows.source_types[i] == "") {
             return Concat(row_prefix, " definition payload is incomplete");

@@ -1,0 +1,13 @@
+// pgy.mir.v1 container spelling; nominal_kind retains language identity.
+// Shared by publication and the reached declaration admission consumers.
+import "../semantic/callable_receiver_carriage_policy_owner.pgy";
+
+func MirDeclarationWireKind(nominal_kind: String) -> String {
+    if !CallableReceiverNominalKindKnown(nominal_kind) { return ""; }
+    if nominal_kind == "subject" || nominal_kind == "object" ||
+        nominal_kind == "tobject" || nominal_kind == "vessel" ||
+        nominal_kind == "zone" || nominal_kind == "world" || nominal_kind == "party" {
+        return "class";
+    }
+    return nominal_kind;
+}

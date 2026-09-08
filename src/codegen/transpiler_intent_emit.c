@@ -84,9 +84,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         }
         success_expr = transpiler_find_mir_intent_check_expr(
             mir_routine, intent_name, "success");
-        if (transpiler_mir_intent_has_stmt(
-                mir_routine, intent_name, "IntentCheck", "success")
-            && success_expr == NULL) {
+        if (success_expr == NULL) {
             PGY_MIR_INTENT_CARRIER_FAIL(
                 "MIR-only C path missing intent success check carrier");
         }
@@ -634,8 +632,9 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     }
 
     write_indent(ctx);
-    if (success_expr != NULL) {
-        char *success = emit_expression(success_expr, ctx);
+    {
+        char *success = success_expr != NULL
+            ? emit_expression(success_expr, ctx) : NULL;
         if (success == NULL) {
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -647,8 +646,6 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         }
         codebuf_write(ctx->out, "__intent_result = %s;\n", success);
         free(success);
-    } else {
-        codebuf_write(ctx->out, "__intent_result = true;\n");
     }
     write_indent(ctx);
     if (emit_cleanup_from_mir) {

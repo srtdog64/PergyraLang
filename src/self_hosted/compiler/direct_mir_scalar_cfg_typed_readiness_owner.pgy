@@ -155,7 +155,9 @@ func DirectMirScalarCfgTypedPlanReady(
             type_name) || CompilerRuntimeValueTypeReady(
                 type_name);
         if plan.program.valid {
+            let hashmap: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(type_name);
             type_ready = DirectMirScalarCfgScalarTypeSupported(type_name) ||
+                hashmap.ok || type_name == CompilerAbiLayoutArrayLongTypeName() ||
                 program_collection_ready || program_array_int_ready ||
                 program_array_bool_ready || program_set_string_ready ||
                 (type_name == CompilerAbiLayoutOptionIntTypeName() && DirectMirScalarProgramOptionIntAbiReadyForExpressions(plan.program.option_int_abi, plan.program.expressions)) ||
@@ -163,6 +165,7 @@ func DirectMirScalarCfgTypedPlanReady(
                 program_option_string_ready ||
                 program_option_bool_ready ||
                 CompilerRuntimeValueTypeReady(type_name) ||
+                DirectMirIdentityCellRow(plan.program.logical_record.identity_cells, type_name) >= 0 ||
                 DirectMirScalarProgramLogicalRecordTypeReady(
                     plan.program.logical_record, type_name) ||
                 DirectMirScalarProgramLogicalRecordArrayTypeReady(plan.program.logical_record, type_name) ||

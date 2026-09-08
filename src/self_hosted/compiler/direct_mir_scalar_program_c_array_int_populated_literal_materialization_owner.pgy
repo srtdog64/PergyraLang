@@ -68,7 +68,8 @@ func DirectMirScalarProgramCArrayIntPopulatedLiteralMaterialization(
                 plan.program.expressions.node_kinds[operand] ==
                     DirectMirScalarProgramExprLocal() ||
                 plan.program.expressions.node_kinds[operand] == DirectMirScalarProgramExprLogicalRecordMember() || plan.program.expressions.node_kinds[operand] == DirectMirScalarProgramExprArrayIntIndex() ||
-                plan.program.expressions.node_kinds[operand] == DirectMirScalarProgramExprSubtractInt() {
+                plan.program.expressions.node_kinds[operand] == DirectMirScalarProgramExprSubtractInt() ||
+                plan.program.expressions.node_kinds[operand] == DirectMirScalarProgramExprNegateInt() {
                 output = Concat(output, "pgy_values[");
                 output = Concat(output, ToString(parameter));
                 output = Concat(output, "]"); parameter = parameter + 1;

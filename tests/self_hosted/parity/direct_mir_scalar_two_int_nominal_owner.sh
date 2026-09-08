@@ -18,10 +18,10 @@ MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
 
-ABI_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy"
-TARGET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_target_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_two_int_nominal_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_two_int_nominal_owner.pgy"
+ABI_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy"
+TARGET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_target_owner.pgy"
+C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_owner.pgy"
+LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_owner.pgy"
 ROUTE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy"
 ADMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy"
 ENVELOPE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_route_envelope_owner.pgy"
@@ -37,25 +37,27 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 
-grep -Fq 'DirectMirNominalDeclarationAbiFactFromDocument(' "$ABI_OWNER" ||
+grep -Fq 'DirectMirNominalDeclarationAbiFactFromDocument(' \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_declaration_envelope_owner.pgy" ||
     fail "program nominal fact does not consume declaration ABI identity"
 grep -Fq 'MirCapturedRequiredAbiLayoutRowAdmission(' "$ABI_OWNER" ||
     fail "program nominal fact does not cross-seal instruction ABI rows"
-grep -Fq 'DirectMirTwoIntNominalPhysicalRowReady(' "$ABI_OWNER" ||
+grep -Fq 'DirectMirScalarProgramLogicalRecordPhysicalTargetReady(' "$TARGET_OWNER" ||
     fail "program nominal fact lost its physical-shape proof"
 grep -Fq 'while row < count' "$ABI_OWNER" ||
     fail "program nominal fact does not scan the admitted declaration index"
 if grep -Eq 'count[[:space:]]*==[[:space:]]*1' "$ABI_OWNER"; then
     fail "program nominal fact regressed to a one-declaration classifier"
 fi
-grep -Fq 'DirectMirScalarProgramTwoIntNominalTargetReadyFor(' "$TARGET_OWNER" ||
+grep -Fq 'DirectMirScalarProgramLogicalRecordTargetReadyFor(' "$TARGET_OWNER" ||
     fail "nominal target projection has no capability receipt gate"
 grep -Fq 'CompilerTargetCapabilityFingerprint()' "$TARGET_OWNER" ||
     fail "nominal target projection lost its capability fingerprint"
-grep -Fq 'nominal: DirectMirScalarProgramTwoIntNominalAbiFact' "$ROUTE_OWNER" ||
-    fail "route does not carry the nominal fact"
+grep -Fq 'logical_record: DirectMirScalarProgramLogicalRecordFact' "$ROUTE_OWNER" ||
+    fail "route does not carry the record identity and physical receipt"
+! grep -Fq 'nominal:' "$ROUTE_OWNER" || fail "route reintroduced the second nominal owner"
 for owner in "$C_OWNER" "$LLVM_OWNER"; do
-    grep -Fq 'DirectMirScalarProgramTwoIntNominalTargetFromFact(' "$owner" ||
+    grep -Fq 'DirectMirScalarProgramLogicalRecordTargetFromFact(' "$owner" ||
         fail "target emission bypasses the nominal projection"
 done
 if grep -Eq 'routine_count[[:space:]]*==[[:space:]]*4' "$ROUTE_OWNER"; then
@@ -96,11 +98,11 @@ for backend in c llvm; do
         }
     [[ -s "$artifact" ]] || fail "$backend projection emitted no artifact"
     if [[ "$backend" == c ]]; then
-        grep -Fq 'pgy_scalar_nominal_value' "$artifact" ||
+        grep -Fq 'pgy_scalar_logical_record_value_0' "$artifact" ||
             fail "C artifact omitted the nominal representation"
-        grep -Fq 'pgy_scalar_nominal_value pgy_param_0' "$artifact" ||
+        grep -Fq 'pgy_scalar_logical_record_value_0 pgy_param_0' "$artifact" ||
             fail "C artifact omitted the nominal routine parameter"
-        grep -Fq '_Static_assert(_Alignof(pgy_scalar_nominal_value) == 4' \
+        grep -Fq '_Static_assert(_Alignof(pgy_scalar_logical_record_value_0) == 4' \
             "$artifact" || fail "C artifact omitted the alignment receipt"
         command=("$CC" -x c -std=c11 "$artifact")
         if pgy_selfhost_emitted_c_uses_runtime_headers "$artifact"; then
@@ -110,9 +112,9 @@ for backend in c llvm; do
         "${command[@]}" >"$WORK_DIR/$backend.compile.out" \
             2>"$WORK_DIR/$backend.compile.err" || fail "C artifact did not compile"
     else
-        grep -Fq '%pgy.scalar.nominal.value = type { i32, i32 }' "$artifact" ||
+        grep -Fq '%pgy.scalar.logical.record.value.0 = type { i32, i32 }' "$artifact" ||
             fail "LLVM artifact omitted the nominal representation"
-        grep -Fq '%pgy.scalar.nominal.value %pgy.param.0' "$artifact" ||
+        grep -Fq '%pgy.scalar.logical.record.value.0 %pgy.param.0' "$artifact" ||
             fail "LLVM artifact omitted the nominal routine parameter"
         "$CLANG" -x ir "$artifact" -o "$bin" \
             >"$WORK_DIR/$backend.compile.out" 2>"$WORK_DIR/$backend.compile.err" ||

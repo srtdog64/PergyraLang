@@ -66,6 +66,32 @@ validates presence, shape, and the ID before
 accepting an instruction, and the rung-2 mutation gate removes a required
 row or mutates its static ID. This is a bounded producer closure, not a claim
 that every native static row has already migrated.
+Generic routine headers also carry `generic_constraints`, one ordered
+`{name, constraint}` row per `generics` formal. An unbounded formal has an
+explicit empty string; a missing row is not an unbounded default. Native MIR
+signature capture and the self-host semantic signature rows own the facts.
+The MIR header inventory validates exact formal names, order and cardinality
+before occurrence admission or C body reconstruction. This retains `where`
+constraints through MIR round-trip verification without inferring them from
+call actuals. Non-generic headers need no constraint rows. The focused
+`tests/concept_semantics/generic_instantiation_execution.sh` gate includes
+missing/crossed/duplicate/malformed row controls; `BRIDGE` is unchanged.
+
+Declaration wire containers and nominal identity are distinct: the existing
+`class` wire container also carries subject/object/tobject/vessel/zone/world/
+party declarations. `mir/declaration_wire_kind_owner.pgy` now shares that
+mapping between publication and the reached value/identity consumers; the
+exact `nominal_kind` owns carriage, not the container spelling. Named record
+fields project to declaration-ordered constructor operands through the shared
+GraphPlan while retaining source expression-node order. C projects each full
+named initializer once as a source-ordered statement; field order still owns
+the destination slot, never evaluation order. The source-admission execution
+gate checks native/public C/LLVM and shared C from both MIR producers.
+For AST_LET_DECL, expr1 is an optional source type annotation; definition ABI
+and source-local facts own the inferred type. A present annotation must agree
+with that owner, but cannot substitute for a missing definition ABI fact. Passive values
+cannot enter compile-time declaration erasure or mutable-identity storage.
+
 The current self-host `pgy.mir.v1` consumer projects one admitted
 `MirProgramRoutineIndex` and routine-local `MirRoutineFactIndex` from that wire.
 The program view captures routine/block/instruction partitions, kind/source

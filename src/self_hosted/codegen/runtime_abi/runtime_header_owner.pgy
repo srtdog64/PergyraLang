@@ -13,26 +13,27 @@ func RuntimeCHeaderRequired(
     uses_queue: Bool,
     uses_set: Bool,
     uses_artifact_transaction: Bool,
-    uses_intent_observability: Bool
+    uses_intent_observability: Bool,
+    uses_hashmap: Bool
 ) -> Bool {
     return uses_allocator || uses_text_builder || uses_box_array ||
         uses_array || uses_spawn || uses_list || uses_queue || uses_set ||
-        uses_artifact_transaction || uses_intent_observability;
+        uses_artifact_transaction || uses_intent_observability || uses_hashmap;
 }
 
 func RuntimeCHeaderIncludeBlock(
     uses_allocator: Bool, uses_text_builder: Bool,
     uses_box_array: Bool, uses_array: Bool, uses_spawn: Bool, uses_list: Bool,
     uses_queue: Bool, uses_set: Bool, uses_artifact_transaction: Bool,
-    uses_intent_observability: Bool
+    uses_intent_observability: Bool, uses_hashmap: Bool
 ) -> String {
     if uses_intent_observability {
         return "#define PGY_INTENT_OBSERVABILITY_ENABLED 1\n#include \"pgy_runtime.h\"\n";
     }
-    if uses_artifact_transaction {
+    if uses_artifact_transaction && !uses_hashmap {
         return "#include \"pgy_runtime_artifact_transaction_inline.h\"\n";
     }
-    if uses_box_array || uses_list || uses_queue || uses_set {
+    if uses_box_array || uses_list || uses_queue || uses_set || uses_hashmap {
         return "#include \"pgy_runtime.h\"\n";
     }
     let block: String = "";

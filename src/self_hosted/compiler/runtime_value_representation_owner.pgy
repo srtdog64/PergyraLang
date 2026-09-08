@@ -154,7 +154,7 @@ func CompilerRuntimeValueRepresentationMatchesCapture(
 }
 
 func CompilerRuntimeValueTypesPresent(
-    local_types: Array<String>, parameter_types: Array<String>
+    ref local_types: Array<String>, ref parameter_types: Array<String>
 ) -> Bool {
     let row: Int = 0;
     while row < ArrayLength(local_types) {
@@ -170,14 +170,14 @@ func CompilerRuntimeValueTypesPresent(
 }
 
 func CompilerRuntimeValueCLocalPreamble(
-    local_types: Array<String>, parameter_types: Array<String>
+    ref local_types: Array<String>, ref parameter_types: Array<String>
 ) -> String {
     if !CompilerRuntimeValueTypesPresent(local_types, parameter_types) { return ""; }
     return "#include \"pgy_runtime.h\"\n";
 }
 
 func CompilerRuntimeValueLlvmLocalPreamble(
-    local_types: Array<String>, parameter_types: Array<String>
+    ref local_types: Array<String>, ref parameter_types: Array<String>
 ) -> String {
     let output: String = "";
     let allocator: CompilerRuntimeValueRepresentation =

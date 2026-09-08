@@ -1,0 +1,51 @@
+// A declared nominal bound is exact type equality (not inheritance). Project
+// only that witness into a callable's temporary body type view; signatures,
+// source handles and call-instance identities remain owned and unchanged.
+import "ast_signature_fact_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+
+struct SemanticAstGenericNominalEqualityFrame {
+    let valid: Bool;
+    let actuals: Array<String>;
+}
+
+func SemanticAstGenericNominalEqualityActuals(
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    signature: Int
+) -> SemanticAstGenericNominalEqualityFrame {
+    let empty: Array<String> = [];
+    let invalid: SemanticAstGenericNominalEqualityFrame = SemanticAstGenericNominalEqualityFrame(false, empty);
+    if !signatures.ok || !constructors.ok || signature < 0 ||
+        signature >= ArrayLength(signatures.generic_counts) ||
+        ArrayLength(signatures.generic_names) !=
+            ArrayLength(signatures.generic_constraint_type_names) ||
+        ArrayLength(constructors.names) != ArrayLength(constructors.return_type_names) { return invalid; }
+    let start: Int = signatures.generic_starts[signature];
+    let count: Int = signatures.generic_counts[signature];
+    if start < 0 || count < 0 || start + count > ArrayLength(signatures.generic_names) { return invalid; }
+    let actuals: Array<String> = [];
+    let ordinal: Int = 0;
+    while ordinal < count {
+        let row: Int = start + ordinal;
+        let nominal: String = "";
+        let bounds: Array<String> = Split(signatures.generic_constraint_type_names[row], "+");
+        let bound: Int = 0;
+        while bound < ArrayLength(bounds) {
+            let type_name: String = SemanticCanonicalTypeName(bounds[bound]);
+            let declaration: Int = 0;
+            while declaration < ArrayLength(constructors.names) {
+                if type_name != "" && constructors.return_type_names[declaration] == type_name {
+                    if nominal != "" && nominal != type_name { return invalid; }
+                    nominal = type_name;
+                }
+                declaration = declaration + 1;
+            }
+            bound = bound + 1;
+        }
+        if nominal == "" { ArrayPush(actuals, signatures.generic_names[row]); }
+        else { ArrayPush(actuals, nominal); }
+        ordinal = ordinal + 1;
+    }
+    return SemanticAstGenericNominalEqualityFrame(true, actuals);
+}

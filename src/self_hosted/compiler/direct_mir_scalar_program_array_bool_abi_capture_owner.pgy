@@ -1,12 +1,13 @@
 // Admission capture for the program Array<Bool> ABI, copyout, and return identities.
 import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
-import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_routine_instance_inventory_owner.pgy";
 import "direct_mir_scalar_program_parameter_fact_projection_owner.pgy";
 import "direct_mir_scalar_program_readonly_logical_record_array_bool_return_policy_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/machine_layer_fact_owner.pgy";
 func DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref routine_instances: DirectMirRoutineInstanceInventory,
     routine_rows: Array<Int>,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> DirectMirScalarProgramArrayBoolAbiFact {
@@ -25,10 +26,7 @@ func DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
         let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
             admitted.routines, routine_row);
         let signature: DirectMirRoutineSignatureFact =
-            DirectMirRoutineSignatureFactAt(
-                admitted.routines, routine_row,
-                MirProgramRoutineIndexBlockInstructionCountAt(
-                    admitted.routines, routine_row, 0));
+            DirectMirRoutineInstanceSignatureAt(routine_instances, routine);
         if !index.valid || !DirectMirRoutineSignatureFactReady(signature) {
             return empty;
         }

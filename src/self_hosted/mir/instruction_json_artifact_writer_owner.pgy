@@ -42,6 +42,10 @@ func SelfMirJsonExpressionGraphWriteFile(
     JsonOwnedFragmentWriteFile(
         output, ToString(rows.roots[instruction_index] - start)
     );
+    let digest: Int = SelfMirExpressionGraphDigest(rows, graph, instruction_index);
+    if digest <= 0 { return false; }
+    CompilerArtifactWrite(output, ",\"digest\":");
+    JsonOwnedFragmentWriteFile(output, ToString(digest));
     CompilerArtifactWrite(output, ",\"nodes\":[");
     let i: Int = 0;
     while i < count {
@@ -356,6 +360,10 @@ func SelfMirJsonInstructionWriteFile(
         use_i = use_i + 1;
     }
     CompilerArtifactWrite(output, "]");
+    if rows.binding_source_syntax_ids[instruction_index] > 0 {
+        CompilerArtifactWrite(output, ",\"binding_source_syntax_id\":");
+        JsonOwnedFragmentWriteFile(output, ToString(rows.binding_source_syntax_ids[instruction_index]));
+    }
     if emit_local_refs && !SelfMirJsonLocalRefsWriteFile(
         facts.cfg.local_refs, instruction_index, output
     ) { return false; }

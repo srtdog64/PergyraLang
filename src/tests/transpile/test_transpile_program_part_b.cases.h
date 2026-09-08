@@ -61,8 +61,10 @@ test_program_emit_tail(void)
 
         EXPECT(strstr(ctx->out->data, "HealthState_IsDead(HealthState *self)") != NULL
             || strstr(ctx->helpers->data, "HealthState_IsDead(HealthState *self)") != NULL);
-        EXPECT(strstr(ctx->out->data, "return (self->current <= 0);") != NULL
-            || strstr(ctx->helpers->data, "return (self->current <= 0);") != NULL);
+        EXPECT(strstr(ctx->out->data, "= (self->current);") != NULL
+            || strstr(ctx->helpers->data, "= (self->current);") != NULL);
+        EXPECT(strstr(ctx->out->data, " <= __pgy_binary_") != NULL
+            || strstr(ctx->helpers->data, " <= __pgy_binary_") != NULL);
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);

@@ -1,0 +1,7 @@
+import "callable_capability_fixture.pgy";
+
+func Dispatch(dispatcher: func(func(Int) -> Int, Int) -> Int,
+              operation: func(Int) -> Int, value: Int) -> Int {
+    return dispatcher(operation, value);
+}
+func Main() -> Void with caps random { Log(Dispatch(Invoke, Bump, 41)); }

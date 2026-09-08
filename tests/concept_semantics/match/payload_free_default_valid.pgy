@@ -1,0 +1,3 @@
+enum Direction { North, East, South }
+func Pick(d: Direction) -> Int { match d { default: return 7; } }
+func Main() -> Void { Log(Pick(Direction.South)); }

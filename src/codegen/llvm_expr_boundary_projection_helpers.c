@@ -35,16 +35,6 @@ llvm_boundary_param_uses_pointer_self(LLVMGenCtx *ctx, FuncParam *param)
 }
 
 static bool
-llvm_boundary_arg_can_take_subject_address(ASTNode *arg_node)
-{
-    if (arg_node == NULL)
-        return false;
-    return arg_node->type == AST_IDENTIFIER
-        || arg_node->type == AST_MEMBER_ACCESS
-        || arg_node->type == AST_ARRAY_ACCESS;
-}
-
-static bool
 llvm_boundary_name_is_generic_param(ASTNode *decl, const char *type_name)
 {
     GenericParams *params;
@@ -111,12 +101,13 @@ llvm_boundary_args_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
 
 LLVMValueRef *
 llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
+                              const MIRRoutine *bound_routine,
                               ASTNode **arg_nodes, size_t argc,
                               unsigned *out_count)
 {
     LLVMValueRef *args;
     unsigned emitted_count = 0;
-    const MIRRoutine *routine = NULL;
+    const MIRRoutine *routine = bound_routine;
     bool allow_ast_compat = false;
     const char *decl_name = NULL;
     bool decl_is_generic = false;
@@ -125,14 +116,15 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
 
     if (out_count != NULL)
         *out_count = 0;
-    if (ctx == NULL || decl == NULL || decl->type != AST_FUNC_DECL)
+    if (ctx == NULL || (bound_routine == NULL
+        && (decl == NULL || decl->type != AST_FUNC_DECL)))
         return NULL;
 
-    decl_name = ast_declaration_name(decl);
-    decl_is_extern = llvm_decl_is_extern_function(ctx, decl);
-    if (llvm_active_has_mir(ctx) && !decl_is_extern)
+    decl_name = bound_routine != NULL ? bound_routine->name : ast_declaration_name(decl);
+    decl_is_extern = bound_routine == NULL && llvm_decl_is_extern_function(ctx, decl);
+    if (bound_routine == NULL && llvm_active_has_mir(ctx) && !decl_is_extern)
         routine = llvm_active_function_routine_by_name(ctx, decl_name);
-    decl_is_generic = llvm_mir_or_ast_function_is_generic(routine, decl);
+    decl_is_generic = bound_routine == NULL && llvm_mir_or_ast_function_is_generic(routine, decl);
     if (llvm_active_has_mir(ctx) && !decl_is_generic && !decl_is_extern) {
         if (routine == NULL) {
             llvm_set_mir_inventory_missing(ctx,
@@ -308,7 +300,8 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                     continue;
                 }
             }
-            if (!llvm_boundary_arg_can_take_subject_address(arg_node)) {
+            if (!(carriage == MIR_PARAM_CARRIAGE_VALUE && !pass_indirect
+                    && arg_node->type == AST_CALL)) {
                 return llvm_boundary_args_error(ctx, arg_node,
                     "LLVM boundary subject argument requires addressable storage");
             }
@@ -339,7 +332,20 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
             }
             if (expected_ty != NULL)
                 ctx->current_ret_type = expected_ty;
-            args[emitted_idx++] = llvm_emit_expression(arg_node, ctx);
+            LLVMValueRef value = llvm_emit_expression(arg_node, ctx);
+            if (value != NULL && pointer_self) {
+                if (LLVMTypeOf(value) == expected_ty) {
+                    LLVMValueRef temporary = llvm_create_entry_alloca(
+                        ctx, expected_ty, "call.argument");
+                    LLVMBuildStore(ctx->builder, value, temporary);
+                    value = temporary;
+                } else if (LLVMGetTypeKind(LLVMTypeOf(value)) != LLVMPointerTypeKind) {
+                    ctx->current_ret_type = saved_ret;
+                    return llvm_boundary_args_error(ctx, arg_node,
+                        "LLVM boundary nominal argument does not match its admitted ABI");
+                }
+            }
+            args[emitted_idx++] = value;
             ctx->current_ret_type = saved_ret;
         }
         if (args[emitted_idx - 1] == NULL)

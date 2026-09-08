@@ -1,0 +1,187 @@
+// Seal semantic generic call handles to the actual instruction-local graphs.
+// No source/AST lookup, name matching or preorder re-identification occurs here.
+import "program_fact_owner.pgy";
+import "../semantic/ast_expression_graph_node_view_owner.pgy";
+
+func SelfMirGenericCallOccurrencesFromCfg(
+    ref rows: SelfMirGenericSpecializationRows, ref routines: SelfMirRoutineRows,
+    ref cfg: SelfMirCfgRows, ref expression_graph: SemanticExpressionGraphFacts
+) -> SelfMirGenericCallOccurrenceRows {
+    let count: Int = SelfMirGenericSpecializationCount(rows);
+    let invalid: SelfMirGenericCallOccurrenceRows = SelfMirGenericCallOccurrenceRowsEmpty();
+    if !SelfMirGenericSpecializationRowsReady(rows) { return invalid; }
+    if count == 0 {
+        let ints: Array<Int> = [];
+        return SelfMirGenericCallOccurrenceRows(true, ints, ints, ints, ints, ints, ints, ints);
+    }
+    let by_node: Array<Int> = [];
+    let node: Int = 0;
+    while node < SelfMirExpressionGraphNodeCount(expression_graph) {
+        ArrayPush(by_node, -1);
+        node = node + 1;
+    }
+    let starts: Array<Int> = [];
+    let counts: Array<Int> = [];
+    let row: Int = 0;
+    while row < count {
+        node = rows.call_node_ids[row];
+        if node < 0 || node >= ArrayLength(by_node) || by_node[node] >= 0 {
+            return invalid;
+        }
+        let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(expression_graph, node);
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(expression_graph, node);
+        if !IsSome(target) || UnwrapOption(target) != rows.target_syntax_ids[row] ||
+            !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeCall() {
+            return invalid;
+        }
+        ArraySet(by_node, node, row);
+        ArrayPush(starts, 0);
+        ArrayPush(counts, 0);
+        row = row + 1;
+    }
+    let call_rows: Array<Int> = [];
+    let occurrence_routines: Array<Int> = [];
+    let blocks: Array<Int> = [];
+    let instructions: Array<Int> = [];
+    let lanes: Array<Int> = [];
+    let nodes: Array<Int> = [];
+    let routine: Int = 0;
+    while routine < ArrayLength(routines.node_ids) {
+        let block: Int = routines.block_starts[routine];
+        let block_end: Int = block + routines.block_counts[routine];
+        while block < block_end {
+            let instruction: Int = cfg.blocks.instruction_starts[block];
+            let instruction_end: Int = instruction + cfg.blocks.instruction_counts[block];
+            while instruction < instruction_end {
+                let lane: Int = 0;
+                while lane < 2 {
+                    let present: Int = cfg.instructions.expr0_graphs.has_roots[instruction];
+                    let begin: Int = cfg.instructions.expr0_graphs.node_starts[instruction];
+                    let length: Int = cfg.instructions.expr0_graphs.node_counts[instruction];
+                    if lane == 1 {
+                        present = cfg.instructions.expr1_graphs.has_roots[instruction];
+                        begin = cfg.instructions.expr1_graphs.node_starts[instruction];
+                        length = cfg.instructions.expr1_graphs.node_counts[instruction];
+                    }
+                    if present == 1 {
+                        node = begin;
+                        while node < begin + length {
+                            row = by_node[node];
+                            if row >= 0 {
+                                ArrayPush(call_rows, row);
+                                ArrayPush(occurrence_routines, routine);
+                                ArrayPush(blocks, block);
+                                ArrayPush(instructions, instruction);
+                                ArrayPush(lanes, lane);
+                                ArrayPush(nodes, node - begin);
+                                ArraySet(counts, row, counts[row] + 1);
+                            }
+                            node = node + 1;
+                        }
+                    }
+                    lane = lane + 1;
+                }
+                instruction = instruction + 1;
+            }
+            block = block + 1;
+        }
+        routine = routine + 1;
+    }
+    // Group once by semantic call, preserving occurrence order within a call.
+    let total: Int = 0;
+    let cursors: Array<Int> = [];
+    row = 0;
+    while row < count {
+        if counts[row] == 0 { return invalid; }
+        ArraySet(starts, row, total);
+        ArrayPush(cursors, total);
+        total = total + counts[row];
+        row = row + 1;
+    }
+    let result_routines: Array<Int> = [];
+    let result_blocks: Array<Int> = [];
+    let result_instructions: Array<Int> = [];
+    let result_lanes: Array<Int> = [];
+    let result_nodes: Array<Int> = [];
+    let occurrence: Int = 0;
+    while occurrence < total {
+        ArrayPush(result_routines, 0);
+        ArrayPush(result_blocks, 0);
+        ArrayPush(result_instructions, 0);
+        ArrayPush(result_lanes, 0);
+        ArrayPush(result_nodes, 0);
+        occurrence = occurrence + 1;
+    }
+    occurrence = 0;
+    while occurrence < total {
+        row = call_rows[occurrence];
+        let slot: Int = cursors[row];
+        ArraySet(result_routines, slot, occurrence_routines[occurrence]);
+        ArraySet(result_blocks, slot, blocks[occurrence]);
+        ArraySet(result_instructions, slot, instructions[occurrence]);
+        ArraySet(result_lanes, slot, lanes[occurrence]);
+        ArraySet(result_nodes, slot, nodes[occurrence]);
+        ArraySet(cursors, row, slot + 1);
+        occurrence = occurrence + 1;
+    }
+    return SelfMirGenericCallOccurrenceRows(true, starts, counts,
+        result_routines, result_blocks, result_instructions, result_lanes, result_nodes);
+}
+
+func SelfMirGenericCallOccurrencesReady(
+    ref rows: SelfMirGenericSpecializationRows, ref routines: SelfMirRoutineRows,
+    ref cfg: SelfMirCfgRows, ref expression_graph: SemanticExpressionGraphFacts
+) -> Bool {
+    let count: Int = SelfMirGenericSpecializationCount(rows);
+    let total: Int = ArrayLength(rows.occurrences.routine_rows);
+    if !rows.occurrences.sealed || ArrayLength(rows.occurrences.starts) != count ||
+        ArrayLength(rows.occurrences.counts) != count ||
+        ArrayLength(rows.occurrences.block_rows) != total ||
+        ArrayLength(rows.occurrences.instruction_rows) != total ||
+        ArrayLength(rows.occurrences.lanes) != total || ArrayLength(rows.occurrences.graph_nodes) != total {
+        return false;
+    }
+    let cursor: Int = 0;
+    let row: Int = 0;
+    while row < count {
+        if rows.occurrences.starts[row] != cursor || rows.occurrences.counts[row] <= 0 ||
+            cursor + rows.occurrences.counts[row] > total { return false; }
+        let end: Int = cursor + rows.occurrences.counts[row];
+        while cursor < end {
+            let routine: Int = rows.occurrences.routine_rows[cursor];
+            let block: Int = rows.occurrences.block_rows[cursor];
+            let instruction: Int = rows.occurrences.instruction_rows[cursor];
+            let lane: Int = rows.occurrences.lanes[cursor];
+            if routine < 0 || routine >= ArrayLength(routines.node_ids) ||
+                block < routines.block_starts[routine] ||
+                block >= routines.block_starts[routine] + routines.block_counts[routine] ||
+                instruction < cfg.blocks.instruction_starts[block] ||
+                instruction >= cfg.blocks.instruction_starts[block] + cfg.blocks.instruction_counts[block] ||
+                lane < 0 || lane > 1 { return false; }
+            let present: Int = cfg.instructions.expr0_graphs.has_roots[instruction];
+            let begin: Int = cfg.instructions.expr0_graphs.node_starts[instruction];
+            let length: Int = cfg.instructions.expr0_graphs.node_counts[instruction];
+            if lane == 1 {
+                present = cfg.instructions.expr1_graphs.has_roots[instruction];
+                begin = cfg.instructions.expr1_graphs.node_starts[instruction];
+                length = cfg.instructions.expr1_graphs.node_counts[instruction];
+            }
+            let node: Int = rows.occurrences.graph_nodes[cursor];
+            if present != 1 || node < 0 || node >= length ||
+                begin + node != rows.call_node_ids[row] {
+                return false;
+            }
+            // Group order is canonical, so repeats and crossed occurrences fail.
+            if cursor > rows.occurrences.starts[row] {
+                let prior_instruction: Int = rows.occurrences.instruction_rows[cursor - 1];
+                if instruction < prior_instruction ||
+                    (instruction == prior_instruction && lane <= rows.occurrences.lanes[cursor - 1]) {
+                    return false;
+                }
+            }
+            cursor = cursor + 1;
+        }
+        row = row + 1;
+    }
+    return cursor == total;
+}

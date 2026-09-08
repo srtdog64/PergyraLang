@@ -1,0 +1,21 @@
+import "../../../src/self_hosted/semantic/ast_zone_rule_verdict_owner.pgy";
+
+func Probe(tree: String, expected: String) -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(tree);
+    let constructors: SemanticAstNominalConstructorFacts = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let roles: SemanticAstRoleFacts = SemanticAstRoleFactsFromArtifact(artifact);
+    let authorities: SemanticAstZoneAuthorityFacts = SemanticAstZoneAuthorityFactsFromArtifact(artifact, constructors, roles);
+    let violation: Option<String> = SemanticAstZoneRuleViolation(artifact, constructors, authorities);
+    if expected == "" { return !IsSome(violation); }
+    return IsSome(violation) && StringIndexOf(UnwrapOption(violation), expected) >= 0;
+}
+
+func Main() -> Void {
+    let base: String = "Program\n  Subject: Player\n  Effect: Marked\n    SubjectSlot: bearer: Player\n  Zone: Battle\n    SubjectSlot: owner: Player\n    SubjectSlot: observer: Player\n    EffectSlot: mark: Marked\n";
+    Log(Probe(base + "    Authority: owner\n    Apply: mark -> observer by owner\n", ""));
+    Log(Probe(base + "    Apply: mark -> owner\n", ""));
+    Log(Probe(base + "    Authority: owner\n    Apply: mark -> owner by observer\n", "not declared in zone authority set"));
+    Log(Probe(base + "    Authority: owner\n    Apply: mark -> owner\n", "must specify 'by"));
+    Log(Probe("Program\n  Class: Marked\n  Zone: Battle\n    EffectSlot: mark: Marked\n", "unknown effect type"));
+    Log(Probe("Program\n  Class: Bond\n  Zone: Battle\n    RelationSlot: bond: Bond\n", "unknown relation type"));
+}

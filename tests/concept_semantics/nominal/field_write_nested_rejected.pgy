@@ -1,0 +1,6 @@
+struct Value { let value: Int; }
+struct Outer { inner: Value; }
+func Main() -> Void {
+    let item: Outer = Outer(Value(1));
+    item.inner.value = 7;
+}

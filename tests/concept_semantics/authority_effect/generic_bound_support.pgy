@@ -1,0 +1,12 @@
+ability Sortable {}
+ability Cloneable {}
+subject Card { let value: Int; }
+subject Partial { let value: Int; }
+subject Dice { let value: Int; }
+role CardContract for Card {
+    impl ability Sortable {}
+    impl ability Cloneable {}
+}
+role PartialContract for Partial { impl ability Sortable {} }
+func Rank<T>(x: T) -> Int where T: Sortable { return 1; }
+func RankBoth<T>(x: T) -> Int where T: Sortable + Cloneable { return 2; }

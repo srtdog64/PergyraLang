@@ -1,0 +1,65 @@
+import "../../../src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy";
+import "../../../src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_expression_environment_owner.pgy";
+
+func ProbeNominalEquality(constraint: String, expected: String) -> Bool {
+    let tree: String = "Program:\n  Ability: Sortable\n  Subject: Card\n  Subject: Dice\n  Function: InspectCell\n    Generic params: <T>\n";
+    if constraint != "" { tree = tree + "    Constraints: where T: " + constraint + "\n"; }
+    tree = tree + "    Parameters:\n      value: T\n    Returns: Int\n    Body:\n      Block:\n        Return: 1\n";
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(tree);
+    let signatures: SemanticAstFunctionSignatureFacts = SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let constructors: SemanticAstNominalConstructorFacts = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let names: Array<String> = []; let types: Array<String> = [];
+    let ready: Bool = SemanticAstExpressionSeedParameters(
+        signatures, constructors, signatures.function_node_ids[0], names, types);
+    if expected == "" { return !ready; }
+    return ready && ArrayLength(types) == 1 && types[0] == expected &&
+        signatures.param_types[0] == "T" && signatures.generic_names[0] == "T";
+}
+
+func Probe(actual: String, expected: String) -> Bool {
+    let tree: String = "Program:\n  Ability: Sortable\n  Subject: Card\n  Subject: Dice\n  Role: CardSortable for Card\n    Impl ability: Sortable\n  Function: Rank\n    Generic params: <T>\n    Constraints: where T: Sortable\n    Parameters:\n      x: T\n    Returns: Int\n    Body:\n      Block:\n        Return: 1\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n";
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(tree);
+    let signatures: SemanticAstFunctionSignatureFacts = SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let roles: SemanticAstRoleFacts = SemanticAstRoleFactsFromArtifact(artifact);
+    let scopes: SemanticAstFunctionScopeFacts = SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    if !SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures) { return false; }
+    let calls: Array<Int> = [0];
+    let source_owners: Array<Int> = [signatures.function_node_ids[1]];
+    let zeroes: Array<Int> = [0];
+    let ones: Array<Int> = [1];
+    let actuals: Array<String> = [actual];
+    let facts: SemanticAstGenericSpecializationFacts = SemanticAstGenericSpecializationFacts(
+        true, "", "", calls, source_owners, ones, zeroes, zeroes, zeroes, ones, actuals
+    );
+    let violation: Option<String> = SemanticAstGenericSpecializationConstraintViolation(signatures, roles, scopes, facts);
+    if expected == "" { return !IsSome(violation); }
+    return IsSome(violation) && StringIndexOf(UnwrapOption(violation), expected) >= 0;
+}
+
+func Main() -> Void {
+    Log(Probe("Card", ""));
+    Log(Probe("Dice", "does not satisfy constraint 'Sortable'"));
+    Log(Probe("Int", "does not satisfy constraint 'Sortable'"));
+    Log(Probe("", "does not satisfy constraint 'Sortable'"));
+    let zone: SemanticPublicDiagnosticReceipt = SemanticPublicDiagnosticReceiptFromOwnedFacts("zone_contract_invalid", "zone identity mismatch");
+    Log(SemanticPublicDiagnosticReceiptReadyFor(zone, "zone_contract_invalid") && zone.code == "PGY_SEM_ZONE_CONTRACT_INVALID");
+    let bound: SemanticPublicDiagnosticReceipt = SemanticPublicDiagnosticReceiptFromOwnedFacts("generic_constraint_unsatisfied", "missing bound witness");
+    Log(SemanticPublicDiagnosticReceiptReadyFor(bound, "generic_constraint_unsatisfied") && bound.code == "PGY_SEM_CLASS_CONTRACT_INVALID");
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText("Program:\n  Function: Rank\n    Generic params: <T>\n    Constraints: where T: Sortable\n    Parameters:\n      x: T\n    Returns: Int\n    Body:\n      Block:\n        Return: 1\n");
+    let signatures: SemanticAstFunctionSignatureFacts = SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    Log(SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures));
+    let bounds: Array<String> = signatures.generic_constraint_type_names;
+    bounds[0] = "";
+    Log(!SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures));
+    let no_bounds: Array<String> = [];
+    signatures.generic_constraint_type_names = no_bounds;
+    Log(!SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures));
+    Log(ProbeNominalEquality("Card", "Card"));
+    Log(ProbeNominalEquality("Dice", "Dice"));
+    Log(ProbeNominalEquality("Card + Sortable", "Card"));
+    Log(ProbeNominalEquality("Sortable", "T"));
+    Log(ProbeNominalEquality("", "T"));
+    Log(ProbeNominalEquality("Card + Dice", ""));
+}

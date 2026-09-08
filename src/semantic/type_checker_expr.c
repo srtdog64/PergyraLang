@@ -137,7 +137,7 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
                 == PGY_MATCH_VARIANT_NONE_CTOR) {
             return wrap_constructed(TYPE_OPTION, TYPE_UNKNOWN);
         }
-        Symbol *sym = scope_lookup(ctx->scope, expr_name);
+        Symbol *sym = lookup_identifier_symbol(expr, ctx);
         if (sym == NULL) {
             Type *field_type = expr_current_host_field_type(
                 ctx, expr_name);

@@ -6,6 +6,7 @@
 // the generic three-routine classifier to reinterpret it.
 
 import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "../mir/declaration_wire_kind_owner.pgy";
 
 struct DirectMirLegacyIntentProgramRouteFact {
     let valid: Bool;
@@ -87,7 +88,7 @@ func DirectMirLegacyIntentProgramRouteFactFromAdmitted(
     ) {
         if admitted.domain_runtime_admission.declarations.kinds[
                 declaration_row
-            ] == "subject" &&
+            ] == MirDeclarationWireKind("subject") &&
             admitted.domain_runtime_admission.declarations.nominal_kinds[
                 declaration_row
             ] == "subject" {
@@ -95,7 +96,7 @@ func DirectMirLegacyIntentProgramRouteFactFromAdmitted(
             subject_row = declaration_row;
         } else if admitted.domain_runtime_admission.declarations.kinds[
                 declaration_row
-            ] == "zone" &&
+            ] == MirDeclarationWireKind("zone") &&
             admitted.domain_runtime_admission.declarations.nominal_kinds[
                 declaration_row
             ] == "zone" {

@@ -67,10 +67,23 @@ func CodegenAstArenaExpectParameters(arena: AstArena, count: Int, inout cur: Arr
     CodegenAstArenaExpectKind(arena, count, cur, TypedAstKindParametersTag(), "Parameters:");
 }
 
-func CodegenAstArenaSkipGenericParams(arena: AstArena, count: Int, inout cur: Array<Int>) -> Void {
+func CodegenAstArenaConsumeAdmittedGenericHeader(arena: AstArena, count: Int, inout cur: Array<Int>) -> Void {
     if cur[0] < count &&
         TypedAstArenaNodeKindIs(arena, cur[0], TypedAstKindGenericParamsTag()) {
+        let generic_node: Int = cur[0];
         ArraySet(cur, 0, cur[0] + 1);
+        // Semantic signature admission owns the bounds. This final cursor
+        // consumes their retained header row, not a new backend inference.
+        if cur[0] < count && TypedAstArenaNodeKindIs(
+            arena, cur[0], TypedAstKindGenericConstraintsTag()) {
+            if CodegenAstArenaParentOrDie(arena, cur[0]) !=
+                    CodegenAstArenaParentOrDie(arena, generic_node) ||
+                CodegenAstArenaIndentOrDie(arena, cur[0]) !=
+                    CodegenAstArenaIndentOrDie(arena, generic_node) {
+                Die("generic constraint header is attached to another declaration");
+            }
+            ArraySet(cur, 0, cur[0] + 1);
+        }
     }
 }
 

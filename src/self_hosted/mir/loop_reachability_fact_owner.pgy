@@ -35,6 +35,16 @@ func SelfMirLoopReachabilityForBlock(
             kind == TypedAstKindBareReturnStmtTag() ||
             kind == TypedAstKindValueReturnStmtTag() {
             statement_falls = false;
+        } else if kind == TypedAstKindUnsafeBlockTag() {
+            let body_opt: Option<Int> = SelfMirControlBodyBlock(arena, node_id);
+            if !IsSome(body_opt) {
+                return SelfMirLoopReachabilityFact(false, false, false);
+            }
+            let body_fact: SelfMirLoopReachabilityFact =
+                SelfMirLoopReachabilityForBlock(arena, UnwrapOption(body_opt));
+            if !body_fact.ok { return body_fact; }
+            statement_reaches = body_fact.reaches_backedge;
+            statement_falls = body_fact.falls_through;
         } else if kind == TypedAstKindIfStmtTag() {
             let then_opt: Option<Int> = SelfMirControlBodyBlock(
                 arena, node_id

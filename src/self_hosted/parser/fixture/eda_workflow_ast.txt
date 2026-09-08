@@ -10,18 +10,18 @@ Program:
             Return: 0
   Subject: RawDataset
     Fields:
-      name: String
+      let name: String
   Zone: AnalysisSession
     SubjectSlot: data: RawDataset
   Object: SchemaView
     Fields:
-      columns: Int
+      let columns: Int
   Object: MissingStats
     Fields:
-      totalRows: Int
+      let totalRows: Int
   TObject: EdaReport
     Fields:
-      summary: String
+      let summary: String
   Intent: ExploreData
     IntentMode: exclusive
     IntentRollback: full
@@ -43,4 +43,3 @@ Program:
     Body:
       Block:
         Log("EDA Workflow Pattern")
-

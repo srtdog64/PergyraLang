@@ -399,14 +399,13 @@ def main():
     elif kind in {"array-int-value-carriage", "array-bool-value-carriage"}:
         type_name = "Array<Int>" if kind.startswith("array-int") else "Array<Bool>"
         param = next(abi_value_params(document, type_name), None)
-        if param is None:
-            raise SystemExit(f"fixture has no value {type_name} parameter")
-        param["carriage"] = "readonly-ref"
+        if param is None: raise SystemExit(f"fixture has no value {type_name} parameter")
+        # Readonly Int is supported; absence, not another valid mode, is invalid.
+        param.pop("carriage")
     elif kind in {"array-int-value-pass-shape", "array-bool-value-pass-shape"}:
         type_name = "Array<Int>" if kind.startswith("array-int") else "Array<Bool>"
         param = next(abi_value_params(document, type_name), None)
-        if param is None:
-            raise SystemExit(f"fixture has no value {type_name} parameter")
+        if param is None: raise SystemExit(f"fixture has no value {type_name} parameter")
         param["pass"] = "indirect"
     elif kind.startswith("option-string-value-") or kind.startswith("option-int-value-"):
         type_name = "Option<String>" if kind.startswith("option-string") else "Option<Int>"
@@ -524,6 +523,8 @@ def main():
             param["pass"] = "indirect"
         elif kind.endswith("abi-layout"):
             param["abi_layout"]["align"] = 16
+        elif kind.endswith("abi-missing"):
+            del param["abi_layout"]
         elif kind.endswith("call-target"):
             node = named_direct_call_node(document, "ReleaseOwnedArray")
             if node is None:

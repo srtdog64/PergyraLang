@@ -26,7 +26,8 @@ func DirectMirScalarProgramLogicalRecordExpressionNodeReady(
             facts.node_literals[node] == "" &&
             facts.node_callable_rows[node] == -1;
     }
-    if kind == DirectMirScalarProgramExprLogicalRecordConstructor() {
+    if kind == DirectMirScalarProgramExprLogicalRecordConstructor() ||
+        kind == DirectMirScalarProgramExprIdentityCellConstructor() {
         let arguments: Array<Int> =
             DirectMirScalarProgramLogicalRecordArgumentRows(facts, node);
         let nary: Bool = DirectMirScalarProgramNaryOperandEntry(facts.nary_operands, node) >= 0;
@@ -48,7 +49,8 @@ func DirectMirScalarProgramLogicalRecordExpressionNodeReady(
         }
         return true;
     }
-    if kind != DirectMirScalarProgramExprLogicalRecordMember() {
+    if kind != DirectMirScalarProgramExprLogicalRecordMember() &&
+        kind != DirectMirScalarProgramExprIdentityCellMember() {
         return false;
     }
     let left: Int = facts.node_lefts[node];
@@ -69,7 +71,21 @@ func DirectMirScalarProgramLogicalRecordReadyForExpressions(
     let node: Int = 0;
     while node < ArrayLength(expressions.node_kinds) {
         let kind: Int = expressions.node_kinds[node];
-        if kind == DirectMirScalarProgramExprLogicalRecordConstructor() {
+        if kind == DirectMirScalarProgramExprIdentityCellConstructor() {
+            let cell: Int = DirectMirIdentityCellRow(fact.identity_cells, expressions.node_types[node]);
+            let arguments: Array<Int> = DirectMirScalarProgramLogicalRecordArgumentRows(expressions, node);
+            if cell < 0 || ArrayLength(arguments) != fact.identity_cells.field_counts[cell] { return false; }
+            let ordinal: Int = 0;
+            while ordinal < ArrayLength(arguments) {
+                if expressions.node_types[arguments[ordinal]] != DirectMirIdentityCellFieldType(
+                        fact.identity_cells, expressions.node_types[node], ordinal) { return false; }
+                ordinal = ordinal + 1;
+            }
+        } else if kind == DirectMirScalarProgramExprIdentityCellMember() {
+            let left: Int = expressions.node_lefts[node];
+            if left < 0 || expressions.node_types[node] != DirectMirIdentityCellFieldType(
+                    fact.identity_cells, expressions.node_types[left], expressions.node_member_ordinals[node]) { return false; }
+        } else if kind == DirectMirScalarProgramExprLogicalRecordConstructor() {
             let record_type: String = expressions.node_types[node];
             let record: Int = DirectMirScalarProgramLogicalRecordRow(
                 fact, record_type);

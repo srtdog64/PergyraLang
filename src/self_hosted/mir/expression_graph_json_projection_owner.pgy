@@ -6,6 +6,7 @@
 // over the 600-line owner cap.
 
 import "expression_graph_kind_name_owner.pgy";
+import "expression_graph_digest_owner.pgy";
 import "json_projection_support_owner.pgy";
 import "../lib/json_emit.pgy";
 import "program_verify_owner.pgy";
@@ -111,6 +112,8 @@ func SelfMirJsonExpressionGraph(rows: SelfMirExpressionGraphRows, ref graph: Sem
         JsonEmitFieldNumber(
             "root", ToString(rows.roots[instruction_index] - start)
         ),
+        JsonEmitFieldNumber("digest", ToString(
+            SelfMirExpressionGraphDigest(rows, graph, instruction_index))),
         JsonEmitFieldRaw("nodes", JsonEmitArray(nodes))
     ]);
 }

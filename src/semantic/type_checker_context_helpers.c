@@ -6,6 +6,7 @@
 #include "../common/string_compat.h"
 #include "diag_payload.h"
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "type_checker_flow_loop_summary.h"
 #include "type_checker_flow_universe.h"
 
@@ -201,6 +202,7 @@ semantic_context_destroy(SemanticContext *ctx)
     loop_flow_summary_end_function(ctx);
     resource_flow_universe_end(ctx);
     function_param_flow_summary_store_destroy(ctx);
+    callable_capability_destroy(ctx);
     scope_destroy(ctx->scope);
 
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {

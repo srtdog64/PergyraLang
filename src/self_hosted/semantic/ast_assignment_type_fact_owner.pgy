@@ -20,6 +20,7 @@ import "ast_expression_graph_array_literal_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 import "collection_mutation_policy_owner.pgy";
+import "ast_member_write_verdict_owner.pgy";
 struct SemanticAstAssignmentTypeFacts {
     ok: Bool;
     diagnostic_code: String;
@@ -174,7 +175,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
         let modes: Array<String> = [];
         if !SemanticAstExpressionSeedEnumValues(enum_facts, names, types, modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedEnumValues@", ToString(i))); }
         if !SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(signatures, constructors, assignments.function_node_ids[i], names, types, modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedOwnerFields@", ToString(i))); }
-        if !SemanticAstExpressionSeedParameters(signatures, assignments.function_node_ids[i], names, types) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedParameters@", ToString(i))); }
+        if !SemanticAstExpressionSeedParameters(signatures, constructors, assignments.function_node_ids[i], names, types) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedParameters@", ToString(i))); }
         if !SemanticAstExpressionSeedParameterModes(signatures, assignments.function_node_ids[i], modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedParameterModes@", ToString(i))); }
         if !SemanticAstExpressionSeedVisibleLocals(artifact, locals, initializer_types.inferred_type_names, assignments.function_node_ids[i], assignments.node_ids[i], names, types) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedVisibleLocals@", ToString(i))); }
         if !SemanticAstExpressionSeedVisibleLocalModes(artifact, locals, assignments.function_node_ids[i], assignments.node_ids[i], modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedVisibleLocalModes@", ToString(i))); }
@@ -232,6 +233,16 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                 );
             }
             expected = target_type;
+            if row_code == "" {
+                let write: SemanticDiagnosticMessageFact = SemanticAstMemberWriteVerdict(
+                    expression_surfaces.expression_graph, UnwrapOption(target_graph_root),
+                    target_binding_mode, constructors, names, types,
+                    function_tables.names, function_tables.returns);
+                if write.code != "" {
+                    row_code = write.code;
+                    row_message = SemanticDiagnosticMessageFactRender(write);
+                }
+            }
             if row_code == "" && assignments.target_is_indexed[i] == 1 {
                 let mutation_error: String = SemanticCollectionMutationError("ArraySet", target_root, names, types, modes, false);
                 if StringLength(mutation_error) > 0 { row_code = "value_param_collection_mutation"; row_message = mutation_error; }

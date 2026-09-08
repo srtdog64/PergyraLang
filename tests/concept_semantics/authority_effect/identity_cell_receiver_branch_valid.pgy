@@ -1,0 +1,17 @@
+subject Counter {
+    let mut value: Int;
+    action Bump(self, amount: Int) -> Void authorized by self {
+        if amount > 0 {
+            self.value = self.value + amount;
+        } else {
+            self.value = self.value - amount;
+        }
+        self.value = self.value + 1;
+    }
+}
+func Main() -> Void {
+    let c: Counter = Counter(1);
+    c.Bump(2);
+    c.Bump(-3);
+    Log(ToString(c.value));
+}

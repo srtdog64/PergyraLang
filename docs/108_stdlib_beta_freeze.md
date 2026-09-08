@@ -55,7 +55,9 @@ These are compiler/runtime builtins, not `use` modules:
   symbol, record, and handle keys must be normalized to these scalar key forms:
   canonical strings for symbol/record identities and stable integer/long IDs for
   handles. Raw aggregate keys are not part of the beta-stable collection
-  contract.
+  contract. A frozen language contract is not a claim that every self-host
+  backend implements it: HashMap source-admission and C/LLVM execution are
+  checked separately by `tests/concept_semantics/hashmap_admission.sh`.
 - Result/Option baseline: `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, `UnwrapOr`,
   `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`.
 

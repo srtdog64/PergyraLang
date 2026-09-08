@@ -21,6 +21,7 @@ typedef enum {
     LLVM_ARRAY_BUILTIN_SET,
     LLVM_ARRAY_BUILTIN_SLICE_COPY,
     LLVM_ARRAY_BUILTIN_SORT,
+    LLVM_ARRAY_BUILTIN_REVERSE,
     LLVM_ARRAY_BUILTIN_MAP,
     LLVM_ARRAY_BUILTIN_FILTER,
     LLVM_ARRAY_BUILTIN_PUSH_OWNED_STRING,
@@ -40,6 +41,7 @@ static const LLVMArrayBuiltinSpec kArrayBuiltinSpecs[] = {
     {"ArrayPop", 1, LLVM_ARRAY_BUILTIN_POP},
     {"ArrayPush", 2, LLVM_ARRAY_BUILTIN_PUSH},
     {"ArrayPushOwnedString", 2, LLVM_ARRAY_BUILTIN_PUSH_OWNED_STRING},
+    {"ArrayReverse", 1, LLVM_ARRAY_BUILTIN_REVERSE},
     {"ArraySet", 3, LLVM_ARRAY_BUILTIN_SET},
     {"ArraySort", 1, LLVM_ARRAY_BUILTIN_SORT},
     {"CompilerRetireArrayStorage", 1, LLVM_ARRAY_BUILTIN_DROP_STORAGE},
@@ -619,24 +621,25 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (op == LLVM_ARRAY_BUILTIN_SORT) {
+    if (op == LLVM_ARRAY_BUILTIN_SORT || op == LLVM_ARRAY_BUILTIN_REVERSE) {
         ASTNode *arr_arg = ast_call_argument(node, 0);
         LLVMArrayVarEntry *entry = NULL;
         LLVMValueRef arr_alloca = llvm_array_required_receiver_binding(
             ctx, node, arr_arg, callee_name, &entry);
         if (arr_alloca == NULL)
             return llvm_array_error_out(node, ctx,
-                "LLVM ArraySort requires registered Array<T> receiver", out);
+                "LLVM array transform requires registered Array<T> receiver", out);
         const char *suffix = llvm_array_required_elem_suffix(
             ctx, node, entry, callee_name);
         if (suffix == NULL)
             return llvm_array_error_out(node, ctx,
-                "LLVM ArraySort requires concrete Array<T> element metadata",
+                "LLVM array transform requires concrete Array<T> element metadata",
                 out);
 
         LLVMFuncEntry *fn = llvm_array_required_suffix_runtime(ctx, node,
-            callee_name, "pgy_array_sort", suffix,
-            "LLVM ArraySort requires registered runtime function", out);
+            callee_name, op == LLVM_ARRAY_BUILTIN_SORT
+                ? "pgy_array_sort" : "pgy_array_reverse", suffix,
+            "LLVM array transform requires registered runtime function", out);
         if (fn == NULL)
             return true;
 
@@ -645,7 +648,7 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMTypeRef arr_struct_ty = llvm_array_struct_type(ctx, suffix);
         if (arr_struct_ty == NULL)
             return llvm_array_error_out(node, ctx,
-                "LLVM ArraySort cannot resolve Array<T> struct type", out);
+                "LLVM array transform cannot resolve Array<T> struct type", out);
         LLVMValueRef data_gep = LLVMBuildStructGEP2(ctx->builder,
             arr_struct_ty, arr_alloca, 0, llvm_tmp_name(ctx));
         LLVMValueRef data_ptr = LLVMBuildLoad2(ctx->builder,

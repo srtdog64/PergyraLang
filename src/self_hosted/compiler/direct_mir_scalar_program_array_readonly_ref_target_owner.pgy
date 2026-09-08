@@ -1,0 +1,52 @@
+// Routine-partition identity for admitted read-only Int/String array parameters.
+
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramArrayReadonlyRefAt(
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    routine: Int, ordinal: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(routines.parameter_counts) ||
+        ordinal < 0 || ordinal >= routines.parameter_counts[routine] {
+        return false;
+    }
+    let row: Int = routines.parameter_starts[routine] + ordinal;
+    return DirectMirScalarProgramReadonlyArrayTypeSupported(
+            routines.parameter_types[row]) &&
+        routines.parameter_carriages[row] == "readonly-ref";
+}
+
+func DirectMirScalarProgramReadonlyArrayReborrowAt(
+    ref routines: DirectMirScalarCfgRoutinePartitionFact,
+    routine: Int, ordinal: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(routines.parameter_counts) ||
+        ordinal < 0 || ordinal >= routines.parameter_counts[routine] {
+        return false;
+    }
+    let row: Int = routines.parameter_starts[routine] + ordinal;
+    let type_name: String = routines.parameter_types[row];
+    let carriage: String = routines.parameter_carriages[row];
+    return DirectMirScalarProgramReadonlyArrayTypeSupported(type_name) &&
+        (carriage == "readonly-ref" || carriage == "value-result" || carriage == "value");
+}
+
+func DirectMirScalarProgramReadonlyArrayMemberArgumentReady(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    node: Int, graph_start: Int
+) -> Bool {
+    if node < graph_start || node >= ArrayLength(expressions.node_kinds) ||
+        !DirectMirScalarProgramReadonlyArrayTypeSupported(expressions.node_types[node]) {
+        return false;
+    }
+    let root: Int = node;
+    while expressions.node_kinds[root] == DirectMirScalarProgramExprLogicalRecordMember() {
+        let parent: Int = expressions.node_lefts[root];
+        if parent < graph_start || parent >= root { return false; }
+        root = parent;
+    }
+    return root < node && (expressions.node_kinds[root] == DirectMirScalarProgramExprLocal() ||
+        expressions.node_kinds[root] == DirectMirScalarProgramExprParameter());
+}

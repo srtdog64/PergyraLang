@@ -1,0 +1,50 @@
+// One subject-slot selection rule for Intent placement. Declaration owners
+// supply field columns; target consumers may not choose a slot again.
+import "../lib/nominal_field_kind_owner.pgy";
+
+struct IntentSubjectSlotSelection {
+    ok: Bool;
+    diagnostic: String;
+    field_row: Int;
+}
+
+func IntentSubjectSlotSelect(
+    ref owner_rows: Array<Int>, ref names: Array<String>,
+    ref types: Array<String>, ref kinds: Array<String>, owner: Int,
+    participant_alias: String, participant_type: String
+) -> IntentSubjectSlotSelection {
+    let count: Int = ArrayLength(names);
+    if owner < 0 || participant_alias == "" || participant_type == "" ||
+        ArrayLength(owner_rows) != count || ArrayLength(types) != count ||
+        ArrayLength(kinds) != count {
+        return IntentSubjectSlotSelection(false, "zone-subject-slot-inventory", -1);
+    }
+    let exact: Int = -1;
+    let exact_count: Int = 0;
+    let compatible: Int = -1;
+    let compatible_count: Int = 0;
+    let row: Int = 0;
+    while row < count {
+        if owner_rows[row] == owner && types[row] == participant_type &&
+            kinds[row] == NominalFieldKindSubjectSlot() {
+            if names[row] == "" {
+                return IntentSubjectSlotSelection(false, "zone-subject-slot-inventory", -1);
+            }
+            compatible = row;
+            compatible_count = compatible_count + 1;
+            if names[row] == participant_alias {
+                exact = row;
+                exact_count = exact_count + 1;
+            }
+        }
+        row = row + 1;
+    }
+    if exact_count == 1 { return IntentSubjectSlotSelection(true, "", exact); }
+    if exact_count > 1 || compatible_count > 1 {
+        return IntentSubjectSlotSelection(false, "zone-subject-slot-ambiguous", -1);
+    }
+    if compatible_count == 0 {
+        return IntentSubjectSlotSelection(false, "zone-subject-slot-missing", -1);
+    }
+    return IntentSubjectSlotSelection(true, "", compatible);
+}

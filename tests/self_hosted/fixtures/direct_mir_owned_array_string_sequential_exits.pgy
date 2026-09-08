@@ -1,0 +1,8 @@
+import "../../../src/self_hosted/codegen/text/owned_string_join_owner.pgy";
+func SequentialMoves(first: Bool) -> String {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", "-row"));
+    if first { Print(CodegenJoinOwnedStringFragments(rows, "")); }
+    return CodegenJoinOwnedStringFragments(rows, "");
+}
+func Main() -> Void { Print(SequentialMoves(true)); }

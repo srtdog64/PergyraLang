@@ -15,8 +15,10 @@
 #include "codegen_hashmap_key_policy.h"
 #include "transpiler_collection_runtime_suffix.h"
 #include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
 #include "transpiler_expr_stdlib_collection_support.h"
 #include "transpiler_format.h"
+#include "transpiler_symbols.h"
 
 typedef enum {
     TRANSPILER_MAP_OP_NONE = 0,
@@ -115,6 +117,46 @@ transpiler_map_require_supported_key(TranspilerCtx *ctx,
     return NULL;
 }
 
+/* C argument order is unspecified. Preserve the source call order, including
+ * the receiver address, without capturing a user's local or callable name. */
+static char *
+transpiler_map_sequence_call(TranspilerCtx *ctx, ASTNode *call,
+                             const char *runtime_name, const char *map,
+                             const char *key, const char *value)
+{
+    char *names[3] = {NULL, NULL, NULL};
+    unsigned count = value != NULL ? 3 : 2;
+    for (unsigned argument = 0; argument < count; ++argument) {
+        unsigned salt = 0;
+        do {
+            free(names[argument]);
+            names[argument] = strdup_fmt("__pgy_map_arg_%u_%u_%u",
+                (unsigned)ast_node_stable_id(call), argument, salt++);
+            if (names[argument] == NULL) {
+                for (unsigned i = 0; i < count; ++i) free(names[i]);
+                return NULL;
+            }
+        } while (lookup_typed_entry(ctx, names[argument]) != NULL ||
+                 find_callable_decl(ctx, names[argument]) != NULL);
+    }
+    char *result;
+    if (value != NULL) {
+        result = strdup_fmt(
+            "({ __auto_type %s = &(%s); __auto_type %s = (%s); "
+            "__auto_type %s = (%s); %s(%s, %s, %s); })",
+            names[0], map, names[1], key, names[2], value,
+            runtime_name, names[0], names[1], names[2]);
+    } else {
+        result = strdup_fmt(
+            "({ __auto_type %s = &(%s); __auto_type %s = (%s); "
+            "%s(%s, %s); })",
+            names[0], map, names[1], key,
+            runtime_name, names[0], names[1]);
+    }
+    for (unsigned i = 0; i < count; ++i) free(names[i]);
+    return result;
+}
+
 char *
 emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
 {
@@ -187,10 +229,11 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         transpiler_collection_ensure_specialization(ctx, "Map", value);
         char suffix_buf[128];
         collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
-        char *result = strdup_fmt(
-            "pgy_map_set%s_%s(&%s, %s, %s)",
-            key_infix,
-            suffix_buf, m, k, v);
+        char *runtime_name = strdup_fmt("pgy_map_set%s_%s", key_infix, suffix_buf);
+        char *result = runtime_name != NULL
+            ? transpiler_map_sequence_call(ctx, call, runtime_name, m, k, v)
+            : NULL;
+        free(runtime_name);
         free(m); free(k); free(v);
         return result;
     }
@@ -229,10 +272,11 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         transpiler_collection_ensure_specialization(ctx, "Map", value);
         char suffix_buf[128];
         collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
-        char *result = strdup_fmt(
-            "pgy_map_get%s_%s(&%s, %s)",
-            key_infix,
-            suffix_buf, m, k);
+        char *runtime_name = strdup_fmt("pgy_map_get%s_%s", key_infix, suffix_buf);
+        char *result = runtime_name != NULL
+            ? transpiler_map_sequence_call(ctx, call, runtime_name, m, k, NULL)
+            : NULL;
+        free(runtime_name);
         free(m); free(k);
         return result;
     }
@@ -271,10 +315,11 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         transpiler_collection_ensure_specialization(ctx, "Map", value);
         char suffix_buf[128];
         collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
-        char *result = strdup_fmt(
-            "pgy_map_has%s_%s(&%s, %s)",
-            key_infix,
-            suffix_buf, m, k);
+        char *runtime_name = strdup_fmt("pgy_map_has%s_%s", key_infix, suffix_buf);
+        char *result = runtime_name != NULL
+            ? transpiler_map_sequence_call(ctx, call, runtime_name, m, k, NULL)
+            : NULL;
+        free(runtime_name);
         free(m); free(k);
         return result;
     }
@@ -313,10 +358,11 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         transpiler_collection_ensure_specialization(ctx, "Map", value);
         char suffix_buf[128];
         collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
-        char *result = strdup_fmt(
-            "pgy_map_remove%s_%s(&%s, %s)",
-            key_infix,
-            suffix_buf, m, k);
+        char *runtime_name = strdup_fmt("pgy_map_remove%s_%s", key_infix, suffix_buf);
+        char *result = runtime_name != NULL
+            ? transpiler_map_sequence_call(ctx, call, runtime_name, m, k, NULL)
+            : NULL;
+        free(runtime_name);
         free(m); free(k);
         return result;
     }

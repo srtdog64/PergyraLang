@@ -184,7 +184,7 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
         for (size_t i = 0; i < ast_call_arg_count(node); i++) {
             ASTNode *arg = ast_call_argument(node, i);
             if (arg != NULL && arg->type == AST_IDENTIFIER
-                && !slot_call_is_non_escape_builtin(callee)
+                && !(callee_decl == NULL && slot_call_is_non_escape_builtin(callee))
                 && ast_identifier_name(arg) != NULL) {
                 bool handled = false;
 

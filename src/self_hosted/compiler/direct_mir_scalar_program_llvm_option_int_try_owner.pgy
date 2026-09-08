@@ -9,6 +9,7 @@ func DirectMirScalarProgramLlvmOptionIntTryDefinition(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>,
+    array_int_projection: Option<DirectMirArrayIntAbiProjection>,
     target: CompilerTargetProjectionFact
 ) -> String {
     let result: Int = plan.operation_result_values[operation];
@@ -22,10 +23,10 @@ func DirectMirScalarProgramLlvmOptionIntTryDefinition(
     let operand: DirectMirScalarProgramLlvmExpression =
         DirectMirScalarProgramLlvmExpressionAt(
             plan.program.expressions, expression_row, runtime,
-            plan.program.nominal_abi, plan.program.logical_record,
+            plan.program.logical_record,
             plan.program.payload_free_enum, plan.program.referenced_enum,
             plan.routines, routine, plan.program.array_string_abi,
-            array_string_projection, target);
+            array_string_projection, plan.program.array_int_value_result, array_int_projection, target);
     if !operand.valid || operand.type_name !=
             CompilerAbiLayoutOptionIntTypeName() {
         Die("direct MIR scalar LLVM Option<Int> try operand is invalid");

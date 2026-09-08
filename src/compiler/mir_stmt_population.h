@@ -7,6 +7,7 @@
 
 bool mir_stmt_is_def_source(const ASTNode *stmt);
 const char *mir_stmt_def_name(const ASTNode *stmt);
+uint32_t mir_stmt_binding_syntax_id(const ASTNode *stmt);
 bool mir_let_decl_requires_stmt_preservation(const ASTNode *stmt);
 bool mir_stmt_requires_source_local_preservation(const ASTNode *stmt);
 bool mir_stmt_is_control_flow(const ASTNode *stmt,

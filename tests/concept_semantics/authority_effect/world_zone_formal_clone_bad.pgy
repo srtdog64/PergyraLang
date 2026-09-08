@@ -1,0 +1,5 @@
+import "world_zone_transfer_support.pgy";
+func Invoke(Clone: func(CartZone) -> Int, ref world: CartWorld) -> Int {
+    return Clone(world.cart);
+}
+func Main() -> Void { }

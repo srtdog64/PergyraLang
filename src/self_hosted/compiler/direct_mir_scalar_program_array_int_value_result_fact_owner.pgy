@@ -5,7 +5,7 @@
 
 import "direct_mir_array_int_abi_fact_owner.pgy";
 import "direct_mir_array_storage_layout_contract_owner.pgy";
-import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_routine_instance_inventory_owner.pgy";
 import "direct_mir_scalar_program_parameter_fact_projection_owner.pgy";
 import "direct_mir_scalar_cfg_hash_owner.pgy";
 import "../mir_lower/abi_layout_admission_fact_owner.pgy";
@@ -111,6 +111,7 @@ func DirectMirScalarProgramArrayIntValueResultFactCanonicalEmpty(
 
 func DirectMirScalarProgramArrayIntValueResultFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref routine_instances: DirectMirRoutineInstanceInventory,
     routine_rows: Array<Int>
 ) -> DirectMirScalarProgramArrayIntValueResultFact {
     let routines: Array<Int> = [];
@@ -126,10 +127,7 @@ func DirectMirScalarProgramArrayIntValueResultFactFromAdmitted(
         let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
             admitted.routines, row);
         let signature: DirectMirRoutineSignatureFact =
-            DirectMirRoutineSignatureFactAt(
-                admitted.routines, row,
-                MirProgramRoutineIndexBlockInstructionCountAt(
-                    admitted.routines, row, 0));
+            DirectMirRoutineInstanceSignatureAt(routine_instances, routine);
         if !index.valid || !DirectMirRoutineSignatureFactReady(signature) {
             return DirectMirScalarProgramArrayIntValueResultFactInvalid();
         }
@@ -142,7 +140,8 @@ func DirectMirScalarProgramArrayIntValueResultFactFromAdmitted(
                         admitted.routines, row, parameter);
                 let carriage: String =
                     signature.parameters.carriages[parameter];
-                if (carriage != "value" && carriage != "value-result") ||
+                if (carriage != "value" && carriage != "value-result" &&
+                    carriage != "readonly-ref") ||
                     signature.parameters.resources[parameter] != "none" ||
                     signature.parameters.pass_shapes[parameter] != "direct" ||
                     !signature.parameters.abi_required[parameter] ||

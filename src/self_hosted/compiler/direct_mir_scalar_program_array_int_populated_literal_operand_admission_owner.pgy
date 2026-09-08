@@ -19,14 +19,14 @@ struct DirectMirScalarProgramArrayIntLiteralOperandAdmission {
     let operand_source: Int;
     let spine_node: Int;
     let next_source: Int;
-    let binary_literal: Bool;
+    let literal_arity: Int;
     let consumed_uses: Int;
 }
 
 func DirectMirScalarProgramArrayIntLiteralOperandInvalid(
 ) -> DirectMirScalarProgramArrayIntLiteralOperandAdmission {
     return DirectMirScalarProgramArrayIntLiteralOperandAdmission(
-        false, 0, "", -1, -1, -1, -1, -1, -1, false, 0);
+        false, 0, "", -1, -1, -1, -1, -1, -1, 0, 0);
 }
 
 func DirectMirScalarProgramArrayIntLiteralOperandFromOwners(
@@ -45,46 +45,42 @@ func DirectMirScalarProgramArrayIntLiteralOperandFromOwners(
     let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
     if source < 1 || source >= count { return invalid; }
     let source_kind: Int = sequence.arena.topology.node_kinds[source];
-    if source + 3 < count &&
-        source_kind == AstExpressionNodeIntegerLiteral() &&
-        sequence.arena.topology.node_kinds[source + 1] ==
-            AstExpressionNodeIntegerLiteral() {
-        let binary_source: Int = source + 2;
+    let arity: Int = 0;
+    if source_kind == AstExpressionNodeIntegerLiteral() && source + 2 < count &&
+        sequence.arena.topology.node_kinds[source + 1] == AstExpressionNodeNegate() {
+        arity = 1;
+    } else if source_kind == AstExpressionNodeIntegerLiteral() && source + 3 < count &&
+        sequence.arena.topology.node_kinds[source + 1] == AstExpressionNodeIntegerLiteral() {
+        arity = 2;
+    }
+    if arity > 0 {
+        let operator_source: Int = source + arity;
         let classified: DirectMirScalarProgramExpressionKindFact =
             DirectMirScalarProgramExpressionKindFactFromSource(
-                sequence.arena.topology.node_kinds[binary_source],
-                sequence.arena.node_texts[binary_source],
-                CompilerAbiLayoutIntTypeName(),
-                CompilerAbiLayoutIntTypeName(), 2, logical_record);
-        if classified.valid && classified.kind ==
-                DirectMirScalarProgramExprSubtractInt() &&
-            classified.type_name == CompilerAbiLayoutIntTypeName() &&
-            DirectMirScalarCfgCanonicalInt(
-                sequence.arena.node_texts[source]) &&
-            DirectMirScalarCfgCanonicalInt(
-                sequence.arena.node_texts[source + 1]) &&
-            sequence.arena.topology.left_children[binary_source] == source &&
-            sequence.arena.topology.right_children[binary_source] == source + 1 &&
-            sequence.arena.call_target_kinds[source] ==
-                SemanticCallTargetNone() &&
-            sequence.arena.call_target_kinds[source + 1] ==
-                SemanticCallTargetNone() &&
-            sequence.arena.call_target_kinds[binary_source] ==
-                SemanticCallTargetNone() &&
-            sequence.arena.call_target_names[source] == "" &&
-            sequence.arena.call_target_names[source + 1] == "" &&
-            sequence.arena.call_target_names[binary_source] == "" &&
-            sequence.arena.identities.binding_kinds[source] ==
-                SemanticExpressionBindingNone() &&
-            sequence.arena.identities.binding_kinds[source + 1] ==
-                SemanticExpressionBindingNone() &&
-            sequence.arena.identities.binding_kinds[binary_source] ==
-                SemanticExpressionBindingNone() {
-            return DirectMirScalarProgramArrayIntLiteralOperandAdmission(
-                true, classified.kind, "", -1, -1, -1, binary_source,
-                source + 3, source + 4, true, 0);
+                sequence.arena.topology.node_kinds[operator_source],
+                sequence.arena.node_texts[operator_source],
+                CompilerAbiLayoutIntTypeName(), CompilerAbiLayoutIntTypeName(),
+                arity, logical_record);
+        if !classified.valid || classified.type_name != CompilerAbiLayoutIntTypeName() ||
+            (arity == 1 && classified.kind != DirectMirScalarProgramExprNegateInt()) ||
+            (arity == 2 && classified.kind != DirectMirScalarProgramExprSubtractInt()) ||
+            sequence.arena.topology.left_children[operator_source] != source ||
+            (arity == 1 && sequence.arena.topology.right_children[operator_source] != 0) ||
+            (arity == 2 && sequence.arena.topology.right_children[operator_source] != source + 1) {
+            return invalid;
         }
-        return invalid;
+        let row: Int = source;
+        while row <= operator_source {
+            if sequence.arena.call_target_kinds[row] != SemanticCallTargetNone() ||
+                sequence.arena.call_target_names[row] != "" ||
+                sequence.arena.identities.binding_kinds[row] != SemanticExpressionBindingNone() ||
+                (row < operator_source && !DirectMirScalarCfgCanonicalInt(
+                    sequence.arena.node_texts[row])) { return invalid; }
+            row = row + 1;
+        }
+        return DirectMirScalarProgramArrayIntLiteralOperandAdmission(
+            true, classified.kind, "", -1, -1, -1, operator_source,
+            operator_source + 1, operator_source + 2, arity, 0);
     }
     if source_kind == AstExpressionNodeIntegerLiteral() {
         let spine: Int = source + 1;
@@ -99,7 +95,7 @@ func DirectMirScalarProgramArrayIntLiteralOperandFromOwners(
         return DirectMirScalarProgramArrayIntLiteralOperandAdmission(
             true, DirectMirScalarProgramExprIntLiteral(),
             sequence.arena.node_texts[source], -1, -1, -1,
-            source, spine, source + 2, false, 0);
+            source, spine, source + 2, 0, 0);
     }
     if source_kind == AstExpressionNodeLeaf() && source + 1 < count &&
         sequence.arena.topology.node_kinds[source + 1] ==
@@ -124,7 +120,7 @@ func DirectMirScalarProgramArrayIntLiteralOperandFromOwners(
         }
         return DirectMirScalarProgramArrayIntLiteralOperandAdmission(
             true, DirectMirScalarProgramExprLocal(), "", -1, local_row, -1,
-            source, source + 1, source + 2, false, operand.use_count);
+            source, source + 1, source + 2, 0, operand.use_count);
     }
     if source_kind == AstExpressionNodeLeaf() &&
         sequence.arena.identities.binding_kinds[source] ==
@@ -149,7 +145,7 @@ func DirectMirScalarProgramArrayIntLiteralOperandFromOwners(
             source + 1 >= count { return invalid; }
         return DirectMirScalarProgramArrayIntLiteralOperandAdmission(
             true, DirectMirScalarProgramExprParameter(), "", ordinal, -1,
-            -1, source, source + 1, source + 2, false, 0);
+            -1, source, source + 1, source + 2, 0, 0);
     }
     let call_node: Int = source + 1;
     let spine: Int = source + 2;
@@ -166,5 +162,5 @@ func DirectMirScalarProgramArrayIntLiteralOperandFromOwners(
         call.return_type != CompilerAbiLayoutIntTypeName() { return invalid; }
     return DirectMirScalarProgramArrayIntLiteralOperandAdmission(
         true, DirectMirScalarProgramExprDirectCall(), "", -1, -1,
-        call.callable_ordinal, call_node, spine, source + 3, false, 0);
+        call.callable_ordinal, call_node, spine, source + 3, 0, 0);
 }

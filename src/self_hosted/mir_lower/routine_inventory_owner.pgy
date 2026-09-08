@@ -8,6 +8,8 @@ import "json_fact_read.pgy";
 
 struct MirRoutineHeaderFacts {
     let generic_names: Array<String>;
+    let generic_constraints: Array<String>;
+    let generic_constraints_valid: Bool;
     let param_names: Array<String>;
     let param_source_syntax_ids: Array<Int>;
     let param_types: Array<String>;
@@ -15,6 +17,48 @@ struct MirRoutineHeaderFacts {
     let param_resources: Array<String>;
     let param_pass_shapes: Array<String>;
     let return_type: String;
+}
+
+// Signature consumers join the indexed identity to exact, unique header
+// members here. Parameter ABI and callable-kind policy remain with their owners.
+func MirRoutineHeaderSignatureEnvelopeReady(
+    json: String, start: Int, end: Int,
+    name: String, kind: String, source_syntax_id: String, receiver_carriage: String,
+    ref header: MirRoutineHeaderFacts, inout param_bounds: Array<Int>
+) -> Bool {
+    let fields: Array<String> = ["name", "kind", "receiver_carriage", "return"];
+    let expected: Array<String> = [name, kind, receiver_carriage, header.return_type];
+    let row: Int = 0;
+    while row < ArrayLength(fields) {
+        let value: Option<String> = MirObjectUniqueStringFactAtBounds(json, start, end, fields[row]);
+        if !IsSome(value) || UnwrapOption(value) != expected[row] { return false; }
+        row = row + 1;
+    }
+    let syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(json, start, end, "source_syntax_id");
+    let generic_bounds: Array<Int> = [0, 0];
+    return IsSome(syntax) && UnwrapOption(syntax) == source_syntax_id &&
+        MirObjectFieldOccurrenceCountAtBounds(json, start, end, "generics") == 1 &&
+        MirObjectFieldOccurrenceCountAtBounds(json, start, end, "params") == 1 &&
+        MirObjectArrayBoundsAtBounds(json, start, end, "generics", generic_bounds) &&
+        JsonArrayStringCount(json, generic_bounds[0], generic_bounds[1]) == ArrayLength(header.generic_names) &&
+        MirObjectArrayBoundsAtBounds(json, start, end, "params", param_bounds);
+}
+
+func MirRoutineHeaderGenericRowsReady(ref facts: MirRoutineHeaderFacts) -> Bool {
+    let count: Int = ArrayLength(facts.generic_names);
+    if !facts.generic_constraints_valid ||
+        count != ArrayLength(facts.generic_constraints) { return false; }
+    let row: Int = 0;
+    while row < count {
+        if facts.generic_names[row] == "" { return false; }
+        let prior: Int = 0;
+        while prior < row {
+            if facts.generic_names[prior] == facts.generic_names[row] { return false; }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
 }
 
 func MirRoutineHeaderParameterRowsReady(
@@ -61,6 +105,44 @@ func BuildMirRoutineHeaderFacts(
     let generic_names: Array<String> = MirObjectArrayStringFactsAtBounds(
         json, routine_start, routine_end, "generics"
     );
+    let generic_constraints: Array<String> = [];
+    let routine_fact: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        json, routine_start, routine_end);
+    let constraints: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(
+        routine_fact, "generic_constraints");
+    let generic_count: Int = ArrayLength(generic_names);
+    let generic_constraints_valid: Bool = generic_count == 0 &&
+        !JsonObjectFactHasField(routine_fact, "generic_constraints");
+    if JsonArrayObjectFactTableReady(constraints) {
+        generic_constraints_valid = MirObjectFieldOccurrenceCountAtBounds(
+            json, routine_start, routine_end, "generic_constraints") == 1;
+        let row: Int = 0;
+        let cursor: Int = constraints.start + 1;
+        let bounds: Array<Int> = [0, 0];
+        while JsonArrayNextObjectBounds(json, cursor, constraints.end, bounds) {
+            let constraint: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+                json, bounds[0], bounds[1]);
+            let name: Option<String> = JsonObjectFactStringFieldOpt(constraint, "name");
+            let bound: Option<String> = JsonObjectFactStringFieldOpt(constraint, "constraint");
+            if row >= generic_count || !IsSome(name) || !IsSome(bound) ||
+                JsonObjectFactCount(constraint) != 2 ||
+                MirObjectFieldOccurrenceCountAtBounds(json, bounds[0], bounds[1], "name") != 1 ||
+                MirObjectFieldOccurrenceCountAtBounds(json, bounds[0], bounds[1], "constraint") != 1 {
+                generic_constraints_valid = false;
+            } else {
+                if UnwrapOption(name) != generic_names[row] {
+                    generic_constraints_valid = false;
+                }
+                ArrayPush(generic_constraints, UnwrapOption(bound));
+            }
+            row = row + 1;
+            cursor = bounds[1];
+        }
+        if row != generic_count || JsonSkipWhitespaceWithin(
+            json, cursor, constraints.end) != constraints.end - 1 {
+            generic_constraints_valid = false;
+        }
+    }
     let param_names: Array<String> = [];
     let param_source_syntax_ids: Array<Int> = [];
     let param_types: Array<String> = [];
@@ -105,7 +187,8 @@ func BuildMirRoutineHeaderFacts(
     );
     if return_type == "" { return_type = "Void"; }
     return MirRoutineHeaderFacts(
-        generic_names, param_names, param_source_syntax_ids,
+        generic_names, generic_constraints, generic_constraints_valid,
+        param_names, param_source_syntax_ids,
         param_types, param_carriages,
         param_resources, param_pass_shapes, return_type
     );

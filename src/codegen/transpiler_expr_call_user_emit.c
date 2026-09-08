@@ -11,6 +11,7 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
+#include "transpiler_generic_binding_query.h"
 #include "transpiler_generic_specialization_emit.h"
 #include "transpiler_host_self_policy.h"
 #include "transpiler_inventory_view.h"
@@ -46,9 +47,40 @@ char *
 emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
     const char *callee_name = ast_identifier_name(callee);
-    ASTNode *decl = (callee->type == AST_IDENTIFIER)
+    bool local_callee = ast_call_semantic_callee_value_binding_id(call) != 0;
+    TypedVarEntry *callee_binding = local_callee
+        ? lookup_typed_entry(ctx, callee_name) : NULL;
+    if (local_callee && callee_binding == NULL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "C backend admitted local call '%s' requires binding metadata",
+            callee_name);
+        return NULL;
+    }
+    const char *callee_var_type = callee_binding != NULL
+        ? callee_binding->type_name : NULL;
+    const MIRCallableSig *callee_signature = callee_binding != NULL
+        ? callee_binding->callable_sig : NULL;
+    bool callee_is_closure = callee_var_type != NULL
+        && strncmp(callee_var_type, "pgy_lambda_clo_", 15) == 0;
+    if (local_callee && !callee_is_closure
+        && callee_signature == NULL
+        && strncmp(callee_var_type, "func(", 5) != 0) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "C backend local call '%s' requires callable type metadata",
+            callee_name);
+        return NULL;
+    }
+    if (callee_signature != NULL
+        && (!callee_signature->is_callable
+            || callee_signature->param_count != ast_call_arg_count(call))) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "C backend local call '%s' disagrees with its callable signature",
+            callee_name);
+        return NULL;
+    }
+    ASTNode *decl = (callee->type == AST_IDENTIFIER && !local_callee)
         ? find_callable_decl(ctx, callee_name) : NULL;
-    if (callee->type == AST_IDENTIFIER) {
+    if (callee->type == AST_IDENTIFIER && !local_callee) {
         ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
         const char *host_name = transpiler_decl_name_local(host_decl);
         const MIRDeclMethod *host_method_meta =
@@ -111,6 +143,8 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     bool callee_is_extern_func = false;
     bool mir_requires_routine = false;
     bool mir_only_intent = false;
+    GenericBindingEntry callee_bindings[MAX_GENERIC_BINDINGS];
+    size_t callee_binding_count = 0;
     if (callee->type == AST_IDENTIFIER) {
         if (decl != NULL && decl->type == AST_FUNC_DECL) {
             callee_routine = transpiler_find_mir_function(ctx, decl);
@@ -123,8 +157,16 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             callee_is_generic_func = true;
             const char *specialized_name =
                 ensure_generic_specialization(ctx, decl, call);
-            if (specialized_name != NULL)
-                callee_str = pergyra_strdup(specialized_name);
+            if (specialized_name == NULL)
+                return NULL;
+            if (!transpiler_generic_call_bindings_from_mir(ctx, decl, call,
+                    callee_bindings, &callee_binding_count)) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "C generic call parameter carriage requires MIR specialization facts for '%s'",
+                    callee_name);
+                return NULL;
+            }
+            callee_str = pergyra_strdup(specialized_name);
         }
     }
     if (callee_str == NULL)
@@ -137,7 +179,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         callee_is_extern_func = transpiler_decl_is_extern_function(ctx, decl);
 
     if (decl != NULL && decl->type == AST_FUNC_DECL
-        && !callee_is_generic_func && !callee_is_extern_func
+        && !callee_is_extern_func
         && transpiler_active_has_mir(ctx)) {
         if (callee_routine == NULL) {
             transpiler_set_mir_inventory_missing(ctx,
@@ -217,6 +259,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         ASTNode *arg_node = ast_call_argument(call, i);
         FuncParam *param = NULL;
         const char *param_type_name = NULL;
+        char concrete_param_type[sizeof(callee_bindings[0].concrete_type)];
         ASTNode *intent_param_type = NULL;
         const char *intent_param_type_name = NULL;
         bool handled = false;
@@ -233,11 +276,27 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         transpiler_mir_routine_param_type_name(
                             callee_routine, i);
                 }
-            } else if ((callee_is_generic_func
-                        || callee_is_extern_func)
+            } else if (callee_is_extern_func
                        && i < ast_func_param_count(decl)) {
                 param = ast_func_param(decl, i);
             }
+        }
+        if (callee_is_generic_func && param_type_name != NULL) {
+            char *actual = transpiler_generic_type_name_with_bindings(
+                param_type_name, callee_bindings, callee_binding_count);
+            bool copied = actual != NULL && pergyra_str_copy(concrete_param_type,
+                sizeof(concrete_param_type), actual);
+            free(actual);
+            if (!copied) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "C generic call parameter requires a representable concrete MIR type for '%s'",
+                    callee_name);
+                free(callee_str);
+                intent_binding_metadata_view_dispose(&binding_metadata);
+                codebuf_destroy(args_buf);
+                return NULL;
+            }
+            param_type_name = concrete_param_type;
         }
         if (param != NULL) {
             carriage = callee_has_mir_signature
@@ -424,8 +483,8 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     intent_param_type, intent_param_type_name)) {
                 if (transpiler_call_arg_is_indirect_ref(ctx, arg_node))
                     codebuf_write(args_buf, "%s", arg);
-                else if (transpiler_call_arg_can_take_subject_address(arg_node))
-                    codebuf_write(args_buf, "&%s", arg);
+                else if (transpiler_call_arg_can_take_subject_address(ctx, arg_node))
+                    codebuf_write(args_buf, "&(%s)", arg);
                 else {
                     transpiler_set_backend_error_with_hints(ctx,
                         PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -449,11 +508,6 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     /* Captured-closure dispatch: a local declared with the closure struct type
      * is called as `clo.fn(&clo.env, args)` (docs/135 Stage A). The hidden env
      * pointer is the leading argument. */
-    const char *callee_var_type = (callee->type == AST_IDENTIFIER)
-        ? lookup_typed_var(ctx, callee_name) : NULL;
-    bool callee_is_closure = callee_var_type != NULL
-        && strncmp(callee_var_type, "pgy_lambda_clo_", 15) == 0;
-
     char *result;
     if (callee_is_closure) {
         if (args_buf->data != NULL && args_buf->data[0] != '\0')

@@ -9,6 +9,7 @@ func SelfMirAppendCfg(
     let target_blocks: SelfMirBlockRows = target.blocks;
     let block_ids: Array<Int> = target_blocks.ids;
     let reachable: Array<Int> = target_blocks.reachable;
+    let intent_roles: Array<String> = target_blocks.intent_roles;
     let instruction_starts: Array<Int> = target_blocks.instruction_starts;
     let instruction_counts: Array<Int> = target_blocks.instruction_counts;
     let has_true: Array<Int> = target_blocks.has_succ_true;
@@ -20,6 +21,7 @@ func SelfMirAppendCfg(
     while block_i < ArrayLength(source.blocks.ids) {
         ArrayPush(block_ids, source.blocks.ids[block_i]);
         ArrayPush(reachable, source.blocks.reachable[block_i]);
+        ArrayPush(intent_roles, source.blocks.intent_roles[block_i]);
         ArrayPush(
             instruction_starts,
             source.blocks.instruction_starts[block_i] + instruction_offset
@@ -36,6 +38,7 @@ func SelfMirAppendCfg(
 
     let target_instructions: SelfMirInstructionRows = target.instructions;
     let ids: Array<Int> = target_instructions.ids;
+    let binding_source_syntax_ids: Array<Int> = target_instructions.binding_source_syntax_ids;
     let kinds: Array<String> = target_instructions.kinds;
     let names: Array<String> = target_instructions.names;
     let results: Array<String> = target_instructions.results;
@@ -73,6 +76,7 @@ func SelfMirAppendCfg(
     let instruction_i: Int = 0;
     while instruction_i < ArrayLength(source.instructions.ids) {
         ArrayPush(ids, source.instructions.ids[instruction_i]);
+        ArrayPush(binding_source_syntax_ids, source.instructions.binding_source_syntax_ids[instruction_i]);
         ArrayPush(kinds, source.instructions.kinds[instruction_i]);
         ArrayPush(names, source.instructions.names[instruction_i]);
         ArrayPush(results, source.instructions.results[instruction_i]);
@@ -170,7 +174,7 @@ func SelfMirAppendCfg(
     return SelfMirCfgRows(
         SelfMirBlockRows(
             block_ids, reachable, instruction_starts, instruction_counts,
-            has_true, succ_true, has_false, succ_false
+            has_true, succ_true, has_false, succ_false, intent_roles
         ),
         SelfMirInstructionRows(
             ids, kinds, names, results, arg0s, arg1s, slot_anchors,
@@ -182,7 +186,7 @@ func SelfMirAppendCfg(
             machine_layer_authority_required, machine_layer_live_lease_required,
             use_starts, use_counts, uses,
             expr0_graphs, expr1_graphs, match_facts, destructure_facts,
-            abi_type_names, runtime_call_abi
+            abi_type_names, runtime_call_abi, binding_source_syntax_ids
         ), SelfMirInstructionLocalRefRowsAppendRows(
             target.local_refs, source.local_refs
         )

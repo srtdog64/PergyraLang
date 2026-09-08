@@ -280,8 +280,10 @@ func SelfMirDeclarationsFromAnalysis(
             let ability_name: String = analysis.roles.impl_ability_names[
                 analysis.roles.impl_starts[role_i] + impl_i
             ];
+            let ability_type: SemanticCanonicalTypeNameFact =
+                SemanticCanonicalTypeNameFactFrom(ability_name);
             let ability_index: Option<Int> = SemanticAstAbilityIndexForName(
-                analysis.roles, ability_name
+                analysis.roles, ability_type.nominal_base_name
             );
             if !IsSome(ability_index) {
                 return SelfMirDeclarationRowsEmpty();

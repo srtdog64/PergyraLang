@@ -1,0 +1,7 @@
+export subject CapabilityActor {
+    let mut value: Int;
+    action Read(self) -> Void with caps clock { self.value = Now(); }
+    action Pure(self) -> Void { self.value = 7; }
+    action Undo(self) -> Void with caps io_write { Print("undo"); }
+}
+export zone CapabilityZone { subject slot actor: CapabilityActor }

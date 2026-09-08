@@ -1,0 +1,50 @@
+// Instruction-local type substitution under the exact routine instance.
+// Existing physical receipts are never reinterpreted as a different ABI.
+import "direct_mir_routine_instance_inventory_owner.pgy";
+import "../mir_lower/routine_instruction_scalar_capture_owner.pgy";
+import "direct_mir_instruction_abi_absence_owner.pgy";
+
+func DirectMirRoutineInstanceTypeName(
+    ref inventory: DirectMirRoutineInstanceInventory, ordinal: Int, source_type: String
+) -> Option<String> {
+    if !inventory.valid || ordinal < 0 || ordinal >= ArrayLength(inventory.instance_rows) { return None; }
+    let instance: Int = inventory.instance_rows[ordinal];
+    if instance < 0 || source_type == "" { return Some(source_type); }
+    let template: Int = inventory.source_rows[ordinal];
+    let formals: Array<String> = [];
+    let formal: Int = 0;
+    while formal < inventory.generic_calls.templates.generic_counts[template] {
+        ArrayPush(formals, inventory.generic_calls.templates.generic_names[
+            inventory.generic_calls.templates.generic_starts[template] + formal]);
+        formal = formal + 1;
+    }
+    let actuals: Array<String> = GenericInstanceActuals(inventory.generic_instances, instance);
+    let sources: Array<String> = [source_type];
+    let parameters: Array<String> = [];
+    let expressions: SemanticAstSignatureTypeExpressionFacts = SemanticAstSignatureTypeExpressionFactsFromRows(sources, parameters);
+    return SemanticAstSignatureReturnTypeResolveAt(expressions, 0, 0, ArrayLength(formals), formals, actuals);
+}
+
+func DirectMirRoutineInstanceInstructionCapture(
+    source: MirRoutineInstructionScalarCapture, json: String,
+    ref inventory: DirectMirRoutineInstanceInventory, ordinal: Int
+) -> MirRoutineInstructionScalarCapture {
+    if !source.valid { return source; }
+    let resolved: Option<String> = DirectMirRoutineInstanceTypeName(inventory, ordinal, source.abi_type_name);
+    if !IsSome(resolved) { return InvalidMirRoutineInstructionScalarCapture(); }
+    let type_name: String = UnwrapOption(resolved);
+    if type_name == source.abi_type_name { return source; }
+    if (!DirectMirScalarCfgScalarTypeSupported(type_name) &&
+            DirectMirIdentityCellRow(inventory.identity_cells, type_name) < 0) ||
+        !DirectMirInstructionHasNoPhysicalAbi(json, source, source.abi_type_name) {
+        return InvalidMirRoutineInstructionScalarCapture();
+    }
+    return MirRoutineInstructionScalarCapture(source.valid, source.name, source.result,
+        source.expr0, source.expr1, source.arg0, source.arg1, source.slot_anchor,
+        type_name, source.abi_type_value_ready, source.match_variant,
+        source.abi_type_start, source.abi_type_end, source.abi_layout_id_start, source.abi_layout_id_end,
+        source.abi_layout_required_start, source.abi_layout_required_end, source.abi_layout_start, source.abi_layout_end,
+        source.expr0_graph_start, source.expr0_graph_end, source.expr1_graph_start, source.expr1_graph_end,
+        source.kind, source.source_type, source.machine_contact_start, source.machine_contact_end,
+        source.machine_layer_start, source.machine_layer_end);
+}

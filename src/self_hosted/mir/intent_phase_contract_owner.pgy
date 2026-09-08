@@ -1,9 +1,48 @@
-// Producer-side scalar contract for executable intent phase carriers.
+// Shared scalar contract for executable intent phase carriers.
 //
 // DIR owns the clause facts. This owner only fixes their native-compatible
 // MIR wire shape before any JSON artifact can be committed.
 
 import "program_fact_owner.pgy";
+
+func SelfMirIntentPhaseIsCheck(phase: String) -> Bool {
+    return phase == "success" || phase == "guard" || phase == "expect" || phase == "post" ||
+        phase == "pre" || phase == "invariant-pre" || phase == "invariant-post";
+}
+
+func SelfMirIntentPhaseIsEvaluation(phase: String) -> Bool {
+    return phase == "on" || phase == "intent" || phase == "compensate";
+}
+
+func SelfMirIntentTargetPhase(target_kind: String) -> String {
+    if target_kind == "action" { return "on"; }
+    if target_kind == "intent" { return "intent"; }
+    return "";
+}
+
+func SelfMirIntentPhaseResultDiagnostic(
+    name: String, phase: String, result: String, type_name: String
+) -> String {
+    let check: Bool = name == "IntentCheck" && SelfMirIntentPhaseIsCheck(phase);
+    let evaluation: Bool = name == "IntentEval" && SelfMirIntentPhaseIsEvaluation(phase);
+    if !check && !evaluation {
+        return "MIR intent phase carrier names an unknown phase";
+    }
+    if check && (result != "" || type_name != "") {
+        return "MIR intent check result/type shape is invalid";
+    }
+    if phase == "compensate" && (result != "" || type_name != "") {
+        return "MIR intent compensate result/type shape is invalid";
+    }
+    if phase == "intent" && (result != "" || type_name != "") {
+        return "MIR intent nested result/type shape is invalid";
+    }
+    if phase == "on" && ((result == "") != (type_name == "") ||
+        type_name == "Unknown" || type_name == "Void") {
+        return "MIR intent on result/type shape is invalid";
+    }
+    return "";
+}
 
 func SelfMirIntentPhaseInstructionReady(
     rows: SelfMirInstructionRows,
@@ -21,18 +60,6 @@ func SelfMirIntentPhaseInstructionReady(
         rows.runtime_call_abi.present[index] != 0 {
         return false;
     }
-    if name == "IntentCheck" {
-        return (phase == "guard" || phase == "expect" || phase == "post") &&
-            rows.results[index] == "" && rows.abi_type_names[index] == "";
-    }
-    if phase == "compensate" {
-        return rows.results[index] == "" &&
-            rows.abi_type_names[index] == "";
-    }
-    if phase != "on" { return false; }
-    let has_result: Bool = rows.results[index] != "";
-    let has_type: Bool = rows.abi_type_names[index] != "";
-    return has_result == has_type &&
-        (!has_type || (rows.abi_type_names[index] != "Unknown" &&
-                       rows.abi_type_names[index] != "Void"));
+    return SelfMirIntentPhaseResultDiagnostic(name, phase,
+        rows.results[index], rows.abi_type_names[index]) == "";
 }

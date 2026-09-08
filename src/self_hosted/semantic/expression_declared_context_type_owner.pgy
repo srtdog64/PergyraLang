@@ -19,7 +19,8 @@ func ExprTypeInDeclaredContext(
     );
     if actual_type != "List<Unknown>" &&
         actual_type != "Queue<Unknown>" &&
-        actual_type != "Set<Unknown>" {
+        actual_type != "Set<Unknown>" &&
+        actual_type != "HashMap<Unknown, Unknown>" {
         return actual_type;
     }
     let text: String = SemanticStripOuterParens(expr);

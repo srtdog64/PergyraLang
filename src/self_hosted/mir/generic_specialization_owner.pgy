@@ -5,6 +5,24 @@ import "../semantic/ast_generic_specialization_query_owner.pgy";
 import "../semantic/ast_signature_fact_owner.pgy";
 import "../compiler/symbol_table_owner.pgy";
 
+// Canonical CFG occurrences of each semantic call. One source call may be
+// lowered into multiple instructions (for example cleanup edges).
+struct SelfMirGenericCallOccurrenceRows {
+    sealed: Bool;
+    starts: Array<Int>;
+    counts: Array<Int>;
+    routine_rows: Array<Int>;
+    block_rows: Array<Int>;
+    instruction_rows: Array<Int>;
+    lanes: Array<Int>;
+    graph_nodes: Array<Int>;
+}
+
+func SelfMirGenericCallOccurrenceRowsEmpty() -> SelfMirGenericCallOccurrenceRows {
+    let ints: Array<Int> = [];
+    return SelfMirGenericCallOccurrenceRows(false, ints, ints, ints, ints, ints, ints, ints);
+}
+
 struct SelfMirGenericSpecializationRows {
     source_owner_node_ids: Array<Int>;
     source_lanes: Array<Int>;
@@ -20,6 +38,9 @@ struct SelfMirGenericSpecializationRows {
     actual_starts: Array<Int>;
     actual_counts: Array<Int>;
     actual_type_names: Array<String>;
+    call_node_ids: Array<Int>;
+    target_syntax_ids: Array<Int>;
+    occurrences: SelfMirGenericCallOccurrenceRows;
 }
 
 func SelfMirGenericSpecializationRowsEmpty(
@@ -28,7 +49,8 @@ func SelfMirGenericSpecializationRowsEmpty(
     let strings: Array<String> = [];
     return SelfMirGenericSpecializationRows(
         ints, ints, ints, ints, ints, strings, strings, strings,
-        ints, ints, strings, ints, ints, strings
+        ints, ints, strings, ints, ints, strings, ints, ints,
+        SelfMirGenericCallOccurrenceRowsEmpty()
     );
 }
 
@@ -61,13 +83,16 @@ func SelfMirGenericSpecializationRowsReady(
         ArrayLength(rows.actual_counts) != count {
         return false;
     }
+    if ArrayLength(rows.call_node_ids) != count ||
+        ArrayLength(rows.target_syntax_ids) != count { return false; }
     let param_cursor: Int = 0;
     let actual_cursor: Int = 0;
     let i: Int = 0;
     while i < count {
         let target_kind_name: String =
             SelfMirGenericSpecializationTargetKindName(rows.target_kinds[i]);
-        if rows.source_owner_node_ids[i] < 0 ||
+        if rows.call_node_ids[i] < 0 || rows.target_syntax_ids[i] <= 0 ||
+            rows.source_owner_node_ids[i] < 0 ||
             rows.source_lanes[i] < AstExpressionLaneAtom() ||
             rows.source_lanes[i] > AstExpressionLaneAuxiliary() ||
             rows.source_call_ordinals[i] < 0 ||
@@ -125,6 +150,8 @@ func SelfMirGenericSpecializationRowsFromSemantic(
     let actual_starts: Array<Int> = rows.actual_starts;
     let actual_counts: Array<Int> = rows.actual_counts;
     let actual_type_names: Array<String> = rows.actual_type_names;
+    let target_syntax_ids: Array<Int> = [];
+    let call_node_ids: Array<Int> = [];
     let i: Int = 0;
     while i < SemanticAstGenericSpecializationCount(semantic_rows) {
         let signature_index: Int = semantic_rows.signature_indexes[i];
@@ -157,6 +184,8 @@ func SelfMirGenericSpecializationRowsFromSemantic(
         ArrayPush(source_lanes, semantic_rows.source_lanes[i]);
         ArrayPush(source_call_ordinals, semantic_rows.source_call_ordinals[i]);
         ArrayPush(signature_indexes, signature_index);
+        ArrayPush(call_node_ids, semantic_rows.call_node_ids[i]);
+        ArrayPush(target_syntax_ids, analysis.signatures.function_node_ids[signature_index]);
         ArrayPush(target_kinds, target_kind);
         ArrayPush(owner_names, owner);
         ArrayPush(callable_names, analysis.signatures.names[signature_index]);
@@ -194,6 +223,21 @@ func SelfMirGenericSpecializationRowsFromSemantic(
         source_owner_node_ids, source_lanes, source_call_ordinals,
         signature_indexes, target_kinds, owner_names, callable_names,
         specialized_symbols, generic_param_starts, generic_param_counts,
-        generic_param_names, actual_starts, actual_counts, actual_type_names
+        generic_param_names, actual_starts, actual_counts, actual_type_names,
+        call_node_ids, target_syntax_ids,
+        SelfMirGenericCallOccurrenceRowsEmpty()
     );
+}
+
+func SelfMirGenericSpecializationWithOccurrences(
+    rows: SelfMirGenericSpecializationRows,
+    occurrences: SelfMirGenericCallOccurrenceRows
+) -> SelfMirGenericSpecializationRows {
+    return SelfMirGenericSpecializationRows(
+        rows.source_owner_node_ids, rows.source_lanes, rows.source_call_ordinals,
+        rows.signature_indexes, rows.target_kinds, rows.owner_names,
+        rows.callable_names, rows.specialized_symbols, rows.generic_param_starts,
+        rows.generic_param_counts, rows.generic_param_names, rows.actual_starts,
+        rows.actual_counts, rows.actual_type_names, rows.call_node_ids,
+        rows.target_syntax_ids, occurrences);
 }

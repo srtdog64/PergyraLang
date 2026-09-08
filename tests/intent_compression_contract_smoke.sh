@@ -326,4 +326,98 @@ fi
 grep -Fq "&& !ast_intent_step_inherited_where_from_intent(step)" \
     "$ROOT_DIR/src/semantic/type_checker_intent_contract_summary.c"
 
+# Structural absence only; intent_completion_projection.py owns occurrence
+# execution, mirror refusal and the independent repeated-step observation.
+if grep -En 'SelfMirIntentLegacyBodyAppend|executable_step_(exprs|rows)' \
+    "$ROOT_DIR/src/self_hosted/mir/intent_execution_source_cfg_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/mir/intent_routine_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_carrier_projection_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_legacy_intent_program_plan_owner.pgy"; then
+    echo "legacy Intent statement mirror or text-selected occurrence returned" >&2
+    exit 1
+else
+    scan_status=$?
+    if [[ "$scan_status" -ne 1 ]]; then
+        echo "legacy Intent mirror source scan failed (status $scan_status)" >&2
+        exit "$scan_status"
+    fi
+fi
+
+grep -Fq 'MirIntentRoutineStepPlanFromOwners(' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_plan_owner.pgy"
+grep -Fq 'MirIntentRoutinePlanFromOwners(' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_tree_projection_owner.pgy"
+if grep -En 'MirIntent(ModeProjectionFromCarriers|PriorityProjectionFromCarriers|BindingProjectionFromCarriers|PhaseProjectionFromCarriers|RollbackContractError|InvalidationContractError)' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_tree_projection_owner.pgy"; then
+    echo "Intent routine admission must not return to the tree consumer" >&2
+    exit 1
+else
+    lookup_status=$?
+    if [ "$lookup_status" -ne 1 ]; then
+        echo "Intent routine admission absence scan failed" >&2
+        exit "$lookup_status"
+    fi
+fi
+grep -Fq 'ref plan: MirIntentRoutineStepPlan' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy"
+grep -Fq 'IntentSubjectSlotSelect(' \
+    "$ROOT_DIR/src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy"
+grep -Fq 'IntentSubjectSlotSelect(' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_step_placement_binding_owner.pgy"
+grep -Fq 'slot_source_syntax_id: String' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_step_placement_binding_owner.pgy"
+grep -Fq 'MirIntentBindingRowForAlias(' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy"
+grep -Fq 'zone_alias: String, receiver: Int' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_step_placement_binding_owner.pgy"
+if grep -En 'binding_scan|receiver_match_count' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy"; then
+    echo "Intent step admission must reuse the binding owner" >&2
+    exit 1
+else
+    scan_status=$?
+    if [ "$scan_status" -ne 1 ]; then
+        echo "Intent binding-owner absence scan failed" >&2
+        exit "$scan_status"
+    fi
+fi
+if grep -En 'compatible_count|exact_count|slot_name != ""' \
+    "$ROOT_DIR/src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy"; then
+    echo "C projection must not own Intent subject-slot selection" >&2
+    exit 1
+else
+    scan_status=$?
+    if [ "$scan_status" -ne 1 ]; then
+        echo "Intent slot-selection absence scan failed" >&2
+        exit "$scan_status"
+    fi
+fi
+grep -Fq 'typed_step_row = topology_rows[step_index]' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy"
+if grep -En 'MirIntentExecutionStepRowForCarrier|import "intent_execution_tree_projection_owner.pgy"' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_execution_tree_projection_owner.pgy"; then
+    echo "Intent step plan resumed consumer-owned topology lookup" >&2
+    exit 1
+else
+    scan_status=$?
+    if [[ "$scan_status" -ne 1 ]]; then
+        echo "Intent step topology source scan failed (status $scan_status)" >&2
+        exit "$scan_status"
+    fi
+fi
+if grep -En 'MirIntentActionContract\(|MirIntentStepPlacementContractFromCarriers\(|MirIntentCarrierCount\(' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy"; then
+    echo "Intent tree projection resumed step admission instead of consuming its plan" >&2
+    exit 1
+else
+    scan_status=$?
+    if [[ "$scan_status" -ne 1 ]]; then
+        echo "Intent step consumer source scan failed (status $scan_status)" >&2
+        exit "$scan_status"
+    fi
+fi
+
 echo "[intent-compression-contract] intent compression provenance is source-gated through DIR/AIR/RIR"

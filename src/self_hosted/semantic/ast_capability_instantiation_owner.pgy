@@ -1,0 +1,219 @@
+// Finite, call-site-specific capability substitution. The key is one admitted
+// declaration plus ordered callable identities, not a global union of actuals.
+import "ast_capability_call_graph_owner.pgy";
+
+struct SemanticAstCapabilityInstantiations {
+    ok: Bool;
+    callable_rows: Array<Int>;
+    binding_starts: Array<Int>;
+    binding_ids: Array<Int>;
+    next: Array<Int>;
+    heads: Array<Int>;
+    used_masks: Array<Int>;
+    deferred: Array<Bool>;
+    closed: Array<Bool>;
+    edge_callers: Array<Int>;
+    edge_callees: Array<Int>;
+    reuses: Int;
+    used_effects: Array<Int>;
+    unknown_effects: Array<Bool>;
+}
+
+func SemanticAstCapabilityInstantiationIntern(
+    ref graph: SemanticAstCapabilityCallGraph, callable: Int,
+    ref actuals: Array<Int>, inout state: SemanticAstCapabilityInstantiations
+) -> Int {
+    if callable < 0 || callable >= ArrayLength(graph.callable_node_ids) ||
+        ArrayLength(actuals) != graph.parameter_counts[callable] {
+        state.ok = false; return -1;
+    }
+    let closed: Bool = true;
+    let argument: Int = 0;
+    while argument < ArrayLength(actuals) {
+        let id: Int = actuals[argument];
+        if id <= 0 || id >= ArrayLength(graph.declaration_rows) {
+            state.ok = false; return -1;
+        }
+        if graph.declaration_rows[id] < 0 {
+            if graph.parameter_rows[id] < 0 { state.ok = false; return -1; }
+            closed = false;
+        }
+        argument = argument + 1;
+    }
+    let candidate: Int = state.heads[callable];
+    while candidate >= 0 {
+        let equal: Bool = true;
+        argument = 0;
+        while argument < ArrayLength(actuals) && equal {
+            equal = state.binding_ids[state.binding_starts[candidate] + argument] == actuals[argument];
+            argument = argument + 1;
+        }
+        if equal { state.reuses = state.reuses + 1; return candidate; }
+        candidate = state.next[candidate];
+    }
+    let rows: Array<Int> = state.callable_rows;
+    let starts: Array<Int> = state.binding_starts;
+    let bindings: Array<Int> = state.binding_ids;
+    let next: Array<Int> = state.next;
+    let masks: Array<Int> = state.used_masks;
+    let effects: Array<Int> = state.used_effects;
+    let unknown_effects: Array<Bool> = state.unknown_effects;
+    let deferred: Array<Bool> = state.deferred;
+    let closed_rows: Array<Bool> = state.closed;
+    let result: Int = ArrayLength(rows);
+    ArrayPush(rows, callable);
+    ArrayPush(starts, ArrayLength(bindings));
+    argument = 0;
+    while argument < ArrayLength(actuals) {
+        ArrayPush(bindings, actuals[argument]);
+        argument = argument + 1;
+    }
+    ArrayPush(next, state.heads[callable]);
+    state.heads[callable] = result;
+    ArrayPush(masks, graph.direct_masks[callable]);
+    ArrayPush(effects, graph.direct_effects[callable]);
+    ArrayPush(unknown_effects, graph.unknown_effects[callable]);
+    ArrayPush(deferred, false);
+    ArrayPush(closed_rows, closed);
+    state.callable_rows = rows;
+    state.binding_starts = starts;
+    state.binding_ids = bindings;
+    state.next = next;
+    state.used_masks = masks;
+    state.used_effects = effects;
+    state.unknown_effects = unknown_effects;
+    state.deferred = deferred;
+    state.closed = closed_rows;
+    return result;
+}
+
+func SemanticAstCapabilitySubstituteIdentity(
+    ref graph: SemanticAstCapabilityCallGraph,
+    ref state: SemanticAstCapabilityInstantiations, context: Int, id: Int
+) -> Int {
+    if id <= 0 || id >= ArrayLength(graph.declaration_rows) { return -1; }
+    if graph.declaration_rows[id] >= 0 { return id; }
+    let parameter: Int = graph.parameter_rows[id];
+    let callable: Int = state.callable_rows[context];
+    if parameter < 0 || graph.parameter_owners[parameter] != callable { return -1; }
+    let ordinal: Int = parameter - graph.parameter_starts[callable];
+    if ordinal < 0 || ordinal >= graph.parameter_counts[callable] { return -1; }
+    // A template preserves the original parameter identity. Concrete callers
+    // replace it with a declaration; no missing binding becomes capability 0.
+    return state.binding_ids[state.binding_starts[context] + ordinal];
+}
+
+func SemanticAstCapabilityInstantiateCall(
+    ref graph: SemanticAstCapabilityCallGraph, context: Int, call: Int,
+    inout state: SemanticAstCapabilityInstantiations
+) -> Void {
+    let target: Int = SemanticAstCapabilitySubstituteIdentity(graph, state, context, graph.call_target_ids[call]);
+    if target <= 0 { state.ok = false; return; }
+    let callee: Int = graph.declaration_rows[target];
+    if callee < 0 {
+        if state.closed[context] || graph.parameter_rows[target] < 0 { state.ok = false; return; }
+        state.deferred[context] = true;
+        return;
+    }
+    let actuals: Array<Int> = [];
+    let parameter: Int = 0;
+    while parameter < graph.parameter_counts[callee] {
+        let ordinal: Int = graph.parameter_ordinals[graph.parameter_starts[callee] + parameter] -
+            graph.call_source_offsets[call];
+        if ordinal < 0 || ordinal >= graph.call_argument_counts[call] { state.ok = false; return; }
+        let id: Int = SemanticAstCapabilitySubstituteIdentity(graph, state, context,
+            graph.argument_binding_ids[graph.call_argument_starts[call] + ordinal]);
+        if id <= 0 { state.ok = false; return; }
+        ArrayPush(actuals, id);
+        parameter = parameter + 1;
+    }
+    let resolved: Int = SemanticAstCapabilityInstantiationIntern(graph, callee, actuals, state);
+    if resolved < 0 { return; }
+    let callers: Array<Int> = state.edge_callers;
+    let callees: Array<Int> = state.edge_callees;
+    ArrayPush(callers, context);
+    ArrayPush(callees, resolved);
+    state.edge_callers = callers;
+    state.edge_callees = callees;
+}
+
+func SemanticAstCapabilityInstantiationsFromGraph(
+    ref graph: SemanticAstCapabilityCallGraph
+) -> SemanticAstCapabilityInstantiations {
+    let empty: Array<Int> = [];
+    let bools: Array<Bool> = [];
+    let heads: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(graph.callable_node_ids) {
+        ArrayPush(heads, -1);
+        row = row + 1;
+    }
+    let state: SemanticAstCapabilityInstantiations = SemanticAstCapabilityInstantiations(
+        graph.ok, empty, empty, empty, empty, heads, empty, bools, bools, empty, empty, 0, empty, bools);
+    row = 0;
+    while row < ArrayLength(graph.callable_node_ids) && state.ok {
+        let actuals: Array<Int> = [];
+        let parameter: Int = 0;
+        while parameter < graph.parameter_counts[row] {
+            ArrayPush(actuals, graph.parameter_node_ids[graph.parameter_starts[row] + parameter]);
+            parameter = parameter + 1;
+        }
+        let template: Int = SemanticAstCapabilityInstantiationIntern(graph, row, actuals, state);
+        if template != row { state.ok = false; }
+        row = row + 1;
+    }
+    // Append-only worklist. Recursive and repeated calls reuse an existing key;
+    // every distinct semantic instantiation scans its own call rows once.
+    let context: Int = 0;
+    while context < ArrayLength(state.callable_rows) && state.ok {
+        let call: Int = graph.call_heads[state.callable_rows[context]];
+        while call >= 0 && state.ok {
+            SemanticAstCapabilityInstantiateCall(graph, context, call, state);
+            call = graph.call_next[call];
+        }
+        context = context + 1;
+    }
+    let changed: Bool = true;
+    let round: Int = 0;
+    // Each node can gain nine cap bits, eight effect bits, unknown and deferred.
+    let limit: Int = (ArrayLength(state.callable_rows) + 1) * 19;
+    while changed && round < limit && state.ok {
+        changed = false;
+        let edge: Int = 0;
+        while edge < ArrayLength(state.edge_callers) {
+            let caller: Int = state.edge_callers[edge];
+            let callee: Int = state.edge_callees[edge];
+            let exported: Int = SemanticCapabilityMaskJoin(
+                graph.declared_masks[state.callable_rows[callee]], state.used_masks[callee]);
+            let joined: Int = SemanticCapabilityMaskJoin(state.used_masks[caller], exported);
+            if joined != state.used_masks[caller] {
+                state.used_masks[caller] = joined;
+                changed = true;
+            }
+            let exported_effects: Int = SemanticEffectMaskJoin(
+                graph.declared_effects[state.callable_rows[callee]], state.used_effects[callee]);
+            let joined_effects: Int = SemanticEffectMaskJoin(state.used_effects[caller], exported_effects);
+            if joined_effects != state.used_effects[caller] {
+                state.used_effects[caller] = joined_effects;
+                changed = true;
+            }
+            if state.unknown_effects[callee] && !state.unknown_effects[caller] {
+                state.unknown_effects[caller] = true;
+                changed = true;
+            }
+            if state.deferred[callee] && !state.deferred[caller] {
+                state.deferred[caller] = true;
+                changed = true;
+            }
+            edge = edge + 1;
+        }
+        round = round + 1;
+    }
+    if changed { state.ok = false; }
+    context = 0;
+    while context < ArrayLength(state.callable_rows) && state.ok {
+        if state.closed[context] && state.deferred[context] { state.ok = false; }
+        context = context + 1;
+    }
+    return state;
+}

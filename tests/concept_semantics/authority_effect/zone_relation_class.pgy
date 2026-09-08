@@ -1,0 +1,5 @@
+class Bond {}
+zone Battle {
+    relation slot bond: Bond
+}
+func Main() -> Void {}

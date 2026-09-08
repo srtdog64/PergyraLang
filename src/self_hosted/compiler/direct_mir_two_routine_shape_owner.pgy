@@ -28,10 +28,9 @@ func DirectMirTwoRoutineShapeFactReady(
 ) -> Bool {
     return fact.valid && fact.digest != 0 && fact.digest ==
         DirectMirTwoRoutineShapeFactDigest(fact) &&
-        (fact.declaration_kind == "struct" ||
-         fact.declaration_kind == "class" ||
-         fact.declaration_kind == "vessel") &&
-        fact.nominal_kind == fact.declaration_kind &&
+        ((fact.declaration_kind == "struct" && fact.nominal_kind == "struct") ||
+         (fact.declaration_kind == "class" &&
+          (fact.nominal_kind == "class" || fact.nominal_kind == "vessel"))) &&
         fact.generic_routine_count >= 0 &&
         fact.generic_routine_count <= 2 &&
         fact.method_routine_count >= 0 && fact.method_routine_count <= 2;

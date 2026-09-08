@@ -19,11 +19,16 @@ bool transpiler_generic_binding_push_entries(
     TranspilerCtx *ctx,
     const GenericBindingEntry *bindings,
     size_t binding_count);
-bool transpiler_infer_generic_call_bindings(TranspilerCtx *ctx,
+bool transpiler_generic_call_bindings_from_mir(TranspilerCtx *ctx,
                                             ASTNode *decl,
                                             ASTNode *call,
                                             GenericBindingEntry *bindings,
                                             size_t *binding_count);
+char *transpiler_generic_type_name_with_bindings(const char *type_name,
+                                                const GenericBindingEntry *bindings,
+                                                size_t binding_count);
+char *transpiler_generic_call_return_type_from_mir(TranspilerCtx *ctx,
+                                                 ASTNode *decl, ASTNode *call);
 char *transpiler_render_type_name_with_bindings(
     TranspilerCtx *ctx,
     ASTNode *type_node,

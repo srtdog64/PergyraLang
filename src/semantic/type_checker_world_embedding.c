@@ -282,15 +282,11 @@ semantic_reject_world_zone_member_escape(ASTNode *node, SemanticContext *ctx)
     if (node->type != AST_CALL)
         return;
     {
-        ASTNode *callee = ast_call_callee(node);
-        if (callee != NULL && callee->type == AST_IDENTIFIER) {
-            const char *callee_name = ast_identifier_name(callee);
-            /* Clone is the declared-copy channel for exactly this read. */
-            if (callee_name != NULL
-                && (strcmp(callee_name, "Clone") == 0
-                    || strcmp(callee_name, "RcClone") == 0))
-                return;
-        }
+        uint32_t builtin_kind = 0;
+        if (ast_call_semantic_callee_builtin_kind(node, &builtin_kind)
+            && (builtin_kind == BUILTIN_CLONE
+                || builtin_kind == BUILTIN_RC_CLONE))
+            return;
     }
     for (size_t i = 0; i < ast_call_arg_count(node); i++)
         (void) world_zone_member_escape_error(ast_call_argument(node, i), ctx);

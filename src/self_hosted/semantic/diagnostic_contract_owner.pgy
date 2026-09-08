@@ -340,6 +340,21 @@ func SemanticEnumPayloadVariantDiagnosticReceiptReady() -> Bool {
         first.message != second.message;
 }
 
+func SemanticBorrowBoundaryDiagnosticReceiptReady() -> Bool {
+    let first: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts("borrow_boundary_escape", "first borrow wording");
+    let second: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts("borrow_boundary_escape", "second borrow wording");
+    return SemanticPublicDiagnosticReceiptReadyFor(first, "borrow_boundary_escape") &&
+        SemanticPublicDiagnosticReceiptReadyFor(second, "borrow_boundary_escape") &&
+        first.code == "PGY_SEM_BORROW_ESCAPE" &&
+        first.layer == "resource" && first.layer == second.layer &&
+        first.cause_ir == "semantic:borrow_escape" &&
+        first.fix_source == "change-ref-to-own-or-stop-escape" &&
+        first.code == second.code && first.cause_ir == second.cause_ir &&
+        first.fix_source == second.fix_source && first.message != second.message;
+}
+
 func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadSchema() != "pgy.selfhost.semantic.v1" {
         return false;
@@ -347,7 +362,7 @@ func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount() {
         return false;
     }
-    if SemanticDiagnosticCodeCount() != 41 {
+    if SemanticDiagnosticCodeCount() != 50 {
         return false;
     }
     if ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount() {
@@ -365,5 +380,6 @@ func SemanticVerdictPayloadContractReady() -> Bool {
     if !SemanticEnumPayloadVariantDiagnosticReceiptReady() {
         return false;
     }
+    if !SemanticBorrowBoundaryDiagnosticReceiptReady() { return false; }
     return true;
 }

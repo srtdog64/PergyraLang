@@ -18,6 +18,14 @@ func DirectMirScalarCfgProgramDiscardedCallExpressionReady(
     let root: Int = expressions.graph_roots[expression_row];
     if root < 0 || root >= ArrayLength(expressions.node_kinds) ||
         expressions.node_types[root] == "" { return false; }
+    // These calls mutate existing storage and return its unchanged descriptor.
+    // Discarding that alias must not discard the operation or demand a Void type.
+    if DirectMirScalarProgramArrayTransformKind(expressions.node_kinds[root]) {
+        return DirectMirScalarProgramArrayTransformNodeReady(expressions, root);
+    }
+    if DirectMirScalarProgramCheckedIntKind(expressions.node_kinds[root]) {
+        return DirectMirScalarProgramCheckedIntNodeReady(expressions, root);
+    }
     return expressions.node_types[root] == "Void" ||
         expressions.node_kinds[root] ==
             DirectMirScalarProgramExprDirectCall() ||

@@ -1,0 +1,5 @@
+func Walk<T>(n: Int, value: T) -> Int {
+    if n == 0 { return 0; }
+    return Walk(n - 1, "fixed") + 1;
+}
+func Main() -> Void { Log(ToString(Walk(2, 7))); }

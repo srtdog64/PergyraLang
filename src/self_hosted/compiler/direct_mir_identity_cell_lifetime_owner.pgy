@@ -1,0 +1,107 @@
+// A closed, synchronous GraphPlan may borrow a cell through internal calls and
+// read its fields. Fresh construction owns storage; no copied binding, return,
+// aggregate capture, external call or opaque callable can extend its lifetime.
+// Zone slots uniquely contain fresh Subject storage in the same frame. Reading
+// a slot borrows that contained cell; it does not publish a copyable identity.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
+import "direct_mir_identity_cell_store_readiness_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+
+func DirectMirIdentityCellLifetimeReady(ref plan: DirectMirScalarCfgGraphPlan) -> Bool {
+    if !DirectMirIdentityCellFactsReady(plan.program.logical_record.identity_cells) { return false; }
+    if ArrayLength(plan.program.logical_record.identity_cells.names) == 0 { return true; }
+    let routine: Int = 0;
+    while routine < ArrayLength(plan.routines.return_types) {
+        if DirectMirIdentityCellRow(plan.program.logical_record.identity_cells,
+                plan.routines.return_types[routine]) >= 0 { return false; }
+        routine = routine + 1;
+    }
+    let parameter: Int = 0;
+    while parameter < ArrayLength(plan.routines.parameter_types) {
+        let cell: Int = DirectMirIdentityCellRow(plan.program.logical_record.identity_cells,
+            plan.routines.parameter_types[parameter]);
+        if cell >= 0 && plan.routines.parameter_carriages[parameter] !=
+            DirectMirScalarProgramIdentityCellBorrowCarriage(
+                plan.program.logical_record.identity_cells, plan.routines.parameter_types[parameter]) { return false; }
+        parameter = parameter + 1;
+    }
+    let contained: Array<Int> = [];
+    let uses: Array<Int> = [];
+    let node: Int = 0;
+    while node < ArrayLength(plan.program.expressions.node_kinds) {
+        ArrayPush(contained, 0); ArrayPush(uses, 0);
+        let kind: Int = plan.program.expressions.node_kinds[node];
+        let result_cell: Int = DirectMirIdentityCellRow(plan.program.logical_record.identity_cells,
+            plan.program.expressions.node_types[node]);
+        let slot_borrow: Bool = false;
+        if kind == DirectMirScalarProgramExprIdentityCellMember() && result_cell >= 0 {
+            let source: Int = plan.program.expressions.node_lefts[node];
+            if source < 0 || source >= node { return false; }
+            let zone: Int = DirectMirIdentityCellRow(plan.program.logical_record.identity_cells,
+                plan.program.expressions.node_types[source]);
+            slot_borrow = zone >= 0 &&
+                plan.program.logical_record.identity_cells.nominal_kinds[zone] == "zone" &&
+                plan.program.logical_record.identity_cells.nominal_kinds[result_cell] == "subject";
+        }
+        if DirectMirIdentityCellRow(plan.program.logical_record.identity_cells,
+                plan.program.expressions.node_types[node]) >= 0 &&
+            kind != DirectMirScalarProgramExprLocal() && kind != DirectMirScalarProgramExprParameter() &&
+            kind != DirectMirScalarProgramExprIdentityCellConstructor() && !slot_borrow { return false; }
+        let operands: Array<Int> = DirectMirScalarProgramLogicalRecordArgumentRows(plan.program.expressions, node);
+        let operand: Int = 0;
+        while operand < ArrayLength(operands) {
+            let source: Int = operands[operand];
+            if source < 0 || source >= node { return false; }
+            let type_name: String = plan.program.expressions.node_types[source];
+            let source_cell: Int = DirectMirIdentityCellRow(plan.program.logical_record.identity_cells, type_name);
+            if source_cell >= 0 {
+                if contained[source] != 0 { return false; }
+                if kind == DirectMirScalarProgramExprIdentityCellMember() {
+                    if ArrayLength(operands) != 1 || source != plan.program.expressions.node_lefts[node] { return false; }
+                } else if kind == DirectMirScalarProgramExprIdentityCellConstructor() &&
+                    result_cell >= 0 && plan.program.logical_record.identity_cells.nominal_kinds[result_cell] == "zone" {
+                    if plan.program.logical_record.identity_cells.nominal_kinds[source_cell] != "subject" ||
+                        plan.program.expressions.node_kinds[source] != DirectMirScalarProgramExprIdentityCellConstructor() ||
+                        uses[source] != 0 { return false; }
+                    contained[source] = 1;
+                } else if kind == DirectMirScalarProgramExprDirectCall() {
+                    // A slot mutation requires the Zone synchronization owner;
+                    // only ordinary field reads are materialized by this rung.
+                    if plan.program.expressions.node_kinds[source] == DirectMirScalarProgramExprIdentityCellMember() { return false; }
+                    let callee: Int = plan.program.expressions.node_callable_rows[node];
+                    if callee < 1 || callee >= ArrayLength(plan.routines.parameter_counts) ||
+                        operand >= plan.routines.parameter_counts[callee] { return false; }
+                    let parameter: Int = plan.routines.parameter_starts[callee] + operand;
+                    if plan.routines.parameter_types[parameter] != type_name ||
+                        plan.routines.parameter_carriages[parameter] !=
+                            DirectMirScalarProgramIdentityCellBorrowCarriage(
+                                plan.program.logical_record.identity_cells, type_name) { return false; }
+                } else { return false; }
+                uses[source] = uses[source] + 1;
+            }
+            operand = operand + 1;
+        }
+        node = node + 1;
+    }
+    let operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        let result: Int = plan.operation_result_values[operation];
+        if result >= 0 && result < ArrayLength(plan.value_types) &&
+            DirectMirIdentityCellRow(plan.program.logical_record.identity_cells, plan.value_types[result]) >= 0 {
+            if plan.operation_kinds[operation] == DirectMirScalarCfgOpIdentityCellStore() {
+                let owner_routine: Int = DirectMirScalarCfgRoutinePartitionOperationOwner(plan.routines, operation);
+                if !DirectMirIdentityCellStoreReady(plan, operation, owner_routine) { return false; }
+                operation = operation + 1;
+                continue;
+            }
+            if plan.operation_kinds[operation] != DirectMirScalarCfgOpExpressionDefinition() { return false; }
+            let expression: Int = plan.program.operation_expression_rows[operation];
+            if expression < 0 || expression >= ArrayLength(plan.program.expressions.graph_roots) { return false; }
+            let root: Int = plan.program.expressions.graph_roots[expression];
+            if plan.program.expressions.node_kinds[root] != DirectMirScalarProgramExprIdentityCellConstructor() { return false; }
+        }
+        operation = operation + 1;
+    }
+    return true;
+}

@@ -8,6 +8,7 @@
 
 #include "mir_base_helpers.h"
 #include "mir_decl_headers.h"
+#include "mir_decl_header_generic_metadata.h"
 #include "mir_type_helpers.h"
 #include "../parser/ast_api.h"
 #include "../common/string_compat.h"
@@ -128,6 +129,12 @@ mir_routine_signature_metadata_clear(MIRRoutine *routine)
         free(routine->generic_param_names);
         routine->generic_param_names = NULL;
     }
+    if (routine->generic_param_constraints != NULL) {
+        for (size_t i = 0; i < routine->generic_param_count; i++)
+            free(routine->generic_param_constraints[i]);
+        free(routine->generic_param_constraints);
+        routine->generic_param_constraints = NULL;
+    }
     if (routine->param_callable_sigs != NULL) {
         for (size_t i = 0; i < routine->param_count; i++)
             mir_callable_sig_clear(&routine->param_callable_sigs[i]);
@@ -156,7 +163,10 @@ mir_routine_signature_metadata_capture(const MIRProgram *program,
         }
         routine->generic_param_names = calloc(
             routine->generic_param_count, sizeof(char *));
-        if (routine->generic_param_names == NULL)
+        routine->generic_param_constraints = calloc(
+            routine->generic_param_count, sizeof(char *));
+        if (routine->generic_param_names == NULL
+            || routine->generic_param_constraints == NULL)
             return false;
         for (size_t i = 0; i < routine->generic_param_count; i++) {
             GenericParam *param = ast_generic_param_at(generic_params, i);
@@ -165,6 +175,13 @@ mir_routine_signature_metadata_capture(const MIRProgram *program,
                 return false;
             routine->generic_param_names[i] = pergyra_strdup(name);
             if (routine->generic_param_names[i] == NULL)
+                return false;
+            if (!mir_generic_param_bound_capture(routine->ast, param,
+                    &routine->generic_param_constraints[i]))
+                return false;
+            if (routine->generic_param_constraints[i] == NULL)
+                routine->generic_param_constraints[i] = pergyra_strdup("");
+            if (routine->generic_param_constraints[i] == NULL)
                 return false;
         }
     }
@@ -212,10 +229,14 @@ mir_routine_signature_metadata_capture(const MIRProgram *program,
                     && routine->param_type_names[i] != NULL) {
                     const MIRDeclHeader *header = mir_find_decl_header(
                         program, routine->param_type_names[i]);
+                    const ASTNodeType nominal_kind =
+                        mir_decl_header_ast_type_or(header, AST_PROGRAM);
+                    /* A readonly Zone borrow retains the caller's storage.
+                     * Passing the Zone aggregate by value loses that boundary. */
                     routine->param_abi_facts[i].pass_indirect =
                         header != NULL
-                        && mir_decl_header_ast_type_or(header, AST_PROGRAM)
-                            == AST_CLASS_DECL;
+                        && (nominal_kind == AST_CLASS_DECL
+                            || nominal_kind == AST_ZONE_DECL);
                 }
                 /* Row 607: when the rendered name is absent because the param
                    is an EventHandler, carry its shape losslessly in MIR. */

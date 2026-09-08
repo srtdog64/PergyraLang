@@ -1,0 +1,6 @@
+enum Flag { On, Off }
+func Select(n: Int) -> Int {
+    match n { case 1: return 9; }
+    return 4;
+}
+func Main() -> Void { Log(Select(2)); }

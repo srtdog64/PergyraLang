@@ -32,7 +32,7 @@ while IFS='|' read -r owner cap; do
 done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 
 PROGRAM="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy"
-ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_single_string_route_owner.pgy"
+ROUTE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_control_flow_route_owner.pgy"
 C_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy"
 LLVM_EMIT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy"
 GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
@@ -40,7 +40,7 @@ GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner
     fail "one loop must own every scalar-program routine admission"
 [[ "$(grep -Fc 'DirectMirScalarCfgSealGraphPlan(' "$PROGRAM")" -eq 1 ]] ||
     fail "program graph must seal exactly once"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81'
 reject_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v16'
 for term in string_equality_concat.pgy routine_block_counts 'let block_count:'; do
     reject_text "$ROUTE" "$term"

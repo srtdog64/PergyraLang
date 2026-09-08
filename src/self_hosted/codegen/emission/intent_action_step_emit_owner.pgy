@@ -32,6 +32,8 @@ func CodegenIntentEmitActionStep(
     step_name: String,
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     on_node: Int,
+    pre_node: Int,
+    invariant_node: Int,
     outcome_count: Int,
     outcome_name: String,
     uses_intent_observability: Bool,
@@ -78,6 +80,15 @@ func CodegenIntentEmitActionStep(
         CodegenSemanticExpressionGraphOrDie(
             expression_surfaces, on_node, AstExpressionLaneAtom()
         );
+    // Placement/receiver binding precedes checks; neither check may execute on.
+    if pre_node >= 0 {
+        CodegenIntentEmitPredicate(body, expression_surfaces, pre_node,
+            "pre", step_name, uses_intent_observability, step_env);
+    }
+    if invariant_node >= 0 {
+        CodegenIntentEmitPredicate(body, expression_surfaces, invariant_node,
+            "invariant-pre", step_name, uses_intent_observability, step_env);
+    }
     let on_expression: String = RewriteExprFromSemanticGraph(
         on_graph.graph, on_graph.root_id, step_env
     );

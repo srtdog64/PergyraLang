@@ -346,6 +346,46 @@ func RewriteExprFromSemanticGraphTracked(
     }
     let left: String = RewriteExprFromSemanticGraphTracked(graph, left_id, env, owned_fragments).text;
     let right: String = RewriteExprFromSemanticGraphTracked(graph, right_id, env, owned_fragments).text;
+    let left_kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, left_id);
+    let right_kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, right_id);
+    if !IsSome(left_kind) || !IsSome(right_kind) {
+        Die("semantic binary operand kind is missing");
+    }
+    // Ordered graph edges own eager evaluation. Lazy operators keep the RHS
+    // inside C's selected branch; index storage remains with its ABI owner.
+    if kind == AstExpressionNodeCoalesce() ||
+        kind == AstExpressionNodeLogicalAnd() ||
+        kind == AstExpressionNodeLogicalOr() || kind == AstExpressionNodeIndex() ||
+        (AstExpressionNodeIsScalarLeaf(UnwrapOption(left_kind)) &&
+         UnwrapOption(left_kind) != AstExpressionNodeLeaf() &&
+         AstExpressionNodeIsScalarLeaf(UnwrapOption(right_kind)) &&
+         UnwrapOption(right_kind) != AstExpressionNodeLeaf()) {
+        return RewriteSemanticBinaryOperationTracked(
+            graph, kind, text, left_id, right_id, left, right, env, owned_fragments
+        );
+    }
+    let left_name: String = Concat("__pgy_binary_l_", ToString(node_id));
+    let right_name: String = Concat("__pgy_binary_r_", ToString(node_id));
+    // This only avoids collisions in emitted C; it does not recover a source
+    // binding or semantic fact from spelling.
+    while StringIndexOf(left, left_name) >= 0 || StringIndexOf(right, left_name) >= 0 {
+        left_name = Concat(left_name, "_");
+    }
+    while StringIndexOf(left, right_name) >= 0 || StringIndexOf(right, right_name) >= 0 {
+        right_name = Concat(right_name, "_");
+    }
+    let operation: CodegenCExpressionText = RewriteSemanticBinaryOperationTracked(
+        graph, kind, text, left_id, right_id, left_name, right_name, env, owned_fragments
+    );
+    return CodegenCExpressionTextOwned(owned_fragments, CodegenCOrderedBinaryExpression(
+        left, right, left_name, right_name, operation.text
+    ));
+}
+func RewriteSemanticBinaryOperationTracked(
+    graph: SemanticExpressionGraphFacts, kind: Int, text: String,
+    left_id: Int, right_id: Int, left: String, right: String,
+    env: CodegenTypeEnv, inout owned_fragments: Array<String>
+) -> CodegenCExpressionText {
     if kind == AstExpressionNodeCoalesce() {
         let left_type: Option<String> = CodegenExpressionTypeFromGraph(graph, left_id, env);
         let right_type: Option<String> = CodegenExpressionTypeFromGraph(graph, right_id, env);

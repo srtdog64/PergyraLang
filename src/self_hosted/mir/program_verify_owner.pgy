@@ -1,5 +1,6 @@
 // Structural verifier for the self-host MIR fact graph.
 import "program_fact_owner.pgy";
+import "generic_specialization_occurrence_owner.pgy";
 import "domain_runtime_assignment_verify_owner.pgy";
 import "declaration_verify_owner.pgy";
 import "instruction_validation_owner.pgy";
@@ -205,7 +206,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [3],
         ["values.1", "i.1", "j.1"],
         value_graph.rows, target_graph.rows, no_match_facts, no_destructure_facts,
-        no_abi_type_names, no_runtime_call_abi
+        no_abi_type_names, no_runtime_call_abi, [0]
     );
     let valid_simple: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["x.2"], ["x"], [""], [""],
@@ -213,7 +214,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [0], no_uses,
         simple_value_graph.rows, simple_target_graph.rows, no_match_facts,
-        no_destructure_facts, no_abi_type_names, no_runtime_call_abi
+        no_destructure_facts, no_abi_type_names, no_runtime_call_abi, [0]
     );
     let valid_member: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["base.2"], ["base"], [""], [""],
@@ -221,14 +222,14 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [1], ["base.1"], simple_value_graph.rows, member_target_graph.rows,
         no_match_facts, no_destructure_facts, no_abi_type_names,
-        no_runtime_call_abi
+        no_runtime_call_abi, [0]
     );
     let missing_base_use: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""], [""],
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [2],
         ["i.1", "j.1"], value_graph.rows, target_graph.rows, no_match_facts,
-        no_destructure_facts, no_abi_type_names, no_runtime_call_abi
+        no_destructure_facts, no_abi_type_names, no_runtime_call_abi, [0]
     );
     let missing_target_graph: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""], [""],
@@ -236,7 +237,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [3],
         ["values.1", "i.1", "j.1"], value_graph.rows,
         SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
-        no_destructure_facts, no_abi_type_names, no_runtime_call_abi
+        no_destructure_facts, no_abi_type_names, no_runtime_call_abi, [0]
     );
     let missing_member_base_use: SelfMirInstructionRows =
         SelfMirInstructionRows(
@@ -245,7 +246,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
             [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
             [0], [0], no_uses, simple_value_graph.rows, member_target_graph.rows,
             no_match_facts, no_destructure_facts, no_abi_type_names,
-            no_runtime_call_abi
+            no_runtime_call_abi, [0]
         );
     let missing_simple_target_graph: SelfMirInstructionRows =
         SelfMirInstructionRows(
@@ -255,7 +256,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
             [0], [0], no_uses,
             simple_value_graph.rows,
             SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
-            no_destructure_facts, no_abi_type_names, no_runtime_call_abi
+            no_destructure_facts, no_abi_type_names, no_runtime_call_abi, [0]
         );
     let no_match_bindings: Array<String> = [];
     let no_match_binding_types: Array<String> = [];
@@ -270,7 +271,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [1], ["x.1"], simple_target_graph.rows,
         SelfMirExpressionGraphRowsForInstructionCount(1), scalar_match_facts,
-        no_destructure_facts, no_abi_type_names, no_runtime_call_abi
+        no_destructure_facts, no_abi_type_names, no_runtime_call_abi, [0]
     );
     let missing_match: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["branch"], ["branch"], [""], [""], [""], [""],
@@ -278,7 +279,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [1], ["x.1"], simple_target_graph.rows,
         SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
-        no_destructure_facts, no_abi_type_names, no_runtime_call_abi
+        no_destructure_facts, no_abi_type_names, no_runtime_call_abi, [0]
     );
     let destructure_facts: SelfMirDestructureFactRows =
         SelfMirDestructureFactRowsAttach(
@@ -290,7 +291,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [0], no_uses, value_graph.rows,
         SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
-        destructure_facts, no_abi_type_names, no_runtime_call_abi
+        destructure_facts, no_abi_type_names, no_runtime_call_abi, [0]
     );
     let missing_destructure: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["destructure"], ["destructure"], [""], [""], [""], [""],
@@ -298,7 +299,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [0], no_uses, value_graph.rows,
         SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
-        no_destructure_facts, no_abi_type_names, no_runtime_call_abi
+        no_destructure_facts, no_abi_type_names, no_runtime_call_abi, [0]
     );
     return SelfMirInstructionRowsReady(valid, target_graph.graph) &&
         SelfMirInstructionRowsReady(valid_simple, simple_target_graph.graph) &&
@@ -319,6 +320,7 @@ func SelfMirBlockRowsValidationError(
 ) -> String {
     let count: Int = ArrayLength(blocks.ids);
     if !SelfMirParallelCount(count, blocks.reachable) ||
+        !SelfMirParallelStringCount(count, blocks.intent_roles) ||
         !SelfMirParallelCount(count, blocks.instruction_starts) ||
         !SelfMirParallelCount(count, blocks.instruction_counts) ||
         !SelfMirParallelCount(count, blocks.has_succ_true) ||
@@ -427,6 +429,7 @@ func SelfMirRoutineRowsReady(
         !SelfMirParallelStringCount(count, rows.return_types) ||
         !SelfMirParallelCount(count, rows.generic_starts) ||
         !SelfMirParallelCount(count, rows.generic_counts) ||
+        ArrayLength(rows.generic_names) != ArrayLength(rows.generic_constraints) ||
         !SelfMirParallelCount(count, rows.param_starts) ||
         !SelfMirParallelCount(count, rows.param_counts) ||
         !SelfMirParallelCount(count, rows.block_starts) ||
@@ -467,12 +470,24 @@ func SelfMirRoutineRowsReady(
             rows.generic_counts[i] < 0 ||
             rows.param_starts[i] != param_cursor || rows.param_counts[i] < 0 ||
             rows.block_starts[i] != block_cursor || rows.block_counts[i] <= 0 ||
+            rows.block_counts[i] > ArrayLength(blocks.ids) - block_cursor ||
             rows.local_starts[i] != local_cursor || rows.local_counts[i] < 0 {
             return false;
         }
+        let entry_count: Int = 0; let cleanup_count: Int = 0;
+        let rollback_count: Int = 0; let invalidation_count: Int = 0;
         let block_i: Int = 0;
         while block_i < rows.block_counts[i] {
             let row: Int = rows.block_starts[i] + block_i;
+            let role: String = blocks.intent_roles[row];
+            if (rows.kinds[i] == "intent" && !MirIntentBlockRoleKnown(role)) ||
+                (rows.kinds[i] != "intent" && role != "") { return false; }
+            if role == "entry" {
+                if block_i != 0 { return false; }
+                entry_count = entry_count + 1;
+            } else if role == "cleanup" { cleanup_count = cleanup_count + 1; }
+            else if role == "rollback" { rollback_count = rollback_count + 1; }
+            else if role == "invalidation" { invalidation_count = invalidation_count + 1; }
             if blocks.ids[row] != block_i ||
                 (blocks.has_succ_true[row] == 1 &&
                  (blocks.succ_true[row] < 0 ||
@@ -484,6 +499,8 @@ func SelfMirRoutineRowsReady(
             }
             block_i = block_i + 1;
         }
+        if rows.kinds[i] == "intent" && (entry_count != 1 || cleanup_count != 1 ||
+            rollback_count != 1 || invalidation_count != 1) { return false; }
         let generic_i: Int = 0;
         while generic_i < rows.generic_counts[i] {
             if rows.generic_names[generic_cursor + generic_i] == "" {
@@ -537,6 +554,9 @@ func SelfMirProgramFactsValidationErrorObserved(facts: SelfMirProgramFacts, obse
     if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:generic:start"); }
     if !SelfMirGenericSpecializationRowsReady(facts.generic_specializations) {
         return "MIR generic specialization rows are invalid"; }
+    if !SelfMirGenericCallOccurrencesReady(
+        facts.generic_specializations, facts.routines, facts.cfg, facts.expression_graph) {
+        return "MIR generic call occurrences are invalid"; }
     if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:parallel:start"); }
     if !SelfMirParallelCaptureRowsReady(facts.parallel_captures) {
         return "MIR parallel capture rows are invalid";
@@ -577,6 +597,24 @@ func SelfMirProgramFactsValidationErrorObserved(facts: SelfMirProgramFacts, obse
     }
     if ArrayLength(facts.routines.node_ids) == 0 {
         return "MIR routine inventory is empty";
+    }
+    if !MirIntentExecutionPlanReady(facts.intent_execution) {
+        return "MIR typed Intent execution plan is unsealed or invalid";
+    }
+    let intent_routine: Int = 0;
+    while intent_routine < ArrayLength(facts.routines.node_ids) {
+        if facts.routines.kinds[intent_routine] == "intent" &&
+            facts.routines.return_types[intent_routine] != "Bool" {
+            let found: Bool = false;
+            let step: Int = 0;
+            while step < ArrayLength(facts.intent_execution.steps.transition_ids) {
+                if facts.intent_execution.steps.routine_syntax_ids[step] ==
+                    facts.routines.node_ids[intent_routine] { found = true; }
+                step = step + 1;
+            }
+            if !found { return "MIR typed Intent execution plan is missing"; }
+        }
+        intent_routine = intent_routine + 1;
     }
     return "";
 }

@@ -108,14 +108,14 @@ hir_lower_intent_cfg(ASTNode *intent, HIRRoutine *routine)
         || !hir_cfg_append_stmt(&blocks[(size_t)current].statements,
                                 &blocks[(size_t)current].statement_count,
                                 &blocks[(size_t)current].statement_capacity,
-                                ast_intent_decl_success_expr(intent))
-        || !hir_cfg_append_stmt(&blocks[(size_t)current].statements,
-                                &blocks[(size_t)current].statement_count,
-                                &blocks[(size_t)current].statement_capacity,
                                 ast_intent_decl_failure_expr(intent))) {
         intent_cfg_free_blocks(blocks, block_count);
         return false;
     }
+
+    /* Completion belongs to the MIR IntentCheck(success) carrier, not an
+     * entry-body statement. hir_routines retains its direct-call summary;
+     * duplicating the expression here creates a second executable graph. */
 
     for (size_t i = 0; i < step_count; i++) {
         ASTNode *step = steps[i];
@@ -130,7 +130,17 @@ hir_lower_intent_cfg(ASTNode *intent, HIRRoutine *routine)
             hir_cfg_set_goto(&blocks[(size_t)current], (size_t)next);
             current = next;
         }
-        if (!intent_cfg_append_step_statements(&blocks[(size_t)current], step)) {
+        /* Legacy execution is carried once by the step-attached MIR phase
+         * facts. Retain the step/block skeleton, not another executable copy
+         * of on/check/compensation expressions. hir_routines owns call summaries.
+         * Typed source mirrors retain their existing explicit coverage contract. */
+        bool appended = ast_intent_decl_has_typed_result(intent)
+                            ? intent_cfg_append_step_statements(&blocks[(size_t)current], step)
+                            : hir_cfg_append_stmt(&blocks[(size_t)current].statements,
+                                                  &blocks[(size_t)current].statement_count,
+                                                  &blocks[(size_t)current].statement_capacity,
+                                                  step);
+        if (!appended) {
             intent_cfg_free_blocks(blocks, block_count);
             return false;
         }

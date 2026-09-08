@@ -25,6 +25,7 @@ struct SemanticAstFunctionSignatureFacts {
     generic_starts: Array<Int>;
     generic_counts: Array<Int>;
     generic_names: Array<String>;
+    generic_constraint_type_names: Array<String>;
     param_starts: Array<Int>;
     param_counts: Array<Int>;
     receiver_source_param_offsets: Array<Int>;
@@ -117,6 +118,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
     let generic_starts: Array<Int> = [];
     let generic_counts: Array<Int> = [];
     let generic_names: Array<String> = [];
+    let generic_constraint_type_names: Array<String> = [];
     let param_starts: Array<Int> = [];
     let param_counts: Array<Int> = [];
     let receiver_source_param_offsets: Array<Int> = [];
@@ -359,6 +361,18 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             );
             continue;
         }
+        if !SemanticAstGenericConstraintRowsFromNode(
+            artifact.arena, node_id, generic_start,
+            ArrayLength(generic_names) - generic_start,
+            generic_names, generic_constraint_type_names
+        ) {
+            ok = false;
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "function_signature_invalid", "node_id", ToString(node_id),
+                "missing_fact", "generic_constraint_rows"
+            );
+            continue;
+        }
         let module_path: String = "";
         let module_path_opt: Option<String> = AstSourceModulePathForNode(artifact.source_modules, artifact.arena, node_id);
         if IsSome(module_path_opt) { module_path = UnwrapOption(module_path_opt); }
@@ -421,7 +435,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
         function_node_ids, module_paths, owner_names, runtime_callables,
         names, return_types,
         type_expressions,
-        generic_starts, generic_counts, generic_names,
+        generic_starts, generic_counts, generic_names, generic_constraint_type_names,
         param_starts, param_counts, receiver_source_param_offsets,
         param_node_ids, param_names,
         param_types, param_modes

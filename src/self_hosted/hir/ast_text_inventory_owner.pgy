@@ -177,6 +177,12 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Guard:") {
         return TypedAstKindIntentStepGuardTag();
     }
+    if StartsWith(text, "Pre:") {
+        return TypedAstKindIntentStepPreTag();
+    }
+    if StartsWith(text, "Invariant:") {
+        return TypedAstKindIntentStepInvariantTag();
+    }
     if StartsWith(text, "Post:") {
         return TypedAstKindIntentStepPostTag();
     }
@@ -250,6 +256,7 @@ func TypedAstTextKindOf(text: String) -> Int {
     if text == "TransactionBlock:" {
         return TypedAstKindTransactionBlockTag();
     }
+    if text == "UnsafeBlock:" { return TypedAstKindUnsafeBlockTag(); }
     if text == "Fail:" {
         return TypedAstKindFailStmtTag();
     }

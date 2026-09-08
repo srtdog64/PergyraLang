@@ -1,0 +1,9 @@
+import "../../../src/self_hosted/codegen/text/owned_string_join_owner.pgy";
+func WrongAfterMove(read: Bool) -> String {
+    let fragments: Array<String> = [];
+    ArrayPushOwnedString(fragments, Concat("owned", "-value"));
+    let joined: String = CodegenJoinOwnedStringFragments(fragments, "");
+    if read { return ToString(ArrayLength(fragments)); }
+    return joined;
+}
+func Main() -> Void { Print(WrongAfterMove(false)); }

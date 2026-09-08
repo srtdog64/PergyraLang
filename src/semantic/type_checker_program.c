@@ -6,6 +6,7 @@
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
 #include "capability_analyze.h"
+#include "callable_capability_inference.h"
 #include "diag_codes.h"
 
 /* PGY_DEBUG_SEMANTIC_TIMING sub-slots for type_check_program: which of the
@@ -114,6 +115,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     }
 
     ctx->program_root = program;
+    callable_capability_program_begin(ctx, program);
     if (!semantic_build_host_decl_index(ctx, program))
         return program_report_resolution_oom(ctx, program,
             "host declaration index");
@@ -227,6 +229,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 if (placeholder != NULL)
                     type_function_set_effects(placeholder,
                         declared_effects_from_function_node(stmt, ctx, NULL));
+                type_function_set_capabilities(placeholder,
+                    ast_func_declared_capabilities(stmt));
                 free(ptypes);
                 Symbol *s = symbol_create_function(fname, placeholder,
                                                     stmt->line, stmt->column);
@@ -321,6 +325,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     if (vs == NULL)
                         return program_report_resolution_oom(ctx, stmt,
                             "enum variant constructor symbol");
+                    vs->kind = SYMBOL_ENUM_CONSTRUCTOR;
+                    symbol_mark_declaration(vs, ast_node_stable_id(stmt), false);
                     scope_declare(ctx->scope, vs);
                 } else {
                     /* Simple variant: register as variable */
@@ -540,5 +546,5 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         ctx->scope, program, ctx, "program exit");
 
     free(topo_order);
-    return !ctx->has_error;
+    return callable_capability_seal(ctx) && !ctx->has_error;
 }

@@ -259,12 +259,12 @@ def load_rows(registry: Path) -> list[KeywordRow]:
             raise ValueError(
                 f"row {row_number} has unknown semantic axis: {fields[5]}"
             )
-        support = _flag_terms(
-            fields[6],
-            f"row {row_number} implementation support",
-            set(SUPPORT_VALUES),
+        support = set() if fields[6] == "0" else _flag_terms(
+            fields[6], f"row {row_number} implementation support", set(SUPPORT_VALUES)
         )
-        if "PGY_KEYWORD_SUPPORT_NATIVE" not in support:
+        if not support and (fields[1] != CONTEXTUAL or fields[7] != "0"):
+            raise ValueError(f"row {row_number} unsupported surface must be contextual and unpromoted")
+        if support and "PGY_KEYWORD_SUPPORT_NATIVE" not in support:
             raise ValueError(f"row {row_number} is not marked native supported")
         tooling = set()
         if fields[7] != "0":
@@ -521,7 +521,9 @@ def _render_aggregate_projection() -> str:
             "            row.keyword_class < 1 || StringLength(row.class_name) == 0 ||",
             "            row.context_mask <= 0 || row.axis < 0 ||",
             "            StringLength(row.axis_name) == 0 ||",
-            "            row.implementation_support <= 0 || row.tooling_flags < 0 {",
+            "            row.implementation_support < 0 || row.implementation_support > 3 ||",
+            "            row.tooling_flags < 0 || (row.implementation_support == 0 &&",
+            "                (row.keyword_class != 2 || row.tooling_flags != 0)) {",
             "            return false;",
             "        }",
             "        index = index + 1;",

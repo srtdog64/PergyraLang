@@ -46,7 +46,11 @@ main(void)
         seen_word_ids[row->word_id] = true;
         if (row->context_mask == 0
             || (row->context_mask & ~known_contexts) != 0
-            || (row->implementation_support & PGY_KEYWORD_SUPPORT_NATIVE) == 0
+            || (row->implementation_support != 0
+                && (row->implementation_support & PGY_KEYWORD_SUPPORT_NATIVE) == 0)
+            || (row->implementation_support == 0
+                && (row->keyword_class != PGY_KEYWORD_CLASS_CONTEXTUAL
+                    || row->tooling_flags != 0))
             || row->highlight_scope < PGY_KEYWORD_HIGHLIGHT_NONE
             || row->highlight_scope > PGY_KEYWORD_HIGHLIGHT_INTENT
             || ((row->tooling_flags & PGY_KEYWORD_TOOLING_HIGHLIGHT) != 0)

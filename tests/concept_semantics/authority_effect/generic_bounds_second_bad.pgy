@@ -1,0 +1,2 @@
+import "generic_bound_support.pgy";
+func Main() -> Void { Log(RankBoth(Partial(7))); }

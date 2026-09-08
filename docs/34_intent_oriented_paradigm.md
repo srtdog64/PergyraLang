@@ -156,6 +156,13 @@ src/semantic/type_checker_decls.inc
 runtime은 same-subject conflict scheduler, last-trace/last-failure history,
 그리고 실패 시 reverse-order `compensate:` rollback까지 가진다.
 
+`invariant`는 한 소스 식을 action 전·후에 검사한다. 따라서 현재 step의
+action이 아직 만들지 않은 `outcome`에는 의존할 수 없다. 타입 검사는 `pre`와
+같이 outcome 도입 전에 끝내며, MIR의 두 검사 식이 다르거나 하나가 빠지면
+거절한다. 이 단계는 self-host C에도 전달된다. 고정 실행 반례는
+`tests/concept_semantics/intent_predicates.py`에 있고, public LLVM의 일반 Intent
+실행 및 typed-enum plan의 predicate 실패 전이는 아직 별도 미완성 항목이다.
+
 중요한 경계:
 
 - intent는 orchestration declaration이다

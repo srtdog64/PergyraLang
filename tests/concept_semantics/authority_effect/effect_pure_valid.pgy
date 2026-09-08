@@ -1,0 +1,4 @@
+func Size(text: String) -> Int with effects local {
+    return StringLength(text) + 1;
+}
+func Main() -> Void with effects local { Log(Size("word")); }

@@ -43,6 +43,19 @@ func SemanticDiagnosticMessageFactRender(
 }
 
 func SemanticReason(code: String) -> String {
+    if code == "world_zone_escape" { return "world-owned zone identity must not escape through a live value"; }
+    if code == "subject_value_copy" { return "Subjects cannot be copied into a new binding"; }
+    if code == "match_pattern_invalid" { return "Invalid or non-exhaustive match pattern"; }
+    if code == "intent_retry_unavailable" { return "Intent retry execution lowering is not implemented"; }
+    if code == "action_contract_invalid" { return "Action authority requires a declared binding and matching zone contract"; }
+    if code == "task_lifecycle_invalid" { return "Owned task handle must be retired on every normal exit"; }
+    if code == "cancel_argument_invalid" { return "Cancel requires Future<T> or RemoteFuture<T>"; }
+    if code == "cancel_payload_unsupported" { return "Cancellation has no cleanup contract for this ownership-bearing payload"; }
+    if code == "parallel_unsafe_forbidden" { return "Unsafe blocks cannot execute inside parallel tasks"; }
+    if code == "action_ability_unsatisfied" { return "Action requires a declared ability with matching subject role implementation"; }
+    if code == "subject_value_return" { return "Returning subjects by value is not supported yet"; }
+    if code == "generic_constraint_unsatisfied" { return "concrete generic arguments must satisfy every declared bound"; }
+    if code == "zone_contract_invalid" { return "zone rules require exact declared layer and participant authority identities"; }
     if code == "undefined_symbol" {
         return "identifier is used before a local binding is in scope";
     }
@@ -64,6 +77,7 @@ func SemanticReason(code: String) -> String {
         return "payload access requires proof of the receiver's active enum variant";
     }
     if code == "named_value_boundary_argument_required" { return "borrow-tracked value boundaries require one stable source binding"; }
+    if code == "borrow_boundary_escape" { return "a readonly borrowed sequence cannot cross a value, owning, copy-out or return boundary"; }
     if code == "zone_value_copy_requires_transfer" || code == "zone_value_reassignment_requires_transfer" || code == "zone_value_parameter_requires_transfer" { return "zone identity cannot be carried without an admitted transfer plan"; }
     if code == "builtin_arg_type_mismatch" { return "builtin argument type does not match the builtin contract"; }
     if code == "option_concrete_type_required" {
@@ -91,6 +105,21 @@ func SemanticReason(code: String) -> String {
     }
     if code == "assign_type_mismatch" {
         return "assigned expression type does not match the local type";
+    }
+    if code == "immutable_field_write" {
+        return "assignment requires a mutable field and a writable receiver";
+    }
+    if code == "declared_capability_missing" {
+        return "the callable body requires capabilities outside its declared bound";
+    }
+    if code == "declared_effect_missing" {
+        return "the callable body reaches effects outside its declared bound";
+    }
+    if code == "call_effect_fact_unavailable" {
+        return "a reachable call has no admitted effect classification";
+    }
+    if code == "capability_fact_invalid" {
+        return "admitted callable capability facts are missing or inconsistent";
     }
     if code == "ast_artifact_invalid" {
         return "parser-owned AST artifact does not satisfy the shared HIR contract";
@@ -146,6 +175,19 @@ func SemanticReason(code: String) -> String {
     return "semantic checker rejected the source";
 }
 func SemanticFix(code: String) -> String {
+    if code == "world_zone_escape" { return "use an explicit detached Clone or access state through the owning world"; }
+    if code == "subject_value_copy" { return "construct a fresh subject or keep using its current binding"; }
+    if code == "match_pattern_invalid" { return "cover every enum variant with the declared payload arity or add a default arm"; }
+    if code == "intent_retry_unavailable" { return "remove the retry modifier until both backends implement the same retry contract"; }
+    if code == "action_contract_invalid" { return "align the action binding, subject slot and explicit zone authority"; }
+    if code == "task_lifecycle_invalid" { return "await the task or transfer it to an explicit own parameter before exiting its scope"; }
+    if code == "cancel_argument_invalid" { return "pass one task handle to Cancel"; }
+    if code == "cancel_payload_unsupported" { return "await the task and explicitly handle its payload instead"; }
+    if code == "parallel_unsafe_forbidden" { return "serialize the unsafe block outside the parallel task"; }
+    if code == "action_ability_unsatisfied" { return "implement the exact required ability and type arguments for this subject"; }
+    if code == "subject_value_return" { return "return a value projection or keep the subject local to its owner"; }
+    if code == "generic_constraint_unsatisfied" { return "provide the required ability implementation or forward a sufficient declared generic bound"; }
+    if code == "zone_contract_invalid" { return "use a declared layer contract and the approving subject slot of this zone"; }
     if code == "undefined_symbol" {
         return "declare the local before use or pass it as a parameter";
     }
@@ -167,6 +209,7 @@ func SemanticFix(code: String) -> String {
         return "narrow the enum value to the requested variant before reading its payload";
     }
     if code == "named_value_boundary_argument_required" { return "bind the value to a local variable before passing it through the boundary"; }
+    if code == "borrow_boundary_escape" { return "keep the sequence within a ref boundary or explicitly transfer an owned value"; }
     if code == "zone_value_copy_requires_transfer" || code == "zone_value_reassignment_requires_transfer" || code == "zone_value_parameter_requires_transfer" { return "construct a fresh zone or use an explicit admitted transfer boundary"; }
     if code == "builtin_arg_type_mismatch" {
         return "pass a value that satisfies the builtin signature";
@@ -196,6 +239,21 @@ func SemanticFix(code: String) -> String {
     }
     if code == "assign_type_mismatch" {
         return "assign a value that matches the local type";
+    }
+    if code == "immutable_field_write" {
+        return "construct a replacement, or use a mutable field through a writable boundary";
+    }
+    if code == "declared_capability_missing" {
+        return "declare the required capabilities or remove the corresponding operations";
+    }
+    if code == "declared_effect_missing" {
+        return "declare the required effects or remove the corresponding operations";
+    }
+    if code == "call_effect_fact_unavailable" {
+        return "complete the call effect owner before verifying the declared bound";
+    }
+    if code == "capability_fact_invalid" {
+        return "repair the semantic capability producer before publishing an artifact";
     }
     if code == "ast_artifact_invalid" {
         return "repair the parser artifact producer instead of reconstructing syntax downstream";

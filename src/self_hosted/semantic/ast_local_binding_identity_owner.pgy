@@ -24,7 +24,7 @@ func SemanticAstLocalBindingIdentityUnresolved() ->
 
 func SemanticAstLocalBindingIdentityRowsReady(
     ref locals: SemanticAstLocalBindingFacts,
-    inferred_types: Array<String>
+    ref inferred_types: Array<String>
 ) -> Bool {
     let count: Int = ArrayLength(locals.node_ids);
     return locals.ok &&
@@ -40,7 +40,7 @@ func SemanticAstLocalBindingIdentityRowsReady(
 func SemanticAstScopedLocalBindingIdentityForName(
     artifact: AstTreeArtifact,
     ref locals: SemanticAstLocalBindingFacts,
-    inferred_types: Array<String>,
+    ref inferred_types: Array<String>,
     function_node_id: Int,
     use_node_id: Int,
     identifier: String
@@ -115,7 +115,7 @@ func SemanticAstScopedLocalBindingIdentityForName(
 func SemanticAstScopedLocalBindingIdentityForGraphLeaf(
     artifact: AstTreeArtifact,
     ref locals: SemanticAstLocalBindingFacts,
-    inferred_types: Array<String>,
+    ref inferred_types: Array<String>,
     function_node_id: Int,
     use_node_id: Int,
     ref graph: SemanticExpressionGraphFacts,

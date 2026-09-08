@@ -1,0 +1,148 @@
+// Exact call-view projection, including interleaved and branching DAG spines.
+import "../../../src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy";
+
+func ProjectionGraph(copies: Int) -> SemanticExpressionGraphFacts {
+    let leaf: Int = AstExpressionNodeLeaf();
+    let call: Int = AstExpressionNodeCall();
+    let arg: Int = AstExpressionNodeCallArgument();
+    let generic: Int = AstExpressionNodeGenericCallee();
+    let actual: Int = AstExpressionNodeGenericTypeActual();
+    let kinds: Array<Int> = [leaf,actual,generic,actual,generic,call,leaf,call,leaf,arg,arg,leaf,call,arg,leaf,call,leaf,arg,leaf,arg,arg,arg];
+    let texts: Array<String> = ["G","Int","","String","","","Nested","","7","","","Zero","","","Other","","11","","99","","",""];
+    let lefts: Array<Int> = [0,0,0,0,2,4,0,6,0,7,5,0,11,10,0,14,0,15,0,5,19,13];
+    let rights: Array<Int> = [0,0,1,0,3,0,0,0,0,8,9,0,0,12,0,0,0,16,0,18,18,18];
+    let out_kinds: Array<Int> = [];
+    let out_texts: Array<String> = [];
+    let out_lefts: Array<Int> = [];
+    let out_rights: Array<Int> = [];
+    let targets: Array<Int> = [];
+    let names: Array<String> = [];
+    let copy: Int = 0;
+    while copy < copies {
+        let row: Int = 0;
+        while row < 22 {
+            let left: Int = 0;
+            let right: Int = 0;
+            let arity: Int = AstExpressionNodeArity(kinds[row]);
+            if arity > 0 { left = lefts[row] + copy * 22; }
+            if arity > 1 { right = rights[row] + copy * 22; }
+            ArrayPush(out_kinds, kinds[row]);
+            let text: String = texts[row];
+            if text == "" { text = "node"; }
+            ArrayPush(out_texts, text);
+            ArrayPush(out_lefts, left);
+            ArrayPush(out_rights, right);
+            let target: Int = SemanticCallTargetNone();
+            let name: String = "";
+            if kinds[row] == call { target = SemanticCallTargetDirect(); name = "call"; }
+            ArrayPush(targets, target);
+            ArrayPush(names, name);
+            row = row + 1;
+        }
+        copy = copy + 1;
+    }
+    let graph_roots: Array<Int> = [];
+    let has_roots: Array<Bool> = [];
+    return SemanticExpressionGraphFacts(true, graph_roots, has_roots,
+        SemanticExpressionGraphArenaUnclassified(out_kinds, out_texts,
+            out_lefts, out_rights, targets, names));
+}
+
+func SameCallView(ref left: SemanticCallSpineView, ref right: SemanticCallSpineView) -> Bool {
+    if !left.ok || !right.ok || left.call_node != right.call_node ||
+        left.callee_node != right.callee_node ||
+        ArrayLength(left.argument_nodes) != ArrayLength(right.argument_nodes) ||
+        ArrayLength(left.generic_actual_type_names) != ArrayLength(right.generic_actual_type_names) { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(left.argument_nodes) {
+        if left.argument_nodes[row] != right.argument_nodes[row] { return false; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(left.generic_actual_type_names) {
+        if left.generic_actual_type_names[row] != right.generic_actual_type_names[row] { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func CheckProjection(copies: Int) -> Bool {
+    let graph: SemanticExpressionGraphFacts = ProjectionGraph(copies);
+    let roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(graph);
+    let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    if !roots.ok || ArrayLength(roots.root_nodes) != count ||
+        !SemanticExpressionGraphArenaReady(graph.arena) { return false; }
+    let row: Int = 0;
+    while row < count {
+        if graph.arena.topology.node_kinds[row] == AstExpressionNodeCall() {
+            let prior: SemanticCallSpineView = SemanticCallSpineViewForCallNodeWithin(graph, row, count - 1);
+            let projected: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, roots.root_nodes[row]);
+            if !SameCallView(prior, projected) { return false; }
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func Pressure(copies: Int, indexed: Bool) -> Void {
+    let graph: SemanticExpressionGraphFacts = ProjectionGraph(copies);
+    let no_roots: Array<Int> = [];
+    let roots: SemanticCallSpineRoots = SemanticCallSpineRoots(true, no_roots);
+    if indexed { roots = SemanticCallSpineRootsFromGraph(graph); }
+    if !roots.ok { Exit(1); }
+    let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    let row: Int = 0;
+    let digest: Int = 0;
+    while row < count {
+        if graph.arena.topology.node_kinds[row] == AstExpressionNodeCall() {
+            let no_arguments: Array<Int> = [];
+            let no_actuals: Array<String> = [];
+            let view: SemanticCallSpineView = SemanticCallSpineView(false, 0, 0, no_arguments, no_actuals);
+            if indexed { view = SemanticCallSpineViewFromGraph(graph, roots.root_nodes[row]); }
+            else { view = SemanticCallSpineViewForCallNodeWithin(graph, row, count - 1); }
+            if !view.ok || view.call_node != row { Exit(1); }
+            digest = digest + view.call_node + ArrayLength(view.argument_nodes);
+        }
+        row = row + 1;
+    }
+    Log(ToString(digest));
+}
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) == 2 {
+        if args[0] != "indexed" && args[0] != "scan" { Log("unknown projection mode"); Exit(1); }
+        if args[1] != "small" && args[1] != "medium" && args[1] != "large" { Log("unknown projection size"); Exit(1); }
+        let copies: Int = 64;
+        if args[1] == "medium" { copies = 128; }
+        if args[1] == "large" { copies = 256; }
+        Pressure(copies, args[0] == "indexed");
+        return;
+    }
+    if ArrayLength(args) != 0 { Log("expected mode and size"); Exit(1); }
+    Log(ToString(CheckProjection(0)));
+    Log(ToString(CheckProjection(1)));
+    Log(ToString(CheckProjection(3)));
+    let graph: SemanticExpressionGraphFacts = ProjectionGraph(1);
+    let roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(graph);
+    Log(ToString(roots.root_nodes[5]));
+    Log(ToString(roots.root_nodes[7]));
+    Log(ToString(roots.root_nodes[12]));
+    Log(ToString(roots.root_nodes[15]));
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, roots.root_nodes[5]);
+    Log(call.generic_actual_type_names[0]);
+    Log(call.generic_actual_type_names[1]);
+    Log(ToString(call.argument_nodes[0]));
+    Log(ToString(call.argument_nodes[1]));
+    Log(ToString(call.argument_nodes[2]));
+    graph.ok = false;
+    Log(ToString(SemanticCallSpineRootsFromGraph(graph).ok));
+    graph = ProjectionGraph(1);
+    let forward_children: Array<Int> = [0,0,0,0,2,4,0,6,0,7,22,0,11,10,0,14,0,15,0,5,19,13];
+    graph.arena.topology.left_children = forward_children;
+    Log(ToString(SemanticCallSpineRootsFromGraph(graph).ok));
+    graph = ProjectionGraph(1);
+    let missing_children: Array<Int> = [];
+    graph.arena.topology.left_children = missing_children;
+    Log(ToString(SemanticCallSpineRootsFromGraph(graph).ok));
+}

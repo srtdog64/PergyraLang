@@ -8,6 +8,7 @@ import "routine_cfg_append_owner.pgy";
 import "routine_build_storage_lifetime_owner.pgy";
 import "ast_arena_storage_lifetime_owner.pgy";
 import "intent_routine_owner.pgy";
+import "intent_execution_source_plan_owner.pgy";
 import "canonical_instruction_id_owner.pgy";
 import "../dir/domain_graph_fact_owner.pgy";
 import "../dir/domain_projection_map_row_owner.pgy";
@@ -44,6 +45,7 @@ func SelfMirAppendRoutine(
     let generic_starts: Array<Int> = rows.generic_starts;
     let generic_counts: Array<Int> = rows.generic_counts;
     let generic_names: Array<String> = rows.generic_names;
+    let generic_constraints: Array<String> = rows.generic_constraints;
     let param_starts: Array<Int> = rows.param_starts;
     let param_counts: Array<Int> = rows.param_counts;
     let param_names: Array<String> = rows.param_names;
@@ -105,6 +107,9 @@ func SelfMirAppendRoutine(
             generic_names,
             analysis.signatures.generic_names[generic_start + generic_i]
         );
+        ArrayPush(generic_constraints,
+            analysis.signatures.generic_constraint_type_names[
+                generic_start + generic_i]);
         generic_i = generic_i + 1;
     }
     ArrayPush(param_starts, ArrayLength(param_names));
@@ -218,7 +223,7 @@ func SelfMirAppendRoutine(
         SelfMirRoutineRows(
             node_ids, names, kinds, owners, source_module_paths,
             receiver_carriages, return_types,
-            generic_starts, generic_counts, generic_names,
+            generic_starts, generic_counts, generic_names, generic_constraints,
             param_starts, param_counts, param_names, param_node_ids, param_types,
             param_abi_kinds, param_resource_kinds,
             block_starts, block_counts, local_starts, local_counts,
@@ -231,7 +236,7 @@ func SelfMirAppendRoutine(
         SelfMirInstructionAbiReceiptRowsAppend(
             facts.instruction_abi_receipts,
             build.cfg.instructions.abi_type_names, facts.declarations
-        ), facts.expression_graph
+        ), facts.expression_graph, facts.intent_execution
     );
 }
 
@@ -316,7 +321,7 @@ func SelfMirProgramDomainFactsFromReadyArtifact(
             domain_topology, domain_runtime_assignments,
             facts.generic_specializations, facts.parallel_captures,
             facts.routines, facts.cfg, facts.instruction_abi_receipts,
-            facts.expression_graph
+            facts.expression_graph, facts.intent_execution
         ),
         domain_graph
     );
@@ -382,7 +387,7 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
         domain_facts.domain_topology,
         domain_facts.domain_runtime_assignments, generic_rows,
         facts.parallel_captures, facts.routines, facts.cfg,
-        facts.instruction_abi_receipts, facts.expression_graph);
+        facts.instruction_abi_receipts, facts.expression_graph, facts.intent_execution);
     let initializer_rows: SelfMirInitializerRows =
         SelfMirInitializerRowsFromSemantic(initializer_types);
     let iteration_rows: SelfMirIterationRows =
@@ -484,6 +489,7 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
             return error;
         }
         facts = SelfMirAppendIntentRoutine(facts, domain_graph.intents, intent_i, intent_source_module_path, intent_build);
+        facts = SelfMirIntentExecutionPlanAppend(facts, domain_graph.intents, intent_i);
         SelfMirRoutineBuildStorageRetireAfterLastConsumer(intent_build);
         if !facts.ok {
             SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts(

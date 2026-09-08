@@ -1,0 +1,26 @@
+// This validator consumes MIR only; it never executes the input program.
+import "../../../../src/self_hosted/mir_lower/generic_instance_plan_owner.pgy";
+import "../../../../src/self_hosted/codegen/text/text_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Die("usage: generic_call_occurrence_admission_probe <mir-json>"); }
+    let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(ReadFile(args[0]));
+    let declarations: MirProgramDeclarationIndex = BuildMirProgramDeclarationIndexFromTable(document.declarations);
+    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndexFromTable(document.routines, declarations);
+    let index: MirGenericCallOccurrenceIndex = MirGenericCallOccurrenceIndexFromDocument(document, routines);
+    if !index.valid { Die("MIR generic call occurrences are missing or invalid"); }
+    let closure: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(index);
+    if !closure.valid { Die(closure.diagnostic); }
+    let call: Int = 0;
+    while call < ArrayLength(closure.call_recipes) {
+        let recipe: Int = closure.call_recipes[call];
+        let target: Int = MirGenericInstanceCallTarget(closure, index,
+            closure.call_contexts[call], index.routine_rows[recipe],
+            index.instruction_rows[recipe], index.lanes[recipe], index.graph_nodes[recipe]);
+        if target != closure.call_targets[call] { Die("MIR generic instance call binding drifted"); }
+        call = call + 1;
+    }
+    Log(Concat("generic call occurrences verified: ", ToString(ArrayLength(index.instruction_rows))));
+    Log(Concat("generic instance closure verified: ", ToString(ArrayLength(closure.template_rows))));
+}

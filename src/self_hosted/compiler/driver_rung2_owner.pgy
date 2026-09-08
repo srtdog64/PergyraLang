@@ -24,6 +24,7 @@ import "domain_topology_graph_plan_consumer_owner.pgy";
 import "codegen_callable_receiver_bridge_owner.pgy";
 import "driver_rung2_intent_consumer_owner.pgy";
 import "driver_rung2_nested_intent_c_substitution_owner.pgy";
+import "driver_rung2_scalar_c_substitution_owner.pgy";
 import "driver_rung2_enum_payload_variant_admission_owner.pgy";
 struct DriverRung2VerifiedFacts {
     analysis: SemanticAstArtifactAnalysis;
@@ -265,6 +266,9 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     if !DriverRung2EnumPayloadVariantProofAdmissionReady(variant_proof) {
         Die("MIR payload-enum variant proof admission is missing");
     }
+    let scalar_c: Option<CompilerEmissionArtifact> = DriverRung2ScalarCSubstitutionIfClaimed(
+        admitted, target_projection, retire_owned_source_json);
+    if IsSome(scalar_c) { return UnwrapOption(scalar_c); }
     let nested_c: Option<CompilerEmissionArtifact> =
         DriverRung2NestedIntentCSubstitutionIfClaimed(
             admitted, target_projection, retire_owned_source_json);
@@ -338,7 +342,8 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
         MirCodegenGenericSpecializationFacts(
             json, verified.analysis.signatures,
             semantic_body_types.generic_specializations,
-            verified.analysis.expression_surfaces
+            verified.analysis.expression_surfaces,
+            verified.analysis.function_scopes
         );
     if !mir_generic_specializations.ok {
         Die(Concat(

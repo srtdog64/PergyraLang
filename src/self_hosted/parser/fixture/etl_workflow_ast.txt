@@ -1,16 +1,16 @@
 Program:
   Subject: SourceBatch
     Fields:
-      sourceId: String
+      let sourceId: String
   Zone: EtlZone
     SubjectSlot: batch: SourceBatch
   Object: ExtractedRows
     Fields:
-      count: Int
+      let count: Int
   TObject: LoadPacket
     Fields:
-      targetTable: String
-      recordCount: Int
+      let targetTable: String
+      let recordCount: Int
   Intent: RunCustomerEtl
     IntentMode: exclusive
     IntentRollback: full
@@ -28,4 +28,3 @@ Program:
     Body:
       Block:
         Log("ETL Workflow Pattern")
-

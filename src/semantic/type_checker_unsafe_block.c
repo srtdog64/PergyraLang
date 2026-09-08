@@ -15,7 +15,7 @@
 
 #include "type_checker.h"
 #include "type_checker_internal.h"
-#include "diag_codes.h"
+#include "type_checker_flow_internal.h"
 
 bool
 type_check_unsafe_block(ASTNode *node, SemanticContext *ctx)
@@ -23,21 +23,7 @@ type_check_unsafe_block(ASTNode *node, SemanticContext *ctx)
     if (node == NULL || node->type != AST_UNSAFE_BLOCK)
         return true;
 
-    semantic_record_effect(ctx, EFFECT_UNSAFE);
-
-    if (ctx != NULL && ctx->in_parallel) {
-        semantic_error_with_hints(ctx,
-            PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN,
-            PGY_CAUSE_PARALLEL_SECURE_IN_TASK,
-            PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
-            node,
-            "Unsafe block is not permitted inside a parallel task; raw memory "
-            "operations across concurrent tasks compound undefined behavior. "
-            "Serialize the unsafe work outside the parallel block.");
-        return false;
-    }
-
-    if (ast_unsafe_block_body(node) != NULL)
-        type_check_block(ast_unsafe_block_body(node), ctx);
+    /* The flow owner also closes the lexical body scope and its resources. */
+    (void)type_check_unsafe_block_flow(node, ctx, NULL);
     return ctx == NULL || !ctx->has_error;
 }

@@ -229,6 +229,8 @@ intent_execution_detach_hir_skeleton(MIRRoutine *routine)
         block->has_succ_false = false;
         if (i == routine->entry_block)
             continue;
+        // Kept only for duplicate-expression coverage, never execution.
+        block->is_intent_legacy_mirror_block = true;
         block->is_reachable = false;
         free(block->predecessors);
         block->predecessors = NULL;

@@ -513,16 +513,23 @@ llvm_lookup_vtable_class_with_method(LLVMGenCtx *ctx,
 }
 
 int
-llvm_class_field_index(LLVMClassTypeEntry *entry, const char *field_name)
+llvm_class_field_ordinal(LLVMClassTypeEntry *entry, const char *field_name)
 {
     if (entry == NULL || field_name == NULL)
         return -1;
     for (int i = 0; i < entry->field_count; i++) {
         if (entry->fields[i].field_name != NULL
             && strcmp(entry->fields[i].field_name, field_name) == 0)
-            return entry->fields[i].index;
+            return i;
     }
     return -1;
+}
+
+int
+llvm_class_field_index(LLVMClassTypeEntry *entry, const char *field_name)
+{
+    int ordinal = llvm_class_field_ordinal(entry, field_name);
+    return ordinal >= 0 ? entry->fields[ordinal].index : -1;
 }
 
 LLVMTypeRef

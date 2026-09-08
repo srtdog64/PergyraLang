@@ -240,6 +240,8 @@ LLVMClassTypeEntry *llvm_lookup_class_by_struct_type(LLVMGenCtx *ctx,
 LLVMClassTypeEntry *llvm_lookup_vtable_class_with_method(LLVMGenCtx *ctx,
                                                          const char *method_name,
                                                          int *out_method_index);
+int                 llvm_class_field_ordinal(LLVMClassTypeEntry *entry,
+                                            const char *field_name);
 int                 llvm_class_field_index(LLVMClassTypeEntry *entry,
                                             const char *field_name);
 LLVMTypeRef         llvm_class_field_type_at_index(LLVMClassTypeEntry *entry,

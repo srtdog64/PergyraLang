@@ -1,0 +1,13 @@
+func Main() -> Void {
+    let pass: Int = 0;
+    while pass < 1 {
+        let value: String = "alpha";
+        Log(value);
+        pass = pass + 1;
+    }
+    let value: Int = 0;
+    while value < 2 {
+        Log(value);
+        value = value + 1;
+    }
+}

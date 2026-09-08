@@ -25,6 +25,35 @@ func DirectMirScalarProgramCLogicalRecordFieldType(
     return DirectMirScalarProgramCLogicalRecordTypeName(fact, type_name);
 }
 
+// Assert the admitted receipt against this C toolchain; never infer a missing row.
+func DirectMirScalarProgramCLogicalRecordReceiptAssertions(
+    ref fact: DirectMirScalarProgramLogicalRecordFact, row: Int
+) -> String {
+    if fact.physical.layout_ids[row] == 0 { return ""; }
+    let type_name: String = DirectMirScalarProgramCLogicalRecordTypeName(fact, fact.names[row]);
+    let output: String = Concat("#include <stddef.h>\n_Static_assert(sizeof(", type_name);
+    output = Concat(output, Concat(") == ", ToString(fact.physical.sizes[row])));
+    output = Concat(output, ", \"record size receipt\");\n_Static_assert(_Alignof(");
+    output = Concat(output, Concat(type_name, ") == "));
+    output = Concat(output, ToString(fact.physical.aligns[row]));
+    output = Concat(output, ", \"record alignment receipt\");\n");
+    let ordinal: Int = 0;
+    while ordinal < fact.field_counts[row] {
+        let field: Int = fact.field_starts[row] + ordinal;
+        let member: String = Concat("field_", ToString(ordinal));
+        output = Concat(output, Concat("_Static_assert(offsetof(", type_name));
+        output = Concat(output, Concat(", ", Concat(member, ") == ")));
+        output = Concat(output, ToString(fact.physical.field_offsets[field]));
+        output = Concat(output, ", \"record field offset receipt\");\n_Static_assert(sizeof(((");
+        output = Concat(output, Concat(type_name, "*)0)->"));
+        output = Concat(output, Concat(member, ") == "));
+        output = Concat(output, ToString(fact.physical.field_sizes[field]));
+        output = Concat(output, ", \"record field size receipt\");\n");
+        ordinal = ordinal + 1;
+    }
+    return output;
+}
+
 func DirectMirScalarProgramCLogicalRecordPreamble(
     ref fact: DirectMirScalarProgramLogicalRecordFact,
     ref target: CompilerTargetProjectionFact
@@ -50,6 +79,8 @@ func DirectMirScalarProgramCLogicalRecordPreamble(
                     fact,
                     DirectMirScalarProgramLogicalRecordFieldType(
                         fact, fact.names[row], ordinal));
+            if DirectMirScalarProgramLogicalRecordPhysicalIntField(
+                    fact, fact.names[row], ordinal) { field_type = "int32_t"; }
             if field_type == "" {
                 Die("direct MIR logical record C field type is invalid");
             }
@@ -60,6 +91,7 @@ func DirectMirScalarProgramCLogicalRecordPreamble(
         }
         output = Concat(output, Concat(
             " } ", Concat(projection.c_type_name, ";\n")));
+        output = Concat(output, DirectMirScalarProgramCLogicalRecordReceiptAssertions(fact, row));
         row = row + 1;
     }
     return output;
@@ -68,26 +100,56 @@ func DirectMirScalarProgramCLogicalRecordPreamble(
 func DirectMirScalarProgramCLogicalRecordExpression(
     ref fact: DirectMirScalarProgramLogicalRecordFact,
     kind: Int, record_type: String, left: String,
-    arguments: Array<String>, member_ordinal: Int
+    arguments: Array<String>, argument_rows: Array<Int>, node: Int,
+    member_ordinal: Int
 ) -> Option<String> {
     let row: Int = DirectMirScalarProgramLogicalRecordRow(
         fact, record_type);
     if kind == DirectMirScalarProgramExprLogicalRecordConstructor() {
         if row < 0 || ArrayLength(arguments) != fact.field_counts[row] ||
+            ArrayLength(argument_rows) != ArrayLength(arguments) ||
             member_ordinal != -1 {
             return None;
         }
-        let output: String = Concat("(", Concat(
-            DirectMirScalarProgramCLogicalRecordTypeName(fact, record_type),
-            "){"));
+        // Operand rows retain expression order; field ordinals retain layout.
+        // Sort only this constructor's operands, never a program inventory.
+        let order: Array<Int> = [];
+        let temporary: String = Concat("pgy_record_value_", ToString(node));
         let ordinal: Int = 0;
         while ordinal < ArrayLength(arguments) {
-            if ordinal > 0 { output = Concat(output, ","); }
-            output = Concat(output, Concat(" .field_", ToString(ordinal)));
-            output = Concat(output, Concat(" = ", arguments[ordinal]));
+            if argument_rows[ordinal] < 0 || argument_rows[ordinal] >= node {
+                return None;
+            }
+            ArrayPush(order, ordinal);
+            let position: Int = ordinal;
+            while position > 0 &&
+                argument_rows[order[position - 1]] > argument_rows[ordinal] {
+                order[position] = order[position - 1];
+                position = position - 1;
+            }
+            order[position] = ordinal;
             ordinal = ordinal + 1;
         }
-        return Some(Concat(output, " }"));
+        ordinal = 0;
+        while ordinal < ArrayLength(arguments) {
+            if StringIndexOf(arguments[ordinal], temporary) >= 0 {
+                temporary = Concat(temporary, "_");
+                ordinal = 0;
+            } else { ordinal = ordinal + 1; }
+        }
+        let output: String = Concat("({ ", Concat(
+            DirectMirScalarProgramCLogicalRecordTypeName(fact, record_type),
+            Concat(" ", Concat(temporary, " = {0}; "))));
+        let position: Int = 0;
+        while position < ArrayLength(order) {
+            ordinal = order[position];
+            output = Concat(output, Concat(temporary,
+                Concat(".field_", ToString(ordinal))));
+            output = Concat(output, Concat(" = (",
+                Concat(arguments[ordinal], "); ")));
+            position = position + 1;
+        }
+        return Some(Concat(output, Concat(temporary, "; })")));
     }
     if kind != DirectMirScalarProgramExprLogicalRecordMember() || row < 0 ||
         left == "" || member_ordinal < 0 ||
@@ -95,6 +157,11 @@ func DirectMirScalarProgramCLogicalRecordExpression(
         ArrayLength(arguments) != 0 {
         return None;
     }
-    return Some(Concat("(", Concat(left, Concat(").field_",
-        ToString(member_ordinal)))));
+    let member: String = Concat("(", Concat(left, Concat(").field_",
+        ToString(member_ordinal))));
+    if DirectMirScalarProgramLogicalRecordPhysicalIntField(
+            fact, record_type, member_ordinal) {
+        member = Concat("((int64_t)(", Concat(member, "))"));
+    }
+    return Some(member);
 }

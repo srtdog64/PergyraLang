@@ -226,6 +226,18 @@ transpiler_make_c_ssa_name(TranspilerCtx *ctx, const char *versioned_name)
      * `self.field`. */
     if (version > 0)
         return transpiler_ssa_strdup_fmt("_pgy_ssa_%s_%zu", base, version);
+    /* Version zero of an inout formal is its existing copy-in storage, not
+     * another value copy. Calls may update that storage before a lexical
+     * shadow restores this exact formal binding. */
+    const MIRRoutine *routine = ctx != NULL ? ctx->active_mir_routine : NULL;
+    for (size_t i = 0; i < mir_routine_param_count(routine); i++) {
+        FuncParam *param = mir_routine_param(routine, i);
+        if (param != NULL && param->name != NULL
+            && mir_routine_param_carriage(routine, i)
+                == MIR_PARAM_CARRIAGE_VALUE_RESULT
+            && strcmp(param->name, base) == 0)
+            return pergyra_strdup(base);
+    }
     if (ctx != NULL && transpiler_is_implicit_field(ctx, base)) {
         if (current_class_has_field(ctx, base)) {
             return transpiler_ssa_strdup_fmt(current_class_uses_self_cell(ctx)

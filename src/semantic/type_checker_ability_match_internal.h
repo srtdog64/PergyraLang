@@ -3,6 +3,9 @@
 
 #include "type_checker_internal.h"
 
+bool semantic_ability_ref_matches(SemanticContext *ctx, ASTNode *impl_ref,
+                                  ASTNode *required_ref);
+
 bool semantic_role_decl_has_ability(SemanticContext *ctx, ASTNode *role,
                                     ASTNode *ability_ref);
 bool semantic_subject_type_has_ability(SemanticContext *ctx,

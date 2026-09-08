@@ -1,0 +1,2 @@
+func Exists() -> Bool with effects local { return FileExists("effect-admission-unused-path"); }
+func Main() -> Void { let found: Bool = Exists(); }

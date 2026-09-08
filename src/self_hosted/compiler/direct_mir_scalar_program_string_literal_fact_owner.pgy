@@ -1,4 +1,5 @@
-// Decoded ASCII payload identity for persisted Pergyra string literals.
+// Decoded UTF-8 byte payload identity for persisted Pergyra string literals.
+// docs/110 owns byte preservation; this is not Unicode normalization.
 
 import "../lib/json.pgy";
 
@@ -11,7 +12,7 @@ func DirectMirScalarProgramStringLiteralContent(
     let index: Int = 1;
     while index < length - 1 {
         let code: Int = CharCode(spelling, length, index);
-        if code < 32 || code > 126 || code == 34 { return None; }
+        if code < 32 || code == 127 || code > 255 || code == 34 { return None; }
         if code == 92 {
             if index + 1 >= length - 1 { return None; }
             let escaped: Int = CharCode(spelling, length, index + 1);

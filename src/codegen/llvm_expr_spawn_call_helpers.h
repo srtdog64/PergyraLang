@@ -9,9 +9,9 @@ LLVMValueRef llvm_await_task_handle(LLVMGenCtx *ctx,
                                     const char *inner,
                                     bool is_remote);
 LLVMFuncEntry *llvm_resolve_callee_entry(LLVMGenCtx *ctx,
+                                         ASTNode *call,
                                          const char *callee_name,
-                                         LLVMValueRef *args,
-                                         size_t argc);
+                                         const MIRRoutine **bound_routine);
 LLVMValueRef llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx);
 
 #endif

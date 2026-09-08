@@ -79,8 +79,8 @@ func DirectMirScalarCfgForEachFactsAtLocalRows(
 }
 
 func DirectMirScalarCfgForEachLocalsReady(
-    local_names: Array<String>, local_ref_kinds: Array<Int>,
-    local_ref_syntax_ids: Array<Int>,
+    ref local_names: Array<String>, ref local_ref_kinds: Array<Int>,
+    ref local_ref_syntax_ids: Array<Int>,
     ref facts: DirectMirScalarCfgForEachFactSet
 ) -> Bool {
     let count: Int = 0;

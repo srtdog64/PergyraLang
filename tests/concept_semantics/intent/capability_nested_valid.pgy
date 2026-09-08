@@ -1,0 +1,21 @@
+import "capability_fixture.pgy";
+
+intent ReadPurpose(work: CapabilityZone, actor: CapabilityActor) {
+    step Read {
+        where: CapabilityZone;
+        using: work;
+        on: actor.Read();
+    }
+}
+
+intent NestedPurpose(work: CapabilityZone, actor: CapabilityActor) {
+    step Nested {
+        intent: ReadPurpose(work, actor);
+    }
+}
+
+func Main() -> Void with caps clock {
+    let actor = CapabilityActor(0);
+    let work = CapabilityZone(Clone(actor));
+    NestedPurpose(work, actor);
+}

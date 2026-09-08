@@ -1,0 +1,42 @@
+// Read-only Array<Int> uses the same owner without acquiring copy-out authority.
+struct Numbers {
+    let prefix: Int;
+    let values: Array<Int>;
+}
+struct WrappedNumbers { let numbers: Numbers; }
+func Count(ref values: Array<Int>) -> Int { return ArrayLength(values); }
+func Indexed(offset: Int, ref values: Array<Int>, index: Int) -> Int {
+    return offset + values[index];
+}
+func Forward(ref values: Array<Int>) -> Int {
+    return Count(values) + Indexed(0, values, 1);
+}
+func ReadValue(values: Array<Int>) -> Int { return Count(values); }
+func AppendAndCount(inout values: Array<Int>) -> Int {
+    ArrayPush(values, 11);
+    return Count(values);
+}
+func ReadMembers(ref wrapped: WrappedNumbers) -> Int {
+    return Forward(wrapped.numbers.values);
+}
+func StringCount(ref values: Array<String>) -> Int { return ArrayLength(values); }
+func ReadStrings(offset: Int, values: Array<String>) -> Int { return offset + StringCount(values); }
+func Main() -> Void {
+    let mut values: Array<Int> = [1, -2, 2147483647];
+    Log(ToString(Count(values)));
+    Log(ToString(Indexed(9, values, 1)));
+    Log(ToString(Indexed(0, values, 2)));
+    Log(ToString(Forward(values)));
+    Log(ToString(AppendAndCount(values)));
+    Log(ToString(Count(values)));
+    let owned_values: Array<Int> = [5, 6];
+    Log(ToString(ReadValue(owned_values)));
+    let member_values: Array<Int> = [7, -3, 1];
+    let numbers: Numbers = Numbers(17, member_values);
+    let wrapped: WrappedNumbers = WrappedNumbers(numbers);
+    Log(ToString(ReadMembers(wrapped)));
+    let texts: Array<String> = ["left", "한글🙂"];
+    Log(ToString(ReadStrings(0, texts)));
+    Log(ToString(ArrayLength(texts)));
+    Log(texts[1]);
+}

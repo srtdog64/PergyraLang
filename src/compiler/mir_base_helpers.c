@@ -229,7 +229,8 @@ mir_add_def_instruction(MIRRoutine *routine,
                         MIRBasicBlock *block,
                         size_t insert_index,
                         const char *base_name,
-                        const char *result_name)
+                        const char *result_name,
+                        uint32_t binding_syntax_id)
 {
     MIRInstruction inst;
     if (routine == NULL || block == NULL || result_name == NULL)
@@ -237,6 +238,7 @@ mir_add_def_instruction(MIRRoutine *routine,
     memset(&inst, 0, sizeof(inst));
     inst.id = routine->instruction_count;
     inst.kind = MIR_INST_DEF;
+    inst.binding_syntax_id = binding_syntax_id;
     inst.name = "ssa-def";
     inst.slot_anchor = base_name;
     inst.arg0 = base_name;

@@ -4,7 +4,7 @@ import "option_nominal_abi_layout_fact_owner.pgy";
 
 func SelfMirOptionNominalAbiLayoutRowsReady(
     ref rows: SelfMirOptionNominalAbiLayoutRows,
-    names: Array<String>, nominal_kinds: Array<String>,
+    ref names: Array<String>, ref nominal_kinds: Array<String>,
     ref nominal: SelfMirNominalAbiLayoutRows
 ) -> Bool {
     let count: Int = ArrayLength(names);

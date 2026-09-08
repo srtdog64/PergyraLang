@@ -13,5 +13,9 @@ char *mir_render_substituted_type_name(ASTNode *type_node,
                                        char *const *generic_param_names,
                                        char *const *actual_type_names,
                                        size_t binding_count);
+char *mir_substitute_type_name_text(const char *type_name,
+                                   const char *const *formal_names,
+                                   const char *const *actual_names,
+                                   size_t binding_count);
 
 #endif

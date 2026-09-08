@@ -4,6 +4,7 @@
 // storage once while capturing every block field needed by later CFG owners.
 
 import "json_fact_read.pgy";
+import "../mir/intent_execution_schema_owner.pgy";
 
 struct MirProgramRoutineBlockCapture {
     let valid: Bool;
@@ -13,12 +14,13 @@ struct MirProgramRoutineBlockCapture {
     let instructions_end: Int;
     let succ_true: Int;
     let succ_false: Int;
+    let intent_role: String;
 }
 
 func InvalidMirProgramRoutineBlockCapture(
 ) -> MirProgramRoutineBlockCapture {
     return MirProgramRoutineBlockCapture(
-        false, "", false, 0 - 1, 0 - 1, 0 - 1, 0 - 1
+        false, "", false, 0 - 1, 0 - 1, 0 - 1, 0 - 1, ""
     );
 }
 
@@ -35,6 +37,7 @@ func MirProgramRoutineBlockCaptureWithin(
     let instructions_end: Int = 0 - 1;
     let succ_true: Int = 0 - 1;
     let succ_false: Int = 0 - 1;
+    let intent_role: String = "";
     let id_seen: Bool = false;
     let reachable_seen: Bool = false;
     let instructions_seen: Bool = false;
@@ -54,7 +57,7 @@ func MirProgramRoutineBlockCaptureWithin(
             }
             return MirProgramRoutineBlockCapture(
                 true, id, reachable, instructions_start, instructions_end,
-                succ_true, succ_false
+                succ_true, succ_false, intent_role
             );
         }
         if !expect_member {
@@ -85,6 +88,8 @@ func MirProgramRoutineBlockCaptureWithin(
             JsonObjectKeyEqualsWithin(json, i, key_end, "succ_true");
         let is_succ_false: Bool = raw_key_length == 10 &&
             JsonObjectKeyEqualsWithin(json, i, key_end, "succ_false");
+        let is_intent_role: Bool = raw_key_length == 17 &&
+            JsonObjectKeyEqualsWithin(json, i, key_end, "intent_block_role");
         i = JsonSkipWhitespaceWithin(json, key_end, end);
         if i >= end || JsonCharCodeAt(json, end, i) != JsonAsciiCode(":") {
             return InvalidMirProgramRoutineBlockCapture();
@@ -95,7 +100,18 @@ func MirProgramRoutineBlockCaptureWithin(
             return InvalidMirProgramRoutineBlockCapture();
         }
         let value_end: Int = UnwrapOption(value_end_opt);
-        if is_id {
+        if is_intent_role {
+            if intent_role != "" { return InvalidMirProgramRoutineBlockCapture(); }
+            let string_end: Option<Int> = JsonStringEndWithin(json, i, value_end);
+            if !IsSome(string_end) || UnwrapOption(string_end) != value_end {
+                return InvalidMirProgramRoutineBlockCapture();
+            }
+            let parsed_end: Array<Int> = [0];
+            intent_role = ReadJsonStringBounded(json, i, value_end, parsed_end);
+            if parsed_end[0] != value_end || !MirIntentBlockRoleKnown(intent_role) {
+                return InvalidMirProgramRoutineBlockCapture();
+            }
+        } else if is_id {
             if id_seen { return InvalidMirProgramRoutineBlockCapture(); }
             let value: Option<String> = JsonIntegerValueOptWithin(
                 json, i, value_end

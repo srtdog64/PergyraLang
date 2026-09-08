@@ -1,0 +1,50 @@
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/semantic/diagnostic_contract_owner.pgy";
+
+func Main() -> Void {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Spare\n    Parameters:\n    Returns: Int\n    Caps: random\n    Body:\n      Block:\n        Return: 7\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Return: Spare()\n");
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    let body: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    Log(body.verdict.ok && SemanticAstBodyTypeBundleReady(artifact, analysis, body));
+    let facts: SemanticAstCapabilityFacts = body.capabilities;
+    let random: Int = CallableContractVocabularyMaskValueAt(
+        CallableContractVocabularyFindIndex(CallableContractVocabularyCapabilityAxis(), "random"));
+    Log(facts.declared_masks[0] == random && facts.used_masks[0] == 0 &&
+        facts.used_masks[1] == random && facts.exported_masks[0] == random);
+    facts.callable_node_ids[0] = -1;
+    Log(!SemanticAstCapabilityFactsReady(artifact, analysis, facts));
+    facts.callable_node_ids[0] = analysis.signatures.function_node_ids[0];
+    facts.used_masks[1] = -1;
+    Log(!SemanticAstCapabilityFactsReady(artifact, analysis, facts));
+    facts.used_masks[1] = random;
+    facts.exported_masks[0] = 0;
+    Log(!SemanticAstCapabilityFactsReady(artifact, analysis, facts));
+    facts.exported_masks[0] = random;
+    facts.artifact_identity_digest = facts.artifact_identity_digest + 1;
+    Log(!SemanticAstCapabilityFactsReady(artifact, analysis, facts));
+    facts.artifact_identity_digest = artifact.identity_digest;
+    let empty: Array<Int> = [];
+    facts.declared_masks = empty;
+    Log(!SemanticAstCapabilityFactsReady(artifact, analysis, facts));
+    let node: Int = 0;
+    while node < SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena) {
+        if analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() {
+            // Inference consumes the already-admitted declaration identity;
+            // a transport spelling must not switch it into the builtin lane.
+            analysis.expression_surfaces.expression_graph.arena.call_target_names[node] = "Now";
+            let identity: SemanticAstCapabilityFacts = SemanticAstCapabilityFactsFromAdmittedBody(
+                artifact, analysis, body.verdict, body.iteration_types, body.match_materializations);
+            Log(identity.ok && identity.used_masks[1] == random);
+            analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[node] = -1;
+            let invalid: SemanticAstCapabilityFacts = SemanticAstCapabilityFactsFromAdmittedBody(
+                artifact, analysis, body.verdict, body.iteration_types, body.match_materializations);
+            Log(!invalid.ok && invalid.diagnostic_code == "capability_fact_invalid");
+        }
+        node = node + 1;
+    }
+    Log(SemanticDiagnosticOracleCode("declared_capability_missing") == "PGY_SEM_EFFECT_CONFLICT");
+    Log(SemanticVerdictPayloadContractReady());
+}

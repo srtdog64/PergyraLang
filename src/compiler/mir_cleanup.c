@@ -170,6 +170,16 @@ mir_rir_scope_requires_rollback(const RIRScope *rir_scope)
     return false;
 }
 
+bool
+mir_cleanup_fact_is_readonly_zone_borrow(const RIRFact *fact)
+{
+    /* RIR captured the parameter's source mode before initializing flow state.
+     * This borrow does not own an implicit Zone detach at routine exit. */
+    return fact != NULL && fact->is_parameter
+        && fact->resource_kind == RIR_RESOURCE_ZONE_HANDLE
+        && fact->state == RIR_STATE_BORROWED_READ;
+}
+
 static bool
 mir_rir_scope_requires_invalidation(const RIRScope *rir_scope)
 {
@@ -221,7 +231,8 @@ mir_rir_scope_requires_invalidation(const RIRScope *rir_scope)
         if (fact->kind == RIR_FACT_PROJECTION
             || fact->resource_kind == RIR_RESOURCE_EFFECT_INSTANCE
             || fact->resource_kind == RIR_RESOURCE_RELATION_INSTANCE
-            || fact->resource_kind == RIR_RESOURCE_ZONE_HANDLE
+            || (fact->resource_kind == RIR_RESOURCE_ZONE_HANDLE
+                && !mir_cleanup_fact_is_readonly_zone_borrow(fact))
             || fact->resource_kind == RIR_RESOURCE_WORLD_HANDLE) {
             return true;
         }

@@ -1,0 +1,54 @@
+// Resolve an admitted step's physical participant/Zone boundary once. The
+// declaration index owns field identity; the shared policy owns slot selection.
+import "intent_carrier_projection_owner.pgy";
+import "../semantic/intent_subject_slot_policy_owner.pgy";
+
+struct MirIntentStepPlacementBinding {
+    present: Bool;
+    zone_binding_row: Int;
+    receiver_binding_row: Int;
+    zone_declaration_row: Int;
+    receiver_declaration_row: Int;
+    slot_field_row: Int;
+    slot_source_syntax_id: String;
+    slot_name: String;
+}
+
+func MirIntentStepPlacementBindingFromOwners(
+    ref fields: MirProgramDeclarationFieldIdentityIndex,
+    ref bindings: MirIntentBindingProjection, present: Bool,
+    zone_name: String, zone_alias: String, receiver: Int
+) -> MirIntentStepPlacementBinding {
+    if !present {
+        return MirIntentStepPlacementBinding(false, -1, -1, -1, -1, -1, "", "");
+    }
+    if !fields.valid || !bindings.ok {
+        MirLowerFailClosed("MIR intent placement owners are invalid");
+    }
+    let zone: Int = MirIntentBindingRowForAlias(bindings, zone_alias);
+    if zone < 0 || receiver < 0 || receiver >= ArrayLength(bindings.aliases) || zone == receiver ||
+        bindings.type_names[zone] != zone_name ||
+        bindings.kinds[receiver] != "participant" {
+        MirLowerFailClosed("MIR intent placement participant types are inconsistent");
+    }
+    let zone_declaration: Int = MirProgramDeclarationFieldIdentityDeclarationIndex(fields, zone_name);
+    let receiver_type: String = bindings.type_names[receiver];
+    let receiver_declaration: Int = MirProgramDeclarationFieldIdentityDeclarationIndex(fields, receiver_type);
+    if zone_declaration < 0 || receiver_declaration < 0 ||
+        fields.declaration_nominal_kinds[zone_declaration] != "zone" ||
+        fields.declaration_nominal_kinds[receiver_declaration] != "subject" {
+        MirLowerFailClosed("MIR intent placement nominal declarations are inconsistent");
+    }
+    let selected: IntentSubjectSlotSelection = IntentSubjectSlotSelect(
+        fields.field_owner_indices, fields.field_names, fields.field_type_names,
+        fields.field_kinds, zone_declaration, bindings.aliases[receiver], receiver_type);
+    if !selected.ok { MirLowerFailClosed(selected.diagnostic); }
+    let field: Int = selected.field_row;
+    if field < 0 || field >= ArrayLength(fields.field_source_syntax_ids) ||
+        !MirProgramDeclarationFieldIdentityPositiveDecimal(fields.field_source_syntax_ids[field]) {
+        MirLowerFailClosed("MIR intent placement slot source identity is missing");
+    }
+    return MirIntentStepPlacementBinding(true, zone, receiver,
+        zone_declaration, receiver_declaration, field,
+        fields.field_source_syntax_ids[field], fields.field_names[field]);
+}

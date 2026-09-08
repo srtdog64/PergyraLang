@@ -1,0 +1,26 @@
+subject Counter {
+    let value: Int;
+    action Increment(self) -> Void { value = value + 1; }
+}
+zone CounterZone { subject slot counter: Counter }
+
+// Formal names deliberately collide with Main's opposite nominal roles.
+// Argument order, not matching names across scopes, connects the two binders.
+intent IncrementOnce(zone: Counter, counter: CounterZone) {
+    exclusive;
+    priority: 4;
+    step increment {
+        where: CounterZone;
+        using: counter;
+        who: zone;
+        on: zone.Increment();
+        expect: counter.counter.value > 0;
+    }
+    success: counter.counter.value > 0;
+    failure: false;
+}
+func Main() -> Void {
+    let counter = Counter(0);
+    let zone = CounterZone(Clone(counter));
+    Log(IncrementOnce(counter, zone));
+}

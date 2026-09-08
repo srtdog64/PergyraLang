@@ -280,6 +280,9 @@ func CollectionRuntimeCIntReverseFn() -> String {
     return "pgy_ai_reverse";
 }
 
+func CollectionRuntimeLlvmIntSortFn() -> String { return "pgy_array_sort_Int"; }
+func CollectionRuntimeLlvmIntReverseFn() -> String { return "pgy_array_reverse_Int"; }
+
 func CollectionRuntimeCIntMapFn() -> String {
     return "pgy_ai_map";
 }
@@ -294,6 +297,25 @@ func CollectionRuntimeCOwnedStringPushFn() -> String {
 
 func CollectionRuntimeCOwnedStringDropFn() -> String {
     return "pgy_as_drop_owned";
+}
+
+// Source C and direct-MIR C have distinct descriptor projections, but share
+// one in-place element-transform materialization. No result storage is created.
+func CollectionRuntimeCIntTransforms(
+    array_type: String, length_field: String, sort: Bool, reverse: Bool
+) -> String {
+    if array_type == "" || (length_field != "len" && length_field != "length") {
+        Die("Array<Int> transform descriptor projection is missing");
+    }
+    let block: String = "";
+    if sort {
+        block = Concat(block, "static int pgy_ai_cmp(const void *pa, const void *pb) { int32_t a = *(const int32_t *)pa; int32_t b = *(const int32_t *)pb; return (a > b) - (a < b); }\n");
+        block = Concat(block, "static ${array_type} ${CollectionRuntimeCIntSortFn()}(${array_type} a) { if (a.${length_field} > 1) { qsort(a.data, (size_t)a.${length_field}, sizeof(int32_t), pgy_ai_cmp); } return a; }\n\n");
+    }
+    if reverse {
+        block = Concat(block, "static ${array_type} ${CollectionRuntimeCIntReverseFn()}(${array_type} a) { for (size_t i = 0; i < (size_t)a.${length_field} / 2; i++) { int32_t value = a.data[i]; a.data[i] = a.data[a.${length_field} - 1 - i]; a.data[a.${length_field} - 1 - i] = value; } return a; }\n\n");
+    }
+    return block;
 }
 
 func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Bool,
@@ -315,20 +337,7 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, Concat("static int32_t ", Concat(CollectionRuntimeCLenFn(1), Concat("(", Concat(int_array_type, " a) { return (int32_t)a.len; }\n")))));
     block = Concat(block, Concat("static int32_t ", Concat(CollectionRuntimeCPopFn(1), Concat("(", Concat(int_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : 0; }\n\n")))));
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCDropStorageFn(1), Concat("(", Concat(int_array_type, " *a) { if (a == NULL) return; free(a->data); a->data = NULL; a->len = 0; a->cap = 0; }\n\n")))));
-    if uses_array_sort {
-        block = Concat(block, "static int pgy_ai_cmp(const void *pa, const void *pb)\n{\n");
-        block = Concat(block, "    int32_t a = *(const int32_t *)pa;\n    int32_t b = *(const int32_t *)pb;\n");
-        block = Concat(block, "    return (a > b) - (a < b);\n}\n");
-        block = Concat(block, Concat("static ", Concat(int_array_type, Concat(" ", Concat(CollectionRuntimeCIntSortFn(), Concat("(", Concat(int_array_type, " a)\n{\n")))))));
-        block = Concat(block, "    if (a.len > 1) { qsort(a.data, (size_t)a.len, sizeof(int32_t), pgy_ai_cmp); }\n");
-        block = Concat(block, "    return a;\n}\n\n");
-    }
-    if uses_array_reverse {
-        block = Concat(block, Concat("static ", Concat(int_array_type, Concat(" ", Concat(CollectionRuntimeCIntReverseFn(), Concat("(", Concat(int_array_type, " a)\n{\n")))))));
-        block = Concat(block, Concat("    ", Concat(int_array_type, Concat(" out = ", Concat(CollectionRuntimeCNewFn(1), "();\n")))));
-        block = Concat(block, Concat("    for (long long i = a.len; i > 0; i--) { ", Concat(CollectionRuntimeCPushFn(1), "(&out, a.data[i - 1]); }\n")));
-        block = Concat(block, "    return out;\n}\n\n");
-    }
+    block = Concat(block, CollectionRuntimeCIntTransforms(int_array_type, "len", uses_array_sort, uses_array_reverse));
     if uses_array_map {
         block = Concat(block, Concat("static ", Concat(int_array_type, Concat(" ", Concat(CollectionRuntimeCIntMapFn(), Concat("(", Concat(int_array_type, " a, int32_t (*fn)(int32_t))\n{\n")))))));
         block = Concat(block, Concat("    ", Concat(int_array_type, Concat(" out = ", Concat(CollectionRuntimeCNewFn(1), "();\n")))));

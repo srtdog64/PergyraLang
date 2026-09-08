@@ -20,3 +20,26 @@ func SemanticAstNominalConstructorIndexForName(
     if found < 0 { return None; }
     return Some(found);
 }
+
+// Field identity is scoped by the owning declaration, never by field type.
+func SemanticAstNominalConstructorFieldRowForName(
+    ref facts: SemanticAstNominalConstructorFacts,
+    owner_index: Int, name: String
+) -> Option<Int> {
+    if !facts.ok || owner_index < 0 ||
+        owner_index >= SemanticAstNominalConstructorCount(facts) || name == "" {
+        return None;
+    }
+    let found: Int = -1;
+    let row: Int = facts.param_starts[owner_index];
+    let end: Int = row + facts.param_counts[owner_index];
+    while row < end {
+        if facts.field_names[row] == name {
+            if found >= 0 { return None; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    if found < 0 { return None; }
+    return Some(found);
+}

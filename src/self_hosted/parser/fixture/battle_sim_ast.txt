@@ -1,12 +1,12 @@
 Program:
   Subject: Fighter
     Fields:
-      name: String
-      hp: Int
-      hp_max: Int
-      power: Int
-      defense: Int
-      crit_chance: Int
+      let name: String
+      let hp: Int
+      let hp_max: Int
+      let power: Int
+      let defense: Int
+      let crit_chance: Int
     Methods:
       Function: IsAlive
         Parameters:
@@ -133,4 +133,3 @@ Program:
         Let: knight = Fighter("Knight", 120, 120, 22, 20, 25)
         Let: dragon = Fighter("Dragon", 150, 150, 30, 15, 10)
         RunBattle(knight, dragon)
-

@@ -1,0 +1,220 @@
+// Declaration admission joins the callable's binding contract to explicit
+// zone authority slots. A same-type field alone never supplies authority.
+import "ast_body_verdict_owner.pgy";
+import "ast_body_analysis_shape_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "ast_zone_authority_validation_owner.pgy";
+import "ast_ability_generic_bound_verdict_owner.pgy";
+import "ast_signature_type_expression_fact_owner.pgy";
+
+// Normalize the declared ordered tuple and trailing concrete defaults. The
+// native contract does not allow defaults to depend on declaration formals.
+func SemanticAstActionAbilityRequirementCanonical(
+    ref roles: SemanticAstRoleFacts, requirement: String
+) -> Option<String> {
+    let name: SemanticCanonicalTypeNameFact = SemanticCanonicalTypeNameFactFrom(requirement);
+    let declaration: Option<Int> = SemanticAstAbilityIndexForName(roles, name.nominal_base_name);
+    if !IsSome(declaration) { return None; }
+    let ability_row: Int = UnwrapOption(declaration);
+    let start: Int = roles.ability_generic_starts[ability_row];
+    let count: Int = roles.ability_generic_counts[ability_row];
+    let actuals: Array<String> = [];
+    if name.canonical_name != name.nominal_base_name {
+        let constructed: SemanticConstructedTypeNameFact = SemanticConstructedTypeNameFactFrom(requirement);
+        if !constructed.ok { return None; }
+        actuals = constructed.actual_type_names;
+    }
+    if ArrayLength(actuals) > count { return None; }
+    let result: String = name.nominal_base_name;
+    if count > 0 { result = Concat(result, "<"); }
+    let ordinal: Int = 0;
+    while ordinal < count {
+        let default_type: String = roles.ability_generic_default_type_names[start + ordinal];
+        if default_type != "" {
+            let names: Array<String> = [];
+            let starts: Array<Int> = []; let counts: Array<Int> = [];
+            let children: Array<Int> = [];
+            if !IsSome(SemanticAstSignatureTypeExpressionAppend(
+                default_type, names, starts, counts, children)) { return None; }
+            let node: Int = 0;
+            while node < ArrayLength(names) {
+                let formal: Int = 0;
+                while formal < count {
+                    if names[node] == roles.ability_generic_names[start + formal] { return None; }
+                    formal = formal + 1;
+                }
+                node = node + 1;
+            }
+        }
+        let actual: String = "";
+        if ordinal < ArrayLength(actuals) { actual = actuals[ordinal]; }
+        else { actual = default_type; }
+        if actual == "" { return None; }
+        actual = SemanticCanonicalTypeName(actual);
+        let bounds: Array<String> = Split(roles.ability_generic_constraint_type_names[start + ordinal], "+");
+        let bound_index: Int = 0;
+        while bound_index < ArrayLength(bounds) {
+            let bound: String = StringTrim(bounds[bound_index]);
+            if bound != "" {
+                if IsSome(SemanticAstAbilityIndexForName(roles, bound)) {
+                    if !SemanticAstTypeImplementsAbility(roles, actual, bound) { return None; }
+                } else if actual != bound { return None; }
+            }
+            bound_index = bound_index + 1;
+        }
+        if ordinal > 0 { result = Concat(result, ", "); }
+        result = Concat(result, actual);
+        ordinal = ordinal + 1;
+    }
+    if count > 0 { result = Concat(result, ">"); }
+    return Some(result);
+}
+
+func SemanticAstActionRequirementImplemented(
+    ref roles: SemanticAstRoleFacts, subject_type: String, requirement: String
+) -> Bool {
+    let role_row: Int = 0;
+    while role_row < ArrayLength(roles.role_node_ids) {
+        if roles.target_type_names[role_row] == subject_type {
+            let impl_row: Int = roles.impl_starts[role_row];
+            let impl_end: Int = impl_row + roles.impl_counts[role_row];
+            while impl_row < impl_end {
+                let implemented: Option<String> = SemanticAstActionAbilityRequirementCanonical(
+                    roles, roles.impl_ability_names[impl_row]);
+                if IsSome(implemented) && UnwrapOption(implemented) == requirement { return true; }
+                impl_row = impl_row + 1;
+            }
+        }
+        role_row = role_row + 1;
+    }
+    return false;
+}
+
+// 0: no subject slot, 1: subject slot only, 2: explicit authority for its type.
+// This is declaration compatibility, not attribution to a runtime participant.
+func SemanticAstActionZoneSubjectPresence(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref authorities: SemanticAstZoneAuthorityFacts,
+    zone_index: Int, subject_type: String
+) -> Int {
+    let presence: Int = 0;
+    let field: Int = constructors.param_starts[zone_index];
+    let end: Int = field + constructors.param_counts[zone_index];
+    while field < end {
+        if constructors.field_kinds[field] == NominalFieldKindSubjectSlot() &&
+            constructors.param_type_names[field] == subject_type {
+            presence = 1;
+            let row: Int = 0;
+            while row < ArrayLength(authorities.authority_node_ids) {
+                if authorities.owner_zone_node_ids[row] == constructors.node_ids[zone_index] &&
+                    authorities.owner_zone_names[row] == constructors.names[zone_index] &&
+                    authorities.subject_slot_node_ids[row] == constructors.field_source_syntax_ids[field] &&
+                    authorities.subject_slot_names[row] == constructors.field_names[field] {
+                    return 2;
+                }
+                row = row + 1;
+            }
+        }
+        field = field + 1;
+    }
+    return presence;
+}
+
+func SemanticAstActionContractAdmissionFromFacts(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref roles: SemanticAstRoleFacts,
+    ref authorities: SemanticAstZoneAuthorityFacts
+) -> SemanticAstBodyVerdict {
+    if !SemanticAstSignatureRowsAdmittedReady(artifact, signatures) ||
+        !SemanticAstRoleRowsAdmittedReady(artifact, roles) ||
+        !constructors.ok || constructors.artifact_node_count != artifact.count ||
+        !SemanticAstNominalConstructorRowsReady(constructors) ||
+        !SemanticAstZoneAuthorityFactsAdmittedReady(artifact.count, roles, authorities) {
+        return SemanticAstBodyVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "ActionContractAdmission"), -1);
+    }
+    let callable: Int = 0;
+    while callable < ArrayLength(signatures.function_node_ids) {
+        let node_id: Int = signatures.function_node_ids[callable];
+        if signatures.action_contracts.callable_node_ids[callable] != node_id {
+            return SemanticAstBodyVerdictError("ast_artifact_invalid",
+                SemanticError1("ast_artifact_invalid", "owner", "ActionContractIdentity"), node_id);
+        }
+        if !signatures.action_contracts.is_actions[callable] { callable = callable + 1; continue; }
+        let action_name: String = signatures.names[callable];
+        if signatures.action_contracts.owner_nominal_subkinds[callable] != TypedAstNominalSubkindSubject() {
+            return SemanticAstBodyVerdictError("action_contract_invalid",
+                SemanticError1("action_contract_invalid", "subject_only_action", action_name), node_id);
+        }
+        let required: Int = signatures.action_contracts.requires_starts[callable];
+        let required_end: Int = required + signatures.action_contracts.requires_counts[callable];
+        while required < required_end {
+            let requirement: String = signatures.action_contracts.requires_names[required];
+            let canonical: Option<String> = SemanticAstActionAbilityRequirementCanonical(roles, requirement);
+            if !IsSome(canonical) || !SemanticAstActionRequirementImplemented(
+                roles, signatures.owner_names[callable], UnwrapOption(canonical)) {
+                return SemanticAstBodyVerdictError("action_ability_unsatisfied",
+                    SemanticError2("action_ability_unsatisfied", "action", action_name,
+                        "requires", requirement), node_id);
+            }
+            required = required + 1;
+        }
+        let zone_name: String = signatures.action_contracts.within_zone_names[callable];
+        let zone_index: Int = -1;
+        if zone_name != "" {
+            let zone: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, zone_name);
+            if !IsSome(zone) || constructors.nominal_kinds[UnwrapOption(zone)] != "zone" {
+                return SemanticAstBodyVerdictError("action_contract_invalid",
+                    SemanticError2("action_contract_invalid", "action", action_name,
+                        "unknown_zone", zone_name), node_id);
+            }
+            zone_index = UnwrapOption(zone);
+            if signatures.action_contracts.owner_nominal_subkinds[callable] == TypedAstNominalSubkindSubject() &&
+                SemanticAstActionZoneSubjectPresence(constructors, authorities,
+                    zone_index, signatures.owner_names[callable]) == 0 {
+                return SemanticAstBodyVerdictError("action_contract_invalid",
+                    SemanticError2("action_contract_invalid", "action", action_name,
+                        "missing_subject_slot", signatures.owner_names[callable]), node_id);
+            }
+        }
+        let binding: Int = signatures.action_contracts.authorized_by_starts[callable];
+        let binding_end: Int = binding + signatures.action_contracts.authorized_by_counts[callable];
+        while binding < binding_end {
+            let binding_name: String = signatures.action_contracts.authorized_by_names[binding];
+            let binding_type: String = "";
+            if binding_name == "self" {
+                binding_type = signatures.owner_names[callable];
+            } else {
+                let parameter: Int = signatures.param_starts[callable];
+                let parameter_end: Int = parameter + signatures.param_counts[callable];
+                while parameter < parameter_end {
+                    if signatures.param_names[parameter] == binding_name {
+                        let declaration: Option<Int> = SemanticAstNominalConstructorIndexForName(
+                            constructors, signatures.param_types[parameter]);
+                        if IsSome(declaration) &&
+                            constructors.nominal_kinds[UnwrapOption(declaration)] == "subject" {
+                            binding_type = signatures.param_types[parameter];
+                        }
+                    }
+                    parameter = parameter + 1;
+                }
+            }
+            if binding_type == "" {
+                return SemanticAstBodyVerdictError("action_contract_invalid",
+                    SemanticError2("action_contract_invalid", "action", action_name,
+                        "invalid_authorized_binding", binding_name), node_id);
+            }
+            if zone_index >= 0 && SemanticAstActionZoneSubjectPresence(
+                constructors, authorities, zone_index, binding_type) != 2 {
+                return SemanticAstBodyVerdictError("action_contract_invalid",
+                    SemanticError2("action_contract_invalid", "action", action_name,
+                        "missing_zone_authority", Concat(zone_name, Concat(":", binding_name))), node_id);
+            }
+            binding = binding + 1;
+        }
+        callable = callable + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

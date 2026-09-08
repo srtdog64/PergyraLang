@@ -37,6 +37,7 @@ struct MirProgramRoutineIndex {
     let block_starts: Array<Int>;
     let block_ends: Array<Int>;
     let block_reachable: Array<Bool>;
+    let block_intent_roles: Array<String>;
     let block_succ_true: Array<Int>;
     let block_succ_false: Array<Int>;
     let block_instruction_starts: Array<Int>;
@@ -73,6 +74,7 @@ func BuildMirProgramRoutineIndexFromTable(
     let block_starts: Array<Int> = [];
     let block_ends: Array<Int> = [];
     let block_reachable: Array<Bool> = [];
+    let block_intent_roles: Array<String> = [];
     let block_succ_true: Array<Int> = [];
     let block_succ_false: Array<Int> = [];
     let block_instruction_starts: Array<Int> = [];
@@ -104,7 +106,7 @@ func BuildMirProgramRoutineIndexFromTable(
             owner_nominal_kinds,
             owner_declaration_rows,
             routine_block_starts, routine_block_counts,
-            block_starts, block_ends, block_reachable,
+            block_starts, block_ends, block_reachable, block_intent_roles,
             block_succ_true, block_succ_false,
             block_instruction_starts, block_instruction_counts,
             instruction_starts, instruction_ends,
@@ -180,12 +182,14 @@ func BuildMirProgramRoutineIndexFromTable(
                         json, block_bounds[0], block_bounds[1]
                     );
                 if !block_fact.valid ||
-                    block_fact.id != ToString(routine_block_count) {
+                    block_fact.id != ToString(routine_block_count) ||
+                    ((routine_kind == "intent") != (block_fact.intent_role != "")) {
                     valid = false;
                 }
                 ArrayPush(block_starts, block_bounds[0]);
                 ArrayPush(block_ends, block_bounds[1]);
                 ArrayPush(block_reachable, block_fact.reachable);
+                ArrayPush(block_intent_roles, block_fact.intent_role);
                 ArrayPush(block_succ_true, block_fact.succ_true);
                 ArrayPush(block_succ_false, block_fact.succ_false);
                 ArrayPush(
@@ -271,7 +275,7 @@ func BuildMirProgramRoutineIndexFromTable(
         owner_nominal_kinds,
         owner_declaration_rows,
         routine_block_starts, routine_block_counts,
-        block_starts, block_ends, block_reachable,
+        block_starts, block_ends, block_reachable, block_intent_roles,
         block_succ_true, block_succ_false,
         block_instruction_starts, block_instruction_counts,
         instruction_starts, instruction_ends,
@@ -330,7 +334,8 @@ func MirProgramRoutineIndexRowReady(
         MirProgramDeclarationFieldIdentityPositiveDecimal(index.source_syntax_ids[row]) &&
         receiver_ready && owner_ready &&
         block_start >= 0 && block_count >= 0 &&
-        block_start + block_count <= ArrayLength(index.block_starts);
+        block_start + block_count <= ArrayLength(index.block_starts) &&
+        ArrayLength(index.block_intent_roles) == ArrayLength(index.block_starts);
 }
 
 func MirProgramRoutineIndexGlobalInstructionRow(
@@ -423,6 +428,7 @@ func MirProgramRoutineIndexStructureReady(
         routine_count != ArrayLength(index.routine_block_counts) ||
         block_count != ArrayLength(index.block_ends) ||
         block_count != ArrayLength(index.block_reachable) ||
+        block_count != ArrayLength(index.block_intent_roles) ||
         block_count != ArrayLength(index.block_succ_true) ||
         block_count != ArrayLength(index.block_succ_false) ||
         block_count != ArrayLength(index.block_instruction_starts) ||

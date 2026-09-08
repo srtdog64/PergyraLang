@@ -65,6 +65,8 @@ func DirectMirScalarCfgProgramTerminalReturnReadinessFailed(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> Void {
     let block: Int = 0;
+    let unreachable_routine: Int = -1;
+    let unreachable: Array<Int> = [];
     while block < ArrayLength(plan.block_succ_true) {
         let routine: Int = DirectMirScalarCfgRoutinePartitionBlockOwner(
             plan.routines, block);
@@ -83,7 +85,11 @@ func DirectMirScalarCfgProgramTerminalReturnReadinessFailed(
                 row == DirectMirScalarCfgVoidReturnExpressionRow();
             let exhaustive_code: Int = -1;
             if expected != "Void" && !exits && row == -1 {
-                exhaustive_code = DirectMirScalarProgramEnumExhaustiveMatchFallthroughReadinessCode(plan, routine, block);
+                if unreachable_routine != routine {
+                    unreachable = DirectMirScalarProgramEnumUnreachableBlocks(plan, routine);
+                    unreachable_routine = routine;
+                }
+                exhaustive_code = DirectMirScalarProgramEnumExhaustiveMatchFallthroughReadinessCode(plan, routine, block, unreachable);
                 ready = exhaustive_code == 0;
             } else if expected != "Void" && !exits {
                 ready = DirectMirScalarCfgProgramExpressionRowReady(plan, row, expected, routine);

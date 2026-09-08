@@ -14,7 +14,7 @@ type_check_view_source_type(ASTNode *arg, SemanticContext *ctx)
 {
     if (arg != NULL && arg->type == AST_IDENTIFIER
         && ast_identifier_name(arg) != NULL) {
-        Symbol *sym = scope_lookup(ctx->scope, ast_identifier_name(arg));
+        Symbol *sym = lookup_identifier_symbol(arg, ctx);
         if (sym != NULL && sym->kind == SYMBOL_SLOT && sym->type != NULL) {
             sym->is_used = true;
             return sym->type;
@@ -84,7 +84,7 @@ require_secure_pin_paired_token(ASTNode *call, Type *slot_type,
         return true;
 
     slot_name = ast_identifier_name(src_arg);
-    slot_sym = scope_lookup(ctx->scope, slot_name);
+    slot_sym = lookup_identifier_symbol(src_arg, ctx);
     if (slot_sym == NULL || slot_sym->kind != SYMBOL_SLOT)
         return true;
 

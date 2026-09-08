@@ -8,6 +8,7 @@ func DirectMirScalarCfgProgramOperationKind(kind: Int) -> Bool {
         kind == DirectMirScalarCfgOpExpressionStatement() ||
         kind == DirectMirScalarCfgOpProcessExit() ||
         kind == DirectMirScalarCfgOpLogicalRecordMemberRebind() ||
+        kind == DirectMirScalarCfgOpIdentityCellStore() ||
         kind == DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() ||
         DirectMirScalarProgramArrayMutationKind(kind);
 }
@@ -20,6 +21,9 @@ func DirectMirScalarCfgProgramOperationShapeReady(
         !DirectMirScalarCfgProgramOperationKind(kind) { return false; }
     if DirectMirScalarProgramArrayMutationKind(kind) {
         return result == -1 && left_count + right_count == 1;
+    }
+    if kind == DirectMirScalarCfgOpIdentityCellStore() {
+        return result >= -1 && left_count == 0 && right_count == 1;
     }
     if kind == DirectMirScalarCfgOpLogicalRecordMemberRebind() {
         return result >= 0 && left_count == 0 && right_count == 1;

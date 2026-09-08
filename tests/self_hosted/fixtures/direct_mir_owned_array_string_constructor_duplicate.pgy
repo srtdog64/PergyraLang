@@ -1,0 +1,8 @@
+import "../../../src/self_hosted/codegen/text/owned_string_join_owner.pgy";
+struct Emission { body: String; cleanup: String; }
+func DuplicateConstructorMove() -> Emission {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("owned", "-row"));
+    return Emission(CodegenJoinOwnedStringFragments(rows, ""), CodegenJoinOwnedStringFragments(rows, ""));
+}
+func Main() -> Void { Print(DuplicateConstructorMove().body); }

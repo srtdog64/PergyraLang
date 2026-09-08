@@ -1,0 +1,5 @@
+export func Bump(value: Int) -> Int { return value + 1; }
+
+export func Invoke(operation: func(Int) -> Int, value: Int) -> Int {
+    return operation(value);
+}

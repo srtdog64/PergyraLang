@@ -1,0 +1,116 @@
+// LLVM raw-runtime calls from normalized HashMap facts; no source reconstruction.
+import "direct_mir_scalar_program_hashmap_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_type_owner.pgy";
+
+func DirectMirScalarProgramLlvmHashMapExpressionAt(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int,
+    result: String, values: Array<String>, graph_start: Int
+) -> DirectMirScalarProgramLlvmStringExpression {
+    let operation: String = DirectMirScalarProgramHashMapOperation(facts.node_kinds[node]);
+    if operation == "" { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
+    let invalid: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
+    if !DirectMirScalarProgramHashMapNodeReady(facts, node) { return invalid; }
+    let rows: Array<Int> = DirectMirScalarProgramHashMapArgumentRows(facts, node);
+    let operands: Array<String> = []; let index: Int = 0;
+    while index < ArrayLength(rows) {
+        let row: Int = rows[index] - graph_start;
+        if row < 0 || row >= ArrayLength(values) { return invalid; }
+        ArrayPush(operands, values[row]); index = index + 1;
+    }
+    let map_type: String = facts.node_types[node];
+    if ArrayLength(rows) > 0 { map_type = facts.node_types[rows[0]]; }
+    let runtime: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(map_type);
+    if !runtime.ok { return invalid; }
+    let function_name: String = CollectionHashMapLlvmFunction(runtime, operation);
+    let storage_type: String = CollectionHashMapLlvmStorageType();
+    let size: String = "i64 ptrtoint (ptr getelementptr (" + runtime.value_storage_type + ", ptr null, i32 1) to i64)";
+    let output: String = "";
+    if operation == "MapNew" {
+        let storage: String = result + ".map";
+        output = "  " + storage + " = alloca " + storage_type + ", align 8\n" +
+            "  store " + storage_type + " zeroinitializer, ptr " + storage + ", align 8\n" +
+            "  call void @" + function_name + "(ptr " + storage + ", " + size + ")\n" +
+            "  " + result + " = load " + storage_type + ", ptr " + storage + ", align 8\n";
+        return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
+    }
+    if facts.node_kinds[rows[0]] != DirectMirScalarProgramExprLocal() { return invalid; }
+    let receiver: String = "%pgy.local." + ToString(facts.node_local_rows[rows[0]]);
+    if operation == "MapSize" {
+        output = "  " + result + ".raw = call i32 @" + function_name + "(ptr " + receiver + ")\n" +
+            "  " + result + " = sext i32 " + result + ".raw to i64\n";
+        return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
+    }
+    if operation == "MapKeys" {
+        let array_type: String = DirectMirScalarProgramLlvmType(facts.node_types[node]);
+        if array_type == "" { return invalid; }
+        let snapshot: String = result + ".keys";
+        output = "  " + snapshot + " = alloca " + array_type + ", align 8\n" +
+            "  store " + array_type + " zeroinitializer, ptr " + snapshot + ", align 8\n" +
+            "  call void @" + function_name + "(ptr " + receiver + ", ptr " + snapshot + ")\n" +
+            "  " + result + " = load " + array_type + ", ptr " + snapshot + ", align 8\n";
+        return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
+    }
+    let key: String = operands[1];
+    if runtime.key_type == "Int" {
+        output = "  " + result + ".key = trunc i64 " + key + " to i32\n";
+        key = result + ".key";
+    }
+    let arguments: String = "ptr " + receiver + ", " + runtime.key_llvm_type + " " + key;
+    if operation == "MapHas" {
+        output = output + "  " + result + " = call i1 @" + function_name + "(" + arguments + ")\n";
+        return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
+    }
+    if operation == "MapRemove" {
+        if runtime.value_type != "String" { arguments = arguments + ", " + size; }
+        output = output + "  call void @" + function_name + "(" + arguments + ")\n";
+        return DirectMirScalarProgramLlvmStringExpression(true, true, output, "");
+    }
+    let value_storage: String = result + ".value";
+    if operation == "MapSet" && runtime.value_type == "String" {
+        output = output + "  call void @" + function_name + "(" + arguments + ", ptr " + operands[2] + ")\n";
+        return DirectMirScalarProgramLlvmStringExpression(true, true, output, "");
+    }
+    output = output + "  " + value_storage + " = alloca " + runtime.value_storage_type + ", align 8\n";
+    let stored: String = "zeroinitializer";
+    if operation == "MapSet" {
+        stored = operands[2];
+        if runtime.value_type == "Int" {
+            output = output + "  " + result + ".stored = trunc i64 " + stored + " to i32\n";
+            stored = result + ".stored";
+        }
+    }
+    output = output + "  store " + runtime.value_storage_type + " " + stored + ", ptr " + value_storage + ", align 8\n";
+    arguments = arguments + ", ptr " + value_storage;
+    if runtime.value_type != "String" { arguments = arguments + ", " + size; }
+    output = output + "  call void @" + function_name + "(" + arguments + ")\n";
+    if operation == "MapSet" { return DirectMirScalarProgramLlvmStringExpression(true, true, output, ""); }
+    let loaded: String = result;
+    if runtime.value_type == "Int" { loaded = result + ".raw"; }
+    output = output + "  " + loaded + " = load " + runtime.value_storage_type + ", ptr " + value_storage + ", align 8\n";
+    if runtime.value_type == "Int" { output = output + "  " + result + " = sext i32 " + loaded + " to i64\n"; }
+    return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
+}
+
+func DirectMirScalarProgramLlvmHashMapDeclarations(ref facts: DirectMirScalarProgramExpressionSet) -> String {
+    let seen: Array<String> = []; let output: String = ""; let node: Int = 0;
+    while node < ArrayLength(facts.node_kinds) {
+        let operation: String = DirectMirScalarProgramHashMapOperation(facts.node_kinds[node]);
+        if operation != "" {
+            if !DirectMirScalarProgramHashMapNodeReady(facts, node) { Die("HashMap declaration has invalid normalized call facts"); }
+            let rows: Array<Int> = DirectMirScalarProgramHashMapArgumentRows(facts, node);
+            let map_type: String = facts.node_types[node];
+            if ArrayLength(rows) > 0 { map_type = facts.node_types[rows[0]]; }
+            let runtime: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(map_type);
+            let declaration: String = CollectionHashMapLlvmDeclaration(runtime, operation);
+            let known: Bool = false; let index: Int = 0;
+            while index < ArrayLength(seen) {
+                if seen[index] == declaration { known = true; }
+                index = index + 1;
+            }
+            if !known { ArrayPush(seen, declaration); output = output + declaration; }
+        }
+        node = node + 1;
+    }
+    return output;
+}

@@ -1,0 +1,5 @@
+import "generic_bound_support.pgy";
+// Native accepts structural member use on the instantiated Card; no nominal
+// equality may be invented for T before the instance itself is checked.
+func InspectUnbound<T>(value: T) -> Int { return value.value; }
+func Main() -> Void { Log(InspectUnbound(Card(7))); }

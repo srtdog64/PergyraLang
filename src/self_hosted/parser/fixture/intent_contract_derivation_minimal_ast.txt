@@ -1,7 +1,7 @@
 Program:
   Subject: Buyer
     Fields:
-      hp: Int
+      let hp: Int
     Methods:
       Action: Promote
         Parameters:
@@ -30,4 +30,3 @@ Program:
     Body:
       Block:
         Log("intent contract derivation minimal")
-

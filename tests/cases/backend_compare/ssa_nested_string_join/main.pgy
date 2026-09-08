@@ -1,0 +1,25 @@
+// Reduced from the production self-host LLVM Int-wrap emitter. The branch
+// result must keep its SSA identity through a nested join and later guard.
+func SelectOpcode(kind: Int) -> String {
+    let opcode: String = "";
+    let unary: Bool = false;
+    if kind == 1 { opcode = "add";
+    } else if kind == 2 { opcode = "sub";
+    } else if kind == 3 { opcode = "mul";
+    } else if kind == 4 { opcode = "sub"; unary = true;
+    } else { return "missing"; }
+    if kind < 0 || (!unary && kind == 0) { return "invalid"; }
+    let output: String = "";
+    output = Concat(output, Concat(opcode, ":"));
+    if unary { output = Concat(output, "unary");
+    } else { output = Concat(output, "binary"); }
+    return output;
+}
+
+func Main() -> Void {
+    Log(SelectOpcode(1));
+    Log(SelectOpcode(2));
+    Log(SelectOpcode(3));
+    Log(SelectOpcode(4));
+    Log(SelectOpcode(5));
+}

@@ -22,9 +22,10 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 command -v "$PYTHON_BIN" >/dev/null 2>&1 || fail "python is required"
 
 FIXTURE_REL="tests/self_hosted/parity/fixture/intent_phase_carrier_admission.pgy"
-BUILD_DIR="${PGY_SELFHOST_INTENT_PHASE_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/intent_phase_carrier}"
+BUILD_BASE="${PGY_SELFHOST_INTENT_PHASE_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/intent_phase_carrier}"
 DRIVER="${PGY_SELFHOST_PREBUILT_DRIVER:-}"
-mkdir -p "$BUILD_DIR"
+mkdir -p "$BUILD_BASE"
+BUILD_DIR="$(mktemp -d "$BUILD_BASE/run.XXXXXX")"
 
 if [[ -n "$DRIVER" ]]; then
     DRIVER="$(pgy_select_optional_exe_binary "$DRIVER")"
@@ -68,11 +69,16 @@ def phase_rows(document, name, phase):
             if row.get("name") == name and row.get("arg0") == phase]
 
 checks = phase_rows(base, "IntentCheck", "guard")
+pres = phase_rows(base, "IntentCheck", "pre")
+invariant_pres = phase_rows(base, "IntentCheck", "invariant-pre")
+invariant_posts = phase_rows(base, "IntentCheck", "invariant-post")
 posts = phase_rows(base, "IntentCheck", "post")
 expects = phase_rows(base, "IntentCheck", "expect")
 ons = phase_rows(base, "IntentEval", "on")
 compensates = phase_rows(base, "IntentEval", "compensate")
 assert len(checks) == len(posts) == len(expects) == len(ons) == 1
+assert len(pres) == len(invariant_pres) == len(invariant_posts) == 1
+assert invariant_pres[0]["expr0_graph"] == invariant_posts[0]["expr0_graph"]
 assert [row["expr0"] for row in compensates] == [
     "IntentRunSettled(outcome)", "IntentRunAccepted(outcome)"
 ]
@@ -84,6 +90,46 @@ assert all(row["arg1"] == "Run" and row["slot_anchor"] == "Run"
            for row in checks + posts + expects + ons + compensates)
 
 mutations = {}
+
+binders = [row for row in rows(base) if row.get("name") == "IntentBinding"]
+assert [row["slot_anchor"] for row in binders] == ["participant", "participant", "value"]
+assert len({row["binding_source_syntax_id"] for row in binders}) == 3
+for binding in binders:
+    kind = "IntentParticipant" if binding["slot_anchor"] == "participant" else "IntentValue"
+    mirror = next(row for row in rows(base) if row.get("name") == kind and row["arg0"] == binding["arg0"])
+    assert mirror["binding_source_syntax_id"] == binding["binding_source_syntax_id"] > 0
+
+for carrier in ("IntentBinding", "IntentParticipant", "IntentValue"):
+    document = copy.deepcopy(base)
+    next(row for row in rows(document) if row.get("name") == carrier).pop("binding_source_syntax_id")
+    mutations["missing-id-" + carrier] = document
+
+document = copy.deepcopy(base)
+next(row for row in rows(document) if row.get("name") == "IntentValue")["binding_source_syntax_id"] = binders[0]["binding_source_syntax_id"]
+mutations["crossed-value-mirror-id"] = document
+
+document = copy.deepcopy(base)
+for row in rows(document):
+    if row.get("name") in ("IntentBinding", "IntentValue") and row.get("arg0") == binders[2]["arg0"]:
+        row["binding_source_syntax_id"] = binders[0]["binding_source_syntax_id"]
+mutations["duplicate-value-binder-id"] = document
+
+document = copy.deepcopy(base)
+phase_rows(document, "IntentCheck", "guard")[0]["binding_source_syntax_id"] = binders[0]["binding_source_syntax_id"]
+mutations["nonbinding-identity"] = document
+
+document = copy.deepcopy(base)
+phase_rows(document, "IntentCheck", "guard")[0]["arg0"] = "pre"
+mutations["duplicate-pre"] = document
+
+for phase in ("invariant-pre", "invariant-post"):
+    document = copy.deepcopy(base)
+    rows(document).remove(phase_rows(document, "IntentCheck", phase)[0])
+    mutations["missing-" + phase] = document
+
+document = copy.deepcopy(base)
+phase_rows(document, "IntentCheck", "invariant-post")[0]["expr0_graph"] = copy.deepcopy(pres[0]["expr0_graph"])
+mutations["crossed-invariant-graph"] = document
 
 document = copy.deepcopy(base)
 phase_rows(document, "IntentCheck", "guard")[0]["arg0"] = "unknown"
@@ -136,6 +182,16 @@ PY
 
 expected_diagnostic() {
     case "$1" in
+        negative-missing-id-IntentBinding|negative-missing-id-IntentParticipant|negative-missing-id-IntentValue)
+            echo 'MIR Intent binder source identity is missing or invalid' ;;
+        negative-crossed-value-mirror-id|negative-duplicate-value-binder-id)
+            echo 'MIR intent bindings or steps are missing' ;;
+        negative-nonbinding-identity)
+            echo 'MIR nonbinding carrier has a binder source identity' ;;
+        negative-duplicate-pre)
+            echo 'MIR intent pre phase cardinality is invalid' ;;
+        negative-missing-invariant-pre|negative-missing-invariant-post|negative-crossed-invariant-graph)
+            echo 'MIR intent invariant pre/post graphs do not share one expression' ;;
         negative-unknown-phase)
             echo 'MIR intent phase carrier names an unknown phase' ;;
         negative-orphan-step|negative-wrong-slot)

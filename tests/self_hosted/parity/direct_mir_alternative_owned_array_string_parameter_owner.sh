@@ -25,10 +25,10 @@ fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'DirectMirScalarProgramOwnedArrayStringAlternativeMovePairReady(' \
-    "$COVERAGE" || fail "alternative coverage owner is missing"
+grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveExitSetCoverageReady(' \
+    "$COVERAGE" || fail "complete exit-set coverage owner is missing"
 grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveReadyForPlan(' \
-    "$PLAN_READY" || fail "sealed plan does not recheck move coverage"
+    "$PLAN_READY" || fail "sealed plan omits the carried flow identity check"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

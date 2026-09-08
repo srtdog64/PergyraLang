@@ -11,9 +11,11 @@
 #include "diag_codes.h"
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_let_internal.h"
 #include "type_checker_ownership_support_internal.h"
+#include "type_checker_flow_universe.h"
 
 static Type *
 ownership_let_normalize_type(Type *type)
@@ -519,6 +521,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     Symbol *sym = symbol_create_variable(name, decl_type,
                                          node->line, node->column);
     symbol_mark_declaration(sym, ast_node_stable_id(node), false);
+    callable_capability_record_binding(ctx, sym, init);
 
     if (type_is_constructed_named(decl_type, "DeviceSlot"))
         sym->slot_info.state = SLOT_STATE_CLAIMED;
@@ -588,7 +591,11 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
-    scope_declare(ctx->scope, sym);
+    if (scope_declare(ctx->scope, sym)
+        && !resource_flow_universe_record_declaration(ctx, sym)) {
+        semantic_error(ctx, node,
+            "ResourceFlowUniverse declaration identity allocation failed");
+    }
 
     return !ctx->has_error;
 }

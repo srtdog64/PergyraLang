@@ -1,0 +1,12 @@
+import "callable_capability_fixture.pgy";
+
+func ClockBump(value: Int) -> Int with caps clock {
+    let observed: Int = Now();
+    return value + 1;
+}
+func ClockPath() -> Int with caps clock { return Invoke(ClockBump, 41); }
+func PurePath() -> Int with caps random { return Invoke(Bump, 41); }
+func Main() -> Void with caps clock, random {
+    Log(ClockPath());
+    Log(PurePath());
+}

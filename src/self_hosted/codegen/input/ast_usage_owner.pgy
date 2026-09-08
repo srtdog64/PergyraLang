@@ -53,6 +53,7 @@ struct CodegenRuntimeUsageFacts {
     let uses_spawn: Bool;
     let uses_checked_int_cast: Bool;
     let uses_checked_long_cast: Bool;
+    hashmap_type_names: Array<String>;
 }
 
 func CodegenRuntimeUsageFactsFromSemantic(
@@ -175,6 +176,7 @@ func CodegenRuntimeUsageFactsFromSemantic(
         uses_remote_future,
         uses_spawn,
         uses_checked_int_cast,
-        uses_checked_long_cast
+        uses_checked_long_cast,
+        type_usage.hashmap_type_names
     );
 }

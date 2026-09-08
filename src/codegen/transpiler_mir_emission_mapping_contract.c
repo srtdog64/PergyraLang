@@ -147,7 +147,7 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
                          dn < block->source_local_def_count;
                          dn++) {
                         const char *binding =
-                            block->source_local_defs[dn];
+                            block->source_local_defs[dn].name;
                         const char *versioned_name;
                         if (binding == NULL)
                             continue;

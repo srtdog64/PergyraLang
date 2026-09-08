@@ -31,6 +31,10 @@ func SemanticAstExpressionGraphAtomLaneRequired(
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindIntentStepGuardTag()
     ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindIntentStepPreTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindIntentStepInvariantTag()
+    ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindIntentStepPostTag()
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindIntentStepExpectTag()
@@ -38,6 +42,10 @@ func SemanticAstExpressionGraphAtomLaneRequired(
         artifact.arena, node_id, TypedAstKindIntentStepIntentTag()
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindIntentPriorityTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindIntentSuccessTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindIntentFailureTag()
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindIntentTerminalSuccessTag()
     ) || TypedAstArenaNodeKindIs(

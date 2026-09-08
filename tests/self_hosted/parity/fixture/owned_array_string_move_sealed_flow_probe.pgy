@@ -1,0 +1,95 @@
+// Gate-only mutations of a real issued GraphPlan; production never runs these.
+import "../../../../src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy";
+import "../../../../src/self_hosted/mir_lower/mir_json_input_owner.pgy";
+import "../../../../src/self_hosted/compiler/machine_layer_declaration_consumer.pgy";
+import "owned_array_string_move_receipt_rewrite_probe.pgy";
+
+func RequireStaleFlowRefusal(inout plan: DirectMirScalarCfgGraphPlan) -> Void {
+    // Repairing the outer digest must not re-issue terminal coverage.
+    plan = DirectMirScalarCfgGraphPlanWithDigest(plan, DirectMirScalarCfgGraphPlanDigest(plan));
+    if DirectMirScalarProgramOwnedArrayStringMoveReadyForPlan(plan) {
+        Die("owned move accepted stale typed-flow coverage");
+    }
+}
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Die("sealed move probe requires one MIR path"); }
+    let admitted: MirMachineLayerAdmittedJsonInput = MirJsonReadMachineAdmittedInput(
+        args[0], SelfHostMachineLayerDeclarationEmpty());
+    let generic_calls: MirGenericCallOccurrenceIndex = MirGenericCallOccurrenceIndexFromDocument(admitted.document, admitted.routines);
+    let generic_instances: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(generic_calls);
+    let admission: DirectMirScalarProgramRouteAdmission =
+        DirectMirScalarProgramRouteAdmissionFromAdmitted(admitted, generic_calls, generic_instances);
+    if !DirectMirScalarProgramRouteAdmissionReady(admission) ||
+        !admission.route.claimed { Die("sealed move probe route was not admitted"); }
+    let route_fact: DirectMirScalarProgramRouteFact = admission.route;
+    let plan: DirectMirScalarCfgGraphPlan =
+        DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route_fact);
+    if !DirectMirScalarCfgGraphPlanReady(plan) ||
+        !DirectMirScalarProgramOwnedArrayStringMoveReadyForPlan(plan) {
+        Die("sealed move probe baseline was not ready");
+    }
+    let row: Int = 0;
+    while row < ArrayLength(plan.program.owned_array_string_move.caller_routines) &&
+        plan.program.owned_array_string_move.call_operation_rows[row] != -1 {
+        row = row + 1;
+    }
+    if row == ArrayLength(plan.program.owned_array_string_move.caller_routines) {
+        Die("sealed move probe has no consuming return");
+    }
+    let block: Int = plan.program.owned_array_string_move.coverage.call_block_rows[row];
+    // Mutate the existing storage through its shared array headers.
+    let successors: Array<Int> = plan.block_succ_true;
+    let returns: Array<Int> = plan.program.block_return_expression_rows;
+    let block_counts: Array<Int> = plan.routines.block_counts;
+    let left_locals: Array<Int> = plan.operation_left_locals;
+    let call_operations: Array<Int> = plan.program.owned_array_string_move.call_operation_rows;
+    let call_blocks: Array<Int> = plan.program.owned_array_string_move.coverage.call_block_rows;
+    let successor: Int = plan.block_succ_true[block];
+    ArraySet(successors, block, block);
+    RequireStaleFlowRefusal(plan);
+    ArraySet(successors, block, successor);
+
+    let graph: Int = plan.program.block_return_expression_rows[block];
+    ArraySet(returns, block,
+        DirectMirScalarCfgVoidReturnExpressionRow());
+    RequireStaleFlowRefusal(plan);
+    ArraySet(returns, block, graph);
+
+    let count: Int = plan.routines.block_counts[0];
+    ArraySet(block_counts, 0, count + 1);
+    RequireStaleFlowRefusal(plan);
+    ArraySet(block_counts, 0, count);
+
+    let previous_local: Int = plan.operation_left_locals[0];
+    ArraySet(left_locals, 0, previous_local + 1);
+    RequireStaleFlowRefusal(plan);
+    ArraySet(left_locals, 0, previous_local);
+
+    ArraySet(call_operations, row, 0);
+    plan = RewriteProbeMoveReceipts(plan, false);
+    if !DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(
+        plan.program.owned_array_string_move, plan.program.array_string_abi) {
+        Die("sealed move mutation did not retain its standalone ABI receipt");
+    }
+    RequireStaleFlowRefusal(plan);
+    ArraySet(call_operations, row, -1);
+    plan = RewriteProbeMoveReceipts(plan, false);
+    ArraySet(call_blocks, row, ArrayLength(plan.block_succ_true));
+    plan = RewriteProbeMoveReceipts(plan, true);
+    if !DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(
+        plan.program.owned_array_string_move, plan.program.array_string_abi) {
+        Die("call-block mutation did not retain its standalone receipt");
+    }
+    RequireStaleFlowRefusal(plan);
+    ArraySet(call_blocks, row, block);
+    plan = RewriteProbeMoveReceipts(plan, true);
+    if !DirectMirScalarProgramOwnedArrayStringMoveReadyForPlan(plan) ||
+        !DirectMirScalarCfgGraphPlanReady(plan) {
+        Die("sealed move baseline did not recover after restoring exact inputs");
+    }
+    Log("owned move sealed flow: six stale-input mutations rejected");
+}

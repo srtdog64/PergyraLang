@@ -1,6 +1,7 @@
 // Canonical scalar-CFG type family admitted by the shared graph planner.
 import "abi_layout_row_owner.pgy";
 import "runtime_value_representation_owner.pgy";
+import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 func DirectMirScalarCfgScalarTypeSupported(type_name: String) -> Bool {
     return type_name == CompilerAbiLayoutIntTypeName() ||
@@ -25,7 +26,9 @@ func DirectMirScalarCfgIterationTypePairSupported(
 }
 
 func DirectMirScalarCfgSourceLocalTypeSupported(type_name: String) -> Bool {
+    let hashmap: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(type_name);
     return DirectMirScalarCfgScalarTypeSupported(type_name) ||
+        hashmap.ok || type_name == CompilerAbiLayoutArrayLongTypeName() ||
         DirectMirScalarCfgCollectionTypeSupported(type_name) ||
         type_name == CompilerAbiLayoutArrayBoolTypeName() ||
         type_name == CompilerAbiLayoutOptionIntTypeName() ||

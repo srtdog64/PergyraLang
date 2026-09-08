@@ -1,0 +1,52 @@
+// Identity-required scalar C consumes the same LocalRef GraphPlan as LLVM.
+// Other C families retain their existing owner; a claimed failure never retries.
+import "direct_mir_scalar_program_control_flow_route_owner.pgy";
+import "direct_mir_scalar_program_route_admission_owner.pgy";
+import "direct_mir_scalar_program_projection_owner.pgy";
+import "direct_mir_scalar_cfg_wire_local_ref_owner.pgy";
+import "domain_topology_graph_plan_consumer_owner.pgy";
+import "driver_pipeline_owner.pgy";
+import "../mir_lower/mir_json_input_owner.pgy";
+
+func DriverRung2ScalarCSubstitutionIfClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    target: CompilerTargetProjectionFact, retire_owned_source_json: Bool
+) -> Option<CompilerEmissionArtifact> {
+    if !CompilerTargetProjectionFactReadyFor(target, CompilerTargetCpuCProjection()) ||
+        !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
+        JsonArrayObjectFactCount(admitted.document.declarations) != 0 { return None; }
+    let identity_required: Bool = false;
+    let row: Int = 0;
+    while row < MirProgramRoutineIndexCount(admitted.routines) {
+        let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(admitted.routines, row);
+        let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(
+            admitted.routines, row, MirProgramRoutineIndexBlockInstructionCountAt(admitted.routines, row, 0));
+        if !DirectMirScalarControlFlowRoutineRouteClaimed(admitted, signature, index) { return None; }
+        if DirectMirScalarCfgWireLocalRefsRequired(admitted, index, signature.parameters.names) { identity_required = true; }
+        row = row + 1;
+    }
+    // The reached replacement is the identity-sensitive family. Primitive
+    // local types alone do not prove every expression is in scalar GraphPlan
+    // (for example Log(1.5) has no source-local Float row).
+    if !identity_required { return None; }
+    let calls: MirGenericCallOccurrenceIndex = MirGenericCallOccurrenceIndexFromDocument(admitted.document, admitted.routines);
+    if !calls.valid { Die("scalar C substitution call identities are invalid"); }
+    let instances: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(calls);
+    if !instances.valid { Die(instances.diagnostic); }
+    let admission: DirectMirScalarProgramRouteAdmission =
+        DirectMirScalarProgramRouteAdmissionFromAdmitted(admitted, calls, instances);
+    if !DirectMirScalarProgramRouteAdmissionReady(admission) || !admission.route.claimed {
+        DirectMirScalarProgramRouteAdmissionDie(admission);
+    }
+    let route: DirectMirScalarProgramRouteFact = admission.route;
+    let receipt: MirDomainTopologyGraphPlanConsumptionReceipt =
+        MirDomainTopologyGraphPlanConsumptionFromAdmitted(admitted);
+    let payload: String = MirDomainTopologyGraphPlanAttachToC(receipt, admitted.domain_topology_plan,
+        CompileAdmittedDirectMirScalarProgramForTarget(admitted, route, target));
+    let json: String = admitted.routines.source_json;
+    if retire_owned_source_json { MirJsonOwnedInputRelease(json); }
+    let artifact: CompilerEmissionArtifact = CompilerEmissionArtifact("emitted-c", payload,
+        target.schema, target.projection, target.target_capability_fingerprint);
+    if !CompilerEmissionArtifactReady(artifact) { Die("scalar C substitution target receipt is invalid"); }
+    return Some(artifact);
+}

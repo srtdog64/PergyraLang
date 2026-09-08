@@ -16,6 +16,10 @@ func CheckedArithmeticRuntimeCLongDivisionFn() -> String {
     return "pgy_checked_div_i64_export";
 }
 
+func CheckedArithmeticRuntimeCIntDivisionFn() -> String {
+    return "pgy_checked_div_i32_export";
+}
+
 func CheckedArithmeticRuntimeContractReady() -> Bool {
     return CheckedArithmeticRuntimeCFloatToIntegerFn("Int") ==
             "pgy_checked_f2i_i32_export" &&
@@ -25,6 +29,8 @@ func CheckedArithmeticRuntimeContractReady() -> Bool {
             "pgy_checked_mod_i64_export" &&
         CheckedArithmeticRuntimeCLongDivisionFn() ==
             "pgy_checked_div_i64_export" &&
+        CheckedArithmeticRuntimeCIntDivisionFn() ==
+            "pgy_checked_div_i32_export" &&
         CheckedArithmeticRuntimeCFloatToIntegerFn("Float") == "";
 }
 

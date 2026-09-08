@@ -28,8 +28,6 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
                 fact.option_string_abi, fact.expressions) &&
             DirectMirScalarProgramOptionBoolAbiReadyForExpressions(
                 fact.option_bool_abi, fact.expressions) &&
-            DirectMirScalarProgramTwoIntNominalAbiFactReady(
-                fact.nominal_abi) &&
             DirectMirScalarProgramLogicalRecordReadyForExpressions(
                 fact.logical_record, fact.expressions) &&
             DirectMirScalarProgramLogicalRecordOptionIntAbiReady(
@@ -61,7 +59,7 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
     }
     let callable_ready: Bool =
         (DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(
-             fact.callable, fact.nominal_abi, fact.logical_record,
+             fact.callable, fact.logical_record,
              fact.payload_free_enum, fact.referenced_enum) &&
          DirectMirClosedModuleCallAbiFactReady(fact.closed_call_abi)) ||
         (DirectMirScalarCfgProgramCallableFactCanonicalEmpty(fact.callable) &&
@@ -92,8 +90,6 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
             fact.option_string_abi, fact.expressions) { return 9; }
     if !DirectMirScalarProgramOptionBoolAbiReadyForExpressions(
             fact.option_bool_abi, fact.expressions) { return 10; }
-    if !DirectMirScalarProgramTwoIntNominalAbiFactReady(
-            fact.nominal_abi) { return 11; }
     if !DirectMirScalarProgramLogicalRecordReadyForExpressions(
             fact.logical_record, fact.expressions) { return 12; }
     if !DirectMirScalarProgramLogicalRecordOptionIntAbiReady(

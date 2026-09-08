@@ -41,6 +41,8 @@ typedef struct TypeResolutionEdge TypeResolutionEdge;
 typedef struct TypeResolutionGraph TypeResolutionGraph;
 typedef struct ResourceFlowUniverse ResourceFlowUniverse;
 typedef struct LoopFlowSummaryStore LoopFlowSummaryStore;
+typedef struct CallableCapabilityStore CallableCapabilityStore;
+typedef struct CallableCapabilityRoutine CallableCapabilityRoutine;
 typedef struct FunctionParamFlowSummaryStore FunctionParamFlowSummaryStore;
 
 #define SEMANTIC_MAX_LOOP_DEPTH 64
@@ -118,9 +120,12 @@ struct SemanticContext
     Type*        expected_collection_type; /* Contextual collection type for a
                                             * literal initializer: drives the
                                             * sequence ctor (Array/List/Queue). */
-    uint32_t     current_function_effects; /* Inferred effect mask    */
+    uint32_t     current_function_effects; /* Local diagnostic provenance */
+    uint32_t     current_function_direct_effects; /* Call equations exclude callee summaries */
     uint32_t     current_function_capabilities; /* Inferred PGY_CAP_* mask */
     uint32_t     program_capabilities; /* Union of every used capability   */
+    CallableCapabilityStore *callable_capabilities;
+    CallableCapabilityRoutine *current_callable_capability;
     uint32_t     current_function_body_summary; /* Interprocedural body facts */
     bool         tracking_function_effects; /* Only inside function body */
     bool         emit_advisories; /* docs/140: run non-blocking meaning-axis

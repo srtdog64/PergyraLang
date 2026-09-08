@@ -30,7 +30,7 @@ func LanguageWordRegistryRowAt(index: Int) -> LanguageWordRegistryRow {
     if index == 9 { return LanguageWordRegistryRow(true, "authority", "AUTHORITY", 2, "contextual", 144, 3, "domain", 3, 3, "", true); }
     if index == 10 { return LanguageWordRegistryRow(true, "authorized", "AUTHORIZED", 2, "contextual", 80, 3, "domain", 3, 7, "keyword.other.domain.pergyra", true); }
     if index == 11 { return LanguageWordRegistryRow(true, "await", "AWAIT", 1, "reserved", 4, 2, "execution", 3, 5, "keyword.control.pergyra", true); }
-    if index == 12 { return LanguageWordRegistryRow(true, "backoff", "BACKOFF", 2, "contextual", 16, 2, "execution", 1, 0, "", false); }
+    if index == 12 { return LanguageWordRegistryRow(true, "backoff", "BACKOFF", 2, "contextual", 16, 2, "execution", 0, 0, "", false); }
     if index == 13 { return LanguageWordRegistryRow(true, "between", "BETWEEN", 2, "contextual", 144, 3, "domain", 3, 0, "", false); }
     if index == 14 { return LanguageWordRegistryRow(true, "bind", "BIND", 1, "reserved", 18, 3, "domain", 3, 4, "keyword.other.domain.pergyra", false); }
     if index == 15 { return LanguageWordRegistryRow(true, "binding", "BINDING", 2, "contextual", 128, 3, "domain", 3, 7, "keyword.other.domain.pergyra", true); }
@@ -127,7 +127,7 @@ func LanguageWordRegistryRowAt(index: Int) -> LanguageWordRegistryRow {
     if index == 106 { return LanguageWordRegistryRow(true, "relations", "RELATIONS", 2, "contextual", 128, 3, "domain", 1, 0, "", false); }
     if index == 107 { return LanguageWordRegistryRow(true, "remote", "REMOTE", 1, "reserved", 16, 2, "execution", 3, 4, "storage.modifier.pergyra", false); }
     if index == 108 { return LanguageWordRegistryRow(true, "requires", "REQUIRES", 2, "contextual", 208, 4, "type-contract", 3, 7, "keyword.other.domain.pergyra", true); }
-    if index == 109 { return LanguageWordRegistryRow(true, "retry", "RETRY", 2, "contextual", 16, 2, "execution", 3, 0, "", false); }
+    if index == 109 { return LanguageWordRegistryRow(true, "retry", "RETRY", 2, "contextual", 16, 2, "execution", 0, 0, "", false); }
     if index == 110 { return LanguageWordRegistryRow(true, "return", "RETURN", 1, "reserved", 2, 2, "execution", 3, 4, "keyword.control.pergyra", false); }
     if index == 111 { return LanguageWordRegistryRow(true, "role", "ROLE", 1, "reserved", 9, 3, "domain", 3, 5, "storage.type.pergyra", true); }
     if index == 112 { return LanguageWordRegistryRow(true, "rollback", "ROLLBACK", 2, "contextual", 16, 2, "execution", 1, 0, "", false); }
@@ -144,7 +144,7 @@ func LanguageWordRegistryRowAt(index: Int) -> LanguageWordRegistryRow {
     if index == 123 { return LanguageWordRegistryRow(true, "subjects", "SUBJECTS", 2, "contextual", 128, 3, "domain", 1, 0, "", false); }
     if index == 124 { return LanguageWordRegistryRow(true, "success", "SUCCESS", 2, "contextual", 16, 2, "execution", 3, 4, "keyword.other.intent.pergyra", false); }
     if index == 125 { return LanguageWordRegistryRow(true, "sum", "SUM", 2, "contextual", 16, 2, "execution", 1, 0, "", false); }
-    if index == 126 { return LanguageWordRegistryRow(true, "timeout", "TIMEOUT", 2, "contextual", 16, 2, "execution", 1, 0, "", false); }
+    if index == 126 { return LanguageWordRegistryRow(true, "timeout", "TIMEOUT", 2, "contextual", 16, 2, "execution", 0, 0, "", false); }
     if index == 127 { return LanguageWordRegistryRow(true, "to", "TO", 2, "contextual", 192, 3, "domain", 3, 0, "", false); }
     if index == 128 { return LanguageWordRegistryRow(true, "tobject", "TOBJECT", 1, "reserved", 9, 3, "domain", 3, 7, "storage.type.pergyra", true); }
     if index == 129 { return LanguageWordRegistryRow(true, "tobjects", "TOBJECTS", 2, "contextual", 128, 3, "domain", 1, 0, "", false); }

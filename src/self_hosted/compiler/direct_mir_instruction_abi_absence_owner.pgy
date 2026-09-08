@@ -10,7 +10,10 @@ func DirectMirInstructionHasNoPhysicalAbi(
     return capture.abi_type_value_ready &&
         capture.abi_type_name == expected_type &&
         capture.abi_layout_id_start >= 0 &&
+        capture.abi_layout_id_end == capture.abi_layout_id_start + 1 &&
         capture.abi_layout_required_start >= 0 &&
+        capture.abi_layout_required_end == capture.abi_layout_required_start + 5 &&
+        capture.abi_layout_end == capture.abi_layout_start + 4 &&
         capture.abi_layout_start >= 0 && SubEqualsWithLen(
             json, capture.abi_layout_id_end,
             capture.abi_layout_id_start, 1, "0"

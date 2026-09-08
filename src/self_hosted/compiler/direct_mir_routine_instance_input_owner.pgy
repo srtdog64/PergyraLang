@@ -1,0 +1,69 @@
+// Per-instance input projection; source/CFG/LocalRef identities and raw spans
+// remain unchanged. Substitute local/instruction types once before consumers.
+import "direct_mir_routine_instance_type_owner.pgy";
+import "direct_mir_scalar_cfg_graph_input_owner.pgy";
+
+func DirectMirRoutineInstanceGraphInput(
+    source: DirectMirScalarCfgGraphInput, json: String,
+    ref inventory: DirectMirRoutineInstanceInventory, ordinal: Int
+) -> DirectMirScalarCfgGraphInput {
+    if !inventory.valid || ordinal < 0 || ordinal >= ArrayLength(inventory.instance_rows) {
+        Die("direct MIR routine instance input identity is invalid");
+    }
+    if inventory.instance_rows[ordinal] < 0 { return source; }
+    let index: MirRoutineFactIndex = source.index;
+    if !index.valid || ToInt(index.source_syntax_id) != inventory.signatures[ordinal].source_syntax_id {
+        Die("direct MIR routine instance input source identity is crossed");
+    }
+    let local_types: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(index.source_local_types) {
+        let resolved: Option<String> = DirectMirRoutineInstanceTypeName(inventory, ordinal, index.source_local_types[row]);
+        if !IsSome(resolved) || (UnwrapOption(resolved) != index.source_local_types[row] &&
+            !DirectMirScalarCfgScalarTypeSupported(UnwrapOption(resolved)) &&
+            DirectMirIdentityCellRow(inventory.identity_cells, UnwrapOption(resolved)) < 0) {
+            Die("direct MIR routine instance local type requires a concrete ABI receipt");
+        }
+        ArrayPush(local_types, UnwrapOption(resolved));
+        row = row + 1;
+    }
+    let original: MirRoutineInstructionFactBundle = index.instruction_facts;
+    let abi_types: Array<String> = [];
+    row = 0;
+    while row < ArrayLength(original.starts) {
+        let capture: MirRoutineInstructionScalarCapture = MirRoutineInstructionFactBundleAtGlobal(
+            original, original.global_start + row);
+        capture = DirectMirRoutineInstanceInstructionCapture(capture, json, inventory, ordinal);
+        if !capture.valid { Die("direct MIR routine instance instruction ABI receipt is invalid"); }
+        ArrayPush(abi_types, capture.abi_type_name);
+        row = row + 1;
+    }
+    let instructions: MirRoutineInstructionFactBundle = MirRoutineInstructionFactBundle(
+        original.valid, original.global_start, original.starts,
+        original.ends, original.names, original.results,
+        original.expr0s, original.expr1s, original.arg0s,
+        original.arg1s, original.slot_anchors, abi_types,
+        original.abi_type_values_ready, original.abi_layout_bounds, original.match_variants,
+        original.block_phi_prefix_counts, original.block_branch_global_rows, original.block_has_conditional_branch);
+    let typed: MirRoutineFactIndex = MirRoutineFactIndex(
+        index.valid, index.validation_stage, index.loop_flow_facts_valid,
+        index.routine_start, index.routine_end, index.block_starts,
+        index.block_ends, index.block_reachable, index.backedge_headers,
+        index.block_succ_true, index.block_succ_false, index.block_has_conditional_branch,
+        index.block_structural_merges, index.block_instruction_starts, index.block_instruction_counts,
+        instructions, index.source_local_names, local_types,
+        index.declared_source_local_count, index.source_syntax_id, index.iteration_type_facts,
+        index.match_binding_origins, index.function_param_flow_parameter_indices, index.function_param_flow_masks,
+        index.resource_flow_symbol_declared_count, index.resource_flow_stable_indices, index.resource_flow_declaration_syntax_ids,
+        index.resource_flow_symbol_kinds, index.resource_flow_parameter_flags, index.resource_flow_parameter_indices,
+        index.resource_flow_names, index.loop_flow_summary_declared_count, index.loop_flow_summary_loop_ids,
+        index.loop_flow_summary_kinds, index.loop_flow_summary_effect_bases, index.loop_flow_summary_effect_deltas,
+        index.loop_flow_summary_flags, index.loop_flow_summary_entry_starts, index.loop_flow_summary_entry_counts,
+        index.loop_flow_summary_exit_starts, index.loop_flow_summary_exit_counts, index.loop_flow_state_declared_count,
+        index.loop_flow_state_stable_indices, index.loop_flow_state_consumed_flags, index.loop_flow_state_used_flags,
+        index.loop_flow_state_access_masks, index.loop_flow_state_slot_states, index.loop_flow_state_semantic_states,
+        index.loop_flow_state_pool_ids);
+    return DirectMirScalarCfgGraphInput(typed, source.use_facts, source.wire,
+        source.ranges, source.foreach_facts, source.foreach_elements,
+        source.string_arrays, source.array_int_program, source.collections);
+}

@@ -258,7 +258,7 @@ hir_dump_mode(const HIRProgram *hir, FILE *out, HIRDumpMode mode)
                     for (size_t k = 0; k < block->local_def_count; k++) {
                         if (k > 0)
                             fprintf(out, ",");
-                        fprintf(out, "%s", block->local_defs[k]);
+                        fprintf(out, "%s", block->local_defs[k].name);
                     }
                     fprintf(out, "\n");
                 }

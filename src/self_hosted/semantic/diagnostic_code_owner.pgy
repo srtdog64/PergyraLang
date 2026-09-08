@@ -5,6 +5,13 @@
 
 func SemanticDiagnosticCodes() -> Array<String> {
     let codes: Array<String> = [
+        "intent_retry_unavailable",
+        "action_contract_invalid",
+        "action_ability_unsatisfied",
+        "task_lifecycle_invalid",
+        "cancel_argument_invalid",
+        "cancel_payload_unsupported",
+        "parallel_unsafe_forbidden",
         "undefined_symbol",
         "logical_operand_not_bool",
         "not_operand_not_bool",
@@ -14,10 +21,16 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "call_arg_type_mismatch",
         "member_call_arg_type_mismatch",
         "enum_payload_variant_unproven",
+        "match_pattern_invalid",
         "named_value_boundary_argument_required",
+        "borrow_boundary_escape",
         "zone_value_copy_requires_transfer",
         "zone_value_reassignment_requires_transfer",
         "zone_value_parameter_requires_transfer",
+        "zone_contract_invalid",
+        "world_zone_escape",
+        "subject_value_copy",
+        "subject_value_return",
         "builtin_arg_type_mismatch",
         "option_concrete_type_required",
         "value_param_collection_mutation",
@@ -25,10 +38,16 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "call_arity_mismatch",
         "generic_argument_count_mismatch",
         "generic_argument_type_invalid",
+        "generic_constraint_unsatisfied",
         "let_type_mismatch",
         "return_type_mismatch",
         "condition_not_bool",
         "assign_type_mismatch",
+        "immutable_field_write",
+        "declared_capability_missing",
+        "declared_effect_missing",
+        "call_effect_fact_unavailable",
+        "capability_fact_invalid",
         "ast_artifact_invalid",
         "entrypoint_cardinality",
         "function_signature_invalid",
@@ -66,7 +85,18 @@ func SemanticDiagnosticCodeCount() -> Int {
     return ArrayLength(SemanticDiagnosticCodes());
 }
 
+func SemanticDiagnosticPublicLayer(code: String) -> String {
+    if code == "borrow_boundary_escape" { return "resource"; }
+    if !SemanticDiagnosticCodeKnown(code) { return ""; }
+    return "type";
+}
+
 func SemanticDiagnosticOracleCode(code: String) -> String {
+    if code == "match_pattern_invalid" { return "PGY_SEM_MATCH_PATTERN_INVALID"; }
+    if code == "world_zone_escape" { return "PGY_SEM_ANCHORED_HANDLE_COPY"; }
+    if code == "subject_value_copy" || code == "subject_value_return" { return "PGY_SEM_ANCHORED_HANDLE_COPY"; }
+    if code == "generic_constraint_unsatisfied" { return "PGY_SEM_CLASS_CONTRACT_INVALID"; }
+    if code == "zone_contract_invalid" { return "PGY_SEM_ZONE_CONTRACT_INVALID"; }
     if code == "undefined_symbol" {
         return "PGY_SEM_UNDEFINED_SYMBOL";
     }
@@ -97,6 +127,7 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     if code == "named_value_boundary_argument_required" {
         return "PGY_SEM_TYPE_MISMATCH";
     }
+    if code == "borrow_boundary_escape" { return "PGY_SEM_BORROW_ESCAPE"; }
     if code == "builtin_arg_type_mismatch" {
         return "PGY_SEM_BUILTIN_ARGS_INVALID";
     }
@@ -128,6 +159,13 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     if code == "assign_type_mismatch" {
         return "PGY_SEM_TYPE_MISMATCH";
     }
+    if code == "immutable_field_write" {
+        return "PGY_SEM_IMMUTABLE_FIELD_WRITE";
+    }
+    if code == "declared_capability_missing" || code == "declared_effect_missing" ||
+        code == "call_effect_fact_unavailable" {
+        return "PGY_SEM_EFFECT_CONFLICT";
+    }
     if code == "array_drop_storage_arity" ||
         code == "array_drop_storage_requires_array" ||
         code == "array_drop_storage_requires_binding" ||
@@ -138,9 +176,15 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
         code == "destructure_initializer_not_array" {
         return "PGY_SEM_TYPE_MISMATCH";
     }
-    if code == "intent_signature_invalid" {
+    if code == "intent_signature_invalid" || code == "intent_retry_unavailable" {
         return "PGY_SEM_INTENT_STEP_INVALID";
     }
+    if code == "action_contract_invalid" { return "PGY_SEM_ACTION_CONTRACT_INVALID"; }
+    if code == "task_lifecycle_invalid" { return "PGY_SEM_TASK_LIFECYCLE"; }
+    if code == "cancel_argument_invalid" { return "PGY_SEM_BUILTIN_ARGS_INVALID"; }
+    if code == "cancel_payload_unsupported" { return "PGY_SEM_REMOTE_FUTURE_MISUSE"; }
+    if code == "parallel_unsafe_forbidden" { return "PGY_SEM_PARALLEL_SECURE_FORBIDDEN"; }
+    if code == "action_ability_unsatisfied" { return "PGY_SEM_ABILITY_CONTRACT_INVALID"; }
     if code == "parse_syntax" {
         return "PGY_PARSE_SYNTAX";
     }

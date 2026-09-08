@@ -1,0 +1,7 @@
+subject Counter { let mut value: Int; }
+zone CounterZone { subject slot counter: Counter }
+func ObserveCounterZone(ref area: CounterZone) -> Int { return area.counter.value; }
+func Main() -> Void {
+    let area = CounterZone(Counter(17));
+    Log(ObserveCounterZone(area));
+}

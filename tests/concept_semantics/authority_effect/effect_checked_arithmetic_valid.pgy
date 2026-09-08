@@ -1,0 +1,5 @@
+func Main() -> Void with effects local {
+    Log(CheckedAdd(2147483647, 0));
+    Log(CheckedMul(46340, 46340));
+    Log(CheckedAdd(CheckedMul(-7, 6), 2));
+}

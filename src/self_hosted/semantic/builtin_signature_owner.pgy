@@ -2,6 +2,9 @@
 
 import "../lib/intent_observability_abi_projection_owner.pgy";
 import "wrapper_type_owner.pgy";
+import "ast_expression_graph_collection_call_protocol_owner.pgy";
+import "collection_key_policy_projection_owner.pgy";
+import "diagnostic_owner.pgy";
 
 func SemanticBuiltinSignatureRows() -> Array<String> {
     let rows: Array<String> = [
@@ -33,6 +36,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "Log10^Float^Float",
         "Log2^Float^Float",
         "Now^Int^none",
+        "Cancel^Bool^Unknown",
         "Random^Int^Int",
         "SeedRandom^Void^Int",
         "CheckedAdd^Int^Int|Int",
@@ -135,6 +139,26 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "CompilerArtifactCommit^Int^Int",
         "CompilerArtifactWrite^Bool^Int|String"
     ];
+    let map_names: Array<String> = SemanticHashMapCallProtocolNames();
+    let map_index: Int = 0;
+    while map_index < ArrayLength(map_names) {
+        let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+            SemanticExpressionGraphCollectionCallProtocolFromName(map_names[map_index]);
+        if !protocol.applies || protocol.family != "HashMap" { return []; }
+        let result: String = protocol.return_kind;
+        if result == "constructor" { result = "HashMap<Unknown, Unknown>"; }
+        if result == "element" { result = "Unknown"; }
+        if result == "keys" { result = "Array<Unknown>"; }
+        let params: String = "none";
+        let parameter: Int = 0;
+        while parameter < protocol.expected_arity {
+            if parameter == 0 { params = "Unknown"; }
+            else { params = params + "|Unknown"; }
+            parameter = parameter + 1;
+        }
+        ArrayPush(rows, protocol.operation + "^" + result + "^" + params);
+        map_index = map_index + 1;
+    }
     if !IntentObservabilityAbiReady() { return []; }
     let observability_rows: Array<String> =
         IntentObservabilityAbiSignatureRows();
@@ -289,12 +313,16 @@ func SemanticContextualBuiltinReturnTypeOpt(
     argument_count: Int,
     declared_type: Option<String>
 ) -> Option<String> {
-    if (name != "ListNew" && name != "QueueNew" && name != "SetNew") || argument_count != 0 ||
+    if (name != "ListNew" && name != "QueueNew" && name != "SetNew" && name != "MapNew") || argument_count != 0 ||
         !IsSome(declared_type) {
         return None;
     }
     let shape: SemanticConstructedTypeNameFact =
         SemanticConstructedTypeNameFactFrom(UnwrapOption(declared_type));
+    if name == "MapNew" {
+        if SemanticHashMapTypeError(name, shape) != "" { return None; }
+        return Some(shape.canonical_name);
+    }
     if !shape.ok ||
         (name == "ListNew" && shape.nominal_base_name != "List") ||
         (name == "QueueNew" && shape.nominal_base_name != "Queue") ||
@@ -304,6 +332,78 @@ func SemanticContextualBuiltinReturnTypeOpt(
         return None;
     }
     return Some(shape.canonical_name);
+}
+
+struct SemanticHashMapCallSignature {
+    applies: Bool;
+    ok: Bool;
+    error: String;
+    parameter_types: Array<String>;
+    return_type: String;
+}
+
+func SemanticHashMapTypeError(name: String, shape: SemanticConstructedTypeNameFact) -> String {
+    if !shape.ok || shape.nominal_base_name != "HashMap" ||
+        ArrayLength(shape.actual_type_names) != 2 ||
+        SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) {
+        return SemanticError3("builtin_arg_type_mismatch", "func", name,
+            "expected", "HashMap<K, V>", "actual", shape.canonical_name);
+    }
+    if !SemanticCollectionStableKeySupported(shape.actual_type_names[0]) {
+        return SemanticError3("builtin_arg_type_mismatch", "func", name,
+            "expected", "HashMap with a supported stable scalar key", "actual", shape.canonical_name);
+    }
+    return "";
+}
+
+func SemanticHashMapContextualTypeError(declared: Option<String>, inferred: String) -> String {
+    if inferred != "HashMap<Unknown, Unknown>" || !IsSome(declared) { return ""; }
+    return SemanticHashMapTypeError("MapNew",
+        SemanticConstructedTypeNameFactFrom(UnwrapOption(declared)));
+}
+
+func SemanticHashMapCallSignatureFrom(
+    name: String, argument_count: Int, receiver_type: String
+) -> SemanticHashMapCallSignature {
+    let empty: Array<String> = [];
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(name);
+    if !protocol.applies || protocol.family != "HashMap" {
+        return SemanticHashMapCallSignature(false, true, "", empty, "");
+    }
+    if argument_count != protocol.expected_arity {
+        return SemanticHashMapCallSignature(true, false, SemanticError3(
+            "call_arity_mismatch", "func", name,
+            "expected", ToString(protocol.expected_arity), "actual", ToString(argument_count)
+        ), empty, "");
+    }
+    if protocol.return_kind == "constructor" {
+        return SemanticHashMapCallSignature(true, true, "", empty, "HashMap<Unknown, Unknown>");
+    }
+    let shape: SemanticConstructedTypeNameFact = SemanticConstructedTypeNameFactFrom(receiver_type);
+    let type_error: String = SemanticHashMapTypeError(name, shape);
+    if type_error != "" {
+        return SemanticHashMapCallSignature(true, false, type_error, empty, "");
+    }
+    let parameters: Array<String> = [];
+    let index: Int = 0;
+    while index < protocol.expected_arity {
+        let expected: String = "Unknown";
+        if index == protocol.receiver_argument_index { expected = shape.canonical_name; }
+        if index == protocol.key_argument_index { expected = shape.actual_type_names[0]; }
+        if index == protocol.value_argument_index { expected = shape.actual_type_names[1]; }
+        if expected == "Unknown" {
+            return SemanticHashMapCallSignature(true, false, SemanticError1(
+                "ast_artifact_invalid", "owner", "hashmap_call_protocol"
+            ), empty, "");
+        }
+        ArrayPush(parameters, expected);
+        index = index + 1;
+    }
+    let result: String = protocol.return_kind;
+    if result == "element" { result = shape.actual_type_names[1]; }
+    if result == "keys" { result = "Array<" + shape.actual_type_names[0] + ">"; }
+    return SemanticHashMapCallSignature(true, true, "", parameters, result);
 }
 
 func SemanticBuiltinSignatureContractReady() -> Bool {

@@ -71,7 +71,8 @@ func SemanticAstAnalysisResolveExpressionIdentities(
     iteration_types: SemanticAstIterationTypeFacts,
     match_synthetic_graph_root_ids: Array<Int>,
     function_tables: SemanticAstExpressionFunctionTableFacts,
-    require_carried_identities: Bool
+    require_carried_identities: Bool,
+    inout leaf_type_names: Array<String>
 ) -> Bool {
     let graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
@@ -82,6 +83,11 @@ func SemanticAstAnalysisResolveExpressionIdentities(
         !SemanticExpressionIdentityRowsReady(graph.arena.identities, count) {
         return false;
     }
+    // The existing lexical environment owns local types even where the
+    // persisted identity protocol intentionally carries no local binding ID.
+    // This transient projection dies after world-zone value-use admission.
+    let type_row: Int = 0;
+    while type_row < count { ArrayPush(leaf_type_names, "Unknown"); type_row = type_row + 1; }
     let last_root: Int = -1;
     let root_slot: Int = 0;
     let valid: Bool = true;
@@ -108,9 +114,8 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                         analysis.signatures, surface_index
                     );
                 let intent_node: Option<Int> =
-                    SemanticAstIntentExpressionOwnerNodeId(
-                        artifact, use_node_id
-                    );
+                    SemanticAstExpressionIntentNodeAt(
+                        analysis.expression_surfaces, analysis.intent_signatures, surface_index);
                 if surface_index != seeded_surface {
                     SemanticAstExpressionEnvironmentReset(names, types, modes);
                     if !SemanticAstBodyExpressionEnvironmentSeed(
@@ -126,6 +131,9 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                 }
                 let node: Int = last_root + 1;
                 while node <= root_id && valid {
+                    if graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() {
+                        leaf_type_names[node] = EnvLookup(names, types, graph.arena.node_texts[node]);
+                    }
                     let carried_call_target_syntax_id: Int =
                         graph.arena.identities.call_target_syntax_ids[node];
                     let carried_runtime_call_abi_id: Int =

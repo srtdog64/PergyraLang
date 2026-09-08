@@ -35,6 +35,8 @@ bool is_slot_var(TranspilerCtx *ctx, const char *var_name);
 
 void register_typed_var(TranspilerCtx *ctx, const char *name,
                         const char *type_name);
+bool register_callable_var(TranspilerCtx *ctx, const char *name,
+                           const MIRCallableSig *signature);
 void register_alias_var(TranspilerCtx *ctx, const char *name,
                         ASTNode *target_expr);
 ASTNode *lookup_alias_expr(TranspilerCtx *ctx, const char *var_name);

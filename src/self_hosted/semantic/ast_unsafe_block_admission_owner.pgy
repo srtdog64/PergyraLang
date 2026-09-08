@@ -1,0 +1,38 @@
+// The unsafe block retains a lexical body and cannot enter a parallel task.
+// Direct effect attribution is owned by the existing callable equations.
+import "ast_body_verdict_owner.pgy";
+
+func SemanticAstUnsafeBlockAdmissionFromStatements(
+    artifact: AstTreeArtifact, ref statements: SemanticAstStatementFacts
+) -> SemanticAstBodyVerdict {
+    if !statements.ok || statements.artifact_node_count != artifact.count {
+        return SemanticAstBodyVerdictError("ast_artifact_invalid",
+            "unsafe block admission requires owned statement facts", -1);
+    }
+    let row: Int = 0;
+    while row < ArrayLength(statements.node_ids) {
+        if statements.kind_tags[row] == TypedAstKindUnsafeBlockTag() {
+            let node: Int = statements.node_ids[row];
+            if statements.body_scope_node_ids[row] < 0 ||
+                artifact.arena.child_counts[node] != 1 {
+                return SemanticAstBodyVerdictError("ast_artifact_invalid",
+                    "unsafe block requires exactly one lexical body", node);
+            }
+            let parent: Int = artifact.arena.parents[node];
+            let function_node: Int = statements.function_node_ids[row];
+            while parent != function_node {
+                if parent < 0 || parent >= node {
+                    return SemanticAstBodyVerdictError("ast_artifact_invalid",
+                        "unsafe block enclosing callable is missing", node);
+                }
+                if artifact.arena.kinds[parent] == TypedAstKindParallelBlockTag() {
+                    return SemanticAstBodyVerdictError("parallel_unsafe_forbidden",
+                        SemanticError1("parallel_unsafe_forbidden", "boundary", "parallel task"), node);
+                }
+                parent = artifact.arena.parents[parent];
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

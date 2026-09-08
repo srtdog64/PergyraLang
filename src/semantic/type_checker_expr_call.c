@@ -91,21 +91,21 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         }
     }
 
-    /* Boundary-fork rule, full theorem T (docs/157 §5, option A): a
-     * world-owned zone binding cannot be handed to any callee as a live
-     * argument -- measured, the transfer path writes through into the
-     * world interior. Clone(...) is the declared copy and is exempted
-     * inside the helper. */
-    semantic_reject_world_zone_member_escape(expr, ctx);
-
     if (callee->type == AST_IDENTIFIER) {
         const char *name = ast_identifier_name(callee);
+        Symbol *sym = lookup_identifier_symbol(callee, ctx);
+        bool value_binding = sym != NULL
+            && (sym->kind == SYMBOL_VARIABLE || sym->kind == SYMBOL_SLOT
+                || sym->kind == SYMBOL_TOKEN);
         bool user_class_overrides_builtin =
-            semantic_find_class_decl_by_name(ctx, name) != NULL;
-        BuiltinKind bk   = user_class_overrides_builtin
+            !value_binding && semantic_find_class_decl_by_name(ctx, name) != NULL;
+        BuiltinKind bk = value_binding || user_class_overrides_builtin
             ? BUILTIN_NOT_BUILTIN
             : builtin_resolve(name);
-        if (!ast_call_set_semantic_callee_builtin_kind(
+        if ((value_binding && sym->decl_syntax_id == 0)
+            || !ast_call_set_semantic_callee_value_binding_id(
+                expr, value_binding ? sym->decl_syntax_id : 0)
+            || !ast_call_set_semantic_callee_builtin_kind(
                 expr, (uint32_t)bk)) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_TYPE_MISMATCH,
@@ -115,8 +115,16 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 "Call target semantic identity could not be recorded");
             return TYPE_UNKNOWN;
         }
+        /* The resolved builtin identity, not Clone's spelling, authorizes
+         * the declared-copy boundary for a world-owned zone (docs/157). */
+        semantic_reject_world_zone_member_escape(expr, ctx);
         if (bk != BUILTIN_NOT_BUILTIN)
             return type_check_builtin_call(expr, bk, ctx);
+
+        /* A lexical value owns this call target, including a non-callable
+         * value. Its spelling must not reopen builtin or stdlib dispatch. */
+        if (value_binding)
+            return type_check_function_symbol_call(expr, sym, name, ctx);
 
         {
             ASTNode *host_method = expr_current_host_method_decl(ctx, name);
@@ -127,8 +135,21 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         if (strcmp(name, "Channel") == 0)
             return TYPE_UNKNOWN;
 
-        if (pgy_match_variant_is_result(pgy_match_variant_lookup(name)))
+        if (pgy_match_variant_is_result(pgy_match_variant_lookup(name))) {
+            /* The Result constructor's enclosing type remains contextual,
+             * but its payload is an ordinary checked expression. Skipping it
+             * loses both diagnostics and the resolved local binding fact. */
+            if (arg_count != 1) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                    PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                    PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
+                    "%s requires exactly one payload argument", name);
+                return TYPE_UNKNOWN;
+            }
+            (void)type_check_expression(ast_call_argument(expr, 0), ctx);
             return TYPE_UNKNOWN;
+        }
 
         if (!user_class_overrides_builtin) {
             Type *stdlib_type = type_check_stdlib_call(expr, name, ctx);
@@ -136,10 +157,10 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 return stdlib_type;
         }
 
-        Symbol *sym = scope_lookup(ctx->scope, name);
         return type_check_function_symbol_call(expr, sym, name, ctx);
     }
 
+    semantic_reject_world_zone_member_escape(expr, ctx);
     if (callee->type == AST_MEMBER_ACCESS) {
         ASTNode *object = ast_member_object(callee);
         const char *method_name = ast_member_name(callee);

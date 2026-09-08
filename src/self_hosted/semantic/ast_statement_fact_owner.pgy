@@ -41,6 +41,7 @@ func SemanticAstStatementKindTracked(kind: Int) -> Bool {
         kind == TypedAstKindWhileStmtTag() ||
         kind == TypedAstKindIfStmtTag() ||
         kind == TypedAstKindDeferStmtTag() ||
+        kind == TypedAstKindUnsafeBlockTag() ||
         kind == TypedAstKindBreakStmtTag() ||
         kind == TypedAstKindContinueStmtTag() ||
         kind == TypedAstKindMatchStmtTag() ||
@@ -52,6 +53,7 @@ func SemanticAstStatementKindTracked(kind: Int) -> Bool {
 func SemanticAstStatementKindCarriesPayload(kind: Int) -> Bool {
     return kind != TypedAstKindBareReturnStmtTag() &&
         kind != TypedAstKindDeferStmtTag() &&
+        kind != TypedAstKindUnsafeBlockTag() &&
         kind != TypedAstKindBreakStmtTag() &&
         kind != TypedAstKindContinueStmtTag() &&
         kind != TypedAstKindMatchDefaultStmtTag();
@@ -196,7 +198,7 @@ func SemanticAstStatementFactsFromArtifact(
             auxiliary = UnwrapOption(auxiliary_opt);
         }
         let body_scope_node_id: Int = -1;
-        if kind == TypedAstKindForStmtTag() {
+        if kind == TypedAstKindForStmtTag() || kind == TypedAstKindUnsafeBlockTag() {
             let candidate: Int = node_id + 1;
             let parent_opt: Option<Int> = TypedAstArenaParentId(
                 artifact.arena, candidate
@@ -205,7 +207,7 @@ func SemanticAstStatementFactsFromArtifact(
                 artifact.arena, candidate, TypedAstKindBlockTag()
             ) || !IsSome(parent_opt) || UnwrapOption(parent_opt) != node_id {
                 return SemanticAstStatementStructuralError(
-                    artifact, node_id, "for_body_scope"
+                    artifact, node_id, "statement_body_scope"
                 );
             }
             body_scope_node_id = candidate;
@@ -237,11 +239,11 @@ func SemanticAstStatementFactsFromArtifact(
         value_texts, auxiliary_texts
     );
 }
-func SemanticAstStatementCount(facts: SemanticAstStatementFacts) -> Int {
+func SemanticAstStatementCount(ref facts: SemanticAstStatementFacts) -> Int {
     return ArrayLength(facts.node_ids);
 }
 func SemanticAstStatementIndexForNode(
-    facts: SemanticAstStatementFacts,
+    ref facts: SemanticAstStatementFacts,
     node_id: Int
 ) -> Option<Int> {
     let count: Int = SemanticAstStatementCount(facts);

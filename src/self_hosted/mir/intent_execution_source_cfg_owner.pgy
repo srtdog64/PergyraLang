@@ -1,0 +1,273 @@
+// Admitted DIR transitions -> real typed-Intent MIR control flow.
+// The four legacy carrier/cleanup blocks are retained; only this execution
+// graph owns typed evaluations, payload definitions, completion and terminals.
+import "intent_phase_emission_owner.pgy";
+import "../dir/intent_fact_owner.pgy";
+
+func SelfMirIntentExecutionRoutineAppend(
+    build: SelfMirRoutineBuild, ref input: SelfMirRoutineInput,
+    ref intents: SelfDirIntentFacts, intent_index: Int
+) -> SelfMirRoutineBuild {
+    let start: Int = intents.step_starts[intent_index];
+    let count: Int = intents.step_counts[intent_index];
+    let terminal_start: Int = intents.transitions.terminal_starts[intent_index];
+    let terminal_count: Int = intents.transitions.terminal_counts[intent_index];
+    if !build.ok || ArrayLength(build.cfg.blocks.ids) != 4 || count <= 0 ||
+        terminal_count != count + 1 {
+        return SelfMirRoutineBuildError(build,
+            "typed Intent requires admitted transitions and its carrier spine");
+    }
+    let branch_blocks: Array<Int> = [];
+    let success_blocks: Array<Int> = [];
+    let failure_blocks: Array<Int> = [];
+    let terminal_blocks: Array<Int> = [];
+    let step_i: Int = 0;
+    while step_i < count {
+        let step: Int = start + step_i;
+        let name: String = intents.steps.names[step];
+        let block: Int = ArrayLength(build.cfg.blocks.ids);
+        ArrayPush(branch_blocks, block);
+        build = SelfMirRoutineAddBlock(build);
+        build = SelfMirRoutineAtBlock(build, block);
+        build = SelfMirIntentAddInstruction(build, "stmt", "IntentStep",
+            name, name, name, "", "AST_INTENT_STEP", SelfMirNoUses());
+        build = SelfMirIntentAddResultInstruction(build, "stmt",
+            "IntentOutcomeBinding", intents.steps.outcome_names[step],
+            ToString(intents.steps.target_declaration_node_ids[step]), name,
+            intents.steps.outcome_names[step], "", "AST_INTENT_STEP",
+            intents.steps.outcome_type_names[step], SelfMirNoUses());
+        build = SelfMirIntentAppendPhaseCarrier(build, input,
+            intents.steps.target_expression_node_ids[step], "on", name,
+            intents.steps.outcome_names[step],
+            intents.steps.outcome_type_names[step]);
+        if !build.ok { return build; }
+        let outcome_node: Int = intents.steps.target_expression_node_ids[step];
+        let outcome_graph: SemanticExpressionGraphView = SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces, outcome_node, AstExpressionLaneAtom());
+        let outcome_text: String = SelfMirIntentExpressionText(
+            input.analysis.expression_surfaces, outcome_node);
+        build = SelfMirIntentAddInstruction(build, "branch",
+            "IntentOutcomeBranch", intents.transitions.success_variant_names[step],
+            intents.transitions.failure_variant_names[step],
+            intents.steps.outcome_names[step], outcome_text,
+            SelfMirIntentExpressionSourceType(outcome_graph, outcome_text),
+            SelfMirExpressionGraphUses(build, outcome_graph));
+        build = SelfMirRoutineAttachLastExpressionGraph(
+            build, outcome_graph, input.machine_declaration);
+        if !build.ok { return build; }
+
+        block = ArrayLength(build.cfg.blocks.ids);
+        ArrayPush(success_blocks, block);
+        build = SelfMirRoutineAddBlock(build);
+        build = SelfMirRoutineAtBlock(build, block);
+        build = SelfMirIntentAddResultInstruction(build, "def",
+            "IntentSuccessPayload", intents.transitions.success_payload_names[step],
+            intents.transitions.success_variant_names[step],
+            intents.transitions.outcome_enum_names[step],
+            intents.transitions.success_payload_names[step], "", "",
+            intents.transitions.success_payload_type_names[step], SelfMirNoUses());
+        build = SelfMirIntentAddInstruction(build, "stmt",
+            "IntentStepCompleted", intents.transitions.success_variant_names[step],
+            name, name, "", "", SelfMirNoUses());
+
+        block = ArrayLength(build.cfg.blocks.ids);
+        ArrayPush(failure_blocks, block);
+        build = SelfMirRoutineAddBlock(build);
+        build = SelfMirRoutineAtBlock(build, block);
+        build = SelfMirIntentAddResultInstruction(build, "def",
+            "IntentFailurePayload", intents.transitions.failure_payload_names[step],
+            intents.transitions.failure_variant_names[step],
+            intents.transitions.outcome_enum_names[step],
+            intents.transitions.failure_payload_names[step], "", "",
+            intents.transitions.failure_payload_type_names[step], SelfMirNoUses());
+
+        // Compensation is a cold recipe. A failure unwinds completed
+        // predecessors; executing this block as an ordinary successor is wrong.
+        block = ArrayLength(build.cfg.blocks.ids);
+        build = SelfMirRoutineAddBlock(build);
+        build = SelfMirRoutineAtBlock(build, block);
+        ArraySet(build.cfg.blocks.reachable, block, 0);
+        let compensation_i: Int = 0;
+        while compensation_i < intents.steps.compensate_counts[step] {
+            let compensation: Int =
+                intents.steps.compensate_starts[step] + compensation_i;
+            build = SelfMirIntentAppendPhaseCarrier(build, input,
+                intents.steps.compensate_node_ids[compensation],
+                "compensate", name, "", "");
+            if !build.ok { return build; }
+            compensation_i = compensation_i + 1;
+        }
+        step_i = step_i + 1;
+    }
+    let terminal_i: Int = 0;
+    while terminal_i < terminal_count {
+        let terminal: Int = terminal_start + terminal_i;
+        let block: Int = ArrayLength(build.cfg.blocks.ids);
+        ArrayPush(terminal_blocks, block);
+        build = SelfMirRoutineAddBlock(build);
+        build = SelfMirRoutineAtBlock(build, block);
+        let expression_id: Int =
+            intents.transitions.terminal_expression_node_ids[terminal];
+        let graph: SemanticExpressionGraphView = SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces, expression_id,
+            AstExpressionLaneAtom());
+        let text: String = SelfMirIntentExpressionText(
+            input.analysis.expression_surfaces, expression_id);
+        if !graph.ok || text == "" {
+            return SelfMirRoutineBuildError(build,
+                "typed Intent terminal expression graph is missing");
+        }
+        build = SelfMirIntentAddResultInstruction(build, "return",
+            "IntentTerminalResult", Concat("intent.result.", ToString(expression_id)),
+            intents.transitions.terminal_variant_names[terminal],
+            intents.transitions.terminal_payload_source_names[terminal],
+            intents.transitions.terminal_source_step_names[terminal], text,
+            SelfMirIntentExpressionSourceType(graph, text),
+            intents.return_type_names[intent_index],
+            SelfMirExpressionGraphUses(build, graph));
+        build = SelfMirRoutineAttachLastExpressionGraph(
+            build, graph, input.machine_declaration);
+        if !build.ok { return build; }
+        terminal_i = terminal_i + 1;
+    }
+    let root: Int = -1;
+    step_i = 0;
+    while step_i < count {
+        let step: Int = start + step_i;
+        if intents.transitions.predecessor_step_indices[step] < 0 {
+            if root >= 0 {
+                return SelfMirRoutineBuildError(build,
+                    "typed Intent has multiple root transitions");
+            }
+            root = branch_blocks[step_i];
+        }
+        let success_target: Int = -1;
+        let failure_target: Int = -1;
+        let child_i: Int = 0;
+        while child_i < count {
+            if intents.transitions.predecessor_step_node_ids[start + child_i] ==
+                intents.steps.node_ids[step] {
+                if success_target >= 0 {
+                    return SelfMirRoutineBuildError(build,
+                        "typed Intent predecessor has multiple successors");
+                }
+                success_target = branch_blocks[child_i];
+            }
+            child_i = child_i + 1;
+        }
+        terminal_i = 0;
+        while terminal_i < terminal_count {
+            let terminal: Int = terminal_start + terminal_i;
+            if intents.transitions.terminal_source_step_node_ids[terminal] ==
+                intents.steps.node_ids[step] {
+                if intents.transitions.terminal_roles[terminal] == "success" {
+                    if success_target >= 0 {
+                        return SelfMirRoutineBuildError(build,
+                            "typed Intent success target is ambiguous");
+                    }
+                    success_target = terminal_blocks[terminal_i];
+                } else if intents.transitions.terminal_roles[terminal] == "failure" {
+                    if failure_target >= 0 {
+                        return SelfMirRoutineBuildError(build,
+                            "typed Intent failure target is ambiguous");
+                    }
+                    failure_target = terminal_blocks[terminal_i];
+                }
+            }
+            terminal_i = terminal_i + 1;
+        }
+        if success_target < 0 || failure_target < 0 {
+            return SelfMirRoutineBuildError(build,
+                "typed Intent successor evidence is missing");
+        }
+        build = SelfMirRoutineSetSuccessors(build, branch_blocks[step_i],
+            success_blocks[step_i], failure_blocks[step_i]);
+        build = SelfMirRoutineSetSuccessors(build, success_blocks[step_i],
+            success_target, -1);
+        build = SelfMirRoutineSetSuccessors(build, failure_blocks[step_i],
+            failure_target, -1);
+        step_i = step_i + 1;
+    }
+    if root < 0 {
+        return SelfMirRoutineBuildError(build, "typed Intent root is missing");
+    }
+    return SelfMirRoutineSetSuccessors(build, 0, root, -1);
+}
+
+func SelfMirIntentExecutionRollbackAppend(
+    build: SelfMirRoutineBuild, ref input: SelfMirRoutineInput,
+    ref intents: SelfDirIntentFacts, intent_index: Int
+) -> SelfMirRoutineBuild {
+    if !build.ok || !intents.ok || intent_index < 0 || intent_index >= ArrayLength(intents.names) ||
+        intents.result_modes[intent_index] != "typed_enum" {
+        return SelfMirRoutineBuildError(build, "typed Intent rollback requires an admitted purpose");
+    }
+    let step_start: Int = intents.step_starts[intent_index];
+    let step_count: Int = intents.step_counts[intent_index];
+    // The cold execution recipe and rollback obligation refer to the same
+    // admitted action identity; the backend must not invent this edge.
+    let rollback_step: Int = 0;
+    while rollback_step < step_count {
+        let step: Int = step_start + rollback_step;
+        let compensation: Int = intents.steps.compensate_starts[step];
+        let compensation_end: Int = compensation + intents.steps.compensate_counts[step];
+        if compensation < 0 || compensation_end > ArrayLength(intents.steps.compensate_node_ids) {
+            return SelfMirRoutineBuildError(build, "typed Intent rollback range is invalid");
+        }
+        while compensation < compensation_end {
+            let graph: SemanticExpressionGraphView = SemanticAstExpressionGraphForNode(
+                input.analysis.expression_surfaces, intents.steps.compensate_node_ids[compensation], AstExpressionLaneAtom());
+            let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(graph.graph, graph.root_id);
+            if !graph.ok || !IsSome(target) {
+                return SelfMirRoutineBuildError(build, "typed Intent rollback action identity is missing");
+            }
+            let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(input.analysis.signatures, UnwrapOption(target));
+            if !IsSome(signature) {
+                return SelfMirRoutineBuildError(build, "typed Intent rollback action signature is missing");
+            }
+            let signature_row: Int = UnwrapOption(signature);
+            if input.analysis.signatures.names[signature_row] == "" ||
+                input.analysis.signatures.owner_names[signature_row] == "" ||
+                !input.analysis.signatures.runtime_callables[signature_row] ||
+                input.analysis.signatures.return_types[signature_row] != "Void" {
+                return SelfMirRoutineBuildError(build, "typed Intent rollback action signature is invalid");
+            }
+            build = SelfMirIntentAddInstruction(build, "cleanup", "CompensateIntentStep",
+                intents.steps.names[step], input.analysis.signatures.names[signature_row],
+                intents.steps.names[step], "", "AST_INTENT_STEP", SelfMirNoUses());
+            if !build.ok { return build; }
+            compensation = compensation + 1;
+        }
+        rollback_step = rollback_step + 1;
+    }
+    return build;
+}
+
+// Attach roles where the producer finishes composing carrier, cleanup and
+// typed execution blocks. Consumers never recreate these roles from offsets.
+func SelfMirIntentRoutineFinalizeCfg(
+    build: SelfMirRoutineBuild, ref input: SelfMirRoutineInput,
+    ref intents: SelfDirIntentFacts, intent_index: Int,
+    entry_block: Int, cleanup_block: Int, rollback_block: Int, invalidation_block: Int
+) -> SelfMirRoutineBuild {
+    let execution_start: Int = ArrayLength(build.cfg.blocks.ids);
+    if intents.result_modes[intent_index] == "typed_enum" {
+        build = SelfMirIntentExecutionRoutineAppend(
+            build, input, intents, intent_index
+        );
+    }
+    if !build.ok { return build; }
+    let roles: Array<String> = build.cfg.blocks.intent_roles;
+    let block: Int = 0;
+    while block < ArrayLength(roles) {
+        let block_role: String = "body";
+        if block == entry_block { block_role = "entry"; }
+        else if block == cleanup_block { block_role = "cleanup"; }
+        else if block == rollback_block { block_role = "rollback"; }
+        else if block == invalidation_block { block_role = "invalidation"; }
+        else if block >= execution_start { block_role = "execution"; }
+        ArraySet(roles, block, block_role);
+        block = block + 1;
+    }
+    return build;
+}

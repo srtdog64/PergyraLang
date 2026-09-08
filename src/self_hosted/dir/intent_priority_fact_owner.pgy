@@ -195,7 +195,7 @@ func SelfDirIntentPriorityFactsFromArtifact(
 func SelfDirIntentPriorityFactsReady(
     artifact: AstTreeArtifact,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
-    intent_node_ids: Array<Int>,
+    ref intent_node_ids: Array<Int>,
     ref facts: SelfDirIntentPriorityFacts
 ) -> Bool {
     if !facts.ok || facts.diagnostic_message != "" ||

@@ -1,0 +1,11 @@
+// A body-local type must be instantiated, not only the function signature.
+func Keep<T>(value: T) -> T {
+    let copy: T = value;
+    return copy;
+}
+
+func Main() -> Void {
+    Log(ToString(Keep<Int>(7)));
+    Log(Keep<String>("local"));
+    Log(ToString(Keep<Bool>(true)));
+}

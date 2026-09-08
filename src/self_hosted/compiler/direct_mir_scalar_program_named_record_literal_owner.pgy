@@ -1,0 +1,142 @@
+// A single graph-local projection from named fields to the existing record
+// constructor operands. Source evaluation order and declaration field identity
+// survive; no source text, whole-program scan or literal-only backend route.
+import "direct_mir_scalar_program_logical_record_expression_owner.pgy";
+
+struct DirectMirScalarProgramNamedRecordLiterals {
+    let valid: Bool;
+    let roles: Array<Int>;
+    let seeds: Array<Int>;
+    let records: Array<Int>;
+    let starts: Array<Int>;
+    let value_sources: Array<Int>;
+}
+
+func DirectMirScalarProgramNamedRecordLiteralsFromGraph(
+    ref sequence: MirExpressionGraphSequence,
+    ref records: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramNamedRecordLiterals {
+    let empty: Array<Int> = [];
+    let invalid: DirectMirScalarProgramNamedRecordLiterals =
+        DirectMirScalarProgramNamedRecordLiterals(false, empty, empty, empty, empty, empty);
+    if !sequence.ok { return invalid; }
+    let count: Int = sequence.ready_node_count;
+    let candidate: Bool = false; let scan: Int = 0;
+    while scan < count {
+        let kind: Int = sequence.arena.topology.node_kinds[scan];
+        if kind == AstExpressionNodeStructLiteral() || kind == AstExpressionNodeStructField() ||
+            kind == AstExpressionNodeStructFieldBinding() || kind == AstExpressionNodeStructFieldName() {
+            candidate = true; break;
+        }
+        scan = scan + 1;
+    }
+    if !candidate {
+        return DirectMirScalarProgramNamedRecordLiterals(true, empty, empty, empty, empty, empty);
+    }
+    let roles: Array<Int> = []; let seeds: Array<Int> = [];
+    let record_rows: Array<Int> = []; let starts: Array<Int> = [];
+    let values: Array<Int> = []; let consumed: Array<Bool> = [];
+    let node: Int = 0;
+    while node < count {
+        ArrayPush(roles, 0); ArrayPush(seeds, -1);
+        ArrayPush(record_rows, -1); ArrayPush(starts, -1);
+        ArrayPush(consumed, false); node = node + 1;
+    }
+    node = 0;
+    while node < count {
+        let kind: Int = sequence.arena.topology.node_kinds[node];
+        let left: Int = sequence.arena.topology.left_children[node];
+        let right: Int = sequence.arena.topology.right_children[node];
+        if kind == AstExpressionNodeStructLiteral() {
+            if left < 0 || left >= node || right != 0 || consumed[left] ||
+                sequence.arena.topology.node_kinds[left] != AstExpressionNodeLeaf() {
+                return invalid;
+            }
+            let record: Int = DirectMirScalarProgramLogicalRecordRow(
+                records, sequence.arena.node_texts[left]);
+            if record < 0 || records.field_counts[record] < 1 { return invalid; }
+            roles[left] = 1; roles[node] = 2; consumed[left] = true;
+            seeds[node] = node; record_rows[node] = record; starts[node] = ArrayLength(values);
+            let ordinal: Int = 0;
+            while ordinal < records.field_counts[record] {
+                ArrayPush(values, -1); ordinal = ordinal + 1;
+            }
+        } else if kind == AstExpressionNodeStructFieldName() {
+            if left != 0 || right != 0 { return invalid; }
+            roles[node] = 1;
+        } else if kind == AstExpressionNodeStructFieldBinding() {
+            if left < 0 || left >= node || right < 0 || right >= node ||
+                consumed[left] || sequence.arena.topology.node_kinds[left] !=
+                    AstExpressionNodeStructFieldName() { return invalid; }
+            roles[node] = 1; consumed[left] = true;
+        } else if kind == AstExpressionNodeStructField() {
+            if left < 0 || left >= node || right < 0 || right >= node ||
+                seeds[left] < 0 || consumed[left] || consumed[right] ||
+                sequence.arena.topology.node_kinds[right] !=
+                    AstExpressionNodeStructFieldBinding() { return invalid; }
+            let seed: Int = seeds[left]; let record: Int = record_rows[seed];
+            let name: Int = sequence.arena.topology.left_children[right];
+            let value: Int = sequence.arena.topology.right_children[right];
+            let ordinal: Int = DirectMirScalarProgramLogicalRecordFieldOrdinal(
+                records, records.names[record], sequence.arena.node_texts[name]);
+            if ordinal < 0 || values[starts[seed] + ordinal] >= 0 { return invalid; }
+            values[starts[seed] + ordinal] = value;
+            consumed[left] = true; consumed[right] = true;
+            roles[left] = 1; roles[node] = 2; seeds[node] = seed;
+        }
+        node = node + 1;
+    }
+    node = 0;
+    while node < count {
+        let kind: Int = sequence.arena.topology.node_kinds[node];
+        if (kind == AstExpressionNodeStructFieldName() ||
+            kind == AstExpressionNodeStructFieldBinding()) && !consumed[node] {
+            return invalid;
+        }
+        if roles[node] != 0 &&
+            (sequence.arena.call_target_kinds[node] != SemanticCallTargetNone() ||
+             sequence.arena.call_target_names[node] != "" ||
+             sequence.arena.identities.call_target_syntax_ids[node] != 0 ||
+             sequence.arena.identities.binding_syntax_ids[node] != 0 ||
+             sequence.arena.identities.binding_kinds[node] != SemanticExpressionBindingNone()) {
+            return invalid;
+        }
+        node = node + 1;
+    }
+    node = 0;
+    while node < ArrayLength(values) {
+        if values[node] < 0 { return invalid; }
+        node = node + 1;
+    }
+    return DirectMirScalarProgramNamedRecordLiterals(true, roles, seeds, record_rows, starts, values);
+}
+
+func DirectMirScalarProgramNamedRecordConstructorFromPlan(
+    ref plan: DirectMirScalarProgramNamedRecordLiterals, node: Int,
+    source_rows: Array<Int>, normalized_types: Array<String>,
+    ref records: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramLogicalRecordExpressionFact {
+    let missing: DirectMirScalarProgramLogicalRecordExpressionFact =
+        DirectMirScalarProgramLogicalRecordExpressionMissing();
+    if !plan.valid || node < 0 || node >= ArrayLength(plan.roles) || plan.roles[node] != 2 {
+        return missing;
+    }
+    let seed: Int = plan.seeds[node]; let record: Int = plan.records[seed];
+    let arguments: Array<Int> = []; let ordinal: Int = 0;
+    while ordinal < records.field_counts[record] {
+        let source: Int = plan.value_sources[plan.starts[seed] + ordinal];
+        if source < 0 || source >= ArrayLength(source_rows) || source_rows[source] < 0 {
+            return DirectMirScalarProgramLogicalRecordExpressionFact(
+                true, false, false, 0, "", arguments, -1, -1, -1);
+        }
+        let row: Int = source_rows[source];
+        if normalized_types[row] != records.field_types[records.field_starts[record] + ordinal] {
+            return DirectMirScalarProgramLogicalRecordExpressionFact(
+                true, false, false, 0, "", arguments, -1, -1, -1);
+        }
+        ArrayPush(arguments, row); ordinal = ordinal + 1;
+    }
+    return DirectMirScalarProgramLogicalRecordExpressionFact(
+        true, true, true, DirectMirScalarProgramExprLogicalRecordConstructor(),
+        records.names[record], arguments, -1, -1, -1);
+}

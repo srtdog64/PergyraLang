@@ -18,6 +18,7 @@
 #include "transpiler_mir_resource_hook_emit.h"
 #include "transpiler_mir_signature.h"
 #include "transpiler_mir_ssa_local_facts.h"
+#include "transpiler_mir_phi_type_owner.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_mir_ssa_utils.h"
@@ -128,6 +129,11 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         }
     }
 
+    TranspilerMIRPhiType phi_types[4096];
+    if (!transpiler_mir_phi_types_from_incomings(ctx, mir_routine,
+            declared_versioned_names, declared_versioned_count, phi_types))
+        return false;
+
     for (size_t i = 0; i < declared_versioned_count; i++) {
         const char *versioned_name = declared_versioned_names[i];
         char base[128];
@@ -152,6 +158,37 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                                                 &version)) {
             continue;
         }
+        if (version == 0
+            && transpiler_mir_ssa_local_routine_has_param_name(mir_routine, base)) {
+            c_name = transpiler_make_c_ssa_name(ctx, versioned_name);
+            if (c_name != NULL && strcmp(c_name, base) == 0) {
+                TypedVarEntry *parameter = lookup_typed_entry(ctx, base);
+                if (parameter == NULL || parameter->type_name[0] == '\0'
+                    || strcmp(parameter->type_name, "Unknown") == 0) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR value-result entry '%s' requires its parameter storage fact",
+                        versioned_name);
+                    free(c_name);
+                    return false;
+                }
+                /* Formal storage owns both type and physical carriage. Do not
+                 * reconstruct it from a same-spelled source-local inventory. */
+                TypedVarEntry storage = *parameter;
+                register_typed_var(ctx, versioned_name, storage.type_name);
+                TypedVarEntry *entry = lookup_typed_entry(ctx, versioned_name);
+                if (entry == NULL) {
+                    free(c_name);
+                    return false;
+                }
+                *entry = storage;
+                pergyra_str_copy(entry->name, sizeof(entry->name), versioned_name);
+                pergyra_str_copy(entry->ssa_name, sizeof(entry->ssa_name), versioned_name);
+                free(c_name);
+                continue;
+            }
+            free(c_name);
+            c_name = NULL;
+        }
         /* A versioned SSA local (base.N with N > 0) is always a function-
          * local introduced by let-decl or assignment LHS and must get a
          * declaration here, even when the host class declares a field of
@@ -162,8 +199,15 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
          * to `self->base`. */
         if (version == 0 && transpiler_is_implicit_field(ctx, base))
             continue;
-        owned_type_name = transpiler_mir_ssa_local_find_versioned_type_name(
-            ctx, node, mir_routine, versioned_name);
+        if (phi_types[i].is_phi) {
+            owned_type_name = pergyra_strdup(phi_types[i].type_name);
+            if (owned_type_name == NULL) {
+                transpiler_set_backend_error(ctx, "C phi type projection allocation failed");
+                return false;
+            }
+        } else
+            owned_type_name = transpiler_mir_ssa_local_find_versioned_type_name(
+                ctx, node, mir_routine, versioned_name);
         type_name = owned_type_name;
         if (type_name == NULL || strcmp(type_name, "Unknown") == 0)
             type_name = transpiler_find_local_type_name(ctx, node, base);
@@ -258,11 +302,11 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                 transpiler_mir_ssa_local_routine_has_destructure_binding(
                     mir_routine, base);
         }
+        c_name = transpiler_render_ssa_name(ctx, versioned_name);
         register_typed_var(ctx, versioned_name, type_name);
         if (version == 0 && (has_param_fact || has_source_local_fact))
             transpiler_mir_ssa_local_register_base_type_fact(ctx,
                 mir_routine, versioned_name, base, type_name);
-        c_name = transpiler_render_ssa_name(ctx, versioned_name);
         write_indent(ctx);
         if (version == 0) {
             bool has_entry_local = false;

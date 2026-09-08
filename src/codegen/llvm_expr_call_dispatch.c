@@ -54,6 +54,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         return llvm_call_error_recovery(ctx, node,
             "LLVM call expression requires an identifier or member callee");
 
+    /* A local value owns the target even when its name is a builtin or a
+     * global function. Missing callable facts must not reopen that route. */
+    if (ast_call_semantic_callee_value_binding_id(node) != 0)
+        return llvm_emit_callable_variable_call(node, ctx, callee_name);
+
     LLVMCallInlineOp inline_op = llvm_call_inline_lookup(callee_name, argc);
 
     if (inline_op == LLVM_CALL_INLINE_OP_CLONE)
@@ -200,6 +205,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     unsigned emitted_argc = 0;
     LLVMValueRef *args = NULL;
     LLVMFuncEntry *predeclared_func = NULL;
+    LLVMValueRef predeclared_value = NULL;
+    const MIRRoutine *bound_generic_routine = NULL;
     const MIRRoutine *intent_routine = NULL;
     IntentBindingMetadataView binding_metadata = {0};
     size_t mir_binding_count = 0;
@@ -267,10 +274,14 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    if (decl != NULL)
-        args = llvm_build_boundary_call_args(ctx, decl, call_args,
+    predeclared_func = llvm_resolve_callee_entry(ctx, node, callee_name,
+        &bound_generic_routine);
+    if (ctx->has_error) goto cleanup;
+    if (predeclared_func != NULL) predeclared_value = predeclared_func->fn;
+    if (decl != NULL || bound_generic_routine != NULL)
+        args = llvm_build_boundary_call_args(ctx, decl, bound_generic_routine, call_args,
             argc, &emitted_argc);
-    if (args == NULL && decl != NULL && ctx->has_error) {
+    if (args == NULL && (decl != NULL || bound_generic_routine != NULL) && ctx->has_error) {
         result = llvm_call_error_recovery(ctx, node,
             "LLVM boundary call argument lowering failed");
         goto cleanup;
@@ -415,8 +426,6 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             emitted_argc = (unsigned)argc;
         }
     }
-    if (args == NULL && decl == NULL && intent_decl == NULL)
-        predeclared_func = llvm_lookup_function(ctx, callee_name);
     if (args == NULL) {
         args = pgy_arena_calloc(&ctx->scratch,
             (argc > 0 ? argc : 1) * sizeof(LLVMValueRef));
@@ -442,10 +451,10 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     i + 1);
                 goto cleanup;
             }
-            if (predeclared_func != NULL
-                && i < LLVMCountParams(predeclared_func->fn)) {
+            if (predeclared_value != NULL
+                && i < LLVMCountParams(predeclared_value)) {
                 expected_ty = LLVMTypeOf(
-                    LLVMGetParam(predeclared_func->fn, (unsigned)i));
+                    LLVMGetParam(predeclared_value, (unsigned)i));
             }
             if (expected_ty != NULL
                 && LLVMGetTypeKind(expected_ty) == LLVMStructTypeKind) {
@@ -463,7 +472,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     const MIRRoutine *callee_routine = NULL;
-    LLVMFuncEntry *func = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
+    LLVMFuncEntry *func = predeclared_value != NULL
+        ? llvm_lookup_function(ctx, LLVMGetValueName(predeclared_value))
+        : llvm_lookup_function(ctx, callee_name);
     if (func == NULL && decl != NULL && decl->type == AST_FUNC_DECL) {
         if (llvm_active_has_mir(ctx)
             && !decl_is_generic_func
@@ -613,15 +624,6 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
     if (func == NULL) {
-        LLVMValueRef callable_result = llvm_emit_callable_variable_call(
-            node, ctx, callee_name, args, emitted_argc);
-        if (ctx->has_error)
-            goto cleanup;
-        if (callable_result != NULL) {
-            result = callable_result;
-            goto cleanup;
-        }
-
         if (ctx != NULL && !ctx->has_error) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -633,7 +635,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         goto cleanup;
     }
 
-    for (size_t i = 0; decl == NULL && i < argc; i++) {
+    for (size_t i = 0; decl == NULL && bound_generic_routine == NULL && i < argc; i++) {
         ASTNode *arg_node = ast_call_argument(node, i);
         unsigned param_count = LLVMCountParams(func->fn);
         LLVMTypeRef param_ty = (i < param_count)

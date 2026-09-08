@@ -1,0 +1,3 @@
+import "generic_bound_support.pgy";
+func InspectCard<T>(value: T) -> Int where T: Card { return value.value; }
+func Main() -> Void { Log(InspectCard(Partial(7))); }

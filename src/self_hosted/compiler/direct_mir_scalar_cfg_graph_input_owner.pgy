@@ -22,7 +22,7 @@ func DirectMirScalarCfgGraphInputFromAdmittedForOwner(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     routine_row: Int,
     ref producer: DirectMirArrayIntProducerFact,
-    program_expression_owner: Bool
+    program_expression_owner: Bool, ref parameter_names: Array<String>
 ) -> DirectMirScalarCfgGraphInput {
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
         admitted.routines, routine_row
@@ -31,7 +31,7 @@ func DirectMirScalarCfgGraphInputFromAdmittedForOwner(
     let use_facts: MirRoutineInstructionUseFacts =
         BuildMirRoutineInstructionUseFacts(admitted.routines, routine_row);
     let wire: DirectMirScalarCfgWireLocalRefs =
-        DirectMirScalarCfgWireLocalRefsFromOwners(admitted, index);
+        DirectMirScalarCfgWireLocalRefsFromOwners(admitted, index, parameter_names);
     if !wire.valid { Die("direct MIR scalar CFG LocalRef plan is invalid"); }
     let foreach_admission: DirectMirScalarCfgForEachAdmission =
         DirectMirScalarCfgForEachFactsFromOwners(
@@ -97,17 +97,17 @@ func DirectMirScalarCfgGraphInputFromAdmittedForOwner(
 func DirectMirScalarCfgGraphInputFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     routine_row: Int,
-    ref producer: DirectMirArrayIntProducerFact
+    ref producer: DirectMirArrayIntProducerFact, ref parameter_names: Array<String>
 ) -> DirectMirScalarCfgGraphInput {
     return DirectMirScalarCfgGraphInputFromAdmittedForOwner(
-        admitted, routine_row, producer, false);
+        admitted, routine_row, producer, false, parameter_names);
 }
 
 func DirectMirScalarCfgProgramGraphInputFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     routine_row: Int,
-    ref producer: DirectMirArrayIntProducerFact
+    ref producer: DirectMirArrayIntProducerFact, ref parameter_names: Array<String>
 ) -> DirectMirScalarCfgGraphInput {
     return DirectMirScalarCfgGraphInputFromAdmittedForOwner(
-        admitted, routine_row, producer, true);
+        admitted, routine_row, producer, true, parameter_names);
 }

@@ -34,7 +34,6 @@ func DirectMirScalarProgramCallableRouteEnvelopeAssessmentReady(
 }
 func DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(
     ref signature: DirectMirRoutineSignatureFact,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
@@ -84,7 +83,7 @@ func DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(
         !readonly_record_array_bool_return &&
         !DirectMirScalarProgramVoidLogicalRecordArrayStringValueResultSignatureReady(signature, logical_record) &&
         !DirectMirScalarProgramCallableReturnTypeSupportedWithReferencedEnum(
-            signature.return_type, nominal, logical_record,
+            signature.return_type, logical_record,
             referenced_enum) {
         return DirectMirScalarProgramCallableRouteEnvelopeAssessment(
             true, false, "return-type", -1, signature.return_type, "");
@@ -92,7 +91,7 @@ func DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(
     let ordinal: Int = 0;
     while ordinal < signature.param_count {
         if !DirectMirScalarProgramCallableParameterSupportedWithReferencedEnum(
-                signature, ordinal, nominal, logical_record,
+                signature, ordinal, logical_record,
                 payload_free_enum, referenced_enum) {
             return DirectMirScalarProgramCallableRouteEnvelopeAssessment(
                 true, false, "parameter-type-or-carriage", ordinal,
@@ -106,19 +105,17 @@ func DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(
 }
 func DirectMirScalarProgramCallableRouteEnvelopeAssess(
     ref signature: DirectMirRoutineSignatureFact,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> DirectMirScalarProgramCallableRouteEnvelopeAssessment {
     let referenced_enum: DirectMirScalarProgramReferencedEnumFact =
         DirectMirScalarProgramReferencedEnumFactCanonicalEmpty();
     return DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(
-        signature, nominal, logical_record, payload_free_enum,
+        signature, logical_record, payload_free_enum,
         referenced_enum);
 }
 func DirectMirScalarProgramCallableRouteEnvelopeSupported(
-    ref signature: DirectMirRoutineSignatureFact,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
+    ref signature: DirectMirRoutineSignatureFact
 ) -> Bool {
     let logical_record: DirectMirScalarProgramLogicalRecordFact =
         DirectMirScalarProgramLogicalRecordFactCanonicalEmpty();
@@ -126,7 +123,7 @@ func DirectMirScalarProgramCallableRouteEnvelopeSupported(
         DirectMirScalarProgramPayloadFreeEnumFactCanonicalEmpty();
     let assessment: DirectMirScalarProgramCallableRouteEnvelopeAssessment =
         DirectMirScalarProgramCallableRouteEnvelopeAssess(
-            signature, nominal, logical_record, payload_free_enum);
+            signature, logical_record, payload_free_enum);
     return DirectMirScalarProgramCallableRouteEnvelopeAssessmentReady(
             assessment) && assessment.supported;
 }

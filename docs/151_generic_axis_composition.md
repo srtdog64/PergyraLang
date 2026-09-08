@@ -367,8 +367,8 @@ status ∈ {planned, landed}. landed = artifact와 gate 실존, planned =
 | rung | cell | status | artifact | gate |
 | --- | --- | --- | --- | --- |
 | G-1 | return-position + body-local constructed-over-T, C==LLVM run-parity | landed | src/codegen/transpiler_specialization_registry.c | tests/generic_nested_failclosed_smoke.sh |
-| G-2 | param-position constructed-over-T, **C-측**: 구조 매칭 + 단일화(불일치=정적 거절) + 미바인딩 진단 + default-arg 바인딩 | landed | src/codegen/transpiler_generic_binding_query.c | tests/generic_falsification_smoke.sh |
-| G-2L | LLVM 인자 타입 metadata 군집: constructed param + subject-타입 인자 + default-arg 바인딩 (현행 전부 fail-closed 거절로 잠김) | planned | - | - |
+| G-2 | param-position constructed-over-T, **C-측**: MIR이 확정한 explicit/inferred/default actual 바인딩 소비; 누락·다른 호출 identity 거절 | landed | src/codegen/transpiler_generic_binding_query.c | tests/generic_falsification_smoke.sh |
+| G-2L | LLVM 잔여 constructed/aggregate 인자 ABI와 default-arg 조합 전체; scalar 및 단순 subject-bound 실행 증거와 구분 | planned | - | - |
 | G-3 | 중첩·다중 파라미터 (Option<Option<T>>, Result<T,E> 양-파라미터, List<T> 요소) | planned | - | - |
 | G-4 | generic × 축 합성 셀 개방 (§5 표의 Slot/Channel 행 — Decision-0 carriage 규칙 적용) | planned | - | - |
 | G-5 | class-generic × constructed-field/method 개방 (LLVM aggregate lowering) | planned | - | - |
@@ -382,8 +382,18 @@ status ∈ {planned, landed}. landed = artifact와 gate 실존, planned =
 - **G-2 실측(2026-07-04)**: C param은 구조 매칭으로 실행
   (`nested_param` = 1), 단일화·미바인딩·default type arg는
   `generic-falsification-test-smoke`가 진단/실행 목소리를 잠근다. LLVM은
-  `requires concrete argument` 계열로 거절 유지 — G-2L이 닫기 전까지 이
-  비대칭은 의도된 상태다.
+  당시에는 `requires concrete argument` 계열로 거절했다. 이 문단은 당시
+  측정이며 현재의 모든 LLVM generic 호출을 거절 계약으로 삼지 않는다.
+- **현재 소유권 정정(2026-09-08)**: C 백엔드의 AST 인자 재추론은
+  삭제됐다. `transpiler_generic_call_bindings_from_mir`가 호출·선언
+  identity에 묶인 MIR actual을 소비하며, 공개 C와 direct-MIR LLVM은
+  `generic_instance_closure_owner.pgy`의 동일한 특수화 closure를 쓴다.
+  scalar 전달·재귀와 단순 subject-bound의 네 경로 실행은 각각
+  `tests/concept_semantics/generic_instantiation_execution.sh`와
+  `tests/concept_semantics/generic_bound_admission.sh`가 검사한다.
+  이 국소 실행 증거는 `Option<subject>`를 비롯한 잔여 aggregate ABI나
+  G-2L 전체의 닫힘을 뜻하지 않는다. 제약·필드 읽기의 MIR 왕복도 같은
+  실행 게이트에서 확인하며, LLVM 검증기 오류를 의미론적 거절로 세지 않는다.
 - G-4 전 금지: §5의 Slot/Channel 행 개방은 Decision-0의 carriage 규칙
   (positional 기본)에 따라 **생성자 경계 검사**로 설계한다 — 값 태깅
   으로의 표류 금지.

@@ -18,7 +18,6 @@ func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet,
     node: Int, result: String, left: String,
     arguments: Array<String>, argument_types: Array<String>,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
@@ -127,7 +126,7 @@ func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
         while parameter < ArrayLength(arguments) {
             let llvm_type: String =
                 DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
-                    argument_types[parameter], nominal, logical_record,
+                    argument_types[parameter], logical_record,
                     payload_free_enum, referenced_enum);
             if llvm_type == "" {
                 return DirectMirScalarProgramLlvmPayloadEnumExpression(
@@ -206,7 +205,7 @@ func DirectMirScalarProgramLlvmPayloadEnumExpressionAt(
             let field_type: String = DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
                 referenced_enum.variant_param_types[
                     referenced_enum.variant_param_type_starts[variant] + parameter],
-                nominal, logical_record, payload_free_enum, referenced_enum);
+                logical_record, payload_free_enum, referenced_enum);
             if field_type == "" {
                 return DirectMirScalarProgramLlvmPayloadEnumExpression(
                     true, false, "", "");

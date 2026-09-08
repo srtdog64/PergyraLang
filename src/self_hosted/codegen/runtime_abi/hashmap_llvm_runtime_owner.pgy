@@ -1,0 +1,70 @@
+// Raw HashMap runtime boundary. Keys use the checked native key ABI projection;
+// Int scalar values cross i64/i32 here, never by reinterpreting storage.
+import "hashmap_key_abi_projection_owner.pgy";
+import "../text/text_owner.pgy";
+import "../../semantic/ast_type_name_canonical_owner.pgy";
+
+struct CollectionHashMapLlvmFact {
+    ok: Bool;
+    type_name: String;
+    key_type: String;
+    value_type: String;
+    key_infix: String;
+    key_llvm_type: String;
+    value_llvm_type: String;
+    value_storage_type: String;
+}
+func CollectionHashMapLlvmFactFromTypeName(type_name: String) -> CollectionHashMapLlvmFact {
+    let missing: CollectionHashMapLlvmFact = CollectionHashMapLlvmFact(false, "", "", "", "", "", "", "");
+    let shape: SemanticConstructedTypeNameFact = SemanticConstructedTypeNameFactFrom(type_name);
+    if !shape.ok || shape.nominal_base_name != "HashMap" ||
+        ArrayLength(shape.actual_type_names) != 2 { return missing; }
+    let infix: Option<String> = CollectionHashMapKeyCInfix(shape.actual_type_names[0]);
+    if !IsSome(infix) { return missing; }
+    let key: String = shape.actual_type_names[0];
+    let value: String = shape.actual_type_names[1];
+    let key_abi: Option<String> = CollectionHashMapKeyLlvmType(key);
+    if !IsSome(key_abi) { return missing; }
+    let key_llvm: String = UnwrapOption(key_abi); let value_llvm: String = ""; let storage: String = "";
+    if value == "Int" { value_llvm = "i64"; storage = "i32"; }
+    if value == "Long" { value_llvm = "i64"; storage = "i64"; }
+    if value == "Bool" { value_llvm = "i1"; storage = "i1"; }
+    if value == "String" { value_llvm = "ptr"; storage = "ptr"; }
+    if key_llvm == "" || storage == "" { return missing; }
+    return CollectionHashMapLlvmFact(true, shape.canonical_name, key, value,
+        UnwrapOption(infix), key_llvm, value_llvm, storage);
+}
+func CollectionHashMapLlvmStorageType() -> String {
+    return CollectionHashMapRawLlvmStorageType();
+}
+func CollectionHashMapLlvmFunction(fact: CollectionHashMapLlvmFact, operation: String) -> String {
+    if !fact.ok { Die("HashMap raw runtime ABI fact is missing"); }
+    if operation == "MapNew" { return "pgy_map_new_raw_export"; }
+    if operation == "MapSize" { return "pgy_map_size_raw_export"; }
+    let word: String = "";
+    if operation == "MapSet" { word = "set"; }
+    if operation == "MapGet" { word = "get"; }
+    if operation == "MapHas" { word = "has"; }
+    if operation == "MapRemove" { word = "remove"; }
+    if operation == "MapKeys" { word = "keys"; }
+    if word == "" { Die("HashMap raw runtime operation is missing"); }
+    if fact.value_type == "String" &&
+        (operation == "MapSet" || operation == "MapGet" || operation == "MapRemove") {
+        word = word + "_string_value";
+    }
+    return "pgy_map_" + word + "_raw" + fact.key_infix + "_export";
+}
+func CollectionHashMapLlvmDeclaration(fact: CollectionHashMapLlvmFact, operation: String) -> String {
+    let name: String = CollectionHashMapLlvmFunction(fact, operation);
+    if operation == "MapNew" { return "declare void @" + name + "(ptr, i64)\n"; }
+    if operation == "MapSize" { return "declare i32 @" + name + "(ptr)\n"; }
+    if operation == "MapKeys" { return "declare void @" + name + "(ptr, ptr)\n"; }
+    let result: String = "void"; let parameters: String = "ptr, " + fact.key_llvm_type;
+    if operation == "MapHas" { result = "i1"; }
+    if operation == "MapGet" || operation == "MapSet" {
+        parameters = parameters + ", ptr";
+        if fact.value_type != "String" { parameters = parameters + ", i64"; }
+    }
+    if operation == "MapRemove" && fact.value_type != "String" { parameters = parameters + ", i64"; }
+    return "declare " + result + " @" + name + "(" + parameters + ")\n";
+}

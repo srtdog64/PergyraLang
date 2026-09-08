@@ -6,17 +6,17 @@ import "enum_declaration_verify_owner.pgy";
 import "../lib/callable_contract_vocabulary_projection_owner.pgy";
 import "../lib/nominal_field_kind_owner.pgy";
 
-func SelfMirDeclarationParallelCount(count: Int, rows: Array<Int>) -> Bool {
+func SelfMirDeclarationParallelCount(count: Int, ref rows: Array<Int>) -> Bool {
     return ArrayLength(rows) == count;
 }
 func SelfMirDeclarationParallelStringCount(
-    count: Int, rows: Array<String>
+    count: Int, ref rows: Array<String>
 ) -> Bool {
     return ArrayLength(rows) == count;
 }
 
 func SelfMirDeclarationStringRangeReady(
-    rows: Array<String>, start: Int, count: Int
+    ref rows: Array<String>, start: Int, count: Int
 ) -> Bool {
     if start < 0 || count < 0 || start + count > ArrayLength(rows) {
         return false;
@@ -35,7 +35,7 @@ func SelfMirDeclarationStringRangeReady(
 }
 
 func SelfMirDeclarationContractVocabularyRangeReady(
-    rows: Array<String>, start: Int, count: Int, axis: Int
+    ref rows: Array<String>, start: Int, count: Int, axis: Int
 ) -> Bool {
     if !SelfMirDeclarationStringRangeReady(rows, start, count) {
         return false;

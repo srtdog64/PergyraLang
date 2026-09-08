@@ -229,6 +229,7 @@ test_mir_lowering_part_i(void)
         bool rejected_missing_expr_fact = false;
         bool rejected_missing_binding_mode = false;
         bool rejected_wrong_binding_mode = false;
+        bool rejected_missing_binding_id = false;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
         if (ok)
             routine = find_mir_routine_mut(mir, "AssignmentFact",
@@ -266,6 +267,13 @@ test_mir_lowering_part_i(void)
             free(mir_error);
             mir_error = NULL;
             assign_inst->arg1 = saved_binding_mode;
+            uint32_t binding_id = ast_identifier_binding_syntax_id(assign_inst->expr0);
+            ast_identifier_set_binding_syntax_id(assign_inst->expr0, 0);
+            rejected_missing_binding_id = !mir_validate(mir, &mir_error)
+                && mir_error != NULL && strstr(mir_error, "target-root binding mode") != NULL;
+            ast_identifier_set_binding_syntax_id(assign_inst->expr0, binding_id);
+            free(mir_error);
+            mir_error = NULL;
             saved_ast = assign_inst->ast;
             saved_target = assign_inst->expr0;
             assign_inst->ast = NULL;
@@ -291,6 +299,7 @@ test_mir_lowering_part_i(void)
                && strcmp(saved_binding_mode, "local") == 0
                && rejected_missing_binding_mode
                && rejected_wrong_binding_mode
+               && rejected_missing_binding_id
                && rejected_missing_expr_fact
                && mir_validate(mir, NULL));
         if (assign_inst != NULL)
@@ -299,6 +308,123 @@ test_mir_lowering_part_i(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+    }
+
+    TEST("typed MIR assignment and loop-init retain every operand use");
+    {
+        const char *src =
+            "func TypedUseFacts(flag: Bool) -> Int {\n"
+            "    let values: Array<Int> = [0];\n"
+            "    let index: Int = 0;\n"
+            "    let value: Int = 1;\n"
+            "    let finish: Int = 2;\n"
+            "    if flag { value = 2; finish = 3; }\n"
+            "    values[index] = value;\n"
+            "    let total: Int = 0;\n"
+            "    for i in value..finish { total = total + i; }\n"
+            "    for item in values { total = total + item; }\n"
+            "    return total;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        bool assignment_uses = false;
+        bool range_uses = false;
+        bool iterable_use_once = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "TypedUseFacts",
+                                           MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    bool values = false, index = false;
+                    bool value = false, finish = false;
+                    for (size_t ui = 0; ui < inst->use_count; ui++) {
+                        const char *use = inst->uses[ui];
+                        values |= strncmp(use, "values.", 7) == 0;
+                        index |= strncmp(use, "index.", 6) == 0;
+                        value |= strncmp(use, "value.", 6) == 0;
+                        finish |= strncmp(use, "finish.", 7) == 0;
+                    }
+                    if (inst->kind == MIR_INST_ASSIGN)
+                        assignment_uses |= values && index && value;
+                    if (inst->kind == MIR_INST_LOOP_INIT
+                        && inst->branch_shape == MIR_BRANCH_FOR_RANGE)
+                        range_uses |= value && finish;
+                    if (inst->kind == MIR_INST_LOOP_INIT
+                        && inst->branch_shape == MIR_BRANCH_FOR_IN)
+                        iterable_use_once |= values && inst->use_count == 1;
+                }
+            }
+        }
+        EXPECT(ok && assignment_uses && range_uses && iterable_use_once);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    {
+        const char *labels[] = {
+            "SSA use projection rejects missing assignment target",
+            "SSA use projection rejects missing assignment value",
+            "SSA use projection rejects missing loop start",
+            "SSA use projection rejects missing loop end"
+        };
+        const char *src =
+            "func RequiredUseFacts() -> Int {\n"
+            "    let total: Int = 0;\n"
+            "    total = total + 1;\n"
+            "    for i in 0..2 { total = total + i; }\n"
+            "    return total;\n"
+            "}\n";
+        for (size_t probe = 0; probe < 4; probe++) {
+            HIRProgram *hir = NULL;
+            RIRProgram *rir = NULL;
+            MIRProgram *mir = NULL;
+            MIRRoutine *routine = NULL;
+            MIRInstruction *target = NULL;
+            MIRInstKind kind = probe < 2
+                ? MIR_INST_ASSIGN : MIR_INST_LOOP_INIT;
+            char *use_error = NULL;
+            bool rejected = false;
+            bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+            TEST(labels[probe]);
+            if (ok)
+                routine = find_mir_routine_mut(mir, "RequiredUseFacts",
+                                               MIR_SCOPE_FUNCTION);
+            if (routine != NULL) {
+                for (size_t bi = 0; bi < routine->block_count && target == NULL;
+                     bi++) {
+                    MIRBasicBlock *block = &routine->blocks[bi];
+                    for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                        if (block->instructions[ii].kind == kind) {
+                            target = &block->instructions[ii];
+                            break;
+                        }
+                    }
+                }
+            }
+            if (target != NULL) {
+                ASTNode **operand = probe % 2 == 0
+                    ? &target->expr0 : &target->expr1;
+                ASTNode *saved = *operand;
+                *operand = NULL;
+                rejected = !mir_populate_use_edges(routine, &use_error)
+                    && use_error != NULL
+                    && strstr(use_error, probe < 2 ? "ASSIGN" : "LOOP_INIT") != NULL
+                    && strstr(use_error, "missing MIR expression facts") != NULL;
+                *operand = saved;
+            }
+            EXPECT(ok && target != NULL && rejected);
+            free(use_error);
+            mir_destroy(mir);
+            rir_destroy(rir);
+            hir_destroy(hir);
+        }
     }
 
     TEST("MIR validator rejects lifecycle guard without receiver fact");

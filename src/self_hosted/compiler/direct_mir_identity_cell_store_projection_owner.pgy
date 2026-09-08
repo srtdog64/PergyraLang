@@ -1,0 +1,48 @@
+// Materialize the same cell-store receipt for C and LLVM. The receiver is a
+// borrowed pointer; publishing the SSA result preserves, rather than copies, it.
+import "direct_mir_identity_cell_store_readiness_owner.pgy";
+import "direct_mir_scalar_program_c_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_expression_owner.pgy";
+
+func DirectMirIdentityCellCStore(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>, target: CompilerTargetProjectionFact
+) -> String {
+    if !DirectMirIdentityCellStoreReady(plan, operation, routine) { Die("direct MIR C identity cell store receipt is invalid"); }
+    let result: Int = plan.operation_result_values[operation];
+    let member: Int = plan.operation_right_locals[operation];
+    let value: String = DirectMirScalarProgramCExpressionAt(
+        plan.program.expressions, plan.program.operation_expression_rows[operation], runtime,
+        plan.program.logical_record, plan.program.referenced_enum, plan.routines, routine,
+        target, plan.program.array_string_abi, array_string_projection);
+    let output: String = "    pgy_param_0->field_" + ToString(member) + " = " + value + ";\n";
+    if result >= 0 { output = output + "    pgy_local_" + ToString(plan.value_local_rows[result]) + " = pgy_param_0;\n"; }
+    return output;
+}
+
+func DirectMirIdentityCellLlvmStore(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
+    array_int_projection: Option<DirectMirArrayIntAbiProjection>, target: CompilerTargetProjectionFact
+) -> String {
+    if !DirectMirIdentityCellStoreReady(plan, operation, routine) { Die("direct MIR LLVM identity cell store receipt is invalid"); }
+    let result: Int = plan.operation_result_values[operation];
+    let type_name: String = plan.routines.parameter_types[plan.routines.parameter_starts[routine]];
+    let member: Int = plan.operation_right_locals[operation];
+    let field_type: String = DirectMirIdentityCellFieldType(plan.program.logical_record.identity_cells, type_name, member);
+    let value: DirectMirScalarProgramLlvmExpression = DirectMirScalarProgramLlvmExpressionAt(
+        plan.program.expressions, plan.program.operation_expression_rows[operation], runtime,
+        plan.program.logical_record, plan.program.payload_free_enum, plan.program.referenced_enum,
+        plan.routines, routine, plan.program.array_string_abi, array_string_projection,
+        plan.program.array_int_value_result, array_int_projection, target);
+    if !value.valid || value.type_name != field_type { Die("direct MIR LLVM identity cell store value is invalid"); }
+    let address: String = "%pgy.cell.store." + ToString(operation);
+    let output: String = value.instructions + "  " + address + " = getelementptr " +
+        DirectMirIdentityCellLlvmType(plan.program.logical_record.identity_cells, type_name) +
+        ", ptr %pgy.param.0, i32 0, i32 " + ToString(member) + "\n  store " +
+        DirectMirIdentityCellLlvmFieldType(plan.program.logical_record.identity_cells, field_type) + " " + value.value + ", ptr " + address + "\n";
+    if result >= 0 { output = output + "  store ptr %pgy.param.0, ptr %pgy.local." + ToString(plan.value_local_rows[result]) + ", align 8\n"; }
+    return output;
+}

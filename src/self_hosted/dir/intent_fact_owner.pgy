@@ -59,6 +59,7 @@ func SelfDirIntentFactsFromArtifact(
     let intent_names: Array<String> = [];
     let intent_result_modes: Array<String> = [];
     let intent_return_type_names: Array<String> = [];
+    let intent_success_expression_node_ids: Array<Int> = [];
     let participant_starts: Array<Int> = [];
     let participant_counts: Array<Int> = [];
     let participant_node_ids: Array<Int> = [];
@@ -91,6 +92,8 @@ func SelfDirIntentFactsFromArtifact(
     let step_guard_node_ids: Array<Int> = [];
     let step_post_node_ids: Array<Int> = [];
     let step_expect_node_ids: Array<Int> = [];
+    let step_pre_node_ids: Array<Int> = [];
+    let step_invariant_node_ids: Array<Int> = [];
     let step_compensate_starts: Array<Int> = [];
     let step_compensate_counts: Array<Int> = [];
     let step_compensate_node_ids: Array<Int> = [];
@@ -144,6 +147,7 @@ func SelfDirIntentFactsFromArtifact(
         let participant_count: Int =
             ArrayLength(participant_node_ids) - participant_start;
         let step_start: Int = ArrayLength(step_node_ids);
+        let success_expression_node_id: Int = -1;
         let child_index: Int = 0;
         let child: Option<Int> = TypedAstArenaChildAt(
             artifact.arena, intent_node_id, child_index
@@ -160,13 +164,26 @@ func SelfDirIntentFactsFromArtifact(
                     artifact.count
                 );
             }
-            if UnwrapOption(kind_opt) == TypedAstKindIntentStepTag() {
+            if UnwrapOption(kind_opt) == TypedAstKindIntentSuccessTag() {
+                if success_expression_node_id >= 0 ||
+                    signature_facts.result_modes[intent_index] != "legacy_bool" {
+                    return SelfDirIntentFactsError(
+                        "self-host DIR intent completion identity is duplicated or mistyped", artifact.count);
+                }
+                let success_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                    expression_surfaces, child_id, AstExpressionLaneAtom());
+                if !IsSome(success_root) {
+                    return SelfDirIntentFactsError(
+                        "self-host DIR intent completion expression graph is missing", artifact.count);
+                }
+                success_expression_node_id = child_id;
+            } else if UnwrapOption(kind_opt) == TypedAstKindIntentStepTag() {
                 let local_step_index: Int =
                     ArrayLength(step_node_ids) - step_start;
                 let resolved: SelfDirIntentResolvedStep =
                     SelfDirIntentStepFromArtifact(
                         artifact, rows, signatures, signature_facts,
-                        expression_surfaces, child_id,
+                        expression_surfaces, intent_index, child_id,
                         participant_aliases, participant_type_names,
                         participant_is_values, participant_start,
                         participant_count, local_step_index,
@@ -247,6 +264,8 @@ func SelfDirIntentFactsFromArtifact(
                 ArrayPush(step_guard_node_ids, resolved.guard_node_id);
                 ArrayPush(step_post_node_ids, resolved.post_node_id);
                 ArrayPush(step_expect_node_ids, resolved.expect_node_id);
+                ArrayPush(step_pre_node_ids, resolved.pre_node_id);
+                ArrayPush(step_invariant_node_ids, resolved.invariant_node_id);
                 ArrayPush(step_compensate_starts, compensate_start);
                 ArrayPush(step_compensate_counts,
                     ArrayLength(resolved.compensate_node_ids));
@@ -280,6 +299,12 @@ func SelfDirIntentFactsFromArtifact(
             );
         }
         ArrayPush(intent_node_ids, intent_node_id);
+        if signature_facts.result_modes[intent_index] == "legacy_bool" &&
+            success_expression_node_id < 0 {
+            return SelfDirIntentFactsError(
+                "self-host DIR intent completion expression is missing", artifact.count);
+        }
+        ArrayPush(intent_success_expression_node_ids, success_expression_node_id);
         ArrayPush(intent_names, signature_facts.names[intent_index]);
         ArrayPush(
             intent_result_modes, signature_facts.result_modes[intent_index]
@@ -298,6 +323,7 @@ func SelfDirIntentFactsFromArtifact(
     let facts: SelfDirIntentFacts = SelfDirIntentFacts(
         true, true, "", artifact.count, artifact.identity_digest,
         intent_node_ids, intent_names, intent_result_modes, intent_return_type_names,
+        intent_success_expression_node_ids,
         mode_facts, priority_facts,
         participant_starts, participant_counts,
         SelfDirIntentParticipantFacts(
@@ -317,6 +343,7 @@ func SelfDirIntentFactsFromArtifact(
             step_outcome_names, step_outcome_type_names,
             step_target_expression_node_ids,
             step_guard_node_ids, step_post_node_ids, step_expect_node_ids,
+            step_pre_node_ids, step_invariant_node_ids,
             step_compensate_starts, step_compensate_counts,
             step_compensate_node_ids, step_child_counts,
             step_predecessor_indices, step_causes_names,

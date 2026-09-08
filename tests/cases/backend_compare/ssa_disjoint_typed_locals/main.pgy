@@ -1,0 +1,23 @@
+// Disjoint same-spelled locals must not acquire dead cross-scope phi copies.
+func Probe(flag: Bool) -> Int {
+    let owner: Int = 0;
+    while owner < 1 {
+        let field: Int = 0;
+        while field < 1 { field = field + 1; }
+        owner = owner + 1;
+    }
+    let node: Int = 0;
+    let result: Int = 0;
+    while node < 2 {
+        if flag {
+            let field: Option<Int> = Some(3);
+            if IsSome(field) { result = result + UnwrapOption(field); }
+        }
+        node = node + 1;
+    }
+    return result;
+}
+func Main() -> Void {
+    Log(Probe(true));
+    Log(Probe(false));
+}

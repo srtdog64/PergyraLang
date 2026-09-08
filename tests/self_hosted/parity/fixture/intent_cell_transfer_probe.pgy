@@ -1,0 +1,59 @@
+// Valid compiler-owner validator. Altered placement facts are refusal-only;
+// only untouched admitted input can reach either target materializer.
+import "../../../../src/self_hosted/mir_lower/intent_routine_plan_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir_intent_cell_transfer_projection_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Die("usage: intent_cell_transfer_probe <MIR> <c|llvm|negative mode>"); }
+    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(ReadFile(args[0]));
+    if !routines.valid { Die("cell transfer probe routine setup is invalid"); }
+    let routine: Int = -1;
+    let scan: Int = 0;
+    while scan < ArrayLength(routines.names) {
+        if routines.kinds[scan] == "intent" {
+            if routine >= 0 { Die("cell transfer probe requires one purpose"); }
+            routine = scan;
+        }
+        scan = scan + 1;
+    }
+    if routine < 0 { Die("cell transfer probe purpose is missing"); }
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(routines, routine);
+    let typed: MirIntentExecutionPlan = MirIntentExecutionPlanEmpty(true, false);
+    let plan: MirIntentRoutinePlan = MirIntentRoutinePlanFromOwners(routines, index, routine, typed);
+    if ArrayLength(plan.steps.steps) < 1 { Die("cell transfer probe placement is missing"); }
+    let binding: MirIntentStepPlacementBinding = plan.steps.steps[0].placement_binding;
+    let cells: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsFromDeclarations(routines.source_json, routines.declarations);
+    let control: DirectMirIntentCellPlacement = DirectMirIntentCellPlacementFromOwners(binding, plan.bindings, cells);
+    if !DirectMirIntentCellPlacementReady(control, cells) { Die("cell transfer probe valid layout was refused"); }
+    let negative: Bool = args[1] != "c" && args[1] != "llvm";
+    if args[1] == "missing-slot" { binding.slot_source_syntax_id = "0"; }
+    else if args[1] == "foreign-zone" { binding.zone_declaration_row = binding.receiver_declaration_row; }
+    else if args[1] == "crossed-participant" { binding.receiver_binding_row = binding.zone_binding_row; }
+    else if args[1] == "renamed-slot" { binding.slot_name = binding.slot_name + "_foreign"; }
+    else if args[1] == "absent-placement" { binding.present = false; }
+    else if negative { Die("cell transfer probe mode is unknown"); }
+    let placement: DirectMirIntentCellPlacement = DirectMirIntentCellPlacementFromOwners(binding, plan.bindings, cells);
+    if !placement.valid {
+        Die("direct MIR Intent placement/cell identity refused before emission");
+    }
+    if negative { Die("cell transfer probe accepted altered placement facts"); }
+    let metadata: String = "pgy-intent-cell-layout zone=" + ToString(placement.zone_row) +
+        " subject=" + ToString(placement.subject_row) + " slot=" + ToString(placement.slot_ordinal);
+    if args[1] == "c" {
+        let zone_type: String = DirectMirIdentityCellCType(cells, cells.names[placement.zone_row]);
+        let subject_type: String = DirectMirIdentityCellCType(cells, cells.names[placement.subject_row]);
+        let parameters: String = "(" + zone_type + " *zone, " + subject_type + " *participant) {\n";
+        Log("// " + metadata + "\n#include <stdint.h>\n#include <stdbool.h>\n" +
+            DirectMirIdentityCellPreamble(cells, false) + "\nvoid pgy_test_place" + parameters +
+            DirectMirIntentCellTransferC(placement, cells, "zone", "participant", true) + "}\n" +
+            "void pgy_test_writeback" + parameters +
+            DirectMirIntentCellTransferC(placement, cells, "zone", "participant", false) + "}\n");
+        return;
+    }
+    Log("; " + metadata + "\n" + DirectMirIdentityCellPreamble(cells, true) +
+        "define void @pgy_test_place(ptr %zone, ptr %participant) {\n" +
+        DirectMirIntentCellTransferLlvm(placement, cells, "%zone", "%participant", true, 0) + "  ret void\n}\n" +
+        "define void @pgy_test_writeback(ptr %zone, ptr %participant) {\n" +
+        DirectMirIntentCellTransferLlvm(placement, cells, "%zone", "%participant", false, 1) + "  ret void\n}\n");
+}

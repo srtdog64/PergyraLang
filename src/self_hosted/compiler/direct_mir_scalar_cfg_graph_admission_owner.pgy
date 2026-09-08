@@ -25,9 +25,15 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     if !DirectMirScalarCfgRoutineRouteClaimed(admitted, routine_row) {
         Die("direct MIR scalar CFG graph route was not claimed");
     }
+    let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(
+        admitted.routines, routine_row,
+        MirProgramRoutineIndexBlockInstructionCountAt(admitted.routines, routine_row, 0));
+    if !DirectMirRoutineSignatureFactReady(signature) {
+        Die("direct MIR scalar CFG routine signature is invalid");
+    }
     let input: DirectMirScalarCfgGraphInput =
         DirectMirScalarCfgGraphInputFromAdmitted(
-            admitted, routine_row, producer
+            admitted, routine_row, producer, signature.parameters.names
         );
     let use_facts: MirRoutineInstructionUseFacts = input.use_facts;
     let wire: DirectMirScalarCfgWireLocalRefs = input.wire;
@@ -42,13 +48,6 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         input.collections;
     let logical_record: DirectMirScalarProgramLogicalRecordFact =
         DirectMirScalarProgramLogicalRecordFactCanonicalEmpty();
-    let signature: DirectMirRoutineSignatureFact =
-        DirectMirRoutineSignatureFactAt(
-            admitted.routines, routine_row,
-            input.index.block_instruction_counts[0]);
-    if !DirectMirRoutineSignatureFactReady(signature) {
-        Die("direct MIR scalar CFG routine signature is invalid");
-    }
     let indexed_assignments:
         DirectMirScalarProgramIndexedAssignmentFactSet =
         DirectMirScalarProgramIndexedAssignmentFactSetCanonicalEmpty();

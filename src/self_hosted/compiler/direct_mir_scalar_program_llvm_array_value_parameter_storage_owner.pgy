@@ -1,0 +1,50 @@
+// One entry-frame header slot for an admitted Int/String array value parameter.
+// Readonly calls borrow this slot; no element copy, mutation or copy-out authority.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_array_int_value_result_target_owner.pgy";
+import "direct_mir_scalar_program_llvm_type_owner.pgy";
+
+func DirectMirScalarProgramLlvmArrayValueParameterAddressableCopyIn(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    string_projection: Option<DirectMirArrayStringAbiProjection>,
+    int_projection: Option<DirectMirArrayIntAbiProjection>
+) -> String {
+    let allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(256);
+    let parameter: Int = 0;
+    while parameter < plan.routines.parameter_counts[routine] {
+        let row: Int = plan.routines.parameter_starts[routine] + parameter;
+        let type_name: String = plan.routines.parameter_types[row];
+        if plan.routines.parameter_carriages[row] == "value" &&
+            DirectMirScalarProgramReadonlyArrayTypeSupported(type_name) {
+            let storage_align: Int = 0;
+            if type_name == CompilerAbiLayoutArrayIntTypeName() {
+                if !IsSome(int_projection) { Die("direct MIR LLVM value Array<Int> projection is missing"); }
+                let projection: DirectMirArrayIntAbiProjection = UnwrapOption(int_projection);
+                if !DirectMirScalarProgramArrayIntAbiProjectionReadyForFact(
+                        plan.program.array_int_value_result, projection, CompilerTargetCpuLlvmProjection()) {
+                    Die("direct MIR LLVM value Array<Int> projection drifted");
+                }
+                storage_align = projection.storage.align;
+            } else {
+                if !IsSome(string_projection) { Die("direct MIR LLVM value Array<String> projection is missing"); }
+                let projection: DirectMirArrayStringAbiProjection = UnwrapOption(string_projection);
+                if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+                        plan.program.array_string_abi, projection, CompilerTargetCpuLlvmProjection()) {
+                    Die("direct MIR LLVM value Array<String> projection drifted");
+                }
+                storage_align = projection.storage.align;
+            }
+            let value: String = Concat("%pgy.param.", ToString(parameter));
+            let llvm_type: String = DirectMirScalarProgramLlvmType(type_name);
+            TextBuilderAppend(output, "  ${value}.local = alloca ${llvm_type}, align ${ToString(storage_align)}\n");
+            TextBuilderAppend(output, "  store ${llvm_type} ${value}, ptr ${value}.local, align ${ToString(storage_align)}\n");
+        }
+        parameter = parameter + 1;
+    }
+    let result: String = TextBuilderFinish(output, allocator);
+    AllocatorDestroy(allocator);
+    return result;
+}

@@ -1,0 +1,108 @@
+// Valid validator program: altered owner facts are checked, never emitted/run.
+import "../../../../src/self_hosted/mir_lower/intent_routine_plan_owner.pgy";
+
+func StepProbeWithForeignTarget(
+    own routines: MirProgramRoutineIndex, target_id: String
+) -> MirProgramRoutineIndex {
+    let ids: Array<String> = [];
+    let maximum: Int = 0;
+    let target_row: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(routines.source_syntax_ids) {
+        ArrayPush(ids, routines.source_syntax_ids[row]);
+        let id: Int = ToInt(routines.source_syntax_ids[row]);
+        if id > maximum { maximum = id; }
+        if routines.source_syntax_ids[row] == target_id { target_row = row; }
+        row = row + 1;
+    }
+    if target_row < 0 || maximum <= 0 { Die("step probe target setup is invalid"); }
+    ArraySet(ids, target_row, ToString(maximum + 1));
+    return MirProgramRoutineIndex(routines.valid, routines.source_json,
+        routines.source_length, routines.declarations, routines.starts,
+        routines.ends, routines.kinds, routines.owners, routines.names, ids,
+        routines.source_module_paths, routines.receiver_carriages,
+        routines.owner_nominal_kinds, routines.owner_declaration_rows,
+        routines.routine_block_starts, routines.routine_block_counts,
+        routines.block_starts, routines.block_ends, routines.block_reachable,
+        routines.block_intent_roles, routines.block_succ_true,
+        routines.block_succ_false, routines.block_instruction_starts,
+        routines.block_instruction_counts, routines.instruction_starts,
+        routines.instruction_ends, routines.instruction_kinds,
+        routines.instruction_source_types, routines.instruction_abi_type_names,
+        routines.instruction_machine_contact_starts,
+        routines.instruction_machine_contact_ends,
+        routines.instruction_machine_layer_starts,
+        routines.instruction_machine_layer_ends, routines.instruction_expressions);
+}
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Die("usage: intent_step_plan_probe <MIR> <control|purpose|phase|target>"); }
+    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(ReadFile(args[0]));
+    if !routines.valid { Die("step probe routine setup is invalid"); }
+    let routine: Int = -1;
+    let scan: Int = 0;
+    while scan < ArrayLength(routines.names) {
+        if routines.kinds[scan] == "intent" {
+            if routine >= 0 { Die("step probe requires one purpose"); }
+            routine = scan;
+        }
+        scan = scan + 1;
+    }
+    if routine < 0 { Die("step probe purpose setup is invalid"); }
+    let purpose: Int = ToInt(routines.source_syntax_ids[routine]);
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(routines, routine);
+    let typed: MirIntentExecutionPlan = MirIntentExecutionPlanEmpty(true, false);
+    let routine_plan: MirIntentRoutinePlan = MirIntentRoutinePlanFromOwners(
+        routines, index, routine, typed);
+    if routine_plan.source_syntax_id != purpose || routine_plan.typed_execution ||
+        routine_plan.phases.success_row < 0 || ArrayLength(routine_plan.steps.steps) != 2 {
+        Die("step probe routine admission is inconsistent");
+    }
+    let carriers: MirIntentRoutineCarrierProjection =
+        MirIntentRoutineCarrierProjectionFromRoutine(routines, index, routine, routines.names[routine]);
+    if !carriers.valid { Die(carriers.diagnostic_message); }
+    let bindings: MirIntentBindingProjection = MirIntentBindingProjectionFromCarriers(
+        carriers.carrier_names, carriers.carrier_arg0s, carriers.carrier_arg1s,
+        carriers.carrier_slots, carriers.carrier_binding_source_syntax_ids,
+        routines.names[routine], purpose);
+    let phases: MirIntentPhaseProjection = MirIntentPhaseProjectionFromCarriers(
+        routines, routine, false, bindings.step_names, carriers.carrier_names,
+        carriers.carrier_arg0s, carriers.carrier_arg1s, carriers.carrier_slots,
+        carriers.carrier_results, carriers.carrier_abi_type_names,
+        carriers.carrier_source_types, carriers.carrier_expr0s, carriers.carrier_rows);
+    let topology: Array<Int> = [];
+    let plan: MirIntentRoutineStepPlan = MirIntentRoutineStepPlanFromOwners(
+        routines, false, typed, purpose, topology, carriers, bindings,
+        bindings.step_names, phases);
+    if plan.purpose_syntax_id != purpose || plan.typed_execution ||
+        ArrayLength(plan.steps) != 2 || plan.steps[0].name == plan.steps[1].name ||
+        plan.steps[0].on_row == plan.steps[1].on_row ||
+        plan.steps[0].action_syntax_id != plan.steps[1].action_syntax_id ||
+        plan.steps[0].receiver_binding_row != plan.steps[1].receiver_binding_row ||
+        !plan.steps[0].placement.present || !plan.steps[1].placement.present ||
+        !plan.steps[0].placement_binding.present || !plan.steps[1].placement_binding.present ||
+        plan.steps[0].placement_binding.slot_source_syntax_id != plan.steps[1].placement_binding.slot_source_syntax_id ||
+        !MirProgramDeclarationFieldIdentityMatches(
+            routines.declarations.field_identities, plan.steps[0].zone_type_name,
+            plan.steps[0].placement_binding.slot_name,
+            plan.steps[0].placement_binding.slot_source_syntax_id, "subject_slot") {
+        Die("step probe lost distinct occurrences of one action/participant");
+    }
+    if args[1] == "control" { Log("Intent step plan verified: 2 occurrences"); return; }
+    if args[1] == "purpose" { purpose = purpose + 1; }
+    else if args[1] == "phase" { let absent: Array<Int> = []; phases.on_rows = absent; }
+    else if args[1] == "target" {
+        let crossed: MirProgramRoutineIndex =
+            StepProbeWithForeignTarget(routines, plan.steps[0].action_syntax_id);
+        let accepted: MirIntentRoutineStepPlan = MirIntentRoutineStepPlanFromOwners(
+            crossed, false, typed, purpose, topology, carriers, bindings,
+            bindings.step_names, phases);
+        Die("step probe accepted a foreign target identity");
+        return;
+    } else { Die("step probe mode is unknown"); }
+    plan = MirIntentRoutineStepPlanFromOwners(
+        routines, false, typed, purpose, topology, carriers, bindings,
+        bindings.step_names, phases);
+    Die("step probe accepted crossed owner facts");
+}

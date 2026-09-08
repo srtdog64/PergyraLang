@@ -52,7 +52,7 @@ struct DirectMirCompositeIntentProgramPlan {
 }
 
 func DirectMirCompositeIntentObservabilitySequenceReady(
-    runtime_call_abi_ids: Array<Int>
+    ref runtime_call_abi_ids: Array<Int>
 ) -> Bool {
     if ArrayLength(runtime_call_abi_ids) != 10 { return false; }
     return IntentObservabilityAbiRowForId(
@@ -249,7 +249,7 @@ func DirectMirCompositeIntentProgramPlanReady(
 }
 
 func DirectMirCompositeIntentNameIndex(
-    names: Array<String>, name: String
+    ref names: Array<String>, name: String
 ) -> Int {
     let found: Int = -1;
     let count: Int = 0;
@@ -646,13 +646,14 @@ func DirectMirCompositeIntentProgramPlanFromAdmitted(
             Die("direct MIR composite intent cleanup contract is invalid");
         }
         let carriers: MirIntentRoutineCarrierProjection =
-            MirIntentRoutineCarrierProjectionFromBlockZero(
+            MirIntentRoutineCarrierProjectionFromRoutine(
                 admitted.routines, index, routine_row, intent_name
             );
         let bindings: MirIntentBindingProjection =
             MirIntentBindingProjectionFromCarriers(
                 carriers.carrier_names, carriers.carrier_arg0s,
-                carriers.carrier_arg1s, carriers.carrier_slots, intent_name
+                carriers.carrier_arg1s, carriers.carrier_slots, carriers.carrier_binding_source_syntax_ids,
+                intent_name, ToInt(admitted.routines.source_syntax_ids[routine_row])
             );
         let mode: MirIntentModeProjection = MirIntentModeProjectionFromCarriers(
             intent_name, carriers.carrier_names, carriers.carrier_arg0s,
@@ -689,14 +690,15 @@ func DirectMirCompositeIntentProgramPlanFromAdmitted(
         }
         let phases: MirIntentPhaseProjection =
             MirIntentPhaseProjectionFromCarriers(
-                admitted.routines, bindings.step_names,
+                admitted.routines, routine_row, false, bindings.step_names,
                 carriers.carrier_names, carriers.carrier_arg0s,
                 carriers.carrier_arg1s, carriers.carrier_slots,
                 carriers.carrier_results, carriers.carrier_abi_type_names,
                 carriers.carrier_source_types, carriers.carrier_expr0s,
                 carriers.carrier_rows
             );
-        if !phases.ok || ArrayLength(phases.on_rows) !=
+        if !phases.ok || !MirIntentExpressionCarrierIsTrue(admitted.routines, phases.success_row) ||
+            ArrayLength(phases.on_rows) !=
                 ArrayLength(bindings.step_names) {
             Die("direct MIR composite intent phase topology is invalid");
         }

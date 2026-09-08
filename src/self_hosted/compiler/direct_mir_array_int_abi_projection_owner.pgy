@@ -12,6 +12,7 @@ struct DirectMirArrayIntAbiProjection {
     let valid: Bool;
     let target_projection: String;
     let target_capability_fingerprint: Int;
+    let abi_layout_id: Int;
     let storage: DirectMirArrayStorageAbiProjection;
     let c_element_type: String;
     let c_length_type: String;
@@ -32,7 +33,7 @@ func DirectMirArrayIntAbiProjectionReadyFor(
     ref projection: DirectMirArrayIntAbiProjection,
     expected_target: String
 ) -> Bool {
-    if !projection.valid ||
+    if !projection.valid || projection.abi_layout_id <= 0 ||
         !DirectMirArrayStorageAbiProjectionReadyFor(
             projection.storage, expected_target
         ) ||
@@ -113,7 +114,7 @@ func DirectMirArrayIntAbiProjectionFromCanonicalLayout(
     let projection: DirectMirArrayIntAbiProjection =
         DirectMirArrayIntAbiProjection(
             true, target.projection,
-            target.target_capability_fingerprint,
+            target.target_capability_fingerprint, abi_layout_id,
             storage,
             "", "", "", "", "", "", "", "", "",
             0 - 1, 0 - 1, 0 - 1, 0 - 1
@@ -121,7 +122,7 @@ func DirectMirArrayIntAbiProjectionFromCanonicalLayout(
     if is_c {
         projection = DirectMirArrayIntAbiProjection(
             true, target.projection,
-            target.target_capability_fingerprint,
+            target.target_capability_fingerprint, abi_layout_id,
             storage, "int32_t", storage.c_length_type,
             StringRuntimeCLongPrintArgumentType(),
             CompilerAbiLayoutArrayIntCValueType(),
@@ -130,7 +131,7 @@ func DirectMirArrayIntAbiProjectionFromCanonicalLayout(
     } else {
         projection = DirectMirArrayIntAbiProjection(
             true, target.projection,
-            target.target_capability_fingerprint,
+            target.target_capability_fingerprint, abi_layout_id,
             storage,
             "", "", "", "", "i32", "i64", "i64",
             storage.llvm_aggregate_type, "sext", storage.data_index,

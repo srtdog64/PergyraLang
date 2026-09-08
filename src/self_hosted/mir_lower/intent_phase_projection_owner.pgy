@@ -1,15 +1,17 @@
 // One admitted intent phase plan derived from native-compatible MIR carriers.
-//
 // This owner validates phase vocabulary, exact step attachment, scalar shape,
 // expression-graph presence, singleton cardinality, and ordered compensation.
 // It never reads source or AST text.
 
 import "routine_fact_index_owner.pgy";
 import "intent_expression_carrier_contract_owner.pgy";
+import "../mir/intent_phase_contract_owner.pgy";
 
 struct MirIntentPhaseProjection {
     ok: Bool;
     diagnostic_message: String;
+    success_text: String;
+    success_row: Int;
     on_texts: Array<String>;
     on_results: Array<String>;
     on_type_names: Array<String>;
@@ -20,11 +22,16 @@ struct MirIntentPhaseProjection {
     expect_rows: Array<Int>;
     post_texts: Array<String>;
     post_rows: Array<Int>;
+    pre_texts: Array<String>;
+    pre_rows: Array<Int>;
+    invariant_texts: Array<String>;
+    invariant_pre_rows: Array<Int>;
+    invariant_post_rows: Array<Int>;
     compensate_starts: Array<Int>;
     compensate_counts: Array<Int>;
     compensate_texts: Array<String>;
     compensate_rows: Array<Int>;
-    carrier_count: Int;
+    on_phases: Array<String>;
 }
 
 func MirIntentPhaseProjectionError(
@@ -38,6 +45,7 @@ func MirIntentPhaseProjectionError(
 
 func MirIntentPhaseProjectionFromCarriers(
     ref routines: MirProgramRoutineIndex,
+    routine_row: Int, typed_execution: Bool,
     step_names: Array<String>,
     carrier_names: Array<String>,
     carrier_arg0s: Array<String>,
@@ -52,24 +60,32 @@ func MirIntentPhaseProjectionFromCarriers(
     let strings: Array<String> = [];
     let ints: Array<Int> = [];
     let projection: MirIntentPhaseProjection = MirIntentPhaseProjection(
-        true, "", strings, strings, strings, ints, strings, ints,
-        strings, ints, strings, ints, ints, ints, strings, ints, 0
+        true, "", "", -1, strings, strings, strings, ints, strings, ints,
+        strings, ints, strings, ints, strings, ints, strings, ints, ints,
+        ints, ints, strings, ints, strings
     );
     let on_texts: Array<String> = [];
     let on_results: Array<String> = [];
     let on_type_names: Array<String> = [];
     let on_rows: Array<Int> = [];
+    let on_phases: Array<String> = [];
     let guard_texts: Array<String> = [];
     let guard_rows: Array<Int> = [];
     let expect_texts: Array<String> = [];
     let expect_rows: Array<Int> = [];
     let post_texts: Array<String> = [];
     let post_rows: Array<Int> = [];
+    let pre_texts: Array<String> = [];
+    let pre_rows: Array<Int> = [];
+    let invariant_texts: Array<String> = [];
+    let invariant_pre_rows: Array<Int> = [];
+    let invariant_post_rows: Array<Int> = [];
     let compensate_starts: Array<Int> = [];
     let compensate_counts: Array<Int> = [];
     let compensate_texts: Array<String> = [];
     let compensate_rows: Array<Int> = [];
-    let carrier_count: Int = 0;
+    let success_text: String = "";
+    let success_row: Int = -1;
     let count: Int = ArrayLength(carrier_names);
     if ArrayLength(carrier_arg0s) != count ||
         ArrayLength(carrier_arg1s) != count ||
@@ -89,44 +105,64 @@ func MirIntentPhaseProjectionFromCarriers(
         ArrayPush(on_results, "");
         ArrayPush(on_type_names, "");
         ArrayPush(on_rows, -1);
+        ArrayPush(on_phases, "");
         ArrayPush(guard_texts, "");
         ArrayPush(guard_rows, -1);
         ArrayPush(expect_texts, "");
         ArrayPush(expect_rows, -1);
         ArrayPush(post_texts, "");
         ArrayPush(post_rows, -1);
+        ArrayPush(pre_texts, "");
+        ArrayPush(pre_rows, -1);
+        ArrayPush(invariant_texts, "");
+        ArrayPush(invariant_pre_rows, -1);
+        ArrayPush(invariant_post_rows, -1);
         step_i = step_i + 1;
     }
 
     let row: Int = 0;
+    if !MirProgramRoutineIndexRowReady(routines, routine_row) ||
+        routines.kinds[routine_row] != "intent" {
+        return MirIntentPhaseProjectionError(projection, "MIR intent phase purpose identity is invalid");
+    }
     while row < count {
         let name: String = carrier_names[row];
         if (name == "IntentCheck" || name == "IntentEval") &&
             !(name == "IntentEval" &&
               carrier_arg0s[row] == "priority") {
-            let phase: String = carrier_arg0s[row];
-            let known_check: Bool = name == "IntentCheck" &&
-                (phase == "guard" || phase == "expect" || phase == "post");
-            let known_eval: Bool = name == "IntentEval" &&
-                (phase == "on" || phase == "compensate");
-            if !known_check && !known_eval {
-                return MirIntentPhaseProjectionError(
-                    projection, "MIR intent phase carrier names an unknown phase"
-                );
+            let shape_error: String = SelfMirIntentPhaseResultDiagnostic(
+                name, carrier_arg0s[row], carrier_results[row], carrier_abi_type_names[row]);
+            if shape_error != "" {
+                return MirIntentPhaseProjectionError(projection, shape_error);
             }
-            let step_match_count: Int = 0;
-            step_i = 0;
-            while step_i < ArrayLength(step_names) {
-                if step_names[step_i] == carrier_arg1s[row] {
-                    step_match_count = step_match_count + 1;
+            if name == "IntentCheck" && carrier_arg0s[row] == "success" {
+                let global_row: Int = carrier_rows[row];
+                if typed_execution || success_row >= 0 || global_row < 0 ||
+                    global_row >= ArrayLength(routines.instruction_starts) ||
+                    global_row >= ArrayLength(routines.instruction_ends) ||
+                    carrier_arg1s[row] != routines.names[routine_row] ||
+                    carrier_slots[row] != routines.names[routine_row] ||
+                    routines.instruction_starts[global_row] < routines.starts[routine_row] ||
+                    routines.instruction_ends[global_row] > routines.ends[routine_row] {
+                    return MirIntentPhaseProjectionError(projection,
+                        "MIR intent completion purpose or cardinality is invalid");
                 }
-                step_i = step_i + 1;
-            }
-            if step_match_count != 1 || carrier_arg1s[row] == "" ||
-                carrier_slots[row] != carrier_arg1s[row] {
-                return MirIntentPhaseProjectionError(
-                    projection, "MIR intent phase carrier step identity is invalid"
-                );
+                success_text = carrier_expr0s[row];
+                success_row = global_row;
+            } else {
+                let step_match_count: Int = 0;
+                step_i = 0;
+                while step_i < ArrayLength(step_names) {
+                    if step_names[step_i] == carrier_arg1s[row] {
+                        step_match_count = step_match_count + 1;
+                    }
+                    step_i = step_i + 1;
+                }
+                if step_match_count != 1 || carrier_arg1s[row] == "" ||
+                    carrier_slots[row] != carrier_arg1s[row] {
+                    return MirIntentPhaseProjectionError(
+                        projection, "MIR intent phase carrier step identity is invalid");
+                }
             }
             if carrier_source_types[row] == "" ||
                 carrier_expr0s[row] == "" ||
@@ -137,30 +173,11 @@ func MirIntentPhaseProjectionFromCarriers(
                     projection, "MIR intent phase carrier expression graph is missing"
                 );
             }
-            let has_result: Bool = carrier_results[row] != "";
-            let has_type: Bool = carrier_abi_type_names[row] != "";
-            if known_check && (has_result || has_type) {
-                return MirIntentPhaseProjectionError(
-                    projection, "MIR intent check result/type shape is invalid"
-                );
-            }
-            if phase == "compensate" && (has_result || has_type) {
-                return MirIntentPhaseProjectionError(
-                    projection, "MIR intent compensate result/type shape is invalid"
-                );
-            }
-            if phase == "on" &&
-                (has_result != has_type ||
-                 (has_type &&
-                    (carrier_abi_type_names[row] == "Unknown" ||
-                     carrier_abi_type_names[row] == "Void"))) {
-                return MirIntentPhaseProjectionError(
-                    projection, "MIR intent on result/type shape is invalid"
-                );
-            }
-            carrier_count = carrier_count + 1;
         }
         row = row + 1;
+    }
+    if !typed_execution && success_row < 0 {
+        return MirIntentPhaseProjectionError(projection, "MIR intent completion expression is missing");
     }
 
     step_i = 0;
@@ -176,7 +193,7 @@ func MirIntentPhaseProjectionFromCarriers(
                 carrier_slots[row] == step_names[step_i] {
                 let name: String = carrier_names[row];
                 let phase: String = carrier_arg0s[row];
-                if name == "IntentEval" && phase == "on" {
+                if name == "IntentEval" && (phase == "on" || phase == "intent") {
                     if on_rows[step_i] >= 0 {
                         return MirIntentPhaseProjectionError(
                             projection, "MIR intent on phase cardinality is invalid"
@@ -189,6 +206,7 @@ func MirIntentPhaseProjectionFromCarriers(
                         carrier_abi_type_names[row]
                     );
                     ArraySet(on_rows, step_i, carrier_rows[row]);
+                    ArraySet(on_phases, step_i, phase);
                 } else if name == "IntentCheck" && phase == "guard" {
                     if guard_rows[step_i] >= 0 {
                         return MirIntentPhaseProjectionError(
@@ -219,6 +237,28 @@ func MirIntentPhaseProjectionFromCarriers(
                         post_texts, step_i, carrier_expr0s[row]
                     );
                     ArraySet(post_rows, step_i, carrier_rows[row]);
+                } else if name == "IntentCheck" && phase == "pre" {
+                    if pre_rows[step_i] >= 0 {
+                        return MirIntentPhaseProjectionError(projection,
+                            "MIR intent pre phase cardinality is invalid");
+                    }
+                    ArraySet(pre_texts, step_i, carrier_expr0s[row]);
+                    ArraySet(pre_rows, step_i, carrier_rows[row]);
+                } else if name == "IntentCheck" &&
+                    (phase == "invariant-pre" || phase == "invariant-post") {
+                    if (phase == "invariant-pre" && invariant_pre_rows[step_i] >= 0) ||
+                        (phase == "invariant-post" && invariant_post_rows[step_i] >= 0) ||
+                        (invariant_texts[step_i] != "" &&
+                         invariant_texts[step_i] != carrier_expr0s[row]) {
+                        return MirIntentPhaseProjectionError(projection,
+                            "MIR intent invariant phase identity/cardinality is invalid");
+                    }
+                    ArraySet(invariant_texts, step_i, carrier_expr0s[row]);
+                    if phase == "invariant-pre" {
+                        ArraySet(invariant_pre_rows, step_i, carrier_rows[row]);
+                    } else {
+                        ArraySet(invariant_post_rows, step_i, carrier_rows[row]);
+                    }
                 } else if name == "IntentEval" && phase == "compensate" {
                     ArrayPush(compensate_texts, carrier_expr0s[row]);
                     ArrayPush(compensate_rows, carrier_rows[row]);
@@ -232,13 +272,20 @@ func MirIntentPhaseProjectionFromCarriers(
                 projection, "MIR intent on phase cardinality is invalid"
             );
         }
+        if (invariant_pre_rows[step_i] >= 0 || invariant_post_rows[step_i] >= 0) &&
+            !MirIntentInvariantCarrierGraphsEqual(routines,
+                invariant_pre_rows[step_i], invariant_post_rows[step_i]) {
+            return MirIntentPhaseProjectionError(projection,
+                "MIR intent invariant pre/post graphs do not share one expression");
+        }
         ArrayPush(compensate_counts, compensate_count);
         step_i = step_i + 1;
     }
     return MirIntentPhaseProjection(
-        true, "", on_texts, on_results, on_type_names, on_rows,
+        true, "", success_text, success_row, on_texts, on_results, on_type_names, on_rows,
         guard_texts, guard_rows, expect_texts, expect_rows,
-        post_texts, post_rows, compensate_starts, compensate_counts,
-        compensate_texts, compensate_rows, carrier_count
+        post_texts, post_rows, pre_texts, pre_rows, invariant_texts,
+        invariant_pre_rows, invariant_post_rows, compensate_starts, compensate_counts,
+        compensate_texts, compensate_rows, on_phases
     );
 }

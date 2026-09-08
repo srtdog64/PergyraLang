@@ -28,6 +28,7 @@ type_check_with_stmt_flow(ASTNode *node, SemanticContext *ctx,
 
     sym = symbol_create_slot(alias, slot_type, is_secure, NULL,
                              node->line, node->column);
+    symbol_mark_declaration(sym, ast_node_stable_id(node), false);
     scope_declare(ctx->scope, sym);
     scope_register_slot(ctx->scope, sym);
 
@@ -64,7 +65,7 @@ type_check_unsafe_block_flow(ASTNode *node, SemanticContext *ctx,
 
     body = ast_unsafe_block_body(node);
     return body != NULL
-        ? type_check_block_flow(body, ctx, loop_flow)
+        ? type_check_statement_flow(body, ctx, loop_flow)
         : FLOW_FALLTHROUGH;
 }
 

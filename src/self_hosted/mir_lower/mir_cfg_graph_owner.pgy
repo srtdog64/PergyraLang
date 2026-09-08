@@ -43,8 +43,8 @@ func MirRoutineGraphDistances(
 }
 
 func MirRoutineGraphDistancesAvoiding(
-    block_succ_true: Array<Int>,
-    block_succ_false: Array<Int>,
+    ref block_succ_true: Array<Int>,
+    ref block_succ_false: Array<Int>,
     start: Int,
     blocked: Int
 ) -> Array<Int> {
@@ -88,8 +88,8 @@ func MirRoutineGraphDistancesAvoiding(
 }
 
 func MirRoutineGraphCanReachAvoiding(
-    block_succ_true: Array<Int>,
-    block_succ_false: Array<Int>,
+    ref block_succ_true: Array<Int>,
+    ref block_succ_false: Array<Int>,
     start: Int, want: Int, blocked: Int
 ) -> Bool {
     if want < 0 || want >= ArrayLength(block_succ_true) { return false; }

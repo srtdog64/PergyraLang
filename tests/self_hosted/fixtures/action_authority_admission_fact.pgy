@@ -1,0 +1,54 @@
+// Runs admission over source facts, not the source program under test.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_action_contract_admission_owner.pgy";
+import "../../../src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy";
+import "../../../src/self_hosted/codegen/text/text_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Die("action fact probe requires source and valid/invalid"); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let verdict: SemanticAstBodyVerdict = SemanticAstActionContractAdmissionFromFacts(
+        artifact, analysis.signatures, analysis.constructors, analysis.roles, analysis.zone_authorities);
+    if args[1] == "invalid" {
+        if verdict.ok || verdict.diagnostic_code != "action_contract_invalid" {
+            Log(verdict.diagnostic_message); Die("missing action authority accepted");
+        }
+        let receipt: SemanticPublicDiagnosticReceipt = SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            verdict.diagnostic_code, verdict.diagnostic_message);
+        if !SemanticPublicDiagnosticReceiptReadyFor(receipt, "action_contract_invalid") ||
+            receipt.code != "PGY_SEM_ACTION_CONTRACT_INVALID" ||
+            receipt.cause_ir != "semantic:action_contract" ||
+            receipt.fix_source != "align-action-surface-with-zone" { Die("action receipt drifted"); }
+    } else if args[1] == "ability" {
+        if verdict.ok || verdict.diagnostic_code != "action_ability_unsatisfied" {
+            Log(verdict.diagnostic_message); Die("missing required role implementation accepted");
+        }
+        let receipt: SemanticPublicDiagnosticReceipt = SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            verdict.diagnostic_code, verdict.diagnostic_message);
+        if !SemanticPublicDiagnosticReceiptReadyFor(receipt, "action_ability_unsatisfied") ||
+            receipt.code != "PGY_SEM_ABILITY_CONTRACT_INVALID" ||
+            receipt.cause_ir != "semantic:ability_contract" ||
+            receipt.fix_source != "align-ability-generics-or-fields" { Die("ability receipt drifted"); }
+    } else if args[1] == "accept" {
+        if !verdict.ok { Log(verdict.diagnostic_message); Die("valid action contract rejected"); }
+    } else if args[1] == "valid" {
+        if !verdict.ok { Log(verdict.diagnostic_message); Die("explicit authority rejected"); }
+        let authority_ids: Array<Int> = analysis.zone_authorities.subject_slot_node_ids;
+        if ArrayLength(authority_ids) != 1 { Die("one-authority mutation control is missing"); }
+        let saved: Int = authority_ids[0]; authority_ids[0] = artifact.count + 1;
+        verdict = SemanticAstActionContractAdmissionFromFacts(artifact, analysis.signatures,
+            analysis.constructors, analysis.roles, analysis.zone_authorities);
+        if verdict.ok { Die("crossed authority slot identity accepted"); }
+        authority_ids[0] = saved;
+        let callable_ids: Array<Int> = analysis.signatures.action_contracts.callable_node_ids;
+        let callable_saved: Int = callable_ids[0]; callable_ids[0] = artifact.count + 1;
+        verdict = SemanticAstActionContractAdmissionFromFacts(artifact, analysis.signatures,
+            analysis.constructors, analysis.roles, analysis.zone_authorities);
+        if verdict.ok { Die("crossed callable identity accepted"); }
+        callable_ids[0] = callable_saved;
+    } else { Die("unknown action fact probe expectation"); }
+    Log("action authority facts and receipt verified");
+}

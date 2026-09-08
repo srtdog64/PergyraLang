@@ -2,6 +2,46 @@
 
 import "../../semantic/ast_local_binding_fact_owner.pgy";
 import "../text/text_owner.pgy";
+import "generic_specialization_codegen_view_owner.pgy";
+
+// Materialize only the reached routine's rows. Never clone the program-global
+// local inventory for each instance or let a callee overwrite its template.
+func CodegenSemanticLocalBindingsForInstance(
+    facts: SemanticAstLocalBindingFacts,
+    signatures: SemanticAstFunctionSignatureFacts, signature_index: Int,
+    function_node_id: Int, actuals: Array<String>
+) -> SemanticAstLocalBindingFacts {
+    if ArrayLength(actuals) == 0 { return facts; }
+    let generic_count: Option<Int> = SemanticAstFunctionGenericCountAt(signatures, signature_index);
+    let range: SemanticAstLocalBindingFunctionRange = SemanticAstLocalBindingRangeForFunction(facts, function_node_id);
+    if !range.ok || !IsSome(generic_count) || UnwrapOption(generic_count) != ArrayLength(actuals) {
+        Die("generic local instance requires exact owner and actual tuple");
+    }
+    let nodes: Array<Int> = []; let functions: Array<Int> = []; let scopes: Array<Int> = [];
+    let names: Array<String> = []; let types: Array<String> = []; let declared: Array<Int> = [];
+    let initializers: Array<String> = []; let kinds: Array<Int> = []; let indices: Array<Int> = []; let arities: Array<Int> = [];
+    let row: Int = range.start;
+    while row < range.end {
+        let type_name: String = facts.declared_type_names[row];
+        if facts.has_declared_types[row] != 0 {
+            let source_types: Array<String> = [type_name]; let parameters: Array<String> = [];
+            let expressions: SemanticAstSignatureTypeExpressionFacts = SemanticAstSignatureTypeExpressionFactsFromRows(source_types, parameters);
+            let resolved: Option<String> = SemanticAstSignatureReturnTypeResolveAt(expressions, 0,
+                signatures.generic_starts[signature_index], UnwrapOption(generic_count), signatures.generic_names, actuals);
+            if !IsSome(resolved) { Die("generic local instance type is unresolved"); }
+            type_name = UnwrapOption(resolved);
+        }
+        ArrayPush(nodes, facts.node_ids[row]); ArrayPush(functions, facts.function_node_ids[row]);
+        ArrayPush(scopes, facts.scope_node_ids[row]); ArrayPush(names, facts.names[row]);
+        ArrayPush(types, type_name); ArrayPush(declared, facts.has_declared_types[row]);
+        ArrayPush(initializers, facts.initializer_texts[row]); ArrayPush(kinds, facts.binding_kinds[row]);
+        ArrayPush(indices, facts.binding_indices[row]); ArrayPush(arities, facts.binding_arities[row]);
+        row = row + 1;
+    }
+    return SemanticAstLocalBindingFacts(facts.ok, facts.diagnostic_code, facts.diagnostic_message,
+        facts.diagnostic_fact, facts.artifact_node_count, nodes, functions, scopes, names,
+        types, declared, initializers, kinds, indices, arities);
+}
 
 func CodegenSemanticLocalBindingIs(
     facts: SemanticAstLocalBindingFacts,

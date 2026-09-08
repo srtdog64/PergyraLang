@@ -22,21 +22,6 @@ func DirectMirScalarProgramOperationForExpression(
     return found;
 }
 
-func DirectMirScalarProgramRoutineForOperation(
-    ref counts: Array<Int>, operation: Int
-) -> Int {
-    let start: Int = 0;
-    let routine: Int = 0;
-    while routine < ArrayLength(counts) {
-        if operation >= start && operation < start + counts[routine] {
-            return routine;
-        }
-        start = start + counts[routine];
-        routine = routine + 1;
-    }
-    return -1;
-}
-
 func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
     ref callables: DirectMirScalarCfgProgramCallableInventory,
     ref storage: DirectMirScalarCfgProgramGraphStorage,
@@ -80,8 +65,9 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
                             "owner-handle" &&
                         callables.parameter_types[parameter] ==
                             CompilerAbiLayoutArrayStringTypeName() {
-                        if ordinal >= ArrayLength(arguments) || node !=
-                                expressions.graph_roots[graph] {
+                        if ordinal >= ArrayLength(arguments) ||
+                            !DirectMirScalarProgramOwnedArrayStringMoveEagerPathReady(
+                                expressions, graph, node) {
                             return DirectMirScalarProgramOwnedArrayStringMoveFactInvalid();
                         }
                         let argument: Int = arguments[ordinal];
@@ -89,12 +75,18 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(
                             DirectMirScalarProgramOperationForExpression(
                                 storage, graph);
                         let routine: Int =
-                            DirectMirScalarProgramRoutineForOperation(
+                            DirectMirScalarProgramRoutinePartitionOwner(
                                 storage.routines.operation_counts, operation);
+                        if operation == -1 {
+                            let returned: Int =
+                                DirectMirScalarProgramOwnedArrayStringMoveReturnBlock(storage, graph);
+                            routine = DirectMirScalarProgramRoutinePartitionOwner(
+                                storage.routines.block_counts, returned);
+                        }
                         let local_start: Int =
                             DirectMirScalarProgramRoutinePartitionStart(
                                 storage.routines.local_counts, routine);
-                        if target != 1 || routine < 0 || local_start < 0 ||
+                        if routine < 0 || local_start < 0 ||
                             expressions.node_kinds[argument] !=
                                 DirectMirScalarProgramExprLocal() ||
                             expressions.node_types[argument] !=

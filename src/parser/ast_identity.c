@@ -238,6 +238,25 @@ ast_assign_node(ASTNode *node, AstIdentityState *next_id)
         break;
     case AST_LET_DESTRUCTURE:
         ast_assign_node(node->data.let_destructure.initializer, next_id);
+        if (node->data.let_destructure.field_bindings == NULL) {
+            size_t count = node->data.let_destructure.name_count;
+            free(node->data.let_destructure.local_binding_syntax_ids);
+            node->data.let_destructure.local_binding_syntax_ids = NULL;
+            if (count > SIZE_MAX / sizeof(uint32_t)) {
+                next_id->exhausted = true;
+                break;
+            }
+            if (count > 0) {
+                uint32_t *ids = calloc(count, sizeof(uint32_t));
+                if (ids == NULL) {
+                    next_id->exhausted = true;
+                    break;
+                }
+                node->data.let_destructure.local_binding_syntax_ids = ids;
+                for (size_t i = 0; i < count; i++)
+                    ids[i] = ast_take_stable_id(next_id);
+            }
+        }
         break;
     case AST_TYPE_ALIAS:
         ast_assign_node(node->data.type_alias.target_type, next_id);

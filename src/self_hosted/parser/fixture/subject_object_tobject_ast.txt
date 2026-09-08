@@ -1,18 +1,18 @@
 Program:
   Subject: Player
     Fields:
-      name: String
-      hp: Int
-      level: Int
-      score: Int
+      let name: String
+      let hp: Int
+      let level: Int
+      let score: Int
   Object: PlayerView
     Fields:
-      name: String
-      hp: Int
+      let name: String
+      let hp: Int
   TObject: PlayerSummary
     Fields:
-      name: String
-      level: Int
+      let name: String
+      let level: Int
   Function: Main
     Parameters:
     Returns: Void
@@ -27,4 +27,3 @@ Program:
         Let: summary : PlayerSummary = ToTObject(PlayerSummary, p)
         Log(summary.name)
         Log(summary.level)
-

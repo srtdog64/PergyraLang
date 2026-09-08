@@ -16,6 +16,8 @@ mir_decl_where_clause(ASTNode *decl)
     if (decl == NULL)
         return NULL;
     switch (decl->type) {
+    case AST_FUNC_DECL:
+        return ast_func_where_clause(decl);
     case AST_ABILITY_DECL:
         return ast_ability_where_clause(decl);
     case AST_ROLE_DECL:
@@ -98,6 +100,21 @@ mir_capture_where_constraint(WhereClause *where,
     return true;
 }
 
+bool
+mir_generic_param_bound_capture(ASTNode *decl, GenericParam *param,
+                                char **constraint_out)
+{
+    ASTNode *constraint;
+    if (param == NULL || constraint_out == NULL)
+        return false;
+    constraint = ast_generic_param_constraint(param);
+    *constraint_out = mir_capture_type_name(constraint, NULL);
+    if (constraint != NULL)
+        return *constraint_out != NULL;
+    return mir_capture_where_constraint(mir_decl_where_clause(decl),
+        ast_generic_param_name(param), constraint_out);
+}
+
 static void
 mir_decl_generic_metadata_clear(MIRDeclGenericParam *metadata, size_t count)
 {
@@ -128,14 +145,12 @@ bool
 mir_decl_header_set_generics(MIRDeclHeader *header, ASTNode *decl)
 {
     GenericParams *params;
-    WhereClause *where;
     size_t count;
 
     if (header == NULL)
         return false;
 
     params = ast_declaration_generic_params(decl);
-    where = mir_decl_where_clause(decl);
     count = ast_generic_param_count(params);
     header->generic_param_count = count;
     header->generic_metadata = NULL;
@@ -152,34 +167,23 @@ mir_decl_header_set_generics(MIRDeclHeader *header, ASTNode *decl)
     for (size_t i = 0; i < count; i++) {
         GenericParam *param = ast_generic_param_at(params, i);
         MIRDeclGenericParam *meta = &header->generic_metadata[i];
-        ASTNode *constraint;
         ASTNode *default_type;
-        char *where_constraint = NULL;
 
         if (param == NULL) {
             mir_decl_header_free_generics(header);
             return false;
         }
 
-        constraint = ast_generic_param_constraint(param);
         default_type = ast_generic_param_default_type(param);
         meta->name = ast_generic_param_name(param);
-        meta->bound_type_name = mir_capture_type_name(constraint, NULL);
-        if (meta->bound_type_name == NULL
-            && !mir_capture_where_constraint(
-                where, meta->name, &where_constraint)) {
+        if (!mir_generic_param_bound_capture(
+                decl, param, &meta->bound_type_name)) {
             mir_decl_header_free_generics(header);
             return false;
         }
-        if (meta->bound_type_name == NULL) {
-            meta->bound_type_name = where_constraint;
-            where_constraint = NULL;
-        }
-        free(where_constraint);
         meta->default_arg_type_name =
             mir_capture_type_name(default_type, NULL);
         if (meta->name == NULL
-            || (constraint != NULL && meta->bound_type_name == NULL)
             || (default_type != NULL
                 && meta->default_arg_type_name == NULL)) {
             mir_decl_header_free_generics(header);

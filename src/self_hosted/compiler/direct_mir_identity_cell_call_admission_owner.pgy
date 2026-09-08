@@ -1,0 +1,44 @@
+// Resolve the carried method SyntaxNodeId, then prepend its typed receiver.
+// Selector spelling confirms an owned target; it never selects the routine.
+import "direct_mir_scalar_program_callable_inventory_owner.pgy";
+import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
+import "direct_mir_scalar_program_direct_call_fact_owner.pgy";
+
+func DirectMirIdentityCellCallFromGraph(
+    ref sequence: MirExpressionGraphSequence, call: Int,
+    ref source_rows: Array<Int>, ref types: Array<String>, arguments: Array<Int>,
+    ref callables: DirectMirScalarCfgProgramCallableInventory
+) -> DirectMirScalarProgramDirectCallFact {
+    let invalid: DirectMirScalarProgramDirectCallFact = DirectMirScalarProgramDirectCallFactInvalid(true);
+    if !DirectMirScalarProgramMemberCallMarkerReady(sequence, call) { return invalid; }
+    let ordinal: Int = DirectMirScalarProgramCallableOrdinalAtCall(callables, sequence, call);
+    if !DirectMirScalarCfgProgramCallableInventoryOrdinalReady(callables, ordinal) { return invalid; }
+    let signature: DirectMirRoutineSignatureFact = DirectMirRoutineInstanceSignatureAt(callables.instances, ordinal);
+    if !DirectMirRoutineSignatureFactReady(signature) || signature.kind != "method" ||
+        signature.receiver_carriage != "mutable-identity" { return invalid; }
+    let callee: Int = DirectMirScalarProgramCallCalleeBase(sequence, call);
+    let receiver: Int = sequence.arena.topology.left_children[callee];
+    let member: Int = sequence.arena.topology.right_children[callee];
+    // MIR producers retain either the local display name or its qualified
+    // projection. Neither can override the already-joined source identity.
+    if receiver >= ArrayLength(source_rows) || source_rows[receiver] < 0 ||
+        source_rows[receiver] >= ArrayLength(types) || types[source_rows[receiver]] != signature.receiver_type ||
+        sequence.arena.node_texts[member] != callables.source_names[ordinal - 1] ||
+        (sequence.arena.call_target_names[call] != signature.name &&
+         sequence.arena.call_target_names[call] != callables.source_names[ordinal - 1]) { return invalid; }
+    let cell: Int = DirectMirIdentityCellRow(callables.instances.identity_cells, signature.receiver_type);
+    if cell < 0 || callables.instances.identity_cells.declaration_rows[cell] != signature.receiver_owner_row { return invalid; }
+    let rows: Array<Int> = [source_rows[receiver]];
+    let argument: Int = 0;
+    while argument < ArrayLength(arguments) {
+        let value: Int = arguments[argument];
+        let parameter: Int = argument + 1;
+        if parameter >= signature.param_count || value < 0 || value >= ArrayLength(types) ||
+            types[value] != signature.parameters.type_names[parameter] ||
+            signature.parameters.carriages[parameter] != "value" { return invalid; }
+        ArrayPush(rows, value);
+        argument = argument + 1;
+    }
+    return DirectMirScalarProgramDirectCallFact(true, true,
+        ArrayLength(rows) == signature.param_count, rows, call, ordinal, -1, signature.return_type);
+}

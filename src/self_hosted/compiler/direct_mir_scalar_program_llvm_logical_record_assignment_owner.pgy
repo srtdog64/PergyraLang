@@ -22,6 +22,7 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>,
+    array_int_projection: Option<DirectMirArrayIntAbiProjection>,
     target: CompilerTargetProjectionFact
 ) -> String {
     if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
@@ -35,17 +36,17 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(
     let target_expression: DirectMirScalarProgramLlvmExpression =
         DirectMirScalarProgramLlvmExpressionAt(
             plan.program.expressions, target_row, runtime,
-            plan.program.nominal_abi, plan.program.logical_record,
+            plan.program.logical_record,
             plan.program.payload_free_enum, plan.program.referenced_enum,
             plan.routines, routine, plan.program.array_string_abi,
-            array_string_projection, target);
+            array_string_projection, plan.program.array_int_value_result, array_int_projection, target);
     let value_expression: DirectMirScalarProgramLlvmExpression =
         DirectMirScalarProgramLlvmExpressionAt(
             plan.program.expressions, value_row, runtime,
-            plan.program.nominal_abi, plan.program.logical_record,
+            plan.program.logical_record,
             plan.program.payload_free_enum, plan.program.referenced_enum,
             plan.routines, routine, plan.program.array_string_abi,
-            array_string_projection, target);
+            array_string_projection, plan.program.array_int_value_result, array_int_projection, target);
     let element_type: String =
         DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentElementType(
             plan, operation);
@@ -136,14 +137,15 @@ func DirectMirScalarProgramLlvmLogicalRecordAssignment(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>,
+    array_int_projection: Option<DirectMirArrayIntAbiProjection>,
     target: CompilerTargetProjectionFact
 ) -> String {
     if plan.operation_kinds[operation] ==
             DirectMirScalarCfgOpLogicalRecordMemberRebind() {
         return DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
-            plan, routine, operation, runtime, array_string_projection,
+            plan, routine, operation, runtime, array_string_projection, array_int_projection,
             target);
     }
     return DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(
-        plan, routine, operation, runtime, array_string_projection, target);
+        plan, routine, operation, runtime, array_string_projection, array_int_projection, target);
 }

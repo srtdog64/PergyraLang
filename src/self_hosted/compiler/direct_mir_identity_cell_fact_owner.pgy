@@ -1,0 +1,235 @@
+// Compiler-private nominal cells. These are noncopy identities, not passive
+// record values. Declaration/field handles and the exact layout absence are
+// retained; call/local lifetime admission belongs to the common GraphPlan.
+// A frame-owned Zone cell contains fresh Subject cells through typed slot
+// pointers and a private generation word, not a passive record or value copy.
+import "../mir_lower/program_declaration_index_owner.pgy";
+import "../mir_lower/abi_layout_fact_owner.pgy";
+import "../semantic/callable_receiver_carriage_policy_owner.pgy";
+import "../mir/declaration_wire_kind_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "direct_mir_exact_json_array_cardinality_owner.pgy";
+
+struct DirectMirIdentityCellFacts {
+    let valid: Bool;
+    let digest: Int;
+    let names: Array<String>;
+    let declaration_rows: Array<Int>;
+    let source_syntax_ids: Array<Int>;
+    let nominal_kinds: Array<String>;
+    let field_starts: Array<Int>;
+    let field_counts: Array<Int>;
+    let field_names: Array<String>;
+    let field_types: Array<String>;
+    let field_source_syntax_ids: Array<Int>;
+    let field_kinds: Array<String>;
+}
+
+func DirectMirIdentityCellFactsDigest(ref fact: DirectMirIdentityCellFacts) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirCfgHashString(733L, "compiler-private-noncopy-cell");
+    hash = DirectMirScalarCfgHashStrings(hash, fact.names);
+    hash = DirectMirScalarCfgHashInts(hash, fact.declaration_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.source_syntax_ids);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.nominal_kinds);
+    hash = DirectMirScalarCfgHashInts(hash, fact.field_starts);
+    hash = DirectMirScalarCfgHashInts(hash, fact.field_counts);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.field_names);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.field_types);
+    hash = DirectMirScalarCfgHashInts(hash, fact.field_source_syntax_ids);
+    hash = DirectMirScalarCfgHashStrings(hash, fact.field_kinds);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirIdentityCellFactsSeal(fact: DirectMirIdentityCellFacts) -> DirectMirIdentityCellFacts {
+    return DirectMirIdentityCellFacts(fact.valid, DirectMirIdentityCellFactsDigest(fact),
+        fact.names, fact.declaration_rows, fact.source_syntax_ids, fact.nominal_kinds,
+        fact.field_starts, fact.field_counts, fact.field_names, fact.field_types,
+        fact.field_source_syntax_ids, fact.field_kinds);
+}
+
+func DirectMirIdentityCellFactsEmpty() -> DirectMirIdentityCellFacts {
+    let strings: Array<String> = []; let ints: Array<Int> = [];
+    return DirectMirIdentityCellFactsSeal(DirectMirIdentityCellFacts(true, 0,
+        strings, ints, ints, strings, ints, ints, strings, strings, ints, strings));
+}
+
+func DirectMirIdentityCellNominalKindReady(nominal_kind: String) -> Bool {
+    return CallableReceiverNominalKindUsesMutableLiteralIdentity(nominal_kind) ||
+        nominal_kind == "zone";
+}
+
+func DirectMirIdentityCellFieldTypeReady(type_name: String) -> Bool {
+    return type_name == "Int" || type_name == "Bool" || type_name == "String";
+}
+
+func DirectMirIdentityCellFactsReady(ref fact: DirectMirIdentityCellFacts) -> Bool {
+    let count: Int = ArrayLength(fact.names);
+    let fields: Int = ArrayLength(fact.field_names);
+    if !fact.valid || fact.digest == 0 || fact.digest != DirectMirIdentityCellFactsDigest(fact) ||
+        count != ArrayLength(fact.declaration_rows) || count != ArrayLength(fact.source_syntax_ids) ||
+        count != ArrayLength(fact.nominal_kinds) || count != ArrayLength(fact.field_starts) ||
+        count != ArrayLength(fact.field_counts) || fields != ArrayLength(fact.field_types) ||
+        fields != ArrayLength(fact.field_source_syntax_ids) ||
+        fields != ArrayLength(fact.field_kinds) { return false; }
+    let row: Int = 0; let next_field: Int = 0;
+    while row < count {
+        if fact.names[row] == "" || fact.source_syntax_ids[row] <= 0 || fact.declaration_rows[row] < 0 ||
+            !DirectMirIdentityCellNominalKindReady(fact.nominal_kinds[row]) ||
+            fact.field_starts[row] != next_field || fact.field_counts[row] <= 0 ||
+            next_field + fact.field_counts[row] > fields { return false; }
+        let prior: Int = 0;
+        while prior < row {
+            if fact.names[prior] == fact.names[row] || fact.source_syntax_ids[prior] == fact.source_syntax_ids[row] ||
+                fact.declaration_rows[prior] == fact.declaration_rows[row] { return false; }
+            prior = prior + 1;
+        }
+        let end: Int = next_field + fact.field_counts[row];
+        let field: Int = next_field;
+        while field < end {
+            if fact.field_names[field] == "" || fact.field_source_syntax_ids[field] <= 0 ||
+                fact.field_source_syntax_ids[field] == fact.source_syntax_ids[row] { return false; }
+            if fact.nominal_kinds[row] == "zone" {
+                let subject_row: Int = DirectMirIdentityCellRow(fact, fact.field_types[field]);
+                if fact.field_kinds[field] != "subject_slot" || subject_row < 0 ||
+                    fact.nominal_kinds[subject_row] != "subject" { return false; }
+            } else if fact.field_kinds[field] != "field" ||
+                !DirectMirIdentityCellFieldTypeReady(fact.field_types[field]) { return false; }
+            prior = next_field;
+            while prior < field {
+                if fact.field_names[prior] == fact.field_names[field] ||
+                    fact.field_source_syntax_ids[prior] == fact.field_source_syntax_ids[field] { return false; }
+                prior = prior + 1;
+            }
+            field = field + 1;
+        }
+        next_field = end; row = row + 1;
+    }
+    return next_field == fields;
+}
+
+func DirectMirIdentityCellRow(ref fact: DirectMirIdentityCellFacts, type_name: String) -> Int {
+    if !fact.valid || type_name == "" { return -1; }
+    let row: Int = 0; let found: Int = -1;
+    while row < ArrayLength(fact.names) {
+        if fact.names[row] == type_name {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func DirectMirIdentityCellEnvelopeSyntaxId(
+    json: String, ref declarations: MirProgramDeclarationIndex, row: Int
+) -> Int {
+    if !declarations.valid || row < 0 || row >= MirProgramDeclarationIndexCount(declarations) ||
+        !DirectMirIdentityCellNominalKindReady(declarations.nominal_kinds[row]) ||
+        declarations.kinds[row] != MirDeclarationWireKind(declarations.nominal_kinds[row]) { return 0; }
+    let start: Int = declarations.starts[row]; let end: Int = declarations.ends[row];
+    let table: JsonObjectFactTable = JsonObjectFactTableFromBounds(json, start, end);
+    let keys: Array<String> = ["kind", "nominal_kind", "name", "source_syntax_id",
+        "source_module_path", "fields", "methods"];
+    let starts: Array<Int> = [-1, -1, -1, -1, -1, -1, -1];
+    let ends: Array<Int> = [-1, -1, -1, -1, -1, -1, -1];
+    if declarations.nominal_kinds[row] == "zone" {
+        ArrayPush(keys, "zone_authorities"); ArrayPush(starts, -1); ArrayPush(ends, -1);
+    }
+    // The producer owns the nominal envelope, including Zone authority rows.
+    // ABI/generic/authority obligations cannot disappear as an unused member.
+    if !JsonObjectFactTableReady(table) || JsonObjectFactCount(table) != ArrayLength(keys) ||
+        !MirAbiSelectedObjectBoundsWithin(json, start, end, keys, starts, ends) ||
+        !MirAbiAllBoundsPresent(starts, ends) { return 0; }
+    let kind: Option<String> = MirAbiStringValueAtBounds(json, starts[0], ends[0], false);
+    let nominal: Option<String> = MirAbiStringValueAtBounds(json, starts[1], ends[1], false);
+    let name: Option<String> = MirAbiStringValueAtBounds(json, starts[2], ends[2], false);
+    let syntax: Option<String> = MirAbiIntegerValueAtBounds(json, starts[3], ends[3]);
+    let path: Option<String> = MirAbiStringValueAtBounds(json, starts[4], ends[4], false);
+    if !IsSome(kind) || !IsSome(nominal) || !IsSome(name) || !IsSome(syntax) || !IsSome(path) ||
+        UnwrapOption(kind) != declarations.kinds[row] || UnwrapOption(nominal) != declarations.nominal_kinds[row] ||
+        UnwrapOption(name) != declarations.names[row] || UnwrapOption(path) != declarations.source_module_paths[row] { return 0; }
+    let methods: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(json, starts[6], ends[6]);
+    if !methods.valid { return 0; }
+    if declarations.nominal_kinds[row] == "zone" {
+        let authorities: JsonArrayObjectFactTable = JsonArrayObjectFactTableFromBounds(json, starts[7], ends[7]);
+        if !DirectMirExactObjectArrayCount(methods, 0) ||
+            !DirectMirExactObjectArrayCount(authorities, 0) { return 0; }
+    }
+    return ToInt(UnwrapOption(syntax));
+}
+
+func DirectMirIdentityCellFieldOrdinal(
+    ref fact: DirectMirIdentityCellFacts, type_name: String, field_name: String
+) -> Int {
+    let row: Int = DirectMirIdentityCellRow(fact, type_name);
+    if row < 0 { return -1; }
+    let ordinal: Int = 0;
+    while ordinal < fact.field_counts[row] {
+        if fact.field_names[fact.field_starts[row] + ordinal] == field_name { return ordinal; }
+        ordinal = ordinal + 1;
+    }
+    return -1;
+}
+
+func DirectMirIdentityCellFieldType(
+    ref fact: DirectMirIdentityCellFacts, type_name: String, ordinal: Int
+) -> String {
+    let row: Int = DirectMirIdentityCellRow(fact, type_name);
+    if row < 0 || ordinal < 0 || ordinal >= fact.field_counts[row] { return ""; }
+    return fact.field_types[fact.field_starts[row] + ordinal];
+}
+
+func DirectMirIdentityCellFactsFromDeclarations(
+    json: String, ref declarations: MirProgramDeclarationIndex
+) -> DirectMirIdentityCellFacts {
+    let result: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsEmpty();
+    if !declarations.valid || !declarations.field_identities.valid {
+        Die("direct MIR identity cell declaration owner is invalid");
+    }
+    let row: Int = 0; let cursor: Int = 0;
+    let fields: Int = ArrayLength(declarations.field_identities.field_names);
+    while row < MirProgramDeclarationIndexCount(declarations) {
+        let start: Int = cursor;
+        while cursor < fields && declarations.field_identities.field_owner_indices[cursor] == row {
+            cursor = cursor + 1;
+        }
+        let syntax: Int = DirectMirIdentityCellEnvelopeSyntaxId(json, declarations, row);
+        let supported: Bool = syntax > 0 && cursor > start;
+        let field: Int = start;
+        while field < cursor {
+            if !MirProgramDeclarationFieldIdentityPositiveDecimal(
+                    declarations.field_identities.field_source_syntax_ids[field]) { supported = false; }
+            if declarations.nominal_kinds[row] == "zone" {
+                let subject_row: Int = MirProgramDeclarationFieldIdentityDeclarationIndex(
+                    declarations.field_identities, declarations.field_identities.field_type_names[field]);
+                if declarations.field_identities.field_kinds[field] != "subject_slot" ||
+                    subject_row < 0 || declarations.nominal_kinds[subject_row] != "subject" { supported = false; }
+            } else if declarations.field_identities.field_kinds[field] != "field" ||
+                !DirectMirIdentityCellFieldTypeReady(declarations.field_identities.field_type_names[field]) { supported = false; }
+            field = field + 1;
+        }
+        if supported {
+            ArrayPush(result.names, declarations.names[row]);
+            ArrayPush(result.declaration_rows, row); ArrayPush(result.source_syntax_ids, syntax);
+            ArrayPush(result.nominal_kinds, declarations.nominal_kinds[row]);
+            ArrayPush(result.field_starts, ArrayLength(result.field_names));
+            ArrayPush(result.field_counts, cursor - start);
+            field = start;
+            while field < cursor {
+                ArrayPush(result.field_names, declarations.field_identities.field_names[field]);
+                ArrayPush(result.field_types, declarations.field_identities.field_type_names[field]);
+                ArrayPush(result.field_source_syntax_ids,
+                    ToInt(declarations.field_identities.field_source_syntax_ids[field]));
+                ArrayPush(result.field_kinds, declarations.field_identities.field_kinds[field]);
+                field = field + 1;
+            }
+        }
+        row = row + 1;
+    }
+    let sealed: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsSeal(result);
+    if cursor != fields || !DirectMirIdentityCellFactsReady(sealed) {
+        Die("direct MIR identity cell declaration inventory is invalid");
+    }
+    return sealed;
+}

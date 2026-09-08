@@ -252,6 +252,23 @@ void pgy_array_sort_String(char **arr, size_t n)
 void pgy_array_sort_Bool(bool *arr, size_t n)
 { if (n > 1) qsort(arr, n, sizeof(bool), pgy_array_sort_export_cmp_Bool); }
 
+/* Reverse, like sort, mutates element storage without replacing the descriptor. */
+#define PGY_DEFINE_ARRAY_REVERSE_EXPORT(type, suffix) \
+    void pgy_array_reverse_##suffix(type *data, size_t count) { \
+        for (size_t i = 0; i < count / 2; ++i) { \
+            type value = data[i]; \
+            data[i] = data[count - 1 - i]; \
+            data[count - 1 - i] = value; \
+        } \
+    }
+PGY_DEFINE_ARRAY_REVERSE_EXPORT(int32_t, Int)
+PGY_DEFINE_ARRAY_REVERSE_EXPORT(int64_t, Long)
+PGY_DEFINE_ARRAY_REVERSE_EXPORT(float, Float)
+PGY_DEFINE_ARRAY_REVERSE_EXPORT(double, Double)
+PGY_DEFINE_ARRAY_REVERSE_EXPORT(char *, String)
+PGY_DEFINE_ARRAY_REVERSE_EXPORT(bool, Bool)
+#undef PGY_DEFINE_ARRAY_REVERSE_EXPORT
+
 void
 pgy_map_keys_raw_export(void *map_ptr, void *out_array_ptr)
 {

@@ -5,5 +5,8 @@
 
 bool mir_decl_header_set_generics(MIRDeclHeader *header, ASTNode *decl);
 void mir_decl_header_free_generics(MIRDeclHeader *header);
+/* Captures the admitted declaration bound; NULL means explicitly unbounded. */
+bool mir_generic_param_bound_capture(ASTNode *decl, GenericParam *param,
+                                     char **constraint_out);
 
 #endif /* PGY_MIR_DECL_HEADER_GENERIC_METADATA_H */

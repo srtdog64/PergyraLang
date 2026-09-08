@@ -1,0 +1,130 @@
+import "../../../src/self_hosted/codegen/text/owned_string_join_owner.pgy";
+import "../../../src/self_hosted/codegen/emission/expression_c_text_materialization_owner.pgy";
+
+func JoinAtReturn() -> String {
+    let fragments: Array<String> = [];
+    ArrayPushOwnedString(fragments, Concat("actual", "-return"));
+    return CodegenJoinOwnedStringFragments(fragments, "");
+}
+func JoinNested() -> String {
+    let fragments: Array<String> = [];
+    ArrayPushOwnedString(fragments, Concat("actual", "-nested"));
+    return Concat(CodegenJoinOwnedStringFragments(fragments, ""), "!");
+}
+func Wrap(prefix: String, value: String, suffix: String) -> String {
+    return Concat(prefix, Concat(value, suffix));
+}
+func JoinNaryArgument() -> String {
+    let fragments: Array<String> = [];
+    ArrayPushOwnedString(fragments, Concat("actual", "-nary"));
+    return Wrap("[", CodegenJoinOwnedStringFragments(fragments, ""), "]");
+}
+func JoinAfterLoop(count: Int) -> String {
+    let fragments: Array<String> = [];
+    let i: Int = 0;
+    while i < count {
+        ArrayPushOwnedString(fragments, Concat("loop:", ToString(i)));
+        i = i + 1;
+    }
+    return CodegenJoinOwnedStringFragments(fragments, ",");
+}
+func JoinAfterEarlyReturn(skip: Bool) -> String {
+    if skip { return "skipped"; }
+    let fragments: Array<String> = [];
+    ArrayPushOwnedString(fragments, Concat("actual", "-early"));
+    return CodegenJoinOwnedStringFragments(fragments, "");
+}
+func JoinAfterBranch(left: Bool) -> String {
+    let fragments: Array<String> = [];
+    if left { ArrayPushOwnedString(fragments, Concat("branch", "-left")); }
+    else { ArrayPushOwnedString(fragments, Concat("branch", "-right")); }
+    return CodegenJoinOwnedStringFragments(fragments, "");
+}
+func CommitActualRoot() -> String {
+    let fragments: Array<String> = [];
+    let root: String = Concat("commit", "-root");
+    let value: CodegenCExpressionText = CodegenCExpressionTextOwned(fragments, root);
+    return CodegenCExpressionTextCommitRoot(fragments, value);
+}
+func JoinBeforeBranch(left: Bool) -> String {
+    let fragments: Array<String> = [];
+    ArrayPushOwnedString(fragments, Concat("actual", "-moved"));
+    let joined: String = CodegenJoinOwnedStringFragments(fragments, "");
+    if left { return Concat(joined, "-left"); }
+    return Concat(joined, "-right");
+}
+func JoinBeforeLoop(count: Int) -> String {
+    let fragments: Array<String> = [];
+    ArrayPushOwnedString(fragments, Concat("after", ":"));
+    let joined: String = CodegenJoinOwnedStringFragments(fragments, "");
+    let i: Int = 0;
+    while i < count { i = i + 1; }
+    return Concat(joined, ToString(i));
+}
+struct OwnedEmission { body: String; cleanup: String; }
+struct WideOwnedEmission { prefix: String; body: String; suffix: String; }
+func ConsumingRecord() -> OwnedEmission {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("constructor", "-two"));
+    return OwnedEmission(CodegenJoinOwnedStringFragments(rows, ""), "cleanup");
+}
+func ConsumingWideRecord() -> WideOwnedEmission {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("constructor", "-three"));
+    return WideOwnedEmission("[", CodegenJoinOwnedStringFragments(rows, ""), "]");
+}
+func JoinAtTwoExits(count: Int, early: Bool) -> String {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("pre", "fix"));
+    let i: Int = 0;
+    while i < count {
+        if early { return CodegenJoinOwnedStringFragments(rows, ""); }
+        ArrayPushOwnedString(rows, Concat("r", ToString(i)));
+        i = i + 1;
+    }
+    return CodegenJoinOwnedStringFragments(rows, "");
+}
+func JoinAtThreeExits(mode: Int) -> String {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("th", "ree"));
+    if mode == 0 { return Concat("zero:", CodegenJoinOwnedStringFragments(rows, "")); }
+    if mode == 1 { return Concat("one:", CodegenJoinOwnedStringFragments(rows, "")); }
+    return Concat("last:", CodegenJoinOwnedStringFragments(rows, ""));
+}
+func DropWithLabel(label: String, own rows: Array<String>) -> String {
+    ArrayDropOwnedStrings(rows);
+    return label;
+}
+func MoveToDifferentParameters(use_join: Bool) -> String {
+    let rows: Array<String> = [];
+    ArrayPushOwnedString(rows, Concat("tar", "get"));
+    if use_join { return CodegenJoinOwnedStringFragments(rows, ""); }
+    return DropWithLabel("alternate", rows);
+}
+func Main() -> Void {
+    Log(JoinAtReturn());
+    Log(JoinNested());
+    Log(JoinNaryArgument());
+    Log(JoinAfterLoop(2));
+    Log(JoinAfterLoop(0));
+    Log(JoinAfterEarlyReturn(true));
+    Log(JoinAfterEarlyReturn(false));
+    Log(JoinAfterBranch(true));
+    Log(JoinAfterBranch(false));
+    Log(CommitActualRoot());
+    Log(JoinBeforeBranch(true));
+    Log(JoinBeforeBranch(false));
+    Log(JoinBeforeLoop(3));
+    Log(JoinBeforeLoop(0));
+    Log(ConsumingRecord().body);
+    let wide: WideOwnedEmission = ConsumingWideRecord();
+    Log(Concat(wide.prefix, Concat(wide.body, wide.suffix)));
+    Log(JoinAtTwoExits(2, true));
+    Log(JoinAtTwoExits(2, false));
+    Log(JoinAtTwoExits(0, false));
+    Log(JoinAtThreeExits(0));
+    Log(JoinAtThreeExits(1));
+    Log(JoinAtThreeExits(2));
+    Log(MoveToDifferentParameters(true));
+    Log(MoveToDifferentParameters(false));
+}

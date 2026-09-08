@@ -25,8 +25,8 @@ func DirectMirScalarProgramLogicalRecordValueResultSignatureReady(
                 signature.parameters.pass_shapes[ordinal] == "indirect";
             if (!copyout && !readonly) ||
                 signature.parameters.resources[ordinal] != "none" ||
-                signature.parameters.abi_required[ordinal] ||
-                signature.parameters.abi_layout_ids[ordinal] != 0 {
+                !DirectMirScalarProgramLogicalRecordParameterAbiReady(
+                    logical_record, signature.parameters, ordinal) {
                 return false;
             }
             if copyout { copyout_count = copyout_count + 1; }
@@ -52,6 +52,6 @@ func DirectMirScalarProgramLogicalRecordValueResultParameterReady(
         signature.parameters.carriages[ordinal] == "value-result" &&
         signature.parameters.resources[ordinal] == "none" &&
         signature.parameters.pass_shapes[ordinal] == "direct" &&
-        !signature.parameters.abi_required[ordinal] &&
-        signature.parameters.abi_layout_ids[ordinal] == 0;
+        DirectMirScalarProgramLogicalRecordParameterAbiReady(
+            logical_record, signature.parameters, ordinal);
 }

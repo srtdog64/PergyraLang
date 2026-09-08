@@ -21,7 +21,7 @@ func MirGenericSpecializationError(
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
     return CodegenGenericSpecializationFacts(
-        false, message, ints, strings, ints, ints, strings, ints, strings
+        false, message, ints, strings, ints, ints, strings, ints, strings, strings
     );
 }
 
@@ -134,7 +134,8 @@ func MirCodegenGenericSpecializationFacts(
     json: String,
     ref signatures: SemanticAstFunctionSignatureFacts,
     ref semantic_rows: SemanticAstGenericSpecializationFacts,
-    ref expression_surfaces: SemanticAstExpressionSurfaceFacts
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref scopes: SemanticAstFunctionScopeFacts
 ) -> CodegenGenericSpecializationFacts {
     if !SemanticAstGenericSpecializationFactsReady(semantic_rows) ||
         !SemanticAstGenericSpecializationFactsMatchExpressionGraph(
@@ -151,6 +152,7 @@ func MirCodegenGenericSpecializationFacts(
     let actual_type_names: Array<String> = [];
     let call_node_ids: Array<Int> = [];
     let call_c_names: Array<String> = [];
+    let call_contexts: Array<String> = [];
 
     let table: JsonArrayObjectFactTable =
         MirGenericSpecializationTable(json);
@@ -303,6 +305,7 @@ func MirCodegenGenericSpecializationFacts(
         }
         ArrayPush(call_node_ids, UnwrapOption(call_node));
         ArrayPush(call_c_names, UnwrapOption(symbol_opt));
+        ArrayPush(call_contexts, "");
         ArraySet(matched, semantic_index, true);
         row_i = row_i + 1;
     }
@@ -315,8 +318,9 @@ func MirCodegenGenericSpecializationFacts(
         }
         expected_i = expected_i + 1;
     }
-    return CodegenGenericSpecializationFacts(
+    let raw: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFacts(
         true, "", signature_indexes, c_names, actual_starts, actual_counts,
-        actual_type_names, call_node_ids, call_c_names
+        actual_type_names, call_node_ids, call_c_names, call_contexts
     );
+    return CodegenGenericSpecializationInstantiateCalls(signatures, scopes, semantic_rows, raw);
 }

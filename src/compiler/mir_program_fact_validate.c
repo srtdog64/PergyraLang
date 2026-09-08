@@ -309,10 +309,11 @@ mir_validate_program_inventory_shape(const MIRProgram *mir,
             return false;
         }
         if (routine->has_signature && routine->generic_param_count > 0
-            && routine->generic_param_names == NULL) {
+            && (routine->generic_param_names == NULL
+                || routine->generic_param_constraints == NULL)) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
-                    "MIR routine '%s' records generic parameters without name facts",
+                    "MIR routine '%s' records generic parameters without name or constraint facts",
                     routine->name != NULL ? routine->name : "(anonymous)");
             }
             return false;
@@ -320,10 +321,11 @@ mir_validate_program_inventory_shape(const MIRProgram *mir,
         for (size_t j = 0;
              routine->has_signature && j < routine->generic_param_count; j++) {
             if (routine->generic_param_names[j] == NULL
-                || routine->generic_param_names[j][0] == '\0') {
+                || routine->generic_param_names[j][0] == '\0'
+                || routine->generic_param_constraints[j] == NULL) {
                 if (error_message != NULL) {
                     *error_message = mir_strdup_fmt(
-                        "MIR routine '%s' generic parameter[%zu] has no name fact",
+                        "MIR routine '%s' generic parameter[%zu] has no name or constraint fact",
                         routine->name != NULL
                             ? routine->name
                             : "(anonymous)",

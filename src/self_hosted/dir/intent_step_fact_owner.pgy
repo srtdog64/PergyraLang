@@ -39,6 +39,8 @@ struct SelfDirIntentResolvedStep {
     guard_node_id: Int;
     post_node_id: Int;
     expect_node_id: Int;
+    pre_node_id: Int;
+    invariant_node_id: Int;
     compensate_node_ids: Array<Int>;
     child_count: Int;
     predecessor_step_index: Int;
@@ -63,7 +65,7 @@ func SelfDirIntentResolvedStepError(
     return SelfDirIntentResolvedStep(
         false, message, -1, "", "", -1, "", "", "", "", "", -1,
         "", -1, -1, "", "", -1, -1, "", "",
-        -1, -1, -1, -1, compensate_node_ids, 0, -1, "", -1,
+        -1, -1, -1, -1, -1, -1, compensate_node_ids, 0, -1, "", -1,
         who_names, requires_names, requires_indices, authorized_names,
         SelfDirIntentStepProvenanceRowEmpty(), 0
     );
@@ -123,6 +125,7 @@ func SelfDirIntentStepFromArtifact(
     signatures: SemanticAstFunctionSignatureFacts,
     ref intent_signatures: SemanticAstIntentSignatureFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    source_intent_index: Int,
     step_node_id: Int,
     participant_aliases: Array<String>,
     participant_type_names: Array<String>,
@@ -151,6 +154,12 @@ func SelfDirIntentStepFromArtifact(
         SelfDirIntentStepClauseFactsFromArtifact(artifact, step_node_id);
     if !clauses.ok {
         return SelfDirIntentResolvedStepError(clauses.diagnostic_message);
+    }
+    if typed_transition &&
+        (clauses.pre_node_id >= 0 || clauses.invariant_node_id >= 0) {
+        return SelfDirIntentResolvedStepError(
+            "typed Intent execution plan does not yet carry pre/invariant predicates"
+        );
     }
     let canonical_transfer: String = "";
     if header.transfer_from_alias != "" && header.transfer_to_alias != "" {
@@ -209,9 +218,7 @@ func SelfDirIntentStepFromArtifact(
 
     let action_call: SemanticAstIntentActionCallFact =
         SemanticAstIntentActionCallFromText(
-            signatures, participant_aliases, participant_type_names,
-            participant_is_values, participant_start, participant_count,
-            on_text
+            signatures, intent_signatures, source_intent_index, on_text
         );
     let intent_call: SemanticAstIntentCallFact =
         SemanticAstIntentCallFactInvalid();
@@ -531,7 +538,8 @@ func SelfDirIntentStepFromArtifact(
         target_return_type_name, target_param_count,
         outcome_node_id, outcome_name, outcome_type_name,
         intent_expression_node_id, clauses.guard_node_id, clauses.post_node_id,
-        expect_node_id, clauses.compensate_node_ids, clauses.child_count,
+        expect_node_id, clauses.pre_node_id, clauses.invariant_node_id,
+        clauses.compensate_node_ids, clauses.child_count,
         predecessor, cause_name, cause_index,
         who_names, requires_names, requires_indices, authorized_names,
         provenance, edge_count

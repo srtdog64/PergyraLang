@@ -70,6 +70,15 @@ infer_spawn_return_type_name_scratch(TranspilerCtx *ctx, ASTNode *spawn_expr)
         bool generic_call = call != NULL
             && transpiler_mir_or_ast_function_is_generic(routine, decl);
         bool extern_func = transpiler_decl_is_extern_function(ctx, decl);
+        if (generic_call) {
+            char *resolved = transpiler_generic_call_return_type_from_mir(ctx, decl, call);
+            if (resolved == NULL) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "C generic spawn return requires MIR specialization metadata for '%s'", function_name);
+                return "Unknown";
+            }
+            return future_owned_type_to_scratch(ctx, resolved, "Unknown");
+        }
         if (!generic_call && !extern_func && transpiler_active_has_mir(ctx)) {
             if (routine == NULL) {
                 transpiler_set_mir_inventory_missing(ctx,
@@ -90,23 +99,12 @@ infer_spawn_return_type_name_scratch(TranspilerCtx *ctx, ASTNode *spawn_expr)
             if (return_type_name != NULL)
                 return transpiler_scratch_strdup(ctx, return_type_name);
             return_type = transpiler_mir_routine_return_type(routine);
-        } else if (generic_call || extern_func) {
+        } else if (extern_func) {
             return_type = ast_func_return_type(decl);
         } else {
             return_type = NULL;
         }
         if (return_type != NULL) {
-            if (generic_call) {
-                GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
-                size_t binding_count = 0;
-                if (transpiler_infer_generic_call_bindings(ctx, decl, call,
-                        bindings, &binding_count)) {
-                    return future_owned_type_to_scratch(ctx,
-                        transpiler_render_type_name_with_bindings(ctx,
-                            return_type, bindings, binding_count),
-                        "Unknown");
-                }
-            }
             return future_owned_type_to_scratch(ctx,
                 render_type_name_in_ctx(ctx, return_type), "Unknown");
         }

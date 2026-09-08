@@ -2,6 +2,7 @@
 
 import "cursor_owner.pgy";
 import "source_location_observation_owner.pgy";
+import "expression_scalar_fact_owner.pgy";
 
 func ParseWhileStmt(
     content: String,
@@ -50,7 +51,7 @@ func ParseLoopStmt(
     let out: String = Concat(IndentStr(stmt_indent), "While: true");
     ParserExpressionGraphsAppendInto(
         expression_graphs, TypedAstKindWhileStmtTag(),
-        AstExpressionLaneAtom(), ParserExpressionLeaf("true")
+        AstExpressionLaneAtom(), ParserExpressionBoolLiteral("true")
     );
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
     ArraySet(cursor_out, 0, i);

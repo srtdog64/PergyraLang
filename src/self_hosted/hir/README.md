@@ -14,6 +14,13 @@ are consumed during construction and do not cross the artifact boundary.
 Parser produces that artifact; codegen consumes it without rebuilding the
 arena.
 
+Field rows retain immutable `let` in both parser and native AST-text output;
+bare/`let mut`/vessel fields project to the mutable row form. The arena mode
+column is kind-discriminated: parameters keep their existing passing modes,
+while fields carry 0=mutable / 1=immutable. `TypedAstArenaFieldWriteMode` rejects
+missing or invalid modes. Nominal constructor facts carry that mode beside
+the stable source field identity; assignment does not read AST text again.
+
 `ast_expression_graph_owner.pgy` separately owns canonical expression node
 kinds, child edges, and ordered condition roots. Parser fills those rows during
 the precedence walk and carries them in `AstTreeArtifact`. Its validator rejects

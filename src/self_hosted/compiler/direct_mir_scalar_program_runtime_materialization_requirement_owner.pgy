@@ -25,8 +25,8 @@ func DirectMirScalarProgramRuntimeRequiresMaterialization(
 }
 
 func DirectMirScalarProgramSetStringRuntimeHeaderRequired(
-    local_types: Array<String>, parameter_types: Array<String>,
-    return_types: Array<String>
+    ref local_types: Array<String>, ref parameter_types: Array<String>,
+    ref return_types: Array<String>
 ) -> Bool {
     let row: Int = 0;
     while row < ArrayLength(local_types) {

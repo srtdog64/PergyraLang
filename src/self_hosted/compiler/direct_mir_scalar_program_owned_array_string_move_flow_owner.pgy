@@ -1,0 +1,324 @@
+// Owned Array<String> call sites, strict evaluation and exit-path coverage.
+import "direct_mir_scalar_program_owned_array_string_move_use_owner.pgy";
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
+
+func DirectMirScalarProgramOwnedArrayStringMoveReturnBlock(
+    ref storage: DirectMirScalarCfgProgramGraphStorage, graph: Int
+) -> Int {
+    let found: Int = -1;
+    let block: Int = 0;
+    while block < ArrayLength(storage.blocks.return_expression_rows) {
+        if storage.blocks.condition_expression_rows[block] == graph { return -2; }
+        if storage.blocks.return_expression_rows[block] == graph {
+            if found >= 0 { return -2; }
+            found = block;
+        }
+        block = block + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveOperationBlock(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    routine: Int, operation: Int
+) -> Int {
+    let start: Int = DirectMirScalarProgramRoutinePartitionStart(
+        storage.routines.block_counts, routine);
+    if start < 0 { return -1; }
+    let block: Int = start;
+    let end: Int = start + storage.routines.block_counts[routine];
+    while block < end {
+        let first: Int = storage.blocks.operation_starts[block];
+        if operation >= first && operation < first +
+                storage.blocks.operation_counts[block] { return block; }
+        block = block + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveCallBlock(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    routine: Int, operation: Int, graph: Int
+) -> Int {
+    let returned: Int = DirectMirScalarProgramOwnedArrayStringMoveReturnBlock(
+        storage, graph);
+    if operation == -1 {
+        if returned < 0 || DirectMirScalarProgramRoutinePartitionOwner(
+            storage.routines.block_counts, returned) != routine { return -1; }
+        return returned;
+    }
+    if operation < 0 || returned != -1 || operation >=
+        ArrayLength(storage.operations.expression_rows) ||
+        storage.operations.expression_rows[operation] != graph ||
+        storage.operations.secondary_expression_rows[operation] == graph {
+        return -1;
+    }
+    return DirectMirScalarProgramOwnedArrayStringMoveOperationBlock(
+        storage, routine, operation);
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveEagerPathReady(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    graph: Int, call: Int
+) -> Bool {
+    let start: Int = expressions.graph_starts[graph];
+    let end: Int = start + expressions.graph_counts[graph];
+    if call < start || call >= end || expressions.graph_roots[graph] != end - 1 {
+        return false;
+    }
+    let occurrences: Array<Int> = [];
+    let node: Int = start;
+    while node < end {
+        let count: Int = 0;
+        if node == call { count = 1; }
+        else {
+            let operands: Array<Int> = [];
+            if expressions.node_kinds[node] == DirectMirScalarProgramExprLogicalRecordConstructor() {
+                operands = DirectMirScalarProgramLogicalRecordArgumentRows(expressions, node);
+            } else {
+                operands = DirectMirScalarProgramDirectCallArgumentRows(expressions, node);
+            }
+            let index: Int = 0;
+            while index < ArrayLength(operands) {
+                let operand: Int = operands[index];
+                if operand < start || operand >= node { return false; }
+                count = count + occurrences[operand - start];
+                index = index + 1;
+            }
+            if count > 0 && expressions.node_kinds[node] !=
+                DirectMirScalarProgramExprDirectCall() &&
+                expressions.node_kinds[node] !=
+                    DirectMirScalarProgramExprConcatString() &&
+                expressions.node_kinds[node] !=
+                    DirectMirScalarProgramExprLogicalRecordConstructor() { return false; }
+        }
+        if count > 1 { return false; }
+        ArrayPush(occurrences, count);
+        node = node + 1;
+    }
+    return occurrences[end - start - 1] == 1;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveDefinitionOperation(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    routine: Int, local_row: Int
+) -> Int {
+    let found: Int = -1;
+    let operation: Int = DirectMirScalarProgramRoutinePartitionStart(
+        storage.routines.operation_counts, routine);
+    if operation < 0 { return -1; }
+    let end: Int = operation + storage.routines.operation_counts[routine];
+    while operation < end {
+        let result: Int = storage.operations.result_values[operation];
+        if result >= ArrayLength(storage.values.value_local_rows) { return -1; }
+        if result >= 0 && storage.values.value_local_rows[result] == local_row {
+            if found >= 0 || storage.operations.kinds[operation] !=
+                DirectMirScalarCfgOpExpressionDefinition() { return -1; }
+            found = operation;
+        }
+        operation = operation + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveExitPathsCovered(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    routine: Int, definition_block: Int, ref consuming_blocks: Array<Int>
+) -> Bool {
+    let start: Int = DirectMirScalarProgramRoutinePartitionStart(
+        storage.routines.block_counts, routine);
+    let count: Int = storage.routines.block_counts[routine];
+    let end: Int = start + count;
+    if start < 0 || definition_block < start || definition_block >= end ||
+        ArrayLength(consuming_blocks) == 0 { return false; }
+    let phase: Int = 0;
+    while phase < 2 {
+        let seen: Array<Bool> = [];
+        let index: Int = 0;
+        while index < count { ArrayPush(seen, false); index = index + 1; }
+        let queue: Array<Int> = [];
+        let first: Int = start;
+        if phase == 1 { first = definition_block; }
+        ArrayPush(queue, first); ArraySet(seen, first - start, true);
+        let reached: Int = 0;
+        index = 0;
+        while index < ArrayLength(queue) {
+            let block: Int = queue[index];
+            let cut: Bool = phase == 0 && block == definition_block;
+            let consumes: Bool = false;
+            let member: Int = 0;
+            while member < ArrayLength(consuming_blocks) {
+                if consuming_blocks[member] == block { consumes = true; }
+                member = member + 1;
+            }
+            if !cut && consumes {
+                if phase == 0 { return false; }
+                reached = reached + 1; cut = true;
+            }
+            if !cut {
+                let left: Int = storage.blocks.succ_true[block];
+                let right: Int = storage.blocks.succ_false[block];
+                if left < -1 || right < -1 ||
+                    (phase == 1 && left == -1 && right == -1) { return false; }
+                let edge: Int = 0;
+                while edge < 2 {
+                    let next: Int = left;
+                    if edge == 1 { next = right; }
+                    if next >= 0 {
+                        if next < start || next >= end ||
+                            (phase == 1 && next == definition_block) { return false; }
+                        if !seen[next - start] {
+                            ArraySet(seen, next - start, true); ArrayPush(queue, next);
+                        }
+                    }
+                    edge = edge + 1;
+                }
+            }
+            index = index + 1;
+        }
+        if phase == 1 && reached != ArrayLength(consuming_blocks) { return false; }
+        phase = phase + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveBlockUsesLocal(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    block: Int, local_row: Int
+) -> Bool {
+    let operation: Int = storage.blocks.operation_starts[block];
+    let end: Int = operation + storage.blocks.operation_counts[block];
+    while operation < end {
+        if DirectMirScalarProgramOperationUsesLocal(
+                storage, expressions, operation, local_row) { return true; }
+        operation = operation + 1;
+    }
+    return DirectMirScalarProgramExpressionGraphLocalUseCount(
+        expressions, storage.blocks.condition_expression_rows[block],
+        local_row) > 0 ||
+        DirectMirScalarProgramExpressionGraphLocalUseCount(
+            expressions, storage.blocks.return_expression_rows[block],
+            local_row) > 0;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveSuccessorUseAbsent(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    routine: Int, call_block: Int, local_row: Int
+) -> Bool {
+    let start: Int = DirectMirScalarProgramRoutinePartitionStart(
+        storage.routines.block_counts, routine);
+    let count: Int = storage.routines.block_counts[routine];
+    let seen: Array<Bool> = [];
+    let index: Int = 0;
+    while index < count { ArrayPush(seen, false); index = index + 1; }
+    let queue: Array<Int> = [call_block];
+    ArraySet(seen, call_block - start, true);
+    index = 0;
+    while index < ArrayLength(queue) {
+        let block: Int = queue[index];
+        if block != call_block && DirectMirScalarProgramOwnedArrayStringMoveBlockUsesLocal(
+            storage, expressions, block, local_row) { return false; }
+        let edge: Int = 0;
+        while edge < 2 {
+            let next: Int = storage.blocks.succ_true[block];
+            if edge == 1 { next = storage.blocks.succ_false[block]; }
+            if next < -1 || next == call_block { return false; }
+            if next >= 0 {
+                if next < start || next >= start + count { return false; }
+                if !seen[next - start] {
+                    ArraySet(seen, next - start, true); ArrayPush(queue, next);
+                }
+            }
+            edge = edge + 1;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveCallLastUseReady(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    routine: Int, operation: Int, graph: Int, local_row: Int, call_block: Int,
+    definition: Int, definition_block: Int
+) -> Bool {
+    if call_block < 0 ||
+        DirectMirScalarProgramExpressionGraphLocalUseCount(
+            expressions, graph, local_row) != 1 { return false; }
+    let condition: Int = storage.blocks.condition_expression_rows[call_block];
+    if condition != -1 && DirectMirScalarProgramExpressionGraphLocalUseCount(
+        expressions, condition, local_row) != 0 { return false; }
+    if operation >= 0 {
+        if !DirectMirScalarProgramReturnExpressionLocalUseAbsent(
+            expressions, storage.blocks.return_expression_rows[call_block], local_row) {
+            return false;
+        }
+        let later: Int = operation + 1;
+        let end: Int = storage.blocks.operation_starts[call_block] +
+            storage.blocks.operation_counts[call_block];
+        while later < end {
+            if DirectMirScalarProgramOperationUsesLocal(
+                storage, expressions, later, local_row) { return false; }
+            later = later + 1;
+        }
+    } else if operation != -1 || storage.blocks.succ_true[call_block] != -1 ||
+        storage.blocks.succ_false[call_block] != -1 ||
+        storage.blocks.return_expression_rows[call_block] != graph { return false; }
+    if definition < 0 || definition_block < 0 { return false; }
+    if definition_block == call_block && operation >= 0 && definition >= operation {
+        return false;
+    }
+    return DirectMirScalarProgramOwnedArrayStringMoveSuccessorUseAbsent(
+        storage, expressions, routine, call_block, local_row);
+}
+
+func DirectMirScalarProgramOwnedArrayStringMoveCoverageInputDigest(
+    valid: Bool, ref expressions: DirectMirScalarProgramExpressionSet,
+    ref block_counts: Array<Int>, ref operation_counts: Array<Int>,
+    ref local_counts: Array<Int>, ref local_types: Array<String>,
+    ref value_locals: Array<Int>, ref block_starts: Array<Int>,
+    ref block_operations: Array<Int>, ref successors_true: Array<Int>,
+    ref successors_false: Array<Int>, ref conditions: Array<Int>,
+    ref returns: Array<Int>, ref operation_kinds: Array<Int>,
+    ref result_values: Array<Int>, ref expression_rows: Array<Int>,
+    ref secondary_rows: Array<Int>, ref left_locals: Array<Int>,
+    ref right_locals: Array<Int>, ref left_values: Array<Int>,
+    ref right_values: Array<Int>,
+    ref callers: Array<Int>, ref operations: Array<Int>, ref graphs: Array<Int>,
+    ref locals: Array<Int>, ref callables: Array<Int>, ref parameters: Array<Int>,
+    ref layouts: Array<Int>, ref call_blocks: Array<Int>
+) -> Int {
+    if !valid || !expressions.valid || expressions.digest == 0 { return 0; }
+    let hash: Long = DirectMirCfgHashInt(337L, expressions.digest);
+    hash = DirectMirScalarCfgHashInts(hash, block_counts);
+    hash = DirectMirScalarCfgHashInts(hash, operation_counts);
+    hash = DirectMirScalarCfgHashInts(hash, local_counts);
+    hash = DirectMirScalarCfgHashStrings(hash, local_types);
+    hash = DirectMirScalarCfgHashInts(hash, value_locals);
+    hash = DirectMirScalarCfgHashInts(hash, block_starts);
+    hash = DirectMirScalarCfgHashInts(hash, block_operations);
+    hash = DirectMirScalarCfgHashInts(hash, successors_true);
+    hash = DirectMirScalarCfgHashInts(hash, successors_false);
+    hash = DirectMirScalarCfgHashInts(hash, conditions);
+    hash = DirectMirScalarCfgHashInts(hash, returns);
+    hash = DirectMirScalarCfgHashInts(hash, operation_kinds);
+    hash = DirectMirScalarCfgHashInts(hash, result_values);
+    hash = DirectMirScalarCfgHashInts(hash, expression_rows);
+    hash = DirectMirScalarCfgHashInts(hash, secondary_rows);
+    hash = DirectMirScalarCfgHashInts(hash, left_locals);
+    hash = DirectMirScalarCfgHashInts(hash, right_locals);
+    hash = DirectMirScalarCfgHashInts(hash, left_values);
+    hash = DirectMirScalarCfgHashInts(hash, right_values);
+    hash = DirectMirScalarCfgHashInts(hash, callers);
+    hash = DirectMirScalarCfgHashInts(hash, operations);
+    hash = DirectMirScalarCfgHashInts(hash, graphs);
+    hash = DirectMirScalarCfgHashInts(hash, locals);
+    hash = DirectMirScalarCfgHashInts(hash, callables);
+    hash = DirectMirScalarCfgHashInts(hash, parameters);
+    hash = DirectMirScalarCfgHashInts(hash, layouts);
+    hash = DirectMirScalarCfgHashInts(hash, call_blocks);
+    return DirectMirCfgBoundedDigest(hash);
+}

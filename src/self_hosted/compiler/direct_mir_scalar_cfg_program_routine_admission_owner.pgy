@@ -98,7 +98,7 @@ func DirectMirScalarCfgProgramOperationsAppendPhi(
 func DirectMirScalarCfgProgramAppendRoutine(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     routine_row: Int, routine_ordinal: Int,
-    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    callables: DirectMirScalarCfgProgramCallableInventory,
     ref input: DirectMirScalarCfgGraphInput,
     storage: DirectMirScalarCfgProgramGraphStorage,
     expressions: DirectMirScalarProgramExpressionSet,
@@ -106,7 +106,6 @@ func DirectMirScalarCfgProgramAppendRoutine(
     option_string_abi: DirectMirOptionMatchAbiFact,
     option_bool_abi: DirectMirOptionMatchAbiFact,
     result_int_abi: DirectMirResultIntAbiFact,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
@@ -121,10 +120,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
         Die("direct MIR scalar program routine input has an external collection plan");
         return invalid;
     }
-    let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(
-            admitted.routines, routine_row,
-            input.index.block_instruction_counts[0]);
-    if !DirectMirRoutineSignatureFactReady(signature) ||
+    let signature: DirectMirRoutineSignatureFact = DirectMirRoutineInstanceSignatureAt(callables.instances, routine_ordinal);
+    if !DirectMirRoutineSignatureFactReady(signature) || signature.row != routine_row ||
         (routine_ordinal == 0 && (signature.name != "Main" ||
          signature.return_type != "Void" || signature.param_count != 0)) ||
         (routine_ordinal != 0 &&
@@ -135,6 +132,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
         Die("direct MIR scalar program routine signature is invalid");
         return invalid;
     }
+    callables = DirectMirScalarProgramCallableUseContext(callables, routine_ordinal);
     option_int_abi = DirectMirScalarProgramOptionIntAbiFromRoutineParameters(option_int_abi, admitted.routines, routine_row, signature.param_count);
     option_string_abi = DirectMirScalarProgramOptionStringAbiFromRoutineParameters(option_string_abi, admitted.routines, routine_row, signature.param_count);
     let indexed_assignments:
@@ -194,11 +192,15 @@ func DirectMirScalarCfgProgramAppendRoutine(
         DirectMirScalarCfgProgramRoutineAdmissionFailed(
             "parameter_types", routine_ordinal, -1, -1, ""); return invalid;
     }
+    // Keep block identity stable. Unreachable blocks still undergo complete
+    // instruction admission; their flags must agree with the owned CFG edges.
+    let reachable: Array<Int> = MirRoutineGraphDistances(
+        input.index.block_succ_true, input.index.block_succ_false, 0);
     let block: Int = 0;
     while block < ArrayLength(input.index.block_starts) {
-        if !input.index.block_reachable[block] {
+        if input.index.block_reachable[block] != (reachable[block] >= 0) {
             DirectMirScalarCfgProgramRoutineAdmissionFailed(
-                "block_reachable", routine_ordinal, block, -1, ""); return invalid;
+                "block_reachability_identity", routine_ordinal, block, -1, ""); return invalid;
         }
         let operation_start: Int = ArrayLength(operations.kinds);
         let condition_row: Int = -1;
@@ -224,10 +226,10 @@ func DirectMirScalarCfgProgramAppendRoutine(
                     DirectMirScalarProgramExpressionAdmissionFailureEmpty();
             if !capture.valid { DirectMirScalarCfgProgramRoutineAdmissionFailed(
                 "instruction_capture", routine_ordinal, block, global_row, source); return invalid; }
-            if !DirectMirScalarProgramTwoIntNominalInstructionReady(
-                    nominal, admitted.routines.source_json, capture) {
+            if DirectMirScalarCfgScalarTypeSupported(capture.abi_type_name) &&
+                !DirectMirInstructionHasNoPhysicalAbi(admitted.routines.source_json, capture, capture.abi_type_name) {
                 DirectMirScalarCfgProgramRoutineAdmissionFailed(
-                    "nominal_abi", routine_ordinal, block, global_row, source); return invalid;
+                    "scalar_physical_abi", routine_ordinal, block, global_row, source); return invalid;
             }
             if !DirectMirScalarProgramLogicalRecordInstructionReady(
                     logical_record, admitted.routines.source_json, capture) {
@@ -246,7 +248,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
             option_bool_abi =
                 DirectMirScalarProgramOptionBoolAbiFromInstruction(
                     option_bool_abi, admitted.routines.source_json, capture);
-            if kind == "def" {
+            if kind == "def" || kind == "assign" {
                 let member_rebind:
                     DirectMirScalarProgramLogicalRecordMemberRebindFact =
                     DirectMirScalarProgramLogicalRecordMemberRebindFactAtGlobal(
@@ -258,7 +260,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
                         nested_indexed_assignments, global_row);
                 let definition: DirectMirScalarCfgProgramDefinitionRoute =
                     DirectMirScalarCfgProgramRouteDefinition(
-                        operations, expressions, expression_failure, source,
+                        operations, expressions, expression_failure, source, kind,
                         capture, instruction, input.use_facts, input.index,
                         global_row,
                         local_instruction, locals, types, input.wire,
@@ -342,8 +344,16 @@ func DirectMirScalarCfgProgramAppendRoutine(
                     DirectMirScalarCfgProgramRoutineAdmissionFailed("return_shape", routine_ordinal, block, global_row, source); return invalid;
                 }
                 if signature.return_type == "Void" {
-                    if source != "AST_RETURN_VOID" || capture.expr0 != "" ||
-                        capture.abi_type_name != "" {
+                    let public_void: Bool = source == "AST_RETURN_VOID" &&
+                        capture.abi_type_name == "";
+                    let native_void: Bool = source == "" &&
+                        capture.abi_type_name == "Void";
+                    if (!public_void && !native_void) || capture.expr0 != "" ||
+                        capture.expr1 != "" ||
+                        !DirectMirInstructionHasNoPhysicalAbi(instruction.json, capture, capture.abi_type_name) ||
+                        JsonObjectFactObjectTable(instruction, "expr0_graph").valid ||
+                        JsonObjectFactObjectTable(instruction, "expr1_graph").valid ||
+                        MirRoutineInstructionUseCountAtGlobal(input.use_facts, global_row) != 0 {
                         DirectMirScalarCfgProgramRoutineAdmissionFailed("void_return", routine_ordinal, block, global_row, source); return invalid;
                     }
                     return_row =

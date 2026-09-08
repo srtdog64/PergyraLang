@@ -1,0 +1,35 @@
+// Refusal-only tests of normalized facts; no division expression is executed.
+import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_checked_int_owner.pgy";
+
+func DivisionFacts(abi_id: Int, rhs_type: String, result_type: String, local_row: Int) -> DirectMirScalarProgramExpressionSet {
+    return DirectMirScalarProgramExpressionSet(
+        true, 0, [0], [0], [3], [2],
+        [DirectMirScalarProgramExprIntLiteral(), DirectMirScalarProgramExprIntLiteral(), DirectMirScalarProgramExprDivideInt()],
+        ["Int", rhs_type, result_type], [-1, -1, 0], [-1, -1, 1],
+        [-1, -1, local_row], [-1, -1, -1], [-1, -1, -1], ["7", "0", ""],
+        [-1, -1, -1], [-1, -1, abi_id], DirectMirScalarProgramNaryOperandsEmpty()
+    );
+}
+func Main() -> Void {
+    let division = DirectMirScalarProgramCheckedIntRuntimeFact(DirectMirScalarProgramExprDivideInt());
+    let addition = DirectMirScalarProgramCheckedIntRuntimeFact(DirectMirScalarProgramExprCheckedAddInt());
+    if !division.ok || !addition.ok || division.call_shape != "i32_i32_to_i32" ||
+        division.runtime_call_abi_id == addition.runtime_call_abi_id {
+        Log("checked division ABI identity failed"); Exit(1);
+    }
+    let valid = DivisionFacts(division.runtime_call_abi_id, "Int", "Int", -1);
+    let missing = DivisionFacts(-1, "Int", "Int", -1);
+    let crossed = DivisionFacts(addition.runtime_call_abi_id, "Int", "Int", -1);
+    let rhs_type = DivisionFacts(division.runtime_call_abi_id, "Long", "Int", -1);
+    let result_type = DivisionFacts(division.runtime_call_abi_id, "Int", "Long", -1);
+    let local_payload = DivisionFacts(division.runtime_call_abi_id, "Int", "Int", 0);
+    if !DirectMirScalarProgramCheckedIntNodeReady(valid, 2) ||
+        DirectMirScalarProgramCheckedIntNodeReady(missing, 2) ||
+        DirectMirScalarProgramCheckedIntNodeReady(crossed, 2) ||
+        DirectMirScalarProgramCheckedIntNodeReady(rhs_type, 2) ||
+        DirectMirScalarProgramCheckedIntNodeReady(result_type, 2) ||
+        DirectMirScalarProgramCheckedIntNodeReady(local_payload, 2) {
+        Log("checked division normalized fact contract failed"); Exit(1);
+    }
+    Log("checked division ABI and five crossed-fact refusals: PASS");
+}

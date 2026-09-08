@@ -118,6 +118,9 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
                     if (bind_name != NULL) {
                         Symbol *binding = symbol_create_variable(
                             bind_name, recv_type, first->line, first->column);
+                        symbol_mark_declaration(binding, ast_node_stable_id(first), false);
+                        ast_identifier_set_binding_syntax_id(
+                            ast_assignment_target(first), ast_node_stable_id(first));
                         scope_declare(ctx->scope, binding);
                     }
                 }

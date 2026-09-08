@@ -1,0 +1,21 @@
+// Referencing the later declaration must not choose a different storage shape.
+zone CounterPair {
+    subject slot left: Counter
+    subject slot right: Counter
+}
+subject Counter { let mut value: Int; }
+
+func Combine(left: Int, right: Int) -> Int {
+    return left * 10 + right;
+}
+func Main() -> Void {
+    let pair = CounterPair(Counter(2), Counter(5));
+    Log(Combine(pair.left.value, pair.right.value));
+    Log(pair.left.value);
+    Log(pair.right.value);
+    let other = CounterPair(Counter(7), Counter(3));
+    Log(Combine(other.left.value, other.right.value));
+    Log(Combine(pair.left.value, pair.right.value));
+    let repeated = CounterPair(Counter(4), Counter(4));
+    Log(Combine(repeated.left.value, repeated.right.value));
+}

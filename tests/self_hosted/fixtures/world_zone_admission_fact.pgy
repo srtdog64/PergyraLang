@@ -1,0 +1,57 @@
+import "../../../src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_expression_graph_build_owner.pgy";
+import "../../../src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy";
+
+func Probe(expression: String, shadow: Bool, truncate_types: Bool, reject: Bool) -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Subject: Buyer\n    Fields:\n      hp: Int\n  Zone: CartZone\n    SubjectSlot: buyer: Buyer\n  World: CartWorld\n    WorldZone: cart: CartZone\n");
+    let constructors: SemanticAstNominalConstructorFacts = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let kinds: Array<Int> = []; let texts: Array<String> = [];
+    let left: Array<Int> = []; let right: Array<Int> = [];
+    let targets: Array<Int> = []; let names: Array<String> = [];
+    let places: Array<Int> = []; let leaf_types: Array<String> = [];
+    let build: SemanticExpressionGraphBuild = SemanticExpressionGraphBuildCompactBridgeFromText(
+        kinds, texts, left, right, targets, names, expression);
+    if !build.ok { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(kinds) {
+        ArrayPush(places, 0);
+        // Synthetic admitted direct-call rows, separate from parser topology.
+        if kinds[row] == AstExpressionNodeCall() {
+            targets[row] = SemanticCallTargetDirect();
+            names[row] = texts[left[row]];
+        }
+        if texts[row] == "world" { ArrayPush(leaf_types, "CartWorld"); }
+        else { ArrayPush(leaf_types, "Unknown"); }
+        row = row + 1;
+    }
+    let roots: Array<Int> = [build.root_id]; let has_roots: Array<Bool> = [true];
+    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(true, roots, has_roots,
+        SemanticExpressionGraphArenaFromRows(kinds, texts, left, right, targets, names, places));
+    if shadow {
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, build.root_id);
+        if !call.ok { return false; }
+        graph.arena.identities.call_target_syntax_ids[call.call_node] = 42;
+    }
+    if truncate_types { ArrayPop(leaf_types); }
+    let violation: Option<String> = SemanticAstWorldZoneEscapeViolation(constructors, leaf_types, graph);
+    if IsSome(violation) != reject {
+        Log(expression);
+        if IsSome(violation) { Log(UnwrapOption(violation)); }
+        else { Log("unexpected admission"); }
+        return false;
+    }
+    return true;
+}
+
+func Main() -> Void {
+    Log(Probe("Checkout(world.cart)", false, false, true));
+    Log(Probe("Clone(world.cart)", false, false, false));
+    Log(Probe("Log(world.cart.buyer.hp)", false, false, false));
+    Log(Probe("world.cart", false, false, true));
+    Log(Probe("Clone(world.cart)", true, false, true));
+    Log(Probe("Clone(world.cart)", false, true, true));
+    Log(Probe("Clone(world.cart, 1)", false, false, true));
+    let receipt: SemanticPublicDiagnosticReceipt = SemanticPublicDiagnosticReceiptFromOwnedFacts("world_zone_escape", "live zone escaped");
+    Log(SemanticPublicDiagnosticReceiptReadyFor(receipt, "world_zone_escape") && receipt.code == "PGY_SEM_ANCHORED_HANDLE_COPY");
+}

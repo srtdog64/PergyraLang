@@ -19,6 +19,7 @@ import "domain_topology_fact_owner.pgy";
 import "domain_runtime_assignment_fact_owner.pgy";
 import "instruction_abi_receipt_fact_owner.pgy";
 import "local_ref_fact_owner.pgy";
+import "intent_execution_fact_owner.pgy";
 
 struct SelfMirInstructionRows {
     ids: Array<Int>;
@@ -50,6 +51,7 @@ struct SelfMirInstructionRows {
     destructure_facts: SelfMirDestructureFactRows;
     abi_type_names: Array<String>;
     runtime_call_abi: SelfMirRuntimeCallAbiRows;
+    binding_source_syntax_ids: Array<Int>;
 }
 
 struct SelfMirBlockRows {
@@ -61,6 +63,7 @@ struct SelfMirBlockRows {
     succ_true: Array<Int>;
     has_succ_false: Array<Int>;
     succ_false: Array<Int>;
+    intent_roles: Array<String>;
 }
 
 struct SelfMirCfgRows {
@@ -80,6 +83,7 @@ struct SelfMirRoutineRows {
     generic_starts: Array<Int>;
     generic_counts: Array<Int>;
     generic_names: Array<String>;
+    generic_constraints: Array<String>;
     param_starts: Array<Int>;
     param_counts: Array<Int>;
     param_names: Array<String>;
@@ -117,6 +121,7 @@ struct SelfMirProgramFacts {
     cfg: SelfMirCfgRows;
     instruction_abi_receipts: SelfMirInstructionAbiReceiptRows;
     expression_graph: SemanticExpressionGraphFacts;
+    intent_execution: MirIntentExecutionPlan;
 }
 
 func SelfMirParamCarriageName(abi_kind: Int) -> String {
@@ -158,13 +163,14 @@ func SelfMirInstructionRowsEmpty() -> SelfMirInstructionRows {
         SelfMirExpressionGraphRowsEmpty(),
         SelfMirExpressionGraphRowsEmpty(), SelfMirMatchFactRowsEmpty(),
         SelfMirDestructureFactRowsEmpty(), strings,
-        SelfMirRuntimeCallAbiRowsEmpty()
+        SelfMirRuntimeCallAbiRowsEmpty(), ints
     );
 }
 
 func SelfMirBlockRowsEmpty() -> SelfMirBlockRows {
     let ints: Array<Int> = [];
-    return SelfMirBlockRows(ints, ints, ints, ints, ints, ints, ints, ints);
+    let roles: Array<String> = [];
+    return SelfMirBlockRows(ints, ints, ints, ints, ints, ints, ints, ints, roles);
 }
 
 func SelfMirCfgRowsEmpty() -> SelfMirCfgRows {
@@ -179,7 +185,7 @@ func SelfMirRoutineRowsEmpty() -> SelfMirRoutineRows {
     let strings: Array<String> = [];
     return SelfMirRoutineRows(
         ints, strings, strings, strings, strings, strings, strings,
-        ints, ints, strings, ints, ints, strings,
+        ints, ints, strings, strings, ints, ints, strings,
         ints, strings, ints, ints, ints, ints, ints, ints, strings, strings,
         ints, ints, ints, strings, strings, ints,
         SelfMirDestructureTypeFactRowsEmpty(),
@@ -201,7 +207,8 @@ func SelfMirProgramFactsEmpty(
         SelfMirRoutineRowsEmpty(),
         SelfMirCfgRowsEmpty(),
         SelfMirInstructionAbiReceiptRowsEmpty(),
-        expression_graph
+        expression_graph, MirIntentExecutionPlanFromFacts(
+            MirIntentStepTransitionFactsEmpty(), MirIntentTerminalTransitionFactsEmpty())
     );
 }
 
@@ -217,7 +224,7 @@ func SelfMirProgramFactsError(
         facts.generic_specializations,
         facts.parallel_captures, facts.routines, facts.cfg,
         facts.instruction_abi_receipts,
-        facts.expression_graph
+        facts.expression_graph, facts.intent_execution
     );
 }
 
@@ -232,12 +239,13 @@ func SelfMirProgramFactsWithDomainTopology(
         facts.generic_specializations, facts.parallel_captures,
         facts.routines, facts.cfg,
         facts.instruction_abi_receipts,
-        facts.expression_graph
+        facts.expression_graph, facts.intent_execution
     );
 }
 
 func SelfMirCfgAddBlock(cfg: SelfMirCfgRows) -> SelfMirCfgRows {
     let blocks: SelfMirBlockRows = cfg.blocks;
+    let intent_roles: Array<String> = blocks.intent_roles;
     let ids: Array<Int> = blocks.ids;
     let reachable: Array<Int> = blocks.reachable;
     let instruction_starts: Array<Int> = blocks.instruction_starts;
@@ -254,10 +262,11 @@ func SelfMirCfgAddBlock(cfg: SelfMirCfgRows) -> SelfMirCfgRows {
     ArrayPush(succ_true, 0);
     ArrayPush(has_false, 0);
     ArrayPush(succ_false, 0);
+    ArrayPush(intent_roles, "");
     return SelfMirCfgRows(
         SelfMirBlockRows(
             ids, reachable, instruction_starts, instruction_counts,
-            has_true, succ_true, has_false, succ_false
+            has_true, succ_true, has_false, succ_false, intent_roles
         ),
         cfg.instructions, cfg.local_refs
     );
@@ -286,7 +295,7 @@ func SelfMirCfgSetSuccessors(
         SelfMirBlockRows(
             blocks.ids, blocks.reachable, blocks.instruction_starts,
             blocks.instruction_counts, has_true, succ_true,
-            has_false, succ_false
+            has_false, succ_false, blocks.intent_roles
         ),
         cfg.instructions, cfg.local_refs
     );
@@ -308,6 +317,7 @@ func SelfMirCfgAddInstruction(
 ) -> SelfMirCfgRows {
     let instructions: SelfMirInstructionRows = cfg.instructions;
     let ids: Array<Int> = instructions.ids;
+    let binding_source_syntax_ids: Array<Int> = instructions.binding_source_syntax_ids;
     let kinds: Array<String> = instructions.kinds;
     let names: Array<String> = instructions.names;
     let results: Array<String> = instructions.results;
@@ -354,6 +364,7 @@ func SelfMirCfgAddInstruction(
             instructions.runtime_call_abi
         );
     ArrayPush(ids, id);
+    ArrayPush(binding_source_syntax_ids, 0);
     ArrayPush(kinds, kind);
     ArrayPush(names, name);
     ArrayPush(results, result);
@@ -391,7 +402,7 @@ func SelfMirCfgAddInstruction(
             cfg.blocks.ids, cfg.blocks.reachable,
             cfg.blocks.instruction_starts, counts,
             cfg.blocks.has_succ_true, cfg.blocks.succ_true,
-            cfg.blocks.has_succ_false, cfg.blocks.succ_false
+            cfg.blocks.has_succ_false, cfg.blocks.succ_false, cfg.blocks.intent_roles
         ),
         SelfMirInstructionRows(
             ids, kinds, names, results, arg0s, arg1s, slot_anchors,
@@ -403,7 +414,7 @@ func SelfMirCfgAddInstruction(
             machine_layer_authority_required, machine_layer_live_lease_required,
             use_starts, use_counts, uses,
             expr0_graphs, expr1_graphs, instructions.match_facts,
-            instructions.destructure_facts, abi_type_names, runtime_call_abi
+            instructions.destructure_facts, abi_type_names, runtime_call_abi, binding_source_syntax_ids
         ), SelfMirInstructionLocalRefRowsAppendInstruction(cfg.local_refs)
     );
 }
@@ -497,7 +508,7 @@ func SelfMirCfgAttachLastExpr0Graph(
             instructions.use_counts, instructions.uses, graphs,
             instructions.expr1_graphs, instructions.match_facts,
             instructions.destructure_facts, instructions.abi_type_names,
-            instructions.runtime_call_abi
+            instructions.runtime_call_abi, instructions.binding_source_syntax_ids
         ), cfg.local_refs
     );
 }
@@ -532,7 +543,7 @@ func SelfMirCfgAttachLastExpr1Graph(
             instructions.uses,
             instructions.expr0_graphs, graphs, instructions.match_facts,
             instructions.destructure_facts, instructions.abi_type_names,
-            instructions.runtime_call_abi
+            instructions.runtime_call_abi, instructions.binding_source_syntax_ids
         ), cfg.local_refs
     );
 }
@@ -572,7 +583,7 @@ func SelfMirCfgAttachLastMatchCase(
             instructions.uses, instructions.expr0_graphs,
             instructions.expr1_graphs, match_facts,
             instructions.destructure_facts, instructions.abi_type_names,
-            instructions.runtime_call_abi
+            instructions.runtime_call_abi, instructions.binding_source_syntax_ids
         ), cfg.local_refs
     );
 }

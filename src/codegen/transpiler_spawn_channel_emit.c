@@ -180,12 +180,17 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
         callee_routine = transpiler_find_mir_function(ctx, decl);
     callee_is_generic_func =
         transpiler_mir_or_ast_function_is_generic(callee_routine, decl);
-    if (call != NULL && callee_is_generic_func
-        && transpiler_infer_generic_call_bindings(ctx, decl, call, bindings,
-            &binding_count)) {
+    if (callee_is_generic_func) {
+        if (!transpiler_generic_call_bindings_from_mir(ctx, decl, call, bindings,
+                &binding_count)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "C generic spawn requires MIR specialization metadata for '%s'", function_name);
+            return NULL;
+        }
         const char *specialized = ensure_generic_specialization(ctx, decl, call);
-        if (specialized != NULL)
-            emitted_function_name = specialized;
+        if (specialized == NULL)
+            return NULL;
+        emitted_function_name = specialized;
     }
     if (!callee_is_generic_func && !callee_is_extern_func
         && decl != NULL && decl->type == AST_FUNC_DECL

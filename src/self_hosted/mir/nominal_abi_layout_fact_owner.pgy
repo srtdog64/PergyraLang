@@ -43,7 +43,7 @@ func SelfMirNominalAlignUp(value: Int, align: Int) -> Int {
 }
 
 func SelfMirNominalUniqueStructIndex(
-    names: Array<String>, nominal_kinds: Array<String>, name: String
+    ref names: Array<String>, ref nominal_kinds: Array<String>, name: String
 ) -> Option<Int> {
     let found: Int = 0 - 1;
     let row: Int = 0;

@@ -303,7 +303,6 @@ func SelfMirLowerMatchFromArtifact(
     let arm_exits: Array<Int> = [];
     let arm_versions: Array<Int> = [];
     let final_unmatched_block: Int = -1;
-    let case_count: Int = 0;
     let child_index: Int = 0;
     let child_opt: Option<Int> = first_child;
     while IsSome(child_opt) && build.ok {
@@ -383,11 +382,10 @@ func SelfMirLowerMatchFromArtifact(
                 );
                 final_unmatched_block = branch_block;
             }
-            case_count = case_count + 1;
         } else if kind == TypedAstKindMatchDefaultStmtTag() {
-            if case_count == 0 || IsSome(next_child) {
+            if IsSome(next_child) {
                 return SelfMirRoutineBuildError(
-                    build, "MIR match default must be final after a case"
+                    build, "MIR match default must be final"
                 );
             }
             let default_body_opt: Option<Int> = SelfMirControlBodyBlock(
@@ -426,8 +424,8 @@ func SelfMirLowerMatchFromArtifact(
         child_index = child_index + 1;
         child_opt = next_child;
     }
-    if case_count == 0 {
-        return SelfMirRoutineBuildError(build, "MIR match has no cases");
+    if ArrayLength(arm_exits) == 0 {
+        return SelfMirRoutineBuildError(build, "MIR match has no arms");
     }
     build = SelfMirMergeMatchArms(
         build, arm_exits, arm_versions, entry_versions,

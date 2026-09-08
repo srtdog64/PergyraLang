@@ -132,7 +132,7 @@ func CodegenIntentPolicyViewFromAdmittedMirOrDie(
             admitted.routines, row
         );
         let carriers: MirIntentRoutineCarrierProjection =
-            MirIntentRoutineCarrierProjectionFromBlockZero(
+            MirIntentRoutineCarrierProjectionFromRoutine(
                 admitted.routines, index, row, intent_name
             );
         if !index.valid || !carriers.valid {

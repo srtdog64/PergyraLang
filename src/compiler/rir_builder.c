@@ -31,7 +31,8 @@ rir_collect_func_scope(RIRProgram *rir,
         if (param == NULL)
             continue;
         size_t fact_count_before = scope.fact_count;
-        if (!add_param_resource_fact(&scope, param->name, param->type, func))
+        if (!add_param_resource_fact(&scope, param->name, param->type,
+                                     param->mode, func))
             goto oom;
         for (size_t fact_i = fact_count_before;
              fact_i < scope.fact_count;

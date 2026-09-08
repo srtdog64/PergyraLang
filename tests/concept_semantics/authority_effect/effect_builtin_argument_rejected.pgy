@@ -1,0 +1,2 @@
+func Values() -> Array<Int> { return [Now()]; }
+func Main() -> Void with effects local { Log(ArrayLength(Values())); }

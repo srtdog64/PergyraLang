@@ -6,7 +6,6 @@ import "direct_mir_scalar_program_option_int_abi_owner.pgy";
 import "direct_mir_scalar_program_result_int_abi_owner.pgy";
 import "direct_mir_scalar_program_option_string_abi_owner.pgy";
 import "direct_mir_scalar_program_option_bool_abi_owner.pgy";
-import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
 import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_collection_abi_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy";
@@ -19,7 +18,6 @@ struct DirectMirScalarProgramExtensionAbiSeal {
     let result_int: DirectMirResultIntAbiFact;
     let option_string: DirectMirOptionMatchAbiFact;
     let option_bool: DirectMirOptionMatchAbiFact;
-    let nominal: DirectMirScalarProgramTwoIntNominalAbiFact;
     let logical_record: DirectMirScalarProgramLogicalRecordFact;
     let referenced_enum: DirectMirScalarProgramReferencedEnumFact;
     let payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact;
@@ -62,8 +60,6 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
     } else if !DirectMirScalarProgramOptionBoolAbiReadyForExpressions(
             option_bool, expressions) {
         stage = "option-bool";
-    } else if !DirectMirScalarProgramTwoIntNominalAbiFactReady(route.nominal) {
-        stage = "nominal";
     } else if !DirectMirScalarProgramLogicalRecordReadyForExpressions(
             route.logical_record, expressions) {
         stage = "logical-record";
@@ -96,7 +92,7 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
         return DirectMirScalarProgramExtensionAbiSeal(
             false, stage, runtime, option_int, result_int,
             option_string, option_bool,
-            route.nominal, route.logical_record,
+            route.logical_record,
             route.referenced_enum,
             route.payload_free_enum,
             route.array_int_value_result, route.array_bool_abi, array_string,
@@ -118,7 +114,7 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
                 false, "array-string-boundary", runtime, option_int,
                 result_int,
                 option_string, option_bool,
-                route.nominal, route.logical_record,
+                route.logical_record,
                 route.referenced_enum,
                 route.payload_free_enum,
                 route.array_int_value_result, route.array_bool_abi,
@@ -129,7 +125,7 @@ func DirectMirScalarProgramExtensionAbiSealFromOwners(
     return DirectMirScalarProgramExtensionAbiSeal(
         true, "ready", runtime, option_int, result_int,
         option_string, option_bool,
-        route.nominal, route.logical_record,
+        route.logical_record,
         route.referenced_enum,
         route.payload_free_enum,
         route.array_int_value_result, route.array_bool_abi,

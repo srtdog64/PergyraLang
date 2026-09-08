@@ -117,91 +117,177 @@ func DirectMirScalarProgramPayloadEnumMatchScrutineeSame(
     return true;
 }
 
-func DirectMirScalarProgramPayloadEnumExhaustiveMatchFallthroughReadinessCode(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, fallthrough: Int
+// Project each typed condition once. The shape tag separates the two enum
+// inventories; equal row numbers across them are not equal type identities.
+struct DirectMirScalarProgramEnumGuardFact {
+    let shape: Int;
+    let variant: Int;
+    let count: Int;
+    let plain: DirectMirScalarProgramPayloadFreeEnumMatchConditionFact;
+    let payload: DirectMirScalarProgramPayloadEnumMatchConditionFact;
+}
+
+func DirectMirScalarProgramEnumGuardAt(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> DirectMirScalarProgramEnumGuardFact {
+    let plain: DirectMirScalarProgramPayloadFreeEnumMatchConditionFact =
+        DirectMirScalarProgramPayloadFreeEnumMatchConditionAt(plan, block);
+    let payload: DirectMirScalarProgramPayloadEnumMatchConditionFact =
+        DirectMirScalarProgramPayloadEnumMatchConditionAt(plan, block);
+    if plain.valid {
+        return DirectMirScalarProgramEnumGuardFact(1, plain.variant_ordinal,
+            plan.program.payload_free_enum.variant_counts[plain.enum_row], plain, payload);
+    }
+    if payload.valid {
+        return DirectMirScalarProgramEnumGuardFact(2, payload.variant_ordinal,
+            plan.program.referenced_enum.variant_counts[payload.enum_row], plain, payload);
+    }
+    return DirectMirScalarProgramEnumGuardFact(0, -1, 0, plain, payload);
+}
+
+func DirectMirScalarProgramEnumGuardSame(
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    left: DirectMirScalarProgramEnumGuardFact, right: DirectMirScalarProgramEnumGuardFact
+) -> Bool {
+    if left.shape != right.shape || left.count != right.count { return false; }
+    if left.shape == 1 {
+        return DirectMirScalarProgramPayloadFreeEnumMatchScrutineeSame(
+            expressions, left.plain, right.plain);
+    }
+    if left.shape == 2 {
+        return DirectMirScalarProgramPayloadEnumMatchScrutineeSame(
+            expressions, left.payload, right.payload);
+    }
+    return false;
+}
+
+// Routine-local proof, not a source/backend fallback. A false edge is excluded
+// only by a unique predecessor chain testing the same stable scrutinee, without
+// intervening operations. Distinct variants count once. Then a worklist removes
+// blocks whose every incoming edge is excluded or comes from a proved-dead block.
+// The entry block is never removed, even if a backedge targets it.
+func DirectMirScalarProgramEnumUnreachableBlocks(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> Array<Int> {
+    let invalid: Array<Int> = [];
+    if routine < 0 || routine >= ArrayLength(plan.routines.roles) { return invalid; }
+    let first: Int = plan.routines.block_starts[routine];
+    let count: Int = plan.routines.block_counts[routine];
+    let end: Int = first + count;
+    if first < 0 || count < 1 || end > ArrayLength(plan.block_succ_true) ||
+        end > ArrayLength(plan.block_succ_false) { return invalid; }
+    let guards: Array<DirectMirScalarProgramEnumGuardFact> = [];
+    let incoming: Array<Int> = [];
+    let predecessor: Array<Int> = [];
+    let false_excluded: Array<Int> = [];
+    let dead: Array<Int> = [];
+    let row: Int = 0;
+    while row < count {
+        ArrayPush(guards, DirectMirScalarProgramEnumGuardAt(plan, first + row));
+        ArrayPush(incoming, 0); ArrayPush(predecessor, -1);
+        ArrayPush(false_excluded, 0); ArrayPush(dead, 0);
+        row = row + 1;
+    }
+    row = 0;
+    while row < count {
+        let side: Int = 0;
+        while side < 2 {
+            let target: Int = plan.block_succ_true[first + row];
+            if side == 1 { target = plan.block_succ_false[first + row]; }
+            if target < -1 || target >= end || (target >= 0 && target < first) { return invalid; }
+            if target >= 0 {
+                let target_row: Int = target - first;
+                incoming[target_row] = incoming[target_row] + 1;
+                predecessor[target_row] = first + row;
+            }
+            side = side + 1;
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < count {
+        let guard_fact: DirectMirScalarProgramEnumGuardFact = guards[row];
+        if guard_fact.shape != 0 && guard_fact.count > 0 {
+            let seen: HashMap<Int, Int> = MapNew();
+            let distinct: Int = 0;
+            let current: Int = first + row;
+            let hops: Int = 0;
+            while hops < count {
+                let prior: DirectMirScalarProgramEnumGuardFact = guards[current - first];
+                if !DirectMirScalarProgramEnumGuardSame(plan.program.expressions, guard_fact, prior) ||
+                    plan.program.block_return_expression_rows[current] != -1 { break; }
+                if !MapHas(seen, prior.variant) {
+                    MapSet(seen, prior.variant, 1); distinct = distinct + 1;
+                }
+                if distinct == guard_fact.count { false_excluded[row] = 1; break; }
+                // An entry can be reached without traversing any predecessor.
+                if current == first || plan.block_operation_counts[current] != 0 ||
+                    incoming[current - first] != 1 { break; }
+                let parent: Int = predecessor[current - first];
+                if parent < first || plan.block_succ_false[parent] != current ||
+                    plan.block_succ_true[parent] == current { break; }
+                current = parent; hops = hops + 1;
+            }
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < count {
+        let target: Int = plan.block_succ_false[first + row];
+        if false_excluded[row] == 1 && target >= 0 {
+            incoming[target - first] = incoming[target - first] - 1;
+        }
+        row = row + 1;
+    }
+    let pending: Array<Int> = [];
+    row = 1;
+    while row < count {
+        if incoming[row] == 0 { dead[row] = 1; ArrayPush(pending, first + row); }
+        row = row + 1;
+    }
+    let cursor: Int = 0;
+    while cursor < ArrayLength(pending) {
+        let block: Int = pending[cursor];
+        let side: Int = 0;
+        while side < 2 {
+            let target: Int = plan.block_succ_true[block];
+            if side == 1 { target = plan.block_succ_false[block]; }
+            if target >= 0 && (side == 0 || false_excluded[block - first] == 0) {
+                let target_row: Int = target - first;
+                incoming[target_row] = incoming[target_row] - 1;
+                if incoming[target_row] == 0 && target_row != 0 && dead[target_row] == 0 {
+                    dead[target_row] = 1; ArrayPush(pending, target);
+                }
+            }
+            side = side + 1;
+        }
+        cursor = cursor + 1;
+    }
+    return dead;
+}
+
+func DirectMirScalarProgramEnumExhaustiveMatchFallthroughReadinessCode(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, fallthrough: Int,
+    ref unreachable: Array<Int>
 ) -> Int {
     if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
         routine == plan.routines.entrypoint_ordinal ||
         plan.routines.return_types[routine] == "Void" { return 1; }
     let first: Int = plan.routines.block_starts[routine];
-    let end: Int = first + plan.routines.block_counts[routine];
-    if fallthrough <= first || fallthrough >= end ||
-        plan.block_succ_true[fallthrough] != -1 ||
-        plan.block_succ_false[fallthrough] != -1 ||
+    if ArrayLength(unreachable) != plan.routines.block_counts[routine] ||
+        fallthrough <= first || fallthrough >= first + ArrayLength(unreachable) ||
+        plan.block_succ_true[fallthrough] != -1 || plan.block_succ_false[fallthrough] != -1 ||
         plan.block_operation_counts[fallthrough] != 0 ||
         plan.program.block_condition_expression_rows[fallthrough] != -1 ||
-        plan.program.block_return_expression_rows[fallthrough] != -1 ||
-        DirectMirScalarProgramRoutineBlockIncomingEdgeCount(
-            plan, routine, first) != 0 ||
-        DirectMirScalarProgramRoutineBlockIncomingEdgeCount(
-            plan, routine, fallthrough) != 1 {
-        return 2;
-    }
-    let first_fact: DirectMirScalarProgramPayloadEnumMatchConditionFact =
-        DirectMirScalarProgramPayloadEnumMatchConditionAt(plan, first);
-    if !first_fact.valid { return 3; }
-    let variant_count: Int =
-        plan.program.referenced_enum.variant_counts[first_fact.enum_row];
-    let current: Int = first;
-    let index: Int = 0;
-    while index < variant_count {
-        let fact: DirectMirScalarProgramPayloadEnumMatchConditionFact =
-            DirectMirScalarProgramPayloadEnumMatchConditionAt(plan, current);
-        let expected_incoming: Int = 1;
-        if index == 0 { expected_incoming = 0; }
-        if !DirectMirScalarProgramPayloadEnumMatchScrutineeSame(
-                plan.program.expressions, first_fact, fact) ||
-            plan.program.block_return_expression_rows[current] != -1 ||
-            (index > 0 && plan.block_operation_counts[current] != 0) ||
-            DirectMirScalarProgramRoutineBlockIncomingEdgeCount(
-                plan, routine, current) != expected_incoming {
-            return 4;
-        }
-        let prior_block: Int = first;
-        let prior_index: Int = 0;
-        while prior_index < index {
-            let prior: DirectMirScalarProgramPayloadEnumMatchConditionFact =
-                DirectMirScalarProgramPayloadEnumMatchConditionAt(
-                    plan, prior_block);
-            if !prior.valid || prior.variant_ordinal == fact.variant_ordinal {
-                return 5;
-            }
-            prior_block = plan.block_succ_false[prior_block];
-            prior_index = prior_index + 1;
-        }
-        let returned: Int = plan.block_succ_true[current];
-        let next: Int = plan.block_succ_false[current];
-        if returned < first || returned >= end || returned == fallthrough ||
-            returned == next { return 6; }
-        if index + 1 == variant_count {
-            if next != fallthrough { return 7; }
-        } else {
-            if next <= first || next >= end || next == fallthrough { return 8; }
-            current = next;
-        }
-        index = index + 1;
-    }
-    if current < first || current >= end { return 9; }
+        plan.program.block_return_expression_rows[fallthrough] != -1 { return 2; }
+    if unreachable[fallthrough - first] != 1 { return 3; }
     return 0;
 }
 
-func DirectMirScalarProgramEnumExhaustiveMatchFallthroughReadinessCode(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, fallthrough: Int
-) -> Int {
-    let payload_free: Int =
-        DirectMirScalarProgramPayloadFreeEnumExhaustiveMatchFallthroughReadinessCode(
-            plan, routine, fallthrough);
-    if payload_free == 0 { return 0; }
-    let payload: Int =
-        DirectMirScalarProgramPayloadEnumExhaustiveMatchFallthroughReadinessCode(
-            plan, routine, fallthrough);
-    if payload == 0 { return 0; }
-    return 100 + payload;
-}
-
 func DirectMirScalarProgramEnumExhaustiveMatchFallthroughReady(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, fallthrough: Int
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, fallthrough: Int,
+    ref unreachable: Array<Int>
 ) -> Bool {
     return DirectMirScalarProgramEnumExhaustiveMatchFallthroughReadinessCode(
-        plan, routine, fallthrough) == 0;
+        plan, routine, fallthrough, unreachable) == 0;
 }

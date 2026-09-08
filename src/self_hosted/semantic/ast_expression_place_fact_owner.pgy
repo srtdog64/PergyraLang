@@ -137,9 +137,8 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
                         analysis.signatures, surface_index
                     );
                 let intent_node_id: Option<Int> =
-                    SemanticAstIntentExpressionOwnerNodeId(
-                        artifact, use_node_id
-                    );
+                    SemanticAstExpressionIntentNodeAt(
+                        analysis.expression_surfaces, analysis.intent_signatures, surface_index);
                 let names: Array<String> = [];
                 let types: Array<String> = [];
                 let modes: Array<String> = [];
@@ -152,7 +151,7 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
                         analysis.signatures, analysis.constructors,
                         UnwrapOption(function_node_id), names, types, modes
                     ) && SemanticAstExpressionSeedParameters(
-                        analysis.signatures, UnwrapOption(function_node_id),
+                        analysis.signatures, analysis.constructors, UnwrapOption(function_node_id),
                         names, types
                     ) && SemanticAstExpressionSeedParameterModes(
                         analysis.signatures, UnwrapOption(function_node_id),

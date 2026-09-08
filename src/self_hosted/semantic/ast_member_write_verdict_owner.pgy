@@ -1,0 +1,78 @@
+// Member-write permission over admitted nominal and expression facts.
+// Field identity is (nominal declaration, ordered source field), never a
+// program-wide field spelling. This consumer does not reopen source/AST text.
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "ast_expression_graph_scalar_type_owner.pgy";
+import "ast_expression_graph_member_view_owner.pgy";
+
+func SemanticAstMemberWriteVerdict(
+    ref graph: SemanticExpressionGraphFacts,
+    target_node: Int,
+    root_mode: String,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>, types: Array<String>,
+    function_names: Array<String>, function_returns: Array<String>
+) -> SemanticDiagnosticMessageFact {
+    let node: Int = target_node;
+    while node >= 0 {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+        if !IsSome(kind) { break; }
+        if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+            return SemanticDiagnosticMessageFactEmpty();
+        }
+        if UnwrapOption(kind) == AstExpressionNodeIndex() {
+            let base: Option<Int> = SemanticExpressionGraphLeftChild(graph, node);
+            if !IsSome(base) || UnwrapOption(base) >= node { break; }
+            node = UnwrapOption(base);
+            continue;
+        }
+        if UnwrapOption(kind) != AstExpressionNodeMemberAccess() { break; }
+        let member: SemanticMemberAccessView =
+            SemanticMemberAccessViewFromGraph(graph, node);
+        if !member.ok || member.receiver_node < 0 ||
+            member.receiver_node >= node { break; }
+        let field: Option<String> =
+            SemanticExpressionGraphNodeText(graph, member.member_node);
+        if !IsSome(field) { break; }
+        let receiver_type: String = SemanticExpressionGraphScalarTypeName(
+            graph, member.receiver_node, constructors, names, types,
+            function_names, function_returns);
+        let receiver: SemanticCanonicalTypeNameFact =
+            SemanticCanonicalTypeNameFactFrom(receiver_type);
+        let nominal: Option<Int> = SemanticAstNominalConstructorIndexForName(
+            constructors, receiver.nominal_base_name);
+        if !IsSome(nominal) { break; }
+        let row: Int = UnwrapOption(nominal);
+        let start: Int = constructors.param_starts[row];
+        let count: Int = constructors.param_counts[row];
+        let found: Int = -1;
+        let i: Int = 0;
+        while i < count {
+            if constructors.field_names[start + i] == UnwrapOption(field) {
+                if found >= 0 {
+                    return SemanticDiagnosticMessageFact2(
+                        "assignment_type_unresolved", "field", UnwrapOption(field),
+                        "missing_fact", "unique_field_identity");
+                }
+                found = start + i;
+            }
+            i = i + 1;
+        }
+        if found < 0 || found >= ArrayLength(constructors.field_write_modes) {
+            break;
+        }
+        let mode: Int = constructors.field_write_modes[found];
+        if mode != 0 && mode != 1 { break; }
+        if root_mode == "ref_param" || mode == 1 ||
+            constructors.nominal_kinds[row] == "object" ||
+            constructors.nominal_kinds[row] == "tobject" {
+            return SemanticDiagnosticMessageFact2(
+                "immutable_field_write", "nominal", constructors.names[row],
+                "field", UnwrapOption(field));
+        }
+        node = member.receiver_node;
+    }
+    return SemanticDiagnosticMessageFact2(
+        "assignment_type_unresolved", "target_node", ToString(target_node),
+        "missing_fact", "member_write_permission");
+}

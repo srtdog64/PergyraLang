@@ -160,16 +160,17 @@ if reserved & non_reserved:
     raise SystemExit("reserved/contextual spelling collision")
 
 native_only = {
-    "activate", "all", "backoff", "capacity", "current", "deactivate",
+    "activate", "all", "capacity", "current", "deactivate",
     "detach", "forbids", "full", "give", "invariant", "involves", "is",
     "layer", "lifecycle", "maintain", "max", "min", "none", "objects",
     "pin", "pool", "pre", "priority", "product", "projection", "relations",
-    "rollback", "subjects", "sum", "timeout", "tobjects", "unlink",
+    "rollback", "subjects", "sum", "tobjects", "unlink",
 }
 actual_native_only = {
     row.spelling
     for row in non_reserved_rows
-    if "PGY_KEYWORD_SUPPORT_SELF_HOST" not in row.implementation_support
+    if "PGY_KEYWORD_SUPPORT_NATIVE" in row.implementation_support
+    and "PGY_KEYWORD_SUPPORT_SELF_HOST" not in row.implementation_support
 }
 if actual_native_only != native_only:
     raise SystemExit(
@@ -177,6 +178,10 @@ if actual_native_only != native_only:
         f"expected native-only={sorted(native_only)}, "
         f"actual={sorted(actual_native_only)}"
     )
+
+unavailable = {row.spelling for row in all_rows if row.implementation_support == "0"}
+if unavailable != {"retry", "timeout", "backoff"}:
+    raise SystemExit(f"unimplemented resilience support drifted: {sorted(unavailable)}")
 
 completion = {
     "action", "authority", "authorized", "binding", "causes", "requires", "transfer",

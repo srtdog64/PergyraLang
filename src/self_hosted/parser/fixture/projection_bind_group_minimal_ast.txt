@@ -1,8 +1,8 @@
 Program:
   Subject: Player
     Fields:
-      hp: Int
-      name: String
+      let hp: Int
+      let name: String
   Object: PlayerView
     Fields:
       hp: Int
@@ -22,4 +22,3 @@ Program:
     Body:
       Block:
         Log("projection bind group minimal")
-

@@ -1,7 +1,6 @@
-// Exact subject-slot resolution for intent actor and authority participants.
-
+// C environment projection into the shared Intent subject-slot selection rule.
 import "../type_facts/type_env.pgy";
-import "../../lib/nominal_field_kind_owner.pgy";
+import "../../semantic/intent_subject_slot_policy_owner.pgy";
 
 struct CodegenIntentZoneSubjectSlotFact {
     ok: Bool;
@@ -10,45 +9,29 @@ struct CodegenIntentZoneSubjectSlotFact {
 }
 
 func CodegenIntentZoneSubjectSlotFromFacts(
-    env: CodegenTypeEnv,
-    zone_type: String,
-    participant_alias: String,
-    participant_type: String
+    env: CodegenTypeEnv, zone_type: String,
+    participant_alias: String, participant_type: String
 ) -> CodegenIntentZoneSubjectSlotFact {
-    if LookupFieldType(env, zone_type, participant_alias) == participant_type &&
-        LookupKindType(
-            env, Concat(zone_type, Concat(".", participant_alias)),
-            "field_kind"
-        ) == NominalFieldKindSubjectSlot() {
-        return CodegenIntentZoneSubjectSlotFact(
-            true, "", participant_alias
-        );
-    }
-    let slot_name: String = "";
+    let owners: Array<Int> = [];
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let kinds: Array<String> = [];
     let fields: String = LookupKindType(env, zone_type, "fields");
-    let field_count: Int = ParamModeCsvCount(fields);
-    let field_index: Int = 0;
-    while field_index < field_count {
-        let field_name: String = CsvAt(fields, field_index);
-        if field_name != "" &&
-            LookupFieldType(env, zone_type, field_name) == participant_type &&
-            LookupKindType(
-                env, Concat(zone_type, Concat(".", field_name)),
-                "field_kind"
-            ) == NominalFieldKindSubjectSlot() {
-            if slot_name != "" {
-                return CodegenIntentZoneSubjectSlotFact(
-                    false, "zone-subject-slot-ambiguous", ""
-                );
-            }
-            slot_name = field_name;
-        }
-        field_index = field_index + 1;
+    let count: Int = ParamModeCsvCount(fields);
+    let row: Int = 0;
+    while row < count {
+        let name: String = CsvAt(fields, row);
+        ArrayPush(owners, 0);
+        ArrayPush(names, name);
+        ArrayPush(types, LookupFieldType(env, zone_type, name));
+        ArrayPush(kinds, LookupKindType(
+            env, Concat(zone_type, Concat(".", name)), "field_kind"));
+        row = row + 1;
     }
-    if slot_name == "" {
-        return CodegenIntentZoneSubjectSlotFact(
-            false, "zone-subject-slot-missing", ""
-        );
+    let selected: IntentSubjectSlotSelection = IntentSubjectSlotSelect(
+        owners, names, types, kinds, 0, participant_alias, participant_type);
+    if !selected.ok {
+        return CodegenIntentZoneSubjectSlotFact(false, selected.diagnostic, "");
     }
-    return CodegenIntentZoneSubjectSlotFact(true, "", slot_name);
+    return CodegenIntentZoneSubjectSlotFact(true, "", names[selected.field_row]);
 }

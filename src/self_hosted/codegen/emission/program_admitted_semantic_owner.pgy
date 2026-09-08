@@ -50,7 +50,8 @@ func GenerateCUnitFromAdmittedSemanticArtifactObserved(
         );
     let generic_specializations: CodegenGenericSpecializationFacts =
         CodegenGenericSpecializationFactsFromSemantic(
-            semantic_analysis.signatures, bundle.generic_specializations
+            semantic_analysis.signatures, bundle.generic_specializations,
+            semantic_analysis.function_scopes
         );
     let body_types: CodegenSemanticBodyTypeFacts =
         CodegenSemanticBodyTypeFactsFromBundleOrDie(

@@ -80,8 +80,8 @@ func SelfMirDeclarationZoneAuthorityRowsFromFacts(
 
 func SelfMirDeclarationZoneAuthorityRowsReady(
     ref rows: SelfMirDeclarationZoneAuthorityRows,
-    declaration_names: Array<String>,
-    declaration_nominal_kinds: Array<String>
+    ref declaration_names: Array<String>,
+    ref declaration_nominal_kinds: Array<String>
 ) -> Bool {
     let declaration_count: Int = ArrayLength(declaration_names);
     if ArrayLength(declaration_nominal_kinds) != declaration_count ||

@@ -1,5 +1,6 @@
 // Target spelling for scalar local storage already sealed by the graph plan.
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_identity_cell_projection_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_local_emission_owner.pgy";
 import "direct_mir_scalar_program_c_option_int_owner.pgy";
 import "direct_mir_scalar_program_c_option_string_owner.pgy";
@@ -57,6 +58,9 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             output = Concat(output,
                 DirectMirScalarProgramCLogicalRecordArrayTypeName(
                     plan.program.logical_record, plan.local_types[row]));
+        } else if DirectMirIdentityCellRow(plan.program.logical_record.identity_cells, plan.local_types[row]) >= 0 {
+            output = Concat(output, DirectMirIdentityCellCType(plan.program.logical_record.identity_cells, plan.local_types[row]));
+            output = Concat(output, " *");
         } else if DirectMirScalarProgramLogicalRecordTypeReady(
                 plan.program.logical_record, plan.local_types[row]) {
             output = Concat(output,

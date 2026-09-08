@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "capability_analyze.h"
+#include "callable_capability_inference.h"
 #include "type_checker_internal.h"
 #include "type_checker_flow_loop_summary.h"
 #include "type_checker_flow_universe.h"
@@ -16,6 +17,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     ASTNode *enclosing_nominal = ctx->current_nominal_decl;
     ASTNode *prev_function_decl = ctx->current_function_decl;
     uint32_t prev_effects = ctx->current_function_effects;
+    uint32_t prev_direct_effects = ctx->current_function_direct_effects;
     uint32_t prev_capabilities = ctx->current_function_capabilities;
     uint32_t prev_body_summary = ctx->current_function_body_summary;
     bool prev_tracking = ctx->tracking_function_effects;
@@ -146,6 +148,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
     Type *func_type = type_create_function(param_types, param_count,
                                             return_type);
+    /* A recursive/forward call consumes the declared callable surface before
+     * body inference grows it. Never publish a temporary empty capability set. */
+    type_function_set_capabilities(func_type,
+        ast_func_declared_capabilities(node));
     for (size_t i = 0; i < param_count; i++) {
         FuncParam *param = ast_func_param(node, i);
         if (param != NULL)
@@ -224,6 +230,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     ctx->inferred_return = NULL;
     ctx->inferred_return_conflict = false;
     ctx->current_function_effects = EFFECT_NONE;
+    ctx->current_function_direct_effects = EFFECT_NONE;
     ctx->current_function_capabilities = 0u;
     ctx->current_function_body_summary = BODY_SUMMARY_NONE;
     ctx->tracking_function_effects = true;
@@ -300,6 +307,9 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         scope_declare(ctx->scope, p);
     }
 
+    CallableCapabilityRoutine *previous_capability =
+        callable_capability_enter(ctx, node, param_types, param_count);
+    callable_capability_set_effect_contract(ctx, declared_effects, has_effect_contract);
     if (ast_func_body(node) != NULL) {
         semantic_check_body_flow_summary(ast_func_body(node), ctx, &body_flow);
         has_body_flow = true;
@@ -337,188 +347,6 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     semantic_check_param_summary_escapes(node, param_count, param_types,
         func_type, ctx);
 
-    {
-        uint32_t derived_effects = type_effect_mask_closure(ctx->current_function_effects);
-        uint32_t missing_effects =
-            type_effect_mask_closure(derived_effects) & ~type_effect_mask_closure(declared_effects);
-        char derived_buf[128];
-        char missing_buf[128];
-        char declared_buf[128];
-
-        if (has_effect_contract && missing_effects != EFFECT_NONE) {
-            effect_mask_to_string(derived_effects, derived_buf, sizeof(derived_buf));
-            effect_mask_to_string(missing_effects, missing_buf, sizeof(missing_buf));
-            effect_mask_to_string(declared_effects, declared_buf, sizeof(declared_buf));
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_EFFECT_CONFLICT, PGY_CAUSE_EFFECT_INCOMPATIBLE_COMBO, PGY_FIX_SPLIT_EFFECT_FAMILIES, node,
-                "Function '%s' is missing declared effects: %s (declared: %s, derived from body: %s)",
-                name != NULL ? name : "<anonymous>",
-                missing_buf, declared_buf, derived_buf);
-        }
-
-        type_function_set_effects(func_type,
-            type_effect_mask_join(declared_effects, derived_effects));
-
-        /* Capability declared >= used (the `with caps` contract). Capabilities
-         * are inferred bottom-up and propagated through calls exactly like
-         * effects, so `current_function_capabilities` is the interprocedural
-         * used set. A function that declares caps must cover every capability
-         * its body (transitively) exercises -- a precise, fail-closed refinement
-         * of the coarse effect families. */
-        {
-            uint32_t declared_caps = ast_func_declared_capabilities(node);
-            uint32_t used_caps = ctx->current_function_capabilities;
-            uint32_t missing_caps = used_caps & ~declared_caps;
-
-            if (ast_func_has_caps_clause(node) && missing_caps != 0u) {
-                char used_buf[160];
-                char missing_buf[160];
-                char declared_buf[160];
-                capability_mask_to_diagnostic_string(
-                    used_caps, used_buf, sizeof(used_buf));
-                capability_mask_to_diagnostic_string(
-                    missing_caps, missing_buf, sizeof(missing_buf));
-                capability_mask_to_diagnostic_string(
-                    declared_caps, declared_buf, sizeof(declared_buf));
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_EFFECT_CONFLICT,
-                    PGY_CAUSE_EFFECT_INCOMPATIBLE_COMBO, PGY_FIX_SPLIT_EFFECT_FAMILIES, node,
-                    "Function '%s' is missing declared capabilities: %s (declared: %s, used by body: %s)",
-                    name != NULL ? name : "<anonymous>",
-                    missing_buf, declared_buf, used_buf);
-            }
-
-            /* docs/140 advisory (non-blocking, violet): the reverse of the
-             * missing check. A `with caps` clause that grants more authority
-             * than the body exercises is legal but worth seeing — least
-             * authority is a recognition goal, not an error. Suppressed when the
-             * body is missing caps (the error above is the actionable signal). */
-            uint32_t excess_caps = declared_caps & ~used_caps;
-            if (ctx->emit_advisories
-                && ast_func_has_caps_clause(node)
-                && missing_caps == 0u
-                && excess_caps != 0u) {
-                char excess_buf[160];
-                char used_buf[160];
-                char declared_buf[160];
-                capability_mask_to_diagnostic_string(
-                    excess_caps, excess_buf, sizeof(excess_buf));
-                capability_mask_to_diagnostic_string(
-                    used_caps, used_buf, sizeof(used_buf));
-                capability_mask_to_diagnostic_string(
-                    declared_caps, declared_buf, sizeof(declared_buf));
-                semantic_advisory_with_hints(ctx,
-                    PGY_CODE_SEM_CAPABILITY_OVER_DECLARED,
-                    PGY_CAUSE_CAPABILITY_OVER_DECLARED,
-                    PGY_FIX_NARROW_CAPS_TO_USED_SET, node,
-                    "Function '%s' declares capabilities its body never uses: %s "
-                    "(declared: %s, used: %s).\n"
-                    "Reason:\n"
-                    "- the `with caps` grant is wider than the body's authority\n"
-                    "- least authority makes the capability surface read true\n"
-                    "Note: this is advisory only and does not block compilation\n"
-                    "Fix:\n"
-                    "- narrow the `with caps` clause to the used set\n"
-                    "- or keep the extra capability if a future body will need it",
-                    name != NULL ? name : "<anonymous>",
-                    excess_buf, declared_buf, used_buf);
-            }
-        }
-
-        /* Capability surface: declared (with caps) unioned with the body's
-         * inferred capabilities, so callers propagate the full set. */
-        type_function_set_capabilities(func_type,
-            ast_func_declared_capabilities(node)
-            | ctx->current_function_capabilities);
-
-        {
-            const char *within_zone = ast_func_within_zone(node);
-            uint32_t effect_closure = type_function_effects(func_type);
-            if (within_zone != NULL
-                && type_effect_mask_has(effect_closure, EFFECT_UNSAFE)) {
-                ASTNode *forbidding_zone =
-                    semantic_find_zone_decl_by_name(ctx, within_zone);
-                if (forbidding_zone != NULL
-                    && ast_zone_forbids_unsafe(forbidding_zone)) {
-                    semantic_error_with_hints(ctx,
-                        PGY_CODE_SEM_EFFECT_CONFLICT,
-                        PGY_CAUSE_EFFECT_INCOMPATIBLE_COMBO,
-                        PGY_FIX_SPLIT_EFFECT_FAMILIES,
-                        node,
-                        "Function '%s' performs unsafe work, but zone '%s' "
-                        "forbids unsafe; raw-memory operations may not be "
-                        "contained within a zone that declares 'forbids unsafe'. "
-                        "Move the unsafe work outside the zone boundary.",
-                        name != NULL ? name : "<anonymous>",
-                        within_zone);
-                }
-            }
-        }
-
-        if (type_effect_mask_conflicts(type_function_effects(func_type),
-                                       type_function_effects(func_type))) {
-            effect_mask_to_string(type_function_effects(func_type),
-                                  derived_buf, sizeof(derived_buf));
-            semantic_warning_with_hints(ctx,
-                PGY_CODE_SEM_EFFECT_CONFLICT,
-                PGY_CAUSE_EFFECT_INCOMPATIBLE_COMBO,
-                PGY_FIX_SPLIT_EFFECT_FAMILIES,
-                node,
-                "Function '%s' combines effect classes that are currently treated as conflicting (%s).\n"
-                "Reason:\n"
-                "- derived body effects joined into '%s'\n"
-                "- current partial order still treats part of that join as conflicting in one routine\n"
-                "- this usually means authority-sensitive work and boundary/resource work were merged in one flow\n"
-                "Fix:\n"
-                "- split the routine into smaller helpers so each helper owns one effect family\n"
-                "- or isolate the conflicting branch/handoff path behind an explicit boundary helper",
-                name != NULL ? name : "<anonymous>",
-                derived_buf,
-                derived_buf);
-        }
-
-        if (is_action
-            && ast_func_within_zone(node) != NULL
-            && type_effect_mask_requires_authority(type_function_effects(func_type))
-            && ast_func_authorized_by_count(node) == 0) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
-                "secure action '%s' within zone '%s' must declare 'authorized by'.\n"
-                "Reason:\n"
-                "- action body derives authority-sensitive effects from authority-bearing work\n"
-                "- zone '%s' makes this action part of an explicit authority boundary\n"
-                "Contract source:\n"
-                "- action header 'within %s' plus the derived authority-sensitive effect path inside the body\n"
-                "- without 'authorized by', the approval provenance for that boundary is missing\n"
-                "Fix:\n"
-                "- add 'authorized by <subject-slot>' to the action contract\n"
-                "- or move the authority-sensitive work behind a helper that is called from an already-authorized action",
-                name != NULL ? name : "<anonymous>",
-                ast_func_within_zone(node),
-                ast_func_within_zone(node),
-                ast_func_within_zone(node));
-        }
-        if (is_action
-            && ast_func_within_zone(node) != NULL
-            && ast_func_causes_effect(node) != NULL
-            && ast_func_authorized_by_count(node) == 0) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
-                "action '%s' causing effect '%s' within zone '%s' must declare 'authorized by'.\n"
-                "Reason:\n"
-                "- action contract declares causes '%s'\n"
-                "- causing an effect inside zone '%s' is an authority-sensitive state change\n"
-                "Contract source:\n"
-                "- action header 'causes %s' together with 'within %s'\n"
-                "- without 'authorized by', the approval provenance for that state change is missing\n"
-                "Fix:\n"
-                "- add 'authorized by <subject-slot>' to the action contract\n"
-                "- or remove/change the causes clause if this action should stay authority-free",
-                name != NULL ? name : "<anonymous>",
-                ast_func_causes_effect(node),
-                ast_func_within_zone(node),
-                ast_func_causes_effect(node),
-                ast_func_within_zone(node),
-                ast_func_causes_effect(node),
-                ast_func_within_zone(node));
-        }
-    }
 
     type_function_set_body_summary(func_type,
         ctx->current_function_body_summary);
@@ -555,15 +383,20 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_func_validate_return_boundary(node, ctx, final_ret);
         type_function_set_return_type(func_type, final_ret);
-        if (final_ret != NULL && final_ret != TYPE_UNKNOWN
-            && final_ret->name != NULL
-            && !ast_func_set_semantic_return_type_name_copy(node,
-                   final_ret->name)) {
-            semantic_error(ctx, node,
-                "Out of memory while recording inferred function return type");
-        }
+    }
+    /* HIR's implicit exit consumes the checked return type for both declared
+     * and inferred signatures; it must not guess Void from an open CFG tail. */
+    Type *checked_return = type_function_return_type(func_type);
+    if (checked_return != NULL && checked_return != TYPE_UNKNOWN
+        && checked_return->name != NULL
+        && !ast_func_set_semantic_return_type_name_copy(node,
+               checked_return->name)) {
+        semantic_error(ctx, node,
+            "Out of memory while recording semantic function return type");
     }
     semantic_require_no_live_text_builder(ctx->scope, node, ctx, "function exit");
+    callable_capability_leave(ctx, previous_capability, func_type,
+        ctx->current_function_capabilities, ctx->current_function_direct_effects);
 
     ctx->inferring_return = prev_inferring;
     ctx->inferred_return = prev_inferred;
@@ -572,6 +405,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     ctx->current_return = prev_return;
     ctx->current_function_decl = prev_function_decl;
     ctx->current_function_effects = prev_effects;
+    ctx->current_function_direct_effects = prev_direct_effects;
     ctx->current_function_capabilities = prev_capabilities;
     ctx->current_function_body_summary = prev_body_summary;
     ctx->tracking_function_effects = prev_tracking;
@@ -592,4 +426,120 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     resource_flow_universe_end(ctx);
     scope_exit(&ctx->scope);
     return !ctx->has_error;
+}
+
+
+void
+type_check_function_effect_contract(ASTNode *node, SemanticContext *ctx,
+    uint32_t declared_effects, bool has_effect_contract, uint32_t derived_effects)
+{
+    const char *name = ast_declaration_name(node);
+    bool is_action = !node->is_async_decl && ast_func_is_action(node);
+    uint32_t effect_closure = type_effect_mask_join(declared_effects, derived_effects);
+    uint32_t missing_effects =
+        type_effect_mask_closure(derived_effects) & ~type_effect_mask_closure(declared_effects);
+    char derived_buf[128];
+    char missing_buf[128];
+    char declared_buf[128];
+
+    if (has_effect_contract && missing_effects != EFFECT_NONE) {
+        effect_mask_to_string(derived_effects, derived_buf, sizeof(derived_buf));
+        effect_mask_to_string(missing_effects, missing_buf, sizeof(missing_buf));
+        effect_mask_to_string(declared_effects, declared_buf, sizeof(declared_buf));
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_EFFECT_CONFLICT, PGY_CAUSE_EFFECT_INCOMPATIBLE_COMBO, PGY_FIX_SPLIT_EFFECT_FAMILIES, node,
+            "Function '%s' is missing declared effects: %s (declared: %s, derived from body: %s)",
+            name != NULL ? name : "<anonymous>",
+            missing_buf, declared_buf, derived_buf);
+    }
+
+
+    {
+        const char *within_zone = ast_func_within_zone(node);
+        if (within_zone != NULL
+            && type_effect_mask_has(effect_closure, EFFECT_UNSAFE)) {
+            ASTNode *forbidding_zone =
+                semantic_find_zone_decl_by_name(ctx, within_zone);
+            if (forbidding_zone != NULL
+                && ast_zone_forbids_unsafe(forbidding_zone)) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_EFFECT_CONFLICT,
+                    PGY_CAUSE_EFFECT_INCOMPATIBLE_COMBO,
+                    PGY_FIX_SPLIT_EFFECT_FAMILIES,
+                    node,
+                    "Function '%s' performs unsafe work, but zone '%s' "
+                    "forbids unsafe; raw-memory operations may not be "
+                    "contained within a zone that declares 'forbids unsafe'. "
+                    "Move the unsafe work outside the zone boundary.",
+                    name != NULL ? name : "<anonymous>",
+                    within_zone);
+            }
+        }
+    }
+
+    if (type_effect_mask_conflicts(effect_closure,
+                                   effect_closure)) {
+        effect_mask_to_string(effect_closure,
+                              derived_buf, sizeof(derived_buf));
+        semantic_warning_with_hints(ctx,
+            PGY_CODE_SEM_EFFECT_CONFLICT,
+            PGY_CAUSE_EFFECT_INCOMPATIBLE_COMBO,
+            PGY_FIX_SPLIT_EFFECT_FAMILIES,
+            node,
+            "Function '%s' combines effect classes that are currently treated as conflicting (%s).\n"
+            "Reason:\n"
+            "- derived body effects joined into '%s'\n"
+            "- current partial order still treats part of that join as conflicting in one routine\n"
+            "- this usually means authority-sensitive work and boundary/resource work were merged in one flow\n"
+            "Fix:\n"
+            "- split the routine into smaller helpers so each helper owns one effect family\n"
+            "- or isolate the conflicting branch/handoff path behind an explicit boundary helper",
+            name != NULL ? name : "<anonymous>",
+            derived_buf,
+            derived_buf);
+    }
+
+    if (is_action
+        && ast_func_within_zone(node) != NULL
+        && type_effect_mask_requires_authority(effect_closure)
+        && ast_func_authorized_by_count(node) == 0) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
+            "secure action '%s' within zone '%s' must declare 'authorized by'.\n"
+            "Reason:\n"
+            "- action body derives authority-sensitive effects from authority-bearing work\n"
+            "- zone '%s' makes this action part of an explicit authority boundary\n"
+            "Contract source:\n"
+            "- action header 'within %s' plus the derived authority-sensitive effect path inside the body\n"
+            "- without 'authorized by', the approval provenance for that boundary is missing\n"
+            "Fix:\n"
+            "- add 'authorized by <subject-slot>' to the action contract\n"
+            "- or move the authority-sensitive work behind a helper that is called from an already-authorized action",
+            name != NULL ? name : "<anonymous>",
+            ast_func_within_zone(node),
+            ast_func_within_zone(node),
+            ast_func_within_zone(node));
+    }
+    if (is_action
+        && ast_func_within_zone(node) != NULL
+        && ast_func_causes_effect(node) != NULL
+        && ast_func_authorized_by_count(node) == 0) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
+            "action '%s' causing effect '%s' within zone '%s' must declare 'authorized by'.\n"
+            "Reason:\n"
+            "- action contract declares causes '%s'\n"
+            "- causing an effect inside zone '%s' is an authority-sensitive state change\n"
+            "Contract source:\n"
+            "- action header 'causes %s' together with 'within %s'\n"
+            "- without 'authorized by', the approval provenance for that state change is missing\n"
+            "Fix:\n"
+            "- add 'authorized by <subject-slot>' to the action contract\n"
+            "- or remove/change the causes clause if this action should stay authority-free",
+            name != NULL ? name : "<anonymous>",
+            ast_func_causes_effect(node),
+            ast_func_within_zone(node),
+            ast_func_causes_effect(node),
+            ast_func_within_zone(node),
+            ast_func_causes_effect(node),
+            ast_func_within_zone(node));
+    }
+
 }

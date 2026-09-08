@@ -6,6 +6,7 @@ func DirectMirScalarProgramCaseMathExpressionNodeReady(
 ) -> Option<Bool> {
     let kind: Int = facts.node_kinds[node];
     if kind != DirectMirScalarProgramExprNegateInt() &&
+        kind != DirectMirScalarProgramExprNegateLong() &&
         kind != DirectMirScalarProgramExprAbsInt() &&
         kind != DirectMirScalarProgramExprMinInt() &&
         kind != DirectMirScalarProgramExprMaxInt() &&
@@ -36,6 +37,11 @@ func DirectMirScalarProgramCaseMathExpressionNodeReady(
     }
     let left: Int = facts.node_lefts[node];
     let right: Int = facts.node_rights[node];
+    if kind == DirectMirScalarProgramExprNegateLong() {
+        return Some(left >= 0 && left < node && right == -1 &&
+            facts.node_types[left] == CompilerAbiLayoutLongTypeName() &&
+            facts.node_types[node] == CompilerAbiLayoutLongTypeName());
+    }
     if kind == DirectMirScalarProgramExprModuloLong() ||
             kind == DirectMirScalarProgramExprDivideLong() {
         return Some(left >= 0 && left < node && right >= 0 && right < node &&

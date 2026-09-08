@@ -9,6 +9,7 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_decls_a_helpers_internal.h"
+#include "type_checker_flow_resources.h"
 #include "diag_codes.h"
 #include "../common/string_compat.h"
 
@@ -191,13 +192,53 @@ expr_ops_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
+static Type *
+type_check_conditional_operand(ASTNode *expr, SemanticContext *ctx, Type *left)
+{
+    PgyTokenType op = ast_binary_operator(expr).type;
+    ASTNode *left_expr = ast_binary_left(expr);
+    bool logical = (op == TOKEN_AND || op == TOKEN_OR) && left == TYPE_BOOL;
+    bool coalescing = op == TOKEN_COALESCE
+        && type_is_constructed_named(left, "Option");
+    bool known = logical && left_expr != NULL && left_expr->type == AST_BOOLEAN;
+    bool taken = known && (ast_boolean_value(left_expr) == (op == TOKEN_AND));
+    ResourceConsumeSnapshot before, after;
+    Type *right;
+
+    if ((!logical && !coalescing) || taken)
+        return expr_ops_normalize_type(type_check_expression(ast_binary_right(expr), ctx));
+    before = snapshot_resource_states(ctx);
+    if (!before.valid) {
+        semantic_error(ctx, expr, "Conditional operand resource snapshot failed");
+        destroy_resource_snapshot(&before);
+        return TYPE_UNKNOWN;
+    }
+    /* Still type-check the RHS. Its runtime-conditional ownership changes
+     * must not become unconditional consumption on the skipped path. */
+    right = expr_ops_normalize_type(type_check_expression(ast_binary_right(expr), ctx));
+    if (!known) {
+        after = snapshot_resource_states(ctx);
+        if (!after.valid) {
+            semantic_error(ctx, expr, "Conditional operand result snapshot failed");
+        } else {
+            merge_resource_states_or(&before, &after);
+            if (!before.valid)
+                semantic_error(ctx, expr, "Conditional operand resource identity merge failed");
+        }
+        destroy_resource_snapshot(&after);
+    }
+    if (before.valid)
+        restore_resource_states_for_context(&before, ctx);
+    destroy_resource_snapshot(&before);
+    return right;
+}
+
 Type *
 type_check_binary(ASTNode *expr, SemanticContext *ctx)
 {
     Type *left  = expr_ops_normalize_type(
         type_check_expression(ast_binary_left(expr),  ctx));
-    Type *right = expr_ops_normalize_type(
-        type_check_expression(ast_binary_right(expr), ctx));
+    Type *right = type_check_conditional_operand(expr, ctx, left);
 
     if (type_is_slot_handle(left) && type_slot_inner_type(left) != NULL)
         left = type_slot_inner_type(left);

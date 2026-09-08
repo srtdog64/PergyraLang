@@ -1,0 +1,3 @@
+func Pure() -> Int { return 6; }
+func Apply(MapNew: func() -> Int) -> Int { return MapNew(); }
+func Main() -> Void with effects local { Log(Apply(Pure)); }

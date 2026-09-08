@@ -74,6 +74,153 @@ the example spelling above, are the input to semantic/DIR resolution.
 Legacy no-arrow intents have an explicit `legacy_bool` result mode and exact
 `Bool` return type.  `missing return type => Bool` is not a consumer rule.
 
+## Legacy completion expression carriage
+
+For parsed legacy source, omission of `success:` is normalized to an explicit
+Bool `true` expression by the parser. DIR retains that clause's node identity
+in `success_expression_node_ids`; its exact-identity receipt includes the row.
+Typed intents have no legacy completion row. Source header predicates must be
+Bool in the purpose-formal environment, independently of backend selection.
+
+The MIR producer emits exactly one `IntentCheck success` attached to the
+enclosing Intent, not to a step. The phase consumer requires its graph and
+purpose identity, rejects missing/duplicate/crossed rows, and preserves it in
+the existing expression-order projection. Native HIR no longer duplicates
+success as an entry-body statement; its direct-call summary remains intact.
+
+The source-C consumer evaluates this graph once after successful step execution.
+An earlier step failure skips it and returns false. A false completion result
+does not itself introduce a new compensation policy. Native C/LLVM consumers
+also reject a missing completion fact; they do not recreate the source default.
+Legacy `failure:` evaluation/precedence remains a separate open contract and is
+not established by checking its source type.
+
+The MIR step-plan owner joins phase occurrences with the existing participant,
+action, placement and typed transition facts once. Routine tree reconstruction
+consumes that plan rather than repeating the joins. Typed steps take their
+already admitted topology row by step index and cross-seal purpose, step,
+action and outcome identity; a tree-owned whole-plan name search is forbidden.
+This is a transient view
+under the existing Intent execution owner, not a new MIR layer or permission
+for ordinary GraphPlan to execute an Intent without placement/cleanup lowering.
+
+Routine mode, priority, binding/phase inventory and cleanup contracts are
+admitted before tree projection by `mir_lower/intent_routine_plan_owner.pgy`.
+Placement retains participant/declaration rows and the chosen slot's exact
+SyntaxNodeId. It reuses the action's admitted receiver binding row; only the
+binding owner resolves aliases. `semantic/intent_subject_slot_policy_owner.pgy` owns selection:
+an exact compatible alias wins; otherwise one compatible subject slot in the
+same Zone is required. A field from another Zone, an unlisted C-environment
+field or a non-subject slot cannot satisfy that placement. Direct GraphPlan
+target consumers must project the admitted slot identity, not choose another
+field by spelling.
+The source-C environment adapter uses the same policy while its tree bridge
+remains; this does not itself replace ordinary GraphPlan placement/cleanup.
+
+The evaluation phase preserves the DIR target kind: action calls use `on`,
+direct nested Intent calls use `intent`. This matches the existing native MIR
+carriers. The shared phase owner admits both distinct forms, but the step plan
+cross-checks each against its graph target and exact declaration ID; they are
+not interchangeable spellings. Nested evaluation cannot carry an action outcome
+binding. Target kind, not absence of Zone placement, chooses nested-call emission.
+
+`tests/concept_semantics/intent_predicates.py` checks source observations and
+Bool admission. `tests/self_hosted/parity/intent_completion_projection.py`
+checks both producers through MIR-to-C, including no-artifact refusal of the
+removed entry-statement mirror. The common identity-epoch owner canonicalizes
+method spelling using admitted declaration IDs; source-local names are only
+cross-checks. These gates do not close ordinary Main/direct GraphPlan LLVM.
+The bounded legacy/nested/composite emitters must refuse a nonconstant
+completion they cannot execute, rather than silently returning true.
+
+Legacy step execution also belongs solely to the step-attached `IntentEval`
+phase row. Native HIR keeps its step/block skeleton and independent direct-call
+summary, but no second on/check/compensation statement graph; self MIR no longer
+constructs that mirror either. The MIR consumer rejects reintroduced executable
+body mirrors instead of selecting one by expression text. Two different steps
+may call the same action with identical text: each phase row still executes once.
+The repeated-step completion control checks this through both MIR producers.
+Typed native MIR's redundant first-step/body graphs and explicitly marked
+mirror blocks retain their separate exact-coverage contract until their own
+producer retirement. They never supply the executable on row.
+
+## Formal binder identity at the MIR boundary
+
+Intent formals retain their original source declaration identity in the
+`binding_source_syntax_id` field of `IntentBinding` and its matching
+`IntentParticipant` or `IntentValue` carrier. The native producer projects the
+already captured MIR source ID; the Pergyra producer carries the DIR participant
+node ID through `SelfMirInstructionRows`. Neither uses the caller's local ID,
+the instruction number, nor an ordinal-derived substitute.
+
+The shared binding projection requires positive, distinct IDs within an Intent
+and exactly one mirror with the same ID, alias, type and participant/value kind.
+Missing, repeated, non-integer or crossed IDs fail closed; nonbinding carriers
+must not claim this field. Typed phase projection retains an internal zero in
+the aligned nonbinding column, not a fabricated binder identity. The existing
+Intent graph receipt includes the retained formal IDs in its seal. These are
+identities under the existing MIR owner, not another semantic authority or a
+claim that external MIR proves source safety.
+
+The binding projection carries the enclosing Intent's source identity. The
+common direct-MIR routine signature joins that exact identity to the indexed
+header and retains kind `intent`, formal order, declaration IDs and roles.
+Nominal subject/zone/vessel participants retain `participant` / `indirect`;
+supported scalar value formals retain `value` / `direct`. This is the existing
+Intent binding protocol, not ordinary `ref`, implicit source `inout`, or an
+invented copy-out contract. Aggregate value ABI without an owning fact refuses.
+The routine instance inventory and legacy graph consume the common signature;
+the graph no longer re-derives its formals from raw binding arrays.
+
+Routine-header inventory owns exact identity and array-envelope validation for
+both common and legacy generic signatures. Parameter admission owns the Intent
+representation rule and checks it even after lower parameter facts are resealed.
+The common callable parameter classifier recognizes these admitted participants
+through the existing identity-cell layout owner, preserving `participant` and
+indirect passing. The same mode on an ordinary function, a crossed ABI or a
+missing cell layout is rejected. This classification is not a body-execution plan.
+A valid signature alone does not authorize ordinary GraphPlan execution of an
+Intent: its purpose, placement, phase and cleanup plan must also be consumed.
+General Main composition and direct GraphPlan legalization remain separate
+execution obligations.
+
+The legacy Intent execution gate exercises both source pipelines and invokes
+the common binder/signature owner on both MIR producers. Its admission-only
+probe uses native C, as does driver bootstrap; source C/LLVM execution remains
+independently compared. Header-field and resealed protocol negatives exercise
+the owners directly, not merely outer checksums. The phase-carrier gate also
+checks participant/value ID refusal at the C publication boundary. Neither
+executes malformed MIR inputs.
+
+## Producer-owned CFG roles and executable identity
+
+Intent MIR blocks carry `intent_block_role`: `entry`, `body`, `cleanup`,
+`rollback`, `invalidation`, `execution`, or `mirror`. Non-Intent blocks omit it.
+The native routine/CFG and Pergyra source-CFG construction own these roles.
+Consumers require unique roots and a complete, acyclic carrier-body path;
+missing roles do not authorize fixed block-count or position-based recovery.
+The admitted transition plan exclusively owns typed execution blocks.
+
+Native typed MIR may retain detached HIR mirror blocks. They must be unreachable
+and have no normal edges. Their graphs, together with body-carried statement
+mirrors, must exactly cover the plan's expression multiset before erasure.
+Pergyra typed construction emits no legacy statement spine: on/compensation
+expressions live only in the execution plan. It does not fabricate redundant
+mirrors to satisfy a native layout assumption. Rollback compensation obligations
+still retain the same admitted action identity and are checked against that plan.
+
+The typed expression adapter follows the existing call spine through argument
+wrappers and joins its call root to the admitted action declaration ID.
+Source-local and canonical names are cross-checks derived from the same callable
+owner, not alternative lookup authorities. Missing or foreign IDs and crossed
+spellings refuse; canonicalization preserves identity.
+
+`tests/self_hosted/parity/intent_block_role_projection.py` is the focused
+both-producer MIR-to-C execution/no-artifact-refusal gate. It reuses the existing
+typed compensation gate's independent observations. The identity-prefix fixture
+also checks missing/foreign target IDs, crossed names and already canonical
+input directly. These gates do not establish direct GraphPlan C/LLVM closure.
+
 ## Why step and terminal facts are separate
 
 The step fact owns action execution and branch state.  The routine signature

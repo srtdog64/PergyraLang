@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let values: HashMap<String, Int> = MapNew();
+    MapSet(values, 3, 4);
+}

@@ -2,6 +2,7 @@
 import "../mir_lower/program_declaration_index_owner.pgy";
 import "direct_mir_exact_json_array_cardinality_owner.pgy";
 import "../semantic/callable_receiver_carriage_policy_owner.pgy";
+import "../mir/declaration_wire_kind_owner.pgy";
 import "../air/mir_cfg_identity_owner.pgy";
 
 struct DirectMirNominalLiteralDeclarationFact {
@@ -101,11 +102,11 @@ func DirectMirNominalLiteralDeclarationFactFromIndex(
         !IsSome(nominal_kind) || !IsSome(name) || !IsSome(syntax) ||
         !IsSome(source_path) || UnwrapOption(source_path) !=
             declarations.source_module_paths[0] ||
-        UnwrapOption(kind) != UnwrapOption(nominal_kind) ||
+        UnwrapOption(kind) != MirDeclarationWireKind(UnwrapOption(nominal_kind)) ||
         UnwrapOption(kind) != declarations.kinds[0] ||
         UnwrapOption(nominal_kind) != declarations.nominal_kinds[0] ||
         UnwrapOption(name) != declarations.names[0] ||
-        !DirectMirNominalLiteralFrontierKindReady(UnwrapOption(kind)) ||
+        !DirectMirNominalLiteralFrontierKindReady(UnwrapOption(nominal_kind)) ||
         !DirectMirExactObjectArrayCount(fields, 1) ||
         !DirectMirExactObjectArrayCount(methods, 0) {
         return invalid;
@@ -140,10 +141,10 @@ func DirectMirNominalLiteralDeclarationFactFromIndex(
     }
     let fact: DirectMirNominalLiteralDeclarationFact =
         DirectMirNominalLiteralDeclarationFact(
-            true, 0, UnwrapOption(kind), UnwrapOption(name),
+            true, 0, UnwrapOption(nominal_kind), UnwrapOption(name),
             ToInt(UnwrapOption(syntax)), UnwrapOption(field_name),
             UnwrapOption(field_type), ToInt(UnwrapOption(field_syntax)),
-            DirectMirNominalLiteralExpectedCarriage(UnwrapOption(kind))
+            DirectMirNominalLiteralExpectedCarriage(UnwrapOption(nominal_kind))
         );
     let verified: DirectMirNominalLiteralDeclarationFact =
         DirectMirNominalLiteralDeclarationFact(

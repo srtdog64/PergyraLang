@@ -7,7 +7,6 @@ import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
 
 func DirectMirScalarProgramCPayloadEnumPreamble(
     ref fact: DirectMirScalarProgramReferencedEnumFact,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
@@ -59,7 +58,7 @@ func DirectMirScalarProgramCPayloadEnumPreamble(
                                 fact.variant_param_types[
                                     fact.variant_param_type_starts[variant] +
                                         parameter],
-                                int_c_type, nominal, logical_record,
+                                int_c_type, logical_record,
                                 payload_free_enum, fact, array_string_abi,
                                 array_string_projection);
                         if payload_type == "" {

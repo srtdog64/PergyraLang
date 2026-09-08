@@ -18,10 +18,10 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_scalar_array_string_readonly_r
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
-POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_readonly_ref_policy_owner.pgy"
-TARGET="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy"
-C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_readonly_ref_owner.pgy"
-LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy"
+POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy"
+TARGET="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_readonly_ref_target_owner.pgy"
+C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_readonly_ref_owner.pgy"
+LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy"
 PROJECTION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_projection_owner.pgy"
 EMISSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy"
 EXPRESSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy"
@@ -36,13 +36,13 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 
-grep -Fq 'DirectMirScalarProgramArrayStringReadonlyRefParameterReady(' "$POLICY" ||
+grep -Fq 'DirectMirScalarProgramArrayReadonlyRefParameterReady(' "$POLICY" ||
     fail "read-only policy owner is missing"
-grep -Fq 'DirectMirScalarProgramArrayStringReadonlyRefAt(' "$TARGET" ||
+grep -Fq 'DirectMirScalarProgramArrayReadonlyRefAt(' "$TARGET" ||
     fail "read-only target owner is missing"
-grep -Fq 'DirectMirScalarProgramCArrayStringReadonlyRefCallArgument(' "$C_OWNER" ||
+grep -Fq 'DirectMirScalarProgramCArrayReadonlyRefCallArgument(' "$C_OWNER" ||
     fail "C read-only call owner is missing"
-grep -Fq 'DirectMirScalarProgramLlvmArrayStringReadonlyRefCallArgument(' "$LLVM_OWNER" ||
+grep -Fq 'DirectMirScalarProgramLlvmArrayReadonlyRefCallArgument(' "$LLVM_OWNER" ||
     fail "LLVM read-only call owner is missing"
 grep -Fq 'DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(' "$LLVM_OWNER" ||
     fail "LLVM read-only load does not cross-seal the carried projection"

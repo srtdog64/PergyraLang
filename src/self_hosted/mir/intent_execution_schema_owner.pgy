@@ -1,4 +1,9 @@
-// Canonical in-memory schema for typed intent execution rows.
+// Canonical MIR Intent block-role and typed execution row schema.
+
+func MirIntentBlockRoleKnown(role: String) -> Bool {
+    return role == "entry" || role == "body" || role == "cleanup" ||
+        role == "rollback" || role == "invalidation" || role == "execution" || role == "mirror";
+}
 
 struct MirIntentCompensationFacts {
     transition_ids: Array<Int>;

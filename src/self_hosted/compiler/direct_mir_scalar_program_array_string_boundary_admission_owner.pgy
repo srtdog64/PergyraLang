@@ -23,9 +23,9 @@ func DirectMirScalarProgramArrayStringBoundarySignatureReady(
 
 func DirectMirScalarProgramArrayStringBoundaryFactFromOwners(
     ref expressions: DirectMirScalarProgramExpressionSet,
-    operation_kinds: Array<Int>, operation_results: Array<Int>,
-    operation_expression_rows: Array<Int>, value_local_rows: Array<Int>,
-    block_return_expression_rows: Array<Int>,
+    ref operation_kinds: Array<Int>, ref operation_results: Array<Int>,
+    ref operation_expression_rows: Array<Int>, ref value_local_rows: Array<Int>,
+    ref block_return_expression_rows: Array<Int>,
     ref callable: DirectMirScalarCfgProgramCallableFact,
     ref abi: DirectMirScalarProgramArrayStringAbiFact,
     definition_kind: Int, log_kind: Int

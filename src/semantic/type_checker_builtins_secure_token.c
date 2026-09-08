@@ -39,7 +39,7 @@ builtin_validate_secure_token_arg(ASTNode *token_arg,
     }
 
     token_name = ast_identifier_name(token_arg);
-    token_sym = scope_lookup(ctx->scope, token_name);
+    token_sym = lookup_identifier_symbol(token_arg, ctx);
     if (token_sym == NULL || token_sym->kind != SYMBOL_TOKEN) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,

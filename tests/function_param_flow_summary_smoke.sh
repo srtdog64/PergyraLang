@@ -18,6 +18,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import tempfile
 
 root = pathlib.Path(sys.argv[1])
 pgy = sys.argv[2]
@@ -145,6 +146,62 @@ print(
     f"recursion_hits={recursion_hits} passes={passes} "
     f"statement_visits={statement_visits} program_points={program_points}"
 )
+
+# The work cap belongs to one demanded closure, not the entire compilation.
+# Independent fresh queries may exceed it in aggregate; one oversized closure
+# must still fail. Neither case has a deep stack or recursive call edges.
+if not re.search(r"#define FUNCTION_PARAM_FLOW_WORK_BUDGET 4096u\b", owner):
+    raise SystemExit("review the demand-budget controls before changing the cap")
+(root / ".tmp").mkdir(exist_ok=True)
+pressure_dir = pathlib.Path(tempfile.mkdtemp(
+    prefix="function-param-flow-budget.", dir=root / ".tmp"
+))
+pressure_env = os.environ.copy()
+pressure_env["PGY_DEBUG_FUNCTION_PARAM_FLOW"] = "1"
+pressure_env.pop("PGY_DEBUG_RESOURCE_FLOW_FACTS", None)
+for shape, count in (("independent", 4097), ("single-closure", 4096)):
+    leaves = "\n".join(
+        f"func Leaf{i}(ref values: Array<Int>) -> Int {{ return values[0]; }}"
+        for i in range(count)
+    )
+    calls = "\n".join(f"    Leaf{i}(values);" for i in range(count))
+    if shape == "independent":
+        source_text = leaves + (
+            "\nfunc Main() -> Void {\n    let values: Array<Int> = [7];\n"
+            + calls + "\n}\n"
+        )
+    else:
+        source_text = (
+            "func Entry(ref values: Array<Int>) -> Int { return FanOut(values); }\n"
+            "func FanOut(ref values: Array<Int>) -> Int {\n" + calls
+            + "\n    return 0;\n}\n" + leaves
+            + "\nfunc Main() -> Void { let values: Array<Int> = [7]; Entry(values); }\n"
+        )
+    source_path = pressure_dir / f"{shape}.pgy"
+    source_path.write_text(source_text, encoding="utf-8")
+    try:
+        pressure = subprocess.run(
+            [pgy, "--native-pipeline", "--hir", str(source_path)],
+            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            env=pressure_env, timeout=30.0, check=False,
+        )
+    except subprocess.TimeoutExpired:
+        raise SystemExit(f"{shape} demand-budget control exceeded 30 seconds")
+    (pressure_dir / f"{shape}.err").write_bytes(pressure.stderr)
+    telemetry = re.search(
+        rb"function-param-flow entries=(\d+) body_evaluations=(\d+) "
+        rb"cache_hits=(\d+) recursion_hits=(\d+)", pressure.stderr,
+    )
+    if telemetry is None or int(telemetry[4]) != 0:
+        raise SystemExit(f"{shape} control lost its nonrecursive telemetry")
+    if shape == "independent":
+        if pressure.returncode != 0 or tuple(map(int, telemetry.groups()[:2])) != (count, count):
+            raise SystemExit("independent demands consumed an unrelated episode's budget")
+    elif pressure.returncode == 0 or int(telemetry[2]) != 4096 or (
+        b"recursive summary work budget exceeded" not in pressure.stderr
+    ):
+        raise SystemExit("one oversized demand closure escaped the unchanged work cap")
+print(f"[function-param-flow-summary] independent/oversized demand controls: PASS; {pressure_dir}")
 PY
 
 ESCAPE_FIXTURE="$ROOT_DIR/tests/cases/function_param_flow_summary/escape_negative.pgy"

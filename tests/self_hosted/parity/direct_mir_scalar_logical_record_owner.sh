@@ -57,14 +57,16 @@ grep -Fq 'kind == DirectMirScalarProgramExprLogicalRecordMember()' "$BOOL_OWNER"
     fail "logical Bool member is not admitted by the non-trapping proof"
 grep -Fq 'logical_record: DirectMirScalarProgramLogicalRecordFact' "$ROUTE_OWNER" ||
     fail "route does not carry the logical record fact"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN_OWNER" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN_OWNER" ||
     fail "GraphPlan schema does not seal logical record identity"
 for owner in "$C_OWNER" "$LLVM_OWNER"; do
     grep -Fq 'DirectMirScalarProgramLogicalRecordTargetFromFact(' "$owner" ||
         fail "target emission bypasses the logical record projection"
-    ! grep -Eq 'offset|offsetof' "$owner" ||
-        fail "target emission invented a physical record offset"
+    ! grep -Eq 'JsonObjectFact|NominalDeclarationAbiFactFromDocument' "$owner" ||
+        fail "record emission redecoded source declarations instead of consuming the fact"
 done
+grep -Fq 'fact.physical.field_offsets[field]' "$C_OWNER" ||
+    fail "C layout assertions do not consume producer offsets"
 ! grep -Fq 'ProbeFact' "$FACT_OWNER" || fail "logical record owner is fixture-keyed"
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*

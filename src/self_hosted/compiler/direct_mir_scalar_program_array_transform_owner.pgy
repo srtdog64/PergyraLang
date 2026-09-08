@@ -1,0 +1,41 @@
+// In-place Array<Int> transforms consume admitted storage and raw runtime ABI.
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarProgramArrayTransformKind(kind: Int) -> Bool {
+    return kind == DirectMirScalarProgramExprArrayIntSort() ||
+        kind == DirectMirScalarProgramExprArrayIntReverse();
+}
+
+func DirectMirScalarProgramArrayTransformRuntimeFact(kind: Int) -> CompilerRuntimeCallAbiFact {
+    let operation: String = ""; let symbol: String = "";
+    if kind == DirectMirScalarProgramExprArrayIntSort() {
+        operation = "array-int.sort-data"; symbol = CollectionRuntimeLlvmIntSortFn();
+    } else if kind == DirectMirScalarProgramExprArrayIntReverse() {
+        operation = "array-int.reverse-data"; symbol = CollectionRuntimeLlvmIntReverseFn();
+    } else { return CompilerRuntimeCallAbiFactMissing(); }
+    let fact: CompilerRuntimeCallAbiFact = CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput("collection", operation, symbol,
+            CompilerRuntimeCallAbiMaterialTargetLibrary()));
+    if !fact.ok || fact.call_shape != "data_count_to_void" {
+        return CompilerRuntimeCallAbiFactMissing();
+    }
+    return fact;
+}
+
+func DirectMirScalarProgramArrayTransformNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    let abi: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramArrayTransformRuntimeFact(facts.node_kinds[node]);
+    let left: Int = facts.node_lefts[node];
+    return abi.ok && facts.node_runtime_call_abi_ids[node] == abi.runtime_call_abi_id &&
+        facts.node_types[node] == CompilerAbiLayoutArrayIntTypeName() &&
+        left >= 0 && left < node && facts.node_rights[node] == -1 &&
+        facts.node_types[left] == CompilerAbiLayoutArrayIntTypeName() &&
+        facts.node_kinds[left] == DirectMirScalarProgramExprLocal() &&
+        facts.node_local_rows[node] == -1 && facts.node_parameter_ordinals[node] == -1 &&
+        facts.node_member_ordinals[node] == -1 && facts.node_callable_rows[node] == -1 &&
+        facts.node_literals[node] == "" &&
+        ArrayLength(DirectMirScalarProgramNaryOperandRows(facts.nary_operands, node)) == 0;
+}

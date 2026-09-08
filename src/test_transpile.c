@@ -14,11 +14,14 @@
 
 #include "common/string_compat.h"
 #include "codegen/transpiler.h"
+#include "codegen/transpiler_call_subject_arg_policy.h"
 #include "codegen/transpiler_expr_type_infer.h"
 #include "codegen/transpiler_domain_nominal_emit.h"
 #include "codegen/transpiler_let_type_register_emit.h"
 #include "codegen/transpiler_roster_decl_emit.h"
 #include "codegen/transpiler_symbols.h"
+#include "codegen/transpiler_mir_phi_type_owner.h"
+#include "codegen/transpiler_mir_func_ssa_locals_emit.h"
 #include "codegen/transpiler_type_declarator.h"
 #include "codegen/codegen_type_mapping.h"
 #include "codegen/transpiler_type_render.h"
@@ -94,6 +97,7 @@ static MIRProgram *g_last_mir = NULL;
 #include "tests/transpile/test_transpile_mir_part_b.cases.h"
 #include "tests/transpile/test_transpile_mir_part_c.cases.h"
 #include "tests/transpile/test_transpile_mir_source_order.cases.h"
+#include "tests/transpile/test_transpile_mir_phi_type.cases.h"
 
 int
 main(int argc, char **argv)
@@ -105,6 +109,7 @@ main(int argc, char **argv)
     if (argc == 2
         && strcmp(argv[1], "generic-method-specialization") == 0) {
         test_generic_method_specialization_fact();
+        test_generic_direct_specialization_fact();
         printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
         type_system_cleanup();
         return (g_fail > 0) ? 1 : 0;
@@ -116,6 +121,7 @@ main(int argc, char **argv)
     test_statement_emit();
     test_program_emit();
     test_generic_method_specialization_fact();
+    test_generic_direct_specialization_fact();
     test_ability_role_emit();
     test_party_emit();
     test_roster_world_emit();
@@ -128,6 +134,8 @@ main(int argc, char **argv)
     test_mir_select_dispatch_emit();
     test_intent_observability_emit();
     test_source_order_mir_emit();
+    test_mir_phi_type_projection();
+    test_mir_value_result_entry_storage();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
 

@@ -4,6 +4,7 @@ import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
 import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_identity_owner.pgy";
 import "direct_mir_scalar_program_direct_call_fact_owner.pgy";
+import "direct_mir_identity_cell_call_admission_owner.pgy";
 
 func DirectMirScalarProgramDirectCallFactFromGraph(
     ref sequence: MirExpressionGraphSequence, node: Int,
@@ -19,9 +20,13 @@ func DirectMirScalarProgramDirectCallFactFromGraph(
         DirectMirScalarProgramBuiltinArgumentChainFromGraph(
             sequence, node, source_rows, normalized_types);
     if !chain.valid { return missing; }
+    if DirectMirScalarProgramMemberCallMarkerReady(sequence, chain.call_node) {
+        return DirectMirIdentityCellCallFromGraph(sequence, chain.call_node,
+            source_rows, normalized_types, chain.argument_rows, callables);
+    }
     let target_syntax_id: Int =
         sequence.arena.identities.call_target_syntax_ids[chain.call_node];
-    let callee: Int = sequence.arena.topology.left_children[chain.call_node];
+    let callee: Int = DirectMirScalarProgramCallCalleeBase(sequence, chain.call_node);
     if callee < 0 || callee >= chain.call_node {
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }
@@ -75,13 +80,13 @@ func DirectMirScalarProgramDirectCallFactFromGraph(
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }
     let callable_ordinal: Int =
-        DirectMirScalarCfgProgramCallableInventoryOrdinalBySyntaxId(callables, target_syntax_id);
+        DirectMirScalarProgramCallableOrdinalAtCall(callables, sequence, chain.call_node);
     if !DirectMirScalarCfgProgramCallableInventoryOrdinalReady(callables, callable_ordinal) {
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }
     let callable_row: Int = callable_ordinal - 1;
     if sequence.arena.call_target_names[chain.call_node] !=
-            callables.names[callable_row] ||
+            callables.source_names[callable_row] ||
         count > callables.parameter_counts[callable_row] {
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }

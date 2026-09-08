@@ -41,6 +41,30 @@ mir_copy_names(const char ***dst, size_t *dst_count, const char **src, size_t sr
 }
 
 bool
+mir_copy_local_bindings(MIRLocalBinding **dst, size_t *dst_count,
+                        const HIRLocalBinding *src, size_t src_count)
+{
+    if (dst == NULL || dst_count == NULL
+        || (src_count > 0 && src == NULL)
+        || src_count > SIZE_MAX / sizeof(MIRLocalBinding))
+        return false;
+    *dst = NULL;
+    *dst_count = 0;
+    if (src_count == 0)
+        return true;
+    *dst = calloc(src_count, sizeof(MIRLocalBinding));
+    if (*dst == NULL)
+        return false;
+    *dst_count = src_count;
+    for (size_t i = 0; i < src_count; i++) {
+        if (src[i].binding_syntax_id == 0)
+            return false;
+        (*dst)[i] = (MIRLocalBinding){src[i].name, src[i].binding_syntax_id};
+    }
+    return true;
+}
+
+bool
 mir_copy_phi_nodes(MIRSourcePhiNode **dst, size_t *dst_count,
                    const HIRPhiNode *src, size_t src_count)
 {
@@ -56,6 +80,7 @@ mir_copy_phi_nodes(MIRSourcePhiNode **dst, size_t *dst_count,
     *dst_count = src_count;
     for (size_t i = 0; i < src_count; i++) {
         (*dst)[i].name = src[i].name;
+        (*dst)[i].binding_syntax_id = src[i].binding_syntax_id;
         if (!copy_indices(&(*dst)[i].incoming_predecessors,
                           &(*dst)[i].incoming_predecessor_count,
                           src[i].incoming_predecessors,

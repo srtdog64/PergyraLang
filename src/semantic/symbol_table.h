@@ -36,7 +36,8 @@ typedef enum
     SYMBOL_INTENT,      /* intent Purchase          */
     SYMBOL_RELATION,    /* relation R               */
     SYMBOL_EFFECT,      /* effect E                 */
-    SYMBOL_ZONE         /* zone Z                   */
+    SYMBOL_ZONE,        /* zone Z                   */
+    SYMBOL_ENUM_CONSTRUCTOR /* payload value construction, not body invocation */
 } SymbolKind;
 
 /*
@@ -105,6 +106,7 @@ struct Symbol
     PgyFutureLifecycleState future_lifecycle_state;
     bool       future_lifecycle_reported;
     bool       is_parameter;
+    bool       is_host_field;
     ParamMode  param_mode;
     bool       embedded_in_world;
     uint8_t    slot_flow_access_mask;

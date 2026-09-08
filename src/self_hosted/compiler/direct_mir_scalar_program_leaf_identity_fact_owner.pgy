@@ -9,14 +9,14 @@ struct DirectMirScalarProgramLeafIdentityFact {
 }
 
 func DirectMirScalarProgramLeafIdentityFactFromOwners(
-    bound_texts: Array<String>,
-    bound_locals: Array<Int>,
+    ref bound_texts: Array<String>,
+    ref bound_locals: Array<Int>,
     text: String,
     binding_kind: Int,
     binding_syntax_id: Int,
     binding_ordinal: Int,
-    parameter_names: Array<String>,
-    parameter_syntax_ids: Array<Int>
+    ref parameter_names: Array<String>,
+    ref parameter_syntax_ids: Array<Int>
 ) -> DirectMirScalarProgramLeafIdentityFact {
     let parameter_count: Int = ArrayLength(parameter_names);
     if ArrayLength(bound_texts) != ArrayLength(bound_locals) ||

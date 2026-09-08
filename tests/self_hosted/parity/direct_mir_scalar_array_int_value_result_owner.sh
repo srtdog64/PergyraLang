@@ -24,7 +24,7 @@ SIGNATURE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_ca
 TARGET_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_target_owner.pgy"
 C_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_array_int_value_result_owner.pgy"
 LLVM_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_int_value_result_owner.pgy"
-CALL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy"
+CALL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_with_arguments_admission_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 for owner in "$FACT_OWNER" "$CALLABLE_OWNER" "$SIGNATURE_OWNER" "$TARGET_OWNER" "$C_OWNER" "$LLVM_OWNER" \

@@ -31,7 +31,7 @@ encounter/turn/state machine, strategy/AI, content tables는 언어 키워드로
 
 ```pergyra
 // 1단계: 빌트인 — import/use 없이 바로 사용
-let x = MapNew();
+let x: HashMap<String, Int> = MapNew();
 Log("hello");
 let name = Input("Name: ");
 
@@ -196,6 +196,19 @@ page -> http adapter -> intent -> zone/world -> tobject/object -> page
 | Channel | `Channel`, `<-` (send/recv) |
 | Async | `spawn`, `await` |
 
+`ArraySort`와 `ArrayReverse`는 입력 배열의 **원소 저장소를 제자리에서
+변경**하고 같은 저장소를 가리키는 배열 값을 반환한다. 반환값을 버려도
+변경은 남는다. 새 복사본을 만드는 `ArrayMap`/`ArrayFilter`와 다르다.
+파라미터를 통해 이 변경을 수행하려면 기존 `inout` 변경 경계가 필요하다.
+판정 owner는 `type_checker_builtins_stdlib_array.c`와 컬렉션 변경 규칙이며,
+`tests/concept_semantics/authority_effect/effect_array_transform_valid.pgy`가
+원본·반환값 관찰과 빈 배열·단일 원소 동작을 검증한다.
+
+`CheckedAdd`/`CheckedMul`은 `Int` 피연산자를 기존 i32 런타임 경계로
+전달하고 오버플로를 명시적으로 실패시킨다. 백엔드의 내부 i64 표현으로
+검사 범위를 넓히거나 일반적인 wrap 연산으로 바꿔서는 안 된다.
+`src/runtime/pgy_runtime_lib_checked_arith_core.h`가 이 실행 계약의 owner다.
+
 ## 구현 위치
 
 ```
@@ -208,21 +221,15 @@ src/codegen/llvm_expr.c        — LLVM built-in lowering
 
 ## HashMap 설계
 
-```c
-// C 런타임 내부
-typedef struct {
-    char **keys;
-    void **values;
-    size_t *hashes;
-    size_t count;
-    size_t capacity;
-    size_t value_size;
-} PgyHashMap;
-```
+물리 레이아웃은 런타임 헤더가 소유한다. 과거의 `void **values` 구조체
+스케치를 현재 ABI로 사용하지 않는다. 실제 정의는
+[`pgy_runtime_builtin_hashmap_inline.h`](../src/runtime/pgy_runtime_builtin_hashmap_inline.h)와
+키별 런타임 구현에서 확인한다.
 
 Pergyra 표면:
+
 ```pergyra
-let inventory = MapNew();           // HashMap<String, Int>
+let inventory: HashMap<String, Int> = MapNew();
 MapSet(inventory, "sword", 1);
 MapSet(inventory, "potion", 3);
 let count = MapGet(inventory, "potion");   // 3
@@ -230,7 +237,16 @@ let has: Bool = MapHas(inventory, "shield");  // false
 ```
 
 현재 구현 메모:
-- `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize`는 연결돼 있다.
+
+- `MapNew()`는 문맥에서 구체적인 `HashMap<K, V>` 타입을 받아야 한다.
+  주석이나 이후의 `MapSet` 호출로 타입이 결정된다고 가정하지 않는다.
+- 키 허용 정책은 `type_checker_collection_policy.c`가 소유하며, 셀프호스트는
+  검사 가능한 생성 투영을 사용한다. 호출 개수·receiver·키/값 위치·반환형은
+  기존 collection-call protocol을 구체적인 타입으로 특수화한다.
+- 네이티브의 `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize`는
+  연결돼 있다. 공개 경로의 의미 검사와 C/LLVM 저장·호출 ABI 연결은 별도
+  의무다. 전체 경로 지원 판정은 [현재 작업 요약](current_work_handoff.md)의
+  실행 게이트를 따른다. 의미 검사 통과만으로 실행 지원을 선언하지 않는다.
 - `MapKeys`는 현재 `HashMap<String, T>` / `HashMap<Int, T>` / `HashMap<Long, T>` / `HashMap<Bool, T>` stable subset에 대해 각각 `Array<String>` / `Array<Int>` / `Array<Long>` / `Array<Bool>`를 반환한다. 반환 배열은 해시 버킷 순서가 아니라 안정 정렬된 owned snapshot이다: 문자열은 사전순, 정수/Long은 오름차순, Bool은 `false`, `true` 순서다.
 - `SetValues`는 현재 `Set<String>` / `Set<Int>` / `Set<Long>` / `Set<Bool>` stable subset에 대해 각각 `Array<String>` / `Array<Int>` / `Array<Long>` / `Array<Bool>`를 반환한다. 반환 배열은 삽입/버킷 순서가 아니라 `MapKeys`와 같은 안정 정렬된 owned snapshot이다.
 

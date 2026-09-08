@@ -25,21 +25,13 @@ func DirectMirScalarCfgWireLocalRefsEmpty(
 
 func DirectMirScalarCfgWireLocalRefsRequired(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref index: MirRoutineFactIndex
+    ref index: MirRoutineFactIndex, ref parameter_names: Array<String>
 ) -> Bool {
     if ArrayLength(index.iteration_type_facts.iteration_syntax_ids) > 1 {
         return true;
     }
-    let row: Int = 0;
-    while row < index.declared_source_local_count {
-        let prior: Int = 0;
-        while prior < row {
-            if index.source_local_names[prior] ==
-                index.source_local_names[row] { return true; }
-            prior = prior + 1;
-        }
-        row = row + 1;
-    }
+    if SelfMirLocalRefSpellingCollision(index.source_local_names, 0, index.declared_source_local_count,
+            parameter_names, 0, ArrayLength(parameter_names)) { return true; }
     let instruction: Int = 0;
     while instruction < ArrayLength(index.instruction_facts.arg0s) {
         let global: Int = index.instruction_facts.global_start + instruction;
@@ -56,7 +48,7 @@ func DirectMirScalarCfgWireLocalRefsRequired(
 
 func DirectMirScalarCfgWireLocalRefsFromOwners(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref index: MirRoutineFactIndex
+    ref index: MirRoutineFactIndex, ref parameter_names: Array<String>
 ) -> DirectMirScalarCfgWireLocalRefs {
     let empty: DirectMirScalarCfgWireLocalRefs =
         DirectMirScalarCfgWireLocalRefsEmpty();
@@ -68,7 +60,7 @@ func DirectMirScalarCfgWireLocalRefsFromOwners(
         return empty;
     }
     let required: Bool = DirectMirScalarCfgWireLocalRefsRequired(
-        admitted, index
+        admitted, index, parameter_names
     );
     let primary: Array<String> = [];
     let starts: Array<Int> = [];

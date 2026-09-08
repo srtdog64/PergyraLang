@@ -64,50 +64,16 @@ func DirectMirGenericRoutineSignatureFactAt(
         MirProgramRoutineIndexBlockInstructionCountAt(routines, row, 0) != 1 {
         return InvalidDirectMirGenericRoutineSignatureFact();
     }
-    let unique_name: Option<String> = MirObjectUniqueStringFactAtBounds(
-        routines.source_json, routines.starts[row], routines.ends[row], "name"
-    );
-    let unique_kind: Option<String> = MirObjectUniqueStringFactAtBounds(
-        routines.source_json, routines.starts[row], routines.ends[row], "kind"
-    );
-    let unique_syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(
-        routines.source_json, routines.starts[row], routines.ends[row],
-        "source_syntax_id"
-    );
-    let unique_receiver: Option<String> = MirObjectUniqueStringFactAtBounds(
-        routines.source_json, routines.starts[row], routines.ends[row],
-        "receiver_carriage"
-    );
-    let unique_return: Option<String> = MirObjectUniqueStringFactAtBounds(
-        routines.source_json, routines.starts[row], routines.ends[row],
-        "return"
-    );
-    let generic_bounds: Array<Int> = [0, 0];
-    if !IsSome(unique_name) || !IsSome(unique_kind) ||
-        !IsSome(unique_syntax) || !IsSome(unique_receiver) ||
-        !IsSome(unique_return) ||
-        UnwrapOption(unique_name) != routines.names[row] ||
-        UnwrapOption(unique_kind) != routines.kinds[row] ||
-        UnwrapOption(unique_syntax) != routines.source_syntax_ids[row] ||
-        UnwrapOption(unique_receiver) != "none" ||
-        MirObjectFieldOccurrenceCountAtBounds(
-            routines.source_json, routines.starts[row], routines.ends[row],
-            "generics"
-        ) != 1 || MirObjectFieldOccurrenceCountAtBounds(
-            routines.source_json, routines.starts[row], routines.ends[row],
-            "params"
-        ) != 1 || !MirObjectArrayBoundsAtBounds(
-            routines.source_json, routines.starts[row], routines.ends[row],
-            "generics", generic_bounds
-        ) || JsonArrayStringCount(
-            routines.source_json, generic_bounds[0], generic_bounds[1]
-        ) != 1 {
-        return InvalidDirectMirGenericRoutineSignatureFact();
-    }
     let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
         routines.source_json, routines.starts[row], routines.ends[row]
     );
     let param_bounds: Array<Int> = [0, 0];
+    if !MirRoutineHeaderSignatureEnvelopeReady(
+            routines.source_json, routines.starts[row], routines.ends[row],
+            routines.names[row], routines.kinds[row], routines.source_syntax_ids[row],
+            routines.receiver_carriages[row], header, param_bounds) {
+        return InvalidDirectMirGenericRoutineSignatureFact();
+    }
     let object_bounds: Array<Int> = [0, 0];
     if ArrayLength(header.generic_names) != 1 ||
         ArrayLength(header.param_names) != 1 ||
@@ -115,11 +81,7 @@ func DirectMirGenericRoutineSignatureFactAt(
         ArrayLength(header.param_carriages) != 1 ||
         ArrayLength(header.param_resources) != 1 ||
         ArrayLength(header.param_pass_shapes) != 1 ||
-        header.return_type != UnwrapOption(unique_return) ||
-        !MirObjectArrayBoundsAtBounds(
-            routines.source_json, routines.starts[row], routines.ends[row],
-            "params", param_bounds
-        ) || !JsonArrayNextObjectBounds(
+        !JsonArrayNextObjectBounds(
             routines.source_json, param_bounds[0] + 1, param_bounds[1],
             object_bounds
         ) {
@@ -141,7 +103,7 @@ func DirectMirGenericRoutineSignatureFactAt(
         DirectMirGenericRoutineSignatureFact(
             true, 0, row, routines.names[row], routines.kinds[row],
             ToInt(routines.source_syntax_ids[row]),
-            UnwrapOption(unique_receiver),
+            routines.receiver_carriages[row],
             header.generic_names[0], header.return_type, param
         );
     let verified: DirectMirGenericRoutineSignatureFact =

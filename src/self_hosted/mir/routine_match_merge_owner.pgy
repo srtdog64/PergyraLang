@@ -73,6 +73,18 @@ func SelfMirMergeMatchArms(
         }
         arm_i = arm_i + 1;
     }
+    // A default closes the unmatched edge. If every arm also terminates,
+    // there is no merge continuation to allocate or later publish as live.
+    let live_arm: Bool = false;
+    arm_i = 0;
+    while arm_i < ArrayLength(arm_exits) {
+        if build.terminated[arm_exits[arm_i]] == 0 { live_arm = true; }
+        arm_i = arm_i + 1;
+    }
+    if unmatched_block == -1 && !live_arm {
+        build = SelfMirRoutineAtLocalVersions(build, entry_versions);
+        return SelfMirRoutineAtBlock(build, arm_exits[ArrayLength(arm_exits) - 1]);
+    }
     build = SelfMirRoutineAddBlock(build);
     let merge_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
     build = SelfMirRoutineAtBlock(build, merge_block);

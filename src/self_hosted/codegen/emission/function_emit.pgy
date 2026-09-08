@@ -44,7 +44,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     if specialized_name != "" { c_name = specialized_name; }
     ArraySet(cur, 0, cur[0] + 1);
 
-    CodegenAstArenaSkipGenericParams(arena, count, cur);
+    CodegenAstArenaConsumeAdmittedGenericHeader(arena, count, cur);
     CodegenAstArenaExpectParameters(arena, count, cur);
     let params: String = "";
     let param_n: Int = 0;
@@ -52,6 +52,10 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         signatures, signature_index
     );
     let function_env_rows: Array<String> = [Concat("", "|")];
+    if specialized_name != "" {
+        ArrayPush(function_env_rows, CodegenGenericSpecializationCallEnvRows(
+            body_types.generic_specializations, specialized_name));
+    }
     let prologue: String = "";
     let copyout: String = "";
     let zone_return_carriage_guard: String = "";
@@ -274,6 +278,8 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         body_ret = AbiLayoutCEntrypointBodyReturnType();
     }
     let routine_defers: Array<String> = [""];
+    local_bindings = CodegenSemanticLocalBindingsForInstance(
+        local_bindings, signatures, signature_index, function_node_id, generic_actuals);
     let body_emission: CodegenStatementBlockEmission = EmitStmtList(
         count, arena, local_bindings, assignments, statements, body_types,
         expression_surfaces, stmt_indent, cur, "    ",

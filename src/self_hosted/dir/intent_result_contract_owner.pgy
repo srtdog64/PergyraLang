@@ -19,6 +19,7 @@ struct SelfDirIntentFacts {
     names: Array<String>;
     result_modes: Array<String>;
     return_type_names: Array<String>;
+    success_expression_node_ids: Array<Int>;
     modes: SelfDirIntentModeFacts;
     priorities: SelfDirIntentPriorityFacts;
     participant_starts: Array<Int>;
@@ -45,7 +46,7 @@ func SelfDirIntentFactsEmpty(
     let step_counts: Array<Int> = [];
     return SelfDirIntentFacts(
         required, ok, message, artifact_node_count, 0,
-        intent_node_ids, names, result_modes, return_type_names,
+        intent_node_ids, names, result_modes, return_type_names, intent_node_ids,
         SelfDirIntentModeFactsEmpty(artifact_node_count),
         SelfDirIntentPriorityFactsEmpty(artifact_node_count),
         participant_starts, participant_counts,
@@ -67,6 +68,7 @@ func SelfDirIntentFactsShapeReady(ref facts: SelfDirIntentFacts) -> Bool {
     return ArrayLength(facts.names) == intents &&
         ArrayLength(facts.result_modes) == intents &&
         ArrayLength(facts.return_type_names) == intents &&
+        ArrayLength(facts.success_expression_node_ids) == intents &&
         ArrayLength(facts.modes.node_ids) == intents &&
         ArrayLength(facts.modes.names) == intents &&
         ArrayLength(facts.priorities.present) == intents &&
@@ -91,6 +93,7 @@ func SelfDirIntentResultContractReady(
     if intent_index < 0 || intent_index >= ArrayLength(facts.intent_node_ids) ||
         intent_index >= ArrayLength(facts.result_modes) ||
         intent_index >= ArrayLength(facts.return_type_names) ||
+        intent_index >= ArrayLength(facts.success_expression_node_ids) ||
         intent_index >= ArrayLength(facts.step_starts) ||
         intent_index >= ArrayLength(facts.step_counts) ||
         intent_index >= ArrayLength(facts.transitions.intent_starts) ||
@@ -102,6 +105,11 @@ func SelfDirIntentResultContractReady(
     let mode: String = facts.result_modes[intent_index];
     let return_type: String = facts.return_type_names[intent_index];
     let typed: Bool = mode == "typed_enum";
+    let success_node: Int = facts.success_expression_node_ids[intent_index];
+    if (typed && success_node != -1) ||
+        (!typed && (success_node < 0 || success_node >= facts.artifact_node_count)) {
+        return false;
+    }
     if (!typed && mode != "legacy_bool") || return_type == "" ||
         return_type == "Unknown" || return_type == "Void" ||
         (typed && return_type == "Bool") ||

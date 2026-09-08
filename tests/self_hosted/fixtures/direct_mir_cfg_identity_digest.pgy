@@ -1,0 +1,21 @@
+import "../../../src/self_hosted/compiler/direct_mir_scalar_cfg_hash_owner.pgy";
+
+func Main() -> Void {
+    Log(ToString(DirectMirCfgHashString(0L, "")));
+    Log(ToString(DirectMirCfgHashString(17L, "")));
+    Log(ToString(DirectMirCfgHashString(268435455L, "ASCII-identity")));
+    Log(ToString(DirectMirCfgHashString(1234567L, "quote:\" slash:\\ newline:\n")));
+    Log(ToString(DirectMirCfgHashString(31L, "한글🙂")));
+    let text: String = "a";
+    let power: Int = 0;
+    while power < 20 {
+        text = Concat(text, text);
+        power = power + 1;
+    }
+    Log(ToString(DirectMirCfgHashString(17L, text)));
+    Log(ToString(DirectMirCfgMirDigest(text)));
+    let integers: Array<Int> = [1, -2, 7];
+    let strings: Array<String> = ["a", "한글🙂"];
+    Log(ToString(DirectMirScalarCfgHashInts(31L, integers)));
+    Log(ToString(DirectMirScalarCfgHashStrings(37L, strings)));
+}

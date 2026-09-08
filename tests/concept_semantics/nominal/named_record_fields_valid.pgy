@@ -1,0 +1,18 @@
+class Sample {
+    let mut first: Int;
+    let mut second: Int;
+    let mut third: Int;
+}
+
+func Main() -> Void {
+    let offset = 5;
+    let original = Sample { third: offset + 26, first: offset + 2, second: offset + 14 };
+    let mut duplicate = original;
+    duplicate.second = 23;
+    Log(original.first);
+    Log(original.second);
+    Log(original.third);
+    Log(duplicate.first);
+    Log(duplicate.second);
+    Log(duplicate.third);
+}

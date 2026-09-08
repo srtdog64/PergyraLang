@@ -1,7 +1,7 @@
 Program:
   Class: Foo
     Fields:
-      x: Int
+      let x: Int
     Methods:
       Function: GetX
         Parameters:
@@ -24,4 +24,3 @@ Program:
     Body:
       Block:
         Log("ok")
-

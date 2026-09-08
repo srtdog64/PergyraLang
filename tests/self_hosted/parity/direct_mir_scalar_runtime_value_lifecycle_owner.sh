@@ -101,7 +101,7 @@ for path in "$C_OWNER" "$LLVM_OWNER"; do
     grep -Fq 'CompilerRuntimeValueCallAbiFactForId(' "$path" ||
         fail "$(basename "$path") re-inferred a runtime call"
 done
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80' "$PLAN" ||
+grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN" ||
     fail "GraphPlan schema omitted runtime-call identity carriage"
 
 mkdir -p "$WORK_DIR"

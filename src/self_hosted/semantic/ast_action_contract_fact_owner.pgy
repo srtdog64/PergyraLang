@@ -5,6 +5,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "../lib/callable_contract_vocabulary_projection_owner.pgy";
+import "delimited_range_fact_owner.pgy";
 
 struct SemanticAstActionContractFacts {
     ok: Bool;
@@ -53,21 +54,11 @@ func SemanticAstActionContractAppendList(
     inout names: Array<String>
 ) -> Bool {
     let start: Int = ArrayLength(names);
-    let rest: String = StringTrim(payload);
-    if StringLength(rest) == 0 { return false; }
-    while StringLength(rest) > 0 {
-        let comma: Option<Int> = FindTopLevelComma(rest);
-        let item: String = rest;
-        if IsSome(comma) {
-            item = StringTrim(Substring(rest, 0, UnwrapOption(comma)));
-            let next: Int = UnwrapOption(comma) + 1;
-            rest = StringTrim(Substring(
-                rest, next, StringLength(rest) - next
-            ));
-        } else {
-            item = StringTrim(rest);
-            rest = "";
-        }
+    if StringTrim(payload) == "" { return false; }
+    let ranges: SemanticDelimitedRangeFacts = SemanticNestedCommaRangeFactsFromSource(payload);
+    let range: Int = 0;
+    while range < SemanticDelimitedRangeCount(ranges) {
+        let item: String = SemanticDelimitedRangeText(ranges, payload, range);
         let vocabulary_index: Int = -1;
         if vocabulary_axis > 0 {
             vocabulary_index = CallableContractVocabularyFindIndex(
@@ -97,6 +88,7 @@ func SemanticAstActionContractAppendList(
             }
         }
         ArrayPush(names, item);
+        range = range + 1;
     }
     return ArrayLength(names) > start;
 }

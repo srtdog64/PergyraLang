@@ -462,6 +462,14 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
           }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
+        { LLVMTypeRef params[] = { LLVMPointerType(val_ty, 0), ctx->type_i64 };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "array_reverse", suffix)) {
+              llvm_set_error(ctx, "Array reverse runtime name is too long");
+              return;
+          }
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef params[] = { LLVMPointerType(llvm_slice_struct_type(ctx, suffix), 0),
                                    ctx->type_i64 };
           LLVMTypeRef ft = LLVMFunctionType(val_ty, params, 2, 0);

@@ -48,7 +48,7 @@ ability_ref_type_arg_equal(ASTNode *lhs, ASTNode *rhs)
     return true;
 }
 
-static bool
+bool
 semantic_ability_ref_matches(SemanticContext *ctx, ASTNode *impl_ref,
                              ASTNode *required_ref)
 {

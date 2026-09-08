@@ -1,6 +1,7 @@
 // Ordered formal-parameter identity without an unsupported struct array ABI.
 
 import "direct_mir_routine_param_fact_owner.pgy";
+import "direct_mir_nominal_abi_row_equality_owner.pgy";
 
 struct DirectMirRoutineParameterSetFact {
     let valid: Bool;
@@ -14,6 +15,7 @@ struct DirectMirRoutineParameterSetFact {
     let abi_type_names: Array<String>;
     let abi_layout_ids: Array<Int>;
     let abi_required: Array<Bool>;
+    let abi_row_keys: Array<String>;
     let param_digests: Array<Int>;
     let first: DirectMirRoutineParamFact;
 }
@@ -24,18 +26,20 @@ func DirectMirRoutineParameterSetFactInvalid(
     let ints: Array<Int> = []; let bools: Array<Bool> = [];
     return DirectMirRoutineParameterSetFact(
         false, 0, strings, ints, strings, strings, strings, strings, strings,
-        ints, bools, ints, InvalidDirectMirRoutineParamFact());
+        ints, bools, strings, ints, InvalidDirectMirRoutineParamFact());
 }
 
 func DirectMirRoutineParameterSetFactDigest(
     ref fact: DirectMirRoutineParameterSetFact
 ) -> Int {
-    if !fact.valid { return 0; }
+    if !fact.valid || ArrayLength(fact.names) != ArrayLength(fact.param_digests) ||
+        ArrayLength(fact.names) != ArrayLength(fact.abi_row_keys) { return 0; }
     let hash: Long = DirectMirCfgHashInt(107L, ArrayLength(fact.names));
     let row: Int = 0;
     while row < ArrayLength(fact.names) {
         hash = DirectMirCfgHashInt(hash, row);
         hash = DirectMirCfgHashInt(hash, fact.param_digests[row]);
+        hash = DirectMirCfgHashString(hash, fact.abi_row_keys[row]);
         row = row + 1;
     }
     return DirectMirCfgBoundedDigest(hash);
@@ -55,10 +59,12 @@ func DirectMirRoutineParameterSetFactReady(
         count != ArrayLength(fact.abi_type_names) ||
         count != ArrayLength(fact.abi_layout_ids) ||
         count != ArrayLength(fact.abi_required) ||
+        count != ArrayLength(fact.abi_row_keys) ||
         count != ArrayLength(fact.param_digests) ||
         (count == 0 && fact.first.valid) ||
         (count > 0 && (!DirectMirRoutineParamFactReady(fact.first) ||
-         fact.first.digest != fact.param_digests[0])) { return false; }
+         fact.first.digest != fact.param_digests[0] ||
+         fact.abi_row_keys[0] != DirectMirAbiRowIdentityText(fact.first.abi))) { return false; }
     let row: Int = 0;
     while row < count {
         if fact.names[row] == "" || fact.source_syntax_ids[row] <= 0 ||
@@ -68,6 +74,7 @@ func DirectMirRoutineParameterSetFactReady(
             fact.abi_type_names[row] != fact.type_names[row] ||
             (fact.abi_required[row] && fact.abi_layout_ids[row] <= 0) ||
             (!fact.abi_required[row] && fact.abi_layout_ids[row] != 0) ||
+            (fact.abi_required[row] != (fact.abi_row_keys[row] != "")) ||
             fact.param_digests[row] !=
                 DirectMirRoutineParamFactDigestFromFields(
                     fact.names[row], fact.source_syntax_ids[row],

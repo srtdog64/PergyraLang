@@ -171,6 +171,24 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
             artifact.arena, function_node_id, child_index
         );
     }
+    let constraint_names: Array<String> = [];
+    let formal_names: Array<String> = [];
+    let formal: Int = 0;
+    while formal < facts.generic_counts[signature_index] {
+        ArrayPush(formal_names, facts.generic_names[facts.generic_starts[signature_index] + formal]);
+        formal = formal + 1;
+    }
+    if !SemanticAstGenericConstraintRowsFromNode(
+        artifact.arena, function_node_id, 0, ArrayLength(formal_names),
+        formal_names, constraint_names
+    ) { return false; }
+    formal = 0;
+    while formal < ArrayLength(constraint_names) {
+        if facts.generic_constraint_type_names[facts.generic_starts[signature_index] + formal] != constraint_names[formal] {
+            return false;
+        }
+        formal = formal + 1;
+    }
     return saw_parameters && saw_returns &&
         generic_count == facts.generic_counts[signature_index] &&
         parameter_count == facts.param_counts[signature_index] &&
@@ -200,6 +218,7 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
         ) ||
         ArrayLength(facts.generic_starts) != n ||
         ArrayLength(facts.generic_counts) != n ||
+        ArrayLength(facts.generic_constraint_type_names) != gn ||
         ArrayLength(facts.param_starts) != n ||
         ArrayLength(facts.param_counts) != n ||
         ArrayLength(facts.receiver_source_param_offsets) != n ||

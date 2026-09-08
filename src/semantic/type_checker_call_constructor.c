@@ -128,6 +128,38 @@ constructor_decl_field_type_at(ASTNode *decl,
     return overlay_field_decl_at(decl, index, field_name_out);
 }
 
+static Type *
+constructor_decl_field_resolved_type_at(ASTNode *decl, size_t index,
+                                        const char **field_name_out,
+                                        SemanticContext *ctx)
+{
+    /* World roster/zone bindings own type names, not AST_TYPE nodes. */
+    if (decl != NULL && decl->type == AST_WORLD_DECL) {
+        size_t roster_count = 0, zone_count = 0;
+        ASTNode **rosters = ast_world_rosters(decl, &roster_count);
+        ASTNode **zones = ast_world_zones(decl, &zone_count);
+        ASTNode *binding = NULL;
+        const char *name = NULL, *type_name = NULL;
+        if (index < roster_count) {
+            binding = rosters[index];
+            name = ast_world_roster_slot_name(binding);
+            type_name = ast_world_roster_type_name(binding);
+        } else if (index - roster_count < zone_count) {
+            binding = zones[index - roster_count];
+            name = ast_world_zone_slot_name(binding);
+            type_name = ast_world_zone_type_name(binding);
+        }
+        if (index < roster_count + zone_count) {
+            if (field_name_out != NULL)
+                *field_name_out = name;
+            return semantic_type_resolution_lookup_metadata_name_or_alias_or_unknown(
+                ctx, type_name, binding);
+        }
+    }
+    ASTNode *type_node = constructor_decl_field_type_at(decl, index, field_name_out);
+    return type_node != NULL ? semantic_host_resolve_type_ref(type_node, ctx) : NULL;
+}
+
 static ASTNode *
 constructor_decl_field_type_by_name(ASTNode *decl, const char *name,
                                     size_t field_count,
@@ -285,6 +317,9 @@ type_check_constructor_symbol_call(ASTNode *expr,
                         const char *field_name = NULL;
                         ASTNode *field_type_node = NULL;
                         ASTNode *arg = ast_call_argument(expr, i);
+                        Type *arg_type = constructor_call_normalize_type(
+                            type_check_expression(arg, ctx));
+                        Type *field_type = NULL;
                         const char *arg_nm =
                             ast_call_argument_name(expr, i);
                         if (arg_nm != NULL) {
@@ -301,16 +336,13 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                     display_name, arg_nm);
                                 continue;
                             }
+                            field_type = semantic_host_resolve_type_ref(field_type_node, ctx);
                         } else {
-                            field_type_node = constructor_decl_field_type_at(
-                                decl, i, &field_name);
+                            field_type = constructor_decl_field_resolved_type_at(
+                                decl, i, &field_name, ctx);
                         }
-                        if (field_type_node == NULL)
+                        if (field_type == NULL)
                             continue;
-                        Type *field_type = semantic_host_resolve_type_ref(
-                            field_type_node, ctx);
-                        Type *arg_type = constructor_call_normalize_type(
-                            type_check_expression(arg, ctx));
                         if (type_equals(arg_type, TYPE_VOID)) {
                             semantic_error_with_hints(ctx,
                                 PGY_CODE_SEM_TYPE_MISMATCH,

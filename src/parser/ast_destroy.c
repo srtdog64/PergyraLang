@@ -176,6 +176,7 @@ void ast_destroy(ASTNode* node) {
                 free(node->data.let_destructure.names[i]);
             free(node->data.let_destructure.names);
             free(node->data.let_destructure.field_bindings);
+            free(node->data.let_destructure.local_binding_syntax_ids);
             ast_destroy(node->data.let_destructure.initializer);
             break;
 
@@ -298,6 +299,7 @@ void ast_destroy(ASTNode* node) {
         case AST_ASSIGNMENT:
             ast_destroy(node->data.assignment.target);
             ast_destroy(node->data.assignment.value);
+            free(node->data.assignment.semantic_binding_type_name);
             break;
 
         case AST_ARRAY_LITERAL:

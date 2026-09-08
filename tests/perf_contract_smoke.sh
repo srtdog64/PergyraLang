@@ -1335,8 +1335,13 @@ if grep -Fq "append_mangled_type_name(" \
     exit 1
 fi
 grep -Fq "transpiler_generic_binding_query.c" "$ROOT_DIR/Makefile"
-grep -Fq "transpiler_infer_generic_call_bindings" \
+grep -Fq "transpiler_generic_call_bindings_from_mir" \
     "$ROOT_DIR/src/codegen/transpiler_generic_binding_query.h"
+if grep -Eq 'transpiler_infer_generic_call_bindings|transpiler_match_param_type_against_arg_text|ast_call_argument\(' \
+    "$ROOT_DIR/src/codegen/transpiler_generic_binding_query.c"; then
+    echo "[perf-contract] C generic binding selection must consume MIR, not reinfer AST arguments" >&2
+    exit 1
+fi
 grep -Fq "TranspilerGenericBindingSnapshot" \
     "$ROOT_DIR/src/codegen/transpiler_generic_binding_query.h"
 grep -Fq "transpiler_generic_binding_snapshot(ctx)" \

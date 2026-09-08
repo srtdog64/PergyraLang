@@ -32,6 +32,7 @@ struct SemanticAstExpressionSurfaceFacts {
     artifact_node_count: Int;
     node_ids: Array<Int>;
     function_node_ids: Array<Int>;
+    intent_node_ids: Array<Int>;
     has_atoms: Array<Bool>;
     atoms: Array<String>;
     has_values: Array<Bool>;
@@ -88,6 +89,8 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
 ) -> SemanticAstExpressionSurfaceFacts {
     let node_ids: Array<Int> = [];
     let function_node_ids: Array<Int> = [];
+    let intent_node_ids: Array<Int> = [];
+    let enclosing_intents: Array<Int> = [];
     let has_atoms: Array<Bool> = [];
     let atoms: Array<String> = [];
     let has_values: Array<Bool> = [];
@@ -114,6 +117,25 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
     let ok: Bool = function_scopes.ok;
     let node_id: Int = 0;
     while node_id < artifact.count && ok {
+        // Project the typed-parent purpose boundary once, before consumers
+        // borrow expression rows. Functions/actions begin their own boundary.
+        let intent_node_id: Int = -1;
+        if TypedAstArenaNodeKindIs(artifact.arena, node_id, TypedAstKindIntentDeclTag()) {
+            intent_node_id = node_id;
+        } else if !TypedAstArenaNodeKindIsCallable(artifact.arena, node_id) {
+            let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, node_id);
+            if IsSome(parent) {
+                let parent_id: Int = UnwrapOption(parent);
+                if parent_id < 0 || parent_id >= ArrayLength(enclosing_intents) {
+                    ok = false;
+                    failure_node_id = node_id;
+                    failure_lane = "intent_scope";
+                    break;
+                }
+                intent_node_id = enclosing_intents[parent_id];
+            }
+        }
+        ArrayPush(enclosing_intents, intent_node_id);
         let atom: Option<String> = TypedAstArenaAtomText(artifact.arena, node_id);
         let value: Option<String> = TypedAstArenaValueText(artifact.arena, node_id);
         let auxiliary: Option<String> = TypedAstArenaAuxValueText(
@@ -138,6 +160,7 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
             }
             ArrayPush(node_ids, node_id);
             ArrayPush(function_node_ids, function_node_id);
+            ArrayPush(intent_node_ids, intent_node_id);
             ArrayPush(has_atoms, IsSome(atom));
             ArrayPush(atoms, atom_text);
             ArrayPush(has_values, IsSome(value));
@@ -226,7 +249,7 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
         );
     return SemanticAstExpressionSurfaceFacts(
         ok && graph_ok, failure_node_id, failure_lane,
-        artifact.count, node_ids, function_node_ids, has_atoms, atoms,
+        artifact.count, node_ids, function_node_ids, intent_node_ids, has_atoms, atoms,
         has_values, values,
         has_auxiliary_values, auxiliary_values, normalized_atoms,
         normalized_values, normalized_auxiliary_values, operator_rows,
@@ -504,7 +527,7 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
     }
     return SemanticAstExpressionSurfaceFacts(
         valid, failure_node_id, failure_lane,
-        facts.artifact_node_count, facts.node_ids, facts.function_node_ids,
+        facts.artifact_node_count, facts.node_ids, facts.function_node_ids, facts.intent_node_ids,
         facts.has_atoms, facts.atoms, facts.has_values, facts.values,
         facts.has_auxiliary_values, facts.auxiliary_values,
         facts.normalized_atoms, facts.normalized_values,
@@ -522,6 +545,7 @@ func SemanticAstExpressionSurfaceFactsMatchArtifact(
     if !facts.ok || !rebuilt.ok || facts.artifact_node_count != artifact.count ||
         SemanticAstExpressionSurfaceCount(rebuilt) != count ||
         ArrayLength(facts.function_node_ids) != count ||
+        ArrayLength(facts.intent_node_ids) != count ||
         ArrayLength(facts.operator_rows) !=
             count * SemanticAstExpressionShapeWidth() ||
         ArrayLength(rebuilt.operator_rows) != ArrayLength(facts.operator_rows) ||
@@ -536,6 +560,7 @@ func SemanticAstExpressionSurfaceFactsMatchArtifact(
     while i < count {
         if facts.node_ids[i] != rebuilt.node_ids[i] ||
             facts.function_node_ids[i] != rebuilt.function_node_ids[i] ||
+            facts.intent_node_ids[i] != rebuilt.intent_node_ids[i] ||
             facts.has_atoms[i] != rebuilt.has_atoms[i] ||
             facts.atoms[i] != rebuilt.atoms[i] ||
             facts.has_values[i] != rebuilt.has_values[i] ||

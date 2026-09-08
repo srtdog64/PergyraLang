@@ -31,7 +31,7 @@ func SelfMirCfgAttachLastSlotAnchor(
             instructions.uses, instructions.expr0_graphs,
             instructions.expr1_graphs, instructions.match_facts,
             instructions.destructure_facts, instructions.abi_type_names,
-            instructions.runtime_call_abi
+            instructions.runtime_call_abi, instructions.binding_source_syntax_ids
         ), cfg.local_refs
     );
 }
@@ -66,7 +66,7 @@ func SelfMirCfgAttachLastAbiTypeName(
             instructions.uses, instructions.expr0_graphs,
             instructions.expr1_graphs, instructions.match_facts,
             instructions.destructure_facts, abi_type_names,
-            instructions.runtime_call_abi
+            instructions.runtime_call_abi, instructions.binding_source_syntax_ids
         ), cfg.local_refs
     );
 }

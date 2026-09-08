@@ -6,7 +6,7 @@ Program:
       Returns: String
   Subject: Courier
     Fields:
-      staged: Int
+      let staged: Int
     Methods:
       Action: Stage
         Parameters:
@@ -38,4 +38,3 @@ Program:
     Body:
       Block:
         Log("generic-ability-requires-minimal")
-

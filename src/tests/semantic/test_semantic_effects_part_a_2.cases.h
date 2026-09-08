@@ -282,6 +282,44 @@
         lexer_destroy(lexer);
     }
 
+    {
+        const struct {
+            const char *name;
+            const char *source;
+            const char *diagnostic;
+        } cases[] = {
+            {
+                "world zone constructor rejects a wrong positional type",
+                "zone BattleZone { shared round: Int = 1 }\n"
+                "world GameWorld { zone battle: BattleZone }\n"
+                "func Main() -> Void { let world = GameWorld(1); }\n",
+                "argument 1 initializes field 'battle'"
+            },
+            {
+                "world zone constructor checks nested argument bindings",
+                "zone BattleZone { shared round: Int = 1 }\n"
+                "world GameWorld { zone battle: BattleZone }\n"
+                "func Main() -> Void { let world = GameWorld(Clone(missing)); }\n",
+                "Undefined symbol 'missing'"
+            }
+        };
+        for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+            TEST(cases[i].name);
+            Lexer *lexer = lexer_create(cases[i].source);
+            Parser *parser = parser_create(lexer);
+            ASTNode *program = parser_parse_program(parser);
+            SemanticResult *result = semantic_analyze(program);
+            EXPECT(!parser_has_error(parser));
+            EXPECT(result != NULL && result->error_count > 0);
+            EXPECT(ctx_has_diagnostic_substring_from_result(result,
+                cases[i].diagnostic));
+            semantic_result_destroy(result);
+            ast_destroy(program);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+        }
+    }
+
     TEST("class constructor positional arguments are type-checked");
     {
         const char *source =

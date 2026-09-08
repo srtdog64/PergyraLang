@@ -13,7 +13,7 @@ func DirectMirScalarProgramLlvmToStringExpressionAt(
     let symbol: String = "";
     let argument_type: String = "";
     let ready: Bool = false;
-    if kind == DirectMirScalarProgramExprToStringInt() {
+    if kind == DirectMirScalarProgramExprToStringSignedInteger() {
         symbol = runtime.string_to_string.symbol; argument_type = "i64";
         ready = CompilerRuntimeCallAbiStringToStringFactReady(
             runtime.string_to_string);

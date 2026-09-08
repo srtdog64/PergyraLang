@@ -74,9 +74,9 @@ func DirectMirLegacyIntentProgramPlanDigest(
 }
 
 func DirectMirLegacyIntentCleanupRowsReady(
-    names: Array<String>,
-    slots: Array<String>,
-    args: Array<String>
+    ref names: Array<String>,
+    ref slots: Array<String>,
+    ref args: Array<String>
 ) -> Bool {
     if ArrayLength(names) != 3 || ArrayLength(slots) != 3 ||
         ArrayLength(args) != 3 {
@@ -325,8 +325,42 @@ func DirectMirLegacyIntentProgramPlanFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     route: DirectMirLegacyIntentProgramRouteFact
 ) -> DirectMirLegacyIntentProgramPlan {
+    if !DirectMirLegacyIntentProgramRouteFactReady(route) || !route.claimed {
+        Die("direct MIR legacy intent graph route is invalid");
+    }
+    let intent_name: String = admitted.routines.names[route.intent_row];
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+        admitted.routines, route.intent_row
+    );
+    if !MirIntentRoutineStructureReady(
+            admitted.routines, index, route.intent_row
+        ) || MirIntentRollbackContractError(
+            admitted.routines, index, route.intent_row, intent_name
+        ) != "" || MirIntentInvalidationContractError(
+            admitted.routines, index, route.intent_row
+        ) != "" {
+        Die("direct MIR legacy intent cleanup contract is invalid");
+    }
+    let carriers: MirIntentRoutineCarrierProjection =
+        MirIntentRoutineCarrierProjectionFromRoutine(
+            admitted.routines, index, route.intent_row, intent_name
+        );
+    if !carriers.valid {
+        Die("direct MIR legacy intent carrier spine is invalid");
+    }
+    let bindings: MirIntentBindingProjection =
+        MirIntentBindingProjectionFromCarriers(
+            carriers.carrier_names, carriers.carrier_arg0s,
+            carriers.carrier_arg1s, carriers.carrier_slots, carriers.carrier_binding_source_syntax_ids,
+            intent_name, ToInt(admitted.routines.source_syntax_ids[route.intent_row])
+        );
+    let no_generics: Array<String> = [];
+    let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureWithGenericEnvelopeAt(
+        admitted.routines, route.intent_row,
+        MirProgramRoutineIndexBlockInstructionCountAt(admitted.routines, route.intent_row, 0),
+        no_generics, bindings);
     let graph: DirectMirLegacyIntentProgramGraphFact =
-        DirectMirLegacyIntentProgramGraphFactFromAdmitted(admitted, route);
+        DirectMirLegacyIntentProgramGraphFactFromAdmitted(admitted, route, signature);
     if admitted.intent_execution_plan.present ||
         !DirectMirLegacyIntentRoutineHeadersReady(admitted, route, graph) ||
         admitted.domain_runtime_admission.declarations.names[
@@ -338,28 +372,8 @@ func DirectMirLegacyIntentProgramPlanFromAdmitted(
         Die("direct MIR legacy intent program envelope is invalid");
     }
     let zone_field: String = DirectMirLegacyIntentZoneFieldName(
-        admitted.domain_runtime_admission.declarations.field_identities,
-        graph
+        admitted.domain_runtime_admission.declarations.field_identities, graph
     );
-    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
-        admitted.routines, route.intent_row
-    );
-    if !MirIntentRoutineStructureReady(
-            admitted.routines, index, route.intent_row
-        ) || MirIntentRollbackContractError(
-            admitted.routines, index, route.intent_row, graph.intent_name
-        ) != "" || MirIntentInvalidationContractError(
-            admitted.routines, index, route.intent_row
-        ) != "" {
-        Die("direct MIR legacy intent cleanup contract is invalid");
-    }
-    let carriers: MirIntentRoutineCarrierProjection =
-        MirIntentRoutineCarrierProjectionFromBlockZero(
-            admitted.routines, index, route.intent_row, graph.intent_name
-        );
-    if !carriers.valid || ArrayLength(carriers.executable_step_exprs) != 1 {
-        Die("direct MIR legacy intent carrier spine is invalid");
-    }
     let mode: MirIntentModeProjection = MirIntentModeProjectionFromCarriers(
         graph.intent_name, carriers.carrier_names, carriers.carrier_arg0s,
         carriers.carrier_arg1s, carriers.carrier_slots,
@@ -374,51 +388,27 @@ func DirectMirLegacyIntentProgramPlanFromAdmitted(
             carriers.carrier_abi_type_names, carriers.carrier_source_types,
             carriers.carrier_expr0s, carriers.carrier_rows
         );
-    let bindings: MirIntentBindingProjection =
-        MirIntentBindingProjectionFromCarriers(
-            carriers.carrier_names, carriers.carrier_arg0s,
-            carriers.carrier_arg1s, carriers.carrier_slots,
-            graph.intent_name
-        );
     if !mode.valid || !bindings.ok || ArrayLength(bindings.aliases) != 2 ||
         ArrayLength(bindings.step_names) != 1 {
         Die("direct MIR legacy intent policy or bindings are invalid");
     }
-    let zone_binding_count: Int = 0;
-    let subject_binding_count: Int = 0;
-    let binding_row: Int = 0;
-    while binding_row < ArrayLength(bindings.aliases) {
-        if bindings.aliases[binding_row] == graph.zone_alias &&
-            bindings.type_names[binding_row] == graph.zone_type_name &&
-            bindings.kinds[binding_row] == "participant" {
-            zone_binding_count = zone_binding_count + 1;
-        }
-        if bindings.aliases[binding_row] == graph.subject_alias &&
-            bindings.type_names[binding_row] == graph.subject_type_name &&
-            bindings.kinds[binding_row] == "participant" {
-            subject_binding_count = subject_binding_count + 1;
-        }
-        binding_row = binding_row + 1;
-    }
-    if zone_binding_count != 1 || subject_binding_count != 1 {
-        Die("direct MIR legacy intent participant identity is invalid");
-    }
     let step_name: String = bindings.step_names[0];
     let phases: MirIntentPhaseProjection =
         MirIntentPhaseProjectionFromCarriers(
-            admitted.routines, bindings.step_names,
+            admitted.routines, route.intent_row, false, bindings.step_names,
             carriers.carrier_names, carriers.carrier_arg0s,
             carriers.carrier_arg1s, carriers.carrier_slots,
             carriers.carrier_results, carriers.carrier_abi_type_names,
             carriers.carrier_source_types, carriers.carrier_expr0s,
             carriers.carrier_rows
         );
-    if !phases.ok || ArrayLength(phases.on_rows) != 1 ||
+    if !phases.ok || !MirIntentExpressionCarrierIsTrue(admitted.routines, phases.success_row) ||
+        ArrayLength(phases.on_rows) != 1 ||
         phases.on_rows[0] < 0 || phases.on_results[0] != "" ||
         phases.on_type_names[0] != "" || phases.expect_rows[0] < 0 ||
         phases.guard_rows[0] != -1 || phases.post_rows[0] != -1 ||
-        phases.compensate_counts[0] != 0 ||
-        carriers.executable_step_exprs[0] != phases.on_texts[0] {
+        phases.pre_rows[0] != -1 || phases.invariant_pre_rows[0] != -1 ||
+        phases.compensate_counts[0] != 0 {
         Die("direct MIR legacy intent phase plan is invalid");
     }
     let action: MirIntentActionGraphFact = MirIntentActionGraphFromInstruction(
@@ -492,12 +482,15 @@ func DirectMirLegacyIntentProgramPlanFromAdmitted(
     let invalidation_names: Array<String> = [];
     let invalidation_slots: Array<String> = [];
     let invalidation_args: Array<String> = [];
+    let block_topology: MirIntentRoutineBlockTopology =
+        MirIntentRoutineBlockTopologyFromIndex(admitted.routines, index, route.intent_row);
+    if !block_topology.valid { Die("direct MIR legacy intent block topology is invalid"); }
     DirectMirLegacyIntentCleanupRows(
-        admitted, index, route.intent_row, 2, rollback_names,
+        admitted, index, route.intent_row, block_topology.rollback, rollback_names,
         rollback_slots, rollback_args
     );
     DirectMirLegacyIntentCleanupRows(
-        admitted, index, route.intent_row, 3, invalidation_names,
+        admitted, index, route.intent_row, block_topology.invalidation, invalidation_names,
         invalidation_slots, invalidation_args
     );
     let plan: DirectMirLegacyIntentProgramPlan =

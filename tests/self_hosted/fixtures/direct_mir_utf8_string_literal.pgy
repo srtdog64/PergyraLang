@@ -1,0 +1,23 @@
+// docs/110: byte-preserving payloads, byte lengths, no normalization.
+func Echo(value: String) -> String { return value; }
+
+func Main() -> Void {
+    Log(Echo(""));
+    Log(Echo("plain"));
+    Log(Echo("quote:\" slash:\\ tab:\t CR:\r end"));
+    Log(Echo("line1\nline2"));
+    Log(Echo("\\n"));
+    Log(Echo("é"));
+    Log(Echo("é"));
+    Log(Echo("€"));
+    Log(Echo("한글🙂"));
+    Log(Echo("家/مرحبا"));
+    Log(Echo("🙂"));
+    Log(ToString(StringLength("é")));
+    Log(ToString(StringLength("é")));
+    Log(ToString(StringLength("한글🙂")));
+    Log(ToString("é" == "é"));
+    let values: Array<String> = ["é", "한글🙂"];
+    Log(values[0]);
+    Log(values[1]);
+}

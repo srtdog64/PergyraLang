@@ -40,13 +40,28 @@ func SemanticAstIntentActionSignatureIndex(
 
 func SemanticAstIntentActionCallFromText(
     signatures: SemanticAstFunctionSignatureFacts,
-    participant_aliases: Array<String>,
-    participant_types: Array<String>,
-    participant_is_values: Array<Bool>,
-    participant_start: Int,
-    participant_count: Int,
+    ref participants: SemanticAstIntentSignatureFacts,
+    intent_index: Int,
     text: String
 ) -> SemanticAstIntentActionCallFact {
+    // One readonly participant snapshot owns the three row columns and range.
+    // Full artifact admission stays upstream; this query validates its slice.
+    if !participants.ok || intent_index < 0 ||
+        intent_index >= ArrayLength(participants.param_starts) ||
+        intent_index >= ArrayLength(participants.param_counts) {
+        return SemanticAstIntentActionCallFact(false, "", "", -1, "");
+    }
+    let participant_start: Int = participants.param_starts[intent_index];
+    let participant_count: Int = participants.param_counts[intent_index];
+    if participant_start < 0 || participant_count < 0 ||
+        participant_start > ArrayLength(participants.param_names) ||
+        participant_count > ArrayLength(participants.param_names) - participant_start ||
+        participant_start > ArrayLength(participants.param_types) ||
+        participant_count > ArrayLength(participants.param_types) - participant_start ||
+        participant_start > ArrayLength(participants.param_is_values) ||
+        participant_count > ArrayLength(participants.param_is_values) - participant_start {
+        return SemanticAstIntentActionCallFact(false, "", "", -1, "");
+    }
     let dot: Int = StringIndexOf(text, ".");
     let open: Int = StringIndexOf(text, "(");
     if dot <= 0 || open <= dot + 1 {
@@ -63,12 +78,7 @@ func SemanticAstIntentActionCallFromText(
     let i: Int = 0;
     while i < participant_count {
         let row: Int = participant_start + i;
-        if row < 0 || row >= ArrayLength(participant_aliases) ||
-            row >= ArrayLength(participant_types) ||
-            row >= ArrayLength(participant_is_values) {
-            return SemanticAstIntentActionCallFact(false, "", "", -1, "");
-        }
-        if participant_aliases[row] == receiver {
+        if participants.param_names[row] == receiver {
             if participant_row >= 0 {
                 return SemanticAstIntentActionCallFact(
                     false, "", "", -1, ""
@@ -78,11 +88,11 @@ func SemanticAstIntentActionCallFromText(
         }
         i = i + 1;
     }
-    if participant_row < 0 || participant_is_values[participant_row] {
+    if participant_row < 0 || participants.param_is_values[participant_row] {
         return SemanticAstIntentActionCallFact(false, "", "", -1, "");
     }
     let signature_index: Int = SemanticAstIntentActionSignatureIndex(
-        signatures, participant_types[participant_row], action
+        signatures, participants.param_types[participant_row], action
     );
     if signature_index < 0 ||
         signature_index >= ArrayLength(signatures.return_types) {
@@ -141,8 +151,7 @@ func SemanticAstIntentStepActorFromFacts(
 
     let on_call: SemanticAstIntentActionCallFact =
         SemanticAstIntentActionCallFromText(
-            signatures, intents.param_names, intents.param_types,
-            intents.param_is_values, start, count, on_text
+            signatures, intents, intent_index, on_text
         );
     if on_call.ok {
         return SemanticAstIntentStepActorFact(

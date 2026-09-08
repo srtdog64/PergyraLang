@@ -6,6 +6,7 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>,
+    array_int_projection: Option<DirectMirArrayIntAbiProjection>,
     target: CompilerTargetProjectionFact
 ) -> String {
     if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
@@ -26,18 +27,20 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
     let local_row: Int = plan.value_local_rows[result]; let member: Int = plan.operation_right_locals[operation]; let record_type: String = plan.value_types[result];
     let target_root: Int = plan.program.expressions.graph_roots[target_row];
     let field_type: String = plan.program.expressions.node_types[target_root];
+    let receiver: Int = plan.program.expressions.node_lefts[target_root];
+    let receiver_type: String = plan.program.expressions.node_types[receiver];
     let llvm_record: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(
         plan.program.logical_record, record_type);
     let llvm_field: String =
-        DirectMirScalarProgramLlvmLogicalRecordFieldType(
-            plan.program.logical_record, field_type);
+        DirectMirScalarProgramLlvmLogicalRecordStorageFieldType(
+            plan.program.logical_record, receiver_type, member);
     let expression: DirectMirScalarProgramLlvmExpression =
         DirectMirScalarProgramLlvmExpressionAt(
             plan.program.expressions, expression_row, runtime,
-            plan.program.nominal_abi, plan.program.logical_record,
+            plan.program.logical_record,
             plan.program.payload_free_enum, plan.program.referenced_enum,
             plan.routines, routine, plan.program.array_string_abi,
-            array_string_projection, target);
+            array_string_projection, plan.program.array_int_value_result, array_int_projection, target);
     if local_row < 0 || field_type == "" || llvm_record == "" ||
         llvm_field == "" || !expression.valid ||
         expression.type_name != field_type ||
@@ -58,15 +61,24 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
     let updated: String = Concat(
         "%pgy.record.rebind.value.", ToString(operation));
     let output: String = expression.instructions;
+    let stored: String = expression.value;
+    if DirectMirScalarProgramLogicalRecordPhysicalIntField(
+            plan.program.logical_record, receiver_type, member) {
+        stored = Concat(updated, ".physical");
+        output = Concat(output, Concat("  ", Concat(stored, " = trunc i64 ")));
+        output = Concat(output, Concat(expression.value, " to i32\n"));
+    }
+    let alignment: String = DirectMirScalarProgramLogicalRecordStorageAlignment(
+        plan.program.logical_record, record_type);
     output = Concat(output, Concat("  ", base));
     output = Concat(output, Concat(" = load ", llvm_record));
     output = Concat(output, Concat(", ptr %pgy.local.", ToString(local_row)));
-    output = Concat(output, ", align 8\n");
+    output = Concat(output, Concat(", align ", Concat(alignment, "\n")));
     output = Concat(output, Concat("  ", updated));
     output = Concat(output, Concat(" = insertvalue ", llvm_record));
     output = Concat(output, Concat(" ", base));
     output = Concat(output, Concat(", ", llvm_field));
-    output = Concat(output, Concat(" ", expression.value));
+    output = Concat(output, Concat(" ", stored));
     let path: Int = ArrayLength(members);
     while path > 0 {
         path = path - 1;
@@ -75,5 +87,5 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
     output = Concat(output, "\n  store ");
     output = Concat(output, Concat(llvm_record, Concat(" ", updated)));
     output = Concat(output, Concat(", ptr %pgy.local.", ToString(local_row)));
-    return Concat(output, ", align 8\n");
+    return Concat(output, Concat(", align ", Concat(alignment, "\n")));
 }

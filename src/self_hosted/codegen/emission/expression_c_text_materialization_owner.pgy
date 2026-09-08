@@ -68,3 +68,25 @@ func CodegenCBinaryExpression(
     AllocatorDestroy(result_allocator);
     return result;
 }
+
+func CodegenCOrderedBinaryExpression(
+    left: String, right: String, left_name: String, right_name: String,
+    operation: String
+) -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(128);
+    TextBuilderAppend(output, "({ __auto_type ");
+    TextBuilderAppend(output, left_name);
+    TextBuilderAppend(output, " = (");
+    TextBuilderAppend(output, left);
+    TextBuilderAppend(output, "); __auto_type ");
+    TextBuilderAppend(output, right_name);
+    TextBuilderAppend(output, " = (");
+    TextBuilderAppend(output, right);
+    TextBuilderAppend(output, "); ");
+    TextBuilderAppend(output, operation);
+    TextBuilderAppend(output, "; })");
+    let result: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return result;
+}

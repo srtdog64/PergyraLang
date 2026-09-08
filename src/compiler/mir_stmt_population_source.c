@@ -14,14 +14,14 @@
 #include "mir_type_helpers.h"
 #include "../parser/ast_api.h"
 
-static const char *
-mir_assignment_target_root_name(const ASTNode *target)
+static const ASTNode *
+mir_assignment_target_root_identifier(const ASTNode *target)
 {
     const ASTNode *cursor = target;
 
     while (cursor != NULL) {
         if (cursor->type == AST_IDENTIFIER)
-            return ast_identifier_name(cursor);
+            return cursor;
         if (cursor->type == AST_MEMBER_ACCESS) {
             cursor = ast_member_object(cursor);
             continue;
@@ -56,21 +56,27 @@ const char *
 mir_assignment_target_root_binding_mode(const MIRRoutine *routine,
                                         const ASTNode *target)
 {
-    const char *root_name = mir_assignment_target_root_name(target);
+    const ASTNode *root = mir_assignment_target_root_identifier(target);
+    const char *root_name = ast_identifier_name(root);
+    uint32_t binding_id = ast_identifier_binding_syntax_id(root);
+    bool host_field = ast_identifier_binding_is_host_field(root);
     const char *parameter_mode = NULL;
     size_t parameter_matches = 0;
     size_t local_matches = 0;
     size_t owner_field_matches = 0;
 
-    if (routine == NULL || root_name == NULL || root_name[0] == '\0')
+    if (routine == NULL || root_name == NULL || root_name[0] == '\0'
+        || binding_id == 0)
         return NULL;
 
     for (size_t i = 0; i < routine->param_count; i++) {
         FuncParam *param = routine->params != NULL ? routine->params[i] : NULL;
-        if (param == NULL || param->name == NULL
-            || strcmp(param->name, root_name) != 0) {
+        if (host_field || param == NULL
+            || ast_func_param_stable_id(param) != binding_id) {
             continue;
         }
+        if (param->name == NULL || strcmp(param->name, root_name) != 0)
+            return NULL;
         parameter_matches++;
         parameter_mode = mir_assignment_parameter_mode_name(param->mode);
     }
@@ -78,13 +84,14 @@ mir_assignment_target_root_binding_mode(const MIRRoutine *routine,
         const MIRSourceLocalType *local = routine->source_local_types != NULL
             ? &routine->source_local_types[i]
             : NULL;
-        if (local != NULL && local->name != NULL
-            && strcmp(local->name, root_name) == 0) {
+        if (!host_field && local != NULL && local->binding_syntax_id == binding_id) {
+            if (local->name == NULL || strcmp(local->name, root_name) != 0)
+                return NULL;
             local_matches++;
         }
     }
 
-    if (routine->owner_name != NULL && routine->owner_name[0] != '\0') {
+    if (host_field && routine->owner_name != NULL && routine->owner_name[0] != '\0') {
         const MIRDeclHeader *owner;
 
         if (routine->program == NULL)
@@ -99,8 +106,11 @@ mir_assignment_target_root_binding_mode(const MIRRoutine *routine,
         for (size_t i = 0; i < mir_decl_header_field_count(owner); i++) {
             const MIRDeclField *field = mir_decl_header_field(owner, i);
             const char *field_name = mir_decl_field_name(field);
-            if (field_name != NULL && strcmp(field_name, root_name) == 0)
+            if (mir_decl_field_source_syntax_id(field) == binding_id) {
+                if (field_name == NULL || strcmp(field_name, root_name) != 0)
+                    return NULL;
                 owner_field_matches++;
+            }
         }
     }
 
@@ -114,22 +124,20 @@ mir_assignment_target_root_binding_mode(const MIRRoutine *routine,
 }
 
 bool
-mir_routine_has_def_for_name(const MIRRoutine *routine, const char *base_name)
+mir_routine_has_def_for_binding(const MIRRoutine *routine, uint32_t binding_syntax_id)
 {
-    if (routine == NULL || base_name == NULL)
+    if (routine == NULL || binding_syntax_id == 0)
         return false;
 
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
         const MIRBasicBlock *block = &routine->blocks[block_id];
         for (size_t inst_id = 0; inst_id < block->instruction_count; inst_id++) {
             const MIRInstruction *inst = &block->instructions[inst_id];
-            const char *def_name = NULL;
 
             if (inst->kind != MIR_INST_DEF)
                 continue;
 
-            def_name = inst->arg0 != NULL ? inst->arg0 : inst->slot_anchor;
-            if (def_name != NULL && strcmp(def_name, base_name) == 0)
+            if (inst->binding_syntax_id == binding_syntax_id)
                 return true;
         }
     }
@@ -163,24 +171,22 @@ mir_consume_matching_def_instruction(MIRInstruction *old_insts,
                                      size_t old_count,
                                      size_t *def_cursor,
                                      bool *copied_flags,
-                                     const char *base_name)
+                                     uint32_t binding_syntax_id)
 {
     if (old_insts == NULL || def_cursor == NULL || copied_flags == NULL
-        || base_name == NULL) {
+        || binding_syntax_id == 0) {
         return;
     }
 
     while (*def_cursor < old_count) {
         MIRInstruction *inst = &old_insts[*def_cursor];
-        const char *def_name;
 
         if (inst->kind != MIR_INST_DEF) {
             (*def_cursor)++;
             continue;
         }
 
-        def_name = inst->arg0 != NULL ? inst->arg0 : inst->slot_anchor;
-        if (def_name != NULL && strcmp(def_name, base_name) == 0) {
+        if (inst->binding_syntax_id == binding_syntax_id) {
             copied_flags[*def_cursor] = true;
             (*def_cursor)++;
         }
@@ -318,7 +324,7 @@ mir_make_assignment_instruction(MIRRoutine *routine,
         inst.expr1 = ast_assignment_value(stmt);
         inst.arg1 = mir_assignment_target_root_binding_mode(routine,
                                                             inst.expr0);
-        target_name = mir_assignment_target_root_name(inst.expr0);
+        target_name = ast_identifier_name(mir_assignment_target_root_identifier(inst.expr0));
         if (routine != NULL && target_name != NULL) {
             const char *type_name = mir_routine_source_local_type_name(
                 routine, target_name);

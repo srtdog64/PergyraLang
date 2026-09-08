@@ -77,14 +77,17 @@ func DirectMirScalarProgramArrayIntPopulatedLiteralNodeReady(
         } else if facts.node_kinds[operand] == DirectMirScalarProgramExprArrayIntIndex() {
             if !DirectMirScalarProgramArrayIntIndexNodeReady(facts, operand) { return false; }
         } else if facts.node_kinds[operand] ==
-                DirectMirScalarProgramExprSubtractInt() {
+                DirectMirScalarProgramExprSubtractInt() ||
+                facts.node_kinds[operand] == DirectMirScalarProgramExprNegateInt() {
             let left: Int = facts.node_lefts[operand];
             let right: Int = facts.node_rights[operand];
-            if left < 0 || right < 0 || left >= operand || right >= operand ||
+            let unary: Bool = facts.node_kinds[operand] == DirectMirScalarProgramExprNegateInt();
+            if left < 0 || left >= operand ||
+                (unary && right != -1) || (!unary && (right < 0 || right >= operand)) ||
                 facts.node_kinds[left] != DirectMirScalarProgramExprIntLiteral() ||
-                facts.node_kinds[right] != DirectMirScalarProgramExprIntLiteral() ||
+                (!unary && facts.node_kinds[right] != DirectMirScalarProgramExprIntLiteral()) ||
                 facts.node_types[left] != CompilerAbiLayoutIntTypeName() ||
-                facts.node_types[right] != CompilerAbiLayoutIntTypeName() ||
+                (!unary && facts.node_types[right] != CompilerAbiLayoutIntTypeName()) ||
                 facts.node_local_rows[operand] != -1 ||
                 facts.node_parameter_ordinals[operand] != -1 ||
                 facts.node_member_ordinals[operand] != -1 ||

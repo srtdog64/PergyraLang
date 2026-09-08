@@ -202,8 +202,9 @@ test_mir_vertical_slice_emit(void)
 
         EXPECT(ok && output != NULL);
         if (ok && output != NULL) {
-            EXPECT_STR_CONTAINS(output, "_pgy_ssa_next_1 = (seed + 1);");
-            EXPECT_STR_NOT_CONTAINS(output, "int32_t next = (seed + 1);");
+            EXPECT_STR_CONTAINS(output, "_pgy_ssa_next_1 = ({ __auto_type __pgy_binary_");
+            EXPECT_STR_CONTAINS(output, "= (seed);");
+            EXPECT_STR_NOT_CONTAINS(output, "int32_t next =");
         }
 
         free(output);

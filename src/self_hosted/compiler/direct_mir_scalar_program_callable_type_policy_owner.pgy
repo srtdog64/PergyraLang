@@ -24,7 +24,7 @@ func DirectMirScalarProgramFirstOrderCallableTypeSupported(
 
 func DirectMirScalarProgramCallableTypeMatchesRows(
     type_name: String, return_type: String,
-    parameter_types: Array<String>, parameter_carriages: Array<String>,
+    ref parameter_types: Array<String>, ref parameter_carriages: Array<String>,
     start: Int, count: Int
 ) -> Bool {
     let shape: SemanticAstCallableTypeShape =

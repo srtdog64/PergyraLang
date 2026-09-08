@@ -1,0 +1,9 @@
+subject Cell { let value: Int; }
+func ReadCell(cell: Cell) -> Int { return cell.value; }
+func Main() -> Void {
+    let first = Cell(7);
+    let second = Cell(19);
+    Log(ReadCell(first));
+    Log(ReadCell(second));
+    Log(ReadCell(first));
+}

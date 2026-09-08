@@ -1,12 +1,11 @@
 Program:
   Subject: Player
     Fields:
-      name: String
-      level: Int
+      let name: String
+      let level: Int
   Function: Main
     Parameters:
     Returns: Void
     Body:
       Block:
         Log("ok")
-

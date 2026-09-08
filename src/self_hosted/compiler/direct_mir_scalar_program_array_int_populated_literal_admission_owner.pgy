@@ -118,9 +118,8 @@ func DirectMirScalarProgramAppendArrayIntPopulatedLiteral(
                 true, invalid);
         }
         let normalized_operand: Int = -1;
-        if operand.binary_literal {
-            let left_source: Int = operand.operand_source - 2;
-            let right_source: Int = operand.operand_source - 1;
+        if operand.literal_arity > 0 {
+            let left_source: Int = operand.operand_source - operand.literal_arity;
             DirectMirScalarProgramAppendExpressionNode(
                 kinds, types, lefts, rights, locals, params, members,
                 literals, callable_rows, runtime_ids,
@@ -128,13 +127,16 @@ func DirectMirScalarProgramAppendArrayIntPopulatedLiteral(
                 CompilerAbiLayoutIntTypeName(), -1, -1, -1, -1, -1,
                 sequence.arena.node_texts[left_source], -1, -1);
             let normalized_left: Int = ArrayLength(kinds) - 1;
-            DirectMirScalarProgramAppendExpressionNode(
-                kinds, types, lefts, rights, locals, params, members,
-                literals, callable_rows, runtime_ids,
-                DirectMirScalarProgramExprIntLiteral(),
-                CompilerAbiLayoutIntTypeName(), -1, -1, -1, -1, -1,
-                sequence.arena.node_texts[right_source], -1, -1);
-            let normalized_right: Int = ArrayLength(kinds) - 1;
+            let normalized_right: Int = -1;
+            if operand.literal_arity == 2 {
+                DirectMirScalarProgramAppendExpressionNode(
+                    kinds, types, lefts, rights, locals, params, members,
+                    literals, callable_rows, runtime_ids,
+                    DirectMirScalarProgramExprIntLiteral(),
+                    CompilerAbiLayoutIntTypeName(), -1, -1, -1, -1, -1,
+                    sequence.arena.node_texts[operand.operand_source - 1], -1, -1);
+                normalized_right = ArrayLength(kinds) - 1;
+            }
             DirectMirScalarProgramAppendExpressionNode(
                 kinds, types, lefts, rights, locals, params, members,
                 literals, callable_rows, runtime_ids, operand.kind,

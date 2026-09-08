@@ -20,9 +20,11 @@ func CodegenIntentStepBindingContractSignature(
 
 func CodegenIntentStepBindingContractAuthorities(
 ) -> SemanticAstZoneAuthorityFacts {
+    let ids: Array<Int> = [];
+    let names: Array<String> = [];
     return SemanticAstZoneAuthorityFacts(
         true, 4, [1], [2], ["Gate"], [3], ["approver"],
-        [0], [0], [], []
+        [0], [0], ids, names
     );
 }
 
@@ -50,6 +52,29 @@ func CodegenIntentStepBindingContractEnv(
 }
 
 func CodegenIntentStepBindingContractReady() -> Bool {
+    // A same-spelled field in another Zone cannot win. Within one Zone,
+    // an exact alias wins even when another compatible slot precedes it.
+    let slot_owners: Array<Int> = [0, 1, 0];
+    let slot_names: Array<String> = ["reserve", "worker", "worker"];
+    let slot_types: Array<String> = ["Worker", "Worker", "Worker"];
+    let slot_kinds: Array<String> = ["subject_slot", "subject_slot", "subject_slot"];
+    let exact: IntentSubjectSlotSelection = IntentSubjectSlotSelect(
+        slot_owners, slot_names, slot_types, slot_kinds, 0, "worker", "Worker");
+    let unique: IntentSubjectSlotSelection = IntentSubjectSlotSelect(
+        slot_owners, slot_names, slot_types, slot_kinds, 1, "actor", "Worker");
+    let ambiguous_slot: IntentSubjectSlotSelection = IntentSubjectSlotSelect(
+        slot_owners, slot_names, slot_types, slot_kinds, 0, "actor", "Worker");
+    let foreign: IntentSubjectSlotSelection = IntentSubjectSlotSelect(
+        slot_owners, slot_names, slot_types, slot_kinds, 2, "worker", "Worker");
+    let absent_kinds: Array<String> = [];
+    let incomplete: IntentSubjectSlotSelection = IntentSubjectSlotSelect(
+        slot_owners, slot_names, slot_types, absent_kinds, 0, "worker", "Worker");
+    if !exact.ok || exact.field_row != 2 || !unique.ok || unique.field_row != 1 ||
+        ambiguous_slot.ok || ambiguous_slot.diagnostic != "zone-subject-slot-ambiguous" ||
+        foreign.ok || foreign.diagnostic != "zone-subject-slot-missing" ||
+        incomplete.ok || incomplete.diagnostic != "zone-subject-slot-inventory" {
+        return false;
+    }
     let by_value: SemanticAstIntentSignatureFacts =
         CodegenIntentStepBindingContractSignature(true);
     let authorities: SemanticAstZoneAuthorityFacts =
@@ -140,6 +165,9 @@ func CodegenIntentStepBindingContractReady() -> Bool {
             by_value, authorities, 0,
             "worker", "gate", "approver", "Gate", missing_env
         );
-    return !missing.ok &&
-        missing.diagnostic == "zone-subject-slot-missing";
+    let unlisted_env: CodegenTypeEnv = CodegenIntentStepBindingContractEnv("approver", true);
+    let unlisted: CodegenIntentStepBindingFact = CodegenIntentStepBindingFactFromFacts(
+        by_value, authorities, 0, "worker", "gate", "approver", "Gate", unlisted_env);
+    return !missing.ok && missing.diagnostic == "zone-subject-slot-missing" &&
+        !unlisted.ok && unlisted.diagnostic == "zone-subject-slot-missing";
 }

@@ -1,0 +1,175 @@
+# Architecture review reconciliation at 5b97f2e1
+
+Status: REVIEW INTAKE; corrections and priorities, not semantic authority or a
+parallel implementation queue. Observed HEAD/main/origin/main:
+`5b97f2e10ffa7ecf9cfe932829a83ffffaa3ba12`.
+
+Latest continuation: isolated 723F5707 / manifest 6C95B095 and native 234AAB7E
+build with matching source hashes. The existing logical-record expression
+owner now rejects noncandidate shapes before whole-table validation, retaining
+all actual candidate checks. Native C before/after seventeen controls agree;
+current native C/LLVM and public C pass, but public LLVM reaches the aggregate
+five-minute test boundary. Original direct-record C/LLVM ten outputs/ten
+refusals and bounded bootstrap pass. This is not full fixed point. The current
+full size check reaches its one-minute limit, not PASS. The reached next stack
+is payload-free enum marker scanning; those owners remain unedited. The
+original 23-result LLVM leg also reaches its unchanged standalone five-minute
+boundary, exit 124 / child 143, without an executable. Its own stack instead
+reaches repeated record-table validation per constructor argument. That
+untouched constructor query is the next active falsifier; enum scanning stays
+secondary. No time-share measurement or full performance closure is claimed.
+
+Prior call-spine checkpoint: isolated D56862B2 / manifest 657A0A7A and native BC77A185
+build with current-source hashes matched. The reached named-boundary call-spine
+scan is replaced by a temporary projection in the two existing owners. Exact
+native/public C/LLVM views, readonly controls and bounded bootstrap pass; this
+is not full fixed point or a higher substitution percentage. C7920411 previously
+produced its complete MIR, but its full comparison did not finish. D56862B2's
+public LLVM query leg still reaches the 300-second bound; a read-only stack
+locates repeated logical-record validation during graph-plan construction.
+See the active handoff and the counterexample audit's final section. No general
+query engine, record-validation deletion, shared install or new publication.
+
+Prior bounded execution update: isolated C681F4BF / source manifest 20854311
+passes the source-matched Intent participant read-query migration. The existing
+fact/index replaces separately passed arrays/ranges at four production calls,
+including DIR. Initial three-call diagnosis covered only assignment imports;
+whole-driver builds caught the missed DIR call before the corrected candidate.
+All eighteen query/actor-order results pass native/public C/LLVM (`be8c2e`).
+Bounded Checkout and multi-intent execution slices pass (`d02e5c`, `2bc1af`), as
+do readonly eleven-output/40-refusal and actual nine-value hash regressions
+(`239426`, `04ab06`). All 2,240 source inputs match, seed output receipt agrees,
+native full-driver build and bounded bootstrap pass; this is not full fixed
+point. Original assignment integration `92648` is terminal PASS, exit 0
+(`2f66c7`): C/LLVM five outputs, C seven and LLVM six missing-fact refusals.
+One read-only stack identifies repeated referenced-enum readiness during
+marker probing, not its total runtime share. Current full-bootstrap session
+`73945` reuses both built drivers but is terminal RED at full-source semantic
+admission (`4c51f8`): readonly Array<Int> crosses a value/default boundary.
+No full MIR or gen2/gen3 result. An explicit native-front dump of the same
+source is being used only to identify the exact call/parameter consumer, not
+as a substitute for Pergyra-produced bootstrap MIR.
+Subsequent source-only read-query mode repair is built as C7920411 / manifest
+435A49A7. Its eleven-value/40-refusal readonly regression passes. The native
+full-source prerequisite exposed a compilation-global summary work counter;
+4,097 independent nonrecursive demands reproduce it. Scoping the existing cap
+to one demand episode preserves oversized-closure refusal and now builds the
+independent full driver FFFBF13F (native frontend 4C7786E0). Complete-source
+bootstrap is still open. New query runtime evidence is partial: 23 results on
+native C/LLVM and public C; public LLVM ends at its time budget without output.
+These are one executable rung's reached boundaries, not a new cleanup track
+or a higher self-host percentage. See the active bootstrap directive and handoff.
+The separate native maximum-Long literal defect remains open. No new
+substitution percentage, shared installation or exact dirty-tree CI claim.
+The active handoff and final physical-record objective card own navigation.
+
+Input: the user's 941-line Korean architecture review attached on 2026-09-06,
+attachment `35448fb3-f5ac-4c0b-8197-c45023811ab9/pasted-text.txt`.
+SHA-256: `5F73783A55208B2C695825F124850E1813DBA65B8F854BF88FEAA63964F523F5`.
+The attachment is preserved. Its external research and release claims have not
+been independently verified in this intake; they are not repository evidence.
+
+## Corrections against current evidence
+
+| Review claim | Current qualification and anchor |
+| --- | --- |
+| Exact HEAD regular CI is pending | `33998401657` completed SUCCESS 30/30 on exact `5b97f2e1` (`930d14`). It does not validate later local source changes or prove full Platform/weekly success. |
+| 34/104 public/native divergence | This is a recorded installed-binary outcome difference, not 34 independently classified defects in latest source. The matrix records native `0F9F4F30` and driver `7928ED6B`, and explicitly does not assert a rebuild from its base revision. See the executed matrix's Method and section 2.1. |
+| Evaluation order has no language contract | The observed backend mismatch matters, but docs/180 already requires sequential side-effecting array-call elements. Check the contract separately for binary operands and call arguments before claiming a universal absence of semantics. Preserve sequencing in owner facts; do not inherit C argument evaluation order. |
+| Class must either reject mutation or become identity-like | There is a third, already reviewed path: keep class value semantics and make caller-visible mutation explicit `inout self`. Its copy-in/out and normal-exit obligations are not equivalent to just passing an address. See the class receiver audit and `docs/mut_borrow_parameters.md`. This intake does not claim that receiver implementation is complete. |
+| Compiler live-set matters more than computation | Logical erasure is not measured heap reduction. Both live-state volume and repeated computation remain open: current compiler-scale stacks reach repeated enum fact readiness and a whole-source string-length scan. A few samples establish reached operations, not their percentage of total cost. |
+| General ResourceCarriage is now necessary | Unifying authority/ownership obligations is a useful objective, but necessity of a new calculus is unproved. First map existing carriage, escape, transfer and ABI owners and locate the lost fact. Avoid adding a second ownership authority to repair unrelated consumers. |
+| Malformed external MIR establishes a sandbox failure | Reported acceptance contradicts parser/identity contracts, but it is not by itself evidence of a sandbox escape. Treat external MIR as a fail-closed input boundary; privileged access does not replace correct validation. No exploitation experiment was run for this intake. |
+
+The matrix has strong semantic-parity findings, but the collector's exit zero is
+not an expectation gate. Split future normative cases into wrong acceptance,
+wrong rejection, differing runtime behavior and differing diagnostics. Anchor
+each expectation in the language owner and identify both tested binaries. Never
+freeze a known incorrect installed result as the desired language semantics.
+
+## Adopted direction and bounded work order
+
+Semantic parity is an acceptance condition for self-host replacement, not a
+metric to pursue after a substitution percentage. The active compiler rung must
+therefore retain its public/direct C/LLVM behavior and negative controls. A
+higher owner count, lower bridge count or successful compilation alone cannot
+justify differing language guarantees.
+
+The proposed resource, concurrency and external-input findings remain important,
+but this review does not open seven simultaneous implementation lanes. Do not
+delete language words, introduce general ResourceCarriage, change Zone locking,
+build a query database or begin Module Build from this intake. Follow existing
+owners and measured workload; Module Build remains deferred beyond self-host
+closure. Broader parity findings need bounded owner-backed acceptance cases,
+not another complete collector run without expectations.
+
+## Initial executable checkpoint after the review's HEAD
+
+The uncommitted physical-record repair uses one declaration-owned identity and
+layout carriage, deleting the scalar GraphPlan's duplicate two-Int owner. Final
+isolated driver `958AE778` passes the real-owner/1/2/3/8-field/nested/non-first
+copy-out fixture through public and direct C/LLVM, with 24 receipt refusals.
+Existing two-Int, logical-record and Option<Int> regressions also pass. Details
+and exact hashes are in the assignment-projection counterexample audit.
+
+The original compiler-scale LLVM program now passes the former accumulator
+return-type boundary and reaches GraphPlan construction. Its isolated remaining
+LLVM leg ended normally with a compiler rejection (`b15c77`), not a manual kill:
+
+```text
+CODEGEN ERROR: direct MIR scalar program extension is invalid: code=19
+```
+
+The code is owned by
+`direct_mir_scalar_cfg_program_extension_fact_readiness_owner.pgy` and maps to
+`DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi`. That query requires a
+valid sealed owned-move fact and equality with the carried Array<String> ABI.
+Which predicate/row failed is still unknown. Do not assume that all failure
+causes behind code 19 are an ABI ID mismatch, or relax the check to get green.
+
+The next step at that checkpoint was to distinguish invalid move/coverage evidence
+from missing/mismatched Array<String> ABI, retain the failing row/call identity,
+and reduce it to an owner-preserving fixture before another compiler-scale run.
+The observed repeated signature/enum checks are bounded performance evidence,
+not authorization for a general cache architecture. No whole integration pass,
+new fixed point, installed upgrade, hard-substitution increase or new remote
+validation is claimed. Local changes remain uncommitted.
+
+Subsequent local work keeps this same rung. Candidate `0CDAF013` uses one
+complete consuming-exit-set proof, deleting the old shape-specific proof tags
+and arrays. The `EmitStmtList` two-exit and record-constructor reductions now
+execute, the expanded public/direct C/LLVM gate passes 24 runtime lines and
+34 refusals, and six issued-plan mutations reject stale input (`bebe72`,
+`a69466`). The original integration passed C/seven negatives and reached final
+plan sealing past code 19. A stack sample then exposed per-byte full-MIR length
+rescans; that identified child was deliberately stopped, not rejected by the
+compiler. The same hash owner now computes length once, with unchanged byte
+identity checked through an actual-owner probe. Rebuilt Pergyra-seed candidate
+`908D9A4E` passed the exact original C/LLVM assignment gate (`b83a45`), including
+matching runtime and C seven/LLVM six negative controls. The following native
+full-driver cross-check rejected borrowed hash forwarding and returned storage
+aliases. Current `B58EFE4E`/`A0F2FCDB` closes native emission/compilation, bounded
+bootstrap parity and the dual-producer six-mutation probe. Before another large
+run, a seven-line Count reduction exposes readonly Array<Int> callable carriage
+missing from the LLVM lane: public C executes `3`, LLVM rejects (`445674`).
+That reached seam is the sole next objective, not an envelope-only relaxation.
+Follow the active handoff and assignment-projection audit for the exact scope;
+this intake does not create a second work queue or a SoT completion claim.
+
+The reached readonly seam now passes on isolated Pergyra-seed `55445D18` /
+source graph `b54c5081`: public/direct C/LLVM execute eight expected values,
+28 MIR mutations reject, and 12 native/public-C/public-LLVM source mutation,
+return and forwarding cases reject (`dfb05a`). The String-only family is
+retired; Int ABI identity is carried without granting copy-out. Signed array
+operands use the existing literal receipt. Source readonly rules consume the
+existing mutation policy and carried place/typed return facts, not a native
+recheck. General alias/dataflow closure is not claimed.
+
+At the prior 55445D18 checkpoint, whole-driver native C emission/compilation,
+five regressions and bounded bootstrap comparisons passed (`0a38ce`, `3751b8`,
+`6101af`, `9a24ed`), while ToString(Long) still rejected LLVM. That checkpoint
+is superseded by 87DCF196 in this intake's opening execution update. Long and
+UTF-8 projection now pass; the Intent participant read-query boundary is next.
+Full current fixed point, shared installation, new publication and new remote
+CI remain unclaimed. Registry status stays CLOSED55/BRIDGE32/ACTIVE1;
+Rocq-dependent adequacy remains unverified locally because the prover is absent.

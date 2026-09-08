@@ -11,20 +11,20 @@ Program:
             Return: (a + b)
   Subject: DataSet
     Fields:
-      values: Array<Float: Float>
-      name: String
+      let values: Array<Float: Float>
+      let name: String
   Object: FilteredView
     Fields:
-      values: Array<Float: Float>
-      count: Int
+      let values: Array<Float: Float>
+      let count: Int
   Object: Statistics
     Fields:
-      mean: Float
-      sum: Float
+      let mean: Float
+      let sum: Float
   TObject: AnalysisResult
     Fields:
-      datasetName: String
-      resultMean: Float
+      let datasetName: String
+      let resultMean: Float
   Zone: AnalysisZone
     SubjectSlot: data: DataSet
     ObjectSlot: currentView: FilteredView
@@ -54,4 +54,3 @@ Program:
     Body:
       Block:
         Log("Notebook-style analysis pattern")
-

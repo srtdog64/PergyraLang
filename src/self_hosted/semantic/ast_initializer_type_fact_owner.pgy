@@ -290,6 +290,12 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             inferred = UnwrapOption(declared);
         }
         if expression_verdict.ok && IsSome(declared) && SemanticExpressionGraphSetLiteralMatchesDeclaredType(expression_surfaces.expression_graph, UnwrapOption(graph_root), UnwrapOption(declared), constructors, names, types, function_tables.names, function_tables.returns) { inferred = UnwrapOption(declared); }
+        if expression_verdict.ok {
+            let context_error: String = SemanticHashMapContextualTypeError(declared, inferred);
+            if context_error != "" {
+                expression_verdict = SemanticAstExpressionVerdictError(expression, context_error);
+            }
+        }
         inferred = SemanticContextualBuiltinExpectedTypeFromGraph(
             expression_surfaces.expression_graph, UnwrapOption(graph_root),
             declared, expression_verdict.ok, inferred
@@ -311,7 +317,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             );
         } else if inferred == "Unknown" || inferred == "" ||
             inferred == "List<Unknown>" || inferred == "Queue<Unknown>" ||
-            inferred == "Set<Unknown>" {
+            inferred == "Set<Unknown>" || inferred == "HashMap<Unknown, Unknown>" {
             row_verified = 0;
             row_code = "initializer_type_unresolved";
             row_message = SemanticError2(

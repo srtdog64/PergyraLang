@@ -50,6 +50,38 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
         return true;
     }
 
+    /* A formal actual is witnessed by the enclosing callable's bound, not
+     * by a concrete role lookup for the spelling of its type parameter. */
+    if (concrete_type->kind == TYPE_KIND_GENERIC
+        && concrete_type->data.generic.param_name != NULL
+        && ctx->current_function_decl != NULL) {
+        ASTNode *owner = ctx->current_function_decl;
+        const char *formal = concrete_type->data.generic.param_name;
+        GenericParams *formals = ast_func_generic_params(owner);
+        WhereClause *where = ast_func_where_clause(owner);
+        bool ability_bound = ast_type_name(bound_node) != NULL
+            && semantic_find_ability_decl_by_name(ctx, ast_type_name(bound_node)) != NULL;
+        if (find_generic_param_index(formals, formal) >= 0 && where != NULL) {
+            for (size_t ci = 0; ci < where->count; ci++) {
+                TypeConstraint *constraint = where->constraints[ci];
+                if (constraint == NULL || constraint->type_param == NULL
+                    || strcmp(constraint->type_param, formal) != 0)
+                    continue;
+                for (size_t bi = 0; bi < constraint->bound_count; bi++) {
+                    ASTNode *witness = constraint->bounds[bi];
+                    Type *witness_type = generic_contract_resolve_type_ref(witness, ctx);
+                    if (!ability_bound && bound_type != NULL && bound_type != TYPE_UNKNOWN
+                        && witness_type != NULL && witness_type != TYPE_UNKNOWN
+                        && type_equals(witness_type, bound_type))
+                        return true;
+                    if (semantic_ability_ref_matches(ctx, witness, bound_node))
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+
     if (ast_type_name(bound_node) == NULL
         || concrete_type->name == NULL) {
         return false;

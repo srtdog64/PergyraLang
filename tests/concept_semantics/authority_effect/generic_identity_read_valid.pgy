@@ -1,0 +1,19 @@
+subject Card { let value: Int; }
+
+func InspectCell<T>(value: T) -> Int where T: Card {
+    return value.value;
+}
+
+func ForwardCell<U>(value: U) -> Int where U: Card {
+    return InspectCell(value);
+}
+
+func Main() -> Void {
+    let first = Card(7);
+    let second = Card(19);
+    Log(InspectCell(first));
+    Log(ForwardCell(second));
+    Log(InspectCell(Card(31)));
+    Log(ForwardCell(Card(43)));
+    Log(InspectCell(first));
+}

@@ -5,8 +5,34 @@
 #include <string.h>
 
 static bool
+hir_append_binding(HIRLocalBinding **names, size_t *count, size_t *capacity,
+                   const char *name, uint32_t binding_syntax_id)
+{
+    if (name == NULL)
+        return true;
+    if (binding_syntax_id == 0)
+        return false;
+    for (size_t i = 0; i < *count; i++) {
+        if ((*names)[i].binding_syntax_id == binding_syntax_id)
+            return strcmp((*names)[i].name, name) == 0;
+    }
+    if (*count == *capacity) {
+        size_t cap = *capacity == 0 ? 8 : *capacity * 2;
+        if (cap < *capacity || cap > SIZE_MAX / sizeof(HIRLocalBinding))
+            return false;
+        HIRLocalBinding *rows = realloc(*names, cap * sizeof(*rows));
+        if (rows == NULL)
+            return false;
+        *names = rows;
+        *capacity = cap;
+    }
+    (*names)[(*count)++] = (HIRLocalBinding){name, binding_syntax_id};
+    return true;
+}
+
+static bool
 hir_stmt_collect_local_defs(ASTNode *node,
-                            const char ***names,
+                            HIRLocalBinding **names,
                             size_t *count,
                             size_t *capacity)
 {
@@ -15,14 +41,16 @@ hir_stmt_collect_local_defs(ASTNode *node,
 
     switch (node->type) {
         case AST_LET_DECL:
-            return hir_cfg_append_name_unique(names, count, capacity, ast_let_name(node));
+            return hir_append_binding(names, count, capacity, ast_let_name(node),
+                                      ast_node_stable_id(node));
 
         case AST_LET_DESTRUCTURE:
             for (size_t i = 0; i < ast_let_destructure_name_count(node); i++) {
-                if (!hir_cfg_append_name_unique(names,
+                if (!hir_append_binding(names,
                                                 count,
                                                 capacity,
-                                                ast_let_destructure_name(node, i)))
+                                                ast_let_destructure_name(node, i),
+                                                ast_let_destructure_binding_stable_id(node, i)))
                     return false;
             }
             return true;
@@ -30,65 +58,30 @@ hir_stmt_collect_local_defs(ASTNode *node,
         case AST_ASSIGNMENT:
             if (ast_assignment_target(node) != NULL
                 && ast_assignment_target(node)->type == AST_IDENTIFIER) {
-                return hir_cfg_append_name_unique(names,
+                if (ast_identifier_binding_is_host_field(ast_assignment_target(node)))
+                    return ast_identifier_binding_syntax_id(ast_assignment_target(node)) != 0;
+                return hir_append_binding(names,
                                                   count,
                                                   capacity,
-                                                  ast_identifier_name(ast_assignment_target(node)));
+                                                  ast_identifier_name(ast_assignment_target(node)),
+                                                  ast_identifier_binding_syntax_id(ast_assignment_target(node)));
             }
             return true;
 
         case AST_WITH_STMT:
-            if (ast_with_alias(node) != NULL
-                && !hir_cfg_append_name_unique(names,
-                                               count,
-                                               capacity,
-                                               ast_with_alias(node))) {
-                return false;
-            }
-            if (ast_with_body(node) != NULL) {
-                ASTNode *body = ast_with_body(node);
-                if (body->type == AST_BLOCK) {
-                    size_t stmt_count = 0;
-                    ASTNode **stmts = ast_block_statements(body, &stmt_count);
-                    for (size_t i = 0; i < stmt_count; i++) {
-                        if (!hir_stmt_collect_local_defs(stmts[i], names, count, capacity))
-                            return false;
-                    }
-                } else {
-                    if (!hir_stmt_collect_local_defs(body, names, count, capacity))
-                        return false;
-                }
-            }
-            return true;
-
-        case AST_UNSAFE_BLOCK:
-        case AST_TRANSACTION_BLOCK: {
-            ASTNode *body = (node->type == AST_UNSAFE_BLOCK)
-                ? ast_unsafe_block_body(node) : ast_transaction_block_body(node);
-            if (body != NULL) {
-                if (body->type == AST_BLOCK) {
-                    size_t stmt_count = 0;
-                    ASTNode **stmts = ast_block_statements(body, &stmt_count);
-                    for (size_t i = 0; i < stmt_count; i++) {
-                        if (!hir_stmt_collect_local_defs(stmts[i], names, count, capacity))
-                            return false;
-                    }
-                } else {
-                    if (!hir_stmt_collect_local_defs(body, names, count, capacity))
-                        return false;
-                }
-            }
-            return true;
-        }
+            return hir_append_binding(names, count, capacity,
+                                      ast_with_alias(node), ast_node_stable_id(node));
 
         default:
+            /* Inline wrapper bodies already occur in their owned CFG blocks.
+             * Rewalking them would move branch-local definitions to the entry. */
             return true;
     }
 }
 
 static bool
 hir_stmt_collect_phi_seed_names(ASTNode *node,
-                                const char ***names,
+                                HIRLocalBinding **names,
                                 size_t *count,
                                 size_t *capacity)
 {
@@ -99,49 +92,15 @@ hir_stmt_collect_phi_seed_names(ASTNode *node,
         case AST_ASSIGNMENT:
             if (ast_assignment_target(node) != NULL
                 && ast_assignment_target(node)->type == AST_IDENTIFIER) {
-                return hir_cfg_append_name_unique(names,
+                if (ast_identifier_binding_is_host_field(ast_assignment_target(node)))
+                    return ast_identifier_binding_syntax_id(ast_assignment_target(node)) != 0;
+                return hir_append_binding(names,
                                                   count,
                                                   capacity,
-                                                  ast_identifier_name(ast_assignment_target(node)));
+                                                  ast_identifier_name(ast_assignment_target(node)),
+                                                  ast_identifier_binding_syntax_id(ast_assignment_target(node)));
             }
             return true;
-
-        case AST_WITH_STMT:
-            if (ast_with_body(node) != NULL) {
-                ASTNode *body = ast_with_body(node);
-                if (body->type == AST_BLOCK) {
-                    size_t stmt_count = 0;
-                    ASTNode **stmts = ast_block_statements(body, &stmt_count);
-                    for (size_t i = 0; i < stmt_count; i++) {
-                        if (!hir_stmt_collect_phi_seed_names(stmts[i], names, count, capacity))
-                            return false;
-                    }
-                } else {
-                    if (!hir_stmt_collect_phi_seed_names(body, names, count, capacity))
-                        return false;
-                }
-            }
-            return true;
-
-        case AST_UNSAFE_BLOCK:
-        case AST_TRANSACTION_BLOCK: {
-            ASTNode *body = (node->type == AST_UNSAFE_BLOCK)
-                ? ast_unsafe_block_body(node) : ast_transaction_block_body(node);
-            if (body != NULL) {
-                if (body->type == AST_BLOCK) {
-                    size_t stmt_count = 0;
-                    ASTNode **stmts = ast_block_statements(body, &stmt_count);
-                    for (size_t i = 0; i < stmt_count; i++) {
-                        if (!hir_stmt_collect_phi_seed_names(stmts[i], names, count, capacity))
-                            return false;
-                    }
-                } else {
-                    if (!hir_stmt_collect_phi_seed_names(body, names, count, capacity))
-                        return false;
-                }
-            }
-            return true;
-        }
 
         default:
             return true;
@@ -161,6 +120,9 @@ hir_collect_cfg_local_defs(HIRRoutine *routine)
         block->local_def_count = 0;
         block->local_def_capacity = 0;
 
+        if (!block->is_reachable)
+            continue;
+
         for (size_t j = 0; j < block->statement_count; j++) {
             if (!hir_stmt_collect_local_defs(block->statements[j],
                                              &block->local_defs,
@@ -176,7 +138,7 @@ hir_collect_cfg_local_defs(HIRRoutine *routine)
 
 static bool
 hir_routine_collect_ssa_names(const HIRRoutine *routine,
-                              const char ***names,
+                              HIRLocalBinding **names,
                               size_t *count,
                               size_t *capacity)
 {
@@ -200,12 +162,12 @@ hir_routine_collect_ssa_names(const HIRRoutine *routine,
 }
 
 static bool
-hir_block_defines_name(const HIRBasicBlock *block, const char *name)
+hir_block_defines_binding(const HIRBasicBlock *block, uint32_t binding_syntax_id)
 {
-    if (block == NULL || name == NULL)
+    if (block == NULL || binding_syntax_id == 0)
         return false;
     for (size_t i = 0; i < block->local_def_count; i++) {
-        if (block->local_defs[i] != NULL && strcmp(block->local_defs[i], name) == 0)
+        if (block->local_defs[i].binding_syntax_id == binding_syntax_id)
             return true;
     }
     return false;
@@ -228,7 +190,7 @@ hir_compute_cfg_phi_candidates(HIRRoutine *routine)
         block->phi_candidate_capacity = 0;
     }
 
-    const char **names = NULL;
+    HIRLocalBinding *names = NULL;
     size_t name_count = 0;
     size_t name_capacity = 0;
     if (!hir_routine_collect_ssa_names(routine, &names, &name_count, &name_capacity))
@@ -255,14 +217,14 @@ hir_compute_cfg_phi_candidates(HIRRoutine *routine)
     }
 
     for (size_t n = 0; n < name_count; n++) {
-        const char *name = names[n];
+        HIRLocalBinding binding = names[n];
         memset(has_phi, 0, routine->cfg.block_count * sizeof(bool));
         memset(in_work, 0, routine->cfg.block_count * sizeof(bool));
         size_t work_count = 0;
 
         for (size_t b = 0; b < routine->cfg.block_count; b++) {
             const HIRBasicBlock *block = &routine->cfg.blocks[b];
-            if (block->is_reachable && hir_block_defines_name(block, name)) {
+            if (block->is_reachable && hir_block_defines_binding(block, binding.binding_syntax_id)) {
                 work[work_count++] = b;
                 in_work[b] = true;
             }
@@ -276,10 +238,10 @@ hir_compute_cfg_phi_candidates(HIRRoutine *routine)
                 if (frontier_block >= routine->cfg.block_count || has_phi[frontier_block])
                     continue;
 
-                if (!hir_cfg_append_name_unique(&routine->cfg.blocks[frontier_block].phi_candidates,
+                if (!hir_append_binding(&routine->cfg.blocks[frontier_block].phi_candidates,
                                                 &routine->cfg.blocks[frontier_block].phi_candidate_count,
                                                 &routine->cfg.blocks[frontier_block].phi_candidate_capacity,
-                                                name)) {
+                                                binding.name, binding.binding_syntax_id)) {
                     free((void *)names);
                     free(has_phi);
                     free(in_work);
@@ -288,7 +250,7 @@ hir_compute_cfg_phi_candidates(HIRRoutine *routine)
                 }
                 has_phi[frontier_block] = true;
 
-                if (!hir_block_defines_name(&routine->cfg.blocks[frontier_block], name)
+                if (!hir_block_defines_binding(&routine->cfg.blocks[frontier_block], binding.binding_syntax_id)
                     && !in_work[frontier_block]) {
                     work[work_count++] = frontier_block;
                     in_work[frontier_block] = true;
@@ -347,7 +309,8 @@ hir_materialize_phi_nodes(HIRRoutine *routine)
 
         for (size_t j = 0; j < block->phi_candidate_count; j++) {
             HIRPhiNode *phi = &block->phi_nodes[j];
-            phi->name = block->phi_candidates[j];
+            phi->name = block->phi_candidates[j].name;
+            phi->binding_syntax_id = block->phi_candidates[j].binding_syntax_id;
             phi->incoming_predecessor_count = block->predecessor_count;
             if (block->predecessor_count > 0) {
                 if (block->predecessor_count > SIZE_MAX / sizeof(size_t))

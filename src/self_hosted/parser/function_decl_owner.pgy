@@ -300,13 +300,15 @@ func ParseFunctionObserved(
             continue;
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordWithin) {
-            if !is_action || saw_within { Exit(1); }
+            if !is_action { Fail("'within' clause is only valid on 'action' declarations", content, i); }
+            if saw_within { Fail("action within clause is duplicated", content, i); }
             saw_within = true;
             i = LanguageWordEnd(i, LanguageWordId.WordWithin);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
             within_zone = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
+            if within_zone == "" { Fail("action within requires a zone name", content, i); }
             continue;
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordCauses) {

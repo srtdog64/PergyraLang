@@ -1,0 +1,55 @@
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Log("expected one native AST control path"); Exit(1); return; }
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(ReadFile(args[0]));
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    let body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !body.verdict.ok { Log(body.verdict.diagnostic_message); Exit(1); return; }
+    Log(SemanticAstBodyTypeBundleReady(artifact, analysis, body));
+    let clock: Int = CallableContractVocabularyMaskValueAt(
+        CallableContractVocabularyFindIndex(CallableContractVocabularyCapabilityAxis(), "clock"));
+    let count: Int = SemanticAstFunctionSignatureCount(analysis.signatures);
+    let read_id: Int = -1;
+    let nested_id: Int = -1;
+    let purpose: Int = 0;
+    while purpose < SemanticAstIntentSignatureCount(analysis.intent_signatures) {
+        if analysis.intent_signatures.names[purpose] == "ReadPurpose" { read_id = analysis.intent_signatures.intent_node_ids[purpose]; }
+        if analysis.intent_signatures.names[purpose] == "NestedPurpose" { nested_id = analysis.intent_signatures.intent_node_ids[purpose]; }
+        purpose = purpose + 1;
+    }
+    let read_row: Option<Int> = SemanticAstCapabilityCallableIndexForNode(analysis.signatures, analysis.intent_signatures, read_id);
+    let nested_row: Option<Int> = SemanticAstCapabilityCallableIndexForNode(analysis.signatures, analysis.intent_signatures, nested_id);
+    if !IsSome(read_row) || !IsSome(nested_row) { Log("missing distinct purpose identities"); Exit(1); return; }
+    Log(UnwrapOption(read_row) >= count && UnwrapOption(nested_row) >= count && read_id != nested_id);
+    Log(body.capabilities.used_masks[UnwrapOption(read_row)] == clock);
+    Log(body.capabilities.used_masks[UnwrapOption(nested_row)] == clock);
+    let surface: Int = 0;
+    let found: Bool = false;
+    while surface < ArrayLength(analysis.expression_surfaces.node_ids) && !found {
+        if analysis.expression_surfaces.intent_node_ids[surface] == read_id &&
+            (analysis.expression_surfaces.expression_graph.has_roots[surface * 3] ||
+             analysis.expression_surfaces.expression_graph.has_roots[surface * 3 + 1] ||
+             analysis.expression_surfaces.expression_graph.has_roots[surface * 3 + 2]) {
+            found = true;
+        } else { surface = surface + 1; }
+    }
+    if !found { Log("missing purpose-owned expression"); Exit(1); return; }
+    analysis.expression_surfaces.intent_node_ids[surface] = nested_id;
+    Log(!SemanticAstExpressionSurfaceFactsMatchArtifact(artifact, analysis.expression_surfaces));
+    analysis.expression_surfaces.intent_node_ids[surface] = -1;
+    Log(!SemanticAstExpressionSurfaceBorrowReady(artifact, analysis.expression_surfaces));
+    analysis.expression_surfaces.intent_node_ids[surface] = read_id;
+    let scope_rows: Array<Int> = analysis.expression_surfaces.intent_node_ids;
+    let empty: Array<Int> = [];
+    analysis.expression_surfaces.intent_node_ids = empty;
+    Log(!SemanticAstExpressionSurfaceBorrowReady(artifact, analysis.expression_surfaces));
+    analysis.expression_surfaces.intent_node_ids = scope_rows;
+    body.capabilities.callable_node_ids[UnwrapOption(read_row)] = nested_id;
+    Log(!SemanticAstCapabilityFactsReady(artifact, analysis, body.capabilities));
+    body.capabilities.callable_node_ids[UnwrapOption(read_row)] = read_id;
+    body.capabilities.declared_masks[UnwrapOption(read_row)] = clock;
+    Log(!SemanticAstCapabilityFactsReady(artifact, analysis, body.capabilities));
+    Log(!IsSome(SemanticAstCapabilityCallableIndexForNode(analysis.signatures, analysis.intent_signatures, artifact.count + 1)));
+}

@@ -218,3 +218,105 @@ func SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(
         resource_field_paths, mutable_borrow_parameter_node_ids
     );
 }
+
+// Value-use admission after binding/call identities have been sealed. The
+// transient postorder projection joins existing lexical types; it does not seed
+// another name environment or rediscover world declarations from source text.
+func SemanticAstWorldZoneEscapeViolation(
+    constructors: SemanticAstNominalConstructorFacts,
+    ref leaf_type_names: Array<String>,
+    ref graph: SemanticExpressionGraphFacts
+) -> Option<String> {
+    if !constructors.ok || !SemanticAstNominalConstructorRowsReady(constructors) ||
+        !SemanticExpressionGraphFactsReady(graph, ArrayLength(graph.roots)) {
+        return Some("world-zone use requires complete admitted owner facts");
+    }
+    let has_world_zones: Bool = false;
+    let owner: Int = 0;
+    while owner < SemanticAstNominalConstructorCount(constructors) {
+        if constructors.nominal_kinds[owner] == "world" {
+            let field: Int = constructors.param_starts[owner];
+            let end: Int = field + constructors.param_counts[owner];
+            while field < end {
+                if constructors.field_kinds[field] == NominalFieldKindWorldZone() { has_world_zones = true; }
+                field = field + 1;
+            }
+        }
+        owner = owner + 1;
+    }
+    if !has_world_zones { return None; }
+    let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    if !SemanticExpressionIdentityRowsReady(graph.arena.identities, count) ||
+        ArrayLength(leaf_type_names) != count {
+        return Some("world-zone use requires admitted binding identities and types");
+    }
+    let call_roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(graph);
+    if !call_roots.ok { return Some("world-zone call spine is incomplete"); }
+    let i: Int = 0;
+    let value_types: Array<String> = [];
+    let world_field_ids: Array<Int> = [];
+    let world_field_names: Array<String> = [];
+    let node: Int = 0;
+    while node < count {
+        let kind: Int = graph.arena.topology.node_kinds[node];
+        let left: Int = graph.arena.topology.left_children[node];
+        let right: Int = graph.arena.topology.right_children[node];
+        let value_type: String = "";
+        let world_field_id: Int = 0;
+        let world_field_name: String = "";
+        if kind == AstExpressionNodeLeaf() {
+            value_type = leaf_type_names[node];
+        } else if kind == AstExpressionNodeMemberAccess() {
+            if left < 0 || left >= node || right < 0 || right >= node { return Some("world-zone member edge is missing"); }
+            let declaration: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, value_types[left]);
+            if IsSome(declaration) {
+                let index: Int = UnwrapOption(declaration);
+                let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+                    constructors, index, graph.arena.node_texts[right]
+                );
+                if IsSome(field) {
+                    let row: Int = UnwrapOption(field);
+                    value_type = constructors.param_type_names[row];
+                    if constructors.nominal_kinds[index] == "world" &&
+                        constructors.field_kinds[row] == NominalFieldKindWorldZone() {
+                        world_field_id = constructors.field_source_syntax_ids[row];
+                        world_field_name = constructors.names[index] + "." + constructors.field_names[row];
+                    }
+                }
+            }
+        } else if kind == AstExpressionNodeCall() {
+            value_type = graph.arena.call_return_type_names[node];
+        } else if kind == AstExpressionNodeCallArgument() {
+            if left < 0 || left >= node || right < 0 || right >= node { return Some("world-zone call edge is missing"); }
+            value_type = value_types[left];
+            if world_field_ids[right] > 0 {
+                let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, call_roots.root_nodes[node]);
+                if !call.ok { return Some("world-zone call target identity is missing"); }
+                let target: String = graph.arena.call_target_names[call.call_node];
+                let detached_copy: Bool = graph.arena.call_target_kinds[call.call_node] == SemanticCallTargetDirect() &&
+                    graph.arena.identities.call_target_syntax_ids[call.call_node] == 0 &&
+                    (target == "Clone" || target == "RcClone") && ArrayLength(call.argument_nodes) == 1;
+                if !detached_copy {
+                    return Some("World-owned zone binding '" + world_field_names[right] + "' cannot escape as a live binding");
+                }
+                value_type = value_types[right];
+            }
+        }
+        ArrayPush(value_types, value_type);
+        ArrayPush(world_field_ids, world_field_id);
+        ArrayPush(world_field_names, world_field_name);
+        node = node + 1;
+    }
+    i = 0;
+    while i < ArrayLength(graph.roots) {
+        if graph.has_roots[i] {
+            let root: Int = graph.roots[i];
+            if root < 0 || root >= count { return Some("world-zone use root is missing"); }
+            if world_field_ids[root] > 0 {
+                return Some("World-owned zone binding '" + world_field_names[root] + "' cannot escape as a live binding");
+            }
+        }
+        i = i + 1;
+    }
+    return None;
+}

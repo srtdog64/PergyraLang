@@ -92,7 +92,8 @@ test_hir_lowering_part_a(void)
                && intent_routine->is_entry_reachable
                && intent_routine->has_cfg
                && intent_routine->cfg.block_count >= 1
-               && intent_routine->cfg.blocks[0].statement_count >= 2
+               && intent_routine->cfg.blocks[0].statement_count == 1
+               && intent_routine->cfg.blocks[0].statements[0]->type == AST_INTENT_STEP
                && intent_routine->signature_type_ref_count >= 2
                && intent_routine->callee_routine_count == 1
                && intent_routine->direct_call_count == 1
@@ -268,7 +269,7 @@ test_hir_lowering_part_a(void)
                 if (block->local_def_count > 0)
                     found_defs = true;
                 for (size_t j = 0; j < block->phi_candidate_count; j++) {
-                    if (strcmp(block->phi_candidates[j], "score") == 0)
+                    if (strcmp(block->phi_candidates[j].name, "score") == 0)
                         found_score_phi = true;
                 }
             }
@@ -302,7 +303,7 @@ test_hir_lowering_part_a(void)
             for (size_t i = 0; i < use_with->cfg.block_count; i++) {
                 const HIRBasicBlock *block = &use_with->cfg.blocks[i];
                 for (size_t j = 0; j < block->local_def_count; j++) {
-                    if (strcmp(block->local_defs[j], "s") == 0)
+                    if (strcmp(block->local_defs[j].name, "s") == 0)
                         found_alias_def = true;
                 }
             }
@@ -364,8 +365,8 @@ test_hir_lowering_part_a(void)
         EXPECT(hir != NULL
                && routine != NULL
                && routine->has_cfg
-               && routine->return_block_count == 0
-               && routine->normal_exit_block_count == 1
+               && routine->return_block_count == 1 /* implicit Void exit */
+               && routine->normal_exit_block_count == 0
                && found_pin
                && found_after_pin
                && found_write_mode

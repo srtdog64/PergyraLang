@@ -4,7 +4,7 @@ import "direct_mir_scalar_program_c_builtin_expression_owner.pgy";
 import "direct_mir_scalar_program_c_logical_value_expression_owner.pgy";
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_readonly_ref_owner.pgy";
-import "direct_mir_scalar_program_c_array_string_readonly_ref_owner.pgy";
+import "direct_mir_scalar_program_c_array_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_c_array_bool_empty_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_c_array_bool_populated_literal_owner.pgy";
 import "direct_mir_scalar_program_c_numeric_cast_expression_owner.pgy";
@@ -12,6 +12,7 @@ import "direct_mir_scalar_program_c_logical_record_array_empty_literal_expressio
 import "direct_mir_scalar_program_c_external_runtime_expression_owner.pgy";
 import "direct_mir_scalar_program_c_match_expression_owner.pgy";
 import "../lib/json_emit.pgy";
+import "direct_mir_identity_cell_projection_owner.pgy";
 func DirectMirScalarProgramCLocalName(row: Int) -> String { return Concat("pgy_local_", ToString(row)); }
 func DirectMirScalarProgramCExpressionValues(
     ref expressions: DirectMirScalarProgramExpressionSet,
@@ -42,6 +43,7 @@ func DirectMirScalarProgramCExpressionValues(
             argument_rows = DirectMirScalarProgramDirectCallArgumentRows(
                 expressions, node);
         } else if kind == DirectMirScalarProgramExprLogicalRecordConstructor() ||
+                kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
                 kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
             argument_rows = DirectMirScalarProgramLogicalRecordArgumentRows(
                 expressions, node); } else if kind ==
@@ -71,7 +73,8 @@ func DirectMirScalarProgramCExpressionValues(
                 expressions.node_kinds[argument_rows[argument]] ==
                     DirectMirScalarProgramExprArrayIntIndex() ||
                 expressions.node_kinds[argument_rows[argument]] ==
-                    DirectMirScalarProgramExprSubtractInt() {
+                    DirectMirScalarProgramExprSubtractInt() ||
+                expressions.node_kinds[argument_rows[argument]] == DirectMirScalarProgramExprNegateInt() {
                 ArrayPush(arguments, argument_value);
             }
             argument = argument + 1;
@@ -80,6 +83,16 @@ func DirectMirScalarProgramCExpressionValues(
         let cast_value: Option<String> =
             DirectMirScalarProgramCNumericCastExpressionValue(kind, left);
         if IsSome(cast_value) { value = UnwrapOption(cast_value);
+        } else if kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
+                kind == DirectMirScalarProgramExprIdentityCellMember() {
+            let type_name: String = expressions.node_types[node];
+            if kind == DirectMirScalarProgramExprIdentityCellMember() {
+                type_name = expressions.node_types[expressions.node_lefts[node]];
+            }
+            let cell: Option<String> = DirectMirIdentityCellCExpression(logical_record.identity_cells,
+                kind, node, type_name, left, arguments, expressions.node_member_ordinals[node]);
+            if !IsSome(cell) { Die("direct MIR identity cell C expression is invalid"); }
+            value = UnwrapOption(cell);
         } else if kind == DirectMirScalarProgramExprLocal() {
             value = DirectMirScalarProgramCLocalName(expressions.node_local_rows[node]);
         } else if kind == DirectMirScalarProgramExprParameter() {
@@ -88,7 +101,7 @@ func DirectMirScalarProgramCExpressionValues(
             let parameter_row: Int = routines.parameter_starts[routine] +
                 expressions.node_parameter_ordinals[node];
             value =
-                DirectMirScalarProgramCArrayStringReadonlyRefParameterValue(
+                DirectMirScalarProgramCArrayReadonlyRefParameterValue(
                     routines, routine,
                     expressions.node_parameter_ordinals[node], value);
             if DirectMirScalarProgramLogicalRecordTypeReady(
@@ -163,6 +176,7 @@ func DirectMirScalarProgramCExpressionValues(
                 DirectMirScalarProgramCLogicalValueExpression(
                     logical_record, target, kind, record_type, left_type,
                     expressions.node_types[node], left, right, arguments,
+                    argument_rows, node,
                     expressions.node_member_ordinals[node]);
             if IsSome(record_value) { value = UnwrapOption(record_value); }
             if value == "" {
@@ -193,8 +207,8 @@ func DirectMirScalarProgramCExpressionValues(
             } else if kind == DirectMirScalarProgramExprMultiplyInt() ||
                     kind == DirectMirScalarProgramExprMultiplyLong() {
             value = Concat("(", Concat(left, Concat(" * ", Concat(right, ")"))));
-            } else if kind == DirectMirScalarProgramExprDivideInt() {
-            value = Concat("(", Concat(left, Concat(" / ", Concat(right, ")"))));
+            } else if kind == DirectMirScalarProgramExprNegateLong() {
+                value = "((int64_t)(0ULL - (uint64_t)(" + left + ")))";
             } else if kind == DirectMirScalarProgramExprNegateInt() {
             value = Concat("(-", Concat(left, ")"));
             } else {

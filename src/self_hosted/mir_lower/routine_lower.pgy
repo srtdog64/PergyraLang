@@ -470,6 +470,10 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
     let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
         json, routine_start, routine_end
     );
+    if !MirRoutineHeaderGenericRowsReady(header) {
+        MirLowerFailClosed(Concat(
+            "routine generic constraint rows are missing or invalid: ", routine));
+    }
     if !MirRoutineHeaderParameterRowsReady(header) {
         MirLowerFailClosed(Concat(
             "routine parameter rows are invalid or identity carriage is partial: ",
@@ -491,6 +495,7 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
     )];
 
     let generic_count: Int = ArrayLength(header.generic_names);
+    let constraint_text: String = "";
     if generic_count > 0 {
         let generic_text: String = "";
         let generic_i: Int = 0;
@@ -505,6 +510,11 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
                 generic_text = Concat(generic_text, ", ");
             }
             generic_text = Concat(generic_text, generic_name);
+            if header.generic_constraints[generic_i] != "" {
+                if constraint_text != "" { constraint_text = Concat(constraint_text, ", "); }
+                constraint_text = Concat(constraint_text, Concat(generic_name,
+                    Concat(": ", header.generic_constraints[generic_i])));
+            }
             generic_i = generic_i + 1;
         }
         ArrayPush(
@@ -513,6 +523,10 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
                 "Generic params: <", Concat(generic_text, ">\n")
             ))
         );
+        if constraint_text != "" {
+            ArrayPush(chunks, Concat(ppad,
+                Concat("Constraints: where ", Concat(constraint_text, "\n"))));
+        }
     }
     ArrayPush(chunks, Concat(ppad, "Parameters:\n"));
     let param_count: Int = ArrayLength(header.param_names);
@@ -565,7 +579,13 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
         "0", "", Concat(item_pad, "  "), "", "",
         observe_focused_routine, expression_order, abi_validation
     );
-    if StringLength(region) == 0 {
+    let empty_void_body: Bool = rtype == "Void" && index.valid &&
+        ArrayLength(index.block_starts) == 1 &&
+        index.block_instruction_counts[0] == 0 &&
+        index.block_reachable[0] && index.block_succ_true[0] < 0 &&
+        index.block_succ_false[0] < 0 &&
+        ArrayLength(index.source_local_names) == 0;
+    if StringLength(region) == 0 && !empty_void_body {
         MirLowerFailClosed(Concat("unsupported or empty MIR CFG shape in routine: ", routine));
     }
     if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:region:done"); }

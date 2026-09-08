@@ -27,7 +27,8 @@ bool mir_add_def_instruction(MIRRoutine *routine,
                              MIRBasicBlock *block,
                              size_t insert_index,
                              const char *base_name,
-                             const char *result_name);
+                             const char *result_name,
+                             uint32_t binding_syntax_id);
 char *mir_make_versioned_name(const char *base, size_t version);
 bool copy_indices(size_t **dst,
                   size_t *dst_count,

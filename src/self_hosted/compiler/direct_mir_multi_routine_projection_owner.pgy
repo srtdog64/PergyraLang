@@ -17,12 +17,18 @@ import "direct_mir_scalar_program_route_admission_owner.pgy";
 import "direct_mir_pressure_observation_owner.pgy";
 func CompileAdmittedDirectMirMultiRoutineForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput, target_projection: CompilerTargetProjectionFact) -> String {
-    return CompileAdmittedDirectMirMultiRoutineForTargetObserved(admitted, target_projection, false);
+    let calls: MirGenericCallOccurrenceIndex = MirGenericCallOccurrenceIndexFromDocument(admitted.document, admitted.routines);
+    if !calls.valid { Die("MIR generic call occurrences are missing or invalid"); }
+    let instances: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(calls);
+    if !instances.valid { Die(instances.diagnostic); }
+    return CompileAdmittedDirectMirMultiRoutineForTargetObserved(admitted, target_projection, false, calls, instances);
 }
 func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     target_projection: CompilerTargetProjectionFact,
-    observe_pressure: Bool
+    observe_pressure: Bool,
+    generic_calls: MirGenericCallOccurrenceIndex,
+    generic_instances: GenericInstanceClosure
 ) -> String {
     let is_c: Bool = CompilerTargetProjectionFactReadyFor(
         target_projection, CompilerTargetCpuCProjection()
@@ -68,7 +74,7 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
     if IsSome(nested_intent_payload) { return UnwrapOption(nested_intent_payload); }
     DirectMirPressureStage(observe_pressure, "scalar-route:start");
     let scalar_program_admission: DirectMirScalarProgramRouteAdmission =
-        DirectMirScalarProgramRouteAdmissionFromAdmitted(admitted);
+        DirectMirScalarProgramRouteAdmissionFromAdmitted(admitted, generic_calls, generic_instances);
     if !DirectMirScalarProgramRouteAdmissionReady(scalar_program_admission) {
         Die("direct MIR scalar program route admission receipt is invalid");
     }
@@ -93,7 +99,7 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
             );
         }
         if DirectMirTwoRoutineInferredMemberKindMatches(
-            two_routine.kind, two_routine.shape.declaration_kind
+            two_routine.kind, two_routine.shape.nominal_kind
         ) {
             return CompileAdmittedDirectMirInferredGenericMember(
                 admitted, two_routine, is_llvm, formatted_print, line_format

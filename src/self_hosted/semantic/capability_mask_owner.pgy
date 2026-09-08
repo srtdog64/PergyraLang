@@ -1,0 +1,75 @@
+// Canonical capability-mask operations over the generated contract vocabulary.
+// No source spelling, call dispatch or second bit/name table lives here.
+import "../lib/callable_contract_vocabulary_projection_owner.pgy";
+
+func SemanticCapabilityMaskHas(mask: Int, capability: Int) -> Bool {
+    return mask >= 0 && capability > 0 && ((mask / capability) % 2) == 1;
+}
+
+func SemanticCapabilityMaskJoin(left: Int, right: Int) -> Int {
+    let result: Int = left;
+    let rank: Int = 0;
+    while rank < 9 {
+        let vocabulary_index: Int = CallableContractVocabularyIndexAtRank(
+            CallableContractVocabularyCapabilityAxis(), rank
+        );
+        let capability: Int = CallableContractVocabularyMaskValueAt(
+            vocabulary_index
+        );
+        if SemanticCapabilityMaskHas(right, capability) &&
+            !SemanticCapabilityMaskHas(result, capability) {
+            result = result + capability;
+        }
+        rank = rank + 1;
+    }
+    return result;
+}
+
+func SemanticCapabilityMaskDifference(left: Int, right: Int) -> Int {
+    let result: Int = 0;
+    let rank: Int = 0;
+    while rank < 9 {
+        let vocabulary_index: Int = CallableContractVocabularyIndexAtRank(
+            CallableContractVocabularyCapabilityAxis(), rank
+        );
+        let capability: Int = CallableContractVocabularyMaskValueAt(
+            vocabulary_index
+        );
+        if SemanticCapabilityMaskHas(left, capability) &&
+            !SemanticCapabilityMaskHas(right, capability) {
+            result = result + capability;
+        }
+        rank = rank + 1;
+    }
+    return result;
+}
+
+func SemanticCapabilityMaskNames(mask: Int, external: Bool) -> String {
+    let output: String = "";
+    let rank: Int = 0;
+    while rank < 9 {
+        let vocabulary_index: Int = CallableContractVocabularyIndexAtRank(
+            CallableContractVocabularyCapabilityAxis(), rank
+        );
+        let capability: Int = CallableContractVocabularyMaskValueAt(
+            vocabulary_index
+        );
+        if SemanticCapabilityMaskHas(mask, capability) {
+            if output != "" { output = Concat(output, ", "); }
+            if external {
+                output = Concat(
+                    output,
+                    CallableContractVocabularyExternalNameAt(vocabulary_index)
+                );
+            } else {
+                output = Concat(
+                    output,
+                    CallableContractVocabularySpellingAt(vocabulary_index)
+                );
+            }
+        }
+        rank = rank + 1;
+    }
+    if output == "" { return "none"; }
+    return output;
+}

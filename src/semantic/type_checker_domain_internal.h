@@ -63,6 +63,9 @@ bool semantic_record_domain_projection_member_assignment(
     Type *source_leaf_type,
     PgyDomainProjectionPathSegmentFact *source_path_segments,
     size_t source_path_segment_count);
+bool type_check_overlay_bind_shared_fields(ASTNode **shared_fields,
+                                           size_t shared_count,
+                                           SemanticContext *ctx);
 bool type_check_overlay_decl_common(ASTNode *node,
                                     SemanticContext *ctx,
                                     const char *name,

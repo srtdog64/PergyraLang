@@ -3,14 +3,15 @@
 import "direct_mir_scalar_cfg_program_extension_readiness_owner.pgy";
 import "direct_mir_scalar_program_llvm_expression_owner.pgy";
 import "direct_mir_scalar_cfg_program_llvm_operation_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_long_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_global_owner.pgy";
 import "direct_mir_scalar_cfg_local_emission_owner.pgy";
 import "direct_mir_scalar_cfg_string_llvm_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_builtin_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_mutation_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_result_preamble_owner.pgy";
-import "direct_mir_scalar_program_llvm_two_int_nominal_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_int_value_result_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_value_parameter_storage_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_bool_materialization_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_bool_value_result_owner.pgy";
@@ -35,6 +36,7 @@ import "direct_mir_scalar_program_llvm_compiler_artifact_expression_owner.pgy";
 import "direct_mir_scalar_cfg_program_llvm_runtime_value_parameter_storage_owner.pgy";
 import "direct_mir_scalar_cfg_program_llvm_condition_diagnostic_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
+import "direct_mir_scalar_program_scalar_value_result_owner.pgy";
 
 func DirectMirScalarCfgProgramLlvmRoutine(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
@@ -42,22 +44,25 @@ func DirectMirScalarCfgProgramLlvmRoutine(
     process_exit: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     int_line_format: String, string_line_format: String,
-    array_string_projection: Option<DirectMirArrayStringAbiProjection>, target: CompilerTargetProjectionFact
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
+    array_int_projection: Option<DirectMirArrayIntAbiProjection>, target: CompilerTargetProjectionFact
 ) -> String {
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
     TextBuilderAppend(output, DirectMirScalarCfgProgramLlvmRoutineSignature(plan, routine));
     TextBuilderAppend(output, " {\nentry:\n");
+    TextBuilderAppend(output, DirectMirIdentityCellRoutineStorage(plan, routine, true));
     if routine == plan.routines.entrypoint_ordinal &&
         plan.program.runtime_abi.process_args_id != 0 {
         TextBuilderAppend(output,
             "  store i32 %argc, ptr @pgy.selfhost.argc, align 4\n  store ptr %argv, ptr @pgy.selfhost.argv, align 8\n");
     }
-    TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayIntValueParameterAddressableCopyIn(
-        plan, routine));
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayValueParameterAddressableCopyIn(
+        plan, routine, array_string_projection, array_int_projection));
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmLogicalRecordValueParameterAddressableCopyIn(
             plan, routine));
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmScalarParameterCopyIn(plan, routine));
     TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(plan, routine));
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(plan, routine));
@@ -96,7 +101,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(
         while operation < operation_end {
             let emitted: String = DirectMirScalarCfgProgramLlvmOperation(
                 plan, routine, operation, formatted_print, process_exit,
-                runtime, int_line_format, string_line_format, array_string_projection, target);
+                runtime, int_line_format, string_line_format, array_string_projection, array_int_projection, target);
             if emitted == "" &&
                 (plan.operation_kinds[operation] ==
                     DirectMirScalarCfgOpPhiInt() ||
@@ -126,6 +131,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(
                         plan, routine));
                 TextBuilderAppend(output, "  ret i32 0\n");
             } else {
+                TextBuilderAppend(output, DirectMirScalarProgramLlvmScalarValueResultCopyOut(plan, routine, block));
                 TextBuilderAppend(output,
                     DirectMirScalarProgramLlvmArrayStringValueResultCopyOut(
                         plan, routine, block, array_string_projection));
@@ -148,13 +154,14 @@ func DirectMirScalarCfgProgramLlvmRoutine(
             let expression: DirectMirScalarProgramLlvmExpression =
                 DirectMirScalarProgramLlvmExpressionAt(
                     plan.program.expressions, return_row, runtime,
-                    plan.program.nominal_abi, plan.program.logical_record,
+                    plan.program.logical_record,
                     plan.program.payload_free_enum,
                     plan.program.referenced_enum, plan.routines, routine, plan.program.array_string_abi,
-                    array_string_projection, target);
+                    array_string_projection, plan.program.array_int_value_result, array_int_projection, target);
             if !expression.valid { Die(
                 "direct MIR scalar CFG LLVM return expression is invalid"); }
             TextBuilderAppend(output, expression.instructions);
+            TextBuilderAppend(output, DirectMirScalarProgramLlvmScalarValueResultCopyOut(plan, routine, block));
             TextBuilderAppend(output,
                 DirectMirScalarProgramLlvmArrayIntValueResultCopyOut(
                     plan, routine, block));
@@ -174,7 +181,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(
             TextBuilderAppend(output, "  ret ");
             TextBuilderAppend(output,
                 DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
-                expression.type_name, plan.program.nominal_abi,
+                expression.type_name,
                 plan.program.logical_record,
                 plan.program.payload_free_enum,
                 plan.program.referenced_enum));
@@ -187,11 +194,11 @@ func DirectMirScalarCfgProgramLlvmRoutine(
                 DirectMirScalarProgramLlvmExpressionAt(
                     plan.program.expressions,
                     plan.program.block_condition_expression_rows[block],
-                    runtime, plan.program.nominal_abi,
+                    runtime,
                     plan.program.logical_record,
                     plan.program.payload_free_enum,
                     plan.program.referenced_enum, plan.routines, routine, plan.program.array_string_abi,
-                    array_string_projection, target);
+                    array_string_projection, plan.program.array_int_value_result, array_int_projection, target);
             if !condition.valid || condition.type_name !=
                     CompilerAbiLayoutBoolTypeName() {
                 DirectMirScalarCfgProgramLlvmConditionProjectionFailed(
@@ -257,12 +264,14 @@ func DirectMirScalarCfgEmitProgramLlvm(
         "direct MIR scalar LLVM Array<Int> runtime requirement is invalid"); }
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
+    TextBuilderAppend(output, "@.pgy.log.true = private unnamed_addr constant [5 x i8] c\"true\\00\"\n@.pgy.log.false = private unnamed_addr constant [6 x i8] c\"false\\00\"\n");
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayLongPreamble(
+        plan.local_types, plan.program.expressions, target));
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmOptionResultPreamble(plan, target));
-    TextBuilderAppend(output,
-        DirectMirScalarProgramLlvmTwoIntNominalPreamble(
-            plan.program.nominal_abi, target));
     let array_string_projection: Option<DirectMirArrayStringAbiProjection> = DirectMirScalarProgramArrayStringAbiProjectionFromFact(plan.program.array_string_abi, target);
+    let array_int_projection: Option<DirectMirArrayIntAbiProjection> =
+        DirectMirScalarProgramArrayIntAbiProjectionFromFact(plan.program.array_int_value_result, target);
     TextBuilderAppend(output, DirectMirScalarProgramLlvmStringCollectionMaterialization(plan, runtime, array_string_projection));
     let array_bool_get_required: Bool =
         DirectMirScalarProgramExpressionContainsKind(
@@ -276,16 +285,17 @@ func DirectMirScalarCfgEmitProgramLlvm(
     }
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmArrayIntValueResultPreamble(
-            plan.program.array_int_value_result, array_int_runtime, target));
+            plan.program.array_int_value_result, array_int_runtime, array_int_projection));
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmLogicalRecordPreamble(
             plan.program.logical_record, target));
+    TextBuilderAppend(output, DirectMirIdentityCellPreamble(plan.program.logical_record.identity_cells, true));
     TextBuilderAppend(output, DirectMirScalarProgramLlvmLogicalRecordArrayPreamble(plan, target));
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmLogicalRecordOptionPreamble(
             plan.program.logical_record, target));
     TextBuilderAppend(output, DirectMirScalarProgramLlvmPayloadEnumPreamble(
-        plan.program.referenced_enum, plan.program.nominal_abi,
+        plan.program.referenced_enum,
         plan.program.logical_record, plan.program.payload_free_enum));
     TextBuilderAppend(output, CompilerRuntimeValueLlvmLocalPreamble(plan.local_types, plan.routines.parameter_types));
     TextBuilderAppend(output,
@@ -348,7 +358,7 @@ func DirectMirScalarCfgEmitProgramLlvm(
     while routine < ArrayLength(plan.routines.roles) {
         let owned_routine: Array<String> = [DirectMirScalarCfgProgramLlvmRoutine(
             plan, routine, formatted_print, process_exit, runtime,
-            int_line_format, string_line_format, array_string_projection,
+            int_line_format, string_line_format, array_string_projection, array_int_projection,
             target)];
         TextBuilderAppend(output, owned_routine[0]);
         ArrayDropOwnedStrings(owned_routine);

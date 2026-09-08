@@ -1,0 +1,3 @@
+func Stamp(value: Int) -> Int { return Now() + value; }
+func Ignore(operation: func(Int) -> Int, value: Int) -> Int with effects local { return value; }
+func Main() -> Void with effects local { Log(Ignore(Stamp, 3)); }

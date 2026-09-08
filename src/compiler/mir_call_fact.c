@@ -186,7 +186,8 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
 static void
 mir_attach_def_type_name_fact(MIRRoutine *routine,
                               MIRInstruction *inst,
-                              ASTNode *type_node)
+                              ASTNode *type_node,
+                              const ASTNode *source)
 {
     const char *type_name;
     char *rendered = NULL;
@@ -199,6 +200,12 @@ mir_attach_def_type_name_fact(MIRRoutine *routine,
             return;
         rendered = mir_capture_type_name(type_node, NULL);
         type_name = rendered;
+    } else if (source != NULL && source->type == AST_ASSIGNMENT &&
+               ast_assignment_target(source) != NULL &&
+               ast_assignment_target(source)->type == AST_IDENTIFIER) {
+        // The checker resolved this exact lexical binding. Rejoining by name
+        // would select an unrelated shadowed local in the routine inventory.
+        type_name = ast_assignment_semantic_binding_type_name(source);
     } else {
         const char *local_name = inst->arg0 != NULL
             ? inst->arg0
@@ -246,14 +253,14 @@ mir_attach_def_initializer_call_fact(MIRRoutine *routine,
         ASTNode *type_node = ast_let_type(stmt);
         expr = ast_let_initializer(stmt);
         inst->expr1 = type_node;
-        mir_attach_def_type_name_fact(routine, inst, type_node);
+        mir_attach_def_type_name_fact(routine, inst, type_node, stmt);
         mir_attach_def_resource_runtime_owner(routine, inst);
         inst->requires_source_statement_emit = true;
         inst->requires_source_local_decl_emit = true;
     } else if (stmt->type == AST_ASSIGNMENT) {
         inst->expr1 = ast_assignment_target(stmt);
         expr = ast_assignment_value(stmt);
-        mir_attach_def_type_name_fact(routine, inst, NULL);
+        mir_attach_def_type_name_fact(routine, inst, NULL, stmt);
         inst->requires_source_statement_emit = true;
     }
     if (expr != NULL && expr->type == AST_CHANNEL_RECV)

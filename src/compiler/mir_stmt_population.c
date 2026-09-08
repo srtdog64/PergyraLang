@@ -47,26 +47,22 @@ mir_append_matching_def_for_stmt(MIRRoutine *routine,
                                  size_t source_statement_index,
                                  bool *handled_out)
 {
-    const char *stmt_name = mir_stmt_def_name(stmt);
+    uint32_t binding_syntax_id = mir_stmt_binding_syntax_id(stmt);
 
     if (handled_out != NULL)
         *handled_out = false;
     if (routine == NULL || new_insts == NULL || new_count == NULL
         || old_insts == NULL
-        || copied_flags == NULL || stmt_name == NULL) {
+        || copied_flags == NULL || binding_syntax_id == 0) {
         return true;
     }
 
     for (size_t i = 0; i < old_count; i++) {
         MIRInstruction def_inst;
-        const char *def_name;
 
         if (copied_flags[i] || old_insts[i].kind != MIR_INST_DEF)
             continue;
-        def_name = old_insts[i].arg0 != NULL
-            ? old_insts[i].arg0
-            : old_insts[i].slot_anchor;
-        if (def_name == NULL || strcmp(stmt_name, def_name) != 0)
+        if (old_insts[i].binding_syntax_id != binding_syntax_id)
             continue;
 
         def_inst = old_insts[i];
@@ -288,7 +284,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                                                      old_count,
                                                      &def_cursor,
                                                      copied_flags,
-                                                     mir_stmt_def_name(stmt));
+                                                     mir_stmt_binding_syntax_id(stmt));
                 MIRInstruction inst =
                     mir_make_assignment_instruction(routine, stmt, s);
                 if (!mir_stmt_population_append(new_insts,
@@ -302,18 +298,15 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 continue;
             }
             if (mir_stmt_is_def_source(stmt)) {
-                const char *stmt_name = mir_stmt_def_name(stmt);
+                uint32_t binding_syntax_id = mir_stmt_binding_syntax_id(stmt);
                 /* Find the matching DEF from old instructions */
                 size_t saved_cursor = def_cursor;
                 size_t match_cursor = def_cursor;
                 bool found = false;
                 while (match_cursor < old_count) {
                     if (old_insts[match_cursor].kind == MIR_INST_DEF) {
-                        const char *def_name = old_insts[match_cursor].arg0 != NULL
-                            ? old_insts[match_cursor].arg0
-                            : old_insts[match_cursor].slot_anchor;
-                        if (def_name != NULL && stmt_name != NULL
-                            && strcmp(stmt_name, def_name) == 0) {
+                        if (!copied_flags[match_cursor] && binding_syntax_id != 0
+                            && old_insts[match_cursor].binding_syntax_id == binding_syntax_id) {
                             found = true;
                             break;
                         }
@@ -347,10 +340,10 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 } else {
                     def_cursor = saved_cursor;
                     bool owned_by_later_def =
-                        stmt_name != NULL
+                        binding_syntax_id != 0
                         && stmt != NULL
                         && stmt->type == AST_LET_DECL
-                        && mir_routine_has_def_for_name(routine, stmt_name);
+                        && mir_routine_has_def_for_binding(routine, binding_syntax_id);
 
                     if (mir_stmt_requires_source_local_preservation(stmt)) {
                         bool handled = false;

@@ -14,7 +14,7 @@ func DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(
         DirectMirScalarProgramDirectCallFactInvalid(false);
     if !DirectMirScalarProgramCallMarkerReady(sequence, node) { return missing; }
     let target_syntax_id: Int = sequence.arena.identities.call_target_syntax_ids[node];
-    let callee: Int = sequence.arena.topology.left_children[node];
+    let callee: Int = DirectMirScalarProgramCallCalleeBase(sequence, node);
     if callee < 0 || callee >= node {
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }
@@ -58,12 +58,12 @@ func DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }
     let callable_ordinal: Int =
-        DirectMirScalarCfgProgramCallableInventoryOrdinalBySyntaxId(callables, target_syntax_id);
+        DirectMirScalarProgramCallableOrdinalAtCall(callables, sequence, node);
     if !DirectMirScalarCfgProgramCallableInventoryOrdinalReady(callables, callable_ordinal) {
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }
     let callable_row: Int = callable_ordinal - 1;
-    if sequence.arena.call_target_names[node] != callables.names[callable_row] ||
+    if sequence.arena.call_target_names[node] != callables.source_names[callable_row] ||
         callables.parameter_counts[callable_row] != 0 {
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }

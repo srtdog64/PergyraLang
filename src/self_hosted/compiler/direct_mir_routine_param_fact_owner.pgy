@@ -86,8 +86,8 @@ func DirectMirRoutineParamFactReady(
     return fact.abi_layout_id == 0 && !fact.abi.valid;
 }
 
-func DirectMirRoutineParamFactFromBounds(
-    json: String, start: Int, end: Int
+func DirectMirRoutineParamFactWithReceiverFromBounds(
+    json: String, start: Int, end: Int, receiver_type: String
 ) -> DirectMirRoutineParamFact {
     let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
         json, start, end
@@ -133,6 +133,20 @@ func DirectMirRoutineParamFactFromBounds(
     let abi_id: Option<String> = MirAbiIntegerValueAtBounds(
         json, starts[7], ends[7]
     );
+    // Only the receiver owner may resolve the protocol's implicit self type.
+    // Null is not an unknown-type fallback for an ordinary formal parameter.
+    if receiver_type != "" {
+        if !IsSome(name) || UnwrapOption(name) != "self" ||
+            starts[2] + 4 != ends[2] || !SubEqualsWithLen(json, ends[2], starts[2], 4, "null") ||
+            starts[6] + 4 != ends[6] || !SubEqualsWithLen(json, ends[6], starts[6], 4, "null") ||
+            !IsSome(carriage) || UnwrapOption(carriage) != "value" ||
+            !IsSome(resource) || UnwrapOption(resource) != "none" ||
+            !IsSome(pass_shape) || UnwrapOption(pass_shape) != "direct" {
+            return InvalidDirectMirRoutineParamFact();
+        }
+        type_name = Some(receiver_type);
+        abi_type_name = Some(receiver_type);
+    }
     if !IsSome(name) || !IsSome(source_syntax_id) || ToInt(UnwrapOption(source_syntax_id)) <= 0 ||
         !IsSome(type_name) || !IsSome(carriage) ||
         !IsSome(resource) || !IsSome(pass_shape) ||
@@ -143,7 +157,7 @@ func DirectMirRoutineParamFactFromBounds(
         SubEqualsWithLen(json, ends[8], starts[8], 4, "true");
     let not_required: Bool = starts[8] + 5 == ends[8] &&
         SubEqualsWithLen(json, ends[8], starts[8], 5, "false");
-    if !required && !not_required {
+    if (!required && !not_required) || (receiver_type != "" && required) {
         return InvalidDirectMirRoutineParamFact();
     }
     let abi: MirAbiLayoutRowCapture = InvalidMirAbiLayoutRowCapture();
@@ -177,4 +191,10 @@ func DirectMirRoutineParamFactFromBounds(
         return InvalidDirectMirRoutineParamFact();
     }
     return verified;
+}
+
+func DirectMirRoutineParamFactFromBounds(
+    json: String, start: Int, end: Int
+) -> DirectMirRoutineParamFact {
+    return DirectMirRoutineParamFactWithReceiverFromBounds(json, start, end, "");
 }

@@ -62,6 +62,22 @@ ast_call_set_semantic_callee_decl_id(ASTNode *node, uint32_t decl_id)
     return true;
 }
 
+uint32_t
+ast_call_semantic_callee_value_binding_id(const ASTNode *node)
+{
+    return node != NULL && node->type == AST_CALL
+        ? node->data.call.semantic_callee_value_binding_id : 0;
+}
+
+bool
+ast_call_set_semantic_callee_value_binding_id(ASTNode *node, uint32_t binding_id)
+{
+    if (node == NULL || node->type != AST_CALL)
+        return false;
+    node->data.call.semantic_callee_value_binding_id = binding_id;
+    return true;
+}
+
 bool
 ast_call_semantic_callee_builtin_kind(const ASTNode *node,
                                       uint32_t *kind_out)

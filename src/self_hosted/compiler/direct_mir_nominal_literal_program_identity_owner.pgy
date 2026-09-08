@@ -109,7 +109,7 @@ func DirectMirNominalLiteralProgramFactFromAdmitted(
         admitted.routines, 0, 0, 1
     );
     if !DirectMirNominalLiteralDeclarationFactReady(declaration) ||
-        declaration.kind != route.kind || route.kind != route.nominal_kind ||
+        declaration.kind != route.nominal_kind ||
         declaration.name != route.name ||
         !DirectMirRoutineSignatureFactReady(entrypoint) || first < 0 || second < 0 {
         Die("direct MIR nominal literal program identity is invalid");

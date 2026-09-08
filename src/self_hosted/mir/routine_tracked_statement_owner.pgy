@@ -209,6 +209,15 @@ func SelfMirLowerTrackedStatementFromArtifact(
     if kind == TypedAstKindDeferStmtTag() {
         return SelfMirLowerDeferFromArtifact(input, build, node_id);
     }
+    if kind == TypedAstKindUnsafeBlockTag() {
+        let body_node: Int = input.analysis.statements.body_scope_node_ids[statement_index];
+        if body_node < 0 {
+            return SelfMirRoutineBuildError(build, "unsafe statement body fact is missing");
+        }
+        let local_count: Int = ArrayLength(build.local_names);
+        return SelfMirLowerBlockFromArtifact(input, build, body_node,
+            break_exits, backedge_snapshots, continue_target, local_count);
+    }
     return SelfMirRoutineBuildError(
         build, "statement kind is outside bounded MIR producer"
     );

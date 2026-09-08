@@ -110,13 +110,19 @@ func TypedAstKindEventSubscribeStmtTag() -> Int { return 99; }
 func TypedAstKindEventUnsubscribeStmtTag() -> Int { return 100; }
 // Appended role override wrapper; existing compact identities never move.
 func TypedAstKindOverrideFuncTag() -> Int { return 101; }
+func TypedAstKindUnsafeBlockTag() -> Int { return 102; }
+// Existing Intent predicates gain distinct carriage; prior identities stay fixed.
+func TypedAstKindIntentStepPreTag() -> Int { return 103; }
+func TypedAstKindIntentStepInvariantTag() -> Int { return 104; }
 
 func TypedAstKindIsIntentRow(kind: Int) -> Bool {
     return (kind >= TypedAstKindIntentModeTag() &&
         kind <= TypedAstKindIntentTerminalFailureTag()) ||
         kind == TypedAstKindIntentStepContractProvenanceTag() ||
         kind == TypedAstKindIntentStepIntentTag() ||
-        kind == TypedAstKindIntentPriorityTag();
+        kind == TypedAstKindIntentPriorityTag() ||
+        kind == TypedAstKindIntentStepPreTag() ||
+        kind == TypedAstKindIntentStepInvariantTag();
 }
 
 func TypedAstKindIsDomainTopologyDirective(kind: Int) -> Bool {
@@ -131,7 +137,7 @@ func TypedAstKindIsCallableDecl(kind: Int) -> Bool {
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindOverrideFuncTag();
+        kind <= TypedAstKindIntentStepInvariantTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -229,14 +235,16 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindChannelSendStmtTag(), TypedAstKindParallelBlockTag(),
         TypedAstKindWithStmtTag(), TypedAstKindTransactionBlockTag(),
         TypedAstKindFailStmtTag(), TypedAstKindEventSubscribeStmtTag(),
-        TypedAstKindEventUnsubscribeStmtTag(), TypedAstKindOverrideFuncTag()
+        TypedAstKindEventUnsubscribeStmtTag(), TypedAstKindOverrideFuncTag(),
+        TypedAstKindUnsafeBlockTag(), TypedAstKindIntentStepPreTag(),
+        TypedAstKindIntentStepInvariantTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 101 {
+    if ArrayLength(tags) != 104 {
         return false;
     }
     let i: Int = 0;
@@ -291,6 +299,9 @@ func TypedAstKindOwnerReady() -> Bool {
         TypedAstKindKnown(TypedAstKindEventSubscribeStmtTag()) &&
         TypedAstKindKnown(TypedAstKindEventUnsubscribeStmtTag()) &&
         TypedAstKindKnown(TypedAstKindOverrideFuncTag()) &&
+        TypedAstKindKnown(TypedAstKindUnsafeBlockTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentStepPreTag()) &&
+        TypedAstKindKnown(TypedAstKindIntentStepInvariantTag()) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentModeTag()) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentTerminalFailureTag()) &&
         TypedAstKindIsIntentRow(
@@ -298,6 +309,8 @@ func TypedAstKindOwnerReady() -> Bool {
         ) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentStepIntentTag()) &&
         TypedAstKindIsIntentRow(TypedAstKindIntentPriorityTag()) &&
+        TypedAstKindIsIntentRow(TypedAstKindIntentStepPreTag()) &&
+        TypedAstKindIsIntentRow(TypedAstKindIntentStepInvariantTag()) &&
         !TypedAstKindIsIntentRow(TypedAstKindIntentDeclTag()) &&
         TypedAstKindIsDomainTopologyDirective(
             TypedAstKindDomainRefreshTag()
@@ -310,7 +323,7 @@ func TypedAstKindOwnerReady() -> Bool {
         !TypedAstKindIsCallableDecl(TypedAstKindActionRequiresTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
         !TypedAstKindKnown(
-            TypedAstKindOverrideFuncTag() + 1
+            TypedAstKindIntentStepInvariantTag() + 1
         ) &&
         TypedAstKindKnown(TypedAstKindExternBlockTag()) &&
         !TypedAstKindIsCallableDecl(TypedAstKindExternBlockTag()) &&

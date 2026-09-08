@@ -26,6 +26,7 @@ import "abi_layout_row_owner.pgy";
 import "domain_topology_graph_plan_consumer_owner.pgy";
 import "direct_mir_pressure_observation_owner.pgy";
 import "../mir_lower/mir_json_input_owner.pgy";
+import "../mir_lower/generic_instance_plan_owner.pgy";
 
 func CompileAdmittedDirectMirCfgPayloadForTarget(
     ref admitted: MirMachineLayerAdmittedJsonInput,
@@ -92,13 +93,20 @@ func CompileAdmittedDirectMirForTargetObserved(
     if !is_c && !is_llvm {
         Die("direct MIR backend projection rejected the target fact");
     }
+    let generic_calls: MirGenericCallOccurrenceIndex =
+        MirGenericCallOccurrenceIndexFromDocument(admitted.document, admitted.routines);
+    if !generic_calls.valid {
+        Die("MIR generic call occurrences are missing or invalid");
+    }
+    let generic_instances: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(generic_calls);
+    if !generic_instances.valid { Die(generic_instances.diagnostic); }
     let kind: String = "emitted-c";
     if is_llvm { kind = "emitted_llvm"; }
     let payload: String = "";
     let routine_count: Int = MirProgramRoutineIndexCount(admitted.routines);
     if routine_count > 1 {
         payload = CompileAdmittedDirectMirMultiRoutineForTargetObserved(
-            admitted, target_projection, observe_pressure
+            admitted, target_projection, observe_pressure, generic_calls, generic_instances
         );
     } else if routine_count == 1 {
         let block_count: Int = admitted.routines.routine_block_counts[0];
@@ -125,17 +133,20 @@ func CompileAdmittedDirectMirForTargetObserved(
                 let scalar_program_admission:
                     DirectMirScalarProgramRouteAdmission =
                         DirectMirScalarProgramRouteAdmissionFromAdmitted(
-                            admitted);
+                            admitted, generic_calls, generic_instances);
                 if !DirectMirScalarProgramRouteAdmissionReady(
                         scalar_program_admission) {
                     Die("direct MIR scalar program route admission receipt is invalid");
                 }
                 let scalar_program_route: DirectMirScalarProgramRouteFact =
                     scalar_program_admission.route;
-                let payload_enum_route: Bool =
+                // Runtime-bearing declarations already have an owned record/enum
+                // receipt; they must not enter compile-time-only erasure.
+                let runtime_declaration_route: Bool =
                     scalar_program_route.claimed &&
-                    scalar_program_route.referenced_enum.payload_present;
-                if payload_enum_route {
+                    (scalar_program_route.referenced_enum.payload_present ||
+                     scalar_program_route.logical_record.present);
+                if runtime_declaration_route {
                     payload = CompileAdmittedDirectMirScalarProgramForTarget(
                         admitted, scalar_program_route, target_projection
                     );

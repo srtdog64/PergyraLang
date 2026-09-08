@@ -83,6 +83,8 @@ typedef struct
     char name[64];
     char ssa_name[128];
     char type_name[128];
+    /* MIR callable signatures are structured, not a guessed flat type name. */
+    const MIRCallableSig *callable_sig;
     char source_slot[64];
     bool is_view;
     bool is_move_token;

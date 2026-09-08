@@ -7,9 +7,11 @@
 #include "codegen_scalar_arithmetic_policy.h"
 #include "parser/ast_api.h"
 #include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_operator.h"
+#include "transpiler_symbols.h"
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
 
@@ -52,8 +54,9 @@ transpiler_binary_emit_operand(TranspilerCtx *ctx,
     return NULL;
 }
 
-char *
-emit_binary(ASTNode *expr, TranspilerCtx *ctx)
+static char *
+transpiler_binary_operation(ASTNode *expr, TranspilerCtx *ctx,
+                            const char *left, const char *right)
 {
     ASTNode *left_expr = ast_binary_left(expr);
     ASTNode *right_expr = ast_binary_right(expr);
@@ -96,18 +99,7 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
             }
         }
         if (is_string || is_string_literal_chain) {
-            char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
-            if (left == NULL)
-                return NULL;
-            char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
-            if (right == NULL) {
-                free(left);
-                return NULL;
-            }
-            char *result = transpiler_region_concat(ctx, expr, left, right);
-            free(left);
-            free(right);
-            return result;
+            return transpiler_region_concat(ctx, expr, left, right);
         }
     }
 
@@ -116,21 +108,11 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
         const char *rt = infer_expression_type_name(ctx, right_expr);
         if ((lt != NULL && strcmp(lt, "String") == 0)
             || (rt != NULL && strcmp(rt, "String") == 0)) {
-            char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
-            if (left == NULL)
-                return NULL;
-            char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
-            if (right == NULL) {
-                free(left);
-                return NULL;
-            }
             char *result = NULL;
             if (op_type == TOKEN_EQUAL)
                 result = strdup_fmt("pgy_string_equals(%s, %s)", left, right);
             else
                 result = strdup_fmt("(!pgy_string_equals(%s, %s))", left, right);
-            free(left);
-            free(right);
             return result;
         }
     }
@@ -148,51 +130,23 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
 
         overload = find_operator_overload_decl(ctx, stable_lt, op_type);
         if (overload != NULL) {
-            char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
-            if (left == NULL)
-                return NULL;
-            char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
-            if (right == NULL) {
-                free(left);
-                return NULL;
-            }
             const char *suffix = operator_overload_suffix(op_type);
             char *result = strdup_fmt("operator_%s_%s(%s, %s)",
                 suffix, stable_lt, left, right);
-            free(left);
-            free(right);
             return result;
         }
     }
 
     if (op_type == TOKEN_COALESCE) {
-        char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
-        if (left == NULL)
-            return NULL;
-        char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
-        if (right == NULL) {
-            free(left);
-            return NULL;
-        }
         const char *some_tag =
             pgy_codegen_match_variant_c_option_tag(PGY_MATCH_VARIANT_SOME);
         char *result = strdup_fmt(
             "(({ __auto_type _pgy_coalesce = %s; "
             "_pgy_coalesce.tag == %s ? _pgy_coalesce.value : (%s); }))",
             left, some_tag, right);
-        free(left);
-        free(right);
         return result;
     }
 
-    char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
-    if (left == NULL)
-        return NULL;
-    char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
-    if (right == NULL) {
-        free(left);
-        return NULL;
-    }
     const char *op = binary_op_to_c(op_type);
     char *result;
     if (op_type == TOKEN_SLASH || op_type == TOKEN_PERCENT) {
@@ -224,6 +178,63 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
     } else {
         result = strdup_fmt("(%s %s %s)", left, op, right);
     }
+    return result;
+}
+
+static bool
+transpiler_binary_literal_operand(const ASTNode *operand)
+{
+    return operand != NULL && (operand->type == AST_NUMBER
+        || operand->type == AST_STRING || operand->type == AST_BOOLEAN);
+}
+
+char *
+emit_binary(ASTNode *expr, TranspilerCtx *ctx)
+{
+    ASTNode *left_expr = ast_binary_left(expr);
+    ASTNode *right_expr = ast_binary_right(expr);
+    PgyTokenType op = ast_binary_operator(expr).type;
+    char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
+    char *right = left != NULL
+        ? transpiler_binary_emit_operand(ctx, right_expr, "right") : NULL;
+    char *result = NULL;
+    if (left == NULL || right == NULL)
+        goto done;
+
+    /* C already sequences these lazy operators. Literal pairs need no
+     * storage and must remain usable in constant-expression contexts. */
+    if (op == TOKEN_AND || op == TOKEN_OR || op == TOKEN_COALESCE
+        || (transpiler_binary_literal_operand(left_expr)
+            && transpiler_binary_literal_operand(right_expr))) {
+        result = transpiler_binary_operation(expr, ctx, left, right);
+    } else {
+        char *names[2] = {NULL, NULL};
+        for (unsigned i = 0; i < 2; ++i) {
+            unsigned salt = 0;
+            do {
+                free(names[i]);
+                names[i] = strdup_fmt("__pgy_binary_%u_%u_%u",
+                    (unsigned)ast_node_stable_id(expr), i, salt++);
+                if (names[i] == NULL)
+                    break;
+            } while (lookup_typed_entry(ctx, names[i]) != NULL
+                     || find_callable_decl(ctx, names[i]) != NULL
+                     || strstr(left, names[i]) != NULL
+                     || strstr(right, names[i]) != NULL);
+        }
+        if (names[0] != NULL && names[1] != NULL) {
+            char *operation = transpiler_binary_operation(
+                expr, ctx, names[0], names[1]);
+            if (operation != NULL)
+                result = strdup_fmt(
+                    "({ __auto_type %s = (%s); __auto_type %s = (%s); %s; })",
+                    names[0], left, names[1], right, operation);
+            free(operation);
+        }
+        free(names[0]);
+        free(names[1]);
+    }
+done:
     free(left);
     free(right);
     return result;

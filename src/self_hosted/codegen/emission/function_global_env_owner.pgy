@@ -220,6 +220,7 @@ func BuildFunctionEnv(
     }
     i = 0;
     while i < ArrayLength(specializations.call_node_ids) {
+        if specializations.call_contexts[i] != "" { i = i + 1; continue; }
         TextBuilderAppend(output, "$generic_call_node_");
         TextBuilderAppend(output, ToString(specializations.call_node_ids[i]));
         TextBuilderAppend(output, "=call:");

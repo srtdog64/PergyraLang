@@ -23,6 +23,7 @@ struct SemanticAstNominalConstructorFacts {
     field_source_syntax_ids: Array<Int>;
     field_names: Array<String>;
     field_kinds: Array<String>;
+    field_write_modes: Array<Int>;
     param_type_names: Array<String>;
     role_slot_starts: Array<Int>;
     role_slot_counts: Array<Int>;
@@ -41,6 +42,7 @@ func SemanticAstNominalConstructorFactsFromArtifact(
     let field_source_syntax_ids: Array<Int> = [];
     let field_names: Array<String> = [];
     let field_kinds: Array<String> = [];
+    let field_write_modes: Array<Int> = [];
     let param_types: Array<String> = [];
     let role_slot_starts: Array<Int> = [];
     let role_slot_counts: Array<Int> = [];
@@ -188,6 +190,17 @@ func SemanticAstNominalConstructorFactsFromArtifact(
                         continue;
                     }
                     ArrayPush(field_source_syntax_ids, field_id);
+                    let field_mode: Option<Int> = TypedAstArenaFieldWriteMode(
+                        artifact.arena, field_id);
+                    if !IsSome(field_mode) {
+                        ok = false;
+                        diagnostic_fact = SemanticDiagnosticMessageFact2(
+                            "nominal_constructor_fact_invalid",
+                            "node_id", ToString(field_id),
+                            "missing_fact", "field_write_mode");
+                        continue;
+                    }
+                    ArrayPush(field_write_modes, UnwrapOption(field_mode));
                     ArrayPush(field_names, UnwrapOption(field_name_opt));
                     ArrayPush(field_kinds, UnwrapOption(field_kind_opt));
                     let field_type: String = SemanticCanonicalTypeName(
@@ -251,6 +264,17 @@ func SemanticAstNominalConstructorFactsFromArtifact(
                     continue;
                 }
                 ArrayPush(field_source_syntax_ids, child_id);
+                let field_mode: Option<Int> = TypedAstArenaFieldWriteMode(
+                    artifact.arena, child_id);
+                if !IsSome(field_mode) {
+                    ok = false;
+                    diagnostic_fact = SemanticDiagnosticMessageFact2(
+                        "nominal_constructor_fact_invalid",
+                        "node_id", ToString(child_id),
+                        "missing_fact", "field_write_mode");
+                    continue;
+                }
+                ArrayPush(field_write_modes, UnwrapOption(field_mode));
                 ArrayPush(field_names, UnwrapOption(field_name_opt));
                 ArrayPush(field_kinds, UnwrapOption(field_kind_opt));
                 ArrayPush(
@@ -324,12 +348,12 @@ func SemanticAstNominalConstructorFactsFromArtifact(
         SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
         artifact.count,
         node_ids, nominal_kinds, names, return_types, param_starts,
-        param_counts, field_source_syntax_ids, field_names, field_kinds,
+        param_counts, field_source_syntax_ids, field_names, field_kinds, field_write_modes,
         param_types, role_slot_starts, role_slot_counts, role_slot_names, role_slot_type_names
     );
 }
 func SemanticAstNominalConstructorCount(ref facts: SemanticAstNominalConstructorFacts) -> Int { return ArrayLength(facts.node_ids); }
-func SemanticAstNominalConstructorIndexForNode(facts: SemanticAstNominalConstructorFacts, node_id: Int) -> Option<Int> {
+func SemanticAstNominalConstructorIndexForNode(ref facts: SemanticAstNominalConstructorFacts, node_id: Int) -> Option<Int> {
     if !facts.ok { return None; }
     let count: Int = SemanticAstNominalConstructorCount(facts); let low: Int = 0; let high: Int = count;
     while low < high {
@@ -382,6 +406,15 @@ func SemanticAstNominalConstructorRowsReady(ref facts: SemanticAstNominalConstru
         i = i + 1;
     }
     let field_i: Int = 0;
+    if ArrayLength(facts.field_write_modes) != expected_param_count {
+        return false;
+    }
+    while field_i < expected_param_count {
+        if facts.field_write_modes[field_i] != 0 &&
+            facts.field_write_modes[field_i] != 1 { return false; }
+        field_i = field_i + 1;
+    }
+    field_i = 0;
     while field_i < ArrayLength(facts.field_source_syntax_ids) {
         if facts.field_source_syntax_ids[field_i] <= 0 { return false; }
         let prior_i: Int = 0;

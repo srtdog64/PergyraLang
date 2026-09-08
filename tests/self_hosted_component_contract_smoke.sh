@@ -4,7 +4,9 @@
 # Executable parity and focused negative gates prove behavior. Do not grow this
 # file with source-text claims about runtime correctness.
 
-set -euo pipefail
+set -Eeuo pipefail
+# Bare commands must not turn a failed structural check into a silent CI exit.
+trap 'contract_status=$?; printf "[self-host-component-contract] command failed: %s:%s (status %s)\n" "${BASH_SOURCE[0]}" "$LINENO" "$contract_status" >&2' ERR
 
 SCRIPT_PATH="${BASH_SOURCE[0]}"
 SCRIPT_DIR="$(cd "${SCRIPT_PATH%/*}" && pwd)"
@@ -1938,12 +1940,14 @@ reject_text "src/self_hosted/dir/intent_row_owner.pgy" \
     '    on_node_ids: Array<Int>;'
 require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" \
     'TypedAstKindIntentStepIntentTag()'
-require_text "src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy" \
-    'TypedAstKindIntentStepIntentTag()'
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" \
+    'intent_node_ids: Array<Int>;'
 require_text "src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy" \
     'TypedAstKindIntentPriorityTag()'
-require_text "src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy" \
-    'TypedAstKindIntentPriorityTag()'
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" \
+    'TypedAstKindIntentDeclTag()'
+reject_text "src/self_hosted/semantic/ast_intent_expression_environment_owner.pgy" \
+    'func SemanticAstIntentExpressionOwnerNodeId('
 require_file "src/self_hosted/dir/intent_mode_fact_owner.pgy"
 require_max_lines "src/self_hosted/dir/intent_mode_fact_owner.pgy" 160
 require_text "src/self_hosted/OWNERS.md" \
@@ -1999,6 +2003,9 @@ require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/dir/intent_step_provenance_fact_owner.pgy"
 require_file "src/self_hosted/mir/intent_routine_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_routine_owner.pgy" 500
+reject_text "src/self_hosted/mir/intent_routine_owner.pgy" 'build, "stmt", "stmt"'
+require_text "src/self_hosted/mir/intent_execution_source_cfg_owner.pgy" \
+    'intents.result_modes[intent_index] != "legacy_bool"'
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/intent_routine_owner.pgy"
 require_file "src/self_hosted/mir/intent_mode_carriage_owner.pgy"
@@ -2186,6 +2193,8 @@ require_make_target_recipe_line \
     'PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/intent_execution_plan_json_admission_owner.sh'
 require_file "src/self_hosted/mir/intent_phase_contract_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_phase_contract_owner.pgy" 80
+require_function_text "src/self_hosted/mir/intent_phase_contract_owner.pgy" \
+    "func SelfMirIntentPhaseInstructionReady(" "SelfMirIntentPhaseResultDiagnostic("
 require_file "src/self_hosted/mir/intent_phase_emission_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_phase_emission_owner.pgy" 120
 require_text "src/self_hosted/OWNERS.md" \
@@ -2194,13 +2203,23 @@ require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/intent_phase_emission_owner.pgy"
 require_file "src/self_hosted/mir_lower/intent_lower_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/intent_lower_owner.pgy" 430
+reject_text "src/self_hosted/mir_lower/intent_routine_carrier_projection_owner.pgy" \
+    "MirIntentRoutineCarrierProjectionFromBlockZero"
+for obsolete in MirIntentExecutionRollbackBlockId MirIntentExecutionInvalidationBlockId 'block_id > 4'; do
+    reject_text "src/self_hosted/mir_lower/intent_execution_structure_owner.pgy" "$obsolete"
+done
+require_text "src/self_hosted/compiler/direct_mir_legacy_intent_program_plan_owner.pgy" "block_topology.rollback"
+require_text "src/self_hosted/compiler/direct_mir_legacy_intent_program_plan_owner.pgy" "block_topology.invalidation"
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/intent_lower_owner.pgy"
 for owner_cap in \
-    "intent_routine_tree_projection_owner.pgy:430" \
+    "intent_routine_tree_projection_owner.pgy:100" \
+    "intent_routine_plan_owner.pgy:240" \
     "intent_routine_carrier_projection_owner.pgy:180" \
-    "intent_routine_step_projection_owner.pgy:360" \
+    "intent_routine_step_projection_owner.pgy:100" \
+    "intent_routine_step_plan_owner.pgy:330" \
     "intent_step_placement_contract_owner.pgy:60" \
+    "intent_step_placement_binding_owner.pgy:100" \
     "intent_execution_carrier_projection_owner.pgy:180" \
     "intent_execution_structure_owner.pgy:220" \
     "intent_execution_tree_projection_owner.pgy:320" \
@@ -2228,6 +2247,10 @@ for forbidden in MirIntentExecutionPlanReady MirIntentExecutionPlanDigest \
     reject_text "src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy" \
         "$forbidden"
 done
+require_text "src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy" \
+    'sequence.arena.identities.call_target_syntax_ids[node] != projection.target_syntax_id'
+reject_text "src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy" \
+    'target_names[node] == projection.source_name'
 reject_text \
     "src/self_hosted/mir_lower/intent_execution_tree_projection_owner.pgy" \
     "candidate_texts"
@@ -2235,10 +2258,10 @@ require_text \
     "src/self_hosted/mir_lower/intent_execution_tree_projection_owner.pgy" \
     'import "intent_carrier_projection_owner.pgy";'
 require_text \
-    "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+    "src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy" \
     'import "intent_carrier_projection_owner.pgy";'
 require_text \
-    "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+    "src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy" \
     'import "intent_step_placement_contract_owner.pgy";'
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/intent_step_placement_contract_owner.pgy"
@@ -2255,7 +2278,7 @@ require_text \
     "src/self_hosted/mir_lower/intent_step_placement_contract_owner.pgy" \
     '(authority_count == 1 && authority_name == who_name)'
 reject_text \
-    "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+    "src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy" \
     'if zone_count != 1 || alias_count != 1 ||'
 require_text "src/self_hosted/mir_lower/intent_action_contract_owner.pgy" \
     "func MirIntentDirectTargetSyntaxId"
@@ -2265,15 +2288,15 @@ require_text "src/self_hosted/mir_lower/intent_action_contract_owner.pgy" \
     "authority_required: Bool"
 require_text "src/self_hosted/mir_lower/intent_action_contract_owner.pgy" \
     "func MirIntentActionAuthorityCarrierReady("
-require_text "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+require_text "src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy" \
     "MirIntentActionAuthorityCarrierReady("
-reject_text "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+reject_text "src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy" \
     'authority_count == 0 && !direct_intent_target'
-require_text "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+require_text "src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy" \
     '"MIR intent direct target is not one legacy intent"'
-require_text "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+require_text "src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy" \
     'let target_ready: Bool = eval_action.call_target_name =='
-require_text "src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy" \
+require_text "src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy" \
     'receiver_type, Concat("_", eval_action.action_name)'
 reject_text \
     "src/self_hosted/mir_lower/intent_execution_graph_mirror_owner.pgy" \
@@ -2363,12 +2386,26 @@ require_text \
     "src/self_hosted/compiler/intent_execution_c_codegen_bridge_owner.pgy" \
     'CodegenIntentExecutionViewReadyForSemantic('
 require_file "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy"
+require_file "src/self_hosted/semantic/intent_subject_slot_policy_owner.pgy"
+require_max_lines "src/self_hosted/semantic/intent_subject_slot_policy_owner.pgy" 70
+require_text "src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy" \
+    "IntentSubjectSlotSelect("
+require_text "src/self_hosted/mir_lower/intent_step_placement_binding_owner.pgy" \
+    "IntentSubjectSlotSelect("
 require_max_lines \
     "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" 260
 require_file \
     "src/self_hosted/mir_lower/intent_expression_carrier_contract_owner.pgy"
 require_max_lines \
     "src/self_hosted/mir_lower/intent_expression_carrier_contract_owner.pgy" 50
+require_function_text "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" \
+    "func MirIntentPhaseProjectionFromCarriers(" "SelfMirIntentPhaseResultDiagnostic("
+require_function_text "src/self_hosted/mir_lower/intent_expression_carrier_contract_owner.pgy" \
+    "func MirIntentExpressionCarrierGraphPresent(" "MirProgramInstructionExpressionIndexAt("
+reject_text "src/self_hosted/mir_lower/intent_expression_carrier_contract_owner.pgy" \
+    "JsonObjectFactTableFromBounds("
+reject_text "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" \
+    "carrier_count: Int;"
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/intent_expression_carrier_contract_owner.pgy"
 require_file "src/self_hosted/mir_lower/intent_mode_projection_owner.pgy"
@@ -2386,7 +2423,7 @@ require_text \
     "src/self_hosted/mir_lower/intent_mode_projection_owner.pgy" \
     "MIR intent mode carrier is duplicated"
 require_text \
-    "src/self_hosted/mir_lower/intent_routine_tree_projection_owner.pgy" \
+    "src/self_hosted/mir_lower/intent_routine_plan_owner.pgy" \
     "MirIntentModeProjectionFromCarriers("
 reject_text \
     "src/self_hosted/mir_lower/intent_routine_tree_projection_owner.pgy" \
@@ -2407,7 +2444,7 @@ require_text \
     "MIR intent priority carrier is duplicated"
 require_text \
     "src/self_hosted/mir_lower/intent_routine_tree_projection_owner.pgy" \
-    '"    IntentPriority: ", priority_projection.text'
+    '"    IntentPriority: ", plan.priority.text'
 require_text \
     "src/self_hosted/mir_lower/intent_routine_tree_projection_owner.pgy" \
     "MirIntentPriorityAppendExpressionOrder("
@@ -2541,6 +2578,90 @@ require_text \
     "src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy" \
     "func SemanticAstIntentStepActorFromFacts("
 # zone authority owner and consumer ratchets
+# Intent participant readonly query source inventory.
+require_max_lines "src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy" 250
+require_function_text "src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy" \
+    "func SemanticAstIntentActionCallFromText(" "ref participants: SemanticAstIntentSignatureFacts"
+require_function_text "src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy" \
+    "func SemanticAstIntentActionCallFromText(" "participants.param_starts[intent_index]"
+require_function_text "src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy" \
+    "func SemanticAstIntentActionCallFromText(" "participants.param_counts[intent_index]"
+require_function_text "src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy" \
+    "func SemanticAstIntentActionCallFromText(" "!participants.ok"
+for retired_participant_input in \
+    'participant_aliases: Array<String>' 'participant_types: Array<String>' \
+    'participant_is_values: Array<Bool>' 'participant_start: Int,' 'participant_count: Int,'; do
+    reject_function_text "src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy" \
+        "func SemanticAstIntentActionCallFromText(" "$retired_participant_input"
+done
+reject_function_text "src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy" \
+    "func SemanticAstIntentActionCallFromText(" "SemanticAstIntentSignatureFactsReady("
+require_function_text "src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy" \
+    "func SemanticAstIntentStepActorFromFacts(" "signatures, intents, intent_index, on_text"
+require_function_text "src/self_hosted/semantic/ast_intent_outcome_environment_owner.pgy" \
+    "func SemanticAstIntentExpressionSeedOutcome(" "signatures, facts, intent_index, on_text"
+require_function_text "src/self_hosted/semantic/ast_intent_transition_fact_owner.pgy" \
+    "func SemanticAstIntentTransitionFactsFromArtifact(" "signatures, intent_signatures, intent_index, on_text"
+require_function_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    "func SelfDirIntentStepFromArtifact(" "signatures, intent_signatures, source_intent_index, on_text"
+require_function_text "src/self_hosted/dir/intent_fact_owner.pgy" \
+    "func SelfDirIntentFactsFromArtifact(" "expression_surfaces, intent_index, child_id"
+reject_function_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    "func SelfDirIntentStepFromArtifact(" "signatures, participant_aliases, participant_type_names,"
+require_file "tests/self_hosted/fixtures/intent_participant_readonly_query.pgy"
+require_max_lines "tests/self_hosted/fixtures/intent_participant_readonly_query.pgy" 90
+require_file "tests/self_hosted/parity/intent_participant_readonly_query_owner.sh"
+require_max_lines "tests/self_hosted/parity/intent_participant_readonly_query_owner.sh" 65
+require_text "Makefile" "self-host-intent-participant-readonly-query-test-smoke: self-host-compiler"
+# End Intent participant readonly query source inventory.
+# Reached compiler read-query source inventory, not executable parity.
+require_file "tests/self_hosted/fixtures/compiler_readonly_query.pgy"
+require_max_lines "tests/self_hosted/fixtures/compiler_readonly_query.pgy" 90
+require_file "tests/self_hosted/parity/compiler_readonly_query_owner.sh"
+require_max_lines "tests/self_hosted/parity/compiler_readonly_query_owner.sh" 65
+require_file "tests/self_hosted/parity/compiler_readonly_query_signatures.py"
+python3 "$PARITY_DIR/compiler_readonly_query_signatures.py" "$ROOT_DIR" || \
+    fail "compiler read-query value-parameter residue"
+require_text "Makefile" "self-host-compiler-readonly-query-test-smoke: self-host-compiler"
+# End reached compiler read-query source inventory.
+# Reached call-spine projection inventory; executable views belong to parity.
+require_file "tests/self_hosted/fixtures/call_spine_root_projection.pgy"
+require_max_lines "tests/self_hosted/fixtures/call_spine_root_projection.pgy" 165
+require_file "tests/self_hosted/parity/call_spine_root_projection_owner.sh"
+require_max_lines "tests/self_hosted/parity/call_spine_root_projection_owner.sh" 65
+require_file "tests/self_hosted/parity/call_spine_root_projection_pressure.py"
+require_text "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" \
+    "func SemanticCallSpineRootsFromGraph("
+require_function_text "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" \
+    "func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(" "SemanticCallSpineRootsFromGraph(graph)"
+reject_text "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" \
+    "SemanticCallSpineViewForCallNodeWithin"
+require_text "Makefile" "self-host-call-spine-root-projection-test-smoke: self-host-compiler"
+# End reached call-spine projection inventory.
+# Reached logical-record shape inventory; runtime controls belong to parity.
+require_file "tests/self_hosted/fixtures/logical_record_shape_query.pgy"
+require_max_lines "tests/self_hosted/fixtures/logical_record_shape_query.pgy" 170
+require_file "tests/self_hosted/parity/logical_record_shape_query_owner.sh"
+require_max_lines "tests/self_hosted/parity/logical_record_shape_query_owner.sh" 65
+require_file "tests/self_hosted/parity/logical_record_shape_query_pressure.py"
+require_file "tests/self_hosted/parity/logical_record_shape_query_order.py"
+python3 "$PARITY_DIR/logical_record_shape_query_order.py" \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_expression_owner.pgy" || \
+    fail "logical-record noncandidate query reopened table validation"
+require_text "Makefile" "self-host-logical-record-shape-query-test-smoke: self-host-compiler"
+# End reached logical-record shape inventory.
+# Reached logical-record constructor inventory; runtime controls belong to parity.
+require_file "tests/self_hosted/fixtures/logical_record_constructor_query.pgy"
+require_max_lines "tests/self_hosted/fixtures/logical_record_constructor_query.pgy" 210
+require_file "tests/self_hosted/parity/logical_record_constructor_query_owner.sh"
+require_max_lines "tests/self_hosted/parity/logical_record_constructor_query_owner.sh" 65
+require_file "tests/self_hosted/parity/logical_record_constructor_query_pressure.py"
+require_file "tests/self_hosted/parity/logical_record_constructor_query_order.py"
+python3 "$PARITY_DIR/logical_record_constructor_query_order.py" \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_expression_owner.pgy" || \
+    fail "logical-record constructor reopened per-argument table validation"
+require_text "Makefile" "self-host-logical-record-constructor-query-test-smoke: self-host-compiler"
+# End reached logical-record constructor inventory.
 require_file "src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/semantic/ast_zone_authority_fact_owner.pgy" 220
@@ -3062,18 +3183,36 @@ require_text "src/self_hosted/semantic/builtin_capability_projection_owner.pgy" 
 require_text "src/self_hosted/semantic/builtin_capability_projection_owner.pgy" \
     "func SemanticBuiltinFileModeCapabilityMask("
 require_file "src/self_hosted/semantic/ast_capability_fact_owner.pgy"
+require_file "src/self_hosted/semantic/capability_mask_owner.pgy"
+require_max_lines "src/self_hosted/semantic/capability_mask_owner.pgy" 120
 require_max_lines "src/self_hosted/semantic/ast_capability_fact_owner.pgy" 500
 require_text "src/self_hosted/semantic/ast_capability_fact_owner.pgy" \
     "struct SemanticAstCapabilityFacts"
 require_text "src/self_hosted/semantic/ast_capability_fact_owner.pgy" \
     "SemanticAstCapabilityObserveCallRange("
 require_text "src/self_hosted/semantic/ast_capability_fact_owner.pgy" \
+    "SemanticAstCapabilityInstantiationsFromGraph("
+require_file "src/self_hosted/semantic/ast_capability_call_graph_owner.pgy"
+require_file "src/self_hosted/semantic/ast_capability_instantiation_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_capability_call_graph_owner.pgy" 350
+require_max_lines "src/self_hosted/semantic/ast_capability_instantiation_owner.pgy" 300
+require_text "src/self_hosted/semantic/ast_capability_fact_owner.pgy" \
+    "SemanticCallSpineRootsFromGraph("
+require_text "src/self_hosted/semantic/ast_capability_call_graph_owner.pgy" \
+    "SemanticCallSpineViewFromGraph("
+reject_text "src/self_hosted/semantic/ast_capability_call_graph_owner.pgy" \
     "SemanticCallSpineViewForCallNodeWithin("
+reject_text "src/self_hosted/semantic/ast_capability_instantiation_owner.pgy" \
+    "SemanticExpressionDeclaredCallableSyntaxId("
 require_text "src/self_hosted/semantic/ast_capability_fact_owner.pgy" \
     "analysis.signatures.action_contracts.caps_node_ids[callable]"
 require_file "src/self_hosted/compiler/capability_manifest_owner.pgy"
 require_max_lines "src/self_hosted/compiler/capability_manifest_owner.pgy" 130
 require_text "src/self_hosted/compiler/capability_manifest_owner.pgy" \
+    "body.capabilities"
+reject_text "src/self_hosted/compiler/capability_manifest_owner.pgy" \
+    "SemanticAstCapabilityFactsFromAdmittedBody("
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
     "SemanticAstCapabilityFactsFromAdmittedBody("
 reject_text "src/self_hosted/compiler/capability_manifest_owner.pgy" \
     "SemanticBuiltinCapabilityRowForName("
@@ -3291,7 +3430,7 @@ reject_text "tests/self_hosted/parity/semantic_parity.sh" '"${#SOURCE_PAIRS[@]}"
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-vocabulary"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-surface-audit"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--oracle-json-code-match"'
-require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticDiagnosticCodeCount() != 41"
+require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticDiagnosticCodeCount() != 50"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_contract_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagnostic_code_surface"
@@ -6125,6 +6264,12 @@ require_file "src/self_hosted/semantic/ast_assignment_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" "func SemanticAstAssignmentFactsMatchArtifact"
 require_file "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
+require_file "src/self_hosted/semantic/ast_member_write_verdict_owner.pgy"
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "SemanticAstMemberWriteVerdict("
+require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "field_write_modes: Array<Int>;"
+require_text "src/self_hosted/semantic/ast_nominal_constructor_artifact_match_owner.pgy" "facts.field_write_modes[p] != rebuilt.field_write_modes[p]"
+reject_text "src/self_hosted/semantic/ast_member_write_verdict_owner.pgy" "TypedAstArena"
+reject_text "src/self_hosted/semantic/ast_member_write_verdict_owner.pgy" "LoadSemanticSource"
 require_responsibility_owner_max_lines "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "func SemanticAstAssignmentTypeFactsMatchArtifact"
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
@@ -7852,13 +7997,13 @@ reject_text "src/self_hosted/mir/json_projection_owner.pgy" \
 require_file "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
 require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" 60
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability)"
+    "RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability)"
+    "RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability)"
+    "RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability)"
+    "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "RuntimeCHeaderOwnsBoolToString("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
@@ -7887,8 +8032,34 @@ require_file "tests/self_hosted/parity/intent_observability_installed_self_host_
 require_max_lines "tests/self_hosted/parity/intent_observability_installed_self_host_owner.sh" 160
 require_text "Makefile" "self-host-intent-observability-runtime-test-smoke: self-host-compiler"
 require_file "tests/self_hosted/parity/direct_mir_legacy_intent_program_llvm_owner.sh"
+require_file "tests/self_hosted/parity/fixture/zone_subject_cell.pgy"
+require_file "tests/self_hosted/parity/fixture/zone_subject_cell_nary.pgy"
+require_file "tests/self_hosted/parity/fixture/zone_readonly_call.pgy"
+require_file "tests/self_hosted/parity/fixture/zone_readonly_reborrow.pgy"
+require_file "tests/self_hosted/parity/fixture/zone_readonly_write_rejected.pgy"
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
+    'func DirectMirScalarProgramIdentityCellBorrowCarriage('
+require_text "src/compiler/mir_signature_metadata.c" 'nominal_kind == AST_ZONE_DECL'
+require_text "src/compiler/rir_facts.c" 'state = RIR_STATE_BORROWED_READ;'
+require_text "src/self_hosted/compiler/direct_mir_identity_cell_fact_owner.pgy" \
+    'let field_kinds: Array<String>;'
+require_text "src/self_hosted/compiler/direct_mir_identity_cell_fact_owner.pgy" \
+    'DirectMirExactObjectArrayCount(authorities, 0)'
+require_text "src/self_hosted/compiler/direct_mir_identity_cell_lifetime_owner.pgy" \
+    'contained[source] != 0'
 require_max_lines "tests/self_hosted/parity/direct_mir_legacy_intent_program_llvm_owner.sh" 190
 require_file "tests/self_hosted/parity/fixture/direct_mir_legacy_intent_program_llvm.pgy"
+require_file "tests/self_hosted/parity/fixture/direct_mir_legacy_intent_binding_order.pgy"
+require_file "tests/self_hosted/parity/fixture/direct_mir_legacy_intent_binding_names.pgy"
+require_file "tests/self_hosted/parity/direct_mir_legacy_intent_mutations.py"
+require_text "src/self_hosted/compiler/direct_mir_legacy_intent_program_plan_owner.pgy" \
+    'DirectMirLegacyIntentProgramGraphFactFromAdmitted(admitted, route, signature)'
+require_text "src/self_hosted/compiler/direct_mir_legacy_intent_program_graph_fact_owner.pgy" \
+    'signature.parameters.names[1 - zone_binding]'
+reject_text "src/self_hosted/compiler/direct_mir_legacy_intent_program_graph_fact_owner.pgy" \
+    'MirIntentBindingProjection'
+reject_text "src/self_hosted/compiler/direct_mir_legacy_intent_program_graph_fact_owner.pgy" \
+    'true, 0, subject_type, zone_type, subject_alias, zone_alias,'
 require_text "Makefile" \
     "self-host-direct-mir-legacy-intent-program-llvm-test-smoke: \$(PGY) self-host-compiler"
 require_text ".github/workflows/ci.yml" \
@@ -11431,6 +11602,63 @@ require_function_text \
     "DirectMirScalarProgramExprToStringString()"
 require_text "src/self_hosted/codegen/fixture/string_concat_op.pgy" \
     "Log(ToString(a));"
+# Signed-integer ToString source inventory.
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
+    'func DirectMirScalarProgramExprToStringSignedInteger() -> Int { return 14; }'
+for owner in expression_kind_id builtin_signature_projection \
+    to_string_expression_readiness c_to_string_expression \
+    llvm_to_string_expression string_runtime_requirement; do
+    reject_text "src/self_hosted/compiler/direct_mir_scalar_program_${owner}_owner.pgy" \
+        'DirectMirScalarProgramExprToStringInt('
+done
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" \
+    "func DirectMirScalarProgramBuiltinSignatureFactForCall(" \
+    'actual_types[0] == CompilerAbiLayoutLongTypeName()'
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" \
+    "func DirectMirScalarProgramBuiltinArgumentPrefixReady(" 'expected = "Int"'
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" 230
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_to_string_expression_readiness_owner.pgy" 30
+require_file "tests/self_hosted/fixtures/direct_mir_signed_integer_to_string.pgy"
+require_file "tests/self_hosted/parity/direct_mir_signed_integer_to_string_owner.sh"
+require_file "tests/self_hosted/parity/direct_mir_signed_integer_to_string_mutations.py"
+require_function_text \
+    "src/self_hosted/mir_lower/program_routine_receiver_identity_owner.pgy" \
+    "func MirProgramRoutineSourceSyntaxIdentityUniqueExcept(" \
+    'ref source_syntax_ids: Array<String>'
+require_function_text \
+    "src/self_hosted/mir_lower/program_routine_receiver_identity_owner.pgy" \
+    "func MirProgramRoutineReceiverIdentityRowReady(" \
+    'ref source_syntax_ids: Array<String>'
+require_function_text \
+    "src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy" \
+    "func MirMatchBindingRoutineWideType(" \
+    'ref names: Array<String>, ref types: Array<String>'
+# End signed-integer ToString source inventory.
+# UTF-8 literal source inventory.
+require_file "tests/self_hosted/fixtures/direct_mir_utf8_string_literal.pgy"
+require_file "tests/self_hosted/parity/direct_mir_utf8_string_literal_owner.sh"
+require_file "tests/self_hosted/parity/direct_mir_utf8_string_literal_cases.py"
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_string_literal_fact_owner.pgy" 35
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_expression_fact_owner.pgy" 200
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_literal_owner.pgy" 35
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_string_literal_fact_owner.pgy" \
+    "func DirectMirScalarProgramStringLiteralContent(" 'code > 126'
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_fact_owner.pgy" \
+    "func DirectMirScalarProgramLiteralEmbeddable(" 'code > 126'
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_expression_fact_owner.pgy" \
+    "func DirectMirScalarProgramLiteralEmbeddable(" 'while row < StringLength(value)'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_literal_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringLiteralPayload(" 'TextBuilderFinish('
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_literal_owner.pgy" \
+    "func DirectMirScalarProgramLlvmStringLiteralPayload(" 'payload = Concat('
+# End UTF-8 literal source inventory.
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_collection_builtin_signature_owner.pgy" \
     "func DirectMirScalarProgramCollectionBuiltinSignatureExpected(" \
@@ -12523,7 +12751,9 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pg
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "kind == AstExpressionNodeMemberAccess()"
 require_file "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" 160
+# The existing call-view owner also owns the bounded, ephemeral whole-arena
+# root projection. Keep it cohesive; the shared semantic-owner cap is unchanged.
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" 200
 require_text "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" \
     "struct SemanticCallSpineView"
 require_text "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" \
@@ -17602,6 +17832,10 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_routine_signature_fact_owner.pgy" \
     "DirectMirRoutineSignatureFactAt("
+for signature_owner in direct_mir_routine_signature_fact_owner direct_mir_generic_routine_signature_fact_owner; do
+    require_text "src/self_hosted/compiler/$signature_owner.pgy" 'MirRoutineHeaderSignatureEnvelopeReady('
+    reject_text "src/self_hosted/compiler/$signature_owner.pgy" 'MirObjectUniqueStringFactAtBounds('
+done
 require_text \
     "src/self_hosted/compiler/direct_mir_array_argument_graph_fact_owner.pgy" \
     "DirectMirArrayArgumentMainGraphFactFromSequence("
@@ -17882,17 +18116,18 @@ require_function_text \
     "func DirectMirScalarProgramExpressionKindFactFromSource(" \
     "source_kind == AstExpressionNodeDivide() && ints"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy" \
-    "func DirectMirScalarProgramExpressionNodeReady(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_checked_int_owner.pgy" \
+    "func DirectMirScalarProgramCheckedIntKind(" \
     "kind == DirectMirScalarProgramExprDivideInt()"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_expression_owner.pgy" \
-    "func DirectMirScalarProgramCExpressionValues(" \
-    'Concat(" / "'
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_case_math_expression_owner.pgy" \
+    "func DirectMirScalarProgramCCaseMathExpression(" \
+    'let callee: String = abi.symbol;'
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
-    "func DirectMirScalarProgramLlvmExpressionAt(" \
-    '" = sdiv i64 "'
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_case_math_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmCaseMathExpressionAt(" \
+    '".lhs = trunc i64 "'
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" '" = sdiv i64 "'
 require_file \
     "tests/self_hosted/fixtures/direct_mir_scalar_int_divide.pgy"
 require_file \
@@ -18556,17 +18791,34 @@ require_file \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy" 90
 require_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_declaration_envelope_owner.pgy" \
     "DirectMirNominalDeclarationAbiFactFromDocument("
 require_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy" \
     "MirCapturedRequiredAbiLayoutRowAdmission("
 require_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_target_owner.pgy" \
-    "DirectMirScalarProgramTwoIntNominalTargetFromFact("
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_target_owner.pgy" \
+    "DirectMirScalarProgramLogicalRecordPhysicalTargetReady("
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy" \
-    "nominal: DirectMirScalarProgramTwoIntNominalAbiFact"
+    "logical_record: DirectMirScalarProgramLogicalRecordFact"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy" \
+    "nominal:"
+for retired_record_owner in two_int_nominal_abi_fact two_int_nominal_target c_two_int_nominal llvm_two_int_nominal; do
+    [[ ! -e "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_${retired_record_owner}_owner.pgy" ]] ||
+        fail "retired scalar nominal owner returned: $retired_record_owner"
+done
+require_file "src/self_hosted/compiler/direct_mir_scalar_program_record_abi_fact_owner.pgy"
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_record_abi_fact_owner.pgy" 180
+require_file "tests/self_hosted/fixtures/direct_mir_physical_record_return.pgy"
+require_file "tests/self_hosted/parity/direct_mir_physical_record_return_owner.sh"
+require_max_lines "tests/self_hosted/parity/direct_mir_physical_record_return_owner.sh" 100
+require_text "Makefile" "self-host-direct-mir-physical-record-return-test-smoke: self-host-compiler"
+require_file "tests/self_hosted/parity/direct_mir_physical_record_return_mutations.py"
+require_max_lines "tests/self_hosted/parity/direct_mir_physical_record_return_mutations.py" 160
+require_text "src/self_hosted/compiler/direct_mir_routine_parameter_set_fact_owner.pgy" \
+    "let abi_row_keys: Array<String>;"
 require_file \
     "tests/self_hosted/fixtures/direct_mir_two_routine_array_int_value_result.pgy"
 require_file \
@@ -19482,7 +19734,7 @@ require_text \
     "logical_record: DirectMirScalarProgramLogicalRecordFact"
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
-    "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80"
+    "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81"
 require_file \
     "tests/self_hosted/fixtures/direct_mir_zero_parameter_callable.pgy"
 require_file \
@@ -19779,40 +20031,84 @@ require_text "Makefile" \
     "self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-set-string-value-parameter-test-smoke"
 require_text "tests/self_host_ci_profile_smoke.sh" \
     "self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-set-string-value-parameter-test-smoke"
+# Readonly array family source inventory.
 for readonly_array_owner in \
-    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_readonly_ref_policy_owner.pgy" \
-    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy" \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_readonly_ref_owner.pgy" \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy"; do
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_readonly_ref_target_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_readonly_ref_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy"; do
     require_file "$readonly_array_owner"
     require_max_lines "$readonly_array_owner" 80
 done
+for retired_readonly_owner in \
+    direct_mir_scalar_program_array_string_readonly_ref_policy_owner.pgy \
+    direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy \
+    direct_mir_scalar_program_c_array_string_readonly_ref_owner.pgy \
+    direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy; do
+    reject_file "src/self_hosted/compiler/$retired_readonly_owner"
+done
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_readonly_ref_policy_owner.pgy" \
-    "func DirectMirScalarProgramArrayStringReadonlyRefParameterReady(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy" \
+    "func DirectMirScalarProgramReadonlyArrayTypeSupported(" \
+    "CompilerAbiLayoutArrayIntTypeName()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayReadonlyRefParameterRead(" \
+    "DirectMirScalarProgramArrayIntAbiProjectionReadyForFact("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_target_owner.pgy" \
+    "func DirectMirScalarProgramArrayIntAbiProjectionReadyForFact(" \
+    "projection.abi_layout_id == fact.layout_id"
+require_text "src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy" \
+    "target.target_capability_fingerprint, abi_layout_id,"
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy" \
+    "DirectMirScalarProgramArrayIntAbiProjectionFromFact("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
+    "DirectMirScalarProgramArrayIntAbiProjectionFromFact("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmExpressionAt(" \
+    "array_int_projection: Option<DirectMirArrayIntAbiProjection>"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(" \
+    "ToString(members[index])"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" \
+    '"%pgy.readonly.member."'
+require_file "tests/self_hosted/fixtures/direct_mir_array_int_readonly_ref.pgy"
+require_max_lines "tests/self_hosted/fixtures/direct_mir_array_int_readonly_ref.pgy" 50
+require_file "tests/self_hosted/parity/direct_mir_array_int_readonly_ref_owner.sh"
+require_max_lines "tests/self_hosted/parity/direct_mir_array_int_readonly_ref_owner.sh" 110
+require_file "tests/self_hosted/parity/direct_mir_array_int_readonly_ref_mutations.py"
+require_max_lines "tests/self_hosted/parity/direct_mir_array_int_readonly_ref_mutations.py" 90
+require_text "Makefile" "self-host-direct-mir-array-int-readonly-ref-test-smoke: self-host-compiler"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy" \
+    "func DirectMirScalarProgramArrayReadonlyRefParameterReady(" \
     'signature.parameters.carriages[ordinal] == "readonly-ref"'
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_readonly_ref_owner.pgy" \
-    "func DirectMirScalarProgramCArrayStringReadonlyRefCallArgument(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_readonly_ref_owner.pgy" \
+    "func DirectMirScalarProgramCArrayReadonlyRefCallArgument(" \
     'return Concat("&pgy_local_", ToString('
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy" \
-    "func DirectMirScalarProgramLlvmArrayStringReadonlyRefCallArgument(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayReadonlyRefCallArgument(" \
     'Concat("%pgy.local.", ToString('
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy" \
-    "func DirectMirScalarProgramLlvmArrayStringReadonlyRefParameterRead(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayReadonlyRefParameterRead(" \
     "DirectMirScalarProgramArrayStringAbiProjectionReadyForFact("
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy" \
-    "func DirectMirScalarProgramLlvmArrayStringReadonlyRefParameterRead(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayReadonlyRefParameterRead(" \
     "projection.storage.align"
 reject_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy" \
-    "func DirectMirScalarProgramLlvmArrayStringReadonlyRefParameterRead(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayReadonlyRefParameterRead(" \
     'Concat(pointer, ", align 8\n")'
 reject_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy" \
     "DirectMirScalarProgramArrayStringAbiProjectionFromFact("
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
@@ -19828,6 +20124,81 @@ require_function_text \
 require_text \
     "tests/self_hosted/parity/direct_mir_scalar_array_string_readonly_ref_owner.sh" \
     "array-string-readonly-ref-abi-layout"
+# End readonly array family source inventory.
+# Array value-parameter storage source inventory.
+require_file "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_value_parameter_storage_owner.pgy"
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_value_parameter_storage_owner.pgy" 60
+require_text "src/self_hosted/OWNERS.md" "direct_mir_scalar_program_llvm_array_value_parameter_storage_owner.pgy"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_value_parameter_storage_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayValueParameterAddressableCopyIn(" \
+    'parameter_carriages[row] == "value"'
+for array_value_projection in Int String; do
+    require_function_text \
+        "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_value_parameter_storage_owner.pgy" \
+        "func DirectMirScalarProgramLlvmArrayValueParameterAddressableCopyIn(" \
+        "DirectMirScalarProgramArray${array_value_projection}AbiProjectionReadyForFact("
+done
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_value_parameter_storage_owner.pgy" \
+    "func DirectMirScalarProgramLlvmArrayValueParameterAddressableCopyIn(" \
+    "storage_align = projection.storage.align"
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_value_parameter_storage_owner.pgy" "align 8"
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_value_parameter_storage_owner.pgy" "AbiProjectionFromFact("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
+    "func DirectMirScalarCfgProgramLlvmRoutine(" \
+    "DirectMirScalarProgramLlvmArrayValueParameterAddressableCopyIn("
+for array_value_retired_consumer in \
+    direct_mir_scalar_program_llvm_array_int_value_result_owner.pgy \
+    direct_mir_scalar_cfg_program_llvm_emission_owner.pgy; do
+    reject_text "src/self_hosted/compiler/$array_value_retired_consumer" \
+        "DirectMirScalarProgramLlvmArrayIntValueParameterAddressableCopyIn("
+done
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_readonly_ref_target_owner.pgy" \
+    "func DirectMirScalarProgramReadonlyArrayReborrowAt(" \
+    'carriage == "value"'
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_readonly_ref_target_owner.pgy" \
+    "func DirectMirScalarProgramReadonlyArrayReborrowAt(" \
+    "type_name == CompilerAbiLayoutArrayIntTypeName()"
+# End array value-parameter storage source inventory.
+# Signed array operand source inventory.
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_operand_admission_owner.pgy" 170
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_operand_admission_owner.pgy" \
+    "func DirectMirScalarProgramArrayIntLiteralOperandFromOwners(" \
+    "arity == 1 && classified.kind != DirectMirScalarProgramExprNegateInt()"
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_operand_admission_owner.pgy" \
+    "binary_literal"
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_array_int_populated_literal_admission_owner.pgy" \
+    "operand.binary_literal"
+require_text "tests/self_hosted/parity/direct_mir_array_int_readonly_ref_owner.sh" "negate-child negate-kind negate-binding"
+require_file "tests/self_hosted/parity/direct_mir_cfg_identity_digest_reference.py"
+require_max_lines "tests/self_hosted/parity/direct_mir_cfg_identity_digest_reference.py" 60
+# End signed array operand source inventory.
+
+# Readonly source boundary inventory.
+require_max_lines "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" 300
+require_function_text "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" \
+    "func SemanticCollectionMutationError(" 'mode != "default_param" && mode != "ref_param"'
+require_max_lines "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" 280
+require_function_text "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" \
+    "func SemanticAstReadonlySequenceBoundaryVerdict(" 'SemanticExpressionGraphPlaceKind('
+require_function_text "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" \
+    "func SemanticAstReadonlySequenceBoundaryVerdict(" 'member.receiver_node >= node'
+require_function_text "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" \
+    "func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(" 'statements.expected_type_names[statement]'
+require_function_text "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" \
+    "func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(" 'if mode != 3 {'
+require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 305
+require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" \
+    'if code == "borrow_boundary_escape" { return "PGY_SEM_BORROW_ESCAPE"; }'
+require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" 'SemanticDiagnosticCodeCount() != 50'
+require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" 'SemanticBorrowBoundaryDiagnosticReceiptReady()'
+require_text "src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy" 'receipt.layer == SemanticDiagnosticPublicLayer(owned_code)'
+# End readonly source boundary inventory.
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_identity_owner.pgy" \
     "func DirectMirScalarProgramCallMarkerReady(" \
@@ -20035,6 +20406,10 @@ require_file \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_admission_owner.pgy" 170
 require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_flow_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_flow_owner.pgy" 330
+require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_query_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_query_owner.pgy" 50
@@ -20051,6 +20426,59 @@ require_file \
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy" 160
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_admission_owner.pgy" \
+    "func DirectMirScalarProgramOwnedArrayStringMoveCoverageFromProgram(" \
+    "DirectMirScalarProgramOwnedArrayStringMoveExitSetCoverageReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy" \
+    "func DirectMirScalarProgramOwnedArrayStringMoveReadyForPlan(" \
+    "DirectMirScalarProgramOwnedArrayStringMoveCoverageInputDigest("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy" \
+    "DirectMirScalarProgramOwnedArrayStringMoveStorageViewOfPlan("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy" \
+    "let fact: DirectMirScalarProgramOwnedArrayStringMoveFact"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_hash_owner.pgy" \
+    "func DirectMirScalarCfgHashInts(" "ref values: Array<Int>"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_hash_owner.pgy" \
+    "func DirectMirScalarCfgHashStrings(" "ref values: Array<String>"
+require_file "tests/self_hosted/parity/fixture/owned_array_string_move_sealed_flow_probe.pgy"
+require_max_lines "tests/self_hosted/parity/fixture/owned_array_string_move_sealed_flow_probe.pgy" 110
+require_file "tests/self_hosted/parity/fixture/owned_array_string_move_receipt_rewrite_probe.pgy"
+require_max_lines "tests/self_hosted/parity/fixture/owned_array_string_move_receipt_rewrite_probe.pgy" 90
+reject_text "tests/self_hosted/parity/fixture/owned_array_string_move_sealed_flow_probe.pgy" \
+    "plan.digest ="
+reject_text "tests/self_hosted/parity/fixture/owned_array_string_move_sealed_flow_probe.pgy" \
+    "let local:"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy" \
+    "DirectMirScalarProgramOwnedArrayStringMoveExitSetCoverageReady("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_use_owner.pgy" \
+    "func DirectMirScalarProgramOwnedArrayStringMoveIsLastUse("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_admission_owner.pgy" \
+    "DirectMirScalarProgramOwnedArrayStringAlternativeMovePairReady("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_fact_owner.pgy" \
+    "branch_block_rows"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_fact_owner.pgy" \
+    "merge_block_rows"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_coverage_admission_owner.pgy" \
+    "func DirectMirScalarProgramOwnedArrayStringMoveExitSetCoverageReady(" \
+    "DirectMirScalarProgramOwnedArrayStringMoveExitPathsCovered("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy" \
+    "DirectMirScalarProgramOwnedArrayStringMoveStraightReadyForPlan("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy" \
+    "DirectMirScalarProgramOwnedArrayStringMoveAlternativeReadyForPlan("
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy" \
     "func DirectMirScalarProgramOwnedArrayStringMoveFactFromProgram(" \
     "DirectMirScalarProgramOwnedArrayStringMoveCoverageFromProgram("
@@ -20061,6 +20489,16 @@ require_function_text \
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy" \
     "candidates != 1"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy" \
+    "target != 1"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_use_owner.pgy" \
+    "func DirectMirScalarProgramRoutinePartitionStart("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_partition_owner.pgy" \
+    "func DirectMirScalarProgramRoutinePartitionStart(" \
+    "ref counts: Array<Int>, routine: Int"
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_fact_owner.pgy" \
     "owned_array_string_move"
@@ -20892,14 +21330,6 @@ require_function_text \
     "func DirectMirScalarProgramLlvmArrayIntMutationTarget(" \
     "DirectMirScalarCfgOpArrayIntPop()"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_int_value_result_owner.pgy" \
-    "func DirectMirScalarProgramLlvmArrayIntValueParameterAddressableCopyIn(" \
-    'parameter_carriages[row] == "value"'
-require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
-    "func DirectMirScalarCfgProgramLlvmRoutine(" \
-    "DirectMirScalarProgramLlvmArrayIntValueParameterAddressableCopyIn("
-require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
     "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
     "array_int_copyout"
@@ -21179,7 +21609,7 @@ reject_text \
     '"%pgy.array.int"'
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
-    "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80"
+    "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81"
 require_file \
     "tests/self_hosted/fixtures/direct_mir_logical_record_array_value_parameter.pgy"
 require_file \
@@ -21256,16 +21686,22 @@ require_function_text \
     "DirectMirScalarProgramPayloadFreeEnumMatchConditionFromInstruction("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_exhaustive_match_owner.pgy" \
-    "func DirectMirScalarProgramPayloadFreeEnumExhaustiveMatchFallthroughReadinessCode(" \
-    "DirectMirScalarProgramRoutineBlockIncomingEdgeCount("
+    "func DirectMirScalarProgramPayloadFreeEnumMatchConditionAt(" \
+    "DirectMirScalarProgramPayloadFreeEnumStableScrutineeKind("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy" \
     "func DirectMirScalarCfgProgramExtensionReadinessCode(" \
     "DirectMirScalarProgramEnumExhaustiveMatchFallthroughReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_enum_exhaustive_match_owner.pgy" \
-    "func DirectMirScalarProgramPayloadEnumExhaustiveMatchFallthroughReadinessCode(" \
-    "plan.program.referenced_enum.variant_counts[first_fact.enum_row]"
+    "func DirectMirScalarProgramEnumUnreachableBlocks(" \
+    "DirectMirScalarProgramEnumGuardSame("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_exhaustive_match_owner.pgy" \
+    "func DirectMirScalarProgramPayloadFreeEnumExhaustiveMatchFallthroughReadinessCode("
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_enum_exhaustive_match_owner.pgy" \
+    "func DirectMirScalarProgramPayloadEnumExhaustiveMatchFallthroughReadinessCode("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy" \
     "func DirectMirScalarCfgProgramCRoutine(" \
@@ -22051,7 +22487,7 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" \
     "func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(" \
-    '"%pgy.readonly.member."'
+    'ToString(members[index])'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy" \
     "func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(" \
@@ -23908,22 +24344,12 @@ shared_nominal_inventory=(src/self_hosted/compiler/direct_mir_nominal_literal_*.
     fail "shared nominal literal owner inventory drifted"
 [[ "$shared_nominal_total" -le 900 ]] || \
     fail "shared nominal literal owner cap exceeded: $shared_nominal_total/900"
-passive_nominal_total=0
-while IFS='|' read -r owner cap; do
-    require_max_lines "src/self_hosted/compiler/$owner" "$cap"
-    passive_nominal_total=$((passive_nominal_total + $(wc -l < \
-        "src/self_hosted/compiler/$owner")))
-done <<'PASSIVE_NOMINAL_OWNER_CAPS'
-direct_mir_passive_nominal_literal_plan_owner.pgy|140
-direct_mir_passive_nominal_literal_target_projection_owner.pgy|60
-direct_mir_passive_nominal_literal_c_emission_owner.pgy|90
-direct_mir_passive_nominal_literal_llvm_emission_owner.pgy|90
-PASSIVE_NOMINAL_OWNER_CAPS
-passive_nominal_inventory=(src/self_hosted/compiler/direct_mir_passive_nominal_literal_*.pgy)
-[[ "${#passive_nominal_inventory[@]}" -eq 4 ]] || \
-    fail "passive nominal owner inventory drifted"
-[[ "$passive_nominal_total" -le 320 ]] || \
-    fail "passive nominal owner cap exceeded: $passive_nominal_total/320"
+for retired in plan target_projection c_emission llvm_emission; do
+    [[ ! -e "src/self_hosted/compiler/direct_mir_passive_nominal_literal_${retired}_owner.pgy" ]] || \
+        fail "retired passive literal owner reappeared: $retired"
+done
+! grep -R -Eq 'DirectMirPassiveNominalLiteral|direct_mir_passive_nominal_literal_' \
+    src/self_hosted/compiler || fail "passive literal bypass reappeared"
 mutable_identity_total=0
 while IFS='|' read -r owner cap; do
     require_max_lines "src/self_hosted/compiler/$owner" "$cap"
@@ -23965,11 +24391,11 @@ require_text \
 ! grep -R -Fq 'CompileAdmittedDirectMirPassiveNominalLiteral' \
     src/self_hosted/compiler || fail "retired passive composition root reappeared"
 require_text \
-    "src/self_hosted/compiler/direct_mir_passive_nominal_literal_plan_owner.pgy" \
-    "typed_nominal_physical_abi_absent"
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_declaration_envelope_owner.pgy" \
+    "MirAbiAllBoundsPresent(starts, ends)"
 require_text \
-    "src/self_hosted/compiler/direct_mir_passive_nominal_literal_plan_owner.pgy" \
-    "typed_nominal_abi_absence.digest"
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_declaration_envelope_owner.pgy" \
+    "MirDeclarationWireKind(declarations.nominal_kinds[declaration_row])"
 require_text \
     "src/self_hosted/compiler/direct_mir_nominal_literal_abi_absence_owner.pgy" \
     "result_capture_digest"
@@ -23988,14 +24414,14 @@ require_text \
     src/self_hosted/compiler/direct_mir_nominal_literal_projection_owner.pgy || \
     fail "shared nominal router recreated a mutable kind allow-list"
 require_text \
-    "src/self_hosted/compiler/direct_mir_passive_nominal_literal_target_projection_owner.pgy" \
-    "each emitter owns syntax"
+    "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" \
+    "scalar_program_route.logical_record.present"
 require_text \
     "tests/self_hosted/parity/one_mir_passive_nominal_literal_projection.sh" \
     "real C/LLVM construction+read"
 for passive_nominal_ratchet in \
-    '%pgy.nominal.0 = insertvalue %PlayerDto poison, i32 12, 0' \
-    '%pgy.member.0 = extractvalue %PlayerDto %pgy.nominal.0, 0' \
+    'insertvalue %pgy.scalar.logical.record.value.0 poison, i64 12, 0' \
+    'extractvalue %pgy.scalar.logical.record.value.0' \
     definition-local-drift definition-arg-type-drift \
     definition-expr-type-drift instruction-tail kind-drift method-tail host-subject \
     'subject/vessel identity split' 'scalar after passive nominal admission'; do
@@ -24413,6 +24839,14 @@ require_max_lines \
     "src/self_hosted/air/mir_cfg_certificate_mutation_owner.pgy" 180
 require_file "src/self_hosted/air/mir_cfg_identity_owner.pgy"
 require_max_lines "src/self_hosted/air/mir_cfg_identity_owner.pgy" 120
+reject_text "src/self_hosted/air/mir_cfg_identity_owner.pgy" \
+    "while row < StringLength(value)"
+reject_text "src/self_hosted/air/mir_cfg_identity_owner.pgy" \
+    "CharCode(value, StringLength(value), row)"
+require_file "tests/self_hosted/fixtures/direct_mir_cfg_identity_digest.pgy"
+require_max_lines "tests/self_hosted/fixtures/direct_mir_cfg_identity_digest.pgy" 30
+require_file "tests/self_hosted/parity/direct_mir_cfg_identity_digest_owner.sh"
+require_max_lines "tests/self_hosted/parity/direct_mir_cfg_identity_digest_owner.sh" 90
 require_file "src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy"
 require_max_lines \
     "src/self_hosted/air/mir_nested_cfg_certificate_fact_owner.pgy" 220
@@ -25622,7 +26056,7 @@ require_file "tests/self_hosted/parity/one_mir_array_int_reverse_artifact_contra
 # v14 -> v33 while this pin went unreached behind earlier gate failures, so it
 # must move with the sole declared GraphPlan schema.
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy" \
-    'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80'
+    'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_op_code_owner.pgy" \
     'func DirectMirScalarCfgOpArrayReverseInt() -> Int { return 20; }'
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_op_code_owner.pgy" \

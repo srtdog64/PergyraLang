@@ -1,0 +1,83 @@
+// Cancel observes a task; it never discharges the completion obligation.
+// Native type_checker_builtins_cancel.c requires COPY_ONLY payload ownership.
+// Primitive kind identity is projected, while nominal/enum identity comes from
+// admitted declarations. Unknown or ownership-bearing payloads fail closed.
+import "ast_body_expression_environment_owner.pgy";
+import "ast_body_verdict_owner.pgy";
+import "ast_expression_graph_scalar_type_owner.pgy";
+import "native_primitive_type_projection_owner.pgy";
+
+func SemanticAstCancelCopyPayload(payload: String, ref enums: SemanticAstEnumFacts) -> Bool {
+    if payload == "Unknown" || payload == "<unknown>" ||
+        payload == "QubitSlot" || payload == "TextBuilder" { return false; }
+    if SemanticNativePrimitiveTypeName(payload) { return true; }
+    let index: Int = 0;
+    while index < ArrayLength(enums.enum_names) {
+        if enums.enum_names[index] == payload { return true; }
+        index = index + 1;
+    }
+    return false;
+}
+
+func SemanticAstCancelAdmissionFromFacts(artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis, initializers: SemanticAstInitializerTypeFacts,
+    iterations: SemanticAstIterationTypeFacts, tables: SemanticAstExpressionFunctionTableFacts
+) -> SemanticAstBodyVerdict {
+    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    let needed: Bool = false; let node: Int = 0;
+    while node < ArrayLength(graph.arena.call_target_names) {
+        if graph.arena.call_target_names[node] == "Cancel" &&
+            graph.arena.identities.call_target_syntax_ids[node] == 0 { needed = true; }
+        node = node + 1;
+    }
+    if !needed { return SemanticAstBodyVerdictOk(); }
+    let roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(graph);
+    if !roots.ok { return SemanticAstBodyVerdictError("ast_artifact_invalid", "Cancel requires admitted call topology", -1); }
+    let previous_root: Int = -1; let slot: Int = 0;
+    while slot < ArrayLength(graph.roots) {
+        if graph.has_roots[slot] {
+            let end: Int = graph.roots[slot]; let surface: Int = slot / 3;
+            let syntax_id: Int = analysis.expression_surfaces.node_ids[surface];
+            let names: Array<String> = []; let types: Array<String> = []; let modes: Array<String> = [];
+            let seeded: Bool = false;
+            node = previous_root + 1;
+            while node <= end {
+                if graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() &&
+                    graph.arena.call_target_names[node] == "Cancel" &&
+                    graph.arena.identities.call_target_syntax_ids[node] == 0 {
+                    if !seeded {
+                        let function_id: Option<Int> = SemanticAstExpressionFunctionNodeAt(
+                            analysis.expression_surfaces, analysis.signatures, surface);
+                        let intent_id: Option<Int> = SemanticAstExpressionIntentNodeAt(
+                            analysis.expression_surfaces, analysis.intent_signatures, surface);
+                        seeded = SemanticAstBodyExpressionEnvironmentSeed(artifact, analysis,
+                            initializers.inferred_type_names, iterations, tables, analysis.intent_signatures,
+                            function_id, intent_id, syntax_id, names, types, modes);
+                        if !seeded { return SemanticAstBodyVerdictError("ast_artifact_invalid", "Cancel lexical type environment is missing", syntax_id); }
+                    }
+                    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, roots.root_nodes[node]);
+                    if !call.ok || ArrayLength(call.argument_nodes) != 1 {
+                        return SemanticAstBodyVerdictError("cancel_argument_invalid",
+                            SemanticError1("cancel_argument_invalid", "boundary", "Cancel requires exactly one Future/RemoteFuture"), syntax_id);
+                    }
+                    let task_type: String = SemanticExpressionGraphScalarTypeName(graph,
+                        call.argument_nodes[0], analysis.constructors, names, types, tables.names, tables.returns);
+                    let payload: Option<String> = FuturePayloadTypeOpt(task_type);
+                    if !IsSome(payload) { payload = RemoteFuturePayloadTypeOpt(task_type); }
+                    if !IsSome(payload) {
+                        return SemanticAstBodyVerdictError("cancel_argument_invalid",
+                            SemanticError1("cancel_argument_invalid", "type", task_type), syntax_id);
+                    }
+                    if !SemanticAstCancelCopyPayload(UnwrapOption(payload), analysis.enums) {
+                        return SemanticAstBodyVerdictError("cancel_payload_unsupported",
+                            SemanticError1("cancel_payload_unsupported", "payload", UnwrapOption(payload)), syntax_id);
+                    }
+                }
+                node = node + 1;
+            }
+            previous_root = end;
+        }
+        slot = slot + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

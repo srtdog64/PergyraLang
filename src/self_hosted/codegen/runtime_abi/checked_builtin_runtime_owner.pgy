@@ -28,6 +28,9 @@ func CheckedBuiltinRuntimeCMulFn() -> String {
     return "pgy_checked_mul_i32";
 }
 
+func CheckedBuiltinRuntimeLlvmAddFn() -> String { return "pgy_checked_add_i32_export"; }
+func CheckedBuiltinRuntimeLlvmMulFn() -> String { return "pgy_checked_mul_i32_export"; }
+
 func CheckedBuiltinRuntimeCNarrowPrologue() -> String {
     return "    int lhs = (int)lhs_in;\n    int rhs = (int)rhs_in;\n";
 }

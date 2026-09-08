@@ -31,6 +31,18 @@ mir_stmt_def_name(const ASTNode *stmt)
     return NULL;
 }
 
+uint32_t
+mir_stmt_binding_syntax_id(const ASTNode *stmt)
+{
+    if (stmt == NULL)
+        return 0;
+    if (stmt->type == AST_LET_DECL)
+        return ast_node_stable_id(stmt);
+    if (stmt->type == AST_ASSIGNMENT)
+        return ast_identifier_binding_syntax_id(ast_assignment_target(stmt));
+    return 0;
+}
+
 bool
 mir_let_decl_requires_stmt_preservation(const ASTNode *stmt)
 {

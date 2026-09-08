@@ -20,7 +20,7 @@ MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 FACT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy"
 ADMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy"
-USE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_use_owner.pgy"
+FLOW_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_flow_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
@@ -28,10 +28,12 @@ command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 ! grep -Fq 'fact.caller_routines[row] != 0' "$FACT" ||
     fail "move fact restored the entrypoint-only caller restriction"
-grep -Fq 'storage.routines.block_counts[routine] != 1' "$USE_OWNER" ||
-    fail "last-use proof does not consume the resolved caller routine"
-grep -Fq 'DirectMirScalarProgramRoutinePartitionStart(' "$USE_OWNER" ||
-    fail "last-use proof does not consume routine-owned flat partitions"
+grep -Fq 'let count: Int = storage.routines.block_counts[routine];' "$FLOW_OWNER" ||
+    fail "exit-set proof does not consume the resolved caller routine"
+grep -Fq 'DirectMirScalarProgramRoutinePartitionStart(' "$FLOW_OWNER" ||
+    fail "exit-set proof does not consume routine-owned flat partitions"
+! grep -Fq 'storage.routines.block_counts[routine] != 1' "$FLOW_OWNER" ||
+    fail "exit-set proof restored the single-block caller restriction"
 grep -Fq 'storage.routines.local_counts[routine]' "$ADMISSION" ||
     fail "move admission does not validate the caller-owned local partition"
 

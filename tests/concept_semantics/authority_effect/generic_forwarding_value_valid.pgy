@@ -1,0 +1,7 @@
+func First<T, U>(first: T, second: U) -> T { return first; }
+func Forward<A, B>(first: A, second: B) -> A { return First(first, second); }
+func Main() -> Void {
+    Log(ToString(Forward(13, false)));
+    Log(Forward("ok", 5));
+    Log(ToString(Forward(true, "unused")));
+}

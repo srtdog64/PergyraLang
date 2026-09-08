@@ -6,7 +6,7 @@ import "../../../src/self_hosted/mir_lower/destructure_expression_projection_own
 
 func ExpressionGraphIdentityPrefixReady(
     ref sequence: MirExpressionGraphSequence,
-    expected_count: Int
+    expected_count: Int, call_row: Int, target_syntax_id: Int
 ) -> Bool {
     if !sequence.ok ||
         SemanticExpressionGraphArenaNodeCount(sequence.arena) !=
@@ -31,7 +31,9 @@ func ExpressionGraphIdentityPrefixReady(
     }
     let row: Int = 1;
     while row < expected_count {
-        if sequence.arena.identities.call_target_syntax_ids[row] != 0 ||
+        let expected_target: Int = 0;
+        if row == call_row { expected_target = target_syntax_id; }
+        if sequence.arena.identities.call_target_syntax_ids[row] != expected_target ||
             sequence.arena.identities.runtime_call_abi_ids[row] != 0 ||
             sequence.arena.identities.binding_syntax_ids[row] != 0 ||
             sequence.arena.identities.binding_kinds[row] !=
@@ -57,13 +59,14 @@ func Main() -> Void {
             ),
             [SemanticExpressionPlaceBinding()]
         );
+    let program_call_ordinals: Array<Int> = [];
     let sequence: MirExpressionGraphSequence =
-        MirExpressionGraphSequence(true, 1, [0], arena);
+        MirExpressionGraphSequence(true, 1, [0], arena, program_call_ordinals);
     sequence = MirExpressionGraphSequenceAppendParserBridge(
-        sequence, "actor.Run()"
+        sequence, "actor.Run(1)"
     );
     let count: Int = SemanticExpressionGraphArenaNodeCount(sequence.arena);
-    if count <= 1 || !ExpressionGraphIdentityPrefixReady(sequence, count) {
+    if count <= 1 || !ExpressionGraphIdentityPrefixReady(sequence, count, -1, 0) {
         Log("expression-graph-identity-prefix-bridge-failed");
         Exit(1);
     }
@@ -88,24 +91,34 @@ func Main() -> Void {
     }
     ArraySet(target_kinds, call_row, SemanticCallTargetMember());
     ArraySet(target_names, call_row, "Run");
-    sequence = MirIntentExecutionGraphTargetProject(
-        sequence, 1,
-        MirIntentExecutionGraphTargetProjection(
-            true, true, "Run", "Actor_Run"
-        )
-    );
-    if !ExpressionGraphIdentityPrefixReady(sequence, count) ||
+    let projection: MirIntentExecutionGraphTargetProjection =
+        MirIntentExecutionGraphTargetProjection(true, true, 901, "Run", "Actor_Run");
+    let missing: MirExpressionGraphSequence = MirIntentExecutionGraphTargetProject(sequence, 1, projection);
+    if missing.ok { Exit(1); }
+    ArraySet(sequence.arena.identities.call_target_syntax_ids, call_row, 902);
+    let foreign: MirExpressionGraphSequence = MirIntentExecutionGraphTargetProject(sequence, 1, projection);
+    if foreign.ok { Exit(1); }
+    ArraySet(sequence.arena.identities.call_target_syntax_ids, call_row, 901);
+    ArraySet(target_names, call_row, "Other");
+    let crossed: MirExpressionGraphSequence = MirIntentExecutionGraphTargetProject(sequence, 1, projection);
+    if crossed.ok { Exit(1); }
+    ArraySet(target_names, call_row, "Run");
+    sequence = MirIntentExecutionGraphTargetProject(sequence, 1, projection);
+    if !ExpressionGraphIdentityPrefixReady(sequence, count, call_row, 901) ||
         sequence.arena.call_target_names[call_row] != "Actor_Run" {
         Log("expression-graph-identity-prefix-projection-failed");
         Exit(1);
     }
+    // The self producer already carries the canonical name; identity is still required.
+    sequence = MirIntentExecutionGraphTargetProject(sequence, 1, projection);
+    if !sequence.ok { Exit(1); }
     sequence = MirExpressionGraphSequenceAppendIndexProjection(
         sequence, "items", 0
     );
     let extended_count: Int =
         SemanticExpressionGraphArenaNodeCount(sequence.arena);
     if extended_count != count + 3 ||
-        !ExpressionGraphIdentityPrefixReady(sequence, extended_count) {
+        !ExpressionGraphIdentityPrefixReady(sequence, extended_count, call_row, 901) {
         Log("expression-graph-identity-prefix-extension-failed");
         Exit(1);
     }

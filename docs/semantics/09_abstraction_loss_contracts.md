@@ -1,6 +1,6 @@
 # Abstraction Loss Contracts
 
-Last updated: 2026-09-03
+Last updated: 2026-09-08
 
 Status: `beta-proof-obligation`
 
@@ -538,6 +538,36 @@ That syntax is a design sketch only. The beta contract today is the compiler
 architecture rule: every abstraction boundary must name its owner, accepted
 loss, preserved facts, forbidden downstream reads, and evidence gate before it
 can be called stable.
+
+## Observation Order Across Expression Lowering
+
+Eager binary operands are evaluated once, left before right, including String
+concatenation/comparison and runtime-backed arithmetic. `&&`, `||` and `??`
+evaluate only the selected RHS. Ordered expression children own this contract;
+lowering may erase their syntax but not the observable ordering. C's unspecified
+operand/argument order is not an alternative Pergyra contract.
+
+The native C binary emitter and the public semantic-graph C emitter materialize
+eager operands into hygienic storage before the operation. Lazy operations keep
+the RHS within the selected expression. Literal-only pairs need no intermediate
+storage. Existing MIR/GraphPlan ordering remains the shared-backend owner; this
+does not introduce a SequencePlan or a second effect analysis.
+
+`tests/concept_semantics/binary_evaluation_order.py` specifies observations
+independently of either compiler: ordered scalar/String effects, lazy RHS
+suppression, and Intent participant observations. The Intent inline expression
+must print `true 1`; the separate-statement control must print `true 1 1` under
+the existing `using:` materialize/sync/writeback contract in
+`../34_intent_oriented_paradigm.md`. Equal but incorrect backend outputs do not
+satisfy this gate. Compile failure, execution failure and incorrect output are
+distinct failures, not semantic refusal or expected-failure passes.
+
+This is a reached binary-expression obligation, not closure of arbitrary call
+arguments, method receivers, assignment places, aggregate Future carriage,
+external MIR admission or runtime quiescence. The 2026-09-08 boundary proposal
+keeps those with their existing owners; a proposed acceptance case or a shared
+backend result is not evidence that all production paths support it. Exact
+candidate results remain in the current work snapshot.
 
 ## Acceptance Rule
 

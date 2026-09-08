@@ -218,6 +218,36 @@ ast_identifier_name(const ASTNode* node)
     return node->data.identifier.name;
 }
 
+uint32_t
+ast_identifier_binding_syntax_id(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_IDENTIFIER
+        ? node->data.identifier.semantic_binding_syntax_id : 0;
+}
+
+void
+ast_identifier_set_binding_syntax_id(ASTNode* node, uint32_t syntax_id)
+{
+    if (node != NULL && node->type == AST_IDENTIFIER) {
+        node->data.identifier.semantic_binding_syntax_id = syntax_id;
+        node->data.identifier.semantic_binding_is_host_field = false;
+    }
+}
+
+bool
+ast_identifier_binding_is_host_field(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_IDENTIFIER
+        && node->data.identifier.semantic_binding_is_host_field;
+}
+
+void
+ast_identifier_set_binding_host_field(ASTNode* node, bool is_host_field)
+{
+    if (node != NULL && node->type == AST_IDENTIFIER)
+        node->data.identifier.semantic_binding_is_host_field = is_host_field;
+}
+
 const char*
 ast_extern_block_abi(const ASTNode* node)
 {

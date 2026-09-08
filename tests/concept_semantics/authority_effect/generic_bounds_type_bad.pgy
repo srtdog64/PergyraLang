@@ -1,0 +1,2 @@
+func IntValue<T>(value: T) -> Int where T: Int { return 3; }
+func Main() -> Void { Log(IntValue("seven")); }

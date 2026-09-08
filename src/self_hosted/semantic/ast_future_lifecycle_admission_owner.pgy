@@ -1,0 +1,245 @@
+// Structured source flow for affine Future/RemoteFuture completion obligations.
+// Admission consumes typed scopes and expression topology, before either backend.
+import "ast_future_lifecycle_binding_owner.pgy";
+
+func SemanticFutureCondition(ref facts: SemanticFutureBindings, node_id: Int) -> Int {
+    let row: Int = facts.surface_rows[node_id];
+    if row < 0 { return -1; }
+    let root_index: Int = row * 3 + AstExpressionLaneAtom();
+    if !facts.surfaces.expression_graph.has_roots[root_index] { return -1; }
+    let root: Int = facts.surfaces.expression_graph.roots[root_index];
+    if facts.surfaces.expression_graph.arena.topology.node_kinds[root] != AstExpressionNodeBoolLiteral() {
+        return -1;
+    }
+    if facts.surfaces.expression_graph.arena.node_texts[root] == "true" { return 1; }
+    return 0;
+}
+
+func SemanticFutureStatementExpressions(ref facts: SemanticFutureBindings,
+    inout flow: SemanticFutureFlow, node_id: Int) -> Void {
+    let row: Int = facts.surface_rows[node_id];
+    if row < 0 { return; }
+    let lane: Int = 0;
+    while lane < 3 && flow.verdict.ok {
+        let root_index: Int = row * 3 + lane;
+        if facts.surfaces.expression_graph.has_roots[root_index] {
+            let root: Int = facts.surfaces.expression_graph.roots[root_index];
+            let binding: Int = -1;
+            let index: Int = 0;
+            while index < ArrayLength(facts.node_ids) {
+                if facts.node_ids[index] == node_id { binding = index; }
+                index = index + 1;
+            }
+            let owns_initializer: Bool = binding >= 0 && lane == AstExpressionLaneValue() &&
+                SemanticFutureType(facts.types[binding]);
+            if owns_initializer {
+                if facts.artifact.arena.modes[node_id] != 0 {
+                    SemanticFutureReject(flow, node_id, "Future bindings are affine and cannot be mutable");
+                } else if facts.surfaces.expression_graph.arena.topology.node_kinds[root] == AstExpressionNodeLeaf() {
+                    SemanticFutureReject(flow, node_id, "Future initializer cannot alias another binding");
+                }
+            }
+            SemanticFutureExpression(facts, flow, node_id, root, owns_initializer);
+            if owns_initializer && flow.verdict.ok {
+                let states: Array<Int> = flow.states;
+                ArraySet(states, binding, 1);
+            }
+        }
+        lane = lane + 1;
+    }
+}
+
+func SemanticFutureChildren(ref facts: SemanticFutureBindings, inout flow: SemanticFutureFlow,
+    node_id: Int, loop_id: Int) -> Void {
+    let child: Int = 0;
+    while child < facts.artifact.arena.child_counts[node_id] && flow.verdict.ok && flow.continuing {
+        let child_id: Int = facts.artifact.arena.children[facts.artifact.arena.first_children[node_id] + child];
+        SemanticFutureNode(facts, flow, child_id, loop_id);
+        child = child + 1;
+    }
+}
+
+func SemanticFutureLoop(ref facts: SemanticFutureBindings, inout flow: SemanticFutureFlow,
+    node_id: Int) -> Void {
+    let condition: Int = SemanticFutureCondition(facts, node_id);
+    if condition == 0 { return; }
+    let entry: SemanticFutureFlow = SemanticFutureFlowFrom(flow.states, true);
+    let body: SemanticFutureFlow = SemanticFutureFlowFrom(entry.states, true);
+    SemanticFutureChildren(facts, body, node_id, node_id);
+    if !body.verdict.ok { flow.verdict = body.verdict; return; }
+    // A backedge must not re-enter with an already retired outer handle. Local
+    // handles have been checked and removed at their own scope/continue edge.
+    let index: Int = 0;
+    while index < ArrayLength(entry.states) && flow.verdict.ok {
+        if (body.continuing && body.states[index] != entry.states[index]) ||
+            (body.has_continue && body.continue_states[index] != entry.states[index]) {
+            SemanticFutureReject(flow, node_id, "loop backedge changes completion ownership");
+        }
+        index = index + 1;
+    }
+    flow.continuing = condition != 1;
+    if body.has_break {
+        let exit_path: SemanticFutureFlow = SemanticFutureFlowFrom(body.break_states, true);
+        SemanticFutureJoin(flow, exit_path);
+    }
+}
+
+func SemanticFutureNode(ref facts: SemanticFutureBindings, inout flow: SemanticFutureFlow,
+    node_id: Int, loop_id: Int) -> Void {
+    if !flow.continuing || !flow.verdict.ok { return; }
+    let kind: Int = facts.artifact.arena.kinds[node_id];
+    if TypedAstKindIsCallableDecl(kind) { return; }
+    SemanticFutureStatementExpressions(facts, flow, node_id);
+    if !flow.verdict.ok { return; }
+    if kind == TypedAstKindBareReturnStmtTag() || kind == TypedAstKindValueReturnStmtTag() {
+        SemanticFutureRequireScope(facts, flow, node_id, -1, true);
+        flow.continuing = false; return;
+    }
+    if kind == TypedAstKindBreakStmtTag() || kind == TypedAstKindContinueStmtTag() {
+        if loop_id < 0 { SemanticFutureReject(flow, node_id, "loop exit has no owning loop"); return; }
+        SemanticFutureRequireScope(facts, flow, node_id, loop_id, true);
+        if kind == TypedAstKindBreakStmtTag() {
+            flow.break_states = SemanticFutureMergeStates(flow.break_states, flow.states); flow.has_break = true;
+        } else {
+            flow.continue_states = SemanticFutureMergeStates(flow.continue_states, flow.states); flow.has_continue = true;
+        }
+        flow.continuing = false; return;
+    }
+    if kind == TypedAstKindExitStmtTag() {
+        // Process termination is not a normal lexical exit.
+        flow.continuing = false; return;
+    }
+    if kind == TypedAstKindWhileStmtTag() || kind == TypedAstKindForStmtTag() {
+        SemanticFutureLoop(facts, flow, node_id); return;
+    }
+    if kind == TypedAstKindIfStmtTag() || kind == TypedAstKindMatchStmtTag() {
+        let entry: SemanticFutureFlow = SemanticFutureFlowFrom(flow.states, true);
+        let condition: Int = -1;
+        if kind == TypedAstKindIfStmtTag() { condition = SemanticFutureCondition(facts, node_id); }
+        let has_fallback: Bool = facts.exhaustive_match_rows[node_id];
+        flow.continuing = false;
+        let child: Int = 0;
+        while child < facts.artifact.arena.child_counts[node_id] && flow.verdict.ok {
+            let child_id: Int = facts.artifact.arena.children[facts.artifact.arena.first_children[node_id] + child];
+            let child_kind: Int = facts.artifact.arena.kinds[child_id];
+            let fallback: Bool = child_kind == TypedAstKindElseStmtTag() || child_kind == TypedAstKindMatchDefaultStmtTag();
+            if fallback { has_fallback = true; }
+            if (condition != 0 || fallback) && (condition != 1 || !fallback) {
+                let branch: SemanticFutureFlow = SemanticFutureFlowFrom(entry.states, true);
+                SemanticFutureNode(facts, branch, child_id, loop_id);
+                SemanticFutureJoin(flow, branch);
+            }
+            child = child + 1;
+        }
+        if !has_fallback && condition != 1 { SemanticFutureJoin(flow, entry); }
+        return;
+    }
+    if kind == TypedAstKindDeferStmtTag() {
+        let deferred: SemanticFutureFlow = SemanticFutureFlowFrom(flow.states, true);
+        SemanticFutureChildren(facts, deferred, node_id, loop_id);
+        if !deferred.verdict.ok { flow.verdict = deferred.verdict; }
+        let index: Int = 0;
+        while index < ArrayLength(flow.states) && flow.verdict.ok {
+            if deferred.states[index] != flow.states[index] {
+                SemanticFutureReject(flow, node_id, "defer cannot stand in for explicit task retirement");
+            }
+            index = index + 1;
+        }
+        return;
+    }
+    SemanticFutureChildren(facts, flow, node_id, loop_id);
+    if kind == TypedAstKindBlockTag() && flow.continuing {
+        SemanticFutureRequireScope(facts, flow, node_id, node_id, false);
+    }
+}
+
+func SemanticAstFutureLifecycleAdmissionFromFacts(artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts, locals: SemanticAstLocalBindingFacts,
+    initializers: SemanticAstInitializerTypeFacts, surfaces: SemanticAstExpressionSurfaceFacts,
+    exhaustive_match_nodes: Array<Int>
+) -> SemanticAstBodyVerdict {
+    if !SemanticAstSignatureRowsAdmittedReady(artifact, signatures) ||
+        !SemanticAstInitializerTypeFactsReadyProjection(artifact, locals, initializers) ||
+        !surfaces.ok || surfaces.artifact_node_count != artifact.count {
+        return SemanticAstBodyVerdictError("ast_artifact_invalid", "Future lifecycle requires admitted body facts", -1);
+    }
+    let needed: Bool = false; let index: Int = 0;
+    while index < ArrayLength(initializers.inferred_type_names) {
+        if SemanticFutureType(initializers.inferred_type_names[index]) { needed = true; }
+        index = index + 1;
+    }
+    index = 0;
+    while index < ArrayLength(signatures.param_types) {
+        if SemanticFutureType(signatures.param_types[index]) { needed = true; }
+        index = index + 1;
+    }
+    index = 0;
+    while index < ArrayLength(surfaces.expression_graph.arena.topology.node_kinds) {
+        if surfaces.expression_graph.arena.topology.node_kinds[index] == AstExpressionNodeSpawn() { needed = true; }
+        index = index + 1;
+    }
+    if !needed { return SemanticAstBodyVerdictOk(); }
+    let surface_rows: Array<Int> = []; let exhaustive_match_rows: Array<Bool> = []; index = 0;
+    while index < artifact.count {
+        ArrayPush(surface_rows, -1); ArrayPush(exhaustive_match_rows, false); index = index + 1;
+    }
+    index = 0;
+    while index < ArrayLength(exhaustive_match_nodes) {
+        let match_node: Int = exhaustive_match_nodes[index];
+        if match_node < 0 || match_node >= artifact.count ||
+            artifact.arena.kinds[match_node] != TypedAstKindMatchStmtTag() {
+            return SemanticAstBodyVerdictError("ast_artifact_invalid", "Future lifecycle match coverage identity is crossed", match_node);
+        }
+        ArraySet(exhaustive_match_rows, match_node, true); index = index + 1;
+    }
+    index = 0;
+    while index < ArrayLength(surfaces.node_ids) {
+        let node_id: Int = surfaces.node_ids[index];
+        if node_id < 0 || node_id >= artifact.count || surface_rows[node_id] >= 0 {
+            return SemanticAstBodyVerdictError("ast_artifact_invalid", "Future lifecycle expression source identity is crossed", node_id);
+        }
+        ArraySet(surface_rows, node_id, index); index = index + 1;
+    }
+    let signature: Int = 0;
+    while signature < ArrayLength(signatures.function_node_ids) {
+        let function_id: Int = signatures.function_node_ids[signature];
+        let body_id: Int = -1; let child: Int = 0;
+        while child < artifact.arena.child_counts[function_id] {
+            let child_id: Int = artifact.arena.children[artifact.arena.first_children[function_id] + child];
+            if artifact.arena.kinds[child_id] == TypedAstKindBodyTag() { body_id = child_id; }
+            child = child + 1;
+        }
+        if body_id >= 0 {
+            let nodes: Array<Int> = []; let scopes: Array<Int> = [];
+            let names: Array<String> = []; let types: Array<String> = [];
+            let modes: Array<Int> = []; let states: Array<Int> = [];
+            let parameter: Int = signatures.param_starts[signature];
+            while parameter < signatures.param_starts[signature] + signatures.param_counts[signature] {
+                ArrayPush(nodes, signatures.param_node_ids[parameter]); ArrayPush(scopes, function_id);
+                ArrayPush(names, signatures.param_names[parameter]); ArrayPush(types, signatures.param_types[parameter]);
+                ArrayPush(modes, signatures.param_modes[parameter]);
+                let state: Int = 0;
+                if SemanticFutureType(signatures.param_types[parameter]) {
+                    state = 4; if signatures.param_modes[parameter] == 2 { state = 1; }
+                }
+                ArrayPush(states, state); parameter = parameter + 1;
+            }
+            let range: SemanticAstLocalBindingFunctionRange = SemanticAstLocalBindingRangeForFunction(locals, function_id);
+            if !range.ok { return SemanticAstBodyVerdictError("ast_artifact_invalid", "Future lifecycle local range is missing", function_id); }
+            index = range.start;
+            while index < range.end {
+                ArrayPush(nodes, locals.node_ids[index]); ArrayPush(scopes, locals.scope_node_ids[index]);
+                ArrayPush(names, locals.names[index]); ArrayPush(types, initializers.inferred_type_names[index]);
+                ArrayPush(modes, -1); ArrayPush(states, 0); index = index + 1;
+            }
+            let facts: SemanticFutureBindings = SemanticFutureBindings(artifact, signatures, surfaces,
+                surface_rows, exhaustive_match_rows, nodes, scopes, names, types, modes);
+            let flow: SemanticFutureFlow = SemanticFutureFlowFrom(states, true);
+            SemanticFutureNode(facts, flow, body_id, -1);
+            if flow.continuing { SemanticFutureRequireScope(facts, flow, function_id, -1, true); }
+            if !flow.verdict.ok { return flow.verdict; }
+        }
+        signature = signature + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

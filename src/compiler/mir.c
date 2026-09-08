@@ -463,7 +463,7 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
         MIR_TIMED_STEP(MIR_TIMING_SPECULATION,
                        mir_capture_speculation_facts(&routine));
         MIR_TIMED_STEP(MIR_TIMING_USE_EDGES,
-                       mir_populate_use_edges(&routine));
+                       mir_populate_use_edges(&routine, error_message));
         MIR_TIMED_STEP(MIR_TIMING_CLEANUP_EDGES,
                        mir_materialize_cleanup_edges(&routine));
         MIR_TIMED_STEP(MIR_TIMING_RECOMPUTE,
@@ -490,7 +490,7 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
             mir_free_resource_flow_symbols(&routine);
             mir_routine_signature_metadata_clear(&routine);
             pgy_arena_destroy(&routine.scratch);
-            if (error_message != NULL)
+            if (error_message != NULL && *error_message == NULL)
                 *error_message = pergyra_strdup("out of memory");
             mir_destroy(mir);
             return NULL;

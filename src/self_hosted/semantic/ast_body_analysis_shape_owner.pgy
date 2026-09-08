@@ -62,6 +62,7 @@ func SemanticAstSignatureRowsAdmittedReady(
         ArrayLength(facts.return_types) != count ||
         ArrayLength(facts.generic_starts) != count ||
         ArrayLength(facts.generic_counts) != count ||
+        ArrayLength(facts.generic_constraint_type_names) != ArrayLength(facts.generic_names) ||
         ArrayLength(facts.param_starts) != count ||
         ArrayLength(facts.param_counts) != count ||
         ArrayLength(facts.param_names) != parameter_count ||

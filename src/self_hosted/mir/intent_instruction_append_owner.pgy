@@ -1,6 +1,21 @@
 // Canonical scalar attachment for instructions emitted by intent lowering.
 import "routine_build_owner.pgy";
 
+func SelfMirIntentAttachBindingSource(
+    build: SelfMirRoutineBuild, source_syntax_id: Int
+) -> SelfMirRoutineBuild {
+    if !build.ok { return build; }
+    let row: Int = ArrayLength(build.cfg.instructions.ids) - 1;
+    if row < 0 || source_syntax_id <= 0 ||
+        (build.cfg.instructions.names[row] != "IntentBinding" &&
+         build.cfg.instructions.names[row] != "IntentParticipant" &&
+         build.cfg.instructions.names[row] != "IntentValue") {
+        return SelfMirRoutineBuildError(build, "MIR Intent binder source identity is missing");
+    }
+    ArraySet(build.cfg.instructions.binding_source_syntax_ids, row, source_syntax_id);
+    return build;
+}
+
 func SelfMirIntentAddInstruction(
     build: SelfMirRoutineBuild,
     kind: String,

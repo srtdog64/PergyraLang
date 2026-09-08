@@ -12,7 +12,6 @@ import "direct_mir_scalar_program_c_array_string_cleanup_owner.pgy";
 import "direct_mir_scalar_cfg_program_c_signature_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "direct_mir_scalar_program_c_option_result_preamble_owner.pgy";
-import "direct_mir_scalar_program_c_two_int_nominal_owner.pgy";
 import "direct_mir_scalar_program_c_array_int_value_result_owner.pgy";
 import "direct_mir_scalar_program_c_array_bool_materialization_owner.pgy";
 import "direct_mir_scalar_program_c_array_bool_value_result_owner.pgy";
@@ -28,6 +27,7 @@ import "direct_mir_scalar_program_c_array_int_populated_literal_materialization_
 import "direct_mir_scalar_program_c_array_bool_populated_literal_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
+import "direct_mir_scalar_program_scalar_value_result_owner.pgy";
 func DirectMirScalarCfgProgramCRoutine(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
     formatted_print: CompilerRuntimeCallAbiFact,
@@ -42,6 +42,8 @@ func DirectMirScalarCfgProgramCRoutine(
     let output: TextBuilder = TextBuilderNew(4096);
     TextBuilderAppend(output, DirectMirScalarCfgProgramCSignature(plan, routine, int_c_type, false, array_string_projection));
     TextBuilderAppend(output, " {\n");
+    TextBuilderAppend(output, DirectMirScalarProgramCScalarValueResultCopyIn(plan, routine));
+    TextBuilderAppend(output, DirectMirIdentityCellRoutineStorage(plan, routine, false));
     if routine == plan.routines.entrypoint_ordinal &&
         plan.program.runtime_abi.process_args_id != 0 {
         TextBuilderAppend(output, HostIORuntimeCArgsCapturePrefix());
@@ -108,6 +110,7 @@ func DirectMirScalarCfgProgramCRoutine(
                     DirectMirScalarProgramCStringArrayCleanup(plan, routine));
                 TextBuilderAppend(output, "    return 0;\n");
             } else {
+                TextBuilderAppend(output, DirectMirScalarProgramCScalarValueResultCopyOut(plan, routine));
                 TextBuilderAppend(output, DirectMirScalarProgramCArrayStringValueResultCopyOut(
                     plan, routine, array_string_projection));
                 TextBuilderAppend(output,
@@ -126,6 +129,19 @@ func DirectMirScalarCfgProgramCRoutine(
                 TextBuilderAppend(output, "    return;\n");
             }
         } else if return_row >= 0 {
+            // Evaluate the return expression before publishing any copyout.
+            let return_type: String = DirectMirScalarCfgProgramCTypeWithReferencedEnum(
+                plan.routines.return_types[routine], int_c_type,
+                plan.program.logical_record, plan.program.payload_free_enum,
+                plan.program.referenced_enum, plan.program.array_string_abi, array_string_projection);
+            if return_type == "" { Die("direct MIR scalar C return has no admitted type"); }
+            TextBuilderAppend(output, "    ${return_type} pgy_return_${block} = ");
+            TextBuilderAppend(output, DirectMirScalarProgramCExpressionAt(
+                plan.program.expressions, return_row, runtime,
+                plan.program.logical_record, plan.program.referenced_enum,
+                plan.routines, routine, target, plan.program.array_string_abi, array_string_projection));
+            TextBuilderAppend(output, ";\n");
+            TextBuilderAppend(output, DirectMirScalarProgramCScalarValueResultCopyOut(plan, routine));
             TextBuilderAppend(output,
                 DirectMirScalarProgramCArrayIntValueResultCopyOut(
                     plan, routine));
@@ -141,12 +157,7 @@ func DirectMirScalarCfgProgramCRoutine(
             TextBuilderAppend(output,
                 DirectMirScalarProgramCSetStringValueResultCopyOut(
                     plan, routine));
-            TextBuilderAppend(output, "    return ");
-            TextBuilderAppend(output, DirectMirScalarProgramCExpressionAt(
-                plan.program.expressions, return_row, runtime,
-                plan.program.logical_record, plan.program.referenced_enum,
-                plan.routines, routine, target, plan.program.array_string_abi, array_string_projection));
-            TextBuilderAppend(output, ";\n");
+            TextBuilderAppend(output, "    return pgy_return_${block};\n");
         } else if plan.block_condition_kinds[block] ==
                 DirectMirScalarCfgConditionExpression() {
             TextBuilderAppend(output, "    if (");
@@ -205,18 +216,24 @@ func DirectMirScalarCfgEmitProgramC(
     TextBuilderAppend(output,
         "#include <stdbool.h>\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n");
     TextBuilderAppend(output, DirectMirScalarProgramCIntentObservabilityPreamble(plan.program.expressions));
+    if DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprCheckedAddInt()) ||
+            DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprCheckedMulInt()) {
+        TextBuilderAppend(output, CheckedBuiltinRuntimeCProgramBlock());
+    }
     let set_string_runtime_header: Bool =
         DirectMirScalarProgramSetStringRuntimeHeaderRequired(
             plan.local_types, plan.routines.parameter_types,
             plan.routines.return_types);
     let runtime_value_header: Bool = CompilerRuntimeValueTypesPresent(plan.local_types, plan.routines.parameter_types);
+    let checked_division_header: Bool = DirectMirScalarProgramExpressionContainsKind(
+        plan.program.expressions, DirectMirScalarProgramExprDivideInt());
     let compiler_artifact_header: Bool =
         plan.program.runtime_abi.compiler_artifact_write_id != 0 ||
         plan.program.runtime_abi.compiler_artifact_begin_id != 0 ||
         plan.program.runtime_abi.compiler_artifact_commit_id != 0 ||
         plan.program.runtime_abi.compiler_artifact_abort_id != 0;
     TextBuilderAppend(output, CompilerRuntimeValueCLocalPreamble(plan.local_types, plan.routines.parameter_types));
-    if (set_string_runtime_header || compiler_artifact_header) && !runtime_value_header {
+    if (set_string_runtime_header || compiler_artifact_header || checked_division_header) && !runtime_value_header {
         TextBuilderAppend(output, "#include \"pgy_runtime.h\"\n");
     }
     let array_int_runtime: DirectMirScalarProgramArrayIntRuntimeRequirement =
@@ -237,6 +254,12 @@ func DirectMirScalarCfgEmitProgramC(
     TextBuilderAppend(output,
         DirectMirScalarProgramCArrayIntValueResultPreamble(
             plan.program.array_int_value_result, array_int_runtime, target));
+    let array_sort: Bool = DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprArrayIntSort());
+    let array_reverse: Bool = DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprArrayIntReverse());
+    if array_sort || array_reverse {
+        let abi: DirectMirArrayIntAbiProjection = DirectMirScalarProgramArrayIntValueResultTargetFromFact(plan.program.array_int_value_result, target);
+        TextBuilderAppend(output, CollectionRuntimeCIntTransforms(abi.c_array_type, abi.storage.length_field, array_sort, array_reverse));
+    }
     TextBuilderAppend(output,
         DirectMirScalarProgramCArrayBoolPreamble(
             plan.program.array_bool_abi, target));
@@ -245,25 +268,24 @@ func DirectMirScalarCfgEmitProgramC(
     }
     let array_string_projection: Option<DirectMirArrayStringAbiProjection> = DirectMirScalarProgramArrayStringAbiProjectionFromFact(plan.program.array_string_abi, target);
     TextBuilderAppend(output, DirectMirScalarProgramCStringCollectionMaterialization(plan, runtime, array_string_projection));
-    TextBuilderAppend(output, DirectMirScalarProgramCTwoIntNominalPreamble(
-        plan.program.nominal_abi, target));
     TextBuilderAppend(output,
         DirectMirScalarProgramCOptionResultPreamble(plan, target));
     TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordPreamble(
         plan.program.logical_record, target));
+    TextBuilderAppend(output, DirectMirIdentityCellPreamble(plan.program.logical_record.identity_cells, false));
     TextBuilderAppend(output,
         DirectMirScalarProgramCLogicalRecordOptionPreamble(
             plan.program.logical_record, target));
     TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordArrayPreamble(plan, target));
     TextBuilderAppend(output, DirectMirScalarProgramCPayloadEnumPreamble(
-        plan.program.referenced_enum, plan.program.nominal_abi,
+        plan.program.referenced_enum,
         plan.program.logical_record, plan.program.payload_free_enum,
         plan.program.array_string_abi, array_string_projection, int_c_type));
     TextBuilderAppend(output, DirectMirScalarCfgStringCPreamble(
         plan, runtime.string_concat));
     let runtime_header_owns_print: Bool =
         runtime_value_header || set_string_runtime_header ||
-        compiler_artifact_header ||
+        compiler_artifact_header || checked_division_header ||
         plan.program.runtime_abi.dir_walk_id != 0 ||
         plan.program.runtime_abi.file_exists_id != 0 ||
         plan.program.runtime_abi.read_file_id != 0;

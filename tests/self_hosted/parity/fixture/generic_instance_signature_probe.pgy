@@ -1,0 +1,72 @@
+// Concrete signature validation only; this does not execute the MIR program.
+import "../../../../src/self_hosted/compiler/direct_mir_routine_instance_inventory_owner.pgy";
+import "../../../../src/self_hosted/codegen/text/text_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Die("usage: generic_instance_signature_probe <mir-json>"); }
+    let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(ReadFile(args[0]));
+    let declarations: MirProgramDeclarationIndex = BuildMirProgramDeclarationIndexFromTable(document.declarations);
+    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndexFromTable(document.routines, declarations);
+    let occurrences: MirGenericCallOccurrenceIndex = MirGenericCallOccurrenceIndexFromDocument(document, routines);
+    if !occurrences.valid { Die("MIR generic call occurrences are missing or invalid"); }
+    let closure: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(occurrences);
+    if !closure.valid { Die(closure.diagnostic); }
+    let inventory: DirectMirRoutineInstanceInventory = DirectMirRoutineInstanceInventoryFromOwners(
+        routines, occurrences, closure, DirectMirIdentityCellFactsFromDeclarations(document.root.json, declarations));
+    if !DirectMirRoutineInstanceInventoryReady(inventory) { Die(inventory.diagnostic); }
+    let call: Int = 0;
+    while call < ArrayLength(closure.call_recipes) {
+        let recipe: Int = closure.call_recipes[call];
+        let caller: Int = -1;
+        let ordinal: Int = 0;
+        while ordinal < ArrayLength(inventory.source_rows) {
+            if inventory.source_rows[ordinal] == occurrences.routine_rows[recipe] &&
+                inventory.instance_rows[ordinal] == closure.call_contexts[call] { caller = ordinal; }
+            ordinal = ordinal + 1;
+        }
+        let target: Int = DirectMirRoutineInstanceCallOrdinal(inventory, caller,
+            occurrences.instruction_rows[recipe], occurrences.lanes[recipe], occurrences.graph_nodes[recipe],
+            ToInt(routines.source_syntax_ids[occurrences.target_routine_rows[occurrences.specialization_rows[recipe]]]));
+        if target < 1 || inventory.instance_rows[target] != closure.call_targets[call] {
+            Die("generic execution call ordinal drifted");
+        }
+        let target_id: Int = ToInt(routines.source_syntax_ids[
+            occurrences.target_routine_rows[occurrences.specialization_rows[recipe]]]);
+        if DirectMirRoutineInstanceCallOrdinal(inventory, -1,
+                occurrences.instruction_rows[recipe], occurrences.lanes[recipe], occurrences.graph_nodes[recipe], target_id) >= 0 ||
+            DirectMirRoutineInstanceCallOrdinal(inventory, caller,
+                ArrayLength(routines.instruction_starts), occurrences.lanes[recipe], occurrences.graph_nodes[recipe], target_id) >= 0 ||
+            DirectMirRoutineInstanceCallOrdinal(inventory, caller,
+                occurrences.instruction_rows[recipe], 2, occurrences.graph_nodes[recipe], target_id) >= 0 ||
+            DirectMirRoutineInstanceCallOrdinal(inventory, caller,
+                occurrences.instruction_rows[recipe], occurrences.lanes[recipe], occurrences.graph_nodes[recipe], 0) >= 0 {
+            Die("generic execution accepted a missing caller, occurrence, lane or target identity");
+        }
+        call = call + 1;
+    }
+    let instance: Int = 0;
+    while instance < ArrayLength(closure.template_rows) {
+        let bound: DirectMirRoutineInstanceSignatureFact =
+            DirectMirRoutineInstanceSignatureFromClosure(routines, occurrences, closure, instance, inventory.identity_cells);
+        if !bound.valid { Die(bound.diagnostic); }
+        let row: Int = bound.template_row;
+        let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(
+            routines.source_json, routines.starts[row], routines.ends[row]);
+        if bound.signature.source_syntax_id != ToInt(routines.source_syntax_ids[row]) ||
+            bound.signature.param_count != ArrayLength(header.param_names) {
+            Die("generic routine source identity or parameter count changed");
+        }
+        let parameter: Int = 0;
+        while parameter < bound.signature.param_count {
+            if bound.signature.parameters.source_syntax_ids[parameter] != header.param_source_syntax_ids[parameter] ||
+                bound.signature.parameters.names[parameter] != header.param_names[parameter] {
+                Die("generic parameter source identity changed");
+            }
+            parameter = parameter + 1;
+        }
+        Log(bound.signature.name + "(" + StringJoin(bound.signature.parameters.type_names, ",") +
+            ")->" + bound.signature.return_type);
+        instance = instance + 1;
+    }
+}

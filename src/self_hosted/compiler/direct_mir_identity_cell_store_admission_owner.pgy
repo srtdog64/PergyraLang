@@ -1,0 +1,73 @@
+// A subject method updates its admitted receiver cell, never a copied record.
+// This receipt closes the exact formal binding / field / SSA definition edge.
+import "direct_mir_scalar_program_logical_record_member_rebind_owner.pgy";
+
+struct DirectMirIdentityCellStoreFact {
+    let valid: Bool;
+    let member: Int;
+    let type_name: String;
+    let use_prefix: Int;
+}
+
+func DirectMirIdentityCellStoreFromOwners(
+    ref instruction: JsonObjectFactTable, ref capture: MirRoutineInstructionScalarCapture,
+    ref index: MirRoutineFactIndex, ref uses: MirRoutineInstructionUseFacts,
+    ref locals: DirectMirScalarCfgLocalRefPlan, ref types: DirectMirScalarCfgValueTypePlan,
+    ref signature: DirectMirRoutineSignatureFact, ref cells: DirectMirIdentityCellFacts,
+    global_row: Int, result: Int, wire_kind: String
+) -> DirectMirIdentityCellStoreFact {
+    let invalid: DirectMirIdentityCellStoreFact = DirectMirIdentityCellStoreFact(false, -1, "", 0);
+    if !DirectMirRoutineSignatureFactReady(signature) || signature.kind != "method" ||
+        signature.receiver_carriage != "mutable-identity" || capture.arg1 != "default_param" { return invalid; }
+    let cell: Int = DirectMirIdentityCellRow(cells, signature.receiver_type);
+    if cell < 0 || cells.declaration_rows[cell] != signature.receiver_owner_row { return invalid; }
+    let target_field: String = "expr0_graph";
+    let prefix: Int = 0;
+    if wire_kind == "def" {
+        if capture.name != "ssa-def" || capture.arg0 != "self" ||
+            capture.abi_type_name != signature.receiver_type ||
+            !MirSsaNameMatches(capture.result, capture.arg0, false) ||
+            result < 0 || result >= ArrayLength(types.value_types) ||
+            types.value_types[result] != signature.receiver_type { return invalid; }
+        let local_row: Int = locals.value_local_rows[result];
+        if local_row < 0 || local_row >= ArrayLength(locals.local_names) ||
+            locals.local_names[local_row] != capture.arg0 || types.local_types[local_row] != signature.receiver_type { return invalid; }
+        prefix = DirectMirScalarProgramLogicalRecordMemberRebindUsePrefix(
+            index, uses, global_row, capture.result, local_row, false, locals, types);
+        target_field = "expr1_graph";
+    } else if wire_kind != "assign" || capture.name != "assign" || capture.arg0 != "" ||
+        capture.result != "" || result != -1 ||
+        !DirectMirInstructionHasNoPhysicalAbi(instruction.json, capture, "") {
+        return invalid;
+    }
+    let graph: MirExpressionGraphSequence = DirectMirScalarCfgInstructionGraphAt(instruction, target_field);
+    if !graph.ok || graph.ready_node_count != 3 || ArrayLength(graph.roots) != 1 || graph.roots[0] != 2 ||
+        graph.arena.topology.node_kinds[2] != AstExpressionNodeMemberAccess() ||
+        graph.arena.topology.left_children[2] != 0 || graph.arena.topology.right_children[2] != 1 ||
+        graph.arena.topology.node_kinds[0] != AstExpressionNodeLeaf() || graph.arena.node_texts[0] != "self" ||
+        graph.arena.identities.binding_kinds[0] != SemanticExpressionBindingFormalParameter() ||
+        graph.arena.identities.binding_ordinals[0] != 0 ||
+        graph.arena.identities.binding_syntax_ids[0] != signature.param.source_syntax_id ||
+        graph.arena.topology.node_kinds[1] != AstExpressionNodeLeaf() ||
+        graph.arena.identities.binding_kinds[1] != SemanticExpressionBindingNone() ||
+        graph.arena.identities.binding_ordinals[1] != -1 || graph.arena.identities.binding_syntax_ids[1] != 0 {
+        return invalid;
+    }
+    let member: Int = DirectMirIdentityCellFieldOrdinal(cells, signature.receiver_type, graph.arena.node_texts[1]);
+    let field_type: String = DirectMirIdentityCellFieldType(cells, signature.receiver_type, member);
+    if field_type == "" || prefix < 0 { return invalid; }
+    return DirectMirIdentityCellStoreFact(true, member, field_type, prefix);
+}
+
+func DirectMirIdentityCellStoreAppendOperation(
+    storage: DirectMirScalarCfgProgramOperationStorage,
+    result: Int, value_expression: Int, target_expression: Int, member: Int
+) -> DirectMirScalarCfgProgramOperationStorage {
+    let appended: DirectMirScalarCfgProgramOperationStorage = DirectMirScalarCfgProgramOperationsAppendExpression(
+        storage, DirectMirScalarCfgOpIdentityCellStore(), result, value_expression);
+    let members: Array<Int> = appended.right_locals;
+    let targets: Array<Int> = appended.secondary_expression_rows;
+    ArraySet(members, ArrayLength(members) - 1, member);
+    ArraySet(targets, ArrayLength(targets) - 1, target_expression);
+    return appended;
+}

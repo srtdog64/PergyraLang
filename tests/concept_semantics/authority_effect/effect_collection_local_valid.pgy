@@ -1,0 +1,10 @@
+func Main() -> Void with effects local {
+    let values: Array<Int> = [3, 1];
+    ArrayPush(values, 2);
+    ArraySort(values);
+    ArraySet(values, 0, 4);
+    ArrayReverse(values);
+    ArrayPop(values);
+    Log(ArrayLength(values));
+    Log(values[0]);
+}

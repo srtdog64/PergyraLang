@@ -1,0 +1,3 @@
+// Regression: a fixed local call must not be refused as an unknown effect.
+func Size(values: Array<Int>) -> Int with effects local { return ArrayLength(values); }
+func Main() -> Void with effects local { let size: Int = Size([1, 2]); Log(size); }

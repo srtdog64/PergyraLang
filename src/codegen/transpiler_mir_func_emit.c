@@ -13,6 +13,7 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
+#include "transpiler_generic_binding_query.h"
 #include "transpiler_host_self_policy.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_cfg_control_emit.h"
@@ -243,6 +244,18 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             param_callable != NULL
             || (!mir_active
                 && p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE);
+        if (type_name != NULL && ctx->generic_binding_count > 0) {
+            owned_type_name = transpiler_generic_type_name_with_bindings(
+                type_name, ctx->generic_bindings, (size_t)ctx->generic_binding_count);
+            if (owned_type_name == NULL) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "C generic body parameter requires a concrete MIR type for '%s'", name);
+                codebuf_destroy(params_sig);
+                transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
+                return;
+            }
+            type_name = owned_type_name;
+        }
         if (!event_handler_param && type_name != NULL) {
             if (transpiler_require_type_name_c_type_copy(ctx,
                     type_name, "MIR function parameter",
@@ -282,6 +295,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 "cannot determine parameter type for MIR-emitted function '%s' at argument %llu",
                 name != NULL ? name : "<function>",
                 (unsigned long long) i);
+            free(owned_type_name);
             codebuf_destroy(params_sig);
             free(header_decl);
             transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);

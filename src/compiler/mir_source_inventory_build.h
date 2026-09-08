@@ -22,6 +22,8 @@ bool mir_copy_ast_nodes(ASTNode ***dst, size_t *dst_count,
 /* Deep-copy `src_count` name pointers into a freshly allocated `*dst`. */
 bool mir_copy_names(const char ***dst, size_t *dst_count,
                     const char **src, size_t src_count);
+bool mir_copy_local_bindings(MIRLocalBinding **dst, size_t *dst_count,
+                             const HIRLocalBinding *src, size_t src_count);
 
 /* Deep-copy HIR phi nodes into freshly allocated MIR source phi nodes,
  * including their incoming-predecessor index arrays. */

@@ -1,0 +1,7 @@
+struct Value { let mut value: Int; }
+struct Outer { inner: Value; }
+func Main() -> Void {
+    let item: Outer = Outer(Value(1));
+    item.inner.value = 7;
+    Log(item.inner.value);
+}

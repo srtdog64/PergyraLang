@@ -7,7 +7,6 @@ import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
 
 func DirectMirScalarProgramLlvmPayloadEnumPreamble(
     ref fact: DirectMirScalarProgramReferencedEnumFact,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> String {
@@ -33,7 +32,7 @@ func DirectMirScalarProgramLlvmPayloadEnumPreamble(
                             fact.variant_param_types[
                                 fact.variant_param_type_starts[variant] +
                                     parameter],
-                            nominal, logical_record, payload_free_enum, fact);
+                            logical_record, payload_free_enum, fact);
                     if type_name == "" {
                         Die("direct MIR scalar LLVM enum payload type is unsupported");
                     }

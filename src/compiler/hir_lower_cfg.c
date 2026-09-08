@@ -1,6 +1,7 @@
 #include "hir_lower_cfg.h"
 #include "hir_lower_cfg_internal.h"
 
+#include <string.h>
 #include <sys/types.h>
 
 static ssize_t
@@ -327,10 +328,17 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
             block = &(*blocks)[(size_t)current_block];
             hir_cfg_set_goto(block, (size_t)cond_block);
             (*blocks)[(size_t)cond_block].is_loop_header = true;
-            hir_cfg_set_branch(&(*blocks)[(size_t)cond_block],
-                           ast_while_condition(node),
-                           (size_t)body_block,
-                           (size_t)exit_block);
+            ASTNode *condition = ast_while_condition(node);
+            if (condition != NULL && condition->type == AST_BOOLEAN) {
+                /* A literal has only one feasible edge. In particular a
+                 * while-true tail is reachable only through an owned break,
+                 * matching semantic flow's unreachable-statement boundary. */
+                hir_cfg_set_goto(&(*blocks)[(size_t)cond_block],
+                    ast_boolean_value(condition) ? (size_t)body_block : (size_t)exit_block);
+            } else {
+                hir_cfg_set_branch(&(*blocks)[(size_t)cond_block], condition,
+                                  (size_t)body_block, (size_t)exit_block);
+            }
             HIRLoopContext nested_loop = {
                 .active = true,
                 .label = ast_while_label(node),
@@ -516,8 +524,16 @@ hir_lower_func_body_cfg(ASTNode *body, HIRRoutine *routine)
                                                      entry,
                                                      NULL,
                                                      NULL);
-    if (open_block >= 0)
-        hir_cfg_set_unreachable(&blocks[(size_t)open_block]);
+    /* Falling off a checked function body is a real implicit Void return.
+     * Keeping it as an unreachable terminator hid observable exit consumers
+     * such as inout copy-out from MIR use/liveness analysis. */
+    if (open_block >= 0) {
+        const char *return_type = ast_func_semantic_return_type_name(routine->ast);
+        if (return_type != NULL && strcmp(return_type, "Void") == 0)
+            hir_cfg_set_return(&blocks[(size_t)open_block], NULL);
+        else
+            hir_cfg_set_unreachable(&blocks[(size_t)open_block]);
+    }
 
     routine->cfg.blocks = blocks;
     routine->cfg.block_count = block_count;

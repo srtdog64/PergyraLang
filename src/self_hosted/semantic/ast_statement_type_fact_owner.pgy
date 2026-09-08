@@ -181,7 +181,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
             names, types, modes
         ) { environment_fact = "owner_field_environment"; }
         else if !SemanticAstExpressionSeedParameters(
-            signatures, statements.function_node_ids[i], names, types
+            signatures, constructors, statements.function_node_ids[i], names, types
         ) { environment_fact = "parameter_environment"; }
         else if !SemanticAstExpressionSeedParameterModes(
             signatures, statements.function_node_ids[i], modes
@@ -221,6 +221,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
         let row_code: String = "";
         let row_message: String = "";
         let checks_expression: Bool = kind != TypedAstKindBareReturnStmtTag() &&
+            kind != TypedAstKindUnsafeBlockTag() &&
             kind != TypedAstKindMatchCaseStmtTag() &&
             kind != TypedAstKindForStmtTag() &&
             kind != TypedAstKindArrayPopStmtTag() &&

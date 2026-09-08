@@ -1,24 +1,62 @@
 // Persisted expression-graph presence for one MIR intent carrier row.
 
 import "routine_fact_index_owner.pgy";
+import "expression_graph_sequence_owner.pgy";
 
 func MirIntentExpressionCarrierGraphPresent(
     ref routines: MirProgramRoutineIndex,
     global_row: Int
 ) -> Bool {
-    if global_row < 0 || global_row >=
-        ArrayLength(routines.instruction_starts) ||
-        ArrayLength(routines.instruction_ends) !=
-            ArrayLength(routines.instruction_starts) {
+    let fact: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(routines.instruction_expressions, global_row);
+    if !fact.valid { return false; }
+    let graph: JsonObjectFactTable = MirProgramInstructionExpressionGraphTable(
+        routines.source_json, fact, 0);
+    return JsonObjectFactTableReady(graph);
+}
+
+// Bounded legacy emitters may return a constant only when that exact value is
+// owned by the admitted completion graph, never from omitted source clauses.
+func MirIntentExpressionCarrierIsTrue(
+    ref routines: MirProgramRoutineIndex, global_row: Int
+) -> Bool {
+    let fact: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(routines.instruction_expressions, global_row);
+    if !fact.valid { return false; }
+    let sequence: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(
+        MirExpressionGraphSequenceEmpty(),
+        MirProgramInstructionExpressionGraphTable(routines.source_json, fact, 0));
+    if !sequence.ok || ArrayLength(sequence.roots) != 1 { return false; }
+    let root: Int = sequence.roots[0];
+    return root >= 0 && root < SemanticExpressionGraphArenaNodeCount(sequence.arena) &&
+        sequence.arena.topology.node_kinds[root] == AstExpressionNodeBoolLiteral() &&
+        sequence.arena.node_texts[root] == "true";
+}
+
+// A source invariant owns one expression, evaluated at two phase boundaries.
+// Compare admitted graph structure/identities, never caller-supplied digests.
+func MirIntentInvariantCarrierGraphsEqual(
+    ref routines: MirProgramRoutineIndex, before_row: Int, after_row: Int
+) -> Bool {
+    if before_row < 0 || after_row < 0 || before_row == after_row {
         return false;
     }
-    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        routines.source_json, routines.instruction_starts[global_row],
-        routines.instruction_ends[global_row]
-    );
-    let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
-        instruction, "expr0_graph"
-    );
-    return JsonObjectFactTableReady(instruction) &&
-        JsonObjectFactTableReady(graph);
+    let before_fact: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(routines.instruction_expressions, before_row);
+    let after_fact: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(routines.instruction_expressions, after_row);
+    let before: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(
+        MirExpressionGraphSequenceEmpty(), MirProgramInstructionExpressionGraphTable(
+            routines.source_json, before_fact, 0));
+    let after: MirExpressionGraphSequence = MirExpressionGraphSequenceAppend(
+        MirExpressionGraphSequenceEmpty(), MirProgramInstructionExpressionGraphTable(
+            routines.source_json, after_fact, 0));
+    if !before.ok || !after.ok || ArrayLength(before.roots) != 1 ||
+        ArrayLength(after.roots) != 1 { return false; }
+    let present: Array<Bool> = [true];
+    let before_graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, before.roots, present, before.arena);
+    let after_graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, after.roots, present, after.arena);
+    return SemanticExpressionGraphFactsEqual(before_graph, after_graph);
 }

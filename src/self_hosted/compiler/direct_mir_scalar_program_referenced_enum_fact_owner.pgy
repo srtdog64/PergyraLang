@@ -5,7 +5,7 @@
 // variant ordinals and payload types; later payload-free and tagged-payload
 // projections are strict views of this fact rather than declaration rescans.
 
-import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_routine_instance_inventory_owner.pgy";
 import "direct_mir_scalar_cfg_hash_owner.pgy";
 import "../mir_lower/program_declaration_index_owner.pgy";
 
@@ -181,7 +181,8 @@ func DirectMirScalarProgramReferencedEnumReferenceAdd(
 }
 
 func DirectMirScalarProgramReferencedEnumFactFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref routine_instances: DirectMirRoutineInstanceInventory
 ) -> DirectMirScalarProgramReferencedEnumFact {
     let invalid: DirectMirScalarProgramReferencedEnumFact =
         DirectMirScalarProgramReferencedEnumFactInvalid();
@@ -192,12 +193,9 @@ func DirectMirScalarProgramReferencedEnumFactFromAdmitted(
     }
     let referenced: Array<Int> = [];
     let routine: Int = 0;
-    while routine < MirProgramRoutineIndexCount(admitted.routines) {
+    while routine < ArrayLength(routine_instances.source_rows) {
         let signature: DirectMirRoutineSignatureFact =
-            DirectMirRoutineSignatureFactAt(
-                admitted.routines, routine,
-                MirProgramRoutineIndexBlockInstructionCountAt(
-                    admitted.routines, routine, 0));
+            DirectMirRoutineInstanceSignatureAt(routine_instances, routine);
         if !DirectMirRoutineSignatureFactReady(signature) ||
             !DirectMirScalarProgramReferencedEnumReferenceAdd(
                 admitted.domain_runtime_admission.declarations,

@@ -27,6 +27,9 @@
         ast_add_statement(func->data.func_decl.body,
             make_call("f", NULL, 0, 4));
 
+        /* Direct checker entry must receive the same stable identities as
+         * semantic_analyze supplies for a parsed program. */
+        bool assigned_ids = ast_assign_stable_ids(func);
         type_check_func_decl(func, ctx);
 
         Symbol *sym = scope_lookup(ctx->scope, "CallLambda");
@@ -34,7 +37,7 @@
             ? type_function_effects(sym->type) : EFFECT_NONE;
         uint32_t body_summary = sym != NULL && sym->type != NULL
             ? type_function_body_summary(sym->type) : BODY_SUMMARY_NONE;
-        EXPECT(!ctx->has_error
+        EXPECT(assigned_ids && !ctx->has_error
             && type_effect_mask_has(effects, EFFECT_REMOTE)
             && (body_summary & BODY_SUMMARY_EFFECTS) != 0
             && (body_summary & BODY_SUMMARY_SPAWNS_TASK) != 0

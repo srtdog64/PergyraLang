@@ -1,0 +1,34 @@
+import "../../../src/self_hosted/hir/ast_text_scan_owner.pgy";
+import "../../../src/self_hosted/semantic/builtin_signature_owner.pgy";
+
+func Main() -> Void {
+    Log(SemanticBuiltinSignatureContractReady());
+    let context: Option<String> = SemanticContextualBuiltinReturnTypeOpt("MapNew", 0, Some("HashMap<String, Int>"));
+    Log(IsSome(context) && UnwrapOption(context) == "HashMap<String, Int>");
+    Log(IsSome(SemanticContextualBuiltinReturnTypeOpt("MapNew", 0, Some("HashMap<Int, String>"))));
+    Log(IsSome(SemanticContextualBuiltinReturnTypeOpt("MapNew", 0, Some("HashMap<Long, Array<Int>>"))));
+    Log(IsSome(SemanticContextualBuiltinReturnTypeOpt("MapNew", 0, Some("HashMap<Bool, Int>"))));
+    Log(!IsSome(SemanticContextualBuiltinReturnTypeOpt("MapNew", 0, Some("HashMap<Float, Int>"))));
+    Log(!IsSome(SemanticContextualBuiltinReturnTypeOpt("MapNew", 0, Some("HashMap<String, Unknown>"))));
+    Log(!IsSome(SemanticContextualBuiltinReturnTypeOpt("MapNew", 0, None)) &&
+        !IsSome(SemanticContextualBuiltinReturnTypeOpt("MapNew", 0, Some("List<Int>"))) &&
+        !IsSome(SemanticContextualBuiltinReturnTypeOpt("MapNew", 1, Some("HashMap<String, Int>"))));
+    let set: SemanticHashMapCallSignature = SemanticHashMapCallSignatureFrom("MapSet", 3, "HashMap<String, Int>");
+    Log(set.applies && set.ok && set.return_type == "Void" && ArrayLength(set.parameter_types) == 3 &&
+        set.parameter_types[0] == "HashMap<String, Int>" && set.parameter_types[1] == "String" && set.parameter_types[2] == "Int");
+    let get: SemanticHashMapCallSignature = SemanticHashMapCallSignatureFrom("MapGet", 2, "HashMap<Int, String>");
+    Log(get.ok && get.return_type == "String" && get.parameter_types[1] == "Int");
+    let keys: SemanticHashMapCallSignature = SemanticHashMapCallSignatureFrom("MapKeys", 1, "HashMap<Bool, Int>");
+    Log(keys.ok && keys.return_type == "Array<Bool>");
+    Log(SemanticHashMapCallSignatureFrom("MapSize", 1, "HashMap<Long, Int>").return_type == "Int" &&
+        SemanticHashMapCallSignatureFrom("MapHas", 2, "HashMap<String, Int>").return_type == "Bool");
+    Log(!SemanticHashMapCallSignatureFrom("MapGet", 1, "HashMap<String, Int>").ok);
+    Log(!SemanticHashMapCallSignatureFrom("MapSet", 3, "Array<Int>").ok &&
+        !SemanticHashMapCallSignatureFrom("MapSize", 1, "HashMap<Float, Int>").ok);
+    Log(!SemanticHashMapCallSignatureFrom("MapGet", 2, "HashMap<String, Unknown>").ok);
+    Log(!SemanticHashMapCallSignatureFrom("unregistered", 0, "").applies);
+    Log(StringContains(SemanticHashMapContextualTypeError(Some("HashMap<Float, Int>"),
+        "HashMap<Unknown, Unknown>"), "supported stable scalar key"));
+    Log(SemanticHashMapContextualTypeError(Some("HashMap<String, Int>"),
+        "HashMap<Unknown, Unknown>") == "");
+}

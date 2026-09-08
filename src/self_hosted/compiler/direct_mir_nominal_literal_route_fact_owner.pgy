@@ -1,4 +1,5 @@
-// One sealed routing claim for the value/identity nominal literal frontier.
+// The remaining literal frontier owns mutable identity only. Passive values
+// are admitted by the general logical-record GraphPlan, never retried here.
 import "direct_mir_nominal_literal_declaration_fact_owner.pgy";
 import "../codegen/text/text_owner.pgy";
 struct DirectMirNominalLiteralRouteFact {
@@ -10,7 +11,7 @@ struct DirectMirNominalLiteralRouteFact {
     let name: String;
 }
 func DirectMirNominalLiteralRouteKind(kind: String) -> Bool {
-    return DirectMirNominalLiteralFrontierKindReady(kind);
+    return CallableReceiverNominalKindUsesMutableLiteralIdentity(kind);
 }
 func DirectMirNominalLiteralRouteFactDigest(
     ref fact: DirectMirNominalLiteralRouteFact
@@ -33,14 +34,14 @@ func DirectMirNominalLiteralRouteFactReady(
     if !fact.claimed {
         return fact.kind == "" && fact.nominal_kind == "" && fact.name == "";
     }
-    return DirectMirNominalLiteralRouteKind(fact.kind) &&
-        fact.kind == fact.nominal_kind && fact.name != "";
+    return DirectMirNominalLiteralRouteKind(fact.nominal_kind) &&
+        fact.kind == MirDeclarationWireKind(fact.nominal_kind) && fact.name != "";
 }
 func DirectMirNominalLiteralRouteUsesMutableIdentity(
     ref fact: DirectMirNominalLiteralRouteFact
 ) -> Bool {
     return DirectMirNominalLiteralRouteFactReady(fact) && fact.claimed &&
-        CallableReceiverNominalKindUsesMutableIdentity(fact.kind);
+        CallableReceiverNominalKindUsesMutableIdentity(fact.nominal_kind);
 }
 func DirectMirNominalLiteralRouteFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput

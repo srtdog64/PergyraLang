@@ -1,0 +1,31 @@
+func Bump(inout value: Int) -> Int {
+    value = value + 1;
+    return value;
+}
+func Touch(inout value: Int) -> Bool {
+    value = value + 1;
+    return true;
+}
+func Main() -> Void {
+    let mut n: Int = 0;
+    Log(Bump(n) * 10 + Bump(n));
+    Log(n);
+    n = 0;
+    Log("a" + ToString(Bump(n)) + ToString(n));
+    Log(n);
+    n = 0;
+    Log(Bump(n) < Bump(n));
+    Log(n);
+    n = 0;
+    Log(ToString(Bump(n)) == ToString(n));
+    Log(n);
+    n = 6;
+    Log(Bump(n) / Bump(n));
+    Log(n);
+    n = 0;
+    Log(false && Touch(n));
+    Log(true || Touch(n));
+    Log(n);
+    Log(true && Touch(n));
+    Log(n);
+}

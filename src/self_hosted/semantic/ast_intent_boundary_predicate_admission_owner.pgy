@@ -1,0 +1,77 @@
+// Intent boundary predicates are Bool before either backend runs. Header
+// predicates see purpose formals; pre/invariant exclude the current outcome.
+import "ast_body_verdict_owner.pgy";
+import "ast_artifact_verdict_owner.pgy";
+import "ast_intent_expression_environment_owner.pgy";
+import "ast_expression_function_table_fact_owner.pgy";
+
+func SemanticAstIntentBoundaryPredicateAdmission(
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis,
+    ref function_tables: SemanticAstExpressionFunctionTableFacts
+) -> SemanticAstBodyVerdict {
+    let member_roots: Array<String> = [];
+    let member_roots_ready: Bool = false;
+    let row: Int = 0;
+    while row < ArrayLength(analysis.expression_surfaces.node_ids) {
+        let node_id: Int = analysis.expression_surfaces.node_ids[row];
+        let is_pre: Bool = TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindIntentStepPreTag());
+        let is_invariant: Bool = TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindIntentStepInvariantTag());
+        let is_header: Bool = TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindIntentSuccessTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, node_id, TypedAstKindIntentFailureTag());
+        if is_pre || is_invariant || is_header {
+            let intent_node: Int = analysis.expression_surfaces.intent_node_ids[row];
+            let intent_index: Option<Int> = SemanticAstIntentSignatureIndexForNode(
+                analysis.intent_signatures, intent_node);
+            let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                analysis.expression_surfaces, node_id, AstExpressionLaneAtom());
+            if !IsSome(intent_index) || !IsSome(root) {
+                return SemanticAstBodyVerdictError("ast_artifact_invalid",
+                    SemanticError1("ast_artifact_invalid", "owner", "IntentBoundaryPredicate"), node_id);
+            }
+            if analysis.intent_signatures.result_modes[UnwrapOption(intent_index)] == "typed_enum" {
+                return SemanticAstBodyVerdictError("intent_predicate_plan_unavailable",
+                    SemanticError1("intent_predicate_plan_unavailable", "plan", "typed_enum"), node_id);
+            }
+            if !member_roots_ready {
+                if !SemanticAstExpressionMemberRootNames(
+                    analysis.constructors, analysis.enums, member_roots) {
+                    return SemanticAstBodyVerdictError("ast_artifact_invalid",
+                        SemanticError1("ast_artifact_invalid", "owner", "IntentPredicateMemberRoots"), node_id);
+                }
+                member_roots_ready = true;
+            }
+            let names: Array<String> = [];
+            let types: Array<String> = [];
+            let modes: Array<String> = [];
+            if !SemanticAstExpressionSeedEnumValues(analysis.enums, names, types, modes) ||
+                !SemanticAstIntentExpressionSeedEnvironment(artifact,
+                    analysis.signatures, analysis.intent_signatures,
+                    analysis.intent_transitions, intent_node, node_id, names, types, modes) {
+                return SemanticAstBodyVerdictError("ast_artifact_invalid",
+                    SemanticError1("ast_artifact_invalid", "owner", "IntentPredicateEnvironment"), node_id);
+            }
+            let expression: SemanticAstExpressionVerdict =
+                SemanticAstExpressionVerdictFromGraph(
+                    analysis.expression_surfaces.normalized_atoms[row],
+                    analysis.expression_surfaces.expression_graph, UnwrapOption(root),
+                    analysis.constructors, analysis.signatures, names, types, modes,
+                    function_tables.names, function_tables.returns,
+                    function_tables.params, member_roots, -1);
+            if !expression.ok {
+                return SemanticAstBodyVerdictError(expression.diagnostic_code,
+                    expression.diagnostic_message, node_id);
+            }
+            if expression.inferred_type_name != "Bool" {
+                return SemanticAstBodyVerdictError("condition_not_bool",
+                    SemanticError2("condition_not_bool", "expected", "Bool",
+                        "actual", expression.inferred_type_name), node_id);
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

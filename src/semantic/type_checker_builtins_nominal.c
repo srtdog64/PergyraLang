@@ -63,7 +63,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         Type *args[1] = { TYPE_STRING };
         if (!check_call_arity(call, 0, "Args", ctx))
             return TYPE_UNKNOWN;
-        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        semantic_record_builtin_effect(ctx, call, "Args");
         semantic_record_capability(ctx, capability_for_builtin("Args"));
         return type_create_constructed(TYPE_ARRAY, args, 1);
     }
@@ -116,7 +116,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
                 TYPE_INT, ast_call_argument(call, 0), ctx);
         }
-        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_builtin_effect(ctx, call, "CompilerArtifactAbort");
         semantic_record_capability(ctx, capability_for_builtin("CompilerArtifactAbort"));
         return TYPE_INT;
     case BUILTIN_COMPILER_ARTIFACT_BEGIN:
@@ -124,7 +124,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
                 TYPE_STRING, ast_call_argument(call, 0), ctx);
         }
-        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_builtin_effect(ctx, call, "CompilerArtifactBegin");
         semantic_record_capability(ctx, capability_for_builtin("CompilerArtifactBegin"));
         return TYPE_INT;
     case BUILTIN_COMPILER_ARTIFACT_COMMIT:
@@ -132,7 +132,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
                 TYPE_INT, ast_call_argument(call, 0), ctx);
         }
-        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_builtin_effect(ctx, call, "CompilerArtifactCommit");
         semantic_record_capability(ctx, capability_for_builtin("CompilerArtifactCommit"));
         return TYPE_INT;
     case BUILTIN_COMPILER_ARTIFACT_WRITE:
@@ -142,7 +142,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 1), ctx),
                 TYPE_STRING, ast_call_argument(call, 1), ctx);
         }
-        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_builtin_effect(ctx, call, "CompilerArtifactWrite");
         semantic_record_capability(ctx, capability_for_builtin("CompilerArtifactWrite"));
         return TYPE_BOOL;
     case BUILTIN_DIR_WALK:
@@ -152,8 +152,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         }
         {
             Type *args[1] = { TYPE_STRING };
-            semantic_record_effect(ctx, EFFECT_IO);
-            semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+            semantic_record_builtin_effect(ctx, call, "DirWalk");
             semantic_record_capability(ctx, capability_for_builtin("DirWalk"));
             return type_create_constructed(TYPE_ARRAY, args, 1);
         }
@@ -162,7 +161,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
                 TYPE_STRING, ast_call_argument(call, 0), ctx);
         }
-        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_builtin_effect(ctx, call, "FileExists");
         semantic_record_capability(ctx, capability_for_builtin("FileExists"));
         return TYPE_BOOL;
     case BUILTIN_FILE_OPEN:
@@ -172,7 +171,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 1), ctx),
                 TYPE_STRING, ast_call_argument(call, 1), ctx);
         }
-        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_builtin_effect(ctx, call, "FileOpen");
         semantic_record_capability(ctx, pgy_file_mode_capability_mask(
             ast_string_value(ast_call_arg_count(call) >= 2
                 ? ast_call_argument(call, 1)
@@ -183,7 +182,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
                 TYPE_INT, ast_call_argument(call, 0), ctx);
         }
-        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_builtin_effect(ctx, call, "FileRead");
         semantic_record_capability(ctx, capability_for_builtin("FileRead"));
         return TYPE_STRING;
     case BUILTIN_FILE_WRITE:
@@ -193,7 +192,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 1), ctx),
                 TYPE_STRING, ast_call_argument(call, 1), ctx);
         }
-        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_builtin_effect(ctx, call, "FileWrite");
         semantic_record_capability(ctx, capability_for_builtin("FileWrite"));
         return TYPE_VOID;
     case BUILTIN_FILE_CLOSE:
@@ -201,14 +200,14 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
                 TYPE_INT, ast_call_argument(call, 0), ctx);
         }
-        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_builtin_effect(ctx, call, "FileClose");
         return TYPE_VOID;
     case BUILTIN_READ_FILE:
         if (check_call_arity(call, 1, "ReadFile", ctx)) {
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
                 TYPE_STRING, ast_call_argument(call, 0), ctx);
         }
-        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_builtin_effect(ctx, call, "ReadFile");
         semantic_record_capability(ctx, capability_for_builtin("ReadFile"));
         return TYPE_STRING;
     case BUILTIN_READ_STDIN:
@@ -216,8 +215,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
                 TYPE_INT, ast_call_argument(call, 0), ctx);
         }
-        semantic_record_effect(ctx, EFFECT_IO);
-        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        semantic_record_builtin_effect(ctx, call, "ReadStdin");
         semantic_record_capability(ctx, capability_for_builtin("ReadStdin"));
         return TYPE_STRING;
     case BUILTIN_WRITE_FILE:
@@ -227,11 +225,11 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 1), ctx),
                 TYPE_STRING, ast_call_argument(call, 1), ctx);
         }
-        semantic_record_effect(ctx, EFFECT_IO);
+        semantic_record_builtin_effect(ctx, call, "WriteFile");
         semantic_record_capability(ctx, capability_for_builtin("WriteFile"));
         return TYPE_VOID;
     case BUILTIN_INPUT:
-        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        semantic_record_builtin_effect(ctx, call, "Input");
         semantic_record_capability(ctx, capability_for_builtin("Input"));
         if (ast_call_arg_count(call) > 1) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,

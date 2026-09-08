@@ -159,6 +159,8 @@ func SelfDirIntentReceiptHashStep(
     hash = SelfDirIntentReceiptHashString(hash, facts.steps.outcome_type_names[row]);
     hash = SelfDirIntentReceiptHashInt(hash, facts.steps.target_expression_node_ids[row]);
     hash = SelfDirIntentReceiptHashInt(hash, facts.steps.guard_node_ids[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.pre_node_ids[row]);
+    hash = SelfDirIntentReceiptHashInt(hash, facts.steps.invariant_node_ids[row]);
     hash = SelfDirIntentReceiptHashInt(hash, facts.steps.post_node_ids[row]);
     hash = SelfDirIntentReceiptHashInt(hash, facts.steps.expect_node_ids[row]);
     hash = SelfDirIntentReceiptHashInt(hash, facts.steps.child_counts[row]);
@@ -232,7 +234,7 @@ func SelfDirIntentFactsIdentityDigest(
     ref facts: SelfDirIntentFacts
 ) -> Int {
     let hash: Long = SelfDirIntentReceiptHashString(
-        37L, "pgy.self-dir.intent-receipt.v2"
+        37L, "pgy.self-dir.intent-receipt.v3"
     );
     hash = SelfDirIntentReceiptHashBool(hash, facts.required);
     hash = SelfDirIntentReceiptHashBool(hash, facts.ok);
@@ -263,6 +265,7 @@ func SelfDirIntentFactsIdentityDigest(
         hash = SelfDirIntentReceiptHashString(hash, facts.names[row]);
         hash = SelfDirIntentReceiptHashString(hash, facts.result_modes[row]);
         hash = SelfDirIntentReceiptHashString(hash, facts.return_type_names[row]);
+        hash = SelfDirIntentReceiptHashInt(hash, facts.success_expression_node_ids[row]);
         hash = SelfDirIntentReceiptHashInt(hash, facts.modes.node_ids[row]);
         hash = SelfDirIntentReceiptHashString(hash, facts.modes.names[row]);
         hash = SelfDirIntentReceiptHashBool(

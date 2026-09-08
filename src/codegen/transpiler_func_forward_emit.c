@@ -8,6 +8,7 @@
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_generic_binding_query.h"
 #include "transpiler_host_self_policy.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_signature.h"
@@ -108,6 +109,17 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         }
         if (p == NULL)
             continue;
+        if (type_name != NULL && ctx->generic_binding_count > 0) {
+            owned_type_name = transpiler_generic_type_name_with_bindings(
+                type_name, ctx->generic_bindings, (size_t)ctx->generic_binding_count);
+            if (owned_type_name == NULL) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "C generic forward parameter requires a concrete MIR type for '%s'", name);
+                codebuf_destroy(params_sig);
+                return;
+            }
+            type_name = owned_type_name;
+        }
         carriage = allow_ast_compat
             ? mir_param_carriage_from_source_mode(p->mode)
             : transpiler_mir_routine_param_carriage(mir_routine, i);
@@ -156,6 +168,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             if (params_sig != NULL)
                 codebuf_destroy(params_sig);
             free(header_decl);
+            free(owned_type_name);
             return;
         }
         if (i > 0)

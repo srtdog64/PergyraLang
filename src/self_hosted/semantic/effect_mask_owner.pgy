@@ -1,0 +1,70 @@
+// Effect lattice projection over the canonical vocabulary, independent of caps.
+// These masks are analysis facts, not new wire IDs or capability grants.
+import "../lib/callable_contract_vocabulary_projection_owner.pgy";
+
+func SemanticEffectMaskForWord(name: String) -> Int {
+    let index: Int = CallableContractVocabularyFindIndex(CallableContractVocabularyEffectAxis(), name);
+    if index < 0 { return -1; }
+    if CallableContractVocabularyZeroPolicyAt(index) == CallableContractVocabularyZeroExclusive() { return 0; }
+    let mask: Int = 1;
+    let rank: Int = 0;
+    while rank < CallableContractVocabularyCanonicalRankAt(index) {
+        mask = mask * 2;
+        rank = rank + 1;
+    }
+    return mask;
+}
+
+func SemanticEffectMaskHas(mask: Int, effect: Int) -> Bool {
+    return mask >= 0 && effect > 0 && ((mask / effect) % 2) == 1;
+}
+
+func SemanticEffectMaskClosure(mask: Int) -> Int {
+    if mask < 0 || mask > 255 { return -1; }
+    let collapse_mask: Int = SemanticEffectMaskForWord("collapse");
+    let nondeterministic_mask: Int = SemanticEffectMaskForWord("nondeterministic");
+    if SemanticEffectMaskHas(mask, collapse_mask) && !SemanticEffectMaskHas(mask, nondeterministic_mask) {
+        return mask + nondeterministic_mask;
+    }
+    return mask;
+}
+
+func SemanticEffectMaskJoin(left: Int, right: Int) -> Int {
+    if left < 0 || right < 0 || left > 255 || right > 255 { return -1; }
+    let result: Int = left;
+    let bit: Int = 1;
+    while bit < 256 {
+        if SemanticEffectMaskHas(right, bit) && !SemanticEffectMaskHas(result, bit) { result = result + bit; }
+        bit = bit * 2;
+    }
+    return SemanticEffectMaskClosure(result);
+}
+
+func SemanticEffectMaskDifference(left: Int, right: Int) -> Int {
+    let used: Int = SemanticEffectMaskClosure(left);
+    let declared: Int = SemanticEffectMaskClosure(right);
+    if used < 0 || declared < 0 { return -1; }
+    let result: Int = 0;
+    let bit: Int = 1;
+    while bit < 256 {
+        if SemanticEffectMaskHas(used, bit) && !SemanticEffectMaskHas(declared, bit) { result = result + bit; }
+        bit = bit * 2;
+    }
+    return result;
+}
+
+func SemanticEffectMaskNames(mask: Int) -> String {
+    let output: String = "";
+    let rank: Int = 0;
+    while rank < 9 {
+        let index: Int = CallableContractVocabularyIndexAtRank(CallableContractVocabularyEffectAxis(), rank);
+        let name: String = CallableContractVocabularySpellingAt(index);
+        if SemanticEffectMaskHas(mask, SemanticEffectMaskForWord(name)) {
+            if output != "" { output = Concat(output, ", "); }
+            output = Concat(output, name);
+        }
+        rank = rank + 1;
+    }
+    if output == "" { return "local"; }
+    return output;
+}

@@ -4,6 +4,34 @@ import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_cfg_program_routine_identity_owner.pgy";
 import "../codegen/text/text_owner.pgy";
 
+func DirectMirScalarProgramRoutinePartitionOwner(
+    ref counts: Array<Int>, item: Int
+) -> Int {
+    let start: Int = 0;
+    let routine: Int = 0;
+    while routine < ArrayLength(counts) {
+        if counts[routine] < 0 { return -1; }
+        if item >= start && item < start + counts[routine] { return routine; }
+        start = start + counts[routine];
+        routine = routine + 1;
+    }
+    return -1;
+}
+
+func DirectMirScalarProgramRoutinePartitionStart(
+    ref counts: Array<Int>, routine: Int
+) -> Int {
+    if routine < 0 || routine >= ArrayLength(counts) { return -1; }
+    let start: Int = 0;
+    let row: Int = 0;
+    while row < routine {
+        if counts[row] < 0 { return -1; }
+        start = start + counts[row];
+        row = row + 1;
+    }
+    return start;
+}
+
 func DirectMirScalarCfgProgramRoutineStarts(
     counts: Array<Int>
 ) -> Array<Int> {
@@ -24,20 +52,19 @@ func DirectMirScalarCfgProgramRoutineStarts(
 }
 
 func DirectMirScalarCfgProgramRoutinePartitionFromOwners(
-    ref routines: MirProgramRoutineIndex,
-    routine_rows: Array<Int>, cfg_digests: Array<Int>,
+    ref instances: DirectMirRoutineInstanceInventory,
+    cfg_digests: Array<Int>,
     local_counts: Array<Int>, value_counts: Array<Int>,
     block_counts: Array<Int>, operation_counts: Array<Int>,
     phi_counts: Array<Int>,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarCfgRoutinePartitionFact {
     let routine_count: Int = ArrayLength(local_counts);
     if routine_count < 1 ||
-        MirProgramRoutineIndexCount(routines) != routine_count ||
-        ArrayLength(routine_rows) != routine_count ||
+        !DirectMirRoutineInstanceInventoryReady(instances) ||
+        ArrayLength(instances.source_rows) != routine_count ||
         ArrayLength(cfg_digests) != routine_count ||
         ArrayLength(value_counts) != routine_count ||
         ArrayLength(block_counts) != routine_count ||
@@ -47,7 +74,7 @@ func DirectMirScalarCfgProgramRoutinePartitionFromOwners(
     }
     let identity: DirectMirScalarCfgProgramRoutineIdentity =
         DirectMirScalarCfgProgramRoutineIdentityFromOwners(
-            routines, routine_rows, cfg_digests, nominal, logical_record,
+            instances, cfg_digests, logical_record,
             payload_free_enum, referenced_enum
         );
     if !identity.valid {
@@ -56,7 +83,7 @@ func DirectMirScalarCfgProgramRoutinePartitionFromOwners(
     let fact: DirectMirScalarCfgRoutinePartitionFact =
         DirectMirScalarCfgRoutinePartitionFact(
             true, 0, 0,
-            identity.roles, identity.source_rows, identity.source_syntax_ids,
+            identity.roles, identity.source_rows, identity.source_syntax_ids, identity.instance_keys,
             identity.names, identity.return_types, identity.parameter_counts,
             identity.parameter_starts, identity.parameter_types,
             identity.parameter_carriages,
@@ -72,7 +99,7 @@ func DirectMirScalarCfgProgramRoutinePartitionFromOwners(
     return DirectMirScalarCfgRoutinePartitionFact(
         fact.valid, DirectMirScalarCfgRoutinePartitionDigest(fact),
         fact.entrypoint_ordinal, fact.roles, fact.source_rows,
-        fact.source_syntax_ids, fact.names, fact.return_types,
+        fact.source_syntax_ids, fact.instance_keys, fact.names, fact.return_types,
         fact.parameter_counts, fact.parameter_starts, fact.parameter_types,
         fact.parameter_carriages,
         fact.signature_digests, fact.cfg_digests, fact.local_starts,

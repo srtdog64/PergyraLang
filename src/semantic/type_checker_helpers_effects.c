@@ -150,7 +150,7 @@ declared_effects_from_function_node(ASTNode *node, SemanticContext *ctx,
 }
 
 void
-semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask)
+semantic_record_callee_effect_provenance(SemanticContext *ctx, uint32_t effect_mask)
 {
     if (ctx == NULL || !ctx->tracking_function_effects)
         return;
@@ -158,6 +158,34 @@ semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask)
         type_effect_mask_join(ctx->current_function_effects, effect_mask);
     if (effect_mask != EFFECT_NONE)
         semantic_record_body_summary(ctx, BODY_SUMMARY_EFFECTS);
+}
+
+void
+semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask)
+{
+    if (ctx == NULL || !ctx->tracking_function_effects)
+        return;
+    ctx->current_function_direct_effects =
+        type_effect_mask_join(ctx->current_function_direct_effects, effect_mask);
+    semantic_record_callee_effect_provenance(ctx, effect_mask);
+}
+
+void
+semantic_record_builtin_effect(SemanticContext *ctx, ASTNode *site, const char *name)
+{
+    static const struct { const char *name; uint32_t effects; } rows[] = {
+#define PGY_BUILTIN_EFFECT(name, mask) {name, mask},
+#include "builtin_effect_registry.def"
+#undef PGY_BUILTIN_EFFECT
+    };
+    for (size_t i = 0; i < sizeof(rows) / sizeof(rows[0]); i++) {
+        if (name != NULL && strcmp(rows[i].name, name) == 0) {
+            semantic_record_effect(ctx, rows[i].effects);
+            return;
+        }
+    }
+    semantic_error(ctx, site, "Fixed builtin effect policy is missing for '%s'",
+        name != NULL ? name : "<missing>");
 }
 
 /*

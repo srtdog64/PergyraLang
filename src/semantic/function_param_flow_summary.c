@@ -556,6 +556,10 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
 
     store->solving = true;
     store->active_had_recursion = false;
+    /* Bound this demand closure, not the lifetime of the compilation. Completed
+     * unrelated summaries remain cached; recursive revisits in this episode
+     * still share the same cap. Body-evaluation telemetry stays cumulative. */
+    store->work_units = 0;
 
     do {
         store->changed = false;

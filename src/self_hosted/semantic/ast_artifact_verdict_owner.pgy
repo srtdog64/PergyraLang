@@ -6,6 +6,7 @@ import "ast_signature_artifact_match_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_nominal_constructor_artifact_match_owner.pgy";
 import "ast_zone_authority_fact_owner.pgy";
+import "ast_zone_rule_verdict_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_statement_fact_owner.pgy";
@@ -277,6 +278,25 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             );
         return SemanticAstArtifactAnalysis(
             rejected_zone_authority, signatures, intent_signatures,
+            intent_transitions, constructors, zone_authorities,
+            SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
+            SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
+            SemanticAstStatementFactsFromArtifact(artifact, signatures),
+            enums, roles, expression_surfaces, type_surfaces, kind_surfaces,
+            function_tables, function_scopes
+        );
+    }
+    let zone_rule_violation: Option<String> = SemanticAstZoneRuleViolation(
+        artifact, constructors, zone_authorities
+    );
+    if IsSome(zone_rule_violation) {
+        let rejected_zone_rule: SemanticAstArtifactVerdict = SemanticAstArtifactVerdictError(
+            "zone_contract_invalid",
+            SemanticError1("zone_contract_invalid", "contract", UnwrapOption(zone_rule_violation)),
+            artifact.count, artifact.identity_digest, 0, requires_entrypoint
+        );
+        return SemanticAstArtifactAnalysis(
+            rejected_zone_rule, signatures, intent_signatures,
             intent_transitions, constructors, zone_authorities,
             SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
             SemanticAstAssignmentFactsFromArtifact(artifact, signatures),

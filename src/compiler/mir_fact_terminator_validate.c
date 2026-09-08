@@ -21,6 +21,16 @@ mir_validate_terminator_provenance(const MIRRoutine *routine,
         const MIRInstruction *inst = &block->instructions[i];
         if (inst->kind != MIR_INST_BRANCH && inst->kind != MIR_INST_RETURN)
             continue;
+        if (inst->kind == MIR_INST_RETURN
+            && inst->return_expression_use_count > inst->use_count) {
+            if (error_message != NULL) {
+                *error_message = mir_fact_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] return expression use prefix exceeds its SSA use inventory",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index, i);
+            }
+            return false;
+        }
         if (!mir_instruction_has_source_terminator_kind(inst)) {
             if (error_message != NULL) {
                 *error_message = mir_fact_strdup_fmt(

@@ -22,13 +22,11 @@ enforced gate.
    manifest before running the content; every authority operation calls
    `pgy_cap_require_export(cap, op)`, which panics fail-closed (class
    `capability-denied`) if `cap` is not granted.
-4. **Prove (static, type checker)** — capabilities are inferred bottom-up and
-   propagated through calls like effects, and a `with caps` declaration is checked
-   *declared ⊇ used* at compile time. So a content that declares its capabilities
-   cannot under-declare: it cannot use one it did not list, including through a
-   call. The gate enforces the bound at runtime; the inference + check make the
-   manifest honest before it ever runs (sound for the static call graph; the gate
-   backstops the dynamic-dispatch residual — see §1 soundness note).
+4. **Prove (static, type checker)** — the program seal resolves capability
+   dependencies before checking *declared ⊇ used*. A callable formal contributes
+   the actual target's authority when invoked, not when passed. This static
+   obligation is independent of the runtime grant gate; see the bounded
+   implementation claims and remaining obligations in §1.
 
 The bits that matter for untrusted content are the fingerprinting/exfiltration
 surface — CLOCK (timing fingerprint), NETWORK (exfiltration), IO_WRITE
@@ -60,11 +58,13 @@ abuse today on raw HTML5/JS.
 - **Capability is a first-class refinement of effects** (not a separate
   best-effort pass). Each gated builtin records its fine `PGY_CAP_*` bit beside
   its coarse `EFFECT_*` family (`semantic_record_capability`); the function
-  `Type` carries a `capability_mask`; and a call propagates its callee's
-  capabilities into the caller exactly as it does effects
-  (`type_checker_helpers_late.c`). So a function's used-capability set is
-  **inferred interprocedurally** by the same proven machinery that infers
-  effects — no parallel analysis, no AST re-walk.
+  `Type` carries a summary `capability_mask`. Native call checkers collect
+  resolved declaration/formal/binding identities into
+  `callable_capability_inference.c`. Its program seal substitutes ordered actual
+  callable identities and solves recursive dependencies before checking bounds.
+  Source bodies are checked once; a late scalar type-mask read cannot substitute
+  for this relation. The self-host body bundle similarly owns capability
+  inference, and its manifest consumes that admitted body's fact.
 - Capability manifest: `SemanticResult.program_capabilities` is the union of
   every capability the program can exercise. `pgy --capability-manifest <file>`
   prints it as a stable JSON document (`pgy.capability.manifest.v1`) — the
@@ -90,28 +90,120 @@ abuse today on raw HTML5/JS.
 
 Default grant is `PGY_CAP_ALL`: existing programs and tests are unchanged until a
 loader imposes a manifest. The sandbox is opt-in by the *host*, not a tax on
-ordinary builds. `with caps` is optional: a function without it is never rejected,
-its capabilities are still inferred into the program manifest and still enforced
-at runtime.
+ordinary builds. `with caps` is optional: omitting it does not impose an empty
+declared bound. The compiler must still infer owned capability facts before
+publication; a missing fact is not permission to assume the function is pure.
 
 ### Soundness note (deliberate, honest)
 
-The capability set is inferred **interprocedurally and is sound for the static
-call graph** — the per-function `declared ⊇ used` check sees capabilities reached
-through ordinary calls, not just locally-named builtins. What it cannot close,
-*no static analysis can*: **dynamic dispatch** (ability/witness dynamic, function
-values/lambdas invoked indirectly), **FFI**, and **`unsafe`** make the call graph
-incomplete (Rice's theorem). At those boundaries the inferred set is a lower
-bound, and the **runtime capability gate is the ground truth**: it fail-closes
-regardless, so static imprecision is always *safe*, never permissive. The two
-layers compose — inference/manifest for inspection-before-run, the gate for
-enforcement-at-run.
+`declared ⊇ used` is the language contract, not a claim that every compiler
+entrypoint already enforces it. The focused
+`tests/concept_semantics/capability_admission.sh` and
+`tests/concept_semantics/intent_capability_admission.sh` distinguish source
+attribution from backend execution. Native inferred-forward, callback and
+Intent attribution now use the program seal; the focused callable and Intent
+controls pass on the isolated candidate. This does not close nested callable
+ABI, valid public `Now` emission, general effect-family checking or every source path.
+Current candidates and results belong in `docs/current_work_handoff.md`.
+
+A callable parameter contributes its actual callable's declared and inferred
+capabilities when invoked, not merely when passed. Substitution is specific to
+the calling context: passing an effectful callback elsewhere cannot make a pure
+instantiation effectful. The intermediate function's explicit bound still holds,
+even if an outer caller grants more. The self-host owner retains deferred-use
+flags for unsaturated templates and resolves them through admitted declaration
+and formal SyntaxNodeIds before a fully bound call can be admitted. Known masks
+on a deferred template are not a proof of purity. These internal facts add no
+capability syntax and do not discharge separate FFI/dynamic-dispatch boundaries.
+
+The native equations also retain single-provenance callable returns and aliases.
+Enum payload constructors explicitly construct values rather than invoke bodies.
+Resolved method/action calls and Intent bodies contribute their own dependencies;
+event calls conservatively include registered handlers. Unsubscription is not
+a proof that a handler can never run. Unsupported mutable or mixed-return
+provenance remains unresolved and cannot be published as a pure closed call.
+The existing capture checker rejects captured callable storage; scalar copy
+captures do not create another capability identity or an unbounded sequence of
+closure-analysis environments. These are bounded analyses, not general alias or
+event-lifecycle completeness claims.
+
+Indirect calls need an admitted possible-callee set or an explicitly owned
+residual boundary. An unknown target is not a zero-capability target. Dynamic
+dispatch does not by itself rule out conservative static analysis; a general
+undecidability argument cannot discharge a concrete ownership obligation.
+FFI and `unsafe` obligations likewise require their own boundary contracts.
+
+Runtime checks enforce the granted mask when a host or bound context supplies
+that restriction. The default grant-all mode does not prove source-admission
+parity, and an incomplete inferred manifest is not automatically safe merely
+because a runtime gate exists. Static attribution, manifest completeness and
+runtime enforcement are separate claims and need separate evidence.
 
 This is why capability and effect are kept as independent masks rather than one
 derived from the other: a builtin records both its fine capability and its coarse
 effect family, so the two checks are each precise in their own dimension (e.g.
 `Now` is `CLOCK`+`NONDETERMINISTIC`; `Input` is `IO_READ`+`NONDETERMINISTIC`).
 The earlier coarse effect→capability cross-check is retired.
+
+### Bounded call-effect admission
+
+`builtin_effect_registry.def` owns fixed intrinsic-call effect policy separately
+from capability grants. Native builtin checks and the generated Pergyra
+projection consume the same rows. The existing invocation graph carries both
+axes, including declared effect bounds and call-site-specific callback effects;
+it is not rebuilt as another possible-callee analysis. Native bounds consume
+the sealed fixed point. Partial type summaries remain available for existing
+branch/parallel diagnostics, but cannot feed the fixed point as direct effects.
+
+The reached scalar/string/math, non-callback collection and HashMap dispatch
+families require a registry row. A fixed local mask does not promise purity,
+absence of allocation or backend support. Argument effects are still joined
+independently, and lexical callable identity wins over builtin spelling.
+`ArrayMap` and `ArrayFilter` invoke callbacks and are explicitly excluded from
+fixed-local classification. The registry gate compares the complete reached
+dispatch inventories; an added operation cannot silently default to local.
+
+The public body bundle now rejects reached fixed-call effects outside an
+explicit `with effects` bound before MIR/C/LLVM publication. Omitted clauses
+impose no empty bound. `local` is an explicit empty effect set, not a synonym
+for having an unrelated capability grant. `effect_admission.sh` owns paired
+positive/negative controls and exact-output execution controls in all four paths.
+It reports admission and execution separately and remains red for any failure;
+an unrelated refusal cannot satisfy an owned-diagnostic expectation.
+`effect_call_fact_owner.sh` separately checks invocation isolation, unknowns,
+lattice closure and missing fact rows. The fixed registry check is a dependency
+of `test-capability-manifest`; the larger admission gate remains a focused rung.
+
+This is not whole-language effect closure. `known_call_effects` is a lower
+bound, never a purity certificate. Unclassified calls propagate an explicit
+unknown and prevent verification of an annotated bound. The regression named
+`effect_unclassified_call.pgy` now requires valid `ArrayLength` admission and
+exact execution under a local bound. Signature availability and C/LLVM lowering
+remain separate obligations: a fixed effect row alone cannot admit or implement
+an operation. Current outcomes and the next falsifier belong only in the
+[active snapshot](../current_work_handoff.md).
+Operand-dependent resource/callback builtin effects, other statement/suspension
+effects and general deferred boundary checks remain distinct obligations.
+The new builtin effect family is ACTIVE; no existing SoT row was promoted.
+
+### Bare unsafe-block statement effect
+
+`unsafe { ... }` contributes the canonical `unsafe` effect to its enclosing
+callable, even when its body is empty. The public statement facts carry that
+callable identity into the existing invocation equations; direct, forwarded
+and higher-order uses retain the effect. An explicit `local` or other bound
+that omits it is rejected. A separate unused callable does not contaminate an
+unrelated function's bound.
+
+The block remains a lexical scope, including shadowing, local visibility,
+control transfer and task-retirement obligations. Native boolean and flow
+entrypoints share the same unsafe flow owner; its body enters the ordinary
+block-scope dispatcher. The public unsafe admission owner rejects the block
+inside a parallel task before MIR or C publication. C/LLVM body emission does
+not grant a new authority or bypass Slot contracts. This bounded rung concerns
+bare blocks, not the semantics of labeled/scoped raw-memory extensions.
+`tests/concept_semantics/unsafe_block_execution.py` distinguishes owner-only
+admission from production execution; its invalid sources never execute.
 
 ## 2. Not yet (the honest roadmap)
 

@@ -58,6 +58,30 @@ ast_assignment_value(const ASTNode* node)
     return node->data.assignment.value;
 }
 
+const char*
+ast_assignment_semantic_binding_type_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ASSIGNMENT)
+        return NULL;
+    return node->data.assignment.semantic_binding_type_name;
+}
+
+bool
+ast_assignment_set_semantic_binding_type_name_copy(ASTNode* node,
+                                                   const char* type_name)
+{
+    if (node == NULL || node->type != AST_ASSIGNMENT || type_name == NULL ||
+        type_name[0] == '\0' || ast_assignment_target(node) == NULL ||
+        ast_assignment_target(node)->type != AST_IDENTIFIER)
+        return false;
+    char* copy = pergyra_strdup(type_name);
+    if (copy == NULL)
+        return false;
+    free(node->data.assignment.semantic_binding_type_name);
+    node->data.assignment.semantic_binding_type_name = copy;
+    return true;
+}
+
 size_t
 ast_let_destructure_name_count(const ASTNode* node)
 {
@@ -81,9 +105,11 @@ ast_let_destructure_binding_stable_id(const ASTNode* node, size_t index)
     ClassField *field;
 
     if (node == NULL || node->type != AST_LET_DESTRUCTURE
-        || index >= node->data.let_destructure.name_count
-        || node->data.let_destructure.field_bindings == NULL)
+        || index >= node->data.let_destructure.name_count)
         return 0;
+    if (node->data.let_destructure.field_bindings == NULL)
+        return node->data.let_destructure.local_binding_syntax_ids != NULL
+            ? node->data.let_destructure.local_binding_syntax_ids[index] : 0;
     field = node->data.let_destructure.field_bindings[index];
     return field != NULL ? field->stable_id : 0;
 }

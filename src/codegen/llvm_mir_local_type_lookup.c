@@ -54,7 +54,7 @@ llvm_mir_source_local_def_count(const MIRRoutine *routine,
         if (block == NULL || !block->is_reachable || block->is_cleanup)
             continue;
         for (size_t i = 0; i < block->source_local_def_count; i++) {
-            const char *name = block->source_local_defs[i];
+            const char *name = block->source_local_defs[i].name;
             if (name != NULL && strcmp(name, base_name) == 0)
                 count++;
         }

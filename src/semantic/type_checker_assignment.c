@@ -1,11 +1,105 @@
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "type_checker_assignment.h"
 #include "type_checker_builtins_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
+#include "type_checker_resolution_internal.h"
 #include "diag_codes.h"
 #include "compiler/decl_field_model.h"
 
 #include <string.h>
+
+typedef struct {
+    Type *type;
+    Symbol *root;
+} AssignmentFieldPath;
+
+/* Walk the lvalue once, carrying the resolved type and root borrow mode.
+ * Reading a nested member must not erase an outer immutable boundary. Types
+ * come from declaration metadata; do not type-check/evaluate receivers again. */
+static AssignmentFieldPath
+assignment_field_write_path(ASTNode *node, SemanticContext *ctx)
+{
+    AssignmentFieldPath path = {TYPE_UNKNOWN, NULL};
+    if (node == NULL)
+        return path;
+    if (node->type == AST_IDENTIFIER) {
+        path.root = scope_lookup(ctx->scope, ast_identifier_name(node));
+        if (path.root != NULL && path.root->type != NULL)
+            path.type = path.root->type;
+        return path;
+    }
+    if (node->type == AST_ARRAY_ACCESS) {
+        path = assignment_field_write_path(ast_array_access_array(node), ctx);
+        if ((type_is_constructed_named(path.type, "Array")
+                || type_is_constructed_named(path.type, "Slice"))
+            && path.type->data.constructed.arg_count == 1)
+            path.type = path.type->data.constructed.args[0];
+        else
+            path.type = TYPE_UNKNOWN;
+        return path;
+    }
+    if (node->type != AST_MEMBER_ACCESS)
+        return path;
+    path = assignment_field_write_path(ast_member_object(node), ctx);
+    if (path.root == NULL || path.type == TYPE_UNKNOWN)
+        return path;
+    const char *root_name = path.root->name;
+    if (path.root->is_parameter && path.root->param_mode == PARAM_MODE_REF) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE,
+            PGY_CAUSE_IMMUTABLE_FIELD_WRITE, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+            node, "Cannot write through read-only ref parameter '%s'.\n"
+            "Reason:\n- ref is a non-owning read-only borrow\n"
+            "Fix:\n- caller-visible mutation requires an inout boundary",
+            root_name);
+        path.type = TYPE_UNKNOWN;
+        return path;
+    }
+    ASTNode *decl = semantic_host_decl_for_type(ctx, path.type);
+    path.type = TYPE_UNKNOWN;
+    if (decl == NULL || decl->type != AST_CLASS_DECL)
+        return path;
+    NominalDeclKind kind = ast_class_nominal_kind(decl);
+    const char *field_name = ast_member_name(node);
+    PgyDeclField *fields = NULL;
+    size_t count = pgy_class_decl_field_model_build(decl, &fields);
+    for (size_t i = 0; i < count; i++) {
+        if (fields[i].name == NULL || field_name == NULL
+            || strcmp(fields[i].name, field_name) != 0)
+            continue;
+        if (kind == NOMINAL_DECL_OBJECT) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE,
+                PGY_CAUSE_IMMUTABLE_FIELD_WRITE,
+                PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND, node,
+                "object '%s' fields are read-only after construction.\n"
+                "Fix:\n- update the source and refresh or construct a new projection",
+                root_name);
+        } else if (kind == NOMINAL_DECL_TOBJECT) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE,
+                PGY_CAUSE_IMMUTABLE_FIELD_WRITE,
+                PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND, node,
+                "tobject '%s' fields are immutable.\n"
+                "Fix:\n- update the source and publish a new transfer snapshot",
+                root_name);
+        } else if (!fields[i].is_mutable) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE,
+                PGY_CAUSE_IMMUTABLE_FIELD_WRITE,
+                PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND, node,
+                "field '%s.%s' is immutable.\n"
+                "Reason:\n- it is declared with `let` (an immutable field binding)\n"
+                "Fix:\n- declare it `let mut %s: ...` or set it only at construction",
+                root_name, field_name, field_name);
+        } else {
+            Type *resolved = semantic_type_resolution_lookup_metadata_type_ref(
+                ctx, fields[i].type_ast);
+            if (resolved != NULL)
+                path.type = resolved;
+        }
+        break;
+    }
+    pgy_decl_field_model_free(fields, count);
+    return path;
+}
 
 Type *
 type_check_assignment(ASTNode *expr, SemanticContext *ctx)
@@ -29,8 +123,17 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     }
 
     if (target != NULL && target->type == AST_IDENTIFIER) {
-        const char *target_name = ast_identifier_name(target);
-        Symbol *target_sym = scope_lookup(ctx->scope, target_name);
+        Symbol *target_sym = lookup_identifier_symbol(target, ctx);
+        if (target_sym != NULL && target_sym->type != NULL &&
+            target_sym->type != TYPE_UNKNOWN && target_sym->type->name != NULL &&
+            !ast_assignment_set_semantic_binding_type_name_copy(expr,
+                target_sym->type->name)) {
+            semantic_error(ctx, expr,
+                "Out of memory while recording assignment binding type");
+        }
+        if (target_sym != NULL && target_sym->type != NULL
+            && target_sym->type->kind == TYPE_KIND_FUNCTION)
+            callable_capability_invalidate_binding(ctx, target_sym);
         if (target_sym != NULL && target_sym->kind == SYMBOL_SLOT
             && target_sym->type != NULL
             && type_is_owned_slot_handle(target_sym->type)
@@ -131,99 +234,9 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         return target_type;
     }
 
-    if (target != NULL && target->type == AST_MEMBER_ACCESS) {
-        ASTNode *obj_node = ast_member_object(target);
-        if (obj_node != NULL && obj_node->type == AST_IDENTIFIER) {
-            const char *var_name = ast_identifier_name(obj_node);
-            Symbol *sym = scope_lookup(ctx->scope, var_name);
-            if (sym != NULL && sym->is_parameter
-                && sym->param_mode == PARAM_MODE_REF) {
-                semantic_error_with_hints(ctx,
-                    PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE,
-                    PGY_CAUSE_IMMUTABLE_FIELD_WRITE,
-                    PGY_FIX_MATCH_BUILTIN_SIGNATURE,
-                    expr,
-                    "Cannot write through read-only ref parameter '%s'.\n"
-                    "Reason:\n"
-                    "- ref is a non-owning read-only borrow\n"
-                    "- caller-visible mutation requires an inout boundary\n"
-                    "Fix:\n"
-                    "- spell the parameter as 'inout %s: ...' when mutation is intended\n"
-                    "- or construct and return a replacement value",
-                    var_name != NULL ? var_name : "<receiver>",
-                    var_name != NULL ? var_name : "value");
-                return target_type;
-            }
-            if (sym != NULL && sym->type != NULL
-                && sym->type->kind == TYPE_KIND_CLASS
-                && sym->type->name != NULL) {
-                ASTNode *decl = semantic_host_decl_for_type(ctx, sym->type);
-                if (decl != NULL && decl->type == AST_CLASS_DECL) {
-                    NominalDeclKind nk = ast_class_nominal_kind(decl);
-                    if (nk == NOMINAL_DECL_OBJECT) {
-                        semantic_error_with_hints(ctx,
-                            PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE,
-                            PGY_CAUSE_IMMUTABLE_FIELD_WRITE,
-                            PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND,
-                            expr,
-                            "object '%s' fields are read-only after construction.\n"
-                            "Reason:\n"
-                            "- object is an internal projection contract\n"
-                            "- projection state must be refreshed from its source, not mutated directly\n"
-                            "Fix:\n"
-                            "- update the source subject/value and refresh the object slot\n"
-                            "- or construct a new object projection",
-                            var_name);
-                    } else if (nk == NOMINAL_DECL_TOBJECT) {
-                        semantic_error_with_hints(ctx,
-                            PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE,
-                            PGY_CAUSE_IMMUTABLE_FIELD_WRITE,
-                            PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND,
-                            expr,
-                            "tobject '%s' fields are immutable.\n"
-                            "Reason:\n"
-                            "- tobject is a boundary transfer contract\n"
-                            "- transfer snapshots must be republished from their source, not mutated in place\n"
-                            "Fix:\n"
-                            "- update the source subject/value and publish a new tobject\n"
-                            "- or construct a new transfer snapshot",
-                            var_name);
-                    } else {
-                        /* struct / subject / class: per-field mutability. A
-                         * field declared `let` (is_mutable == false) is an
-                         * immutable binding; `let mut` and bare/vessel fields
-                         * are assignable. */
-                        const char *field_name = ast_member_name(target);
-                        if (field_name != NULL) {
-                            /* F2 (docs/144) Phase 2: consume the field-shape model. */
-                            PgyDeclField *fields = NULL;
-                            size_t fc = pgy_class_decl_field_model_build(decl, &fields);
-                            for (size_t fi = 0; fi < fc; fi++) {
-                                if (fields[fi].name != NULL
-                                    && strcmp(fields[fi].name, field_name) == 0) {
-                                    if (!fields[fi].is_mutable) {
-                                        semantic_error_with_hints(ctx,
-                                            PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE,
-                                            PGY_CAUSE_IMMUTABLE_FIELD_WRITE,
-                                            PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND,
-                                            expr,
-                                            "field '%s.%s' is immutable.\n"
-                                            "Reason:\n"
-                                            "- it is declared with `let` (an immutable field binding)\n"
-                                            "Fix:\n"
-                                            "- declare it `let mut %s: ...` to allow assignment\n"
-                                            "- or set it only at construction",
-                                            var_name, field_name, field_name);
-                                    }
-                                    break;
-                                }
-                            }
-                            pgy_decl_field_model_free(fields, fc);
-                        }
-                    }
-                }
-            }
-        }
+    if (target != NULL && (target->type == AST_MEMBER_ACCESS
+            || target->type == AST_ARRAY_ACCESS)) {
+        (void)assignment_field_write_path(target, ctx);
     }
 
     require_assignable(value_type, target_type, expr, ctx);

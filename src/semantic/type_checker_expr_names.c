@@ -52,7 +52,12 @@ lookup_identifier_symbol(ASTNode *expr, SemanticContext *ctx)
         || ast_identifier_name(expr) == NULL) {
         return NULL;
     }
-    return scope_lookup(ctx->scope, ast_identifier_name(expr));
+    Symbol *sym = scope_lookup(ctx->scope, ast_identifier_name(expr));
+    ast_identifier_set_binding_syntax_id(expr,
+        sym != NULL ? sym->decl_syntax_id : 0);
+    ast_identifier_set_binding_host_field(expr,
+        sym != NULL && sym->is_host_field);
+    return sym;
 }
 
 bool

@@ -1,0 +1,76 @@
+// Bare subject identity is borrowed through parameters, not copied into a new
+// binding or returned as a plain value. Join the already admitted source facts
+// before MIR; backend cell-lifetime refusal cannot replace this source verdict.
+import "ast_body_verdict_owner.pgy";
+import "ast_body_analysis_shape_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_expression_surface_fact_owner.pgy";
+
+func SemanticAstSubjectBoundaryType(ref subject_types: Array<String>, type_name: String) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(subject_types) {
+        if subject_types[row] == type_name { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstSubjectValueBoundaryFromFacts(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializers: SemanticAstInitializerTypeFacts,
+    surfaces: SemanticAstExpressionSurfaceFacts
+) -> SemanticAstBodyVerdict {
+    if !SemanticAstSignatureRowsAdmittedReady(artifact, signatures) ||
+        !constructors.ok || constructors.artifact_node_count != artifact.count ||
+        !SemanticAstNominalConstructorRowsReady(constructors) ||
+        !SemanticAstInitializerTypeFactsReadyProjection(artifact, locals, initializers) ||
+        !surfaces.ok || surfaces.artifact_node_count != artifact.count {
+        return SemanticAstBodyVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "SubjectValueBoundary"), -1);
+    }
+    // Most compiler routines contain only value facts. Build the small identity
+    // set once; do not rescan the nominal inventory for every local binding.
+    let subject_types: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(constructors.names) {
+        if constructors.nominal_kinds[row] == "subject" {
+            ArrayPush(subject_types, constructors.return_type_names[row]);
+        }
+        row = row + 1;
+    }
+    if ArrayLength(subject_types) == 0 { return SemanticAstBodyVerdictOk(); }
+    row = 0;
+    while row < ArrayLength(signatures.return_types) {
+        if SemanticAstSubjectBoundaryType(subject_types, signatures.return_types[row]) {
+            return SemanticAstBodyVerdictError("subject_value_return",
+                SemanticError1("subject_value_return", "type", signatures.return_types[row]),
+                signatures.function_node_ids[row]);
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < SemanticAstLocalBindingCount(locals) {
+        if initializers.verified[row] == 1 && SemanticAstSubjectBoundaryType(
+            subject_types, initializers.inferred_type_names[row]) {
+            let view: SemanticExpressionGraphView = SemanticAstExpressionGraphForNode(
+                surfaces, locals.node_ids[row], AstExpressionLaneValue());
+            let kind: Option<Int> = SemanticExpressionGraphNodeKind(view.graph, view.root_id);
+            if !view.ok || !IsSome(kind) {
+                return SemanticAstBodyVerdictError("expression_identity_unresolved",
+                    "subject binding requires its admitted initializer root", locals.node_ids[row]);
+            }
+            if UnwrapOption(kind) == AstExpressionNodeLeaf() ||
+                UnwrapOption(kind) == AstExpressionNodeMemberAccess() ||
+                UnwrapOption(kind) == AstExpressionNodeIndex() {
+                return SemanticAstBodyVerdictError("subject_value_copy",
+                    SemanticError1("subject_value_copy", "binding", locals.names[row]),
+                    locals.node_ids[row]);
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

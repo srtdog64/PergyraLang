@@ -32,14 +32,14 @@ func DirectMirInferredGenericMemberHostKindFactFromDeclaration(
     kind: String, nominal_kind: String
 ) -> DirectMirInferredGenericMemberHostKindFact {
     let fact: DirectMirInferredGenericMemberHostKindFact =
-        DirectMirInferredGenericMemberHostKindFact(true, 0, kind);
+        DirectMirInferredGenericMemberHostKindFact(true, 0, nominal_kind);
     let verified: DirectMirInferredGenericMemberHostKindFact =
         DirectMirInferredGenericMemberHostKindFact(
             fact.valid,
             DirectMirInferredGenericMemberHostKindFactDigest(fact),
             fact.kind
         );
-    if kind != nominal_kind ||
+    if kind != "class" ||
         !DirectMirInferredGenericMemberHostKindFactReady(verified) {
         return DirectMirInferredGenericMemberHostKindFact(false, 0, "");
     }

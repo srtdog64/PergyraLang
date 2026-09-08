@@ -1,0 +1,14 @@
+func ReleaseOwnedArray(own values: Array<String>) -> Void {
+    ArrayDropOwnedStrings(values);
+}
+func Leading(value: Int) -> Int { return value; }
+func BuildAndRelease() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Concat("owned", "-late"));
+    ReleaseOwnedArray(values);
+    Log("released");
+}
+func Main() -> Void {
+    Log(ToString(Leading(7)));
+    BuildAndRelease();
+}

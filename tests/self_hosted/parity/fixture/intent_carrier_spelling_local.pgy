@@ -1,0 +1,7 @@
+// MIR carrier labels are not reserved source-level binding names.
+func Main() -> Void {
+    let IntentBinding = 1;
+    let IntentParticipant = 2;
+    let IntentValue = 3;
+    Log(IntentBinding + IntentParticipant + IntentValue);
+}

@@ -1,4 +1,5 @@
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "type_checker_ability_match_internal.h"
 #include "type_checker_ability_ref_internal.h"
 #include "type_checker_intent_helpers_internal.h"
@@ -97,6 +98,18 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
+    uint32_t previous_caps = ctx->current_function_capabilities;
+    uint32_t previous_effects = ctx->current_function_effects;
+    uint32_t previous_direct_effects = ctx->current_function_direct_effects;
+    bool previous_tracking = ctx->tracking_function_effects;
+    Type *intent_type = existing != NULL ? existing->type : NULL;
+    CallableCapabilityRoutine *previous_capability = callable_capability_enter(
+        ctx, node, intent_type != NULL ? intent_type->data.function.param_types : NULL,
+        type_function_param_count(intent_type));
+    ctx->current_function_capabilities = 0;
+    ctx->current_function_effects = EFFECT_NONE;
+    ctx->current_function_direct_effects = EFFECT_NONE;
+    ctx->tracking_function_effects = true;
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     type_check_intent_declare_binding_symbols(node, ctx);
 
@@ -216,6 +229,12 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     scope_exit(&ctx->scope);
+    callable_capability_leave(ctx, previous_capability, intent_type,
+        ctx->current_function_capabilities, ctx->current_function_direct_effects);
+    ctx->current_function_capabilities = previous_caps;
+    ctx->current_function_effects = previous_effects;
+    ctx->current_function_direct_effects = previous_direct_effects;
+    ctx->tracking_function_effects = previous_tracking;
     free(typed_success_payload_types);
     free(typed_failure_payload_types);
     return !ctx->has_error;

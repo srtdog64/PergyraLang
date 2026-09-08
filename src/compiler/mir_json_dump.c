@@ -6,6 +6,7 @@
 #include "mir_json_dump_domain_topology.h"
 #include "mir_json_dump_domain_runtime.h"
 #include "mir_json_expression_graph.h"
+#include "mir_json_local_ref.h"
 #include "mir_json_generic_method_specialization.h"
 #include "mir_json_dump_internal.h"
 #include "mir_json_dump_runtime_abi.h"
@@ -160,7 +161,23 @@ mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
         mir_json_emit_str_or_null(out,
             mir_routine_generic_param_name(routine, g));
     }
-    fputs("],\"params\":[", out);
+    fputc(']', out);
+    if (mir_routine_generic_param_count(routine) > 0) {
+        fputs(",\"generic_constraints\":[", out);
+        for (size_t g = 0; g < mir_routine_generic_param_count(routine); g++) {
+            if (g > 0)
+                fputc(',', out);
+            fputs("{\"name\":", out);
+            mir_json_emit_str_or_null(out,
+                mir_routine_generic_param_name(routine, g));
+            fputs(",\"constraint\":", out);
+            mir_json_emit_str_or_null(out,
+                mir_routine_generic_param_constraint(routine, g));
+            fputc('}', out);
+        }
+        fputc(']', out);
+    }
+    fputs(",\"params\":[", out);
     for (size_t p = 0; p < mir_routine_param_count(routine); p++) {
         FuncParam *fp = mir_routine_param(routine, p);
         const char *param_type = mir_routine_param_type_name(routine, p);
@@ -257,7 +274,7 @@ mir_json_emit_instruction_abi_layout(FILE *out, const MIRInstruction *inst)
 
 static void
 mir_json_emit_instruction(FILE *out, const MIRRoutine *routine,
-                          const MIRInstruction *inst)
+                          const MIRInstruction *inst, bool emit_local_refs)
 {
     fprintf(out, "{\"id\":%zu,\"kind\":", inst->id);
     mir_json_emit_str(out, mir_inst_kind_name(inst->kind));
@@ -314,6 +331,8 @@ mir_json_emit_instruction(FILE *out, const MIRRoutine *routine,
     mir_json_emit_expr_or_null(out, inst->expr1);
     fputs(",\"expr1_graph\":", out);
     mir_json_emit_instruction_expression_graph(out, routine, inst, 1);
+    if (emit_local_refs)
+        mir_json_emit_instruction_local_ref(out, routine, inst);
     if (!mir_json_emit_instruction_runtime_abi(out, inst)
         && inst->text_builder_runtime_row != NULL) {
         const MIRTextBuilderRuntimeRow *row =
@@ -350,6 +369,13 @@ mir_json_emit_instruction(FILE *out, const MIRRoutine *routine,
             ? mir_source_node_type_name((ASTNodeType)
                   mir_instruction_source_node_type_or(inst, AST_PROGRAM))
             : NULL);
+    if (inst->name != NULL &&
+        (strcmp(inst->name, "IntentBinding") == 0 ||
+         strcmp(inst->name, "IntentParticipant") == 0 ||
+         strcmp(inst->name, "IntentValue") == 0)) {
+        fprintf(out, ",\"binding_source_syntax_id\":%u",
+                mir_instruction_source_stable_id(inst));
+    }
     if (mir_instruction_source_is_defer_stmt(inst))
         mir_json_emit_defer_body(out, inst->expr0);
     fputs(",\"match_patterns\":[", out);
@@ -373,7 +399,9 @@ mir_json_emit_instruction(FILE *out, const MIRRoutine *routine,
     }
     fputc(']', out);
     fputs(",\"uses\":[", out);
-    for (size_t m = 0; m < inst->use_count; m++) {
+    size_t wire_use_count = inst->kind == MIR_INST_RETURN
+        ? inst->return_expression_use_count : inst->use_count;
+    for (size_t m = 0; m < wire_use_count; m++) {
         if (m > 0)
             fputc(',', out);
         mir_json_emit_str(out, inst->uses[m]);
@@ -385,7 +413,7 @@ mir_json_emit_instruction(FILE *out, const MIRRoutine *routine,
 
 static void
 mir_json_emit_block(FILE *out, const MIRRoutine *routine,
-                    const MIRBasicBlock *block, size_t index)
+                    const MIRBasicBlock *block, size_t index, bool emit_local_refs)
 {
     fprintf(out, "{\"id\":%zu,\"reachable\":%s,\"instructions\":[",
             index, block->is_reachable ? "true" : "false");
@@ -393,9 +421,26 @@ mir_json_emit_block(FILE *out, const MIRRoutine *routine,
          k < block->instruction_count && block->instructions != NULL; k++) {
         if (k > 0)
             fputc(',', out);
-        mir_json_emit_instruction(out, routine, &block->instructions[k]);
+        mir_json_emit_instruction(out, routine, &block->instructions[k], emit_local_refs);
     }
     fputs("]", out);
+    if (routine->kind == MIR_SCOPE_INTENT) {
+        const char *role = "body";
+        if (index == routine->entry_block)
+            role = "entry";
+        else if (routine->has_cleanup_block && index == routine->cleanup_block)
+            role = "cleanup";
+        else if (routine->has_rollback_block && index == routine->rollback_block)
+            role = "rollback";
+        else if (routine->has_invalidation_block && index == routine->invalidation_block)
+            role = "invalidation";
+        else if (block->is_intent_execution_plan_block)
+            role = "execution";
+        else if (block->is_intent_legacy_mirror_block)
+            role = "mirror";
+        fputs(",\"intent_block_role\":", out);
+        mir_json_emit_str(out, role);
+    }
     if (block->has_succ_true)
         fprintf(out, ",\"succ_true\":%zu", block->succ_true);
     if (block->has_succ_false)
@@ -456,12 +501,13 @@ mir_json_emit_routine(FILE *out, const MIRRoutine *routine)
     mir_json_emit_loop_flow_facts(out, routine);
     mir_json_emit_iteration_type_facts(out, routine);
     mir_json_emit_destructure_type_facts(out, routine);
+    bool emit_local_refs = mir_json_routine_local_refs_required(routine);
     fputs(",\"blocks\":[", out);
     for (size_t j = 0;
          j < routine->block_count && routine->blocks != NULL; j++) {
         if (j > 0)
             fputc(',', out);
-        mir_json_emit_block(out, routine, &routine->blocks[j], j);
+        mir_json_emit_block(out, routine, &routine->blocks[j], j, emit_local_refs);
     }
     fputc(']', out);
     mir_json_emit_source_locals(out, routine);

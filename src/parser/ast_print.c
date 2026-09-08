@@ -226,6 +226,9 @@ void ast_print(ASTNode* node, int indent) {
                 printf("Fields:\n");
                 for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
                     ast_print_indent(indent + 2);
+                    if (!node->data.class_decl.fields[i]->is_mutable) {
+                        printf("let ");
+                    }
                     printf("%s: ", node->data.class_decl.fields[i]->name);
                     ast_print_inline(node->data.class_decl.fields[i]->type);
                     printf("\n");

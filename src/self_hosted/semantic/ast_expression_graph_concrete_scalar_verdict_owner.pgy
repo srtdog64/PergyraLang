@@ -274,6 +274,52 @@ struct SemanticExpressionGraphResolvedCallArgumentFacts {
     signature_count: Int;
 }
 
+func SemanticExpressionGraphHashMapCallError(
+    ref graph: SemanticExpressionGraphFacts, node_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>, types: Array<String>,
+    function_names: Array<String>, function_returns: Array<String>
+) -> String {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, node_id);
+    if !call.ok { return ""; }
+    let target: SemanticExpressionCallTargetFact = SemanticExpressionGraphResolvedCallTarget(
+        graph, node_id, constructors, names, types, function_names, function_returns);
+    if !target.ok || target.kind != SemanticCallTargetDirect() ||
+        graph.arena.identities.call_target_syntax_ids[call.call_node] > 0 { return ""; }
+    let bound_callable: SemanticAstCallableTypeShape = SemanticAstCallableTypeShapeFromName(
+        EnvLookup(names, types, target.name));
+    if bound_callable.ok { return ""; }
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(target.name);
+    if !protocol.applies || protocol.family != "HashMap" { return ""; }
+    let receiver: String = "";
+    if protocol.receiver_argument_index >= 0 &&
+        protocol.receiver_argument_index < ArrayLength(call.argument_nodes) {
+        receiver = SemanticExpressionGraphScalarTypeName(graph,
+            call.argument_nodes[protocol.receiver_argument_index], constructors,
+            names, types, function_names, function_returns);
+    }
+    let signature: SemanticHashMapCallSignature = SemanticHashMapCallSignatureFrom(
+        target.name, ArrayLength(call.argument_nodes), receiver);
+    if !signature.ok { return signature.error; }
+    let index: Int = 0;
+    while index < ArrayLength(signature.parameter_types) {
+        let argument: Int = call.argument_nodes[index];
+        let actual: String = SemanticExpressionGraphScalarTypeName(graph, argument,
+            constructors, names, types, function_names, function_returns);
+        let text: Option<String> = SemanticExpressionGraphNodeText(graph, argument);
+        if actual == "Unknown" || !IsSome(text) {
+            return SemanticError1("ast_artifact_invalid", "owner", "hashmap_argument_type");
+        }
+        if !ExpressionAssignableTo(signature.parameter_types[index], actual, UnwrapOption(text)) {
+            return SemanticError3("call_arg_type_mismatch", "func", target.name,
+                "expected", signature.parameter_types[index], "actual", actual);
+        }
+        index = index + 1;
+    }
+    return "";
+}
+
 func SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
     ref graph: SemanticExpressionGraphFacts,
     node_id: Int,
@@ -501,6 +547,9 @@ func SemanticExpressionGraphConcreteScalarValueError(
             function_names, function_returns
         );
     }
+    let map_error: String = SemanticExpressionGraphHashMapCallError(graph, node_id,
+        constructors, names, types, function_names, function_returns);
+    if map_error != "" { return map_error; }
     let argument_facts: SemanticExpressionGraphResolvedCallArgumentFacts =
         SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
             graph, node_id, constructors, signatures, names, types,

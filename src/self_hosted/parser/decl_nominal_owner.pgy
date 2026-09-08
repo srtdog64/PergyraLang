@@ -148,20 +148,19 @@ func ParseNominalDecl(
                 method_blocks = AppendLine(method_blocks, a_block);
                 continue;
             }
-            // Field: `(let|vessel)? IDENT : TYPE ;`. `let` is the
-            // source form for subject/class; `vessel` is allowed
-            // inside subject bodies (battle_minimal etc.) and
-            // emits the same plain `NAME: TYPE` row. vessel/struct
-            // bodies omit both. Either prefix is consumed and
-            // discarded.
+            // Preserve immutable fields in the AST artifact. Bare/vessel and
+            // `let mut` fields have the same mutable field mode.
+            let immutable_field: Bool = false;
             let is_role_slot: Bool = false;
             let is_shared: Bool = false;
             let is_world_zone: Bool = false;
             let is_systemic_slot: Bool = false;
             if MatchLanguageWord(content, i, LanguageWordId.WordLet) {
+                immutable_field = true;
                 i = LanguageWordEnd(i, LanguageWordId.WordLet);
                 i = SkipWhitespaceAndComments(content, i);
                 if MatchLanguageWord(content, i, LanguageWordId.WordMut) {
+                    immutable_field = false;
                     i = LanguageWordEnd(i, LanguageWordId.WordMut);
                     i = SkipWhitespaceAndComments(content, i);
                 }
@@ -253,7 +252,9 @@ func ParseNominalDecl(
                 let df_len: Int = ArrayLength(destructure_fields);
                 let df_i: Int = 0;
                 while df_i < df_len {
-                    field_blocks = AppendLine(field_blocks, Concat("      ", Concat(destructure_fields[df_i], ": (null)")));
+                    let field_prefix: String = "      ";
+                    if immutable_field { field_prefix = "      let "; }
+                    field_blocks = AppendLine(field_blocks, Concat(field_prefix, Concat(destructure_fields[df_i], ": (null)")));
                     df_i = df_i + 1;
                 }
                 continue;
@@ -322,7 +323,9 @@ func ParseNominalDecl(
                     field_blocks = AppendLine(field_blocks, Concat("    SystemicSlot: ", Concat(f_name, Concat(": ", f_type))));
                 }
             } else {
-                field_blocks = AppendLine(field_blocks, Concat("      ", Concat(f_name, Concat(": ", f_type))));
+                let field_prefix: String = "      ";
+                if immutable_field { field_prefix = "      let "; }
+                field_blocks = AppendLine(field_blocks, Concat(field_prefix, Concat(f_name, Concat(": ", f_type))));
             }
         }
         let decl_display_name: String = Concat(decl_prefix, Concat(decl_name, decl_suffix));

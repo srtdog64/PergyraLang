@@ -1,7 +1,7 @@
 Program:
   TObject: Report
     Fields:
-      summary: String
+      let summary: String
   Zone: Z
     ObjectSlot: view: Report
     TObjectSlot: tv: Report
@@ -11,4 +11,3 @@ Program:
     Body:
       Block:
         Log("ok")
-

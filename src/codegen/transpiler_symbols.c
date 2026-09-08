@@ -306,13 +306,15 @@ is_slot_var(TranspilerCtx *ctx, const char *var_name)
     return false;
 }
 
-void
-register_typed_var(TranspilerCtx *ctx, const char *name, const char *type_name)
+static bool
+register_typed_binding(TranspilerCtx *ctx, const char *name,
+                       const char *type_name, const MIRCallableSig *signature)
 {
     TypedVarEntry *e;
 
-    if (ctx == NULL || name == NULL || type_name == NULL)
-        return;
+    if (ctx == NULL || name == NULL
+        || (type_name == NULL && signature == NULL))
+        return false;
     if (ctx->typed_var_count >= MAX_SLOT_VARS) {
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -320,10 +322,10 @@ register_typed_var(TranspilerCtx *ctx, const char *name, const char *type_name)
             PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
             "C backend typed registry exceeded MAX_SLOT_VARS while registering '%s'",
             name);
-        return;
+        return false;
     }
 
-    if (ctx->last_typed_var_index >= 0
+    if (type_name != NULL && ctx->last_typed_var_index >= 0
         && ctx->last_typed_var_index < ctx->typed_var_count
         && strcmp(ctx->typed_vars[ctx->last_typed_var_index].name, name) == 0
         && (ctx->typed_vars[ctx->last_typed_var_index].is_view
@@ -333,15 +335,37 @@ register_typed_var(TranspilerCtx *ctx, const char *name, const char *type_name)
             || strncmp(type_name, "MoveToken<", 10) == 0)) {
         e = &ctx->typed_vars[ctx->last_typed_var_index];
         pergyra_str_copy(e->type_name, sizeof(e->type_name), type_name);
-        return;
+        return true;
     }
 
     e = &ctx->typed_vars[ctx->typed_var_count++];
     ctx->last_typed_var_index = ctx->typed_var_count - 1;
     memset(e, 0, sizeof(*e));
     pergyra_str_copy(e->name, sizeof(e->name), name);
-    pergyra_str_copy(e->type_name, sizeof(e->type_name), type_name);
+    if (type_name != NULL)
+        pergyra_str_copy(e->type_name, sizeof(e->type_name), type_name);
+    e->callable_sig = signature;
     copy_active_typed_var_ssa_name(ctx, e);
+    return true;
+}
+
+void
+register_typed_var(TranspilerCtx *ctx, const char *name, const char *type_name)
+{
+    (void)register_typed_binding(ctx, name, type_name, NULL);
+}
+
+bool
+register_callable_var(TranspilerCtx *ctx, const char *name,
+                      const MIRCallableSig *signature)
+{
+    if (signature == NULL || !signature->is_callable) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "C backend local callable '%s' requires MIR signature metadata",
+            name != NULL ? name : "<missing>");
+        return false;
+    }
+    return register_typed_binding(ctx, name, NULL, signature);
 }
 
 void
@@ -430,7 +454,8 @@ const char *
 lookup_typed_var(TranspilerCtx *ctx, const char *var_name)
 {
     TypedVarEntry *entry = lookup_typed_entry(ctx, var_name);
-    return entry != NULL ? entry->type_name : NULL;
+    return entry != NULL && entry->type_name[0] != '\0'
+        ? entry->type_name : NULL;
 }
 
 void

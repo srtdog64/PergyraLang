@@ -99,6 +99,12 @@ ast_clone(ASTNode* node)
     switch (node->type) {
         case AST_IDENTIFIER:
             clone = ast_create_identifier(node->data.identifier.name);
+            if (clone != NULL) {
+                clone->data.identifier.semantic_binding_syntax_id =
+                    node->data.identifier.semantic_binding_syntax_id;
+                clone->data.identifier.semantic_binding_is_host_field =
+                    node->data.identifier.semantic_binding_is_host_field;
+            }
             break;
         case AST_NUMBER:
         case AST_STRING:

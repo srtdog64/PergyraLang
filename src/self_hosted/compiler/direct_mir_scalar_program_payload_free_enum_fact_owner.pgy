@@ -168,10 +168,11 @@ func DirectMirScalarProgramPayloadFreeEnumFactFromReferenced(
 }
 
 func DirectMirScalarProgramPayloadFreeEnumFactFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref routine_instances: DirectMirRoutineInstanceInventory
 ) -> DirectMirScalarProgramPayloadFreeEnumFact {
     let referenced: DirectMirScalarProgramReferencedEnumFact =
-        DirectMirScalarProgramReferencedEnumFactFromAdmitted(admitted);
+        DirectMirScalarProgramReferencedEnumFactFromAdmitted(admitted, routine_instances);
     return DirectMirScalarProgramPayloadFreeEnumFactFromReferenced(referenced);
 }
 

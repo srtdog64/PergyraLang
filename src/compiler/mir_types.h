@@ -53,6 +53,13 @@ typedef struct
 typedef struct
 {
     const char *name;
+    uint32_t binding_syntax_id;
+} MIRLocalBinding;
+
+typedef struct
+{
+    const char *name;
+    uint32_t    binding_syntax_id;
     size_t     *incoming_predecessors;
     size_t      incoming_predecessor_count;
 } MIRSourcePhiNode;
@@ -126,9 +133,13 @@ typedef struct
     const char      *arg0;
     const char      *arg1;
     const char      *result_name;
+    uint32_t         binding_syntax_id;
     const char     **uses;
     size_t           use_count;
     size_t           use_capacity;
+    /* Prefix consumed by the RETURN expression. Remaining uses keep inout
+     * copyout live through DCE and retire before expression-wire projection. */
+    size_t           return_expression_use_count;
     MIRPhiIncoming  *phi_incomings;
     size_t           phi_incoming_count;
     const RIROp     *rir_op;
@@ -227,6 +238,7 @@ typedef struct
     bool             is_reachable;
     bool             is_cleanup;
     bool             is_intent_execution_plan_block;
+    bool             is_intent_legacy_mirror_block;
     bool             is_pin_region;
     bool             is_select_case_body;
     bool             pin_view_is_write;
@@ -238,7 +250,7 @@ typedef struct
     uint32_t         source_line;
     uint32_t         source_column;
     MIRStatementInventory source_statement_inventory;
-    const char     **source_local_defs;
+    MIRLocalBinding *source_local_defs;
     size_t           source_local_def_count;
     size_t          *source_dom_tree_children;
     size_t           source_dom_tree_child_count;
@@ -309,6 +321,7 @@ typedef struct
 {
     char *name;
     char *type_name;
+    uint32_t binding_syntax_id;
     bool  is_callable;
     bool  is_closure_local; /* captured-lambda local: declared structurally,
                              * skipped by the SSA-locals pre-declaration */
@@ -454,6 +467,7 @@ typedef struct
     bool               has_signature;
     size_t             generic_param_count;
     char             **generic_param_names;
+    char             **generic_param_constraints;
     FuncParam        **params;
     char             **param_type_names;
     MIRParamAbiFact   *param_abi_facts;
@@ -513,6 +527,9 @@ typedef struct
     bool               used_non_cfg_body_fallback;
     bool               has_liveness;
     bool               has_dce;
+    /* Arena-owned key order for the per-block SSA version arrays. */
+    MIRLocalBinding   *ssa_bindings;
+    size_t             ssa_binding_count;
     MIRSourceLocalType *source_local_types;
     size_t             source_local_type_count;
     size_t             source_local_type_capacity;

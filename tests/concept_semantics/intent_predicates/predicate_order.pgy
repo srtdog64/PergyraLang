@@ -1,0 +1,24 @@
+func Check(label: String) -> Bool {
+    Log(label);
+    return true;
+}
+subject W {
+    let mut calls: Int;
+    action Go(self) -> Void { Log("action"); calls = calls + 1; }
+}
+zone Z { subject slot w: W }
+intent Run(z: Z, w: W) {
+    step S {
+        where: Z; using: z; who: w; on: w.Go();
+        pre: Check("pre");
+        invariant: Check("invariant");
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void {
+    let w = W(0);
+    let z = Z(W(0));
+    let ok = Run(z, w);
+    Log(ToString(ok) + " " + ToString(w.calls));
+}

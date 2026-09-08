@@ -118,8 +118,21 @@ transpiler_emit_mir_phi_copies(CodeBuf *buf, TranspilerCtx *ctx, int indent,
     for (size_t i = 0; i < target_count; i++) {
         const char *lhs_version = target_versions[i];
         const char *rhs_version = NULL;
+        bool target_entry_is_live = false;
 
         if (lhs_version == NULL || target_bases[i] == NULL)
+            continue;
+        /* Entry version maps include names whose lexical scope has ended.
+         * Only the MIR liveness owner can authorize a non-phi edge copy;
+         * restoring every same-spelled name can cross unrelated typed locals. */
+        for (size_t j = 0; j < target_block->live_in_name_count; j++) {
+            if (target_block->live_in_names[j] != NULL
+                && strcmp(target_block->live_in_names[j], lhs_version) == 0) {
+                target_entry_is_live = true;
+                break;
+            }
+        }
+        if (!target_entry_is_live)
             continue;
         if (transpiler_mir_ssa_name_is_pin_view(pred_block, target_block,
                                                 lhs_version)) {

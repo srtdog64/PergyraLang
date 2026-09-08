@@ -1,6 +1,7 @@
 // pgy.mir.v1 JSON projection from verified self-host MIR fact rows.
 
 import "program_verify_owner.pgy";
+import "intent_execution_json_projection_owner.pgy";
 import "expression_graph_kind_name_owner.pgy";
 import "match_json_projection_owner.pgy";
 import "destructure_json_projection_owner.pgy";
@@ -148,6 +149,10 @@ func SelfMirJsonInstruction(facts: SelfMirProgramFacts,
         ),
         JsonEmitFieldRaw("uses", JsonEmitArray(uses))
     ];
+    if rows.binding_source_syntax_ids[instruction_index] > 0 {
+        ArrayPush(fields, JsonEmitFieldRaw("binding_source_syntax_id",
+            ToString(rows.binding_source_syntax_ids[instruction_index])));
+    }
     SelfMirJsonAppendLocalRefFields(
         facts.cfg.local_refs, instruction_index, emit_local_refs, fields
     );
@@ -174,6 +179,9 @@ func SelfMirJsonBlock(facts: SelfMirProgramFacts,
         JsonEmitFieldBool("reachable", blocks.reachable[block_index] == 1),
         JsonEmitFieldRaw("instructions", JsonEmitArray(instructions))
     ];
+    if blocks.intent_roles[block_index] != "" {
+        ArrayPush(fields, JsonEmitFieldString("intent_block_role", blocks.intent_roles[block_index]));
+    }
     if blocks.has_succ_true[block_index] == 1 {
         ArrayPush(
             fields,
@@ -193,16 +201,29 @@ func SelfMirJsonBlock(facts: SelfMirProgramFacts,
     return JsonEmitObject(fields);
 }
 
+func SelfMirJsonRoutineGenericConstraint(
+    ref rows: SelfMirRoutineRows, generic_row: Int
+) -> String {
+    let fields: Array<String> = [
+        JsonEmitFieldString("name", rows.generic_names[generic_row]),
+        JsonEmitFieldString("constraint", rows.generic_constraints[generic_row])
+    ];
+    return JsonEmitObject(fields);
+}
+
 func SelfMirJsonRoutine(
     facts: SelfMirProgramFacts,
     routine_index: Int
 ) -> String {
     let rows: SelfMirRoutineRows = facts.routines;
     let generics: Array<String> = [];
+    let generic_constraints: Array<String> = [];
     let generic_i: Int = 0;
     while generic_i < rows.generic_counts[routine_index] {
         let generic_row: Int = rows.generic_starts[routine_index] + generic_i;
         ArrayPush(generics, JsonStringLiteral(rows.generic_names[generic_row]));
+        ArrayPush(generic_constraints,
+            SelfMirJsonRoutineGenericConstraint(rows, generic_row));
         generic_i = generic_i + 1;
     }
     let params: Array<String> = [];
@@ -365,6 +386,10 @@ func SelfMirJsonRoutine(
         ArrayPush(fields3, JsonEmitFieldString("owner", rows.owners[routine_index]));
     }
     ArrayPush(fields3, JsonEmitFieldRaw("generics", JsonEmitArray(generics)));
+    if ArrayLength(generics) > 0 {
+        ArrayPush(fields3, JsonEmitFieldRaw(
+            "generic_constraints", JsonEmitArray(generic_constraints)));
+    }
     ArrayPush(fields3, JsonEmitFieldRaw("params", JsonEmitArray(params)));
     ArrayPush(fields3, JsonEmitFieldString("return", rows.return_types[routine_index]));
     ArrayPush(fields3, JsonEmitFieldNumber(
@@ -458,7 +483,7 @@ func SelfMirProgramJson(facts: SelfMirProgramFacts) -> String {
     }
     let generic_specializations: Array<String> =
         SelfMirJsonGenericSpecializations(
-            facts.generic_specializations
+            facts
         );
     let prefix: String = "{\"schema\":\"pgy.mir.v1\",\"decls\":";
     let generic_prefix: String = ",\"generic_method_specializations\":";
@@ -511,6 +536,10 @@ func SelfMirProgramJson(facts: SelfMirProgramFacts) -> String {
         routine_i = routine_i + 1;
     }
     TextBuilderAppend(output, "]");
+    if facts.intent_execution.present {
+        TextBuilderAppend(output, ",\"intent_execution\":");
+        TextBuilderAppend(output, SelfMirIntentExecutionJson(facts.intent_execution));
+    }
     TextBuilderAppend(output, "}");
     let json: String = TextBuilderFinish(output, output_allocator);
     AllocatorDestroy(output_allocator);

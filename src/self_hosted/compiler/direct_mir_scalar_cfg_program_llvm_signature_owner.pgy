@@ -2,7 +2,7 @@
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_type_owner.pgy";
 import "direct_mir_scalar_program_value_result_union_owner.pgy";
-import "direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy";
+import "direct_mir_scalar_program_array_readonly_ref_target_owner.pgy";
 
 func DirectMirScalarCfgProgramLlvmRoutineSignature(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int
@@ -15,7 +15,7 @@ func DirectMirScalarCfgProgramLlvmRoutineSignature(
     }
     let output: String = Concat("define internal ",
         DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
-            plan.routines.return_types[routine], plan.program.nominal_abi,
+            plan.routines.return_types[routine],
             plan.program.logical_record, plan.program.payload_free_enum,
             plan.program.referenced_enum));
     output = Concat(output, Concat(
@@ -34,17 +34,17 @@ func DirectMirScalarCfgProgramLlvmRoutineSignature(
             DirectMirScalarProgramLogicalRecordTypeReady(
                 plan.program.logical_record,
                 plan.routines.parameter_types[parameter_row]);
-        let readonly_array_string: Bool =
-            DirectMirScalarProgramArrayStringReadonlyRefAt(
+        let readonly_array: Bool =
+            DirectMirScalarProgramArrayReadonlyRefAt(
                 plan.routines, routine, ordinal);
-        if value_result || readonly_record || readonly_array_string {
+        if value_result || readonly_record || readonly_array {
             output = Concat(output, "ptr");
         }
         else {
             output = Concat(output,
                 DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
                 plan.routines.parameter_types[parameter_row],
-                plan.program.nominal_abi, plan.program.logical_record,
+                plan.program.logical_record,
                 plan.program.payload_free_enum,
                 plan.program.referenced_enum));
         }

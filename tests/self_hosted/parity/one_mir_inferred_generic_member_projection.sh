@@ -189,12 +189,12 @@ for permutation in combined-order-swap receiver-id-renumber; do
     cmp -s "$VESSEL_DIR/baseline.c" "$VESSEL_DIR/$permutation.c" || fail "C vessel artifact drifted for $permutation"
     cmp -s "$VESSEL_DIR/baseline.ll" "$VESSEL_DIR/$permutation.ll" || fail "LLVM vessel artifact drifted for $permutation"
 done
-for mutation in declaration-kind-drift nominal-kind-drift host-kind-subject routine-owner-drift receiver-carriage-value-drift receiver-pass-drift receiver-abi-forged constructor-physical-layout nested-use-drift stale-output-use specialization-symbol-drift; do reject_mutation "$mutation" c "$VESSEL_DIR"; done
-for mutation in host-kind-subject receiver-carriage-value-drift receiver-abi-forged nested-use-drift specialization-symbol-drift; do reject_mutation "$mutation" llvm "$VESSEL_DIR"; done
+for mutation in declaration-kind-drift nominal-kind-drift legacy-vessel-wire-kind host-kind-subject routine-owner-drift receiver-carriage-value-drift receiver-pass-drift receiver-abi-forged constructor-physical-layout nested-use-drift stale-output-use specialization-symbol-drift; do reject_mutation "$mutation" c "$VESSEL_DIR"; done
+for mutation in legacy-vessel-wire-kind host-kind-subject receiver-carriage-value-drift receiver-abi-forged nested-use-drift specialization-symbol-drift; do reject_mutation "$mutation" llvm "$VESSEL_DIR"; done
 for input_dir in "$WORK_DIR" "$VESSEL_DIR"; do
     for mutation in receiver-id-missing receiver-id-zero receiver-id-negative receiver-id-fractional receiver-id-string receiver-id-null receiver-id-collision receiver-id-duplicate; do
         reject_mutation "$mutation" c "$input_dir"
         reject_mutation "$mutation" llvm "$input_dir"
     done
 done
-echo "[$LABEL] PASS: one owner path, class exact 41 plus vessel exact 42, C/LLVM receiver ABI parity, six order invariants, five variants, receiver-ID erasure controls, 97 C negatives, 25 LLVM sentinels"
+echo "[$LABEL] PASS: one owner path, class exact 41 plus vessel exact 42, C/LLVM receiver ABI parity, six order invariants, five variants, receiver-ID erasure controls, 98 C negatives, 26 LLVM sentinels"

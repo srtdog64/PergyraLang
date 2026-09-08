@@ -29,6 +29,8 @@ func SelfDirIntentStepCarriageShapeReady(
         ArrayLength(steps.guard_node_ids) == count &&
         ArrayLength(steps.post_node_ids) == count &&
         ArrayLength(steps.expect_node_ids) == count &&
+        ArrayLength(steps.pre_node_ids) == count &&
+        ArrayLength(steps.invariant_node_ids) == count &&
         ArrayLength(steps.compensate_starts) == count &&
         ArrayLength(steps.compensate_counts) == count &&
         ArrayLength(steps.child_counts) == count &&
@@ -95,6 +97,14 @@ func SelfDirIntentStepCarriageReady(
                 !TypedAstArenaNodeKindIs(
                     artifact.arena, steps.expect_node_ids[i],
                     TypedAstKindIntentStepExpectTag()
+                )) || (steps.pre_node_ids[i] >= 0 &&
+                !TypedAstArenaNodeKindIs(
+                    artifact.arena, steps.pre_node_ids[i],
+                    TypedAstKindIntentStepPreTag()
+                )) || (steps.invariant_node_ids[i] >= 0 &&
+                !TypedAstArenaNodeKindIs(
+                    artifact.arena, steps.invariant_node_ids[i],
+                    TypedAstKindIntentStepInvariantTag()
                 )) || compensate_start != expected_compensate_start ||
             compensate_count < 0 || compensate_start + compensate_count >
                 ArrayLength(steps.compensate_node_ids) {

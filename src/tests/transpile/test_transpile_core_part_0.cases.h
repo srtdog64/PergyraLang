@@ -289,6 +289,79 @@ test_type_mapping(void)
         ast_destroy(handler_type);
     }
 
+    TEST("MIR callable local shadows builtin without a flat type name");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        MIRCallableSig signature = { .is_callable = true,
+                                     .return_type_name = "Int" };
+        ASTNode *call = make_call("StringLength", NULL, 0, 1);
+        bool registered = register_callable_var(ctx, "StringLength", &signature);
+        (void)ast_call_set_semantic_callee_value_binding_id(call, 1);
+        TypedVarEntry *binding = lookup_typed_entry(ctx, "StringLength");
+        char *rendered = emit_call(call, ctx);
+        EXPECT(registered && binding != NULL
+            && binding->callable_sig == &signature
+            && lookup_typed_var(ctx, "StringLength") == NULL
+            && rendered != NULL && strcmp(rendered, "StringLength()") == 0);
+        free(rendered);
+        ast_destroy(call);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("non-callable local cannot fall back to builtin emission");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *call = make_call("StringLength", NULL, 0, 1);
+        register_typed_var(ctx, "StringLength", "Int");
+        (void)ast_call_set_semantic_callee_value_binding_id(call, 1);
+        char *rendered = emit_call(call, ctx);
+        EXPECT(rendered == NULL && ctx->backend_error != NULL
+            && strstr(ctx->backend_error, "requires callable type metadata") != NULL);
+        free(rendered);
+        ast_destroy(call);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("callable local registration refuses missing signature");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        EXPECT(!register_callable_var(ctx, "StringLength", NULL)
+            && lookup_typed_entry(ctx, "StringLength") == NULL
+            && ctx->backend_error != NULL
+            && strstr(ctx->backend_error, "requires MIR signature metadata") != NULL);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("admitted local call cannot fall back when its binding is absent");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *call = make_call("StringLength", NULL, 0, 1);
+        (void)ast_call_set_semantic_callee_value_binding_id(call, 1);
+        char *rendered = emit_call(call, ctx);
+        EXPECT(rendered == NULL && ctx->backend_error != NULL
+            && strstr(ctx->backend_error, "requires binding metadata") != NULL);
+        free(rendered);
+        ast_destroy(call);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("callable local call must match its carried arity");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        char *params[] = {"Int"};
+        MIRCallableSig signature = { .is_callable = true,
+            .return_type_name = "Int", .param_type_names = params, .param_count = 1 };
+        ASTNode *call = make_call("StringLength", NULL, 0, 1);
+        bool registered = register_callable_var(ctx, "StringLength", &signature);
+        (void)ast_call_set_semantic_callee_value_binding_id(call, 1);
+        char *rendered = emit_call(call, ctx);
+        EXPECT(registered && rendered == NULL && ctx->backend_error != NULL
+            && strstr(ctx->backend_error, "disagrees with its callable signature") != NULL);
+        free(rendered);
+        ast_destroy(call);
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("let type registry skips inferred Unknown facts");
     {
         TranspilerCtx *ctx = transpiler_ctx_create();

@@ -98,7 +98,7 @@ func SemanticAstInitializerEnvironmentCursorAdvance(
         ) || !SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
             signatures, constructors, function_node_id, names, types, modes
         ) || !SemanticAstExpressionSeedParameters(
-            signatures, function_node_id, names, types
+            signatures, constructors, function_node_id, names, types
         ) || !SemanticAstExpressionSeedParameterModes(
             signatures, function_node_id, modes
         ) || ArrayLength(names) != ArrayLength(types) ||

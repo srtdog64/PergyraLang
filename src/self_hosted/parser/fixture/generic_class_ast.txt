@@ -2,8 +2,8 @@ Program:
   Class: Pair
     Generic params: <T>
     Fields:
-      first: T
-      second: T
+      let first: T
+      let second: T
     Methods:
       Function: GetFirst
         Parameters:
@@ -30,4 +30,3 @@ Program:
         Let: s : Pair<String: String> = Pair("hello", "world")
         Log(s.GetFirst())
         Log(s.GetSecond())
-

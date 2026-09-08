@@ -12,15 +12,23 @@ func DirectMirScalarProgramLlvmArrayIntGetMaterialization() -> String {
 func DirectMirScalarProgramLlvmArrayIntValueResultPreamble(
     ref fact: DirectMirScalarProgramArrayIntValueResultFact,
     requirement: DirectMirScalarProgramArrayIntRuntimeRequirement,
-    ref target: CompilerTargetProjectionFact
+    projection_opt: Option<DirectMirArrayIntAbiProjection>
 ) -> String {
     if !DirectMirScalarProgramArrayIntValueResultFactReady(fact) {
         Die("direct MIR LLVM Array<Int> value-result fact is invalid");
     }
-    if !fact.present { return ""; }
+    if !fact.present {
+        if IsSome(projection_opt) { Die("direct MIR LLVM absent Array<Int> has a target projection"); }
+        return "";
+    }
     if !requirement.valid { Die("direct MIR LLVM Array<Int> helper requirement is invalid"); }
+    if !IsSome(projection_opt) { Die("direct MIR LLVM Array<Int> target projection is missing"); }
     let abi: DirectMirArrayIntAbiProjection =
-        DirectMirScalarProgramArrayIntValueResultTargetFromFact(fact, target);
+        UnwrapOption(projection_opt);
+    if !DirectMirScalarProgramArrayIntAbiProjectionReadyForFact(
+            fact, abi, CompilerTargetCpuLlvmProjection()) {
+        Die("direct MIR LLVM Array<Int> target projection drifted");
+    }
     let output: String = Concat("%pgy.array.int = type ",
         Concat(abi.llvm_aggregate_type, "\n"));
     if requirement.push { output = Concat(output,
@@ -72,28 +80,6 @@ func DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(
             output = Concat(output, ", ptr %pgy.param.");
             output = Concat(output, ToString(parameter));
             output = Concat(output, ".local, align 8\n");
-        }
-        parameter = parameter + 1;
-    }
-    return output;
-}
-
-func DirectMirScalarProgramLlvmArrayIntValueParameterAddressableCopyIn(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
-) -> String {
-    let output: String = "";
-    let parameter: Int = 0;
-    while parameter < plan.routines.parameter_counts[routine] {
-        let row: Int = plan.routines.parameter_starts[routine] + parameter;
-        if plan.routines.parameter_carriages[row] == "value" &&
-            plan.routines.parameter_types[row] ==
-                CompilerAbiLayoutArrayIntTypeName() {
-            let spelling: String = ToString(parameter);
-            output = Concat(output, Concat("  %pgy.param.", Concat(
-                spelling, ".local = alloca %pgy.array.int, align 8\n")));
-            output = Concat(output, Concat("  store %pgy.array.int %pgy.param.",
-                Concat(spelling, Concat(", ptr %pgy.param.", Concat(
-                    spelling, ".local, align 8\n")))));
         }
         parameter = parameter + 1;
     }

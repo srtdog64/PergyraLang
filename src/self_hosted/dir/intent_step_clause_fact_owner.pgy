@@ -14,6 +14,8 @@ struct SelfDirIntentStepClauseFacts {
     expect_node_id: Int;
     guard_node_id: Int;
     post_node_id: Int;
+    pre_node_id: Int;
+    invariant_node_id: Int;
     compensate_node_ids: Array<Int>;
     explicit_using: String;
     transfer_text: String;
@@ -31,7 +33,8 @@ func SelfDirIntentStepClauseFactsError(
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
     return SelfDirIntentStepClauseFacts(
-        false, message, "", -1, "", -1, -1, "", -1, -1, -1, ints, "", "", "",
+        false, message, "", -1, "", -1, -1, "", -1, -1, -1, -1, -1,
+        ints, "", "", "",
         strings, strings, strings, "", 0
     );
 }
@@ -68,6 +71,8 @@ func SelfDirIntentStepClauseFactsFromArtifact(
     let expect_node_id: Int = -1;
     let guard_node_id: Int = -1;
     let post_node_id: Int = -1;
+    let pre_node_id: Int = -1;
+    let invariant_node_id: Int = -1;
     let compensate_node_ids: Array<Int> = [];
     let explicit_using: String = "";
     let transfer_text: String = "";
@@ -187,6 +192,20 @@ func SelfDirIntentStepClauseFactsFromArtifact(
                 );
             }
             post_node_id = row_id;
+        } else if kind == TypedAstKindIntentStepPreTag() {
+            if pre_node_id >= 0 || payload == "" {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent step has an invalid pre row"
+                );
+            }
+            pre_node_id = row_id;
+        } else if kind == TypedAstKindIntentStepInvariantTag() {
+            if invariant_node_id >= 0 || payload == "" {
+                return SelfDirIntentStepClauseFactsError(
+                    "self-host DIR intent step has an invalid invariant row"
+                );
+            }
+            invariant_node_id = row_id;
         } else if kind == TypedAstKindIntentStepCompensateTag() {
             if payload == "" {
                 return SelfDirIntentStepClauseFactsError(
@@ -221,7 +240,8 @@ func SelfDirIntentStepClauseFactsFromArtifact(
     return SelfDirIntentStepClauseFacts(
         true, "", on_text, on_node_id, intent_text, intent_node_id,
         outcome_node_id, outcome_name,
-        expect_node_id, guard_node_id, post_node_id, compensate_node_ids,
+        expect_node_id, guard_node_id, post_node_id, pre_node_id,
+        invariant_node_id, compensate_node_ids,
         explicit_using, transfer_text, explicit_causes, who_names, requires_names,
         authorized_names, provenance_text, child_index
     );

@@ -54,12 +54,15 @@ func DirectMirScalarProgramLlvmStringCollectionExpressionAt(
             llvm_type = "%pgy.array.int";
         } else if left_type == CompilerAbiLayoutArrayBoolTypeName() {
             llvm_type = "%pgy.array.bool";
+        } else if left_type == CompilerAbiLayoutArrayLongTypeName() {
+            llvm_type = "%pgy.array.long";
         }
         if left_type == CompilerAbiLayoutArrayStringTypeName() {
             call = Concat("call i64 @", Concat(
                 runtime.array_string_length.symbol,
                 Concat("(%pgy.array.string ", Concat(left, ")"))));
         } else if left_type == CompilerAbiLayoutArrayIntTypeName() ||
+                left_type == CompilerAbiLayoutArrayLongTypeName() ||
                 left_type == CompilerAbiLayoutArrayBoolTypeName() {
             call = Concat("extractvalue ", Concat(llvm_type, Concat(" ",
                 Concat(left, ", 1"))));
@@ -77,6 +80,8 @@ func DirectMirScalarProgramLlvmStringCollectionExpressionAt(
         call = Concat("call ptr @", Concat(runtime.array_string_get.symbol,
             Concat("(%pgy.array.string ", Concat(left,
             Concat(", i64 ", Concat(right, ")"))))));
+    } else if kind == DirectMirScalarProgramExprArrayLongIndex() {
+        call = "call i64 @pgy_array_long_get(%pgy.array.long " + left + ", i64 " + right + ")";
     } else { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
     let output: String = Concat("  ", Concat(
         result, Concat(" = ", Concat(call, "\n"))));

@@ -6,6 +6,58 @@ test_expression_emit(void)
     TranspilerCtx *ctx;
     char *result;
 
+    TEST("eager binary operands have ordered single-evaluation storage");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *expr = ast_create_binary(make_call("Left", NULL, 0, 1),
+            (Token){ .type = TOKEN_PLUS }, make_call("Right", NULL, 0, 1));
+        result = emit_expression(expr, ctx);
+        EXPECT(result != NULL);
+        EXPECT_STR_CONTAINS(result, "({ __auto_type __pgy_binary_");
+        if (result != NULL) {
+            const char *left = strstr(result, "= (Left());");
+            const char *right = strstr(result, "= (Right());");
+            EXPECT(left != NULL && right != NULL && left < right);
+            EXPECT(left != NULL && strstr(left + strlen("= (Left());"), "Left()") == NULL);
+            EXPECT(right != NULL && strstr(right + strlen("= (Right());"), "Right()") == NULL);
+        }
+        free(result);
+        ast_destroy(expr);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("binary temporaries do not capture a compiler-looking source binding");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *left = make_identifier("source", 1);
+        ASTNode *expr = ast_create_binary(left,
+            (Token){ .type = TOKEN_PLUS }, make_number(1, 1));
+        char name[96], forbidden[128], read[128];
+        snprintf(name, sizeof(name), "__pgy_binary_%u_0_0",
+            (unsigned)ast_node_stable_id(expr));
+        EXPECT(ast_replace_identifier_name_copy(left, name));
+        snprintf(forbidden, sizeof(forbidden), "__auto_type %s =", name);
+        snprintf(read, sizeof(read), "= (%s);", name);
+        result = emit_expression(expr, ctx);
+        EXPECT_STR_NOT_CONTAINS(result, forbidden);
+        EXPECT_STR_CONTAINS(result, read);
+        free(result);
+        ast_destroy(expr);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("logical RHS remains lazy instead of becoming an eager temporary");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *expr = ast_create_binary(make_identifier("enabled", 1),
+            (Token){ .type = TOKEN_AND }, make_call("Right", NULL, 0, 1));
+        result = emit_expression(expr, ctx);
+        EXPECT(result != NULL && strcmp(result, "(enabled && Right())") == 0);
+        free(result);
+        ast_destroy(expr);
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("integer literal -> correct C literal");
     {
         ctx    = transpiler_ctx_create();

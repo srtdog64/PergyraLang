@@ -58,13 +58,13 @@ func DirectMirNestedIntentEmptyParameterSetFact(
     let source: DirectMirRoutineParameterSetFact =
         DirectMirRoutineParameterSetFact(
             true, 0, strings, ints, strings, strings, strings, strings, strings,
-            ints, bools, ints, InvalidDirectMirRoutineParamFact());
+            ints, bools, strings, ints, InvalidDirectMirRoutineParamFact());
     return DirectMirRoutineParameterSetFact(
         source.valid, DirectMirRoutineParameterSetFactDigest(source),
         source.names, source.source_syntax_ids, source.type_names,
         source.carriages,
         source.resources, source.pass_shapes, source.abi_type_names,
-        source.abi_layout_ids, source.abi_required, source.param_digests,
+        source.abi_layout_ids, source.abi_required, source.abi_row_keys, source.param_digests,
         source.first);
 }
 
@@ -180,7 +180,7 @@ func DirectMirNestedIntentRoutineHeaderFactFromAdmitted(
             admitted.routines.source_json, param_bounds[0], param_bounds[1],
             header.param_names, header.param_types,
             header.param_carriages, header.param_resources,
-            header.param_pass_shapes);
+            header.param_pass_shapes, "");
     if UnwrapOption(kind) == "method" {
         if !DirectMirNestedIntentImplicitReceiverParamReady(
                 admitted.routines.source_json,
@@ -359,7 +359,7 @@ func DirectMirNestedIntentPolicyFactFromAdmitted(
         Die("direct MIR nested intent cleanup contract is invalid");
     }
     let carriers: MirIntentRoutineCarrierProjection =
-        MirIntentRoutineCarrierProjectionFromBlockZero(
+        MirIntentRoutineCarrierProjectionFromRoutine(
             admitted.routines, index, header.row, header.name);
     let mode: MirIntentModeProjection = MirIntentModeProjectionFromCarriers(
         header.name, carriers.carrier_names, carriers.carrier_arg0s,
@@ -376,9 +376,10 @@ func DirectMirNestedIntentPolicyFactFromAdmitted(
     let bindings: MirIntentBindingProjection =
         MirIntentBindingProjectionFromCarriers(
             carriers.carrier_names, carriers.carrier_arg0s,
-            carriers.carrier_arg1s, carriers.carrier_slots, header.name);
+            carriers.carrier_arg1s, carriers.carrier_slots, carriers.carrier_binding_source_syntax_ids,
+            header.name, ToInt(admitted.routines.source_syntax_ids[header.row]));
     let phases: MirIntentPhaseProjection = MirIntentPhaseProjectionFromCarriers(
-        admitted.routines, bindings.step_names, carriers.carrier_names,
+        admitted.routines, header.row, false, bindings.step_names, carriers.carrier_names,
         carriers.carrier_arg0s, carriers.carrier_arg1s,
         carriers.carrier_slots, carriers.carrier_results,
         carriers.carrier_abi_type_names, carriers.carrier_source_types,
@@ -386,9 +387,11 @@ func DirectMirNestedIntentPolicyFactFromAdmitted(
     if !carriers.valid || !mode.valid || !priority.valid || !priority.present ||
         !DirectMirNestedIntentParticipantBindingsReady(
             bindings, graph, outer) || !phases.ok ||
+        !MirIntentExpressionCarrierIsTrue(admitted.routines, phases.success_row) ||
         ArrayLength(bindings.step_names) != 1 ||
         ArrayLength(phases.on_rows) != 1 || phases.on_rows[0] < 0 ||
         phases.expect_rows[0] < 0 || phases.guard_rows[0] != -1 ||
+        phases.pre_rows[0] != -1 || phases.invariant_pre_rows[0] != -1 ||
         phases.post_rows[0] != -1 || phases.compensate_counts[0] != 0 {
         Die("direct MIR nested intent carrier spine is invalid");
     }

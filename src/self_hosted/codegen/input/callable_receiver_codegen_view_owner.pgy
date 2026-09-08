@@ -289,11 +289,11 @@ func CodegenCallableReceiverFactsFromAdmittedRowsOrDie(
     constructors: SemanticAstNominalConstructorFacts,
     roles: SemanticAstRoleFacts,
     enums: SemanticAstEnumFacts,
-    routine_source_syntax_ids: Array<String>,
-    routine_kinds: Array<String>,
-    routine_owners: Array<String>,
-    routine_names: Array<String>,
-    routine_receiver_carriages: Array<String>
+    ref routine_source_syntax_ids: Array<String>,
+    ref routine_kinds: Array<String>,
+    ref routine_owners: Array<String>,
+    ref routine_names: Array<String>,
+    ref routine_receiver_carriages: Array<String>
 ) -> CodegenCallableReceiverFacts {
     let facts: CodegenCallableReceiverFacts =
         CodegenCallableReceiverFactsFromSemantic(

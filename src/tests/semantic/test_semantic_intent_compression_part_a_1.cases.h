@@ -514,6 +514,29 @@ test_intent_compression_semantics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("intent invariant cannot read its current action outcome");
+    {
+        const char *source =
+            "subject Worker { let id: Int; "
+            "action Produce(self) -> Int within WorkZone authorized by self { return self.id; } }\n"
+            "zone WorkZone { subject slot worker: Worker authority worker }\n"
+            "intent Work(work: WorkZone, worker: Worker) {\n"
+            " step First { using: work; on outcome: worker.Produce();\n"
+            "  invariant: outcome >= 0; expect: outcome >= 0; } }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Undefined symbol 'outcome'"));
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("intent outcome binding requires exactly one on action");
     {
         const char *source =

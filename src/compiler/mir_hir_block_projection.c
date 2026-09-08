@@ -23,6 +23,7 @@ mir_add_phi_placeholders(MIRRoutine *routine, MIRBasicBlock *block)
         memset(&inst, 0, sizeof(inst));
         inst.kind = MIR_INST_PHI;
         inst.name = block->source_phi_nodes[i].name;
+        inst.binding_syntax_id = block->source_phi_nodes[i].binding_syntax_id;
         inst.slot_anchor = block->source_phi_nodes[i].name;
         inst.arg0 = "phi";
         if (!mir_commit_instruction(routine, block, &inst))
@@ -169,7 +170,7 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
                                 &block.source_statement_inventory.count,
                                 src->statements,
                                 src->statement_count)
-            || !mir_copy_names(&block.source_local_defs,
+            || !mir_copy_local_bindings(&block.source_local_defs,
                                &block.source_local_def_count,
                                src->local_defs,
                                src->local_def_count)

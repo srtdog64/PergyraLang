@@ -2,9 +2,10 @@
 //
 // Native MIR temporarily carries the original routine-local AST statement
 // graph beside the plan-owned on/compensation instruction graph.  This owner
-// proves multiset equality by persisted {root,digest} identity, including
-// multiplicity.  It never joins by expression text, source position, name, or
-// block row order.
+// covers that explicit mirror inventory by persisted {root,digest} identity,
+// including multiplicity. Producers with no redundant mirror blocks need no
+// duplicate graph. Only the admitted plan owns execution; mirrors are never a
+// fallback, and are never joined by text, source position, name or block order.
 
 import "intent_execution_tree_projection_owner.pgy";
 import "expression_graph_instruction_policy_owner.pgy";
@@ -73,6 +74,7 @@ func MirIntentExecutionCoverLegacyGraphMirrors(
     routine_row: Int,
     ref plan: MirIntentExecutionPlan,
     routine_syntax_id: Int,
+    ref typed_body_mirror_rows: Array<Int>,
     inout order: MirStructuredExpressionEmissionOrder
 ) -> Bool {
     let selected_roots: Array<Int> = [];
@@ -110,17 +112,23 @@ func MirIntentExecutionCoverLegacyGraphMirrors(
     let mirror_rows: Array<Int> = [];
     let mirror_roots: Array<Int> = [];
     let mirror_digests: Array<Int> = [];
+    let body_mirror: Int = 0;
+    while body_mirror < ArrayLength(typed_body_mirror_rows) {
+        let row: Int = typed_body_mirror_rows[body_mirror];
+        let identity: MirIntentExecutionGraphIdentity = MirIntentExecutionGraphIdentityAt(routines, row);
+        if !identity.valid { return false; }
+        ArrayPush(mirror_rows, row);
+        ArrayPush(mirror_roots, identity.root_id);
+        ArrayPush(mirror_digests, identity.digest);
+        body_mirror = body_mirror + 1;
+    }
+    let mirror_blocks: Int = 0;
     let local_block: Int = 0;
     while local_block < routines.routine_block_counts[routine_row] {
         let block_row: Int = routines.routine_block_starts[routine_row] +
             local_block;
-        let block_id_text: String = MirObjectNumberFactAtBounds(
-            routines.source_json, routines.block_starts[block_row],
-            routines.block_ends[block_row], "id"
-        );
-        let block_id: Int = ToInt(block_id_text);
-        if (block_id == 0 || block_id == 1) &&
-            ToString(block_id) == block_id_text {
+        if routines.block_intent_roles[block_row] == "mirror" {
+            mirror_blocks = mirror_blocks + 1;
             let local_instruction: Int = 0;
             while local_instruction <
                     routines.block_instruction_counts[block_row] {
@@ -139,10 +147,9 @@ func MirIntentExecutionCoverLegacyGraphMirrors(
                 let name: Option<String> = JsonObjectFactStringFieldOpt(
                     instruction, "name"
                 );
-                if IsSome(kind) && IsSome(name) &&
-                    UnwrapOption(kind) == "stmt" &&
-                    UnwrapOption(name) == "stmt" &&
-                    MirInstructionRequiresExpr0Graph(instruction) {
+                if !IsSome(kind) || !IsSome(name) ||
+                    UnwrapOption(kind) != "stmt" || UnwrapOption(name) != "stmt" { return false; }
+                if MirInstructionRequiresExpr0Graph(instruction) {
                     let identity: MirIntentExecutionGraphIdentity =
                         MirIntentExecutionGraphIdentityAt(
                             routines, global_row
@@ -151,11 +158,19 @@ func MirIntentExecutionCoverLegacyGraphMirrors(
                     ArrayPush(mirror_rows, global_row);
                     ArrayPush(mirror_roots, identity.root_id);
                     ArrayPush(mirror_digests, identity.digest);
+                } else {
+                    let source_type: Option<String> = JsonObjectFactStringFieldOpt(instruction, "source_type");
+                    if !IsSome(source_type) || UnwrapOption(source_type) != "AST_INTENT_STEP" { return false; }
                 }
                 local_instruction = local_instruction + 1;
             }
         }
         local_block = local_block + 1;
+    }
+    if mirror_blocks == 0 && ArrayLength(typed_body_mirror_rows) == 0 {
+        // There is no second representation to cover; plan admission still
+        // requires every selected expression and its exact execution identity.
+        return true;
     }
     if ArrayLength(mirror_rows) != ArrayLength(selected_roots) {
         return false;

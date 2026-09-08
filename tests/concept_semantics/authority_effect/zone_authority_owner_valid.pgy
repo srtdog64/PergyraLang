@@ -1,0 +1,13 @@
+subject Player {}
+effect Marked for bearer: Player {}
+relation Bond for left: Player, right: Player {}
+zone Battle {
+    subject slot owner: Player
+    subject slot observer: Player
+    effect slot mark: Marked
+    relation slot bond: Bond
+    authority owner
+    apply mark to observer by owner
+    link bond between owner, observer by owner
+}
+func Main() -> Void {}

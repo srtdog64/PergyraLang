@@ -1,0 +1,5 @@
+class Marked {}
+zone Battle {
+    effect slot mark: Marked
+}
+func Main() -> Void {}

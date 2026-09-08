@@ -1,0 +1,63 @@
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Log("expected one native AST control path"); Exit(1); return; }
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(ReadFile(args[0]));
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    let body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !body.verdict.ok { Log(body.verdict.diagnostic_message); Exit(1); return; }
+    Log(SemanticAstBodyTypeBundleReady(artifact, analysis, body));
+    let clock: Int = CallableContractVocabularyMaskValueAt(
+        CallableContractVocabularyFindIndex(CallableContractVocabularyCapabilityAxis(), "clock"));
+    let invoke: Int = -1;
+    let pure: Int = -1;
+    let effectful: Int = -1;
+    let callback_id: Int = -1;
+    let count: Int = SemanticAstFunctionSignatureCount(analysis.signatures);
+    let row: Int = 0;
+    while row < count {
+        let name: String = analysis.signatures.names[row];
+        if name == "Invoke" { invoke = row; }
+        if name == "PurePath" { pure = row; }
+        if name == "ClockPath" { effectful = row; }
+        if name == "ClockBump" { callback_id = analysis.signatures.function_node_ids[row]; }
+        row = row + 1;
+    }
+    if invoke < 0 || pure < 0 || effectful < 0 || callback_id < 0 {
+        Log("missing callable control identities"); Exit(1); return;
+    }
+    Log(body.capabilities.used_masks[pure] == 0 && !body.capabilities.deferred_uses[pure]);
+    Log(body.capabilities.used_masks[effectful] == clock && !body.capabilities.deferred_uses[effectful]);
+    Log(body.capabilities.used_masks[invoke] == clock && body.capabilities.deferred_uses[invoke]);
+    Log(body.capabilities.instantiation_count == count + 3 && body.capabilities.instantiation_reuses > 0);
+    let flags: Array<Bool> = body.capabilities.deferred_uses;
+    let empty: Array<Bool> = [];
+    body.capabilities.deferred_uses = empty;
+    Log(!SemanticAstCapabilityFactsReady(artifact, analysis, body.capabilities));
+    body.capabilities.deferred_uses = flags;
+    body.capabilities.deferred_uses[pure] = true;
+    Log(!SemanticAstCapabilityFactsReady(artifact, analysis, body.capabilities));
+    body.capabilities.deferred_uses[pure] = false;
+    let node: Int = 0;
+    let binding: Int = -1;
+    while node < SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena) {
+        if analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[node] == callback_id {
+            binding = node;
+        }
+        node = node + 1;
+    }
+    if binding < 0 { Log("missing callable argument identity"); Exit(1); return; }
+    analysis.expression_surfaces.expression_graph.arena.node_texts[binding] = "Now";
+    let identity: SemanticAstCapabilityFacts = SemanticAstCapabilityFactsFromAdmittedBody(
+        artifact, analysis, body.verdict, body.iteration_types, body.match_materializations);
+    Log(identity.ok && identity.contract_ok && identity.used_masks[pure] == 0 && identity.used_masks[effectful] == clock);
+    analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[binding] = 0;
+    let missing: SemanticAstCapabilityFacts = SemanticAstCapabilityFactsFromAdmittedBody(
+        artifact, analysis, body.verdict, body.iteration_types, body.match_materializations);
+    Log(!missing.ok && missing.diagnostic_code == "capability_fact_invalid");
+    analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[binding] = artifact.count + 1;
+    let unknown: SemanticAstCapabilityFacts = SemanticAstCapabilityFactsFromAdmittedBody(
+        artifact, analysis, body.verdict, body.iteration_types, body.match_materializations);
+    Log(!unknown.ok && unknown.diagnostic_code == "capability_fact_invalid");
+}

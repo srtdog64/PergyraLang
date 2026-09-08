@@ -63,38 +63,20 @@ func DirectMirScalarProgramOwnedArrayStringMoveFactReady(
     let row: Int = 0;
     while row < count {
         if fact.caller_routines[row] < 0 ||
-            fact.call_operation_rows[row] < 0 ||
+            fact.call_operation_rows[row] < -1 ||
             fact.call_expression_rows[row] < 0 || fact.local_rows[row] < 0 ||
             fact.callable_ordinals[row] <= 0 ||
             fact.parameter_ordinals[row] < 0 ||
             fact.abi_layout_ids[row] <= 0 { return false; }
-        let matches: Int = 0;
         let other: Int = 0;
         while other < count {
             if fact.caller_routines[other] == fact.caller_routines[row] &&
                 fact.local_rows[other] == fact.local_rows[row] {
-                matches = matches + 1;
-                if fact.callable_ordinals[other] !=
-                        fact.callable_ordinals[row] ||
-                    fact.parameter_ordinals[other] !=
-                        fact.parameter_ordinals[row] ||
-                    fact.abi_layout_ids[other] != fact.abi_layout_ids[row] ||
-                    fact.coverage.kinds[other] != fact.coverage.kinds[row] ||
-                    fact.coverage.branch_block_rows[other] !=
-                        fact.coverage.branch_block_rows[row] ||
-                    fact.coverage.merge_block_rows[other] !=
-                        fact.coverage.merge_block_rows[row] ||
-                    (other != row && fact.coverage.call_block_rows[other] ==
-                        fact.coverage.call_block_rows[row]) { return false; }
+                if other != row && fact.coverage.call_block_rows[other] ==
+                        fact.coverage.call_block_rows[row] { return false; }
             }
             other = other + 1;
         }
-        if (fact.coverage.kinds[row] ==
-                DirectMirScalarProgramOwnedArrayStringMoveStraightCoverage() &&
-             matches != 1) ||
-            (fact.coverage.kinds[row] ==
-                DirectMirScalarProgramOwnedArrayStringMoveAlternativeCoverage() &&
-             matches != 2) { return false; }
         row = row + 1;
     }
     return true;

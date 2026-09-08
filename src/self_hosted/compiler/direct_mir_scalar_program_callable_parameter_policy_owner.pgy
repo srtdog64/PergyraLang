@@ -2,7 +2,6 @@
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_array_string_abi_fact_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
-import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
@@ -20,7 +19,7 @@ import "direct_mir_scalar_program_void_logical_record_array_string_value_result_
 import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
 import "direct_mir_scalar_program_referenced_enum_fact_owner.pgy";
 import "direct_mir_scalar_program_set_string_value_result_policy_owner.pgy";
-import "direct_mir_scalar_program_array_string_readonly_ref_policy_owner.pgy";
+import "direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy";
 import "direct_mir_scalar_program_callable_runtime_value_parameter_policy_owner.pgy";
 import "direct_mir_scalar_program_owned_string_parameter_policy_owner.pgy";
 import "direct_mir_scalar_program_callable_type_policy_owner.pgy";
@@ -45,31 +44,21 @@ func DirectMirScalarProgramCallableReturnTypeSupported(
         type_name == CompilerAbiLayoutOptionBoolTypeName() ||
         type_name == CompilerAbiLayoutResultIntTypeName();
 }
-func DirectMirScalarProgramCallableReturnTypeSupportedWithNominal(
-    type_name: String,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
-) -> Bool {
-    return DirectMirScalarProgramCallableReturnTypeSupported(type_name) ||
-        DirectMirScalarProgramTwoIntNominalTypeReady(nominal, type_name);
-}
 func DirectMirScalarProgramCallableReturnTypeSupportedWithFacts(
     type_name: String,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> Bool {
-    return DirectMirScalarProgramCallableReturnTypeSupportedWithNominal(
-            type_name, nominal) ||
+    return DirectMirScalarProgramCallableReturnTypeSupported(type_name) ||
         DirectMirScalarProgramLogicalRecordTypeReady(logical_record, type_name) ||
         DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, type_name);
 }
 func DirectMirScalarProgramCallableReturnTypeSupportedWithReferencedEnum(
     type_name: String,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> Bool {
     return DirectMirScalarProgramCallableReturnTypeSupportedWithFacts(
-            type_name, nominal, logical_record) ||
+            type_name, logical_record) ||
         DirectMirScalarProgramPayloadEnumTypeReady(
             referenced_enum, type_name);
 }
@@ -117,6 +106,7 @@ func DirectMirScalarProgramCallableParameterSupported(
         signature.parameters.pass_shapes[ordinal] != "direct" {
         return false;
     }
+    if DirectMirScalarProgramArrayReadonlyRefParameterReady(signature, ordinal) { return true; }
     if type_name == CompilerAbiLayoutArrayIntTypeName() {
         return (signature.parameters.carriages[ordinal] == "value" ||
                 signature.parameters.carriages[ordinal] == "value-result") &&
@@ -129,7 +119,6 @@ func DirectMirScalarProgramCallableParameterSupported(
             return signature.parameters.abi_required[ordinal] &&
                 signature.parameters.abi_layout_ids[ordinal] > 0;
         }
-        if DirectMirScalarProgramArrayStringReadonlyRefParameterReady(signature, ordinal) { return true; }
         return signature.parameters.carriages[ordinal] == "value" &&
             signature.parameters.abi_required[ordinal] &&
             signature.parameters.abi_layout_ids[ordinal] > 0;
@@ -149,6 +138,11 @@ func DirectMirScalarProgramCallableParameterSupported(
         if DirectMirScalarProgramSetStringValueResultParameterReady(signature, ordinal) { return true; }
         return signature.parameters.carriages[ordinal] == "value" &&
             !signature.parameters.abi_required[ordinal] &&
+            signature.parameters.abi_layout_ids[ordinal] == 0;
+    }
+    if DirectMirScalarCfgScalarTypeSupported(type_name) &&
+        signature.parameters.carriages[ordinal] == "value-result" {
+        return !signature.parameters.abi_required[ordinal] &&
             signature.parameters.abi_layout_ids[ordinal] == 0;
     }
     if signature.parameters.carriages[ordinal] != "value" { return false; }
@@ -208,20 +202,6 @@ func DirectMirScalarProgramOwnedArrayStringReturnSignatureReady(ref signature: D
     }
     return true;
 }
-func DirectMirScalarProgramCallableParameterSupportedWithNominal(
-    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
-) -> Bool {
-    if DirectMirScalarProgramCallableParameterSupported(signature, ordinal) {
-        return true;
-    }
-    return signature.param_count == 1 && ordinal == 0 &&
-        signature.parameters.carriages[0] == "value" &&
-        signature.parameters.resources[0] == "none" &&
-        signature.parameters.pass_shapes[0] == "direct" &&
-        DirectMirScalarProgramTwoIntNominalParameterReady(
-            nominal, signature.param);
-}
 func DirectMirScalarProgramLogicalRecordParameterReady(
     ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact
@@ -230,7 +210,8 @@ func DirectMirScalarProgramLogicalRecordParameterReady(
         !DirectMirScalarProgramLogicalRecordTypeReady(
             logical_record, signature.parameters.type_names[ordinal]) ||
         signature.parameters.resources[ordinal] != "none" ||
-        signature.parameters.abi_required[ordinal] {
+        !DirectMirScalarProgramLogicalRecordParameterAbiReady(
+            logical_record, signature.parameters, ordinal) {
         return false;
     }
     if signature.parameters.carriages[ordinal] == "value" ||
@@ -240,14 +221,42 @@ func DirectMirScalarProgramLogicalRecordParameterReady(
     return signature.parameters.carriages[ordinal] == "readonly-ref" &&
         signature.parameters.pass_shapes[ordinal] == "indirect";
 }
+// Closed synchronous calls borrow cell identity. A Zone is never a value
+// parameter: its source-level readonly-ref remains an indirect cell borrow.
+func DirectMirScalarProgramIdentityCellBorrowCarriage(
+    ref cells: DirectMirIdentityCellFacts, type_name: String
+) -> String {
+    let cell: Int = DirectMirIdentityCellRow(cells, type_name);
+    if cell < 0 { return ""; }
+    if cells.nominal_kinds[cell] == "zone" { return "readonly-ref"; }
+    if cells.nominal_kinds[cell] == "subject" || cells.nominal_kinds[cell] == "vessel" { return "value"; }
+    return "";
+}
+func DirectMirScalarProgramIdentityCellParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref cells: DirectMirIdentityCellFacts
+) -> Bool {
+    if ordinal < 0 || ordinal >= signature.param_count { return false; }
+    let carriage: String = DirectMirScalarProgramIdentityCellBorrowCarriage(
+        cells, signature.parameters.type_names[ordinal]);
+    // An Intent's admitted binder retains its own protocol mode. Recognizing
+    // its cell representation does not discharge placement or cleanup.
+    if carriage != "" && signature.kind == "intent" { carriage = "participant"; }
+    let pass_shape: String = "direct";
+    if carriage == "readonly-ref" || carriage == "participant" { pass_shape = "indirect"; }
+    return carriage != "" && signature.parameters.carriages[ordinal] == carriage &&
+        signature.parameters.resources[ordinal] == "none" &&
+        signature.parameters.pass_shapes[ordinal] == pass_shape &&
+        !signature.parameters.abi_required[ordinal] && signature.parameters.abi_layout_ids[ordinal] == 0 &&
+        signature.parameters.abi_row_keys[ordinal] == "";
+}
 func DirectMirScalarProgramCallableParameterSupportedWithFacts(
     ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> Bool {
-    return DirectMirScalarProgramCallableParameterSupportedWithNominal(
-            signature, ordinal, nominal) ||
+    return DirectMirScalarProgramCallableParameterSupported(signature, ordinal) ||
+        DirectMirScalarProgramIdentityCellParameterReady(signature, ordinal, logical_record.identity_cells) ||
         DirectMirScalarProgramLogicalRecordParameterReady(
             signature, ordinal, logical_record) ||
         DirectMirScalarProgramLogicalRecordValueResultParameterReady(
@@ -267,13 +276,12 @@ func DirectMirScalarProgramCallableParameterSupportedWithFacts(
 }
 func DirectMirScalarProgramCallableParameterSupportedWithReferencedEnum(
     ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> Bool {
     return DirectMirScalarProgramCallableParameterSupportedWithFacts(
-            signature, ordinal, nominal, logical_record,
+            signature, ordinal, logical_record,
             payload_free_enum) ||
         DirectMirScalarProgramPayloadEnumParameterReady(
             signature, ordinal, referenced_enum);

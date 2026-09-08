@@ -1,0 +1,49 @@
+import "../../../src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir_scalar_program_builtin_runtime_call_identity_owner.pgy";
+
+func Main() -> Void {
+    let kinds: Array<Int> = [DirectMirScalarProgramExprIntLiteral(), DirectMirScalarProgramExprIntLiteral(),
+        DirectMirScalarProgramExprCheckedAddInt(), DirectMirScalarProgramExprCheckedMulInt(),
+        DirectMirScalarProgramExprLocal(), DirectMirScalarProgramExprArrayIntSort(), DirectMirScalarProgramExprArrayIntReverse()];
+    let types: Array<String> = ["Int", "Int", "Int", "Int", "Array<Int>", "Array<Int>", "Array<Int>"];
+    let lefts: Array<Int> = [-1, -1, 0, 0, -1, 4, 4];
+    let rights: Array<Int> = [-1, -1, 1, 1, -1, -1, -1];
+    let locals: Array<Int> = [-1, -1, -1, -1, 0, -1, -1];
+    let absent: Array<Int> = [-1, -1, -1, -1, -1, -1, -1];
+    let abi_ids: Array<Int> = [-1, -1,
+        DirectMirScalarProgramCheckedIntRuntimeFact(kinds[2]).runtime_call_abi_id,
+        DirectMirScalarProgramCheckedIntRuntimeFact(kinds[3]).runtime_call_abi_id, -1,
+        DirectMirScalarProgramArrayTransformRuntimeFact(kinds[5]).runtime_call_abi_id,
+        DirectMirScalarProgramArrayTransformRuntimeFact(kinds[6]).runtime_call_abi_id];
+    let literals: Array<String> = ["1", "2", "", "", "", "", ""];
+    let empty: Array<Int> = [];
+    let nary: DirectMirScalarProgramNaryOperands = DirectMirScalarProgramNaryOperands(true, empty, empty, empty, empty);
+    let facts: DirectMirScalarProgramExpressionSet = DirectMirScalarProgramExpressionSet(true, 0,
+        empty, empty, empty, empty, kinds, types, lefts, rights, locals, absent, absent, literals, absent, abi_ids, nary);
+    Log(DirectMirScalarProgramExpressionNodeReady(facts, 2));
+    Log(DirectMirScalarProgramExpressionNodeReady(facts, 3));
+    Log(DirectMirScalarProgramExpressionNodeReady(facts, 5));
+    Log(DirectMirScalarProgramExpressionNodeReady(facts, 6));
+    abi_ids[2] = -1;
+    Log(!DirectMirScalarProgramExpressionNodeReady(facts, 2));
+    abi_ids[2] = abi_ids[3];
+    Log(!DirectMirScalarProgramExpressionNodeReady(facts, 2));
+    types[1] = "Long";
+    Log(!DirectMirScalarProgramExpressionNodeReady(facts, 3));
+    types[1] = "Int"; rights[3] = 3;
+    Log(!DirectMirScalarProgramExpressionNodeReady(facts, 3));
+    rights[3] = 1; abi_ids[5] = abi_ids[6];
+    Log(!DirectMirScalarProgramExpressionNodeReady(facts, 5));
+    types[4] = "Array<Long>";
+    Log(!DirectMirScalarProgramExpressionNodeReady(facts, 6));
+    let checked: DirectMirScalarProgramBuiltinSignatureFact = DirectMirScalarProgramBuiltinSignatureFactFromName("CheckedAdd");
+    let transform: DirectMirScalarProgramBuiltinSignatureFact = DirectMirScalarProgramBuiltinSignatureFactFromName("ArrayReverse");
+    Log(DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(checked, 0));
+    Log(DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(transform, 0));
+    Log(!DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(checked, checked.runtime_call_abi_id));
+    Log(!DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(transform, transform.runtime_call_abi_id));
+    types[4] = "Array<Int>"; kinds[4] = DirectMirScalarProgramExprParameter();
+    Log(!DirectMirScalarProgramExpressionNodeReady(facts, 6));
+    kinds[4] = DirectMirScalarProgramExprLocal(); rights[6] = 1;
+    Log(!DirectMirScalarProgramExpressionNodeReady(facts, 6));
+}

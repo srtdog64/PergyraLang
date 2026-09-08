@@ -4,6 +4,7 @@
 #include "llvm_internal.h"
 
 LLVMValueRef *llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
+                                            const MIRRoutine *bound_routine,
                                             ASTNode **arg_nodes, size_t argc,
                                             unsigned *out_count);
 

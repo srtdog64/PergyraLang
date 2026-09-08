@@ -10,6 +10,45 @@ struct SemanticCallSpineView {
     generic_actual_type_names: Array<String>;
 }
 
+struct SemanticCallSpineRoots {
+    ok: Bool;
+    root_nodes: Array<Int>;
+}
+
+// Ephemeral projection for one admitted, immutable graph and its whole arena.
+// This is not serialized identity or a second graph-admission authority.
+func SemanticCallSpineRootsFromGraph(
+    ref graph: SemanticExpressionGraphFacts
+) -> SemanticCallSpineRoots {
+    let roots: Array<Int> = [];
+    let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    if !graph.ok ||
+        ArrayLength(graph.arena.topology.left_children) != count {
+        return SemanticCallSpineRoots(false, roots);
+    }
+    let node: Int = 0;
+    while node < count {
+        ArrayPush(roots, node);
+        node = node + 1;
+    }
+    node = count - 1;
+    while node >= 0 {
+        if graph.arena.topology.node_kinds[node] == AstExpressionNodeCallArgument() {
+            let previous: Int = graph.arena.topology.left_children[node];
+            if previous < 0 || previous >= node ||
+                !AstExpressionNodeIsCallSpine(graph.arena.topology.node_kinds[previous]) {
+                return SemanticCallSpineRoots(false, roots);
+            }
+            // Child IDs precede parents. Reverse overwrites select the first
+            // continuation, exactly as the old forward suffix scan does, even
+            // when a DAG has later alternative continuations of the same node.
+            ArraySet(roots, previous, roots[node]);
+        }
+        node = node - 1;
+    }
+    return SemanticCallSpineRoots(true, roots);
+}
+
 func SemanticCallSpineViewFromGraph(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int

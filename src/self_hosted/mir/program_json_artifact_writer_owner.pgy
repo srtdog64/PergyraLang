@@ -35,6 +35,11 @@ func SelfMirJsonBlockWriteFile(
         instruction_i = instruction_i + 1;
     }
     CompilerArtifactWrite(output, "]");
+    if blocks.intent_roles[block_index] != "" {
+        CompilerArtifactWrite(output, ",");
+        JsonOwnedFragmentWriteFile(output, JsonEmitFieldString(
+            "intent_block_role", blocks.intent_roles[block_index]));
+    }
     if blocks.has_succ_true[block_index] == 1 {
         CompilerArtifactWrite(output, ",");
         JsonOwnedFragmentWriteFile(output, JsonEmitFieldNumber(
@@ -97,7 +102,19 @@ func SelfMirJsonRoutineWriteFile(
         generic_i = generic_i + 1;
     }
 
-    CompilerArtifactWrite(output, "],\"params\":[");
+    CompilerArtifactWrite(output, "]");
+    if rows.generic_counts[routine_index] > 0 {
+        CompilerArtifactWrite(output, ",\"generic_constraints\":[");
+        generic_i = 0;
+        while generic_i < rows.generic_counts[routine_index] {
+            if generic_i > 0 { CompilerArtifactWrite(output, ","); }
+            JsonOwnedFragmentWriteFile(output, SelfMirJsonRoutineGenericConstraint(
+                rows, rows.generic_starts[routine_index] + generic_i));
+            generic_i = generic_i + 1;
+        }
+        CompilerArtifactWrite(output, "]");
+    }
+    CompilerArtifactWrite(output, ",\"params\":[");
     let param_i: Int = 0;
     while param_i < rows.param_counts[routine_index] {
         if param_i > 0 { CompilerArtifactWrite(output, ","); }
@@ -283,7 +300,7 @@ func SelfMirProgramJsonWriteArtifactVerified(
         SelfMirGenericSpecializationCount(facts.generic_specializations) {
         if specialization_i > 0 { CompilerArtifactWrite(output, ","); }
         JsonOwnedFragmentWriteFile(output, SelfMirJsonGenericSpecialization(
-            facts.generic_specializations, specialization_i
+            facts.generic_specializations, facts.routines, facts.cfg, specialization_i
         ));
         specialization_i = specialization_i + 1;
     }
@@ -323,7 +340,9 @@ func SelfMirProgramJsonWriteArtifactVerified(
         }
         routine_i = routine_i + 1;
     }
-    CompilerArtifactWrite(output, "]}");
+    CompilerArtifactWrite(output, "]");
+    SelfMirIntentExecutionJsonWriteFile(facts.intent_execution, output);
+    CompilerArtifactWrite(output, "}");
     return SelfMirArtifactCommit(output, output_path);
 }
 

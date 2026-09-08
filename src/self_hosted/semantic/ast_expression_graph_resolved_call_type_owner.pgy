@@ -219,6 +219,28 @@ func SemanticExpressionGraphResolvedCallReturnTypeName(
             function_names, function_returns
         );
     if !target.ok { return None; }
+    let local_callable: SemanticAstCallableTypeShape =
+        SemanticAstCallableTypeShapeFromName(EnvLookup(names, types, target.name));
+    if local_callable.ok { return Some(local_callable.return_type); }
+    let map_protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(target.name);
+    if map_protocol.applies && map_protocol.family == "HashMap" &&
+        target.kind == SemanticCallTargetDirect() {
+        let map_call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, root_id);
+        if !map_call.ok { return None; }
+        if graph.arena.identities.call_target_syntax_ids[map_call.call_node] <= 0 {
+            let receiver: String = "";
+            if map_protocol.receiver_argument_index >= 0 &&
+                map_protocol.receiver_argument_index < ArrayLength(map_call.argument_nodes) {
+                receiver = SemanticExpressionGraphCallArgumentScalarTypeName(graph,
+                    map_call.argument_nodes[map_protocol.receiver_argument_index], names, types);
+            }
+            let map_signature: SemanticHashMapCallSignature = SemanticHashMapCallSignatureFrom(
+                target.name, ArrayLength(map_call.argument_nodes), receiver);
+            if !map_signature.ok { return None; }
+            return Some(map_signature.return_type);
+        }
+    }
     let list_call: SemanticExpressionGraphListCallFact =
         SemanticExpressionGraphListCallFactFromResolvedTarget(
             graph, root_id, target, names, types
@@ -274,13 +296,6 @@ func SemanticExpressionGraphResolvedCallReturnTypeName(
         return SemanticPolymorphicBuiltinReturnTypeOpt(
             target.name, clone_argument_types
         );
-    }
-    let local_callable: SemanticAstCallableTypeShape =
-        SemanticAstCallableTypeShapeFromName(
-            EnvLookup(names, types, target.name)
-        );
-    if local_callable.ok {
-        return Some(local_callable.return_type);
     }
     let target_index: Option<Int> = SemanticCallableIndex(
         function_names, target.name

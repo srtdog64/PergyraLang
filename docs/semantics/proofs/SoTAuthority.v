@@ -1020,6 +1020,7 @@ Inductive SpineFact : Type :=
   | SFLanguageWordRegistry
   | SFCallableContractVocabulary
   | SFBuiltinCapabilityPolicy
+  | SFBuiltinEffectPolicy
   | SFFileModeCapabilityPolicy
   | SFSelfHostSourceCapabilityFacts
   | SFCallableReceiverCarriage
@@ -1110,6 +1111,7 @@ Inductive SpineOwner : Type :=
   | SOLanguageLexicon
   | SOCallableContractVocabulary
   | SOBuiltinCapabilityPolicy
+  | SOBuiltinEffectPolicy
   | SOFileModeCapabilityPolicy
   | SOSelfHostSemanticCapability
   | SOSemanticCallableReceiver
@@ -1175,6 +1177,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFLanguageWordRegistry => SOLanguageLexicon
   | SFCallableContractVocabulary => SOCallableContractVocabulary
   | SFBuiltinCapabilityPolicy => SOBuiltinCapabilityPolicy
+  | SFBuiltinEffectPolicy => SOBuiltinEffectPolicy
   | SFFileModeCapabilityPolicy => SOFileModeCapabilityPolicy
   | SFSelfHostSourceCapabilityFacts => SOSelfHostSemanticCapability
   | SFCallableReceiverCarriage => SOSemanticCallableReceiver

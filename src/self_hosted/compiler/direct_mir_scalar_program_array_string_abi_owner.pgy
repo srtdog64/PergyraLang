@@ -2,7 +2,7 @@
 // Routine signatures own carriage; captured MIR ABI rows own physical layout.
 import "direct_mir_array_string_abi_fact_owner.pgy";
 import "direct_mir_array_storage_layout_contract_owner.pgy";
-import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_routine_instance_inventory_owner.pgy";
 import "direct_mir_scalar_cfg_hash_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_parameter_fact_projection_owner.pgy";
@@ -124,6 +124,7 @@ func DirectMirScalarProgramArrayStringAbiCaptureMatches(
 
 func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref routine_instances: DirectMirRoutineInstanceInventory,
     routine_rows: Array<Int>,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
@@ -143,10 +144,7 @@ func DirectMirScalarProgramArrayStringAbiFactFromAdmitted(
         let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
             admitted.routines, routine_row);
         let signature: DirectMirRoutineSignatureFact =
-            DirectMirRoutineSignatureFactAt(
-                admitted.routines, routine_row,
-                    MirProgramRoutineIndexBlockInstructionCountAt(
-                        admitted.routines, routine_row, 0));
+            DirectMirRoutineInstanceSignatureAt(routine_instances, routine);
         let owned_return_signature: Bool =
             DirectMirScalarProgramOwnedArrayStringReturnSignatureReady(signature) ||
             (signature.return_type == CompilerAbiLayoutArrayStringTypeName() &&

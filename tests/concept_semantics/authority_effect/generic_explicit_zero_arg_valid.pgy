@@ -1,0 +1,8 @@
+func Tag<T>() -> Int { return 9; }
+// An unused template is not an instance or an execution requirement.
+func Unused<T>(value: T) -> T { return value; }
+
+func Main() -> Void {
+    Log(Tag<Int>());
+    Log(Tag<String>());
+}

@@ -1,14 +1,15 @@
 // Exact typed-intent action target projection for the shared semantic graph.
-// The wire carries the source member name while generic semantic verification
-// consumes the canonical declared member name.  Only an admitted transition
-// instruction and its callable syntax identity may bridge those two axes.
+// The admitted declaration ID selects the call root. Its wire spelling may be
+// source-local or already canonical; neither spelling can select a callable.
 
 import "intent_execution_tree_projection_owner.pgy";
 import "../semantic/callable_resolution_owner.pgy";
+import "../semantic/ast_expression_graph_call_view_owner.pgy";
 
 struct MirIntentExecutionGraphTargetProjection {
     valid: Bool;
     applies: Bool;
+    target_syntax_id: Int;
     source_name: String;
     canonical_name: String;
 }
@@ -37,10 +38,10 @@ func MirIntentExecutionGraphTargetForInstruction(
     if !MirProgramRoutineIndexStructureReady(routines) ||
         !plan.valid || global_row < 0 ||
         global_row >= ArrayLength(routines.instruction_starts) {
-        return MirIntentExecutionGraphTargetProjection(false, false, "", "");
+        return MirIntentExecutionGraphTargetProjection(false, false, 0, "", "");
     }
     if !plan.present {
-        return MirIntentExecutionGraphTargetProjection(true, false, "", "");
+        return MirIntentExecutionGraphTargetProjection(true, false, 0, "", "");
     }
     let syntax_id: Int = 0;
     let expected_name: String = "";
@@ -82,10 +83,10 @@ func MirIntentExecutionGraphTargetForInstruction(
         step = step + 1;
     }
     if matches == 0 {
-        return MirIntentExecutionGraphTargetProjection(true, false, "", "");
+        return MirIntentExecutionGraphTargetProjection(true, false, 0, "", "");
     }
     if matches != 1 || syntax_id <= 0 {
-        return MirIntentExecutionGraphTargetProjection(false, false, "", "");
+        return MirIntentExecutionGraphTargetProjection(false, false, 0, "", "");
     }
     let callable_row: Int = 0 - 1;
     let row: Int = 0;
@@ -95,7 +96,7 @@ func MirIntentExecutionGraphTargetForInstruction(
             (expected_name == "" || routines.names[row] == expected_name) {
             if callable_row >= 0 {
                 return MirIntentExecutionGraphTargetProjection(
-                    false, false, "", ""
+                    false, false, 0, "", ""
                 );
             }
             callable_row = row;
@@ -103,11 +104,11 @@ func MirIntentExecutionGraphTargetForInstruction(
         row = row + 1;
     }
     if callable_row < 0 {
-        return MirIntentExecutionGraphTargetProjection(false, false, "", "");
+        return MirIntentExecutionGraphTargetProjection(false, false, 0, "", "");
     }
     let source_name: String = routines.names[callable_row];
     return MirIntentExecutionGraphTargetProjection(
-        true, true, source_name,
+        true, true, syntax_id, source_name,
         SemanticCallableCanonicalDeclaredName(
             routines.owners[callable_row], source_name
         )
@@ -124,22 +125,26 @@ func MirIntentExecutionGraphTargetProject(
         return MirExpressionGraphSequenceError(sequence);
     }
     if !projection.applies { return sequence; }
-    let target_names: Array<String> = sequence.arena.call_target_names;
-    let matches: Int = 0;
-    let node: Int = first_new_node;
-    while node < SemanticExpressionGraphArenaNodeCount(sequence.arena) {
-        if sequence.arena.topology.node_kinds[node] == AstExpressionNodeCall() &&
-            sequence.arena.call_target_kinds[node] ==
-                SemanticCallTargetMember() &&
-            target_names[node] == projection.source_name {
-            ArraySet(target_names, node, projection.canonical_name);
-            matches = matches + 1;
-        }
-        node = node + 1;
-    }
-    if matches != 1 || projection.canonical_name == "" {
+    if projection.target_syntax_id <= 0 || projection.source_name == "" ||
+        projection.canonical_name == "" || ArrayLength(sequence.roots) == 0 {
         return MirExpressionGraphSequenceError(sequence);
     }
+    let expression_root: Int = sequence.roots[ArrayLength(sequence.roots) - 1];
+    let roots: Array<Int> = [expression_root];
+    let present: Array<Bool> = [true];
+    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(true, roots, present, sequence.arena);
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, expression_root);
+    let node: Int = call.call_node;
+    if !call.ok || node < first_new_node || node >= SemanticExpressionGraphArenaNodeCount(sequence.arena) ||
+        sequence.arena.topology.node_kinds[node] != AstExpressionNodeCall() ||
+        sequence.arena.call_target_kinds[node] != SemanticCallTargetMember() ||
+        sequence.arena.identities.call_target_syntax_ids[node] != projection.target_syntax_id ||
+        (sequence.arena.call_target_names[node] != projection.source_name &&
+         sequence.arena.call_target_names[node] != projection.canonical_name) {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    let target_names: Array<String> = sequence.arena.call_target_names;
+    ArraySet(target_names, node, projection.canonical_name);
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopologyWithIdentities(
             sequence.arena.topology, sequence.arena.node_texts,
@@ -147,8 +152,9 @@ func MirIntentExecutionGraphTargetProject(
             sequence.arena.call_return_type_names, sequence.arena.identities,
             sequence.arena.place_kinds
         );
+    let unbound_calls: Array<Int> = [];
     return MirExpressionGraphSequence(
         true, sequence.ready_node_count,
-        sequence.roots, arena
+        sequence.roots, arena, unbound_calls
     );
 }

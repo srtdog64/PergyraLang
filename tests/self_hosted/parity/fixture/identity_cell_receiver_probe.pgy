@@ -1,0 +1,100 @@
+// Production admission/projection only. Rejected MIR is never executed.
+import "../../../../src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy";
+import "../../../../src/self_hosted/mir_lower/mir_json_input_owner.pgy";
+import "../../../../src/self_hosted/compiler/machine_layer_declaration_consumer.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_projection_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) < 1 || ArrayLength(args) > 2 { Die("receiver probe requires MIR and optional c/llvm target"); }
+    let admitted: MirMachineLayerAdmittedJsonInput = MirJsonReadMachineAdmittedInput(args[0], SelfHostMachineLayerDeclarationEmpty());
+    let calls: MirGenericCallOccurrenceIndex = MirGenericCallOccurrenceIndexFromDocument(admitted.document, admitted.routines);
+    if !calls.valid { Die("receiver probe call identity is invalid"); }
+    let instances: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(calls);
+    if !instances.valid { Die(instances.diagnostic); }
+    let admission: DirectMirScalarProgramRouteAdmission = DirectMirScalarProgramRouteAdmissionFromAdmitted(admitted, calls, instances);
+    if !DirectMirScalarProgramRouteAdmissionReady(admission) || !admission.route.claimed { DirectMirScalarProgramRouteAdmissionDie(admission); }
+    let route: DirectMirScalarProgramRouteFact = admission.route;
+    if ArrayLength(args) == 2 {
+        if args[1] == "zone-readonly" {
+            let checked: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route);
+            if !DirectMirScalarCfgGraphPlanReady(checked) { Die("readonly Zone GraphPlan did not seal"); }
+            let row: Int = 0; let observed: Int = 0;
+            while row < ArrayLength(checked.routines.parameter_types) {
+                let type_name: String = checked.routines.parameter_types[row];
+                if DirectMirScalarProgramIdentityCellBorrowCarriage(checked.program.logical_record.identity_cells,
+                        type_name) == "readonly-ref" {
+                    if checked.routines.parameter_carriages[row] != "readonly-ref" { Die("Zone parameter lost readonly carriage"); }
+                    // Bypass the outer digest to falsify the lifetime owner itself.
+                    ArraySet(checked.routines.parameter_carriages, row, "value");
+                    if DirectMirIdentityCellLifetimeReady(checked) { Die("Zone value parameter escaped lifetime admission"); }
+                    ArraySet(checked.routines.parameter_carriages, row, "readonly-ref");
+                    let prior_return: String = checked.routines.return_types[1];
+                    ArraySet(checked.routines.return_types, 1, type_name);
+                    if DirectMirIdentityCellLifetimeReady(checked) { Die("Zone return escaped lifetime admission"); }
+                    ArraySet(checked.routines.return_types, 1, prior_return);
+                    observed = observed + 1;
+                }
+                row = row + 1;
+            }
+            if observed == 0 || !DirectMirScalarCfgGraphPlanReady(checked) { Die("readonly Zone control did not restore"); }
+            Log("zone readonly: value carriage and cell return refused");
+            return;
+        }
+        if args[1] == "zone-ownership" {
+            let checked: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route);
+            if !DirectMirScalarCfgGraphPlanReady(checked) { Die("Zone GraphPlan did not seal"); }
+            let node: Int = 0; let zone_node: Int = -1; let zone_row: Int = -1;
+            while node < ArrayLength(checked.program.expressions.node_kinds) {
+                let cell: Int = DirectMirIdentityCellRow(checked.program.logical_record.identity_cells,
+                    checked.program.expressions.node_types[node]);
+                if cell >= 0 && checked.program.logical_record.identity_cells.nominal_kinds[cell] == "zone" &&
+                    checked.program.expressions.node_kinds[node] == DirectMirScalarProgramExprIdentityCellConstructor() {
+                    zone_node = node; zone_row = cell;
+                }
+                node = node + 1;
+            }
+            if zone_node < 0 || checked.program.logical_record.identity_cells.field_counts[zone_row] < 2 {
+                Die("Zone ownership control requires distinct slots");
+            }
+            let operands: Array<Int> = DirectMirScalarProgramLogicalRecordArgumentRows(checked.program.expressions, zone_node);
+            let nary: Int = DirectMirScalarProgramNaryOperandEntry(checked.program.expressions.nary_operands, zone_node);
+            let left: Int = operands[0]; let right: Int = operands[1];
+            if left < 0 || right < 0 || left == right { Die("Zone ownership control lacks distinct backing"); }
+            // Exercise the lifetime owner itself, not the outer checksum gate.
+            if nary >= 0 {
+                ArraySet(checked.program.expressions.nary_operands.operand_rows,
+                    checked.program.expressions.nary_operands.starts[nary] + 1, left);
+            } else { ArraySet(checked.program.expressions.node_rights, zone_node, left); }
+            if DirectMirIdentityCellLifetimeReady(checked) { Die("Zone slots accepted shared backing"); }
+            if nary >= 0 {
+                ArraySet(checked.program.expressions.nary_operands.operand_rows,
+                    checked.program.expressions.nary_operands.starts[nary] + 1, right);
+            } else { ArraySet(checked.program.expressions.node_rights, zone_node, right); }
+            let prior_kind: Int = checked.program.expressions.node_kinds[left];
+            ArraySet(checked.program.expressions.node_kinds, left, DirectMirScalarProgramExprParameter());
+            if DirectMirIdentityCellLifetimeReady(checked) { Die("Zone slot accepted borrowed backing"); }
+            ArraySet(checked.program.expressions.node_kinds, left, prior_kind);
+            if !DirectMirIdentityCellLifetimeReady(checked) { Die("Zone ownership control did not restore"); }
+            let field: Int = checked.program.logical_record.identity_cells.field_starts[zone_row];
+            ArraySet(checked.program.logical_record.identity_cells.field_kinds, field, "field");
+            let crossed: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsSeal(checked.program.logical_record.identity_cells);
+            if DirectMirIdentityCellFactsReady(crossed) { Die("Zone slot accepted an ordinary field kind"); }
+            ArraySet(checked.program.logical_record.identity_cells.field_kinds, field, "subject_slot");
+            if !DirectMirScalarCfgGraphPlanReady(checked) { Die("Zone control failed final restoration"); }
+            Log("zone ownership: shared/borrowed backing and crossed slot kind refused");
+            return;
+        }
+        let projection: String = "";
+        if args[1] == "c" { projection = CompilerTargetCpuCProjection(); }
+        else if args[1] == "llvm" { projection = CompilerTargetCpuLlvmProjection(); }
+        else { Die("receiver probe target must be c or llvm"); }
+        let target: CompilerTargetProjectionFact = CompilerTargetProjectionFactFromOwner(projection);
+        Log(CompileAdmittedDirectMirScalarProgramForTarget(admitted, route, target));
+        return;
+    }
+    let plan: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route);
+    if !DirectMirScalarCfgGraphPlanReady(plan) { Die("receiver GraphPlan did not seal"); }
+    Log("receiver GraphPlan admitted");
+}

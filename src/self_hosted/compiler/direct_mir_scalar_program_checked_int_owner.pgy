@@ -1,0 +1,44 @@
+// Checked Int calls retain the canonical i32 overflow boundary and ABI identity.
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarProgramCheckedIntKind(kind: Int) -> Bool {
+    return kind == DirectMirScalarProgramExprCheckedAddInt() ||
+        kind == DirectMirScalarProgramExprCheckedMulInt() ||
+        kind == DirectMirScalarProgramExprDivideInt();
+}
+
+func DirectMirScalarProgramCheckedIntRuntimeFact(kind: Int) -> CompilerRuntimeCallAbiFact {
+    let operation: String = ""; let symbol: String = "";
+    if kind == DirectMirScalarProgramExprCheckedAddInt() {
+        operation = "int-add"; symbol = CheckedBuiltinRuntimeLlvmAddFn();
+    } else if kind == DirectMirScalarProgramExprCheckedMulInt() {
+        operation = "int-multiply"; symbol = CheckedBuiltinRuntimeLlvmMulFn();
+    } else if kind == DirectMirScalarProgramExprDivideInt() {
+        operation = "int-division"; symbol = CheckedArithmeticRuntimeCIntDivisionFn();
+    } else { return CompilerRuntimeCallAbiFactMissing(); }
+    let fact: CompilerRuntimeCallAbiFact = CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput("checked-arithmetic", operation, symbol,
+            CompilerRuntimeCallAbiMaterialTargetLibrary()));
+    if !fact.ok || fact.call_shape != "i32_i32_to_i32" {
+        return CompilerRuntimeCallAbiFactMissing();
+    }
+    return fact;
+}
+
+func DirectMirScalarProgramCheckedIntNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    let abi: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramCheckedIntRuntimeFact(facts.node_kinds[node]);
+    let left: Int = facts.node_lefts[node]; let right: Int = facts.node_rights[node];
+    return abi.ok && facts.node_runtime_call_abi_ids[node] == abi.runtime_call_abi_id &&
+        facts.node_types[node] == CompilerAbiLayoutIntTypeName() &&
+        left >= 0 && left < node && right >= 0 && right < node &&
+        facts.node_types[left] == CompilerAbiLayoutIntTypeName() &&
+        facts.node_types[right] == CompilerAbiLayoutIntTypeName() &&
+        facts.node_local_rows[node] == -1 && facts.node_parameter_ordinals[node] == -1 &&
+        facts.node_member_ordinals[node] == -1 && facts.node_callable_rows[node] == -1 &&
+        facts.node_literals[node] == "" &&
+        ArrayLength(DirectMirScalarProgramNaryOperandRows(facts.nary_operands, node)) == 0;
+}

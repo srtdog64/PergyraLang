@@ -1,7 +1,7 @@
 Program:
   Subject: Buyer
     Fields:
-      hp: Int
+      let hp: Int
   Zone: CheckoutZone
     SubjectSlot: buyer: Buyer
   Intent: RetryCheckout

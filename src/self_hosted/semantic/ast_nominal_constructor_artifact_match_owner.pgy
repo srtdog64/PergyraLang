@@ -47,6 +47,7 @@ func SemanticAstNominalConstructorFactsMatchArtifact(
                 rebuilt.field_source_syntax_ids[p] ||
             facts.field_names[p] != rebuilt.field_names[p] ||
             facts.field_kinds[p] != rebuilt.field_kinds[p] ||
+            facts.field_write_modes[p] != rebuilt.field_write_modes[p] ||
             facts.param_type_names[p] != rebuilt.param_type_names[p] {
             return false;
         }

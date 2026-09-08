@@ -126,6 +126,15 @@ func ParseOneStmtCore(
         ArraySet(cursor_out, 0, i);
         return with_out;
     }
+    if head == "unsafe" {
+        let body: String = ParseBlockObserved(
+            content, i, cursor_out, stmt_indent + 4, expression_graphs,
+            location_context, source_locations);
+        let output: String = Concat(IndentStr(stmt_indent), "UnsafeBlock:");
+        output = AppendLine(output, Concat(IndentStr(stmt_indent + 2), "Block:"));
+        if body != "" { output = AppendLine(output, body); }
+        return output;
+    }
     if head == "parallel" {
         return ParseParallelStmt(
             content, i, cursor_out, stmt_indent, expression_graphs,
@@ -293,7 +302,9 @@ func ParseOneStmtCore(
             );
         }
         ArraySet(cursor_out, 0, i);
+        let mutable_binding: Bool = false;
         if MatchLanguageWord(content, i, LanguageWordId.WordMut) {
+            mutable_binding = true;
             i = LanguageWordEnd(i, LanguageWordId.WordMut);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
@@ -337,10 +348,12 @@ func ParseOneStmtCore(
         }
         ArraySet(cursor_out, 0, i);
         let let_text: String = "";
+        let binding_name: String = var_name;
+        if mutable_binding { binding_name = Concat("mut ", var_name); }
         if has_type {
-            let_text = Concat("Let: ", Concat(var_name, Concat(" : ", Concat(var_type, Concat(" = ", val_text)))));
+            let_text = Concat("Let: ", Concat(binding_name, Concat(" : ", Concat(var_type, Concat(" = ", val_text)))));
         } else {
-            let_text = Concat("Let: ", Concat(var_name, Concat(" = ", val_text)));
+            let_text = Concat("Let: ", Concat(binding_name, Concat(" = ", val_text)));
         }
         return Concat(IndentStr(stmt_indent), let_text);
     }

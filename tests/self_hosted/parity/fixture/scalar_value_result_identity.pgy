@@ -1,0 +1,19 @@
+func Set(inout n: Int) -> Int { n = 7; return 9; }
+func Touch(inout n: Int, inout other: Int) -> Int {
+    other = other + 2;
+    unsafe { let n: String = "inner"; Log(n); }
+    return Set(n);
+}
+func TouchInt(inout n: Int) -> Int {
+    unsafe { let n: Int = 42; Log(n); }
+    return Set(n);
+}
+func Main() -> Void {
+    let n: Int = 1;
+    let other: Int = 3;
+    Log(Touch(n, other));
+    Log(n);
+    Log(other);
+    Log(TouchInt(n));
+    Log(n);
+}

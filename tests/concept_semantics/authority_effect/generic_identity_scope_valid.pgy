@@ -1,0 +1,5 @@
+import "generic_bound_support.pgy";
+// Same-spelled formals in separate functions do not share the first bound.
+func InspectBound<T>(value: T) -> Int where T: Card { return value.value; }
+func InspectSeparate<T>(value: T) -> Int { return value.value; }
+func Main() -> Void { Log(InspectBound(Card(7))); Log(InspectSeparate(Dice(19))); }

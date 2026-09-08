@@ -18,6 +18,7 @@ typedef struct
 } SlotBuiltinFact;
 
 static const SlotBuiltinFact slot_builtin_facts[] = {
+    {"ArrayLength", SLOT_ACCESS_READ, true}, /* observes metadata; retains no owner */
     {"Move", SLOT_ACCESS_WRITE, false},
     {"Read", SLOT_ACCESS_READ, true},
     {"ReadView", 0, true},   /* parser-adjacent view spelling */

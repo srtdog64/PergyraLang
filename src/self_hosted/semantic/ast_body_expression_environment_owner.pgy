@@ -27,7 +27,7 @@ func SemanticAstBodyExpressionEnvironmentSeed(
             analysis.signatures, analysis.constructors,
             UnwrapOption(function_node_id), names, types, modes
         ) && SemanticAstExpressionSeedParameters(
-            analysis.signatures, UnwrapOption(function_node_id), names, types
+            analysis.signatures, analysis.constructors, UnwrapOption(function_node_id), names, types
         ) && SemanticAstExpressionSeedParameterModes(
             analysis.signatures, UnwrapOption(function_node_id), modes
         ) && SemanticAstExpressionSeedVisibleLocals(

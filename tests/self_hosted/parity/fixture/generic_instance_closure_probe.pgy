@@ -1,0 +1,59 @@
+// Execute only the closure algorithm, never any rejected input program.
+import "../../../../src/self_hosted/semantic/generic_instance_closure_owner.pgy";
+import "../../../../src/self_hosted/codegen/text/text_owner.pgy";
+
+func Require(value: Bool, message: String) -> Void {
+    if !value { Die(message); }
+}
+
+func Main() -> Void {
+    let templates: GenericInstanceTemplates = GenericInstanceTemplates(
+        true, [11, 22, 33], [0, 1, 2], [1, 1, 0], ["T", "U"]);
+    let recipes: GenericInstanceRecipes = GenericInstanceRecipes(
+        true, [2, 2, 2, 1, 1], [0, 0, 1, 0, 1], [0, 1, 2, 3, 4],
+        [1, 1, 1, 1, 1], ["Int", "String", "Bool", "U", "U"]);
+    let closure: GenericInstanceClosure = GenericInstanceClosureFromRecipes(templates, recipes);
+    Require(closure.valid, "forwarding closure refused");
+    Require(ArrayLength(closure.template_rows) == 4, "instance tuple dedup drifted");
+    Require(ArrayLength(closure.call_recipes) == 5, "call occurrence count drifted");
+    Require(closure.template_rows[0] == 0 && closure.template_rows[1] == 0 &&
+        closure.template_rows[2] == 1 && closure.template_rows[3] == 0, "declaration identity drifted");
+    Require(closure.actual_types[0] == "Int" && closure.actual_types[1] == "String" &&
+        closure.actual_types[2] == "Bool" && closure.actual_types[3] == "Bool", "caller substitution drifted");
+    Require(closure.call_contexts[3] == 2 && closure.call_targets[3] == 3 &&
+        closure.call_contexts[4] == 2 && closure.call_targets[4] == 2, "recursive call context drifted");
+    Log("PASS: ordered tuples, forwarding, same-instance recursion");
+
+    let constant: GenericInstanceRecipes = GenericInstanceRecipes(
+        true, [2, 0], [0, 0], [0, 1], [1, 1], ["Bool", "Int"]);
+    let finite: GenericInstanceClosure = GenericInstanceClosureFromRecipes(templates, constant);
+    Require(finite.valid && ArrayLength(finite.template_rows) == 2 &&
+        finite.actual_types[0] == "Bool" && finite.actual_types[1] == "Int" &&
+        finite.call_targets[2] == 1, "constant recursive fixed point refused");
+    Log("PASS: constant recursive fixed point");
+
+    let expanding: GenericInstanceRecipes = GenericInstanceRecipes(
+        true, [2, 0], [0, 0], [0, 1], [1, 1], ["Int", "Array<T>"]);
+    let infinite: GenericInstanceClosure = GenericInstanceClosureFromRecipes(templates, expanding);
+    Require(!infinite.valid && Contains(infinite.diagnostic, "constructor-expanding recursive specialization"),
+        "constructor-growing recursion admitted");
+    Log("PASS: constructor-growing recursion refused");
+
+    let crossed: GenericInstanceTemplates = GenericInstanceTemplates(
+        true, [11, 11, 33], [0, 1, 2], [1, 1, 0], ["T", "U"]);
+    Require(!GenericInstanceClosureFromRecipes(crossed, recipes).valid, "duplicate declaration identity admitted");
+    let no_types: Array<String> = [];
+    let missing: GenericInstanceRecipes = GenericInstanceRecipes(true, [2], [0], [0], [0], no_types);
+    Require(!GenericInstanceClosureFromRecipes(templates, missing).valid, "missing actual tuple admitted");
+    let malformed: GenericInstanceRecipes = GenericInstanceRecipes(true, [2], [0], [0], [1], ["Array<"]);
+    Require(!GenericInstanceClosureFromRecipes(templates, malformed).valid, "malformed actual type admitted");
+    Log("PASS: missing, malformed and crossed identities refused");
+
+    let epoch: GenericInstanceTemplates = GenericInstanceTemplates(
+        true, [1011, 1022, 1033], [0, 1, 2], [1, 1, 0], ["T", "U"]);
+    let renumbered: GenericInstanceClosure = GenericInstanceClosureFromRecipes(epoch, recipes);
+    Require(renumbered.valid && ArrayLength(renumbered.template_rows) == 4 &&
+        renumbered.call_targets[3] == 3 && renumbered.call_targets[4] == 2,
+        "producer epoch changed instance closure");
+    Log("PASS: declaration epoch invariance");
+}

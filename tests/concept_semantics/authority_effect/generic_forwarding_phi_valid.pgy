@@ -1,0 +1,11 @@
+func Choose<T>(first: T, second: T, select_second: Bool) -> T {
+    let mut value: T = first;
+    if select_second { value = second; }
+    return value;
+}
+
+func Main() -> Void {
+    Log(ToString(Choose<Int>(7, 9, true)));
+    Log(Choose<String>("left", "right", true));
+    Log(ToString(Choose<Bool>(false, true, false)));
+}

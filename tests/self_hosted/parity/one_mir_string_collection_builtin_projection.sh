@@ -38,7 +38,7 @@ KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_ki
 ABI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy"
 JOIN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy"
 LLVM_COLLECTION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy"
-require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v80'
+require_text "$GRAPH" 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81'
 require_text "$INPUT" 'DirectMirScalarCfgProgramGraphInputFromAdmitted'
 require_text "$KIND" 'DirectMirScalarProgramExpressionKindLast'
 require_text "$ABI" 'DirectMirScalarProgramArrayStringAbiFactFromAdmitted'

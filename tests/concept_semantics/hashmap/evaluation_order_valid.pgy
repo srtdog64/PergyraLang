@@ -1,0 +1,13 @@
+func Key() -> String with effects local {
+    Log("key");
+    return "entry";
+}
+func Value() -> Int with effects local {
+    Log("value");
+    return 7;
+}
+func Main() -> Void with effects local {
+    let values: HashMap<String, Int> = MapNew();
+    MapSet(values, Key(), Value());
+    Log(MapGet(values, "entry"));
+}

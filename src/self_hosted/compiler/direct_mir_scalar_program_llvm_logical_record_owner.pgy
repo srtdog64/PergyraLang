@@ -25,6 +25,16 @@ func DirectMirScalarProgramLlvmLogicalRecordFieldType(
     return DirectMirScalarProgramLlvmLogicalRecordTypeName(fact, type_name);
 }
 
+func DirectMirScalarProgramLlvmLogicalRecordStorageFieldType(
+    ref fact: DirectMirScalarProgramLogicalRecordFact,
+    record_type: String, ordinal: Int
+) -> String {
+    if DirectMirScalarProgramLogicalRecordPhysicalIntField(
+            fact, record_type, ordinal) { return "i32"; }
+    return DirectMirScalarProgramLlvmLogicalRecordFieldType(fact,
+        DirectMirScalarProgramLogicalRecordFieldType(fact, record_type, ordinal));
+}
+
 func DirectMirScalarProgramLlvmLogicalRecordPreamble(
     ref fact: DirectMirScalarProgramLogicalRecordFact,
     ref target: CompilerTargetProjectionFact
@@ -47,10 +57,8 @@ func DirectMirScalarProgramLlvmLogicalRecordPreamble(
         while ordinal < fact.field_counts[row] {
             if ordinal > 0 { output = Concat(output, ", "); }
             let field_type: String =
-                DirectMirScalarProgramLlvmLogicalRecordFieldType(
-                    fact,
-                    DirectMirScalarProgramLogicalRecordFieldType(
-                        fact, fact.names[row], ordinal));
+                DirectMirScalarProgramLlvmLogicalRecordStorageFieldType(
+                    fact, fact.names[row], ordinal);
             if field_type == "" {
                 Die("direct MIR logical record LLVM field type is invalid");
             }
@@ -88,13 +96,20 @@ func DirectMirScalarProgramLlvmLogicalRecordExpressionAt(
             if ordinal + 1 < fact.field_counts[row] {
                 name = Concat(result, Concat(".field.", ToString(ordinal)));
             }
+            let value: String = arguments[ordinal];
+            if DirectMirScalarProgramLogicalRecordPhysicalIntField(
+                    fact, record_type, ordinal) {
+                value = Concat(result, Concat(".physical.", ToString(ordinal)));
+                output = Concat(output, Concat("  ", Concat(value, " = trunc i64 ")));
+                output = Concat(output, Concat(arguments[ordinal], " to i32\n"));
+            }
             output = Concat(output, Concat("  ", name));
             output = Concat(output, Concat(" = insertvalue ", type_name));
             output = Concat(output, Concat(" ", prior));
             output = Concat(output, Concat(", ",
-                DirectMirScalarProgramLlvmLogicalRecordFieldType(
-                    fact, argument_types[ordinal])));
-            output = Concat(output, Concat(" ", arguments[ordinal]));
+                DirectMirScalarProgramLlvmLogicalRecordStorageFieldType(
+                    fact, record_type, ordinal)));
+            output = Concat(output, Concat(" ", value));
             output = Concat(output, Concat(", ", ToString(ordinal)));
             output = Concat(output, "\n");
             prior = name;
@@ -109,11 +124,19 @@ func DirectMirScalarProgramLlvmLogicalRecordExpressionAt(
         ArrayLength(arguments) != 0 || ArrayLength(argument_types) != 0 {
         return DirectMirScalarProgramLlvmStringExpressionMissing();
     }
-    let output: String = Concat("  ", result);
+    let physical_int: Bool = DirectMirScalarProgramLogicalRecordPhysicalIntField(
+        fact, record_type, member_ordinal);
+    let extracted: String = result;
+    if physical_int { extracted = Concat(result, ".physical"); }
+    let output: String = Concat("  ", extracted);
     output = Concat(output, Concat(" = extractvalue ", type_name));
     output = Concat(output, Concat(" ", left));
     output = Concat(output, Concat(", ", ToString(member_ordinal)));
     output = Concat(output, "\n");
+    if physical_int {
+        output = Concat(output, Concat("  ", Concat(result, " = sext i32 ")));
+        output = Concat(output, Concat(extracted, " to i64\n"));
+    }
     return DirectMirScalarProgramLlvmStringExpression(
         true, true, output, result);
 }

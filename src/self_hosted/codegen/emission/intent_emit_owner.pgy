@@ -135,6 +135,8 @@ func CodegenIntentDefinitionBlock(
                             steps.where_zone_names[step_row], step_name,
                             expression_surfaces,
                             steps.target_expression_node_ids[step_row],
+                            steps.pre_node_ids[step_row],
+                            steps.invariant_node_ids[step_row],
                             0, "", uses_intent_observability, env
                         );
                     step_env = emitted.env;
@@ -148,6 +150,16 @@ func CodegenIntentDefinitionBlock(
                         authority_alias != "" ||
                         steps.where_zone_names[step_row] != "" {
                         Die("codegen DIR nested intent boundary is invalid");
+                    }
+                    if steps.pre_node_ids[step_row] >= 0 {
+                        CodegenIntentEmitPredicate(body, expression_surfaces,
+                            steps.pre_node_ids[step_row], "pre", step_name,
+                            uses_intent_observability, step_env);
+                    }
+                    if steps.invariant_node_ids[step_row] >= 0 {
+                        CodegenIntentEmitPredicate(body, expression_surfaces,
+                            steps.invariant_node_ids[step_row], "invariant-pre", step_name,
+                            uses_intent_observability, step_env);
                     }
                     CodegenIntentEmitNestedCall(
                         body, expression_surfaces,
@@ -170,6 +182,8 @@ func CodegenIntentDefinitionBlock(
                         authority_alias, steps.where_zone_names[step_row],
                         step_name, expression_surfaces,
                         steps.target_expression_node_ids[step_row],
+                        steps.pre_node_ids[step_row],
+                        steps.invariant_node_ids[step_row],
                         outcome_count, steps.outcome_names[step_row],
                         uses_intent_observability, env
                     );
@@ -226,11 +240,22 @@ func CodegenIntentDefinitionBlock(
                     uses_intent_observability, step_env
                 );
             }
+            if steps.invariant_node_ids[step_row] >= 0 {
+                CodegenIntentEmitPredicate(body, expression_surfaces,
+                    steps.invariant_node_ids[step_row], "invariant-post", step_name,
+                    uses_intent_observability, step_env);
+            }
             CodegenIntentObservabilityEmitStepOk(
                 body, uses_intent_observability, step_name
             );
             local_step = local_step + 1;
         }
+        let completion: SemanticExpressionGraphView = CodegenSemanticExpressionGraphOrDie(
+            expression_surfaces,
+            intent_execution.source_facts.success_expression_node_ids[source_intent],
+            AstExpressionLaneAtom());
+        ArrayPush(body, Concat("    __intent_result = ", Concat(
+            RewriteExprFromSemanticGraph(completion.graph, completion.root_id, env), ";\n")));
         CodegenIntentEmitCleanup(
             body, step_count, compensation_starts, compensation_counts,
             compensation_expressions, step_sync_expressions,

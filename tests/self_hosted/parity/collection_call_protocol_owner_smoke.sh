@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Static owner gate for the shared List/Queue/Set call protocol.
+# Static owner gate for the shared List/Queue/Set/HashMap call protocol.
 # The protocol owner is the only source of collection-call operation shape;
 # family consumers may validate their own ABI facts but may not redeclare
 # collection names, arity, argument positions, or result shape.
@@ -12,8 +12,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 LABEL="self-host-parity:collection-call-protocol"
 PROTOCOL="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_collection_call_protocol_owner.pgy"
+"${PYTHON_BIN:-python3}" "$ROOT_DIR/scripts/render_collection_key_policy.py" --check
 
 owners=(
+    "$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
     "$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_resolved_call_type_owner.pgy"
     "$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_queue_call_owner.pgy"
     "$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_set_call_owner.pgy"
@@ -38,12 +40,23 @@ grep -Fq 'SemanticExpressionGraphCollectionCallProtocolFromName' "$PROTOCOL"
 for operation in \
     ListNew ListPush ListGet ListSet ListRemove ListSize \
     QueueNew QueuePush QueuePop QueueSize QueueEmpty \
-    SetNew SetAdd SetHas SetRemove SetSize; do
+    SetNew SetAdd SetHas SetRemove SetSize \
+    MapNew MapSet MapGet MapHas MapRemove MapSize MapKeys; do
     grep -Fq "\"$operation\"" "$PROTOCOL" || {
         echo "[$LABEL] protocol operation is missing: $operation" >&2
         exit 1
     }
 done
+
+MAP_SIGNATURE="$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
+for field in expected_arity receiver_argument_index key_argument_index value_argument_index return_kind; do
+    grep -Fq "protocol.$field" "$MAP_SIGNATURE" || {
+        echo "[$LABEL] HashMap signature lost protocol field: $field" >&2
+        exit 1
+    }
+done
+grep -Fq 'SemanticCollectionStableKeySupported' "$MAP_SIGNATURE"
+grep -Fq 'SemanticHashMapCallProtocolNames()' "$MAP_SIGNATURE"
 
 for owner in "${owners[@]}"; do
     [[ -f "$owner" ]] || {

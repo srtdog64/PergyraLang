@@ -429,15 +429,23 @@ type_check_intent_step_sequence(
             }
         }
 
-        /* Preconditions run before an action result exists.  Keeping them in
-           the intent parameter scope makes an early use of the optional
-           outcome name fail closed as an undefined symbol. */
+        /* Pre and the first invariant check run before an action result exists.
+           The single invariant expression must be valid in both phases, so it
+           is resolved here, never against the current step's outcome scope. */
         if (pre_expr != NULL) {
             intent_clause_rejects_control_transfer(pre_expr, ctx,
                 step_name, "pre");
             intent_condition_is_bool(pre_expr, ctx, "pre");
             if (intent_clause_invokes_authority_sensitive_call(
                     pre_expr, ctx))
+                step_requires_authority_flow = true;
+        }
+        if (invariant_expr != NULL) {
+            intent_clause_rejects_control_transfer(invariant_expr, ctx,
+                step_name, "invariant");
+            intent_condition_is_bool(invariant_expr, ctx, "invariant");
+            if (intent_clause_invokes_authority_sensitive_call(
+                    invariant_expr, ctx))
                 step_requires_authority_flow = true;
         }
         if (guard_expr != NULL) {
@@ -494,15 +502,6 @@ type_check_intent_step_sequence(
                     post_expr, ctx))
                 step_requires_authority_flow = true;
         }
-        if (invariant_expr != NULL) {
-            intent_clause_rejects_control_transfer(invariant_expr, ctx,
-                step_name, "invariant");
-            intent_condition_is_bool(invariant_expr, ctx, "invariant");
-            if (intent_clause_invokes_authority_sensitive_call(
-                    invariant_expr, ctx))
-                step_requires_authority_flow = true;
-        }
-
         type_check_intent_step_participant_contract(
             node, step, zone_decl, &matched_action, ctx);
 

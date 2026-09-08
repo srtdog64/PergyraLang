@@ -149,7 +149,7 @@ require_text "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner.
 require_text "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
     'CompileSourceCapabilityManifestVerified(source_path)'
 require_text "$ROOT_DIR/src/self_hosted/compiler/capability_manifest_owner.pgy" \
-    'SemanticAstCapabilityFactsFromAdmittedBody('
+    'body.capabilities'
 if grep -Fq 'driver_run_pipeline(' "$ROOT_DIR/src/compiler/self_host_driver.c"; then
     fail "installed sibling launcher regained a native fallback"
 fi

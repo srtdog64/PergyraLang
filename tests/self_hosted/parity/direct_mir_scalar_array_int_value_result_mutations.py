@@ -18,7 +18,7 @@ def main():
     if param is None:
         raise SystemExit("fixture has no value-result Array<Int> parameter")
     if kind == "carriage":
-        param["carriage"] = "readonly-ref"
+        param.pop("carriage")
     elif kind == "pass-shape":
         param["pass"] = "indirect"
     elif kind == "resource":
@@ -29,7 +29,7 @@ def main():
     elif kind == "composed-record-pass":
         composed["params"][0]["pass"] = "direct"
     elif kind == "composed-copyout-carriage":
-        composed["params"][2]["carriage"] = "readonly-ref"
+        composed["params"][2].pop("carriage")
     elif kind == "call-nonaddressable":
         main_routine = next((routine for routine in document["routines"]
                              if routine.get("name") == "Main"), None)

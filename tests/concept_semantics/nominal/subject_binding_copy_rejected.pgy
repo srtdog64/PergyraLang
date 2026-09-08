@@ -1,0 +1,6 @@
+subject Cell { let value: Int; }
+func Main() -> Void {
+    let original = Cell(7);
+    let duplicate = original;
+    Log(duplicate.value);
+}

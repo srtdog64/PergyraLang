@@ -261,6 +261,33 @@ test_match_stmt(void)
         lexer_destroy(lexer);
     }
 
+    {
+        const char *sources[] = {
+            "func Work() -> Result<Int> { return Ok(missing); }",
+            "func Work() -> Result<Int> { return Ok(); }",
+            "func Work() -> Result<Int> { return Err(\"a\", \"b\"); }",
+        };
+        const char *messages[] = {
+            "Undefined symbol 'missing'",
+            "Ok requires exactly one payload argument",
+            "Err requires exactly one payload argument",
+        };
+        for (size_t i = 0; i < sizeof(sources) / sizeof(sources[0]); i++) {
+            TEST(messages[i]);
+            Lexer *lexer = lexer_create(sources[i]);
+            Parser *parser = parser_create(lexer);
+            ASTNode *program = parser_parse_program(parser);
+            SemanticResult *result = semantic_analyze(program);
+            EXPECT(!parser_has_error(parser) && result != NULL
+                && result->error_count > 0
+                && ctx_has_diagnostic_substring_from_result(result, messages[i]));
+            semantic_result_destroy(result);
+            ast_destroy(program);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+        }
+    }
+
     TEST("Result<T, E> with enum error type accepts Ok/Err and match destructuring");
     {
         const char *source =

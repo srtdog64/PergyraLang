@@ -275,8 +275,8 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         else if (already_pointer)
                             codebuf_write(args_buf, ", %s", arg);
                         else if (transpiler_call_arg_can_take_subject_address(
-                                     arg_node)) {
-                            codebuf_write(args_buf, ", &%s", arg);
+                                     ctx, arg_node)) {
+                            codebuf_write(args_buf, ", &(%s)", arg);
                         } else {
                             transpiler_set_backend_error_with_hints(ctx,
                                 PGY_CODE_C_TYPE_UNSUPPORTED,

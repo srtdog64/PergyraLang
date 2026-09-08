@@ -164,6 +164,9 @@ ASTNode* ast_array_access_index(const ASTNode* node);
 ASTNode* ast_create_assignment(ASTNode* target, ASTNode* value);
 ASTNode* ast_assignment_target(const ASTNode* node);
 ASTNode* ast_assignment_value(const ASTNode* node);
+const char* ast_assignment_semantic_binding_type_name(const ASTNode* node);
+bool ast_assignment_set_semantic_binding_type_name_copy(ASTNode* node,
+                                                        const char* type_name);
 double ast_number_value(const ASTNode* node);
 bool ast_number_is_long(const ASTNode* node);
 bool ast_number_is_float(const ASTNode* node);
@@ -215,6 +218,10 @@ ASTNode* ast_create_string(const char* value);
 ASTNode* ast_create_boolean(bool value);
 ASTNode* ast_create_identifier(const char* name);
 const char* ast_identifier_name(const ASTNode* node);
+uint32_t ast_identifier_binding_syntax_id(const ASTNode* node);
+void ast_identifier_set_binding_syntax_id(ASTNode* node, uint32_t syntax_id);
+bool ast_identifier_binding_is_host_field(const ASTNode* node);
+void ast_identifier_set_binding_host_field(ASTNode* node, bool is_host_field);
 bool ast_replace_identifier_name_copy(ASTNode* node, const char* name);
 ASTNode* ast_create_type(const char* name);
 ASTNode* ast_create_generic_type(const char* name, ASTNode* inner_type);
@@ -240,6 +247,8 @@ GenericParam* ast_call_generic_arg(const ASTNode* node, size_t index);
 ASTNode* ast_call_callee(const ASTNode* node);
 uint32_t ast_call_semantic_callee_decl_id(const ASTNode* node);
 bool ast_call_set_semantic_callee_decl_id(ASTNode* node, uint32_t decl_id);
+uint32_t ast_call_semantic_callee_value_binding_id(const ASTNode *node);
+bool ast_call_set_semantic_callee_value_binding_id(ASTNode *node, uint32_t binding_id);
 bool ast_call_semantic_callee_builtin_kind(
     const ASTNode *node, uint32_t *kind_out);
 bool ast_call_set_semantic_callee_builtin_kind(

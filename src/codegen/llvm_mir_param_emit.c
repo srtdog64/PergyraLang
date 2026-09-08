@@ -222,7 +222,7 @@ llvm_emit_mir_mut_ref_writebacks(const MIRRoutine *routine,
 
     for (size_t i = 0; i < mir_routine_param_count(routine); i++) {
         FuncParam *param;
-        const char *exit_name = NULL;
+        char exit_name[256];
         LLVMMirVar *exit_var = NULL;
 
         if (mir_routine_param_carriage(routine, i)
@@ -242,54 +242,27 @@ llvm_emit_mir_mut_ref_writebacks(const MIRRoutine *routine,
             return false;
         }
 
-        for (size_t j = 0; j < block->ssa_exit_value_count; j++) {
-            const char *candidate = block->ssa_exit_values[j];
-            const char *separator;
-            size_t base_len;
-
-            if (candidate == NULL)
-                continue;
-            separator = strrchr(candidate, '.');
-            base_len = separator != NULL
-                ? (size_t)(separator - candidate)
-                : strlen(candidate);
-            if (strlen(param->name) != base_len
-                || strncmp(candidate, param->name, base_len) != 0) {
-                continue;
-            }
-            if (exit_name != NULL) {
-                llvm_set_mir_topology_invalid(ctx,
-                    "LLVM MIR block %llu has duplicate exit SSA facts for value-result parameter '%s'",
-                    (unsigned long long)block->id,
-                    param->name);
-                return false;
-            }
-            exit_name = candidate;
+        if (!mir_block_binding_exit_ssa_name(routine, block,
+                ast_func_param_stable_id(param), exit_name, sizeof(exit_name))) {
+            llvm_set_mir_inventory_missing(ctx,
+                "LLVM MIR value-result parameter '%s' has no owned exit SSA identity",
+                param->name);
+            return false;
         }
-
-        if (exit_name != NULL) {
-            exit_var = llvm_mir_get_var_entry(vars, var_count, exit_name);
-            if (exit_var == NULL || exit_var->alloca == NULL
-                || exit_var->type == NULL) {
-                llvm_set_mir_inventory_missing(ctx,
-                    "LLVM MIR value-result exit identity '%s' has no storage fact",
-                    exit_name);
-                return false;
-            }
-            if (exit_var->type != ctx->mut_ref_pt[mut_ref_index]) {
-                llvm_set_mir_inventory_missing(ctx,
-                    "LLVM MIR value-result exit identity '%s' disagrees with parameter ABI type",
-                    exit_name);
-                return false;
-            }
+        exit_var = llvm_mir_get_var_entry(vars, var_count, exit_name);
+        if (exit_var == NULL || exit_var->alloca == NULL || exit_var->type == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "LLVM MIR value-result exit identity '%s' has no storage fact",
+                exit_name);
+            return false;
         }
-
-        /* An absent exit SSA row denotes version zero: this path did not
-         * rebind the parameter, so its registered copy-in storage is the
-         * current value.  A present row is authoritative and must resolve. */
-        LLVMValueRef storage = exit_var != NULL
-            ? exit_var->alloca
-            : ctx->mut_ref_alloca[mut_ref_index];
+        if (exit_var->type != ctx->mut_ref_pt[mut_ref_index]) {
+            llvm_set_mir_inventory_missing(ctx,
+                "LLVM MIR value-result exit identity '%s' disagrees with parameter ABI type",
+                exit_name);
+            return false;
+        }
+        LLVMValueRef storage = exit_var->alloca;
         LLVMValueRef value = LLVMBuildLoad2(ctx->builder,
             ctx->mut_ref_pt[mut_ref_index], storage, "");
         LLVMBuildStore(ctx->builder, value,

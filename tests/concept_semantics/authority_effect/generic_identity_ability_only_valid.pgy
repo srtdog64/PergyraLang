@@ -1,0 +1,5 @@
+import "generic_bound_support.pgy";
+// Sortable alone does not declare this field. The concrete Card instance must
+// justify the field access independently from its ability witness.
+func InspectAbility<T>(value: T) -> Int where T: Sortable { return value.value; }
+func Main() -> Void { Log(InspectAbility(Card(7))); }

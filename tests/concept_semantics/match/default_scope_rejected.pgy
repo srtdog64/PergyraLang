@@ -1,0 +1,6 @@
+enum Shape { Dot, Line(Int), Rect(Int, Int) }
+func Covered(s: Shape) -> Int { match s { default: return 0; } }
+func Partial(s: Shape) -> Int {
+    match s { case Dot: return 0; case Line(n): return n; }
+}
+func Main() -> Void {}

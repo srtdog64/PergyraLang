@@ -2,7 +2,7 @@
 
 import "../air/mir_cfg_identity_owner.pgy";
 
-func DirectMirScalarCfgHashInts(hash: Long, values: Array<Int>) -> Long {
+func DirectMirScalarCfgHashInts(hash: Long, ref values: Array<Int>) -> Long {
     hash = DirectMirCfgHashInt(hash, ArrayLength(values));
     let row: Int = 0;
     while row < ArrayLength(values) {
@@ -12,7 +12,7 @@ func DirectMirScalarCfgHashInts(hash: Long, values: Array<Int>) -> Long {
 }
 
 func DirectMirScalarCfgHashStrings(
-    hash: Long, values: Array<String>
+    hash: Long, ref values: Array<String>
 ) -> Long {
     hash = DirectMirCfgHashInt(hash, ArrayLength(values));
     let row: Int = 0;

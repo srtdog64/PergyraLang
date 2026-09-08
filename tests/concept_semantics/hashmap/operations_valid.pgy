@@ -1,0 +1,16 @@
+func Main() -> Void with effects local {
+    let values: HashMap<String, Int> = MapNew();
+    MapSet(values, "second", 7);
+    MapSet(values, "first", 4);
+    MapSet(values, "first", 5);
+    Log(MapGet(values, "first"));
+    Log(MapHas(values, "second"));
+    let keys: Array<String> = MapKeys(values);
+    Log(ArrayLength(keys));
+    Log(keys[0]);
+    Log(keys[1]);
+    MapRemove(values, "second");
+    Log(MapSize(values));
+    Log(MapHas(values, "second"));
+    Log(keys[1]);
+}

@@ -4,7 +4,7 @@
 
 pgy_selfhost_verify_driver_rung2_set_index_value() {
     local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
-    local source bad_source out err
+    local source bad_source out err status=0
     [[ "$base" == "loop_collect_distinct_set" ]] || return 0
 
     for fact in \
@@ -29,10 +29,17 @@ pgy_selfhost_verify_driver_rung2_set_index_value() {
         --emit-c-verified >"$out" 2>"$err"); then
         echo "[self-host-parity:driver-rung2] $backend String Set index was accepted" >&2
         exit 1
+    else
+        status=$?
     fi
-    grep -Fq 'Code: ast_artifact_invalid' "$out" "$err" &&
-        grep -Fq 'owner: collection_value_type' "$out" "$err" || {
-        echo "[self-host-parity:driver-rung2] $backend Set index diagnostic drifted" >&2
+    # The graph index owner rejects words["bad"] before Set element typing.
+    # A structural-artifact failure cannot stand in for the typed operand error.
+    [[ "$status" -eq 1 ]] &&
+        grep -Fq 'Code: array_index_type_mismatch' "$out" "$err" &&
+        grep -Fq 'expected: Int' "$out" "$err" &&
+        grep -Fq 'actual: String' "$out" "$err" &&
+        ! grep -Fq 'Code: ast_artifact_invalid' "$out" "$err" || {
+        echo "[self-host-parity:driver-rung2] $backend Set index diagnostic drifted (status $status)" >&2
         cat "$out" "$err" >&2; exit 1
     }
 }

@@ -1,0 +1,65 @@
+// Execute the real participant/action query; synthetic bad rows are query controls,
+// not evidence of whole-artifact admission or source-level Intent execution.
+import "../../../src/self_hosted/semantic/ast_intent_action_call_fact_owner.pgy";
+
+func Query(signatures: SemanticAstFunctionSignatureFacts,
+    ref participants: SemanticAstIntentSignatureFacts, index: Int, text: String
+) -> String {
+    let call: SemanticAstIntentActionCallFact =
+        SemanticAstIntentActionCallFromText(signatures, participants, index, text);
+    if !call.ok { return "invalid"; }
+    return "${call.receiver_alias}.${call.action_name}:${call.return_type_name}";
+}
+
+func Main() -> Void {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Subject: SourceUnit\n    Fields:\n    Methods:\n      Action: Read\n        Parameters:\n          self\n        Returns: Bool\n        Body:\n          Block:\n            Return: true\n"
+        + "  Intent: First\n    IntentInvolves: run: SourceUnit\n    IntentValue: amount: SourceUnit\n"
+        + "  Intent: Second\n    IntentInvolves: other: SourceUnit\n");
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let participants: SemanticAstIntentSignatureFacts =
+        SemanticAstIntentSignatureFactsFromArtifact(artifact);
+    if !signatures.ok || !participants.ok {
+        Log("query control producer rejected its artifact"); Exit(1);
+    }
+    Log(Query(signatures, participants, 0, "run.Read()"));
+    Log(Query(signatures, participants, 1, "other.Read()"));
+    Log(Query(signatures, participants, 0, "other.Read()"));
+    Log(Query(signatures, participants, 0, "amount.Read()"));
+    Log(Query(signatures, participants, 0, "run.Missing()"));
+    Log(Query(signatures, participants, 0, "run"));
+    Log(Query(signatures, participants, 0, "1run.Read()"));
+    Log(Query(signatures, participants, -1, "run.Read()"));
+    Log(Query(signatures, participants, 2, "run.Read()"));
+    let actor: SemanticAstIntentStepActorFact = SemanticAstIntentStepActorFromFacts(
+        signatures, participants, 0, "Read", "run.Read()", "");
+    Log("${actor.actor_alias}:${actor.provenance}");
+    let explicit_actor: SemanticAstIntentStepActorFact = SemanticAstIntentStepActorFromFacts(
+        signatures, participants, 0, "Read", "other.Read()", "run");
+    Log("${explicit_actor.actor_alias}:${explicit_actor.provenance}");
+    let sole: SemanticAstIntentStepActorFact = SemanticAstIntentStepActorFromFacts(
+        signatures, participants, 1, "Missing", "", "");
+    Log("${sole.actor_alias}:${sole.provenance}");
+    let duplicate: SemanticAstIntentSignatureFacts = SemanticAstIntentSignatureFacts(
+        true, "", "", 3, [0], ["Duplicate"], ["legacy_bool"], ["Bool"], [0], [2],
+        [1, 2], [false, false], ["run", "run"], ["SourceUnit", "SourceUnit"]);
+    Log(Query(signatures, duplicate, 0, "run.Read()"));
+    let missing_column: SemanticAstIntentSignatureFacts = SemanticAstIntentSignatureFacts(
+        true, "", "", 3, [0], ["Short"], ["legacy_bool"], ["Bool"], [0], [2],
+        [1, 2], [false], ["run", "other"], ["SourceUnit", "SourceUnit"]);
+    Log(Query(signatures, missing_column, 0, "run.Read()"));
+    let negative_range: SemanticAstIntentSignatureFacts = SemanticAstIntentSignatureFacts(
+        true, "", "", 2, [0], ["Negative"], ["legacy_bool"], ["Bool"], [-1], [1],
+        [1], [false], ["run"], ["SourceUnit"]);
+    Log(Query(signatures, negative_range, 0, "run.Read()"));
+    let oversized: SemanticAstIntentSignatureFacts = SemanticAstIntentSignatureFacts(
+        true, "", "", 2, [0], ["Oversized"], ["legacy_bool"], ["Bool"], [1], [2147483647],
+        [1], [false], ["run"], ["SourceUnit"]);
+    Log(Query(signatures, oversized, 0, "run.Read()"));
+    let denied: SemanticAstIntentSignatureFacts = SemanticAstIntentSignatureFacts(
+        false, "test", "test", 2, [0], ["Denied"], ["legacy_bool"], ["Bool"], [0], [1],
+        [1], [false], ["run"], ["SourceUnit"]);
+    Log(Query(signatures, denied, 0, "run.Read()"));
+    Log(Query(signatures, participants, 0, "run.Read()"));
+}

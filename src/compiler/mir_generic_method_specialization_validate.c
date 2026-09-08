@@ -11,6 +11,7 @@ static bool
 mir_type_name_retains_formal(const char *type_name,
                              char *const *generic_param_names,
                              size_t generic_param_count,
+                             const MIRRoutine *caller,
                              const char **retained_formal)
 {
     const char *cursor = type_name;
@@ -31,6 +32,11 @@ mir_type_name_retains_formal(const char *type_name,
             const char *formal = generic_param_names[i];
             if (formal != NULL && strlen(formal) == length
                 && strncmp(start, formal, length) == 0) {
+                bool caller_formal = false;
+                for (size_t j = 0; j < caller->generic_param_count; j++)
+                    if (strcmp(formal, caller->generic_param_names[j]) == 0)
+                        caller_formal = true;
+                if (caller_formal) continue;
                 if (retained_formal != NULL)
                     *retained_formal = formal;
                 return true;
@@ -71,6 +77,17 @@ mir_generic_method_specializations_validate(const MIRProgram *mir,
                     i);
             return false;
         }
+        const MIRRoutine *callee = &mir->routines[fact->method_routine_index];
+        const MIRRoutine *caller = &mir->routines[fact->caller_routine_index];
+        if (callee->name == NULL || strcmp(fact->method_name, callee->name) != 0
+            || ((callee->owner_name == NULL || callee->owner_name[0] == '\0')
+                ? fact->owner_name[0] != '\0'
+                : strcmp(fact->owner_name, callee->owner_name) != 0)) {
+            if (error_message != NULL)
+                *error_message = mir_strdup_fmt(
+                    "MIR generic specialization[%zu] callable identity is crossed", i);
+            return false;
+        }
         for (size_t j = 0; j < fact->binding_count; j++) {
             const char *retained_formal = NULL;
             if (fact->generic_param_names[j] == NULL
@@ -88,6 +105,7 @@ mir_generic_method_specializations_validate(const MIRProgram *mir,
             }
             if (mir_type_name_retains_formal(fact->actual_type_names[j],
                     fact->generic_param_names, fact->binding_count,
+                    caller,
                     &retained_formal)) {
                 if (error_message != NULL)
                     *error_message = mir_strdup_fmt(

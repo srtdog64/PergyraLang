@@ -1,17 +1,20 @@
 // LLVM scalar type spelling projected from canonical compiler type identities.
 import "abi_layout_row_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_result_type_owner.pgy";
-import "direct_mir_scalar_program_llvm_two_int_nominal_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_option_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 import "runtime_value_representation_owner.pgy";
+import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
 func DirectMirScalarProgramLlvmSetStringTypeName() -> String {
     return "{ ptr, ptr, i64, i64 }";
 }
 func DirectMirScalarProgramLlvmType(type_name: String) -> String {
+    let hashmap: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(type_name);
+    if hashmap.ok { return CollectionHashMapLlvmStorageType(); }
+    if type_name == CompilerAbiLayoutArrayLongTypeName() { return "%pgy.array.long"; }
     let runtime_value: CompilerRuntimeValueRepresentation =
         CompilerRuntimeValueRepresentationFor(type_name);
     if runtime_value.valid { return runtime_value.llvm_type; }
@@ -35,26 +38,14 @@ func DirectMirScalarProgramLlvmType(type_name: String) -> String {
     }
     return DirectMirScalarProgramLlvmOptionResultType(type_name);
 }
-func DirectMirScalarProgramLlvmTypeForNominal(
-    type_name: String,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact
-) -> String {
-    let scalar: String = DirectMirScalarProgramLlvmType(type_name);
-    if scalar != "" { return scalar; }
-    if DirectMirScalarProgramTwoIntNominalTypeReady(nominal, type_name) {
-        return DirectMirScalarProgramLlvmTwoIntNominalTypeName();
-    }
-    return "";
-}
 func DirectMirScalarProgramLlvmTypeForProgram(
     type_name: String,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> String {
-    let projected: String = DirectMirScalarProgramLlvmTypeForNominal(
-        type_name, nominal);
+    let projected: String = DirectMirScalarProgramLlvmType(type_name);
     if projected != "" { return projected; }
+    if DirectMirIdentityCellRow(logical_record.identity_cells, type_name) >= 0 { return "ptr"; }
     if DirectMirScalarProgramLogicalRecordTypeReady(
             logical_record, type_name) {
         return DirectMirScalarProgramLlvmLogicalRecordTypeName(
@@ -77,13 +68,12 @@ func DirectMirScalarProgramLlvmTypeForProgram(
 }
 func DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
     type_name: String,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> String {
     let projected: String = DirectMirScalarProgramLlvmTypeForProgram(
-        type_name, nominal, logical_record, payload_free_enum);
+        type_name, logical_record, payload_free_enum);
     if projected != "" { return projected; }
     return DirectMirScalarProgramLlvmPayloadEnumTypeName(
         referenced_enum, type_name);

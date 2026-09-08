@@ -222,7 +222,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    callee_entry = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
+    callee_entry = llvm_resolve_callee_entry(ctx, call, callee_name, NULL);
     /* SEA: LLVM spawn lowering consumes the verified ExecutionLane fact
        carried from AIR (the spawn-lane plan); the backend does not recover
        the lane from source spelling. The runtime facade owns the concrete

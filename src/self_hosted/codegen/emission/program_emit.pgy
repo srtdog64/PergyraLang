@@ -57,7 +57,7 @@ func CheckFunction(count: Int, arena: AstArena,
         signatures, signature_index
     );
     ArraySet(cur, 0, cur[0] + 1);
-    CodegenAstArenaSkipGenericParams(arena, count, cur);
+    CodegenAstArenaConsumeAdmittedGenericHeader(arena, count, cur);
     CodegenAstArenaExpectParameters(arena, count, cur);
     while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
         let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
@@ -428,7 +428,8 @@ func GenerateCUnitFromReadySemanticFacts(
         type_declaration_fact.requires_bool_header ||
         SemanticAstIntentSignatureCount(semantic_analysis.intent_signatures) > 0;
     let uses_exit: Bool = usage.uses_exit;
-    let uses_array: Bool = usage.uses_array;
+    let uses_hashmap: Bool = ArrayLength(usage.hashmap_type_names) > 0;
+    let uses_array: Bool = usage.uses_array || uses_hashmap;
     let uses_list: Bool = usage.uses_list;
     let uses_queue: Bool = usage.uses_queue;
     let uses_set: Bool = usage.uses_set;
@@ -448,7 +449,7 @@ func GenerateCUnitFromReadySemanticFacts(
     let uses_seed_random: Bool = usage.uses_seed_random;
     let uses_random: Bool = usage.uses_random;
     let uses_text_builder: Bool = usage.uses_text_builder;
-    let uses_runtime_header: Bool = RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability);
+    let uses_runtime_header: Bool = RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap);
     let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_list || uses_queue || uses_set || uses_io || uses_fhandle || uses_artifact_transaction || uses_intent_observability || uses_random || uses_float || uses_result || uses_option || usage.uses_allocator || uses_text_builder || usage.uses_spawn || intent_plan_present;
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
@@ -464,7 +465,7 @@ func GenerateCUnitFromReadySemanticFacts(
     if uses_str || uses_array || uses_io || uses_fhandle || usage.uses_allocator || uses_text_builder {
         TextBuilderAppend(output, "#include <string.h>\n");
     }
-    if uses_runtime_header { TextBuilderAppend(output, RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability)); }
+    if uses_runtime_header { TextBuilderAppend(output, RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap)); }
     if uses_io || uses_fhandle {
         TextBuilderAppend(output, "#include <errno.h>\n#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#else\n#include <fcntl.h>\n#include <sys/stat.h>\n#include <unistd.h>\n#endif\n");
     }
@@ -473,7 +474,7 @@ func GenerateCUnitFromReadySemanticFacts(
         TextBuilderAppend(output, "#include <dirent.h>\n#include <sys/stat.h>\n");
     }
     TextBuilderAppend(output, "\n");
-    if !RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability) { TextBuilderAppend(output, CheckedArithmeticRuntimeCProgramBlock(usage.uses_checked_int_cast, usage.uses_checked_long_cast)); }
+    if !RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap) { TextBuilderAppend(output, CheckedArithmeticRuntimeCProgramBlock(usage.uses_checked_int_cast, usage.uses_checked_long_cast)); }
     // Emitted unconditionally: the helpers are static inline, so a program
     // that never divides carries no unused-function warning.
     TextBuilderAppend(output, CheckedDivisionRuntimeCProgramBlock());
@@ -482,13 +483,13 @@ func GenerateCUnitFromReadySemanticFacts(
     if usage.uses_spawn { TextBuilderAppend(output, SpawnRuntimeCBlock()); }
     if uses_log {
         TextBuilderAppend(output, StringRuntimeCLogMaterializationBlock(
-            usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability),
-            usage.uses_machine_layer || usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability)
+            usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap),
+            usage.uses_machine_layer || usage.uses_slot || RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap)
         ));
     }
     if uses_print && !RuntimeCHeaderOwnsPrint(
         usage.uses_box_array, uses_list, uses_queue, uses_set,
-        uses_artifact_transaction, uses_intent_observability
+        uses_artifact_transaction, uses_intent_observability, uses_hashmap
     ) {
         TextBuilderAppend(output, StringRuntimeCPrintBlock());
     }
@@ -518,6 +519,15 @@ func GenerateCUnitFromReadySemanticFacts(
     }
     let record_array_block: String = CollectionRuntimeRecordArrayBlocks(
         uses_ast_text_node_array, usage.nominal_record_arrays.element_types);
+    let hashmap_values: Array<String> = [];
+    let hashmap_index: Int = 0;
+    while hashmap_index < ArrayLength(usage.hashmap_type_names) {
+        let map_type: String = usage.hashmap_type_names[hashmap_index];
+        TextBuilderAppend(output, CollectionHashMapRuntimeSpecializationBlock(map_type, hashmap_values, base_env));
+        let map_fact: CollectionHashMapRuntimeFact = CollectionHashMapRuntimeFactFromTypeName(map_type);
+        ArrayPush(hashmap_values, map_fact.value_type);
+        hashmap_index = hashmap_index + 1;
+    }
     let list_type_index: Int = 0;
     while list_type_index < ArrayLength(usage.list_type_names) {
         TextBuilderAppend(
@@ -555,7 +565,7 @@ func GenerateCUnitFromReadySemanticFacts(
         TextBuilderAppend(output, StringRuntimeCStringCoreBlock(
             RuntimeCHeaderOwnsBoolToString(
                 usage.uses_box_array, uses_list, uses_queue, uses_set,
-                uses_artifact_transaction, uses_intent_observability
+                uses_artifact_transaction, uses_intent_observability, uses_hashmap
             )
         ));
     }

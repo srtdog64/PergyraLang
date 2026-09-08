@@ -200,7 +200,7 @@ func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
             signatures, constructors, statements.function_node_ids[i],
             names, types, modes
         ) || !SemanticAstExpressionSeedParameters(
-            signatures, statements.function_node_ids[i], names, types
+            signatures, constructors, statements.function_node_ids[i], names, types
         ) || !SemanticAstExpressionSeedParameterModes(
             signatures, statements.function_node_ids[i], modes
         ) || !SemanticAstExpressionSeedVisibleLocals(

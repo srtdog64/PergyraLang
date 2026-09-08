@@ -1,4 +1,5 @@
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "diag_codes.h"
 
 static const char *
@@ -95,6 +96,12 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
+    if (ok && existing != NULL) {
+        CallableCapabilityRoutine *previous = callable_capability_enter(ctx, node,
+            existing->type->data.function.param_types,
+            type_function_param_count(existing->type));
+        callable_capability_leave(ctx, previous, existing->type, 0, 0);
+    }
     return ok && !ctx->has_error;
 }
 
@@ -216,6 +223,8 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
         }
     }
 
+    if (ok && node->type == AST_EVENT_SUBSCRIBE)
+        callable_capability_record_subscription(ctx, event_node, handler_node);
     return ok && !ctx->has_error;
 }
 
@@ -277,5 +286,9 @@ type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx)
         }
     }
 
+    if (ok)
+        callable_capability_record_call(ctx, node,
+            event_node->type == AST_IDENTIFIER
+                ? scope_lookup(ctx->scope, ast_identifier_name(event_node)) : NULL, NULL);
     return ok && !ctx->has_error;
 }

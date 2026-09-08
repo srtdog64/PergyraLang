@@ -3,6 +3,8 @@ import "direct_mir_scalar_cfg_program_definition_admission_owner.pgy";
 import "direct_mir_scalar_program_indexed_assignment_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_member_rebind_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_indexed_assignment_owner.pgy";
+import "direct_mir_routine_instance_type_owner.pgy";
+import "direct_mir_identity_cell_store_admission_owner.pgy";
 
 struct DirectMirScalarCfgProgramDefinitionRoute {
     let valid: Bool;
@@ -24,7 +26,7 @@ func DirectMirScalarCfgProgramRouteDefinition(
     operations: DirectMirScalarCfgProgramOperationStorage,
     expressions: DirectMirScalarProgramExpressionSet,
     inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
-    source: String,
+    source: String, wire_kind: String,
     ref capture: MirRoutineInstructionScalarCapture,
     ref instruction: JsonObjectFactTable,
     ref uses: MirRoutineInstructionUseFacts,
@@ -47,10 +49,53 @@ func DirectMirScalarCfgProgramRouteDefinition(
 ) -> DirectMirScalarCfgProgramDefinitionRoute {
     let result: Int = DirectMirScalarCfgGraphValueRow(
         locals.value_names, capture.result);
-    if result < 0 || (source != "AST_LET_DECL" &&
+    if (wire_kind != "def" && wire_kind != "assign") ||
+        (wire_kind == "assign" && source != "AST_ASSIGNMENT") ||
+        (result < 0 && wire_kind != "assign") || (source != "AST_LET_DECL" &&
             source != "AST_ASSIGNMENT") {
         return DirectMirScalarCfgProgramDefinitionRouteInvalid(
             "definition_shape", operations, expressions);
+    }
+    if source == "AST_LET_DECL" && DirectMirScalarProgramLogicalRecordTypeReady(
+            logical_record, types.value_types[result]) {
+        let declared: Option<String> = DirectMirRoutineInstanceTypeName(
+            callables.instances, callables.caller_ordinal, capture.arg1);
+        let expression: Option<String> = DirectMirRoutineInstanceTypeName(
+            callables.instances, callables.caller_ordinal, capture.expr1);
+        if !IsSome(declared) || !IsSome(expression) ||
+            (UnwrapOption(declared) != "" && UnwrapOption(declared) != types.value_types[result]) ||
+            (UnwrapOption(expression) != "" && UnwrapOption(expression) != types.value_types[result]) {
+            return DirectMirScalarCfgProgramDefinitionRouteInvalid(
+                "definition_type_identity", operations, expressions);
+        }
+        // expr1 is an optional source type annotation, not the inferred type
+        // owner. The value-type plan already requires the definition ABI fact.
+    }
+    if source == "AST_ASSIGNMENT" && (wire_kind == "assign" ||
+            DirectMirIdentityCellRow(logical_record.identity_cells, types.value_types[result]) >= 0) {
+        let store: DirectMirIdentityCellStoreFact = DirectMirIdentityCellStoreFromOwners(
+            instruction, capture, index, uses, locals, types, signature,
+            logical_record.identity_cells, global_row, result, wire_kind);
+        if !store.valid {
+            return DirectMirScalarCfgProgramDefinitionRouteInvalid("identity_cell_store_target", operations, expressions);
+        }
+        let target_field: String = "expr1_graph"; let value_field: String = "expr0_graph";
+        let stored_result: Int = result + value_offset;
+        if wire_kind == "assign" { target_field = "expr0_graph"; value_field = "expr1_graph"; stored_result = -1; }
+        let target_expression: Option<Int> = DirectMirScalarCfgProgramAppendTypedExpressionField(
+            expressions, failure, instruction, uses, index, global_row, local_instruction,
+            locals, types, wire, local_offset, parameter_types, signature, callables,
+            logical_record, payload_free_enum, referenced_enum, target_field, store.use_prefix, false, store.type_name, -1);
+        let value_expression: Option<Int> = DirectMirScalarCfgProgramAppendTypedExpressionField(
+            expressions, failure, instruction, uses, index, global_row, local_instruction,
+            locals, types, wire, local_offset, parameter_types, signature, callables,
+            logical_record, payload_free_enum, referenced_enum, value_field, store.use_prefix, true, store.type_name, -1);
+        if !IsSome(target_expression) || !IsSome(value_expression) {
+            return DirectMirScalarCfgProgramDefinitionRouteInvalid("identity_cell_store_expression", operations, expressions);
+        }
+        operations = DirectMirIdentityCellStoreAppendOperation(operations, stored_result,
+            UnwrapOption(value_expression), UnwrapOption(target_expression), store.member);
+        return DirectMirScalarCfgProgramDefinitionRoute(operations.valid, "identity_cell_store_operation", operations, expressions);
     }
     if member_rebind.valid {
         let use_offset: Int = member_rebind.use_prefix_count;

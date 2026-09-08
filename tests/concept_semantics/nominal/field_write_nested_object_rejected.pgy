@@ -1,0 +1,6 @@
+object Projection { value: Int; }
+struct Outer { inner: Projection; }
+func Main() -> Void {
+    let item: Outer = Outer(Projection(1));
+    item.inner.value = 7;
+}

@@ -1,5 +1,6 @@
 #include "mir_dce.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -17,6 +18,7 @@ mir_free_instruction_payload(MIRInstruction *inst)
     free((void *)inst->uses);
     inst->uses = NULL;
     inst->use_count = 0;
+    inst->return_expression_use_count = 0;
     inst->use_capacity = 0;
     if (inst->phi_incomings != NULL) {
         for (size_t i = 0; i < inst->phi_incoming_count; i++)
@@ -98,34 +100,91 @@ mir_remove_instruction(MIRBasicBlock *block, size_t index)
 }
 
 static bool
-mir_phi_carries_value_result_parameter(const MIRRoutine *routine,
-                                       const MIRInstruction *inst)
+mir_observe_value_dependency(const MIRRoutine *routine, const char *name,
+                             bool *observed, size_t *queue, size_t *queued)
 {
-    const char *anchor;
-
-    if (routine == NULL || inst == NULL || inst->kind != MIR_INST_PHI
-        || (inst->slot_anchor == NULL && inst->name == NULL)) {
+    int index = mir_find_value_summary(routine, name);
+    /* Parameters and non-SSA source operands need no local definition. */
+    if (index < 0 || observed[index])
+        return true;
+    if (*queued >= routine->value_summary_count)
         return false;
-    }
-    anchor = inst->slot_anchor != NULL ? inst->slot_anchor : inst->name;
+    observed[index] = true;
+    queue[(*queued)++] = (size_t)index;
+    return true;
+}
 
-    for (size_t i = 0; i < mir_routine_param_count(routine); i++) {
-        FuncParam *param = mir_routine_param(routine, i);
-        if (param != NULL && param->name != NULL
-            && strcmp(param->name, anchor) == 0
-            && mir_routine_param_carriage(routine, i)
-                == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
-            return true;
+static bool
+mir_observed_phi_closure(const MIRRoutine *routine, bool **observed_out)
+{
+    size_t count = routine->value_summary_count;
+    bool *observed = NULL;
+    size_t *queue = NULL;
+    size_t queued = 0;
+    size_t cursor = 0;
+
+    *observed_out = NULL;
+    if (count == 0)
+        return true;
+    if (count > SIZE_MAX / sizeof(*queue))
+        return false;
+    observed = calloc(count, sizeof(*observed));
+    queue = malloc(count * sizeof(*queue));
+    if (observed == NULL || queue == NULL)
+        goto fail;
+    /* A phi cycle is not an observation. Seed retained instruction operands
+     * (including explicit copy-out uses) and source boundaries, then follow owned uses.
+     * DEF removal stays disabled while source-backed consumers remain. */
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            goto fail;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind == MIR_INST_PHI) {
+                if (mir_instruction_has_source_location(inst)
+                    && !mir_observe_value_dependency(routine, inst->result_name,
+                        observed, queue, &queued))
+                    goto fail;
+                continue;
+            }
+            for (size_t ui = 0; ui < inst->use_count; ui++) {
+                if (!mir_observe_value_dependency(routine, inst->uses[ui],
+                        observed, queue, &queued))
+                    goto fail;
+            }
         }
     }
+    while (cursor < queued) {
+        const MIRValueSummary *value = &routine->value_summaries[queue[cursor++]];
+        if (value->def_block >= routine->block_count)
+            goto fail;
+        const MIRBasicBlock *block = &routine->blocks[value->def_block];
+        if (value->def_inst >= block->instruction_count)
+            goto fail;
+        const MIRInstruction *inst = &block->instructions[value->def_inst];
+        if (inst->kind != MIR_INST_PHI)
+            continue;
+        for (size_t ui = 0; ui < inst->use_count; ui++) {
+            if (!mir_observe_value_dependency(routine, inst->uses[ui],
+                    observed, queue, &queued))
+                goto fail;
+        }
+    }
+    free(queue);
+    *observed_out = observed;
+    return true;
+fail:
+    free(queue);
+    free(observed);
     return false;
 }
 
 static bool
-mir_instruction_is_dead_value(const MIRRoutine *routine, const MIRInstruction *inst)
+mir_instruction_is_dead_value(const MIRRoutine *routine, const MIRInstruction *inst,
+                              const bool *observed)
 {
     int idx;
-    const MIRValueSummary *summary;
 
     if (routine == NULL || inst == NULL || inst->result_name == NULL)
         return false;
@@ -137,26 +196,16 @@ mir_instruction_is_dead_value(const MIRRoutine *routine, const MIRInstruction *i
         return false;
     if (inst->kind != MIR_INST_PHI)
         return false;
-    /* An inout parameter is observed implicitly at every function exit by
-     * value-result copy-out.  Backends consume the merge PHI to choose the
-     * exact exit value, so the absence of an ordinary instruction use does
-     * not make this fact dead. */
-    if (mir_phi_carries_value_result_parameter(routine, inst))
-        return false;
     idx = mir_find_value_summary(routine, inst->result_name);
-    if (idx < 0)
+    if (idx < 0 || observed == NULL)
         return false;
-    summary = &routine->value_summaries[idx];
     /* Source-backed PHIs remain conservatively preserved. Value-summary
      * provenance is now richer, but loop-carried seed values still are not
      * distinguished well enough to reopen dead local removal without changing
      * runtime behavior. */
     if (mir_instruction_has_source_location(inst))
         return false;
-    return summary->use_count == 0
-           && summary->live_in_block_count == 0
-           && summary->live_out_block_count == 0
-           && !summary->reaches_cleanup;
+    return !observed[idx];
 }
 
 static bool
@@ -182,28 +231,36 @@ bool
 mir_run_dce_on_routine(MIRRoutine *routine, bool *changed_out)
 {
     bool changed = false;
+    bool *observed = NULL;
 
     if (changed_out != NULL)
         *changed_out = false;
     if (routine == NULL)
         return false;
+    if (!mir_observed_phi_closure(routine, &observed))
+        return false;
 
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
         MIRBasicBlock *block = &routine->blocks[block_id];
-        if (block->instruction_count > 0 && block->instructions == NULL)
+        if (block->instruction_count > 0 && block->instructions == NULL) {
+            free(observed);
             return false;
+        }
         for (size_t inst_id = block->instruction_count; inst_id-- > 0;) {
             MIRInstruction *inst = &block->instructions[inst_id];
-            if (mir_instruction_is_dead_value(routine, inst)
+            if (mir_instruction_is_dead_value(routine, inst, observed)
                 || mir_instruction_is_dead_stmt(inst)) {
-                if (!mir_remove_instruction(block, inst_id))
+                if (!mir_remove_instruction(block, inst_id)) {
+                    free(observed);
                     return false;
+                }
                 routine->dce_removed_count++;
                 changed = true;
             }
         }
     }
 
+    free(observed);
     if (changed_out != NULL)
         *changed_out = changed;
     return true;

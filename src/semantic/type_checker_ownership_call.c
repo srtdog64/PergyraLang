@@ -386,9 +386,16 @@ semantic_check_function_call_ownership_argument(ASTNode *arg_expr,
     }
 
     if (param_ownership == OWNERSHIP_TYPE_BORROW_TRACKED) {
+        /* Value-mode formal forwarding retains the same opaque type. This
+         * does not admit own/ref generic declarations: their parameter-mode
+         * contract still requires a concrete boundary classification. */
+        bool same_formal = arg_type != NULL && param_type != NULL
+            && arg_type->kind == TYPE_KIND_GENERIC
+            && param_type->kind == TYPE_KIND_GENERIC
+            && type_equals(arg_type, param_type);
         if (handled_out != NULL)
             *handled_out = true;
-        if (!type_is_general_boundary_type(arg_type, ctx)
+        if ((!same_formal && !type_is_general_boundary_type(arg_type, ctx))
             || arg_ownership == OWNERSHIP_TYPE_SUBJECT_IDENTITY
             || arg_ownership == OWNERSHIP_TYPE_MOVE_ONLY
             || !type_is_assignable(arg_type, param_type)

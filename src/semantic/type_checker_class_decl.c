@@ -26,6 +26,7 @@ class_declare_field_symbol(SemanticContext *ctx, const char *field_name,
             return;
 
         symbol_mark_declaration(slot_sym, declaration_syntax_id, false);
+        slot_sym->is_host_field = true;
         scope_declare(ctx->scope, slot_sym);
         scope_register_slot(ctx->scope, slot_sym);
         return;
@@ -35,6 +36,7 @@ class_declare_field_symbol(SemanticContext *ctx, const char *field_name,
         node->line, node->column);
     if (field_sym != NULL) {
         symbol_mark_declaration(field_sym, declaration_syntax_id, false);
+        field_sym->is_host_field = true;
         scope_declare(ctx->scope, field_sym);
     }
 }
@@ -319,6 +321,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
         /* Register in parent scope (outside class) */
         Symbol *mangled_sym = symbol_create_function(
             mangled, mangled_ft, method->line, method->column);
+        symbol_mark_declaration(mangled_sym, ast_node_stable_id(method), false);
         /* Temporarily step out to declare in parent */
         Scope *class_scope = ctx->scope;
         ctx->scope = class_scope->parent;

@@ -1,0 +1,19 @@
+subject Counter {
+    let mut value: Int;
+}
+zone CounterZone {
+    subject slot counter: Counter
+}
+func ObserveCounterZone(ref area: CounterZone) -> Int {
+    return area.counter.value;
+}
+func CombineZones(ref first: CounterZone, delta: Int, ref second: CounterZone) -> Int {
+    return ObserveCounterZone(first) + delta + ObserveCounterZone(second);
+}
+func Main() -> Void {
+    let first = CounterZone(Counter(17));
+    let second = CounterZone(Counter(23));
+    Log(CombineZones(first, 5, second));
+    Log(ObserveCounterZone(first));
+    Log(ObserveCounterZone(second));
+}

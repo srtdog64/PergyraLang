@@ -86,6 +86,8 @@ intent RunIntent(
         compensate: IntentRunSettled(outcome);
         compensate: IntentRunAccepted(outcome);
         guard: true;
+        pre: true;
+        invariant: worker.calls >= 0;
         post: IntentRunAccepted(outcome);
         expect: IntentRunAccepted(outcome);
     }

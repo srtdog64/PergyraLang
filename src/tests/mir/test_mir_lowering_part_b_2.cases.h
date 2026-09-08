@@ -42,6 +42,40 @@
         hir_destroy(hir);
     }
 
+    TEST("MIR DCE removes phi-only cycles but keeps observed loop values");
+    {
+        const char *src =
+            "func DeadCycle(flag: Bool) -> Int {\n"
+            "    let i = 0; let result = 0;\n"
+            "    while i < 2 {\n"
+            "        if flag { let dead: Option<Int> = Some(3); }\n"
+            "        if flag { result = result + 3; }\n"
+            "        i = i + 1;\n"
+            "    }\n"
+            "    return result;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        bool dead_phi = false;
+        bool live_phi = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "DeadCycle", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count; bi++) {
+                dead_phi |= block_has_phi_result_prefix(&routine->blocks[bi], "dead.");
+                live_phi |= block_has_phi_result_prefix(&routine->blocks[bi], "result.");
+            }
+        }
+        EXPECT(ok && mir_validate(mir, NULL) && routine != NULL
+               && !dead_phi && live_phi);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR DCE preserves branch-merged inout copy-out phi");
     {
         const char *src =
@@ -61,6 +95,9 @@
         MIRProgram *mir = NULL;
         const MIRRoutine *routine = NULL;
         bool has_copyout_phi = false;
+        bool has_copyout_use = false;
+        bool has_owned_exit_identity = false;
+        bool rejects_missing_exit_identity = false;
         bool has_dead_phi = false;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
         if (ok)
@@ -73,6 +110,31 @@
                 if (block_has_phi_result_prefix(
                         &routine->blocks[bi], "dead."))
                     has_dead_phi = true;
+                const MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    const MIRInstruction *ret = &block->instructions[ii];
+                    if (ret->kind != MIR_INST_RETURN)
+                        continue;
+                    char exit_name[128];
+                    bool has_exit = mir_block_binding_exit_ssa_name(routine, block,
+                        ast_func_param_stable_id(mir_routine_param(routine, 0)),
+                        exit_name, sizeof(exit_name));
+                    rejects_missing_exit_identity = !mir_block_binding_exit_ssa_name(
+                        routine, block, UINT32_MAX, exit_name, sizeof(exit_name));
+                    for (size_t ui = 0; ui < ret->use_count; ui++) {
+                        for (size_t pi = 0; pi < block->instruction_count; pi++) {
+                            const MIRInstruction *phi = &block->instructions[pi];
+                            if (phi->kind == MIR_INST_PHI
+                                && phi->binding_syntax_id == ast_func_param_stable_id(
+                                    mir_routine_param(routine, 0))
+                                && strcmp(phi->result_name, ret->uses[ui]) == 0) {
+                                has_copyout_use = true;
+                                if (has_exit && strcmp(exit_name, ret->uses[ui]) == 0)
+                                    has_owned_exit_identity = true;
+                            }
+                        }
+                    }
+                }
             }
         }
         EXPECT(ok
@@ -82,6 +144,9 @@
                && mir_routine_param_carriage(routine, 0)
                     == MIR_PARAM_CARRIAGE_VALUE_RESULT
                && has_copyout_phi
+               && has_copyout_use
+               && has_owned_exit_identity
+               && rejects_missing_exit_identity
                && !has_dead_phi);
         mir_destroy(mir);
         rir_destroy(rir);

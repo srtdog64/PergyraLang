@@ -44,7 +44,8 @@ func CheckStmtList(count: Int, arena: AstArena,
             CodegenSemanticAssignmentIs(assignments, idx) ||
             CodegenStatementShapeLeafKind(statement_kind) {
             ArraySet(cur, 0, idx + 1);
-        } else if statement_kind == TypedAstKindDeferStmtTag() {
+        } else if statement_kind == TypedAstKindDeferStmtTag() ||
+                statement_kind == TypedAstKindUnsafeBlockTag() {
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);
             CheckStmtList(

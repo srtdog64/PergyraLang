@@ -143,7 +143,11 @@ func ApplyPostfixFact(
                 probe = probe + 1;
             }
             let after_field_probe: Int = SkipWhitespaceAndComments(content, probe);
-            if !IsAlpha(ParserCharAt(content, field_probe)) || ParserCharAt(content, after_field_probe) != ":" {
+            // `default` is a reserved match arm, never a nominal field name.
+            // Leave its brace with the statement parser even for a sole arm.
+            if MatchLanguageWord(content, field_probe, LanguageWordId.WordDefault) ||
+                !IsAlpha(ParserCharAt(content, field_probe)) ||
+                ParserCharAt(content, after_field_probe) != ":" {
                 ArraySet(cursor_out, 0, i);
                 break;
             }

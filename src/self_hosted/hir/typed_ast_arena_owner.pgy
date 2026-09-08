@@ -250,6 +250,16 @@ func TypedAstArenaMode(arena: AstArena, node_id: Int) -> Option<Int> {
     return Some(arena.modes[node_id]);
 }
 
+func TypedAstArenaFieldWriteMode(arena: AstArena, node_id: Int) -> Option<Int> {
+    if !TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindFieldTag()) {
+        return None;
+    }
+    let mode: Option<Int> = TypedAstArenaMode(arena, node_id);
+    if !IsSome(mode) { return None; }
+    if UnwrapOption(mode) != 0 && UnwrapOption(mode) != 1 { return None; }
+    return mode;
+}
+
 func TypedAstArenaValueText(arena: AstArena, node_id: Int) -> Option<String> {
     if !TypedAstArenaHasNode(arena, node_id) ||
         !TypedAstArenaRowHasNode(ArrayLength(arena.has_values), node_id) ||

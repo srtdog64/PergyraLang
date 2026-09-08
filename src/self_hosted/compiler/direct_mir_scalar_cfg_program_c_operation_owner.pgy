@@ -1,5 +1,6 @@
 // Per-operation C projection for the typed scalar-program extension.
 import "direct_mir_scalar_program_c_expression_owner.pgy";
+import "direct_mir_identity_cell_store_projection_owner.pgy";
 import "direct_mir_scalar_cfg_c_operand_owner.pgy";
 import "direct_mir_scalar_program_c_array_string_value_result_owner.pgy";
 import "direct_mir_scalar_program_c_array_mutation_owner.pgy";
@@ -20,6 +21,9 @@ func DirectMirScalarCfgProgramCOperation(
 ) -> String {
     let kind: Int = plan.operation_kinds[operation];
     let expression_row: Int = plan.program.operation_expression_rows[operation];
+    if kind == DirectMirScalarCfgOpIdentityCellStore() {
+        return DirectMirIdentityCellCStore(plan, routine, operation, runtime, array_string_projection, target);
+    }
     if kind == DirectMirScalarCfgOpOptionIntTryDefinition() {
         return DirectMirScalarProgramCOptionIntTryDefinition(
             plan, routine, operation, runtime, array_string_projection, target);
@@ -109,12 +113,27 @@ func DirectMirScalarCfgProgramCOperation(
     let root: Int = plan.program.expressions.graph_roots[expression_row];
     if plan.program.expressions.node_types[root] ==
             CompilerAbiLayoutIntTypeName() { line_format = int_line_format; }
+    if plan.program.expressions.node_types[root] == CompilerAbiLayoutLongTypeName() {
+        line_format = StringRuntimeCIntLineFormat();
+    }
     let output: String = Concat("    ", formatted_print.symbol);
     output = Concat(output, Concat("(\"", line_format));
     output = Concat(output, "\", ");
-    output = Concat(output, DirectMirScalarProgramCExpressionAt(
+    let log_value: String = DirectMirScalarProgramCExpressionAt(
         plan.program.expressions, expression_row, runtime,
         plan.program.logical_record, plan.program.referenced_enum,
-        plan.routines, routine, target, plan.program.array_string_abi, array_string_projection));
+        plan.routines, routine, target, plan.program.array_string_abi, array_string_projection);
+    if plan.program.expressions.node_types[root] == CompilerAbiLayoutBoolTypeName() {
+        log_value = "(" + log_value + " ? \"true\" : \"false\")";
+    }
+    if plan.program.expressions.node_types[root] == CompilerAbiLayoutIntTypeName() {
+        // Logical record storage is compiler-private i64; the public Int
+        // vararg contract still requires the target's promoted Int value.
+        log_value = "(" + CompilerAbiLayoutIntCValueType() + ")(" + log_value + ")";
+    }
+    if plan.program.expressions.node_types[root] == CompilerAbiLayoutLongTypeName() {
+        log_value = "(" + StringRuntimeCLongPrintArgumentType() + ")(" + log_value + ")";
+    }
+    output = Concat(output, log_value);
     return Concat(output, ");\n");
 }

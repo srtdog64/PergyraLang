@@ -32,65 +32,51 @@ fact)**이지 구현 완료 증거가 아니다. 실제 대조는
 
 ### 1.1 클래스 (146)
 
-| 클래스 | 수 | 의미 |
-|---|---|---|
-| RESERVED | 70 | 진짜 예약어. 식별자로 못 씀 |
-| CONTEXTUAL | 73 | 렉서에선 **식별자로 남고**, 파서/툴링만 단어 ID를 선택 |
-| SOFT | 3 | 소프트 키워드 |
+| 클래스 | 의미 |
+|---|---|
+| RESERVED | 진짜 예약어. 식별자로 못 씀 |
+| CONTEXTUAL | 렉서에선 **식별자로 남고**, 파서/툴링만 단어 ID를 선택 |
+| SOFT | 소프트 키워드 |
 
 contextual이 거의 절반이라는 게 설계 의도다 — 도메인 어휘를 대량으로 들이면서도
 사용자 식별자 공간을 잠그지 않는다.
 
 ### 1.2 의미 축 (axis)
 
-| 축 | 수 | 성격 |
-|---|---|---|
-| EXECUTION | 48 | 제어·동시성·트랜잭션 |
-| DOMAIN | 47 | 세계/의도 모델링 — **Pergyra 고유 표면** |
-| TYPE_CONTRACT | 19 | 타입·계약 |
-| GENERAL | 17 | 범용 |
-| RESOURCE | 15 | 슬롯·소유·자원 |
+| 축 | 성격 |
+|---|---|
+| EXECUTION | 제어·동시성·트랜잭션 |
+| DOMAIN | 세계/의도 모델링 |
+| TYPE_CONTRACT | 타입·계약 |
+| GENERAL | 범용 |
+| RESOURCE | 슬롯·소유·자원 |
 
-DOMAIN 46개가 이 언어를 구별짓는 지점이다. 다른 언어에 대응물이 거의 없다.
+축별 단어 수는 레지스트리에서 계산한다. 개수 자체는 의미의 독자성이나
+실행 가능성을 증명하지 않는다.
 
 ### 1.3 전체 어휘 (축별)
 
-범례: 표시 없음 = reserved, `~` = contextual/soft, `*` = **self-host 미지원**
-
-**TYPE_CONTRACT (19)**
-`ability as class dyn enum event extends fields~ func impl include innate is* override reflect requires~ struct type where`
-
-**RESOURCE (15)**
-`capacity* caps~ collapse forbids* inout~ local mut~ own pin* pool* ref secure shared slot with`
-
-**EXECUTION (47)**
-`async await backoff* blocking~ break compensate concurrent~ continue continuous~ current* defer else every~ exclusive~ expect~ fail failure~ for full* give* guard~ if invariant* join~ loop~ max* min* nondeterministic none* parallel post~ pre* priority* product* remote retry~ return rollback* select spawn step~ success~ sum* timeout* transaction unsafe while`
-
-**DOMAIN (46)**
-`action~ activate* apply~ authority~ authorized~ between~ bind by~ causes~ deactivate* detach* effect effects~ from~ intent involves* layer* lifecycle* link~ maintain* map~ move~ object objects* party projection* publish~ refresh~ relation relations* role roster state~ subject subjects* to~ tobject tobjects* transfer~ unlink* using~ vessel who~ within~ world zone`
-
-**GENERAL (17)**
-`all* any~ case default export extern false import in let match namespace on~ private public true use`
+전체 철자·클래스·축·지원 비트는 위의 정전 레지스트리가 소유한다. 이 문서에
+두 번째 단어 목록을 수동으로 유지하지 않는다. 사용 지침은
+[레지스트리 계약](semantics/language_keyword_registry.md), 실제 parser 관측은
+[생성 구현 inventory](semantics/language_word_implementation_inventory.generated.md)를 읽는다.
 
 ### 1.4 자체호스팅 프런티어
 
-레지스트리의 `SUPPORT_SELF_HOST` 비트만 세면 113개지만, 이것은 선언된
-지원 의도이지 parser 구현 증거가 아니다. 생성 inventory가 현재 source의
-native selector, typed self-host selector, raw direct selector를 따로 센 결과는
-다음과 같다.
+`SUPPORT_SELF_HOST`는 선언된 지원 비트이지 구현 완료 증거가 아니다.
+`retry`·`timeout`·`backoff`는 실행을 승인하는 구현이 없으므로 지원 비트가 0이다.
+진단이나 AST 메타데이터를 위해 철자와 단어 ID를 유지하는 것은 실행 지원이 아니다.
+native selector, typed self-host selector, direct-string selector의 최신
+개수와 행별 관측은 생성 inventory에서만 갱신한다. direct-string selector는
+typed identity로 옮길 잔여이며, selector가 있다는 사실만으로 admission이
+동일하거나 대체가 끝났다고 판정하지 않는다. 상태의 권위는
+[SoT owner registry](semantics/sot_owner_spine_registry.md)다.
 
-| 구현 증거 | 단어 수 |
-|---|---:|
-| native + typed self-host selector | 85 |
-| native + self-host direct-string selector만 존재 | 18 |
-| native selector만 존재 | 43 |
-| 양쪽 parser selector 없음 | 0 (`channel` 행 제거, §5.2) |
-
-self-host direct-string selector는 36개 단어에 51회 남아 있다. 이는 구현
-진척이 아니라 typed identity로 옮겨야 할 migration debt다. 정확한 행별
-상태는 생성물
-`docs/semantics/language_word_implementation_inventory.generated.md`가 소유하며,
-이 fact family는 계속 `BRIDGE`다.
+공개 경로와 네이티브가 같은 언어를 구현하는지는 별도의 실행 증거가 필요하다.
+`tests/concept_semantics/source_admission_parity.sh`는 최소 admission 반례
+gate이며, 지금은 일부 긍정 프로그램의 동작·identity·평가 순서도 검사한다.
+그 제한된 대조군을 전체 언어의 실행 동등성으로 확대 해석하지 않는다.
+새 표면을 추가하기 전에 기존 표면의 이 간극을 닫는다.
 
 재현:
 ```bash
@@ -102,7 +88,7 @@ grep -oE "PGY_KEYWORD_(CLASS|AXIS|SUPPORT)_[A-Z_]+" src/lexer/language_keyword_r
 
 ## 2. 도그푸딩 문법 — Pergyra로 쓴 Pergyra
 
-`src/self_hosted/` 아래 **.pgy 1035개** (`_owner.pgy` 479, `main.pgy` 41).
+대상은 `src/self_hosted/`의 현재 소스다. 파일 개수는 대체 진행도로 세지 않는다.
 
 ### 2.1 기본 문법 규율
 

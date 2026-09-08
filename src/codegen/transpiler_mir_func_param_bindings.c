@@ -6,6 +6,7 @@
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
+#include "transpiler_generic_binding_query.h"
 #include "transpiler_host_self_policy.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_signature.h"
@@ -34,6 +35,24 @@ transpiler_register_mir_func_param_bindings(
             continue;
         if (is_method && strcmp(p->name, "self") == 0 && p->type == NULL)
             continue;
+        const MIRCallableSig *callable =
+            transpiler_mir_routine_param_callable_sig(mir_routine, i);
+        if (callable != NULL) {
+            if (!register_callable_var(ctx, p->name, callable))
+                return false;
+            continue;
+        }
+        if (type_name != NULL && ctx->generic_binding_count > 0) {
+            owned_type_name = transpiler_generic_type_name_with_bindings(
+                type_name, ctx->generic_bindings, (size_t)ctx->generic_binding_count);
+            if (owned_type_name == NULL) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "C generic parameter binding requires a concrete MIR type for '%s'",
+                    function_name);
+                return false;
+            }
+            type_name = owned_type_name;
+        }
         if (!mir_active && type_name == NULL && p->type != NULL) {
             owned_type_name = render_type_name_in_ctx(ctx, p->type);
             type_name = owned_type_name;

@@ -178,6 +178,19 @@ resource_flow_universe_symbol(SemanticContext *ctx, size_t index)
     return NULL;
 }
 
+bool
+resource_flow_universe_record_declaration(SemanticContext *ctx, Symbol *symbol)
+{
+    if (ctx == NULL || symbol == NULL)
+        return false;
+    if (ctx->current_function_decl == NULL
+        || !resource_flow_universe_tracks_type(symbol->type))
+        return true;
+    /* A nested scope can disappear before the next branch snapshot or the
+     * function seal. Capture its stable declaration identity while it exists. */
+    return resource_flow_universe_bind(ctx, symbol) != RESOURCE_FLOW_INDEX_NONE;
+}
+
 void
 pgy_resource_flow_facts_destroy(PgyResourceFlowFact *facts, size_t count)
 {

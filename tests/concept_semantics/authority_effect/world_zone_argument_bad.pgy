@@ -1,0 +1,6 @@
+import "world_zone_transfer_support.pgy";
+func Inspect(ref cart: CartZone) -> Int { return cart.buyer.hp; }
+func Main() -> Void {
+    let world = CartWorld(CartZone(Buyer(3)));
+    Log(Inspect(world.cart));
+}

@@ -1,0 +1,139 @@
+// Named-enum coverage at source admission. Typed scrutinees, declaration
+// variants and admitted arm facts own the answer; no backend/source rescan.
+import "ast_body_verdict_owner.pgy";
+import "ast_enum_fact_owner.pgy";
+import "ast_statement_type_query_owner.pgy";
+
+func SemanticAstMatchCoverageInvalid(node: Int, detail: String) -> SemanticAstBodyVerdict {
+    return SemanticAstBodyVerdictError("match_pattern_invalid",
+        SemanticError1("match_pattern_invalid", "match", detail), node);
+}
+
+func SemanticAstNamedEnumMatchCoverageFromFacts(
+    artifact: AstTreeArtifact, ref enums: SemanticAstEnumFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref types: SemanticAstStatementTypeFacts,
+    inout exhaustive_match_nodes: Array<Int>
+) -> SemanticAstBodyVerdict {
+    let count: Int = ArrayLength(statements.node_ids);
+    if !statements.ok || statements.artifact_node_count != artifact.count ||
+        !SemanticAstStatementTypeRowsReady(types) ||
+        types.artifact_node_count != artifact.count ||
+        ArrayLength(types.node_ids) != count ||
+        ArrayLength(statements.kind_tags) != count ||
+        !SemanticAstEnumRowsReady(enums) ||
+        enums.artifact_node_count != artifact.count {
+        return SemanticAstBodyVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "MatchCoverage"), -1);
+    }
+    if ArrayLength(enums.enum_names) == 0 { return SemanticAstBodyVerdictOk(); }
+    // Capture declaration ranges once. Variant rows are appended together by
+    // the enum fact producer; every match visits only its own variant space.
+    let starts: HashMap<String, Int> = MapNew();
+    let counts: HashMap<String, Int> = MapNew();
+    let arities: HashMap<String, Int> = MapNew();
+    let row: Int = 0;
+    while row < ArrayLength(enums.enum_names) {
+        let name: String = enums.enum_names[row];
+        if name == "" || MapHas(starts, name) {
+            return SemanticAstMatchCoverageInvalid(-1, "duplicate enum identity");
+        }
+        MapSet(starts, name, -1); MapSet(counts, name, 0);
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(enums.variant_names) {
+        let name: String = enums.variant_enum_names[row];
+        if !MapHas(starts, name) {
+            return SemanticAstMatchCoverageInvalid(-1, "missing enum identity");
+        }
+        let size: Int = MapGet(counts, name);
+        if size == 0 { MapSet(starts, name, row); }
+        if MapGet(starts, name) + size != row {
+            return SemanticAstMatchCoverageInvalid(-1, "crossed enum variant range");
+        }
+        let key: String = Concat(name, Concat(":", enums.variant_names[row]));
+        if MapHas(arities, key) {
+            return SemanticAstMatchCoverageInvalid(-1, "duplicate enum variant identity");
+        }
+        MapSet(arities, key, enums.variant_param_counts[row]);
+        MapSet(counts, name, size + 1);
+        row = row + 1;
+    }
+    let defaults: HashMap<Int, Int> = MapNew();
+    let covered: HashMap<String, Int> = MapNew();
+    row = 0;
+    while row < count {
+        let node: Int = statements.node_ids[row];
+        let kind: Int = statements.kind_tags[row];
+        if types.node_ids[row] != node || types.kind_tags[row] != kind ||
+            types.verified[row] != 1 {
+            return SemanticAstMatchCoverageInvalid(node, "crossed statement type identity");
+        }
+        if kind == TypedAstKindMatchCaseStmtTag() ||
+            kind == TypedAstKindMatchDefaultStmtTag() {
+            let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, node);
+            if !IsSome(parent) {
+                return SemanticAstMatchCoverageInvalid(node, "missing match parent");
+            }
+            let owner: Option<Int> = SemanticAstStatementIndexForNode(
+                statements, UnwrapOption(parent));
+            if !IsSome(owner) || statements.kind_tags[UnwrapOption(owner)] !=
+                TypedAstKindMatchStmtTag() {
+                return SemanticAstMatchCoverageInvalid(node, "invalid match parent");
+            }
+            let match_row: Int = UnwrapOption(owner);
+            let subject_type: String = types.inferred_type_names[match_row];
+            if MapHas(starts, subject_type) {
+                if kind == TypedAstKindMatchDefaultStmtTag() {
+                    MapSet(defaults, UnwrapOption(parent), 1);
+                } else {
+                    let pattern: AstMatchCasePatternFact =
+                        SemanticAstMatchCasePatternFactForNode(statements, node);
+                    if !pattern.ok {
+                        return SemanticAstMatchCoverageInvalid(node, "missing admitted arm pattern");
+                    }
+                    // A payload-free identifier has an empty variant lane in
+                    // the bounded pattern fact; its admitted atom owns its name.
+                    let variant: String = pattern.variant;
+                    if variant == "" { variant = pattern.pattern; }
+                    let key: String = Concat(subject_type, Concat(":", variant));
+                    if !MapHas(arities, key) ||
+                        MapGet(arities, key) != ArrayLength(pattern.bindings) {
+                        return SemanticAstMatchCoverageInvalid(node,
+                            Concat("invalid variant or payload arity: ", key));
+                    }
+                    // Duplicate arms do not increase coverage. Native warns
+                    // about redundancy; it does not reject an otherwise total match.
+                    MapSet(covered, Concat(ToString(UnwrapOption(parent)),
+                        Concat(":", variant)), 1);
+                }
+            }
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < count {
+        if statements.kind_tags[row] == TypedAstKindMatchStmtTag() {
+            let subject_type: String = types.inferred_type_names[row];
+            let node: Int = statements.node_ids[row];
+            if MapHas(starts, subject_type) && !MapHas(defaults, node) {
+                let first: Int = MapGet(starts, subject_type);
+                let size: Int = MapGet(counts, subject_type);
+                let variant: Int = 0;
+                while variant < size {
+                    let name: String = enums.variant_names[first + variant];
+                    if !MapHas(covered, Concat(ToString(node), Concat(":", name))) {
+                        return SemanticAstMatchCoverageInvalid(node,
+                            Concat("non-exhaustive ", Concat(subject_type,
+                                Concat("; missing variant ", name))));
+                    }
+                    variant = variant + 1;
+                }
+            }
+            if MapHas(starts, subject_type) { ArrayPush(exhaustive_match_nodes, node); }
+        }
+        row = row + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

@@ -1,0 +1,5 @@
+func Main() -> Void with effects local {
+    let text: String = Concat(ToUpper("ab"), Substring("cde", 1, 2));
+    Log(StringLength(text));
+    Log(CheckedAdd(Max(3, 5), Abs(-2)));
+}

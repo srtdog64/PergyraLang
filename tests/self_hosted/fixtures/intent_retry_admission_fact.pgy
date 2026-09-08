@@ -1,0 +1,46 @@
+// This executable validates owned syntax facts, never a retry-bearing program.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_artifact_verdict_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_intent_retry_admission_owner.pgy";
+import "../../../src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy";
+import "../../../src/self_hosted/codegen/text/text_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Die("retry fact probe requires one source"); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let kinds: SemanticAstKindSurfaceFacts = analysis.kind_surfaces;
+    let intents: SemanticAstIntentSignatureFacts = analysis.intent_signatures;
+    let verdict: SemanticAstBodyVerdict = SemanticAstIntentRetryAdmissionFromFacts(artifact, kinds, intents);
+    if verdict.ok || verdict.diagnostic_code != "intent_retry_unavailable" {
+        Log(verdict.diagnostic_code); Die("retry must fail before executable admission");
+    }
+    let receipt: SemanticPublicDiagnosticReceipt = SemanticPublicDiagnosticReceiptFromOwnedFacts(
+        verdict.diagnostic_code, verdict.diagnostic_message);
+    if !SemanticPublicDiagnosticReceiptReadyFor(receipt, "intent_retry_unavailable") ||
+        receipt.code != "PGY_SEM_INTENT_STEP_INVALID" ||
+        receipt.cause_ir != "semantic:intent_step" ||
+        receipt.fix_source != "check-intent-step-lowering" { Die("retry receipt identity drifted"); }
+    let row: Int = 0;
+    while row < ArrayLength(kinds.kind_tags) && kinds.kind_tags[row] != TypedAstKindIntentRetryTag() {
+        row = row + 1;
+    }
+    if row == ArrayLength(kinds.kind_tags) { Die("positive retry syntax control is missing"); }
+    let ids: Array<Int> = kinds.node_ids;
+    ids[row] = -1;
+    verdict = SemanticAstIntentRetryAdmissionFromFacts(artifact, kinds, intents);
+    if verdict.ok || verdict.diagnostic_code != "ast_artifact_invalid" { Die("crossed kind identity accepted"); }
+    ids[row] = row;
+    let parents: Array<Int> = intents.intent_node_ids;
+    let saved: Int = parents[0]; parents[0] = -1;
+    verdict = SemanticAstIntentRetryAdmissionFromFacts(artifact, kinds, intents);
+    if verdict.ok || verdict.diagnostic_code != "ast_artifact_invalid" { Die("missing intent owner accepted"); }
+    parents[0] = saved;
+    ArrayPop(ids);
+    let truncated: SemanticAstKindSurfaceFacts = SemanticAstKindSurfaceFacts(
+        kinds.ok, kinds.artifact_node_count, ids, kinds.kind_tags);
+    verdict = SemanticAstIntentRetryAdmissionFromFacts(artifact, truncated, intents);
+    if verdict.ok || verdict.diagnostic_code != "ast_artifact_invalid" { Die("missing kind row accepted"); }
+    Log("retry fact refusal and receipt verified");
+}

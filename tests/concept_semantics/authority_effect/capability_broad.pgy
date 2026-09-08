@@ -1,0 +1,2 @@
+func Stamp() -> Int with caps clock, random { return Now(); }
+func Main() -> Void { let stamp: Int = Stamp(); Log("ok"); }

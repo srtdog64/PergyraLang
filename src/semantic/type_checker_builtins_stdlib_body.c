@@ -34,7 +34,7 @@ type_check_builtin_print(ASTNode *expr, SemanticContext *ctx)
     require_assignable(stdlib_body_normalize_type(
             type_check_expression(arg0, ctx)),
         TYPE_STRING, arg0, ctx);
-    semantic_record_effect(ctx, EFFECT_IO);
+    semantic_record_builtin_effect(ctx, expr, "Print");
     semantic_record_capability(ctx, capability_for_builtin("Print"));
     return TYPE_VOID;
 }
@@ -48,7 +48,7 @@ type_check_builtin_sleep(ASTNode *expr, SemanticContext *ctx)
     require_assignable(stdlib_body_normalize_type(
             type_check_expression(arg0, ctx)),
         TYPE_INT, arg0, ctx);
-    semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+    semantic_record_builtin_effect(ctx, expr, "Sleep");
     return TYPE_VOID;
 }
 
@@ -104,7 +104,7 @@ type_check_builtin_release_device_slot(ASTNode *expr, const char *name,
     }
     {
         const char *slot_name = ast_identifier_name(slot_arg);
-        Symbol *sym = scope_lookup(ctx->scope, slot_name);
+        Symbol *sym = lookup_identifier_symbol(slot_arg, ctx);
         if (sym != NULL && sym->slot_info.state == SLOT_STATE_RELEASED) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, slot_arg,
                 "DeviceSlot '%s' has already been released",
@@ -218,12 +218,12 @@ type_check_resolved_stdlib_call(ASTNode *expr, const char *name,
     case BUILTIN_READ_LINE:
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;
-        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        semantic_record_builtin_effect(ctx, expr, name);
         return TYPE_STRING;
     case BUILTIN_NOW:
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;
-        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        semantic_record_builtin_effect(ctx, expr, name);
         semantic_record_capability(ctx, capability_for_builtin("Now"));
         return TYPE_INT;
     case BUILTIN_SLEEP:

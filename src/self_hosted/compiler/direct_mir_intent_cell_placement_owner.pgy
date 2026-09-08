@@ -1,0 +1,82 @@
+// Join an admitted Intent placement to the existing private-cell layout by
+// declaration and slot identities. Names only cross-check those owned rows.
+import "../mir_lower/intent_step_placement_binding_owner.pgy";
+import "direct_mir_identity_cell_fact_owner.pgy";
+
+struct DirectMirIntentCellPlacement {
+    let valid: Bool;
+    let cell_digest: Int;
+    let zone_row: Int;
+    let subject_row: Int;
+    let slot_ordinal: Int;
+    let slot_source_syntax_id: Int;
+    let zone_parameter: Int;
+    let subject_parameter: Int;
+}
+
+func DirectMirIntentCellPlacementReady(
+    ref placement: DirectMirIntentCellPlacement, ref cells: DirectMirIdentityCellFacts
+) -> Bool {
+    let zone: Int = placement.zone_row;
+    let subject_cell: Int = placement.subject_row;
+    if !placement.valid || !cells.valid || cells.digest == 0 ||
+        placement.cell_digest != cells.digest || zone < 0 || subject_cell < 0 ||
+        zone >= ArrayLength(cells.names) || subject_cell >= ArrayLength(cells.names) ||
+        cells.nominal_kinds[zone] != "zone" || cells.nominal_kinds[subject_cell] != "subject" ||
+        placement.zone_parameter < 0 || placement.subject_parameter < 0 ||
+        placement.zone_parameter == placement.subject_parameter ||
+        placement.slot_ordinal < 0 || placement.slot_ordinal >= cells.field_counts[zone] {
+        return false;
+    }
+    let field: Int = cells.field_starts[zone] + placement.slot_ordinal;
+    return cells.field_kinds[field] == "subject_slot" &&
+        cells.field_types[field] == cells.names[subject_cell] &&
+        placement.slot_source_syntax_id > 0 &&
+        cells.field_source_syntax_ids[field] == placement.slot_source_syntax_id;
+}
+
+func DirectMirIntentCellPlacementFromOwners(
+    ref binding: MirIntentStepPlacementBinding,
+    ref parameters: MirIntentBindingProjection,
+    ref cells: DirectMirIdentityCellFacts
+) -> DirectMirIntentCellPlacement {
+    let invalid: DirectMirIntentCellPlacement = DirectMirIntentCellPlacement(false, 0, -1, -1, -1, 0, -1, -1);
+    let zone_parameter: Int = binding.zone_binding_row;
+    let subject_parameter: Int = binding.receiver_binding_row;
+    let count: Int = ArrayLength(parameters.aliases);
+    if !binding.present || !parameters.ok || !DirectMirIdentityCellFactsReady(cells) ||
+        count != ArrayLength(parameters.type_names) || count != ArrayLength(parameters.kinds) ||
+        count != ArrayLength(parameters.source_syntax_ids) ||
+        zone_parameter < 0 || subject_parameter < 0 ||
+        zone_parameter >= count || subject_parameter >= count || zone_parameter == subject_parameter ||
+        parameters.source_syntax_ids[zone_parameter] <= 0 || parameters.source_syntax_ids[subject_parameter] <= 0 ||
+        parameters.kinds[zone_parameter] != "participant" || parameters.kinds[subject_parameter] != "participant" ||
+        !MirProgramDeclarationFieldIdentityPositiveDecimal(binding.slot_source_syntax_id) {
+        return invalid;
+    }
+    let zone: Int = -1;
+    let subject_cell: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(cells.names) {
+        if cells.declaration_rows[row] == binding.zone_declaration_row { zone = row; }
+        if cells.declaration_rows[row] == binding.receiver_declaration_row { subject_cell = row; }
+        row = row + 1;
+    }
+    if zone < 0 || subject_cell < 0 ||
+        cells.names[zone] != parameters.type_names[zone_parameter] ||
+        cells.names[subject_cell] != parameters.type_names[subject_parameter] { return invalid; }
+    let slot_id: Int = ToInt(binding.slot_source_syntax_id);
+    let ordinal: Int = 0;
+    while ordinal < cells.field_counts[zone] {
+        let field: Int = cells.field_starts[zone] + ordinal;
+        if cells.field_source_syntax_ids[field] == slot_id {
+            if cells.field_names[field] != binding.slot_name { return invalid; }
+            let placement: DirectMirIntentCellPlacement = DirectMirIntentCellPlacement(
+                true, cells.digest, zone, subject_cell, ordinal, slot_id, zone_parameter, subject_parameter);
+            if DirectMirIntentCellPlacementReady(placement, cells) { return placement; }
+            return invalid;
+        }
+        ordinal = ordinal + 1;
+    }
+    return invalid;
+}

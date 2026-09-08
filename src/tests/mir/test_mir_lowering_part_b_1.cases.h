@@ -33,6 +33,27 @@ test_mir_lowering_part_b(void)
             patrol = find_mir_routine(mir, "Patrol", MIR_SCOPE_INTENT);
         EXPECT(ok && mir_validate(mir, NULL) && patrol != NULL);
         if (patrol != NULL) {
+            const MIRBasicBlock *entry = &patrol->blocks[patrol->entry_block];
+            unsigned binder_ids[2] = {0, 0};
+            unsigned mirror_ids[2] = {0, 0};
+            for (size_t i = 0; i < entry->instruction_count; i++) {
+                const MIRInstruction *inst = &entry->instructions[i];
+                bool binding = mir_instruction_is_intent_stmt(inst, "IntentBinding");
+                bool mirror = mir_instruction_is_intent_stmt(inst, "IntentParticipant");
+                if (!binding && !mirror)
+                    continue;
+                unsigned id = mir_instruction_source_stable_id(inst);
+                EXPECT(id != 0 && id == ast_node_stable_id(inst->ast));
+                size_t ordinal = strcmp(inst->arg0, "arena") == 0 ? 0 : 1;
+                if (binding)
+                    binder_ids[ordinal] = id;
+                else
+                    mirror_ids[ordinal] = id;
+            }
+            EXPECT(binder_ids[0] != 0 && binder_ids[1] != 0
+                && binder_ids[0] != binder_ids[1]
+                && binder_ids[0] == mirror_ids[0]
+                && binder_ids[1] == mirror_ids[1]);
             EXPECT(block_has_inst_named_args(&patrol->blocks[patrol->entry_block],
                 "IntentParticipant", "hero", "Hero"));
             EXPECT(block_has_inst_named_with_slot(&patrol->blocks[patrol->entry_block],

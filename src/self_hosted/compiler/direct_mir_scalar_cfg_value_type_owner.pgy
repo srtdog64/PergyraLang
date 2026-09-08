@@ -102,6 +102,7 @@ func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(
         }
         if !DirectMirScalarCfgSourceLocalTypeSupported(type_name) &&
             !CompilerRuntimeValueTypeReady(type_name) &&
+            DirectMirIdentityCellRow(logical_record.identity_cells, type_name) < 0 &&
             !DirectMirScalarProgramLogicalRecordTypeReady(
                 logical_record, type_name) &&
             !DirectMirScalarProgramLogicalRecordArrayTypeReady(
@@ -112,8 +113,13 @@ func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(
                 referenced_enum, type_name) < 0 {
             return invalid;
         }
-        let parameter_type: String = DirectMirRoutineLocalParameterTypeAtName(
-            parameters, locals.local_names[local_binding]);
+        let parameter_type: String = "";
+        let parameter_ordinal: Int = SelfMirLocalRefParameterOrdinalForOwner(
+            locals.local_ref_value_ids[local_binding], ToInt(index.source_syntax_id));
+        if parameter_ordinal >= 0 {
+            if parameter_ordinal >= ArrayLength(parameters.type_names) { return invalid; }
+            parameter_type = parameters.type_names[parameter_ordinal];
+        }
         if locals.local_ref_kinds[local_binding] == DirectMirScalarCfgLocalRefValue() &&
             parameter_type != "" && parameter_type != type_name { return invalid; }
         ArrayPush(local_types, type_name);

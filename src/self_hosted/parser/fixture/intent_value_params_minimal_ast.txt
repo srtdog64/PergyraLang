@@ -1,7 +1,7 @@
 Program:
   Subject: Buyer
     Fields:
-      hp: Int
+      let hp: Int
     Methods:
       Action: Pay
         Parameters:

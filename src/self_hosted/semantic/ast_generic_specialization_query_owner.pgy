@@ -2,6 +2,7 @@
 // specialization facts.
 
 import "ast_generic_specialization_fact_owner.pgy";
+import "ast_ability_generic_bound_verdict_owner.pgy";
 
 func SemanticAstGenericSpecializationCount(
     ref facts: SemanticAstGenericSpecializationFacts
@@ -89,4 +90,76 @@ func SemanticAstGenericSpecializationFactsMatchExpressionGraph(
         i = i + 1;
     }
     return true;
+}
+
+// `where` is a call-admission obligation, not a codegen specialization hint.
+// Concrete implementations and a caller's declared formal bounds are the two
+// legitimate witnesses. An unrelated role or a similarly named type is not.
+func SemanticAstGenericSpecializationConstraintViolation(
+    signatures: SemanticAstFunctionSignatureFacts,
+    roles: SemanticAstRoleFacts,
+    scopes: SemanticAstFunctionScopeFacts,
+    ref facts: SemanticAstGenericSpecializationFacts
+) -> Option<String> {
+    if !signatures.ok || !roles.ok || !scopes.ok ||
+        ArrayLength(signatures.generic_constraint_type_names) != ArrayLength(signatures.generic_names) ||
+        !SemanticAstGenericSpecializationFactsReady(facts) {
+        return Some("generic constraint admission requires sealed signature, role and binding facts");
+    }
+    let call: Int = 0;
+    while call < SemanticAstGenericSpecializationCount(facts) {
+        let target: Int = facts.signature_indexes[call];
+        if target < 0 || target >= SemanticAstFunctionSignatureCount(signatures) ||
+            facts.actual_counts[call] != signatures.generic_counts[target] {
+            return Some("generic constraint binding does not match its formal signature");
+        }
+        let caller: Option<Int> = None;
+        let caller_node: Option<Int> = SemanticAstFunctionScopeNodeId(scopes, facts.source_owner_node_ids[call]);
+        if IsSome(caller_node) {
+            caller = SemanticAstFunctionSignatureIndexForNode(signatures, UnwrapOption(caller_node));
+        }
+        let formal: Int = 0;
+        while formal < facts.actual_counts[call] {
+            let formal_row: Int = signatures.generic_starts[target] + formal;
+            let constraint: String = signatures.generic_constraint_type_names[formal_row];
+            if constraint != "" {
+                let actual: String = facts.actual_type_names[facts.actual_starts[call] + formal];
+                let bounds: Array<String> = Split(constraint, "+");
+                let bound_index: Int = 0;
+                while bound_index < ArrayLength(bounds) {
+                    let bound: String = SemanticCanonicalTypeName(bounds[bound_index]);
+                    let proven: Bool = bound != "" && actual == bound;
+                    let bound_name: SemanticCanonicalTypeNameFact = SemanticCanonicalTypeNameFactFrom(bound);
+                    if !proven && IsSome(SemanticAstAbilityIndexForName(roles, bound_name.nominal_base_name)) {
+                        proven = SemanticAstTypeImplementsAbility(roles, actual, bound);
+                    }
+                    if !proven && bound != "" && IsSome(caller) {
+                        let caller_index: Int = UnwrapOption(caller);
+                        let caller_formal: Int = 0;
+                        while caller_formal < signatures.generic_counts[caller_index] {
+                            let caller_row: Int = signatures.generic_starts[caller_index] + caller_formal;
+                            if signatures.generic_names[caller_row] == actual {
+                                let caller_bounds: Array<String> = Split(signatures.generic_constraint_type_names[caller_row], "+");
+                                let witness: Int = 0;
+                                while witness < ArrayLength(caller_bounds) {
+                                    if SemanticCanonicalTypeName(caller_bounds[witness]) == bound { proven = true; }
+                                    witness = witness + 1;
+                                }
+                            }
+                            caller_formal = caller_formal + 1;
+                        }
+                    }
+                    if !proven {
+                        return Some("Type '" + actual + "' does not satisfy constraint '" + bound +
+                            "' for generic parameter '" + signatures.generic_names[formal_row] +
+                            "' in '" + signatures.names[target] + "'");
+                    }
+                    bound_index = bound_index + 1;
+                }
+            }
+            formal = formal + 1;
+        }
+        call = call + 1;
+    }
+    return None;
 }

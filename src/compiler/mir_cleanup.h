@@ -6,6 +6,7 @@
 #include "mir.h"
 
 bool mir_add_cleanup_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RIROp *op);
+bool mir_cleanup_fact_is_readonly_zone_borrow(const RIRFact *fact);
 bool mir_append_cleanup_block(MIRRoutine *routine, const RIRScope *rir_scope);
 bool mir_materialize_cleanup_edges(MIRRoutine *routine);
 

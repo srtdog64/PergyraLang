@@ -1,0 +1,35 @@
+import "../../../src/self_hosted/semantic/ast_nominal_constructor_artifact_match_owner.pgy";
+import "../../../src/self_hosted/semantic/diagnostic_contract_owner.pgy";
+
+func Main() -> Void {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Struct: Pair\n    Fields:\n      let frozen: Int\n      mutable: Int\n");
+    let facts: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    Log(facts.ok && SemanticAstNominalConstructorRowsReady(facts));
+    Log(facts.field_names[0] == "frozen" && facts.field_names[1] == "mutable");
+    Log(facts.field_write_modes[0] == 1 && facts.field_write_modes[1] == 0);
+    Log(SemanticAstNominalConstructorFactsMatchArtifact(artifact, facts));
+    facts.field_write_modes[0] = 0;
+    Log(!SemanticAstNominalConstructorFactsMatchArtifact(artifact, facts));
+    facts.field_write_modes[0] = 9;
+    Log(!SemanticAstNominalConstructorRowsReady(facts));
+    facts.field_write_modes[0] = 1;
+    ArrayPop(facts.field_write_modes);
+    Log(!SemanticAstNominalConstructorRowsReady(facts));
+    artifact.arena.modes[3] = 9;
+    let invalid: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    Log(!invalid.ok && invalid.diagnostic_fact.second_value == "field_write_mode");
+    artifact.arena.modes[3] = 1;
+    let restored: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    Log(SemanticAstNominalConstructorFactsMatchArtifact(artifact, restored));
+    ArrayPop(artifact.arena.modes);
+    Log(!SemanticAstNominalConstructorFactsFromArtifact(artifact).ok);
+    Log(SemanticDiagnosticOracleCode("immutable_field_write") == "PGY_SEM_IMMUTABLE_FIELD_WRITE");
+    let receipt: SemanticPublicDiagnosticIdentity =
+        SemanticPublicDiagnosticIdentityForOwnedCode("immutable_field_write");
+    Log(receipt.ready && receipt.cause_ir == "semantic:immutable_field:write");
+    Log(SemanticVerdictPayloadContractReady());
+}

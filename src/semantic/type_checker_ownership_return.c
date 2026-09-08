@@ -6,6 +6,7 @@
  */
 
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "diag_codes.h"
 
@@ -87,6 +88,12 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
         ret_type = ownership_return_normalize_type(
             type_check_expression(value, ctx));
     }
+    /* A returned world-owned zone is the same live value escape as a local
+     * initializer or call argument; Clone's resolved boundary remains legal. */
+    if (value != NULL && value->type == AST_MEMBER_ACCESS)
+        semantic_reject_world_zone_member_escape(value, ctx);
+    if (ret_type != NULL && ret_type->kind == TYPE_KIND_FUNCTION)
+        callable_capability_record_return(ctx, value);
     ret_type = ownership_return_apply_context(value, ret_type,
                                                ctx->current_return);
 

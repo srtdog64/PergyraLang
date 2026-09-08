@@ -1,0 +1,7 @@
+import "callable_capability_fixture.pgy";
+
+func Repeat(operation: func(Int) -> Int, value: Int, remaining: Int) -> Int {
+    if remaining > 0 { return Repeat(operation, value, remaining - 1); }
+    return operation(value);
+}
+func Main() -> Void with caps random { Log(Repeat(Bump, 41, 3)); }

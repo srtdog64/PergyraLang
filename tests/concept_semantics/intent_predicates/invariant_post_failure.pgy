@@ -1,0 +1,18 @@
+subject W { let mut calls: Int; action Go(self) -> Void { calls = calls + 1; } }
+zone Z { subject slot w: W }
+intent Run(z: Z, w: W) {
+    step S {
+        where: Z; using: z; who: w; on: w.Go();
+        pre: w.calls == 2 && z.w.calls == 2;
+        invariant: w.calls < 3;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void {
+    let w = W(2);
+    let z = Z(W(99));
+    let ok = Run(z, w);
+    Log(ToString(ok) + " " + ToString(w.calls) + " " + ToString(z.w.calls));
+    Log(IntentHistoryStepFailure(0));
+}

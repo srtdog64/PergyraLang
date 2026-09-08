@@ -1,8 +1,8 @@
 Program:
   Class: Vec2
     Fields:
-      x: Int
-      y: Int
+      let x: Int
+      let y: Int
     Methods:
       Function: Length
         Parameters:
@@ -18,4 +18,3 @@ Program:
       Block:
         Let: v : Vec2 = Vec2(3, 7)
         Log(v.Length())
-

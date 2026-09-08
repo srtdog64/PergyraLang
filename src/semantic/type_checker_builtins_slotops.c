@@ -34,7 +34,7 @@ type_check_move_token(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
-    Symbol *sym = scope_lookup(ctx->scope, ast_identifier_name(slot_arg));
+    Symbol *sym = lookup_identifier_symbol(slot_arg, ctx);
     Type *slot_type = sym != NULL ? sym->type : TYPE_UNKNOWN;
     if (!type_is_owned_slot_handle(slot_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, slot_arg,
@@ -158,7 +158,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
     }
 
     if (slot_arg->type == AST_IDENTIFIER) {
-        Symbol *sym = scope_lookup(ctx->scope, ast_identifier_name(slot_arg));
+        Symbol *sym = lookup_identifier_symbol(slot_arg, ctx);
         if (sym != NULL && sym->kind == SYMBOL_SLOT) {
             if (sym->slot_info.state == SLOT_STATE_RELEASED) {
                 semantic_error_with_hints(ctx,
@@ -273,7 +273,7 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
     }
 
     if (slot_arg->type == AST_IDENTIFIER) {
-        Symbol *sym = scope_lookup(ctx->scope, ast_identifier_name(slot_arg));
+        Symbol *sym = lookup_identifier_symbol(slot_arg, ctx);
         if (sym != NULL && sym->kind == SYMBOL_SLOT) {
             if (sym->slot_info.state == SLOT_STATE_RELEASED) {
                 semantic_error_with_hints(ctx,
@@ -364,7 +364,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
 
     /* RemoteFuture has no Release; it is consumed by await. */
     if (slot_arg->type == AST_IDENTIFIER) {
-        Symbol *rsym = scope_lookup(ctx->scope, ast_identifier_name(slot_arg));
+        Symbol *rsym = lookup_identifier_symbol(slot_arg, ctx);
         if (rsym != NULL && rsym->type != NULL
             && type_is_constructed_named(rsym->type, "RemoteFuture")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_REMOTE_FUTURE_MISUSE, PGY_CAUSE_REMOTE_FUTURE_DIRECT_ACCESS, PGY_FIX_AWAIT_FUTURE, slot_arg,
@@ -381,7 +381,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
     }
 
     const char *slot_name = ast_identifier_name(slot_arg);
-    Symbol *sym = scope_lookup(ctx->scope, slot_name);
+    Symbol *sym = lookup_identifier_symbol(slot_arg, ctx);
 
     if (sym == NULL || sym->kind != SYMBOL_SLOT) {
         if (sym != NULL && sym->type != NULL && sym->type->kind == TYPE_KIND_SLOT) {

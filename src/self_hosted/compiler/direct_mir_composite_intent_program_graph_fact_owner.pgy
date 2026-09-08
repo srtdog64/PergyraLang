@@ -45,7 +45,7 @@ func DirectMirCompositeIntentProgramGraphFactDigest(
 }
 
 func DirectMirCompositeIntentStringsDistinct(
-    values: Array<String>
+    ref values: Array<String>
 ) -> Bool {
     let row: Int = 0;
     while row < ArrayLength(values) {

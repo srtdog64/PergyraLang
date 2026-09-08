@@ -5,7 +5,7 @@ Program:
       Returns: Bool
   Subject: CalendarOwner
     Fields:
-      revision: Int
+      let revision: Int
     Methods:
       Action: CreateEvent
         Parameters:
@@ -91,4 +91,3 @@ Program:
         Log("calendar-manage-compressed")
         Log("mode=compressed")
         Log("steps=3")
-

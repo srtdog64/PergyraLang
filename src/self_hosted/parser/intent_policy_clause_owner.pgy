@@ -1,4 +1,4 @@
-// Intent declaration mode/priority clause parser and AST-row owner.
+// Intent declaration mode/priority and explicit default-rollback clause owner.
 
 import "cursor_owner.pgy";
 import "expr_owner.pgy";
@@ -11,11 +11,13 @@ struct ParserIntentPolicyClause {
     mode: String;
     priority_text: String;
     priority_expression: ParserExpressionFact;
+    mode_explicit: Bool;
+    rollback_explicit: Bool;
 }
 
 func ParserIntentPolicyClauseDefault() -> ParserIntentPolicyClause {
     return ParserIntentPolicyClause(
-        false, true, 0, "exclusive", "", ParserExpressionInvalid()
+        false, true, 0, "exclusive", "", ParserExpressionInvalid(), false, false
     );
 }
 
@@ -24,6 +26,9 @@ func ParserIntentPolicyClauseFromSource(
 ) -> ParserIntentPolicyClause {
     if MatchLanguageWord(content, start, LanguageWordId.WordExclusive) ||
         MatchLanguageWord(content, start, LanguageWordId.WordConcurrent) {
+        if current.mode_explicit {
+            Fail("duplicate Intent execution mode", content, start);
+        }
         let mode: String = "exclusive";
         let word: LanguageWordId = LanguageWordId.WordExclusive;
         if MatchLanguageWord(
@@ -35,19 +40,41 @@ func ParserIntentPolicyClauseFromSource(
         let next: Int = Expect(content, LanguageWordEnd(start, word), ";");
         return ParserIntentPolicyClause(
             true, next >= 0, next, mode, current.priority_text,
-            current.priority_expression
+            current.priority_expression, true, current.rollback_explicit
         );
+    }
+    if MatchLanguageWord(content, start, LanguageWordId.WordRollback) {
+        if current.rollback_explicit {
+            Fail("duplicate Intent rollback policy", content, start);
+        }
+        let value_start: Int = Expect(
+            content, LanguageWordEnd(start, LanguageWordId.WordRollback), ":");
+        if value_start < 0 {
+            Fail("expected Intent rollback policy", content, start);
+        }
+        value_start = SkipWhitespaceAndComments(content, value_start);
+        let cursor: Array<Int> = [value_start];
+        let policy: String = ReadIdent(content, value_start, cursor);
+        // Only the existing full-rollback execution owner is substituted.
+        // Other native policies must not be accepted and erased to this default.
+        if policy != "full" {
+            Fail("self-host Intent rollback currently requires full", content, value_start);
+        }
+        let next: Int = Expect(content, cursor[0], ";");
+        return ParserIntentPolicyClause(
+            true, next >= 0, next, current.mode, current.priority_text,
+            current.priority_expression, current.mode_explicit, true);
     }
     if !MatchLanguageWord(content, start, LanguageWordId.WordPriority) {
         return ParserIntentPolicyClause(
             false, true, start, current.mode, current.priority_text,
-            current.priority_expression
+            current.priority_expression, current.mode_explicit, current.rollback_explicit
         );
     }
     if current.priority_text != "" {
         return ParserIntentPolicyClause(
             true, false, start, current.mode, current.priority_text,
-            current.priority_expression
+            current.priority_expression, current.mode_explicit, current.rollback_explicit
         );
     }
     let expression_start: Int = Expect(
@@ -56,7 +83,8 @@ func ParserIntentPolicyClauseFromSource(
     );
     if expression_start < 0 {
         return ParserIntentPolicyClause(
-            true, false, start, current.mode, "", ParserExpressionInvalid()
+            true, false, start, current.mode, "", ParserExpressionInvalid(),
+            current.mode_explicit, current.rollback_explicit
         );
     }
     let cursor: Array<Int> = [expression_start];
@@ -65,12 +93,14 @@ func ParserIntentPolicyClauseFromSource(
     );
     if !expression.ok {
         return ParserIntentPolicyClause(
-            true, false, start, current.mode, "", expression
+            true, false, start, current.mode, "", expression,
+            current.mode_explicit, current.rollback_explicit
         );
     }
     let next: Int = Expect(content, cursor[0], ";");
     return ParserIntentPolicyClause(
-        true, next >= 0, next, current.mode, expression.text, expression
+        true, next >= 0, next, current.mode, expression.text, expression,
+        current.mode_explicit, current.rollback_explicit
     );
 }
 

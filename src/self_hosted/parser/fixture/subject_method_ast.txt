@@ -1,7 +1,7 @@
 Program:
   Subject: Counter
     Fields:
-      value: Int
+      let value: Int
     Methods:
       Function: Increment
         Parameters:
@@ -15,4 +15,3 @@ Program:
     Body:
       Block:
         Log("ok")
-

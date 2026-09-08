@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let values = MapNew();
+    Log(MapSize(values));
+}

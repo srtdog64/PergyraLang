@@ -18,6 +18,7 @@ func CodegenIntentEmitControlPrologue(
 ) -> Void {
     if step_count <= 0 { Die("self-host intent has no executable step"); }
     ArrayPush(body, "    bool __intent_failed = false;\n");
+    ArrayPush(body, "    bool __intent_result = false;\n");
     ArrayPush(body, Concat(
         "    bool __intent_step_completed[", Concat(
             ToString(step_count), "] = { false };\n"
@@ -149,5 +150,5 @@ func CodegenIntentEmitCleanup(
     }
     ArrayPush(body, "    }\n");
     CodegenIntentObservabilityEmitExit(body, uses_intent_observability);
-    ArrayPush(body, "    return !__intent_failed;\n");
+    ArrayPush(body, "    return __intent_result;\n");
 }

@@ -4,8 +4,9 @@ import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_readonly_ref_owner.pgy";
-import "direct_mir_scalar_program_c_array_string_readonly_ref_owner.pgy";
+import "direct_mir_scalar_program_c_array_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_void_readonly_string_target_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 
 func DirectMirScalarProgramCDirectCallArgumentValue(
     ref expressions: DirectMirScalarProgramExpressionSet,
@@ -21,6 +22,15 @@ func DirectMirScalarProgramCDirectCallArgumentValue(
             ArrayLength(expressions.node_kinds) { Die(
                 "direct MIR scalar C call argument identity is invalid"); }
     let parameter_row: Int = routines.parameter_starts[callable] + argument;
+    let cell_carriage: String = DirectMirScalarProgramIdentityCellBorrowCarriage(
+        logical_record.identity_cells, routines.parameter_types[parameter_row]);
+    if cell_carriage != "" {
+        if routines.parameter_carriages[parameter_row] != cell_carriage {
+            Die("direct MIR identity cell C call carriage is invalid");
+        }
+        // The value already names cell storage, not an addressable record copy.
+        return value;
+    }
     if routines.parameter_carriages[parameter_row] == "value-result" {
         if expressions.node_kinds[argument_node] ==
                 DirectMirScalarProgramExprLocal() {
@@ -34,14 +44,14 @@ func DirectMirScalarProgramCDirectCallArgumentValue(
         }
         Die("direct MIR scalar C value-result argument is not addressable");
     }
-    if DirectMirScalarProgramArrayStringReadonlyRefAt(
+    if DirectMirScalarProgramArrayReadonlyRefAt(
             routines, callable, argument) {
         let readonly_value: String =
-            DirectMirScalarProgramCArrayStringReadonlyRefCallArgument(
+            DirectMirScalarProgramCArrayReadonlyRefCallArgument(
                 expressions, routines, routine, callable, argument,
-                argument_node);
+                argument_node, value);
         if readonly_value == "" { Die(
-            "direct MIR scalar C readonly Array<String> argument is invalid"); }
+            "direct MIR scalar C readonly array argument is invalid"); }
         return readonly_value;
     }
     if DirectMirScalarProgramVoidReadonlyStringTargetAt(

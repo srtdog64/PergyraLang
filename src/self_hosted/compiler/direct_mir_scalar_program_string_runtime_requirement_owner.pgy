@@ -70,7 +70,7 @@ func DirectMirScalarProgramStringRuntimeRequirement(
     let concat_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprConcatString());
     let to_string_required: Bool = DirectMirScalarProgramExpressionContainsKind(
-        expressions, DirectMirScalarProgramExprToStringInt());
+        expressions, DirectMirScalarProgramExprToStringSignedInteger());
     let to_upper_required: Bool = DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprToUpperString());
     let to_lower_required: Bool = DirectMirScalarProgramExpressionContainsKind(

@@ -9,6 +9,8 @@
 void resource_flow_universe_begin(SemanticContext *ctx);
 void resource_flow_universe_end(SemanticContext *ctx);
 size_t resource_flow_universe_bind(SemanticContext *ctx, Symbol *symbol);
+bool resource_flow_universe_record_declaration(SemanticContext *ctx,
+                                               Symbol *symbol);
 Symbol *resource_flow_universe_symbol(SemanticContext *ctx, size_t index);
 bool resource_flow_universe_capture_function_facts(
     SemanticContext *ctx,

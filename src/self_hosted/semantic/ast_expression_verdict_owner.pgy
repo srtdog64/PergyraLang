@@ -185,6 +185,11 @@ func SemanticAstExpressionVerdictFromGraph(
             list_call.diagnostic_message, text, "Unknown"
         );
     }
+    let map_call_error: String = SemanticExpressionGraphHashMapCallError(
+        graph, root_id, constructors, names, types, function_names, function_returns);
+    if map_call_error != "" {
+        return SemanticAstExpressionVerdictError(text, map_call_error);
+    }
     let queue_call: SemanticExpressionGraphQueueCallFact =
         SemanticExpressionGraphQueueCallNotApplicable();
     let call_view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(

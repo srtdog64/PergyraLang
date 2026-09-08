@@ -1,0 +1,3 @@
+import "generic_bound_support.pgy";
+func Forward<U>(value: U) -> Int where U: Sortable { return Rank(value); }
+func Main() -> Void { Log(Forward(Card(7))); }

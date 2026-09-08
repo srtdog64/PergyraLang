@@ -1,0 +1,9 @@
+import "world_zone_transfer_support.pgy";
+func Main() -> Void {
+    let w1 = CartWorld(CartZone(Buyer(1)));
+    let w2 = PayWorld(PaymentZone(Buyer(1)));
+    let buyer = Buyer(1);
+    Checkout(Clone(w1.cart), Clone(w2.payment), buyer);
+    Log(w1.Hp());
+    Log(w2.Hp());
+}

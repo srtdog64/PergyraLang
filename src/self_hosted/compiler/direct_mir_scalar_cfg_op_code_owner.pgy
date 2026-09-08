@@ -49,6 +49,7 @@ func DirectMirScalarCfgOpLogicalRecordArrayValueResultPush() -> Int { return 41;
 func DirectMirScalarCfgOpArrayBoolSet() -> Int { return 42; }
 func DirectMirScalarCfgOpLogicalRecordArrayValueResultSet() -> Int { return 43; }
 func DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() -> Int { return 44; }
+func DirectMirScalarCfgOpIdentityCellStore() -> Int { return 45; }
 func DirectMirScalarCfgVoidReturnExpressionRow() -> Int { return -2; }
 func DirectMirScalarCfgConditionNone() -> Int { return 0; }
 func DirectMirScalarCfgConditionBool() -> Int { return 1; }

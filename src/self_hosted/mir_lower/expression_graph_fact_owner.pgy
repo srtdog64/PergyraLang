@@ -166,7 +166,7 @@ func MirExpressionGraphFactsForArtifactObserved(
                             let target_projection:
                                 MirIntentExecutionGraphTargetProjection =
                                     MirIntentExecutionGraphTargetProjection(
-                                        true, false, "", ""
+                                        true, false, 0, "", ""
                                     );
                             if MirProgramInstructionExpressionRoutingEquals(
                                 routines.source_json, expression, 0, "IntentEval") {

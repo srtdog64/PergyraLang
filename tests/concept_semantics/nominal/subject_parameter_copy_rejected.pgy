@@ -1,0 +1,3 @@
+subject Cell { let value: Int; }
+func CopyCell(cell: Cell) -> Void { let duplicate = (cell); Log(duplicate.value); }
+func Main() -> Void { CopyCell(Cell(7)); }

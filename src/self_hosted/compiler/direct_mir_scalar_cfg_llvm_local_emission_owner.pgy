@@ -10,6 +10,7 @@ import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
 import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
 import "runtime_value_representation_owner.pgy";
+import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
 func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
     ref plan: DirectMirScalarCfgGraphPlan, start: Int, count: Int,
@@ -26,12 +27,17 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
     let row: Int = start;
     while row < start + count {
         let llvm_type: String = "i64";
+        let hashmap: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(plan.local_types[row]);
         let runtime_value: CompilerRuntimeValueRepresentation =
             CompilerRuntimeValueRepresentationFor(
                 plan.local_types[row]);
         output = Concat(output, "  %pgy.local.");
         output = Concat(output, ToString(row));
-        if runtime_value.valid {
+        if hashmap.ok || plan.local_types[row] == CompilerAbiLayoutArrayLongTypeName() {
+            llvm_type = CollectionHashMapLlvmStorageType();
+            if !hashmap.ok { llvm_type = "%pgy.array.long"; }
+            output = output + " = alloca " + llvm_type + ", align 8\n  store " + llvm_type + " zeroinitializer, ptr %pgy.local.";
+        } else if runtime_value.valid {
             llvm_type = runtime_value.llvm_type;
             output = Concat(output, Concat(" = alloca ", llvm_type));
             output = Concat(output, Concat(", align 8\n  store ", llvm_type));
@@ -113,6 +119,9 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
             output = Concat(output, Concat(", align 8\n  store ", llvm_type));
             output = Concat(output,
                 " zeroinitializer, ptr %pgy.local.");
+        } else if DirectMirIdentityCellRow(plan.program.logical_record.identity_cells, plan.local_types[row]) >= 0 {
+            llvm_type = "ptr";
+            output = Concat(output, " = alloca ptr, align 8\n  store ptr null, ptr %pgy.local.");
         } else if DirectMirScalarProgramLogicalRecordTypeReady(
                 plan.program.logical_record, plan.local_types[row]) {
             llvm_type = DirectMirScalarProgramLlvmLogicalRecordTypeName(

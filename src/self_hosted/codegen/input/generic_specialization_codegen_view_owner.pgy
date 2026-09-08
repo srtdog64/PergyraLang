@@ -5,6 +5,8 @@ import "../../semantic/ast_generic_specialization_fact_owner.pgy";
 import "../../semantic/ast_generic_specialization_query_owner.pgy";
 import "../text/text_owner.pgy";
 import "semantic_signature_codegen_view_owner.pgy";
+import "../../semantic/ast_function_scope_fact_owner.pgy";
+import "../../semantic/generic_instance_closure_owner.pgy";
 
 struct CodegenGenericSpecializationFacts {
     ok: Bool;
@@ -16,6 +18,7 @@ struct CodegenGenericSpecializationFacts {
     actual_type_names: Array<String>;
     call_node_ids: Array<Int>;
     call_c_names: Array<String>;
+    call_contexts: Array<String>;
 }
 
 func CodegenGenericSpecializationFactsEmpty(
@@ -29,13 +32,14 @@ func CodegenGenericSpecializationFactsEmpty(
     let call_c_names: Array<String> = [];
     return CodegenGenericSpecializationFacts(
         true, "", signature_indexes, c_names, actual_starts, actual_counts,
-        actual_type_names, call_node_ids, call_c_names
+        actual_type_names, call_node_ids, call_c_names, call_c_names
     );
 }
 
 func CodegenGenericSpecializationFactsFromSemantic(
     signatures: SemanticAstFunctionSignatureFacts,
-    semantic_facts: SemanticAstGenericSpecializationFacts
+    semantic_facts: SemanticAstGenericSpecializationFacts,
+    ref scopes: SemanticAstFunctionScopeFacts
 ) -> CodegenGenericSpecializationFacts {
     let signature_indexes: Array<Int> = [];
     let c_names: Array<String> = [];
@@ -44,11 +48,12 @@ func CodegenGenericSpecializationFactsFromSemantic(
     let actual_type_names: Array<String> = [];
     let call_node_ids: Array<Int> = [];
     let call_c_names: Array<String> = [];
+    let call_contexts: Array<String> = [];
     if !SemanticAstGenericSpecializationFactsReady(semantic_facts) {
         return CodegenGenericSpecializationFacts(
             false, "semantic generic specialization facts are incomplete",
             signature_indexes, c_names, actual_starts, actual_counts,
-            actual_type_names, call_node_ids, call_c_names
+            actual_type_names, call_node_ids, call_c_names, call_contexts
         );
     }
     let row: Int = 0;
@@ -85,29 +90,159 @@ func CodegenGenericSpecializationFactsFromSemantic(
             return CodegenGenericSpecializationFacts(
                 false, "generic specialization symbol collision",
                 signature_indexes, c_names, actual_starts, actual_counts,
-                actual_type_names, call_node_ids, call_c_names
+                actual_type_names, call_node_ids, call_c_names, call_contexts
             );
+        } else {
+            let actual_i: Int = 0;
+            if actual_counts[existing] != ArrayLength(actuals) {
+                return CodegenGenericInstantiationError("generic specialization symbol collision");
+            }
+            while actual_i < ArrayLength(actuals) {
+                if actual_type_names[actual_starts[existing] + actual_i] != actuals[actual_i] {
+                    return CodegenGenericInstantiationError("generic specialization symbol collision");
+                }
+                actual_i = actual_i + 1;
+            }
         }
         ArrayPush(call_node_ids, semantic_facts.call_node_ids[row]);
         ArrayPush(call_c_names, c_name);
+        ArrayPush(call_contexts, "");
         row = row + 1;
     }
-    return CodegenGenericSpecializationFacts(
+    let raw: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFacts(
         true, "", signature_indexes, c_names, actual_starts, actual_counts,
-        actual_type_names, call_node_ids, call_c_names
+        actual_type_names, call_node_ids, call_c_names, call_contexts
     );
+    return CodegenGenericSpecializationInstantiateCalls(signatures, scopes, semantic_facts, raw);
 }
 
 func CodegenGenericCallNodeKey(call_node_id: Int) -> String {
     return Concat("$generic_call_node_", ToString(call_node_id));
 }
 
+func CodegenGenericInstantiationError(message: String) -> CodegenGenericSpecializationFacts {
+    let result: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFactsEmpty();
+    result.ok = false;
+    result.diagnostic_message = message;
+    return result;
+}
+
+// Source and reconstructed-MIR adapters join their retained call handles to
+// the same target-independent closure. Emission symbols are a projection only.
+func CodegenGenericSpecializationInstantiateCalls(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref scopes: SemanticAstFunctionScopeFacts,
+    ref semantic_rows: SemanticAstGenericSpecializationFacts,
+    ref raw: CodegenGenericSpecializationFacts
+) -> CodegenGenericSpecializationFacts {
+    if !raw.ok || !signatures.ok || !scopes.ok ||
+        !SemanticAstGenericSpecializationFactsReady(semantic_rows) ||
+        ArrayLength(raw.call_node_ids) != ArrayLength(raw.call_c_names) {
+        return CodegenGenericInstantiationError("generic call instantiation requires admitted facts");
+    }
+    let templates: GenericInstanceTemplates = GenericInstanceTemplatesEmpty();
+    let template: Int = 0;
+    while template < ArrayLength(signatures.function_node_ids) {
+        ArrayPush(templates.syntax_ids, signatures.function_node_ids[template]);
+        ArrayPush(templates.generic_starts, signatures.generic_starts[template]);
+        ArrayPush(templates.generic_counts, signatures.generic_counts[template]);
+        template = template + 1;
+    }
+    let formal: Int = 0;
+    while formal < ArrayLength(signatures.generic_names) {
+        ArrayPush(templates.generic_names, signatures.generic_names[formal]);
+        formal = formal + 1;
+    }
+    let callers: Array<Int> = [];
+    let targets: Array<Int> = [];
+    let starts: Array<Int> = [];
+    let counts: Array<Int> = [];
+    let types: Array<String> = [];
+    let call: Int = 0;
+    while call < ArrayLength(raw.call_node_ids) {
+        let semantic_index: Option<Int> = SemanticAstGenericSpecializationIndexForCall(
+            semantic_rows.call_node_ids, raw.call_node_ids[call]);
+        if !IsSome(semantic_index) {
+            return CodegenGenericInstantiationError("generic call source identity is missing");
+        }
+        let row: Int = UnwrapOption(semantic_index);
+        let source_owner: Int = semantic_rows.source_owner_node_ids[row];
+        if source_owner < 0 || source_owner >= scopes.artifact_node_count {
+            return CodegenGenericInstantiationError("generic call scope identity is missing");
+        }
+        let caller: Int = -1;
+        let function_node: Option<Int> = SemanticAstFunctionScopeNodeId(scopes, source_owner);
+        if IsSome(function_node) {
+            let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+                signatures, UnwrapOption(function_node));
+            if IsSome(signature) { caller = UnwrapOption(signature); }
+        }
+        let raw_index: Int = -1;
+        let i: Int = 0;
+        while i < ArrayLength(raw.c_names) {
+            if raw.c_names[i] == raw.call_c_names[call] { raw_index = i; }
+            i = i + 1;
+        }
+        if raw_index < 0 || raw.signature_indexes[raw_index] != semantic_rows.signature_indexes[row] {
+            return CodegenGenericInstantiationError("generic call target identity is crossed");
+        }
+        ArrayPush(callers, caller);
+        ArrayPush(targets, raw.signature_indexes[raw_index]);
+        ArrayPush(starts, ArrayLength(types));
+        ArrayPush(counts, raw.actual_counts[raw_index]);
+        i = 0;
+        while i < raw.actual_counts[raw_index] {
+            ArrayPush(types, raw.actual_type_names[raw.actual_starts[raw_index] + i]);
+            i = i + 1;
+        }
+        call = call + 1;
+    }
+    let recipes: GenericInstanceRecipes = GenericInstanceRecipes(
+        true, callers, targets, starts, counts, types);
+    let closure: GenericInstanceClosure = GenericInstanceClosureFromRecipes(templates, recipes);
+    if !closure.valid { return CodegenGenericInstantiationError(closure.diagnostic); }
+    let result: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFactsEmpty();
+    let instance: Int = 0;
+    while instance < ArrayLength(closure.template_rows) {
+        let target: Int = closure.template_rows[instance];
+        let actuals: Array<String> = GenericInstanceActuals(closure, instance);
+        let symbol: String = CompilerSymbolCGenericSpecializationName(
+            CompilerSymbolCQualifiedName(signatures.owner_names[target], signatures.names[target]), actuals);
+        let prior: Int = 0;
+        while prior < instance {
+            if result.c_names[prior] == symbol {
+                return CodegenGenericInstantiationError("generic specialization symbol collision");
+            }
+            prior = prior + 1;
+        }
+        ArrayPush(result.signature_indexes, target);
+        ArrayPush(result.c_names, symbol);
+        ArrayPush(result.actual_starts, ArrayLength(result.actual_type_names));
+        ArrayPush(result.actual_counts, ArrayLength(actuals));
+        let a: Int = 0;
+        while a < ArrayLength(actuals) { ArrayPush(result.actual_type_names, actuals[a]); a = a + 1; }
+        instance = instance + 1;
+    }
+    call = 0;
+    while call < ArrayLength(closure.call_recipes) {
+        let context: String = "";
+        if closure.call_contexts[call] >= 0 { context = result.c_names[closure.call_contexts[call]]; }
+        ArrayPush(result.call_node_ids, raw.call_node_ids[closure.call_recipes[call]]);
+        ArrayPush(result.call_c_names, result.c_names[closure.call_targets[call]]);
+        ArrayPush(result.call_contexts, context);
+        call = call + 1;
+    }
+    return result;
+}
+
 func CodegenGenericSpecializationCallEnvRows(
-    facts: CodegenGenericSpecializationFacts
+    facts: CodegenGenericSpecializationFacts,
+    context: String
 ) -> String {
     let rows: Array<String> = [];
     let i: Int = 0;
     while i < ArrayLength(facts.call_node_ids) {
+        if facts.call_contexts[i] != context { i = i + 1; continue; }
         ArrayPush(rows, Concat(
             CodegenGenericCallNodeKey(facts.call_node_ids[i]),
             Concat("=call:", Concat(facts.call_c_names[i], "|"))

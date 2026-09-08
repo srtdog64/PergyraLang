@@ -1,0 +1,11 @@
+class Sample { let first: Int; let second: Int; let third: Int; }
+func Stamp(value: Int) -> Int { Log(value); return value; }
+func Main() -> Void {
+    let _pgy_record_value_1: Int = 3;
+    let sample = Sample {
+        third: Stamp(_pgy_record_value_1), first: Stamp(1), second: Stamp(2)
+    };
+    Log(sample.first);
+    Log(sample.second);
+    Log(sample.third);
+}

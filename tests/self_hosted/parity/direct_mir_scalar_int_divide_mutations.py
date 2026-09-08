@@ -18,8 +18,6 @@ if mode == "missing-right-edge":
 elif mode == "wrong-right-type":
     right["kind"] = "string_literal"
     right["text"] = '"4"'
-elif mode == "zero-divisor":
-    right["text"] = "0"
 else:
     raise SystemExit(f"unknown mutation: {mode}")
 

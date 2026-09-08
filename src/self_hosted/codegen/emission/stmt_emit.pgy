@@ -170,7 +170,7 @@ func EmitLet(
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(option_expr, ";")))));
     }
     if StartsWith(type_name, "List<") || StartsWith(type_name, "Queue<") ||
-        StartsWith(type_name, "Set<") ||
+        StartsWith(type_name, "Set<") || StartsWith(type_name, "HashMap<") ||
         LookupKindType(env, type_name, "s") == "struct" ||
         LookupKindType(env, type_name, "enum") != "" {
         CodegenTypeEnvStateAppendOwnedLocalRows(
@@ -354,6 +354,22 @@ func EmitStmtList(count: Int, arena: AstArena,
                 return_cleanup, idx, pad
             ));
             ArraySet(cur, 0, idx + 1); continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindUnsafeBlockTag()) {
+            ArraySet(cur, 0, idx + 1);
+            CodegenAstArenaExpectBlock(arena, count, cur);
+            let block_env: CodegenTypeEnvState = CodegenTypeEnvStateBorrow(env_state);
+            let nested: CodegenStatementBlockEmission = EmitStmtList(
+                count, arena, local_bindings, assignments, statements,
+                body_types, expression_surfaces, stmt_indent + 4, cur, inner_pad,
+                block_env, cur_fn_ret, routine_defers,
+                Concat(scope_cleanup, active_defers), loop_escape_defers, base_env);
+            CodegenTypeEnvStateReleaseLocal(block_env);
+            ArrayPush(result, Concat(pad, "{\n"));
+            ArrayPush(result, nested.body);
+            ArrayPush(result, nested.scope_cleanup);
+            ArrayPush(result, Concat(pad, "}\n"));
+            continue;
         }
         if CodegenSemanticStatementIs(statements, idx, TypedAstKindDeferStmtTag()) {
             ArraySet(cur, 0, idx + 1);

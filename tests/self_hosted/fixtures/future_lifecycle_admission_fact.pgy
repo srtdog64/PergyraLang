@@ -1,0 +1,35 @@
+// Run the validator, never the source program supplied as its input.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy";
+import "../../../src/self_hosted/codegen/text/text_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Die("future probe requires source and expected verdict"); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok {
+        Log(analysis.verdict.diagnostic_message);
+    }
+    let body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if args[1] == "accept" {
+        if !body.verdict.ok || !SemanticAstBodyTypeBundleReady(artifact, analysis, body) {
+            Log(body.verdict.diagnostic_code); Die(body.verdict.diagnostic_message);
+        }
+    } else {
+        let expected: String = args[1];
+        if expected == "reject" { expected = "task_lifecycle_invalid"; }
+        if body.verdict.ok || body.verdict.diagnostic_code != expected {
+            Log(body.verdict.diagnostic_code); Log(body.verdict.diagnostic_message);
+            Die("future lifecycle verdict did not match its owner");
+        }
+        let receipt: SemanticPublicDiagnosticReceipt = SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            body.verdict.diagnostic_code, body.verdict.diagnostic_message);
+        if !SemanticPublicDiagnosticReceiptReadyFor(receipt, expected) { Die("future/cancel receipt is missing"); }
+        if expected == "task_lifecycle_invalid" && (receipt.code != "PGY_SEM_TASK_LIFECYCLE" ||
+            receipt.cause_ir != "semantic:task:lifecycle" ||
+            receipt.fix_source != "await-task-before-exit") { Die("future lifecycle receipt drifted"); }
+    }
+    Log("future lifecycle facts and receipt verified");
+}

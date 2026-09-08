@@ -121,7 +121,17 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(
                     "parameter", ToInt(index.source_syntax_id),
                     parameter_ordinal);
             }
-            if wire.required { local_identity = wire_ref; }
+            if wire.required {
+                local_identity = wire_ref;
+                parameter_ordinal = SelfMirLocalRefParameterOrdinalForOwner(
+                    local_identity, ToInt(index.source_syntax_id));
+                if (StartsWith(local_identity, "parameter:") &&
+                    (parameter_ordinal < 0 || parameter_ordinal >= ArrayLength(parameters.names))) ||
+                    (source == "AST_LET_DECL" && !StartsWith(local_identity, "declaration:")) {
+                    Die("direct MIR scalar CFG LocalRef declaration role or owner is invalid");
+                    return empty;
+                }
+            }
             let local_row: Int = -1;
             if wire.required {
                 local_row = DirectMirScalarCfgLocalIdentityRow(
@@ -199,10 +209,10 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(
 }
 
 func DirectMirScalarCfgLocalRefsReady(
-    local_names: Array<String>, local_ref_kinds: Array<Int>,
-    local_ref_value_ids: Array<String>, local_ref_syntax_ids: Array<Int>,
-    value_names: Array<String>, value_local_rows: Array<Int>,
-    value_definition_blocks: Array<Int>, block_count: Int,
+    ref local_names: Array<String>, ref local_ref_kinds: Array<Int>,
+    ref local_ref_value_ids: Array<String>, ref local_ref_syntax_ids: Array<Int>,
+    ref value_names: Array<String>, ref value_local_rows: Array<Int>,
+    ref value_definition_blocks: Array<Int>, block_count: Int,
     ref routines: DirectMirScalarCfgRoutinePartitionFact,
     ref ranges: DirectMirScalarCfgRangeFactSet,
     ref foreach_facts: DirectMirScalarCfgForEachFactSet

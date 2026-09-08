@@ -6,6 +6,7 @@ import "direct_mir_scalar_program_int_literal_expression_row_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_match_condition_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_match_condition_owner.pgy";
 import "direct_mir_scalar_program_option_int_match_condition_owner.pgy";
+import "direct_mir_scalar_program_int_match_condition_owner.pgy";
 
 func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
     inout expressions: DirectMirScalarProgramExpressionSet,
@@ -56,6 +57,10 @@ func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
                 DirectMirScalarProgramOptionIntMatchConditionFromInstruction(
                     admission.facts, instruction, expression_row, global_row,
                     local_offset, signature, index, locals, option_int_abi);
+        } else if value_node >= 0 && value_node < ArrayLength(admission.facts.node_types) &&
+            admission.facts.node_types[value_node] == CompilerAbiLayoutIntTypeName() {
+            appended = DirectMirScalarProgramIntMatchConditionFromInstruction(
+                admission.facts, instruction, expression_row);
         } else if enum_row >= 0 && referenced_enum.payload_flags[enum_row] == 1 {
             appended =
                 DirectMirScalarProgramPayloadEnumMatchConditionFromInstruction(

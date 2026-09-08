@@ -27,8 +27,8 @@ func DirectMirScalarCfgProgramExtensionFromOwners(
     let closed_call_abi: DirectMirClosedModuleCallAbiFact =
         DirectMirClosedModuleCallAbiFactEmpty();
     if ArrayLength(route.routine_rows) == 2 {
-        callable = DirectMirScalarProgramCallableFactFromAdmitted(
-            admitted, route.callable_row, 1, route.nominal,
+        callable = DirectMirScalarProgramCallableFactFromInstance(
+            route.routine_instances, 1,
             route.logical_record, route.payload_free_enum,
             route.referenced_enum
         );
@@ -56,7 +56,7 @@ func DirectMirScalarCfgProgramExtensionFromOwners(
             block_condition_expression_rows, operation_expression_rows,
             operation_secondary_expression_rows, block_return_expression_rows,
             closed_call_abi, abi.runtime, abi.option_int, abi.result_int,
-            abi.option_string, abi.option_bool, abi.nominal,
+            abi.option_string, abi.option_bool,
             abi.logical_record, abi.referenced_enum,
             abi.payload_free_enum,
             abi.array_int_value_result,

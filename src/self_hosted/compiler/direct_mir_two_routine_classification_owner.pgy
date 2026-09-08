@@ -19,12 +19,12 @@ func DirectMirTwoRoutineInferredGenericMember() -> Int { return 3; }
 func DirectMirTwoRoutineInferredGenericVesselMember() -> Int { return 4; }
 
 func DirectMirTwoRoutineInferredMemberKindMatches(
-    kind: Int, declaration_kind: String
+    kind: Int, nominal_kind: String
 ) -> Bool {
     return (kind == DirectMirTwoRoutineInferredGenericMember() &&
-            declaration_kind == "class") ||
+            nominal_kind == "class") ||
         (kind == DirectMirTwoRoutineInferredGenericVesselMember() &&
-         declaration_kind == "vessel");
+         nominal_kind == "vessel");
 }
 
 func InvalidDirectMirTwoRoutineClassificationFact(
@@ -62,7 +62,7 @@ func DirectMirTwoRoutineClassificationFactReady(
           fact.shape.generic_routine_count == 1 &&
           fact.shape.method_routine_count == 0) ||
          (DirectMirTwoRoutineInferredMemberKindMatches(
-              fact.kind, fact.shape.declaration_kind
+              fact.kind, fact.shape.nominal_kind
           ) &&
           fact.specialization_count == 2 &&
           fact.shape.generic_routine_count == 1 &&
@@ -90,10 +90,10 @@ func DirectMirTwoRoutineClassificationFromAdmitted(
     } else if count == 2 && shape.declaration_kind == "struct" &&
         shape.generic_routine_count == 1 && shape.method_routine_count == 0 {
         kind = DirectMirTwoRoutineInferredGenericNominal();
-    } else if count == 2 && shape.declaration_kind == "class" &&
+    } else if count == 2 && shape.nominal_kind == "class" &&
         shape.generic_routine_count == 1 && shape.method_routine_count == 1 {
         kind = DirectMirTwoRoutineInferredGenericMember();
-    } else if count == 2 && shape.declaration_kind == "vessel" &&
+    } else if count == 2 && shape.nominal_kind == "vessel" &&
         shape.generic_routine_count == 1 && shape.method_routine_count == 1 {
         kind = DirectMirTwoRoutineInferredGenericVesselMember();
     } else {

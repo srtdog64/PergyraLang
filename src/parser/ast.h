@@ -121,6 +121,7 @@ struct ASTNode
              * entry names the placeholder ClassField that owns the binding's
              * declaration identity; local destructuring leaves this NULL. */
             ClassField** field_bindings;
+            uint32_t* local_binding_syntax_ids;
             ASTNode* initializer;
         } let_destructure;
         
@@ -244,6 +245,7 @@ struct ASTNode
             size_t         arg_capacity;
             GenericParams* generic_args; /* optional: callee<T, U> type args */
             uint32_t       semantic_callee_decl_id;
+            uint32_t       semantic_callee_value_binding_id;
             uint32_t       semantic_callee_builtin_kind;
             bool           semantic_callee_builtin_kind_set;
             uint32_t       semantic_runtime_call_abi_id;
@@ -317,6 +319,7 @@ struct ASTNode
         struct {
             ASTNode* target;
             ASTNode* value;
+            char* semantic_binding_type_name; /* checked bare-binding target */
         } assignment;
         
         /* Literals */
@@ -343,6 +346,9 @@ struct ASTNode
         /* Identifier */
         struct {
             char* name;
+            /* Resolved by semantic scope lookup; spelling is not identity. */
+            uint32_t semantic_binding_syntax_id;
+            bool semantic_binding_is_host_field;
         } identifier;
         
         /* Type */

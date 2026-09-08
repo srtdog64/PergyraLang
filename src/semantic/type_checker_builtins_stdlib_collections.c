@@ -118,8 +118,14 @@ type_check_stdlib_collection_call(ASTNode *expr,
             expr, name, stdlib_collection_builtin_mutates_storage(kind), ctx))
         return TYPE_UNKNOWN;
 
-    if (stdlib_collection_builtin_is_array_family(kind))
+    if (stdlib_collection_builtin_is_array_family(kind)) {
+        /* Callback effects belong to invocation, never a fixed-local row. */
+        if (kind != STDLIB_COLLECTION_ARRAY_MAP && kind != STDLIB_COLLECTION_ARRAY_FILTER)
+            semantic_record_builtin_effect(ctx, expr, name);
         return type_check_stdlib_array_call(expr, name, kind, ctx);
+    }
+
+    semantic_record_builtin_effect(ctx, expr, name);
 
     ASTNode *arg0 = ast_call_argument(expr, 0);
     ASTNode *arg1 = ast_call_argument(expr, 1);

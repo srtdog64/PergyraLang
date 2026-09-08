@@ -387,8 +387,11 @@ enum Shape {
 - semantic은 현재 `object`/`tobject` passive helper `func`를 허용한다.
   canonical authoring은 object의 관측/query만 남기고 tobject를 method-free로
   쓰며, 이 차이는 열린 semantic closure다.
-- canonical `object`/`tobject` field는 construction 이후 read-only/immutable이지만
-  현재 bare/nested field write 검사에는 gap이 있다. `publish`는 detached value
+- canonical `object`/`tobject` field는 construction 이후 read-only/immutable이다.
+  명시적 receiver의 직접/중첩 field write는 양 source-admission 경로에서
+  검사하며, receiver를 생략한 bare-field 대입은 별도 열린 범위다.
+  실행 backend 전체의 동일화는 아직 완료되지 않았다.
+  `publish`는 detached value
   projection이며 tobject 전용 channel/API/IPC transport를 보장하지 않는다.
 - `ability`는 기본 공개 계약이다. cross-module에서 숨기고 싶을 때만 `private ability`를 사용한다. 따라서 `export ability`는 허용되더라도 중복 표기다.
 - `relation`, `effect`는 현재 optional `for name: Type[, ...]` header와 `subject slot`, `object slot`, `tobject slot`, `refresh`, `publish`, `bind`, `shared`, `func`의 최소 조합을 지원한다.

@@ -1,7 +1,7 @@
 Program:
   Subject: Fighter
     Fields:
-      power: Int
+      let power: Int
   [export] Ability: Combatable
     Function: Attack
       Parameters:
@@ -22,4 +22,3 @@ Program:
     Body:
       Block:
         Log("ok")
-

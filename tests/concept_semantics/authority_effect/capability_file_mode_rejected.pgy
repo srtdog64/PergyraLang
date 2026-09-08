@@ -1,0 +1,4 @@
+func Open(mode: String) -> Int with caps io_read {
+    return FileOpen("not-opened-by-admission-tests.txt", mode);
+}
+func Main() -> Void { let handle: Int = Open("r"); }

@@ -24,12 +24,9 @@ static uint32_t
 ownership_destructure_binding_syntax_id(const ASTNode *node,
                                         size_t binding_index)
 {
-    uint32_t field_id;
-
     if (node == NULL)
         return 0;
-    field_id = ast_let_destructure_binding_stable_id(node, binding_index);
-    return field_id != 0 ? field_id : ast_node_stable_id(node);
+    return ast_let_destructure_binding_stable_id(node, binding_index);
 }
 
 static bool

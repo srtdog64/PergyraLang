@@ -1,0 +1,10 @@
+func ReleaseOwnedArray(own values: Array<String>) -> Void {
+    ArrayDropOwnedStrings(values);
+}
+func BuildAndReadRetired() -> Int {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Concat("owned", "-return"));
+    ReleaseOwnedArray(values);
+    return ArrayLength(values);
+}
+func Main() -> Void { Log(ToString(BuildAndReadRetired())); }

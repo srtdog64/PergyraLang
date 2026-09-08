@@ -1,0 +1,9 @@
+func ClockBump(value: Int) -> Int with caps clock {
+    let observed: Int = Now();
+    return value + 1;
+}
+func Repeat(operation: func(Int) -> Int, value: Int, remaining: Int) -> Int {
+    if remaining > 0 { return Repeat(operation, value, remaining - 1); }
+    return operation(value);
+}
+func Main() -> Void with caps random { Log(Repeat(ClockBump, 41, 3)); }

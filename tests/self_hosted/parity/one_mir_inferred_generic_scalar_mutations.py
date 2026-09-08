@@ -45,6 +45,26 @@ def graph_shape(value):
     }
 
 
+def parameter_shape(owner):
+    # Syntax IDs are producer-local. Compare ordinal/type/carriage after
+    # proving that every formal use still names its own declared binder.
+    params = owner["params"]
+    identities = [param["source_syntax_id"] for param in params]
+    if any(type(identity) is not int or identity <= 0 for identity in identities) or len(set(identities)) != len(identities):
+        raise RuntimeError("parameter source identities are missing or duplicated")
+    for block in owner["blocks"]:
+        for instruction in block["instructions"]:
+            for lane in ("expr0_graph", "expr1_graph"):
+                expression = instruction.get(lane)
+                for node in expression["nodes"] if expression else ():
+                    if node.get("binding_kind") != "formal_parameter":
+                        continue
+                    ordinal = node.get("binding_ordinal")
+                    if type(ordinal) is not int or not 0 <= ordinal < len(params) or node.get("binding_syntax_id") != identities[ordinal]:
+                        raise RuntimeError("formal use lost its parameter identity")
+    return [{key: value for key, value in param.items() if key != "source_syntax_id"} for param in params]
+
+
 if mode == "compare":
     oracle = json.loads(target.read_text(encoding="utf-8"))
     for document, label in ((baseline, "self"), (oracle, "native")):
@@ -54,9 +74,11 @@ if mode == "compare":
         left = routine(baseline, name)
         right = routine(oracle, name)
         for key in ("name", "kind", "receiver_carriage", "generics",
-                    "params", "return", "source_locals"):
+                    "return", "source_locals"):
             if left[key] != right[key]:
                 raise RuntimeError(f"native/self {name} {key} drifted")
+        if parameter_shape(left) != parameter_shape(right):
+            raise RuntimeError(f"native/self {name} parameter semantics drifted")
         left_rows = left["blocks"][0]["instructions"]
         right_rows = right["blocks"][0]["instructions"]
         if len(left_rows) != len(right_rows):
@@ -104,8 +126,20 @@ if mode == "compare":
                 raise RuntimeError(f"native/self {name} uses {index} drifted")
     if len(baseline["generic_method_specializations"]) != 2:
         raise RuntimeError("self mixed-lane specialization count drifted")
-    if oracle["generic_method_specializations"] != []:
-        raise RuntimeError("native oracle unexpectedly owns specialization rows")
+    native_calls = oracle["generic_method_specializations"]
+    call_ids = [row["source_call_syntax_id"] for row in native_calls]
+    if any(type(identity) is not int or identity <= 0 for identity in call_ids) or len(set(call_ids)) != len(call_ids):
+        raise RuntimeError("native generic call identities are missing or duplicated")
+    native_bindings = [{
+        "owner": row["owner"], "callable": row["method"],
+        "specialized_symbol": row["symbol"], "generic_params": row["generic_params"],
+        "generic_actuals": row["actual_types"],
+    } for row in native_calls]
+    self_bindings = [{key: row[key] for key in (
+        "owner", "callable", "specialized_symbol", "generic_params", "generic_actuals"
+    )} for row in baseline["generic_method_specializations"]]
+    if sorted(map(lambda row: json.dumps(row, sort_keys=True), native_bindings)) != sorted(map(lambda row: json.dumps(row, sort_keys=True), self_bindings)):
+        raise RuntimeError("native/self inferred specialization bindings drifted")
     raise SystemExit(0)
 
 

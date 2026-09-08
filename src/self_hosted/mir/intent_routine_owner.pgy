@@ -1,6 +1,5 @@
 // DIR intent facts -> executable self-host MIR routine projection.
-// Intent authority stays in DIR; this owner only carries those admitted facts
-// into the existing MIR/backend protocol without reopening source text.
+// DIR owns authority; this owner carries admitted facts without source-text reads.
 
 import "routine_build_owner.pgy";
 import "routine_cfg_append_owner.pgy";
@@ -10,6 +9,7 @@ import "intent_phase_emission_owner.pgy";
 import "intent_mode_carriage_owner.pgy";
 import "intent_priority_carriage_owner.pgy";
 import "intent_resource_lifetime_owner.pgy";
+import "intent_execution_source_cfg_owner.pgy";
 import "../dir/intent_fact_owner.pgy";
 
 func SelfMirIntentRoutineBuild(
@@ -19,6 +19,7 @@ func SelfMirIntentRoutineBuild(
     intent_index: Int
 ) -> SelfMirRoutineBuild {
     let build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
+    let entry_block: Int = build.current_block;
     if !intents.ok || intent_index < 0 ||
         intent_index >= ArrayLength(intents.names) {
         return SelfMirRoutineBuildError(
@@ -121,37 +122,12 @@ func SelfMirIntentRoutineBuild(
         step_i = step_i + 1;
     }
 
-    build = SelfMirIntentAddInstruction(
-        build, "stmt", "stmt", "", "", "", "", "AST_INTENT_STEP",
-        SelfMirNoUses()
-    );
-    step_i = 0;
-    while step_i < step_count {
-        let step_row: Int = step_start + step_i;
-        let target_expression_node_id: Int =
-            intents.steps.target_expression_node_ids[step_row];
-        let on_text: String = SelfMirIntentExpressionText(
-            input.analysis.expression_surfaces, target_expression_node_id
-        );
-        let on_graph: SemanticExpressionGraphView =
-            SemanticAstExpressionGraphForNode(
-                input.analysis.expression_surfaces, target_expression_node_id,
-                AstExpressionLaneAtom()
-            );
-        if on_text == "" || !on_graph.ok {
-            return SelfMirRoutineBuildError(
-                build, "MIR intent on expression graph is missing"
-            );
-        }
-        build = SelfMirIntentAddInstruction(
-            build, "stmt", "stmt", "", "", "", on_text,
-            SelfMirIntentExpressionSourceType(on_graph, on_text),
-            SelfMirExpressionGraphUses(build, on_graph)
-        );
-        build = SelfMirRoutineAttachLastExpressionGraph(
-            build, on_graph, input.machine_declaration
-        );
-        step_i = step_i + 1;
+    if intents.result_modes[intent_index] == "legacy_bool" {
+        build = SelfMirIntentAppendPhaseCarrier(build, input,
+            intents.success_expression_node_ids[intent_index], "success", intent_name, "", "");
+        if !build.ok { return build; }
+    } else if intents.result_modes[intent_index] != "typed_enum" {
+        return SelfMirRoutineBuildError(build, "MIR Intent result mode is unknown");
     }
 
     let participant_i: Int = 0;
@@ -170,11 +146,13 @@ func SelfMirIntentRoutineBuild(
             intents.participants.type_names[row], binding_kind, "", source_type,
             SelfMirNoUses()
         );
+        build = SelfMirIntentAttachBindingSource(build, intents.participants.node_ids[row]);
         build = SelfMirIntentAddInstruction(
             build, "stmt", carrier_name, intents.participants.aliases[row],
             intents.participants.type_names[row], intent_name, "", source_type,
             SelfMirNoUses()
         );
+        build = SelfMirIntentAttachBindingSource(build, intents.participants.node_ids[row]);
         participant_i = participant_i + 1;
     }
 
@@ -182,10 +160,12 @@ func SelfMirIntentRoutineBuild(
     while step_i < step_count {
         let step_row: Int = step_start + step_i;
         let step_name: String = intents.steps.names[step_row];
-        build = SelfMirIntentAddInstruction(
-            build, "stmt", "IntentStep", step_name, step_name, step_name,
-            "", "AST_INTENT_STEP", SelfMirNoUses()
-        );
+        if intents.result_modes[intent_index] != "typed_enum" {
+            build = SelfMirIntentAddInstruction(
+                build, "stmt", "IntentStep", step_name, step_name, step_name,
+                "", "AST_INTENT_STEP", SelfMirNoUses()
+            );
+        }
         if intents.steps.using_aliases[step_row] != "" {
             build = SelfMirIntentAddInstruction(
                 build, "stmt", "IntentZoneWhere",
@@ -232,6 +212,21 @@ func SelfMirIntentRoutineBuild(
             );
         }
         let guard_node_id: Int = intents.steps.guard_node_ids[step_row];
+        let pre_node_id: Int = intents.steps.pre_node_ids[step_row];
+        if pre_node_id >= 0 {
+            build = SelfMirIntentAppendPhaseCarrier(
+                build, input, pre_node_id, "pre", step_name, "", ""
+            );
+        }
+        let invariant_node_id: Int = intents.steps.invariant_node_ids[step_row];
+        if invariant_node_id >= 0 {
+            build = SelfMirIntentAppendPhaseCarrier(
+                build, input, invariant_node_id, "invariant-pre", step_name, "", ""
+            );
+            build = SelfMirIntentAppendPhaseCarrier(
+                build, input, invariant_node_id, "invariant-post", step_name, "", ""
+            );
+        }
         if guard_node_id >= 0 {
             build = SelfMirIntentAppendPhaseCarrier(
                 build, input, guard_node_id, "guard", step_name, "", ""
@@ -250,6 +245,12 @@ func SelfMirIntentRoutineBuild(
             );
         }
         if !build.ok { return build; }
+        // Typed evaluations belong exclusively to their execution blocks.
+        // The entry block retains placement/check carriers, not an on fallback.
+        if intents.result_modes[intent_index] == "typed_enum" {
+            step_i = step_i + 1;
+            continue;
+        }
         let target_expression_node_id: Int =
             intents.steps.target_expression_node_ids[step_row];
         let outcome_name: String = intents.steps.outcome_names[step_row];
@@ -277,7 +278,8 @@ func SelfMirIntentRoutineBuild(
             );
         }
         build = SelfMirIntentAppendPhaseCarrier(
-            build, input, target_expression_node_id, "on", step_name,
+            build, input, target_expression_node_id,
+            SelfMirIntentTargetPhase(intents.steps.target_kinds[step_row]), step_name,
             outcome_name, outcome_type_name
         );
         let compensate_i: Int = 0;
@@ -306,12 +308,18 @@ func SelfMirIntentRoutineBuild(
     );
 
     build = SelfMirRoutineAddBlock(build);
+    let cleanup_block: Int = ArrayLength(build.cfg.blocks.ids) - 1;
     build = SelfMirRoutineAddBlock(build);
-    build = SelfMirRoutineAtBlock(build, 2);
+    let rollback_block: Int = ArrayLength(build.cfg.blocks.ids) - 1;
+    build = SelfMirRoutineAtBlock(build, rollback_block);
     build = SelfMirIntentAddInstruction(
         build, "cleanup", "RollbackPolicy", "full", "", "", "", "",
         SelfMirNoUses()
     );
+    if intents.result_modes[intent_index] == "typed_enum" {
+        build = SelfMirIntentExecutionRollbackAppend(build, input, intents, intent_index);
+        if !build.ok { return build; }
+    }
     build = SelfMirIntentAddInstruction(
         build, "cleanup", "AbortIntent", intent_name, "full", intent_name,
         "", "AST_INTENT_DECL", SelfMirNoUses()
@@ -322,15 +330,18 @@ func SelfMirIntentRoutineBuild(
     );
 
     build = SelfMirRoutineAddBlock(build);
-    build = SelfMirRoutineAtBlock(build, 3);
+    let invalidation_block: Int = ArrayLength(build.cfg.blocks.ids) - 1;
+    build = SelfMirRoutineAtBlock(build, invalidation_block);
     build = SelfMirIntentCleanupInvalidationsAppend(
         build, rows, intents, intent_index
     );
     if !build.ok { return build; }
-    return SelfMirIntentAddInstruction(
+    build = SelfMirIntentAddInstruction(
         build, "cleanup", "cleanup-edge-from-invalidation", "cleanup", "",
         "cleanup", "", "", SelfMirNoUses()
     );
+    return SelfMirIntentRoutineFinalizeCfg(build, input, intents, intent_index,
+        entry_block, cleanup_block, rollback_block, invalidation_block);
 }
 
 func SelfMirIntentAppendEmptyRoutineFacts(
@@ -350,6 +361,7 @@ func SelfMirIntentAppendEmptyRoutineFacts(
         rows.node_ids, rows.names, rows.kinds, rows.owners,
         rows.source_module_paths, rows.receiver_carriages, rows.return_types,
         rows.generic_starts, rows.generic_counts, rows.generic_names,
+        rows.generic_constraints,
         rows.param_starts, rows.param_counts, rows.param_names,
         rows.param_node_ids, rows.param_types, rows.param_abi_kinds,
         rows.param_resource_kinds,
@@ -438,6 +450,7 @@ func SelfMirAppendIntentRoutine(
             node_ids, names, kinds, owners, source_module_paths,
             receiver_carriages, return_types,
             generic_starts, generic_counts, rows.generic_names,
+            rows.generic_constraints,
             param_starts, param_counts, rows.param_names,
             rows.param_node_ids, rows.param_types,
             rows.param_abi_kinds, rows.param_resource_kinds,
@@ -458,6 +471,6 @@ func SelfMirAppendIntentRoutine(
             facts.instruction_abi_receipts,
             build.cfg.instructions.abi_type_names, facts.declarations
         ),
-        facts.expression_graph
+        facts.expression_graph, facts.intent_execution
     );
 }

@@ -1,6 +1,5 @@
 // Scalar program claim keyed by typed routine and declaration envelopes.
 import "direct_mir_scalar_cfg_hash_owner.pgy";
-import "direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy";
 import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
 import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_owner.pgy";
@@ -8,39 +7,40 @@ import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pgy";
 import "direct_mir_scalar_program_logical_record_collection_abi_owner.pgy";
+import "direct_mir_routine_instance_inventory_owner.pgy";
 struct DirectMirScalarProgramRouteFact {
     let claimed: Bool; let digest: Int;
     let entrypoint_row: Int; let callable_row: Int;
     let routine_rows: Array<Int>;
-    let nominal: DirectMirScalarProgramTwoIntNominalAbiFact;
     let logical_record: DirectMirScalarProgramLogicalRecordFact;
     let referenced_enum: DirectMirScalarProgramReferencedEnumFact;
     let payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact;
     let array_int_value_result: DirectMirScalarProgramArrayIntValueResultFact;
     let array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact;
     let array_string_abi: DirectMirScalarProgramArrayStringAbiFact;
+    let routine_instances: DirectMirRoutineInstanceInventory;
 }
 func DirectMirScalarProgramRouteFactEmpty() -> DirectMirScalarProgramRouteFact {
     let rows: Array<Int> = [];
     return DirectMirScalarProgramRouteFact(
         false, 0, -1, -1, rows,
-        DirectMirScalarProgramTwoIntNominalAbiFactInvalid(),
         DirectMirScalarProgramLogicalRecordFactInvalid(),
         DirectMirScalarProgramReferencedEnumFactInvalid(),
         DirectMirScalarProgramPayloadFreeEnumFactInvalid(),
         DirectMirScalarProgramArrayIntValueResultFactInvalid(),
         DirectMirScalarProgramArrayBoolAbiFactInvalid(),
-        DirectMirScalarProgramArrayStringAbiFactEmpty());
+        DirectMirScalarProgramArrayStringAbiFactEmpty(), DirectMirRoutineInstanceInventoryEmpty(""));
 }
 func DirectMirScalarProgramRouteFactCanonicalEmpty(
     ref fact: DirectMirScalarProgramRouteFact
 ) -> Bool {
     return !fact.claimed && fact.digest == 0 && fact.entrypoint_row == -1 &&
         fact.callable_row == -1 && ArrayLength(fact.routine_rows) == 0 &&
-        !fact.nominal.valid && !fact.logical_record.valid &&
+        !fact.logical_record.valid &&
         !fact.referenced_enum.valid &&
         !fact.payload_free_enum.valid &&
         !fact.array_int_value_result.valid && !fact.array_bool_abi.valid &&
+        !fact.routine_instances.valid &&
         DirectMirScalarProgramArrayStringAbiFactCanonicalEmpty(
             fact.array_string_abi);
 }
@@ -51,13 +51,13 @@ func DirectMirScalarProgramRouteFactDigest(
     let hash: Long = DirectMirCfgHashInt(223L, fact.entrypoint_row);
     hash = DirectMirCfgHashInt(hash, fact.callable_row);
     hash = DirectMirScalarCfgHashInts(hash, fact.routine_rows);
-    hash = DirectMirCfgHashInt(hash, fact.nominal.digest);
     hash = DirectMirCfgHashInt(hash, fact.logical_record.digest);
     hash = DirectMirCfgHashInt(hash, fact.referenced_enum.digest);
     hash = DirectMirCfgHashInt(hash, fact.payload_free_enum.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_int_value_result.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_bool_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_string_abi.digest);
+    hash = DirectMirCfgHashInt(hash, fact.routine_instances.digest);
     return DirectMirCfgBoundedDigest(hash);
 }
 func DirectMirScalarProgramRouteFactReady(
@@ -70,8 +70,10 @@ func DirectMirScalarProgramRouteFactReady(
         ((count == 2) != (fact.callable_row >= 0)) ||
         (count == 2 && fact.routine_rows[1] != fact.callable_row) ||
         (count != 2 && fact.callable_row >= 0) ||
-        !DirectMirScalarProgramTwoIntNominalAbiFactReady(fact.nominal) ||
+        !DirectMirRoutineInstanceInventoryReady(fact.routine_instances) ||
+        count != ArrayLength(fact.routine_instances.source_rows) ||
         !DirectMirScalarProgramLogicalRecordFactReady(fact.logical_record) ||
+        fact.logical_record.identity_cells.digest != fact.routine_instances.identity_cells.digest ||
         !DirectMirScalarProgramReferencedEnumFactReady(
             fact.referenced_enum) ||
         !DirectMirScalarProgramPayloadFreeEnumFactReady(
@@ -94,10 +96,13 @@ func DirectMirScalarProgramRouteFactReady(
     }
     let row: Int = 0;
     while row < count {
-        if fact.routine_rows[row] < 0 { return false; }
+        if fact.routine_rows[row] < 0 || fact.routine_rows[row] != fact.routine_instances.source_rows[row] {
+            return false;
+        }
         let prior: Int = 0;
         while prior < row {
-            if fact.routine_rows[prior] == fact.routine_rows[row] {
+            if fact.routine_rows[prior] == fact.routine_rows[row] &&
+                fact.routine_instances.instance_rows[prior] == fact.routine_instances.instance_rows[row] {
                 return false;
             }
             prior = prior + 1;

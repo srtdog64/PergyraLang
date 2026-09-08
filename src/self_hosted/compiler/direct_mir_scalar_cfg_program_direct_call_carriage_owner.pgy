@@ -4,10 +4,12 @@ import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
 import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
-import "direct_mir_scalar_program_array_string_readonly_ref_target_owner.pgy";
+import "direct_mir_scalar_program_array_readonly_ref_target_owner.pgy";
 import "direct_mir_scalar_program_owned_string_member_argument_owner.pgy";
 import "direct_mir_scalar_program_owned_string_call_result_argument_owner.pgy";
 import "direct_mir_scalar_program_void_readonly_string_target_owner.pgy";
+import "direct_mir_scalar_program_value_result_union_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 func DirectMirScalarCfgProgramDirectCallCarriageReady(
     ref plan: DirectMirScalarCfgGraphPlan,
     ref facts: DirectMirScalarProgramExpressionSet,
@@ -34,25 +36,34 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(
         return false;
     }
     if carriage == "readonly-ref" {
-        let readonly_array_string: Bool =
-            DirectMirScalarProgramArrayStringReadonlyRefAt(
+        let readonly_cell: Bool = DirectMirScalarProgramIdentityCellBorrowCarriage(
+            plan.program.logical_record.identity_cells,
+            plan.routines.parameter_types[parameter_row]) == "readonly-ref";
+        let readonly_array: Bool =
+            DirectMirScalarProgramArrayReadonlyRefAt(
                 plan.routines, target, ordinal);
-        if !readonly_array_string && !readonly_string &&
+        if !readonly_array && !readonly_string && !readonly_cell &&
             !DirectMirScalarProgramLogicalRecordTypeReady(
                 plan.program.logical_record,
                 plan.routines.parameter_types[parameter_row]) {
             return false;
         }
-        if readonly_array_string &&
+        if readonly_array &&
             facts.node_kinds[argument_node] ==
                 DirectMirScalarProgramExprParameter() &&
-            !DirectMirScalarProgramArrayStringReadonlyRefAt(
+            !DirectMirScalarProgramReadonlyArrayReborrowAt(
                 plan.routines, routine,
                 facts.node_parameter_ordinals[argument_node]) {
             return false;
         }
+        if readonly_array && facts.node_kinds[argument_node] ==
+                DirectMirScalarProgramExprLogicalRecordMember() &&
+            !DirectMirScalarProgramReadonlyArrayMemberArgumentReady(
+                facts, argument_node, graph_start) { return false; }
     }
     if carriage == "value-result" {
+        let scalar_copyout: Bool = DirectMirScalarProgramScalarValueResultAt(
+            plan, target, ordinal);
         let array_string_copyout: Bool =
             DirectMirScalarProgramArrayStringValueResultAt(
                 plan.program.array_string_abi, target, ordinal);
@@ -69,7 +80,7 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(
         let set_string_copyout: Bool =
             DirectMirScalarProgramSetStringValueResultAt(
                 plan, target, ordinal);
-        if !array_string_copyout && !array_int_copyout && !array_bool_copyout &&
+        if !scalar_copyout && !array_string_copyout && !array_int_copyout && !array_bool_copyout &&
             !logical_record_copyout &&
             !logical_record_array_copyout &&
             !set_string_copyout { return false; }
@@ -82,8 +93,10 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(
             let source_carriage: String =
                 plan.routines.parameter_carriages[source_parameter_row];
             let value_input: Bool = source_carriage == "value" &&
-                (array_int_copyout || logical_record_copyout);
-            if !value_input && ((array_string_copyout &&
+                (scalar_copyout || array_int_copyout || logical_record_copyout);
+            if !value_input && ((scalar_copyout &&
+                    !DirectMirScalarProgramScalarValueResultAt(plan, routine, source_ordinal)) ||
+                (array_string_copyout &&
                     !DirectMirScalarProgramArrayStringValueResultAt(
                         plan.program.array_string_abi, routine,
                         source_ordinal)) ||

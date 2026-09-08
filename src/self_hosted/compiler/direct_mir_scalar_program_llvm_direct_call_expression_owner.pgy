@@ -6,7 +6,7 @@ import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy";
-import "direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
 import "direct_mir_scalar_program_void_readonly_string_target_owner.pgy";
 struct DirectMirScalarProgramLlvmCallArgument {
@@ -32,6 +32,14 @@ func DirectMirScalarProgramLlvmCallArgumentValue(
             ArrayLength(expressions.node_kinds) { return invalid; }
     let parameter_row: Int = routines.parameter_starts[callable] + argument;
     let carriage: String = routines.parameter_carriages[parameter_row];
+    let cell_carriage: String = DirectMirScalarProgramIdentityCellBorrowCarriage(
+        logical_record.identity_cells, routines.parameter_types[parameter_row]);
+    if cell_carriage != "" {
+        if carriage != cell_carriage { return invalid; }
+        // A Zone ref is the existing cell pointer, never the address of the
+        // local pointer slot used by passive-record readonly-ref lowering.
+        return DirectMirScalarProgramLlvmCallArgument(true, "", value, carriage);
+    }
     if carriage == "value-result" {
         if expressions.node_kinds[argument_node] ==
                 DirectMirScalarProgramExprLocal() {
@@ -50,10 +58,10 @@ func DirectMirScalarProgramLlvmCallArgumentValue(
     }
     let projected: DirectMirScalarProgramLlvmStringExpression =
         DirectMirScalarProgramLlvmStringExpression(false, true, "", value);
-    if DirectMirScalarProgramArrayStringReadonlyRefAt(
+    if DirectMirScalarProgramArrayReadonlyRefAt(
             routines, callable, argument) {
-        projected = DirectMirScalarProgramLlvmArrayStringReadonlyRefCallArgument(
-            expressions, routines, routine, argument_node);
+        projected = DirectMirScalarProgramLlvmArrayReadonlyRefCallArgument(
+            expressions, routines, logical_record, routine, argument_node, value);
     } else if !DirectMirScalarProgramVoidReadonlyStringTargetAt(
             routines, callable, argument) {
         projected = DirectMirScalarProgramLlvmLogicalRecordCallArgument(
@@ -96,28 +104,8 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }
-    let result_llvm_type: String = DirectMirScalarProgramLlvmType(result_type);
-    if DirectMirScalarProgramLogicalRecordTypeReady(logical_record, result_type) {
-        result_llvm_type = DirectMirScalarProgramLlvmLogicalRecordTypeName(
-            logical_record, result_type);
-    }
-    if DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, result_type) {
-        result_llvm_type = DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
-            logical_record, result_type);
-    }
-    if DirectMirScalarProgramLogicalRecordArrayTypeReady(
-            logical_record, result_type) {
-        result_llvm_type =
-            DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
-                logical_record, result_type);
-    }
-    if DirectMirScalarProgramPayloadFreeEnumTypeReady(
-            payload_free_enum, result_type) { result_llvm_type = "i64"; }
-    if DirectMirScalarProgramPayloadEnumTypeReady(
-            referenced_enum, result_type) {
-        result_llvm_type = DirectMirScalarProgramLlvmPayloadEnumTypeName(
-            referenced_enum, result_type);
-    }
+    let result_llvm_type: String = DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
+        result_type, logical_record, payload_free_enum, referenced_enum);
     if result_llvm_type == "" {
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
@@ -149,39 +137,8 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
                 return DirectMirScalarProgramLlvmStringExpression(
                     true, false, "", "");
             }
-            argument_type = DirectMirScalarProgramLlvmType(types[ordinal]);
-            if carriages[ordinal] == "value" &&
-                DirectMirScalarProgramPayloadFreeEnumTypeReady(
-                    payload_free_enum, types[ordinal]) {
-                argument_type = "i64";
-            }
-            if carriages[ordinal] == "value" &&
-                DirectMirScalarProgramPayloadEnumTypeReady(
-                    referenced_enum, types[ordinal]) {
-                argument_type = DirectMirScalarProgramLlvmPayloadEnumTypeName(
-                    referenced_enum, types[ordinal]);
-            }
-        }
-        if (carriages[ordinal] == "value" ||
-                carriages[ordinal] == "owner-handle") &&
-            DirectMirScalarProgramLogicalRecordTypeReady(
-                logical_record, types[ordinal]) {
-            argument_type = DirectMirScalarProgramLlvmLogicalRecordTypeName(
-                logical_record, types[ordinal]);
-        }
-        if carriages[ordinal] == "value" &&
-            DirectMirScalarProgramLogicalRecordOptionTypeReady(
-                logical_record, types[ordinal]) {
-            argument_type =
-                DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
-                    logical_record, types[ordinal]);
-        }
-        if carriages[ordinal] == "value" &&
-            DirectMirScalarProgramLogicalRecordArrayTypeReady(
-                logical_record, types[ordinal]) {
-            argument_type =
-                DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(
-                    logical_record, types[ordinal]);
+            argument_type = DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
+                types[ordinal], logical_record, payload_free_enum, referenced_enum);
         }
         if argument_type == "" {
             return DirectMirScalarProgramLlvmStringExpression(

@@ -51,9 +51,8 @@ transpiler_generic_specialization_name_too_long(TranspilerCtx *ctx,
 /* MIR-only discipline: generic specialization emission consumes MIR
  * signature metadata; a generic decl without it must fail loudly, never
  * fall back to AST-shape emission. (The former nested-param signature
- * guard lived here until G-2 opened param position — binding inference
- * now performs structural matching, so the guard's job moved to the
- * post-inference diagnostic in ensure_generic_specialization.) */
+ * guard lived here until G-2 opened param position. Semantic/MIR admission
+ * now supplies the complete call binding, consumed without reinference.) */
 static bool
 transpiler_mir_generic_metadata_present(TranspilerCtx *ctx, ASTNode *decl)
 {
@@ -119,19 +118,15 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     if (!transpiler_mir_generic_metadata_present(ctx, decl))
         return NULL;
 
-    /* G-2: binding inference performs structural matching (bare T and
-     * constructed-over-T params) with unification. A failure here means
-     * the call site cannot bind every type parameter (conflict or unbound
-     * without a default) -- fail closed with a diagnostic instead of the
-     * old silent raw-name fallback that died at the native stage. */
-    if (!transpiler_infer_generic_call_bindings(ctx, decl, call, bindings,
+    /* Semantic/MIR admission owns explicit, inferred and default bindings. */
+    if (!transpiler_generic_call_bindings_from_mir(ctx, decl, call, bindings,
             &binding_count)) {
         transpiler_set_backend_error_with_hints(
             ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-            "C backend: cannot bind generic parameter(s) of '%s' from the call site -- argument types conflict or leave a parameter unbound (bind it via an argument or a default type argument)",
+            "C backend: missing or invalid MIR generic call specialization fact for '%s'",
             decl_name);
         return NULL;
     }

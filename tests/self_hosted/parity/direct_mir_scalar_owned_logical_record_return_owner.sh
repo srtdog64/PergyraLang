@@ -11,7 +11,7 @@ CC="${PGY_SELFHOST_CC:-gcc}"; CLANG="${PGY_SELFHOST_CLANG:-clang}"
 WORK_REL=".tmp/self_hosted/direct_mir_scalar_owned_logical_record_return"; WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_owned_logical_record_return.pgy"; MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
 POLICY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_owned_logical_record_return_policy_owner.pgy"; SIGNATURE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy"
-CALL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_expression_admission_owner.pgy"; LLVM_CALL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy"
+CALL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_call_with_arguments_admission_owner.pgy"; LLVM_CALL_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy"
 LLVM_RECORD_ARGUMENT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_parameter_argument_owner.pgy"; LLVM_RECORD_MEMBER_ARGUMENT_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_member_argument_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_owned_logical_record_return_mutations.py"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }

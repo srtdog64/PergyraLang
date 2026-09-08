@@ -1,0 +1,19 @@
+func Main() -> Void with effects local {
+    let values: Array<Int> = [3, 1, 2, 2];
+    let sorted: Array<Int> = ArraySort(values);
+    Log(values[0]);
+    Log(sorted[3]);
+    let reversed: Array<Int> = ArrayReverse(values);
+    Log(reversed[0]);
+    Log(values[3]);
+    ArrayReverse(values);
+    Log(sorted[0]);
+    let empty: Array<Int> = [];
+    ArraySort(empty);
+    ArrayReverse(empty);
+    Log(ArrayLength(empty));
+    let singleton: Array<Int> = [9];
+    ArrayReverse(singleton);
+    ArraySort(singleton);
+    Log(singleton[0]);
+}

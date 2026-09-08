@@ -90,16 +90,18 @@ func SemanticCollectionMutationError(
             receiver, names, types, modes, internal_caller_ready
         );
     }
-    if !SemanticCollectionMutatorName(callee) ||
-        !IsIdentText(receiver) ||
-        EnvMode(names, modes, receiver) != "default_param" {
+    if !SemanticCollectionMutatorName(callee) || !IsIdentText(receiver) {
         return "";
     }
+    let mode: String = EnvMode(names, modes, receiver);
+    if mode != "default_param" && mode != "ref_param" { return ""; }
     let receiver_type: String = EnvLookup(names, types, receiver);
     if !SemanticCollectionTypeName(receiver_type) { return ""; }
+    let mode_name: String = "default";
+    if mode == "ref_param" { mode_name = "ref"; }
     return SemanticError3(
         "value_param_collection_mutation", "func", callee,
-        "param", receiver, "mode", "default"
+        "param", receiver, "mode", mode_name
     );
 }
 
@@ -112,6 +114,18 @@ func SemanticCollectionMutationPolicyContractReady() -> Bool {
         StringLength(SemanticCollectionMutationError(
             "ArrayPush", "xs", ["xs"], ["Array<Int>"],
             ["default_param"], false
+        )) > 0 && StringLength(SemanticCollectionMutationError(
+            "ArrayPush", "xs", ["xs"], ["Array<Int>"],
+            ["ref_param"], false
+        )) > 0 && StringLength(SemanticCollectionMutationError(
+            "ArraySet", "xs", ["xs"], ["Array<Int>"],
+            ["ref_param"], false
+        )) > 0 && SemanticCollectionMutationError(
+            "ArrayLength", "xs", ["xs"], ["Array<Int>"],
+            ["ref_param"], false
+        ) == "" && StringLength(SemanticCollectionMutationError(
+            "ListPush", "xs", ["xs"], ["List<Int>"],
+            ["ref_param"], false
         )) > 0 && SemanticCollectionMutationError(
             "ArrayPush", "xs", ["xs"], ["Array<Int>"], ["inout_param"],
             false

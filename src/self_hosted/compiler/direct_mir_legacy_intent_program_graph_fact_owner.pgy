@@ -5,6 +5,7 @@
 import "direct_mir_legacy_intent_program_route_fact_owner.pgy";
 import "direct_mir_array_int_graph_fact_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
 import "../codegen/text/text_owner.pgy";
 
 struct DirectMirLegacyIntentProgramGraphFact {
@@ -12,8 +13,11 @@ struct DirectMirLegacyIntentProgramGraphFact {
     let digest: Int;
     let subject_type_name: String;
     let zone_type_name: String;
+    // Intent-scope binders, never the caller's local spellings.
     let subject_alias: String;
     let zone_alias: String;
+    let subject_binding_source_syntax_id: Int;
+    let zone_binding_source_syntax_id: Int;
     let subject_field_name: String;
     let method_name: String;
     let intent_name: String;
@@ -29,6 +33,8 @@ func DirectMirLegacyIntentProgramGraphFactDigest(
     hash = DirectMirCfgHashString(hash, fact.zone_type_name);
     hash = DirectMirCfgHashString(hash, fact.subject_alias);
     hash = DirectMirCfgHashString(hash, fact.zone_alias);
+    hash = DirectMirCfgHashInt(hash, fact.subject_binding_source_syntax_id);
+    hash = DirectMirCfgHashInt(hash, fact.zone_binding_source_syntax_id);
     hash = DirectMirCfgHashString(hash, fact.subject_field_name);
     hash = DirectMirCfgHashString(hash, fact.method_name);
     hash = DirectMirCfgHashString(hash, fact.intent_name);
@@ -48,6 +54,9 @@ func DirectMirLegacyIntentProgramGraphFactReady(
         IsIdentifier(fact.subject_field_name) &&
         IsIdentifier(fact.method_name) && IsIdentifier(fact.intent_name) &&
         fact.subject_type_name != fact.zone_type_name &&
+        fact.subject_binding_source_syntax_id > 0 &&
+        fact.zone_binding_source_syntax_id > 0 &&
+        fact.subject_binding_source_syntax_id != fact.zone_binding_source_syntax_id &&
         fact.subject_alias != fact.zone_alias && fact.delta != 0;
 }
 
@@ -211,25 +220,30 @@ func DirectMirLegacyIntentMainConstructionReady(
 func DirectMirLegacyIntentMainCallReady(
     ref sequence: MirExpressionGraphSequence,
     intent_name: String,
-    zone_alias: String,
-    subject_alias: String
+    intent_syntax_id: Int,
+    first_argument: String,
+    second_argument: String
 ) -> Bool {
-    return sequence.ok && sequence.ready_node_count == 6 &&
+    return sequence.ok && intent_syntax_id > 0 && sequence.ready_node_count == 6 &&
         ArrayLength(sequence.roots) == 1 && sequence.roots[0] == 5 &&
         sequence.arena.topology.node_kinds[0] == AstExpressionNodeLeaf() &&
         sequence.arena.node_texts[0] == intent_name &&
+        sequence.arena.identities.binding_kinds[0] ==
+            SemanticExpressionBindingDeclaredCallable() &&
+        sequence.arena.identities.binding_syntax_ids[0] == intent_syntax_id &&
         sequence.arena.topology.node_kinds[1] == AstExpressionNodeCall() &&
         sequence.arena.topology.left_children[1] == 0 &&
         sequence.arena.call_target_kinds[1] == SemanticCallTargetDirect() &&
         sequence.arena.call_target_names[1] == intent_name &&
+        sequence.arena.identities.call_target_syntax_ids[1] == intent_syntax_id &&
         sequence.arena.topology.node_kinds[2] == AstExpressionNodeLeaf() &&
-        sequence.arena.node_texts[2] == zone_alias &&
+        sequence.arena.node_texts[2] == first_argument &&
         sequence.arena.topology.node_kinds[3] ==
             AstExpressionNodeCallArgument() &&
         sequence.arena.topology.left_children[3] == 1 &&
         sequence.arena.topology.right_children[3] == 2 &&
         sequence.arena.topology.node_kinds[4] == AstExpressionNodeLeaf() &&
-        sequence.arena.node_texts[4] == subject_alias &&
+        sequence.arena.node_texts[4] == second_argument &&
         sequence.arena.topology.node_kinds[5] ==
             AstExpressionNodeCallArgument() &&
         sequence.arena.topology.left_children[5] == 3 &&
@@ -264,7 +278,8 @@ func DirectMirLegacyIntentSubjectFieldName(
 
 func DirectMirLegacyIntentProgramGraphFactFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref route: DirectMirLegacyIntentProgramRouteFact
+    ref route: DirectMirLegacyIntentProgramRouteFact,
+    ref signature: DirectMirRoutineSignatureFact
 ) -> DirectMirLegacyIntentProgramGraphFact {
     if !DirectMirLegacyIntentProgramRouteFactReady(route) || !route.claimed {
         Die("direct MIR legacy intent graph route is invalid");
@@ -275,6 +290,19 @@ func DirectMirLegacyIntentProgramGraphFactFromAdmitted(
     ];
     let method_name: String = admitted.routines.names[route.method_row];
     let intent_name: String = admitted.routines.names[route.intent_row];
+    if !DirectMirRoutineSignatureFactReady(signature) || signature.kind != "intent" ||
+        signature.row != route.intent_row || signature.name != intent_name ||
+        signature.source_syntax_id != ToInt(admitted.routines.source_syntax_ids[route.intent_row]) ||
+        signature.return_type != "Bool" || signature.param_count != 2 ||
+        signature.parameters.carriages[0] != "participant" || signature.parameters.carriages[1] != "participant" {
+        Die("direct MIR legacy intent participant identity is invalid");
+    }
+    let zone_binding: Int = 0;
+    if signature.parameters.type_names[0] == subject_type && signature.parameters.type_names[1] == zone_type {
+        zone_binding = 1;
+    } else if signature.parameters.type_names[0] != zone_type || signature.parameters.type_names[1] != subject_type {
+        Die("direct MIR legacy intent participant types are invalid");
+    }
     let main_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
         admitted.routines, route.main_row
     );
@@ -348,13 +376,22 @@ func DirectMirLegacyIntentProgramGraphFactFromAdmitted(
         DirectMirLegacyIntentProgramExpressionSequence(
             admitted.routines, log_global, 0
         );
+    // The ordered formal projection selects caller operands. The two scopes
+    // may use unrelated, or even cross-colliding, names.
+    let first_argument: String = zone_alias;
+    let second_argument: String = subject_alias;
+    if zone_binding == 1 {
+        first_argument = subject_alias;
+        second_argument = zone_alias;
+    }
     if !DirectMirLegacyIntentMainConstructionReady(
             admitted, subject_graph, subject_type, subject_alias, false,
             subject_alias
         ) || !DirectMirLegacyIntentMainConstructionReady(
             admitted, zone_graph, zone_type, zone_alias, true, subject_alias
         ) || !DirectMirLegacyIntentMainCallReady(
-            log_graph, intent_name, zone_alias, subject_alias
+            log_graph, intent_name, signature.source_syntax_id,
+            first_argument, second_argument
         ) {
         Die("direct MIR legacy intent Main graph identity is invalid");
     }
@@ -367,7 +404,10 @@ func DirectMirLegacyIntentProgramGraphFactFromAdmitted(
     );
     let fact: DirectMirLegacyIntentProgramGraphFact =
         DirectMirLegacyIntentProgramGraphFact(
-            true, 0, subject_type, zone_type, subject_alias, zone_alias,
+            true, 0, subject_type, zone_type, signature.parameters.names[1 - zone_binding],
+            signature.parameters.names[zone_binding],
+            signature.parameters.source_syntax_ids[1 - zone_binding],
+            signature.parameters.source_syntax_ids[zone_binding],
             subject_field, method_name, intent_name,
             DirectMirLegacyIntentProgramCanonicalInteger(subject_graph, 2),
             delta
@@ -377,7 +417,9 @@ func DirectMirLegacyIntentProgramGraphFactFromAdmitted(
             fact.valid,
             DirectMirLegacyIntentProgramGraphFactDigest(fact),
             fact.subject_type_name, fact.zone_type_name,
-            fact.subject_alias, fact.zone_alias, fact.subject_field_name,
+            fact.subject_alias, fact.zone_alias,
+            fact.subject_binding_source_syntax_id, fact.zone_binding_source_syntax_id,
+            fact.subject_field_name,
             fact.method_name, fact.intent_name, fact.initial_value,
             fact.delta
         );

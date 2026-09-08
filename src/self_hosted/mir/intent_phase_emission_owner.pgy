@@ -6,6 +6,7 @@ import "routine_build_owner.pgy";
 import "routine_input_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "intent_instruction_append_owner.pgy";
+import "intent_phase_contract_owner.pgy";
 import "../semantic/ast_expression_surface_fact_owner.pgy";
 
 func SelfMirIntentExpressionText(
@@ -54,9 +55,8 @@ func SelfMirIntentAppendPhaseCarrier(
     result_type_name: String
 ) -> SelfMirRoutineBuild {
     if !build.ok { return build; }
-    let is_check: Bool = phase == "guard" || phase == "expect" ||
-        phase == "post";
-    let is_eval: Bool = phase == "on" || phase == "compensate";
+    let is_check: Bool = SelfMirIntentPhaseIsCheck(phase);
+    let is_eval: Bool = SelfMirIntentPhaseIsEvaluation(phase);
     if node_id < 0 || step_name == "" || (!is_check && !is_eval) ||
         (phase != "on" &&
             (result_name != "" || result_type_name != "")) ||

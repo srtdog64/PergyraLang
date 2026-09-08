@@ -9,7 +9,8 @@ func DirectMirScalarProgramCLogicalValueExpression(
     ref target: CompilerTargetProjectionFact,
     kind: Int, record_type: String, left_type: String,
     node_type: String, left: String, right: String,
-    arguments: Array<String>, member_ordinal: Int
+    arguments: Array<String>, argument_rows: Array<Int>, node: Int,
+    member_ordinal: Int
 ) -> Option<String> {
     if kind == DirectMirScalarProgramExprArrayIntIndex() || kind ==
             DirectMirScalarProgramExprArrayBoolIndex() {
@@ -29,7 +30,8 @@ func DirectMirScalarProgramCLogicalValueExpression(
     }
     if kind != DirectMirScalarProgramExprLogicalRecordArrayIndex() {
         return DirectMirScalarProgramCLogicalRecordExpression(
-            fact, kind, record_type, left, arguments, member_ordinal);
+            fact, kind, record_type, left, arguments, argument_rows, node,
+            member_ordinal);
     }
     let projected: DirectMirScalarProgramLogicalRecordArrayTarget =
         DirectMirScalarProgramLogicalRecordArrayTargetFromType(

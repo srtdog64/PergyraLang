@@ -228,7 +228,7 @@ transpiler_mir_ssa_local_source_def_count(const MIRRoutine *routine,
         if (block == NULL || !block->is_reachable || block->is_cleanup)
             continue;
         for (size_t i = 0; i < block->source_local_def_count; i++) {
-            const char *name = block->source_local_defs[i];
+            const char *name = block->source_local_defs[i].name;
             if (name != NULL && strcmp(name, base_name) == 0)
                 count++;
         }
@@ -260,6 +260,13 @@ transpiler_mir_ssa_local_find_versioned_type_name(
             continue;
         for (size_t j = 0; j < block->instruction_count; j++) {
             const MIRInstruction *inst = &block->instructions[j];
+            if (inst->kind == MIR_INST_PHI && inst->result_name != NULL &&
+                strcmp(inst->result_name, versioned_name) == 0) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "MIR SSA phi type requires incoming-value projection for '%s'",
+                    versioned_name);
+                return NULL;
+            }
             if (inst->kind == MIR_INST_DEF
                 && inst->result_name != NULL
                 && strcmp(inst->result_name, versioned_name) == 0) {
@@ -342,7 +349,7 @@ transpiler_mir_ssa_local_entry_has_source_def(const MIRRoutine *routine,
     }
     block = &routine->blocks[routine->entry_block];
     for (size_t i = 0; i < block->source_local_def_count; i++) {
-        const char *name = block->source_local_defs[i];
+        const char *name = block->source_local_defs[i].name;
         if (name != NULL && strcmp(name, base_name) == 0)
             return true;
     }
@@ -360,7 +367,7 @@ transpiler_mir_ssa_local_routine_has_source_def(const MIRRoutine *routine,
         if (block == NULL || !block->is_reachable || block->is_cleanup)
             continue;
         for (size_t i = 0; i < block->source_local_def_count; i++) {
-            const char *name = block->source_local_defs[i];
+            const char *name = block->source_local_defs[i].name;
             if (name != NULL && strcmp(name, base_name) == 0)
                 return true;
         }

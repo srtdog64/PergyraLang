@@ -17,6 +17,7 @@ semantic_symbol_kind_label(SymbolKind kind)
     switch (kind) {
     case SYMBOL_VARIABLE: return "variable";
     case SYMBOL_FUNCTION: return "function";
+    case SYMBOL_ENUM_CONSTRUCTOR: return "enum constructor";
     case SYMBOL_CLASS: return "class";
     case SYMBOL_TYPE_PARAM: return "type parameter";
     case SYMBOL_SLOT: return "slot";

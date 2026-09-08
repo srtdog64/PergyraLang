@@ -1,0 +1,6 @@
+import "world_zone_transfer_support.pgy";
+func Main() -> Void {
+    let w1 = CartWorld(CartZone(Buyer(3)));
+    let escaped = w1.cart;
+    Log(escaped.buyer.hp);
+}

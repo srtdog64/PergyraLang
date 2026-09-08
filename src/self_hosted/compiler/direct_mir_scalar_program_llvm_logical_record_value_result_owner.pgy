@@ -17,17 +17,19 @@ func DirectMirScalarProgramLlvmLogicalRecordValueResultCopyIn(
                     plan.program.logical_record,
                     plan.routines.parameter_types[row]);
             let spelling: String = ToString(ordinal);
+            let alignment: String = DirectMirScalarProgramLogicalRecordStorageAlignment(
+                plan.program.logical_record, plan.routines.parameter_types[row]);
             output = Concat(output, Concat("  %pgy.param.", spelling));
             output = Concat(output, Concat(".local = alloca ", type_name));
-            output = Concat(output, ", align 8\n");
+            output = Concat(output, Concat(", align ", Concat(alignment, "\n")));
             output = Concat(output, Concat("  %pgy.param.", spelling));
             output = Concat(output, Concat(".copyin = load ", type_name));
             output = Concat(output, Concat(", ptr %pgy.param.", spelling));
-            output = Concat(output, ".mutref, align 8\n");
+            output = Concat(output, Concat(".mutref, align ", Concat(alignment, "\n")));
             output = Concat(output, Concat("  store ", type_name));
             output = Concat(output, Concat(" %pgy.param.", spelling));
             output = Concat(output, Concat(".copyin, ptr %pgy.param.", spelling));
-            output = Concat(output, ".local, align 8\n");
+            output = Concat(output, Concat(".local, align ", Concat(alignment, "\n")));
         }
         ordinal = ordinal + 1;
     }
@@ -48,6 +50,8 @@ func DirectMirScalarProgramLlvmLogicalRecordValueResultCopyOut(
                     plan.program.logical_record,
                     plan.routines.parameter_types[row]);
             let spelling: String = ToString(ordinal);
+            let alignment: String = DirectMirScalarProgramLogicalRecordStorageAlignment(
+                plan.program.logical_record, plan.routines.parameter_types[row]);
             let suffix: String = ToString(exit_block);
             let local_row: Int =
                 DirectMirScalarProgramLogicalRecordValueResultLocalRow(
@@ -61,12 +65,12 @@ func DirectMirScalarProgramLlvmLogicalRecordValueResultCopyOut(
             output = Concat(output, Concat(".record.copyout.", suffix));
             output = Concat(output, Concat(" = load ", type_name));
             output = Concat(output, Concat(", ptr ", source_ptr));
-            output = Concat(output, ", align 8\n");
+            output = Concat(output, Concat(", align ", Concat(alignment, "\n")));
             output = Concat(output, Concat("  store ", type_name));
             output = Concat(output, Concat(" %pgy.param.", spelling));
             output = Concat(output, Concat(".record.copyout.", suffix));
             output = Concat(output, Concat(", ptr %pgy.param.", spelling));
-            output = Concat(output, ".mutref, align 8\n");
+            output = Concat(output, Concat(".mutref, align ", Concat(alignment, "\n")));
         }
         ordinal = ordinal + 1;
     }

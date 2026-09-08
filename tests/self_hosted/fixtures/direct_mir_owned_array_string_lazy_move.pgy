@@ -1,0 +1,10 @@
+func Consume(own values: Array<String>) -> Bool {
+    ArrayDropOwnedStrings(values);
+    return true;
+}
+func Build() -> Bool {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Concat("allocated", "-owner"));
+    return true || Consume(values);
+}
+func Main() -> Void { Log(ToString(Build())); }

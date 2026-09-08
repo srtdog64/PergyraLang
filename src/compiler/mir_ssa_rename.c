@@ -21,11 +21,37 @@ mir_checked_array_size(size_t count, size_t elem_size, size_t *bytes_out)
 }
 
 bool
+mir_append_ssa_binding(MIRLocalBinding **rows, size_t *count,
+                       size_t *capacity, MIRLocalBinding binding)
+{
+    if (binding.name == NULL)
+        return true;
+    for (size_t i = 0; i < *count; i++) {
+        if ((*rows)[i].binding_syntax_id == binding.binding_syntax_id
+            && (binding.binding_syntax_id != 0
+                || strcmp((*rows)[i].name, binding.name) == 0))
+            return strcmp((*rows)[i].name, binding.name) == 0;
+    }
+    if (*count == *capacity) {
+        size_t cap = *capacity == 0 ? 8 : *capacity * 2;
+        if (cap < *capacity || cap > SIZE_MAX / sizeof(MIRLocalBinding))
+            return false;
+        MIRLocalBinding *next = realloc(*rows, cap * sizeof(*next));
+        if (next == NULL)
+            return false;
+        *rows = next;
+        *capacity = cap;
+    }
+    (*rows)[(*count)++] = binding;
+    return true;
+}
+
+bool
 mir_collect_ssa_names(const MIRRoutine *routine,
-                      const char ***names_out,
+                      MIRLocalBinding **names_out,
                       size_t *count_out)
 {
-    const char **names = NULL;
+    MIRLocalBinding *names = NULL;
     size_t count = 0;
     size_t capacity = 0;
 
@@ -39,41 +65,80 @@ mir_collect_ssa_names(const MIRRoutine *routine,
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];
         for (size_t j = 0; j < block->source_local_def_count; j++) {
-            if (!append_name_unique(&names, &count, &capacity,
+            if (block->source_local_defs[j].binding_syntax_id == 0
+                || !mir_append_ssa_binding(&names, &count, &capacity,
                     block->source_local_defs[j])) {
                 free((void *)names);
                 return false;
             }
         }
         for (size_t j = 0; j < block->source_phi_node_count; j++) {
-            if (!append_name_unique(&names, &count, &capacity,
-                    block->source_phi_nodes[j].name)) {
+            if (block->source_phi_nodes[j].binding_syntax_id == 0
+                || !mir_append_ssa_binding(&names, &count, &capacity,
+                    (MIRLocalBinding){block->source_phi_nodes[j].name,
+                        block->source_phi_nodes[j].binding_syntax_id})) {
                 free((void *)names);
                 return false;
             }
         }
     }
 
+    /* A shadowed formal still owns version zero. Keep its declaration in the
+     * identity index even if only the inner local has a DEF in this routine. */
+    for (size_t i = 0; i < mir_routine_param_count(routine); i++) {
+        FuncParam *param = mir_routine_param(routine, i);
+        if (param == NULL || param->name == NULL)
+            continue;
+        bool reached = mir_routine_param_carriage(routine, i)
+            == MIR_PARAM_CARRIAGE_VALUE_RESULT;
+        for (size_t j = 0; j < count; j++)
+            reached |= strcmp(names[j].name, param->name) == 0;
+        if (reached && !mir_append_ssa_binding(&names, &count, &capacity,
+                (MIRLocalBinding){param->name, ast_func_param_stable_id(param)})) {
+            free(names);
+            return false;
+        }
+    }
     *names_out = names;
     *count_out = count;
     return true;
 }
 
 int
-mir_find_ssa_name_index(const char **names, size_t count, const char *name)
+mir_find_ssa_binding_index(const MIRLocalBinding *names, size_t count,
+                           uint32_t binding_syntax_id)
 {
-    if (names == NULL || name == NULL)
+    if (names == NULL || binding_syntax_id == 0)
         return -1;
     for (size_t i = 0; i < count; i++) {
-        if (names[i] != NULL && strcmp(names[i], name) == 0)
+        if (names[i].binding_syntax_id == binding_syntax_id)
             return (int)i;
     }
     return -1;
 }
 
 bool
+mir_block_binding_exit_ssa_name(const MIRRoutine *routine,
+                                const MIRBasicBlock *block,
+                                uint32_t binding_syntax_id,
+                                char *out, size_t out_size)
+{
+    if (routine == NULL || block == NULL || out == NULL || out_size == 0
+        || routine->ssa_bindings == NULL || block->ssa_exit_versions == NULL
+        || block->ssa_version_count != routine->ssa_binding_count)
+        return false;
+    int index = mir_find_ssa_binding_index(routine->ssa_bindings,
+        routine->ssa_binding_count, binding_syntax_id);
+    if (index < 0)
+        return false;
+    int written = snprintf(out, out_size, "%s.%zu",
+        routine->ssa_bindings[index].name, block->ssa_exit_versions[index]);
+    return written > 0 && (size_t)written < out_size;
+}
+
+bool
 mir_collect_expr_identifier_uses(ASTNode *node,
-                                 const char ***uses,
+                                 MIRLocalBinding **uses,
                                  size_t *use_count,
                                  size_t *use_capacity)
 {
@@ -81,8 +146,9 @@ mir_collect_expr_identifier_uses(ASTNode *node,
         return true;
     switch (node->type) {
     case AST_IDENTIFIER:
-        return append_name_unique(uses, use_count, use_capacity,
-                                  ast_identifier_name(node));
+        return mir_append_ssa_binding(uses, use_count, use_capacity,
+            (MIRLocalBinding){ast_identifier_name(node),
+                             ast_identifier_binding_syntax_id(node)});
     case AST_BINARY:
         return mir_collect_expr_identifier_uses(ast_binary_left(node),
                                                 uses,
@@ -185,10 +251,24 @@ mir_collect_expr_identifier_uses(ASTNode *node,
     }
 }
 
+/* The printed SSA ordinal is unique per spelling. Current values, unlike this
+ * output numbering, are indexed exclusively by semantic declaration identity. */
+static size_t
+mir_next_ssa_version(const MIRLocalBinding *names, size_t count,
+                     size_t *versions, size_t index)
+{
+    size_t version = versions[index] + 1;
+    for (size_t i = 0; i < count; i++) {
+        if (strcmp(names[i].name, names[index].name) == 0)
+            versions[i] = version;
+    }
+    return version;
+}
+
 static bool
 mir_assign_ssa_recursive(MIRRoutine *routine,
                          size_t block_id,
-                         const char **ssa_names,
+                         const MIRLocalBinding *ssa_names,
                          size_t ssa_name_count,
                          size_t *next_versions,
                          const size_t *incoming_versions,
@@ -217,11 +297,12 @@ mir_assign_ssa_recursive(MIRRoutine *routine,
         char *versioned;
         if (inst->kind != MIR_INST_PHI || inst->name == NULL)
             continue;
-        name_index = mir_find_ssa_name_index(ssa_names, ssa_name_count, inst->name);
+        name_index = mir_find_ssa_binding_index(ssa_names, ssa_name_count,
+                                                inst->binding_syntax_id);
         if (name_index < 0)
             continue;
-        next_versions[name_index]++;
-        current_versions[name_index] = next_versions[name_index];
+        current_versions[name_index] = mir_next_ssa_version(
+            ssa_names, ssa_name_count, next_versions, (size_t)name_index);
         versioned = mir_make_versioned_name(inst->name, current_versions[name_index]);
         if (versioned == NULL) {
             free(current_versions);
@@ -234,12 +315,14 @@ mir_assign_ssa_recursive(MIRRoutine *routine,
     for (size_t i = 0; i < mir_block->source_local_def_count; i++) {
         int name_index;
         char *versioned;
-        const char *name = mir_block->source_local_defs[i];
-        name_index = mir_find_ssa_name_index(ssa_names, ssa_name_count, name);
+        MIRLocalBinding binding = mir_block->source_local_defs[i];
+        const char *name = binding.name;
+        name_index = mir_find_ssa_binding_index(ssa_names, ssa_name_count,
+                                                binding.binding_syntax_id);
         if (name_index < 0)
             continue;
-        next_versions[name_index]++;
-        current_versions[name_index] = next_versions[name_index];
+        current_versions[name_index] = mir_next_ssa_version(
+            ssa_names, ssa_name_count, next_versions, (size_t)name_index);
         versioned = mir_make_versioned_name(name, current_versions[name_index]);
         if (versioned == NULL) {
             free(current_versions);
@@ -257,7 +340,8 @@ mir_assign_ssa_recursive(MIRRoutine *routine,
                                      mir_block,
                                      mir_block->source_phi_node_count + i,
                                      name,
-                                     versioned)) {
+                                     versioned,
+                                     binding.binding_syntax_id)) {
             free(current_versions);
             return false;
         }
@@ -286,7 +370,7 @@ mir_assign_ssa_recursive(MIRRoutine *routine,
 
 static bool
 mir_materialize_phi_inputs(MIRRoutine *routine,
-                           const char **ssa_names,
+                           const MIRLocalBinding *ssa_names,
                            size_t ssa_name_count)
 {
     if (routine == NULL || routine->hir_routine == NULL)
@@ -304,7 +388,8 @@ mir_materialize_phi_inputs(MIRRoutine *routine,
             int name_index;
             if (inst->kind != MIR_INST_PHI)
                 continue;
-            name_index = mir_find_ssa_name_index(ssa_names, ssa_name_count, phi->name);
+            name_index = mir_find_ssa_binding_index(ssa_names, ssa_name_count,
+                                                    phi->binding_syntax_id);
             if (name_index < 0 || phi->incoming_predecessor_count == 0)
                 continue;
             if (phi->incoming_predecessor_count
@@ -338,7 +423,7 @@ mir_materialize_phi_inputs(MIRRoutine *routine,
 bool
 mir_apply_ssa_rename(MIRRoutine *routine)
 {
-    const char **ssa_names = NULL;
+    MIRLocalBinding *ssa_names = NULL;
     size_t ssa_name_count = 0;
     size_t *next_versions = NULL;
     size_t *root_versions = NULL;
@@ -352,6 +437,17 @@ mir_apply_ssa_rename(MIRRoutine *routine)
 
     if (!mir_collect_ssa_names(routine, &ssa_names, &ssa_name_count))
         goto cleanup;
+    if (ssa_name_count > 0) {
+        if (ssa_name_count > SIZE_MAX / sizeof(MIRLocalBinding))
+            goto cleanup;
+        routine->ssa_bindings = pgy_arena_calloc(&routine->scratch,
+            ssa_name_count * sizeof(MIRLocalBinding));
+        if (routine->ssa_bindings == NULL)
+            goto cleanup;
+        memcpy(routine->ssa_bindings, ssa_names,
+            ssa_name_count * sizeof(MIRLocalBinding));
+    }
+    routine->ssa_binding_count = ssa_name_count;
     if (ssa_name_count == 0) {
         ok = true;
         goto cleanup;

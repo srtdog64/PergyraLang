@@ -12,5 +12,8 @@ void llvm_mir_seed_block_phi_scope(const MIRBasicBlock *mir_block,
                                    LLVMGenCtx *ctx,
                                    LLVMMirVar *vars,
                                    size_t var_count);
+void llvm_mir_seed_instruction_use_scope(const MIRInstruction *inst,
+                                         LLVMGenCtx *ctx,
+                                         LLVMMirVar *vars, size_t var_count);
 
 #endif

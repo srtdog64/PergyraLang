@@ -238,6 +238,8 @@ type_check_intent_declare_binding_symbols(ASTNode *intent,
         subject_type = intent_resolve_involves_type(involves, ctx);
         participant_sym = symbol_create_variable(ast_intent_involves_alias(involves),
             subject_type, involves->line, involves->column);
+        symbol_mark_declaration(participant_sym, ast_node_stable_id(involves), false);
+        participant_sym->is_parameter = true;
         scope_declare(ctx->scope, participant_sym);
     }
 
@@ -252,6 +254,8 @@ type_check_intent_declare_binding_symbols(ASTNode *intent,
         value_type = intent_resolve_value_type(value, ctx);
         value_sym = symbol_create_variable(ast_intent_value_alias(value),
             value_type, value->line, value->column);
+        symbol_mark_declaration(value_sym, ast_node_stable_id(value), false);
+        value_sym->is_parameter = true;
         scope_declare(ctx->scope, value_sym);
     }
 }

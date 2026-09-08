@@ -1,0 +1,4 @@
+func ReadClock() -> Int { return Now(); }
+func Relay() -> Int { return ReadClock(); }
+func Stamp() -> Int with caps random { return Relay(); }
+func Main() -> Void { let stamp: Int = Stamp(); }

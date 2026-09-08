@@ -10,18 +10,21 @@ struct MirExpressionGraphSequence {
     ready_node_count: Int;
     roots: Array<Int>;
     arena: SemanticExpressionGraphArena;
+    // Target-independent execution ordinals, issued only by scalar-program
+    // instantiation. They do not alter the persisted source graph or its digest.
+    program_call_ordinals: Array<Int>;
 }
 func MirExpressionGraphSequenceEmpty() -> MirExpressionGraphSequence {
     let roots: Array<Int> = [];
     return MirExpressionGraphSequence(
-        true, 0, roots, SemanticExpressionGraphArenaEmpty()
+        true, 0, roots, SemanticExpressionGraphArenaEmpty(), roots
     );
 }
 func MirExpressionGraphSequenceError(
     sequence: MirExpressionGraphSequence
 ) -> MirExpressionGraphSequence {
     return MirExpressionGraphSequence(
-        false, sequence.ready_node_count, sequence.roots, sequence.arena
+        false, sequence.ready_node_count, sequence.roots, sequence.arena, sequence.program_call_ordinals
     );
 }
 func MirExpressionGraphSequenceFromExtendedRows(
@@ -68,7 +71,8 @@ func MirExpressionGraphSequenceFromExtendedRows(
                 syntax_ids, runtime_ids, binding_ids, binding_kinds, binding_ordinals
             ), places
         );
-    return MirExpressionGraphSequence(true, count, roots, arena);
+    let unbound_calls: Array<Int> = [];
+    return MirExpressionGraphSequence(true, count, roots, arena, unbound_calls);
 }
 func MirExpressionGraphRangeReachable(
     ref arena: SemanticExpressionGraphArena,
@@ -294,7 +298,8 @@ func MirExpressionGraphSequenceAppend(
         ) {
         return MirExpressionGraphSequenceError(sequence);
     }
+    let unbound_calls: Array<Int> = [];
     return MirExpressionGraphSequence(
-        true, ArrayLength(kinds), roots, arena
+        true, ArrayLength(kinds), roots, arena, unbound_calls
     );
 }

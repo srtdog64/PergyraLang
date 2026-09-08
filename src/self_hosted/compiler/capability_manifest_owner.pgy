@@ -80,15 +80,15 @@ func CompileSourceCapabilityManifestVerified(
     }
     let body: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAdmittedAnalysis(artifact, analysis);
-    if !body.verdict.ok {
+    // A manifest is an inspection result, not an admitted executable. Preserve
+    // the native contract's used-mask report on a declared-bound violation.
+    if !body.verdict.ok &&
+        body.verdict.diagnostic_code != "declared_capability_missing" {
         return CompilerCapabilityManifestOutcome(
             true, false, body.verdict.diagnostic_message, ""
         );
     }
-    let capabilities: SemanticAstCapabilityFacts =
-        SemanticAstCapabilityFactsFromAdmittedBody(
-            artifact, analysis, body
-        );
+    let capabilities: SemanticAstCapabilityFacts = body.capabilities;
     if !SemanticAstCapabilityFactsReady(artifact, analysis, capabilities) {
         return CompilerCapabilityManifestOutcome(
             false, false, capabilities.diagnostic_message, ""

@@ -417,7 +417,19 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 bool has_base_name = llvm_mir_base_name_from_versioned(
                     inst->result_name, base_name, sizeof(base_name));
                 const char *instruction_type_name = inst->abi_type_name;
-                bool prefer_instruction_type_name = false;
+                const bool is_binding_assignment = inst->kind == MIR_INST_DEF
+                    && inst->expr1 != NULL
+                    && inst->expr1->type == AST_IDENTIFIER
+                    && !mir_instruction_uses_source_local_decl_emit(inst);
+                bool prefer_instruction_type_name = is_binding_assignment
+                    && instruction_type_name != NULL
+                    && instruction_type_name[0] != '\0';
+                if (is_binding_assignment && !prefer_instruction_type_name) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing assignment binding type for '%s'",
+                        inst->result_name);
+                    return;
+                }
 
                 if (!is_closure_local_decl
                     && mir_instruction_uses_source_local_decl_emit(inst)) {

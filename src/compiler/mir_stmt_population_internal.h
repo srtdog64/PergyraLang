@@ -7,8 +7,8 @@ bool mir_stmt_population_append(MIRInstruction *new_insts,
                                 size_t new_cap,
                                 size_t *new_count,
                                 MIRInstruction inst);
-bool mir_routine_has_def_for_name(const MIRRoutine *routine,
-                                  const char *base_name);
+bool mir_routine_has_def_for_binding(const MIRRoutine *routine,
+                                     uint32_t binding_syntax_id);
 bool mir_assignment_requires_stmt_preservation(
     const MIRRoutine *routine,
     const ASTNode *stmt);
@@ -16,7 +16,7 @@ void mir_consume_matching_def_instruction(MIRInstruction *old_insts,
                                           size_t old_count,
                                           size_t *def_cursor,
                                           bool *copied_flags,
-                                          const char *base_name);
+                                          uint32_t binding_syntax_id);
 bool mir_stmt_is_for_loop_init_payload(const ASTNode *stmt,
                                        const MIRBasicBlock *mir_block);
 bool mir_stmt_is_inline_cfg_wrapper(const ASTNode *stmt);

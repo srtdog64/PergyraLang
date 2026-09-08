@@ -1,0 +1,5 @@
+tobject Snapshot { value: Int; }
+func Main() -> Void {
+    let item: Snapshot = Snapshot(1);
+    item.value = 2;
+}

@@ -1,0 +1,164 @@
+// Existing v3 plan -> wire projection; no source, HIR or semantic inference.
+// The artifact writer streams steps/compensations. The String form is the
+// bounded comparison oracle, not the production file path.
+import "intent_execution_fact_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirIntentStepJsonFields(ref rows: MirIntentStepTransitionFacts, row: Int) -> Array<String> {
+    let predecessor_name: String = "null";
+    if rows.predecessor_transition_ids[row] != 0 {
+        predecessor_name = JsonStringLiteral(rows.predecessor_step_names[row]);
+    }
+    return [
+        JsonEmitFieldNumber("transition_id", ToString(rows.transition_ids[row])),
+        JsonEmitFieldNumber("routine_syntax_id", ToString(rows.routine_syntax_ids[row])),
+        JsonEmitFieldNumber("step_syntax_id", ToString(rows.step_syntax_ids[row])),
+        JsonEmitFieldString("step_name", rows.step_names[row]),
+        JsonEmitFieldBool("has_predecessor", rows.predecessor_transition_ids[row] != 0),
+        JsonEmitFieldNumber("predecessor_transition_id", ToString(rows.predecessor_transition_ids[row])),
+        JsonEmitFieldNumber("predecessor_step_syntax_id", ToString(rows.predecessor_step_syntax_ids[row])),
+        JsonEmitFieldRaw("predecessor_step_name", predecessor_name),
+        JsonEmitFieldNumber("action_syntax_id", ToString(rows.action_syntax_ids[row])),
+        JsonEmitFieldNumber("outcome_instruction_block_id", ToString(rows.outcome_instruction_block_ids[row])),
+        JsonEmitFieldNumber("outcome_instruction_id", ToString(rows.outcome_instruction_ids[row])),
+        JsonEmitFieldString("outcome_result_name", rows.outcome_result_names[row]),
+        JsonEmitFieldString("outcome_type_name", rows.outcome_type_names[row]),
+        JsonEmitFieldString("outcome_enum_name", rows.outcome_enum_names[row]),
+        JsonEmitFieldNumber("outcome_enum_syntax_id", ToString(rows.outcome_enum_syntax_ids[row])),
+        JsonEmitFieldNumber("branch_block_id", ToString(rows.branch_block_ids[row])),
+        JsonEmitFieldNumber("branch_instruction_id", ToString(rows.branch_instruction_ids[row])),
+        JsonEmitFieldNumber("success_variant_index", ToString(rows.success_variant_indices[row])),
+        JsonEmitFieldString("success_variant_name", rows.success_variant_names[row]),
+        JsonEmitFieldString("success_payload_name", rows.success_payload_names[row]),
+        JsonEmitFieldString("success_payload_type_name", rows.success_payload_type_names[row]),
+        JsonEmitFieldNumber("success_payload_decl_syntax_id", ToString(rows.success_payload_decl_syntax_ids[row])),
+        JsonEmitFieldNumber("success_successor_block_id", ToString(rows.success_successor_block_ids[row])),
+        JsonEmitFieldNumber("failure_variant_index", ToString(rows.failure_variant_indices[row])),
+        JsonEmitFieldString("failure_variant_name", rows.failure_variant_names[row]),
+        JsonEmitFieldString("failure_payload_name", rows.failure_payload_names[row]),
+        JsonEmitFieldString("failure_payload_type_name", rows.failure_payload_type_names[row]),
+        JsonEmitFieldNumber("failure_payload_decl_syntax_id", ToString(rows.failure_payload_decl_syntax_ids[row])),
+        JsonEmitFieldNumber("failure_successor_block_id", ToString(rows.failure_successor_block_ids[row])),
+        JsonEmitFieldNumber("completion_block_id", ToString(rows.completion_block_ids[row])),
+        JsonEmitFieldNumber("completion_instruction_id", ToString(rows.completion_instruction_ids[row]))
+    ];
+}
+
+func SelfMirIntentCompensationJson(ref rows: MirIntentCompensationFacts, row: Int) -> String {
+    return JsonEmitObject([
+        JsonEmitFieldNumber("transition_id", ToString(rows.transition_ids[row])),
+        JsonEmitFieldNumber("expression_syntax_id", ToString(rows.expression_syntax_ids[row])),
+        JsonEmitFieldNumber("instruction_block_id", ToString(rows.instruction_block_ids[row])),
+        JsonEmitFieldNumber("instruction_id", ToString(rows.instruction_ids[row])),
+        JsonEmitFieldNumber("graph_root_id", ToString(rows.graph_root_ids[row])),
+        JsonEmitFieldNumber("graph_digest", ToString(rows.graph_digests[row])),
+        JsonEmitFieldString("call_target_name", rows.call_target_names[row]),
+        JsonEmitFieldNumber("call_target_syntax_id", ToString(rows.call_target_syntax_ids[row]))
+    ]);
+}
+
+func SelfMirIntentTerminalJson(ref rows: MirIntentTerminalTransitionFacts, row: Int) -> String {
+    return JsonEmitObject([
+        JsonEmitFieldNumber("terminal_transition_id", ToString(rows.terminal_transition_ids[row])),
+        JsonEmitFieldNumber("routine_syntax_id", ToString(rows.routine_syntax_ids[row])),
+        JsonEmitFieldString("role", rows.roles[row]),
+        JsonEmitFieldNumber("source_transition_id", ToString(rows.source_transition_ids[row])),
+        JsonEmitFieldNumber("source_step_syntax_id", ToString(rows.source_step_syntax_ids[row])),
+        JsonEmitFieldString("source_step_name", rows.source_step_names[row]),
+        JsonEmitFieldNumber("source_variant_index", ToString(rows.source_variant_indices[row])),
+        JsonEmitFieldString("source_variant_name", rows.source_variant_names[row]),
+        JsonEmitFieldString("source_payload_name", rows.source_payload_names[row]),
+        JsonEmitFieldString("source_payload_type_name", rows.source_payload_type_names[row]),
+        JsonEmitFieldNumber("source_payload_decl_syntax_id", ToString(rows.source_payload_decl_syntax_ids[row])),
+        JsonEmitFieldNumber("result_instruction_block_id", ToString(rows.result_instruction_block_ids[row])),
+        JsonEmitFieldNumber("result_instruction_id", ToString(rows.result_instruction_ids[row])),
+        JsonEmitFieldString("result_definition_name", rows.result_definition_names[row]),
+        JsonEmitFieldString("result_type_name", rows.result_type_names[row]),
+        JsonEmitFieldString("result_enum_name", rows.result_enum_names[row]),
+        JsonEmitFieldNumber("result_enum_syntax_id", ToString(rows.result_enum_syntax_ids[row])),
+        JsonEmitFieldNumber("result_variant_index", ToString(rows.result_variant_indices[row])),
+        JsonEmitFieldString("result_variant_name", rows.result_variant_names[row]),
+        JsonEmitFieldString("result_payload_name", rows.result_payload_names[row]),
+        JsonEmitFieldString("result_payload_type_name", rows.result_payload_type_names[row]),
+        JsonEmitFieldNumber("result_payload_decl_syntax_id", ToString(rows.result_payload_decl_syntax_ids[row])),
+        JsonEmitFieldNumber("expression_syntax_id", ToString(rows.expression_syntax_ids[row])),
+        JsonEmitFieldNumber("graph_root_id", ToString(rows.graph_root_ids[row])),
+        JsonEmitFieldNumber("graph_digest", ToString(rows.graph_digests[row]))
+    ]);
+}
+
+func SelfMirIntentExecutionJson(ref plan: MirIntentExecutionPlan) -> String {
+    let steps: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(plan.steps.transition_ids) {
+        let fields: Array<String> = SelfMirIntentStepJsonFields(plan.steps, row);
+        let compensations: Array<String> = [];
+        let c: Int = plan.steps.compensation_starts[row];
+        let end: Int = c + plan.steps.compensation_counts[row];
+        while c < end {
+            ArrayPush(compensations, SelfMirIntentCompensationJson(plan.steps.compensations, c));
+            c = c + 1;
+        }
+        ArrayPush(fields, JsonEmitFieldRaw("compensations", JsonEmitArray(compensations)));
+        ArrayPush(fields, JsonEmitFieldString("where_zone_name", plan.steps.where_zone_names[row]));
+        ArrayPush(fields, JsonEmitFieldNumber("where_zone_syntax_id", ToString(plan.steps.where_zone_syntax_ids[row])));
+        ArrayPush(steps, JsonEmitObject(fields));
+        row = row + 1;
+    }
+    let terminals: Array<String> = [];
+    row = 0;
+    while row < ArrayLength(plan.terminals.terminal_transition_ids) {
+        ArrayPush(terminals, SelfMirIntentTerminalJson(plan.terminals, row));
+        row = row + 1;
+    }
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", plan.schema),
+        JsonEmitFieldNumber("plan_digest", ToString(plan.plan_digest)),
+        JsonEmitFieldRaw("steps", JsonEmitArray(steps)),
+        JsonEmitFieldRaw("terminals", JsonEmitArray(terminals))
+    ]);
+}
+
+func SelfMirIntentExecutionJsonWriteFile(ref plan: MirIntentExecutionPlan, output: Int) -> Void {
+    if !plan.present { return; }
+    CompilerArtifactWrite(output, ",\"intent_execution\":{\"schema\":");
+    JsonStringLiteralWriteFile(output, plan.schema);
+    CompilerArtifactWrite(output, ",\"plan_digest\":");
+    JsonOwnedFragmentWriteFile(output, ToString(plan.plan_digest));
+    CompilerArtifactWrite(output, ",\"steps\":[");
+    let row: Int = 0;
+    while row < ArrayLength(plan.steps.transition_ids) {
+        if row > 0 { CompilerArtifactWrite(output, ","); }
+        CompilerArtifactWrite(output, "{");
+        let fields: Array<String> = SelfMirIntentStepJsonFields(plan.steps, row);
+        let f: Int = 0;
+        while f < ArrayLength(fields) {
+            if f > 0 { CompilerArtifactWrite(output, ","); }
+            CompilerArtifactWrite(output, fields[f]);
+            f = f + 1;
+        }
+        ArrayDropOwnedStrings(fields);
+        CompilerArtifactWrite(output, ",\"compensations\":[");
+        let c: Int = plan.steps.compensation_starts[row];
+        let end: Int = c + plan.steps.compensation_counts[row];
+        while c < end {
+            if c > plan.steps.compensation_starts[row] { CompilerArtifactWrite(output, ","); }
+            JsonOwnedFragmentWriteFile(output, SelfMirIntentCompensationJson(plan.steps.compensations, c));
+            c = c + 1;
+        }
+        CompilerArtifactWrite(output, "],\"where_zone_name\":");
+        JsonStringLiteralWriteFile(output, plan.steps.where_zone_names[row]);
+        CompilerArtifactWrite(output, ",\"where_zone_syntax_id\":");
+        JsonOwnedFragmentWriteFile(output, ToString(plan.steps.where_zone_syntax_ids[row]));
+        CompilerArtifactWrite(output, "}");
+        row = row + 1;
+    }
+    CompilerArtifactWrite(output, "],\"terminals\":[");
+    row = 0;
+    while row < ArrayLength(plan.terminals.terminal_transition_ids) {
+        if row > 0 { CompilerArtifactWrite(output, ","); }
+        JsonOwnedFragmentWriteFile(output, SelfMirIntentTerminalJson(plan.terminals, row));
+        row = row + 1;
+    }
+    CompilerArtifactWrite(output, "]}");
+}

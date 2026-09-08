@@ -10,18 +10,8 @@ func SelfMirRoutineLocalRefWireRequired(
     let rows: SelfMirRoutineRows = facts.routines;
     let count: Int = rows.local_counts[routine_index];
     let start: Int = rows.local_starts[routine_index];
-    let row: Int = 0;
-    while row < count {
-        let prior: Int = 0;
-        while prior < row {
-            if rows.local_names[start + prior] ==
-                rows.local_names[start + row] {
-                return true;
-            }
-            prior = prior + 1;
-        }
-        row = row + 1;
-    }
+    if SelfMirLocalRefSpellingCollision(rows.local_names, start, count,
+            rows.param_names, rows.param_starts[routine_index], rows.param_counts[routine_index]) { return true; }
     if rows.iteration_counts[routine_index] > 1 { return true; }
     let block_i: Int = 0;
     while block_i < rows.block_counts[routine_index] {

@@ -661,6 +661,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/lifecycle_state.c \
                    $(SEMANTIC_DIR)/lifecycle_analyze.c \
                    $(SEMANTIC_DIR)/capability_analyze.c \
+                   $(SEMANTIC_DIR)/callable_capability_inference.c \
                    $(SEMANTIC_DIR)/region_escape_fact.c \
                    $(SEMANTIC_DIR)/region_retention_summary.c \
                    $(SEMANTIC_DIR)/region_retention_summary_user.c \
@@ -839,6 +840,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_pin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_pending_uses.c \
                    $(CODEGEN_DIR)/transpiler_mir_phi_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_phi_type_owner.c \
                    $(CODEGEN_DIR)/transpiler_mir_preserved_let_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_resource_op_core.c \
                    $(CODEGEN_DIR)/transpiler_mir_resource_name.c \
@@ -1007,6 +1009,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_names.c \
                    $(COMPILER_DIR)/mir_lifecycle.c \
                    $(COMPILER_DIR)/mir_json_dump.c \
+                   $(COMPILER_DIR)/mir_json_local_ref.c \
                    $(COMPILER_DIR)/mir_json_dump_intent_execution.c \
                    $(COMPILER_DIR)/mir_json_dump_decl.c \
                    $(COMPILER_DIR)/mir_json_dump_domain_topology.c \
@@ -1620,6 +1623,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_names.o \
                    $(BUILD_DIR)/compiler/mir_lifecycle.o \
                    $(BUILD_DIR)/compiler/mir_json_dump.o \
+                   $(BUILD_DIR)/compiler/mir_json_local_ref.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_intent_execution.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_decl.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_domain_topology.o \
@@ -2094,7 +2098,11 @@ test-budget: $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS)
 builtin-capability-registry-test-smoke:
 	"$(BASH)" tests/builtin_capability_registry_smoke.sh
 
-test-capability-manifest: builtin-capability-registry-test-smoke $(PGY)
+.PHONY: builtin-effect-registry-test-smoke
+builtin-effect-registry-test-smoke:
+	"$(BASH)" tests/builtin_effect_registry_smoke.sh
+
+test-capability-manifest: builtin-capability-registry-test-smoke builtin-effect-registry-test-smoke $(PGY)
 	@echo "=== Capability Manifest Gate ==="
 	PGY_BIN="$(abspath $(PGY))" $(BASH) tests/capability/run_manifest.sh
 
@@ -3308,6 +3316,11 @@ self-host-direct-mir-scalar-logical-record-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_owner.sh
 
+.PHONY: self-host-direct-mir-physical-record-return-test-smoke
+self-host-direct-mir-physical-record-return-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_physical_record_return_owner.sh
+
 self-host-direct-mir-scalar-logical-record-option-return-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_logical_record_option_return_owner.sh
@@ -3369,6 +3382,57 @@ self-host-direct-mir-scalar-owned-array-string-parameter-test-smoke: self-host-c
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_multiple_owned_array_string_parameters_owner.sh
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_alternative_owned_array_string_parameter_owner.sh
+	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_array_string_callee_identity_owner.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_array_string_terminal_flow_owner.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_array_string_sealed_flow_owner.sh
+
+.PHONY: self-host-cfg-identity-digest-test-smoke
+self-host-cfg-identity-digest-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_cfg_identity_digest_owner.sh
+
+.PHONY: self-host-direct-mir-array-int-readonly-ref-test-smoke
+self-host-direct-mir-array-int-readonly-ref-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_array_int_readonly_ref_owner.sh
+
+.PHONY: self-host-intent-participant-readonly-query-test-smoke
+self-host-intent-participant-readonly-query-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/intent_participant_readonly_query_owner.sh
+
+.PHONY: self-host-compiler-readonly-query-test-smoke
+self-host-compiler-readonly-query-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/compiler_readonly_query_owner.sh
+
+.PHONY: self-host-call-spine-root-projection-test-smoke
+self-host-call-spine-root-projection-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/call_spine_root_projection_owner.sh
+
+.PHONY: self-host-logical-record-shape-query-test-smoke
+self-host-logical-record-shape-query-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/logical_record_shape_query_owner.sh
+
+.PHONY: self-host-logical-record-constructor-query-test-smoke
+self-host-logical-record-constructor-query-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/logical_record_constructor_query_owner.sh
+
+.PHONY: self-host-direct-mir-signed-integer-to-string-test-smoke
+self-host-direct-mir-signed-integer-to-string-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_signed_integer_to_string_owner.sh
+
+.PHONY: self-host-direct-mir-utf8-string-literal-test-smoke
+self-host-direct-mir-utf8-string-literal-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_utf8_string_literal_owner.sh
 
 self-host-array-named-value-boundary-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \

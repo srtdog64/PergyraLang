@@ -6,11 +6,13 @@ import "../mir_lower/routine_fact_index_owner.pgy";
 
 func DirectMirCfgHashString(hash: Long, value: String) -> Long {
     let modulus: Long = 268435456L;
-    let out: Long = (hash * 131L + (StringLength(value) as Long)) % modulus;
+    // String is immutable; remeasuring here would rescan the full MIR per byte.
+    let length: Int = StringLength(value);
+    let out: Long = (hash * 131L + (length as Long)) % modulus;
     let row: Int = 0;
-    while row < StringLength(value) {
+    while row < length {
         out = (out * 131L +
-            (CharCode(value, StringLength(value), row) as Long)) % modulus;
+            (CharCode(value, length, row) as Long)) % modulus;
         row = row + 1;
     }
     return out;

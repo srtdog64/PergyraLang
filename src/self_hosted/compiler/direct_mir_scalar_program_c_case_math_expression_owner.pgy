@@ -1,11 +1,20 @@
 // C StringReplace/checked numeric calls from one sealed runtime projection.
 import "direct_mir_scalar_program_case_math_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_checked_int_owner.pgy";
 
 func DirectMirScalarProgramCCaseMathExpression(
     kind: Int, left: String, right: String, arguments: Array<String>,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> Option<String> {
+    if DirectMirScalarProgramCheckedIntKind(kind) {
+        let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(kind);
+        if !abi.ok { return None; }
+        let callee: String = abi.symbol;
+        if kind == DirectMirScalarProgramExprCheckedAddInt() { callee = CheckedBuiltinRuntimeCAddFn(); }
+        else if kind == DirectMirScalarProgramExprCheckedMulInt() { callee = CheckedBuiltinRuntimeCMulFn(); }
+        return Some(Concat(callee, Concat("(", Concat(left, Concat(", ", Concat(right, ")"))))));
+    }
     let symbol: String = "";
     let ready: Bool = false;
     let values: Array<String> = [];

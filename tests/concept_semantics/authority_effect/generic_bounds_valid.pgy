@@ -1,0 +1,7 @@
+import "generic_bound_support.pgy";
+func Main() -> Void {
+    let card = Card(7);
+    Log(Rank(card));
+    Log(Rank<Card>(card));
+    Log(RankBoth(card));
+}

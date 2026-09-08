@@ -1,0 +1,8 @@
+class Sample { let first: Int; let second: Int; let third: Int; }
+func Stamp(value: Int) -> Int { Log(value); return value; }
+func Main() -> Void {
+    let sample = Sample { third: Stamp(3), first: Stamp(1), second: Stamp(2) };
+    Log(sample.first);
+    Log(sample.second);
+    Log(sample.third);
+}

@@ -21,6 +21,27 @@ test_misc_grammar_edges(void)
         ast_destroy(unsafe_block);
     }
 
+    TEST("unsafe body owns lexical shadowing and forbids local escape");
+    {
+        const char *sources[] = {
+            "func Main() -> Void { let n: Int = 1; unsafe { let n: Int = 2; Log(n); } Log(n); }",
+            "func Main() -> Void { unsafe { let hidden: Int = 2; } Log(hidden); }",
+            "func Main() -> Void with effects local { unsafe { } }"
+        };
+        for (size_t row = 0; row < sizeof(sources) / sizeof(sources[0]); row++) {
+            Lexer *lexer = lexer_create(sources[row]);
+            Parser *parser = parser_create(lexer);
+            ASTNode *program = parser_parse_program(parser);
+            SemanticResult *result = semantic_analyze(program);
+            EXPECT(!parser_has_error(parser));
+            EXPECT(result != NULL && ((result->error_count == 0) == (row == 0)));
+            semantic_result_destroy(result);
+            ast_destroy(program);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+        }
+    }
+
     TEST("defer statement type-checks its body");
     {
         SemanticContext *ctx = semantic_context_create();

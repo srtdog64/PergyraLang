@@ -1,0 +1,3 @@
+func ReadClock() -> Int { return Now(); }
+func Relay() -> Int { return ReadClock(); }
+func Main() -> Void { let stamp: Int = Relay(); Log("ok"); }

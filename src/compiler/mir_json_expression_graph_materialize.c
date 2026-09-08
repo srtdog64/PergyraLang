@@ -12,7 +12,7 @@
 static bool
 mir_json_expression_graph_formal_binding(
     const MIRJsonExpressionGraph *graph,
-    const char *name,
+    const ASTNode *identifier,
     uint32_t *syntax_id_out,
     int *ordinal_out)
 {
@@ -25,13 +25,15 @@ mir_json_expression_graph_formal_binding(
         *syntax_id_out = 0;
     if (ordinal_out != NULL)
         *ordinal_out = -1;
-    if (routine == NULL || name == NULL)
+    if (routine == NULL || identifier == NULL)
         return true;
+    uint32_t binding_id = ast_identifier_binding_syntax_id(identifier);
+    if (binding_id == 0)
+        return true; /* Type/builtin names are not lexical parameter reads. */
     for (size_t i = 0; i < mir_routine_param_count(routine); i++) {
         FuncParam *param = mir_routine_param(routine, i);
 
-        if (param == NULL || param->name == NULL
-            || strcmp(param->name, name) != 0) {
+        if (param == NULL || ast_func_param_stable_id(param) != binding_id) {
             continue;
         }
         matches++;
@@ -670,7 +672,7 @@ mir_json_expression_graph_build(MIRJsonExpressionGraph *graph, ASTNode *expr)
         int ordinal = -1;
 
         if (!mir_json_expression_graph_formal_binding(
-                graph, ast_identifier_name(expr), &syntax_id, &ordinal)) {
+                graph, expr, &syntax_id, &ordinal)) {
             return -1;
         }
         if (syntax_id != 0) {

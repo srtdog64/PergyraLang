@@ -44,6 +44,14 @@ func MirIntentPhaseTreeLines(
             tree, Concat("      Post: ", phases.post_texts[step_index])
         );
     }
+    if phases.pre_rows[step_index] >= 0 {
+        tree = MirIntentTreeAppendLine(tree,
+            Concat("      Pre: ", phases.pre_texts[step_index]));
+    }
+    if phases.invariant_pre_rows[step_index] >= 0 {
+        tree = MirIntentTreeAppendLine(tree,
+            Concat("      Invariant: ", phases.invariant_texts[step_index]));
+    }
     if phases.expect_rows[step_index] >= 0 {
         tree = MirIntentTreeAppendLine(
             tree, Concat("      Expect: ", phases.expect_texts[step_index])
@@ -97,6 +105,18 @@ func MirIntentPhaseAppendExpressionOrder(
             order, phases.post_rows[step_index],
             AstExpressionLaneAtom(), 0
         ) {
+        return false;
+    }
+    if phases.pre_rows[step_index] >= 0 &&
+        !MirStructuredExpressionEmissionOrderAppend(order,
+            phases.pre_rows[step_index], AstExpressionLaneAtom(), 0) {
+        return false;
+    }
+    if phases.invariant_pre_rows[step_index] >= 0 &&
+        (!MirStructuredExpressionEmissionOrderAppend(order,
+            phases.invariant_pre_rows[step_index], AstExpressionLaneAtom(), 0) ||
+         !MirStructuredExpressionEmissionOrderCoverProducer(order,
+            phases.invariant_post_rows[step_index])) {
         return false;
     }
     if phases.expect_rows[step_index] >= 0 &&

@@ -1,0 +1,28 @@
+subject HeaderReserve { let mut calls: Int; }
+subject HeaderWorker {
+    let mut calls: Int;
+    action Run(self) -> Void { self.calls = self.calls + 1; }
+}
+zone HeaderZone {
+    subject slot reserve: HeaderReserve
+    subject slot storage: HeaderWorker
+}
+intent Complete(work: HeaderZone, worker: HeaderWorker) {
+    success: worker.calls == 1;
+    step Run {
+        where: HeaderZone;
+        using: work;
+        who: worker;
+        on: worker.Run();
+        expect: true;
+    }
+}
+func Main() -> Void {
+    let work = HeaderZone(HeaderReserve(50), HeaderWorker(10));
+    let worker = HeaderWorker(0);
+    let completed = Complete(work, worker);
+    Log(completed);
+    Log(worker.calls);
+    Log(work.reserve.calls);
+    Log(work.storage.calls);
+}

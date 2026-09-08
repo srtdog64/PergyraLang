@@ -13,12 +13,13 @@ struct SemanticExpressionGraphCollectionCallProtocolFact {
     index_argument_index: Int;
     value_argument_index: Int;
     return_kind: String;
+    key_argument_index: Int;
 }
 
 func SemanticExpressionGraphCollectionCallProtocolNotApplicable(
 ) -> SemanticExpressionGraphCollectionCallProtocolFact {
     return SemanticExpressionGraphCollectionCallProtocolFact(
-        false, "", "", -1, -1, -1, -1, ""
+        false, "", "", -1, -1, -1, -1, "", -1
     );
 }
 
@@ -27,75 +28,104 @@ func SemanticExpressionGraphCollectionCallProtocolFromName(
 ) -> SemanticExpressionGraphCollectionCallProtocolFact {
     if name == "ListPush" {
         return SemanticExpressionGraphCollectionCallProtocolFact(
-            true, "List", name, 2, 0, -1, 1, "Void"
+            true, "List", name, 2, 0, -1, 1, "Void", -1
         );
     }
     if name == "ListGet" {
         return SemanticExpressionGraphCollectionCallProtocolFact(
-            true, "List", name, 2, 0, 1, -1, "element"
+            true, "List", name, 2, 0, 1, -1, "element", -1
         );
     }
     if name == "ListSet" {
         return SemanticExpressionGraphCollectionCallProtocolFact(
-            true, "List", name, 3, 0, 1, 2, "Void"
+            true, "List", name, 3, 0, 1, 2, "Void", -1
         );
     }
     if name == "ListRemove" {
         return SemanticExpressionGraphCollectionCallProtocolFact(
-            true, "List", name, 2, 0, 1, -1, "Void"
+            true, "List", name, 2, 0, 1, -1, "Void", -1
         );
     }
     if name == "ListSize" {
         return SemanticExpressionGraphCollectionCallProtocolFact(
-            true, "List", name, 1, 0, -1, -1, "Int"
+            true, "List", name, 1, 0, -1, -1, "Int", -1
         );
     }
     if name == "ListNew" {
         return SemanticExpressionGraphCollectionCallProtocolFact(
-            true, "List", name, 0, -1, -1, -1, "constructor"
+            true, "List", name, 0, -1, -1, -1, "constructor", -1
         );
     }
     if name == "QueueNew" {
         return SemanticExpressionGraphCollectionCallProtocolFact(
-            true, "Queue", name, 0, -1, -1, -1, "constructor"
+            true, "Queue", name, 0, -1, -1, -1, "constructor", -1
         );
     }
     if name == "QueuePush" {
         return SemanticExpressionGraphCollectionCallProtocolFact(
-            true, "Queue", name, 2, 0, -1, 1, "Void"
+            true, "Queue", name, 2, 0, -1, 1, "Void", -1
         );
     }
     if name == "QueuePop" {
         return SemanticExpressionGraphCollectionCallProtocolFact(
-            true, "Queue", name, 1, 0, -1, -1, "element"
+            true, "Queue", name, 1, 0, -1, -1, "element", -1
         );
     }
     if name == "QueueSize" {
         return SemanticExpressionGraphCollectionCallProtocolFact(
-            true, "Queue", name, 1, 0, -1, -1, "Int"
+            true, "Queue", name, 1, 0, -1, -1, "Int", -1
         );
     }
     if name == "QueueEmpty" {
         return SemanticExpressionGraphCollectionCallProtocolFact(
-            true, "Queue", name, 1, 0, -1, -1, "Bool"
+            true, "Queue", name, 1, 0, -1, -1, "Bool", -1
         );
     }
     if name == "SetNew" {
         return SemanticExpressionGraphCollectionCallProtocolFact(
-            true, "Set", name, 0, -1, -1, -1, "constructor"
+            true, "Set", name, 0, -1, -1, -1, "constructor", -1
         );
     }
     if name == "SetAdd" || name == "SetHas" || name == "SetRemove" {
         let return_kind: String = "Void";
         if name == "SetHas" { return_kind = "Bool"; }
         return SemanticExpressionGraphCollectionCallProtocolFact(
-            true, "Set", name, 2, 0, -1, 1, return_kind
+            true, "Set", name, 2, 0, -1, 1, return_kind, -1
         );
     }
     if name == "SetSize" {
         return SemanticExpressionGraphCollectionCallProtocolFact(
-            true, "Set", name, 1, 0, -1, -1, "Int"
+            true, "Set", name, 1, 0, -1, -1, "Int", -1
+        );
+    }
+    if name == "MapNew" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "HashMap", name, 0, -1, -1, -1, "constructor", -1
+        );
+    }
+    if name == "MapSet" {
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "HashMap", name, 3, 0, -1, 2, "Void", 1
+        );
+    }
+    if name == "MapGet" || name == "MapHas" || name == "MapRemove" {
+        let return_kind: String = "Void";
+        if name == "MapGet" { return_kind = "element"; }
+        if name == "MapHas" { return_kind = "Bool"; }
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "HashMap", name, 2, 0, -1, -1, return_kind, 1
+        );
+    }
+    if name == "MapSize" || name == "MapKeys" {
+        let return_kind: String = "Int";
+        if name == "MapKeys" { return_kind = "keys"; }
+        return SemanticExpressionGraphCollectionCallProtocolFact(
+            true, "HashMap", name, 1, 0, -1, -1, return_kind, -1
         );
     }
     return SemanticExpressionGraphCollectionCallProtocolNotApplicable();
+}
+
+func SemanticHashMapCallProtocolNames() -> Array<String> {
+    return ["MapNew", "MapSet", "MapGet", "MapHas", "MapRemove", "MapSize", "MapKeys"];
 }

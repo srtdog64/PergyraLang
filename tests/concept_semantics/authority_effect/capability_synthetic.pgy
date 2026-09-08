@@ -1,0 +1,11 @@
+enum Choice { Ready(Int), Empty }
+func Values() -> Array<Int> { return [1, 2, 3]; }
+func Pick(n: Int) -> Choice { return Ready(n); }
+func Main() -> Void with caps io_read {
+    let total: Int = 0;
+    for value in Values() { total = total + value; }
+    match Pick(total) {
+        case Ready(n): Log(n);
+        case Empty: Log(0);
+    }
+}

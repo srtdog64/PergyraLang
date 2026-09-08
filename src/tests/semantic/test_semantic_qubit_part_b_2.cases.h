@@ -246,6 +246,53 @@
         lexer_destroy(lexer);
     }
 
+    TEST("ArrayLength observes borrowed arrays and slices without escaping them");
+    {
+        const char *source =
+            "func IntCount(ref items: Array<Int>) -> Int { return ArrayLength(items); }\n"
+            "func StringCount(ref items: Array<String>) -> Int { return ArrayLength(items); }\n"
+            "func SliceCount(ref items: Slice<Int>) -> Int { return ArrayLength(items); }\n"
+            "func Forward(ref items: Array<Int>) -> Int { return IntCount(items); }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->function_param_flow_fact_count >= 4);
+        if (result != NULL) {
+            for (size_t i = 0; i < result->function_param_flow_fact_count; i++) {
+                unsigned mask = result->function_param_flow_facts[i].mask;
+                EXPECT((mask & SLOT_PARAM_SUMMARY_READ) != 0);
+                EXPECT((mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE |
+                    SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) == 0);
+            }
+        }
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("same-spelled user declaration cannot borrow ArrayLength builtin permission");
+    {
+        const char *source =
+            "func ArrayLength(own items: Array<Int>) -> Int { return 0; }\n"
+            "func Forward(ref items: Array<Int>) -> Int { return ArrayLength(items); }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Borrowed ref boundary value 'items' cannot escape through helper/function call"));
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("ref Array<Int> parameter rejects helper forwarding");
     {
         const char *source =

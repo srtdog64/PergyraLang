@@ -5,7 +5,7 @@ Program:
       Returns: Bool
   Subject: Hero
     Fields:
-      hp: Int
+      let hp: Int
     Methods:
       Action: Guard
         Parameters:
@@ -61,4 +61,3 @@ Program:
     Body:
       Block:
         Log("intent-contract-pair-minimal")
-

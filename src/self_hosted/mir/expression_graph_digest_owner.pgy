@@ -1,0 +1,73 @@
+// Persisted graph identity; mechanical counterpart of
+// compiler/mir_json_expression_graph.c. This is not semantic re-resolution.
+import "expression_graph_fact_owner.pgy";
+import "expression_graph_kind_name_owner.pgy";
+import "../semantic/ast_expression_graph_node_view_owner.pgy";
+
+func SelfMirExpressionGraphHashString(hash: Long, value: String) -> Long {
+    let out: Long = (hash * 131L + (StringLength(value) as Long)) % 268435456L;
+    let i: Int = 0;
+    while i < StringLength(value) {
+        out = (out * 131L +
+            (CharCode(value, StringLength(value), i) as Long)) % 268435456L;
+        i = i + 1;
+    }
+    return out;
+}
+
+func SelfMirExpressionGraphHashInt(hash: Long, value: Int) -> Long {
+    return (hash * 131L + ((value + 2) as Long)) % 268435456L;
+}
+
+func SelfMirExpressionGraphDigest(
+    ref rows: SelfMirExpressionGraphRows,
+    ref graph: SemanticExpressionGraphFacts, instruction: Int
+) -> Int {
+    if instruction < 0 || instruction >= ArrayLength(rows.has_roots) ||
+        rows.has_roots[instruction] != 1 { return 0; }
+    let start: Int = rows.node_starts[instruction];
+    let count: Int = rows.node_counts[instruction];
+    let root: Int = rows.roots[instruction] - start;
+    if start < 0 || count <= 0 || root < 0 || root >= count ||
+        start + count > SelfMirExpressionGraphNodeCount(graph) { return 0; }
+    let hash: Long = SelfMirExpressionGraphHashInt(71L, root);
+    hash = SelfMirExpressionGraphHashInt(hash, count);
+    let i: Int = 0;
+    while i < count {
+        let node: Int = start + i;
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+        let text: Option<String> = SemanticExpressionGraphNodeText(graph, node);
+        let target_kind: Option<Int> =
+            SemanticExpressionGraphCallTargetKind(graph, node);
+        let target_name: Option<String> =
+            SemanticExpressionGraphCallTargetName(graph, node);
+        let runtime_id: Option<Int> =
+            SemanticExpressionGraphRuntimeCallAbiId(graph, node);
+        if !IsSome(kind) || !IsSome(text) || !IsSome(target_kind) ||
+            !IsSome(target_name) || !IsSome(runtime_id) { return 0; }
+        let arity: Int = AstExpressionNodeArity(UnwrapOption(kind));
+        let left: Int = -1;
+        let right: Int = -1;
+        if arity == 1 || arity == 2 {
+            let child: Option<Int> = SemanticExpressionGraphLeftChild(graph, node);
+            if !IsSome(child) { return 0; }
+            left = UnwrapOption(child) - start;
+        }
+        if arity == 2 {
+            let child: Option<Int> = SemanticExpressionGraphRightChild(graph, node);
+            if !IsSome(child) { return 0; }
+            right = UnwrapOption(child) - start;
+        }
+        hash = SelfMirExpressionGraphHashString(hash,
+            SelfMirExpressionGraphKindName(UnwrapOption(kind)));
+        hash = SelfMirExpressionGraphHashString(hash, UnwrapOption(text));
+        hash = SelfMirExpressionGraphHashString(hash,
+            SelfMirExpressionCallTargetKindName(UnwrapOption(target_kind)));
+        hash = SelfMirExpressionGraphHashString(hash, UnwrapOption(target_name));
+        hash = SelfMirExpressionGraphHashInt(hash, UnwrapOption(runtime_id));
+        hash = SelfMirExpressionGraphHashInt(hash, left);
+        hash = SelfMirExpressionGraphHashInt(hash, right);
+        i = i + 1;
+    }
+    return (1073741824L + hash) as Int;
+}

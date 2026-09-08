@@ -1,10 +1,13 @@
 // MIR generic specialization JSON projection owner.
 
 import "generic_specialization_owner.pgy";
+import "program_fact_owner.pgy";
 import "../lib/json_emit.pgy";
 
 func SelfMirJsonGenericSpecialization(
     ref rows: SelfMirGenericSpecializationRows,
+    ref routines: SelfMirRoutineRows,
+    ref cfg: SelfMirCfgRows,
     index: Int
 ) -> String {
     let generic_params: Array<String> = [];
@@ -29,6 +32,22 @@ func SelfMirJsonGenericSpecialization(
         );
         actual_i = actual_i + 1;
     }
+    let occurrences: Array<String> = [];
+    let occurrence: Int = rows.occurrences.starts[index];
+    let end: Int = occurrence + rows.occurrences.counts[index];
+    while occurrence < end {
+        ArrayPush(occurrences, JsonEmitObject([
+            JsonEmitFieldNumber("routine_syntax_id", ToString(
+                routines.node_ids[rows.occurrences.routine_rows[occurrence]])),
+            JsonEmitFieldNumber("block_id", ToString(
+                cfg.blocks.ids[rows.occurrences.block_rows[occurrence]])),
+            JsonEmitFieldNumber("instruction_id", ToString(
+                cfg.instructions.ids[rows.occurrences.instruction_rows[occurrence]])),
+            JsonEmitFieldNumber("expression_lane", ToString(rows.occurrences.lanes[occurrence])),
+            JsonEmitFieldNumber("call_node", ToString(rows.occurrences.graph_nodes[occurrence]))
+        ]));
+        occurrence = occurrence + 1;
+    }
     return JsonEmitObject([
         JsonEmitFieldNumber(
             "source_owner_syntax_id",
@@ -48,17 +67,20 @@ func SelfMirJsonGenericSpecialization(
             "specialized_symbol", rows.specialized_symbols[index]
         ),
         JsonEmitFieldRaw("generic_params", JsonEmitArray(generic_params)),
-        JsonEmitFieldRaw("generic_actuals", JsonEmitArray(generic_actuals))
+        JsonEmitFieldRaw("generic_actuals", JsonEmitArray(generic_actuals)),
+        JsonEmitFieldNumber("call_target_syntax_id", ToString(rows.target_syntax_ids[index])),
+        JsonEmitFieldRaw("occurrences", JsonEmitArray(occurrences))
     ]);
 }
 
 func SelfMirJsonGenericSpecializations(
-    ref rows: SelfMirGenericSpecializationRows
+    ref facts: SelfMirProgramFacts
 ) -> Array<String> {
     let projections: Array<String> = [];
     let i: Int = 0;
-    while i < SelfMirGenericSpecializationCount(rows) {
-        ArrayPush(projections, SelfMirJsonGenericSpecialization(rows, i));
+    while i < SelfMirGenericSpecializationCount(facts.generic_specializations) {
+        ArrayPush(projections, SelfMirJsonGenericSpecialization(
+            facts.generic_specializations, facts.routines, facts.cfg, i));
         i = i + 1;
     }
     return projections;

@@ -314,11 +314,7 @@ func SemanticAstIntentTransitionFactsFromArtifact(
             if typed {
                 let call: SemanticAstIntentActionCallFact =
                     SemanticAstIntentActionCallFromText(
-                        signatures, intent_signatures.param_names,
-                        intent_signatures.param_types,
-                        intent_signatures.param_is_values,
-                        intent_signatures.param_starts[intent_index],
-                        intent_signatures.param_counts[intent_index], on_text
+                        signatures, intent_signatures, intent_index, on_text
                     );
                 if !call.ok {
                     return SemanticAstIntentTransitionFactsError(

@@ -5,8 +5,6 @@
 
 LLVMValueRef llvm_emit_callable_variable_call(ASTNode *node,
                                               LLVMGenCtx *ctx,
-                                              const char *callee_name,
-                                              LLVMValueRef *args,
-                                              unsigned emitted_argc);
+                                              const char *callee_name);
 
 #endif

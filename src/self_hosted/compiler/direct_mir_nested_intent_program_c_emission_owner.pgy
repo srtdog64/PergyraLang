@@ -305,7 +305,7 @@ func DirectMirNestedIntentProgramEmitC(
     TextBuilderAppend(output,
         "#include <stdbool.h>\n#include <stdint.h>\n#include <stdio.h>\n");
     TextBuilderAppend(output, RuntimeCHeaderIncludeBlock(
-        false, false, false, false, false, false, false, false, false, true));
+        false, false, false, false, false, false, false, false, false, true, false));
     TextBuilderAppend(output, DomainRuntimeZoneCHeaderIncludeBlock());
     TextBuilderAppend(output, "\n");
     TextBuilderAppend(output, DirectMirNestedIntentCTypesAndSync(

@@ -1,5 +1,6 @@
 #include "mir_type_helpers.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -225,6 +226,54 @@ char *
 mir_render_type_name(ASTNode *type_node)
 {
     return mir_render_bound_type_name(type_node, NULL, NULL, 0);
+}
+
+/* Rendered MIR types have identifier-token substitution, never substring
+ * replacement (T must not change Thing). Bindings belong to the caller. */
+char *
+mir_substitute_type_name_text(const char *type_name,
+                              const char *const *formal_names,
+                              const char *const *actual_names,
+                              size_t binding_count)
+{
+    char *result = pergyra_strdup("");
+    const char *cursor = type_name;
+    if (cursor == NULL || result == NULL)
+        goto fail;
+    while (*cursor != '\0') {
+        const char *start = cursor++;
+        const char *replacement = NULL;
+        size_t length;
+        char *token;
+        if (isalpha((unsigned char)*start) || *start == '_')
+            while (isalnum((unsigned char)*cursor) || *cursor == '_')
+                cursor++;
+        length = (size_t)(cursor - start);
+        for (size_t i = binding_count; i > 0; i--) {
+            if (formal_names[i - 1] != NULL
+                && strlen(formal_names[i - 1]) == length
+                && strncmp(start, formal_names[i - 1], length) == 0) {
+                replacement = actual_names[i - 1];
+                if (replacement == NULL)
+                    goto fail;
+                break;
+            }
+        }
+        token = malloc(length + 1);
+        if (token == NULL)
+            goto fail;
+        memcpy(token, start, length);
+        token[length] = '\0';
+        bool appended = mir_type_append_owned(&result,
+            replacement != NULL ? replacement : token);
+        free(token);
+        if (!appended)
+            goto fail;
+    }
+    return result;
+fail:
+    free(result);
+    return NULL;
 }
 
 char *

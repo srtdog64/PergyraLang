@@ -114,6 +114,92 @@ persisted conditional topology and consume the existing builtin facts. A
 routine/name branch, eager right-call evaluation, raw JSON reread, or a second
 builtin registry is forbidden.
 
+## 0.2 Mutable-identity receiver stores (2026-09-08)
+
+The shared scalar GraphPlan retains every admitted method. Its routine index
+owns the declaration row, source ID and receiver carriage. Signature admission
+resolves only the protocol's first implicit `self` parameter from that owner;
+ordinary missing parameter types still fail. The identity-cell inventory and
+all-routine inventory must cover the same declared method bodies.
+
+Operation 45 (`IdentityCellStore`) in `graph-plan.v81` carries one exact
+receiver/field/value write. Native `assign` and public SSA `def` have explicit,
+separately checked input shapes; neither selects a fallback. Both issue this
+one store receipt. A public SSA result aliases the same receiver cell rather
+than constructing or copying an identity. Passive-record rebind stays separate.
+The C/LLVM projections consume this receipt without reopening MIR or selecting
+a physical member from source text. Calls join the carried method source ID
+before checking receiver type and local/qualified display spelling.
+
+The focused gate is `tests/concept_semantics/identity_cell_receiver_execution.py`.
+No omission of uncalled methods, type guessing, method-name lookup, unchecked
+ABI absence, or implicit subject-copy conversion is permitted. The bounded
+receiver is the first `self` of a mutable-identity method with admitted scalar
+cell fields; this does not claim arbitrary field aggregates, generic methods,
+external cell lifetimes or whole-language receiver closure.
+
+## 0.3 Scalar control-flow routing (2026-09-08)
+
+The parser owns the synthetic `loop` condition as a Bool literal, just as for
+`while true`. The single-routine scalar control-flow route replaces the former
+String-only route; it does not infer semantics from a block or instruction
+count. Existing shared GraphPlan admission owns each typed condition, edge and
+Void return. Native empty-source/Void-ABI and public AST_RETURN_VOID/absent-ABI
+are explicit wire shapes with no value graph, use or physical layout. Invalid
+receipts fail before either projection. `loop_statement_execution.py` retains
+String branches and refusal-only condition/return controls beside finite loop
+execution. Other specialized collection/control-flow routes remain separate;
+this is not a claim that all direct-MIR routing has been unified.
+
+An exact empty Void CFG has a valid zero-expression/zero-operation GraphPlan;
+it needs no fabricated return value. Missing CFG, foreign successor and empty
+non-Void controls still refuse. The source/MIR-to-C entrypoint also substitutes
+the identity-required primitive-routine family: the existing LocalRef wire
+owner decides that requirement, with formal/local collisions also retained,
+and shared GraphPlan preserves lexical bindings
+instead of flattening them through MIR-to-AST. Once claimed, failed admission
+cannot retry the old C consumer. Other C expression families remain with their
+existing owner; primitive local types alone cannot classify `Log(1.5)`.
+`unsafe_block_execution.py` retains that C-only counterexample.
+
+Native identifier reads now retain the semantic resolver's declaration ID.
+HIR definitions/phi seeds and MIR SSA versions use that ID, not display spelling;
+the C/LLVM expression consumer binds each instruction's exact SSA uses. Missing
+required LLVM storage refuses, rather than selecting a first-version `.1` local.
+`mir_lexical_binding_owner_smoke.sh` is the structural old-path ratchet; the MIR
+unit's missing-read-identity refusal and unsafe execution gate own behavior.
+Native source-local inventory now retains same-spelled declaration IDs under
+unsafe scopes. Assignment target mode joins the resolved root ID and hosted
+field kind against the parameter/local/field inventory; its validator uses the
+same owner. Expression graphs stamp formal reads by declaration ID, and the
+native JSON producer carries the existing conditional LocalRef wire for this
+scalar slice. General source-local type queries and legacy RIR spelling-only
+resource operands remain separate obligations.
+
+The same binding index owns inout copy-out versions. Return use edges retain
+the final formal value even without a source return-expression read, so DCE
+does not reconstruct that observation from parameter spelling. LLVM queries
+the formal declaration's exit version, including explicit version zero, and
+refuses missing identity/storage. HIR's implicit Void return is authorized by
+the semantic function return-type fact; it is not inferred from an open
+non-Void CFG tail. Broader production verification remains in the handoff.
+
+The shared scalar callable role admits primitive value-result carriage for
+Int/Long/Bool/String through the existing signature and GraphPlan identities.
+C/LLVM entry, nested-call storage and normal-exit copyout consume that exact
+formal LocalRef, not a same-spelled local. Return expressions execute before
+copyout. Native SSA keeps implicit copyout reads live, while its JSON expression
+use prefix contains only the explicit expression's reads. Native formal entry
+uses must agree with the graph's admitted declaration and storage identity.
+`scalar_value_result_identity.py` checks both producers through shared C/LLVM
+and refuses missing/crossed identities, including a same-name, same-type local.
+
+Constant-folded unreachable CFG blocks keep their IDs and undergo complete
+instruction admission. Their reachability flags must agree with the admitted
+edges; they are neither omitted nor treated as an implicit return. The loop
+gate distinguishes representable crossed-CFG controls from mutations absent
+after native constant folding, and does not count those omissions as passes.
+
 ## 1. Current Logical Topology
 
 The native compiler currently behaves approximately as this graph:
@@ -1688,6 +1774,52 @@ Standalone zero-argument direct calls remain a separate owner seam; the focused
 fixture executes the literal directly instead of silently widening that seam.
 Finally, side-effecting C call elements require sequential statements, not a C
 initializer whose evaluation order is not the language contract.
+
+The same rule applies to named record fields: declaration order selects field
+identity/layout, while source expression-node order selects execution. Native
+and public semantic C sequence assignments to one hygienic temporary; shared
+GraphPlan C orders its admitted operand rows before assigning declaration
+ordinals. Native/public semantic C now additionally materialize eager binary
+operands once in left-to-right order, while `&&`, `||` and `??` retain lazy RHS
+evaluation. This is not general call-argument or assignment-place ordering
+closure. `source_admission_parity.sh` carries the side-effecting three-field and
+compiler-looking identifier controls; `binary_evaluation_order.py` retains the
+independent scalar/String and Intent observations. A public LLVM rejection in
+that gate remains an execution gap, not permission to weaken arithmetic or
+Intent admission.
+
+A repeated local spelling is not a type identity. The native lexical resolver
+captures a bare assignment's checked binding type before its scope disappears;
+MIR DEF carries that ABI type. C phi declarations project exact incoming SSA
+types, including seeded cycles, and refuse missing/crossed inputs. LLVM bare
+assignment allocation consumes the DEF fact instead of rejoining by name.
+`lexical_local_type_identity_valid.pgy` and native phi-type units guard this
+boundary; other legacy inferred-local/type consumers are not thereby closed.
+
+Named-enum source coverage belongs to admitted declaration variants and typed
+match/arm identity. Direct-MIR terminal admission independently validates its
+serialized CFG: only same-scrutinee false edges with full variant exclusion
+can be removed, and every remaining incoming edge must be accounted for before
+a terminal is declared unreachable. Duplicated arms add no coverage; nested
+matches do not share source coverage. Default-covered terminating arms do not
+create a live merge. `named_enum_match_admission.sh` checks valid execution and
+source refusal; `enum_match_mir_refusal.py` falsifies unsafe terminal admission
+without executing mutated input. Option/Result coverage is outside this slice.
+
+Action declaration authority is a join of admitted callable contracts, binding
+types and explicit zone-authority slot identities, before public MIR. A matching
+subject field alone is not authority. This declaration check follows native
+compatibility (any authorized slot of the binding's type); it does not replace
+exact participant attribution at the call/Intent boundary. Within-only actions
+retain their ordinary slot compatibility rule. The action admission gate and
+source integration gate retain these positive controls and reject missing or
+crossed authority. This bounded check does not claim module visibility, causes
+or general receiver backend closure. Required-ability admission uses the same
+callable identity and admitted role impl rows, with ordered generic tuples and
+concrete declaration defaults. Generic commas remain inside one contract type;
+neither a matching method spelling nor a different type's impl supplies proof.
+Role MIR declaration lookup uses the base ability name while retaining the
+instantiated ability name on the implementation/method rows.
 
 ## Payload-free enum value-parameter callable envelope
 

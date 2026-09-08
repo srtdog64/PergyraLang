@@ -1,0 +1,192 @@
+// Calls the real query owner; malformed local facts are not admitted source/MIR.
+import "../../../src/self_hosted/compiler/direct_mir_scalar_program_logical_record_expression_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy";
+
+func ConstructorFieldType(ordinal: Int) -> String {
+    if ordinal % 3 == 0 { return "Int"; }
+    if ordinal % 3 == 1 { return "Bool"; }
+    return "String";
+}
+
+func ConstructorRecord(fields: Int, corruption: Int) -> DirectMirScalarProgramLogicalRecordFact {
+    let rows: Array<Int> = [7,9]; let names: Array<String> = ["Prefix","Record"];
+    let syntax: Array<Int> = [31,41]; let starts: Array<Int> = [0,1];
+    let counts: Array<Int> = [1,fields];
+    let field_names: Array<String> = ["prefix"];
+    let field_types: Array<String> = ["String"];
+    let field_ids: Array<Int> = [201]; let field_enums: Array<Int> = [0];
+    let zeros: Array<Int> = [0]; let sizes: Array<Int> = [0];
+    let field: Int = 0;
+    while field < fields {
+        ArrayPush(field_names, Concat("field", ToString(field)));
+        let type_name: String = ConstructorFieldType(field);
+        if corruption == 4 && field == 0 { type_name = "Bool"; }
+        if corruption == 4 && field == 1 { type_name = "Int"; }
+        ArrayPush(field_types, type_name);
+        let id: Int = 1001 + field;
+        if corruption == 2 && field == fields - 1 { id = 1001; }
+        ArrayPush(field_ids, id); ArrayPush(field_enums, 0);
+        ArrayPush(zeros, 0);
+        let size: Int = 0;
+        if corruption == 3 && field == 0 { size = 4; }
+        ArrayPush(sizes, size);
+        field = field + 1;
+    }
+    let absent_ids: Array<Int> = [0,0]; let absent_keys: Array<String> = ["",""];
+    let physical: DirectMirScalarProgramRecordAbiCarriage =
+        DirectMirScalarProgramRecordAbiCarriage(absent_ids, absent_keys,
+            absent_ids, absent_ids, zeros, sizes, zeros);
+    let source: DirectMirScalarProgramLogicalRecordFact = DirectMirScalarProgramLogicalRecordFact(
+        true, 0, true, rows, names, syntax, starts, counts,
+        field_names, field_types, field_ids, field_enums, physical);
+    let digest: Int = DirectMirScalarProgramLogicalRecordFactDigest(source);
+    if corruption == 1 {
+        if digest == 1 { digest = 2; } else { digest = 1; }
+    }
+    return DirectMirScalarProgramLogicalRecordFact(true, digest, true,
+        rows, names, syntax, starts, counts,
+        field_names, field_types, field_ids, field_enums, physical);
+}
+
+struct ConstructorQueryInput {
+    let sequence: MirExpressionGraphSequence;
+    let source_rows: Array<Int>;
+    let types: Array<String>;
+    let node: Int;
+}
+
+func ConstructorInput(arguments: Int, corruption: Int) -> ConstructorQueryInput {
+    let name: String = "Record";
+    if corruption == 2 { name = "Other"; }
+    let kinds: Array<Int> = [AstExpressionNodeLeaf(),AstExpressionNodeCall()];
+    let texts: Array<String> = [name,name];
+    let lefts: Array<Int> = [0,0]; let rights: Array<Int> = [0,0];
+    let targets: Array<Int> = [SemanticCallTargetNone(),SemanticCallTargetDirect()];
+    let target_names: Array<String> = ["",name];
+    let call_id: Int = 0;
+    if corruption == 3 { call_id = 71; }
+    let call_ids: Array<Int> = [0,call_id];
+    let rows: Array<Int> = [-1,-1]; let types: Array<String> = [];
+    let arg: Int = 0;
+    while arg < arguments {
+        ArrayPush(kinds, AstExpressionNodeLeaf()); ArrayPush(kinds, AstExpressionNodeCallArgument());
+        ArrayPush(texts, "value"); ArrayPush(texts, "argument");
+        ArrayPush(lefts, 0); ArrayPush(lefts, 1 + 2 * arg);
+        ArrayPush(rights, 0); ArrayPush(rights, 2 + 2 * arg);
+        ArrayPush(targets, 0); ArrayPush(targets, 0);
+        ArrayPush(target_names, ""); ArrayPush(target_names, "");
+        ArrayPush(call_ids, 0); ArrayPush(call_ids, 0);
+        let source_row: Int = arg;
+        if corruption == 4 && arg == arguments - 1 { source_row = -1; }
+        ArrayPush(rows, source_row); ArrayPush(rows, -1);
+        let type_name: String = ConstructorFieldType(arg);
+        if corruption == 1 && arg == arguments - 1 { type_name = "Other"; }
+        ArrayPush(types, type_name);
+        arg = arg + 1;
+    }
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArenaUnclassified(
+        kinds, texts, lefts, rights, targets, target_names);
+    let identities: SemanticExpressionIdentityRows = SemanticExpressionIdentityRows(call_ids,
+        arena.identities.runtime_call_abi_ids, arena.identities.binding_syntax_ids,
+        arena.identities.binding_kinds, arena.identities.binding_ordinals);
+    arena = SemanticExpressionGraphArena(arena.topology, arena.node_texts,
+        arena.call_target_kinds, arena.call_target_names, arena.call_return_type_names,
+        identities, arena.place_kinds);
+    let node: Int = 1 + 2 * arguments; let roots: Array<Int> = [node];
+    return ConstructorQueryInput(MirExpressionGraphSequence(true, 1, roots, arena), rows, types, node);
+}
+
+func ConstructorResult(ref input: ConstructorQueryInput, ref record: DirectMirScalarProgramLogicalRecordFact) -> DirectMirScalarProgramLogicalRecordExpressionFact {
+    return DirectMirScalarProgramLogicalRecordConstructorFromGraph(
+        input.sequence, input.node, input.source_rows, input.types, record);
+}
+
+func ConstructorMatches(ref value: DirectMirScalarProgramLogicalRecordExpressionFact, arguments: Int, complete: Bool) -> Bool {
+    if !value.recognized || !value.valid || value.complete != complete ||
+        value.kind != DirectMirScalarProgramExprLogicalRecordConstructor() ||
+        value.type_name != "Record" || value.call_node != 1 || value.left_row != -1 ||
+        value.member_ordinal != -1 || ArrayLength(value.argument_rows) != arguments { return false; }
+    let ordinal: Int = 0;
+    while ordinal < arguments {
+        if value.argument_rows[ordinal] != ordinal { return false; }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}
+
+func ConstructorMissing(ref value: DirectMirScalarProgramLogicalRecordExpressionFact) -> Bool {
+    return !value.recognized && !value.valid && !value.complete && value.kind == 0 &&
+        value.type_name == "" && value.call_node == -1 && value.left_row == -1 &&
+        value.member_ordinal == -1 && ArrayLength(value.argument_rows) == 0;
+}
+
+func ConstructorRejected(ref value: DirectMirScalarProgramLogicalRecordExpressionFact, arguments: Int) -> Bool {
+    return value.recognized && !value.valid && !value.complete && value.kind == 0 &&
+        value.type_name == "" && value.call_node == 1 && value.left_row == -1 &&
+        value.member_ordinal == -1 && ArrayLength(value.argument_rows) == arguments;
+}
+
+func ConstructorControls() -> Void {
+    let record: DirectMirScalarProgramLogicalRecordFact = ConstructorRecord(4, 0);
+    let input: ConstructorQueryInput = ConstructorInput(4, 0);
+    Log(ToString(DirectMirScalarProgramLogicalRecordFactReady(record)));
+    Log(ToString(SemanticExpressionGraphArenaReady(input.sequence.arena)));
+    let arities: Array<Int> = [1,3,4]; let i: Int = 0;
+    while i < ArrayLength(arities) {
+        input = ConstructorInput(arities[i], 0);
+        let value: DirectMirScalarProgramLogicalRecordExpressionFact = ConstructorResult(input, record);
+        Log(ToString(ConstructorMatches(value, arities[i], arities[i] == 4)));
+        i = i + 1;
+    }
+    input = ConstructorInput(5, 0);
+    let value: DirectMirScalarProgramLogicalRecordExpressionFact = ConstructorResult(input, record);
+    Log(ToString(ConstructorRejected(value, 5)));
+    input = ConstructorInput(4, 1); value = ConstructorResult(input, record);
+    Log(ToString(ConstructorRejected(value, 4)));
+    i = 2;
+    while i <= 4 {
+        input = ConstructorInput(4, i); value = ConstructorResult(input, record);
+        Log(ToString(ConstructorMissing(value))); i = i + 1;
+    }
+    input = ConstructorInput(0, 0); value = ConstructorResult(input, record);
+    Log(ToString(ConstructorMissing(value)));
+    input = ConstructorInput(4, 0); i = 1;
+    while i <= 3 {
+        record = ConstructorRecord(4, i); value = ConstructorResult(input, record);
+        Log(ToString(!DirectMirScalarProgramLogicalRecordFactReady(record) && ConstructorMissing(value)));
+        i = i + 1;
+    }
+    record = ConstructorRecord(4, 4); value = ConstructorResult(input, record);
+    Log(ToString(DirectMirScalarProgramLogicalRecordFactReady(record) && ConstructorRejected(value, 4)));
+    record = DirectMirScalarProgramLogicalRecordFactCanonicalEmpty(); value = ConstructorResult(input, record);
+    Log(ToString(ConstructorMissing(value)));
+    record = DirectMirScalarProgramLogicalRecordFactInvalid(); value = ConstructorResult(input, record);
+    Log(ToString(ConstructorMissing(value)));
+}
+
+func ConstructorPressure(arguments: Int) -> Void {
+    let record: DirectMirScalarProgramLogicalRecordFact = ConstructorRecord(128, 0);
+    let input: ConstructorQueryInput = ConstructorInput(arguments, 0);
+    if !DirectMirScalarProgramLogicalRecordFactReady(record) { Exit(1); }
+    let i: Int = 0;
+    while i < 128 {
+        let value: DirectMirScalarProgramLogicalRecordExpressionFact = ConstructorResult(input, record);
+        if !ConstructorMatches(value, arguments, false) { Exit(1); }
+        i = i + 1;
+    }
+    Log("128 ordered constructor queries preserved");
+}
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) == 1 {
+        let arguments: Int = 0;
+        if args[0] == "small" { arguments = 4; }
+        if args[0] == "medium" { arguments = 8; }
+        if args[0] == "large" { arguments = 16; }
+        if arguments == 0 { Log("unknown constructor arity"); Exit(1); }
+        ConstructorPressure(arguments); return;
+    }
+    if ArrayLength(args) != 0 { Log("expected zero or one argument"); Exit(1); }
+    ConstructorControls();
+}

@@ -44,6 +44,7 @@ func DirectMirScalarCfgLocalInventoryReadyWithReferencedEnum(
                     local_types[row]) ||
                  CompilerRuntimeValueTypeReady(
                     local_types[row]) ||
+                 DirectMirIdentityCellRow(logical_record.identity_cells, local_types[row]) >= 0 ||
                  DirectMirScalarProgramLogicalRecordTypeReady(
                     logical_record, local_types[row]) ||
                  DirectMirScalarProgramLogicalRecordArrayTypeReady(

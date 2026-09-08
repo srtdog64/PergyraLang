@@ -1,0 +1,49 @@
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Exit(1); return; }
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(ReadFile(args[0]));
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    let body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !body.verdict.ok { Log(body.verdict.diagnostic_message); Exit(1); return; }
+    Log(SemanticAstBodyTypeBundleReady(artifact, analysis, body));
+    let pure_row: Int = -1;
+    let clock_row: Int = -1;
+    let invoke_row: Int = -1;
+    let row: Int = 0;
+    while row < SemanticAstFunctionSignatureCount(analysis.signatures) {
+        if analysis.signatures.names[row] == "PurePath" { pure_row = row; }
+        if analysis.signatures.names[row] == "ClockPath" { clock_row = row; }
+        if analysis.signatures.names[row] == "Invoke" { invoke_row = row; }
+        row = row + 1;
+    }
+    if pure_row < 0 || clock_row < 0 || invoke_row < 0 { Exit(1); return; }
+    let time_effect: Int = SemanticEffectMaskForWord("nondeterministic");
+    Log(body.capabilities.known_call_effects[pure_row] == 0 && !body.capabilities.unknown_call_effects[pure_row]);
+    Log(body.capabilities.known_call_effects[clock_row] == time_effect && !body.capabilities.unknown_call_effects[clock_row]);
+    Log(body.capabilities.known_call_effects[invoke_row] == time_effect && body.capabilities.deferred_uses[invoke_row]);
+    Log(SemanticBuiltinFixedEffectMask("Now") == time_effect);
+    Log(SemanticBuiltinFixedEffectMask("ArrayLength") == 0 &&
+        SemanticBuiltinFixedEffectMask("ArrayPush") == 0);
+    Log(SemanticBuiltinFixedEffectMask("Substring") == 0 &&
+        SemanticBuiltinFixedEffectMask("CheckedAdd") == 0);
+    Log(SemanticBuiltinFixedEffectMask("MapNew") == 0 &&
+        SemanticBuiltinFixedEffectMask("MapSet") == 0);
+    Log(SemanticBuiltinFixedEffectMask("ArrayMap") == -1 &&
+        SemanticBuiltinFixedEffectMask("ArrayFilter") == -1);
+    Log(SemanticBuiltinFixedEffectMask("unclassified-operation") == -1);
+    Log(SemanticDiagnosticCodeKnown("call_effect_fact_unavailable") &&
+        SemanticDiagnosticOracleCode("call_effect_fact_unavailable") == "PGY_SEM_EFFECT_CONFLICT");
+    Log(SemanticEffectMaskForWord("local") == 0 && SemanticEffectMaskForWord("unknown") == -1);
+    Log(SemanticEffectMaskClosure(SemanticEffectMaskForWord("collapse")) == 12);
+    Log(SemanticEffectMaskDifference(time_effect, SemanticEffectMaskForWord("collapse")) == 0);
+    Log(SemanticEffectMaskClosure(-1) == -1 && SemanticEffectMaskJoin(256, 0) == -1);
+    let saved: Array<Int> = body.capabilities.known_call_effects;
+    let empty: Array<Int> = [];
+    body.capabilities.known_call_effects = empty;
+    Log(!SemanticAstCapabilityFactsReady(artifact, analysis, body.capabilities));
+    body.capabilities.known_call_effects = saved;
+    body.capabilities.known_call_effects[pure_row] = -1;
+    Log(!SemanticAstCapabilityFactsReady(artifact, analysis, body.capabilities));
+}

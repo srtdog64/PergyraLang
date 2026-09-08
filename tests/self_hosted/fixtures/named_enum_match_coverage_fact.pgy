@@ -1,0 +1,31 @@
+// Execute the source validator only; rejected input programs are never run.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy";
+import "../../../src/self_hosted/codegen/text/text_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Die("enum coverage probe requires source and expected verdict"); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if args[1] == "accept" {
+        if !body.verdict.ok || !SemanticAstBodyTypeBundleReady(artifact, analysis, body) {
+            Log(body.verdict.diagnostic_code); Die(body.verdict.diagnostic_message);
+        }
+    } else {
+        if body.verdict.ok || body.verdict.diagnostic_code != "match_pattern_invalid" {
+            Log(body.verdict.diagnostic_code); Die("enum coverage verdict did not match its owner");
+        }
+        let receipt: SemanticPublicDiagnosticReceipt = SemanticPublicDiagnosticReceiptFromOwnedFacts(
+            body.verdict.diagnostic_code, body.verdict.diagnostic_message);
+        if !SemanticPublicDiagnosticReceiptReadyFor(receipt, "match_pattern_invalid") ||
+            receipt.code != "PGY_SEM_MATCH_PATTERN_INVALID" ||
+            receipt.cause_ir != "semantic:match:pattern_shape" ||
+            receipt.fix_source != "align-pattern-arity-or-kind" {
+            Die("enum coverage diagnostic receipt identity drifted");
+        }
+    }
+    Log("enum coverage verified");
+}

@@ -96,7 +96,7 @@ func DirectMirInferredGenericSpecializationFactFromDocument(
         let actual: String = DirectMirGenericSpecializationSingleString(
             row, "generic_actuals"
         );
-        if !JsonObjectFactTableReady(row) || JsonObjectFactCount(row) != 9 ||
+        if !JsonObjectFactTableReady(row) || JsonObjectFactCount(row) != 11 ||
             !IsSome(owner_id_opt) || !IsSome(lane_opt) ||
             !IsSome(ordinal_opt) || !IsSome(target_opt) ||
             !IsSome(owner_opt) || !IsSome(callable_opt) ||

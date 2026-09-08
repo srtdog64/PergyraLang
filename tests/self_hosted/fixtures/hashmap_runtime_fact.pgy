@@ -1,0 +1,40 @@
+import "../../../src/self_hosted/codegen/runtime_abi/hashmap_runtime_owner.pgy";
+import "../../../src/self_hosted/codegen/runtime_abi/runtime_header_ownership_owner.pgy";
+import "../../../src/self_hosted/codegen/runtime_abi/list_runtime_owner.pgy";
+import "../../../src/self_hosted/codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
+
+func Main() -> Void {
+    let strings: CollectionHashMapRuntimeFact = CollectionHashMapRuntimeFactFromTypeName("HashMap<String, Int>");
+    let ints: CollectionHashMapRuntimeFact = CollectionHashMapRuntimeFactFromTypeName("HashMap<Int, String>");
+    let longs: CollectionHashMapRuntimeFact = CollectionHashMapRuntimeFactFromTypeName("HashMap<Long, Int>");
+    let flags: CollectionHashMapRuntimeFact = CollectionHashMapRuntimeFactFromTypeName("HashMap<Bool, Int>");
+    Log(strings.ok && strings.c_value_type == "PgyHashMap_Int" && strings.key_infix == "");
+    Log(ints.ok && ints.c_value_type == "PgyHashMap_String" && ints.key_infix == "_i32");
+    Log(longs.ok && longs.key_infix == "_i64");
+    Log(flags.ok && flags.key_infix == "_bool");
+    Log(CollectionHashMapRuntimeCFunction(strings, SemanticExpressionGraphCollectionCallProtocolFromName("MapNew")) == "pgy_map_new_int");
+    Log(CollectionHashMapRuntimeCFunction(ints, SemanticExpressionGraphCollectionCallProtocolFromName("MapSet")) == "pgy_map_set_i32_string");
+    Log(CollectionHashMapRuntimeCFunction(longs, SemanticExpressionGraphCollectionCallProtocolFromName("MapGet")) == "pgy_map_get_i64_int");
+    Log(CollectionHashMapRuntimeCFunction(flags, SemanticExpressionGraphCollectionCallProtocolFromName("MapHas")) == "pgy_map_has_bool_int");
+    Log(CollectionHashMapRuntimeCFunction(flags, SemanticExpressionGraphCollectionCallProtocolFromName("MapKeys")) == "pgy_map_keys_bool_int");
+    Log(CollectionHashMapRuntimeCFunction(flags, SemanticExpressionGraphCollectionCallProtocolFromName("MapSize")) == "pgy_map_size_int");
+    Log(!CollectionHashMapRuntimeFactFromTypeName("HashMap<Float, Int>").ok);
+    Log(!CollectionHashMapRuntimeFactFromTypeName("HashMap<String, Unknown>").ok);
+    Log(!CollectionHashMapRuntimeFactFromTypeName("List<Int>").ok);
+    Log(CollectionListRuntimeElementCValueType("HashMap<Long, String>") == "PgyHashMap_String");
+    Log(RuntimeCHeaderIncludeBlock(false, false, false, false, false, false, false, false, false, false, true) == "#include \"pgy_runtime.h\"\n");
+    Log(RuntimeCHeaderOwnsCheckedArithmetic(false, false, false, false, false, false, false, false, true) &&
+        RuntimeCHeaderOwnsScalarLog(false, false, false, false, false, false, true));
+    let raw_int: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName("HashMap<String, Int>");
+    let raw_string: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName("HashMap<Int, String>");
+    Log(raw_int.ok && raw_int.value_storage_type == "i32" && raw_int.value_llvm_type == "i64");
+    Log(raw_string.ok && raw_string.key_llvm_type == "i32" && raw_string.value_storage_type == "ptr");
+    Log(CollectionHashMapLlvmFunction(raw_string, "MapGet") == "pgy_map_get_string_value_raw_i32_export");
+    Log(CollectionHashMapLlvmFunction(raw_string, "MapRemove") == "pgy_map_remove_string_value_raw_i32_export");
+    Log(CollectionHashMapLlvmDeclaration(raw_int, "MapSet") == "declare void @pgy_map_set_raw_export(ptr, ptr, ptr, i64)\n");
+    Log(CollectionHashMapLlvmDeclaration(raw_string, "MapRemove") == "declare void @pgy_map_remove_string_value_raw_i32_export(ptr, i32)\n");
+    Log(CollectionHashMapLlvmFactFromTypeName("HashMap<Long, Long>").key_llvm_type == "i64");
+    Log(CollectionHashMapLlvmFactFromTypeName("HashMap<Bool, Bool>").value_storage_type == "i1");
+    Log(!CollectionHashMapLlvmFactFromTypeName("HashMap<Float, Int>").ok);
+    Log(!CollectionHashMapLlvmFactFromTypeName("HashMap<Int, Unknown>").ok);
+}

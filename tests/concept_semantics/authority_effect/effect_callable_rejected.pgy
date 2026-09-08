@@ -1,0 +1,3 @@
+func Stamp(value: Int) -> Int with caps clock { return value + Now(); }
+func Invoke(operation: func(Int) -> Int) -> Int { return operation(1); }
+func Main() -> Void with effects local { Log(Invoke(Stamp)); }

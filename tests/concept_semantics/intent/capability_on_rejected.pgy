@@ -1,0 +1,15 @@
+import "capability_fixture.pgy";
+
+intent ReadPurpose(work: CapabilityZone, actor: CapabilityActor) {
+    step Read {
+        where: CapabilityZone;
+        using: work;
+        on: actor.Read();
+    }
+}
+
+func Main() -> Void with caps random {
+    let actor = CapabilityActor(0);
+    let work = CapabilityZone(Clone(actor));
+    ReadPurpose(work, actor);
+}

@@ -196,9 +196,16 @@ typedef enum
     HIR_BLOCK_UNREACHABLE
 } HIRBlockTerminatorKind;
 
+typedef struct
+{
+    const char *name;
+    uint32_t binding_syntax_id;
+} HIRLocalBinding;
+
 struct HIRPhiNode
 {
     const char *name;
+    uint32_t    binding_syntax_id;
     size_t     *incoming_predecessors;
     size_t      incoming_predecessor_count;
 };
@@ -237,13 +244,13 @@ struct HIRBasicBlock
     size_t                 *dom_tree_children;
     size_t                  dom_tree_child_count;
     size_t                  dom_tree_child_capacity;
-    const char            **local_defs;
+    HIRLocalBinding        *local_defs;
     size_t                  local_def_count;
     size_t                  local_def_capacity;
     size_t                 *dominance_frontier;
     size_t                  dominance_frontier_count;
     size_t                  dominance_frontier_capacity;
-    const char            **phi_candidates;
+    HIRLocalBinding        *phi_candidates;
     size_t                  phi_candidate_count;
     size_t                  phi_candidate_capacity;
     HIRPhiNode            *phi_nodes;

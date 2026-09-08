@@ -39,16 +39,12 @@ def graph_shape(value):
     return {"root": value["root"], "nodes": nodes}
 
 
-def native_semantic_declaration_kind(row):
-    if row["kind"] == "class" and row["nominal_kind"] == "vessel":
-        return "vessel"
-    return row["kind"]
-def declaration_shape(document, native=False):
+def declaration_shape(document):
     if len(document["decls"]) != 1:
         raise RuntimeError("expected one declaration")
     row = document["decls"][0]
     return {
-        "kind": native_semantic_declaration_kind(row) if native else row["kind"],
+        "kind": row["kind"],
         "nominal_kind": row["nominal_kind"],
         "name": row["name"],
         "fields": [{key: field[key] for key in ("name", "type", "field_kind")}
@@ -74,7 +70,7 @@ def specialization_tuples(document, self_owned):
 if mode == "compare":
     oracle = json.loads(target.read_text(encoding="utf-8"))
     assert_parameter_identity(sys.argv[4], sys.argv[5], ("Echo", "Main"))
-    if declaration_shape(baseline) != declaration_shape(oracle, native=True):
+    if declaration_shape(baseline) != declaration_shape(oracle):
         raise RuntimeError("native/self member nominal semantics drifted")
     for name in ("Echo", "Main"):
         left = routine(baseline, name)
@@ -222,6 +218,7 @@ emit("host-kind-subject", lambda d: (
     declaration(d).__setitem__("nominal_kind", "subject")))
 emit("declaration-kind-drift", lambda d: declaration(d).
      __setitem__("kind", "struct"))
+emit("legacy-vessel-wire-kind", lambda d: declaration(d).__setitem__("kind", "vessel"))
 emit("nominal-kind-drift", lambda d: declaration(d).
      __setitem__("nominal_kind", "struct"))
 emit("declaration-name-drift", lambda d: declaration(d).

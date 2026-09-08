@@ -21,8 +21,7 @@ func DirectMirScalarCfgProgramOperationReadinessFailed(
             relevant = true;
             let root: Int = plan.program.expressions.graph_roots[expression_row];
             expected = plan.program.expressions.node_types[root];
-            prefix_ready = expected == CompilerAbiLayoutStringTypeName() ||
-                expected == CompilerAbiLayoutIntTypeName();
+            prefix_ready = DirectMirScalarCfgScalarTypeSupported(expected);
         } else if kind == DirectMirScalarCfgOpExpressionStatement() {
             relevant = true;
             let root: Int = plan.program.expressions.graph_roots[expression_row];

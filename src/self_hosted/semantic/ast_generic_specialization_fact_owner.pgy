@@ -42,7 +42,7 @@ func SemanticAstGenericSpecializationError(
 }
 
 func SemanticAstGenericSpecializationIndexForCall(
-    call_node_ids: Array<Int>,
+    ref call_node_ids: Array<Int>,
     call_node_id: Int
 ) -> Option<Int> {
     let i: Int = 0;
@@ -298,7 +298,7 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
                 expression_surfaces, signatures, surface_index
             );
         let intent_node: Option<Int> =
-            SemanticAstIntentExpressionOwnerNodeId(artifact, use_node_id);
+            SemanticAstExpressionIntentNodeAt(expression_surfaces, intent_signatures, surface_index);
         if !IsSome(function_node) && !IsSome(intent_node) {
             return SemanticAstGenericSpecializationError(
                 "ast_artifact_invalid",
@@ -323,7 +323,7 @@ func SemanticAstGenericSpecializationFactsFromAdmittedBody(
                 signatures, constructors, UnwrapOption(function_node),
                 names, types, modes
             ) && SemanticAstExpressionSeedParameters(
-                signatures, UnwrapOption(function_node), names, types
+                signatures, constructors, UnwrapOption(function_node), names, types
             ) && SemanticAstExpressionSeedParameterModes(
                 signatures, UnwrapOption(function_node), modes
             ) && SemanticAstExpressionSeedVisibleLocals(

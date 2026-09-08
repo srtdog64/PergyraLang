@@ -34,6 +34,8 @@ struct SelfDirIntentStepFacts {
     guard_node_ids: Array<Int>;
     post_node_ids: Array<Int>;
     expect_node_ids: Array<Int>;
+    pre_node_ids: Array<Int>;
+    invariant_node_ids: Array<Int>;
     compensate_starts: Array<Int>;
     compensate_counts: Array<Int>;
     compensate_node_ids: Array<Int>;
@@ -68,7 +70,7 @@ func SelfDirIntentStepFactsEmpty() -> SelfDirIntentStepFacts {
         ints, strings, strings, ints, strings, strings, strings, strings,
         strings, ints,
         strings, ints, ints, strings, strings, ints, ints, strings, strings,
-        ints, ints, ints, ints, ints, ints, ints, ints, ints, strings, ints,
+        ints, ints, ints, ints, ints, ints, ints, ints, ints, ints, ints, strings, ints,
         ints, ints, strings, ints, ints, strings, ints, ints, ints, strings,
         SelfDirIntentStepProvenanceFactsEmpty()
     );

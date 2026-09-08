@@ -230,7 +230,9 @@ test_stdlib_and_enum_emit(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_string_equals(name, \"audit\")");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= (name);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= (\"audit\");");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_string_equals(__pgy_binary_");
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);

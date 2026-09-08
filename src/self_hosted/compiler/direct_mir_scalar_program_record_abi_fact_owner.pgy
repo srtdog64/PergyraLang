@@ -1,0 +1,138 @@
+// Derived physical receipts indexed by the passive-record identity inventory.
+// Zero ID is an admitted absence, never permission to reconstruct a layout.
+import "direct_mir_nominal_declaration_abi_fact_owner.pgy";
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+
+struct DirectMirScalarProgramRecordAbiCarriage {
+    let layout_ids: Array<Int>;
+    let row_keys: Array<String>;
+    let sizes: Array<Int>;
+    let aligns: Array<Int>;
+    let field_offsets: Array<Int>;
+    let field_sizes: Array<Int>;
+    let field_aligns: Array<Int>;
+}
+
+func DirectMirScalarProgramRecordAbiCarriageEmpty(
+) -> DirectMirScalarProgramRecordAbiCarriage {
+    let ints: Array<Int> = []; let strings: Array<String> = [];
+    return DirectMirScalarProgramRecordAbiCarriage(
+        ints, strings, ints, ints, ints, ints, ints);
+}
+
+func DirectMirScalarProgramRecordAbiCarriageHash(
+    hash: Long, ref fact: DirectMirScalarProgramRecordAbiCarriage
+) -> Long {
+    let output: Long = DirectMirScalarCfgHashInts(hash, fact.layout_ids);
+    output = DirectMirScalarCfgHashStrings(output, fact.row_keys);
+    output = DirectMirScalarCfgHashInts(output, fact.sizes);
+    output = DirectMirScalarCfgHashInts(output, fact.aligns);
+    output = DirectMirScalarCfgHashInts(output, fact.field_offsets);
+    output = DirectMirScalarCfgHashInts(output, fact.field_sizes);
+    return DirectMirScalarCfgHashInts(output, fact.field_aligns);
+}
+
+func DirectMirScalarProgramRecordAbiCarriageColumnsReady(
+    ref fact: DirectMirScalarProgramRecordAbiCarriage,
+    records: Int, fields: Int
+) -> Bool {
+    return records == ArrayLength(fact.layout_ids) &&
+        records == ArrayLength(fact.row_keys) &&
+        records == ArrayLength(fact.sizes) &&
+        records == ArrayLength(fact.aligns) &&
+        fields == ArrayLength(fact.field_offsets) &&
+        fields == ArrayLength(fact.field_sizes) &&
+        fields == ArrayLength(fact.field_aligns);
+}
+
+func DirectMirScalarProgramRecordAbiCarriageFromDeclaration(
+    ref physical: DirectMirNominalDeclarationAbiFact, fields: Int
+) -> DirectMirScalarProgramRecordAbiCarriage {
+    let ids: Array<Int> = []; let keys: Array<String> = [];
+    let sizes: Array<Int> = []; let aligns: Array<Int> = [];
+    let offsets: Array<Int> = []; let field_sizes: Array<Int> = [];
+    let field_aligns: Array<Int> = [];
+    let id: Int = 0; let size: Int = 0; let align: Int = 0;
+    let key: String = "";
+    if physical.valid {
+        if !DirectMirNominalDeclarationAbiFactReady(physical) ||
+            ArrayLength(physical.field_names) != fields ||
+            physical.abi.runtime_fn != "" || physical.abi.inner_c_type != "" ||
+            physical.abi.representation_text != "0" ||
+            physical.abi.discriminant != "" ||
+            physical.abi.primary_tag_text != "0" ||
+            physical.abi.secondary_tag_text != "0" ||
+            physical.abi.niche_none_pattern != "" {
+            return DirectMirScalarProgramRecordAbiCarriageEmpty();
+        }
+        id = physical.abi_layout_id;
+        size = ToInt(physical.abi.size_text);
+        align = ToInt(physical.abi.align_text);
+        key = DirectMirAbiRowIdentityText(physical.abi);
+    }
+    ArrayPush(ids, id); ArrayPush(keys, key);
+    ArrayPush(sizes, size); ArrayPush(aligns, align);
+    let field: Int = 0;
+    while field < fields {
+        let offset: Int = 0; let field_size: Int = 0; let field_align: Int = 0;
+        if physical.valid {
+            offset = ToInt(physical.abi.field_offsets[field]);
+            field_size = ToInt(physical.abi.field_sizes[field]);
+            field_align = ToInt(physical.abi.field_aligns[field]);
+        }
+        ArrayPush(offsets, offset);
+        ArrayPush(field_sizes, field_size);
+        ArrayPush(field_aligns, field_align);
+        field = field + 1;
+    }
+    return DirectMirScalarProgramRecordAbiCarriage(
+        ids, keys, sizes, aligns, offsets, field_sizes, field_aligns);
+}
+
+func DirectMirScalarProgramRecordAbiCarriageAppend(
+    current: DirectMirScalarProgramRecordAbiCarriage,
+    ref candidate: DirectMirScalarProgramRecordAbiCarriage
+) -> DirectMirScalarProgramRecordAbiCarriage {
+    let ids: Array<Int> = current.layout_ids; let keys: Array<String> = current.row_keys;
+    let sizes: Array<Int> = current.sizes; let aligns: Array<Int> = current.aligns;
+    let offsets: Array<Int> = current.field_offsets;
+    let field_sizes: Array<Int> = current.field_sizes;
+    let field_aligns: Array<Int> = current.field_aligns;
+    ArrayPush(ids, candidate.layout_ids[0]); ArrayPush(keys, candidate.row_keys[0]);
+    ArrayPush(sizes, candidate.sizes[0]); ArrayPush(aligns, candidate.aligns[0]);
+    let field: Int = 0;
+    while field < ArrayLength(candidate.field_offsets) {
+        ArrayPush(offsets, candidate.field_offsets[field]);
+        ArrayPush(field_sizes, candidate.field_sizes[field]);
+        ArrayPush(field_aligns, candidate.field_aligns[field]);
+        field = field + 1;
+    }
+    return DirectMirScalarProgramRecordAbiCarriage(
+        ids, keys, sizes, aligns, offsets, field_sizes, field_aligns);
+}
+
+func DirectMirScalarProgramRecordAbiCarriageRowReady(
+    ref fact: DirectMirScalarProgramRecordAbiCarriage,
+    row: Int, start: Int, count: Int
+) -> Bool {
+    if row < 0 || row >= ArrayLength(fact.layout_ids) || start < 0 ||
+        count <= 0 || start + count > ArrayLength(fact.field_offsets) {
+        return false;
+    }
+    let required: Bool = fact.layout_ids[row] > 0;
+    if required {
+        if count > 8 || fact.row_keys[row] == "" || fact.sizes[row] <= 0 ||
+            fact.aligns[row] <= 0 { return false; }
+    } else if fact.layout_ids[row] != 0 || fact.row_keys[row] != "" ||
+        fact.sizes[row] != 0 || fact.aligns[row] != 0 { return false; }
+    let field: Int = start;
+    while field < start + count {
+        if required {
+            if fact.field_offsets[field] < 0 || fact.field_sizes[field] <= 0 ||
+                fact.field_aligns[field] <= 0 { return false; }
+        } else if fact.field_offsets[field] != 0 || fact.field_sizes[field] != 0 ||
+            fact.field_aligns[field] != 0 { return false; }
+        field = field + 1;
+    }
+    return true;
+}

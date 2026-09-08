@@ -31,13 +31,6 @@ def graph(document, row):
     return instructions(document)[row]["expr0_graph"]
 
 
-def semantic_kind(row, native=False):
-    if native and row["kind"] == "class" and row["nominal_kind"] in (
-            "tobject", "subject", "vessel"):
-        return row["nominal_kind"]
-    return row["kind"]
-
-
 def graph_shape(value):
     return {
         "root": value["root"],
@@ -51,7 +44,7 @@ def graph_shape(value):
 def declaration_shape(document, native=False):
     row = declaration(document)
     return {
-        "kind": semantic_kind(row, native),
+        "kind": row["kind"],
         "nominal_kind": row["nominal_kind"],
         "name": row["name"],
         "fields": [{key: field[key] for key in (
@@ -172,22 +165,22 @@ def append_source_local(document):
 emit("semantic-rename", semantic_rename)
 emit("literal-seventy-three", literal_seventy_three)
 emit("host-object", lambda d: (
-    declaration(d).__setitem__("kind", "object"),
+    declaration(d).__setitem__("kind", "class"),
     declaration(d).__setitem__("nominal_kind", "object")))
 emit("host-class", lambda d: (
     declaration(d).__setitem__("kind", "class"),
     declaration(d).__setitem__("nominal_kind", "class")))
 emit("host-tobject", lambda d: (
-    declaration(d).__setitem__("kind", "tobject"),
+    declaration(d).__setitem__("kind", "class"),
     declaration(d).__setitem__("nominal_kind", "tobject")))
-emit("kind-drift", lambda d: declaration(d).__setitem__("kind", "class"))
+emit("kind-drift", lambda d: declaration(d).__setitem__("kind", "tobject"))
 emit("nominal-kind-drift", lambda d: declaration(d).__setitem__(
-    "nominal_kind", "class"))
+    "nominal_kind", "unknown"))
 emit("host-subject", lambda d: (
-    declaration(d).__setitem__("kind", "subject"),
+    declaration(d).__setitem__("kind", "class"),
     declaration(d).__setitem__("nominal_kind", "subject")))
 emit("host-vessel", lambda d: (
-    declaration(d).__setitem__("kind", "vessel"),
+    declaration(d).__setitem__("kind", "class"),
     declaration(d).__setitem__("nominal_kind", "vessel")))
 emit("declaration-name-drift", lambda d: declaration(d).__setitem__("name", "Other"))
 emit("declaration-id-zero", lambda d: declaration(d).__setitem__("source_syntax_id", 0))

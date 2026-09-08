@@ -1,0 +1,13 @@
+struct Mutable { let mut value: Int; }
+struct Bare { value: Int; }
+struct Frozen { let value: Int; }
+object Projection { value: Int; }
+func Main() -> Void {
+    let a: Mutable = Mutable(1);
+    let b: Bare = Bare(2);
+    let c: Frozen = Frozen(3);
+    let p: Projection = Projection(4);
+    a.value = 5;
+    b.value = 6;
+    Log(a.value + b.value + c.value + p.value);
+}

@@ -1,4 +1,4 @@
-// Named-value requirement for borrow-tracked parameter boundaries.
+// Named-value and readonly provenance rules at owned-sequence boundaries.
 //
 // Parameter type/mode and expression place are already admitted facts here.
 // This owner joins them once before MIR lowering; backends may not recover the
@@ -12,6 +12,7 @@ import "ast_expression_place_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "builtin_signature_owner.pgy";
 import "diagnostic_owner.pgy";
+import "ast_statement_type_fact_owner.pgy";
 
 struct SemanticAstNamedValueBoundaryVerdict {
     ok: Bool;
@@ -47,7 +48,7 @@ func SemanticAstNamedValueBoundaryFreshOwnedSequenceConstructor(
     ref graph: SemanticExpressionGraphFacts,
     argument_node_id: Int,
     parameter_type: String,
-    arena_count: Int
+    ref call_roots: SemanticCallSpineRoots
 ) -> Bool {
     if !SemanticAstNamedValueBoundaryTracksType(parameter_type) { return false; }
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(
@@ -66,11 +67,12 @@ func SemanticAstNamedValueBoundaryFreshOwnedSequenceConstructor(
         UnwrapOption(target_kind) != SemanticCallTargetDirect() {
         return false;
     }
-    let call: SemanticCallSpineView =
-        SemanticCallSpineViewForCallNodeWithin(
-            graph, argument_node_id, arena_count - 1
+    if !call_roots.ok || ArrayLength(call_roots.root_nodes) !=
+        SemanticExpressionGraphArenaNodeCount(graph.arena) { return false; }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, call_roots.root_nodes[argument_node_id]
     );
-    if !call.ok { return false; }
+    if !call.ok || call.call_node != argument_node_id { return false; }
     let declared_type: Option<String> = Some(parameter_type);
     let contextual_type: Option<String> =
         SemanticContextualBuiltinReturnTypeOpt(
@@ -88,11 +90,46 @@ func SemanticAstNamedValueBoundaryModeName(mode: Int) -> String {
     return "default";
 }
 
+func SemanticAstReadonlySequenceBoundaryVerdict(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int, type_name: String, boundary: String
+) -> SemanticAstNamedValueBoundaryVerdict {
+    if !SemanticAstNamedValueBoundaryTracksType(type_name) {
+        return SemanticAstNamedValueBoundaryVerdictOk();
+    }
+    // A field projection preserves its root's borrow; it does not grant
+    // ownership. Follow only the admitted, strictly decreasing member path.
+    let node: Int = root_id;
+    while node >= 0 {
+        let place: Option<Int> = SemanticExpressionGraphPlaceKind(graph, node);
+        if !IsSome(place) || UnwrapOption(place) == SemanticExpressionPlaceUnknown() {
+            break;
+        }
+        if UnwrapOption(place) == SemanticExpressionPlaceReadonlyRefBinding() {
+            return SemanticAstNamedValueBoundaryVerdictError(
+                "borrow_boundary_escape", SemanticError2(
+                    "borrow_boundary_escape", "boundary", boundary,
+                    "type", type_name), root_id, -1);
+        }
+        if UnwrapOption(place) != SemanticExpressionPlaceMember() {
+            return SemanticAstNamedValueBoundaryVerdictOk();
+        }
+        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, node);
+        if !member.ok || member.receiver_node < 0 || member.receiver_node >= node { break; }
+        node = member.receiver_node;
+    }
+    return SemanticAstNamedValueBoundaryVerdictError(
+        "ast_artifact_invalid", SemanticError1(
+            "ast_artifact_invalid", "owner", "readonly_boundary_place"), root_id, -1);
+}
+
 func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
     signatures: SemanticAstFunctionSignatureFacts,
-    ref graph: SemanticExpressionGraphFacts
+    ref graph: SemanticExpressionGraphFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementTypeFacts
 ) -> SemanticAstNamedValueBoundaryVerdict {
-    if !signatures.ok ||
+    if !signatures.ok || !statements.ok ||
         !SemanticExpressionGraphCarriedCallTargetsReady(graph) ||
         !SemanticExpressionGraphPlaceKindsReady(graph) {
         return SemanticAstNamedValueBoundaryVerdictError(
@@ -104,7 +141,33 @@ func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
             -1, -1
         );
     }
+    let statement: Int = 0;
+    while statement < ArrayLength(statements.node_ids) {
+        if statements.verified[statement] == 1 &&
+            statements.kind_tags[statement] == TypedAstKindValueReturnStmtTag() {
+            let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, statements.node_ids[statement], AstExpressionLaneAtom());
+            if !IsSome(root) {
+                return SemanticAstNamedValueBoundaryVerdictError(
+                    "ast_artifact_invalid", SemanticError1(
+                        "ast_artifact_invalid", "owner", "return_boundary_graph"),
+                    statements.node_ids[statement], -1);
+            }
+            let verdict: SemanticAstNamedValueBoundaryVerdict =
+                SemanticAstReadonlySequenceBoundaryVerdict(
+                    graph, UnwrapOption(root), statements.expected_type_names[statement], "return");
+            if !verdict.ok { return verdict; }
+        }
+        statement = statement + 1;
+    }
     let arena_count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    let call_roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(graph);
+    if !call_roots.ok {
+        return SemanticAstNamedValueBoundaryVerdictError(
+            "ast_artifact_invalid", SemanticError1(
+                "ast_artifact_invalid", "owner", "SemanticAstNamedValueBoundaryVerdict"),
+            -1, -1);
+    }
     let call_node: Int = 0;
     while call_node < arena_count {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(
@@ -132,14 +195,12 @@ func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
             call_node = call_node + 1;
             continue;
         }
-        let call: SemanticCallSpineView =
-            SemanticCallSpineViewForCallNodeWithin(
-                graph, call_node, arena_count - 1
-            );
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+            graph, call_roots.root_nodes[call_node]);
         let parameter_count: Option<Int> = SemanticAstFunctionParamCountAt(
             signatures, UnwrapOption(signature_index)
         );
-        if !call.ok || !IsSome(parameter_count) ||
+        if !call.ok || call.call_node != call_node || !IsSome(parameter_count) ||
             ArrayLength(call.argument_nodes) != UnwrapOption(parameter_count) {
             return SemanticAstNamedValueBoundaryVerdictError(
                 "ast_artifact_invalid",
@@ -177,6 +238,13 @@ func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
             let mode: Int = UnwrapOption(parameter_mode);
             let admitted_parameter_type: String = UnwrapOption(parameter_type);
             let argument_node_id: Int = call.argument_nodes[argument_index];
+            if mode != 3 {
+                let readonly: SemanticAstNamedValueBoundaryVerdict =
+                    SemanticAstReadonlySequenceBoundaryVerdict(
+                        graph, argument_node_id, admitted_parameter_type,
+                        SemanticAstNamedValueBoundaryModeName(mode));
+                if !readonly.ok { return readonly; }
+            }
             if mode != 0 &&
                 SemanticAstNamedValueBoundaryTracksType(
                     admitted_parameter_type
@@ -184,7 +252,7 @@ func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
                     SemanticExpressionPlaceValue() &&
                 !SemanticAstNamedValueBoundaryFreshOwnedSequenceConstructor(
                     graph, argument_node_id, admitted_parameter_type,
-                    arena_count
+                    call_roots
                 ) {
                 return SemanticAstNamedValueBoundaryVerdictError(
                     "named_value_boundary_argument_required",

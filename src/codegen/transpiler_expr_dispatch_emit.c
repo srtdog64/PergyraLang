@@ -128,7 +128,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         }
         if (strcmp(id_name, "self") != 0
             && !ident_has_active_ssa
-            && lookup_typed_var(ctx, id_name) == NULL
+            && lookup_typed_entry(ctx, id_name) == NULL
             && !transpiler_identifier_is_current_true_local(ctx, id_name)) {
             bool id_is_slot = is_slot_var(ctx, id_name);
             if (!id_is_slot

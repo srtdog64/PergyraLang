@@ -1,0 +1,8 @@
+func ClockBump(value: Int) -> Int with caps clock {
+    let observed: Int = Now();
+    return value + 1;
+}
+func Restricted(operation: func(Int) -> Int, value: Int) -> Int with caps random {
+    return operation(value);
+}
+func Main() -> Void with caps clock, random { Log(Restricted(ClockBump, 41)); }

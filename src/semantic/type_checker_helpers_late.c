@@ -8,6 +8,7 @@
  */
 
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "type_checker_visibility.h"
 #include "type_checker_generic_diag_internal.h"
 #include "type_checker_ownership_internal.h"
@@ -91,8 +92,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         }
     }
     sym->is_used = true;
-    semantic_record_effect(ctx, type_function_effects(sym->type));
-    semantic_record_capability(ctx, type_function_capabilities(sym->type));
+    /* Preserve branch explanations; only sealed call equations own bounds. */
+    semantic_record_callee_effect_provenance(ctx, type_function_effects(sym->type));
     semantic_record_callee_body_summary(ctx, sym->type);
     semantic_record_callable_decl_summary(ctx, callable_decl,
         sym->type,
@@ -260,6 +261,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
 
     semantic_validate_function_call_generic_where(
         expr, ctx, display_name, provided, call_arg_types);
+    callable_capability_record_call(ctx, expr, sym, call_arg_types);
 
     Type *return_type = type_function_return_type(sym->type);
     if (effective_generic_types != NULL

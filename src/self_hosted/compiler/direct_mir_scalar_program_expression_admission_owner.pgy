@@ -13,6 +13,7 @@ import "direct_mir_scalar_program_array_string_nested_literal_owner.pgy";
 import "direct_mir_scalar_program_array_bool_nested_literal_owner.pgy";
 import "direct_mir_scalar_program_option_absence_expression_owner.pgy";
 import "direct_mir_scalar_program_logical_record_expression_owner.pgy";
+import "direct_mir_scalar_program_named_record_literal_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_expression_admission_failure_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_expression_owner.pgy";
@@ -37,12 +38,30 @@ func DirectMirScalarProgramAppendExpression(
     require_all_uses: Bool, expected_type: String,
     try_operand_only: Bool, source_root_override: Int
 ) -> DirectMirScalarProgramExpressionAdmission {
+    let lane: Int = -1;
+    if graph_field == "expr0_graph" { lane = 0; }
+    if graph_field == "expr1_graph" { lane = 1; }
     let sequence: MirExpressionGraphSequence =
         DirectMirScalarCfgExpressionSequenceForField(
             instruction, graph_field);
     if !facts.valid || !sequence.ok || ArrayLength(sequence.roots) != 1 {
         return DirectMirScalarProgramExpressionAdmissionRejected(facts, "graph-sequence", -1);
     }
+    let bound_calls: Array<Int> = [];
+    let named_records: DirectMirScalarProgramNamedRecordLiterals =
+        DirectMirScalarProgramNamedRecordLiteralsFromGraph(sequence, logical_record);
+    if !named_records.valid {
+        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "named-record-literal", -1);
+    }
+    let binding_node: Int = 0;
+    while binding_node < sequence.ready_node_count {
+        let target: Int = DirectMirRoutineInstanceCallOrdinal(callables.instances,
+            callables.caller_ordinal, global_row, lane, binding_node,
+            sequence.arena.identities.call_target_syntax_ids[binding_node]);
+        ArrayPush(bound_calls, target);
+        binding_node = binding_node + 1;
+    }
+    sequence.program_call_ordinals = bound_calls;
     let total_count: Int = ArrayLength(sequence.arena.topology.node_kinds); let count: Int = total_count;
     let source_root: Int = sequence.roots[0];
     if source_root_override >= 0 { source_root = source_root_override; count = source_root + 1; }
@@ -116,7 +135,8 @@ func DirectMirScalarProgramAppendExpression(
     let node: Int = 0;
     while node < count {
         let source_kind: Int = sequence.arena.topology.node_kinds[node];
-        if DirectMirScalarProgramCallCalleeNodeReady(sequence, node) ||
+        if (node < ArrayLength(named_records.roles) && named_records.roles[node] == 1) ||
+            DirectMirScalarProgramCallCalleeNodeReady(sequence, node) ||
             DirectMirScalarProgramPayloadFreeEnumMarkerReady(
                 sequence, node, payload_free_enum) ||
             DirectMirScalarProgramPayloadEnumZeroConstructorMarkerReady(
@@ -136,7 +156,20 @@ func DirectMirScalarProgramAppendExpression(
         let call_arguments: Array<Int> = [];
         let call_callable: Int = -1;
         let runtime_call_abi_id: Int = -1;
-        if DirectMirScalarProgramCallMarkerReady(sequence, node) {
+        if node < ArrayLength(named_records.roles) && named_records.roles[node] == 2 {
+            let constructor: DirectMirScalarProgramLogicalRecordExpressionFact =
+                DirectMirScalarProgramNamedRecordConstructorFromPlan(
+                    named_records, node, source_rows, types, logical_record);
+            if !constructor.valid || !constructor.complete {
+                return DirectMirScalarProgramExpressionAdmissionRejected(facts, "named-record-fields", node);
+            }
+            kind = constructor.kind; type_name = constructor.type_name;
+            call_arguments = constructor.argument_rows;
+            if ArrayLength(call_arguments) == 1 { left = call_arguments[0]; }
+            else if ArrayLength(call_arguments) == 2 {
+                left = call_arguments[0]; right = call_arguments[1];
+            }
+        } else if DirectMirScalarProgramCallMarkerReady(sequence, node) {
             let builtin: DirectMirScalarProgramBuiltinCallFact =
                 DirectMirScalarProgramZeroArgumentBuiltinCallFactFromGraph(
                     sequence, node, expected_type, logical_record);
@@ -167,8 +200,13 @@ func DirectMirScalarProgramAppendExpression(
                 type_name = builtin.return_type;
                 runtime_call_abi_id = builtin.runtime_call_abi_id;
             } else {
-                let direct: DirectMirScalarProgramDirectCallFact =
-                    DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(sequence, node, callables, signature);
+                let direct: DirectMirScalarProgramDirectCallFact = DirectMirScalarProgramDirectCallFactInvalid(false);
+                if DirectMirScalarProgramMemberCallMarkerReady(sequence, node) {
+                    let arguments: Array<Int> = [];
+                    direct = DirectMirIdentityCellCallFromGraph(sequence, node, source_rows, types, arguments, callables);
+                } else {
+                    direct = DirectMirScalarProgramZeroArgumentDirectCallFactFromGraph(sequence, node, callables, signature);
+                }
                 if !direct.valid || !direct.complete {
                     ArrayPush(source_rows, -1); node = node + 1; continue;
                 }
@@ -185,6 +223,7 @@ func DirectMirScalarProgramAppendExpression(
                 param = direct.callable_parameter_ordinal;
                 type_name = direct.return_type;
             }
+            if ArrayLength(call_arguments) == 1 { left = call_arguments[0]; }
         } else if source_kind == AstExpressionNodeCallArgument() {
             let constructor:
                 DirectMirScalarProgramLogicalRecordExpressionFact =
@@ -345,6 +384,15 @@ func DirectMirScalarProgramAppendExpression(
                         ArrayLength(locals.value_local_rows) {
                     operand_local = locals.value_local_rows[operand.value_row];
                 }
+                if identity.parameter_ordinal >= 0 {
+                    let wanted: String = SelfMirLocalRef(
+                        "parameter", signature.source_syntax_id, identity.parameter_ordinal);
+                    if (bound_local >= 0 && locals.local_ref_value_ids[bound_local] != wanted) ||
+                        (operand.valid && operand_local >= 0 &&
+                            locals.local_ref_value_ids[operand_local] != wanted) {
+                        return DirectMirScalarProgramExpressionAdmissionRejected(facts, "formal-storage-identity", node);
+                    }
+                }
                 let consumed_uses: Int = operand.use_count; let reused_prior_lane: Bool = operand.valid &&
                     operand.value_row >= 0 && consumed_uses == 0;
                 let selects_local: Bool = false;
@@ -358,6 +406,19 @@ func DirectMirScalarProgramAppendExpression(
                 } else if identity.parameter_ordinal >= 0 &&
                         (!operand.valid || reused_prior_lane) {
                     param = identity.parameter_ordinal; type_name = parameter_types[param];
+                    // The native SSA wire may retain the formal entry use even
+                    // when there is no local definition. Its graph declaration
+                    // identity above must already agree with this signature.
+                    if expected_uses < total_uses {
+                        let entry_use: Option<String> =
+                            MirRoutineInstructionUseAtGlobal(uses, global_row, expected_uses);
+                        if !IsSome(entry_use) {
+                            return DirectMirScalarProgramExpressionAdmissionRejected(facts, "formal-entry-use", node);
+                        }
+                        if UnwrapOption(entry_use) == Concat(signature.parameters.names[param], ".0") {
+                            expected_uses = expected_uses + 1;
+                        }
+                    }
                     if signature.parameters.carriages[param] == "value-result" {
                         let wanted: String = SelfMirLocalRef("parameter", signature.source_syntax_id, param);
                         let parameter_local: Int = DirectMirScalarCfgLocalIdentityRow(locals.local_ref_value_ids, wanted);
@@ -476,6 +537,13 @@ func DirectMirScalarProgramAppendExpression(
             }
             kind = classified.kind; type_name = classified.type_name;
             literal = classified.literal;
+            if kind == DirectMirScalarProgramExprDivideInt() {
+                let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(kind);
+                if !abi.ok {
+                    return DirectMirScalarProgramExpressionAdmissionRejected(facts, "checked-int-runtime", node);
+                }
+                runtime_call_abi_id = abi.runtime_call_abi_id;
+            }
             }
         }
         DirectMirScalarProgramAppendExpressionNode(
@@ -484,8 +552,7 @@ func DirectMirScalarProgramAppendExpression(
             kind, type_name, left, right,
             local_row, param, member_ordinal, literal, call_callable,
             runtime_call_abi_id);
-        if source_kind == AstExpressionNodeCallArgument() &&
-                ArrayLength(call_arguments) > 2 {
+        if ArrayLength(call_arguments) > 2 {
             nary_operands = DirectMirScalarProgramNaryOperandsAppend(
                 nary_operands, ArrayLength(kinds) - 1,
                 call_arguments);

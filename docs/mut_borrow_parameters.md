@@ -7,16 +7,18 @@ function is explicit and value-result, spelled `inout`. The older `&mut`
 spelling has been removed because it borrowed Rust's sigil while providing
 Swift-style copy-in/copy-out semantics.
 
-## Problem
+## Historical Problem
 
 The self-hosted linter originally split structural scanning into
 `ScanStructure(content, diags)`. Inside that helper, `ArrayPush(diags, ...)`
 mutated only the callee's copy because arrays pass by value. The caller saw no
 new diagnostics.
 
-That behavior is correct for a plain value parameter, but it exposed an
-ergonomic gap: a function sometimes needs to update the caller's collection
-without turning all collections into aliased references.
+That historical behavior exposed an ergonomic gap: a function sometimes needs
+to update the caller's collection without turning all collections into aliased
+references. It is not the current admission contract. Mutation of a plain or
+`ref` collection parameter is now rejected; the compiler does not promise that
+such a call silently mutates an isolated callee copy.
 
 ## Decision
 
@@ -38,8 +40,16 @@ Rules:
 - The same named variable may not be passed to more than one `inout` parameter
   in the same call, because the last copy-out would otherwise lose earlier
   updates.
-- A plain parameter stays a value. `ArrayPush(arr, x)` on a plain parameter is a
-  local mutation of the callee's copy.
+- A plain parameter stays a value, but a collection mutator such as
+  `ArrayPush(arr, x)` on a plain or `ref` parameter is rejected. Public admission
+  reports `value_param_collection_mutation`; native admission uses the existing
+  builtin-argument diagnostic. Use `inout` for the caller-visible update.
+  The public admission owner is
+  `src/self_hosted/semantic/collection_mutation_policy_owner.pgy`; its graph
+  consumer preserves the resolved receiver and parameter mode.
+- Value semantics describe observable behavior, not permission to shallow-copy
+  a backing pointer and allow untracked alias mutation. The C sketch below
+  describes the value-result boundary, not a generic container-copy algorithm.
 - `&mut` is rejected by the parser; `inout` is the only spelling for
   value-result mutable parameters.
 

@@ -23,6 +23,7 @@
 #include "llvm_mir_resource_view.h"
 #include "llvm_expr_assignment_member_projection.h"
 #include "llvm_expr_member_lvalue.h"
+#include "../compiler/mir_cfg_contract_cleanup_root_membership.h"
 #include "../parser/ast_api.h"
 
 static bool
@@ -120,6 +121,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
     for (size_t i = 0; i < mir_block->instruction_count; i++) {
         const MIRInstruction *inst = &mir_block->instructions[i];
         ctx->current_mir_instruction = inst;
+        llvm_mir_seed_instruction_use_scope(inst, ctx, vars, var_count);
+        if (ctx->has_error)
+            return;
         llvm_debug_set_line(ctx, mir_instruction_source_line(inst));
         if (llvm_debug_detail_enabled()) {
             fprintf(stderr,
@@ -255,8 +259,12 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                                     saved_expected_type_name;
                                 return;
                             }
-                            val = llvm_emit_assignment_parts(inst->expr0,
-                                inst->expr1, inst->expr0, ctx);
+                            /* A DEF produces a new SSA value. Writing through
+                             * the current spelling alias first can mutate a
+                             * different lexical binding on a branch edge.
+                             * The exact result alloca is stored below; residual
+                             * memory assignments remain MIR_INST_ASSIGN. */
+                            val = llvm_emit_expression(inst->expr0, ctx);
                         } else {
                             if (!llvm_stmt_require_non_void_value(ctx,
                                     emit_expr,
@@ -595,10 +603,13 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
             if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                 return;
-            if (!llvm_emit_mir_mut_ref_writebacks(routine, mir_block,
-                    vars, var_count, ctx))
-                return;
             if (function_ret_type == ctx->type_void) {
+                /* Exceptional cleanup roots are not normal source exits.
+                 * Their MIR owner has no formal exit-version receipt. */
+                if (!mir_cleanup_block_is_registered_root(routine, mir_block->id)
+                    && !llvm_emit_mir_mut_ref_writebacks(routine, mir_block,
+                        vars, var_count, ctx))
+                    return;
                 llvm_mir_region_scope_destroy(ctx);
                 LLVMBuildRetVoid(ctx->builder);
             } else {

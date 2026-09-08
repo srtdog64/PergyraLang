@@ -56,9 +56,8 @@ func SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(
                         analysis.signatures, surface_index
                     );
                 let intent_node_id: Option<Int> =
-                    SemanticAstIntentExpressionOwnerNodeId(
-                        artifact, use_node_id
-                    );
+                    SemanticAstExpressionIntentNodeAt(
+                        analysis.expression_surfaces, analysis.intent_signatures, surface_index);
                 if surface_index != seeded_surface {
                     SemanticAstExpressionEnvironmentReset(names, types, modes);
                     if !SemanticAstBodyExpressionEnvironmentSeed(

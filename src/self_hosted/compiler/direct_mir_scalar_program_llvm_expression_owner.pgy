@@ -8,12 +8,14 @@ import "direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_bool_empty_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_short_circuit_owner.pgy";
 import "direct_mir_scalar_program_llvm_numeric_cast_expression_owner.pgy";
+import "direct_mir_identity_cell_projection_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_array_empty_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_external_runtime_expression_owner.pgy";
-import "direct_mir_scalar_program_llvm_array_string_readonly_ref_owner.pgy";
+import "direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy";
 import "direct_mir_scalar_program_llvm_int_wrap_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_match_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_hashmap_owner.pgy";
 struct DirectMirScalarProgramLlvmExpression {
     let valid: Bool;
     let instructions: String;
@@ -33,12 +35,13 @@ func DirectMirScalarProgramLlvmExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet,
     expression_row: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
-    ref nominal: DirectMirScalarProgramTwoIntNominalAbiFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref routines: DirectMirScalarCfgRoutinePartitionFact, routine: Int, ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
-    array_string_projection: Option<DirectMirArrayStringAbiProjection>, target: CompilerTargetProjectionFact
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>,
+    ref array_int_abi: DirectMirScalarProgramArrayIntValueResultFact,
+    array_int_projection: Option<DirectMirArrayIntAbiProjection>, target: CompilerTargetProjectionFact
 ) -> DirectMirScalarProgramLlvmExpression {
     let chunks: Array<String> = [];
     let values: Array<String> = [];
@@ -83,6 +86,7 @@ func DirectMirScalarProgramLlvmExpressionAt(
             argument_rows = DirectMirScalarProgramDirectCallArgumentRows(
                 expressions, node);
         } else if kind == DirectMirScalarProgramExprLogicalRecordConstructor() ||
+                kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
                 kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
             argument_rows = DirectMirScalarProgramLogicalRecordArgumentRows(
                 expressions, node);
@@ -119,11 +123,41 @@ func DirectMirScalarProgramLlvmExpressionAt(
         let value: String = "";
         let result: String = DirectMirScalarProgramLlvmNodeName(expression_row, node);
         let cast_value: Option<String> = DirectMirScalarProgramLlvmNumericCastExpressionValue(kind, left);
-        if IsSome(cast_value) { value = UnwrapOption(cast_value);
+        let hashmap: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmHashMapExpressionAt(
+            expressions, node, result, values, start);
+        if hashmap.matched {
+            if !hashmap.valid { return DirectMirScalarProgramLlvmExpression(false, "", "", ""); }
+            value = hashmap.value; node_instructions = hashmap.instructions;
+        } else if kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
+                kind == DirectMirScalarProgramExprIdentityCellMember() {
+            let type_name: String = expressions.node_types[node];
+            if kind == DirectMirScalarProgramExprIdentityCellMember() {
+                type_name = expressions.node_types[expressions.node_lefts[node]];
+            }
+            let cell: DirectMirScalarProgramLlvmStringExpression = DirectMirIdentityCellLlvmExpression(
+                logical_record.identity_cells, kind, node, result, type_name, left, arguments,
+                expressions.node_member_ordinals[node]);
+            if !cell.valid { return DirectMirScalarProgramLlvmExpression(false, "", "", ""); }
+            value = cell.value; node_instructions = cell.instructions;
+        } else if DirectMirScalarProgramArrayTransformKind(kind) {
+            let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramArrayTransformRuntimeFact(kind);
+            let storage: DirectMirArrayStorageAbiProjection = DirectMirArrayStorageAbiProjectionFromTarget(target);
+            if !abi.ok || left_address == "" || !DirectMirArrayStorageAbiProjectionReadyFor(
+                    storage, CompilerTargetCpuLlvmProjection()) {
+                return DirectMirScalarProgramLlvmExpression(false, "", "", "");
+            }
+            node_instructions = "  " + result + ".data = extractvalue %pgy.array.int " + left + ", " + ToString(storage.data_index) + "\n";
+            node_instructions = node_instructions + "  " + result + ".length = extractvalue %pgy.array.int " + left + ", " + ToString(storage.length_index) + "\n";
+            node_instructions = node_instructions + "  call void @" + abi.symbol + "(ptr " + result + ".data, i64 " + result + ".length)\n";
+            // Only the elements change; keep the admitted descriptor and its identity.
+            value = left;
+        } else if kind == DirectMirScalarProgramExprNegateLong() {
+            value = result; node_instructions = "  " + result + " = sub i64 0, " + left + "\n";
+        } else if IsSome(cast_value) { value = UnwrapOption(cast_value);
         } else if kind == DirectMirScalarProgramExprLocal() {
             let type_name: String =
                 DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
-                    expressions.node_types[node], nominal, logical_record,
+                    expressions.node_types[node], logical_record,
                     payload_free_enum, referenced_enum);
             if type_name == "" { return DirectMirScalarProgramLlvmExpression(
                 false, "", "", ""); }
@@ -145,7 +179,15 @@ func DirectMirScalarProgramLlvmExpressionAt(
             let array_type: String =
                 DirectMirScalarProgramLlvmValueResultCollectionTypeName(
                     logical_record, routines.parameter_types[parameter_row]);
-            if routines.parameter_carriages[parameter_row] == "value-result" &&
+            let scalar_storage: Bool = DirectMirScalarCfgScalarTypeSupported(
+                routines.parameter_types[parameter_row]) &&
+                (routines.parameter_carriages[parameter_row] == "value" ||
+                 routines.parameter_carriages[parameter_row] == "value-result");
+            if scalar_storage {
+                value = result;
+                let scalar_type: String = DirectMirScalarProgramLlvmType(routines.parameter_types[parameter_row]);
+                node_instructions = node_instructions + "  ${result} = load ${scalar_type}, ptr %pgy.param.${ordinal}.local\n";
+            } else if routines.parameter_carriages[parameter_row] == "value-result" &&
                     array_type != "" {
                 value = result;
                 node_instructions = Concat(node_instructions, Concat("  ", result));
@@ -170,8 +212,9 @@ func DirectMirScalarProgramLlvmExpressionAt(
             }
             let array_parameter_read:
                 DirectMirScalarProgramLlvmStringExpression =
-                    DirectMirScalarProgramLlvmArrayStringReadonlyRefParameterRead(
-                        routines, array_string_abi, array_string_projection, routine, ordinal, result);
+                    DirectMirScalarProgramLlvmArrayReadonlyRefParameterRead(
+                        routines, array_string_abi, array_string_projection,
+                        array_int_abi, array_int_projection, routine, ordinal, result);
             if array_parameter_read.matched {
                 if !array_parameter_read.valid {
                     return DirectMirScalarProgramLlvmExpression(
@@ -218,7 +261,7 @@ func DirectMirScalarProgramLlvmExpressionAt(
                 DirectMirScalarProgramLlvmMatchExpression =
                 DirectMirScalarProgramLlvmMatchExpressionAt(
                     expressions, node, result, left, arguments,
-                    argument_types, nominal, logical_record,
+                    argument_types, logical_record,
                     payload_free_enum, referenced_enum);
             if match_value.matched {
                 if !match_value.valid {
@@ -327,8 +370,6 @@ func DirectMirScalarProgramLlvmExpressionAt(
                     node_instructions = Concat(node_instructions, " = sub i64 ");
                 } else if kind == DirectMirScalarProgramExprMultiplyLong() {
                     node_instructions = Concat(node_instructions, " = mul i64 ");
-                } else if kind == DirectMirScalarProgramExprDivideInt() {
-                    node_instructions = Concat(node_instructions, " = sdiv i64 ");
                 } else {
                     return DirectMirScalarProgramLlvmExpression(
                         false, "", "", "");

@@ -14,7 +14,7 @@ func DirectMirInferredGenericMemberProgramEnvelopeReady(
         );
     if !DirectMirTwoRoutineClassificationFactReady(classification) ||
         !DirectMirTwoRoutineInferredMemberKindMatches(
-            classification.kind, classification.shape.declaration_kind
+            classification.kind, classification.shape.nominal_kind
         ) ||
         classification.specialization_count != 2 ||
         classification.shape.generic_routine_count != 1 ||
@@ -30,7 +30,7 @@ func DirectMirInferredGenericMemberProgramEnvelopeReady(
         admitted.domain_runtime_admission.declarations.kinds[0] !=
             classification.shape.declaration_kind ||
         admitted.domain_runtime_admission.declarations.nominal_kinds[0] !=
-            classification.shape.declaration_kind ||
+            classification.shape.nominal_kind ||
         !JsonArrayObjectFactTableReady(specializations) ||
         JsonArrayObjectFactCount(specializations) != 2 ||
         !JsonArrayObjectFactTableReady(

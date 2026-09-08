@@ -20,6 +20,11 @@ typedef struct
     size_t   binding_count;
 } MIRGenericMethodSpecializationFact;
 
+char *mir_generic_specialization_symbol(const char *owner_name,
+                                        const char *callable_name,
+                                        char *const *actual_type_names,
+                                        size_t actual_count);
+
 bool mir_generic_method_specializations_capture(
     struct MIRProgram *mir,
     char **error_message);

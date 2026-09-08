@@ -6,18 +6,20 @@
  *
  * Capability inference, interprocedural propagation, and the per-function
  * `with caps` declared-vs-used check all live in the type checker now
- * (type_checker_func_decl.c + semantic_record_capability), where they reuse the
- * same sound, interprocedural machinery that enforces effects. The program's
- * inferred capability set is surfaced on SemanticResult.program_capabilities.
+ * (`callable_capability_inference.c` + builtin capability recording). The
+ * program seal substitutes invoked callable identities before checking bounds;
+ * a function-type mask alone cannot describe a callable formal's actual use.
+ * The inferred set is surfaced on SemanticResult.program_capabilities.
  *
  * This module is only the *presentation* of that set: it renders a capability
  * mask as the stable `pgy.capability.manifest.v1` JSON document a host reads to
  * decide what to grant (`pgy --capability-manifest`).
  *
- * SOUNDNESS NOTE (honest): the inferred set is a best-effort lower bound w.r.t.
- * dynamic dispatch / FFI (a static call graph cannot be complete -- Rice's
- * theorem). The runtime capability gate (pgy_cap_require_export) is the ground
- * truth and fail-closes, so any static under-count is safe, never permissive.
+ * Open callable templates retain deferred use. Unresolved provenance at a
+ * closed invocation is an admission error, not a zero mask. This does not prove
+ * complete FFI/dynamic-dispatch coverage: foreign declarations require their
+ * explicit contract and runtime enforcement remains an independent boundary.
+ * A runtime check does not repair a missing static capability rejection.
  */
 #ifndef PERGYRA_CAPABILITY_ANALYZE_H
 #define PERGYRA_CAPABILITY_ANALYZE_H

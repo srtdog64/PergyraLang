@@ -7,6 +7,7 @@ import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
 import "direct_mir_scalar_program_array_int_runtime_requirement_owner.pgy";
 import "../codegen/runtime_abi/collection_bounds_owner.pgy";
 import "../codegen/runtime_abi/set_runtime_owner.pgy";
+import "direct_mir_scalar_program_llvm_hashmap_owner.pgy";
 func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraphPlan) -> String {
     let array_int_runtime: DirectMirScalarProgramArrayIntRuntimeRequirement =
         DirectMirScalarProgramArrayIntRuntimeRequirementFromPlan(plan);
@@ -80,7 +81,24 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
     let needs_strstr: Bool = plan.program.runtime_abi.string_index.runtime_call_abi_id != 0 ||
         plan.program.runtime_abi.string_contains_id != 0 ||
         plan.program.runtime_abi.string_split_id != 0 || replace;
-    let output: String = "";
+    let output: String = DirectMirScalarProgramLlvmHashMapDeclarations(plan.program.expressions);
+    let reached: Array<Int> = [DirectMirScalarProgramExprCheckedAddInt(), DirectMirScalarProgramExprCheckedMulInt(), DirectMirScalarProgramExprDivideInt(),
+        DirectMirScalarProgramExprArrayIntSort(), DirectMirScalarProgramExprArrayIntReverse()];
+    let reached_index: Int = 0;
+    while reached_index < ArrayLength(reached) {
+        let kind: Int = reached[reached_index];
+        if DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, kind) {
+            let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(kind);
+            let signature: String = "i32"; let arguments: String = "(i32, i32)\n";
+            if DirectMirScalarProgramArrayTransformKind(kind) {
+                abi = DirectMirScalarProgramArrayTransformRuntimeFact(kind);
+                signature = "void"; arguments = "(ptr, i64)\n";
+            }
+            if !abi.ok { Die("direct MIR effect builtin runtime ABI is missing"); }
+            output = Concat(output, Concat("declare ", Concat(signature, Concat(" @", Concat(abi.symbol, arguments)))));
+        }
+        reached_index = reached_index + 1;
+    }
     if needs_strlen { output = Concat(output, "declare i64 @strlen(ptr)\n"); }
     if needs_malloc { output = Concat(output, "declare ptr @malloc(i64)\n"); }
     if needs_memcpy { output = Concat(output, "declare ptr @memcpy(ptr, ptr, i64)\n"); }
@@ -98,7 +116,8 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
     if collection || plan.program.runtime_abi.string_length_id != 0 || plan.program.option_int_abi.valid || plan.program.result_int_abi.valid || plan.program.option_string_abi.valid || plan.program.option_bool_abi.valid || plan.program.logical_record.present {
         output = Concat(output, "declare void @abort()\n");
     }
-    if scalar_array_index || bounded_array_set {
+    if scalar_array_index || bounded_array_set || DirectMirScalarProgramExpressionContainsKind(
+            plan.program.expressions, DirectMirScalarProgramExprArrayLongIndex()) {
         output = Concat(output, Concat(
         "declare void @", Concat(
         CollectionRuntimeLlvmBoundsPanicFn(), "(ptr)\n"))); }

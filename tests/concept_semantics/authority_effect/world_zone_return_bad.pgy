@@ -1,0 +1,3 @@
+import "world_zone_transfer_support.pgy";
+func Extract(ref world: CartWorld) -> CartZone { return world.cart; }
+func Main() -> Void { }

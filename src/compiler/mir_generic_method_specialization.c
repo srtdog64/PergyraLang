@@ -124,8 +124,8 @@ mir_generic_method_name_append_text(char **name, size_t *len,
     return true;
 }
 
-static char *
-mir_generic_method_specialized_name(const char *owner_name,
+char *
+mir_generic_specialization_symbol(const char *owner_name,
                                     const char *method_name,
                                     char *const *actual_type_names,
                                     size_t actual_count)
@@ -134,8 +134,10 @@ mir_generic_method_specialized_name(const char *owner_name,
     size_t len = 0;
     size_t capacity = 0;
 
-    if (!mir_generic_method_name_append_text(&name, &len, &capacity, owner_name)
-        || !mir_generic_method_name_append(&name, &len, &capacity, '_')
+    if (owner_name == NULL
+        || (owner_name[0] != '\0'
+            && (!mir_generic_method_name_append_text(&name, &len, &capacity, owner_name)
+                || !mir_generic_method_name_append(&name, &len, &capacity, '_')))
         || !mir_generic_method_name_append_text(&name, &len, &capacity,
             method_name)) {
         free(name);
@@ -199,6 +201,76 @@ mir_generic_method_captured_return_type(
         fact->binding_count);
 }
 
+/* Structural unification over the canonical rendered type grammar. The
+ * semantic checker has admitted the call; this copies its actual/formal
+ * relation, including constructed types, into MIR-owned binding strings. */
+static bool
+mir_generic_binding_type_names(const char *pattern, const char *actual,
+                        char *const *formal_names, char **bindings,
+                        size_t binding_count)
+{
+    if (pattern == NULL || actual == NULL)
+        return false;
+    while (*pattern != '\0') {
+        while (isspace((unsigned char)*pattern)) pattern++;
+        while (isspace((unsigned char)*actual)) actual++;
+        if (*pattern == '\0') break;
+        const char *token_end = pattern;
+        if (isalpha((unsigned char)*pattern) || *pattern == '_') {
+            do { token_end++; }
+            while (isalnum((unsigned char)*token_end) || *token_end == '_');
+        }
+        size_t binding = binding_count;
+        for (size_t i = 0; i < binding_count; i++) {
+            if (formal_names[i] != NULL
+                && strlen(formal_names[i]) == (size_t)(token_end - pattern)
+                && strncmp(pattern, formal_names[i], token_end - pattern) == 0) {
+                binding = i;
+                break;
+            }
+        }
+        if (binding < binding_count) {
+            const char *end = actual;
+            int angle = 0, paren = 0;
+            while (*end != '\0') {
+                if (angle == 0 && paren == 0
+                    && (*end == ',' || *end == '>' || *end == ')')) break;
+                if (*end == '<') angle++;
+                if (*end == '>') angle--;
+                if (*end == '(') paren++;
+                if (*end == ')') paren--;
+                if (angle < 0 || paren < 0) return false;
+                end++;
+            }
+            const char *trimmed = end;
+            while (trimmed > actual && isspace((unsigned char)trimmed[-1]))
+                trimmed--;
+            size_t length = (size_t)(trimmed - actual);
+            if (length == 0 || angle != 0 || paren != 0) return false;
+            if (bindings[binding] != NULL) {
+                if (strlen(bindings[binding]) != length
+                    || strncmp(bindings[binding], actual, length) != 0)
+                    return false;
+            } else {
+                bindings[binding] = malloc(length + 1);
+                if (bindings[binding] == NULL) return false;
+                memcpy(bindings[binding], actual, length);
+                bindings[binding][length] = '\0';
+            }
+            pattern = token_end;
+            actual = end;
+        } else {
+            size_t length = token_end > pattern
+                ? (size_t)(token_end - pattern) : 1;
+            if (strncmp(pattern, actual, length) != 0) return false;
+            pattern += length;
+            actual += length;
+        }
+    }
+    while (isspace((unsigned char)*actual)) actual++;
+    return *actual == '\0';
+}
+
 static bool
 mir_generic_method_capture_actuals(
     MIRGenericMethodCaptureCtx *ctx,
@@ -218,73 +290,83 @@ mir_generic_method_capture_actuals(
     fact->actual_type_names = calloc(fact->binding_count, sizeof(char *));
     if (fact->generic_param_names == NULL || fact->actual_type_names == NULL)
         return false;
-
-    if (explicit_count > 0 && explicit_count != fact->binding_count) {
-        if (ctx->error_message != NULL)
-            *ctx->error_message = mir_strdup_fmt(
-                "MIR generic method call %u carries %zu actual types for %zu parameters",
-                ast_node_stable_id(call), explicit_count, fact->binding_count);
-        return false;
-    }
+    if (explicit_count > fact->binding_count)
+        goto invalid;
 
     for (size_t i = 0; i < fact->binding_count; i++) {
-        const char *formal = method_routine->generic_param_names[i];
-        const char *inferred = NULL;
-        char *captured_return = NULL;
-
-        fact->generic_param_names[i] = pergyra_strdup(formal);
-        if (explicit_count > 0) {
+        fact->generic_param_names[i] =
+            pergyra_strdup(method_routine->generic_param_names[i]);
+        if (fact->generic_param_names[i] == NULL)
+            return false;
+        if (i < explicit_count) {
             GenericParam *actual = ast_call_generic_arg(call, i);
             fact->actual_type_names[i] = mir_capture_type_name(
                 ast_generic_param_constraint(actual),
                 ast_generic_param_name(actual));
-        } else {
-            size_t call_arg_index = 0;
-            for (size_t p = 0; p < method_routine->param_count; p++) {
-                FuncParam *param = method_routine->params[p];
-                const char *param_type = method_routine->param_type_names[p];
-                if (param != NULL && param->name != NULL
-                    && strcmp(param->name, "self") == 0) {
-                    continue;
-                }
-                if (param_type != NULL && formal != NULL
-                    && strcmp(param_type, formal) == 0
-                    && call_arg_index < ast_call_arg_count(call)) {
-                    ASTNode *argument =
-                        ast_call_argument(call, call_arg_index);
-                    captured_return = mir_generic_method_captured_return_type(
-                        ctx, argument);
-                    inferred = captured_return;
-                    if (inferred == NULL) {
-                        inferred = mir_source_local_expr_type_name(
-                            ctx->mir, ctx->caller, &scratch, argument);
-                    }
-                    break;
-                }
-                call_arg_index++;
-            }
-            fact->actual_type_names[i] = pergyra_strdup(inferred);
-        }
-        free(captured_return);
-        if (fact->generic_param_names[i] == NULL
-            || fact->actual_type_names[i] == NULL
-            || fact->actual_type_names[i][0] == '\0') {
-            if (ctx->error_message != NULL && *ctx->error_message == NULL)
-                *ctx->error_message = mir_strdup_fmt(
-                    "MIR generic method call %u cannot resolve parameter '%s'",
-                    ast_node_stable_id(call),
-                    formal != NULL ? formal : "(anonymous)");
-            return false;
+            if (fact->actual_type_names[i] == NULL)
+                goto invalid;
         }
     }
+    if (explicit_count == 0) {
+        size_t argument_index = 0;
+        for (size_t p = 0; p < method_routine->param_count; p++) {
+            FuncParam *param = method_routine->params[p];
+            const char *pattern = method_routine->param_type_names[p];
+            bool has_formal = false;
+            if (param != NULL && param->name != NULL
+                && strcmp(param->name, "self") == 0)
+                continue;
+            ASTNode *argument = ast_call_argument(call, argument_index++);
+            for (const char *token = pattern; token != NULL && *token != '\0';) {
+                if (!isalpha((unsigned char)*token) && *token != '_') {
+                    token++;
+                    continue;
+                }
+                const char *end = token + 1;
+                while (isalnum((unsigned char)*end) || *end == '_') end++;
+                for (size_t i = 0; i < fact->binding_count; i++)
+                    if (strlen(fact->generic_param_names[i]) == (size_t)(end - token)
+                        && strncmp(token, fact->generic_param_names[i], end - token) == 0)
+                        has_formal = true;
+                token = end;
+            }
+            if (!has_formal) continue;
+            char *captured_return =
+                mir_generic_method_captured_return_type(ctx, argument);
+            const char *actual = captured_return != NULL ? captured_return
+                : mir_source_local_expr_type_name(
+                    ctx->mir, ctx->caller, &scratch, argument);
+            bool bound = mir_generic_binding_type_names(pattern, actual,
+                fact->generic_param_names, fact->actual_type_names,
+                fact->binding_count);
+            free(captured_return);
+            if (!bound) goto invalid;
+        }
+    }
+    for (size_t i = 0; i < fact->binding_count; i++) {
+        if (fact->actual_type_names[i] == NULL) {
+            GenericParam *param = ast_generic_param_at(
+                ast_declaration_generic_params(method_routine->ast), i);
+            fact->actual_type_names[i] =
+                mir_render_type_name(ast_generic_param_default_type(param));
+        }
+        if (fact->actual_type_names[i] == NULL
+            || fact->actual_type_names[i][0] == '\0')
+            goto invalid;
+    }
     return true;
+invalid:
+    if (ctx->error_message != NULL && *ctx->error_message == NULL)
+        *ctx->error_message = mir_strdup_fmt(
+            "MIR generic call %u cannot resolve consistent actual/formal bindings",
+            ast_node_stable_id(call));
+    return false;
 }
-
 static bool
 mir_generic_method_append(MIRGenericMethodCaptureCtx *ctx,
                           ASTNode *call,
-                          const MIRDeclHeader *header,
-                          const MIRDeclMethod *method,
+                          const char *owner_name,
+                          const char *method_name,
                           size_t method_routine_index)
 {
     MIRGenericMethodSpecializationFact fact;
@@ -297,8 +379,8 @@ mir_generic_method_append(MIRGenericMethodCaptureCtx *ctx,
     fact.source_call_syntax_id = ast_node_stable_id(call);
     fact.caller_routine_index = ctx->caller_index;
     fact.method_routine_index = method_routine_index;
-    fact.owner_name = pergyra_strdup(mir_decl_header_name(header));
-    fact.method_name = pergyra_strdup(mir_decl_method_name(method));
+    fact.owner_name = pergyra_strdup(owner_name);
+    fact.method_name = pergyra_strdup(method_name);
     if (fact.source_call_syntax_id == 0) {
         if (ctx->error_message != NULL && *ctx->error_message == NULL)
             *ctx->error_message = pergyra_strdup(
@@ -312,7 +394,7 @@ mir_generic_method_append(MIRGenericMethodCaptureCtx *ctx,
         mir_generic_method_fact_clear(&fact);
         return false;
     }
-    fact.specialized_name = mir_generic_method_specialized_name(
+    fact.specialized_name = mir_generic_specialization_symbol(
         fact.owner_name, fact.method_name, fact.actual_type_names,
         fact.binding_count);
     if (fact.specialized_name == NULL) {
@@ -381,9 +463,27 @@ mir_generic_method_capture_call(MIRGenericMethodCaptureCtx *ctx,
             && mir_decl_method_routine_index(method, &method_routine_index)
             && method_routine_index < ctx->mir->routine_count
             && ctx->mir->routines[method_routine_index].generic_param_count > 0
-            && !mir_generic_method_append(ctx, call, header, method,
+            && !mir_generic_method_append(ctx, call,
+                mir_decl_header_name(header), mir_decl_method_name(method),
                 method_routine_index)) {
             return false;
+        }
+    } else if (callee != NULL && callee->type == AST_IDENTIFIER
+               && ast_call_semantic_callee_value_binding_id(call) == 0) {
+        uint32_t target_id = ast_call_semantic_callee_decl_id(call);
+        MIRRoutineInventory inventory;
+        mir_routine_inventory_from_program(ctx->mir, &inventory);
+        MIRRoutineSourceLookup target =
+            mir_routine_inventory_find_unique_by_source_syntax_id(
+                &inventory, target_id);
+        if (target.status == MIR_ROUTINE_SOURCE_LOOKUP_DUPLICATE)
+            return false;
+        if (target.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE
+            && target.routine->kind == MIR_SCOPE_FUNCTION
+            && target.routine->generic_param_count > 0) {
+            return mir_generic_method_append(ctx, call, "",
+                target.routine->name,
+                (size_t)(target.routine - ctx->mir->routines));
         }
     }
     return true;

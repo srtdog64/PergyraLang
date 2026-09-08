@@ -3,12 +3,24 @@
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_case_math_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_checked_int_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 func DirectMirScalarProgramLlvmCaseMathExpressionAt(
     kind: Int, result: String, left: String, right: String,
     arguments: Array<String>,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection
 ) -> DirectMirScalarProgramLlvmStringExpression {
+    if DirectMirScalarProgramCheckedIntKind(kind) {
+        let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(kind);
+        if !abi.ok { return DirectMirScalarProgramLlvmStringExpression(true, false, "", ""); }
+        let output: String = "  " + result + ".lhs = trunc i64 " + left + " to i32\n";
+        output = output + "  " + result + ".rhs = trunc i64 " + right + " to i32\n";
+        output = output + "  " + result + ".i32 = call i32 @" + abi.symbol +
+            "(i32 " + result + ".lhs, i32 " + result + ".rhs)\n";
+        output = output + "  " + result + " = sext i32 " + result + ".i32 to i64\n";
+        return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
+    }
     let symbol: String = "";
     let ready: Bool = false;
     let return_type: String = "i64";

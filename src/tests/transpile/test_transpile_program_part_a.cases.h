@@ -398,7 +398,9 @@ test_program_emit_head(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "self.count = (self.count + delta);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self.count = ({ __auto_type __pgy_binary_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= (self.count);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= (delta);");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self.count;");
 
         transpiler_ctx_destroy(ctx);
@@ -431,7 +433,9 @@ test_program_emit_head(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "self->count = (self->count + delta);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->count = ({ __auto_type __pgy_binary_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= (self->count);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= (delta);");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->count;");
 
         transpiler_ctx_destroy(ctx);
@@ -490,7 +494,7 @@ test_program_emit_head(void)
         lexer_destroy(lexer);
     }
 
-    TEST("subject temporary argument rejects pointer-self boundary");
+    TEST("fresh subject constructor keeps an addressable caller-block cell");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -509,9 +513,8 @@ test_program_emit_head(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT(ctx->backend_error != NULL);
-        EXPECT_STR_CONTAINS(ctx->backend_error,
-            "requires addressable storage");
+        EXPECT(ctx->backend_error == NULL);
+        EXPECT_STR_CONTAINS(ctx->out->data, "Touch(&((Player){0}))");
         EXPECT_STR_NOT_CONTAINS(ctx->out->data, "&Player(");
 
         transpiler_ctx_destroy(ctx);
@@ -523,7 +526,7 @@ test_program_emit_head(void)
         lexer_destroy(lexer);
     }
 
-    TEST("subject method temporary argument rejects pointer-self boundary");
+    TEST("subject method consumes a fresh constructor cell by identity");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -545,10 +548,55 @@ test_program_emit_head(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT(ctx->backend_error != NULL);
-        EXPECT_STR_CONTAINS(ctx->backend_error,
-            "requires addressable storage");
+        EXPECT(ctx->backend_error == NULL);
+        EXPECT_STR_CONTAINS(ctx->out->data, ", &((Player){0}))");
         EXPECT_STR_NOT_CONTAINS(ctx->out->data, "&Player(");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("subject addressability policy excludes factory and shadowed call targets");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "func MakePlayer() -> Int { return 1; }\n"
+            "func Main() -> Void { return; }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        ctx->mir = mir;
+        emit_program(ctx);
+
+        /* Inspect the call before MIR may materialize a result local. Only
+         * the constructor itself owns the fresh compound-literal exemption. */
+        Lexer *call_lexer = lexer_create("MakePlayer()");
+        Parser *call_parser = parser_create(call_lexer);
+        ASTNode *call = parser_parse_expression(call_parser);
+        EXPECT(!transpiler_call_arg_can_take_subject_address(ctx, call));
+        ast_destroy(call);
+        parser_destroy(call_parser);
+        lexer_destroy(call_lexer);
+
+        call_lexer = lexer_create("Player()");
+        call_parser = parser_create(call_lexer);
+        call = parser_parse_expression(call_parser);
+        EXPECT(transpiler_call_arg_can_take_subject_address(ctx, call));
+        EXPECT(ast_call_set_semantic_callee_value_binding_id(call, 77));
+        EXPECT(!transpiler_call_arg_can_take_subject_address(ctx, call));
+        ast_destroy(call);
+        parser_destroy(call_parser);
+        lexer_destroy(call_lexer);
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
@@ -583,8 +631,9 @@ test_program_emit_head(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "self->round = (self->round + 1);");
-        EXPECT_STR_CONTAINS(ctx->out->data, "return (BattleZone_Next(self) + self->round);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->round = ({ __auto_type __pgy_binary_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= (self->round);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= (BattleZone_Next(self));");
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
@@ -623,9 +672,10 @@ test_program_emit_head(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "self->storm = (self->storm + 1);");
-        EXPECT_STR_CONTAINS(ctx->out->data, "return (self->storm + self->battle.round);");
-        EXPECT_STR_CONTAINS(ctx->out->data, "return (GameWorld_Pulse(self) + self->storm);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->storm = ({ __auto_type __pgy_binary_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= (self->storm);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= (self->battle.round);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "= (GameWorld_Pulse(self));");
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);

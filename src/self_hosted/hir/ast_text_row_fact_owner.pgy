@@ -13,6 +13,14 @@ struct CodegenAstTextRowFactInput {
 }
 
 func CodegenAstTextParamModeForPayload(kind: Int, payload: String) -> Int {
+    // Mode is kind-discriminated: field 0=mutable, 1=immutable;
+    // local let 0=immutable, 1=mutable. Parameter modes retain their ABI.
+    if kind == TypedAstKindLetStmtTag() && StartsWith(payload, "mut ") {
+        return 1;
+    }
+    if kind == TypedAstKindFieldTag() && StartsWith(payload, "let ") {
+        return 1;
+    }
     if kind != TypedAstKindParamTag() {
         return 0;
     }
@@ -74,6 +82,9 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
         return "";
     }
     if kind == TypedAstKindLetStmtTag() {
+        if input.mode == 1 {
+            payload = Substring(payload, 4, StringLength(payload) - 4);
+        }
         let sep: Option<Int> = FindTextFrom(payload, " : ", 0);
         if IsSome(sep) {
             return Substring(payload, 0, UnwrapOption(sep));
@@ -126,6 +137,9 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
     if kind == TypedAstKindFieldTag() {
         let colon2: Int = StringIndexOf(payload, ": ");
         if colon2 >= 0 {
+            if input.mode == 1 {
+                return Substring(payload, 4, colon2 - 4);
+            }
             return Substring(payload, 0, colon2);
         }
         return "";

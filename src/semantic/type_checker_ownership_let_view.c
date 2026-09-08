@@ -102,6 +102,7 @@ ownership_let_try_declare_view_binding(ASTNode *node,
 
     Symbol *sym = symbol_create_view(name, decl_type, source_slot,
         node->line, node->column);
+    symbol_mark_declaration(sym, ast_node_stable_id(node), false);
     scope_declare(ctx->scope, sym);
     return !ctx->has_error;
 }

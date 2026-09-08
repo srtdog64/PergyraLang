@@ -88,13 +88,13 @@ reject_mutation() {
         fail "$target accepted mutable nominal identity mutation: $name"
     fi
     [[ ! -e "$output" ]] || fail "$target emitted before rejecting $name"
-    grep -Eq 'nominal literal|mutable nominal identity' "$output.stdout" "$output.stderr" || fail "$target rejection lost mutable identity owner: $name"
+    grep -Eq 'nominal literal|mutable nominal identity|compile-time declaration erasure' "$output.stdout" "$output.stderr" || fail "$target rejection lost declaration/identity owner: $name"
     ! grep -Eq 'passive nominal|unsupported scalar facts' "$output.stdout" "$output.stderr" || fail "$target retried passive/scalar after mutable identity admission: $name"
 }
 
 compile_and_expect() {
     local stem="$1" expected="$2"
-    "$CC" -std=c11 -Wall -Wextra -Werror "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem-c.exe"
+    "$CC" -std=c11 -Wall -Wextra -Werror -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem-c.exe"
     "$CLANG" "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem-llvm.exe" 2>"$WORK_DIR/$stem.llvm.log"
     printf '%s\n' "$expected" >"$WORK_DIR/$stem.expected"
     "$WORK_DIR/$stem-c.exe" | tr -d '\r' >"$WORK_DIR/$stem-c.out"
@@ -160,8 +160,9 @@ compile_and_expect literal-seventy-three 73
 compile_and_expect host-subject 13
 project "$WORK_DIR/host-tobject.json" c "$WORK_DIR/host-tobject.c"
 project "$WORK_DIR/host-tobject.json" llvm "$WORK_DIR/host-tobject.ll"
-grep -Fq 'HP _pgy_nominal_0 = { .value = 13 };' "$WORK_DIR/host-tobject.c" || fail "value host did not select passive C representation"
-grep -Fq '%pgy.nominal.0 = insertvalue %HP poison, i32 13, 0' "$WORK_DIR/host-tobject.ll" || fail "value host did not select passive LLVM representation"
+grep -Fq 'pgy_local_0 = ({ pgy_scalar_logical_record_value_0 pgy_record_value_' "$WORK_DIR/host-tobject.c" || fail "value host did not select sequenced passive C representation"
+grep -Fq '.field_0 = (13LL);' "$WORK_DIR/host-tobject.c" || fail "value host lost its admitted field value"
+grep -Fq 'insertvalue %pgy.scalar.logical.record.value.0 poison, i64 13, 0' "$WORK_DIR/host-tobject.ll" || fail "value host did not select passive LLVM representation"
 compile_and_expect host-tobject 13
 
 for mutation in kind-drift nominal-kind-drift declaration-name-drift declaration-id-zero field-name-drift field-type-drift field-kind-drift field-id-collision method-tail entrypoint-drift return-drift source-local-name-drift source-local-type-drift constructor-type-drift constructor-field-drift constructor-edge-drift constructor-noncanonical-int definition-result-drift definition-local-drift definition-arg-type-drift definition-expr-type-drift definition-abi-type-drift definition-abi-forged instruction-tail duplicate-identity-definition second-source-local missing-use duplicate-use stale-use member-receiver-drift member-name-drift member-edge-drift unreachable; do reject_mutation "$mutation"; done

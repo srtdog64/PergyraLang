@@ -5,6 +5,17 @@ import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 func DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(
     ref signature: DirectMirScalarProgramBuiltinSignatureFact, carried: Int
 ) -> Bool {
+    if !signature.valid { return false; }
+    // These target-library rows are selected by normalized builtin admission,
+    // not carried as per-instruction resource identities in the source graph.
+    if DirectMirScalarProgramCheckedIntKind(signature.expression_kind) ||
+            DirectMirScalarProgramArrayTransformKind(signature.expression_kind) {
+        let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(signature.expression_kind);
+        if DirectMirScalarProgramArrayTransformKind(signature.expression_kind) {
+            abi = DirectMirScalarProgramArrayTransformRuntimeFact(signature.expression_kind);
+        }
+        return abi.ok && signature.runtime_call_abi_id == abi.runtime_call_abi_id && carried == 0;
+    }
     // Runtime-value identity belongs to the instruction row; its graph carries
     // zero until admission seals the validated row ID into expression facts.
     if signature.expression_kind == DirectMirScalarProgramExprRuntimeValueCall() {

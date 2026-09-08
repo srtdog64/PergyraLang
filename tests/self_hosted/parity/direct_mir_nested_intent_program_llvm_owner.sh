@@ -12,29 +12,30 @@ LABEL="self-host-direct-mir-nested-intent-program-llvm"
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
-WORK_REL=".tmp/self_hosted/direct_mir_nested_intent_program_llvm"
-WORK_DIR="$ROOT_DIR/$WORK_REL"
+WORK_BASE="$ROOT_DIR/.tmp/self_hosted/direct_mir_nested_intent_program_llvm"
 SOURCE_REL="tests/self_hosted/parity/fixture/intent_priority_nested_observability.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$PYTHON_BIN" >/dev/null 2>&1 || fail "missing Python"
-mkdir -p "$WORK_DIR"
-rm -f "$WORK_DIR"/*
+mkdir -p "$WORK_BASE"
+WORK_DIR="$(mktemp -d "$WORK_BASE/run.XXXXXX")"
+WORK_REL="${WORK_DIR#"$ROOT_DIR"/}"
+echo "[$LABEL] evidence: $WORK_DIR"
 
 MIR_REL="$WORK_REL/success.mir.json"
 LLVM_REL="$WORK_REL/success.ll"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
     "$SOURCE_REL" -o "$MIR_REL") >"$WORK_DIR/mir.out" \
     2>"$WORK_DIR/mir.err" || {
-        cat "$WORK_DIR/mir.err" >&2
+        cat "$WORK_DIR/mir.out" "$WORK_DIR/mir.err" >&2
         fail "self MIR production failed"
     }
 (cd "$ROOT_DIR" && "$DRIVER" --mir-json-backend=llvm \
     "$MIR_REL" -o "$LLVM_REL") >"$WORK_DIR/llvm.out" \
     2>"$WORK_DIR/llvm.err" || {
-        cat "$WORK_DIR/llvm.err" >&2
+        cat "$WORK_DIR/llvm.out" "$WORK_DIR/llvm.err" >&2
         fail "nested intent direct-MIR LLVM projection failed"
     }
 for anchor in \

@@ -1,0 +1,21 @@
+// Signed-width conversion through literals, locals, parameters and calls.
+func Value() -> Long { return 17L; }
+func Echo(value: Long) -> Long { return value; }
+func Describe(value: Long) -> String { return ToString(value); }
+
+func Main() -> Void {
+    // Isolate conversion width from the native large-literal rounding defect.
+    let upper: Long = 2147483647L * 4294967296L + 4294967295L;
+    let lower: Long = 0L - upper - 1L;
+    Log(ToString(Value()));
+    Log(ToString(0L));
+    Log(ToString(2147483648L));
+    Log(ToString(0L - 2147483649L));
+    Log(ToString(upper));
+    Log(Describe(lower));
+    Log(ToString(Echo(4294967296L)));
+    Log(ToString(-7));
+    Log(ToString(true));
+    Log(ToString(false));
+    Log(ToString("signed-ready"));
+}

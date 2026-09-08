@@ -91,8 +91,26 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
                 sizeof(base), &version)) {
             continue;
         }
-        if (transpiler_resolve_ssa_name(ssa_map_out, base) != NULL)
+        const char *mapped = transpiler_resolve_ssa_name(ssa_map_out, base);
+        if (mapped != NULL) {
+            char mapped_base[128];
+            size_t mapped_version = 0;
+            if (strcmp(mapped, versioned_use) != 0
+                && transpiler_parse_versioned_name(mapped, mapped_base,
+                    sizeof(mapped_base), &mapped_version)) {
+                const char *use_type = lookup_typed_var(ctx, versioned_use);
+                if ((emit_assignments && use_type == NULL) || !transpiler_ssa_name_map_set(
+                        ssa_map_out, base, versioned_use)) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR use '%s' is missing its exact SSA type/storage mapping",
+                        versioned_use);
+                    return false;
+                }
+                if (emit_assignments)
+                    register_typed_var(ctx, base, use_type);
+            }
             continue;
+        }
         if (is_slot_var(ctx, base))
             continue;
         existing_type = lookup_typed_var(ctx, base);

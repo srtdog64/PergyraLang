@@ -556,14 +556,19 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             field_index = field_name != NULL
                 ? llvm_class_field_index(cls, field_name) : -1;
         } else {
+            /* Keep source evaluation order; names select the admitted field,
+             * not the positional argument index or its physical layout slot. */
+            int field_ordinal = ast_call_has_named_arguments(node)
+                ? llvm_class_field_ordinal(cls, ast_call_argument_name(node, i))
+                : (int)i;
             owned_field_type_name =
-                (host_decl == NULL || host_decl->type == AST_CLASS_DECL)
+                field_ordinal >= 0 && (host_decl == NULL || host_decl->type == AST_CLASS_DECL)
                     ? llvm_class_constructor_field_type_name_at(
-                        ctx, callee_name, i)
+                        ctx, callee_name, (size_t)field_ordinal)
                     : NULL;
             field_type_name = owned_field_type_name;
-            field_name = llvm_class_field_name_at(cls, (int)i);
-            field_index = llvm_class_field_struct_index_at(cls, (int)i);
+            field_name = llvm_class_field_name_at(cls, field_ordinal);
+            field_index = llvm_class_field_struct_index_at(cls, field_ordinal);
         }
         LLVMTypeRef expected_ty = field_index >= 0
             ? llvm_class_field_type_at_index(cls, field_index) : NULL;

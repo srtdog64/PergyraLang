@@ -1,0 +1,41 @@
+import "../../../src/self_hosted/compiler/direct_mir_scalar_program_hashmap_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy";
+
+func Main() -> Void {
+    let kinds: Array<Int> = [DirectMirScalarProgramExprLocal(), DirectMirScalarProgramExprStringLiteral(),
+        DirectMirScalarProgramExprIntLiteral(), DirectMirScalarProgramExprMapSet(),
+        DirectMirScalarProgramExprMapGet(), DirectMirScalarProgramExprMapKeys(), DirectMirScalarProgramExprMapNew()];
+    let types: Array<String> = ["HashMap<String, Int>", "String", "Int", "Void", "Int", "Array<String>", "HashMap<String, Int>"];
+    let lefts: Array<Int> = [-1, -1, -1, -1, 0, 0, -1];
+    let rights: Array<Int> = [-1, -1, -1, -1, 1, -1, -1];
+    let locals: Array<Int> = [0, -1, -1, -1, -1, -1, -1];
+    let absent: Array<Int> = [-1, -1, -1, -1, -1, -1, -1];
+    let literals: Array<String> = ["", "key", "7", "", "", "", ""];
+    let empty: Array<Int> = [];
+    let operands: Array<Int> = [0, 1, 2];
+    let nary_nodes: Array<Int> = [3]; let nary_starts: Array<Int> = [0];
+    let nary_counts: Array<Int> = [3];
+    let nary: DirectMirScalarProgramNaryOperands = DirectMirScalarProgramNaryOperands(
+        true, nary_nodes, nary_starts, nary_counts, operands);
+    let facts: DirectMirScalarProgramExpressionSet = DirectMirScalarProgramExpressionSet(true, 0,
+        empty, empty, empty, empty, kinds, types, lefts, rights, locals, absent, absent, literals, absent, absent, nary);
+    Log(DirectMirScalarProgramHashMapNodeReady(facts, 3));
+    Log(DirectMirScalarProgramHashMapNodeReady(facts, 4));
+    Log(DirectMirScalarProgramHashMapNodeReady(facts, 5));
+    Log(DirectMirScalarProgramHashMapNodeReady(facts, 6));
+    types[1] = "Int";
+    Log(!DirectMirScalarProgramHashMapNodeReady(facts, 3));
+    Log(!DirectMirScalarProgramHashMapNodeReady(facts, 4));
+    types[1] = "String"; types[2] = "Bool";
+    Log(!DirectMirScalarProgramHashMapNodeReady(facts, 3));
+    types[2] = "Int"; types[6] = "HashMap<String, Unknown>";
+    Log(!DirectMirScalarProgramHashMapNodeReady(facts, 6));
+    types[6] = "HashMap<String, Int>"; lefts[3] = 0;
+    Log(!DirectMirScalarProgramHashMapNodeReady(facts, 3));
+    lefts[3] = -1; operands[2] = 3;
+    Log(!DirectMirScalarProgramHashMapNodeReady(facts, 3));
+    operands[2] = 2; types[5] = "Array<Int>";
+    Log(!DirectMirScalarProgramHashMapNodeReady(facts, 5));
+    types[5] = "Array<String>"; kinds[0] = DirectMirScalarProgramExprStringLiteral();
+    Log(!DirectMirScalarProgramHashMapNodeReady(facts, 4));
+}

@@ -1,0 +1,70 @@
+// Real compiler queries borrow input rows; malformed rows are query controls,
+// not a claim that a complete source/MIR artifact has been admitted.
+import "../../../src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
+import "../../../src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy";
+
+struct QueryRows {
+    ids: Array<Int>;
+    names: Array<String>;
+    starts: Array<Int>;
+    counts: Array<Int>;
+    true_edges: Array<Int>;
+    false_edges: Array<Int>;
+}
+
+func OwnedQueries(ids: Array<Int>, names: Array<String>) -> Void {
+    Log(ToString(UnwrapOption(
+        SemanticAstGenericSpecializationIndexForCall(ids, 17))));
+    Log(ToString(DirectMirScalarCfgLocalIdentityRow(names, "third")));
+}
+
+func ReadonlyQueries(ref rows: QueryRows) -> Void {
+    Log(ToString(UnwrapOption(
+        SemanticAstGenericSpecializationIndexForCall(rows.ids, 29))));
+    Log(ToString(IsSome(
+        SemanticAstGenericSpecializationIndexForCall(rows.ids, 8))));
+    Log(ToString(DirectMirScalarCfgRoutinePartitionRangesReady(
+        rows.starts, rows.counts, 3)));
+    Log(ToString(DirectMirScalarCfgRoutinePartitionRangeOwner(
+        rows.starts, rows.counts, 0)));
+    Log(ToString(DirectMirScalarCfgRoutinePartitionRangeOwner(
+        rows.starts, rows.counts, 2)));
+    Log(ToString(DirectMirScalarCfgRoutinePartitionRangeOwner(
+        rows.starts, rows.counts, 3)));
+    Log(ToString(DirectMirScalarCfgLocalIdentityRow(rows.names, "second")));
+    Log(ToString(DirectMirScalarCfgLocalIdentityRow(rows.names, "missing")));
+    Log(ToString(MirRoutineGraphCanReachAvoiding(
+        rows.true_edges, rows.false_edges, 0, 2, 1)));
+    Log(ToString(MirRoutineGraphCanReachAvoiding(
+        rows.true_edges, rows.false_edges, 0, 2, 2)));
+    let distances: Array<Int> = MirRoutineGraphDistancesAvoiding(
+        rows.true_edges, rows.false_edges, 0, 1);
+    Log(ToString(distances[0]));
+    Log(ToString(distances[1]));
+    Log(ToString(distances[2]));
+}
+
+func Main() -> Void {
+    let rows: QueryRows = QueryRows(
+        [17, 29, 41], ["first", "second", "third"], [0, 2], [2, 1],
+        [1, 2, -1], [2, -1, -1]);
+    OwnedQueries(rows.ids, rows.names);
+    ReadonlyQueries(rows);
+    let duplicate: Array<String> = ["same", "same"];
+    Log(ToString(DirectMirScalarCfgLocalIdentityRow(duplicate, "same")));
+    let bad_starts: Array<Int> = [0, 1];
+    Log(ToString(DirectMirScalarCfgRoutinePartitionRangesReady(
+        bad_starts, rows.counts, 3)));
+    let short_counts: Array<Int> = [2];
+    Log(ToString(DirectMirScalarCfgRoutinePartitionRangesReady(
+        rows.starts, short_counts, 3)));
+    Log(ToString(DirectMirScalarCfgRoutinePartitionRangeOwner(
+        rows.starts, rows.counts, -1)));
+    // Repeated queries must not mutate the borrowed input or consume it.
+    Log(ToString(ArrayLength(rows.ids)));
+    Log(ToString(rows.ids[1]));
+    Log(rows.names[1]);
+    Log(ToString(rows.true_edges[0]));
+}

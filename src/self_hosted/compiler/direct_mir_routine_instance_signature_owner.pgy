@@ -1,0 +1,147 @@
+// Concrete signature projection for the shared generic instance closure.
+// Source routine/parameter handles stay unchanged. The emitted symbol is a
+// projection of the exact tuple, never a substitute for declaration identity.
+import "direct_mir_routine_signature_fact_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "../mir_lower/generic_instance_plan_owner.pgy";
+import "symbol_table_owner.pgy";
+import "direct_mir_identity_cell_fact_owner.pgy";
+
+struct DirectMirRoutineInstanceSignatureFact {
+    valid: Bool;
+    diagnostic: String;
+    instance: Int;
+    template_row: Int;
+    template_digest: Int;
+    signature: DirectMirRoutineSignatureFact;
+}
+
+func DirectMirRoutineInstanceSignatureError(message: String) -> DirectMirRoutineInstanceSignatureFact {
+    return DirectMirRoutineInstanceSignatureFact(false, message, -1, -1, 0,
+        InvalidDirectMirRoutineSignatureFact());
+}
+
+func DirectMirRoutineInstanceParameters(
+    ref source: DirectMirRoutineParameterSetFact,
+    types: SemanticAstSignatureTypeExpressionFacts,
+    formals: Array<String>, actuals: Array<String>,
+    ref identity_cells: DirectMirIdentityCellFacts
+) -> DirectMirRoutineParameterSetFact {
+    let result: DirectMirRoutineParameterSetFact = DirectMirRoutineParameterSetFactInvalid();
+    let first: DirectMirRoutineParamFact = InvalidDirectMirRoutineParamFact();
+    if !DirectMirRoutineParameterSetFactReady(source) || !types.ok ||
+        ArrayLength(types.parameter_roots) != ArrayLength(source.names) { return DirectMirRoutineParameterSetFactInvalid(); }
+    let row: Int = 0;
+    while row < ArrayLength(source.names) {
+        let resolved: Option<String> = SemanticAstSignatureTypeExpressionResolveRoot(
+            types, types.parameter_roots[row], 0, ArrayLength(formals), formals, actuals);
+        if !IsSome(resolved) { return DirectMirRoutineParameterSetFactInvalid(); }
+        let type_name: String = UnwrapOption(resolved);
+        if type_name != source.type_names[row] {
+            // The current shared scalar planner owns these direct value ABIs.
+            // A composite/identity actual needs its own concrete ABI receipt;
+            // substituting its spelling cannot turn it into a scalar value.
+            if (!DirectMirScalarCfgScalarTypeSupported(type_name) &&
+                    DirectMirIdentityCellRow(identity_cells, type_name) < 0) || source.abi_required[row] ||
+                source.abi_layout_ids[row] != 0 || source.abi_row_keys[row] != "" ||
+                source.resources[row] != "none" || source.pass_shapes[row] != "direct" ||
+                (source.carriages[row] != "value" && source.carriages[row] != "value-result") ||
+                (DirectMirIdentityCellRow(identity_cells, type_name) >= 0 && source.carriages[row] != "value") {
+                return DirectMirRoutineParameterSetFactInvalid();
+            }
+        }
+        ArrayPush(result.names, source.names[row]);
+        ArrayPush(result.source_syntax_ids, source.source_syntax_ids[row]);
+        ArrayPush(result.type_names, type_name);
+        ArrayPush(result.carriages, source.carriages[row]);
+        ArrayPush(result.resources, source.resources[row]);
+        ArrayPush(result.pass_shapes, source.pass_shapes[row]);
+        ArrayPush(result.abi_type_names, type_name);
+        ArrayPush(result.abi_layout_ids, source.abi_layout_ids[row]);
+        ArrayPush(result.abi_required, source.abi_required[row]);
+        ArrayPush(result.abi_row_keys, source.abi_row_keys[row]);
+        let digest: Int = DirectMirRoutineParamFactDigestFromFields(source.names[row],
+            source.source_syntax_ids[row], type_name, source.carriages[row], source.resources[row],
+            source.pass_shapes[row], type_name, source.abi_layout_ids[row], source.abi_required[row]);
+        ArrayPush(result.param_digests, digest);
+        if row == 0 {
+            // The retained first-parameter layout is reused only when its type
+            // is unchanged; a scalar substitution has canonical empty layout.
+            let original: DirectMirRoutineParamFact = DirectMirRoutineParamFactWithDigest(source.first, source.first.digest);
+            first = DirectMirRoutineParamFact(true, digest, original.name, original.source_syntax_id,
+                type_name, original.carriage, original.resource, original.pass_shape,
+                type_name, original.abi_layout_id, original.abi_required, original.abi);
+        }
+        row = row + 1;
+    }
+    let projected: DirectMirRoutineParameterSetFact = DirectMirRoutineParameterSetFact(true, 0,
+        result.names, result.source_syntax_ids, result.type_names, result.carriages, result.resources,
+        result.pass_shapes, result.abi_type_names, result.abi_layout_ids, result.abi_required,
+        result.abi_row_keys, result.param_digests, first);
+    let sealed: DirectMirRoutineParameterSetFact = DirectMirRoutineParameterSetFact(true,
+        DirectMirRoutineParameterSetFactDigest(projected), result.names, result.source_syntax_ids,
+        result.type_names, result.carriages, result.resources, result.pass_shapes, result.abi_type_names,
+        result.abi_layout_ids, result.abi_required, result.abi_row_keys, result.param_digests, first);
+    if !DirectMirRoutineParameterSetFactReady(sealed) { return DirectMirRoutineParameterSetFactInvalid(); }
+    return sealed;
+}
+
+func DirectMirRoutineInstanceSignatureFromClosure(
+    ref routines: MirProgramRoutineIndex,
+    ref occurrences: MirGenericCallOccurrenceIndex,
+    ref closure: GenericInstanceClosure, instance: Int,
+    ref identity_cells: DirectMirIdentityCellFacts
+) -> DirectMirRoutineInstanceSignatureFact {
+    if !occurrences.valid || !closure.valid || !DirectMirIdentityCellFactsReady(identity_cells) || instance < 0 ||
+        instance >= ArrayLength(closure.template_rows) {
+        return DirectMirRoutineInstanceSignatureError("generic routine instance identity is missing");
+    }
+    let row: Int = closure.template_rows[instance];
+    if !MirProgramRoutineIndexRowReady(routines, row) ||
+        row >= ArrayLength(occurrences.templates.syntax_ids) ||
+        occurrences.templates.syntax_ids[row] != ToInt(routines.source_syntax_ids[row]) {
+        return DirectMirRoutineInstanceSignatureError("generic routine instance declaration identity is crossed");
+    }
+    let formals: Array<String> = [];
+    let formal: Int = 0;
+    while formal < occurrences.templates.generic_counts[row] {
+        ArrayPush(formals, occurrences.templates.generic_names[
+            occurrences.templates.generic_starts[row] + formal]);
+        formal = formal + 1;
+    }
+    let actuals: Array<String> = GenericInstanceActuals(closure, instance);
+    if ArrayLength(formals) == 0 || ArrayLength(formals) != ArrayLength(actuals) {
+        return DirectMirRoutineInstanceSignatureError("generic routine instance actual tuple is incomplete");
+    }
+    let no_intent_bindings: MirIntentBindingProjection = MirIntentBindingProjectionInvalid();
+    let source: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureWithGenericEnvelopeAt(
+        routines, row, MirProgramRoutineIndexBlockInstructionCountAt(routines, row, 0), formals, no_intent_bindings);
+    if !DirectMirRoutineSignatureFactReady(source) {
+        return DirectMirRoutineInstanceSignatureError("generic routine template signature is invalid");
+    }
+    let returns: Array<String> = [source.return_type];
+    let types: SemanticAstSignatureTypeExpressionFacts = SemanticAstSignatureTypeExpressionFactsFromRows(
+        returns, source.parameters.type_names);
+    let return_type: Option<String> = SemanticAstSignatureReturnTypeResolveAt(
+        types, 0, 0, ArrayLength(formals), formals, actuals);
+    if !IsSome(return_type) || (UnwrapOption(return_type) != source.return_type &&
+            !DirectMirScalarCfgScalarTypeSupported(UnwrapOption(return_type))) {
+        return DirectMirRoutineInstanceSignatureError("generic routine instance return ABI requires a concrete non-scalar receipt");
+    }
+    let parameters: DirectMirRoutineParameterSetFact = DirectMirRoutineInstanceParameters(
+        source.parameters, types, formals, actuals, identity_cells);
+    if !DirectMirRoutineParameterSetFactReady(parameters) {
+        return DirectMirRoutineInstanceSignatureError("generic routine instance parameter ABI requires a concrete non-scalar receipt");
+    }
+    let name: String = CompilerSymbolCGenericSpecializationName(
+        CompilerSymbolCQualifiedName(routines.owners[row], source.name), actuals);
+    let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFact(true, 0,
+        row, name, source.kind, source.source_syntax_id, source.receiver_carriage,
+        source.receiver_owner_row, source.receiver_type,
+        UnwrapOption(return_type), source.param_count, parameters, parameters.first);
+    signature = DirectMirRoutineSignatureFactWithDigest(signature, DirectMirRoutineSignatureFactDigest(signature));
+    if !DirectMirRoutineSignatureFactReady(signature) {
+        return DirectMirRoutineInstanceSignatureError("generic routine instance signature did not seal");
+    }
+    return DirectMirRoutineInstanceSignatureFact(true, "", instance, row, source.digest, signature);
+}

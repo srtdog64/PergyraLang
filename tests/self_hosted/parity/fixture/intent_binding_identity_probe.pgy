@@ -1,0 +1,254 @@
+// Exercise the shared binder owner without executing or emitting the MIR input.
+// The role topology and callable signature are checked before code generation.
+import "../../../../src/self_hosted/mir_lower/intent_routine_carrier_projection_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir_scalar_program_callable_signature_owner.pgy";
+import "../../../../src/self_hosted/codegen/text/text_owner.pgy";
+
+func IntentBlockRoleFieldProbe() -> Void {
+    let prefix: String = "{\"id\":0,\"reachable\":true,\"instructions\":[],";
+    let roles: Array<String> = ["entry", "body", "cleanup", "rollback", "invalidation", "execution", "mirror"];
+    let row: Int = 0;
+    while row < ArrayLength(roles) {
+        let text: String = prefix + "\"intent_block_role\":\"" + roles[row] + "\"}";
+        let block: MirProgramRoutineBlockCapture = MirProgramRoutineBlockCaptureWithin(text, 0, StringLength(text));
+        if !block.valid || block.intent_role != roles[row] { Die("MIR Intent block role reader lost a producer role"); }
+        row = row + 1;
+    }
+    let invalid_fields: Array<String> = ["null", "0", "[]", "\"\"", "\"unknown\"",
+        "\"entry\",\"intent_block_role\":\"entry\"",
+        "\"entry\",\"intent_block_role\":\"cleanup\""];
+    row = 0;
+    while row < ArrayLength(invalid_fields) {
+        let text: String = prefix + "\"intent_block_role\":" + invalid_fields[row] + "}";
+        let block: MirProgramRoutineBlockCapture = MirProgramRoutineBlockCaptureWithin(text, 0, StringLength(text));
+        if block.valid { Die("MIR Intent role reader admitted an unknown, mistyped or duplicate role"); }
+        row = row + 1;
+    }
+}
+
+// Mutate the owner's retained facts directly: no checksum or code emission
+// can hide a wrong root role, a disconnected mirror, or a cyclic body path.
+func IntentBlockTopologyProbe(inout routines: MirProgramRoutineIndex, inout index: MirRoutineFactIndex, row: Int) -> Void {
+    let topology: MirIntentRoutineBlockTopology = MirIntentRoutineBlockTopologyFromIndex(routines, index, row);
+    if !topology.valid { Die("MIR Intent topology rejected its producer control"); }
+    let start: Int = routines.routine_block_starts[row];
+    let roots: Array<Int> = [topology.entry, topology.cleanup, topology.rollback, topology.invalidation];
+    let root: Int = 0;
+    while root < ArrayLength(roots) {
+        let block: Int = start + roots[root];
+        let prior: String = routines.block_intent_roles[block];
+        ArraySet(routines.block_intent_roles, block, "body");
+        let missing: MirIntentRoutineBlockTopology = MirIntentRoutineBlockTopologyFromIndex(routines, index, row);
+        if missing.valid { Die("MIR Intent topology admitted a missing root role"); }
+        ArraySet(routines.block_intent_roles, block, prior);
+        root = root + 1;
+    }
+    ArraySet(routines.block_intent_roles, start + topology.cleanup, "entry");
+    let duplicate: MirIntentRoutineBlockTopology = MirIntentRoutineBlockTopologyFromIndex(routines, index, row);
+    if duplicate.valid { Die("MIR Intent topology admitted duplicate root roles"); }
+    ArraySet(routines.block_intent_roles, start + topology.cleanup, "cleanup");
+    ArraySet(routines.block_intent_roles, start + topology.rollback, "invalidation");
+    ArraySet(routines.block_intent_roles, start + topology.invalidation, "rollback");
+    if MirIntentRollbackContractError(routines, index, row, routines.names[row]) == "" &&
+        MirIntentInvalidationContractError(routines, index, row) == "" {
+        Die("MIR Intent cleanup contracts admitted crossed root roles");
+    }
+    ArraySet(routines.block_intent_roles, start + topology.rollback, "rollback");
+    ArraySet(routines.block_intent_roles, start + topology.invalidation, "invalidation");
+    let prior_successor: Int = index.block_succ_true[topology.entry];
+    ArraySet(index.block_succ_true, topology.entry, topology.entry);
+    let cycle: MirIntentRoutineBlockTopology = MirIntentRoutineBlockTopologyFromIndex(routines, index, row);
+    if cycle.valid { Die("MIR Intent topology admitted a cyclic body path"); }
+    if ArrayLength(topology.body_rows) > 1 {
+        ArraySet(index.block_succ_true, topology.entry, -1);
+        let disconnected: MirIntentRoutineBlockTopology = MirIntentRoutineBlockTopologyFromIndex(routines, index, row);
+        if disconnected.valid { Die("MIR Intent topology lost a disconnected executable mirror"); }
+    }
+    ArraySet(index.block_succ_true, topology.entry, prior_successor);
+    let restored: MirIntentRoutineBlockTopology = MirIntentRoutineBlockTopologyFromIndex(routines, index, row);
+    if !restored.valid { Die("MIR Intent topology probe did not restore its owner facts"); }
+}
+
+// Check the header owner directly: malformed headers are data, never programs
+// sent to code emission. Missing, repeated and mistyped identity fields refuse.
+func IntentSignatureHeaderEnvelopeProbe() -> Void {
+    let keys: Array<String> = ["name", "kind", "source_syntax_id", "receiver_carriage", "return", "generics", "params"];
+    let rows: Array<String> = ["\"name\":\"Run\"", "\"kind\":\"intent\"",
+        "\"source_syntax_id\":17", "\"receiver_carriage\":\"none\"",
+        "\"return\":\"Bool\"", "\"generics\":[]", "\"params\":[]"];
+    let baseline: String = "{" + StringJoin(rows, ",") + "}";
+    let header: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(baseline, 0, StringLength(baseline));
+    let bounds: Array<Int> = [0, 0];
+    if !MirRoutineHeaderSignatureEnvelopeReady(baseline, 0, StringLength(baseline),
+            "Run", "intent", "17", "none", header, bounds) {
+        Die("MIR signature header owner rejected its valid control");
+    }
+    let field: Int = 0;
+    while field < ArrayLength(rows) {
+        let mutation: Int = 0;
+        while mutation < 3 {
+            let changed_rows: Array<String> = [];
+            let row: Int = 0;
+            while row < ArrayLength(rows) {
+                if row != field || mutation == 1 { ArrayPush(changed_rows, rows[row]); }
+                if row == field && mutation == 1 { ArrayPush(changed_rows, rows[row]); }
+                if row == field && mutation == 2 {
+                    let key: String = "\"" + keys[row] + "\":";
+                    let invalid: String = "0";
+                    if field == 2 { invalid = "\"17\""; }
+                    ArrayPush(changed_rows, key + invalid);
+                }
+                row = row + 1;
+            }
+            let changed: String = "{" + StringJoin(changed_rows, ",") + "}";
+            let parsed: MirRoutineHeaderFacts = BuildMirRoutineHeaderFacts(changed, 0, StringLength(changed));
+            if MirRoutineHeaderSignatureEnvelopeReady(changed, 0, StringLength(changed),
+                    "Run", "intent", "17", "none", parsed, bounds) {
+                Die("MIR signature header owner admitted a missing, duplicate or mistyped member");
+            }
+            mutation = mutation + 1;
+        }
+        field = field + 1;
+    }
+}
+
+// Re-seal the lower parameter facts so the signature's protocol check, not
+// merely a stale checksum, must reject the changed representation.
+func IntentSignatureWithFirstParameterShape(
+    signature: DirectMirRoutineSignatureFact, carriage: String, pass_shape: String
+) -> DirectMirRoutineSignatureFact {
+    let parameters: DirectMirRoutineParameterSetFact = signature.parameters;
+    let prior: DirectMirRoutineParamFact = parameters.first;
+    let digest: Int = DirectMirRoutineParamFactDigestFromFields(prior.name,
+        prior.source_syntax_id, prior.type_name, carriage, prior.resource,
+        pass_shape, prior.abi_type_name, prior.abi_layout_id, prior.abi_required);
+    let first: DirectMirRoutineParamFact = DirectMirRoutineParamFact(true, digest,
+        prior.name, prior.source_syntax_id, prior.type_name, carriage, prior.resource,
+        pass_shape, prior.abi_type_name, prior.abi_layout_id, prior.abi_required, prior.abi);
+    ArraySet(parameters.carriages, 0, carriage);
+    ArraySet(parameters.pass_shapes, 0, pass_shape);
+    ArraySet(parameters.param_digests, 0, digest);
+    let sealed: DirectMirRoutineParameterSetFact = DirectMirRoutineParameterSetFact(
+        true, DirectMirRoutineParameterSetFactDigest(parameters), parameters.names,
+        parameters.source_syntax_ids, parameters.type_names, parameters.carriages,
+        parameters.resources, parameters.pass_shapes, parameters.abi_type_names,
+        parameters.abi_layout_ids, parameters.abi_required, parameters.abi_row_keys,
+        parameters.param_digests, first);
+    let changed: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFact(
+        true, 0, signature.row, signature.name, signature.kind, signature.source_syntax_id,
+        signature.receiver_carriage, signature.receiver_owner_row, signature.receiver_type,
+        signature.return_type, signature.param_count, sealed, first);
+    return DirectMirRoutineSignatureFactWithDigest(changed, DirectMirRoutineSignatureFactDigest(changed));
+}
+
+func Main() -> Void with caps env, io_read {
+    IntentBlockRoleFieldProbe();
+    IntentSignatureHeaderEnvelopeProbe();
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Die("usage: intent_binding_identity_probe <mir-json>"); }
+    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(ReadFile(args[0]));
+    if !routines.valid { Die("binder probe routine index is invalid"); }
+    let cells: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsFromDeclarations(
+        routines.source_json, routines.declarations);
+    if !DirectMirIdentityCellFactsReady(cells) { Die("binder probe identity cells are invalid"); }
+    let absent_cells: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsEmpty();
+    let row: Int = 0;
+    let count: Int = 0;
+    while row < ArrayLength(routines.names) {
+        if routines.kinds[row] == "intent" {
+            let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(routines, row);
+            IntentBlockTopologyProbe(routines, index, row);
+            let carriers: MirIntentRoutineCarrierProjection =
+                MirIntentRoutineCarrierProjectionFromRoutine(routines, index, row, routines.names[row]);
+            if !carriers.valid { Die(carriers.diagnostic_message); }
+            let bindings: MirIntentBindingProjection = MirIntentBindingProjectionFromCarriers(
+                carriers.carrier_names, carriers.carrier_arg0s, carriers.carrier_arg1s,
+                carriers.carrier_slots, carriers.carrier_binding_source_syntax_ids,
+                routines.names[row], ToInt(routines.source_syntax_ids[row]));
+            if !bindings.ok { Die("MIR Intent binder identity relation is invalid"); }
+            let no_generics: Array<String> = [];
+            let instruction_count: Int = MirProgramRoutineIndexBlockInstructionCountAt(routines, row, 0);
+            let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureWithGenericEnvelopeAt(
+                routines, row, instruction_count, no_generics, bindings);
+            if !DirectMirRoutineSignatureFactReady(signature) || signature.kind != "intent" ||
+                signature.source_syntax_id != bindings.intent_source_syntax_id ||
+                signature.param_count != ArrayLength(bindings.source_syntax_ids) {
+                Die("MIR Intent callable signature did not retain its binder");
+            }
+            let indexed: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(routines, row, instruction_count);
+            if !DirectMirRoutineSignatureFactReady(indexed) || indexed.digest != signature.digest {
+                Die("MIR Intent signature entrypoints disagree");
+            }
+            if DirectMirScalarProgramCallableSignatureSupported(signature) {
+                Die("ordinary GraphPlan admitted Intent without its execution protocol");
+            }
+            let foreign: MirIntentBindingProjection = MirIntentBindingProjection(
+                bindings.ok, bindings.intent_source_syntax_id + 1, bindings.aliases,
+                bindings.type_names, bindings.kinds, bindings.source_syntax_ids, bindings.step_names, bindings.tree_lines);
+            let crossed: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureWithGenericEnvelopeAt(
+                routines, row, instruction_count, no_generics, foreign);
+            if crossed.valid { Die("MIR Intent callable signature accepted foreign purpose identity"); }
+            let parameter: Int = 0;
+            while parameter < signature.param_count {
+                let expected_pass: String = "direct";
+                if bindings.kinds[parameter] == "participant" { expected_pass = "indirect"; }
+                if signature.parameters.names[parameter] != bindings.aliases[parameter] ||
+                    signature.parameters.source_syntax_ids[parameter] != bindings.source_syntax_ids[parameter] ||
+                    signature.parameters.type_names[parameter] != bindings.type_names[parameter] ||
+                    signature.parameters.carriages[parameter] != bindings.kinds[parameter] ||
+                    signature.parameters.pass_shapes[parameter] != expected_pass {
+                    Die("MIR Intent callable signature changed a formal role or identity");
+                }
+                let participant: Bool = bindings.kinds[parameter] == "participant";
+                if DirectMirScalarProgramIdentityCellParameterReady(signature, parameter, cells) != participant ||
+                    DirectMirScalarProgramIdentityCellParameterReady(signature, parameter, absent_cells) {
+                    Die("MIR Intent parameter policy lost its participant cell role");
+                }
+                parameter = parameter + 1;
+            }
+            let original_carriage: String = signature.parameters.carriages[0];
+            let original_pass: String = signature.parameters.pass_shapes[0];
+            let bad_pass: String = "indirect";
+            if original_pass == "indirect" { bad_pass = "direct"; }
+            let crossed_abi: DirectMirRoutineSignatureFact =
+                IntentSignatureWithFirstParameterShape(signature, original_carriage, bad_pass);
+            if !DirectMirRoutineParameterSetFactReady(crossed_abi.parameters) ||
+                DirectMirRoutineSignatureFactReady(crossed_abi) ||
+                DirectMirScalarProgramIdentityCellParameterReady(crossed_abi, 0, cells) {
+                Die("MIR Intent signature ABI refusal relied on a stale parameter seal");
+            }
+            signature = IntentSignatureWithFirstParameterShape(signature, original_carriage, original_pass);
+            let crossed_mode: DirectMirRoutineSignatureFact =
+                IntentSignatureWithFirstParameterShape(signature, "readonly-ref", original_pass);
+            if !DirectMirRoutineParameterSetFactReady(crossed_mode.parameters) ||
+                DirectMirRoutineSignatureFactReady(crossed_mode) ||
+                DirectMirScalarProgramIdentityCellParameterReady(crossed_mode, 0, cells) {
+                Die("MIR Intent signature erased participant/value into ordinary ref");
+            }
+            signature = IntentSignatureWithFirstParameterShape(signature, original_carriage, original_pass);
+            if !DirectMirRoutineSignatureFactReady(signature) || signature.digest != indexed.digest {
+                Die("MIR Intent signature probe failed to restore its owned facts");
+            }
+            let ordinary: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFact(
+                true, 0, signature.row, signature.name, "function", signature.source_syntax_id,
+                signature.receiver_carriage, signature.receiver_owner_row, signature.receiver_type,
+                signature.return_type, signature.param_count, signature.parameters, signature.param);
+            parameter = 0;
+            while parameter < signature.param_count {
+                if bindings.kinds[parameter] == "participant" &&
+                    DirectMirScalarProgramIdentityCellParameterReady(ordinary, parameter, cells) {
+                    Die("MIR ordinary parameter policy accepted Intent participant carriage");
+                }
+                parameter = parameter + 1;
+            }
+            if DirectMirScalarProgramIdentityCellParameterReady(signature, -1, cells) ||
+                DirectMirScalarProgramIdentityCellParameterReady(signature, signature.param_count, cells) {
+                Die("MIR Intent parameter policy accepted an absent formal ordinal");
+            }
+            count = count + ArrayLength(bindings.source_syntax_ids);
+        }
+        row = row + 1;
+    }
+    if count == 0 { Die("binder probe found no Intent binders"); }
+    Log(Concat("Intent binder identity verified: ", ToString(count)));
+}

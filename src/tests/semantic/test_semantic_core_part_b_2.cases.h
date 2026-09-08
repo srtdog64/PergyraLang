@@ -161,6 +161,43 @@ test_stdlib_and_io(void)
 {
     printf("\n[stdlib_io]\n");
 
+    {
+        const char *labels[] = {
+            "callable formal shadows stdlib spelling",
+            "local callable shadows stdlib spelling",
+            "non-callable local cannot fall back to stdlib spelling"
+        };
+        const char *sources[] = {
+            "func Apply(StringLength: func(Int) -> Int) -> Int {"
+            "    return StringLength(4);"
+            "}",
+            "func Main() -> Void {"
+            "    let StringLength = (value: Int) => value + 1;"
+            "    Log(StringLength(4));"
+            "}",
+            "func Main() -> Void {"
+            "    let StringLength: Int = 7;"
+            "    Log(StringLength(\"abc\"));"
+            "}"
+        };
+        for (size_t i = 0; i < 3; i++) {
+            Lexer *lexer = lexer_create(sources[i]);
+            Parser *parser = parser_create(lexer);
+            ASTNode *program = parser_parse_program(parser);
+            SemanticResult *result = semantic_analyze(program);
+            TEST(labels[i]);
+            EXPECT(!parser_has_error(parser) && result != NULL
+                && (i < 2 ? result->error_count == 0
+                    : result->error_count > 0
+                        && ctx_has_diagnostic_substring_from_result(
+                            result, "function calls require a callable declaration")));
+            semantic_result_destroy(result);
+            ast_destroy(program);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+        }
+    }
+
     TEST("StringContains returns Bool with valid args");
     {
         SemanticContext *ctx = semantic_context_create();

@@ -74,7 +74,8 @@ func MirExpressionGraphSequenceAppendParserBridge(
         ) {
         return MirExpressionGraphSequenceError(sequence);
     }
+    let unbound_calls: Array<Int> = [];
     return MirExpressionGraphSequence(
-        true, ArrayLength(kinds), roots, arena
+        true, ArrayLength(kinds), roots, arena, unbound_calls
     );
 }

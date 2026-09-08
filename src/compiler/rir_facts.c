@@ -231,17 +231,21 @@ add_resource_fact(RIRScope *scope,
 }
 
 bool
-add_param_resource_fact(RIRScope *scope, const char *name, ASTNode *type_node, ASTNode *ast)
+add_param_resource_fact(RIRScope *scope, const char *name, ASTNode *type_node,
+                        ParamMode mode, ASTNode *ast)
 {
     RIRResourceKind kind = resource_kind_from_type(scope->program_root,
                                                    type_node);
     if (kind == RIR_RESOURCE_UNKNOWN)
         return true;
+    RIRResourceState state = rir_default_state_for_kind(kind);
+    if (kind == RIR_RESOURCE_ZONE_HANDLE && mode == PARAM_MODE_REF)
+        state = RIR_STATE_BORROWED_READ;
     return add_named_resource_fact(scope,
                                    name,
                                    type_name(type_node),
                                    kind,
-                                   rir_default_state_for_kind(kind),
+                                   state,
                                    ast);
 }
 

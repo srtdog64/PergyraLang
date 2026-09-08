@@ -2,21 +2,91 @@
 import "routine_fact_index_owner.pgy";
 import "intent_execution_plan_fact_owner.pgy";
 
+struct MirIntentRoutineBlockTopology {
+    let valid: Bool;
+    let entry: Int;
+    let cleanup: Int;
+    let rollback: Int;
+    let invalidation: Int;
+    let body_rows: Array<Int>;
+    let execution_rows: Array<Int>;
+    let mirror_rows: Array<Int>;
+}
+
+func MirIntentRoutineBlockTopologyInvalid() -> MirIntentRoutineBlockTopology {
+    let rows: Array<Int> = [];
+    return MirIntentRoutineBlockTopology(false, -1, -1, -1, -1, rows, rows, rows);
+}
+
+// Roles originate in producer CFG ownership, never in block count or position.
+// The carrier body must be one complete normal path; typed execution blocks
+// are cross-checked separately against the already admitted execution plan.
+func MirIntentRoutineBlockTopologyFromIndex(
+    ref routines: MirProgramRoutineIndex, ref index: MirRoutineFactIndex, routine_row: Int
+) -> MirIntentRoutineBlockTopology {
+    let invalid: MirIntentRoutineBlockTopology = MirIntentRoutineBlockTopologyInvalid();
+    if !MirProgramRoutineIndexRowReady(routines, routine_row) || !index.valid ||
+        routines.kinds[routine_row] != "intent" || routines.owners[routine_row] != "" ||
+        routines.receiver_carriages[routine_row] != "none" { return invalid; }
+    let start: Int = routines.routine_block_starts[routine_row];
+    let count: Int = routines.routine_block_counts[routine_row];
+    if count != ArrayLength(index.block_instruction_counts) { return invalid; }
+    let entry: Int = -1; let cleanup: Int = -1; let rollback: Int = -1; let invalidation: Int = -1;
+    let body_count: Int = 0;
+    let body: Array<Int> = []; let execution: Array<Int> = []; let mirrors: Array<Int> = [];
+    let visited: Array<Bool> = [];
+    let row: Int = 0;
+    while row < count {
+        ArrayPush(visited, false);
+        let role: String = routines.block_intent_roles[start + row];
+        if role == "entry" { if entry >= 0 { return invalid; } entry = row; body_count = body_count + 1; }
+        else if role == "body" { body_count = body_count + 1; }
+        else if role == "cleanup" { if cleanup >= 0 { return invalid; } cleanup = row; }
+        else if role == "rollback" { if rollback >= 0 { return invalid; } rollback = row; }
+        else if role == "invalidation" { if invalidation >= 0 { return invalid; } invalidation = row; }
+        else if role == "execution" { ArrayPush(execution, row); }
+        else if role == "mirror" {
+            if index.block_reachable[row] || index.block_succ_true[row] != -1 ||
+                index.block_succ_false[row] != -1 { return invalid; }
+            ArrayPush(mirrors, row);
+        }
+        else { return invalid; }
+        if role == "cleanup" || role == "rollback" || role == "invalidation" {
+            if !index.block_reachable[row] || index.block_succ_true[row] != -1 ||
+                index.block_succ_false[row] != -1 { return invalid; }
+        }
+        row = row + 1;
+    }
+    // The routine-index CFG contract retains canonical local entry ID zero.
+    if entry != 0 || cleanup < 0 || rollback < 0 || invalidation < 0 ||
+        index.block_instruction_counts[cleanup] != 0 ||
+        index.block_instruction_counts[rollback] < 3 ||
+        index.block_instruction_counts[invalidation] < 2 { return invalid; }
+    row = entry;
+    while row >= 0 {
+        if row >= count || !index.block_reachable[row] ||
+            index.block_instruction_counts[row] <= 0 || index.block_succ_false[row] != -1 { return invalid; }
+        let role: String = routines.block_intent_roles[start + row];
+        if role != "entry" && role != "body" { return invalid; }
+        if visited[row] { return invalid; }
+        ArraySet(visited, row, true);
+        ArrayPush(body, row);
+        let next: Int = index.block_succ_true[row];
+        if next < -1 || next >= count { return invalid; }
+        if next >= 0 && routines.block_intent_roles[start + next] == "execution" { break; }
+        row = next;
+    }
+    if ArrayLength(body) != body_count { return invalid; }
+    return MirIntentRoutineBlockTopology(true, entry, cleanup, rollback, invalidation, body, execution, mirrors);
+}
+
 func MirIntentRoutineStructureReady(
     ref routines: MirProgramRoutineIndex,
     ref index: MirRoutineFactIndex,
     routine_row: Int
 ) -> Bool {
-    return routine_row >= 0 &&
-        routine_row < MirProgramRoutineIndexCount(routines) && index.valid &&
-        routines.kinds[routine_row] == "intent" &&
-        routines.owners[routine_row] == "" &&
-        routines.receiver_carriages[routine_row] == "none" &&
-        ArrayLength(index.block_instruction_counts) == 4 &&
-        index.block_instruction_counts[0] > 0 &&
-        index.block_instruction_counts[1] == 0 &&
-        index.block_instruction_counts[2] == 3 &&
-        index.block_instruction_counts[3] >= 2;
+    let topology: MirIntentRoutineBlockTopology = MirIntentRoutineBlockTopologyFromIndex(routines, index, routine_row);
+    return topology.valid && ArrayLength(topology.execution_rows) == 0 && ArrayLength(topology.mirror_rows) == 0;
 }
 
 func MirIntentCleanupScalarAt(
@@ -35,14 +105,16 @@ func MirIntentRollbackContractError(
     routine_row: Int,
     intent_name: String
 ) -> String {
+    let topology: MirIntentRoutineBlockTopology = MirIntentRoutineBlockTopologyFromIndex(routines, index, routine_row);
+    if !topology.valid { return "MIR intent rollback block topology is invalid"; }
     let rollback_count: Int = 0;
     let abort_count: Int = 0;
     let edge_count: Int = 0;
     let instruction_row: Int = 0;
-    while instruction_row < index.block_instruction_counts[2] {
+    while instruction_row < index.block_instruction_counts[topology.rollback] {
         let instruction: MirRoutineInstructionView =
             MirRoutineInstructionViewAt(
-                routines, routine_row, 2, instruction_row
+                routines, routine_row, topology.rollback, instruction_row
             );
         let scalar: MirRoutineInstructionScalarCapture =
             MirIntentCleanupScalarAt(index, instruction);
@@ -185,13 +257,15 @@ func MirIntentInvalidationContractError(
     ref index: MirRoutineFactIndex,
     routine_row: Int
 ) -> String {
+    let topology: MirIntentRoutineBlockTopology = MirIntentRoutineBlockTopologyFromIndex(routines, index, routine_row);
+    if !topology.valid { return "MIR intent invalidation block topology is invalid"; }
     let edge_count: Int = 0;
     let detach_count: Int = 0;
     let instruction_row: Int = 0;
-    while instruction_row < index.block_instruction_counts[3] {
+    while instruction_row < index.block_instruction_counts[topology.invalidation] {
         let instruction: MirRoutineInstructionView =
             MirRoutineInstructionViewAt(
-                routines, routine_row, 3, instruction_row
+                routines, routine_row, topology.invalidation, instruction_row
             );
         let scalar: MirRoutineInstructionScalarCapture =
             MirIntentCleanupScalarAt(index, instruction);

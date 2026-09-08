@@ -1,0 +1,65 @@
+// MIR-only adapter to the shared instance closure. The recipe row is an exact
+// occurrence index, so a caller instance and recipe select one concrete target.
+import "generic_call_occurrence_index_owner.pgy";
+
+func MirGenericInstanceClosureFromOccurrences(
+    ref occurrences: MirGenericCallOccurrenceIndex
+) -> GenericInstanceClosure {
+    if !occurrences.valid {
+        return GenericInstanceClosureError("MIR generic instance closure requires admitted call occurrences");
+    }
+    let callers: Array<Int> = [];
+    let targets: Array<Int> = [];
+    let starts: Array<Int> = [];
+    let counts: Array<Int> = [];
+    let types: Array<String> = [];
+    let occurrence: Int = 0;
+    while occurrence < ArrayLength(occurrences.instruction_rows) {
+        let row: Int = occurrences.specialization_rows[occurrence];
+        if row < 0 || row >= ArrayLength(occurrences.target_routine_rows) ||
+            row >= ArrayLength(occurrences.actual_starts) ||
+            row >= ArrayLength(occurrences.actual_counts) {
+            return GenericInstanceClosureError("MIR generic instance recipe is missing");
+        }
+        ArrayPush(callers, occurrences.routine_rows[occurrence]);
+        ArrayPush(targets, occurrences.target_routine_rows[row]);
+        ArrayPush(starts, ArrayLength(types));
+        ArrayPush(counts, occurrences.actual_counts[row]);
+        let actual: Int = 0;
+        while actual < occurrences.actual_counts[row] {
+            ArrayPush(types, occurrences.actual_types[occurrences.actual_starts[row] + actual]);
+            actual = actual + 1;
+        }
+        occurrence = occurrence + 1;
+    }
+    let recipes: GenericInstanceRecipes = GenericInstanceRecipes(
+        true, callers, targets, starts, counts, types);
+    return GenericInstanceClosureFromRecipes(occurrences.templates, recipes);
+}
+
+func MirGenericInstanceCallTarget(
+    ref closure: GenericInstanceClosure, ref occurrences: MirGenericCallOccurrenceIndex,
+    caller_instance: Int, caller_routine: Int, instruction: Int, lane: Int, node: Int
+) -> Int {
+    if !closure.valid || !occurrences.valid || caller_instance < -1 || caller_routine < 0 ||
+        caller_routine >= ArrayLength(occurrences.templates.syntax_ids) || instruction < 0 ||
+        lane < 0 || lane > 1 || node < 0 ||
+        caller_instance >= ArrayLength(closure.template_rows) { return -1; }
+    if caller_instance >= 0 {
+        if closure.template_rows[caller_instance] != caller_routine { return -1; }
+    } else if occurrences.templates.generic_counts[caller_routine] > 0 { return -1; }
+    let result: Int = -1;
+    let call: Int = 0;
+    while call < ArrayLength(closure.call_recipes) {
+        let recipe: Int = closure.call_recipes[call];
+        if closure.call_contexts[call] == caller_instance &&
+            occurrences.routine_rows[recipe] == caller_routine &&
+            occurrences.instruction_rows[recipe] == instruction &&
+            occurrences.lanes[recipe] == lane && occurrences.graph_nodes[recipe] == node {
+            if result >= 0 { return -1; }
+            result = closure.call_targets[call];
+        }
+        call = call + 1;
+    }
+    return result;
+}

@@ -10,6 +10,7 @@ import "routine_inventory_owner.pgy";
 import "../semantic/ast_expression_graph_fact_owner.pgy";
 import "../semantic/ast_signature_fact_owner.pgy";
 import "../semantic/ast_intent_signature_fact_owner.pgy";
+import "../semantic/callable_resolution_owner.pgy";
 
 struct MirExpressionIdentityEpoch {
     ok: Bool;
@@ -306,11 +307,13 @@ func MirExpressionIdentityEpochFromArtifact(
 
 func MirExpressionIdentityEpochRebindGraph(
     graph: SemanticExpressionGraphFacts,
-    ref epoch: MirExpressionIdentityEpoch
+    ref epoch: MirExpressionIdentityEpoch,
+    member_source_names: Array<String>, member_canonical_names: Array<String>
 ) -> SemanticExpressionGraphFacts {
     let targets: Array<Int> =
         graph.arena.identities.call_target_syntax_ids;
     let bindings: Array<Int> = graph.arena.identities.binding_syntax_ids;
+    let target_names: Array<String> = graph.arena.call_target_names;
     let node_count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
     let valid: Bool = graph.ok && epoch.ok &&
         SemanticExpressionIdentityRowsReady(
@@ -324,7 +327,20 @@ func MirExpressionIdentityEpochRebindGraph(
             if !IsSome(target) {
                 valid = false;
             } else {
-                ArraySet(targets, node, UnwrapOption(target));
+                let canonical_id: Int = UnwrapOption(target);
+                if graph.arena.call_target_kinds[node] == SemanticCallTargetMember() {
+                    if canonical_id >= ArrayLength(member_source_names) ||
+                        canonical_id >= ArrayLength(member_canonical_names) ||
+                        member_source_names[canonical_id] == "" ||
+                        member_canonical_names[canonical_id] == "" ||
+                        (target_names[node] != member_source_names[canonical_id] &&
+                         target_names[node] != member_canonical_names[canonical_id]) {
+                        valid = false;
+                    } else {
+                        ArraySet(target_names, node, member_canonical_names[canonical_id]);
+                    }
+                }
+                ArraySet(targets, node, canonical_id);
             }
         }
         if bindings[node] > 0 {
@@ -347,7 +363,7 @@ func MirExpressionIdentityEpochRebindGraph(
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopologyWithIdentities(
             graph.arena.topology, graph.arena.node_texts,
-            graph.arena.call_target_kinds, graph.arena.call_target_names,
+            graph.arena.call_target_kinds, target_names,
             graph.arena.call_return_type_names, rebound,
             graph.arena.place_kinds
         );
@@ -364,5 +380,26 @@ func MirExpressionIdentityEpochRebindGraphForArtifact(
 ) -> SemanticExpressionGraphFacts {
     let epoch: MirExpressionIdentityEpoch =
         MirExpressionIdentityEpochFromArtifact(routines, artifact);
-    return MirExpressionIdentityEpochRebindGraph(graph, epoch);
+    // The existing routine epoch selects these spellings. Neither spelling
+    // can select a declaration, and no source/AST name lookup is reopened.
+    let source_names: Array<String> = [];
+    let canonical_names: Array<String> = [];
+    let node: Int = 0;
+    while node < artifact.count {
+        ArrayPush(source_names, ""); ArrayPush(canonical_names, "");
+        node = node + 1;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(epoch.routine_canonical_ids) && epoch.ok {
+        let id: Int = epoch.routine_canonical_ids[row];
+        if id <= 0 || id >= artifact.count {
+            epoch.ok = false;
+        } else if routines.kinds[row] == "method" && routines.owners[row] != "" {
+            ArraySet(source_names, id, routines.names[row]);
+            ArraySet(canonical_names, id, SemanticCallableCanonicalDeclaredName(
+                routines.owners[row], routines.names[row]));
+        }
+        row = row + 1;
+    }
+    return MirExpressionIdentityEpochRebindGraph(graph, epoch, source_names, canonical_names);
 }

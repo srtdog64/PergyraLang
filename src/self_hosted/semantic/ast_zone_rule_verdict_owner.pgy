@@ -1,0 +1,111 @@
+// Zone lifecycle admission over typed rule fields and semantic slot identities.
+// This boundary consumes the parser's structured rule operands once. DIR is a
+// transport consumer, not a second authority checker or an AST-text parser.
+
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "ast_zone_authority_fact_owner.pgy";
+
+func SemanticAstZoneRuleViolation(
+    artifact: AstTreeArtifact,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref authorities: SemanticAstZoneAuthorityFacts
+) -> Option<String> {
+    if !constructors.ok || !authorities.ok ||
+        constructors.artifact_node_count != artifact.count ||
+        authorities.artifact_node_count != artifact.count {
+        return Some("zone rule admission requires admitted declaration and authority facts");
+    }
+    let zone_count: Int = 0;
+    let owner: Int = 0;
+    while owner < SemanticAstNominalConstructorCount(constructors) {
+        if constructors.nominal_kinds[owner] != "zone" {
+            owner = owner + 1;
+            continue;
+        }
+        zone_count = zone_count + 1;
+        let field: Int = constructors.param_starts[owner];
+        let end: Int = field + constructors.param_counts[owner];
+        while field < end {
+            let field_kind: String = constructors.field_kinds[field];
+            let expected_kind: String = "";
+            if field_kind == NominalFieldKindEffectSlot() ||
+                field_kind == NominalFieldKindEffectPool() {
+                expected_kind = "effect";
+            } else if field_kind == NominalFieldKindRelationSlot() ||
+                field_kind == NominalFieldKindRelationPool() {
+                expected_kind = "relation";
+            }
+            if expected_kind != "" {
+                let layer_type: String = constructors.param_type_names[field];
+                let declaration: Option<Int> =
+                    SemanticAstNominalConstructorIndexForName(constructors, layer_type);
+                if !IsSome(declaration) ||
+                    constructors.nominal_kinds[UnwrapOption(declaration)] != expected_kind {
+                    return Some("Zone layer slot '" + constructors.field_names[field] +
+                        "' references unknown " + expected_kind + " type '" + layer_type + "'");
+                }
+            }
+            field = field + 1;
+        }
+        owner = owner + 1;
+    }
+    if zone_count == 0 { return None; }
+    let node: Int = 0;
+    while node < artifact.count {
+        let kind: Int = artifact.arena.kinds[node];
+        if kind != TypedAstKindDomainApplyTag() &&
+            kind != TypedAstKindDomainLinkTag() &&
+            kind != TypedAstKindDomainRefreshTag() &&
+            kind != TypedAstKindDomainPublishTag() &&
+            kind != TypedAstKindDomainProjectionBindTag() {
+            node = node + 1;
+            continue;
+        }
+        let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, node);
+        if !IsSome(parent) { return Some("zone rule owner identity is missing"); }
+        let owner_index: Option<Int> = SemanticAstNominalConstructorIndexForNode(
+            constructors, UnwrapOption(parent)
+        );
+        if !IsSome(owner_index) { return Some("domain rule declaration identity is missing"); }
+        owner = UnwrapOption(owner_index);
+        // Effect/relation-local projections are not zone-authority mutations.
+        if constructors.nominal_kinds[owner] != "zone" {
+            node = node + 1;
+            continue;
+        }
+        let participant: Option<String> = TypedAstArenaAuxValueText(artifact.arena, node);
+        let participant_id: Int = -1;
+        let participant_name: String = "";
+        if IsSome(participant) {
+            participant_name = UnwrapOption(participant);
+            let slot: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+                constructors, owner, participant_name
+            );
+            if !IsSome(slot) ||
+                constructors.field_kinds[UnwrapOption(slot)] != NominalFieldKindSubjectSlot() {
+                return Some("Zone participant '" + participant_name + "' must name a declared subject slot");
+            }
+            participant_id = constructors.field_source_syntax_ids[UnwrapOption(slot)];
+        }
+        let declared: Bool = false;
+        let authorized: Bool = false;
+        let authority: Int = 0;
+        while authority < ArrayLength(authorities.authority_node_ids) {
+            if authorities.owner_zone_node_ids[authority] == UnwrapOption(parent) {
+                declared = true;
+                if authorities.subject_slot_node_ids[authority] == participant_id {
+                    authorized = true;
+                }
+            }
+            authority = authority + 1;
+        }
+        if declared && !IsSome(participant) {
+            return Some("Zone mutation must specify 'by <subjectSlot>' when authority is declared");
+        }
+        if declared && !authorized {
+            return Some("participant '" + participant_name + "' is not declared in zone authority set");
+        }
+        node = node + 1;
+    }
+    return None;
+}

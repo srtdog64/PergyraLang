@@ -13,7 +13,7 @@ Program:
             Return: (current <= 0)
   Subject: Player
     Fields:
-      name: String
+      let name: String
       health: HealthState
     Methods:
       Action: Greet
@@ -32,4 +32,3 @@ Program:
         Let: hero = Player("Hero", hp)
         hero.Greet()
         Log(ToString(hero.health.current))
-

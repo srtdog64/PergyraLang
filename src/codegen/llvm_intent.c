@@ -95,9 +95,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 "MIR-only LLVM path missing intent priority eval carrier");
             return;
         }
-        if (llvm_mir_intent_has_stmt(
-                mir_routine, intent_name, "IntentCheck", "success")
-            && success_expr == NULL) {
+        if (success_expr == NULL) {
             llvm_set_mir_intent_carrier_missing(ctx,
                 "MIR-only LLVM path missing intent success check carrier");
             return;
@@ -598,8 +596,6 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef success = NULL;
         if (success_expr != NULL)
             success = llvm_emit_expression(success_expr, ctx);
-        else
-            success = LLVMConstInt(ctx->type_i1, 1, 0);
         if (success == NULL) {
             llvm_set_error_at_with_hints(ctx,
                 success_expr,

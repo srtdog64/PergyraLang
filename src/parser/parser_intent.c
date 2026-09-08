@@ -422,6 +422,16 @@ parse_intent_declaration(Parser *parser)
 
     parser_consume(parser, TOKEN_RBRACE, "Expected '}' after intent body");
 
+    /* Reify the legacy language default before semantic/MIR admission.
+     * A missing MIR completion expression must never mean "return true". */
+    if (intent->data.intent_decl.return_type == NULL
+        && intent->data.intent_decl.success_expr == NULL) {
+        intent->data.intent_decl.success_expr = ast_create_boolean(true);
+        if (intent->data.intent_decl.success_expr == NULL) {
+            parser_error(parser, "Out of memory while normalizing intent completion");
+            return intent;
+        }
+    }
     parse_intent_apply_defaults(intent);
     return intent;
 }

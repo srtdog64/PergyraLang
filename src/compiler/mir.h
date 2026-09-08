@@ -193,12 +193,18 @@ bool        mir_routine_has_signature(const MIRRoutine *routine);
 size_t      mir_routine_generic_param_count(const MIRRoutine *routine);
 const char *mir_routine_generic_param_name(const MIRRoutine *routine,
                                             size_t index);
+const char *mir_routine_generic_param_constraint(const MIRRoutine *routine,
+                                                size_t index);
 size_t      mir_routine_param_count(const MIRRoutine *routine);
 FuncParam  *mir_routine_param(const MIRRoutine *routine, size_t index);
 const char *mir_routine_param_type_name(const MIRRoutine *routine,
                                         size_t index);
 MIRParamCarriage mir_routine_param_carriage(const MIRRoutine *routine,
-                                            size_t index);
+                                           size_t index);
+bool mir_block_binding_exit_ssa_name(const MIRRoutine *routine,
+                                      const MIRBasicBlock *block,
+                                      uint32_t binding_syntax_id,
+                                      char *out, size_t out_size);
 MIRParamResourceKind mir_routine_param_resource_kind(
     const MIRRoutine *routine,
     size_t index);

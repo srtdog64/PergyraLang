@@ -1,0 +1,16 @@
+import "capability_fixture.pgy";
+
+intent CompensatedPurpose(work: CapabilityZone, actor: CapabilityActor) {
+    step Read {
+        where: CapabilityZone;
+        using: work;
+        on: actor.Read();
+        compensate: actor.Undo();
+    }
+}
+
+func Main() -> Void with caps clock {
+    let actor = CapabilityActor(0);
+    let work = CapabilityZone(Clone(actor));
+    CompensatedPurpose(work, actor);
+}

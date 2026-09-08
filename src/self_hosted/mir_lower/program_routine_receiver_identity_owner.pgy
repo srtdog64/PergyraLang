@@ -104,7 +104,7 @@ func MirProgramRoutineReceiverIdentityReady(
 }
 
 func MirProgramRoutineSourceSyntaxIdentityUniqueExcept(
-    source_syntax_ids: Array<String>,
+    ref source_syntax_ids: Array<String>,
     source_syntax_id: String,
     except_row: Int
 ) -> Bool {
@@ -201,7 +201,7 @@ func MirProgramRoutineReceiverIdentityRowReady(
     receiver_carriage: String,
     owner_nominal_kind: String,
     owner_declaration_row: Int,
-    source_syntax_ids: Array<String>,
+    ref source_syntax_ids: Array<String>,
     row: Int
 ) -> Bool {
     return MirProgramRoutineSourceSyntaxIdentityUniqueExcept(

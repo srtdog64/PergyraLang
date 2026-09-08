@@ -8,6 +8,7 @@ func DirectMirScalarProgramCallableSignatureCanonicalEmpty(
     return !signature.valid && signature.digest == 0 && signature.row < 0 &&
         signature.name == "" && signature.kind == "" &&
         signature.source_syntax_id == 0 && signature.receiver_carriage == "" &&
+        signature.receiver_owner_row == -1 && signature.receiver_type == "" &&
         signature.return_type == "" && signature.param_count == 0 &&
         !signature.parameters.valid && signature.parameters.digest == 0 &&
         ArrayLength(signature.parameters.names) == 0 &&

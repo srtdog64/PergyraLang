@@ -93,4 +93,5 @@ complete native-oracle C emission/compilation (`6fd83b`), seven-program hard
 parent (`1ab2ce`), ability controls (`b2bbce`), identity epochs and isolated
 installed-layout role gate (`1f9300`, `30255b`). The reached test-cap and
 batch-diagnostic repairs pass the complete structural inventory (`f06a35`).
-The bounded follow-up is locally verified; remote CI and publication are pending.
+The bounded follow-up is locally verified and published as `5b97f2e1`;
+regular CI `33998401657` completed SUCCESS 30/30 on that exact revision (`930d14`).

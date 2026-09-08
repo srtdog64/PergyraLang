@@ -96,6 +96,7 @@ rir_collect_intent_scope(RIRProgram *rir, ASTNode *node)
         if (!add_param_resource_fact(&scope,
                                      ast_intent_involves_alias(involves),
                                      ast_intent_involves_subject_type(involves),
+                                     PARAM_MODE_DEFAULT,
                                      involves))
             goto oom;
     }

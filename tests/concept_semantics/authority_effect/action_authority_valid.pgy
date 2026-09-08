@@ -1,0 +1,15 @@
+subject Counter {
+    let mut value: Int;
+    action Bump(self) -> Void within ArenaZone authorized by self {
+        self.value = self.value + 1;
+    }
+}
+zone ArenaZone {
+    subject slot observer: Counter
+    subject slot controller: Counter
+    authority controller
+}
+func Main() -> Void {
+    let c: Counter = Counter(0);
+    Log(ToString(c.value));
+}

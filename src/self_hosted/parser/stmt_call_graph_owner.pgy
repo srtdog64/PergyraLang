@@ -6,6 +6,10 @@ func ParserExpressionCallStatementKind(
     fact: ParserExpressionFact
 ) -> Int {
     if !fact.ok { return TypedAstKindUnknownTag(); }
+    if fact.arena.node_kinds[fact.root] == AstExpressionNodeSpawn() ||
+        fact.arena.node_kinds[fact.root] == AstExpressionNodeAwait() {
+        return TypedAstKindBareCallStmtTag();
+    }
     let direct: Option<String> =
         ParserExpressionDirectCallCalleeName(fact);
     if IsSome(direct) {

@@ -39,8 +39,8 @@ grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveFact' "$FACT" ||
     fail "move fact is missing"
 grep -Fq 'caller_routines: Array<Int>' "$FACT" ||
     fail "move fact does not own an ordered row set"
-grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveIsLastUse(' "$COVERAGE" ||
-    fail "move admission omits last-use proof"
+grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveExitSetCoverageReady(' "$COVERAGE" ||
+    fail "move admission omits complete exit-set proof"
 ! grep -Fq 'candidates != 1' "$ADMISSION" ||
     fail "move admission restored its one-row ceiling"
 grep -Fq 'DirectMirScalarProgramOwnedArrayStringMoveRetiresLocal(' "$CLEANUP" ||

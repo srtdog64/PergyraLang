@@ -5,7 +5,7 @@ import "direct_mir_scalar_cfg_local_ref_identity_owner.pgy";
 import "direct_mir_scalar_cfg_range_local_ref_identity_owner.pgy";
 
 func DirectMirScalarCfgIterationLocalRow(
-    local_ref_kinds: Array<Int>, local_ref_syntax_ids: Array<Int>,
+    ref local_ref_kinds: Array<Int>, ref local_ref_syntax_ids: Array<Int>,
     wanted_syntax_id: Int
 ) -> Int {
     let found: Int = -1;
@@ -104,8 +104,8 @@ func DirectMirScalarCfgRangeFactsAtLocalRows(
 }
 
 func DirectMirScalarCfgIterationLocalsReady(
-    local_names: Array<String>, local_ref_kinds: Array<Int>,
-    local_ref_value_ids: Array<String>, local_ref_syntax_ids: Array<Int>,
+    ref local_names: Array<String>, ref local_ref_kinds: Array<Int>,
+    ref local_ref_value_ids: Array<String>, ref local_ref_syntax_ids: Array<Int>,
     ref facts: DirectMirScalarCfgRangeFactSet
 ) -> Bool {
     let count: Int = 0;

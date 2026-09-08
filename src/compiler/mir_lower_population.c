@@ -548,6 +548,8 @@ mir_populate_instructions(MIRRoutine *routine, const DIRProgram *dir)
             MIRInstruction inst;
             if (fact == NULL)
                 continue;
+            if (mir_cleanup_fact_is_readonly_zone_borrow(fact))
+                continue;
             if (fact->kind != RIR_FACT_PROJECTION
                 && fact->resource_kind != RIR_RESOURCE_EFFECT_INSTANCE
                 && fact->resource_kind != RIR_RESOURCE_RELATION_INSTANCE

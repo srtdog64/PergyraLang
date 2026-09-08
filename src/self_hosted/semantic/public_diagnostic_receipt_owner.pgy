@@ -28,6 +28,42 @@ func SemanticPublicDiagnosticReceiptSchema() -> String {
 func SemanticPublicDiagnosticIdentityForOwnedCode(
     code: String
 ) -> SemanticPublicDiagnosticIdentity {
+    if code == "task_lifecycle_invalid" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:task:lifecycle", "await-task-before-exit");
+    }
+    if code == "cancel_argument_invalid" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:builtin:signature_mismatch", "match-builtin-signature");
+    }
+    if code == "cancel_payload_unsupported" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:remote_future:direct_access", "await-future");
+    }
+    if code == "parallel_unsafe_forbidden" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:parallel:secure_in_task", "serialize-outside-parallel");
+    }
+    if code == "action_contract_invalid" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:action_contract", "align-action-surface-with-zone");
+    }
+    if code == "action_ability_unsatisfied" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:ability_contract", "align-ability-generics-or-fields");
+    }
+    if code == "intent_retry_unavailable" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:intent_step", "check-intent-step-lowering");
+    }
+    if code == "match_pattern_invalid" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:match:pattern_shape", "align-pattern-arity-or-kind");
+    }
+    if code == "world_zone_escape" || code == "subject_value_copy" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:anchored_handle:copy_attempt", "use-move-or-retain-binding");
+    }
+    if code == "subject_value_return" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:anchored_handle:return_boundary", "return-projection-or-keep-local");
+    }
+    if code == "zone_contract_invalid" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:zone_contract", "align-zone-slot-or-state-naming");
+    }
+    if code == "generic_constraint_unsatisfied" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:class_contract", "satisfy-generic-bound-or-widen");
+    }
     if code == "undefined_symbol" || code == "undefined_function" {
         return SemanticPublicDiagnosticIdentity(
             true,
@@ -55,6 +91,15 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "semantic:assignability_check",
             "annotate-or-convert"
         );
+    }
+    if code == "immutable_field_write" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:immutable_field:write", "reconstruct-or-change-host-kind");
+    }
+    if code == "declared_capability_missing" || code == "declared_effect_missing" ||
+        code == "call_effect_fact_unavailable" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:effect:incompatible_combo", "split-effect-families");
     }
     if code == "call_arg_type_mismatch" {
         return SemanticPublicDiagnosticIdentity(
@@ -90,6 +135,10 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "semantic:builtin:signature_mismatch",
             "match-builtin-signature"
         );
+    }
+    if code == "borrow_boundary_escape" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:borrow_escape", "change-ref-to-own-or-stop-escape");
     }
     if code == "call_arity_mismatch" {
         return SemanticPublicDiagnosticIdentity(
@@ -155,7 +204,7 @@ func SemanticPublicDiagnosticReceiptFromOwnedFacts(
         ready,
         SemanticPublicDiagnosticReceiptSchema(),
         "semantic",
-        "type",
+        SemanticDiagnosticPublicLayer(code),
         public_code,
         identity.cause_ir,
         identity.fix_source,
@@ -172,7 +221,8 @@ func SemanticPublicDiagnosticReceiptReadyFor(
     return receipt.ready &&
         identity.ready &&
         receipt.schema == SemanticPublicDiagnosticReceiptSchema() &&
-        receipt.stage == "semantic" && receipt.layer == "type" &&
+        receipt.stage == "semantic" &&
+        receipt.layer == SemanticDiagnosticPublicLayer(owned_code) &&
         receipt.code == SemanticDiagnosticOracleCode(owned_code) &&
         receipt.cause_ir == identity.cause_ir &&
         receipt.fix_source == identity.fix_source &&

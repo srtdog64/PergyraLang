@@ -1,0 +1,10 @@
+subject Player {}
+relation Bond for left: Player, right: Player {}
+zone Battle {
+    subject slot owner: Player
+    subject slot observer: Player
+    relation slot bond: Bond
+    authority owner
+    link bond between owner, observer by observer
+}
+func Main() -> Void {}

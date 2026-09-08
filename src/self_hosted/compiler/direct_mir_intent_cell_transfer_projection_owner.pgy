@@ -1,0 +1,39 @@
+// Materialize Subject state, never a Zone slot-pointer replacement. This is
+// one operation inside an admitted Intent phase boundary, not that boundary's
+// synchronization, permission, execution order or cleanup proof.
+import "direct_mir_intent_cell_placement_owner.pgy";
+import "direct_mir_identity_cell_projection_owner.pgy";
+
+func DirectMirIntentCellTransferC(
+    ref placement: DirectMirIntentCellPlacement, ref cells: DirectMirIdentityCellFacts,
+    zone: String, participant: String, into_slot: Bool
+) -> String {
+    if !DirectMirIntentCellPlacementReady(placement, cells) || zone == "" || participant == "" {
+        Die("direct MIR Intent C cell transfer identity is invalid");
+    }
+    let slot: String = "(" + zone + ")->field_" + ToString(placement.slot_ordinal);
+    if into_slot { return "    *(" + slot + ") = *(" + participant + ");\n"; }
+    return "    *(" + participant + ") = *(" + slot + ");\n";
+}
+
+func DirectMirIntentCellTransferLlvm(
+    ref placement: DirectMirIntentCellPlacement, ref cells: DirectMirIdentityCellFacts,
+    zone: String, participant: String, into_slot: Bool, operation_identity: Int
+) -> String {
+    if !DirectMirIntentCellPlacementReady(placement, cells) || zone == "" || participant == "" || operation_identity < 0 {
+        Die("direct MIR Intent LLVM cell transfer identity is invalid");
+    }
+    let prefix: String = "%pgy.intent.transfer." + ToString(operation_identity);
+    let address: String = prefix + ".slot.address";
+    let slot: String = prefix + ".slot";
+    let state: String = prefix + ".state";
+    let zone_type: String = DirectMirIdentityCellLlvmType(cells, cells.names[placement.zone_row]);
+    let state_type: String = DirectMirIdentityCellLlvmType(cells, cells.names[placement.subject_row]);
+    let source: String = slot;
+    let destination: String = participant;
+    if into_slot { source = participant; destination = slot; }
+    return "  " + address + " = getelementptr " + zone_type + ", ptr " + zone +
+        ", i32 0, i32 " + ToString(placement.slot_ordinal) + "\n  " + slot +
+        " = load ptr, ptr " + address + "\n  " + state + " = load " + state_type +
+        ", ptr " + source + "\n  store " + state_type + " " + state + ", ptr " + destination + "\n";
+}

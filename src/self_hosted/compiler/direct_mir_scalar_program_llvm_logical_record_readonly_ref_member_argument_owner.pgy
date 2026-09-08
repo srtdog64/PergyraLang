@@ -11,41 +11,27 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     routine: Int, argument_node: Int, value: String
 ) -> DirectMirScalarProgramLlvmStringExpression {
-    let receiver: Int = expressions.node_lefts[argument_node];
-    let member: Int = expressions.node_member_ordinals[argument_node];
-    if receiver < 0 || receiver >= argument_node || member < 0 ||
-        !DirectMirScalarProgramLogicalRecordTypeReady(
-            logical_record, expressions.node_types[receiver]) {
+    let members: Array<Int> = [];
+    let receiver: Int = argument_node;
+    while receiver >= 0 && receiver < ArrayLength(expressions.node_kinds) &&
+            expressions.node_kinds[receiver] == DirectMirScalarProgramExprLogicalRecordMember() {
+        let parent: Int = expressions.node_lefts[receiver];
+        let member: Int = expressions.node_member_ordinals[receiver];
+        if parent < 0 || parent >= receiver || member < 0 ||
+            !DirectMirScalarProgramLogicalRecordTypeReady(
+                logical_record, expressions.node_types[parent]) {
+            return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
+        }
+        ArrayPush(members, member);
+        receiver = parent;
+    }
+    if ArrayLength(members) == 0 {
         return DirectMirScalarProgramLlvmStringExpression(
             true, false, "", "");
     }
     let receiver_type: String =
         DirectMirScalarProgramLlvmLogicalRecordTypeName(
             logical_record, expressions.node_types[receiver]);
-    if expressions.node_kinds[receiver] ==
-            DirectMirScalarProgramExprLogicalRecordMember() {
-        if !DirectMirScalarProgramLogicalRecordTypeReady(
-                logical_record, expressions.node_types[argument_node]) {
-            return DirectMirScalarProgramLlvmStringExpression(
-                true, false, "", "");
-        }
-        // A readonly-ref may borrow a nested member snapshot for the call;
-        // the emitted value remains the owner of the member projection.
-        let argument_type: String =
-            DirectMirScalarProgramLlvmLogicalRecordTypeName(
-                logical_record, expressions.node_types[argument_node]);
-        let pointer: String = Concat(
-            "%pgy.readonly.member.", ToString(argument_node));
-        let instructions: String = Concat("  ", Concat(pointer,
-            Concat(" = alloca ", Concat(argument_type, "\n"))));
-        instructions = Concat(instructions, "  store ");
-        instructions = Concat(instructions, argument_type);
-        instructions = Concat(instructions, Concat(" ", value));
-        instructions = Concat(instructions, Concat(", ptr ", pointer));
-        instructions = Concat(instructions, "\n");
-        return DirectMirScalarProgramLlvmStringExpression(
-            true, true, instructions, pointer);
-    }
     let receiver_pointer: String = "";
     let receiver_instructions: String = "";
     if expressions.node_kinds[receiver] ==
@@ -88,8 +74,13 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberCallArgument(
     instructions = Concat(instructions, receiver_type);
     instructions = Concat(instructions, ", ptr ");
     instructions = Concat(instructions, receiver_pointer);
-    instructions = Concat(instructions, ", i32 0, i32 ");
-    instructions = Concat(instructions, Concat(ToString(member), "\n"));
+    instructions = Concat(instructions, ", i32 0");
+    let index: Int = ArrayLength(members);
+    while index > 0 {
+        index = index - 1;
+        instructions = Concat(instructions, Concat(", i32 ", ToString(members[index])));
+    }
+    instructions = Concat(instructions, "\n");
     return DirectMirScalarProgramLlvmStringExpression(
         true, true, instructions, pointer);
 }

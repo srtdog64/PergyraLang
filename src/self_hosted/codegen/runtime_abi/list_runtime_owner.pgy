@@ -3,6 +3,7 @@
 import "../text/text_owner.pgy";
 import "../../semantic/ast_type_name_canonical_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
+import "hashmap_runtime_owner.pgy";
 
 struct CollectionListRuntimeFact {
     ok: Bool;
@@ -37,27 +38,14 @@ func CollectionListRuntimeElementTypeOpt(
     return Some(shape.actual_type_names[0]);
 }
 
-func CollectionListRuntimeHashMapCValueType(type_name: String) -> String {
-    let shape: SemanticConstructedTypeNameFact =
-        SemanticConstructedTypeNameFactFrom(type_name);
-    if !shape.ok || shape.nominal_base_name != "HashMap" ||
-        ArrayLength(shape.actual_type_names) != 2 ||
-        SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) {
-        return "";
-    }
-    if shape.actual_type_names[0] == "String" &&
-        shape.actual_type_names[1] == "Int" {
-        return "PgyHashMap_Int";
-    }
-    return "";
-}
-
 func CollectionListRuntimeElementCValueType(
     element_type: String
 ) -> String {
     if element_type == "Int" { return "int32_t"; }
     if element_type == "String" { return "const char *"; }
-    return CollectionListRuntimeHashMapCValueType(element_type);
+    let hashmap: CollectionHashMapRuntimeFact = CollectionHashMapRuntimeFactFromTypeName(element_type);
+    if hashmap.ok { return hashmap.c_value_type; }
+    return "";
 }
 
 func CollectionListRuntimeFactFromTypeName(

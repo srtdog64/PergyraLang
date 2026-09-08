@@ -1,0 +1,7 @@
+import "../../../src/self_hosted/codegen/text/owned_string_join_owner.pgy";
+func Build() -> String {
+    let fragments: Array<String> = [];
+    ArrayPushOwnedString(fragments, Concat("allocated", "-owner"));
+    return Concat(CodegenJoinOwnedStringFragments(fragments, ""), ToString(ArrayLength(fragments)));
+}
+func Main() -> Void { Log(Build()); }

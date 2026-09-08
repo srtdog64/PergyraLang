@@ -18,6 +18,7 @@ import "expr_semantic_identity_bound_call_emit_owner.pgy";
 import "list_call_emit_owner.pgy";
 import "queue_call_emit_owner.pgy";
 import "set_call_emit_owner.pgy";
+import "hashmap_call_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 import "expr_semantic_dynamic_ability_call_emit_owner.pgy";
 import "expr_semantic_machine_call_emit_owner.pgy";
@@ -366,6 +367,9 @@ func RewriteSemanticDirectCall(
     }
     let collection_protocol: SemanticExpressionGraphCollectionCallProtocolFact =
         SemanticExpressionGraphCollectionCallProtocolFromName(source_name);
+    if collection_protocol.applies && collection_protocol.family == "HashMap" {
+        return RewriteSemanticHashMapCall(graph, view, collection_protocol, env);
+    }
     if collection_protocol.applies && collection_protocol.family == "List" {
         return RewriteSemanticListCall(graph, view, source_name, env);
     }

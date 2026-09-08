@@ -151,6 +151,8 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
     if (stdlib_map_reject_parallel_mutation(expr, name, ctx, kind))
         return TYPE_UNKNOWN;
 
+    semantic_record_builtin_effect(ctx, expr, name);
+
     if (kind == STDLIB_MAP_BUILTIN_NEW) {
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;

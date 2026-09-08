@@ -17,6 +17,9 @@ func DirectMirScalarProgramCollectionExpressionKindFact(
         } else if left_type == CompilerAbiLayoutArrayIntTypeName() {
             kind = DirectMirScalarProgramExprArrayIntIndex();
             type_name = CompilerAbiLayoutIntTypeName();
+        } else if left_type == CompilerAbiLayoutArrayLongTypeName() {
+            kind = DirectMirScalarProgramExprArrayLongIndex();
+            type_name = CompilerAbiLayoutLongTypeName();
         } else if left_type == CompilerAbiLayoutArrayBoolTypeName() {
             kind = DirectMirScalarProgramExprArrayBoolIndex();
             type_name = CompilerAbiLayoutBoolTypeName();

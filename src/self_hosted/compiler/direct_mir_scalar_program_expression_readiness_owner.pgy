@@ -1,5 +1,8 @@
 // Exact schema and type invariants for normalized scalar-program expressions.
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_hashmap_owner.pgy";
+import "direct_mir_scalar_program_checked_int_owner.pgy";
+import "direct_mir_scalar_program_array_transform_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "direct_mir_scalar_program_bool_readiness_owner.pgy";
 import "direct_mir_scalar_program_nary_expression_readiness_owner.pgy";
@@ -41,11 +44,22 @@ func DirectMirScalarProgramExpressionNodeReady(
     let literal: String = facts.node_literals[node];
     let callable: Int = facts.node_callable_rows[node];
     let runtime_call_abi_id: Int = facts.node_runtime_call_abi_ids[node];
+    if DirectMirScalarProgramCheckedIntKind(kind) {
+        return DirectMirScalarProgramCheckedIntNodeReady(facts, node);
+    }
+    if DirectMirScalarProgramArrayTransformKind(kind) {
+        return DirectMirScalarProgramArrayTransformNodeReady(facts, node);
+    }
+    if DirectMirScalarProgramHashMapOperation(kind) != "" {
+        return DirectMirScalarProgramHashMapNodeReady(facts, node);
+    }
     if kind == DirectMirScalarProgramExprRuntimeValueCall() { return DirectMirScalarProgramRuntimeValueCallNodeReady(facts, node); }
     if kind == DirectMirScalarProgramExprIntentObservabilityCall() { return DirectMirScalarProgramIntentObservabilityCallNodeReady(facts, node); }
     let artifact_ready: Option<Bool> = DirectMirScalarProgramCompilerArtifactExpressionNodeReady(facts, node); if IsSome(artifact_ready) { return UnwrapOption(artifact_ready); }
     if runtime_call_abi_id != -1 { return false; }
     if kind == DirectMirScalarProgramExprLogicalRecordConstructor() ||
+        kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
+        kind == DirectMirScalarProgramExprIdentityCellMember() ||
         kind == DirectMirScalarProgramExprLogicalRecordMember() ||
         kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() {
         return DirectMirScalarProgramLogicalRecordExpressionNodeReady(
@@ -172,8 +186,7 @@ func DirectMirScalarProgramExpressionNodeReady(
     }
     let int_binary: Bool = kind == DirectMirScalarProgramExprAddInt() ||
         kind == DirectMirScalarProgramExprSubtractInt() ||
-        kind == DirectMirScalarProgramExprMultiplyInt() ||
-        kind == DirectMirScalarProgramExprDivideInt();
+        kind == DirectMirScalarProgramExprMultiplyInt();
     let long_binary: Bool = kind == DirectMirScalarProgramExprAddLong() ||
         kind == DirectMirScalarProgramExprMultiplyLong() ||
         kind == DirectMirScalarProgramExprSubtractLong();
@@ -205,13 +218,6 @@ func DirectMirScalarProgramExpressionNodeReady(
         if facts.node_types[left] != CompilerAbiLayoutIntTypeName() ||
             facts.node_types[right] != CompilerAbiLayoutIntTypeName() {
             return false;
-        }
-        if kind == DirectMirScalarProgramExprDivideInt() {
-            return type_name == CompilerAbiLayoutIntTypeName() &&
-                facts.node_kinds[right] ==
-                    DirectMirScalarProgramExprIntLiteral() &&
-                facts.node_literals[right] != "0" &&
-                facts.node_literals[right] != "-1";
         }
         if kind == DirectMirScalarProgramExprAddInt() ||
                 kind == DirectMirScalarProgramExprSubtractInt() ||

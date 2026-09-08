@@ -98,30 +98,6 @@ func MirIntentExecutionReturnTypeForRoutine(
     return result_type;
 }
 
-func MirIntentExecutionStepRowForCarrier(
-    ref plan: MirIntentExecutionPlan,
-    routine_syntax_id: Int,
-    step_name: String,
-    action_syntax_id: Int,
-    outcome_name: String,
-    outcome_type: String
-) -> Int {
-    let found: Int = 0 - 1;
-    let row: Int = 0;
-    while row < ArrayLength(plan.steps.transition_ids) {
-        if plan.steps.routine_syntax_ids[row] == routine_syntax_id &&
-            plan.steps.step_names[row] == step_name &&
-            plan.steps.action_syntax_ids[row] == action_syntax_id &&
-            plan.steps.outcome_result_names[row] == outcome_name &&
-            plan.steps.outcome_type_names[row] == outcome_type {
-            if found >= 0 { return 0 - 1; }
-            found = row;
-        }
-        row = row + 1;
-    }
-    return found;
-}
-
 func MirIntentExecutionStepHeader(
     ref plan: MirIntentExecutionPlan,
     step_row: Int,
@@ -201,6 +177,11 @@ func MirIntentExecutionPhaseTreeLines(
         tree = MirIntentTreeAppendLine(
             tree, Concat("      Post: ", phases.post_texts[step_index])
         );
+    }
+    // Typed transition emission has no predicate-failure edge yet.
+    // Common source admission rejects these clauses; external MIR must too.
+    if phases.pre_rows[step_index] >= 0 || phases.invariant_pre_rows[step_index] >= 0 {
+        return "";
     }
     if phases.expect_rows[step_index] >= 0 {
         tree = MirIntentTreeAppendLine(

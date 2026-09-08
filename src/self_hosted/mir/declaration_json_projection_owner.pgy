@@ -1,6 +1,7 @@
 // Declaration-specific pgy.mir.v1 projection rows.
 
 import "declaration_rows_owner.pgy";
+import "declaration_wire_kind_owner.pgy";
 import "json_projection_support_owner.pgy";
 import "nominal_abi_layout_json_projection_owner.pgy";
 import "../lib/json_emit.pgy";
@@ -316,8 +317,9 @@ func SelfMirJsonDeclaration(
         ArrayPush(variants, JsonEmitObject(variant));
         variant_i = variant_i + 1;
     }
+    let wire_kind: String = MirDeclarationWireKind(rows.nominal_kinds[declaration_index]);
     let fields: Array<String> = [
-        JsonEmitFieldString("kind", rows.kinds[declaration_index]),
+        JsonEmitFieldString("kind", wire_kind),
         JsonEmitFieldString(
             "nominal_kind", rows.nominal_kinds[declaration_index]
         ),
