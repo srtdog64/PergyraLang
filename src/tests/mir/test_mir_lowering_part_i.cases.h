@@ -310,6 +310,75 @@ test_mir_lowering_part_i(void)
         hir_destroy(hir);
     }
 
+    TEST("world embedded slot assignment retains its declaration binding");
+    {
+        const char *src =
+            "subject Actor { let n: Int; }\n"
+            "zone Arena { subject slot actor: Actor authority actor }\n"
+            "world Scene { zone arena: Arena\n"
+            "  func Mutate(self) -> Void { arena.actor.n = arena.actor.n + 1; }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        MIRInstruction *assignment = NULL;
+        if (ok) {
+            for (size_t r = 0; r < mir->routine_count; r++)
+                for (size_t b = 0; b < mir->routines[r].block_count; b++)
+                    for (size_t i = 0; i < mir->routines[r].blocks[b].instruction_count; i++) {
+                        MIRInstruction *inst = &mir->routines[r].blocks[b].instructions[i];
+                        if (inst->kind == MIR_INST_ASSIGN) assignment = inst;
+                    }
+        }
+        EXPECT(ok && assignment != NULL && assignment->arg1 != NULL
+            && strcmp(assignment->arg1, "owner_field") == 0 && mir_validate(mir, NULL));
+        if (assignment != NULL) {
+            ASTNode *root = ast_member_object(ast_member_object(assignment->expr0));
+            uint32_t binding = ast_identifier_binding_syntax_id(root);
+            ast_identifier_set_binding_syntax_id(root, 0);
+            TEST("world slot assignment refuses erased declaration binding");
+            EXPECT(binding != 0 && !mir_validate(mir, NULL));
+            ast_identifier_set_binding_syntax_id(root, binding);
+        }
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("resource claim defines storage without reading an unborn SSA version");
+    {
+        const char *src =
+            "func ClaimFacts() -> Void {\n"
+            "  let dev: DeviceSlot<Int> = ClaimDeviceSlot();\n"
+            "  DeviceWrite(dev, 11); ReleaseDeviceSlot(dev);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        size_t claims = 0, reads = 0;
+        if (ok) {
+            for (size_t r = 0; r < mir->routine_count; r++)
+                for (size_t b = 0; b < mir->routines[r].block_count; b++)
+                    for (size_t i = 0; i < mir->routines[r].blocks[b].instruction_count; i++) {
+                        const MIRInstruction *inst = &mir->routines[r].blocks[b].instructions[i];
+                        if (mir_instruction_resource_op_is_claim(inst)) {
+                            claims++;
+                            ok = ok && inst->use_count == 0;
+                        }
+                        for (size_t u = 0; u < inst->use_count; u++) {
+                            ok = ok && strcmp(inst->uses[u], "dev.0") != 0;
+                            if (strcmp(inst->uses[u], "dev.1") == 0) reads++;
+                        }
+                    }
+        }
+        EXPECT(ok && claims == 1 && reads >= 2);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("typed MIR assignment and loop-init retain every operand use");
     {
         const char *src =

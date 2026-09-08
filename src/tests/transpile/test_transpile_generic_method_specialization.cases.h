@@ -161,7 +161,7 @@ test_generic_direct_specialization_fact(void)
             && strstr(generated, "Rank_Card(Card *value)") != NULL
             && strstr(generated, "Forward_Card(Card *value)") != NULL
             && strstr(generated, "Rank_Card(value)") != NULL
-            && strstr(generated, "&(\u0028Card){ .value = 7 })") != NULL);
+            && strstr(generated, "&((Card){ .value = 7 })") != NULL);
         free(generated);
         transpile_result_destroy(c_result);
         remove(output_path);

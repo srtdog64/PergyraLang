@@ -369,6 +369,42 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Check methods */
     scope_enter(&ctx->scope, SCOPE_BLOCK);
+    /* World methods are checked here, not by overlay_decl_common. Publish
+     * embedded-slot identities before their bare-name uses are checked. */
+    for (size_t i = 0; i < zone_count + roster_count; i++) {
+        bool is_zone = i < zone_count;
+        ASTNode *slot = is_zone ? zones[i] : rosters[i - zone_count];
+        const char *slot_name = is_zone ? ast_world_zone_slot_name(slot)
+            : ast_world_roster_slot_name(slot);
+        const char *type_name = is_zone ? ast_world_zone_type_name(slot)
+            : ast_world_roster_type_name(slot);
+        if (slot == NULL || slot_name == NULL || type_name == NULL)
+            continue;
+        Type *slot_type =
+            semantic_type_resolution_lookup_metadata_name_or_alias_or_unknown(
+                ctx, type_name, slot);
+        Symbol *slot_sym = calloc(1, sizeof(Symbol));
+        if (slot_sym == NULL) {
+            semantic_error(ctx, slot, "Out of memory while binding world slot");
+            scope_exit(&ctx->scope);
+            ctx->current_world = saved_world;
+            return false;
+        }
+        slot_sym->name = pergyra_strdup(slot_name);
+        slot_sym->kind = SYMBOL_VARIABLE;
+        slot_sym->type = slot_type != NULL ? slot_type : TYPE_UNKNOWN;
+        slot_sym->decl_line = slot->line;
+        slot_sym->decl_col = slot->column;
+        symbol_mark_declaration(slot_sym, ast_node_stable_id(slot), false);
+        slot_sym->is_host_field = true;
+        if (slot_sym->name == NULL || !scope_declare(ctx->scope, slot_sym)) {
+            symbol_destroy(slot_sym);
+            semantic_error(ctx, slot, "Cannot register world slot binding '%s'", slot_name);
+            scope_exit(&ctx->scope);
+            ctx->current_world = saved_world;
+            return false;
+        }
+    }
     if (!type_check_overlay_bind_shared_fields(shared_fields, shared_count, ctx)) {
         scope_exit(&ctx->scope);
         ctx->current_world = saved_world;

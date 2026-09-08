@@ -169,7 +169,12 @@ mir_record_instruction_expr_uses(MIRRoutine *routine,
     if (raw_use_count == 0
         && (inst->kind == MIR_INST_RESOURCE_OP
             || inst->kind == MIR_INST_CLEANUP_EDGE)) {
-        const char *candidates[2] = {inst->arg0, inst->arg1};
+        /* Claim's subject is its output resource, not a read of a prior SSA
+         * version. Any initializer operand reads were collected above. */
+        const char *candidates[2] = {
+            mir_instruction_resource_op_is_claim(inst) ? NULL : inst->arg0,
+            inst->arg1
+        };
         for (size_t j = 0; j < 2; j++) {
             int idx = mir_resource_use_index(ssa_names, ssa_name_count,
                                               candidates[j]);

@@ -113,33 +113,6 @@ type_check_overlay_decl_common(ASTNode *node,
             }
         }
     }
-    if (node->type == AST_WORLD_DECL) {
-        ASTNode **zones;
-        size_t zone_count;
-
-        zones = ast_world_zones(node, &zone_count);
-        for (size_t i = 0; i < zone_count; i++) {
-            ASTNode *wz = zones[i];
-            const char *slot_name = ast_world_zone_slot_name(wz);
-            const char *type_name = ast_world_zone_type_name(wz);
-            if (wz != NULL && wz->type == AST_WORLD_ZONE
-                && slot_name != NULL
-                && type_name != NULL) {
-                Type *zone_type =
-                    semantic_type_resolution_lookup_metadata_name_or_alias_or_unknown(
-                        ctx, type_name, wz);
-                Symbol *zone_sym = calloc(1, sizeof(Symbol));
-                zone_sym->name = pergyra_strdup(slot_name);
-                zone_sym->kind = SYMBOL_VARIABLE;
-                zone_sym->type = zone_type != NULL ? zone_type : TYPE_UNKNOWN;
-                zone_sym->decl_line = wz->line;
-                zone_sym->decl_col = wz->column;
-                symbol_mark_declaration(zone_sym, ast_node_stable_id(wz), false);
-                zone_sym->is_host_field = true;
-                scope_declare(ctx->scope, zone_sym);
-            }
-        }
-    }
     /* Register shared fields so bare field access works in hosted funcs. */
     if (!type_check_overlay_bind_shared_fields(shared_fields, shared_count, ctx)) {
         scope_exit(&ctx->scope);

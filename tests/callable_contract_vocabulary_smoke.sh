@@ -61,9 +61,13 @@ if [[ -x "$PGY_BIN" ]]; then
         "$ROOT_DIR/tests/cases/callable_contract_vocabulary/valid_all/main.pgy")"
     VALID_OUT_ARG="$(pgy_path_for_compiler "$PGY_BIN" \
         "$BUILD_DIR/valid_all.c")"
-    (cd "$ROOT_DIR" && "$PGY_BIN" \
+    if ! (cd "$ROOT_DIR" && "$PGY_BIN" \
         "$VALID_SRC_ARG" --emit-c -o "$VALID_OUT_ARG") \
-        >"$BUILD_DIR/valid_all.out" 2>"$BUILD_DIR/valid_all.err"
+        >"$BUILD_DIR/valid_all.out" 2>"$BUILD_DIR/valid_all.err"; then
+        echo "[callable-contract-vocabulary] valid source compilation failed" >&2
+        cat "$BUILD_DIR/valid_all.out" "$BUILD_DIR/valid_all.err" >&2
+        exit 1
+    fi
     # The default compile path is the self-hosted driver, so these assert its
     # stable parse code plus the name that tripped it, not the native
     # compiler's prose. A code and the offending value pin more than a sentence.

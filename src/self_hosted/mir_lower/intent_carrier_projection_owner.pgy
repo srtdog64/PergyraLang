@@ -1,4 +1,5 @@
 // Canonical binding/step projection from admitted intent semantic carriers.
+import "error_owner.pgy";
 import "routine_fact_index_owner.pgy";
 
 struct MirIntentBindingProjection {

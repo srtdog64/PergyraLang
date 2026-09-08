@@ -1,9 +1,35 @@
 # Current Work Handoff
 
-Updated: 2026-09-09 01:28 (Asia/Seoul), pre-publication snapshot. Navigation only, not semantic authority.
+Updated: 2026-09-09 (Asia/Seoul), CI repair in progress. Navigation only, not semantic authority.
 Compiler owners, registries and executable gates override this snapshot.
 
 ## Active self-host context — source-admission equivalence
+
+CI repair base HEAD/origin/main: `419b17457e02bf9378be70c5cf516ec49801a61a`.
+The user reopened failed push run `34251704201`. CI repair is the active
+integration blocker; do not extend the Intent execution rung below until its
+reached regressions are repaired. Failed logs are in
+`.tmp/ci-34251704201-failed.log`. The first seed errors are two unresolved
+`MirLowerFailClosed` calls; downstream installed-driver failures are not
+independent compiler regressions. Separate reached failures include a C test
+universal-character escape, world assignment binding-mode carriage, LLVM own
+remote-transfer storage, and obsolete backend source pins. This repair packet
+fixes those reached native/static failures without relaxing admission guards.
+Fresh isolated native evidence: C transpile 978/0, semantic 2930/0, MIR 194/0,
+C ABI 196/0 (including world projection 7/0), structured-spawn C+LLVM PASS,
+backend-fail-closed PASS, and MIR field-kind vocabulary PASS. Logs use the
+`.tmp/ci-` prefix; compiler is `.tmp/ci-34251704201-native/pgy.exe`.
+
+The seed import correction now permits the native gen0 build (0 errors,
+1 existing unreachable-statement warning). Whole self-host bootstrap is NOT
+green: graph-owned call arguments and collection-field receivers exposed the
+next failures. Those semantic changes and their new focused gate remain dirty
+and are deliberately excluded from this native repair packet until verified.
+Latest falsifier: `codegen_call_argument_graph.sh` rejects its valid collection
+field control; evidence is `.tmp/ci-seed-field-repair.log` and
+`.tmp/self_hosted/codegen_call_argument_graph/run.gKlkEJ/`.
+No shared driver was installed. Use Git for this repair commit's identity;
+the pre-publication evidence below remains scoped to its named pair.
 
 Pre-publication HEAD/local origin/main: `5b97f2e10ffa7ecf9cfe932829a83ffffaa3ba12`.
 On 2026-09-09 the user explicitly requested commit/push now to inspect CI.

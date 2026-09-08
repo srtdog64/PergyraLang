@@ -4,6 +4,23 @@ Status: ACTIVE; primary-only implementation, no parallel edit lane.
 Base HEAD/origin/main: `5b97f2e10ffa7ecf9cfe932829a83ffffaa3ba12`.
 This is a coordination card, not semantic authority or an execution log.
 
+## Current integration blocker — push CI at 419b1745
+
+The user reopened run `34251704201` on 2026-09-09. Repair its reached
+integration failures before extending Intent GraphPlan execution. Primary only.
+Objective: restore fresh seed construction and the existing native ABI/LLVM
+gates without weakening source admission, fact validation or negative checks.
+Priority: producer/import correctness, exact binding carriage, executable
+regressions, then stale source-pin repair. Existing parser/lowering/semantic
+binding and LLVM storage owners remain authoritative; seed construction,
+MIR validation and target emission are their last reached consumers.
+Forbidden: guessed binding modes, spelling-based SSA lookup, native fallback,
+skipping failed jobs, or increasing limits to obtain green.
+Focused falsifiers are the codegen bootstrap seed, the nominal generic C
+specialization test, `world_embedded_projection_abi`, and
+`positive_own_remote_transfer`. Integration is the existing push workflow;
+passing a local candidate does not establish remote CI success.
+
 ## Objective and priority
 
 The public compiler and native checker must implement the same canonical

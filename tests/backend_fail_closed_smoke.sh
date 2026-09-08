@@ -1425,7 +1425,9 @@ grep -Fq "llvm_mir_routine_param_callable_sig" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
 grep -Fq "llvm_mir_callable_sig_to_llvm" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
-grep -Fq "MIR-only LLVM path missing generic function parameter ABI fact" \
+grep -Fq "llvm_mir_routine_signature_metadata_complete(ctx, routine, call," \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
+grep -Fq "mir_generic_method_specialization_for_call(mir, ast_node_stable_id(call))" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
 if grep -Fq "llvm_spawn_required_param_type(ctx, generic_ast, p" \
         "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"; then
@@ -1662,7 +1664,7 @@ if grep -Fq "llvm_register_callable_param_if_needed" \
 fi
 grep -Fq "llvm_emit_mir_mut_ref_writebacks" \
     "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
-grep -Fq "block->ssa_exit_values" \
+grep -Fq "mir_block_binding_exit_ssa_name(routine, block," \
     "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
 if grep -Fq "llvm_emit_mut_ref_writebacks" \
         "$ROOT_DIR/src/codegen/llvm_mir_local_emit.h" \
@@ -2038,8 +2040,12 @@ grep -Fq "vars[count].abi_type_name = mir_routine_param_type_name(routine, i);" 
     "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
 grep -Fq "entry->abi_type_name != NULL ? entry->abi_type_name : type_name" \
     "$ROOT_DIR/src/codegen/llvm_mir_block_scope.c"
-grep -Fq "base_entry->abi_type_name != NULL" \
+grep -Fq "entry = llvm_mir_get_var_entry(vars, var_count, versioned_name);" \
     "$ROOT_DIR/src/codegen/llvm_mir_block_scope.c"
+if grep -Fq "base_entry" "$ROOT_DIR/src/codegen/llvm_mir_block_scope.c"; then
+    echo "[backend-fail-closed] LLVM SSA reads reintroduced base-name storage recovery" >&2
+    exit 1
+fi
 grep -Fq "llvm_register_typed_var_abi_binding(ctx, owned_base, alloca," \
     "$ROOT_DIR/src/codegen/llvm_mir_scope_bind.c"
 grep -Fq "if (mir_active && inst->abi_type_name != NULL)" \
