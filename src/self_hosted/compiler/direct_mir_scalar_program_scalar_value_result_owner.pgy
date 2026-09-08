@@ -1,5 +1,5 @@
 // Primitive parameter entry storage and exact normal-return copyout.
-import "direct_mir_scalar_program_value_result_union_owner.pgy";
+import "direct_mir_scalar_program_scalar_value_result_storage_owner.pgy";
 import "direct_mir_scalar_cfg_program_c_signature_owner.pgy";
 import "direct_mir_scalar_program_llvm_type_owner.pgy";
 

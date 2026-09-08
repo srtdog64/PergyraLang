@@ -15,20 +15,17 @@ struct DirectMirScalarCfgValueTypePlan {
     let value_types: Array<String>;
 }
 
-func DirectMirScalarCfgValueTypePlanInvalid(
-) -> DirectMirScalarCfgValueTypePlan {
+func DirectMirScalarCfgValueTypePlanInvalid() -> DirectMirScalarCfgValueTypePlan {
     let strings: Array<String> = [];
     return DirectMirScalarCfgValueTypePlan(false, strings, strings);
 }
 
-func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(
-    ref index: MirRoutineFactIndex,
+func DirectMirScalarCfgValueTypePlanFromOwnersWithReferencedEnum(ref index: MirRoutineFactIndex,
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref foreach_elements: DirectMirScalarCfgForEachElementFacts,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
-    ref parameters: DirectMirRoutineParameterSetFact
-) -> DirectMirScalarCfgValueTypePlan {
+    ref parameters: DirectMirRoutineParameterSetFact) -> DirectMirScalarCfgValueTypePlan {
     let invalid: DirectMirScalarCfgValueTypePlan =
         DirectMirScalarCfgValueTypePlanInvalid();
     if !index.valid || !locals.valid ||

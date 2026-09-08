@@ -43,8 +43,53 @@ not assumptions that native acceptance defines the intended language.
 The driver then reaches declaration scheduling for a nominal-record array field.
 Keep the existing typed Intent step plan and nominal-array layout/runtime owners;
 do not flatten the plan or invent an unverified ABI spelling to bypass the error.
+The semantic nominal-constructor lookup admits array element identity once;
+the existing nominal-array usage fact feeds both declaration and runtime emission.
+Declaration scheduling emits named element forwards and complete pointer/len/cap
+descriptors before value fields, then completes elements before runtime bodies.
+Direct by-value dependencies still require completed declarations. Last consumers
+are the C field layout and collection runtime owners. Falsifiers: array-valued
+record fields (including recursive arrays) execute; direct value cycles refuse
+before C publication. Driver generation is the integration gate.
+The native comparator exposed the same boundary: its existing array macro now
+separates descriptor/prototype declaration from value-taking implementation.
+The specialization registry emits the latter into the existing late file-scope
+declarations, never into a partially emitted generic function body. No runtime
+layout or collection semantics change, and builtin combined expansion remains.
+After this boundary, identity-cell definition routing must copy the immutable
+store receipt's use prefix into its local consuming cursor, as the neighboring
+member/indexed routes do. Never pass an immutable receipt field as `inout` or
+relax the C argument owner to make that source compile.
+The verified-artifact route also lowers those admitted array field mutations to
+MIR. Its primary LocalRef belongs to the lexical root selected from the carried
+member graph; the existing expression graph retains the projections. Do not
+look up a dotted spelling as a local or drop the graph to make verification pass.
+The full zone-sync gate's codegen build (not a prebuilt bypass) is the falsifier.
 The final structural line-cap batch is a remaining integration obligation, not
 permission to raise caps or split semantic responsibilities indiscriminately.
+At that boundary, preserve executable bodies and existing fact identities first.
+Separate lifetime retirement from text assembly, Intent binding/canonical-plan
+projection from ordinary signature/instruction sealing, and ABI receipt keys,
+physical-layout checks and expression emission from their respective consumers.
+The manifest names these physical responsibilities; it does not add semantic
+fact families. Delete each relocated definition from its former module, migrate
+imports and source pins, and ratchet duplicate definitions. The structural
+component gate plus fresh bootstrap/driver parity own integration acceptance.
+The reached inferred-generic negative also requires each template return's
+indexed ABI type to agree with its unspecialized header before actual-type
+substitution. `mir_lower/generic_call_occurrence_index_owner.pgy` seals that
+cross-edge once per template; instance signature projection is the last consumer.
+Forbidden: accepting a crossed T/Int source receipt because this instance binds
+T=Int, or weakening the existing return-type mutation. The same gate retains
+a generic function with a concrete return and two different actual tuples.
+Discarded AST_CALL statements also reuse the existing exact ABI-absence owner
+before expression admission; null type, zero layout ID, false required bit and
+null layout cannot be replaced by a stray value receipt. The statement owner
+is the last consumer. Existing output-ABI mutations remain required refusals.
+The installed role-override rung consumes declaration storage kind `class`
+and semantic nominal kind `subject` as distinct admitted facts. Its identity
+owner must require that exact pair, not reinterpret one as the other. Existing
+role C/LLVM execution is the positive gate; crossed wire/nominal kinds refuse.
 
 ## Objective and priority
 

@@ -6,21 +6,16 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>,
-    array_int_projection: Option<DirectMirArrayIntAbiProjection>,
-    target: CompilerTargetProjectionFact
-) -> String {
-    if operation < 0 || operation >= ArrayLength(plan.operation_kinds) ||
-        plan.operation_kinds[operation] !=
+    array_int_projection: Option<DirectMirArrayIntAbiProjection>, target: CompilerTargetProjectionFact) -> String {
+    if operation < 0 || operation >= ArrayLength(plan.operation_kinds) || plan.operation_kinds[operation] !=
             DirectMirScalarCfgOpLogicalRecordMemberRebind() {
         Die("direct MIR LLVM logical-record member rebind is invalid");
     }
     let result: Int = plan.operation_result_values[operation];
     let expression_row: Int = plan.program.operation_expression_rows[operation];
     let target_row: Int = plan.program.operation_secondary_expression_rows[operation];
-    if result < 0 || result >= ArrayLength(plan.value_types) ||
-        expression_row < 0 || expression_row >=
-            ArrayLength(plan.program.expressions.graph_roots) ||
-        target_row < 0 || target_row >=
+    if result < 0 || result >= ArrayLength(plan.value_types) || expression_row < 0 || expression_row >=
+            ArrayLength(plan.program.expressions.graph_roots) || target_row < 0 || target_row >=
             ArrayLength(plan.program.expressions.graph_roots) {
         Die("direct MIR LLVM logical-record member rebind row is invalid");
     }
@@ -29,22 +24,16 @@ func DirectMirScalarProgramLlvmLogicalRecordMemberRebind(
     let field_type: String = plan.program.expressions.node_types[target_root];
     let receiver: Int = plan.program.expressions.node_lefts[target_root];
     let receiver_type: String = plan.program.expressions.node_types[receiver];
-    let llvm_record: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(
-        plan.program.logical_record, record_type);
-    let llvm_field: String =
-        DirectMirScalarProgramLlvmLogicalRecordStorageFieldType(
+    let llvm_record: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(plan.program.logical_record, record_type);
+    let llvm_field: String = DirectMirScalarProgramLlvmLogicalRecordStorageFieldType(
             plan.program.logical_record, receiver_type, member);
-    let expression: DirectMirScalarProgramLlvmExpression =
-        DirectMirScalarProgramLlvmExpressionAt(
-            plan.program.expressions, expression_row, runtime,
-            plan.program.logical_record,
+    let expression: DirectMirScalarProgramLlvmExpression = DirectMirScalarProgramLlvmExpressionAt(
+            plan.program.expressions, expression_row, runtime, plan.program.logical_record,
             plan.program.payload_free_enum, plan.program.referenced_enum,
             plan.routines, routine, plan.program.array_string_abi,
             array_string_projection, plan.program.array_int_value_result, array_int_projection, target);
-    if local_row < 0 || field_type == "" || llvm_record == "" ||
-        llvm_field == "" || !expression.valid ||
-        expression.type_name != field_type ||
-        plan.program.expressions.node_kinds[target_root] !=
+    if local_row < 0 || field_type == "" || llvm_record == "" || llvm_field == "" || !expression.valid ||
+        expression.type_name != field_type || plan.program.expressions.node_kinds[target_root] !=
             DirectMirScalarProgramExprLogicalRecordMember() ||
         plan.program.expressions.node_member_ordinals[target_root] != member {
         Die("direct MIR LLVM logical-record member rebind type is invalid");

@@ -24,18 +24,13 @@ func CompileAdmittedDirectMirMultiRoutineForTarget(
     return CompileAdmittedDirectMirMultiRoutineForTargetObserved(admitted, target_projection, false, calls, instances);
 }
 func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
-    target_projection: CompilerTargetProjectionFact,
-    observe_pressure: Bool,
-    generic_calls: MirGenericCallOccurrenceIndex,
-    generic_instances: GenericInstanceClosure
-) -> String {
+    ref admitted: MirMachineLayerAdmittedJsonInput, target_projection: CompilerTargetProjectionFact,
+    observe_pressure: Bool, generic_calls: MirGenericCallOccurrenceIndex,
+    generic_instances: GenericInstanceClosure) -> String {
     let is_c: Bool = CompilerTargetProjectionFactReadyFor(
-        target_projection, CompilerTargetCpuCProjection()
-    );
+        target_projection, CompilerTargetCpuCProjection());
     let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
-        target_projection, CompilerTargetCpuLlvmProjection()
-    );
+        target_projection, CompilerTargetCpuLlvmProjection());
     if !is_c && !is_llvm {
         Die("direct MIR multi-routine projection rejected the program graph");
     }
@@ -47,8 +42,7 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
     if DirectMirRoleOperatorProgramCandidate(admitted) { return CompileAdmittedDirectMirRoleOperatorForTarget(
         admitted, target_projection, is_llvm, formatted_print, line_format); }
     if DirectMirReturnedArrayForEachProgramCandidate(admitted) {
-        return CompileAdmittedDirectMirReturnedArrayForEachForTarget(
-            admitted, target_projection); }
+        return CompileAdmittedDirectMirReturnedArrayForEachForTarget(admitted, target_projection); }
     if DirectMirArrayReturnProgramCandidate(admitted) {
         let return_plan: DirectMirArrayReturnPlan = DirectMirArrayReturnPlanFromAdmitted(admitted);
         let return_abi: DirectMirArrayIntAbiProjection =

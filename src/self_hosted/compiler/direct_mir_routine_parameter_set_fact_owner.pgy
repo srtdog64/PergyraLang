@@ -1,7 +1,7 @@
 // Ordered formal-parameter identity without an unsupported struct array ABI.
 
 import "direct_mir_routine_param_fact_owner.pgy";
-import "direct_mir_nominal_abi_row_equality_owner.pgy";
+import "direct_mir_nominal_abi_row_identity_owner.pgy";
 
 struct DirectMirRoutineParameterSetFact {
     let valid: Bool;

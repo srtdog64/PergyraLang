@@ -5,6 +5,7 @@
 
 import "source_bundle_owner.pgy";
 import "diagnostic_owner.pgy";
+import "oracle_json_diagnostic_owner.pgy";
 import "program_check_owner.pgy";
 
 func RunSemanticFromArgs(args: Array<String>) -> Void {

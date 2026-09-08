@@ -4,17 +4,14 @@ import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 func DirectMirScalarProgramLlvmStringCollectionExpressionAt(
-    kind: Int, result: String, left_type: String, left: String,
-    left_address: String, right: String,
+    kind: Int, result: String, left_type: String, left: String, left_address: String, right: String,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection, ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
     let call: String = "";
     if kind == DirectMirScalarProgramExprProcessArgs() {
-        call = Concat("call %pgy.array.string @",
-            Concat(runtime.process_args.symbol, "()"));
+        call = Concat("call %pgy.array.string @", Concat(runtime.process_args.symbol, "()"));
     } else if kind == DirectMirScalarProgramExprDirWalk() {
-        call = Concat("call %pgy.array.string @",
-            Concat(runtime.dir_walk.symbol,
+        call = Concat("call %pgy.array.string @", Concat(runtime.dir_walk.symbol,
             Concat("(ptr ", Concat(left, ")"))));
     } else if kind == DirectMirScalarProgramExprFileExists() {
         call = Concat("call i1 @", Concat(runtime.file_exists.symbol,
@@ -23,10 +20,8 @@ func DirectMirScalarProgramLlvmStringCollectionExpressionAt(
         call = Concat("call ptr @", Concat(runtime.read_file.symbol,
             Concat("(ptr ", Concat(left, ")"))));
     } else if kind == DirectMirScalarProgramExprArrayStringDropOwned() {
-        if left_address == "" || left_type !=
-                CompilerAbiLayoutArrayStringTypeName() {
-            return DirectMirScalarProgramLlvmStringExpression(
-                true, false, "", "");
+        if left_address == "" || left_type != CompilerAbiLayoutArrayStringTypeName() {
+            return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
         }
         let output: String = Concat("  call void @",
             Concat(CollectionRuntimeCOwnedStringDropFn(),

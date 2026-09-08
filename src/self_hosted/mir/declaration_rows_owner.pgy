@@ -5,8 +5,7 @@ import "declaration_callable_rows_owner.pgy";
 import "declaration_generic_rows_owner.pgy";
 func SelfMirDeclarationsFromAnalysis(
     artifact: AstTreeArtifact, analysis: SemanticAstArtifactAnalysis,
-    enum_facts: SemanticAstEnumFacts
-) -> SelfMirDeclarationRows {
+    enum_facts: SemanticAstEnumFacts) -> SelfMirDeclarationRows {
     let rows: SelfMirDeclarationRows = SelfMirDeclarationRowsEmpty();
     let kinds: Array<String> = rows.kinds;
     let nominal_kinds: Array<String> = rows.nominal_kinds;
@@ -48,8 +47,7 @@ func SelfMirDeclarationsFromAnalysis(
     let variant_names: Array<String> = rows.variant_names;
     let variant_param_starts: Array<Int> = rows.variant_param_starts;
     let variant_param_counts: Array<Int> = rows.variant_param_counts;
-    let variant_param_type_names: Array<String> =
-        rows.variant_param_type_names;
+    let variant_param_type_names: Array<String> = rows.variant_param_type_names;
     let generic_starts: Array<Int> = rows.generic_starts;
     let generic_counts: Array<Int> = rows.generic_counts;
     let generic_names: Array<String> = rows.generic_names;

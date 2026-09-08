@@ -1,5 +1,4 @@
 // Capability and diagnostics for concrete scalar graph trees.
-
 import "ast_expression_graph_resolved_call_type_owner.pgy";
 import "ast_expression_graph_scalar_type_owner.pgy";
 import "ast_expression_graph_scalar_verdict_owner.pgy";
@@ -12,90 +11,56 @@ import "ast_contextual_builtin_type_owner.pgy";
 import "ast_callable_receiver_source_parameter_owner.pgy";
 
 func SemanticExpressionGraphCallTargetSourceParameterOffset(
-    target: SemanticExpressionCallTargetFact,
-    local_callable: SemanticAstCallableTypeShape,
-    signatures: SemanticAstFunctionSignatureFacts
-) -> Option<Int> {
+    target: SemanticExpressionCallTargetFact, local_callable: SemanticAstCallableTypeShape,
+    signatures: SemanticAstFunctionSignatureFacts) -> Option<Int> {
     if target.kind != SemanticCallTargetMember() { return Some(0); }
     if local_callable.ok { return Some(target.parameter_offset); }
-    return SemanticAstFunctionReceiverSourceParameterOffsetForCallable(
-        signatures, target.name
-    );
+    return SemanticAstFunctionReceiverSourceParameterOffsetForCallable(signatures, target.name);
 }
 
-func SemanticExpressionGraphConcreteScalarValueOwned(
-    ref graph: SemanticExpressionGraphFacts,
-    node_id: Int,
-    ref constructors: SemanticAstNominalConstructorFacts,
-    signatures: SemanticAstFunctionSignatureFacts,
-    names: Array<String>,
-    types: Array<String>,
-    ref function_names: Array<String>,
-    ref function_returns: Array<String>,
-    ref function_params: Array<String>
-) -> Bool {
-    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph, node_id
-    );
+func SemanticExpressionGraphConcreteScalarValueOwned(ref graph: SemanticExpressionGraphFacts,
+    node_id: Int, ref constructors: SemanticAstNominalConstructorFacts,
+    signatures: SemanticAstFunctionSignatureFacts, names: Array<String>, types: Array<String>,
+    ref function_names: Array<String>, ref function_returns: Array<String>,
+    ref function_params: Array<String>) -> Bool {
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
     if !IsSome(kind_opt) { return false; }
     let kind: Int = UnwrapOption(kind_opt);
     if AstExpressionNodeIsScalarLeaf(kind) { return true; }
     if kind == AstExpressionNodeCast() {
-        let operand: Option<Int> = SemanticExpressionGraphLeftChild(
-            graph, node_id
-        );
-        return IsSome(operand) &&
-            IsSome(SemanticExpressionGraphCastTargetTypeName(
-                graph, node_id
+        let operand: Option<Int> = SemanticExpressionGraphLeftChild(graph, node_id);
+        return IsSome(operand) && IsSome(SemanticExpressionGraphCastTargetTypeName(graph, node_id
             )) && SemanticExpressionGraphConcreteScalarValueOwned(
-                graph, UnwrapOption(operand), constructors, signatures,
-                names, types,
-                function_names, function_returns, function_params
-            );
+                graph, UnwrapOption(operand), constructors, signatures, names, types,
+                function_names, function_returns, function_params);
     }
     if kind == AstExpressionNodeMemberAccess() {
         return IsSome(SemanticExpressionGraphValueReceiverTypeName(
-            graph, node_id, constructors, names, types,
-            function_names, function_returns
-        ));
+            graph, node_id, constructors, names, types, function_names, function_returns));
     }
     if kind == AstExpressionNodeCoalesce() {
-        let coalesce_left: Option<Int> = SemanticExpressionGraphLeftChild(
-            graph, node_id
-        );
-        let coalesce_right: Option<Int> = SemanticExpressionGraphRightChild(
-            graph, node_id
-        );
+        let coalesce_left: Option<Int> = SemanticExpressionGraphLeftChild(graph, node_id);
+        let coalesce_right: Option<Int> = SemanticExpressionGraphRightChild(graph, node_id);
         if !IsSome(coalesce_left) || !IsSome(coalesce_right) {
             return false;
         }
         let wrapped_type: String = SemanticExpressionGraphScalarTypeName(
             graph, UnwrapOption(coalesce_left), constructors, names, types,
-            function_names, function_returns
-        );
+            function_names, function_returns);
         let fallback_type: String = SemanticExpressionGraphScalarTypeName(
             graph, UnwrapOption(coalesce_right), constructors, names, types,
-            function_names, function_returns
-        );
-        return IsSome(OptionCoalescePayloadTypeOpt(
-            wrapped_type, fallback_type
-        ));
+            function_names, function_returns);
+        return IsSome(OptionCoalescePayloadTypeOpt(wrapped_type, fallback_type));
     }
     if SemanticExpressionGraphScalarOperatorKind(kind) {
-        let left: Option<Int> = SemanticExpressionGraphLeftChild(
-            graph, node_id
-        );
-        if !IsSome(left) ||
-            !SemanticExpressionGraphConcreteScalarValueOwned(
-                graph, UnwrapOption(left), constructors, signatures,
-                names, types, function_names,
-                function_returns, function_params
-            ) {
+        let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, node_id);
+        if !IsSome(left) || !SemanticExpressionGraphConcreteScalarValueOwned(
+                graph, UnwrapOption(left), constructors, signatures, names, types, function_names,
+                function_returns, function_params) {
             return false;
         }
         if AstExpressionNodeArity(kind) == 1 { return true; }
-        let right: Option<Int> = SemanticExpressionGraphRightChild(
-            graph, node_id
+        let right: Option<Int> = SemanticExpressionGraphRightChild(graph, node_id
         );
         return IsSome(right) &&
             SemanticExpressionGraphConcreteScalarValueOwned(

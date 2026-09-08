@@ -4,9 +4,7 @@ import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_cfg_program_routine_identity_owner.pgy";
 import "../codegen/text/text_owner.pgy";
 
-func DirectMirScalarProgramRoutinePartitionOwner(
-    ref counts: Array<Int>, item: Int
-) -> Int {
+func DirectMirScalarProgramRoutinePartitionOwner(ref counts: Array<Int>, item: Int) -> Int {
     let start: Int = 0;
     let routine: Int = 0;
     while routine < ArrayLength(counts) {
@@ -18,9 +16,7 @@ func DirectMirScalarProgramRoutinePartitionOwner(
     return -1;
 }
 
-func DirectMirScalarProgramRoutinePartitionStart(
-    ref counts: Array<Int>, routine: Int
-) -> Int {
+func DirectMirScalarProgramRoutinePartitionStart(ref counts: Array<Int>, routine: Int) -> Int {
     if routine < 0 || routine >= ArrayLength(counts) { return -1; }
     let start: Int = 0;
     let row: Int = 0;
@@ -32,9 +28,7 @@ func DirectMirScalarProgramRoutinePartitionStart(
     return start;
 }
 
-func DirectMirScalarCfgProgramRoutineStarts(
-    counts: Array<Int>
-) -> Array<Int> {
+func DirectMirScalarCfgProgramRoutineStarts(counts: Array<Int>) -> Array<Int> {
     let starts: Array<Int> = [];
     if ArrayLength(counts) < 1 { return starts; }
     let next: Int = 0;
@@ -52,59 +46,45 @@ func DirectMirScalarCfgProgramRoutineStarts(
 }
 
 func DirectMirScalarCfgProgramRoutinePartitionFromOwners(
-    ref instances: DirectMirRoutineInstanceInventory,
-    cfg_digests: Array<Int>,
+    ref instances: DirectMirRoutineInstanceInventory, cfg_digests: Array<Int>,
     local_counts: Array<Int>, value_counts: Array<Int>,
-    block_counts: Array<Int>, operation_counts: Array<Int>,
-    phi_counts: Array<Int>,
+    block_counts: Array<Int>, operation_counts: Array<Int>, phi_counts: Array<Int>,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
 ) -> DirectMirScalarCfgRoutinePartitionFact {
     let routine_count: Int = ArrayLength(local_counts);
-    if routine_count < 1 ||
-        !DirectMirRoutineInstanceInventoryReady(instances) ||
+    if routine_count < 1 || !DirectMirRoutineInstanceInventoryReady(instances) ||
         ArrayLength(instances.source_rows) != routine_count ||
-        ArrayLength(cfg_digests) != routine_count ||
-        ArrayLength(value_counts) != routine_count ||
+        ArrayLength(cfg_digests) != routine_count || ArrayLength(value_counts) != routine_count ||
         ArrayLength(block_counts) != routine_count ||
-        ArrayLength(operation_counts) != routine_count ||
-        ArrayLength(phi_counts) != routine_count {
+        ArrayLength(operation_counts) != routine_count || ArrayLength(phi_counts) != routine_count {
         Die("direct MIR scalar CFG program routine partition is invalid");
     }
     let identity: DirectMirScalarCfgProgramRoutineIdentity =
-        DirectMirScalarCfgProgramRoutineIdentityFromOwners(
-            instances, cfg_digests, logical_record,
-            payload_free_enum, referenced_enum
-        );
+        DirectMirScalarCfgProgramRoutineIdentityFromOwners(instances, cfg_digests, logical_record,
+            payload_free_enum, referenced_enum);
     if !identity.valid {
         Die("direct MIR scalar CFG program routine identity is invalid");
     }
-    let fact: DirectMirScalarCfgRoutinePartitionFact =
-        DirectMirScalarCfgRoutinePartitionFact(
+    let fact: DirectMirScalarCfgRoutinePartitionFact = DirectMirScalarCfgRoutinePartitionFact(
             true, 0, 0,
             identity.roles, identity.source_rows, identity.source_syntax_ids, identity.instance_keys,
             identity.names, identity.return_types, identity.parameter_counts,
-            identity.parameter_starts, identity.parameter_types,
-            identity.parameter_carriages,
-            identity.signature_digests,
-            identity.cfg_digests,
+            identity.parameter_starts, identity.parameter_types, identity.parameter_carriages,
+            identity.signature_digests, identity.cfg_digests,
             DirectMirScalarCfgProgramRoutineStarts(local_counts), local_counts,
             DirectMirScalarCfgProgramRoutineStarts(value_counts), value_counts,
             DirectMirScalarCfgProgramRoutineStarts(block_counts), block_counts,
-            DirectMirScalarCfgProgramRoutineStarts(operation_counts),
-            operation_counts,
-            DirectMirScalarCfgProgramRoutineStarts(phi_counts), phi_counts
-        );
+            DirectMirScalarCfgProgramRoutineStarts(operation_counts), operation_counts,
+            DirectMirScalarCfgProgramRoutineStarts(phi_counts), phi_counts);
     return DirectMirScalarCfgRoutinePartitionFact(
         fact.valid, DirectMirScalarCfgRoutinePartitionDigest(fact),
         fact.entrypoint_ordinal, fact.roles, fact.source_rows,
         fact.source_syntax_ids, fact.instance_keys, fact.names, fact.return_types,
         fact.parameter_counts, fact.parameter_starts, fact.parameter_types,
-        fact.parameter_carriages,
-        fact.signature_digests, fact.cfg_digests, fact.local_starts,
+        fact.parameter_carriages, fact.signature_digests, fact.cfg_digests, fact.local_starts,
         fact.local_counts, fact.value_starts, fact.value_counts,
         fact.block_starts, fact.block_counts, fact.operation_starts,
-        fact.operation_counts, fact.phi_starts, fact.phi_counts
-    );
+        fact.operation_counts, fact.phi_starts, fact.phi_counts);
 }

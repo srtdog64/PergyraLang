@@ -38,44 +38,30 @@ struct SemanticAstFunctionOwnerFact {
     name: String;
     runtime_callable: Bool;
 }
-func SemanticAstFunctionAbilityDefaultRows(arena: AstArena,
-    function_node_id: Int,
-    inout names: Array<String>,
-    inout default_type_names: Array<String>
-) -> Bool {
-    let parent: Option<Int> = TypedAstArenaParentId(
-        arena, function_node_id
-    );
+func SemanticAstFunctionAbilityDefaultRows(arena: AstArena, function_node_id: Int,
+    inout names: Array<String>, inout default_type_names: Array<String>) -> Bool {
+    let parent: Option<Int> = TypedAstArenaParentId(arena, function_node_id);
     if !IsSome(parent) || !TypedAstArenaNodeKindIs(
-        arena, UnwrapOption(parent), TypedAstKindAbilityDeclTag()
-    ) {
+        arena, UnwrapOption(parent), TypedAstKindAbilityDeclTag()) {
         return true;
     }
     let parsed: Bool = SemanticAstAbilityGenericParameterDefaultRowsFromNode(
-        arena, UnwrapOption(parent), names, default_type_names
-    );
+        arena, UnwrapOption(parent), names, default_type_names);
     return parsed;
 }
-func SemanticAstFunctionOwnerFactFromArena(
-    arena: AstArena,
-    function_node_id: Int
+func SemanticAstFunctionOwnerFactFromArena(arena: AstArena, function_node_id: Int
 ) -> Option<SemanticAstFunctionOwnerFact> {
     let parent: Option<Int> = TypedAstArenaParentId(arena, function_node_id);
     let remaining: Int = TypedAstArenaNodeCount(arena);
     while IsSome(parent) && remaining > 0 {
         let parent_id: Int = UnwrapOption(parent);
-        if TypedAstArenaNodeKindIs(
-            arena, parent_id, TypedAstKindNominalDeclTag()
-        ) || TypedAstArenaNodeKindIs(
-            arena, parent_id, TypedAstKindRoleDeclTag()
-        ) {
+        if TypedAstArenaNodeKindIs(arena, parent_id, TypedAstKindNominalDeclTag()
+        ) || TypedAstArenaNodeKindIs(arena, parent_id, TypedAstKindRoleDeclTag()) {
             let name: Option<String> = TypedAstArenaAtomText(arena, parent_id);
             if !IsSome(name) {
                 return None;
             }
-            return Some(SemanticAstFunctionOwnerFact(
-                UnwrapOption(name), true
-            ));
+            return Some(SemanticAstFunctionOwnerFact(UnwrapOption(name), true));
         }
         if TypedAstArenaNodeKindIs(
             arena, parent_id, TypedAstKindAbilityDeclTag()

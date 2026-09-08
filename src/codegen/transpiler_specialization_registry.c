@@ -448,11 +448,16 @@ ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
             "#endif\n"
             "#pragma GCC diagnostic push\n"
             "#pragma GCC diagnostic ignored \"-Wunused-function\"\n"
-            "PGY_ARRAY_DEFINE(%s, %s)\n"
+            "PGY_ARRAY_DECLARE(%s, %s)\n"
             "#pragma GCC diagnostic pop\n",
             suffix,
             suffix, suffix,
             suffix, ctype);
+        /* Descriptors can occur in recursive nominal fields. Runtime bodies
+         * join the file-scope declarations after all nominal layouts; their
+         * prototypes above are already visible to hosted methods. */
+        codebuf_write(ctx->decls,
+            "PGY_ARRAY_IMPLEMENT(%s, %s)\n", suffix, ctype);
     }
 }
 

@@ -36,28 +36,17 @@ struct SemanticAstAssignmentTypeFacts {
     diagnostic_codes: Array<String>;
     diagnostic_messages: Array<String>;
 }
-func SemanticAstAssignmentTypeStructuralError(
-    artifact: AstTreeArtifact,
-    dependency: String
+func SemanticAstAssignmentTypeStructuralError(artifact: AstTreeArtifact, dependency: String
 ) -> SemanticAstAssignmentTypeFacts {
     let empty_ints: Array<Int> = [];
     let empty_strings: Array<String> = [];
-    return SemanticAstAssignmentTypeFacts(
-        false,
-        "ast_artifact_invalid",
-        SemanticError3(
-            "ast_artifact_invalid",
-            "node_count", ToString(artifact.count),
-            "owner", "SemanticAstAssignmentTypeFacts",
-            "dependency", dependency
-        ),
-        artifact.count,
+    return SemanticAstAssignmentTypeFacts(false, "ast_artifact_invalid", SemanticError3(
+            "ast_artifact_invalid", "node_count", ToString(artifact.count),
+            "owner", "SemanticAstAssignmentTypeFacts", "dependency", dependency), artifact.count,
         empty_ints, empty_strings, empty_strings, empty_strings,
-        empty_strings, empty_strings, empty_ints, empty_strings, empty_strings
-    );
+        empty_strings, empty_strings, empty_ints, empty_strings, empty_strings);
 }
-func SemanticAstAssignmentIndexRoot(
-    ref graph: SemanticExpressionGraphFacts,
+func SemanticAstAssignmentIndexRoot(ref graph: SemanticExpressionGraphFacts,
     target_root: Int
 ) -> Option<Int> {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(

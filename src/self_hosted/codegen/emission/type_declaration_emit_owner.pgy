@@ -7,6 +7,8 @@ import "../text/text_owner.pgy";
 import "../input/value_wrapper_usage_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/result_runtime_owner.pgy";
+import "../runtime_abi/collection_runtime_owner.pgy";
+import "../input/nominal_array_usage_owner.pgy";
 import "../../semantic/ast_type_name_canonical_owner.pgy";
 import "../input/semantic_enum_codegen_view_owner.pgy";
 import "../input/semantic_nominal_codegen_view_owner.pgy";
@@ -24,23 +26,7 @@ func CodegenTypeDeclarationZeroMask(count: Int) -> Array<Int> {
     }
     return rows;
 }
-func CodegenTypeDeclarationNominalIndexForName(
-    facts: SemanticAstNominalConstructorFacts,
-    name: String
-) -> Option<Int> {
-    let i: Int = 0;
-    while i < SemanticAstNominalConstructorCount(facts) {
-        if CodegenSemanticNominalNameOrDie(facts, i) == name {
-            return Some(i);
-        }
-        i = i + 1;
-    }
-    return None;
-}
-func CodegenTypeDeclarationEnumIndexForName(
-    facts: SemanticAstEnumFacts,
-    name: String
-) -> Option<Int> {
+func CodegenTypeDeclarationEnumIndexForName(facts: SemanticAstEnumFacts, name: String) -> Option<Int> {
     let i: Int = 0;
     while i < SemanticAstEnumCount(facts) {
         if CodegenSemanticEnumNameAtOrDie(facts, i) == name {
@@ -51,9 +37,7 @@ func CodegenTypeDeclarationEnumIndexForName(
     return None;
 }
 
-func CodegenTypeDeclarationWrapperIndexForName(
-    facts: CodegenValueWrapperUsageFacts,
-    name: String
+func CodegenTypeDeclarationWrapperIndexForName(facts: CodegenValueWrapperUsageFacts, name: String
 ) -> Option<Int> {
     let i: Int = 0;
     while i < ArrayLength(facts.type_names) {
@@ -97,7 +81,7 @@ func CodegenTypeDeclarationDependencyReady(
         return wrapper_emitted[UnwrapOption(wrapper_index)] != 0;
     }
     let nominal_index: Option<Int> =
-        CodegenTypeDeclarationNominalIndexForName(nominal_facts, canonical);
+        SemanticAstNominalConstructorIndexForName(nominal_facts, canonical);
     if IsSome(nominal_index) {
         return nominal_emitted[UnwrapOption(nominal_index)] != 0;
     }
@@ -242,6 +226,7 @@ func CollectTypeDeclarations(
     nominal_facts: SemanticAstNominalConstructorFacts,
     role_facts: SemanticAstRoleFacts,
     wrapper_facts: CodegenValueWrapperUsageFacts,
+    nominal_arrays: CodegenNominalArrayUsageFacts,
     inout env_box: Array<String>
 ) -> CodegenTypeDeclarationBlockFact {
     let enum_count: Int = SemanticAstEnumCount(enum_facts);
@@ -258,6 +243,20 @@ func CollectTypeDeclarations(
         CodegenSemanticNominalsRequireProjectionReadyBool(nominal_facts);
     let dependency_env: CodegenTypeEnv =
         CodegenTypeEnvFromPresealRows(env_box[0], "");
+    if !nominal_arrays.ok { Die("nominal record array usage facts are incomplete"); }
+    // Array descriptors require only an element pointer. Completeness remains
+    // governed by the emitted masks for direct fields and runtime bodies.
+    let array_rows: Array<String> = [];
+    let array_index: Int = 0;
+    while array_index < ArrayLength(nominal_arrays.element_types) {
+        let element: String = nominal_arrays.element_types[array_index];
+        ArrayPush(blocks, CollectionRuntimeNominalRecordArrayDeclaration(element));
+        ArrayPush(array_rows, Concat(element, "=s:struct|"));
+        array_index = array_index + 1;
+    }
+    dependency_env = CodegenTypeEnvAdvancePresealRows(
+        env_box, dependency_env, StringJoin(array_rows, "")
+    );
     while remaining > 0 {
         let made_progress: Bool = false;
         let enum_selected: Array<Int> =
@@ -310,7 +309,8 @@ func CollectTypeDeclarations(
         if nominal_selected_count > 0 {
             let batch: CodegenNominalDeclarationBatchFact =
                 CollectStructsSelected(
-                    nominal_facts, role_facts, nominal_selected, dependency_env
+                    nominal_facts, role_facts, nominal_selected, dependency_env,
+                    nominal_arrays.element_types
                 );
             ArrayPush(blocks, batch.c_block);
             dependency_env = CodegenTypeEnvAdvancePresealRows(

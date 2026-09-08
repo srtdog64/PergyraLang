@@ -9,14 +9,12 @@ func DirectMirScalarProgramCollectionExpressionNodeReady(ref facts: DirectMirSca
 ) -> Option<Bool> {
     let kind: Int = facts.node_kinds[node];
     if kind == DirectMirScalarProgramExprArrayStringLiteral() {
-        return Some(DirectMirScalarProgramArrayStringLiteralNodeReady(
-            facts, node));
+        return Some(DirectMirScalarProgramArrayStringLiteralNodeReady(facts, node));
     }
     if kind == DirectMirScalarProgramExprArrayIntEmptyLiteral() { return Some(
         DirectMirScalarProgramArrayIntEmptyLiteralNodeReady(facts, node)); }
     if kind == DirectMirScalarProgramExprArrayIntPopulatedLiteral() {
-        return Some(DirectMirScalarProgramArrayIntPopulatedLiteralNodeReady(
-            facts, node));
+        return Some(DirectMirScalarProgramArrayIntPopulatedLiteralNodeReady(facts, node));
     }
     if kind != DirectMirScalarProgramExprStringContains() && kind !=
             DirectMirScalarProgramExprStringSplit() && kind !=
@@ -41,10 +39,8 @@ func DirectMirScalarProgramCollectionExpressionNodeReady(ref facts: DirectMirSca
     let right: Int = facts.node_rights[node];
     if kind == DirectMirScalarProgramExprProcessArgs() {
         return Some(type_name == CompilerAbiLayoutArrayStringTypeName() &&
-            left == -1 && right == -1 &&
-            facts.node_local_rows[node] == -1 &&
-            facts.node_parameter_ordinals[node] == -1 &&
-            facts.node_literals[node] == "" &&
+            left == -1 && right == -1 && facts.node_local_rows[node] == -1 &&
+            facts.node_parameter_ordinals[node] == -1 && facts.node_literals[node] == "" &&
             facts.node_callable_rows[node] == -1);
     }
     if kind == DirectMirScalarProgramExprSetStringNew() {

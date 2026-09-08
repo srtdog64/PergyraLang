@@ -11,13 +11,9 @@ import "routine_for_owner.pgy";
 import "routine_match_owner.pgy";
 import "routine_defer_owner.pgy";
 
-func SelfMirValueReturnSourceType(
-    graph: SemanticExpressionGraphView,
-    expression: String
+func SelfMirValueReturnSourceType(graph: SemanticExpressionGraphView, expression: String
 ) -> String {
-    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph.graph, graph.root_id
-    );
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(graph.graph, graph.root_id);
     if IsSome(kind_opt) && AstExpressionNodeIsArrayLiteralSpine(
         UnwrapOption(kind_opt)
     ) {

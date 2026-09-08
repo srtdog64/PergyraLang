@@ -22,16 +22,10 @@ import "diagnostic_owner.pgy";
 // Parse one statement. Returns its formatted AST lines joined by "\n";
 // empty string only if a parse error path was reached (which Exits anyway).
 // Mutually recursive with ParseBlock for `if` and `while` bodies.
-func ParseOneStmtCore(
-    content: String,
-    start: Int,
-    inout cursor_out: Array<Int>,
-    stmt_indent: Int,
+func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int,
     inout expression_graphs: Array<AstExpressionGraphRows>,
     location_context: ParserSourceLocationContext, inout source_locations: Array<ParserSourceLocationObservation>,
-    inout owner_kind_out: Array<Int>,
-    diagnostic_projection: ParseDiagnosticProjection
-) -> String {
+    inout owner_kind_out: Array<Int>, diagnostic_projection: ParseDiagnosticProjection) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
     let head_start: Int = i;
     ArraySet(cursor_out, 0, i);
@@ -60,22 +54,16 @@ func ParseOneStmtCore(
         return Concat(IndentStr(stmt_indent), Concat("BindStmt: ", Concat(bind_lhs, Concat(" = ", bind_rhs))));
     }
     if head == "if" {
-        return ParseIfStmt(
-            content, i, cursor_out, stmt_indent, expression_graphs,
-            location_context, source_locations
-        );
+        return ParseIfStmt(content, i, cursor_out, stmt_indent, expression_graphs,
+            location_context, source_locations);
     }
     if head == "while" {
-        return ParseWhileStmt(
-            content, i, cursor_out, stmt_indent, expression_graphs,
-            location_context, source_locations
-        );
+        return ParseWhileStmt(content, i, cursor_out, stmt_indent, expression_graphs,
+            location_context, source_locations);
     }
     if head == "loop" {
-        return ParseLoopStmt(
-            content, i, cursor_out, stmt_indent, expression_graphs,
-            location_context, source_locations
-        );
+        return ParseLoopStmt(content, i, cursor_out, stmt_indent, expression_graphs,
+            location_context, source_locations);
     }
     if head == "with" {
         // `with slot<TYPE> as VAR { stmts }` — scoped slot binding.
@@ -115,8 +103,7 @@ func ParseOneStmtCore(
         ArraySet(cursor_out, 0, i);
         let with_body: String = ParseBlockObserved(
             content, i, cursor_out, stmt_indent + 4, expression_graphs,
-            location_context, source_locations
-        );
+            location_context, source_locations);
         i = cursor_out[0];
         let with_out: String = Concat(IndentStr(stmt_indent), Concat("With slot<", Concat(with_type, Concat("> as ", as_name))));
         with_out = Concat(with_out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));

@@ -1,0 +1,16 @@
+// Stable core String expression identities; values share the scalar-program namespace.
+func DirectMirScalarProgramExprStringLiteral() -> Int { return 5; }
+func DirectMirScalarProgramExprToStringSignedInteger() -> Int { return 14; }
+func DirectMirScalarProgramExprEqualString() -> Int { return 15; }
+func DirectMirScalarProgramExprNotEqualString() -> Int { return 16; }
+func DirectMirScalarProgramExprConcatString() -> Int { return 17; }
+func DirectMirScalarProgramExprToUpperString() -> Int { return 18; }
+func DirectMirScalarProgramExprToLowerString() -> Int { return 19; }
+func DirectMirScalarProgramExprStringLength() -> Int { return 20; }
+func DirectMirScalarProgramExprSubstring() -> Int { return 21; }
+func DirectMirScalarProgramExprSubstringWithLen() -> Int { return 22; }
+func DirectMirScalarProgramExprStringContains() -> Int { return 24; }
+func DirectMirScalarProgramExprStringSplit() -> Int { return 25; }
+func DirectMirScalarProgramExprToIntString() -> Int { return 27; }
+func DirectMirScalarProgramExprStringJoin() -> Int { return 69; }
+func DirectMirScalarProgramExprToStringString() -> Int { return 70; }

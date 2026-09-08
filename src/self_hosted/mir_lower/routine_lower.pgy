@@ -15,25 +15,17 @@ import "resource_runtime_abi_fact_owner.pgy";
 import "abi_layout_fact_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";
 import "structured_condition_emission_owner.pgy";
-func RoutineParamResourceMatchesType(
-    resource_kind: String,
-    type_name: String
-) -> Bool {
+func RoutineParamResourceMatchesType(resource_kind: String, type_name: String) -> Bool {
     if resource_kind == "none" {
-        return !(StringLength(type_name) >= 6 &&
-                 Substring(type_name, 0, 5) == "Slot<") &&
-            !(StringLength(type_name) >= 12 &&
-              Substring(type_name, 0, 11) == "SecureSlot<") &&
-            !(StringLength(type_name) >= 12 &&
-              Substring(type_name, 0, 11) == "DeviceSlot<");
+        return !(StringLength(type_name) >= 6 && Substring(type_name, 0, 5) == "Slot<") &&
+            !(StringLength(type_name) >= 12 && Substring(type_name, 0, 11) == "SecureSlot<") &&
+            !(StringLength(type_name) >= 12 && Substring(type_name, 0, 11) == "DeviceSlot<");
     }
     if resource_kind == "slot" {
-        return StringLength(type_name) >= 6 &&
-            Substring(type_name, 0, 5) == "Slot<";
+        return StringLength(type_name) >= 6 && Substring(type_name, 0, 5) == "Slot<";
     }
     if resource_kind == "secure-slot" {
-        return StringLength(type_name) >= 12 &&
-            Substring(type_name, 0, 11) == "SecureSlot<";
+        return StringLength(type_name) >= 12 && Substring(type_name, 0, 11) == "SecureSlot<";
     }
     if resource_kind == "device-slot" {
         return StringLength(type_name) >= 12 &&

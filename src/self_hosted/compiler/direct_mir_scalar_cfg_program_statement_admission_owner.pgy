@@ -2,6 +2,7 @@
 import "direct_mir_scalar_cfg_program_array_mutation_storage_owner.pgy";
 import "direct_mir_scalar_cfg_program_instruction_expression_owner.pgy";
 import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "direct_mir_instruction_abi_absence_owner.pgy";
 
 struct DirectMirScalarCfgProgramStatementAdmission {
     let valid: Bool;
@@ -10,14 +11,10 @@ struct DirectMirScalarCfgProgramStatementAdmission {
 }
 
 func DirectMirScalarCfgProgramDiscardedCallExpressionReady(
-    ref expressions: DirectMirScalarProgramExpressionSet,
-    expression_row: Int
-) -> Bool {
-    if expression_row < 0 || expression_row >=
-            ArrayLength(expressions.graph_roots) { return false; }
+    ref expressions: DirectMirScalarProgramExpressionSet, expression_row: Int) -> Bool {
+    if expression_row < 0 || expression_row >= ArrayLength(expressions.graph_roots) { return false; }
     let root: Int = expressions.graph_roots[expression_row];
-    if root < 0 || root >= ArrayLength(expressions.node_kinds) ||
-        expressions.node_types[root] == "" { return false; }
+    if root < 0 || root >= ArrayLength(expressions.node_kinds) || expressions.node_types[root] == "" { return false; }
     // These calls mutate existing storage and return its unchanged descriptor.
     // Discarding that alias must not discard the operation or demand a Void type.
     if DirectMirScalarProgramArrayTransformKind(expressions.node_kinds[root]) {
@@ -26,25 +23,18 @@ func DirectMirScalarCfgProgramDiscardedCallExpressionReady(
     if DirectMirScalarProgramCheckedIntKind(expressions.node_kinds[root]) {
         return DirectMirScalarProgramCheckedIntNodeReady(expressions, root);
     }
-    return expressions.node_types[root] == "Void" ||
-        expressions.node_kinds[root] ==
-            DirectMirScalarProgramExprDirectCall() ||
-        expressions.node_kinds[root] ==
+    return expressions.node_types[root] == "Void" || expressions.node_kinds[root] ==
+            DirectMirScalarProgramExprDirectCall() || expressions.node_kinds[root] ==
             DirectMirScalarProgramExprCompilerArtifactWrite();
 }
 
-func DirectMirScalarCfgProgramAppendStatement(
-    operations: DirectMirScalarCfgProgramOperationStorage,
+func DirectMirScalarCfgProgramAppendStatement(operations: DirectMirScalarCfgProgramOperationStorage,
     expressions: DirectMirScalarProgramExpressionSet,
-    inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
-    source: String,
-    ref capture: MirRoutineInstructionScalarCapture,
-    ref instruction: JsonObjectFactTable,
+    inout failure: DirectMirScalarProgramExpressionAdmissionFailure, source: String,
+    ref capture: MirRoutineInstructionScalarCapture, ref instruction: JsonObjectFactTable,
     ref uses: MirRoutineInstructionUseFacts, ref index: MirRoutineFactIndex,
-    global_row: Int, local_instruction: Int,
-    ref locals: DirectMirScalarCfgLocalRefPlan,
-    ref types: DirectMirScalarCfgValueTypePlan,
-    ref wire: DirectMirScalarCfgWireLocalRefs,
+    global_row: Int, local_instruction: Int, ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan, ref wire: DirectMirScalarCfgWireLocalRefs,
     local_offset: Int, parameter_types: Array<String>,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
@@ -60,6 +50,8 @@ func DirectMirScalarCfgProgramAppendStatement(
         DirectMirScalarCfgProgramStatementAdmission(
             false, operations, expressions);
     if source != "AST_CALL" || capture.result != "" { return invalid; }
+    if !DirectMirInstructionHasNoPhysicalAbi(instruction.json, capture, "") ||
+        capture.abi_type_end != capture.abi_type_start + 4 { return invalid; }
     let operation_kind: Int = 0;
     let expected_type: String = "";
     let target_local: Int = -1;

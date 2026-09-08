@@ -19,17 +19,12 @@ struct DirectMirRoutineParamFact {
     let abi: MirAbiLayoutRowCapture;
 }
 func InvalidDirectMirRoutineParamFact() -> DirectMirRoutineParamFact {
-    return DirectMirRoutineParamFact(
-        false, 0, "", 0, "", "", "", "", "", 0, false,
-        InvalidMirAbiLayoutRowCapture()
-    );
+    return DirectMirRoutineParamFact(false, 0, "", 0, "", "", "", "", "", 0, false,
+        InvalidMirAbiLayoutRowCapture());
 }
 func DirectMirRoutineParamFactDigestFromFields(
-    name: String, source_syntax_id: Int, type_name: String, carriage: String,
-    resource: String,
-    pass_shape: String, abi_type_name: String, abi_layout_id: Int,
-    abi_required: Bool
-) -> Int {
+    name: String, source_syntax_id: Int, type_name: String, carriage: String, resource: String,
+    pass_shape: String, abi_type_name: String, abi_layout_id: Int, abi_required: Bool) -> Int {
     let hash: Long = DirectMirCfgHashString(103L, name);
     hash = DirectMirCfgHashInt(hash, source_syntax_id);
     hash = DirectMirCfgHashString(hash, type_name);
@@ -46,33 +41,23 @@ func DirectMirRoutineParamFactDigestFromFields(
     return DirectMirCfgBoundedDigest(hash);
 }
 
-func DirectMirRoutineParamFactDigest(
-    ref fact: DirectMirRoutineParamFact
-) -> Int {
+func DirectMirRoutineParamFactDigest(ref fact: DirectMirRoutineParamFact) -> Int {
     if !fact.valid { return 0; }
     return DirectMirRoutineParamFactDigestFromFields(
-        fact.name, fact.source_syntax_id, fact.type_name, fact.carriage,
-        fact.resource,
-        fact.pass_shape, fact.abi_type_name, fact.abi_layout_id,
-        fact.abi_required);
+        fact.name, fact.source_syntax_id, fact.type_name, fact.carriage, fact.resource,
+        fact.pass_shape, fact.abi_type_name, fact.abi_layout_id, fact.abi_required);
 }
 
-func DirectMirRoutineParamFactWithDigest(
-    fact: DirectMirRoutineParamFact, digest: Int
+func DirectMirRoutineParamFactWithDigest(fact: DirectMirRoutineParamFact, digest: Int
 ) -> DirectMirRoutineParamFact {
     return DirectMirRoutineParamFact(
-        fact.valid, digest, fact.name, fact.source_syntax_id, fact.type_name,
-        fact.carriage,
+        fact.valid, digest, fact.name, fact.source_syntax_id, fact.type_name, fact.carriage,
         fact.resource, fact.pass_shape, fact.abi_type_name,
-        fact.abi_layout_id, fact.abi_required, fact.abi
-    );
+        fact.abi_layout_id, fact.abi_required, fact.abi);
 }
 
-func DirectMirRoutineParamFactReady(
-    ref fact: DirectMirRoutineParamFact
-) -> Bool {
-    if !fact.valid || fact.digest == 0 ||
-        fact.digest != DirectMirRoutineParamFactDigest(fact) ||
+func DirectMirRoutineParamFactReady(ref fact: DirectMirRoutineParamFact) -> Bool {
+    if !fact.valid || fact.digest == 0 || fact.digest != DirectMirRoutineParamFactDigest(fact) ||
         fact.name == "" || fact.source_syntax_id <= 0 || fact.type_name == "" ||
         fact.carriage == "" || fact.resource == "" ||
         fact.pass_shape == "" || fact.abi_type_name != fact.type_name {
@@ -87,19 +72,14 @@ func DirectMirRoutineParamFactReady(
 }
 
 func DirectMirRoutineParamFactWithReceiverFromBounds(
-    json: String, start: Int, end: Int, receiver_type: String
-) -> DirectMirRoutineParamFact {
-    let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(
-        json, start, end
-    );
+    json: String, start: Int, end: Int, receiver_type: String) -> DirectMirRoutineParamFact {
+    let object_table: JsonObjectFactTable = JsonObjectFactTableFromBounds(json, start, end);
     let keys: Array<String> = [
         "name", "source_syntax_id", "type", "carriage", "resource", "pass",
-        "abi_type_name", "abi_layout_id", "abi_layout_required",
-        "abi_layout"
+        "abi_type_name", "abi_layout_id", "abi_layout_required", "abi_layout"
     ];
     let starts: Array<Int> = [
-        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,
-        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
+        0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1
     ];
     let ends: Array<Int> = [
         0 - 1, 0 - 1, 0 - 1, 0 - 1, 0 - 1,

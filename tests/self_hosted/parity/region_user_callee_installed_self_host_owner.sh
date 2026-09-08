@@ -134,7 +134,12 @@ for mutation in pass-indirect resource-region abi-required carriage-value-result
             fail "$backend accepted $mutation"
         fi
         [[ ! -e "$ROOT_DIR/$output_rel" ]] || fail "$backend published $mutation"
-        grep -Fq 'direct MIR scalar program route rejected' "$WORK_DIR/$mutation.$backend.out" \
+        diagnostic='direct MIR scalar program route rejected'
+        if [[ "$mutation" == carriage-value-result ]]; then
+            diagnostic='direct MIR scalar operation expression is invalid:'
+            require_text "$WORK_DIR/$mutation.$backend.out" 'target_carriage=value-result target_type=String'
+        fi
+        grep -Fq "$diagnostic" "$WORK_DIR/$mutation.$backend.out" \
             "$WORK_DIR/$mutation.$backend.err" || fail "$backend $mutation escaped route owner"
     done
 done

@@ -209,10 +209,13 @@ cmp -s "$MIR" "$WORK/public.mir.json" ||
     fail "public MIR differs from the installed producer"
 (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$SOURCE_REL") \
     >"$WORK/native.mir.json" 2>"$WORK/native.mir.err"
+"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_native_void_fallthrough_contract.py"
+"$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_native_void_fallthrough_contract.py" \
+    normalize-native "$WORK/native.mir.json" >"$WORK/native.source.mir.json"
 (cd "$ROOT_DIR" && "$DRIVER" --canonicalize-mir-json \
     "$WORK_REL/role-override.mir.json") >"$WORK/self.canonical.json"
 (cd "$ROOT_DIR" && "$DRIVER" --canonicalize-oracle-mir-json \
-    "$WORK_REL/native.mir.json") >"$WORK/native.canonical.json"
+    "$WORK_REL/native.source.mir.json") >"$WORK/native.canonical.json"
 cmp -s "$WORK/self.canonical.json" "$WORK/native.canonical.json" ||
     fail "native and installed canonical MIR differ"
 grep -Fq '"call_target_name":"OverrideTarget_Name"' "$MIR" ||
@@ -266,7 +269,7 @@ for input in "$WORK"/*.negative.json; do
     reject_mir "$input"
     negative_count=$((negative_count + 1))
 done
-[[ "$negative_count" -eq 14 ]] || fail "expected 14 MIR negatives, got $negative_count"
+[[ "$negative_count" -eq 16 ]] || fail "expected 16 MIR negatives, got $negative_count"
 
 (cd "$ROOT_DIR" && "$DRIVER" --emit-c-artifact-verified \
     "$SOURCE_REL" "$WORK_REL/direct-source.c") \
@@ -361,4 +364,4 @@ reject_source native-bad-c "$WORK/native-bad.c" "$PGY" --native-pipeline \
 reject_source native-bad-llvm "$WORK/native-bad.ll" "$PGY" --native-pipeline \
     "$BAD_REL" --emit-llvm -o "$WORK_REL/native-bad.ll"
 
-echo "[$LABEL] PASS: AST/MIR parity; 8 role C/LLVM runtime legs + 3 receiver runtimes + 14 source negatives; 3 receiver runtimes and typed/late self artifact-free negatives; 3 permutations + 14 MIR negatives"
+echo "[$LABEL] PASS: AST/MIR parity; 8 role C/LLVM runtime legs, 3 receiver runtimes, 14 source negatives; 3 permutations + 16 MIR negatives"

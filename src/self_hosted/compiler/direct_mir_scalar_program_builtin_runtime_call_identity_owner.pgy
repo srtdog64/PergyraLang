@@ -1,10 +1,8 @@
 // Exact graph-to-signature identity policy for runtime-backed builtins.
 import "direct_mir_scalar_program_builtin_signature_projection_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
-
 func DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(
-    ref signature: DirectMirScalarProgramBuiltinSignatureFact, carried: Int
-) -> Bool {
+    ref signature: DirectMirScalarProgramBuiltinSignatureFact, carried: Int) -> Bool {
     if !signature.valid { return false; }
     // These target-library rows are selected by normalized builtin admission,
     // not carried as per-instruction resource identities in the source graph.
@@ -16,20 +14,12 @@ func DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(
         }
         return abi.ok && signature.runtime_call_abi_id == abi.runtime_call_abi_id && carried == 0;
     }
-    // Runtime-value identity belongs to the instruction row; its graph carries
-    // zero until admission seals the validated row ID into expression facts.
-    if signature.expression_kind == DirectMirScalarProgramExprRuntimeValueCall() {
-        return signature.runtime_call_abi_id > 0 && carried == 0;
-    }
-    // The compiler-artifact builtin has one registry-owned ABI row and no
-    // per-instruction resource row. Its semantic graph therefore carries zero.
-    if signature.expression_kind ==
-            DirectMirScalarProgramExprCompilerArtifactWrite() ||
-        signature.expression_kind ==
-            DirectMirScalarProgramExprCompilerArtifactBegin() ||
-        signature.expression_kind ==
-            DirectMirScalarProgramExprCompilerArtifactCommit() ||
-        signature.expression_kind ==
+    // Runtime-value rows are sealed at the instruction; artifact rows belong
+    // to the registry. Neither resource identity is carried by the source graph.
+    if signature.expression_kind == DirectMirScalarProgramExprRuntimeValueCall() || signature.expression_kind ==
+            DirectMirScalarProgramExprCompilerArtifactWrite() || signature.expression_kind ==
+            DirectMirScalarProgramExprCompilerArtifactBegin() || signature.expression_kind ==
+            DirectMirScalarProgramExprCompilerArtifactCommit() || signature.expression_kind ==
             DirectMirScalarProgramExprCompilerArtifactAbort() {
         return signature.runtime_call_abi_id > 0 && carried == 0;
     }

@@ -5,8 +5,7 @@ import "direct_mir_scalar_program_array_int_populated_literal_readiness_owner.pg
 import "direct_mir_scalar_program_array_int_value_result_target_owner.pgy";
 
 func DirectMirScalarProgramCArrayIntPopulatedLiteralMaterialization(
-    ref plan: DirectMirScalarCfgGraphPlan,
-    ref target: CompilerTargetProjectionFact
+    ref plan: DirectMirScalarCfgGraphPlan, ref target: CompilerTargetProjectionFact
 ) -> String {
     if !DirectMirScalarProgramHasArrayIntPopulatedLiteral(
             plan.program.expressions) { return ""; }

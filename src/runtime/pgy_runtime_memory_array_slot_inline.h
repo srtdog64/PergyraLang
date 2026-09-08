@@ -197,7 +197,9 @@ pgy_arena_reset(PgyArena* arena)
 #define PGY_ARRAY_COPY_VALUE_String(value) \
     pgy_runtime_strdup((value) != NULL ? (value) : "")
 
-#define PGY_ARRAY_DEFINE(SuffixName, CType) \
+/* Pointer descriptors may precede the element definition. Value-taking bodies
+ * must follow it; the combined macro remains the builtin/runtime entrypoint. */
+#define PGY_ARRAY_DECLARE(SuffixName, CType) \
 typedef struct { \
     CType        *data; \
     size_t        length; \
@@ -209,7 +211,20 @@ typedef struct { \
     CType  *data; \
     size_t  length; \
 } PgySlice_##SuffixName; \
-\
+static inline PgyArray_##SuffixName pgy_array_new_in_##SuffixName(PgyAllocator *, size_t); \
+static inline PgyArray_##SuffixName pgy_array_new_##SuffixName(size_t); \
+static inline void pgy_array_drop_##SuffixName(PgyArray_##SuffixName *); \
+static inline void pgy_array_reserve_##SuffixName(PgyArray_##SuffixName *, size_t); \
+static inline void pgy_array_push_##SuffixName(PgyArray_##SuffixName *, CType); \
+static inline CType pgy_array_get_##SuffixName(PgyArray_##SuffixName *, size_t); \
+static inline void pgy_array_set_##SuffixName(PgyArray_##SuffixName *, size_t, CType); \
+static inline void pgy_array_pop_##SuffixName(PgyArray_##SuffixName *); \
+static inline CType pgy_slice_get_##SuffixName(PgySlice_##SuffixName *, size_t); \
+static inline void pgy_slice_set_##SuffixName(PgySlice_##SuffixName *, size_t, CType); \
+static inline PgySlice_##SuffixName pgy_array_slice_##SuffixName(PgyArray_##SuffixName *, size_t, size_t); \
+static inline PgyArray_##SuffixName pgy_slice_copy_##SuffixName(PgySlice_##SuffixName *);
+
+#define PGY_ARRAY_IMPLEMENT(SuffixName, CType) \
 static inline PgyArray_##SuffixName \
 pgy_array_new_in_##SuffixName(PgyAllocator *alloc, size_t capacity) \
 { \
@@ -388,6 +403,10 @@ pgy_slice_copy_##SuffixName(PgySlice_##SuffixName *slice) \
             PGY_ARRAY_COPY_VALUE_##SuffixName(slice->data[i])); \
     return out; \
 }
+
+#define PGY_ARRAY_DEFINE(SuffixName, CType) \
+    PGY_ARRAY_DECLARE(SuffixName, CType) \
+    PGY_ARRAY_IMPLEMENT(SuffixName, CType)
 
 /* =================================================================
  * Rc / Weak

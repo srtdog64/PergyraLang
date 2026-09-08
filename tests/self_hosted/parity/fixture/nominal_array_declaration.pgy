@@ -1,0 +1,17 @@
+// Descriptor fields do not require the element's complete value declaration.
+struct Bundle { items: Array<Item>; }
+struct Item { value: Int; }
+struct Tree { value: Int; children: Array<Tree>; }
+
+func Main() -> Void {
+    let items: Array<Item> = [Item(7)];
+    let bundle: Bundle = Bundle(items);
+    let item: Item = bundle.items[0];
+    Log(item.value);
+    let empty: Array<Tree> = [];
+    let children: Array<Tree> = [Tree(11, empty)];
+    let root: Tree = Tree(13, children);
+    let child: Tree = root.children[0];
+    Log(root.value + child.value);
+    Log(ArrayLength(child.children));
+}

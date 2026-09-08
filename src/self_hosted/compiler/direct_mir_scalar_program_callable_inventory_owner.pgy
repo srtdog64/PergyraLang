@@ -22,12 +22,10 @@ struct DirectMirScalarCfgProgramCallableInventory {
     let caller_ordinal: Int;
 }
 
-func DirectMirScalarCfgProgramCallableInventoryDigest(
-    ref inventory: DirectMirScalarCfgProgramCallableInventory
+func DirectMirScalarCfgProgramCallableInventoryDigest(ref inventory: DirectMirScalarCfgProgramCallableInventory
 ) -> Int {
     if !inventory.valid { return 0; }
-    let hash: Long = DirectMirCfgHashInt(
-        227L, ArrayLength(inventory.routine_ordinals));
+    let hash: Long = DirectMirCfgHashInt(227L, ArrayLength(inventory.routine_ordinals));
     hash = DirectMirScalarCfgHashInts(hash, inventory.routine_ordinals);
     hash = DirectMirScalarCfgHashInts(hash, inventory.source_syntax_ids);
     hash = DirectMirScalarCfgHashStrings(hash, inventory.names);
@@ -42,47 +40,34 @@ func DirectMirScalarCfgProgramCallableInventoryDigest(
     return DirectMirCfgBoundedDigest(hash);
 }
 
-func DirectMirScalarCfgProgramCallableInventoryReady(
-    ref inventory: DirectMirScalarCfgProgramCallableInventory,
-    routine_count: Int
-) -> Bool {
+func DirectMirScalarCfgProgramCallableInventoryReady(ref inventory: DirectMirScalarCfgProgramCallableInventory,
+    routine_count: Int) -> Bool {
     let count: Int = ArrayLength(inventory.routine_ordinals);
-    if !inventory.valid || inventory.digest == 0 || routine_count < 1 ||
-        count != routine_count - 1 ||
-        count != ArrayLength(inventory.source_syntax_ids) ||
-        count != ArrayLength(inventory.names) ||
-        count != ArrayLength(inventory.source_names) ||
-        !DirectMirRoutineInstanceInventoryReady(inventory.instances) ||
-        routine_count != ArrayLength(inventory.instances.source_rows) ||
-        count != ArrayLength(inventory.return_types) ||
-        count != ArrayLength(inventory.parameter_starts) ||
-        count != ArrayLength(inventory.parameter_counts) ||
-        count != ArrayLength(inventory.signature_digests) ||
-        inventory.digest !=
+    if !inventory.valid || inventory.digest == 0 || routine_count < 1 || count != routine_count - 1 ||
+        count != ArrayLength(inventory.source_syntax_ids) || count != ArrayLength(inventory.names) ||
+        count != ArrayLength(inventory.source_names) || !DirectMirRoutineInstanceInventoryReady(inventory.instances) ||
+        routine_count != ArrayLength(inventory.instances.source_rows) || count != ArrayLength(inventory.return_types) ||
+        count != ArrayLength(inventory.parameter_starts) || count != ArrayLength(inventory.parameter_counts) ||
+        count != ArrayLength(inventory.signature_digests) || inventory.digest !=
             DirectMirScalarCfgProgramCallableInventoryDigest(inventory) {
         return false;
     }
     let expected_parameter: Int = 0;
     let row: Int = 0;
     while row < count {
-        if inventory.routine_ordinals[row] != row + 1 ||
-            inventory.source_syntax_ids[row] <= 0 ||
+        if inventory.routine_ordinals[row] != row + 1 || inventory.source_syntax_ids[row] <= 0 ||
             inventory.names[row] == "" || inventory.source_names[row] == "" || inventory.return_types[row] == "" ||
-            inventory.parameter_starts[row] != expected_parameter ||
-            inventory.parameter_counts[row] < 0 ||
+            inventory.parameter_starts[row] != expected_parameter || inventory.parameter_counts[row] < 0 ||
             expected_parameter + inventory.parameter_counts[row] >
-                ArrayLength(inventory.parameter_types) ||
-            expected_parameter + inventory.parameter_counts[row] >
-                ArrayLength(inventory.parameter_carriages) ||
-            inventory.signature_digests[row] == 0 {
+                ArrayLength(inventory.parameter_types) || expected_parameter + inventory.parameter_counts[row] >
+                ArrayLength(inventory.parameter_carriages) || inventory.signature_digests[row] == 0 {
             return false;
         }
         expected_parameter = expected_parameter +
             inventory.parameter_counts[row];
         let parameter: Int = inventory.parameter_starts[row];
         while parameter < expected_parameter {
-            if inventory.parameter_types[parameter] == "" ||
-                inventory.parameter_carriages[parameter] == "" {
+            if inventory.parameter_types[parameter] == "" || inventory.parameter_carriages[parameter] == "" {
                 return false;
             }
             parameter = parameter + 1;
@@ -102,13 +87,10 @@ func DirectMirScalarCfgProgramCallableInventoryReady(
         expected_parameter == ArrayLength(inventory.parameter_carriages);
 }
 
-func DirectMirScalarCfgProgramCallableInventoryFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
-    routine_instances: DirectMirRoutineInstanceInventory,
-    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+func DirectMirScalarCfgProgramCallableInventoryFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput,
+    routine_instances: DirectMirRoutineInstanceInventory, ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
-    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
-) -> DirectMirScalarCfgProgramCallableInventory {
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact) -> DirectMirScalarCfgProgramCallableInventory {
     let ordinals: Array<Int> = [];
     let syntax_ids: Array<Int> = [];
     let names: Array<String> = [];
@@ -121,16 +103,11 @@ func DirectMirScalarCfgProgramCallableInventoryFromAdmitted(
     let signature_digests: Array<Int> = [];
     let ordinal: Int = 1;
     while ordinal < ArrayLength(routine_instances.source_rows) {
-        let fact: DirectMirScalarCfgProgramCallableFact =
-            DirectMirScalarProgramCallableFactFromInstance(
-                routine_instances, ordinal,
-                logical_record, payload_free_enum, referenced_enum
-            );
-        if !DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(
-                fact, logical_record, payload_free_enum,
+        let fact: DirectMirScalarCfgProgramCallableFact = DirectMirScalarProgramCallableFactFromInstance(
+                routine_instances, ordinal, logical_record, payload_free_enum, referenced_enum);
+        if !DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(fact, logical_record, payload_free_enum,
                 referenced_enum) {
-            return DirectMirScalarCfgProgramCallableInventory(
-                false, 0, ordinals, syntax_ids, names, return_types,
+            return DirectMirScalarCfgProgramCallableInventory(false, 0, ordinals, syntax_ids, names, return_types,
                 parameter_starts, parameter_counts, parameter_types,
                 parameter_carriages, signature_digests, source_names, routine_instances, -1);
         }
@@ -141,10 +118,8 @@ func DirectMirScalarCfgProgramCallableInventoryFromAdmitted(
         ArrayPush(return_types, fact.signature.return_type);
         ArrayPush(parameter_starts, ArrayLength(parameter_types));
         ArrayPush(parameter_counts, fact.signature.param_count);
-        if !DirectMirScalarCfgProgramAppendParameterTypes(
-                parameter_types, fact.signature) {
-            return DirectMirScalarCfgProgramCallableInventory(
-                false, 0, ordinals, syntax_ids, names, return_types,
+        if !DirectMirScalarCfgProgramAppendParameterTypes(parameter_types, fact.signature) {
+            return DirectMirScalarCfgProgramCallableInventory(false, 0, ordinals, syntax_ids, names, return_types,
                 parameter_starts, parameter_counts, parameter_types,
                 parameter_carriages, signature_digests, source_names, routine_instances, -1);
         }

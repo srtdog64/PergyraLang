@@ -261,13 +261,13 @@ run_native_to_file() {
 }
 
 run_native_stdout() {
-    local label="$1"
-    local bin="$2"
+    local bin="$2" raw="$B/${1}.raw" err="$B/${1}.err" rc=0
     shift 2
-    local out="$B/${label}.out"
-
-    run_native_to_file "$label" "$bin" "$out" "$@"
-    tr -d '\r' < "$out"
+    # Preserve tool diagnostics and status, never a stale success-only .out.
+    run_native_capture "$ROOT_DIR" "$raw" "$err" "$bin" "$@" || rc=$?
+    tr -d '\r' < "$raw" || return $?
+    if [[ -s "$err" ]]; then cat "$err" >&2; fi
+    return "$rc"
 }
 
 emit() {  # emit <tool-exe> <out.c>
@@ -345,6 +345,7 @@ if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" == "1" ]]; then
     set -e
     if [[ "$seed_reuse_status" -eq 0 ]]; then
         PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen2.exe" PGY_PARSER_BIN="$PARSER_BIN" bash "$ROOT_DIR/tests/self_hosted/parity/codegen_call_argument_graph.sh"
+        PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen2.exe" bash "$ROOT_DIR/tests/self_hosted/parity/codegen_nominal_array_declaration.sh"
         echo "[self-host-bootstrap] reusing fingerprinted gen2 seed before oracle build"
         exit 0
     fi
@@ -359,15 +360,14 @@ if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" != "1" ]]; then
     compile_parser_ast_producer
 fi
 PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen0.exe" PGY_PARSER_BIN="$PARSER_BIN" bash "$ROOT_DIR/tests/self_hosted/parity/codegen_call_argument_graph.sh"
-# main.pgy's own AST (repo-relative path so the native tool resolves it from cwd)
+PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen0.exe" bash "$ROOT_DIR/tests/self_hosted/parity/codegen_nominal_array_declaration.sh"
+# Repo-relative AST path: the native tool resolves it from cwd.
 AST_REL="$B_REL/main_ast.txt"
 emit_self_parser_ast "$TOOL_SOURCE" "$AST_REL"
-
 emit "$B/gen0.exe" "$B/gen1.c"
 if grep -q '^CODEGEN ERROR' "$B/gen1.c"; then
     echo "[self-host-bootstrap] tool rejects its own source (out of subset):" >&2
-    grep '^CODEGEN ERROR' "$B/gen1.c" | head -3 >&2
-    exit 1
+    grep '^CODEGEN ERROR' "$B/gen1.c" | head -3 >&2; exit 1
 fi
 compile_c_artifact_with_bounded_log "gen1" "$B/gen1.c" "$B/gen1.exe" || {
     echo "[self-host-bootstrap] gen1 C failed to compile" >&2; cat "$B/gen1_cc.log" >&2; exit 1; }

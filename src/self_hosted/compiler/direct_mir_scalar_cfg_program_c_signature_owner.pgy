@@ -17,11 +17,9 @@ import "runtime_value_representation_owner.pgy";
 import "direct_mir_identity_cell_projection_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
-func DirectMirScalarCfgProgramCType(
-    type_name: String, int_c_type: String,
+func DirectMirScalarCfgProgramCType(type_name: String, int_c_type: String,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
-    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
-) -> String {
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact) -> String {
     let runtime_value: CompilerRuntimeValueRepresentation =
         CompilerRuntimeValueRepresentationFor(type_name);
     if runtime_value.valid { return runtime_value.c_type; }

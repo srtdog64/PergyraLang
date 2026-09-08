@@ -11,8 +11,7 @@ import "direct_mir_llvm_text_format_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 func DirectMirScalarCfgProgramLlvmOperation(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, operation: Int,
-    formatted_print: CompilerRuntimeCallAbiFact,
-    process_exit: CompilerRuntimeCallAbiFact,
+    formatted_print: CompilerRuntimeCallAbiFact, process_exit: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     int_line_format: String, string_line_format: String,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>,
@@ -45,19 +44,15 @@ func DirectMirScalarCfgProgramLlvmOperation(
             plan, routine, operation, "", "", array_string_projection);
     }
     if DirectMirScalarProgramArraySetKind(kind) {
-        let index: DirectMirScalarProgramLlvmExpression =
-            DirectMirScalarProgramLlvmExpressionAt(
+        let index: DirectMirScalarProgramLlvmExpression = DirectMirScalarProgramLlvmExpressionAt(
                 plan.program.expressions,
-                plan.program.operation_secondary_expression_rows[operation],
-                runtime,
+                plan.program.operation_secondary_expression_rows[operation], runtime,
                 plan.program.logical_record, plan.program.payload_free_enum,
                 plan.program.referenced_enum, plan.routines, routine,
                 plan.program.array_string_abi, array_string_projection, plan.program.array_int_value_result, array_int_projection,
                 target);
-        let value: DirectMirScalarProgramLlvmExpression =
-            DirectMirScalarProgramLlvmExpressionAt(
-                plan.program.expressions, expression_row, runtime,
-                plan.program.logical_record,
+        let value: DirectMirScalarProgramLlvmExpression = DirectMirScalarProgramLlvmExpressionAt(
+                plan.program.expressions, expression_row, runtime, plan.program.logical_record,
                 plan.program.payload_free_enum, plan.program.referenced_enum,
                 plan.routines, routine, plan.program.array_string_abi,
                 array_string_projection, plan.program.array_int_value_result, array_int_projection, target);
@@ -72,30 +67,25 @@ func DirectMirScalarCfgProgramLlvmOperation(
         if kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultSet() {
             let parameter_row: Int = plan.routines.parameter_starts[routine] +
                 plan.operation_right_locals[operation];
-            let element: Option<String> =
-                DirectMirScalarProgramLogicalRecordArrayElementType(
-                    plan.program.logical_record,
-                    plan.routines.parameter_types[parameter_row]);
+            let element: Option<String> = DirectMirScalarProgramLogicalRecordArrayElementType(
+                    plan.program.logical_record, plan.routines.parameter_types[parameter_row]);
             if !IsSome(element) { Die("direct MIR scalar CFG LLVM record array set target is invalid"); }
             expected = UnwrapOption(element);
         }
-        if !index.valid || !value.valid ||
-            index.type_name != CompilerAbiLayoutIntTypeName() ||
+        if !index.valid || !value.valid || index.type_name != CompilerAbiLayoutIntTypeName() ||
             value.type_name != expected {
             Die("direct MIR scalar CFG LLVM local array set expression is invalid");
         }
         let output: String = Concat(index.instructions, value.instructions);
         if kind == DirectMirScalarCfgOpLogicalRecordArrayValueResultSet() {
-            return Concat(output,
-                DirectMirScalarProgramLlvmLogicalRecordArrayValueResultMutation(
+            return Concat(output, DirectMirScalarProgramLlvmLogicalRecordArrayValueResultMutation(
                     plan, routine, plan.operation_right_locals[operation],
                     index.value, value.type_name, value.value, target));
         }
         return Concat(output, DirectMirScalarProgramLlvmArrayMutation(
             plan, routine, operation, index.value, value.value, array_string_projection));
     }
-    let expression: DirectMirScalarProgramLlvmExpression =
-        DirectMirScalarProgramLlvmExpressionAt(
+    let expression: DirectMirScalarProgramLlvmExpression = DirectMirScalarProgramLlvmExpressionAt(
             plan.program.expressions, expression_row, runtime,
             plan.program.logical_record,
             plan.program.payload_free_enum, plan.program.referenced_enum,

@@ -38,10 +38,8 @@ import "direct_mir_scalar_cfg_program_llvm_condition_diagnostic_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 import "direct_mir_scalar_program_scalar_value_result_owner.pgy";
 
-func DirectMirScalarCfgProgramLlvmRoutine(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
-    formatted_print: CompilerRuntimeCallAbiFact,
-    process_exit: CompilerRuntimeCallAbiFact,
+func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    formatted_print: CompilerRuntimeCallAbiFact, process_exit: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     int_line_format: String, string_line_format: String,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>,
@@ -60,27 +58,21 @@ func DirectMirScalarCfgProgramLlvmRoutine(
     TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayValueParameterAddressableCopyIn(
         plan, routine, array_string_projection, array_int_projection));
     TextBuilderAppend(output,
-        DirectMirScalarProgramLlvmLogicalRecordValueParameterAddressableCopyIn(
-            plan, routine));
+        DirectMirScalarProgramLlvmLogicalRecordValueParameterAddressableCopyIn(plan, routine));
     TextBuilderAppend(output, DirectMirScalarProgramLlvmScalarParameterCopyIn(plan, routine));
     TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(plan, routine));
-    TextBuilderAppend(output,
-        DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(plan, routine));
-    TextBuilderAppend(output,
-        DirectMirScalarProgramLlvmOwnedArrayStringParameterCopyIn(
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(plan, routine));
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmOwnedArrayStringParameterCopyIn(
             plan, routine));
     TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayStringValueResultCopyIn(
         plan, routine, array_string_projection));
-    TextBuilderAppend(output,
-        DirectMirScalarProgramLlvmLogicalRecordValueResultCopyIn(
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmLogicalRecordValueResultCopyIn(
             plan, routine));
     TextBuilderAppend(output, DirectMirScalarProgramLlvmLogicalRecordArrayValueResultCopyIn(plan, routine));
-    TextBuilderAppend(output,
-        DirectMirScalarProgramLlvmSetStringValueResultCopyIn(plan, routine));
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmSetStringValueResultCopyIn(plan, routine));
     TextBuilderAppend(output, DirectMirScalarCfgProgramLlvmRuntimeValueParameterStorage(plan, routine));
     TextBuilderAppend(output, DirectMirScalarCfgLlvmLocalDeclarationsInRange(
-        plan, plan.routines.local_starts[routine],
-        plan.routines.local_counts[routine], routine));
+        plan, plan.routines.local_starts[routine], plan.routines.local_counts[routine], routine));
     let block_start: Int = plan.routines.block_starts[routine];
     let block_end: Int = block_start + plan.routines.block_counts[routine];
     TextBuilderAppend(output, "  br label %pgy.r");
@@ -102,9 +94,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(
             let emitted: String = DirectMirScalarCfgProgramLlvmOperation(
                 plan, routine, operation, formatted_print, process_exit,
                 runtime, int_line_format, string_line_format, array_string_projection, array_int_projection, target);
-            if emitted == "" &&
-                (plan.operation_kinds[operation] ==
-                    DirectMirScalarCfgOpPhiInt() ||
+            if emitted == "" && (plan.operation_kinds[operation] == DirectMirScalarCfgOpPhiInt() ||
                  plan.operation_kinds[operation] ==
                     DirectMirScalarCfgOpPhiString() ||
                  plan.operation_kinds[operation] ==

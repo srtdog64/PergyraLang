@@ -70,8 +70,7 @@ grep -Fq 'fact.physical.field_offsets[field]' "$C_OWNER" ||
 ! grep -Fq 'ProbeFact' "$FACT_OWNER" || fail "logical record owner is fixture-keyed"
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
-(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
-    "$SOURCE_REL" -o "$MIR_REL") >"$WORK_DIR/producer.out" \
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" -o "$MIR_REL") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || {
         cat "$WORK_DIR/producer.out" "$WORK_DIR/producer.err" >&2
         fail "MIR production failed"
@@ -160,7 +159,6 @@ for backend in c llvm; do
     cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/$backend.run" ||
         fail "$backend runtime output drifted"
 done
-
 for mutation in logical-record-field-order logical-record-instruction-layout \
     logical-record-cross-identity logical-record-local-declaration-identity \
         logical-record-readonly-carriage; do

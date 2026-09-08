@@ -162,9 +162,7 @@ def crosswire_param(document):
 emit("routine-order-cycle", lambda d: d.__setitem__(
     "routines", [d["routines"][2], d["routines"][0], d["routines"][1]]
 ))
-emit("declaration-order-cycle", lambda d: d.__setitem__(
-    "decls", [d["decls"][1], d["decls"][0]]
-))
+emit("declaration-order-cycle", lambda d: d.__setitem__("decls", [d["decls"][1], d["decls"][0]]))
 emit("routine-declaration-order-cycle", lambda d: (
     d.__setitem__("routines", [d["routines"][2], d["routines"][0], d["routines"][1]]),
     d.__setitem__("decls", [d["decls"][1], d["decls"][0]])
@@ -188,3 +186,5 @@ emit("twice-call-argument-edge", lambda d: instruction(d, "Main")["expr0_graph"]
 emit("width-call-argument-edge", lambda d: instruction(d, "Main")["expr0_graph"]["nodes"][37].__setitem__("right", 21))
 emit("width-member-path", lambda d: instruction(d, "Width")["expr0_graph"]["nodes"][1].__setitem__("text", "start"))
 emit("twice-operation", lambda d: instruction(d, "Twice")["expr0_graph"]["nodes"][2].__setitem__("kind", "add"))
+emit("missing-width-member", lambda d: instruction(d, "Width")["expr0_graph"]["nodes"][1].__setitem__("text", "missing"))
+emit("non-int-twice-operation", lambda d: instruction(d, "Twice")["expr0_graph"]["nodes"][2].__setitem__("kind", "logical_and"))

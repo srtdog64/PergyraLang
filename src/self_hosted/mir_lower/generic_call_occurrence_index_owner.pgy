@@ -116,7 +116,26 @@ func MirGenericCallOccurrenceIndexFromDocument(
             ArrayPush(generic_names, header.generic_names[formal]);
             formal = formal + 1;
         }
-        if count > 0 { generic_routines = generic_routines + 1; }
+        if count > 0 {
+            generic_routines = generic_routines + 1;
+            // Seal template return receipts before an actual tuple can make
+            // two distinct source types equal. Read the indexed body once
+            // per template, not once for every concrete instance.
+            let block: Int = routines.routine_block_starts[routine];
+            let block_end: Int = block + routines.routine_block_counts[routine];
+            while block < block_end {
+                let instruction: Int = routines.block_instruction_starts[block];
+                let end: Int = instruction + routines.block_instruction_counts[block];
+                while instruction < end {
+                    if routines.instruction_kinds[instruction] == "return" &&
+                        routines.instruction_abi_type_names[instruction] != header.return_type {
+                        return invalid;
+                    }
+                    instruction = instruction + 1;
+                }
+                block = block + 1;
+            }
+        }
         routine = routine + 1;
     }
     let templates: GenericInstanceTemplates = GenericInstanceTemplates(

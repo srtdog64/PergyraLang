@@ -3,8 +3,7 @@ import "direct_mir_scalar_program_llvm_logical_record_member_rebind_owner.pgy";
 import "direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy";
 
 func DirectMirScalarProgramLlvmExpressionNodeValue(
-    ref expressions: DirectMirScalarProgramExpressionSet,
-    expression_row: Int, node: Int
+    ref expressions: DirectMirScalarProgramExpressionSet, expression_row: Int, node: Int
 ) -> String {
     let kind: Int = expressions.node_kinds[node];
     if kind == DirectMirScalarProgramExprIntLiteral() ||

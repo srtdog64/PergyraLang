@@ -429,6 +429,21 @@ func CollectionRuntimeCodegenAstTextNodeArrayBlock() -> String {
     return block;
 }
 
+// Descriptor storage is complete even when its element is still incomplete.
+// The value-taking runtime bodies are emitted only after element declarations.
+func CollectionRuntimeNominalRecordArrayDeclaration(element_type: String) -> String {
+    let layout: CompilerAbiNominalArrayLayoutFact =
+        CompilerAbiNominalArrayLayoutFactFor(element_type);
+    if !layout.ok { Die("nominal array ABI/layout fact is missing"); }
+    let forward: String = Concat("typedef struct ", Concat(layout.c_element_type,
+        Concat(" ", Concat(layout.c_element_type, ";\n"))));
+    return Concat(forward, Concat("typedef struct { ",
+        Concat(layout.c_element_type, Concat(
+            " *data; long long len; long long cap; } ",
+            Concat(layout.c_value_type, ";\n\n")
+        ))));
+}
+
 func CollectionRuntimeNominalRecordArrayBlock(
     element_type: String
 ) -> String {
@@ -445,13 +460,6 @@ func CollectionRuntimeNominalRecordArrayBlock(
             Concat("Array<", Concat(element_type, ">")), env
         );
     let block: String = "";
-    block = Concat(block, Concat(
-        "typedef struct { ",
-        Concat(layout.c_element_type, Concat(
-            " *data; long long len; long long cap; } ",
-            Concat(layout.c_value_type, ";\n\n")
-        ))
-    ));
     block = Concat(block, Concat(
         "static ", Concat(layout.c_value_type, Concat(
             " ", Concat(fact.c_new_fn, Concat(

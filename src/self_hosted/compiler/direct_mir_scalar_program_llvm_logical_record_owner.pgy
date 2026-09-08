@@ -4,15 +4,13 @@ import "direct_mir_scalar_program_logical_record_payload_free_enum_join_owner.pg
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
 func DirectMirScalarProgramLlvmLogicalRecordTypeName(
-    ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String
-) -> String {
+    ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String) -> String {
     let row: Int = DirectMirScalarProgramLogicalRecordRow(fact, type_name);
     if row < 0 { return ""; }
     return Concat("%pgy.scalar.logical.record.value.", ToString(row));
 }
 func DirectMirScalarProgramLlvmLogicalRecordFieldType(
-    ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String
-) -> String {
+    ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String) -> String {
     if type_name == CompilerAbiLayoutBoolTypeName() { return "i1"; }
     if type_name == CompilerAbiLayoutIntTypeName() { return "i64"; }
     if type_name == CompilerAbiLayoutStringTypeName() { return "ptr"; }
@@ -20,44 +18,35 @@ func DirectMirScalarProgramLlvmLogicalRecordFieldType(
     if type_name == CompilerAbiLayoutArrayIntTypeName() { return "%pgy.array.int"; }
     if type_name == CompilerAbiLayoutArrayBoolTypeName() { return "%pgy.array.bool"; }
     if type_name == CompilerAbiLayoutArrayStringTypeName() { return "%pgy.array.string"; }
-    if DirectMirScalarProgramLogicalRecordPayloadFreeEnumFieldTypeReady(
-            fact, type_name) { return "i64"; }
+    if DirectMirScalarProgramLogicalRecordPayloadFreeEnumFieldTypeReady(fact, type_name) { return "i64"; }
     return DirectMirScalarProgramLlvmLogicalRecordTypeName(fact, type_name);
 }
 
-func DirectMirScalarProgramLlvmLogicalRecordStorageFieldType(
-    ref fact: DirectMirScalarProgramLogicalRecordFact,
-    record_type: String, ordinal: Int
-) -> String {
-    if DirectMirScalarProgramLogicalRecordPhysicalIntField(
-            fact, record_type, ordinal) { return "i32"; }
+func DirectMirScalarProgramLlvmLogicalRecordStorageFieldType(ref fact: DirectMirScalarProgramLogicalRecordFact,
+    record_type: String, ordinal: Int) -> String {
+    if DirectMirScalarProgramLogicalRecordPhysicalIntField(fact, record_type, ordinal) { return "i32"; }
     return DirectMirScalarProgramLlvmLogicalRecordFieldType(fact,
         DirectMirScalarProgramLogicalRecordFieldType(fact, record_type, ordinal));
 }
 
-func DirectMirScalarProgramLlvmLogicalRecordPreamble(
-    ref fact: DirectMirScalarProgramLogicalRecordFact,
-    ref target: CompilerTargetProjectionFact
-) -> String {
+func DirectMirScalarProgramLlvmLogicalRecordPreamble(ref fact: DirectMirScalarProgramLogicalRecordFact,
+    ref target: CompilerTargetProjectionFact) -> String {
     if !DirectMirScalarProgramLogicalRecordFactReady(fact) {
         Die("direct MIR logical record LLVM fact is invalid");
     }
     let output: String = "";
     let row: Int = 0;
     while row < ArrayLength(fact.names) {
-        let projection: DirectMirScalarProgramLogicalRecordTarget =
-            DirectMirScalarProgramLogicalRecordTargetFromFact(
+        let projection: DirectMirScalarProgramLogicalRecordTarget = DirectMirScalarProgramLogicalRecordTargetFromFact(
                 fact, fact.names[row], target);
-        if !DirectMirScalarProgramLogicalRecordTargetReadyFor(
-                projection, CompilerTargetCpuLlvmProjection()) {
+        if !DirectMirScalarProgramLogicalRecordTargetReadyFor(projection, CompilerTargetCpuLlvmProjection()) {
             Die("direct MIR logical record LLVM target is invalid");
         }
         output = Concat(output, Concat(projection.llvm_type_name, " = type { "));
         let ordinal: Int = 0;
         while ordinal < fact.field_counts[row] {
             if ordinal > 0 { output = Concat(output, ", "); }
-            let field_type: String =
-                DirectMirScalarProgramLlvmLogicalRecordStorageFieldType(
+            let field_type: String = DirectMirScalarProgramLlvmLogicalRecordStorageFieldType(
                     fact, fact.names[row], ordinal);
             if field_type == "" {
                 Die("direct MIR logical record LLVM field type is invalid");
@@ -71,22 +60,16 @@ func DirectMirScalarProgramLlvmLogicalRecordPreamble(
     return output;
 }
 
-func DirectMirScalarProgramLlvmLogicalRecordExpressionAt(
-    ref fact: DirectMirScalarProgramLogicalRecordFact,
+func DirectMirScalarProgramLlvmLogicalRecordExpressionAt(ref fact: DirectMirScalarProgramLogicalRecordFact,
     kind: Int, result: String, record_type: String, left: String,
-    arguments: Array<String>, argument_types: Array<String>,
-    member_ordinal: Int
+    arguments: Array<String>, argument_types: Array<String>, member_ordinal: Int
 ) -> DirectMirScalarProgramLlvmStringExpression {
-    let row: Int = DirectMirScalarProgramLogicalRecordRow(
-        fact, record_type);
-    let type_name: String =
-        DirectMirScalarProgramLlvmLogicalRecordTypeName(fact, record_type);
+    let row: Int = DirectMirScalarProgramLogicalRecordRow(fact, record_type);
+    let type_name: String = DirectMirScalarProgramLlvmLogicalRecordTypeName(fact, record_type);
     if kind == DirectMirScalarProgramExprLogicalRecordConstructor() {
         if row < 0 || ArrayLength(arguments) != fact.field_counts[row] ||
-            ArrayLength(argument_types) != fact.field_counts[row] ||
-            member_ordinal != -1 {
-            return DirectMirScalarProgramLlvmStringExpression(
-                true, false, "", "");
+            ArrayLength(argument_types) != fact.field_counts[row] || member_ordinal != -1 {
+            return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");
         }
         let output: String = "";
         let prior: String = "poison";
@@ -97,8 +80,7 @@ func DirectMirScalarProgramLlvmLogicalRecordExpressionAt(
                 name = Concat(result, Concat(".field.", ToString(ordinal)));
             }
             let value: String = arguments[ordinal];
-            if DirectMirScalarProgramLogicalRecordPhysicalIntField(
-                    fact, record_type, ordinal) {
+            if DirectMirScalarProgramLogicalRecordPhysicalIntField(fact, record_type, ordinal) {
                 value = Concat(result, Concat(".physical.", ToString(ordinal)));
                 output = Concat(output, Concat("  ", Concat(value, " = trunc i64 ")));
                 output = Concat(output, Concat(arguments[ordinal], " to i32\n"));
@@ -106,8 +88,7 @@ func DirectMirScalarProgramLlvmLogicalRecordExpressionAt(
             output = Concat(output, Concat("  ", name));
             output = Concat(output, Concat(" = insertvalue ", type_name));
             output = Concat(output, Concat(" ", prior));
-            output = Concat(output, Concat(", ",
-                DirectMirScalarProgramLlvmLogicalRecordStorageFieldType(
+            output = Concat(output, Concat(", ", DirectMirScalarProgramLlvmLogicalRecordStorageFieldType(
                     fact, record_type, ordinal)));
             output = Concat(output, Concat(" ", value));
             output = Concat(output, Concat(", ", ToString(ordinal)));
@@ -115,13 +96,10 @@ func DirectMirScalarProgramLlvmLogicalRecordExpressionAt(
             prior = name;
             ordinal = ordinal + 1;
         }
-        return DirectMirScalarProgramLlvmStringExpression(
-            true, true, output, result);
+        return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
     }
-    if kind != DirectMirScalarProgramExprLogicalRecordMember() || row < 0 ||
-        left == "" || member_ordinal < 0 ||
-        member_ordinal >= fact.field_counts[row] ||
-        ArrayLength(arguments) != 0 || ArrayLength(argument_types) != 0 {
+    if kind != DirectMirScalarProgramExprLogicalRecordMember() || row < 0 || left == "" || member_ordinal < 0 ||
+        member_ordinal >= fact.field_counts[row] || ArrayLength(arguments) != 0 || ArrayLength(argument_types) != 0 {
         return DirectMirScalarProgramLlvmStringExpressionMissing();
     }
     let physical_int: Bool = DirectMirScalarProgramLogicalRecordPhysicalIntField(

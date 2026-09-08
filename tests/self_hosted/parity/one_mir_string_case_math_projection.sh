@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 LABEL="self-host-one-mir-string-case-math"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
@@ -57,7 +58,7 @@ mkdir -p "$WORK_DIR"
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/producer.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "D0E8EDFAF1B91AED04D5ED99BBDDCD3BB7B250DB673810DD5CCB224E29CDA7AF" ]] ||
+[[ "$mir_sha" == "22DE914781C97C64991F371357E24D8CCAD0A95A3BD9D33FFEC8C809A93F29A1" ]] ||
     fail "source MIR identity changed: $mir_sha"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_case_math_mutations.py" \
     "$WORK_DIR/producer.json" "$WORK_DIR"
@@ -105,12 +106,16 @@ for symbol in pgy_strreplace pgy_abs pgy_min pgy_max; do
     require_text "$WORK_DIR/base.c" "$symbol"
     require_text "$WORK_DIR/base.ll" "$symbol"
 done
-require_text "$WORK_DIR/base.c" 'pgy_scalar_routine_1(long long pgy_param_0, long long pgy_param_1, long long pgy_param_2)'
+require_text "$WORK_DIR/base.c" 'pgy_scalar_routine_1(int32_t pgy_param_0, int32_t pgy_param_1, int32_t pgy_param_2)'
 require_text "$WORK_DIR/base.ll" 'define internal i64 @pgy.scalar.routine.1(i64 %pgy.param.0, i64 %pgy.param.1, i64 %pgy.param.2)'
 expected_base=$'HELLO, WORLD!\nhello, world!\nHello, Pergyra!\na+b+a+b\n42\n3\n7\n50\n7'
 expected_semantic=$'HELLO, CODEX!\nhello, codex!\nHello, Codex!\na+b+a+b\n42\n3\n7\n50\n7'
 for stem in base display-only semantic-change routine-order; do
-    "$CC" -std=c11 -fwrapv "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" ||
+    c_flags=(-std=c11 -fwrapv)
+    if pgy_selfhost_emitted_c_uses_runtime_headers "$WORK_DIR/$stem.c"; then
+        c_flags+=(-I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread)
+    fi
+    "$CC" "${c_flags[@]}" "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" ||
         fail "C compile failed: $stem"
     "$CLANG" "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem.llvm.exe" ||
         fail "LLVM compile failed: $stem"

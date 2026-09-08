@@ -43,54 +43,32 @@ struct CodegenStatementBlockEmission {
     scope_cleanup: String;
 }
 
-func EmitLet(
-    local_bindings: SemanticAstLocalBindingFacts,
-    arena: AstArena,
-    idx: Int,
-    inout env_state: CodegenTypeEnvState,
-    env: CodegenTypeEnv,
-    graph: SemanticExpressionGraphView
+func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx: Int,
+    inout env_state: CodegenTypeEnvState, env: CodegenTypeEnv, graph: SemanticExpressionGraphView
 ) -> String {
     let name: String = CodegenSemanticLocalBindingNameOrDie(local_bindings, idx);
     let type_name: String = CodegenSemanticLocalBindingDeclaredTypeOrDie(local_bindings, idx);
     let binding: CodegenFunctionValueBindingFact =
         CodegenFunctionValueBindingFactFor(name, type_name, env);
     let c_name: String = binding.c_name;
-    let expr: String = CodegenSemanticLocalBindingInitializerOrDie(
-        local_bindings, idx
-    );
+    let expr: String = CodegenSemanticLocalBindingInitializerOrDie(local_bindings, idx);
     if type_name == "Int" || type_name == "Long" || type_name == "Bool" ||
-        type_name == "Float" || type_name == "Double" ||
-        type_name == "String" ||
+        type_name == "Float" || type_name == "Double" || type_name == "String" ||
         type_name == "Allocator" || type_name == "TextBuilder" {
-        CodegenTypeEnvStateAppendOwnedLocalRows(
-            env_state, env, binding.env_rows
-        );
+        CodegenTypeEnvStateAppendOwnedLocalRows(env_state, env, binding.env_rows);
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
     }
     if IsBoxType(type_name) && IsSome(BoxArrayElementTypeOpt(type_name)) { return EmitBoxArrayLetDeclaration(name, type_name, c_name, env_state, env, graph); }
     if CompilerRuntimeCallAbiMachineLayerDeviceCValueType(type_name) != "" {
-        CodegenTypeEnvStateAppendOwnedLocalRows(
-            env_state, env, binding.env_rows
-        );
-        let value: String = RewriteExpectedValueWithSemanticGraph(
-            expr, type_name, env, graph
-        );
-        let declaration: String = Concat(
-            c_name, Concat(" = ", Concat(value, ";"))
-        );
-        return Concat(
-            AbiLayoutCLocalType(type_name, env), Concat(" ", declaration)
-        );
+        CodegenTypeEnvStateAppendOwnedLocalRows(env_state, env, binding.env_rows);
+        let value: String = RewriteExpectedValueWithSemanticGraph(expr, type_name, env, graph);
+        let declaration: String = Concat(c_name, Concat(" = ", Concat(value, ";")));
+        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", declaration));
     }
     if CompilerRuntimeCallAbiMachineLayerRemoteFutureCValueType(type_name) != "" ||
         SpawnRuntimeCFutureCValueType(type_name) != "" {
-        CodegenTypeEnvStateAppendOwnedLocalRows(
-            env_state, env, binding.env_rows
-        );
-        let value: String = RewriteExpectedValueWithSemanticGraph(
-            expr, type_name, env, graph
-        );
+        CodegenTypeEnvStateAppendOwnedLocalRows(env_state, env, binding.env_rows);
+        let value: String = RewriteExpectedValueWithSemanticGraph(expr, type_name, env, graph);
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",
             Concat(c_name, Concat(" = ", Concat(value, ";")))));
     }
@@ -98,22 +76,17 @@ func EmitLet(
         // rung-10: growable `Array<Int>` / `Array<String>` as a struct. A
         // `[a, b, c]` literal lowers to `new()` plus one `push` per element;
         // `[]` is just `new()`. `ArrayPush` later extends the same value.
-        let array_fact: CollectionRuntimeFact =
-            CollectionRuntimeFactFromTypeName(type_name, env);
+        let array_fact: CollectionRuntimeFact = CollectionRuntimeFactFromTypeName(type_name, env);
         let array_kind: String = array_fact.kind;
         let c_type: String = AbiLayoutCLocalType(type_name, env);
         let new_fn: String = array_fact.c_new_fn;
         let push_fn: String = array_fact.c_push_fn;
         let element_type: String = array_fact.element_type;
-        CodegenTypeEnvStateAppendOwnedLocalRows(
-            env_state, env, binding.env_rows
-        );
+        CodegenTypeEnvStateAppendOwnedLocalRows(env_state, env, binding.env_rows);
         if !graph.ok {
             Die("array initializer expression graph is missing");
         }
-        let graph_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-            graph.graph, graph.root_id
-        );
+        let graph_kind: Option<Int> = SemanticExpressionGraphNodeKind(graph.graph, graph.root_id);
         if !IsSome(graph_kind) {
             Die("array initializer expression graph is invalid");
         }
@@ -131,9 +104,7 @@ func EmitLet(
         let element_index: Int = 0;
         while element_index < ArrayLength(literal.element_nodes) {
             let ev: String = RewriteSemanticExpectedValue(
-                graph.graph, literal.element_nodes[element_index],
-                element_type, env
-            );
+                graph.graph, literal.element_nodes[element_index], element_type, env);
             out = Concat(out, Concat(" ", Concat(push_fn, Concat("(&", Concat(c_name, Concat(", ", Concat(ev, ");")))))));
             element_index = element_index + 1;
         }

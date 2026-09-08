@@ -84,66 +84,6 @@ func DirectMirScalarProgramBuiltinCallMarkerReady(
         sequence.arena.identities.call_target_syntax_ids[node] == 0;
 }
 
-func DirectMirScalarProgramCallCalleeLeafReady(
-    ref sequence: MirExpressionGraphSequence, node: Int
-) -> Bool {
-    return node + 1 < ArrayLength(sequence.arena.topology.node_kinds) &&
-        sequence.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() &&
-        sequence.arena.topology.node_kinds[node + 1] == AstExpressionNodeCall() &&
-        sequence.arena.topology.left_children[node + 1] == node &&
-        DirectMirScalarProgramCallMarkerReady(sequence, node + 1);
-}
-
-func DirectMirScalarProgramCallCalleeNodeReady(
-    ref sequence: MirExpressionGraphSequence, node: Int
-) -> Bool {
-    if DirectMirScalarProgramCallCalleeLeafReady(sequence, node) { return true; }
-    let count: Int = ArrayLength(sequence.arena.topology.node_kinds);
-    // A normalized explicit-actual spine consists of base, actual/wrapper
-    // pairs, then call. Type markers are not runtime values or callable values.
-    let generic: Int = node;
-    if node >= 0 && node < count && sequence.arena.topology.node_kinds[node] == AstExpressionNodeGenericTypeActual() {
-        if node + 1 >= count || sequence.arena.topology.node_kinds[node + 1] != AstExpressionNodeGenericCallee() ||
-            sequence.arena.topology.right_children[node + 1] != node { return false; }
-        generic = node + 1;
-    }
-    while generic >= 0 && generic + 2 < count &&
-        sequence.arena.topology.node_kinds[generic + 1] == AstExpressionNodeGenericTypeActual() &&
-        sequence.arena.topology.node_kinds[generic + 2] == AstExpressionNodeGenericCallee() &&
-        sequence.arena.topology.left_children[generic + 2] == generic &&
-        sequence.arena.topology.right_children[generic + 2] == generic + 1 {
-        generic = generic + 2;
-    }
-    if generic >= 0 && generic < count &&
-        sequence.arena.topology.node_kinds[generic] == AstExpressionNodeGenericCallee() &&
-        generic + 1 < count && sequence.arena.topology.left_children[generic + 1] == generic &&
-        DirectMirScalarProgramCallMarkerReady(sequence, generic + 1) { return true; }
-    let callee: Int = -1; let call: Int = -1;
-    if node >= 0 && node < count && sequence.arena.topology.node_kinds[node] ==
-            AstExpressionNodeMemberAccess() {
-        callee = node; call = node + 1;
-    } else if node >= 0 && node < count &&
-            sequence.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() {
-        if node + 1 < count && sequence.arena.topology.node_kinds[node + 1] ==
-                AstExpressionNodeMemberAccess() {
-            callee = node + 1; call = node + 2;
-        } else if node + 2 < count &&
-                sequence.arena.topology.node_kinds[node + 2] ==
-                    AstExpressionNodeMemberAccess() {
-            callee = node + 2; call = node + 3;
-        }
-    }
-    if DirectMirScalarProgramMemberCallMarkerReady(sequence, call) &&
-        sequence.arena.topology.left_children[call] == callee {
-        // The receiver is evaluated; only selector syntax is erased.
-        return node == callee || sequence.arena.topology.right_children[callee] == node;
-    }
-    return DirectMirScalarProgramNamespaceCallMarkerReady(sequence, call) &&
-        sequence.arena.topology.left_children[call] == callee &&
-        (node == callee || sequence.arena.topology.left_children[callee] == node ||
-         sequence.arena.topology.right_children[callee] == node);
-}
-
 func DirectMirScalarProgramMemberCallMarkerReady(
     ref sequence: MirExpressionGraphSequence, call: Int
 ) -> Bool {
@@ -162,11 +102,4 @@ func DirectMirScalarProgramMemberCallMarkerReady(
         sequence.arena.identities.binding_kinds[member] == SemanticExpressionBindingNone() &&
         sequence.arena.identities.binding_syntax_ids[member] == 0 &&
         sequence.arena.identities.binding_ordinals[member] == -1;
-}
-
-func DirectMirScalarProgramBuiltinCalleeLeafReady(
-    ref sequence: MirExpressionGraphSequence, node: Int
-) -> Bool {
-    return DirectMirScalarProgramCallCalleeLeafReady(sequence, node) &&
-        DirectMirScalarProgramBuiltinCallMarkerReady(sequence, node + 1);
 }

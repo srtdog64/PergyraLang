@@ -7,11 +7,8 @@ import "intent_variant_binding_owner.pgy";
 import "intent_terminal_clause_owner.pgy";
 import "intent_default_clause_owner.pgy";
 import "intent_policy_clause_owner.pgy";
-func ParseIntentDecl(
-    content: String, start: Int, inout cursor_out: Array<Int>,
-    decl_prefix: String,
-    inout expression_graphs: Array<AstExpressionGraphRows>
-) -> String {
+func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String,
+    inout expression_graphs: Array<AstExpressionGraphRows>) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
@@ -125,8 +122,7 @@ func ParseIntentDecl(
         Exit(1);
     }
     // Walk the body collecting mode, steps, success, failure.
-    let intent_policy: ParserIntentPolicyClause =
-        ParserIntentPolicyClauseDefault();
+    let intent_policy: ParserIntentPolicyClause = ParserIntentPolicyClauseDefault();
     let step_blocks: String = "";
     let success_text: String = "";
     let failure_text: String = "";
@@ -141,9 +137,7 @@ func ParseIntentDecl(
     let terminal_failure_texts: Array<String> = [];
     let terminal_failure_graphs: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
     let intent_expression_graphs: Array<AstExpressionGraphRows> = [];
-    ParserExpressionGraphRowsBoxStart(
-        intent_expression_graphs, AstExpressionGraphRowsEmpty()
-    );
+    ParserExpressionGraphRowsBoxStart(intent_expression_graphs, AstExpressionGraphRowsEmpty());
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
@@ -153,8 +147,7 @@ func ParseIntentDecl(
             i = i + 1;
             break;
         }
-        let policy_clause: ParserIntentPolicyClause =
-            ParserIntentPolicyClauseFromSource(content, i, intent_policy);
+        let policy_clause: ParserIntentPolicyClause = ParserIntentPolicyClauseFromSource(content, i, intent_policy);
         if policy_clause.matched {
             if !policy_clause.ok { Fail("invalid Intent policy clause", content, i); }
             intent_policy = policy_clause;
@@ -163,8 +156,7 @@ func ParseIntentDecl(
         }
         let default_clause: ParserIntentDefaultClause = ParserIntentDefaultClauseFromSource(content, i);
         if default_clause.matched {
-            if !default_clause.ok ||
-                (default_clause.who_names != "" && default_who != "") ||
+            if !default_clause.ok || (default_clause.who_names != "" && default_who != "") ||
                 (default_clause.where_type != "" && default_where != "") { Exit(1); }
             if default_clause.who_names != "" { default_who = default_clause.who_names; }
             if default_clause.where_type != "" { default_where = default_clause.where_type; }
@@ -174,10 +166,7 @@ func ParseIntentDecl(
         if MatchLanguageWord(content, i, LanguageWordId.WordSuccess) {
             i = LanguageWordEnd(i, LanguageWordId.WordSuccess);
             ArraySet(cursor_out, 0, i);
-            let terminal: ParserIntentTerminalClause =
-                ParseIntentTerminalClause(
-                content, i, cursor_out
-            );
+            let terminal: ParserIntentTerminalClause = ParseIntentTerminalClause(content, i, cursor_out);
             if !terminal.ok { Exit(1); }
             i = cursor_out[0];
             if terminal.step_name == "" {
@@ -187,21 +176,15 @@ func ParseIntentDecl(
             } else {
                 ArrayPush(terminal_success_steps, terminal.step_name);
                 ArrayPush(terminal_success_texts, terminal.expression.text);
-                terminal_success_graphs = ParserExpressionGraphsAppend(
-                    terminal_success_graphs,
-                    TypedAstKindIntentTerminalSuccessTag(),
-                    AstExpressionLaneAtom(), terminal.expression
-                );
+                terminal_success_graphs = ParserExpressionGraphsAppend(terminal_success_graphs,
+                    TypedAstKindIntentTerminalSuccessTag(), AstExpressionLaneAtom(), terminal.expression);
             }
             continue;
         }
         if MatchLanguageWord(content, i, LanguageWordId.WordFailure) {
             i = LanguageWordEnd(i, LanguageWordId.WordFailure);
             ArraySet(cursor_out, 0, i);
-            let terminal: ParserIntentTerminalClause =
-                ParseIntentTerminalClause(
-                content, i, cursor_out
-            );
+            let terminal: ParserIntentTerminalClause = ParseIntentTerminalClause(content, i, cursor_out);
             if !terminal.ok { Exit(1); }
             i = cursor_out[0];
             if terminal.step_name == "" {
@@ -211,11 +194,8 @@ func ParseIntentDecl(
             } else {
                 ArrayPush(terminal_failure_steps, terminal.step_name);
                 ArrayPush(terminal_failure_texts, terminal.expression.text);
-                terminal_failure_graphs = ParserExpressionGraphsAppend(
-                    terminal_failure_graphs,
-                    TypedAstKindIntentTerminalFailureTag(),
-                    AstExpressionLaneAtom(), terminal.expression
-                );
+                terminal_failure_graphs = ParserExpressionGraphsAppend(terminal_failure_graphs,
+                    TypedAstKindIntentTerminalFailureTag(), AstExpressionLaneAtom(), terminal.expression);
             }
             continue;
         }
@@ -330,8 +310,7 @@ func ParseIntentDecl(
                     i = Expect(content, i, ":");
                     if i < 0 { Exit(1); }
                     ArraySet(cursor_out, 0, i);
-                    let pattern: ParserIntentVariantBinding =
-                        ParseIntentVariantBinding(content, i, cursor_out);
+                    let pattern: ParserIntentVariantBinding = ParseIntentVariantBinding(content, i, cursor_out);
                     if !pattern.ok { Exit(1); }
                     i = cursor_out[0];
                     i = Expect(content, i, ";");
@@ -355,8 +334,7 @@ func ParseIntentDecl(
                     s_on_seen = true;
                     let on_head: Int = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, on_head) != ":" {
-                        if on_head >= n || !SourceByteIsAlpha(
-                            SourceByteAt(content, n, on_head)
+                        if on_head >= n || !SourceByteIsAlpha(SourceByteAt(content, n, on_head)
                         ) { Exit(1); }
                         ArraySet(cursor_out, 0, on_head);
                         s_outcome = ReadIdent(content, on_head, cursor_out);
@@ -368,8 +346,7 @@ func ParseIntentDecl(
                     if s_guard_seen { Exit(1); }
                     s_guard_seen = true;
                 }
-                if (clause == "pre" && s_pre != "") ||
-                    (clause == "invariant" && s_invariant != "") {
+                if (clause == "pre" && s_pre != "") || (clause == "invariant" && s_invariant != "") {
                     Fail("duplicate Intent step predicate", content, i);
                 }
                 if clause == "post" {
@@ -396,9 +373,7 @@ func ParseIntentDecl(
                     ArraySet(cursor_out, 0, i);
                 } else {
                     ArraySet(cursor_out, 0, i);
-                    let val_fact: ParserExpressionFact = ParseExprFact(
-                        content, i, cursor_out
-                    );
+                    let val_fact: ParserExpressionFact = ParseExprFact(content, i, cursor_out);
                     if !val_fact.ok { Exit(1); }
                     val = val_fact.text;
                     if clause == "on" { s_on_fact = val_fact; }
@@ -407,11 +382,8 @@ func ParseIntentDecl(
                     if clause == "invariant" { s_invariant_fact = val_fact; }
                     if clause == "expect" { s_expect_fact = val_fact; }
                     if clause == "compensate" {
-                        s_compensate_graphs = ParserExpressionGraphsAppend(
-                            s_compensate_graphs,
-                            TypedAstKindIntentStepCompensateTag(),
-                            AstExpressionLaneAtom(), val_fact
-                        );
+                        s_compensate_graphs = ParserExpressionGraphsAppend(s_compensate_graphs,
+                            TypedAstKindIntentStepCompensateTag(), AstExpressionLaneAtom(), val_fact);
                     }
                     if clause == "post" { s_post_fact = val_fact; }
                     if clause == "intent" { s_intent_fact = val_fact; }
@@ -456,15 +428,12 @@ func ParseIntentDecl(
                 }
             }
             let defaults: ParserIntentStepDefaults = ParserIntentStepDefaultsResolve(
-                default_who, default_where, s_who, s_where
-            );
+                default_who, default_where, s_who, s_where);
             s_who = defaults.who_names;
             s_where = defaults.where_type;
             let step_header: String = Concat("    IntentStep: ", step_name);
             if predecessor_name != "" {
-                step_header = Concat(
-                    step_header, Concat(" after ", predecessor_name)
-                );
+                step_header = Concat(step_header, Concat(" after ", predecessor_name));
             }
             if StringLength(s_where) > 0 {
                 step_header = Concat(step_header, Concat(" where ", s_where));
@@ -498,20 +467,14 @@ func ParseIntentDecl(
                 step_out = AppendLine(step_out, Concat("      On: ", s_on));
             }
             if StringLength(s_success_pattern) > 0 {
-                step_out = AppendLine(step_out, Concat(
-                    "      IntentStepSuccess: ", s_success_pattern
-                ));
+                step_out = AppendLine(step_out, Concat("      IntentStepSuccess: ", s_success_pattern));
             }
             if StringLength(s_failure_pattern) > 0 {
-                step_out = AppendLine(step_out, Concat(
-                    "      IntentStepFailure: ", s_failure_pattern
-                ));
+                step_out = AppendLine(step_out, Concat("      IntentStepFailure: ", s_failure_pattern));
             }
             let compensate_i: Int = 0;
             while compensate_i < ArrayLength(s_compensates) {
-                step_out = AppendLine(step_out, Concat(
-                    "      Compensate: ", s_compensates[compensate_i]
-                ));
+                step_out = AppendLine(step_out, Concat("      Compensate: ", s_compensates[compensate_i]));
                 compensate_i = compensate_i + 1;
             }
             if StringLength(s_guard) > 0 {
@@ -542,10 +505,8 @@ func ParseIntentDecl(
                 step_out = AppendLine(step_out, Concat("      ContractProvenance: ", defaults.provenance_text));
             }
             if StringLength(s_on) > 0 {
-                ParserExpressionGraphsAppendInto(
-                    intent_expression_graphs, TypedAstKindIntentStepOnTag(),
-                    AstExpressionLaneAtom(), s_on_fact
-                );
+                ParserExpressionGraphsAppendInto(intent_expression_graphs, TypedAstKindIntentStepOnTag(),
+                    AstExpressionLaneAtom(), s_on_fact);
             }
             if StringLength(s_intent) > 0 {
                 ParserExpressionGraphsAppendInto(
@@ -554,39 +515,27 @@ func ParseIntentDecl(
             }
             ParserExpressionGraphsAppendRowsInto(intent_expression_graphs, s_compensate_graphs);
             if StringLength(s_guard) > 0 {
-                ParserExpressionGraphsAppendInto(
-                    intent_expression_graphs, TypedAstKindIntentStepGuardTag(),
-                    AstExpressionLaneAtom(), s_guard_fact
-                );
+                ParserExpressionGraphsAppendInto(intent_expression_graphs, TypedAstKindIntentStepGuardTag(),
+                    AstExpressionLaneAtom(), s_guard_fact);
             }
             if StringLength(s_post) > 0 {
-                ParserExpressionGraphsAppendInto(
-                    intent_expression_graphs, TypedAstKindIntentStepPostTag(),
-                    AstExpressionLaneAtom(), s_post_fact
-                );
+                ParserExpressionGraphsAppendInto(intent_expression_graphs, TypedAstKindIntentStepPostTag(),
+                    AstExpressionLaneAtom(), s_post_fact);
             }
             if s_pre != "" {
-                ParserExpressionGraphsAppendInto(
-                    intent_expression_graphs, TypedAstKindIntentStepPreTag(),
-                    AstExpressionLaneAtom(), s_pre_fact
-                );
+                ParserExpressionGraphsAppendInto(intent_expression_graphs, TypedAstKindIntentStepPreTag(),
+                    AstExpressionLaneAtom(), s_pre_fact);
             }
             if s_invariant != "" {
-                ParserExpressionGraphsAppendInto(
-                    intent_expression_graphs, TypedAstKindIntentStepInvariantTag(),
-                    AstExpressionLaneAtom(), s_invariant_fact
-                );
+                ParserExpressionGraphsAppendInto(intent_expression_graphs, TypedAstKindIntentStepInvariantTag(),
+                    AstExpressionLaneAtom(), s_invariant_fact);
             }
             if StringLength(s_expect) > 0 {
-                ParserExpressionGraphsAppendInto(
-                    intent_expression_graphs, TypedAstKindIntentStepExpectTag(),
-                    AstExpressionLaneAtom(), s_expect_fact
-                );
+                ParserExpressionGraphsAppendInto(intent_expression_graphs, TypedAstKindIntentStepExpectTag(),
+                    AstExpressionLaneAtom(), s_expect_fact);
             }
             step_blocks = AppendLine(step_blocks, step_out);
-            if intent_return_type != "" &&
-                (s_outcome == "" || s_success_pattern == "" ||
-                 s_failure_pattern == "" ||
+            if intent_return_type != "" && (s_outcome == "" || s_success_pattern == "" || s_failure_pattern == "" ||
                  s_success_pattern == s_failure_pattern) {
                 Exit(1); }
             continue;
@@ -595,12 +544,10 @@ func ParseIntentDecl(
     }
     let typed_result: Bool = intent_return_type != "";
     if typed_result {
-        if success_text != "" || failure_text != "" ||
-            ArrayLength(terminal_success_steps) != 1 ||
+        if success_text != "" || failure_text != "" || ArrayLength(terminal_success_steps) != 1 ||
             ArrayLength(terminal_failure_steps) == 0 {
             Exit(1); }
-    } else if ArrayLength(terminal_success_steps) > 0 ||
-        ArrayLength(terminal_failure_steps) > 0 {
+    } else if ArrayLength(terminal_success_steps) > 0 || ArrayLength(terminal_failure_steps) > 0 {
         Exit(1);
     }
     if !typed_result && success_text == "" {
@@ -608,8 +555,7 @@ func ParseIntentDecl(
         success_fact = ParserExpressionBoolLiteral("true");
     }
     out = AppendLine(out, Concat("  Intent: ", Concat(decl_prefix, intent_name)));
-    if typed_result { out = AppendLine(out, Concat(
-        "    IntentReturns: ", intent_return_type)); }
+    if typed_result { out = AppendLine(out, Concat("    IntentReturns: ", intent_return_type)); }
     out = ParserIntentPolicyTreeAppend(out, expression_graphs, intent_policy);
     if StringLength(intent_retry) > 0 {
         out = AppendLine(out, Concat("    IntentRetry: ", intent_retry));
@@ -634,11 +580,8 @@ func ParseIntentDecl(
     }
     let terminal_i: Int = 0;
     while terminal_i < ArrayLength(terminal_success_steps) {
-        out = AppendLine(out, Concat(
-            "    IntentTerminalSuccess: ", Concat(
-                terminal_success_steps[terminal_i],
-                Concat(" => ", terminal_success_texts[terminal_i]))
-        ));
+        out = AppendLine(out, Concat("    IntentTerminalSuccess: ", Concat(terminal_success_steps[terminal_i],
+                Concat(" => ", terminal_success_texts[terminal_i]))));
         terminal_i = terminal_i + 1;
     }
     ParserExpressionGraphsAppendRowsInto(intent_expression_graphs, terminal_success_graphs);

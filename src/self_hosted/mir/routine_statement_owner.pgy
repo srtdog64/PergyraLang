@@ -5,6 +5,7 @@ import "routine_expression_use_owner.pgy";
 import "routine_local_ref_attachment_owner.pgy";
 import "../semantic/ast_statement_fact_owner.pgy";
 import "../semantic/ast_expression_graph_fact_owner.pgy";
+import "../semantic/ast_expression_graph_member_view_owner.pgy";
 
 func SelfMirSimpleStatementKind(kind: Int) -> Bool {
     return kind == TypedAstKindLogStmtTag() ||
@@ -42,17 +43,25 @@ func SelfMirCollectionMutationTargetLocal(
     target_graph: SemanticExpressionGraphView
 ) -> Option<Int> {
     if !target_graph.ok { return None; }
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        target_graph.graph, target_graph.root_id
-    );
-    let text: Option<String> = SemanticExpressionGraphNodeText(
-        target_graph.graph, target_graph.root_id
-    );
-    if !IsSome(kind) || !IsSome(text) ||
-        UnwrapOption(kind) != AstExpressionNodeLeaf() {
-        return None;
+    // The primary LocalRef belongs to the lexical root. The carried target
+    // graph retains each field projection; a member name is never a local.
+    let node: Int = target_graph.root_id;
+    while node >= 0 {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(target_graph.graph, node);
+        let text: Option<String> = SemanticExpressionGraphNodeText(target_graph.graph, node);
+        if !IsSome(kind) || !IsSome(text) { return None; }
+        if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+            return SelfMirRoutineLocalIndex(build, UnwrapOption(text));
+        }
+        if UnwrapOption(kind) != AstExpressionNodeMemberAccess() { return None; }
+        let member: SemanticMemberAccessView =
+            SemanticMemberAccessViewFromGraph(target_graph.graph, node);
+        if !member.ok || member.receiver_node < 0 || member.receiver_node >= node {
+            return None;
+        }
+        node = member.receiver_node;
     }
-    return SelfMirRoutineLocalIndex(build, UnwrapOption(text));
+    return None;
 }
 
 func SelfMirLowerGraphOwnedSimpleStatement(

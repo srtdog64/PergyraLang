@@ -2,7 +2,6 @@
 //
 // Initializer and assignment verdict owners share this construction. Neither
 // owner may rescan source text to recover parameters, locals, or visibility.
-
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
@@ -16,19 +15,14 @@ import "nominal_constructor_argument_policy_owner.pgy";
 import "ast_intent_signature_fact_owner.pgy";
 import "ast_generic_nominal_equality_owner.pgy";
 
-func SemanticAstExpressionMemberRootNames(
-    constructors: SemanticAstNominalConstructorFacts,
-    enums: SemanticAstEnumFacts,
-    inout roots: Array<String>
-) -> Bool {
+func SemanticAstExpressionMemberRootNames(constructors: SemanticAstNominalConstructorFacts,
+    enums: SemanticAstEnumFacts, inout roots: Array<String>) -> Bool {
     if !SemanticAstNominalConstructorRowsReady(constructors) || !enums.ok {
         return false;
     }
     let i: Int = 0;
     while i < SemanticAstNominalConstructorCount(constructors) {
-        let name: Option<String> = SemanticAstNominalConstructorNameAt(
-            constructors, i
-        );
+        let name: Option<String> = SemanticAstNominalConstructorNameAt(constructors, i);
         if !IsSome(name) { return false; }
         ArrayPush(roots, UnwrapOption(name));
         i = i + 1;
@@ -39,15 +33,12 @@ func SemanticAstExpressionMemberRootNames(
         if !IsSome(enum_name) { return false; }
         let enum_text: String = UnwrapOption(enum_name);
         ArrayPush(roots, enum_text);
-        let variant_count: Option<Int> =
-            SemanticAstEnumVariantCountForName(enums, enum_text);
+        let variant_count: Option<Int> = SemanticAstEnumVariantCountForName(enums, enum_text);
         if !IsSome(variant_count) { return false; }
         let variant_index: Int = 0;
         while variant_index < UnwrapOption(variant_count) {
-            let variant_name: Option<String> =
-                SemanticAstEnumVariantNameAt(
-                    enums, enum_text, variant_index
-                );
+            let variant_name: Option<String> = SemanticAstEnumVariantNameAt(
+                    enums, enum_text, variant_index);
             if !IsSome(variant_name) { return false; }
             ArrayPush(roots, UnwrapOption(variant_name));
             variant_index = variant_index + 1;

@@ -28,8 +28,7 @@ import "direct_mir_pressure_observation_owner.pgy";
 import "../mir_lower/mir_json_input_owner.pgy";
 import "../mir_lower/generic_instance_plan_owner.pgy";
 
-func CompileAdmittedDirectMirCfgPayloadForTarget(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
+func CompileAdmittedDirectMirCfgPayloadForTarget(ref admitted: MirMachineLayerAdmittedJsonInput,
     own enum_route: DirectMirEnumValueMatchRouteFact,
     target_projection: CompilerTargetProjectionFact
 ) -> String {

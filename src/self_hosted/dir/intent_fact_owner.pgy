@@ -19,9 +19,7 @@ import "intent_mode_fact_owner.pgy";
 import "intent_priority_fact_owner.pgy";
 import "intent_result_contract_owner.pgy";
 import "intent_exact_identity_contract_owner.pgy";
-func SelfDirIntentFactsFromArtifact(
-    artifact: AstTreeArtifact,
-    ref rows: SelfMirDeclarationRows,
+func SelfDirIntentFactsFromArtifact(artifact: AstTreeArtifact, ref rows: SelfMirDeclarationRows,
     signatures: SemanticAstFunctionSignatureFacts,
     ref signature_facts: SemanticAstIntentSignatureFacts,
     transition_facts: SemanticAstIntentTransitionFacts,
@@ -30,28 +28,20 @@ func SelfDirIntentFactsFromArtifact(
 ) -> SelfDirIntentFacts {
     let required: Bool = SemanticAstIntentSignatureCount(signature_facts) > 0;
     if !required {
-        return SelfDirIntentFactsSealedEmpty(
-            artifact.count, artifact.identity_digest
-        );
+        return SelfDirIntentFactsSealedEmpty(artifact.count, artifact.identity_digest);
     }
-    if !AstTreeArtifactReady(artifact) || !signatures.ok ||
-        !SemanticAstActionContractFactsReady(
+    if !AstTreeArtifactReady(artifact) || !signatures.ok || !SemanticAstActionContractFactsReady(
             artifact, signatures.action_contracts
         ) || !SemanticAstIntentSignatureFactsReady(artifact, signature_facts) ||
-        !SemanticAstExpressionSurfaceBorrowReady(
-            artifact, expression_surfaces
+        !SemanticAstExpressionSurfaceBorrowReady(artifact, expression_surfaces
         ) || !SelfDirIntentModeFactsReady(artifact, signature_facts.intent_node_ids, mode_facts) ||
-        !SelfDirIntentPriorityFactsReady(
-            artifact, expression_surfaces,
-            signature_facts.intent_node_ids, priority_facts
-        ) {
-        return SelfDirIntentFactsError(
-            "self-host DIR intent inputs are incomplete", artifact.count
+        !SelfDirIntentPriorityFactsReady(artifact, expression_surfaces,
+            signature_facts.intent_node_ids, priority_facts) {
+        return SelfDirIntentFactsError("self-host DIR intent inputs are incomplete", artifact.count
         );
     }
     if !SemanticAstIntentTransitionFactsReady(artifact, transition_facts) {
-        return SelfDirIntentFactsError(
-            transition_facts.diagnostic_message, artifact.count
+        return SelfDirIntentFactsError(transition_facts.diagnostic_message, artifact.count
         );
     }
 

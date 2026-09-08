@@ -27,21 +27,14 @@ struct SelfDirIntentStepClauseFacts {
     child_count: Int;
 }
 
-func SelfDirIntentStepClauseFactsError(
-    message: String
-) -> SelfDirIntentStepClauseFacts {
+func SelfDirIntentStepClauseFactsError(message: String) -> SelfDirIntentStepClauseFacts {
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
-    return SelfDirIntentStepClauseFacts(
-        false, message, "", -1, "", -1, -1, "", -1, -1, -1, -1, -1,
-        ints, "", "", "",
-        strings, strings, strings, "", 0
-    );
+    return SelfDirIntentStepClauseFacts(false, message, "", -1, "", -1, -1, "", -1, -1, -1, -1, -1,
+        ints, "", "", "", strings, strings, strings, "", 0);
 }
 
-func SelfDirIntentStepClauseAppendUniqueNames(
-    payload: String, inout names: Array<String>
-) -> Bool {
+func SelfDirIntentStepClauseAppendUniqueNames(payload: String, inout names: Array<String>) -> Bool {
     let parts: Array<String> = Split(payload, ",");
     if ArrayLength(parts) == 0 { return false; }
     let i: Int = 0;
@@ -59,8 +52,7 @@ func SelfDirIntentStepClauseAppendUniqueNames(
     return ArrayLength(names) > 0;
 }
 
-func SelfDirIntentStepClauseFactsFromArtifact(
-    artifact: AstTreeArtifact, step_node_id: Int
+func SelfDirIntentStepClauseFactsFromArtifact(artifact: AstTreeArtifact, step_node_id: Int
 ) -> SelfDirIntentStepClauseFacts {
     let on_text: String = "";
     let on_node_id: Int = -1;

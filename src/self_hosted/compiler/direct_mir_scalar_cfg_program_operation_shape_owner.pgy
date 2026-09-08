@@ -2,19 +2,15 @@
 import "direct_mir_scalar_cfg_op_code_owner.pgy";
 import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
 func DirectMirScalarCfgProgramOperationKind(kind: Int) -> Bool {
-    return kind == DirectMirScalarCfgOpExpressionDefinition() ||
-        kind == DirectMirScalarCfgOpOptionIntTryDefinition() ||
-        kind == DirectMirScalarCfgOpExpressionLog() ||
-        kind == DirectMirScalarCfgOpExpressionStatement() ||
-        kind == DirectMirScalarCfgOpProcessExit() ||
-        kind == DirectMirScalarCfgOpLogicalRecordMemberRebind() ||
+    return kind == DirectMirScalarCfgOpExpressionDefinition() || kind == DirectMirScalarCfgOpOptionIntTryDefinition() ||
+        kind == DirectMirScalarCfgOpExpressionLog() || kind == DirectMirScalarCfgOpExpressionStatement() ||
+        kind == DirectMirScalarCfgOpProcessExit() || kind == DirectMirScalarCfgOpLogicalRecordMemberRebind() ||
         kind == DirectMirScalarCfgOpIdentityCellStore() ||
         kind == DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment() ||
         DirectMirScalarProgramArrayMutationKind(kind);
 }
 
-func DirectMirScalarCfgProgramOperationShapeReady(
-    kind: Int, result: Int, left_count: Int, right_count: Int,
+func DirectMirScalarCfgProgramOperationShapeReady(kind: Int, result: Int, left_count: Int, right_count: Int,
     phi_count: Int, program_valid: Bool
 ) -> Bool {
     if !program_valid || phi_count != 0 ||

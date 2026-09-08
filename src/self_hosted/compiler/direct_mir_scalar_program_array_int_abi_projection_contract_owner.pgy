@@ -1,0 +1,17 @@
+// Exact receipt/storage correspondence shared by C and LLVM Array<Int> consumers.
+import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
+import "direct_mir_array_int_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramArrayIntAbiProjectionReadyForFact(
+    ref fact: DirectMirScalarProgramArrayIntValueResultFact,
+    ref projection: DirectMirArrayIntAbiProjection, expected_target: String
+) -> Bool {
+    return DirectMirScalarProgramArrayIntValueResultFactReady(fact) && fact.present &&
+        DirectMirArrayIntAbiProjectionReadyFor(projection, expected_target) &&
+        projection.abi_layout_id == fact.layout_id &&
+        projection.storage.size == fact.size && projection.storage.align == fact.align &&
+        projection.storage.data_offset == fact.data_offset &&
+        projection.storage.length_offset == fact.length_offset &&
+        projection.storage.capacity_offset == fact.capacity_offset &&
+        projection.storage.allocator_offset == fact.allocator_offset;
+}

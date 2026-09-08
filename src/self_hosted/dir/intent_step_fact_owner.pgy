@@ -54,25 +54,20 @@ struct SelfDirIntentResolvedStep {
     edge_count: Int;
 }
 
-func SelfDirIntentResolvedStepError(
-    message: String
-) -> SelfDirIntentResolvedStep {
+func SelfDirIntentResolvedStepError(message: String) -> SelfDirIntentResolvedStep {
     let who_names: Array<String> = [];
     let requires_names: Array<String> = [];
     let requires_indices: Array<Int> = [];
     let authorized_names: Array<String> = [];
     let compensate_node_ids: Array<Int> = [];
-    return SelfDirIntentResolvedStep(
-        false, message, -1, "", "", -1, "", "", "", "", "", -1,
+    return SelfDirIntentResolvedStep(false, message, -1, "", "", -1, "", "", "", "", "", -1,
         "", -1, -1, "", "", -1, -1, "", "",
         -1, -1, -1, -1, -1, -1, compensate_node_ids, 0, -1, "", -1,
         who_names, requires_names, requires_indices, authorized_names,
-        SelfDirIntentStepProvenanceRowEmpty(), 0
-    );
+        SelfDirIntentStepProvenanceRowEmpty(), 0);
 }
 
-func SelfDirIntentParticipantIndex(
-    aliases: Array<String>, start: Int, count: Int, alias: String
+func SelfDirIntentParticipantIndex(aliases: Array<String>, start: Int, count: Int, alias: String
 ) -> Int {
     let i: Int = 0;
     while i < count {
@@ -82,10 +77,8 @@ func SelfDirIntentParticipantIndex(
     return -1;
 }
 
-func SelfDirIntentUniqueParticipantForType(
-    aliases: Array<String>, type_names: Array<String>,
-    start: Int, count: Int, type_name: String
-) -> String {
+func SelfDirIntentUniqueParticipantForType(aliases: Array<String>, type_names: Array<String>,
+    start: Int, count: Int, type_name: String) -> String {
     let found: String = "";
     let i: Int = 0;
     while i < count {

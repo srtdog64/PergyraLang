@@ -22,37 +22,23 @@ struct CodegenSemanticLeafBindingProjection {
     ok: Bool;
     c_name: String;
 }
-func CodegenSemanticLeafBindingProjectionFromGraph(
-    graph: SemanticExpressionGraphFacts,
-    node_id: Int,
-    text: String,
-    env: CodegenTypeEnv
-) -> CodegenSemanticLeafBindingProjection {
-    let place_kind: Option<Int> = SemanticExpressionGraphPlaceKind(
-        graph, node_id
-    );
+func CodegenSemanticLeafBindingProjectionFromGraph(graph: SemanticExpressionGraphFacts,
+    node_id: Int, text: String, env: CodegenTypeEnv) -> CodegenSemanticLeafBindingProjection {
+    let place_kind: Option<Int> = SemanticExpressionGraphPlaceKind(graph, node_id);
     if !IsSome(place_kind) {
         return CodegenSemanticLeafBindingProjection(false, false, false, "");
     }
-    if !SemanticExpressionPlaceKindDirectBinding(
-        UnwrapOption(place_kind)
-    ) {
+    if !SemanticExpressionPlaceKindDirectBinding(UnwrapOption(place_kind)) {
         return CodegenSemanticLeafBindingProjection(true, false, true, "");
     }
     let c_name: String = LookupKindType(env, text, "cbind");
     return CodegenSemanticLeafBindingProjection(true, true, c_name != "", c_name);
 }
-func RewriteSemanticLeaf(
-    graph: SemanticExpressionGraphFacts,
-    node_id: Int,
-    text: String,
-    env: CodegenTypeEnv
-) -> String {
+func RewriteSemanticLeaf(graph: SemanticExpressionGraphFacts, node_id: Int, text: String,
+    env: CodegenTypeEnv) -> String {
     if IsIdentifier(text) {
         let binding: CodegenSemanticLeafBindingProjection =
-            CodegenSemanticLeafBindingProjectionFromGraph(
-                graph, node_id, text, env
-            );
+            CodegenSemanticLeafBindingProjectionFromGraph(graph, node_id, text, env);
         if !binding.place_ready {
             Die(Concat("semantic leaf place-kind fact is missing: ", text));
         }
@@ -62,13 +48,9 @@ func RewriteSemanticLeaf(
         if binding.applies { return binding.c_name; }
         let enum_value: String = LookupKindType(env, text, "e");
         if enum_value != "" { return enum_value; }
-        let tagged_enum_value: String = LookupKindType(
-            env, text, "eval"
-        );
+        let tagged_enum_value: String = LookupKindType(env, text, "eval");
         if tagged_enum_value != "" { return tagged_enum_value; }
-        let tagged_enum_tag: String = LookupKindType(
-            env, text, "etag"
-        );
+        let tagged_enum_tag: String = LookupKindType(env, text, "etag");
         if tagged_enum_tag != "" { return tagged_enum_tag; }
         let call_target: String = LookupKindType(env, text, "call");
         if call_target != "" {
@@ -86,58 +68,36 @@ func RewriteSemanticLeaf(
     Die(Concat("unsupported semantic leaf expression: ", text));
     return "";
 }
-func CodegenSemanticTaggedEnumVariantTagFromGraph(
-    graph: SemanticExpressionGraphFacts,
-    node_id: Int,
-    env: CodegenTypeEnv
-) -> Option<String> {
-    let text: Option<String> = SemanticExpressionGraphNodeText(
-        graph, node_id
-    );
+func CodegenSemanticTaggedEnumVariantTagFromGraph(graph: SemanticExpressionGraphFacts, node_id: Int,
+    env: CodegenTypeEnv) -> Option<String> {
+    let text: Option<String> = SemanticExpressionGraphNodeText(graph, node_id);
     if !IsSome(text) { return None; }
     let key: String = UnwrapOption(text);
     let tag: String = LookupKindType(env, key, "etag");
     if tag == "" { return None; }
     return Some(tag);
 }
-func RewriteSemanticIndex(
-    graph: SemanticExpressionGraphFacts,
-    receiver_id: Int,
-    receiver: String,
-    index: String,
-    env: CodegenTypeEnv
-) -> String {
-    let receiver_type: Option<String> = CodegenExpressionTypeFromGraph(
-        graph, receiver_id, env
-    );
+func RewriteSemanticIndex(graph: SemanticExpressionGraphFacts, receiver_id: Int, receiver: String,
+    index: String, env: CodegenTypeEnv) -> String {
+    let receiver_type: Option<String> = CodegenExpressionTypeFromGraph(graph, receiver_id, env);
     if !IsSome(receiver_type) {
         Die("semantic index receiver type fact is missing");
     }
     let runtime_kind: String = UnwrapOption(receiver_type);
     if StartsWith(runtime_kind, "Array<") {
-        runtime_kind = CollectionRuntimeFactFromTypeName(
-            runtime_kind, env
+        runtime_kind = CollectionRuntimeFactFromTypeName(runtime_kind, env
         ).kind;
     }
-    let get_fn: String =
-        CollectionRuntimeFactFromKind(runtime_kind, env).c_get_fn;
+    let get_fn: String = CollectionRuntimeFactFromKind(runtime_kind, env).c_get_fn;
     if get_fn == "" {
         Die("semantic index runtime ABI fact is missing");
     }
-    return Concat(get_fn, Concat(
-        "(", Concat(receiver, Concat(", ", Concat(index, ")")))
-    ));
+    return Concat(get_fn, Concat("(", Concat(receiver, Concat(", ", Concat(index, ")")))));
 }
-func RewriteSemanticSpawn(
-    graph: SemanticExpressionGraphFacts,
-    node_id: Int,
-    env: CodegenTypeEnv
+func RewriteSemanticSpawn(graph: SemanticExpressionGraphFacts, node_id: Int, env: CodegenTypeEnv
 ) -> String {
-    let view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
-        graph, node_id
-    );
-    if !view.ok || ArrayLength(view.argument_nodes) < 1 ||
-        ArrayLength(view.argument_nodes) > 2 {
+    let view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, node_id);
+    if !view.ok || ArrayLength(view.argument_nodes) < 1 || ArrayLength(view.argument_nodes) > 2 {
         Die("self-host spawn requires a direct one-or-two-argument call fact");
     }
     let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(

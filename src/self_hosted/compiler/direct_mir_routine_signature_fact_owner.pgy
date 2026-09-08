@@ -3,6 +3,7 @@
 
 import "direct_mir_routine_param_fact_owner.pgy";
 import "direct_mir_routine_parameter_set_admission_owner.pgy";
+import "direct_mir_intent_parameter_binding_admission_owner.pgy";
 import "../mir_lower/program_routine_index_owner.pgy";
 import "../mir_lower/routine_inventory_owner.pgy";
 import "symbol_table_owner.pgy";
@@ -25,8 +26,7 @@ struct DirectMirRoutineSignatureFact {
 }
 
 func InvalidDirectMirRoutineSignatureFact() -> DirectMirRoutineSignatureFact {
-    return DirectMirRoutineSignatureFact(
-        false, 0, 0 - 1, "", "", 0, "", -1, "", "", 0,
+    return DirectMirRoutineSignatureFact(false, 0, 0 - 1, "", "", 0, "", -1, "", "", 0,
         DirectMirRoutineParameterSetFactInvalid(),
         InvalidDirectMirRoutineParamFact()
     );

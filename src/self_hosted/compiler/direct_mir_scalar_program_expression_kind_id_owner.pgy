@@ -1,4 +1,5 @@
 // Stable normalized scalar-program expression identities.
+import "direct_mir_scalar_program_string_core_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_case_math_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_string_index_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_string_trim_expression_kind_owner.pgy";
@@ -18,33 +19,18 @@ func DirectMirScalarProgramExprLocal() -> Int { return 1; }
 func DirectMirScalarProgramExprParameter() -> Int { return 2; }
 func DirectMirScalarProgramExprIntLiteral() -> Int { return 3; }
 func DirectMirScalarProgramExprBoolLiteral() -> Int { return 4; }
-func DirectMirScalarProgramExprStringLiteral() -> Int { return 5; }
 func DirectMirScalarProgramExprModuloInt() -> Int { return 6; }
 func DirectMirScalarProgramExprLogicalNot() -> Int { return 8; }
 func DirectMirScalarProgramExprLogicalAnd() -> Int { return 9; }
 func DirectMirScalarProgramExprLogicalOr() -> Int { return 10; }
 func DirectMirScalarProgramExprAddInt() -> Int { return 12; }
 func DirectMirScalarProgramExprDirectCall() -> Int { return 13; }
-func DirectMirScalarProgramExprToStringSignedInteger() -> Int { return 14; }
-func DirectMirScalarProgramExprEqualString() -> Int { return 15; }
-func DirectMirScalarProgramExprNotEqualString() -> Int { return 16; }
-func DirectMirScalarProgramExprConcatString() -> Int { return 17; }
-func DirectMirScalarProgramExprToUpperString() -> Int { return 18; }
-func DirectMirScalarProgramExprToLowerString() -> Int { return 19; }
-func DirectMirScalarProgramExprStringLength() -> Int { return 20; }
-func DirectMirScalarProgramExprSubstring() -> Int { return 21; }
-func DirectMirScalarProgramExprSubstringWithLen() -> Int { return 22; }
 func DirectMirScalarProgramExprSubtractInt() -> Int { return 23; }
-func DirectMirScalarProgramExprStringContains() -> Int { return 24; }
-func DirectMirScalarProgramExprStringSplit() -> Int { return 25; }
 func DirectMirScalarProgramExprArrayStringLength() -> Int { return 26; }
-func DirectMirScalarProgramExprToIntString() -> Int { return 27; }
 func DirectMirScalarProgramExprLogicalRecordConstructor() -> Int { return 49; }
 func DirectMirScalarProgramExprLogicalRecordMember() -> Int { return 50; }
 func DirectMirScalarProgramExprLongLiteral() -> Int { return 53; }
 func DirectMirScalarProgramExprLogicalRecordArrayIndex() -> Int { return 55; }
-func DirectMirScalarProgramExprStringJoin() -> Int { return 69; }
-func DirectMirScalarProgramExprToStringString() -> Int { return 70; }
 func DirectMirScalarProgramExprEqualBool() -> Int { return 72; }
 func DirectMirScalarProgramExprAddLong() -> Int { return 78; }
 func DirectMirScalarProgramExprSubtractLong() -> Int { return 82; }

@@ -22,6 +22,22 @@ retain the input arrays. The reached compiler read-query signature inventory
 is a source residue gate, while its executable fixture and the readonly escape
 gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 
+## Explicit lifetime, identity and target projection boundaries
+
+- `src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy` -- Owned C expression fragments retire at the selected root's lifetime epoch.
+- `src/self_hosted/mir/intent_execution_canonical_instruction_owner.pgy` -- Rebind typed Intent transitions to the canonical instruction epoch.
+- `src/self_hosted/semantic/ast_generic_specialization_constraint_owner.pgy` -- Declared generic-bound admission over sealed specialization facts.
+- `src/self_hosted/compiler/direct_mir_intent_parameter_binding_admission_owner.pgy` -- Intent participant/value bindings admitted independently of ordinary JSON formals.
+- `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_physical_target_owner.pgy` -- Validate carried physical record layout and project field storage policy.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_expression_owner.pgy` -- Ordered C constructor operands and member reads over admitted record layout.
+- `src/self_hosted/compiler/direct_mir_scalar_program_scalar_value_result_storage_owner.pgy` -- Exact formal identity selects scalar value-result storage for normal copyout.
+- `src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_exhaustive_condition_owner.pgy` -- Payload enum guard identity and stable scrutinee equivalence for exhaustiveness.
+- `src/self_hosted/semantic/oracle_json_diagnostic_owner.pgy` -- Read oracle JSON diagnostics at the semantic CLI comparison boundary.
+- `src/self_hosted/compiler/direct_mir_nominal_abi_row_identity_owner.pgy` -- Exact length-prefixed ABI receipt identity for persisted parameter projections.
+- `src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy` -- Core String expression identity vocabulary.
+- `src/self_hosted/compiler/direct_mir_scalar_program_call_callee_syntax_owner.pgy` -- Callee selector/generic syntax classification after target identity admission.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_int_abi_projection_contract_owner.pgy` -- Exact Array<Int> ABI receipt/storage correspondence shared by target consumers.
+
 ## Shared Lib
 
 - `src/self_hosted/lib/diagnostic.pgy` -- stable diagnostic-block rendering.
@@ -584,9 +600,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   explicit calls and bounded inferred initializer calls share these rows.
 - `src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy` --
   read-only count, actual-type, shape, and expression-identity queries over
-  generic specialization facts and their declared-bound admission against
-  exact role implementations or enclosing caller-formal bounds. It does not
-  produce or infer bindings.
+  generic specialization facts. Declared-bound admission is in the constraint
+  owner above; neither query nor constraint validation produces bindings.
 - `src/self_hosted/semantic/ast_expression_call_identity_owner.pgy` -- stable
   statement SyntaxNodeId, expression lane, and local-call ordinal identity for
   semantic call rows that cross into MIR; global graph indexes are not IDs.
@@ -1587,7 +1602,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   type-family projection from semantic type-surface facts.
 - `src/self_hosted/codegen/input/nominal_array_usage_owner.pgy` -- declared
   nominal-record array usage facts derived from semantic type surfaces and the
-  codegen type environment.
+  semantic nominal-constructor identity lookup, before C declarations exist.
 - `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from expression/kind/type usage owner rows.
 - `src/self_hosted/codegen/input/value_wrapper_usage_owner.pgy` -- canonical
   recursive by-value Option/Result wrapper inventory derived from semantic type
@@ -1720,9 +1735,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   literal projection owners below.
 - `src/self_hosted/codegen/emission/expression_c_text_materialization_owner.pgy`
   -- single-allocation materialization of common emitted C call, binary, and
-  parenthesized expression shapes, plus the bounded lifetime epoch that retires
-  recursive owned child fragments after the root has been selected; semantic
-  routing and borrowed graph text remain with its callers.
+  parenthesized expression shapes. The epoch owner retires recursive owned
+  children after root selection; semantic routing stays with the callers.
 - `src/self_hosted/codegen/emission/expr_semantic_leaf_place_contract_owner.pgy` --
   executable binding/value leaf projection contract: admitted place kind wins
   over flat enum/function spellings, and missing binding identity fails closed.
@@ -1936,7 +1950,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   dependency-ordered nominal/enum/generated-wrapper C declaration emission
   from semantic field, payload, and Result-usage facts. Named `Option<T>` and
   explicit `Result<T,E>` materializations participate in the same graph;
-  missing wrapper facts and direct by-value cycles fail closed.
+  nominal-array usage supplies element forwards and pointer descriptors before
+  complete value declarations. Missing facts and direct by-value cycles fail closed.
 - `src/self_hosted/codegen/emission/struct_value_emit.pgy` -- struct value emission.
 - `src/self_hosted/codegen/emission/try_let_emit_owner.pgy` -- try-expression
   local-binding control flow from semantic graph edges and Option/Result ABI

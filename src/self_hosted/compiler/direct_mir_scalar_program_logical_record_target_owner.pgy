@@ -1,6 +1,7 @@
 // Target-local representation selected from one declaration-identity row.
 
 import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_physical_target_owner.pgy";
 import "target_projection_fact_owner.pgy";
 import "abi_layout_target_policy_owner.pgy";
 
@@ -11,59 +12,6 @@ struct DirectMirScalarProgramLogicalRecordTarget {
     let record_row: Int;
     let c_type_name: String;
     let llvm_type_name: String;
-}
-
-// Validate a producer's physical row against the reached target scalar policy.
-// This does not manufacture offsets for an absent row. Nested rows must already
-// precede their consumer in the declaration dependency inventory.
-func DirectMirScalarProgramLogicalRecordPhysicalTargetReady(
-    ref fact: DirectMirScalarProgramLogicalRecordFact, row: Int
-) -> Bool {
-    if fact.physical.layout_ids[row] == 0 { return true; }
-    if !CompilerAbiLayoutTargetPolicyReady() || fact.physical.aligns[row] != 4 {
-        return false;
-    }
-    let end: Int = 0;
-    let ordinal: Int = 0;
-    while ordinal < fact.field_counts[row] {
-        let field: Int = fact.field_starts[row] + ordinal;
-        let size: Int = 4;
-        if fact.field_types[field] != CompilerAbiLayoutIntTypeName() {
-            let child: Int = DirectMirScalarProgramLogicalRecordRow(
-                fact, fact.field_types[field]);
-            if child < 0 || child >= row || fact.physical.layout_ids[child] <= 0 ||
-                !DirectMirScalarProgramLogicalRecordPhysicalTargetReady(fact, child) {
-                return false;
-            }
-            size = fact.physical.sizes[child];
-        }
-        if fact.physical.field_offsets[field] != end ||
-            fact.physical.field_sizes[field] != size ||
-            fact.physical.field_aligns[field] != 4 ||
-            end > 2147483647 - size { return false; }
-        end = end + size;
-        ordinal = ordinal + 1;
-    }
-    return fact.physical.sizes[row] == end;
-}
-
-func DirectMirScalarProgramLogicalRecordStorageAlignment(
-    ref fact: DirectMirScalarProgramLogicalRecordFact, type_name: String
-) -> String {
-    let row: Int = DirectMirScalarProgramLogicalRecordRow(fact, type_name);
-    if row < 0 { Die("direct MIR record storage alignment identity is missing"); }
-    if fact.physical.layout_ids[row] > 0 { return ToString(fact.physical.aligns[row]); }
-    return "8";
-}
-
-func DirectMirScalarProgramLogicalRecordPhysicalIntField(
-    ref fact: DirectMirScalarProgramLogicalRecordFact,
-    type_name: String, ordinal: Int
-) -> Bool {
-    let row: Int = DirectMirScalarProgramLogicalRecordRow(fact, type_name);
-    return row >= 0 && ordinal >= 0 && ordinal < fact.field_counts[row] &&
-        fact.physical.layout_ids[row] > 0 &&
-        fact.field_types[fact.field_starts[row] + ordinal] == CompilerAbiLayoutIntTypeName();
 }
 
 func DirectMirScalarProgramLogicalRecordTargetFromFact(

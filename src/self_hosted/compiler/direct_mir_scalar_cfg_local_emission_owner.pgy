@@ -14,8 +14,7 @@ import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
 func DirectMirScalarCfgCLocalDeclarationsInRange(
-    ref plan: DirectMirScalarCfgGraphPlan, int_c_type: String,
-    start: Int, count: Int, routine: Int
+    ref plan: DirectMirScalarCfgGraphPlan, int_c_type: String, start: Int, count: Int, routine: Int
 ) -> String {
     if int_c_type == "" || start < 0 || count < 0 || start + count >
         ArrayLength(plan.local_names) || routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
@@ -55,8 +54,7 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             output = Concat(output, DirectMirScalarProgramCResultIntTypeName());
         } else if DirectMirScalarProgramLogicalRecordArrayTypeReady(
                 plan.program.logical_record, plan.local_types[row]) {
-            output = Concat(output,
-                DirectMirScalarProgramCLogicalRecordArrayTypeName(
+            output = Concat(output, DirectMirScalarProgramCLogicalRecordArrayTypeName(
                     plan.program.logical_record, plan.local_types[row]));
         } else if DirectMirIdentityCellRow(plan.program.logical_record.identity_cells, plan.local_types[row]) >= 0 {
             output = Concat(output, DirectMirIdentityCellCType(plan.program.logical_record.identity_cells, plan.local_types[row]));

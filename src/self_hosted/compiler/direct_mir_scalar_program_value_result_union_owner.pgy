@@ -4,11 +4,9 @@ import "direct_mir_scalar_program_logical_record_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
-import "../mir/local_ref_identity_owner.pgy";
 
 func DirectMirScalarProgramScalarValueResultAt(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
-) -> Bool {
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int) -> Bool {
     if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
         ordinal < 0 || ordinal >= plan.routines.parameter_counts[routine] { return false; }
     let row: Int = plan.routines.parameter_starts[routine] + ordinal;
@@ -16,35 +14,8 @@ func DirectMirScalarProgramScalarValueResultAt(
         plan.routines.parameter_carriages[row] == "value-result";
 }
 
-// A formal with SSA definitions has one exact GraphPlan local; an untouched
-// formal remains in its entry storage. Source spelling never selects either.
-func DirectMirScalarProgramScalarParameterLocalRow(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
-) -> Int {
-    if !DirectMirScalarProgramScalarValueResultAt(plan, routine, ordinal) {
-        Die("direct MIR scalar copyout requires an admitted value-result formal");
-    }
-    let identity: String = SelfMirLocalRef(
-        "parameter", plan.routines.source_syntax_ids[routine], ordinal);
-    let found: Int = -1;
-    let row: Int = plan.routines.local_starts[routine];
-    let end: Int = row + plan.routines.local_counts[routine];
-    while row < end {
-        if plan.local_ref_value_ids[row] == identity {
-            if found >= 0 || plan.local_types[row] != plan.routines.parameter_types[
-                    plan.routines.parameter_starts[routine] + ordinal] {
-                Die("direct MIR scalar formal storage identity is ambiguous");
-            }
-            found = row;
-        }
-        row = row + 1;
-    }
-    return found;
-}
-
 func DirectMirScalarProgramParameterValueResultAt(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
-) -> Bool {
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int) -> Bool {
     return DirectMirScalarProgramScalarValueResultAt(plan, routine, ordinal) ||
         DirectMirScalarProgramArrayIntValueResultAt(
             plan.program.array_int_value_result, routine, ordinal) ||
@@ -52,10 +23,8 @@ func DirectMirScalarProgramParameterValueResultAt(
             plan.program.array_bool_abi, routine, ordinal) ||
         DirectMirScalarProgramArrayStringValueResultAt(
             plan.program.array_string_abi, routine, ordinal) ||
-        DirectMirScalarProgramLogicalRecordValueResultAt(
-            plan, routine, ordinal) ||
-        DirectMirScalarProgramLogicalRecordArrayValueResultAt(
-            plan, routine, ordinal) ||
+        DirectMirScalarProgramLogicalRecordValueResultAt(plan, routine, ordinal) ||
+        DirectMirScalarProgramLogicalRecordArrayValueResultAt(plan, routine, ordinal) ||
         DirectMirScalarProgramSetStringValueResultAt(
             plan, routine, ordinal);
 }

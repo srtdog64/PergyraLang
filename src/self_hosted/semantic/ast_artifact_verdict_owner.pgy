@@ -52,36 +52,26 @@ struct SemanticAstArtifactAnalysis {
     function_scopes: SemanticAstFunctionScopeFacts;
 }
 
-func SemanticAstArtifactVerdictOk(node_count: Int, artifact_identity_digest: Int,
-                                  main_count: Int,
+func SemanticAstArtifactVerdictOk(node_count: Int, artifact_identity_digest: Int, main_count: Int,
                                   requires_entrypoint: Bool) -> SemanticAstArtifactVerdict {
-    return SemanticAstArtifactVerdict(
-        true, "", "", node_count, artifact_identity_digest,
-        main_count, requires_entrypoint
-    );
+    return SemanticAstArtifactVerdict(true, "", "", node_count, artifact_identity_digest,
+        main_count, requires_entrypoint);
 }
 
 func SemanticAstArtifactVerdictError(code: String, message: String,
                                      node_count: Int, artifact_identity_digest: Int,
                                      main_count: Int,
                                      requires_entrypoint: Bool) -> SemanticAstArtifactVerdict {
-    return SemanticAstArtifactVerdict(
-        false, code, message, node_count, artifact_identity_digest,
-        main_count, requires_entrypoint
-    );
+    return SemanticAstArtifactVerdict(false, code, message, node_count, artifact_identity_digest,
+        main_count, requires_entrypoint);
 }
 
-func SemanticAstArtifactEntrypointVerdict(
-    artifact: AstTreeArtifact,
-    signatures: SemanticAstFunctionSignatureFacts,
-    requires_entrypoint: Bool
+func SemanticAstArtifactEntrypointVerdict(artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts, requires_entrypoint: Bool
 ) -> SemanticAstArtifactVerdict {
     if !SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures) {
-        return SemanticAstArtifactVerdictError(
-            "ast_artifact_invalid",
-            SemanticError2(
-                "ast_artifact_invalid",
-                "node_count", ToString(artifact.count),
+        return SemanticAstArtifactVerdictError("ast_artifact_invalid", SemanticError2(
+                "ast_artifact_invalid", "node_count", ToString(artifact.count),
                 "owner", "SemanticAstFunctionSignatureFacts"
             ),
             artifact.count,

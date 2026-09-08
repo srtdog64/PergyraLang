@@ -3,8 +3,7 @@
 import "direct_mir_scalar_program_callable_fact_owner.pgy";
 import "direct_mir_routine_instance_inventory_owner.pgy";
 
-func DirectMirScalarProgramCallableFactFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
+func DirectMirScalarProgramCallableFactFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput,
     callable_row: Int, routine_ordinal: Int,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
@@ -13,27 +12,17 @@ func DirectMirScalarProgramCallableFactFromAdmitted(
     if !MirProgramRoutineIndexRowReady(admitted.routines, callable_row) {
         return DirectMirScalarCfgProgramCallableFactInvalid();
     }
-    let first_block_count: Int =
-        MirProgramRoutineIndexBlockInstructionCountAt(
-            admitted.routines, callable_row, 0
-        );
-    let signature: DirectMirRoutineSignatureFact =
-        DirectMirRoutineSignatureFactAt(
-            admitted.routines, callable_row, first_block_count
-        );
-    let source: DirectMirScalarCfgProgramCallableFact =
-        DirectMirScalarCfgProgramCallableFact(
-            true, 0, signature, routine_ordinal
-        );
-    let fact: DirectMirScalarCfgProgramCallableFact =
-        DirectMirScalarCfgProgramCallableFact(
-            source.valid,
-            DirectMirScalarCfgProgramCallableFactDigest(source),
-            source.signature, source.routine_ordinal
-        );
+    let first_block_count: Int = MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, callable_row, 0);
+    let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(
+            admitted.routines, callable_row, first_block_count);
+    let source: DirectMirScalarCfgProgramCallableFact = DirectMirScalarCfgProgramCallableFact(
+            true, 0, signature, routine_ordinal);
+    let fact: DirectMirScalarCfgProgramCallableFact = DirectMirScalarCfgProgramCallableFact(
+            source.valid, DirectMirScalarCfgProgramCallableFactDigest(source),
+            source.signature, source.routine_ordinal);
     if !DirectMirScalarCfgProgramCallableFactReadyWithReferencedEnum(
-            fact, logical_record, payload_free_enum,
-            referenced_enum) {
+            fact, logical_record, payload_free_enum, referenced_enum) {
         return DirectMirScalarCfgProgramCallableFactInvalid();
     }
     return fact;

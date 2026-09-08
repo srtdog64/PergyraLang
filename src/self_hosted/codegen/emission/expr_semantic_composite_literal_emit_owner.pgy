@@ -23,12 +23,8 @@ import "../runtime_abi/hashmap_runtime_owner.pgy";
 import "expr_semantic_option_value_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 
-func RewriteSemanticExpectedValue(
-    graph: SemanticExpressionGraphFacts,
-    node_id: Int,
-    expected_type: String,
-    env: CodegenTypeEnv
-) -> String {
+func RewriteSemanticExpectedValue(graph: SemanticExpressionGraphFacts, node_id: Int,
+    expected_type: String, env: CodegenTypeEnv) -> String {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
     if !IsSome(kind) { Die("semantic expected-value kind is missing"); }
     if StartsWith(expected_type, "HashMap<") && AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
@@ -41,38 +37,26 @@ func RewriteSemanticExpectedValue(
         }
     }
     if StartsWith(expected_type, "Option<") {
-        let option_value: CodegenOptionExpectedValueFact =
-            CodegenOptionExpectedValueFactFromGraph(
-            graph, node_id, expected_type, env
-        );
+        let option_value: CodegenOptionExpectedValueFact = CodegenOptionExpectedValueFactFromGraph(
+            graph, node_id, expected_type, env);
         if option_value.is_none {
             return Concat(option_value.none_fn, "()");
         }
         if option_value.is_some {
-            return Concat(option_value.some_fn, Concat("(", Concat(
-                RewriteSemanticExpectedValue(
-                    graph, option_value.payload_node,
-                    option_value.inner_type, env
-                ), ")"
-            )));
+            return Concat(option_value.some_fn, Concat("(", Concat(RewriteSemanticExpectedValue(
+                    graph, option_value.payload_node, option_value.inner_type, env
+                ), ")")));
         }
         return RewriteExprFromSemanticGraph(graph, node_id, env);
     }
-    if IsResultType(expected_type) &&
-        AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
-        let result_fact: ResultRuntimeFact =
-            ResultRuntimeFactForType(expected_type);
-        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
-            graph, node_id
-        );
+    if IsResultType(expected_type) && AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
+        let result_fact: ResultRuntimeFact = ResultRuntimeFactForType(expected_type);
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, node_id);
         let target: Option<String> = None;
         if call.ok {
-            target = SemanticExpressionGraphCallTargetName(
-                graph, call.call_node
-            );
+            target = SemanticExpressionGraphCallTargetName(graph, call.call_node);
         }
-        if result_fact.ok && IsSome(target) &&
-            (UnwrapOption(target) == "Ok" ||
+        if result_fact.ok && IsSome(target) && (UnwrapOption(target) == "Ok" ||
              UnwrapOption(target) == "Err") {
             if ArrayLength(call.argument_nodes) != 1 {
                 Die("Result constructor requires one argument graph");
@@ -83,11 +67,9 @@ func RewriteSemanticExpectedValue(
                 argument_type = result_fact.error_type;
                 call_symbol = result_fact.err_fn;
             }
-            return Concat(call_symbol, Concat("(", Concat(
-                RewriteSemanticExpectedValue(
+            return Concat(call_symbol, Concat("(", Concat(RewriteSemanticExpectedValue(
                     graph, call.argument_nodes[0], argument_type, env
-                ), ")"
-            )));
+                ), ")")));
         }
     }
     if IsSlotType(expected_type) && AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
@@ -104,35 +86,27 @@ func RewriteSemanticExpectedValue(
     }
     if CompilerRuntimeCallAbiMachineLayerDeviceCValueType(expected_type) != "" &&
         AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
-        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
-            graph, node_id
-        );
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, node_id);
         if !call.ok {
             Die("semantic machine expected-value call graph is malformed");
         }
         let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
-            graph, call.call_node
-        );
+            graph, call.call_node);
         if !IsSome(target_name) || UnwrapOption(target_name) != "ClaimDeviceSlot" {
             Die("DeviceSlot<T> initializer must be ClaimDeviceSlot");
         }
         if ArrayLength(call.argument_nodes) != 0 {
             Die("ClaimDeviceSlot takes no arguments");
         }
-        let runtime_name: Option<String> =
-            CompilerRuntimeCallAbiMachineLayerDeviceRuntimeCName(
-                "ClaimDeviceSlot", expected_type
-            );
+        let runtime_name: Option<String> = CompilerRuntimeCallAbiMachineLayerDeviceRuntimeCName(
+                "ClaimDeviceSlot", expected_type);
         if !IsSome(runtime_name) {
             Die("ClaimDeviceSlot DeviceSlot<T> runtime ABI row is missing");
         }
         return Concat(UnwrapOption(runtime_name), "()");
     }
-    if StartsWith(expected_type, "List<") &&
-        AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
-        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
-            graph, node_id
-        );
+    if StartsWith(expected_type, "List<") && AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, node_id);
         let target: Option<String> = None;
         if call.ok {
             target = SemanticExpressionGraphCallTargetName(

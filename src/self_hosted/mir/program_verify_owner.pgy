@@ -16,11 +16,8 @@ func SelfMirParallelCount(count: Int, rows: Array<Int>) -> Bool {
 func SelfMirParallelStringCount(count: Int, rows: Array<String>) -> Bool {
     return ArrayLength(rows) == count;
 }
-func SelfMirInstructionUsesLocalVersion(
-    rows: SelfMirInstructionRows,
-    instruction_index: Int,
-    local_name: String
-) -> Bool {
+func SelfMirInstructionUsesLocalVersion(rows: SelfMirInstructionRows, instruction_index: Int,
+    local_name: String) -> Bool {
     let prefix: String = Concat(local_name, ".");
     let i: Int = 0;
     while i < rows.use_counts[instruction_index] {
@@ -35,65 +32,45 @@ func SelfMirInstructionUsesLocalVersion(
     }
     return false;
 }
-func SelfMirAssignmentTargetGraphBaseText(
-    ref graph: SemanticExpressionGraphFacts,
-    root: Int
+func SelfMirAssignmentTargetGraphBaseText(ref graph: SemanticExpressionGraphFacts, root: Int
 ) -> Option<String> {
     let cursor: Int = root;
     let traversed: Int = 0;
     while cursor >= 0 && cursor < SelfMirExpressionGraphNodeCount(graph) &&
         traversed < SelfMirExpressionGraphNodeCount(graph) {
-        let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
-            graph, cursor
-        );
-        let text_opt: Option<String> = SemanticExpressionGraphNodeText(
-            graph, cursor
-        );
+        let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(graph, cursor);
+        let text_opt: Option<String> = SemanticExpressionGraphNodeText(graph, cursor);
         if !IsSome(kind_opt) || !IsSome(text_opt) { return None; }
         let kind: Int = UnwrapOption(kind_opt);
         if kind == AstExpressionNodeLeaf() {
             return Some(UnwrapOption(text_opt));
         }
-        if kind != AstExpressionNodeIndex() &&
-            kind != AstExpressionNodeMemberAccess() {
+        if kind != AstExpressionNodeIndex() && kind != AstExpressionNodeMemberAccess() {
             return None;
         }
-        let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
-            graph, cursor
-        );
+        let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(graph, cursor);
         if !IsSome(left_opt) { return None; }
         cursor = UnwrapOption(left_opt);
         traversed = traversed + 1;
     }
     return None;
 }
-func SelfMirAssignmentTargetGraphValidationError(
-    rows: SelfMirInstructionRows,
-    ref graph: SemanticExpressionGraphFacts,
-    instruction_index: Int
-) -> String {
+func SelfMirAssignmentTargetGraphValidationError(rows: SelfMirInstructionRows,
+    ref graph: SemanticExpressionGraphFacts, instruction_index: Int) -> String {
     if rows.source_types[instruction_index] != "AST_ASSIGNMENT" {
         return "";
     }
     let target: String = rows.expr1s[instruction_index];
     let base_name: String = rows.arg0s[instruction_index];
     if target == "" || base_name == "" {
-        return Concat(
-            "target/base is empty: target=", Concat(
-                target, Concat(" base=", base_name)
-            )
-        );
+        return Concat("target/base is empty: target=", Concat(target, Concat(" base=", base_name)));
     }
     if rows.expr1_graphs.has_roots[instruction_index] != 1 {
         return "target graph root is missing";
     }
     let root: Int = rows.expr1_graphs.roots[instruction_index];
-    let root_kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph, root
-    );
-    let root_text_opt: Option<String> = SemanticExpressionGraphNodeText(
-        graph, root
-    );
+    let root_kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(graph, root);
+    let root_text_opt: Option<String> = SemanticExpressionGraphNodeText(graph, root);
     if !IsSome(root_kind_opt) || !IsSome(root_text_opt) {
         return "target graph root handle is invalid";
     }
@@ -101,8 +78,7 @@ func SelfMirAssignmentTargetGraphValidationError(
     let root_text: String = UnwrapOption(root_text_opt);
     if target == base_name {
         if root_kind != AstExpressionNodeLeaf() {
-            return Concat(
-                "simple target root kind differs: target=", target
+            return Concat("simple target root kind differs: target=", target
             );
         }
         if root_text != target {

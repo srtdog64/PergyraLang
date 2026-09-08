@@ -1,0 +1,33 @@
+// Owned C expression fragments retire at the selected root's lifetime epoch.
+import "../text/text_owner.pgy";
+
+struct CodegenCExpressionText {
+    text: String;
+    owned: Bool;
+}
+func CodegenCExpressionTextBorrowed(text: String) -> CodegenCExpressionText {
+    return CodegenCExpressionText(text, false);
+}
+func CodegenCExpressionTextOwned(
+    inout fragments: Array<String>, text: String
+) -> CodegenCExpressionText {
+    ArrayPush(fragments, text);
+    return CodegenCExpressionText(text, true);
+}
+func CodegenCExpressionTextCommitRoot(
+    own fragments: Array<String>, value: CodegenCExpressionText
+) -> String {
+    if value.owned {
+        if ArrayLength(fragments) == 0 {
+            Die("owned C expression root is absent from its lifetime epoch");
+        }
+        let root: String = fragments[ArrayLength(fragments) - 1]; ArrayPop(fragments);
+        if root != value.text {
+            Die("owned C expression root is not the final lifetime fragment");
+        }
+        ArrayDropOwnedStrings(fragments);
+        return root;
+    }
+    ArrayDropOwnedStrings(fragments);
+    return value.text;
+}

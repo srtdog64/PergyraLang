@@ -3,6 +3,7 @@
 import "../text/text_owner.pgy";
 import "../input/semantic_nominal_codegen_view_owner.pgy";
 import "../input/semantic_role_codegen_view_owner.pgy";
+import "../input/nominal_array_usage_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../lib/nominal_field_kind_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
@@ -17,7 +18,8 @@ func CollectStructsSelected(
     facts: SemanticAstNominalConstructorFacts,
     roles: SemanticAstRoleFacts,
     selected: Array<Int>,
-    dependency_env: CodegenTypeEnv
+    dependency_env: CodegenTypeEnv,
+    ref forwarded_elements: Array<String>
 ) -> CodegenNominalDeclarationBatchFact {
     if ArrayLength(selected) != SemanticAstNominalConstructorCount(facts) {
         Die("nominal declaration selection mask does not match semantic rows");
@@ -158,12 +160,15 @@ func CollectStructsSelected(
                 "    PGY_ZONE_LOCK_FIELD\n    PGY_ZONE_GENERATION_FIELD\n"
             );
         }
-        ArrayPush(typedefs, Concat(
-            "typedef struct {\n", Concat(
+        if CodegenNominalArrayElementKnown(forwarded_elements, sname) {
+            ArrayPush(typedefs, Concat("struct ", Concat(c_sname,
+                Concat(" {\n", Concat(field_block, "};\n\n")))));
+        } else {
+            ArrayPush(typedefs, Concat("typedef struct {\n", Concat(
                 field_block, Concat("} ", Concat(c_sname, ";\n\n"))
-            )
-        ));
-        ArrayPush(struct_env_rows, Concat(sname, "=s:struct|"));
+            )));
+            ArrayPush(struct_env_rows, Concat(sname, "=s:struct|"));
+        }
         ArrayPush(struct_env_rows, Concat(
             sname, Concat("=nk:", Concat(nominal_kind, "|"))
         ));
@@ -200,8 +205,9 @@ func CollectStructs(
         i = i + 1;
     }
     let env: CodegenTypeEnv = CodegenTypeEnvFromPresealRows(env_box[0], "");
+    let forwarded_elements: Array<String> = [];
     let batch: CodegenNominalDeclarationBatchFact =
-        CollectStructsSelected(facts, roles, selected, env);
+        CollectStructsSelected(facts, roles, selected, env, forwarded_elements);
     CodegenTypeEnvAdvancePresealRows(env_box, env, batch.env_rows);
     return batch.c_block;
 }

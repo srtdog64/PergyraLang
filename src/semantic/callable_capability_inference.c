@@ -7,8 +7,7 @@
 #include <string.h>
 
 typedef struct CapabilityInstance CapabilityInstance;
-typedef enum { CAP_UNKNOWN, CAP_DECL, CAP_FORMAL, CAP_BINDING,
-               CAP_RESULT, CAP_CONSTRUCTOR } CapabilityTargetKind;
+typedef enum { CAP_UNKNOWN, CAP_DECL, CAP_FORMAL, CAP_BINDING, CAP_RESULT, CAP_CONSTRUCTOR } CapabilityTargetKind;
 typedef struct {
     CapabilityTargetKind kind;
     uint32_t id;
@@ -83,8 +82,7 @@ capability_allocate(SemanticContext *ctx, size_t bytes)
     if (result == NULL) {
         if (ctx->callable_capabilities != NULL)
             ctx->callable_capabilities->failed = true;
-        semantic_error(ctx, ctx->current_function_decl,
-            "Could not allocate callable capability facts");
+        semantic_error(ctx, ctx->current_function_decl, "Could not allocate callable capability facts");
     }
     return result;
 }
@@ -107,8 +105,7 @@ static CapabilityTarget
 capability_expression_target(SemanticContext *ctx, ASTNode *expression)
 {
     if (expression != NULL && expression->type == AST_IDENTIFIER)
-        return capability_symbol_target(scope_lookup(ctx->scope,
-            ast_identifier_name(expression)));
+        return capability_symbol_target(scope_lookup(ctx->scope, ast_identifier_name(expression)));
     if (expression != NULL && expression->type == AST_LAMBDA_EXPR)
         return (CapabilityTarget){CAP_DECL, ast_node_stable_id(expression)};
     if (expression != NULL && expression->type == AST_CALL)
@@ -117,8 +114,7 @@ capability_expression_target(SemanticContext *ctx, ASTNode *expression)
 }
 
 CallableCapabilityRoutine *
-callable_capability_enter(SemanticContext *ctx, ASTNode *decl,
-                          Type **params, size_t count)
+callable_capability_enter(SemanticContext *ctx, ASTNode *decl, Type **params, size_t count)
 {
     CallableCapabilityRoutine *previous = ctx->current_callable_capability;
     if (ctx->callable_capabilities == NULL) {

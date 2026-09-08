@@ -14,16 +14,13 @@ import "direct_mir_scalar_program_c_match_expression_owner.pgy";
 import "../lib/json_emit.pgy";
 import "direct_mir_identity_cell_projection_owner.pgy";
 func DirectMirScalarProgramCLocalName(row: Int) -> String { return Concat("pgy_local_", ToString(row)); }
-func DirectMirScalarProgramCExpressionValues(
-    ref expressions: DirectMirScalarProgramExpressionSet,
-    expression_row: Int,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+func DirectMirScalarProgramCExpressionValues(ref expressions: DirectMirScalarProgramExpressionSet,
+    expression_row: Int, ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref routines: DirectMirScalarCfgRoutinePartitionFact, routine: Int,
     target: CompilerTargetProjectionFact, ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
-    array_string_projection: Option<DirectMirArrayStringAbiProjection>
-) -> Array<String> {
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>) -> Array<String> {
     let values: Array<String> = [];
     let start: Int = expressions.graph_starts[expression_row]; let count: Int =
         expressions.graph_counts[expression_row]; let node: Int = start;
@@ -40,8 +37,7 @@ func DirectMirScalarProgramCExpressionValues(
         let argument_rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
             expressions.nary_operands, node);
         if kind == DirectMirScalarProgramExprDirectCall() {
-            argument_rows = DirectMirScalarProgramDirectCallArgumentRows(
-                expressions, node);
+            argument_rows = DirectMirScalarProgramDirectCallArgumentRows(expressions, node);
         } else if kind == DirectMirScalarProgramExprLogicalRecordConstructor() ||
                 kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
                 kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
@@ -51,8 +47,7 @@ func DirectMirScalarProgramCExpressionValues(
             argument_rows = DirectMirScalarProgramArrayIntPopulatedLiteralOperandRows(expressions, node); }
         let argument: Int = 0;
         while argument < ArrayLength(argument_rows) {
-            if argument_rows[argument] < start ||
-                argument_rows[argument] >= node {
+            if argument_rows[argument] < start || argument_rows[argument] >= node {
                 Die("direct MIR scalar C n-ary operand is invalid");
             }
             let argument_value: String = values[argument_rows[argument] - start];
@@ -96,16 +91,12 @@ func DirectMirScalarProgramCExpressionValues(
         } else if kind == DirectMirScalarProgramExprLocal() {
             value = DirectMirScalarProgramCLocalName(expressions.node_local_rows[node]);
         } else if kind == DirectMirScalarProgramExprParameter() {
-            value = Concat("pgy_param_", ToString(
-                expressions.node_parameter_ordinals[node]));
+            value = Concat("pgy_param_", ToString(expressions.node_parameter_ordinals[node]));
             let parameter_row: Int = routines.parameter_starts[routine] +
                 expressions.node_parameter_ordinals[node];
-            value =
-                DirectMirScalarProgramCArrayReadonlyRefParameterValue(
-                    routines, routine,
+            value = DirectMirScalarProgramCArrayReadonlyRefParameterValue(routines, routine,
                     expressions.node_parameter_ordinals[node], value);
-            if DirectMirScalarProgramLogicalRecordTypeReady(
-                    logical_record,
+            if DirectMirScalarProgramLogicalRecordTypeReady(logical_record,
                     routines.parameter_types[parameter_row]) {
                 value = DirectMirScalarProgramCLogicalRecordParameterValue(
                     routines, logical_record, routine,
@@ -115,10 +106,8 @@ func DirectMirScalarProgramCExpressionValues(
             value = Concat(expressions.node_literals[node], "LL");
         } else if kind == DirectMirScalarProgramExprBoolLiteral() {
             value = expressions.node_literals[node];
-        } else if kind ==
-                DirectMirScalarProgramExprPayloadFreeEnumVariant() {
-            value = Concat(ToString(
-                expressions.node_member_ordinals[node]), "LL");
+        } else if kind == DirectMirScalarProgramExprPayloadFreeEnumVariant() {
+            value = Concat(ToString(expressions.node_member_ordinals[node]), "LL");
         } else if kind == DirectMirScalarProgramExprStringLiteral() {
             value = JsonStringLiteral(expressions.node_literals[node]);
         } else if kind == DirectMirScalarProgramExprArrayBoolEmptyLiteral() {
@@ -127,17 +116,14 @@ func DirectMirScalarProgramCExpressionValues(
                 Die("direct MIR scalar C Array<Bool> literal is invalid");
             }
             value = UnwrapOption(empty_bool);
-        } else if kind ==
-                DirectMirScalarProgramExprArrayBoolPopulatedLiteral() {
+        } else if kind == DirectMirScalarProgramExprArrayBoolPopulatedLiteral() {
             let populated_bool: Option<String> =
-                DirectMirScalarProgramCArrayBoolPopulatedLiteralExpression(
-                    kind, node);
+                DirectMirScalarProgramCArrayBoolPopulatedLiteralExpression(kind, node);
             if !IsSome(populated_bool) {
                 Die("direct MIR scalar C populated Array<Bool> literal is invalid");
             }
             value = UnwrapOption(populated_bool);
-        } else if kind ==
-                DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() {
+        } else if kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() {
             let empty_record_array: Option<String> =
                 DirectMirScalarProgramCLogicalRecordArrayEmptyLiteralExpression(
                     kind, expressions.node_types[node], logical_record,

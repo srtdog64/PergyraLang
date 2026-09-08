@@ -7,12 +7,10 @@
 
 #ifndef PERGYRA_AST_H
 #define PERGYRA_AST_H
-
 #include "ast_types.h"
 #include "ast_domain_data.h"
 #include "ast_module_data.h"
 #include "../lexer/lexer.h"
-
 struct ASTNode
 {
     ASTNodeType type;
@@ -26,7 +24,6 @@ struct ASTNode
     uint32_t line;
     uint32_t column;
     char    *origin_path;
-    
     /* Node-specific data */
     union {
         /* Program root */

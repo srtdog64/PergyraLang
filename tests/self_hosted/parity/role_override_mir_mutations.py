@@ -4,14 +4,12 @@ import copy
 import json
 import pathlib
 import sys
-
-
 source = pathlib.Path(sys.argv[1])
 target = pathlib.Path(sys.argv[2])
 baseline = json.loads(source.read_text(encoding="utf-8"))
 
 def declaration(document, kind):
-    rows = [row for row in document["decls"] if row["kind"] == kind]
+    rows = [row for row in document["decls"] if row["nominal_kind"] == kind]
     if len(rows) != 1:
         raise RuntimeError(f"expected one {kind} declaration")
     return rows[0]
@@ -50,6 +48,8 @@ emit("role-name", "negative", lambda d: declaration(d, "role").update(name="Rena
 emit("subject-name", "negative", lambda d: declaration(
     d, "subject"
 ).__setitem__("name", "RenamedTarget"))
+emit("subject-wire-kind", "negative", lambda d: declaration(d, "subject").__setitem__("kind", "subject"))
+emit("subject-value-kind", "negative", lambda d: declaration(d, "subject").__setitem__("nominal_kind", "class"))
 emit("for-type", "negative", lambda d: declaration(d, "role").__setitem__(
     "for_type", "MissingTarget"
 ))

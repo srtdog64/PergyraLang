@@ -10,12 +10,9 @@ import "direct_mir_scalar_program_owned_string_call_result_argument_owner.pgy";
 import "direct_mir_scalar_program_void_readonly_string_target_owner.pgy";
 import "direct_mir_scalar_program_value_result_union_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
-func DirectMirScalarCfgProgramDirectCallCarriageReady(
-    ref plan: DirectMirScalarCfgGraphPlan,
-    ref facts: DirectMirScalarProgramExpressionSet,
-    node: Int, routine: Int, graph_start: Int,
-    target: Int, argument_node: Int, ordinal: Int
-) -> Bool {
+func DirectMirScalarCfgProgramDirectCallCarriageReady(ref plan: DirectMirScalarCfgGraphPlan,
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int, routine: Int, graph_start: Int,
+    target: Int, argument_node: Int, ordinal: Int) -> Bool {
     let parameter_row: Int = plan.routines.parameter_starts[target] + ordinal;
     let carriage: String = plan.routines.parameter_carriages[parameter_row];
     let readonly_string: Bool = DirectMirScalarProgramVoidReadonlyStringTargetAt(plan.routines, target, ordinal);
@@ -27,10 +24,8 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(
         facts.node_types[argument_node] != plan.routines.parameter_types[parameter_row] ||
         (carriage != "value" &&
          (facts.node_kinds[argument_node] != DirectMirScalarProgramExprLocal() &&
-          facts.node_kinds[argument_node] !=
-                DirectMirScalarProgramExprParameter() &&
-          !(carriage == "readonly-ref" && (readonly_string ||
-            facts.node_kinds[argument_node] ==
+          facts.node_kinds[argument_node] != DirectMirScalarProgramExprParameter() &&
+          !(carriage == "readonly-ref" && (readonly_string || facts.node_kinds[argument_node] ==
                 DirectMirScalarProgramExprLogicalRecordMember())) &&
           !owned_string_member && !owned_string_call_result)) {
         return false;
@@ -39,20 +34,16 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(
         let readonly_cell: Bool = DirectMirScalarProgramIdentityCellBorrowCarriage(
             plan.program.logical_record.identity_cells,
             plan.routines.parameter_types[parameter_row]) == "readonly-ref";
-        let readonly_array: Bool =
-            DirectMirScalarProgramArrayReadonlyRefAt(
+        let readonly_array: Bool = DirectMirScalarProgramArrayReadonlyRefAt(
                 plan.routines, target, ordinal);
         if !readonly_array && !readonly_string && !readonly_cell &&
-            !DirectMirScalarProgramLogicalRecordTypeReady(
-                plan.program.logical_record,
+            !DirectMirScalarProgramLogicalRecordTypeReady(plan.program.logical_record,
                 plan.routines.parameter_types[parameter_row]) {
             return false;
         }
-        if readonly_array &&
-            facts.node_kinds[argument_node] ==
+        if readonly_array && facts.node_kinds[argument_node] ==
                 DirectMirScalarProgramExprParameter() &&
-            !DirectMirScalarProgramReadonlyArrayReborrowAt(
-                plan.routines, routine,
+            !DirectMirScalarProgramReadonlyArrayReborrowAt(plan.routines, routine,
                 facts.node_parameter_ordinals[argument_node]) {
             return false;
         }
@@ -62,17 +53,13 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(
                 facts, argument_node, graph_start) { return false; }
     }
     if carriage == "value-result" {
-        let scalar_copyout: Bool = DirectMirScalarProgramScalarValueResultAt(
-            plan, target, ordinal);
-        let array_string_copyout: Bool =
-            DirectMirScalarProgramArrayStringValueResultAt(
+        let scalar_copyout: Bool = DirectMirScalarProgramScalarValueResultAt(plan, target, ordinal);
+        let array_string_copyout: Bool = DirectMirScalarProgramArrayStringValueResultAt(
                 plan.program.array_string_abi, target, ordinal);
-        let array_int_copyout: Bool =
-            DirectMirScalarProgramArrayIntValueResultAt(
+        let array_int_copyout: Bool = DirectMirScalarProgramArrayIntValueResultAt(
                 plan.program.array_int_value_result, target, ordinal);
         let array_bool_copyout: Bool = DirectMirScalarProgramArrayBoolValueResultAt(plan.program.array_bool_abi, target, ordinal);
-        let logical_record_copyout: Bool =
-            DirectMirScalarProgramLogicalRecordValueResultAt(
+        let logical_record_copyout: Bool = DirectMirScalarProgramLogicalRecordValueResultAt(
                 plan, target, ordinal);
         let logical_record_array_copyout: Bool =
             DirectMirScalarProgramLogicalRecordArrayValueResultAt(

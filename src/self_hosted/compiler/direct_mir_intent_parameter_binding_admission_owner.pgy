@@ -1,0 +1,80 @@
+// Intent participant/value bindings admitted independently of ordinary JSON formals.
+import "direct_mir_routine_parameter_set_fact_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
+import "../mir_lower/intent_carrier_projection_owner.pgy";
+
+func DirectMirRoutineIntentParameterSetReady(ref parameters: DirectMirRoutineParameterSetFact) -> Bool {
+    if !DirectMirRoutineParameterSetFactReady(parameters) || ArrayLength(parameters.names) == 0 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(parameters.names) {
+        let participant: Bool = parameters.carriages[row] == "participant" &&
+            parameters.pass_shapes[row] == "indirect" &&
+            !DirectMirScalarCfgScalarTypeSupported(parameters.type_names[row]);
+        let value: Bool = parameters.carriages[row] == "value" &&
+            parameters.pass_shapes[row] == "direct" &&
+            DirectMirScalarCfgScalarTypeSupported(parameters.type_names[row]);
+        if (!participant && !value) || parameters.resources[row] != "none" ||
+            parameters.abi_required[row] || parameters.abi_layout_ids[row] != 0 ||
+            parameters.abi_row_keys[row] != "" { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+// Intent participants use their protocol's indirect binding, not ordinary
+// readonly-ref or value-result. A signature does not discharge that protocol.
+func DirectMirRoutineIntentParameterSetFromBindings(
+    ref declarations: MirProgramDeclarationIndex,
+    ref bindings: MirIntentBindingProjection
+) -> DirectMirRoutineParameterSetFact {
+    let count: Int = ArrayLength(bindings.aliases);
+    if !bindings.ok || count == 0 || count != ArrayLength(bindings.type_names) ||
+        count != ArrayLength(bindings.kinds) || count != ArrayLength(bindings.source_syntax_ids) {
+        return DirectMirRoutineParameterSetFactInvalid();
+    }
+    let resources: Array<String> = []; let passes: Array<String> = [];
+    let names: Array<String> = []; let syntax_ids: Array<Int> = [];
+    let types: Array<String> = []; let carriages: Array<String> = [];
+    let abi_ids: Array<Int> = []; let required: Array<Bool> = [];
+    let abi_keys: Array<String> = []; let digests: Array<Int> = [];
+    let first: DirectMirRoutineParamFact = InvalidDirectMirRoutineParamFact();
+    let row: Int = 0;
+    while row < count {
+        let type_name: String = bindings.type_names[row];
+        let carriage: String = bindings.kinds[row];
+        let pass_shape: String = "direct";
+        if carriage == "participant" {
+            if !MirProgramDeclarationIndexContains(declarations, "subject", type_name) &&
+                !MirProgramDeclarationIndexContains(declarations, "zone", type_name) &&
+                !MirProgramDeclarationIndexContains(declarations, "vessel", type_name) {
+                return DirectMirRoutineParameterSetFactInvalid();
+            }
+            pass_shape = "indirect";
+        } else if carriage != "value" || !DirectMirScalarCfgScalarTypeSupported(type_name) {
+            // Aggregate value ABI must arrive from its owner, not a spelling guess.
+            return DirectMirRoutineParameterSetFactInvalid();
+        }
+        let digest: Int = DirectMirRoutineParamFactDigestFromFields(
+            bindings.aliases[row], bindings.source_syntax_ids[row], type_name,
+            carriage, "none", pass_shape, type_name, 0, false);
+        ArrayPush(names, bindings.aliases[row]); ArrayPush(syntax_ids, bindings.source_syntax_ids[row]);
+        ArrayPush(types, type_name); ArrayPush(carriages, carriage);
+        ArrayPush(resources, "none"); ArrayPush(passes, pass_shape);
+        ArrayPush(abi_ids, 0); ArrayPush(required, false); ArrayPush(abi_keys, "");
+        ArrayPush(digests, digest);
+        if row == 0 { first = DirectMirRoutineParamFact(true, digest,
+            bindings.aliases[row], bindings.source_syntax_ids[row], type_name,
+            carriage, "none", pass_shape, type_name, 0, false, InvalidMirAbiLayoutRowCapture()); }
+        row = row + 1;
+    }
+    let source: DirectMirRoutineParameterSetFact = DirectMirRoutineParameterSetFact(
+        true, 0, names, syntax_ids, types,
+        carriages, resources, passes, types, abi_ids, required, abi_keys, digests, first);
+    let result: DirectMirRoutineParameterSetFact = DirectMirRoutineParameterSetFact(
+        true, DirectMirRoutineParameterSetFactDigest(source), source.names,
+        source.source_syntax_ids, source.type_names, source.carriages, source.resources,
+        source.pass_shapes, source.abi_type_names, source.abi_layout_ids,
+        source.abi_required, source.abi_row_keys, source.param_digests, source.first);
+    if !DirectMirRoutineIntentParameterSetReady(result) { return DirectMirRoutineParameterSetFactInvalid(); }
+    return result;
+}

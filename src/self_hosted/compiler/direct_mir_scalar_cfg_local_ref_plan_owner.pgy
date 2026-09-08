@@ -27,18 +27,13 @@ struct DirectMirScalarCfgLocalRefPlan {
     let value_definition_blocks: Array<Int>;
 }
 
-func DirectMirScalarCfgLocalRefPlanEmpty(
-) -> DirectMirScalarCfgLocalRefPlan {
+func DirectMirScalarCfgLocalRefPlanEmpty() -> DirectMirScalarCfgLocalRefPlan {
     let strings: Array<String> = [];
     let ints: Array<Int> = [];
-    return DirectMirScalarCfgLocalRefPlan(
-        false, strings, ints, strings, ints, strings, ints, ints
-    );
+    return DirectMirScalarCfgLocalRefPlan(false, strings, ints, strings, ints, strings, ints, ints);
 }
 
-func DirectMirScalarCfgValueLocalRow(
-    names: Array<String>, wanted: String
-) -> Int {
+func DirectMirScalarCfgValueLocalRow(names: Array<String>, wanted: String) -> Int {
     let row: Int = 0;
     while row < ArrayLength(names) {
         if names[row] == wanted { return row; }
@@ -47,12 +42,9 @@ func DirectMirScalarCfgValueLocalRow(
     return -1;
 }
 
-func DirectMirScalarCfgLocalRefPlanFromOwners(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref index: MirRoutineFactIndex,
-    ref use_facts: MirRoutineInstructionUseFacts,
-    ref wire: DirectMirScalarCfgWireLocalRefs,
-    ref ranges: DirectMirScalarCfgRangeFactSet,
+func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex, ref use_facts: MirRoutineInstructionUseFacts,
+    ref wire: DirectMirScalarCfgWireLocalRefs, ref ranges: DirectMirScalarCfgRangeFactSet,
     ref foreach_sources: DirectMirScalarCfgForEachFactSet,
     ref string_arrays: DirectMirScalarCfgStringArrayPlan,
     ref array_int_program: DirectMirScalarCfgArrayIntProgramFact,

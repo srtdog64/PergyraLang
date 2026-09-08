@@ -3,8 +3,7 @@ import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 
 func DirectMirScalarProgramDirectCallArgumentRows(ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Array<Int> {
-    let rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
-        facts.nary_operands, node);
+    let rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(facts.nary_operands, node);
     if ArrayLength(rows) != 0 { return rows; }
     if facts.node_lefts[node] >= 0 { ArrayPush(rows, facts.node_lefts[node]); }
     if facts.node_rights[node] >= 0 { ArrayPush(rows, facts.node_rights[node]); }

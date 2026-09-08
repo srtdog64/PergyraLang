@@ -1,7 +1,6 @@
     TEST("MIR DCE removes dead SSA defs and dead phi merges");
     {
-        const char *src =
-            "func DeadMerge(flag: Bool) -> Int {\n"
+        const char *src = "func DeadMerge(flag: Bool) -> Int {\n"
             "    let live = 1;\n"
             "    let dead = 0;\n"
             "    if flag {\n"
@@ -30,13 +29,8 @@
                 }
             }
         }
-        EXPECT(ok
-               && mir_validate(mir, NULL)
-               && dead_merge != NULL
-               && dead_merge->has_dce
-               && dead_merge->dce_removed_count > 0
-               && live_summary != NULL
-               && !has_dead_phi);
+        EXPECT(ok && mir_validate(mir, NULL) && dead_merge != NULL && dead_merge->has_dce
+               && dead_merge->dce_removed_count > 0 && live_summary != NULL && !has_dead_phi);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -44,8 +38,7 @@
 
     TEST("MIR DCE removes phi-only cycles but keeps observed loop values");
     {
-        const char *src =
-            "func DeadCycle(flag: Bool) -> Int {\n"
+        const char *src = "func DeadCycle(flag: Bool) -> Int {\n"
             "    let i = 0; let result = 0;\n"
             "    while i < 2 {\n"
             "        if flag { let dead: Option<Int> = Some(3); }\n"
@@ -69,8 +62,7 @@
                 live_phi |= block_has_phi_result_prefix(&routine->blocks[bi], "result.");
             }
         }
-        EXPECT(ok && mir_validate(mir, NULL) && routine != NULL
-               && !dead_phi && live_phi);
+        EXPECT(ok && mir_validate(mir, NULL) && routine != NULL && !dead_phi && live_phi);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -78,8 +70,7 @@
 
     TEST("MIR DCE preserves branch-merged inout copy-out phi");
     {
-        const char *src =
-            "struct Snapshot { count: Int; }\n"
+        const char *src = "struct Snapshot { count: Int; }\n"
             "func SelectSnapshot(inout snapshot: Snapshot, take_new: Bool) -> Void {\n"
             "    let dead: Int = 0;\n"
             "    if take_new {\n"
@@ -104,11 +95,9 @@
             routine = find_mir_routine(mir, "SelectSnapshot", MIR_SCOPE_FUNCTION);
         if (routine != NULL) {
             for (size_t bi = 0; bi < routine->block_count; bi++) {
-                if (block_has_phi_result_prefix(
-                        &routine->blocks[bi], "snapshot."))
+                if (block_has_phi_result_prefix(&routine->blocks[bi], "snapshot."))
                     has_copyout_phi = true;
-                if (block_has_phi_result_prefix(
-                        &routine->blocks[bi], "dead."))
+                if (block_has_phi_result_prefix(&routine->blocks[bi], "dead."))
                     has_dead_phi = true;
                 const MIRBasicBlock *block = &routine->blocks[bi];
                 for (size_t ii = 0; ii < block->instruction_count; ii++) {
@@ -117,17 +106,14 @@
                         continue;
                     char exit_name[128];
                     bool has_exit = mir_block_binding_exit_ssa_name(routine, block,
-                        ast_func_param_stable_id(mir_routine_param(routine, 0)),
-                        exit_name, sizeof(exit_name));
+                        ast_func_param_stable_id(mir_routine_param(routine, 0)), exit_name, sizeof(exit_name));
                     rejects_missing_exit_identity = !mir_block_binding_exit_ssa_name(
                         routine, block, UINT32_MAX, exit_name, sizeof(exit_name));
                     for (size_t ui = 0; ui < ret->use_count; ui++) {
                         for (size_t pi = 0; pi < block->instruction_count; pi++) {
                             const MIRInstruction *phi = &block->instructions[pi];
-                            if (phi->kind == MIR_INST_PHI
-                                && phi->binding_syntax_id == ast_func_param_stable_id(
-                                    mir_routine_param(routine, 0))
-                                && strcmp(phi->result_name, ret->uses[ui]) == 0) {
+                            if (phi->kind == MIR_INST_PHI && phi->binding_syntax_id == ast_func_param_stable_id(
+                                    mir_routine_param(routine, 0)) && strcmp(phi->result_name, ret->uses[ui]) == 0) {
                                 has_copyout_use = true;
                                 if (has_exit && strcmp(exit_name, ret->uses[ui]) == 0)
                                     has_owned_exit_identity = true;
@@ -137,17 +123,10 @@
                 }
             }
         }
-        EXPECT(ok
-               && mir_validate(mir, NULL)
-               && routine != NULL
-               && routine->has_dce
+        EXPECT(ok && mir_validate(mir, NULL) && routine != NULL && routine->has_dce
                && mir_routine_param_carriage(routine, 0)
-                    == MIR_PARAM_CARRIAGE_VALUE_RESULT
-               && has_copyout_phi
-               && has_copyout_use
-               && has_owned_exit_identity
-               && rejects_missing_exit_identity
-               && !has_dead_phi);
+                    == MIR_PARAM_CARRIAGE_VALUE_RESULT && has_copyout_phi && has_copyout_use && has_owned_exit_identity
+               && rejects_missing_exit_identity && !has_dead_phi);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -155,8 +134,7 @@
 
     TEST("MIR lowers for-loop init as loop-init instead of fallback statement");
     {
-        const char *src =
-            "func CfgOwnedControl(flag: Bool, value: Int) -> Int {\n"
+        const char *src = "func CfgOwnedControl(flag: Bool, value: Int) -> Int {\n"
             "    for i in 0..3 {\n"
             "        if flag {\n"
             "            continue;\n"
@@ -178,16 +156,10 @@
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
         if (ok)
             routine = find_mir_routine(mir, "CfgOwnedControl", MIR_SCOPE_FUNCTION);
-        EXPECT(ok
-               && mir_validate(mir, NULL)
-               && routine != NULL
-               && routine_has_inst_kind(routine, MIR_INST_LOOP_INIT)
-               && routine_has_complete_loop_init_for(routine, "i")
-               && routine_has_complete_loop_branch_for(routine, "i")
-               && routine_has_return_source_terminator(routine)
-               && !routine_has_stmt_ast_type(routine, AST_FOR_LOOP)
-               && !routine_has_stmt_ast_type(routine, AST_MATCH_STMT)
-               && !routine_has_stmt_ast_type(routine, AST_BREAK)
+        EXPECT(ok && mir_validate(mir, NULL) && routine != NULL && routine_has_inst_kind(routine, MIR_INST_LOOP_INIT)
+               && routine_has_complete_loop_init_for(routine, "i") && routine_has_complete_loop_branch_for(routine, "i")
+               && routine_has_return_source_terminator(routine) && !routine_has_stmt_ast_type(routine, AST_FOR_LOOP)
+               && !routine_has_stmt_ast_type(routine, AST_MATCH_STMT) && !routine_has_stmt_ast_type(routine, AST_BREAK)
                && !routine_has_stmt_ast_type(routine, AST_CONTINUE)
                && !routine_has_stmt_ast_type(routine, AST_IF_STMT));
         mir_destroy(mir);
@@ -197,8 +169,7 @@
 
     TEST("MIR lowers for-in init as loop-init instead of fallback statement");
     {
-        const char *src =
-            "func ForInList(values: List<Int>) -> Int {\n"
+        const char *src = "func ForInList(values: List<Int>) -> Int {\n"
             "    let total: Int = 0;\n"
             "    for value in values {\n"
             "        total = total + value;\n"
@@ -212,10 +183,7 @@
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
         if (ok)
             routine = find_mir_routine(mir, "ForInList", MIR_SCOPE_FUNCTION);
-        EXPECT(ok
-               && mir_validate(mir, NULL)
-               && routine != NULL
-               && routine_has_inst_kind(routine, MIR_INST_LOOP_INIT)
+        EXPECT(ok && mir_validate(mir, NULL) && routine != NULL && routine_has_inst_kind(routine, MIR_INST_LOOP_INIT)
                && routine_has_complete_loop_init_for(routine, "value")
                && routine_has_complete_loop_branch_for(routine, "value")
                && !routine_has_stmt_ast_type(routine, AST_FOR_LOOP));
@@ -226,8 +194,7 @@
 
     TEST("MIR validator rejects CFG-owned control fallback statements");
     {
-        const char *src =
-            "func CfgOwnedControl(flag: Bool, value: Int) -> Int {\n"
+        const char *src = "func CfgOwnedControl(flag: Bool, value: Int) -> Int {\n"
             "    for i in 0..3 {\n"
             "        if flag {\n"
             "            continue;\n"
@@ -253,8 +220,7 @@
                     && block->source_statement_inventory.items != NULL
                     ? block->source_statement_inventory.items[0]
                     : NULL;
-                if (stmt == NULL || stmt->type != AST_FOR_LOOP
-                    || (!block->has_succ_true && !block->has_succ_false)) {
+                if (stmt == NULL || stmt->type != AST_FOR_LOOP || (!block->has_succ_true && !block->has_succ_false)) {
                     continue;
                 }
                 MIRInstruction *grown = realloc(block->instructions,
@@ -262,10 +228,8 @@
                 if (grown == NULL)
                     break;
                 block->instructions = grown;
-                memset(&block->instructions[block->instruction_count], 0,
-                    sizeof(MIRInstruction));
-                block->instructions[block->instruction_count].id =
-                    routine->instruction_count++;
+                memset(&block->instructions[block->instruction_count], 0, sizeof(MIRInstruction));
+                block->instructions[block->instruction_count].id = routine->instruction_count++;
                 block->instructions[block->instruction_count].kind = MIR_INST_STMT;
                 block->instructions[block->instruction_count].name = "stmt";
                 block->instructions[block->instruction_count].ast = stmt;
@@ -278,10 +242,7 @@
                 injected = true;
             }
         }
-        rejected = ok
-                   && injected
-                   && !mir_validate(mir, &mir_error)
-                   && mir_error != NULL
+        rejected = ok && injected && !mir_validate(mir, &mir_error) && mir_error != NULL
                    && strstr(mir_error, "CFG-owned control statement") != NULL;
         EXPECT(rejected);
         free(mir_error);
@@ -292,8 +253,7 @@
 
     TEST("MIR preserves defer statements inside CFG branch blocks");
     {
-        const char *src =
-            "func BranchDefer() -> Void {\n"
+        const char *src = "func BranchDefer() -> Void {\n"
             "    if true {\n"
             "        defer { Log(1); };\n"
             "    }\n"

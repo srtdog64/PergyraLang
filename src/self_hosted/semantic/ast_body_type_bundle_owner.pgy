@@ -6,6 +6,7 @@ import "ast_body_call_target_resolution_owner.pgy";
 import "ast_expression_call_return_type_owner.pgy";
 import "ast_generic_specialization_fact_owner.pgy";
 import "ast_generic_specialization_query_owner.pgy";
+import "ast_generic_specialization_constraint_owner.pgy";
 import "ast_initializer_iteration_refinement_owner.pgy";
 import "ast_expression_place_fact_owner.pgy";
 import "ast_expression_identity_resolution_owner.pgy";
@@ -37,8 +38,7 @@ struct SemanticAstBodyTypeBundle {
     generic_specializations: SemanticAstGenericSpecializationFacts;
     capabilities: SemanticAstCapabilityFacts;
 }
-func SemanticAstBodyTypeBundleAdmissionError(
-    artifact: AstTreeArtifact, message: String
+func SemanticAstBodyTypeBundleAdmissionError(artifact: AstTreeArtifact, message: String
 ) -> SemanticAstBodyTypeBundle {
     let empty_ints: Array<Int> = [];
     let empty_strings: Array<String> = [];
@@ -51,47 +51,35 @@ func SemanticAstBodyTypeBundleAdmissionError(
         SemanticAstZoneValueCarriageVerdictError("body_analysis_admission", message, -1),
         SemanticAstGenericSpecializationError("body_analysis_admission", message,
             empty_ints, empty_ints, empty_ints, empty_ints, empty_strings),
-        SemanticAstCapabilityFactsError(artifact, message)
-    );
+        SemanticAstCapabilityFactsError(artifact, message));
 }
 func SemanticAstBodyTypeStage(enabled: Bool, stage: String) -> Void { if enabled { Log(Concat("[semantic-body-type-stage] ", stage)); } }
 func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
-    artifact: AstTreeArtifact,
-    inout analysis: SemanticAstArtifactAnalysis,
-    observe_pressure: Bool,
-    require_carried_expression_identities: Bool,
-    require_enum_payload_variant_proof: Bool
+    artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis, observe_pressure: Bool,
+    require_carried_expression_identities: Bool, require_enum_payload_variant_proof: Bool
 ) -> SemanticAstBodyTypeBundle {
     if !SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) {
         return SemanticAstBodyTypeBundleAdmissionError(
-            artifact, "semantic body analysis admission is missing or stale"
-        );
+            artifact, "semantic body analysis admission is missing or stale");
     }
-    let function_tables: SemanticAstExpressionFunctionTableFacts =
-        analysis.function_tables;
+    let function_tables: SemanticAstExpressionFunctionTableFacts = analysis.function_tables;
     SemanticAstBodyTypeStage(observe_pressure, "base-initializer:start");
     let base_initializer_types: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromAdmittedArtifactObservedWithFunctionTables(
             artifact, analysis.signatures, analysis.constructors,
-            analysis.local_bindings, analysis.statements,
-            analysis.expression_surfaces,
-            analysis.enums, analysis.function_scopes,
-            observe_pressure, function_tables
-        );
+            analysis.local_bindings, analysis.statements, analysis.expression_surfaces,
+            analysis.enums, analysis.function_scopes, observe_pressure, function_tables);
     SemanticAstBodyTypeStage(observe_pressure, "base-initializer:done");
     SemanticAstBodyTypeStage(observe_pressure, "iteration:start");
     let iteration_types: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
             artifact, analysis.signatures, analysis.constructors,
-            analysis.local_bindings, base_initializer_types,
-            analysis.statements,
-            analysis.expression_surfaces, analysis.enums,
-            analysis.function_scopes, function_tables
+            analysis.local_bindings, base_initializer_types, analysis.statements,
+            analysis.expression_surfaces, analysis.enums, analysis.function_scopes, function_tables
         );
     SemanticAstBodyTypeStage(observe_pressure, "iteration:done");
     SemanticAstBodyTypeStage(observe_pressure, "call-targets:start");
-    let call_targets_resolved: Bool =
-        SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(
+    let call_targets_resolved: Bool = SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(
             artifact, analysis, base_initializer_types.inferred_type_names,
             iteration_types, function_tables);
     SemanticAstBodyTypeStage(observe_pressure, "call-targets:done");
@@ -112,8 +100,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     SemanticAstBodyTypeStage(observe_pressure, "expression-places:start");
     let expression_places_resolved: Bool =
         SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
-            artifact, analysis, initializer_types, iteration_types,
-            function_tables);
+            artifact, analysis, initializer_types, iteration_types, function_tables);
     SemanticAstBodyTypeStage(observe_pressure, "expression-places:done");
     SemanticAstBodyTypeStage(observe_pressure, "assignment:start");
     let assignment_types: SemanticAstAssignmentTypeFacts =
@@ -121,9 +108,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, initializer_types, analysis.statements,
             analysis.expression_surfaces, iteration_types,
-            analysis.assignments, analysis.enums, analysis.function_scopes,
-            function_tables
-        );
+            analysis.assignments, analysis.enums, analysis.function_scopes, function_tables);
     SemanticAstBodyTypeStage(observe_pressure, "assignment:done");
     SemanticAstBodyTypeStage(observe_pressure, "statement:start");
     let statement_types: SemanticAstStatementTypeFacts =
@@ -132,26 +117,22 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             analysis.local_bindings, initializer_types,
             analysis.expression_surfaces, iteration_types,
             analysis.statements, analysis.enums, analysis.roles,
-            analysis.function_scopes, function_tables
-        );
+            analysis.function_scopes, function_tables);
     SemanticAstBodyTypeStage(observe_pressure, "statement:done");
     let match_materializations: SemanticAstMatchMaterializationFacts =
         SemanticAstMatchMaterializationFactsAttach(artifact, analysis, statement_types);
     SemanticAstBodyTypeStage(observe_pressure, "named-boundary:start");
     let named_boundary: SemanticAstNamedValueBoundaryVerdict =
-        SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
-            analysis.signatures,
+        SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(analysis.signatures,
             analysis.expression_surfaces.expression_graph,
-            analysis.expression_surfaces, statement_types
-        );
+            analysis.expression_surfaces, statement_types);
     SemanticAstBodyTypeStage(observe_pressure, "named-boundary:done");
     SemanticAstBodyTypeStage(observe_pressure, "zone-carriage:start");
     let zone_carriage: SemanticAstZoneValueCarriageVerdict =
         SemanticAstZoneCarriageVerdictFromAdmittedFacts(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, initializer_types, analysis.assignments,
-            assignment_types, analysis.expression_surfaces
-        );
+            assignment_types, analysis.expression_surfaces);
     SemanticAstBodyTypeStage(observe_pressure, "zone-carriage:done");
     SemanticAstBodyTypeStage(observe_pressure, "generic:start");
     let generic_specializations: SemanticAstGenericSpecializationFacts =
@@ -160,81 +141,53 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             analysis.local_bindings, initializer_types,
             analysis.statements, analysis.expression_surfaces,
             function_tables, analysis.enums, analysis.intent_signatures,
-            analysis.intent_transitions,
-            analysis.function_scopes
-        );
+            analysis.intent_transitions, analysis.function_scopes);
     SemanticAstBodyTypeStage(observe_pressure, "generic:done");
     SemanticAstBodyTypeStage(observe_pressure, "verdict:start");
     let verdict: SemanticAstBodyVerdict = SemanticAstBodyVerdictFromFacts(
-        initializer_types, iteration_types, assignment_types,
-        statement_types
-    );
+        initializer_types, iteration_types, assignment_types, statement_types);
     if verdict.ok {
         verdict = SemanticAstIntentRetryAdmissionFromFacts(
             artifact, analysis.kind_surfaces, analysis.intent_signatures);
     }
     if verdict.ok {
-        verdict = SemanticAstIntentBoundaryPredicateAdmission(
-            artifact, analysis, function_tables);
+        verdict = SemanticAstIntentBoundaryPredicateAdmission(artifact, analysis, function_tables);
     }
     if verdict.ok {
         verdict = SemanticAstActionContractAdmissionFromFacts(artifact,
-            analysis.signatures, analysis.constructors, analysis.roles,
-            analysis.zone_authorities);
+            analysis.signatures, analysis.constructors, analysis.roles, analysis.zone_authorities);
     }
     if verdict.ok && !call_targets_resolved {
-        verdict = SemanticAstBodyVerdictError(
-            "call_target_unresolved",
-            "semantic call target rows are incomplete after body fixpoint",
-            -1
-        );
+        verdict = SemanticAstBodyVerdictError("call_target_unresolved",
+            "semantic call target rows are incomplete after body fixpoint", -1);
     } else if verdict.ok && !role_operators_resolved {
-        verdict = SemanticAstBodyVerdictError(
-            "role_operator_target_unresolved",
+        verdict = SemanticAstBodyVerdictError("role_operator_target_unresolved",
             "semantic role-operator target rows are incomplete", -1);
     } else if verdict.ok && !expression_places_resolved {
-        verdict = SemanticAstBodyVerdictError(
-            "expression_place_unresolved",
-            "semantic expression place rows are incomplete after body fixpoint",
-            -1
-        );
+        verdict = SemanticAstBodyVerdictError("expression_place_unresolved",
+            "semantic expression place rows are incomplete after body fixpoint", -1);
     } else if verdict.ok && !named_boundary.ok {
-        verdict = SemanticAstBodyVerdictError(
-            named_boundary.diagnostic_code,
-            named_boundary.diagnostic_message,
-            named_boundary.call_node_id
-        );
+        verdict = SemanticAstBodyVerdictError(named_boundary.diagnostic_code,
+            named_boundary.diagnostic_message, named_boundary.call_node_id);
     } else if verdict.ok && !zone_carriage.ok {
-        verdict = SemanticAstBodyVerdictError(
-            zone_carriage.diagnostic_code,
-            zone_carriage.diagnostic_message,
-            zone_carriage.syntax_node_id
-        );
+        verdict = SemanticAstBodyVerdictError(zone_carriage.diagnostic_code,
+            zone_carriage.diagnostic_message, zone_carriage.syntax_node_id);
     } else if verdict.ok && !generic_specializations.ok {
-        verdict = SemanticAstBodyVerdictError(
-            generic_specializations.diagnostic_code,
-            generic_specializations.diagnostic_message, -1
-        );
+        verdict = SemanticAstBodyVerdictError(generic_specializations.diagnostic_code,
+            generic_specializations.diagnostic_message, -1);
     } else if verdict.ok && !SemanticAstMatchMaterializationFactsReady(
         artifact, analysis, statement_types, match_materializations) {
         verdict = SemanticAstBodyVerdictError("match_materialization_unresolved", "semantic match materialization facts are incomplete", -1);
-    } else if verdict.ok &&
-        !SemanticAstIterationSyntheticGraphRootsAttach(
-            artifact, analysis, iteration_types
-        ) {
-        verdict = SemanticAstBodyVerdictError(
-            "iteration_graph_root_unresolved",
-            "semantic foreach synthetic roots are incomplete", -1
-        );
+    } else if verdict.ok && !SemanticAstIterationSyntheticGraphRootsAttach(
+            artifact, analysis, iteration_types) {
+        verdict = SemanticAstBodyVerdictError("iteration_graph_root_unresolved",
+            "semantic foreach synthetic roots are incomplete", -1);
     }
     if verdict.ok {
         let generic_constraint: Option<String> = SemanticAstGenericSpecializationConstraintViolation(
-            analysis.signatures, analysis.roles, analysis.function_scopes,
-            generic_specializations
-        );
+            analysis.signatures, analysis.roles, analysis.function_scopes, generic_specializations);
         if IsSome(generic_constraint) {
-            verdict = SemanticAstBodyVerdictError(
-                "generic_constraint_unsatisfied",
+            verdict = SemanticAstBodyVerdictError("generic_constraint_unsatisfied",
                 SemanticError1("generic_constraint_unsatisfied", "constraint", UnwrapOption(generic_constraint)), -1
             );
         }
@@ -253,20 +206,14 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     if verdict.ok && !SemanticAstAnalysisResolveExpressionIdentities(
         artifact, analysis, initializer_types.inferred_type_names,
         iteration_types, match_materializations.synthetic_graph_root_ids, function_tables,
-        require_carried_expression_identities, resolved_leaf_types
-    ) {
-        verdict = SemanticAstBodyVerdictError(
-            "expression_identity_unresolved",
-            "semantic expression identity rows are incomplete", -1
-        );
+        require_carried_expression_identities, resolved_leaf_types) {
+        verdict = SemanticAstBodyVerdictError("expression_identity_unresolved",
+            "semantic expression identity rows are incomplete", -1);
     }
     if verdict.ok && !SemanticAstAnalysisResolveCallReturnTypes(
-        artifact, analysis, generic_specializations
-    ) {
-        verdict = SemanticAstBodyVerdictError(
-            "call_return_type_unresolved",
-            "semantic call return type rows are incomplete", -1
-        );
+        artifact, analysis, generic_specializations) {
+        verdict = SemanticAstBodyVerdictError("call_return_type_unresolved",
+            "semantic call return type rows are incomplete", -1);
     }
     if verdict.ok {
         verdict = SemanticAstCancelAdmissionFromFacts(artifact, analysis,
@@ -283,38 +230,25 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     if verdict.ok {
         let world_zone_escape: Option<String> = SemanticAstWorldZoneEscapeViolation(
             analysis.constructors, resolved_leaf_types,
-            analysis.expression_surfaces.expression_graph
-        );
+            analysis.expression_surfaces.expression_graph);
         if IsSome(world_zone_escape) {
-            verdict = SemanticAstBodyVerdictError(
-                "world_zone_escape",
+            verdict = SemanticAstBodyVerdictError("world_zone_escape",
                 SemanticError1("world_zone_escape", "boundary", UnwrapOption(world_zone_escape)), -1
             );
         }
     }
     if verdict.ok && require_enum_payload_variant_proof {
-        SemanticAstBodyTypeStage(
-            observe_pressure, "enum-payload-variant:start"
-        );
-        let enum_payload_variant:
-            SemanticAstEnumPayloadVariantProvenanceVerdict =
+        SemanticAstBodyTypeStage(observe_pressure, "enum-payload-variant:start");
+        let enum_payload_variant: SemanticAstEnumPayloadVariantProvenanceVerdict =
                 SemanticAstEnumPayloadVariantProvenanceVerdictFromAdmittedFacts(
-                    artifact, analysis.signatures, analysis.constructors,
-                    analysis.local_bindings,
+                    artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
                     initializer_types, analysis.assignments,
-                    analysis.statements, analysis.expression_surfaces,
-                    analysis.enums
-                );
+                    analysis.statements, analysis.expression_surfaces, analysis.enums);
         if !enum_payload_variant.ok {
-            verdict = SemanticAstBodyVerdictError(
-                enum_payload_variant.diagnostic_code,
-                enum_payload_variant.diagnostic_message,
-                enum_payload_variant.syntax_node_id
-            );
+            verdict = SemanticAstBodyVerdictError(enum_payload_variant.diagnostic_code,
+                enum_payload_variant.diagnostic_message, enum_payload_variant.syntax_node_id);
         }
-        SemanticAstBodyTypeStage(
-            observe_pressure, "enum-payload-variant:done"
-        );
+        SemanticAstBodyTypeStage(observe_pressure, "enum-payload-variant:done");
     }
     let capabilities: SemanticAstCapabilityFacts = SemanticAstCapabilityFactsError(
         artifact, "body admission did not reach capability inference");
@@ -323,68 +257,48 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
         capabilities = SemanticAstCapabilityFactsFromAdmittedBody(
             artifact, analysis, verdict, iteration_types, match_materializations);
         if !SemanticAstCapabilityFactsReady(artifact, analysis, capabilities) {
-            verdict = SemanticAstBodyVerdictError(
-                "capability_fact_invalid", SemanticError1(
+            verdict = SemanticAstBodyVerdictError("capability_fact_invalid", SemanticError1(
                     "capability_fact_invalid", "detail", capabilities.diagnostic_message), -1);
         } else if !capabilities.contract_ok {
-            verdict = SemanticAstBodyVerdictError(
-                capabilities.diagnostic_code, SemanticError1(
+            verdict = SemanticAstBodyVerdictError(capabilities.diagnostic_code, SemanticError1(
                     capabilities.diagnostic_code, "detail", capabilities.diagnostic_message),
                 capabilities.first_node_id);
         }
         SemanticAstBodyTypeStage(observe_pressure, "capability:done");
     }
     SemanticAstBodyTypeStage(observe_pressure, "verdict:done");
-    return SemanticAstBodyTypeBundle(
-        verdict,
+    return SemanticAstBodyTypeBundle(verdict,
         initializer_types, iteration_types, assignment_types, statement_types, match_materializations,
-        zone_carriage, generic_specializations, capabilities
-    );
+        zone_carriage, generic_specializations, capabilities);
 }
-func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
-    artifact: AstTreeArtifact,
-    inout analysis: SemanticAstArtifactAnalysis,
-    observe_pressure: Bool
+func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis, observe_pressure: Bool
 ) -> SemanticAstBodyTypeBundle {
     return SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
         artifact, analysis, observe_pressure, false, true);
 }
-func SemanticAstBodyTypeBundleFromAnalysisObserved(
-    artifact: AstTreeArtifact,
-    inout analysis: SemanticAstArtifactAnalysis,
-    observe_pressure: Bool
+func SemanticAstBodyTypeBundleFromAnalysisObserved(artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis, observe_pressure: Bool
 ) -> SemanticAstBodyTypeBundle {
-    if !SemanticAstArtifactAnalysisMatches(
-        artifact, analysis, analysis.verdict.requires_entrypoint
+    if !SemanticAstArtifactAnalysisMatches(artifact, analysis, analysis.verdict.requires_entrypoint
     ) {
         return SemanticAstBodyTypeBundleAdmissionError(
-            artifact, "semantic body analysis deep proof failed"
-        );
+            artifact, "semantic body analysis deep proof failed");
     }
     return SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
-        artifact, analysis, observe_pressure
-    );
+        artifact, analysis, observe_pressure);
 }
-func SemanticAstBodyTypeBundleFromAdmittedAnalysis(
-    artifact: AstTreeArtifact,
-    inout analysis: SemanticAstArtifactAnalysis
-) -> SemanticAstBodyTypeBundle {
-    return SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(
-        artifact, analysis, false
-    );
+func SemanticAstBodyTypeBundleFromAdmittedAnalysis(artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis) -> SemanticAstBodyTypeBundle {
+    return SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(artifact, analysis, false);
 }
-func SemanticAstBodyTypeBundleFromAnalysis(
-    artifact: AstTreeArtifact,
-    inout analysis: SemanticAstArtifactAnalysis
-) -> SemanticAstBodyTypeBundle {
+func SemanticAstBodyTypeBundleFromAnalysis(artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis) -> SemanticAstBodyTypeBundle {
     return SemanticAstBodyTypeBundleFromAnalysisObserved(artifact, analysis, false);
 }
 
-func SemanticAstBodyTypeBundleReady(
-    artifact: AstTreeArtifact,
-    ref analysis: SemanticAstArtifactAnalysis,
-    ref bundle: SemanticAstBodyTypeBundle
-) -> Bool {
+func SemanticAstBodyTypeBundleReady(artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis, ref bundle: SemanticAstBodyTypeBundle) -> Bool {
     return SemanticAstBodyTypeBundleReadinessError(
         artifact, analysis, bundle
     ) == "";

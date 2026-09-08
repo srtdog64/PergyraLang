@@ -3427,8 +3427,8 @@ require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func EmitSemanticD
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticDiagnosticSurfaceAuditFindings"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticSourceDiagnosticCallCodes()"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" 'import "../lib/json_fact_table.pgy";'
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticOracleJsonCodeFromContent"
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func EmitSemanticOracleJsonCodeMatch"
+require_text "src/self_hosted/semantic/oracle_json_diagnostic_owner.pgy" "func SemanticOracleJsonCodeFromContent"
+require_text "src/self_hosted/semantic/oracle_json_diagnostic_owner.pgy" "func EmitSemanticOracleJsonCodeMatch"
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-manifest"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-frontier-count"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" \
@@ -11592,9 +11592,9 @@ require_text "src/self_hosted/codegen/fixture/str_builtins2.pgy" \
     'StringSplit("left,right", ",")'
 require_text "src/self_hosted/codegen/fixture/str_builtins2.pgy" \
     'StringJoin(parts, "|")'
-require_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" \
     'func DirectMirScalarProgramExprStringJoin() -> Int { return 69; }'
-require_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" \
     'func DirectMirScalarProgramExprToStringString() -> Int { return 70; }'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" \
@@ -11611,7 +11611,7 @@ require_function_text \
 require_text "src/self_hosted/codegen/fixture/string_concat_op.pgy" \
     "Log(ToString(a));"
 # Signed-integer ToString source inventory.
-require_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" \
     'func DirectMirScalarProgramExprToStringSignedInteger() -> Int { return 14; }'
 for owner in expression_kind_id builtin_signature_projection \
     to_string_expression_readiness c_to_string_expression \
@@ -12546,11 +12546,11 @@ reject_text \
     "src/self_hosted/codegen/emission/expression_c_text_materialization_owner.pgy" \
     "Concat("
 require_function_text \
-    "src/self_hosted/codegen/emission/expression_c_text_materialization_owner.pgy" \
+    "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy" \
     "func CodegenCExpressionTextCommitRoot(" \
     "ArrayDropOwnedStrings(fragments);"
 require_function_text \
-    "src/self_hosted/codegen/emission/expression_c_text_materialization_owner.pgy" \
+    "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy" \
     "func CodegenCExpressionTextCommitRoot(" \
     "let root: String = fragments[ArrayLength(fragments) - 1];"
 require_file \
@@ -13400,6 +13400,15 @@ require_text "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" \
     'element_type == "Float" || element_type == "Double"'
 require_text "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" \
     "CodegenGenericSpecializationActuals("
+require_text "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" \
+    "SemanticAstNominalConstructorIndexForName("
+reject_text "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" "LookupKindType("
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" \
+    "CodegenNominalArrayUsageFactsFromSemantic("
+require_text "src/self_hosted/codegen/emission/type_declaration_emit_owner.pgy" \
+    "CollectionRuntimeNominalRecordArrayDeclaration(element)"
+require_file "tests/self_hosted/parity/codegen_nominal_array_declaration.sh"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "codegen_nominal_array_declaration.sh"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" \
     "CodegenNominalArrayUsageFactsFromSemantic(type_surfaces, env)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
@@ -18808,7 +18817,7 @@ require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy" \
     "MirCapturedRequiredAbiLayoutRowAdmission("
 require_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_target_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_physical_target_owner.pgy" \
     "DirectMirScalarProgramLogicalRecordPhysicalTargetReady("
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy" \
@@ -20067,7 +20076,7 @@ require_function_text \
     "func DirectMirScalarProgramLlvmArrayReadonlyRefParameterRead(" \
     "DirectMirScalarProgramArrayIntAbiProjectionReadyForFact("
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_target_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_int_abi_projection_contract_owner.pgy" \
     "func DirectMirScalarProgramArrayIntAbiProjectionReadyForFact(" \
     "projection.abi_layout_id == fact.layout_id"
 require_text "src/self_hosted/compiler/direct_mir_array_int_abi_projection_owner.pgy" \
@@ -20219,7 +20228,7 @@ require_function_text \
     "func DirectMirScalarProgramNamespaceCallMarkerReady(" \
     'SemanticCallTargetNamespace()'
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_identity_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_syntax_owner.pgy" \
     "func DirectMirScalarProgramCallCalleeNodeReady(" \
     'DirectMirScalarProgramNamespaceCallMarkerReady(sequence, call)'
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
@@ -25220,6 +25229,12 @@ require_file "tests/self_hosted/parity/role_override_mir_replacement.sh"
 require_max_lines \
     "tests/self_hosted/parity/role_override_mir_replacement.sh" 380
 require_file "tests/self_hosted/parity/role_override_mir_mutations.py"
+require_text "src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy" \
+    'admitted.routines.declarations.kinds[row] == "class"'
+reject_text "src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy" \
+    'admitted.routines.declarations.kinds[row] == "subject"'
+require_text "tests/self_hosted/parity/role_override_mir_mutations.py" '"subject-value-kind"'
+require_text "tests/self_hosted/parity/role_override_mir_mutations.py" '"subject-wire-kind"'
 require_max_lines \
     "tests/self_hosted/parity/role_override_mir_mutations.py" 100
 require_file "tests/cases/backend_compare/role_override_mir/expected.stdout"
@@ -27823,6 +27838,140 @@ while IFS= read -r expected; do
     [[ "$name" != "$base" ]] || fail "codegen expected must end with _stdout.txt: $name"
     require_file "src/self_hosted/codegen/fixture/${base}.pgy"
 done < <(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | sort)
+
+
+# Physical owner moves preserve names and delete the former definitions.
+require_function_text "src/self_hosted/compiler/direct_mir_scalar_cfg_program_statement_admission_owner.pgy" \
+    "func DirectMirScalarCfgProgramAppendStatement(" \
+    'DirectMirInstructionHasNoPhysicalAbi(instruction.json, capture, "")'
+require_function_text "src/self_hosted/mir_lower/generic_call_occurrence_index_owner.pgy" \
+    "func MirGenericCallOccurrenceIndexFromDocument(" \
+    "routines.instruction_abi_type_names[instruction] != header.return_type"
+require_text "tests/self_hosted/parity/one_mir_inferred_generic_scalar_projection.sh" \
+    "one_mir_native_void_fallthrough_contract.py"
+require_text "tests/self_hosted/parity/one_mir_inferred_generic_scalar_projection.sh" \
+    "generic_template_concrete_return.pgy"
+require_file "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy" 40
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy"
+require_text "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy" "struct CodegenCExpressionText {"
+reject_text "src/self_hosted/codegen/emission/expression_c_text_materialization_owner.pgy" "struct CodegenCExpressionText {"
+require_text "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy" "func CodegenCExpressionTextBorrowed("
+reject_text "src/self_hosted/codegen/emission/expression_c_text_materialization_owner.pgy" "func CodegenCExpressionTextBorrowed("
+require_text "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy" "func CodegenCExpressionTextOwned("
+reject_text "src/self_hosted/codegen/emission/expression_c_text_materialization_owner.pgy" "func CodegenCExpressionTextOwned("
+require_text "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy" "func CodegenCExpressionTextCommitRoot("
+reject_text "src/self_hosted/codegen/emission/expression_c_text_materialization_owner.pgy" "func CodegenCExpressionTextCommitRoot("
+require_file "src/self_hosted/mir/intent_execution_canonical_instruction_owner.pgy"
+require_max_lines "src/self_hosted/mir/intent_execution_canonical_instruction_owner.pgy" 75
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/mir/intent_execution_canonical_instruction_owner.pgy"
+require_text "src/self_hosted/mir/intent_execution_canonical_instruction_owner.pgy" "func SelfMirIntentCanonicalInstructionId("
+reject_text "src/self_hosted/mir/canonical_instruction_id_owner.pgy" "func SelfMirIntentCanonicalInstructionId("
+require_text "src/self_hosted/mir/intent_execution_canonical_instruction_owner.pgy" "func SelfMirIntentExecutionCanonicalPlan("
+reject_text "src/self_hosted/mir/canonical_instruction_id_owner.pgy" "func SelfMirIntentExecutionCanonicalPlan("
+require_file "src/self_hosted/semantic/ast_generic_specialization_constraint_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_generic_specialization_constraint_owner.pgy" 75
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/semantic/ast_generic_specialization_constraint_owner.pgy"
+require_text "src/self_hosted/semantic/ast_generic_specialization_constraint_owner.pgy" "func SemanticAstGenericSpecializationConstraintViolation("
+reject_text "src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy" "func SemanticAstGenericSpecializationConstraintViolation("
+require_file "src/self_hosted/compiler/direct_mir_intent_parameter_binding_admission_owner.pgy"
+require_max_lines "src/self_hosted/compiler/direct_mir_intent_parameter_binding_admission_owner.pgy" 85
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/direct_mir_intent_parameter_binding_admission_owner.pgy"
+require_text "src/self_hosted/compiler/direct_mir_intent_parameter_binding_admission_owner.pgy" "func DirectMirRoutineIntentParameterSetReady("
+reject_text "src/self_hosted/compiler/direct_mir_routine_parameter_set_admission_owner.pgy" "func DirectMirRoutineIntentParameterSetReady("
+require_text "src/self_hosted/compiler/direct_mir_intent_parameter_binding_admission_owner.pgy" "func DirectMirRoutineIntentParameterSetFromBindings("
+reject_text "src/self_hosted/compiler/direct_mir_routine_parameter_set_admission_owner.pgy" "func DirectMirRoutineIntentParameterSetFromBindings("
+require_file "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_physical_target_owner.pgy"
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_physical_target_owner.pgy" 60
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_physical_target_owner.pgy"
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_physical_target_owner.pgy" "func DirectMirScalarProgramLogicalRecordPhysicalTargetReady("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_target_owner.pgy" "func DirectMirScalarProgramLogicalRecordPhysicalTargetReady("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_physical_target_owner.pgy" "func DirectMirScalarProgramLogicalRecordStorageAlignment("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_target_owner.pgy" "func DirectMirScalarProgramLogicalRecordStorageAlignment("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_physical_target_owner.pgy" "func DirectMirScalarProgramLogicalRecordPhysicalIntField("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_target_owner.pgy" "func DirectMirScalarProgramLogicalRecordPhysicalIntField("
+require_file "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_expression_owner.pgy"
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_expression_owner.pgy" 75
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_expression_owner.pgy"
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_expression_owner.pgy" "func DirectMirScalarProgramCLogicalRecordExpression("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_owner.pgy" "func DirectMirScalarProgramCLogicalRecordExpression("
+require_file "src/self_hosted/compiler/direct_mir_scalar_program_scalar_value_result_storage_owner.pgy"
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_scalar_value_result_storage_owner.pgy" 35
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/direct_mir_scalar_program_scalar_value_result_storage_owner.pgy"
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_scalar_value_result_storage_owner.pgy" "func DirectMirScalarProgramScalarParameterLocalRow("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_value_result_union_owner.pgy" "func DirectMirScalarProgramScalarParameterLocalRow("
+require_file "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_exhaustive_condition_owner.pgy"
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_exhaustive_condition_owner.pgy" 125
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_exhaustive_condition_owner.pgy"
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_exhaustive_condition_owner.pgy" "struct DirectMirScalarProgramPayloadEnumMatchConditionFact {"
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_enum_exhaustive_match_owner.pgy" "struct DirectMirScalarProgramPayloadEnumMatchConditionFact {"
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_exhaustive_condition_owner.pgy" "func DirectMirScalarProgramPayloadEnumMatchConditionInvalid("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_enum_exhaustive_match_owner.pgy" "func DirectMirScalarProgramPayloadEnumMatchConditionInvalid("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_exhaustive_condition_owner.pgy" "func DirectMirScalarProgramPayloadEnumMatchConditionAt("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_enum_exhaustive_match_owner.pgy" "func DirectMirScalarProgramPayloadEnumMatchConditionAt("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_payload_enum_exhaustive_condition_owner.pgy" "func DirectMirScalarProgramPayloadEnumMatchScrutineeSame("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_enum_exhaustive_match_owner.pgy" "func DirectMirScalarProgramPayloadEnumMatchScrutineeSame("
+require_file "src/self_hosted/semantic/oracle_json_diagnostic_owner.pgy"
+require_max_lines "src/self_hosted/semantic/oracle_json_diagnostic_owner.pgy" 55
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/semantic/oracle_json_diagnostic_owner.pgy"
+require_text "src/self_hosted/semantic/oracle_json_diagnostic_owner.pgy" "func SemanticOracleJsonRootFact("
+reject_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticOracleJsonRootFact("
+require_text "src/self_hosted/semantic/oracle_json_diagnostic_owner.pgy" "func SemanticOracleJsonCodeFromContent("
+reject_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticOracleJsonCodeFromContent("
+require_text "src/self_hosted/semantic/oracle_json_diagnostic_owner.pgy" "func EmitSemanticOracleJsonCodeMatch("
+reject_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func EmitSemanticOracleJsonCodeMatch("
+require_file "src/self_hosted/compiler/direct_mir_nominal_abi_row_identity_owner.pgy"
+require_max_lines "src/self_hosted/compiler/direct_mir_nominal_abi_row_identity_owner.pgy" 35
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/direct_mir_nominal_abi_row_identity_owner.pgy"
+require_text "src/self_hosted/compiler/direct_mir_nominal_abi_row_identity_owner.pgy" "func DirectMirAbiRowIdentityText("
+reject_text "src/self_hosted/compiler/direct_mir_nominal_abi_row_equality_owner.pgy" "func DirectMirAbiRowIdentityText("
+require_file "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy"
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" 20
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy"
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprStringLiteral("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprStringLiteral("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprToStringSignedInteger("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprToStringSignedInteger("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprEqualString("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprEqualString("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprNotEqualString("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprNotEqualString("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprConcatString("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprConcatString("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprToUpperString("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprToUpperString("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprToLowerString("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprToLowerString("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprStringLength("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprStringLength("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprSubstring("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprSubstring("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprSubstringWithLen("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprSubstringWithLen("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprStringContains("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprStringContains("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprStringSplit("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprStringSplit("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprToIntString("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprToIntString("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprStringJoin("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprStringJoin("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_string_core_expression_kind_owner.pgy" "func DirectMirScalarProgramExprToStringString("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" "func DirectMirScalarProgramExprToStringString("
+require_file "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_syntax_owner.pgy"
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_syntax_owner.pgy" 90
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_syntax_owner.pgy"
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_syntax_owner.pgy" "func DirectMirScalarProgramCallCalleeLeafReady("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_identity_owner.pgy" "func DirectMirScalarProgramCallCalleeLeafReady("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_syntax_owner.pgy" "func DirectMirScalarProgramCallCalleeNodeReady("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_identity_owner.pgy" "func DirectMirScalarProgramCallCalleeNodeReady("
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_syntax_owner.pgy" "func DirectMirScalarProgramBuiltinCalleeLeafReady("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_call_callee_identity_owner.pgy" "func DirectMirScalarProgramBuiltinCalleeLeafReady("
+require_file "src/self_hosted/compiler/direct_mir_scalar_program_array_int_abi_projection_contract_owner.pgy"
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_array_int_abi_projection_contract_owner.pgy" 20
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/direct_mir_scalar_program_array_int_abi_projection_contract_owner.pgy"
+require_text "src/self_hosted/compiler/direct_mir_scalar_program_array_int_abi_projection_contract_owner.pgy" "func DirectMirScalarProgramArrayIntAbiProjectionReadyForFact("
+reject_text "src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_target_owner.pgy" "func DirectMirScalarProgramArrayIntAbiProjectionReadyForFact("
 
 echo "[self-host-component-contract] checkpoint: checking line caps"
 run_line_cap_checks

@@ -1,6 +1,6 @@
 // C projection for logical-record values and indexed record-array reads.
 
-import "direct_mir_scalar_program_c_logical_record_owner.pgy";
+import "direct_mir_scalar_program_c_logical_record_expression_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 

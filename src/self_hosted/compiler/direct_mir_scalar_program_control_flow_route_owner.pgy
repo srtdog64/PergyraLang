@@ -4,8 +4,7 @@ import "direct_mir_routine_signature_fact_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
 
-func DirectMirScalarControlFlowProgramRouteClaimed(
-    ref admitted: MirMachineLayerAdmittedJsonInput
+func DirectMirScalarControlFlowProgramRouteClaimed(ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> Bool {
     if MirProgramRoutineIndexCount(admitted.routines) != 1 ||
         !MirProgramRoutineIndexRowReady(admitted.routines, 0) ||
@@ -13,36 +12,25 @@ func DirectMirScalarControlFlowProgramRouteClaimed(
         JsonArrayObjectFactCount(admitted.document.declarations) != 0 {
         return false;
     }
-    let first_block_count: Int =
-        MirProgramRoutineIndexBlockInstructionCountAt(
-            admitted.routines, 0, 0
-        );
-    let signature: DirectMirRoutineSignatureFact =
-        DirectMirRoutineSignatureFactAt(
-            admitted.routines, 0, first_block_count
-        );
+    let first_block_count: Int = MirProgramRoutineIndexBlockInstructionCountAt(
+            admitted.routines, 0, 0);
+    let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(
+            admitted.routines, 0, first_block_count);
     if !DirectMirRoutineSignatureFactReady(signature) ||
-        signature.name != "Main" || signature.return_type != "Void" ||
-        signature.param_count != 0 {
+        signature.name != "Main" || signature.return_type != "Void" || signature.param_count != 0 {
         return false;
     }
-    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
-        admitted.routines, 0
-    );
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(admitted.routines, 0);
     if !index.valid {
         return false;
     }
     return DirectMirScalarControlFlowRoutineRouteClaimed(admitted, signature, index);
 }
 
-func DirectMirScalarControlFlowRoutineRouteClaimed(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
-    ref signature: DirectMirRoutineSignatureFact,
-    ref index: MirRoutineFactIndex
-) -> Bool {
+func DirectMirScalarControlFlowRoutineRouteClaimed(ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref signature: DirectMirRoutineSignatureFact, ref index: MirRoutineFactIndex) -> Bool {
     if !DirectMirRoutineSignatureFactReady(signature) || !index.valid ||
-        signature.kind != "function" ||
-        (signature.return_type != "Void" &&
+        signature.kind != "function" || (signature.return_type != "Void" &&
             !DirectMirScalarCfgScalarTypeSupported(signature.return_type)) { return false; }
     let parameter: Int = 0;
     while parameter < signature.param_count {
@@ -53,8 +41,7 @@ func DirectMirScalarControlFlowRoutineRouteClaimed(
     }
     let local_binding: Int = 0;
     while local_binding < ArrayLength(index.source_local_types) {
-        if !DirectMirScalarCfgScalarTypeSupported(
-                index.source_local_types[local_binding]) {
+        if !DirectMirScalarCfgScalarTypeSupported(index.source_local_types[local_binding]) {
             return false;
         }
         local_binding = local_binding + 1;

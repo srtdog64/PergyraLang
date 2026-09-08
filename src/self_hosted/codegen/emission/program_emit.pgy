@@ -43,29 +43,21 @@ import "intent_execution_plan_emit_owner.pgy";
 import "../runtime_abi/spawn_runtime_owner.pgy";
 import "../runtime_abi/checked_builtin_runtime_owner.pgy";
 import "../runtime_abi/checked_division_runtime_owner.pgy";
-func CheckFunction(count: Int, arena: AstArena,
-                   signatures: SemanticAstFunctionSignatureFacts,
+func CheckFunction(count: Int, arena: AstArena, signatures: SemanticAstFunctionSignatureFacts,
                    local_bindings: SemanticAstLocalBindingFacts,
-                   assignments: SemanticAstAssignmentFacts,
-                   statements: SemanticAstStatementFacts,
+                   assignments: SemanticAstAssignmentFacts, statements: SemanticAstStatementFacts,
                    inout cur: Array<Int>, f_indent: Int) -> Bool {
-    let signature_index: Int = CodegenSemanticSignatureIndexOrDie(
-        signatures, cur[0]
-    );
+    let signature_index: Int = CodegenSemanticSignatureIndexOrDie(signatures, cur[0]);
     let param_index: Int = 0;
-    let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
-        signatures, signature_index
-    );
+    let param_count: Int = CodegenSemanticFunctionParamCountOrDie(signatures, signature_index);
     ArraySet(cur, 0, cur[0] + 1);
     CodegenAstArenaConsumeAdmittedGenericHeader(arena, count, cur);
     CodegenAstArenaExpectParameters(arena, count, cur);
     while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
         let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
-            signatures, signature_index, param_index
-        );
+            signatures, signature_index, param_index);
         CodegenSemanticFunctionParamNameForNodeOrDie(
-            signatures, signature_index, param_index, cur[0]
-        );
+            signatures, signature_index, param_index, cur[0]);
         param_index = param_index + 1;
         ArraySet(cur, 0, cur[0] + 1);
     }
@@ -76,14 +68,10 @@ func CheckFunction(count: Int, arena: AstArena,
         Die("expected Returns: line after parameters");
     }
     ArraySet(cur, 0, cur[0] + 1);
-    CodegenSemanticCallableContractAdvanceOrDie(
-        signatures, signature_index, arena, count, cur
-    );
+    CodegenSemanticCallableContractAdvanceOrDie(signatures, signature_index, arena, count, cur);
     CodegenAstArenaExpectBody(arena, count, cur);
     CodegenAstArenaExpectBlock(arena, count, cur);
-    return CheckStmtList(
-        count, arena, local_bindings, assignments, statements,
-        f_indent + 6, cur
+    return CheckStmtList(count, arena, local_bindings, assignments, statements, f_indent + 6, cur
     );
 }
 func CheckCUnitFromSemanticArtifact(
@@ -305,12 +293,17 @@ func GenerateCUnitFromReadySemanticFacts(
             specializations
         );
     if observe_pressure { Log("[codegen-pressure-stage] value-wrappers:done"); }
+    let nominal_arrays: CodegenNominalArrayUsageFacts =
+        CodegenNominalArrayUsageFactsFromSemantic(
+            semantic_analysis.type_surfaces, signatures, specializations,
+            semantic_analysis.constructors
+        );
     if observe_pressure { Log("[codegen-pressure-stage] type-declarations:start"); }
     let type_declaration_fact: CodegenTypeDeclarationBlockFact =
         CollectTypeDeclarations(
         semantic_analysis.enums, semantic_analysis.constructors,
         semantic_analysis.roles,
-        value_wrappers, env_acc
+        value_wrappers, nominal_arrays, env_acc
         );
     if observe_pressure { Log("[codegen-pressure-stage] type-declarations:done"); }
     if observe_pressure { Log("[codegen-pressure-stage] role-dispatch:start"); }
@@ -363,10 +356,7 @@ func GenerateCUnitFromReadySemanticFacts(
             semantic_analysis.expression_surfaces,
             semantic_analysis.type_surfaces,
             semantic_analysis.kind_surfaces,
-            signatures,
-            specializations,
-            value_wrappers,
-            base_env
+            nominal_arrays, value_wrappers
         );
     if observe_pressure { Log("[codegen-pressure-stage] runtime-usage:done"); }
     if !usage.nominal_record_arrays.ok { Die("nominal record array usage facts are incomplete"); }

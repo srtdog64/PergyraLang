@@ -5,10 +5,8 @@ import "direct_mir_scalar_program_nested_array_literal_seed_owner.pgy";
 import "direct_mir_scalar_program_array_int_record_index_literal_admission_owner.pgy";
 
 func DirectMirScalarProgramNestedArrayIntLiteralOperandRows(
-    ref sequence: MirExpressionGraphSequence, node: Int,
-    ref source_rows: Array<Int>,
-    ref normalized_types: Array<String>
-) -> Array<Int> {
+    ref sequence: MirExpressionGraphSequence, node: Int, ref source_rows: Array<Int>,
+    ref normalized_types: Array<String>) -> Array<Int> {
     let reverse_rows: Array<Int> = [];
     if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
         sequence.arena.topology.node_kinds[node] !=

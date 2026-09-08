@@ -11,21 +11,16 @@ import "direct_mir_scalar_program_int_match_condition_owner.pgy";
 func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
     inout expressions: DirectMirScalarProgramExpressionSet,
     inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
-    ref instruction: JsonObjectFactTable,
-    ref uses: MirRoutineInstructionUseFacts,
-    ref index: MirRoutineFactIndex,
-    global_row: Int, local_instruction: Int,
-    ref locals: DirectMirScalarCfgLocalRefPlan,
-    ref types: DirectMirScalarCfgValueTypePlan,
-    ref wire: DirectMirScalarCfgWireLocalRefs,
-    local_offset: Int, parameter_types: Array<String>,
+    ref instruction: JsonObjectFactTable, ref uses: MirRoutineInstructionUseFacts,
+    ref index: MirRoutineFactIndex, global_row: Int, local_instruction: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan, ref types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs, local_offset: Int, parameter_types: Array<String>,
     ref signature: DirectMirRoutineSignatureFact,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
-    ref option_int_abi: DirectMirOptionMatchAbiFact,
-    graph_field: String, inout use_offset: Int,
+    ref option_int_abi: DirectMirOptionMatchAbiFact, graph_field: String, inout use_offset: Int,
     require_all_uses: Bool, expected_type: String, source_root: Int
 ) -> Option<Int> {
     let expression_row: Int = ArrayLength(expressions.graph_starts);

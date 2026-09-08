@@ -2,34 +2,6 @@
 
 import "../mir_lower/abi_layout_fact_owner.pgy";
 
-// A bounded, exact receipt key survives parameter-set projection. Length
-// prefixes retain every field boundary; the content hash alone is not equality.
-func DirectMirAbiRowIdentityText(ref row: MirAbiLayoutRowCapture) -> String {
-    if !row.valid || ArrayLength(row.field_names) != ArrayLength(row.field_offsets) ||
-        ArrayLength(row.field_names) != ArrayLength(row.field_sizes) ||
-        ArrayLength(row.field_names) != ArrayLength(row.field_aligns) { return ""; }
-    let values: Array<String> = [row.type_name, row.size_text, row.align_text,
-        row.runtime_fn, row.inner_c_type, row.representation_text,
-        row.discriminant, row.primary_tag_text, row.secondary_tag_text,
-        row.niche_none_pattern, ToString(ArrayLength(row.field_names))];
-    let field: Int = 0;
-    while field < ArrayLength(row.field_names) {
-        ArrayPush(values, row.field_names[field]);
-        ArrayPush(values, row.field_offsets[field]);
-        ArrayPush(values, row.field_sizes[field]);
-        ArrayPush(values, row.field_aligns[field]);
-        field = field + 1;
-    }
-    let output: String = "";
-    let value: Int = 0;
-    while value < ArrayLength(values) {
-        output = Concat(output, Concat(ToString(StringLength(values[value])), ":"));
-        output = Concat(output, values[value]);
-        value = value + 1;
-    }
-    return output;
-}
-
 func DirectMirStructAbiRowsEqual(
     ref left: MirAbiLayoutRowCapture,
     ref right: MirAbiLayoutRowCapture

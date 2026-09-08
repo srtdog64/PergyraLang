@@ -13,11 +13,8 @@ import "runtime_value_representation_owner.pgy";
 import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
 func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
-    ref plan: DirectMirScalarCfgGraphPlan, start: Int, count: Int,
-    routine: Int
-) -> String {
-    if start < 0 || count < 0 ||
-        start + count > ArrayLength(plan.local_names) || routine < 0 ||
+    ref plan: DirectMirScalarCfgGraphPlan, start: Int, count: Int, routine: Int) -> String {
+    if start < 0 || count < 0 || start + count > ArrayLength(plan.local_names) || routine < 0 ||
         routine >= ArrayLength(plan.routines.roles) ||
         start != plan.routines.local_starts[routine] ||
         count != plan.routines.local_counts[routine] {
@@ -29,8 +26,7 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
         let llvm_type: String = "i64";
         let hashmap: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(plan.local_types[row]);
         let runtime_value: CompilerRuntimeValueRepresentation =
-            CompilerRuntimeValueRepresentationFor(
-                plan.local_types[row]);
+            CompilerRuntimeValueRepresentationFor(plan.local_types[row]);
         output = Concat(output, "  %pgy.local.");
         output = Concat(output, ToString(row));
         if hashmap.ok || plan.local_types[row] == CompilerAbiLayoutArrayLongTypeName() {
@@ -41,13 +37,10 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
             llvm_type = runtime_value.llvm_type;
             output = Concat(output, Concat(" = alloca ", llvm_type));
             output = Concat(output, Concat(", align 8\n  store ", llvm_type));
-            output = Concat(output,
-                " zeroinitializer, ptr %pgy.local.");
+            output = Concat(output, " zeroinitializer, ptr %pgy.local.");
         } else if plan.local_types[row] == CompilerAbiLayoutStringTypeName() {
             llvm_type = "ptr";
-            output = Concat(output,
-                " = alloca ptr, align 8\n  store ptr null, ptr %pgy.local."
-            );
+            output = Concat(output, " = alloca ptr, align 8\n  store ptr null, ptr %pgy.local.");
         } else if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
             llvm_type = "i1";
             output = Concat(output,

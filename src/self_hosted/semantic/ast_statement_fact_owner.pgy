@@ -30,10 +30,8 @@ struct SemanticAstStatementFacts {
     auxiliary_texts: Array<String>;
 }
 func SemanticAstStatementKindTracked(kind: Int) -> Bool {
-    return kind == TypedAstKindLogStmtTag() ||
-        kind == TypedAstKindBareReturnStmtTag() ||
-        kind == TypedAstKindValueReturnStmtTag() ||
-        kind == TypedAstKindArrayPopStmtTag() ||
+    return kind == TypedAstKindLogStmtTag() || kind == TypedAstKindBareReturnStmtTag() ||
+        kind == TypedAstKindValueReturnStmtTag() || kind == TypedAstKindArrayPopStmtTag() ||
         kind == TypedAstKindArraySetStmtTag() ||
         kind == TypedAstKindArrayPushStmtTag() ||
         kind == TypedAstKindExitStmtTag() ||

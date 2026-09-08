@@ -10,8 +10,7 @@ func DirectMirScalarProgramDirectCallFactFromGraph(
     ref sequence: MirExpressionGraphSequence, node: Int,
     source_rows: Array<Int>, normalized_types: Array<String>,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
-    ref signature: DirectMirRoutineSignatureFact
-) -> DirectMirScalarProgramDirectCallFact {
+    ref signature: DirectMirRoutineSignatureFact) -> DirectMirScalarProgramDirectCallFact {
     let missing: DirectMirScalarProgramDirectCallFact =
         DirectMirScalarProgramDirectCallFactInvalid(false);
     if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
@@ -24,8 +23,7 @@ func DirectMirScalarProgramDirectCallFactFromGraph(
         return DirectMirIdentityCellCallFromGraph(sequence, chain.call_node,
             source_rows, normalized_types, chain.argument_rows, callables);
     }
-    let target_syntax_id: Int =
-        sequence.arena.identities.call_target_syntax_ids[chain.call_node];
+    let target_syntax_id: Int = sequence.arena.identities.call_target_syntax_ids[chain.call_node];
     let callee: Int = DirectMirScalarProgramCallCalleeBase(sequence, chain.call_node);
     if callee < 0 || callee >= chain.call_node {
         return DirectMirScalarProgramDirectCallFactInvalid(true);
@@ -75,8 +73,7 @@ func DirectMirScalarProgramDirectCallFactFromGraph(
             true, true, count == ArrayLength(shape.parameter_types), chain.argument_rows,
             chain.call_node, -1, parameter_ordinal, shape.return_type);
     }
-    if !DirectMirScalarProgramDeclaredCallCalleeIdentityReady(
-            sequence, chain.call_node) {
+    if !DirectMirScalarProgramDeclaredCallCalleeIdentityReady(sequence, chain.call_node) {
         return DirectMirScalarProgramDirectCallFactInvalid(true);
     }
     let callable_ordinal: Int =

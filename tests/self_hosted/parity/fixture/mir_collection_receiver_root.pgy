@@ -1,0 +1,36 @@
+import "../../../../src/self_hosted/mir/routine_statement_owner.pgy";
+
+func Main() -> Void {
+    let leaf: Int = AstExpressionNodeLeaf();
+    let member: Int = AstExpressionNodeMemberAccess();
+    let kinds: Array<Int> = [leaf, leaf, member, leaf, member];
+    let texts: Array<String> = ["receiver", "nested", "receiver.nested", "values", "receiver.nested.values"];
+    let left: Array<Int> = [-1, -1, 0, -1, 2];
+    let right: Array<Int> = [-1, -1, 1, -1, 3];
+    let empty_texts: Array<String> = ["", "", "", "", ""];
+    let zeros: Array<Int> = [0, 0, 0, 0, 0];
+    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, [4], [true], SemanticExpressionGraphArena(
+            AstExpressionArena(kinds, texts, left, right), texts,
+            zeros, empty_texts, empty_texts, SemanticExpressionIdentityRowsUnknown(5), zeros));
+    let build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
+    build = SelfMirRoutinePushLocal(build, "receiver", "Outer", 1, "parameter:100:0");
+    build = SelfMirRoutinePushLocal(build, "receiver", "Outer", 2, "declaration:200:0");
+    build = SelfMirRoutinePushLocal(build, "values", "Array<Int>", 1, "declaration:300:0");
+    let root: Option<Int> = SelfMirCollectionMutationTargetLocal(
+        build, SemanticExpressionGraphView(true, 4, graph));
+    Log(UnwrapOption(root));
+    Log(build.local_refs[UnwrapOption(root)]);
+    Log(UnwrapOption(SelfMirCollectionMutationTargetLocal(
+        build, SemanticExpressionGraphView(true, 0, graph))));
+    Log(IsSome(SelfMirCollectionMutationTargetLocal(
+        SelfMirRoutineBuildEmpty(), SemanticExpressionGraphView(true, 4, graph))));
+    // A self edge cannot become an unbounded receiver walk.
+    ArraySet(left, 4, 4);
+    Log(IsSome(SelfMirCollectionMutationTargetLocal(
+        build, SemanticExpressionGraphView(true, 4, graph))));
+    ArraySet(left, 4, 2);
+    ArraySet(kinds, 0, AstExpressionNodeCall());
+    Log(IsSome(SelfMirCollectionMutationTargetLocal(
+        build, SemanticExpressionGraphView(true, 4, graph))));
+}

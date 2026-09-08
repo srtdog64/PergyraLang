@@ -1,5 +1,6 @@
 // One admitted Int operand identity for a populated Array<Int> literal.
 import "direct_mir_scalar_program_call_expression_admission_owner.pgy";
+import "direct_mir_scalar_program_call_callee_syntax_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";

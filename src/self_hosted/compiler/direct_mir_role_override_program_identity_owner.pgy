@@ -621,7 +621,7 @@ func DirectMirRoleOverrideProgramIdentityFromAdmitted(
     let role_row: Int = -1;
     let row: Int = 0;
     while row < 2 {
-        if admitted.routines.declarations.kinds[row] == "subject" &&
+        if admitted.routines.declarations.kinds[row] == "class" &&
             admitted.routines.declarations.nominal_kinds[row] == "subject" {
             if subject_row >= 0 {
                 Die("direct MIR role override subject is duplicated");

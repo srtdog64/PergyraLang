@@ -24,20 +24,13 @@ func DirectMirScalarProgramCallableParameterRolePlanInvalid() -> DirectMirScalar
         false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 func DirectMirScalarProgramCallableParameterRolePlanReady(
-    ref plan: DirectMirScalarProgramCallableParameterRolePlan,
-    parameter_count: Int
-) -> Bool {
-    return plan.valid && parameter_count >= 0 &&
-        plan.direct_scalar_count >= 0 &&
-        plan.callable_function_value_count >= 0 &&
-        plan.logical_record_input_count >= 0 &&
+    ref plan: DirectMirScalarProgramCallableParameterRolePlan, parameter_count: Int) -> Bool {
+    return plan.valid && parameter_count >= 0 && plan.direct_scalar_count >= 0 &&
+        plan.callable_function_value_count >= 0 && plan.logical_record_input_count >= 0 &&
         plan.logical_record_value_result_count >= 0 &&
-        plan.logical_record_array_value_result_count >= 0 &&
-        plan.abi_value_count >= 0 &&
-        plan.payload_free_enum_value_count >= 0 &&
-        plan.payload_enum_value_count >= 0 &&
-        plan.array_int_value_result_count >= 0 &&
-        plan.array_string_value_result_count >= 0 &&
+        plan.logical_record_array_value_result_count >= 0 && plan.abi_value_count >= 0 &&
+        plan.payload_free_enum_value_count >= 0 && plan.payload_enum_value_count >= 0 &&
+        plan.array_int_value_result_count >= 0 && plan.array_string_value_result_count >= 0 &&
         plan.set_string_value_result_count >= 0 &&
         plan.array_readonly_ref_count >= 0 &&
         plan.identity_cell_count >= 0 &&

@@ -3,10 +3,8 @@ import "direct_mir_scalar_program_case_math_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_checked_int_owner.pgy";
 
-func DirectMirScalarProgramCCaseMathExpression(
-    kind: Int, left: String, right: String, arguments: Array<String>,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
-) -> Option<String> {
+func DirectMirScalarProgramCCaseMathExpression(kind: Int, left: String, right: String, arguments: Array<String>,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection) -> Option<String> {
     if DirectMirScalarProgramCheckedIntKind(kind) {
         let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(kind);
         if !abi.ok { return None; }
@@ -48,11 +46,5 @@ func DirectMirScalarProgramCCaseMathExpression(
         ArrayPush(values, left); ArrayPush(values, right);
     } else { return None; }
     if !ready || ArrayLength(values) < 1 { return None; }
-    let output: String = Concat(symbol, "(");
-    let ordinal: Int = 0;
-    while ordinal < ArrayLength(values) {
-        if ordinal > 0 { output = Concat(output, ", "); }
-        output = Concat(output, values[ordinal]); ordinal = ordinal + 1;
-    }
-    return Some(Concat(output, ")"));
+    return Some(Concat(symbol, Concat("(", Concat(StringJoin(values, ", "), ")"))));
 }

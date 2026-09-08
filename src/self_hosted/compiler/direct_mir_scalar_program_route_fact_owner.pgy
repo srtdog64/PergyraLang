@@ -22,8 +22,7 @@ struct DirectMirScalarProgramRouteFact {
 }
 func DirectMirScalarProgramRouteFactEmpty() -> DirectMirScalarProgramRouteFact {
     let rows: Array<Int> = [];
-    return DirectMirScalarProgramRouteFact(
-        false, 0, -1, -1, rows,
+    return DirectMirScalarProgramRouteFact(false, 0, -1, -1, rows,
         DirectMirScalarProgramLogicalRecordFactInvalid(),
         DirectMirScalarProgramReferencedEnumFactInvalid(),
         DirectMirScalarProgramPayloadFreeEnumFactInvalid(),
@@ -31,13 +30,11 @@ func DirectMirScalarProgramRouteFactEmpty() -> DirectMirScalarProgramRouteFact {
         DirectMirScalarProgramArrayBoolAbiFactInvalid(),
         DirectMirScalarProgramArrayStringAbiFactEmpty(), DirectMirRoutineInstanceInventoryEmpty(""));
 }
-func DirectMirScalarProgramRouteFactCanonicalEmpty(
-    ref fact: DirectMirScalarProgramRouteFact
+func DirectMirScalarProgramRouteFactCanonicalEmpty(ref fact: DirectMirScalarProgramRouteFact
 ) -> Bool {
     return !fact.claimed && fact.digest == 0 && fact.entrypoint_row == -1 &&
         fact.callable_row == -1 && ArrayLength(fact.routine_rows) == 0 &&
-        !fact.logical_record.valid &&
-        !fact.referenced_enum.valid &&
+        !fact.logical_record.valid && !fact.referenced_enum.valid &&
         !fact.payload_free_enum.valid &&
         !fact.array_int_value_result.valid && !fact.array_bool_abi.valid &&
         !fact.routine_instances.valid &&

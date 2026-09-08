@@ -1,14 +1,11 @@
 // Target-bound projection of the exact value-result Array<Int> ABI receipt.
 
 import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
-import "direct_mir_array_int_abi_projection_owner.pgy";
+import "direct_mir_scalar_program_array_int_abi_projection_contract_owner.pgy";
 
-func DirectMirScalarProgramArrayIntValueResultTargetFromFact(
-    ref fact: DirectMirScalarProgramArrayIntValueResultFact,
-    ref target: CompilerTargetProjectionFact
-) -> DirectMirArrayIntAbiProjection {
-    if !DirectMirScalarProgramArrayIntValueResultFactReady(fact) ||
-        !fact.present {
+func DirectMirScalarProgramArrayIntValueResultTargetFromFact(ref fact: DirectMirScalarProgramArrayIntValueResultFact,
+    ref target: CompilerTargetProjectionFact) -> DirectMirArrayIntAbiProjection {
+    if !DirectMirScalarProgramArrayIntValueResultFactReady(fact) || !fact.present {
         Die("direct MIR Array<Int> value-result target fact is invalid");
     }
     return DirectMirArrayIntAbiProjectionFromCanonicalLayout(
@@ -16,22 +13,7 @@ func DirectMirScalarProgramArrayIntValueResultTargetFromFact(
         fact.length_offset, fact.capacity_offset, fact.allocator_offset);
 }
 
-func DirectMirScalarProgramArrayIntAbiProjectionReadyForFact(
-    ref fact: DirectMirScalarProgramArrayIntValueResultFact,
-    ref projection: DirectMirArrayIntAbiProjection, expected_target: String
-) -> Bool {
-    return DirectMirScalarProgramArrayIntValueResultFactReady(fact) && fact.present &&
-        DirectMirArrayIntAbiProjectionReadyFor(projection, expected_target) &&
-        projection.abi_layout_id == fact.layout_id &&
-        projection.storage.size == fact.size && projection.storage.align == fact.align &&
-        projection.storage.data_offset == fact.data_offset &&
-        projection.storage.length_offset == fact.length_offset &&
-        projection.storage.capacity_offset == fact.capacity_offset &&
-        projection.storage.allocator_offset == fact.allocator_offset;
-}
-
-func DirectMirScalarProgramArrayIntAbiProjectionFromFact(
-    ref fact: DirectMirScalarProgramArrayIntValueResultFact,
+func DirectMirScalarProgramArrayIntAbiProjectionFromFact(ref fact: DirectMirScalarProgramArrayIntValueResultFact,
     ref target: CompilerTargetProjectionFact
 ) -> Option<DirectMirArrayIntAbiProjection> {
     if !DirectMirScalarProgramArrayIntValueResultFactReady(fact) {

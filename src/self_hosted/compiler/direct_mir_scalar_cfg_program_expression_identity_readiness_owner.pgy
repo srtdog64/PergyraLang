@@ -37,8 +37,7 @@ func DirectMirScalarCfgProgramExpressionIdentityReady(ref plan: DirectMirScalarC
             if plan.local_ref_kinds[local_row] != DirectMirScalarCfgLocalRefMatchBinding() ||
                 plan.local_types[local_row] != plan.program.referenced_enum.variant_param_types[
                     plan.program.referenced_enum.variant_param_type_starts[variant] + parameter] ||
-                plan.local_ref_syntax_ids[local_row] !=
-                    plan.local_ref_syntax_ids[binding] + parameter {
+                plan.local_ref_syntax_ids[local_row] != plan.local_ref_syntax_ids[binding] + parameter {
                 return false;
             }
             parameter = parameter + 1;
@@ -57,8 +56,7 @@ func DirectMirScalarCfgProgramExpressionIdentityReady(ref plan: DirectMirScalarC
                 plan.routines.parameter_starts[routine] + ordinal];
     }
     if kind == DirectMirScalarProgramExprArrayStringLiteral() {
-        return DirectMirScalarProgramArrayStringLiteralParameterCarriageReady(
-            facts, node, plan.routines, routine);
+        return DirectMirScalarProgramArrayStringLiteralParameterCarriageReady(facts, node, plan.routines, routine);
     }
     if kind == DirectMirScalarProgramExprArrayStringDropOwned() {
         let left: Int = facts.node_lefts[node];
@@ -66,16 +64,12 @@ func DirectMirScalarCfgProgramExpressionIdentityReady(ref plan: DirectMirScalarC
         if facts.node_kinds[left] == DirectMirScalarProgramExprLocal() {
             return true;
         }
-        if facts.node_kinds[left] !=
-                DirectMirScalarProgramExprParameter() { return false; }
+        if facts.node_kinds[left] != DirectMirScalarProgramExprParameter() { return false; }
         let ordinal: Int = facts.node_parameter_ordinals[left];
-        return DirectMirScalarProgramArrayStringValueResultAt(
-                plan.program.array_string_abi, routine, ordinal) ||
-            DirectMirScalarProgramOwnedArrayStringMutationParameterAt(
-                plan.routines, routine, ordinal);
+        return DirectMirScalarProgramArrayStringValueResultAt(plan.program.array_string_abi, routine, ordinal) ||
+            DirectMirScalarProgramOwnedArrayStringMutationParameterAt(plan.routines, routine, ordinal);
     }
-    if kind == DirectMirScalarProgramExprSetStringAdd() ||
-            kind == DirectMirScalarProgramExprArrayStringPushOwned() {
+    if kind == DirectMirScalarProgramExprSetStringAdd() || kind == DirectMirScalarProgramExprArrayStringPushOwned() {
         let left: Int = facts.node_lefts[node];
         if left < graph_start || left >= node { return false; }
         if facts.node_kinds[left] == DirectMirScalarProgramExprLocal() {

@@ -1,0 +1,4 @@
+// Forwarding an array element never completes its direct by-value layout.
+struct Left { right: Right; peers: Array<Right>; }
+struct Right { left: Left; }
+func Main() -> Void { Log(0); }

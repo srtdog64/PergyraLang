@@ -1,11 +1,8 @@
 /* LLVM MIR local and parameter alloca emission. */
-
 #ifdef PGY_LLVM_ENABLED
-
 #include "llvm_mir_local_emit.h"
 #include "llvm_mir_host_field.h"
 #include <string.h>
-
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_internal_api.h"
 #include "llvm_mir_async_fact.h"
@@ -24,7 +21,6 @@ llvm_mir_local_source_fact(const MIRRoutine *routine, const char *name)
 {
     const MIRSourceLocalType *fact;
     char base_name[128];
-
     if (routine == NULL || name == NULL)
         return NULL;
     fact = mir_routine_source_local_type_fact(routine, name);
@@ -43,7 +39,6 @@ llvm_mir_local_type_from_source_fact_entry(LLVMGenCtx *ctx,
 {
     LLVMTypeRef *param_types = NULL;
     LLVMTypeRef ret_type;
-
     if (ctx == NULL || fact == NULL)
         return NULL;
     /* Closure locals are typed by let-storage; the fact's type_name is a
@@ -74,10 +69,8 @@ llvm_mir_local_type_from_source_fact_entry(LLVMGenCtx *ctx,
                 return NULL;
         }
     }
-    return LLVMPointerType(
-        LLVMFunctionType(ret_type, param_types,
-            (unsigned)fact->callable_param_count, 0),
-        0);
+    return LLVMPointerType(LLVMFunctionType(ret_type, param_types,
+        (unsigned)fact->callable_param_count, 0), 0);
 }
 
 static LLVMTypeRef
@@ -703,5 +696,4 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
     *var_capacity_ptr = var_capacity;
     *var_count_ptr = var_count;
 }
-
 #endif

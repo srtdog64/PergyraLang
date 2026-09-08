@@ -22,19 +22,14 @@ struct DirectMirScalarProgramLlvmExpression {
     let value: String;
     let type_name: String;
 }
-func DirectMirScalarProgramLlvmNodeName(
-    expression_row: Int, node: Int
-) -> String {
-    return Concat("%pgy.expr.", Concat(
-        ToString(expression_row), Concat(".", ToString(node))));
+func DirectMirScalarProgramLlvmNodeName(expression_row: Int, node: Int) -> String {
+    return Concat("%pgy.expr.", Concat(ToString(expression_row), Concat(".", ToString(node))));
 }
 func DirectMirScalarProgramLlvmLocalName(row: Int) -> String {
     return Concat("%pgy.local.", ToString(row));
 }
-func DirectMirScalarProgramLlvmExpressionAt(
-    ref expressions: DirectMirScalarProgramExpressionSet,
-    expression_row: Int,
-    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+func DirectMirScalarProgramLlvmExpressionAt(ref expressions: DirectMirScalarProgramExpressionSet,
+    expression_row: Int, ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
@@ -56,16 +51,12 @@ func DirectMirScalarProgramLlvmExpressionAt(
         if expressions.node_lefts[node] >= start {
             left = values[expressions.node_lefts[node] - start];
             let left_node: Int = expressions.node_lefts[node];
-            if expressions.node_kinds[left_node] ==
-                    DirectMirScalarProgramExprLocal() {
+            if expressions.node_kinds[left_node] == DirectMirScalarProgramExprLocal() {
                 left_address = DirectMirScalarProgramLlvmLocalName(
                     expressions.node_local_rows[left_node]);
-            } else if expressions.node_kinds[left_node] ==
-                    DirectMirScalarProgramExprParameter() {
-                let left_ordinal: Int =
-                    expressions.node_parameter_ordinals[left_node];
-                let left_parameter_row: Int =
-                    routines.parameter_starts[routine] + left_ordinal;
+            } else if expressions.node_kinds[left_node] == DirectMirScalarProgramExprParameter() {
+                let left_ordinal: Int = expressions.node_parameter_ordinals[left_node];
+                let left_parameter_row: Int = routines.parameter_starts[routine] + left_ordinal;
                 let parameter_address: String =
                     DirectMirScalarProgramLlvmCollectionParameterMutationAddress(
                         routines, left_parameter_row, left_ordinal);
@@ -79,27 +70,21 @@ func DirectMirScalarProgramLlvmExpressionAt(
         let argument_types: Array<String> = [];
         let argument_kinds: Array<Int> = [];
         let argument_carriages: Array<String> = [];
-        let argument_rows: Array<Int> =
-            DirectMirScalarProgramNaryOperandRows(
+        let argument_rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
                 expressions.nary_operands, node);
         if kind == DirectMirScalarProgramExprDirectCall() || kind == DirectMirScalarProgramExprCallableParameterCall() {
-            argument_rows = DirectMirScalarProgramDirectCallArgumentRows(
-                expressions, node);
+            argument_rows = DirectMirScalarProgramDirectCallArgumentRows(expressions, node);
         } else if kind == DirectMirScalarProgramExprLogicalRecordConstructor() ||
                 kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
                 kind == DirectMirScalarProgramExprPayloadEnumConstructor() {
-            argument_rows = DirectMirScalarProgramLogicalRecordArgumentRows(
-                expressions, node);
+            argument_rows = DirectMirScalarProgramLogicalRecordArgumentRows(expressions, node);
         }
         let argument: Int = 0;
         while argument < ArrayLength(argument_rows) {
-            if argument_rows[argument] < start ||
-                argument_rows[argument] >= node {
-                return DirectMirScalarProgramLlvmExpression(
-                    false, "", "", "");
+            if argument_rows[argument] < start || argument_rows[argument] >= node {
+                return DirectMirScalarProgramLlvmExpression(false, "", "", "");
             }
-            let argument_value: String =
-                values[argument_rows[argument] - start];
+            let argument_value: String = values[argument_rows[argument] - start];
             let argument_carriage: String = "value";
             if kind == DirectMirScalarProgramExprDirectCall() &&
                 expressions.node_callable_rows[node] >= 0 {
@@ -113,10 +98,8 @@ func DirectMirScalarProgramLlvmExpressionAt(
                 argument_carriage = call_argument.carriage;
             }
             ArrayPush(arguments, argument_value);
-            ArrayPush(argument_types,
-                expressions.node_types[argument_rows[argument]]);
-            ArrayPush(argument_kinds,
-                expressions.node_kinds[argument_rows[argument]]);
+            ArrayPush(argument_types, expressions.node_types[argument_rows[argument]]);
+            ArrayPush(argument_kinds, expressions.node_kinds[argument_rows[argument]]);
             ArrayPush(argument_carriages, argument_carriage);
             argument = argument + 1;
         }
@@ -155,20 +138,17 @@ func DirectMirScalarProgramLlvmExpressionAt(
             value = result; node_instructions = "  " + result + " = sub i64 0, " + left + "\n";
         } else if IsSome(cast_value) { value = UnwrapOption(cast_value);
         } else if kind == DirectMirScalarProgramExprLocal() {
-            let type_name: String =
-                DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
+            let type_name: String = DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
                     expressions.node_types[node], logical_record,
                     payload_free_enum, referenced_enum);
-            if type_name == "" { return DirectMirScalarProgramLlvmExpression(
-                false, "", "", ""); }
+            if type_name == "" { return DirectMirScalarProgramLlvmExpression(false, "", "", ""); }
             value = result;
             node_instructions = Concat(node_instructions, "  ");
             node_instructions = Concat(node_instructions, value);
             node_instructions = Concat(node_instructions, " = load ");
             node_instructions = Concat(node_instructions, type_name);
             node_instructions = Concat(node_instructions, ", ptr ");
-            node_instructions = Concat(node_instructions,
-                DirectMirScalarProgramLlvmLocalName(
+            node_instructions = Concat(node_instructions, DirectMirScalarProgramLlvmLocalName(
                     expressions.node_local_rows[node]));
             node_instructions = Concat(node_instructions, "\n");
         } else if kind == DirectMirScalarProgramExprParameter() {
@@ -176,8 +156,7 @@ func DirectMirScalarProgramLlvmExpressionAt(
             value = Concat("%pgy.param.", ToString(ordinal));
             let parameter_row: Int = routines.parameter_starts[routine] +
                 ordinal;
-            let array_type: String =
-                DirectMirScalarProgramLlvmValueResultCollectionTypeName(
+            let array_type: String = DirectMirScalarProgramLlvmValueResultCollectionTypeName(
                     logical_record, routines.parameter_types[parameter_row]);
             let scalar_storage: Bool = DirectMirScalarCfgScalarTypeSupported(
                 routines.parameter_types[parameter_row]) &&
@@ -196,32 +175,25 @@ func DirectMirScalarProgramLlvmExpressionAt(
                 node_instructions = Concat(node_instructions, ToString(ordinal));
                 node_instructions = Concat(node_instructions, ".local, align 8\n");
             }
-            let parameter_read:
-                DirectMirScalarProgramLlvmStringExpression =
+            let parameter_read: DirectMirScalarProgramLlvmStringExpression =
                     DirectMirScalarProgramLlvmLogicalRecordParameterRead(
-                        expressions, routines, logical_record, routine, node,
-                        result, value);
+                        expressions, routines, logical_record, routine, node, result, value);
             if parameter_read.matched {
                 if !parameter_read.valid {
-                    return DirectMirScalarProgramLlvmExpression(
-                        false, "", "", "");
+                    return DirectMirScalarProgramLlvmExpression(false, "", "", "");
                 }
-                node_instructions = Concat(
-                    node_instructions, parameter_read.instructions);
+                node_instructions = Concat(node_instructions, parameter_read.instructions);
                 value = parameter_read.value;
             }
-            let array_parameter_read:
-                DirectMirScalarProgramLlvmStringExpression =
+            let array_parameter_read: DirectMirScalarProgramLlvmStringExpression =
                     DirectMirScalarProgramLlvmArrayReadonlyRefParameterRead(
                         routines, array_string_abi, array_string_projection,
                         array_int_abi, array_int_projection, routine, ordinal, result);
             if array_parameter_read.matched {
                 if !array_parameter_read.valid {
-                    return DirectMirScalarProgramLlvmExpression(
-                        false, "", "", "");
+                    return DirectMirScalarProgramLlvmExpression(false, "", "", "");
                 }
-                node_instructions = Concat(
-                    node_instructions, array_parameter_read.instructions);
+                node_instructions = Concat(node_instructions, array_parameter_read.instructions);
                 value = array_parameter_read.value;
             }
         } else if kind == DirectMirScalarProgramExprDeclaredCallable() {
@@ -229,44 +201,34 @@ func DirectMirScalarProgramLlvmExpressionAt(
         } else if kind == DirectMirScalarProgramExprIntLiteral() || kind ==
                 DirectMirScalarProgramExprLongLiteral() || kind == DirectMirScalarProgramExprBoolLiteral() {
             value = expressions.node_literals[node];
-        } else if kind ==
-                DirectMirScalarProgramExprPayloadFreeEnumVariant() {
+        } else if kind == DirectMirScalarProgramExprPayloadFreeEnumVariant() {
             value = ToString(expressions.node_member_ordinals[node]);
         } else if kind == DirectMirScalarProgramExprStringLiteral() {
             value = Concat("@pgy.scalar.string.", ToString(node));
         } else if kind == DirectMirScalarProgramExprArrayBoolEmptyLiteral() {
             let empty_bool: DirectMirScalarProgramLlvmStringExpression =
-                DirectMirScalarProgramLlvmArrayBoolEmptyLiteralExpressionAt(
-                    kind);
+                DirectMirScalarProgramLlvmArrayBoolEmptyLiteralExpressionAt(kind);
             if !empty_bool.matched || !empty_bool.valid {
-                return DirectMirScalarProgramLlvmExpression(
-                    false, "", "", "");
+                return DirectMirScalarProgramLlvmExpression(false, "", "", "");
             }
             value = empty_bool.value;
-        } else if kind ==
-                DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() {
-            let empty_record_array:
-                DirectMirScalarProgramLlvmStringExpression =
+        } else if kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() {
+            let empty_record_array: DirectMirScalarProgramLlvmStringExpression =
                 DirectMirScalarProgramLlvmLogicalRecordArrayEmptyLiteralExpressionAt(
-                    kind, expressions.node_types[node], logical_record,
-                    target);
+                    kind, expressions.node_types[node], logical_record, target);
             if !empty_record_array.matched || !empty_record_array.valid {
-                return DirectMirScalarProgramLlvmExpression(
-                    false, "", "", "");
+                return DirectMirScalarProgramLlvmExpression(false, "", "", "");
             }
             node_instructions = empty_record_array.instructions;
             value = empty_record_array.value;
         } else {
-            let match_value:
-                DirectMirScalarProgramLlvmMatchExpression =
+            let match_value: DirectMirScalarProgramLlvmMatchExpression =
                 DirectMirScalarProgramLlvmMatchExpressionAt(
-                    expressions, node, result, left, arguments,
-                    argument_types, logical_record,
+                    expressions, node, result, left, arguments, argument_types, logical_record,
                     payload_free_enum, referenced_enum);
             if match_value.matched {
                 if !match_value.valid {
-                    return DirectMirScalarProgramLlvmExpression(
-                        false, "", "", "");
+                    return DirectMirScalarProgramLlvmExpression(false, "", "", "");
                 }
                 node_instructions = match_value.instructions;
                 value = match_value.value;
@@ -276,8 +238,7 @@ func DirectMirScalarProgramLlvmExpressionAt(
                     expressions, node, result, left, right);
             if runtime_value.matched {
                 if !runtime_value.valid {
-                    return DirectMirScalarProgramLlvmExpression(
-                        false, "", "", "");
+                    return DirectMirScalarProgramLlvmExpression(false, "", "", "");
                 }
                 node_instructions = runtime_value.instructions;
                 value = runtime_value.value;
@@ -296,12 +257,10 @@ func DirectMirScalarProgramLlvmExpressionAt(
             let record_expression: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmLogicalValueExpressionAt(
                         logical_record, target, kind, result, record_type,
                         left_type, expressions.node_types[node], left, right,
-                        arguments, argument_types,
-                        expressions.node_member_ordinals[node]);
+                        arguments, argument_types, expressions.node_member_ordinals[node]);
             if record_expression.matched {
                 if !record_expression.valid {
-                    return DirectMirScalarProgramLlvmExpression(
-                        false, "", "", "");
+                    return DirectMirScalarProgramLlvmExpression(false, "", "", "");
                 }
                 node_instructions = Concat(
                     node_instructions, record_expression.instructions);

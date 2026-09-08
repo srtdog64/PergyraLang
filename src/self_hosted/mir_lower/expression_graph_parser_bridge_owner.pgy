@@ -2,8 +2,7 @@
 
 import "expression_graph_sequence_owner.pgy";
 
-func MirExpressionGraphSequenceAppendParserBridge(
-    sequence: MirExpressionGraphSequence,
+func MirExpressionGraphSequenceAppendParserBridge(sequence: MirExpressionGraphSequence,
     expression: String
 ) -> MirExpressionGraphSequence {
     if !sequence.ok || expression == "" {

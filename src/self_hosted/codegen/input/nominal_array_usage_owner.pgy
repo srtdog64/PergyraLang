@@ -2,7 +2,7 @@
 
 import "../../semantic/array_type_shape_owner.pgy";
 import "../../semantic/ast_type_surface_fact_owner.pgy";
-import "../type_facts/type_env.pgy";
+import "../../semantic/ast_nominal_constructor_lookup_owner.pgy";
 import "generic_specialization_codegen_view_owner.pgy";
 import "semantic_signature_codegen_view_owner.pgy";
 
@@ -12,7 +12,7 @@ struct CodegenNominalArrayUsageFacts {
 }
 
 func CodegenNominalArrayElementKnown(
-    elements: Array<String>, element_type: String
+    ref elements: Array<String>, element_type: String
 ) -> Bool {
     let i: Int = 0;
     while i < ArrayLength(elements) {
@@ -34,7 +34,7 @@ func CodegenNominalArrayBuiltinElement(element_type: String) -> Bool {
 func CodegenNominalArrayUsageAddType(
     type_name: String,
     signatures: SemanticAstFunctionSignatureFacts,
-    env: CodegenTypeEnv,
+    ref constructors: SemanticAstNominalConstructorFacts,
     inout elements: Array<String>
 ) -> Bool {
     let element: Option<String> = SemanticArrayElementType(type_name);
@@ -44,7 +44,9 @@ func CodegenNominalArrayUsageAddType(
         CodegenSemanticGenericFormalKnown(signatures, element_type) {
         return true;
     }
-    if LookupKindType(env, element_type, "s") != "struct" {
+    if !IsSome(SemanticAstNominalConstructorIndexForName(
+        constructors, element_type
+    )) {
         return false;
     }
     if !CodegenNominalArrayElementKnown(elements, element_type) {
@@ -57,10 +59,10 @@ func CodegenNominalArrayUsageFactsFromSemantic(
     facts: SemanticAstTypeSurfaceFacts,
     signatures: SemanticAstFunctionSignatureFacts,
     specializations: CodegenGenericSpecializationFacts,
-    env: CodegenTypeEnv
+    ref constructors: SemanticAstNominalConstructorFacts
 ) -> CodegenNominalArrayUsageFacts {
     let elements: Array<String> = [];
-    if !facts.ok || !specializations.ok {
+    if !facts.ok || !specializations.ok || !constructors.ok {
         return CodegenNominalArrayUsageFacts(false, elements);
     }
     let i: Int = 0;
@@ -68,7 +70,7 @@ func CodegenNominalArrayUsageFactsFromSemantic(
         let type_name: Option<String> =
             SemanticAstTypeSurfaceNameAt(facts, i);
         if IsSome(type_name) && !CodegenNominalArrayUsageAddType(
-            UnwrapOption(type_name), signatures, env, elements
+            UnwrapOption(type_name), signatures, constructors, elements
         ) {
             return CodegenNominalArrayUsageFacts(false, elements);
         }
@@ -83,7 +85,7 @@ func CodegenNominalArrayUsageFactsFromSemantic(
         let actual_index: Int = 0;
         while actual_index < ArrayLength(actuals) {
             if !CodegenNominalArrayUsageAddType(
-                actuals[actual_index], signatures, env, elements
+                actuals[actual_index], signatures, constructors, elements
             ) {
                 return CodegenNominalArrayUsageFacts(false, elements);
             }

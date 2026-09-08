@@ -23,9 +23,7 @@ import "direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy";
 import "direct_mir_scalar_program_callable_runtime_value_parameter_policy_owner.pgy";
 import "direct_mir_scalar_program_owned_string_parameter_policy_owner.pgy";
 import "direct_mir_scalar_program_callable_type_policy_owner.pgy";
-func DirectMirScalarProgramCallableValueTypeSupported(
-    type_name: String
-) -> Bool {
+func DirectMirScalarProgramCallableValueTypeSupported(type_name: String) -> Bool {
     return DirectMirScalarCfgScalarTypeSupported(type_name) ||
         type_name == CompilerAbiLayoutArrayStringTypeName() ||
         type_name == CompilerAbiLayoutArrayIntTypeName() ||
@@ -34,9 +32,7 @@ func DirectMirScalarProgramCallableValueTypeSupported(
         type_name == CompilerAbiLayoutOptionStringTypeName() ||
         type_name == CompilerAbiLayoutSetStringTypeName();
 }
-func DirectMirScalarProgramCallableReturnTypeSupported(
-    type_name: String
-) -> Bool {
+func DirectMirScalarProgramCallableReturnTypeSupported(type_name: String) -> Bool {
     return DirectMirScalarCfgScalarTypeSupported(type_name) ||
         type_name == CompilerAbiLayoutArrayIntTypeName() ||
         type_name == CompilerAbiLayoutOptionIntTypeName() ||
@@ -44,19 +40,15 @@ func DirectMirScalarProgramCallableReturnTypeSupported(
         type_name == CompilerAbiLayoutOptionBoolTypeName() ||
         type_name == CompilerAbiLayoutResultIntTypeName();
 }
-func DirectMirScalarProgramCallableReturnTypeSupportedWithFacts(
-    type_name: String,
-    ref logical_record: DirectMirScalarProgramLogicalRecordFact
-) -> Bool {
+func DirectMirScalarProgramCallableReturnTypeSupportedWithFacts(type_name: String,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact) -> Bool {
     return DirectMirScalarProgramCallableReturnTypeSupported(type_name) ||
         DirectMirScalarProgramLogicalRecordTypeReady(logical_record, type_name) ||
         DirectMirScalarProgramLogicalRecordOptionTypeReady(logical_record, type_name);
 }
-func DirectMirScalarProgramCallableReturnTypeSupportedWithReferencedEnum(
-    type_name: String,
+func DirectMirScalarProgramCallableReturnTypeSupportedWithReferencedEnum(type_name: String,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
-    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact
-) -> Bool {
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact) -> Bool {
     return DirectMirScalarProgramCallableReturnTypeSupportedWithFacts(
             type_name, logical_record) ||
         DirectMirScalarProgramPayloadEnumTypeReady(

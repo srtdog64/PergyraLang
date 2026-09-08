@@ -43,20 +43,15 @@ struct SelfMirGenericSpecializationRows {
     occurrences: SelfMirGenericCallOccurrenceRows;
 }
 
-func SelfMirGenericSpecializationRowsEmpty(
-) -> SelfMirGenericSpecializationRows {
+func SelfMirGenericSpecializationRowsEmpty() -> SelfMirGenericSpecializationRows {
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
-    return SelfMirGenericSpecializationRows(
-        ints, ints, ints, ints, ints, strings, strings, strings,
+    return SelfMirGenericSpecializationRows(ints, ints, ints, ints, ints, strings, strings, strings,
         ints, ints, strings, ints, ints, strings, ints, ints,
-        SelfMirGenericCallOccurrenceRowsEmpty()
-    );
+        SelfMirGenericCallOccurrenceRowsEmpty());
 }
 
-func SelfMirGenericSpecializationCount(
-    ref rows: SelfMirGenericSpecializationRows
-) -> Int {
+func SelfMirGenericSpecializationCount(ref rows: SelfMirGenericSpecializationRows) -> Int {
     return ArrayLength(rows.source_owner_node_ids);
 }
 
@@ -66,21 +61,15 @@ func SelfMirGenericSpecializationTargetKindName(kind: Int) -> String {
     return "";
 }
 
-func SelfMirGenericSpecializationRowsReady(
-    ref rows: SelfMirGenericSpecializationRows
-) -> Bool {
+func SelfMirGenericSpecializationRowsReady(ref rows: SelfMirGenericSpecializationRows) -> Bool {
     let count: Int = SelfMirGenericSpecializationCount(rows);
-    if ArrayLength(rows.source_lanes) != count ||
-        ArrayLength(rows.source_call_ordinals) != count ||
-        ArrayLength(rows.signature_indexes) != count ||
-        ArrayLength(rows.target_kinds) != count ||
-        ArrayLength(rows.owner_names) != count ||
-        ArrayLength(rows.callable_names) != count ||
+    if ArrayLength(rows.source_lanes) != count || ArrayLength(rows.source_call_ordinals) != count ||
+        ArrayLength(rows.signature_indexes) != count || ArrayLength(rows.target_kinds) != count ||
+        ArrayLength(rows.owner_names) != count || ArrayLength(rows.callable_names) != count ||
         ArrayLength(rows.specialized_symbols) != count ||
         ArrayLength(rows.generic_param_starts) != count ||
         ArrayLength(rows.generic_param_counts) != count ||
-        ArrayLength(rows.actual_starts) != count ||
-        ArrayLength(rows.actual_counts) != count {
+        ArrayLength(rows.actual_starts) != count || ArrayLength(rows.actual_counts) != count {
         return false;
     }
     if ArrayLength(rows.call_node_ids) != count ||
@@ -92,17 +81,14 @@ func SelfMirGenericSpecializationRowsReady(
         let target_kind_name: String =
             SelfMirGenericSpecializationTargetKindName(rows.target_kinds[i]);
         if rows.call_node_ids[i] < 0 || rows.target_syntax_ids[i] <= 0 ||
-            rows.source_owner_node_ids[i] < 0 ||
-            rows.source_lanes[i] < AstExpressionLaneAtom() ||
+            rows.source_owner_node_ids[i] < 0 || rows.source_lanes[i] < AstExpressionLaneAtom() ||
             rows.source_lanes[i] > AstExpressionLaneAuxiliary() ||
             rows.source_call_ordinals[i] < 0 ||
             rows.signature_indexes[i] < 0 || target_kind_name == "" ||
             (target_kind_name == "direct" && rows.owner_names[i] != "") ||
             (target_kind_name == "member" && rows.owner_names[i] == "") ||
-            rows.callable_names[i] == "" ||
-            rows.specialized_symbols[i] == "" ||
-            rows.generic_param_starts[i] != param_cursor ||
-            rows.generic_param_counts[i] <= 0 ||
+            rows.callable_names[i] == "" || rows.specialized_symbols[i] == "" ||
+            rows.generic_param_starts[i] != param_cursor || rows.generic_param_counts[i] <= 0 ||
             rows.actual_starts[i] != actual_cursor ||
             rows.actual_counts[i] != rows.generic_param_counts[i] {
             return false;
@@ -112,8 +98,7 @@ func SelfMirGenericSpecializationRowsReady(
             if SemanticExpressionCallIdentityEqual(
                 rows.source_owner_node_ids[prior], rows.source_lanes[prior],
                 rows.source_call_ordinals[prior],
-                rows.source_owner_node_ids[i], rows.source_lanes[i],
-                rows.source_call_ordinals[i]
+                rows.source_owner_node_ids[i], rows.source_lanes[i], rows.source_call_ordinals[i]
             ) { return false; }
             prior = prior + 1;
         }
@@ -125,15 +110,11 @@ func SelfMirGenericSpecializationRowsReady(
         actual_cursor == ArrayLength(rows.actual_type_names);
 }
 
-func SelfMirGenericSpecializationRowsFromSemantic(
-    ref analysis: SemanticAstArtifactAnalysis,
-    ref semantic_rows: SemanticAstGenericSpecializationFacts
-) -> SelfMirGenericSpecializationRows {
-    let rows: SelfMirGenericSpecializationRows =
-        SelfMirGenericSpecializationRowsEmpty();
+func SelfMirGenericSpecializationRowsFromSemantic(ref analysis: SemanticAstArtifactAnalysis,
+    ref semantic_rows: SemanticAstGenericSpecializationFacts) -> SelfMirGenericSpecializationRows {
+    let rows: SelfMirGenericSpecializationRows = SelfMirGenericSpecializationRowsEmpty();
     if !SemanticAstGenericSpecializationFactsMatchExpressionGraph(
-        semantic_rows, analysis.expression_surfaces
-    ) {
+        semantic_rows, analysis.expression_surfaces) {
         return rows;
     }
     let source_owner_node_ids: Array<Int> = rows.source_owner_node_ids;
@@ -155,13 +136,9 @@ func SelfMirGenericSpecializationRowsFromSemantic(
     let i: Int = 0;
     while i < SemanticAstGenericSpecializationCount(semantic_rows) {
         let signature_index: Int = semantic_rows.signature_indexes[i];
-        let target_kind_opt: Option<Int> =
-            SemanticExpressionGraphCallTargetKind(
-                analysis.expression_surfaces.expression_graph,
-                semantic_rows.call_node_ids[i]
-            );
-        if signature_index < 0 || signature_index >=
-            ArrayLength(analysis.signatures.names) ||
+        let target_kind_opt: Option<Int> = SemanticExpressionGraphCallTargetKind(
+                analysis.expression_surfaces.expression_graph, semantic_rows.call_node_ids[i]);
+        if signature_index < 0 || signature_index >= ArrayLength(analysis.signatures.names) ||
             !IsSome(target_kind_opt) {
             return SelfMirGenericSpecializationRowsEmpty();
         }

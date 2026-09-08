@@ -1,4 +1,4 @@
-import "../../../src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_generic_specialization_constraint_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy";
 import "../../../src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_expression_environment_owner.pgy";

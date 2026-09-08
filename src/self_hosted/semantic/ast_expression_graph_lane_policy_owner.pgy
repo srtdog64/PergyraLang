@@ -2,16 +2,10 @@
 
 import "../hir/ast_text_arena_projection_owner.pgy";
 
-func SemanticAstExpressionGraphAtomLaneRequired(
-    artifact: AstTreeArtifact,
-    node_id: Int
-) -> Bool {
-    return TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindIfStmtTag()
-    ) || TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindWhileStmtTag()
-    ) || TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindExitStmtTag()
+func SemanticAstExpressionGraphAtomLaneRequired(artifact: AstTreeArtifact, node_id: Int) -> Bool {
+    return TypedAstArenaNodeKindIs(artifact.arena, node_id, TypedAstKindIfStmtTag()
+    ) || TypedAstArenaNodeKindIs(artifact.arena, node_id, TypedAstKindWhileStmtTag()
+    ) || TypedAstArenaNodeKindIs(artifact.arena, node_id, TypedAstKindExitStmtTag()
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindValueReturnStmtTag()
     ) || TypedAstArenaNodeKindIs(

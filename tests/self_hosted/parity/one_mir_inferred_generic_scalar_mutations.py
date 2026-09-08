@@ -4,7 +4,7 @@ import copy
 import json
 import pathlib
 import sys
-
+from one_mir_native_void_fallthrough_contract import native_source_rows
 
 source = pathlib.Path(sys.argv[1])
 target = pathlib.Path(sys.argv[2])
@@ -80,7 +80,7 @@ if mode == "compare":
         if parameter_shape(left) != parameter_shape(right):
             raise RuntimeError(f"native/self {name} parameter semantics drifted")
         left_rows = left["blocks"][0]["instructions"]
-        right_rows = right["blocks"][0]["instructions"]
+        right_rows = native_source_rows(right)
         if len(left_rows) != len(right_rows):
             raise RuntimeError(f"native/self {name} instruction count drifted")
         for index, (left_row, right_row) in enumerate(zip(left_rows, right_rows)):
@@ -172,67 +172,45 @@ def combined_rotation(document):
     document["generic_method_specializations"].reverse()
 
 
-emit("routine-order-reverse",
-     lambda d: d.__setitem__("routines", list(reversed(d["routines"]))))
+emit("routine-order-reverse", lambda d: d.__setitem__("routines", list(reversed(d["routines"]))))
 emit("routine-order-rotate", rotate_routines)
 emit("specialization-order-swap", lambda d: d[
     "generic_method_specializations"].reverse())
 emit("combined-order-rotate", combined_rotation)
 emit("specialization-owner-renumber", renumber_specialization_owners)
-emit("initial-value-seven", lambda d: graph(d, "Main", 0)["nodes"][0].
-     __setitem__("text", "7"))
-emit("assigned-value-forty-three", lambda d: graph(d, "Main", 1)["nodes"][2].
-     __setitem__("text", "43"))
+emit("initial-value-seven", lambda d: graph(d, "Main", 0)["nodes"][0].__setitem__("text", "7"))
+emit("assigned-value-forty-three", lambda d: graph(d, "Main", 1)["nodes"][2].__setitem__("text", "43"))
 
-emit("missing-generic-formal",
-     lambda d: routine(d, "Identity").__setitem__("generics", []))
-emit("duplicate-generic-formal",
-     lambda d: routine(d, "Identity").__setitem__("generics", ["T", "U"]))
-emit("generic-param-type-drift", lambda d: routine(d, "Identity")["params"][0].
-     __setitem__("type", "Int"))
-emit("generic-param-abi-drift", lambda d: routine(d, "Identity")["params"][0].
-     __setitem__("abi_type_name", "Int"))
-emit("generic-return-type-drift",
-     lambda d: routine(d, "Identity").__setitem__("return", "Int"))
-emit("generic-receiver-drift", lambda d: routine(d, "Identity").
-     __setitem__("receiver_carriage", "value"))
-emit("generic-body-drift", lambda d: graph(d, "Identity", 0)["nodes"][0].
-     __setitem__("text", "other"))
-emit("generic-return-abi-drift", lambda d: instructions(d, "Identity")[0].
-     __setitem__("abi_layout_required", True))
+emit("missing-generic-formal", lambda d: routine(d, "Identity").__setitem__("generics", []))
+emit("duplicate-generic-formal", lambda d: routine(d, "Identity").__setitem__("generics", ["T", "U"]))
+emit("generic-param-type-drift", lambda d: routine(d, "Identity")["params"][0].__setitem__("type", "Int"))
+emit("generic-param-abi-drift", lambda d: routine(d, "Identity")["params"][0].__setitem__("abi_type_name", "Int"))
+emit("generic-return-type-drift", lambda d: routine(d, "Identity").__setitem__("return", "Int"))
+emit("generic-receiver-drift", lambda d: routine(d, "Identity").__setitem__("receiver_carriage", "value"))
+emit("generic-body-drift", lambda d: graph(d, "Identity", 0)["nodes"][0].__setitem__("text", "other"))
+emit("generic-return-abi-drift", lambda d: instructions(d, "Identity")[0].__setitem__("abi_layout_required", True))
 
-emit("wrapper-param-type-drift", lambda d: routine(
-    d, "ReturnIdentity")["params"][0].__setitem__("type", "Long"))
+emit("wrapper-param-type-drift", lambda d: routine( d, "ReturnIdentity")["params"][0].__setitem__("type", "Long"))
 emit("wrapper-param-abi-drift", lambda d: routine(
     d, "ReturnIdentity")["params"][0].__setitem__("abi_type_name", "Long"))
-emit("wrapper-return-drift", lambda d: routine(
-    d, "ReturnIdentity").__setitem__("return", "Long"))
+emit("wrapper-return-drift", lambda d: routine( d, "ReturnIdentity").__setitem__("return", "Long"))
 emit("wrapper-call-target-drift", lambda d: graph(
     d, "ReturnIdentity", 0)["nodes"][1].__setitem__("call_target_name", "Other"))
-emit("wrapper-call-argument-edge-drift", lambda d: graph(
-    d, "ReturnIdentity", 0)["nodes"][3].__setitem__("right", 0))
-emit("wrapper-argument-name-drift", lambda d: graph(
-    d, "ReturnIdentity", 0)["nodes"][2].__setitem__("text", "other"))
+emit("wrapper-call-argument-edge-drift", lambda d: graph( d, "ReturnIdentity", 0)["nodes"][3].__setitem__("right", 0))
+emit("wrapper-argument-name-drift", lambda d: graph( d, "ReturnIdentity", 0)["nodes"][2].__setitem__("text", "other"))
 emit("wrapper-return-abi-drift", lambda d: instructions(
     d, "ReturnIdentity")[0].__setitem__("abi_layout_required", True))
 
-emit("missing-specialization",
-     lambda d: d["generic_method_specializations"].pop())
-emit("extra-specialization", lambda d: d["generic_method_specializations"].
-     append(copy.deepcopy(specialization(d))))
+emit("missing-specialization", lambda d: d["generic_method_specializations"].pop())
+emit("extra-specialization", lambda d: d["generic_method_specializations"].append(copy.deepcopy(specialization(d))))
 emit("duplicate-specialization-coordinate", lambda d: specialization(d, 1).
      __setitem__("source_lane", specialization(d, 0)["source_lane"]))
-emit("specialization-lane-drift",
-     lambda d: specialization(d).__setitem__("source_lane", 2))
-emit("specialization-owner-equality", lambda d: specialization(d, 1).
-     __setitem__("source_owner_syntax_id",
+emit("specialization-lane-drift", lambda d: specialization(d).__setitem__("source_lane", 2))
+emit("specialization-owner-equality", lambda d: specialization(d, 1).__setitem__("source_owner_syntax_id",
                  specialization(d, 0)["source_owner_syntax_id"]))
-emit("specialization-owner-zero", lambda d: specialization(d).
-     __setitem__("source_owner_syntax_id", 0))
-emit("specialization-ordinal-drift", lambda d: specialization(d).
-     __setitem__("source_call_ordinal", 1))
-emit("specialization-target-drift",
-     lambda d: specialization(d).__setitem__("target_kind", "member"))
+emit("specialization-owner-zero", lambda d: specialization(d).__setitem__("source_owner_syntax_id", 0))
+emit("specialization-ordinal-drift", lambda d: specialization(d).__setitem__("source_call_ordinal", 1))
+emit("specialization-target-drift", lambda d: specialization(d).__setitem__("target_kind", "member"))
 emit("specialization-owner-drift",
      lambda d: specialization(d).__setitem__("owner", "Box"))
 emit("specialization-callable-drift",

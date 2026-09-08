@@ -1,6 +1,7 @@
 // Derived physical receipts indexed by the passive-record identity inventory.
 // Zero ID is an admitted absence, never permission to reconstruct a layout.
 import "direct_mir_nominal_declaration_abi_fact_owner.pgy";
+import "direct_mir_nominal_abi_row_identity_owner.pgy";
 import "direct_mir_scalar_cfg_hash_owner.pgy";
 
 struct DirectMirScalarProgramRecordAbiCarriage {

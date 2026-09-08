@@ -4,28 +4,18 @@ import "../../../src/self_hosted/mir_lower/expression_graph_parser_bridge_owner.
 import "../../../src/self_hosted/mir_lower/intent_execution_graph_target_owner.pgy";
 import "../../../src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy";
 
-func ExpressionGraphIdentityPrefixReady(
-    ref sequence: MirExpressionGraphSequence,
-    expected_count: Int, call_row: Int, target_syntax_id: Int
-) -> Bool {
-    if !sequence.ok ||
-        SemanticExpressionGraphArenaNodeCount(sequence.arena) !=
-            expected_count ||
-        ArrayLength(sequence.arena.identities.call_target_syntax_ids) !=
-            expected_count ||
-        ArrayLength(sequence.arena.identities.runtime_call_abi_ids) !=
-            expected_count ||
-        ArrayLength(sequence.arena.identities.binding_syntax_ids) !=
-            expected_count ||
-        ArrayLength(sequence.arena.identities.binding_kinds) !=
-            expected_count ||
-        ArrayLength(sequence.arena.identities.binding_ordinals) !=
-            expected_count ||
+func ExpressionGraphIdentityPrefixReady(ref sequence: MirExpressionGraphSequence,
+    expected_count: Int, call_row: Int, target_syntax_id: Int) -> Bool {
+    if !sequence.ok || SemanticExpressionGraphArenaNodeCount(sequence.arena) != expected_count ||
+        ArrayLength(sequence.arena.identities.call_target_syntax_ids) != expected_count ||
+        ArrayLength(sequence.arena.identities.runtime_call_abi_ids) != expected_count ||
+        ArrayLength(sequence.arena.identities.binding_syntax_ids) != expected_count ||
+        ArrayLength(sequence.arena.identities.binding_kinds) != expected_count ||
+        ArrayLength(sequence.arena.identities.binding_ordinals) != expected_count ||
         sequence.arena.identities.call_target_syntax_ids[0] != 0 ||
         sequence.arena.identities.runtime_call_abi_ids[0] != 0 ||
         sequence.arena.identities.binding_syntax_ids[0] != 713 ||
-        sequence.arena.identities.binding_kinds[0] !=
-            SemanticExpressionBindingFormalParameter() ||
+        sequence.arena.identities.binding_kinds[0] != SemanticExpressionBindingFormalParameter() ||
         sequence.arena.identities.binding_ordinals[0] != 4 {
         return false;
     }
@@ -36,8 +26,7 @@ func ExpressionGraphIdentityPrefixReady(
         if sequence.arena.identities.call_target_syntax_ids[row] != expected_target ||
             sequence.arena.identities.runtime_call_abi_ids[row] != 0 ||
             sequence.arena.identities.binding_syntax_ids[row] != 0 ||
-            sequence.arena.identities.binding_kinds[row] !=
-                SemanticExpressionBindingNone() ||
+            sequence.arena.identities.binding_kinds[row] != SemanticExpressionBindingNone() ||
             sequence.arena.identities.binding_ordinals[row] != -1 {
             return false;
         }

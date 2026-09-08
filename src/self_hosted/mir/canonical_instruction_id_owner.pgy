@@ -1,6 +1,7 @@
 // Canonical per-routine instruction identity projection.
 
 import "program_fact_owner.pgy";
+import "intent_execution_canonical_instruction_owner.pgy";
 import "generic_specialization_occurrence_owner.pgy";
 
 func SelfMirInstructionIdPriority(kind: String) -> Int {
@@ -9,79 +10,7 @@ func SelfMirInstructionIdPriority(kind: String) -> Int {
     return 2;
 }
 
-func SelfMirIntentCanonicalInstructionId(
-    ref facts: SelfMirProgramFacts, ref ids: Array<Int>,
-    routine_id: Int, block_id: Int, old_id: Int
-) -> Int {
-    let found: Int = -1;
-    let routine: Int = 0;
-    while routine < ArrayLength(facts.routines.node_ids) {
-        if facts.routines.node_ids[routine] == routine_id {
-            let block: Int = facts.routines.block_starts[routine];
-            let end: Int = block + facts.routines.block_counts[routine];
-            while block < end {
-                if facts.cfg.blocks.ids[block] == block_id {
-                    let instruction: Int = facts.cfg.blocks.instruction_starts[block];
-                    let instruction_end: Int = instruction + facts.cfg.blocks.instruction_counts[block];
-                    while instruction < instruction_end {
-                        if facts.cfg.instructions.ids[instruction] == old_id {
-                            if found >= 0 { return -1; }
-                            found = ids[instruction];
-                        }
-                        instruction = instruction + 1;
-                    }
-                }
-                block = block + 1;
-            }
-        }
-        routine = routine + 1;
-    }
-    return found;
-}
-
-func SelfMirIntentExecutionCanonicalPlan(
-    facts: SelfMirProgramFacts, ref ids: Array<Int>
-) -> MirIntentExecutionPlan {
-    let steps: MirIntentStepTransitionFacts = facts.intent_execution.steps;
-    let terminals: MirIntentTerminalTransitionFacts = facts.intent_execution.terminals;
-    let step: Int = 0;
-    while step < ArrayLength(steps.transition_ids) {
-        let routine: Int = steps.routine_syntax_ids[step];
-        ArraySet(steps.outcome_instruction_ids, step,
-            SelfMirIntentCanonicalInstructionId(facts, ids, routine,
-                steps.outcome_instruction_block_ids[step], steps.outcome_instruction_ids[step]));
-        ArraySet(steps.branch_instruction_ids, step,
-            SelfMirIntentCanonicalInstructionId(facts, ids, routine,
-                steps.branch_block_ids[step], steps.branch_instruction_ids[step]));
-        ArraySet(steps.completion_instruction_ids, step,
-            SelfMirIntentCanonicalInstructionId(facts, ids, routine,
-                steps.completion_block_ids[step], steps.completion_instruction_ids[step]));
-        let compensation: Int = steps.compensation_starts[step];
-        let end: Int = compensation + steps.compensation_counts[step];
-        while compensation < end {
-            ArraySet(steps.compensations.instruction_ids, compensation,
-                SelfMirIntentCanonicalInstructionId(facts, ids, routine,
-                    steps.compensations.instruction_block_ids[compensation],
-                    steps.compensations.instruction_ids[compensation]));
-            compensation = compensation + 1;
-        }
-        step = step + 1;
-    }
-    let terminal: Int = 0;
-    while terminal < ArrayLength(terminals.terminal_transition_ids) {
-        ArraySet(terminals.result_instruction_ids, terminal,
-            SelfMirIntentCanonicalInstructionId(facts, ids,
-                terminals.routine_syntax_ids[terminal],
-                terminals.result_instruction_block_ids[terminal],
-                terminals.result_instruction_ids[terminal]));
-        terminal = terminal + 1;
-    }
-    return MirIntentExecutionPlanFromFacts(steps, terminals);
-}
-
-func SelfMirCanonicalInstructionIds(
-    facts: SelfMirProgramFacts
-) -> SelfMirProgramFacts {
+func SelfMirCanonicalInstructionIds(facts: SelfMirProgramFacts) -> SelfMirProgramFacts {
     if !facts.ok { return facts; }
     // Preserve the old IDs until every plan reference has been rebound.
     let ids: Array<Int> = [];
@@ -97,16 +26,13 @@ func SelfMirCanonicalInstructionIds(
         while priority < 3 {
             let block_i: Int = 0;
             while block_i < facts.routines.block_counts[routine_i] {
-                let block_row: Int =
-                    facts.routines.block_starts[routine_i] + block_i;
+                let block_row: Int = facts.routines.block_starts[routine_i] + block_i;
                 let instruction_i: Int = 0;
                 while instruction_i <
                     facts.cfg.blocks.instruction_counts[block_row] {
-                    let instruction_row: Int =
-                        facts.cfg.blocks.instruction_starts[block_row] +
+                    let instruction_row: Int = facts.cfg.blocks.instruction_starts[block_row] +
                         instruction_i;
-                    if SelfMirInstructionIdPriority(
-                        facts.cfg.instructions.kinds[instruction_row]
+                    if SelfMirInstructionIdPriority(facts.cfg.instructions.kinds[instruction_row]
                     ) == priority {
                         ArraySet(ids, instruction_row, next_id);
                         next_id = next_id + 1;
@@ -131,8 +57,7 @@ func SelfMirCanonicalInstructionIds(
             "generic specialization has no exact instruction-local call occurrence");
     }
     let instructions: SelfMirInstructionRows = facts.cfg.instructions;
-    return SelfMirProgramFacts(
-        facts.ok, facts.diagnostic_code, facts.diagnostic_message,
+    return SelfMirProgramFacts(facts.ok, facts.diagnostic_code, facts.diagnostic_message,
         facts.artifact_node_count, facts.declarations, facts.domain_topology,
         facts.domain_runtime_assignments,
         SelfMirGenericSpecializationWithOccurrences(facts.generic_specializations, occurrences),

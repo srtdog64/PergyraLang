@@ -28,8 +28,7 @@ struct SemanticAstIntentSignatureFacts {
     param_names: Array<String>;
     param_types: Array<String>;
 }
-func SemanticAstIntentSignatureIndexForNode(
-    ref facts: SemanticAstIntentSignatureFacts, node_id: Int
+func SemanticAstIntentSignatureIndexForNode(ref facts: SemanticAstIntentSignatureFacts, node_id: Int
 ) -> Option<Int> {
     if !facts.ok || node_id <= 0 { return None; }
     let count: Int = ArrayLength(facts.intent_node_ids);
@@ -43,8 +42,7 @@ func SemanticAstIntentSignatureIndexForNode(
     if low < count && facts.intent_node_ids[low] == node_id { return Some(low); }
     return None;
 }
-func SemanticAstIntentParameterRowFromProvenance(
-    provenance: String
+func SemanticAstIntentParameterRowFromProvenance(provenance: String
 ) -> SemanticAstIntentParameterRow {
     let prefix: String = "";
     let is_value: Bool = false;
@@ -56,26 +54,22 @@ func SemanticAstIntentParameterRowFromProvenance(
     } else {
         return SemanticAstIntentParameterRow(false, false, "", "");
     }
-    let row: String = Substring(
-        provenance, StringLength(prefix),
-        StringLength(provenance) - StringLength(prefix)
-    );
+    let row: String = Substring(provenance, StringLength(prefix),
+        StringLength(provenance) - StringLength(prefix));
     let colon: Int = StringIndexOf(row, ": ");
     if colon <= 0 || colon + 2 >= StringLength(row) {
         return SemanticAstIntentParameterRow(false, false, "", "");
     }
     let name: String = StringTrim(Substring(row, 0, colon));
     let type_name: String = SemanticCanonicalTypeName(StringTrim(Substring(
-        row, colon + 2, StringLength(row) - colon - 2
-    )));
+        row, colon + 2, StringLength(row) - colon - 2)));
     if name == "" || type_name == "" || type_name == "Unknown" {
         return SemanticAstIntentParameterRow(false, false, "", "");
     }
     return SemanticAstIntentParameterRow(true, is_value, name, type_name);
 }
 
-func SemanticAstIntentSignatureFactsFromArtifact(
-    artifact: AstTreeArtifact
+func SemanticAstIntentSignatureFactsFromArtifact(artifact: AstTreeArtifact
 ) -> SemanticAstIntentSignatureFacts {
     let intent_node_ids: Array<Int> = [];
     let names: Array<String> = [];
@@ -92,28 +86,21 @@ func SemanticAstIntentSignatureFactsFromArtifact(
     let diagnostic_message: String = "";
     if !ok {
         diagnostic_code = "ast_artifact_invalid";
-        diagnostic_message = SemanticError1(
-            "ast_artifact_invalid", "owner", "intent_signature"
-        );
+        diagnostic_message = SemanticError1("ast_artifact_invalid", "owner", "intent_signature");
     }
     let node_id: Int = 0;
     while node_id < artifact.count && ok {
-        if !TypedAstArenaNodeKindIs(
-            artifact.arena, node_id, TypedAstKindIntentDeclTag()
-        ) {
+        if !TypedAstArenaNodeKindIs(artifact.arena, node_id, TypedAstKindIntentDeclTag()) {
             node_id = node_id + 1;
             continue;
         }
-        let name: Option<String> = TypedAstArenaAtomText(
-            artifact.arena, node_id
-        );
+        let name: Option<String> = TypedAstArenaAtomText(artifact.arena, node_id);
         if !IsSome(name) || UnwrapOption(name) == "" {
             ok = false;
             diagnostic_code = "intent_signature_invalid";
             diagnostic_message = SemanticError2(
                 "intent_signature_invalid", "node_id", ToString(node_id),
-                "missing_fact", "intent_name"
-            );
+                "missing_fact", "intent_name");
             continue;
         }
         let prior: Int = 0;
@@ -126,8 +113,7 @@ func SemanticAstIntentSignatureFactsFromArtifact(
         if !ok {
             diagnostic_code = "intent_signature_invalid";
             diagnostic_message = SemanticError1(
-                "intent_signature_invalid", "duplicate", UnwrapOption(name)
-            );
+                "intent_signature_invalid", "duplicate", UnwrapOption(name));
             continue;
         }
         let param_start: Int = ArrayLength(param_node_ids);
@@ -135,8 +121,7 @@ func SemanticAstIntentSignatureFactsFromArtifact(
         let return_type_name: String = "Bool";
         let return_seen: Bool = false;
         let child_index: Int = 0;
-        let child: Option<Int> = TypedAstArenaChildAt(
-            artifact.arena, node_id, child_index
+        let child: Option<Int> = TypedAstArenaChildAt(artifact.arena, node_id, child_index
         );
         while IsSome(child) && ok {
             let child_id: Int = UnwrapOption(child);

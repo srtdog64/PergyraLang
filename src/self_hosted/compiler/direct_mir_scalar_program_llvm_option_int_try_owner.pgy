@@ -10,8 +10,7 @@ func DirectMirScalarProgramLlvmOptionIntTryDefinition(
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>,
     array_int_projection: Option<DirectMirArrayIntAbiProjection>,
-    target: CompilerTargetProjectionFact
-) -> String {
+    target: CompilerTargetProjectionFact) -> String {
     let result: Int = plan.operation_result_values[operation];
     let expression_row: Int = plan.program.operation_expression_rows[operation];
     if !DirectMirScalarProgramOptionIntTryRoutineReady(

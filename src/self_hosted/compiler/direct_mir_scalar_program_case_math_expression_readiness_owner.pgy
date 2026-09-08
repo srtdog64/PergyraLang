@@ -2,27 +2,22 @@
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 
 func DirectMirScalarProgramCaseMathExpressionNodeReady(
-    ref facts: DirectMirScalarProgramExpressionSet, node: Int
-) -> Option<Bool> {
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Option<Bool> {
     let kind: Int = facts.node_kinds[node];
     if kind != DirectMirScalarProgramExprNegateInt() &&
         kind != DirectMirScalarProgramExprNegateLong() &&
-        kind != DirectMirScalarProgramExprAbsInt() &&
-        kind != DirectMirScalarProgramExprMinInt() &&
+        kind != DirectMirScalarProgramExprAbsInt() && kind != DirectMirScalarProgramExprMinInt() &&
         kind != DirectMirScalarProgramExprMaxInt() &&
         kind != DirectMirScalarProgramExprModuloInt() &&
         kind != DirectMirScalarProgramExprModuloLong() &&
         kind != DirectMirScalarProgramExprDivideLong() &&
         kind != DirectMirScalarProgramExprStringReplace() { return None; }
-    if facts.node_local_rows[node] != -1 ||
-        facts.node_parameter_ordinals[node] != -1 ||
-        facts.node_literals[node] != "" ||
-        facts.node_callable_rows[node] != -1 {
+    if facts.node_local_rows[node] != -1 || facts.node_parameter_ordinals[node] != -1 ||
+        facts.node_literals[node] != "" || facts.node_callable_rows[node] != -1 {
         return Some(false);
     }
     if kind == DirectMirScalarProgramExprStringReplace() {
-        let operands: Array<Int> = DirectMirScalarProgramNaryOperandRows(
-            facts.nary_operands, node);
+        let operands: Array<Int> = DirectMirScalarProgramNaryOperandRows(facts.nary_operands, node);
         if ArrayLength(operands) != 3 || facts.node_lefts[node] != -1 ||
             facts.node_rights[node] != -1 || facts.node_types[node] !=
                 CompilerAbiLayoutStringTypeName() { return Some(false); }
@@ -52,8 +47,7 @@ func DirectMirScalarProgramCaseMathExpressionNodeReady(
     if left < 0 || left >= node || facts.node_types[left] !=
             CompilerAbiLayoutIntTypeName() || facts.node_types[node] !=
             CompilerAbiLayoutIntTypeName() { return Some(false); }
-    if kind == DirectMirScalarProgramExprNegateInt() ||
-            kind == DirectMirScalarProgramExprAbsInt() {
+    if kind == DirectMirScalarProgramExprNegateInt() || kind == DirectMirScalarProgramExprAbsInt() {
         return Some(right == -1);
     }
     return Some(right >= 0 && right < node &&

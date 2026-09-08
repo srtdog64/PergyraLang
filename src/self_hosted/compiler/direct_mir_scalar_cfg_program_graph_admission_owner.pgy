@@ -9,10 +9,8 @@ import "direct_mir_option_match_abi_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy";
 import "direct_mir_routine_instance_input_owner.pgy";
 
-func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
-    own route: DirectMirScalarProgramRouteFact
-) -> DirectMirScalarCfgGraphPlan {
+func DirectMirScalarCfgProgramGraphPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput,
+    own route: DirectMirScalarProgramRouteFact) -> DirectMirScalarCfgGraphPlan {
     if !DirectMirScalarProgramRouteFactReady(route) {
         Die("direct MIR scalar CFG program route is invalid");
     }
@@ -26,19 +24,13 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
         }
         cell = cell + 1;
     }
-    let producer: DirectMirArrayIntProducerFact =
-        DirectMirArrayIntProducerFactEmpty();
+    let producer: DirectMirArrayIntProducerFact = DirectMirArrayIntProducerFactEmpty();
     let entry_signature: DirectMirRoutineSignatureFact = DirectMirRoutineInstanceSignatureAt(route.routine_instances, 0);
-    let entry: DirectMirScalarCfgGraphInput =
-        DirectMirScalarCfgProgramGraphInputFromAdmitted(
-            admitted, route.entrypoint_row, producer, entry_signature.parameters.names
-        );
+    let entry: DirectMirScalarCfgGraphInput = DirectMirScalarCfgProgramGraphInputFromAdmitted(
+            admitted, route.entrypoint_row, producer, entry_signature.parameters.names);
     let callables: DirectMirScalarCfgProgramCallableInventory =
-        DirectMirScalarCfgProgramCallableInventoryFromAdmitted(
-            admitted, route.routine_instances,
-            route.logical_record, route.payload_free_enum,
-            route.referenced_enum
-        );
+        DirectMirScalarCfgProgramCallableInventoryFromAdmitted(admitted, route.routine_instances,
+            route.logical_record, route.payload_free_enum, route.referenced_enum);
     if !DirectMirScalarCfgProgramCallableInventoryReady(
             callables, ArrayLength(route.routine_rows)) {
         Die("direct MIR scalar CFG program callable inventory is invalid");
@@ -49,22 +41,17 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
         DirectMirScalarProgramExpressionSetEmpty();
     let cfg_digests: Array<Int> = [];
     let option_int_abi: DirectMirOptionMatchAbiFact =
-        DirectMirScalarProgramLogicalRecordOptionIntAbiFromFact(
-            route.logical_record);
-    let result_int_abi: DirectMirResultIntAbiFact =
-        DirectMirResultIntAbiFactEmpty();
-    let option_string_abi: DirectMirOptionMatchAbiFact =
-        DirectMirOptionMatchAbiFactEmpty();
-    let option_bool_abi: DirectMirOptionMatchAbiFact =
-        DirectMirOptionMatchAbiFactEmpty();
+        DirectMirScalarProgramLogicalRecordOptionIntAbiFromFact(route.logical_record);
+    let result_int_abi: DirectMirResultIntAbiFact = DirectMirResultIntAbiFactEmpty();
+    let option_string_abi: DirectMirOptionMatchAbiFact = DirectMirOptionMatchAbiFactEmpty();
+    let option_bool_abi: DirectMirOptionMatchAbiFact = DirectMirOptionMatchAbiFactEmpty();
     let ordinal: Int = 0;
     while ordinal < ArrayLength(route.routine_rows) {
         let input: DirectMirScalarCfgGraphInput = entry;
         if ordinal > 0 {
             let signature: DirectMirRoutineSignatureFact = DirectMirRoutineInstanceSignatureAt(route.routine_instances, ordinal);
             input = DirectMirScalarCfgProgramGraphInputFromAdmitted(
-                admitted, route.routine_rows[ordinal], producer, signature.parameters.names
-            );
+                admitted, route.routine_rows[ordinal], producer, signature.parameters.names);
         }
         ArrayPush(cfg_digests, DirectMirCfgDigestFromIndex(input.index));
         input = DirectMirRoutineInstanceGraphInput(
@@ -73,8 +60,7 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(
             DirectMirScalarCfgProgramAppendRoutine(
                 admitted, route.routine_rows[ordinal], ordinal, callables, input,
                 storage, expressions, option_int_abi, option_string_abi,
-                option_bool_abi, result_int_abi,
-                route.logical_record,
+                option_bool_abi, result_int_abi, route.logical_record,
                 route.payload_free_enum, route.referenced_enum,
                 route.array_int_value_result, route.array_bool_abi,
                 route.array_string_abi

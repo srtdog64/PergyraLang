@@ -1,11 +1,8 @@
 #ifdef PGY_LLVM_ENABLED
-
 #include "llvm_expr_array_calls.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "llvm_expr_array_raw_nominal_calls.h"
 #include "llvm_expr_box_array_calls.h"
 #include "llvm_internal_api.h"

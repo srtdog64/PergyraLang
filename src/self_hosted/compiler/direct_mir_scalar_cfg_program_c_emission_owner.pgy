@@ -28,16 +28,12 @@ import "direct_mir_scalar_program_c_array_bool_populated_literal_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
 import "direct_mir_scalar_program_scalar_value_result_owner.pgy";
-func DirectMirScalarCfgProgramCRoutine(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
-    formatted_print: CompilerRuntimeCallAbiFact,
-    process_exit: CompilerRuntimeCallAbiFact,
+func DirectMirScalarCfgProgramCRoutine(ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    formatted_print: CompilerRuntimeCallAbiFact, process_exit: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
-    int_line_format: String, string_line_format: String,
-    int_c_type: String,
+    int_line_format: String, string_line_format: String, int_c_type: String,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>,
-    target: CompilerTargetProjectionFact
-) -> String {
+    target: CompilerTargetProjectionFact) -> String {
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
     TextBuilderAppend(output, DirectMirScalarCfgProgramCSignature(plan, routine, int_c_type, false, array_string_projection));
@@ -48,16 +44,12 @@ func DirectMirScalarCfgProgramCRoutine(
         plan.program.runtime_abi.process_args_id != 0 {
         TextBuilderAppend(output, HostIORuntimeCArgsCapturePrefix());
     }
-    TextBuilderAppend(output,
-        DirectMirScalarProgramCArrayIntValueResultCopyIn(plan, routine));
-    TextBuilderAppend(output,
-        DirectMirScalarProgramCArrayBoolValueResultCopyIn(plan, routine));
+    TextBuilderAppend(output, DirectMirScalarProgramCArrayIntValueResultCopyIn(plan, routine));
+    TextBuilderAppend(output, DirectMirScalarProgramCArrayBoolValueResultCopyIn(plan, routine));
     TextBuilderAppend(output, DirectMirScalarProgramCArrayStringValueResultCopyIn(plan, routine, array_string_projection));
-    TextBuilderAppend(output,
-        DirectMirScalarProgramCLogicalRecordValueResultCopyIn(plan, routine));
+    TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordValueResultCopyIn(plan, routine));
     TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordArrayValueResultCopyIn(plan, routine));
-    TextBuilderAppend(output,
-        DirectMirScalarProgramCSetStringValueResultCopyIn(plan, routine));
+    TextBuilderAppend(output, DirectMirScalarProgramCSetStringValueResultCopyIn(plan, routine));
     TextBuilderAppend(output, DirectMirScalarCfgCLocalDeclarationsInRange(
         plan, int_c_type, plan.routines.local_starts[routine],
         plan.routines.local_counts[routine], routine));
@@ -82,49 +74,36 @@ func DirectMirScalarCfgProgramCRoutine(
             let emitted: String = DirectMirScalarCfgProgramCOperation(
                 plan, routine, operation, formatted_print, process_exit,
                 runtime, int_line_format, string_line_format, array_string_projection, target);
-            if emitted == "" &&
-                (plan.operation_kinds[operation] ==
-                    DirectMirScalarCfgOpPhiInt() ||
-                 plan.operation_kinds[operation] ==
-                    DirectMirScalarCfgOpPhiString() ||
-                 plan.operation_kinds[operation] ==
-                    DirectMirScalarCfgOpPhiValue()) {
+            if emitted == "" && (plan.operation_kinds[operation] == DirectMirScalarCfgOpPhiInt() ||
+                 plan.operation_kinds[operation] == DirectMirScalarCfgOpPhiString() ||
+                 plan.operation_kinds[operation] == DirectMirScalarCfgOpPhiValue()) {
                 // Memory locals already carry the selected predecessor value.
             }
-            if emitted == "" && plan.operation_kinds[operation] !=
-                    DirectMirScalarCfgOpPhiInt() &&
-                    plan.operation_kinds[operation] !=
-                    DirectMirScalarCfgOpPhiString() &&
-                    plan.operation_kinds[operation] !=
-                    DirectMirScalarCfgOpPhiValue() {
+            if emitted == "" && plan.operation_kinds[operation] != DirectMirScalarCfgOpPhiInt() &&
+                    plan.operation_kinds[operation] != DirectMirScalarCfgOpPhiString() &&
+                    plan.operation_kinds[operation] != DirectMirScalarCfgOpPhiValue() {
                 Die("direct MIR scalar program C operation is unsupported");
             }
             TextBuilderAppend(output, emitted);
             operation = operation + 1;
         }
-        let return_row: Int =
-            plan.program.block_return_expression_rows[block];
+        let return_row: Int = plan.program.block_return_expression_rows[block];
         if return_row == DirectMirScalarCfgVoidReturnExpressionRow() {
             if routine == plan.routines.entrypoint_ordinal {
-                TextBuilderAppend(output,
-                    DirectMirScalarProgramCStringArrayCleanup(plan, routine));
+                TextBuilderAppend(output, DirectMirScalarProgramCStringArrayCleanup(plan, routine));
                 TextBuilderAppend(output, "    return 0;\n");
             } else {
                 TextBuilderAppend(output, DirectMirScalarProgramCScalarValueResultCopyOut(plan, routine));
                 TextBuilderAppend(output, DirectMirScalarProgramCArrayStringValueResultCopyOut(
                     plan, routine, array_string_projection));
-                TextBuilderAppend(output,
-                    DirectMirScalarProgramCArrayIntValueResultCopyOut(
+                TextBuilderAppend(output, DirectMirScalarProgramCArrayIntValueResultCopyOut(
                         plan, routine));
-                TextBuilderAppend(output,
-                    DirectMirScalarProgramCArrayBoolValueResultCopyOut(
+                TextBuilderAppend(output, DirectMirScalarProgramCArrayBoolValueResultCopyOut(
                         plan, routine));
-                TextBuilderAppend(output,
-                    DirectMirScalarProgramCLogicalRecordValueResultCopyOut(
+                TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordValueResultCopyOut(
                         plan, routine));
                 TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordArrayValueResultCopyOut(plan, routine));
-                TextBuilderAppend(output,
-                    DirectMirScalarProgramCSetStringValueResultCopyOut(
+                TextBuilderAppend(output, DirectMirScalarProgramCSetStringValueResultCopyOut(
                         plan, routine));
                 TextBuilderAppend(output, "    return;\n");
             }
@@ -142,8 +121,7 @@ func DirectMirScalarCfgProgramCRoutine(
                 plan.routines, routine, target, plan.program.array_string_abi, array_string_projection));
             TextBuilderAppend(output, ";\n");
             TextBuilderAppend(output, DirectMirScalarProgramCScalarValueResultCopyOut(plan, routine));
-            TextBuilderAppend(output,
-                DirectMirScalarProgramCArrayIntValueResultCopyOut(
+            TextBuilderAppend(output, DirectMirScalarProgramCArrayIntValueResultCopyOut(
                     plan, routine));
             TextBuilderAppend(output,
                 DirectMirScalarProgramCArrayBoolValueResultCopyOut(

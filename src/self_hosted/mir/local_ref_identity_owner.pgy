@@ -1,17 +1,12 @@
 // Canonical lexical binding identity grammar shared by producer and consumer.
-
 func SelfMirLocalRefRoleValid(role: String) -> Bool {
-    return role == "declaration" || role == "iteration" ||
-        role == "parameter" || role == "destructure" ||
-        role == "owner-field" || role == "iteration-synthetic" ||
-        role == "match-synthetic";
+    return role == "declaration" || role == "iteration" || role == "parameter" || role == "destructure" ||
+        role == "owner-field" || role == "iteration-synthetic" || role == "match-synthetic";
 }
 
 // Producer and reader use the same collision rule over their owned inventories.
-func SelfMirLocalRefSpellingCollision(
-    ref locals: Array<String>, local_start: Int, local_count: Int,
-    ref parameters: Array<String>, parameter_start: Int, parameter_count: Int
-) -> Bool {
+func SelfMirLocalRefSpellingCollision(ref locals: Array<String>, local_start: Int, local_count: Int,
+    ref parameters: Array<String>, parameter_start: Int, parameter_count: Int) -> Bool {
     if local_start < 0 || local_count < 0 || local_start + local_count > ArrayLength(locals) ||
         parameter_start < 0 || parameter_count < 0 || parameter_start + parameter_count > ArrayLength(parameters) {
         Die("LocalRef spelling inventory range is invalid");
@@ -35,44 +30,26 @@ func SelfMirLocalRefSpellingCollision(
 
 func SelfMirLocalRefValid(value: String) -> Bool {
     let parts: Array<String> = Split(value, ":");
-    return ArrayLength(parts) == 3 &&
-        SelfMirLocalRefRoleValid(parts[0]) &&
+    return ArrayLength(parts) == 3 && SelfMirLocalRefRoleValid(parts[0]) &&
         ToString(ToInt(parts[1])) == parts[1] && ToInt(parts[1]) >= 0 &&
         ToString(ToInt(parts[2])) == parts[2] && ToInt(parts[2]) >= 0;
 }
 
-func SelfMirLocalRef(
-    role: String, owner_syntax_id: Int, binding_index: Int
-) -> String {
-    if !SelfMirLocalRefRoleValid(role) ||
-        owner_syntax_id < 0 || binding_index < 0 {
-        return "";
-    }
-    return Concat(
-        role, Concat(":", Concat(
-            ToString(owner_syntax_id), Concat(":", ToString(binding_index))
-        ))
-    );
+func SelfMirLocalRef(role: String, owner_syntax_id: Int, binding_index: Int) -> String {
+    if !SelfMirLocalRefRoleValid(role) || owner_syntax_id < 0 || binding_index < 0 { return ""; }
+    return Concat(role, Concat(":", Concat(ToString(owner_syntax_id), Concat(":", ToString(binding_index)))));
 }
 
-func SelfMirLocalRefParameterOrdinalForOwner(
-    value: String, owner_syntax_id: Int
-) -> Int {
+func SelfMirLocalRefParameterOrdinalForOwner(value: String, owner_syntax_id: Int) -> Int {
     if !SelfMirLocalRefValid(value) || owner_syntax_id < 0 { return -1; }
     let parts: Array<String> = Split(value, ":");
-    if parts[0] != "parameter" || ToInt(parts[1]) != owner_syntax_id {
-        return -1;
-    }
+    if parts[0] != "parameter" || ToInt(parts[1]) != owner_syntax_id { return -1; }
     return ToInt(parts[2]);
 }
 
-func SelfMirLocalRefDestructureOrdinalForOwner(
-    value: String, owner_syntax_id: Int
-) -> Int {
+func SelfMirLocalRefDestructureOrdinalForOwner(value: String, owner_syntax_id: Int) -> Int {
     if !SelfMirLocalRefValid(value) || owner_syntax_id < 0 { return -1; }
     let parts: Array<String> = Split(value, ":");
-    if parts[0] != "destructure" || ToInt(parts[1]) != owner_syntax_id {
-        return -1;
-    }
+    if parts[0] != "destructure" || ToInt(parts[1]) != owner_syntax_id { return -1; }
     return ToInt(parts[2]);
 }

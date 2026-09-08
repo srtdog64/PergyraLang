@@ -62,20 +62,16 @@ func DirectMirScalarProgramExpressionNodeReady(
         kind == DirectMirScalarProgramExprIdentityCellMember() ||
         kind == DirectMirScalarProgramExprLogicalRecordMember() ||
         kind == DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() {
-        return DirectMirScalarProgramLogicalRecordExpressionNodeReady(
-            facts, node);
+        return DirectMirScalarProgramLogicalRecordExpressionNodeReady(facts, node);
     }
     if kind == DirectMirScalarProgramExprArrayBoolEmptyLiteral() {
-        return DirectMirScalarProgramArrayBoolEmptyLiteralNodeReady(
-            facts, node);
+        return DirectMirScalarProgramArrayBoolEmptyLiteralNodeReady(facts, node);
     }
     if kind == DirectMirScalarProgramExprArrayBoolPopulatedLiteral() {
-        return DirectMirScalarProgramArrayBoolPopulatedLiteralNodeReady(
-            facts, node);
+        return DirectMirScalarProgramArrayBoolPopulatedLiteralNodeReady(facts, node);
     }
     if kind == DirectMirScalarProgramExprLogicalRecordArrayIndex() {
-        return DirectMirScalarProgramLogicalRecordArrayIndexNodeShapeReady(
-            facts, node);
+        return DirectMirScalarProgramLogicalRecordArrayIndexNodeShapeReady(facts, node);
     }
     let enum_ready: Option<Bool> =
         DirectMirScalarProgramPayloadFreeEnumExpressionNodeReady(facts, node);
@@ -92,8 +88,7 @@ func DirectMirScalarProgramExpressionNodeReady(
     let cast_ready: Option<Bool> = DirectMirScalarProgramNumericCastExpressionNodeReady(facts, node); if IsSome(cast_ready) { return UnwrapOption(cast_ready); }
     let comparison_ready: Option<Bool> = DirectMirScalarProgramComparisonExpressionNodeReady(facts, node);
     if IsSome(comparison_ready) { return UnwrapOption(comparison_ready); }
-    let nary_ready: Option<Bool> =
-        DirectMirScalarProgramNaryExpressionNodeReady(facts, node);
+    let nary_ready: Option<Bool> = DirectMirScalarProgramNaryExpressionNodeReady(facts, node);
     if IsSome(nary_ready) { return UnwrapOption(nary_ready); }
     let collection_ready: Option<Bool> =
         DirectMirScalarProgramCollectionExpressionNodeReady(facts, node);
@@ -133,8 +128,7 @@ func DirectMirScalarProgramExpressionNodeReady(
     if kind == DirectMirScalarProgramExprLongLiteral() {
         return type_name == CompilerAbiLayoutLongTypeName() &&
             AstExpressionLongLiteralPayloadReady(Concat(literal, "L")) &&
-            left == -1 && right == -1 && local_binding == -1 && param == -1 &&
-            callable == -1;
+            left == -1 && right == -1 && local_binding == -1 && param == -1 && callable == -1;
     }
     if kind == DirectMirScalarProgramExprBoolLiteral() {
         return type_name == CompilerAbiLayoutBoolTypeName() &&

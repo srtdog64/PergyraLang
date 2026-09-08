@@ -30,22 +30,18 @@ func DirectMirScalarProgramLogicalRecordConstructorFromGraph(
     let missing: DirectMirScalarProgramLogicalRecordExpressionFact =
         DirectMirScalarProgramLogicalRecordExpressionMissing();
     if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
-        sequence.arena.topology.node_kinds[node] !=
-            AstExpressionNodeCallArgument() {
+        sequence.arena.topology.node_kinds[node] != AstExpressionNodeCallArgument() {
         return missing;
     }
     let chain: DirectMirScalarProgramBuiltinArgumentChain =
         DirectMirScalarProgramBuiltinArgumentChainFromGraph(
             sequence, node, source_rows, normalized_types);
     if !chain.valid { return missing; }
-    let record_type: String =
-        sequence.arena.call_target_names[chain.call_node];
-    let record_row: Int = DirectMirScalarProgramLogicalRecordRow(
-        record, record_type);
+    let record_type: String = sequence.arena.call_target_names[chain.call_node];
+    let record_row: Int = DirectMirScalarProgramLogicalRecordRow(record, record_type);
     let cell_row: Int = DirectMirIdentityCellRow(record.identity_cells, record_type);
     if sequence.arena.identities.call_target_syntax_ids[chain.call_node] != 0 ||
-        sequence.arena.call_target_kinds[chain.call_node] !=
-            SemanticCallTargetDirect() ||
+        sequence.arena.call_target_kinds[chain.call_node] != SemanticCallTargetDirect() ||
         (record_row < 0 && cell_row < 0) || (record_row >= 0 && cell_row >= 0) {
         return missing;
     }
@@ -62,8 +58,7 @@ func DirectMirScalarProgramLogicalRecordConstructorFromGraph(
     let count: Int = ArrayLength(chain.argument_rows);
     if count > field_count {
         return DirectMirScalarProgramLogicalRecordExpressionFact(
-            true, false, false, 0, "", chain.argument_rows,
-            chain.call_node, -1, -1);
+            true, false, false, 0, "", chain.argument_rows, chain.call_node, -1, -1);
     }
     // Row already validated this span; this readonly query has no intervening
     // mutation or suspension that could invalidate it between arguments.
@@ -74,8 +69,7 @@ func DirectMirScalarProgramLogicalRecordConstructorFromGraph(
         else { expected = record.field_types[field_start + ordinal]; }
         if normalized_types[chain.argument_rows[ordinal]] != expected {
             return DirectMirScalarProgramLogicalRecordExpressionFact(
-                true, false, false, 0, "", chain.argument_rows,
-                chain.call_node, -1, -1);
+                true, false, false, 0, "", chain.argument_rows, chain.call_node, -1, -1);
         }
         ordinal = ordinal + 1;
     }

@@ -30,19 +30,13 @@ struct SemanticAstInitializerTypeFacts {
     binding_indices: Array<Int>;
 }
 
-func SemanticAstInitializerTypeStructuralError(
-    artifact: AstTreeArtifact
+func SemanticAstInitializerTypeStructuralError(artifact: AstTreeArtifact
 ) -> SemanticAstInitializerTypeFacts {
     let empty_ints: Array<Int> = [];
     let empty_strings: Array<String> = [];
-    return SemanticAstInitializerTypeFacts(
-        false,
-        "ast_artifact_invalid",
-        SemanticError2(
-            "ast_artifact_invalid",
-            "node_count", ToString(artifact.count),
-            "owner", "SemanticAstInitializerTypeFacts"
-        ),
+    return SemanticAstInitializerTypeFacts(false, "ast_artifact_invalid", SemanticError2(
+            "ast_artifact_invalid", "node_count", ToString(artifact.count),
+            "owner", "SemanticAstInitializerTypeFacts"),
         artifact.count,
         empty_ints, empty_strings, empty_ints,
         empty_strings, empty_strings, empty_ints, empty_ints

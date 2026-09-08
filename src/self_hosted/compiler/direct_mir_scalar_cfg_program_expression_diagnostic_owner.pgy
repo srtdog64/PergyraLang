@@ -6,18 +6,15 @@ import "direct_mir_scalar_program_runtime_value_expression_diagnostic_owner.pgy"
 import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_program_expression_row_readiness_owner.pgy";
 import "direct_mir_scalar_program_process_exit_owner.pgy";
-func DirectMirScalarCfgProgramExpressionAdmissionFailed(
-    global_row: Int, source: String,
-    ref failure: DirectMirScalarProgramExpressionAdmissionFailure
-) -> Void {
+func DirectMirScalarCfgProgramExpressionAdmissionFailed(global_row: Int, source: String,
+    ref failure: DirectMirScalarProgramExpressionAdmissionFailure) -> Void {
     let stage: String = failure.stage;
     let node: Int = failure.node;
     if !failure.present { stage = "unknown"; node = -1; }
     Die(Concat("direct MIR scalar CFG program expression admission is invalid: stage=", Concat(stage, Concat(" node=", Concat(ToString(node), Concat(" row=", Concat(ToString(global_row), Concat(" source=", source))))))));
 }
 func DirectMirScalarCfgProgramBranchTopologyAdmissionFailed(routine_ordinal: Int, block: Int, global_row: Int, source: String) -> Void {
-    Die(Concat(
-        "direct MIR scalar CFG program branch topology is invalid: ordinal=",
+    Die(Concat("direct MIR scalar CFG program branch topology is invalid: ordinal=",
         Concat(ToString(routine_ordinal), Concat(" block=", Concat(
             ToString(block), Concat(" row=", Concat(ToString(global_row),
             Concat(" source=", source))))))));
@@ -26,13 +23,11 @@ func DirectMirScalarCfgProgramRoutineAdmissionFailed(stage: String, routine_ordi
     Die(Concat("direct MIR scalar CFG program routine admission stage is invalid: stage=", Concat(stage, Concat(" ordinal=", Concat(ToString(routine_ordinal), Concat(" block=", Concat(ToString(block), Concat(" row=", Concat(ToString(global_row), Concat(" source=", source))))))))));
 }
 func DirectMirScalarCfgProgramExpressionSetReadinessFailed(
-    ref facts: DirectMirScalarProgramExpressionSet
-) -> Void {
+    ref facts: DirectMirScalarProgramExpressionSet) -> Void {
     let node: Int = 0;
     while node < ArrayLength(facts.node_kinds) {
         if !DirectMirScalarProgramExpressionNodeReady(facts, node) {
-            if facts.node_kinds[node] ==
-                    DirectMirScalarProgramExprDirectCall() {
+            if facts.node_kinds[node] == DirectMirScalarProgramExprDirectCall() {
                 let arguments: Array<Int> =
                     DirectMirScalarProgramDirectCallArgumentRows(facts, node);
                 let detail: String = Concat(

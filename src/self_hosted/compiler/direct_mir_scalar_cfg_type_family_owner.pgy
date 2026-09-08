@@ -16,8 +16,7 @@ func DirectMirScalarCfgCollectionTypeSupported(type_name: String) -> Bool {
         type_name == CompilerAbiLayoutSetStringTypeName();
 }
 
-func DirectMirScalarCfgIterationTypePairSupported(
-    binding_type: String, iterable_type: String
+func DirectMirScalarCfgIterationTypePairSupported(binding_type: String, iterable_type: String
 ) -> Bool {
     return (binding_type == CompilerAbiLayoutIntTypeName() &&
             iterable_type == CompilerAbiLayoutArrayIntTypeName()) ||
@@ -37,8 +36,7 @@ func DirectMirScalarCfgSourceLocalTypeSupported(type_name: String) -> Bool {
         type_name == CompilerAbiLayoutResultIntTypeName();
 }
 
-func DirectMirScalarCfgSourceLocalTypeMatchesResolved(
-    source_type: String, resolved_type: String
+func DirectMirScalarCfgSourceLocalTypeMatchesResolved(source_type: String, resolved_type: String
 ) -> Bool {
     return source_type == resolved_type ||
         (source_type == "Option<Unknown>" &&
