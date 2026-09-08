@@ -9,8 +9,8 @@ import "ast_expression_graph_node_view_owner.pgy";
 func SemanticExpressionGraphStructLiteralTypeName(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> Option<String> {
     if !graph.ok ||
         ArrayLength(function_names) != ArrayLength(function_returns) {
@@ -44,8 +44,8 @@ func SemanticExpressionGraphStructLiteralTypeName(
 func SemanticExpressionGraphIntrinsicTypeName(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> Option<String> {
     let direct: Option<String> =
         SemanticExpressionGraphStructLiteralTypeName(

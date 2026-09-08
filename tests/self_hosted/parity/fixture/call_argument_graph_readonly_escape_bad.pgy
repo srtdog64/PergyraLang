@@ -1,0 +1,6 @@
+func Consume(values: Array<String>) -> Int { return ArrayLength(values); }
+func Borrow(ref values: Array<String>) -> Int { return Consume(values); }
+func Main() -> Void {
+    let values: Array<String> = ["unchanged"];
+    Log(Borrow(values));
+}

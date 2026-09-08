@@ -1,0 +1,31 @@
+import "../../../../src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy";
+
+struct Fragment { text: String; }
+struct Buffer { values: Array<Int>; }
+func Update(inout output: Buffer) -> Void {
+    ArrayPush(output.values, 3);
+    ArraySet(output.values, 0, 7);
+    ArrayPush(output.values, 9);
+    ArrayPop(output.values);
+}
+func Wrap(name: String, source: Fragment) -> Fragment {
+    return Fragment(name + source.text);
+}
+func Render(source: Fragment) -> String { return source.text; }
+func Distance(ref true_edges: Array<Int>, ref false_edges: Array<Int>) -> Int {
+    let distances: Array<Int> = MirRoutineGraphDistances(true_edges, false_edges, 0);
+    return distances[2];
+}
+func Main() -> Void {
+    let source: Fragment = Fragment("Int");
+    let result: Fragment = Wrap("Array<" + source.text + ">", source);
+    Log("result=" + Render(result) + ";");
+    let values: Array<Int> = [];
+    let output: Buffer = Buffer(values);
+    Update(output);
+    Log(output.values[0]);
+    let true_edges: Array<Int> = [1, 2, -1];
+    let false_edges: Array<Int> = [-1, -1, -1];
+    Log(Distance(true_edges, false_edges));
+    Log(true_edges[0]);
+}

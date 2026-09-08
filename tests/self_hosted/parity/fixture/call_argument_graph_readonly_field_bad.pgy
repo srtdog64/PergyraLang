@@ -1,0 +1,7 @@
+struct Buffer { values: Array<Int>; }
+func Mutate(ref output: Buffer) -> Void { ArrayPush(output.values, 1); }
+func Main() -> Void {
+    let values: Array<Int> = [0];
+    let output: Buffer = Buffer(values);
+    Mutate(output);
+}

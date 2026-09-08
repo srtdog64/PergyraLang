@@ -19,8 +19,8 @@ func SemanticExpressionGraphArrayLiteralTypeName(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> Option<String> {
     let view: SemanticArrayLiteralView =
         SemanticArrayLiteralViewFromGraph(graph, root_id);
@@ -103,8 +103,8 @@ func SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> Bool {
     let element_type_opt: Option<String> =
         SemanticSequenceElementType(declared_type);

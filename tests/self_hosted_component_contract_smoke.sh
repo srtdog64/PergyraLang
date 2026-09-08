@@ -2004,8 +2004,11 @@ require_text "src/self_hosted/OWNERS.md" \
 require_file "src/self_hosted/mir/intent_routine_owner.pgy"
 require_max_lines "src/self_hosted/mir/intent_routine_owner.pgy" 500
 reject_text "src/self_hosted/mir/intent_routine_owner.pgy" 'build, "stmt", "stmt"'
-require_text "src/self_hosted/mir/intent_execution_source_cfg_owner.pgy" \
-    'intents.result_modes[intent_index] != "legacy_bool"'
+require_function_text "src/self_hosted/mir/intent_execution_source_cfg_owner.pgy" \
+    'func SelfMirIntentRoutineFinalizeCfg(' \
+    'intents.result_modes[intent_index] == "typed_enum"'
+require_text "src/self_hosted/mir/intent_routine_owner.pgy" \
+    'else if intents.result_modes[intent_index] != "typed_enum"'
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/intent_routine_owner.pgy"
 require_file "src/self_hosted/mir/intent_mode_carriage_owner.pgy"
@@ -2147,10 +2150,13 @@ intent_plan_ready_calls="$(
 intent_plan_ready_call_count="$(
     printf '%s\n' "$intent_plan_ready_calls" | sed '/^$/d' | wc -l
 )"
-[[ "$intent_plan_ready_call_count" -eq 1 ]] ||
-    fail "MirIntentExecutionPlanReady must have one production call: $intent_plan_ready_calls"
-[[ "$intent_plan_ready_calls" == *"machine_layer_fact_owner.pgy"* ]] ||
-    fail "MirIntentExecutionPlanReady call must belong to machine admission"
+# The source producer and serialized-MIR importer admit distinct artifacts.
+# Neither may move validation into a backend or repeat it in a consumer.
+[[ "$intent_plan_ready_call_count" -eq 2 ]] ||
+    fail "MirIntentExecutionPlanReady must have two admission calls: $intent_plan_ready_calls"
+[[ "$intent_plan_ready_calls" == *"/mir/program_verify_owner.pgy:"* &&
+   "$intent_plan_ready_calls" == *"/mir_lower/machine_layer_fact_owner.pgy:"* ]] ||
+    fail "MirIntentExecutionPlanReady calls must belong to source and machine admission"
 
 require_file \
     "tests/self_hosted/parity/fixture/intent_execution_plan_json_admission_probe.pgy"
@@ -2469,12 +2475,14 @@ reject_text "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" \
     "ArrayPush(projection."
 reject_text "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" \
     "ArraySet(projection."
-member_array_inout="$({
-    find "$SELF_HOST_DIR" -type f -name '*.pgy' \
-        -exec grep -HnE 'Array(Push|Set)\([[:space:]]*[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_]' {} +
-} 2>/dev/null || true)"
-[[ -z "$member_array_inout" ]] ||
-    fail "self-host source reintroduced unsupported direct member-array inout: $member_array_inout"
+# Collection-field support is exercised by bootstrap's focused execution gate.
+# This structural inventory only ratchets the deleted name-only read paths.
+require_file "tests/self_hosted/parity/codegen_call_argument_graph.sh"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "codegen_call_argument_graph.sh"
+reject_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    'let target_type: String = EnvLookup(names, types, target);'
+require_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" \
+    'collection target expression graph is missing or inconsistent'
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/intent_phase_tree_owner.pgy"
 require_file \
@@ -2711,7 +2719,7 @@ require_max_lines \
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy"
 require_text \
-    "src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy" \
+    "src/self_hosted/semantic/intent_subject_slot_policy_owner.pgy" \
     'NominalFieldKindSubjectSlot()'
 require_text \
     "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy" \
@@ -4826,7 +4834,7 @@ require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" 'impor
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "func CompilerRuntimeCallAbiManifestRowAt"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "CompilerRuntimeCallAbiConcreteRowCount()"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "schema=pgy.selfhost.runtime-call-abi-row.v2"
-require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=262"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=267"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
     '256|host-io|compiler-artifact-write|pgy_compiler_artifact_write|function|target_library|int_string_to_bool'
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
@@ -8950,7 +8958,7 @@ reject_text "src/self_hosted/semantic/ast_expression_graph_collection_mutation_o
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "SemanticExpressionGraphCollectionMutationFactFromGraph("
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
-    "SemanticCollectionMutationError("
+    "SemanticExpressionGraphCollectionReceiverMutationFact("
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SemanticExpressionGraphCollectionMutationContractReady()"
 require_file "src/self_hosted/tools/collection_policy_probe/main.pgy"
@@ -9781,7 +9789,7 @@ require_max_lines \
 require_file "tests/self_hosted/parity/fixture/vessel_method_argument_type_bad.pgy"
 require_file "tests/self_hosted/parity/fixture/vessel_method_argument_type_valid.pgy"
 require_text "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy" \
-    'func SemanticExpressionGraphResolvedMemberCallArgumentsOwned('
+    'func SemanticExpressionGraphResolvedCallArgumentsOwned('
 require_text "src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy" \
     'if code == "member_call_arg_type_mismatch" {'
 reject_text "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy" \
@@ -11933,11 +11941,11 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
 reject_function_text "src/self_hosted/codegen/type_facts/type_env.pgy" \
     "func TypeEnvAppendLocalRows(" "let combined: String"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenCollectionTargetCBindingOrDie(env,"
-require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+require_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" \
     "func CodegenCollectionTargetCBindingOrDie("
-require_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+require_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" \
     "collection target C binding fact is missing"
-reject_function_text "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
+reject_function_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" \
     "func CodegenCollectionTargetCBindingOrDie(" '"cref"'
 require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" \
     "CodegenFunctionValueBindingFactFor("
@@ -12492,9 +12500,12 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pg
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func WrapExprWithSemanticGraph("
 require_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "func RewriteExprFromSemanticGraphTracked(" \
+    "RewriteSemanticBinaryOperationTracked("
+require_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteSemanticBinaryOperationTracked(" \
     "CodegenCBinaryExpression(left, operator, right)"
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
-    "func RewriteExprFromSemanticGraphTracked(" \
+    "func RewriteSemanticBinaryOperationTracked(" \
     'return Concat("(", Concat(left, Concat(operator, Concat(right, ")"))))'
 require_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "func RewriteExprFromSemanticGraphTracked(" \
@@ -19797,14 +19808,14 @@ require_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_call_argument_expected_type_owner.pgy" \
     "func DirectMirScalarProgramDirectCallArgumentExpectedType(" \
-    "DirectMirScalarCfgProgramCallableParameterTypeBySyntaxId("
+    "DirectMirScalarCfgProgramCallableParameterTypeAtOrdinal("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_inventory_owner.pgy" \
-    "func DirectMirScalarCfgProgramCallableParameterTypeBySyntaxId(" \
-    "DirectMirScalarCfgProgramCallableInventoryOrdinalBySyntaxId("
+    "func DirectMirScalarProgramCallableOrdinalAtCall(" \
+    "inventory.source_syntax_ids[ordinal - 1] != sequence.arena.identities.call_target_syntax_ids[node]"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_inventory_owner.pgy" \
-    "func DirectMirScalarCfgProgramCallableParameterTypeBySyntaxId(" \
+    "func DirectMirScalarCfgProgramCallableParameterTypeAtOrdinal(" \
     "inventory.parameter_types["
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_admission_owner.pgy" \
@@ -21308,7 +21319,7 @@ require_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_readiness_owner.pgy" \
     "func DirectMirScalarCfgGraphPlanReady(" \
-    "kind > DirectMirScalarCfgOpLogicalRecordArrayIndexedAssignment()"
+    "kind > DirectMirScalarCfgOpIdentityCellStore()"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_array_mutation_owner.pgy" \
     "func DirectMirScalarProgramCArrayMutation(" \
@@ -21756,7 +21767,7 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
     "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
-    "DirectMirScalarProgramPayloadEnumTypeReady("
+    "DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum("
 reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
     "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
@@ -22182,7 +22193,11 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_value_result_policy_owner.pgy" \
     "func DirectMirScalarProgramLogicalRecordValueResultParameterReady(" \
-    "signature.parameters.abi_layout_ids[ordinal] == 0"
+    "DirectMirScalarProgramLogicalRecordParameterAbiReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy" \
+    "func DirectMirScalarProgramLogicalRecordParameterAbiReady(" \
+    "parameters.abi_layout_ids[ordinal] == fact.physical.layout_ids[row]"
 reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_value_result_policy_owner.pgy" \
     "func DirectMirScalarProgramLogicalRecordValueResultParameterReady(" \
@@ -22441,12 +22456,12 @@ require_function_text \
     "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
     'carriages[ordinal] == "owner-handle"'
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
-    "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_type_owner.pgy" \
+    "func DirectMirScalarProgramLlvmTypeForProgram(" \
     "DirectMirScalarProgramLogicalRecordArrayTypeReady("
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
-    "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_type_owner.pgy" \
+    "func DirectMirScalarProgramLlvmTypeForProgram(" \
     "DirectMirScalarProgramLlvmLogicalRecordArrayTypeName("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy" \
@@ -23257,7 +23272,7 @@ require_text \
     "func DirectMirScalarProgramExprPayloadEnumMember() -> Int { return 123; }"
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
-    "func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprPayloadEnumMember(); }"
+    "func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprIdentityCellMember(); }"
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy"
 require_max_lines \
@@ -23783,7 +23798,13 @@ require_text \
     "DirectMirClosedModuleCallAbiFactCanonicalEmpty"
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_readiness_owner.pgy" \
-    'facts.node_literals[right] != "0"'
+    'DirectMirScalarProgramCheckedIntNodeReady(facts, node)'
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_checked_int_owner.pgy" \
+    'operation = "int-division"; symbol = CheckedArithmeticRuntimeCIntDivisionFn();'
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_checked_int_owner.pgy" \
+    'facts.node_runtime_call_abi_ids[node] == abi.runtime_call_abi_id'
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_expression_owner.pgy" \
     ' = add i64 '
@@ -24119,7 +24140,7 @@ require_text \
     "CompileAdmittedDirectMirGenericStructValueFlow("
 require_text \
     "src/self_hosted/compiler/direct_mir_generic_specialization_fact_owner.pgy" \
-    "JsonObjectFactCount(row) != 9"
+    "JsonObjectFactCount(row) != 11"
 require_text \
     "src/self_hosted/compiler/direct_mir_generic_struct_value_flow_plan_owner.pgy" \
     "explicit_generic_scalar_calls_into_nominal_values_by_value"

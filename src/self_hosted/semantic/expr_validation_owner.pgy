@@ -29,7 +29,7 @@ func SemanticIdentifierFollowsDot(text: String, n: Int, start: Int) -> Bool {
 func CheckUndefinedIdentifiers(
     expr: String,
     names: Array<String>,
-    callable_names: Array<String>
+    ref callable_names: Array<String>
 ) -> String {
     let text: String = SemanticTrimSourceReuse(expr);
     let n: Int = StringLength(text);
@@ -142,7 +142,7 @@ func CheckUndefinedIdentifiers(
     return "";
 }
 
-func CheckTryOperand(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+func CheckTryOperand(expr: String, names: Array<String>, types: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>) -> String {
     let text: String = SemanticTrimSourceReuse(expr);
     let bounds: Array<Int> = [0, 0];
     if !TryOperandBounds(text, bounds) {
@@ -164,7 +164,7 @@ func CheckTryOperand(expr: String, names: Array<String>, types: Array<String>, f
     return "";
 }
 
-func CheckLogicalOperands(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+func CheckLogicalOperands(expr: String, names: Array<String>, types: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>) -> String {
     let text: String = SemanticTrimSourceReuse(expr);
     let n: Int = StringLength(text);
     let facts: SemanticTopLevelOperatorFacts =
@@ -191,7 +191,7 @@ func CheckLogicalOperands(expr: String, names: Array<String>, types: Array<Strin
     return "";
 }
 
-func CheckBinaryOperands(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+func CheckBinaryOperands(expr: String, names: Array<String>, types: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>) -> String {
     let text: String = SemanticTrimSourceReuse(expr);
     let n: Int = StringLength(text);
     // A leading unary `!` (not `!=`) requires a Bool operand; the C oracle

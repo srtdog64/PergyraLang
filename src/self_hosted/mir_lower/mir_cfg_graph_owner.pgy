@@ -1,8 +1,8 @@
 // Pure CFG queries used while building a per-routine MIR fact index.
 
 func MirRoutineGraphDistances(
-    block_succ_true: Array<Int>,
-    block_succ_false: Array<Int>,
+    ref block_succ_true: Array<Int>,
+    ref block_succ_false: Array<Int>,
     start: Int
 ) -> Array<Int> {
     let block_count: Int = ArrayLength(block_succ_true);

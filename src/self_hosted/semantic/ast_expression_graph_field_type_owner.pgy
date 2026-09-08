@@ -11,8 +11,8 @@ func SemanticExpressionGraphFieldValueTypeName(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> Option<String> {
     let scalar: String = SemanticExpressionGraphScalarTypeName(
         graph, node_id, constructors, names, types,

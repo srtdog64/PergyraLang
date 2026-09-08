@@ -8,7 +8,7 @@ import "ast_iteration_type_fact_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
-import "collection_mutation_policy_owner.pgy";
+import "ast_expression_graph_collection_mutation_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
 import "ast_bind_statement_type_fact_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
@@ -42,24 +42,6 @@ func SemanticAstStatementTypeStructuralError(
         artifact.count, empty_ints, empty_ints, empty_strings, empty_strings,
         empty_ints, empty_strings, empty_strings
     );
-}
-func SemanticAstStatementExpectedReturnType(
-    signatures: SemanticAstFunctionSignatureFacts,
-    function_node_id: Int
-) -> String {
-    let index_opt: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
-        signatures, function_node_id
-    );
-    if !IsSome(index_opt) {
-        return "";
-    }
-    let return_opt: Option<String> = SemanticAstFunctionReturnTypeAt(
-        signatures, UnwrapOption(index_opt)
-    );
-    if !IsSome(return_opt) {
-        return "";
-    }
-    return UnwrapOption(return_opt);
 }
 func SemanticAstStatementTypeFactsFromArtifact(
     artifact: AstTreeArtifact,
@@ -307,30 +289,34 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
             } else if kind == TypedAstKindArrayPushStmtTag() {
                 mutator_name = "ArrayPush";
             }
-            let mutation_error: String = SemanticCollectionMutationError(
-                mutator_name, statements.payload_texts[i],
-                names, types, modes, false
-            );
-            if StringLength(mutation_error) > 0 {
-                row_verified = 0;
-                row_code = "value_param_collection_mutation";
-                row_message = mutation_error;
-            }
-        }
-        if row_verified == 1 &&
-            (kind == TypedAstKindArrayPopStmtTag() ||
-             kind == TypedAstKindArraySetStmtTag() ||
-             kind == TypedAstKindArrayPushStmtTag()) {
             let target: String = statements.payload_texts[i];
-            let target_type: String = EnvLookup(names, types, target);
+            let target_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                expression_surfaces, statements.node_ids[i], AstExpressionLaneAtom());
+            if !IsSome(target_root) {
+                return SemanticAstStatementTypeStructuralError(artifact, "array_target_graph");
+            }
+            let mutation: SemanticExpressionGraphCollectionMutationFact =
+                SemanticExpressionGraphCollectionReceiverMutationFact(
+                    mutator_name, expression_surfaces.expression_graph,
+                    UnwrapOption(target_root), names, types, modes, false);
+            // A collection field is a typed receiver expression, not a local
+            // whose spelling happens to contain a dot. Reuse its admitted graph.
+            let target_verdict: SemanticAstExpressionVerdict = SemanticAstExpressionVerdictFromGraph(
+                target, expression_surfaces.expression_graph, UnwrapOption(target_root),
+                constructors, signatures, names, types, modes,
+                function_tables.names, function_tables.returns, function_tables.params,
+                member_root_names, statements.function_node_ids[i]);
+            let target_type: String = target_verdict.inferred_type_name;
             let element_type_opt: Option<String> =
                 SemanticArrayElementType(target_type);
-            if target == "" || !EnvContainsName(names, target) {
+            if !mutation.ok {
                 row_verified = 0;
-                row_code = "undefined_symbol";
-                row_message = SemanticError1(
-                    "undefined_symbol", "name", target
-                );
+                row_code = mutation.diagnostic_code;
+                row_message = mutation.diagnostic_message;
+            } else if !target_verdict.ok {
+                row_verified = 0;
+                row_code = target_verdict.diagnostic_code;
+                row_message = target_verdict.diagnostic_message;
             } else if !IsSome(element_type_opt) {
                 row_verified = 0;
                 row_code = "statement_type_unresolved";
@@ -428,9 +414,13 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
         if row_verified == 1 &&
             (kind == TypedAstKindBareReturnStmtTag() ||
              kind == TypedAstKindValueReturnStmtTag()) {
-            expected = SemanticAstStatementExpectedReturnType(
-                signatures, statements.function_node_ids[i]
-            );
+            let signature_index: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+                signatures, statements.function_node_ids[i]);
+            if IsSome(signature_index) {
+                let return_type: Option<String> = SemanticAstFunctionReturnTypeAt(
+                    signatures, UnwrapOption(signature_index));
+                if IsSome(return_type) { expected = UnwrapOption(return_type); }
+            }
             if (inferred == "Unknown" || inferred == "") && expected != "" {
                 let return_root: Option<Int> =
                     SemanticAstExpressionGraphRootForNode(

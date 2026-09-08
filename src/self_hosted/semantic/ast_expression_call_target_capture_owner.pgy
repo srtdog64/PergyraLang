@@ -15,7 +15,7 @@ struct SemanticExpressionCallTargetCapture {
 func SemanticExpressionCallTargetExpected(
     ref graph: SemanticExpressionGraphFacts, signatures: SemanticAstFunctionSignatureFacts,
     intents: SemanticAstIntentSignatureFacts,
-    callable_names: Array<String>,
+    ref callable_names: Array<String>,
     member_names: Array<String>,
     require_carried: Bool,
     node_id: Int

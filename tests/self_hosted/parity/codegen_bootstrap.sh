@@ -344,12 +344,12 @@ if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" == "1" ]]; then
     seed_reuse_status=$?
     set -e
     if [[ "$seed_reuse_status" -eq 0 ]]; then
+        PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen2.exe" PGY_PARSER_BIN="$PARSER_BIN" bash "$ROOT_DIR/tests/self_hosted/parity/codegen_call_argument_graph.sh"
         echo "[self-host-bootstrap] reusing fingerprinted gen2 seed before oracle build"
         exit 0
     fi
     [[ "$seed_reuse_status" -eq 1 ]] || exit "$seed_reuse_status"
 fi
-
 # gen0 and scaffolding require --native-pipeline: they precede and independently
 # judge the installed self-host driver that ordinary compilation delegates to.
 echo "[self-host-bootstrap] building oracle tool (gen0)..."
@@ -358,7 +358,7 @@ echo "[self-host-bootstrap] building oracle tool (gen0)..."
 if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" != "1" ]]; then
     compile_parser_ast_producer
 fi
-
+PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen0.exe" PGY_PARSER_BIN="$PARSER_BIN" bash "$ROOT_DIR/tests/self_hosted/parity/codegen_call_argument_graph.sh"
 # main.pgy's own AST (repo-relative path so the native tool resolves it from cwd)
 AST_REL="$B_REL/main_ast.txt"
 emit_self_parser_ast "$TOOL_SOURCE" "$AST_REL"

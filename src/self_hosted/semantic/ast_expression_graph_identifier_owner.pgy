@@ -31,7 +31,7 @@ func SemanticExpressionGraphIdentifierEvidence(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     names: Array<String>,
-    callable_names: Array<String>,
+    ref callable_names: Array<String>,
     member_root_names: Array<String>
 ) -> SemanticExpressionGraphIdentifierFact {
     let symbolic_identifier_nodes: Array<Int> = [];
@@ -45,7 +45,7 @@ func SemanticExpressionGraphIdentifierEvidenceWithSymbolicNodes(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     names: Array<String>,
-    callable_names: Array<String>,
+    ref callable_names: Array<String>,
     member_root_names: Array<String>,
     symbolic_identifier_nodes: Array<Int>
 ) -> SemanticExpressionGraphIdentifierFact {

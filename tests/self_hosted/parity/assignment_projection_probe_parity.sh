@@ -102,7 +102,7 @@ if grep -Fq 'CompilerSymbolCBindingName(' "$STMT_EMITTER" "$TRY_LET_EMITTER"; th
     echo "[$LABEL] statement emitter re-sanitized a binding name instead of consuming the binding fact owner" >&2
     exit 1
 fi
-BINDING_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/function_binding_env_owner.pgy"
+BINDING_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/collection_element_emit_owner.pgy"
 if ! grep -Fq 'CodegenCollectionTargetCBindingOrDie(env,' "$STMT_EMITTER"; then
     echo "[$LABEL] collection mutation targets stopped consuming the binding fact owner" >&2
     exit 1

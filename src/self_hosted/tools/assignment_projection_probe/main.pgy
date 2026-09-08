@@ -3,6 +3,7 @@
 import "../../codegen/emission/assign_emit_owner.pgy";
 import "../../codegen/type_facts/type_env_state_lifetime_owner.pgy";
 import "../../codegen/emission/function_binding_env_owner.pgy";
+import "../../codegen/emission/collection_element_emit_owner.pgy";
 import "../../semantic/ast_expression_call_target_capture_owner.pgy";
 import "../../semantic/ast_expression_place_fact_owner.pgy";
 
@@ -158,7 +159,8 @@ func ProbeCollectionCrefOnly() -> String {
     let env: CodegenTypeEnv = CodegenTypeEnvFromRows(
         "|", "|xs=v:ArrayInt|xs=type:Array<Int>|xs=cref:pgy_ref_xs|"
     );
-    return CodegenCollectionTargetCBindingOrDie(env, "xs");
+    let target: SemanticExpressionGraphView = ProbeExpressionGraph("xs", true, "xs", true);
+    return CodegenCollectionTargetCBindingOrDie(env, "xs", target);
 }
 
 func Main() -> Void {

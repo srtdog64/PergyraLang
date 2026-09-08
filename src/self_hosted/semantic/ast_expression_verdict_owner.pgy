@@ -63,9 +63,9 @@ func SemanticAstExpressionVerdictFromPayload(
     names: Array<String>,
     types: Array<String>,
     modes: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>,
-    function_params: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>,
+    ref function_params: Array<String>
 ) -> SemanticAstExpressionVerdict {
     let text: String = SemanticStripOuterParens(expression);
     let call_error: String = CheckCall(
@@ -113,9 +113,9 @@ func SemanticAstExpressionVerdictFromGraph(
     names: Array<String>,
     types: Array<String>,
     modes: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>,
-    function_params: Array<String>,
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>,
+    ref function_params: Array<String>,
     member_root_names: Array<String>,
     current_function_node_id: Int
 ) -> SemanticAstExpressionVerdict {
@@ -305,8 +305,8 @@ func SemanticAstExpressionVerdictFromGraph(
         );
     let graph_call_value_owned: Bool = concrete_scalar_value_owned ||
         contextual_call_arguments_owned;
-    let resolved_member_call_arguments_owned: Bool =
-        SemanticExpressionGraphResolvedMemberCallArgumentsOwned(
+    let resolved_call_arguments_owned: Bool =
+        SemanticExpressionGraphResolvedCallArgumentsOwned(
             graph, root_id, constructors, signatures, names, types,
             function_names,
             function_returns, function_params
@@ -317,7 +317,7 @@ func SemanticAstExpressionVerdictFromGraph(
             graph, root_id, constructors, signatures, names, types,
             function_names, function_returns, function_params
         );
-    } else if resolved_member_call_arguments_owned &&
+    } else if resolved_call_arguments_owned &&
         !graph_owned_intrinsic && !generic_value.applies &&
         !wrapper.applies && !nominal_constructor_call.applies &&
         !domain_queries.applies {

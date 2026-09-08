@@ -69,8 +69,8 @@ func SemanticExpressionGraphGenericCallFactFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> SemanticExpressionGraphGenericCallFact {
     let target: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
@@ -298,8 +298,8 @@ func SemanticExpressionGraphGenericSpawnFactFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> SemanticExpressionGraphGenericCallFact {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, root_id);
     if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeSpawn() {

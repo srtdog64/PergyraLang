@@ -21,6 +21,31 @@ specialization test, `world_embedded_projection_abi`, and
 `positive_own_remote_transfer`. Integration is the existing push workflow;
 passing a local candidate does not establish remote CI success.
 
+Reached seed sub-boundary: graph-owned call argument types must not depend on
+the callee returning a scalar or on scalar-only formal parameters. Collection
+field receivers reuse the admitted expression graph and nominal field owner,
+then the existing C expression/type projection and binding owner. No dotted
+spelling is a local-binding identity. Last consumers are statement admission
+and C mutation emission; `codegen_call_argument_graph.sh` owns valid execution
+and wrong-argument pre-publication refusals. Keep missing graph/type/binding
+failures explicit. Bootstrap is the integration gate, not source-pin success.
+The next reached boundary is borrowed callable-table carriage from Intent
+predicate admission through the expression verdict and its query callees.
+Only readonly name/return/parameter table inputs move to `ref`; mutable table
+builders retain `inout`. Signature type-expression readers also borrow their
+input rows and generic-name tuples. No array copy grants ownership here.
+Field mutation retains the root parameter's readonly mode in both native and
+graph admission. Statement intrinsics and ordinary collection calls share the
+graph receiver-mutation owner; projecting a member never grants mutation.
+The same focused gate rejects readonly field writes and borrowed-array escapes
+before artifact publication. These are also checks of the native comparator,
+not assumptions that native acceptance defines the intended language.
+The driver then reaches declaration scheduling for a nominal-record array field.
+Keep the existing typed Intent step plan and nominal-array layout/runtime owners;
+do not flatten the plan or invent an unverified ABI spelling to bypass the error.
+The final structural line-cap batch is a remaining integration obligation, not
+permission to raise caps or split semantic responsibilities indiscriminately.
+
 ## Objective and priority
 
 The public compiler and native checker must implement the same canonical

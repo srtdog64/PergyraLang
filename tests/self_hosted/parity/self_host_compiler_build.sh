@@ -123,6 +123,7 @@ else
     rm -f "$C_RAW" "$C_NEXT"
     if ! (cd "$ROOT_DIR" && MSYS2_ARG_CONV_EXCL="$PGY_ARG_CONV_EXCL" \
         "$CODEGEN_BIN" --source "$DRIVER_SOURCE" >"$C_RAW"); then
+        sed -n '1,80p' "$C_RAW" >&2
         fail "Pergyra-built codegen rejected the DRV-2 source graph"
     fi
     tr -d '\r' <"$C_RAW" >"$C_NEXT" || fail "Pergyra-built codegen C normalization failed"

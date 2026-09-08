@@ -17,8 +17,8 @@ func CompareCallArgs(
     sig: String,
     names: Array<String>,
     types: Array<String>,
-    func_names: Array<String>,
-    func_rets: Array<String>,
+    ref func_names: Array<String>,
+    ref func_rets: Array<String>,
     check_argument_identifiers: Bool
 ) -> String {
     let i: Int = 0;
@@ -61,8 +61,8 @@ func CheckScalarUtilityArgs(
     args_src: String,
     names: Array<String>,
     types: Array<String>,
-    func_names: Array<String>,
-    func_rets: Array<String>,
+    ref func_names: Array<String>,
+    ref func_rets: Array<String>,
     check_argument_identifiers: Bool
 ) -> String {
     if callee != "Min" && callee != "Max" {
@@ -158,8 +158,8 @@ func CheckOptionBuiltinArgs(
     args_src: String,
     names: Array<String>,
     types: Array<String>,
-    func_names: Array<String>,
-    func_rets: Array<String>
+    ref func_names: Array<String>,
+    ref func_rets: Array<String>
 ) -> String {
     if callee != "IsSome" && callee != "UnwrapOption" {
         return "";
@@ -184,9 +184,9 @@ func CheckCallWithIdentifierOwner(
     names: Array<String>,
     types: Array<String>,
     modes: Array<String>,
-    func_names: Array<String>,
-    func_rets: Array<String>,
-    func_params: Array<String>,
+    ref func_names: Array<String>,
+    ref func_rets: Array<String>,
+    ref func_params: Array<String>,
     check_argument_identifiers: Bool,
     check_collection_mutation: Bool,
     internal_caller_ready: Bool
@@ -274,9 +274,9 @@ func CheckCall(
     names: Array<String>,
     types: Array<String>,
     modes: Array<String>,
-    func_names: Array<String>,
-    func_rets: Array<String>,
-    func_params: Array<String>,
+    ref func_names: Array<String>,
+    ref func_rets: Array<String>,
+    ref func_params: Array<String>,
     internal_caller_ready: Bool
 ) -> String {
     return CheckCallWithIdentifierOwner(
@@ -290,9 +290,9 @@ func CheckCallFromGraphIdentifiers(
     names: Array<String>,
     types: Array<String>,
     modes: Array<String>,
-    func_names: Array<String>,
-    func_rets: Array<String>,
-    func_params: Array<String>
+    ref func_names: Array<String>,
+    ref func_rets: Array<String>,
+    ref func_params: Array<String>
 ) -> String {
     return CheckCallWithIdentifierOwner(
         text, names, types, modes, func_names, func_rets, func_params,

@@ -22,6 +22,7 @@ import "../runtime_abi/string_runtime_owner.pgy";
 import "../runtime_abi/spawn_runtime_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
+import "expr_semantic_type_owner.pgy";
 import "collection_element_emit_owner.pgy";
 import "option_value_emit_owner.pgy";
 import "assign_emit_owner.pgy";
@@ -392,16 +393,20 @@ func EmitStmtList(count: Int, arena: AstArena,
         if CodegenSemanticStatementIs(statements, idx, TypedAstKindArraySetStmtTag()) {
             // `ArraySet(arr, idx, val)` lowers through the collection set helper owner.
             let a_arr: String = CodegenSemanticArraySetTargetOrDie(statements, idx);
-            let c_a_arr: String = CodegenCollectionTargetCBindingOrDie(env, a_arr);
+            let a_target: SemanticExpressionGraphView = CodegenSemanticExpressionGraphOrDie(
+                expression_surfaces, idx, AstExpressionLaneAtom());
+            let c_a_arr: String = CodegenCollectionTargetCBindingOrDie(env, a_arr, a_target);
             let a_idx: String = CodegenSemanticArraySetIndexOrDie(statements, idx);
             let a_val: String = CodegenSemanticArraySetValueOrDie(statements, idx);
             let a_graph: SemanticExpressionGraphView =
                 CodegenSemanticExpressionGraphOrDie(
                     expression_surfaces, idx, AstExpressionLaneAuxiliary()
                 );
-            let a_kind: String = LookupKindType(env, a_arr, "v");
+            let a_type: Option<String> = CodegenExpressionTypeFromGraph(
+                a_target.graph, a_target.root_id, env);
+            if !IsSome(a_type) { Die("collection target semantic type fact is missing"); }
             let array_fact: CollectionRuntimeFact =
-                CollectionRuntimeFactFromKind(a_kind, env);
+                CollectionRuntimeFactFromTypeName(UnwrapOption(a_type), env);
             let a_rhs: String = EmitCollectionGraphElementValue(
                 a_val, env, array_fact, a_graph
             );
@@ -412,15 +417,19 @@ func EmitStmtList(count: Int, arena: AstArena,
         if CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPushStmtTag()) {
             // `ArrayPush(arr, val)` lowers through the collection push helper owner.
             let p_arr: String = CodegenSemanticArrayPushTargetOrDie(statements, idx);
-            let c_p_arr: String = CodegenCollectionTargetCBindingOrDie(env, p_arr);
+            let p_target: SemanticExpressionGraphView = CodegenSemanticExpressionGraphOrDie(
+                expression_surfaces, idx, AstExpressionLaneAtom());
+            let c_p_arr: String = CodegenCollectionTargetCBindingOrDie(env, p_arr, p_target);
             let p_val: String = CodegenSemanticArrayPushValueOrDie(statements, idx);
             let p_graph: SemanticExpressionGraphView =
                 CodegenSemanticExpressionGraphOrDie(
                     expression_surfaces, idx, AstExpressionLaneValue()
                 );
-            let p_kind: String = LookupKindType(env, p_arr, "v");
+            let p_type: Option<String> = CodegenExpressionTypeFromGraph(
+                p_target.graph, p_target.root_id, env);
+            if !IsSome(p_type) { Die("collection target semantic type fact is missing"); }
             let array_fact: CollectionRuntimeFact =
-                CollectionRuntimeFactFromKind(p_kind, env);
+                CollectionRuntimeFactFromTypeName(UnwrapOption(p_type), env);
             let p_rhs: String = EmitCollectionGraphElementValue(
                 p_val, env, array_fact, p_graph
             );
@@ -431,10 +440,14 @@ func EmitStmtList(count: Int, arena: AstArena,
         if CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPopStmtTag()) {
             // `ArrayPop(arr)` statement lowers through the collection pop helper owner.
             let q_arr: String = CodegenSemanticArrayPopTargetOrDie(statements, idx);
-            let c_q_arr: String = CodegenCollectionTargetCBindingOrDie(env, q_arr);
-            let q_kind: String = LookupKindType(env, q_arr, "v");
+            let q_target: SemanticExpressionGraphView = CodegenSemanticExpressionGraphOrDie(
+                expression_surfaces, idx, AstExpressionLaneAtom());
+            let c_q_arr: String = CodegenCollectionTargetCBindingOrDie(env, q_arr, q_target);
+            let q_type: Option<String> = CodegenExpressionTypeFromGraph(
+                q_target.graph, q_target.root_id, env);
+            if !IsSome(q_type) { Die("collection target semantic type fact is missing"); }
             let pop_fn: String =
-                CollectionRuntimeFactFromKind(q_kind, env).c_pop_fn;
+                CollectionRuntimeFactFromTypeName(UnwrapOption(q_type), env).c_pop_fn;
             ArrayPush(result, Concat(pad, Concat(pop_fn, Concat("(&", Concat(c_q_arr, ");\n")))));
             ArraySet(cur, 0, idx + 1); continue;
         }

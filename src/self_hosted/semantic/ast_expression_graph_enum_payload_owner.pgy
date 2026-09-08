@@ -137,8 +137,8 @@ func SemanticExpressionGraphEnumPayloadTypeName(
     enum_facts: SemanticAstEnumFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> Option<String> {
     let shape: SemanticExpressionGraphEnumPayloadShape =
         SemanticExpressionGraphEnumPayloadShapeFromGraph(graph, node_id);

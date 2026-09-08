@@ -66,9 +66,9 @@ func SemanticExpressionGraphWrapperValueFactFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>,
-    function_params: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>,
+    ref function_params: Array<String>
 ) -> SemanticExpressionGraphWrapperValueFact {
     let root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
         graph, root_id

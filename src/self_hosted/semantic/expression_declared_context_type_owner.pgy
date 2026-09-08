@@ -11,8 +11,8 @@ func ExprTypeInDeclaredContext(
     declared_type: String,
     names: Array<String>,
     types: Array<String>,
-    func_names: Array<String>,
-    func_rets: Array<String>
+    ref func_names: Array<String>,
+    ref func_rets: Array<String>
 ) -> String {
     let actual_type: String = ExprType(
         expr, names, types, func_names, func_rets

@@ -182,8 +182,8 @@ func SemanticExpressionGraphListCallFactFromGraph(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> SemanticExpressionGraphListCallFact {
     let target: SemanticExpressionCallTargetFact =
         SemanticExpressionGraphResolvedCallTarget(
@@ -207,8 +207,8 @@ func SemanticExpressionGraphResolvedCallReturnTypeName(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> Option<String> {
     if ArrayLength(function_names) != ArrayLength(function_returns) {
         return None;
@@ -315,8 +315,8 @@ func SemanticExpressionGraphResolvedCallConcreteScalarTypeName(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> Option<String> {
     let type_name: Option<String> =
         SemanticExpressionGraphResolvedCallReturnTypeName(
@@ -386,40 +386,48 @@ func SemanticExpressionGraphResolvedCallTypeContractReady() -> Bool {
             ), [0], 1
         );
     let empty: Array<String> = [];
+    let to_int_names: Array<String> = ["ToInt"];
+    let int_returns: Array<String> = ["Int"];
+    let box_get_names: Array<String> = ["Box_Get"];
+    let string_returns: Array<String> = ["String"];
+    let option_returns: Array<String> = ["Option<Int>"];
+    let list_get_names: Array<String> = ["ListGet"];
+    let unknown_returns: Array<String> = ["Unknown"];
+    let clone_names: Array<String> = ["Clone"];
     let resolved: Option<String> =
         SemanticExpressionGraphResolvedCallReturnTypeName(
             direct_graph, direct_fact.root, constructors, empty, empty,
-            ["ToInt"], ["Int"]
+            to_int_names, int_returns
         );
     let member: Option<String> =
         SemanticExpressionGraphResolvedCallReturnTypeName(
             member_graph, member_fact.root, constructors, ["box"], ["Box"],
-            ["Box_Get"], ["String"]
+            box_get_names, string_returns
         );
     let deferred: Option<String> =
         SemanticExpressionGraphResolvedCallReturnTypeName(
             direct_graph, direct_fact.root, constructors, empty, empty,
-            ["ToInt"], ["Option<Int>"]
+            to_int_names, option_returns
         );
     let deferred_scalar: Option<String> =
         SemanticExpressionGraphResolvedCallConcreteScalarTypeName(
             direct_graph, direct_fact.root, constructors, empty, empty,
-            ["ToInt"], ["Option<Int>"]
+            to_int_names, option_returns
         );
     let list_call: SemanticExpressionGraphListCallFact =
         SemanticExpressionGraphListCallFactFromGraph(
             list_graph, list_fact.root, constructors,
-            ["items"], ["List<Int>"], ["ListGet"], ["Unknown"]
+            ["items"], ["List<Int>"], list_get_names, unknown_returns
         );
     let wrong_list_call: SemanticExpressionGraphListCallFact =
         SemanticExpressionGraphListCallFactFromGraph(
             list_graph, list_fact.root, constructors,
-            ["items"], ["Int"], ["ListGet"], ["Unknown"]
+            ["items"], ["Int"], list_get_names, unknown_returns
         );
     let clone_type: Option<String> =
         SemanticExpressionGraphResolvedCallReturnTypeName(
             clone_graph, clone_fact.root, constructors,
-            ["box"], ["Box"], ["Clone"], ["Unknown"]
+            ["box"], ["Box"], clone_names, unknown_returns
         );
     return IsSome(resolved) && UnwrapOption(resolved) == "Int" &&
         IsSome(member) && UnwrapOption(member) == "String" &&

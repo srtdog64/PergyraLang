@@ -12,6 +12,7 @@ import "ast_expression_place_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "builtin_signature_owner.pgy";
 import "diagnostic_owner.pgy";
+import "../lib/diagnostic.pgy";
 import "ast_statement_type_fact_owner.pgy";
 
 struct SemanticAstNamedValueBoundaryVerdict {
@@ -243,7 +244,12 @@ func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
                     SemanticAstReadonlySequenceBoundaryVerdict(
                         graph, argument_node_id, admitted_parameter_type,
                         SemanticAstNamedValueBoundaryModeName(mode));
-                if !readonly.ok { return readonly; }
+                if !readonly.ok {
+                    readonly.diagnostic_message = Concat(readonly.diagnostic_message,
+                        Concat("\n", SelfHostDiagnostic_Fact2("callee", UnwrapOption(target_name),
+                            "argument_index", ToString(argument_index))));
+                    return readonly;
+                }
             }
             if mode != 0 &&
                 SemanticAstNamedValueBoundaryTracksType(

@@ -58,8 +58,8 @@ func SemanticSetLiteralElementTypeName(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> Option<String> {
     let nested: SemanticSetLiteralView =
         SemanticSetLiteralViewFromGraph(graph, node_id);
@@ -87,8 +87,8 @@ func SemanticExpressionGraphSetLiteralTypeName(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> Option<String> {
     let view: SemanticSetLiteralView =
         SemanticSetLiteralViewFromGraph(graph, root_id);
@@ -118,8 +118,8 @@ func SemanticSetLiteralElementMatchesDeclaredType(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> Bool {
     if StartsWith(element_type, "Set<") {
         let nested_view: SemanticSetLiteralView =
@@ -150,8 +150,8 @@ func SemanticExpressionGraphSetLiteralMatchesDeclaredType(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> Bool {
     let shape: SemanticConstructedTypeNameFact =
         SemanticConstructedTypeNameFactFrom(declared_type);

@@ -5,31 +5,61 @@ Compiler owners, registries and executable gates override this snapshot.
 
 ## Active self-host context — source-admission equivalence
 
-CI repair base HEAD/origin/main: `419b17457e02bf9378be70c5cf516ec49801a61a`.
-The user reopened failed push run `34251704201`. CI repair is the active
-integration blocker; do not extend the Intent execution rung below until its
-reached regressions are repaired. Failed logs are in
-`.tmp/ci-34251704201-failed.log`. The first seed errors are two unresolved
-`MirLowerFailClosed` calls; downstream installed-driver failures are not
-independent compiler regressions. Separate reached failures include a C test
-universal-character escape, world assignment binding-mode carriage, LLVM own
-remote-transfer storage, and obsolete backend source pins. This repair packet
-fixes those reached native/static failures without relaxing admission guards.
-Fresh isolated native evidence: C transpile 978/0, semantic 2930/0, MIR 194/0,
-C ABI 196/0 (including world projection 7/0), structured-spawn C+LLVM PASS,
-backend-fail-closed PASS, and MIR field-kind vocabulary PASS. Logs use the
-`.tmp/ci-` prefix; compiler is `.tmp/ci-34251704201-native/pgy.exe`.
+CI repair HEAD/origin/main: `a73191cfe76da76fb7d99d46596f70157e2c29f6`.
+The user reopened failed push run `34251704201`, based on `419b1745`.
+The first repair was committed/pushed; remote run `34258717735` completed RED,
+with Windows/macOS builds GREEN. Linux and the self-host legs still hit the
+codegen seed's argument-type failure before an installed driver existed.
+Logs: `.tmp/ci-34251704201-failed.log`, `.tmp/ci-a73191cf-failed.log`.
+CI repair remains the integration blocker; do not extend Intent GraphPlan
+execution until these reached failures are repaired. No gates are skipped.
 
-The seed import correction now permits the native gen0 build (0 errors,
-1 existing unreachable-statement warning). Whole self-host bootstrap is NOT
-green: graph-owned call arguments and collection-field receivers exposed the
-next failures. Those semantic changes and their new focused gate remain dirty
-and are deliberately excluded from this native repair packet until verified.
-Latest falsifier: `codegen_call_argument_graph.sh` rejects its valid collection
-field control; evidence is `.tmp/ci-seed-field-repair.log` and
-`.tmp/self_hosted/codegen_call_argument_graph/run.gKlkEJ/`.
-No shared driver was installed. Use Git for this repair commit's identity;
-the pre-publication evidence below remains scoped to its named pair.
+The pending second packet uses graph-owned argument types independently of
+return shape, and graph-owned array field receivers in admission/C emission.
+Readonly callable/signature table readers now use `ref`; mutable builders keep
+`inout`. The native and self-host collection mutation owners both retain a
+projected field's readonly root. A native acceptance was not treated as proof:
+the newly found readonly array-field write was accepted by both and is repaired
+in both. List field calls still reach `collection_receiver_type` rejection;
+that broader field-type support is not claimed by the Array receiver repair.
+
+Observed evidence on this packet: semantic 2930/0 after the native readonly
+repair (`.tmp/ci-readonly-native-regression.log`); graph argument gate has
+2 matching executions and 12 pre-emission refusals on gen0
+(`.tmp/ci-call-graph-readonly-execution.log`, run `7TqJXl`, repeated `ytJfaj`).
+Compiler: `.tmp/ci-34251704201-native/pgy.exe`. Prior packet evidence remains
+C transpile 978/0, MIR 194/0, C ABI 196/0, structured-spawn C+LLVM,
+backend-fail-closed and MIR field-kind vocabulary PASS.
+The isolated seed reached an exact gen2/gen3 emitted-C fixed point (83,279 lines)
+after the readonly mutation correction (`.tmp/ci-seed-readonly-fixpoint-final.log`).
+That seed precedes the final explicit text-owner import and driver-only edits;
+it is a verified bootstrap producer, not an installed-driver success claim.
+The gen2-focused gate also passes after adding the production CFG readonly
+query control (`.tmp/ci-call-graph-cfg-readonly.log`, run `xJI8xF`).
+
+Driver-only corrections carry `facts.intent_execution` through the canonical
+declaration epoch, initialize the invalid action fact's missing identity field,
+and borrow the CFG-distance/LLVM Array<Long> preamble input tables. The machine
+projection probe also constructs the now-required empty Intent plan explicitly.
+Native front-end diagnostic-only checking found 0 errors / 4 warnings before
+the final two readonly query signatures; no native driver binary was built.
+
+Next executable falsifier: fresh typed-source driver C emission refuses
+`Array<MirIntentRoutineStepFact>` in `AbiLayoutCValueType`, after semantic
+admission (`.tmp/ci-self-host-driver-readonly-preamble.log`). Nominal arrays already
+have runtime/layout owners; inspect declaration ordering for a nominal array
+field instead of replacing the typed Intent step plan with parallel columns.
+The isolated driver was NOT produced or installed. Do not retry the complete
+matrix before this bounded declaration case is closed.
+
+The structural gate now reaches the final line-cap batch. It still fails on
+105 distinct paths (`.tmp/ci-component-current-inventory.log`), including many
+pre-existing overruns from `419b1745`; obsolete owner/schema/consumer pins have
+been migrated, but no cap was raised. This is a separate remaining CI blocker,
+not a semantic success or a reason to silently skip the gate. Keyword registry
+generation/check passed with 146 rows. No shared driver was installed.
+Use Git for this packet's eventual commit identity; the older pre-publication
+evidence below remains scoped to its named pair.
 
 Pre-publication HEAD/local origin/main: `5b97f2e10ffa7ecf9cfe932829a83ffffaa3ba12`.
 On 2026-09-09 the user explicitly requested commit/push now to inspect CI.

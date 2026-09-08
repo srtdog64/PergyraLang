@@ -1,0 +1,9 @@
+struct Buffer { values: Array<Int>; }
+func Update(inout output: Buffer) -> Void {
+    ArrayPush(output.values, "wrong");
+}
+func Main() -> Void {
+    let values: Array<Int> = [];
+    let output: Buffer = Buffer(values);
+    Update(output);
+}

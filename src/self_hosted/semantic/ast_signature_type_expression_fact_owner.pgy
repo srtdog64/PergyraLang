@@ -139,8 +139,8 @@ func SemanticAstSignatureTypeExpressionAppend(
 }
 
 func SemanticAstSignatureTypeExpressionFactsFromRows(
-    return_types: Array<String>,
-    parameter_types: Array<String>
+    ref return_types: Array<String>,
+    ref parameter_types: Array<String>
 ) -> SemanticAstSignatureTypeExpressionFacts {
     let return_roots: Array<Int> = [];
     let parameter_roots: Array<Int> = [];
@@ -185,7 +185,7 @@ func SemanticAstSignatureTypeExpressionFormalIndex(
     type_name: String,
     generic_start: Int,
     generic_count: Int,
-    generic_names: Array<String>
+    ref generic_names: Array<String>
 ) -> Option<Int> {
     let i: Int = 0;
     while i < generic_count {
@@ -202,8 +202,8 @@ func SemanticAstSignatureTypeExpressionRenderNode(
     node: Int,
     generic_start: Int,
     generic_count: Int,
-    generic_names: Array<String>,
-    bindings: Array<String>,
+    ref generic_names: Array<String>,
+    ref bindings: Array<String>,
     remaining: Int
 ) -> Option<String> {
     let node_count: Int = ArrayLength(facts.node_names);
@@ -288,8 +288,8 @@ func SemanticAstSignatureTypeExpressionResolveRoot(
     root: Int,
     generic_start: Int,
     generic_count: Int,
-    generic_names: Array<String>,
-    bindings: Array<String>
+    ref generic_names: Array<String>,
+    ref bindings: Array<String>
 ) -> Option<String> {
     if !facts.ok || root < 0 || root >= ArrayLength(facts.node_names) ||
         generic_start < 0 || generic_count < 0 ||
@@ -326,7 +326,7 @@ func SemanticAstSignatureTypeExpressionRootHasFormal(
     root: Int,
     generic_start: Int,
     generic_count: Int,
-    generic_names: Array<String>
+    ref generic_names: Array<String>
 ) -> Bool {
     if !facts.ok || root < 0 || root >= ArrayLength(facts.node_names) ||
         ArrayLength(facts.child_starts) != ArrayLength(facts.node_names) ||

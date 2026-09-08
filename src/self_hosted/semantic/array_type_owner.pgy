@@ -12,9 +12,9 @@ func SemanticArrayAccessExpressionType(
     names: Array<String>,
     types: Array<String>,
     modes: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>,
-    function_params: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>,
+    ref function_params: Array<String>
 ) -> Option<String> {
     let bracket: Int = StringIndexOf(expression, "[");
     let n: Int = StringLength(expression);

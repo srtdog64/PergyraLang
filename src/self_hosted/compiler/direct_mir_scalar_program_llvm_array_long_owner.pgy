@@ -4,7 +4,7 @@ import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "../codegen/runtime_abi/collection_bounds_owner.pgy";
 
 func DirectMirScalarProgramLlvmArrayLongPreamble(
-    local_types: Array<String>, ref facts: DirectMirScalarProgramExpressionSet,
+    ref local_types: Array<String>, ref facts: DirectMirScalarProgramExpressionSet,
     ref target: CompilerTargetProjectionFact
 ) -> String {
     let present: Bool = false; let get: Bool = false; let index: Int = 0;

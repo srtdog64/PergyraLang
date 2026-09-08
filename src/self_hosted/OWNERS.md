@@ -199,6 +199,28 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 
 ## Semantic
 
+- `src/self_hosted/semantic/ast_action_contract_admission_owner.pgy` --
+  callable binding contracts joined to explicit zone authority slots.
+- `src/self_hosted/semantic/ast_cancel_admission_owner.pgy` --
+  cancellation admission from primitive/nominal payload ownership facts.
+- `src/self_hosted/semantic/ast_future_lifecycle_admission_owner.pgy` --
+  structured source-flow completion obligations for affine future handles.
+- `src/self_hosted/semantic/ast_future_lifecycle_binding_owner.pgy` --
+  ephemeral lexical future identities and expression transfer joins.
+- `src/self_hosted/semantic/ast_generic_nominal_equality_owner.pgy` --
+  exact nominal-bound witnesses projected into callable body type views.
+- `src/self_hosted/semantic/ast_intent_retry_admission_owner.pgy` --
+  common source refusal of parsed but unimplemented retry metadata.
+- `src/self_hosted/semantic/ast_unsafe_block_admission_owner.pgy` --
+  unsafe lexical-body admission at parallel task boundaries.
+- `src/self_hosted/semantic/ast_subject_value_boundary_owner.pgy` --
+  source admission of identity-bearing subject value boundaries.
+- `src/self_hosted/semantic/ast_match_coverage_owner.pgy` --
+  named-enum exhaustiveness from typed scrutinees and admitted arm facts.
+- `src/self_hosted/semantic/native_primitive_type_projection_owner.pgy` --
+  generated primitive kind identity projection from native type-system rows.
+- `src/self_hosted/semantic/generic_instance_closure_owner.pgy` --
+  target-independent closure of admitted generic call substitutions.
 - `src/self_hosted/semantic/main.pgy` -- entrypoint only.
 - `src/self_hosted/semantic/callable_receiver_carriage_policy_owner.pgy` --
   shared callable receiver-carriage vocabulary and nominal-kind policy consumed
@@ -1049,6 +1071,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 
 ## MIR Lower
 
+- `src/self_hosted/mir_lower/generic_instance_plan_owner.pgy` --
+  MIR occurrence adapter to the shared generic-instance closure.
+- `src/self_hosted/mir_lower/generic_call_occurrence_index_owner.pgy` --
+  instruction-local index of sealed generic-specialization occurrences.
 - `src/self_hosted/mir_lower/main.pgy` -- entrypoint only.
 - `src/self_hosted/mir_lower/decl_lower.pgy` -- declaration reconstruction,
   including MIR-carried generic parameter constraints and default types; it
@@ -3101,16 +3127,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   `src/self_hosted/compiler/direct_mir_scalar_program_llvm_option_bool_owner.pgy`
   -- C and LLVM projections of the admitted tag-plus-bool layout. Both targets
   consume the same size, alignment, field offset, and discriminant receipt.
-- `src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_abi_fact_owner.pgy`
-  -- the optional program-wide two-field Int nominal declaration and physical
-  ABI cross-seal. It admits one declaration row, checks formal-parameter and
-  reached instruction receipts against that owner, and rejects unused or
-  disagreeing representation facts.
-- `src/self_hosted/compiler/direct_mir_scalar_program_two_int_nominal_target_owner.pgy`,
-  `direct_mir_scalar_program_c_two_int_nominal_owner.pgy`, and
-  `direct_mir_scalar_program_llvm_two_int_nominal_owner.pgy` -- the target
-  projection and C/LLVM type materialization for that fact. Neither backend
-  derives `{i32,i32}` or a C struct merely from the source type spelling.
+- `src/self_hosted/compiler/direct_mir_scalar_program_record_abi_fact_owner.pgy`
+  -- physical layout receipts indexed by the logical-record identity inventory.
+  It consumes declaration-owned layout rows, carries exact field spans, and
+  represents an admitted absence explicitly; targets do not invent a layout
+  from a source type spelling. The former two-Int-only owners are retired.
 - `src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy`,
   `direct_mir_scalar_program_logical_record_expression_owner.pgy`, and
   `direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy`, and

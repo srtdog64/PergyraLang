@@ -107,7 +107,7 @@ func SemanticCallableHasLocalSuffix(
 }
 
 func SemanticCallableIndex(
-    declared_names: Array<String>,
+    ref declared_names: Array<String>,
     source_name: String
 ) -> Option<Int> {
     if !SemanticCallableSourceNameValid(source_name) {

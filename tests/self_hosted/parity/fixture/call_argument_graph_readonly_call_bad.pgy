@@ -1,0 +1,7 @@
+struct Buffer { values: Array<Int>; }
+
+func Mutate(ref output: Buffer) -> Int {
+    return ArrayPop(output.values);
+}
+
+func Main() -> Void {}

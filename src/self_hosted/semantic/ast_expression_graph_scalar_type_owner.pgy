@@ -33,8 +33,8 @@ func SemanticExpressionGraphScalarTypeName(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> String {
     let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
         graph, root_id
@@ -285,8 +285,8 @@ func SemanticExpressionGraphIndexValueTypeName(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> Option<String> {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, root_id);
     if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeIndex() {
@@ -461,6 +461,10 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
             invalid_index_graph, invalid_index_fact.root, constructors,
             ["stack"], ["Array<Int>"], index_functions, index_returns
         );
+    let make_outer_names: Array<String> = ["MakeOuter"];
+    let outer_returns: Array<String> = ["Outer"];
+    let unwrap_names: Array<String> = ["UnwrapOption"];
+    let unknown_returns: Array<String> = ["Unknown"];
     return await_fact.ok && await_cursor[0] == 13 &&
         coalesce_fact.ok && coalesce_cursor[0] == 10 &&
         index_fact.ok && index_cursor[0] == StringLength(index_text) &&
@@ -479,14 +483,14 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
             ["fact"], ["Outer"], empty, empty
         ) == "Int" && SemanticExpressionGraphScalarTypeName(
             call_member_graph, call_member_fact.root, constructors,
-            empty, empty, ["MakeOuter"], ["Outer"]
+            empty, empty, make_outer_names, outer_returns
         ) == "Int" && SemanticExpressionGraphScalarTypeName(
             indexed_member_graph, indexed_member_fact.root, constructors,
             ["nodes", "active"], ["Array<Outer>", "Array<Int>"],
             empty, empty
         ) == "Int" && SemanticExpressionGraphScalarTypeName(
             wrapper_member_graph, wrapper_member_fact.root, constructors,
-            ["owner"], ["Option<Outer>"], ["UnwrapOption"], ["Unknown"]
+            ["owner"], ["Option<Outer>"], unwrap_names, unknown_returns
         ) == "Int" && SemanticExpressionGraphScalarTypeName(
             graph, fact.root, constructors, ["i"], ["Int"], empty, empty
         ) == "Int" && SemanticExpressionGraphScalarTypeName(

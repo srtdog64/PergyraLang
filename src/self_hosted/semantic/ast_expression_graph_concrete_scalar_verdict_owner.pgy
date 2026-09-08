@@ -30,9 +30,9 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>,
-    function_params: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>,
+    ref function_params: Array<String>
 ) -> Bool {
     let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
         graph, node_id
@@ -157,18 +157,10 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
     )) {
         return false;
     }
-    let i: Int = parameter_offset;
-    while i < signature_count {
-        let expected: String = SemanticDelimitedRangeText(
-            signature_facts, signature, i
-        );
-        if expected != "Unknown" &&
-            !SemanticResolvedCallConcreteScalarType(expected) {
-            return false;
-        }
-        i = i + 1;
-    }
-    i = 0;
+    // Scalar result ownership does not require scalar-only parameters. The
+    // argument checker compares each graph-owned value with its resolved
+    // parameter type, including nominal values, before using that result.
+    let i: Int = 0;
     while i < ArrayLength(call.argument_nodes) {
         if !SemanticExpressionGraphConcreteScalarValueOwned(
             graph, call.argument_nodes[i], constructors, signatures,
@@ -189,9 +181,9 @@ func SemanticExpressionGraphContextualCallArgumentsOwned(
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>,
-    function_params: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>,
+    ref function_params: Array<String>
 ) -> Bool {
     if ArrayLength(function_names) != ArrayLength(function_params) {
         return false;
@@ -278,7 +270,7 @@ func SemanticExpressionGraphHashMapCallError(
     ref graph: SemanticExpressionGraphFacts, node_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>, types: Array<String>,
-    function_names: Array<String>, function_returns: Array<String>
+    ref function_names: Array<String>, ref function_returns: Array<String>
 ) -> String {
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, node_id);
     if !call.ok { return ""; }
@@ -327,9 +319,9 @@ func SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>,
-    function_params: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>,
+    ref function_params: Array<String>
 ) -> SemanticExpressionGraphResolvedCallArgumentFacts {
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, node_id
@@ -404,16 +396,18 @@ func SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
     );
 }
 
-func SemanticExpressionGraphResolvedMemberCallArgumentsOwned(
+// Argument admission depends on the resolved parameter facts, not on whether
+// the callee returns a scalar, a nominal value, or is a hosted method.
+func SemanticExpressionGraphResolvedCallArgumentsOwned(
     ref graph: SemanticExpressionGraphFacts,
     node_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>,
-    function_params: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>,
+    ref function_params: Array<String>
 ) -> Bool {
     let facts: SemanticExpressionGraphResolvedCallArgumentFacts =
         SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
@@ -421,7 +415,6 @@ func SemanticExpressionGraphResolvedMemberCallArgumentsOwned(
             function_names, function_returns, function_params
         );
     if !facts.target.ok || !facts.signature_found ||
-        facts.target.kind != SemanticCallTargetMember() ||
         facts.signature_count < facts.target.parameter_offset ||
         facts.signature_count - facts.target.parameter_offset !=
             ArrayLength(facts.call.argument_nodes) {
@@ -448,9 +441,9 @@ func SemanticExpressionGraphConcreteScalarValueError(
     signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>,
-    function_params: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>,
+    ref function_params: Array<String>
 ) -> String {
     let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
         graph, node_id

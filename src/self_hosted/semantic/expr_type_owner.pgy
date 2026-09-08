@@ -114,7 +114,7 @@ func TopLevelOpType(expr: String) -> String {
     }
     return "";
 }
-func CallReturnType(text: String, func_names: Array<String>, func_rets: Array<String>) -> String {
+func CallReturnType(text: String, ref func_names: Array<String>, ref func_rets: Array<String>) -> String {
     let n: Int = StringLength(text);
     if n == 0 {
         return "Unknown";
@@ -141,8 +141,8 @@ func MachineLayerBuiltinReturnType(
     text: String,
     names: Array<String>,
     types: Array<String>,
-    func_names: Array<String>,
-    func_rets: Array<String>
+    ref func_names: Array<String>,
+    ref func_rets: Array<String>
 ) -> String {
     let n: Int = StringLength(text);
     if n == 0 || CharAt(text, n - 1) != ")" {
@@ -181,8 +181,8 @@ func SlotBuiltinReturnType(
     text: String,
     names: Array<String>,
     types: Array<String>,
-    func_names: Array<String>,
-    func_rets: Array<String>
+    ref func_names: Array<String>,
+    ref func_rets: Array<String>
 ) -> String {
     let n: Int = StringLength(text);
     if n == 0 || CharAt(text, n - 1) != ")" { return ""; }
@@ -253,7 +253,7 @@ func CallArgAt(args_src: String, target: Int) -> String {
         SemanticNestedCommaRangeFactsFromSource(args_src);
     return CallArgAtFromFacts(facts, args_src, target);
 }
-func ScalarUtilityReturnType(text: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+func ScalarUtilityReturnType(text: String, names: Array<String>, types: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>) -> String {
     let n: Int = StringLength(text);
     if n == 0 || CharAt(text, n - 1) != ")" {
         return "";
@@ -277,7 +277,7 @@ func ScalarUtilityReturnType(text: String, names: Array<String>, types: Array<St
     }
     return "Unknown";
 }
-func CollectionArrayReturnType(text: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+func CollectionArrayReturnType(text: String, names: Array<String>, types: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>) -> String {
     let n: Int = StringLength(text);
     if n == 0 || CharAt(text, n - 1) != ")" {
         return "";
@@ -298,7 +298,7 @@ func CollectionArrayReturnType(text: String, names: Array<String>, types: Array<
     }
     return ExprType(array_expr, names, types, func_names, func_rets);
 }
-func ArithmeticResultType(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+func ArithmeticResultType(expr: String, names: Array<String>, types: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>) -> String {
     let text: String = SemanticTrimSourceReuse(expr);
     let n: Int = StringLength(text);
     let i: Int = 0;
@@ -374,7 +374,7 @@ func ArithmeticResultType(expr: String, names: Array<String>, types: Array<Strin
     }
     return "Int";
 }
-func OptionCallReturnType(text: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+func OptionCallReturnType(text: String, names: Array<String>, types: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>) -> String {
     let n: Int = StringLength(text);
     if text == "None" {
         return "Option<Unknown>";
@@ -445,7 +445,7 @@ func ExpressionAssignableTo(expected: String, actual: String, expr: String) -> B
     }
     return false;
 }
-func ExprType(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+func ExprType(expr: String, names: Array<String>, types: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>) -> String {
     let text: String = SemanticStripOuterParens(expr);
     if StringLength(text) == 0 {
         return "Void";

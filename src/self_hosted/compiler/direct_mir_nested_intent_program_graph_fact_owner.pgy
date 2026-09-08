@@ -225,7 +225,7 @@ func DirectMirNestedIntentProgramIntentEdge(
     ref admitted: MirMachineLayerAdmittedJsonInput, routine_row: Int
 ) -> MirIntentActionGraphFact {
     let invalid: MirIntentActionGraphFact =
-        MirIntentActionGraphFact(false, "", "", "");
+        MirIntentActionGraphFact(false, "", "", "", 0);
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
         admitted.routines, routine_row);
     let intent_name: String = admitted.routines.names[routine_row];

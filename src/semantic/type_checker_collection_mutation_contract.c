@@ -21,20 +21,29 @@ reject_non_inout_param_collection_mutator_receiver(ASTNode *receiver_expr,
 {
     const char *receiver_name;
     Symbol *receiver_sym;
+    ASTNode *receiver_root = receiver_expr;
 
-    if (ctx == NULL || receiver_expr == NULL
-        || receiver_expr->type != AST_IDENTIFIER)
+    if (ctx == NULL || receiver_expr == NULL)
         return false;
     if (!type_is_mutable_collection_storage(receiver_type))
         return false;
 
-    receiver_name = ast_identifier_name(receiver_expr);
+    /* Field projection preserves a ref root's readonly borrow. Do not
+     * re-evaluate the receiver or resolve its already checked field type. */
+    while (receiver_root != NULL && receiver_root->type == AST_MEMBER_ACCESS)
+        receiver_root = ast_member_object(receiver_root);
+    if (receiver_root == NULL || receiver_root->type != AST_IDENTIFIER)
+        return false;
+    receiver_name = ast_identifier_name(receiver_root);
     receiver_sym = receiver_name != NULL
         ? scope_lookup(ctx->scope, receiver_name)
         : NULL;
     if (receiver_sym == NULL || !receiver_sym->is_parameter
         || (receiver_sym->param_mode != PARAM_MODE_DEFAULT
             && receiver_sym->param_mode != PARAM_MODE_REF))
+        return false;
+    if (receiver_root != receiver_expr
+        && receiver_sym->param_mode != PARAM_MODE_REF)
         return false;
 
     semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -51,7 +60,7 @@ reject_non_inout_param_collection_mutator_receiver(ASTNode *receiver_expr,
         receiver_name != NULL ? receiver_name : "<receiver>",
         container_kind != NULL ? container_kind : "collection",
         receiver_name != NULL ? receiver_name : "<receiver>",
-        type_name_or_unknown(receiver_type));
+        type_name_or_unknown(receiver_sym->type));
     return true;
 }
 

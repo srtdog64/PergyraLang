@@ -20,7 +20,7 @@ func RestoreEnv(inout names: Array<String>, inout types: Array<String>, inout mo
         ArrayPop(modes);
     }
 }
-func CheckBody(content: String, start: Int, end: Int, return_type: String, inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>, func_names: Array<String>, func_rets: Array<String>, func_params: Array<String>, internal_caller_ready: Bool) -> String {
+func CheckBody(content: String, start: Int, end: Int, return_type: String, inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>, ref func_params: Array<String>, internal_caller_ready: Bool) -> String {
     let i: Int = start;
     let cursor: Array<Int> = [0];
     while i < end {
@@ -309,7 +309,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
     }
     return "";
 }
-func CheckFunction(source_path: String, content: String, func_pos: Int, inout cursor_out: Array<Int>, func_names: Array<String>, func_rets: Array<String>, func_params: Array<String>) -> String {
+func CheckFunction(source_path: String, content: String, func_pos: Int, inout cursor_out: Array<Int>, ref func_names: Array<String>, ref func_rets: Array<String>, ref func_params: Array<String>) -> String {
     let cursor: Array<Int> = [0];
     let names: Array<String> = [];
     let types: Array<String> = [];

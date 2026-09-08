@@ -1,0 +1,9 @@
+struct Fragment { text: String; }
+func Wrap(name: String, source: Fragment) -> Fragment {
+    return Fragment(name + source.text);
+}
+func Main() -> Void {
+    let source: Fragment = Fragment("Int");
+    let result: Fragment = Wrap(42, source);
+    Log(result.text);
+}

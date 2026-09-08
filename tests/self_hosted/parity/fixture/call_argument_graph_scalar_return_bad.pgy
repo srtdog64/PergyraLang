@@ -1,0 +1,5 @@
+struct Fragment { text: String; }
+func Render(source: Fragment) -> String { return source.text; }
+func Main() -> Void {
+    Log("result=" + Render(42) + ";");
+}

@@ -10,8 +10,8 @@ func SemanticExpressionGraphIndexAccessErrorFromTree(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> String {
     let pending: Array<Int> = [root_id];
     while ArrayLength(pending) > 0 {
@@ -88,8 +88,8 @@ func SemanticExpressionGraphScalarOperatorError(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> String {
     let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
         graph, node_id
@@ -196,8 +196,8 @@ func SemanticExpressionGraphScalarOperandError(
     ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
-    function_names: Array<String>,
-    function_returns: Array<String>
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
 ) -> String {
     let start: Int = root_id;
     let needed: Int = 1;

@@ -6,8 +6,8 @@ func ResultCallReturnType(
     text: String,
     names: Array<String>,
     types: Array<String>,
-    func_names: Array<String>,
-    func_rets: Array<String>
+    ref func_names: Array<String>,
+    ref func_rets: Array<String>
 ) -> String {
     let n: Int = StringLength(text);
     if n == 0 || CharAt(text, n - 1) != ")" { return ""; }

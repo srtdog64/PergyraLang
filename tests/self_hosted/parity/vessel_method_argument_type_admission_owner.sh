@@ -145,9 +145,9 @@ valid_bin="$WORK_DIR/valid-c"
     fail "valid public C control did not compile"
 "$valid_bin" || fail "valid public C control did not run"
 
-require_text "$GRAPH_OWNER" 'facts.target.kind != SemanticCallTargetMember()'
+require_text "$GRAPH_OWNER" 'if target_fact.kind == SemanticCallTargetMember() {'
 require_text "$GRAPH_OWNER" '"member_call_arg_type_mismatch"'
-require_text "$VERDICT_OWNER" 'SemanticExpressionGraphResolvedMemberCallArgumentsOwned('
+require_text "$VERDICT_OWNER" 'SemanticExpressionGraphResolvedCallArgumentsOwned('
 require_text "$RECEIPT_OWNER" 'if code == "member_call_arg_type_mismatch" {'
 ! grep -Fq 'vessel V' "$GRAPH_OWNER" "$VERDICT_OWNER" ||
     fail "semantic owner gained fixture-specific vessel syntax"
