@@ -3,6 +3,7 @@
 // priority, expectation, and cleanup rows are all fixed before this owner.
 
 import "direct_mir_legacy_intent_program_plan_owner.pgy";
+import "direct_mir_intent_completion_llvm_emission_owner.pgy";
 import "symbol_table_owner.pgy";
 import "../codegen/runtime_abi/string_runtime_symbol_owner.pgy";
 import "../codegen/runtime_abi/intent_runtime_symbol_owner.pgy";
@@ -217,13 +218,15 @@ func DirectMirLegacyIntentProgramEmitLlvm(
     output = Concat(output, "  call void @");
     output = Concat(output, IntentRuntimeCExitFn());
     output = Concat(output, "(i32 %handle)\n  ret i1 false\n\nintent.success:\n");
+    output = Concat(output, DirectMirIntentCompletionEmitLlvm(
+        plan.completion, subject_type, zone_type, "%zone"));
     output = Concat(output, DirectMirLegacyIntentLlvmCleanupCalls(
         "invalidation", plan.invalidation_names, plan.invalidation_slots,
         plan.invalidation_args, "%handle"
     ));
     output = Concat(output, "  call void @");
     output = Concat(output, IntentRuntimeCExitFn());
-    output = Concat(output, "(i32 %handle)\n  ret i1 true\n\nintent.enter.failed:\n  ret i1 false\n}\n\ndefine internal void @Main() {\nentry:\n  %subject = alloca %");
+    output = Concat(output, "(i32 %handle)\n  ret i1 %intent.completion\n\nintent.enter.failed:\n  ret i1 false\n}\n\ndefine internal void @Main() {\nentry:\n  %subject = alloca %");
     output = Concat(output, subject_type);
     output = Concat(output, ", align 4\n  %subject.init = insertvalue %");
     output = Concat(output, subject_type);

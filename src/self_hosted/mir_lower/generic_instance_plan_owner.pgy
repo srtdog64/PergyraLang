@@ -40,15 +40,15 @@ func MirGenericInstanceClosureFromOccurrences(
 func MirGenericInstanceCallTarget(
     ref closure: GenericInstanceClosure, ref occurrences: MirGenericCallOccurrenceIndex,
     caller_instance: Int, caller_routine: Int, instruction: Int, lane: Int, node: Int
-) -> Int {
+) -> Option<Int> {
     if !closure.valid || !occurrences.valid || caller_instance < -1 || caller_routine < 0 ||
         caller_routine >= ArrayLength(occurrences.templates.syntax_ids) || instruction < 0 ||
         lane < 0 || lane > 1 || node < 0 ||
-        caller_instance >= ArrayLength(closure.template_rows) { return -1; }
+        caller_instance >= ArrayLength(closure.template_rows) { return None; }
     if caller_instance >= 0 {
-        if closure.template_rows[caller_instance] != caller_routine { return -1; }
-    } else if occurrences.templates.generic_counts[caller_routine] > 0 { return -1; }
-    let result: Int = -1;
+        if closure.template_rows[caller_instance] != caller_routine { return None; }
+    } else if occurrences.templates.generic_counts[caller_routine] > 0 { return None; }
+    let result: Option<Int> = None;
     let call: Int = 0;
     while call < ArrayLength(closure.call_recipes) {
         let recipe: Int = closure.call_recipes[call];
@@ -56,8 +56,8 @@ func MirGenericInstanceCallTarget(
             occurrences.routine_rows[recipe] == caller_routine &&
             occurrences.instruction_rows[recipe] == instruction &&
             occurrences.lanes[recipe] == lane && occurrences.graph_nodes[recipe] == node {
-            if result >= 0 { return -1; }
-            result = closure.call_targets[call];
+            if IsSome(result) { return None; }
+            result = Some(closure.call_targets[call]);
         }
         call = call + 1;
     }

@@ -1,0 +1,26 @@
+// MIR-blind materialization of the sealed completion result. Every caller
+// evaluates it once after its final successful step, before normal cleanup.
+import "direct_mir_intent_completion_fact_owner.pgy";
+import "../codegen/text/text_owner.pgy";
+
+func DirectMirIntentCompletionEmitLlvm(
+    fact: DirectMirIntentCompletionFact, subject_type: String,
+    zone_type: String, zone_pointer: String
+) -> String {
+    if fact.constant_true {
+        return "  %intent.completion = icmp eq i1 true, true\n";
+    }
+    if subject_type == "" || zone_type == "" || zone_pointer == "" {
+        Die("direct MIR intent completion target identity is missing");
+    }
+    let parts: Array<String> = [
+        "  %intent.completion.slot = getelementptr inbounds %", zone_type,
+        ", ptr ", zone_pointer, ", i32 0, i32 0\n",
+        "  %intent.completion.field = getelementptr inbounds %", subject_type,
+        ", ptr %intent.completion.slot, i32 0, i32 ", ToString(fact.field_ordinal), "\n",
+        "  %intent.completion.value = load i32, ptr %intent.completion.field, align 4\n",
+        "  %intent.completion = icmp sgt i32 %intent.completion.value, ",
+        ToString(fact.threshold), "\n"
+    ];
+    return StringJoin(parts, "");
+}

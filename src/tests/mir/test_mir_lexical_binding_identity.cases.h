@@ -122,6 +122,106 @@ test_mir_lexical_binding_identity(void)
 }
 
 static void
+test_mir_enum_constructor_reference_identity(void)
+{
+    HIRProgram *hir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram *mir = NULL;
+    bool ok = lower_mir_from_source(
+        "enum Mark { One(Int), Two(Int) }"
+        "func Value(m: Mark) -> Int { match m {"
+        " case One(n): return n; case Two(n): return n; } }"
+        "func Main() -> Void { let n: Int = 3;"
+        " let total: Int = Value(One(n)) + Value(Two(n)); Log(total); }",
+        &hir, &rir, &mir);
+    MIRRoutine *routine = ok ? find_mir_routine_mut(
+        mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
+    MIRInstruction *total = NULL;
+    if (routine != NULL) {
+        for (size_t b = 0; b < routine->block_count; b++) {
+            MIRBasicBlock *block = &routine->blocks[b];
+            for (size_t i = 0; i < block->instruction_count; i++) {
+                MIRInstruction *inst = &block->instructions[i];
+                if (inst->kind == MIR_INST_DEF && inst->arg0 != NULL
+                    && strcmp(inst->arg0, "total") == 0)
+                    total = inst;
+            }
+        }
+    }
+    TEST("distinct enum constructors sharing a declaration lower in one expression");
+    EXPECT(ok && total != NULL);
+    TEST("enum declaration references do not become local SSA reads");
+    EXPECT(total != NULL && total->use_count == 1
+           && strncmp(total->uses[0], "n.", 2) == 0);
+    char *error = NULL;
+    bool refused = false;
+    if (total != NULL && total->expr0 != NULL) {
+        ASTNode *read = ast_call_argument(ast_call_argument(
+            ast_binary_left(total->expr0), 0), 0);
+        uint32_t identity = ast_identifier_binding_syntax_id(read);
+        ast_identifier_set_binding_syntax_id(read, total->binding_syntax_id);
+        refused = !mir_populate_use_edges(routine, &error)
+            && error != NULL && strstr(error, "semantic binding identity") != NULL;
+        ast_identifier_set_binding_syntax_id(read, identity);
+    }
+    TEST("expression collection still rejects a crosswired local identity");
+    EXPECT(refused);
+    free(error);
+    mir_destroy(mir);
+    rir_destroy(rir);
+    hir_destroy(hir);
+}
+
+static void
+test_mir_io_summary_operand_identity(void)
+{
+    HIRProgram *hir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram *mir = NULL;
+    bool ok = lower_mir_from_source(
+        "func Main() -> Void { let i: Int = 0; while i < 1 {"
+        " let path: String = \"fixture.txt\"; if i == 0 {"
+        " let content: String = ReadFile(path); Log(content); } i = i + 1; } }",
+        &hir, &rir, &mir);
+    MIRRoutine *routine = ok ? find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
+    MIRInstruction *path = NULL, *read = NULL, *summary = NULL;
+    if (routine != NULL) {
+        for (size_t b = 0; b < routine->block_count; b++) {
+            MIRBasicBlock *block = &routine->blocks[b];
+            for (size_t i = 0; i < block->instruction_count; i++) {
+                MIRInstruction *inst = &block->instructions[i];
+                if (inst->arg0 == NULL) continue;
+                if (inst->kind == MIR_INST_DEF && strcmp(inst->arg0, "path") == 0) path = inst;
+                if (inst->kind == MIR_INST_DEF && strcmp(inst->arg0, "content") == 0) read = inst;
+                if (inst->kind == MIR_INST_RESOURCE_OP && strcmp(inst->arg0, "ReadFile") == 0) summary = inst;
+            }
+        }
+    }
+    TEST("IO summary retains evidence without inventing an entry SSA read");
+    EXPECT(ok && summary != NULL && summary->use_count == 0
+        && summary->arg1 != NULL && strcmp(summary->arg1, "path") == 0);
+    TEST("executable nested IO expression retains its exact lexical operand");
+    EXPECT(path != NULL && read != NULL && read->use_count == 1
+        && strcmp(read->uses[0], path->result_name) == 0);
+    bool refused = false;
+    char *error = NULL;
+    if (read != NULL && read->expr0 != NULL && read->expr0->type == AST_CALL) {
+        ASTNode *operand = ast_call_argument(read->expr0, 0);
+        uint32_t identity = ast_identifier_binding_syntax_id(operand);
+        ast_identifier_set_binding_syntax_id(operand, 0);
+        refused = !mir_populate_use_edges(routine, &error)
+            && error != NULL && strstr(error, "semantic binding identity") != NULL;
+        ast_identifier_set_binding_syntax_id(operand, identity);
+    }
+    TEST("IO operand missing binding still refuses without executing the mutated input");
+    EXPECT(refused);
+    free(error);
+    mir_destroy(mir);
+    rir_destroy(rir);
+    hir_destroy(hir);
+}
+
+static void
 test_mir_scalar_parameter_wire_identity(void)
 {
     HIRProgram *hir = NULL;

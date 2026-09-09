@@ -195,18 +195,23 @@ func CanonicalMirIdentityEpochAppendOwnerTopology(
             let assignment_row: Int = 0;
             while assignment_row <
                 MirDomainRuntimeProjectionAssignmentCount(runtime_assignments) {
-                if MirDomainRuntimeProjectionTopologyRowAt(
+                let topology_row: Option<Int> = MirDomainRuntimeProjectionTopologyRowAt(
                         runtime_assignments, assignment_row
-                    ) == row && MirDomainRuntimeProjectionExplicitAt(
+                    );
+                if !IsSome(topology_row) { return false; }
+                if UnwrapOption(topology_row) == row && MirDomainRuntimeProjectionExplicitAt(
                         runtime_assignments, assignment_row
                     ) {
-                    let segment_count: Int = MirDomainRuntimeProjectionSegmentCountAt(
+                    let count_fact: Option<Int> = MirDomainRuntimeProjectionSegmentCountAt(
                         runtime_assignments, assignment_row
                     );
-                    let segment_start: Int = MirDomainRuntimeProjectionSegmentStartAt(
+                    let start_fact: Option<Int> = MirDomainRuntimeProjectionSegmentStartAt(
                         runtime_assignments, assignment_row
                     );
-                    if segment_count <= 0 {
+                    if !IsSome(count_fact) || !IsSome(start_fact) { return false; }
+                    let segment_count: Int = UnwrapOption(count_fact);
+                    let segment_start: Int = UnwrapOption(start_fact);
+                    if segment_count <= 0 || segment_start < 0 {
                         return false;
                     }
                     let source_name: String =

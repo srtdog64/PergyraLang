@@ -2754,6 +2754,12 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- sealed target-neutral declaration, carrier-policy, placement, action,
   expectation, and cleanup receipt; mode spelling is erased to one concurrent
   bit before target materialization.
+- `src/self_hosted/compiler/direct_mir_intent_completion_fact_owner.pgy`
+  -- compact true/field-threshold completion fact shared by admitted legacy
+  and composite plans; its exact fields join the containing plan digest.
+- `src/self_hosted/compiler/direct_mir_intent_completion_llvm_emission_owner.pgy`
+  -- MIR-blind completion evaluation after the final successful step, before
+  normal cleanup; a false completion does not invent a failed-step rollback.
 - `src/self_hosted/compiler/direct_mir_legacy_intent_program_llvm_emission_owner.pgy`
   -- MIR-blind LLVM consumer preserving subject mutation, zone copy/sync,
   runtime admission mode/priority, expectation, cleanup, and Bool observation.

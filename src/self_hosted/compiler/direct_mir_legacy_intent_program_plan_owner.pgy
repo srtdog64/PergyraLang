@@ -6,6 +6,7 @@
 
 import "artifact_zone_owner.pgy";
 import "target_capability_owner.pgy";
+import "direct_mir_intent_completion_fact_owner.pgy";
 import "direct_mir_legacy_intent_program_graph_fact_owner.pgy";
 import "../mir_lower/intent_routine_carrier_projection_owner.pgy";
 import "../mir_lower/intent_mode_projection_owner.pgy";
@@ -29,6 +30,7 @@ struct DirectMirLegacyIntentProgramPlan {
     let concurrent: Bool;
     let priority: Int;
     let threshold: Int;
+    let completion: DirectMirIntentCompletionFact;
     let rollback_names: Array<String>;
     let rollback_slots: Array<String>;
     let rollback_args: Array<String>;
@@ -56,6 +58,7 @@ func DirectMirLegacyIntentProgramPlanDigest(
     if plan.concurrent { hash = DirectMirCfgHashInt(hash, 1); }
     hash = DirectMirCfgHashInt(hash, plan.priority);
     hash = DirectMirCfgHashInt(hash, plan.threshold);
+    hash = DirectMirIntentCompletionFactHash(hash, plan.completion);
     let row: Int = 0;
     while row < ArrayLength(plan.rollback_names) {
         hash = DirectMirCfgHashString(hash, plan.rollback_names[row]);
@@ -105,6 +108,7 @@ func DirectMirLegacyIntentProgramPlanReady(
         plan.route.claimed &&
         DirectMirLegacyIntentProgramGraphFactReady(plan.graph) &&
         IsIdentifier(plan.zone_field_name) && IsIdentifier(plan.step_name) &&
+        DirectMirIntentCompletionFactReady(plan.completion, 1, 1) &&
         DirectMirLegacyIntentCleanupRowsReady(
             plan.rollback_names, plan.rollback_slots, plan.rollback_args
         ) && DirectMirLegacyIntentCleanupRowsReady(
@@ -121,7 +125,7 @@ func DirectMirLegacyIntentProgramPlanWithDigest(
         plan.valid, plan.schema, plan.revision, digest,
         plan.target_capability_schema, plan.target_capability_fingerprint,
         plan.route, plan.graph, plan.zone_field_name, plan.step_name,
-        plan.concurrent, plan.priority, plan.threshold,
+        plan.concurrent, plan.priority, plan.threshold, plan.completion,
         plan.rollback_names, plan.rollback_slots, plan.rollback_args,
         plan.invalidation_names, plan.invalidation_slots,
         plan.invalidation_args
@@ -138,7 +142,7 @@ func DirectMirLegacyIntentProgramPlanMutationRejected(
             plan.target_capability_schema,
             plan.target_capability_fingerprint, plan.route, plan.graph,
             plan.zone_field_name, plan.step_name, !plan.concurrent,
-            plan.priority, plan.threshold, plan.rollback_names,
+            plan.priority, plan.threshold, plan.completion, plan.rollback_names,
             plan.rollback_slots, plan.rollback_args,
             plan.invalidation_names, plan.invalidation_slots,
             plan.invalidation_args
@@ -402,7 +406,7 @@ func DirectMirLegacyIntentProgramPlanFromAdmitted(
             carriers.carrier_source_types, carriers.carrier_expr0s,
             carriers.carrier_rows
         );
-    if !phases.ok || !MirIntentExpressionCarrierIsTrue(admitted.routines, phases.success_row) ||
+    if !phases.ok ||
         ArrayLength(phases.on_rows) != 1 ||
         phases.on_rows[0] < 0 || phases.on_results[0] != "" ||
         phases.on_type_names[0] != "" || phases.expect_rows[0] < 0 ||
@@ -410,6 +414,12 @@ func DirectMirLegacyIntentProgramPlanFromAdmitted(
         phases.pre_rows[0] != -1 || phases.invariant_pre_rows[0] != -1 ||
         phases.compensate_counts[0] != 0 {
         Die("direct MIR legacy intent phase plan is invalid");
+    }
+    let completion: DirectMirIntentCompletionFact = DirectMirIntentCompletionFact(true, 0, 0, 0);
+    if !MirIntentExpressionCarrierIsTrue(admitted.routines, phases.success_row) {
+        completion = DirectMirIntentCompletionFact(false, 0, 0,
+            DirectMirLegacyIntentThresholdValue(admitted, graph, zone_field,
+                phases.success_row, phases.success_text));
     }
     let action: MirIntentActionGraphFact = MirIntentActionGraphFromInstruction(
         admitted.routines, phases.on_rows[0], phases.on_texts[0]
@@ -504,7 +514,7 @@ func DirectMirLegacyIntentProgramPlanFromAdmitted(
             DirectMirLegacyIntentThresholdValue(
                 admitted, graph, zone_field, phases.expect_rows[0],
                 phases.expect_texts[0]
-            ), rollback_names, rollback_slots, rollback_args,
+            ), completion, rollback_names, rollback_slots, rollback_args,
             invalidation_names, invalidation_slots, invalidation_args
         );
     let verified: DirectMirLegacyIntentProgramPlan =

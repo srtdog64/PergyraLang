@@ -36,6 +36,10 @@ Path(sys.argv[2]).write_text(
     text.replace(needle, "reserved = reserved + 0;"),
     encoding="utf-8", newline="\n",
 )
+head, marker, tail = text.rpartition("success: shipping.clerk.shipped > 0;")
+if not marker: raise SystemExit("root completion anchor drifted")
+Path(sys.argv[2]).with_name("completion.pgy").write_text(
+    head + "success: shipping.clerk.shipped > 1;" + tail, encoding="utf-8", newline="\n")
 PY
 
 MIR_REL="$WORK_REL/success.mir.json"
@@ -68,9 +72,10 @@ done
 suffix=""
 [[ "$PGY" == *.exe ]] && suffix=".exe"
 driver_for_pgy="$(pgy_path_for_compiler "$PGY" "$DRIVER")"
-for case_name in success failure; do
+for case_name in success failure completion; do
     source_rel="$SOURCE_REL"
     [[ "$case_name" == failure ]] && source_rel="$FAILURE_REL"
+    [[ "$case_name" == completion ]] && source_rel="$WORK_REL/completion.pgy"
     public_bin="$WORK_DIR/$case_name.public$suffix"
     native_bin="$WORK_DIR/$case_name.native$suffix"
     public_arg="$(pgy_path_for_compiler "$PGY" "$public_bin")"
@@ -105,6 +110,9 @@ grep -Fxq '[Intent] ProcessOrder=false' "$WORK_DIR/failure.public.run" ||
 grep -Fxq '[CanonicalClerk] reserved=-1 charged=0 shipped=0' \
     "$WORK_DIR/failure.public.run" ||
     fail "compensation did not reach the canonical subject"
+grep -Fxq '[Intent] ProcessOrder=false' "$WORK_DIR/completion.public.run" || fail "false completion was erased"
+grep -Fxq '[Runtime] name=ProcessOrder steps=1 failed=false' "$WORK_DIR/completion.public.run" || fail "completion became a failed step"
+grep -Fxq '[CanonicalClerk] reserved=1 charged=1 shipped=1' "$WORK_DIR/completion.public.run" || fail "completion triggered compensation"
 
 "$PYTHON_BIN" - "$WORK_DIR/success.mir.json" "$WORK_DIR" <<'PY'
 from copy import deepcopy
@@ -185,4 +193,4 @@ for negative in duplicate-mode missing-compensation action-graph-drift \
     fi
 done
 
-echo "[$LABEL] success/failure parity and five no-artifact negatives: PASS"
+echo "[$LABEL] success/step-failure/completion-false parity and five no-artifact negatives: PASS"

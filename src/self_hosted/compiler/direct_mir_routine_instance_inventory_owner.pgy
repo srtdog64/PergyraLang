@@ -160,14 +160,21 @@ func DirectMirRoutineInstanceCallOrdinal(
 ) -> Int {
     if !inventory.valid || caller_ordinal < 0 || caller_ordinal >= ArrayLength(inventory.source_rows) ||
         target_syntax_id <= 0 { return -1; }
-    let target_instance: Int = MirGenericInstanceCallTarget(
+    let target_fact: Option<Int> = MirGenericInstanceCallTarget(
         inventory.generic_instances, inventory.generic_calls,
         inventory.instance_rows[caller_ordinal], inventory.source_rows[caller_ordinal], instruction, lane, node);
     let result: Int = -1;
     let ordinal: Int = 1;
     while ordinal < ArrayLength(inventory.source_rows) {
-        if inventory.signatures[ordinal].source_syntax_id == target_syntax_id &&
-            inventory.instance_rows[ordinal] == target_instance {
+        // An ordinary declaration has no generic-instance row. That explicit
+        // schema absence is distinct from a missing generic call binding.
+        let matches: Bool = IsSome(target_fact) &&
+            inventory.instance_rows[ordinal] == UnwrapOption(target_fact);
+        if !IsSome(target_fact) {
+            matches = inventory.instance_rows[ordinal] == -1 &&
+                inventory.generic_calls.templates.generic_counts[inventory.source_rows[ordinal]] == 0;
+        }
+        if inventory.signatures[ordinal].source_syntax_id == target_syntax_id && matches {
             if result >= 0 { return -1; }
             result = ordinal;
         }

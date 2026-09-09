@@ -18,7 +18,7 @@ timeout 240 "$PGY" --native-pipeline --backend=c --opt=dev \
     >"$WORK/compile.log" 2>&1
 timeout 30 "$WORK/probe.exe" >"$WORK/raw" 2>"$WORK/err"
 tr -d '\r' <"$WORK/raw" >"$WORK/actual"
-for ((i=0; i<11; i++)); do printf 'true\n'; done >"$WORK/expected"
+for ((i=0; i<18; i++)); do printf 'true\n'; done >"$WORK/expected"
 [[ ! -s "$WORK/err" ]]
 cmp "$WORK/expected" "$WORK/actual"
-echo '[capability-fact] 11 native-C mutation/identity/diagnostic controls PASS'
+echo '[capability-fact] 18 native-C mutation/identity/diagnostic controls PASS'

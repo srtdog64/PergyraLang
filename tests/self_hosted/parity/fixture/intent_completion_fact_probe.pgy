@@ -1,0 +1,31 @@
+import "../../../../src/self_hosted/compiler/direct_mir_intent_completion_fact_owner.pgy";
+
+func Main() -> Void {
+    let truth = DirectMirIntentCompletionFact(true, 0, 0, 0);
+    let predicate = DirectMirIntentCompletionFact(false, 0, 0, 0);
+    let other_zone = DirectMirIntentCompletionFact(false, 1, 0, 0);
+    let other_field = DirectMirIntentCompletionFact(false, 0, 1, 0);
+    let other_threshold = DirectMirIntentCompletionFact(false, 0, 0, 2);
+    if !DirectMirIntentCompletionFactReady(truth, 1, 1) ||
+        !DirectMirIntentCompletionFactReady(predicate, 1, 1) ||
+        DirectMirIntentCompletionFactReady(other_zone, 1, 1) ||
+        DirectMirIntentCompletionFactReady(other_field, 1, 1) ||
+        DirectMirIntentCompletionFactReady(DirectMirIntentCompletionFact(false, -1, 0, 0), 3, 3) ||
+        DirectMirIntentCompletionFactReady(DirectMirIntentCompletionFact(false, 0, -1, 0), 3, 3) ||
+        DirectMirIntentCompletionFactReady(DirectMirIntentCompletionFact(true, 0, 0, 2), 3, 3) {
+        Exit(1);
+    }
+    let variants: Array<DirectMirIntentCompletionFact> = [truth, predicate, other_zone, other_field, other_threshold];
+    let i: Int = 0;
+    while i < ArrayLength(variants) {
+        if !DirectMirIntentCompletionFactReady(variants[i], 3, 3) { Exit(2); }
+        let j: Int = 0;
+        while j < i {
+            if DirectMirIntentCompletionFactHash(17, variants[i]) ==
+                DirectMirIntentCompletionFactHash(17, variants[j]) { Exit(3); }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    Log("completion fact: bounds, canonical literal, and four-field digest PASS");
+}

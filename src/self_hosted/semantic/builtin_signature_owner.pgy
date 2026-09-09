@@ -251,11 +251,22 @@ func SemanticBuiltinSignatureProjectionPrefixReady(
 }
 
 func SemanticBuiltinReturnDependsOnArguments(name: String) -> Bool {
-    return name == "Abs" || name == "Min" ||
-        name == "Max" || name == "Clamp" ||
+    return name == "Abs" || SemanticBuiltinUsesFirstArgumentPair(name) || name == "Clamp" ||
         name == "Clone" ||
         name == "ArraySort" || name == "ArrayReverse" ||
         name == "ArrayMap" || name == "ArrayFilter" || name == "Read";
+}
+
+// Min/Max's second argument is checked against the first argument's type.
+// Unknown table slots are polymorphic obligations, not unconstrained values.
+func SemanticBuiltinUsesFirstArgumentPair(name: String) -> Bool {
+    return name == "Min" || name == "Max";
+}
+func SemanticBuiltinPairedScalarSignatureOpt(name: String, first_type: String) -> Option<String> {
+    if !SemanticBuiltinUsesFirstArgumentPair(name) || first_type == "Unknown" || first_type == "" {
+        return None;
+    }
+    return Some(Concat(first_type, Concat("|", first_type)));
 }
 
 func SemanticPolymorphicBuiltinReturnTypeOpt(
@@ -264,7 +275,7 @@ func SemanticPolymorphicBuiltinReturnTypeOpt(
 ) -> Option<String> {
     let expected_count: Int = 0;
     if name == "Abs" { expected_count = 1; }
-    else if name == "Min" || name == "Max" { expected_count = 2; }
+    else if SemanticBuiltinUsesFirstArgumentPair(name) { expected_count = 2; }
     else if name == "Clamp" { expected_count = 3; }
     else if name == "ArraySort" || name == "ArrayReverse" {
         expected_count = 1;

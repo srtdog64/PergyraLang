@@ -117,7 +117,7 @@ AST_STRING_SURFACE_MAX=0
 # 24 -> 23 (2026-08-27): callable expression binding identity now exposes its
 # optional formal ordinal through one typed fact. Semantic capture, resolution,
 # and C emission no longer reopen the raw absent-ordinal wire value.
-SENTINEL_MAX=23
+SENTINEL_MAX=20
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
 # IsSome/UnwrapOption rituals to try-propagation; pattern gained `\)\?` in the
 # same commit. Re-base per the result_use comment below -- not a loosening.
@@ -388,7 +388,7 @@ SENTINEL_MAX=23
 # require the new exact match-origin lookup to return Option<Int>, including
 # absent/ambiguous results. The sentinel ceiling remains 23; it is not raised
 # to accommodate the two out-of-band returns found by publication CI.
-RESULT_USE_MIN=4768
+RESULT_USE_MIN=5082
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world
@@ -417,6 +417,10 @@ TEXT_DOMAIN_EXCLUDE_RE='^src/self_hosted/lib/(json(_emit)?|diagnostic)\.pgy$'
 # them outside the text-munging metric without giving their consumer families a
 # wildcard exemption.
 CORE_STRING_MUNGE_EXCLUDE_RE='^src/self_hosted/(tools|lsp|fuzz)/|^src/self_hosted/lib/(json(_emit)?|diagnostic|path|nominal_field_kind_owner|mir_decl_field_kind_vocabulary_projection_owner)\.pgy$|^src/self_hosted/codegen/abi_layout/|^src/self_hosted/codegen/emission/(literal_rewrite|expression_c_text_materialization_owner)\.pgy$|/(fixture_manifest|source_path)_owner\.pgy$|^src/self_hosted/compiler/(test_harness.*|path_manifest_owner|driver_cli_owner|symbol_table_owner|compatibility_evolution_owner|abi_layout_row_owner|runtime_call_abi_row_owner|machine_layer_.*|direct_mir_scalar_program_option_bool_builtin_signature_owner|direct_mir_scalar_program_llvm_array_mutation_owner|direct_mir_scalar_program_llvm_option_result_type_owner)\.pgy$|^src/self_hosted/mir/abi_layout_json_projection_owner\.pgy$|^src/self_hosted/mir_lower/json_fact_read\.pgy$|^src/self_hosted/sea/lane_executor_contract_owner\.pgy$|^src/self_hosted/(lexer|parser|semantic|codegen)/.*run_owner\.pgy$|^src/self_hosted/lexer/source_input_owner\.pgy$|^src/self_hosted/codegen/input/ast_input_owner\.pgy$'
+# These exact sinks format admitted identity/layout, wire vocabulary or owned
+# text. Their String result is the artifact, not an AST/IR recovery bridge.
+# No compiler, MIR, lexer or runtime family receives a new wildcard exemption.
+CORE_STRING_MUNGE_EXCLUDE_RE+='|^src/self_hosted/compiler/(direct_mir_identity_cell_projection_owner|direct_mir_scalar_program_llvm_logical_record_owner|direct_mir_scalar_program_llvm_type_owner|direct_mir_llvm_text_format_owner|dir_text_row_format_owner)\.pgy$|^src/self_hosted/codegen/text/owned_string_join_owner\.pgy$|^src/self_hosted/mir/(declaration_wire_kind_owner|expression_runtime_abi_owner)\.pgy$|^src/self_hosted/lexer/language_keyword_compatibility_projection_owner\.pgy$'
 # Direct-MIR's admitted flat schema uses -1 as an explicit absence value; it
 # does not signal a hidden function failure.  Keep the exemption bounded to
 # that owner family and the exact typed vocabulary/MIR projection owners whose
@@ -471,16 +475,42 @@ count() {
     # a new owner is measured before it is staged as well as after commit.
     local pattern="$1"
     local exclude_re="${2:-}"
+    local schema_absence="${3:-0}"
     local matches
     matches="$(
-        EXCLUDE_RE="$exclude_re" awk '
-            BEGIN { exclude_re = ENVIRON["EXCLUDE_RE"] }
+        EXCLUDE_RE="$exclude_re" SCHEMA_ABSENCE="$schema_absence" awk '
+            BEGIN { exclude_re = ENVIRON["EXCLUDE_RE"]; schema_absence = ENVIRON["SCHEMA_ABSENCE"] }
             {
                 tab = index($0, "\t")
                 if (tab == 0) next
                 rel = substr($0, 1, tab - 1)
                 if (exclude_re != "" && rel ~ exclude_re) next
-                print substr($0, tab + 1)
+                line = substr($0, tab + 1)
+                # Only exact absence checks at their validating owners. Even
+                # in these files a return -1 or a new field remains counted.
+                if (schema_absence == "1") {
+                    if (rel == "src/self_hosted/dir/intent_fact_owner.pgy")
+                        gsub(/where_declaration_indices\[[^]]+\] == -1/, "", line)
+                    if (rel == "src/self_hosted/dir/intent_result_contract_owner.pgy")
+                        gsub(/success_node != -1/, "", line)
+                    if (rel == "src/self_hosted/dir/intent_step_target_contract_owner.pgy")
+                        gsub(/action_signature_indices\[[^]]+\] == -1/, "", line)
+                    if (rel == "src/self_hosted/mir_lower/intent_cleanup_contract_owner.pgy" ||
+                        rel == "src/self_hosted/mir_lower/intent_execution_structure_owner.pgy")
+                        gsub(/block_succ_(true|false)\[[^]]+\] != -1/, "", line)
+                    if (rel == "src/self_hosted/mir/routine_input_owner.pgy" ||
+                        rel == "src/self_hosted/semantic/ast_iteration_graph_root_owner.pgy")
+                        gsub(/(synthetic_graph_root_ids|synthetic_roots)\[[^]]+\] != -1/, "", line)
+                    if (rel == "src/self_hosted/mir/routine_iteration_owner.pgy")
+                        gsub(/synthetic_graph_root_id != -1/, "", line)
+                    if (rel == "src/self_hosted/mir/routine_match_merge_owner.pgy")
+                        gsub(/unmatched_block == -1/, "", line)
+                    if (rel == "src/self_hosted/semantic/ast_body_analysis_admission_contract_owner.pgy")
+                        gsub(/first_node_id == -1/, "", line)
+                    if (rel == "src/self_hosted/semantic/ast_capability_call_graph_owner.pgy")
+                        gsub(/ordinal == -1/, "", line)
+                }
+                print line
             }
         ' "$SELF_HOST_SOURCE_CORPUS" \
             | grep -oE "$pattern" || true
@@ -491,6 +521,23 @@ count() {
         printf '%s\n' "$matches" | wc -l | tr -d ' '
     fi
 }
+
+# The exemption belongs to an exact schema-field check, never its whole file.
+# Falsifiers keep return sentinels, other fields and identical text elsewhere
+# visible, including a mixed line containing both an admitted check and return.
+source_corpus_saved="$SELF_HOST_SOURCE_CORPUS"
+SELF_HOST_SOURCE_CORPUS="$LIKELINESS_TMP_DIR/absence-controls.tsv"
+printf '%s\t%s\n' \
+    'src/self_hosted/mir_lower/intent_cleanup_contract_owner.pgy' 'index.block_succ_true[row] != -1' \
+    'src/self_hosted/semantic/ast_iteration_graph_root_owner.pgy' 'facts.synthetic_graph_root_ids[i] != -1' \
+    'src/self_hosted/mir_lower/intent_cleanup_contract_owner.pgy' 'return -1;' \
+    'src/self_hosted/mir_lower/intent_cleanup_contract_owner.pgy' 'other[row] != -1' \
+    'src/self_hosted/new_owner.pgy' 'index.block_succ_true[row] != -1' \
+    'src/self_hosted/mir_lower/intent_cleanup_contract_owner.pgy' 'if index.block_succ_true[row] != -1 { return -1; }' \
+    >"$SELF_HOST_SOURCE_CORPUS"
+[ "$(count 'return -1|== -1|!= -1' '' 1)" -eq 4 ] ||
+    fail 'owned schema absence classification hid a control-flow sentinel'
+SELF_HOST_SOURCE_CORPUS="$source_corpus_saved"
 
 count_lines_in_files() {
     local pattern="$1"
@@ -586,7 +633,7 @@ require_compiler_resource_zone() {
 total_string_munge_sig=$(count ': String\) -> String' "$TEXT_DOMAIN_EXCLUDE_RE")
 core_string_munge_sig=$(count ': String\) -> String' "$CORE_STRING_MUNGE_EXCLUDE_RE")
 ast_string_surface=$(count '\bast: String\b')
-sentinel=$(count 'return -1|== -1|!= -1' "$SENTINEL_EXCLUDE_RE")
+sentinel=$(count 'return -1|== -1|!= -1' "$SENTINEL_EXCLUDE_RE" 1)
 # `)?;` / `)?` counts try-propagation ('let x = F(...)?;') as errors-as-data:
 # it is Option/Result-typed absence with LESS boilerplate, so converting the
 # 4-line IsSome/UnwrapOption ritual to '?' legitimately LOWERS the raw token

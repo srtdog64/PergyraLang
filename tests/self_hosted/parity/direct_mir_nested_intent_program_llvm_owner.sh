@@ -118,9 +118,9 @@ def crosswire_method_owner(doc):
 def zero_receiver_source_identity(doc):
     routine(doc, "Capture")["params"][0]["source_syntax_id"] = 0
 def crosswire_action_name(doc):
-    block = routine(doc, "OuterPriority")["blocks"][0]["instructions"]
+    block = [row for block in routine(doc, "OuterPriority")["blocks"] for row in block["instructions"]]
     row = next(row for row in block if
-        row["name"] == "IntentEval" and row["arg0"] == "on")
+        row["name"] == "IntentEval" and row["arg0"] == "intent")
     row["expr0"] = row["expr0"].replace("InnerPriority", "OuterPriority")
     for node in row["expr0_graph"]["nodes"]:
         node["text"] = node["text"].replace("InnerPriority", "OuterPriority")

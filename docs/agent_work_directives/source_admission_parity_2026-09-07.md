@@ -4,7 +4,40 @@ Status: ACTIVE; primary-only implementation, no parallel edit lane.
 Base HEAD/origin/main: `5b97f2e10ffa7ecf9cfe932829a83ffffaa3ba12`.
 This is a coordination card, not semantic authority or an execution log.
 
-## Current integration blocker — push CI at 419b1745
+## Current integration blocker — push CI at 3da11372
+
+Run `34280162606` reached a green codegen bootstrap, sanitizers, native tests
+and integrated driver gen2 == gen3. Repair its remaining registered-case and
+generated language-word inventories through their existing owners. The active
+executable boundary is the following source/MIR-to-LLVM Intent gate chain.
+The existing declaration index owns wire kind separately from nominal kind;
+composite/nested route consumers must not miss canonical subject/zone rows.
+The legacy Intent plan owns the admitted completion graph, and LLVM is its
+last consumer. Carry and evaluate that predicate after the step expectation;
+do not replace a nonconstant success clause with `true` or weaken the fixture.
+Keep claimed malformed inputs fail-closed, with no scalar/native fallback.
+Integration gate: legacy, composite and nested Intent C/LLVM execution and
+their negative cases, then the source-action and installed CLI gates already
+named by the full-bootstrap CI job. No parallel implementation lane is open.
+
+The preparation gate also reached native IO-summary SSA use reconstruction:
+RIR IO summaries keep their effect evidence, but the executable DEF/STMT owns
+operand reads at its lexical position. Never resolve a summary's display path
+as an entry `.0` local or relax LLVM's exact-storage guard. The MIR lexical
+identity unit gate and `ssa_loop_io_operand` falsify this boundary.
+
+The remaining preparation contracts reached expression references sharing an
+enum declaration ID and typed lookup absence. Expression collection retains
+exact (declaration, spelling) pairs; the local SSA owner still rejects a wrong
+local identity. Existing capability, Future, generic-call and domain-projection
+owners return Option at their reached lookup boundaries. Missing rows must
+still refuse admission or retain the existing nonconstant-flow alternative,
+never become zero, a guessed row or a native retry. Their executable admission
+gates and a fresh Pergyra-built installed driver are the integration boundary.
+The likeness gate distinguishes exact schema-absence checks from control-flow
+sentinels; no whole-file sentinel exemption or raised cap is authorized.
+
+### Previous CI repair boundaries — lookup only
 
 The user reopened run `34251704201` on 2026-09-09. Repair its reached
 integration failures before extending Intent GraphPlan execution. Primary only.

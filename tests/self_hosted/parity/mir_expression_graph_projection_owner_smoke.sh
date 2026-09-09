@@ -103,13 +103,24 @@ for migrated_consumer in \
     }
 done
 
+# `rows` is not a type: compensation facts legitimately carry target names.
+# Ratchet the retired fields on the graph-row owner, independent of aliases.
+grep -Fq 'struct SelfMirExpressionGraphRows {' "$ROWS_BODY" || {
+    echo "[self-host-parity:mir-expression-graph-projection] graph row owner is missing" >&2; exit 1;
+}
+for field in node_kinds node_texts left_children right_children call_target_kinds call_target_names; do
+    pattern="^[[:space:]]*(let[[:space:]]+(mut[[:space:]]+)?)?${field}[[:space:]]*:"
+    if grep -Eq "$pattern" "$ROWS_BODY"; then
+        echo "[self-host-parity:mir-expression-graph-projection] copied graph row field reopened: $field" >&2; exit 1
+    fi
+    for prefix in '' 'let ' 'let mut '; do
+        printf '    %s%s: Array<String>;\n' "$prefix" "$field" | grep -Eq "$pattern" || {
+            echo "[self-host-parity:mir-expression-graph-projection] retired-field negative control missed $field" >&2; exit 1;
+        }
+    done
+done
+
 for retired_read in \
-    'rows.node_kinds' \
-    'rows.node_texts' \
-    'rows.left_children' \
-    'rows.right_children' \
-    'rows.call_target_kinds' \
-    'rows.call_target_names' \
     'expr0_graphs.call_target_kinds' \
     'expr0_graphs.call_target_names'; do
     if grep -RF --include='*.pgy' -- "$retired_read" \

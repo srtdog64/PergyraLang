@@ -142,7 +142,25 @@ def nonbinding_identity(document):
     row["binding_source_syntax_id"] = bindings(document)[0]["binding_source_syntax_id"]
 
 
+def completion(document):
+    return next(row for row in intent_rows(document)
+                if row.get("name") == "IntentCheck" and row.get("arg0") == "success")
+
+
+def completion_unknown_field(document):
+    nodes = completion(document)["expr0_graph"]["nodes"]
+    next(node for node in nodes if node.get("text") == "value")["text"] = "unknown_value"
+
+
+def completion_wrong_operator(document):
+    nodes = completion(document)["expr0_graph"]["nodes"]
+    next(node for node in nodes if node.get("kind") == "greater")["kind"] = "add"
+
+
 for name, mutation in (
+    ("completion-missing-graph", lambda d: completion(d).pop("expr0_graph")),
+    ("completion-unknown-field", completion_unknown_field),
+    ("completion-wrong-operator", completion_wrong_operator),
     ("old-subject-wire", lambda d: d["decls"][0].update(kind="subject")),
     ("crossed-nominal-kind", lambda d: d["decls"][0].update(nominal_kind="class")),
     ("duplicate-mode", duplicate_mode),

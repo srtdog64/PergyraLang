@@ -92,17 +92,17 @@ func SemanticFutureJoin(inout target: SemanticFutureFlow, ref branch: SemanticFu
     }
 }
 
-func SemanticFutureBindingAt(ref facts: SemanticFutureBindings, syntax_id: Int, name: String) -> Int {
+func SemanticFutureBindingAt(ref facts: SemanticFutureBindings, syntax_id: Int, name: String) -> Option<Int> {
     let index: Int = ArrayLength(facts.node_ids) - 1;
     while index >= 0 {
         if facts.node_ids[index] < syntax_id && facts.names[index] == name &&
             SemanticAstExpressionScopeVisible(facts.artifact.arena, facts.scope_ids[index], syntax_id) {
             // Non-future locals must shadow a same-spelling outer Future too.
-            return index;
+            return Some(index);
         }
         index = index - 1;
     }
-    return -1;
+    return None;
 }
 
 func SemanticFutureRetire(ref facts: SemanticFutureBindings, inout flow: SemanticFutureFlow,
@@ -110,9 +110,11 @@ func SemanticFutureRetire(ref facts: SemanticFutureBindings, inout flow: Semanti
     if facts.surfaces.expression_graph.arena.topology.node_kinds[expression_id] != AstExpressionNodeLeaf() {
         return;
     }
-    let index: Int = SemanticFutureBindingAt(facts, syntax_id,
+    let binding: Option<Int> = SemanticFutureBindingAt(facts, syntax_id,
         facts.surfaces.expression_graph.arena.node_texts[expression_id]);
-    if index < 0 || !SemanticFutureType(facts.types[index]) { return; }
+    if !IsSome(binding) { return; }
+    let index: Int = UnwrapOption(binding);
+    if !SemanticFutureType(facts.types[index]) { return; }
     if flow.states[index] != 1 && flow.states[index] != 4 {
         SemanticFutureReject(flow, syntax_id, Concat("retirement requires a live handle: ", facts.names[index]));
         return;
@@ -130,9 +132,11 @@ func SemanticFutureExpression(ref facts: SemanticFutureBindings, inout flow: Sem
     }
     let kind: Int = facts.surfaces.expression_graph.arena.topology.node_kinds[expression_id];
     if kind == AstExpressionNodeLeaf() {
-        let index: Int = SemanticFutureBindingAt(facts, syntax_id,
+        let binding: Option<Int> = SemanticFutureBindingAt(facts, syntax_id,
             facts.surfaces.expression_graph.arena.node_texts[expression_id]);
-        if index >= 0 && SemanticFutureType(facts.types[index]) &&
+        if !IsSome(binding) { return; }
+        let index: Int = UnwrapOption(binding);
+        if SemanticFutureType(facts.types[index]) &&
             (flow.states[index] == 2 || flow.states[index] == 3) {
             SemanticFutureReject(flow, syntax_id, Concat("use after retirement or divergent paths: ", facts.names[index]));
         }

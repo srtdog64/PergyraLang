@@ -145,10 +145,32 @@ mir_collect_expr_identifier_uses(ASTNode *node,
     if (node == NULL)
         return true;
     switch (node->type) {
-    case AST_IDENTIFIER:
-        return mir_append_ssa_binding(uses, use_count, use_capacity,
-            (MIRLocalBinding){ast_identifier_name(node),
-                             ast_identifier_binding_syntax_id(node)});
+    case AST_IDENTIFIER: {
+        MIRLocalBinding use = {ast_identifier_name(node),
+                               ast_identifier_binding_syntax_id(node)};
+        if (use.name == NULL)
+            return true;
+        /* Expression references include enum constructors sharing a declaration
+         * ID. Collect exact pairs here; the SSA use owner separately checks
+         * every actual local against its one admitted identity and spelling. */
+        for (size_t i = 0; i < *use_count; i++) {
+            if ((*uses)[i].binding_syntax_id == use.binding_syntax_id
+                && strcmp((*uses)[i].name, use.name) == 0)
+                return true;
+        }
+        if (*use_count == *use_capacity) {
+            size_t cap = *use_capacity == 0 ? 8 : *use_capacity * 2;
+            if (cap < *use_capacity || cap > SIZE_MAX / sizeof(**uses))
+                return false;
+            MIRLocalBinding *next = realloc(*uses, cap * sizeof(**uses));
+            if (next == NULL)
+                return false;
+            *uses = next;
+            *use_capacity = cap;
+        }
+        (*uses)[(*use_count)++] = use;
+        return true;
+    }
     case AST_BINARY:
         return mir_collect_expr_identifier_uses(ast_binary_left(node),
                                                 uses,

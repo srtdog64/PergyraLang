@@ -5,6 +5,7 @@
 // remain unclaimed until the target-neutral plan seals them.
 
 import "direct_mir_scalar_cfg_hash_owner.pgy";
+import "../mir/declaration_wire_kind_owner.pgy";
 import "../mir_lower/machine_layer_fact_owner.pgy";
 import "../codegen/text/text_owner.pgy";
 
@@ -86,13 +87,13 @@ func DirectMirCompositeIntentProgramRouteFactFromAdmitted(
         admitted.domain_runtime_admission.declarations
     ) {
         if admitted.domain_runtime_admission.declarations.kinds[
-                declaration_row] == "subject" &&
+                declaration_row] == MirDeclarationWireKind("subject") &&
             admitted.domain_runtime_admission.declarations.nominal_kinds[
                 declaration_row] == "subject" {
             subject_count = subject_count + 1;
             subject_row = declaration_row;
         } else if admitted.domain_runtime_admission.declarations.kinds[
-                declaration_row] == "zone" &&
+                declaration_row] == MirDeclarationWireKind("zone") &&
             admitted.domain_runtime_admission.declarations.nominal_kinds[
                 declaration_row] == "zone" {
             ArrayPush(zones, declaration_row);

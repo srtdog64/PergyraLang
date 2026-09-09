@@ -65,7 +65,7 @@ func CheckScalarUtilityArgs(
     ref func_rets: Array<String>,
     check_argument_identifiers: Bool
 ) -> String {
-    if callee != "Min" && callee != "Max" {
+    if !SemanticBuiltinUsesFirstArgumentPair(callee) {
         return "";
     }
     let first: String = CallArgAtFromFacts(argument_facts, args_src, 0);

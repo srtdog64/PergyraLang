@@ -12,6 +12,14 @@ func Main() -> Void {
     let facts: SemanticAstCapabilityFacts = body.capabilities;
     let random: Int = CallableContractVocabularyMaskValueAt(
         CallableContractVocabularyFindIndex(CallableContractVocabularyCapabilityAxis(), "random"));
+    let declared: Option<Int> = SemanticAstCapabilityDeclaredMaskAt(analysis.signatures.action_contracts, 0);
+    Log(IsSome(declared) && UnwrapOption(declared) == random);
+    Log(!IsSome(SemanticAstCapabilityDeclaredMaskAt(analysis.signatures.action_contracts, -1)));
+    Log(!IsSome(SemanticAstCapabilityDeclaredMaskAt(analysis.signatures.action_contracts, 2)));
+    let effects: Option<Int> = SemanticAstDeclaredEffectMaskAt(analysis.signatures.action_contracts, 0);
+    Log(IsSome(effects) && UnwrapOption(effects) == 0);
+    Log(!IsSome(SemanticAstDeclaredEffectMaskAt(analysis.signatures.action_contracts, -1)));
+    Log(!IsSome(SemanticAstDeclaredEffectMaskAt(analysis.signatures.action_contracts, 2)));
     Log(facts.declared_masks[0] == random && facts.used_masks[0] == 0 &&
         facts.used_masks[1] == random && facts.exported_masks[0] == random);
     facts.callable_node_ids[0] = -1;
@@ -47,4 +55,6 @@ func Main() -> Void {
     }
     Log(SemanticDiagnosticOracleCode("declared_capability_missing") == "PGY_SEM_EFFECT_CONFLICT");
     Log(SemanticVerdictPayloadContractReady());
+    Log(SemanticDiagnosticCodeKnown("intent_predicate_plan_unavailable") &&
+        SemanticDiagnosticCodeRendered("intent_predicate_plan_unavailable"));
 }

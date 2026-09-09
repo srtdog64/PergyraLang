@@ -1,6 +1,7 @@
 // MIR-blind LLVM materialization for one sealed composite-intent plan.
 
 import "direct_mir_composite_intent_program_plan_owner.pgy";
+import "direct_mir_intent_completion_llvm_emission_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "symbol_table_owner.pgy";
 import "../codegen/runtime_abi/intent_runtime_symbol_owner.pgy";
@@ -439,10 +440,12 @@ func DirectMirCompositeIntentLlvmLeafIntent(
     output = Concat(output, "(i32 %handle, ptr @");
     output = Concat(output,
         DirectMirCompositeIntentLlvmIndexedSymbol("step", step));
-    output = Concat(output, ")\n  call void @");
+    output = Concat(output, ")\n");
+    output = Concat(output, DirectMirIntentCompletionEmitLlvm(plan.intent_completions[intent_row], subject_type, zone_type, "%zone"));
+    output = Concat(output, "  call void @");
     output = Concat(output, IntentRuntimeCExitFn());
     output = Concat(output,
-        "(i32 %handle)\n  ret i1 true\n\nintent.failure:\n  call void @");
+        "(i32 %handle)\n  ret i1 %intent.completion\n\nintent.failure:\n  call void @");
     output = Concat(output, IntentRuntimeCTraceFailFn());
     output = Concat(output, "(i32 %handle, ptr @");
     output = Concat(output,
@@ -586,10 +589,13 @@ func DirectMirCompositeIntentLlvmNestedIntent(
                 ToString(step_offset + 1), "\n\n"
             )));
         } else {
+            output = Concat(output, DirectMirIntentCompletionEmitLlvm(plan.intent_completions[intent_row], subject_type,
+                CompilerSymbolCIdentifier(plan.graph.zone_type_names[plan.intent_completions[intent_row].zone_ordinal]),
+                Concat("%zone", ToString(plan.intent_completions[intent_row].zone_ordinal))));
             output = Concat(output, "  call void @");
             output = Concat(output, IntentRuntimeCExitFn());
             output = Concat(output,
-                "(i32 %handle)\n  ret i1 true\n\n");
+                "(i32 %handle)\n  ret i1 %intent.completion\n\n");
         }
         output = Concat(output, DirectMirCompositeIntentLlvmNestedFailure(
             plan, step, Concat("fail.target.", ToString(step_offset)), "nested"

@@ -28,22 +28,22 @@ func MirGenericCallOccurrenceIndexInvalid() -> MirGenericCallOccurrenceIndex {
         ints, ints, ints, ints, ints, ints, GenericInstanceTemplatesEmpty(), ints, ints, types);
 }
 
-func MirGenericCallOccurrenceNumber(ref row: JsonObjectFactTable, field: String) -> Int {
+func MirGenericCallOccurrenceNumber(ref row: JsonObjectFactTable, field: String) -> Option<Int> {
     let value: Option<String> = JsonObjectFactNumberFieldOpt(row, field);
-    if !IsSome(value) { return -1; }
+    if !IsSome(value) { return None; }
     let number: Int = ToInt(UnwrapOption(value));
-    if number < 0 || ToString(number) != UnwrapOption(value) { return -1; }
-    return number;
+    if number < 0 || ToString(number) != UnwrapOption(value) { return None; }
+    return Some(number);
 }
 
-func MirGenericCallOccurrenceRoutine(ref routines: MirProgramRoutineIndex, syntax_id: Int) -> Int {
-    if syntax_id <= 0 { return -1; }
-    let result: Int = -1;
+func MirGenericCallOccurrenceRoutine(ref routines: MirProgramRoutineIndex, syntax_id: Int) -> Option<Int> {
+    if syntax_id <= 0 { return None; }
+    let result: Option<Int> = None;
     let row: Int = 0;
     while row < MirProgramRoutineIndexCount(routines) {
         if routines.source_syntax_ids[row] == ToString(syntax_id) {
-            if result >= 0 { return -1; }
-            result = row;
+            if IsSome(result) { return None; }
+            result = Some(row);
         }
         row = row + 1;
     }
@@ -53,24 +53,26 @@ func MirGenericCallOccurrenceRoutine(ref routines: MirProgramRoutineIndex, synta
 func MirGenericCallOccurrenceInstruction(
     ref routines: MirProgramRoutineIndex, routine: Int,
     block_id: Int, instruction_id: Int
-) -> Int {
-    if routine < 0 || block_id < 0 || instruction_id < 0 { return -1; }
-    let result: Int = -1;
+) -> Option<Int> {
+    if routine < 0 || block_id < 0 || instruction_id < 0 { return None; }
+    let result: Option<Int> = None;
     let block: Int = routines.routine_block_starts[routine];
     let end: Int = block + routines.routine_block_counts[routine];
     while block < end {
         let block_fact: JsonObjectFactTable = JsonObjectFactTable(true,
             routines.source_json, routines.block_starts[block], routines.block_ends[block]);
-        if MirGenericCallOccurrenceNumber(block_fact, "id") == block_id {
+        let candidate_block: Int = MirGenericCallOccurrenceNumber(block_fact, "id")?;
+        if candidate_block == block_id {
             let instruction: Int = routines.block_instruction_starts[block];
             let instruction_end: Int = instruction + routines.block_instruction_counts[block];
             while instruction < instruction_end {
                 let fact: JsonObjectFactTable = JsonObjectFactTable(true,
                     routines.source_json, routines.instruction_starts[instruction],
                     routines.instruction_ends[instruction]);
-                if MirGenericCallOccurrenceNumber(fact, "id") == instruction_id {
-                    if result >= 0 { return -1; }
-                    result = instruction;
+                let candidate: Int = MirGenericCallOccurrenceNumber(fact, "id")?;
+                if candidate == instruction_id {
+                    if IsSome(result) { return None; }
+                    result = Some(instruction);
                 }
                 instruction = instruction + 1;
             }
@@ -150,8 +152,15 @@ func MirGenericCallOccurrenceIndexFromDocument(
     let row: Int = 0;
     while row < JsonArrayObjectFactCount(table) {
         let fact: JsonObjectFactTable = JsonArrayObjectFactAt(table, row);
-        let target_id: Int = MirGenericCallOccurrenceNumber(fact, "call_target_syntax_id");
-        let target: Int = MirGenericCallOccurrenceRoutine(routines, target_id);
+        let target_id: Option<Int> = MirGenericCallOccurrenceNumber(fact, "call_target_syntax_id");
+        if !IsSome(target_id) { return invalid; }
+        let target_row: Option<Int> = MirGenericCallOccurrenceRoutine(routines, UnwrapOption(target_id));
+        if !IsSome(target_row) { return invalid; }
+        let target: Int = UnwrapOption(target_row);
+        let source_owner: Option<Int> = MirGenericCallOccurrenceNumber(fact, "source_owner_syntax_id");
+        let source_lane: Option<Int> = MirGenericCallOccurrenceNumber(fact, "source_lane");
+        let source_ordinal: Option<Int> = MirGenericCallOccurrenceNumber(fact, "source_call_ordinal");
+        if !IsSome(source_owner) || !IsSome(source_lane) || !IsSome(source_ordinal) { return invalid; }
         let target_kind_opt: Option<String> = JsonObjectFactStringFieldOpt(fact, "target_kind");
         let owner_opt: Option<String> = JsonObjectFactStringFieldOpt(fact, "owner");
         let callable_opt: Option<String> = JsonObjectFactStringFieldOpt(fact, "callable");
@@ -165,10 +174,7 @@ func MirGenericCallOccurrenceIndexFromDocument(
             (target_kind == "member" && owner == "") ||
             owner != routines.owners[target] ||
             UnwrapOption(callable_opt) != routines.names[target] ||
-            MirGenericCallOccurrenceNumber(fact, "source_owner_syntax_id") <= 0 ||
-            MirGenericCallOccurrenceNumber(fact, "source_lane") < 0 ||
-            MirGenericCallOccurrenceNumber(fact, "source_lane") > 2 ||
-            MirGenericCallOccurrenceNumber(fact, "source_call_ordinal") < 0 {
+            UnwrapOption(source_owner) <= 0 || UnwrapOption(source_lane) > 2 {
             return invalid;
         }
         let params: Array<String> = MirObjectArrayStringFactsAtBounds(
@@ -205,14 +211,23 @@ func MirGenericCallOccurrenceIndexFromDocument(
         while occurrence < JsonArrayObjectFactCount(occurrences) {
             let anchor: JsonObjectFactTable = JsonArrayObjectFactAt(occurrences, occurrence);
             if JsonObjectFactCount(anchor) != 5 { return invalid; }
-            routine = MirGenericCallOccurrenceRoutine(routines,
-                MirGenericCallOccurrenceNumber(anchor, "routine_syntax_id"));
-            let instruction: Int = MirGenericCallOccurrenceInstruction(routines, routine,
-                MirGenericCallOccurrenceNumber(anchor, "block_id"),
-                MirGenericCallOccurrenceNumber(anchor, "instruction_id"));
-            let lane: Int = MirGenericCallOccurrenceNumber(anchor, "expression_lane");
-            let node: Int = MirGenericCallOccurrenceNumber(anchor, "call_node");
-            if routine < 0 || instruction < 0 || lane < 0 || lane > 1 || node < 0 { return invalid; }
+            let routine_id: Option<Int> = MirGenericCallOccurrenceNumber(anchor, "routine_syntax_id");
+            let block_id: Option<Int> = MirGenericCallOccurrenceNumber(anchor, "block_id");
+            let instruction_id: Option<Int> = MirGenericCallOccurrenceNumber(anchor, "instruction_id");
+            let lane_fact: Option<Int> = MirGenericCallOccurrenceNumber(anchor, "expression_lane");
+            let node_fact: Option<Int> = MirGenericCallOccurrenceNumber(anchor, "call_node");
+            if !IsSome(routine_id) || !IsSome(block_id) || !IsSome(instruction_id) ||
+                !IsSome(lane_fact) || !IsSome(node_fact) { return invalid; }
+            let routine_fact: Option<Int> = MirGenericCallOccurrenceRoutine(routines, UnwrapOption(routine_id));
+            if !IsSome(routine_fact) { return invalid; }
+            routine = UnwrapOption(routine_fact);
+            let instruction_fact: Option<Int> = MirGenericCallOccurrenceInstruction(routines, routine,
+                UnwrapOption(block_id), UnwrapOption(instruction_id));
+            if !IsSome(instruction_fact) { return invalid; }
+            let instruction: Int = UnwrapOption(instruction_fact);
+            let lane: Int = UnwrapOption(lane_fact);
+            let node: Int = UnwrapOption(node_fact);
+            if lane > 1 { return invalid; }
             let prior: Int = 0;
             while prior < ArrayLength(instruction_rows) {
                 if instruction_rows[prior] == instruction && lanes[prior] == lane && graph_nodes[prior] == node {
@@ -252,9 +267,10 @@ func MirGenericCallOccurrenceIndexFromDocument(
                 let node: Int = 0;
                 while node < sequence.ready_node_count {
                     if sequence.arena.topology.node_kinds[node] == AstExpressionNodeCall() {
-                        let target: Int = MirGenericCallOccurrenceRoutine(routines,
+                        let target_fact: Option<Int> = MirGenericCallOccurrenceRoutine(routines,
                             sequence.arena.identities.call_target_syntax_ids[node]);
-                        if target >= 0 && generic_counts[target] > 0 {
+                        if IsSome(target_fact) && generic_counts[UnwrapOption(target_fact)] > 0 {
+                            let target: Int = UnwrapOption(target_fact);
                             let found: Int = -1;
                             occurrence = 0;
                             while occurrence < ArrayLength(instruction_rows) {

@@ -64,11 +64,11 @@ func MirDomainRuntimeAssignmentsRequiredForTopology(
 
 func MirDomainRuntimeProjectionTopologyRowAt(
     ref facts: MirDomainRuntimeAssignmentFacts, row: Int
-) -> Int {
+) -> Option<Int> {
     if row < 0 || row >= ArrayLength(
         facts.projection_members.topology_row_indices
-    ) { return -1; }
-    return facts.projection_members.topology_row_indices[row];
+    ) { return None; }
+    return Some(facts.projection_members.topology_row_indices[row]);
 }
 
 func MirDomainRuntimeProjectionExplicitAt(
@@ -81,20 +81,20 @@ func MirDomainRuntimeProjectionExplicitAt(
 
 func MirDomainRuntimeProjectionSegmentCountAt(
     ref facts: MirDomainRuntimeAssignmentFacts, row: Int
-) -> Int {
+) -> Option<Int> {
     if row < 0 || row >= ArrayLength(
         facts.projection_members.source_path_segment_counts
-    ) { return -1; }
-    return facts.projection_members.source_path_segment_counts[row];
+    ) { return None; }
+    return Some(facts.projection_members.source_path_segment_counts[row]);
 }
 
 func MirDomainRuntimeProjectionSegmentStartAt(
     ref facts: MirDomainRuntimeAssignmentFacts, row: Int
-) -> Int {
+) -> Option<Int> {
     if row < 0 || row >= ArrayLength(
         facts.projection_members.source_path_segment_starts
-    ) { return -1; }
-    return facts.projection_members.source_path_segment_starts[row];
+    ) { return None; }
+    return Some(facts.projection_members.source_path_segment_starts[row]);
 }
 
 func MirDomainRuntimeProjectionSegmentFieldNameAt(

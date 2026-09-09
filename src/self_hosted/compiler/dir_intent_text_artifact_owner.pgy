@@ -11,17 +11,17 @@ func CompilerDirIntentResolvedDeclarationNode(
     inventory: SelfDirGraphInventoryFacts,
     declaration_index: Int,
     name: String
-) -> Int {
+) -> Option<Int> {
     if declaration_index < 0 ||
         declaration_index >= ArrayLength(rows.names) ||
         rows.names[declaration_index] != name {
-        return -1;
+        return None;
     }
-    let kind: String = SelfDirGraphInventoryDeclarationKind(
-        rows, declaration_index
-    );
-    if kind == "" { return -1; }
-    return SelfDirGraphInventoryNodeIndex(inventory, kind, name);
+    let kind: String = SelfDirGraphInventoryDeclarationKind(rows, declaration_index);
+    if kind == "" { return None; }
+    let resolved: Int = SelfDirGraphInventoryNodeIndex(inventory, kind, name);
+    if resolved < 0 { return None; }
+    return Some(resolved);
 }
 
 func CompilerDirIntentAppendStepProvenance(
@@ -94,7 +94,7 @@ func CompilerDirIntentTextFromFacts(
             let row: Int = participant_start + participant_index;
             let label: String = "participant";
             if facts.participants.is_values[row] { label = "value      "; }
-            let resolved: Int = CompilerDirIntentResolvedDeclarationNode(
+            let resolved: Option<Int> = CompilerDirIntentResolvedDeclarationNode(
                 rows, inventory,
                 facts.participants.declaration_indices[row],
                 facts.participants.type_names[row]
@@ -108,7 +108,8 @@ func CompilerDirIntentTextFromFacts(
             text = Concat(text, " type=");
             text = Concat(text, facts.participants.type_names[row]);
             text = Concat(text, " resolved=");
-            text = Concat(text, CompilerDirTextResolvedNode(resolved));
+            if IsSome(resolved) { text = Concat(text, CompilerDirTextResolvedNode(UnwrapOption(resolved))); }
+            else { text = Concat(text, "-"); }
             text = Concat(text, "\n");
             participant_index = participant_index + 1;
         }

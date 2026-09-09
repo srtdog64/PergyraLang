@@ -1,0 +1,31 @@
+// Target-neutral completion after the last admitted step. A false result is
+// not a failed step: callers retain their normal completion/cleanup boundary.
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+
+struct DirectMirIntentCompletionFact {
+    let constant_true: Bool;
+    let zone_ordinal: Int;
+    let field_ordinal: Int;
+    let threshold: Int;
+}
+
+func DirectMirIntentCompletionFactReady(
+    fact: DirectMirIntentCompletionFact, zone_count: Int, field_count: Int
+) -> Bool {
+    if fact.constant_true {
+        return fact.zone_ordinal == 0 && fact.field_ordinal == 0 && fact.threshold == 0;
+    }
+    return fact.zone_ordinal >= 0 && fact.zone_ordinal < zone_count &&
+        fact.field_ordinal >= 0 && fact.field_ordinal < field_count;
+}
+
+func DirectMirIntentCompletionFactHash(
+    hash: Long, fact: DirectMirIntentCompletionFact
+) -> Long {
+    let kind: Int = 0;
+    if fact.constant_true { kind = 1; }
+    let result: Long = DirectMirCfgHashInt(hash, kind);
+    result = DirectMirCfgHashInt(result, fact.zone_ordinal);
+    result = DirectMirCfgHashInt(result, fact.field_ordinal);
+    return DirectMirCfgHashInt(result, fact.threshold);
+}

@@ -364,4 +364,4 @@ reject_source native-bad-c "$WORK/native-bad.c" "$PGY" --native-pipeline \
 reject_source native-bad-llvm "$WORK/native-bad.ll" "$PGY" --native-pipeline \
     "$BAD_REL" --emit-llvm -o "$WORK_REL/native-bad.ll"
 
-echo "[$LABEL] PASS: AST/MIR parity; 8 role C/LLVM runtime legs, 3 receiver runtimes, 14 source negatives; 3 permutations + 16 MIR negatives"
+echo "[$LABEL] PASS: AST/MIR parity; 8 role C/LLVM runtime legs + 3 receiver runtimes + 14 source negatives; 3 permutations + 16 MIR negatives"

@@ -71,6 +71,18 @@ for base in $CALL_ARG_FIXTURES; do
     done
 done
 
+for scalar_type in int float; do
+    base="valid_scalar_utility_$scalar_type"
+    (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-diagnostic-verified \
+        "src/self_hosted/semantic/fixture/$base.pgy") \
+        >"$WORK_DIR/$base.out" 2>"$WORK_DIR/$base.err" || fail "$base refused a valid numeric pair"
+    [[ ! -s "$WORK_DIR/$base.err" ]] || fail "$base emitted diagnostics"
+    require_text "$WORK_DIR/$base.out" 'schema: pgy.mir.diagnostic.v1'
+    scalar_abi="Int"
+    [[ "$scalar_type" != float ]] || scalar_abi="Float"
+    require_text "$WORK_DIR/$base.out" "abi-type=\"$scalar_abi\""
+done
+
 run_public_failure() {
     local label="$1" expected="$2" artifact="$3"
     shift 3
@@ -104,6 +116,11 @@ run_public_failure llvm "$WORK_DIR/bad_writefile_arg.expected.json" \
     "$WORK_REL/invalid-llvm.bin" --error-format=json --backend=llvm \
     src/self_hosted/semantic/fixture/bad_writefile_arg.pgy \
     -o "$WORK_REL/invalid-llvm.bin"
+run_public_failure max-mir "$WORK_DIR/bad_max_mixed.expected.json" "" \
+    --mir --error-format=json src/self_hosted/semantic/fixture/bad_max_mixed.pgy
+run_public_failure min-llvm "$WORK_DIR/bad_min_mixed.expected.json" \
+    "$WORK_REL/invalid-min-llvm.bin" --error-format=json --backend=llvm \
+    src/self_hosted/semantic/fixture/bad_min_mixed.pgy -o "$WORK_REL/invalid-min-llvm.bin"
 
 set +e
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-diagnostic-verified \
@@ -147,4 +164,4 @@ require_text "$CONTRACT_OWNER" \
     "$PROCESS_OWNER" "$WIRE_OWNER" ||
     fail "C transport gained semantic call-argument authority"
 
-echo "[self-host-public-call-arg-type-mismatch-json-diagnostic] exact assignability identity, thirteen semantic contexts, MIR/C/LLVM relay, and undefined-symbol exclusion: PASS"
+echo "[self-host-public-call-arg-type-mismatch-json-diagnostic] exact assignability identity, thirteen refusals, two numeric controls, MIR/C/LLVM relay, and undefined-symbol exclusion: PASS"

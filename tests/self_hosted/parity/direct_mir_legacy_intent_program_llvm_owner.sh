@@ -92,10 +92,10 @@ cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/native.run" ||
 
 # Scope renaming and formal ordering must not change the binder relation.
 # These remain in the existing claimant envelope; no fixture-specific route.
-for control in order names spelling; do
+for control in order names spelling completion_false completion_true; do
     source_rel="tests/self_hosted/parity/fixture/direct_mir_legacy_intent_binding_$control.pgy"
     expected=true
-    if [[ "$control" == names ]]; then expected=false; fi
+    if [[ "$control" == names || "$control" == completion_false ]]; then expected=false; fi
     if [[ "$control" == spelling ]]; then
         source_rel="tests/self_hosted/parity/fixture/intent_carrier_spelling_local.pgy"; expected=6
     fi
@@ -150,7 +150,7 @@ for producer in self native; do
         fail "$producer binder owner baseline failed"
     grep -Fq 'Intent binder identity verified: 2' "$mutation_dir/baseline.out" ||
         fail "$producer binder projection lost source identities"
-    for mutation in old-subject-wire crossed-nominal-kind duplicate-mode invalid-priority zone-field-drift \
+    for mutation in completion-missing-graph completion-unknown-field completion-wrong-operator old-subject-wire crossed-nominal-kind duplicate-mode invalid-priority zone-field-drift \
         action-target-drift missing-invalidation-cleanup missing-call-target-id crossed-call-target-id \
         crossed-call-binder-id crossed-formal-order crossed-call-arguments missing-binding-id zero-binding-id \
         string-binding-id duplicate-binding-id crossed-mirror-id missing-mirror-id orphan-binding-mirror \
@@ -185,5 +185,6 @@ for producer in self native; do
     done
 done
 [[ "$negative_failures" -eq 0 ]] || fail "$negative_failures malformed-MIR checks failed"
+bash "$ROOT_DIR/tests/self_hosted/parity/intent_completion_fact_owner.sh"
 
-echo "[$LABEL] baseline LLVM parity + twelve binding/spelling observations across four source legs + both producer binding owners + $negative_checks refusal-only checks: PASS"
+echo "[$LABEL] baseline LLVM parity + twenty binding/spelling/completion observations across four source legs + both producer binding owners + $negative_checks refusal-only checks: PASS"

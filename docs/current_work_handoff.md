@@ -1,88 +1,112 @@
 # Current Work Handoff
 
-Updated: 2026-09-09 (Asia/Seoul), verified CI repair packet; navigation only.
+Updated: 2026-09-09 (Asia/Seoul), CI follow-through; navigation only.
 Compiler owners, registries and executable gates override this snapshot.
 
 ## Active self-host context — CI integration of source-admission snapshot
 
-Pre-publication HEAD/origin/main: `e8fa15a24b73318466033df793462ac3e57ce6b9`.
-The user authorized commit/push to inspect CI and reopened failed run
-`34251704201`. The latest published run `34266995720` is RED, not green.
-Windows/macOS, TSAN and Rocq passed. Linux/driver/codegen failures share the
-nominal-array declaration error and downstream absence of the self-host driver.
-Logs: `.tmp/ci-e8fa-failed.log`, `.tmp/ci-e8fa-codegen-job.log`.
+Pre-publication HEAD/origin/main: `3da11372f92b253aeeb92113a2264a558de0f645`.
+The user reopened failed CI and authorized correction, commit and push.
+Run `34280162606` is RED. Native tests, sanitizers, Windows/macOS, TSAN, Rocq,
+codegen bootstrap and full driver gen2 == gen3 (188,818 C lines) passed there.
+Linux passed 22/23 steps before generated language inventory drift. Twenty
+backend shards stopped at one missing inventory entry. The full driver job
+stopped after its successful fixed point at the legacy Intent LLVM phase plan.
+Logs: `.tmp/ci-3da11372-{linux,bootstrap,backend-16}.log`.
 
 This snapshot accompanies the repair; Git owns its publication identity. Primary-only
 edit lease: [collaboration](current_work_collaboration.md);
 [objective and owner boundaries](agent_work_directives/source_admission_parity_2026-09-07.md).
 No shared compiler installation, skipped jobs, raised caps or native-built
-replacement driver. CI integration blocks new Intent/GraphPlan implementation.
+replacement driver. CI integration blocks unrelated Intent/GraphPlan expansion.
 
-The reached seam is semantic nominal-array identity -> early C descriptor ->
-completed element layout -> runtime bodies. One usage fact feeds declaration
-and runtime consumers. The existing ABI owner remains authoritative; direct
-by-value cycles still refuse. Native C uses the same declaration/body boundary.
-Driver routing consumes a local cursor instead of mutating an immutable receipt.
-MIR array-member writes retain the lexical root LocalRef and the carried
-projection graph. Bootstrap tool parity now preserves nonzero status and fresh
-diagnostic stdout instead of reusing a success-only output file.
-Two reached admission gaps are sealed: generic template return ABI agrees with
-its unspecialized header before substitution, and discarded call statements
-carry exact ABI absence. Role override consumes wire kind `class` together
-with nominal kind `subject`; crossed kinds refuse, not a value-type fallback.
+Reached owners: the legacy/composite Intent plan now carries and hashes its
+admitted completion predicate into MIR-blind LLVM materialization. A false
+completion is not a failed step and does not synthesize compensation. This is
+a bounded true-literal/field-greater-than-integer slice, not general expression
+support. Composite/nested routes consume canonical wire kind plus nominal kind;
+their malformed claims cannot fall through to the scalar route. Nested mutation
+generation follows the existing `intent` carrier rather than an obsolete `on`.
+The builtin signature owner supplies Min/Max's first-argument-dependent pair
+obligation to graph call admission. Unknown table slots no longer waive it.
+Native MIR SSA use reconstruction preserves RIR IO summaries as effect evidence;
+only the actual lexical DEF/STMT owns the IO operand's executable read. LLVM's
+exact-storage guard remains unchanged. No source syntax or support bit changed.
+Expression-reference collection also preserves distinct enum constructors that
+share a declaration ID; actual local SSA reads still require exact identity and
+spelling. Capability/Future/generic/domain lookup absence now uses Option.
+An ordinary routine explicitly has no generic instance; that is not permission
+to repair a missing generic binding. The existing Intent-plan-unavailable
+diagnostic is now registered/rendered, and vocabulary readiness derives from
+its owner rather than a stale literal count of 50 (current vocabulary: 61).
 
-Observed local evidence:
-- Native semantic 2930/0 from the previous packet; current array repair:
-  C transpile 978/0, memory layout 82/0. Latest MIR run: 194/0
-  (`.tmp/ci-final-mir-test.log`).
-- Fresh codegen bootstrap gen2 == gen3, 83,240 emitted-C lines
-  (`.tmp/ci-final-seed-fixpoint.log`). Argument graph: 2 executions and
-  12 refusals; nominal-array/MIR-root gate: 4 executions and 8 refusals.
-  Subsequent whitespace and admission edits are not a new seed receipt claim.
-- Earlier isolated Pergyra-built driver passed grammar examples (17), callable
-  vocabulary (18), callable parameter identity C/LLVM, match binding, release
-  output hygiene and the full Zone-sync gate including its real codegen build.
-  Logs: `.tmp/ci-array-*.log`, `.tmp/ci-zone-sync-mir-root.log`.
-- Header/backend size gates, shared test/production owner-size gate and UTF-8
-  gate passed (`.tmp/ci-final-{header-size,backend-size,test-size,utf8}.log`).
-  Final structural component gate passed: 2,412 cap requests, 1,017 function
-  extractions, 690 reuses (`.tmp/ci-final-component-publication.log`).
-- Latest actual Pergyra-built driver construction and source/C/manifest smoke
-  passed (`.tmp/ci-final-driver-role-kind.log`). It was copied beside the
-  isolated native launcher, not into shared `bin`, for installed-route checks.
-  All six push replacement-frontier gates passed with that driver
-  (`.tmp/ci-final-frontier-*.log`). Role override includes 8 C/LLVM runtime
-  legs, 3 receiver runtimes, 14 source refusals and 16 MIR refusals.
-- Final inferred-generic C/LLVM gate passed: exact 41, 14 metamorphics,
-  2 value variants, concrete generic return control, 46 C refusals and
-  3 LLVM sentinels. Case-math and logical-record C/LLVM gates passed too
-  (`.tmp/ci-publication-*.log`). Both native LLVM push guards passed
-  (`.tmp/ci-final-llvm-{option-context,intent-abi}.log`).
-- Makefile source inventory passed (`.tmp/ci-final-source-inventory.log`).
-  The initial Git Bash attempt lacked `make`; the MSYS2 rerun used the
-  repository directory explicitly. This was not a compiler-gate skip.
-
-Harness corrections preserve real claims: GraphPlan symbols replace removed
-shape-specific names; nine provenance/display mutations now require byte-equal
-C/LLVM. Struct member/arithmetic semantic changes execute as 0 and 5, while
-missing-member/wrong-type mutations keep 15 actual refusals. Native comparison
-erases only the exact synthetic effect-free Void exit (13 non-erasable controls).
-The inferred-generic gate now honors `PGY_SELF_DRIVER_BIN`, avoiding the stale
-shared driver accidentally selected during one final rerun.
+Observed local evidence (earlier packet details remain in Git at `3da11372`):
+- Fresh native MIR: 200 passed, 0 failed, including preserved IO summaries,
+  shared enum declaration references, exact lexical reads and crosswired or
+  missing-identity refusal (`.tmp/ci-enum-mir.log`). Native C transpile tests:
+  978 passed, 0 failed (`.tmp/ci-option-transpile.log`).
+  Both registered SSA cases execute equally on native C/LLVM with independent
+  expected output (`.tmp/ci-3da-ssa-final.log`); inventory preflight passed.
+- Pergyra-built driver and source/C/machine-manifest smoke passed
+  (`.tmp/ci-option-driver-verified-build.log`). This is not a new full gen2/gen3 claim.
+- Legacy Intent: twenty four-leg source observations and 49 MIR refusals.
+  Completion fact probe: five admitted values, five refusals, ten distinct
+  digest pairs. Composite: success, compensated step failure and false-only
+  completion parity, including the no-compensation trace. Nested: exact
+  runtime, source/direct C byte parity and twelve no-artifact refusals.
+  Final-binary logs: `.tmp/ci-verified-direct_mir_*_intent_program_llvm_owner.log`.
+- Installed source-C action/transaction and CLI-mode chain passed on the final
+  binaries (`.tmp/ci-verified-installed_driver_cli_mode_owner.log`). They additionally passed thirteen
+  argument refusals, two numeric controls and exact public MIR/C/LLVM diagnostics
+  (`.tmp/ci-paired-final-binaries.log`).
+- Shared source/test size gate and component source inventory passed
+  (`.tmp/ci-option-{size,component}-final.log`). Component counts: 2,414 cap
+  requests, 1,017 function extractions, 690 reuses; these are not substitution.
+- Preparation integration was executed through its first failure and then all
+  remaining 26 gates (`.tmp/ci-3da-preparation-{final,remainder}.log`). Reached
+  failures were rerun after correction: raw-graph storage classification,
+  enum/native-oracle normalization, owner fingerprints, diagnostic contract,
+  registry anchors and likeness. No job was skipped and no cap was raised.
+- Likeness passes at 76 core text signatures and 20 control-flow sentinels
+  (`.tmp/ci-option-likeness-final.log`): 29 returns became typed absence, and
+  exact schema-absence comparisons are distinguished with negative controls.
+  Thirteen final/vocabulary projections were classified as such, not counted
+  as deleted semantic bridges. The sentinel cap tightened from 23 to 20.
+- Capability fact mutation/lookup/diagnostic controls: 18 passed
+  (`.tmp/ci-option-capability-final.log`). Future constant/nonconstant branch,
+  loop and double-retirement admission: 12 native/self controls passed
+  (`.tmp/ci-verified-future_condition_admission_owner.log`); this is not a runtime-execution claim.
+- Coq 8.18 actually checked SoTAuthority.v through the installed Ubuntu-E-WSL
+  prover, and the live consumer/negative gate passed. The local exact-model
+  bridge is `.tmp/ci-proof-bin/coqc`; no missing-prover skip was used
+  (`.tmp/ci-option-adequacy-bridge-final.log`). Registry classification passes:
+  89 authorities, 187 derived carriers, CLOSED=55 / BRIDGE=32 / ACTIVE=2.
+  No registry status was promoted by this CI packet.
 
 Current native: `.tmp/ci-34251704201-native/pgy.exe`.
+SHA-256: `06894E69531EA058A0DF37D72DF0B9CB37D9385BCC010166D3EA5158D80AB152`.
 Verified bootstrap producer: `.tmp/ci-34251704201-seed-final/gen2.exe`.
-Final driver: `.tmp/ci-34251704201-driver-final/pgy-self-driver.exe`;
-SHA-256: `C5C53FE4530761A05F4B82E3F8B7E4612DE7C5950D191DB0D960F0134185352B`.
+Final driver: `.tmp/ci-34280162606-driver/pgy-self-driver.exe`;
+SHA-256: `FBF4F91DEAB683959B4FFDECF01A50C40C8936F505C408F91727B5A2F7EC679E`.
 The sibling `.tmp/ci-34251704201-native/pgy-self-driver.exe` has the same hash.
 
-Next falsifier: the first failing job on this packet's push CI. The complete
-Linux/sanitizer/platform matrix was not rerun locally on this Windows host;
-remote success must be observed on the new commit. Local gates do not prove it.
-Physical owner moves preserve bodies and identities, delete former definitions
-and migrate imports/source pins; they are not self-host substitution progress.
-Existing unreachable-statement bootstrap and LLVM target-triple warnings remain
-visible. This repair does not close the parked source-admission feature gaps.
+Next falsifier: the first failing job on this packet's push CI. The complete Linux,
+sanitizer/platform and fresh full gen2/gen3 matrices were not rerun locally on
+this Windows host; remote success must be observed on the new commit. Existing
+LLVM target-triple warnings remain visible. The parked language gaps stay open.
+
+Broader, non-green-runner checks must not be represented as closed: generic
+call occurrence remains 70 checks / 2 failures (recursive/constant forwarding
+rejects `Walk`, expected T / actual Int or String); capability admission remains 53 / 7
+(six public clock/Now execution legs and native synthetic-body HIR lowering).
+The same failures were reproduced with the pre-repair driver
+`.tmp/ci-34251704201-driver-final/pgy-self-driver.exe`, SHA-256
+`C5C53FE4530761A05F4B82E3F8B7E4612DE7C5950D191DB0D960F0134185352B`.
+Logs: `.tmp/ci-{baseline,verified}-generic*` and
+`.tmp/ci-{baseline,option}-capability-admission.log`. A false loop containing
+`let v: Int = await t;` also exposes a separate native residual AST_LET_DECL
+MIR rejection (`src/compiler/mir_fact_surface_validate.c`); the focused Future
+gate isolates completion flow with `await t;` and does not close that lowering gap.
 
 ### Parked source-admission evidence — lookup, not a parallel work queue
 

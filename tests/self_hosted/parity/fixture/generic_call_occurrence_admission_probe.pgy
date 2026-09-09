@@ -15,10 +15,10 @@ func Main() -> Void with caps env, io_read {
     let call: Int = 0;
     while call < ArrayLength(closure.call_recipes) {
         let recipe: Int = closure.call_recipes[call];
-        let target: Int = MirGenericInstanceCallTarget(closure, index,
+        let target: Option<Int> = MirGenericInstanceCallTarget(closure, index,
             closure.call_contexts[call], index.routine_rows[recipe],
             index.instruction_rows[recipe], index.lanes[recipe], index.graph_nodes[recipe]);
-        if target != closure.call_targets[call] { Die("MIR generic instance call binding drifted"); }
+        if !IsSome(target) || UnwrapOption(target) != closure.call_targets[call] { Die("MIR generic instance call binding drifted"); }
         call = call + 1;
     }
     Log(Concat("generic call occurrences verified: ", ToString(ArrayLength(index.instruction_rows))));

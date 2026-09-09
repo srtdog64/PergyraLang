@@ -166,6 +166,14 @@ mir_record_instruction_expr_uses(MIRRoutine *routine,
             }
         }
     }
+    /* RIR IO rows summarize effects and may precede the lexical statement.
+     * Their display arguments are not entry-block reads. The executable
+     * DEF/STMT expression owns the exact operand binding and SSA version. */
+    if (raw_use_count == 0 && inst->kind == MIR_INST_RESOURCE_OP
+        && inst->rir_op != NULL && inst->rir_op->kind == RIR_OP_IO) {
+        free(raw_uses);
+        return true;
+    }
     if (raw_use_count == 0
         && (inst->kind == MIR_INST_RESOURCE_OP
             || inst->kind == MIR_INST_CLEANUP_EDGE)) {

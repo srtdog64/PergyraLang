@@ -44,6 +44,7 @@ func SemanticReason(code: String) -> String {
     if code == "subject_value_copy" { return "Subjects cannot be copied into a new binding"; }
     if code == "match_pattern_invalid" { return "Invalid or non-exhaustive match pattern"; }
     if code == "intent_retry_unavailable" { return "Intent retry execution lowering is not implemented"; }
+    if code == "intent_predicate_plan_unavailable" { return "the typed Intent outcome plan required by this boundary predicate is unavailable"; }
     if code == "action_contract_invalid" { return "Action authority requires a declared binding and matching zone contract"; }
     if code == "task_lifecycle_invalid" { return "Owned task handle must be retired on every normal exit"; }
     if code == "cancel_argument_invalid" { return "Cancel requires Future<T> or RemoteFuture<T>"; }
@@ -160,9 +161,7 @@ func SemanticReason(code: String) -> String {
     if code == "destructure_initializer_not_array" {
         return "destructure initializer does not provide the required array element";
     }
-    if code == "intent_signature_invalid" {
-        return "intent signature facts are incomplete or ambiguous";
-    }
+    if code == "intent_signature_invalid" { return "intent signature facts are incomplete or ambiguous"; }
     if code == "parse_syntax" {
         return "source syntax is incomplete or malformed";
     }
@@ -176,6 +175,7 @@ func SemanticFix(code: String) -> String {
     if code == "subject_value_copy" { return "construct a fresh subject or keep using its current binding"; }
     if code == "match_pattern_invalid" { return "cover every enum variant with the declared payload arity or add a default arm"; }
     if code == "intent_retry_unavailable" { return "remove the retry modifier until both backends implement the same retry contract"; }
+    if code == "intent_predicate_plan_unavailable" { return "use an admitted Intent outcome plan before checking the boundary predicate"; }
     if code == "action_contract_invalid" { return "align the action binding, subject slot and explicit zone authority"; }
     if code == "task_lifecycle_invalid" { return "await the task or transfer it to an explicit own parameter before exiting its scope"; }
     if code == "cancel_argument_invalid" { return "pass one task handle to Cancel"; }

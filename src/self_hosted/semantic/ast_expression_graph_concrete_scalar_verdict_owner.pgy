@@ -140,14 +140,11 @@ func SemanticExpressionGraphConcreteScalarValueOwned(ref graph: SemanticExpressi
 }
 
 func SemanticExpressionGraphContextualCallArgumentsOwned(
-    ref graph: SemanticExpressionGraphFacts,
-    node_id: Int,
+    ref graph: SemanticExpressionGraphFacts, node_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
     signatures: SemanticAstFunctionSignatureFacts,
-    names: Array<String>,
-    types: Array<String>,
-    ref function_names: Array<String>,
-    ref function_returns: Array<String>,
+    names: Array<String>, types: Array<String>,
+    ref function_names: Array<String>, ref function_returns: Array<String>,
     ref function_params: Array<String>
 ) -> Bool {
     if ArrayLength(function_names) != ArrayLength(function_params) {
@@ -335,6 +332,17 @@ func SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
         }
         signature = function_params[UnwrapOption(target)];
     }
+    if !local_callable.ok && target_fact.kind == SemanticCallTargetDirect() &&
+        SemanticBuiltinUsesFirstArgumentPair(target_fact.name) &&
+        graph.arena.identities.call_target_syntax_ids[call.call_node] == 0 &&
+        ArrayLength(call.argument_nodes) > 0 {
+        let first_type: String = SemanticExpressionGraphScalarTypeName(
+            graph, call.argument_nodes[0], constructors, names, types,
+            function_names, function_returns);
+        let paired_signature: Option<String> =
+            SemanticBuiltinPairedScalarSignatureOpt(target_fact.name, first_type);
+        if IsSome(paired_signature) { signature = UnwrapOption(paired_signature); }
+    }
     let signature_facts: SemanticDelimitedRangeFacts =
         SemanticSignatureRangeFactsFromSource(signature);
     let signature_count: Int = 0;
@@ -364,14 +372,11 @@ func SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
 // Argument admission depends on the resolved parameter facts, not on whether
 // the callee returns a scalar, a nominal value, or is a hosted method.
 func SemanticExpressionGraphResolvedCallArgumentsOwned(
-    ref graph: SemanticExpressionGraphFacts,
-    node_id: Int,
+    ref graph: SemanticExpressionGraphFacts, node_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
     signatures: SemanticAstFunctionSignatureFacts,
-    names: Array<String>,
-    types: Array<String>,
-    ref function_names: Array<String>,
-    ref function_returns: Array<String>,
+    names: Array<String>, types: Array<String>,
+    ref function_names: Array<String>, ref function_returns: Array<String>,
     ref function_params: Array<String>
 ) -> Bool {
     let facts: SemanticExpressionGraphResolvedCallArgumentFacts =
@@ -400,14 +405,11 @@ func SemanticExpressionGraphResolvedCallArgumentsOwned(
 }
 
 func SemanticExpressionGraphConcreteScalarValueError(
-    ref graph: SemanticExpressionGraphFacts,
-    node_id: Int,
+    ref graph: SemanticExpressionGraphFacts, node_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
     signatures: SemanticAstFunctionSignatureFacts,
-    names: Array<String>,
-    types: Array<String>,
-    ref function_names: Array<String>,
-    ref function_returns: Array<String>,
+    names: Array<String>, types: Array<String>,
+    ref function_names: Array<String>, ref function_returns: Array<String>,
     ref function_params: Array<String>
 ) -> String {
     let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
@@ -519,9 +521,7 @@ func SemanticExpressionGraphConcreteScalarValueError(
             "ast_artifact_invalid", "owner", "expression_graph"
         );
     }
-    let callee_text: Option<String> = SemanticExpressionGraphNodeText(
-        graph, call.callee_node
-    );
+    let callee_text: Option<String> = SemanticExpressionGraphNodeText(graph, call.callee_node);
     if !IsSome(callee_text) {
         return SemanticError1(
             "ast_artifact_invalid", "owner", "expression_graph"

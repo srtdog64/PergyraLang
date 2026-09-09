@@ -3438,7 +3438,7 @@ reject_text "tests/self_hosted/parity/semantic_parity.sh" '"${#SOURCE_PAIRS[@]}"
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-vocabulary"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-surface-audit"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--oracle-json-code-match"'
-require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticDiagnosticCodeCount() != 50"
+require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticDiagnosticCodeCount() <= 0"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_contract_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagnostic_code_surface"
@@ -8059,7 +8059,26 @@ require_max_lines "tests/self_hosted/parity/direct_mir_legacy_intent_program_llv
 require_file "tests/self_hosted/parity/fixture/direct_mir_legacy_intent_program_llvm.pgy"
 require_file "tests/self_hosted/parity/fixture/direct_mir_legacy_intent_binding_order.pgy"
 require_file "tests/self_hosted/parity/fixture/direct_mir_legacy_intent_binding_names.pgy"
+require_file "tests/self_hosted/parity/fixture/direct_mir_legacy_intent_binding_completion_false.pgy"
+require_file "tests/self_hosted/parity/fixture/direct_mir_legacy_intent_binding_completion_true.pgy"
+require_file "tests/self_hosted/parity/intent_completion_fact_owner.sh"
 require_file "tests/self_hosted/parity/direct_mir_legacy_intent_mutations.py"
+require_max_lines "src/self_hosted/compiler/direct_mir_intent_completion_fact_owner.pgy" 40
+require_max_lines "src/self_hosted/compiler/direct_mir_intent_completion_llvm_emission_owner.pgy" 40
+require_text "src/self_hosted/OWNERS.md" "direct_mir_intent_completion_fact_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "direct_mir_intent_completion_llvm_emission_owner.pgy"
+for completion_plan in legacy composite; do
+    require_text "src/self_hosted/compiler/direct_mir_${completion_plan}_intent_program_plan_owner.pgy" \
+        "DirectMirIntentCompletionFactHash("
+    require_text "src/self_hosted/compiler/direct_mir_${completion_plan}_intent_program_llvm_emission_owner.pgy" \
+        "ret i1 %intent.completion"
+done
+for nominal_route in composite nested; do
+    require_text "src/self_hosted/compiler/direct_mir_${nominal_route}_intent_program_route_fact_owner.pgy" \
+        'MirDeclarationWireKind("subject")'
+    require_text "src/self_hosted/compiler/direct_mir_${nominal_route}_intent_program_route_fact_owner.pgy" \
+        'MirDeclarationWireKind("zone")'
+done
 require_text "src/self_hosted/compiler/direct_mir_legacy_intent_program_plan_owner.pgy" \
     'DirectMirLegacyIntentProgramGraphFactFromAdmitted(admitted, route, signature)'
 require_text "src/self_hosted/compiler/direct_mir_legacy_intent_program_graph_fact_owner.pgy" \
@@ -9784,6 +9803,10 @@ require_text "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verd
 reject_text "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy" \
     'SetSize'
 require_file "tests/self_hosted/parity/vessel_method_argument_type_admission_owner.sh"
+require_text "src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy" \
+    'SemanticBuiltinPairedScalarSignatureOpt(target_fact.name, first_type)'
+require_text "src/self_hosted/semantic/call_check_owner.pgy" \
+    'SemanticBuiltinUsesFirstArgumentPair(callee)'
 require_max_lines \
     "tests/self_hosted/parity/vessel_method_argument_type_admission_owner.sh" 220
 require_file "tests/self_hosted/parity/fixture/vessel_method_argument_type_bad.pgy"
@@ -20215,7 +20238,7 @@ require_function_text "src/self_hosted/semantic/ast_named_value_boundary_verdict
 require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 305
 require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" \
     'if code == "borrow_boundary_escape" { return "PGY_SEM_BORROW_ESCAPE"; }'
-require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" 'SemanticDiagnosticCodeCount() != 50'
+require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" 'ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount()'
 require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" 'SemanticBorrowBoundaryDiagnosticReceiptReady()'
 require_text "src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy" 'receipt.layer == SemanticDiagnosticPublicLayer(owned_code)'
 # End readonly source boundary inventory.

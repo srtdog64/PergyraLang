@@ -12,6 +12,8 @@ pgy_prepend_windows_runtime_paths
 LABEL="self-host-semantic-enum-variant-builtin-collision"
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 SELF_DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+VOID_CONTRACT="$ROOT_DIR/tests/self_hosted/parity/one_mir_native_void_fallthrough_contract.py"
 WORK_REL=".tmp/self_hosted/semantic_enum_variant_builtin_collision"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 POSITIVE_REL="tests/cases/backend_compare/tagged_union/main.pgy"
@@ -42,6 +44,7 @@ grep -Fq 'SemanticAstUnqualifiedEnumVariantMayOwnCallableRow(existing)' \
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
+"$PYTHON_BIN" "$VOID_CONTRACT"
 
 produce_triplet() {
     local label="$1" source="$2"
@@ -63,8 +66,10 @@ produce_triplet() {
     (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$source") \
         >"$WORK_DIR/$label.native.json" 2>"$WORK_DIR/$label.native.err" ||
         fail "$label explicit native oracle failed"
+    "$PYTHON_BIN" "$VOID_CONTRACT" normalize-native "$WORK_DIR/$label.native.json" \
+        >"$WORK_DIR/$label.native.source.json"
     (cd "$ROOT_DIR" && "$SELF_DRIVER" --canonicalize-oracle-mir-json \
-        "$WORK_REL/$label.native.json") \
+        "$WORK_REL/$label.native.source.json") \
         >"$WORK_DIR/$label.native.canonical.json"
     (cd "$ROOT_DIR" && "$SELF_DRIVER" --canonicalize-mir-json \
         "$WORK_REL/$label.public.json") \

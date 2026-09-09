@@ -28,14 +28,14 @@
     }
   },
   "current_callable_owner_hashes": {
-    "measured_at": "2026-09-05",
-    "source_revision": "95148fdc",
-    "note": "declared-callable identity keeps typed invalid/missing/found outcomes and admits match-materialization synthetic graph roots beside iteration roots; generic-call emission consumes the exact receiver source-parameter offset without a parameter-name inference; member calls now carry the canonical callee syntax identity consumed by source enum-payload proof; retained performance figures are not remeasured",
-    "owner_set_sha256": "0FB613A1A6B7705AE1CDEC0BE63153D2A85F6E7133569E78B03CB24748D4E901",
+    "observed_at": "2026-09-09",
+    "source_revision": "3da11372f92b253aeeb92113a2264a558de0f645+dirty",
+    "note": "Source fingerprints only: borrowed callable tables and graph-owned receiver/callee facts retain allocation-free canonical comparison. Current Pergyra-built driver construction, installed enum MIR/native-oracle parity and argument diagnostic gates passed. Historical timing and allocation figures below were not remeasured and do not establish current performance.",
+    "owner_set_sha256": "01187448BD6B9BD91CE5D56085A8B03B279F80EB321C8F3EB2670C1E0592D3C3",
     "owner_files_sha256": {
-      "src/self_hosted/semantic/callable_resolution_owner.pgy": "DE376EFA2860286C2B5778526B79B92325105C744B5561BCC23428666E746AA0",
-      "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy": "38CB88CDE06163E0AF2F3DFBA7DFFF6C995B3E695F5C5EE4AE77B3F1C3258D4B",
-      "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy": "95466D21F43F2A603FC2C4A0A2C82DA1AEFEC2CDBD9561A8F5BCF6C5CBF77188",
+      "src/self_hosted/semantic/callable_resolution_owner.pgy": "5364969766D273C2FD63E7B8798CCD653B3249680B6ABE580A16F0729152E405",
+      "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy": "EDD2AAAFB5BE9633C4B6E0F3CA0839BB2421034513027B45A2F3946D5451FF2E",
+      "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy": "0A63D56B073A817A417C54E0D2E3796A55A2C33570E0F138C8A8D58FF8209039",
       "src/self_hosted/semantic/ast_expression_carried_callable_identity_owner.pgy": "689F82501946CA8487A8A85C858D31DE4A55F8168FBE15C5CA5351D994214C6D"
     }
   },

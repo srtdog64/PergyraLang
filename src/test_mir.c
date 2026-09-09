@@ -903,6 +903,8 @@ test_mir_lowering(void)
     test_mir_carries_region_escape_facts();
     test_mir_inventory_source_identity_lookup();
     test_mir_lexical_binding_identity();
+    test_mir_enum_constructor_reference_identity();
+    test_mir_io_summary_operand_identity();
     test_mir_scalar_parameter_wire_identity();
     test_mir_nominal_field_binding_identity();
     test_mir_routine_generic_constraint_carriage();

@@ -4,6 +4,7 @@
 
 import "artifact_zone_owner.pgy";
 import "target_capability_owner.pgy";
+import "direct_mir_intent_completion_fact_owner.pgy";
 import "direct_mir_composite_intent_program_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_string_literal_fact_owner.pgy";
 import "../mir_lower/intent_routine_carrier_projection_owner.pgy";
@@ -40,6 +41,7 @@ struct DirectMirCompositeIntentProgramPlan {
     let intent_priorities: Array<Int>;
     let intent_concurrent: Array<Bool>;
     let intent_subject_aliases: Array<String>;
+    let intent_completions: Array<DirectMirIntentCompletionFact>;
     let step_names: Array<String>;
     let step_target_intent_rows: Array<Int>;
     let step_action_method_rows: Array<Int>;
@@ -87,7 +89,7 @@ func DirectMirCompositeIntentProgramPlanSchema() -> String {
 func DirectMirCompositeIntentProgramPlanDigest(
     ref plan: DirectMirCompositeIntentProgramPlan
 ) -> Int {
-    if !plan.valid { return 0; }
+    if !plan.valid || ArrayLength(plan.intent_completions) != ArrayLength(plan.intent_names) { return 0; }
     let hash: Long = DirectMirCfgHashString(953L, plan.schema);
     hash = DirectMirCfgHashInt(hash, plan.revision);
     hash = DirectMirCfgHashString(hash, plan.target_capability_schema);
@@ -120,6 +122,7 @@ func DirectMirCompositeIntentProgramPlanDigest(
             hash = DirectMirCfgHashInt(hash, 1);
         }
         hash = DirectMirCfgHashString(hash, plan.intent_subject_aliases[row]);
+        hash = DirectMirIntentCompletionFactHash(hash, plan.intent_completions[row]);
         row = row + 1;
     }
     row = 0;
@@ -170,6 +173,7 @@ func DirectMirCompositeIntentProgramPlanReady(
         ArrayLength(plan.intent_priorities) != intent_count ||
         ArrayLength(plan.intent_concurrent) != intent_count ||
         ArrayLength(plan.intent_subject_aliases) != intent_count ||
+        ArrayLength(plan.intent_completions) != intent_count ||
         step_count != 7 ||
         ArrayLength(plan.step_target_intent_rows) != step_count ||
         ArrayLength(plan.step_action_method_rows) != step_count ||
@@ -197,7 +201,8 @@ func DirectMirCompositeIntentProgramPlanReady(
     let root_count: Int = 0;
     row = 0;
     while row < intent_count {
-        if !IsIdentifier(plan.intent_names[row]) ||
+        if !DirectMirIntentCompletionFactReady(plan.intent_completions[row], 3, 3) ||
+            !IsIdentifier(plan.intent_names[row]) ||
             !IsIdentifier(plan.intent_subject_aliases[row]) ||
             plan.intent_step_starts[row] < 0 ||
             plan.intent_step_starts[row] + plan.intent_step_counts[row] >
@@ -620,6 +625,7 @@ func DirectMirCompositeIntentProgramPlanFromAdmitted(
     let priorities: Array<Int> = [];
     let concurrent: Array<Bool> = [];
     let subject_aliases: Array<String> = [];
+    let completions: Array<DirectMirIntentCompletionFact> = [];
     let step_names: Array<String> = [];
     let step_targets: Array<Int> = [];
     let step_actions: Array<Int> = [];
@@ -697,11 +703,19 @@ func DirectMirCompositeIntentProgramPlanFromAdmitted(
                 carriers.carrier_source_types, carriers.carrier_expr0s,
                 carriers.carrier_rows
             );
-        if !phases.ok || !MirIntentExpressionCarrierIsTrue(admitted.routines, phases.success_row) ||
+        if !phases.ok ||
             ArrayLength(phases.on_rows) !=
                 ArrayLength(bindings.step_names) {
             Die("direct MIR composite intent phase topology is invalid");
         }
+        let completion: DirectMirIntentCompletionFact = DirectMirIntentCompletionFact(true, 0, 0, 0);
+        if !MirIntentExpressionCarrierIsTrue(admitted.routines, phases.success_row) {
+            let check: Array<Int> = DirectMirCompositeIntentCheckFact(
+                admitted, phases.success_row, bindings, graph);
+            if ArrayLength(check) != 3 { Die("direct MIR composite intent completion graph is invalid"); }
+            completion = DirectMirIntentCompletionFact(false, check[0], check[1], check[2]);
+        }
+        ArrayPush(completions, completion);
         ArrayPush(starts, ArrayLength(step_names));
         ArrayPush(counts, ArrayLength(bindings.step_names));
         let priority_value: Int = 0;
@@ -803,6 +817,9 @@ func DirectMirCompositeIntentProgramPlanFromAdmitted(
         }
         if action_count == 1 && direct_count == 0 &&
             ArrayLength(bindings.step_names) == 1 {
+            if !completion.constant_true && completion.zone_ordinal != step_zones[starts[intent_row]] {
+                Die("direct MIR composite leaf completion crosses its zone parameter");
+            }
             if DirectMirCompositeIntentCarrierCountAt(
                     carriers, "IntentZoneWhere", "", "", bindings.step_names[0]
                 ) != 1 || DirectMirCompositeIntentCarrierCountAt(
@@ -851,7 +868,7 @@ func DirectMirCompositeIntentProgramPlanFromAdmitted(
             CompilerTargetCapabilitySchema(),
             CompilerTargetCapabilityFingerprint(), route, graph, empty_main,
             intent_names, starts, counts, priorities, concurrent,
-            subject_aliases, step_names, step_targets, step_actions,
+            subject_aliases, completions, step_names, step_targets, step_actions,
             step_compensations, step_zones, step_fields, step_thresholds,
             aggregate_row, root_row
         );
@@ -863,7 +880,7 @@ func DirectMirCompositeIntentProgramPlanFromAdmitted(
             source.target_capability_fingerprint, source.route, source.graph,
             source.main, source.intent_names, source.intent_step_starts,
             source.intent_step_counts, source.intent_priorities,
-            source.intent_concurrent, source.intent_subject_aliases,
+            source.intent_concurrent, source.intent_subject_aliases, source.intent_completions,
             source.step_names, source.step_target_intent_rows,
             source.step_action_method_rows,
             source.step_compensation_method_rows, source.step_zone_ordinals,

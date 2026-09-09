@@ -37,25 +37,25 @@ struct SemanticAstCapabilityCallGraph {
 
 func SemanticAstDeclaredEffectMaskAt(
     ref contracts: SemanticAstActionContractFacts, callable_index: Int
-) -> Int {
-    if callable_index < 0 || callable_index >= ArrayLength(contracts.callable_node_ids) { return -1; }
+) -> Option<Int> {
+    if callable_index < 0 || callable_index >= ArrayLength(contracts.callable_node_ids) { return None; }
     let mask: Int = 0;
     let offset: Int = 0;
     while offset < contracts.effect_counts[callable_index] {
         let name: String = contracts.effect_names[contracts.effect_starts[callable_index] + offset];
         let effect: Int = SemanticEffectMaskForWord(name);
-        if effect < 0 { return -1; }
+        if effect < 0 { return None; }
         mask = SemanticEffectMaskJoin(mask, effect);
         offset = offset + 1;
     }
-    return mask;
+    return Some(mask);
 }
 
 func SemanticAstCapabilityDeclaredMaskAt(
     ref contracts: SemanticAstActionContractFacts, callable_index: Int
-) -> Int {
+) -> Option<Int> {
     if callable_index < 0 || callable_index >= ArrayLength(contracts.callable_node_ids) {
-        return -1;
+        return None;
     }
     let mask: Int = 0;
     let offset: Int = 0;
@@ -63,11 +63,11 @@ func SemanticAstCapabilityDeclaredMaskAt(
         let name: String = contracts.cap_names[contracts.cap_starts[callable_index] + offset];
         let index: Int = CallableContractVocabularyFindIndex(
             CallableContractVocabularyCapabilityAxis(), name);
-        if index < 0 { return -1; }
+        if index < 0 { return None; }
         mask = SemanticCapabilityMaskJoin(mask, CallableContractVocabularyMaskValueAt(index));
         offset = offset + 1;
     }
-    return mask;
+    return Some(mask);
 }
 
 func SemanticAstCapabilityCallableIndexForNode(
@@ -127,12 +127,14 @@ func SemanticAstCapabilityCallGraphFromSignatures(
         let start: Int = ArrayLength(parameter_ids);
         if index < function_count {
             id = analysis.signatures.function_node_ids[index];
-            mask = SemanticAstCapabilityDeclaredMaskAt(analysis.signatures.action_contracts, index);
-            effects = SemanticAstDeclaredEffectMaskAt(analysis.signatures.action_contracts, index);
+            let declared_mask: Option<Int> = SemanticAstCapabilityDeclaredMaskAt(analysis.signatures.action_contracts, index);
+            let declared_effects: Option<Int> = SemanticAstDeclaredEffectMaskAt(analysis.signatures.action_contracts, index);
             let offset: Option<Int> = SemanticAstFunctionReceiverSourceParameterOffsetAt(analysis.signatures, index);
             let param_count: Option<Int> = SemanticAstFunctionParamCountAt(analysis.signatures, index);
-            if !IsSome(offset) || !IsSome(param_count) || mask < 0 || effects < 0 { graph.ok = false; }
+            if !IsSome(offset) || !IsSome(param_count) || !IsSome(declared_mask) || !IsSome(declared_effects) { graph.ok = false; }
             else {
+                mask = UnwrapOption(declared_mask);
+                effects = UnwrapOption(declared_effects);
                 receiver = UnwrapOption(offset);
                 let ordinal: Int = 0;
                 while ordinal < UnwrapOption(param_count) && graph.ok {
