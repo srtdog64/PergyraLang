@@ -174,6 +174,10 @@ typedef struct
     size_t           match_binding_type_count;
     const char     **destructure_binding_names;
     size_t           destructure_binding_count;
+    /* SSA owner projection, positional with the existing destructure names.
+     * The pointer vector lives in routine scratch; names belong to its block. */
+    const char     **destructure_result_names;
+    uint32_t        *destructure_binding_ids; /* routine scratch, positional owner */
     const char      *destructure_element_type_name;
     bool             has_lifecycle_guard_fact;
     MIRLifecycleGuardKind lifecycle_guard_kind;

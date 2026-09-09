@@ -60,4 +60,14 @@ grep -Fq 'mir_block_binding_exit_ssa_name(routine, block,' \
 if grep -Fq 'strncmp(candidate, param->name' src/codegen/llvm_mir_param_emit.c; then
     fail 'LLVM copy-out reintroduced spelling-based exit selection'
 fi
+grep -Fq 'inst->destructure_binding_ids[d]' src/compiler/mir_ssa_use_edges.c ||
+    fail 'destructure use projection lost admitted positional identities'
+grep -Fq 'llvm_mir_store_destructure_results(inst, ctx, vars, var_count)' \
+    src/codegen/llvm_mir_block_emit.c || fail 'destructure outputs lost their SSA publication boundary'
+grep -Fq 'ast_call_semantic_callee_is_stdlib(node)' src/compiler/mir_ssa_rename.c ||
+    fail 'standard-library calls lost their checker-owned nonlocal target fact'
+if grep -Fq 'builtin_resolve(' src/compiler/mir_ssa_rename.c; then
+    fail 'SSA collection reintroduced call-target spelling resolution'
+fi
+
 echo '[mir-lexical-binding] semantic identity carriage / old-path residue: PASS'

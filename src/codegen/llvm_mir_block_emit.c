@@ -9,6 +9,7 @@
 #include "llvm_mir_await_emit.h"
 #include "llvm_mir_bind_emit.h"
 #include "llvm_mir_block_scope.h"
+#include "llvm_mir_destructure_results.h"
 #include "llvm_mir_host_field.h"
 #include "llvm_mir_lifecycle_emit.h"
 #include "llvm_mir_local_emit.h"
@@ -142,8 +143,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             }
             if (ctx->has_error)
                 return;
-            if (!llvm_mir_emit_borrow_view_alias(inst, ctx))
-                return;
+            /* Borrow rows are evidence. The exact lexical DEF below owns
+             * alias materialization, including missing-storage refusal. */
             break;
         case MIR_INST_DEF:
             if (inst->result_name != NULL) {
@@ -512,6 +513,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             break;
         case MIR_INST_DESTRUCTURE:
             llvm_emit_mir_destructure_inst(inst, ctx);
+            if (!llvm_mir_store_destructure_results(inst, ctx, vars, var_count))
+                return;
             break;
         case MIR_INST_ASSIGN:
             if (inst->expr0 == NULL || inst->expr1 == NULL) {

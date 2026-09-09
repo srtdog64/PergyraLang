@@ -105,6 +105,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         if ((value_binding && sym->decl_syntax_id == 0)
             || !ast_call_set_semantic_callee_value_binding_id(
                 expr, value_binding ? sym->decl_syntax_id : 0)
+            || !ast_call_set_semantic_callee_is_stdlib(expr, false)
             || !ast_call_set_semantic_callee_builtin_kind(
                 expr, (uint32_t)bk)) {
             semantic_error_with_hints(ctx,
@@ -153,8 +154,13 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 
         if (!user_class_overrides_builtin) {
             Type *stdlib_type = type_check_stdlib_call(expr, name, ctx);
-            if (stdlib_type != NULL)
+            if (stdlib_type != NULL) {
+                if (!ast_call_set_semantic_callee_is_stdlib(expr, true)) {
+                    semantic_error(ctx, expr, "Standard-library call target identity could not be recorded");
+                    return TYPE_UNKNOWN;
+                }
                 return stdlib_type;
+            }
         }
 
         return type_check_function_symbol_call(expr, sym, name, ctx);

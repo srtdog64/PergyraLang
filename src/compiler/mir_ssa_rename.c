@@ -6,6 +6,7 @@
 
 #include "../common/arena.h"
 #include "../parser/ast_api.h"
+#include "../semantic/builtin_kind.h"
 #include "mir_base_helpers.h"
 #include "mir_ssa_rename_internal.h"
 
@@ -185,8 +186,18 @@ mir_collect_expr_identifier_uses(ASTNode *node,
                                                 uses,
                                                 use_count,
                                                 use_capacity);
-    case AST_CALL:
-        if (!mir_collect_expr_identifier_uses(ast_call_callee(node),
+    case AST_CALL: {
+        uint32_t builtin = (uint32_t)BUILTIN_NOT_BUILTIN;
+        ASTNode *callee = ast_call_callee(node);
+        /* An admitted builtin/stdlib call is not a read of a later, same-spelled local.
+         * Lexical callable values still carry and consume their binding ID. */
+        bool builtin_target = callee != NULL && callee->type == AST_IDENTIFIER
+            && ast_call_semantic_callee_value_binding_id(node) == 0
+            && ast_identifier_binding_syntax_id(callee) == 0
+            && ast_call_semantic_callee_builtin_kind(node, &builtin)
+            && (builtin < (uint32_t)BUILTIN_NOT_BUILTIN
+                || ast_call_semantic_callee_is_stdlib(node));
+        if (!builtin_target && !mir_collect_expr_identifier_uses(callee,
                                               uses,
                                               use_count,
                                               use_capacity))
@@ -199,6 +210,7 @@ mir_collect_expr_identifier_uses(ASTNode *node,
                 return false;
         }
         return true;
+    }
     case AST_MEMBER_ACCESS:
         return mir_collect_expr_identifier_uses(ast_member_object(node),
                                                 uses,

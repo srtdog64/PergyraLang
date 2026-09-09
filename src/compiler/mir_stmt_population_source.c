@@ -286,10 +286,14 @@ mir_make_destructure_instruction(MIRRoutine *routine,
         if (name_count > 0) {
             inst.destructure_binding_names =
                 calloc(name_count, sizeof(const char *));
-            if (inst.destructure_binding_names != NULL) {
+            inst.destructure_binding_ids = routine != NULL
+                ? pgy_arena_calloc(&routine->scratch, name_count * sizeof(uint32_t)) : NULL;
+            if (inst.destructure_binding_names != NULL && inst.destructure_binding_ids != NULL) {
                 for (size_t i = 0; i < name_count; i++) {
                     inst.destructure_binding_names[i] =
                         ast_let_destructure_name(stmt, i);
+                    inst.destructure_binding_ids[i] =
+                        ast_let_destructure_binding_stable_id(stmt, i);
                 }
                 inst.destructure_binding_count = name_count;
             }

@@ -47,6 +47,9 @@ require_text() {
 }
 
 require_text "$AST_API" "bool ast_assign_stable_ids(ASTNode* root);"
+require_text "$AST_API" "bool ast_complete_stable_ids(ASTNode* root);"
+require_text "$ROOT_DIR/src/compiler/driver_app.c" "if (!ast_complete_stable_ids(ast))"
+require_text "$ROOT_DIR/src/tests/mir/test_mir_lexical_binding_identity.cases.h" "test_ast_growth_preserves_binding_identity"
 require_text "$AST_IDENTITY" "uint64_t next_id;"
 require_text "$AST_IDENTITY" "next_id->next_id > UINT32_MAX"
 require_text "$AST_IDENTITY" "return !next_id.exhausted;"

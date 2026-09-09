@@ -122,6 +122,15 @@ mir_record_instruction_expr_uses(MIRRoutine *routine,
         ? inst->expr1
         : (inst->expr0 != NULL ? inst->expr0 : inst->expr1), NULL};
 
+    /* RIR resource rows carry effect/ABI evidence, not lexical value reads.
+     * They may be summarized in the entry block before the defining scope.
+     * DEF/STMT expressions own their executable operands; with-scope claim
+     * and release are the two resource rows materialized directly instead. */
+    if (inst->kind == MIR_INST_RESOURCE_OP
+        && !mir_instruction_source_is_with_slot_claim(inst)
+        && !mir_instruction_source_is_with_slot_release(inst))
+        return true;
+
     if (inst->kind == MIR_INST_ASSIGN || inst->kind == MIR_INST_LOOP_INIT) {
         if (inst->expr0 == NULL || inst->expr1 == NULL) {
             if (error_message != NULL && *error_message == NULL) {
@@ -165,14 +174,6 @@ mir_record_instruction_expr_uses(MIRRoutine *routine,
                 return false;
             }
         }
-    }
-    /* RIR IO rows summarize effects and may precede the lexical statement.
-     * Their display arguments are not entry-block reads. The executable
-     * DEF/STMT expression owns the exact operand binding and SSA version. */
-    if (raw_use_count == 0 && inst->kind == MIR_INST_RESOURCE_OP
-        && inst->rir_op != NULL && inst->rir_op->kind == RIR_OP_IO) {
-        free(raw_uses);
-        return true;
     }
     if (raw_use_count == 0
         && (inst->kind == MIR_INST_RESOURCE_OP
@@ -369,6 +370,43 @@ mir_populate_block_use_edges(MIRRoutine *routine,
                     ssa_name_count, current_versions, error_message))
                 goto fail;
         }
+        if (inst->kind == MIR_INST_DESTRUCTURE) {
+            if (inst->destructure_binding_ids == NULL || inst->destructure_binding_names == NULL
+                || inst->destructure_binding_count == 0
+                || inst->destructure_binding_count > SIZE_MAX / sizeof(const char *)
+                || block->renamed_local_count != block->source_local_def_count)
+                goto destructure_fail;
+            inst->destructure_result_names = pgy_arena_calloc(&routine->scratch,
+                inst->destructure_binding_count * sizeof(const char *));
+            if (inst->destructure_result_names == NULL)
+                goto destructure_fail;
+            for (size_t d = 0; d < inst->destructure_binding_count; d++) {
+                uint32_t identity = inst->destructure_binding_ids[d];
+                int index = mir_find_ssa_binding_index(ssa_names, ssa_name_count, identity);
+                size_t local = 0;
+                for (; local < block->source_local_def_count; local++)
+                    if (block->source_local_defs[local].binding_syntax_id == identity)
+                        break;
+                if (identity == 0 || index < 0 || local == block->source_local_def_count
+                    || inst->destructure_binding_names[d] == NULL
+                    || strcmp(ssa_names[index].name, inst->destructure_binding_names[d]) != 0)
+                    goto destructure_fail;
+                MIRInstruction output = {0};
+                output.binding_syntax_id = identity;
+                output.result_name = block->renamed_locals[local];
+                if (!mir_update_current_version_from_result(ssa_names,
+                        ssa_name_count, current_versions, &output))
+                    goto destructure_fail;
+                inst->destructure_result_names[d] = output.result_name;
+            }
+        }
+        continue;
+destructure_fail:
+        if (error_message != NULL && *error_message == NULL)
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' destructure instruction[%zu] is missing or contradicts its positional SSA binding identity",
+                routine->name != NULL ? routine->name : "(anonymous)", inst->id);
+        goto fail;
     }
 
     for (size_t n = 0; n < ssa_name_count; n++) {

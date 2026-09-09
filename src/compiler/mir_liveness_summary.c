@@ -117,6 +117,16 @@ mir_build_value_summaries(MIRRoutine *routine)
                             mir_liveness_summary_slot_anchor(inst);
                 }
             }
+            if (inst->kind == MIR_INST_DESTRUCTURE && inst->destructure_result_names != NULL) {
+                for (size_t d = 0; d < inst->destructure_binding_count; d++) {
+                    if (!mir_append_value_summary(routine,
+                            inst->destructure_result_names[d], block_id, inst_id))
+                        return false;
+                    int index = mir_find_value_summary(routine, inst->destructure_result_names[d]);
+                    if (index >= 0)
+                        routine->value_summaries[index].slot_anchor = inst->destructure_binding_names[d];
+                }
+            }
         }
     }
 

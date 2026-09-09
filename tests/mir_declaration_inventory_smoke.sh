@@ -3648,7 +3648,7 @@ for lookup_status in \
     MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE \
     MIR_ROUTINE_SOURCE_LOOKUP_DUPLICATE; do
     require_term "src/compiler/mir.h" "$lookup_status"
-    require_term "src/tests/mir/test_mir_inventory_identity.cases.h" \
+    require_term "src/tests/mir/test_mir_lexical_binding_identity.cases.h" \
         "$lookup_status"
 done
 for term in \
@@ -3665,7 +3665,7 @@ require_term "src/compiler/mir_nominal_abi_layout.c" \
     "MIR_DECL_HEADER_STORAGE_LAYOUT_MATCHES_LOCAL()"
 require_term "src/compiler/mir_lifecycle.c" \
     "mir->decl_headers != NULL && decl_header_layout_matches"
-require_term "src/tests/mir/test_mir_inventory_identity.cases.h" \
+require_term "src/tests/mir/test_mir_lexical_binding_identity.cases.h" \
     "test_mir_decl_header_storage_layout_receipt"
 for term in \
     "MIRDeclHeaderInventory" \
@@ -4306,9 +4306,9 @@ require_term "src/compiler/mir_source_local_expr_types.c" \
     "case AST_AWAIT_EXPR"
 require_term "src/compiler/mir_source_local_expr_call_facts.c" \
     "mir_source_local_extern_return_type_name"
-require_term "src/tests/mir/test_mir_lowering_part_c_3.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_c_2.cases.h" \
     "MIR captures generic spawn and await source-local types"
-require_term "src/tests/mir/test_mir_lowering_part_c_3.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_c_2.cases.h" \
     "MIR captures extern call source-local types"
 require_term "src/compiler/mir_source_local_expr_call_facts.c" \
     "mir_source_local_read_call_type_name"

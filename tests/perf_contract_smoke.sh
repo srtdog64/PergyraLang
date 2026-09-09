@@ -526,7 +526,7 @@ grep -Fq "llvm_scope_contains(ctx, idx_name)" \
     "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
 grep -Fq "llvm_scope_contains(ctx, alloca_name)" \
     "$ROOT_DIR/src/codegen/llvm_mir_loop_control.c"
-grep -Fq "llvm_scope_contains(ctx, inst->arg1)" \
+grep -Fq "llvm_scope_lookup_snapshot(ctx, source_base, &source_entry)" \
     "$ROOT_DIR/src/codegen/llvm_mir_resource_view.c"
 scope_mixed_files=$(
     grep -R -l "llvm_scope_lookup(" "$ROOT_DIR/src/codegen" \
@@ -2619,7 +2619,8 @@ grep -Fq "LLVM channel receive DEF requires registered runtime function" "$ROOT_
 grep -Fq "llvm_emit_mir_destructure_inst" "$ROOT_DIR/src/codegen/llvm_internal_api.h"
 grep -Fq "llvm_emit_mir_destructure_inst(inst, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_emit_assignment_parts" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.h"
-grep -Fq "llvm_emit_assignment_parts(inst->expr0" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "llvm_emit_mir_assignment_parts(" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "routine, inst, inst->expr0, inst->expr0," "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 if awk '
     /case MIR_INST_DESTRUCTURE:/ { in_case=1; next }
     in_case && /case MIR_INST_ASSIGN:/ { in_case=0 }
@@ -3171,8 +3172,9 @@ grep -Fq "io_builtin_emit_arg" "$ROOT_DIR/src/codegen/transpiler_expr_io_builtin
 grep -Fq "C backend: %s could not lower %s argument" "$ROOT_DIR/src/codegen/transpiler_expr_io_builtin.c"
 grep -Fq "\"FileOpen\", \"path\"" "$ROOT_DIR/src/codegen/transpiler_expr_io_builtin.c"
 grep -Fq "\"Sleep\", \"milliseconds\"" "$ROOT_DIR/src/codegen/transpiler_expr_io_builtin.c"
-grep -Fq "subject temporary argument rejects pointer-self boundary" "$ROOT_DIR/src/tests/transpile/test_transpile_program_part_a.cases.h"
-grep -Fq "subject method temporary argument rejects pointer-self boundary" "$ROOT_DIR/src/tests/transpile/test_transpile_program_part_a.cases.h"
+grep -Fq "fresh subject constructor keeps an addressable caller-block cell" "$ROOT_DIR/src/tests/transpile/test_transpile_program_part_a.cases.h"
+grep -Fq "subject method consumes a fresh constructor cell by identity" "$ROOT_DIR/src/tests/transpile/test_transpile_program_part_a.cases.h"
+grep -Fq "subject addressability policy excludes factory and shadowed call targets" "$ROOT_DIR/src/tests/transpile/test_transpile_program_part_a.cases.h"
 ! grep -Fq "slot_inner_type_name_copy(type_name, inner_buf" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 grep -Fq "constructed_single_arg_is_unknown" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 grep -Fq "constructed_arg_name_is_unknown" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
@@ -3922,11 +3924,12 @@ grep -Fq "registry requires concrete type metadata" "$ROOT_DIR/src/codegen/llvm_
 grep -Fq "if (ctx->has_error || elem_type == NULL)" "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"
 grep -Fq "llvm_lookup_or_declare_function" "$ROOT_DIR/src/codegen/llvm_registry.c"
 grep -Fq "LLVMAddFunction(ctx->module, name, decl_type)" "$ROOT_DIR/src/codegen/llvm_registry.c"
-grep -Fq "llvm_register_mono(ctx, mangled);" \
+grep -Fq "llvm_register_mono(ctx, symbol);" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
 if awk '
-    /llvm_register_mono\(ctx, mangled\);/ { seen_register = 1 }
-    /gp = ast_declaration_generic_params\(generic_ast\);/ && seen_register { bad = 1 }
+    /mir_generic_method_specialization_for_call/ { seen_fact = 1 }
+    /llvm_mir_routine_signature_metadata_complete/ { seen_signature = 1 }
+    /llvm_register_mono\(ctx, symbol\);/ && (!seen_fact || !seen_signature) { bad = 1 }
     END { exit bad ? 0 : 1 }
 ' "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"; then
     echo "[perf-contract] LLVM generic monomorphization registered before preflight" >&2
@@ -3977,7 +3980,8 @@ grep -Fq "llvm_mir_claim_inner_type_name(inst" "$ROOT_DIR/src/codegen/llvm_mir_r
 grep -Fq "inst->abi_type_name" "$ROOT_DIR/src/codegen/llvm_mir_resource_claim.c"
 grep -Fq '$(CODEGEN_DIR)/llvm_mir_resource_claim.c' "$ROOT_DIR/Makefile"
 ! grep -Fq "mir_instruction_source_payload" "$ROOT_DIR/src/codegen/llvm_mir_resource_claim.c"
-grep -Fq "llvm_mir_emit_borrow_view_alias(inst, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "llvm_mir_bind_resource_view_def_alias(" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+! grep -Fq "llvm_mir_emit_borrow_view_alias" "$ROOT_DIR/src/codegen/llvm_mir_resource_view.c"
 grep -Fq '$(CODEGEN_DIR)/llvm_mir_resource_view.c' "$ROOT_DIR/Makefile"
 ! grep -Fq "node->data.with_stmt" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -Fq "node->data.with_stmt" "$ROOT_DIR/src/codegen/llvm_mir_resource_claim.c"
@@ -4422,18 +4426,17 @@ grep -Fq "LLVM boundary call source argument count does not match function signa
 grep -Fq "LLVM secure boundary slot argument requires paired token binding" "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
 grep -Fq "LLVM boundary call argument could not be lowered" "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
 grep -Fq "LLVM call helper could not lower argument %zu" "$ROOT_DIR/src/codegen/llvm_expr_call_args.c"
-grep -Fq "llvm_generic_call_required_suffix" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
-grep -Fq "requires concrete argument %zu type metadata for specialization" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
-grep -Fq "requires argument %zu to bind generic parameter" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
-grep -Fq "LLVM generic spawn specialization parameter type allocation failed" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
-grep -Fq "LLVM generic specialization '%s' reached backend without an all-path return terminator" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
+grep -Fq "mir_generic_method_specialization_for_call" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
+grep -Fq "fact->binding_count != routine->generic_param_count" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
+grep -Fq "mir_generic_specialization_symbol(" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
+grep -Fq "llvm_set_mir_memory_exhausted(ctx," "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
+grep -Fq "llvm_emit_func_from_mir(&specialized, ctx)" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
+! grep -Fq "llvm_generic_call_required_suffix" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
 ! grep -Fq "LLVMBuildRet(ctx->builder, LLVMConstInt(ret, 0, 0))" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
 grep -Fq "LLVM spawn expression requires an identifier target" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
 grep -Fq "LLVM spawn expression requires a target expression" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
 ! grep -Fq "return LLVMConstNull(ctx->type_task_handle)" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
-! grep -A16 -F "llvm_spawn_required_param_type(LLVMGenCtx *ctx" \
-    "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c" | \
-    grep -Fq "return ctx->type_i32"
+! grep -Fq "llvm_spawn_required_param_type" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
 ! grep -A32 -F "llvm_mir_required_type_from_ast(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c" | \
     grep -Fq "return ctx->type_i32"
@@ -4612,8 +4615,9 @@ grep -Fq "llvm_lexical_registry_restore(ctx, lexical_snapshot)" \
     "$ROOT_DIR/src/codegen/llvm_domain_world_sync.c"
 grep -Fq "LLVMBasicBlockRef saved_bb" \
     "$ROOT_DIR/src/codegen/llvm_domain_world_sync.c"
-grep -Fq "llvm_lexical_registry_restore(ctx, lexical_snapshot)" \
+grep -Fq "memcpy(ctx->type_subst, saved, sizeof(saved))" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
+grep -Fq "llvm_lexical_registry_restore(ctx, lexical_snapshot)" "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
 grep -Fq "llvm_lexical_registry_restore(ctx, lexical_snapshot)" \
     "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "llvm_lexical_registry_restore(ctx, lexical_snapshot)" \

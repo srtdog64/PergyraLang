@@ -244,7 +244,7 @@ struct ASTNode
             uint32_t       semantic_callee_decl_id;
             uint32_t       semantic_callee_value_binding_id;
             uint32_t       semantic_callee_builtin_kind;
-            bool           semantic_callee_builtin_kind_set;
+            bool           semantic_callee_builtin_kind_set, semantic_callee_is_stdlib;
             uint32_t       semantic_runtime_call_abi_id;
             bool           semantic_runtime_call_abi_id_set;
             bool           uses_braced_initializer_syntax;

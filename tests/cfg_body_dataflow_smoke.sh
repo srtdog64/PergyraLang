@@ -701,7 +701,7 @@ run_literal_doc_contract_smoke() {
         exit 1
     fi
     require_literal "Makefile" '$(CODEGEN_DIR)/llvm_mir_resource_claim.c'
-    require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_borrow_view_alias(inst, ctx)"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_bind_resource_view_def_alias("
     require_literal "Makefile" '$(CODEGEN_DIR)/llvm_mir_resource_view.c'
     require_literal "src/codegen/llvm_mir_block_emit.c" "LLVM MIR STMT source-payload emission is retired"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed(inst)"

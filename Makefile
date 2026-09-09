@@ -662,6 +662,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/lifecycle_analyze.c \
                    $(SEMANTIC_DIR)/capability_analyze.c \
                    $(SEMANTIC_DIR)/callable_capability_inference.c \
+                   $(SEMANTIC_DIR)/callable_capability_dispatch.c \
                    $(SEMANTIC_DIR)/region_escape_fact.c \
                    $(SEMANTIC_DIR)/region_retention_summary.c \
                    $(SEMANTIC_DIR)/region_retention_summary_user.c \
@@ -1325,6 +1326,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_stmt_let_names.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_with.c \
                         $(CODEGEN_DIR)/llvm_stmt_destructure.c \
+                        $(CODEGEN_DIR)/llvm_mir_destructure_results.c \
                         $(CODEGEN_DIR)/llvm_stmt_with.c \
                         $(CODEGEN_DIR)/llvm_stmt_loop_match.c \
                         $(CODEGEN_DIR)/llvm_stmt_match.c \

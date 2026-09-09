@@ -1,112 +1,105 @@
 # Current Work Handoff
 
-Updated: 2026-09-09 (Asia/Seoul), CI follow-through; navigation only.
+Updated: 2026-09-09 (Asia/Seoul), native CI regression repair; navigation only.
 Compiler owners, registries and executable gates override this snapshot.
 
-## Active self-host context — CI integration of source-admission snapshot
+## Active self-host context — native CI integration repair
 
-Pre-publication HEAD/origin/main: `3da11372f92b253aeeb92113a2264a558de0f645`.
-The user reopened failed CI and authorized correction, commit and push.
-Run `34280162606` is RED. Native tests, sanitizers, Windows/macOS, TSAN, Rocq,
-codegen bootstrap and full driver gen2 == gen3 (188,818 C lines) passed there.
-Linux passed 22/23 steps before generated language inventory drift. Twenty
-backend shards stopped at one missing inventory entry. The full driver job
-stopped after its successful fixed point at the legacy Intent LLVM phase plan.
-Logs: `.tmp/ci-3da11372-{linux,bootstrap,backend-16}.log`.
+Pre-publication HEAD/origin/main: `975b703a1069dfcddb235b8a221bd1d7f4555bdb`.
+The user authorized correction, commit and push after failed CI. This card
+accompanies the next repair; Git owns its publication identity. Primary-only
+[edit lease](current_work_collaboration.md) and
+[objective/owner boundaries](agent_work_directives/source_admission_parity_2026-09-07.md).
+No shared installation, skipped job, raised cap or native-built replacement driver.
 
-This snapshot accompanies the repair; Git owns its publication identity. Primary-only
-edit lease: [collaboration](current_work_collaboration.md);
-[objective and owner boundaries](agent_work_directives/source_admission_parity_2026-09-07.md).
-No shared compiler installation, skipped jobs, raised caps or native-built
-replacement driver. CI integration blocks unrelated Intent/GraphPlan expansion.
+Observed remote run `34294460519` is RED, now completed. All non-backend-shard
+jobs passed, including Linux preparation and the full self-host bootstrap:
+gen2 == gen3, 189,016 C lines (`.tmp/ci-975b703a-bootstrap.log`). Seventeen
+of twenty backend shards failed on 36 distinct native C/LLVM cases; the earlier
+shared inventory stop is gone. This packet repairs those reached cases.
+It is native correctness/CI work, not new Pergyra substitution progress.
+No SoT registry status changed: last classification remains
+CLOSED=55 / BRIDGE=32 / ACTIVE=2, not a newly remeasured closure percentage.
 
-Reached owners: the legacy/composite Intent plan now carries and hashes its
-admitted completion predicate into MIR-blind LLVM materialization. A false
-completion is not a failed step and does not synthesize compensation. This is
-a bounded true-literal/field-greater-than-integer slice, not general expression
-support. Composite/nested routes consume canonical wire kind plus nominal kind;
-their malformed claims cannot fall through to the scalar route. Nested mutation
-generation follows the existing `intent` carrier rather than an obsolete `on`.
-The builtin signature owner supplies Min/Max's first-argument-dependent pair
-obligation to graph call admission. Unknown table slots no longer waive it.
-Native MIR SSA use reconstruction preserves RIR IO summaries as effect evidence;
-only the actual lexical DEF/STMT owns the IO operand's executable read. LLVM's
-exact-storage guard remains unchanged. No source syntax or support bit changed.
-Expression-reference collection also preserves distinct enum constructors that
-share a declaration ID; actual local SSA reads still require exact identity and
-spelling. Capability/Future/generic/domain lookup absence now uses Option.
-An ordinary routine explicitly has no generic instance; that is not permission
-to repair a missing generic binding. The existing Intent-plan-unavailable
-diagnostic is now registered/rendered, and vocabulary readiness derives from
-its owner rather than a stale literal count of 50 (current vocabulary: 61).
+Reached facts and consumers:
+- RIR resource rows retain effect/ABI evidence. Lexical DEF/STMT expressions
+  own executable reads; only explicit with-scope resource operations keep
+  direct resource-row uses. Delete obsolete entry-summary borrow alias emission.
+  LLVM's exact SSA-storage refusal remains in force.
+- Positional destructure binding IDs project into SSA output names, liveness,
+  use validation and LLVM storage. The projection does not reread the statement
+  AST. Missing/crosswired IDs refuse; no late spelling-based storage recovery.
+- Select receive bindings carry their checker-owned type. For-in desugaring
+  extends missing AST identities after growth without renumbering existing
+  nodes, destructure bindings or delayed formal IDs.
+- Builtin/stdlib callees retain an admitted nonlocal target fact even before a
+  later same-spelled callable local. A local callable still requires its ID.
+- Abstract ability signatures join role-admitted implementation equations at
+  the callable capability seal, including callable actuals. This is a
+  conservative implementation union, not source-order binding speculation.
+  Missing facts do not imply purity; narrow caps/effects still refuse.
+  The fixed point and dispatch projection share one private equation store.
 
-Observed local evidence (earlier packet details remain in Git at `3da11372`):
-- Fresh native MIR: 200 passed, 0 failed, including preserved IO summaries,
-  shared enum declaration references, exact lexical reads and crosswired or
-  missing-identity refusal (`.tmp/ci-enum-mir.log`). Native C transpile tests:
-  978 passed, 0 failed (`.tmp/ci-option-transpile.log`).
-  Both registered SSA cases execute equally on native C/LLVM with independent
-  expected output (`.tmp/ci-3da-ssa-final.log`); inventory preflight passed.
-- Pergyra-built driver and source/C/machine-manifest smoke passed
-  (`.tmp/ci-option-driver-verified-build.log`). This is not a new full gen2/gen3 claim.
-- Legacy Intent: twenty four-leg source observations and 49 MIR refusals.
-  Completion fact probe: five admitted values, five refusals, ten distinct
-  digest pairs. Composite: success, compensated step failure and false-only
-  completion parity, including the no-compensation trace. Nested: exact
-  runtime, source/direct C byte parity and twelve no-artifact refusals.
-  Final-binary logs: `.tmp/ci-verified-direct_mir_*_intent_program_llvm_owner.log`.
-- Installed source-C action/transaction and CLI-mode chain passed on the final
-  binaries (`.tmp/ci-verified-installed_driver_cli_mode_owner.log`). They additionally passed thirteen
-  argument refusals, two numeric controls and exact public MIR/C/LLVM diagnostics
-  (`.tmp/ci-paired-final-binaries.log`).
-- Shared source/test size gate and component source inventory passed
-  (`.tmp/ci-option-{size,component}-final.log`). Component counts: 2,414 cap
-  requests, 1,017 function extractions, 690 reuses; these are not substitution.
-- Preparation integration was executed through its first failure and then all
-  remaining 26 gates (`.tmp/ci-3da-preparation-{final,remainder}.log`). Reached
-  failures were rerun after correction: raw-graph storage classification,
-  enum/native-oracle normalization, owner fingerprints, diagnostic contract,
-  registry anchors and likeness. No job was skipped and no cap was raised.
-- Likeness passes at 76 core text signatures and 20 control-flow sentinels
-  (`.tmp/ci-option-likeness-final.log`): 29 returns became typed absence, and
-  exact schema-absence comparisons are distinguished with negative controls.
-  Thirteen final/vocabulary projections were classified as such, not counted
-  as deleted semantic bridges. The sentinel cap tightened from 23 to 20.
-- Capability fact mutation/lookup/diagnostic controls: 18 passed
-  (`.tmp/ci-option-capability-final.log`). Future constant/nonconstant branch,
-  loop and double-retirement admission: 12 native/self controls passed
-  (`.tmp/ci-verified-future_condition_admission_owner.log`); this is not a runtime-execution claim.
-- Coq 8.18 actually checked SoTAuthority.v through the installed Ubuntu-E-WSL
-  prover, and the live consumer/negative gate passed. The local exact-model
-  bridge is `.tmp/ci-proof-bin/coqc`; no missing-prover skip was used
-  (`.tmp/ci-option-adequacy-bridge-final.log`). Registry classification passes:
-  89 authorities, 187 derived carriers, CLOSED=55 / BRIDGE=32 / ACTIVE=2.
-  No registry status was promoted by this CI packet.
+Observed verification:
+- Publication rebuild passed. Native MIR 215/0, semantic 2,944/0, C transpile
+  978/0 and AIR 145/0 (`.tmp/ci-975b703a-final-{mir,semantic,transpile,air}.log`).
+- Reached regression set: 36/36 native C/LLVM executions passed, twice
+  (`.tmp/ci-975b703a-reached-36-final.log`). The second run used native
+  SHA-256 `08e33d81bd2b8ba84a86ebf793c266cfc64824d900ec6ce7cf8029f0ba3f1504`;
+  only test-fragment consolidation and equivalent bool declaration formatting
+  followed before the publication rebuild, not a semantic behavior change.
+- Source-admission gate: 50 claims / zero failures with the Pergyra-built driver
+  (`.tmp/ci-975b703a-source-admission-final.log`).
+- Stable identity, ABI ownership, CFG body/dataflow, lexical identity, AIR drift
+  and HIR routine identity gates passed. CFG was also rerun with the explicit
+  publication native candidate; its six-program non-CFG corpus passed.
+- Fragment inventory returned to 145/145 without raising its cap or removing
+  any test invocation. MIR/AIR cases from three small fragments were merged
+  into their existing family files; source pins moved with them. Production
+  header, backend and shared size gates passed. The complete perf contract
+  passed (end-to-end C compile: 2,272 ms under concurrent build load; not a
+  compiler-scale self-host performance claim). Static shell wall time exceeded
+  the 60-second edit-loop budget: thousands of separate grep processes/read
+  passes remain a tooling cost, not compiler substitution.
+- Old perf pins were migrated from deleted borrow/assignment/generic emission
+  paths to their current fact consumers, with old-path rejection retained.
+- Makefile source inventory and source UTF-8 gates passed. A transient handoff
+  write failure left the file intact; a subsequent apply_patch succeeded.
+  D: had 7,093,014,528 bytes free at that check; no cleanup was performed.
 
 Current native: `.tmp/ci-34251704201-native/pgy.exe`.
-SHA-256: `06894E69531EA058A0DF37D72DF0B9CB37D9385BCC010166D3EA5158D80AB152`.
-Verified bootstrap producer: `.tmp/ci-34251704201-seed-final/gen2.exe`.
-Final driver: `.tmp/ci-34280162606-driver/pgy-self-driver.exe`;
+SHA-256: `2E254FCBF6DE4A018B60AF13BD927249DA4BB51082613B4E2F4C6D41A34A5BDE`.
+Pergyra-built driver: `.tmp/ci-34280162606-driver/pgy-self-driver.exe`;
 SHA-256: `FBF4F91DEAB683959B4FFDECF01A50C40C8936F505C408F91727B5A2F7EC679E`.
-The sibling `.tmp/ci-34251704201-native/pgy-self-driver.exe` has the same hash.
+Its sibling in the isolated native directory has the same hash. Pergyra source
+did not change in this repair; no new local full-driver fixed point is claimed.
 
-Next falsifier: the first failing job on this packet's push CI. The complete Linux,
-sanitizer/platform and fresh full gen2/gen3 matrices were not rerun locally on
-this Windows host; remote success must be observed on the new commit. Existing
-LLVM target-triple warnings remain visible. The parked language gaps stay open.
+Review remeasurement is in the existing
+[word-deletion audit](audits/2026-09-06_language_word_deletion_execution_matrix.md).
+On the measured repaired native candidate (08e33... above), 104 source-to-MIR
+programs gave 78 admitted/admitted, 19 refused/refused and seven native-admitted/
+public-refused, with zero reverse differences and zero operational failures.
+Nine classifier controls passed; no census input was executed. The seventh
+difference is restored native dynamic-role admission, exposing the driver's
+existing `Team()` arity refusal. This is not the historical runtime metric.
+Binary evaluation-order observations remain 10 passes / 2 public-LLVM Intent
+refusals at legacy Main identity/envelope admission, not general call-order closure.
 
-Broader, non-green-runner checks must not be represented as closed: generic
-call occurrence remains 70 checks / 2 failures (recursive/constant forwarding
-rejects `Walk`, expected T / actual Int or String); capability admission remains 53 / 7
-(six public clock/Now execution legs and native synthetic-body HIR lowering).
-The same failures were reproduced with the pre-repair driver
-`.tmp/ci-34251704201-driver-final/pgy-self-driver.exe`, SHA-256
-`C5C53FE4530761A05F4B82E3F8B7E4612DE7C5950D191DB0D960F0134185352B`.
-Logs: `.tmp/ci-{baseline,verified}-generic*` and
-`.tmp/ci-{baseline,option}-capability-admission.log`. A false loop containing
-`let v: Int = await t;` also exposes a separate native residual AST_LET_DECL
-MIR rejection (`src/compiler/mir_fact_surface_validate.c`); the focused Future
-gate isolates completion flow with `await t;` and does not close that lowering gap.
+Next falsifier: the first failing job on this repair's push CI. Full Linux/
+macOS/Windows, sanitizer and gen2/gen3 matrices must run on the new commit;
+the previous remote green jobs are not this packet's green evidence. Keep the
+same one executable CI rung until that boundary is observed.
+
+Parked gaps remain explicit: generic call occurrence 70 checks / 2 failures;
+capability admission 53 / 7 (public clock/Now execution and synthetic-body HIR);
+the false-loop `let v: Int = await t;` residual native MIR rejection; the
+seven supported-input census differences and two Intent public-LLVM observations.
+Their previous logs are under `.tmp/ci-{baseline,verified,option}-*` and
+`.tmp/review-975b703a-*`. These were not repaired by the native CI packet.
+Future/Zone aggregate carriage, full Intent GraphPlan, external MIR admission,
+physical evidence-memory accounting and research proposals are parked, not a
+parallel implementation queue. The September 9 review's cited research has
+not been independently verified here.
 
 ### Parked source-admission evidence — lookup, not a parallel work queue
 

@@ -1,4 +1,5 @@
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "type_checker_ability_fields_internal.h"
 #include "diag_codes.h"
 #include "../common/string_compat.h"
@@ -90,16 +91,21 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
         if (ast_func_body(method) != NULL) {
             type_check_func_decl(method, ctx);
         } else {
-            /* Abstract method — just validate the signature types */
-            if (ast_func_return_type(method) != NULL)
-                ability_resolve_type_ref(
-                    ast_func_return_type(method), ctx);
-            for (size_t j = 0; j < ast_func_param_count(method); j++) {
-                FuncParam *param = ast_func_param(method, j);
-                if (param != NULL && param->type != NULL)
-                    ability_resolve_type_ref(
-                        param->type, ctx);
+            /* Abstract signatures participate in the same capability graph as
+             * implementations; their absence of a body is not a pure body. */
+            size_t count = ast_func_param_count(method);
+            Type **params = calloc(count + 1, sizeof(*params));
+            if (params == NULL) {
+                semantic_error(ctx, method, "Could not allocate abstract method signature types");
+                continue;
             }
+            Type *result = type_check_func_resolve_return_type(method, ctx);
+            for (size_t j = 0; j < count; j++) {
+                FuncParam *param = ast_func_param(method, j);
+                params[j] = type_check_func_resolve_param_type(param, ctx);
+            }
+            callable_capability_record_abstract_method(ctx, method, params, count, result);
+            free(params);
         }
     }
     scope_exit(&ctx->scope);

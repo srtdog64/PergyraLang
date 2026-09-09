@@ -62,7 +62,7 @@ run_literal_air_drift_smoke() {
         "src/test_air.c"
         "src/tests/air/test_air_core_part_h.cases.h"
         "src/tests/air/test_air_mir_terminator_part_h.cases.h"
-        "src/tests/air/test_air_counter_strict_part_i.cases.h"
+        "src/tests/air/test_air_strict_part_f.cases.h"
         "src/tests/air/test_air_rir_propagation_part_j.cases.h"
         "src/tests/rir\test_rir_lowering_1.cases.h"
         "src/tests/rir\test_rir_lowering_2.cases.h"
@@ -407,7 +407,6 @@ air_test_case_paths = [
     root / "src" / "tests" / "air" / "test_air_observability_pin_part_g_2.cases.h",
     root / "src" / "tests" / "air" / "test_air_core_part_h.cases.h",
     root / "src" / "tests" / "air" / "test_air_mir_terminator_part_h.cases.h",
-    root / "src" / "tests" / "air" / "test_air_counter_strict_part_i.cases.h",
     root / "src" / "tests" / "air" / "test_air_rir_propagation_part_j.cases.h",
     root / "src" / "tests" / "air" / "test_air_core_evidence_part_k.cases.h",
 ]

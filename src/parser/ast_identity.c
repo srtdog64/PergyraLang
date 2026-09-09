@@ -11,6 +11,8 @@
 typedef struct {
     uint64_t next_id;
     bool exhausted;
+    bool preserve_existing;
+    bool inspect_only;
     FuncParam **params;
     size_t param_count;
     size_t param_capacity;
@@ -28,6 +30,18 @@ ast_take_stable_id(AstIdentityState *next_id)
         return 0;
     }
     return (uint32_t)next_id->next_id++;
+}
+
+static uint32_t
+ast_complete_id(AstIdentityState *state, uint32_t existing)
+{
+    if (state->inspect_only) {
+        if (existing >= state->next_id)
+            state->next_id = (uint64_t)existing + 1;
+        return existing;
+    }
+    return state->preserve_existing && existing != 0
+        ? existing : ast_take_stable_id(state);
 }
 
 static void
@@ -111,7 +125,7 @@ ast_assign_fields(ClassField **fields, size_t count, AstIdentityState *next_id)
         ClassField *field = fields != NULL ? fields[i] : NULL;
         if (field == NULL)
             continue;
-        field->stable_id = ast_take_stable_id(next_id);
+        field->stable_id = ast_complete_id(next_id, field->stable_id);
         ast_assign_node(field->type, next_id);
     }
 }
@@ -195,7 +209,7 @@ ast_assign_node(ASTNode *node, AstIdentityState *next_id)
     if (node == NULL)
         return;
 
-    node->stable_id = ast_take_stable_id(next_id);
+    node->stable_id = ast_complete_id(next_id, node->stable_id);
     if (next_id == NULL || next_id->exhausted)
         return;
 
@@ -240,21 +254,27 @@ ast_assign_node(ASTNode *node, AstIdentityState *next_id)
         ast_assign_node(node->data.let_destructure.initializer, next_id);
         if (node->data.let_destructure.field_bindings == NULL) {
             size_t count = node->data.let_destructure.name_count;
-            free(node->data.let_destructure.local_binding_syntax_ids);
-            node->data.let_destructure.local_binding_syntax_ids = NULL;
+            if (!next_id->preserve_existing) {
+                free(node->data.let_destructure.local_binding_syntax_ids);
+                node->data.let_destructure.local_binding_syntax_ids = NULL;
+            }
             if (count > SIZE_MAX / sizeof(uint32_t)) {
                 next_id->exhausted = true;
                 break;
             }
             if (count > 0) {
-                uint32_t *ids = calloc(count, sizeof(uint32_t));
+                uint32_t *ids = node->data.let_destructure.local_binding_syntax_ids;
+                if (ids == NULL && next_id->inspect_only)
+                    break;
+                if (ids == NULL)
+                    ids = calloc(count, sizeof(uint32_t));
                 if (ids == NULL) {
                     next_id->exhausted = true;
                     break;
                 }
                 node->data.let_destructure.local_binding_syntax_ids = ids;
                 for (size_t i = 0; i < count; i++)
-                    ids[i] = ast_take_stable_id(next_id);
+                    ids[i] = ast_complete_id(next_id, ids[i]);
             }
         }
         break;
@@ -635,6 +655,30 @@ ast_assign_stable_ids(ASTNode *root)
         next_id.params[i]->stable_id = ast_take_stable_id(&next_id);
     free(next_id.params);
     return !next_id.exhausted;
+}
+
+bool
+ast_complete_stable_ids(ASTNode *root)
+{
+    /* Growth preserves all admitted identities, including delayed formal and
+     * destructure identities. New nodes start strictly above that namespace. */
+    AstIdentityState state = {
+        .next_id = 1, .preserve_existing = true, .inspect_only = true,
+    };
+    for (size_t pass = 0; pass < 2; pass++) {
+        ast_assign_node(root, &state);
+        for (size_t i = 0; i < state.param_count && !state.exhausted; i++) {
+            FuncParam *param = state.params[i];
+            param->stable_id = ast_complete_id(&state, param->stable_id);
+        }
+        free(state.params);
+        if (state.exhausted)
+            return false;
+        state.params = NULL;
+        state.param_count = state.param_capacity = 0;
+        state.inspect_only = false;
+    }
+    return true;
 }
 
 uint32_t

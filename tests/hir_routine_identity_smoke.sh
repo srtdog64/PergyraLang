@@ -69,7 +69,7 @@ require_text "src/codegen/transpiler_inventory_view.c" \
     "mir_routine_inventory_find_unique_by_source_syntax_id("
 require_text "src/codegen/transpiler_mir_ssa_contract.c" \
     "lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE"
-require_text "src/tests/mir/test_mir_inventory_identity.cases.h" \
+require_text "src/tests/mir/test_mir_lexical_binding_identity.cases.h" \
     "MIR_ROUTINE_SOURCE_LOOKUP_DUPLICATE"
 reject_text "src/codegen/transpiler_inventory_view.c" \
     "routine->source_syntax_id"
@@ -82,7 +82,7 @@ require_text "src/compiler/rir_flow.c" \
 require_text "src/compiler/rir_flow.c" \
     "RIR resource fact has no matching ResourceFlow stable identity"
 require_text "src/parser/ast_identity.c" \
-    "field->stable_id = ast_take_stable_id(next_id);"
+    "field->stable_id = ast_complete_id(next_id, field->stable_id);"
 require_text "src/semantic/type_checker_class_decl.c" \
     "fields[i].declaration_syntax_id"
 require_text "src/semantic/type_checker_ownership_destructure.c" \

@@ -1,4 +1,5 @@
 #include "type_checker_internal.h"
+#include "callable_capability_inference.h"
 #include "type_checker_ability_ref_internal.h"
 #include "type_checker_ability_where_internal.h"
 #include "type_checker_decls_a_helpers_internal.h"
@@ -243,10 +244,10 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                 name != NULL ? name : "<role>",
                 ability_ref,
                 "role impl ability lookup");
+            ASTNode *ability_decl = ability_name != NULL
+                ? semantic_find_ability_decl_by_name(ctx, ability_name) : NULL;
             /* Check that the ability exists */
             if (ability_name != NULL) {
-                ASTNode *ability_decl = semantic_find_ability_decl_by_name(
-                    ctx, ability_name);
                 Symbol *ab = scope_lookup(ctx->scope,
                     ability_name);
                 if (ability_decl != NULL
@@ -417,7 +418,16 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
 
             /* Type-check each method implementation */
             for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
-                type_check_func_decl(ast_impl_ability_method(impl, j), ctx);
+                ASTNode *method = ast_impl_ability_method(impl, j);
+                type_check_func_decl(method, ctx);
+                if (ctx->has_error || ability_decl == NULL) continue;
+                for (size_t a = 0; a < ast_ability_method_count(ability_decl); a++) {
+                    ASTNode *signature = ast_ability_method(ability_decl, a);
+                    const char *required = ast_declaration_name(signature);
+                    const char *provided = ast_declaration_name(method);
+                    if (required != NULL && provided != NULL && strcmp(required, provided) == 0)
+                        callable_capability_record_implementation(ctx, signature, method);
+                }
             }
         } else if (impl->type == AST_OVERRIDE_FUNC) {
             /* Type-check the overridden function */

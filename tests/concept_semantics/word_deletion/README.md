@@ -13,3 +13,12 @@ result files disagree on purpose, and the disagreement is part of the record.
 Verdicts, provenance and the per-word table are in
 `docs/audits/2026-09-06_language_word_deletion_execution_matrix.md`. This lane
 is a manual entry point, not a CI job, and it owns no language semantics.
+
+`collect_admission.py LAUNCHER DRIVER` observes the same corpus through native
+and public source-to-MIR routes without compiling or executing any input. It
+records exact binary/source hashes, diagnostics, status differences and
+operational failures under `.tmp/concept_semantics/word_admission/`. Run its
+`--self-test` first. The census has a five-minute total budget; timeouts, blank
+failures, missing MIR and an unexpected native public route are not refusals.
+An equal status is not equivalent behavior or even an equal refusal reason.
+This measurement cannot replace the historical runtime-difference denominator.

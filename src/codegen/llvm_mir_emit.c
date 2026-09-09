@@ -124,6 +124,7 @@ llvm_mir_emit_owner_sync_exit(LLVMGenCtx *ctx,
 
 #include "llvm_mir_block_emit.h"
 #include "llvm_mir_local_emit.h"
+#include "llvm_mir_destructure_results.h"
 LLVMValueRef
 llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
 {
@@ -518,6 +519,9 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     if (is_method && owner_name != NULL)
         llvm_register_class_field_slots(ctx, owner_name);
     llvm_emit_mir_local_allocas(routine, ctx, &vars, &var_capacity, &var_count);
+    if (ctx->has_error || !llvm_mir_allocate_destructure_results(
+            routine, ctx, &vars, &var_capacity, &var_count))
+        goto restore_state;
     llvm_mir_debug_stage("emit_func_from_mir:locals_ready", routine);
 
     /* P0 #4 eager var-class registration: consume MIR source-local type

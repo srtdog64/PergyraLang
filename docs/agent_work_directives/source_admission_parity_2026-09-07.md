@@ -1,10 +1,36 @@
 # Source-admission parity and active-document consolidation
 
 Status: ACTIVE; primary-only implementation, no parallel edit lane.
-Base HEAD/origin/main: `5b97f2e10ffa7ecf9cfe932829a83ffffaa3ba12`.
+Current pre-publication HEAD/origin/main: `975b703a1069dfcddb235b8a221bd1d7f4555bdb`.
 This is a coordination card, not semantic authority or an execution log.
 
-## Current integration blocker — push CI at 3da11372
+## Current integration blocker — push CI at 975b703a
+
+Run `34294460519` cleared the former shared inventory stop; the backend shards
+now execute their cases. Their reached failures concern lexical SSA/storage
+carriage, synthetic for-in HIR bindings, and callable capability target facts.
+Objective: repair those owner-to-consumer joins without loosening admission.
+Priority: exact identity and valid placement, then executable negative controls.
+Owners: semantic binding/callable facts, HIR lowering, and MIR use/definition
+placement. Last consumers: native C/LLVM emission in `compare_backends.sh`.
+Forbidden: spelling-only SSA recovery, invented ABI/types, dropping real reads,
+skipping fixtures, or native/public fallback. First focused falsifiers are the
+existing pin-view, select-binding, destructure and for-in backend cases; the
+complete reached failure set is the integration gate. Primary only.
+
+The dynamic-role failures reach the existing callable capability equation owner:
+abstract ability signature -> role-admitted implementations -> caller bound.
+Conservatively join implementation equations (including callable actuals), not a
+source-order guess of the current binding. Missing implementation provenance at
+a closed call must refuse. Narrow caps/effects around an effectful implementation
+are the negative controls; an unused abstract signature is not a closed call.
+
+The September 9 review is being reconciled against the published `975b703a`,
+not reused as a new feature queue. Source-to-MIR census and observation reports
+are audit evidence only. Full Intent GraphPlan and other successor gaps remain
+parked until this CI boundary is stable.
+
+### Previous repair packet — push CI at 3da11372
 
 Run `34280162606` reached a green codegen bootstrap, sanitizers, native tests
 and integrated driver gen2 == gen3. Repair its remaining registered-case and

@@ -12,6 +12,8 @@
 /* AST creation functions */
 ASTNode* ast_create_program(void);
 bool ast_assign_stable_ids(ASTNode* root);
+/* Assign only missing identities after growth; existing node/binder IDs stay fixed. */
+bool ast_complete_stable_ids(ASTNode* root);
 uint32_t ast_node_stable_id(const ASTNode* node);
 size_t ast_program_statement_count(const ASTNode* node);
 ASTNode** ast_program_statements(const ASTNode* node, size_t* count_out);
@@ -246,6 +248,8 @@ size_t ast_call_generic_arg_count(const ASTNode* node);
 GenericParam* ast_call_generic_arg(const ASTNode* node, size_t index);
 ASTNode* ast_call_callee(const ASTNode* node);
 uint32_t ast_call_semantic_callee_decl_id(const ASTNode* node);
+bool ast_call_semantic_callee_is_stdlib(const ASTNode *node);
+bool ast_call_set_semantic_callee_is_stdlib(ASTNode *node, bool is_stdlib);
 bool ast_call_set_semantic_callee_decl_id(ASTNode* node, uint32_t decl_id);
 uint32_t ast_call_semantic_callee_value_binding_id(const ASTNode *node);
 bool ast_call_set_semantic_callee_value_binding_id(ASTNode *node, uint32_t binding_id);

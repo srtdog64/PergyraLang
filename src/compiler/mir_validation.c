@@ -234,6 +234,20 @@ mir_validate_instruction_uses(const MIRRoutine *routine,
     }
     seen_name_count = block->instruction_count + block->live_in_name_count
         + block->ssa_entry_value_count;
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        if (inst->kind != MIR_INST_DESTRUCTURE) continue;
+        if (inst->destructure_result_names == NULL || inst->destructure_binding_ids == NULL
+            || inst->destructure_binding_count == 0
+            || inst->destructure_binding_count > SIZE_MAX - seen_name_count) {
+            if (error_message != NULL)
+                *error_message = mir_validation_strdup_fmt(
+                    "MIR routine '%s' destructure instruction[%zu] has incomplete SSA output facts",
+                    routine->name != NULL ? routine->name : "(anonymous)", inst->id);
+            return false;
+        }
+        seen_name_count += inst->destructure_binding_count;
+    }
     if (!mir_validation_seen_definitions_init(&seen, seen_name_count)) {
         if (error_message != NULL) {
             *error_message = mir_validation_strdup_fmt(
@@ -331,6 +345,19 @@ mir_validate_instruction_uses(const MIRRoutine *routine,
                                                     inst->result_name)) {
             free(seen.slots);
             return false;
+        }
+        if (inst->kind == MIR_INST_DESTRUCTURE) {
+            for (size_t d = 0; d < inst->destructure_binding_count; d++) {
+                if (inst->destructure_result_names[d] == NULL || inst->destructure_binding_ids[d] == 0
+                    || !mir_validation_seen_definitions_insert(&seen, inst->destructure_result_names[d])) {
+                    free(seen.slots);
+                    if (error_message != NULL)
+                        *error_message = mir_validation_strdup_fmt(
+                            "MIR routine '%s' destructure instruction[%zu] has an invalid SSA output identity",
+                            routine->name != NULL ? routine->name : "(anonymous)", inst->id);
+                    return false;
+                }
+            }
         }
     }
 

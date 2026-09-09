@@ -121,6 +121,12 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
                         symbol_mark_declaration(binding, ast_node_stable_id(first), false);
                         ast_identifier_set_binding_syntax_id(
                             ast_assignment_target(first), ast_node_stable_id(first));
+                        if (recv_type == TYPE_UNKNOWN || recv_type->name == NULL
+                            || !ast_assignment_set_semantic_binding_type_name_copy(
+                                first, recv_type->name)) {
+                            semantic_error(ctx, first,
+                                "Cannot record the select receive binding type");
+                        }
                         scope_declare(ctx->scope, binding);
                     }
                 }

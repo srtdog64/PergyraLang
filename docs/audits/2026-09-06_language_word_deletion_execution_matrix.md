@@ -26,6 +26,46 @@ exit zero alone is not evidence that earlier recorded outcomes reproduced.
 
 ## 1. Method
 
+### September 9 remeasurement (different metric)
+
+The historic runtime disagreements below are not a current release score.
+At published `975b703a1069dfcddb235b8a221bd1d7f4555bdb`, the new manual
+`tests/concept_semantics/word_deletion/collect_admission.py` census observed
+all 104 sources through native/public **source-to-MIR only**. It executed no
+input program. Nine classifier controls passed. The observed status pairs were
+78 admitted/admitted, 20 refused/refused, six native-admitted/public-refused,
+zero native-refused/public-admitted, and zero operational failures.
+
+Exact native SHA-256:
+`06894e69531ea058a0df37d72df0b9cb37d9385bcc010166d3ea5158d80ab152`;
+exact Pergyra-built driver SHA-256:
+`fbf4f91deab683959b4ffdecf01a50c40c8936f505c408f91727b5a2f7ec679e`.
+Report: `.tmp/concept_semantics/word_admission/run.ftzxtmx7/report.json`.
+The six differing inputs were `14_parallel_join/{orig,orig_max}`, and `orig`
+in `18_event_causes`, `19_party_roster`, `25_slot_own_ref`, and
+`30_object_projection`. Equal refusal status does not establish equal reasons;
+this six/104 figure must not replace the historic runtime-difference denominator
+or be called language/self-host closure.
+
+The focused source-admission gate separately observed 50 claims / zero failures
+(`.tmp/review-975b703a-source-admission.log`). The binary observation-order gate
+observed ten passes / two failures: eager/lazy binary controls passed all four
+native/public C/LLVM legs, but two Intent public LLVM observations refused at
+legacy Main instruction identity/envelope admission
+(`.tmp/review-975b703a-evaluation-order.log`). That is not an all-call-argument
+evaluation-order proof. These measurements preceded the subsequent native CI
+repair; exact binary hashes, not this document's later Git revision, own them.
+
+The repaired native candidate was then remeasured (SHA-256
+`08e33d81bd2b8ba84a86ebf793c266cfc64824d900ec6ce7cf8029f0ba3f1504`,
+same driver). Its complete census is 78 admitted/admitted, 19 refused/refused,
+**seven** native-admitted/public-refused, zero reverse differences and zero
+operational failures. `22_dyn_bind/orig` changed from matching refusals to
+native admission after the ability capability-graph repair; the public driver
+still refuses its `Team()` arity. This exposes a supported-input gap, not a new
+public acceptance of an invalid source. Report:
+`.tmp/concept_semantics/word_admission/run.1_3hxqtj/report.json`.
+
 Fixtures: `tests/concept_semantics/word_deletion/cases/<experiment>/`, 35
 experiments, 104 programs. Each experiment holds up to four roles:
 

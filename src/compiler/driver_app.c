@@ -234,6 +234,11 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
      * untouched): hoist non-identifier for-in iterables into a synthetic local
      * so both backends see an identifier iterable evaluated exactly once. */
     forin_desugar_program(ast);
+    if (!ast_complete_stable_ids(ast)) {
+        driver_emit_stage_fail(flags, "lowering", "synthetic binding identity failed",
+            "could not extend the existing AST identity namespace after for-in lowering");
+        goto cleanup;
+    }
 
     driver_debug_stage("semantic");
     phase_start = driver_now_seconds();

@@ -65,6 +65,15 @@ abuse today on raw HTML5/JS.
   Source bodies are checked once; a late scalar type-mask read cannot substitute
   for this relation. The self-host body bundle similarly owns capability
   inference, and its manifest consumes that admitted body's fact.
+  Native dynamic ability calls connect abstract signature identities to the
+  implementations admitted by the role checker. The seal conservatively joins
+  their capability/effect equations and forwards callable actual identities;
+  it does not select a pure implementation from the last source-level `bind`.
+  An unused abstract signature is not a closed call. A called abstract signature
+  with no implementation provenance refuses instead of acquiring an empty mask.
+  `test_semantic_callable_capability.cases.h` owns admission-only positive and
+  narrow-capability/effect controls. This native join is not a public-driver
+  parity or whole-language soundness claim.
 - Capability manifest: `SemanticResult.program_capabilities` is the union of
   every capability the program can exercise. `pgy --capability-manifest <file>`
   prints it as a stable JSON document (`pgy.capability.manifest.v1`) — the

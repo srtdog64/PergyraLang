@@ -70,6 +70,20 @@ ast_call_semantic_callee_value_binding_id(const ASTNode *node)
 }
 
 bool
+ast_call_semantic_callee_is_stdlib(const ASTNode *node)
+{
+    return node != NULL && node->type == AST_CALL && node->data.call.semantic_callee_is_stdlib;
+}
+
+bool
+ast_call_set_semantic_callee_is_stdlib(ASTNode *node, bool is_stdlib)
+{
+    if (node == NULL || node->type != AST_CALL) return false;
+    node->data.call.semantic_callee_is_stdlib = is_stdlib;
+    return true;
+}
+
+bool
 ast_call_set_semantic_callee_value_binding_id(ASTNode *node, uint32_t binding_id)
 {
     if (node == NULL || node->type != AST_CALL)

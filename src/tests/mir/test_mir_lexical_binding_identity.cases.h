@@ -222,6 +222,241 @@ test_mir_io_summary_operand_identity(void)
 }
 
 static void
+test_mir_resource_summary_operand_identity(void)
+{
+    HIRProgram *hir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram *mir = NULL;
+    bool ok = lower_mir_from_source(
+        "func Main() -> Void { let slot: Slot<Int> = ClaimSlot();"
+        " Write(slot, 41); pin slot as view: ReadView<Int> {"
+        " let observed: Int = Read(view); Log(observed); } }",
+        &hir, &rir, &mir);
+    MIRRoutine *routine = ok ? find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
+    MIRInstruction *view = NULL, *read = NULL;
+    size_t summaries = 0;
+    bool summary_reads = false;
+    if (routine != NULL) {
+        for (size_t b = 0; b < routine->block_count; b++) {
+            MIRBasicBlock *block = &routine->blocks[b];
+            for (size_t i = 0; i < block->instruction_count; i++) {
+                MIRInstruction *inst = &block->instructions[i];
+                if (inst->kind == MIR_INST_RESOURCE_OP) {
+                    summaries++;
+                    summary_reads |= inst->use_count != 0;
+                }
+                if (inst->kind != MIR_INST_DEF || inst->arg0 == NULL) continue;
+                if (strcmp(inst->arg0, "view") == 0) view = inst;
+                if (strcmp(inst->arg0, "observed") == 0) read = inst;
+            }
+        }
+    }
+    TEST("resource summaries retain evidence without pre-scope SSA reads");
+    EXPECT(ok && summaries >= 4 && !summary_reads);
+    TEST("resource view read consumes the exact lexical DEF");
+    EXPECT(view != NULL && read != NULL && read->use_count == 1
+        && strcmp(read->uses[0], view->result_name) == 0);
+    bool refused = false;
+    char *error = NULL;
+    if (read != NULL && read->expr0 != NULL && read->expr0->type == AST_CALL) {
+        ASTNode *operand = ast_call_argument(read->expr0, 0);
+        uint32_t identity = ast_identifier_binding_syntax_id(operand);
+        ast_identifier_set_binding_syntax_id(operand, 0);
+        refused = !mir_populate_use_edges(routine, &error)
+            && error != NULL && strstr(error, "semantic binding identity") != NULL;
+        ast_identifier_set_binding_syntax_id(operand, identity);
+    }
+    TEST("resource read missing lexical identity still refuses before emission");
+    EXPECT(refused);
+    free(error);
+    mir_destroy(mir);
+    rir_destroy(rir);
+    hir_destroy(hir);
+}
+
+static void
+test_ast_growth_preserves_binding_identity(void)
+{
+    Lexer *lexer = lexer_create("func Keep(x: Int) -> Void { let (a, b) = (x, 2); }");
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    ASTNode *func = ast_program_statement(program, 0);
+    ASTNode *body = ast_func_body(func);
+    ASTNode *destructure = ast_block_statement(body, 0);
+    FuncParam *param = ast_func_param(func, 0);
+    uint32_t root_id = ast_node_stable_id(program);
+    uint32_t param_id = ast_func_param_stable_id(param);
+    uint32_t binding_id = ast_let_destructure_binding_stable_id(destructure, 0);
+    ASTNode *block = ast_create_block();
+    ASTNode *local = ast_create_let_declaration("later");
+    ast_add_statement(block, local);
+    ast_add_statement(body, block);
+    bool completed = !parser_has_error(parser) && ast_complete_stable_ids(program);
+    TEST("AST growth preserves node, delayed formal and destructure identities");
+    EXPECT(completed && root_id != 0 && param_id != 0 && binding_id != 0
+        && ast_node_stable_id(program) == root_id
+        && ast_func_param_stable_id(param) == param_id
+        && ast_let_destructure_binding_stable_id(destructure, 0) == binding_id);
+    uint32_t local_id = ast_node_stable_id(local);
+    uint32_t block_id = ast_node_stable_id(block);
+    TEST("synthetic identities extend beyond the existing delayed formal namespace");
+    EXPECT(completed && local_id > param_id && block_id > param_id && local_id != block_id);
+    TEST("repeated AST completion does not renumber completed identities");
+    EXPECT(ast_complete_stable_ids(program) && ast_node_stable_id(local) == local_id
+        && ast_node_stable_id(block) == block_id);
+    ast_destroy(program);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+
+    block = ast_create_block();
+    local = ast_create_identifier("pending");
+    block->stable_id = UINT32_MAX;
+    ast_add_statement(block, local);
+    TEST("synthetic identity exhaustion refuses without reusing an existing key");
+    EXPECT(!ast_complete_stable_ids(block) && ast_node_stable_id(local) == 0
+        && ast_node_stable_id(block) == UINT32_MAX);
+    ast_destroy(block);
+}
+
+static void
+test_mir_select_receive_binding_type_identity(void)
+{
+    HIRProgram *hir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram *mir = NULL;
+    bool ok = lower_mir_from_source(
+        "func Main() -> Void { let ch: Channel<Int> = Channel(2); ch <- 2;"
+        " select { case v = <-ch: Log(v); default: Log(0); } }",
+        &hir, &rir, &mir);
+    MIRRoutine *routine = ok ? find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
+    bool typed = false;
+    if (routine != NULL) {
+        for (size_t b = 0; b < routine->block_count; b++) {
+            MIRBasicBlock *block = &routine->blocks[b];
+            for (size_t i = 0; i < block->instruction_count; i++) {
+                MIRInstruction *inst = &block->instructions[i];
+                if (mir_instruction_uses_select_receive_statement_emit(inst))
+                    typed = inst->abi_type_name != NULL
+                        && strcmp(inst->abi_type_name, "Int") == 0;
+            }
+        }
+    }
+    TEST("select receive DEF carries its checker-owned binding type");
+    EXPECT(ok && typed);
+    mir_destroy(mir);
+    rir_destroy(rir);
+    hir_destroy(hir);
+}
+
+static void
+test_mir_destructure_output_identity(void)
+{
+    HIRProgram *hir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram *mir = NULL;
+    bool ok = lower_mir_from_source(
+        "func Main() -> Void { let (n, s) = (42, \"outer\"); Log(n); Log(s);"
+        " unsafe { let (n, s) = (7, \"inner\"); Log(n); Log(s); } Log(n); }",
+        &hir, &rir, &mir);
+    MIRRoutine *routine = ok ? find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
+    MIRInstruction *outputs[2] = {0};
+    size_t count = 0;
+    if (routine != NULL) {
+        for (size_t b = 0; b < routine->block_count; b++) {
+            MIRBasicBlock *block = &routine->blocks[b];
+            for (size_t i = 0; i < block->instruction_count; i++) {
+                MIRInstruction *inst = &block->instructions[i];
+                if (inst->kind == MIR_INST_DESTRUCTURE && count < 2)
+                    outputs[count++] = inst;
+            }
+        }
+    }
+    bool distinct = count == 2 && outputs[0]->destructure_result_names != NULL
+        && outputs[1]->destructure_result_names != NULL;
+    for (size_t d = 0; distinct && d < 2; d++)
+        distinct = outputs[0]->destructure_binding_ids[d] != outputs[1]->destructure_binding_ids[d]
+            && strcmp(outputs[0]->destructure_result_names[d], outputs[1]->destructure_result_names[d]) != 0;
+    TEST("destructure outputs preserve shadowed positional SSA identities");
+    EXPECT(ok && distinct && mir_validate(mir, NULL));
+    bool independent = false, missing = false, crosswired = false;
+    char *error = NULL;
+    if (count == 2) {
+        ASTNode *ast = outputs[0]->ast;
+        outputs[0]->ast = NULL;
+        independent = mir_populate_use_edges(routine, &error);
+        free(error); error = NULL;
+        uint32_t id = outputs[0]->destructure_binding_ids[0];
+        outputs[0]->destructure_binding_ids[0] = 0;
+        missing = !mir_populate_use_edges(routine, &error) && error != NULL
+            && strstr(error, "positional SSA binding identity") != NULL;
+        free(error); error = NULL;
+        outputs[0]->destructure_binding_ids[0] = outputs[0]->destructure_binding_ids[1];
+        crosswired = !mir_populate_use_edges(routine, &error) && error != NULL
+            && strstr(error, "positional SSA binding identity") != NULL;
+        outputs[0]->destructure_binding_ids[0] = id;
+        outputs[0]->ast = ast;
+    }
+    TEST("destructure SSA projection no longer reads the statement AST payload");
+    EXPECT(independent);
+    TEST("missing destructure identity refuses before code emission"); EXPECT(missing);
+    TEST("crosswired destructure identity refuses before code emission"); EXPECT(crosswired);
+    free(error);
+    mir_destroy(mir); rir_destroy(rir); hir_destroy(hir);
+}
+
+static void
+test_mir_builtin_before_callable_shadow(void)
+{
+    HIRProgram *hir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram *mir = NULL;
+    bool ok = lower_mir_from_source(
+        "func Main() -> Int { let before: Int = StringLength(\"abc\");"
+        " let StringLength: func(Int) -> Int = (value: Int) => value + 2;"
+        " return StringLength(before); }", &hir, &rir, &mir);
+    MIRRoutine *routine = ok ? find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
+    MIRInstruction *builtin = NULL, *local_call = NULL;
+    if (routine != NULL) {
+        for (size_t b = 0; b < routine->block_count; b++) {
+            MIRBasicBlock *block = &routine->blocks[b];
+            for (size_t i = 0; i < block->instruction_count; i++) {
+                MIRInstruction *inst = &block->instructions[i];
+                if (inst->kind == MIR_INST_DEF && inst->arg0 != NULL && strcmp(inst->arg0, "before") == 0)
+                    builtin = inst;
+                if (inst->kind == MIR_INST_RETURN && inst->expr0 != NULL && inst->expr0->type == AST_CALL)
+                    local_call = inst;
+            }
+        }
+    }
+    TEST("builtin before local callable shadow is not a read of the later binding");
+    EXPECT(ok && builtin != NULL && builtin->use_count == 0 && local_call != NULL
+        && local_call->use_count == 2);
+    bool missing = false;
+    char *error = NULL;
+    if (local_call != NULL) {
+        ASTNode *callee = ast_call_callee(local_call->expr0);
+        uint32_t id = ast_identifier_binding_syntax_id(callee);
+        ast_identifier_set_binding_syntax_id(callee, 0);
+        missing = !mir_populate_use_edges(routine, &error) && error != NULL
+            && strstr(error, "semantic binding identity") != NULL;
+        ast_identifier_set_binding_syntax_id(callee, id);
+    }
+    TEST("local callable shadow still requires its exact binding identity"); EXPECT(missing);
+    free(error);
+    error = NULL;
+    bool missing_stdlib = false;
+    if (builtin != NULL && builtin->expr0 != NULL) {
+        ast_call_set_semantic_callee_is_stdlib(builtin->expr0, false);
+        missing_stdlib = !mir_populate_use_edges(routine, &error) && error != NULL
+            && strstr(error, "semantic binding identity") != NULL;
+        ast_call_set_semantic_callee_is_stdlib(builtin->expr0, true);
+    }
+    TEST("missing standard-library target fact is not repaired from its spelling"); EXPECT(missing_stdlib);
+    free(error);
+    mir_destroy(mir); rir_destroy(rir); hir_destroy(hir);
+}
+
+static void
 test_mir_scalar_parameter_wire_identity(void)
 {
     HIRProgram *hir = NULL;
@@ -327,4 +562,122 @@ test_mir_nominal_field_binding_identity(void)
         rir_destroy(rir);
         hir_destroy(hir);
     }
+}
+
+static void
+test_mir_inventory_source_identity_lookup(void)
+{
+    MIRRoutine routines[2];
+    MIRRoutineInventory inventory;
+    MIRRoutineSourceLookup lookup;
+    bool invalid_rejected;
+    bool missing_rejected;
+    bool unique_found;
+    bool duplicate_rejected;
+    bool method_keeps_kind;
+
+    memset(routines, 0, sizeof(routines));
+    inventory.routines = routines;
+    inventory.count = 2;
+
+    lookup = mir_routine_inventory_find_unique_by_source_syntax_id(
+        &inventory, 0);
+    invalid_rejected = lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_INVALID
+        && lookup.routine == NULL;
+
+    lookup = mir_routine_inventory_find_unique_by_source_syntax_id(
+        &inventory, 17);
+    missing_rejected = lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_MISSING
+        && lookup.routine == NULL;
+
+    routines[0].source_syntax_id = 7;
+    routines[0].kind = MIR_SCOPE_FUNCTION;
+    lookup = mir_routine_inventory_find_unique_by_source_syntax_id(
+        &inventory, 7);
+    unique_found = lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE
+        && lookup.routine == &routines[0];
+
+    routines[1].source_syntax_id = 7;
+    lookup = mir_routine_inventory_find_unique_by_source_syntax_id(
+        &inventory, 7);
+    duplicate_rejected =
+        lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_DUPLICATE
+        && lookup.routine == NULL;
+
+    routines[1].source_syntax_id = 8;
+    routines[1].kind = MIR_SCOPE_METHOD;
+    lookup = mir_routine_inventory_find_unique_by_source_syntax_id(
+        &inventory, 8);
+    method_keeps_kind = lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE
+        && lookup.routine == &routines[1]
+        && mir_routine_kind(lookup.routine) == MIR_SCOPE_METHOD;
+
+    TEST("MIR source identity lookup distinguishes invalid/missing/duplicate/method");
+    EXPECT(invalid_rejected && missing_rejected && unique_found
+        && duplicate_rejected && method_keeps_kind);
+}
+
+static void
+test_mir_decl_header_storage_layout_receipt(void)
+{
+    bool exact = MIR_DECL_HEADER_STORAGE_LAYOUT_MATCHES_LOCAL();
+    bool size_skew = mir_decl_header_storage_layout_matches(
+        sizeof(MIRDeclHeader) + 1, _Alignof(MIRDeclHeader),
+        offsetof(MIRDeclHeader, method_metadata),
+        offsetof(MIRDeclHeader, abi_layout),
+        offsetof(MIRDeclHeader, option_abi_type_name),
+        offsetof(MIRDeclHeader, option_abi_layout_id));
+    bool offset_skew = mir_decl_header_storage_layout_matches(
+        sizeof(MIRDeclHeader), _Alignof(MIRDeclHeader),
+        offsetof(MIRDeclHeader, method_metadata),
+        offsetof(MIRDeclHeader, abi_layout),
+        offsetof(MIRDeclHeader, option_abi_type_name) + 1,
+        offsetof(MIRDeclHeader, option_abi_layout_id));
+
+    TEST("MIR declaration header storage layout rejects partial-link skew");
+    EXPECT(exact && !size_skew && !offset_skew);
+}
+
+static void
+test_mir_routine_generic_constraint_carriage(void)
+{
+    const char *source =
+        "func Bounds<T, U>(x: T, y: U) -> Int where T: Int, U: Bool { return 1; }\n"
+        "func Open<V>(x: V) -> Void { return; }\n"
+        "func Main() -> Void { Bounds(1, true); Open(2); }\n";
+    HIRProgram *hir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram *mir = NULL;
+    bool ok = lower_mir_from_source(source, &hir, &rir, &mir);
+    MIRRoutine *bounds = ok
+        ? (MIRRoutine *)find_mir_routine(mir, "Bounds", MIR_SCOPE_FUNCTION) : NULL;
+    const MIRRoutine *open = ok
+        ? find_mir_routine(mir, "Open", MIR_SCOPE_FUNCTION) : NULL;
+    bool exact = bounds != NULL && open != NULL
+        && mir_routine_generic_param_count(bounds) == 2
+        && mir_routine_generic_param_constraint(bounds, 0) != NULL
+        && mir_routine_generic_param_constraint(bounds, 1) != NULL
+        && strcmp(mir_routine_generic_param_constraint(bounds, 0), "Int") == 0
+        && strcmp(mir_routine_generic_param_constraint(bounds, 1), "Bool") == 0
+        && mir_routine_generic_param_constraint(open, 0) != NULL
+        && strcmp(mir_routine_generic_param_constraint(open, 0), "") == 0;
+    TEST("MIR signature preserves ordered bounds and explicit unbounded fact");
+    EXPECT(exact && mir_validate(mir, NULL));
+    bool missing_row_rejected = false;
+    bool missing_table_rejected = false;
+    if (exact) {
+        char *saved = bounds->generic_param_constraints[0];
+        bounds->generic_param_constraints[0] = NULL;
+        missing_row_rejected = !mir_validate(mir, NULL);
+        bounds->generic_param_constraints[0] = saved;
+        char **saved_table = bounds->generic_param_constraints;
+        bounds->generic_param_constraints = NULL;
+        missing_table_rejected = !mir_validate(mir, NULL);
+        bounds->generic_param_constraints = saved_table;
+    }
+    TEST("MIR signature rejects missing bound row or constraint table");
+    EXPECT(missing_row_rejected && missing_table_rejected && mir_validate(mir, NULL));
+    mir_destroy(mir);
+    rir_destroy(rir);
+    hir_destroy(hir);
 }

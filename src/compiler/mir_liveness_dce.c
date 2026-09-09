@@ -123,6 +123,12 @@ mir_collect_block_defs_uses(MIRRoutine *routine)
                                           inst->result_name))
                     return false;
             }
+            if (inst->kind == MIR_INST_DESTRUCTURE && inst->destructure_result_names != NULL) {
+                for (size_t d = 0; d < inst->destructure_binding_count; d++)
+                    if (!mir_append_block_set(&block->def_names, &block->def_name_count,
+                            &block->def_name_capacity, inst->destructure_result_names[d]))
+                        return false;
+            }
         }
     }
 

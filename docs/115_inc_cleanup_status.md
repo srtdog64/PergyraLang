@@ -7,6 +7,17 @@ progress ledger, not a new language surface.
 
 ## Closed In This Slice
 
+- 2026-09-09 CI repair: preserve the existing 145-fragment ceiling. Merge
+  `test_mir_lowering_part_c_3.cases.h` into `test_mir_lowering_part_c_2.cases.h`,
+  `test_mir_inventory_identity.cases.h` into
+  `test_mir_lexical_binding_identity.cases.h`, and
+  `test_air_counter_strict_part_i.cases.h` into `test_air_strict_part_f.cases.h`.
+  The functions, assertions and harness invocations remain unchanged; source
+  pins follow their destination. These are physical test-family consolidations,
+  not deleted regression cases or a higher limit. The callable capability
+  fixed-point owner and role-dispatch projection share one private equation
+  store; the core remains below its existing 599-line semantic owner cap.
+
 - 2026-07-15 MIR type/declaration owner split: source provenance/location/order
   moved from `mir_source_shape.c` to `mir_source_provenance.c`; generic
   declaration metadata capture/cleanup moved from `mir_decl_headers.c` to

@@ -10,7 +10,6 @@
 #include "llvm_mir_resource_view.h"
 
 #include "llvm_internal.h"
-#include "codegen_mir_resource_name_helpers.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -209,77 +208,6 @@ llvm_mir_bind_resource_view_def_alias(const MIRInstruction *inst,
             return false;
     }
     return true;
-}
-
-bool
-llvm_mir_emit_borrow_view_alias(const MIRInstruction *inst, LLVMGenCtx *ctx)
-{
-    LLVMVarEntry source_entry;
-    const char *source_name;
-    const char *inner;
-    bool is_secure;
-    TranspilerMIRResourceOp op;
-
-    if (inst == NULL || ctx == NULL || inst->name == NULL
-        || inst->arg0 == NULL || inst->arg1 == NULL)
-        return true;
-    op = transpiler_mir_resource_op_lookup(inst->name);
-    if (op != TRANS_MIR_RESOURCE_OP_BORROW_READ
-        && op != TRANS_MIR_RESOURCE_OP_BORROW_WRITE)
-        return true;
-
-    source_name = inst->resource_owner_slot_anchor != NULL
-        ? inst->resource_owner_slot_anchor
-        : inst->arg0;
-    if ((source_name == NULL || source_name[0] == '\0')
-        && inst->resource_owner_requires_metadata) {
-        llvm_set_mir_inventory_missing(ctx,
-            "LLVM MIR borrow view alias '%s' is missing owner slot ABI metadata",
-            inst->arg1);
-        return false;
-    }
-    inner = llvm_lookup_slot_inner(ctx, source_name);
-    is_secure = llvm_lookup_slot_is_secure(ctx, source_name);
-    if (!llvm_scope_lookup_snapshot(ctx, source_name, &source_entry)
-        || inner == NULL) {
-        /* Closure #86: when the source slot isn't yet registered (MIR
-         * sometimes orders the BorrowRead before the let-decl's
-         * source-stmt-emit fires in a later block, e.g.
-         * pin_mixed_read_view_sequence), skip the alias declaration
-         * silently. The borrow alias is best-effort; the canonical
-         * resource ops on the view (Read/Write) still go through their
-         * own typed runtime layout lookups. The strict error here was
-         * masking a MIR-side ordering gap that's better surfaced
-         * separately rather than blocking the compile. */
-        return true;
-    }
-    LLVMValueRef source_alloca = source_entry.alloca;
-    LLVMTypeRef source_type = source_entry.type;
-
-    if (!llvm_scope_contains(ctx, inst->arg1)) {
-        llvm_scope_declare(ctx, pergyra_strdup(inst->arg1),
-                           source_alloca, source_type);
-    }
-    llvm_register_slot_var(ctx, pergyra_strdup(inst->arg1), inner, is_secure);
-    if (is_secure) {
-        char source_token_name[256];
-        char view_token_name[256];
-        LLVMVarEntry token_entry;
-
-        snprintf(source_token_name, sizeof(source_token_name), "%s_token",
-                 source_name);
-        snprintf(view_token_name, sizeof(view_token_name), "%s_token",
-                 inst->arg1);
-        if (llvm_scope_lookup_snapshot(ctx, source_token_name, &token_entry)) {
-            LLVMValueRef token_alloca = token_entry.alloca;
-            LLVMTypeRef token_type = token_entry.type;
-            if (!llvm_scope_contains(ctx, view_token_name)) {
-                llvm_scope_declare(ctx, pergyra_strdup(view_token_name),
-                                   token_alloca, token_type);
-            }
-        }
-    }
-    return !ctx->has_error;
 }
 
 #endif /* PGY_LLVM_ENABLED */

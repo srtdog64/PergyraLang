@@ -292,7 +292,6 @@ lower_air_from_source(const char *source)
 #include "tests/air/test_air_observability_pin_part_g_1.cases.h"
 #include "tests/air/test_air_observability_pin_part_g_2.cases.h"
 #include "tests/air/test_air_mir_terminator_part_h.cases.h"
-#include "tests/air/test_air_counter_strict_part_i.cases.h"
 
 int
 main(void)

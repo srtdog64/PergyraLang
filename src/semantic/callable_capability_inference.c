@@ -1,4 +1,4 @@
-#include "callable_capability_inference.h"
+#include "callable_capability_equations_internal.h"
 #include "capability_analyze.h"
 #include "type_checker_internal.h"
 #include "diag_codes.h"
@@ -6,77 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct CapabilityInstance CapabilityInstance;
-typedef enum { CAP_UNKNOWN, CAP_DECL, CAP_FORMAL, CAP_BINDING, CAP_RESULT, CAP_CONSTRUCTOR } CapabilityTargetKind;
-typedef struct {
-    CapabilityTargetKind kind;
-    uint32_t id;
-} CapabilityTarget;
-/* Callable captures are rejected by the capture owner. Scalar copy captures
- * do not affect a lambda's capability identity; interning declaration/actual
- * tuples therefore remains finite even when recursion creates local lambdas. */
-typedef struct CapabilityCall {
-    ASTNode *site;
-    CapabilityTarget callee;
-    CapabilityTarget *actuals;
-    size_t count;
-    uint32_t event_id;
-    struct CapabilityCall *next;
-} CapabilityCall;
-typedef struct CapabilityBinding {
-    uint32_t id;
-    CapabilityTarget value;
-    struct CapabilityBinding *next;
-} CapabilityBinding;
-
-struct CallableCapabilityRoutine {
-    ASTNode *decl;
-    uint32_t id;
-    uint32_t *formals;
-    size_t count;
-    uint32_t direct_mask;
-    uint32_t declared_mask;
-    uint32_t direct_effects;
-    uint32_t declared_effects;
-    bool has_effect_contract;
-    Type *type;
-    CapabilityTarget result;
-    bool has_result;
-    CapabilityCall *calls;
-    CapabilityInstance *instances;
-    struct CallableCapabilityRoutine *next;
-};
-typedef struct CapabilityParent {
-    CapabilityInstance *instance;
-    struct CapabilityParent *next;
-} CapabilityParent;
-struct CapabilityInstance {
-    CallableCapabilityRoutine *routine;
-    CapabilityTarget *actuals;
-    CapabilityInstance *next;
-    CapabilityInstance *routine_next;
-    CapabilityInstance *queue_next;
-    CapabilityParent *parents;
-    uint32_t used;
-    uint32_t used_effects;
-    bool closed;
-    bool deferred;
-    bool queued;
-};
-struct CallableCapabilityStore {
-    CallableCapabilityRoutine *routines;
-    CallableCapabilityRoutine **index;
-    size_t count;
-    size_t equation_count;
-    CapabilityBinding *bindings;
-    CapabilityCall *subscriptions;
-    CapabilityInstance *instances;
-    CapabilityInstance *last_instance;
-    bool failed;
-};
-
-static void *
-capability_allocate(SemanticContext *ctx, size_t bytes)
+void *
+callable_capability_allocate_equation(SemanticContext *ctx, size_t bytes)
 {
     void *result = pgy_arena_calloc(&ctx->scratch_arena, bytes);
     if (result == NULL) {
@@ -118,19 +49,19 @@ callable_capability_enter(SemanticContext *ctx, ASTNode *decl, Type **params, si
 {
     CallableCapabilityRoutine *previous = ctx->current_callable_capability;
     if (ctx->callable_capabilities == NULL) {
-        ctx->callable_capabilities = capability_allocate(ctx,
+        ctx->callable_capabilities = callable_capability_allocate_equation(ctx,
             sizeof(*ctx->callable_capabilities));
         if (ctx->callable_capabilities == NULL)
             return previous;
     }
-    CallableCapabilityRoutine *routine = capability_allocate(ctx, sizeof(*routine));
+    CallableCapabilityRoutine *routine = callable_capability_allocate_equation(ctx, sizeof(*routine));
     if (routine == NULL)
         return previous;
     routine->decl = decl;
     routine->id = ast_node_stable_id(decl);
     routine->declared_mask = decl->type == AST_FUNC_DECL
         ? ast_func_declared_capabilities(decl) : 0;
-    routine->formals = capability_allocate(ctx, (count + 1) * sizeof(uint32_t));
+    routine->formals = callable_capability_allocate_equation(ctx, (count + 1) * sizeof(uint32_t));
     if (routine->formals == NULL)
         return previous;
     for (size_t i = 0; i < count; i++) {
@@ -211,7 +142,7 @@ callable_capability_record_binding(SemanticContext *ctx,
         || symbol->type->kind != TYPE_KIND_FUNCTION
         || ctx->callable_capabilities == NULL)
         return;
-    CapabilityBinding *binding = capability_allocate(ctx, sizeof(*binding));
+    CapabilityBinding *binding = callable_capability_allocate_equation(ctx, sizeof(*binding));
     if (binding == NULL)
         return;
     binding->id = symbol->decl_syntax_id;
@@ -254,7 +185,7 @@ callable_capability_record_call(SemanticContext *ctx, ASTNode *site,
             semantic_record_capability(ctx, type_function_capabilities(callee->type));
         return;
     }
-    CapabilityCall *call = capability_allocate(ctx, sizeof(*call));
+    CapabilityCall *call = callable_capability_allocate_equation(ctx, sizeof(*call));
     bool event_invoke = site->type == AST_EVENT_INVOKE;
     size_t count = event_invoke ? ast_event_invoke_arg_count(site)
                                : ast_call_arg_count(site);
@@ -262,7 +193,7 @@ callable_capability_record_call(SemanticContext *ctx, ASTNode *site,
         return;
     call->site = site;
     call->callee = capability_symbol_target(callee);
-    call->actuals = capability_allocate(ctx, (count + 1) * sizeof(CapabilityTarget));
+    call->actuals = callable_capability_allocate_equation(ctx, (count + 1) * sizeof(CapabilityTarget));
     if (call->actuals == NULL)
         return;
     for (size_t i = 0; i < count; i++) {
@@ -286,13 +217,13 @@ callable_capability_record_method_call(SemanticContext *ctx, ASTNode *site,
 {
     CallableCapabilityRoutine *routine = ctx->current_callable_capability;
     if (routine == NULL) return;
-    CapabilityCall *call = capability_allocate(ctx, sizeof(*call));
+    CapabilityCall *call = callable_capability_allocate_equation(ctx, sizeof(*call));
     size_t count = ast_call_arg_count(site);
     if (call == NULL) return;
     call->site = site;
     call->callee = (CapabilityTarget){CAP_DECL,
         ast_call_semantic_callee_decl_id(site)};
-    call->actuals = capability_allocate(ctx, (count + 1) * sizeof(CapabilityTarget));
+    call->actuals = callable_capability_allocate_equation(ctx, (count + 1) * sizeof(CapabilityTarget));
     if (call->actuals == NULL) return;
     for (size_t p = 0; p < count; p++)
         if (params[p] != NULL && params[p]->kind == TYPE_KIND_FUNCTION)
@@ -310,7 +241,7 @@ callable_capability_record_subscription(SemanticContext *ctx,
 {
     if (ctx->callable_capabilities == NULL) return;
     CapabilityTarget target = capability_expression_target(ctx, event);
-    CapabilityCall *call = capability_allocate(ctx, sizeof(*call));
+    CapabilityCall *call = callable_capability_allocate_equation(ctx, sizeof(*call));
     if (call == NULL) return;
     call->site = handler;
     call->event_id = target.kind == CAP_DECL ? target.id : 0;
@@ -328,8 +259,8 @@ capability_routine_compare(const void *a, const void *b)
     return (left > right) - (left < right);
 }
 
-static CallableCapabilityRoutine *
-capability_find_routine(struct CallableCapabilityStore *store, uint32_t id)
+CallableCapabilityRoutine *
+callable_capability_find_routine(struct CallableCapabilityStore *store, uint32_t id)
 {
     size_t lo = 0, hi = store->count;
     while (lo < hi) {
@@ -361,10 +292,10 @@ capability_resolve(SemanticContext *ctx, CapabilityInstance *context,
             CapabilityTarget target = capability_resolve(ctx, context,
                 call->callee, remaining);
             CallableCapabilityRoutine *callee = target.kind == CAP_DECL
-                ? capability_find_routine(store, target.id) : NULL;
+                ? callable_capability_find_routine(store, target.id) : NULL;
             if (callee == NULL || !callee->has_result || callee->count != call->count)
                 return (CapabilityTarget){0};
-            CapabilityTarget *actuals = capability_allocate(ctx,
+            CapabilityTarget *actuals = callable_capability_allocate_equation(ctx,
                 (call->count + 1) * sizeof(CapabilityTarget));
             if (actuals == NULL) return (CapabilityTarget){0};
             for (size_t p = 0; p < call->count; p++)
@@ -410,9 +341,9 @@ capability_instance(SemanticContext *ctx, CallableCapabilityRoutine *routine,
                 || i->actuals[p].id != actuals[p].id) break;
         if (p == routine->count) return i;
     }
-    CapabilityInstance *instance = capability_allocate(ctx, sizeof(*instance));
+    CapabilityInstance *instance = callable_capability_allocate_equation(ctx, sizeof(*instance));
     if (instance == NULL) return NULL;
-    instance->actuals = capability_allocate(ctx,
+    instance->actuals = callable_capability_allocate_equation(ctx,
         (routine->count + 1) * sizeof(CapabilityTarget));
     if (instance->actuals == NULL) return NULL;
     if (routine->count > 0)
@@ -462,21 +393,22 @@ callable_capability_seal(SemanticContext *ctx)
     struct CallableCapabilityStore *store = ctx->callable_capabilities;
     if (store == NULL) return !ctx->has_error;
     if (store->failed || ctx->has_error) return false;
-    store->index = capability_allocate(ctx, store->count * sizeof(*store->index));
+    store->index = callable_capability_allocate_equation(ctx, store->count * sizeof(*store->index));
     if (store->index == NULL) return false;
     size_t n = 0;
     for (CallableCapabilityRoutine *r = store->routines; r; r = r->next)
         store->index[n++] = r;
     qsort(store->index, n, sizeof(*store->index), capability_routine_compare);
+    if (!callable_capability_seal_dispatch(ctx)) return false;
     for (CapabilityCall *call = store->subscriptions; call != NULL;) {
         CapabilityCall *next = call->next;
-        CallableCapabilityRoutine *event = capability_find_routine(store, call->event_id);
+        CallableCapabilityRoutine *event = callable_capability_find_routine(store, call->event_id);
         if (event == NULL || event->decl->type != AST_EVENT_DECL) {
             semantic_error(ctx, call->site, "Event subscription capability identity is missing");
             return false;
         }
         call->count = event->count;
-        call->actuals = capability_allocate(ctx,
+        call->actuals = callable_capability_allocate_equation(ctx,
             (call->count + 1) * sizeof(CapabilityTarget));
         if (call->actuals == NULL) return false;
         for (size_t p = 0; p < call->count; p++)
@@ -492,27 +424,29 @@ callable_capability_seal(SemanticContext *ctx)
             semantic_error(ctx, r->decl, "Callable capability declaration identity is missing or duplicated");
             return false;
         }
-        CapabilityTarget *formals = capability_allocate(ctx,
+        CapabilityTarget *formals = callable_capability_allocate_equation(ctx,
             (r->count + 1) * sizeof(CapabilityTarget));
         if (formals == NULL) return false;
         for (size_t p = 0; p < r->count; p++)
             formals[p] = (CapabilityTarget){CAP_FORMAL, r->formals[p]};
         if (capability_instance(ctx, r, formals,
-                r->count == 0 && r->decl->type != AST_LAMBDA_EXPR) == NULL)
+                r->count == 0 && r->decl->type != AST_LAMBDA_EXPR && !r->abstract_dispatch) == NULL)
             return false;
     }
     for (CapabilityInstance *i = store->instances; i; i = i->next) {
+        if (i->routine->abstract_dispatch && i->routine->calls == NULL)
+            i->deferred = true;
         for (CapabilityCall *call = i->routine->calls; call; call = call->next) {
             CapabilityTarget target = capability_resolve(ctx, i, call->callee,
                 store->equation_count + 1);
             if (target.kind == CAP_CONSTRUCTOR) continue;
             if (target.kind != CAP_DECL) { i->deferred = true; continue; }
-            CallableCapabilityRoutine *callee = capability_find_routine(store, target.id);
+            CallableCapabilityRoutine *callee = callable_capability_find_routine(store, target.id);
             if (callee == NULL || callee->count != call->count) {
                 semantic_error(ctx, call->site, "Callable capability target/signature fact is missing");
                 return false;
             }
-            CapabilityTarget *actuals = capability_allocate(ctx,
+            CapabilityTarget *actuals = callable_capability_allocate_equation(ctx,
                 (call->count + 1) * sizeof(CapabilityTarget));
             if (actuals == NULL) return false;
             for (size_t p = 0; p < call->count; p++)
@@ -520,7 +454,7 @@ callable_capability_seal(SemanticContext *ctx)
                     store->equation_count + 1);
             CapabilityInstance *child = capability_instance(ctx, callee, actuals,
                 i->closed);
-            CapabilityParent *parent = capability_allocate(ctx, sizeof(*parent));
+            CapabilityParent *parent = callable_capability_allocate_equation(ctx, sizeof(*parent));
             if (child == NULL || parent == NULL) return false;
             parent->instance = i;
             parent->next = child->parents;
