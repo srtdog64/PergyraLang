@@ -75,7 +75,12 @@ func SemanticAstGenericConstraintRowsFromNode(
                     name_i = name_i + 1;
                 }
                 if !found {
-                    return false;
+                    // A clause on a callable that declares no type
+                    // parameters binds nothing. The native artifact keeps
+                    // its text and publishes no constraint row, so parity
+                    // admits the same shape and still refuses a crossed
+                    // name where parameters do exist.
+                    if generic_count > 0 { return false; }
                 }
                 part_i = part_i + 1;
             }
