@@ -132,6 +132,8 @@ func DirectMirScalarCfgProgramCSignature(
         let readonly_cell: Bool = plan.routines.parameter_carriages[parameter_row] == "readonly-ref" &&
             DirectMirScalarProgramIdentityCellBorrowCarriage(plan.program.logical_record.identity_cells,
                 plan.routines.parameter_types[parameter_row]) == "readonly-ref";
+        let identity_cell: Bool =
+            plan.routines.parameter_carriages[parameter_row] == "mutable-identity";
         if readonly_record || readonly_array || readonly_cell {
             output = Concat(output, "const ");
         }
@@ -140,7 +142,7 @@ func DirectMirScalarCfgProgramCSignature(
             plan.routines.parameter_types[parameter_row], int_c_type,
             plan.program.logical_record,
             plan.program.payload_free_enum, plan.program.referenced_enum, plan.program.array_string_abi, array_string_projection));
-        if value_result || readonly_record || readonly_array {
+        if value_result || readonly_record || readonly_array || identity_cell {
             output = Concat(output, " *");
         }
         else { output = Concat(output, " "); }

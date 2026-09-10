@@ -345,7 +345,7 @@ mir_validate_program_inventory_shape(const MIRProgram *mir,
                         ? routine->param_type_names[j]
                         : NULL);
             if (carriage < MIR_PARAM_CARRIAGE_VALUE
-                || carriage > MIR_PARAM_CARRIAGE_OWNER_HANDLE) {
+                || carriage > MIR_PARAM_CARRIAGE_MUTABLE_IDENTITY) {
                 if (error_message != NULL) {
                     *error_message = mir_strdup_fmt(
                         "MIR routine '%s' parameter[%zu] has invalid carriage fact",
@@ -369,11 +369,15 @@ mir_validate_program_inventory_shape(const MIRProgram *mir,
                 }
                 return false;
             }
+            /* Indirect passing carries either a readonly borrow or a
+             * declaration that owns identity; both name the caller's
+             * storage instead of a copy of it. */
             if (routine->param_abi_facts[j].pass_indirect
-                && carriage != MIR_PARAM_CARRIAGE_READONLY_REF) {
+                && carriage != MIR_PARAM_CARRIAGE_READONLY_REF
+                && carriage != MIR_PARAM_CARRIAGE_MUTABLE_IDENTITY) {
                 if (error_message != NULL) {
                     *error_message = mir_strdup_fmt(
-                        "MIR routine '%s' parameter[%zu] has indirect ABI without readonly-ref carriage",
+                        "MIR routine '%s' parameter[%zu] has indirect ABI without a borrow or identity carriage",
                         routine->name != NULL
                             ? routine->name
                             : "(anonymous)",

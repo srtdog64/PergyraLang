@@ -128,11 +128,12 @@ func SelfMirParamCarriageName(abi_kind: Int) -> String {
     if abi_kind == 1 { return "value-result"; }
     if abi_kind == 2 { return "owner-handle"; }
     if abi_kind == 3 || abi_kind == 4 { return "readonly-ref"; }
+    if abi_kind == 5 { return "mutable-identity"; }
     return "value";
 }
 
 func SelfMirParamPassName(abi_kind: Int) -> String {
-    if abi_kind == 4 { return "indirect"; }
+    if abi_kind == 4 || abi_kind == 5 { return "indirect"; }
     return "direct";
 }
 

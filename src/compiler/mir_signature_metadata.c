@@ -238,6 +238,22 @@ mir_routine_signature_metadata_capture(const MIRProgram *program,
                         && (nominal_kind == AST_CLASS_DECL
                             || nominal_kind == AST_ZONE_DECL);
                 }
+                /* A declaration that owns identity is never copied into
+                 * a parameter.  The receiver already records this as
+                 * MIR_RECEIVER_CARRIAGE_MUTABLE_IDENTITY; without the
+                 * parameter form each backend had to re-derive it from
+                 * the AST, and a consumer that honoured the MIR fact
+                 * instead copied the caller's object. */
+                if (routine->param_abi_facts[i].carriage
+                        == MIR_PARAM_CARRIAGE_VALUE
+                    && routine->param_type_names[i] != NULL
+                    && mir_decl_header_uses_pointer_self(
+                        mir_find_decl_header(program,
+                            routine->param_type_names[i]))) {
+                    routine->param_abi_facts[i].carriage =
+                        MIR_PARAM_CARRIAGE_MUTABLE_IDENTITY;
+                    routine->param_abi_facts[i].pass_indirect = true;
+                }
                 /* Row 607: when the rendered name is absent because the param
                    is an EventHandler, carry its shape losslessly in MIR. */
                 if (routine->param_type_names[i] == NULL)

@@ -309,6 +309,8 @@ mir_param_carriage_name(MIRParamCarriage carriage)
         return "value-result";
     case MIR_PARAM_CARRIAGE_OWNER_HANDLE:
         return "owner-handle";
+    case MIR_PARAM_CARRIAGE_MUTABLE_IDENTITY:
+        return "mutable-identity";
     case MIR_PARAM_CARRIAGE_VALUE:
     default:
         return "value";

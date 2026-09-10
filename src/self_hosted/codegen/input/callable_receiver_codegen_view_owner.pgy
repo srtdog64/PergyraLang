@@ -26,6 +26,38 @@ struct CodegenCallableReceiverFacts {
     let role_erased: Array<Bool>;
     let role_target_types: Array<String>;
     let role_target_carriages: Array<String>;
+    // Declared type names whose values carry identity. A parameter of
+    // such a type names the caller's object, exactly as a mutable
+    // identity receiver does, so it is passed indirectly and never
+    // copied in.
+    let identity_type_names: Array<String>;
+}
+
+func CodegenCallableIdentityTypeNames(
+    constructors: SemanticAstNominalConstructorFacts
+) -> Array<String> {
+    let names: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(constructors.names) {
+        if CallableReceiverNominalKindUsesMutableIdentity(
+                constructors.nominal_kinds[row]) {
+            ArrayPush(names, constructors.names[row]);
+        }
+        row = row + 1;
+    }
+    return names;
+}
+
+func CodegenCallableParameterOwnsIdentity(
+    ref facts: CodegenCallableReceiverFacts, type_name: String
+) -> Bool {
+    if type_name == "" { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(facts.identity_type_names) {
+        if facts.identity_type_names[row] == type_name { return true; }
+        row = row + 1;
+    }
+    return false;
 }
 
 func CodegenCallableReceiverNominalKind(
@@ -173,7 +205,8 @@ func CodegenCallableReceiverFactsFromSemantic(
     return CodegenCallableReceiverFacts(
         ok, false, source_ids, owners, names, carriages,
         source_parameter_offsets, role_erased,
-        role_target_types, role_target_carriages
+        role_target_types, role_target_carriages,
+        CodegenCallableIdentityTypeNames(constructors)
     );
 }
 
@@ -198,7 +231,7 @@ func CodegenCallableReceiverFactsFromAdmittedAnalysis(
         facts.ok, true, facts.source_syntax_ids, facts.owners, facts.names,
         facts.carriages, facts.source_parameter_offsets, facts.role_erased,
         facts.role_target_types,
-        facts.role_target_carriages
+        facts.role_target_carriages, facts.identity_type_names
     );
 }
 
@@ -379,7 +412,7 @@ func CodegenCallableReceiverFactsFromAdmittedRowsOrDie(
         true, true, facts.source_syntax_ids, facts.owners, facts.names,
         facts.carriages, facts.source_parameter_offsets, facts.role_erased,
         facts.role_target_types,
-        facts.role_target_carriages
+        facts.role_target_carriages, facts.identity_type_names
     );
 }
 

@@ -16,7 +16,7 @@ func SelfMirRoutineParameterRowsReady(
     while row < count {
         if rows.param_node_ids[row] <= 0 ||
             rows.param_abi_kinds[row] < 0 ||
-            rows.param_abi_kinds[row] > 4 ||
+            rows.param_abi_kinds[row] > 5 ||
             rows.param_resource_kinds[row] < 0 ||
             rows.param_resource_kinds[row] > 3 ||
             rows.param_resource_kinds[row] !=

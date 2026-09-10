@@ -17,6 +17,32 @@ import "../semantic/ast_statement_fact_owner.pgy";
 import "../semantic/ast_statement_type_query_owner.pgy";
 import "../semantic/ast_generic_specialization_query_owner.pgy";
 import "../semantic/role_operator_resolution_owner.pgy";
+// The declaration kinds whose values carry identity. This is the
+// self-host reading of the native uses_pointer_self fact: a parameter of
+// such a type names the caller's object instead of a copy of it.
+func SelfMirNominalKindOwnsIdentity(nominal_kind: String) -> Bool {
+    return nominal_kind == "subject" || nominal_kind == "vessel" ||
+        nominal_kind == "zone" || nominal_kind == "world" ||
+        nominal_kind == "relation" || nominal_kind == "effect" ||
+        nominal_kind == "party" || nominal_kind == "role" ||
+        nominal_kind == "roster";
+}
+
+func SelfMirDeclarationOwnsIdentity(
+    ref constructors: SemanticAstNominalConstructorFacts, type_name: String
+) -> Bool {
+    if type_name == "" { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(constructors.names) {
+        if constructors.names[row] == type_name {
+            return SelfMirNominalKindOwnsIdentity(
+                constructors.nominal_kinds[row]);
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
 func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtifactAnalysis,
     ref input: SelfMirRoutineInput, signature_index: Int, build: SelfMirRoutineBuild,
     initializer_types: SemanticAstInitializerTypeFacts) -> SelfMirProgramFacts {
@@ -135,6 +161,14 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
                 }
                 constructor_i = constructor_i + 1;
             }
+        } else if analysis.signatures.param_names[row] != "self" &&
+                SelfMirDeclarationOwnsIdentity(
+                analysis.constructors, param_type) {
+            // A declaration that owns identity is never copied into a
+            // parameter. The native producer derives the same fact from
+            // uses_pointer_self; both routes must record it so a backend
+            // does not re-derive it from source shape.
+            abi_kind = 5;
         }
         ArrayPush(param_abi_kinds, abi_kind);
         ArrayPush(

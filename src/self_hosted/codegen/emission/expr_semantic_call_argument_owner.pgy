@@ -49,7 +49,9 @@ func RewriteSemanticCallArgumentWithReadonlyStringTemporary(
     let source: String = UnwrapOption(text);
     let rendered: String = RewriteSemanticExpectedValue(
         graph, node_id, expected_type, env);
-    if mode != "inout" && mode != "ref" { return rendered; }
+    if mode != "inout" && mode != "ref" && mode != "identity" {
+        return rendered;
+    }
     let readonly_ref_direct: Bool = mode == "ref" &&
         AbiLayoutCReadonlyRefPassesDirect(expected_type);
     let place_kind: Option<Int> = SemanticExpressionGraphPlaceKind(graph, node_id);
@@ -65,6 +67,12 @@ func RewriteSemanticCallArgumentWithReadonlyStringTemporary(
     if mode == "inout" {
         if !direct_binding {
             Die(Concat("inout argument must be a variable: ", source));
+        }
+        return Concat("&", rendered);
+    }
+    if mode == "identity" {
+        if !addressable {
+            Die(Concat("identity argument must be addressable: ", source));
         }
         return Concat("&", rendered);
     }

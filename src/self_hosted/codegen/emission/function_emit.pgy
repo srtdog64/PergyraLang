@@ -164,6 +164,15 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                 p_name, p_type, base_env
             );
         let p_env_binding: CodegenFunctionValueBindingFact = p_binding;
+        let identity_parameter: Bool = !source_receiver_parameter &&
+            p_mode == 0 &&
+            CodegenCallableParameterOwnsIdentity(receiver_facts, p_type);
+        if identity_parameter {
+            p_env_binding = CodegenFunctionValueBindingFactForCExpression(
+                p_name, p_type, base_env,
+                Concat("(*", Concat(p_binding.c_name, ")"))
+            );
+        }
         if source_receiver_parameter && (mutable_identity_receiver ||
             (role_receiver && role_binding.pointer_identity)) {
             p_env_binding = CodegenFunctionValueBindingFactForCExpression(
@@ -196,6 +205,8 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         } else if source_receiver_parameter && role_receiver {
             c_param = "void *_pgy_raw_self";
             prologue = Concat(prologue, role_binding.prologue);
+        } else if identity_parameter {
+            c_param = Concat(c_param_type, Concat(" *", c_p_name));
         }
         let readonly_ref_direct: Bool = p_mode == 3 &&
             AbiLayoutCReadonlyRefPassesDirect(p_type);

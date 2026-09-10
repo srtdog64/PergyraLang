@@ -67,7 +67,12 @@ typedef enum
     MIR_PARAM_CARRIAGE_VALUE,
     MIR_PARAM_CARRIAGE_READONLY_REF,
     MIR_PARAM_CARRIAGE_VALUE_RESULT,
-    MIR_PARAM_CARRIAGE_OWNER_HANDLE
+    MIR_PARAM_CARRIAGE_OWNER_HANDLE,
+    /* The declared type owns identity, so the parameter names the
+     * caller's object rather than a copy of it.  This is the parameter
+     * form of MIR_RECEIVER_CARRIAGE_MUTABLE_IDENTITY: no copy-in,
+     * no copy-out, and the callee's writes are the caller's writes. */
+    MIR_PARAM_CARRIAGE_MUTABLE_IDENTITY
 } MIRParamCarriage;
 
 typedef enum

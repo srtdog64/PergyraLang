@@ -352,6 +352,15 @@ func RewriteCallArgsWithModes(inner: String, modes: String, param_types: String,
                 Die(Concat("inout argument must be a variable: ", part));
             }
             rendered = Concat("&", rendered);
+        } else if mode == "identity" {
+            let identity_member_lvalue: Bool =
+                StringIndexOf(part, ".") > 0 &&
+                StringIndexOf(part, "(") < 0 &&
+                StringIndexOf(part, "[") < 0;
+            if !IsIdentifier(part) && !identity_member_lvalue {
+                Die(Concat("identity argument must be addressable: ", part));
+            }
+            rendered = Concat("&", rendered);
         } else if mode == "ref" {
             let already_ref: Bool = IsIdentifier(part) &&
                 TypeEnvBindingIsReadonlyRef(env, part);
