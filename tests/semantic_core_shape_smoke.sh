@@ -34,7 +34,7 @@ ensure_shape_scan_cache() {
     >"$program_root_uses"
 while IFS=: read -r path line text; do
     [ -n "$path" ] || continue
-    if [ "$path" = "src/semantic/callable_capability_inference.c" ] ||
+    if [ "$path" = "src/semantic/callable_capability_record.c" ] ||
        [ "$path" = "src/semantic/type_checker_call_contract_helpers.c" ] ||
        [ "$path" = "src/semantic/type_checker_domain_role_lookup.c" ] ||
        [ "$path" = "src/semantic/type_checker_host_helpers.c" ] ||

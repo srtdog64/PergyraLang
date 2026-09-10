@@ -662,6 +662,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/lifecycle_analyze.c \
                    $(SEMANTIC_DIR)/capability_analyze.c \
                    $(SEMANTIC_DIR)/callable_capability_inference.c \
+                   $(SEMANTIC_DIR)/callable_capability_record.c \
                    $(SEMANTIC_DIR)/callable_capability_dispatch.c \
                    $(SEMANTIC_DIR)/region_escape_fact.c \
                    $(SEMANTIC_DIR)/region_retention_summary.c \
