@@ -202,7 +202,7 @@ func SemanticAstCapabilityCallGraphFromSignatures(
 // identity, because the arena reserves call target syntax ids for call nodes.
 // Recover the implementing method so its authority joins the caller's.
 func SemanticAstCapabilityRoleOperatorTargetNode(
-    ref signatures: SemanticAstFunctionSignatureFacts, name: String
+    signatures: SemanticAstFunctionSignatureFacts, name: String
 ) -> Int {
     let identity: SemanticRoleOperatorTargetIdentity =
         SemanticRoleOperatorTargetIdentityFromName(name);
@@ -225,7 +225,7 @@ func SemanticAstCapabilityRoleOperatorTargetNode(
 
 func SemanticAstCapabilityObserveCallRange(
     ref graph: SemanticExpressionGraphFacts, ref roots: SemanticCallSpineRoots,
-    ref signatures: SemanticAstFunctionSignatureFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
     start_node: Int, end_node: Int, callable_index: Int,
     inout state: SemanticAstCapabilityCallGraph
 ) -> Void {
