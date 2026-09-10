@@ -31,7 +31,7 @@ pgy_selfhost_verify_driver_rung2_canonical_declaration_order() {
     for artifact in "$native_canonical" "$self_canonical"; do
         canonical="$(tr -d '\r\n' <"$artifact")"
         case "$canonical" in
-            *'"decls":[{"kind":"subject"'*'"kind":"role"'*'"kind":"ability"'*) ;;
+            *'"decls":[{"kind":"class","nominal_kind":"subject"'*'"kind":"role"'*'"kind":"ability"'*) ;;
             *)
                 echo "[self-host-parity:driver-rung2] $backend canonical declaration phase drifted: $artifact" >&2
                 exit 1

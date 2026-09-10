@@ -248,8 +248,13 @@ PY
             return 1
         fi
         if [[ "$apply_negative_name" == "domain_topology_apply_effect_participant_rejected" ]]; then
-            grep -Fq 'self-host DIR topology participant does not join a subject slot' \
-                "$apply_negative_out" "$apply_negative_err" || {
+            # The zone contract owner refuses this fixture before DIR
+            # topology sees it, so either refusal names the same fact at
+            # a different stage.
+            { grep -Fq 'self-host DIR topology participant does not join a subject slot' \
+                "$apply_negative_out" "$apply_negative_err" ||
+              grep -Fq 'must name a declared subject slot' \
+                "$apply_negative_out" "$apply_negative_err"; } || {
                 echo "[self-host-parity:driver-rung2] $backend apply participant-kind negative drifted" >&2
                 cat "$apply_negative_out" "$apply_negative_err" >&2
                 return 1
