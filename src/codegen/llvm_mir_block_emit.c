@@ -120,6 +120,22 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
         return;
 
     for (size_t i = 0; i < mir_block->instruction_count; i++) {
+        /* MIR lets resource releases and cleanup edges trail a terminator
+         * (transpiler_mir_emission_contract.c). They are unreachable in the C
+         * backend as well, and LLVM rejects any instruction placed after one.
+         * Anything else trailing a terminator is a topology fault, not a
+         * silent drop. */
+        if (emitted_terminator) {
+            MIRInstKind trailing = mir_block->instructions[i].kind;
+            if (trailing != MIR_INST_RESOURCE_OP
+                && trailing != MIR_INST_CLEANUP_EDGE) {
+                llvm_set_mir_topology_invalid(ctx,
+                    "LLVM MIR block %llu carries instruction kind %d after its terminator",
+                    (unsigned long long)mir_block->id, (int)trailing);
+                return;
+            }
+            continue;
+        }
         const MIRInstruction *inst = &mir_block->instructions[i];
         ctx->current_mir_instruction = inst;
         llvm_mir_seed_instruction_use_scope(inst, ctx, vars, var_count);

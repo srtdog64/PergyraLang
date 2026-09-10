@@ -139,8 +139,7 @@ scaffold_simulator_dir(const char *target)
         "\n"
         "func Main() -> Void\n"
         "{\n"
-        "    let habitat = Habitat(Creature(\"Fox\", 5, ToolCard(\"Camp Tea\", 1), Cycle(0)));\n"
-        "    let sim = %sWorld(habitat);\n"
+        "    let sim = %sWorld(Habitat(Creature(\"Fox\", 5, ToolCard(\"Camp Tea\", 1), Cycle(0))));\n"
         "    sim.Tick();\n"
         "    sim.Tick();\n"
         "    sim.Save(\"results.txt\");\n"
@@ -321,8 +320,7 @@ scaffold_project_dir(const char *target)
         "\n"
         "func Open%sWorld() -> %sWorld\n"
         "{\n"
-        "    let zone = MainZone(Unit(\"hero\", Tool(\"Bandage\", 1), Health(10)));\n"
-        "    return %sWorld(zone);\n"
+        "    return %sWorld(MainZone(Unit(\"hero\", Tool(\"Bandage\", 1), Health(10))));\n"
         "}\n",
         name,
         name,

@@ -151,25 +151,11 @@ func OpenCommerceWorld() -> CommerceWorld
         0,
         "idle"
     );
-    let cart = CartZone(
-        Clone(buyer),
-        Clone(merchant)
-    );
-    let payment = PaymentZone(
-        Clone(buyer),
-        Clone(merchant)
-    );
-    let refund = RefundZone(
-        Clone(buyer),
-        Clone(merchant)
-    );
-    let account = AccountZone(Clone(buyer));
-
     return CommerceWorld(
-        cart,
-        payment,
-        refund,
-        account,
+        CartZone(Clone(buyer), Clone(merchant)),
+        PaymentZone(Clone(buyer), Clone(merchant)),
+        RefundZone(Clone(buyer), Clone(merchant)),
+        AccountZone(Clone(buyer)),
         "",
         "/cart",
         "cart"

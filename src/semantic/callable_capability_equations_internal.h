@@ -21,6 +21,13 @@ typedef struct CapabilityCall {
     uint32_t event_id;
     struct CapabilityCall *next;
 } CapabilityCall;
+/* A callable-valued function may return one of several declarations. The
+ * authority of a call through such a value is the union over the candidates,
+ * so the equation keeps every distinct return target, not just a collapsed one. */
+typedef struct CapabilityResultTarget {
+    CapabilityTarget target;
+    struct CapabilityResultTarget *next;
+} CapabilityResultTarget;
 typedef struct CapabilityBinding {
     uint32_t id;
     CapabilityTarget value;
@@ -45,6 +52,8 @@ struct CallableCapabilityRoutine {
     bool abstract_dispatch;
     Type *type;
     CapabilityTarget result;
+    CapabilityResultTarget *results;
+    bool result_unknown;
     bool has_result;
     CapabilityCall *calls;
     CapabilityInstance *instances;

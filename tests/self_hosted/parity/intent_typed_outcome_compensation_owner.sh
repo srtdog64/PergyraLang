@@ -166,7 +166,7 @@ def main_named_call(document):
     return next(
         row for routine in document["routines"] if routine["name"] == "Main"
         for block in routine["blocks"] for row in block["instructions"] if
-        row.get("id") == 6 and row.get("arg0") == "Observe")
+        row.get("arg0") == "Observe" and "expr0_graph" in row)
 document = copy.deepcopy(base)
 document["intent_execution"]["plan_digest"] += 1
 mutations["plan-digest"] = document

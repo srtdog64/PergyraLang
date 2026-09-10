@@ -58,18 +58,9 @@ func OpenLogisticsWorld() -> LogisticsWorld
         "north",
         "idle"
     );
-    let loading = LoadingZone(
-        Clone(courier),
-        Clone(dispatcher)
-    );
-    let delivery = DeliveryZone(
-        Clone(courier),
-        Clone(dispatcher)
-    );
-
     return LogisticsWorld(
-        loading,
-        delivery,
+        LoadingZone(Clone(courier), Clone(dispatcher)),
+        DeliveryZone(Clone(courier), Clone(dispatcher)),
         "",
         0
     );

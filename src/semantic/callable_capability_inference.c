@@ -161,6 +161,22 @@ callable_capability_record_return(SemanticContext *ctx, ASTNode *value)
     if (!routine->has_result) routine->result = target;
     else if (target.kind != routine->result.kind || target.id != routine->result.id)
         routine->result = (CapabilityTarget){0};
+    if (target.kind == CAP_UNKNOWN) {
+        routine->result_unknown = true;
+    } else {
+        CapabilityResultTarget *seen = routine->results;
+        while (seen != NULL && (seen->target.kind != target.kind
+               || seen->target.id != target.id))
+            seen = seen->next;
+        if (seen == NULL) {
+            CapabilityResultTarget *entry =
+                callable_capability_allocate_equation(ctx, sizeof(*entry));
+            if (entry == NULL) return;
+            entry->target = target;
+            entry->next = routine->results;
+            routine->results = entry;
+        }
+    }
     routine->has_result = true;
 }
 
@@ -276,9 +292,43 @@ callable_capability_find_routine(struct CallableCapabilityStore *store, uint32_t
 static CapabilityInstance *capability_instance(SemanticContext *,
     CallableCapabilityRoutine *, CapabilityTarget *, bool);
 
+/* Only declaration candidates carry authority the caller can name; a formal
+ * or binding candidate still belongs to the callee's own frame, and one
+ * unnamed return leaves the whole set an under-approximation. */
+static CapabilityResultTarget *
+capability_routine_result_candidates(const CallableCapabilityRoutine *routine)
+{
+    if (routine == NULL || routine->result_unknown || routine->results == NULL)
+        return NULL;
+    for (const CapabilityResultTarget *r = routine->results; r != NULL; r = r->next)
+        if (r->target.kind != CAP_DECL)
+            return NULL;
+    return routine->results;
+}
+
+/* A callable value can cross frames before it is invoked, so the call that
+ * produced it may sit in another routine. Declaration candidates are global
+ * facts, so the caller can still name the authority it inherits. */
+static CapabilityResultTarget *
+capability_foreign_result_candidates(struct CallableCapabilityStore *store,
+                                     uint32_t site_id)
+{
+    for (CallableCapabilityRoutine *r = store->routines; r != NULL; r = r->next)
+        for (CapabilityCall *call = r->calls; call != NULL; call = call->next) {
+            if (ast_node_stable_id(call->site) != site_id)
+                continue;
+            if (call->callee.kind != CAP_DECL)
+                return NULL;
+            return capability_routine_result_candidates(
+                callable_capability_find_routine(store, call->callee.id));
+        }
+    return NULL;
+}
+
 static CapabilityTarget
 capability_resolve(SemanticContext *ctx, CapabilityInstance *context,
-                   CapabilityTarget value, size_t remaining)
+                   CapabilityTarget value, size_t remaining,
+                   CapabilityResultTarget **candidates_out)
 {
     struct CallableCapabilityStore *store = ctx->callable_capabilities;
     /* Binding aliases always refer to earlier lexical declarations. A broken
@@ -288,9 +338,14 @@ capability_resolve(SemanticContext *ctx, CapabilityInstance *context,
             CapabilityCall *call = context->routine->calls;
             while (call != NULL && ast_node_stable_id(call->site) != value.id)
                 call = call->next;
-            if (call == NULL) return (CapabilityTarget){0};
+            if (call == NULL) {
+                if (candidates_out != NULL)
+                    *candidates_out = capability_foreign_result_candidates(
+                        store, value.id);
+                return (CapabilityTarget){0};
+            }
             CapabilityTarget target = capability_resolve(ctx, context,
-                call->callee, remaining);
+                call->callee, remaining, NULL);
             CallableCapabilityRoutine *callee = target.kind == CAP_DECL
                 ? callable_capability_find_routine(store, target.id) : NULL;
             if (callee == NULL || !callee->has_result || callee->count != call->count)
@@ -299,10 +354,21 @@ capability_resolve(SemanticContext *ctx, CapabilityInstance *context,
                 (call->count + 1) * sizeof(CapabilityTarget));
             if (actuals == NULL) return (CapabilityTarget){0};
             for (size_t p = 0; p < call->count; p++)
-                actuals[p] = capability_resolve(ctx, context, call->actuals[p], remaining);
+                actuals[p] = capability_resolve(ctx, context, call->actuals[p],
+                    remaining, NULL);
             context = capability_instance(ctx, callee, actuals,
                 context->closed);
             if (context == NULL) return (CapabilityTarget){0};
+            if (callee->result.kind == CAP_UNKNOWN) {
+                /* Several declarations can reach this result. Keep the result
+                 * site instead of collapsing it, so a frame that receives the
+                 * value as an argument can still name the candidates. */
+                CapabilityResultTarget *reachable =
+                    capability_routine_result_candidates(callee);
+                if (candidates_out != NULL)
+                    *candidates_out = reachable;
+                return reachable != NULL ? value : (CapabilityTarget){0};
+            }
             value = callee->result;
             continue;
         }
@@ -326,6 +392,44 @@ capability_resolve(SemanticContext *ctx, CapabilityInstance *context,
         return value;
     }
     return (CapabilityTarget){0};
+}
+
+/* A call through a callable-valued result runs one of the candidates, so
+ * the caller inherits the union of their authority. Linking every
+ * candidate as a child keeps the fixed point sound without pretending the
+ * value site resolved to a single declaration. */
+static bool
+capability_link_result_candidates(SemanticContext *ctx,
+                                  struct CallableCapabilityStore *store,
+                                  CapabilityInstance *caller,
+                                  CapabilityCall *call,
+                                  CapabilityResultTarget *candidates)
+{
+    if (candidates == NULL)
+        return false;
+    for (CapabilityResultTarget *c = candidates; c != NULL; c = c->next) {
+        CallableCapabilityRoutine *callee = c->target.kind == CAP_DECL
+            ? callable_capability_find_routine(store, c->target.id) : NULL;
+        if (callee == NULL || callee->count != call->count)
+            return false;
+        CapabilityTarget *actuals = callable_capability_allocate_equation(ctx,
+            (call->count + 1) * sizeof(CapabilityTarget));
+        if (actuals == NULL)
+            return false;
+        for (size_t p = 0; p < call->count; p++)
+            actuals[p] = capability_resolve(ctx, caller, call->actuals[p],
+                store->equation_count + 1, NULL);
+        CapabilityInstance *child = capability_instance(ctx, callee, actuals,
+            caller->closed);
+        CapabilityParent *parent =
+            callable_capability_allocate_equation(ctx, sizeof(*parent));
+        if (child == NULL || parent == NULL)
+            return false;
+        parent->instance = caller;
+        parent->next = child->parents;
+        child->parents = parent;
+    }
+    return true;
 }
 
 static CapabilityInstance *
@@ -437,10 +541,16 @@ callable_capability_seal(SemanticContext *ctx)
         if (i->routine->abstract_dispatch && i->routine->calls == NULL)
             i->deferred = true;
         for (CapabilityCall *call = i->routine->calls; call; call = call->next) {
+            CapabilityResultTarget *candidates = NULL;
             CapabilityTarget target = capability_resolve(ctx, i, call->callee,
-                store->equation_count + 1);
+                store->equation_count + 1, &candidates);
             if (target.kind == CAP_CONSTRUCTOR) continue;
-            if (target.kind != CAP_DECL) { i->deferred = true; continue; }
+            if (target.kind != CAP_DECL) {
+                if (!capability_link_result_candidates(ctx, store, i,
+                        call, candidates))
+                    i->deferred = true;
+                continue;
+            }
             CallableCapabilityRoutine *callee = callable_capability_find_routine(store, target.id);
             if (callee == NULL || callee->count != call->count) {
                 semantic_error(ctx, call->site, "Callable capability target/signature fact is missing");
@@ -451,7 +561,7 @@ callable_capability_seal(SemanticContext *ctx)
             if (actuals == NULL) return false;
             for (size_t p = 0; p < call->count; p++)
                 actuals[p] = capability_resolve(ctx, i, call->actuals[p],
-                    store->equation_count + 1);
+                    store->equation_count + 1, NULL);
             CapabilityInstance *child = capability_instance(ctx, callee, actuals,
                 i->closed);
             CapabilityParent *parent = callable_capability_allocate_equation(ctx, sizeof(*parent));

@@ -32,6 +32,12 @@ llvm_mir_bind_versioned_local_scope(LLVMGenCtx *ctx,
     }
     entry = llvm_mir_get_var_entry(vars, var_count, versioned_name);
     if (entry == NULL || entry->alloca == NULL || entry->type == NULL) {
+        /* A slot or channel binding keeps its storage in the resource
+         * registry, never in the local inventory, so its versioned uses
+         * name that resource rather than a missing local. */
+        if (llvm_lookup_channel_inner(ctx, base_name) != NULL
+            || llvm_lookup_slot_inner(ctx, base_name) != NULL)
+            return;
         /* Entry inventories may retain dead versions after DCE. Actual reads
          * and phi results require exact storage, never another binding's .1. */
         if (required)

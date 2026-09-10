@@ -217,9 +217,8 @@ func BuildJourneyZone() -> JourneyZone
 
 func OpenTavernCampaign() -> TavernCampaignWorld
 {
-    let journey = BuildJourneyZone();
     return TavernCampaignWorld(
-        journey,
+        BuildJourneyZone(),
         0, 0, 0, 0,
         2, 3, 4, 5,
         "",
