@@ -162,15 +162,23 @@ func GenericInstanceAppend(
         ancestor = parents[ancestor];
     }
     let instance: Int = ArrayLength(closure.template_rows);
-    ArrayPush(closure.template_rows, target);
-    ArrayPush(closure.actual_starts, ArrayLength(closure.actual_types));
-    ArrayPush(closure.actual_counts, ArrayLength(actuals));
+    let template_rows: Array<Int> = closure.template_rows;
+    let actual_starts: Array<Int> = closure.actual_starts;
+    let actual_counts: Array<Int> = closure.actual_counts;
+    let actual_types: Array<String> = closure.actual_types;
+    ArrayPush(template_rows, target);
+    ArrayPush(actual_starts, ArrayLength(actual_types));
+    ArrayPush(actual_counts, ArrayLength(actuals));
     ArrayPush(parents, parent);
     let i: Int = 0;
     while i < ArrayLength(actuals) {
-        ArrayPush(closure.actual_types, actuals[i]);
+        ArrayPush(actual_types, actuals[i]);
         i = i + 1;
     }
+    closure.template_rows = template_rows;
+    closure.actual_starts = actual_starts;
+    closure.actual_counts = actual_counts;
+    closure.actual_types = actual_types;
     return instance;
 }
 
@@ -268,9 +276,15 @@ func GenericInstanceClosureFromRecipes(
             if target < 0 {
                 return GenericInstanceClosureError("constructor-expanding recursive specialization has no admitted finite closure");
             }
-            ArrayPush(result.call_contexts, instance);
-            ArrayPush(result.call_recipes, recipe);
-            ArrayPush(result.call_targets, target);
+            let call_contexts: Array<Int> = result.call_contexts;
+            let call_recipes: Array<Int> = result.call_recipes;
+            let call_targets: Array<Int> = result.call_targets;
+            ArrayPush(call_contexts, instance);
+            ArrayPush(call_recipes, recipe);
+            ArrayPush(call_targets, target);
+            result.call_contexts = call_contexts;
+            result.call_recipes = call_recipes;
+            result.call_targets = call_targets;
             occurrence = occurrence + 1;
         }
         instance = instance + 1;
