@@ -98,7 +98,7 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
 
     if (ok && existing != NULL) {
         CallableCapabilityRoutine *previous = callable_capability_enter(ctx, node,
-            existing->type->data.function.param_types,
+            type_function_param_types(existing->type),
             type_function_param_count(existing->type));
         callable_capability_leave(ctx, previous, existing->type, 0, 0);
     }

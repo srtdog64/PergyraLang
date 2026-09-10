@@ -34,7 +34,8 @@ ensure_shape_scan_cache() {
     >"$program_root_uses"
 while IFS=: read -r path line text; do
     [ -n "$path" ] || continue
-    if [ "$path" = "src/semantic/type_checker_call_contract_helpers.c" ] ||
+    if [ "$path" = "src/semantic/callable_capability_inference.c" ] ||
+       [ "$path" = "src/semantic/type_checker_call_contract_helpers.c" ] ||
        [ "$path" = "src/semantic/type_checker_domain_role_lookup.c" ] ||
        [ "$path" = "src/semantic/type_checker_host_helpers.c" ] ||
        [ "$path" = "src/semantic/type_checker_host_lookup.c" ] ||
@@ -499,7 +500,7 @@ if grep -q 'find_type_decl_by_name' src/semantic/type_checker_class_decl.c; then
     fail "class declaration validation must not reopen direct type lookup"
 fi
 
-grep -q 'semantic_host_decl_for_type(ctx, sym->type)' \
+grep -q 'semantic_host_decl_for_type(ctx, path.type)' \
     src/semantic/type_checker_assignment.c \
     || fail "assignment projection immutability checks must consume semantic host decl seam"
 

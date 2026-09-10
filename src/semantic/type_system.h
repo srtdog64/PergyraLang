@@ -190,6 +190,7 @@ void          type_registry_destroy(TypeRegistry* registry);
 /* Type operations */
 Type* type_create_primitive(const char* name, size_t size, bool is_signed);
 Type* type_create_generic(const char* param_name);
+const char* type_generic_param_name(const Type* type);
 Type* type_create_constructed(Type* constructor, Type** args, size_t arg_count);
 Type* type_create_function(Type** params, size_t param_count, Type* return_type);
 Type* type_constructed_constructor(const Type* type);
@@ -213,6 +214,7 @@ Type* type_function_return_type(const Type* type);
 void type_function_set_return_type(Type* type, Type* return_type);
 size_t type_function_param_count(const Type* type);
 Type* type_function_param_type(const Type* type, size_t index);
+Type** type_function_param_types(const Type* type);
 ParamMode type_function_param_mode(const Type* type, size_t index);
 void type_function_set_param_mode(Type* type, size_t index, ParamMode mode);
 uint32_t type_function_param_escape_summary(const Type* type, size_t index);

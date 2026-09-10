@@ -93,7 +93,7 @@ require_text "src/semantic/type_checker_assignment.c" \
 require_text "src/semantic/type_checker_assignment.c" \
     "tobject '%s' fields are immutable"
 require_text "src/semantic/type_checker_assignment.c" \
-    'transfer snapshots must be republished from their source'
+    'update the source and publish a new transfer snapshot'
 require_text "src/semantic/type_checker_domain_slots.c" \
     'only refresh/publish/bind owns projection source identity'
 require_text "src/semantic/type_checker_domain_slots.c" \

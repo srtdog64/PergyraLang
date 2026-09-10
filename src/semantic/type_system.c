@@ -328,6 +328,14 @@ type_create_generic(const char *param_name)
     return t;
 }
 
+const char *
+type_generic_param_name(const Type *type)
+{
+    if (type == NULL || type->kind != TYPE_KIND_GENERIC)
+        return NULL;
+    return type->data.generic.param_name;
+}
+
 Type *
 type_create_constructed(Type *constructor, Type **args, size_t arg_count)
 {

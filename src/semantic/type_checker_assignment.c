@@ -33,8 +33,8 @@ assignment_field_write_path(ASTNode *node, SemanticContext *ctx)
         path = assignment_field_write_path(ast_array_access_array(node), ctx);
         if ((type_is_constructed_named(path.type, "Array")
                 || type_is_constructed_named(path.type, "Slice"))
-            && path.type->data.constructed.arg_count == 1)
-            path.type = path.type->data.constructed.args[0];
+            && type_constructed_arg_count(path.type) == 1)
+            path.type = type_constructed_arg(path.type, 0);
         else
             path.type = TYPE_UNKNOWN;
         return path;

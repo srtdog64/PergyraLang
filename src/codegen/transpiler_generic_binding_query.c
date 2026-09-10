@@ -36,17 +36,23 @@ transpiler_generic_call_bindings_from_mir(TranspilerCtx *ctx,
     const char *outer_formals[MAX_GENERIC_BINDINGS];
     const char *outer_actuals[MAX_GENERIC_BINDINGS];
 
-    if (mir == NULL || routine == NULL || fact == NULL
-        || fact->method_routine_index >= mir->routine_count
-        || fact->caller_routine_index >= mir->routine_count
-        || &mir->routines[fact->method_routine_index] != routine
+    if (mir == NULL || routine == NULL || fact == NULL)
+        return false;
+
+    TranspilerMIRRoutineInventory inventory;
+    transpiler_mir_routine_inventory_from_program(mir, &inventory);
+    const MIRRoutine *caller = transpiler_routine_inventory_get(
+        &inventory, fact->caller_routine_index);
+    if (caller == NULL
+        || transpiler_routine_inventory_get(&inventory,
+               fact->method_routine_index) != routine
         || ctx->active_mir_routine == NULL
         || transpiler_mir_routine_source_syntax_id(ctx->active_mir_routine) !=
-            transpiler_mir_routine_source_syntax_id(
-                &mir->routines[fact->caller_routine_index])
+            transpiler_mir_routine_source_syntax_id(caller)
         || fact->owner_name == NULL || fact->owner_name[0] != '\0'
         || fact->binding_count == 0
-        || fact->binding_count != routine->generic_param_count
+        || fact->binding_count
+            != transpiler_mir_routine_generic_param_count(routine)
         || fact->binding_count > MAX_GENERIC_BINDINGS
         || ctx->generic_binding_count < 0
         || ctx->generic_binding_count > MAX_GENERIC_BINDINGS)

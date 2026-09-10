@@ -104,7 +104,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
     bool previous_tracking = ctx->tracking_function_effects;
     Type *intent_type = existing != NULL ? existing->type : NULL;
     CallableCapabilityRoutine *previous_capability = callable_capability_enter(
-        ctx, node, intent_type != NULL ? intent_type->data.function.param_types : NULL,
+        ctx, node, type_function_param_types(intent_type),
         type_function_param_count(intent_type));
     ctx->current_function_capabilities = 0;
     ctx->current_function_effects = EFFECT_NONE;

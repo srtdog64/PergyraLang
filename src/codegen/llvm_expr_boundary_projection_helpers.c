@@ -120,7 +120,9 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         && (decl == NULL || decl->type != AST_FUNC_DECL)))
         return NULL;
 
-    decl_name = bound_routine != NULL ? bound_routine->name : ast_declaration_name(decl);
+    decl_name = bound_routine != NULL
+        ? llvm_mir_routine_name(bound_routine)
+        : ast_declaration_name(decl);
     decl_is_extern = bound_routine == NULL && llvm_decl_is_extern_function(ctx, decl);
     if (bound_routine == NULL && llvm_active_has_mir(ctx) && !decl_is_extern)
         routine = llvm_active_function_routine_by_name(ctx, decl_name);

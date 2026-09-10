@@ -3690,9 +3690,11 @@ done
 for term in \
     "mir_decl_header_set_generics" \
     "ast_declaration_generic_params(decl)" \
-    "meta->bound_type_name = mir_capture_type_name(constraint, NULL)" \
+    "mir_generic_param_bound_capture(" \
+    "decl, param, &meta->bound_type_name)" \
     "meta->default_arg_type_name =" \
-    "constraint != NULL && meta->bound_type_name == NULL" \
+    "if (constraint != NULL)" \
+    "return *constraint_out != NULL;" \
     "default_type != NULL" \
     "header->generic_metadata_count = count"; do
     require_term "src/compiler/mir_decl_header_generic_metadata.c" "$term"
@@ -4992,10 +4994,11 @@ for term in \
     "const LLVMGenericTemplate *generic_template =" \
     "llvm_lookup_generic_template_entry(ctx, callee_name)" \
     "generic_template->routine" \
-    "mir_decl_header_generic_param_count(generic_header)" \
+    "mir_generic_method_specialization_for_call(mir, ast_node_stable_id(call))" \
+    "fact->binding_count != routine->generic_param_count" \
     "llvm_mir_routine_signature_metadata_complete(ctx," \
-    "specialized = *generic_routine" \
-    "specialized.name = mangled" \
+    "specialized = *routine" \
+    "specialized.name = symbol" \
     "llvm_emit_func_from_mir(&specialized, ctx)"; do
     require_term "src/codegen/llvm_expr_spawn_generic.c" "$term"
 done
@@ -5515,7 +5518,7 @@ if grep -Eq 'find_(intent|function)_decl\(ctx, name\)' \
     fail "C call type inference must consume find_callable_decl instead of reopening callable lookup"
 fi
 require_term "src/codegen/transpiler_expr_call_user_emit.c" \
-    "ASTNode *decl = (callee->type == AST_IDENTIFIER)"
+    "ASTNode *decl = (callee->type == AST_IDENTIFIER && !local_callee)"
 require_term "src/codegen/transpiler_expr_call_user_emit.c" \
     "? find_callable_decl(ctx, callee_name) : NULL"
 if grep -Fq "find_function_decl(ctx, callee_name)" \
@@ -5528,10 +5531,8 @@ if grep -Fq "find_function_decl(ctx, callee_name)" \
         "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c"; then
     fail "C MIR local call-type inference must consume find_callable_decl"
 fi
-require_term "src/codegen/llvm_expr_spawn_names.c" \
-    "llvm_spawn_append_mangled_suffix"
 require_term "src/codegen/llvm_expr_spawn_generic.c" \
-    "llvm_spawn_append_mangled_suffix(mangled, sizeof(mangled), suf)"
+    "mir_generic_specialization_symbol("
 if grep -Fq "llvm_append_mangled_suffix" \
         "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c" \
         "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.h"; then

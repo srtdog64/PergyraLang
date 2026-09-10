@@ -155,6 +155,14 @@ type_function_param_type(const Type *type, size_t index)
     return type->data.function.param_types[index];
 }
 
+Type **
+type_function_param_types(const Type *type)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return NULL;
+    return type->data.function.param_types;
+}
+
 ParamMode
 type_function_param_mode(const Type *type, size_t index)
 {

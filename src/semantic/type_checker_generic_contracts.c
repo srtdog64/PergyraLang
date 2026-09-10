@@ -53,10 +53,10 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
     /* A formal actual is witnessed by the enclosing callable's bound, not
      * by a concrete role lookup for the spelling of its type parameter. */
     if (concrete_type->kind == TYPE_KIND_GENERIC
-        && concrete_type->data.generic.param_name != NULL
+        && type_generic_param_name(concrete_type) != NULL
         && ctx->current_function_decl != NULL) {
         ASTNode *owner = ctx->current_function_decl;
-        const char *formal = concrete_type->data.generic.param_name;
+        const char *formal = type_generic_param_name(concrete_type);
         GenericParams *formals = ast_func_generic_params(owner);
         WhereClause *where = ast_func_where_clause(owner);
         bool ability_bound = ast_type_name(bound_node) != NULL
