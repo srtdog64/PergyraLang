@@ -83,6 +83,7 @@ Program:
       Using: calendar
       On: owner.DeleteEvent()
       Expect: true
+    IntentSuccess: true
   Function: Main
     Parameters:
     Returns: Void

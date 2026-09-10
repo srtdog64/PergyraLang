@@ -26,6 +26,7 @@ Program:
       Transfer: load -> deliver
       On: courier.Promote()
       Expect: true
+    IntentSuccess: true
   Intent: MoveCompressed
     IntentMode: exclusive
     IntentRollback: full
@@ -37,6 +38,7 @@ Program:
       Transfer: load -> deliver
       On: courier.Promote()
       Expect: true
+    IntentSuccess: true
   Function: Main
     Parameters:
     Returns: Void

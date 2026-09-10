@@ -42,6 +42,7 @@ Program:
       Using: battle
       On: hero.Guard()
       Expect: true
+    IntentSuccess: true
   Function: Main
     Parameters:
     Returns: Void

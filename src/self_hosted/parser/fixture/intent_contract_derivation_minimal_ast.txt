@@ -24,6 +24,7 @@ Program:
       Transfer: cart -> payment
       On: buyer.Promote()
       Expect: true
+    IntentSuccess: true
   Function: Main
     Parameters:
     Returns: Void

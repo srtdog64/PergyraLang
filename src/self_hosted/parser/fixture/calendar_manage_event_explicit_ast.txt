@@ -95,6 +95,7 @@ Program:
       AuthorizedBy: owner
       Causes: EventDeleted
       Expect: true
+    IntentSuccess: true
   Function: Main
     Parameters:
     Returns: Void
