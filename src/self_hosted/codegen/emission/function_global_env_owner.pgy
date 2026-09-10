@@ -114,15 +114,8 @@ func BuildFunctionEnv(
             );
             while p < param_count {
                 if p > 0 { TextBuilderAppend(output, ","); }
-                let mode_name: String = CodegenParamModeName(
-                    CodegenSemanticFunctionParamModeOrDie(signatures, i, p)
-                );
-                if mode_name == "default" &&
-                    CodegenCallableParameterOwnsIdentity(receiver_facts,
-                        CodegenSemanticFunctionParamTypeOrDie(
-                            signatures, i, p)) {
-                    mode_name = "identity";
-                }
+                let mode_name: String = CodegenCallableParameterModeRow(
+                    receiver_facts, signatures, i, p);
                 TextBuilderAppend(output, mode_name);
                 p = p + 1;
             }

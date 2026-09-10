@@ -4,6 +4,7 @@
 // emission from MIR JSON facts. Routine inventory discovery belongs to
 // routine_inventory_owner.pgy.
 import "error_owner.pgy";
+import "../semantic/callable_receiver_carriage_policy_owner.pgy";
 import "routine_inventory_owner.pgy";
 import "routine_fact_index_owner.pgy";
 import "routine_cfg_projection_owner.pgy";
@@ -532,14 +533,7 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
         let carriage: String = header.param_carriages[param_row];
         let resource_kind: String = header.param_resources[param_row];
         let pass_shape: String = header.param_pass_shapes[param_row];
-        // An identity parameter names the caller's object, so like a
-        // readonly borrow it is passed indirectly and never copied in.
-        if (carriage != "value" && carriage != "value-result" &&
-            carriage != "owner-handle" && carriage != "readonly-ref" &&
-            carriage != "mutable-identity") ||
-            (pass_shape != "direct" && pass_shape != "indirect") ||
-            (pass_shape == "indirect" && carriage != "readonly-ref" &&
-                carriage != "mutable-identity") ||
+        if !CallableParameterCarriagePassReady(carriage, pass_shape) ||
             !RoutineParamResourceMatchesType(resource_kind, ptype) {
             MirLowerFailClosed(Concat(
                 "routine parameter ABI fact is invalid: ", pname

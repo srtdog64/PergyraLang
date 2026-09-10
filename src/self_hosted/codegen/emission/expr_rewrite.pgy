@@ -353,11 +353,7 @@ func RewriteCallArgsWithModes(inner: String, modes: String, param_types: String,
             }
             rendered = Concat("&", rendered);
         } else if mode == "identity" {
-            let identity_member_lvalue: Bool =
-                StringIndexOf(part, ".") > 0 &&
-                StringIndexOf(part, "(") < 0 &&
-                StringIndexOf(part, "[") < 0;
-            if !IsIdentifier(part) && !identity_member_lvalue {
+            if !IsIdentifier(part) && StringIndexOf(part, ".") <= 0 {
                 Die(Concat("identity argument must be addressable: ", part));
             }
             rendered = Concat("&", rendered);

@@ -1,4 +1,62 @@
 // One self-host semantic policy for callable receiver carriage vocabulary.
+import "ast_nominal_constructor_fact_owner.pgy";
+
+// A parameter carriage is one of the known kinds, and only a borrow or an
+// identity carriage may be passed indirectly.
+func CallableParameterCarriagePassReady(
+    carriage: String, pass_shape: String
+) -> Bool {
+    let borrowed: Bool = carriage == "readonly-ref" ||
+        carriage == "mutable-identity";
+    if carriage != "value" && carriage != "value-result" &&
+        carriage != "owner-handle" && !borrowed { return false; }
+    if pass_shape != "direct" && pass_shape != "indirect" { return false; }
+    return pass_shape != "indirect" || borrowed;
+}
+
+// The MIR parameter ABI kind for one source parameter: 0 value, 1 inout
+// value-result, 2 owner-handle, 3 readonly-ref direct, 4 readonly-ref
+// indirect, 5 identity. Both MIR producers must agree on this row.
+func CallableParameterAbiKind(
+    mode: Int, param_name: String, param_type: String,
+    ref constructors: SemanticAstNominalConstructorFacts
+) -> Int {
+    if mode == 1 { return 1; }
+    if mode == 2 { return 2; }
+    if mode == 3 {
+        let row: Int = 0;
+        while row < ArrayLength(constructors.names) {
+            if constructors.names[row] == param_type { return 4; }
+            row = row + 1;
+        }
+        return 3;
+    }
+    // Identity is never copied into a parameter; the native producer
+    // records the same fact from uses_pointer_self. The receiver is a
+    // separate carriage fact and keeps its own row.
+    if param_name != "self" &&
+        CallableDeclarationOwnsIdentity(constructors, param_type) {
+        return 5;
+    }
+    return 0;
+}
+
+// A parameter of an identity-owning declaration names the caller's object,
+// exactly as a mutable identity receiver does.
+func CallableDeclarationOwnsIdentity(
+    ref constructors: SemanticAstNominalConstructorFacts, type_name: String
+) -> Bool {
+    if type_name == "" { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(constructors.names) {
+        if constructors.names[row] == type_name {
+            return CallableReceiverNominalKindUsesMutableIdentity(
+                constructors.nominal_kinds[row]);
+        }
+        row = row + 1;
+    }
+    return false;
+}
 
 func CallableReceiverCarriageNone() -> String { return "none"; }
 func CallableReceiverCarriageValue() -> String { return "value"; }

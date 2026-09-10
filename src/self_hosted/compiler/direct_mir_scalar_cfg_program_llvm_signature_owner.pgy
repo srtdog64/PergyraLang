@@ -37,12 +37,9 @@ func DirectMirScalarCfgProgramLlvmRoutineSignature(
         let readonly_array: Bool =
             DirectMirScalarProgramArrayReadonlyRefAt(
                 plan.routines, routine, ordinal);
-        // An identity parameter names the caller's object, so it reaches
-        // the callee as a pointer exactly as the C signature emits it.
-        let identity_cell: Bool = plan.routines.parameter_carriages[
-                parameter_row] == "mutable-identity";
-        if value_result || readonly_record || readonly_array ||
-            identity_cell {
+        // An identity parameter reaches the callee as a pointer.
+        let identity_cell: Bool = plan.routines.parameter_carriages[parameter_row] == "mutable-identity";
+        if value_result || readonly_record || readonly_array || identity_cell {
             output = Concat(output, "ptr");
         }
         else {

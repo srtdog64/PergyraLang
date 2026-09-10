@@ -112,16 +112,10 @@ func CodegenFunctionPrototypeBlock(
                         );
                     } else if role_receiver_param {
                         TextBuilderAppend(output, "void *_pgy_raw_self");
-                    } else if !source_receiver_parameter && p_mode == 0 &&
-                        CodegenCallableParameterOwnsIdentity(
-                            receiver_facts, p_type) {
-                        // The definition passes the caller's object,
-                        // so the prototype must declare the pointer.
-                        TextBuilderAppend(output, cpt);
-                        TextBuilderAppend(output, " *");
-                        TextBuilderAppend(
-                            output, CompilerSymbolCBindingName(p_name)
-                        );
+                    } else if CodegenCallableIdentityPrototypeParameter(
+                        receiver_facts, source_receiver_parameter, p_mode, p_type) {
+                        TextBuilderAppend(output, Concat(cpt, " *"));
+                        TextBuilderAppend(output, CompilerSymbolCBindingName(p_name));
                     } else if p_mode == 1 {
                         TextBuilderAppend(output, cpt);
                         TextBuilderAppend(output, " *");
@@ -232,16 +226,10 @@ func CodegenFunctionPrototypeBlock(
                     TextBuilderAppend(
                         output, CompilerSymbolCBindingName(p_name)
                     );
-                } else if !source_receiver_parameter && p_mode == 0 &&
-                    CodegenCallableParameterOwnsIdentity(
-                        receiver_facts, p_type) {
-                    // The definition passes the caller's object, so the
-                    // specialized prototype must declare the pointer.
-                    TextBuilderAppend(output, cpt);
-                    TextBuilderAppend(output, " *");
-                    TextBuilderAppend(
-                        output, CompilerSymbolCBindingName(p_name)
-                    );
+                } else if CodegenCallableIdentityPrototypeParameter(
+                    receiver_facts, source_receiver_parameter, p_mode, p_type) {
+                    TextBuilderAppend(output, Concat(cpt, " *"));
+                    TextBuilderAppend(output, CompilerSymbolCBindingName(p_name));
                 } else if p_mode == 1 {
                     TextBuilderAppend(output, cpt);
                     TextBuilderAppend(output, " *");

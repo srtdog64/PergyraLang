@@ -48,6 +48,35 @@ func CodegenCallableIdentityTypeNames(
     return names;
 }
 
+// A prototype parameter of an identity-owning type declares the pointer the
+// definition emits. The receiver keeps its own carriage row.
+func CodegenCallableIdentityPrototypeParameter(
+    ref facts: CodegenCallableReceiverFacts, receiver_parameter: Bool,
+    mode: Int, type_name: String
+) -> Bool {
+    return !receiver_parameter && mode == 0 &&
+        CodegenCallableParameterOwnsIdentity(facts, type_name);
+}
+
+// The call-site mode row for one parameter. A default-mode parameter of an
+// identity-owning type passes the caller's object, so it is not a value.
+func CodegenCallableParameterModeRow(
+    ref facts: CodegenCallableReceiverFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    signature_index: Int, ordinal: Int
+) -> String {
+    let mode_name: String = CodegenParamModeName(
+        CodegenSemanticFunctionParamModeOrDie(
+            signatures, signature_index, ordinal));
+    if mode_name != "default" { return mode_name; }
+    if CodegenCallableParameterOwnsIdentity(facts,
+        CodegenSemanticFunctionParamTypeOrDie(
+            signatures, signature_index, ordinal)) {
+        return "identity";
+    }
+    return mode_name;
+}
+
 func CodegenCallableParameterOwnsIdentity(
     ref facts: CodegenCallableReceiverFacts, type_name: String
 ) -> Bool {

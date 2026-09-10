@@ -221,12 +221,7 @@ func DirectMirScalarProgramIdentityCellBorrowCarriage(
     let cell: Int = DirectMirIdentityCellRow(cells, type_name);
     if cell < 0 { return ""; }
     if cells.nominal_kinds[cell] == "zone" { return "readonly-ref"; }
-    // A subject or vessel parameter names the caller's object. Copying it
-    // in dropped the caller's later observation of a method's write, so
-    // the carriage is the identity form both MIR producers now record.
-    if cells.nominal_kinds[cell] == "subject" || cells.nominal_kinds[cell] == "vessel" {
-        return "mutable-identity";
-    }
+    if cells.nominal_kinds[cell] == "subject" || cells.nominal_kinds[cell] == "vessel" { return "mutable-identity"; }
     return "";
 }
 func DirectMirScalarProgramIdentityCellParameterReady(
@@ -240,8 +235,7 @@ func DirectMirScalarProgramIdentityCellParameterReady(
     // its cell representation does not discharge placement or cleanup.
     if carriage != "" && signature.kind == "intent" { carriage = "participant"; }
     let pass_shape: String = "direct";
-    if carriage == "readonly-ref" || carriage == "participant" ||
-        carriage == "mutable-identity" { pass_shape = "indirect"; }
+    if carriage != "value" { pass_shape = "indirect"; }
     return carriage != "" && signature.parameters.carriages[ordinal] == carriage &&
         signature.parameters.resources[ordinal] == "none" &&
         signature.parameters.pass_shapes[ordinal] == pass_shape &&
