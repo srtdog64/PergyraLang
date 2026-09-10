@@ -274,11 +274,11 @@ require_job_timeout "build-linux" 30
 require_job_timeout "build-macos-c-only" 20
 require_job_timeout "build-windows" 35
 require_job_timeout "platform-full-linux-toolchain" 20 "$PLATFORM_WORKFLOW"
-require_job_timeout "platform-full-linux" 50 "$PLATFORM_WORKFLOW"
+require_job_timeout "platform-full-linux" 70 "$PLATFORM_WORKFLOW"
 require_job_timeout "platform-full-linux-self-host-parity" 30 "$PLATFORM_WORKFLOW"
 require_job_timeout "platform-full-macos-c-only" 45 "$PLATFORM_WORKFLOW"
 require_job_timeout "platform-full-windows-toolchain" 25 "$PLATFORM_WORKFLOW"
-require_job_timeout "platform-full-windows" 45 "$PLATFORM_WORKFLOW"
+require_job_timeout "platform-full-windows" 60 "$PLATFORM_WORKFLOW"
 require_job_timeout "platform-full-windows-self-host-parity" 35 "$PLATFORM_WORKFLOW"
 
 build_linux_job="$(
