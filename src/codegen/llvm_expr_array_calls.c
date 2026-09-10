@@ -5,6 +5,7 @@
 #include <string.h>
 #include "llvm_expr_array_raw_nominal_calls.h"
 #include "llvm_expr_box_array_calls.h"
+#include "llvm_expr_member_lvalue.h"
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
 
@@ -81,13 +82,59 @@ llvm_array_required_receiver_binding(LLVMGenCtx *ctx, ASTNode *node,
 
     if (entry_out != NULL)
         *entry_out = NULL;
+    /* A field can hold the array as readily as a local can. Its storage is
+     * the projected field pointer and its element type is carried by the
+     * runtime struct name, so no registered local is involved. */
+    if (receiver != NULL && receiver->type == AST_MEMBER_ACCESS) {
+        LLVMTypeRef field_type = NULL;
+        LLVMValueRef field_ptr =
+            llvm_emit_member_lvalue_ptr(receiver, ctx, &field_type);
+        const char *struct_name = field_type != NULL
+            && LLVMGetTypeKind(field_type) == LLVMStructTypeKind
+            ? LLVMGetStructName(field_type) : NULL;
+        if (field_ptr == NULL || struct_name == NULL
+            || strncmp(struct_name, "PgyArray_", 9) != 0) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM array operation '%s' requires an Array<T> member receiver",
+                callee_name);
+            return NULL;
+        }
+        LLVMArrayVarEntry *member_entry =
+            pgy_arena_alloc(&ctx->scratch, sizeof(*member_entry));
+        if (member_entry == NULL) {
+            llvm_set_mir_memory_exhausted(ctx,
+                "LLVM array member receiver allocation failed for '%s'",
+                callee_name);
+            return NULL;
+        }
+        member_entry->var_name = struct_name;
+        member_entry->binding = field_ptr;
+        member_entry->elem_type = pergyra_type_to_llvm(ctx, struct_name + 9);
+        member_entry->elem_name = struct_name + 9;
+        member_entry->length = -1;
+        if (member_entry->elem_type == NULL) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM array operation '%s' requires concrete Array<T> element metadata",
+                callee_name);
+            return NULL;
+        }
+        if (entry_out != NULL)
+            *entry_out = member_entry;
+        return field_ptr;
+    }
     if (receiver == NULL || receiver->type != AST_IDENTIFIER
         || ast_identifier_name(receiver) == NULL) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-            "LLVM array operation '%s' requires an identifier receiver",
+            "LLVM array operation '%s' requires an identifier or member receiver",
             callee_name);
         return NULL;
     }
