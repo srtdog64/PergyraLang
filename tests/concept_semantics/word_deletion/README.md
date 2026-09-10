@@ -22,3 +22,12 @@ operational failures under `.tmp/concept_semantics/word_admission/`. Run its
 failures, missing MIR and an unexpected native public route are not refusals.
 An equal status is not equivalent behavior or even an equal refusal reason.
 This measurement cannot replace the historical runtime-difference denominator.
+
+`collect_runtime_divergence.py LAUNCHER DRIVER` is the executing complement of
+that census. It builds and runs every program on both routes and reports the
+ones both routes build whose observable result differs, which is precisely the
+class a source-to-MIR status pair counts as agreement. Reports land under
+`.tmp/concept_semantics/word_runtime/`. Run its `--self-test` first. Budgets
+are `PGY_WORD_BUILD_TIMEOUT`, `PGY_WORD_RUN_TIMEOUT` and
+`PGY_WORD_TOTAL_BUDGET`. It compares stdout and exit status only; equal
+results are not equivalence, and neither route is treated as the oracle.

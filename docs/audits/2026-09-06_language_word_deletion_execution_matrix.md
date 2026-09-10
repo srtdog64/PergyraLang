@@ -66,6 +66,71 @@ still refuses its `Team()` arity. This exposes a supported-input gap, not a new
 public acceptance of an invalid source. Report:
 `.tmp/concept_semantics/word_admission/run.1_3hxqtj/report.json`.
 
+### September 10 executing census: what the admission metric cannot see
+
+A source-to-MIR census counts a program both routes admit as agreement even
+when the two generated programs print different values. The complementary
+`tests/concept_semantics/word_deletion/collect_runtime_divergence.py` builds
+and runs every program on both routes and compares the observable result.
+Eight pair-classifier controls passed.
+
+Observed at `70b704b7a75e6ebf21689ce1229329f6359f0b9a` with launcher SHA-256
+`2e254fcbf6de4a018b60af13bd927249da4bb51082613b4e2f4c6d41a34a5bde` and
+Pergyra-built driver SHA-256
+`fbf4f91deab683959b4ffdecf01a50c40c8936f505c408f91727b5a2f7ec679e`. Report:
+`.tmp/concept_semantics/word_runtime/run.84f0ed8b/report.json`. Both binaries
+were unchanged across the observation; the working tree carried only this new
+collector.
+
+| Verdict | Programs |
+| --- | ---: |
+| both built, same stdout and exit | 65 |
+| both refused | 20 |
+| **both built, different observable result** | **3** |
+| only one route produced an executable | 16 |
+
+The three executing divergences are:
+
+| Source | Native | Public |
+| --- | --- | --- |
+| `35_subject_param_alias/orig.pgy` | `90` | `100` |
+| `07_intent_compensate/subst.pgy` | `ok=true bal=90` / `ok=false bal=90` | `ok=true bal=100` / `ok=false bal=100` |
+| `07_intent_compensate/neg_subst.pgy` | `ok=true bal=90` / `ok=false bal=80` | `ok=true bal=100` / `ok=false bal=100` |
+
+All three are `admitted/admitted` in the seven-difference census above, so the
+admission denominator classifies them as agreement. Each passes a `subject` to
+a function whose body calls a mutating method: the native route observes the
+caller's value afterwards, the public route observes the original. That is the
+identity axis `docs/10_role_interface_design.md` uses to separate `subject`
+from `class` and `struct`, and it is the axis a source-to-MIR status pair
+cannot observe. In `07_intent_compensate` the same difference also hides
+whether compensation ran. This states the difference; it does not decide which
+route matches the intended contract, which belongs to the owning semantic
+document.
+
+The 16 build-differences are 15 native-built/public-refused and one
+public-built/native-refused (`35_subject_param_alias/subst.pgy`, where the
+native route fails in emitted C because a `subject` receiver reaches an
+`inout` parameter). Eight of the 15 are admitted by both routes at MIR and
+fail later on the public route, so they are outside the admission census as
+well: `14_parallel_join/subst`, `17_zone_authority/{orig,subst,neg_subst}`,
+`23_extern/{orig,subst}` and `29_effects_clause/{orig,subst}`. Post-admission
+publication is therefore a third measurable stage, distinct from both
+admission status and observable result.
+
+One provenance note: the census report records launcher SHA-256
+`08e33d81bd2b8ba84a86ebf793c266cfc64824d900ec6ce7cf8029f0ba3f1504` at
+`.tmp/ci-34251704201-native/pgy.exe`, and that path now holds
+`2e254fcb…`, the hash `current_work_handoff.md` names as the current native.
+The same path carried two different binaries, so a candidate path is not a
+binary identity; the three diverging programs were checked to be
+`admitted/admitted` under the census binary before this comparison was drawn.
+
+What this does not establish: it compares stdout and exit status only, not
+diagnostics, effects, allocation, failure-phase order or timing; one input per
+shape is not a proof about the shape; and equal results on 65 programs do not
+make the two routes equivalent. A divergence is the positive finding here.
+
 Fixtures: `tests/concept_semantics/word_deletion/cases/<experiment>/`, 35
 experiments, 104 programs. Each experiment holds up to four roles:
 
