@@ -79,8 +79,8 @@ pgy_selfhost_verify_driver_rung2_action_contract() {
     # cannot smuggle an action onto a non-subject.
     pgy_selfhost_driver_rung2_action_contract_reject \
         "$backend" "$base" "$self_mir_json" "$driver_bin" \
-        "non-subject-owner" '"kind":"subject","nominal_kind":"subject"' \
-        '"kind":"object","nominal_kind":"object"' \
+        "non-subject-owner" '"kind":"class","nominal_kind":"subject"' \
+        '"kind":"class","nominal_kind":"object"' \
         "MIR machine-layer facts are missing or invalid"
     pgy_selfhost_driver_rung2_action_contract_reject \
         "$backend" "$base" "$self_mir_json" "$driver_bin" \
