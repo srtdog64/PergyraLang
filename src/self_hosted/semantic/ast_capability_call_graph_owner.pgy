@@ -9,6 +9,7 @@ import "ast_callable_type_shape_owner.pgy";
 import "builtin_capability_projection_owner.pgy";
 import "capability_mask_owner.pgy";
 import "builtin_effect_projection_owner.pgy";
+import "role_operator_vocabulary_owner.pgy";
 
 struct SemanticAstCapabilityCallGraph {
     ok: Bool;
@@ -197,8 +198,34 @@ func SemanticAstCapabilityCallGraphFromSignatures(
     return graph;
 }
 
+// Role operator dispatch names its target instead of carrying a call
+// identity, because the arena reserves call target syntax ids for call nodes.
+// Recover the implementing method so its authority joins the caller's.
+func SemanticAstCapabilityRoleOperatorTargetNode(
+    ref signatures: SemanticAstFunctionSignatureFacts, name: String
+) -> Int {
+    let identity: SemanticRoleOperatorTargetIdentity =
+        SemanticRoleOperatorTargetIdentityFromName(name);
+    if !identity.ok { return 0; }
+    let index: Int = 0;
+    while index < SemanticAstFunctionSignatureCount(signatures) {
+        let owner: Option<String> =
+            SemanticAstFunctionOwnerNameAt(signatures, index);
+        let method: Option<String> =
+            SemanticAstFunctionNameAt(signatures, index);
+        if IsSome(owner) && IsSome(method) &&
+            UnwrapOption(owner) == identity.role_name &&
+            UnwrapOption(method) == identity.method_name {
+            return signatures.function_node_ids[index];
+        }
+        index = index + 1;
+    }
+    return 0;
+}
+
 func SemanticAstCapabilityObserveCallRange(
     ref graph: SemanticExpressionGraphFacts, ref roots: SemanticCallSpineRoots,
+    ref signatures: SemanticAstFunctionSignatureFacts,
     start_node: Int, end_node: Int, callable_index: Int,
     inout state: SemanticAstCapabilityCallGraph
 ) -> Void {
@@ -217,6 +244,10 @@ func SemanticAstCapabilityObserveCallRange(
         }
         let name: String = graph.arena.call_target_names[node];
         let target_id: Int = graph.arena.identities.call_target_syntax_ids[node];
+        if role {
+            target_id = SemanticAstCapabilityRoleOperatorTargetNode(
+                signatures, name);
+        }
         if name == "" || target_id < 0 || target_id >= ArrayLength(state.declaration_rows) {
             state.ok = false;
             continue;

@@ -110,7 +110,7 @@ func SemanticAstCapabilityFactsFromAdmittedBody(
                 if state.ok {
                     SemanticAstCapabilityObserveCallRange(
                         analysis.expression_surfaces.expression_graph,
-                        roots, last_root + 1, root,
+                        roots, analysis.signatures, last_root + 1, root,
                         owner_index, state
                     );
                 }
