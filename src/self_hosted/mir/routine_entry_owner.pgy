@@ -58,5 +58,20 @@ func SelfMirRoutineFromInput(
         input, build, UnwrapOption(body_opt),
         root_break_exits, root_backedge_snapshots, -1, -1
     );
+    // A Void body that falls off its end still returns, and the native
+    // producer records that exit. Carry it here so both producers describe
+    // the same routine instead of leaving the last block unterminated.
+    if build.ok && build.terminated[build.current_block] == 0 {
+        let return_type: Option<String> = SemanticAstFunctionReturnTypeAt(
+            input.analysis.signatures, signature_index
+        );
+        if IsSome(return_type) && UnwrapOption(return_type) == "Void" {
+            build = SelfMirRoutineAddInstruction(
+                build, "return", "return", "", "", "", "", "",
+                "AST_RETURN_VOID", SelfMirNoUses()
+            );
+            build = SelfMirRoutineTerminate(build);
+        }
+    }
     return build;
 }
