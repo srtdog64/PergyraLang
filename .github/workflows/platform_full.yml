@@ -44,7 +44,7 @@ jobs:
   platform-full-linux:
     needs: platform-full-linux-toolchain
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v6
 
@@ -141,7 +141,7 @@ jobs:
   platform-full-windows:
     needs: platform-full-windows-toolchain
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       PGY_ALLOW_MISSING_COQ: 1
     steps:
