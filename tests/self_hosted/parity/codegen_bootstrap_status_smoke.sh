@@ -6,8 +6,15 @@ WORK_BASE="$ROOT_DIR/.tmp/self_hosted/codegen_bootstrap_status"
 mkdir -p "$WORK_BASE"
 B="$(mktemp -d "$WORK_BASE/run.XXXXXX")"
 fail() { echo "[codegen-bootstrap-status] $* ($B)" >&2; exit 1; }
-source <(sed -n '/^run_native_stdout() {/,/^}/p' \
-    "$ROOT_DIR/tests/self_hosted/parity/codegen_bootstrap.sh")
+# Source the extracted boundary from a real file: bash 3.2, which is still
+# /bin/bash on the macOS runners, reads a process substitution short and
+# silently defines nothing.
+sed -n '/^run_native_stdout() {/,/^}/p' \
+    "$ROOT_DIR/tests/self_hosted/parity/codegen_bootstrap.sh" \
+    >"$B/run_native_stdout.sh"
+[[ -s "$B/run_native_stdout.sh" ]] || fail "production boundary not extracted"
+# shellcheck source=/dev/null
+source "$B/run_native_stdout.sh"
 declare -F run_native_stdout >/dev/null || fail "production boundary missing"
 run_native_capture() {
     printf '%s\r\n' "$5" >"$2"
