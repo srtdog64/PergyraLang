@@ -43,7 +43,7 @@ pgy_selfhost_verify_driver_rung2_list_int_loop_emitted_c() {
             exit 1
         }
     done
-    grep -Fq 'total + pgy_list_get_int(&xs, i)' "$emitted_c" || {
+    grep -Eq 'total = .*total.*pgy_list_get_int\(&xs, i\)' "$emitted_c" || {
         echo "[self-host-parity:driver-rung2] $backend ListGet return was not carried into addition" >&2
         exit 1
     }

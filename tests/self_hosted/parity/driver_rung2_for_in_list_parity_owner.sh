@@ -48,7 +48,7 @@ pgy_selfhost_verify_driver_rung2_for_in_list_emitted_c() {
             exit 1
         }
     done
-    grep -Fq 'total + value' "$emitted_c" || {
+    grep -Eq 'total = .*total.*value' "$emitted_c" || {
         echo "[self-host-parity:driver-rung2] $backend List foreach binding was not carried into the body" >&2
         exit 1
     }
