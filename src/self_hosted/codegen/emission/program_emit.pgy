@@ -309,7 +309,7 @@ func GenerateCUnitFromReadySemanticFacts(
     if observe_pressure { Log("[codegen-pressure-stage] role-dispatch:start"); }
     let declaration_env: CodegenTypeEnv = type_declaration_fact.type_env;
     let dispatch_type_block: String = CodegenSemanticRoleDispatchTypeBlock(
-        semantic_analysis.roles, signatures,
+        semantic_analysis.roles, signatures, receiver_facts,
         declaration_env
     );
     let dispatch_forward_block: String =

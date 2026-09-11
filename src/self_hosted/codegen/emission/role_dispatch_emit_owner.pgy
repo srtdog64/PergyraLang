@@ -3,6 +3,7 @@
 import "../text/text_owner.pgy";
 import "../input/semantic_signature_codegen_view_owner.pgy";
 import "../input/semantic_role_codegen_view_owner.pgy";
+import "../input/callable_receiver_codegen_view_owner.pgy";
 import "../input/semantic_nominal_codegen_view_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
@@ -174,9 +175,28 @@ func CodegenSemanticRoleMethodSignatureIndexByNameOrDie(
     return -1;
 }
 
+// A parameter whose type owns identity is passed by pointer, and the
+// implementation emitter already spells it that way. The vtable slot and the
+// forward declaration describe the same function, so they read the same fact
+// instead of deriving carriage from the parameter mode alone.
+func CodegenSemanticRoleDispatchParamCarriage(
+    ref receiver_facts: CodegenCallableReceiverFacts,
+    c_param_type: String, param_type: String, param_mode: Int
+) -> String {
+    if param_mode == 1 { return Concat(c_param_type, " *"); }
+    if param_mode == 3 {
+        return Concat("const ", Concat(c_param_type, " *"));
+    }
+    if CodegenCallableParameterOwnsIdentity(receiver_facts, param_type) {
+        return Concat(c_param_type, " *");
+    }
+    return c_param_type;
+}
+
 func CodegenSemanticRoleDispatchTypeBlock(
     roles: SemanticAstRoleFacts,
     signatures: SemanticAstFunctionSignatureFacts,
+    ref receiver_facts: CodegenCallableReceiverFacts,
     struct_env: CodegenTypeEnv
 ) -> String {
     let emitted_types: Array<String> = [];
@@ -267,14 +287,11 @@ func CodegenSemanticRoleDispatchTypeBlock(
                                 CodegenSemanticFunctionParamModeOrDie(
                                     signatures, signature_index, param_index
                                 );
-                            if param_mode == 1 {
-                                c_param_type = Concat(c_param_type, " *");
-                            } else if param_mode == 3 {
-                                c_param_type = Concat(
-                                    "const ", Concat(c_param_type, " *")
-                                );
-                            }
-                            line = Concat(line, Concat(", ", c_param_type));
+                            line = Concat(line, Concat(", ",
+                                CodegenSemanticRoleDispatchParamCarriage(
+                                    receiver_facts, c_param_type,
+                                    param_type, param_mode
+                                )));
                         }
                         param_index = param_index + 1;
                     }
@@ -348,14 +365,13 @@ func CodegenSemanticRoleDispatchTypeBlock(
                             CodegenSemanticFunctionParamModeOrDie(
                                 signatures, role_signature, param_index
                             );
-                        if role_param_mode == 1 {
-                            role_param_type = Concat(role_param_type, " *");
-                        } else if role_param_mode == 3 {
-                            role_param_type = Concat(
-                                "const ", Concat(role_param_type, " *")
-                            );
-                        }
-                        line = Concat(line, Concat(", ", role_param_type));
+                        line = Concat(line, Concat(", ",
+                            CodegenSemanticRoleDispatchParamCarriage(
+                                receiver_facts, role_param_type,
+                                CodegenSemanticFunctionParamTypeOrDie(
+                                    signatures, role_signature, param_index
+                                ), role_param_mode
+                            )));
                     }
                     param_index = param_index + 1;
                 }

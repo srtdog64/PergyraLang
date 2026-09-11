@@ -71,8 +71,8 @@ pgy_selfhost_verify_driver_rung2_generic_multi_bound_defaults_emitted_c() {
     for term in \
         'typedef struct Packable_Item_vtable Packable_Item_vtable;' \
         'struct Packable_Item_vtable {' \
-        'void (*Accept)(void *self, Item);' \
-        'void BagPackable_Accept(void *_pgy_raw_self, Item value)'; do
+        'void (*Accept)(void *self, Item *);' \
+        'void BagPackable_Accept(void *_pgy_raw_self, Item *value)'; do
         grep -Fq "$term" "$emitted_c" || {
             echo "[self-host-parity:driver-rung2] $backend generic multi-bound C fact drifted: $term" >&2
             exit 1

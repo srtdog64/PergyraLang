@@ -41,8 +41,11 @@ pgy_selfhost_verify_driver_rung2_nested_generic_containers() {
     unsupported_element="$BUILD_DIR/${base}_${backend}.unsupported-element.pgy"
     out="$unsupported_element.out"
     err="$unsupported_element.err"
+    # A Float map value is admitted now, so it no longer witnesses a
+    # refusal. A HashMap value has no ABI layout row, which is the shape
+    # the List route genuinely cannot carry.
     pgy_replace_first_literal "$source" "$unsupported_element" \
-        'List<HashMap<String, Int>>' 'List<HashMap<String, Float>>'
+        'List<HashMap<String, Int>>' 'List<HashMap<String, HashMap<String, Int>>>'
     if (cd "$ROOT_DIR" && "$driver_bin" \
         "$(pgy_selfhost_path_relative_to_root "$unsupported_element")" \
         --emit-c-verified >"$out" 2>"$err"); then
