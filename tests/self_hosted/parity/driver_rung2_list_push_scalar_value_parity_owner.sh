@@ -57,7 +57,7 @@ pgy_selfhost_verify_driver_rung2_list_push_scalar_value_emitted_c() {
     local backend="$1" base="$2" emitted_c="$3"
     [[ "$base" == "list_push_get_loop" ]] || return 0
     for term in \
-        'pgy_list_push_int(&xs, (i * i))' \
+        'pgy_list_push_int(&xs,' \
         'pgy_list_size_int(&xs)' \
         'pgy_list_get_int(&xs, j)'; do
         grep -Fq "$term" "$emitted_c" || {
@@ -65,4 +65,11 @@ pgy_selfhost_verify_driver_rung2_list_push_scalar_value_emitted_c() {
             exit 1
         }
     done
+    # The pushed value multiplies two reads of the loop counter. A binary
+    # operand lowers through an evaluation-order statement expression, so
+    # pin the call and its operator rather than one rendering of them.
+    grep -Eq 'pgy_list_push_int\(&xs, .*i.*\*.*i.*\)' "$emitted_c" || {
+        echo "[self-host-parity:driver-rung2] $backend List scalar push value drifted" >&2
+        exit 1
+    }
 }
