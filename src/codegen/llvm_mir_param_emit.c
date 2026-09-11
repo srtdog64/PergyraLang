@@ -521,8 +521,16 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 continue;
             }
 
+            /* A value-result parameter already arrives as a pointer to the
+             * caller's storage, and the copy-out below writes the value back
+             * through it. Applying the pointer-self convention on top of that
+             * would describe the parameter as a pointer to a pointer, so the
+             * prologue would load the first word of the callee's copy and
+             * treat it as an address. Only an explicitly indirect pass adds
+             * a level here. */
             if (pass_indirect
-                || (param_type_name != NULL
+                || (carriage != MIR_PARAM_CARRIAGE_VALUE_RESULT
+                    && param_type_name != NULL
                     && llvm_type_name_uses_pointer_self(ctx, param_type_name)))
                 pt = LLVMPointerType(pt, 0);
             if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
