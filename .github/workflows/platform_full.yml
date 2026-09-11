@@ -74,7 +74,13 @@ jobs:
   platform-full-linux-self-host-parity:
     needs: platform-full-linux-toolchain
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Hang budget: the driver shard is the only leg here that runs two backend
+    # lanes, and until the LLVM array element type was named it failed within
+    # seconds at the driver compile instead of running the llvm lane at all.
+    # The Windows shard needs 31 minutes for the c lane alone, so run
+    # 34645314322 reached the former 30-minute ceiling with both lanes making
+    # named-fixture progress. The other three legs finish in minutes.
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
