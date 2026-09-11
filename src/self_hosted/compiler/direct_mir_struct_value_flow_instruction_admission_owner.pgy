@@ -68,7 +68,7 @@ func DirectMirStructValueFlowInstructionAdmissionFromProgram(
         main_index.source_local_names[1] != identity.graph.result_local_name ||
         main_index.source_local_types[0] != identity.declaration.name ||
         main_index.source_local_types[1] != identity.declaration.name ||
-        !MirRoutineInstructionUseFactsReady(main_uses, 4) ||
+        !MirRoutineInstructionUseFactsReady(main_uses, 5) ||
         !MirRoutineInstructionUseFactsReady(producer_uses, 1) {
         Die("direct MIR struct value-flow routine facts are invalid");
     }

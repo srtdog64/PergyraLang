@@ -186,7 +186,7 @@ func DirectMirArrayIntPlanCandidate(
     if admitted.routines.routine_block_counts[0] != 1 ||
         MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, 0, 0
-        ) != 4 {
+        ) != 5 {
         return false;
     }
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
@@ -209,7 +209,7 @@ func DirectMirArrayIntPlanFromAdmitted(
     );
     let uses: MirRoutineInstructionUseFacts =
         BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
-    if !MirRoutineInstructionUseFactsReady(uses, 4) {
+    if !MirRoutineInstructionUseFactsReady(uses, 5) {
         Die("direct MIR Array<Int> instruction use facts are invalid");
     }
     let local_name: String = index.source_local_names[0];

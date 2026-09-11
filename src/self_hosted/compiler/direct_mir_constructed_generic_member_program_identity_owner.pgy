@@ -161,7 +161,7 @@ func DirectMirConstructedGenericMemberProgramIdentityFromAdmitted(
             admitted.routines, identity_row, 1, 2, 0
         ) || MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, main_row, 0
-        ) != 3 || MirProgramRoutineIndexBlockInstructionCountAt(
+        ) != 4 || MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, constructed_row, 0
         ) != 1 || MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, identity_row, 0

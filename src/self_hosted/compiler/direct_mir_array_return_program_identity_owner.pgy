@@ -137,7 +137,7 @@ func DirectMirArrayReturnProgramIdentityFromAdmitted(
         row = row + 1;
     }
     if main_row < 0 || !DirectMirArrayReturnRoutineSignatureReady(
-        admitted.routines, main_row, "Void", 3
+        admitted.routines, main_row, "Void", 4
     ) {
         Die("direct MIR Array<Int> return entrypoint identity is invalid");
     }

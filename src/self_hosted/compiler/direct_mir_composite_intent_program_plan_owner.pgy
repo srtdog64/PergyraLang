@@ -477,7 +477,7 @@ func DirectMirCompositeIntentMainFactFromAdmitted(
         ) != 2 ||
         MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, route.main_row, 3
-        ) != 1 || ArrayLength(index.source_local_names) != 6 ||
+        ) != 2 || ArrayLength(index.source_local_names) != 6 ||
         ArrayLength(index.source_local_types) != 6 {
         Die("direct MIR composite intent Main envelope is invalid");
     }

@@ -327,7 +327,7 @@ func DirectMirRoleOperatorPlanFromAdmitted(
         row = row + 1;
     }
     if main_row < 0 || !DirectMirRoutineNoParamSignatureReady(
-        admitted.routines, main_row, "Void", 3
+        admitted.routines, main_row, "Void", 4
     ) {
         Die("direct MIR role operator entrypoint signature is invalid");
     }
@@ -349,7 +349,7 @@ func DirectMirRoleOperatorPlanFromAdmitted(
         ArrayLength(main_index.source_local_types) != 2 ||
         main_index.source_local_types[0] != CompilerAbiLayoutIntTypeName() ||
         main_index.source_local_types[1] != CompilerAbiLayoutIntTypeName() ||
-        !MirRoutineInstructionUseFactsReady(main_uses, 3) {
+        !MirRoutineInstructionUseFactsReady(main_uses, 4) {
         Die("direct MIR role operator entrypoint facts are invalid");
     }
     let globals: Array<Int> = [];

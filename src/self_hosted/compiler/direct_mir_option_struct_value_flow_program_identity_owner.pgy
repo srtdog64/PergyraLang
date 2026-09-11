@@ -93,7 +93,7 @@ func DirectMirOptionStructValueFlowProgramIdentityFromAdmitted(
         admitted, classification
     ) || MirProgramRoutineIndexBlockInstructionCountAt(
         admitted.routines, classification.entrypoint.row, 0
-    ) != 9 || MirProgramRoutineIndexBlockInstructionCountAt(
+    ) != 10 || MirProgramRoutineIndexBlockInstructionCountAt(
         admitted.routines, classification.producer.row, 0
     ) != 1 {
         Die("direct MIR Option nominal program envelope is invalid");

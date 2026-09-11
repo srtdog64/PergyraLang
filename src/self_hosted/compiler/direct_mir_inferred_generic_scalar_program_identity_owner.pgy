@@ -137,7 +137,7 @@ func DirectMirInferredGenericScalarProgramIdentityFromAdmitted(
     if main_row < 0 || generic_row < 0 || main_row == generic_row ||
         MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, main_row, 0
-        ) != 3 || MirProgramRoutineIndexBlockInstructionCountAt(
+        ) != 4 || MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, generic_row, 0
         ) != 1 {
         Die("direct MIR inferred scalar routine cardinality is invalid");

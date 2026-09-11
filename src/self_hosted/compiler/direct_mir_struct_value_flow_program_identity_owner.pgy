@@ -94,7 +94,7 @@ func DirectMirStructValueFlowProgramIdentityFromAdmitted(
     if !DirectMirRoutineSignatureFactReady(classification.entrypoint) ||
         MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, main_row, 0
-        ) != 4 ||
+        ) != 5 ||
         classification.entrypoint.return_type != "Void" ||
         classification.entrypoint.param_count != 0 {
         Die("direct MIR struct value-flow entrypoint is invalid");

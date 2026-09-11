@@ -160,7 +160,7 @@ func DirectMirConstructedRecordArrayMemberIdentityFromAdmitted(
             admitted.routines, identity_row, 1, 2, 0
         ) || MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, main_row, 0
-        ) != 5 {
+        ) != 6 {
         Die("direct MIR constructed record Array cardinality is invalid");
     }
     let constructed_return: MirExpressionGraphSequence =

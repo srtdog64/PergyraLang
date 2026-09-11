@@ -99,7 +99,7 @@ func DirectMirOptionStructValueFlowInstructionAdmissionFromProgram(
         main_index.source_local_types[1] != identity.declaration.name ||
         main_index.source_local_types[2] != option_name ||
         main_index.source_local_types[3] != identity.declaration.name ||
-        !MirRoutineInstructionUseFactsReady(main_uses, 9) ||
+        !MirRoutineInstructionUseFactsReady(main_uses, 10) ||
         !MirRoutineInstructionUseFactsReady(producer_uses, 1) {
         Die("direct MIR Option nominal routine facts are invalid");
     }

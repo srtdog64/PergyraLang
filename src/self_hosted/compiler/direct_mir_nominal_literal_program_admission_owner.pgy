@@ -76,7 +76,7 @@ func DirectMirNominalLiteralProgramAdmissionFromAdmitted(
         ArrayLength(index.source_local_types) != 1 ||
         index.source_local_names[0] != program.graph.local_name ||
         index.source_local_types[0] != program.declaration.name ||
-        !MirRoutineInstructionUseFactsReady(uses, 2) || first < 0 ||
+        !MirRoutineInstructionUseFactsReady(uses, 3) || first < 0 ||
         second < 0 {
         Die("direct MIR nominal literal routine facts are invalid");
     }

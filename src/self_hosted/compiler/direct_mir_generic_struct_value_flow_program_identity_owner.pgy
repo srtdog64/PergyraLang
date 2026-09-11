@@ -137,7 +137,7 @@ func DirectMirGenericStructValueFlowProgramIdentityFromAdmitted(
     );
     if main_row < 0 || MirProgramRoutineIndexBlockInstructionCountAt(
         admitted.routines, main_row, 0
-    ) != 3 {
+    ) != 4 {
         Die("direct MIR generic nominal entrypoint is invalid");
     }
     let initial: MirExpressionGraphSequence =

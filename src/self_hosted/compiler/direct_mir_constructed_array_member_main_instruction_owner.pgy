@@ -66,7 +66,7 @@ func DirectMirConstructedArrayMemberMainInstructionsFromProgram(
             index, identity.main_graph.receiver_local,
             identity.declaration.name, identity.main_graph.result_local,
             identity.specialization.outer_generic_actual
-        ) || !MirRoutineInstructionUseFactsReady(uses, 3) {
+        ) || !MirRoutineInstructionUseFactsReady(uses, 4) {
         Die("direct MIR constructed Array Main facts are invalid");
     }
     let constructor: MirRoutineInstructionScalarCapture =

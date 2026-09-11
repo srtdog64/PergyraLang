@@ -133,7 +133,7 @@ func DirectMirInferredGenericNominalProgramIdentityFromAdmitted(
     if main_row < 0 || generic_row < 0 || main_row == generic_row ||
         MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, main_row, 0
-        ) != 2 || MirProgramRoutineIndexBlockInstructionCountAt(
+        ) != 3 || MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, generic_row, 0
         ) != 1 {
         Die("direct MIR inferred generic routine cardinality is invalid");

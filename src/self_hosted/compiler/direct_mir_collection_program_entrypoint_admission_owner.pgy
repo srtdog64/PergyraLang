@@ -22,7 +22,7 @@ func DirectMirCollectionEntrypointRoutineFactFromAdmitted(
         !index.block_reachable[0] ||
         !MirRoutineFactIndexBlockIsTerminal(index, 0) ||
         index.block_has_conditional_branch[0] != 0 ||
-        !MirRoutineInstructionUseFactsReady(uses, 3) {
+        !MirRoutineInstructionUseFactsReady(uses, 4) {
         Die("direct MIR collection entrypoint CFG is invalid");
     }
     let definition_global: Int = MirProgramRoutineIndexGlobalInstructionRow(

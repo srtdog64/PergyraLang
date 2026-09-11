@@ -48,15 +48,9 @@ pgy_selfhost_driver_rung2_consume_canonical_match_mir() {
         pgy_selfhost_verify_driver_rung2_canonical_declaration_order \
             "$backend" "$base" "$mir_json" "$self_mir_json" \
             "$oracle_canonical" "$self_canonical"
-        if pgy_selfhost_driver_rung2_void_exit_delta \
+        pgy_selfhost_compare_expected_text_artifact_file_with_owner \
             "driver-rung2:$backend:$base:mir-json" "$BUILD_DIR" \
-            "$oracle_canonical" "$self_canonical"; then
-            canonical_consume="$self_canonical"
-        else
-            pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-                "driver-rung2:$backend:$base:mir-json" "$BUILD_DIR" \
-                "$oracle_canonical" "$self_canonical" "mir_json"
-        fi
+            "$oracle_canonical" "$self_canonical" "mir_json"
     fi
     pgy_selfhost_driver_rung2_consume_mir "$machine_fixture" "$driver_bin" \
         "$(pgy_selfhost_path_relative_to_root "$canonical_consume")" \

@@ -87,7 +87,7 @@ func DirectMirNominalLiteralProgramFactFromAdmitted(
         admitted.routines.routine_block_counts[0] != 1 ||
         MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, 0, 0
-        ) != 2 ||
+        ) != 3 ||
         admitted.routines.kinds[0] != "function" ||
         admitted.routines.owners[0] != "" ||
         admitted.routines.names[0] != "Main" ||

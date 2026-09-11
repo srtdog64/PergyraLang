@@ -333,7 +333,7 @@ func DirectMirNestedIntentProgramMainFacts(
     if !index.valid || admitted.routines.names[route.main_row] != "Main" ||
         admitted.routines.routine_block_counts[route.main_row] != 1 ||
         MirProgramRoutineIndexBlockInstructionCountAt(
-            admitted.routines, route.main_row, 0) != 4 ||
+            admitted.routines, route.main_row, 0) != 5 ||
         ArrayLength(index.source_local_names) != 2 ||
         ArrayLength(index.source_local_types) != 2 {
         return result;

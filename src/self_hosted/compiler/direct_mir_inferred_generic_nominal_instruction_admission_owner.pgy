@@ -77,7 +77,7 @@ func DirectMirInferredGenericNominalInstructionAdmissionFromProgram(
         ArrayLength(main_index.source_local_types) != 1 ||
         main_index.source_local_names[0] != identity.graph.source_local_name ||
         main_index.source_local_types[0] != identity.declaration.name ||
-        !MirRoutineInstructionUseFactsReady(main_uses, 2) ||
+        !MirRoutineInstructionUseFactsReady(main_uses, 3) ||
         !MirRoutineInstructionUseFactsReady(generic_uses, 1) {
         Die("direct MIR inferred generic routine facts are invalid");
     }

@@ -125,7 +125,7 @@ func DirectMirLegacyIntentMethodDelta(
     if !index.valid || admitted.routines.routine_block_counts[row] != 1 ||
         MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, row, 0
-        ) != 1 || global < 0 || !scalar.valid ||
+        ) != 2 || global < 0 || !scalar.valid ||
         admitted.routines.instruction_kinds[global] != "def" ||
         admitted.routines.instruction_source_types[global] !=
             "AST_ASSIGNMENT" || scalar.name != "ssa-def" ||
@@ -310,7 +310,7 @@ func DirectMirLegacyIntentProgramGraphFactFromAdmitted(
         admitted.routines.routine_block_counts[route.main_row] != 1 ||
         MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, route.main_row, 0
-        ) != 3 || ArrayLength(main_index.source_local_names) != 2 ||
+        ) != 4 || ArrayLength(main_index.source_local_names) != 2 ||
         ArrayLength(main_index.source_local_types) != 2 {
         Die("direct MIR legacy intent Main envelope is invalid");
     }

@@ -27,7 +27,7 @@ func DirectMirLiteralLogRouteClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput) -> Bool {
     if MirProgramRoutineIndexCount(admitted.routines) != 1 ||
         admitted.routines.routine_block_counts[0] != 1 ||
-        MirProgramRoutineIndexBlockInstructionCountAt(admitted.routines, 0, 0) != 1 { return false; }
+        MirProgramRoutineIndexBlockInstructionCountAt(admitted.routines, 0, 0) != 2 { return false; }
     let row: Int = MirProgramRoutineIndexGlobalInstructionRow(admitted.routines, 0, 0, 0);
     if row < 0 { return false; }
     let expression: MirProgramInstructionExpressionFact = MirProgramInstructionExpressionIndexAt(
@@ -111,7 +111,7 @@ func DirectMirLiteralLogPlanFromAdmitted(
         admitted.routines.routine_block_counts[0] != 1 ||
         MirProgramRoutineIndexBlockInstructionCountAt(
             admitted.routines, 0, 0
-        ) != 1 {
+        ) != 2 {
         Die("direct MIR literal Log program envelope is invalid");
     }
     let routine_index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
@@ -133,7 +133,7 @@ func DirectMirLiteralLogPlanFromAdmitted(
         !DirectMirObjectNumberEquals(block, "id", "0") ||
         !JsonObjectBoolFieldEqualsWithin(
             block.json, block.start, block.end, "reachable", true
-        ) || !DirectMirExactObjectArrayCount(instructions, 1) {
+        ) || !DirectMirExactObjectArrayCount(instructions, 2) {
         Die("direct MIR literal Log block identity is invalid");
     }
     let instruction_row: Int = MirProgramRoutineIndexGlobalInstructionRow(
@@ -154,7 +154,7 @@ func DirectMirLiteralLogPlanFromAdmitted(
         BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
     if JsonObjectFactCount(instruction) != 25 ||
         !DirectMirLogInstructionEnvelopeReady(instruction, "0") ||
-        !MirRoutineInstructionUseFactsReady(uses, 1) ||
+        !MirRoutineInstructionUseFactsReady(uses, 2) ||
         MirRoutineInstructionUseCountAtGlobal(uses, instruction_row) != 0 {
         Die("direct MIR literal Log instruction envelope is invalid");
     }

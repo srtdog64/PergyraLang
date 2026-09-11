@@ -104,7 +104,7 @@ func DirectMirConstructedRecordArrayMemberMainAdmissionFromProgram(
         !MirRoutineFactIndexBlockIsTerminal(index, 0) ||
         index.block_has_conditional_branch[0] != 0 ||
         !DirectMirConstructedRecordArrayMainLocalsReady(index, identity) ||
-        !MirRoutineInstructionUseFactsReady(uses, 5) {
+        !MirRoutineInstructionUseFactsReady(uses, 6) {
         Die("direct MIR constructed record Array Main facts are invalid");
     }
     let captures: Array<MirRoutineInstructionScalarCapture> = [];

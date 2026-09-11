@@ -111,7 +111,7 @@ func DirectMirInferredGenericMemberInstructionAdmissionFromProgram(
             identity.declaration.name, identity.graph.result_local_name
         ) ||
         ArrayLength(method_index.source_local_names) != 0 ||
-        !MirRoutineInstructionUseFactsReady(main_uses, 3) ||
+        !MirRoutineInstructionUseFactsReady(main_uses, 4) ||
         !MirRoutineInstructionUseFactsReady(method_uses, 1) {
         Die("direct MIR inferred member routine facts are invalid");
     }
