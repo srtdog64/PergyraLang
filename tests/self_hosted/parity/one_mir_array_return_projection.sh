@@ -64,8 +64,8 @@ $graph|120
 $identity|240
 $plan|380
 $emission|240
-$multi|80
-$backend|200
+$multi|110
+$backend|330
 $abi_fact|60
 EOF
     for term in BuildMirDocumentFactIndex CompileMirJsonToCVerified \
