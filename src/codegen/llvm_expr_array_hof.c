@@ -50,8 +50,8 @@ llvm_array_hof_runtime_function(LLVMGenCtx *ctx, ASTNode *node,
             "LLVM array map/filter runtime function name is too long", NULL);
         return NULL;
     }
-    return llvm_required_runtime_function(ctx, node, "array", callee_name,
-        fn_name);
+    return llvm_required_runtime_function(ctx, node,
+        "array", callee_name, fn_name);
 }
 
 /* Resolve the by-name function argument of ArrayMap/ArrayFilter. */

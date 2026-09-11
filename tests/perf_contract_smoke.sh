@@ -4046,6 +4046,8 @@ grep -Fq "kArrayBuiltinSpecs" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
 grep -Fq "llvm_array_builtin_lookup" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
 grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
 ! grep -Fq "LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name)" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
+grep -Fq "array\", callee_name, fn_name" "$ROOT_DIR/src/codegen/llvm_expr_array_hof.c"
+! grep -Fq "LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name)" "$ROOT_DIR/src/codegen/llvm_expr_array_hof.c"
 array_builtin_names="$(
     sed -n '/static const LLVMArrayBuiltinSpec kArrayBuiltinSpecs\[\]/,/^};/p' \
         "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c" |

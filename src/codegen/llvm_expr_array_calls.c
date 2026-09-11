@@ -231,8 +231,8 @@ llvm_array_required_suffix_runtime(LLVMGenCtx *ctx, ASTNode *node,
             *out = NULL;
         return NULL;
     }
-    LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node, "array",
-        callee_name, fn_name);
+    LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+        "array", callee_name, fn_name);
     if (fn == NULL)
         llvm_array_error_out(node, ctx, missing_msg, out);
     return fn;
