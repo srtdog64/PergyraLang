@@ -373,6 +373,61 @@ func MirExpressionIdentityEpochRebindGraph(
     );
 }
 
+// A dynamic ability dispatch names the abstract member, not the concrete
+// role body, so its canonical id arrives from the declaration-method epoch
+// rows rather than from a routine row. Carry those spellings too: without
+// them the member rebind below reads an empty name and refuses a legal
+// dispatch.
+func MirExpressionIdentityEpochDeclarationMemberNames(
+    ref routines: MirProgramRoutineIndex,
+    ref epoch: MirExpressionIdentityEpoch,
+    inout source_names: Array<String>,
+    inout canonical_names: Array<String>
+) -> Bool {
+    let declaration: Int = 0;
+    while declaration < MirProgramDeclarationIndexCount(routines.declarations) {
+        let methods: Array<Int> = [0, 0];
+        if routines.declarations.kinds[declaration] == "ability" &&
+            MirObjectArrayBoundsAtBounds(
+                routines.source_json,
+                routines.declarations.starts[declaration],
+                routines.declarations.ends[declaration], "methods", methods
+            ) {
+            let owner: String = routines.declarations.names[declaration];
+            let method: Array<Int> = [0, 0];
+            let cursor: Int = methods[0] + 1;
+            while JsonArrayNextObjectBounds(
+                routines.source_json, cursor, methods[1], method
+            ) {
+                let name: String = MirObjectStringFactAtBounds(
+                    routines.source_json, method[0], method[1], "name"
+                );
+                let source_id: Int = ToInt(MirObjectNumberFactAtBounds(
+                    routines.source_json, method[0], method[1],
+                    "source_syntax_id"
+                ));
+                let canonical: Option<Int> =
+                    MirExpressionIdentityEpochLookup(epoch, source_id);
+                if name == "" || owner == "" || !IsSome(canonical) {
+                    return false;
+                }
+                let canonical_id: Int = UnwrapOption(canonical);
+                if canonical_id <= 0 ||
+                    canonical_id >= ArrayLength(source_names) ||
+                    canonical_id >= ArrayLength(canonical_names) {
+                    return false;
+                }
+                ArraySet(source_names, canonical_id, name);
+                ArraySet(canonical_names, canonical_id,
+                    SemanticCallableCanonicalDeclaredName(owner, name));
+                cursor = method[1];
+            }
+        }
+        declaration = declaration + 1;
+    }
+    return true;
+}
+
 func MirExpressionIdentityEpochRebindGraphForArtifact(
     graph: SemanticExpressionGraphFacts,
     ref routines: MirProgramRoutineIndex,
@@ -401,5 +456,8 @@ func MirExpressionIdentityEpochRebindGraphForArtifact(
         }
         row = row + 1;
     }
+    if epoch.ok && !MirExpressionIdentityEpochDeclarationMemberNames(
+        routines, epoch, source_names, canonical_names
+    ) { epoch.ok = false; }
     return MirExpressionIdentityEpochRebindGraph(graph, epoch, source_names, canonical_names);
 }
