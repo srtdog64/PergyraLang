@@ -94,7 +94,7 @@ grep -Fq 'routines: 1' "$WORK_DIR/simple.public" ||
     fail "simple routine count is missing"
 grep -Fq 'routine[0] kind="function" owner=- name="Main"' \
     "$WORK_DIR/simple.public" || fail "simple routine identity is missing"
-grep -Fq 'blocks=4 instructions=6' "$WORK_DIR/cfg.public" ||
+grep -Fq 'blocks=4 instructions=7' "$WORK_DIR/cfg.public" ||
     fail "CFG inventory is missing"
 grep -Fq 'block[0] reachable=yes succ-true=1 succ-false=2 instructions=2' \
     "$WORK_DIR/cfg.public" || fail "CFG successor facts are missing"

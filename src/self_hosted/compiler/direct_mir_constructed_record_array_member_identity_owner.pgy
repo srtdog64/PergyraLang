@@ -189,7 +189,7 @@ func DirectMirConstructedRecordArrayMemberIdentityFromAdmitted(
     let identity: DirectMirConstructedRecordArrayMemberIdentity =
         DirectMirConstructedRecordArrayMemberIdentity(
             true, 0,
-            DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 5),
+            DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 6),
             DirectMirConstructedArrayMemberSignatureFactAt(
                 admitted.routines, constructed_row
             ), DirectMirConstructedArrayMemberSignatureFactAt(

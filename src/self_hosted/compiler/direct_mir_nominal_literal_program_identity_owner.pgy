@@ -101,7 +101,7 @@ func DirectMirNominalLiteralProgramFactFromAdmitted(
             admitted.domain_runtime_admission.declarations
         );
     let entrypoint: DirectMirRoutineSignatureFact =
-        DirectMirRoutineSignatureFactAt(admitted.routines, 0, 2);
+        DirectMirRoutineSignatureFactAt(admitted.routines, 0, 3);
     let first: Int = MirProgramRoutineIndexGlobalInstructionRow(
         admitted.routines, 0, 0, 0
     );

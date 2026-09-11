@@ -366,7 +366,7 @@ func DirectMirRoleOverrideMainFromRoutine(
     let invalid: DirectMirRoleOverrideMainFact =
         InvalidDirectMirRoleOverrideMainFact();
     let signature: DirectMirRoutineSignatureFact =
-        DirectMirRoutineSignatureFactAt(admitted.routines, routine_row, 2);
+        DirectMirRoutineSignatureFactAt(admitted.routines, routine_row, 3);
     if !DirectMirRoutineSignatureFactReady(signature) ||
         signature.name != "Main" || signature.return_type != "Void" ||
         signature.param_count != 0 ||
@@ -389,7 +389,7 @@ func DirectMirRoleOverrideMainFromRoutine(
         !DirectMirRoleOverrideRoutineCfgReady(index, 1) ||
         index.source_local_names[0] == "" ||
         index.source_local_types[0] != subject_name ||
-        !MirRoutineInstructionUseFactsReady(uses, 2) {
+        !MirRoutineInstructionUseFactsReady(uses, 3) {
         return invalid;
     }
     let definition_global: Int = MirProgramRoutineIndexGlobalInstructionRow(

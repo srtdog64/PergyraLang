@@ -175,7 +175,7 @@ func DirectMirInferredGenericScalarProgramIdentityFromAdmitted(
     let identity: DirectMirInferredGenericScalarProgramIdentity =
         DirectMirInferredGenericScalarProgramIdentity(
             true, 0,
-            DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 3),
+            DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 4),
             DirectMirRoutineSignatureFactAt(admitted.routines, wrapper_row, 1),
             DirectMirGenericRoutineSignatureFactAt(
                 admitted.routines, generic_row

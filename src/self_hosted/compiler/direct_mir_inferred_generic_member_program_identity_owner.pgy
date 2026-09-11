@@ -161,7 +161,7 @@ func DirectMirInferredGenericMemberProgramIdentityFromAdmitted(
     let identity: DirectMirInferredGenericMemberProgramIdentity =
         DirectMirInferredGenericMemberProgramIdentity(
             true, 0,
-            DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 3),
+            DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 4),
             DirectMirGenericMemberSignatureFactAt(
                 admitted.routines, method_row
             ), specialization,

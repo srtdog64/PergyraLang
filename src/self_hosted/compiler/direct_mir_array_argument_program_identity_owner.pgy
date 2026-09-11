@@ -185,7 +185,7 @@ func DirectMirArrayArgumentProgramIdentityFromAdmitted(
         Die("direct MIR Array argument entrypoint identity is invalid");
     }
     let entrypoint: DirectMirRoutineSignatureFact =
-        DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 1);
+        DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 2);
     if !DirectMirRoutineSignatureFactReady(entrypoint) ||
         entrypoint.return_type != "Void" || entrypoint.param_count != 0 {
         Die("direct MIR Array argument entrypoint identity is invalid");

@@ -185,7 +185,7 @@ func DirectMirConstructedGenericMemberProgramIdentityFromAdmitted(
     let identity: DirectMirConstructedGenericMemberProgramIdentity =
         DirectMirConstructedGenericMemberProgramIdentity(
             true, 0,
-            DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 3),
+            DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 4),
             DirectMirConstructedGenericMemberSignatureFactAt(
                 admitted.routines, constructed_row
             ), DirectMirConstructedGenericMemberSignatureFactAt(

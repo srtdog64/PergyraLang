@@ -139,7 +139,7 @@ func DirectMirStructArgumentProgramIdentityFromAdmitted(
         Die("direct MIR struct entrypoint is missing or duplicated");
     }
     let entrypoint: DirectMirRoutineSignatureFact =
-        DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 1);
+        DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 2);
     let main_global: Int = MirProgramRoutineIndexGlobalInstructionRow(
         admitted.routines, main_row, 0, 0
     );

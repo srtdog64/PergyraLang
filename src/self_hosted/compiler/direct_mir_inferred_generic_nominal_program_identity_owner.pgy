@@ -151,7 +151,7 @@ func DirectMirInferredGenericNominalProgramIdentityFromAdmitted(
             generic_return, initial, output
         );
     let entrypoint: DirectMirRoutineSignatureFact =
-        DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 2);
+        DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 3);
     let generic: DirectMirGenericRoutineSignatureFact =
         DirectMirGenericRoutineSignatureFactAt(admitted.routines, generic_row);
     let declaration: DirectMirNominalDeclarationAbiFact =

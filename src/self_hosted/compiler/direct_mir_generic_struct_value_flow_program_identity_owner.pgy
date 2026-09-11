@@ -177,7 +177,7 @@ func DirectMirGenericStructValueFlowProgramIdentityFromAdmitted(
             generic_return, produced, initial, producer_call, output
         );
     let entrypoint: DirectMirRoutineSignatureFact =
-        DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 3);
+        DirectMirRoutineSignatureFactAt(admitted.routines, main_row, 4);
     let producer: DirectMirRoutineSignatureFact =
         DirectMirRoutineSignatureFactAt(admitted.routines, producer_row, 1);
     let generic: DirectMirGenericRoutineSignatureFact =

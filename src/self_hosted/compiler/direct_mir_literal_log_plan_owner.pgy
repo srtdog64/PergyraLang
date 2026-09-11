@@ -93,7 +93,7 @@ func DirectMirLiteralLogPlanFromAdmitted(
         admitted.routines.ends[0]
     );
     let signature: DirectMirRoutineSignatureFact =
-        DirectMirRoutineSignatureFactAt(admitted.routines, 0, 1);
+        DirectMirRoutineSignatureFactAt(admitted.routines, 0, 2);
     if !DirectMirProgramCommonEnvelopeForRoutineNameReady(admitted, signature.name) ||
         admitted.domain_topology_plan.present ||
         JsonObjectFactCount(admitted.document.root) != 5 ||
