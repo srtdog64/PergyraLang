@@ -122,6 +122,26 @@ func BlockCondWithExpressionOrder(ref index: MirRoutineFactIndex,
             return header;
         }
     }
+    // A pruned constant-true loop keeps a header block with no exit edge.
+    // `true` guards nothing there, and the native producer folds the same
+    // shape to an unconditional successor, so render the header as plain
+    // fallthrough and let both producers reconstruct one tree. The branch
+    // still carries an expr0 graph, so cover its producer row instead of
+    // leaving the consumer an occurrence nothing rendered. A real loop
+    // header is untouched: its incoming backedge still renders `Loop:`.
+    if scalar.expr0 == "true" && block_row >= 0 &&
+        block_row < ArrayLength(index.block_succ_false) &&
+        index.block_succ_false[block_row] < 0 &&
+        !MirRoutineFactIndexHasIncomingBackedge(index, block_row) {
+        if !MirStructuredExpressionEmissionOrderCoverProducer(
+            expression_order, instruction.global_row
+        ) {
+            MirLowerFailClosed(
+                "pruned constant-true header occurrence is invalid"
+            );
+        }
+        return "";
+    }
     let cond: String = scalar.expr0;
     if StringLength(cond) > 0 {
         if !MirStructuredExpressionEmissionOrderAppend(
