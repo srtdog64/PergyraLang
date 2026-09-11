@@ -19,14 +19,14 @@ pgy_selfhost_verify_driver_rung2_iteration_graph() {
         }
         grep -Fq '"kind":"loop-init","name":"loop-init","result":null,"arg0":"i","arg1":null' \
             "$self_mir_json" && \
-        grep -Fq '"expr0":"0","expr0_graph":{"root":0,"nodes":[{"kind":"integer_literal","text":"0"' \
+        grep -Eq '"expr0":"0","expr0_graph":\{"root":0,("digest":[0-9]+,)?"nodes":\[\{"kind":"integer_literal","text":"0"' \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend range-start graph drifted" >&2
             exit 1
         }
         grep -Fq '"kind":"branch","name":"branch","result":null,"arg0":"i","arg1":null' \
             "$self_mir_json" && \
-        grep -Fq '"expr0":"0","expr0_graph":{"root":0,"nodes":[{"kind":"integer_literal","text":"3"' \
+        grep -Eq '"expr0":"0","expr0_graph":\{"root":0,("digest":[0-9]+,)?"nodes":\[\{"kind":"integer_literal","text":"3"' \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend range-stop graph drifted" >&2
             exit 1
