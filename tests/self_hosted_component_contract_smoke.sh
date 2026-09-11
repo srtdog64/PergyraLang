@@ -10539,6 +10539,14 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     "pgy_selfhost_driver_rung2_consume_canonical_match_mir"
 require_text "tests/self_hosted/parity/driver_rung2_match_materialization_delta_owner.sh" \
     "pgy_selfhost_driver_rung2_match_materialization_delta"
+require_file "tests/self_hosted/parity/driver_rung2_void_exit_delta_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_void_exit_delta_owner.sh" 60
+require_text "tests/self_hosted/parity/driver_rung2_void_exit_delta_owner.sh" \
+    'cmp -s -- "$stripped" "$self_norm" || return 1'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_void_exit_delta_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_match_materialization_delta_owner.sh" \
+    "pgy_selfhost_driver_rung2_void_exit_delta"
 require_file "tests/self_hosted/parity/driver_rung2_canonical_declaration_order_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_canonical_declaration_order_owner.sh" 80
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
