@@ -239,3 +239,28 @@ func MirRoutineBackedgeHeaders(
     }
     return headers;
 }
+
+// A producer may prune a constant-true loop completely: neither the header
+// condition nor its break branches survive as instructions. What remains is
+// the edge into the loop's pre-allocated exit block, which runs backward in
+// block order without closing a cycle. Block identity is allocation order, so
+// a structured routine that carries no loop has only forward edges; that
+// backward non-cycle edge is the pruned loop's sole CFG residue. Malformed or
+// out-of-range rows carry no residue and answer false.
+func MirRoutineBlockPrunedLoopExitEdge(
+    ref block_succ_true: Array<Int>,
+    ref block_succ_false: Array<Int>,
+    ref backedge_headers: Array<Int>,
+    block_row: Int
+) -> Bool {
+    let block_count: Int = ArrayLength(block_succ_true);
+    if ArrayLength(block_succ_false) != block_count ||
+        ArrayLength(backedge_headers) != block_count ||
+        block_row < 0 || block_row >= block_count { return false; }
+    let true_target: Int = block_succ_true[block_row];
+    let false_target: Int = block_succ_false[block_row];
+    if true_target >= 0 && true_target < block_row &&
+        backedge_headers[true_target] == 0 { return true; }
+    return false_target >= 0 && false_target < block_row &&
+        backedge_headers[false_target] == 0;
+}

@@ -223,6 +223,7 @@ func LoopFlowSummaryProjectionReady(ref index: MirRoutineFactIndex,
         // body CFG.
         let is_loop: Bool = is_for || (block_is_backedge && has_branch_condition);
         if block_is_backedge { has_backedge = true; }
+        if MirRoutineBlockPrunedLoopExitEdge(index.block_succ_true, index.block_succ_false, index.backedge_headers, block_row) { has_loop_transfer = true; }
         if is_loop {
             if summary_row >= summary_count { return false; }
             let expected_kind: Int = index.loop_flow_summary_kinds[summary_row];
