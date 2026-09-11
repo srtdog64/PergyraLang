@@ -28,8 +28,8 @@ pgy_selfhost_verify_driver_rung2_foreach_call_type() {
             exit 1
         }
         synthetic_graph_count="$(
-            { grep -oF \
-                "\"expr0_graph\":{\"root\":0,\"nodes\":[{\"kind\":\"leaf\",\"text\":\"__pgy_forin_$ordinal\"" \
+            { grep -oE \
+                "\"expr0_graph\":\{\"root\":0,(\"digest\":[0-9]+,)?\"nodes\":\[\{\"kind\":\"leaf\",\"text\":\"__pgy_forin_$ordinal\"" \
                 "$self_mir_json" || true; } | wc -l | tr -d ' '
         )"
         if [[ "$synthetic_graph_count" -ne 2 ]]; then

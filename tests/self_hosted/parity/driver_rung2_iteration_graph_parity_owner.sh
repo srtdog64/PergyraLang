@@ -50,7 +50,7 @@ pgy_selfhost_verify_driver_rung2_iteration_graph() {
             }
         done
         for collection in nums names; do
-            grep -Fq "\"expr0\":\"$collection\",\"expr0_graph\":{\"root\":0,\"nodes\":[{\"kind\":\"leaf\",\"text\":\"$collection\"" \
+            grep -Eq "\"expr0\":\"$collection\",\"expr0_graph\":\{\"root\":0,(\"digest\":[0-9]+,)?\"nodes\":\[\{\"kind\":\"leaf\",\"text\":\"$collection\"" \
                 "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend foreach graph drifted: $collection" >&2
                 exit 1
