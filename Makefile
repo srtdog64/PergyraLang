@@ -1249,6 +1249,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_boundary_projection_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_common.c \
                         $(CODEGEN_DIR)/llvm_expr_array_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_array_hof.c \
                         $(CODEGEN_DIR)/llvm_expr_array_raw_nominal_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_allocator_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_text_builder_calls.c \
