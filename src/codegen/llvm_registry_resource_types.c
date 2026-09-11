@@ -247,12 +247,31 @@ llvm_array_struct_type(LLVMGenCtx *ctx, const char *inner)
         return nested;
     {
         LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+        LLVMTypeRef named;
+        char name_buf[192];
+        int written;
+
         if (ctx->has_error || elem_ty == NULL)
             return NULL;
         LLVMTypeRef fields[] = {
             LLVMPointerType(elem_ty, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
         };
-        return LLVMStructTypeInContext(ctx->context, fields, 4, 0);
+        /* Name the struct after its element type. A literal struct carries no
+         * name, and element-type inference recovers T only from the
+         * `PgyArray_<T>` spelling, so an array of a declared nominal would
+         * otherwise be unreadable wherever the element type is not already
+         * known. The scalar arrays above are named for the same reason. */
+        written = snprintf(name_buf, sizeof(name_buf), "PgyArray_%s", inner);
+        if (written < 0 || (size_t)written >= sizeof(name_buf))
+            return LLVMStructTypeInContext(ctx->context, fields, 4, 0);
+        named = LLVMGetTypeByName2(ctx->context, name_buf);
+        if (named != NULL)
+            return named;
+        named = LLVMStructCreateNamed(ctx->context, name_buf);
+        if (named == NULL)
+            return LLVMStructTypeInContext(ctx->context, fields, 4, 0);
+        LLVMStructSetBody(named, fields, 4, 0);
+        return named;
     }
 }
 
