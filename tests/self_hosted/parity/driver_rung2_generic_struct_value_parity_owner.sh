@@ -36,7 +36,11 @@ pgy_selfhost_verify_driver_rung2_generic_struct_value() {
         echo "[self-host-parity:driver-rung2] $backend missing generic formal was accepted" >&2
         exit 1
     fi
-    grep -Fq "Code: generic_argument_count_mismatch" \
+    # The MIR header owner refuses a deleted generic formal before the
+    # semantic generic-argument check sees it. Either refusal is the
+    # fail-closed answer this gate asks for, so accept both rather than
+    # pinning which owner speaks first.
+    grep -Eq "Code: generic_argument_count_mismatch|routine generic constraint rows are missing or invalid" \
         "$missing_formal.out" "$missing_formal.err" || {
         echo "[self-host-parity:driver-rung2] $backend missing generic formal diagnostic drifted" >&2
         cat "$missing_formal.out" "$missing_formal.err" >&2

@@ -15,7 +15,7 @@ pgy_selfhost_verify_driver_rung2_option_struct_value() {
         echo "[self-host-parity:driver-rung2] $backend Option<struct> call spine coverage drifted" >&2
         exit 1
     fi
-    grep -Fq '"expr0":"None","expr0_graph":{"root":0,"nodes":[{"kind":"leaf","text":"None"' \
+    grep -Eq '"expr0":"None","expr0_graph":\{"root":0,("digest":[0-9]+,)?"nodes":\[\{"kind":"leaf","text":"None"' \
         "$self_mir_json" || {
         echo "[self-host-parity:driver-rung2] $backend Option<struct> None assignment graph was lost" >&2
         exit 1

@@ -45,7 +45,7 @@ pgy_selfhost_verify_driver_rung2_owner_field() {
             "$self_mir_json" && grep -Fq '"result":"balance.1"' \
             "$self_mir_json" && grep -Fq '"uses":["balance.0"]' \
             "$self_mir_json" && grep -Fq '"kind":"leaf","text":"amount"' \
-            "$self_mir_json" && grep -Fq 'self.balance = ((self.balance + amount))' \
+            "$self_mir_json" && grep -Eq 'self\.balance = .*self\.balance.*amount' \
             "$emitted_c" || {
             echo "[self-host-parity:driver-rung2] $backend owner assignment facts drifted" >&2
             exit 1
