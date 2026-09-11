@@ -231,7 +231,13 @@ jobs:
 
   platform-full-macos-c-only:
     runs-on: macos-latest
-    timeout-minutes: 45
+    # Hang budget: this leg has no separate parity shard, so its one job runs
+    # the whole ci-macos list including the DRV-2 driver corpus at step 31.
+    # Until the seed bootstrap was repaired it failed at step 3 and never
+    # reached that corpus; run 34633676141 then spent the former 45-minute
+    # ceiling inside it while still making named-gate progress. Allow the
+    # Windows core budget plus its parity shard, which is the same work.
+    timeout-minutes: 100
     env:
       PGY_ALLOW_MISSING_COQ: 1
     steps:
