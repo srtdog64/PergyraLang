@@ -54,7 +54,7 @@ intent FrontendPipeline(
     step Intake {
         using: intake;
         who: source;
-        on: IntakeSource(intake, source, paths);
+        intent: IntakeSource(intake, source, paths);
         expect: true;
     }
 }
