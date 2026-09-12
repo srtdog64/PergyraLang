@@ -1156,6 +1156,12 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   ordered graph-sequence construction over exact persisted graph captures.
   Match/destructure extensions preserve the admitted identity prefix and append
   only their new identity rows; they may not rebuild whole-program Unknown rows.
+- `src/self_hosted/mir_lower/expression_graph_call_text_owner.pgy` -- a call
+  spine's own text against its own children: a call node renders its callee and
+  a call-argument node extends the spine before it. The argument's own
+  parenthesisation belongs to the producing surface; the callee and preceding
+  arguments are pinned, so a graph naming one callee in its text and another in
+  its callee leaf is refused.
 - `src/self_hosted/mir_lower/expression_graph_kind_code_owner.pgy` -- the
   persisted-shape vocabulary: exact JSON spans for expression-graph node,
   call-target, and binding kinds mapped allocation-free to their wire codes.

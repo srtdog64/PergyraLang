@@ -5,6 +5,7 @@ import "../semantic/role_operator_vocabulary_owner.pgy";
 import "expression_graph_persisted_shape_owner.pgy";
 import "expression_graph_persisted_read_owner.pgy";
 import "expression_graph_persisted_node_read_owner.pgy";
+import "expression_graph_call_text_owner.pgy";
 struct MirExpressionGraphSequence {
     ok: Bool;
     ready_node_count: Int;
@@ -250,6 +251,10 @@ func MirExpressionGraphSequenceAppend(
             (kind == AstExpressionNodeStructField() &&
                 (!AstExpressionNodeIsStructLiteralSpine(kinds[left]) ||
                     kinds[right] != AstExpressionNodeStructFieldBinding())) {
+            return MirExpressionGraphSequenceError(sequence);
+        }
+        if !MirExpressionGraphCallSpineTextReady(
+                kind, node_text, kinds, texts, left, right) {
             return MirExpressionGraphSequenceError(sequence);
         }
         ArrayPush(kinds, kind);

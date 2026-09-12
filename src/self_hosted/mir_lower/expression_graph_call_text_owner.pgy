@@ -1,0 +1,41 @@
+// A call spine's own text against its own children.
+//
+// A persisted call node renders its callee and a call-argument node renders
+// the spine it extends, so a graph whose call text names one callee while its
+// callee leaf names another describes a call nobody wrote. The argument's own
+// parenthesisation belongs to the surface that produced it; the callee and the
+// preceding arguments do not, and those are what this owner pins.
+
+import "../hir/ast_expression_graph_owner.pgy";
+import "../hir/ast_text_scan_owner.pgy";
+
+func MirExpressionGraphCallArgumentTextReady(
+    text: String, ref kinds: Array<Int>, ref texts: Array<String>,
+    left: Int, right: Int
+) -> Bool {
+    let base: String = texts[left];
+    let length: Int = StringLength(base);
+    if length < 1 || CodegenCharAt(base, length - 1) != ")" { return false; }
+    let stem: String = Substring(base, 0, length - 1);
+    if kinds[left] == AstExpressionNodeCallArgument() {
+        stem = Concat(stem, ", ");
+    }
+    let argument: String = texts[right];
+    let plain: String = Concat(stem, Concat(argument, ")"));
+    let wrapped: String = Concat(stem, Concat("(", Concat(argument, "))")));
+    return text == plain || text == wrapped;
+}
+
+func MirExpressionGraphCallSpineTextReady(
+    kind: Int, text: String, ref kinds: Array<Int>, ref texts: Array<String>,
+    left: Int, right: Int
+) -> Bool {
+    if kind == AstExpressionNodeCall() {
+        return text == Concat(texts[left], "()");
+    }
+    if kind == AstExpressionNodeCallArgument() {
+        return MirExpressionGraphCallArgumentTextReady(
+            text, kinds, texts, left, right);
+    }
+    return true;
+}

@@ -9476,7 +9476,7 @@ require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" 
     'SemanticAstEnumFacts'
 require_text "src/self_hosted/mir_lower/structured_condition_emission_owner.pgy" \
     'match enum variant declaration fact is missing'
-require_max_lines "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" 300
+require_max_lines "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" 310
 require_file "src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/expression_graph_persisted_read_owner.pgy" 360
 require_file "src/self_hosted/mir_lower/expression_graph_persisted_node_read_owner.pgy"
