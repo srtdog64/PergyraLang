@@ -437,6 +437,11 @@ func ExpressionAssignableTo(expected: String, actual: String, expr: String) -> B
     if IsBoxType(expected) && actual == "Box<Unknown>" {
         return true;
     }
+    // The `Channel(capacity)` constructor cannot name its payload, so the
+    // declared type supplies it, as with the other wrapper constructors above.
+    if IsChannelType(expected) && actual == "Channel<Unknown>" {
+        return true;
+    }
     if expected == "Long" && actual == "Int" &&
         IsIntLiteral(SemanticTrimSourceReuse(expr)) {
         return true;

@@ -123,6 +123,12 @@ func SemanticTopLevelOperatorFactsFromExpression(
         if c == equal && c2 != equal && assignment_index < 0 {
             assignment_index = i;
         }
+        // `<-` is the channel transfer operator, the mirror of the `->` guard
+        // on the minus branch below, and never a comparison.
+        if c == less && c2 == minus {
+            i = i + 2;
+            continue;
+        }
         if c == less || c == greater {
             if comparison_index < 0 {
                 comparison_index = i;

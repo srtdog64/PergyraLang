@@ -83,6 +83,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "Unwrap^Unknown^Unknown",
         "UnwrapErr^Unknown^Unknown",
         "UnwrapOr^Unknown^Unknown|Unknown",
+        "Channel^Channel<Unknown>^Int",
         "AllocatorResult^Allocator^none",
         "AllocatorDestroy^Void^Allocator",
         "TextBuilderNew^TextBuilder^Int",

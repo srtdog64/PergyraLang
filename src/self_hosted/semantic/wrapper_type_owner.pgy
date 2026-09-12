@@ -131,6 +131,12 @@ func IsSlotType(type_name: String) -> Bool {
         CharAt(type_name, n - 1) == ">";
 }
 
+func IsChannelType(type_name: String) -> Bool {
+    let n: Int = StringLength(type_name);
+    return n >= 10 && Substring(type_name, 0, 8) == "Channel<" &&
+        CharAt(type_name, n - 1) == ">";
+}
+
 func SlotPayloadTypeOpt(type_name: String) -> Option<String> {
     if !IsSlotType(type_name) { return None; }
     return Some(Substring(type_name, 5, StringLength(type_name) - 6));
