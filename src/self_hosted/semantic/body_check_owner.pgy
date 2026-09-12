@@ -8,6 +8,7 @@ import "expr_type_owner.pgy";
 import "expr_validation_owner.pgy";
 import "call_check_owner.pgy";
 import "collection_mutation_policy_owner.pgy";
+import "expression_text_operand_shape_owner.pgy";
 
 func RestoreEnv(inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>, size: Int) -> Void {
     while ArrayLength(names) > size {

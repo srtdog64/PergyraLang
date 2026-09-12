@@ -12,6 +12,7 @@ import "expression_normalization_owner.pgy";
 import "expression_operator_fact_owner.pgy";
 import "try_expression_fact_owner.pgy";
 import "callable_resolution_owner.pgy";
+import "expression_text_operand_shape_owner.pgy";
 
 // A member name is whatever follows a `.`, and the source may wrap the line
 // after the dot. Looking only at the byte before the name reads the wrap as
