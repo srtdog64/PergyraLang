@@ -367,6 +367,8 @@ for fixture_entry in "${FIXTURES[@]}"; do
             exit 1
         fi
         grep -Fq 'MIR intent step semantic carriers are incomplete' \
+            "$invalid_delegation_out" "$invalid_delegation_err" || \
+        grep -Fq 'MIR intent action expression graph identity is invalid' \
             "$invalid_delegation_out" "$invalid_delegation_err" || {
             echo "[self-host-parity:mir-json] intent_nested_direct: undeclared delegation diagnostic drifted" >&2
             cat "$invalid_delegation_out" "$invalid_delegation_err" >&2
@@ -384,11 +386,11 @@ for fixture_entry in "${FIXTURES[@]}"; do
                 exit 1
             fi
         done
-        if ! grep -Eq '"kind":"branch"[^}]*"arg0":"i"[^}]*"expr0":"0","expr0_graph":\{"root":0,"nodes":\[\{"kind":"integer_literal","text":"3"' "$mj"; then
+        if ! grep -Eq '"kind":"branch"[^}]*"arg0":"i"[^}]*"expr0":"0","expr0_graph":\{"root":0,[^[]*"nodes":\[\{"kind":"integer_literal","text":"3"' "$mj"; then
             echo "[self-host-parity:mir-json] forloop: native range branch graph lost the MIR-owned stop expression" >&2
             exit 1
         fi
-        if grep -Eq '"kind":"branch"[^}]*"arg0":"i"[^}]*"expr0":"0","expr0_graph":\{"root":0,"nodes":\[\{"kind":"integer_literal","text":"0"' "$mj"; then
+        if grep -Eq '"kind":"branch"[^}]*"arg0":"i"[^}]*"expr0":"0","expr0_graph":\{"root":0,[^[]*"nodes":\[\{"kind":"integer_literal","text":"0"' "$mj"; then
             echo "[self-host-parity:mir-json] forloop: native range branch graph regressed to the start expression" >&2
             exit 1
         fi
@@ -545,39 +547,6 @@ for fixture_entry in "${FIXTURES[@]}"; do
             exit 1
         fi
     fi
-    if [[ "$base" == "intent_nested_direct" ]]; then
-        for required in \
-            'Zone: SourceIntakeZone' \
-            'Authority: source' \
-            'Requires: SourceReading' \
-            'Intent: IntakeSource' \
-            'Intent: FrontendPipeline'; do
-            if ! grep -Fq "$required" "$reast"; then
-                echo "[self-host-parity:mir-json] intent_nested_direct: reconstructed authority fact is missing: $required" >&2
-                exit 1
-            fi
-        done
-        intake_section="$(awk '
-            /^  Intent: IntakeSource$/ { inside = 1 }
-            inside { print }
-            inside && /^  Intent: FrontendPipeline$/ { exit }
-        ' "$reast")"
-        frontend_section="$(awk '
-            /^  Intent: FrontendPipeline$/ { inside = 1 }
-            inside { print }
-            inside && /^  Function: Main$/ { exit }
-        ' "$reast")"
-        if ! printf '%s\n' "$intake_section" |
-                grep -Fq 'AuthorizedBy: source'; then
-            echo "[self-host-parity:mir-json] intent_nested_direct: terminal action authority was not reconstructed" >&2
-            exit 1
-        fi
-        if printf '%s\n' "$frontend_section" |
-                grep -Fq 'AuthorizedBy:'; then
-            echo "[self-host-parity:mir-json] intent_nested_direct: nested orchestration duplicated delegated authority" >&2
-            exit 1
-        fi
-    fi
     if [[ "$base" == "enum_multi_payload" ]]; then
         for required in \
             '"name":"Point","param_count":0,"param_types":[]' \
@@ -633,6 +602,41 @@ for fixture_entry in "${FIXTURES[@]}"; do
         grep '^MIR-LOWER ERROR' "$reast" | head -1 >&2
         exit 1
     fi
+    # These read the reconstruction, so they run after it is written; the
+    # block used to sit above and assert against the previous run's file.
+    if [[ "$base" == "intent_nested_direct" ]]; then
+        for required in \
+            'Zone: SourceIntakeZone' \
+            'Authority: source' \
+            'Requires: SourceReading' \
+            'Intent: IntakeSource' \
+            'Intent: FrontendPipeline'; do
+            if ! grep -Fq "$required" "$reast"; then
+                echo "[self-host-parity:mir-json] intent_nested_direct: reconstructed authority fact is missing: $required" >&2
+                exit 1
+            fi
+        done
+        intake_section="$(awk '
+            /^  Intent: IntakeSource$/ { inside = 1 }
+            inside { print }
+            inside && /^  Intent: FrontendPipeline$/ { exit }
+        ' "$reast")"
+        frontend_section="$(awk '
+            /^  Intent: FrontendPipeline$/ { inside = 1 }
+            inside { print }
+            inside && /^  Function: Main$/ { exit }
+        ' "$reast")"
+        if ! printf '%s\n' "$intake_section" |
+                grep -Fq 'AuthorizedBy: source'; then
+            echo "[self-host-parity:mir-json] intent_nested_direct: terminal action authority was not reconstructed" >&2
+            exit 1
+        fi
+        if printf '%s\n' "$frontend_section" |
+                grep -Fq 'AuthorizedBy:'; then
+            echo "[self-host-parity:mir-json] intent_nested_direct: nested orchestration duplicated delegated authority" >&2
+            exit 1
+        fi
+    fi
     # Observable-failure guard (CLAUDE.md s1.1): the `|| true` above swallows the
     # tool's exit code, so a mir_lower.exe that is missing, stale, or unrunnable in
     # this environment yields an EMPTY $reast with no MIR-LOWER ERROR marker. Left
@@ -664,17 +668,26 @@ for fixture_entry in "${FIXTURES[@]}"; do
             "$mj" >"$missing_payload_types"
         sed 's/"name":"Pass","param_count":1,"param_types":\["Int"\]/"name":"Pass","param_count":1,"param_types":["Unknown"]/' \
             "$mj" >"$unknown_payload_type"
+        # Emptying param_types leaves param_count disagreeing with the array,
+        # which document admission refuses before declaration lowering runs.
+        # Replacing the type with Unknown keeps the document structurally valid,
+        # so the declaration's own payload check is the one that refuses it.
         for mutation in missing-payload-types unknown-payload-type; do
             mutation_input="$B/${base}.${mutation}.mirjson"
             mutation_out="$B/${base}.${mutation}.out"
             mutation_err="$B/${base}.${mutation}.err"
+            if [[ "$mutation" == "missing-payload-types" ]]; then
+                mutation_diagnostic='MIR machine-layer facts are missing or invalid'
+            else
+                mutation_diagnostic='enum payload type fact is missing'
+            fi
             if (cd "$ROOT_DIR" && "$B/mir_lower.exe" \
                     "${mutation_input#$ROOT_DIR/}" \
                     >"$mutation_out" 2>"$mutation_err"); then
                 echo "[self-host-parity:mir-json] enum_option_payload: $mutation mutation was accepted" >&2
                 exit 1
             fi
-            grep -Fq 'enum payload type fact' \
+            grep -Fq "$mutation_diagnostic" \
                 "$mutation_out" "$mutation_err" || {
                 echo "[self-host-parity:mir-json] enum_option_payload: $mutation diagnostic drifted" >&2
                 cat "$mutation_out" "$mutation_err" >&2
@@ -702,17 +715,26 @@ for fixture_entry in "${FIXTURES[@]}"; do
             "$mj" >"$missing_rect_type"
         sed 's/"name":"Rect","param_count":2,"param_types":\["Int","Int"\]/"name":"Rect","param_count":2,"param_types":["Int","Unknown"]/' \
             "$mj" >"$unknown_rect_type"
+        # Dropping a type leaves param_count disagreeing with the array,
+        # which document admission refuses before declaration lowering
+        # runs. Replacing one with Unknown keeps the count intact, so the
+        # declaration's own payload check is the one that refuses it.
         for mutation in missing-rect-type unknown-rect-type; do
             mutation_input="$B/${base}.${mutation}.mirjson"
             mutation_out="$B/${base}.${mutation}.out"
             mutation_err="$B/${base}.${mutation}.err"
+            if [[ "$mutation" == "missing-rect-type" ]]; then
+                mutation_diagnostic='MIR machine-layer facts are missing or invalid'
+            else
+                mutation_diagnostic='enum payload type fact is missing'
+            fi
             if (cd "$ROOT_DIR" && "$B/mir_lower.exe" \
                     "${mutation_input#$ROOT_DIR/}" \
                     >"$mutation_out" 2>"$mutation_err"); then
                 echo "[self-host-parity:mir-json] enum_multi_payload: $mutation mutation was accepted" >&2
                 exit 1
             fi
-            grep -Fq 'enum payload type fact' \
+            grep -Fq "$mutation_diagnostic" \
                 "$mutation_out" "$mutation_err" || {
                 echo "[self-host-parity:mir-json] enum_multi_payload: $mutation diagnostic drifted" >&2
                 cat "$mutation_out" "$mutation_err" >&2
