@@ -5,6 +5,7 @@ import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
+import "direct_mir_array_int_plan_owner.pgy";
 
 func DirectMirScalarBuiltinProgramRouteClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput
@@ -15,6 +16,8 @@ func DirectMirScalarBuiltinProgramRouteClaimed(
         JsonArrayObjectFactCount(admitted.document.declarations) != 0 {
         return false;
     }
+    // The narrower one-block Array<Int> plan owns its own programs.
+    if DirectMirArrayIntPlanCandidate(admitted) { return false; }
     let first_count: Int = MirProgramRoutineIndexBlockInstructionCountAt(
         admitted.routines, 0, 0);
     let signature: DirectMirRoutineSignatureFact =
@@ -37,7 +40,8 @@ func DirectMirScalarBuiltinProgramRouteClaimed(
     while row < ArrayLength(index.instruction_facts.starts) {
         let global: Int = index.instruction_facts.global_start + row;
         let kind: String = admitted.routines.instruction_kinds[global];
-        if kind != "def" && kind != "stmt" && kind != "branch" {
+        if kind != "def" && kind != "stmt" && kind != "branch" &&
+            kind != "return" {
             return false;
         }
         if kind == "branch" &&
