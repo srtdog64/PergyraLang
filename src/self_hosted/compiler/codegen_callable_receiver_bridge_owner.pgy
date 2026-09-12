@@ -10,6 +10,7 @@ import "domain_runtime_c_codegen_bridge_owner.pgy";
 import "direct_mir_intent_plan_projection_owner.pgy";
 import "intent_policy_c_codegen_bridge_owner.pgy";
 import "intent_execution_c_codegen_bridge_owner.pgy";
+import "../mir/declaration_rows_owner.pgy";
 
 struct CodegenAdmittedCView {
     receivers: CodegenCallableReceiverFacts;

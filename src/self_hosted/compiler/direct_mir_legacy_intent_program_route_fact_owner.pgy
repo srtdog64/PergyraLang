@@ -7,6 +7,7 @@
 
 import "direct_mir_scalar_cfg_hash_owner.pgy";
 import "../mir/declaration_wire_kind_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 struct DirectMirLegacyIntentProgramRouteFact {
     let valid: Bool;

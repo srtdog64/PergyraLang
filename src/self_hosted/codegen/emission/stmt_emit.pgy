@@ -37,6 +37,7 @@ import "result_let_emit_owner.pgy";
 import "tagged_enum_match_owner.pgy";
 import "option_match_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
+import "../input/semantic_body_type_codegen_view_owner.pgy";
 
 struct CodegenStatementBlockEmission {
     body: String;
@@ -167,8 +168,7 @@ func EmitStmtList(count: Int, arena: AstArena,
                   inout cur: Array<Int>, pad: String,
                   inout env_state: CodegenTypeEnvState, cur_fn_ret: String,
                   inout routine_defers: Array<String>,
-                  active_defers: String,
-                  loop_escape_defers: String,
+                  active_defers: String, loop_escape_defers: String,
                   base_env: CodegenTypeEnv) -> CodegenStatementBlockEmission {
     let result: Array<String> = [];
     let inner_pad: String = Concat(pad, "    ");

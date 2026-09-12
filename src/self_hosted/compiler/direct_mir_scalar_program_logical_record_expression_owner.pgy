@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
 import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 
 struct DirectMirScalarProgramLogicalRecordExpressionFact {
     let recognized: Bool;
@@ -150,8 +151,7 @@ func DirectMirScalarProgramLogicalRecordMemberFromGraph(
     }
     if ordinal < 0 || field_type == "" {
         return DirectMirScalarProgramLogicalRecordExpressionFact(
-            true, false, false, 0, "", missing.argument_rows,
-            -1, -1, -1);
+            true, false, false, 0, "", missing.argument_rows, -1, -1, -1);
     }
     return DirectMirScalarProgramLogicalRecordExpressionFact(
         true, true, true, kind,

@@ -9,6 +9,7 @@ import "../semantic/callable_receiver_carriage_policy_owner.pgy";
 import "../mir/declaration_wire_kind_owner.pgy";
 import "direct_mir_scalar_cfg_hash_owner.pgy";
 import "direct_mir_exact_json_array_cardinality_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 struct DirectMirIdentityCellFacts {
     let valid: Bool;

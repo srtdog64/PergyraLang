@@ -9,6 +9,7 @@ import "../dir/intent_mode_fact_owner.pgy";
 import "../dir/intent_priority_fact_owner.pgy";
 import "../dir/intent_fact_owner.pgy";
 import "../semantic/ast_artifact_verdict_owner.pgy";
+import "../codegen/text/text_owner.pgy";
 
 func CodegenIntentSourceFactsFromAdmittedSemanticOrDie(
     artifact: AstTreeArtifact,
