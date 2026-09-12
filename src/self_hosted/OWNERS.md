@@ -771,10 +771,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   string/parenthesis-aware top-level operator-position fact consumed by typing
   and logical/binary diagnostics.
 - `src/self_hosted/semantic/expr_type_owner.pgy` -- expression type facts.
-- `src/self_hosted/semantic/expression_text_operand_shape_owner.pgy` -- the
-  operand shapes the text-level checker cannot resolve, a member path and an
-  indexed element. The refusal sites consult it rather than reading
-  `ArithmeticResultType`'s Int default as a resolved type.
+- `src/self_hosted/semantic/expression_text_operand_shape_owner.pgy` -- the one
+  top-level arithmetic split in expression source text. Pure text scanning, so
+  it sits apart from the type owner that consumes it.
 - `src/self_hosted/semantic/expression_declared_context_type_owner.pgy` --
   source-text declared-context projection for zero-argument collection
   constructors; builtin identity/type compatibility stays owned by

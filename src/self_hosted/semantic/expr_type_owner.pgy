@@ -298,60 +298,63 @@ func CollectionArrayReturnType(text: String, names: Array<String>, types: Array<
     }
     return ExprType(array_expr, names, types, func_names, func_rets);
 }
+// Whether an expression's arithmetic type is a guess rather than a
+// resolution.
+//
+// `ArithmeticResultType` reports an operand it cannot resolve as Int so
+// that consumers outside the checker keep a usable numeric default. A
+// refusal site that reads that Int as a resolved type reports a mismatch
+// it cannot substantiate, so each one asks this first. Asking about
+// resolution rather than about operand spelling keeps the negatives that
+// drift an operand whose own type does resolve.
+func SemanticExpressionArithmeticTypeGuessed(
+    expr: String, names: Array<String>, types: Array<String>,
+    ref func_names: Array<String>, ref func_rets: Array<String>
+) -> Bool {
+    let text: String = SemanticStripOuterParens(expr);
+    if TopLevelOpType(text) != "Int" {
+        // A wrapper constructor carries its payload's guess outward, so the
+        // walk enters `Some`/`Ok`/`Err` rather than stopping at the spine.
+        let length: Int = StringLength(text);
+        if length == 0 || CharAt(text, length - 1) != ")" { return false; }
+        let paren: Int = StringIndexOf(text, "(");
+        if paren <= 0 { return false; }
+        let callee: String = SemanticTrimSourceRangeReuse(text, 0, paren);
+        if callee != "Some" && callee != "Ok" && callee != "Err" {
+            return false;
+        }
+        let payload: String = CallArgAt(
+            Substring(text, paren + 1, length - paren - 2), 0);
+        if StringLength(payload) == 0 { return false; }
+        return SemanticExpressionArithmeticTypeGuessed(
+            payload, names, types, func_names, func_rets);
+    }
+    let split: Int = SemanticExpressionArithmeticSplitIndex(text);
+    if split < 0 { return true; }
+    let left: String = SemanticTrimSourceRangeReuse(text, 0, split);
+    let right: String = SemanticTrimSourceRangeReuse(
+        text, split + 1, StringLength(text));
+    if StringLength(left) == 0 || StringLength(right) == 0 {
+        return true;
+    }
+    if ExprType(left, names, types, func_names, func_rets) == "Unknown" ||
+        ExprType(right, names, types, func_names, func_rets) == "Unknown" {
+        return true;
+    }
+    // An operand that is itself an arithmetic guess carries the guess upward,
+    // so the walk follows the whole spine rather than one split.
+    return SemanticExpressionArithmeticTypeGuessed(
+            left, names, types, func_names, func_rets) ||
+        SemanticExpressionArithmeticTypeGuessed(
+            right, names, types, func_names, func_rets);
+}
+
 func ArithmeticResultType(expr: String, names: Array<String>, types: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>) -> String {
     let text: String = SemanticTrimSourceReuse(expr);
     let n: Int = StringLength(text);
-    let i: Int = 0;
-    let depth: Int = 0;
-    let split_idx: Int = -1;
+    let split_idx: Int = SemanticExpressionArithmeticSplitIndex(text);
     let split_op: String = "";
-    while i < n {
-        let c: String = CharAt(text, i);
-        if c == "\"" {
-            i = i + 1;
-            while i < n && CharAt(text, i) != "\"" {
-                if CharAt(text, i) == "\\" {
-                    i = i + 1;
-                }
-                i = i + 1;
-            }
-            i = i + 1;
-            continue;
-        }
-        if c == "(" || c == "[" {
-            depth = depth + 1;
-            i = i + 1;
-            continue;
-        }
-        if c == ")" || c == "]" {
-            if depth > 0 {
-                depth = depth - 1;
-            }
-            i = i + 1;
-            continue;
-        }
-        if depth == 0 &&
-            (c == "+" || c == "*" || c == "/" || c == "%") {
-            split_idx = i;
-            split_op = c;
-            break;
-        }
-        if depth == 0 && c == "-" && CharAt(text, i + 1) != ">" {
-            let j: Int = i - 1;
-            while j >= 0 && (CharAt(text, j) == " " || CharAt(text, j) == "\t") {
-                j = j - 1;
-            }
-            if j >= 0 {
-                let prevc: String = CharAt(text, j);
-                if prevc == ")" || prevc == "]" || prevc == "\"" || IsAlphaNum(prevc) {
-                    split_idx = i;
-                    split_op = c;
-                    break;
-                }
-            }
-        }
-        i = i + 1;
-    }
+    if split_idx >= 0 { split_op = CharAt(text, split_idx); }
     if split_idx < 0 {
         return "";
     }
@@ -561,3 +564,4 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, ref func
     return "Unknown";
 }
 import "callable_resolution_owner.pgy";
+import "expression_text_operand_shape_owner.pgy";

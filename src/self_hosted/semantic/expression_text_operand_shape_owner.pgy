@@ -1,47 +1,66 @@
-// Operand shapes the text-level expression checker cannot resolve.
+// The one top-level arithmetic split in an expression's source text.
 //
-// `ExprType` types expression source text. Two operand shapes defeat its
-// arithmetic path: a member path, because there is no nominal field table at
-// this level, and an indexed element, whose split candidate that scanner does
-// not find. `ArithmeticResultType` reports either as Int, a default consumers
-// outside the checker rely on, so the refusal sites consult this owner instead
-// of reading that default as a resolved type. Both shapes type correctly on
-// their own, outside the arithmetic path.
+// `ArithmeticResultType` splits an expression here and types each side.
+// The split is pure text scanning with no type dependency, so it lives
+// apart from the owner that consumes it and from the owner that asks
+// whether the resulting type was resolved or guessed.
 
 import "../lib/source_scan_owner.pgy";
 import "expression_normalization_owner.pgy";
 
-func SemanticExpressionTextCarriesMemberPath(expr: String) -> Bool {
+func SemanticExpressionArithmeticSplitIndex(expr: String) -> Int {
     let text: String = SemanticTrimSourceReuse(expr);
     let n: Int = StringLength(text);
     let i: Int = 0;
+    let depth: Int = 0;
+    let split_idx: Int = -1;
+    let split_op: String = "";
     while i < n {
         let c: String = CharAt(text, i);
         if c == "\"" {
             i = i + 1;
             while i < n && CharAt(text, i) != "\"" {
-                if CharAt(text, i) == "\\" { i = i + 1; }
+                if CharAt(text, i) == "\\" {
+                    i = i + 1;
+                }
                 i = i + 1;
             }
             i = i + 1;
             continue;
         }
-        if c == "." && i > 0 && i + 1 < n {
-            let before: String = CharAt(text, i - 1);
-            let after: String = CharAt(text, i + 1);
-            if (IsAlphaNum(before) || before == "_" || before == ")" ||
-                before == "]") && StringIndexOf("0123456789", after) < 0 {
-                return true;
-            }
+        if c == "(" || c == "[" {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
         }
-        if c == "[" && i > 0 {
-            let prior: String = CharAt(text, i - 1);
-            if IsAlphaNum(prior) || prior == "_" || prior == ")" ||
-                prior == "]" {
-                return true;
+        if c == ")" || c == "]" {
+            if depth > 0 {
+                depth = depth - 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if depth == 0 &&
+            (c == "+" || c == "*" || c == "/" || c == "%") {
+            split_idx = i;
+            split_op = c;
+            break;
+        }
+        if depth == 0 && c == "-" && CharAt(text, i + 1) != ">" {
+            let j: Int = i - 1;
+            while j >= 0 && (CharAt(text, j) == " " || CharAt(text, j) == "\t") {
+                j = j - 1;
+            }
+            if j >= 0 {
+                let prevc: String = CharAt(text, j);
+                if prevc == ")" || prevc == "]" || prevc == "\"" || IsAlphaNum(prevc) {
+                    split_idx = i;
+                    split_op = c;
+                    break;
+                }
             }
         }
         i = i + 1;
     }
-    return false;
+    return split_idx;
 }

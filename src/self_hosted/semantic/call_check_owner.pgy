@@ -43,7 +43,8 @@ func CompareCallArgs(
             );
             if StringLength(expected) > 0 && expected != "Unknown" &&
                 actual != "Unknown" &&
-                !SemanticExpressionTextCarriesMemberPath(part) &&
+                !SemanticExpressionArithmeticTypeGuessed(
+                    part, names, types, func_names, func_rets) &&
                 !ExpressionAssignableTo(expected, actual, part) {
                 return SemanticError3(
                     "call_arg_type_mismatch", "func", callee,
@@ -86,7 +87,8 @@ func CheckScalarUtilityArgs(
     let first_type: String = ExprType(first, names, types, func_names, func_rets);
     let second_type: String = ExprType(second, names, types, func_names, func_rets);
     if first_type != "Unknown" && second_type != "Unknown" &&
-        !SemanticExpressionTextCarriesMemberPath(second) &&
+        !SemanticExpressionArithmeticTypeGuessed(
+                    second, names, types, func_names, func_rets) &&
         !ExpressionAssignableTo(first_type, second_type, second) {
         return SemanticError3("call_arg_type_mismatch", "func", callee, "expected", first_type, "actual", second_type);
     }
