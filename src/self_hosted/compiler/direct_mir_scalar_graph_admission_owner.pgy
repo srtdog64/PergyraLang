@@ -427,6 +427,31 @@ func DirectMirScalarLogGraphAppend(
     return true;
 }
 
+// Ownership is the local-inventory shape, so a program this projection does
+// not own reaches its route's own rejection stage instead of these refusals.
+func DirectMirScalarBlockProjectionCandidate(
+    ref admitted: MirMachineLayerAdmittedJsonInput) -> Bool {
+    if !DirectMirProgramEnvelopeReady(admitted) ||
+        admitted.routines.routine_block_counts[0] != 1 { return false; }
+    let instruction_count: Int =
+        MirProgramRoutineIndexBlockInstructionCountAt(admitted.routines, 0, 0);
+    let routine_index: MirRoutineFactIndex =
+        BuildMirRoutineFactIndex(admitted.routines, 0);
+    let local_count: Int = ArrayLength(routine_index.source_local_names);
+    if !routine_index.valid || local_count < 1 ||
+        local_count != ArrayLength(routine_index.source_local_types) ||
+        instruction_count <= local_count { return false; }
+    let local_row: Int = 0;
+    while local_row < local_count {
+        if routine_index.source_local_types[local_row] != "Int" ||
+            StringLength(routine_index.source_local_names[local_row]) == 0 {
+            return false;
+        }
+        local_row = local_row + 1;
+    }
+    return true;
+}
+
 func DirectMirScalarBlockProjectionFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput) -> DirectMirScalarBlockProjection {
     let json: String = admitted.routines.source_json;

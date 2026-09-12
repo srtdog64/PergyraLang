@@ -197,6 +197,11 @@ func CompileAdmittedDirectMirForTargetObserved(
                     } else {
                         let int_c_type: String =
                             CompilerAbiLayoutIntCValueType();
+                        if !DirectMirScalarBlockProjectionCandidate(
+                                admitted) {
+                            DirectMirScalarProgramRouteAdmissionDie(
+                                scalar_program_admission);
+                        }
                         let scalar: DirectMirScalarBlockProjection =
                             DirectMirScalarBlockProjectionFromAdmitted(admitted);
                         if !scalar.valid || !formatted_print.ok {

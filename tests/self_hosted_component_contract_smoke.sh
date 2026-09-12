@@ -17584,7 +17584,7 @@ require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
     'src/self_hosted/mir_lower/fixture/multilet.pgy'
 require_file "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 330
+    "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" 335
 require_file "src/self_hosted/compiler/direct_mir_pressure_observation_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_pressure_observation_owner.pgy" 20
