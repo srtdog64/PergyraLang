@@ -1,0 +1,21 @@
+// Names and field order of the borrowed Slice<T> view.
+//
+// A slice is two fields over an array's buffer, `data` and `length`, and owns
+// neither. Its names sit apart from the row table that indexes them so the
+// table stays inside its cap as the family grows.
+
+func CompilerAbiLayoutSliceIntTypeName() -> String {
+    return "Slice<Int>";
+}
+func CompilerAbiLayoutSliceStringTypeName() -> String {
+    return "Slice<String>";
+}
+func CompilerAbiLayoutSliceIntCValueType() -> String {
+    return "PgySlice_Int";
+}
+func CompilerAbiLayoutSliceStringCValueType() -> String {
+    return "PgySlice_String";
+}
+func CompilerAbiLayoutFieldOrderSliceView() -> String {
+    return "data,length";
+}

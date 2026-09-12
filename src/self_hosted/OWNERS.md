@@ -2272,6 +2272,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   clean/incremental verifier vocabulary. The current completeness cache remains
   rung0 and coarse; this owner is the contract for later precise invalidation.
 - `src/self_hosted/compiler/abi_layout_row_owner.pgy` -- cross-backend ABI row
+- `src/self_hosted/compiler/abi_layout_slice_owner.pgy` -- names and field order
+  of the borrowed `Slice<T>` view, two fields over an array's buffer owning
+  neither.
   fact vocabulary for field order, niche, tags, ownership, and layout. Its
   borrowed-String-view ownership row owns the readonly-ref direct-pass fact;
   source-C and direct-MIR consumers do not infer it from `String` spelling.

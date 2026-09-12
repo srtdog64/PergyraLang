@@ -3,6 +3,7 @@
 // Owns the row vocabulary every projection must consume before emission.
 
 import "abi_layout_target_policy_owner.pgy";
+import "abi_layout_slice_owner.pgy";
 
 func CompilerAbiLayoutRowSchema() -> String {
     return "pgy.selfhost.abi-layout-row.v3";
@@ -101,7 +102,7 @@ func CompilerAbiLayoutRowsReady() -> Bool {
         CompilerAbiLayoutTargetPolicyReady();
 }
 func CompilerAbiLayoutConcreteRowCount() -> Int {
-    return 21;
+    return 23;
 }
 func CompilerAbiLayoutIntTypeName() -> String {
     return "Int";
@@ -230,6 +231,8 @@ func CompilerAbiLayoutRowTypeNameAt(index: Int) -> String {
     if index == 18 { return CompilerAbiLayoutAllocatorTypeName(); }
     if index == 19 { return CompilerAbiLayoutTextBuilderTypeName(); }
     if index == 20 { return CompilerAbiLayoutSetStringTypeName(); }
+    if index == 21 { return CompilerAbiLayoutSliceIntTypeName(); }
+    if index == 22 { return CompilerAbiLayoutSliceStringTypeName(); }
     return "";
 }
 func CompilerAbiLayoutIntCValueType() -> String {
@@ -326,6 +329,8 @@ func CompilerAbiLayoutRowCValueTypeAt(index: Int) -> String {
     if index == 18 { return CompilerAbiLayoutAllocatorCValueType(); }
     if index == 19 { return CompilerAbiLayoutTextBuilderCValueType(); }
     if index == 20 { return CompilerAbiLayoutSetStringCValueType(); }
+    if index == 21 { return CompilerAbiLayoutSliceIntCValueType(); }
+    if index == 22 { return CompilerAbiLayoutSliceStringCValueType(); }
     return "";
 }
 
@@ -353,6 +358,7 @@ func CompilerAbiLayoutFieldOrderSetBuffer() -> String {
 func CompilerAbiLayoutRowFieldOrderAt(index: Int) -> String {
     if (index >= 0 && index <= 3) || index == 10 || index == 11 { return CompilerAbiLayoutFieldOrderScalarValue(); }
     if (index >= 4 && index <= 6) || index == 12 || index == 16 { return CompilerAbiLayoutFieldOrderArrayBuffer(); }
+    if index == 21 || index == 22 { return CompilerAbiLayoutFieldOrderSliceView(); }
     if index == 7 { return CompilerAbiLayoutFieldOrderResultInt(); }
     if (index >= 8 && index <= 9) || (index >= 13 && index <= 15) || index == 17 { return CompilerAbiLayoutFieldOrderOptionValue(); }
     if index == 18 { return CompilerAbiLayoutFieldOrderAllocator(); }
@@ -371,7 +377,7 @@ func CompilerAbiLayoutTagKindBoolPresence() -> String {
     return "bool_presence";
 }
 func CompilerAbiLayoutRowTagKindAt(index: Int) -> String {
-    if (index >= 0 && index <= 6) || index == 10 || index == 11 || index == 12 || index == 16 || index == 18 || index == 19 || index == 20 { return CompilerAbiLayoutTagKindNone(); }
+    if (index >= 0 && index <= 6) || index == 10 || index == 11 || index == 12 || index == 16 || index == 18 || index == 19 || index == 20 || index == 21 || index == 22 { return CompilerAbiLayoutTagKindNone(); }
     if index == 7 { return CompilerAbiLayoutTagKindBoolResult(); }
     if (index >= 8 && index <= 9) || (index >= 13 && index <= 15) || index == 17 { return CompilerAbiLayoutTagKindBoolPresence(); }
     return "";
@@ -408,7 +414,7 @@ func CompilerAbiLayoutOwnershipSingleOwnerLinear() -> String {
 func CompilerAbiLayoutRowOwnershipShapeAt(index: Int) -> String {
     if (index >= 0 && index <= 2) || index == 10 || index == 11 { return CompilerAbiLayoutOwnershipPlainValue(); }
     if index == 3 { return CompilerAbiLayoutOwnershipBorrowedStringView(); }
-    if (index >= 4 && index <= 6) || index == 12 || index == 16 || index == 20 { return CompilerAbiLayoutOwnershipSharedBufferValue(); }
+    if (index >= 4 && index <= 6) || index == 12 || index == 16 || index == 20 || index == 21 || index == 22 { return CompilerAbiLayoutOwnershipSharedBufferValue(); }
     if (index >= 7 && index <= 9) || (index >= 13 && index <= 15) || index == 17 { return CompilerAbiLayoutOwnershipTaggedValue(); }
     if index == 18 { return CompilerAbiLayoutOwnershipAllocatorLaneValue(); }
     if index == 19 { return CompilerAbiLayoutOwnershipSingleOwnerLinear(); }
@@ -446,7 +452,7 @@ func CompilerAbiLayoutRuntimeValueOnlyMaterialization() -> String {
 }
 
 func CompilerAbiLayoutRowMaterializationAt(index: Int) -> String {
-    if (index >= 0 && index <= 6) || index == 8 || index == 10 || index == 11 || index == 12 || index == 16 { return CompilerAbiLayoutFieldAllowedMaterialization(); }
+    if (index >= 0 && index <= 6) || index == 8 || index == 10 || index == 11 || index == 12 || index == 16 || index == 21 || index == 22 { return CompilerAbiLayoutFieldAllowedMaterialization(); }
     if (index == 7 || index == 9) || (index >= 13 && index <= 15) || index == 17 { return CompilerAbiLayoutRuntimeValueOnlyMaterialization(); }
     if index == 18 || index == 19 || index == 20 { return CompilerAbiLayoutRuntimeValueOnlyMaterialization(); }
     return "";

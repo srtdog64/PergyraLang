@@ -801,7 +801,8 @@ for fixture_entry in "${FIXTURES[@]}"; do
         for required in \
             'Role: IntMath for Int' \
             'Function: Add' \
-            'self: Int' \
+            'self' \
+            'rhs: Int' \
             'Log((a + b))'; do
             if ! grep -Fq "$required" "$reast"; then
                 echo "[self-host-parity:mir-json] $base: mir_lower did not reconstruct role fact: $required" >&2
