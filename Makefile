@@ -3702,6 +3702,10 @@ self-host-direct-mir-scalar-program-routine-admission-diagnostic-test-smoke: sel
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_program_routine_admission_diagnostic_owner.sh
 
+self-host-direct-mir-inferred-option-local-test-smoke: self-host-compiler
+	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_inferred_option_local_owner.sh
+
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-multi-routine-test-smoke self-host-direct-mir-scalar-option-int-test-smoke self-host-direct-mir-scalar-option-string-test-smoke self-host-direct-mir-scalar-option-bool-test-smoke self-host-direct-mir-scalar-two-int-nominal-test-smoke self-host-direct-mir-scalar-logical-record-test-smoke self-host-direct-mir-scalar-logical-record-option-return-test-smoke self-host-direct-mir-scalar-recursive-logical-record-phi-test-smoke self-host-direct-mir-scalar-zero-parameter-callable-test-smoke self-host-direct-mir-scalar-array-int-value-result-test-smoke self-host-direct-mir-scalar-array-int-value-parameter-test-smoke self-host-direct-mir-scalar-array-string-value-parameter-test-smoke self-host-direct-mir-scalar-array-string-value-result-void-test-smoke self-host-direct-mir-scalar-owned-array-string-return-test-smoke self-host-direct-mir-scalar-logical-record-collection-fields-test-smoke self-host-direct-mir-scalar-nested-logical-record-array-bool-return-test-smoke self-host-direct-mir-scalar-array-int-return-test-smoke self-host-direct-mir-scalar-long-literal-return-test-smoke self-host-direct-mir-scalar-bool-array-string-value-result-test-smoke self-host-direct-mir-scalar-logical-record-value-result-test-smoke self-host-direct-mir-scalar-void-process-exit-test-smoke self-host-direct-mir-scalar-populated-array-int-literal-test-smoke self-host-direct-mir-scalar-logical-record-array-value-result-test-smoke self-host-direct-mir-scalar-logical-record-array-record-input-test-smoke self-host-direct-mir-scalar-logical-record-array-element-input-test-smoke self-host-direct-mir-scalar-logical-record-mixed-collection-value-result-test-smoke self-host-direct-mir-scalar-bool-mixed-collection-value-result-test-smoke self-host-direct-mir-scalar-void-logical-record-array-int-value-result-test-smoke self-host-direct-mir-scalar-logical-record-inputs-value-result-test-smoke self-host-direct-mir-scalar-readonly-logical-record-two-array-string-value-result-test-smoke self-host-direct-mir-scalar-int-two-array-string-value-result-test-smoke self-host-direct-mir-scalar-bool-two-array-string-two-array-int-value-result-test-smoke self-host-direct-mir-scalar-readonly-logical-record-array-bool-return-test-smoke self-host-direct-mir-scalar-owned-logical-record-return-test-smoke self-host-direct-mir-scalar-readonly-logical-record-string-array-string-value-result-test-smoke self-host-direct-mir-scalar-readonly-logical-record-two-logical-record-value-result-test-smoke self-host-direct-mir-scalar-logical-record-return-array-string-value-result-test-smoke self-host-direct-mir-composable-logical-record-return-test-smoke self-host-direct-mir-scalar-void-logical-record-array-string-value-result-test-smoke self-host-direct-mir-scalar-void-logical-record-three-string-array-string-value-result-test-smoke self-host-direct-mir-scalar-void-logical-record-four-string-array-string-value-result-test-smoke self-host-direct-mir-scalar-logical-record-array-value-parameter-test-smoke self-host-direct-mir-scalar-payload-free-enum-parameter-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-int-multiply-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-logical-record-option-int-field-test-smoke
@@ -3715,6 +3719,7 @@ self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-l
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-long-phi-value-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-long-greater-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-program-routine-admission-diagnostic-test-smoke
+self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-inferred-option-local-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-set-string-value-parameter-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-array-string-readonly-ref-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-entrypoint-early-return-test-smoke
@@ -3779,6 +3784,7 @@ self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-p
 .PHONY: self-host-direct-mir-scalar-long-phi-value-test-smoke
 .PHONY: self-host-direct-mir-scalar-long-greater-test-smoke
 .PHONY: self-host-direct-mir-scalar-program-routine-admission-diagnostic-test-smoke
+.PHONY: self-host-direct-mir-inferred-option-local-test-smoke
 .PHONY: self-host-direct-mir-scalar-set-string-value-parameter-test-smoke
 .PHONY: self-host-direct-mir-scalar-array-string-readonly-ref-test-smoke
 .PHONY: self-host-direct-mir-scalar-entrypoint-early-return-test-smoke

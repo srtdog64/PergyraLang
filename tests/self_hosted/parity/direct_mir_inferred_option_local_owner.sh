@@ -55,8 +55,12 @@ grep -Fq 'local_names: Array<String>, local_types: Array<String>' "$INVENTORY" |
 ! grep -Fq 'DirectMirScalarCfgLocalInventoryReady(' "$LOCAL_REF" ||
     fail "LocalRef normalization still admits inventory before type consensus"
 for owner in "$GRAPH" "$ROUTINE"; do
-    type_line="$(grep -n 'DirectMirScalarCfgValueTypePlanFromOwners(' "$owner" | head -n1 | cut -d: -f1)"
-    inventory_line="$(grep -n 'DirectMirScalarCfgLocalInventoryReady(' "$owner" | head -n1 | cut -d: -f1)"
+    # Both owners plan types before admitting the inventory, but the routine
+    # owner reaches the referenced-enum variants of the same two boundaries.
+    # Match the owner name without its argument list so the order assertion
+    # keeps following either spelling.
+    type_line="$(grep -n 'DirectMirScalarCfgValueTypePlanFromOwners' "$owner" | head -n1 | cut -d: -f1)"
+    inventory_line="$(grep -n 'DirectMirScalarCfgLocalInventoryReady' "$owner" | head -n1 | cut -d: -f1)"
     [[ -n "$type_line" && -n "$inventory_line" && "$type_line" -lt "$inventory_line" ]] ||
         fail "inventory admission does not follow complete type planning"
 done
