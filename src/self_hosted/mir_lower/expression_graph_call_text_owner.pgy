@@ -1,17 +1,17 @@
-// A call spine's own text against its own children.
+// A call spine's own identity against its own children.
 //
-// A persisted call node renders its callee and a call-argument node renders
-// the spine it extends, so a graph whose call text names one callee while its
-// callee leaf names another describes a call nobody wrote. The argument's own
-// parenthesisation belongs to the surface that produced it; the callee and the
-// preceding arguments do not, and those are what this owner pins.
+// A persisted call node renders its callee and a call-argument node extends the
+// spine before it, so a graph whose call text names one callee while its callee
+// leaf names another describes a call nobody wrote. Only that spine prefix is
+// pinned here. How an argument renders itself belongs to the surface that
+// produced it, and a drifted argument is a typed fact whose own owner reports
+// it -- pinning the whole rendering would pre-empt that diagnostic.
 
 import "../hir/ast_expression_graph_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
 
 func MirExpressionGraphCallArgumentTextReady(
-    text: String, ref kinds: Array<Int>, ref texts: Array<String>,
-    left: Int, right: Int
+    text: String, ref kinds: Array<Int>, ref texts: Array<String>, left: Int
 ) -> Bool {
     let base: String = texts[left];
     let length: Int = StringLength(base);
@@ -20,10 +20,10 @@ func MirExpressionGraphCallArgumentTextReady(
     if kinds[left] == AstExpressionNodeCallArgument() {
         stem = Concat(stem, ", ");
     }
-    let argument: String = texts[right];
-    let plain: String = Concat(stem, Concat(argument, ")"));
-    let wrapped: String = Concat(stem, Concat("(", Concat(argument, "))")));
-    return text == plain || text == wrapped;
+    let length_text: Int = StringLength(text);
+    if length_text < StringLength(stem) + 1 ||
+        CodegenCharAt(text, length_text - 1) != ")" { return false; }
+    return Substring(text, 0, StringLength(stem)) == stem;
 }
 
 func MirExpressionGraphCallSpineTextReady(
@@ -35,7 +35,7 @@ func MirExpressionGraphCallSpineTextReady(
     }
     if kind == AstExpressionNodeCallArgument() {
         return MirExpressionGraphCallArgumentTextReady(
-            text, kinds, texts, left, right);
+            text, kinds, texts, left);
     }
     return true;
 }
