@@ -140,19 +140,25 @@ func CodegenGenericSpecializationInstantiateCalls(
         ArrayLength(raw.call_node_ids) != ArrayLength(raw.call_c_names) {
         return CodegenGenericInstantiationError("generic call instantiation requires admitted facts");
     }
-    let templates: GenericInstanceTemplates = GenericInstanceTemplatesEmpty();
+    let template_syntax_ids: Array<Int> = [];
+    let template_generic_starts: Array<Int> = [];
+    let template_generic_counts: Array<Int> = [];
+    let template_generic_names: Array<String> = [];
     let template: Int = 0;
     while template < ArrayLength(signatures.function_node_ids) {
-        ArrayPush(templates.syntax_ids, signatures.function_node_ids[template]);
-        ArrayPush(templates.generic_starts, signatures.generic_starts[template]);
-        ArrayPush(templates.generic_counts, signatures.generic_counts[template]);
+        ArrayPush(template_syntax_ids, signatures.function_node_ids[template]);
+        ArrayPush(template_generic_starts, signatures.generic_starts[template]);
+        ArrayPush(template_generic_counts, signatures.generic_counts[template]);
         template = template + 1;
     }
     let formal: Int = 0;
     while formal < ArrayLength(signatures.generic_names) {
-        ArrayPush(templates.generic_names, signatures.generic_names[formal]);
+        ArrayPush(template_generic_names, signatures.generic_names[formal]);
         formal = formal + 1;
     }
+    let templates: GenericInstanceTemplates = GenericInstanceTemplates(
+        true, template_syntax_ids, template_generic_starts,
+        template_generic_counts, template_generic_names);
     let callers: Array<Int> = [];
     let targets: Array<Int> = [];
     let starts: Array<Int> = [];
@@ -201,7 +207,11 @@ func CodegenGenericSpecializationInstantiateCalls(
         true, callers, targets, starts, counts, types);
     let closure: GenericInstanceClosure = GenericInstanceClosureFromRecipes(templates, recipes);
     if !closure.valid { return CodegenGenericInstantiationError(closure.diagnostic); }
-    let result: CodegenGenericSpecializationFacts = CodegenGenericSpecializationFactsEmpty();
+    let instance_signature_indexes: Array<Int> = [];
+    let instance_c_names: Array<String> = [];
+    let instance_actual_starts: Array<Int> = [];
+    let instance_actual_counts: Array<Int> = [];
+    let instance_actual_type_names: Array<String> = [];
     let instance: Int = 0;
     while instance < ArrayLength(closure.template_rows) {
         let target: Int = closure.template_rows[instance];
@@ -210,29 +220,36 @@ func CodegenGenericSpecializationInstantiateCalls(
             CompilerSymbolCQualifiedName(signatures.owner_names[target], signatures.names[target]), actuals);
         let prior: Int = 0;
         while prior < instance {
-            if result.c_names[prior] == symbol {
+            if instance_c_names[prior] == symbol {
                 return CodegenGenericInstantiationError("generic specialization symbol collision");
             }
             prior = prior + 1;
         }
-        ArrayPush(result.signature_indexes, target);
-        ArrayPush(result.c_names, symbol);
-        ArrayPush(result.actual_starts, ArrayLength(result.actual_type_names));
-        ArrayPush(result.actual_counts, ArrayLength(actuals));
+        ArrayPush(instance_signature_indexes, target);
+        ArrayPush(instance_c_names, symbol);
+        ArrayPush(instance_actual_starts, ArrayLength(instance_actual_type_names));
+        ArrayPush(instance_actual_counts, ArrayLength(actuals));
         let a: Int = 0;
-        while a < ArrayLength(actuals) { ArrayPush(result.actual_type_names, actuals[a]); a = a + 1; }
+        while a < ArrayLength(actuals) { ArrayPush(instance_actual_type_names, actuals[a]); a = a + 1; }
         instance = instance + 1;
     }
+    let instance_call_node_ids: Array<Int> = [];
+    let instance_call_c_names: Array<String> = [];
+    let instance_call_contexts: Array<String> = [];
     call = 0;
     while call < ArrayLength(closure.call_recipes) {
         let context: String = "";
-        if closure.call_contexts[call] >= 0 { context = result.c_names[closure.call_contexts[call]]; }
-        ArrayPush(result.call_node_ids, raw.call_node_ids[closure.call_recipes[call]]);
-        ArrayPush(result.call_c_names, result.c_names[closure.call_targets[call]]);
-        ArrayPush(result.call_contexts, context);
+        if closure.call_contexts[call] >= 0 { context = instance_c_names[closure.call_contexts[call]]; }
+        ArrayPush(instance_call_node_ids, raw.call_node_ids[closure.call_recipes[call]]);
+        ArrayPush(instance_call_c_names, instance_c_names[closure.call_targets[call]]);
+        ArrayPush(instance_call_contexts, context);
         call = call + 1;
     }
-    return result;
+    return CodegenGenericSpecializationFacts(
+        true, "", instance_signature_indexes, instance_c_names,
+        instance_actual_starts, instance_actual_counts,
+        instance_actual_type_names, instance_call_node_ids,
+        instance_call_c_names, instance_call_contexts);
 }
 
 func CodegenGenericSpecializationCallEnvRows(
