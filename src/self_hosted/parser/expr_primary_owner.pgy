@@ -279,7 +279,11 @@ func ParsePrimaryFact(
                 }
             }
         }
-    } else if c == "$" && ParserCharAt(content, i + 1) == "\"" {
+    } else if (c == "$" || c == "f") &&
+        ParserCharAt(content, i + 1) == "\"" {
+        // `f"..."` and `$"..."` are the same stable form with `{expr}`
+        // placeholders, and the C oracle routes both through one body. The
+        // check precedes the identifier branch so `f"` is not read as a name.
         let raw_interp: String = ReadString(content, i + 1, cursor_out);
         interpolation = ParseDollarStringInterpolationFact(raw_interp);
         if !interpolation.ok { Exit(1); }
