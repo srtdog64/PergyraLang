@@ -95,3 +95,50 @@ skipping a refusal by operand spelling rather than by whether the type resolved.
 And several owner files have their bytes pinned, so editing
 `semantic/expression_operator_fact_owner.pgy` required re-pinning
 `benchmarks/selfhost_source_scan_owner_evidence.json`.
+
+## A second gate was answering with a month-old artifact
+
+`mir_json_parity.sh` is step 75 of the same chain, so it has been shadowed by
+tri-compare too. Four of its pins had drifted and are repaired in `40fa0d34`,
+but the last finding is not a pin.
+
+The gate writes each fixture's reconstruction partway through its loop body, and
+every block that reads it runs after that write except the
+`intent_nested_direct` block, which ran before. Its assertions therefore read
+whatever the previous run had left behind -- a file dated August 1 in this tree.
+With the block moved after the write and the stale files removed, the gate
+reports what is actually true: `mir_lower` rejects the nested-intent document
+outright.
+
+    MIR-LOWER ERROR: MIR intent evaluation phase disagrees with its target kind
+
+The diagnosis is complete. `intent_routine_step_plan_owner.pgy` line 230 derives
+`target_kind` as `action` when the evaluation has a receiver alias and `intent`
+when it does not, then requires the recorded phase to equal
+`SelfMirIntentTargetPhase(target_kind)`. For `FrontendPipeline`'s step, whose
+`on:` names an intent rather than a receiver, that derivation asks for phase
+`intent`. Both producers record `on`:
+
+```
+IntakeSource       IntentEval arg0='on' arg1='ReadRoot'
+FrontendPipeline   IntentEval arg0='on' arg1='Intake'
+```
+
+The self-hosted producer takes its phase from
+`SelfMirIntentTargetPhase(intents.steps.target_kinds[step_row])`, so the DIR
+resolved `target_kind` as `action` for the delegation; the native producer agrees
+byte for byte. The check arrived on 2026-09-09 in `419b1745`, and `target_kind`
+is read nowhere else in that owner, so its only effect is to refuse every
+delegating step.
+
+Two coherent repairs, and the choice is a decision about the Intent document
+format rather than a defect to patch:
+
+- Classify a step whose target names an intent as `target_kind` `intent` in the
+  DIR, so both producers record phase `intent` and the check passes as written.
+  This changes MIR bytes for intent fixtures and must land in the native DIR and
+  the self-hosted DIR together.
+- Have the consumer validate the recorded phase against the contract instead of
+  re-deriving the kind from receiver presence. The phase projection already
+  admits only `on` or `intent`, and re-deriving a fact the document carries is
+  what this compiler's own rule forbids.
