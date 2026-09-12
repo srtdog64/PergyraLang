@@ -251,6 +251,12 @@ func CompilerCompletenessProgramCheckTarget(path: String) -> CompilerCompletenes
     if path == "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" {
         return CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy");
     }
+    if path == "src/self_hosted/codegen/emission/hashmap_call_type_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy");
+    }
+    if path == "src/self_hosted/mir/routine_tracked_statement_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/mir/routine_lower_owner.pgy");
+    }
     return CompilerCompletenessCheckTarget(path);
 }
 
