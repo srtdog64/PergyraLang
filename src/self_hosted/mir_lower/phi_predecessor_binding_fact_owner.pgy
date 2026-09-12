@@ -129,3 +129,49 @@ func MirPhiPredecessorBindingFactReady(
         ArrayLength(fact.predecessor_blocks) == expected_predecessors &&
         ArrayLength(fact.incoming_rows) == expected_predecessors;
 }
+
+// Routine-wide predecessor binding readiness.
+//
+// `MirRoutinePhiFactsReady` in phi_fact_owner.pgy answers arity and local
+// identity: every `uses` entry names the same local, and a self reference
+// names this phi's own row on a block that has a back-edge. It cannot answer
+// which predecessor each entry arrives from, so a phi whose incoming values
+// leave one predecessor with nothing to carry still reads as consistent.
+// This owner already decides those bindings for the graph route; running the
+// same decision over every phi of a routine lets the reconstruction refuse
+// such an artifact instead of reconstructing a phi it cannot place.
+//
+// Call it after MirRoutinePhiFactsReady: the index and row preconditions it
+// checks are this function's preconditions too.
+func MirRoutinePhiPredecessorBindingsReady(
+    ref index: MirRoutineFactIndex,
+    ref routines: MirProgramRoutineIndex,
+    ref use_facts: MirRoutineInstructionUseFacts,
+    routine_row: Int
+) -> Bool {
+    let block_id: Int = 0;
+    while block_id < ArrayLength(index.block_starts) {
+        let phi_prefix_count: Int =
+            index.instruction_facts.block_phi_prefix_counts[block_id];
+        let instruction_row: Int = 0;
+        while instruction_row < phi_prefix_count {
+            let phi: MirRoutinePhiFact = MirRoutinePhiFactAt(
+                index, routines, use_facts, routine_row,
+                block_id, instruction_row
+            );
+            if !phi.valid {
+                return false;
+            }
+            let binding: MirPhiPredecessorBindingFact =
+                MirPhiPredecessorBindingFactFromOwners(index, phi);
+            if !MirPhiPredecessorBindingFactReady(
+                binding, phi.predecessor_count
+            ) {
+                return false;
+            }
+            instruction_row = instruction_row + 1;
+        }
+        block_id = block_id + 1;
+    }
+    return true;
+}

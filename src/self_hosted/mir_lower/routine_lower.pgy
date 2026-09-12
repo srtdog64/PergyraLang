@@ -11,6 +11,7 @@ import "routine_cfg_projection_owner.pgy";
 import "routine_instruction_view_owner.pgy";
 import "routine_instruction_use_fact_owner.pgy";
 import "phi_fact_owner.pgy";
+import "phi_predecessor_binding_fact_owner.pgy";
 import "stmt_render.pgy";
 import "resource_runtime_abi_fact_owner.pgy";
 import "abi_layout_fact_owner.pgy";
@@ -417,6 +418,14 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
     ) {
         MirLowerFailClosed(Concat(
             "MIR phi facts are missing or inconsistent: ", routine
+        ));
+    }
+    if !MirRoutinePhiPredecessorBindingsReady(
+        index, routines, use_facts, routine_row
+    ) {
+        MirLowerFailClosed(Concat(
+            "MIR phi facts are missing or inconsistent: no predecessor binding: ",
+            routine
         ));
     }
     if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:validation:phi-ready"); }
