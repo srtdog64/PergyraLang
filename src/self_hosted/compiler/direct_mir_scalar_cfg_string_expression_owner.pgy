@@ -132,8 +132,7 @@ func DirectMirScalarCfgPhiValueTypeReady(
 ) -> Bool {
     return type_name == CompilerAbiLayoutBoolTypeName() ||
         type_name == CompilerAbiLayoutLongTypeName() ||
-        type_name == CompilerAbiLayoutOptionIntTypeName() || type_name == CompilerAbiLayoutOptionStringTypeName() ||
-        type_name == CompilerAbiLayoutOptionBoolTypeName() ||
+        type_name == CompilerAbiLayoutOptionIntTypeName() || type_name == CompilerAbiLayoutOptionStringTypeName() || type_name == CompilerAbiLayoutOptionBoolTypeName() ||
         type_name == CompilerAbiLayoutArrayIntTypeName() ||
         type_name == CompilerAbiLayoutArrayBoolTypeName() ||
         type_name == CompilerAbiLayoutArrayStringTypeName() ||
