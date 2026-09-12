@@ -566,8 +566,13 @@ for fixture_entry in "${FIXTURES[@]}"; do
         fi
     fi
     if [[ "$base" == "option_enum_with_payload" ]]; then
+        # Two facts, not one glued string: the declaration exists, and its
+        # variants carry these payload types in this order. The producer now
+        # writes source_syntax_id and source_module_path between the two, and
+        # the sibling enum blocks above pin the variant rows the same way.
         for required in \
-            '"name":"Cell","variants":[{"name":"Empty","param_count":0,"param_types":[]},{"name":"Number","param_count":1,"param_types":["Int"]},{"name":"Marker","param_count":1,"param_types":["Int"]}]' \
+            '"kind":"enum","name":"Cell"' \
+            '"variants":[{"name":"Empty","param_count":0,"param_types":[]},{"name":"Number","param_count":1,"param_types":["Int"]},{"name":"Marker","param_count":1,"param_types":["Int"]}]' \
             '"return":"Option<Cell>"' \
             '"match_patterns":["Some(c)"],"match_variant":"Some","match_bindings":["c"],"match_binding_types":["Cell"]' \
             '"match_patterns":["Number(n)"],"match_variant":"Number","match_bindings":["n"],"match_binding_types":["Int"]' \
