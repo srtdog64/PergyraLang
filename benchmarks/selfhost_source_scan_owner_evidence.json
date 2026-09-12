@@ -62,7 +62,7 @@
   },
   "semantic_operator_fact_owner": {
     "source_commit": "b0a81826",
-    "owner_set_sha256": "8CFD51DF95FE006291735A350E67BFD2D8968EAB691ED1534915246CCB0B5F41",
+    "owner_set_sha256": "912579706E95B810FE163EBDDD0899B7F3C2961048095E89AE6B74920026A870",
     "elapsed_ms": [37273, 37002],
     "peak_private_mb": [170.4, 88.1],
     "required_max_elapsed_ms": 38000,

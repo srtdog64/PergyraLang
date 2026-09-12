@@ -388,7 +388,7 @@ SENTINEL_MAX=20
 # require the new exact match-origin lookup to return Option<Int>, including
 # absent/ambiguous results. The sentinel ceiling remains 23; it is not raised
 # to accommodate the two out-of-band returns found by publication CI.
-RESULT_USE_MIN=5082
+RESULT_USE_MIN=5086
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world
