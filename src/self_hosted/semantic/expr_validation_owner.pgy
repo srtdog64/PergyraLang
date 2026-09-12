@@ -244,6 +244,12 @@ func CheckBinaryOperands(expr: String, names: Array<String>, types: Array<String
     if lt == "Unknown" || rt == "Unknown" {
         return "";
     }
+    // A member path is the operand shape this text owner cannot resolve, and
+    // the arithmetic default reports it as Int, so it is not a mismatch here.
+    if SemanticExpressionTextCarriesMemberPath(left) ||
+        SemanticExpressionTextCarriesMemberPath(right) {
+        return "";
+    }
     if lt == rt {
         return "";
     }

@@ -412,6 +412,38 @@ func OptionCallReturnType(text: String, names: Array<String>, types: Array<Strin
     }
     return "";
 }
+// This owner types expression source text and has no nominal field table, so
+// a member path is the one operand shape it cannot resolve. `ArithmeticResultType`
+// defaults an unresolved operand to Int, which consumers outside the checker
+// rely on, so the text carrying such a path is not evidence of a mismatch.
+func SemanticExpressionTextCarriesMemberPath(expr: String) -> Bool {
+    let text: String = SemanticTrimSourceReuse(expr);
+    let n: Int = StringLength(text);
+    let i: Int = 0;
+    while i < n {
+        let c: String = CharAt(text, i);
+        if c == "\"" {
+            i = i + 1;
+            while i < n && CharAt(text, i) != "\"" {
+                if CharAt(text, i) == "\\" { i = i + 1; }
+                i = i + 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "." && i > 0 && i + 1 < n {
+            let before: String = CharAt(text, i - 1);
+            let after: String = CharAt(text, i + 1);
+            if (IsAlphaNum(before) || before == "_" || before == ")" ||
+                before == "]") && StringIndexOf("0123456789", after) < 0 {
+                return true;
+            }
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
 func ExpressionAssignableTo(expected: String, actual: String, expr: String) -> Bool {
     if expected == actual {
         return true;
