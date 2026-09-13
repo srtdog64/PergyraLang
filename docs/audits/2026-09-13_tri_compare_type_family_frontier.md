@@ -142,3 +142,55 @@ format rather than a defect to patch:
   re-deriving the kind from receiver presence. The phase projection already
   admits only `on` or `intent`, and re-deriving a fact the document carries is
   what this compiler's own rule forbids.
+
+## The three registries do not agree, measured row by row
+
+The 2026-09-13 architecture review asked for one semantic decision about
+whether a resolved type is representable, so that the ABI, local-storage and
+runtime-representation consumers cannot hold inconsistent independent lists.
+Counting every ABI row against the other two registries says how far apart they
+already are. `abi` is a row in `compiler/abi_layout_row_owner.pgy`; `local` is
+`DirectMirScalarCfgSourceLocalTypeSupported`; `runtime` is a representation
+from `CompilerRuntimeValueRepresentationFor`.
+
+```
+type                           abi  local  runtime
+Int                            1    1      0
+Bool                           1    1      0
+Float                          1    0      0
+String                         1    1      0
+Array<Int>                     1    1      0
+Array<String>                  1    1      0
+Array<CodegenAstTextNode>      1    0      0
+Result<Int>                    1    1      0
+Option<Int>                    1    1      0
+Option<String>                 1    1      0
+Long                           1    1      0
+Double                         1    0      0
+Array<Long>                    1    1      0
+Option<Long>                   1    0      0
+Option<Float>                  1    0      0
+Option<Double>                 1    0      0
+Array<Bool>                    1    1      0
+Option<Bool>                   1    1      0
+Allocator                      1    0      1
+TextBuilder                    1    0      1
+Set<String>                    1    1      0
+Slice<Int>                     1    0      0
+Slice<String>                  1    0      0
+```
+
+Twenty-three rows, fifteen admitted as source locals, two with a runtime-value
+representation. Eight rows carry a layout the route cannot store in a local and
+has no runtime representation for: `Float`, `Double`, `Array<CodegenAstTextNode>`,
+`Option<Long>`, `Option<Float>`, `Option<Double>` and the two `Slice` rows. The
+float rows are the clearest evidence that these are three lists rather than one
+decision: their layout is known and their arithmetic is scalar, yet the bounded
+route declines a `Float` local, and nothing in either owner records why.
+
+So the review's rule has a measurable target on this revision: the count of
+rows whose three answers disagree, today eight. A canonical descriptor is worth
+building when it removes that disagreement rather than renaming it -- each of
+the eight needs a recorded reason (a missing emission, a deliberate exclusion)
+before one owner can answer for all three consumers without losing a fact one
+of them holds today.
