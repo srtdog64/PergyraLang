@@ -50,10 +50,14 @@ compile_dashboard() {
     local backend="$1"
     local bin="$BUILD_DIR/gate_dashboard_${backend}.exe"
     local log="$BUILD_DIR/gate_dashboard_${backend}.compile.log"
+    # LLVM dashboard binaries are native-backend oracle infrastructure; the
+    # bounded public DirectMirLlvm replacement has its own executable gates.
+    local native_subject=""
+    [[ "$backend" == "llvm" ]] && native_subject="--native-pipeline"
     rm -f "$bin" "$BUILD_DIR/gate_dashboard_${backend}.o"
     if ! (cd "$ROOT_DIR" && "$PGY" \
         "$(pgy_path_for_compiler "$PGY" "$SOURCE")" \
-        --backend="$backend" \
+        --backend="$backend" $native_subject \
         -o "$(pgy_path_for_compiler "$PGY" "$bin")" >"$log" 2>&1); then
         if [[ "$backend" == "llvm" ]] && pgy_selfhost_log_reports_no_llvm "$log"; then
             return 2

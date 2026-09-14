@@ -129,9 +129,16 @@ compile_probe() {
     local backend="$1"
     local bin="$BUILD_DIR/probe_${backend}.exe"
     local log="$BUILD_DIR/probe_${backend}.compile.log"
+    # This executable is parity-harness infrastructure. The public direct-MIR
+    # LLVM route is a bounded replacement classifier and is covered by its own
+    # replacement gates; it must not become the compiler for this source-level
+    # C/LLVM semantic oracle pair.
+    local native_subject=""
+    [[ "$backend" == "llvm" ]] && native_subject="--native-pipeline"
     rm -f "$bin" "$BUILD_DIR/probe_${backend}.o"
     if ! (cd "$ROOT_DIR" && "$PGY" \
         "$(pgy_path_for_compiler "$PGY" "$SOURCE")" --backend="$backend" \
+        $native_subject \
         -o "$(pgy_path_for_compiler "$PGY" "$bin")" >"$log" 2>&1); then
         if [[ "$backend" == "llvm" ]] && pgy_selfhost_log_reports_no_llvm "$log"; then
             return 2

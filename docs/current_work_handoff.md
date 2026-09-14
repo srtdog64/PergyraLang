@@ -1,56 +1,68 @@
 # Current Work Handoff
 
-Updated: 2026-09-14 (Asia/Seoul), self-host parity CI closure; navigation only.
-Compiler owners, registries and executable gates override this snapshot.
+Updated: 2026-09-14 (Asia/Seoul), exhaustive parity-tail closure; navigation
+only. Compiler owners, registries and executable gates override this snapshot.
 
-## Active self-host context — native backend oracle selection
+## Active self-host context — parity harness identity and backend subject
 
-Pre-publication HEAD/origin/main: `a573abeb5a6ce59395f89fff382cd097cd84c85c`.
-The completion boundary for this session is a pushed revision whose ordinary
-CI and manually dispatched Self-host parity workflow are green. Local success
-alone is not completion.
+Published HEAD/origin/main: `5e9f9b48d663bcdac0bccbc2ba7e8b7ee4a83792`.
+The completion boundary remains one pushed revision whose ordinary CI,
+Platform full and manually dispatched Self-host parity workflows are all green.
+Local success or an earlier green SHA is not completion.
 
 Objective card:
-- Objective: restore the backend tri-compare gate to its native C/LLVM oracle
-  pair, then follow the remote workflow to the next reached self-host failure.
-- Priority: preserve the gate subject, expose compile diagnostics, pin the old
-  implicit selector out, then run the integration workflow.
-- Fact owner: the tri-compare runner owns native backend execution; its
-  Pergyra comparator owns only the output verdict.
-- Last legitimate consumer: `backend_output_tri_compare_parity.sh` passes the
-  two captured result streams to the Pergyra comparator.
-- Forbidden fallback: an implicit default compiler route, a skipped oracle,
-  swallowed compiler output, or accepting delegated-driver refusal as backend
-  parity evidence.
-- Verification/falsifier: all 14 local tri-compare cases must execute both
-  native backends; the pushed Self-host parity workflow must then identify any
-  later executable seam without an earlier silent exit.
+- Objective: keep source-level C/LLVM parity probes on their declared backend
+  oracle, carry exact callable identity into synthetic codegen environments,
+  and make every reached positive failure observable.
+- Priority: semantic identity, correct test subject, old-path rejection,
+  focused executable parity, then the remote exhaustive workflow.
+- Fact owner: the expression graph owns callable declaration SyntaxNodeId and
+  receiver source offset; native backend selection belongs to each parity
+  harness, while public DirectMirLlvm replacement stays in its own gates.
+- Last legitimate consumers: `RewriteSemanticIdentityBoundCall`, member-call
+  emission, and the focused initializer/generic/policy probe executables.
+- Forbidden fallback: source-name callable binding, direct statement policy
+  replay beside the graph owner, implicit LLVM compiler selection for a native
+  oracle, swallowed positive-probe output, skip, or raised timeout.
+- Verification/falsifier: the six reached probe gates must stay green locally;
+  the next pushed Self-host parity run must pass initializer through dashboard
+  and expose only a later real executable seam, if any.
 
-Reached evidence:
-- The 2026-09-14 Self-host parity run `34780338077` first stopped in
-  `backend_output_tri_compare_parity.sh`, before the review's proposed
-  Array<Record> provenance blocker was reached.
-- The fourth case, `allocator_lane_boxarray`, was routed through the default
-  delegated self-host driver and refused as a direct-MIR scalar program. Native
-  C execution was already valid; this was a changed test subject, not a C/LLVM
-  output disagreement.
-- The runner now selects `--native-pipeline` for both oracle compiles, reports
-  the exact case and compiler log on failure, and a structural ratchet pins
-  both the selector and diagnostics.
-- Focused result: backend tri-compare passed 14/14 cases locally.
-- A full release build completed and installed the Pergyra-built driver. A
-  subsequent broad parity attempt reached an LLVM tool-build refusal inside
-  pre-existing uncommitted Slice semantic work; that work is deliberately not
-  part of this publication packet and is not evidence about the clean pushed
-  revision.
+Remote evidence on `5e9f9b48`:
+- Push CI `34800945429`: 30/30 jobs green.
+- Platform full `34800960154`: 13/13 jobs green, including Linux/Windows driver
+  parity and macOS C-only.
+- Self-host parity `34800961535`: red after 99 minutes. The complete 1,831-file
+  lexer/parser/semantic/codegen ledger and 85-fixture C/LLVM codegen parity were
+  green. The first failure was the next initializer projection probe; its
+  `--direct-call-positive` path died because the synthetic environment omitted
+  the declaration-identity C binding. The earlier tri-compare failure is gone.
+
+Current repair and focused evidence:
+- `ProbeCodegenConsumesDirectTarget` now derives the declared callable key from
+  the graph-carried binding SyntaxNodeId. It does not restore a name fallback.
+- The member probe carries `rso:1`, matching the admitted receiver signature.
+  Positive probe execution now prints the backend, mode and captured stdout on
+  failure instead of exiting silently.
+- Initializer projection passed C and LLVM. Generic-return, wrapper-policy,
+  collection-policy, aggregate-field-policy and gate-dashboard also passed
+  their focused C/LLVM legs.
+- Those source-level LLVM tool binaries now explicitly select the native
+  backend oracle. Public DirectMirLlvm remains separately fail-closed and is
+  not credited by these harness runs.
+- The collection-policy ratchet now requires the statement consumer's
+  graph-owned mutation fact and rejects restoration of its retired direct
+  policy call. The old spelling had been stale since the owner move.
+- Shell syntax, `git diff --check`, and the full self-host component structural
+  contract passed; line caps were not raised.
 
 Dirty-state boundary:
 - Existing uncommitted Slice-related edits in five self-host semantic owners
-  plus `tests/self_host_pergyra_likeness_smoke.sh` are preserved and excluded
-  from this CI repair commit. They must not be reset, folded into the repair,
-  or treated as verified substitution progress.
-- The next action is to publish this bounded gate repair, dispatch Self-host
-  parity on the published SHA, and close the next failure actually reached.
+  plus `tests/self_host_pergyra_likeness_smoke.sh` remain preserved and outside
+  this repair packet. They must not be reset, folded into the publication, or
+  treated as verified substitution progress.
+- Next action: commit only this reached parity-tail repair, push it, then run
+  ordinary CI, Platform full and Self-host parity on the exact published SHA.
 
 ## Historical archive boundary
 

@@ -240,19 +240,32 @@ compile_probe() {
     fi
 }
 
+run_positive_probe_capture() {
+    local backend="$1"
+    local bin="$2"
+    local raw="$3"
+    shift 3
+    if ! (cd "$ROOT_DIR" && "$bin" "$@" >"$raw"); then
+        echo "[$LABEL] backend=$backend positive probe failed: ${*:-<default>}" >&2
+        [[ ! -s "$raw" ]] || cat "$raw" >&2
+        exit 1
+    fi
+}
+
 run_probe() {
     local backend="$1"
     local bin="$BUILD_DIR/probe_${backend}.exe"
     local raw="$BUILD_DIR/probe_${backend}.raw"
     local out="$BUILD_DIR/probe_${backend}.out"
-    (cd "$ROOT_DIR" && "$bin" >"$raw")
+    run_positive_probe_capture "$backend" "$bin" "$raw"
     pgy_selfhost_normalize_text_artifact <"$raw" >"$out"
     pgy_selfhost_compare_expected_text_artifact_file_with_owner \
         "$LABEL" "$BUILD_DIR" "$EXPECTED" "$out" "run_output"
 
     local direct_raw="$BUILD_DIR/probe_${backend}.direct_call.raw"
     local direct_out="$BUILD_DIR/probe_${backend}.direct_call.out"
-    (cd "$ROOT_DIR" && "$bin" --direct-call-positive >"$direct_raw")
+    run_positive_probe_capture \
+        "$backend" "$bin" "$direct_raw" --direct-call-positive
     pgy_selfhost_normalize_text_artifact <"$direct_raw" >"$direct_out"
     pgy_selfhost_compare_expected_text_artifact_file_with_owner \
         "$LABEL" "$BUILD_DIR" "$DIRECT_CALL_EXPECTED" "$direct_out" \
@@ -260,7 +273,8 @@ run_probe() {
 
     local nested_raw="$BUILD_DIR/probe_${backend}.direct_call_nested.raw"
     local nested_out="$BUILD_DIR/probe_${backend}.direct_call_nested.out"
-    (cd "$ROOT_DIR" && "$bin" --direct-call-nested-positive >"$nested_raw")
+    run_positive_probe_capture \
+        "$backend" "$bin" "$nested_raw" --direct-call-nested-positive
     pgy_selfhost_normalize_text_artifact <"$nested_raw" >"$nested_out"
     pgy_selfhost_compare_expected_text_artifact_file_with_owner \
         "$LABEL" "$BUILD_DIR" "$DIRECT_CALL_EXPECTED" "$nested_out" \
@@ -268,8 +282,9 @@ run_probe() {
 
     local nested_call_raw="$BUILD_DIR/probe_${backend}.direct_call_nested_call.raw"
     local nested_call_out="$BUILD_DIR/probe_${backend}.direct_call_nested_call.out"
-    (cd "$ROOT_DIR" && "$bin" --direct-call-nested-call-positive \
-        >"$nested_call_raw")
+    run_positive_probe_capture \
+        "$backend" "$bin" "$nested_call_raw" \
+        --direct-call-nested-call-positive
     pgy_selfhost_normalize_text_artifact <"$nested_call_raw" \
         >"$nested_call_out"
     pgy_selfhost_compare_expected_text_artifact_file_with_owner \
@@ -278,7 +293,8 @@ run_probe() {
 
     local scalar_call_raw="$BUILD_DIR/probe_${backend}.scalar_call.raw"
     local scalar_call_out="$BUILD_DIR/probe_${backend}.scalar_call.out"
-    (cd "$ROOT_DIR" && "$bin" --scalar-call-positive >"$scalar_call_raw")
+    run_positive_probe_capture \
+        "$backend" "$bin" "$scalar_call_raw" --scalar-call-positive
     pgy_selfhost_normalize_text_artifact <"$scalar_call_raw" \
         >"$scalar_call_out"
     pgy_selfhost_compare_expected_text_artifact_file_with_owner \
@@ -287,7 +303,8 @@ run_probe() {
 
     local namespace_raw="$BUILD_DIR/probe_${backend}.namespace_call.raw"
     local namespace_out="$BUILD_DIR/probe_${backend}.namespace_call.out"
-    (cd "$ROOT_DIR" && "$bin" --namespace-call-positive >"$namespace_raw")
+    run_positive_probe_capture \
+        "$backend" "$bin" "$namespace_raw" --namespace-call-positive
     pgy_selfhost_normalize_text_artifact <"$namespace_raw" \
         >"$namespace_out"
     pgy_selfhost_compare_expected_text_artifact_file_with_owner \
@@ -296,7 +313,8 @@ run_probe() {
 
     local member_raw="$BUILD_DIR/probe_${backend}.member_call.raw"
     local member_out="$BUILD_DIR/probe_${backend}.member_call.out"
-    (cd "$ROOT_DIR" && "$bin" --member-call-positive >"$member_raw")
+    run_positive_probe_capture \
+        "$backend" "$bin" "$member_raw" --member-call-positive
     pgy_selfhost_normalize_text_artifact <"$member_raw" >"$member_out"
     pgy_selfhost_compare_expected_text_artifact_file_with_owner \
         "$LABEL" "$BUILD_DIR" "$DIRECT_CALL_EXPECTED" "$member_out" \
@@ -304,8 +322,9 @@ run_probe() {
 
     local generic_member_raw="$BUILD_DIR/probe_${backend}.generic_member_call.raw"
     local generic_member_out="$BUILD_DIR/probe_${backend}.generic_member_call.out"
-    (cd "$ROOT_DIR" && "$bin" --generic-member-call-positive \
-        >"$generic_member_raw")
+    run_positive_probe_capture \
+        "$backend" "$bin" "$generic_member_raw" \
+        --generic-member-call-positive
     pgy_selfhost_normalize_text_artifact <"$generic_member_raw" \
         >"$generic_member_out"
     pgy_selfhost_compare_expected_text_artifact_file_with_owner \
@@ -314,8 +333,9 @@ run_probe() {
 
     local chained_member_raw="$BUILD_DIR/probe_${backend}.chained_member_call.raw"
     local chained_member_out="$BUILD_DIR/probe_${backend}.chained_member_call.out"
-    (cd "$ROOT_DIR" && "$bin" --chained-member-call-positive \
-        >"$chained_member_raw")
+    run_positive_probe_capture \
+        "$backend" "$bin" "$chained_member_raw" \
+        --chained-member-call-positive
     pgy_selfhost_normalize_text_artifact <"$chained_member_raw" \
         >"$chained_member_out"
     pgy_selfhost_compare_expected_text_artifact_file_with_owner \
@@ -324,8 +344,9 @@ run_probe() {
 
     local nominal_call_raw="$BUILD_DIR/probe_${backend}.nominal_call.raw"
     local nominal_call_out="$BUILD_DIR/probe_${backend}.nominal_call.out"
-    (cd "$ROOT_DIR" && "$bin" --nominal-return-call-positive \
-        >"$nominal_call_raw")
+    run_positive_probe_capture \
+        "$backend" "$bin" "$nominal_call_raw" \
+        --nominal-return-call-positive
     pgy_selfhost_normalize_text_artifact <"$nominal_call_raw" \
         >"$nominal_call_out"
     pgy_selfhost_compare_expected_text_artifact_file_with_owner \
@@ -342,7 +363,8 @@ run_probe() {
         cursor_expected="${cursor_case##*|}"
         cursor_raw="$BUILD_DIR/probe_${backend}.cursor_${cursor_case%%|*}.raw"
         cursor_out="$BUILD_DIR/probe_${backend}.cursor_${cursor_case%%|*}.out"
-        (cd "$ROOT_DIR" && "$bin" "$cursor_mode" >"$cursor_raw")
+        run_positive_probe_capture \
+            "$backend" "$bin" "$cursor_raw" "$cursor_mode"
         pgy_selfhost_normalize_text_artifact <"$cursor_raw" >"$cursor_out"
         grep -Fxq "$cursor_expected" "$cursor_out" || {
             echo "[$LABEL] backend=$backend $cursor_mode output drifted" >&2

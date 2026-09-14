@@ -297,7 +297,7 @@ func ProbeCodegenConsumesDirectTarget(
     parameter_types: String,
     expected_expression: String
 ) -> Bool {
-    let rows: String = Concat(
+    let signature_rows: String = Concat(
         "|", Concat(expected_name, Concat(
             Concat("=f:", Concat(return_type, "|")),
             Concat(expected_name, Concat(
@@ -307,7 +307,6 @@ func ProbeCodegenConsumesDirectTarget(
             ))
         ))
     );
-    let env: CodegenTypeEnv = CodegenTypeEnvFromRows(rows, "");
     let i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(
         analysis.expression_surfaces.expression_graph.arena
@@ -327,6 +326,27 @@ func ProbeCodegenConsumesDirectTarget(
                 if view.ok && view.call_node == i { root_id = candidate; }
                 candidate = candidate + 1;
             }
+            let view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+                analysis.expression_surfaces.expression_graph, root_id
+            );
+            if !view.ok { return false; }
+            let binding: SemanticExpressionBindingIdentityFact =
+                SemanticExpressionGraphBindingIdentity(
+                    analysis.expression_surfaces.expression_graph,
+                    view.callee_node
+                );
+            if !binding.ok ||
+                binding.kind != SemanticExpressionBindingDeclaredCallable() ||
+                binding.syntax_id <= 0 {
+                return false;
+            }
+            let identity_rows: String = Concat(
+                CodegenDeclaredCallableSyntaxKey(binding.syntax_id),
+                Concat("=call:", Concat(expected_name, "|"))
+            );
+            let env: CodegenTypeEnv = CodegenTypeEnvFromRows(
+                Concat(signature_rows, identity_rows), ""
+            );
             let rendered: String = RewriteSemanticCall(
                 analysis.expression_surfaces.expression_graph, root_id, env
             );
@@ -351,7 +371,9 @@ func ProbeCodegenConsumesMemberTarget(
         "|", Concat(expected_name, Concat(
             "=f:Int|", Concat(expected_name, Concat(
                 "=pm:default|", Concat(expected_name, Concat(
-                    "=pt:Box|", Concat(expected_name, "=rc:value|")
+                    "=pt:Box|", Concat(expected_name, Concat(
+                        "=rso:1|", Concat(expected_name, "=rc:value|")
+                    ))
                 ))
             ))
         ))

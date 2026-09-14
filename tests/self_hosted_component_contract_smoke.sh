@@ -12652,6 +12652,33 @@ require_function_text \
     "src/self_hosted/codegen/emission/function_binding_env_owner.pgy" \
     "func CodegenDeclaredCallableSyntaxKey(" '"@declared_callable_syntax:"'
 require_function_text \
+    "src/self_hosted/tools/initializer_projection_probe/main.pgy" \
+    "func ProbeCodegenConsumesDirectTarget(" \
+    "CodegenDeclaredCallableSyntaxKey(binding.syntax_id)"
+require_function_text \
+    "src/self_hosted/tools/initializer_projection_probe/main.pgy" \
+    "func ProbeCodegenConsumesMemberTarget(" '"=rso:1|"'
+require_text \
+    "tests/self_hosted/parity/initializer_projection_probe_parity.sh" \
+    'positive probe failed: ${*:-<default>}'
+require_text \
+    "tests/self_hosted/parity/generic_return_probe_parity.sh" \
+    '[[ "$backend" == "llvm" ]] && native_subject="--native-pipeline"'
+for native_llvm_probe_gate in \
+    "tests/self_hosted/parity/wrapper_policy_probe_parity.sh" \
+    "tests/self_hosted/parity/collection_policy_probe_parity.sh" \
+    "tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh" \
+    "tests/self_hosted/parity/gate_dashboard_parity.sh"; do
+    require_text "$native_llvm_probe_gate" \
+        '[[ "$backend" == "llvm" ]] && native_subject="--native-pipeline"'
+done
+require_text \
+    "tests/self_hosted/parity/collection_policy_probe_parity.sh" \
+    "SemanticExpressionGraphCollectionReceiverMutationFact("
+require_text \
+    "tests/self_hosted/parity/collection_policy_probe_parity.sh" \
+    "statement restored a direct policy call beside the graph owner"
+require_function_text \
     "src/self_hosted/codegen/emission/function_global_env_owner.pgy" \
     "func BuildFunctionEnv(" "CodegenDeclaredCallableSyntaxKey("
 require_function_text \

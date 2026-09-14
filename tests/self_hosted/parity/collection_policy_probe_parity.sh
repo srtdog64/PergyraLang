@@ -41,8 +41,13 @@ done
 
 grep -Fq 'SemanticAstArtifactAnalyzeTyped(' "$SOURCE" ||
     { echo "[$LABEL] probe bypasses typed artifact analysis" >&2; exit 1; }
-grep -Fq 'SemanticCollectionMutationError(' "$STATEMENT_OWNER" ||
-    { echo "[$LABEL] specialized statement ignores the policy owner" >&2; exit 1; }
+grep -Fq 'SemanticExpressionGraphCollectionReceiverMutationFact(' \
+    "$STATEMENT_OWNER" ||
+    { echo "[$LABEL] statement ignores the graph-owned policy fact" >&2; exit 1; }
+if grep -Fq 'SemanticCollectionMutationError(' "$STATEMENT_OWNER"; then
+    echo "[$LABEL] statement restored a direct policy call beside the graph owner" >&2
+    exit 1
+fi
 grep -Fq 'SemanticExpressionGraphCollectionMutationFactFromGraph(' \
     "$ROOT_DIR/src/self_hosted/semantic/ast_expression_verdict_owner.pgy" ||
     { echo "[$LABEL] graph verdict ignores collection policy facts" >&2; exit 1; }
@@ -92,9 +97,14 @@ compile_probe() {
     local backend="$1"
     local bin="$BUILD_DIR/probe_${backend}.exe"
     local log="$BUILD_DIR/probe_${backend}.compile.log"
+    # LLVM probe binaries are native-backend oracle infrastructure; the
+    # bounded public DirectMirLlvm replacement has its own executable gates.
+    local native_subject=""
+    [[ "$backend" == "llvm" ]] && native_subject="--native-pipeline"
     rm -f "$bin" "$BUILD_DIR/probe_${backend}.o"
     if ! (cd "$ROOT_DIR" && "$PGY" "$(oracle_path "$SOURCE")" \
-        --backend="$backend" -o "$(oracle_path "$bin")" >"$log" 2>&1); then
+        --backend="$backend" $native_subject \
+        -o "$(oracle_path "$bin")" >"$log" 2>&1); then
         if [[ "$backend" == "llvm" ]] && pgy_selfhost_log_reports_no_llvm "$log"; then
             return 2
         fi
