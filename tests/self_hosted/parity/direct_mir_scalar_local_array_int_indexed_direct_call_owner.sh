@@ -8,18 +8,24 @@ source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 LABEL="self-host-direct-mir-scalar-local-array-int-indexed-direct-call"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
+NATIVE="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 CC="${PGY_SELFHOST_CC:-gcc}"; CLANG="${PGY_SELFHOST_CLANG:-clang}"
 WORK_REL=".tmp/self_hosted/direct_mir_local_array_int_indexed_direct_call"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_local_array_int_indexed_direct_call.pgy"
+OWNER_REL="src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_route_owner.pgy"
 MIR_REL="$WORK_REL/program.mir.json"; MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_local_array_int_indexed_direct_call_mutations.py"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
+pgy_require_runnable_binary_here "$LABEL-native" "$NATIVE" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 [[ -f "$MUTATIONS" ]] || fail "missing mutation owner"
 mkdir -p "$WORK_DIR"
+rm -f "$WORK_DIR"/*
+(cd "$ROOT_DIR" && "$NATIVE" --native-pipeline --emit-c "$OWNER_REL" -o "$WORK_REL/owner.native.c") \
+    >"$WORK_DIR/owner.native.out" 2>"$WORK_DIR/owner.native.err" || fail "native owner admission failed"
 
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" -o "$MIR_REL") \
     >"$WORK_DIR/producer.out" 2>"$WORK_DIR/producer.err" || fail "MIR production failed"

@@ -133,13 +133,13 @@ func DirectMirScalarProgramLocalIndexedAssignmentFactFromOwners(
     }
     let occurrences: Int = 0; let use_row: Int = 0;
     while use_row < MirRoutineInstructionUseCountAtGlobal(uses, global_row) {
-        let use: Option<String> =
+        let use_fact: Option<String> =
             MirRoutineInstructionUseAtGlobal(uses, global_row, use_row);
-        if !IsSome(use) {
+        if !IsSome(use_fact) {
             return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
                 true, "local_indexed_predecessor_read");
         }
-        if UnwrapOption(use) == UnwrapOption(first) {
+        if UnwrapOption(use_fact) == UnwrapOption(first) {
             occurrences = occurrences + 1;
         }
         use_row = use_row + 1;
@@ -185,18 +185,18 @@ func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
     ref signature: DirectMirRoutineSignatureFact,
     ref formal: DirectMirScalarProgramIndexedAssignmentFact
 ) -> DirectMirScalarProgramIndexedAssignmentRoute {
-    let local: DirectMirScalarProgramLocalIndexedAssignmentFact =
+    let local_fact: DirectMirScalarProgramLocalIndexedAssignmentFact =
         DirectMirScalarProgramLocalIndexedAssignmentFactFromOwners(
             source, wire_kind, capture, instruction, uses, index, global_row,
             local_instruction, locals, types, wire);
-    if local.claimed && !local.valid {
-        return DirectMirScalarProgramIndexedAssignmentRoute(true, false, local.failure_stage, operations, expressions);
+    if local_fact.claimed && !local_fact.valid {
+        return DirectMirScalarProgramIndexedAssignmentRoute(true, false, local_fact.failure_stage, operations, expressions);
     }
-    if local.valid && formal.valid {
+    if local_fact.valid && formal.valid {
         return DirectMirScalarProgramIndexedAssignmentRoute(true, false,
             "indexed_assignment_owner_conflict", operations, expressions);
     }
-    if !local.valid && !formal.valid {
+    if !local_fact.valid && !formal.valid {
         return DirectMirScalarProgramIndexedAssignmentRoute(false, true, "", operations, expressions);
     }
     let target_local: Int = -1;
@@ -206,10 +206,10 @@ func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
     let index_literal: String = formal.index_literal;
     let index_use_offset: Int = formal.use_prefix_count;
     let value_use_offset: Int = formal.use_prefix_count;
-    if local.valid {
-        target_local = local.local_row; target_parameter = -1;
-        element_type = local.element_type; index_root = local.index_root;
-        index_literal = local.index_literal;
+    if local_fact.valid {
+        target_local = local_fact.local_row; target_parameter = -1;
+        element_type = local_fact.element_type; index_root = local_fact.index_root;
+        index_literal = local_fact.index_literal;
         index_use_offset = 0;
     }
     let index_expression: Option<Int> = None;
@@ -225,7 +225,7 @@ func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
             index_use_offset, false, CompilerAbiLayoutIntTypeName(),
             index_root);
     }
-    if local.valid {
+    if local_fact.valid {
         value_use_offset = DirectMirScalarProgramIndexedAssignmentValueUseOffset(
             instruction, index_use_offset);
     } else { value_use_offset = index_use_offset; }
@@ -245,7 +245,7 @@ func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
     let kind: Int = DirectMirScalarCfgOpArrayStringSet();
     if element_type == CompilerAbiLayoutIntTypeName() {
         kind = DirectMirScalarCfgOpArrayIntValueResultSet();
-        if local.valid { kind = DirectMirScalarCfgOpLocalArrayIntSet(); }
+        if local_fact.valid { kind = DirectMirScalarCfgOpLocalArrayIntSet(); }
     } else if element_type == CompilerAbiLayoutBoolTypeName() {
         kind = DirectMirScalarCfgOpArrayBoolSet();
     } else if element_type != CompilerAbiLayoutStringTypeName() {

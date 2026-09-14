@@ -50,15 +50,20 @@ Reached repair and local evidence:
 - Exhaustive Self-host parity no longer has a weekly schedule. It remains a
   manual major-patch and `v*` release boundary with the existing 180-minute cap;
   the CI-profile gate rejects restoration of branch or calendar triggers.
+- Publication attempt `713be04b` reached Push CI `34851517788`; its full
+  self-host bootstrap rejected reserved local names `use` and `local` in the
+  new indexed-assignment owner. They are now `use_fact` and `local_fact`. The
+  focused gate first native-compiles that owner, then runs self-host MIR and
+  C/LLVM parity/negative cases, so this parser split fails in the short lane.
 
 Dirty-state boundary:
 - Existing uncommitted Slice-related edits in five self-host semantic owners
   plus `tests/self_host_pergyra_likeness_smoke.sh` remain preserved and outside
   this repair packet. They must not be reset, folded into the publication, or
   treated as verified substitution progress.
-- Next action: commit and push only this reached-tail packet plus this handoff,
-  observe ordinary CI, repair any focused red, and manually dispatch the one
-  exhaustive Self-host parity run only after the publication SHA is stable.
+- Next action: push the focused native-parser repair, observe ordinary CI, and
+  manually dispatch the one exhaustive Self-host parity run only after the
+  publication SHA is stable.
 
 ## Historical archive boundary
 
