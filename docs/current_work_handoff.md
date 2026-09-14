@@ -1,5 +1,59 @@
 # Current Work Handoff
 
+Updated: 2026-09-14 (Asia/Seoul), self-host parity CI closure; navigation only.
+Compiler owners, registries and executable gates override this snapshot.
+
+## Active self-host context — native backend oracle selection
+
+Pre-publication HEAD/origin/main: `a573abeb5a6ce59395f89fff382cd097cd84c85c`.
+The completion boundary for this session is a pushed revision whose ordinary
+CI and manually dispatched Self-host parity workflow are green. Local success
+alone is not completion.
+
+Objective card:
+- Objective: restore the backend tri-compare gate to its native C/LLVM oracle
+  pair, then follow the remote workflow to the next reached self-host failure.
+- Priority: preserve the gate subject, expose compile diagnostics, pin the old
+  implicit selector out, then run the integration workflow.
+- Fact owner: the tri-compare runner owns native backend execution; its
+  Pergyra comparator owns only the output verdict.
+- Last legitimate consumer: `backend_output_tri_compare_parity.sh` passes the
+  two captured result streams to the Pergyra comparator.
+- Forbidden fallback: an implicit default compiler route, a skipped oracle,
+  swallowed compiler output, or accepting delegated-driver refusal as backend
+  parity evidence.
+- Verification/falsifier: all 14 local tri-compare cases must execute both
+  native backends; the pushed Self-host parity workflow must then identify any
+  later executable seam without an earlier silent exit.
+
+Reached evidence:
+- The 2026-09-14 Self-host parity run `34780338077` first stopped in
+  `backend_output_tri_compare_parity.sh`, before the review's proposed
+  Array<Record> provenance blocker was reached.
+- The fourth case, `allocator_lane_boxarray`, was routed through the default
+  delegated self-host driver and refused as a direct-MIR scalar program. Native
+  C execution was already valid; this was a changed test subject, not a C/LLVM
+  output disagreement.
+- The runner now selects `--native-pipeline` for both oracle compiles, reports
+  the exact case and compiler log on failure, and a structural ratchet pins
+  both the selector and diagnostics.
+- Focused result: backend tri-compare passed 14/14 cases locally.
+- A full release build completed and installed the Pergyra-built driver. A
+  subsequent broad parity attempt reached an LLVM tool-build refusal inside
+  pre-existing uncommitted Slice semantic work; that work is deliberately not
+  part of this publication packet and is not evidence about the clean pushed
+  revision.
+
+Dirty-state boundary:
+- Existing uncommitted Slice-related edits in five self-host semantic owners
+  plus `tests/self_host_pergyra_likeness_smoke.sh` are preserved and excluded
+  from this CI repair commit. They must not be reset, folded into the repair,
+  or treated as verified substitution progress.
+- The next action is to publish this bounded gate repair, dispatch Self-host
+  parity on the published SHA, and close the next failure actually reached.
+
+## Historical archive boundary
+
 Updated: 2026-09-09 (Asia/Seoul), native CI regression repair; navigation only.
 Compiler owners, registries and executable gates override this snapshot.
 

@@ -219,10 +219,24 @@ run_tri_case() {
     c_err="$WORK_DIR/${case_name}_c.stderr"
     llvm_err="$WORK_DIR/${case_name}_llvm.stderr"
 
-    (cd "$ROOT_DIR" && "$PGY" "$source_rel" --backend=c -o "${c_bin#"$ROOT_DIR"/}") \
-        >"$WORK_DIR/${case_name}_c.compile.log" 2>&1
-    (cd "$ROOT_DIR" && "$PGY" "$source_rel" --backend=llvm -o "${llvm_bin#"$ROOT_DIR"/}") \
-        >"$WORK_DIR/${case_name}_llvm.compile.log" 2>&1
+    # This gate owns the native C/LLVM oracle pair.  The public compiler now
+    # delegates to the bounded self-host driver by default, so leaving the
+    # selector implicit changes the subject of this gate and makes a missing
+    # self-host source family look like backend-output drift.
+    if ! (cd "$ROOT_DIR" && "$PGY" --native-pipeline "$source_rel" \
+            --backend=c -o "${c_bin#"$ROOT_DIR"/}") \
+            >"$WORK_DIR/${case_name}_c.compile.log" 2>&1; then
+        echo "[self-host-parity:backend-tri-compare] native C oracle compile failed for $source_rel" >&2
+        cat "$WORK_DIR/${case_name}_c.compile.log" >&2
+        exit 1
+    fi
+    if ! (cd "$ROOT_DIR" && "$PGY" --native-pipeline "$source_rel" \
+            --backend=llvm -o "${llvm_bin#"$ROOT_DIR"/}") \
+            >"$WORK_DIR/${case_name}_llvm.compile.log" 2>&1; then
+        echo "[self-host-parity:backend-tri-compare] native LLVM oracle compile failed for $source_rel" >&2
+        cat "$WORK_DIR/${case_name}_llvm.compile.log" >&2
+        exit 1
+    fi
 
     c_bin="$(resolve_native_bin "$c_bin")"
     llvm_bin="$(resolve_native_bin "$llvm_bin")"

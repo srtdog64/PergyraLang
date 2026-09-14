@@ -15595,6 +15595,9 @@ require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'TR
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "append_cases_from_harness_manifest"
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'append_cases_from_harness_manifest "backend-tri-smoke"'
 require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'append_cases_from_harness_manifest "backend-tri-extended"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" '"$PGY" --native-pipeline "$source_rel"'
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "native C oracle compile failed"
+require_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" "native LLVM oracle compile failed"
 reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy'
 reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/artifact_zone_owner.pgy"'
 reject_text "tests/self_hosted/parity/backend_output_tri_compare_parity.sh" 'cp "$ROOT_DIR/src/self_hosted/compiler/test_harness_owner.pgy"'
