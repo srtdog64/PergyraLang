@@ -58,6 +58,12 @@ Reached repair and local evidence:
   exhaustive 146-row inventory; the manual/release exhaustive parity target
   owns it exactly once. The other platform-independent contract gates remain in
   push CI.
+- Cadence publication `23dbd6a7` reached Push CI `34857142986`. Its profile
+  gate passed and the keyword inventory did not run, but the component contract
+  rejected the exhaustive Make target because adding the new prerequisite at
+  the start changed its pinned header prefix. The prerequisite is moved to the
+  end of the same target header, preserving both the established component
+  contract and exactly-one major-patch inventory execution.
 - The inventory was regenerated through its owner and the one requested local
   major-patch run passed: 146 rows, 70 reserved lexer rows, 76 parser selectors,
   nine fixtures, and no dead reserved spelling. CI-profile, documentation-quality,
