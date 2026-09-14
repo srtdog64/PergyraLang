@@ -102,7 +102,6 @@ for markdown_gate in \
     'bash tests/agent_boundary_sentinel_smoke.sh' \
     'bash tests/object_action_boundary_contract_smoke.sh' \
     'bash tests/documentation_quality_smoke.sh' \
-    'bash tests/language_keyword_registry_smoke.sh' \
     'bash tests/post_selfhost_validation_manifest_smoke.sh' \
     'bash tests/sot_authority_edge_smoke.sh' \
     'bash tests/gate_sot_single_owner_smoke.sh' \
@@ -113,6 +112,22 @@ for markdown_gate in \
         exit 1
     fi
 done
+
+if grep -Fq 'tests/language_keyword_registry_smoke.sh' "$WORKFLOW"; then
+    echo "[self-host-ci-profile] exhaustive language-word inventory leaked onto ordinary push CI" >&2
+    exit 1
+fi
+
+contract_recipe="$(
+    sed -n \
+        '/^self-host-preparation-contract-test-smoke:/,/^self-host-preparation-platform-parser-parity-test-smoke:/p' \
+        "$MAKEFILE"
+)"
+if grep -Fq 'language_keyword_registry_smoke.sh' <<<"$contract_recipe" ||
+    grep -Fq 'language-keyword-registry-test-smoke' <<<"$contract_recipe"; then
+    echo "[self-host-ci-profile] exhaustive language-word inventory leaked into the push contract" >&2
+    exit 1
+fi
 
 scope_tmp="$(mktemp -d)"
 trap 'rm -rf "$scope_tmp"' EXIT
@@ -617,6 +632,16 @@ exhaustive_recipe="$(
         '/^self-host-preparation-exhaustive-parity-test-smoke:/,/^self-host-runtime-boundary-parity-test-smoke:/p' \
         "$MAKEFILE"
 )"
+keyword_recipe="$(
+    sed -n \
+        '/^language-keyword-registry-test-smoke:/,/^callable-contract-vocabulary-test-smoke:/p' \
+        "$MAKEFILE"
+)"
+if [[ "$(grep -Fc 'language-keyword-registry-test-smoke' <<<"$exhaustive_recipe")" != "1" ]] ||
+    [[ "$(grep -Fc 'tests/language_keyword_registry_smoke.sh' <<<"$keyword_recipe")" != "1" ]]; then
+    echo "[self-host-ci-profile] major-patch parity lost the single exhaustive language-word inventory" >&2
+    exit 1
+fi
 assignment_probe_line="$(
     grep -nF 'tests/self_hosted/parity/assignment_projection_probe_parity.sh' \
         <<<"$exhaustive_recipe" | cut -d: -f1 || true

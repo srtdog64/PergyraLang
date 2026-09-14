@@ -96,6 +96,22 @@ The executable gates reject:
 - drift in the generated row-by-row implementation inventory, including
   native, typed self-host, direct-selector, fixture, and tooling evidence.
 
+## Verification cadence
+
+`language-keyword-registry-test-smoke` is the exhaustive 146-row inventory
+gate. It regenerates or checks every registry projection and rescans parser,
+fixture, LSP, and editor evidence, so it is intentionally not part of ordinary
+push CI or the Markdown-only contract path. Run it once for an explicit major
+language/compiler patch through
+`self-host-preparation-exhaustive-parity-test-smoke`, and for every `v*`
+release; that same target is the manual Self-host parity entrypoint.
+
+Routine edits use the focused gate for the owner they change. A registry row,
+parser selector, generated projection, keyword fixture, or tooling exposure
+change is itself a major language-surface change and must regenerate the
+inventory before that exhaustive boundary. This cadence changes when the full
+inventory runs, not its fail-closed authority or coverage.
+
 Documentation and editor files are projections. If they disagree with the
 registry and executable gates, the registry and current parser owners win and
 the projections must be regenerated or corrected.

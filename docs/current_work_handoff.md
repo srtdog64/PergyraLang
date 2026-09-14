@@ -1,13 +1,14 @@
 # Current Work Handoff
 
-Updated: 2026-09-14 (Asia/Seoul), reached exhaustive-parity semantic tail;
+Updated: 2026-09-14 (Asia/Seoul), reached-tail repair and exhaustive-gate cadence;
 navigation only. Compiler owners, registries and executable gates override this
 snapshot.
 
 ## Active self-host context — close the reached tail, then run exhaustive once
 
-Pre-publication HEAD/origin/main: `9d0776b076dd477c05c4e64a4596a91134b6c7e9`.
-This card accompanies the next commit; Git owns its publication identity.
+Pre-publication HEAD/origin/main: `3daf318f42b213c23cae4bc6e1d4557a156a4c10`.
+Reached-tail repairs were published as `713be04b` and `3daf318f`; this card
+accompanies the next CI-cadence commit, whose identity Git will own.
 The parent Push CI `34810531883` and Platform full `34810549151` are green.
 Self-host parity `34810551045` ran for 2h07m and failed in the LLVM projection
 of `LexerTokenFactsReady` at the record-array value-parameter boundary.
@@ -50,6 +51,17 @@ Reached repair and local evidence:
 - Exhaustive Self-host parity no longer has a weekly schedule. It remains a
   manual major-patch and `v*` release boundary with the existing 180-minute cap;
   the CI-profile gate rejects restoration of branch or calendar triggers.
+- Push CI `34853512173` has 28 green jobs, one still-running full bootstrap,
+  and one red `build-linux` job. Its only reached failure is the generated
+  language-word implementation inventory after the new focused fixtures changed
+  evidence counts. The ordinary push and Markdown-only paths no longer run that
+  exhaustive 146-row inventory; the manual/release exhaustive parity target
+  owns it exactly once. The other platform-independent contract gates remain in
+  push CI.
+- The inventory was regenerated through its owner and the one requested local
+  major-patch run passed: 146 rows, 70 reserved lexer rows, 76 parser selectors,
+  nine fixtures, and no dead reserved spelling. CI-profile, documentation-quality,
+  and diff checks pass after the cadence split.
 - Publication attempt `713be04b` reached Push CI `34851517788`; its full
   self-host bootstrap rejected reserved local names `use` and `local` in the
   new indexed-assignment owner. They are now `use_fact` and `local_fact`. The
@@ -61,9 +73,9 @@ Dirty-state boundary:
   plus `tests/self_host_pergyra_likeness_smoke.sh` remain preserved and outside
   this repair packet. They must not be reset, folded into the publication, or
   treated as verified substitution progress.
-- Next action: push the focused native-parser repair, observe ordinary CI, and
-  manually dispatch the one exhaustive Self-host parity run only after the
-  publication SHA is stable.
+- Next action: publish the cadence repair, observe ordinary CI, and manually
+  dispatch the one exhaustive Self-host parity run only after the publication
+  SHA is stable.
 
 ## Historical archive boundary
 
