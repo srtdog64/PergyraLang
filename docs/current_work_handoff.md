@@ -1,68 +1,69 @@
 # Current Work Handoff
 
-Updated: 2026-09-14 (Asia/Seoul), exhaustive parity-tail closure; navigation
-only. Compiler owners, registries and executable gates override this snapshot.
+Updated: 2026-09-14 (Asia/Seoul), exhaustive parity-tail inventory closure;
+navigation only. Compiler owners, registries and executable gates override this
+snapshot.
 
-## Active self-host context — parity harness identity and backend subject
+## Active self-host context — exhaustive parity must finish on one SHA
 
-Published HEAD/origin/main: `5e9f9b48d663bcdac0bccbc2ba7e8b7ee4a83792`.
+Published HEAD/origin/main: `ff3c38b88202c839bbdbcf753421b014fc6077a7`.
 The completion boundary remains one pushed revision whose ordinary CI,
 Platform full and manually dispatched Self-host parity workflows are all green.
-Local success or an earlier green SHA is not completion.
+Local success, a cancelled predecessor or green jobs from another SHA do not
+satisfy that boundary.
 
 Objective card:
-- Objective: keep source-level C/LLVM parity probes on their declared backend
-  oracle, carry exact callable identity into synthetic codegen environments,
-  and make every reached positive failure observable.
-- Priority: semantic identity, correct test subject, old-path rejection,
-  focused executable parity, then the remote exhaustive workflow.
+- Objective: make the exhaustive parity tail execute its declared source-level
+  C/LLVM subjects, preserve exact callable identity, and keep owner inventories
+  synchronized with the source tree they validate.
+- Priority: semantic identity, correct test subject, observable failure,
+  inventory-owner truth, focused executable parity, then remote exhaustive CI.
 - Fact owner: the expression graph owns callable declaration SyntaxNodeId and
-  receiver source offset; native backend selection belongs to each parity
-  harness, while public DirectMirLlvm replacement stays in its own gates.
-- Last legitimate consumers: `RewriteSemanticIdentityBoundCall`, member-call
-  emission, and the focused initializer/generic/policy probe executables.
-- Forbidden fallback: source-name callable binding, direct statement policy
-  replay beside the graph owner, implicit LLVM compiler selection for a native
-  oracle, swallowed positive-probe output, skip, or raised timeout.
-- Verification/falsifier: the six reached probe gates must stay green locally;
-  the next pushed Self-host parity run must pass initializer through dashboard
-  and expose only a later real executable seam, if any.
+  receiver source offset; each parity harness owns its backend subject; the
+  production-C and stdlib-dispatch tools own their inventory counts.
+- Last legitimate consumers: initializer/generic/policy probes followed by the
+  production-size and stdlib-dispatch expected-artifact comparisons.
+- Forbidden fallback: source-name callable binding, direct policy replay beside
+  the graph owner, implicit LLVM selection for a native oracle, swallowed probe
+  output, stale inventory goldens, skip, timeout increase or cap increase.
+- Verification/falsifier: run every gate from initializer projection through
+  the final stdlib-dispatch inventory locally, then require all three remote
+  workflows green on the exact next publication SHA.
 
-Remote evidence on `5e9f9b48`:
-- Push CI `34800945429`: 30/30 jobs green.
-- Platform full `34800960154`: 13/13 jobs green, including Linux/Windows driver
-  parity and macOS C-only.
-- Self-host parity `34800961535`: red after 99 minutes. The complete 1,831-file
-  lexer/parser/semantic/codegen ledger and 85-fixture C/LLVM codegen parity were
-  green. The first failure was the next initializer projection probe; its
-  `--direct-call-positive` path died because the synthetic environment omitted
-  the declaration-identity C binding. The earlier tri-compare failure is gone.
+Remote evidence:
+- On `5e9f9b48`, Push CI `34800945429` and Platform full `34800960154` were
+  green. Self-host parity `34800961535` reached the 1,831-file ledger and
+  85-fixture C/LLVM codegen parity, then exposed the initializer binding seam.
+- `ff3c38b88` repairs that seam plus the five reached LLVM probe subjects.
+  Push CI `34809051971`, Platform full `34809062779` and Self-host parity
+  `34809064897` were dispatched; they are predecessor evidence, not the final
+  completion SHA.
 
 Current repair and focused evidence:
-- `ProbeCodegenConsumesDirectTarget` now derives the declared callable key from
-  the graph-carried binding SyntaxNodeId. It does not restore a name fallback.
-- The member probe carries `rso:1`, matching the admitted receiver signature.
-  Positive probe execution now prints the backend, mode and captured stdout on
-  failure instead of exiting silently.
-- Initializer projection passed C and LLVM. Generic-return, wrapper-policy,
-  collection-policy, aggregate-field-policy and gate-dashboard also passed
-  their focused C/LLVM legs.
-- Those source-level LLVM tool binaries now explicitly select the native
-  backend oracle. Public DirectMirLlvm remains separately fail-closed and is
-  not credited by these harness runs.
-- The collection-policy ratchet now requires the statement consumer's
-  graph-owned mutation fact and rejects restoration of its retired direct
-  policy call. The old spelling had been stale since the owner move.
-- Shell syntax, `git diff --check`, and the full self-host component structural
-  contract passed; line caps were not raised.
+- Initializer projection, generic return, wrapper policy, collection policy,
+  aggregate-field policy and gate dashboard pass their focused C/LLVM legs.
+- The post-dashboard sequence also passes MIR JSON, module manifest, production
+  header size, runtime boundary and stable-subset section parity.
+- Production C inventory had remained at 968 since 2026-07-18 although the
+  exact current production filter selects 1,069 tracked `.c` owners. Its clean
+  expected artifact is refreshed without changing the 699-line cap; clean and
+  synthetic over-cap C/LLVM parity pass.
+- `SubstringWithLen` was added to both C and LLVM dispatch tables after the
+  stdlib inventory goldens were last refreshed. Clean inventory is now 59/63;
+  deleting the owner-selected twelve LLVM rows yields the expected 59/51 drift.
+  Clean and negative C/LLVM parity pass.
+- No timeout, tolerance or size cap was raised, and no direct fallback was
+  restored.
 
 Dirty-state boundary:
 - Existing uncommitted Slice-related edits in five self-host semantic owners
   plus `tests/self_host_pergyra_likeness_smoke.sh` remain preserved and outside
   this repair packet. They must not be reset, folded into the publication, or
   treated as verified substitution progress.
-- Next action: commit only this reached parity-tail repair, push it, then run
-  ordinary CI, Platform full and Self-host parity on the exact published SHA.
+- Next action: verify and commit only the three refreshed expected artifacts
+  plus this handoff, push, then dispatch ordinary CI, Platform full and
+  Self-host parity on that exact SHA and repair the first real red until all
+  three are green.
 
 ## Historical archive boundary
 
