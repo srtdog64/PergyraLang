@@ -26,6 +26,8 @@ func DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentElementType(
     if element_type == CompilerAbiLayoutStringTypeName() {
         index_kind = DirectMirScalarProgramExprArrayStringIndex();
         array_type = CompilerAbiLayoutArrayStringTypeName();
+    } else if element_type == CompilerAbiLayoutBoolTypeName() {
+        index_kind = DirectMirScalarProgramExprArrayBoolIndex(); array_type = CompilerAbiLayoutArrayBoolTypeName();
     } else if element_type != CompilerAbiLayoutIntTypeName() { return ""; }
     let array_node: Int = plan.program.expressions.node_lefts[root];
     let index_node: Int = plan.program.expressions.node_rights[root];

@@ -1,0 +1,260 @@
+// Routes formal or local indexed assignments through one typed array mutation.
+import "direct_mir_scalar_cfg_program_array_mutation_storage_owner.pgy";
+import "direct_mir_scalar_cfg_program_instruction_expression_owner.pgy";
+import "direct_mir_scalar_program_int_literal_expression_row_owner.pgy";
+import "direct_mir_scalar_program_indexed_assignment_fact_owner.pgy";
+import "direct_mir_scalar_program_indexed_assignment_value_use_owner.pgy";
+import "../mir_lower/latest_local_value_fact_owner.pgy";
+struct DirectMirScalarProgramLocalIndexedAssignmentFact {
+    let claimed: Bool; let valid: Bool;
+    let failure_stage: String;
+    let local_row: Int; let element_type: String;
+    let index_root: Int; let index_literal: String;
+}
+func DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
+    claimed: Bool, stage: String) -> DirectMirScalarProgramLocalIndexedAssignmentFact {
+    return DirectMirScalarProgramLocalIndexedAssignmentFact(
+        claimed, false, stage, -1, "", -1, "");
+}
+func DirectMirScalarProgramLocalIndexedAssignmentElementType(
+    array_type: String
+) -> String {
+    if array_type == CompilerAbiLayoutArrayIntTypeName() { return CompilerAbiLayoutIntTypeName(); }
+    if array_type == CompilerAbiLayoutArrayStringTypeName() { return CompilerAbiLayoutStringTypeName(); }
+    if array_type == CompilerAbiLayoutArrayBoolTypeName() { return CompilerAbiLayoutBoolTypeName(); }
+    return "";
+}
+func DirectMirScalarProgramLocalIndexedAssignmentFactFromOwners(
+    source: String, wire_kind: String,
+    ref capture: MirRoutineInstructionScalarCapture,
+    ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref index: MirRoutineFactIndex,
+    global_row: Int, local_instruction: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs
+) -> DirectMirScalarProgramLocalIndexedAssignmentFact {
+    let unclaimed: DirectMirScalarProgramLocalIndexedAssignmentFact =
+        DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(false, "");
+    let element_type: String =
+        DirectMirScalarProgramLocalIndexedAssignmentElementType(
+            capture.abi_type_name);
+    if source != "AST_ASSIGNMENT" || wire_kind != "def" ||
+        capture.arg1 != "local" || element_type == "" {
+        return unclaimed;
+    }
+    let graph: MirExpressionGraphSequence =
+        DirectMirScalarCfgInstructionGraphAt(instruction, "expr1_graph");
+    if !graph.ok || ArrayLength(graph.roots) != 1 { return unclaimed; }
+    let root: Int = graph.roots[0];
+    if root < 2 || root >= graph.ready_node_count ||
+        graph.arena.topology.node_kinds[root] != AstExpressionNodeIndex() {
+        return unclaimed;
+    }
+    let base: Int = graph.arena.topology.left_children[root];
+    if base < 0 || base >= root ||
+        graph.arena.topology.node_kinds[base] != AstExpressionNodeLeaf() ||
+        graph.arena.node_texts[base] != capture.arg0 {
+        return unclaimed;
+    }
+    let index_root: Int = graph.arena.topology.right_children[root];
+    if !capture.valid || capture.name != "ssa-def" ||
+        capture.arg0 == "" || capture.result == "" ||
+        !MirSsaNameMatches(capture.result, capture.arg0, false) {
+        return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
+            true, "local_indexed_capture");
+    }
+    if root + 1 != graph.ready_node_count || index_root < 0 ||
+        index_root >= root {
+        return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
+            true, "local_indexed_graph_shape");
+    }
+    if
+        graph.arena.call_target_kinds[base] != SemanticCallTargetNone() ||
+        graph.arena.call_target_kinds[root] != SemanticCallTargetNone() ||
+        graph.arena.call_target_names[base] != "" ||
+        graph.arena.call_target_names[root] != "" ||
+        graph.arena.identities.call_target_syntax_ids[base] != 0 ||
+        graph.arena.identities.call_target_syntax_ids[root] != 0 ||
+        graph.arena.identities.binding_kinds[base] !=
+            SemanticExpressionBindingNone() ||
+        graph.arena.identities.binding_ordinals[base] != -1 {
+        return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
+            true, "local_indexed_graph_identity");
+    }
+    if !locals.valid || !types.valid || !wire.valid {
+        return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
+            true, "local_indexed_owner_plan");
+    }
+    if local_instruction < 0 || local_instruction >=
+            ArrayLength(wire.primary_refs) {
+        return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
+            true, "local_indexed_wire");
+    }
+    let result: Int = DirectMirScalarCfgGraphValueRow(
+        locals.value_names, capture.result);
+    if result < 0 || result >= ArrayLength(types.value_types) {
+        return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
+            true, "local_indexed_result");
+    }
+    let local_row: Int = locals.value_local_rows[result];
+    if local_row < 0 || local_row >= ArrayLength(locals.local_names) ||
+        local_row >= ArrayLength(types.local_types) ||
+        locals.local_names[local_row] != capture.arg0 ||
+        types.local_types[local_row] != capture.abi_type_name ||
+        types.value_types[result] != capture.abi_type_name ||
+        (wire.required && (wire.primary_refs[local_instruction] == "" ||
+            wire.primary_refs[local_instruction] !=
+                locals.local_ref_value_ids[local_row])) ||
+        (!wire.required && wire.primary_refs[local_instruction] != "") {
+        return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
+            true, "local_indexed_storage");
+    }
+    let definition: MirRoutineResultDefinitionFact =
+        MirRoutineFactIndexUniqueResultDefinition(index, capture.result);
+    let first: Option<String> =
+        MirRoutineInstructionUseAtGlobal(uses, global_row, 0);
+    if !MirRoutineResultDefinitionFactReady(definition) ||
+        definition.global_row != global_row || !IsSome(first) {
+        return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
+            true, "local_indexed_definition");
+    }
+    let predecessor: Int = DirectMirScalarCfgGraphValueRow(
+        locals.value_names, UnwrapOption(first));
+    if predecessor < 0 || predecessor >= ArrayLength(types.value_types) ||
+        locals.value_local_rows[predecessor] != local_row ||
+        types.value_types[predecessor] != types.local_types[local_row] ||
+        !MirRoutineLatestDominatingLocalValueMatches(
+            index, locals.value_names, locals.value_local_rows, predecessor,
+            definition.block_id, definition.block_instruction_row) {
+        return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
+            true, "local_indexed_predecessor");
+    }
+    let occurrences: Int = 0; let use_row: Int = 0;
+    while use_row < MirRoutineInstructionUseCountAtGlobal(uses, global_row) {
+        let use: Option<String> =
+            MirRoutineInstructionUseAtGlobal(uses, global_row, use_row);
+        if !IsSome(use) {
+            return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
+                true, "local_indexed_predecessor_read");
+        }
+        if UnwrapOption(use) == UnwrapOption(first) {
+            occurrences = occurrences + 1;
+        }
+        use_row = use_row + 1;
+    }
+    if occurrences != 1 {
+        return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
+            true, "local_indexed_predecessor_count");
+    }
+    let literal: String = "";
+    if graph.arena.topology.node_kinds[index_root] ==
+            AstExpressionNodeIntegerLiteral() {
+        literal = graph.arena.node_texts[index_root];
+        if !DirectMirScalarCfgCanonicalInt(literal) {
+            return DirectMirScalarProgramLocalIndexedAssignmentFactInvalid(
+                true, "local_indexed_literal");
+        }
+    }
+    return DirectMirScalarProgramLocalIndexedAssignmentFact(
+        true, true, "", local_row, element_type, index_root, literal);
+}
+struct DirectMirScalarProgramIndexedAssignmentRoute {
+    let claimed: Bool; let valid: Bool; let failure_stage: String;
+    let operations: DirectMirScalarCfgProgramOperationStorage;
+    let expressions: DirectMirScalarProgramExpressionSet;
+}
+func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
+    operations: DirectMirScalarCfgProgramOperationStorage,
+    expressions: DirectMirScalarProgramExpressionSet,
+    inout failure: DirectMirScalarProgramExpressionAdmissionFailure,
+    source: String, wire_kind: String,
+    ref capture: MirRoutineInstructionScalarCapture,
+    ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts, ref index: MirRoutineFactIndex,
+    global_row: Int, local_instruction: Int,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    local_offset: Int, parameter_types: Array<String>,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
+    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+    ref signature: DirectMirRoutineSignatureFact,
+    ref formal: DirectMirScalarProgramIndexedAssignmentFact
+) -> DirectMirScalarProgramIndexedAssignmentRoute {
+    let local: DirectMirScalarProgramLocalIndexedAssignmentFact =
+        DirectMirScalarProgramLocalIndexedAssignmentFactFromOwners(
+            source, wire_kind, capture, instruction, uses, index, global_row,
+            local_instruction, locals, types, wire);
+    if local.claimed && !local.valid {
+        return DirectMirScalarProgramIndexedAssignmentRoute(true, false, local.failure_stage, operations, expressions);
+    }
+    if local.valid && formal.valid {
+        return DirectMirScalarProgramIndexedAssignmentRoute(true, false,
+            "indexed_assignment_owner_conflict", operations, expressions);
+    }
+    if !local.valid && !formal.valid {
+        return DirectMirScalarProgramIndexedAssignmentRoute(false, true, "", operations, expressions);
+    }
+    let target_local: Int = -1;
+    let target_parameter: Int = formal.parameter_ordinal;
+    let element_type: String = formal.element_type;
+    let index_root: Int = formal.index_root;
+    let index_literal: String = formal.index_literal;
+    let index_use_offset: Int = formal.use_prefix_count;
+    let value_use_offset: Int = formal.use_prefix_count;
+    if local.valid {
+        target_local = local.local_row; target_parameter = -1;
+        element_type = local.element_type; index_root = local.index_root;
+        index_literal = local.index_literal;
+        index_use_offset = 0;
+    }
+    let index_expression: Option<Int> = None;
+    if index_literal != "" {
+        index_expression = DirectMirScalarCfgProgramAppendIntLiteralExpression(
+            expressions, global_row, index_literal);
+    } else {
+        index_expression = DirectMirScalarCfgProgramAppendTypedExpressionField(
+            expressions, failure, instruction, uses, index, global_row,
+            local_instruction, locals, types, wire, local_offset,
+            parameter_types, signature, callables, logical_record,
+            payload_free_enum, referenced_enum, "expr1_graph",
+            index_use_offset, false, CompilerAbiLayoutIntTypeName(),
+            index_root);
+    }
+    if local.valid {
+        value_use_offset = DirectMirScalarProgramIndexedAssignmentValueUseOffset(
+            instruction, index_use_offset);
+    } else { value_use_offset = index_use_offset; }
+    if value_use_offset < 0 {
+        return DirectMirScalarProgramIndexedAssignmentRoute(true, false, "indexed_assignment_value_use", operations, expressions);
+    }
+    let value_expression: Option<Int> =
+        DirectMirScalarCfgProgramAppendTypedExpression(
+            expressions, failure, instruction, uses, index, global_row,
+            local_instruction, locals, types, wire, local_offset,
+            parameter_types, signature, callables, logical_record,
+            payload_free_enum, referenced_enum, value_use_offset,
+            element_type);
+    if !IsSome(value_expression) || !IsSome(index_expression) {
+        return DirectMirScalarProgramIndexedAssignmentRoute(true, false, "indexed_assignment_expression", operations, expressions);
+    }
+    let kind: Int = DirectMirScalarCfgOpArrayStringSet();
+    if element_type == CompilerAbiLayoutIntTypeName() {
+        kind = DirectMirScalarCfgOpArrayIntValueResultSet();
+        if local.valid { kind = DirectMirScalarCfgOpLocalArrayIntSet(); }
+    } else if element_type == CompilerAbiLayoutBoolTypeName() {
+        kind = DirectMirScalarCfgOpArrayBoolSet();
+    } else if element_type != CompilerAbiLayoutStringTypeName() {
+        return DirectMirScalarProgramIndexedAssignmentRoute(true, false,
+            "indexed_assignment_element_type", operations, expressions);
+    }
+    operations = DirectMirScalarCfgProgramOperationsAppendArrayMutation(
+        operations, kind, target_local, target_parameter,
+        UnwrapOption(value_expression), UnwrapOption(index_expression));
+    return DirectMirScalarProgramIndexedAssignmentRoute(true, operations.valid,
+        "indexed_assignment_operation", operations, expressions);
+}

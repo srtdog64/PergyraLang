@@ -49,6 +49,28 @@ grep -Fq '"name":"DisableStateCopy"' "$MIR" ||
     fail "producer omitted the by-value record copy canary"
 grep -Fq '"arg0":"state","arg1":"default_param"' "$MIR" ||
     fail "producer omitted the by-value parameter member write"
+python - "$MIR" <<'PY' || fail "producer confused a member name with its same-spelled formal"
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as source:
+    program = json.load(source)
+routine = next(row for row in program["routines"] if row["name"] == "BuildStateFromFormal")
+assignment = next(
+    instruction
+    for block in routine["blocks"]
+    for instruction in block["instructions"]
+    if instruction.get("expr1") == "state.last_row"
+)
+member = assignment["expr1_graph"]["nodes"][1]
+rhs = assignment["expr0_graph"]["nodes"][0]
+assert member["text"] == "last_row"
+assert member["binding_kind"] == "none" and member["binding_ordinal"] is None
+assert member["binding_syntax_id"] == 0
+assert rhs["text"] == "last_row"
+assert rhs["binding_kind"] == "formal_parameter" and rhs["binding_ordinal"] == 0
+assert rhs["binding_syntax_id"] > 0
+PY
 printf 'record-bool-rebind-ready\n' >"$WORK_DIR/expected.run"
 
 for backend in c llvm; do
@@ -82,7 +104,7 @@ done
 
 for mutation in non-dominating-prefix missing-target-local-ref \
     foreign-target-local-ref wrong-rhs-type wrong-default-carriage \
-    wrong-default-binding; do
+    wrong-default-binding member-name-binding; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

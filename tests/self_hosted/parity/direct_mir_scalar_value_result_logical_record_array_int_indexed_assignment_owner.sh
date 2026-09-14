@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Value-result logical-record Array<Int> assignment consumes the exact prior SSA local.
+# Mixed logical-record array assignments consume one exact value-result predecessor chain.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -33,17 +33,25 @@ import json, sys
 d=json.load(open(sys.argv[1], encoding="utf-8"))
 r=next(x for x in d["routines"] if x["name"]=="ResolveTarget")
 rows=[x for b in r["blocks"] for x in b["instructions"] if x.get("source_type")=="AST_ASSIGNMENT"]
-assert len(rows)==2 and r["params"][0]["carriage"]=="value-result"
-first, second=rows
+assert len(rows)==3 and r["params"][0]["carriage"]=="value-result"
+assert r["params"][1]["name"]=="node_id" and r["params"][1]["carriage"]=="value"
+first, second, boolean=rows
 assert first["result"]=="analysis.2" and first["uses"]==["first_id.1"]
-assert second["result"]=="analysis.5"
-assert second["uses"]==["analysis.2","node_id.1","target.1"]
+assert second["result"].startswith("analysis.")
+assert second["uses"]==["analysis.2","targets.1"]
+assert second["expr0"]=="(ArrayLength(targets) - 1)"
+v=second["expr0_graph"]["nodes"]
+assert second["expr0_graph"]["root"]==5 and v[2]["text"]=="targets"
+assert second["expr0_local_refs"]==[]
 n=second["expr1_graph"]["nodes"]
 assert second["expr1_graph"]["root"]==8 and n[0]["binding_kind"]=="formal_parameter"
 assert n[0]["binding_ordinal"]==0 and n[5]["text"]=="call_target_kinds"
 assert n[8]["left"]==6 and n[8]["right"]==7
+assert boolean["result"].startswith("analysis.") and boolean["uses"]==[second["result"]]
+assert boolean["abi_type_name"]=="CallTargetAnalysis" and boolean["expr0"]=="true"
+assert boolean["expr1_graph"]["nodes"][5]["text"]=="unknown_effects"
 PY
-printf '8\n' >"$WORK_DIR/expected.run"
+printf '3\ntrue\n' >"$WORK_DIR/expected.run"
 
 for backend in c llvm; do
     extension="$backend"; [[ "$backend" == llvm ]] && extension="ll"
@@ -56,6 +64,7 @@ for backend in c llvm; do
     if [[ "$backend" == c ]]; then
         [[ "$(grep -Ec 'pgy_ai_set\(&\(\(\(pgy_local_[0-9]+\)\.field_0\)\.field_0\)\.field_0,' "$artifact")" -eq 2 ]] ||
             fail "C artifact did not write both nested Array<Int> slots"
+        [[ "$(grep -Ec 'pgy_ab_set\(&\(\(\(pgy_local_[0-9]+\)\.field_0\)\.field_0\)\.field_1,' "$artifact")" -eq 1 ]] || fail "C artifact omitted nested Array<Bool> write"
         grep -Eq '\*pgy_param_0_mutref = pgy_local_[0-9]+;' "$artifact" ||
             fail "C artifact omitted value-result copy-out"
         command=("$CC" -x c -std=c11 "$artifact")
@@ -66,10 +75,11 @@ for backend in c llvm; do
         "${command[@]}" >"$WORK_DIR/c.compile.out" 2>"$WORK_DIR/c.compile.err" ||
             fail "C artifact did not compile"
     else
-        [[ "$(grep -Ec '\.address = getelementptr inbounds %pgy\.scalar\.logical\.record\.value\.' "$artifact")" -eq 6 ]] ||
-            fail "LLVM artifact did not consume both three-member paths"
+        [[ "$(grep -Ec '\.address = getelementptr inbounds %pgy\.scalar\.logical\.record\.value\.' "$artifact")" -eq 9 ]] ||
+            fail "LLVM artifact did not consume all three-member paths"
         [[ "$(grep -Ec 'call void @pgy_ai_set\(ptr %pgy\.expr\.[0-9]+\.[0-9]+\.address, i64 ' "$artifact")" -eq 2 ]] ||
             fail "LLVM artifact did not write both nested Array<Int> slots"
+        [[ "$(grep -Ec 'call void @pgy_ab_set\(ptr %pgy\.expr\.[0-9]+\.[0-9]+\.address, i64 .*i1 ' "$artifact")" -eq 1 ]] || fail "LLVM artifact omitted nested Array<Bool> write"
         grep -Eq 'store %pgy\.scalar\.logical\.record\.value\.[0-9]+ .*ptr %pgy\.param\.0\.mutref' "$artifact" ||
             fail "LLVM artifact omitted value-result copy-out"
         runtime_obj="$WORK_DIR/runtime.o"
@@ -87,7 +97,7 @@ for backend in c llvm; do
 done
 
 for mutation in formal-binding formal-ordinal carriage missing-predecessor \
-        wrong-predecessor member-identity rhs-type result-owner; do
+        wrong-predecessor member-identity rhs-type bool-rhs-type result-owner; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do
@@ -101,4 +111,4 @@ for mutation in formal-binding formal-ordinal carriage missing-predecessor \
     done
 done
 
-echo "[$LABEL] typed value-result predecessor + C/LLVM parity/negatives: PASS"
+echo "[$LABEL] mixed typed value-result predecessor + C/LLVM parity/negatives: PASS"

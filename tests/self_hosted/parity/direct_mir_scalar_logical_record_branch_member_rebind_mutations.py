@@ -30,6 +30,15 @@ def main():
         for instruction in block["instructions"]
         if instruction.get("expr1") == "state.ok"
     )
+    built_routine = next(
+        row for row in program["routines"] if row["name"] == "BuildStateFromFormal"
+    )
+    built = next(
+        instruction
+        for block in built_routine["blocks"]
+        for instruction in block["instructions"]
+        if instruction.get("expr1") == "state.last_row"
+    )
     mutation = sys.argv[2]
     if mutation == "non-dominating-prefix":
         later["uses"].insert(0, ok["result"])
@@ -53,6 +62,12 @@ def main():
     elif mutation == "wrong-default-binding":
         copied["expr1_graph"]["nodes"][0]["binding_kind"] = "none"
         copied["expr1_graph"]["nodes"][0]["binding_ordinal"] = None
+    elif mutation == "member-name-binding":
+        member = built["expr1_graph"]["nodes"][1]
+        rhs = built["expr0_graph"]["nodes"][0]
+        member["binding_syntax_id"] = rhs["binding_syntax_id"]
+        member["binding_kind"] = "formal_parameter"
+        member["binding_ordinal"] = 0
     else:
         raise SystemExit(f"unknown mutation: {mutation}")
     with open(sys.argv[3], "w", encoding="utf-8", newline="\n") as output:

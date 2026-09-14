@@ -121,9 +121,8 @@ func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(
     output = Concat(output, value_expression.instructions);
     let symbol: String = "@pgy_ai_set";
     let value_type: String = "i64";
-    if element_type == CompilerAbiLayoutStringTypeName() {
-        symbol = "@pgy_as_set"; value_type = "ptr";
-    }
+    if element_type == CompilerAbiLayoutStringTypeName() { symbol = "@pgy_as_set"; value_type = "ptr"; }
+    if element_type == CompilerAbiLayoutBoolTypeName() { symbol = "@pgy_ab_set"; value_type = "i1"; }
     output = Concat(output, Concat("  call void ", symbol));
     output = Concat(output, "(ptr ");
     output = Concat(output, Concat(array_address, Concat(", i64 ",

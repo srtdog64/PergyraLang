@@ -52,7 +52,7 @@ func DirectMirScalarCfgTypedOperationsReady(
         let is_string_result: Bool =
             result_type == CompilerAbiLayoutStringTypeName();
         let is_value_result: Bool = DirectMirScalarCfgPhiValueTypeReady(
-            plan.program.logical_record, result_type);
+            plan.program.logical_record, plan.program.payload_free_enum, result_type);
         let indexed_row: Int = DirectMirScalarCfgStringArrayAccessRowAtOperation(
             plan.string_arrays, row
         );

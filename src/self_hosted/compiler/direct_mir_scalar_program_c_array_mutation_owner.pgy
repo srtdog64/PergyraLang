@@ -45,7 +45,8 @@ func DirectMirScalarProgramCLocalArraySetMaterialization(
         let nested_type: String = DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentElementType(plan, row);
         if nested_type == CompilerAbiLayoutIntTypeName() { int_set = true; }
         if nested_type == CompilerAbiLayoutStringTypeName() { string_set = true; }
-        if plan.operation_kinds[row] == DirectMirScalarCfgOpArrayBoolSet() {
+        if nested_type == CompilerAbiLayoutBoolTypeName() ||
+                plan.operation_kinds[row] == DirectMirScalarCfgOpArrayBoolSet() {
             bool_set = true;
         }
         row = row + 1;

@@ -427,7 +427,7 @@ if grep -Fq 'self-host-parity-linux:' "$WORKFLOW"; then
     exit 1
 fi
 
-for forbidden in 'pull_request:' 'branches:'; do
+for forbidden in 'pull_request:' 'branches:' 'schedule:'; do
     if grep -Fq "$forbidden" "$PARITY_WORKFLOW"; then
         echo "[self-host-ci-profile] exhaustive parity regained a per-branch trigger: $forbidden" >&2
         exit 1
@@ -493,8 +493,6 @@ fi
 for required in \
     'self-host-parity-linux:' \
     'workflow_dispatch:' \
-    'schedule:' \
-    "cron: '0 18 * * 0'" \
     'tags:' \
     "- 'v*'" \
     'timeout-minutes: 180' \
@@ -509,7 +507,7 @@ for required in \
     'self-host-public-mir-json-replacement-test-smoke' \
     'cancel-in-progress: true'; do
     if ! grep -Fq -- "$required" "$PARITY_WORKFLOW"; then
-        echo "[self-host-ci-profile] scheduled/manual/release parity proof missing: $required" >&2
+        echo "[self-host-ci-profile] major-patch/manual/release parity proof missing: $required" >&2
         exit 1
     fi
 done

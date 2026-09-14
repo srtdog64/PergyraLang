@@ -47,6 +47,17 @@ func ProjectionReady(
     return ArrayLength(rows) != count;
 }
 
+func SingleRecordArrayReady(rows: Array<IndexedRow>) -> Bool {
+    return ArrayLength(rows) != 0;
+}
+
+func RecordArrayText(
+    prefix: String,
+    rows: Array<IndexedRow>
+) -> String {
+    return Concat(prefix, rows[0].label);
+}
+
 func Main() -> Void {
     Log("logical-record-array-value-parameter-ready");
 }

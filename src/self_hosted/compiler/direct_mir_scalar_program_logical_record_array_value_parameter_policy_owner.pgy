@@ -8,13 +8,13 @@ func DirectMirScalarProgramLogicalRecordArrayValueParameterSignatureReady(
     ref signature: DirectMirRoutineSignatureFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> Bool {
-    let return_ready: Bool = signature.return_type ==
-            CompilerAbiLayoutArrayIntTypeName() ||
-        signature.return_type == CompilerAbiLayoutBoolTypeName() ||
+    let return_ready: Bool = DirectMirScalarCfgScalarTypeSupported(
+            signature.return_type) ||
+        signature.return_type == CompilerAbiLayoutArrayIntTypeName() ||
         DirectMirScalarProgramLogicalRecordTypeReady(
             logical_record, signature.return_type);
     if !DirectMirRoutineSignatureFactReady(signature) || !return_ready ||
-        signature.param_count < 2 {
+        signature.param_count < 1 {
         return false;
     }
     let record_array_count: Int = 0;

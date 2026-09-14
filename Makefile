@@ -3528,6 +3528,10 @@ self-host-direct-mir-scalar-value-result-logical-record-array-int-indexed-assign
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_value_result_logical_record_array_int_indexed_assignment_owner.sh
 
+self-host-direct-mir-scalar-local-array-int-indexed-direct-call-test-smoke: self-host-compiler
+	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_local_array_int_indexed_direct_call_owner.sh
+
 self-host-direct-mir-scalar-collection-phi-value-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_collection_phi_value_owner.sh
@@ -3739,6 +3743,7 @@ self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-a
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-array-string-dynamic-indexed-assignment-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-nested-logical-record-array-string-indexed-assignment-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-value-result-logical-record-array-int-indexed-assignment-test-smoke
+self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-local-array-int-indexed-direct-call-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-collection-phi-value-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-program-control-transfer-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-option-int-try-let-test-smoke
@@ -3772,6 +3777,7 @@ self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-p
 .PHONY: self-host-direct-mir-scalar-array-string-dynamic-indexed-assignment-test-smoke
 .PHONY: self-host-direct-mir-scalar-nested-logical-record-array-string-indexed-assignment-test-smoke
 .PHONY: self-host-direct-mir-scalar-value-result-logical-record-array-int-indexed-assignment-test-smoke
+.PHONY: self-host-direct-mir-scalar-local-array-int-indexed-direct-call-test-smoke
 .PHONY: self-host-direct-mir-scalar-collection-phi-value-test-smoke
 .PHONY: self-host-direct-mir-scalar-int-multiply-test-smoke
 .PHONY: self-host-direct-mir-scalar-int-divide-test-smoke

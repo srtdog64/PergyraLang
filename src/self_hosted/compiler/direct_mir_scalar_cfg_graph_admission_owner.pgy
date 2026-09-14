@@ -48,6 +48,8 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
         input.collections;
     let logical_record: DirectMirScalarProgramLogicalRecordFact =
         DirectMirScalarProgramLogicalRecordFactCanonicalEmpty();
+    let payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact =
+        DirectMirScalarProgramPayloadFreeEnumFactCanonicalEmpty();
     let indexed_assignments:
         DirectMirScalarProgramIndexedAssignmentFactSet =
         DirectMirScalarProgramIndexedAssignmentFactSetCanonicalEmpty();
@@ -271,7 +273,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     DirectMirScalarCfgPhiOperationFromOwners(
                         input.index, admitted, use_facts, routine_row,
                         block, instruction_row, local_refs, type_plan,
-                        logical_record,
+                        logical_record, payload_free_enum,
                         phi_predecessor_blocks, phi_incoming_values
                     );
                 if !phi.valid {

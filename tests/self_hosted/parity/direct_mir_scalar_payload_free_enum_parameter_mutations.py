@@ -30,8 +30,8 @@ def main():
     )
     if tone_ordinal is None:
         raise SystemExit("fixture has no ToneOrdinal routine")
-    tone_name = next((row for row in document.get("routines", [])
-                      if row.get("name") == "ToneName"), None)
+    tone_name = next((row for row in document.get("routines", []) if
+                      row.get("name") == "ToneName"), None)
     if tone_name is None:
         raise SystemExit("fixture has no ToneName routine")
     default_tone = next((row for row in document.get("routines", [])
@@ -40,6 +40,15 @@ def main():
                          if row.get("name") == "TonesDiffer"), None)
     if default_tone is None or tones_differ is None:
         raise SystemExit("fixture has no unqualified enum return/inequality")
+    select_tone = next((row for row in document.get("routines", []) if row.get("name") == "SelectTone"), None)
+    if select_tone is None:
+        raise SystemExit("fixture has no payload-free enum phi routine")
+    select_phi = next((instruction for block in select_tone.get("blocks", [])
+         for instruction in block.get("instructions", [])
+         if instruction.get("kind") == "phi" and
+         instruction.get("name") == "selected"), None)
+    if select_phi is None or len(select_phi.get("uses", [])) != 2:
+        raise SystemExit("fixture has no exact payload-free enum phi")
     def expression_nodes():
         for block in tone_ordinal.get("blocks", []):
             for instruction in block.get("instructions", []):
@@ -107,6 +116,8 @@ def main():
     elif kind == "enum-inequality-wrong-type":
         tones_differ["params"][1]["type"] = "Direction"
         tones_differ["params"][1]["abi_type_name"] = "Direction"
+    elif kind == "enum-phi-forged-incoming":
+        select_phi["uses"][1] = "forged.1"
     else:
         raise SystemExit(f"unknown mutation: {kind}")
     with open(output, "w", encoding="utf-8", newline="\n") as stream:

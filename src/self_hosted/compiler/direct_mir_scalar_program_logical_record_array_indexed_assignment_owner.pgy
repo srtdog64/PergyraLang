@@ -73,6 +73,9 @@ func DirectMirScalarProgramLogicalRecordArrayIndexedTargetElementType(
     if path.final_type == CompilerAbiLayoutArrayIntTypeName() {
         return CompilerAbiLayoutIntTypeName();
     }
+    if path.final_type == CompilerAbiLayoutArrayBoolTypeName() {
+        return CompilerAbiLayoutBoolTypeName();
+    }
     return "";
 }
 

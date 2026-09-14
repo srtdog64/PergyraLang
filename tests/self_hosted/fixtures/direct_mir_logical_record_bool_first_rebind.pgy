@@ -1,7 +1,7 @@
 struct RebindState {
-    let ok: Bool;
-    let last_row: Int;
-    let rows: Array<Int>;
+    ok: Bool;
+    last_row: Int;
+    rows: Array<Int>;
 }
 
 func UpdateState(
@@ -20,6 +20,13 @@ func DisableStateCopy(state: RebindState) -> RebindState {
     return state;
 }
 
+func BuildStateFromFormal(last_row: Int) -> RebindState {
+    let rows: Array<Int> = [];
+    let state: RebindState = RebindState(true, 0, rows);
+    state.last_row = last_row;
+    return state;
+}
+
 func Main() -> Void {
     let first_rows: Array<Int> = [];
     let first: RebindState = RebindState(true, 0, first_rows);
@@ -28,8 +35,9 @@ func Main() -> Void {
     let second: RebindState = RebindState(true, 0, second_rows);
     let updated: Bool = UpdateState(second, false, 8);
     let copied: RebindState = DisableStateCopy(second);
+    let built: RebindState = BuildStateFromFormal(9);
     if !disabled && !first.ok && updated && second.ok &&
-            second.last_row == 8 && !copied.ok {
+            second.last_row == 8 && !copied.ok && built.last_row == 9 {
         Log("record-bool-rebind-ready");
     }
 }

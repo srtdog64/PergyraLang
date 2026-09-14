@@ -4,7 +4,7 @@ import "direct_mir_scalar_cfg_op_code_owner.pgy";
 import "direct_mir_scalar_cfg_value_type_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
-
+import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
 func DirectMirScalarCfgStringValueExpressionFact(
     ref instruction: JsonObjectFactTable,
     ref use_facts: MirRoutineInstructionUseFacts,
@@ -87,7 +87,6 @@ func DirectMirScalarCfgStringValueExpressionFact(
         "", ""
     );
 }
-
 func DirectMirScalarCfgTypedValueExpressionFact(
     type_name: String, ref instruction: JsonObjectFactTable,
     ref use_facts: MirRoutineInstructionUseFacts,
@@ -110,10 +109,9 @@ func DirectMirScalarCfgTypedValueExpressionFact(
     }
     return DirectMirScalarCfgExpressionFactEmpty();
 }
-
 func DirectMirScalarCfgPhiOperationKind(
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
-    type_name: String
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact, type_name: String
 ) -> Int {
     if type_name == CompilerAbiLayoutIntTypeName() {
         return DirectMirScalarCfgOpPhiInt();
@@ -121,14 +119,15 @@ func DirectMirScalarCfgPhiOperationKind(
     if type_name == CompilerAbiLayoutStringTypeName() {
         return DirectMirScalarCfgOpPhiString();
     }
-    if DirectMirScalarCfgPhiValueTypeReady(logical_record, type_name) {
+    if DirectMirScalarCfgPhiValueTypeReady(
+        logical_record, payload_free_enum, type_name) {
         return DirectMirScalarCfgOpPhiValue();
     }
     return 0;
 }
 func DirectMirScalarCfgPhiValueTypeReady(
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
-    type_name: String
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact, type_name: String
 ) -> Bool {
     return type_name == CompilerAbiLayoutBoolTypeName() ||
         type_name == CompilerAbiLayoutLongTypeName() ||
@@ -136,11 +135,12 @@ func DirectMirScalarCfgPhiValueTypeReady(
         type_name == CompilerAbiLayoutArrayIntTypeName() ||
         type_name == CompilerAbiLayoutArrayBoolTypeName() ||
         type_name == CompilerAbiLayoutArrayStringTypeName() ||
+        DirectMirScalarProgramPayloadFreeEnumTypeReady(
+            payload_free_enum, type_name) ||
         DirectMirScalarProgramLogicalRecordTypeReady(logical_record, type_name) ||
         DirectMirScalarProgramLogicalRecordOptionTypeReady(
             logical_record, type_name);
 }
-
 func DirectMirScalarCfgTypedLogExpressionFact(
     ref instruction: JsonObjectFactTable,
     ref use_facts: MirRoutineInstructionUseFacts,
@@ -176,7 +176,6 @@ func DirectMirScalarCfgTypedLogExpressionFact(
         expression.left_value, -1, expression.left_local, -1, "", ""
     );
 }
-
 func DirectMirScalarCfgStringConcatRuntimeCallAbiId(
     operation_kinds: Array<Int>
 ) -> Int {

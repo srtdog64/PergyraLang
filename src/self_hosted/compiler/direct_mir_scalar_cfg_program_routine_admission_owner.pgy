@@ -44,6 +44,7 @@ func DirectMirScalarCfgProgramOperationsAppendPhi(
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref types: DirectMirScalarCfgValueTypePlan,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     value_offset: Int, block_offset: Int
 ) -> DirectMirScalarCfgProgramOperationStorage {
     let predecessors: Array<Int> = storage.phi_predecessor_blocks;
@@ -52,7 +53,8 @@ func DirectMirScalarCfgProgramOperationsAppendPhi(
     let phi: DirectMirScalarCfgPhiOperationAdmission =
         DirectMirScalarCfgPhiOperationFromOwners(
             index, admitted, uses, routine_row, block, instruction_row,
-            locals, types, logical_record, predecessors, incoming);
+            locals, types, logical_record, payload_free_enum,
+            predecessors, incoming);
     if !phi.valid || phi.phi_start != start {
         return DirectMirScalarCfgProgramOperationStorage(
             false, storage.kinds, storage.result_values,
@@ -310,8 +312,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
                 operations = DirectMirScalarCfgProgramOperationsAppendPhi(
                     operations, input.index, admitted, input.use_facts, routine_row,
                     block, instruction_row, locals, types, logical_record,
-                    value_offset,
-                    block_offset);
+                    payload_free_enum, value_offset, block_offset);
                 if !operations.valid { DirectMirScalarCfgProgramRoutineAdmissionFailed(
                     "phi", routine_ordinal, block, global_row, source); return invalid; }
             } else if kind == "branch" {

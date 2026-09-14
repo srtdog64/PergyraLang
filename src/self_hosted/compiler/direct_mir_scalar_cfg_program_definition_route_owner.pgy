@@ -1,6 +1,7 @@
 // Routes one definition through its exact mutation or value-definition owner.
 import "direct_mir_scalar_cfg_program_definition_admission_owner.pgy";
 import "direct_mir_scalar_program_indexed_assignment_fact_owner.pgy";
+import "direct_mir_scalar_program_indexed_assignment_route_owner.pgy";
 import "direct_mir_scalar_program_logical_record_member_rebind_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_indexed_assignment_owner.pgy";
 import "direct_mir_routine_instance_type_owner.pgy";
@@ -126,49 +127,21 @@ func DirectMirScalarCfgProgramRouteDefinition(operations: DirectMirScalarCfgProg
         return DirectMirScalarCfgProgramDefinitionRoute(
             true, "", operations, expressions);
     }
-    if indexed_assignment.valid {
-        let use_offset: Int = indexed_assignment.use_prefix_count;
-        let index_expression: Option<Int> = None;
-        if indexed_assignment.index_literal != "" {
-            index_expression =
-                DirectMirScalarCfgProgramAppendIntLiteralExpression(
-                    expressions, global_row,
-                    indexed_assignment.index_literal);
-        } else {
-            index_expression =
-                DirectMirScalarCfgProgramAppendTypedExpressionField(
-                    expressions, failure, instruction, uses, index, global_row,
-                    local_instruction, locals, types, wire, local_offset,
-                    parameter_types, signature, callables, logical_record,
-                    payload_free_enum, referenced_enum, "expr1_graph", use_offset, false,
-                    CompilerAbiLayoutIntTypeName(),
-                    indexed_assignment.index_root);
-        }
-        let value_expression: Option<Int> =
-            DirectMirScalarCfgProgramAppendTypedExpression(
-                expressions, failure, instruction, uses, index, global_row,
-                local_instruction, locals, types, wire, local_offset,
-                parameter_types, signature, callables, logical_record,
-                payload_free_enum, referenced_enum, use_offset,
-                indexed_assignment.element_type);
-        if !IsSome(value_expression) || !IsSome(index_expression) {
+    let indexed_route: DirectMirScalarProgramIndexedAssignmentRoute =
+        DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
+            operations, expressions, failure, source, wire_kind, capture,
+            instruction, uses, index, global_row, local_instruction, locals,
+            types, wire, local_offset, parameter_types, callables,
+            logical_record, payload_free_enum, referenced_enum, signature,
+            indexed_assignment);
+    if indexed_route.claimed {
+        if !indexed_route.valid {
             return DirectMirScalarCfgProgramDefinitionRouteInvalid(
-                "indexed_assignment_expression", operations, expressions);
-        }
-        let mutation_kind: Int = DirectMirScalarCfgOpArrayStringSet();
-        if indexed_assignment.element_type == CompilerAbiLayoutIntTypeName() {
-            mutation_kind = DirectMirScalarCfgOpArrayIntValueResultSet();
-        }
-        operations = DirectMirScalarCfgProgramOperationsAppendArrayMutation(
-            operations, mutation_kind, -1,
-            indexed_assignment.parameter_ordinal,
-            UnwrapOption(value_expression), UnwrapOption(index_expression));
-        if !operations.valid {
-            return DirectMirScalarCfgProgramDefinitionRouteInvalid(
-                "indexed_assignment_operation", operations, expressions);
+                indexed_route.failure_stage, indexed_route.operations,
+                indexed_route.expressions);
         }
         return DirectMirScalarCfgProgramDefinitionRoute(
-            true, "", operations, expressions);
+            true, "", indexed_route.operations, indexed_route.expressions);
     }
     if source != "AST_LET_DECL" &&
             DirectMirScalarProgramInstructionHasTryRoot(instruction) {

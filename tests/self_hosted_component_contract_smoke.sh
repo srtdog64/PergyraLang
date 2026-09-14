@@ -7208,6 +7208,10 @@ require_function_text \
     "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy" \
     "func SemanticAstAnalysisResolveExpressionIdentities(" \
     "SemanticExpressionDeclaredCallableSyntaxId("
+require_function_text \
+    "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy" \
+    "func SemanticAstAnalysisResolveExpressionIdentities(" \
+    "right_children[node + 1] == node"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
     "func SemanticAstExpressionFunctionRowIndex"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
@@ -18943,7 +18947,7 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy" \
     "func DirectMirScalarCfgPhiOperationKind(" \
-    "DirectMirScalarCfgPhiValueTypeReady(logical_record, type_name)"
+    "payload_free_enum, type_name)"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_typed_readiness_owner.pgy" \
     "func DirectMirScalarCfgTypedOperationsReady(" \
@@ -20912,11 +20916,19 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_value_parameter_policy_owner.pgy" \
     "func DirectMirScalarProgramLogicalRecordArrayValueParameterSignatureReady(" \
+    "signature.param_count < 1"
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_value_parameter_policy_owner.pgy" \
+    "func DirectMirScalarProgramLogicalRecordArrayValueParameterSignatureReady(" \
+    "signature.param_count < 2"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_value_parameter_policy_owner.pgy" \
+    "func DirectMirScalarProgramLogicalRecordArrayValueParameterSignatureReady(" \
     "DirectMirScalarProgramLogicalRecordTypeReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_value_parameter_policy_owner.pgy" \
     "func DirectMirScalarProgramLogicalRecordArrayValueParameterSignatureReady(" \
-    "signature.return_type == CompilerAbiLayoutBoolTypeName()"
+    "DirectMirScalarCfgScalarTypeSupported("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
     "func DirectMirScalarProgramCallableParameterSupportedWithFacts(" \
@@ -21509,17 +21521,17 @@ reject_function_text \
     "func DirectMirScalarCfgLocalRefPlanFromOwners(" \
     "!DirectMirScalarProgramIndexedAssignmentOwnsDefinition("
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_definition_route_owner.pgy" \
-    "func DirectMirScalarCfgProgramRouteDefinition(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_route_owner.pgy" \
+    "func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(" \
     "DirectMirScalarCfgOpArrayIntValueResultSet()"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_definition_route_owner.pgy" \
-    "func DirectMirScalarCfgProgramRouteDefinition(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_route_owner.pgy" \
+    "func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(" \
     "DirectMirScalarCfgOpArrayStringSet()"
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_definition_route_owner.pgy" \
-    "func DirectMirScalarCfgProgramRouteDefinition(" \
-    "indexed_assignment.index_root"
+    "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_route_owner.pgy" \
+    "func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(" \
+    "formal.index_root"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_instruction_expression_owner.pgy" \
     "func DirectMirScalarCfgProgramAppendTypedExpressionField(" \
@@ -21574,6 +21586,10 @@ require_function_text \
     "CompilerAbiLayoutArrayIntTypeName()"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_indexed_assignment_owner.pgy" \
+    "func DirectMirScalarProgramLogicalRecordArrayIndexedTargetElementType(" \
+    "CompilerAbiLayoutArrayBoolTypeName()"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_array_indexed_assignment_owner.pgy" \
     "func DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentFactsFromOwners(" \
     'DirectMirScalarCfgInstructionGraphAt('
 require_function_text \
@@ -21601,6 +21617,10 @@ require_function_text \
     "func DirectMirScalarProgramLogicalRecordAssignmentTargetReady(" \
     "ordinal != parameter"
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy" \
+    "func DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentElementType(" \
+    "DirectMirScalarProgramExprArrayBoolIndex()"
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_assignment_owner.pgy" \
     "func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(" \
     'symbol = "pgy_as_set"'
@@ -21608,6 +21628,14 @@ require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_assignment_owner.pgy" \
     "func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(" \
     'let symbol: String = "pgy_ai_set";'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_assignment_owner.pgy" \
+    "func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(" \
+    'symbol = "pgy_ab_set"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_mutation_owner.pgy" \
+    "func DirectMirScalarProgramCLocalArraySetMaterialization(" \
+    "nested_type == CompilerAbiLayoutBoolTypeName()"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_c_logical_record_assignment_owner.pgy" \
     "func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(" \
@@ -21624,6 +21652,14 @@ require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_assignment_owner.pgy" \
     "func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(" \
     'let symbol: String = "@pgy_ai_set";'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_assignment_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(" \
+    'symbol = "@pgy_ab_set"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_mutation_owner.pgy" \
+    "func DirectMirScalarProgramLlvmLocalArraySetMaterialization(" \
+    "nested_type == CompilerAbiLayoutBoolTypeName()"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_record_assignment_owner.pgy" \
     "func DirectMirScalarProgramLlvmLogicalRecordArrayIndexedAssignment(" \
@@ -21652,6 +21688,52 @@ require_text "Makefile" \
     "self-host-direct-mir-scalar-value-result-logical-record-array-int-indexed-assignment-test-smoke: self-host-compiler"
 require_text "Makefile" \
     "self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-value-result-logical-record-array-int-indexed-assignment-test-smoke"
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_route_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_route_owner.pgy" 260
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_value_use_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_value_use_owner.pgy" 25
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_value_use_owner.pgy" \
+    "func DirectMirScalarProgramIndexedAssignmentValueUseOffset(" \
+    "graph.ready_node_count == 1"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_route_owner.pgy" \
+    "func DirectMirScalarProgramLocalIndexedAssignmentFactFromOwners(" \
+    'capture.arg1 != "local"'
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_indexed_assignment_route_owner.pgy" \
+    "func DirectMirScalarProgramLocalIndexedAssignmentFactFromOwners(" \
+    "capture.kind"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_definition_route_owner.pgy" \
+    "func DirectMirScalarCfgProgramRouteDefinition(" \
+    "DirectMirScalarProgramIndexedAssignmentRouteFromOwners("
+require_file \
+    "tests/self_hosted/fixtures/direct_mir_local_array_int_indexed_direct_call.pgy"
+require_max_lines \
+    "tests/self_hosted/fixtures/direct_mir_local_array_int_indexed_direct_call.pgy" 30
+require_text \
+    "tests/self_hosted/fixtures/direct_mir_local_array_int_indexed_direct_call.pgy" \
+    "unknown_effects[callable] = true;"
+require_file \
+    "tests/self_hosted/parity/direct_mir_scalar_local_array_int_indexed_direct_call_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/direct_mir_scalar_local_array_int_indexed_direct_call_owner.sh" 90
+require_file \
+    "tests/self_hosted/parity/direct_mir_scalar_local_array_int_indexed_direct_call_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/direct_mir_scalar_local_array_int_indexed_direct_call_mutations.py" 55
+require_text \
+    "tests/self_hosted/parity/direct_mir_scalar_local_array_int_indexed_direct_call_mutations.py" \
+    'elif mode == "bool-missing-predecessor":'
+require_text "Makefile" \
+    "self-host-direct-mir-scalar-local-array-int-indexed-direct-call-test-smoke: self-host-compiler"
+require_text "Makefile" \
+    "self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-local-array-int-indexed-direct-call-test-smoke"
 require_text \
     "tests/self_hosted/fixtures/direct_mir_collection_phi_value.pgy" \
     "func UpdateNames(inout names: Array<String>, limit: Int) -> Void"
@@ -21710,7 +21792,13 @@ require_text \
     'elif kind == "record-return-field-type":'
 require_text \
     "tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_parameter_mutations.py" \
-    'elif kind == "record-array-bool-return-type":'
+    'elif kind == "record-array-missing-return-type":'
+require_text \
+    "tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_parameter_mutations.py" \
+    'elif kind == "single-record-array-missing-return-type":'
+require_text \
+    "tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_parameter_mutations.py" \
+    'elif kind == "record-array-text-missing-return-type":'
 require_text "Makefile" \
     "self-host-direct-mir-scalar-logical-record-array-value-parameter-test-smoke"
 require_file \
@@ -21830,6 +21918,10 @@ require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
     "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
     "DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy" \
+    "func DirectMirScalarCfgPhiValueTypeReady(" \
+    "DirectMirScalarProgramPayloadFreeEnumTypeReady("
 reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
     "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
@@ -21847,6 +21939,9 @@ require_file \
     "tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_mutations.py"
 require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_mutations.py" 130
+require_text \
+    "tests/self_hosted/parity/direct_mir_scalar_payload_free_enum_parameter_mutations.py" \
+    'elif kind == "enum-phi-forged-incoming":'
 require_file \
     "tests/self_hosted/fixtures/direct_mir_payload_enum_match_binding.pgy"
 require_file \
@@ -25668,6 +25763,9 @@ require_max_lines \
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy" \
     "logical_record: DirectMirScalarProgramLogicalRecordFact"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_phi_operation_admission_owner.pgy" \
+    "payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact"
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_op_code_owner.pgy" \
     "func DirectMirScalarCfgOpPhiValue() -> Int { return 29; }"

@@ -22,6 +22,7 @@ func DirectMirScalarCfgPhiOperationFromOwners(
     ref locals: DirectMirScalarCfgLocalRefPlan,
     ref types: DirectMirScalarCfgValueTypePlan,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
+    ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
     inout phi_predecessors: Array<Int>,
     inout phi_incoming_values: Array<Int>
 ) -> DirectMirScalarCfgPhiOperationAdmission {
@@ -42,8 +43,7 @@ func DirectMirScalarCfgPhiOperationFromOwners(
         return invalid;
     }
     let kind: Int = DirectMirScalarCfgPhiOperationKind(
-        logical_record,
-        types.value_types[result_value]
+        logical_record, payload_free_enum, types.value_types[result_value]
     );
     if kind == 0 { return invalid; }
     let phi_start: Int = ArrayLength(phi_predecessors);

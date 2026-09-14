@@ -1,0 +1,25 @@
+// A local Array<Int> set shares its exact predecessor and index with the RHS.
+struct EffectInstances {
+    used_effects: Array<Int>;
+}
+
+func JoinEffectMask(left: Int, right: Int) -> Int {
+    return left + right;
+}
+
+func ApplyEffectMask() -> Int {
+    let known_effects: Array<Int> = [1, 2];
+    let used_effects: Array<Int> = [4, 8];
+    let unknown_effects: Array<Bool> = [false, false];
+    let instances: EffectInstances = EffectInstances(used_effects);
+    let callable: Int = 1;
+    let context: Int = 0;
+    known_effects[callable] = JoinEffectMask(
+        known_effects[callable], instances.used_effects[context]);
+    unknown_effects[callable] = true;
+    return known_effects[callable];
+}
+
+func Main() -> Void {
+    Log(ToString(ApplyEffectMask()));
+}

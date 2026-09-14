@@ -82,6 +82,10 @@ func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(
         value_type = "const char *";
         value_prefix = ""; value_suffix = ""; symbol = "pgy_as_set";
     }
+    if element_type == CompilerAbiLayoutBoolTypeName() {
+        value_type = "bool "; value_prefix = "(bool)(";
+        value_suffix = ")"; symbol = "pgy_ab_set";
+    }
     output = Concat(output, Concat(");\n    ", value_type));
     output = Concat(output, Concat(stem, "_value = "));
     output = Concat(output, value_prefix);

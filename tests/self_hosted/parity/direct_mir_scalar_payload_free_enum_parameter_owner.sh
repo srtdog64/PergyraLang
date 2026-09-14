@@ -17,6 +17,7 @@ SOURCE_REL="tests/self_hosted/fixtures/direct_mir_payload_free_enum_value_parame
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_fact_owner.pgy"
+PHI_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_string_expression_owner.pgy"
 REFERENCED_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_referenced_enum_fact_owner.pgy"
 EXPRESSION_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_owner.pgy"
 EXPRESSION_READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_payload_free_enum_expression_readiness_owner.pgy"
@@ -31,7 +32,9 @@ fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'enum_index.param_counts[variant_row]' "$REFERENCED_OWNER" ||
+grep -Fq 'declarations.enum_variants.' "$REFERENCED_OWNER" ||
+    fail "referenced enum owner bypasses the declaration inventory"
+grep -Fq 'param_counts[variant_row]' "$REFERENCED_OWNER" ||
     fail "referenced enum owner does not consume declaration payload arity"
 grep -Fq 'referenced.variant_param_counts[source_variant]' "$OWNER" ||
     fail "payload-free projection does not consume referenced enum arity"
@@ -60,8 +63,8 @@ grep -Fq 'DirectMirScalarProgramExprNotEqualPayloadFreeEnum() -> Int { return 11
 grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN" ||
     fail "GraphPlan schema did not advance for enum expressions"
 llvm_direct_body="$(awk '/^func DirectMirScalarProgramLlvmDirectCallExpressionAt\(/,/^}/' "$LLVM_DIRECT")"
-[[ "$llvm_direct_body" == *'DirectMirScalarProgramPayloadFreeEnumTypeReady('* ]] ||
-    fail "LLVM direct-call ABI does not consume payload-free enum identity"
+[[ "$llvm_direct_body" == *'DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum('* ]] ||
+    fail "LLVM direct-call ABI bypasses the declaration-keyed type owner"
 [[ "$llvm_direct_body" != *'DirectMirScalarProgramExprPayloadFreeEnumVariant('* ]] ||
     fail "LLVM direct-call ABI reintroduced node-shape enum inference"
 grep -Fq 'ToneOrdinal(EchoTone(Tone.Warm))' "$ROOT_DIR/$SOURCE_REL" ||
@@ -72,6 +75,10 @@ grep -Fq 'return Warm;' "$ROOT_DIR/$SOURCE_REL" ||
     fail "fixture omits a typed unqualified enum return"
 grep -Fq 'return left != right;' "$ROOT_DIR/$SOURCE_REL" ||
     fail "fixture omits enum inequality"
+grep -Fq 'func SelectTone(cool: Bool) -> Tone' "$ROOT_DIR/$SOURCE_REL" ||
+    fail "fixture omits the payload-free enum phi producer"
+grep -Fq 'DirectMirScalarProgramPayloadFreeEnumTypeReady(' "$PHI_OWNER" ||
+    fail "common PhiValue owner omits declaration-keyed payload-free enums"
 
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
@@ -89,7 +96,9 @@ grep -Fq '"type":"Tone","carriage":"value"' "$MIR" ||
     fail "producer omitted the Tone value parameter"
 grep -Fq '"type":"Direction","carriage":"value"' "$MIR" ||
     fail "producer omitted the Direction value parameter"
-printf '1\n0\n1\n0\nwarm\ncool\n1\n1\n0\npayload-free-enum-parameter-ready\n' \
+grep -Fq '"kind":"phi","name":"selected"' "$MIR" ||
+    fail "producer omitted the payload-free enum phi"
+printf '1\n0\n1\n0\nwarm\ncool\n1\n0\n1\n1\n0\npayload-free-enum-parameter-ready\n' \
     >"$WORK_DIR/expected.run"
 
 for backend in c llvm; do
@@ -111,6 +120,8 @@ for backend in c llvm; do
             fail "C artifact omitted the Int-return enum signature"
         grep -Eq 'static bool pgy_scalar_routine_[0-9]+\(int32_t pgy_param_0\)' "$artifact" ||
             fail "C artifact omitted the Bool-return enum signature"
+        grep -Eq 'static int32_t pgy_scalar_routine_[0-9]+\(bool pgy_param_0\)' "$artifact" ||
+            fail "C artifact omitted the payload-free enum phi signature"
         command=("$CC" -x c -std=c11 "$artifact")
         if pgy_selfhost_emitted_c_uses_runtime_headers "$artifact"; then
             command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
@@ -125,6 +136,8 @@ for backend in c llvm; do
             fail "LLVM artifact omitted the Int-return enum signature"
         grep -Eq 'define internal i1 @pgy\.scalar\.routine\.[0-9]+\(i64 %pgy\.param\.0\)' "$artifact" ||
             fail "LLVM artifact omitted the Bool-return enum signature"
+        grep -Eq 'define internal i64 @pgy\.scalar\.routine\.[0-9]+\(i1 %pgy\.param\.0\)' "$artifact" ||
+            fail "LLVM artifact omitted the payload-free enum phi signature"
         "$CLANG" -x ir "$artifact" -o "$bin" \
             >"$WORK_DIR/llvm.compile.out" 2>"$WORK_DIR/llvm.compile.err" ||
             fail "LLVM artifact did not compile"
@@ -139,7 +152,8 @@ for mutation in enum-parameter-carriage enum-parameter-physical-abi \
     enum-return-collection enum-expression-wrong-owner \
     enum-expression-wrong-variant enum-expression-missing-binding \
     enum-expression-wrong-type enum-match-duplicate-variant \
-    enum-unqualified-variant-missing enum-inequality-wrong-type; do
+    enum-unqualified-variant-missing enum-inequality-wrong-type \
+    enum-phi-forged-incoming; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

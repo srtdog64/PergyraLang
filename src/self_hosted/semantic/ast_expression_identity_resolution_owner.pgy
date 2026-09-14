@@ -10,16 +10,11 @@ func SemanticExpressionDirectTargetSyntaxId(
     signatures: SemanticAstFunctionSignatureFacts,
     target_name: String
 ) -> Int {
-    let found: Int = 0;
-    let matches: Int = 0;
+    let found: Int = 0; let matches: Int = 0;
     let row: Int = 0;
     while row < SemanticAstFunctionSignatureCount(signatures) {
-        let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
-            signatures, row
-        );
-        let name: Option<String> = SemanticAstFunctionNameAt(
-            signatures, row
-        );
+        let owner: Option<String> = SemanticAstFunctionOwnerNameAt(signatures, row);
+        let name: Option<String> = SemanticAstFunctionNameAt(signatures, row);
         let node: Option<Int> = SemanticAstFunctionNodeAt(signatures, row);
         if !IsSome(owner) || !IsSome(name) || !IsSome(node) {
             return 0 - 1;
@@ -42,19 +37,16 @@ func SemanticExpressionFormalParameterOrdinal(
     function_node_id: Int, binding_name: String
 ) -> Int {
     let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
-        signatures, function_node_id
-    );
+        signatures, function_node_id);
     if !IsSome(signature) { return 0 - 1; }
     let count: Option<Int> = SemanticAstFunctionParamCountAt(
-        signatures, UnwrapOption(signature)
-    );
+        signatures, UnwrapOption(signature));
     if !IsSome(count) { return 0 - 1; }
     let found: Int = 0 - 1;
     let ordinal: Int = 0;
     while ordinal < UnwrapOption(count) {
         let name: Option<String> = SemanticAstFunctionParamNameAt(
-            signatures, UnwrapOption(signature), ordinal
-        );
+            signatures, UnwrapOption(signature), ordinal);
         if !IsSome(name) { return 0 - 1; }
         if UnwrapOption(name) == binding_name {
             if found >= 0 { return 0 - 1; }
@@ -224,10 +216,14 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                             }
                         }
                     }
+                    let is_member_name: Bool = node + 1 < count &&
+                        graph.arena.topology.node_kinds[node + 1] ==
+                            AstExpressionNodeMemberAccess() &&
+                        graph.arena.topology.right_children[node + 1] == node;
                     if valid &&
                         (IsSome(function_node) || IsSome(intent_node)) &&
                         graph.arena.topology.node_kinds[node] ==
-                            AstExpressionNodeLeaf() {
+                            AstExpressionNodeLeaf() && !is_member_name {
                         let binding_name: String = graph.arena.node_texts[node];
                         let mode: String = EnvMode(names, modes, binding_name);
                         if IsSome(function_node) &&

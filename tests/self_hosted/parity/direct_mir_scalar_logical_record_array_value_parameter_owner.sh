@@ -22,26 +22,20 @@ PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.
 DIRECT_CALL_READINESS="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_direct_call_readiness_owner.pgy"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_logical_record_array_value_parameter_mutations.py"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
+need_f() { grep -Fq "$1" "$2" || fail "$3"; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
-grep -Fq 'return record_array_count == 1;' "$POLICY" ||
-    fail "value-parameter policy does not pin one record Array"
-grep -Fq 'DirectMirScalarProgramLogicalRecordTypeReady(' "$POLICY" ||
-    fail "value-parameter policy does not join the record return owner"
-grep -Fq 'DirectMirScalarProgramExprLogicalRecordArrayIndex()' "$INDEX" ||
-    fail "indexed record-array expression has no stable identity"
-grep -Fq 'DirectMirScalarProgramExprLogicalRecordArrayIndex()' \
-    "$DIRECT_CALL_READINESS" ||
-    fail "direct-call readiness omits logical-record Array index values"
-grep -Fq 'IndexedRowIndent(rows[0])' "$ROOT_DIR/$SOURCE_REL" ||
-    fail "fixture omits direct logical-record Array index value call"
-grep -Fq 'DirectMirScalarProgramLogicalRecordArrayTargetFromType(' "$C_VALUE" ||
-    fail "C indexed read bypasses the record-array target owner"
-grep -Fq 'DirectMirScalarProgramLogicalRecordArrayTargetFromType(' "$LLVM_VALUE" ||
-    fail "LLVM indexed read bypasses the record-array target owner"
-grep -Fq 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN" ||
-    fail "GraphPlan schema did not advance for the new expression identity"
+need_f 'return record_array_count == 1;' "$POLICY" "value-parameter policy does not pin one record Array"
+need_f 'signature.param_count < 1' "$POLICY" "value-parameter policy does not admit the one-parameter envelope"
+need_f 'DirectMirScalarCfgScalarTypeSupported(' "$POLICY" "value-parameter policy does not join the scalar return owner"
+need_f 'DirectMirScalarProgramLogicalRecordTypeReady(' "$POLICY" "value-parameter policy does not join the record return owner"
+need_f 'DirectMirScalarProgramExprLogicalRecordArrayIndex()' "$INDEX" "indexed record-array expression has no stable identity"
+need_f 'DirectMirScalarProgramExprLogicalRecordArrayIndex()' "$DIRECT_CALL_READINESS" "direct-call readiness omits logical-record Array index values"
+need_f 'IndexedRowIndent(rows[0])' "$ROOT_DIR/$SOURCE_REL" "fixture omits direct logical-record Array index value call"
+need_f 'DirectMirScalarProgramLogicalRecordArrayTargetFromType(' "$C_VALUE" "C indexed read bypasses the record-array target owner"
+need_f 'DirectMirScalarProgramLogicalRecordArrayTargetFromType(' "$LLVM_VALUE" "LLVM indexed read bypasses the record-array target owner"
+need_f 'pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81' "$PLAN" "GraphPlan schema did not advance for the new expression identity"
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
@@ -50,28 +44,21 @@ rm -f "$WORK_DIR"/*
         cat "$WORK_DIR/producer.out" "$WORK_DIR/producer.err" >&2
         fail "MIR production failed"
     }
-grep -Fq '"name":"IndexedRow"' "$MIR" ||
-    fail "producer omitted the record declaration"
-grep -Fq '"type":"Array<IndexedRow>","carriage":"value"' "$MIR" ||
-    fail "producer omitted the by-value record-array identity"
-grep -Fq '"abi_type_name":"Array<IndexedRow>","abi_layout_id":0,"abi_layout_required":false' "$MIR" ||
-    fail "producer attached a public physical ABI to the compiler-owned array"
-grep -Fq '"kind":"index","text":"rows[0]"' "$MIR" ||
-    fail "producer omitted the indexed record-array expression"
-grep -Fq '"expr0":"IndexedRowIndent(rows[0])"' "$MIR" ||
-    fail "producer omitted the indexed record-array direct-call argument"
-grep -Fq '"name":"ProjectArena"' "$MIR" ||
-    fail "producer omitted the record-returning projection"
-grep -Fq '"return":"IndexedArena"' "$MIR" ||
-    fail "producer omitted the declaration-keyed record return"
-grep -Fq '"expr0":"IndexedArena(indents, labels)"' "$MIR" ||
-    fail "producer omitted the record constructor"
-grep -Fq '"name":"ProjectionReady"' "$MIR" ||
-    fail "producer omitted the Bool-returning record-Array callable"
-grep -Fq '"return":"Bool"' "$MIR" ||
-    fail "producer omitted the exact Bool return identity"
-grep -Fq '"expr0":"(ArrayLength(rows) != count)"' "$MIR" ||
-    fail "producer omitted the nominal record-Array length expression"
+need_f '"name":"IndexedRow"' "$MIR" "producer omitted the record declaration"
+need_f '"type":"Array<IndexedRow>","carriage":"value"' "$MIR" "producer omitted the by-value record-array identity"
+need_f '"abi_type_name":"Array<IndexedRow>","abi_layout_id":0,"abi_layout_required":false' "$MIR" "producer attached a public physical ABI to the compiler-owned array"
+need_f '"kind":"index","text":"rows[0]"' "$MIR" "producer omitted the indexed record-array expression"
+need_f '"expr0":"IndexedRowIndent(rows[0])"' "$MIR" "producer omitted the indexed record-array direct-call argument"
+need_f '"name":"ProjectArena"' "$MIR" "producer omitted the record-returning projection"
+need_f '"return":"IndexedArena"' "$MIR" "producer omitted the declaration-keyed record return"
+need_f '"expr0":"IndexedArena(indents, labels)"' "$MIR" "producer omitted the record constructor"
+need_f '"name":"ProjectionReady"' "$MIR" "producer omitted the Bool-returning record-Array callable"
+need_f '"return":"Bool"' "$MIR" "producer omitted the exact Bool return identity"
+need_f '"expr0":"(ArrayLength(rows) != count)"' "$MIR" "producer omitted the nominal record-Array length expression"
+need_f '"name":"SingleRecordArrayReady"' "$MIR" "producer omitted the one-parameter record-Array callable"
+need_f '"expr0":"(ArrayLength(rows) != 0)"' "$MIR" "producer omitted the one-parameter record-Array body"
+need_f '"name":"RecordArrayText"' "$MIR" "producer omitted the scalar-plus-record-Array String callable"
+need_f '"expr0":"Concat(prefix, rows[0].label)"' "$MIR" "producer omitted the String-returning record-Array body"
 printf 'logical-record-array-value-parameter-ready\n' >"$WORK_DIR/expected.run"
 
 for backend in c llvm; do
@@ -97,9 +84,13 @@ for backend in c llvm; do
             fail "C artifact omitted the record-returning record-Array signature"
         grep -Eq 'static bool pgy_scalar_routine_[0-9]+\(pgy_IndexedRow_array pgy_param_0, int32_t pgy_param_1\)' "$artifact" ||
             fail "C artifact omitted the Bool-returning record-Array signature"
+        grep -Eq 'static bool pgy_scalar_routine_[0-9]+\(pgy_IndexedRow_array pgy_param_0\)' "$artifact" ||
+            fail "C artifact omitted the one-parameter record-Array signature"
+        grep -Eq 'static const char\* pgy_scalar_routine_[0-9]+\(const char\* pgy_param_0, pgy_IndexedRow_array pgy_param_1\)' "$artifact" ||
+            fail "C artifact omitted the String-returning record-Array signature"
         grep -Fq '((long long)(pgy_param_0).len)' "$artifact" ||
             fail "C artifact omitted the record-Array length projection"
-        grep -Eq 'return \(pgy_scalar_logical_record_value_[0-9]+\)\{ \.field_0 = pgy_local_[0-9]+, \.field_1 = pgy_local_[0-9]+ \};' "$artifact" ||
+        grep -Eq 'pgy_scalar_logical_record_value_[0-9]+ pgy_return_[0-9]+ = \(\{ pgy_scalar_logical_record_value_[0-9]+ pgy_record_value_[0-9]+ = \{0\}; pgy_record_value_[0-9]+\.field_0 = \(pgy_local_[0-9]+\); pgy_record_value_[0-9]+\.field_1 = \(pgy_local_[0-9]+\); pgy_record_value_[0-9]+; \}\);' "$artifact" ||
             fail "C artifact omitted the declaration-keyed record constructor return"
         grep -Eq 'pgy_ai_push\(&pgy_local_[0-9]+, \(long long\)\(' "$artifact" ||
             fail "C artifact omitted the local ArrayInt push"
@@ -125,6 +116,10 @@ for backend in c llvm; do
             fail "LLVM artifact omitted the record-returning record-Array signature"
         grep -Eq 'define internal i1 @pgy\.scalar\.routine\.[0-9]+\(%pgy\.scalar\.logical\.record\.array\.[0-9]+ %pgy\.param\.0, i64 %pgy\.param\.1\)' "$artifact" ||
             fail "LLVM artifact omitted the Bool-returning record-Array signature"
+        grep -Eq 'define internal i1 @pgy\.scalar\.routine\.[0-9]+\(%pgy\.scalar\.logical\.record\.array\.[0-9]+ %pgy\.param\.0\)' "$artifact" ||
+            fail "LLVM artifact omitted the one-parameter record-Array signature"
+        grep -Eq 'define internal ptr @pgy\.scalar\.routine\.[0-9]+\(ptr %pgy\.param\.0, %pgy\.scalar\.logical\.record\.array\.[0-9]+ %pgy\.param\.1\)' "$artifact" ||
+            fail "LLVM artifact omitted the String-returning record-Array signature"
         grep -Eq 'extractvalue %pgy\.scalar\.logical\.record\.array\.[0-9]+ %pgy\.param\.0, 1' "$artifact" ||
             fail "LLVM artifact omitted the record-Array length projection"
         grep -Eq 'ret %pgy\.scalar\.logical\.record\.value\.[0-9]+ %pgy\.expr\.[0-9]+\.[0-9]+' "$artifact" ||
@@ -146,7 +141,10 @@ for mutation in record-array-value-carriage record-array-missing-element \
     record-array-length-missing-element \
     record-array-physical-abi record-array-missing-member \
     record-return-missing-declaration record-return-field-type \
-    record-array-bool-return-type; do
+    record-array-missing-return-type single-record-array-value-carriage \
+    single-record-array-missing-element \
+    single-record-array-missing-return-type \
+    record-array-text-missing-return-type; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do

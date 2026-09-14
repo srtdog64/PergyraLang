@@ -8,27 +8,23 @@ def main():
     source, kind, output = sys.argv[1:]
     with open(source, encoding="utf-8") as stream:
         document = json.load(stream)
-    routine = next(
-        (row for row in document.get("routines", [])
-         if row.get("name") == "ProjectIndents"),
-        None,
-    )
-    arena_routine = next(
-        (row for row in document.get("routines", [])
-         if row.get("name") == "ProjectArena"),
-        None,
-    )
-    ready_routine = next(
-        (row for row in document.get("routines", [])
-         if row.get("name") == "ProjectionReady"),
-        None,
-    )
+    routines = {row.get("name"): row for row in document.get("routines", [])}
+    routine = routines.get("ProjectIndents")
+    arena_routine = routines.get("ProjectArena")
+    ready_routine = routines.get("ProjectionReady")
+    single_ready_routine = routines.get("SingleRecordArrayReady")
+    text_routine = routines.get("RecordArrayText")
     if routine is None or len(routine.get("params", [])) != 2:
         raise SystemExit("fixture has no exact ProjectIndents signature")
     if arena_routine is None or len(arena_routine.get("params", [])) != 2:
         raise SystemExit("fixture has no exact ProjectArena signature")
     if ready_routine is None or len(ready_routine.get("params", [])) != 2:
         raise SystemExit("fixture has no exact ProjectionReady signature")
+    if (single_ready_routine is None or
+            len(single_ready_routine.get("params", [])) != 1):
+        raise SystemExit("fixture has no exact SingleRecordArrayReady signature")
+    if text_routine is None or len(text_routine.get("params", [])) != 2:
+        raise SystemExit("fixture has no exact RecordArrayText signature")
     record_array = routine["params"][0]
     if kind == "record-array-value-carriage":
         record_array["carriage"] = "borrowed"
@@ -74,8 +70,18 @@ def main():
         if field is None:
             raise SystemExit("fixture has no IndexedArena.labels field")
         field["type"] = "Array<Int>"
-    elif kind == "record-array-bool-return-type":
-        ready_routine["return"] = "String"
+    elif kind == "record-array-missing-return-type":
+        ready_routine["return"] = "MissingReturn"
+    elif kind == "single-record-array-value-carriage":
+        single_ready_routine["params"][0]["carriage"] = "borrowed"
+    elif kind == "single-record-array-missing-element":
+        single_array = single_ready_routine["params"][0]
+        single_array["type"] = "Array<MissingIndexedRow>"
+        single_array["abi_type_name"] = "Array<MissingIndexedRow>"
+    elif kind == "single-record-array-missing-return-type":
+        single_ready_routine["return"] = "MissingReturn"
+    elif kind == "record-array-text-missing-return-type":
+        text_routine["return"] = "MissingReturn"
     else:
         raise SystemExit(f"unknown mutation: {kind}")
     with open(output, "w", encoding="utf-8", newline="\n") as stream:

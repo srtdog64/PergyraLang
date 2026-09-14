@@ -1,0 +1,21 @@
+// Owns the instruction-use start for an indexed assignment RHS.
+import "direct_mir_scalar_cfg_instruction_graph_owner.pgy";
+
+func DirectMirScalarProgramIndexedAssignmentValueUseOffset(
+    ref instruction: JsonObjectFactTable, target_use_count: Int
+) -> Int {
+    if target_use_count < 0 { return -1; }
+    let graph: MirExpressionGraphSequence =
+        DirectMirScalarCfgInstructionGraphAt(instruction, "expr0_graph");
+    if !graph.ok || ArrayLength(graph.roots) != 1 { return -1; }
+    let root: Int = graph.roots[0];
+    if root < 0 || root >= graph.ready_node_count { return -1; }
+    let kind: Int = graph.arena.topology.node_kinds[root];
+    if graph.ready_node_count == 1 && root == 0 &&
+        (kind == AstExpressionNodeIntegerLiteral() ||
+         kind == AstExpressionNodeStringLiteral() ||
+         kind == AstExpressionNodeBoolLiteral()) {
+        return target_use_count;
+    }
+    return 0;
+}

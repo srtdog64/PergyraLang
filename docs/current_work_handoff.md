@@ -1,69 +1,64 @@
 # Current Work Handoff
 
-Updated: 2026-09-14 (Asia/Seoul), exhaustive parity-tail inventory closure;
+Updated: 2026-09-14 (Asia/Seoul), reached exhaustive-parity semantic tail;
 navigation only. Compiler owners, registries and executable gates override this
 snapshot.
 
-## Active self-host context — exhaustive parity must finish on one SHA
+## Active self-host context — close the reached tail, then run exhaustive once
 
-Published HEAD/origin/main: `ff3c38b88202c839bbdbcf753421b014fc6077a7`.
-The completion boundary remains one pushed revision whose ordinary CI,
-Platform full and manually dispatched Self-host parity workflows are all green.
-Local success, a cancelled predecessor or green jobs from another SHA do not
-satisfy that boundary.
+Pre-publication HEAD/origin/main: `9d0776b076dd477c05c4e64a4596a91134b6c7e9`.
+This card accompanies the next commit; Git owns its publication identity.
+The parent Push CI `34810531883` and Platform full `34810549151` are green.
+Self-host parity `34810551045` ran for 2h07m and failed in the LLVM projection
+of `LexerTokenFactsReady` at the record-array value-parameter boundary.
 
 Objective card:
-- Objective: make the exhaustive parity tail execute its declared source-level
-  C/LLVM subjects, preserve exact callable identity, and keep owner inventories
-  synchronized with the source tree they validate.
-- Priority: semantic identity, correct test subject, observable failure,
-  inventory-owner truth, focused executable parity, then remote exhaustive CI.
-- Fact owner: the expression graph owns callable declaration SyntaxNodeId and
-  receiver source offset; each parity harness owns its backend subject; the
-  production-C and stdlib-dispatch tools own their inventory counts.
-- Last legitimate consumers: initializer/generic/policy probes followed by the
-  production-size and stdlib-dispatch expected-artifact comparisons.
-- Forbidden fallback: source-name callable binding, direct policy replay beside
-  the graph owner, implicit LLVM selection for a native oracle, swallowed probe
-  output, stale inventory goldens, skip, timeout increase or cap increase.
-- Verification/falsifier: run every gate from initializer projection through
-  the final stdlib-dispatch inventory locally, then require all three remote
-  workflows green on the exact next publication SHA.
+- Objective: close each semantic boundary reached by that exhaustive run with
+  owner-carried facts and focused C/LLVM falsifiers, then execute the exhaustive
+  proof once on the final major-patch SHA.
+- Priority: exact semantic identity, typed predecessor carriage, missing-fact
+  refusal, focused executable parity, ordinary CI, then one exhaustive run.
+- Fact owner: callable envelopes own logical-record array parameters; the CFG
+  owners carry payload-free enum phi facts; the indexed-assignment route owns
+  target/value predecessor use; expression graph topology owns whether a leaf
+  is a lexical binding or a member name.
+- Last legitimate consumers: the C/LLVM logical-record, enum and array mutation
+  projectors after graph-use completeness admission.
+- Forbidden fallback: spelling allowlists, backend-specific acceptance,
+  reconstructed linear predecessor state, member-name lexical binding, skipped
+  rows, raised timeout/cap, or repeated whole-program projection per edit.
+- Verification/falsifier: the five focused parity gates below must pass on the
+  rebuilt Pergyra driver; remote Push CI and Platform full must be green before
+  Self-host parity is manually dispatched exactly once on the final SHA.
 
-Remote evidence:
-- On `5e9f9b48`, Push CI `34800945429` and Platform full `34800960154` were
-  green. Self-host parity `34800961535` reached the 1,831-file ledger and
-  85-fixture C/LLVM codegen parity, then exposed the initializer binding seam.
-- `ff3c38b88` repairs that seam plus the five reached LLVM probe subjects.
-  Push CI `34809051971`, Platform full `34809062779` and Self-host parity
-  `34809064897` were dispatched; they are predecessor evidence, not the final
-  completion SHA.
-
-Current repair and focused evidence:
-- Initializer projection, generic return, wrapper policy, collection policy,
-  aggregate-field policy and gate dashboard pass their focused C/LLVM legs.
-- The post-dashboard sequence also passes MIR JSON, module manifest, production
-  header size, runtime boundary and stable-subset section parity.
-- Production C inventory had remained at 968 since 2026-07-18 although the
-  exact current production filter selects 1,069 tracked `.c` owners. Its clean
-  expected artifact is refreshed without changing the 699-line cap; clean and
-  synthetic over-cap C/LLVM parity pass.
-- `SubstringWithLen` was added to both C and LLVM dispatch tables after the
-  stdlib inventory goldens were last refreshed. Clean inventory is now 59/63;
-  deleting the owner-selected twelve LLVM rows yields the expected 59/51 drift.
-  Clean and negative C/LLVM parity pass.
-- No timeout, tolerance or size cap was raised, and no direct fallback was
-  restored.
+Reached repair and local evidence:
+- Logical-record array parameters now carry a typed by-value callable envelope.
+  Payload-free enum values carry phi identity through the CFG. Mixed
+  `Array<Int>`/`Array<Bool>` record writes and local indexed writes use the new
+  owner-directed predecessor route in both backends.
+- `BuildStateFromFormal(last_row)` falsifies the same-spelled field/formal case.
+  The producer leaves the member leaf unbound and binds only the RHS formal;
+  forged member binding is refused by both C and LLVM projectors.
+- The record-array, payload-free-enum, mixed record-array assignment, local
+  indexed assignment and branch-member-rebind C/LLVM parity/negative gates pass.
+  Expression identity carriage, component contract, owner-size and CI-profile
+  gates pass. A Pergyra-built DRV-2 was rebuilt and installed; the existing CFG
+  unreachable warning remains one warning and zero errors.
+- The 127,520,663-byte production MIR was projected twice while locating the
+  reached seam. The second run advanced to row 43,522 and exposed the exact
+  member/formal collision. It is not repeated after every edit.
+- Exhaustive Self-host parity no longer has a weekly schedule. It remains a
+  manual major-patch and `v*` release boundary with the existing 180-minute cap;
+  the CI-profile gate rejects restoration of branch or calendar triggers.
 
 Dirty-state boundary:
 - Existing uncommitted Slice-related edits in five self-host semantic owners
   plus `tests/self_host_pergyra_likeness_smoke.sh` remain preserved and outside
   this repair packet. They must not be reset, folded into the publication, or
   treated as verified substitution progress.
-- Next action: verify and commit only the three refreshed expected artifacts
-  plus this handoff, push, then dispatch ordinary CI, Platform full and
-  Self-host parity on that exact SHA and repair the first real red until all
-  three are green.
+- Next action: commit and push only this reached-tail packet plus this handoff,
+  observe ordinary CI, repair any focused red, and manually dispatch the one
+  exhaustive Self-host parity run only after the publication SHA is stable.
 
 ## Historical archive boundary
 

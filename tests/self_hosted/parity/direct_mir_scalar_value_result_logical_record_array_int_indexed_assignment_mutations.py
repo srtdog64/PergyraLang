@@ -21,7 +21,7 @@ def main():
     with open(sys.argv[1], encoding="utf-8") as source:
         document = json.load(source)
     rows, routine = assignments(document)
-    first, second = rows
+    first, second, boolean = rows
     nodes = second["expr1_graph"]["nodes"]
     mode = sys.argv[2]
     if mode == "formal-binding":
@@ -54,6 +54,10 @@ def main():
             "right": None,
         }]
         second["expr0_graph"]["root"] = 0
+    elif mode == "bool-rhs-type":
+        boolean["expr0"] = "1"
+        boolean["expr0_graph"]["nodes"][0]["kind"] = "integer_literal"
+        boolean["expr0_graph"]["nodes"][0]["text"] = "1"
     elif mode == "result-owner":
         second["result"] = "other.5"
     else:

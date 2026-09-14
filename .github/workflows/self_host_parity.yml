@@ -2,8 +2,6 @@ name: Self-host parity
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 18 * * 0'
   push:
     tags:
       - 'v*'
@@ -21,7 +19,8 @@ jobs:
     # driver-rung0 parity. The job was making continuous named-gate progress,
     # not hanging. Allow the remaining driver/GraphPlan tail a measured bounded
     # window while staying below GitHub's 360-minute default. This exhaustive
-    # proof runs on the weekly/manual/release boundary, not on every main push.
+    # proof runs on an explicit major-patch/manual or release boundary, not on
+    # every main push or a calendar schedule.
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v6

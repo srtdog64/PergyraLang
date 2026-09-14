@@ -1,7 +1,8 @@
-// A value-result record keeps its predecessor while one nested Array<Int> slot changes.
+// A value-result record keeps one predecessor across mixed nested array assignments.
 
 struct CallTargetArena {
     call_target_kinds: Array<Int>;
+    unknown_effects: Array<Bool>;
 }
 
 struct CallTargetGraph {
@@ -19,19 +20,23 @@ struct CallTarget {
     parameter_offset: Int;
 }
 
-func ResolveTarget(inout analysis: CallTargetAnalysis) -> Void {
+func ResolveTarget(inout analysis: CallTargetAnalysis, node_id: Int) -> Void {
     let first_id: Int = 0;
     analysis.expression_graph.arena.call_target_kinds[first_id] = 7;
-    let node_id: Int = 1;
     let target: CallTarget = CallTarget(true, 8, "", 0);
-    analysis.expression_graph.arena.call_target_kinds[node_id] = target.kind;
+    let targets: Array<Int> = analysis.expression_graph.arena.call_target_kinds;
+    ArrayPush(targets, target.kind);
+    analysis.expression_graph.arena.call_target_kinds[node_id] = ArrayLength(targets) - 1;
+    analysis.expression_graph.arena.unknown_effects[node_id] = true;
 }
 
 func Main() -> Void {
     let kinds: Array<Int> = [1, 2, 3];
-    let arena: CallTargetArena = CallTargetArena(kinds);
+    let unknown_effects: Array<Bool> = [false, false, false];
+    let arena: CallTargetArena = CallTargetArena(kinds, unknown_effects);
     let graph: CallTargetGraph = CallTargetGraph(arena);
     let analysis: CallTargetAnalysis = CallTargetAnalysis(graph);
-    ResolveTarget(analysis);
+    ResolveTarget(analysis, 1);
     Log(ToString(analysis.expression_graph.arena.call_target_kinds[1]));
+    Log(ToString(analysis.expression_graph.arena.unknown_effects[1]));
 }

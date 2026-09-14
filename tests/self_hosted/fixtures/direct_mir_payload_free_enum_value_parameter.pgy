@@ -24,6 +24,14 @@ func DefaultTone() -> Tone {
     return Warm;
 }
 
+func SelectTone(cool: Bool) -> Tone {
+    let selected: Tone = Tone.Warm;
+    if cool {
+        selected = Tone.Cool;
+    }
+    return selected;
+}
+
 func TonesDiffer(left: Tone, right: Tone) -> Bool {
     return left != right;
 }
@@ -62,6 +70,8 @@ func Main() -> Void {
     Log(ToneName(Tone.Warm));
     Log(ToneName(EchoTone(Tone.Cool)));
     Log(ToneOrdinal(DefaultTone()));
+    Log(ToneOrdinal(SelectTone(true)));
+    Log(ToneOrdinal(SelectTone(false)));
     if TonesDiffer(DefaultTone(), Tone.Cool) {
         Log(1);
     } else {
