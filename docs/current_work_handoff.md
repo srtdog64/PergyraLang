@@ -64,6 +64,12 @@ Reached repair and local evidence:
   the start changed its pinned header prefix. The prerequisite is moved to the
   end of the same target header, preserving both the established component
   contract and exactly-one major-patch inventory execution.
+- Header repair `6b68940d` reached Push CI `34860319497`. The component
+  contract and CI profile passed and no language-word inventory ran. The next
+  fail-closed edge was the stale callable-owner fingerprint in
+  `selfhost_source_scan_owner_evidence.json`, caused by the reached
+  member/formal identity repair. The source-only fingerprint is refreshed;
+  historical performance evidence remains explicitly unremeasured.
 - The inventory was regenerated through its owner and the one requested local
   major-patch run passed: 146 rows, 70 reserved lexer rows, 76 parser selectors,
   nine fixtures, and no dead reserved spelling. CI-profile, documentation-quality,
