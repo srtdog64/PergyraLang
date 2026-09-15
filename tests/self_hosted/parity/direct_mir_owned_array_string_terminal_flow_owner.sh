@@ -12,9 +12,16 @@ PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 CC="${PGY_SELFHOST_CC:-gcc}"
 CLANG="${PGY_SELFHOST_CLANG:-clang}"
 SOURCE=tests/self_hosted/fixtures/direct_mir_owned_array_string_terminal_flow.pgy
+GENERIC_EMIT_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/generic_function_emit_owner.pgy"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
+empty_specialization_exit="$(sed -n \
+    '/if after_function < 0 {/,/ArraySet(cur, 0, after_function);/p' \
+    "$GENERIC_EMIT_OWNER")"
+grep -Fq 'return CodegenJoinOwnedStringFragments(definitions, "\n");' \
+    <<<"$empty_specialization_exit" ||
+    fail "generic emission empty-specialization exit bypassed its consuming join"
 mkdir -p "$ROOT_DIR/.tmp/self_hosted"
 WORK_DIR="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/owned-array-terminal-flow.XXXXXX")"
 WORK_REL="${WORK_DIR#"$ROOT_DIR/"}"

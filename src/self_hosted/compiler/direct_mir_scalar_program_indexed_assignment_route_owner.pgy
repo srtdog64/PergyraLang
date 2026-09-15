@@ -207,7 +207,7 @@ func DirectMirScalarProgramIndexedAssignmentRouteFromOwners(
     let index_use_offset: Int = formal.use_prefix_count;
     let value_use_offset: Int = formal.use_prefix_count;
     if local_fact.valid {
-        target_local = local_fact.local_row; target_parameter = -1;
+        target_local = local_fact.local_row + local_offset; target_parameter = -1;
         element_type = local_fact.element_type; index_root = local_fact.index_root;
         index_literal = local_fact.index_literal;
         index_use_offset = 0;

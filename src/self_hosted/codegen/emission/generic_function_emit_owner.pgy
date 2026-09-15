@@ -90,7 +90,7 @@ func EmitFunctionSet(
             Log(Concat("[codegen-pressure-stage] definition:done:",
                 ToString(definition_ordinal)));
         }
-        return "";
+        return CodegenJoinOwnedStringFragments(definitions, "\n");
     }
     ArraySet(cur, 0, after_function);
     let joined: String = CodegenJoinOwnedStringFragments(definitions, "\n");

@@ -33,17 +33,25 @@ BUILTIN_MATERIALIZATION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_pr
 PROGRAM_C_EMISSION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy"
 PLAN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
 EXTERN_PROTOTYPE="$ROOT_DIR/src/self_hosted/codegen/emission/extern_prototype_block_owner.pgy"
+PARSER_DECLS="$ROOT_DIR/src/self_hosted/parser/decl_dispatch_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 for path in "$REPRESENTATION" "$CALL_ABI" "$EXPRESSION_READY" \
         "$BUILTIN_CALL" "$BUILTIN_IDENTITY" "$EXPRESSION_ADMISSION" "$LIFECYCLE" \
         "$EXTENSION" "$C_OWNER" "$LLVM_OWNER" "$BUILTIN_MATERIALIZATION" \
         "$PROGRAM_C_EMISSION" "$LLVM_PARAMETER_STORAGE" "$PLAN" "$MUTATIONS" \
-        "$EXTERN_PROTOTYPE"; do
+        "$EXTERN_PROTOTYPE" "$PARSER_DECLS"; do
     [[ -f "$path" ]] || fail "missing owner: ${path#"$ROOT_DIR/"}"
 done
 grep -Fq 'AllocatorDestroy(output_allocator);' "$EXTERN_PROTOTYPE" ||
     fail "extern prototype TextBuilder allocator has no terminal consumer"
+parser_exit_guard_line="$(grep -nF 'ArrayLength(script_source_locations) == 0 {' \
+    "$PARSER_DECLS" | cut -d: -f1)"
+parser_allocator_line="$(grep -nF 'let output_allocator: Allocator = AllocatorResult();' \
+    "$PARSER_DECLS" | cut -d: -f1)"
+[[ "$parser_exit_guard_line" =~ ^[0-9]+$ && "$parser_allocator_line" =~ ^[0-9]+$ &&
+    "$parser_exit_guard_line" -lt "$parser_allocator_line" ]] ||
+    fail "ParseDecls can exit after creating its runtime allocators"
 grep -Fq 'runtime_header_owns_print' "$BUILTIN_MATERIALIZATION" ||
     fail "C Print materialization ignores the runtime-header symbol owner"
 grep -Fq 'CompilerRuntimeValueTypesPresent(plan.local_types, plan.routines.parameter_types)' \

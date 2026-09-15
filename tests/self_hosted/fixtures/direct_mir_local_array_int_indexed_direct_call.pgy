@@ -7,6 +7,10 @@ func JoinEffectMask(left: Int, right: Int) -> Int {
     return left + right;
 }
 
+func IndexedAssignmentOffsetSeed() -> Int {
+    let seed: Int = 0; return seed;
+}
+
 func ApplyEffectMask() -> Int {
     let known_effects: Array<Int> = [1, 2];
     let used_effects: Array<Int> = [4, 8];

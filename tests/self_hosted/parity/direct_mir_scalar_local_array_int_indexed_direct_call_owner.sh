@@ -22,6 +22,8 @@ pgy_require_runnable_binary_here "$LABEL-native" "$NATIVE" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 command -v "$CLANG" >/dev/null 2>&1 || fail "missing LLVM compiler: $CLANG"
 [[ -f "$MUTATIONS" ]] || fail "missing mutation owner"
+grep -Fq 'target_local = local_fact.local_row + local_offset;' \
+    "$ROOT_DIR/$OWNER_REL" || fail "local indexed target lost its program offset"
 mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$NATIVE" --native-pipeline --emit-c "$OWNER_REL" -o "$WORK_REL/owner.native.c") \
@@ -33,6 +35,8 @@ python - "$MIR" <<'PY' || fail "producer local indexed-assignment fact drifted"
 import json, sys
 d=json.load(open(sys.argv[1], encoding="utf-8"))
 r=next(x for x in d["routines"] if x["name"]=="ApplyEffectMask")
+seed=next(x for x in d["routines"] if x["name"]=="IndexedAssignmentOffsetSeed")
+assert seed["source_locals"]==[{"name":"seed","type":"Int"}]
 rows=[x for b in r["blocks"] for x in b["instructions"] if x.get("source_type")=="AST_ASSIGNMENT"]
 assert len(rows)==2 and r["params"]==[]
 x,b=rows

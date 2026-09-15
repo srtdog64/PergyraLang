@@ -547,6 +547,10 @@ func ParseDecls(
         out_blocks, declaration_module_paths, script_blocks
     );
     ParserExpressionGraphsAppendRowsInto(expression_graphs, script_graphs[0]);
+    if ArrayLength(script_blocks) > 0 &&
+        ArrayLength(script_source_locations) == 0 {
+        Exit(1);
+    }
     let out: TextBuilder = TextBuilderNew(4096);
     let block_index: Int = 0;
     while block_index < ArrayLength(out_blocks) {
@@ -570,9 +574,6 @@ func ParseDecls(
     let program_text: String = AppendImplicitMain(output_text, script_text);
     if ArrayLength(script_blocks) > 0 {
         ArrayPush(declaration_module_paths, source_path);
-        if ArrayLength(script_source_locations) == 0 {
-            Exit(1);
-        }
         let first_script: ParserSourceLocationObservation =
             script_source_locations[0];
         ParserSourceLocationAppendSynthetic(

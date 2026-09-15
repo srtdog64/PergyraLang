@@ -1,10 +1,83 @@
 # Current Work Handoff
 
-Updated: 2026-09-14 (Asia/Seoul), reached-tail repair and exhaustive-gate cadence;
+Updated: 2026-09-15 (Asia/Seoul), one-shot exhaustive tail closure and cadence;
 navigation only. Compiler owners, registries and executable gates override this
 snapshot.
 
-## Active self-host context — close the reached tail, then run exhaustive once
+## Active self-host context — publish the one-shot exhaustive tail closure
+
+Pre-publication HEAD/origin/main: `6602c3e7d2d8d9e06ef4945eb2dd4fba0aabeefb`.
+The previous cadence commits `23dbd6a7` and `6b68940d` keep the exhaustive
+146-language-word inventory out of ordinary push CI and reserve it for an
+explicit major-patch/manual run or a `v*` release boundary.
+
+Objective card:
+- Objective: close the three exact LLVM tails exposed by the single exhaustive
+  Self-host parity run `34877515733`, publish the repair, and return to the
+  short ordinary push loop without rerunning that exhaustive matrix.
+- Priority: exact owned-value consumption, program-global local identity,
+  runtime-value lifecycle, focused executable falsifiers, then ordinary CI.
+- Fact owners: generic function emission owns its `Array<String>` consuming
+  return; the indexed-assignment route owns routine-local to program-local row
+  translation; `ParseDecls` owns its fatal source-location precondition before
+  allocator creation and the runtime-value lifecycle owner verifies the single
+  terminal consumer.
+- Last legitimate consumers: the sealed direct-MIR C/LLVM projectors after
+  GraphPlan readiness.
+- Forbidden fallback: a builtin drop impersonating a declared consuming-call
+  identity, an unoffset routine-local row, an `Exit` path after allocator
+  creation, a raised timeout, or another exhaustive run for this edit loop.
+- Verification/falsifier: the three focused C/LLVM parity/negative gates, then
+  one exact 3,480-routine `driver_rung0_main.pgy` MIR-to-LLVM projection and
+  LLVM link. The next external falsifier is ordinary Push CI on the publication
+  commit; the exhaustive matrix remains deferred to the next major boundary.
+
+Reached repair and observed evidence:
+- `EmitFunctionSet` now sends its empty specialization list through
+  `CodegenJoinOwnedStringFragments`, preserving the declared `own Array<String>`
+  consuming identity on every return path.
+- Local `Array<Int>` indexed assignment now adds the routine `local_offset`.
+  Its fixture includes a preceding routine with a stored local so offset zero
+  can no longer make the gate false-green.
+- `ParseDecls` validates missing script source locations before either
+  `AllocatorResult` call. The normal region retains exactly one destroy for
+  each allocator; no conditional duplicate terminal was introduced.
+- The final rebuilt Pergyra driver passes
+  `direct_mir_owned_array_string_terminal_flow_owner.sh`,
+  `direct_mir_scalar_local_array_int_indexed_direct_call_owner.sh`, and
+  `direct_mir_scalar_runtime_value_lifecycle_owner.sh`, including C/LLVM
+  execution and their negative mutations.
+- The exact 127,426,857-byte, 3,480-routine MIR rooted at
+  `driver_rung0_main.pgy` projected to a 29,217,065-byte LLVM artifact with
+  exit 0 and linked with the runtime into a 30,957,237-byte Windows executable.
+  Runtime compilation reported six existing Clang 22 `ATOMIC_VAR_INIT`
+  deprecation warnings; they are not failures and were not changed here.
+- The one remote exhaustive run `34877515733` already completed. Its language
+  inventory and earlier ledgers passed before it exposed these three successive
+  LLVM tails. It is intentionally not rerun here, so this card does not claim
+  a new all-matrix green result. Earlier Push CI `34867733174` and Platform full
+  `34870863078` were green on the parent cadence state, not on this unpublished
+  repair.
+- A pressure run against `driver_bootstrap_main.pgy` produced a distinct
+  7,870-routine input and reached an unrelated generic inventory refusal. It is
+  not the failed CI's rung-0 input and is excluded from this repair verdict.
+
+Dirty-state boundary:
+- This isolated worktree contains only the seven repair/test files plus this
+  handoff. Generated MIR, C, LLVM, object and executable artifacts are ignored
+  under `.tmp` on C:.
+- The main worktree still has six unrelated Slice-related edits in five
+  self-host semantic owners and `tests/self_host_pergyra_likeness_smoke.sh`.
+  They remain preserved and must not be staged, reset or folded into this
+  publication.
+- Next action: commit this isolated repair, integrate only that commit into
+  main, push, and observe ordinary Push CI. Do not dispatch Platform full,
+  Self-host parity, or the exhaustive language-word inventory again in this
+  edit loop.
+
+## Historical archive boundary
+
+### Archived self-host context — close the reached tail, then run exhaustive once
 
 Pre-publication HEAD/origin/main: `3daf318f42b213c23cae4bc6e1d4557a156a4c10`.
 Reached-tail repairs were published as `713be04b` and `3daf318f`; this card
@@ -89,7 +162,7 @@ Dirty-state boundary:
   dispatch the one exhaustive Self-host parity run only after the publication
   SHA is stable.
 
-## Historical archive boundary
+### Archived native CI integration repair — 2026-09-09
 
 Updated: 2026-09-09 (Asia/Seoul), native CI regression repair; navigation only.
 Compiler owners, registries and executable gates override this snapshot.
