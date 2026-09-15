@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 CC_BIN=${CC:-gcc}
 BIN="$ROOT_DIR/build/pergyra_arena_ledger_smoke_$$"
+mkdir -p "$ROOT_DIR/build"
 trap 'rm -f "$BIN"' EXIT
 
 "$CC_BIN" -std=c11 -Wall -Wextra -Werror \

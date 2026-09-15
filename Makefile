@@ -4328,6 +4328,11 @@ self-host-array-index-type-semantic-admission-test-smoke: $(PGY) self-host-compi
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh
 
+.PHONY: self-host-zone-spawn-transport-admission-test-smoke
+self-host-zone-spawn-transport-admission-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/zone_spawn_transport_admission_owner.sh
+
 .PHONY: self-host-public-parser-callable-contract-json-diagnostic-receipt-test-smoke
 self-host-public-parser-callable-contract-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
@@ -4796,6 +4801,9 @@ raw-escape-contract-test-smoke: $(PGY)
 # run beside the other contract gates.
 gate-subject-declaration-test-smoke:
 	"$(BASH)" tests/gate_subject_declaration_smoke.sh
+
+gate-script-reachability-test-smoke:
+	python3 tests/gate_script_reachability_smoke.py
 
 semantic-inc-size-test-smoke:
 	"$(BASH)" tests/semantic_inc_size_smoke.sh

@@ -14,7 +14,8 @@
 #
 # must equal
 #
-#   pgy fixture.pgy --backend=c -> run-stdout       (the C oracle).
+#   pgy fixture.pgy --native-pipeline --backend=c -> run-stdout
+#   (the independent native C oracle).
 #
 # mir_lower and codegen are both compiled through the oracle (gen0); the test is
 # purely about the lowering they perform, verified by run-stdout equality.
@@ -26,7 +27,6 @@ source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/portable_process_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
-PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix_from_current_path)"
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
@@ -72,28 +72,11 @@ compile_c_to_exe() {
     local src="$1"
     local out="$2"
     local log="$3"
-
-    case "$(uname -s 2>/dev/null || echo unknown)" in
-        MINGW*|MSYS*|CYGWIN*)
-            command -v powershell.exe >/dev/null 2>&1 || return 127
-
-            local src_native
-            local out_native
-            local log_native
-            src_native="$(pgy_path_for_windows_tool "$src")"
-            out_native="$(pgy_path_for_windows_tool "$out")"
-            log_native="$(pgy_path_for_windows_tool "$log")"
-
-            powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
-                "\$env:PATH=$(pgy_powershell_quote "$PGY_WINDOWS_PS_PATH_PREFIX") + \$env:PATH; & $(pgy_powershell_quote "$CC") $(pgy_powershell_quote "$src_native") '-I$(pgy_path_for_windows_tool "$ROOT_DIR/src/runtime")' '-o' $(pgy_powershell_quote "$out_native") 2> $(pgy_powershell_quote "$log_native"); exit \$LASTEXITCODE"
-            return $?
-            ;;
-    esac
-
     "$CC" "$src" -I"$ROOT_DIR/src/runtime" -o "$out" 2>"$log"
 }
 
-B="$ROOT_DIR/.tmp/self_hosted/mir_lower/parity"
+mkdir -p "$ROOT_DIR/.tmp/self_hosted/mir_lower"
+B="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/mir_lower/parity.XXXXXX")"
 HARNESS_PATHS_FILE="$B/mir_json_harness_paths.txt"
 ARTIFACT_COMPARE_BUILD_DIR="$B/artifact_owner"
 MIR_FIXTURE_MANIFEST_FILE="$B/mir_fixture_manifest.txt"
@@ -103,8 +86,6 @@ MIR_LOWER_SRC=""
 CODEGEN_SRC=""
 COMPARATOR_SOURCE=""
 FIXTURES=()
-mkdir -p "$B"
-
 pgy_selfhost_read_test_harness_manifest \
     "self-host-parity:mir-json" \
     "$B" \
@@ -1016,8 +997,8 @@ for fixture_entry in "${FIXTURES[@]}"; do
         exit 1
     fi
 
-    # C oracle.
-    (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$src")" --backend=c \
+    # Native C oracle route: the public spelling delegates to the candidate.
+    (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$src")" --native-pipeline --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$B/${base}_oracle.exe")" >/dev/null 2>&1)
 
     via="$B/${base}_via_mir.run.out"

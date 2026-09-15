@@ -58,7 +58,15 @@ case "$SHARD" in
         export PGY_SELFHOST_DRIVER_BACKENDS="$BACKENDS"
         exec "$BASH" "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_body_parity.sh"
         ;;
+    harness-evidence)
+        command -v sha256sum >/dev/null || fail "SHA-256 tool is required for installed harness provenance"
+        printf '[platform-full-harness-evidence] revision=%s\n' "$(git -C "$ROOT_DIR" rev-parse HEAD)"
+        sha256sum "$PGY" "$DRIVER" "$MANIFEST"
+        export PGY_CI_NAME=platform-full-harness-evidence
+        exec "$BASH" "$ROOT_DIR/scripts/ci_step_runner.sh" \
+            "$ROOT_DIR/scripts/ci_test_harness_evidence_steps.sh"
+        ;;
     *)
-        fail "unknown shard; expected parser, semantic, codegen, or driver"
+        fail "unknown shard; expected parser, semantic, codegen, driver, or harness-evidence"
         ;;
 esac

@@ -113,6 +113,16 @@ for markdown_gate in \
     fi
 done
 
+for push_gate in \
+    "run 'make gate-subject-declaration-test-smoke'" \
+    "run 'make gate-script-reachability-test-smoke'" \
+    "run 'bash tests/protocol_registry_smoke.sh'"; do
+    if ! grep -Fq "$push_gate" "$PUSH_LINUX_STEPS"; then
+        echo "[self-host-ci-profile] code push lost its oracle/protocol ratchet: $push_gate" >&2
+        exit 1
+    fi
+done
+
 if grep -Fq 'tests/language_keyword_registry_smoke.sh' "$WORKFLOW"; then
     echo "[self-host-ci-profile] exhaustive language-word inventory leaked onto ordinary push CI" >&2
     exit 1
@@ -368,7 +378,8 @@ for required in \
     'semantic_parity.sh' \
     'codegen_parity.sh' \
     'driver_rung2_body_parity.sh' \
-    'unknown shard; expected parser, semantic, codegen, or driver'; do
+    'ci_test_harness_evidence_steps.sh' \
+    'unknown shard; expected parser, semantic, codegen, driver, or harness-evidence'; do
     if ! grep -Fq "$required" "$PLATFORM_PARITY_SHARD_OWNER"; then
         echo "[self-host-ci-profile] platform parity shard owner lost contract: $required" >&2
         exit 1
@@ -477,7 +488,7 @@ for required in \
     'retention-days: 1' \
     'PGY_CI_SELF_HOST_MODE: prebuilt' \
     'PGY_CI_PLATFORM_PARITY_MODE: contract-only' \
-    'shard: [parser, semantic, codegen, driver]' \
+    'shard: [parser, semantic, codegen, driver, harness-evidence]' \
     'bash scripts/ci_self_host_platform_parity_shard_owner.sh' \
     'make PGY_BACKEND_COMPARE_JOBS=1 ci-linux' \
     'CC=gcc make ci-windows' \
@@ -490,10 +501,11 @@ for required in \
     fi
 done
 if [[ "$(grep -Fc 'fail-fast: false' "$PLATFORM_WORKFLOW")" != "2" ]] ||
-    [[ "$(grep -Fc 'shard: [parser, semantic, codegen, driver]' "$PLATFORM_WORKFLOW")" != "2" ]] ||
+    [[ "$(grep -Fc 'shard: [parser, semantic, codegen, driver, harness-evidence]' "$PLATFORM_WORKFLOW")" != "1" ]] ||
+    [[ "$(grep -Fc 'shard: [parser, semantic, codegen, driver]' "$PLATFORM_WORKFLOW")" != "1" ]] ||
     [[ "$(grep -Fc 'uses: actions/upload-artifact@v4' "$PLATFORM_WORKFLOW")" -lt 2 ]] ||
     [[ "$(grep -Fc 'uses: actions/download-artifact@v4' "$PLATFORM_WORKFLOW")" -lt 4 ]]; then
-    echo "[self-host-ci-profile] Linux/Windows full parity is not split into two complete four-way artifact-fed matrices" >&2
+    echo "[self-host-ci-profile] Linux/Windows full parity lost its artifact-fed matrices or Linux harness evidence" >&2
     exit 1
 fi
 if grep -Fq 'continue-on-error:' "$PLATFORM_WORKFLOW"; then

@@ -114,6 +114,25 @@ semantic_validate_spawn_storage_boundary(ASTNode *expr, SemanticContext *ctx)
             arg_label = ast_identifier_name(arg);
 
         param_type = type_function_param_type(callee_type, i);
+        if (param_type != NULL && param_type->name != NULL
+            && semantic_find_zone_decl_by_name(ctx, param_type->name) != NULL) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE,
+                PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
+                arg,
+                "Spawn argument '%s' cannot transport Zone identity '%s' across a worker boundary.\n"
+                "Reason:\n"
+                "- Zone carries synchronization and generation state, not a copyable value\n"
+                "- neither 'ref' nor 'own' has an admitted cross-task Zone transport plan\n"
+                "- copying it into a spawn wrapper would publish an invalid C/LLVM ABI\n"
+                "Fix:\n"
+                "- pass a projected scalar/value result instead\n"
+                "- or keep the Zone operation within its current execution boundary",
+                arg_label, param_type->name);
+            rejected = true;
+            continue;
+        }
         if (semantic_report_worker_storage_boundary(
                 arg, ctx, param_type, "Spawn argument", arg_label)) {
             rejected = true;

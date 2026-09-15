@@ -61,6 +61,23 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
     if code == "zone_contract_invalid" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:zone_contract", "align-zone-slot-or-state-naming");
     }
+    if code == "zone_value_copy_requires_transfer" ||
+        code == "zone_value_reassignment_requires_transfer" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:zone:identity_copy", "use-fresh-zone-or-admitted-transfer");
+    }
+    if code == "zone_value_parameter_requires_transfer" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:zone:parameter_carriage", "use-readonly-ref-or-admitted-transfer");
+    }
+    if code == "zone_spawn_transport_unavailable" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:zone:spawn_transport", "pass-projected-value-or-keep-zone-local");
+    }
+    if code == "ast_artifact_invalid" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:ast:admission", "repair-typed-ast-artifact");
+    }
     if code == "generic_constraint_unsatisfied" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:class_contract", "satisfy-generic-bound-or-widen");
     }

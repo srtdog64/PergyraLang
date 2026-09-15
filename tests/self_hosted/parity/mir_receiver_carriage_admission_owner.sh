@@ -31,13 +31,12 @@ fi
 OWNER="$ROOT_DIR/src/self_hosted/mir_lower/program_routine_index_owner.pgy"
 IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/program_routine_receiver_identity_owner.pgy"
 MIR_LOWER_SOURCE="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"
-DRIVER_SOURCE="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_main.pgy"
 VALUE_FIXTURE="$ROOT_DIR/tests/cases/backend_compare/class_method_self_chain/main.pgy"
 IDENTITY_FIXTURE="$ROOT_DIR/tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
 INTENT_FIXTURE="$ROOT_DIR/tests/cases/backend_compare/boilerplate_reduction/main.pgy"
 BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/mir_receiver_carriage_admission}"
 MIR_LOWER="$BUILD_DIR/mir_lower.exe"
-DRIVER_BIN="${PGY_SELFHOST_PREBUILT_DRIVER:-$BUILD_DIR/driver_c.exe}"
+DRIVER_BIN="${PGY_SELFHOST_PREBUILT_DRIVER:-${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}}"
 
 mkdir -p "$BUILD_DIR"
 
@@ -69,20 +68,10 @@ if ! (cd "$ROOT_DIR" && "$PGY" \
     fail "mir_lower build failed"
 fi
 
-if [[ -z "${PGY_SELFHOST_PREBUILT_DRIVER:-}" ]]; then
-    if ! (cd "$ROOT_DIR" && "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$DRIVER_SOURCE")" \
-        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$DRIVER_BIN")" \
-        >"$BUILD_DIR/driver.compile.log" 2>&1); then
-        cat "$BUILD_DIR/driver.compile.log" >&2
-        fail "self-host driver build failed"
-    fi
-else
-    DRIVER_BIN="$(pgy_select_optional_exe_binary "$DRIVER_BIN")"
-    pgy_require_runnable_binary_here \
-        "mir-receiver-carriage-admission:self" "$DRIVER_BIN" \
-        || fail "PGY_SELFHOST_PREBUILT_DRIVER is not runnable"
-fi
+DRIVER_BIN="$(pgy_select_optional_exe_binary "$DRIVER_BIN")"
+pgy_require_runnable_binary_here \
+    "mir-receiver-carriage-admission:self" "$DRIVER_BIN" \
+    || fail "installed self-host driver is not runnable"
 
 produce_pair() {
     local label="$1" fixture="$2" fixture_rel native_mir self_mir

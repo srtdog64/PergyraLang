@@ -28,6 +28,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "zone_value_copy_requires_transfer",
         "zone_value_reassignment_requires_transfer",
         "zone_value_parameter_requires_transfer",
+        "zone_spawn_transport_unavailable",
         "zone_contract_invalid",
         "world_zone_escape",
         "subject_value_copy",
@@ -87,7 +88,11 @@ func SemanticDiagnosticCodeCount() -> Int {
 }
 
 func SemanticDiagnosticPublicLayer(code: String) -> String {
-    if code == "borrow_boundary_escape" { return "resource"; }
+    if code == "borrow_boundary_escape" ||
+        code == "zone_value_copy_requires_transfer" ||
+        code == "zone_value_reassignment_requires_transfer" ||
+        code == "zone_value_parameter_requires_transfer" ||
+        code == "zone_spawn_transport_unavailable" { return "resource"; }
     if !SemanticDiagnosticCodeKnown(code) { return ""; }
     return "type";
 }
@@ -129,6 +134,17 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
         return "PGY_SEM_TYPE_MISMATCH";
     }
     if code == "borrow_boundary_escape" { return "PGY_SEM_BORROW_ESCAPE"; }
+    if code == "zone_value_copy_requires_transfer" ||
+        code == "zone_value_reassignment_requires_transfer" ||
+        code == "zone_value_parameter_requires_transfer" {
+        return "PGY_SEM_ANCHORED_HANDLE_COPY";
+    }
+    if code == "zone_spawn_transport_unavailable" {
+        return "PGY_SEM_BORROW_ESCAPE";
+    }
+    if code == "ast_artifact_invalid" {
+        return "PGY_SEM_TYPE_MISMATCH";
+    }
     if code == "builtin_arg_type_mismatch" {
         return "PGY_SEM_BUILTIN_ARGS_INVALID";
     }

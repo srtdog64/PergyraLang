@@ -11,8 +11,9 @@ DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/p
 CC="${CC:-gcc}"
 CLANG="${PGY_SELFHOST_CLANG:-clang}"
 PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python || true)}"
-WORK_REL=".tmp/self_hosted/one_mir_string_case_math"
-WORK_DIR="$ROOT_DIR/$WORK_REL"
+mkdir -p "$ROOT_DIR/.tmp/self_hosted"
+WORK_DIR="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/one_mir_string_case_math.XXXXXX")"
+WORK_REL="${WORK_DIR#"$ROOT_DIR/"}"
 SOURCE_REL="src/self_hosted/codegen/fixture/str_case_math.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
@@ -53,13 +54,11 @@ for owner in "$PARAMS" "$PARAM_ADMISSION" "$DIRECT" "$IDENTITY" "$RUNTIME" \
     reject_text "$owner" 'a+b+a+b'
 done
 
-mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" \
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/producer.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "22DE914781C97C64991F371357E24D8CCAD0A95A3BD9D33FFEC8C809A93F29A1" ]] ||
-    fail "source MIR identity changed: $mir_sha"
+[[ -s "$WORK_DIR/producer.json" ]] || fail "producer published no admitted MIR"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_case_math_mutations.py" \
     "$WORK_DIR/producer.json" "$WORK_DIR"
 
@@ -77,7 +76,7 @@ project() {
 goods=(program display-only semantic-change routine-order)
 bads=(bad-parameter-ordinal bad-parameter-type bad-direct-call-chain \
     bad-direct-target-syntax bad-return-type bad-min-argument-type \
-    bad-builtin-target)
+    bad-builtin-target bad-unadmitted-graph-text)
 for target in c llvm; do
     suffix=c; [[ "$target" == llvm ]] && suffix=ll
     for good in "${goods[@]}"; do

@@ -682,11 +682,26 @@ require_file \
     "src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy"
 require_max_lines \
     "src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy" 180
+require_file \
+    "src/self_hosted/semantic/ast_zone_spawn_transport_verdict_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_zone_spawn_transport_verdict_owner.pgy" 140
+require_text \
+    "src/self_hosted/semantic/ast_zone_spawn_transport_verdict_owner.pgy" \
+    "func SemanticAstZoneSpawnBoundaryVerdictFromAdmittedFacts("
+require_text \
+    "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    'import "ast_zone_spawn_transport_verdict_owner.pgy";'
+reject_text \
+    "src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy" \
+    "func SemanticAstZoneSpawnBoundaryVerdictFromAdmittedFacts("
 require_text \
     "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
     "SemanticAstZoneCarriageVerdictFromAdmittedFacts("
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_zone_spawn_transport_verdict_owner.pgy"
 require_text "src/self_hosted/compiler/world.pgy" \
     "self, ref types: TypeEnvZone, ref abi_layout: AbiLayoutZone,"
 require_text "src/self_hosted/compiler/world.pgy" \
@@ -17592,29 +17607,33 @@ require_make_target_text \
 require_make_target_text \
     "self-host-one-mir-option-match-projection-test-smoke" \
     "tests/self_hosted/parity/one_mir_option_match_projection.sh"
+require_file "tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh"
+require_max_lines "tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh" 100
+require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh"'
 require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
     '"--mir-json-backend=$target"'
-require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+require_text "tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh" \
     '"--mir-json-backend=invalid"'
 require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
     'assert_mir_identity "$mir_digest"'
-require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+require_text "tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh" \
     '"expr0_graph_removed"'
-require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+require_text "tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh" \
     '"kind":"invalid-one-mir-gate"'
-require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+require_text "tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh" \
     'src/self_hosted/mir_lower/fixture/let_log.pgy'
-require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+require_text "tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh" \
     '"kind":"subtract"'
-require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+require_text "tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh" \
     '"uses":["x.2"]'
-require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+require_text "tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh" \
     '"uses_removed":["x.1"]'
-require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+require_text "tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh" \
     '"call_target_name":"NoSuchTarget"'
 require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
     'GenerateCFromVerifiedSemanticArtifact'
-require_text "tests/self_hosted/parity/one_mir_dual_backend_projection.sh" \
+require_text "tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh" \
     'src/self_hosted/mir_lower/fixture/multilet.pgy'
 require_file "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy"
 require_max_lines \

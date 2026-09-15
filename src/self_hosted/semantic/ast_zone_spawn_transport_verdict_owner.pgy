@@ -1,0 +1,121 @@
+// Spawn transport is checked only after expression identity admission. A
+// synchronous Zone ref parameter is not a worker-borrow transport plan, and
+// an owning Zone parameter is not permission to copy its sync state.
+
+import "ast_zone_parameter_boundary_verdict_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_zone_resource_shape_owner.pgy";
+import "ast_body_verdict_owner.pgy";
+
+func SemanticAstZoneSpawnBoundaryVerdictFromAdmittedFacts(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts
+) -> SemanticAstZoneParameterBoundaryVerdict {
+    let empty_parameter_ids: Array<Int> = [];
+    if !SemanticAstSignatureRowsAdmittedReady(artifact, signatures) ||
+        constructors.artifact_node_count != artifact.count ||
+        !SemanticAstNominalConstructorRowsReady(constructors) ||
+        !surfaces.ok || surfaces.artifact_node_count != artifact.count ||
+        !SemanticExpressionGraphCarriedCallTargetsReady(
+            surfaces.expression_graph
+        ) {
+        return SemanticAstZoneParameterBoundaryVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "ZoneSpawnBoundary"),
+            -1
+        );
+    }
+    let node: Int = 0;
+    while node < SemanticExpressionGraphArenaNodeCount(
+        surfaces.expression_graph.arena
+    ) {
+        if surfaces.expression_graph.arena.topology.node_kinds[node] ==
+            AstExpressionNodeSpawn() {
+            let operand: Int =
+                surfaces.expression_graph.arena.topology.left_children[node];
+            let call: SemanticCallSpineView =
+                SemanticCallSpineViewFromGraph(
+                    surfaces.expression_graph, operand
+                );
+            if !call.ok {
+                return SemanticAstZoneParameterBoundaryVerdictError(
+                    "ast_artifact_invalid",
+                    SemanticError1("ast_artifact_invalid", "owner", "ZoneSpawnCall"),
+                    -1
+                );
+            }
+            let target_node: Int =
+                surfaces.expression_graph.arena.identities.call_target_syntax_ids[
+                    call.call_node
+                ];
+            let signature: Option<Int> =
+                SemanticAstFunctionSignatureIndexForNode(signatures, target_node);
+            if !IsSome(signature) {
+                return SemanticAstZoneParameterBoundaryVerdictError(
+                    "ast_artifact_invalid",
+                    SemanticError1(
+                        "ast_artifact_invalid", "owner", "ZoneSpawnTargetIdentity"
+                    ),
+                    -1
+                );
+            }
+            let row: Int = UnwrapOption(signature);
+            let offset: Int = signatures.receiver_source_param_offsets[row];
+            if surfaces.expression_graph.arena.call_target_kinds[
+                call.call_node
+            ] != SemanticCallTargetDirect() || offset != 0 ||
+                signatures.param_counts[row] != ArrayLength(call.argument_nodes) {
+                return SemanticAstZoneParameterBoundaryVerdictError(
+                    "ast_artifact_invalid",
+                    SemanticError1(
+                        "ast_artifact_invalid", "owner", "ZoneSpawnCallSignature"
+                    ),
+                    signatures.function_node_ids[row]
+                );
+            }
+            let argument: Int = 0;
+            while argument < ArrayLength(call.argument_nodes) {
+                let parameter: Int = signatures.param_starts[row] + argument;
+                let type_name: String = signatures.param_types[parameter];
+                if SemanticAstZoneValueCarriageResourceKind(
+                    constructors, type_name
+                ) == 1 {
+                    return SemanticAstZoneParameterBoundaryVerdictError(
+                        "zone_spawn_transport_unavailable",
+                        SemanticError3(
+                            "zone_spawn_transport_unavailable",
+                            "function", signatures.names[row],
+                            "parameter", signatures.param_names[parameter],
+                            "type", type_name
+                        ),
+                        signatures.param_node_ids[parameter]
+                    );
+                }
+                argument = argument + 1;
+            }
+        }
+        node = node + 1;
+    }
+    return SemanticAstZoneParameterBoundaryVerdictOk(empty_parameter_ids);
+}
+
+func SemanticAstBodyZoneSpawnBoundaryVerdictFromAdmittedFacts(
+    prior: SemanticAstBodyVerdict,
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts
+) -> SemanticAstBodyVerdict {
+    if !prior.ok { return prior; }
+    let boundary: SemanticAstZoneParameterBoundaryVerdict =
+        SemanticAstZoneSpawnBoundaryVerdictFromAdmittedFacts(
+            artifact, signatures, constructors, surfaces
+        );
+    if boundary.ok { return prior; }
+    return SemanticAstBodyVerdictError(
+        boundary.diagnostic_code, boundary.diagnostic_message,
+        boundary.syntax_node_id
+    );
+}

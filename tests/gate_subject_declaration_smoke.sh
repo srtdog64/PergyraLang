@@ -8,10 +8,11 @@ set -euo pipefail
 # to the installed self-host driver. That is the right call only when the gate
 # asserts a native-pipeline fact, so the declaration has to say which fact --
 # otherwise the variable becomes a way to make a red self-host coverage gate
-# quiet. This gate checks the two halves of that contract:
+# quiet. This gate checks the three reached halves of that contract:
 #
 #   1. every script that declares the variable also states its subject;
 #   2. no self-host-subject script declares it at all.
+#   3. named native C oracle legs cannot omit the explicit native route.
 #
 # See docs/152_validation_isolation_policy.md.
 #
@@ -74,6 +75,50 @@ while IFS= read -r script; do
 done < <({ ls tests/self_host*.sh 2>/dev/null || true
            find tests/self_hosted -name '*.sh' 2>/dev/null || true; } | sort -u)
 
+# A mixed parity gate has a self-host candidate and a native reference. It
+# cannot export PGY_NATIVE_PIPELINE globally without changing its candidate
+# leg. These three reached oracle call sites must therefore carry the flag
+# locally, immediately after their declared oracle-route marker.
+native_c_oracle_route_awk='
+    { sub(/\r$/, "") }
+    /# Native C oracle route:/ { markers++; marker_line = NR; next }
+    marker_line > 0 && NR <= marker_line + 3 && !/^[[:space:]]*#/ {
+        if (/\$PGY/) compiler_line = NR
+        if (/--native-pipeline/ && compiler_line > 0 && NR <= compiler_line + 2)
+            route = 1
+    }
+    END { exit !(markers == 1 && compiler_line > 0 && route) }
+'
+verify_native_c_oracle_route() {
+    local script="$1"
+    if [[ ! -f "$script" ]]; then
+        report "$script native C oracle gate is missing"
+        return
+    fi
+    if ! awk "$native_c_oracle_route_awk" "$script"; then
+        report "$script native C oracle lacks an adjacent --native-pipeline route"
+    fi
+}
+
+# Meta-gate negative controls: a missing flag or a comment-only flag must not
+# satisfy the native oracle declaration.
+if awk "$native_c_oracle_route_awk" <(printf '%s\n' \
+    '# Native C oracle route:' '(cd "$ROOT_DIR" && "$PGY" source --backend=c)'); then
+    report "native C oracle meta-gate accepted a missing route"
+fi
+if awk "$native_c_oracle_route_awk" <(printf '%s\n' \
+    '# Native C oracle route:' '(cd "$ROOT_DIR" && "$PGY" source --backend=c)' \
+    '# --native-pipeline is not in the call'); then
+    report "native C oracle meta-gate accepted a comment-only route"
+fi
+
+for oracle_script in \
+    tests/self_hosted/parity/mir_json_parity.sh \
+    tests/self_hosted/parity/mir_json_coverage_probe.sh \
+    tests/self_hosted/parity/one_mir_cfg_air_plan_projection.sh; do
+    verify_native_c_oracle_route "$oracle_script"
+done
+
 if (( failures > 0 )); then
     echo "[gate-subject] $failures violation(s); see docs/152_validation_isolation_policy.md" >&2
     exit 1
@@ -82,4 +127,4 @@ fi
 declared="$({ grep -rl '^PGY_NATIVE_PIPELINE=' tests scripts --include='*.sh'
                grep -rl '^\$env:PGY_NATIVE_PIPELINE' tests scripts --include='*.ps1'
              } | sort -u | wc -l | tr -d ' ')"
-echo "[gate-subject] ok -- $declared native-subject gates declare a subject; no self-host-subject gate opts out"
+echo "[gate-subject] ok -- $declared native-subject gates declare a subject; 3 native C oracle legs are explicit; no self-host-subject gate opts out"

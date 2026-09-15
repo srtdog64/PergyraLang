@@ -54,6 +54,10 @@ def main() -> int:
     for instruction in instructions(display):
         if instruction.get("expr0"):
             instruction["expr0"] = "display-only"
+    write(output, "display-only", display)
+
+    graph_text = clone(program)
+    for instruction in instructions(graph_text):
         graph = instruction.get("expr0_graph")
         if graph:
             for node in graph["nodes"]:
@@ -61,7 +65,7 @@ def main() -> int:
                     "call", "call_argument", "add", "subtract", "negate"
                 }:
                     node["text"] = "display-only"
-    write(output, "display-only", display)
+    write(output, "bad-unadmitted-graph-text", graph_text)
 
     semantic = clone(program)
     initial = graph_with_expr(semantic, '"Hello, World!"')

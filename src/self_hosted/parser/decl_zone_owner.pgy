@@ -35,6 +35,7 @@ func ParseZoneDecl(
         Exit(1);
     }
     let slot_accum: String = "";
+    let shared_accum: String = "";
     let apply_accum: String = "";
     let link_accum: String = "";
     let auth_accum: String = "";
@@ -144,6 +145,37 @@ func ParseZoneDecl(
 	                    }
 	                    link_accum = AppendLine(link_accum, link_row);
 	                    continue;
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordShared) {
+            i = LanguageWordEnd(i, LanguageWordId.WordShared);
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let field_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if field_name == "" { Exit(1); }
+            i = Expect(content, i, ":");
+            if i < 0 { Exit(1); }
+            ArraySet(cursor_out, 0, i);
+            let field_type: String = ReadType(content, i, cursor_out);
+            i = cursor_out[0];
+            if field_type == "" { Exit(1); }
+            i = SkipWhitespaceAndComments(content, i);
+            let default_text: String = "";
+            if ParserCharAt(content, i) == "=" {
+                i = i + 1;
+                ArraySet(cursor_out, 0, i);
+                default_text = ParseExpr(content, i, cursor_out);
+                i = cursor_out[0];
+            }
+            i = ConsumeStmtTerminator(content, i);
+            if i < 0 { Exit(1); }
+            let shared_row: String = Concat(
+                "    Shared: ", Concat(field_name, Concat(": ", field_type))
+            );
+            if default_text != "" {
+                shared_row = Concat(shared_row, Concat(" = ", default_text));
+            }
+            shared_accum = AppendLine(shared_accum, shared_row);
+            continue;
         } else if MatchLanguageWord(content, i, LanguageWordId.WordState) {
             i = LanguageWordEnd(i, LanguageWordId.WordState);
             i = SkipWhitespaceAndComments(content, i);
@@ -437,6 +469,9 @@ func ParseZoneDecl(
     let zone_body: String = "";
     if StringLength(slot_accum) > 0 {
         zone_body = AppendLine(zone_body, slot_accum);
+    }
+    if StringLength(shared_accum) > 0 {
+        zone_body = AppendLine(zone_body, shared_accum);
     }
     if StringLength(bind_accum) > 0 {
         zone_body = AppendLine(zone_body, bind_accum);

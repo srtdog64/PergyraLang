@@ -62,12 +62,16 @@ def main() -> int:
     for instruction in instructions(display):
         if instruction.get("expr0"):
             instruction["expr0"] = "display-only"
+    write(output, "display-only", display)
+
+    node_display = clone(program)
+    for instruction in instructions(node_display):
         graph = instruction.get("expr0_graph")
         if graph:
             for node in graph["nodes"]:
                 if node["kind"] in {"call", "call_argument"}:
                     node["text"] = "display-only"
-    write(output, "display-only", display)
+    write(output, "unadmitted-graph-text", node_display)
 
     semantic = clone(program)
     literal(semantic, '"   hello world   "', '"  hello codex  "')

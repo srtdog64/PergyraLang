@@ -1,0 +1,18 @@
+zone CounterZone {
+    shared count: Int = 0
+
+    func Value(self) -> Int {
+        return count;
+    }
+}
+
+func Observe(own value: CounterZone) -> Int {
+    return value.Value();
+}
+
+async func Main() -> Void {
+    let value: CounterZone = CounterZone();
+    let pending: Future<Int> = spawn Observe(value);
+    Log(value.Value());
+    Log(await pending);
+}

@@ -1,0 +1,18 @@
+subject Counter {
+    let n: Int;
+}
+
+zone CounterZone {
+    subject slot counter: Counter
+}
+
+func Observe(own area: CounterZone) -> Int {
+    return area.counter.n;
+}
+
+async func Main() -> Void {
+    let area = CounterZone(Counter(17));
+    let pending: Future<Int> = spawn Observe(area);
+    Log(area.counter.n);
+    Log(await pending);
+}

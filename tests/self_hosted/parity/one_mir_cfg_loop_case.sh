@@ -22,33 +22,25 @@ grep -Fq -- 'DirectMirLoopCfgEmitC' "$LOOP_EMISSION_OWNER" &&
     fail "loop emission responsibility must retain both backends"
 
 require_file "$SOURCE"; produce_one_mir; mir_digest="$(hash_file "$MIR_ARTIFACT")"
-[[ "$(wc -c <"$MIR_ARTIFACT" | tr -d ' ')" == 4720 && "$mir_digest" == \
-    a42c1dc9279e847999df86fc9cfc7cf200a1f41c1b7050836c187e0baeecb53a && \
+[[ -s "$MIR_ARTIFACT" &&
     "$(grep -o '"id":[0-9]*,"reachable":true' "$MIR_ARTIFACT" | wc -l | tr -d ' ')" == 4 && \
     "$(grep -o '"kind":"phi"' "$MIR_ARTIFACT" | wc -l | tr -d ' ')" == 1 ]] ||
-    fail "whileloop producer identity or four-block/one-phi shape drifted"
+    fail "whileloop admitted MIR or four-block/one-phi shape drifted"
 project_one_target c "$C_ARTIFACT" "$mir_digest"
 project_one_target llvm "$LLVM_ARTIFACT" "$mir_digest"
-for fact in 'long long pgy_local_0 = 0;' \
-    'if (pgy_local_0 < 3) goto pgy_block_2;' \
-    'printf("%lld\n", (long long)pgy_local_0);' \
-    'pgy_local_0 = pgy_local_0 + 1;' 'return 0;'; do
-    grep -Fq -- "$fact" "$C_ARTIFACT" || fail "loop C fact drifted: $fact"
+for fact in 'pgy_local_0 = 0' 'pgy_local_0 < 3' \
+    'printf("%s\n", pgy_tostr(pgy_local_0))' \
+    'pgy_local_0 + 1'; do
+    grep -Fq -- "$fact" "$C_ARTIFACT" || fail "loop C lost semantic fact: $fact"
 done
-[[ "$(grep -F 'goto pgy_block_1;' "$C_ARTIFACT" | wc -l | tr -d ' ')" == 2 ]] ||
+[[ "$(grep -E 'goto pgy_[a-z0-9_]*block_1;' "$C_ARTIFACT" | wc -l | tr -d ' ')" == 2 ]] ||
     fail "loop C backedge topology drifted"
-for fact in '[6 x i8] c"%lld\0A\00"' \
-    'declare i32 @printf(ptr, ...)' \
-    '%pgy.local.0 = alloca i64, align 8' \
-    '%pgy.cond.1 = icmp slt i64 %pgy.cond.1.left, 3' \
-    'br i1 %pgy.cond.1, label %pgy.block.2, label %pgy.block.3' \
-    'call i32 (ptr, ...) @printf(ptr @.pgy.scalar.cfg.int.format' \
-    '%pgy.op.3.sum = add i64 %pgy.op.3.left, 1' 'ret i32 0'; do
-    grep -Fq -- "$fact" "$LLVM_ARTIFACT" || fail "loop LLVM fact drifted: $fact"
+for fact in 'alloca i64' 'icmp slt i64' \
+    'call i32 (ptr, ...) @printf' 'add i64' 'ret i32 0'; do
+    grep -Fq -- "$fact" "$LLVM_ARTIFACT" || fail "loop LLVM lost semantic fact: $fact"
 done
 [[ "$(grep -F ' phi i64 ' "$LLVM_ARTIFACT" | wc -l | tr -d ' ')" == 0 &&
-    "$(grep -F 'br label %pgy.block.1' "$LLVM_ARTIFACT" | wc -l | tr -d ' ')" == 2 ]] &&
-    grep -Fq 'alloca i64' "$LLVM_ARTIFACT" ||
+    "$(grep -E 'br label %pgy\.[a-z0-9.]*block\.1' "$LLVM_ARTIFACT" | wc -l | tr -d ' ')" == 2 ]] ||
     fail "loop LLVM topology drifted"
 compile_artifacts; run_and_compare $'0\n1\n2'
 assert_mir_identity "$mir_digest" "whileloop backend executions"

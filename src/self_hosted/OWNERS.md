@@ -589,6 +589,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   signature mode and resource-shape facts. Zone identity remains read-only
   `ref`; a world with owned zones may use explicit `inout`, whose admitted node
   ID lowers as an in-place mutable borrow rather than copy-in/copy-out.
+- `src/self_hosted/semantic/ast_zone_spawn_transport_verdict_owner.pgy` --
+  post-identity admission for a named spawn call's exact parameter carriage.
+  A Zone `ref` is only a synchronous borrow; neither `ref` nor `own` admits
+  copying Zone synchronization state into a worker argument. Missing callable
+  identity refuses before source-MIR or backend artifact publication.
 - `src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy` and
   `src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy`
   -- final source-syntax call target IDs, exact declared-callee binding IDs on

@@ -84,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [parser, semantic, codegen, driver]
+        shard: [parser, semantic, codegen, driver, harness-evidence]
     steps:
       - uses: actions/checkout@v6
 

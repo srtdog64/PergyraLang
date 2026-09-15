@@ -1,10 +1,134 @@
 # Current Work Handoff
 
-Updated: 2026-09-15 (Asia/Seoul), external MIR root/InstructionId admission
-corrected and ordinary Push CI green; navigation only. Compiler owners, registries
-and executable gates override this snapshot.
+Updated: 2026-09-15 (Asia/Seoul), Zone/spawn source-MIR transport admission
+green on the receipt-bound installed driver, followed by the user's explicit
+test-harness red-team repair. Both packets remain uncommitted. This is
+navigation only. Compiler owners, registries and executable gates override it.
 
-## Active self-host context — MIR root/InstructionId focused admission green
+## Active self-host context — Zone/spawn installed admission green, row closure pending
+
+Current HEAD and `origin/main`: `5e259ae47e16130b061336309ea1e99ee5d19587`.
+The last observed ordinary Push CI remains 30/30 green on the earlier
+`09d514cb` code checkpoint (run `34935370223`); it has not run this dirty
+packet. Registry status is unchanged at CLOSED 55 / BRIDGE 32 / ACTIVE 2.
+
+Objective card:
+- Objective: stop a Zone value/reference from crossing a spawn worker boundary
+  before source-MIR or C/LLVM artifact publication. Native admission previously
+  accepted both modes; the old public driver accepted `ref Zone`, and an `own
+  Zone` refusal produced no public receipt. A `shared` Zone field also failed
+  silently in the public parser before reaching semantics.
+- Priority: admitted target/type identity, one Zone transport refusal, exact
+  public diagnostic receipt, no backend artifact, ordinary scalar-spawn
+  preservation, then installation/performance evidence.
+- Fact owners: indexed Zone declaration in native semantics; Pergyra
+  `decl_zone_owner.pgy` for `shared` field AST facts; resolved expression call
+  identity plus `ast_zone_spawn_transport_verdict_owner.pgy` for the source-MIR
+  admission verdict; public diagnostic code/receipt owners for its wire fact.
+- Last legitimate consumer: body-type bundle after expression identity
+  resolution and before MIR emission; native semantic spawn boundary before
+  backend projection.
+- Forbidden fallback: copying a Zone's synchronization/identity storage into
+  a C/LLVM worker wrapper, treating an ordinary synchronous `ref` or `own`
+  parameter as an admitted worker transport plan, or exiting without an owned
+  public receipt on a missing call target or refused Zone argument.
+- Gate/falsifier: `zone_spawn_transport_admission_owner.sh` checks four
+  subject-slot/shared × `ref`/`own` refusals on native C/LLVM and the public
+  source-MIR route, zero negative artifacts, scalar-spawn admission, and a
+  mutated missing target syntax identity with an exact receipt.
+
+Reached evidence:
+- The isolated native compiler and a Pergyra-built candidate from the actual
+  installed composition root `driver_bootstrap_main.pgy` pass the focused
+  gate. Candidate SHA-256:
+  `86BC7B763A74A90BD119419D834DA5CAB5B2C5D675DE7F0E255F8929C4E55C04`.
+  Six further valid async/generic spawn controls pass on that root.
+- The receipt-bound installer rebuilt `bin/pgy-self-driver.exe` from the same
+  production composition root. The exact Make target
+  `self-host-zone-spawn-transport-admission-test-smoke` rebuilt the native
+  compiler and codegen seed, then reinstalled and reran the focused gate:
+  PASS. Current installed SHA-256 and artifact receipt agree on
+  `B4BAFBF7534494CA5A426EB92BA7FEC9D18418A17CCD64CB74EE4A910F282BA1`.
+- The structural component contract passes 2,427 line-cap requests, including
+  the extracted Zone spawn owner and a separately sourced one-MIR dual-backend
+  case verdict owner. The dual-backend C/LLVM positive and mutation gate passes
+  after that split; `git diff --check`, shell syntax, Make target
+  dry-run and execution, build-source inventory, and CI profile checks pass. The first CI
+  profile invocation had no Git in its MSYS PATH; a rerun with the existing
+  host Git path passed. The focused gate is wired into fast Linux Push CI,
+  but remote execution is not yet observed.
+- This closes the reached parser-to-semantic and Zone-spawn diagnostic/admission
+  seams, not two whole SoT rows. `selfhost.zone_authority_rows` retains legacy
+  self-C intent binding and shared zone-sync/runtime work; `diagnostic.catalog`
+  retains other diagnostic consumers. No C-owned compiler path was deleted and
+  the old native spawn-wrapper transport path still exists behind source
+  admission. Before installation, the old driver exited 0 on the tracked
+  `zone_spawn_ref_boundary_rejected.pgy` falsifier; the new installed driver
+  rejects it with an owned receipt. This is installed REACHABLE evidence for
+  the exact semantic path, not whole-root SUBSTITUTING or registry CLOSED.
+
+Dirty-state boundary and next falsifier:
+- The Zone/spawn source, fixtures, focused gate, component ratchet, Make target,
+  and Linux push-step edit are uncommitted. Preserve the six unrelated
+  `Slice<T>` semantic/test edits; they were present before this packet and are
+  neither staged nor folded into it. Concurrent audit-document edits appeared
+  later in the session and were also left untouched. No commit or push occurred.
+- Next: validate the focused negative gate in remote Push CI on a published
+  revision. Only after a reached C-owned bypass is deleted and all
+  registry-row consumers/negative gates migrate may a BRIDGE row be marked
+  CLOSED. External MIR Zone resource legality and a real worker handoff plan
+  remain separate, unverified successors; do not infer them from this gate.
+
+Explicit test-harness repair override, not a second self-host substitution rung:
+- Three named native C oracle call sites now request `--native-pipeline` locally;
+  the mixed self-host candidate remains unchanged. The Push Linux
+  `gate_subject_declaration_smoke.sh` checks all three and rejects synthetic
+  missing/comment-only flag controls. `protocol_registry_smoke.sh` also runs
+  on every Linux Push, not only Markdown changes. Local versions of these two
+  gates and `self_host_ci_profile_smoke.sh` pass; remote Push is unobserved.
+- `mir_json_parity.sh` now allocates a fresh work directory per invocation and
+  compiles generated C directly with its owned runtime include path. Its
+  `PGY_SELFHOST_MIR_FIXTURES=hello` run passed 1/1, comparing reconstructed
+  C against an independently selected native C oracle. The 118-fixture full
+  matrix was not run. `mir_json_coverage_probe.sh --limit=1` uses a fresh
+  directory and runtime-header flags and observed `if_else PASS`; it is a
+  boundary probe, not an acceptance gate. The third oracle leg's positive
+  CFG case executed native/C/LLVM with identical `pos` output, but the full
+  `one_mir_cfg_air_plan_projection.sh` remains RED after that positive case.
+  Stale loop C/LLVM spelling pins were removed; the reached falsifier is now
+  `loop_summary_kind`: changing the MIR LoopFlowSummary kind from `while` to
+  `for` leaves direct C and LLVM artifacts byte-identical to the baseline,
+  although the MIR bytes differ. Both direct backends accepted it. The
+  routine-lower owner has a summary-to-CFG projection check; direct admission
+  has not been proved to carry that correspondence. Keep the negative gate
+  red; do not relabel this unsupported fact drift as a valid metamorphic case.
+- A literal test-script reachability ratchet reports 813 scripts:
+  755 target-reachable and 58 individually declared manual, with zero
+  undeclared/stale/dual rows; two manual concept scripts cited in the SoT
+  registry are explicitly historical, not current CI evidence. The new
+  Platform-full Linux `harness-evidence` shard ran all 16 formerly dormant
+  evidence steps through a collecting runner and passed 16/16 locally. The
+  shard no longer rebuilds the full installed driver inside receiver/topology
+  gates. A second local 16/16 run observed the revision and installed
+  compiler/driver/manifest SHA-256 print at shard entry. Remote CI remains
+  unobserved. These source-graph and local-shard facts are not proof
+  that every manual or target-reachable script ran.
+- Current installed driver SHA-256 remains
+  `B4BAFBF7534494CA5A426EB92BA7FEC9D18418A17CCD64CB74EE4A910F282BA1`;
+  native compiler SHA-256 is
+  `26434D1BA723B55507D830F512D44942FD80E025E9C7364F566867E40566252D`;
+  machine-layer manifest SHA-256 is
+  `0A83B0DB5EFE3C00C6D9413C63045C4B17AFF079781213B280442C588E5A9C19`.
+  HEAD is still `5e259ae4`; preserve the six unrelated `Slice<T>` edits and
+  the concurrent red-team audit documents. No files were staged, committed,
+  or pushed. Next falsifiers: local Push/profile ratchets after the final diff,
+  the full CFG gate's LoopFlowSummary/CFG correspondence at its direct-MIR
+  admission owner separately from oracle-route proof, and remote
+  Push/Platform-full results only after an authorized published revision.
+
+## Historical archive boundary
+
+### Archived self-host context — MIR root/InstructionId focused admission green
 
 Green code/documentation checkpoint HEAD and `origin/main`:
 `09d514cbe0eb9dced9a9755bd8b69a179b7b5a90`. This handoff refresh is a
@@ -91,8 +215,6 @@ Dirty-state boundary:
   or Zone/spawn) with its production entrypoint, old bypass, fact owner and
   falsifying fixture before implementation. Do not rerun exhaustive verification
   in this edit loop; the broader external-MIR legality cases remain separate.
-
-## Historical archive boundary
 
 ### Archived self-host context — exhaustive evidence retained; ordinary push green
 

@@ -18,12 +18,9 @@ func SemanticDiagnosticMessageFactEmpty() -> SemanticDiagnosticMessageFact {
 }
 
 func SemanticDiagnosticMessageFact2(code: String, first_key: String, first_value: String,
-    second_key: String,
-    second_value: String
+    second_key: String, second_value: String
 ) -> SemanticDiagnosticMessageFact {
-    return SemanticDiagnosticMessageFact(
-        true, code, first_key, first_value, second_key, second_value
-    );
+    return SemanticDiagnosticMessageFact(true, code, first_key, first_value, second_key, second_value);
 }
 
 func SemanticDiagnosticMessageFactRender(
@@ -77,6 +74,7 @@ func SemanticReason(code: String) -> String {
     if code == "named_value_boundary_argument_required" { return "borrow-tracked value boundaries require one stable source binding"; }
     if code == "borrow_boundary_escape" { return "a readonly borrowed sequence cannot cross a value, owning, copy-out or return boundary"; }
     if code == "zone_value_copy_requires_transfer" || code == "zone_value_reassignment_requires_transfer" || code == "zone_value_parameter_requires_transfer" { return "zone identity cannot be carried without an admitted transfer plan"; }
+    if code == "zone_spawn_transport_unavailable" { return "zone identity cannot be copied or borrowed across a spawn worker boundary"; }
     if code == "builtin_arg_type_mismatch" { return "builtin argument type does not match the builtin contract"; }
     if code == "option_concrete_type_required" {
         return "Option builtin requires a concrete Option<T> payload type";
@@ -208,6 +206,7 @@ func SemanticFix(code: String) -> String {
     if code == "named_value_boundary_argument_required" { return "bind the value to a local variable before passing it through the boundary"; }
     if code == "borrow_boundary_escape" { return "keep the sequence within a ref boundary or explicitly transfer an owned value"; }
     if code == "zone_value_copy_requires_transfer" || code == "zone_value_reassignment_requires_transfer" || code == "zone_value_parameter_requires_transfer" { return "construct a fresh zone or use an explicit admitted transfer boundary"; }
+    if code == "zone_spawn_transport_unavailable" { return "pass a projected value or keep the zone operation within the current task"; }
     if code == "builtin_arg_type_mismatch" {
         return "pass a value that satisfies the builtin signature";
     }

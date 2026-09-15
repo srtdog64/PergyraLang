@@ -1,0 +1,60 @@
+# Exact scripts intentionally run by hand; a row is not automated coverage.
+# Format: repository-relative path<TAB>reason and owner of the manual run.
+tests/ast_read_surface_smoke.sh	Manual readiness-scorecard probe; not push or platform proof.
+tests/bench_backend.sh	Manual backend performance measurement; no routine CI budget.
+tests/concept_semantics/authority_effect/run.sh	Manual concept counterexample campaign driver; explicit run only.
+tests/concept_semantics/callable_capability_admission.sh	Manual concept counterexample campaign; explicit run only.
+tests/concept_semantics/callable_capability_execution.sh	Manual concept counterexample campaign; explicit run only.
+tests/concept_semantics/capability_admission.sh	Manual concept counterexample campaign; explicit run only.
+tests/concept_semantics/domain_axes/run.sh	Manual concept counterexample campaign driver; explicit run only.
+tests/concept_semantics/effect_admission.sh	Manual concept experiment; registry citation is historical, not CI evidence.
+tests/concept_semantics/field_write_admission.sh	Manual concept counterexample campaign; explicit run only.
+tests/concept_semantics/generic_bound_admission.sh	Manual concept counterexample campaign; explicit run only.
+tests/concept_semantics/generic_call_occurrence.sh	Manual concept counterexample campaign; explicit run only.
+tests/concept_semantics/generic_instantiation_execution.sh	Manual concept experiment; registry citation is historical, not CI evidence.
+tests/concept_semantics/hashmap_admission.sh	Manual concept counterexample campaign; explicit run only.
+tests/concept_semantics/intent/terminal_substitution_smoke.sh	Manual concept counterexample campaign; explicit run only.
+tests/concept_semantics/intent_capability_admission.sh	Manual concept counterexample campaign; explicit run only.
+tests/concept_semantics/named_enum_match_admission.sh	Manual concept counterexample campaign; explicit run only.
+tests/concept_semantics/nominal/run.sh	Manual concept counterexample campaign driver; explicit run only.
+tests/concept_semantics/run.sh	Manual concept campaign driver; no automatic coverage claim.
+tests/concept_semantics/source_admission_parity.sh	Manual concept source-admission comparison; explicit run only.
+tests/concept_semantics/typed_intent_publication.sh	Manual concept counterexample campaign; explicit run only.
+tests/concept_semantics/world_zone_admission.sh	Manual concept counterexample campaign; explicit run only.
+tests/concept_semantics/zone_rule_admission.sh	Manual concept counterexample campaign; explicit run only.
+tests/mir_lexical_binding_owner_smoke.sh	Manual source-admission campaign dependency; caller is manual.
+tests/mir_or_abort_invariant_smoke.sh	Manual readiness-scorecard probe; not push or platform proof.
+tests/perf_close_to_c_smoke.sh	Manual compiler performance measurement; no routine CI budget.
+tests/self_host_ast_text_assignment_colon_literal_smoke.sh	Manual isolated parser regression probe; no automatic coverage claim.
+tests/self_host_readiness_scorecard.sh	Manual readiness report, not an executable acceptance gate.
+tests/self_hosted/parity/binary_projection_preflight_probe_parity.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/capability_admission_fact_owner.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/driver_execution_action_abi_parity.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/driver_rung2_structured_expression_order_owner.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/effect_builtin_execution_owner.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/effect_builtin_normalized_owner.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/effect_call_fact_owner.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/expression_graph_persisted_read_probe_parity.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/future_condition_admission_owner.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/generic_bound_admission_owner.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/hashmap_signature_fact_owner.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/intent_result_signature_carriage_owner.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/intent_typed_transition_frontend_owner.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/lexer_scale_probe.sh	Manual compiler-scale resource measurement; no routine CI budget.
+tests/self_hosted/parity/machine_layer_air_validator_parity.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/machine_layer_mir_projection_probe_parity.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/machine_layer_rir_validator_parity.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/mir_expression_graph_persisted_read_owner.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/mir_resource_graph_owner_smoke.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/nominal_field_write_fact_owner.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/parser_scale_probe.sh	Manual compiler-scale resource measurement; no routine CI budget.
+tests/self_hosted/parity/regen_expected.sh	Manual expected-artifact regeneration tool; never proof of correctness.
+tests/self_hosted/parity/semantic_ability_bound_lifetime_owner_smoke.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/semantic_initializer_pressure_owner_smoke.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/semantic_role_constraint_lifetime_owner_smoke.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/semantic_try_operand_lifetime_owner_smoke.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/semantic_tuple_shape_lifetime_owner_smoke.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/zone_authority_fact_probe_parity.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/zone_rule_admission_owner.sh	Manual isolated parity probe; not current CI evidence.
+tests/source_ast_inventory.sh	Manual source inventory companion; not an acceptance result.
+tests/verify_arena_closure.sh	Manual readiness-scorecard probe; explicit run only.

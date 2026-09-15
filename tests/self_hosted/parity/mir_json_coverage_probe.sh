@@ -30,6 +30,7 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -60,11 +61,11 @@ if ! [[ "$COVERAGE_LIMIT" =~ ^[0-9]+$ ]]; then
     exit 1
 fi
 
-B="$ROOT_DIR/.tmp/self_hosted/mir_lower/coverage"
+mkdir -p "$ROOT_DIR/.tmp/self_hosted/mir_lower"
+B="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/mir_lower/coverage.XXXXXX")"
 HARNESS_PATHS_FILE="$B/mir_json_coverage_harness_paths.txt"
 MIR_LOWER_SRC=""
 CODEGEN_SRC=""
-mkdir -p "$B"
 
 pgy_selfhost_read_test_harness_manifest \
     "mir-json-coverage" \
@@ -107,9 +108,13 @@ classify() {
     local rel="${src_file#$ROOT_DIR/}"
 
     local orc_rc orc
-    (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$src_file")" --backend=c \
-        -o "$(pgy_path_for_compiler "$PGY" "$B/${name}_oracle.exe")" >/dev/null 2>&1)
-    orc_rc=$?
+    # Native C oracle route: never delegate this comparison leg to self-host.
+    if (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$src_file")" --native-pipeline --backend=c \
+        -o "$(pgy_path_for_compiler "$PGY" "$B/${name}_oracle.exe")" >/dev/null 2>&1); then
+        orc_rc=0
+    else
+        orc_rc=$?
+    fi
     if [[ $orc_rc -ne 0 ]]; then printf '  %-18s ORACLE-skip\n' "$name"; return; fi
 
     (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
@@ -141,7 +146,12 @@ classify() {
     if grep -q '^CODEGEN ERROR' "$via_c"; then
         printf '  %-18s CODEGEN-gap     %s\n' "$name" "$(grep -m1 '^CODEGEN ERROR' "$via_c" | cut -c1-60)"; return
     fi
-    if ! "$CC" "$via_c" -o "$B/${name}_via.exe" 2>"$B/${name}_cc.log"; then
+    local cc_command=("$CC" "$via_c")
+    if pgy_selfhost_emitted_c_uses_runtime_headers "$via_c"; then
+        cc_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+    fi
+    cc_command+=(-o "$B/${name}_via.exe")
+    if ! "${cc_command[@]}" 2>"$B/${name}_cc.log"; then
         printf '  %-18s CC-fail\n' "$name"; return
     fi
     via="$(cd "$ROOT_DIR" && "$B/${name}_via.exe" 2>/dev/null | tr -d '\r')"

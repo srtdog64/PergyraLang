@@ -17,7 +17,7 @@ import "ast_body_role_operator_resolution_owner.pgy";
 import "ast_body_type_bundle_readiness_owner.pgy";
 import "ast_named_value_boundary_verdict_owner.pgy";
 import "ast_zone_value_carriage_verdict_owner.pgy";
-import "ast_zone_parameter_boundary_verdict_owner.pgy";
+import "ast_zone_spawn_transport_verdict_owner.pgy";
 import "ast_subject_value_boundary_owner.pgy";
 import "ast_match_coverage_owner.pgy";
 import "ast_intent_retry_admission_owner.pgy";
@@ -210,6 +210,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
         verdict = SemanticAstBodyVerdictError("expression_identity_unresolved",
             "semantic expression identity rows are incomplete", -1);
     }
+    verdict = SemanticAstBodyZoneSpawnBoundaryVerdictFromAdmittedFacts(verdict, artifact, analysis.signatures, analysis.constructors, analysis.expression_surfaces);
     if verdict.ok && !SemanticAstAnalysisResolveCallReturnTypes(
         artifact, analysis, generic_specializations) {
         verdict = SemanticAstBodyVerdictError("call_return_type_unresolved",
@@ -296,7 +297,6 @@ func SemanticAstBodyTypeBundleFromAnalysis(artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis) -> SemanticAstBodyTypeBundle {
     return SemanticAstBodyTypeBundleFromAnalysisObserved(artifact, analysis, false);
 }
-
 func SemanticAstBodyTypeBundleReady(artifact: AstTreeArtifact,
     ref analysis: SemanticAstArtifactAnalysis, ref bundle: SemanticAstBodyTypeBundle) -> Bool {
     return SemanticAstBodyTypeBundleReadinessError(

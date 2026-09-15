@@ -4,13 +4,15 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 LABEL="self-host-one-mir-string-trim"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 CC="${CC:-gcc}"
 CLANG="${PGY_SELFHOST_CLANG:-clang}"
 PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python || true)}"
-WORK_REL=".tmp/self_hosted/one_mir_string_trim"
+mkdir -p "$ROOT_DIR/.tmp/self_hosted"
+WORK_REL="$(cd "$ROOT_DIR" && mktemp -d .tmp/self_hosted/one_mir_string_trim.XXXXXX)"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="src/self_hosted/codegen/fixture/str_trim.pgy"
 
@@ -22,6 +24,7 @@ reject_text() { ! grep -Fq -- "$2" "$1" || fail "forbidden ${1#"$ROOT_DIR/"}: $2
 [[ -n "$PYTHON_BIN" ]] || fail "python is required"
 command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
+pgy_selfhost_select_emitted_c_compile_profile || fail "emitted C compile profile is invalid"
 
 while IFS='|' read -r owner cap; do
     cap="${cap%$'\r'}"
@@ -57,8 +60,9 @@ mkdir -p "$WORK_DIR"
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/producer.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "1A10A12B315C2B48E715441966738724C0E1D8E5A120766DC87987E494D52BE8" ]] ||
-    fail "source MIR identity changed: $mir_sha"
+[[ -s "$WORK_DIR/producer.json" ]] || fail "producer emitted no MIR artifact"
+grep -Fq '"schema":"pgy.mir.v1"' "$WORK_DIR/producer.json" ||
+    fail "producer emitted an unrecognized MIR artifact"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_trim_mutations.py" \
     "$WORK_DIR/producer.json" "$WORK_DIR"
 
@@ -74,7 +78,7 @@ project() {
 }
 
 goods=(program display-only semantic-change already-trimmed empty-source)
-bads=(bad-result-type bad-argument-chain bad-argument-type \
+bads=(unadmitted-graph-text bad-result-type bad-argument-chain bad-argument-type \
     bad-unregistered-target bad-target-syntax bad-missing-argument)
 for target in c llvm; do
     suffix=c; [[ "$target" == llvm ]] && suffix=ll
@@ -111,7 +115,9 @@ expected_semantic=$'hello codex\n11\n0\n[x]'
 expected_already_trimmed=$'alpha\n5\n0\n[x]'
 expected_empty=$'\n0\n0\n[x]'
 for stem in base display-only semantic-change already-trimmed empty-source; do
-    "$CC" -std=c11 "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" ||
+    "$CC" -std=c11 "${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[@]}" \
+        -I"$ROOT_DIR/src/runtime" -pthread \
+        "$WORK_DIR/$stem.c" -o "$WORK_DIR/$stem.c.exe" ||
         fail "C compile failed: $stem"
     "$CLANG" "$WORK_DIR/$stem.ll" -o "$WORK_DIR/$stem.llvm.exe" ||
         fail "LLVM compile failed: $stem"

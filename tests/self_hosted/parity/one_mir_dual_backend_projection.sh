@@ -155,6 +155,7 @@ compile_artifacts() {
     local clang_bin="${PGY_SELFHOST_CLANG:-}"
     local llc_bin="${PGY_SELFHOST_LLC:-}"
     local object="$WORK_DIR/$CASE.one.llvm.o"
+    local runtime_object=()
     if pgy_selfhost_emitted_c_uses_runtime_headers "$C_ARTIFACT"; then
         c_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
     fi
@@ -163,11 +164,23 @@ compile_artifacts() {
         cat "$WORK_DIR/$CASE.c.compile.log" >&2
         fail "$CASE C projection did not compile"
     }
+    if grep -Fq '@pgy_checked_div_i32_export' "$LLVM_ARTIFACT"; then
+        "$CC" -std=c11 -O0 -DPGY_LLVM_ENABLED \
+            -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread \
+            -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
+            -o "$WORK_DIR/$CASE.checked-runtime.o" \
+            >"$WORK_DIR/$CASE.checked-runtime.compile.log" 2>&1 || {
+            cat "$WORK_DIR/$CASE.checked-runtime.compile.log" >&2
+            fail "$CASE checked arithmetic LLVM runtime did not compile"
+        }
+        runtime_object=("$WORK_DIR/$CASE.checked-runtime.o")
+    fi
     if [[ -z "$clang_bin" ]] && command -v clang >/dev/null 2>&1; then
         clang_bin="$(command -v clang)"
     fi
     if [[ -n "$clang_bin" ]]; then
-        "$clang_bin" -x ir "$LLVM_ARTIFACT" -o "$LLVM_BIN" \
+        "$clang_bin" -x ir "$LLVM_ARTIFACT" -x none "${runtime_object[@]}" \
+            -pthread -lm -o "$LLVM_BIN" \
             >"$WORK_DIR/$CASE.llvm.compile.log" 2>&1 || {
             cat "$WORK_DIR/$CASE.llvm.compile.log" >&2
             fail "$CASE LLVM projection did not compile with clang"
@@ -181,9 +194,37 @@ compile_artifacts() {
     "$llc_bin" -filetype=obj "$LLVM_ARTIFACT" -o "$object" \
         >"$WORK_DIR/$CASE.llvm-llc.log" 2>&1 ||
         fail "$CASE LLVM projection did not compile with llc"
-    "$CC" "$object" -o "$LLVM_BIN" \
+    "$CC" "$object" "${runtime_object[@]}" -pthread -lm -o "$LLVM_BIN" \
         >"$WORK_DIR/$CASE.llvm-link.log" 2>&1 ||
         fail "$CASE LLVM projection runtime link failed"
+}
+
+assert_semantic_operator_mutation() {
+    local mutation="$1" stem="$2" expected="$3" binary
+    local original_mir="$MIR_ARTIFACT" original_c="$C_ARTIFACT"
+    local original_llvm="$LLVM_ARTIFACT" original_c_bin="$C_BIN"
+    local original_llvm_bin="$LLVM_BIN"
+    MIR_ARTIFACT="$mutation"
+    C_ARTIFACT="$WORK_DIR/$CASE.$stem.c"
+    LLVM_ARTIFACT="$WORK_DIR/$CASE.$stem.ll"
+    C_BIN="$WORK_DIR/$CASE.$stem.c.exe"
+    LLVM_BIN="$WORK_DIR/$CASE.$stem.llvm.exe"
+    run_projection c "$C_ARTIFACT"
+    run_projection llvm "$LLVM_ARTIFACT"
+    ! cmp -s "$original_c" "$C_ARTIFACT" ||
+        fail "$CASE C ignored admitted $stem mutation"
+    ! cmp -s "$original_llvm" "$LLVM_ARTIFACT" ||
+        fail "$CASE LLVM ignored admitted $stem mutation"
+    compile_artifacts
+    for binary in "$C_BIN" "$LLVM_BIN"; do
+        [[ "$(cd "$ROOT_DIR" && "$binary" | tr -d '\r')" == "$expected" ]] ||
+            fail "$CASE $stem mutation runtime differed from $expected"
+    done
+    MIR_ARTIFACT="$original_mir"
+    C_ARTIFACT="$original_c"
+    LLVM_ARTIFACT="$original_llvm"
+    C_BIN="$original_c_bin"
+    LLVM_BIN="$original_llvm_bin"
 }
 
 run_positive_case() {
@@ -228,63 +269,4 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER_BIN" || exit 1
 command -v "$CC" >/dev/null 2>&1 || fail "missing C compiler: $CC"
 assert_direct_owner_ratchet
 mkdir -p "$WORK_DIR"
-
-select_case hello "$ROOT_DIR/examples/hello.pgy"
-run_positive_case 'Hello, Pergyra!'
-grep -Fq '"expr0_graph":{' "$MIR_ARTIFACT" || fail "hello graph missing"
-grep -Fq '"kind":"stmt"' "$MIR_ARTIFACT" || fail "hello kind missing"
-mutation="$(make_mutation expr0_graph \
-    's/"expr0_graph"/"expr0_graph_removed"/g' '"expr0_graph_removed"')"
-expect_rejected_without_artifact expr0_graph "$mutation" \
-    'expr0_graph|expression graph'
-mutation="$(make_mutation instruction_kind \
-    's/"kind":"stmt"/"kind":"invalid-one-mir-gate"/g' \
-    '"kind":"invalid-one-mir-gate"')"
-expect_rejected_without_artifact instruction_kind "$mutation" \
-    'instruction[^[:alnum:]]+(kind|identity)|kind[^[:alnum:]]+instruction|invalid instruction'
-expect_rejected_without_artifact invalid_target "$MIR_ARTIFACT" \
-    'target|backend' "--mir-json-backend=invalid"
-
-select_case let_log "$ROOT_DIR/src/self_hosted/mir_lower/fixture/let_log.pgy"
-run_positive_case '42'
-mutation="$(make_mutation local_result_identity \
-    's/"result":"x\.1"/"result":"x.2"/' '"result":"x.2"')"
-expect_rejected_without_artifact local_result_identity "$mutation" \
-    'local result identity|result identity|result[^[:alnum:]]+x\.1'
-mutation="$(make_mutation graph_use_edge \
-    's/"uses":\["x\.1"\]/"uses":["x.2"]/' '"uses":["x.2"]')"
-expect_rejected_without_artifact graph_use_edge "$mutation" \
-    'graph use edge|use edge|uses[^[:alnum:]]+x\.1'
-mutation="$(make_mutation missing_use_fact \
-    's/"uses":\["x\.1"\]/"uses_removed":["x.1"]/' \
-    '"uses_removed":["x.1"]')"
-expect_rejected_without_artifact missing_use_fact "$mutation" \
-    'use facts|graph use edge|uses'
-mutation="$(make_mutation arithmetic_add_node \
-    's/"kind":"add"/"kind":"subtract"/' \
-    '"kind":"subtract"')"
-expect_rejected_without_artifact arithmetic_add_node "$mutation" \
-    'arithmetic add node|add node|operator[^[:alnum:]]+add'
-mutation="$(make_mutation tostring_call_target \
-    's/"call_target_name":"ToString"/"call_target_name":"NoSuchTarget"/' \
-    '"call_target_name":"NoSuchTarget"')"
-expect_rejected_without_artifact tostring_call_target "$mutation" \
-    'ToString call target|call target[^[:alnum:]]+ToString'
-
-select_case multilet "$ROOT_DIR/src/self_hosted/mir_lower/fixture/multilet.pgy"
-run_positive_case $'35\n12'
-mutation="$(make_mutation second_local_result_use \
-    's/"result":"b\.1"/"result":"c.1"/' '"result":"c.1"')"
-expect_rejected_without_artifact second_local_result_use "$mutation" \
-    'second local|local result|result.*use|b\.1'
-mutation="$(make_mutation multiply_operator \
-    's/"kind":"multiply"/"kind":"divide"/' '"kind":"divide"')"
-expect_rejected_without_artifact multiply_operator "$mutation" \
-    'multiply|multiplication|operator'
-mutation="$(make_mutation statement_order \
-    's/"id":2,"kind":"stmt"/"id":99,"kind":"stmt"/;s/"id":3,"kind":"stmt"/"id":2,"kind":"stmt"/;s/"id":99,"kind":"stmt"/"id":3,"kind":"stmt"/' \
-    '"id":3,"kind":"stmt"')"
-expect_rejected_without_artifact statement_order "$mutation" \
-    'statement.*order|instruction[^[:alnum:]]+(id|order)|expected.*id'
-
-echo "[$LABEL] hello + let_log + multilet one-MIR dual-backend gate ok"
+source "$ROOT_DIR/tests/self_hosted/parity/one_mir_dual_backend_case_verdict_owner.sh"
