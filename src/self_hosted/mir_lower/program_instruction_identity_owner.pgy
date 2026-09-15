@@ -1,0 +1,78 @@
+// Routine-local InstructionId admission for the pgy.mir.v1 program index.
+//
+// The MIR producer may reorder instructions while canonicalizing a routine, so
+// physical row order is not identity.  An admitted routine carries one dense
+// canonical 0..N-1 ID permutation, checked in linear time.
+
+import "program_routine_index_owner.pgy";
+
+func MirProgramInstructionIdentityMark(
+    json: String,
+    start: Int,
+    end: Int,
+    inout seen_ids: Array<Bool>
+) -> Bool {
+    let id: String = MirObjectNumberFactAtBounds(json, start, end, "id");
+    let n: Int = StringLength(id);
+    if n <= 0 || (n > 1 && CharCode(id, n, 0) == CharCode("0", 1, 0)) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < n {
+        let code: Int = CharCode(id, n, i);
+        if code < CharCode("0", 1, 0) || code > CharCode("9", 1, 0) {
+            return false;
+        }
+        i = i + 1;
+    }
+    let value: Int = ToInt(id);
+    if value < 0 || value >= ArrayLength(seen_ids) ||
+        ToString(value) != id || seen_ids[value] {
+        return false;
+    }
+    ArraySet(seen_ids, value, true);
+    return true;
+}
+
+func MirProgramInstructionIdentitiesReady(
+    ref routines: MirProgramRoutineIndex
+) -> Bool {
+    if !MirProgramRoutineIndexStructureReady(routines) { return false; }
+    let routine_row: Int = 0;
+    while routine_row < ArrayLength(routines.starts) {
+        let instruction_count: Int = 0;
+        let count_block: Int = 0;
+        while count_block < routines.routine_block_counts[routine_row] {
+            instruction_count = instruction_count +
+                routines.block_instruction_counts[
+                    routines.routine_block_starts[routine_row] + count_block
+                ];
+            count_block = count_block + 1;
+        }
+        let seen_ids: Array<Bool> = [];
+        while ArrayLength(seen_ids) < instruction_count {
+            ArrayPush(seen_ids, false);
+        }
+        let local_block: Int = 0;
+        while local_block < routines.routine_block_counts[routine_row] {
+            let block_row: Int =
+                routines.routine_block_starts[routine_row] + local_block;
+            let local_instruction: Int = 0;
+            while local_instruction <
+                routines.block_instruction_counts[block_row] {
+                let instruction_row: Int =
+                    routines.block_instruction_starts[block_row] +
+                    local_instruction;
+                if !MirProgramInstructionIdentityMark(
+                    routines.source_json,
+                    routines.instruction_starts[instruction_row],
+                    routines.instruction_ends[instruction_row], seen_ids
+                ) { return false; }
+                local_instruction = local_instruction + 1;
+            }
+            local_block = local_block + 1;
+        }
+        routine_row = routine_row + 1;
+    }
+    return true;
+}

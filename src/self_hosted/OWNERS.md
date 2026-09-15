@@ -1504,6 +1504,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   program-lifetime aligned borrowed routing, expression, and graph spans. Long
   text and optional routing values are never materialized into program-global
   string arrays.
+- `src/self_hosted/mir_lower/program_instruction_identity_owner.pgy` -- exact
+  dense canonical `InstructionId` permutation admission over program-index-owned
+  routine bounds. Physical row order is not an identity fallback, and the
+  uniqueness check remains linear in instruction count.
 - `src/self_hosted/mir_lower/program_instruction_routing_span_owner.pgy` --
   allocation-free literal comparison over borrowed `name`/`arg0` spans,
   with bounded decoding only for an actually escaped routing value.

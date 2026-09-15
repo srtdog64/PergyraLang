@@ -12,6 +12,7 @@ import "domain_topology_graph_plan_owner.pgy";
 import "domain_runtime_assignment_fact_owner.pgy";
 import "domain_runtime_plan_owner.pgy";
 import "program_routine_index_owner.pgy";
+import "program_instruction_identity_owner.pgy";
 import "intent_execution_plan_fact_owner.pgy";
 import "program_declaration_index_owner.pgy";
 import "../compiler/machine_layer_runtime_projection_owner.pgy";
@@ -287,7 +288,7 @@ func MirMachineLayerRoutineIndexFactsReady(
     if !CompilerRuntimeCallAbiMachineLayerProjectionReady() {
         return false;
     }
-    if !MirProgramRoutineIndexStructureReady(routines) { return false; }
+    if !MirProgramInstructionIdentitiesReady(routines) { return false; }
     let instruction_row: Int = 0;
     while instruction_row < ArrayLength(routines.instruction_starts) {
         if !MirMachineLayerInstructionBoundsReady(

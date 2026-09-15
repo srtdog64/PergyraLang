@@ -39,18 +39,28 @@ func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
         );
     }
     let cursor: Int = 1;
+    let expect_member: Bool = true;
+    let after_comma: Bool = false;
     while cursor < n {
         cursor = JsonSkipWhitespaceWithin(json, cursor, n);
         if cursor >= n { break; }
         let code: Int = JsonCharCodeAt(json, n, cursor);
         if code == JsonAsciiCode("}") {
-            root = JsonObjectFactTable(true, json, 0, cursor + 1);
+            let document_end: Int = cursor + 1;
+            if after_comma ||
+                JsonSkipWhitespaceWithin(json, document_end, n) != n {
+                break;
+            }
+            root = JsonObjectFactTable(true, json, 0, document_end);
             return MirDocumentFactIndex(
                 true, root, declarations, domain_topology,
                 domain_runtime_assignments, intent_execution, routines, boundaries
             );
         }
-        if code == JsonAsciiCode(",") {
+        if !expect_member {
+            if code != JsonAsciiCode(",") { break; }
+            expect_member = true;
+            after_comma = true;
             cursor = cursor + 1;
             continue;
         }
@@ -124,6 +134,8 @@ func BuildMirDocumentFactIndex(json: String) -> MirDocumentFactIndex {
             break;
         }
         cursor = value_end;
+        expect_member = false;
+        after_comma = false;
     }
     return MirDocumentFactIndex(
         false, root, declarations, domain_topology,
