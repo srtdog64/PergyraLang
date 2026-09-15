@@ -351,25 +351,39 @@ mutations on both C and LLVM, publishing six artifacts. This reproduces the
 root-comma, trailing-root-byte and duplicate-InstructionId findings without
 relying on the stale seed.
 
-The repair commit `c268b695` makes `BuildMirDocumentFactIndex` own comma state
-and whitespace-only EOF. A separate program instruction identity owner checks
+The initial `c268b695` repair makes `BuildMirDocumentFactIndex` own comma state
+and whitespace-only EOF. Its first program instruction identity owner checked
 the dense canonical `0..N-1` permutation in linear time at machine admission;
-physical instruction row order is not an identity fallback. Its duplicate-ID
-falsifier collides instructions in two different CFG blocks of one routine, so
-a block-local uniqueness check cannot make the gate false-green.
+that was too strong. Physical instruction row order is not an identity fallback.
+The duplicate-ID falsifier collides instructions in two different CFG blocks of
+one routine, so a block-local uniqueness check cannot make the gate false-green.
 
-`tests/self_hosted/parity/direct_mir_document_admission_owner.sh` now observes
-two successful control projections and six refusals with no negative artifact.
+The initial `tests/self_hosted/parity/direct_mir_document_admission_owner.sh`
+observed two successful control projections and six refusals with no negative
+artifact, but did not falsify an overstrict density condition.
 Root mutations report `input is not a pgy.mir.v1 MIR-JSON document`; both
 cross-block ID mutations report
 `MIR instruction identities are missing or duplicated`. This is evidence only
 for the reproduced root-syntax/EOF and scoped-ID seams. Reference, CFG, SSA,
 resource and target legality remain separate external-MIR admission work.
 
-The repair was absent from the pre-publication `bf329e99` checkpoint and is
-now committed in `c268b695`. Ordinary Push CI is still unobserved at this
-audit checkpoint. The focused gate closes only the two reproduced admission
-falsifiers, not whole external-MIR legality or registry status.
+Push CI `34932122840` on `87d003fe` exposed the missing positive case:
+`build-linux` failed after role-override and enum-variant/builtin collision
+oracle normalization erased a synthetic Void exit without renumbering the
+surviving IDs. `self-host-bootstrap-linux` failed when its missing-priority
+negative erased an instruction and the ID checker masked the nested-intent
+owner's intended refusal. These three failures share the same overstrict
+assumption; no registry status was promoted by the initial patch.
+
+Corrective commit `cc3a21ef` admits canonical nonnegative routine-local IDs
+that are unique but sparse, by sorting the admitted routine's IDs and refusing
+adjacent duplicates. The corrected gate adds sparse-ID C/LLVM controls while
+retaining the original six no-artifact negatives. A Pergyra-built isolated
+driver passed that gate, the installed enum collision and role-override gates,
+and the nested-intent C/LLVM parity and twelve negative cases. This is local
+falsification of the three CI failures; the corrective Push CI is pending.
+Reference, CFG, SSA, resource and target legality remain separate external-MIR
+admission work.
 
 ## Scheduling verdict
 
@@ -404,5 +418,6 @@ checking to the direct backend.
 
 The affine-Future and Zone spawn ABI findings remain independent successor
 reds. Root JSON grammar and duplicate routine-local InstructionId have the
-focused `c268b695` repair above; ordinary CI remains unobserved at this
-checkpoint. None changes the canonical census or project percentage.
+focused `c268b695` plus `cc3a21ef` repair above; the corrective ordinary CI
+remains unobserved at this checkpoint. None changes the canonical census or
+project percentage.

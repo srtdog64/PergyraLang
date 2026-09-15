@@ -1,50 +1,65 @@
 # Current Work Handoff
 
 Updated: 2026-09-15 (Asia/Seoul), external MIR root/InstructionId admission
-repair committed for publication; navigation only. Compiler owners, registries
+CI counterexample corrected locally; navigation only. Compiler owners, registries
 and executable gates override this snapshot.
 
-## Active self-host context — MIR root/InstructionId fail-closed, Push CI pending
+## Active self-host context — MIR root/InstructionId, sparse-ID CI repair pending
 
-Executable repair commit: `c268b695cdecfd1dcbb8835874ac8fa779be4627`.
-Pre-publication `origin/main`: `bf329e99430e4f4f562b11192be3789eb415007b`.
-This navigation refresh follows the repair commit; its own commit ID and the
-remote CI verdict must be verified from Git and Actions rather than inferred
-from this snapshot.
+Executable repair commits: `c268b695cdecfd1dcbb8835874ac8fa779be4627`
+and corrective `cc3a21ef7fcfc87b445b1f72fde9c63a263b8d21`.
+Published red checkpoint `87d003fee03d601813e405bf9da0898f183f9ac2`;
+ordinary Push CI `34932122840` failed in `build-linux` and
+`self-host-bootstrap-linux`. The correction's remote verdict must be verified
+from Git and Actions after this navigation refresh is published.
 
 Objective card:
 - Objective: prevent the reproduced root-syntax residue and duplicate
   routine-local `InstructionId` values in external `pgy.mir.v1` from reaching
   either direct backend publication boundary.
-- Priority: exact document grammar and EOF, scoped instruction identity,
-  explicit refusal, no artifact publication, then focused C/LLVM projection.
+- Priority: exact document grammar and EOF, routine-scoped ID uniqueness
+  without false density, explicit refusal, no artifact publication, then
+  focused C/LLVM projection and existing installed parity gates.
 - Fact owners: `BuildMirDocumentFactIndex` owns the root grammar boundary;
-  `program_instruction_identity_owner.pgy` owns the dense canonical
-  routine-local ID permutation over program-index bounds.
+  `program_instruction_identity_owner.pgy` owns canonical nonnegative,
+  routine-local ID uniqueness over program-index bounds. Sparse IDs remain
+  valid when an oracle comparison erases a synthetic Void exit.
 - Last legitimate consumer: machine-layer admission immediately before the
   direct C/LLVM projectors.
 - Forbidden fallback: skipping commas independent of parser state, accepting
   bytes after the root object, treating physical instruction order as identity,
-  or publishing an artifact from a partial parse.
+  requiring dense numbering after an erased instruction, or publishing an
+  artifact from a partial parse.
 - Verification/falsifier: one current valid scalar MIR must project to both C
-  and LLVM; leading-root-comma, extra-root-close and duplicate-ID mutations must
-  fail on both backends with the owned diagnostic and no output artifact.
+  and LLVM, including a valid sparse-ID control; leading-root-comma,
+  extra-root-close and cross-block duplicate-ID mutations must fail on both
+  backends with the owned diagnostic and no output artifact. Existing enum,
+  role-override and nested-intent gates falsify overstrict ID admission.
 
 Reached repair and observed evidence:
 - The pre-repair candidate accepted all six malformed-input/backend pairs and
   published all six artifacts. The current seed still succeeded on both
   backends, so the reproduction did not rely on the stale September 5 seed.
-- Root parsing now enforces member/comma state and whitespace-only EOF. The
-  instruction owner validates the canonical `0..N-1` permutation in O(n) time;
-  row order remains non-authoritative.
-- A Pergyra-built DRV-2 was rebuilt from the isolated patched source graph.
+- Root parsing enforces member/comma state and whitespace-only EOF. The first
+  ID owner wrongly required a dense `0..N-1` permutation. CI exposed native
+  oracle normalization and a missing-priority negative that preserve unique
+  but sparse IDs. `cc3a21ef` checks canonical nonnegative uniqueness after
+  routine-local sorting; physical row order remains non-authoritative.
+- A Pergyra-built DRV-2 was rebuilt from the isolated `cc3a21ef` source graph.
   SHA-256:
-  `5F377DA8B0992BA7EB61E4B9C2379D2A0E2962CCBA6776FD80C40E81AAD3B8C4`.
-- `direct_mir_document_admission_owner.sh` passes: two valid control
-  projections plus six owned refusals, with zero negative artifacts. The ID
-  mutation collides instructions from two different CFG blocks in one routine.
-- The final structural component contract passes all 2,424 line-cap requests;
-  `git diff --check`, shell syntax and Python syntax checks pass.
+  `99E211EA177998A3E7C6A7BB5DE0ACF33F760F4CDDA3FC292C861B12185A57FB`.
+- The corrected `direct_mir_document_admission_owner.sh` passes: four valid
+  C/LLVM controls (including sparse IDs) and six owned refusals with zero
+  negative artifacts. The ID mutation collides instructions in two CFG blocks.
+- The isolated installed enum-variant/builtin collision, role-override MIR,
+  and nested-intent C/LLVM parity/negative gates all pass, matching the three
+  remotely reached failing surfaces. `git diff --check`, shell syntax and
+  Python syntax checks pass; all four corrective source/test files are
+  SHA-256-equal between main and the isolated source graph.
+- The prior isolated structural component contract passed all 2,424 line-cap
+  requests before the correction. The corrected isolated invocation stopped
+  at its installed-frontier dry-run because this new worktree lacks the native
+  `build/pgy.exe.rsp`; do not call the corrected structural gate green.
 - The routine-index executable fixture passes through C. Its LLVM build
   succeeds but the executable exits with Windows status `0xC0000374`; an
   untouched `bf329e99` worktree produces the same status. This is retained as
@@ -56,14 +71,15 @@ Reached repair and observed evidence:
   successor rungs.
 
 Dirty-state boundary:
-- The eight implementation/gate/registration files are isolated in
-  `c268b695`; this audit and navigation refresh are a separate documentation
-  commit. The user explicitly authorized commit and push; ordinary Push CI is
+- The first packet was published as `c268b695` plus documentation `87d003fe`;
+  corrective executable delta is `cc3a21ef`. This audit and navigation
+  refresh are a separate documentation commit; corrected ordinary Push CI is
   not yet observed at this checkpoint.
 - Six unrelated `Slice<T>` edits remain in five semantic owners plus
   `tests/self_host_pergyra_likeness_smoke.sh`. Preserve them and do not stage,
   reset or fold them into this packet.
-- Next action: push only the two repair commits, observe ordinary Push CI,
+- Next action: push only the corrective code/documentation commits, observe
+  ordinary Push CI,
   then choose exactly one resource-boundary successor (Future aggregate
   or Zone/spawn). Do not rerun exhaustive verification in this edit loop.
 
