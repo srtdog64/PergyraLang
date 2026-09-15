@@ -1,10 +1,75 @@
 # Current Work Handoff
 
-Updated: 2026-09-15 (Asia/Seoul), one-shot exhaustive tail closure and green
-ordinary push; navigation only. Compiler owners, registries and executable
-gates override this snapshot.
+Updated: 2026-09-15 (Asia/Seoul), external MIR root/InstructionId admission
+repair committed for publication; navigation only. Compiler owners, registries
+and executable gates override this snapshot.
 
-## Active self-host context — exhaustive evidence retained; ordinary push green
+## Active self-host context — MIR root/InstructionId fail-closed, Push CI pending
+
+Executable repair commit: `c268b695cdecfd1dcbb8835874ac8fa779be4627`.
+Pre-publication `origin/main`: `bf329e99430e4f4f562b11192be3789eb415007b`.
+This navigation refresh follows the repair commit; its own commit ID and the
+remote CI verdict must be verified from Git and Actions rather than inferred
+from this snapshot.
+
+Objective card:
+- Objective: prevent the reproduced root-syntax residue and duplicate
+  routine-local `InstructionId` values in external `pgy.mir.v1` from reaching
+  either direct backend publication boundary.
+- Priority: exact document grammar and EOF, scoped instruction identity,
+  explicit refusal, no artifact publication, then focused C/LLVM projection.
+- Fact owners: `BuildMirDocumentFactIndex` owns the root grammar boundary;
+  `program_instruction_identity_owner.pgy` owns the dense canonical
+  routine-local ID permutation over program-index bounds.
+- Last legitimate consumer: machine-layer admission immediately before the
+  direct C/LLVM projectors.
+- Forbidden fallback: skipping commas independent of parser state, accepting
+  bytes after the root object, treating physical instruction order as identity,
+  or publishing an artifact from a partial parse.
+- Verification/falsifier: one current valid scalar MIR must project to both C
+  and LLVM; leading-root-comma, extra-root-close and duplicate-ID mutations must
+  fail on both backends with the owned diagnostic and no output artifact.
+
+Reached repair and observed evidence:
+- The pre-repair candidate accepted all six malformed-input/backend pairs and
+  published all six artifacts. The current seed still succeeded on both
+  backends, so the reproduction did not rely on the stale September 5 seed.
+- Root parsing now enforces member/comma state and whitespace-only EOF. The
+  instruction owner validates the canonical `0..N-1` permutation in O(n) time;
+  row order remains non-authoritative.
+- A Pergyra-built DRV-2 was rebuilt from the isolated patched source graph.
+  SHA-256:
+  `5F377DA8B0992BA7EB61E4B9C2379D2A0E2962CCBA6776FD80C40E81AAD3B8C4`.
+- `direct_mir_document_admission_owner.sh` passes: two valid control
+  projections plus six owned refusals, with zero negative artifacts. The ID
+  mutation collides instructions from two different CFG blocks in one routine.
+- The final structural component contract passes all 2,424 line-cap requests;
+  `git diff --check`, shell syntax and Python syntax checks pass.
+- The routine-index executable fixture passes through C. Its LLVM build
+  succeeds but the executable exits with Windows status `0xC0000374`; an
+  untouched `bf329e99` worktree produces the same status. This is retained as
+  pre-existing LLVM fixture evidence, not attributed to this patch and not
+  relabelled green.
+- No Platform full, Self-host parity or exhaustive language-word matrix was
+  run. The review's Future-aggregate and Zone/spawn findings, plus broader
+  external-MIR reference/CFG/SSA/resource legality, remain separate unverified
+  successor rungs.
+
+Dirty-state boundary:
+- The eight implementation/gate/registration files are isolated in
+  `c268b695`; this audit and navigation refresh are a separate documentation
+  commit. The user explicitly authorized commit and push; ordinary Push CI is
+  not yet observed at this checkpoint.
+- Six unrelated `Slice<T>` edits remain in five semantic owners plus
+  `tests/self_host_pergyra_likeness_smoke.sh`. Preserve them and do not stage,
+  reset or fold them into this packet.
+- Next action: push only the two repair commits, observe ordinary Push CI,
+  then choose exactly one resource-boundary successor (Future aggregate
+  or Zone/spawn). Do not rerun exhaustive verification in this edit loop.
+
+## Historical archive boundary
+
+### Archived self-host context — exhaustive evidence retained; ordinary push green
 
 Last fully verified code HEAD: `1256f68d4a8e33268dad2d7f5c6518774273a505`.
 The cadence commits `23dbd6a7` and `6b68940d` keep the exhaustive
@@ -94,8 +159,6 @@ Dirty-state boundary:
 - Next action: return to focused executable-rung work. Do not dispatch Platform
   full, Self-host parity, or the exhaustive language-word inventory again until
   an explicit major-patch or `v*` release boundary.
-
-## Historical archive boundary
 
 ### Archived self-host context — close the reached tail, then run exhaustive once
 
@@ -187,7 +250,7 @@ Dirty-state boundary:
 Updated: 2026-09-09 (Asia/Seoul), native CI regression repair; navigation only.
 Compiler owners, registries and executable gates override this snapshot.
 
-## Active self-host context — native CI integration repair
+#### Archived self-host context — native CI integration repair
 
 Pre-publication HEAD/origin/main: `975b703a1069dfcddb235b8a221bd1d7f4555bdb`.
 The user authorized correction, commit and push after failed CI. This card

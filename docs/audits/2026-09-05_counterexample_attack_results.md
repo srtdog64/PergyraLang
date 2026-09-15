@@ -285,7 +285,7 @@ Slot escape rejection. Generation revalidation after automatic resume and
 general panic-to-sibling cancellation remain design-only and were not scored
 as implementation counterexamples.
 
-## `F:\tex_bug` attack: successor reds, not repaired
+## `F:\tex_bug` attack: original successor reds and current recheck
 
 The imported corpus root was `F:\tex_bug\corpus\pergyra\imported-local`, not
 `F:\tex\_bug`. The current DRV-2 still accepts three minimized direct-MIR
@@ -340,6 +340,37 @@ The source campaign used the sorted first 100 corpus seeds, RNG seed
 ignored replay ledger is
 `.tmp/self_hosted/adversary_fuzz/source_diff/summary.json`.
 
+### 2026-09-15 recheck and focused repair commit
+
+The old `let_log` seed no longer reaches this boundary: the current driver
+rejects it for a stale literal-Log identity. A fresh multi-block scalar seed was
+therefore produced from
+`tests/self_hosted/fixtures/direct_mir_scalar_bool_sub_equals_short_circuit.pgy`.
+The pre-repair candidate projected that valid seed and also accepted all three
+mutations on both C and LLVM, publishing six artifacts. This reproduces the
+root-comma, trailing-root-byte and duplicate-InstructionId findings without
+relying on the stale seed.
+
+The repair commit `c268b695` makes `BuildMirDocumentFactIndex` own comma state
+and whitespace-only EOF. A separate program instruction identity owner checks
+the dense canonical `0..N-1` permutation in linear time at machine admission;
+physical instruction row order is not an identity fallback. Its duplicate-ID
+falsifier collides instructions in two different CFG blocks of one routine, so
+a block-local uniqueness check cannot make the gate false-green.
+
+`tests/self_hosted/parity/direct_mir_document_admission_owner.sh` now observes
+two successful control projections and six refusals with no negative artifact.
+Root mutations report `input is not a pgy.mir.v1 MIR-JSON document`; both
+cross-block ID mutations report
+`MIR instruction identities are missing or duplicated`. This is evidence only
+for the reproduced root-syntax/EOF and scoped-ID seams. Reference, CFG, SSA,
+resource and target legality remain separate external-MIR admission work.
+
+The repair was absent from the pre-publication `bf329e99` checkpoint and is
+now committed in `c268b695`. Ordinary Push CI is still unobserved at this
+audit checkpoint. The focused gate closes only the two reproduced admission
+falsifiers, not whole external-MIR legality or registry status.
+
 ## Scheduling verdict
 
 Checkpoint `123f0889` closes the active direct-MIR tagged-enum projection rung:
@@ -371,7 +402,7 @@ lease can be retired. The declared enum/variant/payload-type projection remains
 separate and cannot invent active-tag truth from spelling or delegate semantic
 checking to the direct backend.
 
-The affine-Future, Zone spawn ABI, root JSON grammar, and duplicate
-InstructionId findings remain independent successor reds. Their order is not
-decided by this audit, and none changes the canonical census or project
-percentage.
+The affine-Future and Zone spawn ABI findings remain independent successor
+reds. Root JSON grammar and duplicate routine-local InstructionId have the
+focused `c268b695` repair above; ordinary CI remains unobserved at this
+checkpoint. None changes the canonical census or project percentage.
