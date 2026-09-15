@@ -37,6 +37,18 @@ for backend in c llvm; do
 done
 
 python "$MUTATIONS" "$WORK_DIR/seed.mir.json" "$WORK_DIR"
+for backend in c llvm; do
+    extension="$backend"
+    [[ "$backend" == llvm ]] && extension="ll"
+    (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
+        "$WORK_REL/sparse-instruction-id.mir.json" \
+        -o "$WORK_REL/sparse.$extension") \
+        >"$WORK_DIR/sparse.$backend.out" \
+        2>"$WORK_DIR/sparse.$backend.err" ||
+        fail "valid sparse-ID $backend control projection failed"
+    [[ -s "$WORK_DIR/sparse.$extension" ]] ||
+        fail "valid sparse-ID $backend control emitted no artifact"
+done
 for mutation in leading-comma extra-root-close duplicate-instruction-id; do
     expected="input is not a pgy.mir.v1 MIR-JSON document"
     [[ "$mutation" == duplicate-instruction-id ]] &&
@@ -60,4 +72,4 @@ for mutation in leading-comma extra-root-close duplicate-instruction-id; do
     done
 done
 
-echo "[$LABEL] root syntax/EOF and routine-scoped InstructionId refusal: PASS"
+echo "[$LABEL] root syntax/EOF, sparse-ID controls and scoped-ID refusal: PASS"

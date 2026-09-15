@@ -19,6 +19,18 @@ def main() -> int:
         text + "}", encoding="utf-8"
     )
 
+    sparse = copy.deepcopy(seed)
+    instruction_rows = [
+        instruction
+        for routine in sparse["routines"]
+        for block in routine["blocks"]
+        for instruction in block["instructions"]
+    ]
+    instruction_rows[0]["id"] = max(row["id"] for row in instruction_rows) + 7
+    (output_dir / "sparse-instruction-id.mir.json").write_text(
+        json.dumps(sparse, separators=(",", ":")), encoding="utf-8"
+    )
+
     duplicate = copy.deepcopy(seed)
     routine = next(
         routine for routine in duplicate["routines"]
