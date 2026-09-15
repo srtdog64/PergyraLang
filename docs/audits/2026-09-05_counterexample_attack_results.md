@@ -380,8 +380,11 @@ that are unique but sparse, by sorting the admitted routine's IDs and refusing
 adjacent duplicates. The corrected gate adds sparse-ID C/LLVM controls while
 retaining the original six no-artifact negatives. A Pergyra-built isolated
 driver passed that gate, the installed enum collision and role-override gates,
-and the nested-intent C/LLVM parity and twelve negative cases. This is local
-falsification of the three CI failures; the corrective Push CI is pending.
+and the nested-intent C/LLVM parity and twelve negative cases. Exact corrected
+Push CI `34935370223` on `09d514cb` completed 30/30 success: remote
+`build-linux` passed role-override, enum collision and the 2,424-request
+component contract, and `self-host-bootstrap-linux` passed the nested-intent
+gate after `gen2 == gen3 (190082 lines)`.
 Reference, CFG, SSA, resource and target legality remain separate external-MIR
 admission work.
 
@@ -418,6 +421,6 @@ checking to the direct backend.
 
 The affine-Future and Zone spawn ABI findings remain independent successor
 reds. Root JSON grammar and duplicate routine-local InstructionId have the
-focused `c268b695` plus `cc3a21ef` repair above; the corrective ordinary CI
-remains unobserved at this checkpoint. None changes the canonical census or
+focused `c268b695` plus `cc3a21ef` repair above; corrected ordinary Push CI
+is 30/30 green. None changes the canonical census or
 project percentage.

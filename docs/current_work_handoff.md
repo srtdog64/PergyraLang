@@ -1,17 +1,22 @@
 # Current Work Handoff
 
 Updated: 2026-09-15 (Asia/Seoul), external MIR root/InstructionId admission
-CI counterexample corrected locally; navigation only. Compiler owners, registries
+corrected and ordinary Push CI green; navigation only. Compiler owners, registries
 and executable gates override this snapshot.
 
-## Active self-host context — MIR root/InstructionId, sparse-ID CI repair pending
+## Active self-host context — MIR root/InstructionId focused admission green
 
+Green code/documentation checkpoint HEAD and `origin/main`:
+`09d514cbe0eb9dced9a9755bd8b69a179b7b5a90`. This handoff refresh is a
+docs-only descendant; consult Git for its own commit ID.
 Executable repair commits: `c268b695cdecfd1dcbb8835874ac8fa779be4627`
 and corrective `cc3a21ef7fcfc87b445b1f72fde9c63a263b8d21`.
 Published red checkpoint `87d003fee03d601813e405bf9da0898f183f9ac2`;
 ordinary Push CI `34932122840` failed in `build-linux` and
-`self-host-bootstrap-linux`. The correction's remote verdict must be verified
-from Git and Actions after this navigation refresh is published.
+`self-host-bootstrap-linux`. Corrected ordinary Push CI `34935370223` on
+`09d514cb` completed 30/30 success; the full self-host job proved
+`gen2 == gen3 (190082 lines)` and the policy corpus `3 in_subset / 0
+out_of_subset`.
 
 Objective card:
 - Objective: prevent the reproduced root-syntax residue and duplicate
@@ -59,7 +64,11 @@ Reached repair and observed evidence:
 - The prior isolated structural component contract passed all 2,424 line-cap
   requests before the correction. The corrected isolated invocation stopped
   at its installed-frontier dry-run because this new worktree lacks the native
-  `build/pgy.exe.rsp`; do not call the corrected structural gate green.
+  `build/pgy.exe.rsp`; do not call that isolated invocation green. The exact
+  corrected remote `build-linux` run did pass its 2,424-request component
+  contract, role-override, and enum-variant/builtin collision gates. The full
+  remote self-host run passed nested-intent LLVM/C parity and twelve
+  no-artifact negatives.
 - The routine-index executable fixture passes through C. Its LLVM build
   succeeds but the executable exits with Windows status `0xC0000374`; an
   untouched `bf329e99` worktree produces the same status. This is retained as
@@ -72,16 +81,16 @@ Reached repair and observed evidence:
 
 Dirty-state boundary:
 - The first packet was published as `c268b695` plus documentation `87d003fe`;
-  corrective executable delta is `cc3a21ef`. This audit and navigation
-  refresh are a separate documentation commit; corrected ordinary Push CI is
-  not yet observed at this checkpoint.
+  corrective executable delta is `cc3a21ef` plus documentation `09d514cb`.
+  Corrected ordinary Push CI is green. This final navigation refresh is
+  documentation-only and does not alter compiler semantics.
 - Six unrelated `Slice<T>` edits remain in five semantic owners plus
   `tests/self_host_pergyra_likeness_smoke.sh`. Preserve them and do not stage,
   reset or fold them into this packet.
-- Next action: push only the corrective code/documentation commits, observe
-  ordinary Push CI,
-  then choose exactly one resource-boundary successor (Future aggregate
-  or Zone/spawn). Do not rerun exhaustive verification in this edit loop.
+- Next action: choose exactly one resource-boundary successor (Future aggregate
+  or Zone/spawn) with its production entrypoint, old bypass, fact owner and
+  falsifying fixture before implementation. Do not rerun exhaustive verification
+  in this edit loop; the broader external-MIR legality cases remain separate.
 
 ## Historical archive boundary
 
