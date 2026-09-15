@@ -1,13 +1,13 @@
 # Current Work Handoff
 
-Updated: 2026-09-15 (Asia/Seoul), one-shot exhaustive tail closure and cadence;
-navigation only. Compiler owners, registries and executable gates override this
-snapshot.
+Updated: 2026-09-15 (Asia/Seoul), one-shot exhaustive tail closure and ordinary
+push LOC repair; navigation only. Compiler owners, registries and executable
+gates override this snapshot.
 
-## Active self-host context — publish the one-shot exhaustive tail closure
+## Active self-host context — close the ordinary push after exhaustive-tail repair
 
-Pre-publication HEAD/origin/main: `6602c3e7d2d8d9e06ef4945eb2dd4fba0aabeefb`.
-The previous cadence commits `23dbd6a7` and `6b68940d` keep the exhaustive
+Current HEAD/origin/main: `3d68026772633e65f03f5c56b98a7b9424a134df`.
+The cadence commits `23dbd6a7` and `6b68940d` keep the exhaustive
 146-language-word inventory out of ordinary push CI and reserve it for an
 explicit major-patch/manual run or a `v*` release boundary.
 
@@ -33,6 +33,14 @@ Objective card:
   commit; the exhaustive matrix remains deferred to the next major boundary.
 
 Reached repair and observed evidence:
+- The exhaustive-tail repair was published as `3d680267`. Ordinary Push CI
+  `34911681025` kept the keyword inventory out as intended. Twenty-eight jobs
+  were green when `build-linux` reached its only failure: the new parser guard
+  made `decl_dispatch_owner.pgy` 601 lines against the existing 600-line cap.
+- The guard is now expressed in 599 lines without changing its condition or
+  ownership. `self_host_preparation_smoke.sh` passes, and the focused
+  `direct_mir_scalar_runtime_value_lifecycle_owner.sh` C/LLVM execution and
+  negative gate still passes.
 - `EmitFunctionSet` now sends its empty specialization list through
   `CodegenJoinOwnedStringFragments`, preserving the declared `own Array<String>`
   consuming identity on every return path.
@@ -63,9 +71,8 @@ Reached repair and observed evidence:
   not the failed CI's rung-0 input and is excluded from this repair verdict.
 
 Dirty-state boundary:
-- This isolated worktree contains only the seven repair/test files plus this
-  handoff. Generated MIR, C, LLVM, object and executable artifacts are ignored
-  under `.tmp` on C:.
+- This isolated worktree contains only the one-line parser-owner compaction and
+  this handoff update. Generated test artifacts remain ignored under `.tmp`.
 - The main worktree still has six unrelated Slice-related edits in five
   self-host semantic owners and `tests/self_host_pergyra_likeness_smoke.sh`.
   They remain preserved and must not be staged, reset or folded into this
