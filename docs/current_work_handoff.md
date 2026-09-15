@@ -1,12 +1,12 @@
 # Current Work Handoff
 
-Updated: 2026-09-15 (Asia/Seoul), one-shot exhaustive tail closure and ordinary
-push LOC repair; navigation only. Compiler owners, registries and executable
+Updated: 2026-09-15 (Asia/Seoul), one-shot exhaustive tail closure and green
+ordinary push; navigation only. Compiler owners, registries and executable
 gates override this snapshot.
 
-## Active self-host context — close the ordinary push after exhaustive-tail repair
+## Active self-host context — exhaustive evidence retained; ordinary push green
 
-Pre-publication HEAD/origin/main: `5162704a012b005b8b5342810282bb88262a09c0`.
+Last fully verified code HEAD: `1256f68d4a8e33268dad2d7f5c6518774273a505`.
 The cadence commits `23dbd6a7` and `6b68940d` keep the exhaustive
 146-language-word inventory out of ordinary push CI and reserve it for an
 explicit major-patch/manual run or a `v*` release boundary.
@@ -50,6 +50,10 @@ Reached repair and observed evidence:
   pass with the rebuilt candidate self driver. The complete component contract
   passes all 2,423 line-cap requests, and the impact-manifest and substrate
   tail gates also pass.
+- Ordinary Push CI `34915847404` completed 30/30 green on `1256f68d` in
+  26m41s. The exhaustive 146-language-word job was absent. No Platform full,
+  Self-host parity, or replacement exhaustive run was dispatched, so the
+  earlier one-shot exhaustive workflow is not being relabelled all-green.
 - `EmitFunctionSet` now sends its empty specialization list through
   `CodegenJoinOwnedStringFragments`, preserving the declared `own Array<String>`
   consuming identity on every return path.
@@ -80,16 +84,16 @@ Reached repair and observed evidence:
   not the failed CI's rung-0 input and is excluded from this repair verdict.
 
 Dirty-state boundary:
-- This isolated worktree contains only the one-line parser-owner compaction and
-  this handoff update. Generated test artifacts remain ignored under `.tmp`.
+- The two CI-cap repairs are published as `5162704a` and `1256f68d`; this final
+  navigation refresh is documentation-only. Generated test artifacts remain
+  ignored under `.tmp`.
 - The main worktree still has six unrelated Slice-related edits in five
   self-host semantic owners and `tests/self_host_pergyra_likeness_smoke.sh`.
   They remain preserved and must not be staged, reset or folded into this
   publication.
-- Next action: commit this isolated repair, integrate only that commit into
-  main, push, and observe ordinary Push CI. Do not dispatch Platform full,
-  Self-host parity, or the exhaustive language-word inventory again in this
-  edit loop.
+- Next action: return to focused executable-rung work. Do not dispatch Platform
+  full, Self-host parity, or the exhaustive language-word inventory again until
+  an explicit major-patch or `v*` release boundary.
 
 ## Historical archive boundary
 
