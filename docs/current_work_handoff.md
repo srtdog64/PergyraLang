@@ -6,7 +6,7 @@ gates override this snapshot.
 
 ## Active self-host context — close the ordinary push after exhaustive-tail repair
 
-Current HEAD/origin/main: `3d68026772633e65f03f5c56b98a7b9424a134df`.
+Pre-publication HEAD/origin/main: `5162704a012b005b8b5342810282bb88262a09c0`.
 The cadence commits `23dbd6a7` and `6b68940d` keep the exhaustive
 146-language-word inventory out of ordinary push CI and reserve it for an
 explicit major-patch/manual run or a `v*` release boundary.
@@ -41,6 +41,15 @@ Reached repair and observed evidence:
   ownership. `self_host_preparation_smoke.sh` passes, and the focused
   `direct_mir_scalar_runtime_value_lifecycle_owner.sh` C/LLVM execution and
   negative gate still passes.
+- Publication `5162704a` reached ordinary Push CI `34913593556`. The parser cap
+  and CI-profile isolation passed; the keyword inventory did not run. With 28
+  jobs green, `build-linux` then exposed the next and only failure: the focused
+  local indexed-assignment parity script was 93 lines against its 90-line cap.
+- Three blank separators are removed without deleting a check, making the
+  script exactly 90 lines. Its C/LLVM execution and ten negative mutations
+  pass with the rebuilt candidate self driver. The complete component contract
+  passes all 2,423 line-cap requests, and the impact-manifest and substrate
+  tail gates also pass.
 - `EmitFunctionSet` now sends its empty specialization list through
   `CodegenJoinOwnedStringFragments`, preserving the declared `own Array<String>`
   consuming identity on every return path.

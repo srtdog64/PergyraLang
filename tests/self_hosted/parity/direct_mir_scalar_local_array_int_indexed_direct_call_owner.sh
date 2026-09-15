@@ -28,7 +28,6 @@ mkdir -p "$WORK_DIR"
 rm -f "$WORK_DIR"/*
 (cd "$ROOT_DIR" && "$NATIVE" --native-pipeline --emit-c "$OWNER_REL" -o "$WORK_REL/owner.native.c") \
     >"$WORK_DIR/owner.native.out" 2>"$WORK_DIR/owner.native.err" || fail "native owner admission failed"
-
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE_REL" -o "$MIR_REL") \
     >"$WORK_DIR/producer.out" 2>"$WORK_DIR/producer.err" || fail "MIR production failed"
 python - "$MIR" <<'PY' || fail "producer local indexed-assignment fact drifted"
@@ -52,7 +51,6 @@ assert b["arg0"]=="unknown_effects" and b["abi_type_name"]=="Array<Bool>"
 assert b["uses"]==["unknown_effects.1","callable.1"] and b["expr0"]=="true"
 PY
 printf '6\n' >"$WORK_DIR/expected.run"
-
 for backend in c llvm; do
     extension="$backend"; [[ "$backend" == llvm ]] && extension="ll"
     artifact_rel="$WORK_REL/program.$extension"; artifact="$ROOT_DIR/$artifact_rel"
@@ -78,7 +76,6 @@ for backend in c llvm; do
     "$bin" | tr -d '\r' >"$WORK_DIR/$backend.run"
     cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/$backend.run" || fail "$backend runtime output drifted"
 done
-
 for mutation in missing-predecessor wrong-predecessor repeated-predecessor target-owner \
         target-binding result-owner array-type rhs-call-target \
         bool-missing-predecessor bool-rhs-type; do
