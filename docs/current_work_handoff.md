@@ -3,16 +3,18 @@
 Updated: 2026-09-16 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-## Active self-host context — Zone authority transition CLOSED, CI repair pending publication
+## Active self-host context — Zone authority transition CLOSED, diagnostic contract publication pending
 
 Material compiler/test checkpoint:
-`f148a59b1bebc64e78eee52e83036a089235b687`. This handoff refresh is a
+`9aa730dd0d5c1db8d44a3e54390778178c3fd998`. This handoff refresh is a
 docs-only descendant; consult Git for its own commit ID. `origin/main` is
-`6032101223da1e9b4736819e606a6c0665fefb44` until the CI-repair push. The
-Zone/Future closure and audit packet is published; the follow-up replaces the
-five Zone-bridge control-flow sentinels found by publication CI. Six
-pre-existing Slice semantic/ratchet edits remain a separate incomplete,
-unstaged packet and are not part of the material checkpoint.
+`ebc0ca0da0cdf2b80e2fdd7419e0cda998e5acd5` until the diagnostic-contract
+push. The Zone/Future closure, the five-sentinel `Option<Int>` repair, and its
+green remote checkpoint are published. The bounded follow-up restores the
+pre-existing Zone placement diagnostic identity and adds a negative ratchet
+against diagnostic splitting or sentinel reintroduction. Six pre-existing
+Slice semantic/ratchet edits remain a separate incomplete, unstaged packet and
+are not part of the material checkpoint.
 
 Objective card:
 - Objective: replace final self-C reconstruction of an Intent step's actor,
@@ -38,8 +40,9 @@ Objective card:
 Reached evidence:
 - After replacing the five new `-1` lookup/ambiguity sentinels with
   `Option<Int>`, `make -j1 self-host-compiler` completed and installed the
-  Pergyra-built DRV-2 composition root. Installed SHA-256:
-  `874FF0069BBD1A1513B21DB9144F27725015498EBF25B095F0E67EB0730A4EE0`.
+  Pergyra-built DRV-2 composition root. After restoring the diagnostic
+  identity, the same serial build completed again. Current installed SHA-256:
+  `92626852ADEB87B57DC238B61659F0B0118BCC3B6A32F32157176B470EE1EC86`.
 - The focused transition gate passes with `ok=true`, `worker=2`, `gate=2` on
   self C, native C, and native LLVM. Source and direct-MIR C are byte-equal.
 - Three admitted-MIR mutations fail closed: missing Zone authority, authority
@@ -53,12 +56,20 @@ Reached evidence:
 - The SoT registry gate reports 89 authorities / 188 derived carriers and
   `CLOSED=56 / BRIDGE=31 / ACTIVE=2`. The structural component contract passes
   2,435 line-cap requests; Intent no-recovery/compression also passes.
-- Push CI run `35067525088` observed 29/30 jobs green, including the 40m22s
-  full self-host bootstrap. Its only failure was fast Linux step 28: the new
-  bridge raised the likeness sentinel census from 20 to 25. Checkpoint
-  `f148a59b` converts participant and transition lookups to `Option<Int>`;
-  the focused likeness gate is back at its strict 20/20 ceiling without
-  raising the baseline, and the installed transition parity gate still passes.
+- Push CI run `35067525088` observed 29/30 jobs green; its only failure was
+  fast Linux step 28 because the new bridge raised the likeness sentinel census
+  from 20 to 25. Checkpoint `f148a59b` converted participant and transition
+  lookups to `Option<Int>`, and published descendant `ebc0ca0d` then completed
+  ordinary Push CI run `35071144950` SUCCESS with 30/30 jobs green. The focused
+  likeness gate remains at its strict 20/20 ceiling without raising the
+  committed baseline.
+- The `Option<Int>` repair briefly split one defensive diagnostic into
+  `semantic Intent placement participant is invalid`. Checkpoint `9aa730dd`
+  restores the established `semantic Intent Zone placement identity is
+  invalid` contract and extends the focused transition gate to reject both
+  diagnostic drift and reintroduced `return -1` lookup sentinels. That gate
+  passes both before and after the installed-driver rebuild; remote CI for this
+  exact checkpoint is pending publication.
 - The accumulated Future aggregate packet passes its native/public MIR+C+LLVM
   no-artifact gate, and the broader structured-spawn lifecycle gate passes on
   both C and LLVM. Those results establish the reached storage-admission slice,
@@ -66,9 +77,10 @@ Reached evidence:
 
 Dirty-state boundary and next falsifier:
 - The Zone closure, Future aggregate packet, audits, and their executable gates
-  are published in `25722b7c`/`60321012`; the bounded publication-CI repair is
-  committed in `f148a59b`. Preserve all unrelated edits; no reset or clean is
-  authorized.
+  are published in `25722b7c`/`60321012`; the bounded publication-CI repair and
+  its green handoff are published through `ebc0ca0d`. Diagnostic preservation
+  is committed in `9aa730dd`. Preserve all unrelated edits; no reset or clean
+  is authorized.
 - Keep the six Slice edits outside this publication:
   `array_type_shape_owner.pgy`, the three expression graph type owners,
   `builtin_signature_owner.pgy`, and `self_host_pergyra_likeness_smoke.sh`.
@@ -78,9 +90,10 @@ Dirty-state boundary and next falsifier:
 - No successor executable rung is opened in this handoff. After publication,
   select the next reached BRIDGE from current production execution evidence;
   do not revive an older queue merely because it appears below this boundary.
-- Push `f148a59b` plus this checkpoint, then observe remote CI green for the
-  resulting revision. The 29/30 predecessor run and local gates are not green
-  remote-CI evidence for the repaired head.
+- Push `9aa730dd` plus this checkpoint, then observe ordinary remote Push CI
+  green for the resulting revision. Run `35071144950` proves the published
+  sentinel repair, while local gates alone are not remote-CI evidence for the
+  diagnostic-contract descendant.
 
 ## Historical archive boundary — previous Zone/spawn checkpoint
 
