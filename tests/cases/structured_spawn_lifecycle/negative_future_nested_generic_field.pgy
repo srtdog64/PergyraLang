@@ -1,0 +1,13 @@
+class Carrier<T> {
+    let value: T;
+}
+
+class Outer<T> {
+    let inner: Carrier<T>;
+}
+
+async func Main() -> Void {
+    let outer: Outer<Future<Int>> = Outer(Carrier());
+    let alias: Future<Int> = outer.inner.value;
+    Log(await alias);
+}

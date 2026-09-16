@@ -10,6 +10,7 @@ import "../dir/intent_priority_fact_owner.pgy";
 import "../dir/intent_fact_owner.pgy";
 import "../semantic/ast_artifact_verdict_owner.pgy";
 import "../codegen/text/text_owner.pgy";
+import "semantic_intent_zone_authority_transition_codegen_bridge_owner.pgy";
 
 func CodegenIntentSourceFactsFromAdmittedSemanticOrDie(
     artifact: AstTreeArtifact,
@@ -49,10 +50,14 @@ func CodegenIntentExecutionViewAttachSemanticOrDie(
     base: CodegenIntentExecutionView,
     artifact_identity_digest: Int,
     ref intent_signatures: SemanticAstIntentSignatureFacts,
-    source_facts: SelfDirIntentFacts
+    source_facts: SelfDirIntentFacts,
+    zone_authority_transitions:
+        CodegenIntentZoneAuthorityTransitionFacts
 ) -> CodegenIntentExecutionView {
     let view: CodegenIntentExecutionView =
-        CodegenIntentExecutionViewWithSourceFacts(base, source_facts);
+        CodegenIntentExecutionViewWithSourceFactsAndZoneAuthorityTransitions(
+            base, source_facts, zone_authority_transitions
+        );
     if !CodegenIntentExecutionViewReadyForSemantic(
         artifact_identity_digest, intent_signatures, view
     ) {
@@ -64,10 +69,14 @@ func CodegenIntentExecutionViewAttachSemanticOrDie(
 func CodegenIntentExecutionViewFromSemanticOrDie(
     artifact_identity_digest: Int,
     ref intent_signatures: SemanticAstIntentSignatureFacts,
-    source_facts: SelfDirIntentFacts
+    source_facts: SelfDirIntentFacts,
+    ref declarations: SelfMirDeclarationRows
 ) -> CodegenIntentExecutionView {
     return CodegenIntentExecutionViewAttachSemanticOrDie(
         CodegenIntentExecutionViewEmpty(true), artifact_identity_digest,
-        intent_signatures, source_facts
+        intent_signatures, source_facts,
+        CodegenIntentZoneAuthorityTransitionsFromSemanticOrDie(
+            source_facts, declarations
+        )
     );
 }

@@ -7,12 +7,319 @@
 
 #include "diag_codes.h"
 #include "type_checker_internal.h"
+#include <stdlib.h>
+#include <string.h>
 
 bool
 semantic_type_is_future_handle(const Type *type)
 {
     return type_is_constructed_named(type, "Future")
         || type_is_constructed_named(type, "RemoteFuture");
+}
+
+/* Type arguments are not storage by themselves. Inspect only constructors
+ * whose current value representation carries their arguments, so an unused
+ * phantom parameter does not make an unrelated nominal type affine. */
+static bool
+future_constructor_name_stores_arguments(const char *name)
+{
+    static const char *const stored[] = {
+        "Array", "List", "Queue", "Set", "HashMap", "Option", "Result",
+        "Box", "Rc", "Channel"
+    };
+    if (name == NULL)
+        return false;
+    for (size_t i = 0; i < sizeof(stored) / sizeof(stored[0]); i++) {
+        if (strcmp(name, stored[i]) == 0)
+            return true;
+    }
+    return false;
+}
+
+static bool
+future_type_constructor_stores_arguments(const Type *type)
+{
+    Type *constructor = type_constructed_constructor(type);
+    return constructor != NULL
+        && future_constructor_name_stores_arguments(constructor->name);
+}
+
+static bool future_type_contains_at_boundary(const Type *type,
+    SemanticContext *ctx, unsigned depth);
+static bool future_decl_fields_syntax_contain_handle(ASTNode *decl,
+    const bool *affine_params, size_t param_count,
+    SemanticContext *ctx, unsigned depth);
+
+static void
+future_storage_report_resolution_oom(SemanticContext *ctx, ASTNode *decl)
+{
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_UNKNOWN_TYPE,
+        PGY_CAUSE_RESOLUTION_OOM,
+        PGY_FIX_REDUCE_SCOPE_OR_RETRY,
+        decl,
+        "Could not allocate nominal field facts for Future containment.\n"
+        "Reason:\n"
+        "- aggregate storage cannot be admitted without its field shape\n"
+        "Fix:\n"
+        "- reduce this compilation unit size and retry");
+}
+
+/* A generic argument is storage only where the declaration field actually
+ * mentions it, including under a known stored wrapper. An unused Phantom<T>
+ * argument is therefore not an affine stored handle. */
+static bool
+future_field_syntax_contains_handle(const ASTNode *field_type,
+                                    const GenericParams *class_generics,
+                                    const bool *affine_params,
+                                    size_t param_count,
+                                    SemanticContext *ctx,
+                                    unsigned depth)
+{
+    const char *name;
+    GenericParams *field_args;
+    ASTNode *nested_decl;
+
+    if (field_type == NULL || depth > 32)
+        return depth > 32;
+    if (ast_type_tuple_element_count(field_type) > 0) {
+        for (size_t i = 0; i < ast_type_tuple_element_count(field_type); i++) {
+            if (future_field_syntax_contains_handle(
+                    ast_type_tuple_element(field_type, i), class_generics,
+                    affine_params, param_count, ctx, depth + 1))
+                return true;
+        }
+        return false;
+    }
+    name = ast_type_name(field_type);
+    if (name == NULL)
+        return false;
+    if (strcmp(name, "Future") == 0
+        || strcmp(name, "RemoteFuture") == 0)
+        return true;
+    for (size_t i = 0; i < ast_generic_param_count(class_generics); i++) {
+        GenericParam *param = ast_generic_param_at(class_generics, i);
+        const char *param_name = ast_generic_param_name(param);
+        if (param_name != NULL && strcmp(name, param_name) == 0)
+            return i < param_count ? affine_params[i] : true;
+    }
+    field_args = ast_type_generic_args(field_type);
+    if (future_constructor_name_stores_arguments(name)) {
+        for (size_t i = 0; i < ast_generic_param_count(field_args); i++) {
+            if (future_field_syntax_contains_handle(
+                    ast_generic_param_constraint(
+                        ast_generic_param_at(field_args, i)),
+                    class_generics, affine_params, param_count, ctx,
+                    depth + 1))
+                return true;
+        }
+        return false;
+    }
+    nested_decl = ctx != NULL
+        ? semantic_find_class_decl_by_name(ctx, name) : NULL;
+    if (nested_decl != NULL) {
+        GenericParams *nested_generics = ast_class_generic_params(nested_decl);
+        size_t nested_count = ast_generic_param_count(nested_generics);
+        bool *nested_affine = nested_count > 0
+            ? calloc(nested_count, sizeof(bool)) : NULL;
+        bool contains;
+        if (nested_count > 0 && nested_affine == NULL) {
+            future_storage_report_resolution_oom(ctx, nested_decl);
+            return false;
+        }
+        for (size_t i = 0; i < nested_count; i++) {
+            ASTNode *arg = i < ast_generic_param_count(field_args)
+                ? ast_generic_param_constraint(
+                    ast_generic_param_at(field_args, i)) : NULL;
+            if (arg == NULL)
+                arg = ast_generic_param_default_type(
+                    ast_generic_param_at(nested_generics, i));
+            nested_affine[i] = arg == NULL
+                || future_field_syntax_contains_handle(
+                    arg, class_generics, affine_params, param_count,
+                    ctx, depth + 1);
+        }
+        contains = future_decl_fields_syntax_contain_handle(
+            nested_decl, nested_affine, nested_count, ctx, depth + 1);
+        free(nested_affine);
+        return contains;
+    }
+    /* If the class declaration is unavailable, an affine type argument must
+     * not be assumed phantom at this storage boundary. */
+    for (size_t i = 0; i < ast_generic_param_count(field_args); i++) {
+        if (future_field_syntax_contains_handle(
+                ast_generic_param_constraint(
+                    ast_generic_param_at(field_args, i)),
+                class_generics, affine_params, param_count,
+                ctx, depth + 1))
+            return true;
+    }
+    return false;
+}
+
+static bool
+future_decl_fields_syntax_contain_handle(ASTNode *decl,
+                                        const bool *affine_params,
+                                        size_t param_count,
+                                        SemanticContext *ctx,
+                                        unsigned depth)
+{
+    PgyDeclField *fields = NULL;
+    size_t count;
+    bool contains = false;
+
+    if (decl == NULL || decl->type != AST_CLASS_DECL)
+        return false;
+    count = pgy_class_decl_field_model_build(decl, &fields);
+    if (fields == NULL) {
+        size_t declared_count = 0;
+        ast_class_fields(decl, &declared_count);
+        if (declared_count > 0) {
+            future_storage_report_resolution_oom(ctx, decl);
+            return false;
+        }
+    }
+    for (size_t i = 0; i < count; i++) {
+        if (future_field_syntax_contains_handle(
+                fields[i].type_ast, ast_class_generic_params(decl),
+                affine_params, param_count, ctx, depth + 1)) {
+            contains = true;
+            break;
+        }
+    }
+    pgy_decl_field_model_free(fields, count);
+    return contains;
+}
+
+static bool
+future_nominal_fields_contain_handle(const Type *type,
+                                    SemanticContext *ctx,
+                                    unsigned depth)
+{
+    ASTNode *decl = semantic_host_decl_for_type(ctx, type);
+    GenericParams *generics;
+    size_t param_count;
+    bool *affine_params;
+    bool contains;
+
+    if (decl == NULL || decl->type != AST_CLASS_DECL)
+        return true;
+    generics = ast_class_generic_params(decl);
+    param_count = ast_generic_param_count(generics);
+    affine_params = param_count > 0
+        ? calloc(param_count, sizeof(bool)) : NULL;
+    if (param_count > 0 && affine_params == NULL) {
+        future_storage_report_resolution_oom(ctx, decl);
+        return false;
+    }
+    for (size_t i = 0; i < param_count; i++) {
+        Type *arg = type_constructed_arg(type, i);
+        affine_params[i] = arg == NULL
+            || future_type_contains_at_boundary(arg, ctx, depth + 1);
+    }
+    contains = future_decl_fields_syntax_contain_handle(
+        decl, affine_params, param_count, ctx, depth + 1);
+    free(affine_params);
+    return contains;
+}
+
+/* This is only a cheap candidate filter, not a storage verdict. Phantom<T>
+ * still reaches the field model when T mentions Future, then remains legal
+ * if none of its fields physically carry T. */
+static bool
+future_type_argument_mentions_handle(const Type *type, unsigned depth)
+{
+    if (type == NULL)
+        return false;
+    if (depth > 32)
+        return true;
+    if (semantic_type_is_future_handle(type))
+        return true;
+    if (type->kind == TYPE_KIND_SLOT)
+        return future_type_argument_mentions_handle(
+            type_slot_inner_type(type), depth + 1);
+    if (type->kind == TYPE_KIND_TUPLE) {
+        for (size_t i = 0; i < type_tuple_arity(type); i++) {
+            if (future_type_argument_mentions_handle(
+                    type_tuple_get_element(type, i), depth + 1))
+                return true;
+        }
+    }
+    if (type->kind == TYPE_KIND_CONSTRUCTED) {
+        for (size_t i = 0; i < type_constructed_arg_count(type); i++) {
+            if (future_type_argument_mentions_handle(
+                    type_constructed_arg(type, i), depth + 1))
+                return true;
+        }
+    }
+    return false;
+}
+
+static bool
+future_type_contains_at_boundary(const Type *type,
+                                 SemanticContext *ctx,
+                                 unsigned depth)
+{
+    if (type == NULL)
+        return false;
+    if (depth > 32)
+        return true;
+    if (semantic_type_is_future_handle(type))
+        return true;
+    if (type->kind == TYPE_KIND_SLOT)
+        return future_type_contains_at_boundary(
+            type_slot_inner_type(type), ctx, depth + 1);
+    if (type->kind == TYPE_KIND_TUPLE) {
+        for (size_t i = 0; i < type_tuple_arity(type); i++) {
+            if (future_type_contains_at_boundary(
+                    type_tuple_get_element(type, i), ctx, depth + 1))
+                return true;
+        }
+        return false;
+    }
+    if (type->kind == TYPE_KIND_CONSTRUCTED
+        && future_type_constructor_stores_arguments(type)) {
+        for (size_t i = 0; i < type_constructed_arg_count(type); i++) {
+            if (future_type_contains_at_boundary(
+                    type_constructed_arg(type, i), ctx, depth + 1))
+                return true;
+        }
+        return false;
+    }
+    /* A concrete nominal field is refused at its declaration. A generic
+     * instance needs field inspection only when an actual type argument can
+     * carry a completion handle. */
+    if (ctx != NULL && type->kind == TYPE_KIND_CONSTRUCTED
+        && future_type_argument_mentions_handle(type, depth + 1))
+        return future_nominal_fields_contain_handle(type, ctx, depth + 1);
+    return false;
+}
+
+bool
+semantic_future_reject_aggregate_storage(ASTNode *site,
+                                         const Type *stored_type,
+                                         SemanticContext *ctx,
+                                         const char *boundary)
+{
+    if (ctx == NULL
+        || !future_type_contains_at_boundary(stored_type, ctx, 0))
+        return false;
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_TASK_LIFECYCLE,
+        PGY_CAUSE_TASK_LIFECYCLE,
+        PGY_FIX_AWAIT_TASK_BEFORE_EXIT,
+        site,
+        "Completion handle storage in %s is not admitted for type '%s'.\n"
+        "Reason:\n"
+        "- Future/RemoteFuture completion handles are affine join obligations\n"
+        "- aggregate element copying or extraction could duplicate one live handle\n"
+        "- no aggregate move/retirement plan is admitted at this boundary\n"
+        "Fix:\n"
+        "- keep the handle in its direct binding and await it once\n"
+        "- transfer it only through an explicit own Future parameter",
+        boundary != NULL ? boundary : "aggregate storage",
+        type_name_or_unknown(stored_type));
+    return true;
 }
 
 static void

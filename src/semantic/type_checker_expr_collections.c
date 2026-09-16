@@ -160,6 +160,8 @@ type_check_set_literal(ASTNode *expr, SemanticContext *ctx)
         return TYPE_UNKNOWN;
 
     Type *elem_type = type_check_expression(ast_set_literal_element(expr, 0), ctx);
+    semantic_future_reject_aggregate_storage(
+        ast_set_literal_element(expr, 0), elem_type, ctx, "set literal");
     if (elem_type == NULL)
         elem_type = TYPE_UNKNOWN;
     if (type_equals(elem_type, TYPE_VOID)) {
@@ -173,6 +175,8 @@ type_check_set_literal(ASTNode *expr, SemanticContext *ctx)
 
     for (size_t i = 1; i < ast_set_literal_count(expr); i++) {
         Type *next = type_check_expression(ast_set_literal_element(expr, i), ctx);
+        semantic_future_reject_aggregate_storage(
+            ast_set_literal_element(expr, i), next, ctx, "set literal");
         if (next == NULL)
             next = TYPE_UNKNOWN;
         if (!type_is_assignable(next, elem_type) && !type_is_assignable(elem_type, next)) {
@@ -241,6 +245,10 @@ type_check_map_literal(ASTNode *expr, SemanticContext *ctx)
             type_check_expression(ast_map_literal_key(expr, i), ctx));
         Type *v = expr_collection_normalize_type(
             type_check_expression(ast_map_literal_value(expr, i), ctx));
+        semantic_future_reject_aggregate_storage(
+            ast_map_literal_key(expr, i), k, ctx, "map key storage");
+        semantic_future_reject_aggregate_storage(
+            ast_map_literal_value(expr, i), v, ctx, "map value storage");
         map_literal_unify_entry(ctx, expr, i, &key_type, &value_type, k, v);
     }
     args[0] = key_type;

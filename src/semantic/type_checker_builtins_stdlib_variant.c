@@ -100,9 +100,15 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
     case STDLIB_VARIANT_SOME:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        return wrap_constructed(TYPE_OPTION,
-            stdlib_variant_normalize_type(type_check_expression(
-                ast_call_argument(expr, 0), ctx)));
+        {
+            ASTNode *value = ast_call_argument(expr, 0);
+            Type *payload = stdlib_variant_normalize_type(
+                type_check_expression(value, ctx));
+            if (semantic_future_reject_aggregate_storage(
+                    value, payload, ctx, "Option Some payload"))
+                return TYPE_UNKNOWN;
+            return wrap_constructed(TYPE_OPTION, payload);
+        }
     case STDLIB_VARIANT_NONE:
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;

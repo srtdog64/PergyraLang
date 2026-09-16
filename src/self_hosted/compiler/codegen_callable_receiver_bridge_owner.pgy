@@ -10,6 +10,7 @@ import "domain_runtime_c_codegen_bridge_owner.pgy";
 import "direct_mir_intent_plan_projection_owner.pgy";
 import "intent_policy_c_codegen_bridge_owner.pgy";
 import "intent_execution_c_codegen_bridge_owner.pgy";
+import "intent_zone_authority_transition_c_codegen_bridge_owner.pgy";
 import "../mir/declaration_rows_owner.pgy";
 
 struct CodegenAdmittedCView {
@@ -44,6 +45,8 @@ func CodegenAdmittedCViewFromFactsOrDie(
     own generic_specializations: CodegenGenericSpecializationFacts,
     body_type_admission: SemanticAstBodyTypeBundleAdmissionReceipt,
     ref intent_expression_occurrences: MirExpressionSemanticOccurrenceIndex,
+    ref mir_zone_authority_transitions:
+        MirIntentZoneAuthorityTransitionFacts,
     canonical_routine_source_syntax_ids: Array<String>,
     observe_pressure: Bool
 ) -> CodegenAdmittedCView {
@@ -84,10 +87,17 @@ func CodegenAdmittedCViewFromFactsOrDie(
         source_intents = CodegenIntentSourceFactsFromAdmittedSemanticOrDie(
             artifact, analysis, declarations);
     }
+    let zone_authority_transitions:
+        CodegenIntentZoneAuthorityTransitionFacts =
+            CodegenIntentZoneAuthorityTransitionsFromMirOrDie(
+                mir_zone_authority_transitions, admitted.routines,
+                canonical_routine_source_syntax_ids
+            );
     let intent_execution: CodegenIntentExecutionView =
         CodegenIntentExecutionViewAttachSemanticOrDie(
             plan_intent_execution, artifact.identity_digest,
-            analysis.intent_signatures, source_intents
+            analysis.intent_signatures, source_intents,
+            zone_authority_transitions
         );
     if !CodegenIntentExecutionViewReadyForSemantic(
         artifact.identity_digest, analysis.intent_signatures,

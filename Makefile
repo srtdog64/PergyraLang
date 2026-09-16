@@ -4333,6 +4333,11 @@ self-host-zone-spawn-transport-admission-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/zone_spawn_transport_admission_owner.sh
 
+.PHONY: self-host-future-aggregate-storage-admission-test-smoke
+self-host-future-aggregate-storage-admission-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/future_aggregate_storage_admission_owner.sh
+
 .PHONY: self-host-public-parser-callable-contract-json-diagnostic-receipt-test-smoke
 self-host-public-parser-callable-contract-json-diagnostic-receipt-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
@@ -4578,7 +4583,7 @@ self-host-compiler-world-contract-test-smoke: $(PGY)
 	self-host-intent-guard-post-compensation-execution-test-smoke \
 	self-host-intent-phase-carrier-negative-test-smoke \
 	self-host-intent-execution-fact-contract-test-smoke \
-	self-host-intent-step-binding-contract-test-smoke \
+	self-host-intent-zone-authority-transition-test-smoke \
 	intent-typed-transition-native-execution-test-smoke \
 	self-host-tobject-boundary-test-smoke \
 	self-host-fallible-tobject-outcome-test-smoke \
@@ -4636,9 +4641,10 @@ self-host-intent-execution-fact-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 		"$(BASH)" tests/self_hosted/parity/intent_execution_fact_contract_owner.sh
 
-self-host-intent-step-binding-contract-test-smoke: $(PGY)
+self-host-intent-zone-authority-transition-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" \
-		"$(BASH)" tests/self_hosted/parity/intent_step_binding_contract_parity.sh
+		PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/intent_zone_authority_transition_owner.sh
 
 intent-typed-transition-native-execution-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \

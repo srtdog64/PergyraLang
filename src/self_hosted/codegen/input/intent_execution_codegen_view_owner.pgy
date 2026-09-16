@@ -9,12 +9,16 @@ import "../../mir/intent_execution_fact_owner.pgy";
 import "../../semantic/ast_expression_graph_fact_owner.pgy";
 import "../../semantic/ast_expression_place_fact_owner.pgy";
 import "../../dir/intent_fact_owner.pgy";
+import "intent_zone_authority_transition_codegen_view_owner.pgy";
+import "intent_zone_authority_source_seal_owner.pgy";
 
 struct CodegenIntentExecutionView {
     valid: Bool;
     present: Bool;
     plan: MirIntentExecutionPlan;
     source_facts: SelfDirIntentFacts;
+    zone_authority_transitions:
+        CodegenIntentZoneAuthorityTransitionFacts;
     expression_graphs: SemanticExpressionGraphFacts;
     action_graph_roots: Array<Int>;
     compensation_graph_roots: Array<Int>;
@@ -37,6 +41,7 @@ func CodegenIntentExecutionViewEmpty(
     return CodegenIntentExecutionView(
         valid, false, plan,
         SelfDirIntentFactsSealedEmpty(0, 0),
+        CodegenIntentZoneAuthorityTransitionFactsEmpty(valid),
         SemanticExpressionGraphFactsEmpty(),
         action_graph_roots, compensation_graph_roots, terminal_graph_roots,
         routine_canonical_syntax_ids,
@@ -49,7 +54,10 @@ func CodegenIntentExecutionViewReady(
 ) -> Bool {
     if !view.valid || view.present != view.plan.present ||
         !view.source_facts.ok ||
-        !SelfDirIntentFactsShapeReady(view.source_facts) {
+        !SelfDirIntentFactsShapeReady(view.source_facts) ||
+        !CodegenIntentZoneAuthorityTransitionFactsReady(
+            view.zone_authority_transitions
+        ) {
         return false;
     }
     if !view.present {
@@ -104,11 +112,15 @@ func CodegenIntentExecutionViewReady(
     return true;
 }
 
-func CodegenIntentExecutionViewWithSourceFacts(
-    view: CodegenIntentExecutionView, source_facts: SelfDirIntentFacts
+func CodegenIntentExecutionViewWithSourceFactsAndZoneAuthorityTransitions(
+    view: CodegenIntentExecutionView,
+    source_facts: SelfDirIntentFacts,
+    zone_authority_transitions:
+        CodegenIntentZoneAuthorityTransitionFacts
 ) -> CodegenIntentExecutionView {
     return CodegenIntentExecutionView(
         view.valid, view.present, view.plan, source_facts,
+        zone_authority_transitions,
         view.expression_graphs, view.action_graph_roots,
         view.compensation_graph_roots, view.terminal_graph_roots,
         view.routine_canonical_syntax_ids,
@@ -119,15 +131,9 @@ func CodegenIntentExecutionViewOwnsRoutine(
     ref view: CodegenIntentExecutionView,
     routine_syntax_id: Int
 ) -> Bool {
-    if !view.present || routine_syntax_id <= 0 { return false; }
-    let row: Int = 0;
-    while row < ArrayLength(view.routine_canonical_syntax_ids) {
-        if view.routine_canonical_syntax_ids[row] == routine_syntax_id {
-            return true;
-        }
-        row = row + 1;
-    }
-    return false;
+    return CodegenIntentCanonicalRoutineOwned(
+        view.present, view.routine_canonical_syntax_ids, routine_syntax_id
+    );
 }
 
 func CodegenIntentExecutionViewSourceFactsRequired(
@@ -156,5 +162,8 @@ func CodegenIntentExecutionViewReadyForSemantic(
     }
     return SelfDirIntentReceiptIdentityReady(
         artifact_identity_digest, intent_signatures, view.source_facts
+    ) && CodegenIntentZoneAuthoritySourceSealReady(
+        view.source_facts, view.zone_authority_transitions, view.present,
+        view.routine_canonical_syntax_ids
     );
 }

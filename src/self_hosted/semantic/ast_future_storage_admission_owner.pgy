@@ -1,0 +1,183 @@
+// Aggregate storage admission for affine Future/RemoteFuture handles.
+//
+// A direct binding remains the lifecycle owner's join obligation. This owner
+// rejects only value shapes that would copy or extract that obligation through
+// physical storage before MIR or either backend can publish an artifact.
+
+import "ast_body_verdict_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_local_binding_fact_owner.pgy";
+import "ast_initializer_type_fact_owner.pgy";
+import "ast_enum_fact_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+import "wrapper_type_owner.pgy";
+
+func SemanticFutureStorageConstructor(name: String) -> Bool {
+    return name == "Array" || name == "List" || name == "Queue" ||
+        name == "Set" || name == "HashMap" || name == "Option" ||
+        name == "Result" || name == "Box" || name == "Rc" ||
+        name == "Channel" || name == "Slot" || name == "Tuple";
+}
+
+func SemanticFutureStorageTypeContainsHandle(
+    type_name: String,
+    depth: Int
+) -> Bool {
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    if IsSome(FuturePayloadTypeOpt(canonical)) ||
+        IsRemoteFutureType(canonical) {
+        return true;
+    }
+    // Deeply nested storage is not admitted on an unbounded best-effort walk.
+    if depth >= 32 { return true; }
+    let shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(canonical);
+    if !shape.ok || !SemanticFutureStorageConstructor(
+        shape.nominal_base_name
+    ) {
+        return false;
+    }
+    let index: Int = 0;
+    while index < ArrayLength(shape.actual_type_names) {
+        if SemanticFutureStorageTypeContainsHandle(
+            shape.actual_type_names[index], depth + 1
+        ) {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
+func SemanticFutureAggregateStorageContainsHandle(
+    type_name: String
+) -> Bool {
+    let shape: SemanticConstructedTypeNameFact =
+        SemanticConstructedTypeNameFactFrom(type_name);
+    if !shape.ok || !SemanticFutureStorageConstructor(
+        shape.nominal_base_name
+    ) {
+        return false;
+    }
+    let index: Int = 0;
+    while index < ArrayLength(shape.actual_type_names) {
+        if SemanticFutureStorageTypeContainsHandle(
+            shape.actual_type_names[index], 1
+        ) {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
+func SemanticFutureStorageRejected(
+    type_name: String,
+    boundary: String,
+    node_id: Int
+) -> SemanticAstBodyVerdict {
+    return SemanticAstBodyVerdictError(
+        "task_lifecycle_invalid",
+        SemanticError1(
+            "task_lifecycle_invalid", "boundary",
+            Concat(boundary, Concat(": ", type_name))
+        ),
+        node_id
+    );
+}
+
+func SemanticAstFutureStorageAdmissionFromFacts(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializers: SemanticAstInitializerTypeFacts,
+    enums: SemanticAstEnumFacts
+) -> SemanticAstBodyVerdict {
+    if !SemanticAstSignatureRowsAdmittedReady(artifact, signatures) ||
+        !constructors.ok || constructors.artifact_node_count != artifact.count ||
+        !SemanticAstInitializerTypeFactsReadyProjection(
+            artifact, locals, initializers
+        ) || !SemanticAstEnumRowsReady(enums) ||
+        enums.artifact_node_count != artifact.count {
+        return SemanticAstBodyVerdictError(
+            "ast_artifact_invalid",
+            "Future storage admission requires admitted type facts", -1
+        );
+    }
+
+    // Nominal fields and enum payloads are physical storage boundaries even
+    // when no value is constructed in this source file.
+    let index: Int = 0;
+    while index < ArrayLength(constructors.param_type_names) {
+        let field_type: String = constructors.param_type_names[index];
+        if SemanticFutureStorageTypeContainsHandle(field_type, 0) {
+            let node_id: Int = -1;
+            if index < ArrayLength(constructors.field_source_syntax_ids) {
+                node_id = constructors.field_source_syntax_ids[index];
+            }
+            return SemanticFutureStorageRejected(
+                field_type, "nominal field stores an affine task handle",
+                node_id
+            );
+        }
+        index = index + 1;
+    }
+    index = 0;
+    while index < ArrayLength(enums.variant_param_type_names) {
+        let payload_type: String = enums.variant_param_type_names[index];
+        if SemanticFutureStorageTypeContainsHandle(payload_type, 0) {
+            return SemanticFutureStorageRejected(
+                payload_type, "enum payload stores an affine task handle", -1
+            );
+        }
+        index = index + 1;
+    }
+
+    // Direct Future parameters retain the existing own/ref lifecycle modes;
+    // only a containing value shape is forbidden here.
+    index = 0;
+    while index < ArrayLength(signatures.param_types) {
+        let parameter_type: String = signatures.param_types[index];
+        if SemanticFutureAggregateStorageContainsHandle(parameter_type) {
+            let node_id: Int = -1;
+            if index < ArrayLength(signatures.param_node_ids) {
+                node_id = signatures.param_node_ids[index];
+            }
+            return SemanticFutureStorageRejected(
+                parameter_type,
+                "function parameter stores an affine task handle", node_id
+            );
+        }
+        index = index + 1;
+    }
+    index = 0;
+    while index < ArrayLength(signatures.return_types) {
+        let return_type: String = signatures.return_types[index];
+        if SemanticFutureAggregateStorageContainsHandle(return_type) {
+            return SemanticFutureStorageRejected(
+                return_type,
+                "function return stores an affine task handle",
+                signatures.function_node_ids[index]
+            );
+        }
+        index = index + 1;
+    }
+
+    index = 0;
+    while index < SemanticAstLocalBindingCount(locals) {
+        let stored_type: String = initializers.inferred_type_names[index];
+        let declared: Option<String> =
+            SemanticAstLocalBindingDeclaredTypeAt(locals, index);
+        if IsSome(declared) { stored_type = UnwrapOption(declared); }
+        if SemanticFutureAggregateStorageContainsHandle(stored_type) {
+            return SemanticFutureStorageRejected(
+                stored_type, "local aggregate stores an affine task handle",
+                locals.node_ids[index]
+            );
+        }
+        index = index + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

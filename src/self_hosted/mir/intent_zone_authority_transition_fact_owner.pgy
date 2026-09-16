@@ -1,0 +1,113 @@
+// Target-neutral receipt for one admitted Intent placement transition.
+//
+// MIR lowering seals the exact Zone, actor slot and optional authority slot.
+// Backends may project target spelling from these rows, but may not select a
+// slot again from reconstructed AST/type-environment state.
+
+struct MirIntentZoneAuthorityTransitionFacts {
+    valid: Bool;
+    routine_rows: Array<Int>;
+    routine_source_syntax_ids: Array<Int>;
+    intent_names: Array<String>;
+    step_names: Array<String>;
+    zone_aliases: Array<String>;
+    zone_type_names: Array<String>;
+    zone_binding_kinds: Array<String>;
+    actor_aliases: Array<String>;
+    actor_type_names: Array<String>;
+    actor_slot_names: Array<String>;
+    actor_slot_source_syntax_ids: Array<String>;
+    authority_present: Array<Bool>;
+    authority_aliases: Array<String>;
+    authority_type_names: Array<String>;
+    authority_slot_names: Array<String>;
+    authority_slot_source_syntax_ids: Array<String>;
+}
+
+func MirIntentZoneAuthorityTransitionFactsEmpty(
+    valid: Bool
+) -> MirIntentZoneAuthorityTransitionFacts {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    let bools: Array<Bool> = [];
+    return MirIntentZoneAuthorityTransitionFacts(
+        valid, ints, ints, strings, strings, strings, strings, strings,
+        strings, strings, strings, strings, bools, strings, strings,
+        strings, strings
+    );
+}
+
+func MirIntentZoneAuthorityTransitionPositiveDecimal(
+    value: String
+) -> Bool {
+    if value == "" || ToInt(value) <= 0 { return false; }
+    return ToString(ToInt(value)) == value;
+}
+
+func MirIntentZoneAuthorityTransitionFactsReady(
+    ref facts: MirIntentZoneAuthorityTransitionFacts
+) -> Bool {
+    let count: Int = ArrayLength(facts.routine_rows);
+    if !facts.valid ||
+        ArrayLength(facts.routine_source_syntax_ids) != count ||
+        ArrayLength(facts.intent_names) != count ||
+        ArrayLength(facts.step_names) != count ||
+        ArrayLength(facts.zone_aliases) != count ||
+        ArrayLength(facts.zone_type_names) != count ||
+        ArrayLength(facts.zone_binding_kinds) != count ||
+        ArrayLength(facts.actor_aliases) != count ||
+        ArrayLength(facts.actor_type_names) != count ||
+        ArrayLength(facts.actor_slot_names) != count ||
+        ArrayLength(facts.actor_slot_source_syntax_ids) != count ||
+        ArrayLength(facts.authority_present) != count ||
+        ArrayLength(facts.authority_aliases) != count ||
+        ArrayLength(facts.authority_type_names) != count ||
+        ArrayLength(facts.authority_slot_names) != count ||
+        ArrayLength(facts.authority_slot_source_syntax_ids) != count {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if facts.routine_rows[row] < 0 ||
+            facts.routine_source_syntax_ids[row] <= 0 ||
+            facts.intent_names[row] == "" || facts.step_names[row] == "" ||
+            facts.zone_aliases[row] == "" ||
+            facts.zone_type_names[row] == "" ||
+            (facts.zone_binding_kinds[row] != "participant" &&
+             facts.zone_binding_kinds[row] != "value") ||
+            facts.actor_aliases[row] == "" ||
+            facts.actor_type_names[row] == "" ||
+            facts.actor_slot_names[row] == "" ||
+            !MirIntentZoneAuthorityTransitionPositiveDecimal(
+                facts.actor_slot_source_syntax_ids[row]
+            ) {
+            return false;
+        }
+        if facts.authority_present[row] {
+            if facts.authority_aliases[row] == "" ||
+                facts.authority_type_names[row] == "" ||
+                facts.authority_slot_names[row] == "" ||
+                !MirIntentZoneAuthorityTransitionPositiveDecimal(
+                    facts.authority_slot_source_syntax_ids[row]
+                ) {
+                return false;
+            }
+        } else if facts.authority_aliases[row] != "" ||
+            facts.authority_type_names[row] != "" ||
+            facts.authority_slot_names[row] != "" ||
+            facts.authority_slot_source_syntax_ids[row] != "" {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if facts.routine_source_syntax_ids[prior] ==
+                    facts.routine_source_syntax_ids[row] &&
+                facts.step_names[prior] == facts.step_names[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}

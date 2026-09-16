@@ -67,6 +67,9 @@ positive_cases=(
     positive_own_transfer
     positive_own_remote_transfer
     positive_own_mixed_transfer
+    positive_future_with_value_array
+    positive_future_phantom_argument
+    positive_future_nested_phantom
 )
 for case_name in "${positive_cases[@]}"; do
     source="$ROOT_DIR/tests/cases/structured_spawn_lifecycle/${case_name}.pgy"
@@ -108,13 +111,14 @@ for backend in $BACKENDS; do
 done
 
 # `own` transfer crosses a function ABI boundary. Compile and execute the
-# local and remote handle cases with every selected production backend so MIR
-# type-name carriage cannot silently regress to the former AST-only registry
-# path. Each backend must match the exact golden, including C-only CI runs.
+# local and remote handle cases plus an ordinary value-array control with
+# every selected production backend. MIR type-name carriage must not regress
+# to the former AST-only registry path. Each backend matches an exact golden.
 backend_transfer_cases=(
     positive_own_transfer
     positive_own_remote_transfer
     positive_own_mixed_transfer
+    positive_future_with_value_array
 )
 for case_name in "${backend_transfer_cases[@]}"; do
     source="$ROOT_DIR/tests/cases/structured_spawn_lifecycle/${case_name}.pgy"
@@ -123,6 +127,7 @@ for case_name in "${backend_transfer_cases[@]}"; do
         positive_own_transfer) printf '1\n' >"$WORK_DIR/${case_name}.expected" ;;
         positive_own_remote_transfer) printf '11\n' >"$WORK_DIR/${case_name}.expected" ;;
         positive_own_mixed_transfer) printf '3\n11\n' >"$WORK_DIR/${case_name}.expected" ;;
+        positive_future_with_value_array) printf '1\n7\n' >"$WORK_DIR/${case_name}.expected" ;;
         *) echo "[structured-spawn] missing exact output owner: $case_name" >&2; exit 1 ;;
     esac
     for backend in $BACKENDS; do
@@ -177,6 +182,17 @@ negative_cases=(
     negative_alias_binding
     negative_owned_parameter_drop
     negative_owned_remote_parameter_drop
+    negative_future_array_alias
+    negative_future_empty_array
+    negative_future_option_store
+    negative_future_struct_store
+    negative_future_generic_nominal_store
+    negative_future_generic_zero_field
+    negative_future_nested_generic_field
+    negative_future_aggregate_param
+    negative_future_aggregate_return
+    negative_future_set_store
+    negative_future_map_store
     negative_loop_break
     negative_loop_zero_iteration
 )
@@ -207,7 +223,52 @@ for case_name in "${negative_cases[@]}"; do
             cat "$log" >&2
             exit 1
         fi
+        if [[ "$case_name" == negative_future_array_alias
+              || "$case_name" == negative_future_empty_array
+              || "$case_name" == negative_future_option_store
+              || "$case_name" == negative_future_struct_store
+              || "$case_name" == negative_future_generic_nominal_store
+              || "$case_name" == negative_future_generic_zero_field
+              || "$case_name" == negative_future_nested_generic_field
+              || "$case_name" == negative_future_aggregate_param
+              || "$case_name" == negative_future_aggregate_return
+              || "$case_name" == negative_future_set_store
+              || "$case_name" == negative_future_map_store ]]; then
+            artifact="$WORK_DIR/${case_name}_${backend}.bin"
+            if [[ -e "$artifact" ]]; then
+                echo "[structured-spawn] affine aggregate refusal published an artifact: $case_name ($backend)" >&2
+                exit 1
+            fi
+        fi
     done
+done
+
+# A semantic refusal must precede either backend's emission, not merely
+# fail later while compiling an already-published C/LLVM artifact.
+for backend in $BACKENDS; do
+    case "$backend" in
+        c) emit_flag=--emit-c; suffix=c ;;
+        llvm) emit_flag=--emit-llvm; suffix=ll ;;
+    esac
+    source="$ROOT_DIR/tests/cases/structured_spawn_lifecycle/negative_future_array_alias.pgy"
+    source_arg="$(pgy_path_for_compiler "$PGY" "$source")"
+    artifact="$WORK_DIR/negative_future_array_alias_${backend}.${suffix}"
+    output_arg="$(pgy_path_for_compiler "$PGY" "$artifact")"
+    log="$WORK_DIR/negative_future_array_alias_${backend}.emit.log"
+    if "$PGY" "$source_arg" --backend="$backend" "$emit_flag" \
+        --error-format=json -o "$output_arg" >"$log" 2>&1; then
+        echo "[structured-spawn] affine array emission unexpectedly succeeded ($backend)" >&2
+        exit 1
+    fi
+    grep -Fq '"code":"PGY_SEM_TASK_LIFECYCLE"' "$log" || {
+        echo "[structured-spawn] affine array emission lacks semantic owner receipt ($backend)" >&2
+        cat "$log" >&2
+        exit 1
+    }
+    if [[ -e "$artifact" ]]; then
+        echo "[structured-spawn] affine array emission published an artifact ($backend)" >&2
+        exit 1
+    fi
 done
 
 use_after_cases=(

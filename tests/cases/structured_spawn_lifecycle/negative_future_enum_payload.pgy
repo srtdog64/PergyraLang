@@ -1,0 +1,7 @@
+enum DeferredTask {
+    Pending(Future<Int>),
+    Empty
+}
+
+async func Main() -> Void {
+}

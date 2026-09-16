@@ -80,6 +80,10 @@ bool semantic_reject_active_slot_view_boundary(ASTNode *site,
                                                const char *fix_action);
 bool type_is_general_boundary_type(const Type *type, SemanticContext *ctx);
 bool semantic_type_is_future_handle(const Type *type);
+bool semantic_future_reject_aggregate_storage(ASTNode *site,
+                                              const Type *stored_type,
+                                              SemanticContext *ctx,
+                                              const char *boundary);
 bool semantic_future_admit_spawn(ASTNode *site, SemanticContext *ctx);
 void semantic_future_initialize_binding(Symbol *symbol,
                                         ASTNode *initializer,

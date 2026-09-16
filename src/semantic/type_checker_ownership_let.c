@@ -42,6 +42,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     Type *init_type;
     Type *decl_type;
     Type *lambda_expected_type = NULL;
+    size_t initializer_diagnostic_base = ctx->diagnostic_count;
     SemanticSpawnHandleUse saved_spawn_use = ctx->spawn_handle_use;
 
     /* Check for duplicate in current scope */
@@ -319,6 +320,22 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
             name != NULL ? name : "<binding>",
             name != NULL ? name : "<binding>");
         decl_type = TYPE_UNKNOWN;
+    }
+
+    /* Literal elements are checked at their storage sites. The declared
+     * aggregate still owns the instantiated type: a generic constructor in
+     * a literal can otherwise hide an affine field from element inference. */
+    if (decl_type != NULL
+        && ctx->diagnostic_count == initializer_diagnostic_base
+        && !semantic_type_is_future_handle(decl_type)) {
+        ASTNode *storage_site = ann != NULL ? ann : init;
+        if (init != NULL && init->type == AST_CALL
+            && ast_call_arg_count(init) > 0)
+            storage_site = ast_call_argument(init, 0);
+        semantic_future_reject_aggregate_storage(
+            storage_site != NULL && storage_site->line > 0
+                ? storage_site : node,
+            decl_type, ctx, "local aggregate binding");
     }
 
     if (type_is_class_object_type(decl_type, ctx)

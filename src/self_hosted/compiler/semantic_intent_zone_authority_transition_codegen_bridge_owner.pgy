@@ -1,0 +1,299 @@
+// Source-seed projection of the same sealed Intent Zone-authority receipt.
+//
+// The self-host codegen seed runs before the installed MIR driver exists. It
+// consumes already-admitted DIR steps plus MIR declaration rows and applies
+// the shared subject-slot policy here. Final C emission receives only the
+// sealed receipt and cannot reopen semantic authority or type-env state.
+
+import "../dir/intent_fact_owner.pgy";
+import "../mir/declaration_verify_owner.pgy";
+import "../semantic/intent_subject_slot_policy_owner.pgy";
+import "../codegen/input/intent_zone_authority_transition_codegen_view_owner.pgy";
+
+func SemanticIntentZoneAuthorityParticipantRow(
+    ref intents: SelfDirIntentFacts,
+    intent_index: Int,
+    alias: String
+) -> Int {
+    if intent_index < 0 ||
+        intent_index >= ArrayLength(intents.participant_starts) ||
+        alias == "" {
+        return -1;
+    }
+    let start: Int = intents.participant_starts[intent_index];
+    let count: Int = intents.participant_counts[intent_index];
+    if start < 0 || count < 0 ||
+        start + count > ArrayLength(intents.participants.aliases) {
+        return -1;
+    }
+    let found: Int = -1;
+    let offset: Int = 0;
+    while offset < count {
+        let row: Int = start + offset;
+        if intents.participants.aliases[row] == alias {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        offset = offset + 1;
+    }
+    return found;
+}
+
+func SemanticIntentZoneAuthorityFieldOwners(
+    ref declarations: SelfMirDeclarationRows
+) -> Array<Int> {
+    let owners: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(declarations.field_names) {
+        ArrayPush(owners, -1);
+        row = row + 1;
+    }
+    let declaration: Int = 0;
+    while declaration < ArrayLength(declarations.names) {
+        let start: Int = declarations.field_starts[declaration];
+        let count: Int = declarations.field_counts[declaration];
+        if start < 0 || count < 0 ||
+            start + count > ArrayLength(owners) {
+            return [];
+        }
+        let offset: Int = 0;
+        while offset < count {
+            if owners[start + offset] >= 0 { return []; }
+            ArraySet(owners, start + offset, declaration);
+            offset = offset + 1;
+        }
+        declaration = declaration + 1;
+    }
+    row = 0;
+    while row < ArrayLength(owners) {
+        if owners[row] < 0 { return []; }
+        row = row + 1;
+    }
+    return owners;
+}
+
+func SemanticIntentZoneAuthorityDeclaredSlot(
+    ref declarations: SelfMirDeclarationRows,
+    zone_declaration: Int,
+    slot_name: String
+) -> Bool {
+    if zone_declaration < 0 ||
+        zone_declaration >=
+            ArrayLength(declarations.zone_authorities.declaration_starts) ||
+        slot_name == "" {
+        return false;
+    }
+    let start: Int = declarations.zone_authorities.declaration_starts[
+        zone_declaration
+    ];
+    let count: Int = declarations.zone_authorities.declaration_counts[
+        zone_declaration
+    ];
+    let matches: Int = 0;
+    let offset: Int = 0;
+    while offset < count {
+        if declarations.zone_authorities.subject_slot_names[start + offset] ==
+            slot_name {
+            matches = matches + 1;
+        }
+        offset = offset + 1;
+    }
+    return matches == 1;
+}
+
+func CodegenIntentZoneAuthorityTransitionsFromSemanticOrDie(
+    ref intents: SelfDirIntentFacts,
+    ref declarations: SelfMirDeclarationRows
+) -> CodegenIntentZoneAuthorityTransitionFacts {
+    if !intents.ok || !SelfDirIntentFactsShapeReady(intents) ||
+        !SelfMirDeclarationRowsReady(declarations) ||
+        !SelfMirDeclarationZoneAuthorityRowsReady(
+            declarations.zone_authorities, declarations.names,
+            declarations.nominal_kinds
+        ) {
+        Die("semantic Intent Zone authority transition owners are invalid");
+    }
+    let field_owners: Array<Int> =
+        SemanticIntentZoneAuthorityFieldOwners(declarations);
+    if ArrayLength(field_owners) != ArrayLength(declarations.field_names) {
+        Die("semantic Intent Zone field ownership is incomplete");
+    }
+    let result: CodegenIntentZoneAuthorityTransitionFacts =
+        CodegenIntentZoneAuthorityTransitionFactsEmpty(true);
+    let intent_index: Int = 0;
+    while intent_index < ArrayLength(intents.intent_node_ids) {
+        let step_start: Int = intents.step_starts[intent_index];
+        let step_count: Int = intents.step_counts[intent_index];
+        let offset: Int = 0;
+        while offset < step_count {
+            let step: Int = step_start + offset;
+            let zone_alias: String = intents.steps.using_aliases[step];
+            if zone_alias != "" {
+                let actor_alias: String =
+                    intents.steps.receiver_aliases[step];
+                let zone_participant: Int =
+                    SemanticIntentZoneAuthorityParticipantRow(
+                        intents, intent_index, zone_alias
+                    );
+                let actor_participant: Int =
+                    SemanticIntentZoneAuthorityParticipantRow(
+                        intents, intent_index, actor_alias
+                    );
+                let zone_declaration: Int =
+                    intents.steps.where_declaration_indices[step];
+                if zone_participant < 0 || actor_participant < 0 ||
+                    intents.participants.is_values[actor_participant] ||
+                    zone_declaration < 0 ||
+                    zone_declaration >= ArrayLength(declarations.names) ||
+                    declarations.nominal_kinds[zone_declaration] != "zone" ||
+                    declarations.names[zone_declaration] !=
+                        intents.steps.where_zone_names[step] ||
+                    intents.participants.declaration_indices[
+                        zone_participant
+                    ] != zone_declaration ||
+                    intents.participants.type_names[zone_participant] !=
+                        declarations.names[zone_declaration] {
+                    Die("semantic Intent Zone placement identity is invalid");
+                }
+                let actor_declaration: Int =
+                    intents.participants.declaration_indices[
+                        actor_participant
+                    ];
+                if actor_declaration < 0 ||
+                    actor_declaration >= ArrayLength(declarations.names) ||
+                    declarations.nominal_kinds[actor_declaration] !=
+                        "subject" ||
+                    declarations.names[actor_declaration] !=
+                        intents.participants.type_names[actor_participant] {
+                    Die("semantic Intent actor declaration is invalid");
+                }
+                let actor_slot: IntentSubjectSlotSelection =
+                    IntentSubjectSlotSelect(
+                        field_owners, declarations.field_names,
+                        declarations.field_types, declarations.field_kinds,
+                        zone_declaration, actor_alias,
+                        intents.participants.type_names[actor_participant]
+                    );
+                if !actor_slot.ok {
+                    Die(Concat(
+                        "semantic Intent actor ", actor_slot.diagnostic
+                    ));
+                }
+                let authority_start: Int =
+                    intents.steps.authorized_starts[step];
+                let authority_count: Int =
+                    intents.steps.authorized_counts[step];
+                if authority_start < 0 || authority_count < 0 ||
+                    authority_count > 1 ||
+                    authority_start + authority_count >
+                        ArrayLength(intents.steps.authorized_names) {
+                    Die("semantic Intent authority range is invalid");
+                }
+                let authority_alias: String = "";
+                let authority_type: String = "";
+                let authority_slot_name: String = "";
+                let authority_slot_id: String = "";
+                if authority_count == 1 {
+                    authority_alias = intents.steps.authorized_names[
+                        authority_start
+                    ];
+                    let authority_participant: Int =
+                        SemanticIntentZoneAuthorityParticipantRow(
+                            intents, intent_index, authority_alias
+                        );
+                    if authority_participant < 0 ||
+                        intents.participants.is_values[authority_participant] {
+                        Die("semantic Intent authority participant is invalid");
+                    }
+                    authority_type = intents.participants.type_names[
+                        authority_participant
+                    ];
+                    let authority_declaration: Int =
+                        intents.participants.declaration_indices[
+                            authority_participant
+                        ];
+                    if authority_declaration < 0 ||
+                        authority_declaration >=
+                            ArrayLength(declarations.names) ||
+                        declarations.nominal_kinds[authority_declaration] !=
+                            "subject" ||
+                        declarations.names[authority_declaration] !=
+                            authority_type {
+                        Die("semantic Intent authority declaration is invalid");
+                    }
+                    let authority_slot: IntentSubjectSlotSelection =
+                        IntentSubjectSlotSelect(
+                            field_owners, declarations.field_names,
+                            declarations.field_types,
+                            declarations.field_kinds, zone_declaration,
+                            authority_alias, authority_type
+                        );
+                    if !authority_slot.ok ||
+                        !SemanticIntentZoneAuthorityDeclaredSlot(
+                            declarations, zone_declaration,
+                            declarations.field_names[
+                                authority_slot.field_row
+                            ]
+                        ) {
+                        Die(
+                            "semantic Intent authority slot is not declared by the Zone"
+                        );
+                    }
+                    authority_slot_name = declarations.field_names[
+                        authority_slot.field_row
+                    ];
+                    authority_slot_id = ToString(
+                        declarations.field_source_syntax_ids[
+                            authority_slot.field_row
+                        ]
+                    );
+                }
+                ArrayPush(
+                    result.routine_canonical_syntax_ids,
+                    intents.intent_node_ids[intent_index]
+                );
+                ArrayPush(result.intent_names, intents.names[intent_index]);
+                ArrayPush(result.step_names, intents.steps.names[step]);
+                ArrayPush(result.zone_aliases, zone_alias);
+                ArrayPush(
+                    result.zone_type_names,
+                    declarations.names[zone_declaration]
+                );
+                let zone_kind: String = "participant";
+                if intents.participants.is_values[zone_participant] {
+                    zone_kind = "value";
+                }
+                ArrayPush(result.zone_binding_kinds, zone_kind);
+                ArrayPush(result.actor_aliases, actor_alias);
+                ArrayPush(
+                    result.actor_type_names,
+                    intents.participants.type_names[actor_participant]
+                );
+                ArrayPush(
+                    result.actor_slot_names,
+                    declarations.field_names[actor_slot.field_row]
+                );
+                ArrayPush(
+                    result.actor_slot_source_syntax_ids,
+                    ToString(declarations.field_source_syntax_ids[
+                        actor_slot.field_row
+                    ])
+                );
+                ArrayPush(result.authority_present, authority_count == 1);
+                ArrayPush(result.authority_aliases, authority_alias);
+                ArrayPush(result.authority_type_names, authority_type);
+                ArrayPush(result.authority_slot_names, authority_slot_name);
+                ArrayPush(
+                    result.authority_slot_source_syntax_ids,
+                    authority_slot_id
+                );
+            }
+            offset = offset + 1;
+        }
+        intent_index = intent_index + 1;
+    }
+    if !CodegenIntentZoneAuthorityTransitionFactsReady(result) {
+        Die("semantic Intent Zone authority transition receipt is invalid");
+    }
+    return result;
+}

@@ -1,0 +1,11 @@
+struct TaskPair {
+    pending: Future<Int>;
+}
+
+async func Worker() -> Int { return 7; }
+
+async func Main() -> Void {
+    let pending: Future<Int> = spawn Worker();
+    let pair: TaskPair = TaskPair(pending);
+    Log(await pending);
+}

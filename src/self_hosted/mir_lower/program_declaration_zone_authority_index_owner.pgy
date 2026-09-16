@@ -1,0 +1,147 @@
+// One admitted index for pgy.mir.v1 declaration zone-authority rows.
+//
+// The producer-owned declaration envelope is the only source. Intent lowering
+// and codegen may consume these rows but may not recover authority from a
+// participant type, action spelling, or the reconstructed AST.
+
+import "json_fact_read.pgy";
+import "program_declaration_field_identity_index_owner.pgy";
+import "../mir/declaration_zone_authority_rows_owner.pgy";
+
+func MirProgramZoneAuthorityAbilityType(
+    ref ability_fact: JsonObjectFactTable
+) -> String {
+    let base: Option<String> =
+        JsonObjectFactStringFieldOpt(ability_fact, "base");
+    let actual_bounds: Array<Int> = [0, 0];
+    if !IsSome(base) || UnwrapOption(base) == "" ||
+        !JsonObjectFieldValueBoundsWithin(
+            ability_fact.json, ability_fact.start, ability_fact.end,
+            "actuals", actual_bounds
+        ) {
+        return "";
+    }
+    let actuals: Array<String> = MirObjectArrayStringFactsAtBounds(
+        ability_fact.json, ability_fact.start, ability_fact.end, "actuals"
+    );
+    let result: String = UnwrapOption(base);
+    if ArrayLength(actuals) == 0 { return result; }
+    result = Concat(result, "<");
+    let row: Int = 0;
+    while row < ArrayLength(actuals) {
+        if actuals[row] == "" { return ""; }
+        if row > 0 { result = Concat(result, ", "); }
+        result = Concat(result, actuals[row]);
+        row = row + 1;
+    }
+    return Concat(result, ">");
+}
+
+func BuildMirProgramDeclarationZoneAuthorityIndex(
+    ref declarations: JsonArrayObjectFactTable,
+    ref names: Array<String>, ref nominal_kinds: Array<String>
+) -> SelfMirDeclarationZoneAuthorityRows {
+    if !JsonArrayObjectFactTableReady(declarations) ||
+        ArrayLength(names) != JsonArrayObjectFactCount(declarations) ||
+        ArrayLength(nominal_kinds) != ArrayLength(names) {
+        return SelfMirDeclarationZoneAuthorityRowsEmpty();
+    }
+    let starts: Array<Int> = [];
+    let counts: Array<Int> = [];
+    let slots: Array<String> = [];
+    let ability_starts: Array<Int> = [];
+    let ability_counts: Array<Int> = [];
+    let abilities: Array<String> = [];
+    let declaration: Int = 0;
+    while declaration < ArrayLength(names) {
+        ArrayPush(starts, ArrayLength(slots));
+        let row: JsonObjectFactTable = JsonArrayObjectFactAt(
+            declarations, declaration
+        );
+        let authorities: JsonArrayObjectFactTable =
+            JsonObjectFactArrayObjectTable(row, "zone_authorities");
+        if nominal_kinds[declaration] != "zone" {
+            if JsonObjectFactHasField(row, "zone_authorities") {
+                return SelfMirDeclarationZoneAuthorityRowsEmpty();
+            }
+            ArrayPush(counts, 0);
+            declaration = declaration + 1;
+            continue;
+        }
+        if !JsonArrayObjectFactTableReady(authorities) {
+            return SelfMirDeclarationZoneAuthorityRowsEmpty();
+        }
+        let authority: Int = 0;
+        while authority < JsonArrayObjectFactCount(authorities) {
+            let authority_row: JsonObjectFactTable =
+                JsonArrayObjectFactAt(authorities, authority);
+            let slot: Option<String> =
+                JsonObjectFactStringFieldOpt(authority_row, "subject_slot");
+            let required: JsonArrayObjectFactTable =
+                JsonObjectFactArrayObjectTable(authority_row, "requires");
+            if !IsSome(slot) || UnwrapOption(slot) == "" ||
+                !JsonArrayObjectFactTableReady(required) {
+                return SelfMirDeclarationZoneAuthorityRowsEmpty();
+            }
+            ArrayPush(slots, UnwrapOption(slot));
+            ArrayPush(ability_starts, ArrayLength(abilities));
+            let ability_index: Int = 0;
+            while ability_index < JsonArrayObjectFactCount(required) {
+                let ability_row: JsonObjectFactTable =
+                    JsonArrayObjectFactAt(required, ability_index);
+                let type_name: String =
+                    MirProgramZoneAuthorityAbilityType(ability_row);
+                if type_name == "" {
+                    return SelfMirDeclarationZoneAuthorityRowsEmpty();
+                }
+                ArrayPush(abilities, type_name);
+                ability_index = ability_index + 1;
+            }
+            ArrayPush(
+                ability_counts,
+                ArrayLength(abilities) - ability_starts[
+                    ArrayLength(ability_starts) - 1
+                ]
+            );
+            authority = authority + 1;
+        }
+        ArrayPush(counts, ArrayLength(slots) - starts[declaration]);
+        declaration = declaration + 1;
+    }
+    return SelfMirDeclarationZoneAuthorityRows(
+        starts, counts, slots, ability_starts, ability_counts, abilities
+    );
+}
+
+func MirProgramDeclarationZoneAuthorityIndexReady(
+    ref rows: SelfMirDeclarationZoneAuthorityRows,
+    ref names: Array<String>, ref nominal_kinds: Array<String>,
+    ref fields: MirProgramDeclarationFieldIdentityIndex
+) -> Bool {
+    if !fields.valid || !SelfMirDeclarationZoneAuthorityRowsReady(
+        rows, names, nominal_kinds
+    ) {
+        return false;
+    }
+    let declaration: Int = 0;
+    while declaration < ArrayLength(names) {
+        let offset: Int = 0;
+        while offset < rows.declaration_counts[declaration] {
+            let authority: Int = rows.declaration_starts[declaration] + offset;
+            let matches: Int = 0;
+            let field: Int = 0;
+            while field < ArrayLength(fields.field_names) {
+                if fields.field_owner_indices[field] == declaration &&
+                    fields.field_kinds[field] == "subject_slot" &&
+                    fields.field_names[field] == rows.subject_slot_names[authority] {
+                    matches = matches + 1;
+                }
+                field = field + 1;
+            }
+            if matches != 1 { return false; }
+            offset = offset + 1;
+        }
+        declaration = declaration + 1;
+    }
+    return true;
+}

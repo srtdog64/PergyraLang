@@ -13,12 +13,15 @@ import "routine_inventory_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";
 import "routine_lower.pgy";
 import "intent_lower_owner.pgy";
+import "../mir/intent_zone_authority_transition_fact_owner.pgy";
 
 struct MirProgramTreeEmission {
     let ok: Bool;
     let text: String;
     let source_module_paths: Array<String>;
     let expression_order: MirStructuredExpressionEmissionOrder;
+    let zone_authority_transitions:
+        MirIntentZoneAuthorityTransitionFacts;
 }
 
 func MirProgramLowerPressureStage(enabled: Bool, stage: String) -> Void {
@@ -37,6 +40,9 @@ func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved(
     }
     let expression_order: MirStructuredExpressionEmissionOrder =
         MirStructuredExpressionEmissionOrderEmpty();
+    let zone_authority_transitions:
+        MirIntentZoneAuthorityTransitionFacts =
+            MirIntentZoneAuthorityTransitionFactsEmpty(true);
     let abi_validation: MirAbiLayoutValidationSession =
         NewMirAbiLayoutValidationSession();
     let source_module_paths: Array<String> = [];
@@ -67,7 +73,8 @@ func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved(
         let kind: String = routines.kinds[row];
         if kind == "intent" {
             ArrayPush(chunks, EmitMirIntentTreeAtRowWithExecutionPlan(
-                routines, row, expression_order, intent_execution_plan
+                routines, row, expression_order, intent_execution_plan,
+                zone_authority_transitions
             ));
             ArrayPush(source_module_paths, routines.source_module_paths[row]);
             total = total + 1;
@@ -152,6 +159,13 @@ func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved(
     if !expression_order_ready {
         MirLowerFailClosed("MIR expression emission order is inconsistent");
     }
+    if !MirIntentZoneAuthorityTransitionFactsReady(
+        zone_authority_transitions
+    ) {
+        MirLowerFailClosed(
+            "MIR intent Zone authority transition receipt is inconsistent"
+        );
+    }
     let projection_ready: Bool =
         routines.valid && abi_ready && expression_order_ready;
     MirProgramLowerPressureStage(
@@ -159,7 +173,7 @@ func EmitMirProgramTreeProjectionFromRoutineIndexAndIntentPlanObserved(
     );
     return MirProgramTreeEmission(
         projection_ready, StringJoin(chunks, ""), source_module_paths,
-        expression_order
+        expression_order, zone_authority_transitions
     );
 }
 

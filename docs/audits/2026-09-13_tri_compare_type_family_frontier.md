@@ -112,7 +112,18 @@ outright.
 
     MIR-LOWER ERROR: MIR intent evaluation phase disagrees with its target kind
 
-The diagnosis is complete. `intent_routine_step_plan_owner.pgy` line 230 derives
+Correction (2026-09-15): the diagnosis this section first gave was wrong, and
+the refusal is correct. The fixture delegated `FrontendPipeline`'s step to the
+intent `IntakeSource` with `on:`, which names a receiver action; a delegation to
+an intent is spelled `intent:`. `a9b842e6` corrected the fixture (line 57), and
+`tests/self_hosted/parity/intent_completion_projection.py:184` already required
+a nested delegation to record `arg0 == "intent"`. With the correct spelling both
+producers record phase `intent` and the check passes as written. The original
+reading is kept below for the record; its "two coherent repairs" do not apply,
+and `target_kind` does not refuse correctly spelled delegations. See
+`2026-09-15_test_harness_red_team_review_reconciliation.md` C1.
+
+Original reading: `intent_routine_step_plan_owner.pgy` line 230 derives
 `target_kind` as `action` when the evaluation has a receiver alias and `intent`
 when it does not, then requires the recorded phase to equal
 `SelfMirIntentTargetPhase(target_kind)`. For `FrontendPipeline`'s step, whose

@@ -68,7 +68,7 @@ func GenerateCUnitFromAdmittedSemanticArtifactObserved(
     let intent_execution: CodegenIntentExecutionView =
         CodegenIntentExecutionViewFromSemanticOrDie(
             artifact.identity_digest, semantic_analysis.intent_signatures,
-            source_intents
+            source_intents, declarations
         );
     return GenerateCUnitFromReadySemanticFacts(
         artifact, semantic_analysis, body_types, receiver_facts,

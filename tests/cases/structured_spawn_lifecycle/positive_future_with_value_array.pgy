@@ -1,0 +1,8 @@
+async func Worker() -> Int { return 7; }
+
+async func Main() -> Void {
+    let values: Array<Int> = [1, 2];
+    let pending: Future<Int> = spawn Worker();
+    Log(values[0]);
+    Log(await pending);
+}

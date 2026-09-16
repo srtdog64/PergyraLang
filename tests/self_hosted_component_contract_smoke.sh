@@ -2241,6 +2241,7 @@ for owner_cap in \
     "intent_routine_step_plan_owner.pgy:330" \
     "intent_step_placement_contract_owner.pgy:60" \
     "intent_step_placement_binding_owner.pgy:100" \
+    "intent_step_subject_binding_owner.pgy:140" \
     "intent_execution_carrier_projection_owner.pgy:180" \
     "intent_execution_structure_owner.pgy:220" \
     "intent_execution_tree_projection_owner.pgy:320" \
@@ -2297,7 +2298,7 @@ require_text \
     'if contract.nested { return authority_count == 0; }'
 require_text \
     "src/self_hosted/mir_lower/intent_step_placement_contract_owner.pgy" \
-    '(authority_count == 1 && authority_name == who_name)'
+    '(authority_count == 1 && authority_name != "")'
 reject_text \
     "src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy" \
     'if zone_count != 1 || alias_count != 1 ||'
@@ -2409,9 +2410,7 @@ require_text \
 require_file "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy"
 require_file "src/self_hosted/semantic/intent_subject_slot_policy_owner.pgy"
 require_max_lines "src/self_hosted/semantic/intent_subject_slot_policy_owner.pgy" 70
-require_text "src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy" \
-    "IntentSubjectSlotSelect("
-require_text "src/self_hosted/mir_lower/intent_step_placement_binding_owner.pgy" \
+require_text "src/self_hosted/mir_lower/intent_step_subject_binding_owner.pgy" \
     "IntentSubjectSlotSelect("
 require_max_lines \
     "src/self_hosted/mir_lower/intent_phase_projection_owner.pgy" 260
@@ -2718,44 +2717,65 @@ for retired_intent_ast_reconstruction in \
 done
 reject_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \
     "authority_alias != who_alias"
-require_file \
-    "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy"
-require_max_lines \
-    "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy" 180
-require_text "src/self_hosted/OWNERS.md" \
-    "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy"
-require_text \
-    "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy" \
-    'LookupKindType(env, zone_type, "nk") != "zone"'
-require_file \
-    "src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy"
-require_max_lines \
-    "src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy" 100
-require_text "src/self_hosted/OWNERS.md" \
-    "src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy"
 require_text \
     "src/self_hosted/semantic/intent_subject_slot_policy_owner.pgy" \
     'NominalFieldKindSubjectSlot()'
-require_text \
-    "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy" \
-    'where-using-zone-mismatch'
-require_text \
-    "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy" \
-    'SemanticAstZoneAuthoritySlotPresent('
-require_text \
-    "src/self_hosted/codegen/emission/intent_step_binding_owner.pgy" \
-    'zone_pointer = Concat("&", zone_c)'
 require_file \
-    "src/self_hosted/codegen/emission/intent_step_binding_contract_owner.pgy"
+    "src/self_hosted/mir/intent_zone_authority_transition_fact_owner.pgy"
+# Registry evidence: transition owners present and legacy binding owners absent.
 require_max_lines \
-    "src/self_hosted/codegen/emission/intent_step_binding_contract_owner.pgy" 180
+    "src/self_hosted/mir/intent_zone_authority_transition_fact_owner.pgy" 150
+require_file \
+    "src/self_hosted/mir_lower/intent_zone_authority_transition_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/intent_zone_authority_transition_owner.pgy" 120
+require_file \
+    "src/self_hosted/mir_lower/program_declaration_zone_authority_index_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir_lower/program_declaration_zone_authority_index_owner.pgy" 180
+require_file \
+    "src/self_hosted/codegen/input/intent_zone_authority_transition_codegen_view_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/input/intent_zone_authority_transition_codegen_view_owner.pgy" 240
+require_file \
+    "src/self_hosted/codegen/input/intent_zone_authority_source_seal_owner.pgy"
+require_max_lines \
+    "src/self_hosted/codegen/input/intent_zone_authority_source_seal_owner.pgy" 100
 require_text "src/self_hosted/OWNERS.md" \
-    "src/self_hosted/codegen/emission/intent_step_binding_contract_owner.pgy"
+    "src/self_hosted/codegen/input/intent_zone_authority_source_seal_owner.pgy"
+require_file \
+    "src/self_hosted/compiler/intent_zone_authority_transition_c_codegen_bridge_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/intent_zone_authority_transition_c_codegen_bridge_owner.pgy" 120
+require_file \
+    "src/self_hosted/compiler/semantic_intent_zone_authority_transition_codegen_bridge_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/semantic_intent_zone_authority_transition_codegen_bridge_owner.pgy" 320
+for retired_intent_binding_owner in \
+    src/self_hosted/codegen/emission/intent_step_binding_owner.pgy \
+    src/self_hosted/codegen/emission/intent_step_binding_contract_owner.pgy \
+    src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy \
+    src/self_hosted/tools/intent_step_binding_contract/main.pgy; do
+    reject_file "$retired_intent_binding_owner"
+done
 require_text \
-    "src/self_hosted/codegen/emission/intent_step_binding_contract_owner.pgy" \
-    "func CodegenIntentStepBindingContractReady() -> Bool"
+    "src/self_hosted/mir_lower/intent_step_subject_binding_owner.pgy" \
+    'MIR intent authority slot is not declared by the Zone'
+require_text \
+    "src/self_hosted/codegen/input/intent_zone_authority_transition_codegen_view_owner.pgy" \
+    'CodegenDomainRuntimeOwnsZone(domain_runtime, zone_type_name)'
+require_text \
+    "src/self_hosted/codegen/input/intent_zone_authority_transition_codegen_view_owner.pgy" \
+    'zone_pointer = Concat("&", zone_c)'
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/intent_zone_authority_transition_fact_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/compiler/semantic_intent_zone_authority_transition_codegen_bridge_owner.pgy"
+require_text \
+    "src/self_hosted/codegen/emission/intent_action_step_emit_owner.pgy" \
+    "CodegenIntentZoneAuthorityBindingFactForStep("
 require_text "Makefile" \
-    "self-host-intent-step-binding-contract-test-smoke"
+    "self-host-intent-zone-authority-transition-test-smoke"
 require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
     '"=field_kind:"'
 reject_text "src/self_hosted/codegen/emission/intent_emit_owner.pgy" \

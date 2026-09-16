@@ -1,0 +1,7 @@
+async func Worker() -> Int { return 7; }
+
+async func Main() -> Void {
+    let pending: Future<Int> = spawn Worker();
+    let wrapped: Option<Future<Int>> = Some(pending);
+    Log(await pending);
+}

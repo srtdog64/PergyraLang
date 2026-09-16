@@ -156,6 +156,13 @@ uses the phrase must rewrite it before beta.
 - Release / double-release / use-after-release / use-after-cleanup all
   hard-fail through the runtime panic contract.
 
+Physical distinction: the plain checked `Slot<T>` value ABI is
+`{ value, occupied }`; it does **not** carry the table-backed `SlotHandle`'s
+slot ID and generation fields. The generational-runtime claim applies to the
+handle boundary, not every `Slot<T>` value or every Pergyra reference. The
+[2026-09-16 integration and deletion audit](audits/2026-09-16_slot_generation_arena_abi_integration_audit.md)
+records the separate Arena/Region and ABI owners and the remaining bridges.
+
 These are *runtime checks*. They produce panics or returned errors when
 violated, not compile errors.
 

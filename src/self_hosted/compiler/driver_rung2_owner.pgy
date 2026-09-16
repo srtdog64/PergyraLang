@@ -369,7 +369,7 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     let codegen_view: CodegenAdmittedCView = CodegenAdmittedCViewFromFactsOrDie(
         admitted, codegen_analysis, artifact, semantic_body_types,
         mir_generic_specializations, verified.body_type_admission,
-        intent_expression_occurrences,
+        intent_expression_occurrences, tree_emission.zone_authority_transitions,
         routine_identity_epoch.source_syntax_ids, observe_pressure);
     DriverRung2PressureStage(observe_pressure, "consumer:codegen-view:done");
     let expired_function_tables: SemanticAstExpressionFunctionTableFacts =

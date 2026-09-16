@@ -33,7 +33,7 @@ func MirIntentDirectTargetBoundaryReady(
     if contract.nested { return authority_count == 0; }
     return contract.present &&
         (authority_count == 0 ||
-         (authority_count == 1 && authority_name == who_name));
+         (authority_count == 1 && authority_name != ""));
 }
 
 func MirIntentStepPlacementReadReady(

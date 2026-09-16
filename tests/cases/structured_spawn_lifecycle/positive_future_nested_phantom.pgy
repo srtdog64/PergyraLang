@@ -1,0 +1,16 @@
+class Phantom<T> {
+    let marker: Int;
+}
+
+class Outer<T> {
+    let inner: Phantom<T>;
+}
+
+async func Worker() -> Int { return 7; }
+
+async func Main() -> Void {
+    let outer: Outer<Future<Int>> = Outer(Phantom(1));
+    let pending: Future<Int> = spawn Worker();
+    Log(outer.inner.marker);
+    Log(await pending);
+}

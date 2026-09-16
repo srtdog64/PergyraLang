@@ -1,0 +1,85 @@
+// Canonical identity-epoch bridge from sealed MIR placement transitions to
+// the codegen-facing receipt.
+
+import "../mir/intent_zone_authority_transition_fact_owner.pgy";
+import "../mir_lower/program_routine_index_owner.pgy";
+import "../codegen/input/intent_zone_authority_transition_codegen_view_owner.pgy";
+
+func CodegenIntentZoneAuthorityTransitionsFromMirOrDie(
+    ref source: MirIntentZoneAuthorityTransitionFacts,
+    ref routines: MirProgramRoutineIndex,
+    canonical_routine_source_syntax_ids: Array<String>
+) -> CodegenIntentZoneAuthorityTransitionFacts {
+    if !MirIntentZoneAuthorityTransitionFactsReady(source) ||
+        ArrayLength(canonical_routine_source_syntax_ids) !=
+            ArrayLength(routines.names) {
+        Die("MIR Intent Zone authority transition receipt is missing");
+    }
+    let canonical_ids: Array<Int> = [];
+    let intent_names: Array<String> = [];
+    let step_names: Array<String> = [];
+    let zone_aliases: Array<String> = [];
+    let zone_type_names: Array<String> = [];
+    let zone_binding_kinds: Array<String> = [];
+    let actor_aliases: Array<String> = [];
+    let actor_type_names: Array<String> = [];
+    let actor_slot_names: Array<String> = [];
+    let actor_slot_ids: Array<String> = [];
+    let authority_present: Array<Bool> = [];
+    let authority_aliases: Array<String> = [];
+    let authority_type_names: Array<String> = [];
+    let authority_slot_names: Array<String> = [];
+    let authority_slot_ids: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(source.routine_rows) {
+        let routine: Int = source.routine_rows[row];
+        if routine < 0 || routine >= ArrayLength(routines.names) ||
+            routines.kinds[routine] != "intent" ||
+            routines.names[routine] != source.intent_names[row] ||
+            ToInt(routines.source_syntax_ids[routine]) !=
+                source.routine_source_syntax_ids[row] ||
+            ToString(source.routine_source_syntax_ids[row]) !=
+                routines.source_syntax_ids[routine] ||
+            ToInt(canonical_routine_source_syntax_ids[routine]) <= 0 ||
+            ToString(ToInt(canonical_routine_source_syntax_ids[routine])) !=
+                canonical_routine_source_syntax_ids[routine] {
+            Die("MIR Intent Zone authority transition identity is stale");
+        }
+        ArrayPush(
+            canonical_ids,
+            ToInt(canonical_routine_source_syntax_ids[routine])
+        );
+        ArrayPush(intent_names, source.intent_names[row]);
+        ArrayPush(step_names, source.step_names[row]);
+        ArrayPush(zone_aliases, source.zone_aliases[row]);
+        ArrayPush(zone_type_names, source.zone_type_names[row]);
+        ArrayPush(zone_binding_kinds, source.zone_binding_kinds[row]);
+        ArrayPush(actor_aliases, source.actor_aliases[row]);
+        ArrayPush(actor_type_names, source.actor_type_names[row]);
+        ArrayPush(actor_slot_names, source.actor_slot_names[row]);
+        ArrayPush(
+            actor_slot_ids, source.actor_slot_source_syntax_ids[row]
+        );
+        ArrayPush(authority_present, source.authority_present[row]);
+        ArrayPush(authority_aliases, source.authority_aliases[row]);
+        ArrayPush(authority_type_names, source.authority_type_names[row]);
+        ArrayPush(authority_slot_names, source.authority_slot_names[row]);
+        ArrayPush(
+            authority_slot_ids,
+            source.authority_slot_source_syntax_ids[row]
+        );
+        row = row + 1;
+    }
+    let result: CodegenIntentZoneAuthorityTransitionFacts =
+        CodegenIntentZoneAuthorityTransitionFacts(
+            true, canonical_ids, intent_names, step_names, zone_aliases,
+            zone_type_names, zone_binding_kinds, actor_aliases,
+            actor_type_names, actor_slot_names, actor_slot_ids,
+            authority_present, authority_aliases, authority_type_names,
+            authority_slot_names, authority_slot_ids
+        );
+    if !CodegenIntentZoneAuthorityTransitionFactsReady(result) {
+        Die("codegen Intent Zone authority transition receipt is invalid");
+    }
+    return result;
+}

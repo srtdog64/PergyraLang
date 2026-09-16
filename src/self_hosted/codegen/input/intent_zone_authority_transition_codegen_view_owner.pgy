@@ -1,0 +1,220 @@
+// Codegen-facing projection of sealed MIR Intent placement transitions.
+
+import "domain_runtime_codegen_view_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+
+struct CodegenIntentZoneAuthorityTransitionFacts {
+    valid: Bool;
+    routine_canonical_syntax_ids: Array<Int>;
+    intent_names: Array<String>;
+    step_names: Array<String>;
+    zone_aliases: Array<String>;
+    zone_type_names: Array<String>;
+    zone_binding_kinds: Array<String>;
+    actor_aliases: Array<String>;
+    actor_type_names: Array<String>;
+    actor_slot_names: Array<String>;
+    actor_slot_source_syntax_ids: Array<String>;
+    authority_present: Array<Bool>;
+    authority_aliases: Array<String>;
+    authority_type_names: Array<String>;
+    authority_slot_names: Array<String>;
+    authority_slot_source_syntax_ids: Array<String>;
+}
+
+func CodegenIntentZoneAuthorityTransitionFactsEmpty(
+    valid: Bool
+) -> CodegenIntentZoneAuthorityTransitionFacts {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    let bools: Array<Bool> = [];
+    return CodegenIntentZoneAuthorityTransitionFacts(
+        valid, ints, strings, strings, strings, strings, strings,
+        strings, strings, strings, strings, bools, strings, strings,
+        strings, strings
+    );
+}
+
+func CodegenIntentZoneAuthorityTransitionPositiveDecimal(
+    value: String
+) -> Bool {
+    return value != "" && ToInt(value) > 0 &&
+        ToString(ToInt(value)) == value;
+}
+
+func CodegenIntentZoneAuthorityTransitionFactsReady(
+    ref facts: CodegenIntentZoneAuthorityTransitionFacts
+) -> Bool {
+    let count: Int = ArrayLength(facts.routine_canonical_syntax_ids);
+    if !facts.valid || ArrayLength(facts.intent_names) != count ||
+        ArrayLength(facts.step_names) != count ||
+        ArrayLength(facts.zone_aliases) != count ||
+        ArrayLength(facts.zone_type_names) != count ||
+        ArrayLength(facts.zone_binding_kinds) != count ||
+        ArrayLength(facts.actor_aliases) != count ||
+        ArrayLength(facts.actor_type_names) != count ||
+        ArrayLength(facts.actor_slot_names) != count ||
+        ArrayLength(facts.actor_slot_source_syntax_ids) != count ||
+        ArrayLength(facts.authority_present) != count ||
+        ArrayLength(facts.authority_aliases) != count ||
+        ArrayLength(facts.authority_type_names) != count ||
+        ArrayLength(facts.authority_slot_names) != count ||
+        ArrayLength(facts.authority_slot_source_syntax_ids) != count {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if facts.routine_canonical_syntax_ids[row] <= 0 ||
+            facts.intent_names[row] == "" || facts.step_names[row] == "" ||
+            facts.zone_aliases[row] == "" ||
+            facts.zone_type_names[row] == "" ||
+            (facts.zone_binding_kinds[row] != "participant" &&
+             facts.zone_binding_kinds[row] != "value") ||
+            facts.actor_aliases[row] == "" ||
+            facts.actor_type_names[row] == "" ||
+            facts.actor_slot_names[row] == "" ||
+            !CodegenIntentZoneAuthorityTransitionPositiveDecimal(
+                facts.actor_slot_source_syntax_ids[row]
+            ) {
+            return false;
+        }
+        if facts.authority_present[row] {
+            if facts.authority_aliases[row] == "" ||
+                facts.authority_type_names[row] == "" ||
+                facts.authority_slot_names[row] == "" ||
+                !CodegenIntentZoneAuthorityTransitionPositiveDecimal(
+                    facts.authority_slot_source_syntax_ids[row]
+                ) {
+                return false;
+            }
+        } else if facts.authority_aliases[row] != "" ||
+            facts.authority_type_names[row] != "" ||
+            facts.authority_slot_names[row] != "" ||
+            facts.authority_slot_source_syntax_ids[row] != "" {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if facts.routine_canonical_syntax_ids[prior] ==
+                    facts.routine_canonical_syntax_ids[row] &&
+                facts.step_names[prior] == facts.step_names[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func CodegenIntentZoneAuthorityTransitionRow(
+    ref facts: CodegenIntentZoneAuthorityTransitionFacts,
+    routine_canonical_syntax_id: Int,
+    step_name: String
+) -> Int {
+    if !CodegenIntentZoneAuthorityTransitionFactsReady(facts) ||
+        routine_canonical_syntax_id <= 0 || step_name == "" {
+        return -1;
+    }
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(facts.routine_canonical_syntax_ids) {
+        if facts.routine_canonical_syntax_ids[row] ==
+                routine_canonical_syntax_id &&
+            facts.step_names[row] == step_name {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func CodegenIntentZoneAuthorityTransitionStepReady(
+    ref facts: CodegenIntentZoneAuthorityTransitionFacts,
+    routine_canonical_syntax_id: Int,
+    intent_name: String,
+    step_name: String,
+    actor_alias: String,
+    zone_alias: String,
+    authority_alias: String,
+    zone_type_name: String
+) -> Bool {
+    let row: Int = CodegenIntentZoneAuthorityTransitionRow(
+        facts, routine_canonical_syntax_id, step_name
+    );
+    return row >= 0 && facts.intent_names[row] == intent_name &&
+        facts.actor_aliases[row] == actor_alias &&
+        facts.zone_aliases[row] == zone_alias &&
+        facts.zone_type_names[row] == zone_type_name &&
+        facts.authority_present[row] == (authority_alias != "") &&
+        facts.authority_aliases[row] == authority_alias;
+}
+
+struct CodegenIntentZoneAuthorityBindingFact {
+    ok: Bool;
+    diagnostic: String;
+    actor_type: String;
+    zone_type: String;
+    actor_c: String;
+    actor_slot_name: String;
+    zone_member: String;
+    zone_pointer: String;
+    sync_symbol: String;
+}
+
+func CodegenIntentZoneAuthorityBindingFactError(
+    diagnostic: String
+) -> CodegenIntentZoneAuthorityBindingFact {
+    return CodegenIntentZoneAuthorityBindingFact(
+        false, diagnostic, "", "", "", "", "", "", ""
+    );
+}
+
+func CodegenIntentZoneAuthorityBindingFactForStep(
+    ref facts: CodegenIntentZoneAuthorityTransitionFacts,
+    ref domain_runtime: CodegenDomainRuntimeFacts,
+    routine_canonical_syntax_id: Int,
+    intent_name: String,
+    step_name: String,
+    actor_alias: String,
+    zone_alias: String,
+    authority_alias: String,
+    zone_type_name: String
+) -> CodegenIntentZoneAuthorityBindingFact {
+    if !CodegenIntentZoneAuthorityTransitionStepReady(
+        facts, routine_canonical_syntax_id, intent_name, step_name,
+        actor_alias, zone_alias, authority_alias, zone_type_name
+    ) {
+        return CodegenIntentZoneAuthorityBindingFactError(
+            "missing-or-crossed-transition"
+        );
+    }
+    if !CodegenDomainRuntimeOwnsZone(domain_runtime, zone_type_name) {
+        return CodegenIntentZoneAuthorityBindingFactError(
+            "zone-sync-owner-missing"
+        );
+    }
+    let row: Int = CodegenIntentZoneAuthorityTransitionRow(
+        facts, routine_canonical_syntax_id, step_name
+    );
+    let actor_c: String = CompilerSymbolCBindingName(actor_alias);
+    let zone_c: String = CompilerSymbolCBindingName(zone_alias);
+    let field_c: String = CompilerSymbolCFieldName(
+        facts.actor_slot_names[row]
+    );
+    let zone_member: String = Concat(
+        "(*", Concat(zone_c, Concat(").", field_c))
+    );
+    let zone_pointer: String = zone_c;
+    if facts.zone_binding_kinds[row] == "value" {
+        zone_member = Concat(zone_c, Concat(".", field_c));
+        zone_pointer = Concat("&", zone_c);
+    }
+    return CodegenIntentZoneAuthorityBindingFact(
+        true, "", facts.actor_type_names[row],
+        facts.zone_type_names[row], actor_c,
+        facts.actor_slot_names[row], zone_member, zone_pointer,
+        CompilerSymbolCQualifiedName(facts.zone_type_names[row], "sync")
+    );
+}

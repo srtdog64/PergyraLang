@@ -4,16 +4,26 @@ import "intent_routine_plan_owner.pgy";
 import "intent_routine_step_projection_owner.pgy";
 import "intent_execution_tree_projection_owner.pgy";
 import "intent_execution_graph_mirror_owner.pgy";
+import "intent_zone_authority_transition_owner.pgy";
 
 func EmitMirIntentTreeAtRowWithExecutionPlan(
     ref routines: MirProgramRoutineIndex,
     routine_row: Int,
     inout expression_order: MirStructuredExpressionEmissionOrder,
-    ref intent_execution_plan: MirIntentExecutionPlan
+    ref intent_execution_plan: MirIntentExecutionPlan,
+    inout zone_authority_transitions:
+        MirIntentZoneAuthorityTransitionFacts
 ) -> String {
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(routines, routine_row);
     let plan: MirIntentRoutinePlan = MirIntentRoutinePlanFromOwners(
         routines, index, routine_row, intent_execution_plan);
+    if !MirIntentZoneAuthorityTransitionAppendRoutine(
+        zone_authority_transitions, routines, routine_row, plan
+    ) {
+        MirLowerFailClosed(
+            "MIR intent Zone authority transition receipt is invalid"
+        );
+    }
     if plan.typed_execution && !MirIntentExecutionCoverLegacyGraphMirrors(
             routines, routine_row, intent_execution_plan, plan.source_syntax_id,
             plan.typed_body_mirror_rows, expression_order) {
@@ -58,5 +68,9 @@ func EmitMirIntentTreeAtRow(
     inout expression_order: MirStructuredExpressionEmissionOrder
 ) -> String {
     let plan: MirIntentExecutionPlan = MirIntentExecutionPlanEmpty(true, false);
-    return EmitMirIntentTreeAtRowWithExecutionPlan(routines, routine_row, expression_order, plan);
+    let transitions: MirIntentZoneAuthorityTransitionFacts =
+        MirIntentZoneAuthorityTransitionFactsEmpty(true);
+    return EmitMirIntentTreeAtRowWithExecutionPlan(
+        routines, routine_row, expression_order, plan, transitions
+    );
 }

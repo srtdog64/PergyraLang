@@ -363,14 +363,12 @@ fi
 grep -Fq 'ref plan: MirIntentRoutineStepPlan' \
     "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy"
 grep -Fq 'IntentSubjectSlotSelect(' \
-    "$ROOT_DIR/src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy"
-grep -Fq 'IntentSubjectSlotSelect(' \
-    "$ROOT_DIR/src/self_hosted/mir_lower/intent_step_placement_binding_owner.pgy"
-grep -Fq 'slot_source_syntax_id: String' \
+    "$ROOT_DIR/src/self_hosted/mir_lower/intent_step_subject_binding_owner.pgy"
+grep -Fq 'actor_slot_source_syntax_id: String' \
     "$ROOT_DIR/src/self_hosted/mir_lower/intent_step_placement_binding_owner.pgy"
 grep -Fq 'MirIntentBindingRowForAlias(' \
     "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy"
-grep -Fq 'zone_alias: String, receiver: Int' \
+grep -Fq 'zone_name: String, zone_alias: String, actor: Int' \
     "$ROOT_DIR/src/self_hosted/mir_lower/intent_step_placement_binding_owner.pgy"
 if grep -En 'binding_scan|receiver_match_count' \
     "$ROOT_DIR/src/self_hosted/mir_lower/intent_routine_step_plan_owner.pgy"; then
@@ -383,9 +381,9 @@ else
         exit "$scan_status"
     fi
 fi
-if grep -En 'compatible_count|exact_count|slot_name != ""' \
-    "$ROOT_DIR/src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy"; then
-    echo "C projection must not own Intent subject-slot selection" >&2
+if grep -En 'IntentSubjectSlotSelect|SemanticAstZoneAuthoritySlotPresent|LookupKindType\(env, zone_type' \
+    "$ROOT_DIR/src/self_hosted/codegen/input/intent_zone_authority_transition_codegen_view_owner.pgy"; then
+    echo "C projection must not recover Intent authority or subject-slot policy" >&2
     exit 1
 else
     scan_status=$?

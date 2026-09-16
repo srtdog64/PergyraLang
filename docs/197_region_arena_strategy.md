@@ -5,6 +5,11 @@ carried from the AIR-certified driver plan to both C and LLVM consumers. This
 document remains the strategy and evidence record; stale census statements are
 marked where implementation changed them.
 
+The [2026-09-16 integration and keyword deletion audit](audits/2026-09-16_slot_generation_arena_abi_integration_audit.md)
+separates compiler `PgyArena`, legacy fixed runtime `PgyArena`, live
+`PgyRegion`, and the still-absent `region`/`arena` source keywords. It is a
+bounded evidence review, not a new WO-REG rung or a syntax decision.
+
 ## Historical strategy context
 
 The original strategy text follows; WO-REG-1 is now live and its current

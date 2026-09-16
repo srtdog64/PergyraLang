@@ -1,0 +1,9 @@
+class Carrier<T> {
+    let value: T;
+}
+
+async func Main() -> Void {
+    let carrier: Carrier<Future<Int>> = Carrier();
+    let alias: Future<Int> = carrier.value;
+    Log(await alias);
+}

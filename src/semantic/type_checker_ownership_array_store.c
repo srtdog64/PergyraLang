@@ -15,6 +15,9 @@ reject_borrowed_array_literal_store(ASTNode *value_expr,
 {
     if (value_expr == NULL || stored_value_type == NULL || ctx == NULL)
         return;
+    if (semantic_future_reject_aggregate_storage(
+            value_expr, stored_value_type, ctx, "array literal"))
+        return;
     if (semantic_reject_active_slot_owner_escape(
             value_expr, ctx, "array literal", "array literal storage")) {
         return;

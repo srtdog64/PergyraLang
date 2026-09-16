@@ -1,0 +1,11 @@
+class Carrier<T> {
+    let value: T;
+}
+
+async func Worker() -> Int { return 7; }
+
+async func Main() -> Void {
+    let pending: Future<Int> = spawn Worker();
+    let carrier: Carrier<Future<Int>> = Carrier(pending);
+    Log(await pending);
+}

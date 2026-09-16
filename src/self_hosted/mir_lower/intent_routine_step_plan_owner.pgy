@@ -307,8 +307,9 @@ func MirIntentRoutineStepPlanFromOwners(
             placement_receiver = MirIntentBindingRowForAlias(binding_projection, who_name);
         }
         let placement_binding: MirIntentStepPlacementBinding = MirIntentStepPlacementBindingFromOwners(
-            routines.declarations.field_identities, binding_projection,
-            placement.present, zone_name, zone_alias, placement_receiver);
+            routines.declarations, binding_projection,
+            placement.present, zone_name, zone_alias, placement_receiver,
+            authority_count == 1, authority_name);
         ArrayPush(steps, MirIntentRoutineStepFact(
             step_name, placement, zone_name, zone_alias, who_name,
             authority_count == 1, authority_name, outcome_name,

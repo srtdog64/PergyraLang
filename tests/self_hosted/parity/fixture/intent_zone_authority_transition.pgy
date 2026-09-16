@@ -1,0 +1,42 @@
+subject Worker {
+    let value: Int;
+
+    action Bump(self) -> Void {
+        value = value + 1;
+    }
+}
+
+subject Approver {
+    let marker: Int;
+}
+
+zone GateZone {
+    subject slot worker: Worker
+    subject slot approver: Approver
+    authority approver
+}
+
+intent RunAuthorized(gate: GateZone, worker: Worker, approver: Approver) {
+    step bump {
+        where: GateZone;
+        using: gate;
+        who: worker;
+        authorized by: approver;
+        on: worker.Bump();
+        post: gate.worker.value == 2;
+        expect: gate.worker.value == 2;
+    }
+
+    success: gate.worker.value == 2;
+    failure: false;
+}
+
+func Main() -> Void {
+    let worker = Worker(1);
+    let approver = Approver(7);
+    let gate = GateZone(Clone(worker), Clone(approver));
+    let ok = RunAuthorized(gate, worker, approver);
+    Log("ok=" + ToString(ok));
+    Log("worker=" + ToString(worker.value));
+    Log("gate=" + ToString(gate.worker.value));
+}

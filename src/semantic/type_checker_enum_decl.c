@@ -33,6 +33,23 @@ type_check_enum_decl(ASTNode *node, SemanticContext *ctx)
     scope_enter(&ctx->scope, SCOPE_CLASS);
     ctx->current_nominal_decl = node;
 
+    {
+        size_t variant_count = 0;
+        (void)ast_enum_variants(node, &variant_count);
+        for (size_t variant = 0; variant < variant_count; variant++) {
+            size_t payload_count =
+                ast_enum_variant_param_count(node, variant);
+            for (size_t payload = 0; payload < payload_count; payload++) {
+                ASTNode *payload_type =
+                    ast_enum_variant_param(node, variant, payload);
+                Type *resolved = semantic_host_resolve_type_ref(
+                    payload_type, ctx);
+                semantic_future_reject_aggregate_storage(
+                    payload_type, resolved, ctx, "enum payload");
+            }
+        }
+    }
+
     for (size_t i = 0; i < method_count; i++)
         type_check_func_decl(methods != NULL ? methods[i] : NULL, ctx);
 

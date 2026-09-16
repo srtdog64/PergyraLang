@@ -78,6 +78,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     bool infer_return = (ast_func_return_type(node) == NULL);
     if (infer_return)
         return_type = TYPE_UNKNOWN;
+    if (!infer_return && !semantic_type_is_future_handle(return_type))
+        semantic_future_reject_aggregate_storage(
+            ast_func_return_type(node), return_type, ctx,
+            "function return type");
     if (type_is_class_object_type(return_type, ctx)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
             PGY_CAUSE_ANCHORED_HANDLE_RETURN_BOUNDARY,
@@ -137,6 +141,11 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         } else {
             param_types[i] = type_check_func_resolve_param_type(param, ctx);
         }
+        if (param->type != NULL
+            && !semantic_type_is_future_handle(param_types[i]))
+            semantic_future_reject_aggregate_storage(
+                param->type, param_types[i], ctx,
+                "function parameter type");
         type_check_func_validate_param_boundary(node, ctx, name, param,
             param_types[i]);
         /* Subject parameters are passed by reference (pointer) internally.

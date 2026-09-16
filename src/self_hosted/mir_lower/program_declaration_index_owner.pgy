@@ -3,10 +3,10 @@
 // Captured once from the pgy.mir.v1 declaration array.  Canonical declaration
 // family ordering remains a lowering policy; this owner preserves document
 // identity and spans so each policy phase does not rediscover JSON rows.
-
 import "json_fact_read.pgy";
 import "program_declaration_field_identity_index_owner.pgy";
 import "program_enum_variant_index_owner.pgy";
+import "program_declaration_zone_authority_index_owner.pgy";
 struct MirProgramDeclarationIndex {
     let valid: Bool;
     let starts: Array<Int>;
@@ -17,18 +17,15 @@ struct MirProgramDeclarationIndex {
     let source_module_paths: Array<String>;
     let field_identities: MirProgramDeclarationFieldIdentityIndex;
     let enum_variants: MirProgramEnumVariantIndex;
+    let zone_authorities: SelfMirDeclarationZoneAuthorityRows;
 }
-
 func MirProgramDeclarationIndexCursorAtEnd(
-    json: String,
-    cursor: Int,
-    array_end: Int
+    json: String, cursor: Int, array_end: Int
 ) -> Bool {
     let i: Int = JsonSkipWhitespace(json, cursor, array_end);
     return i >= 0 && i + 1 == array_end &&
         JsonCharCodeAt(json, array_end, i) == JsonAsciiCode("]");
 }
-
 func BuildMirProgramDeclarationIndexFromTable(
     ref declarations: JsonArrayObjectFactTable
 ) -> MirProgramDeclarationIndex {
@@ -49,14 +46,12 @@ func BuildMirProgramDeclarationIndexFromTable(
             JsonAsciiCode("[") {
         return MirProgramDeclarationIndex(
             false, starts, ends, kinds, nominal_kinds, names,
-            source_module_paths, field_identities, enum_variants
-        );
+            source_module_paths, field_identities, enum_variants,
+            SelfMirDeclarationZoneAuthorityRowsEmpty());
     }
     let cursor: Int = declaration_start + 1;
     let bounds: Array<Int> = [0, 0];
-    while JsonArrayNextObjectBounds(
-        json, cursor, declaration_end, bounds
-    ) {
+    while JsonArrayNextObjectBounds(json, cursor, declaration_end, bounds) {
         ArrayPush(starts, bounds[0]);
         ArrayPush(ends, bounds[1]);
         ArrayPush(kinds, MirObjectStringFactAtBounds(
@@ -86,11 +81,16 @@ func BuildMirProgramDeclarationIndexFromTable(
     enum_variants = BuildMirProgramEnumVariantIndexFromDeclarationSpans(
         json, starts, ends, kinds, names
     );
+    let zone_authorities: SelfMirDeclarationZoneAuthorityRows =
+        BuildMirProgramDeclarationZoneAuthorityIndex(
+            declarations, names, nominal_kinds);
     return MirProgramDeclarationIndex(
-        valid && enum_variants.valid, starts, ends, kinds, nominal_kinds, names, source_module_paths, field_identities, enum_variants
+        valid && enum_variants.valid && MirProgramDeclarationZoneAuthorityIndexReady(
+            zone_authorities, names, nominal_kinds, field_identities),
+        starts, ends, kinds, nominal_kinds, names, source_module_paths,
+        field_identities, enum_variants, zone_authorities
     );
 }
-
 func BuildMirProgramDeclarationIndex(json: String) -> MirProgramDeclarationIndex {
     let document: MirDocumentFactIndex = BuildMirDocumentFactIndex(json);
     return BuildMirProgramDeclarationIndexFromTable(document.declarations);

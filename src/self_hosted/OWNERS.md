@@ -223,6 +223,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   structured source-flow completion obligations for affine future handles.
 - `src/self_hosted/semantic/ast_future_lifecycle_binding_owner.pgy` --
   ephemeral lexical future identities and expression transfer joins.
+- `src/self_hosted/semantic/ast_future_storage_admission_owner.pgy` --
+  aggregate, nominal-field, enum-payload, and callable-boundary refusal for
+  physically stored affine Future/RemoteFuture handles.
 - `src/self_hosted/semantic/ast_generic_nominal_equality_owner.pgy` --
   exact nominal-bound witnesses projected into callable body type views.
 - `src/self_hosted/semantic/ast_intent_retry_admission_owner.pgy` --
@@ -869,6 +872,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/mir/declaration_zone_authority_rows_owner.pgy` -- aligns the
   semantic owner's explicit zone subject-slot and required-ability facts with
   one MIR declaration inventory; it never infers authority from actions.
+- `src/self_hosted/mir/intent_zone_authority_transition_fact_owner.pgy` --
+  target-neutral receipt for the exact Intent routine/step, Zone binding mode,
+  actor slot identity, and optional declared authority slot identity consumed
+  after MIR admission.
 - `src/self_hosted/mir/declaration_verify_owner.pgy` -- structural range and
   parallel-row verification for MIR declarations, including generic, method,
   role-slot, and role-implementation inventories.
@@ -1403,6 +1410,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- one flattened owner/name/source-ID/field-kind identity index built from
   program declaration spans; topology consumers must use its exact join and
   fail closed on missing, non-positive, or duplicate field identities.
+- `src/self_hosted/mir_lower/program_declaration_zone_authority_index_owner.pgy`
+  -- exact JSON-declaration projection of Zone authority subject slots and
+  required abilities. Non-Zone authority rows, malformed ability types, and
+  authority rows without one matching subject-slot field fail closed.
 - `src/self_hosted/lib/json_bounded_fact_read.pgy` -- exact-bound JSON object
   and string-array fact reads that consume structure-owner spans without
   rediscovering the full document length. The string-array scanner owns comma,
@@ -1434,11 +1445,18 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   identity cross-seals, not a tree-owned whole-plan lookup. Consumers retain each
   phase occurrence; no second admission.
 - `src/self_hosted/mir_lower/intent_step_placement_binding_owner.pgy` -- exact
-  participant and Zone declaration/field identity for one admitted placement;
-  carries the selected slot SyntaxNodeId to physical consumers.
+  assembly of actor, optional authority, and Zone identities for one admitted
+  placement; it makes no slot-selection decision of its own.
+- `src/self_hosted/mir_lower/intent_step_subject_binding_owner.pgy` -- exact
+  participant declaration/field identity and stable SyntaxNodeId selection for
+  an actor or authority; authority mode additionally requires the slot to occur
+  once in the Zone's admitted authority rows.
+- `src/self_hosted/mir_lower/intent_zone_authority_transition_owner.pgy` --
+  seals each placed routine step's admitted placement binding into the
+  target-neutral MIR transition receipt during the existing tree-plan pass.
 - `src/self_hosted/semantic/intent_subject_slot_policy_owner.pgy` -- one
-  owner-scoped exact-alias/unique-compatible subject-slot policy, shared by
-  MIR placement admission and the source-C environment projection.
+  owner-scoped exact-alias/unique-compatible subject-slot policy consumed by
+  MIR placement admission; target codegen cannot select a slot again.
 - `src/self_hosted/mir_lower/intent_routine_step_projection_owner.pgy` --
   legacy/typed AST step rows and expression order from the admitted step plan;
   no participant/action/placement re-admission or expression-text selection.
@@ -1562,7 +1580,16 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy` --
   bounded two-lane codegen receipt: admitted source DIR facts for source C
   emission and a canonical-routine keyed MIR execution plan for direct-MIR C
-  emission. Missing source facts fail closed for semantic intents.
+  emission. Placed source steps additionally require an exact canonical
+  MIR Zone-authority transition; missing or crossed rows fail closed.
+- `src/self_hosted/codegen/input/intent_zone_authority_transition_codegen_view_owner.pgy`
+  -- C-facing projection of the sealed transition receipt. It derives only C
+  spelling/address mode and requires the shared domain-runtime Zone owner; it
+  does not read semantic authority facts or select subject slots.
+- `src/self_hosted/codegen/input/intent_zone_authority_source_seal_owner.pgy`
+  -- exact source-DIR step to transition-receipt cross-seal for routines not
+  already owned by the MIR execution plan; missing, extra, or crossed placed
+  rows fail before final emission.
 - `src/self_hosted/codegen/input/intent_policy_codegen_view_owner.pgy` --
   canonical-routine keyed admitted intent mode and priority receipt consumed by
   C emission without reopening AST children or reconstructing graph roots.
@@ -1894,15 +1921,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   placement-free direct nested-intent expression graph, Bool failure
   propagation, and step observability emission. The called intent remains the
   owner of its zone materialization and synchronization.
-- `src/self_hosted/codegen/emission/intent_step_binding_owner.pgy` -- one
-  actor/using/authority parameter admission and exact-alias-or-unique-type zone
-  slot projection, including by-value versus inout zone C address spelling.
-- `src/self_hosted/codegen/emission/intent_step_binding_contract_owner.pgy` --
-  executable positive/negative contract for where/using identity, declared
-  authority, exact-or-unique subject-slot selection, and zone address mode.
-- `src/self_hosted/codegen/emission/intent_zone_subject_slot_owner.pgy` --
-  exact-alias-first, otherwise unique-type subject-slot resolution shared by
-  actor and authority binding; non-subject fields never satisfy the join.
 - `src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy` -- intent
   callable environment, parameter ABI, prototype, and local-binding C facts;
   intent remains a distinct Bool orchestration boundary.
@@ -2107,6 +2125,15 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   one-way admission of exact semantic intent DIR facts into the C execution
   receipt; it validates the declaration/signature identity seal and provides
   no empty-view or AST-reconstruction fallback to final emission.
+- `src/self_hosted/compiler/intent_zone_authority_transition_c_codegen_bridge_owner.pgy`
+  -- maps producer routine identity to the canonical AST epoch once and hands
+  the exact MIR actor/authority/Zone transition rows to codegen. Name-only and
+  source-ID numeric equality across epochs are rejected.
+- `src/self_hosted/compiler/semantic_intent_zone_authority_transition_codegen_bridge_owner.pgy`
+  -- bootstrap-only predecessor adapter from admitted semantic DIR and MIR
+  declaration rows into the same sealed codegen transition receipt. It keeps
+  the source seed buildable before a MIR artifact exists, but final C emission
+  never reopens AST authority facts or a codegen type environment.
 
 - `src/self_hosted/compiler/reachability_owner.pgy` -- mechanism reachability
   contract: no mechanism without a consumer, or an explicit declaration that

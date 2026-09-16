@@ -422,6 +422,8 @@ ASTNode* parser_parse_let_declaration(Parser* parser) {
     Token name = consume_binding_name_token(parser, "Expected variable name");
 
     ASTNode* let_decl = ast_create_let_declaration(name.text);
+    let_decl->line = name.line;
+    let_decl->column = name.column;
     let_decl->data.let_decl.is_mutable = let_is_mutable;
 
     // 타입 어노테이션 (선택적)

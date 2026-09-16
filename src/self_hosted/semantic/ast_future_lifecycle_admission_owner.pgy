@@ -1,6 +1,7 @@
 // Structured source flow for affine Future/RemoteFuture completion obligations.
 // Admission consumes typed scopes and expression topology, before either backend.
 import "ast_future_lifecycle_binding_owner.pgy";
+import "ast_future_storage_admission_owner.pgy";
 
 func SemanticFutureCondition(ref facts: SemanticFutureBindings, node_id: Int) -> Option<Bool> {
     let row: Int = facts.surface_rows[node_id];
@@ -153,8 +154,11 @@ func SemanticFutureNode(ref facts: SemanticFutureBindings, inout flow: SemanticF
 }
 
 func SemanticAstFutureLifecycleAdmissionFromFacts(artifact: AstTreeArtifact,
-    signatures: SemanticAstFunctionSignatureFacts, locals: SemanticAstLocalBindingFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
     initializers: SemanticAstInitializerTypeFacts, surfaces: SemanticAstExpressionSurfaceFacts,
+    enums: SemanticAstEnumFacts,
     exhaustive_match_nodes: Array<Int>
 ) -> SemanticAstBodyVerdict {
     if !SemanticAstSignatureRowsAdmittedReady(artifact, signatures) ||
@@ -162,6 +166,11 @@ func SemanticAstFutureLifecycleAdmissionFromFacts(artifact: AstTreeArtifact,
         !surfaces.ok || surfaces.artifact_node_count != artifact.count {
         return SemanticAstBodyVerdictError("ast_artifact_invalid", "Future lifecycle requires admitted body facts", -1);
     }
+    let storage: SemanticAstBodyVerdict =
+        SemanticAstFutureStorageAdmissionFromFacts(
+            artifact, signatures, constructors, locals, initializers, enums
+        );
+    if !storage.ok { return storage; }
     let needed: Bool = false; let index: Int = 0;
     while index < ArrayLength(initializers.inferred_type_names) {
         if SemanticFutureType(initializers.inferred_type_names[index]) { needed = true; }

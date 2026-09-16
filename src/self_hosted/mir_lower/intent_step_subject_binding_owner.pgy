@@ -1,0 +1,114 @@
+// Resolve one admitted Intent participant to one exact Zone subject slot.
+// Actor selection uses the shared slot policy. Authority selection additionally
+// proves that the selected slot is declared by the Zone authority owner.
+
+import "intent_carrier_projection_owner.pgy";
+import "program_declaration_index_owner.pgy";
+import "../semantic/intent_subject_slot_policy_owner.pgy";
+
+struct MirIntentStepSubjectBinding {
+    binding_row: Int;
+    declaration_row: Int;
+    slot_field_row: Int;
+    slot_source_syntax_id: String;
+    slot_name: String;
+}
+
+func MirIntentStepSubjectBindingEmpty() -> MirIntentStepSubjectBinding {
+    return MirIntentStepSubjectBinding(-1, -1, -1, "", "");
+}
+
+func MirIntentStepSubjectBindingFromOwners(
+    ref declarations: MirProgramDeclarationIndex,
+    ref bindings: MirIntentBindingProjection,
+    zone_declaration: Int, binding_row: Int, alias: String,
+    require_zone_authority: Bool
+) -> MirIntentStepSubjectBinding {
+    if binding_row < 0 || binding_row >= ArrayLength(bindings.aliases) ||
+        bindings.kinds[binding_row] != "participant" {
+        if require_zone_authority {
+            MirLowerFailClosed(
+                "MIR intent authority participant is missing or invalid"
+            );
+        }
+        MirLowerFailClosed(
+            "MIR intent placement participant types are inconsistent"
+        );
+    }
+    let type_name: String = bindings.type_names[binding_row];
+    let declaration: Int =
+        MirProgramDeclarationFieldIdentityDeclarationIndex(
+            declarations.field_identities, type_name
+        );
+    if declaration < 0 ||
+        declarations.field_identities.declaration_nominal_kinds[
+            declaration
+        ] != "subject" {
+        if require_zone_authority {
+            MirLowerFailClosed(
+                "MIR intent authority declaration is not a subject"
+            );
+        }
+        MirLowerFailClosed(
+            "MIR intent placement nominal declarations are inconsistent"
+        );
+    }
+    let selected: IntentSubjectSlotSelection = IntentSubjectSlotSelect(
+        declarations.field_identities.field_owner_indices,
+        declarations.field_identities.field_names,
+        declarations.field_identities.field_type_names,
+        declarations.field_identities.field_kinds,
+        zone_declaration, alias, type_name
+    );
+    if !selected.ok {
+        if require_zone_authority {
+            MirLowerFailClosed(Concat(
+                "MIR intent authority ", selected.diagnostic
+            ));
+        }
+        MirLowerFailClosed(selected.diagnostic);
+    }
+    let field: Int = selected.field_row;
+    if field < 0 || field >= ArrayLength(
+            declarations.field_identities.field_source_syntax_ids
+        ) || !MirProgramDeclarationFieldIdentityPositiveDecimal(
+            declarations.field_identities.field_source_syntax_ids[field]
+        ) {
+        if require_zone_authority {
+            MirLowerFailClosed(
+                "MIR intent authority slot source identity is missing"
+            );
+        }
+        MirLowerFailClosed(
+            "MIR intent placement slot source identity is missing"
+        );
+    }
+    let slot_name: String =
+        declarations.field_identities.field_names[field];
+    if require_zone_authority {
+        let matches: Int = 0;
+        let offset: Int = 0;
+        while offset < declarations.zone_authorities.declaration_counts[
+            zone_declaration
+        ] {
+            let row: Int = declarations.zone_authorities.declaration_starts[
+                zone_declaration
+            ] + offset;
+            if declarations.zone_authorities.subject_slot_names[row] ==
+                slot_name {
+                matches = matches + 1;
+            }
+            offset = offset + 1;
+        }
+        if matches != 1 {
+            MirLowerFailClosed(
+                "MIR intent authority slot is not declared by the Zone"
+            );
+        }
+    }
+    return MirIntentStepSubjectBinding(
+        binding_row, declaration, field,
+        declarations.field_identities.field_source_syntax_ids[field],
+        slot_name
+    );
+}

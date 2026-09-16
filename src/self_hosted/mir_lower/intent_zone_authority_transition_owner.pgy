@@ -1,0 +1,95 @@
+// Seal admitted MIR Intent placement bindings into one target-neutral receipt.
+
+import "intent_routine_plan_owner.pgy";
+import "../mir/intent_zone_authority_transition_fact_owner.pgy";
+
+func MirIntentZoneAuthorityTransitionAppendRoutine(
+    inout facts: MirIntentZoneAuthorityTransitionFacts,
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    plan: MirIntentRoutinePlan
+) -> Bool {
+    if !MirIntentZoneAuthorityTransitionFactsReady(facts) ||
+        routine_row < 0 || routine_row >= ArrayLength(routines.names) ||
+        routines.kinds[routine_row] != "intent" ||
+        routines.names[routine_row] != plan.name ||
+        ToInt(routines.source_syntax_ids[routine_row]) !=
+            plan.source_syntax_id ||
+        ToString(plan.source_syntax_id) !=
+            routines.source_syntax_ids[routine_row] {
+        return false;
+    }
+    let step_index: Int = 0;
+    while step_index < ArrayLength(plan.steps.steps) {
+        let step: MirIntentRoutineStepFact = plan.steps.steps[step_index];
+        let binding: MirIntentStepPlacementBinding =
+            step.placement_binding;
+        if binding.present {
+            if binding.zone_binding_row < 0 ||
+                binding.zone_binding_row >= ArrayLength(plan.bindings.aliases) ||
+                binding.actor_binding_row < 0 ||
+                binding.actor_binding_row >= ArrayLength(plan.bindings.aliases) {
+                return false;
+            }
+            ArrayPush(facts.routine_rows, routine_row);
+            ArrayPush(
+                facts.routine_source_syntax_ids, plan.source_syntax_id
+            );
+            ArrayPush(facts.intent_names, plan.name);
+            ArrayPush(facts.step_names, step.name);
+            ArrayPush(
+                facts.zone_aliases,
+                plan.bindings.aliases[binding.zone_binding_row]
+            );
+            ArrayPush(facts.zone_type_names, step.zone_type_name);
+            ArrayPush(
+                facts.zone_binding_kinds,
+                plan.bindings.kinds[binding.zone_binding_row]
+            );
+            ArrayPush(
+                facts.actor_aliases,
+                plan.bindings.aliases[binding.actor_binding_row]
+            );
+            ArrayPush(
+                facts.actor_type_names,
+                plan.bindings.type_names[binding.actor_binding_row]
+            );
+            ArrayPush(facts.actor_slot_names, binding.actor_slot_name);
+            ArrayPush(
+                facts.actor_slot_source_syntax_ids,
+                binding.actor_slot_source_syntax_id
+            );
+            ArrayPush(facts.authority_present, binding.authority_present);
+            if binding.authority_present {
+                if binding.authority_binding_row < 0 ||
+                    binding.authority_binding_row >=
+                        ArrayLength(plan.bindings.aliases) {
+                    return false;
+                }
+                ArrayPush(
+                    facts.authority_aliases,
+                    plan.bindings.aliases[binding.authority_binding_row]
+                );
+                ArrayPush(
+                    facts.authority_type_names,
+                    plan.bindings.type_names[binding.authority_binding_row]
+                );
+                ArrayPush(
+                    facts.authority_slot_names,
+                    binding.authority_slot_name
+                );
+                ArrayPush(
+                    facts.authority_slot_source_syntax_ids,
+                    binding.authority_slot_source_syntax_id
+                );
+            } else {
+                ArrayPush(facts.authority_aliases, "");
+                ArrayPush(facts.authority_type_names, "");
+                ArrayPush(facts.authority_slot_names, "");
+                ArrayPush(facts.authority_slot_source_syntax_ids, "");
+            }
+        }
+        step_index = step_index + 1;
+    }
+    return MirIntentZoneAuthorityTransitionFactsReady(facts);
+}

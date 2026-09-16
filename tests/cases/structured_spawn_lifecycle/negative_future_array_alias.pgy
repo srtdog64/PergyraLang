@@ -1,0 +1,9 @@
+async func Worker() -> Int { return 7; }
+
+async func Main() -> Void {
+    let pending: Future<Int> = spawn Worker();
+    let tasks: Array<Future<Int>> = [pending];
+    let alias: Future<Int> = tasks[0];
+    Log(await alias);
+    Log(await pending);
+}

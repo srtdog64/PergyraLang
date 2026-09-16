@@ -1,0 +1,7 @@
+async func Worker() -> Int { return 7; }
+
+async func Main() -> Void {
+    let pending: Future<Int> = spawn Worker();
+    let tasks: HashMap<Int, Future<Int>> = {1: pending};
+    Log(await pending);
+}

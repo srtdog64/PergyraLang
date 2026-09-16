@@ -236,6 +236,8 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
             continue;
 
         field_type = semantic_host_resolve_type_ref(fields[i].type_ast, ctx);
+        semantic_future_reject_aggregate_storage(
+            fields[i].type_ast, field_type, ctx, "nominal field");
         if (fields[i].is_vessel_field) {
             ASTNode *field_decl = semantic_host_decl_for_type(ctx, field_type);
             if (field_decl == NULL

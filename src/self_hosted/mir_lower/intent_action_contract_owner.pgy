@@ -202,7 +202,7 @@ func MirIntentActionAuthorityCarrierReady(
     if !contract.ok || authority_count < 0 || authority_count > 1 {
         return false;
     }
-    if !contract.authority_required { return authority_count == 0; }
-    return authority_count == 1 && authority_name != "" &&
-        authority_name == who_name;
+    if authority_count == 1 && authority_name == "" { return false; }
+    if contract.authority_required { return authority_count == 1; }
+    return authority_count == 0 || authority_count == 1;
 }

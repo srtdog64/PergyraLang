@@ -301,6 +301,10 @@ type_check_constructor_symbol_call(ASTNode *expr,
                         ASTNode *arg = ast_call_argument(expr, i);
                         Type *arg_type = constructor_call_normalize_type(
                             type_check_expression(arg, ctx));
+                        if (semantic_future_reject_aggregate_storage(
+                                arg, arg_type, ctx,
+                                "generic nominal constructor field"))
+                            continue;
                         if (type_equals(arg_type, TYPE_VOID)) {
                             semantic_error_with_hints(ctx,
                                 PGY_CODE_SEM_TYPE_MISMATCH,

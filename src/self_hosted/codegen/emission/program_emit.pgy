@@ -399,8 +399,8 @@ func GenerateCUnitFromReadySemanticFacts(
             intent_policy, usage.uses_intent_observability);
     let intent_definition_block: String = CodegenIntentDefinitionBlock(
         semantic_analysis.intent_signatures,
-        semantic_analysis.zone_authorities,
         semantic_analysis.expression_surfaces, base_env, intent_execution,
+        domain_runtime,
         intent_policy, usage.uses_intent_observability);
     if observe_pressure { Log("[codegen-pressure-stage] support-blocks:done"); }
     // String programs need the runtime string helpers; bool programs need

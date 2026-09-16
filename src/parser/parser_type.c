@@ -397,6 +397,8 @@ static ASTNode* parse_type_guarded(Parser* parser) {
     /* Lowercase `slot<T>` keyword used as a type spells the `Slot<T>` type. */
     if (parser_check(parser, TOKEN_SLOT)) {
         ASTNode *slot_node = ast_create_type("Slot");
+        slot_node->line = parser->current_token.line;
+        slot_node->column = parser->current_token.column;
         parser_advance(parser);
         if (parser_check(parser, TOKEN_LESS))
             slot_node->data.type.generic_args = parse_type_arguments(parser);
@@ -451,6 +453,8 @@ static ASTNode* parse_type_guarded(Parser* parser) {
     }
 
     ASTNode* type_node = ast_create_type(qualified_name);
+    type_node->line = type_name.line;
+    type_node->column = type_name.column;
     free(qualified_name);
 
     // 제네릭 인자

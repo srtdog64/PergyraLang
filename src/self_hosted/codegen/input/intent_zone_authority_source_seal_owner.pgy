@@ -1,0 +1,81 @@
+// Cross-seal source DIR steps with exact Zone-authority transition receipts.
+// Routines already carried by the admitted MIR execution plan are excluded;
+// every remaining placed source step must have exactly one matching receipt.
+
+import "../../dir/intent_fact_owner.pgy";
+import "intent_zone_authority_transition_codegen_view_owner.pgy";
+
+func CodegenIntentCanonicalRoutineOwned(
+    plan_present: Bool, ref routine_ids: Array<Int>, routine_id: Int
+) -> Bool {
+    if !plan_present || routine_id <= 0 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(routine_ids) {
+        if routine_ids[row] == routine_id { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func CodegenIntentZoneAuthoritySourceSealReady(
+    ref source_facts: SelfDirIntentFacts,
+    ref transitions: CodegenIntentZoneAuthorityTransitionFacts,
+    plan_present: Bool, ref routine_ids: Array<Int>
+) -> Bool {
+    let intent_index: Int = 0;
+    while intent_index < ArrayLength(source_facts.intent_node_ids) {
+        let routine_id: Int = source_facts.intent_node_ids[intent_index];
+        if !CodegenIntentCanonicalRoutineOwned(
+            plan_present, routine_ids, routine_id
+        ) {
+            let start: Int = source_facts.step_starts[intent_index];
+            let count: Int = source_facts.step_counts[intent_index];
+            if start < 0 || count < 0 ||
+                start + count > ArrayLength(source_facts.steps.names) {
+                return false;
+            }
+            let offset: Int = 0;
+            while offset < count {
+                let step: Int = start + offset;
+                let authority_start: Int =
+                    source_facts.steps.authorized_starts[step];
+                let authority_count: Int =
+                    source_facts.steps.authorized_counts[step];
+                if authority_start < 0 || authority_count < 0 ||
+                    authority_count > 1 || authority_start + authority_count >
+                        ArrayLength(source_facts.steps.authorized_names) {
+                    return false;
+                }
+                let authority_alias: String = "";
+                if authority_count == 1 {
+                    authority_alias = source_facts.steps.authorized_names[
+                        authority_start
+                    ];
+                }
+                let placed: Bool =
+                    source_facts.steps.using_aliases[step] != "";
+                let transition_row: Int =
+                    CodegenIntentZoneAuthorityTransitionRow(
+                        transitions, routine_id, source_facts.steps.names[step]
+                    );
+                if placed {
+                    if !CodegenIntentZoneAuthorityTransitionStepReady(
+                        transitions, routine_id,
+                        source_facts.names[intent_index],
+                        source_facts.steps.names[step],
+                        source_facts.steps.receiver_aliases[step],
+                        source_facts.steps.using_aliases[step], authority_alias,
+                        source_facts.steps.where_zone_names[step]
+                    ) {
+                        return false;
+                    }
+                } else if transition_row >= 0 {
+                    return false;
+                }
+                offset = offset + 1;
+            }
+        }
+        intent_index = intent_index + 1;
+    }
+    return true;
+}

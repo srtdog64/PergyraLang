@@ -1,0 +1,7 @@
+func Inspect(tasks: Array<Future<Int>>) -> Int {
+    return 1;
+}
+
+func Main() -> Void {
+    Log(1);
+}

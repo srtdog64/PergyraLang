@@ -1,0 +1,12 @@
+class Phantom<T> {
+    let marker: Int;
+}
+
+async func Worker() -> Int { return 7; }
+
+async func Main() -> Void {
+    let phantom: Phantom<Future<Int>> = Phantom(1);
+    let pending: Future<Int> = spawn Worker();
+    Log(phantom.marker);
+    Log(await pending);
+}
