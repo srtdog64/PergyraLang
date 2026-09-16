@@ -3,15 +3,16 @@
 Updated: 2026-09-16 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-## Active self-host context — Zone authority transition CLOSED, CI pending
+## Active self-host context — Zone authority transition CLOSED, CI repair pending publication
 
 Material compiler/test checkpoint:
-`25722b7c70fa00962bb12d051a512523d2a97df8`. This handoff refresh is a
-docs-only descendant; consult Git for its own commit ID. `origin/main` remains
-`ebc9f28720c77ffee6b9773bb565a2effa218879` until the authorized push. The
-Zone/Future closure and audit packet is committed. Six pre-existing Slice
-semantic/ratchet edits remain a separate incomplete, unstaged packet and are
-not part of the material checkpoint.
+`f148a59b1bebc64e78eee52e83036a089235b687`. This handoff refresh is a
+docs-only descendant; consult Git for its own commit ID. `origin/main` is
+`6032101223da1e9b4736819e606a6c0665fefb44` until the CI-repair push. The
+Zone/Future closure and audit packet is published; the follow-up replaces the
+five Zone-bridge control-flow sentinels found by publication CI. Six
+pre-existing Slice semantic/ratchet edits remain a separate incomplete,
+unstaged packet and are not part of the material checkpoint.
 
 Objective card:
 - Objective: replace final self-C reconstruction of an Intent step's actor,
@@ -35,9 +36,10 @@ Objective card:
   rejects missing, crossed, and non-Zone authority rows without a C artifact.
 
 Reached evidence:
-- `make -j1 self-host-compiler` completed and installed the Pergyra-built
-  DRV-2 composition root. Installed SHA-256:
-  `7ED0FEA7B82D22AFDCF1568963FFEBF5A1CCF250E2C0BE1A84EF35AF826B114D`.
+- After replacing the five new `-1` lookup/ambiguity sentinels with
+  `Option<Int>`, `make -j1 self-host-compiler` completed and installed the
+  Pergyra-built DRV-2 composition root. Installed SHA-256:
+  `874FF0069BBD1A1513B21DB9144F27725015498EBF25B095F0E67EB0730A4EE0`.
 - The focused transition gate passes with `ok=true`, `worker=2`, `gate=2` on
   self C, native C, and native LLVM. Source and direct-MIR C are byte-equal.
 - Three admitted-MIR mutations fail closed: missing Zone authority, authority
@@ -51,6 +53,12 @@ Reached evidence:
 - The SoT registry gate reports 89 authorities / 188 derived carriers and
   `CLOSED=56 / BRIDGE=31 / ACTIVE=2`. The structural component contract passes
   2,435 line-cap requests; Intent no-recovery/compression also passes.
+- Push CI run `35067525088` observed 29/30 jobs green, including the 40m22s
+  full self-host bootstrap. Its only failure was fast Linux step 28: the new
+  bridge raised the likeness sentinel census from 20 to 25. Checkpoint
+  `f148a59b` converts participant and transition lookups to `Option<Int>`;
+  the focused likeness gate is back at its strict 20/20 ceiling without
+  raising the baseline, and the installed transition parity gate still passes.
 - The accumulated Future aggregate packet passes its native/public MIR+C+LLVM
   no-artifact gate, and the broader structured-spawn lifecycle gate passes on
   both C and LLVM. Those results establish the reached storage-admission slice,
@@ -58,8 +66,9 @@ Reached evidence:
 
 Dirty-state boundary and next falsifier:
 - The Zone closure, Future aggregate packet, audits, and their executable gates
-  are committed in `25722b7c`. Preserve all unrelated edits; no reset or clean
-  is authorized.
+  are published in `25722b7c`/`60321012`; the bounded publication-CI repair is
+  committed in `f148a59b`. Preserve all unrelated edits; no reset or clean is
+  authorized.
 - Keep the six Slice edits outside this publication:
   `array_type_shape_owner.pgy`, the three expression graph type owners,
   `builtin_signature_owner.pgy`, and `self_host_pergyra_likeness_smoke.sh`.
@@ -69,8 +78,9 @@ Dirty-state boundary and next falsifier:
 - No successor executable rung is opened in this handoff. After publication,
   select the next reached BRIDGE from current production execution evidence;
   do not revive an older queue merely because it appears below this boundary.
-- Remote CI must be observed green for the pushed revision. Local gates are
-  not remote-CI evidence.
+- Push `f148a59b` plus this checkpoint, then observe remote CI green for the
+  resulting revision. The 29/30 predecessor run and local gates are not green
+  remote-CI evidence for the repaired head.
 
 ## Historical archive boundary — previous Zone/spawn checkpoint
 
