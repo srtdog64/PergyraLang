@@ -3,15 +3,15 @@
 Updated: 2026-09-16 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-## Active self-host context — Zone authority transition CLOSED, publication pending
+## Active self-host context — Zone authority transition CLOSED, CI pending
 
-Current committed HEAD and `origin/main` are
-`ebc9f28720c77ffee6b9773bb565a2effa218879`. The working tree carries the
-completed `selfhost.zone_authority_rows` closure plus the previously isolated
-Future aggregate storage-admission and audit/document packet. Six pre-existing
-Slice semantic/ratchet edits remain a separate incomplete packet. None of these
-dirty packets is remote evidence until the applicable files are committed and
-pushed.
+Material compiler/test checkpoint:
+`25722b7c70fa00962bb12d051a512523d2a97df8`. This handoff refresh is a
+docs-only descendant; consult Git for its own commit ID. `origin/main` remains
+`ebc9f28720c77ffee6b9773bb565a2effa218879` until the authorized push. The
+Zone/Future closure and audit packet is committed. Six pre-existing Slice
+semantic/ratchet edits remain a separate incomplete, unstaged packet and are
+not part of the material checkpoint.
 
 Objective card:
 - Objective: replace final self-C reconstruction of an Intent step's actor,
@@ -57,9 +57,9 @@ Reached evidence:
   not a separate SoT-row closure.
 
 Dirty-state boundary and next falsifier:
-- The Zone closure and the pre-existing Future aggregate packet remain
-  unstaged while focused and integration gates run. Preserve all unrelated
-  edits; no reset or clean is authorized.
+- The Zone closure, Future aggregate packet, audits, and their executable gates
+  are committed in `25722b7c`. Preserve all unrelated edits; no reset or clean
+  is authorized.
 - Keep the six Slice edits outside this publication:
   `array_type_shape_owner.pgy`, the three expression graph type owners,
   `builtin_signature_owner.pgy`, and `self_host_pergyra_likeness_smoke.sh`.
