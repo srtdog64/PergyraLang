@@ -54,7 +54,7 @@ func CodegenIntentZoneAuthoritySourceSealReady(
                 }
                 let placed: Bool =
                     source_facts.steps.using_aliases[step] != "";
-                let transition_row: Int =
+                let transition_row: Option<Int> =
                     CodegenIntentZoneAuthorityTransitionRow(
                         transitions, routine_id, source_facts.steps.names[step]
                     );
@@ -69,7 +69,7 @@ func CodegenIntentZoneAuthoritySourceSealReady(
                     ) {
                         return false;
                     }
-                } else if transition_row >= 0 {
+                } else if IsSome(transition_row) {
                     return false;
                 }
                 offset = offset + 1;

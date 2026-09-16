@@ -111,19 +111,19 @@ func CodegenIntentZoneAuthorityTransitionRow(
     ref facts: CodegenIntentZoneAuthorityTransitionFacts,
     routine_canonical_syntax_id: Int,
     step_name: String
-) -> Int {
+) -> Option<Int> {
     if !CodegenIntentZoneAuthorityTransitionFactsReady(facts) ||
         routine_canonical_syntax_id <= 0 || step_name == "" {
-        return -1;
+        return None;
     }
-    let found: Int = -1;
+    let found: Option<Int> = None;
     let row: Int = 0;
     while row < ArrayLength(facts.routine_canonical_syntax_ids) {
         if facts.routine_canonical_syntax_ids[row] ==
                 routine_canonical_syntax_id &&
             facts.step_names[row] == step_name {
-            if found >= 0 { return -1; }
-            found = row;
+            if IsSome(found) { return None; }
+            found = Some(row);
         }
         row = row + 1;
     }
@@ -140,10 +140,12 @@ func CodegenIntentZoneAuthorityTransitionStepReady(
     authority_alias: String,
     zone_type_name: String
 ) -> Bool {
-    let row: Int = CodegenIntentZoneAuthorityTransitionRow(
+    let row_opt: Option<Int> = CodegenIntentZoneAuthorityTransitionRow(
         facts, routine_canonical_syntax_id, step_name
     );
-    return row >= 0 && facts.intent_names[row] == intent_name &&
+    if !IsSome(row_opt) { return false; }
+    let row: Int = UnwrapOption(row_opt);
+    return facts.intent_names[row] == intent_name &&
         facts.actor_aliases[row] == actor_alias &&
         facts.zone_aliases[row] == zone_alias &&
         facts.zone_type_names[row] == zone_type_name &&
@@ -195,9 +197,15 @@ func CodegenIntentZoneAuthorityBindingFactForStep(
             "zone-sync-owner-missing"
         );
     }
-    let row: Int = CodegenIntentZoneAuthorityTransitionRow(
+    let row_opt: Option<Int> = CodegenIntentZoneAuthorityTransitionRow(
         facts, routine_canonical_syntax_id, step_name
     );
+    if !IsSome(row_opt) {
+        return CodegenIntentZoneAuthorityBindingFactError(
+            "missing-or-crossed-transition"
+        );
+    }
+    let row: Int = UnwrapOption(row_opt);
     let actor_c: String = CompilerSymbolCBindingName(actor_alias);
     let zone_c: String = CompilerSymbolCBindingName(zone_alias);
     let field_c: String = CompilerSymbolCFieldName(

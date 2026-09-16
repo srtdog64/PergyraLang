@@ -14,25 +14,25 @@ func SemanticIntentZoneAuthorityParticipantRow(
     ref intents: SelfDirIntentFacts,
     intent_index: Int,
     alias: String
-) -> Int {
+) -> Option<Int> {
     if intent_index < 0 ||
         intent_index >= ArrayLength(intents.participant_starts) ||
         alias == "" {
-        return -1;
+        return None;
     }
     let start: Int = intents.participant_starts[intent_index];
     let count: Int = intents.participant_counts[intent_index];
     if start < 0 || count < 0 ||
         start + count > ArrayLength(intents.participants.aliases) {
-        return -1;
+        return None;
     }
-    let found: Int = -1;
+    let found: Option<Int> = None;
     let offset: Int = 0;
     while offset < count {
         let row: Int = start + offset;
         if intents.participants.aliases[row] == alias {
-            if found >= 0 { return -1; }
-            found = row;
+            if IsSome(found) { return None; }
+            found = Some(row);
         }
         offset = offset + 1;
     }
@@ -131,18 +131,25 @@ func CodegenIntentZoneAuthorityTransitionsFromSemanticOrDie(
             if zone_alias != "" {
                 let actor_alias: String =
                     intents.steps.receiver_aliases[step];
-                let zone_participant: Int =
+                let zone_participant_opt: Option<Int> =
                     SemanticIntentZoneAuthorityParticipantRow(
                         intents, intent_index, zone_alias
                     );
-                let actor_participant: Int =
+                let actor_participant_opt: Option<Int> =
                     SemanticIntentZoneAuthorityParticipantRow(
                         intents, intent_index, actor_alias
                     );
                 let zone_declaration: Int =
                     intents.steps.where_declaration_indices[step];
-                if zone_participant < 0 || actor_participant < 0 ||
-                    intents.participants.is_values[actor_participant] ||
+                if !IsSome(zone_participant_opt) ||
+                    !IsSome(actor_participant_opt) {
+                    Die("semantic Intent placement participant is invalid");
+                }
+                let zone_participant: Int =
+                    UnwrapOption(zone_participant_opt);
+                let actor_participant: Int =
+                    UnwrapOption(actor_participant_opt);
+                if intents.participants.is_values[actor_participant] ||
                     zone_declaration < 0 ||
                     zone_declaration >= ArrayLength(declarations.names) ||
                     declarations.nominal_kinds[zone_declaration] != "zone" ||
@@ -197,12 +204,16 @@ func CodegenIntentZoneAuthorityTransitionsFromSemanticOrDie(
                     authority_alias = intents.steps.authorized_names[
                         authority_start
                     ];
-                    let authority_participant: Int =
+                    let authority_participant_opt: Option<Int> =
                         SemanticIntentZoneAuthorityParticipantRow(
                             intents, intent_index, authority_alias
                         );
-                    if authority_participant < 0 ||
-                        intents.participants.is_values[authority_participant] {
+                    if !IsSome(authority_participant_opt) {
+                        Die("semantic Intent authority participant is invalid");
+                    }
+                    let authority_participant: Int =
+                        UnwrapOption(authority_participant_opt);
+                    if intents.participants.is_values[authority_participant] {
                         Die("semantic Intent authority participant is invalid");
                     }
                     authority_type = intents.participants.type_names[
