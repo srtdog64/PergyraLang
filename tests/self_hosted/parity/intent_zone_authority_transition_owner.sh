@@ -13,7 +13,8 @@ set -euo pipefail
 # intent_step_binding_contract_owner.pgy, intent_zone_subject_slot_owner.pgy,
 # final_emitter_semantic_zone_authority_read,
 # final_emitter_codegen_type_env_slot_selection, missing_transition_success,
-# crossed_actor_authority_transition, non_zone_authority_rows_success.
+# crossed_actor_authority_transition, non_zone_authority_rows_success,
+# participant_diagnostic_drift, participant_lookup_sentinel_return.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
@@ -148,6 +149,19 @@ done
 if rg -n 'SemanticAstZoneAuthorityFacts|ast_zone_authority_fact_owner' \
     "$ROOT_DIR/src/self_hosted/codegen/emission" >/dev/null; then
     fail "C emission still reads semantic Zone authority facts"
+fi
+
+SEMANTIC_BRIDGE="$ROOT_DIR/src/self_hosted/compiler/semantic_intent_zone_authority_transition_codegen_bridge_owner.pgy"
+TRANSITION_VIEW="$ROOT_DIR/src/self_hosted/codegen/input/intent_zone_authority_transition_codegen_view_owner.pgy"
+[[ "$(grep -Fc 'Die("semantic Intent Zone placement identity is invalid");' \
+    "$SEMANTIC_BRIDGE")" -eq 2 ]] \
+    || fail "Zone placement diagnostic identity drifted"
+if grep -Fq 'semantic Intent placement participant is invalid' \
+    "$SEMANTIC_BRIDGE"; then
+    fail "Option participant lookup split the established diagnostic identity"
+fi
+if rg -n 'return -1;' "$SEMANTIC_BRIDGE" "$TRANSITION_VIEW" >/dev/null; then
+    fail "Zone authority lookup reintroduced an out-of-band return sentinel"
 fi
 
 echo "[self-host-intent-zone-authority] MIR actor/authority transition + shared Zone sync + three no-artifact negatives: PASS"

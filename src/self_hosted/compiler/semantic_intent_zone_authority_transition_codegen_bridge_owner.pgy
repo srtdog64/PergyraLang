@@ -143,7 +143,7 @@ func CodegenIntentZoneAuthorityTransitionsFromSemanticOrDie(
                     intents.steps.where_declaration_indices[step];
                 if !IsSome(zone_participant_opt) ||
                     !IsSome(actor_participant_opt) {
-                    Die("semantic Intent placement participant is invalid");
+                    Die("semantic Intent Zone placement identity is invalid");
                 }
                 let zone_participant: Int =
                     UnwrapOption(zone_participant_opt);
