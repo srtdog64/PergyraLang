@@ -3,7 +3,62 @@
 Updated: 2026-09-17 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-## Active self-host context — Zone authority transition CLOSED, one-pass consumption pending publication
+## Active self-host context — compatibility evolution CLOSED, publication verification pending
+
+Material code checkpoint: `85068c83fb7d4ff1c009ffa938dc45611bca36fe`
+contains the compatibility closure. This handoff is its documentation-only
+descendant; `origin/main` remains `9d3a1e8f9dfd38a414995c75d5bca9901164c104`
+until both commits are pushed. The pre-existing PgyMath, Slice, proof-pipeline,
+and Makefile changes remain dirty and were neither staged nor rewritten by
+this rung.
+
+Objective card:
+- Objective: finish `compatibility.evolution` by carrying the Pergyra-owned
+  nine-row receipt into the actual diagnostic/ABI and artifact/package
+  consumers, then delete the native serialized-manifest parser.
+- Priority: exact row identity, direct last-consumer carriage, missing/crossed
+  row failure, old C-path deletion, negative ratchet, then registry closure.
+- Fact owner: `compatibility_evolution_owner.pgy` issues the canonical receipt
+  and projects one immutable `CompilerCompatibilityExecutionView` with named
+  source, ABI, behavior, diagnostic, AIR, MIR, trace, capability, and stdlib
+  rows.
+- Last legitimate consumers:
+  `DriverRung2ExecuteReadRequest` at the diagnostic/ABI boundary and the five
+  `DriverRung2InstalledPublish*` functions at the artifact/package boundary.
+- Forbidden fallback: root-only readiness, native reads of
+  `expected/compatibility_evolution.txt`, pipe-delimited row reparsing, local
+  compatibility lists, or warnings without owner migration metadata.
+- Gate/falsifier: `compatibility_evolution_manifest_parity.sh` rejects a valid-
+  shape diagnostic crosswire and a missing package row, requires both direct
+  consumers, and rejects restoration of the C text path.
+
+Reached evidence:
+- `make -j1 self-host-compiler` completed after the final source shape and
+  installed a Pergyra-built DRV-2. SHA-256:
+  `B5B2E78547843C2B2638BCD994A08C5D65EEE9375D462F23E7238BA807A0C3A4`.
+- Compatibility C/LLVM output is artifact-equal; receipt and execution-view
+  mutations fail closed. The explicit native oracle compiles without opening
+  the self-host text projection.
+- The exact installed binary passes the public MIR diagnostic boundary and the
+  package MIR/C/LLVM gate. The broader installed CLI run also passed all typed
+  diagnostic families, source-C/source-MIR/MIR-C separation, format, REPL, and
+  device-manifest legs.
+- The component contract passes 2,435 line-cap requests; compiler topology and
+  the SoT single-owner edge pass. Registry census is now
+  `CLOSED=57 / BRIDGE=30 / ACTIVE=2`.
+- SoT adequacy live bindings and negative mutations pass with an explicit local
+  Rocq/Coq skip because no prover is installed on this workstation.
+
+Publication boundary and next falsifier:
+- The closure is committed locally but not yet pushed at the time of this
+  snapshot. Publish only the code checkpoint and this handoff descendant; do
+  not absorb the concurrent PgyMath/Slice/proof packet. Exact-head push CI is
+  therefore still unverified and must be observed after publication.
+- A restored `driver_diag_compatibility_manifest_validate_file`, native read of
+  the expected text artifact, or consumer that stops at root-only readiness
+  must make the focused gate and SoT edge fail before artifact publication.
+
+## Previous self-host context — Zone authority transition CLOSED and published
 
 Material compiler/test checkpoint:
 `8f7837060f04afd533088a751fde8cdfe22136e7`. This handoff refresh is a
