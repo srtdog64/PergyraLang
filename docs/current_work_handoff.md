@@ -1,9 +1,58 @@
 # Current Work Handoff
 
-Updated: 2026-09-17 (Asia/Seoul). This is navigation only. Compiler owners,
+Updated: 2026-09-18 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-## Active self-host context — compatibility evolution CLOSED and published
+## Active self-host context — Array.Slice/SliceCopy execution bridge SUBSTITUTING
+
+Material checkpoint: `5524b138f40636997a8b040785b0728b7b16295b` contains
+the integrated Slice and PgyMath/proof packet. This handoff refresh is a
+docs-only descendant. Its parent remote checkpoint was
+`10415cd49c55f795b21a36b943fdbfc2d8d82f30`; verify current Git history and
+GitHub Actions rather than inferring publication or remote CI from local gates.
+
+Objective card:
+- Objective: make `Array<T>.Slice(start, length)` and `SliceCopy` mean the same
+  thing on native/self-host C/LLVM, including exact builtin identity, borrowed
+  view type, owned copy, indexed read, and invalid-operand rejection.
+- Priority: canonical builtin identity, typed semantic/direct-MIR fact,
+  target-neutral readiness, platform-safe LLVM ABI, negative gate, then wider
+  Slice lifetime/range coverage.
+- Fact owners: `builtin_signature_owner.pgy` owns the semantic rows;
+  `direct_mir_scalar_program_slice_builtin_owner.pgy` owns normalized operands
+  and result identity; `slice_runtime_owner.pgy` and
+  `direct_mir_scalar_program_llvm_slice_expression_owner.pgy` are the C/LLVM
+  target consumers.
+- Last legitimate consumer: public LLVM Slice expression/preamble emission.
+- Forbidden fallback: arbitrary syntax-id-zero member admission, source-name
+  dispatch beside the registry, external C aggregate-return calls for Slice
+  construction/copy, or native-pipeline fallback from a public leg.
+- Gate/falsifier: `slice_copy_semantic_bridge_owner.sh` runs native/public C/LLVM,
+  checks exact Int/String/empty observations, rejects `SliceCopy(Array<T>)`
+  without publishing an artifact, and ratchets the internal LLVM aggregate ABI.
+
+Reached evidence and boundary:
+- Serial `self_host_compiler_build.sh` rebuilt and installed DRV-2 from the
+  final typed source. The focused gate passes all four execution paths and both
+  owned negative-diagnostic contracts.
+- Windows C ABI lowers the external aggregate return through `sret`; the LLVM
+  owner therefore keeps Slice construction and copy in same-module `internal`
+  functions. String copy uses declared `malloc`/`strlen`/`memcpy`, and the
+  verifier-approved loop phi is fed from the actual copy predecessor.
+- The self-host component contract passes 2,441 line-cap requests, 1,029
+  function extractions, and 694 reuses. `self_host_pergyra_likeness_smoke.sh`
+  passes at the unchanged `core_string_munge=76` ceiling after replacing three
+  String-to-String Slice projections with one typed LLVM Slice fact.
+- The PgyMath registry gate also passes on the rebuilt driver: exact commit and
+  registry/projection digests, four-route output parity, and six tamper attacks.
+  The separate adversarial matrix was not rerun because no local
+  `PGY_MATH_ROOT` checkout was available.
+- This is a target-specific executable Slice rung marked `SUBSTITUTING`, not
+  closure of the broader `selfhost.expression_surface` registry row. The owner
+  census remains `CLOSED=57 / BRIDGE=30 / ACTIVE=2`. Runtime out-of-range parity
+  and wider borrowed-view lifetime escape cases are the next falsifiers.
+
+## Previous self-host context — compatibility evolution CLOSED and published
 
 Material code checkpoint: `85068c83fb7d4ff1c009ffa938dc45611bca36fe`
 contains the compatibility closure. Documentation publication checkpoint
@@ -61,10 +110,9 @@ Publication state and next falsifier:
 ## Previous self-host context — Zone authority transition CLOSED and published
 
 Material compiler/test checkpoint:
-`8f7837060f04afd533088a751fde8cdfe22136e7`. This handoff refresh is a
-docs-only descendant; consult Git for its own commit ID. `origin/main` is
-`e79083b838244a8662dcecac4b06d92019470c8f` until the Bash 3.2 portability
-repair is pushed. The Zone/Future closure, five-sentinel `Option<Int>` repair,
+`8f7837060f04afd533088a751fde8cdfe22136e7`. Handoff descendant
+`9d3a1e8f9dfd38a414995c75d5bca9901164c104` and `origin/main` now match. The
+Zone/Future closure, five-sentinel `Option<Int>` repair,
 restored diagnostic identity, and one-pass Zone transition consumption are
 published. The bounded follow-up validates the sealed receipt at
 execution-view admission, then lets the read-only source cross-seal and action
@@ -74,6 +122,80 @@ step. Its first remote run found only a test-script portability violation;
 the owner census. Six pre-existing Slice semantic/ratchet edits remain a
 separate incomplete, unstaged packet and are not part of the material
 checkpoint.
+
+### Explicitly reopened PgyMath verification packet — integrated, locally green
+
+This packet was opened by the user independently of the active self-host rung;
+it is not evidence of another C-path substitution.
+
+Objective card:
+- Objective: admit one exact PgyMath registry projection into Pergyra, preserve
+  its proof identity, and reject registry/certificate reuse after a bound input
+  changes.
+- Priority: exact PgyMath commit/digest identity, fail-closed projection
+  admission, native/self-host C/LLVM parity, source/AIR/MIR binding negatives,
+  then broader source-to-contract lowering.
+- Fact owners: PgyMath commit `74185a3ad8c54711f3c2e30597ab0a05603a79a6`
+  owns registry digest
+  `sha256:1bc6e88600e1fa66fd7ee13eb6ec5478a3e9d1513d97ea25c7ac2f63dc7a0275`;
+  `pgy_math_registry.receipt.json` carries that provenance into Pergyra, and
+  the proof-carrying envelope owns the local source/AIR/MIR composite digest.
+- Last legitimate consumers: exact generated registry admission before stdlib
+  use, and proof-envelope validation before downstream fact consumption.
+- Forbidden fallback: name-only contract matching, accepting a modified
+  projection beside an unchanged receipt, duplicate JSON keys/layer IDs, or
+  calling an unbound submitted contract IR a proof of a Pergyra function.
+- Gates/falsifiers: `pgy-math-registry-admission-test-smoke` compares
+  native/self-host C/LLVM output and rejects count tamper, contract deletion,
+  duplicate receipt keys, unadmitted commit/digest identity, and coordinated
+  receipt/projection forgery;
+  `proof-carrying-pipeline-test-smoke` rejects source, AIR, MIR, composite
+  digest, required-fact, and duplicate-layer mutations; and
+  `pgy-math-adversarial-matrix-test-smoke` preserves the complete
+  closed/open/unmeasured attack inventory across PgyMath and four Pergyra
+  execution routes.
+
+Reached evidence and boundary:
+- Material checkpoint `5524b138f40636997a8b040785b0728b7b16295b`
+  integrates this packet with the reached Slice bridge. Its parent remote
+  checkpoint was `10415cd4`; publication and remote CI remain external facts
+  that must be checked independently.
+- The PgyMath projection is byte-equal to the generator output. PgyMath push CI
+  run `35189077546` is green. The Pergyra red-team gate passes all four
+  native/self-host C/LLVM routes and six registry attacks; PgyMath's Lean
+  bridge independently reports exact C/LLVM value parity.
+- The first self-host LLVM run exposed an undeclared `@malloc` in Bool-to-String
+  materialization. The foreign-declaration owner now consumes the sealed
+  `bool_to_string_id`; serial `self-host-compiler` rebuilt and installed DRV-2,
+  and the failing path is green. Final installed self-host driver SHA-256:
+  `1FD018EC699400ED5A7674906431E0C699B30768988AE9919228C19625B92D35`.
+- Requiring textual Bool parity then exposed a second independent divergence:
+  native C treated an imported namespace function's `Bool` result as `Int`
+  while native LLVM and both self-host backends produced `true`/`false`. C call
+  inference now joins the call's semantic declaration identity to one unique
+  MIR function routine and consumes its return type-name; it does not guess a
+  flattened namespace/function spelling. Duplicate routine identity fails
+  closed. Final installed native compiler SHA-256 is
+  `62B20B7E51B64478178D4BB20AD30D44AC8FC978D1B4D38340B9D3C8946066F0`.
+- Proof-carrying pipeline/adequacy and the 2,435-request component contract pass.
+  This proves input integrity and reached execution parity, not semantic
+  equivalence between a Pergyra implementation and arbitrary contract IR.
+- The machine-readable PgyMath audit reports `CLOSED=7 / OPEN=6 /
+  UNMEASURED=1`. The Pergyra dynamic matrix reports `CLOSED=6 / OPEN=8 /
+  UNMEASURED=1`. Its three integer probes reproduce the semantic split on all
+  four routes: `MAX+1 -> MIN`, `MIN-1 -> MAX`, and `-MIN -> MIN`, while Lean
+  proves the corresponding unbounded-`Int` equation. Namespace flattening and
+  local registry shadowing fail before artifact emission, but self-host
+  diagnostics do not preserve the native redeclaration identity. Scalar
+  `ToString` parity survives 10,000 conversions; leak ownership remains
+  unmeasured on this Windows host.
+- First next falsifier: choose and formalize Pergyra `Int` as checked `Int32`,
+  wrapping `Int32`, or executable mathematical integer semantics. A verified
+  contract must not disagree with the selected runtime boundary behavior.
+- Then a parser/semantic owner must lower one Pergyra function body
+  and contract into one normalized subject digest consumed by the verifier.
+  Mutating the body while retaining the same function name and contract must
+  then invalidate the receipt before MIR/backend artifact publication.
 
 Objective card:
 - Objective: replace final self-C reconstruction of an Intent step's actor,
