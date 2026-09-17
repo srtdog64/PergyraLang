@@ -4339,6 +4339,11 @@ self-host-array-index-type-semantic-admission-test-smoke: $(PGY) self-host-compi
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/array_index_type_semantic_admission_owner.sh
 
+.PHONY: self-host-slice-copy-semantic-bridge-test-smoke
+self-host-slice-copy-semantic-bridge-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/slice_copy_semantic_bridge_owner.sh
+
 .PHONY: self-host-zone-spawn-transport-admission-test-smoke
 self-host-zone-spawn-transport-admission-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
