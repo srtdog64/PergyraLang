@@ -1,0 +1,122 @@
+// Self-host C runtime facts for borrowed Slice<T> values.
+//
+// The native runtime already owns the public ABI names. This owner projects
+// exactly the Int/String slice layouts admitted by the compiler ABI table into
+// self-host emission; unsupported element families fail closed.
+
+import "collection_runtime_owner.pgy";
+import "../text/text_owner.pgy";
+import "../../compiler/abi_layout_slice_owner.pgy";
+import "../../semantic/array_type_shape_owner.pgy";
+
+struct SliceRuntimeFact {
+    ok: Bool;
+    slice_type: String;
+    array_type: String;
+    element_type: String;
+    c_slice_type: String;
+    c_array_type: String;
+    c_element_type: String;
+    c_array_slice_fn: String;
+    c_slice_copy_fn: String;
+    c_slice_get_fn: String;
+    c_array_new_fn: String;
+    c_array_push_fn: String;
+}
+
+func SliceRuntimeMissingFact() -> SliceRuntimeFact {
+    return SliceRuntimeFact(
+        false, "", "", "", "", "", "", "", "", "", "", ""
+    );
+}
+
+func SliceRuntimeFactFromElementType(
+    element_type: String,
+    env: CodegenTypeEnv
+) -> SliceRuntimeFact {
+    if element_type != "Int" && element_type != "String" {
+        return SliceRuntimeMissingFact();
+    }
+    let array_type: String = Concat(
+        "Array<", Concat(element_type, ">")
+    );
+    let slice_type: String = Concat(
+        "Slice<", Concat(element_type, ">")
+    );
+    let array: CollectionRuntimeFact =
+        CollectionRuntimeFactFromTypeName(array_type, env);
+    let c_slice_type: String = CompilerAbiLayoutSliceIntCValueType();
+    let c_element_type: String = "int32_t";
+    let push_fn: String = array.c_push_fn;
+    if element_type == "String" {
+        c_slice_type = CompilerAbiLayoutSliceStringCValueType();
+        c_element_type = "const char *";
+        // Native SliceCopy<String> owns copies of the pointed-to strings.
+        push_fn = CollectionRuntimeCOwnedStringPushFn();
+    }
+    return SliceRuntimeFact(
+        true, slice_type, array_type, element_type,
+        c_slice_type, array.c_array_type, c_element_type,
+        Concat("pgy_array_slice_", element_type),
+        Concat("pgy_slice_copy_", element_type),
+        Concat("pgy_slice_get_", element_type),
+        array.c_new_fn, push_fn
+    );
+}
+
+func SliceRuntimeFactFromSliceTypeName(
+    slice_type: String,
+    env: CodegenTypeEnv
+) -> SliceRuntimeFact {
+    let element: Option<String> = SemanticSliceElementType(slice_type);
+    if !IsSome(element) { return SliceRuntimeMissingFact(); }
+    return SliceRuntimeFactFromElementType(UnwrapOption(element), env);
+}
+
+func SliceRuntimeFactFromArrayTypeName(
+    array_type: String,
+    env: CodegenTypeEnv
+) -> SliceRuntimeFact {
+    let element: Option<String> = SemanticArrayElementType(array_type);
+    if !IsSome(element) { return SliceRuntimeMissingFact(); }
+    return SliceRuntimeFactFromElementType(UnwrapOption(element), env);
+}
+
+func SliceRuntimeCBlockForFact(fact: SliceRuntimeFact) -> String {
+    if !fact.ok { Die("slice runtime fact is missing"); }
+    let block: String = "";
+    block = Concat(block,
+        "typedef struct { ${fact.c_element_type} *data; long long length; } ${fact.c_slice_type};\n");
+    block = Concat(block,
+        "static ${fact.c_element_type} ${fact.c_slice_get_fn}(${fact.c_slice_type} *slice, long long index) {\n"
+        + "    if (slice == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"slice get on null slice\"); }\n"
+        + "    if (index < 0 || index >= slice->length) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS); }\n"
+        + "    if (slice->data == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"slice get on slice without backing storage\"); }\n"
+        + "    return slice->data[index];\n}\n");
+    block = Concat(block,
+        "static ${fact.c_slice_type} ${fact.c_array_slice_fn}(${fact.c_array_type} *array, long long start, long long length) {\n"
+        + "    ${fact.c_slice_type} slice; slice.data = NULL; slice.length = 0;\n"
+        + "    if (array == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"slice on null array\"); }\n"
+        + "    if (start < 0 || length < 0 || start > array->len || length > array->len - start) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS); }\n"
+        + "    if (length > 0 && array->data == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"slice on array without backing storage\"); }\n"
+        + "    slice.data = length == 0 ? NULL : array->data + start; slice.length = length; return slice;\n}\n");
+    block = Concat(block,
+        "static ${fact.c_array_type} ${fact.c_slice_copy_fn}(${fact.c_slice_type} *slice) {\n"
+        + "    if (slice == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"slice copy on null slice\"); }\n"
+        + "    if (slice->length > 0 && slice->data == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"slice copy on slice without backing storage\"); }\n"
+        + "    ${fact.c_array_type} out = ${fact.c_array_new_fn}();\n"
+        + "    for (long long i = 0; i < slice->length; i++) { ${fact.c_array_push_fn}(&out, slice->data[i]); }\n"
+        + "    return out;\n}\n\n");
+    return block;
+}
+
+func SliceRuntimeCBlock(env: CodegenTypeEnv) -> String {
+    return Concat(
+        SliceRuntimeCBlockForFact(
+            SliceRuntimeFactFromElementType("Int", env)
+        ),
+        SliceRuntimeCBlockForFact(
+            SliceRuntimeFactFromElementType("String", env)
+        )
+    );
+}

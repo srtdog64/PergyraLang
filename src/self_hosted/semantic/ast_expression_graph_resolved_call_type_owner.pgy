@@ -3,6 +3,7 @@
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_graph_receiver_type_owner.pgy";
+import "ast_expression_graph_member_view_owner.pgy";
 import "ast_expression_graph_collection_call_protocol_owner.pgy";
 import "ast_expression_graph_scalar_shape_owner.pgy";
 import "builtin_signature_owner.pgy";
@@ -295,6 +296,53 @@ func SemanticExpressionGraphResolvedCallReturnTypeName(
         let clone_argument_types: Array<String> = [clone_argument_type];
         return SemanticPolymorphicBuiltinReturnTypeOpt(
             target.name, clone_argument_types
+        );
+    }
+    // SliceCopy owns a borrowed view; its result element type is the view's,
+    // so the single argument decides it.
+    if target.name == "SliceCopy" {
+        let copy_call: SemanticCallSpineView =
+            SemanticCallSpineViewFromGraph(graph, root_id);
+        if !copy_call.ok || ArrayLength(copy_call.argument_nodes) != 1 {
+            return None;
+        }
+        let copied_node: Int = copy_call.argument_nodes[0];
+        let copied_type: String =
+            SemanticExpressionGraphCallArgumentScalarTypeName(
+                graph, copied_node, names, types
+            );
+        let copied_receiver: Option<String> =
+            SemanticExpressionGraphValueReceiverTypeName(
+                graph, copied_node, constructors, names, types,
+                function_names, function_returns
+            );
+        if IsSome(copied_receiver) {
+            copied_type = UnwrapOption(copied_receiver);
+        }
+        let copied_types: Array<String> = [copied_type];
+        return SemanticPolymorphicBuiltinReturnTypeOpt(
+            target.name, copied_types
+        );
+    }
+    // Slicing is a member call, so the sliced sequence is the receiver rather
+    // than an argument; the bounds do not take part in the result type.
+    if target.name == "Array_Slice" {
+        let slice_call: SemanticCallSpineView =
+            SemanticCallSpineViewFromGraph(graph, root_id);
+        if !slice_call.ok { return None; }
+        let slice_member: SemanticMemberAccessView =
+            SemanticMemberAccessViewFromGraph(graph, slice_call.callee_node);
+        if !slice_member.ok { return None; }
+        let sliced: Option<String> =
+            SemanticExpressionGraphValueReceiverTypeName(
+                graph, slice_member.receiver_node, constructors, names, types,
+                function_names, function_returns
+            );
+        if !IsSome(sliced) { return None; }
+        let sliced_type: String = UnwrapOption(sliced);
+        let sliced_types: Array<String> = [sliced_type];
+        return SemanticPolymorphicBuiltinReturnTypeOpt(
+            target.name, sliced_types
         );
     }
     let target_index: Option<Int> = SemanticCallableIndex(

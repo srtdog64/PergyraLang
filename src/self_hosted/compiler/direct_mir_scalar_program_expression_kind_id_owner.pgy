@@ -1,4 +1,3 @@
-// Stable normalized scalar-program expression identities.
 import "direct_mir_scalar_program_string_core_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_case_math_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_string_index_expression_kind_owner.pgy";
@@ -15,6 +14,7 @@ import "direct_mir_scalar_program_comparison_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_numeric_cast_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_external_runtime_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_option_int_match_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_slice_expression_kind_owner.pgy";
 func DirectMirScalarProgramExprLocal() -> Int { return 1; }
 func DirectMirScalarProgramExprParameter() -> Int { return 2; }
 func DirectMirScalarProgramExprIntLiteral() -> Int { return 3; }
@@ -72,4 +72,4 @@ func DirectMirScalarProgramExprArrayIntSort() -> Int { return 135; }
 func DirectMirScalarProgramExprArrayIntReverse() -> Int { return 136; }
 func DirectMirScalarProgramExprIdentityCellConstructor() -> Int { return 137; }
 func DirectMirScalarProgramExprIdentityCellMember() -> Int { return 138; }
-func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprIdentityCellMember(); }
+func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprSliceStringIndex(); }

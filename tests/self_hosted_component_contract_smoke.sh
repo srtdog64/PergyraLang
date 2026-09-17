@@ -7842,11 +7842,13 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     "pgy_selfhost_verify_driver_rung2_index_expression_type"
 require_text "tests/self_hosted/parity/driver_rung2_index_expression_type_parity_owner.sh" \
     '"kind":"member_access","text":"stale.provenance","call_target_kind":"none"'
-require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+require_text "src/self_hosted/codegen/emission/expr_semantic_index_emit_owner.pgy" \
     "func RewriteSemanticIndex("
-reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+reject_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteSemanticIndex("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_index_emit_owner.pgy" \
     "func RewriteSemanticIndex(" "SemanticExpressionGraphNodeText("
-reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_index_emit_owner.pgy" \
     "func RewriteSemanticIndex(" "ExprMemberFieldType("
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" '"uses":["value.3","value.4"]'
 require_file "tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh"
@@ -23483,7 +23485,7 @@ require_text \
     "func DirectMirScalarProgramExprPayloadEnumMember() -> Int { return 123; }"
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
-    "func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprIdentityCellMember(); }"
+    "func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprSliceStringIndex(); }"
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy"
 require_max_lines \

@@ -1,0 +1,77 @@
+// C expression projection for the two semantic Slice call boundaries.
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../runtime_abi/slice_runtime_owner.pgy";
+import "../text/text_owner.pgy";
+import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_member_view_owner.pgy";
+import "expr_semantic_call_argument_owner.pgy";
+
+func RewriteSemanticArraySliceMemberCall(
+    graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView,
+    member: SemanticMemberAccessView,
+    env: CodegenTypeEnv,
+    inout owned_fragments: Array<String>
+) -> String {
+    if ArrayLength(view.argument_nodes) != 2 {
+        Die("Array.Slice requires exactly start and length arguments");
+    }
+    let receiver_type: Option<String> = CodegenExpressionTypeFromGraph(
+        graph, member.receiver_node, env
+    );
+    if !IsSome(receiver_type) {
+        Die("Array.Slice receiver type fact is missing");
+    }
+    let fact: SliceRuntimeFact = SliceRuntimeFactFromArrayTypeName(
+        UnwrapOption(receiver_type), env
+    );
+    if !fact.ok {
+        Die("Array.Slice requires an admitted Array<Int> or Array<String> receiver");
+    }
+    let receiver: String = RewriteExprFromSemanticGraphTracked(
+        graph, member.receiver_node, env, owned_fragments
+    ).text;
+    let start: String = RewriteSemanticCallArgument(
+        graph, view.argument_nodes[0], "Int", "default", env
+    );
+    let length: String = RewriteSemanticCallArgument(
+        graph, view.argument_nodes[1], "Int", "default", env
+    );
+    let suffix: String = ToString(view.call_node);
+    return "({ ${fact.c_array_type} __pgy_slice_receiver_${suffix} = ${receiver}; "
+        + "int32_t __pgy_slice_start_${suffix} = ${start}; "
+        + "int32_t __pgy_slice_length_${suffix} = ${length}; "
+        + "${fact.c_array_slice_fn}(&__pgy_slice_receiver_${suffix}, "
+        + "(long long)__pgy_slice_start_${suffix}, "
+        + "(long long)__pgy_slice_length_${suffix}); })";
+}
+
+func RewriteSemanticSliceCopyCall(
+    graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView,
+    env: CodegenTypeEnv,
+    inout owned_fragments: Array<String>
+) -> String {
+    if ArrayLength(view.argument_nodes) != 1 {
+        Die("SliceCopy requires exactly one argument");
+    }
+    let argument_node: Int = view.argument_nodes[0];
+    let argument_type: Option<String> = CodegenExpressionTypeFromGraph(
+        graph, argument_node, env
+    );
+    if !IsSome(argument_type) {
+        Die("SliceCopy argument type fact is missing");
+    }
+    let fact: SliceRuntimeFact = SliceRuntimeFactFromSliceTypeName(
+        UnwrapOption(argument_type), env
+    );
+    if !fact.ok {
+        Die("SliceCopy requires an admitted Slice<Int> or Slice<String> operand");
+    }
+    let argument: String = RewriteExprFromSemanticGraphTracked(
+        graph, argument_node, env, owned_fragments
+    ).text;
+    let suffix: String = ToString(view.call_node);
+    return "({ ${fact.c_slice_type} __pgy_slice_copy_${suffix} = ${argument}; "
+        + "${fact.c_slice_copy_fn}(&__pgy_slice_copy_${suffix}); })";
+}

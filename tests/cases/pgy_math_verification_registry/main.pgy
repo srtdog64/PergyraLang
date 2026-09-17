@@ -1,0 +1,11 @@
+import "../../../stdlib/math.pgy";
+
+func Main() -> Void
+{
+    Log(PgyMathRegistry.SchemaVersion());
+    Log(PgyMathRegistry.TemplateCount());
+    Log(PgyMathRegistry.RegistryDigest());
+    Log(ToString(PgyMathRegistry.HasTemplateId("verification.function_contract")));
+    Log(ToString(PgyMathRegistry.HasLookupKey("function_contract")));
+    Log(ToString(PgyMathRegistry.HasTemplateId("verification.function_contract.forged")));
+}

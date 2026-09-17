@@ -1,0 +1,5 @@
+func Main() -> Void
+{
+    let value: Int = -2147483647 - 1;
+    Log(ToString(-value));
+}

@@ -738,12 +738,18 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy` --
   signature-only initial capture of direct and namespace call-target rows;
   body fixpoint resolution remains with the canonical target fact owner.
+- `src/self_hosted/semantic/ast_expression_builtin_member_call_target_owner.pgy`
+  -- exact syntax-id-zero source-member to canonical-builtin identity join;
+  carried declared members are checked before this bounded builtin lane.
 - `src/self_hosted/semantic/ast_expression_carried_callable_identity_owner.pgy`
   -- exact formal-parameter and declared-callable identity cross-seals used by
   MIR semantic re-entry; names confirm an ID-selected lane and never route it.
 - `src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy` --
   executable positive and missing-target contract kept outside the production
   call-target owner.
+- `src/self_hosted/semantic/ast_expression_builtin_member_call_target_contract_owner.pgy`
+  -- positive `Array.Slice` carriage and forged `SliceCopy` canonical-name
+  rejection kept outside the production target owner.
 - `src/self_hosted/semantic/ast_expression_graph_receiver_type_owner.pgy` --
   read-only receiver type projection over expression handles and canonical
   nominal field facts; dotted source text and codegen type rows are forbidden.
@@ -1705,6 +1711,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   type spelling facts, including nominal struct type, empty parameter-list
   spelling, and the canonical borrowed-String-view direct-pass query.
 - `src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy` -- self-host C collection runtime symbol facts.
+- `src/self_hosted/codegen/runtime_abi/slice_runtime_owner.pgy` -- canonical
+  self-host C `Slice<T>` view and `SliceCopy` runtime ABI projection. It owns
+  borrowed range shape and copy symbols, not semantic builtin admission.
 - `src/self_hosted/codegen/runtime_abi/checked_division_runtime_owner.pgy`
   -- checked integer division and modulo in emitted C. The raw operator let
   `x / 0` run to completion while the native pipeline panicked on the same
@@ -1779,6 +1788,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   codegen does not split migrated payloads to rediscover precedence. It is the
   semantic-check cluster root for the mutually recursive call and composite
   literal projection owners below.
+- `src/self_hosted/codegen/emission/expr_semantic_index_emit_owner.pgy` --
+  typed Array/collection/Slice index projection through canonical runtime ABI
+  facts; it does not infer receiver families from source text.
 - `src/self_hosted/codegen/emission/expression_c_text_materialization_owner.pgy`
   -- single-allocation materialization of common emitted C call, binary, and
   parenthesized expression shapes. The epoch owner retires recursive owned
@@ -1832,6 +1844,12 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   call-spine and simple member-access consumption, ordered argument projection,
   parameter-mode handling, receiver insertion, and runtime/constructor/method
   symbol fact consumption, delegating List family calls to their named owner.
+- `src/self_hosted/codegen/emission/expr_semantic_slice_call_emit_owner.pgy` --
+  exact C projection for `Array.Slice` view construction and `SliceCopy`
+  ownership transfer from semantic call-spine and type facts.
+- `src/self_hosted/codegen/emission/expr_semantic_slot_call_emit_owner.pgy` --
+  typed Slot read/write/release runtime call projection, separated from the
+  general call dispatcher without changing Slot ABI authority.
 - `src/self_hosted/codegen/emission/expr_semantic_struct_call_emit_owner.pgy` --
   admitted struct-constructor field binding and single-builder C initializer
   emission; call dispatch does not reconstruct its field-row policy.
@@ -3187,6 +3205,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   `direct_mir_scalar_program_option_absence_expression_owner.pgy`; it does not
   invent an Option<Bool> layout from `Option<Unknown>`.
 - `src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy`,
+  `direct_mir_scalar_program_slice_expression_kind_owner.pgy`,
   `direct_mir_scalar_program_expression_kind_owner.pgy`, and
   `direct_mir_scalar_program_bool_readiness_owner.pgy` -- stable expression 72
   for Bool equality and its recursive non-trapping proof. An Option<Bool>
@@ -3640,6 +3659,13 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   `Print` specialization admits exactly `String -> Void`; expression readiness
   and C/LLVM String emitters consume the canonical `string|print|pgy_print`
   runtime row without rewriting Print as newline-producing Log.
+- `src/self_hosted/compiler/direct_mir_scalar_program_slice_builtin_owner.pgy`
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_slice_expression_readiness_owner.pgy`
+  -- exact registry-backed `Array.Slice`/`SliceCopy` admission, normalized
+  operand order, result identity, and target-neutral typed readiness. A
+  syntax-id-zero member is accepted only through the canonical builtin row;
+  targets cannot reclassify an arbitrary member spelling as Slice.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy`
   -- the LLVM body for the sealed `Array<String>, String -> String` join ABI.
   It consumes the runtime and target-qualified ArrayString projections and
@@ -3685,6 +3711,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- structural direct/namespace callee topology joined to the persisted
   semantic call-target kind and `SyntaxNodeId`; namespace receiver/member
   spelling and local function-name scans are not alternate authorities.
+- `src/self_hosted/compiler/direct_mir_scalar_program_builtin_member_callee_identity_owner.pgy`
+  -- exact registry-backed syntax-id-zero builtin member identity; arbitrary
+  member spelling cannot reopen name-only direct-MIR call authority.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_statement_admission_owner.pgy`
   -- one statement-operation admission boundary. It joins Log, Exit, and
   collection mutation targets to their expression and operation rows. A bare
@@ -4004,6 +4033,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- MIR-blind LLVM SSA expression rendering from the same typed arena and ABI
   receipts. Ordered signatures/direct calls and case/math runtime bodies live
   in target-specific owners rather than a second semantic dispatcher.
+- `src/self_hosted/compiler/direct_mir_scalar_program_llvm_slice_expression_owner.pgy`
+  -- MIR-blind LLVM Slice view, indexed read, and owned-copy projection. Small
+  aggregate returns stay in internal LLVM helpers so platform C `sret` rules
+  cannot become a second ABI authority; scalar bounds reads alone cross the
+  canonical runtime boundary.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_external_runtime_expression_owner.pgy`
   -- final LLVM call/declaration consumption of generated external runtime
   rows, including intent-observability ABI IDs and target symbol spellings.

@@ -1,0 +1,14 @@
+func Main() -> Void
+{
+    let index: Int = 0;
+    let rendered: String = "";
+    while index < 10000 {
+        rendered = ToString(index % 2 == 0);
+        index = index + 1;
+    }
+    Log(rendered);
+    Log(ToString(true));
+    Log(ToString(false));
+    Log(ToString(42));
+    Log(ToString("stable"));
+}

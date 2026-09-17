@@ -22,6 +22,7 @@ struct CodegenRuntimeUsageFacts {
     let uses_bool: Bool;
     let uses_exit: Bool;
     let uses_array: Bool;
+    let uses_slice: Bool;
     let uses_list: Bool;
     list_type_names: Array<String>;
     let uses_queue: Bool;
@@ -86,7 +87,9 @@ func CodegenRuntimeUsageFactsFromSemantic(
         || type_usage.has_allocator || type_usage.has_text_builder;
     let uses_exit: Bool = kind_usage.has_exit_stmt
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupExit());
+    let uses_slice: Bool = type_usage.has_slice;
     let uses_array: Bool = type_usage.has_array
+        || uses_slice
         || kind_usage.has_array_push
         || kind_usage.has_array_set
         || kind_usage.has_array_pop
@@ -140,6 +143,7 @@ func CodegenRuntimeUsageFactsFromSemantic(
         uses_bool,
         uses_exit,
         uses_array,
+        uses_slice,
         uses_list,
         type_usage.list_type_names,
         uses_queue,

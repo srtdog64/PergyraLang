@@ -1,4 +1,3 @@
-// Unique foreign declarations derived from one sealed scalar GraphPlan.
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_array_int_populated_literal_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_bool_populated_literal_readiness_owner.pgy";
@@ -8,10 +7,12 @@ import "direct_mir_scalar_program_array_int_runtime_requirement_owner.pgy";
 import "../codegen/runtime_abi/collection_bounds_owner.pgy";
 import "../codegen/runtime_abi/set_runtime_owner.pgy";
 import "direct_mir_scalar_program_llvm_hashmap_owner.pgy";
+import "direct_mir_scalar_program_llvm_slice_expression_owner.pgy";
 func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraphPlan) -> String {
-    let array_int_runtime: DirectMirScalarProgramArrayIntRuntimeRequirement =
-        DirectMirScalarProgramArrayIntRuntimeRequirementFromPlan(plan);
+    let array_int_runtime: DirectMirScalarProgramArrayIntRuntimeRequirement = DirectMirScalarProgramArrayIntRuntimeRequirementFromPlan(plan);
     if !array_int_runtime.valid { Die("direct MIR LLVM Array<Int> runtime requirement is invalid"); }
+    let slice_any: Bool = DirectMirScalarProgramSliceAnyReached(plan.program.expressions);
+    let slice_copy: Bool = DirectMirScalarProgramSliceCopyReached(plan.program.expressions);
     let collection: Bool =
         plan.program.runtime_abi.string_contains_id != 0 ||
         plan.program.runtime_abi.string_split_id != 0 ||
@@ -24,8 +25,7 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
         DirectMirScalarProgramArrayStringAbiFactReady(
             plan.program.array_string_abi) || array_int_runtime.push ||
         DirectMirScalarProgramArrayBoolPushRequired(plan.operation_kinds) ||
-        DirectMirScalarProgramLogicalRecordArrayMutationRequired(
-            plan.operation_kinds);
+        DirectMirScalarProgramLogicalRecordArrayMutationRequired(plan.operation_kinds) || slice_any;
     let replace: Bool = plan.program.runtime_abi.case_math.replace_id != 0;
     let set_new: Bool = DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprSetStringNew());
     let set_add: Bool = DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprSetStringAdd());
@@ -52,10 +52,12 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
         plan.program.runtime_abi.string_substring_id != 0 ||
         plan.program.runtime_abi.string_trim.runtime_call_abi_id != 0 ||
         plan.program.runtime_abi.string_split_id != 0 || replace || owned_string_push;
+    if DirectMirScalarProgramSliceStringCopyReached(plan.program.expressions) { needs_strlen = true; }
     if plan.program.runtime_abi.process_args_id != 0 { needs_strlen = true; }
     if plan.program.runtime_abi.string_join_id != 0 { needs_strlen = true; }
     let needs_malloc: Bool = plan.string_concat_runtime_call_abi_id != 0 ||
         plan.program.runtime_abi.string_to_string_id != 0 ||
+        plan.program.runtime_abi.bool_to_string_id != 0 ||
         plan.program.runtime_abi.string_to_upper_id != 0 ||
         plan.program.runtime_abi.string_to_lower_id != 0 ||
         plan.program.runtime_abi.string_substring_id != 0 ||
@@ -67,13 +69,14 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
         DirectMirScalarProgramHasArrayIntPopulatedLiteral(
             plan.program.expressions) ||
         DirectMirScalarProgramHasArrayBoolPopulatedLiteral(
-            plan.program.expressions) || owned_string_push;
+            plan.program.expressions) || owned_string_push || slice_copy;
     if plan.program.runtime_abi.process_args_id != 0 { needs_malloc = true; }
     let needs_memcpy: Bool = plan.string_concat_runtime_call_abi_id != 0 ||
         plan.program.runtime_abi.string_substring_id != 0 ||
         plan.program.runtime_abi.string_substring_with_len_id != 0 ||
         plan.program.runtime_abi.string_trim.runtime_call_abi_id != 0 ||
-        plan.program.runtime_abi.string_split_id != 0 || replace || owned_string_push;
+        plan.program.runtime_abi.string_split_id != 0 || replace ||
+        owned_string_push || slice_copy;
     if plan.program.runtime_abi.process_args_id != 0 { needs_memcpy = true; }
     if plan.program.runtime_abi.string_join_id != 0 { needs_memcpy = true; }
     let needs_memcmp: Bool = plan.program.runtime_abi.string_sub_index_with_len_id != 0 ||
@@ -82,6 +85,7 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
         plan.program.runtime_abi.string_contains_id != 0 ||
         plan.program.runtime_abi.string_split_id != 0 || replace;
     let output: String = DirectMirScalarProgramLlvmHashMapDeclarations(plan.program.expressions);
+    output = Concat(output, DirectMirScalarProgramLlvmSliceForeignDeclarations(plan.program.expressions));
     let reached: Array<Int> = [DirectMirScalarProgramExprCheckedAddInt(), DirectMirScalarProgramExprCheckedMulInt(), DirectMirScalarProgramExprDivideInt(),
         DirectMirScalarProgramExprArrayIntSort(), DirectMirScalarProgramExprArrayIntReverse()];
     let reached_index: Int = 0;
@@ -113,14 +117,11 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
         CollectionSetRuntimeLlvmHasStringRawFn(), "(ptr, ptr)\n"))); }
     if collection { output = Concat(output,
         "declare ptr @realloc(ptr, i64)\ndeclare void @free(ptr)\n"); }
-    if collection || plan.program.runtime_abi.string_length_id != 0 || plan.program.option_int_abi.valid || plan.program.result_int_abi.valid || plan.program.option_string_abi.valid || plan.program.option_bool_abi.valid || plan.program.logical_record.present {
-        output = Concat(output, "declare void @abort()\n");
-    }
-    if scalar_array_index || bounded_array_set || DirectMirScalarProgramExpressionContainsKind(
+    if collection || plan.program.runtime_abi.string_length_id != 0 || plan.program.option_int_abi.valid || plan.program.result_int_abi.valid || plan.program.option_string_abi.valid || plan.program.option_bool_abi.valid || plan.program.logical_record.present || slice_any { output = Concat(output, "declare void @abort()\n"); }
+    if scalar_array_index || bounded_array_set || slice_any || DirectMirScalarProgramExpressionContainsKind(
             plan.program.expressions, DirectMirScalarProgramExprArrayLongIndex()) {
-        output = Concat(output, Concat(
-        "declare void @", Concat(
-        CollectionRuntimeLlvmBoundsPanicFn(), "(ptr)\n"))); }
+        output = Concat(output, Concat("declare void @", Concat(
+            CollectionRuntimeLlvmBoundsPanicFn(), "(ptr)\n"))); }
     if plan.program.runtime_abi.string_to_int_id != 0 {
         output = Concat(output, "declare i64 @atoll(ptr)\n");
     }

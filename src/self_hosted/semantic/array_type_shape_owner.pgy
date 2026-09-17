@@ -31,15 +31,21 @@ func SemanticOwnedSequenceElementType(type_name: String) -> Option<String> {
     return None;
 }
 
-func SemanticSequenceElementType(type_name: String) -> Option<String> {
-    let owned_element: Option<String> =
-        SemanticOwnedSequenceElementType(type_name);
-    if IsSome(owned_element) { return owned_element; }
+// A slice borrows its element storage, so it is a sequence but not an owned
+// one. Callers that must distinguish the borrowed shape ask for it by name.
+func SemanticSliceElementType(type_name: String) -> Option<String> {
     if StringLength(type_name) > 6 && StartsWith(type_name, "Slice<") &&
         SourceCharAt(type_name, StringLength(type_name) - 1) == ">" {
         return Some(Substring(type_name, 6, StringLength(type_name) - 7));
     }
     return None;
+}
+
+func SemanticSequenceElementType(type_name: String) -> Option<String> {
+    let owned_element: Option<String> =
+        SemanticOwnedSequenceElementType(type_name);
+    if IsSome(owned_element) { return owned_element; }
+    return SemanticSliceElementType(type_name);
 }
 
 func SemanticArrayTypeShapeContractReady() -> Bool {
@@ -51,6 +57,8 @@ func SemanticArrayTypeShapeContractReady() -> Bool {
         UnwrapOption(SemanticOwnedSequenceElementType("Queue<String>")) ==
             "String" &&
         !IsSome(SemanticOwnedSequenceElementType("Slice<Int>")) &&
+        UnwrapOption(SemanticSliceElementType("Slice<String>")) == "String" &&
+        !IsSome(SemanticSliceElementType("Array<Int>")) &&
         IsSome(SemanticSequenceElementType("List<Int>")) &&
         IsSome(SemanticSequenceElementType("Slice<Int>")) &&
         UnwrapOption(SemanticSequenceElementType("Queue<String>")) ==

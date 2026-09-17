@@ -8,12 +8,12 @@ namespace PgyMathRegistry
 
     export func TemplateCount() -> Int
     {
-        return 36;
+        return 37;
     }
 
     export func RegistryDigest() -> String
     {
-        return "sha256:d0b972a00358af18ee1f460c4500c9046af1390bf42563f6d68c0a6e1385ac42";
+        return "sha256:1bc6e88600e1fa66fd7ee13eb6ec5478a3e9d1513d97ea25c7ac2f63dc7a0275";
     }
 
     export func HasTemplateId(value: String) -> Bool
@@ -54,6 +54,7 @@ namespace PgyMathRegistry
         if value == "compute.approximation" { return true; }
         if value == "compute.counterexample_search" { return true; }
         if value == "compute.simulation" { return true; }
+        if value == "verification.function_contract" { return true; }
         return false;
     }
 
@@ -136,6 +137,8 @@ namespace PgyMathRegistry
         if value == "find_counterexample" { return true; }
         if value == "compute.simulation" { return true; }
         if value == "simulation" { return true; }
+        if value == "verification.function_contract" { return true; }
+        if value == "function_contract" { return true; }
         return false;
     }
 

@@ -2,6 +2,7 @@
 import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
 import "direct_mir_scalar_program_builtin_signature_projection_owner.pgy";
 import "direct_mir_scalar_program_builtin_runtime_call_identity_owner.pgy";
+import "direct_mir_scalar_program_slice_builtin_owner.pgy";
 struct DirectMirScalarProgramBuiltinCallFact {
     let recognized: Bool;
     let valid: Bool;
@@ -30,6 +31,17 @@ func DirectMirScalarProgramBuiltinCallFactFromGraph(
     if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
         sequence.arena.topology.node_kinds[node] !=
             AstExpressionNodeCallArgument() { return missing; }
+    let slice: DirectMirScalarProgramSliceBuiltinCallFact =
+        DirectMirScalarProgramSliceBuiltinCallFactFromGraph(
+            sequence, node, source_rows, normalized_types, expected_type
+        );
+    if slice.recognized {
+        if !slice.valid { return DirectMirScalarProgramBuiltinCallFactInvalid(true); }
+        return DirectMirScalarProgramBuiltinCallFact(
+            true, true, slice.complete, slice.expression_kind,
+            slice.return_type, slice.argument_rows, slice.call_node, -1
+        );
+    }
     let chain: DirectMirScalarProgramBuiltinArgumentChain =
         DirectMirScalarProgramBuiltinArgumentChainFromGraph(
             sequence, node, source_rows, normalized_types);

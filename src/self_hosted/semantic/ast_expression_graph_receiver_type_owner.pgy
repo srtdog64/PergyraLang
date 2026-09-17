@@ -100,7 +100,11 @@ func SemanticExpressionGraphValueReceiverTypeName(
                 function_names, function_returns
             );
         if !IsSome(collection_type) { return None; }
-        return SemanticArrayElementType(UnwrapOption(collection_type));
+        let owned_element: Option<String> =
+            SemanticArrayElementType(UnwrapOption(collection_type));
+        if IsSome(owned_element) { return owned_element; }
+        // A slice is indexable at the same element type it views.
+        return SemanticSliceElementType(UnwrapOption(collection_type));
     }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, node_id

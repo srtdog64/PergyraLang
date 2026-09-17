@@ -16,6 +16,7 @@ import "direct_mir_scalar_program_llvm_collection_parameter_binding_owner.pgy";
 import "direct_mir_scalar_program_llvm_int_wrap_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_match_expression_owner.pgy";
 import "direct_mir_scalar_program_llvm_hashmap_owner.pgy";
+import "direct_mir_scalar_program_llvm_slice_expression_owner.pgy";
 struct DirectMirScalarProgramLlvmExpression {
     let valid: Bool;
     let instructions: String;
@@ -47,10 +48,12 @@ func DirectMirScalarProgramLlvmExpressionAt(ref expressions: DirectMirScalarProg
         let node_instructions: String = "";
         let kind: Int = expressions.node_kinds[node];
         let left: String = ""; let right: String = "";
+        let left_type: String = ""; let right_type: String = "";
         let left_address: String = "";
         if expressions.node_lefts[node] >= start {
             left = values[expressions.node_lefts[node] - start];
             let left_node: Int = expressions.node_lefts[node];
+            left_type = expressions.node_types[left_node];
             if expressions.node_kinds[left_node] == DirectMirScalarProgramExprLocal() {
                 left_address = DirectMirScalarProgramLlvmLocalName(
                     expressions.node_local_rows[left_node]);
@@ -65,6 +68,7 @@ func DirectMirScalarProgramLlvmExpressionAt(ref expressions: DirectMirScalarProg
         }
         if expressions.node_rights[node] >= start {
             right = values[expressions.node_rights[node] - start];
+            right_type = expressions.node_types[expressions.node_rights[node]];
         }
         let arguments: Array<String> = [];
         let argument_types: Array<String> = [];
@@ -106,9 +110,14 @@ func DirectMirScalarProgramLlvmExpressionAt(ref expressions: DirectMirScalarProg
         let value: String = "";
         let result: String = DirectMirScalarProgramLlvmNodeName(expression_row, node);
         let cast_value: Option<String> = DirectMirScalarProgramLlvmNumericCastExpressionValue(kind, left);
-        let hashmap: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmHashMapExpressionAt(
-            expressions, node, result, values, start);
-        if hashmap.matched {
+        let hashmap: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmHashMapExpressionAt(expressions, node, result, values, start);
+        let slice: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmSliceExpressionAt(
+            kind, result, expressions.node_types[node], left, left_type,
+            right, right_type, arguments, argument_types);
+        if slice.matched {
+            if !slice.valid { return DirectMirScalarProgramLlvmExpression(false, "", "", ""); }
+            value = slice.value; node_instructions = slice.instructions;
+        } else if hashmap.matched {
             if !hashmap.valid { return DirectMirScalarProgramLlvmExpression(false, "", "", ""); }
             value = hashmap.value; node_instructions = hashmap.instructions;
         } else if kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
@@ -243,15 +252,6 @@ func DirectMirScalarProgramLlvmExpressionAt(ref expressions: DirectMirScalarProg
                 node_instructions = runtime_value.instructions;
                 value = runtime_value.value;
             } else {
-            let left_type: String = ""; let right_type: String = "";
-            if expressions.node_lefts[node] >= start {
-                left_type = expressions.node_types[
-                    expressions.node_lefts[node]];
-            }
-            if expressions.node_rights[node] >= start {
-                right_type = expressions.node_types[
-                    expressions.node_rights[node]];
-            }
             let record_type: String = expressions.node_types[node];
             if kind == DirectMirScalarProgramExprLogicalRecordMember() { record_type = left_type; }
             let record_expression: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmLogicalValueExpressionAt(

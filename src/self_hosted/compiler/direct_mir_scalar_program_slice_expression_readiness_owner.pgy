@@ -1,0 +1,71 @@
+// Exact normalized shape for Slice<T> construction and ownership transfer.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirScalarProgramSliceExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let kind: Int = facts.node_kinds[node];
+    if kind != DirectMirScalarProgramExprArraySlice() &&
+        kind != DirectMirScalarProgramExprSliceCopy() &&
+        kind != DirectMirScalarProgramExprSliceIntIndex() &&
+        kind != DirectMirScalarProgramExprSliceStringIndex() { return None; }
+    if facts.node_local_rows[node] != -1 ||
+        facts.node_parameter_ordinals[node] != -1 ||
+        facts.node_member_ordinals[node] != -1 ||
+        facts.node_literals[node] != "" ||
+        facts.node_callable_rows[node] != -1 ||
+        facts.node_runtime_call_abi_ids[node] != -1 {
+        return Some(false);
+    }
+    if kind == DirectMirScalarProgramExprSliceIntIndex() ||
+        kind == DirectMirScalarProgramExprSliceStringIndex() {
+        let left: Int = facts.node_lefts[node];
+        let right: Int = facts.node_rights[node];
+        let result_type: String = CompilerAbiLayoutIntTypeName();
+        let slice_type: String = CompilerAbiLayoutSliceIntTypeName();
+        if kind == DirectMirScalarProgramExprSliceStringIndex() {
+            result_type = CompilerAbiLayoutStringTypeName();
+            slice_type = CompilerAbiLayoutSliceStringTypeName();
+        }
+        return Some(left >= 0 && left < node && right >= 0 && right < node &&
+            facts.node_types[node] == result_type &&
+            facts.node_types[left] == slice_type &&
+            facts.node_types[right] == CompilerAbiLayoutIntTypeName());
+    }
+    if kind == DirectMirScalarProgramExprArraySlice() {
+        if facts.node_lefts[node] != -1 || facts.node_rights[node] != -1 {
+            return Some(false);
+        }
+        let operands: Array<Int> = DirectMirScalarProgramNaryOperandRows(
+            facts.nary_operands, node
+        );
+        if ArrayLength(operands) != 3 || operands[0] < 0 ||
+            operands[1] < 0 || operands[2] < 0 || operands[0] >= node ||
+            operands[1] >= node || operands[2] >= node ||
+            facts.node_types[operands[1]] != CompilerAbiLayoutIntTypeName() ||
+            facts.node_types[operands[2]] != CompilerAbiLayoutIntTypeName() {
+            return Some(false);
+        }
+        return Some(
+            (facts.node_types[operands[0]] ==
+                CompilerAbiLayoutArrayIntTypeName() &&
+             facts.node_types[node] == CompilerAbiLayoutSliceIntTypeName()) ||
+            (facts.node_types[operands[0]] ==
+                CompilerAbiLayoutArrayStringTypeName() &&
+             facts.node_types[node] == CompilerAbiLayoutSliceStringTypeName())
+        );
+    }
+    let left: Int = facts.node_lefts[node];
+    if left < 0 || left >= node || facts.node_rights[node] != -1 ||
+        ArrayLength(DirectMirScalarProgramNaryOperandRows(
+            facts.nary_operands, node)) != 0 {
+        return Some(false);
+    }
+    return Some(
+        (facts.node_types[left] == CompilerAbiLayoutSliceIntTypeName() &&
+         facts.node_types[node] == CompilerAbiLayoutArrayIntTypeName()) ||
+        (facts.node_types[left] == CompilerAbiLayoutSliceStringTypeName() &&
+         facts.node_types[node] == CompilerAbiLayoutArrayStringTypeName())
+    );
+}

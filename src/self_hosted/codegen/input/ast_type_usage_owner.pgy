@@ -13,6 +13,7 @@ struct CodegenTypeUsageFacts {
     let has_option: Bool;
     let has_bool: Bool;
     let has_array: Bool;
+    let has_slice: Bool;
     let has_list: Bool;
     list_type_names: Array<String>;
     let has_queue: Bool;
@@ -140,6 +141,7 @@ func CodegenTypeUsageFactsFromSemantic(facts: SemanticAstTypeSurfaceFacts) -> Co
         SemanticAstTypeSurfaceContains(facts, "Option<"),
         SemanticAstTypeSurfaceContains(facts, "Bool"),
         SemanticAstTypeSurfaceContains(facts, "Array<"),
+        SemanticAstTypeSurfaceContains(facts, "Slice<"),
         ArrayLength(list_type_names) > 0,
         list_type_names,
         ArrayLength(queue_type_names) > 0,

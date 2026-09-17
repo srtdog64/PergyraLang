@@ -18,6 +18,7 @@
 #include "transpiler_future_type_query.h"
 #include "transpiler_generic_binding_query.h"
 #include "transpiler_generic_param_query.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_mir_signature.h"
 #include "transpiler_nominal.h"
@@ -28,6 +29,61 @@
 #include "../compiler/mir_source_local_expr_call_facts.h"
 #include "../parser/ast_api.h"
 
+static const char *
+transpiler_infer_static_member_call_type_name(TranspilerCtx *ctx,
+                                              ASTNode *call,
+                                              bool *handled)
+{
+    MIRRoutineSourceLookup lookup;
+    const char *return_type_name;
+    uint32_t callee_decl_id;
+
+    if (handled != NULL)
+        *handled = false;
+    if (ctx == NULL || call == NULL || call->type != AST_CALL
+        || ast_call_callee(call) == NULL
+        || ast_call_callee(call)->type != AST_MEMBER_ACCESS) {
+        return NULL;
+    }
+
+    callee_decl_id = ast_call_semantic_callee_decl_id(call);
+    if (callee_decl_id == 0)
+        return NULL;
+
+    lookup = transpiler_active_routine_lookup_by_source_syntax_id(
+        ctx, callee_decl_id);
+    if (lookup.status == MIR_ROUTINE_SOURCE_LOOKUP_DUPLICATE) {
+        if (handled != NULL)
+            *handled = true;
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path found duplicate qualified function-call routines for source syntax id '%u'",
+            callee_decl_id);
+        return "Unknown";
+    }
+    if (lookup.status != MIR_ROUTINE_SOURCE_LOOKUP_UNIQUE
+        || lookup.routine == NULL
+        || transpiler_mir_routine_kind(lookup.routine) != MIR_SCOPE_FUNCTION) {
+        return NULL;
+    }
+
+    if (handled != NULL)
+        *handled = true;
+    if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
+            lookup.routine,
+            NULL,
+            TRANSPILER_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME,
+            "MIR-only C path missing qualified function-call signature metadata for '%s'",
+            "MIR-only C path missing qualified function-call return type-name metadata for '%s'",
+            NULL)) {
+        return "Unknown";
+    }
+    return_type_name =
+        transpiler_mir_routine_return_type_name(lookup.routine);
+    if (return_type_name == NULL)
+        return "Unknown";
+    return transpiler_infer_arena_copy_type_name(ctx, return_type_name);
+}
+
 const char *
 transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
 {
@@ -37,6 +93,12 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
     if (ast_call_callee(expr) != NULL
         && ast_call_callee(expr)->type == AST_MEMBER_ACCESS
         && ast_member_name(ast_call_callee(expr)) != NULL) {
+        bool static_function_call = false;
+        const char *static_return_type =
+            transpiler_infer_static_member_call_type_name(
+                ctx, expr, &static_function_call);
+        if (static_function_call)
+            return static_return_type != NULL ? static_return_type : "Unknown";
         ASTNode *receiver = ast_member_object(ast_call_callee(expr));
         const char *method_name = ast_member_name(ast_call_callee(expr));
         const char *receiver_type =

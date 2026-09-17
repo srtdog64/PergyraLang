@@ -1,0 +1,30 @@
+// Syntax-id-zero member calls are admitted only by an exact builtin row.
+import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "../semantic/builtin_signature_owner.pgy";
+
+func DirectMirScalarProgramBuiltinMemberCallMarkerReady(
+    ref sequence: MirExpressionGraphSequence, call: Int, callee: Int
+) -> Bool {
+    if call < 1 || call >= sequence.ready_node_count || callee < 0 ||
+        callee >= call ||
+        sequence.arena.topology.node_kinds[call] != AstExpressionNodeCall() ||
+        sequence.arena.call_target_kinds[call] != SemanticCallTargetMember() ||
+        sequence.arena.identities.call_target_syntax_ids[call] != 0 ||
+        sequence.arena.topology.node_kinds[callee] !=
+            AstExpressionNodeMemberAccess() {
+        return false;
+    }
+    let receiver: Int = sequence.arena.topology.left_children[callee];
+    let member: Int = sequence.arena.topology.right_children[callee];
+    return receiver >= 0 && receiver < callee && member >= 0 &&
+        member < callee &&
+        sequence.arena.topology.node_kinds[member] == AstExpressionNodeLeaf() &&
+        sequence.arena.identities.binding_kinds[member] ==
+            SemanticExpressionBindingNone() &&
+        sequence.arena.identities.binding_syntax_ids[member] == 0 &&
+        sequence.arena.identities.binding_ordinals[member] == -1 &&
+        SemanticBuiltinMemberCallableMatches(
+            sequence.arena.call_target_names[call],
+            sequence.arena.node_texts[member]
+        );
+}

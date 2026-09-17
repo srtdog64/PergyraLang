@@ -46,11 +46,18 @@ require_text "docs/semantics/proofs/ProofCarryingIR.md" "This is not whole-compi
 
 require_text "docs/semantics/17_proof_carrying_pipeline.md" "pgy.proof-carrying-ir.v1"
 require_text "docs/semantics/17_proof_carrying_pipeline.md" "Stage 2: Mechanized Checker Core"
+require_text "docs/semantics/17_proof_carrying_pipeline.md" "pgy.proof-input-binding.v1"
+require_text "docs/semantics/17_proof_carrying_pipeline.md" "not a proof that an"
 require_text "tests/proof_carrying_pipeline_smoke.sh" "AIR_REQUIRED"
 require_text "tests/proof_carrying_pipeline_smoke.sh" "MIR_REQUIRED"
 require_text "tests/proof_carrying_pipeline_smoke.sh" "rir_authority"
 require_text "tests/proof_carrying_pipeline_smoke.sh" "expr0"
 require_text "tests/proof_carrying_pipeline_smoke.sh" "negative certificate deletion was accepted"
+require_text "tests/proof_carrying_pipeline_smoke.sh" "source mutation kept an old certificate valid"
+require_text "tests/proof_carrying_pipeline_smoke.sh" "source digest repair bypassed the composite binding"
+require_text "tests/proof_carrying_pipeline_smoke.sh" "AIR payload mutation kept an old certificate valid"
+require_text "tests/proof_carrying_pipeline_smoke.sh" "MIR payload mutation kept an old certificate valid"
+require_text "tests/proof_carrying_pipeline_smoke.sh" "duplicate certificate layer was accepted"
 require_text "docs/semantics/pass_contract_manifest.md" "proof_certificate_pipeline"
 require_text "tests/formal_semantics_smoke.sh" "docs/semantics/proofs/ProofCarryingIR.v"
 

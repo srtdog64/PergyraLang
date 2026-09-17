@@ -142,7 +142,7 @@ func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx:
         let option_expr: String = option_expr_fact.c_expr;
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(option_expr, ";")))));
     }
-    if StartsWith(type_name, "List<") || StartsWith(type_name, "Queue<") ||
+    if StartsWith(type_name, "Slice<") || StartsWith(type_name, "List<") || StartsWith(type_name, "Queue<") ||
         StartsWith(type_name, "Set<") || StartsWith(type_name, "HashMap<") ||
         LookupKindType(env, type_name, "s") == "struct" ||
         LookupKindType(env, type_name, "enum") != "" {
@@ -155,7 +155,7 @@ func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx:
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",
             Concat(c_name, Concat(" = ", Concat(value, ";")))));
     }
-    Die(Concat("unsupported let type (only Int/Long/Bool/Float/Double/String/Array/List/Queue/Set/Option/struct/enum): ", type_name));
+    Die(Concat("unsupported let type (only Int/Long/Bool/Float/Double/String/Array/Slice/List/Queue/Set/Option/struct/enum): ", type_name));
     return "";
 }
 func EmitStmtList(count: Int, arena: AstArena,

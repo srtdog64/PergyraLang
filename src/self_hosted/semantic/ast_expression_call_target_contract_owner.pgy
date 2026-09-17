@@ -2,6 +2,7 @@
 
 import "ast_expression_call_target_capture_owner.pgy";
 import "ast_expression_graph_build_owner.pgy";
+import "ast_expression_builtin_member_call_target_contract_owner.pgy";
 
 func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
@@ -103,6 +104,9 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
             function_tables).ok {
         return false;
     }
+    if !SemanticBuiltinMemberCallTargetContractReady(
+        signatures, intents, constructors, enums, function_tables
+    ) { return false; }
     let declared_kinds: Array<Int> = [];
     let declared_texts: Array<String> = [];
     let declared_left: Array<Int> = [];

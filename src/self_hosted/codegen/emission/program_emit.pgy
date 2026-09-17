@@ -15,6 +15,7 @@ import "../input/semantic_kind_codegen_view_owner.pgy";
 import "../input/domain_runtime_codegen_view_owner.pgy";
 import "../input/intent_policy_codegen_view_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
+import "../runtime_abi/slice_runtime_owner.pgy";
 import "../runtime_abi/list_runtime_owner.pgy";
 import "../runtime_abi/queue_runtime_owner.pgy";
 import "../runtime_abi/set_runtime_owner.pgy";
@@ -501,12 +502,11 @@ func GenerateCUnitFromReadySemanticFacts(
     }
     if uses_array {
         TextBuilderAppend(output, CollectionRuntimeCArrayBlock(
-            uses_array_sort,
-            uses_array_reverse,
-            uses_array_map,
-            uses_array_filter
+            uses_array_sort, uses_array_reverse,
+            uses_array_map, uses_array_filter
         ));
     }
+    if usage.uses_slice { TextBuilderAppend(output, SliceRuntimeCBlock(base_env)); }
     let record_array_block: String = CollectionRuntimeRecordArrayBlocks(
         uses_ast_text_node_array, usage.nominal_record_arrays.element_types);
     let hashmap_values: Array<String> = [];

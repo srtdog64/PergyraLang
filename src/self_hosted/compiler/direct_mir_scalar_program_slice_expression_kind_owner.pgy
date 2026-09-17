@@ -1,0 +1,5 @@
+// Stable normalized identities for the direct-MIR Slice expression family.
+func DirectMirScalarProgramExprArraySlice() -> Int { return 139; }
+func DirectMirScalarProgramExprSliceCopy() -> Int { return 140; }
+func DirectMirScalarProgramExprSliceIntIndex() -> Int { return 141; }
+func DirectMirScalarProgramExprSliceStringIndex() -> Int { return 142; }

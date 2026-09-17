@@ -2503,6 +2503,17 @@ stdlib-test-smoke:
 	PGY_HOST_TASK_POLICY_BACKENDS="$${PGY_HOST_TASK_POLICY_BACKENDS:-$(STDLIB_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/host_task_policy_smoke.sh
 
+pgy-math-registry-admission-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+	"$(BASH)" tests/pgy_math_registry_admission_smoke.sh
+
+pgy-math-adversarial-matrix-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+	PGY_MATH_ROOT="$${PGY_MATH_ROOT:?set PGY_MATH_ROOT to the PgyMath checkout}" \
+	"$(BASH)" tests/pgy_math_adversarial_matrix_smoke.sh
+
 host-task-slot-test-smoke: $(PGY)
 	PGY_HOST_TASK_SLOT_BACKENDS="$${PGY_HOST_TASK_SLOT_BACKENDS:-$(STDLIB_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/host_task_slot_smoke.sh
@@ -5218,6 +5229,8 @@ llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memo
 .PHONY: self-host-builtin-signature-registry-test-smoke self-host-codegen-bootstrap-seed-test-smoke self-host-codegen-role-receiver-admission-test-smoke self-host-driver-bootstrap-test-smoke self-host-driver-bootstrap-full-test-smoke self-host-driver-bootstrap-full-pressure-body-test-smoke self-host-bootstrap-policy-corpus-test-smoke self-host-driver-rung0-parity-test-smoke self-host-driver-rung1-parity-test-smoke self-host-driver-rung2-body-parity-test-smoke self-host-hard-driver-rung2-parity-test-smoke self-host-hard-driver-rung2-parity-full-test-smoke self-host-mir-abi-first-test-smoke self-host-lsp-diagnostics-parity-test-smoke self-host-lsp-live-session-parity-test-smoke self-host-progress-metric-test-smoke self-host-substitution-velocity-test-smoke sot-authority-adequacy-test-smoke sot-authority-edge-test-smoke self-host-compiler self-host-lsp self-host-intent-observability-mir-identity-test-smoke self-host-canonical-mir-verified-projection-test-smoke self-host-canonical-mir-routine-phase-identity-test-smoke self-host-generic-specialization-identity-epoch-test-smoke self-host-public-mir-json-replacement-test-smoke self-host-public-mir-json-diagnostic-receipt-test-smoke self-host-public-machine-manifest-replacement-test-smoke self-host-public-tokens-replacement-test-smoke self-host-public-ast-replacement-test-smoke self-host-public-capability-manifest-replacement-test-smoke self-host-public-dir-replacement-test-smoke self-host-source-inspection-opt-profile-test-smoke self-host-mir-opt-profile-test-smoke self-host-llvm-ir-opt-profile-test-smoke self-host-public-llvm-ir-replacement-test-smoke self-host-public-nested-scalar-cfg-llvm-test-smoke self-host-public-llvm-ir-stdout-replacement-test-smoke self-host-public-debug-replacement-test-smoke self-host-live-replacement-test-smoke self-host-installed-driver-cli-mode-test-smoke self-host-package-command-replacement-test-smoke builtin-capability-registry-test-smoke
 .PHONY: runtime-cache-identity-test-smoke arena-ledger-test-smoke runtime-context-test-smoke runtime-spawn-context-propagation-test-smoke ownership-relocation-cleanup-contract-test-smoke structured-spawn-lifecycle-test-smoke
 .PHONY: parser-imported-intent-composition-test-smoke
+.PHONY: pgy-math-registry-admission-test-smoke
+.PHONY: pgy-math-adversarial-matrix-test-smoke
 .PHONY: grammar-self-driver-test-smoke
 .PHONY: object-action-boundary-contract-test-smoke
 .PHONY: artifact-atomic-transaction-contract-test-smoke artifact-atomic-runtime-test-smoke artifact-atomic-transaction-test-smoke

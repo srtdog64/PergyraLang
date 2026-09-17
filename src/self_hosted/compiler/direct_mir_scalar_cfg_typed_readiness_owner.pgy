@@ -1,4 +1,3 @@
-// Cross-type readiness for locals, operations, foreach payloads, and ABI calls.
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "runtime_call_abi_structured_fact_owner.pgy";
@@ -160,6 +159,7 @@ func DirectMirScalarCfgTypedPlanReady(
                 hashmap.ok || type_name == CompilerAbiLayoutArrayLongTypeName() ||
                 program_collection_ready || program_array_int_ready ||
                 program_array_bool_ready || program_set_string_ready ||
+                DirectMirScalarCfgSliceTypeSupported(type_name) ||
                 (type_name == CompilerAbiLayoutOptionIntTypeName() && DirectMirScalarProgramOptionIntAbiReadyForExpressions(plan.program.option_int_abi, plan.program.expressions)) ||
                 (type_name == CompilerAbiLayoutResultIntTypeName() && DirectMirScalarProgramResultIntAbiReadyForExpressions(plan.program.result_int_abi, plan.program.expressions)) ||
                 program_option_string_ready ||

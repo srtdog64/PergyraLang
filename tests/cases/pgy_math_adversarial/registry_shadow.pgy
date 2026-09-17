@@ -1,0 +1,14 @@
+import "../../../stdlib/math.pgy";
+
+namespace PgyMathRegistry
+{
+    export func TemplateCount() -> Int
+    {
+        return 999;
+    }
+}
+
+func Main() -> Void
+{
+    Log(ToString(PgyMathRegistry.TemplateCount()));
+}

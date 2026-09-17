@@ -1,4 +1,3 @@
-// LLVM local-slot declarations for the scalar CFG plan; the C form has its own owner.
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_int_owner.pgy";
 import "direct_mir_scalar_program_llvm_option_string_owner.pgy";
@@ -58,12 +57,13 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
             output = Concat(output,
                 " = alloca %pgy.array.int, align 8\n  store %pgy.array.int zeroinitializer, ptr %pgy.local."
             );
-        } else if plan.local_types[row] ==
-                CompilerAbiLayoutArrayBoolTypeName() {
+        } else if plan.local_types[row] == CompilerAbiLayoutArrayBoolTypeName() {
             llvm_type = "%pgy.array.bool";
             output = Concat(output,
                 " = alloca %pgy.array.bool, align 8\n  store %pgy.array.bool zeroinitializer, ptr %pgy.local."
             );
+        } else if plan.local_types[row] == CompilerAbiLayoutSliceIntTypeName() { llvm_type = "%pgy.slice.int"; output = Concat(output, " = alloca %pgy.slice.int, align 8\n  store %pgy.slice.int zeroinitializer, ptr %pgy.local.");
+        } else if plan.local_types[row] == CompilerAbiLayoutSliceStringTypeName() { llvm_type = "%pgy.slice.string"; output = Concat(output, " = alloca %pgy.slice.string, align 8\n  store %pgy.slice.string zeroinitializer, ptr %pgy.local.");
         } else if plan.local_types[row] == CompilerAbiLayoutSetStringTypeName() { llvm_type = DirectMirScalarProgramLlvmSetStringTypeName(); output = Concat(output, Concat(" = alloca ", Concat(llvm_type, Concat(", align 8\n  store ", Concat(llvm_type, " zeroinitializer, ptr %pgy.local.")))));
         } else if plan.local_types[row] ==
                 CompilerAbiLayoutOptionIntTypeName() {

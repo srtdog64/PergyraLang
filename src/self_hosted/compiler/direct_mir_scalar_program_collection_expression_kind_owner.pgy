@@ -23,6 +23,12 @@ func DirectMirScalarProgramCollectionExpressionKindFact(
         } else if left_type == CompilerAbiLayoutArrayBoolTypeName() {
             kind = DirectMirScalarProgramExprArrayBoolIndex();
             type_name = CompilerAbiLayoutBoolTypeName();
+        } else if left_type == CompilerAbiLayoutSliceIntTypeName() {
+            kind = DirectMirScalarProgramExprSliceIntIndex();
+            type_name = CompilerAbiLayoutIntTypeName();
+        } else if left_type == CompilerAbiLayoutSliceStringTypeName() {
+            kind = DirectMirScalarProgramExprSliceStringIndex();
+            type_name = CompilerAbiLayoutStringTypeName();
         }
         if kind != 0 { return DirectMirScalarProgramExpressionKindFact(
             true, kind, type_name, ""); }

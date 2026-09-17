@@ -1,0 +1,21 @@
+namespace A_B
+{
+    export func C() -> Int
+    {
+        return 11;
+    }
+}
+
+namespace A
+{
+    export func B_C() -> Int
+    {
+        return 22;
+    }
+}
+
+func Main() -> Void
+{
+    Log(ToString(A_B.C()));
+    Log(ToString(A.B_C()));
+}

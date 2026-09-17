@@ -1,0 +1,159 @@
+// Exact direct-MIR admission for the borrowed Slice<T> builtin family.
+//
+// The semantic registry owns callable identity and polymorphic shape. This
+// owner joins that identity to persisted graph topology and turns only the
+// admitted Int/String instances into normalized expression facts.
+
+import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "abi_layout_row_owner.pgy";
+import "../semantic/array_type_shape_owner.pgy";
+import "../semantic/builtin_signature_owner.pgy";
+
+struct DirectMirScalarProgramSliceBuiltinCallFact {
+    let recognized: Bool;
+    let valid: Bool;
+    let complete: Bool;
+    let expression_kind: Int;
+    let return_type: String;
+    let argument_rows: Array<Int>;
+    let call_node: Int;
+}
+
+func DirectMirScalarProgramSliceBuiltinCallFactInvalid(
+    recognized: Bool
+) -> DirectMirScalarProgramSliceBuiltinCallFact {
+    let rows: Array<Int> = [];
+    return DirectMirScalarProgramSliceBuiltinCallFact(
+        recognized, false, false, 0, "", rows, -1
+    );
+}
+
+func DirectMirScalarProgramSliceBuiltinRegistryRowReady(
+    name: String
+) -> Bool {
+    let names: Array<String> = [];
+    let returns: Array<String> = [];
+    let params: Array<String> = [];
+    if !SeedSemanticBuiltinSignatures(names, returns, params) { return false; }
+    let matches: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(names) {
+        if names[row] == name {
+            let expected_params: String = "Unknown";
+            if name == "Array_Slice" {
+                expected_params = "Unknown|Int|Int";
+            }
+            if returns[row] != "Unknown" || params[row] != expected_params {
+                return false;
+            }
+            matches = matches + 1;
+        }
+        row = row + 1;
+    }
+    return matches == 1;
+}
+
+func DirectMirScalarProgramSliceExpectedTypeReady(
+    expected_type: String, actual_type: String
+) -> Bool {
+    return expected_type == "" || expected_type == actual_type;
+}
+
+func DirectMirScalarProgramSliceBuiltinCallFactFromGraph(
+    ref sequence: MirExpressionGraphSequence, node: Int,
+    source_rows: Array<Int>, normalized_types: Array<String>,
+    expected_type: String
+) -> DirectMirScalarProgramSliceBuiltinCallFact {
+    let missing: DirectMirScalarProgramSliceBuiltinCallFact =
+        DirectMirScalarProgramSliceBuiltinCallFactInvalid(false);
+    if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
+        sequence.arena.topology.node_kinds[node] !=
+            AstExpressionNodeCallArgument() { return missing; }
+    let chain: DirectMirScalarProgramBuiltinArgumentChain =
+        DirectMirScalarProgramBuiltinArgumentChainFromGraph(
+            sequence, node, source_rows, normalized_types
+        );
+    if !chain.valid || chain.call_node < 0 { return missing; }
+    let name: String = sequence.arena.call_target_names[chain.call_node];
+    if name != "Array_Slice" && name != "SliceCopy" { return missing; }
+    if !DirectMirScalarProgramSliceBuiltinRegistryRowReady(name) ||
+        sequence.arena.identities.runtime_call_abi_ids[chain.call_node] != 0 {
+        return DirectMirScalarProgramSliceBuiltinCallFactInvalid(true);
+    }
+
+    if name == "Array_Slice" {
+        if !DirectMirScalarProgramBuiltinMemberCallMarkerReady(
+                sequence, chain.call_node,
+                DirectMirScalarProgramCallCalleeBase(
+                    sequence, chain.call_node)) ||
+            ArrayLength(chain.argument_rows) > 2 {
+            return DirectMirScalarProgramSliceBuiltinCallFactInvalid(true);
+        }
+        if ArrayLength(chain.argument_rows) < 2 {
+            return DirectMirScalarProgramSliceBuiltinCallFact(
+                true, true, false, 0, "", chain.argument_rows,
+                chain.call_node
+            );
+        }
+        let callee: Int = DirectMirScalarProgramCallCalleeBase(
+            sequence, chain.call_node
+        );
+        let receiver_source: Int = sequence.arena.topology.left_children[callee];
+        if receiver_source < 0 || receiver_source >= ArrayLength(source_rows) ||
+            source_rows[receiver_source] < 0 ||
+            source_rows[receiver_source] >= ArrayLength(normalized_types) {
+            return DirectMirScalarProgramSliceBuiltinCallFactInvalid(true);
+        }
+        let receiver_row: Int = source_rows[receiver_source];
+        let receiver_type: String = normalized_types[receiver_row];
+        let return_type: String = CompilerAbiLayoutSliceIntTypeName();
+        if receiver_type == CompilerAbiLayoutArrayStringTypeName() {
+            return_type = CompilerAbiLayoutSliceStringTypeName();
+        } else if receiver_type != CompilerAbiLayoutArrayIntTypeName() {
+            return DirectMirScalarProgramSliceBuiltinCallFactInvalid(true);
+        }
+        if normalized_types[chain.argument_rows[0]] !=
+                CompilerAbiLayoutIntTypeName() ||
+            normalized_types[chain.argument_rows[1]] !=
+                CompilerAbiLayoutIntTypeName() ||
+            !DirectMirScalarProgramSliceExpectedTypeReady(
+                expected_type, return_type) {
+            return DirectMirScalarProgramSliceBuiltinCallFactInvalid(true);
+        }
+        let arguments: Array<Int> = [
+            receiver_row, chain.argument_rows[0], chain.argument_rows[1]
+        ];
+        return DirectMirScalarProgramSliceBuiltinCallFact(
+            true, true, true, DirectMirScalarProgramExprArraySlice(),
+            return_type, arguments, chain.call_node
+        );
+    }
+
+    if !DirectMirScalarProgramBuiltinCallMarkerReady(
+            sequence, chain.call_node) ||
+        ArrayLength(chain.argument_rows) > 1 {
+        return DirectMirScalarProgramSliceBuiltinCallFactInvalid(true);
+    }
+    if ArrayLength(chain.argument_rows) < 1 {
+        return DirectMirScalarProgramSliceBuiltinCallFact(
+            true, true, false, 0, "", chain.argument_rows,
+            chain.call_node
+        );
+    }
+    let slice_type: String = normalized_types[chain.argument_rows[0]];
+    let return_type: String = CompilerAbiLayoutArrayIntTypeName();
+    if slice_type == CompilerAbiLayoutSliceStringTypeName() {
+        return_type = CompilerAbiLayoutArrayStringTypeName();
+    } else if slice_type != CompilerAbiLayoutSliceIntTypeName() {
+        return DirectMirScalarProgramSliceBuiltinCallFactInvalid(true);
+    }
+    if !DirectMirScalarProgramSliceExpectedTypeReady(
+            expected_type, return_type) {
+        return DirectMirScalarProgramSliceBuiltinCallFactInvalid(true);
+    }
+    return DirectMirScalarProgramSliceBuiltinCallFact(
+        true, true, true, DirectMirScalarProgramExprSliceCopy(),
+        return_type, chain.argument_rows, chain.call_node
+    );
+}

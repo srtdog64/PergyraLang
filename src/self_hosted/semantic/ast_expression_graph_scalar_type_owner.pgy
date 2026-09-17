@@ -308,6 +308,10 @@ func SemanticExpressionGraphIndexValueTypeName(
     let element_type: Option<String> = SemanticArrayElementType(
         UnwrapOption(collection_type)
     );
+    if !IsSome(element_type) {
+        // A slice is indexable at the same element type it views.
+        element_type = SemanticSliceElementType(UnwrapOption(collection_type));
+    }
     let index_type: String = SemanticExpressionGraphScalarTypeName(
         graph, UnwrapOption(index), constructors, names, types,
         function_names, function_returns

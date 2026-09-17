@@ -50,7 +50,9 @@ func DirectMirScalarProgramCallCalleeNodeReady(
             callee = node + 2; call = node + 3;
         }
     }
-    if DirectMirScalarProgramMemberCallMarkerReady(sequence, call) &&
+    if (DirectMirScalarProgramMemberCallMarkerReady(sequence, call) ||
+        DirectMirScalarProgramBuiltinMemberCallMarkerReady(
+            sequence, call, callee)) &&
         sequence.arena.topology.left_children[call] == callee {
         // The receiver is evaluated; only selector syntax is erased.
         return node == callee || sequence.arena.topology.right_children[callee] == node;

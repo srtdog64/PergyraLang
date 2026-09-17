@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let values: Array<Int> = [10, 20, 30];
+    let invalid = SliceCopy(values);
+    Log(ArrayLength(invalid));
+}

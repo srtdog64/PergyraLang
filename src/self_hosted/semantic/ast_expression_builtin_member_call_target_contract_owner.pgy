@@ -1,0 +1,57 @@
+// Positive and forged-canonical-name controls for builtin member carriage.
+import "ast_expression_call_target_capture_owner.pgy";
+import "ast_expression_graph_build_owner.pgy";
+
+func SemanticBuiltinMemberCallTargetContractReady(
+    signatures: SemanticAstFunctionSignatureFacts,
+    intents: SemanticAstIntentSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    enums: SemanticAstEnumFacts,
+    function_tables: SemanticAstExpressionFunctionTableFacts
+) -> Bool {
+    let kinds: Array<Int> = [];
+    let texts: Array<String> = [];
+    let left: Array<Int> = [];
+    let right: Array<Int> = [];
+    let target_kinds: Array<Int> = [];
+    let target_names: Array<String> = [];
+    let build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            kinds, texts, left, right, target_kinds, target_names,
+            "items.Slice(0, 1)"
+        );
+    let source: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        build.ok, [build.root_id], [build.ok],
+        SemanticExpressionGraphArenaUnclassified(
+            kinds, texts, left, right, target_kinds, target_names
+        )
+    );
+    let call: SemanticCallSpineView =
+        SemanticCallSpineViewFromGraph(source, build.root_id);
+    if !call.ok { return false; }
+    ArraySet(target_kinds, call.call_node, SemanticCallTargetMember());
+    ArraySet(target_names, call.call_node, "Array_Slice");
+    let carried: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, source.roots, source.has_roots,
+        SemanticExpressionGraphArenaUnclassified(
+            kinds, texts, left, right, target_kinds, target_names
+        )
+    );
+    if !SemanticExpressionGraphCallTargetsFromSignatures(
+        carried, signatures, intents, constructors, enums, true,
+        function_tables
+    ).ok {
+        return false;
+    }
+    ArraySet(target_names, call.call_node, "SliceCopy");
+    let forged: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, source.roots, source.has_roots,
+        SemanticExpressionGraphArenaUnclassified(
+            kinds, texts, left, right, target_kinds, target_names
+        )
+    );
+    return !SemanticExpressionGraphCallTargetsFromSignatures(
+        forged, signatures, intents, constructors, enums, true,
+        function_tables
+    ).ok;
+}

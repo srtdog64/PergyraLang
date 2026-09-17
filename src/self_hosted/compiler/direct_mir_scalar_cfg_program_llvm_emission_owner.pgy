@@ -1,5 +1,4 @@
 // Range-aware LLVM projection for every routine in the scalar program GraphPlan.
-
 import "direct_mir_scalar_cfg_program_extension_readiness_owner.pgy";
 import "direct_mir_scalar_program_llvm_expression_owner.pgy";
 import "direct_mir_scalar_cfg_program_llvm_operation_owner.pgy";
@@ -37,7 +36,7 @@ import "direct_mir_scalar_cfg_program_llvm_runtime_value_parameter_storage_owner
 import "direct_mir_scalar_cfg_program_llvm_condition_diagnostic_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 import "direct_mir_scalar_program_scalar_value_result_owner.pgy";
-
+import "direct_mir_scalar_program_llvm_slice_expression_owner.pgy";
 func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
     formatted_print: CompilerRuntimeCallAbiFact, process_exit: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
@@ -276,6 +275,7 @@ func DirectMirScalarCfgEmitProgramLlvm(
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmArrayIntValueResultPreamble(
             plan.program.array_int_value_result, array_int_runtime, array_int_projection));
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmSlicePreamble(plan.program.expressions));
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmLogicalRecordPreamble(
             plan.program.logical_record, target));

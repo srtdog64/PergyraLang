@@ -104,15 +104,44 @@ REQUIRED_LAYERS = {"air", "dag", "mir", "abi", "backend"}
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
+def binding_digest(source_path, air_payload_path, mir_payload_path):
+    payload = {
+        "air_sha256": digest(air_payload_path),
+        "mir_sha256": digest(mir_payload_path),
+        "schema": "pgy.proof-input-binding.v1",
+        "source_sha256": digest(source_path),
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
 def require(condition, message, errors):
     if not condition:
         errors.append(message)
 
-def validate_certificate(cert, errors):
+def validate_certificate(cert, source_path, air_payload_path, mir_payload_path, errors):
     require(cert.get("schema") == "pgy.proof-carrying-ir.v1",
             "wrong certificate schema", errors)
-    layers = {layer.get("id"): layer for layer in cert.get("layers", [])}
+    require(cert.get("source") == source_path.as_posix(),
+            "certificate source identity drifted", errors)
+    require(cert.get("source_digest_sha256") == digest(source_path),
+            "certificate source digest drifted", errors)
+    require(cert.get("binding_digest_sha256") ==
+            binding_digest(source_path, air_payload_path, mir_payload_path),
+            "certificate source/AIR/MIR binding digest drifted", errors)
+
+    layer_rows = cert.get("layers", [])
+    require(isinstance(layer_rows, list), "certificate layers must be an array", errors)
+    if not isinstance(layer_rows, list):
+        return
+    layer_ids = [layer.get("id") for layer in layer_rows if isinstance(layer, dict)]
+    layers = {layer.get("id"): layer for layer in layer_rows if isinstance(layer, dict)}
+    require(len(layer_ids) == len(layer_rows),
+            "certificate layer row is not an object", errors)
+    require(len(layer_ids) == len(set(layer_ids)),
+            "certificate layer ids are duplicated", errors)
     require(set(layers) == REQUIRED_LAYERS, "certificate layer set drifted", errors)
+    if set(layers) != REQUIRED_LAYERS:
+        return
     require(set(layers["air"].get("required_evidence", [])) == AIR_REQUIRED,
             "AIR required evidence set drifted", errors)
     require(set(layers["mir"].get("required_facts", [])) == MIR_REQUIRED,
@@ -122,6 +151,10 @@ def validate_certificate(cert, errors):
         require(isinstance(layer.get("digest_sha256"), str)
                 and len(layer["digest_sha256"]) == 64,
                 f"{layer_id} digest is missing", errors)
+    require(layers["air"].get("digest_sha256") == digest(air_payload_path),
+            "AIR payload digest drifted", errors)
+    require(layers["mir"].get("digest_sha256") == digest(mir_payload_path),
+            "MIR payload digest drifted", errors)
     require(layers["abi"].get("status") == "manifest-only",
             "ABI layer must be explicit manifest-only until ABI JSON exists", errors)
     require(layers["backend"].get("consumption") == "fact-or-fail-closed",
@@ -165,10 +198,12 @@ require(any(inst.get("kind") == "cleanup" for inst in instructions),
 certificate = {
     "schema": "pgy.proof-carrying-ir.v1",
     "source": source.as_posix(),
+    "source_digest_sha256": digest(source),
+    "binding_digest_sha256": binding_digest(source, air_path, mir_path),
     "policy": {
         "semantic_fallback": "forbidden",
         "backend_consumption": "fact-or-fail-closed",
-        "negative_check": "delete-required-fact",
+        "negative_check": "delete-required-fact+mutate-bound-input",
     },
     "layers": [
         {
@@ -208,13 +243,80 @@ certificate = {
         },
     ],
 }
-validate_certificate(certificate, errors)
+validate_certificate(certificate, source, air_path, mir_path, errors)
 
 bad = copy.deepcopy(certificate)
 bad["layers"][0]["required_evidence"].remove("rir_authority")
 bad_errors = []
-validate_certificate(bad, bad_errors)
+validate_certificate(bad, source, air_path, mir_path, bad_errors)
 require(bad_errors, "negative certificate deletion was accepted", errors)
+
+duplicate_layer = copy.deepcopy(certificate)
+duplicate_layer["layers"].append(copy.deepcopy(duplicate_layer["layers"][0]))
+duplicate_errors = []
+validate_certificate(
+    duplicate_layer, source, air_path, mir_path, duplicate_errors
+)
+require(duplicate_errors, "duplicate certificate layer was accepted", errors)
+
+bound_source = cert_path.parent / "bound-source.pgy"
+bound_source.write_bytes(source.read_bytes())
+bound_certificate = copy.deepcopy(certificate)
+bound_certificate["source"] = bound_source.as_posix()
+bound_certificate["source_digest_sha256"] = digest(bound_source)
+bound_certificate["binding_digest_sha256"] = binding_digest(
+    bound_source, air_path, mir_path
+)
+bound_errors = []
+validate_certificate(
+    bound_certificate, bound_source, air_path, mir_path, bound_errors
+)
+require(not bound_errors, "fresh source-bound certificate was rejected", errors)
+
+bound_source.write_bytes(bound_source.read_bytes() + b"\n// red-team mutation\n")
+mutated_source_errors = []
+validate_certificate(
+    bound_certificate, bound_source, air_path, mir_path, mutated_source_errors
+)
+require(mutated_source_errors, "source mutation kept an old certificate valid", errors)
+
+repaired_source_only = copy.deepcopy(bound_certificate)
+repaired_source_only["source_digest_sha256"] = digest(bound_source)
+repaired_source_errors = []
+validate_certificate(
+    repaired_source_only, bound_source, air_path, mir_path,
+    repaired_source_errors
+)
+require(repaired_source_errors,
+        "source digest repair bypassed the composite binding", errors)
+
+bound_air = cert_path.parent / "bound-air.json"
+bound_air.write_bytes(air_path.read_bytes())
+air_certificate = copy.deepcopy(certificate)
+air_certificate["layers"][0]["digest_sha256"] = digest(bound_air)
+air_certificate["binding_digest_sha256"] = binding_digest(
+    source, bound_air, mir_path
+)
+bound_air.write_bytes(bound_air.read_bytes() + b"\n")
+mutated_air_errors = []
+validate_certificate(
+    air_certificate, source, bound_air, mir_path, mutated_air_errors
+)
+require(mutated_air_errors, "AIR payload mutation kept an old certificate valid", errors)
+
+bound_mir = cert_path.parent / "bound-mir.json"
+bound_mir.write_bytes(mir_path.read_bytes())
+mir_certificate = copy.deepcopy(certificate)
+mir_certificate["layers"][2]["digest_sha256"] = digest(bound_mir)
+mir_certificate["binding_digest_sha256"] = binding_digest(
+    source, air_path, bound_mir
+)
+bound_mir.write_bytes(bound_mir.read_bytes() + b"\n")
+mutated_mir_errors = []
+validate_certificate(
+    mir_certificate, source, air_path, bound_mir, mutated_mir_errors
+)
+require(mutated_mir_errors, "MIR payload mutation kept an old certificate valid", errors)
 
 if errors:
     for error in errors:
@@ -229,5 +331,9 @@ grep -Fq '"schema":"pgy.proof-carrying-ir.v1"' "$CERT_JSON" ||
     fail "certificate schema not emitted"
 grep -Fq '"backend_consumption":"fact-or-fail-closed"' "$CERT_JSON" ||
     fail "certificate backend consumption policy missing"
+grep -Fq '"source_digest_sha256":"' "$CERT_JSON" ||
+    fail "certificate source digest missing"
+grep -Fq '"binding_digest_sha256":"' "$CERT_JSON" ||
+    fail "certificate composite binding digest missing"
 
-echo "[proof-carrying-pipeline] certificate envelope ok"
+echo "[proof-carrying-pipeline] certificate envelope and source/payload red-team binding ok"

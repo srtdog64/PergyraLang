@@ -5,6 +5,7 @@
 // node already carries its canonical target kind and SyntaxNodeId.
 
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_program_builtin_member_callee_identity_owner.pgy";
 
 // Generic actuals are already bound by the occurrence/instance owner. This
 // projection removes only their structural wrapper, never chooses a target.
@@ -57,7 +58,10 @@ func DirectMirScalarProgramCallMarkerReady(
     ref sequence: MirExpressionGraphSequence, node: Int
 ) -> Bool {
     if DirectMirScalarProgramNamespaceCallMarkerReady(sequence, node) ||
-        DirectMirScalarProgramMemberCallMarkerReady(sequence, node) {
+        DirectMirScalarProgramMemberCallMarkerReady(sequence, node) ||
+        DirectMirScalarProgramBuiltinMemberCallMarkerReady(
+            sequence, node,
+            DirectMirScalarProgramCallCalleeBase(sequence, node)) {
         return true;
     }
     if node < 1 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||

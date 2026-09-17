@@ -3,19 +3,18 @@ import "abi_layout_row_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
 import "../mir_lower/routine_fact_index_owner.pgy";
+func DirectMirScalarCfgSliceTypeSupported(type_name: String) -> Bool { return type_name == CompilerAbiLayoutSliceIntTypeName() || type_name == CompilerAbiLayoutSliceStringTypeName(); }
 func DirectMirScalarCfgScalarTypeSupported(type_name: String) -> Bool {
     return type_name == CompilerAbiLayoutIntTypeName() ||
         type_name == CompilerAbiLayoutLongTypeName() ||
         type_name == CompilerAbiLayoutBoolTypeName() ||
         type_name == CompilerAbiLayoutStringTypeName();
 }
-
 func DirectMirScalarCfgCollectionTypeSupported(type_name: String) -> Bool {
     return type_name == CompilerAbiLayoutArrayIntTypeName() ||
         type_name == CompilerAbiLayoutArrayStringTypeName() ||
         type_name == CompilerAbiLayoutSetStringTypeName();
 }
-
 func DirectMirScalarCfgIterationTypePairSupported(binding_type: String, iterable_type: String
 ) -> Bool {
     return (binding_type == CompilerAbiLayoutIntTypeName() &&
@@ -30,6 +29,7 @@ func DirectMirScalarCfgSourceLocalTypeSupported(type_name: String) -> Bool {
         hashmap.ok || type_name == CompilerAbiLayoutArrayLongTypeName() ||
         DirectMirScalarCfgCollectionTypeSupported(type_name) ||
         type_name == CompilerAbiLayoutArrayBoolTypeName() ||
+        DirectMirScalarCfgSliceTypeSupported(type_name) ||
         type_name == CompilerAbiLayoutOptionIntTypeName() ||
         type_name == CompilerAbiLayoutOptionStringTypeName() ||
         type_name == CompilerAbiLayoutOptionBoolTypeName() ||

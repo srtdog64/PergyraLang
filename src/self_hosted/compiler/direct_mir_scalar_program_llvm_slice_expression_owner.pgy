@@ -1,0 +1,341 @@
+// LLVM projection for the admitted Slice<Int>/Slice<String> expression set.
+
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
+
+struct DirectMirScalarProgramLlvmSliceTypeFact {
+    valid: Bool;
+    suffix: String;
+    llvm_slice_type: String;
+    llvm_array_type: String;
+    source_array_type: String;
+}
+
+func DirectMirScalarProgramLlvmSliceTypeFactFor(
+    slice_type: String
+) -> DirectMirScalarProgramLlvmSliceTypeFact {
+    if slice_type == CompilerAbiLayoutSliceIntTypeName() {
+        return DirectMirScalarProgramLlvmSliceTypeFact(
+            true, "Int", "%pgy.slice.int", "%pgy.array.int",
+            CompilerAbiLayoutArrayIntTypeName()
+        );
+    }
+    if slice_type == CompilerAbiLayoutSliceStringTypeName() {
+        return DirectMirScalarProgramLlvmSliceTypeFact(
+            true, "String", "%pgy.slice.string", "%pgy.array.string",
+            CompilerAbiLayoutArrayStringTypeName()
+        );
+    }
+    return DirectMirScalarProgramLlvmSliceTypeFact(
+        false, "", "", "", ""
+    );
+}
+
+func DirectMirScalarProgramLlvmSliceExpressionAt(
+    kind: Int, result: String, result_type: String,
+    left: String, left_type: String, right: String, right_type: String,
+    arguments: Array<String>, argument_types: Array<String>
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind != DirectMirScalarProgramExprArraySlice() &&
+        kind != DirectMirScalarProgramExprSliceCopy() &&
+        kind != DirectMirScalarProgramExprSliceIntIndex() &&
+        kind != DirectMirScalarProgramExprSliceStringIndex() {
+        return DirectMirScalarProgramLlvmStringExpressionMissing();
+    }
+    let slice_type: String = result_type;
+    if kind == DirectMirScalarProgramExprSliceCopy() ||
+        kind == DirectMirScalarProgramExprSliceIntIndex() ||
+        kind == DirectMirScalarProgramExprSliceStringIndex() {
+        slice_type = left_type;
+    }
+    let type_fact: DirectMirScalarProgramLlvmSliceTypeFact =
+        DirectMirScalarProgramLlvmSliceTypeFactFor(slice_type);
+    if !type_fact.valid {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", ""
+        );
+    }
+    let suffix: String = type_fact.suffix;
+    let llvm_slice: String = type_fact.llvm_slice_type;
+    let llvm_array: String = type_fact.llvm_array_type;
+    if kind == DirectMirScalarProgramExprArraySlice() {
+        let expected_array: String = type_fact.source_array_type;
+        if ArrayLength(arguments) != 3 || ArrayLength(argument_types) != 3 ||
+            argument_types[0] != expected_array ||
+            argument_types[1] != CompilerAbiLayoutIntTypeName() ||
+            argument_types[2] != CompilerAbiLayoutIntTypeName() {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", ""
+            );
+        }
+        let instructions: String =
+            "  ${result} = call ${llvm_slice} @pgy.self.array.slice.${suffix}(${llvm_array} ${arguments[0]}, i64 ${arguments[1]}, i64 ${arguments[2]})\n";
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, instructions, result
+        );
+    }
+    if kind == DirectMirScalarProgramExprSliceCopy() {
+        let expected_result: String = type_fact.source_array_type;
+        if left == "" || right != "" || result_type != expected_result ||
+            ArrayLength(arguments) != 0 {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", ""
+            );
+        }
+        let instructions: String =
+            "  ${result} = call ${llvm_array} @pgy.self.slice.copy.${suffix}(${llvm_slice} ${left})\n";
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, instructions, result
+        );
+    }
+    let expected_result: String = CompilerAbiLayoutIntTypeName();
+    if kind == DirectMirScalarProgramExprSliceStringIndex() {
+        expected_result = CompilerAbiLayoutStringTypeName();
+    }
+    if left == "" || right == "" ||
+        right_type != CompilerAbiLayoutIntTypeName() ||
+        result_type != expected_result || ArrayLength(arguments) != 0 {
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, false, "", ""
+        );
+    }
+    let operand: String = Concat(result, ".operand");
+    let instructions: String =
+        "  ${operand} = alloca ${llvm_slice}, align 8\n" +
+        "  store ${llvm_slice} ${left}, ptr ${operand}, align 8\n";
+    if kind == DirectMirScalarProgramExprSliceIntIndex() {
+        let raw: String = Concat(result, ".raw");
+        instructions = instructions +
+            "  ${raw} = call i32 @pgy_slice_get_Int(ptr ${operand}, i64 ${right})\n" +
+            "  ${result} = sext i32 ${raw} to i64\n";
+    } else {
+        instructions = instructions +
+            "  ${result} = call ptr @pgy_slice_get_String(ptr ${operand}, i64 ${right})\n";
+    }
+    return DirectMirScalarProgramLlvmStringExpression(
+        true, true, instructions, result
+    );
+}
+
+func DirectMirScalarProgramLlvmArraySliceHelper(
+    suffix: String, llvm_array: String, llvm_slice: String,
+    llvm_element: String
+) -> String {
+    return "define internal ${llvm_slice} @pgy.self.array.slice.${suffix}(${llvm_array} %array, i64 %start, i64 %length) {\n"
+        + "entry:\n"
+        + "  %data = extractvalue ${llvm_array} %array, 0\n"
+        + "  %array.length = extractvalue ${llvm_array} %array, 1\n"
+        + "  %start.negative = icmp slt i64 %start, 0\n"
+        + "  %length.negative = icmp slt i64 %length, 0\n"
+        + "  %start.past = icmp sgt i64 %start, %array.length\n"
+        + "  %remaining = sub i64 %array.length, %start\n"
+        + "  %length.past = icmp sgt i64 %length, %remaining\n"
+        + "  %negative = or i1 %start.negative, %length.negative\n"
+        + "  %range.invalid = or i1 %start.past, %length.past\n"
+        + "  %bounds.invalid = or i1 %negative, %range.invalid\n"
+        + "  %data.null = icmp eq ptr %data, null\n"
+        + "  %length.nonzero = icmp ne i64 %length, 0\n"
+        + "  %data.invalid = and i1 %data.null, %length.nonzero\n"
+        + "  %invalid = or i1 %bounds.invalid, %data.invalid\n"
+        + "  br i1 %invalid, label %panic, label %view\n\n"
+        + "panic:\n"
+        + "  call void @pgy_runtime_panic_out_of_bounds_export(ptr getelementptr inbounds ([20 x i8], ptr @.pgy.slice.bounds.reason, i64 0, i64 0))\n"
+        + "  unreachable\n\n"
+        + "view:\n"
+        + "  %offset = getelementptr ${llvm_element}, ptr %data, i64 %start\n"
+        + "  %empty = icmp eq i64 %length, 0\n"
+        + "  %view.data = select i1 %empty, ptr null, ptr %offset\n"
+        + "  %with.data = insertvalue ${llvm_slice} zeroinitializer, ptr %view.data, 0\n"
+        + "  %result = insertvalue ${llvm_slice} %with.data, i64 %length, 1\n"
+        + "  ret ${llvm_slice} %result\n}\n\n";
+}
+
+func DirectMirScalarProgramLlvmIntSliceCopyHelper() -> String {
+    return "define internal %pgy.array.int @pgy.self.slice.copy.Int(%pgy.slice.int %slice) {\n"
+        + "entry:\n"
+        + "  %data = extractvalue %pgy.slice.int %slice, 0\n"
+        + "  %length = extractvalue %pgy.slice.int %slice, 1\n"
+        + "  %empty = icmp eq i64 %length, 0\n"
+        + "  br i1 %empty, label %empty.result, label %copy\n\n"
+        + "empty.result:\n"
+        + "  ret %pgy.array.int zeroinitializer\n\n"
+        + "copy:\n"
+        + "  %data.null = icmp eq ptr %data, null\n"
+        + "  br i1 %data.null, label %abort, label %allocate\n\n"
+        + "allocate:\n"
+        + "  %bytes = mul i64 %length, 4\n"
+        + "  %owned = call ptr @malloc(i64 %bytes)\n"
+        + "  %failed = icmp eq ptr %owned, null\n"
+        + "  br i1 %failed, label %abort, label %copy.data\n\n"
+        + "abort:\n"
+        + "  call void @abort()\n"
+        + "  unreachable\n\n"
+        + "copy.data:\n"
+        + "  %copied = call ptr @memcpy(ptr %owned, ptr %data, i64 %bytes)\n"
+        + "  %with.data = insertvalue %pgy.array.int zeroinitializer, ptr %owned, 0\n"
+        + "  %with.length = insertvalue %pgy.array.int %with.data, i64 %length, 1\n"
+        + "  %with.capacity = insertvalue %pgy.array.int %with.length, i64 %length, 2\n"
+        + "  %result = insertvalue %pgy.array.int %with.capacity, ptr null, 3\n"
+        + "  ret %pgy.array.int %result\n}\n\n";
+}
+
+func DirectMirScalarProgramLlvmStringSliceCopyHelper() -> String {
+    return "define internal %pgy.array.string @pgy.self.slice.copy.String(%pgy.slice.string %slice) {\n"
+        + "entry:\n"
+        + "  %data = extractvalue %pgy.slice.string %slice, 0\n"
+        + "  %length = extractvalue %pgy.slice.string %slice, 1\n"
+        + "  %empty = icmp eq i64 %length, 0\n"
+        + "  br i1 %empty, label %empty.result, label %allocate\n\n"
+        + "empty.result:\n"
+        + "  ret %pgy.array.string zeroinitializer\n\n"
+        + "allocate:\n"
+        + "  %data.null = icmp eq ptr %data, null\n"
+        + "  br i1 %data.null, label %abort, label %allocate.storage\n\n"
+        + "allocate.storage:\n"
+        + "  %bytes = mul i64 %length, 8\n"
+        + "  %owned = call ptr @malloc(i64 %bytes)\n"
+        + "  %failed = icmp eq ptr %owned, null\n"
+        + "  br i1 %failed, label %abort, label %loop\n\n"
+        + "loop:\n"
+        + "  %index = phi i64 [ 0, %allocate.storage ], [ %next, %body.copy ]\n"
+        + "  %more = icmp ult i64 %index, %length\n"
+        + "  br i1 %more, label %body, label %done\n\n"
+        + "body:\n"
+        + "  %source.slot = getelementptr inbounds ptr, ptr %data, i64 %index\n"
+        + "  %source.raw = load ptr, ptr %source.slot, align 8\n"
+        + "  %source.null = icmp eq ptr %source.raw, null\n"
+        + "  %source = select i1 %source.null, ptr @.pgy.slice.empty.string, ptr %source.raw\n"
+        + "  %source.length = call i64 @strlen(ptr %source)\n"
+        + "  %copy.size = add i64 %source.length, 1\n"
+        + "  %copy = call ptr @malloc(i64 %copy.size)\n"
+        + "  %copy.failed = icmp eq ptr %copy, null\n"
+        + "  br i1 %copy.failed, label %abort, label %body.copy\n\n"
+        + "body.copy:\n"
+        + "  %copied = call ptr @memcpy(ptr %copy, ptr %source, i64 %copy.size)\n"
+        + "  %target.slot = getelementptr inbounds ptr, ptr %owned, i64 %index\n"
+        + "  store ptr %copy, ptr %target.slot, align 8\n"
+        + "  %next = add i64 %index, 1\n"
+        + "  br label %loop\n\n"
+        + "done:\n"
+        + "  %with.data = insertvalue %pgy.array.string zeroinitializer, ptr %owned, 0\n"
+        + "  %with.length = insertvalue %pgy.array.string %with.data, i64 %length, 1\n"
+        + "  %with.capacity = insertvalue %pgy.array.string %with.length, i64 %length, 2\n"
+        + "  %result = insertvalue %pgy.array.string %with.capacity, ptr null, 3\n"
+        + "  ret %pgy.array.string %result\n\n"
+        + "abort:\n"
+        + "  call void @abort()\n"
+        + "  unreachable\n}\n\n";
+}
+
+func DirectMirScalarProgramSliceStringCopyReached(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(expressions.node_kinds) {
+        if expressions.node_kinds[row] == DirectMirScalarProgramExprSliceCopy() &&
+            expressions.node_types[row] == CompilerAbiLayoutArrayStringTypeName() {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramSliceCopyReached(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    return DirectMirScalarProgramExpressionContainsKind(
+        expressions, DirectMirScalarProgramExprSliceCopy()
+    );
+}
+
+func DirectMirScalarProgramSliceAnyReached(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Bool {
+    return DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprArraySlice()) ||
+        DirectMirScalarProgramSliceCopyReached(expressions) ||
+        DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprSliceIntIndex()) ||
+        DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprSliceStringIndex());
+}
+
+func DirectMirScalarProgramLlvmSlicePreamble(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> String {
+    let int_reached: Bool = false;
+    let string_reached: Bool = false;
+    let row: Int = 0;
+    while row < ArrayLength(expressions.node_kinds) {
+        let kind: Int = expressions.node_kinds[row];
+        let type_name: String = expressions.node_types[row];
+        if (kind == DirectMirScalarProgramExprArraySlice() &&
+                type_name == CompilerAbiLayoutSliceIntTypeName()) ||
+            (kind == DirectMirScalarProgramExprSliceCopy() &&
+                type_name == CompilerAbiLayoutArrayIntTypeName()) ||
+            kind == DirectMirScalarProgramExprSliceIntIndex() {
+            int_reached = true;
+        }
+        if (kind == DirectMirScalarProgramExprArraySlice() &&
+                type_name == CompilerAbiLayoutSliceStringTypeName()) ||
+            (kind == DirectMirScalarProgramExprSliceCopy() &&
+                type_name == CompilerAbiLayoutArrayStringTypeName()) ||
+            kind == DirectMirScalarProgramExprSliceStringIndex() {
+            string_reached = true;
+        }
+        row = row + 1;
+    }
+    let output: String = "";
+    if int_reached || string_reached {
+        output = output + "@.pgy.slice.bounds.reason = private unnamed_addr constant [20 x i8] c\"slice out of bounds\\00\"\n";
+        output = output + "@.pgy.slice.empty.string = private unnamed_addr constant [1 x i8] zeroinitializer\n";
+    }
+    if int_reached { output = output + "%pgy.slice.int = type { ptr, i64 }\n"; }
+    if string_reached { output = output + "%pgy.slice.string = type { ptr, i64 }\n"; }
+    let needs_array_slice: Bool = DirectMirScalarProgramExpressionContainsKind(
+        expressions, DirectMirScalarProgramExprArraySlice()
+    );
+    if needs_array_slice && int_reached {
+        output = output + DirectMirScalarProgramLlvmArraySliceHelper(
+            "Int", "%pgy.array.int", "%pgy.slice.int", "i32"
+        );
+    }
+    if needs_array_slice && string_reached {
+        output = output + DirectMirScalarProgramLlvmArraySliceHelper(
+            "String", "%pgy.array.string", "%pgy.slice.string", "ptr"
+        );
+    }
+    let copy_row: Int = 0;
+    let int_copy: Bool = false;
+    let string_copy: Bool = false;
+    while copy_row < ArrayLength(expressions.node_kinds) {
+        if expressions.node_kinds[copy_row] == DirectMirScalarProgramExprSliceCopy() {
+            if expressions.node_types[copy_row] == CompilerAbiLayoutArrayIntTypeName() {
+                int_copy = true;
+            }
+            if expressions.node_types[copy_row] == CompilerAbiLayoutArrayStringTypeName() {
+                string_copy = true;
+            }
+        }
+        copy_row = copy_row + 1;
+    }
+    if int_copy { output = output + DirectMirScalarProgramLlvmIntSliceCopyHelper(); }
+    if string_copy { output = output + DirectMirScalarProgramLlvmStringSliceCopyHelper(); }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmSliceForeignDeclarations(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> String {
+    let output: String = "";
+    if DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprSliceIntIndex()) {
+        output = output + "declare i32 @pgy_slice_get_Int(ptr, i64)\n";
+    }
+    if DirectMirScalarProgramExpressionContainsKind(
+            expressions, DirectMirScalarProgramExprSliceStringIndex()) {
+        output = output + "declare ptr @pgy_slice_get_String(ptr, i64)\n";
+    }
+    return output;
+}

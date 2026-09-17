@@ -2,6 +2,7 @@
 
 import "../lib/intent_observability_abi_projection_owner.pgy";
 import "wrapper_type_owner.pgy";
+import "array_type_shape_owner.pgy";
 import "ast_expression_graph_collection_call_protocol_owner.pgy";
 import "collection_key_policy_projection_owner.pgy";
 import "diagnostic_owner.pgy";
@@ -85,6 +86,9 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "UnwrapOr^Unknown^Unknown|Unknown",
         "Channel^Channel<Unknown>^Int",
         "SliceCopy^Unknown^Unknown",
+        // Source spelling Array.Slice resolves once to the canonical callable
+        // identity Array_Slice. Parameter 0 is the receiver.
+        "Array_Slice^Unknown^Unknown|Int|Int",
         "AllocatorResult^Allocator^none",
         "AllocatorDestroy^Void^Allocator",
         "TextBuilderNew^TextBuilder^Int",
@@ -172,6 +176,17 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
     return rows;
 }
 
+// Parser artifacts carry builtin member calls without a declaration syntax
+// identity. Keep the exact source-member to canonical-callable mapping here,
+// beside the signature row that owns the callable.
+func SemanticBuiltinMemberCallableMatches(
+    canonical_name: String,
+    source_member_name: String
+) -> Bool {
+    return canonical_name == "Array_Slice" &&
+        source_member_name == "Slice";
+}
+
 func SeedSemanticBuiltinSignaturesInto(
     inout names: Array<String>,
     inout returns: Array<String>,
@@ -256,7 +271,8 @@ func SemanticBuiltinReturnDependsOnArguments(name: String) -> Bool {
     return name == "Abs" || SemanticBuiltinUsesFirstArgumentPair(name) || name == "Clamp" ||
         name == "Clone" ||
         name == "ArraySort" || name == "ArrayReverse" ||
-        name == "ArrayMap" || name == "ArrayFilter" || name == "Read";
+        name == "ArrayMap" || name == "ArrayFilter" || name == "Read" ||
+        name == "SliceCopy";
 }
 
 // Min/Max's second argument is checked against the first argument's type.
@@ -289,6 +305,11 @@ func SemanticPolymorphicBuiltinReturnTypeOpt(
         expected_count = 1;
     }
     else if name == "Read" { expected_count = 1; }
+    // Both take exactly the sequence they view or own: Array_Slice sees its
+    // receiver, SliceCopy its single argument.
+    else if name == "Array_Slice" || name == "SliceCopy" {
+        expected_count = 1;
+    }
     else { return None; }
     if ArrayLength(argument_types) != expected_count {
         return None;
@@ -299,6 +320,16 @@ func SemanticPolymorphicBuiltinReturnTypeOpt(
     }
     if name == "Clone" {
         return Some(result_type);
+    }
+    if name == "Array_Slice" {
+        let viewed: Option<String> = SemanticSequenceElementType(result_type);
+        if !IsSome(viewed) { return None; }
+        return Some(Concat("Slice<", Concat(UnwrapOption(viewed), ">")));
+    }
+    if name == "SliceCopy" {
+        let borrowed: Option<String> = SemanticSliceElementType(result_type);
+        if !IsSome(borrowed) { return None; }
+        return Some(Concat("Array<", Concat(UnwrapOption(borrowed), ">")));
     }
     if name == "ArraySort" || name == "ArrayReverse" ||
         name == "ArrayMap" || name == "ArrayFilter" {
