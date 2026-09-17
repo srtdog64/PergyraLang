@@ -6,15 +6,17 @@ registries, and executable gates override it.
 ## Active self-host context — Zone authority transition CLOSED, one-pass consumption pending publication
 
 Material compiler/test checkpoint:
-`19fe6b9e73020f8dd158df268337d9548b98eee7`. This handoff refresh is a
+`8f7837060f04afd533088a751fde8cdfe22136e7`. This handoff refresh is a
 docs-only descendant; consult Git for its own commit ID. `origin/main` is
-`2b1d5f64f4e491c46f1050d0cf205a5ae78e5882` until the one-pass-consumption
-push. The Zone/Future closure, five-sentinel `Option<Int>` repair, restored
-diagnostic identity, and exact-current 30/30 ordinary CI checkpoint are
-published. The bounded follow-up validates the sealed Zone transition receipt
-at execution-view admission, then lets the read-only source cross-seal and
-action emitter consume admitted rows without repeating whole-receipt
-validation per step. Six pre-existing Slice semantic/ratchet edits remain a
+`e79083b838244a8662dcecac4b06d92019470c8f` until the Bash 3.2 portability
+repair is pushed. The Zone/Future closure, five-sentinel `Option<Int>` repair,
+restored diagnostic identity, and one-pass Zone transition consumption are
+published. The bounded follow-up validates the sealed receipt at
+execution-view admission, then lets the read-only source cross-seal and action
+emitter consume admitted rows without repeating whole-receipt validation per
+step. Its first remote run found only a test-script portability violation;
+`8f783706` replaces the rejected case-pattern continuation without changing
+the owner census. Six pre-existing Slice semantic/ratchet edits remain a
 separate incomplete, unstaged packet and are not part of the material
 checkpoint.
 
@@ -102,6 +104,14 @@ Reached evidence:
   Post-install transition parity, Intent compression, likeness, and the full
   component contract all pass. The component contract reports 2,435 line-cap
   requests; the likeness sentinel remains at its strict 20/20 ceiling.
+- Ordinary Push CI run `35187450200` on `e79083b8` completed 29/30. Both
+  self-host bootstraps, backend matrices, sanitizers, platforms, and proofs
+  passed. `build-linux` failed only fast step 7 because the new validator-owner
+  allowlist used `case` pattern line continuations forbidden by the repository's
+  Bash 3.2 portability inventory. Checkpoint `8f783706` gives each allowed path
+  its own case arm; the focused transition gate and the MSYS2/UCRT64
+  `build_source_inventory_smoke.sh` both pass locally. Exact repaired-head
+  remote CI remains pending.
 - The accumulated Future aggregate packet passes its native/public MIR+C+LLVM
   no-artifact gate, and the broader structured-spawn lifecycle gate passes on
   both C and LLVM. Those results establish the reached storage-admission slice,
@@ -111,8 +121,9 @@ Dirty-state boundary and next falsifier:
 - The Zone closure, Future aggregate packet, audits, and their executable gates
   are published in `25722b7c`/`60321012`; the bounded publication-CI repair and
   diagnostic preservation are published through `2b1d5f64` with exact-current
-  green CI. One-pass ready-snapshot consumption is committed in `19fe6b9e`.
-  Preserve all unrelated edits; no reset or clean is authorized.
+  green CI. One-pass ready-snapshot consumption is published in `19fe6b9e` and
+  its Bash 3.2 test repair is committed in `8f783706`. Preserve all unrelated
+  edits; no reset or clean is authorized.
 - Keep the six Slice edits outside this publication:
   `array_type_shape_owner.pgy`, the three expression graph type owners,
   `builtin_signature_owner.pgy`, and `self_host_pergyra_likeness_smoke.sh`.
@@ -122,10 +133,10 @@ Dirty-state boundary and next falsifier:
 - No successor executable rung is opened in this handoff. After publication,
   select the next reached BRIDGE from current production execution evidence;
   do not revive an older queue merely because it appears below this boundary.
-- Push `19fe6b9e` plus this checkpoint, then observe ordinary remote Push CI
-  green for the resulting revision. Run `35078820012` proves the published
-  semantic/diagnostic checkpoint, while local gates alone are not remote-CI
-  evidence for the one-pass-consumption descendant.
+- Push `8f783706` plus this checkpoint, then observe ordinary remote Push CI
+  green for the resulting revision. Run `35187450200` proves 29 unaffected
+  jobs and isolates the portability failure, while local gates alone are not
+  green remote-CI evidence for the repaired descendant.
 
 ## Historical archive boundary — previous Zone/spawn checkpoint
 
