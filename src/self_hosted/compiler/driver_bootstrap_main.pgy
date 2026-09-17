@@ -1,6 +1,5 @@
 // Installed compiler composition root. argv is admitted exactly once before
 // any read or artifact publication is reachable.
-
 import "driver_rung2_cli_request_owner.pgy";
 import "driver_rung2_installed_cli_owner.pgy";
 import "compiler_world_direct_mir_owner.pgy";
@@ -9,6 +8,8 @@ func Main() -> Void with caps env, io_read, io_write {
     let request: DriverRung2CliRequest =
         DriverRung2CliRequestFromArgsOrDie(Args());
     let compatibility_receipt: CompilerCompatibilityEvolutionReceipt = CompilerCompatibilityEvolutionReceiptFromOwner();
+    let compatibility_view: CompilerCompatibilityExecutionView =
+        CompilerCompatibilityExecutionViewFromReceipt(compatibility_receipt);
     let compiler_world: PgyCompilerWorld = PgyCompilerWorld(
         DriverRung2DirectMirZone(
             DriverRung2Execution(DriverRung2ExecutionOwnerIdentity())
@@ -25,5 +26,5 @@ func Main() -> Void with caps env, io_read, io_write {
             DriverSourceCExecutionTopologyIdentity(), None
         ))
     );
-    DriverRung2ExecuteInstalledRequest(compiler_world, request, compatibility_receipt);
+    DriverRung2ExecuteInstalledRequest(compiler_world, request, compatibility_view);
 }

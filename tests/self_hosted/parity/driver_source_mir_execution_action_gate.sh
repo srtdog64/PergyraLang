@@ -166,13 +166,13 @@ for owner in "$MAIN_OWNER" "$CLI_OWNER" "$READ_OWNER" "$INSTALLED_OWNER" \
 done
 for term in 'import "driver_rung2_cli_request_owner.pgy";' 'import "driver_rung2_installed_cli_owner.pgy";' \
     'DriverRung2CliRequestFromArgsOrDie(Args())' \
-    'DriverRung2ExecuteInstalledRequest(compiler_world, request, compatibility_receipt);'; do
+    'DriverRung2ExecuteInstalledRequest(compiler_world, request, compatibility_view);'; do
     require_text "$MAIN_OWNER" "$term"
 done
 grep -Eq -- '(PublishSourceMirArtifact|ProduceSourceMir|SelfMirArtifactCommitPayload|--emit-mir-json-verified)' "$MAIN_OWNER" && fail "installed Main regained source-MIR routing or publication"
 for term in 'import "driver_rung2_cli_request_owner.pgy";' 'import "driver_rung2_cli_read_execution_owner.pgy";' \
     'DriverRung2CliRequestFromArgsOrDie(args)' \
-    'DriverRung2ExecuteReadRequest(compiler_world, request);' 'with caps io_read {'; do
+    'DriverRung2ExecuteReadRequest(compiler_world, request, compatibility_view);' 'with caps io_read {'; do
     require_text "$CLI_OWNER" "$term"
 done
 grep -Fq -- 'io_write' "$CLI_OWNER" && fail "standalone CLI wrapper regained io_write authority"

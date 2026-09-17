@@ -131,7 +131,6 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     int exit_code = 1;
     char *load_error = NULL;
     char *hir_error = NULL;
-    char *compatibility_manifest_path = NULL;
     double phase_start = 0.0;
     double total_start = driver_now_seconds();
     memset(&bundle, 0, sizeof(bundle));
@@ -164,22 +163,6 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         free(source);
         return rc;
     }
-
-#ifdef PGY_PROJECT_ROOT
-    compatibility_manifest_path = path_join_dup(
-        PGY_PROJECT_ROOT,
-        "src/self_hosted/compiler/expected/compatibility_evolution.txt");
-    if (!driver_diag_compatibility_manifest_validate_file(
-            compatibility_manifest_path, &load_error)) {
-        driver_emit_stage_fail(flags, "compatibility",
-            "compatibility evolution manifest validation failed",
-            load_error != NULL ? load_error
-                               : "compatibility evolution manifest is invalid");
-        goto cleanup;
-    }
-    free(load_error);
-    load_error = NULL;
-#endif
 
     if (flags->verbose)
         printf("pgy: loading modules\n");
@@ -628,7 +611,6 @@ cleanup:
         (void)fflush(stdout);
     free(load_error);
     module_loader_destroy_graph(module_graph);
-    free(compatibility_manifest_path);
     free(hir_error);
     pgy_verified_region_plan_dispose(&region_plan);
     dir_destroy(dir);

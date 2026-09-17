@@ -8,14 +8,19 @@ import "driver_source_mir_json_diagnostic_stdout_owner.pgy";
 import "driver_pipeline_owner.pgy";
 import "driver_mir_c_stdout_execution_owner.pgy";
 import "canonical_mir_execution_owner.pgy";
+import "compatibility_evolution_owner.pgy";
 import "../lexer/scan_owner.pgy";
 import "../lexer/source_input_owner.pgy";
 import "../parser/program_parse_owner.pgy";
 
 func DriverRung2ExecuteReadRequest(
     inout compiler_world: PgyCompilerWorld,
-    request: DriverRung2CliRequest
+    request: DriverRung2CliRequest,
+    ref compatibility_view: CompilerCompatibilityExecutionView
 ) -> Void with caps io_read {
+    if !CompilerCompatibilityExecutionViewReady(compatibility_view) {
+        Die("compatibility execution view is invalid at diagnostic/ABI boundary");
+    }
     match request {
         case DriverCliDebugSession(source_path):
             Die("debug session request requires installed composition root");

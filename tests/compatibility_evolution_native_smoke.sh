@@ -14,12 +14,25 @@ require_text() {
     fi
 }
 
-require_text src/compiler/driver_diag.h \
+reject_text() {
+    local file="$1"
+    local text="$2"
+    if grep -Fq -- "$text" "$ROOT_DIR/$file"; then
+        echo "[compatibility-evolution-native] retired $file path returned: $text" >&2
+        exit 1
+    fi
+}
+
+reject_text src/compiler/driver_diag.h \
     "driver_diag_compatibility_manifest_validate_file"
-require_text src/compiler/driver_diag.c \
-    "compatibility manifest does not cover all evolution surfaces"
-require_text src/compiler/driver_app.c \
+reject_text src/compiler/driver_diag.c \
     "driver_diag_compatibility_manifest_validate_file"
+reject_text src/compiler/driver_app.c \
+    "expected/compatibility_evolution.txt"
+require_text src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy \
+    "CompilerCompatibilityExecutionViewReady(compatibility_view)"
+require_text src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy \
+    "CompilerCompatibilityExecutionViewReady(compatibility_view)"
 require_text src/self_hosted/compiler/expected/compatibility_evolution.txt \
     "change|"
 for runtime_policy in \
@@ -47,10 +60,10 @@ TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_compatibility_native.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 OUT="$WORK_DIR/basic.exe"
-(cd "$ROOT_DIR" && "$PGY" \
+(cd "$ROOT_DIR" && PGY_NATIVE_PIPELINE=1 "$PGY" \
     "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/basic.pgy")" \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$OUT")" \
     >"$WORK_DIR/compile.log" 2>&1)
 test -s "$OUT"
 
-echo "[compatibility-evolution-native] native driver consumes the self-host manifest"
+echo "[compatibility-evolution-native] explicit native oracle no longer reparses the self-host text projection"

@@ -26,6 +26,14 @@ func CompilerCompatibilityReceiptDuplicateSurfaceMode() -> String {
     return "--self-test-receipt-duplicate-surface";
 }
 
+func CompilerCompatibilityViewDiagnosticCrosswireMode() -> String {
+    return "--self-test-view-diagnostic-crosswire";
+}
+
+func CompilerCompatibilityViewMissingPackageRowMode() -> String {
+    return "--self-test-view-missing-package-row";
+}
+
 func CompilerCompatibilityChangeRowWithDiagnosticId(
     row: String,
     diagnostic_id: String
@@ -112,11 +120,47 @@ func CompilerCompatibilityEvolutionReceiptSelfTest(
     Log(Concat("receipt_rejected=", mode));
 }
 
+func CompilerCompatibilityExecutionViewMutated(
+    ref canonical: CompilerCompatibilityExecutionView,
+    mode: String
+) -> CompilerCompatibilityExecutionView {
+    let diagnostic_row: String = canonical.diagnostic_row;
+    let stdlib_module_row: String = canonical.stdlib_module_row;
+    if mode == CompilerCompatibilityViewDiagnosticCrosswireMode() {
+        diagnostic_row = canonical.behavior_row;
+    } else if mode == CompilerCompatibilityViewMissingPackageRowMode() {
+        stdlib_module_row = "";
+    }
+    return CompilerCompatibilityExecutionView(
+        canonical.schema, canonical.source_row, canonical.abi_binary_row,
+        canonical.behavior_row, diagnostic_row, canonical.air_evidence_row,
+        canonical.mir_json_row, canonical.runtime_trace_row,
+        canonical.capability_profile_row, stdlib_module_row
+    );
+}
+
+func CompilerCompatibilityExecutionViewSelfTest(
+    ref canonical: CompilerCompatibilityExecutionView,
+    mode: String
+) -> Void {
+    let mutated: CompilerCompatibilityExecutionView =
+        CompilerCompatibilityExecutionViewMutated(canonical, mode);
+    if CompilerCompatibilityExecutionViewReady(mutated) {
+        Log(Concat("COMPATIBILITY_EVOLUTION ERROR: accepted ", mode));
+        Exit(1);
+        return;
+    }
+    Log(Concat("view_rejected=", mode));
+}
+
 func Main() -> Void {
     let receipt: CompilerCompatibilityEvolutionReceipt =
         CompilerCompatibilityEvolutionReceiptFromOwner();
+    let view: CompilerCompatibilityExecutionView =
+        CompilerCompatibilityExecutionViewFromReceipt(receipt);
     if !CompilerCompatibilityEvolutionReady() ||
-        !CompilerCompatibilityEvolutionReceiptReady(receipt) {
+        !CompilerCompatibilityEvolutionReceiptReady(receipt) ||
+        !CompilerCompatibilityExecutionViewReady(view) {
         Log("COMPATIBILITY_EVOLUTION ERROR: owner is not ready");
         Exit(1);
         return;
@@ -127,6 +171,12 @@ func Main() -> Void {
          args[0] == CompilerCompatibilityReceiptMissingRowMode() ||
          args[0] == CompilerCompatibilityReceiptDuplicateSurfaceMode()) {
         CompilerCompatibilityEvolutionReceiptSelfTest(receipt, args[0]);
+        return;
+    }
+    if ArrayLength(args) > 0 &&
+        (args[0] == CompilerCompatibilityViewDiagnosticCrosswireMode() ||
+         args[0] == CompilerCompatibilityViewMissingPackageRowMode()) {
+        CompilerCompatibilityExecutionViewSelfTest(view, args[0]);
         return;
     }
     Log(Concat("schema=", CompilerCompatibilityEvolutionSchema()));

@@ -106,8 +106,10 @@ for installed_case in 'case DriverCliMirCStdout(input_path):' \
         active { print }
         active && /case DriverCli/ && !index($0, header) { exit }
     ' "$MIR_C_INSTALLED_OWNER")"
-    [[ "$(grep -Fc 'DriverRung2ExecuteReadRequest(compiler_world, request);' \
-        <<<"$installed_case_body")" == "1" ]] ||
+    [[ "$(grep -Fc 'DriverRung2ExecuteReadRequest(' \
+        <<<"$installed_case_body")" == "1" ]] &&
+        grep -Fq 'compiler_world, request, compatibility_view);' \
+            <<<"$installed_case_body" ||
         fail "installed MIR-C case lost exact read delegation: $installed_case"
     for forbidden in 'ProduceMirC' 'CompileMirJsonToCVerified' 'Log('; do
         ! grep -Fq -- "$forbidden" <<<"$installed_case_body" ||

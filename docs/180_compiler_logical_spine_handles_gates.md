@@ -44,16 +44,17 @@ first real consumers:
   self-host MIR JSON producer. C/LLVM source-local capture and the self-host
   rung-2 producer consume the same `(function_syntax_id,
   iteration_syntax_id)` rows; no backend source-type guess is used.
-- The self-host compatibility-evolution manifest is validated by the native
-  diagnostic driver on the normal compile path. This validates the manifest
-  shape and coverage without turning the driver into a second compatibility
-  owner; diagnostic ABI trace and package-gate consumers remain a documented
-  bridge.
+- The self-host compatibility owner issues one canonical receipt and projects
+  it once into a named execution view. The installed diagnostic/ABI read
+  boundary and artifact/package boundary both require that typed view before
+  work begins. The native driver no longer opens or reparses the text manifest;
+  that file remains only a parity projection of the Pergyra owner.
 
 The permanent gates for this slice are
 `lexer-token-stream-anchor-test-smoke`, `source-module-graph-test-smoke`,
 `iteration-type-fact-test-smoke`, `compatibility-evolution-native-test-smoke`,
-and `dir-domain-identity-test-smoke`. The C/LLVM producer-first rung-2 gate
+`self-host-compatibility-evolution-parity-test-smoke`, and
+`dir-domain-identity-test-smoke`. The C/LLVM producer-first rung-2 gate
 also exercises the for-range and identifier-foreach rows.
 
 ## 0.1 Typed array-mutation receiver boundary (2026-08-13)

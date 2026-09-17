@@ -3,6 +3,13 @@
 
 set -euo pipefail
 
+# SoT fallback identities owned by this executable gate:
+# local_compatibility_list
+# warning_without_migration_metadata
+# native_compatibility_text_manifest_read
+# serialized_compatibility_row_reparse
+# root_only_compatibility_readiness
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
@@ -104,6 +111,54 @@ assert_receipt_mutation_rejected() {
 assert_receipt_mutation_rejected --self-test-receipt-diagnostic-crosswire
 assert_receipt_mutation_rejected --self-test-receipt-missing-row
 assert_receipt_mutation_rejected --self-test-receipt-duplicate-surface
+
+assert_execution_view_mutation_rejected() {
+    local mode="$1"
+    local stem="${mode#--self-test-view-}"
+    local out="$BUILD_DIR/compatibility_evolution_view_${stem}.out"
+    local err="$BUILD_DIR/compatibility_evolution_view_${stem}.err"
+    if ! (cd "$ROOT_DIR" && "$C_BIN" "$mode" >"$out" 2>"$err"); then
+        echo "[self-host-parity:compatibility-evolution] execution-view self-test failed: $mode" >&2
+        cat "$out" "$err" >&2
+        exit 1
+    fi
+    local actual
+    actual="$(tr -d '\r' <"$out")"
+    if [[ "$actual" != "view_rejected=$mode" ]]; then
+        echo "[self-host-parity:compatibility-evolution] execution-view mutation was not rejected: $mode" >&2
+        cat "$out" "$err" >&2
+        exit 1
+    fi
+}
+
+assert_execution_view_mutation_rejected --self-test-view-diagnostic-crosswire
+assert_execution_view_mutation_rejected --self-test-view-missing-package-row
+
+for retired_path in \
+    "$ROOT_DIR/src/compiler/driver_diag.c" \
+    "$ROOT_DIR/src/compiler/driver_diag.h" \
+    "$ROOT_DIR/src/compiler/driver_app.c"; do
+    if grep -Fq -- 'driver_diag_compatibility_manifest_validate_file' \
+        "$retired_path"; then
+        echo "[self-host-parity:compatibility-evolution] retired native manifest parser returned: $retired_path" >&2
+        exit 1
+    fi
+done
+if grep -Fq -- 'expected/compatibility_evolution.txt' \
+    "$ROOT_DIR/src/compiler/driver_app.c"; then
+    echo "[self-host-parity:compatibility-evolution] native driver reopened the text projection" >&2
+    exit 1
+fi
+for direct_consumer in \
+    "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_artifact_request_execution_owner.pgy"; do
+    if ! grep -Fq -- \
+        'CompilerCompatibilityExecutionViewReady(compatibility_view)' \
+        "$direct_consumer"; then
+        echo "[self-host-parity:compatibility-evolution] compatibility view stopped at the composition root: $direct_consumer" >&2
+        exit 1
+    fi
+done
 
 assert_llvm_leg "self-host-parity:compatibility-evolution" "$TOOL_ARG" "$BUILD_DIR"
 

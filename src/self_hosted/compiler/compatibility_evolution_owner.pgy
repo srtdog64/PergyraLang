@@ -394,10 +394,112 @@ func CompilerCompatibilityEvolutionReceiptReady(
     return true;
 }
 
+// Named, immutable last-consumer view. The evolution receipt is an ordered
+// transport envelope; compiler execution must not reopen that envelope or
+// parse its text projection at diagnostic/package boundaries.
+struct CompilerCompatibilityExecutionView {
+    let schema: String;
+    let source_row: String;
+    let abi_binary_row: String;
+    let behavior_row: String;
+    let diagnostic_row: String;
+    let air_evidence_row: String;
+    let mir_json_row: String;
+    let runtime_trace_row: String;
+    let capability_profile_row: String;
+    let stdlib_module_row: String;
+}
+
+func CompilerCompatibilityExecutionViewSchema() -> String {
+    return "pgy.selfhost.compatibility-execution-view.v1";
+}
+
+func CompilerCompatibilityExecutionViewEmpty()
+    -> CompilerCompatibilityExecutionView {
+    return CompilerCompatibilityExecutionView(
+        "", "", "", "", "", "", "", "", "", ""
+    );
+}
+
+func CompilerCompatibilityExecutionViewFromReceipt(
+    ref receipt: CompilerCompatibilityEvolutionReceipt
+) -> CompilerCompatibilityExecutionView {
+    if !CompilerCompatibilityEvolutionReceiptReady(receipt) {
+        return CompilerCompatibilityExecutionViewEmpty();
+    }
+    let source_row: String = "";
+    let abi_binary_row: String = "";
+    let behavior_row: String = "";
+    let diagnostic_row: String = "";
+    let air_evidence_row: String = "";
+    let mir_json_row: String = "";
+    let runtime_trace_row: String = "";
+    let capability_profile_row: String = "";
+    let stdlib_module_row: String = "";
+    let index: Int = 0;
+    while index < ArrayLength(receipt.surfaces) {
+        let surface: String = receipt.surfaces[index];
+        let row: String = receipt.change_rows[index];
+        if surface == CompilerSourceCompatibilitySurface() {
+            source_row = row;
+        } else if surface == CompilerAbiBinaryCompatibilitySurface() {
+            abi_binary_row = row;
+        } else if surface == CompilerBehaviorCompatibilitySurface() {
+            behavior_row = row;
+        } else if surface == CompilerDiagnosticCompatibilitySurface() {
+            diagnostic_row = row;
+        } else if surface == CompilerAirEvidenceCompatibilitySurface() {
+            air_evidence_row = row;
+        } else if surface == CompilerMirJsonCompatibilitySurface() {
+            mir_json_row = row;
+        } else if surface == CompilerRuntimeTraceCompatibilitySurface() {
+            runtime_trace_row = row;
+        } else if surface == CompilerCapabilityProfileCompatibilitySurface() {
+            capability_profile_row = row;
+        } else if surface == CompilerStdlibModuleCompatibilitySurface() {
+            stdlib_module_row = row;
+        }
+        index = index + 1;
+    }
+    return CompilerCompatibilityExecutionView(
+        CompilerCompatibilityExecutionViewSchema(), source_row,
+        abi_binary_row, behavior_row, diagnostic_row, air_evidence_row,
+        mir_json_row, runtime_trace_row, capability_profile_row,
+        stdlib_module_row
+    );
+}
+
+func CompilerCompatibilityExecutionViewReady(
+    ref view: CompilerCompatibilityExecutionView
+) -> Bool {
+    return view.schema == CompilerCompatibilityExecutionViewSchema() &&
+        view.source_row == CompilerCompatibilityChangeRowForSurface(
+            CompilerSourceCompatibilitySurface()) &&
+        view.abi_binary_row == CompilerCompatibilityChangeRowForSurface(
+            CompilerAbiBinaryCompatibilitySurface()) &&
+        view.behavior_row == CompilerCompatibilityChangeRowForSurface(
+            CompilerBehaviorCompatibilitySurface()) &&
+        view.diagnostic_row == CompilerCompatibilityChangeRowForSurface(
+            CompilerDiagnosticCompatibilitySurface()) &&
+        view.air_evidence_row == CompilerCompatibilityChangeRowForSurface(
+            CompilerAirEvidenceCompatibilitySurface()) &&
+        view.mir_json_row == CompilerCompatibilityChangeRowForSurface(
+            CompilerMirJsonCompatibilitySurface()) &&
+        view.runtime_trace_row == CompilerCompatibilityChangeRowForSurface(
+            CompilerRuntimeTraceCompatibilitySurface()) &&
+        view.capability_profile_row == CompilerCompatibilityChangeRowForSurface(
+            CompilerCapabilityProfileCompatibilitySurface()) &&
+        view.stdlib_module_row == CompilerCompatibilityChangeRowForSurface(
+            CompilerStdlibModuleCompatibilitySurface());
+}
+
 func CompilerCompatibilityEvolutionReceiptContractReady() -> Bool {
     let receipt: CompilerCompatibilityEvolutionReceipt =
         CompilerCompatibilityEvolutionReceiptFromOwner();
-    return CompilerCompatibilityEvolutionReceiptReady(receipt);
+    let view: CompilerCompatibilityExecutionView =
+        CompilerCompatibilityExecutionViewFromReceipt(receipt);
+    return CompilerCompatibilityEvolutionReceiptReady(receipt) &&
+        CompilerCompatibilityExecutionViewReady(view);
 }
 
 func CompilerCompatibilityEvolutionReady() -> Bool {

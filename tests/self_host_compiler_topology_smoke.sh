@@ -231,7 +231,7 @@ for owner_term in \
     "$MIR_C_STDOUT|ProduceMirCThroughPgyCompilerWorld(" \
     "$MIR_C_STDOUT|DriverRung2MirCPayloadAdmissionReadyFor(" \
     "$MAIN|import \"driver_rung2_installed_cli_owner.pgy\";" \
-    "$MAIN|DriverRung2ExecuteInstalledRequest(compiler_world, request, compatibility_receipt);" \
+    "$MAIN|DriverRung2ExecuteInstalledRequest(compiler_world, request, compatibility_view);" \
     "$INSTALLED|case DriverCliSourceCStdout(source_path):" \
     "$INSTALLED|case DriverCliSourceCManifestStdout(source_path, manifest_path):" \
     "$INSTALLED|case DriverCliMirCStdout(input_path):" \
@@ -263,12 +263,12 @@ if grep -Fq -- 'DriverCliSourceLlvmArtifact(String, String),' "$CLI_REQUEST" ||
 fi
 
 compatibility_guard_line="$(grep -nF -- \
-    '!CompilerCompatibilityEvolutionReceiptReady(compatibility_receipt)' \
+    '!CompilerCompatibilityExecutionViewReady(compatibility_view)' \
     "$INSTALLED" | cut -d: -f1)"
 installed_dispatch_line="$(grep -nF -- 'match request {' "$INSTALLED" | cut -d: -f1)"
 [[ -n "$compatibility_guard_line" && -n "$installed_dispatch_line" && \
     "$compatibility_guard_line" -lt "$installed_dispatch_line" ]] ||
-    fail "compatibility receipt must fail closed before installed request dispatch"
+    fail "compatibility execution view must fail closed before installed request dispatch"
 grep -Fq -- 'CompilerCompatibilityEvolutionReady()' "$INSTALLED" &&
     fail "installed consumer regained bool-only compatibility readiness"
 
@@ -296,9 +296,10 @@ for installed_case in \
     'case DriverCliSourceCManifestStdout(source_path, manifest_path):'; do
     awk -v header="$installed_case" '
         index($0, header) { active = 1; next }
-        active && /DriverRung2ExecuteReadRequest\(compiler_world, request\);/ { found = 1; exit }
-        active && /case DriverCli/ { exit }
-        END { exit found ? 0 : 1 }
+        active && /DriverRung2ExecuteReadRequest\(/ { call = 1 }
+        active && /compiler_world, request, compatibility_view\);/ { view = 1 }
+        active && /case DriverCli/ { exit (call && view) ? 0 : 1 }
+        END { exit (call && view) ? 0 : 1 }
     ' "$INSTALLED" || fail "installed source-C case lost read delegation: $installed_case"
 done
 [[ "$(grep -F -c -- 'DriverRung2CliLogMirCPayloadOrDie(' "$READ_EXECUTION")" -eq 2 ]] ||
@@ -308,9 +309,10 @@ for installed_case in \
     'case DriverCliMirCManifestStdout(input_path, manifest_path):'; do
     awk -v header="$installed_case" '
         index($0, header) { active = 1; next }
-        active && /DriverRung2ExecuteReadRequest\(compiler_world, request\);/ { found = 1; exit }
-        active && /case DriverCli/ { exit }
-        END { exit found ? 0 : 1 }
+        active && /DriverRung2ExecuteReadRequest\(/ { call = 1 }
+        active && /compiler_world, request, compatibility_view\);/ { view = 1 }
+        active && /case DriverCli/ { exit (call && view) ? 0 : 1 }
+        END { exit (call && view) ? 0 : 1 }
     ' "$INSTALLED" || fail "installed MIR-C case lost read delegation: $installed_case"
 done
 

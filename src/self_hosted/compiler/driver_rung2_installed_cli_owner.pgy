@@ -12,10 +12,10 @@ import "../fmt/session_owner.pgy";
 func DriverRung2ExecuteInstalledRequest(
     inout compiler_world: PgyCompilerWorld,
     request: DriverRung2CliRequest,
-    ref compatibility_receipt: CompilerCompatibilityEvolutionReceipt
+    ref compatibility_view: CompilerCompatibilityExecutionView
 ) -> Void with caps io_read, io_write {
-    if !CompilerCompatibilityEvolutionReceiptReady(compatibility_receipt) {
-        Log("SELFHOST COMPATIBILITY ERROR: owner receipt is not ready");
+    if !CompilerCompatibilityExecutionViewReady(compatibility_view) {
+        Log("SELFHOST COMPATIBILITY ERROR: execution view is not ready");
         Exit(1);
         return;
     }
@@ -25,93 +25,120 @@ func DriverRung2ExecuteInstalledRequest(
         case DriverCliFormatSourceArtifact(source_path, output_path):
             RunFormatSourceArtifact(source_path, output_path);
         case DriverCliSourceTokensStdout(source_path, emit_json):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliSourceAstStdout(source_path, emit_json):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliSourceCapabilityManifestStdout(source_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliSourceDirStdout(source_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliMachineManifestStdout(manifest_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliSourceCArtifact(source_path, output_path, manifest_path, emit_json):
             if manifest_path == "" {
                 DriverRung2InstalledPublishSourceC(
                     compiler_world, source_path, output_path,
-                    SourceCDefault(emit_json));
+                    SourceCDefault(emit_json), compatibility_view);
             } else {
                 DriverRung2InstalledPublishSourceC(
                     compiler_world, source_path, output_path,
                     SourceCManifestVerified(
                         SelfHostMachineLayerDeclarationFromPath(manifest_path),
                         emit_json
-                    )
+                    ), compatibility_view
                 );
             }
         case DriverCliSourceLlvmArtifact(source_path, output_path, emit_json):
             DriverRung2InstalledPublishSourceLlvm(
-                compiler_world, source_path, output_path, emit_json
+                compiler_world, source_path, output_path, emit_json,
+                compatibility_view
             );
         case DriverCliSourceMirArtifact(source_path, output_path):
             DriverRung2InstalledPublishSourceMir(
-                compiler_world, source_path, output_path, SourceMirVerified
+                compiler_world, source_path, output_path, SourceMirVerified,
+                compatibility_view
             );
         case DriverCliSourceMirPressureArtifact(source_path, output_path):
             DriverRung2InstalledPublishSourceMir(
                 compiler_world, source_path, output_path,
-                SourceMirPressureObserved
+                SourceMirPressureObserved, compatibility_view
             );
         case DriverCliMirCArtifact(input_path, output_path):
             DriverRung2InstalledPublishMirC(
-                compiler_world, input_path, output_path, MirCVerified
+                compiler_world, input_path, output_path, MirCVerified,
+                compatibility_view
             );
         case DriverCliMirCObservedArtifact(input_path, output_path):
             DriverRung2InstalledPublishMirC(
-                compiler_world, input_path, output_path, MirCPressureObserved
+                compiler_world, input_path, output_path, MirCPressureObserved,
+                compatibility_view
             );
         case DriverCliDirectMirCArtifact(input_path, output_path):
             DriverRung2InstalledPublishDirectMir(
-                compiler_world, input_path, output_path, DirectMirC, false
+                compiler_world, input_path, output_path, DirectMirC, false,
+                compatibility_view
             );
         case DriverCliDirectMirLlvmArtifact(input_path, output_path):
             DriverRung2InstalledPublishDirectMir(
-                compiler_world, input_path, output_path, DirectMirLlvm, false
+                compiler_world, input_path, output_path, DirectMirLlvm, false,
+                compatibility_view
             );
         case DriverCliDirectMirCObservedArtifact(input_path, output_path):
             DriverRung2InstalledPublishDirectMir(
-                compiler_world, input_path, output_path, DirectMirC, true
+                compiler_world, input_path, output_path, DirectMirC, true,
+                compatibility_view
             );
         case DriverCliDirectMirLlvmObservedArtifact(input_path, output_path):
             DriverRung2InstalledPublishDirectMir(
-                compiler_world, input_path, output_path, DirectMirLlvm, true
+                compiler_world, input_path, output_path, DirectMirLlvm, true,
+                compatibility_view
             );
         case DriverCliSourceCStdout(source_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliSourceCManifestStdout(source_path, manifest_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliSourceMirDiagnosticStdout(source_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliSourceMirJsonDiagnosticStdout(source_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliSourceMirStdout(source_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliSourceMirManifestStdout(source_path, manifest_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliCanonicalMirStdout(input_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliCanonicalMirManifestStdout(input_path, manifest_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliCanonicalOracleMirStdout(input_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliCanonicalOracleMirManifestStdout(input_path, manifest_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliMirCStdout(input_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliMirCManifestStdout(input_path, manifest_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliMissingProjectionProbe(input_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
         case DriverCliMissingProjectionManifestProbe(input_path, manifest_path):
-            DriverRung2ExecuteReadRequest(compiler_world, request);
+            DriverRung2ExecuteReadRequest(
+                compiler_world, request, compatibility_view);
     }
 }

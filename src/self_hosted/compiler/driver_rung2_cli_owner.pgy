@@ -4,10 +4,15 @@
 import "driver_rung2_cli_request_owner.pgy";
 import "driver_rung2_cli_read_execution_owner.pgy";
 import "compiler_world_direct_mir_owner.pgy";
+import "compatibility_evolution_owner.pgy";
 
 func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
     let request: DriverRung2CliRequest =
         DriverRung2CliRequestFromArgsOrDie(args);
+    let compatibility_receipt: CompilerCompatibilityEvolutionReceipt =
+        CompilerCompatibilityEvolutionReceiptFromOwner();
+    let compatibility_view: CompilerCompatibilityExecutionView =
+        CompilerCompatibilityExecutionViewFromReceipt(compatibility_receipt);
     // This test-only DRV-2 binary is a separate process from the installed
     // compiler root. It still owns exactly one fresh world for its request.
     let compiler_world: PgyCompilerWorld = PgyCompilerWorld(
@@ -26,5 +31,5 @@ func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
             DriverSourceCExecutionTopologyIdentity(), None
         ))
     );
-    DriverRung2ExecuteReadRequest(compiler_world, request);
+    DriverRung2ExecuteReadRequest(compiler_world, request, compatibility_view);
 }
