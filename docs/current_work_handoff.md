@@ -3,14 +3,14 @@
 Updated: 2026-09-17 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-## Active self-host context — compatibility evolution CLOSED, publication verification pending
+## Active self-host context — compatibility evolution CLOSED and published
 
 Material code checkpoint: `85068c83fb7d4ff1c009ffa938dc45611bca36fe`
-contains the compatibility closure. This handoff is its documentation-only
-descendant; `origin/main` remains `9d3a1e8f9dfd38a414995c75d5bca9901164c104`
-until both commits are pushed. The pre-existing PgyMath, Slice, proof-pipeline,
-and Makefile changes remain dirty and were neither staged nor rewritten by
-this rung.
+contains the compatibility closure. Documentation publication checkpoint
+`d732ef9e740fc963a07a831d5e7f3e2406c4542b` and `origin/main` matched before
+this final navigation refresh. Exact-head push CI run `35209339933` completed
+30/30 green. The pre-existing PgyMath, Slice, proof-pipeline, and Makefile
+changes remain dirty and were neither staged nor rewritten by this rung.
 
 Objective card:
 - Objective: finish `compatibility.evolution` by carrying the Pergyra-owned
@@ -49,11 +49,11 @@ Reached evidence:
 - SoT adequacy live bindings and negative mutations pass with an explicit local
   Rocq/Coq skip because no prover is installed on this workstation.
 
-Publication boundary and next falsifier:
-- The closure is committed locally but not yet pushed at the time of this
-  snapshot. Publish only the code checkpoint and this handoff descendant; do
-  not absorb the concurrent PgyMath/Slice/proof packet. Exact-head push CI is
-  therefore still unverified and must be observed after publication.
+Publication state and next falsifier:
+- The code checkpoint and its handoff publication are on `origin/main`; the
+  exact code-bearing push run is green. This navigation-only refresh does not
+  change compiler semantics and does not absorb the concurrent
+  PgyMath/Slice/proof packet.
 - A restored `driver_diag_compatibility_manifest_validate_file`, native read of
   the expected text artifact, or consumer that stops at root-only readiness
   must make the focused gate and SoT edge fail before artifact publication.
