@@ -6,10 +6,11 @@ registries, and executable gates override it.
 ## Active self-host context — Array.Slice/SliceCopy execution bridge SUBSTITUTING
 
 Material checkpoint: `5524b138f40636997a8b040785b0728b7b16295b` contains
-the integrated Slice and PgyMath/proof packet. This handoff refresh is a
-docs-only descendant. Its parent remote checkpoint was
-`10415cd49c55f795b21a36b943fdbfc2d8d82f30`; verify current Git history and
-GitHub Actions rather than inferring publication or remote CI from local gates.
+the integrated Slice and PgyMath/proof packet. CI reachability follow-up
+`2a0fa04982ed98c833df69b56bb7f2e88acdb7c2` declares the Slice falsifier as a
+Make target and executes it from the Linux push ladder. Exact-head push CI run
+`35247878180` completed 30/30 green. This handoff refresh is a docs-only
+descendant; consult Git for its own commit ID.
 
 Objective card:
 - Objective: make `Array<T>.Slice(start, length)` and `SliceCopy` mean the same
@@ -157,9 +158,9 @@ Objective card:
 
 Reached evidence and boundary:
 - Material checkpoint `5524b138f40636997a8b040785b0728b7b16295b`
-  integrates this packet with the reached Slice bridge. Its parent remote
-  checkpoint was `10415cd4`; publication and remote CI remain external facts
-  that must be checked independently.
+  integrates this packet with the reached Slice bridge. Reachability follow-up
+  `2a0fa04982ed98c833df69b56bb7f2e88acdb7c2` publishes its focused gate in the
+  Linux push ladder; exact-head CI run `35247878180` is 30/30 green.
 - The PgyMath projection is byte-equal to the generator output. PgyMath push CI
   run `35189077546` is green. The Pergyra red-team gate passes all four
   native/self-host C/LLVM routes and six registry attacks; PgyMath's Lean
