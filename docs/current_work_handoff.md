@@ -5,53 +5,58 @@ registries, and executable gates override it.
 
 ## Active self-host context — Array.Slice/SliceCopy execution bridge SUBSTITUTING
 
-Material checkpoint: `5524b138f40636997a8b040785b0728b7b16295b` contains
-the integrated Slice and PgyMath/proof packet. CI reachability follow-up
-`2a0fa04982ed98c833df69b56bb7f2e88acdb7c2` declares the Slice falsifier as a
-Make target and executes it from the Linux push ladder. Exact-head push CI run
-`35247878180` completed 30/30 green. This handoff refresh is a docs-only
-descendant; consult Git for its own commit ID.
+Material checkpoint: `4e960400be67f894739d417aea80e8b92ddf94ea` closes the
+observed live-Slice backing-storage invalidation, restores public C/LLVM loop
+routing for the falsifier, separates LLVM SliceCopy OOM from missing-backing
+failure, and bounds PgyMath receipt reads before allocation. This handoff
+refresh is its docs-only descendant; consult Git for the descendant commit ID.
 
 Objective card:
-- Objective: make `Array<T>.Slice(start, length)` and `SliceCopy` mean the same
-  thing on native/self-host C/LLVM, including exact builtin identity, borrowed
-  view type, owned copy, indexed read, and invalid-operand rejection.
-- Priority: canonical builtin identity, typed semantic/direct-MIR fact,
-  target-neutral readiness, platform-safe LLVM ABI, negative gate, then wider
-  Slice lifetime/range coverage.
-- Fact owners: `builtin_signature_owner.pgy` owns the semantic rows;
-  `direct_mir_scalar_program_slice_builtin_owner.pgy` owns normalized operands
-  and result identity; `slice_runtime_owner.pgy` and
-  `direct_mir_scalar_program_llvm_slice_expression_owner.pgy` are the C/LLVM
-  target consumers.
-- Last legitimate consumer: public LLVM Slice expression/preamble emission.
-- Forbidden fallback: arbitrary syntax-id-zero member admission, source-name
-  dispatch beside the registry, external C aggregate-return calls for Slice
-  construction/copy, or native-pipeline fallback from a public leg.
-- Gate/falsifier: `slice_copy_semantic_bridge_owner.sh` runs native/public C/LLVM,
-  checks exact Int/String/empty observations, rejects `SliceCopy(Array<T>)`
-  without publishing an artifact, and ratchets the internal LLVM aggregate ABI.
+- Objective: preserve `Slice<T>` as a borrowed write-through view without
+  allowing its backing `Array<T>` storage identity to relocate while the view
+  is live, on native/self-host C/LLVM.
+- Priority: backing identity and fail-closed semantic admission, public route
+  parity, typed runtime failure classes, negative execution gate, then wider
+  alias provenance.
+- Fact owners: native `Symbol.slice_borrow_base_sym` and self-host
+  `ast_expression_graph_collection_mutation_owner.pgy` own the reached direct
+  local borrow; `direct_mir_scalar_program_slice_builtin_owner.pgy` owns sealed
+  Slice operands; `slice_runtime_owner.pgy` plus the target Slice expression
+  owners consume them.
+- Last legitimate consumers: native/self-host storage-changing mutation
+  admission and public C/LLVM Slice emission.
+- Forbidden fallback: treating a borrowed Slice as a snapshot after backing
+  relocation, scalar-only control-flow routing that silently excludes Slice
+  locals, untyped `abort()` for typed runtime failures, source-name dispatch,
+  or native-pipeline retry from a public leg.
+- Gate/falsifier: `slice_copy_semantic_bridge_owner.sh` runs native/public
+  C/LLVM, rejects growth while a direct local Slice is live without publishing
+  an artifact, proves growth-before-borrow plus write-through observation as
+  `99 / 99`, retains invalid `SliceCopy(Array<T>)` rejection, and ratchets the
+  internal aggregate ABI and typed failure paths.
 
 Reached evidence and boundary:
-- Serial `self_host_compiler_build.sh` rebuilt and installed DRV-2 from the
-  final typed source. The focused gate passes all four execution paths and both
-  owned negative-diagnostic contracts.
+- Serial `make -j1 self-host-compiler` rebuilt and installed DRV-2 from the
+  final typed source. The focused gate passes all four execution paths, the
+  exact growth rejection, and safe write-through observation.
 - Windows C ABI lowers the external aggregate return through `sret`; the LLVM
   owner therefore keeps Slice construction and copy in same-module `internal`
-  functions. String copy uses declared `malloc`/`strlen`/`memcpy`, and the
-  verifier-approved loop phi is fed from the actual copy predecessor.
+  functions. SliceCopy allocation now crosses `pgy_alloc_export`, preserving
+  the runtime `oom` class; absent non-empty backing uses the owned
+  `internal-invariant` panic. No SliceCopy path calls raw `abort()`.
 - The self-host component contract passes 2,441 line-cap requests, 1,029
-  function extractions, and 694 reuses. `self_host_pergyra_likeness_smoke.sh`
-  passes at the unchanged `core_string_munge=76` ceiling after replacing three
-  String-to-String Slice projections with one typed LLVM Slice fact.
+  function extractions, and 694 reuses. `test-semantic` passes 2,944/2,944;
+  build-source inventory, CFG body dataflow, runtime panic/codegen/lifetime,
+  and staged-diff checks are green.
 - The PgyMath registry gate also passes on the rebuilt driver: exact commit and
-  registry/projection digests, four-route output parity, and six tamper attacks.
-  The separate adversarial matrix was not rerun because no local
-  `PGY_MATH_ROOT` checkout was available.
+  registry/projection digests, four-route output parity, bounded `limit + 1`
+  reads, and seven tamper attacks. Non-string `sourceCommit` now stays inside
+  the owned rejection contract rather than escaping as `TypeError`.
 - This is a target-specific executable Slice rung marked `SUBSTITUTING`, not
   closure of the broader `selfhost.expression_surface` registry row. The owner
-  census remains `CLOSED=57 / BRIDGE=30 / ACTIVE=2`. Runtime out-of-range parity
-  and wider borrowed-view lifetime escape cases are the next falsifiers.
+  census remains `CLOSED=57 / BRIDGE=30 / ACTIVE=2`. Field/member, `inout`, and
+  transitive Slice provenance plus injected allocator-failure execution are the
+  next falsifiers; actual machine OOM was not forced in this packet.
 
 ## Previous self-host context — compatibility evolution CLOSED and published
 
