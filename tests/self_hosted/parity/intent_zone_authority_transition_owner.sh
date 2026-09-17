@@ -176,9 +176,9 @@ while IFS= read -r validator_owner; do
     validator_owner="$(printf '%s' "$validator_owner" | tr '\\' '/')"
     validator_owner_count=$((validator_owner_count + 1))
     case "$validator_owner" in
-        src/self_hosted/codegen/input/intent_zone_authority_transition_codegen_view_owner.pgy|\
-        src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy|\
-        src/self_hosted/compiler/intent_zone_authority_transition_c_codegen_bridge_owner.pgy|\
+        src/self_hosted/codegen/input/intent_zone_authority_transition_codegen_view_owner.pgy) ;;
+        src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy) ;;
+        src/self_hosted/compiler/intent_zone_authority_transition_c_codegen_bridge_owner.pgy) ;;
         src/self_hosted/compiler/semantic_intent_zone_authority_transition_codegen_bridge_owner.pgy) ;;
         *) fail "transition receipt validator escaped its owner boundary: $validator_owner" ;;
     esac
