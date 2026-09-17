@@ -2773,7 +2773,7 @@ require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/compiler/semantic_intent_zone_authority_transition_codegen_bridge_owner.pgy"
 require_text \
     "src/self_hosted/codegen/emission/intent_action_step_emit_owner.pgy" \
-    "CodegenIntentZoneAuthorityBindingFactForStep("
+    "CodegenIntentZoneAuthorityBindingFactForReadyFactsStep("
 require_text "Makefile" \
     "self-host-intent-zone-authority-transition-test-smoke"
 require_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \

@@ -107,30 +107,30 @@ func CodegenIntentZoneAuthorityTransitionFactsReady(
     return true;
 }
 
-func CodegenIntentZoneAuthorityTransitionRow(
+// The caller must have admitted this exact read-only snapshot with
+// CodegenIntentZoneAuthorityTransitionFactsReady.  Keeping lookup separate
+// prevents each emitted step from revalidating the complete sealed receipt.
+func CodegenIntentZoneAuthorityTransitionRowInReadyFacts(
     ref facts: CodegenIntentZoneAuthorityTransitionFacts,
     routine_canonical_syntax_id: Int,
     step_name: String
 ) -> Option<Int> {
-    if !CodegenIntentZoneAuthorityTransitionFactsReady(facts) ||
-        routine_canonical_syntax_id <= 0 || step_name == "" {
+    if routine_canonical_syntax_id <= 0 || step_name == "" {
         return None;
     }
-    let found: Option<Int> = None;
     let row: Int = 0;
     while row < ArrayLength(facts.routine_canonical_syntax_ids) {
         if facts.routine_canonical_syntax_ids[row] ==
                 routine_canonical_syntax_id &&
             facts.step_names[row] == step_name {
-            if IsSome(found) { return None; }
-            found = Some(row);
+            return Some(row);
         }
         row = row + 1;
     }
-    return found;
+    return None;
 }
 
-func CodegenIntentZoneAuthorityTransitionStepReady(
+func CodegenIntentZoneAuthorityTransitionStepRowInReadyFacts(
     ref facts: CodegenIntentZoneAuthorityTransitionFacts,
     routine_canonical_syntax_id: Int,
     intent_name: String,
@@ -139,18 +139,22 @@ func CodegenIntentZoneAuthorityTransitionStepReady(
     zone_alias: String,
     authority_alias: String,
     zone_type_name: String
-) -> Bool {
-    let row_opt: Option<Int> = CodegenIntentZoneAuthorityTransitionRow(
+) -> Option<Int> {
+    let row_opt: Option<Int> =
+        CodegenIntentZoneAuthorityTransitionRowInReadyFacts(
         facts, routine_canonical_syntax_id, step_name
     );
-    if !IsSome(row_opt) { return false; }
+    if !IsSome(row_opt) { return None; }
     let row: Int = UnwrapOption(row_opt);
-    return facts.intent_names[row] == intent_name &&
-        facts.actor_aliases[row] == actor_alias &&
-        facts.zone_aliases[row] == zone_alias &&
-        facts.zone_type_names[row] == zone_type_name &&
-        facts.authority_present[row] == (authority_alias != "") &&
-        facts.authority_aliases[row] == authority_alias;
+    if facts.intent_names[row] != intent_name ||
+        facts.actor_aliases[row] != actor_alias ||
+        facts.zone_aliases[row] != zone_alias ||
+        facts.zone_type_names[row] != zone_type_name ||
+        facts.authority_present[row] != (authority_alias != "") ||
+        facts.authority_aliases[row] != authority_alias {
+        return None;
+    }
+    return row_opt;
 }
 
 struct CodegenIntentZoneAuthorityBindingFact {
@@ -173,7 +177,7 @@ func CodegenIntentZoneAuthorityBindingFactError(
     );
 }
 
-func CodegenIntentZoneAuthorityBindingFactForStep(
+func CodegenIntentZoneAuthorityBindingFactForReadyFactsStep(
     ref facts: CodegenIntentZoneAuthorityTransitionFacts,
     ref domain_runtime: CodegenDomainRuntimeFacts,
     routine_canonical_syntax_id: Int,
@@ -184,10 +188,12 @@ func CodegenIntentZoneAuthorityBindingFactForStep(
     authority_alias: String,
     zone_type_name: String
 ) -> CodegenIntentZoneAuthorityBindingFact {
-    if !CodegenIntentZoneAuthorityTransitionStepReady(
+    let row_opt: Option<Int> =
+        CodegenIntentZoneAuthorityTransitionStepRowInReadyFacts(
         facts, routine_canonical_syntax_id, intent_name, step_name,
         actor_alias, zone_alias, authority_alias, zone_type_name
-    ) {
+    );
+    if !IsSome(row_opt) {
         return CodegenIntentZoneAuthorityBindingFactError(
             "missing-or-crossed-transition"
         );
@@ -195,14 +201,6 @@ func CodegenIntentZoneAuthorityBindingFactForStep(
     if !CodegenDomainRuntimeOwnsZone(domain_runtime, zone_type_name) {
         return CodegenIntentZoneAuthorityBindingFactError(
             "zone-sync-owner-missing"
-        );
-    }
-    let row_opt: Option<Int> = CodegenIntentZoneAuthorityTransitionRow(
-        facts, routine_canonical_syntax_id, step_name
-    );
-    if !IsSome(row_opt) {
-        return CodegenIntentZoneAuthorityBindingFactError(
-            "missing-or-crossed-transition"
         );
     }
     let row: Int = UnwrapOption(row_opt);

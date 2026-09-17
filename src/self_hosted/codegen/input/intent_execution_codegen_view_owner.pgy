@@ -162,7 +162,7 @@ func CodegenIntentExecutionViewReadyForSemantic(
     }
     return SelfDirIntentReceiptIdentityReady(
         artifact_identity_digest, intent_signatures, view.source_facts
-    ) && CodegenIntentZoneAuthoritySourceSealReady(
+    ) && CodegenIntentZoneAuthoritySourceSealReadyFromReadyTransitions(
         view.source_facts, view.zone_authority_transitions, view.present,
         view.routine_canonical_syntax_ids
     );

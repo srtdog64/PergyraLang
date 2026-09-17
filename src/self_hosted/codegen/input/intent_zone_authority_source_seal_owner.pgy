@@ -17,7 +17,10 @@ func CodegenIntentCanonicalRoutineOwned(
     return false;
 }
 
-func CodegenIntentZoneAuthoritySourceSealReady(
+// CodegenIntentExecutionViewReady has admitted this exact transition snapshot
+// immediately before the cross-seal.  All parameters are read-only for the
+// duration of this check.
+func CodegenIntentZoneAuthoritySourceSealReadyFromReadyTransitions(
     ref source_facts: SelfDirIntentFacts,
     ref transitions: CodegenIntentZoneAuthorityTransitionFacts,
     plan_present: Bool, ref routine_ids: Array<Int>
@@ -54,22 +57,23 @@ func CodegenIntentZoneAuthoritySourceSealReady(
                 }
                 let placed: Bool =
                     source_facts.steps.using_aliases[step] != "";
-                let transition_row: Option<Int> =
-                    CodegenIntentZoneAuthorityTransitionRow(
-                        transitions, routine_id, source_facts.steps.names[step]
-                    );
                 if placed {
-                    if !CodegenIntentZoneAuthorityTransitionStepReady(
+                    if !IsSome(
+                        CodegenIntentZoneAuthorityTransitionStepRowInReadyFacts(
                         transitions, routine_id,
                         source_facts.names[intent_index],
                         source_facts.steps.names[step],
                         source_facts.steps.receiver_aliases[step],
                         source_facts.steps.using_aliases[step], authority_alias,
                         source_facts.steps.where_zone_names[step]
-                    ) {
+                    )) {
                         return false;
                     }
-                } else if IsSome(transition_row) {
+                } else if IsSome(
+                    CodegenIntentZoneAuthorityTransitionRowInReadyFacts(
+                        transitions, routine_id,
+                        source_facts.steps.names[step]
+                    )) {
                     return false;
                 }
                 offset = offset + 1;

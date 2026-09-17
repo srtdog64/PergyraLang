@@ -14,7 +14,8 @@ set -euo pipefail
 # final_emitter_semantic_zone_authority_read,
 # final_emitter_codegen_type_env_slot_selection, missing_transition_success,
 # crossed_actor_authority_transition, non_zone_authority_rows_success,
-# participant_diagnostic_drift, participant_lookup_sentinel_return.
+# participant_diagnostic_drift, participant_lookup_sentinel_return,
+# per_step_full_receipt_revalidation.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
@@ -152,7 +153,11 @@ if rg -n 'SemanticAstZoneAuthorityFacts|ast_zone_authority_fact_owner' \
 fi
 
 SEMANTIC_BRIDGE="$ROOT_DIR/src/self_hosted/compiler/semantic_intent_zone_authority_transition_codegen_bridge_owner.pgy"
+MIR_BRIDGE="$ROOT_DIR/src/self_hosted/compiler/intent_zone_authority_transition_c_codegen_bridge_owner.pgy"
 TRANSITION_VIEW="$ROOT_DIR/src/self_hosted/codegen/input/intent_zone_authority_transition_codegen_view_owner.pgy"
+SOURCE_SEAL="$ROOT_DIR/src/self_hosted/codegen/input/intent_zone_authority_source_seal_owner.pgy"
+EXECUTION_VIEW="$ROOT_DIR/src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy"
+ACTION_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/intent_action_step_emit_owner.pgy"
 [[ "$(grep -Fc 'Die("semantic Intent Zone placement identity is invalid");' \
     "$SEMANTIC_BRIDGE")" -eq 2 ]] \
     || fail "Zone placement diagnostic identity drifted"
@@ -162,6 +167,55 @@ if grep -Fq 'semantic Intent placement participant is invalid' \
 fi
 if rg -n 'return -1;' "$SEMANTIC_BRIDGE" "$TRANSITION_VIEW" >/dev/null; then
     fail "Zone authority lookup reintroduced an out-of-band return sentinel"
+fi
+[[ "$(grep -Fc 'CodegenIntentZoneAuthorityTransitionFactsReady(' \
+    "$TRANSITION_VIEW")" -eq 1 ]] \
+    || fail "per-step lookup resumed complete transition receipt validation"
+validator_owner_count=0
+while IFS= read -r validator_owner; do
+    validator_owner="$(printf '%s' "$validator_owner" | tr '\\' '/')"
+    validator_owner_count=$((validator_owner_count + 1))
+    case "$validator_owner" in
+        src/self_hosted/codegen/input/intent_zone_authority_transition_codegen_view_owner.pgy|\
+        src/self_hosted/codegen/input/intent_execution_codegen_view_owner.pgy|\
+        src/self_hosted/compiler/intent_zone_authority_transition_c_codegen_bridge_owner.pgy|\
+        src/self_hosted/compiler/semantic_intent_zone_authority_transition_codegen_bridge_owner.pgy) ;;
+        *) fail "transition receipt validator escaped its owner boundary: $validator_owner" ;;
+    esac
+done < <(cd "$ROOT_DIR" && rg -l \
+    'CodegenIntentZoneAuthorityTransitionFactsReady\(' src/self_hosted)
+[[ "$validator_owner_count" -eq 4 ]] \
+    || fail "transition receipt validator owner census drifted"
+if rg -n 'CodegenIntentZoneAuthorityTransitionFactsReady\(' \
+    "$SOURCE_SEAL" "$ACTION_EMITTER" >/dev/null; then
+    fail "a ready transition consumer resumed complete receipt validation"
+fi
+grep -Fq 'CodegenIntentZoneAuthoritySourceSealReadyFromReadyTransitions(' \
+    "$EXECUTION_VIEW" \
+    || fail "semantic source cross-seal lost the admitted transition snapshot"
+"$PYTHON_BIN" - "$EXECUTION_VIEW" <<'PY'
+from pathlib import Path
+import sys
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+start = text.index("func CodegenIntentExecutionViewReadyForSemantic(")
+body = text[start:]
+ready = body.index("CodegenIntentExecutionViewReady(view)")
+seal = body.index(
+    "CodegenIntentZoneAuthoritySourceSealReadyFromReadyTransitions("
+)
+if ready >= seal:
+    raise SystemExit("transition source seal precedes complete view admission")
+PY
+grep -Fq 'CodegenIntentZoneAuthorityTransitionStepRowInReadyFacts(' \
+    "$ACTION_EMITTER" \
+    && fail "action emitter must consume the binding owner, not transition rows"
+grep -Fq 'CodegenIntentZoneAuthorityBindingFactForReadyFactsStep(' \
+    "$ACTION_EMITTER" \
+    || fail "action emitter resumed per-step receipt admission"
+if rg -n 'CodegenIntentZoneAuthorityTransition(Row|StepReady)\(' \
+    "$TRANSITION_VIEW" "$SOURCE_SEAL" "$ACTION_EMITTER" >/dev/null; then
+    fail "legacy validating transition lookup remains reachable"
 fi
 
 echo "[self-host-intent-zone-authority] MIR actor/authority transition + shared Zone sync + three no-artifact negatives: PASS"

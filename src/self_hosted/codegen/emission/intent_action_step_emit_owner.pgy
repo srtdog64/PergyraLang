@@ -43,7 +43,7 @@ func CodegenIntentEmitActionStep(
         Die("self-host intent executable step using binding is missing");
     }
     let binding: CodegenIntentZoneAuthorityBindingFact =
-        CodegenIntentZoneAuthorityBindingFactForStep(
+        CodegenIntentZoneAuthorityBindingFactForReadyFactsStep(
             zone_authority_transitions, domain_runtime,
             intent_syntax_id, intent_name, step_name,
             receiver_alias, using_alias, authority_alias, where_zone_name
