@@ -1,20 +1,22 @@
 # Current Work Handoff
 
-Updated: 2026-09-16 (Asia/Seoul). This is navigation only. Compiler owners,
+Updated: 2026-09-17 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-## Active self-host context — Zone authority transition CLOSED, diagnostic contract publication pending
+## Active self-host context — Zone authority transition CLOSED, one-pass consumption pending publication
 
 Material compiler/test checkpoint:
-`9aa730dd0d5c1db8d44a3e54390778178c3fd998`. This handoff refresh is a
+`19fe6b9e73020f8dd158df268337d9548b98eee7`. This handoff refresh is a
 docs-only descendant; consult Git for its own commit ID. `origin/main` is
-`ebc0ca0da0cdf2b80e2fdd7419e0cda998e5acd5` until the diagnostic-contract
-push. The Zone/Future closure, the five-sentinel `Option<Int>` repair, and its
-green remote checkpoint are published. The bounded follow-up restores the
-pre-existing Zone placement diagnostic identity and adds a negative ratchet
-against diagnostic splitting or sentinel reintroduction. Six pre-existing
-Slice semantic/ratchet edits remain a separate incomplete, unstaged packet and
-are not part of the material checkpoint.
+`2b1d5f64f4e491c46f1050d0cf205a5ae78e5882` until the one-pass-consumption
+push. The Zone/Future closure, five-sentinel `Option<Int>` repair, restored
+diagnostic identity, and exact-current 30/30 ordinary CI checkpoint are
+published. The bounded follow-up validates the sealed Zone transition receipt
+at execution-view admission, then lets the read-only source cross-seal and
+action emitter consume admitted rows without repeating whole-receipt
+validation per step. Six pre-existing Slice semantic/ratchet edits remain a
+separate incomplete, unstaged packet and are not part of the material
+checkpoint.
 
 Objective card:
 - Objective: replace final self-C reconstruction of an Intent step's actor,
@@ -36,6 +38,22 @@ Objective card:
   a distinct actor and `authorized by` subject through installed source→MIR→C
   and direct MIR→C, compares emitted bytes and self/native C/LLVM behavior, and
   rejects missing, crossed, and non-Zone authority rows without a C artifact.
+
+Bounded consumption refinement card:
+- Objective: validate one immutable Zone transition snapshot at codegen-view
+  admission and consume admitted rows without whole-receipt validation per
+  source/action step.
+- Priority: preserve semantic and diagnostic identity, keep one explicit
+  validation owner, remove repeated global work, then ratchet the owner set.
+- Fact owner: `CodegenIntentZoneAuthorityTransitionFactsReady` at
+  `CodegenIntentExecutionViewReady`; construction bridges may validate their
+  newly built result before publication.
+- Last legitimate consumers: source cross-seal and action-step C emission.
+- Forbidden fallback: a mutable validity cache, a per-step full validator,
+  duplicate row lookup inside binding, or any return to slot/type redecision.
+- Gate/falsifier: the focused transition gate pins the four allowed validator
+  owner files, admission-before-cross-seal order, one ready-row lookup in the
+  action binding path, exact C/runtime parity, and three no-artifact negatives.
 
 Reached evidence:
 - After replacing the five new `-1` lookup/ambiguity sentinels with
@@ -67,9 +85,23 @@ Reached evidence:
   `semantic Intent placement participant is invalid`. Checkpoint `9aa730dd`
   restores the established `semantic Intent Zone placement identity is
   invalid` contract and extends the focused transition gate to reject both
-  diagnostic drift and reintroduced `return -1` lookup sentinels. That gate
-  passes both before and after the installed-driver rebuild; remote CI for this
-  exact checkpoint is pending publication.
+  diagnostic drift and reintroduced `return -1` lookup sentinels. Published
+  descendant `2b1d5f64` completed ordinary Push CI run `35078820012` SUCCESS
+  with 30/30 jobs green in about 27 minutes.
+- Before `19fe6b9e`, each source/action step could reach complete receipt
+  validation through row lookup and then repeat the lookup for binding. The
+  bounded follow-up leaves full validation in exactly four owner files: the
+  validator definition, execution-view admission, MIR projection, and semantic
+  seed projection. Ready consumers perform one row lookup, and a negative
+  owner-census ratchet forbids validator escape back into per-step code. This
+  changes the source-level call structure from an `S * N^2` family toward
+  `N^2 + S * N`; no wall-time speedup is claimed without a pinned benchmark.
+- `make -j1 self-host-compiler` completed with exit 0 and installed the
+  Pergyra-built DRV-2 from the new source. Installed SHA-256:
+  `E39FF951B63054753684715E0DC576C4CC0D21999782307AFD6557550C76FEFF`.
+  Post-install transition parity, Intent compression, likeness, and the full
+  component contract all pass. The component contract reports 2,435 line-cap
+  requests; the likeness sentinel remains at its strict 20/20 ceiling.
 - The accumulated Future aggregate packet passes its native/public MIR+C+LLVM
   no-artifact gate, and the broader structured-spawn lifecycle gate passes on
   both C and LLVM. Those results establish the reached storage-admission slice,
@@ -78,9 +110,9 @@ Reached evidence:
 Dirty-state boundary and next falsifier:
 - The Zone closure, Future aggregate packet, audits, and their executable gates
   are published in `25722b7c`/`60321012`; the bounded publication-CI repair and
-  its green handoff are published through `ebc0ca0d`. Diagnostic preservation
-  is committed in `9aa730dd`. Preserve all unrelated edits; no reset or clean
-  is authorized.
+  diagnostic preservation are published through `2b1d5f64` with exact-current
+  green CI. One-pass ready-snapshot consumption is committed in `19fe6b9e`.
+  Preserve all unrelated edits; no reset or clean is authorized.
 - Keep the six Slice edits outside this publication:
   `array_type_shape_owner.pgy`, the three expression graph type owners,
   `builtin_signature_owner.pgy`, and `self_host_pergyra_likeness_smoke.sh`.
@@ -90,10 +122,10 @@ Dirty-state boundary and next falsifier:
 - No successor executable rung is opened in this handoff. After publication,
   select the next reached BRIDGE from current production execution evidence;
   do not revive an older queue merely because it appears below this boundary.
-- Push `9aa730dd` plus this checkpoint, then observe ordinary remote Push CI
-  green for the resulting revision. Run `35071144950` proves the published
-  sentinel repair, while local gates alone are not remote-CI evidence for the
-  diagnostic-contract descendant.
+- Push `19fe6b9e` plus this checkpoint, then observe ordinary remote Push CI
+  green for the resulting revision. Run `35078820012` proves the published
+  semantic/diagnostic checkpoint, while local gates alone are not remote-CI
+  evidence for the one-pass-consumption descendant.
 
 ## Historical archive boundary — previous Zone/spawn checkpoint
 
