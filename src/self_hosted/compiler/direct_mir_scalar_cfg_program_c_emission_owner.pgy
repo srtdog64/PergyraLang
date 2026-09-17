@@ -2,6 +2,7 @@
 import "direct_mir_scalar_cfg_program_extension_readiness_owner.pgy";
 import "direct_mir_scalar_program_process_exit_owner.pgy";
 import "direct_mir_scalar_program_c_expression_owner.pgy";
+import "direct_mir_scalar_program_c_slice_expression_owner.pgy";
 import "direct_mir_scalar_cfg_program_c_operation_owner.pgy";
 import "direct_mir_scalar_program_c_array_mutation_owner.pgy";
 import "direct_mir_scalar_cfg_local_emission_owner.pgy";
@@ -178,12 +179,10 @@ func DirectMirScalarCfgProgramCRoutine(ref plan: DirectMirScalarCfgGraphPlan, ro
     return routine_c;
 }
 func DirectMirScalarCfgEmitProgramC(
-    ref plan: DirectMirScalarCfgGraphPlan,
-    formatted_print: CompilerRuntimeCallAbiFact,
+    ref plan: DirectMirScalarCfgGraphPlan, formatted_print: CompilerRuntimeCallAbiFact,
     process_exit: CompilerRuntimeCallAbiFact,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
-    int_line_format: String, string_line_format: String,
-    int_c_type: String,
+    int_line_format: String, string_line_format: String, int_c_type: String,
     target: CompilerTargetProjectionFact
 ) -> String {
     if !DirectMirScalarCfgProgramExtensionReadyForPlan(plan) {
@@ -246,6 +245,7 @@ func DirectMirScalarCfgEmitProgramC(
     }
     let array_string_projection: Option<DirectMirArrayStringAbiProjection> = DirectMirScalarProgramArrayStringAbiProjectionFromFact(plan.program.array_string_abi, target);
     TextBuilderAppend(output, DirectMirScalarProgramCStringCollectionMaterialization(plan, runtime, array_string_projection));
+    TextBuilderAppend(output, DirectMirScalarProgramCSlicePreamble(plan.program.expressions));
     TextBuilderAppend(output,
         DirectMirScalarProgramCOptionResultPreamble(plan, target));
     TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordPreamble(

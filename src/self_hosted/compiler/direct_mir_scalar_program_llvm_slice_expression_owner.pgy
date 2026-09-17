@@ -161,14 +161,13 @@ func DirectMirScalarProgramLlvmIntSliceCopyHelper() -> String {
         + "  ret %pgy.array.int zeroinitializer\n\n"
         + "copy:\n"
         + "  %data.null = icmp eq ptr %data, null\n"
-        + "  br i1 %data.null, label %abort, label %allocate\n\n"
+        + "  br i1 %data.null, label %missing.storage, label %allocate\n\n"
         + "allocate:\n"
         + "  %bytes = mul i64 %length, 4\n"
-        + "  %owned = call ptr @malloc(i64 %bytes)\n"
-        + "  %failed = icmp eq ptr %owned, null\n"
-        + "  br i1 %failed, label %abort, label %copy.data\n\n"
-        + "abort:\n"
-        + "  call void @abort()\n"
+        + "  %owned = call ptr @pgy_alloc_export(ptr null, i64 %bytes, i64 4)\n"
+        + "  br label %copy.data\n\n"
+        + "missing.storage:\n"
+        + "  call void @pgy_runtime_panic_internal_invariant_export(ptr getelementptr inbounds ([35 x i8], ptr @.pgy.slice.copy.missing.reason, i64 0, i64 0))\n"
         + "  unreachable\n\n"
         + "copy.data:\n"
         + "  %copied = call ptr @memcpy(ptr %owned, ptr %data, i64 %bytes)\n"
@@ -190,12 +189,11 @@ func DirectMirScalarProgramLlvmStringSliceCopyHelper() -> String {
         + "  ret %pgy.array.string zeroinitializer\n\n"
         + "allocate:\n"
         + "  %data.null = icmp eq ptr %data, null\n"
-        + "  br i1 %data.null, label %abort, label %allocate.storage\n\n"
+        + "  br i1 %data.null, label %missing.storage, label %allocate.storage\n\n"
         + "allocate.storage:\n"
         + "  %bytes = mul i64 %length, 8\n"
-        + "  %owned = call ptr @malloc(i64 %bytes)\n"
-        + "  %failed = icmp eq ptr %owned, null\n"
-        + "  br i1 %failed, label %abort, label %loop\n\n"
+        + "  %owned = call ptr @pgy_alloc_export(ptr null, i64 %bytes, i64 8)\n"
+        + "  br label %loop\n\n"
         + "loop:\n"
         + "  %index = phi i64 [ 0, %allocate.storage ], [ %next, %body.copy ]\n"
         + "  %more = icmp ult i64 %index, %length\n"
@@ -207,9 +205,8 @@ func DirectMirScalarProgramLlvmStringSliceCopyHelper() -> String {
         + "  %source = select i1 %source.null, ptr @.pgy.slice.empty.string, ptr %source.raw\n"
         + "  %source.length = call i64 @strlen(ptr %source)\n"
         + "  %copy.size = add i64 %source.length, 1\n"
-        + "  %copy = call ptr @malloc(i64 %copy.size)\n"
-        + "  %copy.failed = icmp eq ptr %copy, null\n"
-        + "  br i1 %copy.failed, label %abort, label %body.copy\n\n"
+        + "  %copy = call ptr @pgy_alloc_export(ptr null, i64 %copy.size, i64 1)\n"
+        + "  br label %body.copy\n\n"
         + "body.copy:\n"
         + "  %copied = call ptr @memcpy(ptr %copy, ptr %source, i64 %copy.size)\n"
         + "  %target.slot = getelementptr inbounds ptr, ptr %owned, i64 %index\n"
@@ -222,8 +219,8 @@ func DirectMirScalarProgramLlvmStringSliceCopyHelper() -> String {
         + "  %with.capacity = insertvalue %pgy.array.string %with.length, i64 %length, 2\n"
         + "  %result = insertvalue %pgy.array.string %with.capacity, ptr null, 3\n"
         + "  ret %pgy.array.string %result\n\n"
-        + "abort:\n"
-        + "  call void @abort()\n"
+        + "missing.storage:\n"
+        + "  call void @pgy_runtime_panic_internal_invariant_export(ptr getelementptr inbounds ([35 x i8], ptr @.pgy.slice.copy.missing.reason, i64 0, i64 0))\n"
         + "  unreachable\n}\n\n";
 }
 
@@ -291,6 +288,9 @@ func DirectMirScalarProgramLlvmSlicePreamble(
         output = output + "@.pgy.slice.bounds.reason = private unnamed_addr constant [20 x i8] c\"slice out of bounds\\00\"\n";
         output = output + "@.pgy.slice.empty.string = private unnamed_addr constant [1 x i8] zeroinitializer\n";
     }
+    if DirectMirScalarProgramSliceCopyReached(expressions) {
+        output = output + "@.pgy.slice.copy.missing.reason = private unnamed_addr constant [35 x i8] c\"slice copy missing backing storage\\00\"\n";
+    }
     if int_reached { output = output + "%pgy.slice.int = type { ptr, i64 }\n"; }
     if string_reached { output = output + "%pgy.slice.string = type { ptr, i64 }\n"; }
     let needs_array_slice: Bool = DirectMirScalarProgramExpressionContainsKind(
@@ -329,6 +329,10 @@ func DirectMirScalarProgramLlvmSliceForeignDeclarations(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> String {
     let output: String = "";
+    if DirectMirScalarProgramSliceCopyReached(expressions) {
+        output = output + "declare ptr @pgy_alloc_export(ptr, i64, i64)\n";
+        output = output + "declare void @pgy_runtime_panic_internal_invariant_export(ptr)\n";
+    }
     if DirectMirScalarProgramExpressionContainsKind(
             expressions, DirectMirScalarProgramExprSliceIntIndex()) {
         output = output + "declare i32 @pgy_slice_get_Int(ptr, i64)\n";

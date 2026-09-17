@@ -258,6 +258,11 @@ explicit ABI contract).
 Required invariants:
 
 - Creating a slice must not free, clone, or transfer the backing owner.
+- A direct local `Array<T>.Slice(...)` keeps that Array's storage identity
+  borrowed for the Slice's lexical lifetime. Reallocation, shrink, explicit
+  storage retirement, and rebinding of the backing Array are rejected while
+  the view is live. Element writes such as `ArraySet` or indexed assignment do
+  not replace storage and remain visible through the write-through Slice.
 - `Array<T>.Slice(start, len)` and `Slice<T>.Slice(start, len)` must use
   subtract-form bounds checks: `start > length || len > length - start`.
 - Empty slices must be null-backed so backends do not materialize pointer
@@ -292,6 +297,11 @@ Current evidence:
   available. Rejected spawn/escape diagnostics name the value as a
   `borrowed Slice view`, name the backing-owner provenance, and point to
   `SliceCopy(view)` as the owned-snapshot escape hatch.
+- Native and self-host semantic owners reject `ArrayPush`/`ArrayPop` after a
+  direct local Slice borrow with `PGY_SEM_BORROW_ESCAPE`; the four-route
+  `slice_copy_semantic_bridge_owner` gate also proves that growth before the
+  borrow remains valid and subsequent element writes are observed by both the
+  Array and Slice.
 - `runtime-abi-lifetime-test-smoke`, `runtime-panic-contract-test-smoke`,
   `runtime-panic-codegen-test-smoke`, `perf-contract-smoke`, `test-semantic`,
   and `cfg-body-dataflow-test-smoke` gate those terms.

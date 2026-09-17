@@ -15,9 +15,13 @@ WORK_REL=".tmp/self_hosted/slice_copy_semantic_bridge"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 VALID_REL="tests/cases/backend_compare/slice_copy/main.pgy"
 INVALID_REL="tests/self_hosted/fixtures/slice_copy_reject_array_operand.pgy"
+GROWTH_REJECT_REL="tests/self_hosted/fixtures/slice_growth_after_borrow_reject.pgy"
+GROWTH_SAFE_REL="tests/self_hosted/fixtures/slice_growth_before_borrow.pgy"
 CALL_IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_member_callee_identity_owner.pgy"
 SLICE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_slice_builtin_owner.pgy"
 LLVM_SLICE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_slice_expression_owner.pgy"
+LLVM_ROUTE_OWNER="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_control_flow_route_owner.pgy"
+RUNTIME_ALLOCATOR_OWNER="$ROOT_DIR/src/runtime/pgy_runtime_lib_allocator_exports.h"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
@@ -31,6 +35,7 @@ if [[ "$PGY" == *.exe ]]; then suffix=".exe"; fi
 rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR"
 printf '2\n20\n30\n2\nred\nblue\n0\n' >"$WORK_DIR/expected.run"
+printf '99\n99\n' >"$WORK_DIR/growth-safe.expected"
 
 # Static negative ratchets: syntax-id zero is admitted only by the canonical
 # builtin registry, and aggregate Slice returns remain inside one LLVM module
@@ -46,6 +51,15 @@ grep -Fq 'define internal %pgy.array.string @pgy.self.slice.copy.String' "$LLVM_
 if grep -Eq '@pgy_(array_slice|slice_copy)_' "$LLVM_SLICE_OWNER"; then
     fail "LLVM Slice projection reopened the external aggregate-return ABI"
 fi
+grep -Fq 'pgy_alloc_export' "$LLVM_SLICE_OWNER" &&
+    grep -Fq 'pgy_runtime_panic_internal_invariant_export' "$LLVM_SLICE_OWNER" ||
+    fail "LLVM SliceCopy does not preserve allocation/invariant failure classes"
+! grep -Fq 'call void @abort()' "$LLVM_SLICE_OWNER" ||
+    fail "LLVM SliceCopy collapsed a typed failure back into abort"
+grep -Fq 'pgy_alloc_export' "$RUNTIME_ALLOCATOR_OWNER" ||
+    fail "runtime allocator export for LLVM SliceCopy is missing"
+grep -Fq 'DirectMirScalarCfgSourceLocalTypeSupported(' "$LLVM_ROUTE_OWNER" ||
+    fail "single-routine control-flow routing excludes collection locals"
 
 for origin in native public; do
     for backend in c llvm; do
@@ -105,6 +119,55 @@ for origin in native public; do
             ! grep -Fq '[pipeline timing]' "$WORK_DIR/$stem.reject.err" ||
                 fail "$stem rejected through native fallback"
         fi
+
+        growth_rejected="$WORK_DIR/$stem-growth-rejected$suffix"
+        rm -f "$growth_rejected"
+        growth_reject_command=("$PGY" "$GROWTH_REJECT_REL" \
+            "--backend=$backend" --opt=dev \
+            -o "$WORK_REL/$stem-growth-rejected$suffix")
+        if [[ "$origin" == native ]]; then
+            growth_reject_command+=(--native-pipeline)
+        fi
+        set +e
+        (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE \
+            PGY_SELF_DRIVER_BIN="$DRIVER" PGY_DEBUG_PIPELINE_TIMING=1 \
+            timeout 90 "${growth_reject_command[@]}") \
+            >"$WORK_DIR/$stem.growth.reject.out" \
+            2>"$WORK_DIR/$stem.growth.reject.err"
+        rc=$?
+        set -e
+        [[ "$rc" -ne 0 ]] || fail "$stem admitted Array growth through a live Slice"
+        [[ ! -e "$growth_rejected" ]] || fail "$stem published the rejected growth artifact"
+        if [[ "$origin" == native ]]; then
+            grep -Fq 'cannot change Array storage' \
+                "$WORK_DIR/$stem.growth.reject.err" &&
+                grep -Fq 'while Slice' "$WORK_DIR/$stem.growth.reject.err" ||
+                fail "$stem growth rejection lost the native borrow diagnostic"
+        else
+            grep -Fq 'Code: slice_storage_invalidation' \
+                "$WORK_DIR/$stem.growth.reject.out" ||
+                fail "$stem growth rejection escaped the self-host Slice owner"
+            ! grep -Fq '[pipeline timing]' "$WORK_DIR/$stem.growth.reject.err" ||
+                fail "$stem growth rejection retried the native pipeline"
+        fi
+
+        growth_safe="$WORK_DIR/$stem-growth-safe$suffix"
+        safe_command=("$PGY" "$GROWTH_SAFE_REL" "--backend=$backend" \
+            --opt=dev -o "$WORK_REL/$stem-growth-safe$suffix")
+        if [[ "$origin" == native ]]; then safe_command+=(--native-pipeline); fi
+        (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE \
+            PGY_SELF_DRIVER_BIN="$DRIVER" timeout 90 "${safe_command[@]}") \
+            >"$WORK_DIR/$stem.growth.safe.out" \
+            2>"$WORK_DIR/$stem.growth.safe.err" || {
+            cat "$WORK_DIR/$stem.growth.safe.out" \
+                "$WORK_DIR/$stem.growth.safe.err" >&2
+            fail "$stem failed safe growth-before-borrow compilation"
+        }
+        timeout 30 "$growth_safe" | tr -d '\r' \
+            >"$WORK_DIR/$stem.growth.safe.run"
+        cmp -s "$WORK_DIR/growth-safe.expected" \
+            "$WORK_DIR/$stem.growth.safe.run" ||
+            fail "$stem safe growth-before-borrow observation drifted"
         echo "[$LABEL] $stem: valid observation + invalid operand rejection PASS"
     done
 done

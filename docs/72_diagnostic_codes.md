@@ -413,10 +413,19 @@ A symbol (variable, function, class, ability, role, party, roster, world, world 
 
 #### `PGY_SEM_BORROW_ESCAPE`
 
-A value bound as a `ref` parameter (borrowed boundary value / subject / movable resource / slot) attempts to escape the current function through a path that would outlive or alias the borrow: new `let` binding, `return`, assignment rebind, array literal, channel send, constructor field store, or downstream helper call.
+A borrow would escape its admitted boundary or its backing storage would be
+invalidated while the borrow remains live. Covered cases include forwarding a
+`ref` value through a storing/return/helper boundary and growing, shrinking,
+retiring, or rebinding an `Array<T>` while a direct local `Slice<T>` view is
+lexically live.
 
-- **Reason**: borrowed references do not transfer ownership; allowing them to leave through a storing/forwarding path would create a second observable binding for the same identity.
-- **Fix**: (a) change the parameter to `own` if transfer is actually intended, (b) project/clone into a fresh value before the escaping store, or (c) keep the mutation local and move the store before/after the borrow.
+- **Reason**: borrowed references do not transfer ownership, and a Slice's raw
+  view cannot survive replacement of the Array storage identity it observes.
+- **Fix**: use `own` only when transfer is intended; otherwise keep the use
+  inside the borrow boundary. For a Slice, perform storage-changing operations
+  before creating the view, end the Slice scope first, or use
+  `SliceCopy(view)` when an owned snapshot is required. Element writes that do
+  not replace Array storage remain permitted and are visible through the Slice.
 
 ### Domain Contracts
 

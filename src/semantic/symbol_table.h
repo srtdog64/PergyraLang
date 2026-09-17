@@ -153,6 +153,12 @@ struct Symbol
         long long boundary_lit;   /* valid when boundary_sym == NULL */
     } slice_split_info;
 
+    /* Backing Array identity for a local borrowed Slice. Unlike the optional
+     * disjoint-split proof above, every direct `array.Slice(...)` binding
+     * carries this fact so storage-relocating mutations can fail closed while
+     * the view's lexical scope is live. */
+    Symbol* slice_borrow_base_sym;
+
     /*
      * Memo for flow-snapshot tracking (docs/183 round 2). Branch/loop flow
      * snapshots classify every in-scope symbol per snapshot; the ownership

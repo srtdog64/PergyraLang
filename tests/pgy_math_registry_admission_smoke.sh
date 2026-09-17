@@ -42,6 +42,54 @@ for required in "$CHECKER" "$RECEIPT" "$PROJECTION" "$FIXTURE"; do
 done
 
 "$PYTHON_BIN" "$CHECKER" --receipt "$RECEIPT" --projection "$PROJECTION"
+"$PYTHON_BIN" - "$ROOT_DIR" <<'PY'
+import importlib.util
+import io
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+spec = importlib.util.spec_from_file_location(
+    "pgy_math_registry_admission",
+    root / "scripts" / "pgy_math_registry_admission.py",
+)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+
+
+class GuardedStream(io.BytesIO):
+    def __init__(self):
+        super().__init__()
+        self.requests = []
+
+    def read(self, size=-1):
+        self.requests.append(size)
+        if len(self.requests) != 1 or size != module.MAX_RECEIPT_BYTES + 1:
+            raise AssertionError("read_bounded performed an unbounded or repeated read")
+        return b"x" * size
+
+
+class GuardedPath:
+    def __init__(self, stream):
+        self.stream = stream
+
+    def open(self, mode):
+        if mode != "rb":
+            raise AssertionError("read_bounded did not open the artifact as bytes")
+        return self.stream
+
+
+stream = GuardedStream()
+try:
+    module.read_bounded(
+        GuardedPath(stream), module.MAX_RECEIPT_BYTES, "registry receipt"
+    )
+except module.AdmissionError as exc:
+    assert "exceeds" in str(exc)
+else:
+    raise AssertionError("oversized bounded read was admitted")
+assert stream.requests == [module.MAX_RECEIPT_BYTES + 1]
+PY
 grep -Fq 'plan.program.runtime_abi.bool_to_string_id != 0 ||' \
     "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy" ||
     fail "self-host LLVM foreign declarations omit Bool-to-String malloc ownership"
@@ -163,6 +211,21 @@ expect_reject "unadmitted_source_commit" \
     "$WORK_DIR/unadmitted_commit.json" "$PROJECTION" \
     "PgyMath source commit is not admitted"
 
+"$PYTHON_BIN" - "$RECEIPT" "$WORK_DIR/non_string_commit.json" <<'PY'
+import json
+import pathlib
+import sys
+
+receipt = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+receipt["sourceCommit"] = 7
+pathlib.Path(sys.argv[2]).write_text(
+    json.dumps(receipt, indent=2) + "\n", encoding="utf-8"
+)
+PY
+expect_reject "non_string_source_commit" \
+    "$WORK_DIR/non_string_commit.json" "$PROJECTION" \
+    "sourceCommit must be an exact lowercase Git object id"
+
 "$PYTHON_BIN" - "$RECEIPT" "$WORK_DIR/unadmitted_digest.json" <<'PY'
 import json
 import pathlib
@@ -209,4 +272,4 @@ PY
 expect_reject "coordinated_contract_forgery" \
     "$WORK_DIR/forged_receipt.json" "$WORK_DIR/forged_projection.pgy"
 
-echo "[pgy-math-red-team] receipt, native/self-host C/LLVM parity, and 6 tamper attacks passed"
+echo "[pgy-math-red-team] bounded reads, native/self-host C/LLVM parity, and 7 tamper attacks passed"

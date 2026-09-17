@@ -134,6 +134,22 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         if (target_sym != NULL && target_sym->type != NULL
             && target_sym->type->kind == TYPE_KIND_FUNCTION)
             callable_capability_invalidate_binding(ctx, target_sym);
+        if (target_sym != NULL &&
+            type_is_constructed_named(target_sym->type, "Array")) {
+            Symbol *slice_sym = semantic_find_active_slice_borrow_for_array(
+                ctx->scope, target_sym);
+            if (slice_sym != NULL) {
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                    PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_REDUCE_SCOPE_OR_RETRY,
+                    target,
+                    "Cannot replace Array storage for '%s' while Slice '%s' is live.\n"
+                    "Reason:\n- Slice<T> is a borrowed write-through view into the Array backing storage\n"
+                    "- rebinding the Array would invalidate that view\n"
+                    "Fix:\n- rebind before creating the Slice, or end the Slice's lexical scope first",
+                    target_sym->name, slice_sym->name);
+                return target_sym->type;
+            }
+        }
         if (target_sym != NULL && target_sym->kind == SYMBOL_SLOT
             && target_sym->type != NULL
             && type_is_owned_slot_handle(target_sym->type)

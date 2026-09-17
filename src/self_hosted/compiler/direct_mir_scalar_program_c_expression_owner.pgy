@@ -8,31 +8,29 @@ import "direct_mir_scalar_program_c_array_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_c_array_bool_empty_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_c_array_bool_populated_literal_owner.pgy";
 import "direct_mir_scalar_program_c_numeric_cast_expression_owner.pgy";
+import "direct_mir_scalar_program_c_slice_expression_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_array_empty_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_c_external_runtime_expression_owner.pgy";
 import "direct_mir_scalar_program_c_match_expression_owner.pgy";
 import "../lib/json_emit.pgy";
 import "direct_mir_identity_cell_projection_owner.pgy";
 func DirectMirScalarProgramCLocalName(row: Int) -> String { return Concat("pgy_local_", ToString(row)); }
-func DirectMirScalarProgramCExpressionValues(ref expressions: DirectMirScalarProgramExpressionSet,
-    expression_row: Int, ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
-    ref logical_record: DirectMirScalarProgramLogicalRecordFact,
-    ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
+func DirectMirScalarProgramCExpressionValues(
+    ref expressions: DirectMirScalarProgramExpressionSet, expression_row: Int,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact, ref referenced_enum: DirectMirScalarProgramReferencedEnumFact,
     ref routines: DirectMirScalarCfgRoutinePartitionFact, routine: Int,
     target: CompilerTargetProjectionFact, ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
     array_string_projection: Option<DirectMirArrayStringAbiProjection>) -> Array<String> {
     let values: Array<String> = [];
-    let start: Int = expressions.graph_starts[expression_row]; let count: Int =
-        expressions.graph_counts[expression_row]; let node: Int = start;
+    let start: Int = expressions.graph_starts[expression_row]; let count: Int = expressions.graph_counts[expression_row]; let node: Int = start;
     while node < start + count {
         let kind: Int = expressions.node_kinds[node];
-        let left: String = ""; let right: String = "";
+        let left: String = ""; let right: String = ""; let left_type: String = "";
         if expressions.node_lefts[node] >= start {
-            left = values[expressions.node_lefts[node] - start];
+            left = values[expressions.node_lefts[node] - start]; left_type = expressions.node_types[expressions.node_lefts[node]];
         }
-        if expressions.node_rights[node] >= start {
-            right = values[expressions.node_rights[node] - start];
-        }
+        if expressions.node_rights[node] >= start { right = values[expressions.node_rights[node] - start]; }
         let arguments: Array<String> = [];
         let argument_rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
             expressions.nary_operands, node);
@@ -75,9 +73,12 @@ func DirectMirScalarProgramCExpressionValues(ref expressions: DirectMirScalarPro
             argument = argument + 1;
         }
         let value: String = "";
+        let slice_value: Option<String> = DirectMirScalarProgramCSliceExpression(
+            kind, expressions.node_types[node], left_type, left, right, arguments);
         let cast_value: Option<String> =
             DirectMirScalarProgramCNumericCastExpressionValue(kind, left);
-        if IsSome(cast_value) { value = UnwrapOption(cast_value);
+        if IsSome(slice_value) { value = UnwrapOption(slice_value);
+        } else if IsSome(cast_value) { value = UnwrapOption(cast_value);
         } else if kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
                 kind == DirectMirScalarProgramExprIdentityCellMember() {
             let type_name: String = expressions.node_types[node];
@@ -153,7 +154,6 @@ func DirectMirScalarProgramCExpressionValues(ref expressions: DirectMirScalarPro
             if IsSome(runtime_value) {
                 value = UnwrapOption(runtime_value);
             } else {
-            let left_type: String = ""; if expressions.node_lefts[node] >= start { left_type = expressions.node_types[expressions.node_lefts[node]]; }
             let record_type: String = expressions.node_types[node];
             if kind == DirectMirScalarProgramExprLogicalRecordMember() && expressions.node_lefts[node] >= start {
                 record_type = expressions.node_types[expressions.node_lefts[node]];

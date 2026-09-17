@@ -82,8 +82,13 @@ func SliceRuntimeFactFromArrayTypeName(
     return SliceRuntimeFactFromElementType(UnwrapOption(element), env);
 }
 
-func SliceRuntimeCBlockForFact(fact: SliceRuntimeFact) -> String {
-    if !fact.ok { Die("slice runtime fact is missing"); }
+func SliceRuntimeCBlockForFact(
+    fact: SliceRuntimeFact, length_field: String,
+    empty_array_expression: String
+) -> String {
+    if !fact.ok || length_field == "" || empty_array_expression == "" {
+        Die("slice runtime fact is missing");
+    }
     let block: String = "";
     block = Concat(block,
         "typedef struct { ${fact.c_element_type} *data; long long length; } ${fact.c_slice_type};\n");
@@ -97,26 +102,30 @@ func SliceRuntimeCBlockForFact(fact: SliceRuntimeFact) -> String {
         "static ${fact.c_slice_type} ${fact.c_array_slice_fn}(${fact.c_array_type} *array, long long start, long long length) {\n"
         + "    ${fact.c_slice_type} slice; slice.data = NULL; slice.length = 0;\n"
         + "    if (array == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"slice on null array\"); }\n"
-        + "    if (start < 0 || length < 0 || start > array->len || length > array->len - start) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS); }\n"
+        + "    if (start < 0 || length < 0 || start > array->${length_field} || length > array->${length_field} - start) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS); }\n"
         + "    if (length > 0 && array->data == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"slice on array without backing storage\"); }\n"
         + "    slice.data = length == 0 ? NULL : array->data + start; slice.length = length; return slice;\n}\n");
     block = Concat(block,
         "static ${fact.c_array_type} ${fact.c_slice_copy_fn}(${fact.c_slice_type} *slice) {\n"
         + "    if (slice == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"slice copy on null slice\"); }\n"
         + "    if (slice->length > 0 && slice->data == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"slice copy on slice without backing storage\"); }\n"
-        + "    ${fact.c_array_type} out = ${fact.c_array_new_fn}();\n"
+        + "    ${fact.c_array_type} out = ${empty_array_expression};\n"
         + "    for (long long i = 0; i < slice->length; i++) { ${fact.c_array_push_fn}(&out, slice->data[i]); }\n"
         + "    return out;\n}\n\n");
     return block;
 }
 
 func SliceRuntimeCBlock(env: CodegenTypeEnv) -> String {
+    let int_fact: SliceRuntimeFact =
+        SliceRuntimeFactFromElementType("Int", env);
+    let string_fact: SliceRuntimeFact =
+        SliceRuntimeFactFromElementType("String", env);
     return Concat(
         SliceRuntimeCBlockForFact(
-            SliceRuntimeFactFromElementType("Int", env)
+            int_fact, "len", Concat(int_fact.c_array_new_fn, "()")
         ),
         SliceRuntimeCBlockForFact(
-            SliceRuntimeFactFromElementType("String", env)
+            string_fact, "len", Concat(string_fact.c_array_new_fn, "()")
         )
     );
 }

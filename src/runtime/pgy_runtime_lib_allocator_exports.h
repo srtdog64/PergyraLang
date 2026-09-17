@@ -8,6 +8,12 @@
 
 #include "pgy_runtime_allocator_inline.h"
 
+void *
+pgy_alloc_export(PgyAllocator *alloc, size_t size, size_t align)
+{
+    return pgy_alloc(alloc, size, align);
+}
+
 void
 pgy_allocator_system_init(PgyAllocator *out)
 {

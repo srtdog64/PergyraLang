@@ -36,12 +36,11 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             output = Concat(output, "bool");
         } else if plan.local_types[row] == CompilerAbiLayoutLongTypeName() {
             output = Concat(output, CompilerAbiLayoutLongCValueType());
-        } else if plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName() {
-            output = Concat(output, CompilerAbiLayoutArrayStringCValueType());
-        } else if plan.local_types[row] == CompilerAbiLayoutArrayIntTypeName() {
-            output = Concat(output, CompilerAbiLayoutArrayIntCValueType());
-        } else if plan.local_types[row] == CompilerAbiLayoutArrayBoolTypeName() {
-            output = Concat(output, CompilerAbiLayoutArrayBoolCValueType());
+        } else if plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName() { output = Concat(output, CompilerAbiLayoutArrayStringCValueType());
+        } else if plan.local_types[row] == CompilerAbiLayoutArrayIntTypeName() { output = Concat(output, CompilerAbiLayoutArrayIntCValueType());
+        } else if plan.local_types[row] == CompilerAbiLayoutArrayBoolTypeName() { output = Concat(output, CompilerAbiLayoutArrayBoolCValueType());
+        } else if plan.local_types[row] == CompilerAbiLayoutSliceIntTypeName() { output = Concat(output, CompilerAbiLayoutSliceIntCValueType());
+        } else if plan.local_types[row] == CompilerAbiLayoutSliceStringTypeName() { output = Concat(output, CompilerAbiLayoutSliceStringCValueType());
         } else if plan.local_types[row] == CompilerAbiLayoutSetStringTypeName() {
             output = Concat(output, CompilerAbiLayoutSetStringCValueType());
         } else if plan.local_types[row] == CompilerAbiLayoutOptionIntTypeName() {
@@ -87,6 +86,7 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
             plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName() ||
             plan.local_types[row] == CompilerAbiLayoutArrayIntTypeName() ||
             plan.local_types[row] == CompilerAbiLayoutArrayBoolTypeName() ||
+            plan.local_types[row] == CompilerAbiLayoutSliceIntTypeName() || plan.local_types[row] == CompilerAbiLayoutSliceStringTypeName() ||
             plan.local_types[row] == CompilerAbiLayoutSetStringTypeName() ||
             plan.local_types[row] == CompilerAbiLayoutOptionIntTypeName() ||
             plan.local_types[row] == CompilerAbiLayoutOptionStringTypeName() ||

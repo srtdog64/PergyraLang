@@ -59,7 +59,6 @@ ownership_let_record_slice_split_fact(ASTNode *node, SemanticContext *ctx,
     bool is_upper;
 
     if (sym == NULL || ctx == NULL || init == NULL
-        || ast_let_is_mutable(node)
         || !type_is_constructed_named(decl_type, "Slice")
         || init->type != AST_CALL || ast_call_arg_count(init) != 2)
         return;
@@ -74,6 +73,10 @@ ownership_let_record_slice_split_fact(ASTNode *node, SemanticContext *ctx,
     base_sym = scope_lookup(ctx->scope, ast_identifier_name(object));
     if (base_sym == NULL
         || !type_is_constructed_named(base_sym->type, "Array"))
+        return;
+
+    sym->slice_borrow_base_sym = base_sym;
+    if (ast_let_is_mutable(node))
         return;
 
     arg0 = ast_call_argument(init, 0);
@@ -94,4 +97,18 @@ ownership_let_record_slice_split_fact(ASTNode *node, SemanticContext *ctx,
     sym->slice_split_info.base_sym = base_sym;
     sym->slice_split_info.boundary_sym = boundary_sym;
     sym->slice_split_info.boundary_lit = boundary_lit;
+}
+
+Symbol *
+semantic_find_active_slice_borrow_for_array(Scope *scope,
+                                            const Symbol *array_sym)
+{
+    for (Scope *cur = scope; cur != NULL; cur = cur->parent) {
+        for (size_t i = 0; i < cur->symbol_count; i++) {
+            Symbol *candidate = cur->symbols[i];
+            if (candidate != NULL && candidate->slice_borrow_base_sym == array_sym)
+                return candidate;
+        }
+    }
+    return NULL;
 }

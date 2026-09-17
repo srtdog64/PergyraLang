@@ -75,7 +75,11 @@ def check_depth(value, depth=0):
 
 
 def read_bounded(path, limit, label):
-    data = path.read_bytes()
+    # Read at most one byte beyond the contract limit.  Checking the length
+    # after Path.read_bytes() would reject an oversized artifact eventually,
+    # but would not bound the memory consumed while admitting it.
+    with path.open("rb") as stream:
+        data = stream.read(limit + 1)
     if len(data) > limit:
         raise AdmissionError(
             "{} exceeds {} byte admission limit".format(label, limit)
@@ -118,11 +122,15 @@ def load_receipt(path):
         raise AdmissionError("unsupported registry receipt schema")
     if receipt["sourceRepository"] != "https://github.com/srtdog64/pgy_math.git":
         raise AdmissionError("unexpected PgyMath source repository")
-    if not re.fullmatch(r"[0-9a-f]{40}", receipt["sourceCommit"] or ""):
+    if not isinstance(receipt["sourceCommit"], str) or not re.fullmatch(
+        r"[0-9a-f]{40}", receipt["sourceCommit"]
+    ):
         raise AdmissionError("sourceCommit must be an exact lowercase Git object id")
     if receipt["sourceCommit"] != EXPECTED_SOURCE_COMMIT:
         raise AdmissionError("PgyMath source commit is not admitted")
-    if not re.fullmatch(r"sha256:[0-9a-f]{64}", receipt["registryDigest"] or ""):
+    if not isinstance(receipt["registryDigest"], str) or not re.fullmatch(
+        r"sha256:[0-9a-f]{64}", receipt["registryDigest"]
+    ):
         raise AdmissionError("registryDigest must be a lowercase SHA-256 digest")
     if receipt["registryDigest"] != EXPECTED_REGISTRY_DIGEST:
         raise AdmissionError("PgyMath registry digest is not admitted")

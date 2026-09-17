@@ -93,6 +93,35 @@ stdlib_array_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
+static bool
+reject_array_storage_invalidation_with_live_slice(ASTNode *receiver,
+                                                  const char *operation,
+                                                  SemanticContext *ctx)
+{
+    Symbol *array_sym;
+    Symbol *slice_sym;
+
+    if (receiver == NULL || receiver->type != AST_IDENTIFIER)
+        return false;
+    array_sym = scope_lookup(ctx->scope, ast_identifier_name(receiver));
+    if (array_sym == NULL ||
+        !type_is_constructed_named(array_sym->type, "Array"))
+        return false;
+    slice_sym = semantic_find_active_slice_borrow_for_array(
+        ctx->scope, array_sym);
+    if (slice_sym == NULL)
+        return false;
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+        PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_REDUCE_SCOPE_OR_RETRY, receiver,
+        "%s cannot change Array storage for '%s' while Slice '%s' is live.\n"
+        "Reason:\n- Slice<T> is a borrowed write-through view into the Array backing storage\n"
+        "- growing, shrinking, retiring, or replacing that storage would invalidate the view\n"
+        "Fix:\n- perform the storage-changing operation before creating the Slice\n"
+        "- or end the Slice's lexical scope before changing '%s'",
+        operation, array_sym->name, slice_sym->name, array_sym->name);
+    return true;
+}
+
 Type *
 type_check_stdlib_array_call(ASTNode *expr,
                              const char *name,
@@ -132,6 +161,9 @@ type_check_stdlib_array_call(ASTNode *expr,
         if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, arr, op_name, "array", ctx))
             return TYPE_UNKNOWN;
+        if (reject_array_storage_invalidation_with_live_slice(
+                arg0, op_name, ctx))
+            return TYPE_UNKNOWN;
         val = stdlib_array_normalize_type(
             type_check_expression(arg1, ctx));
         reject_borrowed_boundary_container_store(
@@ -164,6 +196,9 @@ type_check_stdlib_array_call(ASTNode *expr,
         arr = stdlib_array_normalize_type(type_check_expression(arg0, ctx));
         if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, arr, "ArrayDropOwnedStrings", "array", ctx))
+            return TYPE_UNKNOWN;
+        if (reject_array_storage_invalidation_with_live_slice(
+                arg0, "ArrayDropOwnedStrings", ctx))
             return TYPE_UNKNOWN;
         inner = type_is_constructed_named(arr, "Array")
             ? type_get_constructed_arg(arr, 0) : NULL;
@@ -199,6 +234,9 @@ type_check_stdlib_array_call(ASTNode *expr,
         arr = stdlib_array_normalize_type(type_check_expression(arg0, ctx));
         if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, arr, "CompilerRetireArrayStorage", "array", ctx))
+            return TYPE_UNKNOWN;
+        if (reject_array_storage_invalidation_with_live_slice(
+                arg0, "CompilerRetireArrayStorage", ctx))
             return TYPE_UNKNOWN;
         if (!type_is_constructed_named(arr, "Array")) {
             semantic_error_with_hints(ctx,
@@ -251,6 +289,9 @@ type_check_stdlib_array_call(ASTNode *expr,
             type_check_expression(arg0, ctx));
         if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, arr, "ArrayPop", "array", ctx))
+            return TYPE_UNKNOWN;
+        if (reject_array_storage_invalidation_with_live_slice(
+                arg0, "ArrayPop", ctx))
             return TYPE_UNKNOWN;
         if (!type_is_constructed_named(arr, "Array"))
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,

@@ -1,0 +1,114 @@
+// C projection for Slice expressions already sealed in the GraphPlan.
+
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "../codegen/runtime_abi/slice_runtime_owner.pgy";
+
+func DirectMirScalarProgramCSliceRuntimeFact(
+    slice_type: String
+) -> SliceRuntimeFact {
+    let is_string: Bool = slice_type == CompilerAbiLayoutSliceStringTypeName();
+    if !is_string && slice_type != CompilerAbiLayoutSliceIntTypeName() {
+        return SliceRuntimeMissingFact();
+    }
+    let element: String = "Int";
+    let array_type: String = CompilerAbiLayoutArrayIntTypeName();
+    let c_slice_type: String = CompilerAbiLayoutSliceIntCValueType();
+    let c_array_type: String = CompilerAbiLayoutArrayIntCValueType();
+    let c_element_type: String = "int32_t";
+    let kind_code: Int = CollectionRuntimeKindCode("ArrayInt");
+    let push: String = CollectionRuntimeCPushFn(kind_code);
+    if is_string {
+        element = "String";
+        array_type = CompilerAbiLayoutArrayStringTypeName();
+        c_slice_type = CompilerAbiLayoutSliceStringCValueType();
+        c_array_type = CompilerAbiLayoutArrayStringCValueType();
+        c_element_type = "const char *";
+        kind_code = CollectionRuntimeKindCode("ArrayString");
+        push = CollectionRuntimeCOwnedStringPushFn();
+    }
+    return SliceRuntimeFact(
+        true, slice_type, array_type, element,
+        c_slice_type,
+        c_array_type, c_element_type,
+        Concat("pgy_array_slice_", element),
+        Concat("pgy_slice_copy_", element),
+        Concat("pgy_slice_get_", element),
+        CollectionRuntimeCNewFn(kind_code), push
+    );
+}
+
+func DirectMirScalarProgramCSliceExpression(
+    kind: Int, result_type: String, left_type: String,
+    left: String, right: String, arguments: Array<String>
+) -> Option<String> {
+    if kind != DirectMirScalarProgramExprArraySlice() &&
+        kind != DirectMirScalarProgramExprSliceCopy() &&
+        kind != DirectMirScalarProgramExprSliceIntIndex() &&
+        kind != DirectMirScalarProgramExprSliceStringIndex() { return None; }
+    let slice_type: String = result_type;
+    if kind != DirectMirScalarProgramExprArraySlice() { slice_type = left_type; }
+    let fact: SliceRuntimeFact =
+        DirectMirScalarProgramCSliceRuntimeFact(slice_type);
+    if !fact.ok { Die("direct MIR C Slice expression type is invalid"); }
+    if kind == DirectMirScalarProgramExprArraySlice() {
+        if ArrayLength(arguments) != 3 {
+            Die("direct MIR C Array.Slice operands are invalid");
+        }
+        return Some(fact.c_array_slice_fn + "(&("
+            + arguments[0] + "), (long long)(" + arguments[1]
+            + "), (long long)(" + arguments[2] + "))");
+    }
+    if kind == DirectMirScalarProgramExprSliceCopy() {
+        if left == "" || right != "" || ArrayLength(arguments) != 0 {
+            Die("direct MIR C SliceCopy operands are invalid");
+        }
+        return Some(fact.c_slice_copy_fn + "(&(" + left + "))");
+    }
+    if left == "" || right == "" || ArrayLength(arguments) != 0 {
+        Die("direct MIR C Slice index operands are invalid");
+    }
+    return Some(fact.c_slice_get_fn + "(&(" + left
+        + "), (long long)(" + right + "))");
+}
+
+func DirectMirScalarProgramCSlicePreamble(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> String {
+    let int_reached: Bool = false;
+    let string_reached: Bool = false;
+    let row: Int = 0;
+    while row < ArrayLength(expressions.node_kinds) {
+        let kind: Int = expressions.node_kinds[row];
+        if kind == DirectMirScalarProgramExprArraySlice() ||
+            kind == DirectMirScalarProgramExprSliceCopy() ||
+            kind == DirectMirScalarProgramExprSliceIntIndex() ||
+            kind == DirectMirScalarProgramExprSliceStringIndex() {
+            let type_name: String = expressions.node_types[row];
+            if kind != DirectMirScalarProgramExprArraySlice() &&
+                expressions.node_lefts[row] >= 0 {
+                type_name = expressions.node_types[expressions.node_lefts[row]];
+            }
+            if type_name == CompilerAbiLayoutSliceIntTypeName() {
+                int_reached = true;
+            } else if type_name == CompilerAbiLayoutSliceStringTypeName() {
+                string_reached = true;
+            } else { Die("direct MIR C Slice preamble type is invalid"); }
+        }
+        row = row + 1;
+    }
+    if !int_reached && !string_reached { return ""; }
+    let output: String = "#include \"pgy_runtime_panic_contract.h\"\n";
+    if int_reached {
+        let fact: SliceRuntimeFact = DirectMirScalarProgramCSliceRuntimeFact(
+            CompilerAbiLayoutSliceIntTypeName());
+        output = output + SliceRuntimeCBlockForFact(
+            fact, "length", "(pgy_ai){NULL, 0, 0, NULL}");
+    }
+    if string_reached {
+        let fact: SliceRuntimeFact = DirectMirScalarProgramCSliceRuntimeFact(
+            CompilerAbiLayoutSliceStringTypeName());
+        output = output + SliceRuntimeCBlockForFact(
+            fact, "length", "(pgy_as){NULL, 0, 0, NULL}");
+    }
+    return output;
+}

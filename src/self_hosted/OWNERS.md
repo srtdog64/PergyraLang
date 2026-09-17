@@ -510,7 +510,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   targets and typed signature rows are mandatory for the covered scalar lane.
 - `src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy`
   -- graph call-target and receiver projection for collection mutation policy;
-  source argument text is not a semantic fallback.
+  source argument text is not a semantic fallback. It also joins stable lexical
+  local identity from an `Array.Slice` initializer to later Array storage
+  mutation and rejects Push/Pop while that borrowed view is live.
 - `src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy` --
   operand diagnostics for fully graph-owned scalar operator trees.
 - `src/self_hosted/semantic/ast_expression_graph_view_owner.pgy` -- borrowed
@@ -4037,7 +4039,13 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- MIR-blind LLVM Slice view, indexed read, and owned-copy projection. Small
   aggregate returns stay in internal LLVM helpers so platform C `sret` rules
   cannot become a second ABI authority; scalar bounds reads alone cross the
-  canonical runtime boundary.
+  canonical runtime boundary. Owned-copy allocation crosses the canonical
+  allocator export so OOM keeps its runtime diagnostic class, while absent
+  non-empty backing storage uses the typed internal-invariant panic.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_slice_expression_owner.pgy`
+  -- MIR-blind C consumer of the same sealed Slice expression kinds. It reuses
+  `SliceRuntimeFact` for view/index/copy calls and runtime materialization;
+  source spelling and a second Slice ABI layout are forbidden.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_external_runtime_expression_owner.pgy`
   -- final LLVM call/declaration consumption of generated external runtime
   rows, including intent-observability ABI IDs and target symbol spellings.
@@ -4435,7 +4443,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy` and
   `direct_mir_scalar_cfg_llvm_terminator_emission_owner.pgy` -- responsibility-
   named scalar local and LLVM terminator spelling owners extracted to preserve
-  the existing emitter hard caps; they own no semantic admission policy.
+  the existing emitter hard caps; they own no semantic admission policy. C
+  local spelling consumes the same admitted Slice ABI rows already used by the
+  LLVM local owner, so a control-flow program cannot lose Slice representation
+  merely by selecting C first.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_operand_owner.pgy` --
   LLVM spelling for sealed ValueId/LocalRef operands.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_projection_owner.pgy` --

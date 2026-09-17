@@ -41,9 +41,8 @@ func DirectMirScalarControlFlowRoutineRouteClaimed(ref admitted: MirMachineLayer
     }
     let local_binding: Int = 0;
     while local_binding < ArrayLength(index.source_local_types) {
-        if !DirectMirScalarCfgScalarTypeSupported(index.source_local_types[local_binding]) {
-            return false;
-        }
+        if !DirectMirScalarCfgSourceLocalTypeSupported(index.source_local_types[local_binding]) &&
+            !CompilerRuntimeValueTypeReady(index.source_local_types[local_binding]) { return false; }
         local_binding = local_binding + 1;
     }
     let row: Int = 0;

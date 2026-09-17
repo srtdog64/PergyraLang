@@ -299,6 +299,12 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                 SemanticExpressionGraphCollectionReceiverMutationFact(
                     mutator_name, expression_surfaces.expression_graph,
                     UnwrapOption(target_root), names, types, modes, false);
+            if mutation.ok {
+                mutation = SemanticExpressionGraphArrayStorageMutationFact(
+                    artifact, locals, initializer_types.inferred_type_names,
+                    expression_surfaces, statements.function_node_ids[i],
+                    statements.node_ids[i], UnwrapOption(target_root), mutator_name);
+            }
             // A collection field is a typed receiver expression, not a local
             // whose spelling happens to contain a dot. Reuse its admitted graph.
             let target_verdict: SemanticAstExpressionVerdict = SemanticAstExpressionVerdictFromGraph(

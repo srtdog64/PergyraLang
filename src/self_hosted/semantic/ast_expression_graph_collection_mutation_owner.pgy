@@ -6,7 +6,9 @@ import "collection_mutation_policy_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 import "ast_expression_graph_member_view_owner.pgy";
 import "ast_signature_fact_owner.pgy";
-
+import "ast_expression_graph_view_owner.pgy";
+import "ast_local_binding_identity_owner.pgy";
+import "array_type_shape_owner.pgy";
 func SemanticCompilerRetireArrayStorageCallerReady(
     signatures: SemanticAstFunctionSignatureFacts,
     function_node_id: Int
@@ -48,7 +50,6 @@ struct SemanticExpressionGraphCollectionMutationFact {
     diagnostic_code: String;
     diagnostic_message: String;
 }
-
 func SemanticExpressionGraphCollectionMutationNotApplicable(
 ) -> SemanticExpressionGraphCollectionMutationFact {
     return SemanticExpressionGraphCollectionMutationFact(
@@ -68,6 +69,73 @@ func SemanticExpressionGraphCollectionMutationError(
     return SemanticExpressionGraphCollectionMutationFact(
         true, false, code, message
     );
+}
+
+func SemanticExpressionGraphArrayStorageMutationFact(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_node_id: Int, use_node_id: Int, receiver_id: Int, callee: String
+) -> SemanticExpressionGraphCollectionMutationFact {
+    if callee != "ArrayPush" && callee != "ArrayPop" {
+        return SemanticExpressionGraphCollectionMutationOk();
+    }
+    let receiver: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, inferred_types, function_node_id, use_node_id,
+            surfaces.expression_graph, receiver_id);
+    if !receiver.ok {
+        return SemanticExpressionGraphCollectionMutationOk();
+    }
+    let row: Int = 0;
+    while row < ArrayLength(locals.node_ids) {
+        let local_type: String = inferred_types[row];
+        if locals.has_declared_types[row] != 0 {
+            local_type = locals.declared_type_names[row];
+        }
+        if locals.function_node_ids[row] == function_node_id &&
+            locals.node_ids[row] < use_node_id &&
+            IsSome(SemanticSliceElementType(local_type)) &&
+            SemanticAstExpressionScopeVisible(
+                artifact.arena, locals.scope_node_ids[row], use_node_id) {
+            let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, locals.node_ids[row], AstExpressionLaneValue());
+            if IsSome(root) {
+                let call: SemanticCallSpineView =
+                    SemanticCallSpineViewFromGraph(
+                        surfaces.expression_graph, UnwrapOption(root));
+                let target: Option<String> = None;
+                if call.ok {
+                    target = SemanticExpressionGraphCallTargetName(
+                        surfaces.expression_graph, call.call_node);
+                }
+                if call.ok && IsSome(target) &&
+                    UnwrapOption(target) == "Array_Slice" {
+                    let member: SemanticMemberAccessView =
+                        SemanticMemberAccessViewFromGraph(
+                            surfaces.expression_graph, call.callee_node);
+                    if member.ok {
+                        let source: SemanticAstLocalBindingIdentity =
+                            SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                                artifact, locals, inferred_types,
+                                function_node_id, locals.node_ids[row],
+                                surfaces.expression_graph,
+                                member.receiver_node);
+                        if SemanticAstLocalBindingIdentityEqual(
+                                receiver, source) {
+                            return SemanticExpressionGraphCollectionMutationError(
+                                "slice_storage_invalidation", SemanticError1(
+                                    "slice_storage_invalidation",
+                                    "operation", callee));
+                        }
+                    }
+                }
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticExpressionGraphCollectionMutationOk();
 }
 
 // Statement intrinsics and call expressions consume the same receiver path.

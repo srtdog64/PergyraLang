@@ -25,6 +25,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "match_pattern_invalid",
         "named_value_boundary_argument_required",
         "borrow_boundary_escape",
+        "slice_storage_invalidation",
         "zone_value_copy_requires_transfer",
         "zone_value_reassignment_requires_transfer",
         "zone_value_parameter_requires_transfer",
@@ -89,6 +90,7 @@ func SemanticDiagnosticCodeCount() -> Int {
 
 func SemanticDiagnosticPublicLayer(code: String) -> String {
     if code == "borrow_boundary_escape" ||
+        code == "slice_storage_invalidation" ||
         code == "zone_value_copy_requires_transfer" ||
         code == "zone_value_reassignment_requires_transfer" ||
         code == "zone_value_parameter_requires_transfer" ||
@@ -134,6 +136,9 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
         return "PGY_SEM_TYPE_MISMATCH";
     }
     if code == "borrow_boundary_escape" { return "PGY_SEM_BORROW_ESCAPE"; }
+    if code == "slice_storage_invalidation" {
+        return "PGY_SEM_BORROW_ESCAPE";
+    }
     if code == "zone_value_copy_requires_transfer" ||
         code == "zone_value_reassignment_requires_transfer" ||
         code == "zone_value_parameter_requires_transfer" {

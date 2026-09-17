@@ -1,0 +1,12 @@
+func Main() -> Void {
+    let mut values: Array<Int> = [10, 20, 30, 40];
+    let count: Int = 0;
+    while count < 4096 {
+        ArrayPush(values, count);
+        count = count + 1;
+    }
+    let view: Slice<Int> = values.Slice(0, 1);
+    ArraySet(values, 0, 99);
+    Log(values[0]);
+    Log(view[0]);
+}

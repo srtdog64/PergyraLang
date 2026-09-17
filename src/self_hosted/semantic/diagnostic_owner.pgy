@@ -73,6 +73,7 @@ func SemanticReason(code: String) -> String {
     }
     if code == "named_value_boundary_argument_required" { return "borrow-tracked value boundaries require one stable source binding"; }
     if code == "borrow_boundary_escape" { return "a readonly borrowed sequence cannot cross a value, owning, copy-out or return boundary"; }
+    if code == "slice_storage_invalidation" { return "Array storage cannot change while a borrowed Slice view is live"; }
     if code == "zone_value_copy_requires_transfer" || code == "zone_value_reassignment_requires_transfer" || code == "zone_value_parameter_requires_transfer" { return "zone identity cannot be carried without an admitted transfer plan"; }
     if code == "zone_spawn_transport_unavailable" { return "zone identity cannot be copied or borrowed across a spawn worker boundary"; }
     if code == "builtin_arg_type_mismatch" { return "builtin argument type does not match the builtin contract"; }
@@ -205,6 +206,7 @@ func SemanticFix(code: String) -> String {
     }
     if code == "named_value_boundary_argument_required" { return "bind the value to a local variable before passing it through the boundary"; }
     if code == "borrow_boundary_escape" { return "keep the sequence within a ref boundary or explicitly transfer an owned value"; }
+    if code == "slice_storage_invalidation" { return "grow or replace the Array before slicing it, or end the Slice scope first"; }
     if code == "zone_value_copy_requires_transfer" || code == "zone_value_reassignment_requires_transfer" || code == "zone_value_parameter_requires_transfer" { return "construct a fresh zone or use an explicit admitted transfer boundary"; }
     if code == "zone_spawn_transport_unavailable" { return "pass a projected value or keep the zone operation within the current task"; }
     if code == "builtin_arg_type_mismatch" {
@@ -651,9 +653,7 @@ func SemanticErrorWithFacts(code: String, facts: String) -> String {
         stable_facts);
 }
 func SemanticError1(code: String, k1: String, v1: String) -> String { return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact1(k1, v1)); }
-func SemanticError2(code: String, k1: String, v1: String, k2: String, v2: String) -> String {
-    return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact2(k1, v1, k2, v2));
-}
+func SemanticError2(code: String, k1: String, v1: String, k2: String, v2: String) -> String { return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact2(k1, v1, k2, v2)); }
 func SemanticError3(code: String, k1: String, v1: String, k2: String, v2: String, k3: String, v3: String) -> String {
     return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact3(k1, v1, k2, v2, k3, v3));
 }
