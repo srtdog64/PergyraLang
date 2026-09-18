@@ -426,23 +426,20 @@ The current transitional bridge has explicit fact owners:
 - `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
   for call arguments and match cases so emission participants consume the env
   row rather than rebuilding enum keys or emitted symbols locally.
-- `text/expr_sequence_owner.pgy` owns top-level comma-separated expression
-  sequence facts only for remaining compact call and struct-literal bridges.
-  Hard array-literal emission no longer consumes this text owner.
-- `text/struct_literal_call_owner.pgy` owns struct literal call-envelope facts:
-  `Name(...)` recognition plus the typed type-name/inner-payload fact row.
-- `text/struct_literal_field_owner.pgy` owns the typed struct literal
-  field-entry fact row, including positional field fallback from collected
-  field rows.
+- The parser-owned expression graph carries ordered aggregate elements, call
+  arguments, struct fields, and member-access handles. The former sequence,
+  struct-call, and struct-field compact-text owners are deleted and forbidden
+  from returning; semantic graph consumers fail closed when those facts are
+  absent or malformed.
 - Statement-row facts for `Let`, `Assign`, `Log`, `Return`, `Defer`,
   `ArrayPop`, `ArraySet`, `ArrayPush`, `Exit`, `Break`, `Continue`, `For`,
   `While`, `If`, `Else`/`else if` routing, and bare call statements now live in
   the row-fact owner plus typed arena projection; the old statement-owner alias
   file is retired.
 
-This closes parser/codegen sharing of the mixed AST-like tree owner, but it does
-not yet make semantic analysis consume that owner. It prevents emission
-participants from each recovering inventory or statement facts locally. The
+This closes parser, semantic, and codegen sharing of the typed AST artifact and
+expression graph owners. It prevents emission participants from recovering
+inventory, statement, or expression topology locally. The
 current `program_emit.pgy`, declaration collectors, function signature
 emission, and statement body emission consume typed nodes for program-level
 declaration routing, `Main` counting, event rejection, owner skipping,
@@ -451,10 +448,11 @@ statement reads, global function environment construction, role-operator
 discovery, struct/enum collection, and prototype emission. The legacy parallel
 `indents`/`texts` projection has been removed; line-text provenance now lives in
 the shared arena rather than crossing the parser/codegen boundary as a node
-array. The remaining bridge debt is that expression facts are still derived
-from compact text rather than a tagged expression record. Single-payload statements, `Let`,
-`Assign`, `ArrayPush`, `ArraySet`, and `For` now read arena rows in emission.
-Parameter mode is part of this bridge contract:
+array. Expression topology is parser-owned and crosses the boundary as tagged
+graph nodes and ordered edges; semantic analysis validates and types that graph
+without reconstructing it from compact payload text. Single-payload statements,
+`Let`, `Assign`, `ArrayPush`, `ArraySet`, and `For` read arena and graph rows in
+emission. Parameter mode is part of this artifact contract:
 native and
 self-host AST printers preserve `inout`,
 `own`, and `ref`; the current codegen consumes `inout` via function-env `pm`
@@ -488,10 +486,12 @@ truth. It receives MIR/type/ABI facts from the compiler world and sends one
 projection through `EmissionZone`. C, LLVM, and self-hosted codegen may have
 different syntax emitters, but their input facts must be the same.
 
-The current codegen rung may consume AST text because that is the declared
-bridge input. It must not treat AST text as the final semantic source of truth.
-New semantic decisions should enter through type facts, MIR facts, ABI facts, or
-a declared unsupported diagnostic.
+Serialized AST text is accepted only by the parser-owned artifact constructor.
+Semantic and codegen layers receive the completed `AstTreeArtifact` through the
+semantic handoff and may not import the parser implementation or reconstruct
+expression facts from payload text. New semantic decisions enter through graph,
+type, MIR, ABI, or other declared owner facts, or a declared unsupported
+diagnostic.
 
 For future non-CPU targets, codegen must also consume target-capability facts:
 accepted operations, required loss/quantization budget, buffer transfer shape,
@@ -508,7 +508,7 @@ The long-term codegen shape is resource-first:
 | type bindings | `TypeEnvZone` / `type_facts/` | expression, statement, return, log routing | emitters consume type facts and parameter-mode rows instead of re-inferring from source text |
 | symbol and mangle facts | `compiler/symbol_table_owner.pgy`; cross-backend owner still active beyond the self-host C consumer | C, LLVM, and self-hosted emission | emitters consume canonical spelling facts; no owner/member string concatenation in local emission |
 | self-host C ABI type spelling | `compiler/abi_layout_row_owner.pgy` for supported concrete rows, consumed by `abi_layout/abi_layout_owner.pgy` for self-host C subset; cross-backend native row projection still active | self-hosted C emission | signature, local, and field declarations consume canonical C ABI rows before user-struct lookup |
-| self-host shared AST artifact | `hir/ast_text_scan_owner.pgy`, `hir/ast_text_inventory_owner.pgy`, `hir/ast_text_row_fact_owner.pgy`, `hir/ast_text_arena_projection_owner.pgy`, and `hir/typed_ast_arena_owner.pgy` own compact input facts, provenance, and the shared `AstArena`; `input/ast_arena_codegen_view_owner.pgy` owns only codegen fail-closed views | parser and self-hosted C emission today; semantic next | parser constructs one `AstTreeArtifact`; codegen consumes the same arena/provenance without rebuilding it; temporary `CodegenAstTextNode` rows never cross the artifact boundary; expression payload facts remain compact-text backed, and whole hard self-host cannot advance until semantic consumes this artifact instead of rescanning source |
+| self-host shared AST artifact | `parser/ast_text_artifact_parse_owner.pgy` owns serialized-text admission; HIR arena owners retain compact input facts and provenance; semantic expression-surface/graph owners validate and type the parser-carried graph; `input/ast_arena_codegen_view_owner.pgy` owns only codegen fail-closed views | parser, semantic analysis, and self-hosted C emission | parser constructs one `AstTreeArtifact`; semantic and codegen consume the same arena, provenance, graph nodes, and ordered edges without rebuilding expression topology. Temporary construction rows never cross the artifact boundary, missing graph ownership fails closed, and codegen cannot import the parser implementation directly. |
 | self-host C collection runtime symbols | `runtime_abi/collection_runtime_owner.pgy` for `Array<Int>` / `Array<String>` helper calls plus the `Array<CodegenAstTextNode>` bootstrap bridge | self-hosted C emission | expression/statement emitters consume canonical helper-name facts from collection kind-code facts; generated helper definitions stay in one definition host |
 | self-host C math/random symbols | `runtime_abi/math_runtime_owner.pgy` for `Abs` / `Min` / `Max` / `Sqrt` / `Pow` / `Floor` / `Ceil` / `SeedRandom` / `Random` helper or target-library calls | self-hosted C emission | expression emitters consume canonical symbol facts; generated helper definitions stay in one definition host |
 | self-host C host I/O/process symbols | `runtime_abi/host_io_runtime_owner.pgy` for file, directory-walk, `Args()`, and `Exit(Int)` helper or target-library calls | self-hosted C emission | expression/statement emitters consume canonical symbol facts; generated helper definitions stay in one definition host |

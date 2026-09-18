@@ -33,7 +33,7 @@ func MachineProbeProgramExpressionGraph() -> MachineProbeProgramGraph {
     let i: Int = 0;
     while i < ArrayLength(call_target_names) {
         let built: SemanticExpressionGraphBuild =
-            SemanticExpressionGraphBuildCompactBridgeFromText(
+            SemanticExpressionGraphImportSerializedParserFact(
                 kinds, texts, left_children, right_children,
                 target_kinds, target_names, "ClaimDeviceSlot()"
             );
@@ -73,7 +73,7 @@ func MachineProbeGraphWithoutTarget() -> SemanticExpressionGraphView {
     let target_kinds: Array<Int> = [];
     let target_names: Array<String> = [];
     let built: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
+        SemanticExpressionGraphImportSerializedParserFact(
             kinds, texts, left_children, right_children,
             target_kinds, target_names, "ClaimDeviceSlot()"
         );

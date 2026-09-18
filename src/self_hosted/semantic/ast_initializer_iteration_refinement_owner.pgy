@@ -8,6 +8,7 @@ import "ast_initializer_type_fact_owner.pgy";
 import "ast_initializer_type_query_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
 import "ast_initializer_type_function_table_bridge_owner.pgy";
+import "ast_expression_typed_binding_owner.pgy";
 
 func SemanticAstInitializerTypeFactsRefinedByIterationsFromAdmittedFactsWithFunctionTables(
     artifact: AstTreeArtifact,
@@ -122,7 +123,7 @@ func SemanticAstInitializerTypeFactsRefinedByIterations(
 }
 
 func SemanticAstInitializerIterationRefinementContractReady() -> Bool {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: lines : Array<String> = [\"a\"]\n        For: line in lines\n          Block:\n            Let: value : String = line\n            Log(value)\n"
     );
     let signatures: SemanticAstFunctionSignatureFacts =
@@ -132,7 +133,7 @@ func SemanticAstInitializerIterationRefinementContractReady() -> Bool {
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
     let surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact);
+        SemanticAstExpressionSurfaceFactsFromTypedArtifact(artifact);
     let base: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, surfaces
@@ -156,7 +157,7 @@ func SemanticAstInitializerIterationRefinementContractReady() -> Bool {
         refined.inferred_type_names[1] != "String" {
         return false;
     }
-    let invalid: AstTreeArtifact = AstTreeArtifactFromText(
+    let invalid: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        For: item in 1\n          Block:\n            Let: value : Int = item\n"
     );
     let invalid_signatures: SemanticAstFunctionSignatureFacts =
@@ -168,7 +169,7 @@ func SemanticAstInitializerIterationRefinementContractReady() -> Bool {
             invalid, invalid_signatures
         );
     let invalid_surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(invalid);
+        SemanticAstExpressionSurfaceFactsFromTypedArtifact(invalid);
     let invalid_base: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
             invalid, invalid_signatures, invalid_constructors,

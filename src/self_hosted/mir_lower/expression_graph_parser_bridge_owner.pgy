@@ -38,7 +38,7 @@ func MirExpressionGraphSequenceAppendParserBridge(sequence: MirExpressionGraphSe
         return MirExpressionGraphSequenceError(sequence);
     }
     let build: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
+        SemanticExpressionGraphImportSerializedParserFact(
             kinds, texts, left_children, right_children,
             call_target_kinds, call_target_names, expression
         );

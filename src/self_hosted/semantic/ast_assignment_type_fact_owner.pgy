@@ -2,7 +2,6 @@
 //
 // This owner joins assignment rows with signature, scope, local, and
 // initializer type facts. Unknown types fail closed; no backend guesses them.
-
 import "ast_assignment_fact_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
@@ -10,9 +9,10 @@ import "../lib/source_scan_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
+import "ast_expression_typed_binding_owner.pgy";
 import "expr_type_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
-import "array_type_owner.pgy";
+import "array_type_shape_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_scalar_type_owner.pgy";
@@ -469,7 +469,7 @@ func SemanticAstAssignmentTypeFactsMatchArtifact(
     return true;
 }
 func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
-    let valid: AstTreeArtifact = AstTreeArtifactFromText(
+    let valid: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Struct: Box\n    Fields:\n      value: Int\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        Assign: x = x + 1\n        Let: xs : Array<Int> = [1]\n        Assign: xs[0] = x\n        Let: box : Box = Box(1)\n        Assign: box.value = x\n"
     );
     let signatures: SemanticAstFunctionSignatureFacts =
@@ -479,7 +479,7 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(valid, signatures);
     let expression_surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(valid);
+        SemanticAstExpressionSurfaceFactsFromTypedArtifact(valid);
     let initializers: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
             valid, signatures, constructors, locals, expression_surfaces
@@ -547,7 +547,7 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
         return false;
     }
 
-    let mismatch: AstTreeArtifact = AstTreeArtifactFromText(
+    let mismatch: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        Assign: x = \"bad\"\n"
     );
     let mismatch_signatures: SemanticAstFunctionSignatureFacts =
@@ -559,7 +559,7 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
             mismatch, mismatch_signatures
         );
     let mismatch_expression_surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(mismatch);
+        SemanticAstExpressionSurfaceFactsFromTypedArtifact(mismatch);
     let mismatch_initializers: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
             mismatch, mismatch_signatures, mismatch_constructors,

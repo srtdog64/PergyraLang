@@ -10,7 +10,7 @@ func Probe(expression: String, shadow: Bool, truncate_types: Bool, reject: Bool)
     let left: Array<Int> = []; let right: Array<Int> = [];
     let targets: Array<Int> = []; let names: Array<String> = [];
     let places: Array<Int> = []; let leaf_types: Array<String> = [];
-    let build: SemanticExpressionGraphBuild = SemanticExpressionGraphBuildCompactBridgeFromText(
+    let build: SemanticExpressionGraphBuild = SemanticExpressionGraphImportSerializedParserFact(
         kinds, texts, left, right, targets, names, expression);
     if !build.ok { return false; }
     let row: Int = 0;

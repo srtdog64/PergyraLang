@@ -132,9 +132,8 @@ func SelfDirDomainAuthorityEdges(
             let parent: Option<Int> = TypedAstArenaParentId(
                 artifact.arena, node_id
             );
-            let included_name: Option<String> = TypedAstArenaAtomText(
-                artifact.arena, node_id
-            );
+            let included_name: Option<String> =
+                SemanticAstRoleIncludeNameAtNode(artifact, node_id);
             if !IsSome(parent) || !IsSome(included_name) ||
                 !TypedAstArenaNodeKindIs(
                     artifact.arena, UnwrapOption(parent),

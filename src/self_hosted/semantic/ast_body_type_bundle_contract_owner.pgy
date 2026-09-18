@@ -9,11 +9,11 @@ import "ast_body_analysis_admission_contract_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 
 func SemanticAstBodyTypeBundleContractError() -> String {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Class: Box\n    Fields:\n      value: Int\n    Methods:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        Assign: x = x + 1\n        Return: x\n"
     );
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     return SemanticAstBodyTypeBundleReadinessError(artifact, analysis, bundle);
@@ -31,11 +31,11 @@ func SemanticAstBodyTypeBundleContractReady() -> Bool {
 }
 
 func SemanticAstBodyTypeBundleCallReturnPartitionContractReady() -> Bool {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Direct\n    Parameters:\n      value: Int\n    Returns: Int\n    Body:\n      Block:\n        Return: value\n  Function: Identity\n    Generic params: <T>\n    Parameters:\n      value: T\n    Returns: T\n    Body:\n      Block:\n        Return: value\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: direct : Int = Direct(1)\n        Let: generic : Int = Identity(2)\n        Let: structural : Option<Int> = Some(3)\n        Return: direct\n"
     );
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if !SemanticAstBodyTypeBundleReady(artifact, analysis, bundle) {
@@ -82,7 +82,7 @@ func SemanticAstBodyTypeBundleCallReturnPartitionContractReady() -> Bool {
         artifact, analysis, bundle
     ) != "call_return_type_rows" { return false; }
     let stale_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     stale_analysis.expression_surfaces.expression_graph.arena.call_return_type_names[
         first_call
     ] = "stale";
@@ -92,11 +92,11 @@ func SemanticAstBodyTypeBundleCallReturnPartitionContractReady() -> Bool {
 }
 
 func SemanticAstBodyTypeBundleMissingCallReturnContractReady() -> Bool {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = StringLength(\"x\")\n        Return: x\n"
     );
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if !SemanticAstBodyTypeBundleReady(artifact, analysis, bundle) {
@@ -124,11 +124,11 @@ func SemanticAstBodyTypeBundleMissingCallReturnContractReady() -> Bool {
 }
 
 func SemanticAstBodyTypeBundleMissingPlaceContractReady() -> Bool {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        Return: x\n"
     );
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if !SemanticAstBodyTypeBundleReady(artifact, analysis, bundle) ||

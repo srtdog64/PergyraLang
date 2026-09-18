@@ -2,13 +2,14 @@
 
 import "ast_statement_type_fact_owner.pgy";
 import "ast_statement_type_query_owner.pgy";
+import "ast_expression_typed_binding_owner.pgy";
 func SemanticAstStatementFunctionTables(artifact: AstTreeArtifact, signatures: SemanticAstFunctionSignatureFacts, constructors: SemanticAstNominalConstructorFacts) -> SemanticAstExpressionFunctionTableFacts {
     return SemanticAstExpressionFunctionTableFactsFromArtifact(artifact, signatures, constructors, SemanticAstEnumFactsFromArtifact(artifact));
 }
 func SemanticAstScalarMatchContractArtifact(
     tree_text: String
 ) -> AstTreeArtifact {
-    return AstTreeArtifactFromText(tree_text);
+    return ParserAstTreeArtifactFromText(tree_text);
 }
 func SemanticAstStatementTypeFactsForContract(
     artifact: AstTreeArtifact
@@ -20,7 +21,7 @@ func SemanticAstStatementTypeFactsForContract(
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
     let expression_surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact);
+        SemanticAstExpressionSurfaceFactsFromTypedArtifact(artifact);
     let initializers: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, expression_surfaces
@@ -38,7 +39,7 @@ func SemanticAstStatementTypeFactsForContract(
     );
 }
 func SemanticAstCollectionStatementGraphContractReady() -> Bool {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: xs : Array<Int> = []\n        ArrayPush(xs, 1)\n        ArraySet(xs, 0, 2)\n"
     );
     let signatures: SemanticAstFunctionSignatureFacts =
@@ -48,7 +49,7 @@ func SemanticAstCollectionStatementGraphContractReady() -> Bool {
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
     let surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact);
+        SemanticAstExpressionSurfaceFactsFromTypedArtifact(artifact);
     let initializers: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, surfaces
@@ -103,7 +104,7 @@ func SemanticAstMatchStatementGraphContractReady() -> Bool {
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
     let surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact);
+        SemanticAstExpressionSurfaceFactsFromTypedArtifact(artifact);
     let initializers: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, surfaces
@@ -165,7 +166,7 @@ func SemanticAstStatementTypeFactsContractReady() -> Bool {
         facts.expected_type_names[5] != "Int" {
         return false;
     }
-    let bad_condition: AstTreeArtifact = AstTreeArtifactFromText(
+    let bad_condition: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        If: 1\n          Then:\n            Block:\n"
     );
     let bad_condition_facts: SemanticAstStatementTypeFacts =
@@ -175,7 +176,7 @@ func SemanticAstStatementTypeFactsContractReady() -> Bool {
             "condition_not_bool" {
         return false;
     }
-    let bad_exit: AstTreeArtifact = AstTreeArtifactFromText(
+    let bad_exit: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Exit(\"bad\")\n"
     );
     let bad_exit_facts: SemanticAstStatementTypeFacts =

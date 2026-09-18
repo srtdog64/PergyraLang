@@ -627,9 +627,9 @@ if [[ -z "$ready_admission_line" || -z "$ready_first_work_line" ||
 fi
 
 ast_entry_body="$(function_body "$ENTRY" 'GenerateCUnitFromAstArtifact')"
-compact_analysis_count="$(grep -Fc \
-    'SemanticAstArtifactAnalyzeCompactBridge(' <<<"$ast_entry_body" || true)"
-if [[ "$compact_analysis_count" -ne 1 ]] ||
+typed_analysis_count="$(grep -Fc \
+    'SemanticAstArtifactAnalyzeTyped(' <<<"$ast_entry_body" || true)"
+if [[ "$typed_analysis_count" -ne 1 ]] ||
     ! grep -Fq 'GenerateCUnitFromAdmittedSemanticArtifact(' \
         <<<"$ast_entry_body" ||
     grep -Fq 'GenerateCUnitFromSemanticArtifact(' <<<"$ast_entry_body"; then
@@ -774,7 +774,7 @@ fi
 
 pipeline_body="$(function_body "$PIPELINE" 'CompileAstArtifactToC')"
 pipeline_analysis_count="$(grep -Fc \
-    'SemanticAstArtifactAnalyzeCompactBridge(' <<<"$pipeline_body" || true)"
+    'SemanticAstArtifactAnalyzeTyped(' <<<"$pipeline_body" || true)"
 if [[ "$pipeline_analysis_count" -ne 1 ]] ||
     ! grep -Fq 'GenerateCUnitFromAdmittedSemanticArtifact(' <<<"$pipeline_body" ||
     grep -Fq 'GenerateCUnitFromReadySemanticFacts(' <<<"$pipeline_body" ||

@@ -3,7 +3,6 @@
 import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 import "../text/text_owner.pgy";
-import "expr_rewrite.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 
 func EmitFormattedScalarLog(

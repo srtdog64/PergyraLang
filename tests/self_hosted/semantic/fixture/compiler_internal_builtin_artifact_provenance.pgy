@@ -7,7 +7,7 @@ func Main() -> Void with caps io_read {
     let wrong_path: String = "tests/self_hosted/semantic/fixture/compiler_retire_array_storage_owner_impersonation_rejected.pgy";
     let wrong_artifact: AstTreeArtifact = ParseRootProgramArtifact(wrong_path);
     let wrong_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(wrong_artifact, false);
+        SemanticAstArtifactAnalyzeTyped(wrong_artifact, false);
     if !wrong_analysis.verdict.ok {
         Log(Concat("wrong-analysis:", wrong_analysis.verdict.diagnostic_code));
         Exit(1);
@@ -25,7 +25,7 @@ func Main() -> Void with caps io_read {
     let owner_path: String = "src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy";
     let owner_artifact: AstTreeArtifact = ParseRootProgramArtifact(owner_path);
     let owner_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(owner_artifact, false);
+        SemanticAstArtifactAnalyzeTyped(owner_artifact, false);
     if !owner_analysis.verdict.ok {
         Log(Concat("owner-analysis:", owner_analysis.verdict.diagnostic_code));
         Exit(1);
@@ -55,11 +55,11 @@ func Main() -> Void with caps io_read {
     }
     let mir_artifact: AstTreeArtifact =
         CanonicalMirIdentityArtifactBindSourceModules(
-            AstTreeArtifactFromText(owner_artifact.tree_text),
+            ParserAstTreeArtifactFromText(owner_artifact.tree_text),
             owner_artifact.source_modules.module_paths
         );
     let mir_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(mir_artifact, false);
+        SemanticAstArtifactAnalyzeTyped(mir_artifact, false);
     if !mir_analysis.verdict.ok {
         Log(Concat("mir-analysis:", mir_analysis.verdict.diagnostic_code));
         Exit(1);
@@ -75,7 +75,7 @@ func Main() -> Void with caps io_read {
     let missing_paths: Array<String> = [];
     let missing_artifact: AstTreeArtifact =
         CanonicalMirIdentityArtifactBindSourceModules(
-            AstTreeArtifactFromText(owner_artifact.tree_text), missing_paths
+            ParserAstTreeArtifactFromText(owner_artifact.tree_text), missing_paths
         );
     if AstTreeArtifactReady(missing_artifact) {
         Log("mir-missing-module-path-admitted");

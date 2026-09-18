@@ -95,9 +95,8 @@ func SelfDirGraphInventoryAppendRoleEdges(
         if TypedAstArenaNodeKindIs(
             artifact.arena, child_id, TypedAstKindRoleIncludeTag()
         ) {
-            let included: Option<String> = TypedAstArenaAtomText(
-                artifact.arena, child_id
-            );
+            let included: Option<String> =
+                SemanticAstRoleIncludeNameAtNode(artifact, child_id);
             if !IsSome(included) || !SelfDirGraphInventoryAppendEdge(
                 facts, "role-include", node_id,
                 SelfDirGraphInventoryNodeIndex(

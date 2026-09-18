@@ -2,10 +2,10 @@ import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
 import "../../../src/self_hosted/semantic/diagnostic_contract_owner.pgy";
 
 func Main() -> Void {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Spare\n    Parameters:\n    Returns: Int\n    Caps: random\n    Body:\n      Block:\n        Return: 7\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Return: Spare()\n");
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     let body: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     Log(body.verdict.ok && SemanticAstBodyTypeBundleReady(artifact, analysis, body));

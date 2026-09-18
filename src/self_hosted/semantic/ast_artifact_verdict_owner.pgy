@@ -17,6 +17,7 @@ import "ast_expression_surface_fact_owner.pgy";
 import "ast_expression_call_target_capture_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
 import "ast_expression_typed_binding_owner.pgy";
+import "../parser/ast_text_artifact_parse_owner.pgy";
 import "ast_intent_signature_fact_owner.pgy";
 import "ast_intent_transition_fact_owner.pgy";
 import "ast_type_surface_fact_owner.pgy";
@@ -499,17 +500,6 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
     );
 }
 
-func SemanticAstArtifactAnalyzeCompactBridge(
-    artifact: AstTreeArtifact,
-    requires_entrypoint: Bool
-) -> SemanticAstArtifactAnalysis {
-    return SemanticAstArtifactAnalyzeFromExpressionSurfaces(
-        artifact, requires_entrypoint,
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact),
-        false
-    );
-}
-
 func SemanticAstArtifactAnalyzeTyped(
     artifact: AstTreeArtifact,
     requires_entrypoint: Bool
@@ -535,6 +525,13 @@ func SemanticAstArtifactAnalyzeWithExpressionGraph(
     return SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         artifact, requires_entrypoint, expression_surfaces, true
     );
+}
+
+// Serialized AST spelling is parsed exactly once by the parser owner.  Lower
+// layers receive the completed artifact through this semantic handoff and may
+// not import or invoke the parser implementation directly.
+func SemanticAstTreeArtifactFromText(tree_text: String) -> AstTreeArtifact {
+    return ParserAstTreeArtifactFromText(tree_text);
 }
 
 func SemanticAstArtifactAnalysisMatches(

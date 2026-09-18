@@ -26,14 +26,14 @@ func SemanticAstBodyTypeBundleAdmissionRejectedBeforeMaterialization(
 }
 
 func SemanticAstBodyTypeBundleStaleAdmissionContractReady() -> Bool {
-    let source_artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let source_artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: alpha : Int = 1\n        Return: alpha\n"
     );
-    let stale_artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let stale_artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: omega : Int = 1\n        Return: omega\n"
     );
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(source_artifact, true);
+        SemanticAstArtifactAnalyzeTyped(source_artifact, true);
     if !SemanticAstBodyAnalysisAdmissionReady(source_artifact, analysis) ||
         source_artifact.identity_digest == stale_artifact.identity_digest ||
         SemanticAstBodyAnalysisAdmissionReady(stale_artifact, analysis) {
@@ -50,11 +50,11 @@ func SemanticAstBodyTypeBundleStaleAdmissionContractReady() -> Bool {
 
 func SemanticAstBodyTypeBundleMalformedProducerRowAdmissionContractReady(
 ) -> Bool {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: malformed : Int = 1\n        Return: malformed\n"
     );
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) ||
         ArrayLength(analysis.local_bindings.node_ids) != 1 ||
         ArrayLength(analysis.local_bindings.names) != 1 {
@@ -76,11 +76,11 @@ func SemanticAstBodyTypeBundleMalformedProducerRowAdmissionContractReady(
 }
 
 func SemanticAstBodyAnalysisShapeAdmissionContractReady() -> Bool {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Return: 1\n"
     );
     let signature_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !SemanticAstBodyAnalysisAdmissionReady(artifact, signature_analysis) ||
         ArrayLength(signature_analysis.signatures.generic_starts) != 1 {
         return false;
@@ -91,21 +91,21 @@ func SemanticAstBodyAnalysisShapeAdmissionContractReady() -> Bool {
     }
 
     let constructor_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     constructor_analysis.constructors.artifact_node_count = artifact.count + 1;
     if SemanticAstBodyAnalysisAdmissionReady(artifact, constructor_analysis) {
         return false;
     }
 
     let enum_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     enum_analysis.enums.artifact_node_count = artifact.count + 1;
     if SemanticAstBodyAnalysisAdmissionReady(artifact, enum_analysis) {
         return false;
     }
 
     let role_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     let stale_role_starts: Array<Int> = [0];
     role_analysis.roles.impl_starts = stale_role_starts;
     if SemanticAstBodyAnalysisAdmissionReady(artifact, role_analysis) {
@@ -113,7 +113,7 @@ func SemanticAstBodyAnalysisShapeAdmissionContractReady() -> Bool {
     }
 
     let intent_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     let stale_intent_starts: Array<Int> = [0];
     intent_analysis.intent_transitions.intent_starts = stale_intent_starts;
     return !SemanticAstBodyAnalysisAdmissionReady(artifact, intent_analysis);

@@ -3,8 +3,8 @@ import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
 func Main() -> Void {
     let args: Array<String> = Args();
     if ArrayLength(args) != 1 { Exit(1); return; }
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(ReadFile(args[0]));
-    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(ReadFile(args[0]));
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     let body: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if !body.verdict.ok { Log(body.verdict.diagnostic_message); Exit(1); return; }
     Log(SemanticAstBodyTypeBundleReady(artifact, analysis, body));

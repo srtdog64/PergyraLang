@@ -2992,6 +2992,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_host_ci_profile_smoke.sh
 	"$(BASH)" tests/self_hosted_scaffold_smoke.sh
 	"$(BASH)" tests/self_hosted_component_contract_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/expression_surface_closed_owner.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_manifest.sh
 	"$(BASH)" tests/self_host_substrate_contract_smoke.sh
 	"$(BASH)" tests/self_host_hard_contract_smoke.sh
@@ -3239,6 +3240,9 @@ self-host-collection-policy-parity-test-smoke: $(PGY)
 self-host-aggregate-field-policy-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh
 
+self-host-expression-surface-closed-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/expression_surface_closed_owner.sh
+
 self-host-program-graph-unification-test-smoke:
 	"$(BASH)" tests/self_host_program_graph_unification_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/mir_expression_graph_projection_owner_smoke.sh
@@ -3253,6 +3257,7 @@ self-host-gate-dashboard: $(PGY)
 .PHONY: self-host-wrapper-policy-parity-test-smoke
 .PHONY: self-host-collection-policy-parity-test-smoke
 .PHONY: self-host-aggregate-field-policy-parity-test-smoke
+.PHONY: self-host-expression-surface-closed-test-smoke
 .PHONY: self-host-program-graph-unification-test-smoke
 .PHONY: self-host-gate-dashboard-parity-test-smoke self-host-gate-dashboard
 

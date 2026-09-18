@@ -71,7 +71,7 @@ require_text "$DISPATCH" "target_graph, value_graph, auxiliary_graph"
 reject_text "$VALIDATION" 'rows.arg0s[i] == "ArrayPop"'
 reject_text "$MIR_SLOT_POLICY" 'UnwrapOption(arg0) == "ArrayPop"'
 require_text "$MIR_LOWER" "MirExpressionGraphSequenceAppendParserBridge("
-require_text "$PARSER_BRIDGE" "SemanticExpressionGraphBuildCompactBridgeFromText("
+require_text "$PARSER_BRIDGE" "SemanticExpressionGraphImportSerializedParserFact("
 require_text "$OCCURRENCE_OWNER" "MirExpressionGraphProducerOnlyOccurrenceAllowed("
 # Repointed: the occurrence owner reads the operation through the carried
 # expression routing fact instead of a rebound operation string.

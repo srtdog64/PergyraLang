@@ -3,12 +3,54 @@
 Updated: 2026-09-18 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-Review-reconciliation base: `9ed7a997d20806b1b9cde96a5fdaf816770419d4`.
-The bounded PgyMath numeric-domain packet only reconciles its audit and
-fail-closed clean-checkout gate; it does not advance the active Slice
-substitution rung.
+Expression-closure packet base: `4faea965949baae05b0865618bf90dfdd3d34918`.
+Git HEAD/status and `origin/main` remain the authority for its material and
+publication checkpoints.
 
-## Active self-host context — Array.Slice/SliceCopy execution bridge SUBSTITUTING
+## Active self-host context — expression surface CLOSED in the working tree
+
+Objective card:
+- Objective: make the parser-owned expression graph the only supported
+  expression identity/type carriage from serialized AST input through semantic
+  admission and C emission.
+- Priority: parser ownership, direct semantic consumers, text-fallback deletion,
+  executable missing/unowned-fact rejection, production hard parity, then the
+  registry transition.
+- Fact owner: `ast_expression_surface_fact_owner.pgy` owns the artifact-bound
+  `SemanticAstExpressionSurfaceFacts`; `ast_text_artifact_parse_owner.pgy`
+  supplies parser-owned graph rows and `ast_expression_verdict_owner.pgy`
+  owns their fail-closed type verdict.
+- Last legitimate consumers: body initializer/statement/assignment/iteration
+  admission and semantic graph C emission.
+- Forbidden fallback: compact semantic graph reconstruction, payload-text
+  `ExprType`/call/operand validation, deleted codegen text rewriters, or a
+  codegen import of the parser implementation.
+- Gate/falsifier: `expression_surface_closed_owner.sh` rejects every retired
+  path and executes an unowned graph-type negative on C and LLVM;
+  `driver_rung2_body_parity.sh` exercises the fresh Pergyra-built driver over
+  18 representative scalar, call, aggregate, generic, Option/Result, Set,
+  class, and nested-container programs.
+
+Reached evidence and boundary:
+- The compact artifact/surface/graph bridges and nine codegen text-rewrite
+  owners are deleted. Supported expression shapes are imported once at the
+  parser boundary; an unsupported but structurally valid graph node now fails
+  with owner `expression_graph_type`.
+- The focused closure gate passes artifact-equal C/LLVM execution. The component
+  contract passes 2,435 line-cap requests, 1,030 function extractions, and 697
+  reuses. A fresh DRV-2 passes the focused hard producer/source-MIR matrix for
+  18/18 fixtures. Its first run exposed a Set diagnostic regression; the final
+  run preserves `initializer_type_unresolved` for heterogeneous and untyped
+  empty Set literals.
+- `sot_registry_gate.py` reports 89 authorities, 188 derived fact carriers, and
+  `CLOSED=58 / BRIDGE=29 / ACTIVE=2`. `selfhost.expression_surface` is now
+  `CLOSED` with the closure gate as its primary negative ratchet.
+- The 284-fixture matrix, platform matrix, and remote CI were not rerun in this
+  bounded packet. Publication state is owned by Git, not this navigation
+  snapshot. Do not infer the next active row from this handoff; select the next
+  production bypass explicitly.
+
+## Previous self-host context — Array.Slice/SliceCopy execution bridge SUBSTITUTING
 
 Material checkpoint: `4a1448a570acee00077200711be96ef11da8ac7b` closes the
 rooted member-place Array growth bridge on top of the direct-local Slice

@@ -170,6 +170,22 @@ func SemanticAstIntentStepHeaderFromText(
     );
 }
 
+func SemanticAstIntentStepHeaderFromArtifact(
+    artifact: AstTreeArtifact,
+    node_id: Int
+) -> SemanticAstIntentStepHeaderRow {
+    if !TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindIntentStepTag()
+    ) {
+        return SemanticAstIntentStepHeaderFromText("");
+    }
+    let atom: Option<String> = TypedAstArenaAtomText(
+        artifact.arena, node_id
+    );
+    if !IsSome(atom) { return SemanticAstIntentStepHeaderFromText(""); }
+    return SemanticAstIntentStepHeaderFromText(UnwrapOption(atom));
+}
+
 func SemanticAstIntentExactVariantSeal(
     ref enums: SemanticAstEnumFacts,
     enum_name: String,

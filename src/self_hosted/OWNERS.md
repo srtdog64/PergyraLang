@@ -136,6 +136,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   generic parameter/default type list parsing shared by functions, nominals,
   and abilities; malformed lists fail closed.
 - `src/self_hosted/parser/expr_owner.pgy` -- expression grammar import boundary.
+- `src/self_hosted/parser/ast_text_artifact_parse_owner.pgy` -- serialized
+  compact-AST input parser. It binds every required expression lane to
+  parser-owned graph rows before semantic analysis; semantic consumers may not
+  reconstruct those rows from AST spelling.
 - `src/self_hosted/parser/expression_fact_owner.pgy` -- canonical parser
   expression result plus unclassified leaf construction.
 - `src/self_hosted/parser/expression_scalar_fact_owner.pgy` -- scalar literal
@@ -421,6 +425,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_expression_verdict_owner.pgy` -- ordered call,
   undefined-use, try, logical, binary, and graph-derived inferred-type
   expression verdicts, including owner-projected array-literal types.
+- `src/self_hosted/semantic/ast_expression_graph_fail_closed_contract_owner.pgy`
+  -- executable negative witness that a structurally valid but unowned graph
+  node cannot fall back to source-text typing.
 - `src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy` --
   undefined-identifier evidence from parser graph node roles.
 - `src/self_hosted/semantic/ast_domain_query_protocol_owner.pgy` -- closed
@@ -675,8 +682,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   unique namespace-local callable resolution.
 - `src/self_hosted/semantic/delimited_range_fact_owner.pgy` -- trimmed nested
   comma and flat signature ranges shared by call and type facts.
-- `src/self_hosted/semantic/array_type_owner.pgy` -- canonical `Array<T>`
-  direct index-access verdicts.
 - `src/self_hosted/semantic/array_type_shape_owner.pgy` -- dependency-light
   canonical sequence element projection for Array/Slice/List/Queue shared by
   semantic and codegen views.
@@ -714,13 +719,12 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   read-only, string-safe call/token queries over canonical expression surface
   rows; this is a consumer and not a second surface-fact owner.
 - `src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy` --
-  executable compact-bridge and expression-topology contract kept outside the
+  executable parser-bound expression-topology contract kept outside the
   production fact owner.
 - `src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy` -- normalized
   expression node handles and child edges consumed by recursive semantic and
-  codegen projections; compact-text production remains an explicit bridge for
-  non-migrated expression owners and legacy/native canonicalization, not an
-  alternate hard-codegen authority. Owns building and validating the graph.
+  codegen projections. Source and serialized-AST parser boundaries produce the
+  graph before semantic admission; this owner validates and projects it.
 - `src/self_hosted/semantic/ast_expression_graph_node_view_owner.pgy` --
   read-only per-node projection over a built graph: node text, node kind, call
   return type and target, binding kind/ordinal. Reading a node is a separate
@@ -733,11 +737,12 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   expression-graph lane lifetime policy; required lanes and producer-only
   collection-mutation receiver lanes are declared here rather than inferred by
   semantic or MIR consumers.
-- `src/self_hosted/semantic/ast_expression_graph_build_owner.pgy` -- compact
-  bridge row construction. Recursive calls carry the six row arrays directly;
-  compiler-scale graph aggregates may not cross an `inout` ABI boundary.
-- `src/self_hosted/semantic/ast_expression_graph_bridge_contract_owner.pgy` --
-  executable topology contracts for the temporary compact-text graph bridge.
+- `src/self_hosted/semantic/ast_expression_graph_build_owner.pgy` -- imports an
+  already parsed expression fact into semantic graph storage. Recursive calls
+  carry the six row arrays directly; compiler-scale graph aggregates may not
+  cross an `inout` ABI boundary.
+- `src/self_hosted/semantic/ast_expression_graph_serialized_parser_contract_owner.pgy`
+  -- executable topology contracts for the serialized-AST parser boundary.
 - `src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy` --
   canonical direct, namespace, and receiver-bound call identity derived from
   callable, local-type, and nominal field facts; direct, namespace, and
@@ -835,6 +840,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   node-kind tags consumed by inventory, semantic, and codegen views.
 - `src/self_hosted/hir/ast_expression_graph_owner.pgy` -- canonical expression
   graph arena, statement-lane root rows, and structural/reachability validation.
+- `src/self_hosted/hir/ast_expression_lane_policy_owner.pgy` -- artifact-level
+  declaration of the node-kind/lane pairs that every parser must publish as
+  expression graph roots.
 - `src/self_hosted/hir/ast_destructure_graph_owner.pgy` -- parser graph to
   typed destructure pattern and initializer artifact binding.
 - `src/self_hosted/hir/ast_match_pattern_fact_owner.pgy` -- canonical bounded
@@ -1678,11 +1686,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- codegen expression scanning and unsupported-surface policy.
 - `src/self_hosted/codegen/text/owned_string_join_owner.pgy` -- consuming join and compiler-internal prefixed statement-line materialization for codegen-owned text fragments; exact emitter call sites are gated, borrowed fragments are forbidden, and only the final joined/materialized result survives.
 - `src/self_hosted/codegen/text/enum_literal_owner.pgy` -- payload-free enum literal projection facts.
-- `src/self_hosted/codegen/text/expr_scan.pgy` -- expression text scanning.
-- `src/self_hosted/codegen/text/expr_sequence_owner.pgy` -- top-level comma-separated expression sequence facts.
-- `src/self_hosted/codegen/text/struct_literal_call_owner.pgy` -- struct literal call-envelope facts.
-- `src/self_hosted/codegen/text/struct_literal_field_owner.pgy` -- struct literal field-name/value entry facts.
-- `src/self_hosted/codegen/text/struct_field_access_owner.pgy` -- dotted member-access field spelling projection facts.
 - `src/self_hosted/codegen/type_facts/type_env.pgy` -- type environment facts,
   including declaration/role preseal epochs that keep the original global
   index, the ordered program-global delta, and function-local rows as distinct
@@ -2014,7 +2017,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   explicit `Result<T,E>` materializations participate in the same graph;
   nominal-array usage supplies element forwards and pointer descriptors before
   complete value declarations. Missing facts and direct by-value cycles fail closed.
-- `src/self_hosted/codegen/emission/struct_value_emit.pgy` -- struct value emission.
 - `src/self_hosted/codegen/emission/try_let_emit_owner.pgy` -- try-expression
   local-binding control flow from semantic graph edges and Option/Result ABI
   facts.
@@ -2405,8 +2407,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/codegen/role_fixture/operator_add.pgy` -- TestHarness-owned
   positive role operator artifact proving role target and method identity rows
   through C/LLVM codegen parity.
-- `src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy` -- local,
-  parameter, and loop source-reference rewrite from `type_env` `cbind` rows.
 - `src/self_hosted/compiler/stage_artifact_owner.pgy` -- stage artifact
   envelope facts that bind token, AST, semantic, and MIR stage actors to the
   compiler-world path manifest rows.

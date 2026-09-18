@@ -1,8 +1,8 @@
-// Executable contracts for the temporary compact-text expression bridge.
+// Executable contracts for the serialized-AST parser expression boundary.
 
 import "ast_expression_graph_build_owner.pgy";
 
-func SemanticExpressionGraphCompactBridgeTryContractReady() -> Bool {
+func SemanticExpressionGraphSerializedParserTryContractReady() -> Bool {
     let prefix_kinds: Array<Int> = [];
     let prefix_texts: Array<String> = [];
     let prefix_left: Array<Int> = [];
@@ -10,7 +10,7 @@ func SemanticExpressionGraphCompactBridgeTryContractReady() -> Bool {
     let prefix_target_kinds: Array<Int> = [];
     let prefix_target_names: Array<String> = [];
     let prefix: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
+        SemanticExpressionGraphImportSerializedParserFact(
             prefix_kinds, prefix_texts, prefix_left, prefix_right,
             prefix_target_kinds, prefix_target_names, "(?Pick(x))"
         );
@@ -40,7 +40,7 @@ func SemanticExpressionGraphCompactBridgeTryContractReady() -> Bool {
     let postfix_target_kinds: Array<Int> = [];
     let postfix_target_names: Array<String> = [];
     let postfix: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
+        SemanticExpressionGraphImportSerializedParserFact(
             postfix_kinds, postfix_texts, postfix_left, postfix_right,
             postfix_target_kinds, postfix_target_names, "1 + value?"
         );
@@ -59,7 +59,7 @@ func SemanticExpressionGraphCompactBridgeTryContractReady() -> Bool {
         postfix_texts[postfix_operand] == "value";
 }
 
-func SemanticExpressionGraphParserBridgeContractReady() -> Bool {
+func SemanticExpressionGraphSerializedParserImportContractReady() -> Bool {
     let nested_kinds: Array<Int> = [];
     let nested_texts: Array<String> = [];
     let nested_left: Array<Int> = [];
@@ -67,7 +67,7 @@ func SemanticExpressionGraphParserBridgeContractReady() -> Bool {
     let nested_target_kinds: Array<Int> = [];
     let nested_target_names: Array<String> = [];
     let nested: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
+        SemanticExpressionGraphImportSerializedParserFact(
             nested_kinds, nested_texts, nested_left, nested_right,
             nested_target_kinds, nested_target_names,
             "line.end.LengthPlus(2)"

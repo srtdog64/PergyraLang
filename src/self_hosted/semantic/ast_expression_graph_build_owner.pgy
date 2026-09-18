@@ -1,12 +1,11 @@
-// Compact expression graph construction.
+// Converts an already parsed expression fact into semantic graph storage.
 //
 // The six row arrays cross recursive build boundaries independently. Passing
 // SemanticExpressionGraphArena as inout would copy a compiler-scale aggregate
 // at every edge and has a different LLVM ABI shape from the C backend.
 
 import "ast_expression_graph_fact_owner.pgy";
-import "try_expression_fact_owner.pgy";
-import "../parser/expr_owner.pgy";
+import "../parser/ast_text_artifact_parse_owner.pgy";
 
 func SemanticExpressionGraphInvalidBuild() -> SemanticExpressionGraphBuild {
     return SemanticExpressionGraphBuild(false, 0);
@@ -49,18 +48,18 @@ func SemanticExpressionGraphAppendNode(
     return SemanticExpressionGraphBuild(true, root_id);
 }
 
-func SemanticExpressionGraphBuildParserCompactBridge(
+func SemanticExpressionGraphBuildFromParserFact(
     inout node_kinds: Array<Int>,
     inout node_texts: Array<String>,
     inout left_children: Array<Int>,
     inout right_children: Array<Int>,
     inout call_target_kinds: Array<Int>,
     inout call_target_names: Array<String>,
-    text: String
+    parsed: ParserExpressionFact
 ) -> SemanticExpressionGraphBuild {
-    let cursor: Array<Int> = [0];
-    let parsed: ParserExpressionFact = ParseExprFact(text, 0, cursor);
-    if !parsed.ok || cursor[0] != StringLength(text) {
+    if !parsed.ok || !AstExpressionArenaReady(parsed.arena) ||
+        parsed.root < 0 ||
+        parsed.root >= AstExpressionArenaNodeCount(parsed.arena) {
         return SemanticExpressionGraphInvalidBuild();
     }
     let offset: Int = ArrayLength(node_kinds);
@@ -76,8 +75,7 @@ func SemanticExpressionGraphBuildParserCompactBridge(
             SemanticExpressionGraphAppendNode(
                 node_kinds, node_texts, left_children, right_children,
                 call_target_kinds, call_target_names, kind,
-                SemanticStripOuterParens(parsed.arena.node_texts[i]),
-                left, right
+                parsed.arena.node_texts[i], left, right
             );
         if !appended.ok { return appended; }
         i = i + 1;
@@ -85,31 +83,10 @@ func SemanticExpressionGraphBuildParserCompactBridge(
     return SemanticExpressionGraphBuild(true, offset + parsed.root);
 }
 
-func SemanticExpressionGraphBuildTryCompactBridge(
-    inout node_kinds: Array<Int>,
-    inout node_texts: Array<String>,
-    inout left_children: Array<Int>,
-    inout right_children: Array<Int>,
-    inout call_target_kinds: Array<Int>,
-    inout call_target_names: Array<String>,
-    operand: String
-) -> SemanticExpressionGraphBuild {
-    let child: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
-            node_kinds, node_texts, left_children, right_children,
-            call_target_kinds, call_target_names, operand
-        );
-    if !child.ok { return child; }
-    return SemanticExpressionGraphAppendNode(
-        node_kinds, node_texts, left_children, right_children,
-        call_target_kinds, call_target_names, AstExpressionNodeTry(),
-        Concat("?", operand), child.root_id, 0
-    );
-}
-
-// Transitional producer: canonical prefix-try text is normalized explicitly;
-// every other supported expression topology is owned by the parser graph.
-func SemanticExpressionGraphBuildCompactBridgeFromText(
+// Boundary adapter for legacy MIR/probe inputs that still carry expression
+// spelling. Grammar and canonical prefix-try handling remain parser-owned;
+// this owner only imports the resulting typed graph fact.
+func SemanticExpressionGraphImportSerializedParserFact(
     inout node_kinds: Array<Int>,
     inout node_texts: Array<String>,
     inout left_children: Array<Int>,
@@ -118,45 +95,9 @@ func SemanticExpressionGraphBuildCompactBridgeFromText(
     inout call_target_names: Array<String>,
     expression: String
 ) -> SemanticExpressionGraphBuild {
-    let text: String = SemanticStripOuterParens(expression);
-    if text == "" { return SemanticExpressionGraphInvalidBuild(); }
-    let prefix_try: Option<String> = SemanticTryOperand(text);
-    if CharAt(text, 0) == "?" && IsSome(prefix_try) {
-        return SemanticExpressionGraphBuildTryCompactBridge(
-            node_kinds, node_texts, left_children, right_children,
-            call_target_kinds, call_target_names, UnwrapOption(prefix_try)
-        );
-    }
-    return SemanticExpressionGraphBuildParserCompactBridge(
+    return SemanticExpressionGraphBuildFromParserFact(
         node_kinds, node_texts, left_children, right_children,
-        call_target_kinds, call_target_names, text
+        call_target_kinds, call_target_names,
+        ParserSerializedExpressionFact(expression)
     );
-}
-
-func SemanticExpressionGraphAppendLaneRows(
-    inout roots: Array<Int>,
-    inout has_roots: Array<Bool>,
-    inout node_kinds: Array<Int>,
-    inout node_texts: Array<String>,
-    inout left_children: Array<Int>,
-    inout right_children: Array<Int>,
-    inout call_target_kinds: Array<Int>,
-    inout call_target_names: Array<String>,
-    graph_ok: Bool,
-    present: Bool,
-    expression: String
-) -> Bool {
-    if !graph_ok || !present {
-        ArrayPush(roots, 0);
-        ArrayPush(has_roots, false);
-        return graph_ok;
-    }
-    let build: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
-            node_kinds, node_texts, left_children, right_children,
-            call_target_kinds, call_target_names, expression
-        );
-    ArrayPush(roots, build.root_id);
-    ArrayPush(has_roots, build.ok);
-    return build.ok;
 }

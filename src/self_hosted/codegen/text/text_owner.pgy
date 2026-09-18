@@ -183,50 +183,6 @@ func StripOuterParens(e: String) -> String {
     return s;
 }
 
-// Find the first top-level single-char `+` (string-concatenation operator) in a
-// string-valued expression: depth 0 (outside any (), []) and outside string
-// literals.
-func FindTopLevelPlus(s: String) -> Option<Int> {
-    let n: Int = StringLength(s);
-    let i: Int = 0;
-    let depth: Int = 0;
-    let in_str: Bool = false;
-    while i < n {
-        let c: String = CodegenCharAt(s, i);
-        if in_str {
-            if c == "\\" {
-                i = i + 2;
-                continue;
-            }
-            if c == "\"" {
-                in_str = false;
-            }
-            i = i + 1;
-            continue;
-        }
-        if c == "\"" {
-            in_str = true;
-            i = i + 1;
-            continue;
-        }
-        if c == "(" || c == "[" {
-            depth = depth + 1;
-            i = i + 1;
-            continue;
-        }
-        if c == ")" || c == "]" {
-            depth = depth - 1;
-            i = i + 1;
-            continue;
-        }
-        if depth == 0 && c == "+" {
-            return Some(i);
-        }
-        i = i + 1;
-    }
-    return None;
-}
-
 // ---- Type environment --------------------------------------------------
 // The environment is a string of `name=kind:Type|` entries with a leading
 // `|`, e.g. `|Greet=f:String|who=v:String|`. kind is `v` (variable) or `f`

@@ -27,7 +27,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let call_target_kinds: Array<Int> = [];
     let call_target_names: Array<String> = [];
     let build: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
+        SemanticExpressionGraphImportSerializedParserFact(
             node_kinds, node_texts, left_children, right_children,
             call_target_kinds, call_target_names, "Math.Add()"
         );
@@ -76,7 +76,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let builtin_target_kinds: Array<Int> = [];
     let builtin_target_names: Array<String> = [];
     let builtin_build: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
+        SemanticExpressionGraphImportSerializedParserFact(
             builtin_kinds, builtin_texts, builtin_left, builtin_right,
             builtin_target_kinds, builtin_target_names, "StringLength(\"x\")");
     let builtin_source: SemanticExpressionGraphFacts =
@@ -114,7 +114,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let declared_target_kinds: Array<Int> = [];
     let declared_target_names: Array<String> = [];
     let declared_build: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
+        SemanticExpressionGraphImportSerializedParserFact(
             declared_kinds, declared_texts, declared_left, declared_right,
             declared_target_kinds, declared_target_names, "Math_Add()");
     let declared_source: SemanticExpressionGraphFacts =
@@ -140,7 +140,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let constructor_target_kinds: Array<Int> = [];
     let constructor_target_names: Array<String> = [];
     let constructor_build: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
+        SemanticExpressionGraphImportSerializedParserFact(
             constructor_kinds, constructor_texts,
             constructor_left, constructor_right,
             constructor_target_kinds, constructor_target_names,
@@ -181,7 +181,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let member_target_kinds: Array<Int> = [];
     let member_target_names: Array<String> = [];
     let member_build: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
+        SemanticExpressionGraphImportSerializedParserFact(
             member_kinds, member_texts, member_left, member_right,
             member_target_kinds, member_target_names, "box.Get()"
         );
@@ -248,7 +248,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let chain_target_kinds: Array<Int> = [];
     let chain_target_names: Array<String> = [];
     let chain_build: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
+        SemanticExpressionGraphImportSerializedParserFact(
             chain_kinds, chain_texts, chain_left, chain_right,
             chain_target_kinds, chain_target_names, "MakeBox().Get()"
         );

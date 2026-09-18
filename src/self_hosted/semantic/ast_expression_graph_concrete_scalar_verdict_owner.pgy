@@ -9,7 +9,6 @@ import "ast_expression_graph_node_view_owner.pgy";
 import "ast_signature_type_expression_fact_owner.pgy";
 import "ast_contextual_builtin_type_owner.pgy";
 import "ast_callable_receiver_source_parameter_owner.pgy";
-
 func SemanticExpressionGraphCallTargetSourceParameterOffset(
     target: SemanticExpressionCallTargetFact, local_callable: SemanticAstCallableTypeShape,
     signatures: SemanticAstFunctionSignatureFacts) -> Option<Int> {
@@ -52,6 +51,8 @@ func SemanticExpressionGraphConcreteScalarValueOwned(ref graph: SemanticExpressi
             function_names, function_returns);
         return IsSome(OptionCoalescePayloadTypeOpt(wrapped_type, fallback_type));
     }
+    if kind == AstExpressionNodeTry() && SemanticExpressionGraphTryOperandTypeOwned(
+        graph, node_id, constructors, names, types, function_names, function_returns) { return true; }
     if SemanticExpressionGraphScalarOperatorKind(kind) {
         let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, node_id);
         if !IsSome(left) || !SemanticExpressionGraphConcreteScalarValueOwned(

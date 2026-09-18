@@ -4,7 +4,6 @@
 import "../text/text_owner.pgy";
 import "../text/owned_string_join_owner.pgy";
 import "../text/enum_literal_owner.pgy";
-import "../text/expr_scan.pgy";
 import "../type_facts/type_env.pgy";
 import "../type_facts/type_env_state_lifetime_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
@@ -20,7 +19,6 @@ import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 import "../runtime_abi/spawn_runtime_owner.pgy";
-import "expr_rewrite.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 import "collection_element_emit_owner.pgy";
@@ -367,12 +365,11 @@ func EmitStmtList(count: Int, arena: AstArena,
             let a_target: SemanticExpressionGraphView = CodegenSemanticExpressionGraphOrDie(
                 expression_surfaces, idx, AstExpressionLaneAtom());
             let c_a_arr: String = CodegenCollectionTargetCBindingOrDie(env, a_arr, a_target);
-            let a_idx: String = CodegenSemanticArraySetIndexOrDie(statements, idx);
             let a_val: String = CodegenSemanticArraySetValueOrDie(statements, idx);
-            let a_graph: SemanticExpressionGraphView =
-                CodegenSemanticExpressionGraphOrDie(
-                    expression_surfaces, idx, AstExpressionLaneAuxiliary()
-                );
+            let a_index_graph: SemanticExpressionGraphView = CodegenSemanticExpressionGraphOrDie(
+                expression_surfaces, idx, AstExpressionLaneValue());
+            let a_graph: SemanticExpressionGraphView = CodegenSemanticExpressionGraphOrDie(
+                expression_surfaces, idx, AstExpressionLaneAuxiliary());
             let a_type: Option<String> = CodegenExpressionTypeFromGraph(
                 a_target.graph, a_target.root_id, env);
             if !IsSome(a_type) { Die("collection target semantic type fact is missing"); }
@@ -381,7 +378,9 @@ func EmitStmtList(count: Int, arena: AstArena,
             let a_rhs: String = EmitCollectionGraphElementValue(
                 a_val, env, array_fact, a_graph
             );
-            let set_stmt: String = Concat(array_fact.c_set_fn, Concat("(&", Concat(c_a_arr, Concat(", ", Concat(IntEval(a_idx, env), Concat(", ", Concat(a_rhs, ");")))))));
+            let a_index: String = RewriteSemanticExpectedValue(
+                a_index_graph.graph, a_index_graph.root_id, "Int", env);
+            let set_stmt: String = Concat(array_fact.c_set_fn, Concat("(&", Concat(c_a_arr, Concat(", ", Concat(a_index, Concat(", ", Concat(a_rhs, ");")))))));
             ArrayPush(result, Concat(pad, Concat(set_stmt, "\n")));
             ArraySet(cur, 0, idx + 1); continue;
         }

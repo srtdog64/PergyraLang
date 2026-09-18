@@ -10,6 +10,7 @@ import "ast_initializer_type_fact_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "ast_expression_surface_fact_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
+import "ast_expression_typed_binding_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
@@ -520,7 +521,7 @@ func SemanticAstIterationTypeFactsReadyForMirProjection(
 }
 
 func SemanticAstIterationTypeFactsContractReady() -> Bool {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        For: i in 0..3\n          Block:\n            Log(i)\n"
     );
     let signatures: SemanticAstFunctionSignatureFacts =
@@ -530,7 +531,7 @@ func SemanticAstIterationTypeFactsContractReady() -> Bool {
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
     let expression_surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact);
+        SemanticAstExpressionSurfaceFactsFromTypedArtifact(artifact);
     let initializers: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, expression_surfaces

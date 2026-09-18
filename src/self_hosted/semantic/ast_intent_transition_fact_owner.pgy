@@ -152,16 +152,10 @@ func SemanticAstIntentTransitionFactsFromArtifact(
             if TypedAstArenaNodeKindIs(
                 artifact.arena, child_id, TypedAstKindIntentStepTag()
             ) {
-                let atom: Option<String> = TypedAstArenaAtomText(
-                    artifact.arena, child_id
-                );
-                if !IsSome(atom) {
-                    return SemanticAstIntentTransitionFactsError(
-                        "typed intent step identity is missing", artifact.count
-                    );
-                }
                 let header: SemanticAstIntentStepHeaderRow =
-                    SemanticAstIntentStepHeaderFromText(UnwrapOption(atom));
+                    SemanticAstIntentStepHeaderFromArtifact(
+                        artifact, child_id
+                    );
                 if !header.ok {
                     return SemanticAstIntentTransitionFactsError(
                         "typed intent step header is invalid", artifact.count
@@ -190,11 +184,10 @@ func SemanticAstIntentTransitionFactsFromArtifact(
         while local_step < step_count {
             let step_row: Int = step_start + local_step;
             let step_node_id: Int = node_ids[step_row];
-            let atom: Option<String> = TypedAstArenaAtomText(
-                artifact.arena, step_node_id
-            );
             let header: SemanticAstIntentStepHeaderRow =
-                SemanticAstIntentStepHeaderFromText(UnwrapOption(atom));
+                SemanticAstIntentStepHeaderFromArtifact(
+                    artifact, step_node_id
+                );
             let predecessor_index: Int = -1;
             let predecessor_node_id: Int = -1;
             if header.predecessor_name != "" {

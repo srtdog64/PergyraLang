@@ -34,7 +34,7 @@ func ProbeExpressionGraph(
     let call_target_kinds: Array<Int> = [];
     let call_target_names: Array<String> = [];
     let built: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
+        SemanticExpressionGraphImportSerializedParserFact(
             node_kinds, node_texts, left_children, right_children,
             call_target_kinds, call_target_names, expression
         );

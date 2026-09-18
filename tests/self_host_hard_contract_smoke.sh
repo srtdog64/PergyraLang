@@ -264,7 +264,7 @@ forbid_function_text "src/self_hosted/compiler/canonical_mir_execution_owner.pgy
     "SemanticAstArtifactAnalyzeCompactBridge"
 require_function_text "src/self_hosted/compiler/canonical_mir_execution_owner.pgy" \
     "CanonicalizeOracleMirJsonBridge" \
-    "SemanticAstArtifactAnalyzeCompactBridge(artifact, true)"
+    "SemanticAstArtifactAnalyzeTyped(artifact, true)"
 forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "CompileSourceToMirJsonVerified" \
     "CanonicalizeOracleMirJsonBridge("

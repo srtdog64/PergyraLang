@@ -279,6 +279,24 @@ func SemanticExpressionGraphScalarTypeName(
     return "Unknown";
 }
 
+func SemanticExpressionGraphTryOperandTypeOwned(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
+) -> Bool {
+    let operand: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, root_id
+    );
+    return IsSome(operand) && SemanticExpressionGraphScalarTypeName(
+        graph, UnwrapOption(operand), constructors, names, types,
+        function_names, function_returns
+    ) != "Unknown";
+}
+
 func SemanticExpressionGraphIndexValueTypeName(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,

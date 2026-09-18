@@ -83,9 +83,8 @@ func SemanticAstExpressionInvalidShape() -> SemanticAstExpressionShapeFact {
     );
 }
 
-func SemanticAstExpressionSurfaceFactsFromArtifactMode(
-    artifact: AstTreeArtifact,
-    derive_compact_graph: Bool
+func SemanticAstExpressionSurfaceRowsFromArtifact(
+    artifact: AstTreeArtifact
 ) -> SemanticAstExpressionSurfaceFacts {
     let node_ids: Array<Int> = [];
     let function_node_ids: Array<Int> = [];
@@ -103,13 +102,6 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
     let operator_rows: Array<Int> = [];
     let graph_roots: Array<Int> = [];
     let graph_has_roots: Array<Bool> = [];
-    let graph_node_kinds: Array<Int> = [];
-    let graph_node_texts: Array<String> = [];
-    let graph_left_children: Array<Int> = [];
-    let graph_right_children: Array<Int> = [];
-    let graph_call_target_kinds: Array<Int> = [];
-    let graph_call_target_names: Array<String> = [];
-    let graph_ok: Bool = true;
     let failure_node_id: Int = -1;
     let failure_lane: String = "";
     let function_scopes: SemanticAstFunctionScopeFacts =
@@ -187,86 +179,28 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
                 ),
                 normalized_auxiliary
             );
-            let migrated_atom: Bool = IsSome(atom) &&
-                (SemanticAstExpressionGraphAtomLaneRequired(
-                    artifact, node_id
-                ) || SemanticAstExpressionGraphAtomLaneProducerOnly(
-                    artifact, node_id
-                ));
-            let migrated_value: Bool = IsSome(value) &&
-                SemanticAstExpressionGraphValueLaneRequired(artifact, node_id);
-            let migrated_auxiliary: Bool = IsSome(auxiliary) &&
-                SemanticAstExpressionGraphAuxiliaryLaneRequired(
-                    artifact, node_id
-                );
-            let atom_graph_ok: Bool = SemanticExpressionGraphAppendLaneRows(
-                graph_roots, graph_has_roots, graph_node_kinds,
-                graph_node_texts, graph_left_children, graph_right_children,
-                graph_call_target_kinds, graph_call_target_names, graph_ok,
-                derive_compact_graph && migrated_atom,
-                normalized_atom
-            );
-            if graph_ok && !atom_graph_ok {
-                failure_node_id = node_id;
-                failure_lane = "atom";
+            let lane: Int = AstExpressionLaneAtom();
+            while lane <= AstExpressionLaneAuxiliary() {
+                ArrayPush(graph_roots, 0);
+                ArrayPush(graph_has_roots, false);
+                lane = lane + 1;
             }
-            graph_ok = atom_graph_ok;
-            let value_graph_ok: Bool = SemanticExpressionGraphAppendLaneRows(
-                graph_roots, graph_has_roots, graph_node_kinds,
-                graph_node_texts, graph_left_children, graph_right_children,
-                graph_call_target_kinds, graph_call_target_names, graph_ok,
-                derive_compact_graph && migrated_value,
-                normalized_value
-            );
-            if graph_ok && !value_graph_ok {
-                failure_node_id = node_id;
-                failure_lane = "value";
-            }
-            graph_ok = value_graph_ok;
-            let auxiliary_graph_ok: Bool = SemanticExpressionGraphAppendLaneRows(
-                graph_roots, graph_has_roots, graph_node_kinds,
-                graph_node_texts, graph_left_children, graph_right_children,
-                graph_call_target_kinds, graph_call_target_names, graph_ok,
-                derive_compact_graph && migrated_auxiliary,
-                normalized_auxiliary
-            );
-            if graph_ok && !auxiliary_graph_ok {
-                failure_node_id = node_id;
-                failure_lane = "auxiliary";
-            }
-            graph_ok = auxiliary_graph_ok;
         }
         node_id = node_id + 1;
     }
     let expression_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(
-            graph_ok, graph_roots, graph_has_roots,
-            SemanticExpressionGraphArenaUnclassified(
-                graph_node_kinds, graph_node_texts, graph_left_children,
-                graph_right_children, graph_call_target_kinds,
-                graph_call_target_names
-            )
+            true, graph_roots, graph_has_roots,
+            SemanticExpressionGraphArenaEmpty()
         );
     return SemanticAstExpressionSurfaceFacts(
-        ok && graph_ok, failure_node_id, failure_lane,
+        ok, failure_node_id, failure_lane,
         artifact.count, node_ids, function_node_ids, intent_node_ids, has_atoms, atoms,
         has_values, values,
         has_auxiliary_values, auxiliary_values, normalized_atoms,
         normalized_values, normalized_auxiliary_values, operator_rows,
         expression_graph
     );
-}
-
-func SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(
-    artifact: AstTreeArtifact
-) -> SemanticAstExpressionSurfaceFacts {
-    return SemanticAstExpressionSurfaceFactsFromArtifactMode(artifact, true);
-}
-
-func SemanticAstExpressionSurfaceRowsFromArtifact(
-    artifact: AstTreeArtifact
-) -> SemanticAstExpressionSurfaceFacts {
-    return SemanticAstExpressionSurfaceFactsFromArtifactMode(artifact, false);
 }
 
 func SemanticAstExpressionSurfaceCount(
@@ -396,21 +330,8 @@ func SemanticAstExpressionGraphRootSpellingMatches(
         graph, root_id
     );
     if !IsSome(root_text) { return false; }
-    if UnwrapOption(root_text) == surface_text { return true; }
-    let node_kinds: Array<Int> = [];
-    let node_texts: Array<String> = [];
-    let left_children: Array<Int> = [];
-    let right_children: Array<Int> = [];
-    let call_target_kinds: Array<Int> = [];
-    let call_target_names: Array<String> = [];
-    let canonical: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
-            node_kinds, node_texts, left_children, right_children,
-            call_target_kinds, call_target_names, surface_text
-        );
-    return canonical.ok &&
-        node_texts[canonical.root_id] ==
-            UnwrapOption(root_text);
+    return SemanticStripOuterParens(UnwrapOption(root_text)) ==
+        SemanticStripOuterParens(surface_text);
 }
 
 func SemanticAstExpressionSurfaceFactsWithGraph(

@@ -1,0 +1,51 @@
+// Expression lanes that the typed AST artifact must carry as parser-owned
+// graph roots.  This policy belongs beside the artifact schema: both source
+// parsing and serialized-AST admission must produce the same rows before any
+// semantic consumer runs.
+
+import "ast_node_kind_owner.pgy";
+
+func AstExpressionGraphAtomLaneRequiredForKind(kind: Int) -> Bool {
+    return kind == TypedAstKindIfStmtTag() ||
+        kind == TypedAstKindWhileStmtTag() ||
+        kind == TypedAstKindExitStmtTag() ||
+        kind == TypedAstKindValueReturnStmtTag() ||
+        kind == TypedAstKindLogStmtTag() ||
+        kind == TypedAstKindBareCallStmtTag() ||
+        kind == TypedAstKindAssignStmtTag() ||
+        kind == TypedAstKindMatchStmtTag() ||
+        kind == TypedAstKindDestructureStmtTag() ||
+        kind == TypedAstKindIntentStepOnTag() ||
+        kind == TypedAstKindIntentStepCompensateTag() ||
+        kind == TypedAstKindIntentStepGuardTag() ||
+        kind == TypedAstKindIntentStepPreTag() ||
+        kind == TypedAstKindIntentStepInvariantTag() ||
+        kind == TypedAstKindIntentStepPostTag() ||
+        kind == TypedAstKindIntentStepExpectTag() ||
+        kind == TypedAstKindIntentStepIntentTag() ||
+        kind == TypedAstKindIntentPriorityTag() ||
+        kind == TypedAstKindIntentSuccessTag() ||
+        kind == TypedAstKindIntentFailureTag() ||
+        kind == TypedAstKindIntentTerminalSuccessTag() ||
+        kind == TypedAstKindIntentTerminalFailureTag();
+}
+
+func AstExpressionGraphAtomLaneProducerOnlyForKind(kind: Int) -> Bool {
+    return kind == TypedAstKindArrayPopStmtTag() ||
+        kind == TypedAstKindArrayPushStmtTag() ||
+        kind == TypedAstKindArraySetStmtTag();
+}
+
+func AstExpressionGraphValueLaneRequiredForKind(kind: Int) -> Bool {
+    return kind == TypedAstKindLetStmtTag() ||
+        kind == TypedAstKindAssignStmtTag() ||
+        kind == TypedAstKindForStmtTag() ||
+        kind == TypedAstKindArrayPushStmtTag() ||
+        kind == TypedAstKindArraySetStmtTag() ||
+        kind == TypedAstKindDestructureStmtTag();
+}
+
+func AstExpressionGraphAuxiliaryLaneRequiredForKind(kind: Int) -> Bool {
+    return kind == TypedAstKindForStmtTag() ||
+        kind == TypedAstKindArraySetStmtTag();
+}

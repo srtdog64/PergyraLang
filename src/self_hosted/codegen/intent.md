@@ -229,18 +229,11 @@ from runtime value kind (`v`). Function parameters, declared locals, readonly
 references, and loop bindings project both rows. Semantic expression graph
 typing reads only `type`; a missing row fails closed instead of treating
 `OptionInt`, `ArrayInt`, or another runtime spelling as a source type.
-`text/expr_sequence_owner.pgy` owns top-level comma-separated expression
-sequence facts for array literals, call arguments, and struct literal field
-lists while expression payloads remain string-backed.
-`text/struct_literal_call_owner.pgy` owns the legacy compact-expression struct
-call envelope for explicit non-graph lanes: `Name(...)` recognition plus the
-typed type-name/inner-payload fact row. Named struct literals in migrated call
-arguments and general local/assignment/return values consume parser-owned
-struct/field graph nodes through the semantic graph emitters.
-`text/struct_literal_field_owner.pgy` owns the corresponding legacy typed field
-entry row while those payloads remain string-backed.
-`text/struct_field_access_owner.pgy` owns dotted member-access spelling
-projection while member payloads remain string-backed.
+The parser-owned expression graph carries ordered array elements, call
+arguments, struct fields, and member-access handles. The retired compact
+sequence, struct-call, struct-field, and member-access text owners cannot
+return. Semantic graph emitters consume those ordered facts, and emitted field
+spelling comes from the compiler symbol owner.
 Statement-row facts for `Let`, `Assign`, `Log`, `Return`, `Defer`, `ArrayPop`,
 `ArraySet`, `ArrayPush`, `Exit`, `Break`, `Continue`, `For`, `While`, `If`,
 `Else` routing, and bare call statements live in the row-fact owner plus typed
@@ -251,9 +244,10 @@ Parameter mode is part of that input contract: the parser AST text must preserve
 through function-env `pm` facts, lowers it as value-result copy-in/copy-out, and
 rewrites call arguments from those facts. It preserves but fail-closes on `own`
 and `ref` until their ABI and ownership facts have owners.
-This is a transitional text bridge; the mixed AST-like tagged-node owner remains
-an active expansion surface. `SemanticAstExpressionSurfaceFacts` owns normalized
-graph and consistency rows for all three payload lanes. The `Log`
+This is now a parser-owned serialized-AST boundary. The parser emits expression
+graph rows before semantic admission; semantic and codegen consumers cannot
+reconstruct them from payload text. `SemanticAstExpressionSurfaceFacts` owns
+normalized graph and consistency rows for all three payload lanes. The `Log`
 atom-expression path consumes the graph through
 `semantic_expression_codegen_view_owner.pgy` and
 `expr_semantic_graph_emit_owner.pgy`; the retired top-level shape emitter is
@@ -263,25 +257,25 @@ Root `if`/`while` conditions consume distinct semantic `||`, `&&`, `==`, and
 `!=` facts. They now consume stable semantic expression node handles and child
 edges for recursive logical/equality structure; codegen cannot split condition
 text or call the legacy recursive boolean scanner. Condition graph production
-is still a compact-text bridge until the parser emits those same rows directly;
-postfix try is already parser-owned and is not part of that bridge.
+and postfix try are both parser-owned; semantic analysis validates their
+carried topology without a compact-text bridge.
 The codegen arena view is now structural/provenance-only: direct atom, type,
 value, auxiliary-value, parameter-type, and parameter-mode accessors are
 absent. Indexed-assignment target indexing and `await` now consume parser-owned
 expression graph nodes. Index emission also derives the receiver collection
 type from the graph type owner and collection ABI row; receiver text and
-`ExprMemberFieldType` are forbidden in that emitter. The remaining blockers are Option/Result wrapper
-internals, address/receive/spawn prefix forms, non-condition recursive
-expression text, and initial compact-tree construction. Those bridges remain
-inside named owners rather than reopening a codegen arena read.
+`ExprMemberFieldType` are forbidden in that emitter. Supported Option/Result,
+address/receive/spawn, recursive, aggregate, generic, and collection forms use
+the carried graph. An unowned shape fails at `expression_graph_type`; it cannot
+reopen a codegen arena or payload-text read.
 `run/codegen_run_owner.pgy` owns the CLI-to-output orchestration that feeds the
 owned input into `GenerateC`; it also owns the codegen parity fixture manifest
 by walking `src/self_hosted/codegen/fixture` and retaining only rows with paired
 `expected/*_stdout.txt` outputs. `main.pgy` only calls that run owner.
-`emission/struct_value_emit.pgy` remains a legacy compact-expression owner for
-unmigrated lanes. Collection values and general struct-valued local
-initialization, assignment, and value return consume expected-type semantic
-graph facts. `emission/expr_semantic_option_value_owner.pgy` owns the shared
+Collection values and general struct-valued local initialization, assignment,
+and value return consume expected-type semantic graph facts; the retired
+`emission/struct_value_emit.pgy` path cannot return.
+`emission/expr_semantic_option_value_owner.pgy` owns the shared
 semantic call spine, direct-call target fact, payload edge, and expected-type
 ABI row for contextual `Option<T>` constructors. The statement-level
 `emission/option_value_emit_owner.pgy` only adapts into that dispatcher.

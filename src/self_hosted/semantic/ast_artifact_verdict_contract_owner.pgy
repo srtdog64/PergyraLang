@@ -3,11 +3,11 @@
 import "ast_artifact_verdict_owner.pgy";
 
 func SemanticAstArtifactVerdictContractReady() -> Bool {
-    let valid: AstTreeArtifact = AstTreeArtifactFromText(
+    let valid: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Enum: Direction { North, East }\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n"
     );
     let valid_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(valid, true);
+        SemanticAstArtifactAnalyzeTyped(valid, true);
     if !SemanticAstArtifactAnalysisMatches(valid, valid_analysis, true) ||
         valid_analysis.verdict.main_count != 1 ||
         SemanticAstFunctionSignatureCount(valid_analysis.signatures) != 1 ||
@@ -20,7 +20,7 @@ func SemanticAstArtifactVerdictContractReady() -> Bool {
         ArrayLength(valid_analysis.enums.variant_names) != 2 {
         return false;
     }
-    let stale_same_count: AstTreeArtifact = AstTreeArtifactFromText(
+    let stale_same_count: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Enum: Direction { South, West }\n  Function: Other\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: y : Int = 2\n"
     );
     if stale_same_count.count != valid.count ||
@@ -32,7 +32,7 @@ func SemanticAstArtifactVerdictContractReady() -> Bool {
     }
     let mutated_graph: AstExpressionGraphRows = AstExpressionGraphRows(
         true, [TypedAstKindLetStmtTag()], [AstExpressionLaneValue()], [0],
-        AstExpressionArena([AstExpressionNodeLeaf()], ["1"], [0], [0])
+        AstExpressionArena([AstExpressionNodeLeaf()], ["2"], [0], [0])
     );
     let stale_same_tree: AstTreeArtifact = AstTreeArtifact(
         valid.tree_text, valid.arena, valid.count, mutated_graph, valid.source_modules,
@@ -47,7 +47,7 @@ func SemanticAstArtifactVerdictContractReady() -> Bool {
         ) {
         return false;
     }
-    let missing: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");
+    let missing: AstTreeArtifact = ParserAstTreeArtifactFromText("Program:\n");
     let missing_signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(missing);
     let missing_verdict: SemanticAstArtifactVerdict =
@@ -56,7 +56,7 @@ func SemanticAstArtifactVerdictContractReady() -> Bool {
         missing_verdict.diagnostic_code != "entrypoint_cardinality" {
         return false;
     }
-    let duplicate: AstTreeArtifact = AstTreeArtifactFromText(
+    let duplicate: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
     );
     let duplicate_signatures: SemanticAstFunctionSignatureFacts =

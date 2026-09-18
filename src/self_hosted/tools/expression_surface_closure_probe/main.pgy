@@ -1,0 +1,51 @@
+// Executable closure proof for parser-owned expression graphs.
+
+import "../../semantic/ast_artifact_verdict_contract_owner.pgy";
+import "../../semantic/ast_expression_surface_contract_owner.pgy";
+import "../../semantic/ast_expression_graph_serialized_parser_contract_owner.pgy";
+import "../../semantic/ast_expression_graph_fail_closed_contract_owner.pgy";
+import "../../parser/expression_graph_contract_owner.pgy";
+import "../../parser/expression_set_literal_contract_owner.pgy";
+
+func Main() -> Void {
+    if !ParserExpressionGraphContractReady() ||
+        !ParserExpressionPrecedenceGraphContractReady() ||
+        !ParserExpressionCastGraphContractReady() ||
+        !ParserExpressionUnaryGraphContractReady() ||
+        !ParserExpressionPipeGraphContractReady() ||
+        !ParserExpressionPostfixGraphContractReady() ||
+        !ParserExpressionTryGraphContractReady() ||
+        !ParserExpressionArrayLiteralGraphContractReady() ||
+        !ParserExpressionSetLiteralGraphContractReady() ||
+        !ParserExpressionStructLiteralGraphContractReady() ||
+        !ParserExpressionCallGraphContractReady() ||
+        !ParserExpressionExplicitGenericCallGraphContractReady() ||
+        !ParserExpressionNamedSingleCallArgumentContractReady() ||
+        !ParserExpressionNamedCallArgumentAtContractReady() ||
+        !ParserExpressionDirectCallCalleeContractReady() {
+        Log("expression-surface-closure: parser graph contract failed");
+        Exit(1);
+    }
+    if !SemanticExpressionGraphSerializedParserImportContractReady() ||
+        !SemanticExpressionGraphSerializedParserTryContractReady() {
+        Log("expression-surface-closure: serialized parser boundary failed");
+        Exit(1);
+    }
+    if !SemanticAstExpressionTypedBindingContractReady() {
+        Log("expression-surface-closure: typed binding failed");
+        Exit(1);
+    }
+    if !SemanticAstExpressionSurfaceFactsContractReady() {
+        Log("expression-surface-closure: surface topology failed");
+        Exit(1);
+    }
+    if !SemanticAstExpressionGraphTypeFailClosedContractReady() {
+        Log("expression-surface-closure: unowned graph type did not fail closed");
+        Exit(1);
+    }
+    if !SemanticAstArtifactVerdictContractReady() {
+        Log("expression-surface-closure: artifact admission failed");
+        Exit(1);
+    }
+    Log("expression-surface-closure=parser-owned-fail-closed");
+}

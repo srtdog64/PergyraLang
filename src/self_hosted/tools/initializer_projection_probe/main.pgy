@@ -8,7 +8,7 @@ import "../../compiler/machine_layer_declaration_consumer.pgy";
 import "../../compiler/canonical_mir_source_module_epoch_owner.pgy";
 
 func ProbeInitializerArtifactFromText(tree_text: String) -> AstTreeArtifact {
-    let base: AstTreeArtifact = AstTreeArtifactFromText(tree_text);
+    let base: AstTreeArtifact = ParserAstTreeArtifactFromText(tree_text);
     let module_paths: Array<String> = [];
     let child_index: Int = 0;
     let child: Option<Int> = TypedAstArenaChildAt(base.arena, 0, child_index);
@@ -450,7 +450,7 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
     let artifact: AstTreeArtifact =
         ProbeInitializerArtifactFromText(artifact_text);
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     if mode == "--direct-call-callee-mismatch" {
         let damaged_surfaces: SemanticAstExpressionSurfaceFacts =
             ProbeExpressionSurfacesWithCallCallee(
@@ -679,7 +679,7 @@ func ProbeInitializerCursorVisibility(mode: String) -> Bool {
     let artifact: AstTreeArtifact =
         ProbeInitializerArtifactFromText(artifact_text);
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     let body_types: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     let initializer_types: SemanticAstInitializerTypeFacts =
@@ -836,7 +836,7 @@ func Main() -> Void with caps env {
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: seed : Int = 1\n        Let: x = seed + 2\n        Return: x\n"
     );
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     if mode == "--unknown-scalar-operand" ||
         mode == "--scalar-type-mismatch" {
         let replacement: String = "missing_scalar_operand";

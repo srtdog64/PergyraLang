@@ -57,8 +57,12 @@ func CompilerDriverRung2ReadinessError() -> String {
     if !ParserExpressionArrayLiteralGraphContractReady() { return "parser_array_literal_graph"; }
     if !ParserExpressionSetLiteralGraphContractReady() { return "parser_set_literal_graph"; }
     if !ParserExpressionStructLiteralGraphContractReady() { return "parser_struct_literal_graph"; }
-    if !SemanticExpressionGraphParserBridgeContractReady() { return "graph_parser_bridge"; }
-    if !SemanticExpressionGraphCompactBridgeTryContractReady() { return "graph_compact_try_bridge"; }
+    if !SemanticExpressionGraphSerializedParserImportContractReady() {
+        return "graph_serialized_parser_import";
+    }
+    if !SemanticExpressionGraphSerializedParserTryContractReady() {
+        return "graph_serialized_parser_try";
+    }
     if !ParserExpressionCallGraphContractReady() { return "parser_call_graph"; }
     if !ParserExpressionExplicitGenericCallGraphContractReady() { return "parser_generic_call_graph"; }
     if !ParserExpressionNamedSingleCallArgumentContractReady() { return "parser_named_single_arg"; }

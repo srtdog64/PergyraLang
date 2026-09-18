@@ -204,12 +204,14 @@ fi
 grep -Fq 'SemanticAstExpressionGraphRootSpellingMatches(' \
     "$EXPRESSION_SURFACE" ||
     { echo "[$LABEL] parser-canonical root spelling verifier is missing" >&2; exit 1; }
-grep -Fq 'SemanticExpressionGraphBuildCompactBridgeFromText(' \
-    "$EXPRESSION_SURFACE" ||
-    { echo "[$LABEL] root spelling verifier bypasses the parser owner" >&2; exit 1; }
-grep -Fq 'func SemanticExpressionGraphAppendLaneRows(' \
+if grep -Fq 'SemanticExpressionGraphImportSerializedParserFact(' \
+    "$EXPRESSION_SURFACE"; then
+    echo "[$LABEL] root spelling verifier reparses parser-owned expression text" >&2
+    exit 1
+fi
+grep -Fq 'func SemanticExpressionGraphBuildFromParserFact(' \
     "$EXPRESSION_GRAPH_BUILD" ||
-    { echo "[$LABEL] expression graph builder is not row-carried" >&2; exit 1; }
+    { echo "[$LABEL] parser fact importer is missing" >&2; exit 1; }
 if grep -Eq 'inout (arena: SemanticExpressionGraphArena|facts: SemanticExpressionGraphFacts)' \
     "$EXPRESSION_GRAPH_BUILD" "$EXPRESSION_SURFACE"; then
     echo "[$LABEL] large expression graph aggregate crossed an inout boundary" >&2

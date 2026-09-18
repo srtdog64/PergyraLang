@@ -303,6 +303,16 @@ func SemanticAstRoleNameAt(
     return Some(facts.names[role_index]);
 }
 
+func SemanticAstRoleIncludeNameAtNode(
+    artifact: AstTreeArtifact,
+    node_id: Int
+) -> Option<String> {
+    if !TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindRoleIncludeTag()
+    ) { return None; }
+    return TypedAstArenaAtomText(artifact.arena, node_id);
+}
+
 func SemanticAstRoleTargetTypeAt(
     facts: SemanticAstRoleFacts,
     role_index: Int

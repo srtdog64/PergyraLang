@@ -1,11 +1,11 @@
 import "../../../src/self_hosted/compiler/driver_rung2_owner.pgy";
 
 func Main() -> Void {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+    let artifact: AstTreeArtifact = ParserAstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: alpha : Int = 1\n        Return: alpha\n"
     );
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) ||
         ArrayLength(analysis.local_bindings.names) != 1 {
         Die("mutable-analysis probe setup failed");

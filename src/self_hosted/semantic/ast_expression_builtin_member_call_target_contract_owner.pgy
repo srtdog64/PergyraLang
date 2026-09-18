@@ -16,7 +16,7 @@ func SemanticBuiltinMemberCallTargetContractReady(
     let target_kinds: Array<Int> = [];
     let target_names: Array<String> = [];
     let build: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
+        SemanticExpressionGraphImportSerializedParserFact(
             kinds, texts, left, right, target_kinds, target_names,
             "items.Slice(0, 1)"
         );

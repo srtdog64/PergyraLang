@@ -92,7 +92,10 @@ func SemanticExpressionGraphSetLiteralTypeName(
 ) -> Option<String> {
     let view: SemanticSetLiteralView =
         SemanticSetLiteralViewFromGraph(graph, root_id);
-    if !view.ok || ArrayLength(view.element_nodes) == 0 { return None; }
+    if !view.ok { return None; }
+    if ArrayLength(view.element_nodes) == 0 {
+        return Some("Set<Unknown>");
+    }
     let element_type: String = "";
     let i: Int = 0;
     while i < ArrayLength(view.element_nodes) {

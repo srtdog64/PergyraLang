@@ -108,9 +108,9 @@ enum variants, multiple bindings, and non-canonical scalar patterns also fail
 closed in this bounded rung. Older
 graph-less artifacts can be upgraded
 only by the explicitly named `--canonicalize-oracle-mir-json` compatibility
-boundary, which reuses the canonical Pergyra expression parser through
-`SemanticAstArtifactAnalyzeCompactBridge`. The hard consumer cannot invoke
-that bridge. The same boundary may reconstruct a legacy native match binding
+boundary, which imports the parser-owned typed artifact and admits it through
+`SemanticAstArtifactAnalyzeTyped`. The hard consumer cannot invoke that
+compatibility boundary. The same boundary may reconstruct a legacy native match binding
 as an inferred `Let` when `match_binding_types` is absent; ordinary MIR graph
 admission still rejects that missing fact, while canonical self MIR carries
 the Pergyra-owned binding type explicitly.

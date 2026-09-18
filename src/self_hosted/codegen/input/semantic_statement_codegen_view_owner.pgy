@@ -113,15 +113,6 @@ func CodegenSemanticArraySetTargetOrDie(
     );
 }
 
-func CodegenSemanticArraySetIndexOrDie(
-    facts: SemanticAstStatementFacts, node_id: Int
-) -> String {
-    let index: Int = CodegenSemanticStatementIndexOrDie(
-        facts, node_id, TypedAstKindArraySetStmtTag()
-    );
-    return facts.value_texts[index];
-}
-
 func CodegenSemanticArraySetValueOrDie(
     facts: SemanticAstStatementFacts, node_id: Int
 ) -> String {

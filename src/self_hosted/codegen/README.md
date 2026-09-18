@@ -36,10 +36,11 @@ resource-shaped subdirectories:
 - `emission/` owns participants in the C-emission action graph.
 
 These folders are not a copy of the native C backend topology. `program_emit`,
-`function_emit`, `stmt_emit`, `expr_rewrite`, `literal_rewrite`, and
-`struct_value_emit` are participants over the same output/type resources, not
-separate zones. Together they consume
-self-parser AST text for an `Int` / `Bool` / `String` / `Array<Int>` /
+`function_emit`, and `stmt_emit` are participants over the same output/type
+resources, not separate zones. Expression emission consumes the parser-owned
+AST artifact and semantic graph facts; the retired text rewrite and struct
+value emitters are not compatibility paths. Together these owners consume
+self-parser AST artifacts for an `Int` / `Bool` / `String` / `Array<Int>` /
 `Array<String>` / `Option<Int>` / `Option<String>` / `Void` function subset and emit a
 self-contained C program
 whose **run-stdout** matches the C/LLVM oracle.
@@ -232,23 +233,16 @@ shapes fail closed instead of falling back to the retired shape emitter.
 Root `if`/`while` conditions additionally consume separate semantic `||`,
 `&&`, equality-position, and equality-kind facts plus stable expression node
 handles and child edges. String and payload-free enum equality share one
-projection with the legacy leaf path. Recursive condition codegen no longer
-splits text; the remaining transition is parser-to-semantic graph production.
+projection with the semantic leaf path. Recursive condition codegen no longer
+splits text. Parser-to-semantic graph production is complete, and missing or
+malformed graph ownership fails closed.
 `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
 for call arguments and match cases so emission participants consume the env
 row instead of rebuilding enum keys or symbols locally.
-`text/expr_sequence_owner.pgy` owns top-level comma-separated expression
-sequence facts used by remaining compact call and struct literal field bridges.
-Hard array-literal emission does not consume it.
-`text/struct_literal_call_owner.pgy` owns the legacy compact-expression struct
-call envelope for explicit non-graph lanes: `Name(...)` recognition plus the
-typed type-name/inner-payload fact row. Named struct literals in migrated call
-arguments and general local/assignment/return values instead consume
-parser-owned struct/field graph nodes through the semantic graph emitters.
-`text/struct_literal_field_owner.pgy` owns the corresponding legacy typed field
-entry row, including positional field fallback from collected field rows.
-`text/struct_field_access_owner.pgy` owns dotted member-access field spelling
-projection from source-space field facts into emitted C field names.
+The parser-owned graph carries ordered call/aggregate/member topology. The
+retired compact sequence, struct-call, struct-field, and member-access text
+owners cannot return; graph views and the compiler symbol owner supply ordered
+handles and emitted C field names.
 Function signature and statement body emission now
 consume this typed node owner for function headers, parameters, return lines,
 body markers, and statement reads. Parameter mode spelling (`inout`, `own`,
@@ -256,10 +250,10 @@ body markers, and statement reads. Parameter mode spelling (`inout`, `own`,
 consumes that fact through function-env `pm` rows and must not infer mutation
 mode from `ArrayPush` or other statement text. `run/codegen_run_owner.pgy` owns the CLI-to-output
 orchestration that wires that owned AST text into `GenerateC`; `main.pgy` only
-calls the run owner. `emission/struct_value_emit.pgy` remains a legacy
-compact-expression owner for unmigrated lanes; collection values and general
-struct-valued `let`, assignment, and return paths consume expected-type
-semantic graph facts. `emission/expr_semantic_option_value_owner.pgy` owns the
+calls the run owner. The retired `emission/struct_value_emit.pgy` path cannot
+return; collection values and general struct-valued `let`, assignment, and
+return paths consume expected-type semantic graph facts.
+`emission/expr_semantic_option_value_owner.pgy` owns the
 same graph boundary for all contextual `Option<T>` constructors and payloads;
 `emission/option_value_emit_owner.pgy` is only the statement adapter.
 Constructor identity comes from the semantic direct-call target fact, while
@@ -284,9 +278,9 @@ temporary parameter names, foreach loop temporary names, and try/match emission
 temporary names in the supported subset; emitters must
 consume that compiler-world owner instead of locally concatenating owner/member,
 field, binding, or temporary spellings. Local/parameter/loop declarations record
-source-to-C binding rows in `type_facts/type_env.pgy`, and
-`emission/expr_binding_rewrite_owner.pgy` consumes those rows before expression
-emission so C-reserved source names do not reopen a backend-local spelling path.
+source-to-C binding rows in `type_facts/type_env.pgy`; semantic graph emitters
+consume those `cbind` rows directly. The retired binding rewrite owner cannot
+return, so C-reserved source names cannot reopen a backend-local spelling path.
 Projection also fails closed if the symbol row envelope is not ready.
 `emission/function_binding_env_owner.pgy` owns one function-value binding fact
 that joins source name, semantic type, runtime kind, C name, and environment

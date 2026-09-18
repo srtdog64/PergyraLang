@@ -128,16 +128,8 @@ func SelfDirIntentStepFromArtifact(
     local_step_index: Int,
     typed_transition: Bool
 ) -> SelfDirIntentResolvedStep {
-    let step_header_opt: Option<String> = TypedAstArenaAtomText(
-        artifact.arena, step_node_id
-    );
-    if !IsSome(step_header_opt) {
-        return SelfDirIntentResolvedStepError(
-            "self-host DIR intent inline step header is unsupported"
-        );
-    }
     let header: SemanticAstIntentStepHeaderRow =
-        SemanticAstIntentStepHeaderFromText(UnwrapOption(step_header_opt));
+        SemanticAstIntentStepHeaderFromArtifact(artifact, step_node_id);
     if !header.ok {
         return SelfDirIntentResolvedStepError(
             "self-host DIR intent inline step header is unsupported"

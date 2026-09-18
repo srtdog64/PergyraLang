@@ -202,14 +202,10 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
         let row_verified: Int = 1;
         let row_code: String = "";
         let row_message: String = "";
-        let checks_expression: Bool = kind != TypedAstKindBareReturnStmtTag() &&
-            kind != TypedAstKindUnsafeBlockTag() &&
-            kind != TypedAstKindMatchCaseStmtTag() &&
-            kind != TypedAstKindForStmtTag() &&
-            kind != TypedAstKindArrayPopStmtTag() &&
-            kind != TypedAstKindArraySetStmtTag() &&
-            kind != TypedAstKindArrayPushStmtTag() &&
-            kind != TypedAstKindBindStmtTag();
+        let checks_expression: Bool =
+            SemanticAstExpressionGraphAtomLaneRequired(
+                artifact, statements.node_ids[i]
+            );
         if checks_expression {
             let expression_verdict: SemanticAstExpressionVerdict =
                 SemanticAstExpressionVerdictError(
@@ -218,42 +214,32 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                         "ast_artifact_invalid", "owner", "expression_graph"
                     )
                 );
-            if SemanticAstExpressionGraphAtomLaneRequired(
-                artifact, statements.node_ids[i]
-            ) {
-                let graph_root: Option<Int> =
-                    SemanticAstExpressionGraphRootForNode(
-                        expression_surfaces, statements.node_ids[i],
-                        AstExpressionLaneAtom()
-                    );
-                if !IsSome(graph_root) {
-                    return SemanticAstStatementTypeStructuralError(
-                        artifact, "expression_graph"
-                    );
-                }
-                expression_verdict = SemanticAstExpressionVerdictFromGraph(
-                    statements.payload_texts[i],
-                    expression_surfaces.expression_graph,
-                    UnwrapOption(graph_root), constructors, signatures,
-                    names, types, modes,
-                    function_tables.names, function_tables.returns,
-                    function_tables.params,
-                    member_root_names, statements.function_node_ids[i]
+            let graph_root: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    expression_surfaces, statements.node_ids[i],
+                    AstExpressionLaneAtom()
                 );
-                let enum_payload_type: Option<String> =
-                    SemanticExpressionGraphEnumPayloadTypeName(
-                        expression_surfaces.expression_graph, UnwrapOption(graph_root),
-                        constructors, enum_facts, names, types,
-                        function_tables.names, function_tables.returns);
-                if expression_verdict.ok && IsSome(enum_payload_type) { expression_verdict =
-                    SemanticAstExpressionVerdictOk(statements.payload_texts[i], UnwrapOption(enum_payload_type)); }
-            } else {
-                expression_verdict = SemanticAstExpressionVerdictFromPayload(
-                    statements.payload_texts[i], names, types, modes,
-                    function_tables.names, function_tables.returns,
-                    function_tables.params
+            if !IsSome(graph_root) {
+                return SemanticAstStatementTypeStructuralError(
+                    artifact, "expression_graph"
                 );
             }
+            expression_verdict = SemanticAstExpressionVerdictFromGraph(
+                statements.payload_texts[i],
+                expression_surfaces.expression_graph,
+                UnwrapOption(graph_root), constructors, signatures,
+                names, types, modes,
+                function_tables.names, function_tables.returns,
+                function_tables.params,
+                member_root_names, statements.function_node_ids[i]
+            );
+            let enum_payload_type: Option<String> =
+                SemanticExpressionGraphEnumPayloadTypeName(
+                    expression_surfaces.expression_graph, UnwrapOption(graph_root),
+                    constructors, enum_facts, names, types,
+                    function_tables.names, function_tables.returns);
+            if expression_verdict.ok && IsSome(enum_payload_type) { expression_verdict =
+                SemanticAstExpressionVerdictOk(statements.payload_texts[i], UnwrapOption(enum_payload_type)); }
             inferred = expression_verdict.inferred_type_name;
             if !expression_verdict.ok {
                 row_verified = 0;

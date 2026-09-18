@@ -122,6 +122,22 @@ func SemanticExpressionGraphScalarOperatorError(
         }
         return "";
     }
+    if kind == AstExpressionNodeTry() {
+        if left == "Unknown" { return ""; }
+        if left == "Option<Unknown>" {
+            return SemanticError3(
+                "option_concrete_type_required", "func", "?",
+                "expected", "Option<T>", "actual", left
+            );
+        }
+        if !IsSome(TryPayloadTypeOpt(left)) {
+            return SemanticError3(
+                "builtin_arg_type_mismatch", "func", "?",
+                "expected", "Option<T>|Result<T>", "actual", left
+            );
+        }
+        return "";
+    }
     if AstExpressionNodeArity(kind) == 1 { return ""; }
     let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
         graph, node_id

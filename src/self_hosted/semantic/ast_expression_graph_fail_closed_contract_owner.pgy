@@ -1,0 +1,44 @@
+// Executable negative contract for expression graph type ownership.
+
+import "ast_artifact_verdict_owner.pgy";
+import "ast_expression_verdict_owner.pgy";
+
+func SemanticAstExpressionGraphTypeFailClosedContractReady() -> Bool {
+    let artifact: AstTreeArtifact = SemanticAstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+    );
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok ||
+        ArrayLength(analysis.signatures.function_node_ids) != 1 {
+        return false;
+    }
+    let rows: AstExpressionGraphRows = AstExpressionGraphRows(
+        true,
+        [TypedAstKindLogStmtTag()],
+        [AstExpressionLaneAtom()],
+        [0],
+        AstExpressionArena(
+            [AstExpressionNodeStructFieldName()], ["ghost"], [0], [0]
+        )
+    );
+    let graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(rows, [0], 1);
+    if !graph.ok { return false; }
+    let empty: Array<String> = [];
+    let verdict: SemanticAstExpressionVerdict =
+        SemanticAstExpressionVerdictFromGraph(
+            "ghost", graph, 0, analysis.constructors,
+            analysis.signatures, empty, empty, empty,
+            analysis.function_tables.names,
+            analysis.function_tables.returns,
+            analysis.function_tables.params,
+            empty, analysis.signatures.function_node_ids[0]
+        );
+    return !verdict.ok &&
+        verdict.diagnostic_code == "ast_artifact_invalid" &&
+        StringIndexOf(
+            verdict.diagnostic_message,
+            "- owner: expression_graph_type"
+        ) >= 0;
+}

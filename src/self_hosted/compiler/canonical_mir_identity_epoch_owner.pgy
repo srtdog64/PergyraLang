@@ -17,6 +17,7 @@ import "../mir_lower/program_declaration_index_owner.pgy";
 import "../mir_lower/program_routine_index_owner.pgy";
 import "../mir_lower/expression_identity_epoch_owner.pgy";
 import "../parser/tree_text_owner.pgy";
+import "../parser/ast_text_artifact_parse_owner.pgy";
 import "../semantic/ast_nominal_constructor_fact_owner.pgy";
 import "../semantic/ast_signature_fact_owner.pgy";
 import "canonical_mir_field_identity_epoch_owner.pgy";
@@ -250,7 +251,7 @@ func CanonicalMirIdentityEpochArtifactFromTreeText(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> CanonicalMirIdentityEpochArtifact {
     let empty_ids: Array<Int> = [];
-    let base_artifact: AstTreeArtifact = CanonicalMirIdentityArtifactBindSourceModules(AstTreeArtifactFromText(tree_text), source_module_paths);
+    let base_artifact: AstTreeArtifact = CanonicalMirIdentityArtifactBindSourceModules(ParserAstTreeArtifactFromText(tree_text), source_module_paths);
     if !admitted.domain_topology.present ||
         ArrayLength(admitted.domain_topology.kinds) == 0 {
         return CanonicalMirIdentityEpochArtifact(
@@ -336,7 +337,7 @@ func CanonicalMirIdentityEpochArtifactFromTreeText(
         }
         id_index = id_index + 1;
     }
-    let artifact: AstTreeArtifact = CanonicalMirIdentityArtifactBindSourceModules(AstTreeArtifactFromText(output), source_module_paths);
+    let artifact: AstTreeArtifact = CanonicalMirIdentityArtifactBindSourceModules(ParserAstTreeArtifactFromText(output), source_module_paths);
     return CanonicalMirIdentityEpochArtifact(
         AstTreeArtifactReady(artifact) && artifact.count == node_count,
         artifact, directive_node_ids

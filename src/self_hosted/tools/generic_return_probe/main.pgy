@@ -30,7 +30,7 @@ func GenericReturnProbeExplicitRejected(
 }
 
 func GenericReturnProbeArtifact() -> AstTreeArtifact {
-    return AstTreeArtifactFromText(
+    return ParserAstTreeArtifactFromText(
         "Program:\n  Function: Identity\n    Generic params: <T>\n" +
         "    Parameters:\n      value: T\n    Returns: T\n" +
         "    Body:\n      Block:\n        Return: value\n" +
@@ -291,7 +291,7 @@ func Main() -> Void with caps io_read, env {
     }
     let artifact: AstTreeArtifact = GenericReturnProbeArtifact();
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
     if mode == "--target-mismatch" {
         analysis = GenericReturnProbeWithTarget(
             artifact, analysis, "ToTextValue"

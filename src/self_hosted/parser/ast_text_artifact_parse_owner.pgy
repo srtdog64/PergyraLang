@@ -1,0 +1,119 @@
+// Parser-owned graph binding for the serialized compact AST input boundary.
+// The compatibility format stores expression spelling in AST rows, so the
+// parser must turn that spelling into typed graph rows before semantic use.
+
+import "expr_owner.pgy";
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_expression_lane_policy_owner.pgy";
+
+func ParserSerializedExpressionFact(text: String) -> ParserExpressionFact {
+    let expression: String = StringTrim(text);
+    if expression == "" { return ParserExpressionInvalid(); }
+    // Source parsing canonicalizes postfix try (`value?`) to the compact AST
+    // spelling `?value`.  Accept that serialization here, at the parser
+    // boundary, rather than reconstructing it in semantic analysis.
+    let operand_text: String = "";
+    if StringLength(expression) > 1 && CharAt(expression, 0) == "?" {
+        operand_text = StringTrim(Substring(
+            expression, 1, StringLength(expression) - 1
+        ));
+    } else if StringLength(expression) > 3 &&
+        CharAt(expression, 0) == "(" && CharAt(expression, 1) == "?" &&
+        CharAt(expression, StringLength(expression) - 1) == ")" {
+        operand_text = StringTrim(Substring(
+            expression, 2, StringLength(expression) - 3
+        ));
+    }
+    if operand_text != "" {
+        let operand: ParserExpressionFact =
+            ParserSerializedExpressionFact(operand_text);
+        if !operand.ok { return operand; }
+        return ParserExpressionUnary(
+            AstExpressionNodeTry(), Concat("?", operand.text), operand
+        );
+    }
+    let cursor: Array<Int> = [0];
+    let parsed: ParserExpressionFact = ParseExprFact(expression, 0, cursor);
+    if parsed.ok && cursor[0] == StringLength(expression) {
+        // The recursive graph owns grouping, while its root spelling seals the
+        // exact serialized AST lane.  Do not replace that spelling with the
+        // parser's parenthesized pretty-print: semantic binding must compare
+        // the carried lane without reparsing it.
+        ArraySet(parsed.arena.node_texts, parsed.root, expression);
+        return ParserExpressionFact(
+            true, expression, parsed.root, parsed.arena
+        );
+    }
+    return ParserExpressionInvalid();
+}
+
+func ParserAstTextArtifactAppendLane(
+    rows: AstExpressionGraphRows,
+    kind: Int,
+    lane: Int,
+    text: Option<String>
+) -> AstExpressionGraphRows {
+    if !IsSome(text) {
+        return AstExpressionGraphRows(
+            false, rows.root_owner_kinds, rows.root_lanes,
+            rows.roots, rows.arena
+        );
+    }
+    let fact: ParserExpressionFact =
+        ParserSerializedExpressionFact(UnwrapOption(text));
+    if !fact.ok {
+        return AstExpressionGraphRows(
+            false, rows.root_owner_kinds, rows.root_lanes,
+            rows.roots, rows.arena
+        );
+    }
+    return ParserExpressionGraphsAppend(rows, kind, lane, fact);
+}
+
+func ParserAstTreeArtifactFromText(tree_text: String) -> AstTreeArtifact {
+    let base: AstTreeArtifact = AstTreeArtifactFromText(tree_text);
+    let rows: AstExpressionGraphRows = AstExpressionGraphRowsEmpty();
+    let node_id: Int = 0;
+    while node_id < base.count && rows.ok {
+        let kind_value: Option<Int> = TypedAstArenaNodeKind(
+            base.arena, node_id
+        );
+        if !IsSome(kind_value) {
+            return AstTreeArtifact(
+                base.tree_text, base.arena, base.count,
+                AstExpressionGraphRows(
+                    false, rows.root_owner_kinds, rows.root_lanes,
+                    rows.roots, rows.arena
+                ),
+                base.source_modules, 0
+            );
+        }
+        let kind: Int = UnwrapOption(kind_value);
+        if AstExpressionGraphAtomLaneRequiredForKind(kind) ||
+            AstExpressionGraphAtomLaneProducerOnlyForKind(kind) {
+            rows = ParserAstTextArtifactAppendLane(
+                rows, kind, AstExpressionLaneAtom(),
+                TypedAstArenaAtomText(base.arena, node_id)
+            );
+        }
+        if rows.ok && AstExpressionGraphValueLaneRequiredForKind(kind) {
+            rows = ParserAstTextArtifactAppendLane(
+                rows, kind, AstExpressionLaneValue(),
+                TypedAstArenaValueText(base.arena, node_id)
+            );
+        }
+        if rows.ok && AstExpressionGraphAuxiliaryLaneRequiredForKind(kind) {
+            rows = ParserAstTextArtifactAppendLane(
+                rows, kind, AstExpressionLaneAuxiliary(),
+                TypedAstArenaAuxValueText(base.arena, node_id)
+            );
+        }
+        node_id = node_id + 1;
+    }
+    return AstTreeArtifact(
+        base.tree_text, base.arena, base.count, rows, base.source_modules,
+        AstTreeArtifactIdentityDigest(
+            base.tree_text, base.count, rows, base.source_modules
+        )
+    );
+}

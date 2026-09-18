@@ -72,7 +72,7 @@ func CompileSourceCapabilityManifestVerified(
 ) -> CompilerCapabilityManifestOutcome with caps io_read {
     let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, false);
+        SemanticAstArtifactAnalyzeTyped(artifact, false);
     if !analysis.verdict.ok {
         return CompilerCapabilityManifestOutcome(
             true, false, analysis.verdict.diagnostic_message, ""
