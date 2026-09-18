@@ -63,6 +63,13 @@ func SemanticExpressionGraphScalarTypeName(
         );
     }
     if kind == AstExpressionNodeMemberAccess() {
+        let qualified: Option<String> = SemanticExpressionGraphNodeText(
+            graph, root_id
+        );
+        if IsSome(qualified) {
+            let enum_type: String = EnvLookup(names, types, UnwrapOption(qualified));
+            if enum_type != "" && enum_type != "Unknown" { return enum_type; }
+        }
         let member_type: Option<String> =
             SemanticExpressionGraphValueReceiverTypeName(
                 graph, root_id, constructors, names, types,

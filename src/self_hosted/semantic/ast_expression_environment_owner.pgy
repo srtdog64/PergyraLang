@@ -59,11 +59,12 @@ func SemanticAstExpressionSeedEnumValues(
     }
     let i: Int = 0;
     while i < ArrayLength(enums.variant_names) {
-        if enums.variant_param_counts[i] == 0 &&
-            !EnvContainsName(names, enums.variant_names[i]) {
-            ArrayPush(names, enums.variant_names[i]);
-            ArrayPush(types, enums.variant_enum_names[i]);
-            ArrayPush(modes, "enum_value");
+        if enums.variant_param_counts[i] == 0 {
+            let variant: String = enums.variant_names[i];
+            let enum_name: String = enums.variant_enum_names[i];
+            let qualified: String = Concat(enum_name, Concat(".", variant));
+            if !EnvContainsName(names, qualified) { ArrayPush(names, qualified); ArrayPush(types, enum_name); ArrayPush(modes, "enum_value"); }
+            if !EnvContainsName(names, variant) { ArrayPush(names, variant); ArrayPush(types, enum_name); ArrayPush(modes, "enum_value"); }
         }
         i = i + 1;
     }

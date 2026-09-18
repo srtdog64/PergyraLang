@@ -345,6 +345,21 @@ func SemanticExpressionGraphResolvedCallReturnTypeName(
             target.name, sliced_types
         );
     }
+    if SemanticBuiltinReturnDependsOnArguments(target.name) {
+        let polymorphic_call: SemanticCallSpineView =
+            SemanticCallSpineViewFromGraph(graph, root_id);
+        if !polymorphic_call.ok { return None; }
+        let argument_types: Array<String> = [];
+        let argument: Int = 0;
+        while argument < ArrayLength(polymorphic_call.argument_nodes) {
+            ArrayPush(argument_types, SemanticExpressionGraphCallArgumentScalarTypeName(
+                graph, polymorphic_call.argument_nodes[argument], names, types));
+            argument = argument + 1;
+        }
+        return SemanticPolymorphicBuiltinReturnTypeOpt(
+            target.name, argument_types
+        );
+    }
     let target_index: Option<Int> = SemanticCallableIndex(
         function_names, target.name
     );

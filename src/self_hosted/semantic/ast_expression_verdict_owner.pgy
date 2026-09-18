@@ -119,8 +119,12 @@ func SemanticAstExpressionCallErrorFromGraph(
                 "expression_graph_call_parameter"
             );
         }
+        if expected == "Unknown" {
+            i = i + 1;
+            continue;
+        }
         let argument_verdict: SemanticAstExpressionVerdict =
-            SemanticAstExpressionVerdictFromGraph(
+            SemanticAstExpressionVerdictFromGraphCore(
                 UnwrapOption(argument_text), graph, argument_node,
                 constructors, signatures, names, types, modes,
                 function_names, function_returns, function_params,
@@ -148,8 +152,7 @@ func SemanticAstExpressionCallErrorFromGraph(
                 "expression_graph_call_argument_type"
             );
         }
-        if expected != "Unknown" &&
-            !SemanticExpressionGraphFieldValueAssignableTo(
+        if !SemanticExpressionGraphFieldValueAssignableTo(
                 expected, actual, graph, argument_node
             ) {
             let code: String = "call_arg_type_mismatch";
@@ -166,7 +169,95 @@ func SemanticAstExpressionCallErrorFromGraph(
     return "";
 }
 
-func SemanticAstExpressionVerdictFromGraph(
+// Visit exactly the carried subtree once.  A CallArgument chain represents
+// one invocation, so only its outermost node is admitted; its left spine is
+// still traversed to reach nested calls inside earlier arguments.
+func SemanticAstExpressionCallTreeErrorFromGraphNode(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    inside_call_spine: Bool,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>,
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>,
+    ref function_params: Array<String>,
+    member_root_names: Array<String>,
+    current_function_node_id: Int
+) -> String {
+    let kind_fact: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, node_id
+    );
+    if !IsSome(kind_fact) {
+        return SemanticError1(
+            "ast_artifact_invalid", "owner", "expression_graph_call_tree"
+        );
+    }
+    let kind: Int = UnwrapOption(kind_fact);
+    if AstExpressionNodeIsCallSpine(kind) && !inside_call_spine {
+        let wrapper: SemanticExpressionGraphWrapperValueFact =
+            SemanticExpressionGraphWrapperValueFactFromGraph(
+                graph, node_id, constructors, names, types,
+                function_names, function_returns, function_params
+            );
+        if wrapper.applies && !wrapper.ok {
+            return wrapper.diagnostic_message;
+        }
+        if !wrapper.applies {
+            let call_error: String =
+                SemanticAstExpressionCallErrorFromGraph(
+                    graph, node_id,
+                    constructors, signatures, names, types, modes,
+                    function_names, function_returns, function_params,
+                    member_root_names, current_function_node_id
+                );
+            if call_error != "" { return call_error; }
+        }
+    }
+    let arity: Int = AstExpressionNodeArity(kind);
+    if arity >= 1 {
+        let left: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node_id
+        );
+        if !IsSome(left) {
+            return SemanticError1(
+                "ast_artifact_invalid", "owner",
+                "expression_graph_call_tree"
+            );
+        }
+        let left_error: String =
+            SemanticAstExpressionCallTreeErrorFromGraphNode(
+                graph, UnwrapOption(left),
+                kind == AstExpressionNodeCallArgument(),
+                constructors, signatures, names, types, modes,
+                function_names, function_returns, function_params,
+                member_root_names, current_function_node_id
+            );
+        if left_error != "" { return left_error; }
+    }
+    if arity >= 2 {
+        let right: Option<Int> = SemanticExpressionGraphRightChild(
+            graph, node_id
+        );
+        if !IsSome(right) {
+            return SemanticError1(
+                "ast_artifact_invalid", "owner",
+                "expression_graph_call_tree"
+            );
+        }
+        return SemanticAstExpressionCallTreeErrorFromGraphNode(
+            graph, UnwrapOption(right), false,
+            constructors, signatures, names, types, modes,
+            function_names, function_returns, function_params,
+            member_root_names, current_function_node_id
+        );
+    }
+    return "";
+}
+
+func SemanticAstExpressionVerdictFromGraphCore(
     expression: String,
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
@@ -460,6 +551,38 @@ func SemanticAstExpressionVerdictFromGraph(
         );
     }
     return SemanticAstExpressionVerdictOk(text, inferred);
+}
+
+func SemanticAstExpressionVerdictFromGraph(
+    expression: String,
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>,
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>,
+    ref function_params: Array<String>,
+    member_root_names: Array<String>,
+    current_function_node_id: Int
+) -> SemanticAstExpressionVerdict {
+    let text: String = SemanticStripOuterParens(expression);
+    let call_tree_error: String =
+        SemanticAstExpressionCallTreeErrorFromGraphNode(
+            graph, root_id, false, constructors, signatures,
+            names, types, modes, function_names, function_returns,
+            function_params, member_root_names, current_function_node_id
+        );
+    if call_tree_error != "" {
+        return SemanticAstExpressionVerdictError(text, call_tree_error);
+    }
+    return SemanticAstExpressionVerdictFromGraphCore(
+        expression, graph, root_id, constructors, signatures,
+        names, types, modes, function_names, function_returns,
+        function_params, member_root_names, current_function_node_id
+    );
 }
 
 func SemanticAstExpressionVerdictContractReady() -> Bool {

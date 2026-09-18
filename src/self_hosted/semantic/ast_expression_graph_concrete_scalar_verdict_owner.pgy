@@ -34,8 +34,9 @@ func SemanticExpressionGraphConcreteScalarValueOwned(ref graph: SemanticExpressi
                 function_names, function_returns, function_params);
     }
     if kind == AstExpressionNodeMemberAccess() {
-        return IsSome(SemanticExpressionGraphValueReceiverTypeName(
-            graph, node_id, constructors, names, types, function_names, function_returns));
+        return SemanticExpressionGraphScalarTypeName(
+            graph, node_id, constructors, names, types,
+            function_names, function_returns) != "Unknown";
     }
     if kind == AstExpressionNodeCoalesce() {
         let coalesce_left: Option<Int> = SemanticExpressionGraphLeftChild(graph, node_id);
@@ -117,27 +118,10 @@ func SemanticExpressionGraphConcreteScalarValueOwned(ref graph: SemanticExpressi
     if expected_count != ArrayLength(call.argument_nodes) {
         return true;
     }
-    if !IsSome(SemanticExpressionGraphResolvedCallConcreteScalarTypeName(
-        graph, node_id, constructors, names, types,
-        function_names, function_returns
-    )) {
-        return false;
-    }
-    // Scalar result ownership does not require scalar-only parameters. The
-    // argument checker compares each graph-owned value with its resolved
-    // parameter type, including nominal values, before using that result.
-    let i: Int = 0;
-    while i < ArrayLength(call.argument_nodes) {
-        if !SemanticExpressionGraphConcreteScalarValueOwned(
-            graph, call.argument_nodes[i], constructors, signatures,
-            names, types, function_names,
-            function_returns, function_params
-        ) {
-            return false;
-        }
-        i = i + 1;
-    }
-    return true;
+    let call_result_type: String = SemanticExpressionGraphScalarTypeName(
+        graph, node_id, constructors, names, types, function_names, function_returns);
+    // The call-tree admission owns argument validity, including nominal values.
+    return SemanticResolvedCallConcreteScalarType(call_result_type);
 }
 
 func SemanticExpressionGraphContextualCallArgumentsOwned(

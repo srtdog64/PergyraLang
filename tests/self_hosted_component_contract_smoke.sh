@@ -6349,8 +6349,11 @@ require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
 reject_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "CheckCallFromGraphIdentifiers("
 require_function_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
-    "func SemanticAstExpressionVerdictFromGraph(" \
+    "func SemanticAstExpressionVerdictFromGraphCore(" \
     '"expression_graph_type"'
+require_function_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
+    "func SemanticAstExpressionVerdictFromGraph(" \
+    "SemanticAstExpressionVerdictFromGraphCore("
 reject_function_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "func SemanticAstExpressionVerdictFromGraph(" "CheckCall("
 reject_function_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
