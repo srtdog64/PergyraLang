@@ -1,13 +1,15 @@
 # Current Work Handoff
 
-Updated: 2026-09-18 (Asia/Seoul). This is navigation only. Compiler owners,
+Updated: 2026-09-19 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-Expression-closure packet base: `4faea965949baae05b0865618bf90dfdd3d34918`.
-Git HEAD/status and `origin/main` remain the authority for its material and
-publication checkpoints.
+Nested-expression CI repair material checkpoint:
+`7a7595897ccdfa747bf227b4b38c5dba49dd4959`. Git HEAD/status and
+`origin/main` remain the authority for its publication checkpoint. The
+pre-existing untracked `._handoff_full.md` and `_agents_dump.txt` are not part
+of this packet.
 
-## Active self-host context — expression surface CLOSED in the working tree
+## Active self-host context — expression surface CLOSED; CI regression repaired
 
 Objective card:
 - Objective: make the parser-owned expression graph the only supported
@@ -36,19 +38,28 @@ Reached evidence and boundary:
   owners are deleted. Supported expression shapes are imported once at the
   parser boundary; an unsupported but structurally valid graph node now fails
   with owner `expression_graph_type`.
-- The focused closure gate passes artifact-equal C/LLVM execution. The component
-  contract passes 2,435 line-cap requests, 1,030 function extractions, and 697
-  reuses. A fresh DRV-2 passes the focused hard producer/source-MIR matrix for
-  18/18 fixtures. Its first run exposed a Set diagnostic regression; the final
-  run preserves `initializer_type_unresolved` for heterogeneous and untyped
-  empty Set literals.
+- Push run `35350002643` exposed that a call nested below a binary expression
+  bypassed call-argument admission. The graph verdict now walks each carried
+  subtree once, validates only the outermost node of each call spine, and
+  rejects the existing nested `Render(42)` falsifier before emission.
+- That repair also carries qualified payload-free enum values, contextual empty
+  Array/Set returns, and argument-dependent builtin returns such as
+  `ArraySort(Array<Int>)` through their graph owners. It does not restore a
+  payload-text fallback or add a reverse dependency from resolved-call typing
+  to the whole scalar-type owner.
+- A fresh, previously absent seed directory reaches `seed artifacts ready:
+  gen2 codegen and parser AST producer`. The nested-call gate passes 2
+  executions and 12 pre-emission refusals; the nominal/array gate passes 4
+  executions and 8 refusals; the focused closure gate passes artifact-equal
+  C/LLVM execution and missing-fact rejection. The component contract passes
+  2,435 line-cap requests, 1,031 function extractions, and 697 reuses.
 - `sot_registry_gate.py` reports 89 authorities, 188 derived fact carriers, and
   `CLOSED=58 / BRIDGE=29 / ACTIVE=2`. `selfhost.expression_surface` is now
   `CLOSED` with the closure gate as its primary negative ratchet.
-- The 284-fixture matrix, platform matrix, and remote CI were not rerun in this
-  bounded packet. Publication state is owned by Git, not this navigation
-  snapshot. Do not infer the next active row from this handoff; select the next
-  production bypass explicitly.
+- The 284-fixture matrix and platform matrix were not rerun locally. Exact-head
+  push CI is the next broader boundary. Publication state is owned by Git, not
+  this navigation snapshot. Do not infer the next active row from this handoff;
+  select the next production bypass explicitly.
 
 ## Previous self-host context — Array.Slice/SliceCopy execution bridge SUBSTITUTING
 
