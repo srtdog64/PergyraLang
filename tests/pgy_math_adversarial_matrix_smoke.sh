@@ -16,6 +16,9 @@ SELF_DRIVER="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
 SELF_DRIVER="$(pgy_select_optional_exe_binary "$SELF_DRIVER")"
 PGY_MATH_ROOT="${PGY_MATH_ROOT:-}"
 NODE_BIN="${NODE_BIN:-node}"
+PYTHON_BIN="${PYTHON_BIN:-python}"
+PGY_EXEC_INT_DOMAIN="pergyra.int.wrapping.i32.v1"
+PGY_VERIFY_INT_DOMAIN="lean.int.unbounded.v1"
 
 if ! command -v lake.exe >/dev/null 2>&1 \
         && [[ -n "${USERPROFILE:-}" ]] \
@@ -33,9 +36,32 @@ fi
 [[ -x "$SELF_DRIVER" ]] || fail "missing self-host compiler binary: $SELF_DRIVER"
 [[ -n "$PGY_MATH_ROOT" && -d "$PGY_MATH_ROOT" ]] ||
     fail "PGY_MATH_ROOT must name the PgyMath checkout"
+command -v git >/dev/null 2>&1 || fail "git is required"
+ADMITTED_PGY_MATH_COMMIT="$(
+    PYTHONPATH="$ROOT_DIR${PYTHONPATH:+:$PYTHONPATH}" \
+        "$PYTHON_BIN" -c \
+        'from scripts.pgy_math_registry_admission import EXPECTED_SOURCE_COMMIT; print(EXPECTED_SOURCE_COMMIT)'
+)" || fail "could not read the admitted PgyMath commit owner"
+OBSERVED_PGY_MATH_COMMIT="$(git -C "$PGY_MATH_ROOT" rev-parse HEAD 2>/dev/null)" ||
+    fail "PGY_MATH_ROOT is not a Git checkout"
+[[ "$OBSERVED_PGY_MATH_COMMIT" == "$ADMITTED_PGY_MATH_COMMIT" ]] ||
+    fail "PgyMath checkout revision is not the admitted commit: $OBSERVED_PGY_MATH_COMMIT"
+[[ -z "$(git -C "$PGY_MATH_ROOT" status --porcelain --untracked-files=all)" ]] ||
+    fail "PgyMath checkout must be clean; uncommitted audit code is not evidence"
+[[ -f "$PGY_MATH_ROOT/verify/adversarial-audit.mjs" ]] ||
+    fail "the admitted PgyMath checkout does not publish verify/adversarial-audit.mjs"
 command -v "$NODE_BIN" >/dev/null 2>&1 || fail "node is required"
 command -v lake.exe >/dev/null 2>&1 || command -v lake >/dev/null 2>&1 ||
     fail "Lean lake is required for the PgyMath adversarial audit"
+grep -Fq '`+ - *` overflow is **defined wraparound**, not UB' \
+    "$ROOT_DIR/docs/semantics/11_arithmetic_ub_model.md" ||
+    fail "the Pergyra wrapping-Int semantic owner drifted"
+grep -Fq "$PGY_EXEC_INT_DOMAIN" \
+    "$ROOT_DIR/docs/semantics/11_arithmetic_ub_model.md" ||
+    fail "the Pergyra executable Int domain identity is not owned"
+grep -Fq "$PGY_VERIFY_INT_DOMAIN" \
+    "$ROOT_DIR/docs/semantics/18_pgy_math_adversarial_matrix.md" ||
+    fail "the verifier Int domain identity is not documented"
 export PGY_SELF_DRIVER_BIN="$SELF_DRIVER"
 
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
@@ -90,8 +116,9 @@ check_integer_wrap() {
                 fail "$case_name did not expose the pinned wrapping result on $route/$backend"
         done
     done
-    record "$id" "OPEN" "Lean Int versus Pergyra runtime Int" \
-        "$case_name wraps to $expected on native/self-host C/LLVM"
+    record "$id" "OPEN" \
+        "$PGY_VERIFY_INT_DOMAIN versus $PGY_EXEC_INT_DOMAIN" \
+        "$case_name wraps to $expected on native/self-host C/LLVM; no numeric-domain equivalence receipt exists"
 }
 
 check_rejected_identity() {
@@ -171,7 +198,7 @@ grep -Fq '"id": "backend"' "$ROOT_DIR/tests/proof_carrying_pipeline_smoke.sh" ||
     fail "proof certificate backend layer is missing"
 printf '{"layout":"v1"}\n' >"$WORK_DIR/abi-artifact.json"
 printf 'backend-v1\n' >"$WORK_DIR/backend-artifact.bin"
-"${PYTHON_BIN:-python}" - \
+"$PYTHON_BIN" - \
     "$ROOT_DIR/tests/cases/backend_compare/intent_zone_binding/main.pgy" \
     "$WORK_DIR/abi-artifact.json" "$WORK_DIR/backend-artifact.bin" <<'PY'
 import hashlib
@@ -219,11 +246,11 @@ PGY_BIN="$PGY" PGY_SELF_DRIVER_BIN="$SELF_DRIVER" \
     "$ROOT_DIR/tests/pgy_math_registry_admission_smoke.sh" \
     >"$WORK_DIR/registry-admission.log" 2>&1
 record "PGY-ADV-REGISTRY-01" "CLOSED" "registry replay and coordinated forgery" \
-    "six commit/digest/projection/JSON attacks and four-route parity pass"
+    "seven commit/digest/projection/JSON/type attacks and four-route parity pass"
 
 "$NODE_BIN" "$PGY_MATH_ROOT/verify/adversarial-audit.mjs" \
     >"$WORK_DIR/pgy-math-audit.json"
-"${PYTHON_BIN:-python}" - "$WORK_DIR/pgy-math-audit.json" <<'PY'
+"$PYTHON_BIN" - "$WORK_DIR/pgy-math-audit.json" <<'PY'
 import json
 import pathlib
 import sys
@@ -242,7 +269,7 @@ PY
 record "PGY-ADV-CROSS-AUDIT-01" "CLOSED" "PgyMath verifier attack inventory" \
     "machine-readable audit observed 7 closed, 6 open and 1 unmeasured boundary"
 
-"${PYTHON_BIN:-python}" - "$FINDINGS" <<'PY'
+"$PYTHON_BIN" - "$FINDINGS" <<'PY'
 import json
 import pathlib
 import sys

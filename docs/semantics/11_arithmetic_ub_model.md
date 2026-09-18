@@ -44,6 +44,12 @@ audited state (2026-06-21), per-backend, empirically reproduced:
 backends therefore agree by construction; this is a deliberate semantic, not an
 inherited hole.
 
+The stable semantic-domain identity for ordinary source `Int` arithmetic is
+`pergyra.int.wrapping.i32.v1`. This names the language meaning, not a target ABI
+spelling. A verifier contract over an unbounded mathematical integer domain is
+not equivalent to this domain unless a checked no-overflow refinement or a
+wrapping-32 proof bridge is carried explicitly.
+
 ## 2. The division holes (found, fixed, verified)
 
 Signed division in C is UB on exactly two inputs — `rhs == 0` and

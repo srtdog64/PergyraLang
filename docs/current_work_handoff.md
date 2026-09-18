@@ -3,6 +3,11 @@
 Updated: 2026-09-18 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
+Review-reconciliation base: `73ff75ca94f571e282d402a64533705badf8e07a`.
+The bounded PgyMath numeric-domain packet only reconciles its audit and
+fail-closed clean-checkout gate; it does not advance the active Slice
+substitution rung.
+
 ## Active self-host context — Array.Slice/SliceCopy execution bridge SUBSTITUTING
 
 Material checkpoint: `4e960400be67f894739d417aea80e8b92ddf94ea` closes the
@@ -129,7 +134,7 @@ the owner census. Six pre-existing Slice semantic/ratchet edits remain a
 separate incomplete, unstaged packet and are not part of the material
 checkpoint.
 
-### Explicitly reopened PgyMath verification packet — integrated, locally green
+### Explicitly reopened PgyMath verification packet — integrated; clean cross-repo replay blocked
 
 This packet was opened by the user independently of the active self-host rung;
 it is not evidence of another C-path substitution.
@@ -167,8 +172,8 @@ Reached evidence and boundary:
   `2a0fa04982ed98c833df69b56bb7f2e88acdb7c2` publishes its focused gate in the
   Linux push ladder; exact-head CI run `35247878180` is 30/30 green.
 - The PgyMath projection is byte-equal to the generator output. PgyMath push CI
-  run `35189077546` is green. The Pergyra red-team gate passes all four
-  native/self-host C/LLVM routes and six registry attacks; PgyMath's Lean
+  run `35189077546` is green. The current Pergyra registry gate passes all four
+  native/self-host C/LLVM routes and seven registry attacks; PgyMath's Lean
   bridge independently reports exact C/LLVM value parity.
 - The first self-host LLVM run exposed an undeclared `@malloc` in Bool-to-String
   materialization. The foreign-declaration owner now consumes the sealed
@@ -186,18 +191,25 @@ Reached evidence and boundary:
 - Proof-carrying pipeline/adequacy and the 2,435-request component contract pass.
   This proves input integrity and reached execution parity, not semantic
   equivalence between a Pergyra implementation and arbitrary contract IR.
-- The machine-readable PgyMath audit reports `CLOSED=7 / OPEN=6 /
-  UNMEASURED=1`. The Pergyra dynamic matrix reports `CLOSED=6 / OPEN=8 /
-  UNMEASURED=1`. Its three integer probes reproduce the semantic split on all
-  four routes: `MAX+1 -> MIN`, `MIN-1 -> MAX`, and `-MIN -> MIN`, while Lean
-  proves the corresponding unbounded-`Int` equation. Namespace flattening and
-  local registry shadowing fail before artifact emission, but self-host
-  diagnostics do not preserve the native redeclaration identity. Scalar
-  `ToString` parity survives 10,000 conversions; leak ownership remains
-  unmeasured on this Windows host.
-- First next falsifier: choose and formalize Pergyra `Int` as checked `Int32`,
-  wrapping `Int32`, or executable mathematical integer semantics. A verified
-  contract must not disagree with the selected runtime boundary behavior.
+- The previously observed machine-readable PgyMath audit reported `CLOSED=7 /
+  OPEN=6 / UNMEASURED=1`, but a clean checkout of the admitted commit
+  `74185a3ad8c54711f3c2e30597ab0a05603a79a6` does not publish the consumed
+  `verify/adversarial-audit.mjs`; that cross-repository aggregate is not
+  reproducible from the pinned revision. The Pergyra half reports `CLOSED=6 /
+  OPEN=8 / UNMEASURED=1`. Its three integer probes reproduce wrapping signed
+  32-bit execution on all four routes: `MAX+1 -> MIN`, `MIN-1 -> MAX`, and
+  `-MIN -> MIN`, while the current Lean frontend reasons over unbounded `Int`.
+  Namespace flattening and local registry shadowing fail before artifact
+  emission, but self-host diagnostics do not preserve the native redeclaration
+  identity. Scalar `ToString` parity survives 10,000 conversions; leak
+  ownership remains unmeasured on this Windows host.
+- First next falsifier: carry explicit
+  `pergyra.int.wrapping.i32.v1` versus `lean.int.unbounded.v1` identity through
+  the PgyVerify request, registry, and receipt, then reject a theorem/receipt
+  whose numeric domain does not match the admitted executable contract.
+  Ordinary Pergyra `Int` is already defined as wrapping signed 32-bit arithmetic
+  by `docs/semantics/11_arithmetic_ub_model.md`; it is not an open three-way
+  language choice.
 - Then a parser/semantic owner must lower one Pergyra function body
   and contract into one normalized subject digest consumed by the verifier.
   Mutating the body while retaining the same function name and contract must
