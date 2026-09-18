@@ -63,7 +63,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "ArrayGet^Unknown^Unknown|Unknown",
         "Args^Array<String>^none",
         "Log^Unknown^Unknown",
-        "Print^Unknown^Unknown",
+        "Print^Void^Unknown",
         "Exit^Unknown^Unknown",
         "StringJoin^String^Array<String>|String",
         "Join^String^Array<String>|String",

@@ -40,7 +40,7 @@ func DirectMirScalarProgramBuiltinSignatureExpected(
         return ["String", "Unknown", ToString(DirectMirScalarProgramExprToLowerString())];
     }
     if name == "Print" {
-        return ["Unknown", "Unknown", ToString(DirectMirScalarProgramExprPrintString())];
+        return ["Void", "Unknown", ToString(DirectMirScalarProgramExprPrintString())];
     }
     let window: Array<String> = DirectMirScalarProgramStringWindowBuiltinSignatureExpected(name);
     if ArrayLength(window) != 0 { return window; }

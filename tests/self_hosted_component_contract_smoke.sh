@@ -17052,7 +17052,8 @@ require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" \
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
     'SemanticAstPayloadFreeEnumValueAssignableToInt('
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"StringSplit^Array<String>^String|String"'
-require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Print^Unknown^Unknown"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Print^Void^Unknown"'
+reject_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Print^Unknown^Unknown"'
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SkipLineComment"
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SkipBlockComment"
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func FindMatchingBraceWithin"

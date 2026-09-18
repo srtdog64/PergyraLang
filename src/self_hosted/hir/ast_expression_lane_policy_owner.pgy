@@ -46,6 +46,18 @@ func AstExpressionGraphValueLaneRequiredForKind(kind: Int) -> Bool {
 }
 
 func AstExpressionGraphAuxiliaryLaneRequiredForKind(kind: Int) -> Bool {
-    return kind == TypedAstKindForStmtTag() ||
-        kind == TypedAstKindArraySetStmtTag();
+    return kind == TypedAstKindArraySetStmtTag();
+}
+
+// A collection `for x in xs` has only the iterable value lane.  A range
+// `for x in lower..upper` carries the upper bound in the auxiliary lane.
+// The typed row, not the broad statement kind, owns that distinction.
+func AstExpressionGraphAuxiliaryLaneRequiredForRow(
+    kind: Int,
+    auxiliary_text: Option<String>
+) -> Bool {
+    if kind == TypedAstKindForStmtTag() {
+        return IsSome(auxiliary_text);
+    }
+    return AstExpressionGraphAuxiliaryLaneRequiredForKind(kind);
 }

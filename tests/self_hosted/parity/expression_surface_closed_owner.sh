@@ -71,6 +71,10 @@ grep -Fq 'SemanticAstExpressionGraphTypeFailClosedContractReady()' "$PROBE" || {
     echo "[$LABEL] executable unowned-graph negative contract is missing" >&2
     exit 1
 }
+grep -Fq 'ParserAstTextArtifactForLaneContractReady()' "$PROBE" || {
+    echo "[$LABEL] collection/range for-lane contract is missing" >&2
+    exit 1
+}
 
 for retired in \
     src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy \

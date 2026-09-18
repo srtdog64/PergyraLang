@@ -42,5 +42,8 @@ func SemanticAstExpressionGraphAuxiliaryLaneRequired(
 ) -> Bool {
     let kind: Option<Int> = TypedAstArenaNodeKind(artifact.arena, node_id);
     return IsSome(kind) &&
-        AstExpressionGraphAuxiliaryLaneRequiredForKind(UnwrapOption(kind));
+        AstExpressionGraphAuxiliaryLaneRequiredForRow(
+            UnwrapOption(kind),
+            TypedAstArenaAuxValueText(artifact.arena, node_id)
+        );
 }

@@ -102,10 +102,15 @@ func ParserAstTreeArtifactFromText(tree_text: String) -> AstTreeArtifact {
                 TypedAstArenaValueText(base.arena, node_id)
             );
         }
-        if rows.ok && AstExpressionGraphAuxiliaryLaneRequiredForKind(kind) {
+        let auxiliary_text: Option<String> = TypedAstArenaAuxValueText(
+            base.arena, node_id
+        );
+        if rows.ok && AstExpressionGraphAuxiliaryLaneRequiredForRow(
+                kind, auxiliary_text
+            ) {
             rows = ParserAstTextArtifactAppendLane(
                 rows, kind, AstExpressionLaneAuxiliary(),
-                TypedAstArenaAuxValueText(base.arena, node_id)
+                auxiliary_text
             );
         }
         node_id = node_id + 1;
@@ -116,4 +121,28 @@ func ParserAstTreeArtifactFromText(tree_text: String) -> AstTreeArtifact {
             base.tree_text, base.count, rows, base.source_modules
         )
     );
+}
+
+func ParserAstTextArtifactForLaneContractReady() -> Bool {
+    let collection_for: AstTreeArtifact = ParserAstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        For: item in items\n          Block:\n            Break\n"
+    );
+    let range_for: AstTreeArtifact = ParserAstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        For: i in 0..3\n          Block:\n            Break\n"
+    );
+    if !AstTreeArtifactReady(collection_for) ||
+        !AstTreeArtifactReady(range_for) {
+        return false;
+    }
+    let collection_rows: AstExpressionGraphRows =
+        collection_for.expression_graphs;
+    let range_rows: AstExpressionGraphRows = range_for.expression_graphs;
+    return ArrayLength(collection_rows.roots) == 1 &&
+        collection_rows.root_owner_kinds[0] == TypedAstKindForStmtTag() &&
+        collection_rows.root_lanes[0] == AstExpressionLaneValue() &&
+        ArrayLength(range_rows.roots) == 2 &&
+        range_rows.root_owner_kinds[0] == TypedAstKindForStmtTag() &&
+        range_rows.root_owner_kinds[1] == TypedAstKindForStmtTag() &&
+        range_rows.root_lanes[0] == AstExpressionLaneValue() &&
+        range_rows.root_lanes[1] == AstExpressionLaneAuxiliary();
 }
