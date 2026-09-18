@@ -3,31 +3,35 @@
 Updated: 2026-09-18 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-Review-reconciliation base: `73ff75ca94f571e282d402a64533705badf8e07a`.
+Review-reconciliation base: `9ed7a997d20806b1b9cde96a5fdaf816770419d4`.
 The bounded PgyMath numeric-domain packet only reconciles its audit and
 fail-closed clean-checkout gate; it does not advance the active Slice
 substitution rung.
 
 ## Active self-host context — Array.Slice/SliceCopy execution bridge SUBSTITUTING
 
-Material checkpoint: `4e960400be67f894739d417aea80e8b92ddf94ea` closes the
-observed live-Slice backing-storage invalidation, restores public C/LLVM loop
-routing for the falsifier, separates LLVM SliceCopy OOM from missing-backing
-failure, and bounds PgyMath receipt reads before allocation. This handoff
-refresh is its docs-only descendant; consult Git for the descendant commit ID.
+Material checkpoint: `4a1448a570acee00077200711be96ef11da8ac7b` closes the
+rooted member-place Array growth bridge on top of the direct-local Slice
+checkpoint. Native Symbols and the Pergyra semantic graph now preserve one
+root declaration identity plus the exact ordered member path; `bag.values` is
+not conflated with `bag.other`. This handoff refresh is its docs-only
+descendant; consult Git for the descendant commit ID.
 
 Objective card:
 - Objective: preserve `Slice<T>` as a borrowed write-through view without
-  allowing its backing `Array<T>` storage identity to relocate while the view
-  is live, on native/self-host C/LLVM.
+  allowing its exact backing `Array<T>` place to grow or shrink while the view
+  is live, including a rooted member chain on native/self-host C/LLVM.
 - Priority: backing identity and fail-closed semantic admission, public route
   parity, typed runtime failure classes, negative execution gate, then wider
   alias provenance.
-- Fact owners: native `Symbol.slice_borrow_base_sym` and self-host
-  `ast_expression_graph_collection_mutation_owner.pgy` own the reached direct
-  local borrow; `direct_mir_scalar_program_slice_builtin_owner.pgy` owns sealed
-  Slice operands; `slice_runtime_owner.pgy` plus the target Slice expression
-  owners consume them.
+- Fact owners: native `Symbol.slice_borrow_base_sym` plus
+  `slice_borrow_base_place` own root declaration and member path;
+  `ast_expression_storage_place_identity_owner.pgy` owns the equivalent
+  Pergyra graph identity and
+  `ast_expression_graph_collection_mutation_owner.pgy` consumes it.
+  `direct_mir_scalar_program_slice_builtin_owner.pgy` still owns sealed Slice
+  operands; `slice_runtime_owner.pgy` plus the target Slice expression owners
+  consume them.
 - Last legitimate consumers: native/self-host storage-changing mutation
   admission and public C/LLVM Slice emission.
 - Forbidden fallback: treating a borrowed Slice as a snapshot after backing
@@ -35,33 +39,36 @@ Objective card:
   locals, untyped `abort()` for typed runtime failures, source-name dispatch,
   or native-pipeline retry from a public leg.
 - Gate/falsifier: `slice_copy_semantic_bridge_owner.sh` runs native/public
-  C/LLVM, rejects growth while a direct local Slice is live without publishing
-  an artifact, proves growth-before-borrow plus write-through observation as
+  C/LLVM, rejects growth through `bag.values` while its Slice is live without
+  publishing an artifact, admits member growth before borrow, admits growth of
+  sibling `bag.other`, preserves direct-local write-through observation as
   `99 / 99`, retains invalid `SliceCopy(Array<T>)` rejection, and ratchets the
   internal aggregate ABI and typed failure paths.
 
 Reached evidence and boundary:
 - Serial `make -j1 self-host-compiler` rebuilt and installed DRV-2 from the
-  final typed source. The focused gate passes all four execution paths, the
-  exact growth rejection, and safe write-through observation.
+  final typed source. The focused gate passes all four existing execution
+  paths, exact member-place rejection on both public targets, native C/LLVM
+  member controls (`3` and `2 / 2`), and installed-driver MIR admission for
+  both non-conflicting member cases. Positive member Slice backend
+  materialization is not claimed by this packet.
 - Windows C ABI lowers the external aggregate return through `sret`; the LLVM
   owner therefore keeps Slice construction and copy in same-module `internal`
   functions. SliceCopy allocation now crosses `pgy_alloc_export`, preserving
   the runtime `oom` class; absent non-empty backing uses the owned
   `internal-invariant` panic. No SliceCopy path calls raw `abort()`.
-- The self-host component contract passes 2,441 line-cap requests, 1,029
-  function extractions, and 694 reuses. `test-semantic` passes 2,944/2,944;
-  build-source inventory, CFG body dataflow, runtime panic/codegen/lifetime,
-  and staged-diff checks are green.
-- The PgyMath registry gate also passes on the rebuilt driver: exact commit and
-  registry/projection digests, four-route output parity, bounded `limit + 1`
-  reads, and seven tamper attacks. Non-string `sourceCommit` now stays inside
-  the owned rejection contract rather than escaping as `TypeError`.
-- This is a target-specific executable Slice rung marked `SUBSTITUTING`, not
+- The self-host component contract passes 2,442 line-cap requests, 1,029
+  function extractions, and 694 reuses. `test-semantic` passes 2,944/2,944.
+  The focused Slice gate was rerun after final driver installation. Broader
+  build-source, CFG body-dataflow, runtime panic/codegen/lifetime, staged-diff,
+  and PgyMath registry gates remain evidence of the parent checkpoint and were
+  not rerun by this narrow packet; push CI is the next broader boundary.
+- This closes the rooted member-place Push/Pop semantic bridge, but it is not
   closure of the broader `selfhost.expression_surface` registry row. The owner
-  census remains `CLOSED=57 / BRIDGE=30 / ACTIVE=2`. Field/member, `inout`, and
-  transitive Slice provenance plus injected allocator-failure execution are the
-  next falsifiers; actual machine OOM was not forced in this packet.
+  census remains `CLOSED=57 / BRIDGE=30 / ACTIVE=2`. Member rebinding,
+  indexed/temporary places, `inout`, transitive alias provenance, positive
+  public member-Slice materialization, and injected allocator-failure execution
+  remain falsifiers; actual machine OOM was not forced in this packet.
 
 ## Previous self-host context — compatibility evolution CLOSED and published
 
