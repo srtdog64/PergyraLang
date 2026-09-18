@@ -9,6 +9,7 @@ import "ast_signature_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_local_binding_identity_owner.pgy";
 import "array_type_shape_owner.pgy";
+import "ast_expression_storage_place_identity_owner.pgy";
 func SemanticCompilerRetireArrayStorageCallerReady(
     signatures: SemanticAstFunctionSignatureFacts,
     function_node_id: Int
@@ -81,13 +82,6 @@ func SemanticExpressionGraphArrayStorageMutationFact(
     if callee != "ArrayPush" && callee != "ArrayPop" {
         return SemanticExpressionGraphCollectionMutationOk();
     }
-    let receiver: SemanticAstLocalBindingIdentity =
-        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
-            artifact, locals, inferred_types, function_node_id, use_node_id,
-            surfaces.expression_graph, receiver_id);
-    if !receiver.ok {
-        return SemanticExpressionGraphCollectionMutationOk();
-    }
     let row: Int = 0;
     while row < ArrayLength(locals.node_ids) {
         let local_type: String = inferred_types[row];
@@ -116,14 +110,11 @@ func SemanticExpressionGraphArrayStorageMutationFact(
                         SemanticMemberAccessViewFromGraph(
                             surfaces.expression_graph, call.callee_node);
                     if member.ok {
-                        let source: SemanticAstLocalBindingIdentity =
-                            SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                        if SemanticAstExpressionStoragePlaceEqual(
                                 artifact, locals, inferred_types,
-                                function_node_id, locals.node_ids[row],
-                                surfaces.expression_graph,
-                                member.receiver_node);
-                        if SemanticAstLocalBindingIdentityEqual(
-                                receiver, source) {
+                                function_node_id, use_node_id, receiver_id,
+                                locals.node_ids[row], member.receiver_node,
+                                surfaces.expression_graph) {
                             return SemanticExpressionGraphCollectionMutationError(
                                 "slice_storage_invalidation", SemanticError1(
                                     "slice_storage_invalidation",

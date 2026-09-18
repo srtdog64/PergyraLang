@@ -508,11 +508,16 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy` --
   graph-only Option/Result builtin type and diagnostic facts; carried call
   targets and typed signature rows are mandatory for the covered scalar lane.
+- `src/self_hosted/semantic/ast_expression_storage_place_identity_owner.pgy`
+  -- stable local-binding identity plus exact ordered member projection for an
+  addressable storage place. It compares parser-owned graph nodes and does not
+  flatten a place back into source text.
 - `src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy`
   -- graph call-target and receiver projection for collection mutation policy;
-  source argument text is not a semantic fallback. It also joins stable lexical
-  local identity from an `Array.Slice` initializer to later Array storage
-  mutation and rejects Push/Pop while that borrowed view is live.
+  source argument text is not a semantic fallback. It joins exact storage-place
+  identity from an `Array.Slice` initializer to later Array storage mutation and
+  rejects Push/Pop while that borrowed view is live without conflating sibling
+  fields of the same root.
 - `src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy` --
   operand diagnostics for fully graph-owned scalar operator trees.
 - `src/self_hosted/semantic/ast_expression_graph_view_owner.pgy` -- borrowed

@@ -1,0 +1,14 @@
+struct SliceMemberPair {
+    let values: Array<Int>;
+    let other: Array<Int>;
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [10, 20];
+    let other: Array<Int> = [1];
+    let bag: SliceMemberPair = SliceMemberPair(values, other);
+    let view: Slice<Int> = bag.values.Slice(0, 2);
+    ArrayPush(bag.other, 2);
+    Log(ToString(ArrayLength(view)));
+    Log(ToString(ArrayLength(bag.other)));
+}

@@ -9,6 +9,7 @@
 #include "type_checker_builtins_internal.h"
 #include "type_checker_builtins_stdlib_collections_internal.h"
 #include "type_checker_collection_policy.h"
+#include "type_checker_ownership_support_internal.h"
 #include "diag_codes.h"
 #include "../common/pgy_builtin_type_table.h"
 
@@ -98,19 +99,17 @@ reject_array_storage_invalidation_with_live_slice(ASTNode *receiver,
                                                   const char *operation,
                                                   SemanticContext *ctx)
 {
-    Symbol *array_sym;
     Symbol *slice_sym;
+    const char *place_path;
 
-    if (receiver == NULL || receiver->type != AST_IDENTIFIER)
+    if (receiver == NULL || (receiver->type != AST_IDENTIFIER
+            && receiver->type != AST_MEMBER_ACCESS))
         return false;
-    array_sym = scope_lookup(ctx->scope, ast_identifier_name(receiver));
-    if (array_sym == NULL ||
-        !type_is_constructed_named(array_sym->type, "Array"))
-        return false;
-    slice_sym = semantic_find_active_slice_borrow_for_array(
-        ctx->scope, array_sym);
+    slice_sym = semantic_find_active_slice_borrow_for_array_place(
+        ctx->scope, receiver, ctx);
     if (slice_sym == NULL)
         return false;
+    place_path = semantic_assignment_target_path_scratch(receiver, ctx);
     semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
         PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_REDUCE_SCOPE_OR_RETRY, receiver,
         "%s cannot change Array storage for '%s' while Slice '%s' is live.\n"
@@ -118,7 +117,7 @@ reject_array_storage_invalidation_with_live_slice(ASTNode *receiver,
         "- growing, shrinking, retiring, or replacing that storage would invalidate the view\n"
         "Fix:\n- perform the storage-changing operation before creating the Slice\n"
         "- or end the Slice's lexical scope before changing '%s'",
-        operation, array_sym->name, slice_sym->name, array_sym->name);
+        operation, place_path, slice_sym->name, place_path);
     return true;
 }
 

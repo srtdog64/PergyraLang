@@ -1,0 +1,85 @@
+// Stable storage-place identity over one admitted expression graph.
+//
+// A place is one lexical binding identity plus its exact ordered member path.
+// Spelling resolves only at the root; downstream users compare declaration and
+// binding identity plus parser-owned member nodes, never flattened source text.
+
+import "ast_expression_graph_member_view_owner.pgy";
+import "ast_local_binding_identity_owner.pgy";
+
+func SemanticAstExpressionStoragePlaceEqual(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    function_node_id: Int,
+    left_use_node_id: Int,
+    left_node_id: Int,
+    right_use_node_id: Int,
+    right_node_id: Int,
+    ref graph: SemanticExpressionGraphFacts
+) -> Bool {
+    let left: Int = left_node_id;
+    let right: Int = right_node_id;
+    while left >= 0 && right >= 0 {
+        let left_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph, left
+        );
+        let right_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph, right
+        );
+        if !IsSome(left_kind) || !IsSome(right_kind) {
+            return false;
+        }
+        if UnwrapOption(left_kind) == AstExpressionNodeMemberAccess() ||
+            UnwrapOption(right_kind) == AstExpressionNodeMemberAccess() {
+            if UnwrapOption(left_kind) != AstExpressionNodeMemberAccess() ||
+                UnwrapOption(right_kind) != AstExpressionNodeMemberAccess() {
+                return false;
+            }
+            let left_member: SemanticMemberAccessView =
+                SemanticMemberAccessViewFromGraph(graph, left);
+            let right_member: SemanticMemberAccessView =
+                SemanticMemberAccessViewFromGraph(graph, right);
+            if !left_member.ok || !right_member.ok ||
+                left_member.receiver_node < 0 ||
+                right_member.receiver_node < 0 ||
+                left_member.receiver_node >= left ||
+                right_member.receiver_node >= right {
+                return false;
+            }
+            let left_name: Option<String> =
+                SemanticExpressionGraphNodeText(
+                    graph, left_member.member_node
+                );
+            let right_name: Option<String> =
+                SemanticExpressionGraphNodeText(
+                    graph, right_member.member_node
+                );
+            if !IsSome(left_name) || !IsSome(right_name) ||
+                UnwrapOption(left_name) != UnwrapOption(right_name) {
+                return false;
+            }
+            left = left_member.receiver_node;
+            right = right_member.receiver_node;
+        } else {
+            if UnwrapOption(left_kind) != AstExpressionNodeLeaf() ||
+                UnwrapOption(right_kind) != AstExpressionNodeLeaf() {
+                return false;
+            }
+            let left_root: SemanticAstLocalBindingIdentity =
+                SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                    artifact, locals, inferred_types, function_node_id,
+                    left_use_node_id, graph, left
+                );
+            let right_root: SemanticAstLocalBindingIdentity =
+                SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                    artifact, locals, inferred_types, function_node_id,
+                    right_use_node_id, graph, right
+                );
+            return SemanticAstLocalBindingIdentityEqual(
+                left_root, right_root
+            );
+        }
+    }
+    return false;
+}

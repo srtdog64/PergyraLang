@@ -1,0 +1,11 @@
+struct SliceMemberBag {
+    let values: Array<Int>;
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [10, 20];
+    let bag: SliceMemberBag = SliceMemberBag(values);
+    ArrayPush(bag.values, 30);
+    let view: Slice<Int> = bag.values.Slice(0, 3);
+    Log(ToString(ArrayLength(view)));
+}

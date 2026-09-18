@@ -34,6 +34,10 @@ bool semantic_find_active_slot_view_for_source(Scope *scope,
                                                bool *is_write_view_out);
 Symbol *semantic_find_active_slice_borrow_for_array(Scope *scope,
                                                     const Symbol *array_sym);
+Symbol *semantic_find_active_slice_borrow_for_array_place(
+    Scope *scope,
+    ASTNode *array_place,
+    SemanticContext *ctx);
 bool semantic_reject_active_slot_owner_escape(ASTNode *site,
                                               SemanticContext *ctx,
                                               const char *escape_kind,

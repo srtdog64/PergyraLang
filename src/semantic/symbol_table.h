@@ -153,11 +153,12 @@ struct Symbol
         long long boundary_lit;   /* valid when boundary_sym == NULL */
     } slice_split_info;
 
-    /* Backing Array identity for a local borrowed Slice. Unlike the optional
-     * disjoint-split proof above, every direct `array.Slice(...)` binding
-     * carries this fact so storage-relocating mutations can fail closed while
-     * the view's lexical scope is live. */
+    /* Backing Array place for a local borrowed Slice. The root symbol keeps
+     * lexical identity stable under shadowing; the non-owning AST place keeps
+     * the exact member projection (`array` or `record.field...`) so unrelated
+     * fields of one root are not conflated. The AST outlives semantic scopes. */
     Symbol* slice_borrow_base_sym;
+    ASTNode* slice_borrow_base_place;
 
     /*
      * Memo for flow-snapshot tracking (docs/183 round 2). Branch/loop flow

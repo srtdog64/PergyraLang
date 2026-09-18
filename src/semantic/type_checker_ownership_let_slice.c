@@ -10,6 +10,38 @@
 #include "type_checker_internal.h"
 #include "type_checker_ownership_let_internal.h"
 
+static Symbol *
+ownership_slice_place_root_symbol(ASTNode *place, SemanticContext *ctx)
+{
+    ASTNode *cursor = place;
+
+    while (cursor != NULL && cursor->type == AST_MEMBER_ACCESS)
+        cursor = ast_member_object(cursor);
+    if (cursor == NULL || cursor->type != AST_IDENTIFIER || ctx == NULL)
+        return NULL;
+    return scope_lookup(ctx->scope, ast_identifier_name(cursor));
+}
+
+static bool
+ownership_slice_place_shape_equal(const ASTNode *left, const ASTNode *right)
+{
+    const char *left_member;
+    const char *right_member;
+
+    if (left == NULL || right == NULL || left->type != right->type)
+        return false;
+    if (left->type == AST_IDENTIFIER)
+        return true;
+    if (left->type != AST_MEMBER_ACCESS)
+        return false;
+    left_member = ast_member_name(left);
+    right_member = ast_member_name(right);
+    return left_member != NULL && right_member != NULL
+        && strcmp(left_member, right_member) == 0
+        && ownership_slice_place_shape_equal(
+            ast_member_object(left), ast_member_object(right));
+}
+
 /* A split boundary is stable when both slicing sites use the same immutable
  * Int local or the same non-negative Int literal. */
 static bool
@@ -54,6 +86,7 @@ ownership_let_record_slice_split_fact(ASTNode *node, SemanticContext *ctx,
     ASTNode *arg0;
     ASTNode *boundary_node;
     Symbol *base_sym;
+    Type *base_type;
     Symbol *boundary_sym = NULL;
     long long boundary_lit = 0;
     bool is_upper;
@@ -68,14 +101,24 @@ ownership_let_record_slice_split_fact(ASTNode *node, SemanticContext *ctx,
         || strcmp(ast_member_name(callee), "Slice") != 0)
         return;
     object = ast_member_object(callee);
-    if (object == NULL || object->type != AST_IDENTIFIER)
+    if (object == NULL || (object->type != AST_IDENTIFIER
+            && object->type != AST_MEMBER_ACCESS))
         return;
-    base_sym = scope_lookup(ctx->scope, ast_identifier_name(object));
-    if (base_sym == NULL
-        || !type_is_constructed_named(base_sym->type, "Array"))
+    base_sym = ownership_slice_place_root_symbol(object, ctx);
+    if (base_sym == NULL)
+        return;
+    base_type = object->type == AST_IDENTIFIER
+        ? base_sym->type
+        : type_check_expression(object, ctx);
+    if (!type_is_constructed_named(base_type, "Array"))
         return;
 
     sym->slice_borrow_base_sym = base_sym;
+    sym->slice_borrow_base_place = object;
+    /* Split/disjointness evidence remains direct-Array-only. Member-place
+     * lifetime identity is a separate fact and does not imply disjointness. */
+    if (object->type != AST_IDENTIFIER)
+        return;
     if (ast_let_is_mutable(node))
         return;
 
@@ -106,7 +149,32 @@ semantic_find_active_slice_borrow_for_array(Scope *scope,
     for (Scope *cur = scope; cur != NULL; cur = cur->parent) {
         for (size_t i = 0; i < cur->symbol_count; i++) {
             Symbol *candidate = cur->symbols[i];
-            if (candidate != NULL && candidate->slice_borrow_base_sym == array_sym)
+            if (candidate != NULL
+                && candidate->slice_borrow_base_sym == array_sym
+                && candidate->slice_borrow_base_place != NULL
+                && candidate->slice_borrow_base_place->type == AST_IDENTIFIER)
+                return candidate;
+        }
+    }
+    return NULL;
+}
+
+Symbol *
+semantic_find_active_slice_borrow_for_array_place(Scope *scope,
+                                                  ASTNode *array_place,
+                                                  SemanticContext *ctx)
+{
+    Symbol *root_sym = ownership_slice_place_root_symbol(array_place, ctx);
+
+    if (root_sym == NULL)
+        return NULL;
+    for (Scope *cur = scope; cur != NULL; cur = cur->parent) {
+        for (size_t i = 0; i < cur->symbol_count; i++) {
+            Symbol *candidate = cur->symbols[i];
+            if (candidate != NULL
+                && candidate->slice_borrow_base_sym == root_sym
+                && ownership_slice_place_shape_equal(
+                    candidate->slice_borrow_base_place, array_place))
                 return candidate;
         }
     }
