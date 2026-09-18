@@ -3,13 +3,13 @@
 Updated: 2026-09-19 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-Nested-expression CI repair material checkpoint:
-`7a7595897ccdfa747bf227b4b38c5dba49dd4959`. Git HEAD/status and
+CI cascade repair material checkpoint:
+`4876203b3fcef3b2b25381313a68df873424e0be`. Git HEAD/status and
 `origin/main` remain the authority for its publication checkpoint. The
 pre-existing untracked `._handoff_full.md` and `_agents_dump.txt` are not part
 of this packet.
 
-## Active self-host context — expression surface CLOSED; CI regression repaired
+## Active self-host context — expression surface CLOSED; bootstrap CI repaired
 
 Objective card:
 - Objective: make the parser-owned expression graph the only supported
@@ -47,19 +47,34 @@ Reached evidence and boundary:
   `ArraySort(Array<Int>)` through their graph owners. It does not restore a
   payload-text fallback or add a reverse dependency from resolved-call typing
   to the whole scalar-type owner.
-- A fresh, previously absent seed directory reaches `seed artifacts ready:
-  gen2 codegen and parser AST producer`. The nested-call gate passes 2
-  executions and 12 pre-emission refusals; the nominal/array gate passes 4
-  executions and 8 refusals; the focused closure gate passes artifact-equal
-  C/LLVM execution and missing-fact rejection. The component contract passes
-  2,435 line-cap requests, 1,031 function extractions, and 697 reuses.
+- Exact-head push run `35368353187` passed the fixed-point compiler and then
+  exposed two serialized-AST admission gaps in sequence. A collection
+  `for x in xs` was incorrectly required to carry a range upper-bound lane;
+  the row-aware lane owner now requires that lane only when the typed row has
+  auxiliary text. The executable parser contract distinguishes collection
+  and range `for` rows on both C and LLVM.
+- The second gap was a false self-host builtin signature:
+  `Print` returned `Unknown` in the semantic registry although the native type
+  checker and direct-MIR call fact both own `Void`. The canonical row and its
+  direct-MIR projection now agree on `Void`, while the old row is rejected by
+  the component ratchet.
+- A completely new full-bootstrap directory reaches `gen2 == gen3` at 82,622
+  lines, matches all eight sample programs, rebuilds lexer/parser/semantic,
+  matches all 14 audit tools, compiles `mir_lower` with the `let_log`,
+  `forloop`, and `role_operator_dispatch` fixtures, and matches the fuzz
+  backend corpus. The nested-call gate passes 2 executions and 12 pre-emission
+  refusals; the nominal/array gate passes 4 executions and 8 refusals; the
+  focused expression closure and direct-MIR Print gates pass C/LLVM execution
+  plus their negative cases. The component contract passes 2,435 line-cap
+  requests, 1,031 function extractions, and 697 reuses.
 - `sot_registry_gate.py` reports 89 authorities, 188 derived fact carriers, and
   `CLOSED=58 / BRIDGE=29 / ACTIVE=2`. `selfhost.expression_surface` is now
   `CLOSED` with the closure gate as its primary negative ratchet.
-- The 284-fixture matrix and platform matrix were not rerun locally. Exact-head
-  push CI is the next broader boundary. Publication state is owned by Git, not
-  this navigation snapshot. Do not infer the next active row from this handoff;
-  select the next production bypass explicitly.
+- The 284-fixture matrix and platform matrix were not rerun locally. An
+  exact-head push CI after this handoff is the next broader boundary.
+  Publication state is owned by Git, not this navigation snapshot. Do not
+  infer the next active row from this handoff; select the next production
+  bypass explicitly.
 
 ## Previous self-host context — Array.Slice/SliceCopy execution bridge SUBSTITUTING
 
