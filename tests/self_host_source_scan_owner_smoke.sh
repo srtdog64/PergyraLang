@@ -104,7 +104,7 @@ fi
 for callable_compare_owner in \
     "$GENERIC_CALL:func SemanticGenericCallSignatureIndex" \
     "$IDENTITY_RESOLUTION:func SemanticExpressionDirectTargetSyntaxId" \
-    "$CARRIED_CALLABLE_IDENTITY:func SemanticExpressionDeclaredCallableSyntaxId"
+    "$CARRIED_CALLABLE_IDENTITY:func SemanticExpressionDeclaredFunctionSyntaxId"
 do
     callable_compare_path="${callable_compare_owner%%:*}"
     callable_compare_function="${callable_compare_owner#*:}"
@@ -118,6 +118,16 @@ do
         fail "$callable_compare_function reopened canonical name materialization"
     fi
 done
+declared_callable_region="$(sed -n \
+    '/func SemanticExpressionDeclaredCallableSyntaxId/,/^}/p' \
+    "$CARRIED_CALLABLE_IDENTITY")"
+grep -Fq "SemanticExpressionDeclaredFunctionSyntaxId(signatures, target_name)" \
+    <<<"$declared_callable_region" ||
+    fail "declared callable lookup bypassed the canonical function identity owner"
+if grep -Fq "SemanticCallableCanonicalDeclaredName(" \
+    <<<"$declared_callable_region"; then
+    fail "declared callable lookup reopened canonical name materialization"
+fi
 if grep -Fq "CharAt(" "$CALLABLE_RESOLUTION"; then
     fail "callable resolution reopened allocating character reads"
 fi
