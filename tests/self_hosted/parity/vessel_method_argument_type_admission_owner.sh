@@ -147,7 +147,9 @@ valid_bin="$WORK_DIR/valid-c"
 
 require_text "$GRAPH_OWNER" 'if target_fact.kind == SemanticCallTargetMember() {'
 require_text "$GRAPH_OWNER" '"member_call_arg_type_mismatch"'
-require_text "$VERDICT_OWNER" 'SemanticExpressionGraphResolvedCallArgumentsOwned('
+require_text "$GRAPH_OWNER" 'func SemanticExpressionGraphResolvedCallArgumentsOwned('
+! grep -Fq 'func SemanticExpressionGraphResolvedCallArgumentsOwned(' \
+    "$VERDICT_OWNER" || fail "expression verdict consumer regained resolved-call argument ownership"
 require_text "$RECEIPT_OWNER" 'if code == "member_call_arg_type_mismatch" {'
 ! grep -Fq 'vessel V' "$GRAPH_OWNER" "$VERDICT_OWNER" ||
     fail "semantic owner gained fixture-specific vessel syntax"
