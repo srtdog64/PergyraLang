@@ -18,8 +18,7 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(ref plan: DirectMirScalarC
     let readonly_string: Bool = DirectMirScalarProgramVoidReadonlyStringTargetAt(plan.routines, target, ordinal);
     let owned_string_member: Bool = DirectMirScalarProgramOwnedStringMemberArgumentReady(plan.program.logical_record, facts, argument_node, graph_start, carriage, plan.routines.parameter_types[parameter_row]);
     let owned_string_call_result: Bool = DirectMirScalarProgramOwnedStringCallResultArgumentReady(
-        plan.routines, facts, argument_node, graph_start,
-        carriage, plan.routines.parameter_types[parameter_row]);
+        plan.routines, facts, argument_node, graph_start, carriage, plan.routines.parameter_types[parameter_row]);
     if argument_node < graph_start || argument_node >= node ||
         facts.node_types[argument_node] != plan.routines.parameter_types[parameter_row] ||
         (carriage != "value" &&
@@ -31,9 +30,8 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(ref plan: DirectMirScalarC
         return false;
     }
     if carriage == "readonly-ref" {
-        let readonly_cell: Bool = DirectMirScalarProgramIdentityCellBorrowCarriage(
-            plan.program.logical_record.identity_cells,
-            plan.routines.parameter_types[parameter_row]) == "readonly-ref";
+        let readonly_cell: Bool = DirectMirScalarProgramIdentityCellParameterCarriageReady(
+            plan.program.logical_record.identity_cells, plan.routines.parameter_types[parameter_row], carriage);
         let readonly_array: Bool = DirectMirScalarProgramArrayReadonlyRefAt(
                 plan.routines, target, ordinal);
         if !readonly_array && !readonly_string && !readonly_cell &&
@@ -105,14 +103,16 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(ref plan: DirectMirScalarC
             }
         }
     } else if carriage == "owner-handle" {
-        let owner_type: String =
-            plan.routines.parameter_types[parameter_row];
+        let owner_type: String = plan.routines.parameter_types[parameter_row];
         if owner_type != CompilerAbiLayoutStringTypeName() &&
             owner_type != CompilerAbiLayoutArrayStringTypeName() &&
             !DirectMirScalarProgramLogicalRecordTypeReady(
                 plan.program.logical_record, owner_type) {
             return false;
         }
+    } else if carriage == "mutable-identity" {
+        return DirectMirScalarProgramIdentityCellParameterCarriageReady(
+            plan.program.logical_record.identity_cells, plan.routines.parameter_types[parameter_row], carriage);
     } else if carriage != "value" && carriage != "readonly-ref" {
         return false;
     }

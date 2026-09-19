@@ -1,7 +1,8 @@
 // Zone resources carry identity-bearing state across callable boundaries.
-// Zones admit read-only ref; worlds with embedded zones additionally admit an
-// in-place inout borrow. Value parameters and every zone-owning return fail
-// closed until an explicit transfer owner exists.
+// Default-mode zone/world parameters use the language-wide automatic identity
+// reference; explicit ref is also admitted, and worlds with embedded zones
+// additionally admit an in-place inout borrow. Explicit ownership carriage
+// and every zone-owning return fail closed until a transfer owner exists.
 
 import "ast_signature_fact_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
@@ -86,6 +87,7 @@ func SemanticAstZoneParameterBoundaryVerdictFromAdmittedFacts(
                         constructors, parameter_type
                     );
                 let admitted: Bool = resource_kind == 0 ||
+                    parameter_mode == 0 ||
                     parameter_mode == 3 ||
                     (resource_kind == 2 && parameter_mode == 1);
                 if !admitted {

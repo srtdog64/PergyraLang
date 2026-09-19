@@ -23,6 +23,7 @@ import "direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy";
 import "direct_mir_scalar_program_callable_runtime_value_parameter_policy_owner.pgy";
 import "direct_mir_scalar_program_owned_string_parameter_policy_owner.pgy";
 import "direct_mir_scalar_program_callable_type_policy_owner.pgy";
+import "direct_mir_identity_cell_parameter_carriage_owner.pgy";
 func DirectMirScalarProgramCallableValueTypeSupported(type_name: String) -> Bool {
     return DirectMirScalarCfgScalarTypeSupported(type_name) ||
         type_name == CompilerAbiLayoutArrayStringTypeName() ||
@@ -213,32 +214,25 @@ func DirectMirScalarProgramLogicalRecordParameterReady(
     return signature.parameters.carriages[ordinal] == "readonly-ref" &&
         signature.parameters.pass_shapes[ordinal] == "indirect";
 }
-// Closed synchronous calls borrow cell identity. A Zone is never a value
-// parameter: its source-level readonly-ref remains an indirect cell borrow.
-func DirectMirScalarProgramIdentityCellBorrowCarriage(
-    ref cells: DirectMirIdentityCellFacts, type_name: String
-) -> String {
-    let cell: Int = DirectMirIdentityCellRow(cells, type_name);
-    if cell < 0 { return ""; }
-    if cells.nominal_kinds[cell] == "zone" { return "readonly-ref"; }
-    if cells.nominal_kinds[cell] == "subject" || cells.nominal_kinds[cell] == "vessel" { return "mutable-identity"; }
-    return "";
-}
 func DirectMirScalarProgramIdentityCellParameterReady(
     ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
     ref cells: DirectMirIdentityCellFacts
 ) -> Bool {
     if ordinal < 0 || ordinal >= signature.param_count { return false; }
-    let carriage: String = DirectMirScalarProgramIdentityCellBorrowCarriage(
-        cells, signature.parameters.type_names[ordinal]);
+    let type_name: String = signature.parameters.type_names[ordinal];
+    let carriage: String = signature.parameters.carriages[ordinal];
+    let admitted_carriage: Bool =
+        DirectMirScalarProgramIdentityCellParameterCarriageReady(
+            cells, type_name, carriage);
     // An Intent's admitted binder retains its own protocol mode. Recognizing
     // its cell representation does not discharge placement or cleanup.
-    if carriage != "" && signature.kind == "intent" { carriage = "participant"; }
-    let pass_shape: String = "direct";
-    if carriage != "value" { pass_shape = "indirect"; }
-    return carriage != "" && signature.parameters.carriages[ordinal] == carriage &&
+    if signature.kind == "intent" {
+        admitted_carriage = DirectMirIdentityCellRow(cells, type_name) >= 0 &&
+            carriage == "participant";
+    }
+    return admitted_carriage &&
         signature.parameters.resources[ordinal] == "none" &&
-        signature.parameters.pass_shapes[ordinal] == pass_shape &&
+        signature.parameters.pass_shapes[ordinal] == "indirect" &&
         !signature.parameters.abi_required[ordinal] && signature.parameters.abi_layout_ids[ordinal] == 0 &&
         signature.parameters.abi_row_keys[ordinal] == "";
 }

@@ -21,9 +21,13 @@ func DirectMirIdentityCellLifetimeReady(ref plan: DirectMirScalarCfgGraphPlan) -
     while parameter < ArrayLength(plan.routines.parameter_types) {
         let cell: Int = DirectMirIdentityCellRow(plan.program.logical_record.identity_cells,
             plan.routines.parameter_types[parameter]);
-        if cell >= 0 && plan.routines.parameter_carriages[parameter] !=
-            DirectMirScalarProgramIdentityCellBorrowCarriage(
-                plan.program.logical_record.identity_cells, plan.routines.parameter_types[parameter]) { return false; }
+        if cell >= 0 &&
+            !DirectMirScalarProgramIdentityCellParameterCarriageReady(
+                plan.program.logical_record.identity_cells,
+                plan.routines.parameter_types[parameter],
+                plan.routines.parameter_carriages[parameter]) {
+            return false;
+        }
         parameter = parameter + 1;
     }
     let contained: Array<Int> = [];
@@ -34,20 +38,26 @@ func DirectMirIdentityCellLifetimeReady(ref plan: DirectMirScalarCfgGraphPlan) -
         let kind: Int = plan.program.expressions.node_kinds[node];
         let result_cell: Int = DirectMirIdentityCellRow(plan.program.logical_record.identity_cells,
             plan.program.expressions.node_types[node]);
-        let slot_borrow: Bool = false;
+        let nested_identity_borrow: Bool = false;
         if kind == DirectMirScalarProgramExprIdentityCellMember() && result_cell >= 0 {
             let source: Int = plan.program.expressions.node_lefts[node];
             if source < 0 || source >= node { return false; }
-            let zone: Int = DirectMirIdentityCellRow(plan.program.logical_record.identity_cells,
+            let owner_cell: Int = DirectMirIdentityCellRow(
+                plan.program.logical_record.identity_cells,
                 plan.program.expressions.node_types[source]);
-            slot_borrow = zone >= 0 &&
-                plan.program.logical_record.identity_cells.nominal_kinds[zone] == "zone" &&
-                plan.program.logical_record.identity_cells.nominal_kinds[result_cell] == "subject";
+            if owner_cell >= 0 {
+                let owner_kind: String = plan.program.logical_record.identity_cells.nominal_kinds[owner_cell];
+                let result_kind: String = plan.program.logical_record.identity_cells.nominal_kinds[result_cell];
+                nested_identity_borrow =
+                    (owner_kind == "zone" && result_kind == "subject") ||
+                    (owner_kind == "world" && result_kind == "zone");
+            }
         }
         if DirectMirIdentityCellRow(plan.program.logical_record.identity_cells,
                 plan.program.expressions.node_types[node]) >= 0 &&
             kind != DirectMirScalarProgramExprLocal() && kind != DirectMirScalarProgramExprParameter() &&
-            kind != DirectMirScalarProgramExprIdentityCellConstructor() && !slot_borrow { return false; }
+            kind != DirectMirScalarProgramExprIdentityCellConstructor() &&
+            !nested_identity_borrow { return false; }
         let operands: Array<Int> = DirectMirScalarProgramLogicalRecordArgumentRows(plan.program.expressions, node);
         let operand: Int = 0;
         while operand < ArrayLength(operands) {
@@ -59,9 +69,15 @@ func DirectMirIdentityCellLifetimeReady(ref plan: DirectMirScalarCfgGraphPlan) -
                 if contained[source] != 0 { return false; }
                 if kind == DirectMirScalarProgramExprIdentityCellMember() {
                     if ArrayLength(operands) != 1 || source != plan.program.expressions.node_lefts[node] { return false; }
-                } else if kind == DirectMirScalarProgramExprIdentityCellConstructor() &&
-                    result_cell >= 0 && plan.program.logical_record.identity_cells.nominal_kinds[result_cell] == "zone" {
-                    if plan.program.logical_record.identity_cells.nominal_kinds[source_cell] != "subject" ||
+                } else if kind ==
+                        DirectMirScalarProgramExprIdentityCellConstructor() &&
+                    result_cell >= 0 {
+                    let owner_kind: String = plan.program.logical_record.identity_cells.nominal_kinds[result_cell];
+                    let source_kind: String = plan.program.logical_record.identity_cells.nominal_kinds[source_cell];
+                    if !((owner_kind == "zone" &&
+                            source_kind == "subject") ||
+                          (owner_kind == "world" &&
+                            source_kind == "zone")) ||
                         plan.program.expressions.node_kinds[source] != DirectMirScalarProgramExprIdentityCellConstructor() ||
                         uses[source] != 0 { return false; }
                     contained[source] = 1;
@@ -74,9 +90,12 @@ func DirectMirIdentityCellLifetimeReady(ref plan: DirectMirScalarCfgGraphPlan) -
                         operand >= plan.routines.parameter_counts[callee] { return false; }
                     let parameter: Int = plan.routines.parameter_starts[callee] + operand;
                     if plan.routines.parameter_types[parameter] != type_name ||
-                        plan.routines.parameter_carriages[parameter] !=
-                            DirectMirScalarProgramIdentityCellBorrowCarriage(
-                                plan.program.logical_record.identity_cells, type_name) { return false; }
+                        !DirectMirScalarProgramIdentityCellParameterCarriageReady(
+                            plan.program.logical_record.identity_cells,
+                            type_name,
+                            plan.routines.parameter_carriages[parameter]) {
+                        return false;
+                    }
                 } else { return false; }
                 uses[source] = uses[source] + 1;
             }

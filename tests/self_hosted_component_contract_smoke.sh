@@ -760,6 +760,9 @@ require_text \
 require_text \
     "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" \
     'domain_runtime_world_zone_carriage_admission_owner.sh'
+require_text \
+    "tests/self_hosted/parity/domain_runtime_zone_sync_execution_owner.sh" \
+    'domain_runtime_zone_identity_direct_mir_owner.sh'
 require_file "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/member_call_receiver_carriage_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" \
@@ -8104,8 +8107,12 @@ require_file "tests/self_hosted/parity/fixture/zone_subject_cell_nary.pgy"
 require_file "tests/self_hosted/parity/fixture/zone_readonly_call.pgy"
 require_file "tests/self_hosted/parity/fixture/zone_readonly_reborrow.pgy"
 require_file "tests/self_hosted/parity/fixture/zone_readonly_write_rejected.pgy"
-require_text "src/self_hosted/compiler/direct_mir_scalar_program_callable_parameter_policy_owner.pgy" \
-    'func DirectMirScalarProgramIdentityCellBorrowCarriage('
+require_text "src/self_hosted/compiler/direct_mir_identity_cell_parameter_carriage_owner.pgy" \
+    'func DirectMirScalarProgramIdentityCellParameterCarriageReady('
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
+    "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
+    "return DirectMirScalarProgramIdentityCellParameterCarriageReady("
 require_text "src/compiler/mir_signature_metadata.c" 'nominal_kind == AST_ZONE_DECL'
 require_text "src/compiler/rir_facts.c" 'state = RIR_STATE_BORROWED_READ;'
 require_text "src/self_hosted/compiler/direct_mir_identity_cell_fact_owner.pgy" \
@@ -19786,7 +19793,7 @@ reject_text \
     "terminal multi-routine graph is unsupported"
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_call_with_arguments_admission_owner.pgy" \
-    'parameter_carriages[parameter_row] != "value"'
+    'parameter_carriage != "value"'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_call_argument_expected_type_owner.pgy" \
     "func DirectMirScalarProgramDirectCallArgumentExpectedType(" \
@@ -22523,7 +22530,7 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_call_with_arguments_admission_owner.pgy" \
     "func DirectMirScalarProgramDirectCallFactFromGraph(" \
-    'callables.parameter_carriages[parameter_row] != "owner-handle"'
+    'parameter_carriage != "owner-handle"'
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
     "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \

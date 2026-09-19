@@ -3271,6 +3271,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   admit direct ordered field-type reads. There is no mutation or suspension
   between those reads; the row does not escape as a reusable admission receipt.
 - `src/self_hosted/compiler/direct_mir_identity_cell_fact_owner.pgy`,
+  `direct_mir_identity_cell_parameter_carriage_owner.pgy`,
   `direct_mir_identity_cell_lifetime_owner.pgy`, and
   `direct_mir_identity_cell_projection_owner.pgy` -- compiler-private noncopy
   Subject/Vessel cells and synchronous frame-owned Zone subject slots in the
@@ -3279,11 +3280,15 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   storage. Fresh contained Subject cells have unique backing, including equal
   constructor values. Slot reads borrow that storage; copying, returning,
   opaque capture and slot mutation without the reached resource/sync plan
-  refuse. Existing callable parameter policy admits only readonly-ref/indirect
-  Zone parameters with empty resource/layout facts. C/LLVM call projections
-  borrow existing cell storage, including readonly reborrow; they must not
-  take the address of a pointer slot as if it were a passive record. The cell
-  lifetime owner rejects value-carriage substitution and cell returns.
+  refuse. Callable parameter policy consumes the exact MIR carriage rather
+  than deriving it again from the nominal kind: default Zone/World parameters
+  use mutable-identity/indirect carriage, while explicit `ref` Zone parameters
+  use readonly-ref/indirect carriage. World cells may contain only Zone cells,
+  and Zone cells may contain only Subject cells, so the frame-owned identity
+  chain remains explicit. C/LLVM call projections borrow the existing cell
+  storage, including readonly reborrow; they must not take the address of a
+  pointer slot as if it were a passive record. The cell lifetime owner rejects
+  value-carriage substitution and cell returns.
   Nonempty Zone method/authority/topology obligations
   are not erased into this storage-only representation. C forward declarations
   and LLVM named types preserve declaration order and the same field ordinals.

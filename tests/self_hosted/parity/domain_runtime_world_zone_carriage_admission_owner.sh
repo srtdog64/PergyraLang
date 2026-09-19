@@ -94,15 +94,76 @@ cmp -s "$WORLD_EXPECTED" "$WORLD_NATIVE_SINGLE_OUT"
     >"$WORLD_NATIVE_THREADSAFE_OUT"
 cmp -s "$WORLD_EXPECTED" "$WORLD_NATIVE_THREADSAFE_OUT"
 
-for negative_case in copy reassign default_parameter return; do
+IDENTITY_SOURCE="$ROOT_DIR/tests/self_hosted/fixtures/domain_runtime_world_zone_identity_parameter.pgy"
+IDENTITY_C="$WORLD_BUILD_DIR/world-zone-identity-self.c"
+IDENTITY_NATIVE_C="$WORLD_BUILD_DIR/world-zone-identity-native.c"
+IDENTITY_EXPECTED="$WORLD_BUILD_DIR/world-zone-identity.expected"
+IDENTITY_SELF_SINGLE_BIN="$WORLD_BUILD_DIR/world-zone-identity-self-single.exe"
+IDENTITY_SELF_THREADSAFE_BIN="$WORLD_BUILD_DIR/world-zone-identity-self-threadsafe.exe"
+IDENTITY_NATIVE_SINGLE_BIN="$WORLD_BUILD_DIR/world-zone-identity-native-single.exe"
+IDENTITY_NATIVE_THREADSAFE_BIN="$WORLD_BUILD_DIR/world-zone-identity-native-threadsafe.exe"
+
+"$CODEGEN_BIN" --source "${IDENTITY_SOURCE#"$ROOT_DIR/"}" >"$IDENTITY_C"
+"$PGY_BIN" "$IDENTITY_SOURCE" --native-pipeline --emit-c \
+    -o "$IDENTITY_NATIVE_C"
+grep -Fq 'int32_t ReadWorld(CartWorld *compiler_world)' "$IDENTITY_C"
+grep -Fq 'int32_t ReadWorld(CartWorld *compiler_world)' "$IDENTITY_NATIVE_C"
+if grep -Eq 'CartWorld compiler_world[[:space:]]*=[[:space:]]*\*' \
+    "$IDENTITY_C" "$IDENTITY_NATIVE_C"; then
+    echo "default world identity regressed to a lock-bearing value copy" >&2
+    exit 1
+fi
+
+printf '1\n' >"$IDENTITY_EXPECTED"
+"$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    -Werror=discarded-qualifiers \
+    "${POSIX_FEATURE_FLAGS[@]}" \
+    -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
+    "$IDENTITY_C" -o "$IDENTITY_SELF_SINGLE_BIN"
+"$IDENTITY_SELF_SINGLE_BIN" | tr -d '\r' \
+    >"$WORLD_BUILD_DIR/world-zone-identity-self-single.out"
+cmp -s "$IDENTITY_EXPECTED" \
+    "$WORLD_BUILD_DIR/world-zone-identity-self-single.out"
+
+"$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    -Werror=discarded-qualifiers \
+    "${POSIX_FEATURE_FLAGS[@]}" \
+    -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
+    -DPGY_ZONE_THREADSAFE "$IDENTITY_C" \
+    -o "$IDENTITY_SELF_THREADSAFE_BIN"
+"$IDENTITY_SELF_THREADSAFE_BIN" | tr -d '\r' \
+    >"$WORLD_BUILD_DIR/world-zone-identity-self-threadsafe.out"
+cmp -s "$IDENTITY_EXPECTED" \
+    "$WORLD_BUILD_DIR/world-zone-identity-self-threadsafe.out"
+
+"$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    -Werror=discarded-qualifiers \
+    "${POSIX_FEATURE_FLAGS[@]}" \
+    -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
+    "$IDENTITY_NATIVE_C" -o "$IDENTITY_NATIVE_SINGLE_BIN"
+"$IDENTITY_NATIVE_SINGLE_BIN" | tr -d '\r' \
+    >"$WORLD_BUILD_DIR/world-zone-identity-native-single.out"
+cmp -s "$IDENTITY_EXPECTED" \
+    "$WORLD_BUILD_DIR/world-zone-identity-native-single.out"
+
+"$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    -Werror=discarded-qualifiers \
+    "${POSIX_FEATURE_FLAGS[@]}" \
+    -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
+    -DPGY_ZONE_THREADSAFE "$IDENTITY_NATIVE_C" \
+    -o "$IDENTITY_NATIVE_THREADSAFE_BIN"
+"$IDENTITY_NATIVE_THREADSAFE_BIN" | tr -d '\r' \
+    >"$WORLD_BUILD_DIR/world-zone-identity-native-threadsafe.out"
+cmp -s "$IDENTITY_EXPECTED" \
+    "$WORLD_BUILD_DIR/world-zone-identity-native-threadsafe.out"
+
+for negative_case in copy reassign return; do
     negative_source="$ROOT_DIR/tests/self_hosted/fixtures/domain_runtime_world_zone_${negative_case}_rejected.pgy"
     negative_out="$WORLD_BUILD_DIR/$negative_case.out"
     negative_err="$WORLD_BUILD_DIR/$negative_case.err"
     negative_code='zone_value_copy_requires_transfer'
     if [[ "$negative_case" == reassign ]]; then
         negative_code='zone_value_reassignment_requires_transfer'
-    elif [[ "$negative_case" == default_parameter ]]; then
-        negative_code='zone_value_parameter_requires_transfer'
     fi
     if "$CODEGEN_BIN" --source "${negative_source#"$ROOT_DIR/"}" \
         >"$negative_out" 2>"$negative_err"; then
@@ -135,4 +196,4 @@ if grep -Fq 'Pergyra embedded zone requires an admitted transfer plan' \
     exit 1
 fi
 
-echo "[domain-runtime-world-zone-carriage] semantic paths + mutable borrow + Pergyra/native single/thread-safe lifecycle: PASS"
+echo "[domain-runtime-world-zone-carriage] semantic paths + default identity + mutable borrow + Pergyra/native single/thread-safe lifecycle: PASS"

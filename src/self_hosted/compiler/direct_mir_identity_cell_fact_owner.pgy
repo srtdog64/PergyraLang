@@ -57,11 +57,25 @@ func DirectMirIdentityCellFactsEmpty() -> DirectMirIdentityCellFacts {
 
 func DirectMirIdentityCellNominalKindReady(nominal_kind: String) -> Bool {
     return CallableReceiverNominalKindUsesMutableLiteralIdentity(nominal_kind) ||
-        nominal_kind == "zone";
+        nominal_kind == "zone" || nominal_kind == "world";
 }
 
 func DirectMirIdentityCellFieldTypeReady(type_name: String) -> Bool {
     return type_name == "Int" || type_name == "Bool" || type_name == "String";
+}
+
+func DirectMirIdentityCellFieldCarriageReady(
+    owner_kind: String, field_kind: String, field_type: String,
+    target_kind: String
+) -> Bool {
+    if owner_kind == "zone" {
+        return field_kind == "subject_slot" && target_kind == "subject";
+    }
+    if owner_kind == "world" {
+        return field_kind == "world_zone" && target_kind == "zone";
+    }
+    return field_kind == "field" && target_kind == "" &&
+        DirectMirIdentityCellFieldTypeReady(field_type);
 }
 
 func DirectMirIdentityCellFactsReady(ref fact: DirectMirIdentityCellFacts) -> Bool {
@@ -90,12 +104,17 @@ func DirectMirIdentityCellFactsReady(ref fact: DirectMirIdentityCellFacts) -> Bo
         while field < end {
             if fact.field_names[field] == "" || fact.field_source_syntax_ids[field] <= 0 ||
                 fact.field_source_syntax_ids[field] == fact.source_syntax_ids[row] { return false; }
-            if fact.nominal_kinds[row] == "zone" {
-                let subject_row: Int = DirectMirIdentityCellRow(fact, fact.field_types[field]);
-                if fact.field_kinds[field] != "subject_slot" || subject_row < 0 ||
-                    fact.nominal_kinds[subject_row] != "subject" { return false; }
-            } else if fact.field_kinds[field] != "field" ||
-                !DirectMirIdentityCellFieldTypeReady(fact.field_types[field]) { return false; }
+            let target_row: Int = DirectMirIdentityCellRow(
+                fact, fact.field_types[field]);
+            let target_kind: String = "";
+            if target_row >= 0 {
+                target_kind = fact.nominal_kinds[target_row];
+            }
+            if !DirectMirIdentityCellFieldCarriageReady(
+                    fact.nominal_kinds[row], fact.field_kinds[field],
+                    fact.field_types[field], target_kind) {
+                return false;
+            }
             prior = next_field;
             while prior < field {
                 if fact.field_names[prior] == fact.field_names[field] ||
@@ -201,13 +220,21 @@ func DirectMirIdentityCellFactsFromDeclarations(
         while field < cursor {
             if !MirProgramDeclarationFieldIdentityPositiveDecimal(
                     declarations.field_identities.field_source_syntax_ids[field]) { supported = false; }
-            if declarations.nominal_kinds[row] == "zone" {
-                let subject_row: Int = MirProgramDeclarationFieldIdentityDeclarationIndex(
-                    declarations.field_identities, declarations.field_identities.field_type_names[field]);
-                if declarations.field_identities.field_kinds[field] != "subject_slot" ||
-                    subject_row < 0 || declarations.nominal_kinds[subject_row] != "subject" { supported = false; }
-            } else if declarations.field_identities.field_kinds[field] != "field" ||
-                !DirectMirIdentityCellFieldTypeReady(declarations.field_identities.field_type_names[field]) { supported = false; }
+            let target_row: Int =
+                MirProgramDeclarationFieldIdentityDeclarationIndex(
+                    declarations.field_identities,
+                    declarations.field_identities.field_type_names[field]);
+            let target_kind: String = "";
+            if target_row >= 0 {
+                target_kind = declarations.nominal_kinds[target_row];
+            }
+            if !DirectMirIdentityCellFieldCarriageReady(
+                    declarations.nominal_kinds[row],
+                    declarations.field_identities.field_kinds[field],
+                    declarations.field_identities.field_type_names[field],
+                    target_kind) {
+                supported = false;
+            }
             field = field + 1;
         }
         if supported {

@@ -22,10 +22,13 @@ func DirectMirScalarProgramCDirectCallArgumentValue(
             ArrayLength(expressions.node_kinds) { Die(
                 "direct MIR scalar C call argument identity is invalid"); }
     let parameter_row: Int = routines.parameter_starts[callable] + argument;
-    let cell_carriage: String = DirectMirScalarProgramIdentityCellBorrowCarriage(
+    let cell_row: Int = DirectMirIdentityCellRow(
         logical_record.identity_cells, routines.parameter_types[parameter_row]);
-    if cell_carriage != "" {
-        if routines.parameter_carriages[parameter_row] != cell_carriage {
+    if cell_row >= 0 {
+        if !DirectMirScalarProgramIdentityCellParameterCarriageReady(
+                logical_record.identity_cells,
+                routines.parameter_types[parameter_row],
+                routines.parameter_carriages[parameter_row]) {
             Die("direct MIR identity cell C call carriage is invalid");
         }
         // The value already names cell storage, not an addressable record copy.

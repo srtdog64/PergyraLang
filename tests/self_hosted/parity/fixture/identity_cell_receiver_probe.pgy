@@ -23,8 +23,9 @@ func Main() -> Void with caps env, io_read {
             let row: Int = 0; let observed: Int = 0;
             while row < ArrayLength(checked.routines.parameter_types) {
                 let type_name: String = checked.routines.parameter_types[row];
-                if DirectMirScalarProgramIdentityCellBorrowCarriage(checked.program.logical_record.identity_cells,
-                        type_name) == "readonly-ref" {
+                if DirectMirScalarProgramIdentityCellParameterCarriageReady(
+                        checked.program.logical_record.identity_cells,
+                        type_name, "readonly-ref") {
                     if checked.routines.parameter_carriages[row] != "readonly-ref" { Die("Zone parameter lost readonly carriage"); }
                     // Bypass the outer digest to falsify the lifetime owner itself.
                     ArraySet(checked.routines.parameter_carriages, row, "value");

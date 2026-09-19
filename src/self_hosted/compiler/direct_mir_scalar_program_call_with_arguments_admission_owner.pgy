@@ -1,18 +1,16 @@
 // Admission for direct calls whose normalized argument chain is non-empty.
-
 import "direct_mir_scalar_program_builtin_argument_chain_owner.pgy";
 import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_identity_owner.pgy";
+import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 import "direct_mir_scalar_program_direct_call_fact_owner.pgy";
 import "direct_mir_identity_cell_call_admission_owner.pgy";
-
 func DirectMirScalarProgramDirectCallFactFromGraph(
     ref sequence: MirExpressionGraphSequence, node: Int,
     source_rows: Array<Int>, normalized_types: Array<String>,
     ref callables: DirectMirScalarCfgProgramCallableInventory,
     ref signature: DirectMirRoutineSignatureFact) -> DirectMirScalarProgramDirectCallFact {
-    let missing: DirectMirScalarProgramDirectCallFact =
-        DirectMirScalarProgramDirectCallFactInvalid(false);
+    let missing: DirectMirScalarProgramDirectCallFact = DirectMirScalarProgramDirectCallFactInvalid(false);
     if node < 0 || node >= ArrayLength(sequence.arena.topology.node_kinds) ||
         sequence.arena.topology.node_kinds[node] != AstExpressionNodeCallArgument() { return missing; }
     let chain: DirectMirScalarProgramBuiltinArgumentChain =
@@ -90,10 +88,12 @@ func DirectMirScalarProgramDirectCallFactFromGraph(
     let ordinal: Int = 0;
     while ordinal < count {
         let parameter_row: Int = callables.parameter_starts[callable_row] + ordinal;
-        if (callables.parameter_carriages[parameter_row] != "value" &&
-            callables.parameter_carriages[parameter_row] != "readonly-ref" &&
-            callables.parameter_carriages[parameter_row] != "value-result" &&
-            callables.parameter_carriages[parameter_row] != "owner-handle") ||
+        let parameter_carriage: String = callables.parameter_carriages[parameter_row];
+        if (parameter_carriage != "value" && parameter_carriage != "readonly-ref" &&
+            parameter_carriage != "value-result" && parameter_carriage != "owner-handle" &&
+            !DirectMirScalarProgramIdentityCellParameterCarriageReady(
+                callables.instances.identity_cells, callables.parameter_types[parameter_row],
+                parameter_carriage)) ||
             normalized_types[chain.argument_rows[ordinal]] != callables.parameter_types[parameter_row] {
             return DirectMirScalarProgramDirectCallFactInvalid(true);
         }

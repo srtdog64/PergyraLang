@@ -7,9 +7,10 @@ zone CounterZone {
 }
 
 func Observe(value: CounterZone) -> Int {
-    return 1;
+    return value.player.hp;
 }
 
 func Main() -> Void {
-    Log(0);
+    let counter: CounterZone = CounterZone(Player(7));
+    Log(Observe(counter));
 }

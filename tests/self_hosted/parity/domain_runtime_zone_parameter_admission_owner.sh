@@ -1,37 +1,81 @@
 #!/usr/bin/env bash
 
 # Sourced by domain_runtime_zone_sync_execution_owner.sh after it has built the
-# current codegen executable. A zone parameter must use an explicit read-only
-# ref boundary; target-specific C mode may not decide whether copying is legal.
+# current codegen executable. A default-mode zone parameter carries the same
+# identity through the language-wide automatic-reference ABI; target-specific
+# C mode may not decide whether copying is legal.
 
 : "${ROOT_DIR:?zone parameter gate requires ROOT_DIR}"
 : "${BUILD_DIR:?zone parameter gate requires BUILD_DIR}"
 : "${CODEGEN_BIN:?zone parameter gate requires CODEGEN_BIN}"
+: "${PGY_BIN:?zone parameter gate requires PGY_BIN}"
 : "${CC_BIN:?zone parameter gate requires CC_BIN}"
 
 PARAMETER_BUILD_DIR="$BUILD_DIR/zone-parameter-admission"
 mkdir -p "$PARAMETER_BUILD_DIR"
 
-NEGATIVE_SOURCE="$ROOT_DIR/tests/self_hosted/fixtures/domain_runtime_zone_parameter_rejected.pgy"
-NEGATIVE_OUT="$PARAMETER_BUILD_DIR/default.out"
-NEGATIVE_ERR="$PARAMETER_BUILD_DIR/default.err"
-if "$CODEGEN_BIN" --source "${NEGATIVE_SOURCE#"$ROOT_DIR/"}" \
-    >"$NEGATIVE_OUT" 2>"$NEGATIVE_ERR"; then
-    echo "default zone parameter escaped semantic admission" >&2
+IDENTITY_SOURCE="$ROOT_DIR/tests/self_hosted/fixtures/domain_runtime_zone_parameter_identity.pgy"
+IDENTITY_C="$PARAMETER_BUILD_DIR/identity-self.c"
+IDENTITY_NATIVE_C="$PARAMETER_BUILD_DIR/identity-native.c"
+IDENTITY_EXPECTED="$PARAMETER_BUILD_DIR/identity.expected"
+IDENTITY_SELF_SINGLE_BIN="$PARAMETER_BUILD_DIR/identity-self-single.exe"
+IDENTITY_SELF_THREADSAFE_BIN="$PARAMETER_BUILD_DIR/identity-self-threadsafe.exe"
+IDENTITY_NATIVE_SINGLE_BIN="$PARAMETER_BUILD_DIR/identity-native-single.exe"
+IDENTITY_NATIVE_THREADSAFE_BIN="$PARAMETER_BUILD_DIR/identity-native-threadsafe.exe"
+
+"$CODEGEN_BIN" --source "${IDENTITY_SOURCE#"$ROOT_DIR/"}" >"$IDENTITY_C"
+"$PGY_BIN" "$IDENTITY_SOURCE" --native-pipeline --emit-c \
+    -o "$IDENTITY_NATIVE_C"
+grep -Fq 'int32_t Observe(CounterZone *value)' "$IDENTITY_C"
+grep -Fq 'int32_t Observe(CounterZone *value)' "$IDENTITY_NATIVE_C"
+if grep -Eq 'CounterZone value[[:space:]]*=[[:space:]]*\*' \
+    "$IDENTITY_C" "$IDENTITY_NATIVE_C"; then
+    echo "default zone identity regressed to a lock-bearing value copy" >&2
     exit 1
 fi
-grep -Fq 'Code: zone_value_parameter_requires_transfer' \
-    "$NEGATIVE_OUT" "$NEGATIVE_ERR"
-if grep -Fq 'Code: unregistered_diagnostic_code' \
-    "$NEGATIVE_OUT" "$NEGATIVE_ERR"; then
-    echo "default zone parameter used an unregistered diagnostic" >&2
-    exit 1
-fi
-if grep -Eq '^#include |^typedef struct|^static void .*_sync\(' \
-    "$NEGATIVE_OUT"; then
-    echo "default zone parameter leaked partial C" >&2
-    exit 1
-fi
+
+printf '7\n' >"$IDENTITY_EXPECTED"
+"$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    -Werror=discarded-qualifiers \
+    "${POSIX_FEATURE_FLAGS[@]}" \
+    -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
+    "$IDENTITY_C" -o "$IDENTITY_SELF_SINGLE_BIN"
+"$IDENTITY_SELF_SINGLE_BIN" | tr -d '\r' \
+    >"$PARAMETER_BUILD_DIR/identity-self-single.out"
+cmp -s "$IDENTITY_EXPECTED" \
+    "$PARAMETER_BUILD_DIR/identity-self-single.out"
+
+"$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    -Werror=discarded-qualifiers \
+    "${POSIX_FEATURE_FLAGS[@]}" \
+    -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
+    -DPGY_ZONE_THREADSAFE "$IDENTITY_C" \
+    -o "$IDENTITY_SELF_THREADSAFE_BIN"
+"$IDENTITY_SELF_THREADSAFE_BIN" | tr -d '\r' \
+    >"$PARAMETER_BUILD_DIR/identity-self-threadsafe.out"
+cmp -s "$IDENTITY_EXPECTED" \
+    "$PARAMETER_BUILD_DIR/identity-self-threadsafe.out"
+
+"$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    -Werror=discarded-qualifiers \
+    "${POSIX_FEATURE_FLAGS[@]}" \
+    -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
+    "$IDENTITY_NATIVE_C" -o "$IDENTITY_NATIVE_SINGLE_BIN"
+"$IDENTITY_NATIVE_SINGLE_BIN" | tr -d '\r' \
+    >"$PARAMETER_BUILD_DIR/identity-native-single.out"
+cmp -s "$IDENTITY_EXPECTED" \
+    "$PARAMETER_BUILD_DIR/identity-native-single.out"
+
+"$CC_BIN" -x c -std=c11 -fwrapv -fno-strict-aliasing \
+    -Werror=discarded-qualifiers \
+    "${POSIX_FEATURE_FLAGS[@]}" \
+    -I "$ROOT_DIR/src" -I "$ROOT_DIR/src/runtime" -pthread \
+    -DPGY_ZONE_THREADSAFE "$IDENTITY_NATIVE_C" \
+    -o "$IDENTITY_NATIVE_THREADSAFE_BIN"
+"$IDENTITY_NATIVE_THREADSAFE_BIN" | tr -d '\r' \
+    >"$PARAMETER_BUILD_DIR/identity-native-threadsafe.out"
+cmp -s "$IDENTITY_EXPECTED" \
+    "$PARAMETER_BUILD_DIR/identity-native-threadsafe.out"
 
 for return_case in zone world; do
     if [[ "$return_case" == zone ]]; then
@@ -90,6 +134,7 @@ FUNCTION_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/function_emit.pgy"
 NOMINAL_OWNER="$ROOT_DIR/src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy"
 
 grep -Fq 'zone_value_parameter_requires_transfer' "$ZONE_PARAMETER_OWNER"
+grep -Fq 'parameter_mode == 0' "$ZONE_PARAMETER_OWNER"
 grep -Fq 'resource_kind == 2 && parameter_mode == 1' "$ZONE_PARAMETER_OWNER"
 grep -Fq 'mutable_resource_parameter_node_ids' "$ZONE_PARAMETER_OWNER"
 if grep -Fq 'SemanticAstFunctionParam' "$ZONE_PARAMETER_OWNER"; then
@@ -112,4 +157,4 @@ if grep -Fq 'Pergyra embedded zone requires an admitted transfer plan' \
     exit 1
 fi
 
-echo "[domain-runtime-zone-parameter-admission] zone/world return plus default parameter semantic rejection and ref single/thread-safe execution: PASS"
+echo "[domain-runtime-zone-parameter-admission] default identity native/self single/thread-safe parity + explicit ref + zone/world return rejection: PASS"

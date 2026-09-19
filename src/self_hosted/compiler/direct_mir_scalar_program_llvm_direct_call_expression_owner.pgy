@@ -32,12 +32,16 @@ func DirectMirScalarProgramLlvmCallArgumentValue(
             ArrayLength(expressions.node_kinds) { return invalid; }
     let parameter_row: Int = routines.parameter_starts[callable] + argument;
     let carriage: String = routines.parameter_carriages[parameter_row];
-    let cell_carriage: String = DirectMirScalarProgramIdentityCellBorrowCarriage(
+    let cell_row: Int = DirectMirIdentityCellRow(
         logical_record.identity_cells, routines.parameter_types[parameter_row]);
-    if cell_carriage != "" {
-        if carriage != cell_carriage { return invalid; }
-        // A Zone ref is the existing cell pointer, never the address of the
-        // local pointer slot used by passive-record readonly-ref lowering.
+    if cell_row >= 0 {
+        if !DirectMirScalarProgramIdentityCellParameterCarriageReady(
+                logical_record.identity_cells,
+                routines.parameter_types[parameter_row], carriage) {
+            return invalid;
+        }
+        // An identity argument is the existing cell pointer, never the
+        // address of a pointer slot used by passive-record lowering.
         return DirectMirScalarProgramLlvmCallArgument(true, "", value, carriage);
     }
     if carriage == "value-result" {
@@ -125,6 +129,7 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
         if ordinal > 0 { output = Concat(output, ", "); }
         let argument_type: String = "";
         if carriages[ordinal] == "readonly-ref" ||
+            carriages[ordinal] == "mutable-identity" ||
             carriages[ordinal] == "value-result" {
             argument_type = "ptr";
         } else if carriages[ordinal] == "value" ||

@@ -1,0 +1,17 @@
+// Exact MIR parameter carriage admitted for compiler-private identity cells.
+import "direct_mir_identity_cell_fact_owner.pgy";
+
+func DirectMirScalarProgramIdentityCellParameterCarriageReady(
+    ref cells: DirectMirIdentityCellFacts, type_name: String,
+    carriage: String
+) -> Bool {
+    let cell: Int = DirectMirIdentityCellRow(cells, type_name);
+    if cell < 0 { return false; }
+    if cells.nominal_kinds[cell] == "zone" ||
+        cells.nominal_kinds[cell] == "world" {
+        return carriage == "readonly-ref" || carriage == "mutable-identity";
+    }
+    return (cells.nominal_kinds[cell] == "subject" ||
+            cells.nominal_kinds[cell] == "vessel") &&
+        carriage == "mutable-identity";
+}
