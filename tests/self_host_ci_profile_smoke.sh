@@ -80,14 +80,14 @@ for required in \
 done
 
 if [[ "$(grep -Fc 'needs: classify-changes' "$WORKFLOW")" != "8" ]] ||
-    [[ "$(grep -Fc 'needs: [classify-changes, backend-compare-toolchain-linux]' "$WORKFLOW")" != "2" ]] ||
-    [[ "$(grep -Fc "if: needs.classify-changes.outputs.run_full == 'true'" "$WORKFLOW")" != "9" ]]; then
+    [[ "$(grep -Fc 'needs: [classify-changes, backend-compare-toolchain-linux]' "$WORKFLOW")" != "3" ]] ||
+    [[ "$(grep -Fc "if: needs.classify-changes.outputs.run_full == 'true'" "$WORKFLOW")" != "10" ]]; then
     echo "[self-host-ci-profile] full-only jobs are not all gated by one change-scope owner" >&2
     exit 1
 fi
 
 build_linux_scope="$(
-    sed -n '/^  build-linux:/,/^  sanitizers-linux:/p' "$WORKFLOW"
+    sed -n '/^  build-linux:/,/^  build-linux-self-host-contracts:/p' "$WORKFLOW"
 )"
 if ! grep -Fq 'needs: [classify-changes, backend-compare-toolchain-linux]' <<<"$build_linux_scope" ||
     ! grep -Fq "if: \${{ always() && needs.classify-changes.result == 'success'" <<<"$build_linux_scope" ||
@@ -105,9 +105,29 @@ for required in \
     'name: backend-compare-linux-toolchain' \
     'chmod +x bin/pgy bin/pgy-self-driver' \
     'test -s bin/pgy-self-driver.machine-layer-manifest.json' \
-    'PGY_CI_SELF_HOST_MODE: prebuilt'; do
+    'PGY_CI_SELF_HOST_MODE: prebuilt' \
+    'PGY_CI_PUSH_LINUX_SHARD: core'; do
     if ! grep -Fq "$required" <<<"$build_linux_scope"; then
         echo "[self-host-ci-profile] build-linux lost fail-closed shared toolchain admission: $required" >&2
+        exit 1
+    fi
+done
+
+build_linux_self_host_scope="$(
+    sed -n '/^  build-linux-self-host-contracts:/,/^  sanitizers-linux:/p' "$WORKFLOW"
+)"
+for required in \
+    'needs: [classify-changes, backend-compare-toolchain-linux]' \
+    "if: needs.classify-changes.outputs.run_full == 'true'" \
+    'uses: actions/download-artifact@v4' \
+    'name: backend-compare-linux-toolchain' \
+    'chmod +x bin/pgy bin/pgy-self-driver' \
+    'test -s bin/pgy-self-driver.machine-layer-manifest.json' \
+    'PGY_CI_SELF_HOST_MODE: prebuilt' \
+    'PGY_CI_PUSH_LINUX_SHARD: self-host' \
+    'run: make ci-push-linux'; do
+    if ! grep -Fq "$required" <<<"$build_linux_self_host_scope"; then
+        echo "[self-host-ci-profile] Linux self-host contract shard lost: $required" >&2
         exit 1
     fi
 done
@@ -309,6 +329,7 @@ require_job_timeout "self-host-bootstrap-linux" 60
 require_job_timeout "self-host-codegen-bootstrap-linux" 30
 require_job_timeout "backend-compare-toolchain-linux" 30
 require_job_timeout "build-linux" 30
+require_job_timeout "build-linux-self-host-contracts" 30
 require_job_timeout "build-macos-c-only" 20
 require_job_timeout "build-windows" 35
 require_job_timeout "platform-full-linux-toolchain" 20 "$PLATFORM_WORKFLOW"
@@ -321,7 +342,7 @@ require_job_timeout "platform-full-windows-self-host-parity" 35 "$PLATFORM_WORKF
 
 build_linux_job="$(
     sed -n \
-        '/^  build-linux:/,/^  sanitizers-linux:/p' \
+        '/^  build-linux:/,/^  build-linux-self-host-contracts:/p' \
         "$WORKFLOW"
 )"
 if ! grep -Eq \
@@ -385,6 +406,10 @@ done
 
 for required in \
     'PGY_CI_SELF_HOST_MODE:-build' \
+    'PGY_CI_PUSH_LINUX_SHARD:-all' \
+    'PGY_CI_PUSH_LINUX_RUN_CORE' \
+    'PGY_CI_PUSH_LINUX_RUN_SELF_HOST' \
+    'expected all, core, or self-host' \
     'prebuilt)' \
     'prebuilt self-host toolchain artifact is incomplete'; do
     if ! grep -Fq "$required" "$PUSH_LINUX_STEPS"; then
@@ -392,6 +417,10 @@ for required in \
         exit 1
     fi
 done
+if [[ "$(grep -Ec "^[[:space:]]*run '" "$PUSH_LINUX_STEPS")" != "29" ]]; then
+    echo "[self-host-ci-profile] Linux push shard inventory must retain 28 prebuilt gates plus the build-mode compiler step" >&2
+    exit 1
+fi
 
 for required in \
     'PGY_CI_SELF_HOST_PARITY_SHARD' \

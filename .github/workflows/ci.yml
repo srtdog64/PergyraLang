@@ -44,7 +44,9 @@ jobs:
     # exact same-run compiler pair is built once by the backend toolchain owner
     # and admitted here without a rebuild fallback. Run 35443617465 proved the
     # former duplicate build consumed the shard budget before the final
-    # contract tail; artifact reuse keeps all gates inside the 30-minute bound.
+    # contract tail. Run 35450651010 then proved that all 28 tests still exceed
+    # one 30-minute job, so this mandatory job owns the 24-step core shard and
+    # the independent job below owns the four self-host contract steps.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
@@ -81,6 +83,7 @@ jobs:
         if: needs.classify-changes.outputs.markdown_only != 'true'
         env:
           PGY_CI_SELF_HOST_MODE: prebuilt
+          PGY_CI_PUSH_LINUX_SHARD: core
         run: make ci-push-linux
 
       - name: Run Markdown contract target
@@ -94,6 +97,44 @@ jobs:
           bash tests/gate_sot_single_owner_smoke.sh
           bash tests/protocol_registry_smoke.sh
           bash tests/self_host_progress_metric_smoke.sh
+
+  build-linux-self-host-contracts:
+    needs: [classify-changes, backend-compare-toolchain-linux]
+    if: needs.classify-changes.outputs.run_full == 'true'
+    runs-on: ubuntu-latest
+    # The exact same-run compiler pair is shared with build-linux. This shard
+    # keeps the four installed self-host contract gates below the 30-minute
+    # integration budget without dropping or weakening any gate.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        timeout-minutes: 10
+        run: |
+          printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
+
+      - name: Download the exact installed compiler pair
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-compare-linux-toolchain
+          path: bin
+
+      - name: Admit the exact installed compiler pair
+        run: |
+          chmod +x bin/pgy bin/pgy-self-driver
+          test -x bin/pgy
+          test -x bin/pgy-self-driver
+          test -s bin/pgy-self-driver.machine-layer-manifest.json
+
+      - name: Run Linux self-host contract shard
+        env:
+          PGY_CI_SELF_HOST_MODE: prebuilt
+          PGY_CI_PUSH_LINUX_SHARD: self-host
+        run: make ci-push-linux
 
   sanitizers-linux:
     needs: classify-changes
