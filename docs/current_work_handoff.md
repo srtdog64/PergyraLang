@@ -11,7 +11,7 @@ for the final publication checkpoint. The
 pre-existing untracked `._handoff_full.md`, `_agents_dump.txt`, `.agents/`, and
 `skills-lock.json` are not part of this packet.
 
-## Active self-host context — native boundary repair locally closed; exact-head CI pending
+## Active self-host context — native boundary repair published; exact-head CI green
 
 Objective card:
 - Objective: publish the native boundary packet with one semantic identity for
@@ -58,10 +58,16 @@ Reached evidence and boundary:
   and MIR declaration inventories, and the native boundary group on C/LLVM.
   A separate `LLVM_ENABLED=0` compiler passes the same three boundary gates on
   C. `git diff --check` is clean.
-- Exact-head remote CI is the remaining publication gate. Until that run is
-  green, this packet is locally closed but not published as repository-green.
-  After publication, select the next production direct-C bypass explicitly;
-  do not infer a registry bridge merely from these regressions.
+- Exact-head push run `35461141357` over
+  `fb858c0ad7b6e64214110b2336f3a3867d8b0a27` is fully green: all 31 jobs
+  passed, including Windows, macOS C-only, TSan, ASan/UBSan, Rocq 9, both
+  self-host fixed points, Linux core and self-host contracts, and all 20
+  backend-compare shards. The full self-host fixed-point job completed inside
+  its explicit 60-minute budget; the remaining integration shards stayed
+  inside their 30-minute budgets.
+- This repair does not close a SoT registry row or claim a new self-host
+  substitution. Select the next production direct-C bypass explicitly; do not
+  infer a registry bridge merely from these regressions.
 
 ## Previous self-host context — expression surface CLOSED; exact-head push CI green
 
