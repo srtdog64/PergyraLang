@@ -33,14 +33,18 @@ jobs:
           bash scripts/ci_change_scope_owner.sh "$base_sha" "${{ github.sha }}"
 
   build-linux:
-    needs: classify-changes
+    needs: [classify-changes, backend-compare-toolchain-linux]
+    # backend-compare-toolchain-linux is intentionally skipped for Markdown-only
+    # changes. `always()` keeps this mandatory documentation gate runnable while
+    # still failing closed on a missing/failed toolchain for source changes.
+    if: ${{ always() && needs.classify-changes.result == 'success' && (needs.classify-changes.outputs.markdown_only == 'true' || needs.backend-compare-toolchain-linux.result == 'success') }}
     runs-on: ubuntu-latest
     # Push feedback owns build, core runtime, and platform-independent contract
-    # evidence. The 117-step platform ladder remains in Platform full. Run
-    # 33075990101 spent 4m35 in the 290 MB Coq/LLVM install, then reached the
-    # final ABI/self-host-contract tail after 20m33 of green execution; the
-    # repository's 30-minute integration-shard budget covers that measured
-    # mirror/runner variance without deleting or sharding the contract.
+    # evidence. The 117-step platform ladder remains in Platform full. The
+    # exact same-run compiler pair is built once by the backend toolchain owner
+    # and admitted here without a rebuild fallback. Run 35443617465 proved the
+    # former duplicate build consumed the shard budget before the final
+    # contract tail; artifact reuse keeps all gates inside the 30-minute bound.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
@@ -58,8 +62,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
 
+      - name: Download the exact installed compiler pair
+        if: needs.classify-changes.outputs.markdown_only != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-compare-linux-toolchain
+          path: bin
+
+      - name: Admit the exact installed compiler pair
+        if: needs.classify-changes.outputs.markdown_only != 'true'
+        run: |
+          chmod +x bin/pgy bin/pgy-self-driver
+          test -x bin/pgy
+          test -x bin/pgy-self-driver
+          test -s bin/pgy-self-driver.machine-layer-manifest.json
+
       - name: Run fast Linux push target
         if: needs.classify-changes.outputs.markdown_only != 'true'
+        env:
+          PGY_CI_SELF_HOST_MODE: prebuilt
         run: make ci-push-linux
 
       - name: Run Markdown contract target
@@ -276,6 +297,7 @@ jobs:
           path: |
             bin/pgy
             bin/pgy-self-driver
+            bin/pgy-self-driver.machine-layer-manifest.json
           if-no-files-found: error
           retention-days: 1
 

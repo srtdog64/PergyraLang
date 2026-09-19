@@ -2,7 +2,22 @@
 
 run 'make check-build-tools CC="$CI_LINUX_CC"'
 run 'make check-linux-toolchain'
-run 'make CC="$CI_LINUX_CC" self-host-compiler'
+case "${PGY_CI_SELF_HOST_MODE:-build}" in
+    build)
+        run 'make CC="$CI_LINUX_CC" self-host-compiler'
+        ;;
+    prebuilt)
+        if [[ ! -x "$PWD/bin/pgy" || ! -x "$PWD/bin/pgy-self-driver" ||
+              ! -s "$PWD/bin/pgy-self-driver.machine-layer-manifest.json" ]]; then
+            echo "ci-push-linux: prebuilt self-host toolchain artifact is incomplete" >&2
+            exit 1
+        fi
+        ;;
+    *)
+        echo "ci-push-linux: invalid PGY_CI_SELF_HOST_MODE=${PGY_CI_SELF_HOST_MODE}" >&2
+        exit 2
+        ;;
+esac
 export PGY_SELF_DRIVER_BIN="$PWD/bin/pgy-self-driver"
 
 run 'make self-host-llvm-option-member-assignment-context-test-smoke'

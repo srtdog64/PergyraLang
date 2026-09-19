@@ -79,7 +79,8 @@ for required in \
     fi
 done
 
-if [[ "$(grep -Fc 'needs: classify-changes' "$WORKFLOW")" != "9" ]] ||
+if [[ "$(grep -Fc 'needs: classify-changes' "$WORKFLOW")" != "8" ]] ||
+    [[ "$(grep -Fc 'needs: [classify-changes, backend-compare-toolchain-linux]' "$WORKFLOW")" != "2" ]] ||
     [[ "$(grep -Fc "if: needs.classify-changes.outputs.run_full == 'true'" "$WORKFLOW")" != "9" ]]; then
     echo "[self-host-ci-profile] full-only jobs are not all gated by one change-scope owner" >&2
     exit 1
@@ -88,16 +89,28 @@ fi
 build_linux_scope="$(
     sed -n '/^  build-linux:/,/^  sanitizers-linux:/p' "$WORKFLOW"
 )"
-if ! grep -Fq 'needs: classify-changes' <<<"$build_linux_scope" ||
+if ! grep -Fq 'needs: [classify-changes, backend-compare-toolchain-linux]' <<<"$build_linux_scope" ||
+    ! grep -Fq "if: \${{ always() && needs.classify-changes.result == 'success'" <<<"$build_linux_scope" ||
     grep -Fq 'outputs.run_full' <<<"$build_linux_scope"; then
-    echo "[self-host-ci-profile] build-linux must remain the mandatory Markdown contract gate" >&2
+    echo "[self-host-ci-profile] build-linux must consume the shared toolchain and remain the mandatory Markdown contract gate" >&2
     exit 1
 fi
-if [[ "$(grep -Fc "if: needs.classify-changes.outputs.markdown_only != 'true'" <<<"$build_linux_scope")" != "2" ]] ||
+if [[ "$(grep -Fc "if: needs.classify-changes.outputs.markdown_only != 'true'" <<<"$build_linux_scope")" != "4" ]] ||
     [[ "$(grep -Fc "if: needs.classify-changes.outputs.markdown_only == 'true'" <<<"$build_linux_scope")" != "1" ]]; then
     echo "[self-host-ci-profile] build-linux lost exclusive full/Markdown step selection" >&2
     exit 1
 fi
+for required in \
+    'uses: actions/download-artifact@v4' \
+    'name: backend-compare-linux-toolchain' \
+    'chmod +x bin/pgy bin/pgy-self-driver' \
+    'test -s bin/pgy-self-driver.machine-layer-manifest.json' \
+    'PGY_CI_SELF_HOST_MODE: prebuilt'; do
+    if ! grep -Fq "$required" <<<"$build_linux_scope"; then
+        echo "[self-host-ci-profile] build-linux lost fail-closed shared toolchain admission: $required" >&2
+        exit 1
+    fi
+done
 for markdown_gate in \
     'bash tests/agent_boundary_sentinel_smoke.sh' \
     'bash tests/object_action_boundary_contract_smoke.sh' \
@@ -371,6 +384,16 @@ for steps in "$LINUX_STEPS" "$WINDOWS_STEPS"; do
 done
 
 for required in \
+    'PGY_CI_SELF_HOST_MODE:-build' \
+    'prebuilt)' \
+    'prebuilt self-host toolchain artifact is incomplete'; do
+    if ! grep -Fq "$required" "$PUSH_LINUX_STEPS"; then
+        echo "[self-host-ci-profile] Linux push profile lost fail-closed prebuilt toolchain admission: $required" >&2
+        exit 1
+    fi
+done
+
+for required in \
     'PGY_CI_SELF_HOST_PARITY_SHARD' \
     'PGY_CI_SELF_HOST_PARITY_BACKENDS' \
     'pgy.machine-layer.declaration.v1' \
@@ -584,6 +607,7 @@ for required in \
     'name: backend-compare-linux-toolchain' \
     'bin/pgy' \
     'bin/pgy-self-driver' \
+    'bin/pgy-self-driver.machine-layer-manifest.json' \
     'if-no-files-found: error' \
     'retention-days: 1'; do
     if ! grep -Fq "$required" <<<"$backend_compare_toolchain_job"; then
