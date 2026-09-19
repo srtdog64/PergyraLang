@@ -4,7 +4,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 PARSER_OWNER="$ROOT_DIR/src/self_hosted/parser/stmt_collection_graph_owner.pgy"
 PARSER_DISPATCH="$ROOT_DIR/src/self_hosted/parser/stmt_owner.pgy"
 SURFACE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy"
-LANE_POLICY="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy"
+HIR_LANE_POLICY="$ROOT_DIR/src/self_hosted/hir/ast_expression_lane_policy_owner.pgy"
+SEMANTIC_LANE_POLICY="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_lane_policy_owner.pgy"
 USE_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_expression_use_owner.pgy"
 EXPRESSION_FACT_OWNER="$ROOT_DIR/src/self_hosted/mir/expression_fact_owner.pgy"
 MIR_OWNER="$ROOT_DIR/src/self_hosted/mir/routine_statement_owner.pgy"
@@ -17,7 +18,7 @@ OCCURRENCE_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_occurrenc
 ORDER_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/structured_expression_emission_order_owner.pgy"
 RUNTIME_PARITY="$ROOT_DIR/tests/self_hosted/parity/driver_rung2_collection_mutation_graph_parity_owner.sh"
 for file in "$PARSER_OWNER" "$PARSER_DISPATCH" "$SURFACE_OWNER" \
-    "$LANE_POLICY" \
+    "$HIR_LANE_POLICY" "$SEMANTIC_LANE_POLICY" \
     "$USE_OWNER" "$EXPRESSION_FACT_OWNER" "$MIR_OWNER" "$DISPATCH" \
     "$VALIDATION" "$MIR_LOWER" "$MIR_SLOT_POLICY" "$PARSER_BRIDGE" \
     "$OCCURRENCE_OWNER" "$ORDER_OWNER" \
@@ -49,10 +50,15 @@ require_text "$PARSER_OWNER" "if owner_kind == TypedAstKindArrayPopStmtTag()"
 require_text "$PARSER_DISPATCH" "owner_kind == TypedAstKindArrayPopStmtTag() ||"
 require_text "$SURFACE_OWNER" "producer_only_atom && atom_view.ok"
 require_text "$SURFACE_OWNER" "SemanticAstExpressionGraphAtomLaneProducerOnly("
-require_text "$LANE_POLICY" "func SemanticAstExpressionGraphAtomLaneProducerOnly("
-require_text "$LANE_POLICY" "TypedAstKindArrayPopStmtTag()"
-require_text "$LANE_POLICY" "TypedAstKindArrayPushStmtTag()"
-require_text "$LANE_POLICY" "TypedAstKindArraySetStmtTag()"
+require_text "$HIR_LANE_POLICY" "func AstExpressionGraphAtomLaneProducerOnlyForKind("
+require_text "$HIR_LANE_POLICY" "TypedAstKindArrayPopStmtTag()"
+require_text "$HIR_LANE_POLICY" "TypedAstKindArrayPushStmtTag()"
+require_text "$HIR_LANE_POLICY" "TypedAstKindArraySetStmtTag()"
+require_text "$SEMANTIC_LANE_POLICY" "func SemanticAstExpressionGraphAtomLaneProducerOnly("
+require_text "$SEMANTIC_LANE_POLICY" "AstExpressionGraphAtomLaneProducerOnlyForKind(UnwrapOption(kind))"
+reject_text "$SEMANTIC_LANE_POLICY" "kind == TypedAstKindArrayPopStmtTag()"
+reject_text "$SEMANTIC_LANE_POLICY" "kind == TypedAstKindArrayPushStmtTag()"
+reject_text "$SEMANTIC_LANE_POLICY" "kind == TypedAstKindArraySetStmtTag()"
 
 require_text "$USE_OWNER" "func SelfMirExpressionGraphUsesAppend("
 require_text "$USE_OWNER" "SelfMirExpressionGraphUses(build, view)"
