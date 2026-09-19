@@ -3,13 +3,14 @@
 Updated: 2026-09-19 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-CI cascade repair material checkpoint:
-`ffbc8573749be719cfe171a23023b51fcb0ed73b`. Git HEAD/status and
-`origin/main` remain the authority for its publication checkpoint. The
+CI cascade repair code checkpoint:
+`52131ea1ea26fa2bd7dab45d4f0650a2b446841d`. This handoff is its docs-only
+publication descendant; Git HEAD/status and `origin/main` remain the authority
+for the final publication checkpoint. The
 pre-existing untracked `._handoff_full.md` and `_agents_dump.txt` are not part
 of this packet.
 
-## Active self-host context — expression surface CLOSED; nominal comparison CI repaired
+## Active self-host context — expression surface CLOSED; CI semantic cascade repaired locally
 
 Objective card:
 - Objective: make the parser-owned expression graph the only supported
@@ -27,13 +28,42 @@ Objective card:
 - Forbidden fallback: compact semantic graph reconstruction, payload-text
   `ExprType`/call/operand validation, deleted codegen text rewriters, or a
   codegen import of the parser implementation.
-- Gate/falsifier: `expression_surface_closed_owner.sh` rejects every retired
+- Gate/falsifier: `expression_surface_closure_probe_parity.sh` rejects every retired
   path and executes an unowned graph-type negative on C and LLVM;
   `driver_rung2_body_parity.sh` exercises the fresh Pergyra-built driver over
   18 representative scalar, call, aggregate, generic, Option/Result, Set,
   class, and nested-container programs.
 
 Reached evidence and boundary:
+- Exact-head run `35433615263` over `05d1139207ccc47c06c6d2476c15ada5b832a54e`
+  left 28 jobs green and exposed four integrated failures: an untyped declared
+  callable argument, unresolved `Array.Slice` initialization, a missing closure
+  probe intent contract, and a silent source-C machine-layer failure after the
+  Linux fixed point. The first three were in `build-linux`; the last was in
+  `self-host-bootstrap-linux`.
+- Callable argument typing now resolves an unshadowed function leaf to the same
+  exact declaration `SyntaxNodeId` used by the late identity seal, then projects
+  its first-order callable type by that ID. A local binding with the same name
+  blocks the early resolution. The focused gate executes C/LLVM and rejects 20
+  crossed, missing, forged, or malformed formal/declared identity mutations.
+- `Array.Slice` now consumes the carried builtin target when present and the
+  builtin signature owner supplies its source receiver offset. The final fresh
+  driver passes native/public C/LLVM Slice execution, invalid operand rejection,
+  and exact member-place lifetime controls.
+- Source-C machine execution now normalizes a Windows-configured driver path
+  before deriving its companion manifest. The deeper Linux-shaped failure was
+  semantic: `ClaimDeviceSlot()` discarded the declared `DeviceSlot<Int>`
+  context and `DeviceRead` had a duplicate scalar-only return rule outside the
+  canonical polymorphic builtin owner. The contextual type is now preserved,
+  `DeviceRead`/`SubmitDeviceRead` share the canonical return owner, and the
+  duplicate graph-scalar branch is deleted.
+- A fresh driver built from the code checkpoint passes
+  `driver_rung2_callable_parameter_identity_owner.sh`,
+  `slice_copy_semantic_bridge_owner.sh`, and
+  `driver_source_c_execution_action_gate.sh`. The source-C gate covers artifact
+  and stdout parity, admitted and invalid manifests, program execution, and
+  transaction rejection. The renamed expression closure probe is C/LLVM
+  artifact-equal and its tool now has the required intent contract.
 - The compact artifact/surface/graph bridges and nine codegen text-rewrite
   owners are deleted. Supported expression shapes are imported once at the
   parser boundary; an unsupported but structurally valid graph node now fails
@@ -86,12 +116,14 @@ Reached evidence and boundary:
   the fixed-point receipt records the same hash and the file comparison has
   zero differences. The focused expression closure remains C/LLVM
   artifact-equal.
-- `sot_registry_gate.py` reports 89 authorities, 188 derived fact carriers, and
-  `CLOSED=58 / BRIDGE=29 / ACTIVE=2`. `selfhost.expression_surface` is now
+- The final component contract passes 2,438 line-cap requests, 1,032 function
+  extractions, and 697 reuses. `sot_registry_gate.py` still reports 89
+  authorities, 188 derived fact carriers, and
+  `CLOSED=58 / BRIDGE=29 / ACTIVE=2`; `selfhost.expression_surface` remains
   `CLOSED` with the closure gate as its primary negative ratchet.
 - The 284-fixture matrix and platform matrix were not rerun locally. An
   exact-head push CI after this handoff is the next broader boundary; do not
-  promote the local Windows fixed point into remote Linux green evidence.
+  promote the focused Windows evidence into remote Linux green evidence.
   Publication state is owned by Git, not this navigation snapshot. Do not
   infer the next active row from this handoff; select the next production
   bypass explicitly.
