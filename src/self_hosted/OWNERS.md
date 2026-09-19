@@ -422,9 +422,13 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_statement_fact_owner.pgy` -- artifact-bound
   return, condition, loop, defer, break/continue, log, exit, match/default,
   array mutation, and bare-call kind/payload rows used for statement routing.
+- `src/self_hosted/semantic/ast_expression_verdict_fact_owner.pgy` -- compact
+  success/error result fact and diagnostic-code projection shared by expression
+  admission consumers; it owns no expression typing policy.
 - `src/self_hosted/semantic/ast_expression_verdict_owner.pgy` -- ordered call,
   undefined-use, try, logical, binary, and graph-derived inferred-type
-  expression verdicts, including owner-projected array-literal types.
+  expression verdicts, including owner-projected array-literal and enum-payload
+  scalar types.
 - `src/self_hosted/semantic/ast_expression_verdict_contract_owner.pgy` --
   executable aggregate of the expression verdict's owned subcontracts; it
   owns no production expression fact.
@@ -778,10 +782,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   `subject == Enum.Variant` refinement shape from receiver graph identity and
   enum variant payload facts; payload type guesses and source rescans are
   forbidden.
-- `src/self_hosted/semantic/ast_expression_graph_enum_tag_comparison_type_owner.pgy`
-  -- exact Bool type admission for `==`/`!=` between an enum-typed subject and
-  a variant declared by the enum fact owner; standalone payload tags and
-  guessed variant names remain unowned.
+- `src/self_hosted/semantic/ast_expression_graph_enum_scalar_type_owner.pgy`
+  -- exact Bool type admission for enum-tag `==`/`!=` plus scalar composition
+  of exact enum-payload projection node types; standalone payload tags, source
+  rescans, and guessed variant names remain unowned.
 - `src/self_hosted/semantic/ast_local_binding_identity_owner.pgy` -- stable
   lexical local identity keyed by function, declaration node, and binding
   index; name-only downstream provenance joins are forbidden.

@@ -1,0 +1,30 @@
+// Result fact for parser-owned expression graph semantic admission.
+
+import "diagnostic_owner.pgy";
+
+struct SemanticAstExpressionVerdict {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    normalized_text: String;
+    inferred_type_name: String;
+}
+
+func SemanticAstExpressionVerdictOk(
+    text: String,
+    inferred: String
+) -> SemanticAstExpressionVerdict {
+    return SemanticAstExpressionVerdict(true, "", "", text, inferred);
+}
+
+func SemanticAstExpressionVerdictError(
+    text: String,
+    message: String
+) -> SemanticAstExpressionVerdict {
+    let code: String = "unregistered_diagnostic_code";
+    let code_fact: Option<String> = SemanticDiagnosticCodeFromMessage(message);
+    if IsSome(code_fact) { code = UnwrapOption(code_fact); }
+    return SemanticAstExpressionVerdict(
+        false, code, message, text, "Unknown"
+    );
+}

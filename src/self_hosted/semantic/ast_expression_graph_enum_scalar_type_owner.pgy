@@ -1,0 +1,156 @@
+// Exact scalar type projection for enum tag comparisons and expressions that
+// contain a typed payload projection. Enum facts remain the payload authority;
+// this owner only composes their exact node type through scalar graph shapes.
+
+import "ast_expression_graph_enum_payload_owner.pgy";
+import "ast_expression_graph_scalar_type_owner.pgy";
+import "ast_enum_fact_owner.pgy";
+
+func SemanticExpressionGraphEnumVariantTagComparisonTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    enum_facts: SemanticAstEnumFacts,
+    names: Array<String>,
+    types: Array<String>,
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
+) -> Option<String> {
+    let shape: SemanticExpressionGraphEnumVariantEqualityShape =
+        SemanticExpressionGraphEnumVariantTagComparisonShapeFromGraph(
+            graph, root_id
+        );
+    if !shape.ok { return None; }
+    let qualified: String = Concat(
+        shape.enum_name, Concat(".", shape.variant_name)
+    );
+    let variant_type: Option<String> = SemanticAstEnumExpressionType(
+        enum_facts, qualified
+    );
+    if !IsSome(variant_type) ||
+        UnwrapOption(variant_type) != shape.enum_name {
+        return None;
+    }
+    let subject_type: String = SemanticExpressionGraphScalarTypeName(
+        graph, shape.subject_node, constructors, names, types,
+        function_names, function_returns
+    );
+    if subject_type != shape.enum_name { return None; }
+    return Some("Bool");
+}
+
+func SemanticExpressionGraphEnumPayloadScalarTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    enum_facts: SemanticAstEnumFacts,
+    names: Array<String>,
+    types: Array<String>,
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
+) -> Option<String> {
+    let payload: Option<String> = SemanticExpressionGraphEnumPayloadTypeName(
+        graph, node_id, constructors, enum_facts, names, types,
+        function_names, function_returns
+    );
+    if IsSome(payload) { return payload; }
+
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    if !IsSome(kind_opt) { return None; }
+    let kind: Int = UnwrapOption(kind_opt);
+    let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, node_id
+    );
+    if kind == AstExpressionNodeCast() {
+        if !IsSome(left_opt) { return None; }
+        let left_cast: Option<String> =
+            SemanticExpressionGraphEnumPayloadScalarTypeName(
+                graph, UnwrapOption(left_opt), constructors, enum_facts,
+                names, types, function_names, function_returns
+            );
+        if !IsSome(left_cast) { return None; }
+        let target: Option<String> =
+            SemanticExpressionGraphCastTargetTypeName(graph, node_id);
+        if IsSome(target) &&
+            SemanticExpressionGraphNumericTypeName(UnwrapOption(left_cast)) &&
+            SemanticExpressionGraphNumericTypeName(UnwrapOption(target)) {
+            return target;
+        }
+        return Some("Unknown");
+    }
+    if !SemanticExpressionGraphScalarOperatorKind(kind) ||
+        !IsSome(left_opt) {
+        return None;
+    }
+
+    let left_payload: Option<String> =
+        SemanticExpressionGraphEnumPayloadScalarTypeName(
+            graph, UnwrapOption(left_opt), constructors, enum_facts,
+            names, types, function_names, function_returns
+        );
+    let left_type: String = SemanticExpressionGraphScalarTypeName(
+        graph, UnwrapOption(left_opt), constructors, names, types,
+        function_names, function_returns
+    );
+    if IsSome(left_payload) { left_type = UnwrapOption(left_payload); }
+    if AstExpressionNodeArity(kind) == 1 {
+        if !IsSome(left_payload) { return None; }
+        let unary: String = SemanticExpressionGraphScalarUnaryResultTypeName(
+            kind, left_type
+        );
+        if unary != "Unknown" { return Some(unary); }
+        if kind == AstExpressionNodeTry() {
+            let tried: Option<String> = TryPayloadTypeOpt(left_type);
+            if IsSome(tried) { return tried; }
+        }
+        if kind == AstExpressionNodeAwait() {
+            let remote_payload: Option<String> =
+                RemoteFuturePayloadTypeOpt(left_type);
+            if IsSome(remote_payload) {
+                return Some(Concat("Result<", Concat(
+                    UnwrapOption(remote_payload), ">"
+                )));
+            }
+            let awaited: Option<String> = FuturePayloadTypeOpt(left_type);
+            if IsSome(awaited) { return awaited; }
+        }
+        if kind == AstExpressionNodeSpawn() && left_type != "Unknown" &&
+            left_type != "Void" {
+            return Some(Concat("Future<", Concat(left_type, ">")));
+        }
+        return Some("Unknown");
+    }
+
+    let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
+        graph, node_id
+    );
+    if !IsSome(right_opt) { return Some("Unknown"); }
+    let right_payload: Option<String> =
+        SemanticExpressionGraphEnumPayloadScalarTypeName(
+            graph, UnwrapOption(right_opt), constructors, enum_facts,
+            names, types, function_names, function_returns
+        );
+    if !IsSome(left_payload) && !IsSome(right_payload) { return None; }
+    let right_type: String = SemanticExpressionGraphScalarTypeName(
+        graph, UnwrapOption(right_opt), constructors, names, types,
+        function_names, function_returns
+    );
+    if IsSome(right_payload) { right_type = UnwrapOption(right_payload); }
+    if kind == AstExpressionNodeCoalesce() {
+        let coalesced: Option<String> = OptionCoalescePayloadTypeOpt(
+            left_type, right_type
+        );
+        if IsSome(coalesced) { return coalesced; }
+        return Some("Unknown");
+    }
+    if kind == AstExpressionNodeIndex() && right_type == "Int" {
+        let element: Option<String> = SemanticArrayElementType(left_type);
+        if IsSome(element) { return element; }
+        let slice_element: Option<String> = SemanticSliceElementType(left_type);
+        if IsSome(slice_element) { return slice_element; }
+        return Some("Unknown");
+    }
+    return Some(SemanticExpressionGraphScalarBinaryResultTypeName(
+        kind, left_type, right_type
+    ));
+}

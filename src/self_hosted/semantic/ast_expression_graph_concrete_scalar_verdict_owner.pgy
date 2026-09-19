@@ -454,10 +454,11 @@ func SemanticExpressionGraphConcreteScalarValueError(
         return "";
     }
     if kind == AstExpressionNodeMemberAccess() {
-        if IsSome(SemanticExpressionGraphValueReceiverTypeName(
+        let member_type: String = SemanticExpressionGraphScalarTypeName(
             graph, node_id, constructors, names, types,
             function_names, function_returns
-        )) { return ""; }
+        );
+        if member_type != "Unknown" { return ""; }
         return SemanticError1(
             "ast_artifact_invalid", "owner", "member_type"
         );
@@ -554,12 +555,19 @@ func SemanticExpressionGraphConcreteScalarValueError(
             signature_facts, signature, i + target_fact.parameter_offset
         );
         let argument: Int = call.argument_nodes[i];
-        let argument_error: String =
-            SemanticExpressionGraphConcreteScalarValueError(
-                graph, argument, constructors, signatures, names, types,
-                function_names, function_returns, function_params
-            );
-        if StringLength(argument_error) > 0 { return argument_error; }
+        // Call-tree admission owns composite arguments. Re-enter only facts
+        // proven scalar here; treating arrays as calls rejects valid values.
+        if SemanticExpressionGraphConcreteScalarValueOwned(
+            graph, argument, constructors, signatures, names, types,
+            function_names, function_returns, function_params
+        ) {
+            let argument_error: String =
+                SemanticExpressionGraphConcreteScalarValueError(
+                    graph, argument, constructors, signatures, names, types,
+                    function_names, function_returns, function_params
+                );
+            if StringLength(argument_error) > 0 { return argument_error; }
+        }
         let actual: String = SemanticExpressionGraphScalarTypeName(
             graph, argument, constructors, names, types,
             function_names, function_returns

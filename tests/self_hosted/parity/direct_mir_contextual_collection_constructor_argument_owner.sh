@@ -40,11 +40,14 @@ grep -Fq 'SemanticContextualBuiltinExpectedTypeFromGraph(' "$CALL_CHECK" ||
     fail "call-argument checker does not consume contextual type facts"
 grep -Fq 'let expected_type: Option<String> = Some(expected);' "$CALL_CHECK" ||
     fail "call-argument checker does not carry its expected type explicitly"
-grep -Fq 'SemanticExpressionGraphContextualCallArgumentsOwned(' \
+grep -Fq 'SemanticContextualBuiltinExpectedTypeFromGraph(' \
     "$EXPRESSION_VERDICT" ||
-    fail "expression verdict does not select the contextual graph consumer"
-grep -Fq 'graph_call_value_owned' "$EXPRESSION_VERDICT" ||
-    fail "contextual call arguments still fall through to source-text checks"
+    fail "expression verdict does not consume contextual argument facts"
+grep -Fq 'SemanticAstExpressionCallErrorFromGraph(' "$EXPRESSION_VERDICT" ||
+    fail "contextual call arguments bypass the graph call owner"
+! grep -Fq 'SemanticExpressionGraphContextualCallArgumentsOwned(' \
+    "$EXPRESSION_VERDICT" ||
+    fail "expression verdict revived the superseded contextual call branch"
 grep -Fq 'SemanticContextualBuiltinExpectedTypeFromGraph(' "$INITIALIZER" ||
     fail "initializer consumer drifted from the shared contextual owner"
 ! grep -Eq 'actual[[:space:]]*=[[:space:]]*expected' "$CALL_CHECK" ||

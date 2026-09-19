@@ -125,7 +125,9 @@ done
 
 probe_bin="$WORK_DIR/message-independence-probe"
 [[ "$PGY" == *.exe ]] && probe_bin="$probe_bin.exe"
-(cd "$ROOT_DIR" && "$PGY" "$PROBE_REL" --backend=c -o \
+(cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE \
+    PGY_SELF_DRIVER_BIN="$SELF_DRIVER" \
+    "$PGY" "$PROBE_REL" --backend=c -o \
     "$(pgy_path_for_compiler "$PGY" "$probe_bin")") \
     >"$WORK_DIR/probe.compile.out" 2>"$WORK_DIR/probe.compile.err" ||
     fail "message-independence probe did not compile"

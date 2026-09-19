@@ -1,5 +1,4 @@
 // Expression verdicts over artifact-owned payload text and environment facts.
-
 import "expression_normalization_owner.pgy";
 import "ast_expression_graph_identifier_owner.pgy";
 import "ast_expression_graph_type_owner.pgy";
@@ -20,44 +19,11 @@ import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_graph_collection_call_protocol_owner.pgy";
 import "ast_expression_graph_queue_call_owner.pgy";
 import "ast_expression_graph_set_call_owner.pgy";
-import "ast_expression_graph_enum_tag_comparison_type_owner.pgy";
+import "ast_expression_graph_enum_scalar_type_owner.pgy";
 import "ast_expression_graph_declared_callable_value_type_owner.pgy";
+import "ast_expression_verdict_fact_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
-
-struct SemanticAstExpressionVerdict {
-    ok: Bool;
-    diagnostic_code: String;
-    diagnostic_message: String;
-    normalized_text: String;
-    inferred_type_name: String;
-}
-
-func SemanticAstExpressionVerdictOk(
-    text: String,
-    inferred: String
-) -> SemanticAstExpressionVerdict {
-    return SemanticAstExpressionVerdict(true, "", "", text, inferred);
-}
-
-func SemanticAstExpressionVerdictError(
-    text: String,
-    message: String
-) -> SemanticAstExpressionVerdict {
-    let code: String = "unregistered_diagnostic_code";
-    let code_fact: Option<String> = SemanticDiagnosticCodeFromMessage(message);
-    if IsSome(code_fact) {
-        code = UnwrapOption(code_fact);
-    }
-    return SemanticAstExpressionVerdict(
-        false,
-        code,
-        message,
-        text,
-        "Unknown"
-    );
-}
-
 func SemanticAstExpressionCallErrorFromGraph(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
@@ -72,6 +38,12 @@ func SemanticAstExpressionCallErrorFromGraph(
     member_root_names: Array<String>,
     current_function_node_id: Int
 ) -> String {
+    let generic: SemanticExpressionGraphGenericCallFact =
+        SemanticExpressionGraphGenericCallFactFromGraph(
+            graph, root_id, signatures, constructors, names, types,
+            function_names, function_returns
+        );
+    if generic.applies { return generic.diagnostic_message; }
     let facts: SemanticExpressionGraphResolvedCallArgumentFacts =
         SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
             graph, root_id, constructors, signatures, names, types,
@@ -261,7 +233,6 @@ func SemanticAstExpressionCallTreeErrorFromGraphNode(
     }
     return "";
 }
-
 func SemanticAstExpressionVerdictFromGraphCore(
     expression: String,
     ref graph: SemanticExpressionGraphFacts,
@@ -460,8 +431,22 @@ func SemanticAstExpressionVerdictFromGraphCore(
     let enum_tag_comparison_type: Option<String> =
         SemanticExpressionGraphEnumVariantTagComparisonTypeName(graph, root_id,
             constructors, enum_facts, names, types, function_names, function_returns);
+    let enum_payload_scalar_type: Option<String> =
+        SemanticExpressionGraphEnumPayloadScalarTypeName(
+            graph, root_id, constructors, enum_facts, names, types,
+            function_names, function_returns);
+    let root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, root_id
+    );
+    let concrete_scalar_operator_owned: Bool =
+        concrete_scalar_value_owned && IsSome(root_kind) &&
+        SemanticExpressionGraphScalarOperatorKind(UnwrapOption(root_kind));
     let call_error: String = "";
-    if call_view.ok && !graph_owned_intrinsic && !generic_value.applies &&
+    if concrete_scalar_operator_owned {
+        call_error = SemanticExpressionGraphConcreteScalarValueError(
+            graph, root_id, constructors, signatures, names, types,
+            function_names, function_returns, function_params);
+    } else if call_view.ok && !graph_owned_intrinsic && !generic_value.applies &&
         !wrapper.applies && !nominal_constructor_call.applies &&
         !domain_queries.applies {
         call_error = SemanticAstExpressionCallErrorFromGraph(
@@ -492,11 +477,10 @@ func SemanticAstExpressionVerdictFromGraphCore(
             )
         );
     }
-    let root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph, root_id
-    );
+    let enum_payload_scalar_owned: Bool = IsSome(enum_payload_scalar_type) &&
+        UnwrapOption(enum_payload_scalar_type) != "Unknown";
     let scalar_operator_owned: Bool = (concrete_scalar_value_owned ||
-        IsSome(enum_tag_comparison_type)) &&
+        IsSome(enum_tag_comparison_type) || enum_payload_scalar_owned) &&
         IsSome(root_kind) && SemanticExpressionGraphScalarOperatorKind(
             UnwrapOption(root_kind)
         );
@@ -535,6 +519,8 @@ func SemanticAstExpressionVerdictFromGraphCore(
         if IsSome(index_value_type) {
             inferred = UnwrapOption(index_value_type);
         }
+    } else if enum_payload_scalar_owned {
+        inferred = UnwrapOption(enum_payload_scalar_type);
     } else if IsSome(enum_tag_comparison_type) {
         inferred = UnwrapOption(enum_tag_comparison_type);
     } else if scalar_operator_owned || scalar_leaf_owned ||
@@ -563,7 +549,6 @@ func SemanticAstExpressionVerdictFromGraphCore(
     }
     return SemanticAstExpressionVerdictOk(text, inferred);
 }
-
 func SemanticAstExpressionVerdictFromGraph(
     expression: String,
     ref graph: SemanticExpressionGraphFacts,

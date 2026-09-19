@@ -6332,6 +6332,10 @@ reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "Check
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/self_hosted/semantic/ast_statement_fact_owner.pgy"
 require_responsibility_owner_max_lines "src/self_hosted/semantic/ast_statement_fact_owner.pgy"
+require_file "src/self_hosted/semantic/ast_expression_verdict_fact_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_verdict_fact_owner.pgy" 80
+require_text "src/self_hosted/semantic/ast_expression_verdict_fact_owner.pgy" \
+    "struct SemanticAstExpressionVerdict"
 require_file "src/self_hosted/semantic/ast_expression_verdict_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" 600
 reject_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
