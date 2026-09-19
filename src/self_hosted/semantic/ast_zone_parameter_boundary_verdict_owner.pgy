@@ -1,6 +1,6 @@
 // Zone resources carry identity-bearing state across callable boundaries.
 // Zones admit read-only ref; worlds with embedded zones additionally admit an
-// in-place inout borrow. Value parameters and lock-bearing world returns fail
+// in-place inout borrow. Value parameters and every zone-owning return fail
 // closed until an explicit transfer owner exists.
 
 import "ast_signature_fact_owner.pgy";
@@ -60,7 +60,7 @@ func SemanticAstZoneParameterBoundaryVerdictFromAdmittedFacts(
         let return_type: String = signatures.return_types[signature_index];
         if SemanticAstZoneValueCarriageResourceKind(
             constructors, return_type
-        ) == 2 {
+        ) != 0 {
             return SemanticAstZoneParameterBoundaryVerdictError(
                 "zone_value_copy_requires_transfer",
                 SemanticError2(

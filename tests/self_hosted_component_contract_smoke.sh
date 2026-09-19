@@ -750,7 +750,7 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'Pergyra zone reassignment requires an admitted transfer plan'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     'Pergyra zone by-value parameter requires an admitted transfer plan'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     'Pergyra zone return requires an admitted transfer plan'
 reject_text "src/self_hosted/codegen/emission/nominal_struct_emit_owner.pgy" \
     'Pergyra embedded zone requires an admitted transfer plan'

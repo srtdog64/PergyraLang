@@ -33,6 +33,33 @@ if grep -Eq '^#include |^typedef struct|^static void .*_sync\(' \
     exit 1
 fi
 
+for return_case in zone world; do
+    if [[ "$return_case" == zone ]]; then
+        return_source="$ROOT_DIR/tests/self_hosted/fixtures/domain_runtime_zone_return_rejected.pgy"
+    else
+        return_source="$ROOT_DIR/tests/self_hosted/fixtures/domain_runtime_world_zone_return_rejected.pgy"
+    fi
+    return_out="$PARAMETER_BUILD_DIR/return-$return_case.out"
+    return_err="$PARAMETER_BUILD_DIR/return-$return_case.err"
+    if "$CODEGEN_BIN" --source "${return_source#"$ROOT_DIR/"}" \
+        >"$return_out" 2>"$return_err"; then
+        echo "$return_case return escaped semantic admission" >&2
+        exit 1
+    fi
+    grep -Fq 'Code: zone_value_copy_requires_transfer' \
+        "$return_out" "$return_err"
+    if grep -Fq 'Code: unregistered_diagnostic_code' \
+        "$return_out" "$return_err"; then
+        echo "$return_case return used an unregistered diagnostic" >&2
+        exit 1
+    fi
+    if grep -Eq '^#include |^typedef struct|^static void .*_sync\(' \
+        "$return_out"; then
+        echo "$return_case return leaked partial C" >&2
+        exit 1
+    fi
+done
+
 REF_SOURCE="$ROOT_DIR/tests/self_hosted/fixtures/domain_runtime_zone_parameter_ref.pgy"
 REF_C="$PARAMETER_BUILD_DIR/ref.c"
 REF_EXPECTED="$PARAMETER_BUILD_DIR/ref.expected"
@@ -74,12 +101,15 @@ if grep -Fq 'Pergyra zone by-value parameter requires an admitted transfer plan'
     echo "zone parameter policy returned to C function emission" >&2
     exit 1
 fi
-grep -Fq 'Pergyra zone return requires an admitted transfer plan' \
-    "$FUNCTION_OWNER"
+if grep -Fq 'Pergyra zone return requires an admitted transfer plan' \
+    "$FUNCTION_OWNER"; then
+    echo "zone return policy returned to C function emission" >&2
+    exit 1
+fi
 if grep -Fq 'Pergyra embedded zone requires an admitted transfer plan' \
     "$NOMINAL_OWNER"; then
     echo "retired embedded-zone backend guard returned" >&2
     exit 1
 fi
 
-echo "[domain-runtime-zone-parameter-admission] default semantic rejection plus ref single/thread-safe execution: PASS"
+echo "[domain-runtime-zone-parameter-admission] zone/world return plus default parameter semantic rejection and ref single/thread-safe execution: PASS"

@@ -1,0 +1,16 @@
+subject Buyer {
+    let hp: Int;
+}
+
+zone CartZone {
+    subject slot buyer: Buyer
+}
+
+func MakeZone() -> CartZone {
+    let compiler_zone: CartZone = CartZone(Buyer(1));
+    return compiler_zone;
+}
+
+func Main() -> Void {
+    Log(0);
+}
