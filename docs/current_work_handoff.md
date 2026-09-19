@@ -3,50 +3,61 @@
 Updated: 2026-09-20 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-Native compiler-boundary code checkpoint:
-`05867f7c268c55409f6bbf595816f9772e9c7c57`. This handoff is its docs-only
+Native compiler-boundary repair checkpoints:
+`dd41cbdf9dc72aace76bf35566117d5a4f19713f` and
+`454184563ceb7b73e081ca9b75667bd6a78c8e26`. This handoff is their docs-only
 publication descendant; Git HEAD/status and `origin/main` remain the authority
 for the final publication checkpoint. The
 pre-existing untracked `._handoff_full.md`, `_agents_dump.txt`, `.agents/`, and
 `skills-lock.json` are not part of this packet.
 
-## Active self-host context — native boundary packet locally closed; exact-head CI pending
+## Active self-host context — native boundary repair locally closed; exact-head CI pending
 
 Objective card:
-- Objective: make native C and LLVM observe one language meaning at three
-  external compiler boundaries: one evaluation of a non-trivial `match`
-  subject, Pergyra ownership of non-extern callable identifiers after host
-  headers, and opaque carriage of imported private nominal values.
-- Priority: source meaning, shared pre-semantic/module owners, backend parity,
-  explicit negative rejection, then publication evidence.
-- Fact owners: the source match expression remains authoritative and
-  `match_subject_single_evaluation_desugar.c` is only its derived lowering;
-  module normalization owns imported nominal spelling; C suffix sanitization
-  owns the generated Result ABI identifier; the emitted translation unit owns
-  non-extern callable identifiers.
-- Last legitimate consumers: semantic/MIR match lowering, imported enum and
-  Result construction, LLVM qualified variant typing, and native C emission.
-- Forbidden fallback: per-case subject re-evaluation, raw generic suffixes,
-  backend-only private-type exceptions, public construction of a private
-  nominal, or renaming a Pergyra callable to a host-header macro target.
-- Gates/falsifiers: `native_match_scrutinee_single_evaluation_smoke.sh` uses a
-  side-effecting subject; `native_c_callable_macro_hygiene_smoke.sh` compiles a
-  user `FindResource`; `native_imported_private_nominal_smoke.sh` executes
-  Result and exported-ADT carriage on C/LLVM and rejects constructor forgery.
+- Objective: publish the native boundary packet with one semantic identity for
+  a match binding used by a nested match subject, and keep class-field shape
+  failure identity inside the `PgyDeclField` owner instead of reopening AST
+  arrays from semantic lifetime analysis.
+- Priority: exact binding identity, owner-directed failure, backend parity,
+  negative ratchets, then exact-head publication evidence.
+- Fact owners: `PgyMatchBindingTypeFact.binding_syntax_id` connects the
+  semantic binding declaration to HIR/MIR consumers; match case plus positional
+  index remains the row identity. `decl_field_model.c` owns the distinction
+  between an empty declaration and field-model allocation failure.
+- Last legitimate consumers: MIR source-local expression typing for nested
+  match subjects and future-storage lifecycle analysis for class fields.
+- Forbidden fallback: resolving a match binding by its source spelling,
+  reconstructing its type from the AST, treating duplicate or missing binding
+  identity as valid, or rereading `ast_class_fields()` in a semantic consumer
+  to distinguish model failure from an empty declaration.
+- Gates/falsifiers: `native_match_scrutinee_single_evaluation_smoke.sh` executes
+  a nested Result/class chain on C and LLVM; the 930-case backend comparison
+  includes the five remote counterexamples; `mir_declaration_inventory_smoke.sh`
+  ratchets the semantic AST field reader inventory to its one legitimate
+  generic-shell writer.
 
 Reached evidence and boundary:
-- Code checkpoint `05867f7c268c55409f6bbf595816f9772e9c7c57`
-  carries the shared match normalization, imported enum/generic normalization,
-  canonical Result suffix, C callable macro hygiene, and LLVM qualified enum
-  variant lookup. It does not close a SoT registry row or claim a new
-  self-host substitution.
-- The three focused native gates pass with C and LLVM. A separate compiler
-  built with `LLVM_ENABLED=0` passes the same boundary group on C, so the new
-  shared owner has no hidden LLVM build dependency. The installed self-host
-  match parity gate also passes its C/LLVM and negative evidence.
-- `make -j2 test-all`, parser/semantic/transpile, module, ABI, LLVM,
-  backend-fail-closed, AST ownership, gate reachability, and the relevant
-  self-host component/parity gates passed locally. `git diff --check` is clean.
+- Exact-head run `35458916254` over `5f021e46f44623e38b471f45b600c10495283adb`
+  reached five backend shards and failed on one shared gap: a nested match
+  subject could not type an outer match binding because the semantic symbol and
+  MIR fact carried no common binding identity. The failing cases were
+  `result_class_chain_score`, `result_chained_method_class`,
+  `option_2level_class_nested`, `result_two_classes`, and
+  `option_chain_3level_class`.
+- Code checkpoint `dd41cbdf9dc72aace76bf35566117d5a4f19713f`
+  carries the binding stable ID through semantic, HIR, and MIR facts, rejects
+  missing or duplicate identities, and lets source-local MIR typing consume
+  that identity without a name lookup. The focused native gate now executes
+  the nested counterexample on C and LLVM.
+- Code checkpoint `454184563ceb7b73e081ca9b75667bd6a78c8e26`
+  gives the field model an explicit success result. Future lifecycle analysis
+  consumes that result and no longer reopens the class field AST; allocation
+  failure remains distinguishable and fail-closed.
+- Local evidence is green: backend comparison `930/930`, semantic tests
+  `2944/2944`, MIR tests `215/215`, the match binding fact gates, build-source
+  and MIR declaration inventories, and the native boundary group on C/LLVM.
+  A separate `LLVM_ENABLED=0` compiler passes the same three boundary gates on
+  C. `git diff --check` is clean.
 - Exact-head remote CI is the remaining publication gate. Until that run is
   green, this packet is locally closed but not published as repository-green.
   After publication, select the next production direct-C bypass explicitly;
