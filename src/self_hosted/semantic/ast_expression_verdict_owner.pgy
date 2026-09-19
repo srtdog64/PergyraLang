@@ -21,6 +21,7 @@ import "ast_expression_graph_collection_call_protocol_owner.pgy";
 import "ast_expression_graph_queue_call_owner.pgy";
 import "ast_expression_graph_set_call_owner.pgy";
 import "ast_expression_graph_enum_tag_comparison_type_owner.pgy";
+import "ast_expression_graph_declared_callable_value_type_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 
@@ -146,6 +147,9 @@ func SemanticAstExpressionCallErrorFromGraph(
         }
         actual = SemanticContextualBuiltinExpectedTypeFromGraph(
             graph, argument_node, Some(expected), true, actual
+        );
+        actual = SemanticExpressionGraphDeclaredCallableValueTypeName(
+            graph, argument_node, signatures, names, actual
         );
         if actual == "" || actual == "Unknown" {
             return SemanticError1(

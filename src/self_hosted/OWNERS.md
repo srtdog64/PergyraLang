@@ -510,6 +510,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   nominal result types carried by parser-owned expression graph nodes.
 - `src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy` --
   scalar result-type projection from parser-owned expression node handles.
+- `src/self_hosted/semantic/ast_expression_graph_declared_callable_value_type_owner.pgy`
+  -- exact first-order callable value type projected from a declared-callable
+  SyntaxNodeId, either already carried or resolved before the late identity
+  seal with local-shadow rejection; argument typing may not build a callable
+  type directly from a leaf spelling.
 - `src/self_hosted/semantic/ast_expression_graph_scalar_shape_owner.pgy` --
   scalar graph shape and cast/operator ownership facts shared by type and
   verdict projections.

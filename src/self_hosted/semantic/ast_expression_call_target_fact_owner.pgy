@@ -12,6 +12,7 @@ import "ast_type_name_canonical_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "env_owner.pgy";
 import "ast_domain_query_protocol_owner.pgy";
+import "builtin_signature_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 
 struct SemanticExpressionCallTargetFact {
@@ -144,6 +145,28 @@ func SemanticExpressionGraphResolvedCallTarget(
     if !IsSome(member_name) {
         return SemanticExpressionCallTargetFact(
             false, SemanticCallTargetMember(), "", 1
+        );
+    }
+    let carried_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        graph, call.call_node
+    );
+    let carried_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, call.call_node
+    );
+    let carried_syntax_id: Option<Int> =
+        SemanticExpressionGraphCallTargetSyntaxId(graph, call.call_node);
+    if IsSome(carried_kind) && IsSome(carried_name) &&
+        IsSome(carried_syntax_id) &&
+        UnwrapOption(carried_kind) == SemanticCallTargetMember() &&
+        UnwrapOption(carried_syntax_id) == 0 &&
+        IsSome(SemanticCallableIndex(
+            function_names, UnwrapOption(carried_name)
+        )) && SemanticBuiltinMemberCallableMatches(
+            UnwrapOption(carried_name), UnwrapOption(member_name)
+        ) {
+        return SemanticExpressionCallTargetFact(
+            true, SemanticCallTargetMember(),
+            UnwrapOption(carried_name), 1
         );
     }
     let receiver_type: Option<String> =

@@ -7238,7 +7238,7 @@ require_text "src/self_hosted/semantic/callable_resolution_owner.pgy" \
 for canonical_compare_consumer in \
     "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy|func SemanticGenericCallSignatureIndex(" \
     "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy|func SemanticExpressionDirectTargetSyntaxId(" \
-    "src/self_hosted/semantic/ast_expression_carried_callable_identity_owner.pgy|func SemanticExpressionDeclaredCallableSyntaxId("
+    "src/self_hosted/semantic/ast_expression_carried_callable_identity_owner.pgy|func SemanticExpressionDeclaredFunctionSyntaxId("
 do
     canonical_compare_path="${canonical_compare_consumer%%|*}"
     canonical_compare_function="${canonical_compare_consumer#*|}"
@@ -7249,6 +7249,10 @@ do
         "$canonical_compare_function" \
         "SemanticCallableCanonicalDeclaredName("
 done
+require_function_text \
+    "src/self_hosted/semantic/ast_expression_carried_callable_identity_owner.pgy" \
+    "func SemanticExpressionDeclaredCallableSyntaxId(" \
+    "SemanticExpressionDeclaredFunctionSyntaxId("
 require_function_text \
     "src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy" \
     "func SemanticAstAnalysisResolveExpressionIdentities(" \
@@ -13021,11 +13025,11 @@ require_text "src/self_hosted/semantic/ast_expression_graph_serialized_parser_co
 require_text "src/self_hosted/compiler/driver_rung2_readiness_owner.pgy" \
     "SemanticExpressionGraphSerializedParserImportContractReady()"
 require_file "src/self_hosted/tools/expression_surface_closure_probe/main.pgy"
-require_file "tests/self_hosted/parity/expression_surface_closed_owner.sh"
-require_max_lines "tests/self_hosted/parity/expression_surface_closed_owner.sh" 220
-require_text "tests/self_hosted/parity/expression_surface_closed_owner.sh" \
+require_file "tests/self_hosted/parity/expression_surface_closure_probe_parity.sh"
+require_max_lines "tests/self_hosted/parity/expression_surface_closure_probe_parity.sh" 220
+require_text "tests/self_hosted/parity/expression_surface_closure_probe_parity.sh" \
     "expression-surface-closure=parser-owned-fail-closed"
-require_text "Makefile" "tests/self_hosted/parity/expression_surface_closed_owner.sh"
+require_text "Makefile" "tests/self_hosted/parity/expression_surface_closure_probe_parity.sh"
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberCall("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \

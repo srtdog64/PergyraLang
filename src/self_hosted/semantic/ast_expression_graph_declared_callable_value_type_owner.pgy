@@ -1,0 +1,88 @@
+// Exact callable value type projected from a declaration identity. Before the
+// late identity seal, an unshadowed leaf resolves to that same SyntaxNodeId;
+// the type itself is never reconstructed from the leaf spelling.
+
+import "ast_expression_graph_node_view_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "ast_callable_type_shape_owner.pgy";
+import "ast_expression_carried_callable_identity_owner.pgy";
+import "callable_resolution_owner.pgy";
+import "env_owner.pgy";
+
+func SemanticExpressionGraphDeclaredCallableValueTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    signatures: SemanticAstFunctionSignatureFacts,
+    names: Array<String>,
+    current_type: String
+) -> String {
+    if current_type != "" && current_type != "Unknown" {
+        return current_type;
+    }
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    let text: Option<String> = SemanticExpressionGraphNodeText(graph, node_id);
+    let binding: SemanticExpressionBindingIdentityFact =
+        SemanticExpressionGraphBindingIdentity(graph, node_id);
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeLeaf() ||
+        !IsSome(text) || !binding.ok {
+        return current_type;
+    }
+    let syntax_id: Int = 0;
+    if binding.kind == SemanticExpressionBindingDeclaredCallable() &&
+        binding.syntax_id > 0 {
+        syntax_id = binding.syntax_id;
+    } else if binding.kind == SemanticExpressionBindingNone() &&
+        !EnvContainsName(names, UnwrapOption(text)) {
+        let resolved: Result<Int> = SemanticExpressionDeclaredFunctionSyntaxId(
+            signatures, UnwrapOption(text)
+        );
+        if IsOk(resolved) { syntax_id = Unwrap(resolved); }
+    }
+    if syntax_id <= 0 { return current_type; }
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        signatures, syntax_id
+    );
+    if !IsSome(signature) { return current_type; }
+    let signature_index: Int = UnwrapOption(signature);
+    let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
+        signatures, signature_index
+    );
+    let name: Option<String> = SemanticAstFunctionNameAt(
+        signatures, signature_index
+    );
+    let generic_count: Option<Int> = SemanticAstFunctionGenericCountAt(
+        signatures, signature_index
+    );
+    let parameter_count: Option<Int> = SemanticAstFunctionParamCountAt(
+        signatures, signature_index
+    );
+    let return_type: Option<String> = SemanticAstFunctionReturnTypeAt(
+        signatures, signature_index
+    );
+    if !IsSome(owner) || !IsSome(name) || !IsSome(generic_count) ||
+        UnwrapOption(generic_count) != 0 || !IsSome(parameter_count) ||
+        !IsSome(return_type) || UnwrapOption(return_type) == "" ||
+        !SemanticCallableCanonicalDeclaredNameEquals(
+            UnwrapOption(owner), UnwrapOption(name), UnwrapOption(text)
+        ) {
+        return current_type;
+    }
+    let rendered: String = "func(";
+    let parameter: Int = 0;
+    while parameter < UnwrapOption(parameter_count) {
+        let parameter_type: Option<String> = SemanticAstFunctionParamTypeAt(
+            signatures, signature_index, parameter
+        );
+        if !IsSome(parameter_type) || UnwrapOption(parameter_type) == "" {
+            return current_type;
+        }
+        if parameter > 0 { rendered = Concat(rendered, ", "); }
+        rendered = Concat(rendered, UnwrapOption(parameter_type));
+        parameter = parameter + 1;
+    }
+    rendered = Concat(rendered, Concat(") -> ", UnwrapOption(return_type)));
+    if !SemanticAstCallableTypeShapeFromName(rendered).ok {
+        return current_type;
+    }
+    return rendered;
+}

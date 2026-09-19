@@ -29,6 +29,8 @@ NATIVE_SYMBOL_OWNER="$ROOT_DIR/src/semantic/symbol_table.h"
 NATIVE_BORROW_OWNER="$ROOT_DIR/src/semantic/type_checker_ownership_let_slice.c"
 PGY_PLACE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_storage_place_identity_owner.pgy"
 PGY_MUTATION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy"
+CALL_TARGET_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy"
+CALL_ARGUMENT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
@@ -77,6 +79,13 @@ grep -Fq 'func SemanticAstExpressionStoragePlaceEqual(' "$PGY_PLACE_OWNER" ||
     fail "self-host exact storage-place identity owner is missing"
 grep -Fq 'SemanticAstExpressionStoragePlaceEqual(' "$PGY_MUTATION_OWNER" ||
     fail "self-host mutation admission bypasses exact storage-place identity"
+grep -Fq 'SemanticExpressionGraphCallTargetSyntaxId(graph, call.call_node)' \
+    "$CALL_TARGET_OWNER" ||
+    fail "Slice target resolution lost the parser-carried builtin identity"
+grep -Fq 'SemanticBuiltinMemberCallableMatches(' "$CALL_TARGET_OWNER" ||
+    fail "Slice target resolution bypasses the builtin member registry"
+grep -Fq 'SemanticBuiltinMemberSourceParameterOffset(' "$CALL_ARGUMENT_OWNER" ||
+    fail "Slice argument admission lost the builtin receiver offset owner"
 
 for origin in native public; do
     for backend in c llvm; do

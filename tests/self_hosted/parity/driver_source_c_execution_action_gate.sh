@@ -7,7 +7,7 @@ source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
-SELF_DRIVER="${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}"
+SELF_DRIVER="$(pgy_path_for_bash_tool "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 CC="${CC:-cc}"
 SOURCE="examples/composite_intent_orchestration/main.pgy"
 WORK_REL=".tmp/self_hosted/driver_source_c_execution_action"
@@ -90,10 +90,12 @@ rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR"
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-c-artifact-verified \
     "$SOURCE" "$WORK_REL/direct.c" --machine-manifest-json \
-    "$MACHINE_MANIFEST_ARG")
+    "$MACHINE_MANIFEST_ARG") || fail "installed driver source-C projection failed"
 (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN && \
     "$PGY" "$SOURCE" --emit-c -o "$WORK_REL/public.c") \
-    >"$WORK_DIR/public.out" 2>"$WORK_DIR/public.err"
+    >"$WORK_DIR/public.out" 2>"$WORK_DIR/public.err" || {
+        cat "$WORK_DIR/public.out" "$WORK_DIR/public.err" >&2
+        fail "public source-C projection failed"; }
 cmp -s "$WORK_DIR/direct.c" "$WORK_DIR/public.c" ||
     fail "public source-C artifact differs from the installed driver"
 

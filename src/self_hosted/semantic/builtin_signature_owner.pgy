@@ -187,6 +187,13 @@ func SemanticBuiltinMemberCallableMatches(
         source_member_name == "Slice";
 }
 
+func SemanticBuiltinMemberSourceParameterOffset(
+    canonical_name: String
+) -> Option<Int> {
+    if canonical_name == "Array_Slice" { return Some(1); }
+    return None;
+}
+
 func SeedSemanticBuiltinSignaturesInto(
     inout names: Array<String>,
     inout returns: Array<String>,
@@ -272,6 +279,7 @@ func SemanticBuiltinReturnDependsOnArguments(name: String) -> Bool {
         name == "Clone" ||
         name == "ArraySort" || name == "ArrayReverse" ||
         name == "ArrayMap" || name == "ArrayFilter" || name == "Read" ||
+        name == "DeviceRead" || name == "SubmitDeviceRead" ||
         name == "SliceCopy";
 }
 
@@ -305,6 +313,9 @@ func SemanticPolymorphicBuiltinReturnTypeOpt(
         expected_count = 1;
     }
     else if name == "Read" { expected_count = 1; }
+    else if name == "DeviceRead" || name == "SubmitDeviceRead" {
+        expected_count = 1;
+    }
     // Both take exactly the sequence they view or own: Array_Slice sees its
     // receiver, SliceCopy its single argument.
     else if name == "Array_Slice" || name == "SliceCopy" {
@@ -317,6 +328,14 @@ func SemanticPolymorphicBuiltinReturnTypeOpt(
     let result_type: String = argument_types[0];
     if name == "Read" {
         return SlotPayloadTypeOpt(result_type);
+    }
+    if name == "DeviceRead" || name == "SubmitDeviceRead" {
+        let payload: Option<String> = DeviceSlotPayloadTypeOpt(result_type);
+        if !IsSome(payload) { return None; }
+        if name == "DeviceRead" { return payload; }
+        return Some(Concat("RemoteFuture<", Concat(
+            UnwrapOption(payload), ">"
+        )));
     }
     if name == "Clone" {
         return Some(result_type);
@@ -357,12 +376,20 @@ func SemanticContextualBuiltinReturnTypeOpt(
     argument_count: Int,
     declared_type: Option<String>
 ) -> Option<String> {
-    if (name != "ListNew" && name != "QueueNew" && name != "SetNew" && name != "MapNew") || argument_count != 0 ||
-        !IsSome(declared_type) {
-        return None;
-    }
+    if !IsSome(declared_type) { return None; }
     let shape: SemanticConstructedTypeNameFact =
         SemanticConstructedTypeNameFactFrom(UnwrapOption(declared_type));
+    if name == "ClaimDeviceSlot" {
+        if argument_count != 0 || !shape.ok ||
+            shape.nominal_base_name != "DeviceSlot" ||
+            ArrayLength(shape.actual_type_names) != 1 ||
+            SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) {
+            return None;
+        }
+        return Some(shape.canonical_name);
+    }
+    if (name != "ListNew" && name != "QueueNew" && name != "SetNew" &&
+        name != "MapNew") || argument_count != 0 { return None; }
     if name == "MapNew" {
         if SemanticHashMapTypeError(name, shape) != "" { return None; }
         return Some(shape.canonical_name);
@@ -456,11 +483,24 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
     let params: Array<String> = [];
     let int_pair: Array<String> = ["Int", "Int"];
     let mixed_pair: Array<String> = ["Int", "Float"];
+    let device_arguments: Array<String> = ["DeviceSlot<Int>"];
     let min_type: Option<String> =
         SemanticPolymorphicBuiltinReturnTypeOpt("Min", int_pair);
+    let device_read_type: Option<String> =
+        SemanticPolymorphicBuiltinReturnTypeOpt(
+            "DeviceRead", device_arguments
+        );
+    let device_submit_type: Option<String> =
+        SemanticPolymorphicBuiltinReturnTypeOpt(
+            "SubmitDeviceRead", device_arguments
+        );
     let contextual_list: Option<String> =
         SemanticContextualBuiltinReturnTypeOpt(
             "ListNew", 0, Some("List<HashMap<String, Int>>")
+        );
+    let contextual_device: Option<String> =
+        SemanticContextualBuiltinReturnTypeOpt(
+            "ClaimDeviceSlot", 0, Some("DeviceSlot<Int>")
         );
     if !SeedSemanticBuiltinSignatures(names, returns, params) ||
         !SemanticBuiltinSignatureProjectionPrefixReady(names, returns, params) ||
@@ -482,7 +522,8 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
         i = i + 1;
     }
     if !IsSome(contextual_list) || UnwrapOption(contextual_list) !=
-        "List<HashMap<String, Int>>" {
+        "List<HashMap<String, Int>>" || !IsSome(contextual_device) ||
+        UnwrapOption(contextual_device) != "DeviceSlot<Int>" {
         return false;
     }
     let contextual_queue: Option<String> =
@@ -509,9 +550,17 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
             "QueueNew", 0, Some("List<Int>")
         )) || IsSome(SemanticContextualBuiltinReturnTypeOpt(
             "SetNew", 0, Some("List<Int>")
+        )) || IsSome(SemanticContextualBuiltinReturnTypeOpt(
+            "ClaimDeviceSlot", 1, Some("DeviceSlot<Int>")
+        )) || IsSome(SemanticContextualBuiltinReturnTypeOpt(
+            "ClaimDeviceSlot", 0, Some("DeviceSlot<Unknown>")
         )) {
         return false;
     }
-    return IsSome(min_type) && UnwrapOption(min_type) == "Int" &&
+    return IsSome(device_read_type) &&
+        UnwrapOption(device_read_type) == "Int" &&
+        IsSome(device_submit_type) &&
+        UnwrapOption(device_submit_type) == "RemoteFuture<Int>" &&
+        IsSome(min_type) && UnwrapOption(min_type) == "Int" &&
         !IsSome(SemanticPolymorphicBuiltinReturnTypeOpt("Min", mixed_pair));
 }
