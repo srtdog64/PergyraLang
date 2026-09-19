@@ -3,15 +3,54 @@
 Updated: 2026-09-20 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-Native compiler-boundary repair checkpoints:
-`dd41cbdf9dc72aace76bf35566117d5a4f19713f` and
-`454184563ceb7b73e081ca9b75667bd6a78c8e26`. This handoff is their docs-only
+Zone-return semantic-admission code checkpoint:
+`21800bf8d786ef63bca564aea7ed8c8b4b1ebc49`. This handoff is its docs-only
 publication descendant; Git HEAD/status and `origin/main` remain the authority
 for the final publication checkpoint. The
 pre-existing untracked `._handoff_full.md`, `_agents_dump.txt`, `.agents/`, and
 `skills-lock.json` are not part of this packet.
 
-## Active self-host context — native boundary repair published; exact-head CI green
+## Active self-host context — zone return backend bypass deleted; exact-head CI pending
+
+Objective card:
+- Objective: make the installed self-host `--source` path reject direct Zone
+  returns and zone-owning World returns in semantic admission, before C
+  publication, and delete the backend-only thread-safe return guard.
+- Priority: one semantic decision, no partial C, exact diagnostic identity,
+  negative guard ratchet, then publication evidence.
+- Fact owner: `SemanticAstZoneParameterBoundaryVerdictFromAdmittedFacts` owns
+  callable-boundary resource carriage from admitted signature and constructor
+  facts.
+- Last legitimate consumer: admitted semantic body/codegen entry; C function
+  emission consumes the admitted result and no longer reclassifies a return
+  type with `LookupKindType`.
+- Forbidden fallback: emitting a `PGY_ZONE_THREADSAFE` preprocessor error for
+  a Zone return, accepting the same source in single-thread mode, or emitting a
+  partial C translation unit before the semantic diagnostic.
+- Gate/falsifier: `domain_runtime_zone_parameter_admission_owner.sh` compiles
+  direct Zone-return and embedded-zone World-return fixtures through the
+  installed self-host driver, requires `zone_value_copy_requires_transfer`,
+  rejects unregistered diagnostics and partial C, preserves explicit ref
+  single/thread-safe execution, and statically rejects the deleted guard.
+
+Reached evidence and boundary:
+- Code checkpoint `21800bf8d786ef63bca564aea7ed8c8b4b1ebc49`
+  changes the semantic return predicate from embedded-world-only to every
+  nonzero zone-resource kind and removes the backend guard variable, type-kind
+  branch, and emitted preprocessor fragment.
+- The full domain-runtime zone-sync gate passes the new Zone/World return
+  negatives, existing copy/reassignment and value-parameter negatives, fresh
+  local/world lifecycle, and explicit ref C execution in both single and
+  thread-safe modes. `self-host-component-contract-test-smoke` passes with
+  2,440 line-cap requests, 1,032 function extractions, and 697 reuses.
+- The SoT registry remains honestly `CLOSED=58 / BRIDGE=29 / ACTIVE=2`.
+  `selfhost.semantic_artifact_admission` records the deleted backend return
+  guard while general zone transfer/move and broader artifact admission remain
+  open; no row was promoted by this bounded replacement.
+- Exact-head remote CI is the remaining publication gate. Do not open the next
+  semantic rung until this code checkpoint is repository-green.
+
+## Previous self-host context — native boundary repair published; exact-head CI green
 
 Objective card:
 - Objective: publish the native boundary packet with one semantic identity for
