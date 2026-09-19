@@ -31,10 +31,17 @@ typedef struct {
 } PgyDeclField;
 
 /*
- * Build the field-shape model from a class declaration's AST fields.
- * Returns the field count; on a non-NULL out, *out receives a heap array to be
- * released with pgy_decl_field_model_free. *out is NULL when the count is 0.
+ * Build the field-shape model from a class declaration's AST fields while
+ * keeping an empty declaration distinct from allocation failure.  On success,
+ * *out_count owns the source field count and a non-empty model is returned in
+ * *out when requested.  The caller releases it with
+ * pgy_decl_field_model_free().
  */
+bool pgy_class_decl_field_model_try_build(const ASTNode *class_decl,
+                                          PgyDeclField **out,
+                                          size_t *out_count);
+
+/* Compatibility projection for consumers that do not need failure identity. */
 size_t pgy_class_decl_field_model_build(const ASTNode *class_decl, PgyDeclField **out);
 
 void pgy_decl_field_model_free(PgyDeclField *fields, size_t count);

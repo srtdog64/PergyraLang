@@ -8,20 +8,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-size_t
-pgy_class_decl_field_model_build(const ASTNode *class_decl, PgyDeclField **out)
+bool
+pgy_class_decl_field_model_try_build(const ASTNode *class_decl,
+                                     PgyDeclField **out,
+                                     size_t *out_count)
 {
     size_t       count  = 0;
     ClassField **fields = ast_class_fields(class_decl, &count);
 
+    if (out_count == NULL)
+        return false;
+    *out_count = count;
     if (out != NULL)
         *out = NULL;
     if (count == 0 || out == NULL)
-        return count;
+        return true;
 
     PgyDeclField *model = calloc(count, sizeof(*model));
     if (model == NULL)
-        return 0; /* allocation failure surfaces as an empty model to the caller */
+        return false;
 
     for (size_t i = 0; i < count; i++) {
         ClassField *f = (fields != NULL) ? fields[i] : NULL;
@@ -38,6 +43,16 @@ pgy_class_decl_field_model_build(const ASTNode *class_decl, PgyDeclField **out)
     }
 
     *out = model;
+    return true;
+}
+
+size_t
+pgy_class_decl_field_model_build(const ASTNode *class_decl, PgyDeclField **out)
+{
+    size_t count = 0;
+
+    if (!pgy_class_decl_field_model_try_build(class_decl, out, &count))
+        return 0;
     return count;
 }
 

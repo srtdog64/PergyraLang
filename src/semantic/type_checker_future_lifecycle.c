@@ -170,14 +170,9 @@ future_decl_fields_syntax_contain_handle(ASTNode *decl,
 
     if (decl == NULL || decl->type != AST_CLASS_DECL)
         return false;
-    count = pgy_class_decl_field_model_build(decl, &fields);
-    if (fields == NULL) {
-        size_t declared_count = 0;
-        ast_class_fields(decl, &declared_count);
-        if (declared_count > 0) {
-            future_storage_report_resolution_oom(ctx, decl);
-            return false;
-        }
+    if (!pgy_class_decl_field_model_try_build(decl, &fields, &count)) {
+        future_storage_report_resolution_oom(ctx, decl);
+        return false;
     }
     for (size_t i = 0; i < count; i++) {
         if (future_field_syntax_contains_handle(
