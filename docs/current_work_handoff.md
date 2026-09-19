@@ -3,14 +3,56 @@
 Updated: 2026-09-20 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-CI closure code checkpoint:
-`4a05d7e09e9b3a4c511ed1dce8cbd12b9521a38c`. This handoff is its docs-only
+Native compiler-boundary code checkpoint:
+`05867f7c268c55409f6bbf595816f9772e9c7c57`. This handoff is its docs-only
 publication descendant; Git HEAD/status and `origin/main` remain the authority
 for the final publication checkpoint. The
 pre-existing untracked `._handoff_full.md`, `_agents_dump.txt`, `.agents/`, and
 `skills-lock.json` are not part of this packet.
 
-## Active self-host context — expression surface CLOSED; exact-head push CI green
+## Active self-host context — native boundary packet locally closed; exact-head CI pending
+
+Objective card:
+- Objective: make native C and LLVM observe one language meaning at three
+  external compiler boundaries: one evaluation of a non-trivial `match`
+  subject, Pergyra ownership of non-extern callable identifiers after host
+  headers, and opaque carriage of imported private nominal values.
+- Priority: source meaning, shared pre-semantic/module owners, backend parity,
+  explicit negative rejection, then publication evidence.
+- Fact owners: the source match expression remains authoritative and
+  `match_subject_single_evaluation_desugar.c` is only its derived lowering;
+  module normalization owns imported nominal spelling; C suffix sanitization
+  owns the generated Result ABI identifier; the emitted translation unit owns
+  non-extern callable identifiers.
+- Last legitimate consumers: semantic/MIR match lowering, imported enum and
+  Result construction, LLVM qualified variant typing, and native C emission.
+- Forbidden fallback: per-case subject re-evaluation, raw generic suffixes,
+  backend-only private-type exceptions, public construction of a private
+  nominal, or renaming a Pergyra callable to a host-header macro target.
+- Gates/falsifiers: `native_match_scrutinee_single_evaluation_smoke.sh` uses a
+  side-effecting subject; `native_c_callable_macro_hygiene_smoke.sh` compiles a
+  user `FindResource`; `native_imported_private_nominal_smoke.sh` executes
+  Result and exported-ADT carriage on C/LLVM and rejects constructor forgery.
+
+Reached evidence and boundary:
+- Code checkpoint `05867f7c268c55409f6bbf595816f9772e9c7c57`
+  carries the shared match normalization, imported enum/generic normalization,
+  canonical Result suffix, C callable macro hygiene, and LLVM qualified enum
+  variant lookup. It does not close a SoT registry row or claim a new
+  self-host substitution.
+- The three focused native gates pass with C and LLVM. A separate compiler
+  built with `LLVM_ENABLED=0` passes the same boundary group on C, so the new
+  shared owner has no hidden LLVM build dependency. The installed self-host
+  match parity gate also passes its C/LLVM and negative evidence.
+- `make -j2 test-all`, parser/semantic/transpile, module, ABI, LLVM,
+  backend-fail-closed, AST ownership, gate reachability, and the relevant
+  self-host component/parity gates passed locally. `git diff --check` is clean.
+- Exact-head remote CI is the remaining publication gate. Until that run is
+  green, this packet is locally closed but not published as repository-green.
+  After publication, select the next production direct-C bypass explicitly;
+  do not infer a registry bridge merely from these regressions.
+
+## Previous self-host context — expression surface CLOSED; exact-head push CI green
 
 Objective card:
 - Objective: make the parser-owned expression graph the only supported
