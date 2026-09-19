@@ -39,16 +39,19 @@ match_binding_type_fact_reserve(SemanticContext *ctx, size_t needed)
 bool
 semantic_match_binding_type_fact_record(SemanticContext *ctx,
                                         const ASTNode *match_case_node,
+                                        const ASTNode *binding_node,
                                         size_t binding_index,
                                         size_t binding_count,
                                         const Type *binding_type)
 {
     uint32_t function_id;
     uint32_t match_case_id;
+    uint32_t binding_id;
     const char *type_name;
     PgyMatchBindingTypeFact *fact;
 
-    if (ctx == NULL || match_case_node == NULL || binding_type == NULL
+    if (ctx == NULL || match_case_node == NULL || binding_node == NULL
+        || binding_type == NULL
         || binding_count == 0 || binding_index >= binding_count)
         return false;
     /* Match binding rows are routine-local MIR input.  A standalone semantic
@@ -58,19 +61,27 @@ semantic_match_binding_type_fact_record(SemanticContext *ctx,
         return true;
     function_id = ast_node_stable_id(ctx->current_function_decl);
     match_case_id = ast_node_stable_id(match_case_node);
+    binding_id = ast_node_stable_id(binding_node);
     type_name = type_name_or_unknown(binding_type);
-    if (function_id == 0 || match_case_id == 0 || type_name == NULL
+    if (function_id == 0 || match_case_id == 0 || binding_id == 0
+        || type_name == NULL
         || type_name[0] == '\0' || strcmp(type_name, "Unknown") == 0
         || strcmp(type_name, "<unknown>") == 0)
         return false;
 
     for (size_t i = 0; i < ctx->match_binding_type_fact_count; i++) {
         fact = &ctx->match_binding_type_facts[i];
-        if (fact->function_syntax_id != function_id
-            || fact->match_case_syntax_id != match_case_id
-            || fact->binding_index != binding_index)
+        bool same_row = fact->function_syntax_id == function_id
+            && fact->match_case_syntax_id == match_case_id
+            && fact->binding_index == binding_index;
+        if (!same_row) {
+            if (fact->function_syntax_id == function_id
+                && fact->binding_syntax_id == binding_id)
+                return false;
             continue;
+        }
         return fact->binding_count == binding_count
+            && fact->binding_syntax_id == binding_id
             && strcmp(fact->binding_type_name, type_name) == 0;
     }
     if (!match_binding_type_fact_reserve(ctx,
@@ -80,6 +91,7 @@ semantic_match_binding_type_fact_record(SemanticContext *ctx,
         ctx->match_binding_type_fact_count];
     fact->function_syntax_id = function_id;
     fact->match_case_syntax_id = match_case_id;
+    fact->binding_syntax_id = binding_id;
     fact->binding_index = binding_index;
     fact->binding_count = binding_count;
     fact->binding_type_name = pergyra_strdup(type_name);
@@ -181,7 +193,7 @@ declare_match_binding(SemanticContext *ctx, ASTNode *match_case_node,
         return false;
     }
     if (!semantic_match_binding_type_fact_record(
-            ctx, match_case_node, binding_index, binding_count,
+            ctx, match_case_node, binding_node, binding_index, binding_count,
             binding_type)) {
         semantic_error(ctx, binding_node,
             "Match binding type fact capture failed");
@@ -190,6 +202,11 @@ declare_match_binding(SemanticContext *ctx, ASTNode *match_case_node,
 
     binding = symbol_create_variable(name, binding_type,
         binding_node->line, binding_node->column);
+    if (binding != NULL) {
+        uint32_t binding_id = ast_node_stable_id(binding_node);
+        symbol_mark_declaration(binding, binding_id, false);
+        ast_identifier_set_binding_syntax_id(binding_node, binding_id);
+    }
     if (binding == NULL || !scope_declare(ctx->scope, binding)) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_MATCH_PATTERN_INVALID,

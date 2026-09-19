@@ -266,7 +266,8 @@ hir_append_match_binding_type_fact(HIRRoutine *routine,
 
     if (routine == NULL || fact == NULL
         || fact->function_syntax_id != routine->source_syntax_id
-        || fact->match_case_syntax_id == 0 || fact->binding_count == 0
+        || fact->match_case_syntax_id == 0 || fact->binding_syntax_id == 0
+        || fact->binding_count == 0
         || fact->binding_index >= fact->binding_count
         || fact->binding_type_name == NULL
         || fact->binding_type_name[0] == '\0')
@@ -274,8 +275,9 @@ hir_append_match_binding_type_fact(HIRRoutine *routine,
     for (size_t i = 0; i < routine->match_binding_type_fact_count; i++) {
         const HIRMatchBindingTypeFact *existing =
             &routine->match_binding_type_facts[i];
-        if (existing->match_case_syntax_id == fact->match_case_syntax_id
-            && existing->binding_index == fact->binding_index) {
+        if ((existing->match_case_syntax_id == fact->match_case_syntax_id
+                && existing->binding_index == fact->binding_index)
+            || existing->binding_syntax_id == fact->binding_syntax_id) {
             if (error_message != NULL)
                 *error_message = pergyra_strdup(
                     "duplicate HIR match binding type fact identity");

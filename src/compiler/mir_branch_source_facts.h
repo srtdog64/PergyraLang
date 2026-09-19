@@ -13,6 +13,10 @@ const MIRMatchBindingTypeFact *mir_routine_match_binding_type_fact(
     const MIRRoutine *routine,
     uint32_t match_case_syntax_id,
     size_t binding_index);
+const MIRMatchBindingTypeFact *
+mir_routine_match_binding_type_fact_by_binding_syntax_id(
+    const MIRRoutine *routine,
+    uint32_t binding_syntax_id);
 bool mir_capture_match_case_facts(MIRRoutine *routine,
                                   MIRInstruction *inst,
                                   ASTNode *case_node,

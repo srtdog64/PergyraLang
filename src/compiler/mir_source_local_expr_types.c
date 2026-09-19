@@ -4,6 +4,7 @@
 
 #include "mir_source_local_expr_binding_facts.h"
 #include "mir_source_local_expr_call_facts.h"
+#include "mir_branch_source_facts.h"
 #include "../parser/ast_api.h"
 
 const char *
@@ -32,9 +33,15 @@ mir_source_local_expr_type_name(const MIRProgram *program,
                 inner);
         }
         return NULL;
-    case AST_IDENTIFIER:
+    case AST_IDENTIFIER: {
+        const MIRMatchBindingTypeFact *match_binding =
+            mir_routine_match_binding_type_fact_by_binding_syntax_id(
+                routine, ast_identifier_binding_syntax_id(expr));
+        if (match_binding != NULL)
+            return match_binding->binding_type_name;
         return mir_source_local_identifier_type_name(program, routine,
             ast_identifier_name(expr));
+    }
     case AST_ARRAY_ACCESS: {
         const char *collection_type = mir_source_local_expr_type_name(
             program, routine, scratch, ast_array_access_array(expr));

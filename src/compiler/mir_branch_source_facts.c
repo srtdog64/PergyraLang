@@ -23,6 +23,22 @@ mir_routine_match_binding_type_fact(const MIRRoutine *routine,
     return NULL;
 }
 
+const MIRMatchBindingTypeFact *
+mir_routine_match_binding_type_fact_by_binding_syntax_id(
+    const MIRRoutine *routine,
+    uint32_t binding_syntax_id)
+{
+    if (routine == NULL || binding_syntax_id == 0)
+        return NULL;
+    for (size_t i = 0; i < routine->match_binding_type_fact_count; i++) {
+        const MIRMatchBindingTypeFact *fact =
+            &routine->match_binding_type_facts[i];
+        if (fact->binding_syntax_id == binding_syntax_id)
+            return fact;
+    }
+    return NULL;
+}
+
 bool
 mir_copy_match_binding_type_facts(MIRRoutine *routine,
                                   const HIRRoutine *hir_routine,
@@ -58,13 +74,16 @@ mir_copy_match_binding_type_facts(MIRRoutine *routine,
             &routine->match_binding_type_facts[i];
         if (source->function_syntax_id != routine->source_syntax_id
             || source->match_case_syntax_id == 0
+            || source->binding_syntax_id == 0
             || source->binding_count == 0
             || source->binding_index >= source->binding_count
             || source->binding_type_name == NULL
             || source->binding_type_name[0] == '\0'
             || mir_routine_match_binding_type_fact(
                 routine, source->match_case_syntax_id,
-                source->binding_index) != NULL) {
+                source->binding_index) != NULL
+            || mir_routine_match_binding_type_fact_by_binding_syntax_id(
+                routine, source->binding_syntax_id) != NULL) {
             if (error_message != NULL)
                 *error_message = pergyra_strdup(
                     "MIR match binding type facts have invalid or duplicate identity");

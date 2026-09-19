@@ -10,12 +10,15 @@ typedef struct ASTNode ASTNode;
 typedef struct Type Type;
 
 /* Semantic-owned positional type for one routine-local match binding.
- * The match-case syntax id plus binding index is the stable row identity.
- * MIR and self-host consumers must not recover it from variant spelling. */
+ * The match-case syntax id plus binding index is the stable row identity;
+ * binding_syntax_id connects identifier uses to that row without a name
+ * lookup.  MIR and self-host consumers must not recover either fact from
+ * variant spelling. */
 typedef struct PgyMatchBindingTypeFact
 {
     uint32_t function_syntax_id;
     uint32_t match_case_syntax_id;
+    uint32_t binding_syntax_id;
     size_t   binding_index;
     size_t   binding_count;
     char    *binding_type_name;
@@ -24,6 +27,7 @@ typedef struct PgyMatchBindingTypeFact
 bool semantic_match_binding_type_fact_record(
     SemanticContext *ctx,
     const ASTNode *match_case_node,
+    const ASTNode *binding_node,
     size_t binding_index,
     size_t binding_count,
     const Type *binding_type);
