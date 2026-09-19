@@ -3,14 +3,68 @@
 Updated: 2026-09-20 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-Zone-return semantic-admission code checkpoint:
-`21800bf8d786ef63bca564aea7ed8c8b4b1ebc49`. This handoff is its docs-only
+Default Zone/World identity-parameter code checkpoint:
+`d9ba515931fba7af8fb8f67ef15909a7ada73fcf`. This handoff is its docs-only
 publication descendant; Git HEAD/status and `origin/main` remain the authority
 for the final publication checkpoint. The
 pre-existing untracked `._handoff_full.md`, `_agents_dump.txt`, `.agents/`, and
 `skills-lock.json` are not part of this packet.
 
-## Active self-host context — zone return backend bypass deleted; exact-head CI green
+## Active self-host context — default Zone/World identity reaches public C/LLVM
+
+Objective card:
+- Objective: make the documented automatic-reference rule real for default-mode
+  Zone and World parameters across semantic admission, MIR carriage, identity
+  cell lifetime, and installed public C/LLVM execution.
+- Priority: semantic identity, no lock-bearing value copy, carried MIR mode,
+  one-pointer target ABI, negative carriage ratchet, then publication evidence.
+- Fact owners: `SemanticAstZoneParameterBoundaryVerdictFromAdmittedFacts` owns
+  source admission; the MIR parameter row owns the exact
+  `mutable-identity/indirect` or `readonly-ref/indirect` carriage; the identity
+  cell fact/lifetime owners validate World-to-Zone-to-Subject containment.
+- Last legitimate consumers: direct-call carriage admission and C/LLVM
+  signature/argument projection. They consume the carried row and do not infer
+  a replacement mode from nominal spelling.
+- Forbidden fallback: treating a default identity parameter as a value, copying
+  lock-bearing storage, emitting pointer-to-pointer C ABI, accepting a
+  `value/direct` MIR mutant, or passing native projection while installed
+  self-host LLVM still rejects the program.
+- Gate/falsifier: `domain_runtime_zone_identity_direct_mir_owner.sh` executes
+  default Zone and embedded-Zone World fixtures through the self MIR projector
+  and installed public C/LLVM, checks exact output and C pointer shape, and
+  requires each value-carriage mutant to fail without a partial artifact.
+
+Reached evidence and boundary:
+- Code checkpoint `d9ba515931fba7af8fb8f67ef15909a7ada73fcf`
+  admits source default mode as automatic identity, preserves explicit `ref`,
+  keeps explicit `own`/return transfer fail-closed, and lets direct-MIR
+  consumers validate the exact carried mode.
+- Identity-cell declarations now admit the bounded nesting
+  `World -> Zone -> Subject`. C and LLVM borrow the existing cell pointer;
+  neither invents a passive-record address nor copies hidden lock storage.
+- A fresh public LLVM run exposed a self-host lowering hazard: a successful
+  mutable-identity `else if` branch fell through to the following rejection.
+  The carriage owner now returns its owned predicate from that branch, and the
+  component contract pins the terminating form.
+- The full zone-sync gate passes copy/reassignment and Zone/World-return
+  refusals, explicit-ref lifecycle, self-MIR C/LLVM value-mutation refusal, and
+  installed public outputs `Zone=7` and `World=1` on both C and LLVM. The
+  separate spawn gate passes four `ref`/`own` refusals with no artifacts plus
+  the valid scalar-spawn control.
+- `self-host-compiler` rebuilt and installed DRV-2 from the changed source.
+  `self-host-component-contract-test-smoke` passes with 2,440 line-cap
+  requests, 1,033 function extractions, and 697 reuses. The SoT edge and
+  protocol gates pass at 89 authorities / 189 carriers and
+  `CLOSED=58 / BRIDGE=29 / ACTIVE=2`; no row was promoted.
+- Local Rocq execution is unavailable. The adequacy gate's owner/consumer and
+  negative-mutation checks passed only under the explicit
+  `PGY_ALLOW_MISSING_COQ=1` development opt-out; the exact-head remote Rocq job
+  must perform the kernel check before publication is green.
+- General Zone transfer/move and broader semantic artifact admission remain
+  open. This is a real public execution bridge reduction, not completion of
+  the ACTIVE row.
+
+## Previous self-host context — zone return backend bypass deleted; exact-head CI green
 
 Objective card:
 - Objective: make the installed self-host `--source` path reject direct Zone
