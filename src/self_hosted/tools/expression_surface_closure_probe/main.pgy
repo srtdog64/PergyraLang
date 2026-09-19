@@ -45,6 +45,14 @@ func Main() -> Void {
         Log("expression-surface-closure: unowned graph type did not fail closed");
         Exit(1);
     }
+    if !SemanticAstExpressionGraphNominalCallComparisonContractReady() {
+        Log("expression-surface-closure: nominal call comparison drifted");
+        Exit(1);
+    }
+    if !SemanticAstExpressionGraphPayloadEnumTagComparisonContractReady() {
+        Log("expression-surface-closure: payload enum tag comparison drifted");
+        Exit(1);
+    }
     if !SemanticAstArtifactVerdictContractReady() {
         Log("expression-surface-closure: artifact admission failed");
         Exit(1);

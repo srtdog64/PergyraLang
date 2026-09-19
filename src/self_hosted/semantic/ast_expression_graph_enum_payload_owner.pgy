@@ -82,6 +82,31 @@ func SemanticExpressionGraphEnumVariantEqualityShapeFromGraph(
     );
 }
 
+// Equality refines payload provenance, while inequality only compares the
+// declared tag.  Both forms still need the same typed enum/variant identity.
+func SemanticExpressionGraphEnumVariantTagComparisonShapeFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> SemanticExpressionGraphEnumVariantEqualityShape {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, node_id);
+    let right: Option<Int> = SemanticExpressionGraphRightChild(graph, node_id);
+    if !IsSome(kind) || (
+            UnwrapOption(kind) != AstExpressionNodeEquality() &&
+            UnwrapOption(kind) != AstExpressionNodeInequality()
+        ) || !IsSome(left) || !IsSome(right) {
+        return SemanticExpressionGraphEnumVariantEqualityShapeInvalid();
+    }
+    let right_variant: SemanticExpressionGraphEnumVariantEqualityShape =
+        SemanticExpressionGraphEnumVariantEqualityCandidate(
+            graph, UnwrapOption(left), UnwrapOption(right)
+        );
+    if right_variant.ok { return right_variant; }
+    return SemanticExpressionGraphEnumVariantEqualityCandidate(
+        graph, UnwrapOption(right), UnwrapOption(left)
+    );
+}
+
 func SemanticExpressionGraphEnumPayloadShapeInvalid() ->
     SemanticExpressionGraphEnumPayloadShape {
     return SemanticExpressionGraphEnumPayloadShape(false, -1, "", -1);

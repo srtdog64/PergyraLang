@@ -228,7 +228,8 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
             expression_verdict = SemanticAstExpressionVerdictFromGraph(
                 statements.payload_texts[i],
                 expression_surfaces.expression_graph,
-                UnwrapOption(graph_root), constructors, signatures,
+                UnwrapOption(graph_root), constructors, enum_facts,
+                signatures,
                 names, types, modes,
                 function_tables.names, function_tables.returns,
                 function_tables.params,
@@ -296,7 +297,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
             // whose spelling happens to contain a dot. Reuse its admitted graph.
             let target_verdict: SemanticAstExpressionVerdict = SemanticAstExpressionVerdictFromGraph(
                 target, expression_surfaces.expression_graph, UnwrapOption(target_root),
-                constructors, signatures, names, types, modes,
+                constructors, enum_facts, signatures, names, types, modes,
                 function_tables.names, function_tables.returns, function_tables.params,
                 member_root_names, statements.function_node_ids[i]);
             let target_type: String = target_verdict.inferred_type_name;
@@ -333,7 +334,8 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                     SemanticAstExpressionVerdictFromGraph(
                         statements.value_texts[i],
                         expression_surfaces.expression_graph,
-                        UnwrapOption(index_root), constructors, signatures,
+                        UnwrapOption(index_root), constructors, enum_facts,
+                        signatures,
                         names, types, modes, function_tables.names,
                         function_tables.returns, function_tables.params,
                         member_root_names, statements.function_node_ids[i]
@@ -377,7 +379,8 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                 let value_verdict: SemanticAstExpressionVerdict =
                     SemanticAstExpressionVerdictFromGraph(
                         value_text, expression_surfaces.expression_graph,
-                        UnwrapOption(value_root), constructors, signatures,
+                        UnwrapOption(value_root), constructors, enum_facts,
+                        signatures,
                         names, types, modes, function_tables.names,
                         function_tables.returns, function_tables.params,
                         member_root_names, statements.function_node_ids[i]

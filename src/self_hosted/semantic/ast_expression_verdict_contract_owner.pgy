@@ -1,0 +1,13 @@
+// Executable aggregate for the expression verdict's owned subcontracts.
+
+import "ast_expression_verdict_owner.pgy";
+
+func SemanticAstExpressionVerdictContractReady() -> Bool {
+    let unknown: SemanticAstExpressionVerdict =
+        SemanticAstExpressionVerdictError("x", "unstructured failure");
+    return !unknown.ok &&
+        unknown.diagnostic_code == "unregistered_diagnostic_code" &&
+        SemanticExpressionGraphIdentifierContractReady() &&
+        SemanticExpressionGraphScalarTypeContractReady() &&
+        SemanticExpressionGraphResolvedCallTypeContractReady();
+}

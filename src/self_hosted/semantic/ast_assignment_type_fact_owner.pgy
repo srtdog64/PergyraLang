@@ -250,7 +250,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                     SemanticAstExpressionVerdictFromGraph(
                         assignments.target_index_texts[i],
                         expression_surfaces.expression_graph,
-                        UnwrapOption(index_root), constructors, signatures,
+                        UnwrapOption(index_root), constructors, enum_facts, signatures,
                         names, types, modes, function_tables.names,
                         function_tables.returns, function_tables.params,
                         member_root_names, assignments.function_node_ids[i]
@@ -294,7 +294,7 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                     SemanticAstExpressionVerdictFromGraph(
                         assignments.value_texts[i],
                         expression_surfaces.expression_graph,
-                        UnwrapOption(value_root), constructors, signatures,
+                        UnwrapOption(value_root), constructors, enum_facts, signatures,
                         names, types, modes,
                         function_tables.names, function_tables.returns,
                         function_tables.params,

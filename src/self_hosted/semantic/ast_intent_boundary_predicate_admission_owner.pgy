@@ -58,7 +58,8 @@ func SemanticAstIntentBoundaryPredicateAdmission(
                 SemanticAstExpressionVerdictFromGraph(
                     analysis.expression_surfaces.normalized_atoms[row],
                     analysis.expression_surfaces.expression_graph, UnwrapOption(root),
-                    analysis.constructors, analysis.signatures, names, types, modes,
+                    analysis.constructors, analysis.enums, analysis.signatures,
+                    names, types, modes,
                     function_tables.names, function_tables.returns,
                     function_tables.params, member_roots, -1);
             if !expression.ok {

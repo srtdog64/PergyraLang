@@ -242,7 +242,8 @@ func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
             SemanticAstExpressionVerdictFromGraph(
                 statements.value_texts[i],
                 expression_surfaces.expression_graph,
-                UnwrapOption(first_root), constructors, signatures,
+                UnwrapOption(first_root), constructors, enum_facts,
+                signatures,
                 names, types, modes,
                 function_tables.names, function_tables.returns,
                 function_tables.params,
@@ -264,9 +265,10 @@ func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(
             }
             let last: SemanticAstExpressionVerdict =
                 SemanticAstExpressionVerdictFromGraph(
-                    statements.auxiliary_texts[i],
-                    expression_surfaces.expression_graph,
-                    UnwrapOption(last_root), constructors, signatures,
+                statements.auxiliary_texts[i],
+                expression_surfaces.expression_graph,
+                UnwrapOption(last_root), constructors, enum_facts,
+                signatures,
                     names, types, modes,
                     function_tables.names, function_tables.returns,
                     function_tables.params,

@@ -121,7 +121,11 @@ func SemanticExpressionGraphConcreteScalarValueOwned(ref graph: SemanticExpressi
     let call_result_type: String = SemanticExpressionGraphScalarTypeName(
         graph, node_id, constructors, names, types, function_names, function_returns);
     // The call-tree admission owns argument validity, including nominal values.
-    return SemanticResolvedCallConcreteScalarType(call_result_type);
+    // Nominal call results are also owned operands: the enclosing operator
+    // type owner still admits only same-type comparisons and rejects nominal
+    // arithmetic/logical use by producing Unknown.
+    return call_result_type != "" && call_result_type != "Unknown" &&
+        call_result_type != "Void";
 }
 
 func SemanticExpressionGraphContextualCallArgumentsOwned(

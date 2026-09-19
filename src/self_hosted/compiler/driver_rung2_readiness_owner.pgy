@@ -9,6 +9,7 @@ import "../parser/expression_set_literal_contract_owner.pgy";
 import "../semantic/ast_initializer_type_contract_owner.pgy";
 import "../semantic/ast_body_type_bundle_contract_owner.pgy";
 import "../semantic/ast_expression_surface_contract_owner.pgy";
+import "../semantic/ast_expression_verdict_contract_owner.pgy";
 import "../codegen/emission/expr_semantic_leaf_place_contract_owner.pgy";
 
 func CompilerDriverRung2ReadinessError() -> String {

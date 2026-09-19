@@ -71,6 +71,14 @@ grep -Fq 'SemanticAstExpressionGraphTypeFailClosedContractReady()' "$PROBE" || {
     echo "[$LABEL] executable unowned-graph negative contract is missing" >&2
     exit 1
 }
+grep -Fq 'SemanticAstExpressionGraphNominalCallComparisonContractReady()' "$PROBE" || {
+    echo "[$LABEL] nominal call comparison contract is missing" >&2
+    exit 1
+}
+grep -Fq 'SemanticAstExpressionGraphPayloadEnumTagComparisonContractReady()' "$PROBE" || {
+    echo "[$LABEL] payload enum tag comparison contract is missing" >&2
+    exit 1
+}
 grep -Fq 'ParserAstTextArtifactForLaneContractReady()' "$PROBE" || {
     echo "[$LABEL] collection/range for-lane contract is missing" >&2
     exit 1

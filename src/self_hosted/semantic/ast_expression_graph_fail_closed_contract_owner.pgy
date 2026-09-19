@@ -29,7 +29,7 @@ func SemanticAstExpressionGraphTypeFailClosedContractReady() -> Bool {
     let verdict: SemanticAstExpressionVerdict =
         SemanticAstExpressionVerdictFromGraph(
             "ghost", graph, 0, analysis.constructors,
-            analysis.signatures, empty, empty, empty,
+            analysis.enums, analysis.signatures, empty, empty, empty,
             analysis.function_tables.names,
             analysis.function_tables.returns,
             analysis.function_tables.params,
@@ -41,4 +41,131 @@ func SemanticAstExpressionGraphTypeFailClosedContractReady() -> Bool {
             verdict.diagnostic_message,
             "- owner: expression_graph_type"
         ) >= 0;
+}
+
+func SemanticAstExpressionGraphNominalCallComparisonContractReady() -> Bool {
+    let artifact: AstTreeArtifact = SemanticAstTreeArtifactFromText(
+        "Program:\n  Enum: Stage { Begin, Cleanup }\n  Struct: Failure\n    Fields:\n      stage: Stage\n      status: Int\n  Function: StageFor\n    Parameters:\n      status: Int\n    Returns: Stage\n    Body:\n      Block:\n        Return: Begin\n"
+    );
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(
+        "failure.stage != StageFor(failure.status)", 0, cursor
+    );
+    if !fact.ok || cursor[0] != 41 { return false; }
+    let graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindIfStmtTag()], [AstExpressionLaneAtom()],
+                [fact.root], fact.arena
+            ), [0], 1
+        );
+    let function_names: Array<String> = ["StageFor"];
+    let function_returns: Array<String> = ["Stage"];
+    let function_params: Array<String> = ["Int"];
+    return graph.ok && signatures.ok &&
+        SemanticExpressionGraphConcreteScalarValueOwned(
+            graph, fact.root, constructors, signatures,
+            ["failure"], ["Failure"], function_names,
+            function_returns, function_params
+        ) && SemanticExpressionGraphScalarTypeName(
+            graph, fact.root, constructors, ["failure"], ["Failure"],
+            function_names, function_returns
+        ) == "Bool";
+}
+
+func SemanticAstExpressionGraphPayloadEnumTagComparisonContractReady() -> Bool {
+    let artifact: AstTreeArtifact = SemanticAstTreeArtifactFromText(
+        "Program:\n  Enum: Outcome { Admitted(Int), Denied(String) }\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+    );
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok ||
+        ArrayLength(analysis.signatures.function_node_ids) != 1 {
+        return false;
+    }
+    let member_roots: Array<String> = [];
+    if !SemanticAstExpressionMemberRootNames(
+        analysis.constructors, analysis.enums, member_roots
+    ) { return false; }
+    let names: Array<String> = ["admission"];
+    let types: Array<String> = ["Outcome"];
+    let modes: Array<String> = ["let"];
+    let valid_text: String = "admission == Outcome.Denied";
+    let valid_cursor: Array<Int> = [0];
+    let valid_fact: ParserExpressionFact = ParseExprFact(
+        valid_text, 0, valid_cursor
+    );
+    let inverse_text: String = "Outcome.Denied != admission";
+    let inverse_cursor: Array<Int> = [0];
+    let inverse_fact: ParserExpressionFact = ParseExprFact(
+        inverse_text, 0, inverse_cursor
+    );
+    let invalid_text: String = "admission == Outcome.Missing";
+    let invalid_cursor: Array<Int> = [0];
+    let invalid_fact: ParserExpressionFact = ParseExprFact(
+        invalid_text, 0, invalid_cursor
+    );
+    if !valid_fact.ok || !inverse_fact.ok || !invalid_fact.ok ||
+        valid_cursor[0] != StringLength(valid_text) ||
+        inverse_cursor[0] != StringLength(inverse_text) ||
+        invalid_cursor[0] != StringLength(invalid_text) {
+        return false;
+    }
+    let valid_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindIfStmtTag()], [AstExpressionLaneAtom()],
+                [valid_fact.root], valid_fact.arena
+            ), [0], 1
+        );
+    let inverse_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindIfStmtTag()], [AstExpressionLaneAtom()],
+                [inverse_fact.root], inverse_fact.arena
+            ), [0], 1
+        );
+    let invalid_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindIfStmtTag()], [AstExpressionLaneAtom()],
+                [invalid_fact.root], invalid_fact.arena
+            ), [0], 1
+        );
+    if !valid_graph.ok || !inverse_graph.ok || !invalid_graph.ok {
+        return false;
+    }
+    let valid: SemanticAstExpressionVerdict =
+        SemanticAstExpressionVerdictFromGraph(
+            valid_text, valid_graph, valid_fact.root,
+            analysis.constructors, analysis.enums, analysis.signatures,
+            names, types, modes, analysis.function_tables.names,
+            analysis.function_tables.returns,
+            analysis.function_tables.params, member_roots,
+            analysis.signatures.function_node_ids[0]
+        );
+    let inverse: SemanticAstExpressionVerdict =
+        SemanticAstExpressionVerdictFromGraph(
+            inverse_text, inverse_graph, inverse_fact.root,
+            analysis.constructors, analysis.enums, analysis.signatures,
+            names, types, modes, analysis.function_tables.names,
+            analysis.function_tables.returns,
+            analysis.function_tables.params, member_roots,
+            analysis.signatures.function_node_ids[0]
+        );
+    let invalid: SemanticAstExpressionVerdict =
+        SemanticAstExpressionVerdictFromGraph(
+            invalid_text, invalid_graph, invalid_fact.root,
+            analysis.constructors, analysis.enums, analysis.signatures,
+            names, types, modes, analysis.function_tables.names,
+            analysis.function_tables.returns,
+            analysis.function_tables.params, member_roots,
+            analysis.signatures.function_node_ids[0]
+        );
+    return valid.ok && valid.inferred_type_name == "Bool" &&
+        inverse.ok && inverse.inferred_type_name == "Bool" && !invalid.ok;
 }

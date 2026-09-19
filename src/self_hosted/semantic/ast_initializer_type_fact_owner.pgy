@@ -221,7 +221,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             SemanticAstExpressionVerdictFromGraph(
                 expression, expression_surfaces.expression_graph,
                 UnwrapOption(graph_root),
-                constructors, signatures,
+                constructors, enum_facts, signatures,
                 names, types, modes,
                 function_tables.names, function_tables.returns,
                 function_tables.params,

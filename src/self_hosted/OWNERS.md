@@ -425,6 +425,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_expression_verdict_owner.pgy` -- ordered call,
   undefined-use, try, logical, binary, and graph-derived inferred-type
   expression verdicts, including owner-projected array-literal types.
+- `src/self_hosted/semantic/ast_expression_verdict_contract_owner.pgy` --
+  executable aggregate of the expression verdict's owned subcontracts; it
+  owns no production expression fact.
 - `src/self_hosted/semantic/ast_expression_graph_fail_closed_contract_owner.pgy`
   -- executable negative witness that a structurally valid but unowned graph
   node cannot fall back to source-text typing.
@@ -770,6 +773,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   `subject == Enum.Variant` refinement shape from receiver graph identity and
   enum variant payload facts; payload type guesses and source rescans are
   forbidden.
+- `src/self_hosted/semantic/ast_expression_graph_enum_tag_comparison_type_owner.pgy`
+  -- exact Bool type admission for `==`/`!=` between an enum-typed subject and
+  a variant declared by the enum fact owner; standalone payload tags and
+  guessed variant names remain unowned.
 - `src/self_hosted/semantic/ast_local_binding_identity_owner.pgy` -- stable
   lexical local identity keyed by function, declaration node, and binding
   index; name-only downstream provenance joins are forbidden.
