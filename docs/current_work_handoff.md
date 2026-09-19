@@ -10,7 +10,7 @@ for the final publication checkpoint. The
 pre-existing untracked `._handoff_full.md`, `_agents_dump.txt`, `.agents/`, and
 `skills-lock.json` are not part of this packet.
 
-## Active self-host context — zone return backend bypass deleted; exact-head CI pending
+## Active self-host context — zone return backend bypass deleted; exact-head CI green
 
 Objective card:
 - Objective: make the installed self-host `--source` path reject direct Zone
@@ -47,8 +47,16 @@ Reached evidence and boundary:
   `selfhost.semantic_artifact_admission` records the deleted backend return
   guard while general zone transfer/move and broader artifact admission remain
   open; no row was promoted by this bounded replacement.
-- Exact-head remote CI is the remaining publication gate. Do not open the next
-  semantic rung until this code checkpoint is repository-green.
+- Exact-head push run `35464453172` over
+  `e59fae9261b7712861e565c8367aff5261545846` is fully green: all 31 jobs
+  passed, including Windows, macOS C-only, TSan, ASan/UBSan, Rocq 9, both
+  self-host fixed points, Linux core and self-host contracts, and all 20
+  backend-compare shards. The full self-host fixed-point job and every
+  integration shard remained inside their explicit workflow budgets.
+- This bounded replacement is repository-green but does not close the ACTIVE
+  registry row. The next rung must name one production general zone
+  transfer/move bypass and its falsifying fixture; do not infer closure from
+  the return-boundary repair alone.
 
 ## Previous self-host context — native boundary repair published; exact-head CI green
 
