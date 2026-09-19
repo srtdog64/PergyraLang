@@ -1,16 +1,16 @@
 # Current Work Handoff
 
-Updated: 2026-09-19 (Asia/Seoul). This is navigation only. Compiler owners,
+Updated: 2026-09-20 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-CI cascade repair code checkpoint:
-`1501ff180a0805b52980c5a1ee266be0abf5f037`. This handoff is its docs-only
+CI closure code checkpoint:
+`4a05d7e09e9b3a4c511ed1dce8cbd12b9521a38c`. This handoff is its docs-only
 publication descendant; Git HEAD/status and `origin/main` remain the authority
 for the final publication checkpoint. The
 pre-existing untracked `._handoff_full.md`, `_agents_dump.txt`, `.agents/`, and
 `skills-lock.json` are not part of this packet.
 
-## Active self-host context — expression surface CLOSED; CI semantic cascade repaired locally
+## Active self-host context — expression surface CLOSED; exact-head push CI green
 
 Objective card:
 - Objective: make the parser-owned expression graph the only supported
@@ -35,6 +35,30 @@ Objective card:
   class, and nested-container programs.
 
 Reached evidence and boundary:
+- Exact-head push run `35453455572` over
+  `4a05d7e09e9b3a4c511ed1dce8cbd12b9521a38c` is fully green: Windows,
+  macOS, sanitizer, TSan, Rocq, codegen bootstrap, full self-host bootstrap,
+  the core Linux contract shard, the self-host contract shard, and all 20
+  backend-compare shards completed successfully.
+- Linux push CI now builds one exact self-host compiler pair and publishes it
+  with a fail-closed manifest. The core, self-host-contract, and backend shards
+  admit that same artifact instead of independently rebuilding or silently
+  falling back. The core shard completed in about 11 minutes and the
+  self-host-contract shard in about 24 minutes under their existing 30-minute
+  limits; no test was deleted and no timeout was raised.
+- Four stale structural pins were refreshed only after their current owners
+  passed focused execution: resolved call arguments, collection mutation lane
+  policy, try-graph ownership, and callable declaration identity. Benchmark
+  source fingerprints were updated to the current callable owner without
+  claiming a new performance measurement.
+- The local Rocq gate failed closed when no prover was available. Its
+  structural mutation path passed only under the explicit
+  `PGY_ALLOW_MISSING_COQ=1` development opt-out; the remote Rocq job in the
+  exact-head run performed the actual kernel check and is green.
+- The current registry gate reports 89 authorities, 189 derived fact carriers,
+  and `CLOSED=58 / BRIDGE=29 / ACTIVE=2`. No next semantic row is inferred from
+  the CI repair. The explicitly reopened external-consumer compiler boundary
+  review is investigation work, not a registry closure claim.
 - Exact-head run `35438886563` over `5b811222d89d1427d01f781446e4d696eb6df7bf`
   completed 28/30 jobs. `build-linux` reached enum payload provenance and
   `self-host-bootstrap-linux` reached public logical diagnostic identity; all
@@ -147,12 +171,11 @@ Reached evidence and boundary:
   contexts plus MIR/C/LLVM relay, contextual List/Queue/Set construction and
   wrong-family/arity negatives pass, and expression-surface C/LLVM artifacts
   are byte-equal.
-- The 284-fixture matrix and platform matrix were not rerun locally. An
-  exact-head push CI after this handoff is the next broader boundary; do not
-  promote the focused Windows evidence into remote Linux green evidence.
-  Publication state is owned by Git, not this navigation snapshot. Do not
-  infer the next active row from this handoff; select the next production
-  bypass explicitly.
+- The 284-fixture matrix was not rerun as one local monolith. The repository's
+  exact-head remote push matrix is green across its platform, self-host,
+  sanitizer, proof, and backend shards. Publication state is owned by Git, not
+  this navigation snapshot. Do not infer the next active row from this
+  handoff; select the next production bypass explicitly.
 
 ## Previous self-host context — Array.Slice/SliceCopy execution bridge SUBSTITUTING
 
