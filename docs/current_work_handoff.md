@@ -4,12 +4,12 @@ Updated: 2026-09-19 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
 CI cascade repair material checkpoint:
-`4876203b3fcef3b2b25381313a68df873424e0be`. Git HEAD/status and
+`ffbc8573749be719cfe171a23023b51fcb0ed73b`. Git HEAD/status and
 `origin/main` remain the authority for its publication checkpoint. The
 pre-existing untracked `._handoff_full.md` and `_agents_dump.txt` are not part
 of this packet.
 
-## Active self-host context — expression surface CLOSED; bootstrap CI repaired
+## Active self-host context — expression surface CLOSED; nominal comparison CI repaired
 
 Objective card:
 - Objective: make the parser-owned expression graph the only supported
@@ -58,6 +58,18 @@ Reached evidence and boundary:
   checker and direct-MIR call fact both own `Void`. The canonical row and its
   direct-MIR projection now agree on `Void`, while the old row is rejected by
   the component ratchet.
+- Exact-head push run `35374966140` passed Windows, macOS C-only, TSan, Rocq,
+  and the codegen bootstrap, but four Linux jobs reached the same integrated
+  driver rejection. A call returning nominal enum type was incorrectly denied
+  as an operand in `failure.stage != StageFor(failure.status)`. Call results
+  now own every concrete non-`Void` result, while the enclosing operator owner
+  still admits only same-type comparison and rejects nominal arithmetic.
+- The repaired integrated driver then reached a deeper generated-match case:
+  `admission == DriverRung2MirCPayloadAdmission.DriverRung2MirCPayloadDenied`.
+  Payload-bearing enum tags are now typed only inside `==`/`!=`, only when the
+  enum fact owner confirms the exact qualified variant and the other operand
+  has that enum type. A missing variant remains an executable negative case;
+  this does not make a payload tag a general constructible enum value.
 - A completely new full-bootstrap directory reaches `gen2 == gen3` at 82,622
   lines, matches all eight sample programs, rebuilds lexer/parser/semantic,
   matches all 14 audit tools, compiles `mir_lower` with the `let_log`,
@@ -65,13 +77,21 @@ Reached evidence and boundary:
   backend corpus. The nested-call gate passes 2 executions and 12 pre-emission
   refusals; the nominal/array gate passes 4 executions and 8 refusals; the
   focused expression closure and direct-MIR Print gates pass C/LLVM execution
-  plus their negative cases. The component contract passes 2,435 line-cap
+  plus their negative cases. The component contract passes 2,437 line-cap
   requests, 1,031 function extractions, and 697 reuses.
+- A fresh integrated-driver build directory consuming the already validated
+  codegen `gen2` seed reaches the full MIR producer/consumer fixed point.
+  `driver_gen2.c == driver_gen3.c` at 181,492 lines and 19,143,333 bytes, with
+  SHA-256 `470542500270c86ad8f13f6e0694a4c7f8789d8ae2ddfdad603dad5cb687ce39`;
+  the fixed-point receipt records the same hash and the file comparison has
+  zero differences. The focused expression closure remains C/LLVM
+  artifact-equal.
 - `sot_registry_gate.py` reports 89 authorities, 188 derived fact carriers, and
   `CLOSED=58 / BRIDGE=29 / ACTIVE=2`. `selfhost.expression_surface` is now
   `CLOSED` with the closure gate as its primary negative ratchet.
 - The 284-fixture matrix and platform matrix were not rerun locally. An
-  exact-head push CI after this handoff is the next broader boundary.
+  exact-head push CI after this handoff is the next broader boundary; do not
+  promote the local Windows fixed point into remote Linux green evidence.
   Publication state is owned by Git, not this navigation snapshot. Do not
   infer the next active row from this handoff; select the next production
   bypass explicitly.
