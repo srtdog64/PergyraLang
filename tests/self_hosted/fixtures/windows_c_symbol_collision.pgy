@@ -1,0 +1,7 @@
+func FindResource(value: Int) -> Int {
+    return value + 1;
+}
+
+func Main() -> Void {
+    Log(FindResource(41));
+}

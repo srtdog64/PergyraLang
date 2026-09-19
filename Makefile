@@ -1129,6 +1129,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/compiler_runtime_cache.c \
                    $(COMPILER_DIR)/runtime_none_contract.c \
                    $(COMPILER_DIR)/forin_desugar.c \
+                   $(COMPILER_DIR)/match_subject_single_evaluation_desugar.c \
                    $(COMPILER_DIR)/path_utils.c \
                    $(COMPILER_DIR)/llvm_runner.c \
                    $(COMPILER_DIR)/c_runner.c \
@@ -2224,6 +2225,30 @@ backend-fail-closed-test-smoke: mir-only-signature-test-smoke mir-lowering-api-t
 	llvm-mir-region-scope-owner-test-smoke
 	"$(BASH)" tests/backend_fail_closed_smoke.sh
 
+native-match-scrutinee-single-evaluation-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_NATIVE_BOUNDARY_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
+	"$(BASH)" tests/native_match_scrutinee_single_evaluation_smoke.sh
+
+native-c-callable-macro-hygiene-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+	"$(BASH)" tests/native_c_callable_macro_hygiene_smoke.sh
+
+native-imported-private-nominal-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_NATIVE_BOUNDARY_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
+	"$(BASH)" tests/native_imported_private_nominal_smoke.sh
+
+native-compiler-boundary-regression-test-smoke: \
+	native-match-scrutinee-single-evaluation-test-smoke \
+	native-c-callable-macro-hygiene-test-smoke \
+	native-imported-private-nominal-test-smoke
+
+.PHONY: native-match-scrutinee-single-evaluation-test-smoke \
+	native-c-callable-macro-hygiene-test-smoke \
+	native-imported-private-nominal-test-smoke \
+	native-compiler-boundary-regression-test-smoke
+
 parallel-capture-projection-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_capture_projection_smoke.sh
 
@@ -2331,6 +2356,7 @@ test-all:
 	$(MAKE) test-rir
 	$(MAKE) test-mir
 	$(MAKE) test-hir
+	$(MAKE) native-compiler-boundary-regression-test-smoke
 	$(MAKE) ast-destroy-coverage-test-smoke
 	$(MAKE) c-backend-tmpfile-test-smoke
 	@echo "=== All Frontend Tests Completed ==="

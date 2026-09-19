@@ -70,13 +70,7 @@ transpiler_result_suffix_from_type_name(const char *type_name,
     if (transpiler_result_arg_list_has_unknown(inner))
         return false;
 
-    if (strchr(inner, ',') == NULL) {
-        copy_capped_string(out, out_size, inner);
-    } else {
-        generic_args_to_c_suffix_copy(inner, out, out_size);
-    }
-
-    return out[0] != '\0';
+    return sanitize_c_suffix(inner, out, out_size);
 }
 
 bool

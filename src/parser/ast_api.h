@@ -137,6 +137,8 @@ ASTNode* ast_create_while_loop(void);
 ASTNode* ast_create_match_statement(void);
 ASTNode* ast_create_match_case(void);
 ASTNode* ast_match_subject(const ASTNode* node);
+ASTNode* ast_match_detach_subject(ASTNode* node);
+bool ast_match_attach_subject(ASTNode* node, ASTNode* subject);
 ASTNode** ast_match_cases(const ASTNode* node, size_t* count_out);
 size_t ast_match_case_count(const ASTNode* node);
 ASTNode* ast_match_case_at(const ASTNode* node, size_t index);

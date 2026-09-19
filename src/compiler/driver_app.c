@@ -26,6 +26,7 @@
 #include "path_utils.h"
 #include "runtime_none_contract.h"
 #include "forin_desugar.h"
+#include "match_subject_single_evaluation_desugar.h"
 #include "llvm_runner.h"
 #include "c_runner.h"
 #include "driver_diag.h"
@@ -217,9 +218,10 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
      * untouched): hoist non-identifier for-in iterables into a synthetic local
      * so both backends see an identifier iterable evaluated exactly once. */
     forin_desugar_program(ast);
+    match_subject_single_evaluation_desugar_program(ast);
     if (!ast_complete_stable_ids(ast)) {
         driver_emit_stage_fail(flags, "lowering", "synthetic binding identity failed",
-            "could not extend the existing AST identity namespace after for-in lowering");
+            "could not extend the existing AST identity namespace after single-evaluation lowering");
         goto cleanup;
     }
 

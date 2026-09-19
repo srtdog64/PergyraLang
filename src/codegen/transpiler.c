@@ -154,6 +154,39 @@ transpiler_is_synthetic_executable_func(ASTNode *fn)
     return name != NULL && strcmp(name, "__pgy_top_level_exec") == 0;
 }
 
+/* Host headers may expose function-like macros with ordinary API names (for
+ * example Win32's FindResource -> FindResourceA).  A Pergyra declaration owns
+ * its generated translation-unit identifier, so remove any macro carrying the
+ * same spelling after all runtime headers have been included.  Externs are
+ * intentionally excluded: their exact host ABI spelling remains authoritative.
+ */
+static void
+transpiler_emit_owned_callable_macro_hygiene(CodeBuf *out,
+                                             ASTNode **functions,
+                                             size_t function_count,
+                                             ASTNode **intents,
+                                             size_t intent_count)
+{
+    if (out == NULL)
+        return;
+    for (size_t i = 0; i < function_count; i++) {
+        const char *name = functions != NULL && functions[i] != NULL
+            ? ast_declaration_name(functions[i]) : NULL;
+        name = transpiler_c_executable_emitted_name(name);
+        if (name == NULL || name[0] == '\0')
+            continue;
+        codebuf_write(out, "#ifdef %s\n#undef %s\n#endif\n", name, name);
+    }
+    for (size_t i = 0; i < intent_count; i++) {
+        const char *name = intents != NULL && intents[i] != NULL
+            ? ast_declaration_name(intents[i]) : NULL;
+        if (name == NULL || name[0] == '\0')
+            continue;
+        codebuf_write(out, "#ifdef %s\n#undef %s\n#endif\n", name, name);
+    }
+    codebuf_write(out, "\n");
+}
+
 /* -----------------------------------------------------------------
  * Program emitter
  * ----------------------------------------------------------------- */
@@ -297,6 +330,8 @@ emit_program(TranspilerCtx *ctx)
         "#ifndef PGY_EVENT_MAX_HANDLERS\n"
         "#define PGY_EVENT_MAX_HANDLERS 16\n"
         "#endif\n\n");
+    transpiler_emit_owned_callable_macro_hygiene(
+        ctx->out, functions, function_count, intents, intent_count);
 
     /*
      * Multi-pass strategy for valid C output:

@@ -479,28 +479,25 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         return transpiler_type_name_join(out, out_size, "PgySlot_", inner);
     }
     if (transpiler_type_name_is_result(name)) {
-        size_t prefix_len = strlen("PgyResult_");
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (strchr(inner, ',') == NULL) {
             if (type_arg_name_is_unknown(inner)
                 || type_arg_name_is_void(inner))
                 return false;
-            return transpiler_type_name_join(out, out_size, "PgyResult_", inner);
+            if (!sanitize_c_suffix(inner, suffix, sizeof(suffix)))
+                return false;
+            return transpiler_type_name_join(out, out_size,
+                "PgyResult_", suffix);
         }
         if (constructed_arg_name_is_void(name, 0))
             return false;
         if (constructed_arg_name_is_unknown(name, 0)
-            || constructed_arg_name_is_unknown(name, 1)
-            || prefix_len >= out_size)
+            || constructed_arg_name_is_unknown(name, 1))
             return false;
-        memcpy(out, "PgyResult_", prefix_len);
-        if (!generic_args_to_c_suffix_copy(inner,
-                out + prefix_len,
-                out_size - prefix_len)) {
-            out[0] = '\0';
+        if (!sanitize_c_suffix(inner, suffix, sizeof(suffix)))
             return false;
-        }
-        return true;
+        return transpiler_type_name_join(out, out_size,
+            "PgyResult_", suffix);
     }
     if (transpiler_type_name_is_option(name)) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));

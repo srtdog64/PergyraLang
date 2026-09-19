@@ -1809,6 +1809,15 @@ stable synthetic LocalRef and carries that isolated binding graph to MIR; the
 original expression graph remains the meaning owner. It may not reinterpret
 source text, infer backend purity, or become a second match authority.
 
+The native source pipeline enforces the same language rule before semantic
+analysis in `src/compiler/match_subject_single_evaluation_desugar.c`: a
+non-trivial subject is evaluated into one synthetic local and every case reads
+that local. This is a lowering projection, not a second meaning owner; the
+original subject expression remains authoritative. The executable negative
+ratchet is `tests/native_match_scrutinee_single_evaluation_smoke.sh`, while
+`tests/self_hosted/parity/match_scrutinee_single_evaluation_owner.sh` retains
+the installed self-host and canonical-MIR C/LLVM evidence.
+
 Classifying this fact-shaped carrier raises only the derived inventory from
 184 to 185. The authority/status census remains 88 and `55/32/1`; no SoT row,
 blocker count, hard-substitution numerator, or project percentage changes.

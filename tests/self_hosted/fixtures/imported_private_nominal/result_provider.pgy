@@ -1,0 +1,16 @@
+export enum RenderPlanError {
+    Invalid
+}
+
+private subject ValidatedRenderPlan {
+    let fingerprint: Int;
+}
+
+export func CompileRenderPlan(valid: Bool) -> Result<ValidatedRenderPlan, RenderPlanError> {
+    if !valid { return Err(RenderPlanError.Invalid); }
+    return Ok(ValidatedRenderPlan(47));
+}
+
+export func ReadRenderPlan(plan: ValidatedRenderPlan) -> Int {
+    return plan.fingerprint;
+}

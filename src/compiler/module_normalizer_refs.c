@@ -108,8 +108,40 @@ module_normalizer_normalize_node_refs(ASTNode *node,
         case AST_PROGRAM:
         case AST_NAMESPACE_DECL:
         case AST_IMPORT_DECL:
-        case AST_ENUM_DECL:
             return;
+
+        case AST_ENUM_DECL: {
+            GenericParams *generic_params =
+                ast_declaration_generic_params(node);
+            size_t saved = shadow->count;
+            normalize_generic_params(generic_params, scope, shadow);
+            for (size_t i = 0;
+                 i < ast_generic_param_count(generic_params); i++) {
+                GenericParam *param =
+                    ast_generic_param_at(generic_params, i);
+                if (ast_generic_param_name(param) != NULL) {
+                    module_shadow_push(
+                        shadow, ast_generic_param_name(param));
+                }
+            }
+            size_t variant_count = 0;
+            (void)ast_enum_variants(node, &variant_count);
+            for (size_t i = 0; i < variant_count; i++) {
+                size_t param_count = ast_enum_variant_param_count(node, i);
+                for (size_t j = 0; j < param_count; j++) {
+                    module_normalizer_normalize_node_refs(
+                        ast_enum_variant_param(node, i, j), scope, shadow);
+                }
+            }
+            size_t method_count = 0;
+            ASTNode **methods = ast_enum_methods(node, &method_count);
+            for (size_t i = 0; i < method_count; i++) {
+                module_normalizer_normalize_node_refs(
+                    methods != NULL ? methods[i] : NULL, scope, shadow);
+            }
+            module_shadow_pop_to(shadow, saved);
+            return;
+        }
 
         case AST_IDENTIFIER:
             if (ast_identifier_name(node) != NULL

@@ -1,0 +1,6 @@
+import "result_provider.pgy";
+
+func Main() -> Void {
+    let forged = ValidatedRenderPlan(99);
+    Log(ReadRenderPlan(forged));
+}

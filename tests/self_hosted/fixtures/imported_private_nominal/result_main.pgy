@@ -1,0 +1,13 @@
+import "result_provider.pgy";
+
+func Main() -> Void {
+    match CompileRenderPlan(true) {
+        case Ok(plan): Log(ReadRenderPlan(plan));
+        case Err(reason): Log(0);
+    }
+
+    match CompileRenderPlan(false) {
+        case Ok(plan): Log(ReadRenderPlan(plan));
+        case Err(reason): Log(1);
+    }
+}

@@ -101,6 +101,29 @@ ast_match_subject(const ASTNode* node)
     return node->data.match_stmt.subject;
 }
 
+ASTNode*
+ast_match_detach_subject(ASTNode* node)
+{
+    ASTNode *subject;
+
+    if (node == NULL || node->type != AST_MATCH_STMT)
+        return NULL;
+    subject = node->data.match_stmt.subject;
+    node->data.match_stmt.subject = NULL;
+    return subject;
+}
+
+bool
+ast_match_attach_subject(ASTNode* node, ASTNode* subject)
+{
+    if (node == NULL || node->type != AST_MATCH_STMT
+        || subject == NULL || node->data.match_stmt.subject != NULL) {
+        return false;
+    }
+    node->data.match_stmt.subject = subject;
+    return true;
+}
+
 ASTNode**
 ast_match_cases(const ASTNode* node, size_t* count_out)
 {

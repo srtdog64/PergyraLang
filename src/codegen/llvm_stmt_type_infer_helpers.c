@@ -117,9 +117,21 @@ llvm_stmt_lookup_qualified_call_return_type(LLVMGenCtx *ctx,
 {
     char full_name[256];
     LLVMFuncEntry *fn;
+    LLVMEnumVariantEntry *variant;
+    LLVMClassTypeEntry *enum_cls;
 
     if (ctx == NULL || owner == NULL || member == NULL)
         return NULL;
+
+    variant = llvm_lookup_enum_variant_qualified(ctx, owner, member);
+    if (variant != NULL) {
+        enum_cls = llvm_lookup_class(ctx, variant->enum_name);
+        if (enum_cls != NULL && enum_cls->struct_type != NULL)
+            return enum_cls->struct_type;
+        if (llvm_enum_type_exists(ctx, variant->enum_name))
+            return ctx->type_i32;
+    }
+
     if (!llvm_stmt_format_host_method_name(ctx, full_name, sizeof(full_name),
             owner, member))
         return NULL;
