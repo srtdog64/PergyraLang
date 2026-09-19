@@ -4,11 +4,11 @@ Updated: 2026-09-19 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
 CI cascade repair code checkpoint:
-`52131ea1ea26fa2bd7dab45d4f0650a2b446841d`. This handoff is its docs-only
+`1501ff180a0805b52980c5a1ee266be0abf5f037`. This handoff is its docs-only
 publication descendant; Git HEAD/status and `origin/main` remain the authority
 for the final publication checkpoint. The
-pre-existing untracked `._handoff_full.md` and `_agents_dump.txt` are not part
-of this packet.
+pre-existing untracked `._handoff_full.md`, `_agents_dump.txt`, `.agents/`, and
+`skills-lock.json` are not part of this packet.
 
 ## Active self-host context — expression surface CLOSED; CI semantic cascade repaired locally
 
@@ -35,6 +35,27 @@ Objective card:
   class, and nested-container programs.
 
 Reached evidence and boundary:
+- Exact-head run `35438886563` over `5b811222d89d1427d01f781446e4d696eb6df7bf`
+  completed 28/30 jobs. `build-linux` reached enum payload provenance and
+  `self-host-bootstrap-linux` reached public logical diagnostic identity; all
+  Windows, macOS, Rocq, TSan, sanitizer, codegen-bootstrap, and 20-way backend
+  matrix jobs were green.
+- The call-tree prepass now lets the generic-call owner decide a generic
+  receiver before raw parameter comparison. Exact enum payload node types are
+  composed through scalar operators without source spelling or a second enum
+  authority, so loop backedges and generic receivers reject with the owned
+  `enum_payload_variant_unproven` identity instead of an earlier unrelated
+  diagnostic.
+- Concrete scalar diagnostics are reconnected only at a scalar-operator root.
+  Composite call arguments remain with the call-tree/value owners, and member
+  diagnostics use the same graph scalar type owner as the admission predicate.
+  This closes the silent `logical_operand_not_bool` drift without rejecting
+  valid inline Array/Set/struct arguments or qualified member expressions.
+- The public logical receipt probe now explicitly uses the selected fresh
+  self-host driver. The contextual collection gate was updated to the current
+  graph-call owner after its superseded branch had already been deleted. The
+  new enum scalar owner also avoids the reserved local name `remote`, keeping
+  native and self-host parsers aligned.
 - Exact-head run `35433615263` over `05d1139207ccc47c06c6d2476c15ada5b832a54e`
   left 28 jobs green and exposed four integrated failures: an untyped declared
   callable argument, unresolved `Array.Slice` initialization, a missing closure
@@ -116,11 +137,16 @@ Reached evidence and boundary:
   the fixed-point receipt records the same hash and the file comparison has
   zero differences. The focused expression closure remains C/LLVM
   artifact-equal.
-- The final component contract passes 2,438 line-cap requests, 1,032 function
-  extractions, and 697 reuses. `sot_registry_gate.py` still reports 89
-  authorities, 188 derived fact carriers, and
+- The final component contract passes 2,440 line-cap requests, 1,032 function
+  extractions, and 697 reuses. `sot_registry_gate.py` reports 89 authorities,
+  189 derived fact carriers, and
   `CLOSED=58 / BRIDGE=29 / ACTIVE=2`; `selfhost.expression_surface` remains
-  `CLOSED` with the closure gate as its primary negative ratchet.
+  `CLOSED` with the closure gate as its primary negative ratchet. A fresh
+  test-profile DRV-2 built from the code checkpoint; enum provenance passes 5
+  valid flows and 21 counterexamples, logical identity passes five semantic
+  contexts plus MIR/C/LLVM relay, contextual List/Queue/Set construction and
+  wrong-family/arity negatives pass, and expression-surface C/LLVM artifacts
+  are byte-equal.
 - The 284-fixture matrix and platform matrix were not rerun locally. An
   exact-head push CI after this handoff is the next broader boundary; do not
   promote the focused Windows evidence into remote Linux green evidence.
