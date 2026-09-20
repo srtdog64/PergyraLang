@@ -3,14 +3,16 @@
 Updated: 2026-09-20 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-Stored fixed-point profiling checkpoint:
-`e4cd2543a5ad819c11c1f373bcd96f9d618f180b`. Exact-head remote CI and its
-profile artifact are pending. The preceding integration checkpoint
-`3bb2280a8af9f7475f2e47bbb074a94a8c6b660c` passed run `35487744795` with all
-31 jobs green. Git HEAD/status and `origin/main` remain the authority for the
-publication checkpoint. The pre-existing untracked `._handoff_full.md`,
-`_agents_dump.txt`, `.agents/`, and `skills-lock.json` are not part of this
-packet.
+Stored fixed-point critical-path checkpoint:
+`d2fafec427db51ca6666a0d2a8312b53a878df72`. Exact-head remote CI is pending.
+Run `35491558755` executed the preceding profile checkpoint `700a0ca1`: its
+self-host fixed point and uploaded receipt passed, but the overall run was
+30/31 because `build-linux` rejected a Bash 3.2 case-pattern continuation.
+`d2fafec4` removes that continuation and closes the reached Windows 3 GiB
+fixed-point counterexample. Git HEAD/status and `origin/main` remain the
+authority for the publication checkpoint. The pre-existing untracked
+`._handoff_full.md`, `_agents_dump.txt`, `.agents/`, and `skills-lock.json` are
+not part of this packet.
 
 ## Active self-host context — measure the exact fixed-point critical path
 
@@ -38,27 +40,42 @@ Objective card:
   hypothesis and measure the next candidate.
 
 Reached evidence and boundary:
-- The preceding exact-head run took 49m04s; `self-host-bootstrap-linux` took
-  48m47s. Its durable log already bounds the integrated driver fixed point:
-  `full_mir_oracle` about 9m23s, `gen2_emit`/`gen3_emit` about 5m each, and
-  `full_mir_seed` about 4m21s. Host C compilation is material but is not the
-  dominant operation.
-- `e4cd2543` turns those coarse log timestamps into one uploaded exact-input
-  receipt. It records sixteen producer/consumer/host-compile phases, GNU-time
-  CPU and peak RSS, serialized source/MIR/C sizes and hashes, and bounded
-  internal pressure milestones. Changed artifacts, a missing phase, and a
-  malformed timing row are executable negative cases.
-- The focused receipt smoke, CI-profile contract, build-pressure contract,
-  component contract (2,456 line-cap requests / 1,036 extractions / 699
-  reuses), and a real bounded seed/oracle/MIR bootstrap all pass locally.
-  The full exact-head run is intentionally left to the one Linux CI fixed-point
-  boundary instead of duplicating another 40+ minute local matrix.
+- The uploaded `700a0ca1` receipt binds sixteen phases to its exact Linux
+  source/toolchain identity. Its measured phase total is 1,341,012 ms;
+  `full_mir_oracle` dominates at 331,768 ms, followed by `gen3_emit` at
+  191,532 ms and `gen2_emit` at 189,158 ms. The two generated C phases peak at
+  about 6.6 GB RSS, so host compilation is not the dominant operation.
+- A pre-change Windows `full_mir_seed` pressure run crossed the 3,072 MB hard
+  cap after 79,759 ms at `assignment:start`; `expression-places` alone took
+  27,340 ms and raised private bytes from about 1,487 MB to 3,039 MB. Source
+  inspection proved that the place owner rebuilt the program-global enum
+  prefix for every expression surface and rebuilt the same environment for up
+  to three lanes. The assignment owner also retired and recreated its backing
+  storage for every row.
+- `d2fafec4` retains one enum prefix, one backing store per owner, and resets
+  only borrowed surface/row suffixes. Its negative gate rejects loop-local
+  environment allocation, enum reseeding, missing prefix reset, or multiple
+  terminal clears. It also fixes the profile owner's Bash 3.2 pattern form that
+  made run `35491558755` red outside the self-host job.
+- With the changed source, the exact Windows seed completes in 153,628 ms at
+  2,661.7 MB private and the oracle completes in 298,318 ms at 2,586.0 MB.
+  Their 308,222,659-byte MIR artifacts are byte-identical with SHA-256
+  `637D5B5629789E0DE1C2EAC9248090D89FBE5546F9B8E1800434DD8D9D7B594E`.
+  Expression-place time falls to 389 ms / 468 ms for seed / oracle. Bounded
+  seed-oracle bootstrap, environment lifetime, enum lifetime, function-table,
+  profile receipt, CI profile, build-pressure, source-inventory, and component
+  contracts pass locally.
+- The public assignment-projection LLVM probe still fails at the identical
+  `statement ordinal=801 block=12 row=10665` in both the pre-change and changed
+  driver seeds. It is an existing installed/public LLVM frontier, not a
+  regression from this packet, and is not reopened inside the active
+  performance rung.
 - Total allocations, post-seal retained bytes, expression-graph visits, fact
   reconstruction counts, and routine reanalysis counts remain explicitly
-  `unmeasured` in v1. Consume the pending exact-head receipt first; instrument
-  only the dominant reached inner owner if phase/stage/RSS evidence cannot
-  distinguish the repeated operation. Do not start a general compiler cache or
-  an unrelated semantic migration while this measurement rung is open.
+  `unmeasured` in v1. The next exact falsifier is the now-dominant statement
+  stage (48,037 ms seed / 55,995 ms oracle), followed by generic resolution
+  (18,662 ms / 59,816 ms). Inspect their owned repeated operation before any
+  cache, query engine, worker, timeout, or memory allowance.
 
 ## Completed self-host context — `IsCancelled` task ABI reaches public C/LLVM
 
