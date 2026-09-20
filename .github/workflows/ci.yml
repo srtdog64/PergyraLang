@@ -225,12 +225,14 @@ jobs:
           printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
             | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
           sudo apt-get update
-          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev time
 
       - name: Run the full self-host fixed point and policy-corpus census
         # Reuse one fixed-point build. A second bootstrap job duplicates the
         # compiler-scale text artifacts and can exceed the runner memory budget.
         run: |
+          PGY_SELFHOST_PROFILE_REQUIRE_RESOURCE=1 \
+          PGY_SELFHOST_FIXED_POINT_PROFILE_RECEIPT="$PWD/.tmp/self_hosted/driver/bootstrap/driver.fixed-point.profile.receipt" \
           PGY_SELFHOST_FIXED_POINT_DRIVER_C="$PWD/.tmp/self_hosted/driver/bootstrap/driver_gen2.c" \
           PGY_SELFHOST_FIXED_POINT_DRIVER_GEN3_C="$PWD/.tmp/self_hosted/driver/bootstrap/driver_gen3.c" \
           PGY_SELFHOST_FIXED_POINT_DRIVER_BIN="$PWD/.tmp/self_hosted/driver/bootstrap/driver_gen2.exe" \
@@ -242,6 +244,14 @@ jobs:
             self-host-driver-source-c-execution-action-test-smoke \
             self-host-installed-driver-cli-mode-test-smoke
           PGY_BIN="$PWD/bin/pgy" bash tests/selfhost_bootstrap_policy_corpus_smoke.sh
+
+      - name: Publish the exact fixed-point profile receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: self-host-fixed-point-profile
+          path: .tmp/self_hosted/driver/bootstrap/driver.fixed-point.profile.receipt
+          if-no-files-found: error
+          retention-days: 14
 
   self-host-codegen-bootstrap-linux:
     needs: classify-changes

@@ -605,6 +605,12 @@ for required in \
     'run: make self-host-codegen-bootstrap-test-smoke' \
     'make self-host-driver-bootstrap-full-test-smoke' \
     'bash tests/selfhost_bootstrap_policy_corpus_smoke.sh' \
+    'PGY_SELFHOST_PROFILE_REQUIRE_RESOURCE=1' \
+    'PGY_SELFHOST_FIXED_POINT_PROFILE_RECEIPT=' \
+    'name: self-host-fixed-point-profile' \
+    '.tmp/self_hosted/driver/bootstrap/driver.fixed-point.profile.receipt' \
+    'if-no-files-found: error' \
+    'retention-days: 14' \
     'cancel-in-progress: true'; do
     if ! grep -Fq "$required" "$WORKFLOW"; then
         echo "[self-host-ci-profile] dedicated Linux proof job missing: $required" >&2
@@ -748,7 +754,8 @@ for required in \
     '[self-host-driver-bootstrap] still running' \
     'trap driver_bootstrap_stop_heartbeat EXIT' \
     '"$CODEGEN_BIN" --source "$driver_rel"' \
-    '>"$DRIVER_SEED_C_RAW"' \
+    'driver_seed_emit self_codegen_source_emit' \
+    '"$DRIVER_SEED_C_RAW" "$BUILD_DIR/seed_emit.err"' \
     'tr -d '\''\r'\'' <"$DRIVER_SEED_C_RAW" >"$DRIVER_SEED_C"'; do
     if ! grep -Fq "$required" "$DRIVER_BOOTSTRAP"; then
         echo "[self-host-ci-profile] driver bootstrap heartbeat missing: $required" >&2

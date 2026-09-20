@@ -20,6 +20,7 @@ source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/self_host_driver_fixed_point_receipt_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/self_host_fixed_point_profile_receipt_owner.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -112,7 +113,7 @@ compile_c() {
     compile_command+=(-o "$output")
 
     echo "[self-host-driver-bootstrap] compiling $label"
-    if ! "${compile_command[@]}" >"$log" 2>&1; then
+    if ! pgy_selfhost_fixed_point_profile_run "${label}_compile" host_c_compile "${compile_command[@]}" >"$log" 2>&1; then
         echo "[self-host-driver-bootstrap] $label C compile failed" >&2
         tail -c 65536 "$log" >&2 || true
         exit 1
@@ -133,7 +134,8 @@ run_driver_to_file() {
     output_rel="$(pgy_selfhost_path_relative_to_root "$output")"
     rm -f "$output"
     echo "[self-host-driver-bootstrap] running $label"
-    if ! (cd "$ROOT_DIR" && "$bin" --emit-c-artifact-verified "$source_rel" "$output_rel" >"$stdout" 2>"$stderr"); then
+    if ! pgy_selfhost_fixed_point_profile_run_to_files "$ROOT_DIR" "$label" driver_execution "$stdout" "$stderr" \
+        "$bin" --emit-c-artifact-verified "$source_rel" "$output_rel"; then
         echo "[self-host-driver-bootstrap] $label failed for $source_rel" >&2
         cat "$stdout" "$stderr" >&2 || true
         exit 1
@@ -143,7 +145,6 @@ run_driver_to_file() {
         exit 1
     fi
 }
-
 run_driver_mode_to_file() {
     local label="$1"
     local bin="$2"
@@ -154,13 +155,12 @@ run_driver_mode_to_file() {
     local stderr="$BUILD_DIR/${label}.err"
     local input_rel
     local output_rel
-
     input_rel="$(pgy_selfhost_path_relative_to_root "$input")"
     output_rel="$(pgy_selfhost_path_relative_to_root "$output")"
     rm -f "$output"
     echo "[self-host-driver-bootstrap] running $label"
-    if ! (cd "$ROOT_DIR" && \
-        "$bin" "$mode" "$input_rel" "${extra_args[@]}" -o "$output_rel" >"$stdout" 2>"$stderr"); then
+    if ! pgy_selfhost_fixed_point_profile_run_to_files "$ROOT_DIR" "$label" driver_execution "$stdout" "$stderr" \
+        "$bin" "$mode" "$input_rel" "${extra_args[@]}" -o "$output_rel"; then
         echo "[self-host-driver-bootstrap] $label failed for $input_rel" >&2
         cat "$stdout" "$stderr" >&2 || true
         exit 1
@@ -170,12 +170,13 @@ run_driver_mode_to_file() {
         exit 1
     fi
 }
-
+[[ "${PGY_SELFHOST_DRIVER_FULL_FIXPOINT:-0}" != "1" ]] || pgy_selfhost_fixed_point_profile_begin \
+    "$BUILD_DIR" "${PGY_SELFHOST_FIXED_POINT_PROFILE_RECEIPT:-$BUILD_DIR/driver.fixed-point.profile.receipt}"
 driver_rel="$(pgy_selfhost_path_relative_to_root "$DRIVER_SOURCE")"
 echo "[self-host-driver-bootstrap] emitting integrated driver seed"
 rm -f "$DRIVER_SEED_C_RAW" "$DRIVER_SEED_C"
-if ! (cd "$ROOT_DIR" && "$CODEGEN_BIN" --source "$driver_rel" \
-    >"$DRIVER_SEED_C_RAW" 2>"$BUILD_DIR/seed_emit.err"); then
+if ! pgy_selfhost_fixed_point_profile_run_to_files "$ROOT_DIR" driver_seed_emit self_codegen_source_emit \
+    "$DRIVER_SEED_C_RAW" "$BUILD_DIR/seed_emit.err" "$CODEGEN_BIN" --source "$driver_rel"; then
     echo "[self-host-driver-bootstrap] Pergyra-built codegen failed to emit driver seed" >&2
     tail -c 65536 "$DRIVER_SEED_C_RAW" >&2 || true
     cat "$BUILD_DIR/seed_emit.err" >&2 || true
@@ -192,11 +193,11 @@ if grep -q '^CODEGEN ERROR' "$DRIVER_SEED_C"; then
     exit 1
 fi
 compile_c "driver_seed" "$DRIVER_SEED_C" "$BUILD_DIR/driver_seed.exe"
-
 echo "[self-host-driver-bootstrap] emitting native oracle C"
 # Keep native compilation and host C compilation in separate lifetimes.
 rm -f "$BUILD_DIR/driver_oracle.c"
-if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$DRIVER_SOURCE")" \
+if ! (cd "$ROOT_DIR" && pgy_selfhost_fixed_point_profile_run "driver_oracle_emit" native_source_emit \
+    "$PGY" "$(pgy_path_for_compiler "$PGY" "$DRIVER_SOURCE")" \
     --native-pipeline \
     --emit-c -o "$(pgy_path_for_compiler "$PGY" "$BUILD_DIR/driver_oracle.c")" \
     >"$BUILD_DIR/driver_oracle.emit.log" 2>&1); then
@@ -206,7 +207,6 @@ if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$DRIVER_SOURCE")
 fi
 [[ -s "$BUILD_DIR/driver_oracle.c" ]] || { echo "[self-host-driver-bootstrap] oracle emitted no C" >&2; exit 1; }
 compile_c "driver_oracle" "$BUILD_DIR/driver_oracle.c" "$BUILD_DIR/driver_oracle.exe"
-
 run_driver_to_file "sample_self" "$BUILD_DIR/driver_seed.exe" "$SAMPLE_SOURCE" "$BUILD_DIR/sample_self.c"
 run_driver_to_file "sample_oracle" "$BUILD_DIR/driver_oracle.exe" "$SAMPLE_SOURCE" "$BUILD_DIR/sample_oracle.c"
 pgy_selfhost_compare_expected_text_artifact_file_with_owner \
@@ -215,7 +215,6 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "$BUILD_DIR/sample_oracle.c" \
     "$BUILD_DIR/sample_self.c" \
     "emitted_c"
-
 run_driver_mode_to_file \
     "bounded_mir_seed" \
     "$BUILD_DIR/driver_seed.exe" \
@@ -300,4 +299,7 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "$BUILD_DIR/driver_gen3.c" "emitted_c"
 
 pgy_selfhost_driver_write_fixed_point_receipt "$ROOT_DIR" "$CODEGEN_BIN" "$BUILD_DIR/driver_gen2.c" "$BUILD_DIR/driver_gen3.c" "$BUILD_DIR/driver_gen2.exe" "$BUILD_DIR/driver_gen2.fixed-point.receipt"
+pgy_selfhost_fixed_point_profile_finish "$ROOT_DIR" "$PGY" "$CODEGEN_BIN" "$CC" "$DRIVER_SOURCE" \
+    "$BUILD_DIR/driver_gen2.fixed-point.receipt" "$DRIVER_SEED_C" "$BUILD_DIR/driver_oracle.c" "$BUILD_DIR/driver_source.mir.json" \
+    "$BUILD_DIR/driver_source.oracle.mir.json" "$BUILD_DIR/driver_gen2.c" "$BUILD_DIR/driver_gen3.c" "$BUILD_DIR/driver_gen2.exe"
 echo "[self-host-driver-bootstrap] integrated MIR-consumer fixpoint ok: gen2 == gen3 ($(wc -l < "$BUILD_DIR/driver_gen2.c") lines)"

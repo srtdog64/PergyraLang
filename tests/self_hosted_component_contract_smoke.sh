@@ -9907,6 +9907,12 @@ require_max_lines \
 require_file "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh"
 require_max_lines \
     "tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh" 125
+require_file "tests/self_hosted/parity/self_host_fixed_point_profile_receipt_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/self_host_fixed_point_profile_receipt_owner.sh" 340
+require_file "tests/self_hosted/parity/self_host_fixed_point_profile_receipt_smoke.sh"
+require_max_lines \
+    "tests/self_hosted/parity/self_host_fixed_point_profile_receipt_smoke.sh" 100
 require_file "tests/self_hosted/parity/codegen_bootstrap_seed_receipt_owner.sh"
 require_max_lines \
     "tests/self_hosted/parity/codegen_bootstrap_seed_receipt_owner.sh" 180
@@ -27245,7 +27251,8 @@ require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'DRIVER_SOURCE="$ROO
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'SAMPLE_SOURCE="$ROOT_DIR/${paths[7]}"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'CODEGEN_BIN="$CODEGEN_BUILD/gen2.exe"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$CODEGEN_BIN" --source "$driver_rel"'
-require_text "tests/self_hosted/parity/driver_bootstrap.sh" '>"$DRIVER_SEED_C_RAW"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'driver_seed_emit self_codegen_source_emit'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$DRIVER_SEED_C_RAW" "$BUILD_DIR/seed_emit.err"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" \
     'tr -d '\''\r'\'' <"$DRIVER_SEED_C_RAW" >"$DRIVER_SEED_C"'
 reject_text "tests/self_hosted/parity/driver_bootstrap.sh" '| tr -d '\''\r'\'''

@@ -3016,6 +3016,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/builtin_signature_registry_owner_parity.sh
 	"$(BASH)" tests/self_host_preparation_smoke.sh
 	"$(BASH)" tests/self_host_ci_profile_smoke.sh
+	"$(BASH)" tests/self_hosted/parity/self_host_fixed_point_profile_receipt_smoke.sh
 	"$(BASH)" tests/self_hosted_scaffold_smoke.sh
 	"$(BASH)" tests/self_hosted_component_contract_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/expression_surface_closure_probe_parity.sh
@@ -3313,6 +3314,10 @@ self-host-driver-bootstrap-test-smoke: self-host-codegen-bootstrap-seed-test-smo
 .PHONY: self-host-driver-fixed-point-receipt-test-smoke
 self-host-driver-fixed-point-receipt-test-smoke:
 	"$(BASH)" tests/self_hosted/parity/self_host_driver_fixed_point_receipt_smoke.sh
+
+.PHONY: self-host-fixed-point-profile-receipt-test-smoke
+self-host-fixed-point-profile-receipt-test-smoke:
+	"$(BASH)" tests/self_hosted/parity/self_host_fixed_point_profile_receipt_smoke.sh
 
 .PHONY: self-host-codegen-seed-receipt-test-smoke
 self-host-codegen-seed-receipt-test-smoke:
