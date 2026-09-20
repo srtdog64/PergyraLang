@@ -142,7 +142,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan,
         } else if return_row >= 0 {
             let expression: DirectMirScalarProgramLlvmExpression =
                 DirectMirScalarProgramLlvmExpressionAt(
-                    plan.program.expressions, return_row, runtime,
+                    plan, plan.program.expressions, return_row, runtime,
                     plan.program.logical_record,
                     plan.program.payload_free_enum,
                     plan.program.referenced_enum, plan.routines, routine, plan.program.array_string_abi,
@@ -181,7 +181,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan,
                 DirectMirScalarCfgConditionExpression() {
             let condition: DirectMirScalarProgramLlvmExpression =
                 DirectMirScalarProgramLlvmExpressionAt(
-                    plan.program.expressions,
+                    plan, plan.program.expressions,
                     plan.program.block_condition_expression_rows[block],
                     runtime,
                     plan.program.logical_record,

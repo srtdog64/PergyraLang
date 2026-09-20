@@ -192,10 +192,13 @@ a predecessor/compensation chain, then removes the plan or crosses actual
 terminal/completion instructions without changing the plan digest. These
 checks establish publication/cross-seal, not C/LLVM runtime equivalence.
 
-These are manual focused entrypoints, not newly wired CI jobs. The supported
-runner's green result must not hide the second command's red result. Fix one
-named production owner/consumer seam at a time; do not add a blanket native
-retry or weaken the rejection assertions to make this suite green.
+Most of these are manual focused entrypoints. The identity-cell receiver matrix
+also runs in the push CI self-host shard because it owns the last C/LLVM call
+consumer receipt; its full 192-check production-and-shared result is required.
+The supported runner's green result must not hide a separate manual command's
+red result. Fix one named production owner/consumer seam at a time; do not add
+a blanket native retry or weaken the rejection assertions to make a suite
+green.
 
 `identity_cell_receiver_execution.py NATIVE DRIVER` checks retained/uncalled
 actions, repeated receiver mutation, two owners with the same method name,

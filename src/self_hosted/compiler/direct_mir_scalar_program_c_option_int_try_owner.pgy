@@ -21,7 +21,7 @@ func DirectMirScalarProgramCOptionIntTryDefinition(
         Die("direct MIR scalar C Option<Int> try definition is invalid");
     }
     let operand: String = DirectMirScalarProgramCExpressionAt(
-        plan.program.expressions, expression_row, runtime,
+        plan, plan.program.expressions, expression_row, runtime,
         plan.program.logical_record, plan.program.referenced_enum,
         plan.routines, routine, target, plan.program.array_string_abi,
         array_string_projection);

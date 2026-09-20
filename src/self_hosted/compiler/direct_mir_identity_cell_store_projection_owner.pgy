@@ -13,7 +13,7 @@ func DirectMirIdentityCellCStore(
     let result: Int = plan.operation_result_values[operation];
     let member: Int = plan.operation_right_locals[operation];
     let value: String = DirectMirScalarProgramCExpressionAt(
-        plan.program.expressions, plan.program.operation_expression_rows[operation], runtime,
+        plan, plan.program.expressions, plan.program.operation_expression_rows[operation], runtime,
         plan.program.logical_record, plan.program.referenced_enum, plan.routines, routine,
         target, plan.program.array_string_abi, array_string_projection);
     let output: String = "    pgy_param_0->field_" + ToString(member) + " = " + value + ";\n";
@@ -33,7 +33,7 @@ func DirectMirIdentityCellLlvmStore(
     let member: Int = plan.operation_right_locals[operation];
     let field_type: String = DirectMirIdentityCellFieldType(plan.program.logical_record.identity_cells, type_name, member);
     let value: DirectMirScalarProgramLlvmExpression = DirectMirScalarProgramLlvmExpressionAt(
-        plan.program.expressions, plan.program.operation_expression_rows[operation], runtime,
+        plan, plan.program.expressions, plan.program.operation_expression_rows[operation], runtime,
         plan.program.logical_record, plan.program.payload_free_enum, plan.program.referenced_enum,
         plan.routines, routine, plan.program.array_string_abi, array_string_projection,
         plan.program.array_int_value_result, array_int_projection, target);

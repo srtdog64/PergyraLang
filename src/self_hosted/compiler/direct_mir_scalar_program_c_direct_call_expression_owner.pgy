@@ -7,8 +7,10 @@ import "direct_mir_scalar_program_c_logical_record_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_c_array_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_void_readonly_string_target_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+import "direct_mir_identity_cell_store_readiness_owner.pgy";
 
 func DirectMirScalarProgramCDirectCallArgumentValue(
+    ref plan: DirectMirScalarCfgGraphPlan,
     ref expressions: DirectMirScalarProgramExpressionSet,
     ref routines: DirectMirScalarCfgRoutinePartitionFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
@@ -25,10 +27,8 @@ func DirectMirScalarProgramCDirectCallArgumentValue(
     let cell_row: Int = DirectMirIdentityCellRow(
         logical_record.identity_cells, routines.parameter_types[parameter_row]);
     if cell_row >= 0 {
-        if !DirectMirScalarProgramIdentityCellParameterCarriageReady(
-                logical_record.identity_cells,
-                routines.parameter_types[parameter_row],
-                routines.parameter_carriages[parameter_row]) {
+        if !DirectMirIdentityCellCallParameterReady(
+                plan, callable, argument) {
             Die("direct MIR identity cell C call carriage is invalid");
         }
         // The value already names cell storage, not an addressable record copy.

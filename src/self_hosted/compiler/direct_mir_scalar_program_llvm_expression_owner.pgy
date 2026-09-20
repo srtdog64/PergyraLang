@@ -29,7 +29,7 @@ func DirectMirScalarProgramLlvmNodeName(expression_row: Int, node: Int) -> Strin
 func DirectMirScalarProgramLlvmLocalName(row: Int) -> String {
     return Concat("%pgy.local.", ToString(row));
 }
-func DirectMirScalarProgramLlvmExpressionAt(ref expressions: DirectMirScalarProgramExpressionSet,
+func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPlan, ref expressions: DirectMirScalarProgramExpressionSet,
     expression_row: Int, ref runtime: DirectMirScalarProgramRuntimeAbiProjection,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact,
@@ -93,7 +93,7 @@ func DirectMirScalarProgramLlvmExpressionAt(ref expressions: DirectMirScalarProg
             if kind == DirectMirScalarProgramExprDirectCall() &&
                 expressions.node_callable_rows[node] >= 0 {
                 let call_argument: DirectMirScalarProgramLlvmCallArgument = DirectMirScalarProgramLlvmCallArgumentValue(
-                    expressions, routines, logical_record, routine,
+                    plan, expressions, routines, logical_record, routine,
                     expressions.node_callable_rows[node], argument, argument_rows[argument], argument_value);
                 if !call_argument.valid { return DirectMirScalarProgramLlvmExpression(
                     false, "", "", ""); }

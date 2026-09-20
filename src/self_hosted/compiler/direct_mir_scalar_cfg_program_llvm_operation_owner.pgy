@@ -45,14 +45,14 @@ func DirectMirScalarCfgProgramLlvmOperation(
     }
     if DirectMirScalarProgramArraySetKind(kind) {
         let index: DirectMirScalarProgramLlvmExpression = DirectMirScalarProgramLlvmExpressionAt(
-                plan.program.expressions,
+                plan, plan.program.expressions,
                 plan.program.operation_secondary_expression_rows[operation], runtime,
                 plan.program.logical_record, plan.program.payload_free_enum,
                 plan.program.referenced_enum, plan.routines, routine,
                 plan.program.array_string_abi, array_string_projection, plan.program.array_int_value_result, array_int_projection,
                 target);
         let value: DirectMirScalarProgramLlvmExpression = DirectMirScalarProgramLlvmExpressionAt(
-                plan.program.expressions, expression_row, runtime, plan.program.logical_record,
+                plan, plan.program.expressions, expression_row, runtime, plan.program.logical_record,
                 plan.program.payload_free_enum, plan.program.referenced_enum,
                 plan.routines, routine, plan.program.array_string_abi,
                 array_string_projection, plan.program.array_int_value_result, array_int_projection, target);
@@ -86,7 +86,7 @@ func DirectMirScalarCfgProgramLlvmOperation(
             plan, routine, operation, index.value, value.value, array_string_projection));
     }
     let expression: DirectMirScalarProgramLlvmExpression = DirectMirScalarProgramLlvmExpressionAt(
-            plan.program.expressions, expression_row, runtime,
+            plan, plan.program.expressions, expression_row, runtime,
             plan.program.logical_record,
             plan.program.payload_free_enum, plan.program.referenced_enum,
             plan.routines, routine, plan.program.array_string_abi,

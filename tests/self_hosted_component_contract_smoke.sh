@@ -8110,6 +8110,26 @@ require_file "tests/self_hosted/parity/fixture/zone_readonly_write_rejected.pgy"
 require_text "src/self_hosted/compiler/direct_mir_identity_cell_parameter_carriage_owner.pgy" \
     'func DirectMirScalarProgramIdentityCellParameterCarriageReady('
 require_function_text \
+    "src/self_hosted/compiler/direct_mir_identity_cell_store_readiness_owner.pgy" \
+    "func DirectMirIdentityCellCallParameterReady(" \
+    "DirectMirIdentityCellStoredReceiverParameterReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_direct_call_expression_owner.pgy" \
+    "func DirectMirScalarProgramCDirectCallArgumentValue(" \
+    "DirectMirIdentityCellCallParameterReady("
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_direct_call_expression_owner.pgy" \
+    "func DirectMirScalarProgramCDirectCallArgumentValue(" \
+    "DirectMirScalarProgramIdentityCellParameterCarriageReady("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmCallArgumentValue(" \
+    "DirectMirIdentityCellCallParameterReady("
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmCallArgumentValue(" \
+    "DirectMirScalarProgramIdentityCellParameterCarriageReady("
+require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
     "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
     "return DirectMirScalarProgramIdentityCellParameterCarriageReady("

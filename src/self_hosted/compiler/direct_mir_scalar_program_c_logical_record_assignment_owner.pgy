@@ -24,7 +24,7 @@ func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(
         DirectMirScalarProgramLogicalRecordArrayIndexedAssignmentElementType(
             plan, operation);
     let values: Array<String> = DirectMirScalarProgramCExpressionValues(
-        plan.program.expressions, target_row, runtime,
+        plan, plan.program.expressions, target_row, runtime,
         plan.program.logical_record, plan.program.referenced_enum,
         plan.routines, routine, target, plan.program.array_string_abi,
         array_string_projection);
@@ -67,7 +67,7 @@ func DirectMirScalarProgramCLogicalRecordArrayIndexedAssignment(
     }
     let index_value: String = values[index_node - start];
     let value: String = DirectMirScalarProgramCExpressionAt(
-        plan.program.expressions, value_row, runtime,
+        plan, plan.program.expressions, value_row, runtime,
         plan.program.logical_record, plan.program.referenced_enum,
         plan.routines, routine, target, plan.program.array_string_abi,
         array_string_projection);

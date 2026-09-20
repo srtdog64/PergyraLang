@@ -9,6 +9,7 @@ import "direct_mir_scalar_program_llvm_logical_record_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
 import "direct_mir_scalar_program_void_readonly_string_target_owner.pgy";
+import "direct_mir_identity_cell_store_readiness_owner.pgy";
 struct DirectMirScalarProgramLlvmCallArgument {
     let valid: Bool;
     let instructions: String;
@@ -17,6 +18,7 @@ struct DirectMirScalarProgramLlvmCallArgument {
 }
 func DirectMirScalarProgramLlvmCallArgumentInvalid() -> DirectMirScalarProgramLlvmCallArgument { return DirectMirScalarProgramLlvmCallArgument(false, "", "", ""); }
 func DirectMirScalarProgramLlvmCallArgumentValue(
+    ref plan: DirectMirScalarCfgGraphPlan,
     ref expressions: DirectMirScalarProgramExpressionSet,
     ref routines: DirectMirScalarCfgRoutinePartitionFact,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
@@ -35,9 +37,8 @@ func DirectMirScalarProgramLlvmCallArgumentValue(
     let cell_row: Int = DirectMirIdentityCellRow(
         logical_record.identity_cells, routines.parameter_types[parameter_row]);
     if cell_row >= 0 {
-        if !DirectMirScalarProgramIdentityCellParameterCarriageReady(
-                logical_record.identity_cells,
-                routines.parameter_types[parameter_row], carriage) {
+        if !DirectMirIdentityCellCallParameterReady(
+                plan, callable, argument) {
             return invalid;
         }
         // An identity argument is the existing cell pointer, never the

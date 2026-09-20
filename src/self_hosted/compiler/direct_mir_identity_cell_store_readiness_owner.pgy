@@ -69,3 +69,22 @@ func DirectMirIdentityCellStoredReceiverParameterReady(
     }
     return false;
 }
+
+// Last call consumers accept an identity parameter only through its ordinary
+// carried mode or the exact mutable-method receiver store receipt. Keeping this
+// decision here prevents C and LLVM from inventing separate receiver rules.
+func DirectMirIdentityCellCallParameterReady(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, ordinal: Int
+) -> Bool {
+    if routine < 0 || routine >= ArrayLength(plan.routines.parameter_counts) ||
+        ordinal < 0 || ordinal >= plan.routines.parameter_counts[routine] {
+        return false;
+    }
+    let parameter: Int = plan.routines.parameter_starts[routine] + ordinal;
+    return DirectMirScalarProgramIdentityCellParameterCarriageReady(
+            plan.program.logical_record.identity_cells,
+            plan.routines.parameter_types[parameter],
+            plan.routines.parameter_carriages[parameter]) ||
+        DirectMirIdentityCellStoredReceiverParameterReady(
+            plan, routine, ordinal);
+}

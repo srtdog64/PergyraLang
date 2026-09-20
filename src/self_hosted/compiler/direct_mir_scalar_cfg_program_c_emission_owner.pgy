@@ -117,7 +117,7 @@ func DirectMirScalarCfgProgramCRoutine(ref plan: DirectMirScalarCfgGraphPlan, ro
             if return_type == "" { Die("direct MIR scalar C return has no admitted type"); }
             TextBuilderAppend(output, "    ${return_type} pgy_return_${block} = ");
             TextBuilderAppend(output, DirectMirScalarProgramCExpressionAt(
-                plan.program.expressions, return_row, runtime,
+                plan, plan.program.expressions, return_row, runtime,
                 plan.program.logical_record, plan.program.referenced_enum,
                 plan.routines, routine, target, plan.program.array_string_abi, array_string_projection));
             TextBuilderAppend(output, ";\n");
@@ -141,7 +141,7 @@ func DirectMirScalarCfgProgramCRoutine(ref plan: DirectMirScalarCfgGraphPlan, ro
                 DirectMirScalarCfgConditionExpression() {
             TextBuilderAppend(output, "    if (");
             TextBuilderAppend(output, DirectMirScalarProgramCExpressionAt(
-                plan.program.expressions,
+                plan, plan.program.expressions,
                 plan.program.block_condition_expression_rows[block],
                 runtime, plan.program.logical_record,
                 plan.program.referenced_enum, plan.routines, routine, target, plan.program.array_string_abi, array_string_projection));
