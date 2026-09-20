@@ -68,6 +68,7 @@ fi
 
 if [[ "$PGY_CI_PUSH_LINUX_RUN_SELF_HOST" == "1" ]]; then
     run 'python3 tests/concept_semantics/identity_cell_receiver_execution.py "$PWD/bin/pgy" "$PWD/bin/pgy-self-driver"'
+    run 'make self-host-task-is-cancelled-builtin-test-smoke'
     run 'make self-host-slice-copy-semantic-bridge-test-smoke'
     run 'make self-host-zone-spawn-transport-admission-test-smoke'
     run 'make self-host-future-aggregate-storage-admission-test-smoke'

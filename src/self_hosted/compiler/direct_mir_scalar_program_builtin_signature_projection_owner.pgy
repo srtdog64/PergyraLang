@@ -17,6 +17,8 @@ import "direct_mir_scalar_program_result_int_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_task_builtin_owner.pgy";
+import "direct_mir_scalar_program_builtin_argument_prefix_owner.pgy";
 import "runtime_value_call_abi_owner.pgy";
 import "../lib/intent_observability_abi_projection_owner.pgy";
 func DirectMirScalarProgramBuiltinSignatureExpected(
@@ -28,6 +30,9 @@ func DirectMirScalarProgramBuiltinSignatureExpected(
             CompilerRuntimeValueCallSemanticParameterSchema(runtime_value),
             ToString(DirectMirScalarProgramExprRuntimeValueCall())];
     }
+    let task: Array<String> =
+        DirectMirScalarProgramTaskBuiltinSignatureExpected(name);
+    if ArrayLength(task) != 0 { return task; }
     let hashmap: Array<String> = DirectMirScalarProgramHashMapSignatureExpected(name);
     if ArrayLength(hashmap) != 0 { return hashmap; }
     if name == "ToString" {
@@ -79,6 +84,14 @@ func DirectMirScalarProgramBuiltinSignatureFactFromName(name: String) -> DirectM
     if DirectMirScalarProgramArrayTransformKind(normalized_kind) {
         let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramArrayTransformRuntimeFact(normalized_kind);
         if !abi.ok { return invalid; } runtime_call_abi_id = abi.runtime_call_abi_id;
+    }
+    if DirectMirScalarProgramTaskExpressionKind(normalized_kind) {
+        let abi: CompilerRuntimeCallAbiFact =
+            DirectMirScalarProgramTaskRuntimeFact();
+        if !CompilerRuntimeCallAbiTaskIsCancelledFactReady(abi) {
+            return invalid;
+        }
+        runtime_call_abi_id = abi.runtime_call_abi_id;
     }
     if observability.valid { runtime_call_abi_id = observability.runtime_call_abi_id; if runtime_call_abi_id <= 0 { return invalid; } }
     if name == "CompilerArtifactWrite" || name == "CompilerArtifactBegin" ||
@@ -205,26 +218,4 @@ func DirectMirScalarProgramBuiltinSignatureFactForCall(
             DirectMirScalarProgramOptionBoolBuiltinExpressionKind(name), fact.runtime_call_abi_id);
     }
     return fact;
-}
-func DirectMirScalarProgramBuiltinArgumentPrefixReady(
-    ref signature: DirectMirScalarProgramBuiltinSignatureFact,
-    actual_types: Array<String>
-) -> Bool {
-    if !signature.valid || ArrayLength(actual_types) >
-            ArrayLength(signature.parameter_types) { return false; }
-    let i: Int = 0;
-    while i < ArrayLength(actual_types) {
-        let expected: String = signature.parameter_types[i];
-        if signature.name == "ToUpper" ||
-                signature.name == "ToLower" { expected = "String"; }
-        expected = DirectMirScalarProgramCollectionBuiltinArgumentType(
-            signature.name, expected);
-        expected = DirectMirScalarProgramCaseMathBuiltinArgumentType(
-            signature.name, expected);
-        expected = DirectMirScalarProgramStringTransformBuiltinArgumentType(
-            signature.name, expected);
-        if actual_types[i] != expected { return false; }
-        i = i + 1;
-    }
-    return true;
 }

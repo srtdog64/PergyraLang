@@ -6,6 +6,7 @@
 // runtime/header usage can consume a fact row instead of reopening payloads.
 
 import "../../semantic/ast_expression_surface_query_owner.pgy";
+import "../../semantic/builtin_signature_owner.pgy";
 import "../../lib/intent_observability_abi_projection_owner.pgy";
 import "../text/text_owner.pgy";
 
@@ -37,6 +38,7 @@ struct CodegenExpressionUsageFacts {
     let has_checked_int_cast: Bool;
     let has_checked_long_cast: Bool;
     let has_spawn: Bool;
+    let has_task_observation: Bool;
 }
 
 struct CodegenExpressionParts {
@@ -82,6 +84,7 @@ func CodegenUsageBuiltinGroupRandomValue() -> Int { return 20; }
 func CodegenUsageBuiltinGroupSeedRandom() -> Int { return 21; }
 func CodegenUsageBuiltinGroupArtifactTransaction() -> Int { return 22; }
 func CodegenUsageBuiltinGroupIntentObservability() -> Int { return 23; }
+func CodegenUsageBuiltinGroupTaskObservation() -> Int { return 24; }
 
 func CodegenUsageBuiltinGroupCalleeCount(group: Int) -> Int {
     if group == CodegenUsageBuiltinGroupArgs() { return 1; }
@@ -109,6 +112,7 @@ func CodegenUsageBuiltinGroupCalleeCount(group: Int) -> Int {
     if group == CodegenUsageBuiltinGroupIntentObservability() {
         return IntentObservabilityAbiCount();
     }
+    if group == CodegenUsageBuiltinGroupTaskObservation() { return 1; }
     return 0;
 }
 
@@ -215,6 +219,9 @@ func CodegenUsageBuiltinGroupCalleeAt(group: Int, index: Int) -> String {
         let row: IntentObservabilityAbiRow = IntentObservabilityAbiRowAt(index);
         if row.valid { return row.source_name; }
     }
+    if group == CodegenUsageBuiltinGroupTaskObservation() && index == 0 {
+        return SemanticBuiltinIsCancelledName();
+    }
     return "";
 }
 
@@ -266,7 +273,7 @@ func CodegenExpressionSurfaceUsagePresenceFromSemantic(
 ) -> CodegenExpressionSurfaceUsagePresence {
     let groups: Array<Bool> = [];
     let group: Int = 0;
-    while group <= CodegenUsageBuiltinGroupIntentObservability() {
+    while group <= CodegenUsageBuiltinGroupTaskObservation() {
         ArrayPush(groups, false);
         group = group + 1;
     }
@@ -278,7 +285,7 @@ func CodegenExpressionSurfaceUsagePresenceFromSemantic(
             has_none = true;
         }
         group = CodegenUsageBuiltinGroupArgs();
-        while group <= CodegenUsageBuiltinGroupIntentObservability() {
+        while group <= CodegenUsageBuiltinGroupTaskObservation() {
             if !groups[group] {
                 let callee_index: Int = 0;
                 while callee_index < CodegenUsageBuiltinGroupCalleeCount(group) &&
@@ -367,12 +374,13 @@ func CodegenExpressionUsageFactsFromSemantic(facts: SemanticAstExpressionSurface
         surface.has_none,
         graph.has_checked_int_cast,
         graph.has_checked_long_cast,
-        graph.has_spawn
+        graph.has_spawn,
+        surface.groups[CodegenUsageBuiltinGroupTaskObservation()]
     );
 }
 
 func CodegenExpressionUsageKnownGroup(group: Int) -> Result<Int> {
-    if group >= CodegenUsageBuiltinGroupArgs() && group <= CodegenUsageBuiltinGroupIntentObservability() {
+    if group >= CodegenUsageBuiltinGroupArgs() && group <= CodegenUsageBuiltinGroupTaskObservation() {
         return Ok(group);
     }
     return Err("unknown expression usage builtin group");
@@ -407,6 +415,7 @@ func CodegenExpressionUsageGroupPresent(facts: CodegenExpressionUsageFacts, grou
     if known_group == CodegenUsageBuiltinGroupSeedRandom() { return facts.has_seed_random; }
     if known_group == CodegenUsageBuiltinGroupArtifactTransaction() { return facts.has_artifact_transaction; }
     if known_group == CodegenUsageBuiltinGroupIntentObservability() { return facts.has_intent_observability; }
+    if known_group == CodegenUsageBuiltinGroupTaskObservation() { return facts.has_task_observation; }
     return false;
 }
 

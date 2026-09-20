@@ -20,40 +20,41 @@ func RuntimeCHeaderOwnsCheckedArithmetic(
     return RuntimeCHeaderRequired(
         uses_allocator, uses_text_builder, uses_box_array, false, false,
         uses_list, uses_queue, uses_set, uses_artifact_transaction,
-        uses_intent_observability, uses_hashmap
+        uses_intent_observability, false, uses_hashmap
     );
 }
 
 func RuntimeCHeaderOwnsScalarLog(
-    uses_box_array: Bool,
-    uses_list: Bool,
-    uses_queue: Bool,
-    uses_set: Bool,
+    uses_box_array: Bool, uses_list: Bool, uses_queue: Bool, uses_set: Bool,
     uses_artifact_transaction: Bool,
-    uses_intent_observability: Bool, uses_hashmap: Bool
+    uses_intent_observability: Bool, uses_hashmap: Bool,
+    uses_task_observation: Bool
 ) -> Bool {
     return uses_box_array || uses_list || uses_queue || uses_set ||
-        uses_artifact_transaction || uses_intent_observability || uses_hashmap;
+        uses_artifact_transaction || uses_intent_observability || uses_hashmap ||
+        uses_task_observation;
 }
 
 func RuntimeCHeaderOwnsBoolToString(
     uses_box_array: Bool, uses_list: Bool, uses_queue: Bool, uses_set: Bool,
-    uses_artifact_transaction: Bool,
-    uses_intent_observability: Bool, uses_hashmap: Bool
+    uses_artifact_transaction: Bool, uses_intent_observability: Bool,
+    uses_hashmap: Bool, uses_task_observation: Bool
 ) -> Bool {
     return RuntimeCHeaderOwnsScalarLog(
         uses_box_array, uses_list, uses_queue, uses_set,
-        uses_artifact_transaction, uses_intent_observability, uses_hashmap
+        uses_artifact_transaction, uses_intent_observability, uses_hashmap,
+        uses_task_observation
     );
 }
 
 func RuntimeCHeaderOwnsPrint(
     uses_box_array: Bool, uses_list: Bool, uses_queue: Bool, uses_set: Bool,
-    uses_artifact_transaction: Bool,
-    uses_intent_observability: Bool, uses_hashmap: Bool
+    uses_artifact_transaction: Bool, uses_intent_observability: Bool,
+    uses_hashmap: Bool, uses_task_observation: Bool
 ) -> Bool {
     return RuntimeCHeaderOwnsScalarLog(
         uses_box_array, uses_list, uses_queue, uses_set,
-        uses_artifact_transaction, uses_intent_observability, uses_hashmap
+        uses_artifact_transaction, uses_intent_observability, uses_hashmap,
+        uses_task_observation
     );
 }

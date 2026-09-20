@@ -1,0 +1,14 @@
+// Canonical task-observation runtime ABI shared by self-host C and LLVM.
+
+func TaskRuntimeIsCancelledOperation() -> String { return "is-cancelled"; }
+func TaskRuntimeIsCancelledSymbol() -> String {
+    return "pgy_task_is_cancelled_export";
+}
+
+func TaskRuntimeCDeclarationBlock() -> String {
+    return "#include \"pgy_runtime.h\"\nstatic inline bool pgy_task_is_cancelled_export(void) { return pgy_task_is_cancelled(); }\n";
+}
+
+func TaskRuntimeLlvmDeclaration() -> String {
+    return "declare i1 @pgy_task_is_cancelled_export()\n";
+}

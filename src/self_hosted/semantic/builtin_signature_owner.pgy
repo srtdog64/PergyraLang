@@ -7,6 +7,8 @@ import "ast_expression_graph_collection_call_protocol_owner.pgy";
 import "collection_key_policy_projection_owner.pgy";
 import "diagnostic_owner.pgy";
 
+func SemanticBuiltinIsCancelledName() -> String { return "IsCancelled"; }
+
 func SemanticBuiltinSignatureRows() -> Array<String> {
     let rows: Array<String> = [
         "StringLength^Int^String",
@@ -143,7 +145,8 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "CompilerArtifactAbort^Int^Int",
         "CompilerArtifactBegin^Int^String",
         "CompilerArtifactCommit^Int^Int",
-        "CompilerArtifactWrite^Bool^Int|String"
+        "CompilerArtifactWrite^Bool^Int|String",
+        Concat(SemanticBuiltinIsCancelledName(), "^Bool^none")
     ];
     let map_names: Array<String> = SemanticHashMapCallProtocolNames();
     let map_index: Int = 0;

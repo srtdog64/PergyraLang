@@ -1,0 +1,18 @@
+// Readiness dispatch for normalized external-runtime expression families.
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_intent_observability_readiness_owner.pgy";
+import "direct_mir_scalar_program_task_builtin_owner.pgy";
+
+func DirectMirScalarProgramExternalRuntimeExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<Bool> {
+    let kind: Int = facts.node_kinds[node];
+    if kind == DirectMirScalarProgramExprIntentObservabilityCall() {
+        return Some(DirectMirScalarProgramIntentObservabilityCallNodeReady(
+            facts, node));
+    }
+    if DirectMirScalarProgramTaskExpressionKind(kind) {
+        return Some(DirectMirScalarProgramTaskExpressionNodeReady(facts, node));
+    }
+    return None;
+}

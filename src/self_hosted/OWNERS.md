@@ -1806,6 +1806,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   arithmetic, scalar log, Bool-to-String); consumers ask this owner instead
   of re-deriving header capabilities.
 - `src/self_hosted/codegen/runtime_abi/spawn_runtime_owner.pgy` -- bounded self-host C spawn/await runtime ABI facts for scalar Int/String async work through one tagged invocation descriptor, including named `Future<T>` handle materialization; unsupported payload/arity shapes fail closed.
+- `src/self_hosted/codegen/runtime_abi/task_runtime_owner.pgy` -- canonical
+  task-observation operation, shared target-library symbol, and C/LLVM
+  declaration blocks. The semantic signature owner keeps the source name, and
+  the effect registry independently owns effect admission.
 - `src/self_hosted/codegen/runtime_abi/box_array_runtime_owner.pgy` -- self-host C allocator-backed Box<Array<T>> type and constructor ABI facts.
 - `src/self_hosted/codegen/runtime_abi/zone_runtime_owner.pgy` -- isolated C include projection for the canonical native/self-host zone lock and generation ABI.
 - `src/self_hosted/codegen/emission/expr_rewrite.pgy` -- expression rewrite/lowering.
@@ -2373,6 +2377,21 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/compiler/direct_mir_scalar_program_array_transform_owner.pgy` --
   normalized in-place Array<Int> transform identity and local-storage admission;
   target emission consumes the existing Array storage projection.
+- `src/self_hosted/compiler/direct_mir_scalar_program_task_builtin_owner.pgy`
+  and `direct_mir_scalar_program_task_expression_kind_owner.pgy` -- normalized
+  zero-argument `IsCancelled() -> Bool` identity, exact task runtime-call ABI
+  receipt, and fail-closed expression shape shared by direct C and LLVM.
+- `src/self_hosted/compiler/direct_mir_scalar_program_builtin_argument_prefix_owner.pgy`
+  -- normalized builtin argument-prefix admission after collection, case-math,
+  and string-transform type projection; signature selection remains separate.
+- `src/self_hosted/compiler/direct_mir_scalar_program_external_runtime_expression_readiness_owner.pgy`
+  -- readiness dispatch for intent-observability and task-observation expression
+  families after their typed expression identity has been admitted.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_external_runtime_declaration_owner.pgy`
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_llvm_external_runtime_declaration_owner.pgy`
+  -- target declaration composition for admitted external-runtime expressions;
+  expression lowering consumes these blocks without reconstructing ABI names.
 - `src/self_hosted/compiler/runtime_call_abi_row_owner.pgy` -- runtime helper
   and target-library call ABI row projection over the runtime ABI owners.
 - `src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy` --

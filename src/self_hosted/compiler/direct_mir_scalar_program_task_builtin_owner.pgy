@@ -1,0 +1,56 @@
+// Exact semantic signature and runtime ABI projection for IsCancelled.
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_builtin_signature_fact_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "../semantic/builtin_signature_owner.pgy";
+
+func DirectMirScalarProgramTaskBuiltinSignatureExpected(
+    name: String
+) -> Array<String> {
+    if name == SemanticBuiltinIsCancelledName() {
+        return ["Bool", "", ToString(
+            DirectMirScalarProgramExprTaskIsCancelled())];
+    }
+    return [];
+}
+
+func DirectMirScalarProgramTaskRuntimeFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiTaskIsCancelledFact();
+}
+
+func DirectMirScalarProgramTaskExpressionKind(kind: Int) -> Bool {
+    return kind == DirectMirScalarProgramExprTaskIsCancelled();
+}
+
+func DirectMirScalarProgramTaskRuntimeCallIdentityReady(
+    ref signature: DirectMirScalarProgramBuiltinSignatureFact,
+    carried: Int
+) -> Bool {
+    let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramTaskRuntimeFact();
+    return signature.valid &&
+        DirectMirScalarProgramTaskExpressionKind(signature.expression_kind) &&
+        CompilerRuntimeCallAbiTaskIsCancelledFactReady(abi) &&
+        signature.runtime_call_abi_id == abi.runtime_call_abi_id && carried == 0;
+}
+
+func DirectMirScalarProgramTaskExpressionNodeReady(
+    ref facts: DirectMirScalarProgramExpressionSet, node: Int
+) -> Bool {
+    let runtime: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramTaskRuntimeFact();
+    return CompilerRuntimeCallAbiTaskIsCancelledFactReady(runtime) &&
+        facts.node_kinds[node] ==
+            DirectMirScalarProgramExprTaskIsCancelled() &&
+        facts.node_types[node] == CompilerAbiLayoutBoolTypeName() &&
+        facts.node_runtime_call_abi_ids[node] ==
+            runtime.runtime_call_abi_id &&
+        facts.node_lefts[node] == -1 && facts.node_rights[node] == -1 &&
+        facts.node_local_rows[node] == -1 &&
+        facts.node_parameter_ordinals[node] == -1 &&
+        facts.node_member_ordinals[node] == -1 &&
+        facts.node_callable_rows[node] == -1 &&
+        facts.node_literals[node] == "" &&
+        ArrayLength(DirectMirScalarProgramNaryOperandRows(
+            facts.nary_operands, node)) == 0;
+}

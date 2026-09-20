@@ -1,0 +1,28 @@
+// Argument-prefix admission for normalized builtin signatures.
+import "direct_mir_scalar_program_builtin_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_collection_builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_case_math_builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_string_transform_builtin_signature_owner.pgy";
+
+func DirectMirScalarProgramBuiltinArgumentPrefixReady(
+    ref signature: DirectMirScalarProgramBuiltinSignatureFact,
+    actual_types: Array<String>
+) -> Bool {
+    if !signature.valid || ArrayLength(actual_types) >
+            ArrayLength(signature.parameter_types) { return false; }
+    let i: Int = 0;
+    while i < ArrayLength(actual_types) {
+        let expected: String = signature.parameter_types[i];
+        if signature.name == "ToUpper" ||
+                signature.name == "ToLower" { expected = "String"; }
+        expected = DirectMirScalarProgramCollectionBuiltinArgumentType(
+            signature.name, expected);
+        expected = DirectMirScalarProgramCaseMathBuiltinArgumentType(
+            signature.name, expected);
+        expected = DirectMirScalarProgramStringTransformBuiltinArgumentType(
+            signature.name, expected);
+        if actual_types[i] != expected { return false; }
+        i = i + 1;
+    }
+    return true;
+}

@@ -149,6 +149,7 @@ done
 for push_gate in \
     "run 'make gate-subject-declaration-test-smoke'" \
     "run 'make gate-script-reachability-test-smoke'" \
+    "run 'make self-host-task-is-cancelled-builtin-test-smoke'" \
     "run 'bash tests/protocol_registry_smoke.sh'"; do
     if ! grep -Fq "$push_gate" "$PUSH_LINUX_STEPS"; then
         echo "[self-host-ci-profile] code push lost its oracle/protocol ratchet: $push_gate" >&2
@@ -417,8 +418,8 @@ for required in \
         exit 1
     fi
 done
-if [[ "$(grep -Ec "^[[:space:]]*run '" "$PUSH_LINUX_STEPS")" != "29" ]]; then
-    echo "[self-host-ci-profile] Linux push shard inventory must retain 28 prebuilt gates plus the build-mode compiler step" >&2
+if [[ "$(grep -Ec "^[[:space:]]*run '" "$PUSH_LINUX_STEPS")" != "31" ]]; then
+    echo "[self-host-ci-profile] Linux push shard inventory must retain 30 prebuilt gates plus the build-mode compiler step" >&2
     exit 1
 fi
 

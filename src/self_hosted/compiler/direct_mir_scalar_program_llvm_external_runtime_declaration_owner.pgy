@@ -1,0 +1,63 @@
+// LLVM declarations required by normalized external-runtime expressions.
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_type_owner.pgy";
+import "direct_mir_scalar_program_task_builtin_owner.pgy";
+import "../lib/intent_observability_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramLlvmTaskObservationDeclarations(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> String {
+    let node: Int = 0;
+    while node < ArrayLength(expressions.node_kinds) {
+        if expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprTaskIsCancelled() {
+            return TaskRuntimeLlvmDeclaration();
+        }
+        node = node + 1;
+    }
+    return "";
+}
+
+func DirectMirScalarProgramLlvmIntentObservabilityDeclarations(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> String {
+    let output: String = "";
+    let row_index: Int = 0;
+    while row_index < IntentObservabilityAbiCount() {
+        let row: IntentObservabilityAbiRow =
+            IntentObservabilityAbiRowAt(row_index);
+        let present: Bool = false;
+        let node: Int = 0;
+        while node < ArrayLength(expressions.node_kinds) {
+            if expressions.node_kinds[node] ==
+                    DirectMirScalarProgramExprIntentObservabilityCall() &&
+                expressions.node_runtime_call_abi_ids[node] ==
+                    row.runtime_call_abi_id { present = true; }
+            node = node + 1;
+        }
+        if present {
+            let llvm_type: String =
+                DirectMirScalarProgramLlvmType(row.return_type);
+            if llvm_type == "" { Die(
+                "direct MIR LLVM intent-observability return ABI is invalid"); }
+            let params: String = "";
+            if row.argument_count == 1 { params = "i64"; }
+            else if row.argument_count == 2 { params = "i64, i64"; }
+            else if row.argument_count != 0 { Die(
+                "direct MIR LLVM intent-observability parameter ABI is invalid"); }
+            output = Concat(output, Concat("declare ", Concat(llvm_type,
+                Concat(" @", Concat(row.runtime_name, Concat(
+                    "(", Concat(params, ")\n")))))));
+        }
+        row_index = row_index + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmExternalRuntimeDeclarations(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> String {
+    return Concat(
+        DirectMirScalarProgramLlvmIntentObservabilityDeclarations(expressions),
+        DirectMirScalarProgramLlvmTaskObservationDeclarations(expressions));
+}

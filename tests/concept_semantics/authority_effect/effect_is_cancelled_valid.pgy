@@ -1,0 +1,7 @@
+func CheckCancellation() -> Bool with effects remote {
+    return IsCancelled();
+}
+
+func Main() -> Void with effects remote {
+    Log(CheckCancellation());
+}

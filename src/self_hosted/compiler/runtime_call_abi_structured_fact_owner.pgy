@@ -365,6 +365,22 @@ func CompilerRuntimeCallAbiStringToLowerFactReady(
         fact, "to-lower", StringRuntimeCToLowerFn(), "string_to_string"
     );
 }
+func CompilerRuntimeCallAbiTaskIsCancelledFact() -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(CompilerRuntimeCallAbiRowInput(
+        "task", TaskRuntimeIsCancelledOperation(),
+        TaskRuntimeIsCancelledSymbol(),
+        CompilerRuntimeCallAbiMaterialTargetLibrary()));
+}
+func CompilerRuntimeCallAbiTaskIsCancelledFactReady(
+    fact: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return fact.ok && fact.domain == "task" &&
+        fact.operation == TaskRuntimeIsCancelledOperation() &&
+        fact.symbol == TaskRuntimeIsCancelledSymbol() &&
+        fact.materialization == CompilerRuntimeCallAbiMaterialTargetLibrary() &&
+        fact.call_shape == "returns_bool" && fact.runtime_call_abi_id ==
+            CompilerRuntimeCallAbiRowId("task", "", TaskRuntimeIsCancelledOperation());
+}
 
 func CompilerRuntimeCallAbiFlatFactOwnerReady(
     formatted: CompilerRuntimeCallAbiFact

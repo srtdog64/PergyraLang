@@ -2,7 +2,23 @@
 
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_c_runtime_value_expression_owner.pgy";
+import "direct_mir_scalar_program_c_external_runtime_declaration_owner.pgy";
+import "direct_mir_scalar_program_task_builtin_owner.pgy";
 import "../lib/intent_observability_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramCTaskObservationExpressionAt(
+    ref expressions: DirectMirScalarProgramExpressionSet, node: Int
+) -> Option<String> {
+    if expressions.node_kinds[node] !=
+            DirectMirScalarProgramExprTaskIsCancelled() { return None; }
+    let task: CompilerRuntimeCallAbiFact =
+        DirectMirScalarProgramTaskRuntimeFact();
+    if !CompilerRuntimeCallAbiTaskIsCancelledFactReady(task) ||
+        expressions.node_runtime_call_abi_ids[node] != task.runtime_call_abi_id {
+        Die("direct MIR C task-observation ABI is invalid");
+    }
+    return Some(Concat(task.symbol, "()"));
+}
 
 func DirectMirScalarProgramCIntentObservabilityExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet, node: Int,
@@ -27,24 +43,13 @@ func DirectMirScalarProgramCExternalRuntimeExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet, node: Int,
     left: String, right: String
 ) -> Option<String> {
+    let task: Option<String> =
+        DirectMirScalarProgramCTaskObservationExpressionAt(expressions, node);
+    if IsSome(task) { return task; }
     let observability: Option<String> =
         DirectMirScalarProgramCIntentObservabilityExpressionAt(
             expressions, node, left, right);
     if IsSome(observability) { return observability; }
     return DirectMirScalarProgramCRuntimeValueExpressionAt(
         expressions, node, left, right);
-}
-
-func DirectMirScalarProgramCIntentObservabilityPreamble(
-    ref expressions: DirectMirScalarProgramExpressionSet
-) -> String {
-    let node: Int = 0;
-    while node < ArrayLength(expressions.node_kinds) {
-        if expressions.node_kinds[node] ==
-                DirectMirScalarProgramExprIntentObservabilityCall() {
-            return "#define PGY_INTENT_OBSERVABILITY_ENABLED 1\n#include \"pgy_runtime.h\"\n";
-        }
-        node = node + 1;
-    }
-    return "";
 }

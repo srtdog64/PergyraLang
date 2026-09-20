@@ -193,9 +193,10 @@ unknown and prevent verification of an annotated bound. The regression named
 `effect_unclassified_call.pgy` now requires valid `ArrayLength` admission and
 exact execution under a local bound. Signature availability and C/LLVM lowering
 remain separate obligations: a fixed effect row alone cannot admit or implement
-an operation. In particular, the fixed `IsCancelled` row does not claim that
-the public self-host task ABI already admits or lowers that call. Current
-outcomes and the next falsifier belong only in the
+an operation. `IsCancelled` now independently reaches installed public C/LLVM
+through its task runtime-call ABI owner and focused execution/negative gate;
+that support is not inferred from the fixed effect row. Current outcomes and
+the next falsifier belong only in the
 [active snapshot](../current_work_handoff.md).
 Operand-dependent resource/callback builtin effects, other statement/suspension
 effects and general deferred boundary checks remain distinct obligations.

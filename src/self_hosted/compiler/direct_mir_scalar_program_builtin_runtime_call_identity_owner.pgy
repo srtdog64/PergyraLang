@@ -4,8 +4,8 @@ import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 func DirectMirScalarProgramBuiltinRuntimeCallIdentityReady(
     ref signature: DirectMirScalarProgramBuiltinSignatureFact, carried: Int) -> Bool {
     if !signature.valid { return false; }
-    // These target-library rows are selected by normalized builtin admission,
-    // not carried as per-instruction resource identities in the source graph.
+    // Target-library rows are selected by admission, not carried in the graph.
+    if DirectMirScalarProgramTaskExpressionKind(signature.expression_kind) { return DirectMirScalarProgramTaskRuntimeCallIdentityReady(signature, carried); }
     if DirectMirScalarProgramCheckedIntKind(signature.expression_kind) ||
             DirectMirScalarProgramArrayTransformKind(signature.expression_kind) {
         let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramCheckedIntRuntimeFact(signature.expression_kind);

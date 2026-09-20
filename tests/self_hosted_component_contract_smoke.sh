@@ -3222,6 +3222,8 @@ require_text "src/self_hosted/semantic/program_check_owner.pgy" 'import "builtin
 require_file "src/self_hosted/semantic/builtin_signature_owner.pgy"
 require_max_lines "src/self_hosted/semantic/builtin_signature_owner.pgy" 600
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Now^Int^none"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
+    'func SemanticBuiltinIsCancelledName() -> String { return "IsCancelled"; }'
 require_file "src/self_hosted/semantic/builtin_capability_projection_owner.pgy"
 require_max_lines "src/self_hosted/semantic/builtin_capability_projection_owner.pgy" 120
 require_text "src/self_hosted/semantic/builtin_capability_projection_owner.pgy" \
@@ -4869,7 +4871,75 @@ require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" 'impor
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "func CompilerRuntimeCallAbiManifestRowAt"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "CompilerRuntimeCallAbiConcreteRowCount()"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "schema=pgy.selfhost.runtime-call-abi-row.v2"
-require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=267"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=268"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
+    '267|task|is-cancelled|pgy_task_is_cancelled_export|function|target_library|returns_bool'
+require_file "src/self_hosted/codegen/runtime_abi/task_runtime_owner.pgy"
+require_max_lines "src/self_hosted/codegen/runtime_abi/task_runtime_owner.pgy" 20
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_task_builtin_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_task_builtin_owner.pgy" 60
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_task_expression_kind_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_task_expression_kind_owner.pgy" 10
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_argument_prefix_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_argument_prefix_owner.pgy" 35
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_external_runtime_expression_readiness_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_external_runtime_expression_readiness_owner.pgy" 25
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_external_runtime_declaration_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_external_runtime_declaration_owner.pgy" 45
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_external_runtime_declaration_owner.pgy"
+require_max_lines \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_external_runtime_declaration_owner.pgy" 70
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/codegen/runtime_abi/task_runtime_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_task_builtin_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_argument_prefix_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_external_runtime_expression_readiness_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_external_runtime_declaration_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_external_runtime_declaration_owner.pgy"
+require_text "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" \
+    "func CompilerRuntimeCallAbiTaskIsCancelledFact("
+reject_text "src/self_hosted/codegen/runtime_abi/task_runtime_owner.pgy" \
+    "TaskRuntimeIsCancelledSourceName"
+for task_consumer in \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_external_runtime_expression_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_external_runtime_expression_owner.pgy"; do
+    require_text "$task_consumer" "DirectMirScalarProgramTaskRuntimeFact()"
+    reject_text "$task_consumer" "pgy_task_is_cancelled_export"
+done
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_external_runtime_declaration_owner.pgy" \
+    "func DirectMirScalarProgramCExternalRuntimePreamble("
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_external_runtime_declaration_owner.pgy" \
+    "func DirectMirScalarProgramLlvmExternalRuntimeDeclarations("
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_external_runtime_expression_owner.pgy" \
+    "func DirectMirScalarProgramCTaskObservationExpressionAt("
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_external_runtime_expression_owner.pgy" \
+    "func DirectMirScalarProgramLlvmTaskObservationExpressionAt("
+require_file "tests/self_hosted/parity/task_is_cancelled_builtin_owner.sh"
+require_file "tests/self_hosted/parity/task_is_cancelled_builtin_mutations.py"
+require_text "Makefile" \
+    "self-host-task-is-cancelled-builtin-test-smoke: \$(PGY) self-host-compiler"
+require_text "scripts/ci_push_linux_steps.sh" \
+    "run 'make self-host-task-is-cancelled-builtin-test-smoke'"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
     '256|host-io|compiler-artifact-write|pgy_compiler_artifact_write|function|target_library|int_string_to_bool'
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
@@ -8067,13 +8137,13 @@ reject_text "src/self_hosted/mir/json_projection_owner.pgy" \
 require_file "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
 require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" 60
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap)"
+    "RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, usage.uses_task_observation, uses_hashmap)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap)"
+    "RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, usage.uses_task_observation, uses_hashmap)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap)"
+    "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap, usage.uses_task_observation)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "RuntimeCHeaderOwnsBoolToString("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
@@ -11741,7 +11811,7 @@ require_function_text \
     "func DirectMirScalarProgramBuiltinSignatureFactForCall(" \
     'actual_types[0] == CompilerAbiLayoutLongTypeName()'
 reject_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_argument_prefix_owner.pgy" \
     "func DirectMirScalarProgramBuiltinArgumentPrefixReady(" 'expected = "Int"'
 require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" 230
 require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_to_string_expression_readiness_owner.pgy" 30
@@ -23371,8 +23441,8 @@ require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
     "func DirectMirScalarProgramExprPayloadEnumMember() -> Int { return 123; }"
 require_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
-    "func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprSliceStringIndex(); }"
+    "src/self_hosted/compiler/direct_mir_scalar_program_task_expression_kind_owner.pgy" \
+    "func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprTaskIsCancelled(); }"
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy"
 require_max_lines \

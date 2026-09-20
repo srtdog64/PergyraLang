@@ -4375,6 +4375,11 @@ self-host-slice-copy-semantic-bridge-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/slice_copy_semantic_bridge_owner.sh
 
+.PHONY: self-host-task-is-cancelled-builtin-test-smoke
+self-host-task-is-cancelled-builtin-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/task_is_cancelled_builtin_owner.sh
+
 .PHONY: self-host-zone-spawn-transport-admission-test-smoke
 self-host-zone-spawn-transport-admission-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \

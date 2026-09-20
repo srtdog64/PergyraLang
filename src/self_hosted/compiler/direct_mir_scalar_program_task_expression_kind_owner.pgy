@@ -1,0 +1,3 @@
+// Stable normalized identity for task-observation expressions.
+func DirectMirScalarProgramExprTaskIsCancelled() -> Int { return 143; }
+func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprTaskIsCancelled(); }

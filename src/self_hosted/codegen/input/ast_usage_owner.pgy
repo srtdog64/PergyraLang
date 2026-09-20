@@ -55,6 +55,7 @@ struct CodegenRuntimeUsageFacts {
     let uses_checked_int_cast: Bool;
     let uses_checked_long_cast: Bool;
     hashmap_type_names: Array<String>;
+    let uses_task_observation: Bool;
 }
 
 func CodegenRuntimeUsageFactsFromSemantic(
@@ -83,7 +84,9 @@ func CodegenRuntimeUsageFactsFromSemantic(
     let uses_option: Bool = type_usage.has_option
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupOption())
         || CodegenExpressionUsageHasNone(expr_usage);
-    let uses_bool: Bool = type_usage.has_bool || uses_array_filter || uses_result || uses_option || type_usage.has_set
+    let uses_task_observation: Bool = CodegenExpressionUsageGroupPresent(
+        expr_usage, CodegenUsageBuiltinGroupTaskObservation());
+    let uses_bool: Bool = type_usage.has_bool || uses_array_filter || uses_result || uses_option || uses_task_observation || type_usage.has_set
         || type_usage.has_allocator || type_usage.has_text_builder;
     let uses_exit: Bool = kind_usage.has_exit_stmt
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupExit());
@@ -175,6 +178,7 @@ func CodegenRuntimeUsageFactsFromSemantic(
         uses_spawn,
         uses_checked_int_cast,
         uses_checked_long_cast,
-        type_usage.hashmap_type_names
+        type_usage.hashmap_type_names,
+        uses_task_observation
     );
 }

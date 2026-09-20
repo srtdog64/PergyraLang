@@ -311,7 +311,7 @@ func DirectMirScalarCfgEmitProgramLlvm(
         DirectMirScalarProgramLlvmRuntimeValueDeclarations(
             plan.program.expressions));
     TextBuilderAppend(output,
-        DirectMirScalarProgramLlvmIntentObservabilityDeclarations(
+        DirectMirScalarProgramLlvmExternalRuntimeDeclarations(
             plan.program.expressions));
     TextBuilderAppend(output, DirectMirScalarProgramLlvmCompilerArtifactDeclarations(plan.program.expressions, runtime));
     TextBuilderAppend(output,

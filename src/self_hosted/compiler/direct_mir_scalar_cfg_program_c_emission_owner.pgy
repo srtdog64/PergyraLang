@@ -192,7 +192,7 @@ func DirectMirScalarCfgEmitProgramC(
     let output: TextBuilder = TextBuilderNew(4096);
     TextBuilderAppend(output,
         "#include <stdbool.h>\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n");
-    TextBuilderAppend(output, DirectMirScalarProgramCIntentObservabilityPreamble(plan.program.expressions));
+    TextBuilderAppend(output, DirectMirScalarProgramCExternalRuntimePreamble(plan.program.expressions));
     if DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprCheckedAddInt()) ||
             DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprCheckedMulInt()) {
         TextBuilderAppend(output, CheckedBuiltinRuntimeCProgramBlock());
