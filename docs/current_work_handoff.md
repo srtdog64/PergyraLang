@@ -5,9 +5,11 @@ registries, and executable gates override it.
 
 Fixed builtin-effect and stored identity-receiver code checkpoints:
 `c77d461f71fff9a98b688c73ed976f8f3bbc9b4c` and
-`0565b3f531f861654b9faa32dc61a4b984acfb81`. This handoff is their docs-only
-publication descendant; Git HEAD/status and `origin/main` remain the authority
-for the final publication checkpoint. The
+`0565b3f531f861654b9faa32dc61a4b984acfb81`. Their integration checkpoint
+`71a24722e77a72254184e450c33303ea13b8f8db` passed exact-head CI run
+`35477874403` with all 31 jobs green. This handoff is its docs-only publication
+descendant; Git HEAD/status and `origin/main` remain the authority for the
+final publication checkpoint. The
 pre-existing untracked `._handoff_full.md`, `_agents_dump.txt`, `.agents/`, and
 `skills-lock.json` are not part of this packet.
 
@@ -65,8 +67,15 @@ Reached evidence and boundary:
   as `false` on native C/LLVM, while installed public C/LLVM both fail closed at
   `builtin_signature_owner.pgy` with `undefined_function`. That task-ABI bridge
   remains open behind the active Bool-store falsifier.
-- Exact-head remote CI has not yet run for these local commits. Do not describe
-  this packet as repository-green until the pushed head's 31 jobs complete.
+- Exact-head push run `35477874403` over
+  `71a24722e77a72254184e450c33303ea13b8f8db` is fully green: all 31 jobs
+  passed, including Windows, macOS C-only, TSan, ASan/UBSan, Rocq 9, both
+  self-host fixed points, Linux core and self-host contracts, and all 20
+  backend-compare shards.
+- The run took 40m34s wall time. `self-host-bootstrap-linux` took 39m24s and
+  exceeded the repository's 30-minute integration-shard target; the Linux
+  self-host contract shard took 24m06s. This is measured performance debt, not
+  a reason to weaken, retry, or silently skip the fixed-point proof.
 
 ## Previous self-host context — default Zone/World identity reaches public C/LLVM
 
