@@ -21,11 +21,22 @@ func DirectMirIdentityCellLifetimeReady(ref plan: DirectMirScalarCfgGraphPlan) -
     while parameter < ArrayLength(plan.routines.parameter_types) {
         let cell: Int = DirectMirIdentityCellRow(plan.program.logical_record.identity_cells,
             plan.routines.parameter_types[parameter]);
+        let owner: Int = DirectMirScalarCfgRoutinePartitionRangeOwner(
+            plan.routines.parameter_starts,
+            plan.routines.parameter_counts, parameter);
+        let ordinal: Int = -1;
+        if owner >= 0 {
+            ordinal = parameter - plan.routines.parameter_starts[owner];
+        }
+        let stored_receiver: Bool = owner >= 0 &&
+            DirectMirIdentityCellStoredReceiverParameterReady(
+                plan, owner, ordinal);
         if cell >= 0 &&
             !DirectMirScalarProgramIdentityCellParameterCarriageReady(
                 plan.program.logical_record.identity_cells,
                 plan.routines.parameter_types[parameter],
-                plan.routines.parameter_carriages[parameter]) {
+                plan.routines.parameter_carriages[parameter]) &&
+            !stored_receiver {
             return false;
         }
         parameter = parameter + 1;
@@ -90,10 +101,12 @@ func DirectMirIdentityCellLifetimeReady(ref plan: DirectMirScalarCfgGraphPlan) -
                         operand >= plan.routines.parameter_counts[callee] { return false; }
                     let parameter: Int = plan.routines.parameter_starts[callee] + operand;
                     if plan.routines.parameter_types[parameter] != type_name ||
-                        !DirectMirScalarProgramIdentityCellParameterCarriageReady(
-                            plan.program.logical_record.identity_cells,
-                            type_name,
-                            plan.routines.parameter_carriages[parameter]) {
+                        (!DirectMirScalarProgramIdentityCellParameterCarriageReady(
+                                plan.program.logical_record.identity_cells,
+                                type_name,
+                                plan.routines.parameter_carriages[parameter]) &&
+                         !DirectMirIdentityCellStoredReceiverParameterReady(
+                                plan, callee, operand)) {
                         return false;
                     }
                 } else { return false; }

@@ -151,7 +151,7 @@ func DirectMirScalarProgramCallableParameterRolePlanFromSignatureWithReferencedE
             DirectMirScalarProgramArrayReadonlyRefParameterReady(
                 signature, ordinal);
         let claim_count: Int = 0;
-        let identity_cell: Bool = DirectMirScalarProgramIdentityCellParameterReady(
+        let identity_cell: Bool = DirectMirScalarProgramIdentityCellParameterRoleReady(
             signature, ordinal, logical_record.identity_cells);
         if identity_cell { claim_count = claim_count + 1; }
         if direct_scalar { claim_count = claim_count + 1; }

@@ -1,5 +1,6 @@
 // Exact MIR parameter carriage admitted for compiler-private identity cells.
 import "direct_mir_identity_cell_fact_owner.pgy";
+import "direct_mir_routine_signature_fact_owner.pgy";
 
 func DirectMirScalarProgramIdentityCellParameterCarriageReady(
     ref cells: DirectMirIdentityCellFacts, type_name: String,
@@ -14,4 +15,68 @@ func DirectMirScalarProgramIdentityCellParameterCarriageReady(
     return (cells.nominal_kinds[cell] == "subject" ||
             cells.nominal_kinds[cell] == "vessel") &&
         carriage == "mutable-identity";
+}
+
+func DirectMirScalarProgramIdentityCellParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref cells: DirectMirIdentityCellFacts
+) -> Bool {
+    if ordinal < 0 || ordinal >= signature.param_count { return false; }
+    let type_name: String = signature.parameters.type_names[ordinal];
+    let carriage: String = signature.parameters.carriages[ordinal];
+    let admitted_carriage: Bool =
+        DirectMirScalarProgramIdentityCellParameterCarriageReady(
+            cells, type_name, carriage);
+    // An Intent's admitted binder retains its own protocol mode. Recognizing
+    // its cell representation does not discharge placement or cleanup.
+    if signature.kind == "intent" {
+        admitted_carriage = DirectMirIdentityCellRow(cells, type_name) >= 0 &&
+            carriage == "participant";
+    }
+    return admitted_carriage &&
+        signature.parameters.resources[ordinal] == "none" &&
+        signature.parameters.pass_shapes[ordinal] == "indirect" &&
+        !signature.parameters.abi_required[ordinal] &&
+        signature.parameters.abi_layout_ids[ordinal] == 0 &&
+        signature.parameters.abi_row_keys[ordinal] == "";
+}
+
+// A method receiver owns mutable identity in the routine header while its
+// implicit `self` parameter retains the producer's value/direct transport row.
+// This is not an ordinary value parameter and must remain tied to the exact
+// identity-cell declaration owned by the receiver header.
+func DirectMirScalarProgramIdentityCellReceiverParameterReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref cells: DirectMirIdentityCellFacts
+) -> Bool {
+    if !DirectMirRoutineSignatureFactReady(signature) ||
+        !DirectMirIdentityCellFactsReady(cells) ||
+        signature.kind != "method" ||
+        signature.receiver_carriage != "mutable-identity" ||
+        ordinal != 0 || signature.param_count < 1 {
+        return false;
+    }
+    let cell: Int = DirectMirIdentityCellRow(cells, signature.receiver_type);
+    return cell >= 0 &&
+        CallableReceiverNominalKindUsesMutableLiteralIdentity(
+            cells.nominal_kinds[cell]) &&
+        cells.declaration_rows[cell] == signature.receiver_owner_row &&
+        signature.parameters.names[ordinal] == "self" &&
+        signature.parameters.type_names[ordinal] == signature.receiver_type &&
+        signature.parameters.carriages[ordinal] == "value" &&
+        signature.parameters.resources[ordinal] == "none" &&
+        signature.parameters.pass_shapes[ordinal] == "direct" &&
+        !signature.parameters.abi_required[ordinal] &&
+        signature.parameters.abi_layout_ids[ordinal] == 0 &&
+        signature.parameters.abi_row_keys[ordinal] == "";
+}
+
+func DirectMirScalarProgramIdentityCellParameterRoleReady(
+    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
+    ref cells: DirectMirIdentityCellFacts
+) -> Bool {
+    return DirectMirScalarProgramIdentityCellParameterReady(
+            signature, ordinal, cells) ||
+        DirectMirScalarProgramIdentityCellReceiverParameterReady(
+            signature, ordinal, cells);
 }

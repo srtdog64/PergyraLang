@@ -214,35 +214,14 @@ func DirectMirScalarProgramLogicalRecordParameterReady(
     return signature.parameters.carriages[ordinal] == "readonly-ref" &&
         signature.parameters.pass_shapes[ordinal] == "indirect";
 }
-func DirectMirScalarProgramIdentityCellParameterReady(
-    ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
-    ref cells: DirectMirIdentityCellFacts
-) -> Bool {
-    if ordinal < 0 || ordinal >= signature.param_count { return false; }
-    let type_name: String = signature.parameters.type_names[ordinal];
-    let carriage: String = signature.parameters.carriages[ordinal];
-    let admitted_carriage: Bool =
-        DirectMirScalarProgramIdentityCellParameterCarriageReady(
-            cells, type_name, carriage);
-    // An Intent's admitted binder retains its own protocol mode. Recognizing
-    // its cell representation does not discharge placement or cleanup.
-    if signature.kind == "intent" {
-        admitted_carriage = DirectMirIdentityCellRow(cells, type_name) >= 0 &&
-            carriage == "participant";
-    }
-    return admitted_carriage &&
-        signature.parameters.resources[ordinal] == "none" &&
-        signature.parameters.pass_shapes[ordinal] == "indirect" &&
-        !signature.parameters.abi_required[ordinal] && signature.parameters.abi_layout_ids[ordinal] == 0 &&
-        signature.parameters.abi_row_keys[ordinal] == "";
-}
 func DirectMirScalarProgramCallableParameterSupportedWithFacts(
     ref signature: DirectMirRoutineSignatureFact, ordinal: Int,
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
     ref payload_free_enum: DirectMirScalarProgramPayloadFreeEnumFact
 ) -> Bool {
     return DirectMirScalarProgramCallableParameterSupported(signature, ordinal) ||
-        DirectMirScalarProgramIdentityCellParameterReady(signature, ordinal, logical_record.identity_cells) ||
+        DirectMirScalarProgramIdentityCellParameterRoleReady(
+            signature, ordinal, logical_record.identity_cells) ||
         DirectMirScalarProgramLogicalRecordParameterReady(
             signature, ordinal, logical_record) ||
         DirectMirScalarProgramLogicalRecordValueResultParameterReady(
