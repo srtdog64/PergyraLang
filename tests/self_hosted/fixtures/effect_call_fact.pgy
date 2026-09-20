@@ -24,6 +24,12 @@ func Main() -> Void {
     Log(body.capabilities.known_call_effects[clock_row] == time_effect && !body.capabilities.unknown_call_effects[clock_row]);
     Log(body.capabilities.known_call_effects[invoke_row] == time_effect && body.capabilities.deferred_uses[invoke_row]);
     Log(SemanticBuiltinFixedEffectMask("Now") == time_effect);
+    Log(SemanticBuiltinFixedEffectMask("Cancel") ==
+        SemanticEffectMaskForWord("remote") &&
+        SemanticBuiltinFixedEffectMask("IsCancelled") ==
+        SemanticEffectMaskForWord("remote") &&
+        SemanticBuiltinFixedEffectMask("Measure") ==
+        SemanticEffectMaskForWord("collapse"));
     Log(SemanticBuiltinFixedEffectMask("ArrayLength") == 0 &&
         SemanticBuiltinFixedEffectMask("ArrayPush") == 0);
     Log(SemanticBuiltinFixedEffectMask("Substring") == 0 &&

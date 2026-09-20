@@ -5,6 +5,8 @@ import "effect_mask_owner.pgy";
 func SemanticBuiltinFixedEffectMask(name: String) -> Int {
     if name == "Now" { return SemanticEffectMaskForWord("nondeterministic"); }
     if name == "Cancel" { return SemanticEffectMaskForWord("remote"); }
+    if name == "IsCancelled" { return SemanticEffectMaskForWord("remote"); }
+    if name == "Measure" { return SemanticEffectMaskForWord("collapse"); }
     if name == "Random" { return SemanticEffectMaskForWord("nondeterministic"); }
     if name == "SeedRandom" { return SemanticEffectMaskForWord("nondeterministic"); }
     if name == "ReadLine" { return SemanticEffectMaskForWord("nondeterministic"); }

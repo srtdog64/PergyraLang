@@ -18,7 +18,7 @@ timeout 240 "$PGY" --native-pipeline --backend=c --opt=dev \
     tests/self_hosted/fixtures/effect_call_fact.pgy -o "$WORK/probe.exe" >"$WORK/compile.log" 2>&1
 timeout 30 "$WORK/probe.exe" "$WORK/control.ast" >"$WORK/raw" 2>"$WORK/err"
 tr -d '\r' <"$WORK/raw" >"$WORK/actual"
-for ((i=0; i<17; i++)); do printf 'true\n'; done >"$WORK/expected"
+for ((i=0; i<18; i++)); do printf 'true\n'; done >"$WORK/expected"
 [[ ! -s "$WORK/err" ]]
 cmp "$WORK/expected" "$WORK/actual"
-echo '[effect-call-fact] 17 effect/isolation/unknown/missing-row controls PASS'
+echo '[effect-call-fact] 18 effect/isolation/unknown/missing-row controls PASS'

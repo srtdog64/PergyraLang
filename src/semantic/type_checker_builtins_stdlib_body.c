@@ -328,7 +328,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
 
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        semantic_record_effect(ctx, EFFECT_REMOTE);
+        semantic_record_builtin_effect(ctx, expr, name);
         if (semantic_reject_active_slot_view_boundary(expr, ctx,
                 "cancel cleanup boundary",
                 "cancel may trigger task cleanup on another execution frontier",
@@ -360,13 +360,13 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     case STDLIB_BODY_IS_CANCELLED:
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;
-        semantic_record_effect(ctx, EFFECT_REMOTE);
+        semantic_record_builtin_effect(ctx, expr, name);
         return TYPE_BOOL;
 
     case STDLIB_BODY_MEASURE:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        semantic_record_effect(ctx, EFFECT_COLLAPSE);
+        semantic_record_builtin_effect(ctx, expr, name);
         require_assignable(type_check_qubit_use(arg0, ctx),
             TYPE_QUBIT, arg0, ctx);
         /* State validation: CLASSICAL qubits cannot be measured */

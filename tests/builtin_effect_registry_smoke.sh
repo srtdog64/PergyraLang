@@ -13,6 +13,7 @@ import sys
 root = Path(sys.argv[1])
 registry = (root / "src/semantic/builtin_effect_registry.def").read_text(encoding="utf-8")
 names = set(re.findall(r'PGY_BUILTIN_EFFECT\("([^"]+)"', registry))
+assert {"Cancel", "IsCancelled", "Measure"} <= names
 consumers = [root / "src/semantic" / name for name in (
     "type_checker_builtins_stdlib_body.c", "type_checker_builtins_stdlib_scalar.c",
     "type_checker_builtins_nominal.c", "type_checker_builtins_stdlib_collections.c",
@@ -22,6 +23,17 @@ for consumer in consumers:
     assert not re.search(r'semantic_record_effect\(ctx, EFFECT_(?:NONDETERMINISTIC|IO)\)', text), consumer
     for name in re.findall(r'semantic_record_builtin_effect\(ctx, (?:expr|call), "([^"]+)"\)', text):
         assert name in names, name
+stdlib_body = (root / "src/semantic/type_checker_builtins_stdlib_body.c").read_text(encoding="utf-8")
+for name in ("Cancel", "IsCancelled", "Measure"):
+    case_name = re.sub(r"(?<!^)(?=[A-Z])", "_", name).upper()
+    case = re.search(
+        rf'case STDLIB_BODY_{case_name}:(.*?)(?=\n\s*case STDLIB_BODY_|\n\s*default:)',
+        stdlib_body,
+        flags=re.S,
+    )
+    assert case is not None, name
+    assert "semantic_record_builtin_effect(ctx, expr, name);" in case.group(1), name
+    assert not re.search(r'semantic_record_effect\(ctx, EFFECT_(?:REMOTE|COLLAPSE)\)', case.group(1)), name
 groups = (
     ("type_checker_builtins_stdlib_scalar.c", r'\{ "([A-Za-z0-9]+)", stdlib_scalar_check_', set()),
     ("type_checker_builtins_stdlib_collections.c", r'\{ "([A-Za-z0-9]+)", STDLIB_COLLECTION_', {"ArrayMap", "ArrayFilter"}),

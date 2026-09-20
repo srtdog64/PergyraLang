@@ -1,0 +1,9 @@
+func Observe() -> Int with effects local {
+    let q: QubitSlot = ClaimQubit();
+    let result: Int = Measure(q);
+    ReleaseQubit(q);
+    return result;
+}
+
+func Main() -> Void {
+}

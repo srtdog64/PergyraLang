@@ -1,0 +1,6 @@
+func CheckCancellation() -> Bool with effects local {
+    return IsCancelled();
+}
+
+func Main() -> Void {
+}

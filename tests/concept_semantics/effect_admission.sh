@@ -87,6 +87,26 @@ effect_builtin_argument_rejected|nondeterministic|Main
 effect_mutator_argument_rejected|nondeterministic|Main
 effect_builtin_shadow_rejected|nondeterministic|Main
 CASES
+while IFS='|' read -r name expected owner; do
+    source="tests/concept_semantics/authority_effect/$name.pgy"
+    sha256sum "$source" >>"$WORK/inputs.sha256"
+    checks=$((checks + 1))
+    status=0
+    timeout 30 "$PGY" --native-pipeline --mir-json --error-format=json \
+        "$source" >"$WORK/$name.native.out" 2>"$WORK/$name.native.err" || status=$?
+    if [[ "$status" != 1 ]] || grep -Fq '"pgy.mir.v1"' "$WORK/$name.native.out" ||
+        ! grep -Fq 'PGY_SEM_EFFECT_CONFLICT' "$WORK/$name.native.out" "$WORK/$name.native.err" ||
+        ! grep -Fq "Function '$owner' is missing declared effects: $expected" \
+            "$WORK/$name.native.out" "$WORK/$name.native.err"; then
+        echo "[effect-admission] FAIL $name/native fixed-effect refusal absent (status $status)" >&2
+        failures=$((failures + 1))
+    else
+        echo "[effect-admission] PASS $name/native fixed-effect refusal"
+    fi
+done <<'NATIVE_FIXED_CASES'
+effect_is_cancelled_rejected|remote|CheckCancellation
+effect_measure_rejected|nondeterministic, collapse|Observe
+NATIVE_FIXED_CASES
 admission_checks=$checks
 admission_failures=$failures
 while IFS='|' read -r name expected; do

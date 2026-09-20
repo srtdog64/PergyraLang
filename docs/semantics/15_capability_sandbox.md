@@ -164,10 +164,14 @@ it is not rebuilt as another possible-callee analysis. Native bounds consume
 the sealed fixed point. Partial type summaries remain available for existing
 branch/parallel diagnostics, but cannot feed the fixed point as direct effects.
 
-The reached scalar/string/math, non-callback collection and HashMap dispatch
-families require a registry row. A fixed local mask does not promise purity,
-absence of allocation or backend support. Argument effects are still joined
-independently, and lexical callable identity wins over builtin spelling.
+The reached scalar/string/math, task-cancellation/observation, quantum
+measurement, non-callback collection and HashMap dispatch families require a
+registry row. `Cancel` and `IsCancelled` therefore obtain `remote`, while
+`Measure` obtains `collapse`, from the same owner as the generated Pergyra
+projection rather than backend-local constants. A fixed local mask does not
+promise purity, absence of allocation or backend support. Argument effects are
+still joined independently, and lexical callable identity wins over builtin
+spelling.
 `ArrayMap` and `ArrayFilter` invoke callbacks and are explicitly excluded from
 fixed-local classification. The registry gate compares the complete reached
 dispatch inventories; an added operation cannot silently default to local.
@@ -189,7 +193,9 @@ unknown and prevent verification of an annotated bound. The regression named
 `effect_unclassified_call.pgy` now requires valid `ArrayLength` admission and
 exact execution under a local bound. Signature availability and C/LLVM lowering
 remain separate obligations: a fixed effect row alone cannot admit or implement
-an operation. Current outcomes and the next falsifier belong only in the
+an operation. In particular, the fixed `IsCancelled` row does not claim that
+the public self-host task ABI already admits or lowers that call. Current
+outcomes and the next falsifier belong only in the
 [active snapshot](../current_work_handoff.md).
 Operand-dependent resource/callback builtin effects, other statement/suspension
 effects and general deferred boundary checks remain distinct obligations.
