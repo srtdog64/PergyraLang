@@ -3,14 +3,72 @@
 Updated: 2026-09-20 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-Default Zone/World identity-parameter code checkpoint:
-`d9ba515931fba7af8fb8f67ef15909a7ada73fcf`. This handoff is its docs-only
+Fixed builtin-effect and stored identity-receiver code checkpoints:
+`c77d461f71fff9a98b688c73ed976f8f3bbc9b4c` and
+`0565b3f531f861654b9faa32dc61a4b984acfb81`. This handoff is their docs-only
 publication descendant; Git HEAD/status and `origin/main` remain the authority
 for the final publication checkpoint. The
 pre-existing untracked `._handoff_full.md`, `_agents_dump.txt`, `.agents/`, and
 `skills-lock.json` are not part of this packet.
 
-## Active self-host context — default Zone/World identity reaches public C/LLVM
+## Active self-host context — identity-cell Bool store is the next LLVM falsifier
+
+Objective card:
+- Objective: make the existing identity-cell store receipt project a Bool
+  receiver-field update through installed public LLVM without weakening its
+  exact method-receiver or field-type evidence.
+- Priority: retained expression identity, exact field type, shared store
+  receipt, C/LLVM execution parity, negative mismatch ratchet, then broader
+  String-field coverage.
+- Fact owner: `DirectMirIdentityCellStoreFact` owns the receiver, field ordinal,
+  field type, and value-expression row. The typed expression set owns the
+  `logical_not` operand/result identity.
+- Last legitimate consumers: `DirectMirIdentityCellLlvmStore` and
+  `DirectMirScalarProgramLlvmExpressionAt`; neither may recover the field type
+  from source text or substitute a C-only result.
+- Forbidden fallback: treating `self` as a copied value, admitting every
+  identity-typed `value/direct` parameter, fixture-specific constants, erasing
+  Bool to Int, or calling a native/C path when public LLVM projection fails.
+- Gate/falsifier:
+  `tests/concept_semantics/authority_effect/identity_cell_receiver_valid.pgy`
+  executes as `4,true,changed,15` on installed public C. Installed public LLVM
+  currently fails closed with `direct MIR scalar CFG LLVM expression is
+  invalid: routine=0 operation=2 expression_row=2`. Add it to the maintained
+  source-admission execution matrix only after both backends execute exactly.
+
+Reached evidence and boundary:
+- `c77d461f71fff9a98b688c73ed976f8f3bbc9b4c` makes
+  `builtin_effect_registry.def` the shared fixed-effect owner for `Cancel`,
+  `IsCancelled`, and `Measure`; the native checker no longer records duplicate
+  `remote` or `collapse` constants. The generated Pergyra projection is fresh.
+- The effect gates pass 60 admission and 28 execution checks. The self-host
+  projection probe passes 18 controls, and the semantic suite passes
+  2,944/2,944. A fixed effect row still does not assert signature or backend
+  support.
+- `0565b3f531f861654b9faa32dc61a4b984acfb81` distinguishes the exact
+  mutable-identity method header from its implicit `self` `value/direct`
+  transport row. Callable role admission consumes that pair, and lifetime
+  admission accepts it only when an existing `IdentityCellStore` operation
+  carries the stored-receiver receipt. General identity value parameters remain
+  rejected.
+- The formerly red `action_authority_valid.public.llvm` execution now prints
+  `0`; source admission passes 50/50. The Zone/World direct-MIR gate still
+  rejects value-carriage mutants and executes installed public C/LLVM exactly.
+  The component contract passes 2,440 line-cap requests, 1,033 function
+  extractions, and 697 reuses without raising a cap.
+- The installed DRV-2 SHA-256 is
+  `FC8D7C7EC34CB3148D24BF3FD319ADE3B40E5D0C92695668804FA5DD60E4F30B`.
+  SoT/protocol gates remain 89 authorities / 189 carriers,
+  `CLOSED=58 / BRIDGE=29 / ACTIVE=2`, and 10 protocol rows. No row was
+  promoted by this bounded packet.
+- A valid `IsCancelled()` program with `remote` declared compiles and executes
+  as `false` on native C/LLVM, while installed public C/LLVM both fail closed at
+  `builtin_signature_owner.pgy` with `undefined_function`. That task-ABI bridge
+  remains open behind the active Bool-store falsifier.
+- Exact-head remote CI has not yet run for these local commits. Do not describe
+  this packet as repository-green until the pushed head's 31 jobs complete.
+
+## Previous self-host context — default Zone/World identity reaches public C/LLVM
 
 Objective card:
 - Objective: make the documented automatic-reference rule real for default-mode
@@ -42,10 +100,10 @@ Reached evidence and boundary:
 - Identity-cell declarations now admit the bounded nesting
   `World -> Zone -> Subject`. C and LLVM borrow the existing cell pointer;
   neither invents a passive-record address nor copies hidden lock storage.
-- A fresh public LLVM run exposed a self-host lowering hazard: a successful
-  mutable-identity `else if` branch fell through to the following rejection.
-  The carriage owner now returns its owned predicate from that branch, and the
-  component contract pins the terminating form.
+- The reached failure was a source predicate/branch-ownership error in the
+  carriage owner, not a generic `else if` lowering defect. A later executable
+  counterexample proved ordinary self-host `else if` parity; the owner now
+  returns its exact predicate and the component contract pins that form.
 - The full zone-sync gate passes copy/reassignment and Zone/World-return
   refusals, explicit-ref lifecycle, self-MIR C/LLVM value-mutation refusal, and
   installed public outputs `Zone=7` and `World=1` on both C and LLVM. The
