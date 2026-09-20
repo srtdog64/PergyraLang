@@ -1,5 +1,6 @@
 // Shared AstTreeArtifact -> self-host MIR fact graph producer.
 import "program_fact_owner.pgy";
+import "program_domain_projection_owner.pgy";
 import "../semantic/callable_receiver_carriage_policy_owner.pgy";
 import "declaration_rows_owner.pgy";
 import "routine_entry_owner.pgy";
@@ -246,13 +247,6 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
     );
 }
 
-// Driver verification owns whole-semantic readiness before MIR materialization.
-// This borrowed entrypoint must not repeat that graph-wide proof.
-struct SelfMirProgramDomainProjection {
-    let facts: SelfMirProgramFacts;
-    let domain_graph: SelfDirDomainGraphFacts;
-}
-
 func SelfMirArtifactPressureStage(enabled: Bool, stage: String) -> Void {
     if enabled {
         Log(Concat("[driver-pressure-stage] mir-facts:", stage));
@@ -268,69 +262,6 @@ func SelfMirArtifactRoutinePressureStage(
             Concat(kind, Concat(":", Concat(ToString(row), Concat(":", state))))
         ));
     }
-}
-
-func SelfMirProgramDomainFactsFromReadyArtifact(
-    artifact: AstTreeArtifact,
-    analysis: SemanticAstArtifactAnalysis
-) -> SelfMirProgramDomainProjection {
-    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty( artifact.count, analysis.expression_surfaces.expression_graph);
-    let enum_facts: SemanticAstEnumFacts = analysis.enums;
-    if !enum_facts.ok {
-        return SelfMirProgramDomainProjection(
-            SelfMirProgramFactsError(
-                facts, "mir_artifact_invalid",
-                "MIR domain producer requires complete enum variant facts"
-            ),
-            SelfDirDomainGraphFactsAbsent()
-        );
-    }
-    let declarations: SelfMirDeclarationRows =
-        SelfMirDeclarationsFromAnalysis(artifact, analysis, enum_facts);
-    let domain_graph: SelfDirDomainGraphFacts =
-        SelfDirDomainGraphFactsFromArtifact(
-            artifact, declarations, analysis.signatures,
-            analysis.intent_signatures, analysis.intent_transitions,
-            analysis.expression_surfaces, analysis.constructors,
-            analysis.function_tables, analysis.zone_authorities, analysis.roles
-        );
-    if !SelfDirDomainGraphFactsReady(domain_graph) {
-        return SelfMirProgramDomainProjection(
-            SelfMirProgramFactsError(
-                facts, "mir_domain_graph_invalid",
-                domain_graph.diagnostic_message
-            ),
-            domain_graph
-        );
-    }
-    let domain_topology: SelfMirDomainTopologyFacts =
-        SelfMirDomainTopologyFactsFromSelfDir(domain_graph);
-    let domain_projection_maps: SelfDirDomainProjectionMapRows =
-        SelfDirDomainProjectionMapRowsFromArtifact(artifact);
-    let domain_runtime_assignments: SelfMirDomainRuntimeAssignmentFacts =
-        SelfMirDomainRuntimeAssignmentsFromFacts(
-            declarations, analysis.constructors, domain_topology,
-            domain_projection_maps
-        );
-    if !domain_runtime_assignments.ok {
-        return SelfMirProgramDomainProjection(
-            SelfMirProgramFactsError(
-                facts, "mir_domain_runtime_assignment_invalid",
-                "MIR producer requires exact domain participant and projection assignment facts"
-            ),
-            domain_graph
-        );
-    }
-    return SelfMirProgramDomainProjection(
-        SelfMirProgramFacts(
-            true, "", "", artifact.count, declarations,
-            domain_topology, domain_runtime_assignments,
-            facts.generic_specializations, facts.parallel_captures,
-            facts.routines, facts.cfg, facts.instruction_abi_receipts,
-            facts.expression_graph, facts.intent_execution
-        ),
-        domain_graph
-    );
 }
 
 func SelfMirProgramFactsBeforeCanonicalIdsObserved(

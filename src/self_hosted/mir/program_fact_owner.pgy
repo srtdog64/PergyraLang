@@ -596,7 +596,3 @@ func SelfMirCfgAttachLastMatchCase(
 func SelfMirCfgBlockCount(cfg: SelfMirCfgRows) -> Int {
     return ArrayLength(cfg.blocks.ids);
 }
-
-func SelfMirCfgInstructionCount(cfg: SelfMirCfgRows) -> Int {
-    return ArrayLength(cfg.instructions.ids);
-}

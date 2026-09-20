@@ -3,9 +3,9 @@
 // This owner joins assignment rows with signature, scope, local, and
 // initializer type facts. Unknown types fail closed; no backend guesses them.
 import "ast_assignment_fact_owner.pgy";
+import "ast_assignment_target_graph_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
-import "../lib/source_scan_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
@@ -45,55 +45,6 @@ func SemanticAstAssignmentTypeStructuralError(artifact: AstTreeArtifact, depende
             "owner", "SemanticAstAssignmentTypeFacts", "dependency", dependency), artifact.count,
         empty_ints, empty_strings, empty_strings, empty_strings,
         empty_strings, empty_strings, empty_ints, empty_strings, empty_strings);
-}
-func SemanticAstAssignmentIndexRoot(ref graph: SemanticExpressionGraphFacts,
-    target_root: Int
-) -> Option<Int> {
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph, target_root
-    );
-    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeIndex() {
-        return None;
-    }
-    return SemanticExpressionGraphRightChild(graph, target_root);
-}
-func SemanticAstAssignmentTargetBaseRoot(
-    ref graph: SemanticExpressionGraphFacts,
-    target_root: Int
-) -> Option<Int> {
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph, target_root
-    );
-    if !IsSome(kind) { return None; }
-    if UnwrapOption(kind) == AstExpressionNodeIndex() {
-        return SemanticExpressionGraphLeftChild(graph, target_root);
-    }
-    return Some(target_root);
-}
-func SemanticAstAssignmentTargetBindingName(
-    ref graph: SemanticExpressionGraphFacts,
-    node_id: Int
-) -> Option<String> {
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
-    if !IsSome(kind) { return None; }
-    if UnwrapOption(kind) == AstExpressionNodeLeaf() {
-        let name: Option<String> = SemanticExpressionGraphNodeText(
-            graph, node_id
-        );
-        if IsSome(name) && IsIdentifier(UnwrapOption(name)) { return name; }
-        return None;
-    }
-    if UnwrapOption(kind) != AstExpressionNodeMemberAccess() &&
-        UnwrapOption(kind) != AstExpressionNodeIndex() {
-        return None;
-    }
-    let receiver: Option<Int> = SemanticExpressionGraphLeftChild(
-        graph, node_id
-    );
-    if !IsSome(receiver) { return None; }
-    return SemanticAstAssignmentTargetBindingName(
-        graph, UnwrapOption(receiver)
-    );
 }
 func SemanticAstAssignmentTypeFactsFromArtifact(
     artifact: AstTreeArtifact,

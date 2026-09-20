@@ -79,11 +79,15 @@ func DirectMirRoutineHasNoUnsupportedFacts(
         DirectMirObjectArrayEmpty(routine, "loop_flow_states") &&
         DirectMirObjectArrayEmpty(routine, "iteration_type_facts") &&
         DirectMirObjectArrayEmpty(routine, "destructure_type_facts") &&
+        DirectMirObjectArrayEmpty(routine, "collection_ownership_facts") &&
         DirectMirObjectNumberEquals(routine, "resource_flow_symbol_count", "0") &&
         DirectMirObjectNumberEquals(routine, "loop_flow_summary_count", "0") &&
         DirectMirObjectNumberEquals(routine, "loop_flow_state_count", "0") &&
         DirectMirObjectNumberEquals(routine, "iteration_type_fact_count", "0") &&
-        DirectMirObjectNumberEquals(routine, "destructure_type_fact_count", "0");
+        DirectMirObjectNumberEquals(routine, "destructure_type_fact_count", "0") &&
+        DirectMirObjectNumberEquals(
+            routine, "collection_ownership_fact_count", "0"
+        );
 }
 
 func DirectMirRoutineHasNoUnsupportedFactsExceptLoop(
@@ -95,10 +99,13 @@ func DirectMirRoutineHasNoUnsupportedFactsExceptLoop(
         !JsonObjectFactHasField(routine, "function_param_flow_summaries") &&
         DirectMirObjectArrayEmpty(routine, "resource_flow_symbols") &&
         DirectMirObjectArrayEmpty(routine, "destructure_type_facts") &&
+        DirectMirObjectArrayEmpty(routine, "collection_ownership_facts") &&
         DirectMirObjectNumberEquals(
             routine, "resource_flow_symbol_count", "0"
         ) && DirectMirObjectNumberEquals(
             routine, "destructure_type_fact_count", "0"
+        ) && DirectMirObjectNumberEquals(
+            routine, "collection_ownership_fact_count", "0"
         );
 }
 

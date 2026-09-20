@@ -29,34 +29,7 @@ import "ast_cancel_admission_owner.pgy";
 import "ast_unsafe_block_admission_owner.pgy";
 import "ast_enum_payload_variant_provenance_verdict_owner.pgy";
 import "ast_capability_fact_owner.pgy";
-struct SemanticAstBodyTypeBundle {
-    verdict: SemanticAstBodyVerdict;
-    initializer_types: SemanticAstInitializerTypeFacts;
-    iteration_types: SemanticAstIterationTypeFacts;
-    assignment_types: SemanticAstAssignmentTypeFacts;
-    statement_types: SemanticAstStatementTypeFacts; match_materializations: SemanticAstMatchMaterializationFacts;
-    collection_ownership: SemanticAstCollectionOwnershipVerdict;
-    zone_carriage: SemanticAstZoneValueCarriageVerdict;
-    generic_specializations: SemanticAstGenericSpecializationFacts;
-    capabilities: SemanticAstCapabilityFacts;
-}
-func SemanticAstBodyTypeBundleAdmissionError(artifact: AstTreeArtifact, message: String
-) -> SemanticAstBodyTypeBundle {
-    let empty_ints: Array<Int> = [];
-    let empty_strings: Array<String> = [];
-    return SemanticAstBodyTypeBundle(
-        SemanticAstBodyVerdictError("body_analysis_admission", message, -1),
-        SemanticAstInitializerTypeStructuralError(artifact),
-        SemanticAstIterationTypeStructuralError(artifact),
-        SemanticAstAssignmentTypeStructuralError(artifact, "BodyAnalysisAdmission"),
-        SemanticAstStatementTypeStructuralError(artifact, "BodyAnalysisAdmission"), SemanticAstMatchMaterializationError(artifact),
-        SemanticAstCollectionOwnershipVerdictError(
-            "body_analysis_admission", message, -1, -1),
-        SemanticAstZoneValueCarriageVerdictError("body_analysis_admission", message, -1),
-        SemanticAstGenericSpecializationError("body_analysis_admission", message,
-            empty_ints, empty_ints, empty_ints, empty_ints, empty_strings),
-        SemanticAstCapabilityFactsError(artifact, message));
-}
+import "ast_body_type_bundle_schema_owner.pgy";
 func SemanticAstBodyTypeStage(enabled: Bool, stage: String) -> Void { if enabled { Log(Concat("[semantic-body-type-stage] ", stage)); } }
 func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis, observe_pressure: Bool,

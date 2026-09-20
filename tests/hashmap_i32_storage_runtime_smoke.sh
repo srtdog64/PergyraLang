@@ -5,10 +5,11 @@ cd "$ROOT_DIR"
 mkdir -p .tmp/self_hosted
 WORK="$(mktemp -d .tmp/self_hosted/hashmap-i32-runtime.XXXXXX)"
 CC_BIN="${CC:-gcc}"
+RUNTIME_LINK_FLAGS=(-pthread -lm)
 
 "$CC_BIN" -std=c11 -O2 -Wall -Wextra -Werror=implicit-function-declaration \
     -Isrc tests/hashmap_i32_storage_runtime.c -o "$WORK/runtime.exe" \
-    -lwinpthread -lm
+    "${RUNTIME_LINK_FLAGS[@]}"
 "$WORK/runtime.exe" >"$WORK/out" 2>"$WORK/err"
 grep -Fxq 'hashmap i32 storage runtime: ok' "$WORK/out"
 if ! grep -Fq 'allocation failed' "$WORK/err"; then

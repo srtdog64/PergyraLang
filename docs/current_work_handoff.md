@@ -3,9 +3,10 @@
 Updated: 2026-09-21 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-This packet starts from `59fd5a19623fcb887199ce120c065a4537d5ff68` and closes
-the reached typed-HashMap storage plus collection-ownership carrier sub-rung.
-Git HEAD/status and the exact-head CI run remain the publication authority.
+This packet starts from `612cb85ac6f8c0be4b26fe5e651fab2c6c6f234c` and repairs
+the exact-head CI integration for the reached typed-HashMap storage plus
+collection-ownership carrier sub-rung. Git HEAD/status and the exact-head CI
+run remain the publication authority.
 The pre-existing untracked `._handoff_full.md`, `_agents_dump.txt`, `.agents/`,
 and `skills-lock.json` are not part of this packet.
 
@@ -53,6 +54,14 @@ Reached evidence and boundary:
   `origin=unknown` with `owned-elements` or `retired`. Parser-local numeric IDs
   need not match between implementations; each carrier must join its own
   stable identity graph and preserve the same meaning.
+- Direct-MIR bounded consumers now reject non-empty collection-ownership rows
+  until they own a real consumer. The role-override route admits the two new
+  mandatory empty carrier fields instead of pinning the obsolete routine JSON
+  field count; its complete installed replacement frontier is green locally.
+- The four typed-key runtime suites and the 86-check HashMap admission campaign
+  are target-reachable dependencies of the CI collection-ownership aggregate,
+  not manual or historical registry evidence. Their runtime link policy is
+  host-neutral (`-pthread`, with Winsock only on Windows raw-runtime legs).
 - Red-team falsification found that ownership-`UNKNOWN` can still reach
   `ArrayDropOwnedStrings`. Immediate global refusal breaks real compiler arrays
   whose `own String`, fresh-return, aggregate-field move, ordinary-push value,
@@ -66,15 +75,30 @@ Reached evidence and boundary:
   The pending `unknown_string_array_drop.pgy` and
   `shadowed_map_keys_drop.pgy` fixtures are the next fail-closed falsifiers; do
   not claim them green and do not add an automatic type/name-based drop.
-- Last observed green gates on Windows UCRT64: `make pgy`,
-  `make self-host-compiler`, MIR 216/216, semantic 2944/2944, transpiler
-  978/978, HashMap admission 86/86, all four typed-storage runtime suites,
-  20 self-host carrier mutations, installed/public ownership parity, and the
-  95-authority/191-derived SoT edge gate. The installed driver SHA-256 is
-  `B53BD4E229ECA609AC93BFBA2F717F3ED395DE083A0A4B8AED3828333F6327A1`.
+- Last observed green gates on Windows UCRT64: `make pgy`, rebuilt
+  `make self-host-compiler`, the complete
+  `self-host-preparation-contract-test-smoke`, MIR 216/216, semantic
+  2944/2944, transpiler 978/978, HashMap admission 86/86, all four typed-storage
+  runtime suites, 20 self-host carrier mutations, installed/public ownership
+  parity, and the 95-authority/191-derived SoT edge gate. The complete
+  component contract now passes 2,466 line-cap requests, 1,036 function
+  extractions, 699 reuses, and removed-path ratchets. The repaired installed
+  replacement-frontier gate also passes with 16 role MIR negatives. The
+  installed driver SHA-256 is
+  `371966E0F063BFFA5041832911D04748D201BF479978185685B1560A22C109EC`.
   Bootstrap emitted one existing unreachable-statement warning. This host has
   no `rocq`/`coqc`; 49 formal proofs were explicitly skipped rather than
   reported as machine-checked.
+- Exact-head CI run `35534015237` for parent packet `612cb85a` exposed obsolete
+  role routine field counts, missing gate reachability edges, and the stale
+  Linux self-host shard inventory count. It also exposed missing new-owner
+  registration and pre-existing/packet-grown responsibility files beyond their
+  line caps. The repair updates the fail-closed role admission and actual CI
+  reachability, registers every owner, moves graph/schema/domain/fixture
+  responsibilities behind named owners, removes two zero-consumer `-1`
+  sentinel returns, and tightens likeness ratchets to 74 text-munging paths,
+  20 sentinels, and 5,228 Result/Option uses. The next pushed SHA must still
+  complete every remote job before this repair is called published.
 
 The overall goal remains ACTIVE after every row. Closing one row is progress,
 not completion of whole-project SoT closure or self-hosting.
@@ -360,7 +384,7 @@ Reached evidence and boundary:
   `CLOSED=58 / BRIDGE=29 / ACTIVE=2`; this bounded builtin bridge does not
   promote the broader effect-policy or runtime-call rows.
 - The Linux push self-host shard now includes the focused task gate. Its static
-  profile owns 30 prebuilt gates plus the build-mode compiler step; the stale
+  profile owns 31 prebuilt gates plus the build-mode compiler step; the stale
   28-gate count that caused the previous red contract job is removed.
 
 ## Previous self-host context — default Zone/World identity reaches public C/LLVM

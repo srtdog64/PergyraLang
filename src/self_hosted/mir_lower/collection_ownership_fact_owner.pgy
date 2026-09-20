@@ -188,16 +188,3 @@ func BuildMirCollectionOwnershipFacts(
         ownerships, dispositions, origins
     );
 }
-
-func MirCollectionOwnershipFactRowForBinding(
-    ref facts: MirCollectionOwnershipFacts,
-    binding_syntax_id: Int
-) -> Int {
-    if !facts.valid || binding_syntax_id <= 0 { return -1; }
-    let row: Int = 0;
-    while row < ArrayLength(facts.binding_syntax_ids) {
-        if facts.binding_syntax_ids[row] == binding_syntax_id { return row; }
-        row = row + 1;
-    }
-    return -1;
-}

@@ -1277,9 +1277,9 @@ fi
 require_file "src/self_hosted/mir/instruction_validation_owner.pgy"
 require_text "src/self_hosted/mir/program_verify_owner.pgy" \
     "SelfMirAssignmentTargetGraphValidationError"
-require_text "src/self_hosted/mir/program_verify_owner.pgy" \
+require_text "src/self_hosted/mir/program_assignment_target_graph_contract_owner.pgy" \
     "valid_member, member_target_graph.graph"
-require_text "src/self_hosted/mir/program_verify_owner.pgy" \
+require_text "src/self_hosted/mir/program_assignment_target_graph_contract_owner.pgy" \
     "missing_member_base_use, member_target_graph.graph"
 target_attach_count="$(grep -Fc -- \
     "SelfMirRoutineAttachLastSecondaryExpressionGraph(" \

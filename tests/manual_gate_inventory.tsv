@@ -12,7 +12,6 @@ tests/concept_semantics/field_write_admission.sh	Manual concept counterexample c
 tests/concept_semantics/generic_bound_admission.sh	Manual concept counterexample campaign; explicit run only.
 tests/concept_semantics/generic_call_occurrence.sh	Manual concept counterexample campaign; explicit run only.
 tests/concept_semantics/generic_instantiation_execution.sh	Manual concept experiment; registry citation is historical, not CI evidence.
-tests/concept_semantics/hashmap_admission.sh	Manual concept counterexample campaign; explicit run only.
 tests/concept_semantics/intent/terminal_substitution_smoke.sh	Manual concept counterexample campaign; explicit run only.
 tests/concept_semantics/intent_capability_admission.sh	Manual concept counterexample campaign; explicit run only.
 tests/concept_semantics/named_enum_match_admission.sh	Manual concept counterexample campaign; explicit run only.

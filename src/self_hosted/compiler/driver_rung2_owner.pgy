@@ -125,8 +125,7 @@ func DriverRung2MirProjectionFromVerifiedFactsObserved(
         artifact, verified.analysis, verified.body_types.initializer_types,
         verified.body_types.iteration_types,
         verified.body_types.assignment_types, verified.body_types.match_materializations,
-        verified.body_types.statement_types,
-        verified.body_types.collection_ownership,
+        verified.body_types.statement_types, verified.body_types.collection_ownership,
         verified.body_types.generic_specializations,
         machine_declaration, observe_pressure
     );

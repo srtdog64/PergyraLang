@@ -98,7 +98,10 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 # checked-division symbol pair is one typed fact and the collection runtime
 # symbol prefix consumes a validated Int kind code, so the remaining compiler-
 # core String -> String surface measures 76 and stays a shrink-only inventory.
-CORE_STRING_MUNGE_SIG_MAX=76
+# 76 -> 74 (2026-09-21): the typed HashMap storage and collection-ownership
+# carrier packet removes two compiler-core text-to-text paths. Preserve the
+# measured reduction while the next ownership execution rung remains ACTIVE.
+CORE_STRING_MUNGE_SIG_MAX=74
 AST_STRING_SURFACE_MAX=0
 # 0 -> 11 (2026-07-27): audit repaired a stale ratchet baseline. The exact
 # pre-change HEAD already contains these 11 tracked `-1` comparisons/returns;
@@ -386,9 +389,12 @@ SENTINEL_MAX=20
 # explicit Option<String> fact so C and LLVM do not infer an anonymous layout.
 # 4519 -> 4768 (2026-09-05): reconcile the accumulated typed-owner surface and
 # require the new exact match-origin lookup to return Option<Int>, including
-# absent/ambiguous results. The sentinel ceiling remains 23; it is not raised
+# absent/ambiguous results. The sentinel ceiling remains 20; it is not raised
 # to accommodate the two out-of-band returns found by publication CI.
-RESULT_USE_MIN=5100
+# 5100 -> 5228 (2026-09-21): reconcile the reached typed HashMap ownership
+# carrier and current compiler-owner surface. Preserve the measured
+# Result/Option inventory while the execution/cleanup consumer remains open.
+RESULT_USE_MIN=5228
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world

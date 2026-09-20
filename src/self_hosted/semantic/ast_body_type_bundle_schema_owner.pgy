@@ -1,0 +1,57 @@
+// Canonical body-type bundle record and its fail-closed admission error.
+// Assembly and readiness remain with their dedicated owners.
+
+import "ast_body_verdict_owner.pgy";
+import "ast_initializer_type_fact_owner.pgy";
+import "ast_iteration_type_fact_owner.pgy";
+import "ast_assignment_type_fact_owner.pgy";
+import "ast_statement_type_fact_owner.pgy";
+import "ast_match_materialization_fact_owner.pgy";
+import "ast_collection_ownership_verdict_owner.pgy";
+import "ast_zone_value_carriage_verdict_owner.pgy";
+import "ast_generic_specialization_fact_owner.pgy";
+import "ast_capability_fact_owner.pgy";
+
+struct SemanticAstBodyTypeBundle {
+    verdict: SemanticAstBodyVerdict;
+    initializer_types: SemanticAstInitializerTypeFacts;
+    iteration_types: SemanticAstIterationTypeFacts;
+    assignment_types: SemanticAstAssignmentTypeFacts;
+    statement_types: SemanticAstStatementTypeFacts;
+    match_materializations: SemanticAstMatchMaterializationFacts;
+    collection_ownership: SemanticAstCollectionOwnershipVerdict;
+    zone_carriage: SemanticAstZoneValueCarriageVerdict;
+    generic_specializations: SemanticAstGenericSpecializationFacts;
+    capabilities: SemanticAstCapabilityFacts;
+}
+
+func SemanticAstBodyTypeBundleAdmissionError(
+    artifact: AstTreeArtifact,
+    message: String
+) -> SemanticAstBodyTypeBundle {
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    return SemanticAstBodyTypeBundle(
+        SemanticAstBodyVerdictError("body_analysis_admission", message, -1),
+        SemanticAstInitializerTypeStructuralError(artifact),
+        SemanticAstIterationTypeStructuralError(artifact),
+        SemanticAstAssignmentTypeStructuralError(
+            artifact, "BodyAnalysisAdmission"
+        ),
+        SemanticAstStatementTypeStructuralError(
+            artifact, "BodyAnalysisAdmission"
+        ),
+        SemanticAstMatchMaterializationError(artifact),
+        SemanticAstCollectionOwnershipVerdictError(
+            "body_analysis_admission", message, -1, -1
+        ),
+        SemanticAstZoneValueCarriageVerdictError(
+            "body_analysis_admission", message, -1
+        ),
+        SemanticAstGenericSpecializationError(
+            "body_analysis_admission", message,
+            empty_ints, empty_ints, empty_ints, empty_ints, empty_strings
+        ),
+        SemanticAstCapabilityFactsError(artifact, message)
+    );
+}

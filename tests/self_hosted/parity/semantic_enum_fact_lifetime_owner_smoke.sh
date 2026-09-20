@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_enum_fact_owner.pgy"
 NORMALIZER="$ROOT_DIR/src/self_hosted/semantic/expression_normalization_owner.pgy"
-MIR_OWNER="$ROOT_DIR/src/self_hosted/mir/artifact_lower_owner.pgy"
+MIR_OWNER="$ROOT_DIR/src/self_hosted/mir/program_domain_projection_owner.pgy"
 ASSIGNMENT_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
 BODY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
 

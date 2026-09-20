@@ -5,13 +5,18 @@ cd "$ROOT_DIR"
 mkdir -p .tmp/self_hosted
 WORK="$(mktemp -d .tmp/self_hosted/hashmap-i64-runtime.XXXXXX)"
 CC_BIN="${CC:-gcc}"
+RUNTIME_LINK_FLAGS=(-pthread -lm)
+RAW_RUNTIME_LINK_FLAGS=(-pthread -lm)
+case "$(uname -s 2>/dev/null || echo unknown)" in
+    MINGW*|MSYS*|CYGWIN*) RAW_RUNTIME_LINK_FLAGS+=(-lws2_32) ;;
+esac
 
 "$CC_BIN" -std=c11 -O2 -Wall -Wextra -Werror=implicit-function-declaration \
     -Isrc tests/hashmap_i64_storage_runtime.c -o "$WORK/runtime.exe" \
-    -lwinpthread -lm
+    "${RUNTIME_LINK_FLAGS[@]}"
 "$CC_BIN" -std=c11 -O2 -Wall -Wextra -Werror=implicit-function-declaration \
     -Isrc tests/hashmap_i64_raw_storage_runtime.c -o "$WORK/raw-runtime.exe" \
-    -lwinpthread -lws2_32 -lm
+    "${RAW_RUNTIME_LINK_FLAGS[@]}"
 "$WORK/runtime.exe" >"$WORK/out" 2>"$WORK/err"
 grep -Fxq 'hashmap i64 storage runtime: ok' "$WORK/out"
 if ! grep -Fq 'allocation failed' "$WORK/err"; then

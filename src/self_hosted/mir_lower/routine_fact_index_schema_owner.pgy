@@ -1,0 +1,64 @@
+// Stable per-routine MIR reconstruction carrier schema.
+//
+// This owner fixes the decoded routine fact identity. The index builder owns
+// parsing and validation; downstream CFG reconstruction only consumes this
+// immutable carrier.
+import "loop_flow_fact_owner.pgy";
+import "iteration_type_fact_owner.pgy";
+import "match_binding_local_fact_owner.pgy";
+import "routine_instruction_fact_bundle_owner.pgy";
+import "collection_ownership_fact_owner.pgy";
+
+struct MirRoutineFactIndex {
+    let valid: Bool;
+    let validation_stage: String;
+    let loop_flow_facts_valid: Bool;
+    let routine_start: Int;
+    let routine_end: Int;
+    let block_starts: Array<Int>;
+    let block_ends: Array<Int>;
+    let block_reachable: Array<Bool>;
+    let backedge_headers: Array<Int>;
+    let block_succ_true: Array<Int>;
+    let block_succ_false: Array<Int>;
+    let block_has_conditional_branch: Array<Int>;
+    let block_structural_merges: Array<Int>;
+    let block_instruction_starts: Array<Int>;
+    let block_instruction_counts: Array<Int>;
+    let instruction_facts: MirRoutineInstructionFactBundle;
+    let source_local_names: Array<String>;
+    let source_local_types: Array<String>;
+    let source_local_binding_syntax_ids: Array<Int>;
+    let declared_source_local_count: Int;
+    let source_syntax_id: String;
+    let iteration_type_facts: MirIterationTypeFacts;
+    let collection_ownership_facts: MirCollectionOwnershipFacts;
+    let match_binding_origins: MirMatchBindingOrigins;
+    let function_param_flow_parameter_indices: Array<Int>;
+    let function_param_flow_masks: Array<Int>;
+    let resource_flow_symbol_declared_count: String;
+    let resource_flow_stable_indices: Array<Int>;
+    let resource_flow_declaration_syntax_ids: Array<Int>;
+    let resource_flow_symbol_kinds: Array<Int>;
+    let resource_flow_parameter_flags: Array<Int>;
+    let resource_flow_parameter_indices: Array<Int>;
+    let resource_flow_names: Array<String>;
+    let loop_flow_summary_declared_count: String;
+    let loop_flow_summary_loop_ids: Array<Int>;
+    let loop_flow_summary_kinds: Array<Int>;
+    let loop_flow_summary_effect_bases: Array<Int>;
+    let loop_flow_summary_effect_deltas: Array<Int>;
+    let loop_flow_summary_flags: Array<Int>;
+    let loop_flow_summary_entry_starts: Array<Int>;
+    let loop_flow_summary_entry_counts: Array<Int>;
+    let loop_flow_summary_exit_starts: Array<Int>;
+    let loop_flow_summary_exit_counts: Array<Int>;
+    let loop_flow_state_declared_count: String;
+    let loop_flow_state_stable_indices: Array<Int>;
+    let loop_flow_state_consumed_flags: Array<Int>;
+    let loop_flow_state_used_flags: Array<Int>;
+    let loop_flow_state_access_masks: Array<Int>;
+    let loop_flow_state_slot_states: Array<Int>;
+    let loop_flow_state_semantic_states: Array<Int>;
+    let loop_flow_state_pool_ids: Array<Int>;
+}

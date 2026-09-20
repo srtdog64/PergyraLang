@@ -987,6 +987,7 @@ for mir_producer_owner in \
     routine_lower_owner.pgy \
     routine_entry_owner.pgy \
     artifact_lower_owner.pgy \
+    program_domain_projection_owner.pgy \
     instruction_validation_owner.pgy \
     match_fact_owner.pgy \
     match_json_projection_owner.pgy \
@@ -996,6 +997,7 @@ for mir_producer_owner in \
     domain_runtime_assignment_verify_owner.pgy \
     domain_runtime_assignment_json_owner.pgy \
     program_verify_owner.pgy \
+    program_assignment_target_graph_contract_owner.pgy \
     json_projection_owner.pgy \
     instruction_json_artifact_writer_owner.pgy \
     instruction_abi_receipt_json_projection_owner.pgy \
@@ -1017,6 +1019,14 @@ require_text "src/self_hosted/mir/parallel_capture_fact_owner.pgy" "func SelfMir
 require_text "src/self_hosted/mir/program_fact_owner.pgy" "struct SelfMirCfgRows"
 require_text "src/self_hosted/mir/program_fact_owner.pgy" 'ArrayLength(ids) - cfg.blocks.instruction_starts[block_index]'
 reject_text "src/self_hosted/mir/program_fact_owner.pgy" 'counts[block_index] + 1'
+require_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
+    'import "program_domain_projection_owner.pgy";'
+require_text "src/self_hosted/mir/program_domain_projection_owner.pgy" \
+    "func SelfMirProgramDomainFactsFromReadyArtifact"
+require_text "src/self_hosted/mir/program_verify_owner.pgy" \
+    'import "program_assignment_target_graph_contract_owner.pgy";'
+require_text "src/self_hosted/mir/program_assignment_target_graph_contract_owner.pgy" \
+    "func SelfMirAssignmentTargetGraphContractReady"
 require_text "src/self_hosted/mir/routine_input_owner.pgy" "struct SelfMirRoutineInput"
 require_text "src/self_hosted/mir/routine_input_owner.pgy" "struct SelfMirIterationRows"
 require_text "src/self_hosted/mir/routine_iteration_owner.pgy" "struct SelfMirIterationLoweringFact"
@@ -3057,9 +3067,9 @@ reject_text "src/self_hosted/dir/intent_fact_owner.pgy" \
     'SemanticAstIntentSignatureFactsFromArtifact('
 reject_text "src/self_hosted/dir/intent_fact_owner.pgy" \
     'SemanticAstIntentTransitionFactsFromArtifact('
-require_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
+require_text "src/self_hosted/mir/program_domain_projection_owner.pgy" \
     'artifact, declarations, analysis.signatures'
-require_text "src/self_hosted/mir/artifact_lower_owner.pgy" \
+require_text "src/self_hosted/mir/program_domain_projection_owner.pgy" \
     'analysis.intent_signatures, analysis.intent_transitions'
 require_file "src/self_hosted/parser/intent_parameter_resolution_owner.pgy"
 require_max_lines \
@@ -6270,7 +6280,7 @@ reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "Chec
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 305
-require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "struct SemanticAstBodyTypeBundle"
+require_text "src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy" "struct SemanticAstBodyTypeBundle"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleFromAnalysis"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
     "func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved("
@@ -6352,7 +6362,7 @@ require_text "src/self_hosted/semantic/ast_expression_call_identity_owner.pgy" \
     "func SemanticExpressionCallNodeForIdentity("
 reject_text "src/self_hosted/semantic/ast_expression_call_identity_owner.pgy" \
     "expression_graph_index_as_stable_identity"
-require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy" \
     "generic_specializations: SemanticAstGenericSpecializationFacts"
 require_file "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" 166
@@ -6383,6 +6393,23 @@ require_file "src/self_hosted/semantic/ast_assignment_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" "func SemanticAstAssignmentFactsMatchArtifact"
 require_file "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy"
+require_file "src/self_hosted/semantic/ast_assignment_target_graph_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_assignment_target_graph_owner.pgy" 80
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_assignment_target_graph_owner.pgy"
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    'import "ast_assignment_target_graph_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_assignment_target_graph_owner.pgy" \
+    "func SemanticAstAssignmentIndexRoot("
+require_text "src/self_hosted/semantic/ast_assignment_target_graph_owner.pgy" \
+    "func SemanticAstAssignmentTargetBaseRoot("
+require_text "src/self_hosted/semantic/ast_assignment_target_graph_owner.pgy" \
+    "func SemanticAstAssignmentTargetBindingName("
+reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "func SemanticAstAssignmentIndexRoot("
+reject_text "src/self_hosted/semantic/ast_assignment_target_graph_owner.pgy" \
+    "SemanticExpressionGraphScalarTypeName("
 require_file "src/self_hosted/semantic/ast_member_write_verdict_owner.pgy"
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "SemanticAstMemberWriteVerdict("
 require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "field_write_modes: Array<Int>;"
@@ -7392,7 +7419,7 @@ reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "SemanticProjectionExpressionType("
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     'import "projection_type_owner.pgy";'
-require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_assignment_target_graph_owner.pgy" \
     "func SemanticAstAssignmentTargetBindingName"
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "UnwrapOption(member_name_node)"
@@ -9495,9 +9522,9 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'RewriteExpr(coll, env)'
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirAssignmentTargetGraphReady('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
-require_text "src/self_hosted/mir/program_verify_owner.pgy" 'missing_base_use, target_graph.graph'
-require_text "src/self_hosted/mir/program_verify_owner.pgy" 'missing_simple_target_graph, simple_target_graph.graph'
-require_text "src/self_hosted/mir/program_verify_owner.pgy" 'missing_match, simple_target_graph.graph'
+require_text "src/self_hosted/mir/program_assignment_target_graph_contract_owner.pgy" 'missing_base_use, target_graph.graph'
+require_text "src/self_hosted/mir/program_assignment_target_graph_contract_owner.pgy" 'missing_simple_target_graph, simple_target_graph.graph'
+require_text "src/self_hosted/mir/program_assignment_target_graph_contract_owner.pgy" 'missing_match, simple_target_graph.graph'
 require_file "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
     '"uses":["value.3","value.5","value.7","value.8"]'
@@ -14091,7 +14118,7 @@ require_text "src/self_hosted/mir_lower/routine_result_definition_fact_owner.pgy
     'struct MirRoutineResultDefinitionFact'
 require_text "src/self_hosted/mir_lower/routine_result_definition_fact_owner.pgy" \
     'func MirRoutineFactIndexUniqueResultDefinition('
-require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+require_text "src/self_hosted/mir_lower/routine_fact_index_schema_owner.pgy" \
     'let instruction_facts: MirRoutineInstructionFactBundle;'
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
     'block_instruction_counts, instruction_facts,'
@@ -14260,7 +14287,7 @@ require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
     "let true_succ: Int = block_succ_true[block];"
 require_text "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy" \
     "let false_succ: Int = block_succ_false[block];"
-require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+require_text "src/self_hosted/mir_lower/routine_fact_index_schema_owner.pgy" \
     "let block_succ_true: Array<Int>;"
 require_function_text \
     "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
@@ -20288,6 +20315,21 @@ require_function_text "src/self_hosted/semantic/ast_named_value_boundary_verdict
     "func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(" 'statements.expected_type_names[statement]'
 require_function_text "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" \
     "func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(" 'if mode != 3 {'
+require_file "src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy"
+require_max_lines \
+    "src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy" 80
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy"
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    'import "ast_body_type_bundle_schema_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy" \
+    "struct SemanticAstBodyTypeBundle"
+require_text "src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy" \
+    "func SemanticAstBodyTypeBundleAdmissionError("
+reject_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    "struct SemanticAstBodyTypeBundle"
+reject_text "src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy" \
+    "SemanticAstCollectionOwnershipVerdictFromResolvedFacts("
 require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 305
 require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" \
     'if code == "borrow_boundary_escape" { return "PGY_SEM_BORROW_ESCAPE"; }'
@@ -27188,7 +27230,11 @@ for nested_emission_raw_term in JsonObject JsonArray MirRoutineFactIndex; do
         "$nested_emission_raw_term"
 done
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    'import "routine_fact_index_schema_owner.pgy";'
+require_text "src/self_hosted/mir_lower/routine_fact_index_schema_owner.pgy" \
     'let block_reachable: Array<Bool>;'
+require_max_lines \
+    "src/self_hosted/mir_lower/routine_fact_index_schema_owner.pgy" 600
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_graph_admission_owner.pgy" \
     'JsonObjectFactObjectTable(instruction, "expr0_graph")'

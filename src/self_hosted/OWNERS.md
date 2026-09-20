@@ -399,6 +399,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_assignment_fact_owner.pgy` -- artifact-bound
   assignment node, function, scope, target/base/index, and RHS payload facts;
   assignment node identity also owns `Assign` statement routing.
+- `src/self_hosted/semantic/ast_assignment_target_graph_owner.pgy` -- stable
+  target, base, index, and root-binding graph projection consumed by assignment
+  typing; it does not infer types or reopen assignment source text.
 - `src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy` -- fail-closed
   assignment type verdicts joined from assignment, initializer, signature,
   lexical environment, and parser expression-graph facts; target binding,
@@ -537,6 +540,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   identity from an `Array.Slice` initializer to later Array storage mutation and
   rejects Push/Pop while that borrowed view is live without conflating sibling
   fields of the same root.
+- `src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy` --
+  stable local-binding ownership and disposition facts for `Array<String>`
+  elements at call boundaries. It consumes the admitted expression graph and
+  forbids MIR or backend inference from projected collection type spelling.
 - `src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy` --
   operand diagnostics for fully graph-owned scalar operator trees.
 - `src/self_hosted/semantic/ast_expression_graph_view_owner.pgy` -- borrowed
@@ -563,6 +570,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_body_analysis_shape_owner.pgy` --
   reconstruction-free signature, role, intent, constructor, enum, and span
   shape proof consumed exactly once by body analysis admission.
+- `src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy` -- canonical
+  body-type bundle record and fail-closed admission-error construction; it
+  neither assembles body facts nor re-derives collection ownership.
 - `src/self_hosted/semantic/ast_body_type_bundle_owner.pgy` -- canonical
   one-pass assembly of initializer, iteration, assignment, and statement type
   facts consumed by driver and codegen projections.
@@ -940,6 +950,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   expression graph root/range handles over the program-owned semantic graph.
   The bridge reads structural and call-target facts only through semantic
   accessors and fails closed on missing or foreign graph handles.
+- `src/self_hosted/mir/collection_ownership_fact_owner.pgy` -- routine-aligned
+  carriage, validation, and JSON projection of semantic collection ownership
+  rows keyed by stable binding identity; names and type spelling never own the
+  join.
 - `src/self_hosted/mir/expression_identity_json_projection_owner.pgy` -- the
   shared streaming/String projection of semantic call-target SyntaxNodeId and
   formal-parameter ordinal rows into each persisted expression node.
@@ -1049,6 +1063,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   carrier storage only after the final program-fact consumer.
 - `src/self_hosted/mir/artifact_lower_owner.pgy` -- program assembly and
   deterministic instruction-ID canonicalization.
+- `src/self_hosted/mir/program_domain_projection_owner.pgy` -- one typed-AST
+  and DIR admission boundary for program-wide MIR domain topology and runtime
+  assignments; routine lowering borrows the sealed projection.
 - `src/self_hosted/mir/intent_routine_owner.pgy` -- lossless typed MIR carrier
   for intent identity, participant/zone bindings, ordered steps, action
   receiver, authorization, effects, phase/rollback, mode, priority, and commit
@@ -1087,6 +1104,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   phase wire without a source or AST reread.
 - `src/self_hosted/mir/program_verify_owner.pgy` -- MIR row range/topology and
   required-fact verification.
+- `src/self_hosted/mir/program_assignment_target_graph_contract_owner.pgy` --
+  bounded valid and malformed assignment-target graph fixture construction for
+  the instruction validator, outside the production verifier.
 - `src/self_hosted/mir/routine_parameter_identity_verify_owner.pgy` -- exact
   flattened formal-parameter SyntaxNodeId uniqueness and aligned ABI/resource
   row verification consumed by the program verifier.
@@ -1596,6 +1616,13 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   result, source-local, successor, backedge, structural-merge, and loop-flow
   facts layered on the admitted program structure view and consumed by
   recursive CFG reconstruction.
+- `src/self_hosted/mir_lower/routine_fact_index_schema_owner.pgy` -- immutable
+  decoded routine-fact carrier shape shared by index construction and CFG
+  consumers; it owns neither JSON parsing nor reconstruction policy.
+- `src/self_hosted/mir_lower/collection_ownership_fact_owner.pgy` -- exact,
+  fail-closed admission of semantic-owned `Array<String>` element lifetime rows
+  against the routine-local binding inventory; malformed, missing, duplicate,
+  or inconsistent provenance cannot fall back to type or name inference.
 - `src/self_hosted/mir_lower/resource_flow_fact_owner.pgy` -- native
   ResourceFlowUniverse identity row parsing and count validation.
 - `src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy` -- carried

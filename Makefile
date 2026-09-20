@@ -4949,12 +4949,36 @@ runtime-abi-lifetime-test-smoke:
 hashmap-owned-string-provenance-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/hashmap_owned_string_provenance_smoke.sh
 
+.PHONY: hashmap-string-storage-runtime-test-smoke hashmap-i32-storage-runtime-test-smoke hashmap-i64-storage-runtime-test-smoke hashmap-bool-storage-runtime-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke
+hashmap-string-storage-runtime-test-smoke:
+	CC="$(CC)" "$(BASH)" tests/hashmap_string_storage_runtime_smoke.sh
+
+hashmap-i32-storage-runtime-test-smoke:
+	CC="$(CC)" "$(BASH)" tests/hashmap_i32_storage_runtime_smoke.sh
+
+hashmap-i64-storage-runtime-test-smoke:
+	CC="$(CC)" "$(BASH)" tests/hashmap_i64_storage_runtime_smoke.sh
+
+hashmap-bool-storage-runtime-test-smoke:
+	CC="$(CC)" "$(BASH)" tests/hashmap_bool_storage_runtime_smoke.sh
+
+hashmap-key-storage-runtime-test-smoke: \
+		hashmap-string-storage-runtime-test-smoke \
+		hashmap-i32-storage-runtime-test-smoke \
+		hashmap-i64-storage-runtime-test-smoke \
+		hashmap-bool-storage-runtime-test-smoke
+
+hashmap-admission-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/concept_semantics/hashmap_admission.sh
+
 .PHONY: collection-ownership-fact-projection-test-smoke
 collection-ownership-fact-projection-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/collection_ownership_fact_projection_smoke.sh
 
 .PHONY: self-host-collection-ownership-semantic-test-smoke
-self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke self-host-compiler
+self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/collection_ownership_semantic_owner.sh
 
