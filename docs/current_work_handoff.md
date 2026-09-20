@@ -3,10 +3,10 @@
 Updated: 2026-09-20 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-Stored `IsCancelled` task-ABI checkpoint:
-`a08016b4425402819740e81a42dc36ca707c409f`. Exact-head remote CI is pending;
-the last published integration checkpoint
-`71a24722e77a72254184e450c33303ea13b8f8db` passed run `35477874403` with all
+Stored fixed-point profiling checkpoint:
+`e4cd2543a5ad819c11c1f373bcd96f9d618f180b`. Exact-head remote CI and its
+profile artifact are pending. The preceding integration checkpoint
+`3bb2280a8af9f7475f2e47bbb074a94a8c6b660c` passed run `35487744795` with all
 31 jobs green. Git HEAD/status and `origin/main` remain the authority for the
 publication checkpoint. The pre-existing untracked `._handoff_full.md`,
 `_agents_dump.txt`, `.agents/`, and `skills-lock.json` are not part of this
@@ -22,9 +22,11 @@ Objective card:
   allocations, peak live bytes, post-seal retained bytes, expression-graph
   visits, fact reconstruction counts, routine reanalysis counts, and serialized
   AIR/MIR bytes.
-- Fact owners: `codegen_bootstrap.sh` and `self_host_compiler_build.sh` own the
-  executed phase boundaries. No durable profiling receipt owns the requested
-  counters yet; that missing bounded measurement is the active blocker.
+- Fact owner: `self_host_fixed_point_profile_receipt_owner.sh` binds exact
+  source-graph/compiler/toolchain/artifact identities to outer phase wall/CPU/
+  peak-RSS rows and timestamped pressure-stage milestones. The semantic
+  fixed-point receipt remains the correctness owner; profiling cannot admit a
+  compiler artifact.
 - Last legitimate consumer: the next optimization decision. Compiler semantics
   and backend admission must not branch on profiling data.
 - Forbidden fallback: another CI shard, a larger timeout, a global Salsa-like
@@ -36,16 +38,27 @@ Objective card:
   hypothesis and measure the next candidate.
 
 Reached evidence and boundary:
-- The latest local `make self-host-compiler` rebuilt and installed DRV-2 from
-  the exact `a08016b4` source. Long quiet seed and DRV-2 emission phases are
-  observed, but no phase/allocation census exists, so their cause remains
-  unmeasured.
-- The last fully green published run remains `35477874403`; it took 40m34s,
-  with `self-host-bootstrap-linux` at 39m24s. This establishes an integration
-  budget problem, not the repeated operation responsible for it.
-- Instrument only the reached bootstrap owner needed to identify that repeated
-  operation. Do not start a general compiler cache or an unrelated semantic
-  migration while this measurement rung is open.
+- The preceding exact-head run took 49m04s; `self-host-bootstrap-linux` took
+  48m47s. Its durable log already bounds the integrated driver fixed point:
+  `full_mir_oracle` about 9m23s, `gen2_emit`/`gen3_emit` about 5m each, and
+  `full_mir_seed` about 4m21s. Host C compilation is material but is not the
+  dominant operation.
+- `e4cd2543` turns those coarse log timestamps into one uploaded exact-input
+  receipt. It records sixteen producer/consumer/host-compile phases, GNU-time
+  CPU and peak RSS, serialized source/MIR/C sizes and hashes, and bounded
+  internal pressure milestones. Changed artifacts, a missing phase, and a
+  malformed timing row are executable negative cases.
+- The focused receipt smoke, CI-profile contract, build-pressure contract,
+  component contract (2,456 line-cap requests / 1,036 extractions / 699
+  reuses), and a real bounded seed/oracle/MIR bootstrap all pass locally.
+  The full exact-head run is intentionally left to the one Linux CI fixed-point
+  boundary instead of duplicating another 40+ minute local matrix.
+- Total allocations, post-seal retained bytes, expression-graph visits, fact
+  reconstruction counts, and routine reanalysis counts remain explicitly
+  `unmeasured` in v1. Consume the pending exact-head receipt first; instrument
+  only the dominant reached inner owner if phase/stage/RSS evidence cannot
+  distinguish the repeated operation. Do not start a general compiler cache or
+  an unrelated semantic migration while this measurement rung is open.
 
 ## Completed self-host context — `IsCancelled` task ABI reaches public C/LLVM
 
