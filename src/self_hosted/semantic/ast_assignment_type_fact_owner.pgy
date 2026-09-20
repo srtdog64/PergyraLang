@@ -157,12 +157,26 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
     ) {
         return SemanticAstAssignmentTypeStructuralError(artifact, "MemberRootNames");
     }
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let modes: Array<String> = [];
+    let enum_environment_count: Int = 0;
     let i: Int = 0;
     while i < SemanticAstAssignmentCount(assignments) {
-        let names: Array<String> = [];
-        let types: Array<String> = [];
-        let modes: Array<String> = [];
-        if !SemanticAstExpressionSeedEnumValues(enum_facts, names, types, modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedEnumValues@", ToString(i))); }
+        if i == 0 {
+            if !SemanticAstExpressionSeedEnumValues(
+                enum_facts, names, types, modes
+            ) {
+                return SemanticAstAssignmentTypeStructuralError(
+                    artifact, Concat("SeedEnumValues@", ToString(i))
+                );
+            }
+            enum_environment_count = ArrayLength(names);
+        } else {
+            while ArrayLength(names) > enum_environment_count { ArrayPop(names); }
+            while ArrayLength(types) > enum_environment_count { ArrayPop(types); }
+            while ArrayLength(modes) > enum_environment_count { ArrayPop(modes); }
+        }
         if !SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(signatures, constructors, assignments.function_node_ids[i], names, types, modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedOwnerFields@", ToString(i))); }
         if !SemanticAstExpressionSeedParameters(signatures, constructors, assignments.function_node_ids[i], names, types) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedParameters@", ToString(i))); }
         if !SemanticAstExpressionSeedParameterModes(signatures, assignments.function_node_ids[i], modes) { return SemanticAstAssignmentTypeStructuralError(artifact, Concat("SeedParameterModes@", ToString(i))); }
@@ -359,9 +373,9 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
         ArrayPush(verified, row_verified);
         ArrayPush(diagnostic_codes, row_code);
         ArrayPush(diagnostic_messages, row_message);
-        SemanticAstExpressionEnvironmentClear(names, types, modes);
         i = i + 1;
     }
+    SemanticAstExpressionEnvironmentClear(names, types, modes);
     return SemanticAstAssignmentTypeFacts(
         true, "", "", artifact.count, node_ids,
         target_binding_modes, target_type_names, index_type_names,

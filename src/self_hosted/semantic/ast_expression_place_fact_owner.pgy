@@ -119,7 +119,16 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
         analysis.expression_surfaces.expression_graph;
     let last_root: Int = -1;
     let root_slot: Int = 0;
-    let valid: Bool = true;
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let modes: Array<String> = [];
+    let valid: Bool = SemanticAstExpressionSeedEnumValues(
+        analysis.enums, names, types, modes
+    );
+    let enum_environment_count: Int = ArrayLength(names);
+    // Three lanes share one surface env. Enum rows are program-global, while
+    // the remaining borrowed rows and their backing are reused per surface.
+    let seeded_surface: Int = -1;
     while root_slot < ArrayLength(graph.roots) && valid {
         if graph.has_roots[root_slot] {
             let root_id: Int = graph.roots[root_slot];
@@ -139,62 +148,72 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
                 let intent_node_id: Option<Int> =
                     SemanticAstExpressionIntentNodeAt(
                         analysis.expression_surfaces, analysis.intent_signatures, surface_index);
-                let names: Array<String> = [];
-                let types: Array<String> = [];
-                let modes: Array<String> = [];
-                let environment_ok: Bool = SemanticAstExpressionSeedEnumValues(
-                        analysis.enums, names, types, modes
-                    );
-                if environment_ok && IsSome(function_node_id) {
-                    environment_ok =
-                        SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
-                        analysis.signatures, analysis.constructors,
-                        UnwrapOption(function_node_id), names, types, modes
-                    ) && SemanticAstExpressionSeedParameters(
-                        analysis.signatures, analysis.constructors, UnwrapOption(function_node_id),
-                        names, types
-                    ) && SemanticAstExpressionSeedParameterModes(
-                        analysis.signatures, UnwrapOption(function_node_id),
-                        modes
-                    ) && SemanticAstExpressionSeedVisibleLocals(
-                        artifact, analysis.local_bindings,
-                        initializer_types.inferred_type_names,
-                        UnwrapOption(function_node_id), use_node_id,
-                        names, types
-                    ) && SemanticAstExpressionSeedVisibleLocalModes(
-                        artifact, analysis.local_bindings,
-                        UnwrapOption(function_node_id), use_node_id, modes
-                    ) && SemanticAstExpressionSeedVisibleIterationRows(
-                        artifact, iteration_types.node_ids,
-                        iteration_function_node_ids,
-                        iteration_binding_names,
-                        iteration_types.binding_type_names,
-                        iteration_types.verified,
-                        UnwrapOption(function_node_id), use_node_id,
-                        names, types, modes
-                    ) && SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
-                        artifact, analysis.statements,
-                        analysis.expression_surfaces,
-                        analysis.constructors, analysis.enums,
-                        analysis.function_scopes,
-                        UnwrapOption(function_node_id), use_node_id,
-                        names, types, modes, function_tables
-                    );
-                } else if environment_ok && IsSome(intent_node_id) {
-                    environment_ok = SemanticAstIntentExpressionSeedEnvironment(
-                        artifact, analysis.signatures,
-                        analysis.intent_signatures,
-                        analysis.intent_transitions,
-                        UnwrapOption(intent_node_id), use_node_id,
-                        names, types, modes
-                    );
-                } else {
-                    environment_ok = false;
+                if surface_index != seeded_surface {
+                    while ArrayLength(names) > enum_environment_count {
+                        ArrayPop(names);
+                    }
+                    while ArrayLength(types) > enum_environment_count {
+                        ArrayPop(types);
+                    }
+                    while ArrayLength(modes) > enum_environment_count {
+                        ArrayPop(modes);
+                    }
+                    let environment_ok: Bool = true;
+                    if IsSome(function_node_id) {
+                        environment_ok =
+                            SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
+                            analysis.signatures, analysis.constructors,
+                            UnwrapOption(function_node_id), names, types, modes
+                        ) && SemanticAstExpressionSeedParameters(
+                            analysis.signatures, analysis.constructors, UnwrapOption(function_node_id),
+                            names, types
+                        ) && SemanticAstExpressionSeedParameterModes(
+                            analysis.signatures, UnwrapOption(function_node_id),
+                            modes
+                        ) && SemanticAstExpressionSeedVisibleLocals(
+                            artifact, analysis.local_bindings,
+                            initializer_types.inferred_type_names,
+                            UnwrapOption(function_node_id), use_node_id,
+                            names, types
+                        ) && SemanticAstExpressionSeedVisibleLocalModes(
+                            artifact, analysis.local_bindings,
+                            UnwrapOption(function_node_id), use_node_id, modes
+                        ) && SemanticAstExpressionSeedVisibleIterationRows(
+                            artifact, iteration_types.node_ids,
+                            iteration_function_node_ids,
+                            iteration_binding_names,
+                            iteration_types.binding_type_names,
+                            iteration_types.verified,
+                            UnwrapOption(function_node_id), use_node_id,
+                            names, types, modes
+                        ) && SemanticAstExpressionSeedVisibleMatchBindingsFromAdmittedFacts(
+                            artifact, analysis.statements,
+                            analysis.expression_surfaces,
+                            analysis.constructors, analysis.enums,
+                            analysis.function_scopes,
+                            UnwrapOption(function_node_id), use_node_id,
+                            names, types, modes, function_tables
+                        );
+                    } else if IsSome(intent_node_id) {
+                        environment_ok = SemanticAstIntentExpressionSeedEnvironment(
+                            artifact, analysis.signatures,
+                            analysis.intent_signatures,
+                            analysis.intent_transitions,
+                            UnwrapOption(intent_node_id), use_node_id,
+                            names, types, modes
+                        );
+                    } else {
+                        environment_ok = false;
+                    }
+                    if !environment_ok ||
+                        ArrayLength(names) != ArrayLength(types) ||
+                        ArrayLength(names) != ArrayLength(modes) {
+                        valid = false;
+                    } else {
+                        seeded_surface = surface_index;
+                    }
                 }
-                if !environment_ok || ArrayLength(names) != ArrayLength(types) ||
-                    ArrayLength(names) != ArrayLength(modes) {
-                    valid = false;
-                } else {
+                if valid {
                     let node_id: Int = last_root + 1;
                     while node_id <= root_id && valid {
                         let place_kind: Int =
@@ -210,12 +229,12 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
                         node_id = node_id + 1;
                     }
                 }
-                SemanticAstExpressionEnvironmentClear(names, types, modes);
             }
             last_root = root_id;
         }
         root_slot = root_slot + 1;
     }
+    SemanticAstExpressionEnvironmentClear(names, types, modes);
     if last_root + 1 != SemanticExpressionGraphArenaNodeCount(graph.arena) {
         valid = false;
     }

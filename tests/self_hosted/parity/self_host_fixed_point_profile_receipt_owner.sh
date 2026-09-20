@@ -126,13 +126,10 @@ pgy_selfhost_fixed_point_profile_run() {
 pgy_selfhost_fixed_point_profile_is_milestone() {
     local line="$1"
     case "$line" in
-        *":routine:"[0-9]*|*":routine-build:"[0-9]*|*":rows:"[0-9]*|\
-        *":rows:done:"[0-9]*|*"locals="*|*":intent-build:"[0-9]*|\
-        *":intent-append:"[0-9]*) return 1 ;;
+        *":routine:"[0-9]*|*":routine-build:"[0-9]*|*":rows:"[0-9]*|*":rows:done:"[0-9]*|*"locals="*|*":intent-build:"[0-9]*|*":intent-append:"[0-9]*) return 1 ;;
     esac
     case "$line" in
-        "[driver-pressure-stage] "*|"[semantic-body-type-stage] "*|\
-        "[semantic-initializer-stage] "*|"[codegen-view-stage] "*) return 0 ;;
+        "[driver-pressure-stage] "*|"[semantic-body-type-stage] "*|"[semantic-initializer-stage] "*|"[codegen-view-stage] "*) return 0 ;;
         *) return 1 ;;
     esac
 }

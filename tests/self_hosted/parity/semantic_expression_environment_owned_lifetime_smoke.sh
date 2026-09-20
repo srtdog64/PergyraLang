@@ -826,6 +826,80 @@ for reuse_contract in \
     }
 done
 
+place_environment_prefix="$(sed -n \
+    '/func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(/,/while root_slot < ArrayLength(graph.roots)/p' \
+    "$PLACE_FACTS")"
+place_root_epoch="$(sed -n \
+    '/while root_slot < ArrayLength(graph.roots)/,/SemanticAstExpressionEnvironmentClear(names, types, modes);/p' \
+    "$PLACE_FACTS")"
+for reusable_environment in \
+    'let names: Array<String> = [];' \
+    'let types: Array<String> = [];' \
+    'let modes: Array<String> = [];' \
+    'let seeded_surface: Int = -1;'; do
+    [[ "$(grep -Fc "$reusable_environment" <<<"$place_environment_prefix" || true)" -eq 1 ]] || {
+        echo "[self-host-parity:semantic-environment-lifetime] expression-place owner lost reusable surface environment: $reusable_environment" >&2
+        exit 1
+    }
+    if grep -Fq "$reusable_environment" <<<"$place_root_epoch"; then
+        echo "[self-host-parity:semantic-environment-lifetime] expression-place root loop recreates surface environment: $reusable_environment" >&2
+        exit 1
+    fi
+done
+for retained_enum_prefix in \
+    'let enum_environment_count: Int = ArrayLength(names);' \
+    'while ArrayLength(names) > enum_environment_count {' \
+    'while ArrayLength(types) > enum_environment_count {' \
+    'while ArrayLength(modes) > enum_environment_count {'; do
+    grep -Fq "$retained_enum_prefix" <<<"$place_admitted_body" || {
+        echo "[self-host-parity:semantic-environment-lifetime] expression-place owner lost retained enum prefix: $retained_enum_prefix" >&2
+        exit 1
+    }
+done
+if grep -Fq 'SemanticAstExpressionSeedEnumValues(' <<<"$place_root_epoch"; then
+    echo "[self-host-parity:semantic-environment-lifetime] expression-place root loop reseeds the program-global enum prefix" >&2
+    exit 1
+fi
+[[ "$(grep -Fc 'SemanticAstExpressionEnvironmentClear(names, types, modes);' <<<"$place_admitted_body" || true)" -eq 1 ]] || {
+    echo "[self-host-parity:semantic-environment-lifetime] expression-place owner must retire its reusable environment exactly once" >&2
+    exit 1
+}
+
+assignment_environment_prefix="$(sed -n \
+    '/func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(/,/while i < SemanticAstAssignmentCount(assignments)/p' \
+    "$ASSIGNMENT_FACTS")"
+assignment_row_epoch="$(sed -n \
+    '/while i < SemanticAstAssignmentCount(assignments)/,/SemanticAstExpressionEnvironmentClear(names, types, modes);/p' \
+    "$ASSIGNMENT_FACTS")"
+for reusable_environment in \
+    'let names: Array<String> = [];' \
+    'let types: Array<String> = [];' \
+    'let modes: Array<String> = [];' \
+    'let enum_environment_count: Int = 0;'; do
+    [[ "$(grep -Fc "$reusable_environment" <<<"$assignment_environment_prefix" || true)" -eq 1 ]] || {
+        echo "[self-host-parity:semantic-environment-lifetime] assignment owner lost reusable row environment: $reusable_environment" >&2
+        exit 1
+    }
+    if grep -Fq "$reusable_environment" <<<"$assignment_row_epoch"; then
+        echo "[self-host-parity:semantic-environment-lifetime] assignment row loop recreates environment backing: $reusable_environment" >&2
+        exit 1
+    fi
+done
+for retained_enum_prefix in \
+    'enum_environment_count = ArrayLength(names);' \
+    'while ArrayLength(names) > enum_environment_count { ArrayPop(names); }' \
+    'while ArrayLength(types) > enum_environment_count { ArrayPop(types); }' \
+    'while ArrayLength(modes) > enum_environment_count { ArrayPop(modes); }'; do
+    grep -Fq "$retained_enum_prefix" <<<"$assignment_admitted_body" || {
+        echo "[self-host-parity:semantic-environment-lifetime] assignment owner lost retained enum prefix: $retained_enum_prefix" >&2
+        exit 1
+    }
+done
+[[ "$(grep -Fc 'SemanticAstExpressionEnvironmentClear(names, types, modes);' <<<"$assignment_admitted_body" || true)" -eq 1 ]] || {
+    echo "[self-host-parity:semantic-environment-lifetime] assignment owner must retire its reusable environment exactly once" >&2
+    exit 1
+}
+
 generic_surface_epoch="$(sed -n \
     '/while surface_index < SemanticAstExpressionSurfaceCount(/,/SemanticAstExpressionEnvironmentClear(names, types, modes);/p' \
     "$GENERIC_FACTS")"
