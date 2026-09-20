@@ -4,37 +4,91 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
+
+#define TEST_ALLOCATION_CAPACITY 4096
+
+typedef struct TestAllocationRecord {
+    void *ptr;
+    size_t size;
+    bool live;
+} TestAllocationRecord;
 
 static size_t calloc_calls;
 static size_t malloc_calls;
 static size_t free_calls;
 static size_t fail_calloc_at;
 static size_t fail_malloc_at;
+static TestAllocationRecord allocations[TEST_ALLOCATION_CAPACITY];
+static size_t allocation_count;
+
+static void test_record_allocation(void *ptr, size_t size) {
+    if (ptr == NULL) return;
+    if (allocation_count == TEST_ALLOCATION_CAPACITY) {
+        fputs("test allocation registry exhausted\n", stderr);
+        abort();
+    }
+    allocations[allocation_count++] = (TestAllocationRecord){ptr, size, true};
+}
+
+static TestAllocationRecord *test_live_allocation(void *ptr) {
+    for (size_t i = allocation_count; i > 0; i--) {
+        TestAllocationRecord *record = &allocations[i - 1];
+        if (record->ptr == ptr && record->live) return record;
+    }
+    return NULL;
+}
 
 static void *test_calloc(size_t n, size_t s) {
+    void *ptr;
     calloc_calls++;
     if (fail_calloc_at != 0 && calloc_calls == fail_calloc_at) return NULL;
-    return calloc(n, s);
+    ptr = calloc(n, s);
+    test_record_allocation(ptr, n * s);
+    return ptr;
 }
 static void *test_malloc(size_t s) {
+    void *ptr;
     malloc_calls++;
     if (fail_malloc_at != 0 && malloc_calls == fail_malloc_at) return NULL;
-    return malloc(s);
+    ptr = malloc(s);
+    test_record_allocation(ptr, s);
+    return ptr;
+}
+static void *test_realloc(void *ptr, size_t size) {
+    TestAllocationRecord *record = ptr == NULL
+        ? NULL
+        : test_live_allocation(ptr);
+    void *grown = realloc(ptr, size);
+    if (grown == NULL) return NULL;
+    if (record == NULL) {
+        test_record_allocation(grown, size);
+    } else {
+        record->ptr = grown;
+        record->size = size;
+    }
+    return grown;
 }
 static void test_quarantine_free(void *ptr) {
     if (ptr != NULL) {
+        TestAllocationRecord *record = test_live_allocation(ptr);
+        if (record == NULL) {
+            fputs("free of untracked or retired test allocation\n", stderr);
+            abort();
+        }
         free_calls++;
-        memset(ptr, 0xA5, _msize(ptr));
+        memset(ptr, 0xA5, record->size);
+        record->live = false;
     }
 }
 
 #define PGY_HASHMAP_CALLOC(count, size) test_calloc((count), (size))
 #define malloc(size) test_malloc((size))
+#define realloc(ptr, size) test_realloc((ptr), (size))
 #define free(ptr) test_quarantine_free((ptr))
 #define PGY_LLVM_ENABLED
 #include "runtime/pgy_runtime_lib.c"
 #undef malloc
+#undef realloc
 #undef free
 
 static void drop_raw(PgyHashMapRaw *map, bool string_values) {

@@ -99,6 +99,14 @@ Reached evidence and boundary:
   sentinel returns, and tightens likeness ratchets to 74 text-munging paths,
   20 sentinels, and 5,228 Result/Option uses. The next pushed SHA must still
   complete every remote job before this repair is called published.
+- Exact-head CI run `35542239286` for repair packet `be2e0e16` passed 30 of 31
+  jobs, including Rocq, Windows, macOS, sanitizers, all 20 backend-compare
+  shards, and the full self-host fixed point. Its sole Linux self-host contract
+  failure reached the newly wired raw String-key storage test and exposed a
+  Windows-only `_msize` call in the test quarantine allocator. The quarantine
+  now owns a portable allocation-size registry across `malloc`, `calloc`, and
+  `realloc`; the complete collection-ownership aggregate is green locally. The
+  next exact-head CI run remains the publication authority.
 
 The overall goal remains ACTIVE after every row. Closing one row is progress,
 not completion of whole-project SoT closure or self-hosting.
