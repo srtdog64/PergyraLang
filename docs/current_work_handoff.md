@@ -3,40 +3,40 @@
 Updated: 2026-09-20 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-Fixed builtin-effect and stored identity-receiver code checkpoints:
-`c77d461f71fff9a98b688c73ed976f8f3bbc9b4c` and
-`0565b3f531f861654b9faa32dc61a4b984acfb81`. Their integration checkpoint
-`71a24722e77a72254184e450c33303ea13b8f8db` passed exact-head CI run
-`35477874403` with all 31 jobs green. This handoff is its docs-only publication
-descendant; Git HEAD/status and `origin/main` remain the authority for the
-final publication checkpoint. The
-pre-existing untracked `._handoff_full.md`, `_agents_dump.txt`, `.agents/`, and
-`skills-lock.json` are not part of this packet.
+Stored identity-receiver call projection checkpoint:
+`06321bd1800d08ebc0489ec742c4947ca465f9ed`. Exact-head remote CI is pending;
+the last published integration checkpoint
+`71a24722e77a72254184e450c33303ea13b8f8db` passed run `35477874403` with all
+31 jobs green. Git HEAD/status and `origin/main` remain the authority for the
+publication checkpoint. The pre-existing untracked `._handoff_full.md`,
+`_agents_dump.txt`, `.agents/`, and `skills-lock.json` are not part of this
+packet.
 
-## Active self-host context — identity-cell Bool store is the next LLVM falsifier
+## Active self-host context — `IsCancelled` task ABI is the next public falsifier
 
 Objective card:
-- Objective: make the existing identity-cell store receipt project a Bool
-  receiver-field update through installed public LLVM without weakening its
-  exact method-receiver or field-type evidence.
-- Priority: retained expression identity, exact field type, shared store
-  receipt, C/LLVM execution parity, negative mismatch ratchet, then broader
-  String-field coverage.
-- Fact owner: `DirectMirIdentityCellStoreFact` owns the receiver, field ordinal,
-  field type, and value-expression row. The typed expression set owns the
-  `logical_not` operand/result identity.
-- Last legitimate consumers: `DirectMirIdentityCellLlvmStore` and
-  `DirectMirScalarProgramLlvmExpressionAt`; neither may recover the field type
-  from source text or substitute a C-only result.
-- Forbidden fallback: treating `self` as a copied value, admitting every
-  identity-typed `value/direct` parameter, fixture-specific constants, erasing
-  Bool to Int, or calling a native/C path when public LLVM projection fails.
-- Gate/falsifier:
-  `tests/concept_semantics/authority_effect/identity_cell_receiver_valid.pgy`
-  executes as `4,true,changed,15` on installed public C. Installed public LLVM
-  currently fails closed with `direct MIR scalar CFG LLVM expression is
-  invalid: routine=0 operation=2 expression_row=2`. Add it to the maintained
-  source-admission execution matrix only after both backends execute exactly.
+- Objective: carry the existing `IsCancelled() -> Bool` language contract
+  through the installed public self-host semantic and task-runtime ABI paths so
+  public C and LLVM execute the same program as native C and LLVM.
+- Priority: one semantic signature, retained fixed-effect identity, one task
+  runtime-call ABI fact, shared C/LLVM projection, negative missing/mismatched
+  fact ratchet, then broader cancellation propagation.
+- Fact owners: `SemanticBuiltinSignatureRows` owns the current public builtin
+  signature set and `builtin_effect_registry.def` owns the fixed `remote`
+  effect. A self-host task runtime-call ABI fact does not yet exist; that exact
+  missing owner is the blocker, while the native task emitters are comparison
+  evidence only.
+- Last legitimate consumers: installed public C call emission and the direct
+  LLVM call projection. Both must consume the same admitted task ABI identity;
+  neither may infer support from the source spelling or from the effect row.
+- Forbidden fallback: adding only a signature and leaving unresolved
+  `IsCancelled()`, returning a fixture-specific `false`, C-only support, native
+  compiler re-entry, or a string-rewrite special case outside a task ABI owner.
+- Gate/falsifier: a zero-argument `IsCancelled()` program with `remote`
+  declared executes `false` on native C/LLVM. Installed public C/LLVM both fail
+  closed in `builtin_signature_owner.pgy` with `undefined_function`; the first
+  rung is exact signature admission followed by a missing-ABI refusal before
+  either backend emits an artifact.
 
 Reached evidence and boundary:
 - `c77d461f71fff9a98b688c73ed976f8f3bbc9b4c` makes
@@ -53,20 +53,30 @@ Reached evidence and boundary:
   admission accepts it only when an existing `IdentityCellStore` operation
   carries the stored-receiver receipt. General identity value parameters remain
   rejected.
-- The formerly red `action_authority_valid.public.llvm` execution now prints
-  `0`; source admission passes 50/50. The Zone/World direct-MIR gate still
-  rejects value-carriage mutants and executes installed public C/LLVM exactly.
-  The component contract passes 2,440 line-cap requests, 1,033 function
-  extractions, and 697 reuses without raising a cap.
+- The prior Bool-store diagnosis was wrong. Routine 0, operation 2, expression
+  row 2 is the `Main` direct method call; the method's Bool/String/Int field
+  stores were already sealed `IdentityCellStore` operations. The last C/LLVM
+  call consumers discarded that exact stored-receiver receipt and re-applied
+  the older carriage-only predicate.
+- `06321bd1800d08ebc0489ec742c4947ca465f9ed` gives both final call consumers one
+  `DirectMirIdentityCellCallParameterReady` decision. It accepts either the
+  ordinary carried mode or the exact stored-method receiver receipt; it does
+  not admit general identity `value/direct` parameters. The push self-host
+  shard now runs the complete receiver matrix.
+- The rebuilt installed driver passes 192/192 receiver checks across
+  native/public, C/LLVM, shared direct MIR, repeated mutation, branch outcomes,
+  Zone readonly cases, and carriage/owner/binding mutations. Source admission
+  passes 50/50. The component contract passes 2,440 line-cap requests, 1,036
+  function extractions, and 699 reuses without raising a cap.
 - The installed DRV-2 SHA-256 is
-  `FC8D7C7EC34CB3148D24BF3FD319ADE3B40E5D0C92695668804FA5DD60E4F30B`.
+  `7A6AAA2D787834D0D96B05D1D4A29FEFFB580031429DCAC791D87E98FF528725`.
   SoT/protocol gates remain 89 authorities / 189 carriers,
   `CLOSED=58 / BRIDGE=29 / ACTIVE=2`, and 10 protocol rows. No row was
   promoted by this bounded packet.
 - A valid `IsCancelled()` program with `remote` declared compiles and executes
   as `false` on native C/LLVM, while installed public C/LLVM both fail closed at
   `builtin_signature_owner.pgy` with `undefined_function`. That task-ABI bridge
-  remains open behind the active Bool-store falsifier.
+  is now the active falsifier.
 - Exact-head push run `35477874403` over
   `71a24722e77a72254184e450c33303ea13b8f8db` is fully green: all 31 jobs
   passed, including Windows, macOS C-only, TSan, ASan/UBSan, Rocq 9, both

@@ -222,6 +222,23 @@ Exact remote CI is still required before this local candidate is published.
 Module Build remains design-only until self-host closure, evidence compression,
 and a real external workload.
 
+## Bounded stored identity receiver call projection — 2026-09-20
+
+The stored-receiver lifetime receipt now reaches the last direct-call consumer.
+Both C and LLVM call projection use
+`DirectMirIdentityCellCallParameterReady`: ordinary identity parameters still
+require their carried mode, while a mutable method receiver additionally
+requires the exact `IdentityCellStore` receipt for that callable and ordinal.
+Neither backend may reopen the older carriage-only predicate or infer identity
+from source spelling. The maintained receiver matrix executes native/public and
+shared-direct-MIR C/LLVM paths and rejects crossed owner, receiver, binding,
+carriage, layout, and field facts for 192 total checks.
+
+This bounded consumer migration adds no authority and does not promote
+`semantic.callable_receiver_carriage`: its broader concrete-target MIR row and
+general native/self parameter ABI bridge remain open. The executable registry
+checker remains the sole census owner.
+
 ## Derived Fact Carriers
 
 Every self-hosted `*_fact_owner.pgy` file is either an authority path in the
