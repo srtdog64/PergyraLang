@@ -3,8 +3,8 @@
 Updated: 2026-09-20 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-Stored identity-receiver call projection checkpoint:
-`06321bd1800d08ebc0489ec742c4947ca465f9ed`. Exact-head remote CI is pending;
+Stored `IsCancelled` task-ABI checkpoint:
+`a08016b4425402819740e81a42dc36ca707c409f`. Exact-head remote CI is pending;
 the last published integration checkpoint
 `71a24722e77a72254184e450c33303ea13b8f8db` passed run `35477874403` with all
 31 jobs green. Git HEAD/status and `origin/main` remain the authority for the
@@ -12,80 +12,70 @@ publication checkpoint. The pre-existing untracked `._handoff_full.md`,
 `_agents_dump.txt`, `.agents/`, and `skills-lock.json` are not part of this
 packet.
 
-## Active self-host context — `IsCancelled` task ABI is the next public falsifier
+## Active self-host context — measure the exact fixed-point critical path
 
 Objective card:
-- Objective: carry the existing `IsCancelled() -> Bool` language contract
-  through the installed public self-host semantic and task-runtime ABI paths so
-  public C and LLVM execute the same program as native C and LLVM.
-- Priority: one semantic signature, retained fixed-effect identity, one task
-  runtime-call ABI fact, shared C/LLVM projection, negative missing/mismatched
-  fact ratchet, then broader cancellation propagation.
-- Fact owners: `SemanticBuiltinSignatureRows` owns the current public builtin
-  signature set and `builtin_effect_registry.def` owns the fixed `remote`
-  effect. A self-host task runtime-call ABI fact does not yet exist; that exact
-  missing owner is the blocker, while the native task emitters are comparison
-  evidence only.
-- Last legitimate consumers: installed public C call emission and the direct
-  LLVM call projection. Both must consume the same admitted task ABI identity;
-  neither may infer support from the source spelling or from the effect row.
-- Forbidden fallback: adding only a signature and leaving unresolved
-  `IsCancelled()`, returning a fixture-specific `false`, C-only support, native
-  compiler re-entry, or a string-rewrite special case outside a task ABI owner.
-- Gate/falsifier: a zero-argument `IsCancelled()` program with `remote`
-  declared executes `false` on native C/LLVM. Installed public C/LLVM both fail
-  closed in `builtin_signature_owner.pgy` with `undefined_function`; the first
-  rung is exact signature admission followed by a missing-ABI refusal before
-  either backend emits an artifact.
+- Objective: measure one exact-input self-host fixed point and identify the
+  repeated owned operation that dominates its critical path before opening a
+  cache, query engine, worker, timeout, or memory-budget change.
+- Priority: phase wall/CPU time, host C/LLVM compilation time, total
+  allocations, peak live bytes, post-seal retained bytes, expression-graph
+  visits, fact reconstruction counts, routine reanalysis counts, and serialized
+  AIR/MIR bytes.
+- Fact owners: `codegen_bootstrap.sh` and `self_host_compiler_build.sh` own the
+  executed phase boundaries. No durable profiling receipt owns the requested
+  counters yet; that missing bounded measurement is the active blocker.
+- Last legitimate consumer: the next optimization decision. Compiler semantics
+  and backend admission must not branch on profiling data.
+- Forbidden fallback: another CI shard, a larger timeout, a global Salsa-like
+  query framework, or a cache whose invalidation identity is not tied to the
+  existing semantic owner.
+- Gate/falsifier: one exact commit/compiler/toolchain run records the bounded
+  phase census. A proposed repeated operation must grow faster than its semantic
+  input or dominate retained state; otherwise reject that optimization
+  hypothesis and measure the next candidate.
 
 Reached evidence and boundary:
-- `c77d461f71fff9a98b688c73ed976f8f3bbc9b4c` makes
-  `builtin_effect_registry.def` the shared fixed-effect owner for `Cancel`,
-  `IsCancelled`, and `Measure`; the native checker no longer records duplicate
-  `remote` or `collapse` constants. The generated Pergyra projection is fresh.
-- The effect gates pass 60 admission and 28 execution checks. The self-host
-  projection probe passes 18 controls, and the semantic suite passes
-  2,944/2,944. A fixed effect row still does not assert signature or backend
-  support.
-- `0565b3f531f861654b9faa32dc61a4b984acfb81` distinguishes the exact
-  mutable-identity method header from its implicit `self` `value/direct`
-  transport row. Callable role admission consumes that pair, and lifetime
-  admission accepts it only when an existing `IdentityCellStore` operation
-  carries the stored-receiver receipt. General identity value parameters remain
-  rejected.
-- The prior Bool-store diagnosis was wrong. Routine 0, operation 2, expression
-  row 2 is the `Main` direct method call; the method's Bool/String/Int field
-  stores were already sealed `IdentityCellStore` operations. The last C/LLVM
-  call consumers discarded that exact stored-receiver receipt and re-applied
-  the older carriage-only predicate.
-- `06321bd1800d08ebc0489ec742c4947ca465f9ed` gives both final call consumers one
-  `DirectMirIdentityCellCallParameterReady` decision. It accepts either the
-  ordinary carried mode or the exact stored-method receiver receipt; it does
-  not admit general identity `value/direct` parameters. The push self-host
-  shard now runs the complete receiver matrix.
-- The rebuilt installed driver passes 192/192 receiver checks across
-  native/public, C/LLVM, shared direct MIR, repeated mutation, branch outcomes,
-  Zone readonly cases, and carriage/owner/binding mutations. Source admission
-  passes 50/50. The component contract passes 2,440 line-cap requests, 1,036
-  function extractions, and 699 reuses without raising a cap.
-- The installed DRV-2 SHA-256 is
-  `7A6AAA2D787834D0D96B05D1D4A29FEFFB580031429DCAC791D87E98FF528725`.
-  SoT/protocol gates remain 89 authorities / 189 carriers,
-  `CLOSED=58 / BRIDGE=29 / ACTIVE=2`, and 10 protocol rows. No row was
-  promoted by this bounded packet.
-- A valid `IsCancelled()` program with `remote` declared compiles and executes
-  as `false` on native C/LLVM, while installed public C/LLVM both fail closed at
-  `builtin_signature_owner.pgy` with `undefined_function`. That task-ABI bridge
-  is now the active falsifier.
-- Exact-head push run `35477874403` over
-  `71a24722e77a72254184e450c33303ea13b8f8db` is fully green: all 31 jobs
-  passed, including Windows, macOS C-only, TSan, ASan/UBSan, Rocq 9, both
-  self-host fixed points, Linux core and self-host contracts, and all 20
-  backend-compare shards.
-- The run took 40m34s wall time. `self-host-bootstrap-linux` took 39m24s and
-  exceeded the repository's 30-minute integration-shard target; the Linux
-  self-host contract shard took 24m06s. This is measured performance debt, not
-  a reason to weaken, retry, or silently skip the fixed-point proof.
+- The latest local `make self-host-compiler` rebuilt and installed DRV-2 from
+  the exact `a08016b4` source. Long quiet seed and DRV-2 emission phases are
+  observed, but no phase/allocation census exists, so their cause remains
+  unmeasured.
+- The last fully green published run remains `35477874403`; it took 40m34s,
+  with `self-host-bootstrap-linux` at 39m24s. This establishes an integration
+  budget problem, not the repeated operation responsible for it.
+- Instrument only the reached bootstrap owner needed to identify that repeated
+  operation. Do not start a general compiler cache or an unrelated semantic
+  migration while this measurement rung is open.
+
+## Completed self-host context — `IsCancelled` task ABI reaches public C/LLVM
+
+Reached evidence and boundary:
+- `a08016b4425402819740e81a42dc36ca707c409f` keeps the source name in
+  `SemanticBuiltinIsCancelledName`, fixed `remote` effect admission in
+  `builtin_effect_registry.def`, and the physical operation/symbol/declarations
+  in `task_runtime_owner.pgy`. The layers no longer infer one another.
+- Runtime-call ABI row 267 is
+  `task|is-cancelled|pgy_task_is_cancelled_export|function|target_library|returns_bool`.
+  Direct C and LLVM consume its structured fact; their expression owners do not
+  hard-code the physical symbol.
+- Native, installed public, and direct-MIR C/LLVM all execute the same valid
+  source result (`false`). Missing `remote` and wrong arity fail in all four
+  source routes with their owned diagnostics and no artifact.
+- Three MIR mutations per backend (wrong runtime ID, wrong target, missing
+  callee edge) fail before publication. The admitted MIR input remains
+  byte-identical after projection.
+- The rebuilt installed driver SHA-256 is
+  `7A2957ADCF41D1F1A6F4D0DE6A1496608FE95D75B4C97600C8C30786E17EB05A`.
+  The component contract passes 2,454 line-cap requests, 1,036 function
+  extractions, and 699 reuses without raising a cap.
+- Runtime-call ABI C/LLVM manifests, HashMap header consumers, document-link
+  parity, SoT single-owner gates, and the 10-row protocol registry are green.
+  SoT remains 89 authorities / 189 carriers with
+  `CLOSED=58 / BRIDGE=29 / ACTIVE=2`; this bounded builtin bridge does not
+  promote the broader effect-policy or runtime-call rows.
+- The Linux push self-host shard now includes the focused task gate. Its static
+  profile owns 30 prebuilt gates plus the build-mode compiler step; the stale
+  28-gate count that caused the previous red contract job is removed.
 
 ## Previous self-host context — default Zone/World identity reaches public C/LLVM
 
