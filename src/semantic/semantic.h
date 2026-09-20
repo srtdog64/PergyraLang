@@ -23,6 +23,7 @@
 #include "iteration_type_fact.h"
 #include "destructure_type_fact.h"
 #include "match_binding_type_fact.h"
+#include "collection_ownership_fact.h"
 #include "region_escape_fact.h"
 #include "domain_runtime_fact.h"
 #include "type_system.h"
@@ -83,6 +84,10 @@ typedef struct SemanticResult
     /* Positional match-pattern binding types keyed by stable case identity. */
     PgyMatchBindingTypeFact *match_binding_type_facts;
     size_t       match_binding_type_fact_count;
+    /* Stable Array<String> element-ownership rows.  Later stages consume
+     * these identities instead of retaining or recreating Symbol state. */
+    PgyCollectionOwnershipFact *collection_ownership_facts;
+    size_t       collection_ownership_fact_count;
     /* Semantic-owned bounded region escape facts. The driver converts these
      * stable rows into the verified plan; it must not rescan the AST. */
     PgyRegionEscapeFact *region_escape_facts;

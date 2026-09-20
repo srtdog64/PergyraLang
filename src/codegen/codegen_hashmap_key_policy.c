@@ -9,13 +9,15 @@ typedef struct
     const char *name;
     PgyHashMapKeyKind kind;
     const char *c_infix;
+    const char *storage_constructor_infix;
+    PgyHashMapKeyStorageKind storage_kind;
 } PgyHashMapKeySpec;
 
 static const PgyHashMapKeySpec pgy_hashmap_key_specs[] = {
-    { "Bool", PGY_HASHMAP_KEY_BOOL, "_bool" },
-    { "Int", PGY_HASHMAP_KEY_INT, "_i32" },
-    { "Long", PGY_HASHMAP_KEY_LONG, "_i64" },
-    { "String", PGY_HASHMAP_KEY_STRING, "" },
+    { "Bool", PGY_HASHMAP_KEY_BOOL, "_bool", "_bool", PGY_HASHMAP_KEY_STORAGE_BOOL },
+    { "Int", PGY_HASHMAP_KEY_INT, "_i32", "_i32", PGY_HASHMAP_KEY_STORAGE_I32 },
+    { "Long", PGY_HASHMAP_KEY_LONG, "_i64", "_i64", PGY_HASHMAP_KEY_STORAGE_I64 },
+    { "String", PGY_HASHMAP_KEY_STRING, "", "", PGY_HASHMAP_KEY_STORAGE_STRING },
 };
 
 static int
@@ -53,6 +55,20 @@ pgy_hashmap_key_c_infix(const char *key_name)
     if (spec != NULL)
         return spec->c_infix;
     return NULL;
+}
+
+const char *
+pgy_hashmap_key_storage_constructor_infix(const char *key_name)
+{
+    const PgyHashMapKeySpec *spec = pgy_hashmap_key_find_spec(key_name);
+    return spec != NULL ? spec->storage_constructor_infix : NULL;
+}
+
+PgyHashMapKeyStorageKind
+pgy_hashmap_key_storage_kind_from_name(const char *key_name)
+{
+    const PgyHashMapKeySpec *spec = pgy_hashmap_key_find_spec(key_name);
+    return spec != NULL ? spec->storage_kind : PGY_HASHMAP_KEY_STORAGE_INVALID;
 }
 
 const char *

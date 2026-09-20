@@ -183,11 +183,22 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
                 "C backend: MapNew requires contextual HashMap<K, V> type hint");
             return NULL;
         }
-        (void)key;
+        const char *constructor_infix =
+            pgy_hashmap_key_storage_constructor_infix(key);
+        if (constructor_infix == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: MapNew has no physical key storage for '%s'",
+                key != NULL ? key : "<missing>");
+            return NULL;
+        }
         transpiler_collection_ensure_specialization(ctx, "Map", value);
         char suffix_buf[128];
         collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
-        return strdup_fmt("pgy_map_new_%s()", suffix_buf);
+        return strdup_fmt("pgy_map_new%s_%s()", constructor_infix,
+            suffix_buf);
     }
     if (map_op == TRANSPILER_MAP_OP_SET) {
         ASTNode *map_arg = ast_call_argument(call, 0);

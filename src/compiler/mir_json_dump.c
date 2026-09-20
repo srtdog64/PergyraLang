@@ -462,6 +462,85 @@ mir_json_emit_source_locals(FILE *out, const MIRRoutine *routine)
         fputs(",\"type\":", out);
         mir_json_emit_str_or_null(out,
             mir_routine_source_local_type_name_at(routine, s));
+        fprintf(out, ",\"binding_syntax_id\":%u",
+                routine->source_local_types[s].binding_syntax_id);
+        fputc('}', out);
+    }
+    fputc(']', out);
+}
+
+static const char *
+mir_json_collection_ownership_name(PgyStringArrayOwnership ownership)
+{
+    switch (ownership) {
+        case PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN:
+            return "unknown";
+        case PGY_STRING_ARRAY_BORROWED_ELEMENTS:
+            return "borrowed-elements";
+        case PGY_STRING_ARRAY_OWNED_ELEMENTS:
+            return "owned-elements";
+        case PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT:
+            return "map-keys-snapshot";
+    }
+    return "invalid";
+}
+
+static const char *
+mir_json_collection_disposition_name(PgyCollectionDisposition disposition)
+{
+    switch (disposition) {
+        case PGY_COLLECTION_DISPOSITION_LIVE:
+            return "live";
+        case PGY_COLLECTION_DISPOSITION_RETIRED:
+            return "retired";
+    }
+    return "invalid";
+}
+
+static const char *
+mir_json_collection_origin_name(PgyCollectionOrigin origin)
+{
+    switch (origin) {
+        case PGY_COLLECTION_ORIGIN_UNKNOWN:
+            return "unknown";
+        case PGY_COLLECTION_ORIGIN_BORROWED_LITERAL:
+            return "borrowed-literal";
+        case PGY_COLLECTION_ORIGIN_MAP_KEYS:
+            return "map-keys";
+        case PGY_COLLECTION_ORIGIN_BINDING:
+            return "binding";
+    }
+    return "invalid";
+}
+
+static void
+mir_json_emit_collection_ownership_facts(FILE *out,
+                                         const MIRRoutine *routine)
+{
+    fprintf(out, ",\"collection_ownership_fact_count\":%zu",
+            routine->collection_ownership_fact_count);
+    fputs(",\"collection_ownership_facts\":[", out);
+    for (size_t i = 0; i < routine->collection_ownership_fact_count; i++) {
+        const MIRCollectionOwnershipFact *fact =
+            &routine->collection_ownership_facts[i];
+        if (i > 0)
+            fputc(',', out);
+        fprintf(out,
+            "{\"function_syntax_id\":%u,\"binding_syntax_id\":%u,"
+            "\"origin_syntax_id\":%u,\"source_binding_syntax_id\":%u,"
+            "\"element_ownership\":",
+            fact->function_syntax_id,
+            fact->binding_syntax_id,
+            fact->origin_syntax_id,
+            fact->source_binding_syntax_id);
+        mir_json_emit_str(out,
+            mir_json_collection_ownership_name(fact->element_ownership));
+        fputs(",\"disposition\":", out);
+        mir_json_emit_str(out,
+            mir_json_collection_disposition_name(fact->disposition));
+        fputs(",\"origin\":", out);
+        mir_json_emit_str(out,
+            mir_json_collection_origin_name(fact->origin));
         fputc('}', out);
     }
     fputc(']', out);
@@ -501,6 +580,7 @@ mir_json_emit_routine(FILE *out, const MIRRoutine *routine)
     mir_json_emit_loop_flow_facts(out, routine);
     mir_json_emit_iteration_type_facts(out, routine);
     mir_json_emit_destructure_type_facts(out, routine);
+    mir_json_emit_collection_ownership_facts(out, routine);
     bool emit_local_refs = mir_json_routine_local_refs_required(routine);
     fputs(",\"blocks\":[", out);
     for (size_t j = 0;

@@ -109,8 +109,8 @@ func DirectMirScalarProgramLogicalRecordReadyForExpressions(
             let left: Int = expressions.node_lefts[node];
             if left < 0 || left >= node { return false; }
             let left_type: String = expressions.node_types[left];
-            let builtin_array: Bool = left_type == CompilerAbiLayoutArrayStringTypeName() ||
-                left_type == CompilerAbiLayoutArrayIntTypeName() || left_type == CompilerAbiLayoutArrayBoolTypeName();
+            let builtin_array: Bool = left_type == CompilerAbiLayoutArrayStringTypeName() || left_type == CompilerAbiLayoutArrayIntTypeName() ||
+                left_type == CompilerAbiLayoutArrayLongTypeName() || left_type == CompilerAbiLayoutArrayBoolTypeName();
             if !builtin_array && !DirectMirScalarProgramLogicalRecordArrayTypeReady(
                     fact, left_type) { return false; }
         }

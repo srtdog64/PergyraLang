@@ -1,0 +1,42 @@
+func Main() -> Void with effects local {
+    let ints: HashMap<String, Int> = MapNew();
+    let longs: HashMap<String, Long> = MapNew();
+    let flags: HashMap<String, Bool> = MapNew();
+    let strings: HashMap<String, String> = MapNew();
+
+    MapSet(ints, "anchor", 11);
+    MapSet(ints, "anchor", 12);
+    MapSet(ints, "drop", 13);
+    let snapshot: Array<String> = MapKeys(ints);
+    MapRemove(ints, "drop");
+    MapSet(ints, "drop", 14);
+    MapSet(ints, "g00", 0);
+    MapSet(ints, "g01", 1);
+    MapSet(ints, "g02", 2);
+    MapSet(ints, "g03", 3);
+    MapSet(ints, "g04", 4);
+    MapSet(ints, "g05", 5);
+    MapSet(ints, "g06", 6);
+    MapSet(ints, "g07", 7);
+    MapSet(ints, "g08", 8);
+    MapSet(ints, "g09", 9);
+    MapSet(ints, "g10", 10);
+    MapSet(ints, "g11", 11);
+
+    MapSet(longs, "long", 21L);
+    MapSet(longs, "long", 22L);
+    MapSet(flags, "flag", false);
+    MapSet(flags, "flag", true);
+    MapSet(strings, "text", "old");
+    MapSet(strings, "text", "new");
+
+    Log(MapGet(ints, "anchor"));
+    Log(MapGet(ints, "drop"));
+    Log(MapGet(longs, "long"));
+    Log(MapGet(flags, "flag"));
+    Log(MapGet(strings, "text"));
+    Log(ArrayLength(snapshot));
+    Log(snapshot[0]);
+    Log(snapshot[1]);
+    Log(MapSize(ints));
+}

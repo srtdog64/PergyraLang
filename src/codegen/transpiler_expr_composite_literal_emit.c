@@ -193,7 +193,8 @@ emit_array_literal_expression(ASTNode *node, TranspilerCtx *ctx)
 static bool
 map_literal_resolve_policy(TranspilerCtx *ctx, const char *map_type,
                           char *suffix_buf, size_t suffix_size,
-                          const char **key_infix_out)
+                          const char **key_infix_out,
+                          const char **constructor_infix_out)
 {
     char key_buf[64];
     char value_buf[64];
@@ -205,7 +206,9 @@ map_literal_resolve_policy(TranspilerCtx *ctx, const char *map_type,
             &key, &value))
         return false;
     *key_infix_out = pgy_hashmap_key_c_infix(key);
-    if (*key_infix_out == NULL) {
+    *constructor_infix_out =
+        pgy_hashmap_key_storage_constructor_infix(key);
+    if (*key_infix_out == NULL || *constructor_infix_out == NULL) {
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
@@ -223,13 +226,14 @@ emit_map_literal_expression(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *map_type = infer_expression_type_name(ctx, node);
     const char *key_infix = NULL;
+    const char *constructor_infix = NULL;
     char suffix_buf[128];
     char ctype_buf[256];
     int tmp_id;
     CodeBuf *buf;
 
     if (!map_literal_resolve_policy(ctx, map_type, suffix_buf,
-            sizeof(suffix_buf), &key_infix))
+            sizeof(suffix_buf), &key_infix, &constructor_infix))
         return NULL;
     if (!transpiler_require_type_name_c_type_copy(ctx, map_type,
             "map literal layout", ctype_buf, sizeof(ctype_buf))) {
@@ -237,8 +241,8 @@ emit_map_literal_expression(ASTNode *node, TranspilerCtx *ctx)
     }
     tmp_id = ++ctx->tmp_counter;
     buf = codebuf_create();
-    codebuf_write(buf, "({ %s _pgy_map_%d = pgy_map_new_%s(); ",
-        ctype_buf, tmp_id, suffix_buf);
+    codebuf_write(buf, "({ %s _pgy_map_%d = pgy_map_new%s_%s(); ",
+        ctype_buf, tmp_id, constructor_infix, suffix_buf);
     for (size_t i = 0; i < ast_map_literal_count(node); i++) {
         char *k = emit_expression(ast_map_literal_key(node, i), ctx);
         char *v = k != NULL

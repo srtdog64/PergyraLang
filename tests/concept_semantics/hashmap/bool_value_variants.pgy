@@ -1,0 +1,40 @@
+func Main() -> Void with effects local {
+    let ints: HashMap<Bool, Int> = MapNew();
+    let longs: HashMap<Bool, Long> = MapNew();
+    let flags: HashMap<Bool, Bool> = MapNew();
+    let strings: HashMap<Bool, String> = MapNew();
+
+    MapSet(ints, false, 11);
+    MapSet(ints, true, 12);
+    MapSet(ints, true, 13);
+    MapRemove(ints, false);
+    MapSet(ints, false, 14);
+
+    MapSet(longs, false, 21L);
+    MapSet(longs, true, 22L);
+    MapSet(longs, true, 23L);
+
+    MapSet(flags, false, false);
+    MapSet(flags, true, false);
+    MapSet(flags, true, true);
+
+    MapSet(strings, false, "left");
+    MapSet(strings, true, "old");
+    MapSet(strings, true, "right");
+
+    Log(MapGet(ints, false));
+    Log(MapGet(ints, true));
+    Log(MapGet(longs, true));
+    Log(MapGet(flags, true));
+    Log(MapGet(strings, true));
+    let int_keys: Array<Bool> = MapKeys(ints);
+    let long_keys: Array<Bool> = MapKeys(longs);
+    let flag_keys: Array<Bool> = MapKeys(flags);
+    let string_keys: Array<Bool> = MapKeys(strings);
+    Log(ArrayLength(int_keys));
+    Log(int_keys[0]);
+    Log(int_keys[1]);
+    Log(ArrayLength(long_keys));
+    Log(ArrayLength(flag_keys));
+    Log(ArrayLength(string_keys));
+}

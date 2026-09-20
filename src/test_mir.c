@@ -24,6 +24,7 @@
 #include "compiler/mir_json_local_ref.h"
 #include "compiler/mir_json_expression_graph_materialize.h"
 #include "compiler/mir_fact_validate.h"
+#include "compiler/mir_branch_source_facts.h"
 
 static int g_pass = 0;
 static int g_fail = 0;
@@ -893,6 +894,7 @@ test_mir_carries_region_escape_facts(void)
 #include "tests/mir/test_mir_lowering_part_i.cases.h"
 #include "tests/mir/test_mir_runtime_call_abi.cases.h"
 #include "tests/mir/test_mir_lexical_binding_identity.cases.h"
+#include "tests/mir/test_mir_collection_ownership_validation.cases.h"
 
 static void
 test_mir_lowering(void)
@@ -927,6 +929,7 @@ test_mir_lowering(void)
     test_mir_lowering_part_h_2();
     test_mir_lowering_part_i();
     test_mir_runtime_call_abi_facts();
+    test_mir_collection_ownership_validation();
 }
 
 int

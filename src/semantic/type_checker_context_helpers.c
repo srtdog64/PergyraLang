@@ -238,6 +238,9 @@ semantic_context_destroy(SemanticContext *ctx)
     pgy_match_binding_type_facts_destroy(
         ctx->match_binding_type_facts,
         ctx->match_binding_type_fact_count);
+    pgy_collection_ownership_facts_destroy(
+        ctx->collection_ownership_facts,
+        ctx->collection_ownership_fact_count);
     pgy_domain_participant_role_facts_destroy(
         ctx->domain_participant_role_facts,
         ctx->domain_participant_role_fact_count);

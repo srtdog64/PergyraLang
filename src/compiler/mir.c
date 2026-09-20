@@ -113,6 +113,8 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
     }
     mir->has_function_param_flow_facts = hir->has_function_param_flow_facts;
     mir->has_resource_flow_facts = hir->has_resource_flow_facts;
+    mir->has_collection_ownership_facts =
+        hir->has_collection_ownership_facts;
     mir->has_loop_flow_facts = hir->has_loop_flow_facts;
     if (!mir_import_parallel_capture_facts(mir, semantic, error_message)) {
         mir_destroy(mir);
@@ -379,11 +381,24 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
                 mir_free_iteration_type_facts(&routine);
                 mir_free_destructure_type_facts(&routine);
                 mir_free_match_binding_type_facts(&routine);
+                mir_free_collection_ownership_facts(&routine);
                 mir_routine_signature_metadata_clear(&routine);
                 pgy_arena_destroy(&routine.scratch);
                 if (error_message != NULL)
                     *error_message = pergyra_strdup(
                         "missing or invalid source-local type fact");
+                mir_destroy(mir);
+                return NULL;
+            }
+            if (!mir_copy_collection_ownership_facts(
+                    &routine, hir_routine, error_message)) {
+                mir_routine_source_local_type_names_clear(&routine);
+                mir_routine_signature_metadata_clear(&routine);
+                mir_free_iteration_type_facts(&routine);
+                mir_free_destructure_type_facts(&routine);
+                mir_free_match_binding_type_facts(&routine);
+                mir_free_collection_ownership_facts(&routine);
+                pgy_arena_destroy(&routine.scratch);
                 mir_destroy(mir);
                 return NULL;
             }
@@ -402,6 +417,7 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
             mir_free_iteration_type_facts(&routine);
             mir_free_destructure_type_facts(&routine);
             mir_free_match_binding_type_facts(&routine);
+            mir_free_collection_ownership_facts(&routine);
             pgy_arena_destroy(&routine.scratch);
             mir_free_resource_flow_symbols(&routine);
             mir_destroy(mir);
@@ -414,6 +430,7 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
             mir_free_iteration_type_facts(&routine);
             mir_free_destructure_type_facts(&routine);
             mir_free_match_binding_type_facts(&routine);
+            mir_free_collection_ownership_facts(&routine);
             pgy_arena_destroy(&routine.scratch);
             mir_free_resource_flow_symbols(&routine);
             mir_destroy(mir);
@@ -426,6 +443,7 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
             mir_free_iteration_type_facts(&routine);
             mir_free_destructure_type_facts(&routine);
             mir_free_match_binding_type_facts(&routine);
+            mir_free_collection_ownership_facts(&routine);
             pgy_arena_destroy(&routine.scratch);
             mir_free_resource_flow_symbols(&routine);
             mir_destroy(mir);
@@ -487,6 +505,7 @@ mir_lower(const MIRLowerRequest *request, char **error_message)
             mir_free_iteration_type_facts(&routine);
             mir_free_destructure_type_facts(&routine);
             mir_free_match_binding_type_facts(&routine);
+            mir_free_collection_ownership_facts(&routine);
             mir_free_resource_flow_symbols(&routine);
             mir_routine_signature_metadata_clear(&routine);
             pgy_arena_destroy(&routine.scratch);

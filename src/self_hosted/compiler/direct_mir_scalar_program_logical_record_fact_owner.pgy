@@ -74,8 +74,7 @@ func DirectMirScalarProgramLogicalRecordFactCanonicalEmpty(
 }
 
 func DirectMirScalarProgramLogicalRecordScalarFieldTypeReady(type_name: String) -> Bool {
-    return type_name == CompilerAbiLayoutBoolTypeName() ||
-        type_name == CompilerAbiLayoutIntTypeName() ||
+    return type_name == CompilerAbiLayoutBoolTypeName() || type_name == CompilerAbiLayoutIntTypeName() || type_name == CompilerAbiLayoutLongTypeName() ||
         type_name == CompilerAbiLayoutStringTypeName();
 }
 
@@ -83,6 +82,7 @@ func DirectMirScalarProgramLogicalRecordTerminalFieldTypeReady(type_name: String
     return DirectMirScalarProgramLogicalRecordScalarFieldTypeReady(type_name) ||
         type_name == CompilerAbiLayoutOptionIntTypeName() ||
         type_name == CompilerAbiLayoutArrayIntTypeName() ||
+        type_name == CompilerAbiLayoutArrayLongTypeName() ||
         type_name == CompilerAbiLayoutArrayBoolTypeName() ||
         type_name == CompilerAbiLayoutArrayStringTypeName();
 }

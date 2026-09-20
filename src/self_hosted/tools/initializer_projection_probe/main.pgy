@@ -566,6 +566,7 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
         body_types.iteration_types,
         body_types.assignment_types, body_types.match_materializations,
         body_types.statement_types,
+        body_types.collection_ownership,
         body_types.generic_specializations,
         SelfHostMachineLayerDeclarationEmpty()
     );
@@ -898,6 +899,7 @@ func Main() -> Void with caps env {
         artifact, analysis, initializer_types, body_types.iteration_types,
         body_types.assignment_types, body_types.match_materializations,
         body_types.statement_types,
+        body_types.collection_ownership,
         body_types.generic_specializations,
         SelfHostMachineLayerDeclarationEmpty()
     );

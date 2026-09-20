@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let values: Array<String> = ["literal"];
+    let count: Int = ArrayLength(values);
+    Log(count);
+}

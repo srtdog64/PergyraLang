@@ -356,6 +356,10 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     result->match_binding_type_facts = ctx->match_binding_type_facts;
     result->match_binding_type_fact_count =
         ctx->match_binding_type_fact_count;
+    result->collection_ownership_facts =
+        ctx->collection_ownership_facts;
+    result->collection_ownership_fact_count =
+        ctx->collection_ownership_fact_count;
     result->domain_participant_role_facts =
         ctx->domain_participant_role_facts;
     result->domain_participant_role_fact_count =
@@ -411,6 +415,9 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     ctx->match_binding_type_facts = NULL;
     ctx->match_binding_type_fact_count = 0;
     ctx->match_binding_type_fact_capacity = 0;
+    ctx->collection_ownership_facts = NULL;
+    ctx->collection_ownership_fact_count = 0;
+    ctx->collection_ownership_fact_capacity = 0;
     ctx->domain_participant_role_facts = NULL;
     ctx->domain_participant_role_fact_count = 0;
     ctx->domain_participant_role_fact_capacity = 0;
@@ -461,6 +468,9 @@ semantic_result_destroy(SemanticResult *result)
     pgy_match_binding_type_facts_destroy(
         result->match_binding_type_facts,
         result->match_binding_type_fact_count);
+    pgy_collection_ownership_facts_destroy(
+        result->collection_ownership_facts,
+        result->collection_ownership_fact_count);
     pgy_domain_participant_role_facts_destroy(
         result->domain_participant_role_facts,
         result->domain_participant_role_fact_count);

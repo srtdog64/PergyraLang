@@ -320,6 +320,12 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
                 hir_error != NULL ? hir_error
                                   : "invalid match binding type facts");
         } else if (hir_projection_failure
+                   == HIR_SEMANTIC_PROJECTION_COLLECTION_OWNERSHIP) {
+            driver_emit_stage_fail(flags, "hir_lower",
+                "HIR collection ownership fact attachment failed",
+                hir_error != NULL ? hir_error
+                                  : "invalid collection ownership facts");
+        } else if (hir_projection_failure
                    == HIR_SEMANTIC_PROJECTION_DOMAIN_RUNTIME_FACT) {
             driver_emit_stage_fail(flags, "hir_lower",
                 "HIR domain runtime fact attachment failed",

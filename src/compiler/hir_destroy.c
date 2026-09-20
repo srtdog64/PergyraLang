@@ -76,6 +76,7 @@ hir_destroy(HIRProgram *hir)
                     .match_binding_type_facts[k].binding_type_name);
             }
             free(hir->routines[i].match_binding_type_facts);
+            free(hir->routines[i].collection_ownership_facts);
             pgy_arena_destroy(&hir->routines[i].scratch);
         }
     }

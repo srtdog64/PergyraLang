@@ -67,6 +67,11 @@ while IFS='|' read -r name native_code self_code anchor; do
 done <<'CASES'
 operations_valid|valid||
 key_types_valid|valid||
+int_storage_stress|valid||
+long_storage_stress|valid||
+long_value_variants|valid||
+bool_value_variants|valid||
+string_value_variants|valid||
 callable_shadow_valid|valid||
 evaluation_order_valid|valid||
 wrong_key|PGY_SEM_TYPE_MISMATCH|call_arg_type_mismatch|expected: String
@@ -114,10 +119,18 @@ while IFS='|' read -r name expected; do
 done <<'EXECUTION_CASES'
 operations_valid|5,true,2,first,second,1,false,second
 key_types_valid|three,-2,3,40,-9,4,1,false,true
+int_storage_stress|false,258,-2147483648,2147483647,160801,true
+long_storage_stress|false,258,-9223372036854775808,9223372036854775807,160801,true
+long_value_variants|12,22,true,z,1,1,1,1
+bool_value_variants|14,13,23,true,right,2,false,true,2,2,2
+string_value_variants|12,14,22,true,new,2,anchor,drop,14
 callable_shadow_valid|6
 evaluation_order_valid|key,value,7
 EXECUTION_CASES
 echo "[hashmap-admission] admission: $admission_checks checks / $admission_failures failures"
 echo "[hashmap-admission] execution: $((checks - admission_checks)) checks / $((failures - admission_failures)) failures"
 echo "[hashmap-admission] $checks checks / $failures failures"
+if [[ "$checks" == 86 && "$failures" == 0 ]]; then
+    echo "[hashmap-admission] String-key Int/Long/Bool/String native/public C/LLVM parity 86/86"
+fi
 [[ "$failures" == 0 ]]

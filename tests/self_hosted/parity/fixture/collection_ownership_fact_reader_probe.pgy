@@ -1,0 +1,56 @@
+// Executable consumer for the stable MIR collection-ownership row.
+// The probe succeeds only when every routine accepts its exact carrier shape
+// and Main owns one complete row.
+import "../../../../src/self_hosted/mir_lower/routine_fact_index_owner.pgy";
+
+func CollectionOwnershipProbeFail(message: String) -> Void {
+    Log(message);
+    Exit(1);
+}
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 {
+        CollectionOwnershipProbeFail(
+            "usage: collection_ownership_fact_reader_probe <MIR JSON>");
+    }
+    let routines: MirProgramRoutineIndex =
+        BuildMirProgramRoutineIndex(ReadFile(args[0]));
+    if !routines.valid {
+        CollectionOwnershipProbeFail(
+            "collection ownership probe rejected program structure");
+    }
+    let main_rows: Int = 0;
+    let routine_row: Int = 0;
+    while routine_row < ArrayLength(routines.names) {
+        let index: MirRoutineFactIndex =
+            BuildMirRoutineFactIndex(routines, routine_row);
+        if !index.valid {
+            CollectionOwnershipProbeFail("collection ownership probe rejected " +
+                index.validation_stage);
+        }
+        if routines.names[routine_row] == "Main" {
+            main_rows = main_rows +
+                ArrayLength(index.collection_ownership_facts.binding_syntax_ids);
+            if ArrayLength(
+                    index.collection_ownership_facts.binding_syntax_ids) == 1 {
+                Log(ToString(
+                        index.collection_ownership_facts.function_syntax_ids[0]) +
+                    ":" + ToString(
+                        index.collection_ownership_facts.binding_syntax_ids[0]) +
+                    ":" + ToString(
+                        index.collection_ownership_facts.origin_syntax_ids[0]) +
+                    ":" + ToString(
+                        index.collection_ownership_facts.source_binding_syntax_ids[0]) +
+                    ":" + index.collection_ownership_facts.element_ownerships[0] +
+                    ":" + index.collection_ownership_facts.dispositions[0] +
+                    ":" + index.collection_ownership_facts.origins[0]);
+            }
+        }
+        routine_row = routine_row + 1;
+    }
+    if main_rows != 1 {
+        CollectionOwnershipProbeFail(
+            "collection ownership probe requires one Main row");
+    }
+}

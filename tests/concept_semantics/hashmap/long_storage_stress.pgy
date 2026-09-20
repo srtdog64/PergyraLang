@@ -1,0 +1,43 @@
+func Main() -> Void with effects local {
+    let values: HashMap<Long, Long> = MapNew();
+    let i: Long = 0L;
+    let max_key: Long = 2147483647L;
+    max_key = max_key * 4294967296L + 4294967295L;
+    let min_key: Long = 0L;
+    min_key = min_key - max_key - 1L;
+    while i < 256L {
+        MapSet(values, i * 4294967296L + 7L, i + 1L);
+        i = i + 1L;
+    }
+    MapSet(values, min_key, 11L);
+    MapSet(values, max_key, 22L);
+
+    i = 0L;
+    while i < 128L {
+        MapRemove(values, i * 4294967296L + 7L);
+        i = i + 1L;
+    }
+    Log(MapHas(values, 7L));
+
+    i = 0L;
+    while i < 128L {
+        MapSet(values, i * 4294967296L + 7L, i + 1000L);
+        i = i + 1L;
+    }
+
+    let keys: Array<Long> = MapKeys(values);
+    Log(ArrayLength(keys));
+    Log(keys[0]);
+    Log(keys[ArrayLength(keys) - 1]);
+
+    let total: Long = 0L;
+    i = 0L;
+    while i < 256L {
+        total = total + MapGet(values, i * 4294967296L + 7L);
+        i = i + 1L;
+    }
+    total = total + MapGet(values, min_key);
+    total = total + MapGet(values, max_key);
+    Log(total);
+    Log(MapHas(values, 7L));
+}

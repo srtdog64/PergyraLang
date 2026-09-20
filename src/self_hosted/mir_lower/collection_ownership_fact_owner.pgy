@@ -1,0 +1,203 @@
+// Fail-closed reader for semantic-owned Array<String> lifetime rows.
+
+import "json_fact_read.pgy";
+
+struct MirCollectionOwnershipFacts {
+    valid: Bool;
+    validation_stage: String;
+    function_syntax_ids: Array<Int>;
+    binding_syntax_ids: Array<Int>;
+    origin_syntax_ids: Array<Int>;
+    source_binding_syntax_ids: Array<Int>;
+    element_ownerships: Array<String>;
+    dispositions: Array<String>;
+    origins: Array<String>;
+}
+
+func MirCollectionOwnershipLocalRow(
+    ref local_binding_syntax_ids: Array<Int>,
+    binding_syntax_id: Int
+) -> Int {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(local_binding_syntax_ids) {
+        if local_binding_syntax_ids[row] == binding_syntax_id {
+            if found >= 0 { return -2; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func BuildMirCollectionOwnershipFacts(
+    json: String,
+    routine_start: Int,
+    routine_end: Int,
+    routine_syntax_id: String,
+    ref local_types: Array<String>,
+    ref local_binding_syntax_ids: Array<Int>
+) -> MirCollectionOwnershipFacts {
+    let function_ids: Array<Int> = [];
+    let binding_ids: Array<Int> = [];
+    let origin_ids: Array<Int> = [];
+    let source_ids: Array<Int> = [];
+    let ownerships: Array<String> = [];
+    let dispositions: Array<String> = [];
+    let origins: Array<String> = [];
+    let valid: Bool = StringLength(routine_syntax_id) > 0 &&
+        ArrayLength(local_types) == ArrayLength(local_binding_syntax_ids);
+    let stage: String = "ok";
+    let declared_count: String = MirObjectNumberFactAtBounds(
+        json, routine_start, routine_end,
+        "collection_ownership_fact_count"
+    );
+    let bounds: Array<Int> = [0, 0];
+    if MirObjectFieldOccurrenceCountAtBounds(
+            json, routine_start, routine_end,
+            "collection_ownership_fact_count") != 1 ||
+        MirObjectFieldOccurrenceCountAtBounds(
+            json, routine_start, routine_end,
+            "collection_ownership_facts") != 1 ||
+        declared_count == "" ||
+        ToString(ToInt(declared_count)) != declared_count ||
+        ToInt(declared_count) < 0 ||
+        !MirObjectArrayBoundsAtBounds(
+            json, routine_start, routine_end,
+            "collection_ownership_facts", bounds) {
+        valid = false;
+        stage = "collection_ownership_shape";
+    } else {
+        let cursor: Int = bounds[0] + 1;
+        let row_bounds: Array<Int> = [0, 0];
+        while JsonArrayNextObjectBounds(
+            json, cursor, bounds[1], row_bounds
+        ) {
+            let function_id: String = MirObjectNumberFactAtBounds(
+                json, row_bounds[0], row_bounds[1], "function_syntax_id");
+            let binding_id: String = MirObjectNumberFactAtBounds(
+                json, row_bounds[0], row_bounds[1], "binding_syntax_id");
+            let origin_id: String = MirObjectNumberFactAtBounds(
+                json, row_bounds[0], row_bounds[1], "origin_syntax_id");
+            let source_id: String = MirObjectNumberFactAtBounds(
+                json, row_bounds[0], row_bounds[1],
+                "source_binding_syntax_id");
+            let ownership: String = MirObjectStringFactAtBounds(
+                json, row_bounds[0], row_bounds[1], "element_ownership");
+            let disposition: String = MirObjectStringFactAtBounds(
+                json, row_bounds[0], row_bounds[1], "disposition");
+            let origin: String = MirObjectStringFactAtBounds(
+                json, row_bounds[0], row_bounds[1], "origin");
+            let exact_fields: Bool = true;
+            let field_names: Array<String> = [
+                "function_syntax_id", "binding_syntax_id",
+                "origin_syntax_id", "source_binding_syntax_id",
+                "element_ownership", "disposition", "origin"
+            ];
+            let field: Int = 0;
+            while field < ArrayLength(field_names) {
+                if MirObjectFieldOccurrenceCountAtBounds(
+                    json, row_bounds[0], row_bounds[1], field_names[field]
+                ) != 1 { exact_fields = false; }
+                field = field + 1;
+            }
+            let numeric: Bool = function_id != "" && binding_id != "" &&
+                origin_id != "" && source_id != "" &&
+                ToString(ToInt(function_id)) == function_id &&
+                ToString(ToInt(binding_id)) == binding_id &&
+                ToString(ToInt(origin_id)) == origin_id &&
+                ToString(ToInt(source_id)) == source_id;
+            let local_row: Int = -1;
+            let source_row: Int = -1;
+            let source_fact_row: Int = -1;
+            if numeric {
+                local_row = MirCollectionOwnershipLocalRow(
+                    local_binding_syntax_ids, ToInt(binding_id));
+                if ToInt(source_id) > 0 {
+                    source_row = MirCollectionOwnershipLocalRow(
+                        local_binding_syntax_ids, ToInt(source_id));
+                    let source_candidate: Int = 0;
+                    while source_candidate < ArrayLength(binding_ids) {
+                        if binding_ids[source_candidate] == ToInt(source_id) {
+                            source_fact_row = source_candidate;
+                        }
+                        source_candidate = source_candidate + 1;
+                    }
+                }
+            }
+            let origin_consistent: Bool =
+                (origin == "unknown" &&
+                    ownership == "unknown" &&
+                    source_id == "0") ||
+                (origin == "borrowed-literal" &&
+                    ownership == "borrowed-elements" && source_id == "0") ||
+                (origin == "map-keys" &&
+                    ownership == "map-keys-snapshot" && source_id == "0") ||
+                (origin == "binding" && numeric &&
+                    ToInt(source_id) > 0 &&
+                    ToInt(source_id) != ToInt(binding_id) &&
+                    source_row >= 0 &&
+                    local_types[source_row] == "Array<String>" &&
+                    source_fact_row >= 0 &&
+                    ownerships[source_fact_row] == ownership &&
+                    dispositions[source_fact_row] == "live");
+            let duplicate: Bool = false;
+            let prior: Int = 0;
+            while numeric && prior < ArrayLength(binding_ids) {
+                if function_ids[prior] == ToInt(function_id) &&
+                    binding_ids[prior] == ToInt(binding_id) {
+                    duplicate = true;
+                }
+                prior = prior + 1;
+            }
+            if !exact_fields || !numeric || function_id != routine_syntax_id ||
+                ToInt(binding_id) <= 0 || ToInt(origin_id) <= 0 ||
+                ToInt(source_id) < 0 || local_row < 0 ||
+                local_types[local_row] != "Array<String>" ||
+                (ownership != "unknown" &&
+                 ownership != "borrowed-elements" &&
+                 ownership != "owned-elements" &&
+                 ownership != "map-keys-snapshot") ||
+                (disposition != "live" && disposition != "retired") ||
+                (disposition == "retired" &&
+                 ownership != "owned-elements" &&
+                 ownership != "map-keys-snapshot") ||
+                (origin == "binding" && disposition != "live") ||
+                !origin_consistent || duplicate {
+                valid = false;
+                stage = "collection_ownership_row";
+            } else {
+                ArrayPush(function_ids, ToInt(function_id));
+                ArrayPush(binding_ids, ToInt(binding_id));
+                ArrayPush(origin_ids, ToInt(origin_id));
+                ArrayPush(source_ids, ToInt(source_id));
+                ArrayPush(ownerships, ownership);
+                ArrayPush(dispositions, disposition);
+                ArrayPush(origins, origin);
+            }
+            cursor = row_bounds[1];
+        }
+    }
+    if declared_count == "" ||
+        ToInt(declared_count) != ArrayLength(binding_ids) {
+        valid = false;
+        stage = "collection_ownership_count";
+    }
+    return MirCollectionOwnershipFacts(
+        valid, stage, function_ids, binding_ids, origin_ids, source_ids,
+        ownerships, dispositions, origins
+    );
+}
+
+func MirCollectionOwnershipFactRowForBinding(
+    ref facts: MirCollectionOwnershipFacts,
+    binding_syntax_id: Int
+) -> Int {
+    if !facts.valid || binding_syntax_id <= 0 { return -1; }
+    let row: Int = 0;
+    while row < ArrayLength(facts.binding_syntax_ids) {
+        if facts.binding_syntax_ids[row] == binding_syntax_id { return row; }
+        row = row + 1;
+    }
+    return -1;
+}

@@ -20,6 +20,7 @@ import "domain_runtime_assignment_fact_owner.pgy";
 import "instruction_abi_receipt_fact_owner.pgy";
 import "local_ref_fact_owner.pgy";
 import "intent_execution_fact_owner.pgy";
+import "collection_ownership_fact_owner.pgy";
 
 struct SelfMirInstructionRows {
     ids: Array<Int>;
@@ -97,12 +98,14 @@ struct SelfMirRoutineRows {
     local_counts: Array<Int>;
     local_names: Array<String>;
     local_types: Array<String>;
+    local_binding_syntax_ids: Array<Int>;
     iteration_starts: Array<Int>;
     iteration_counts: Array<Int>;
     iteration_node_ids: Array<Int>;
     iteration_binding_types: Array<String>;
     iteration_iterable_types: Array<String>;
     iteration_collection_hoists: Array<Int>;
+    collection_ownership_facts: SelfMirCollectionOwnershipFactRows;
     destructure_type_facts: SelfMirDestructureTypeFactRows;
     loop_flows: SelfMirLoopFlowRows;
 }
@@ -188,7 +191,8 @@ func SelfMirRoutineRowsEmpty() -> SelfMirRoutineRows {
         ints, strings, strings, strings, strings, strings, strings,
         ints, ints, strings, strings, ints, ints, strings,
         ints, strings, ints, ints, ints, ints, ints, ints, strings, strings,
-        ints, ints, ints, strings, strings, ints,
+        ints, ints, ints, ints, strings, strings, ints,
+        SelfMirCollectionOwnershipFactRowsEmpty(),
         SelfMirDestructureTypeFactRowsEmpty(),
         SelfMirLoopFlowRowsEmpty()
     );

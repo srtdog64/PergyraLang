@@ -357,6 +357,10 @@ func SelfMirIntentAppendEmptyRoutineFacts(
     let loop_counts: Array<Int> = loops.routine_counts;
     ArrayPush(loop_starts, ArrayLength(loops.summaries.loop_node_ids));
     ArrayPush(loop_counts, 0);
+    let collection: SelfMirCollectionOwnershipFactRows =
+        SelfMirCollectionOwnershipFactRowsAppendEmptyRoutine(
+            rows.collection_ownership_facts
+        );
     return SelfMirRoutineRows(
         rows.node_ids, rows.names, rows.kinds, rows.owners,
         rows.source_module_paths, rows.receiver_carriages, rows.return_types,
@@ -367,9 +371,10 @@ func SelfMirIntentAppendEmptyRoutineFacts(
         rows.param_resource_kinds,
         rows.block_starts, rows.block_counts, rows.local_starts,
         rows.local_counts, rows.local_names, rows.local_types,
+        rows.local_binding_syntax_ids,
         rows.iteration_starts, rows.iteration_counts, rows.iteration_node_ids,
         rows.iteration_binding_types, rows.iteration_iterable_types,
-        rows.iteration_collection_hoists,
+        rows.iteration_collection_hoists, collection,
         SelfMirDestructureTypeFactRows(
             destructure_starts, destructure_counts,
             destructure.function_syntax_ids, destructure.destructure_syntax_ids,
@@ -456,9 +461,11 @@ func SelfMirAppendIntentRoutine(
             rows.param_abi_kinds, rows.param_resource_kinds,
             block_starts, block_counts, local_starts, local_counts,
             rows.local_names, rows.local_types,
+            rows.local_binding_syntax_ids,
             iteration_starts, iteration_counts, rows.iteration_node_ids,
             rows.iteration_binding_types, rows.iteration_iterable_types,
-            rows.iteration_collection_hoists, rows.destructure_type_facts,
+            rows.iteration_collection_hoists,
+            rows.collection_ownership_facts, rows.destructure_type_facts,
             rows.loop_flows
         )
     );

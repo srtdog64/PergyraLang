@@ -1,5 +1,6 @@
 #include "mir_branch_source_facts.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -116,6 +117,228 @@ mir_free_match_binding_type_facts(MIRRoutine *routine)
     routine->match_binding_type_facts = NULL;
     routine->match_binding_type_fact_count = 0;
     routine->match_binding_type_fact_capacity = 0;
+}
+
+const MIRCollectionOwnershipFact *
+mir_routine_collection_ownership_fact(const MIRRoutine *routine,
+                                      uint32_t binding_syntax_id)
+{
+    if (routine == NULL || binding_syntax_id == 0)
+        return NULL;
+    for (size_t i = 0; i < routine->collection_ownership_fact_count; i++) {
+        const MIRCollectionOwnershipFact *fact =
+            &routine->collection_ownership_facts[i];
+        if (fact->binding_syntax_id == binding_syntax_id)
+            return fact;
+    }
+    return NULL;
+}
+
+bool
+mir_copy_collection_ownership_facts(MIRRoutine *routine,
+                                    const HIRRoutine *hir_routine,
+                                    char **error_message)
+{
+    size_t count;
+
+    if (routine == NULL || hir_routine == NULL)
+        return false;
+    count = hir_routine->collection_ownership_fact_count;
+    if (count == 0)
+        return hir_routine->collection_ownership_facts == NULL;
+    if (routine->source_syntax_id == 0
+        || hir_routine->source_syntax_id != routine->source_syntax_id
+        || hir_routine->collection_ownership_facts == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "MIR collection ownership facts have incomplete routine identity or storage");
+        return false;
+    }
+    routine->collection_ownership_facts = calloc(
+        count, sizeof(*routine->collection_ownership_facts));
+    if (routine->collection_ownership_facts == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("out of memory");
+        return false;
+    }
+    routine->collection_ownership_fact_capacity = count;
+    for (size_t i = 0; i < count; i++) {
+        const HIRCollectionOwnershipFact *source =
+            &hir_routine->collection_ownership_facts[i];
+        if (source->function_syntax_id != routine->source_syntax_id
+            || source->binding_syntax_id == 0
+            || (unsigned)source->element_ownership
+                > (unsigned)PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
+            || (source->disposition != PGY_COLLECTION_DISPOSITION_LIVE
+                && source->disposition
+                    != PGY_COLLECTION_DISPOSITION_RETIRED)
+            || (unsigned)source->origin
+                > (unsigned)PGY_COLLECTION_ORIGIN_BINDING
+            || (source->origin == PGY_COLLECTION_ORIGIN_BINDING
+                && source->source_binding_syntax_id == 0)
+            || (source->origin != PGY_COLLECTION_ORIGIN_BINDING
+                && source->source_binding_syntax_id != 0)
+            || mir_routine_collection_ownership_fact(
+                routine, source->binding_syntax_id) != NULL) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "MIR collection ownership facts have invalid or duplicate identity");
+            goto fail;
+        }
+        routine->collection_ownership_facts[
+            routine->collection_ownership_fact_count++] = *source;
+    }
+    if (!mir_validate_collection_ownership_facts(routine, error_message))
+        goto fail;
+    return true;
+
+fail:
+    mir_free_collection_ownership_facts(routine);
+    return false;
+}
+
+static const MIRSourceLocalType *
+mir_collection_source_local(const MIRRoutine *routine,
+                            uint32_t binding_syntax_id)
+{
+    if (routine == NULL || binding_syntax_id == 0)
+        return NULL;
+    for (size_t i = 0; i < routine->source_local_type_count; i++) {
+        const MIRSourceLocalType *local = &routine->source_local_types[i];
+        if (local->binding_syntax_id == binding_syntax_id)
+            return local;
+    }
+    return NULL;
+}
+
+bool
+mir_validate_collection_ownership_facts(const MIRRoutine *routine,
+                                        char **error_message)
+{
+    if (routine == NULL)
+        return false;
+    if ((routine->collection_ownership_fact_count == 0)
+        != (routine->collection_ownership_facts == NULL)) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "MIR collection ownership row storage is inconsistent");
+        return false;
+    }
+    for (size_t i = 0; i < routine->collection_ownership_fact_count; i++) {
+        const MIRCollectionOwnershipFact *fact =
+            &routine->collection_ownership_facts[i];
+        const MIRSourceLocalType *target =
+            mir_collection_source_local(routine, fact->binding_syntax_id);
+        const MIRCollectionOwnershipFact *source_fact = NULL;
+        const MIRSourceLocalType *source_local = NULL;
+        bool origin_consistent = false;
+
+        if (fact->function_syntax_id != routine->source_syntax_id
+            || fact->binding_syntax_id == 0
+            || fact->origin_syntax_id == 0
+            || target == NULL || target->type_name == NULL
+            || strcmp(target->type_name, "Array<String>") != 0
+            || (unsigned)fact->element_ownership
+                > (unsigned)PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
+            || (fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
+                && fact->disposition != PGY_COLLECTION_DISPOSITION_RETIRED)
+            || (fact->disposition == PGY_COLLECTION_DISPOSITION_RETIRED
+                && fact->element_ownership
+                    != PGY_STRING_ARRAY_OWNED_ELEMENTS
+                && fact->element_ownership
+                    != PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)
+            || (unsigned)fact->origin
+                > (unsigned)PGY_COLLECTION_ORIGIN_BINDING) {
+            goto invalid;
+        }
+        for (size_t prior = 0; prior < i; prior++) {
+            if (routine->collection_ownership_facts[prior].binding_syntax_id
+                == fact->binding_syntax_id)
+                goto invalid;
+            if (routine->collection_ownership_facts[prior].binding_syntax_id
+                == fact->source_binding_syntax_id)
+                source_fact = &routine->collection_ownership_facts[prior];
+        }
+        if (fact->source_binding_syntax_id != 0)
+            source_local = mir_collection_source_local(
+                routine, fact->source_binding_syntax_id);
+
+        switch (fact->origin) {
+            case PGY_COLLECTION_ORIGIN_UNKNOWN:
+                origin_consistent =
+                    (fact->element_ownership
+                         == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN)
+                    && fact->source_binding_syntax_id == 0
+                    && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE;
+                break;
+            case PGY_COLLECTION_ORIGIN_BORROWED_LITERAL:
+                origin_consistent =
+                    fact->element_ownership
+                        == PGY_STRING_ARRAY_BORROWED_ELEMENTS
+                    && fact->source_binding_syntax_id == 0
+                    && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE;
+                break;
+            case PGY_COLLECTION_ORIGIN_MAP_KEYS:
+                origin_consistent =
+                    fact->element_ownership
+                        == PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
+                    && fact->source_binding_syntax_id == 0;
+                break;
+            case PGY_COLLECTION_ORIGIN_BINDING:
+                origin_consistent =
+                    fact->source_binding_syntax_id != 0
+                    && fact->source_binding_syntax_id
+                        != fact->binding_syntax_id
+                    && source_fact != NULL && source_local != NULL
+                    && source_local->type_name != NULL
+                    && strcmp(source_local->type_name,
+                              "Array<String>") == 0
+                    && source_fact->element_ownership
+                        == fact->element_ownership
+                    && source_fact->disposition
+                        == PGY_COLLECTION_DISPOSITION_LIVE
+                    && fact->disposition
+                        == PGY_COLLECTION_DISPOSITION_LIVE;
+                break;
+        }
+        if (!origin_consistent)
+            goto invalid;
+        continue;
+
+invalid:
+        if (error_message != NULL) {
+            char detail[512];
+            snprintf(detail, sizeof(detail),
+                     "MIR collection ownership facts have invalid identity, type, or provenance "
+                     "(row=%zu function=%u routine=%u binding=%u origin_syntax=%u "
+                     "source=%u ownership=%u disposition=%u origin=%u target_type=%s "
+                     "source_local=%s source_fact=%s)",
+                     i, fact->function_syntax_id, routine->source_syntax_id,
+                     fact->binding_syntax_id, fact->origin_syntax_id,
+                     fact->source_binding_syntax_id,
+                     (unsigned)fact->element_ownership,
+                     (unsigned)fact->disposition, (unsigned)fact->origin,
+                     target != NULL && target->type_name != NULL
+                         ? target->type_name : "<missing>",
+                     source_local != NULL && source_local->type_name != NULL
+                         ? source_local->type_name : "<missing>",
+                     source_fact != NULL ? "present" : "missing");
+            *error_message = pergyra_strdup(detail);
+        }
+        return false;
+    }
+    return true;
+}
+
+void
+mir_free_collection_ownership_facts(MIRRoutine *routine)
+{
+    if (routine == NULL)
+        return;
+    free(routine->collection_ownership_facts);
+    routine->collection_ownership_facts = NULL;
+    routine->collection_ownership_fact_count = 0;
+    routine->collection_ownership_fact_capacity = 0;
 }
 
 MIRBranchShape

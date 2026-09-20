@@ -7,6 +7,7 @@
 
 #include "llvm_expr_call_collections_extended.h"
 #include "llvm_internal_api.h"
+#include "codegen_hashmap_key_policy.h"
 #include "parser/ast_api.h"
 
 static bool
@@ -234,8 +235,11 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
     if (op == LLVM_COLLECTION_BASE_OP_MAP_NEW) {
         LLVMTypeRef map_ty;
         LLVMTypeRef value_ty;
+        const char *key_name = NULL;
         const char *value_name = NULL;
+        char key_name_buf[256];
         char value_name_buf[256];
+        PgyHashMapKeyStorageKind key_storage_kind;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
         if (ctx->current_ret_type == NULL
@@ -250,10 +254,24 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         if (ctx->expected_type_name != NULL
             && strncmp(ctx->expected_type_name, "HashMap<", 8) == 0) {
+            if (llvm_constructed_arg_name_copy(ctx->expected_type_name, 0,
+                    key_name_buf, sizeof(key_name_buf))) {
+                key_name = key_name_buf;
+            }
             if (llvm_constructed_arg_name_copy(ctx->expected_type_name, 1,
                     value_name_buf, sizeof(value_name_buf))) {
                 value_name = value_name_buf;
             }
+        }
+        key_storage_kind = pgy_hashmap_key_storage_kind_from_name(key_name);
+        if (key_storage_kind == PGY_HASHMAP_KEY_STORAGE_INVALID) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM MapNew() requires concrete supported HashMap<K,V> key metadata");
+            *out = NULL;
+            return true;
         }
         if (value_name == NULL || value_name[0] == '\0'
             || strcmp(value_name, "Unknown") == 0) {
@@ -283,9 +301,10 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef args[] = {
             LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr,
                 llvm_tmp_name(ctx)),
-            llvm_sizeof_type_i64(ctx, value_ty)
+            llvm_sizeof_type_i64(ctx, value_ty),
+            LLVMConstInt(ctx->type_i32, (unsigned)key_storage_kind, 0)
         };
-        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
         *out = LLVMBuildLoad2(ctx->builder, map_ty, tmp,
             llvm_tmp_name(ctx));
         return true;

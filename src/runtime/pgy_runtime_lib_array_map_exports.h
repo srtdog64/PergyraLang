@@ -280,23 +280,29 @@ pgy_map_keys_raw_export(void *map_ptr, void *out_array_ptr)
         return;
     }
 
-    *out = pgy_array_new_String(map != NULL ? map->count : 0);
     if (map == NULL) {
+        *out = (PgyArray_String){0};
         pgy_runtime_warn_invalid_collection("map_keys", "null map");
         return;
     }
+    if (!pgy_map_raw_is_initialized(map))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map keys on invalid map");
+    pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_STRING);
+    *out = pgy_array_new_String(map->count);
     if (map->count == 0 || map->keys == NULL || map->occupied == NULL)
         return;
 
     for (size_t i = 0; i < map->capacity; i++) {
         char *dup_key;
 
-        if (!map->occupied[i] || map->keys[i] == NULL)
+        if (map->occupied[i] != PGY_MAP_RAW_LIVE
+            || PGY_MAP_RAW_STRING_KEYS(map)[i] == NULL)
             continue;
-        dup_key = pgy_runtime_strdup_export(map->keys[i]);
+        dup_key = pgy_runtime_strdup_export(PGY_MAP_RAW_STRING_KEYS(map)[i]);
         if (dup_key == NULL) {
-            pgy_runtime_warn_invalid_collection("map_keys", "key duplication failed");
-            continue;
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                              PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
         }
         pgy_array_push_String(out, dup_key);
     }
@@ -319,21 +325,14 @@ pgy_map_keys_raw_i32_export(void *map_ptr, void *out_array_ptr)
         pgy_runtime_warn_invalid_collection("map_keys_i32", "null map");
         return;
     }
+    pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_I32);
     if (map->count == 0 || map->keys == NULL || map->occupied == NULL)
         return;
 
     for (size_t i = 0; i < map->capacity; i++) {
-        char *end = NULL;
-        long parsed;
-
-        if (!map->occupied[i] || map->keys[i] == NULL)
+        if (map->occupied[i] != PGY_MAP_RAW_LIVE)
             continue;
-        parsed = strtol(map->keys[i], &end, 10);
-        if (end == map->keys[i] || (end != NULL && *end != '\0')) {
-            pgy_runtime_warn_invalid_collection("map_keys_i32", "invalid stored int key");
-            continue;
-        }
-        pgy_array_push_Int(out, (int32_t)parsed);
+        pgy_array_push_Int(out, PGY_MAP_RAW_I32_KEYS(map)[i]);
     }
     pgy_array_sort_Int(out->data, out->length);
 }
@@ -354,21 +353,14 @@ pgy_map_keys_raw_i64_export(void *map_ptr, void *out_array_ptr)
         pgy_runtime_warn_invalid_collection("map_keys_i64", "null map");
         return;
     }
+    pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_I64);
     if (map->count == 0 || map->keys == NULL || map->occupied == NULL)
         return;
 
     for (size_t i = 0; i < map->capacity; i++) {
-        char *end = NULL;
-        long long parsed;
-
-        if (!map->occupied[i] || map->keys[i] == NULL)
+        if (map->occupied[i] != PGY_MAP_RAW_LIVE)
             continue;
-        parsed = strtoll(map->keys[i], &end, 10);
-        if (end == map->keys[i] || (end != NULL && *end != '\0')) {
-            pgy_runtime_warn_invalid_collection("map_keys_i64", "invalid stored long key");
-            continue;
-        }
-        pgy_array_push_Long(out, (int64_t)parsed);
+        pgy_array_push_Long(out, PGY_MAP_RAW_I64_KEYS(map)[i]);
     }
     pgy_array_sort_Long(out->data, out->length);
 }
@@ -384,28 +376,20 @@ pgy_map_keys_raw_bool_export(void *map_ptr, void *out_array_ptr)
         return;
     }
 
-    *out = pgy_array_new_Bool(map != NULL ? map->count : 0);
     if (map == NULL) {
+        *out = (PgyArray_Bool){0};
         pgy_runtime_warn_invalid_collection("map_keys_bool", "null map");
         return;
     }
+    pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_BOOL);
+    *out = pgy_array_new_Bool(map->count);
     if (map->count == 0 || map->keys == NULL || map->occupied == NULL)
         return;
 
     for (size_t i = 0; i < map->capacity; i++) {
-        bool parsed;
-
-        if (!map->occupied[i] || map->keys[i] == NULL)
+        if (map->occupied[i] != PGY_MAP_RAW_LIVE)
             continue;
-        if (strcmp(map->keys[i], "true") == 0) {
-            parsed = true;
-        } else if (strcmp(map->keys[i], "false") == 0) {
-            parsed = false;
-        } else {
-            pgy_runtime_warn_invalid_collection("map_keys_bool", "invalid stored bool key");
-            continue;
-        }
-        pgy_array_push_Bool(out, parsed);
+        pgy_array_push_Bool(out, PGY_MAP_RAW_BOOL_KEYS(map)[i]);
     }
     pgy_array_sort_Bool(out->data, out->length);
 }

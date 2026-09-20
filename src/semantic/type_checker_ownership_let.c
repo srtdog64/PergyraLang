@@ -542,6 +542,11 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         sym->slot_info.state = SLOT_STATE_CLAIMED;
 
     sym->is_mut_binding = ast_let_is_mutable(node);
+    if (!semantic_collection_ownership_initialize_binding(
+            sym, init, decl_type, ctx)) {
+        semantic_error(ctx, node,
+            "Collection ownership fact capture failed");
+    }
     semantic_future_initialize_binding(sym, init, node, ctx);
     ownership_let_record_slice_split_fact(node, ctx, sym, decl_type);
 

@@ -13,9 +13,10 @@ struct CollectionHashMapLlvmFact {
     key_llvm_type: String;
     value_llvm_type: String;
     value_storage_type: String;
+    key_storage_kind: Int;
 }
 func CollectionHashMapLlvmFactFromTypeName(type_name: String) -> CollectionHashMapLlvmFact {
-    let missing: CollectionHashMapLlvmFact = CollectionHashMapLlvmFact(false, "", "", "", "", "", "", "");
+    let missing: CollectionHashMapLlvmFact = CollectionHashMapLlvmFact(false, "", "", "", "", "", "", "", 0);
     let shape: SemanticConstructedTypeNameFact = SemanticConstructedTypeNameFactFrom(type_name);
     if !shape.ok || shape.nominal_base_name != "HashMap" ||
         ArrayLength(shape.actual_type_names) != 2 { return missing; }
@@ -24,7 +25,8 @@ func CollectionHashMapLlvmFactFromTypeName(type_name: String) -> CollectionHashM
     let key: String = shape.actual_type_names[0];
     let value: String = shape.actual_type_names[1];
     let key_abi: Option<String> = CollectionHashMapKeyLlvmType(key);
-    if !IsSome(key_abi) { return missing; }
+    let key_storage: Option<Int> = CollectionHashMapKeyStorageKind(key);
+    if !IsSome(key_abi) || !IsSome(key_storage) { return missing; }
     let key_llvm: String = UnwrapOption(key_abi); let value_llvm: String = ""; let storage: String = "";
     if value == "Int" { value_llvm = "i64"; storage = "i32"; }
     if value == "Long" { value_llvm = "i64"; storage = "i64"; }
@@ -32,7 +34,8 @@ func CollectionHashMapLlvmFactFromTypeName(type_name: String) -> CollectionHashM
     if value == "String" { value_llvm = "ptr"; storage = "ptr"; }
     if key_llvm == "" || storage == "" { return missing; }
     return CollectionHashMapLlvmFact(true, shape.canonical_name, key, value,
-        UnwrapOption(infix), key_llvm, value_llvm, storage);
+        UnwrapOption(infix), key_llvm, value_llvm, storage,
+        UnwrapOption(key_storage));
 }
 func CollectionHashMapLlvmStorageType() -> String {
     return CollectionHashMapRawLlvmStorageType();
@@ -56,7 +59,7 @@ func CollectionHashMapLlvmFunction(fact: CollectionHashMapLlvmFact, operation: S
 }
 func CollectionHashMapLlvmDeclaration(fact: CollectionHashMapLlvmFact, operation: String) -> String {
     let name: String = CollectionHashMapLlvmFunction(fact, operation);
-    if operation == "MapNew" { return "declare void @" + name + "(ptr, i64)\n"; }
+    if operation == "MapNew" { return "declare void @" + name + "(ptr, i64, i32)\n"; }
     if operation == "MapSize" { return "declare i32 @" + name + "(ptr)\n"; }
     if operation == "MapKeys" { return "declare void @" + name + "(ptr, ptr)\n"; }
     let result: String = "void"; let parameters: String = "ptr, " + fact.key_llvm_type;
@@ -67,4 +70,19 @@ func CollectionHashMapLlvmDeclaration(fact: CollectionHashMapLlvmFact, operation
     }
     if operation == "MapRemove" && fact.value_type != "String" { parameters = parameters + ", i64"; }
     return "declare " + result + " @" + name + "(" + parameters + ")\n";
+}
+
+
+// Raw LLVM destruction stays separate from source-level Map operations.  A
+// future ownership-exit plan selects this symbol only for a proven last owner.
+func CollectionHashMapLlvmDropFunction(fact: CollectionHashMapLlvmFact) -> String {
+    if !fact.ok { Die("HashMap raw release ABI fact is missing"); }
+    if fact.value_type == "String" {
+        return "pgy_map_drop_string_value_raw_export";
+    }
+    return "pgy_map_drop_raw_export";
+}
+
+func CollectionHashMapLlvmDropDeclaration(fact: CollectionHashMapLlvmFact) -> String {
+    return "declare void @" + CollectionHashMapLlvmDropFunction(fact) + "(ptr)\n";
 }

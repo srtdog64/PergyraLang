@@ -185,8 +185,10 @@ func MachineProbeFacts(
         [0], [0], no_uses, no_uses, [0], [0], no_uses, no_ints, no_uses,
         no_ints, no_ints,
         [0], [1], [0], [2], ["dev", "current"],
-        ["DeviceSlot<Int>", "Int"],
+        ["DeviceSlot<Int>", "Int"], [0, 0],
         [0], [0], no_ints, no_uses, no_uses, no_ints,
+        SelfMirCollectionOwnershipFactRowsAppendEmptyRoutine(
+            SelfMirCollectionOwnershipFactRowsEmpty()),
         SelfMirDestructureTypeFactRowsWithoutFacts(1),
         SelfMirLoopFlowRowsWithoutLoops(1)
     );

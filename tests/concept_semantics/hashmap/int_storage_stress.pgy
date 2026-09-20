@@ -1,0 +1,39 @@
+func Main() -> Void with effects local {
+    let values: HashMap<Int, Int> = MapNew();
+    let i: Int = 0;
+    while i < 256 {
+        MapSet(values, i * 16 + 7, i + 1);
+        i = i + 1;
+    }
+    MapSet(values, -2147483647 - 1, 11);
+    MapSet(values, 2147483647, 22);
+
+    i = 0;
+    while i < 128 {
+        MapRemove(values, i * 16 + 7);
+        i = i + 1;
+    }
+    Log(MapHas(values, 7));
+
+    i = 0;
+    while i < 128 {
+        MapSet(values, i * 16 + 7, i + 1000);
+        i = i + 1;
+    }
+
+    let keys: Array<Int> = MapKeys(values);
+    Log(ArrayLength(keys));
+    Log(keys[0]);
+    Log(keys[ArrayLength(keys) - 1]);
+
+    let total: Int = 0;
+    i = 0;
+    while i < 256 {
+        total = total + MapGet(values, i * 16 + 7);
+        i = i + 1;
+    }
+    total = total + MapGet(values, -2147483647 - 1);
+    total = total + MapGet(values, 2147483647);
+    Log(total);
+    Log(MapHas(values, 7));
+}

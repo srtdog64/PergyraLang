@@ -379,13 +379,15 @@ llvm_hashmap_struct_type(LLVMGenCtx *ctx, const char *value)
     if (ctx->has_error || value_ty == NULL)
         return NULL;
     LLVMTypeRef fields[] = {
-        LLVMPointerType(ctx->type_i8ptr, 0),
+        ctx->type_i8ptr,
         LLVMPointerType(value_ty, 0),
         LLVMPointerType(LLVMInt8TypeInContext(ctx->context), 0),
         ctx->type_i64,
-        ctx->type_i64
+        ctx->type_i64,
+        ctx->type_i64,
+        ctx->type_i32
     };
-    return LLVMStructTypeInContext(ctx->context, fields, 5, 0);
+    return LLVMStructTypeInContext(ctx->context, fields, 7, 0);
 }
 
 LLVMValueRef

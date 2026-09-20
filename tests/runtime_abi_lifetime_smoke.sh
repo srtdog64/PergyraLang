@@ -964,8 +964,8 @@ done
 for term in \
     "pgy_map_int_is_initialized" \
     "PGY_RUNTIME_HASHMAP_CAPACITY_FITS(m->capacity, int32_t)" \
-    "if (!pgy_map_int_is_initialized(m))" \
-    "\"map_set_int\", \"null key\""; do
+    "if (!pgy_map_int_is_initialized(m) || key == NULL)" \
+    "pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_STRING)"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_builtin_storage_inline.h" ||
         fail "inline HashMap<Int> initialized/null-key guard missing: $term"
 done
@@ -1035,8 +1035,10 @@ for term in \
     "\"map string remove on uninitialized map\"" \
     "static bool" \
     "pgy_map_grow_raw_export(PgyHashMapRaw *map" \
-    "&& !pgy_map_grow_raw_export(map, value_size)" \
-    "&& !pgy_map_grow_raw_export(map, (int64_t)sizeof(char *))" \
+    "if (!pgy_map_grow_raw_export(map, value_size)) {" \
+    "if (!pgy_map_grow_raw_export(map, (int64_t)sizeof(char *))) {" \
+    "free(owned_value_snapshot);" \
+    "free(owned_key);" \
     "\"map is full\""; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_map_exports.h" ||
         fail "raw HashMap removal must preserve probe chains with tombstones: $term"

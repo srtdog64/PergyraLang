@@ -1,0 +1,247 @@
+// Stable semantic collection ownership rows carried into self-host MIR.
+//
+// Binding syntax identity is the join key. Names and Array<String> spelling
+// only validate the typed inventory; they are never the lookup authority.
+
+import "../semantic/ast_collection_ownership_verdict_owner.pgy";
+
+struct SelfMirCollectionOwnershipFactRows {
+    routine_starts: Array<Int>;
+    routine_counts: Array<Int>;
+    function_syntax_ids: Array<Int>;
+    binding_syntax_ids: Array<Int>;
+    origin_syntax_ids: Array<Int>;
+    source_binding_syntax_ids: Array<Int>;
+    element_ownerships: Array<Int>;
+    dispositions: Array<Int>;
+    origins: Array<Int>;
+}
+
+func SelfMirCollectionOwnershipFactRowsEmpty(
+) -> SelfMirCollectionOwnershipFactRows {
+    let ints: Array<Int> = [];
+    return SelfMirCollectionOwnershipFactRows(
+        ints, ints, ints, ints, ints, ints, ints, ints, ints
+    );
+}
+
+func SelfMirCollectionOwnershipFactRowsAppendEmptyRoutine(
+    rows: SelfMirCollectionOwnershipFactRows
+) -> SelfMirCollectionOwnershipFactRows {
+    let starts: Array<Int> = rows.routine_starts;
+    let counts: Array<Int> = rows.routine_counts;
+    ArrayPush(starts, ArrayLength(rows.binding_syntax_ids));
+    ArrayPush(counts, 0);
+    return SelfMirCollectionOwnershipFactRows(
+        starts, counts, rows.function_syntax_ids, rows.binding_syntax_ids,
+        rows.origin_syntax_ids, rows.source_binding_syntax_ids,
+        rows.element_ownerships, rows.dispositions, rows.origins
+    );
+}
+
+func SelfMirCollectionOwnershipName(value: Int) -> String {
+    if value == SemanticAstCollectionOwnershipBorrowedElements() {
+        return "borrowed-elements";
+    }
+    if value == SemanticAstCollectionOwnershipOwnedElements() {
+        return "owned-elements";
+    }
+    if value == SemanticAstCollectionOwnershipMapKeysSnapshot() {
+        return "map-keys-snapshot";
+    }
+    return "unknown";
+}
+
+func SelfMirCollectionDispositionName(value: Int) -> String {
+    if value == SemanticAstCollectionDispositionRetired() {
+        return "retired";
+    }
+    return "live";
+}
+
+func SelfMirCollectionOriginName(value: Int) -> String {
+    if value == SemanticAstCollectionOriginBorrowedLiteral() {
+        return "borrowed-literal";
+    }
+    if value == SemanticAstCollectionOriginMapKeys() { return "map-keys"; }
+    if value == SemanticAstCollectionOriginBinding() { return "binding"; }
+    return "unknown";
+}
+
+func SelfMirCollectionOwnershipFactRowsReady(
+    rows: SelfMirCollectionOwnershipFactRows,
+    routine_count: Int
+) -> Bool {
+    let count: Int = ArrayLength(rows.binding_syntax_ids);
+    if ArrayLength(rows.routine_starts) != routine_count ||
+        ArrayLength(rows.routine_counts) != routine_count ||
+        ArrayLength(rows.function_syntax_ids) != count ||
+        ArrayLength(rows.origin_syntax_ids) != count ||
+        ArrayLength(rows.source_binding_syntax_ids) != count ||
+        ArrayLength(rows.element_ownerships) != count ||
+        ArrayLength(rows.dispositions) != count ||
+        ArrayLength(rows.origins) != count {
+        return false;
+    }
+    let cursor: Int = 0;
+    let routine: Int = 0;
+    while routine < routine_count {
+        if rows.routine_starts[routine] != cursor ||
+            rows.routine_counts[routine] < 0 ||
+            rows.routine_counts[routine] > count - cursor {
+            return false;
+        }
+        cursor = cursor + rows.routine_counts[routine];
+        routine = routine + 1;
+    }
+    return cursor == count;
+}
+
+func SelfMirCollectionOwnershipFactCardinalityReady(
+    facts: SemanticAstCollectionOwnershipVerdict
+) -> Bool {
+    let count: Int = ArrayLength(facts.binding_syntax_ids);
+    return facts.ok &&
+        ArrayLength(facts.function_syntax_ids) == count &&
+        ArrayLength(facts.origin_syntax_ids) == count &&
+        ArrayLength(facts.source_binding_syntax_ids) == count &&
+        ArrayLength(facts.element_ownerships) == count &&
+        ArrayLength(facts.dispositions) == count &&
+        ArrayLength(facts.origins) == count;
+}
+
+func SelfMirCollectionOwnershipInventoryRow(
+    ref binding_syntax_ids: Array<Int>,
+    binding_syntax_id: Int
+) -> Int {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(binding_syntax_ids) {
+        if binding_syntax_ids[row] == binding_syntax_id {
+            if found >= 0 { return -2; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func SelfMirCollectionOwnershipFactRowsAppendRoutine(
+    rows: SelfMirCollectionOwnershipFactRows,
+    facts: SemanticAstCollectionOwnershipVerdict,
+    function_syntax_id: Int,
+    inventory_ok: Bool,
+    ref inventory_names: Array<String>,
+    ref inventory_types: Array<String>,
+    ref inventory_binding_syntax_ids: Array<Int>
+) -> SelfMirCollectionOwnershipFactRows {
+    let starts: Array<Int> = rows.routine_starts;
+    let counts: Array<Int> = rows.routine_counts;
+    let function_ids: Array<Int> = rows.function_syntax_ids;
+    let binding_ids: Array<Int> = rows.binding_syntax_ids;
+    let origin_ids: Array<Int> = rows.origin_syntax_ids;
+    let source_ids: Array<Int> = rows.source_binding_syntax_ids;
+    let ownerships: Array<Int> = rows.element_ownerships;
+    let dispositions: Array<Int> = rows.dispositions;
+    let origins: Array<Int> = rows.origins;
+    ArrayPush(starts, ArrayLength(binding_ids));
+    let count: Int = 0;
+    if !SelfMirCollectionOwnershipFactCardinalityReady(facts) ||
+        !inventory_ok ||
+        ArrayLength(inventory_names) != ArrayLength(inventory_types) ||
+        ArrayLength(inventory_names) !=
+            ArrayLength(inventory_binding_syntax_ids) {
+        ArrayPush(counts, -1);
+        return SelfMirCollectionOwnershipFactRows(
+            starts, counts, function_ids, binding_ids, origin_ids,
+            source_ids, ownerships, dispositions, origins
+        );
+    }
+    let row: Int = 0;
+    while row < ArrayLength(facts.binding_syntax_ids) {
+        if facts.function_syntax_ids[row] == function_syntax_id {
+            let binding_id: Int = facts.binding_syntax_ids[row];
+            let source_id: Int = facts.source_binding_syntax_ids[row];
+            let ownership: Int = facts.element_ownerships[row];
+            let disposition: Int = facts.dispositions[row];
+            let origin: Int = facts.origins[row];
+            let inventory_row: Int = SelfMirCollectionOwnershipInventoryRow(
+                inventory_binding_syntax_ids, binding_id
+            );
+            let source_row: Int = -1;
+            let source_fact_row: Int = -1;
+            if source_id > 0 {
+                source_row = SelfMirCollectionOwnershipInventoryRow(
+                    inventory_binding_syntax_ids, source_id
+                );
+            }
+            let prior: Int = 0;
+            let duplicate: Bool = false;
+            while prior < ArrayLength(binding_ids) {
+                if function_ids[prior] == function_syntax_id &&
+                    binding_ids[prior] == binding_id {
+                    duplicate = true;
+                }
+                if function_ids[prior] == function_syntax_id &&
+                    binding_ids[prior] == source_id {
+                    source_fact_row = prior;
+                }
+                prior = prior + 1;
+            }
+            let origin_consistent: Bool =
+                (origin == SemanticAstCollectionOriginUnknown() &&
+                    ownership == SemanticAstCollectionOwnershipUnknown() &&
+                    source_id == 0) ||
+                (origin == SemanticAstCollectionOriginBorrowedLiteral() &&
+                    ownership ==
+                        SemanticAstCollectionOwnershipBorrowedElements() &&
+                    source_id == 0) ||
+                (origin == SemanticAstCollectionOriginMapKeys() &&
+                    ownership ==
+                        SemanticAstCollectionOwnershipMapKeysSnapshot() &&
+                    source_id == 0) ||
+                (origin == SemanticAstCollectionOriginBinding() &&
+                    source_id > 0 && source_id != binding_id &&
+                    source_row >= 0 &&
+                    inventory_types[source_row] == "Array<String>" &&
+                    source_fact_row >= 0 &&
+                    ownerships[source_fact_row] == ownership &&
+                    dispositions[source_fact_row] ==
+                        SemanticAstCollectionDispositionLive());
+            if binding_id <= 0 || facts.origin_syntax_ids[row] <= 0 ||
+                inventory_row < 0 ||
+                inventory_types[inventory_row] != "Array<String>" ||
+                ownership < SemanticAstCollectionOwnershipUnknown() ||
+                ownership > SemanticAstCollectionOwnershipMapKeysSnapshot() ||
+                (disposition != SemanticAstCollectionDispositionLive() &&
+                 disposition != SemanticAstCollectionDispositionRetired()) ||
+                (disposition == SemanticAstCollectionDispositionRetired() &&
+                 ownership != SemanticAstCollectionOwnershipOwnedElements() &&
+                 ownership !=
+                    SemanticAstCollectionOwnershipMapKeysSnapshot()) ||
+                (origin == SemanticAstCollectionOriginBinding() &&
+                 disposition != SemanticAstCollectionDispositionLive()) ||
+                !origin_consistent || duplicate {
+                ArrayPush(counts, -1);
+                return SelfMirCollectionOwnershipFactRows(
+                    starts, counts, function_ids, binding_ids, origin_ids,
+                    source_ids, ownerships, dispositions, origins
+                );
+            }
+            ArrayPush(function_ids, function_syntax_id);
+            ArrayPush(binding_ids, binding_id);
+            ArrayPush(origin_ids, facts.origin_syntax_ids[row]);
+            ArrayPush(source_ids, source_id);
+            ArrayPush(ownerships, ownership);
+            ArrayPush(dispositions, disposition);
+            ArrayPush(origins, origin);
+            count = count + 1;
+        }
+        row = row + 1;
+    }
+    ArrayPush(counts, count);
+    return SelfMirCollectionOwnershipFactRows(
+        starts, counts, function_ids, binding_ids, origin_ids,
+        source_ids, ownerships, dispositions, origins
+    );
+}

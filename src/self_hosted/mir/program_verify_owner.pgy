@@ -414,6 +414,11 @@ func SelfMirRoutineRowsReady(
         !SelfMirParallelCount(count, rows.local_counts) ||
         !SelfMirRoutineParameterRowsReady(rows) ||
         ArrayLength(rows.local_names) != ArrayLength(rows.local_types) ||
+        ArrayLength(rows.local_names) !=
+            ArrayLength(rows.local_binding_syntax_ids) ||
+        !SelfMirCollectionOwnershipFactRowsReady(
+            rows.collection_ownership_facts, count
+        ) ||
         !SelfMirDestructureTypeFactRowsReady(
             rows.destructure_type_facts, count
         ) ||
@@ -496,6 +501,32 @@ func SelfMirRoutineRowsReady(
                 return false;
             }
             destructure_i = destructure_i + 1;
+        }
+        let collection_i: Int = 0;
+        let collection_start: Int =
+            rows.collection_ownership_facts.routine_starts[i];
+        while collection_i <
+                rows.collection_ownership_facts.routine_counts[i] {
+            let collection_row: Int = collection_start + collection_i;
+            let binding_id: Int =
+                rows.collection_ownership_facts.binding_syntax_ids[
+                    collection_row];
+            let local_match_count: Int = 0;
+            let local_i: Int = 0;
+            while local_i < rows.local_counts[i] {
+                let local_row: Int = rows.local_starts[i] + local_i;
+                if rows.local_binding_syntax_ids[local_row] == binding_id &&
+                    rows.local_types[local_row] == "Array<String>" {
+                    local_match_count = local_match_count + 1;
+                }
+                local_i = local_i + 1;
+            }
+            if rows.collection_ownership_facts.function_syntax_ids[
+                    collection_row] != rows.node_ids[i] ||
+                local_match_count != 1 {
+                return false;
+            }
+            collection_i = collection_i + 1;
         }
         generic_cursor = generic_cursor + rows.generic_counts[i];
         param_cursor = param_cursor + rows.param_counts[i];

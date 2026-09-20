@@ -17,6 +17,16 @@ const MIRMatchBindingTypeFact *
 mir_routine_match_binding_type_fact_by_binding_syntax_id(
     const MIRRoutine *routine,
     uint32_t binding_syntax_id);
+bool mir_copy_collection_ownership_facts(MIRRoutine *routine,
+                                         const HIRRoutine *hir_routine,
+                                         char **error_message);
+void mir_free_collection_ownership_facts(MIRRoutine *routine);
+const MIRCollectionOwnershipFact *mir_routine_collection_ownership_fact(
+    const MIRRoutine *routine,
+    uint32_t binding_syntax_id);
+bool mir_validate_collection_ownership_facts(
+    const MIRRoutine *routine,
+    char **error_message);
 bool mir_capture_match_case_facts(MIRRoutine *routine,
                                   MIRInstruction *inst,
                                   ASTNode *case_node,

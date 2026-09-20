@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "codegen_channel_runtime_abi.h"
+#include "codegen_hashmap_key_policy.h"
 #include "llvm_internal.h"
 #include "llvm_stmt_let_collection_policy.h"
 #include "parser/ast_api.h"
@@ -229,6 +230,7 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             LLVMTypeRef value_ty;
             LLVMValueRef alloca_val;
             LLVMFuncEntry *new_fn;
+            PgyHashMapKeyStorageKind key_storage_kind;
 
             if (ast_generic_param_at(generic_args, 0) != NULL) {
                 key_type = llvm_stmt_render_type_arg(
@@ -261,6 +263,14 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                 free(value_type);
                 return true;
             }
+            key_storage_kind = pgy_hashmap_key_storage_kind_from_name(key_type);
+            if (key_storage_kind == PGY_HASHMAP_KEY_STORAGE_INVALID) {
+                free(inner);
+                free(key_type);
+                free(value_type);
+                return llvm_stmt_diag_collection(ctx, node,
+                    LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, "HashMap", 0, NULL);
+            }
             alloca_val = llvm_create_entry_alloca(ctx, map_ty, name);
             new_fn = llvm_lookup_function(ctx, ctor_spec->runtime_fn);
             if (new_fn == NULL) {
@@ -275,9 +285,10 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             {
                 LLVMValueRef args[] = {
                     LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                    llvm_sizeof_type_i64(ctx, value_ty)
+                    llvm_sizeof_type_i64(ctx, value_ty),
+                    LLVMConstInt(ctx->type_i32, (unsigned)key_storage_kind, 0)
                 };
-                LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
+                LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 3, "");
             }
             llvm_scope_declare(ctx, name, alloca_val, map_ty);
             llvm_register_map_var(ctx, name, key_type, value_type);

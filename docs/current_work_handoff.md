@@ -1,20 +1,276 @@
 # Current Work Handoff
 
-Updated: 2026-09-20 (Asia/Seoul). This is navigation only. Compiler owners,
+Updated: 2026-09-21 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 
-Stored fixed-point critical-path checkpoint:
-`d2fafec427db51ca6666a0d2a8312b53a878df72`. Exact-head remote CI is pending.
-Run `35491558755` executed the preceding profile checkpoint `700a0ca1`: its
-self-host fixed point and uploaded receipt passed, but the overall run was
-30/31 because `build-linux` rejected a Bash 3.2 case-pattern continuation.
-`d2fafec4` removes that continuation and closes the reached Windows 3 GiB
-fixed-point counterexample. Git HEAD/status and `origin/main` remain the
-authority for the publication checkpoint. The pre-existing untracked
-`._handoff_full.md`, `_agents_dump.txt`, `.agents/`, and `skills-lock.json` are
-not part of this packet.
+This packet starts from `59fd5a19623fcb887199ce120c065a4537d5ff68` and closes
+the reached typed-HashMap storage plus collection-ownership carrier sub-rung.
+Git HEAD/status and the exact-head CI run remain the publication authority.
+The pre-existing untracked `._handoff_full.md`, `_agents_dump.txt`, `.agents/`,
+and `skills-lock.json` are not part of this packet.
 
-## Active self-host context — measure the exact fixed-point critical path
+## Active self-host context — one collection ownership fact must drive exits
+
+Objective card:
+- Objective: carry one stable binding/expression ownership fact for
+  `HashMap<K,V>` locals, `MapKeys<String>` owned snapshots, and borrowed
+  `MapGet(...)->String` results through semantic analysis, MIR, native/public
+  C and LLVM, and installed self-host cleanup.
+- Priority: prevent invalid free/UAF first, keep parameter carriage under the
+  existing `MIRParamAbiFact`, prove return/move/materialization transfer,
+  generate exact-once cleanup on every exit, delete type-only cleanup guesses,
+  then measure allocation/free balance.
+- Fact owner: `semantic_collection_ownership_initialize_binding` in
+  `src/semantic/collection_ownership_fact.c`; the runtime release ABI is a
+  separate CLOSED owner and must not decide last ownership.
+- Last legitimate consumers: semantic array/map mutation and escape checks,
+  MIR collection-ownership side rows, native C/LLVM terminators, self-host
+  statement/value-return emitters, and the installed driver.
+- Forbidden fallback: treating descriptor type as element ownership, deep-
+  dropping borrowed literals, shallow-copying or shallow-mutating a MapKeys
+  snapshot, dropping readonly/inout parameters or returned/materialization
+  carriers, or allowing a map-owned `MapGet<String>` borrow to outlive its map.
+- Gate/falsifier: native and installed semantic refusals for borrowed
+  deep-drop plus MapKeys shallow push/copy/double-drop; stable-row projection
+  and malformed-row refusal in native memory and installed JSON readers. Next:
+  `EMPTY` versus `UNKNOWN`, producer/transfer receipts, branch/loop/early-return
+  exact-once cleanup, parameter zero-drop, return move, MapGet borrow escape,
+  and matching native/public C/LLVM artifacts plus allocator balance.
+
+Reached evidence and boundary:
+- The semantic owner now projects rows keyed by
+  `(function_syntax_id,binding_syntax_id,origin_syntax_id,
+  source_binding_syntax_id)` through HIR, MIR, native JSON, the self-host MIR
+  producer, and both installed self-host readers. `Symbol *`, spelling, Slot,
+  and generation counters are not carrier identity.
+- The demonstrated `let values = ["literal"]; ArrayDropOwnedStrings(values);`
+  heap corruption is now rejected natively. Direct `MapKeys<String>` bindings
+  record owned-snapshot provenance; ordinary push/set/pop, shallow copy, and a
+  second deep-drop fail closed, while one owned drop remains admitted.
+- Native in-memory validation and the installed self-host JSON reader reject
+  missing/duplicate/cross-routine identity, invalid local type, forward or
+  unknown source, ownership mismatch, malformed count/shape, and forged
+  `origin=unknown` with `owned-elements` or `retired`. Parser-local numeric IDs
+  need not match between implementations; each carrier must join its own
+  stable identity graph and preserve the same meaning.
+- Red-team falsification found that ownership-`UNKNOWN` can still reach
+  `ArrayDropOwnedStrings`. Immediate global refusal breaks real compiler arrays
+  whose `own String`, fresh-return, aggregate-field move, ordinary-push value,
+  and branch receipts are not yet carried. `ArrayPushOwnedString` duplicates
+  its input, but may establish ownership only from `EMPTY` or already `OWNED`,
+  never from `UNKNOWN`.
+- This row remains ACTIVE. The next executable rung must add `EMPTY` and stable
+  producer/transfer event receipts, then consume them in exact-once CFG cleanup.
+  `MapGet<String>` escape, parameters/returns/inout/materializations, aggregate
+  field moves, nested containers, and old type/literal rescans remain open.
+  The pending `unknown_string_array_drop.pgy` and
+  `shadowed_map_keys_drop.pgy` fixtures are the next fail-closed falsifiers; do
+  not claim them green and do not add an automatic type/name-based drop.
+- Last observed green gates on Windows UCRT64: `make pgy`,
+  `make self-host-compiler`, MIR 216/216, semantic 2944/2944, transpiler
+  978/978, HashMap admission 86/86, all four typed-storage runtime suites,
+  20 self-host carrier mutations, installed/public ownership parity, and the
+  95-authority/191-derived SoT edge gate. The installed driver SHA-256 is
+  `B53BD4E229ECA609AC93BFBA2F717F3ED395DE083A0A4B8AED3828333F6327A1`.
+  Bootstrap emitted one existing unreachable-statement warning. This host has
+  no `rocq`/`coqc`; 49 formal proofs were explicitly skipped rather than
+  reported as machine-checked.
+
+The overall goal remains ACTIVE after every row. Closing one row is progress,
+not completion of whole-project SoT closure or self-hosting.
+
+## Completed self-host rung — HashMap runtime release ABI
+
+- Raw and inline drop owners free live String keys, String values where
+  applicable, occupancy/key/value backing arrays, then zero the descriptor;
+  all-zero repeated drop is a no-op and invalid nonzero storage fails closed.
+- Self-host C and LLVM runtime projections now select the value-type-correct
+  release symbol without exposing release as a source-level Map operation.
+- Exact free-count tests cover String-key scalar maps, String/String maps,
+  scalar-key String-value maps, and owned MapKeys snapshots. The runtime row is
+  CLOSED; semantic last-owner selection remains the separate ACTIVE row above.
+
+## Completed self-host rung — `HashMap<String,V>` owns String key storage
+
+- String keys are duplicated before growth, overwrite/remove/drop own their
+  lifetime, and constructor/growth/duplication failures preserve the exact
+  prior physical state. Raw grow self-alias is protected by a value snapshot.
+- `MapKeys<String>` deep-copies keys, survives later map mutation/drop, and
+  fails atomically at every allocation point. Native/public C/LLVM execution
+  covers String keys with Int/Long/Bool/String values at 86/86.
+- The isolated comparison selected the existing owned-`strdup` typed-array
+  ABI for explicit lifetime. Arena storage was faster in the measured workload
+  but retains delete churn until map drop; interning/refcount and chaining were
+  slower or more complex. No Slot/generation representation was imported.
+- `abi.hashmap_string_key_storage` and `abi.hashmap_runtime_release` are
+  CLOSED. The registry now has 95 authorities / 191 derived carriers at
+  `CLOSED=63 BRIDGE=29 ACTIVE=3`.
+
+## Completed self-host rung — `HashMap<Bool,V>` owns physical Bool key storage
+
+Objective card:
+- Objective: remove `Bool -> "true"|"false" -> string hash/strcmp` from C,
+  LLVM, installed self-host, runtime mutation, and `MapKeys`.
+- Priority: exact Bool identity, one physical BOOL storage kind, fail-closed ABI
+  carriage, old-path deletion, negative ratchet, native/public C/LLVM parity,
+  then bounded representation evidence.
+- Fact owner: `PGY_HASHMAP_KEY_STORAGE_BOOL` in
+  `src/common/hashmap_key_storage_kind.h`; runtime stores and hashes `bool`
+  directly while the descriptor carries kind `4`.
+- Last legitimate consumers: C/LLVM constructors, raw and inline operations,
+  self-host projections, direct-MIR LLVM construction, and `MapKeys`.
+- Forbidden fallback: `pgy_map_format_bool_key`,
+  `pgy_map_bool_key_string_export`, parsing stored `"true"`/`"false"`, or a
+  dual-read compatibility path.
+- Gate/falsifier: true/false identity, overwrite without allocation, 100,000
+  delete/reinsert cycles, constructor OOM, wrong-kind before result allocation,
+  String-value self-alias ownership, `MapKeys=[false,true]`, and public parity.
+
+Reached evidence and boundary:
+- HEAD and `origin/main` are both
+  `59fd5a19623fcb887199ce120c065a4537d5ff68`; this work is intentionally
+  uncommitted. The rebuilt installed driver SHA-256 is
+  `559B10BBC1C800712471FFC96C1F122D71B0B25A0CE428D1BD679FF92AF871FC`.
+- Native policy, generated self-host projection, C inline maps, LLVM raw maps,
+  String-value variants, growth/carriage, and `MapKeys` now agree on constructor
+  `_bool` and storage kind `4`. All formatter/export/parser fallbacks are absent.
+- The Bool low-level suite passes inline/raw true/false identity, allocation-
+  free overwrite, 100,000 delete/reinsert cycles, deterministic `MapKeys`, all
+  three constructor allocation failures, String-value self-alias, and exact
+  wrong-kind-before-OOM behavior.
+- Native/public C/LLVM HashMap admission and execution pass 80/80. The dedicated
+  fixture covers `HashMap<Bool,Int|Long|Bool|String>` with overwrite,
+  delete/reinsert, value ownership, and sorted snapshots. Self-host runtime ABI
+  passes 32 controls plus 12 normalized controls; transpiler passes 978/978,
+  semantic passes 2944/2944, and the runtime ABI lifetime gate passes.
+- The SoT registry machine-validates 92 authorities / 189 derived carriers at
+  `CLOSED=61 BRIDGE=29 ACTIVE=2`. `abi.hashmap_bool_key_storage` is CLOSED;
+  the whole-project goal remains active.
+- The isolated 250,000-operation × 3-repeat × 5-process comparison in
+  `.tmp/hashmap_bool_lowlevel_redteam/REPORT.md` measured string projection at
+  138.08 ms / 3,210,960 allocations / 17.70 MB, direct Bool arrays at 11.44 ms /
+  12 allocations / 870 B, and a Bool-only two-entry layout at 0.31 ms / 3
+  allocations / 6 B. The common typed-array ABI was selected: the two-entry
+  layout is faster but would create a separate Bool-only ABI/owner fork.
+- Slot/generation semantics were not imported. Bool has only two valid keys, so
+  public grow stress would be synthetic; the gate instead proves grow is
+  unreachable under valid Bool operations and exercises shared grow ownership
+  through the adjacent scalar rows.
+
+## Completed self-host rung — `HashMap<Long,V>` owns physical Long key storage
+
+Objective card:
+- Objective: remove the `Long -> String -> string hash/strcmp -> strtoll`
+  projection from production C, LLVM, installed self-host, runtime mutation,
+  growth, and `MapKeys`.
+- Priority: semantic Long identity, one physical I64 storage-kind fact,
+  fail-closed ABI carriage, old-path deletion, negative ratchet, executable
+  native/public C/LLVM parity, then bounded performance evidence.
+- Fact owner: `PGY_HASHMAP_KEY_STORAGE_I64` in
+  `src/common/hashmap_key_storage_kind.h`; codegen admits Long into that carried
+  descriptor and runtime hashes/compares the stored `int64_t` directly.
+- Last legitimate consumers: C/LLVM constructors, raw and inline runtime
+  operations, self-host runtime projections, direct-MIR LLVM construction, and
+  `MapKeys`.
+- Forbidden fallback: `pgy_map_format_i64_key`,
+  `pgy_map_i64_key_string_export`, `strtoll`, or a dual-read compatibility path.
+- Gate/falsifier: low/high-half collisions, arithmetic construction of
+  `INT64_MIN`/`INT64_MAX`, delete/reinsert, repeated growth, constructor/growth
+  OOM, overwrite without allocation, wrong-kind access, and exact public
+  C/LLVM parity.
+
+Reached evidence and boundary:
+- HEAD and `origin/main` are both
+  `59fd5a19623fcb887199ce120c065a4537d5ff68`; this work is intentionally
+  uncommitted. The rebuilt installed driver SHA-256 is
+  `60B0F94C56888D11A90D32C65E4B45A4ADB7B85124B592C6A619ECCFCBD8E561`.
+- The descriptor carries `I64`; raw and specialized maps store `int64_t` keys,
+  use the full 64-bit hash/equality path, and snapshot Long `MapKeys` without
+  formatting or parsing. Existing-key overwrite now happens before a possible
+  grow, so allocation failure cannot silently discard an update.
+- Native/public C/LLVM HashMap admission and execution pass 74/74, including
+  the 256-key high-half/extrema fixture and Int/Long/Bool/String value variants.
+  I32 and I64 low-level adversarial suites pass collision/delete/grow/extrema,
+  OOM, overwrite-without-allocation, wrong-kind, and raw/inline mismatch cases.
+  Self-host runtime ABI passes 32 controls plus 12 normalized controls;
+  transpiler tests pass 978/978 and semantic tests pass 2944/2944.
+- Installed self-host initially failed closed at logical-record admission for
+  `Array<Long>` returned by `MapKeys`. The logical-record and expression-
+  readiness owners now carry that existing ABI; the rebuilt installed driver
+  passes both Long stress and value-variant public LLVM execution.
+- The SoT registry now machine-validates 91 authorities / 189 derived carriers
+  at `CLOSED=60 BRIDGE=29 ACTIVE=2`. `abi.hashmap_long_key_storage` is CLOSED;
+  the overall goal remains active.
+- Isolated 200,000-key, 3-round, 5-sample evidence under
+  `.tmp/hashmap_long_lowlevel_redteam/REPORT.md` measured the old decimal-string
+  representation at 1721 ms / 1,700,148 allocations / 23.67 MB peak, direct
+  `int64_t` arrays at 288 ms / 147 allocations / 19.66 MB, and a specialized
+  entry layout at 351 ms / 51 allocations / 25.17 MB. The direct typed array is
+  the selected ordinary Long-map representation; Slot/generation semantics are
+  not imported.
+- SoT registry, proof-spine source/static, formal-semantics smoke, and live
+  owner/consumer negative-mutation gates pass. This host still lacks
+  `rocq`/`coqc`; 49 proofs were explicitly skipped with
+  `PGY_ALLOW_MISSING_COQ=1` rather than claimed as machine-checked.
+
+## Completed self-host rung — `HashMap<Int,V>` owns physical Int key storage
+
+Objective card:
+- Objective: remove the `Int -> String -> string hash/strcmp -> strtol`
+  projection from production C, LLVM, installed self-host, runtime mutation,
+  growth, and `MapKeys` paths.
+- Priority: semantic key identity, one physical-storage-kind fact, fail-closed
+  ABI carriage, deleted-slot accounting and transactional growth, executable
+  C/LLVM/public parity, then bounded performance evidence.
+- Fact owner: `pgy_hashmap_key_storage_kind_from_name` maps the admitted key
+  type to `HashMapKeyStorageKind`; the runtime descriptor carries that kind.
+- Last legitimate consumers: C/LLVM constructors, raw and inline runtime
+  operations, self-host runtime projections, direct-MIR LLVM construction, and
+  `MapKeys`.
+- Forbidden fallback: `pgy_map_format_i32_key`,
+  `pgy_map_i32_key_string_export`, a keyless raw constructor, continuing after
+  failed growth, or parsing Int keys back from string storage.
+- Gate/falsifier: collision/delete/tombstone churn, repeated growth, Int extrema,
+  constructor/growth OOM, wrong-kind access, native/public C/LLVM parity, and
+  exact absence of the retired Int string bridge.
+
+Reached evidence and boundary:
+- HEAD and `origin/main` are both
+  `59fd5a19623fcb887199ce120c065a4537d5ff68`; this work is intentionally
+  uncommitted. The rebuilt installed driver SHA-256 is
+  `9F92368E62F8A04605E8A0D49B82390602B767C4CC0EF1E5353A7663C98D0529`.
+- The physical descriptor now carries `STRING` or `I32`, raw `MapNew` carries
+  the tag in C and LLVM, Int operations hash and compare `int32_t` directly,
+  `MapKeys` snapshots those integers directly, tombstones are counted, and
+  allocation failure leaves the old table intact. Storage-kind mismatches panic
+  before typed access.
+- Native/public C/LLVM HashMap admission and execution pass 62/62, including
+  the 256-key stress fixture and `INT32_MIN`/`INT32_MAX`. Runtime adversarial
+  collision/delete/grow/extrema/OOM/mismatch passes; self-host runtime ABI passes
+  30 controls plus 12 normalized controls; signature ownership passes 18;
+  transpiler tests pass 978/978; semantic tests pass 2944/2944.
+- The SoT registry now machine-validates 90 authorities / 189 derived carriers
+  at `CLOSED=59 BRIDGE=29 ACTIVE=2`. `abi.hashmap_int_key_storage` is CLOSED;
+  the existing collection-call protocol row was not repurposed.
+- Isolated 200,000-key benchmark evidence under
+  `.tmp/hashmap_lowlevel_redteam/REPORT.md` measured the old string projection
+  at 1400.1 ms / 2,150,148 allocations versus typed array/index storage at
+  79.8 ms / 147 allocations. Slot/generation storage was slower and is not the
+  ordinary Int-map representation.
+- Coq source/static checks pass, but this host has no `rocq` or `coqc`; 49
+  proofs were explicitly skipped with `PGY_ALLOW_MISSING_COQ=1`. ASan/UBSan
+  were also unavailable because the installed Windows compiler distributions
+  lack their sanitizer runtime libraries.
+- The whole self-host component contract reaches its line-cap batch and then
+  fails on pre-existing
+  `src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy` at 614 lines
+  versus cap 600. That file is byte-unchanged by this packet and is a separate
+  existing structural blocker.
+- This Int row does not claim the later Long closure. `Bool` remains the active
+  legacy string-backed key rung. String-value ownership/drop semantics are also
+  a separate ownership rung.
+
+## Previous self-host context — measure the exact fixed-point critical path
 
 Objective card:
 - Objective: measure one exact-input self-host fixed point and identify the

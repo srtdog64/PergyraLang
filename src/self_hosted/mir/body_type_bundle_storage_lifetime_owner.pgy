@@ -43,6 +43,20 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
     let match_materialization_type_names: Array<String> = body_types.match_materializations.type_names;
     let match_materialization_synthetic_names: Array<String> = body_types.match_materializations.synthetic_names;
     let match_materialization_synthetic_roots: Array<Int> = body_types.match_materializations.synthetic_graph_root_ids;
+    let collection_function_ids: Array<Int> =
+        body_types.collection_ownership.function_syntax_ids;
+    let collection_binding_ids: Array<Int> =
+        body_types.collection_ownership.binding_syntax_ids;
+    let collection_origin_ids: Array<Int> =
+        body_types.collection_ownership.origin_syntax_ids;
+    let collection_source_ids: Array<Int> =
+        body_types.collection_ownership.source_binding_syntax_ids;
+    let collection_ownerships: Array<Int> =
+        body_types.collection_ownership.element_ownerships;
+    let collection_dispositions: Array<Int> =
+        body_types.collection_ownership.dispositions;
+    let collection_origins: Array<Int> =
+        body_types.collection_ownership.origins;
     let generic_call_node_ids: Array<Int> = body_types.generic_specializations.call_node_ids;
     let generic_owner_node_ids: Array<Int> = body_types.generic_specializations.source_owner_node_ids;
     let generic_source_lanes: Array<Int> = body_types.generic_specializations.source_lanes;
@@ -70,6 +84,13 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
     CompilerRetireArrayStorage(match_materialization_node_ids); CompilerRetireArrayStorage(match_materialization_function_node_ids);
     CompilerRetireArrayStorage(match_materialization_type_names); CompilerRetireArrayStorage(match_materialization_synthetic_names);
     CompilerRetireArrayStorage(match_materialization_synthetic_roots);
+    CompilerRetireArrayStorage(collection_function_ids);
+    CompilerRetireArrayStorage(collection_binding_ids);
+    CompilerRetireArrayStorage(collection_origin_ids);
+    CompilerRetireArrayStorage(collection_source_ids);
+    CompilerRetireArrayStorage(collection_ownerships);
+    CompilerRetireArrayStorage(collection_dispositions);
+    CompilerRetireArrayStorage(collection_origins);
     CompilerRetireArrayStorage(generic_call_node_ids); CompilerRetireArrayStorage(generic_owner_node_ids);
     CompilerRetireArrayStorage(generic_source_lanes); CompilerRetireArrayStorage(generic_call_ordinals);
     CompilerRetireArrayStorage(generic_signature_indexes); CompilerRetireArrayStorage(generic_actual_starts);

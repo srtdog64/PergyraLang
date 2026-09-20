@@ -16,6 +16,7 @@ import "ast_match_materialization_fact_owner.pgy";
 import "ast_body_role_operator_resolution_owner.pgy";
 import "ast_body_type_bundle_readiness_owner.pgy";
 import "ast_named_value_boundary_verdict_owner.pgy";
+import "ast_collection_ownership_verdict_owner.pgy";
 import "ast_zone_value_carriage_verdict_owner.pgy";
 import "ast_zone_spawn_transport_verdict_owner.pgy";
 import "ast_subject_value_boundary_owner.pgy";
@@ -34,6 +35,7 @@ struct SemanticAstBodyTypeBundle {
     iteration_types: SemanticAstIterationTypeFacts;
     assignment_types: SemanticAstAssignmentTypeFacts;
     statement_types: SemanticAstStatementTypeFacts; match_materializations: SemanticAstMatchMaterializationFacts;
+    collection_ownership: SemanticAstCollectionOwnershipVerdict;
     zone_carriage: SemanticAstZoneValueCarriageVerdict;
     generic_specializations: SemanticAstGenericSpecializationFacts;
     capabilities: SemanticAstCapabilityFacts;
@@ -48,6 +50,8 @@ func SemanticAstBodyTypeBundleAdmissionError(artifact: AstTreeArtifact, message:
         SemanticAstIterationTypeStructuralError(artifact),
         SemanticAstAssignmentTypeStructuralError(artifact, "BodyAnalysisAdmission"),
         SemanticAstStatementTypeStructuralError(artifact, "BodyAnalysisAdmission"), SemanticAstMatchMaterializationError(artifact),
+        SemanticAstCollectionOwnershipVerdictError(
+            "body_analysis_admission", message, -1, -1),
         SemanticAstZoneValueCarriageVerdictError("body_analysis_admission", message, -1),
         SemanticAstGenericSpecializationError("body_analysis_admission", message,
             empty_ints, empty_ints, empty_ints, empty_ints, empty_strings),
@@ -210,6 +214,20 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
         verdict = SemanticAstBodyVerdictError("expression_identity_unresolved",
             "semantic expression identity rows are incomplete", -1);
     }
+    let collection_ownership: SemanticAstCollectionOwnershipVerdict =
+        SemanticAstCollectionOwnershipVerdictOk();
+    if verdict.ok {
+        collection_ownership =
+            SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
+                artifact, analysis.local_bindings, initializer_types,
+                analysis.expression_surfaces, analysis.statements);
+        if !collection_ownership.ok {
+            verdict = SemanticAstBodyVerdictError(
+                collection_ownership.diagnostic_code,
+                collection_ownership.diagnostic_message,
+                collection_ownership.syntax_node_id);
+        }
+    }
     verdict = SemanticAstBodyZoneSpawnBoundaryVerdictFromAdmittedFacts(verdict, artifact, analysis.signatures, analysis.constructors, analysis.expression_surfaces);
     if verdict.ok && !SemanticAstAnalysisResolveCallReturnTypes(
         artifact, analysis, generic_specializations) {
@@ -270,6 +288,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     SemanticAstBodyTypeStage(observe_pressure, "verdict:done");
     return SemanticAstBodyTypeBundle(verdict,
         initializer_types, iteration_types, assignment_types, statement_types, match_materializations,
+        collection_ownership,
         zone_carriage, generic_specializations, capabilities);
 }
 func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(artifact: AstTreeArtifact,

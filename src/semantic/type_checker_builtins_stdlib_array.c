@@ -163,6 +163,10 @@ type_check_stdlib_array_call(ASTNode *expr,
         if (reject_array_storage_invalidation_with_live_slice(
                 arg0, op_name, ctx))
             return TYPE_UNKNOWN;
+        if (kind == STDLIB_COLLECTION_ARRAY_PUSH
+            && semantic_collection_reject_unsafe_owned_string_mutation(
+                arg0, op_name, ctx))
+            return TYPE_UNKNOWN;
         val = stdlib_array_normalize_type(
             type_check_expression(arg1, ctx));
         reject_borrowed_boundary_container_store(
@@ -198,6 +202,8 @@ type_check_stdlib_array_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         if (reject_array_storage_invalidation_with_live_slice(
                 arg0, "ArrayDropOwnedStrings", ctx))
+            return TYPE_UNKNOWN;
+        if (!semantic_collection_admit_owned_string_drop(arg0, ctx))
             return TYPE_UNKNOWN;
         inner = type_is_constructed_named(arr, "Array")
             ? type_get_constructed_arg(arr, 0) : NULL;
@@ -260,6 +266,9 @@ type_check_stdlib_array_call(ASTNode *expr,
         if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, arr, "ArraySet", "array", ctx))
             return TYPE_UNKNOWN;
+        if (semantic_collection_reject_unsafe_owned_string_mutation(
+                arg0, "ArraySet", ctx))
+            return TYPE_UNKNOWN;
         require_assignable(
             type_check_expression(arg1, ctx),
             TYPE_INT, arg1, ctx);
@@ -290,6 +299,9 @@ type_check_stdlib_array_call(ASTNode *expr,
                 arg0, arr, "ArrayPop", "array", ctx))
             return TYPE_UNKNOWN;
         if (reject_array_storage_invalidation_with_live_slice(
+                arg0, "ArrayPop", ctx))
+            return TYPE_UNKNOWN;
+        if (semantic_collection_reject_unsafe_owned_string_mutation(
                 arg0, "ArrayPop", ctx))
             return TYPE_UNKNOWN;
         if (!type_is_constructed_named(arr, "Array"))

@@ -1,0 +1,440 @@
+// Array<String> element-lifetime provenance at semantic call boundaries.
+//
+// Stable local declaration identity owns the state.  This verdict consumes the
+// already admitted expression graph once; MIR and backends may not infer deep
+// release permission from the projected Array<String> type.
+
+import "ast_artifact_verdict_owner.pgy";
+import "ast_expression_graph_array_literal_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_call_target_fact_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+import "ast_local_binding_identity_owner.pgy";
+import "ast_initializer_type_fact_owner.pgy";
+import "ast_statement_fact_owner.pgy";
+import "array_type_shape_owner.pgy";
+import "diagnostic_owner.pgy";
+
+struct SemanticAstCollectionOwnershipVerdict {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    syntax_node_id: Int;
+    expression_node_id: Int;
+    function_syntax_ids: Array<Int>;
+    binding_syntax_ids: Array<Int>;
+    origin_syntax_ids: Array<Int>;
+    source_binding_syntax_ids: Array<Int>;
+    element_ownerships: Array<Int>;
+    dispositions: Array<Int>;
+    origins: Array<Int>;
+}
+
+func SemanticAstCollectionOwnershipUnknown() -> Int { return 0; }
+func SemanticAstCollectionOwnershipBorrowedElements() -> Int { return 1; }
+func SemanticAstCollectionOwnershipOwnedElements() -> Int { return 2; }
+func SemanticAstCollectionOwnershipMapKeysSnapshot() -> Int { return 3; }
+func SemanticAstCollectionOwnershipRetired() -> Int { return 4; }
+func SemanticAstCollectionDispositionLive() -> Int { return 0; }
+func SemanticAstCollectionDispositionRetired() -> Int { return 1; }
+func SemanticAstCollectionOriginUnknown() -> Int { return 0; }
+func SemanticAstCollectionOriginBorrowedLiteral() -> Int { return 1; }
+func SemanticAstCollectionOriginMapKeys() -> Int { return 2; }
+func SemanticAstCollectionOriginBinding() -> Int { return 3; }
+
+func SemanticAstCollectionOwnershipVerdictOk(
+) -> SemanticAstCollectionOwnershipVerdict {
+    let empty: Array<Int> = [];
+    return SemanticAstCollectionOwnershipVerdict(
+        true, "", "", -1, -1,
+        empty, empty, empty, empty, empty, empty, empty
+    );
+}
+
+func SemanticAstCollectionOwnershipVerdictOkWithFacts(
+    function_syntax_ids: Array<Int>,
+    binding_syntax_ids: Array<Int>,
+    origin_syntax_ids: Array<Int>,
+    source_binding_syntax_ids: Array<Int>,
+    element_ownerships: Array<Int>,
+    dispositions: Array<Int>,
+    origins: Array<Int>
+) -> SemanticAstCollectionOwnershipVerdict {
+    return SemanticAstCollectionOwnershipVerdict(
+        true, "", "", -1, -1,
+        function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
+        source_binding_syntax_ids, element_ownerships, dispositions, origins
+    );
+}
+
+func SemanticAstCollectionOwnershipVerdictError(
+    code: String, message: String,
+    syntax_node_id: Int, expression_node_id: Int
+) -> SemanticAstCollectionOwnershipVerdict {
+    let empty: Array<Int> = [];
+    return SemanticAstCollectionOwnershipVerdict(
+        false, code, message,
+        syntax_node_id, expression_node_id,
+        empty, empty, empty, empty, empty, empty, empty
+    );
+}
+
+func SemanticAstCollectionOwnershipBuiltinCall(
+    ref graph: SemanticExpressionGraphFacts,
+    call_node_id: Int, expected_name: String
+) -> Bool {
+    let kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        graph, call_node_id);
+    let name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, call_node_id);
+    let syntax_id: Option<Int> =
+        SemanticExpressionGraphCallTargetSyntaxId(graph, call_node_id);
+    let runtime_abi_id: Option<Int> =
+        SemanticExpressionGraphRuntimeCallAbiId(graph, call_node_id);
+    return IsSome(kind) && IsSome(name) && IsSome(syntax_id) &&
+        IsSome(runtime_abi_id) &&
+        UnwrapOption(kind) == SemanticCallTargetDirect() &&
+        UnwrapOption(name) == expected_name &&
+        UnwrapOption(syntax_id) == 0 && UnwrapOption(runtime_abi_id) == 0;
+}
+
+func SemanticAstCollectionOwnershipIsStringArray(type_name: String) -> Bool {
+    let element: Option<String> = SemanticArrayElementType(type_name);
+    return IsSome(element) && UnwrapOption(element) == "String";
+}
+
+func SemanticAstCollectionOwnershipLiteralIsBorrowed(
+    ref graph: SemanticExpressionGraphFacts, root_id: Int
+) -> Bool {
+    let literal: SemanticArrayLiteralView =
+        SemanticArrayLiteralViewFromGraph(graph, root_id);
+    if !literal.ok || ArrayLength(literal.element_nodes) == 0 { return false; }
+    let i: Int = 0;
+    while i < ArrayLength(literal.element_nodes) {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph, literal.element_nodes[i]);
+        if !IsSome(kind) ||
+            UnwrapOption(kind) != AstExpressionNodeStringLiteral() {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionOwnershipRootCallName(
+    ref graph: SemanticExpressionGraphFacts, root_id: Int
+) -> String {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, root_id);
+    if !call.ok { return ""; }
+    let name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, call.call_node);
+    if !IsSome(name) || !SemanticAstCollectionOwnershipBuiltinCall(
+        graph, call.call_node, UnwrapOption(name)) {
+        return "";
+    }
+    return UnwrapOption(name);
+}
+
+func SemanticAstCollectionOwnershipLocalForArgument(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_index: Int,
+    argument_node_id: Int
+) -> SemanticAstLocalBindingIdentity {
+    if surface_index < 0 ||
+        surface_index >= ArrayLength(surfaces.node_ids) ||
+        surface_index >= ArrayLength(surfaces.function_node_ids) {
+        return SemanticAstLocalBindingIdentityUnresolved();
+    }
+    return SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types,
+        surfaces.function_node_ids[surface_index],
+        surfaces.node_ids[surface_index], surfaces.expression_graph,
+        argument_node_id
+    );
+}
+
+func SemanticAstCollectionOwnershipLocalForStatementTarget(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts,
+    statement_row: Int
+) -> SemanticAstLocalBindingIdentity {
+    if statement_row < 0 ||
+        statement_row >= ArrayLength(statements.node_ids) ||
+        statement_row >= ArrayLength(statements.function_node_ids) {
+        return SemanticAstLocalBindingIdentityUnresolved();
+    }
+    let target_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, statements.node_ids[statement_row], AstExpressionLaneAtom());
+    if !IsSome(target_root) {
+        return SemanticAstLocalBindingIdentityUnresolved();
+    }
+    return SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, inferred_types,
+        statements.function_node_ids[statement_row],
+        statements.node_ids[statement_row], surfaces.expression_graph,
+        UnwrapOption(target_root)
+    );
+}
+
+func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts
+) -> SemanticAstCollectionOwnershipVerdict {
+    let local_count: Int = ArrayLength(locals.node_ids);
+    if !SemanticAstExpressionSurfaceBorrowReady(artifact, surfaces) ||
+        !SemanticAstLocalBindingIdentityRowsReady(
+            locals, initializer_types.inferred_type_names) ||
+        ArrayLength(initializer_types.node_ids) != local_count ||
+        !SemanticExpressionGraphCarriedCallTargetsReady(
+            surfaces.expression_graph) || !statements.ok {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "SemanticAstCollectionOwnershipVerdict"), -1, -1);
+    }
+    let ownership: Array<Int> = [];
+    let dispositions: Array<Int> = [];
+    let origins: Array<Int> = [];
+    let origin_syntax_ids: Array<Int> = [];
+    let source_binding_syntax_ids: Array<Int> = [];
+    let local_row: Int = 0;
+    while local_row < local_count {
+        ArrayPush(ownership, SemanticAstCollectionOwnershipUnknown());
+        ArrayPush(dispositions, SemanticAstCollectionDispositionLive());
+        ArrayPush(origins, SemanticAstCollectionOriginUnknown());
+        ArrayPush(origin_syntax_ids, locals.node_ids[local_row]);
+        ArrayPush(source_binding_syntax_ids, 0);
+        if !SemanticAstCollectionOwnershipIsStringArray(
+            initializer_types.inferred_type_names[local_row]) {
+            local_row = local_row + 1;
+            continue;
+        }
+        if locals.binding_kinds[local_row] !=
+                SemanticAstLocalBindingKindNormal() ||
+            locals.binding_indices[local_row] != 0 {
+            return SemanticAstCollectionOwnershipVerdictError(
+                "collection_ownership_unresolved",
+                SemanticError2("collection_ownership_unresolved",
+                    "boundary", "destructure_binding",
+                    "type", "Array<String>"),
+                locals.node_ids[local_row], -1);
+        }
+        let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            surfaces, locals.node_ids[local_row], AstExpressionLaneValue());
+        if !IsSome(root) {
+            return SemanticAstCollectionOwnershipVerdictError(
+                "ast_artifact_invalid",
+                SemanticError1("ast_artifact_invalid", "owner",
+                    "collection_ownership_initializer_graph"),
+                locals.node_ids[local_row], -1);
+        }
+        let root_id: Int = UnwrapOption(root);
+        if SemanticAstCollectionOwnershipLiteralIsBorrowed(
+            surfaces.expression_graph, root_id) {
+            ownership[local_row] =
+                SemanticAstCollectionOwnershipBorrowedElements();
+            origins[local_row] =
+                SemanticAstCollectionOriginBorrowedLiteral();
+        } else if SemanticAstCollectionOwnershipRootCallName(
+            surfaces.expression_graph, root_id) == "MapKeys" {
+            ownership[local_row] =
+                SemanticAstCollectionOwnershipMapKeysSnapshot();
+            origins[local_row] = SemanticAstCollectionOriginMapKeys();
+        } else {
+            let source: SemanticAstLocalBindingIdentity =
+                SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                    artifact, locals, initializer_types.inferred_type_names,
+                    locals.function_node_ids[local_row],
+                    locals.node_ids[local_row],
+                    surfaces.expression_graph, root_id);
+            if source.ok &&
+                (ownership[source.row] ==
+                    SemanticAstCollectionOwnershipMapKeysSnapshot() ||
+                 ownership[source.row] ==
+                    SemanticAstCollectionOwnershipOwnedElements()) {
+                return SemanticAstCollectionOwnershipVerdictError(
+                    "borrow_boundary_escape",
+                    SemanticError2("borrow_boundary_escape",
+                        "boundary", "shallow_copy",
+                        "type", "Array<String>"),
+                    locals.node_ids[local_row], root_id);
+            }
+            if source.ok {
+                ownership[local_row] = ownership[source.row];
+                origins[local_row] = SemanticAstCollectionOriginBinding();
+                source_binding_syntax_ids[local_row] =
+                    locals.node_ids[source.row];
+            }
+        }
+        local_row = local_row + 1;
+    }
+
+    // ArrayPush/ArraySet/ArrayPop are parser-owned statement intrinsics, not
+    // expression-call nodes. Consume their admitted statement identity and
+    // the atom-lane receiver graph instead of rescanning source spellings.
+    let statement_row: Int = 0;
+    while statement_row < ArrayLength(statements.node_ids) {
+        let statement_kind: Int = statements.kind_tags[statement_row];
+        if statement_kind == TypedAstKindArrayPushStmtTag() ||
+            statement_kind == TypedAstKindArraySetStmtTag() ||
+            statement_kind == TypedAstKindArrayPopStmtTag() {
+            let operation: String = "ArrayPop";
+            if statement_kind == TypedAstKindArrayPushStmtTag() {
+                operation = "ArrayPush";
+            } else if statement_kind == TypedAstKindArraySetStmtTag() {
+                operation = "ArraySet";
+            }
+            let binding: SemanticAstLocalBindingIdentity =
+                SemanticAstCollectionOwnershipLocalForStatementTarget(
+                    artifact, locals, initializer_types.inferred_type_names,
+                    surfaces, statements, statement_row);
+            if binding.ok {
+                let state: Int = ownership[binding.row];
+                if state == SemanticAstCollectionOwnershipOwnedElements() ||
+                    state == SemanticAstCollectionOwnershipMapKeysSnapshot() ||
+                    dispositions[binding.row] ==
+                        SemanticAstCollectionDispositionRetired() {
+                    return SemanticAstCollectionOwnershipVerdictError(
+                        "borrow_boundary_escape",
+                        SemanticError2("borrow_boundary_escape",
+                            "boundary", operation,
+                            "type", "Array<String>"),
+                        statements.node_ids[statement_row], -1);
+                }
+            }
+        }
+        statement_row = statement_row + 1;
+    }
+
+    let call_roots: SemanticCallSpineRoots =
+        SemanticCallSpineRootsFromGraph(surfaces.expression_graph);
+    if !call_roots.ok {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "collection_ownership_call_roots"), -1, -1);
+    }
+    let last_root: Int = -1;
+    let root_slot: Int = 0;
+    while root_slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[root_slot] {
+            let root_id: Int = surfaces.expression_graph.roots[root_slot];
+            let node: Int = last_root + 1;
+            while node <= root_id {
+                let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+                    surfaces.expression_graph, node);
+                if IsSome(kind) &&
+                    UnwrapOption(kind) == AstExpressionNodeCall() {
+                    let target: Option<String> =
+                        SemanticExpressionGraphCallTargetName(
+                            surfaces.expression_graph, node);
+                    let call: SemanticCallSpineView =
+                        SemanticCallSpineViewFromGraph(
+                            surfaces.expression_graph,
+                            call_roots.root_nodes[node]);
+                    if IsSome(target) && call.ok &&
+                        call.call_node == node &&
+                        SemanticAstCollectionOwnershipBuiltinCall(
+                            surfaces.expression_graph, node,
+                            UnwrapOption(target)) &&
+                        ArrayLength(call.argument_nodes) > 0 {
+                        let name: String = UnwrapOption(target);
+                        let mutates_elements: Bool = name == "ArrayPush" ||
+                            name == "ArraySet" || name == "ArrayPop";
+                        let deep_drop: Bool =
+                            name == "ArrayDropOwnedStrings";
+                        if mutates_elements || deep_drop {
+                            let binding: SemanticAstLocalBindingIdentity =
+                                SemanticAstCollectionOwnershipLocalForArgument(
+                                    artifact, locals,
+                                    initializer_types.inferred_type_names,
+                                    surfaces, root_slot / 3,
+                                    call.argument_nodes[0]);
+                            if binding.ok {
+                                let state: Int = ownership[binding.row];
+                                if mutates_elements &&
+                                    (state == SemanticAstCollectionOwnershipOwnedElements() ||
+                                     state == SemanticAstCollectionOwnershipMapKeysSnapshot()) {
+                                    return SemanticAstCollectionOwnershipVerdictError(
+                                        "borrow_boundary_escape",
+                                        SemanticError2("borrow_boundary_escape",
+                                            "boundary", name,
+                                            "type", "Array<String>"),
+                                        surfaces.node_ids[root_slot / 3], node);
+                                }
+                                if deep_drop && state ==
+                                        SemanticAstCollectionOwnershipBorrowedElements() {
+                                    return SemanticAstCollectionOwnershipVerdictError(
+                                        "borrow_boundary_escape",
+                                        SemanticError2("borrow_boundary_escape",
+                                            "boundary", "owned_string_drop",
+                                            "type", "borrowed Array<String>"),
+                                        surfaces.node_ids[root_slot / 3], node);
+                                }
+                                if deep_drop && dispositions[binding.row] ==
+                                        SemanticAstCollectionDispositionRetired() {
+                                    return SemanticAstCollectionOwnershipVerdictError(
+                                        "borrow_boundary_escape",
+                                        SemanticError2("borrow_boundary_escape",
+                                            "boundary", "double_drop",
+                                            "type", "Array<String>"),
+                                        surfaces.node_ids[root_slot / 3], node);
+                                }
+                                if deep_drop &&
+                                    (state == SemanticAstCollectionOwnershipOwnedElements() ||
+                                     state == SemanticAstCollectionOwnershipMapKeysSnapshot()) {
+                                    dispositions[binding.row] =
+                                        SemanticAstCollectionDispositionRetired();
+                                }
+                            }
+                        }
+                    }
+                }
+                node = node + 1;
+            }
+            last_root = root_id;
+        }
+        root_slot = root_slot + 1;
+    }
+    let function_syntax_ids: Array<Int> = [];
+    let binding_syntax_ids: Array<Int> = [];
+    let carried_origin_syntax_ids: Array<Int> = [];
+    let carried_source_binding_syntax_ids: Array<Int> = [];
+    let element_ownerships: Array<Int> = [];
+    let carried_dispositions: Array<Int> = [];
+    let carried_origins: Array<Int> = [];
+    local_row = 0;
+    while local_row < local_count {
+        if SemanticAstCollectionOwnershipIsStringArray(
+            initializer_types.inferred_type_names[local_row]
+        ) {
+            ArrayPush(function_syntax_ids, locals.function_node_ids[local_row]);
+            ArrayPush(binding_syntax_ids, locals.node_ids[local_row]);
+            ArrayPush(carried_origin_syntax_ids,
+                origin_syntax_ids[local_row]);
+            ArrayPush(carried_source_binding_syntax_ids,
+                source_binding_syntax_ids[local_row]);
+            ArrayPush(element_ownerships, ownership[local_row]);
+            ArrayPush(carried_dispositions, dispositions[local_row]);
+            ArrayPush(carried_origins, origins[local_row]);
+        }
+        local_row = local_row + 1;
+    }
+    return SemanticAstCollectionOwnershipVerdictOkWithFacts(
+        function_syntax_ids, binding_syntax_ids, carried_origin_syntax_ids,
+        carried_source_binding_syntax_ids, element_ownerships,
+        carried_dispositions, carried_origins
+    );
+}

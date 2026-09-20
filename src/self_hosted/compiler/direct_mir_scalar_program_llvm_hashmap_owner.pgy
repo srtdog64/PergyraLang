@@ -30,7 +30,7 @@ func DirectMirScalarProgramLlvmHashMapExpressionAt(
         let storage: String = result + ".map";
         output = "  " + storage + " = alloca " + storage_type + ", align 8\n" +
             "  store " + storage_type + " zeroinitializer, ptr " + storage + ", align 8\n" +
-            "  call void @" + function_name + "(ptr " + storage + ", " + size + ")\n" +
+            "  call void @" + function_name + "(ptr " + storage + ", " + size + ", i32 " + ToString(runtime.key_storage_kind) + ")\n" +
             "  " + result + " = load " + storage_type + ", ptr " + storage + ", align 8\n";
         return DirectMirScalarProgramLlvmStringExpression(true, true, output, result);
     }

@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "../common/hashmap_key_storage_kind.h"
+
 typedef enum PgyHashMapKeyKind {
     PGY_HASHMAP_KEY_STRING,
     PGY_HASHMAP_KEY_INT,
@@ -14,6 +16,9 @@ typedef enum PgyHashMapKeyKind {
 
 PgyHashMapKeyKind pgy_hashmap_key_kind_from_name(const char *name);
 const char *pgy_hashmap_key_c_infix(const char *key_name);
+const char *pgy_hashmap_key_storage_constructor_infix(const char *key_name);
+PgyHashMapKeyStorageKind
+pgy_hashmap_key_storage_kind_from_name(const char *key_name);
 const char *pgy_hashmap_key_policy_type_text(void);
 const char *pgy_hashmap_string_value_policy_type_text(void);
 bool pgy_hashmap_key_raw_export_name(const char *operation,

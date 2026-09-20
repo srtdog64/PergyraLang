@@ -16,17 +16,21 @@ struct CollectionHashMapRuntimeFact {
     c_value_type: String;
     value_suffix: String;
     key_infix: String;
+    key_storage_constructor_infix: String;
+    key_storage_kind: Int;
 }
 
 func CollectionHashMapRuntimeFactFromTypeName(type_name: String) -> CollectionHashMapRuntimeFact {
-    let missing: CollectionHashMapRuntimeFact = CollectionHashMapRuntimeFact(false, "", "", "", "", "", "", "");
+    let missing: CollectionHashMapRuntimeFact = CollectionHashMapRuntimeFact(false, "", "", "", "", "", "", "", "", 0);
     let shape: SemanticConstructedTypeNameFact = SemanticConstructedTypeNameFactFrom(type_name);
     if !shape.ok || shape.nominal_base_name != "HashMap" ||
         ArrayLength(shape.actual_type_names) != 2 ||
         SemanticTypeNameContainsUnresolvedUnknown(shape.canonical_name) { return missing; }
     let key: Option<String> = CollectionHashMapKeyCInfix(shape.actual_type_names[0]);
+    let constructor: Option<String> = CollectionHashMapKeyStorageConstructorInfix(shape.actual_type_names[0]);
+    let storage_kind: Option<Int> = CollectionHashMapKeyStorageKind(shape.actual_type_names[0]);
     let value: Option<Int> = CompilerAbiLayoutRowIndex(shape.actual_type_names[1]);
-    if !IsSome(key) || !IsSome(value) { return missing; }
+    if !IsSome(key) || !IsSome(constructor) || !IsSome(storage_kind) || !IsSome(value) { return missing; }
     let c_value: String = CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(value));
     if c_value == "" { return missing; }
     let suffix: String = CompilerSymbolCMangledTypeName(shape.actual_type_names[1]);
@@ -35,7 +39,8 @@ func CollectionHashMapRuntimeFactFromTypeName(type_name: String) -> CollectionHa
     if shape.actual_type_names[1] == "String" { function_suffix = "string"; }
     return CollectionHashMapRuntimeFact(true, shape.canonical_name,
         shape.actual_type_names[0], shape.actual_type_names[1], c_value,
-        "PgyHashMap_" + suffix, function_suffix, UnwrapOption(key));
+        "PgyHashMap_" + suffix, function_suffix, UnwrapOption(key),
+        UnwrapOption(constructor), UnwrapOption(storage_kind));
 }
 
 func CollectionHashMapRuntimeCFunction(
@@ -55,13 +60,25 @@ func CollectionHashMapRuntimeCFunction(
     if protocol.operation == "MapKeys" { operation = "keys"; }
     if operation == "" { Die("HashMap runtime operation is missing"); }
     let infix: String = fact.key_infix;
-    if protocol.return_kind == "constructor" || protocol.operation == "MapSize" { infix = ""; }
+    if protocol.return_kind == "constructor" { infix = fact.key_storage_constructor_infix; }
+    if protocol.operation == "MapSize" { infix = ""; }
     return "pgy_map_" + operation + infix + "_" + fact.value_suffix;
 }
 
 func CollectionHashMapRuntimeCKeysBridgeName(fact: CollectionHashMapRuntimeFact) -> String {
     if !fact.ok { Die("HashMap key snapshot ABI fact is missing"); }
     return "pgy_self_map_keys_" + CompilerSymbolCMangledTypeName(fact.type_name);
+}
+
+// Destruction is not a source-level HashMap operation.  The lifetime owner
+// consumes this projection only after it has proved that the descriptor is the
+// last live owner; parameters and materialization carriers must never invent a
+// drop call on their own.
+func CollectionHashMapRuntimeCDropFunction(
+    fact: CollectionHashMapRuntimeFact
+) -> String {
+    if !fact.ok { Die("HashMap release ABI fact is missing"); }
+    return "pgy_map_drop_" + fact.value_suffix;
 }
 
 func CollectionHashMapRuntimeSpecializationBlock(

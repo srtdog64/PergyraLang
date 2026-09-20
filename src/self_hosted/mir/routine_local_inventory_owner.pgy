@@ -8,27 +8,35 @@ struct SelfMirRoutineLocalInventory {
     diagnostic_message: String;
     names: Array<String>;
     types: Array<String>;
+    binding_syntax_ids: Array<Int>;
 }
 
 func SelfMirRoutineLocalInventoryError(
     message: String,
     names: Array<String>,
-    types: Array<String>
+    types: Array<String>,
+    binding_syntax_ids: Array<Int>
 ) -> SelfMirRoutineLocalInventory {
-    return SelfMirRoutineLocalInventory(false, message, names, types);
+    return SelfMirRoutineLocalInventory(
+        false, message, names, types, binding_syntax_ids
+    );
 }
 
 func SelfMirRoutineLocalInventoryAppend(
     inout names: Array<String>,
     inout types: Array<String>,
+    inout binding_syntax_ids: Array<Int>,
     name: String,
-    type_name: String
+    type_name: String,
+    binding_syntax_id: Int
 ) -> Bool {
-    if name == "" || type_name == "" || type_name == "Unknown" {
+    if name == "" || type_name == "" || type_name == "Unknown" ||
+        binding_syntax_id < 0 {
         return false;
     }
     ArrayPush(names, name);
     ArrayPush(types, type_name);
+    ArrayPush(binding_syntax_ids, binding_syntax_id);
     return true;
 }
 
@@ -38,9 +46,11 @@ func SelfMirRoutineLocalInventoryFromInput(
 ) -> SelfMirRoutineLocalInventory {
     let names: Array<String> = [];
     let types: Array<String> = [];
+    let binding_syntax_ids: Array<Int> = [];
     if function_node_id < 0 || !input.analysis.local_bindings.ok {
         return SelfMirRoutineLocalInventoryError(
-            "MIR source-local inventory input is invalid", names, types
+            "MIR source-local inventory input is invalid", names, types,
+            binding_syntax_ids
         );
     }
     let local_range: SemanticAstLocalBindingFunctionRange =
@@ -49,7 +59,8 @@ func SelfMirRoutineLocalInventoryFromInput(
         );
     if !local_range.ok {
         return SelfMirRoutineLocalInventoryError(
-            "MIR source-local function range is invalid", names, types
+            "MIR source-local function range is invalid", names, types,
+            binding_syntax_ids
         );
     }
 
@@ -59,7 +70,8 @@ func SelfMirRoutineLocalInventoryFromInput(
         );
     if !statement_range.ok {
         return SelfMirRoutineLocalInventoryError(
-            "MIR source-local statement range is invalid", names, types
+            "MIR source-local statement range is invalid", names, types,
+            binding_syntax_ids
         );
     }
     let iteration_rows: Array<Int> = [];
@@ -77,13 +89,13 @@ func SelfMirRoutineLocalInventoryFromInput(
             if !IsSome(iteration_row_opt) {
                 return SelfMirRoutineLocalInventoryError(
                     "MIR source-local iteration row is missing",
-                    names, types
+                    names, types, binding_syntax_ids
                 );
             }
             if node_id <= prior_iteration_node {
                 return SelfMirRoutineLocalInventoryError(
                     "MIR source-local iteration order is invalid",
-                    names, types
+                    names, types, binding_syntax_ids
                 );
             }
             ArrayPush(iteration_rows, UnwrapOption(iteration_row_opt));
@@ -110,7 +122,7 @@ func SelfMirRoutineLocalInventoryFromInput(
         if local_node == iteration_node {
             return SelfMirRoutineLocalInventoryError(
                 "MIR source-local owners overlap on one syntax node",
-                names, types
+                names, types, binding_syntax_ids
             );
         }
         if iteration_node < local_node {
@@ -121,31 +133,33 @@ func SelfMirRoutineLocalInventoryFromInput(
             if !IsSome(statement_index_opt) {
                 return SelfMirRoutineLocalInventoryError(
                     "MIR source-local iteration owner disappeared",
-                    names, types
+                    names, types, binding_syntax_ids
                 );
             }
             let statement_index: Int = UnwrapOption(statement_index_opt);
             if input.iterations.collection_hoists[iteration_row] == 1 {
                 if input.iterations.synthetic_names[iteration_row] == "" ||
                     !SelfMirRoutineLocalInventoryAppend(
-                        names, types,
+                        names, types, binding_syntax_ids,
                         input.iterations.synthetic_names[iteration_row],
-                        input.iterations.iterable_type_names[iteration_row]
+                        input.iterations.iterable_type_names[iteration_row],
+                        0
                     ) {
                     return SelfMirRoutineLocalInventoryError(
                         "MIR synthetic source-local fact is invalid",
-                        names, types
+                        names, types, binding_syntax_ids
                     );
                 }
             }
             if !SelfMirRoutineLocalInventoryAppend(
-                names, types,
+                names, types, binding_syntax_ids,
                 input.analysis.statements.payload_texts[statement_index],
-                input.iterations.binding_type_names[iteration_row]
+                input.iterations.binding_type_names[iteration_row],
+                0
             ) {
                 return SelfMirRoutineLocalInventoryError(
                     "MIR iteration binding source-local fact is invalid",
-                    names, types
+                    names, types, binding_syntax_ids
                 );
             }
             iteration_i = iteration_i + 1;
@@ -163,7 +177,7 @@ func SelfMirRoutineLocalInventoryFromInput(
                     initializer_range.end - initializer_range.start {
                 return SelfMirRoutineLocalInventoryError(
                     "MIR source-local binding/type rows are unaligned",
-                    names, types
+                    names, types, binding_syntax_ids
                 );
             }
             let offset: Int = 0;
@@ -173,15 +187,16 @@ func SelfMirRoutineLocalInventoryFromInput(
                     binding_row
                 ] != function_node_id ||
                     !SelfMirRoutineLocalInventoryAppend(
-                        names, types,
+                        names, types, binding_syntax_ids,
                         input.analysis.local_bindings.names[binding_row],
                         input.initializers.inferred_type_names[
                             initializer_range.start + offset
-                        ]
+                        ],
+                        input.analysis.local_bindings.node_ids[binding_row]
                     ) {
                     return SelfMirRoutineLocalInventoryError(
                         "MIR source-local binding fact is invalid",
-                        names, types
+                        names, types, binding_syntax_ids
                     );
                 }
                 offset = offset + 1;
@@ -194,16 +209,19 @@ func SelfMirRoutineLocalInventoryFromInput(
         if input.match_materializations.function_node_ids[match_row] ==
             function_node_id &&
             !SelfMirRoutineLocalInventoryAppend(
-                names, types,
+                names, types, binding_syntax_ids,
                 input.match_materializations.synthetic_names[match_row],
-                input.match_materializations.type_names[match_row]
+                input.match_materializations.type_names[match_row],
+                0
             ) {
             return SelfMirRoutineLocalInventoryError(
                 "MIR match materialization local fact is invalid",
-                names, types
+                names, types, binding_syntax_ids
             );
         }
         match_row = match_row + 1;
     }
-    return SelfMirRoutineLocalInventory(true, "", names, types);
+    return SelfMirRoutineLocalInventory(
+        true, "", names, types, binding_syntax_ids
+    );
 }

@@ -4,6 +4,7 @@
 #include "../semantic/semantic.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -346,6 +347,147 @@ hir_attach_match_binding_type_facts(HIRProgram *hir,
     return true;
 }
 
+static bool
+hir_append_collection_ownership_fact(
+    HIRRoutine *routine,
+    const PgyCollectionOwnershipFact *fact,
+    char **error_message)
+{
+    size_t next_capacity;
+    HIRCollectionOwnershipFact *grown;
+    const HIRCollectionOwnershipFact *source_fact = NULL;
+
+    if (routine != NULL && fact != NULL
+        && fact->source_binding_syntax_id != 0) {
+        for (size_t i = 0; i < routine->collection_ownership_fact_count; i++) {
+            if (routine->collection_ownership_facts[i].binding_syntax_id
+                == fact->source_binding_syntax_id) {
+                source_fact = &routine->collection_ownership_facts[i];
+                break;
+            }
+        }
+    }
+
+    if (routine == NULL || fact == NULL
+        || fact->function_syntax_id != routine->source_syntax_id
+        || fact->binding_syntax_id == 0
+        || fact->origin_syntax_id == 0
+        || (unsigned)fact->element_ownership
+            > (unsigned)PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
+        || (fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
+            && fact->disposition != PGY_COLLECTION_DISPOSITION_RETIRED)
+        || (unsigned)fact->origin
+            > (unsigned)PGY_COLLECTION_ORIGIN_BINDING
+        || (fact->origin == PGY_COLLECTION_ORIGIN_MAP_KEYS
+            && fact->element_ownership
+                != PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)
+        || (fact->origin == PGY_COLLECTION_ORIGIN_BORROWED_LITERAL
+            && fact->element_ownership
+                != PGY_STRING_ARRAY_BORROWED_ELEMENTS)
+        || (fact->origin == PGY_COLLECTION_ORIGIN_UNKNOWN
+            && fact->element_ownership
+                != PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN)
+        || (fact->origin == PGY_COLLECTION_ORIGIN_BINDING
+            && fact->source_binding_syntax_id == 0)
+        || (fact->origin == PGY_COLLECTION_ORIGIN_BINDING
+            && (fact->source_binding_syntax_id == fact->binding_syntax_id
+                || source_fact == NULL
+                || source_fact->element_ownership
+                    != fact->element_ownership
+                || source_fact->disposition
+                    != PGY_COLLECTION_DISPOSITION_LIVE
+                || fact->disposition
+                    != PGY_COLLECTION_DISPOSITION_LIVE))
+        || (fact->origin != PGY_COLLECTION_ORIGIN_BINDING
+            && fact->source_binding_syntax_id != 0)
+        || (fact->disposition == PGY_COLLECTION_DISPOSITION_RETIRED
+            && fact->element_ownership
+                != PGY_STRING_ARRAY_OWNED_ELEMENTS
+            && fact->element_ownership
+                != PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)) {
+        if (error_message != NULL) {
+            char detail[320];
+            snprintf(detail, sizeof(detail),
+                     "invalid HIR collection ownership fact "
+                     "(function=%u binding=%u origin=%u source=%u "
+                     "ownership=%u disposition=%u kind=%u)",
+                     fact != NULL ? fact->function_syntax_id : 0,
+                     fact != NULL ? fact->binding_syntax_id : 0,
+                     fact != NULL ? fact->origin_syntax_id : 0,
+                     fact != NULL ? fact->source_binding_syntax_id : 0,
+                     fact != NULL ? (unsigned)fact->element_ownership : 0,
+                     fact != NULL ? (unsigned)fact->disposition : 0,
+                     fact != NULL ? (unsigned)fact->origin : 0);
+            *error_message = pergyra_strdup(detail);
+        }
+        return false;
+    }
+    for (size_t i = 0; i < routine->collection_ownership_fact_count; i++) {
+        if (routine->collection_ownership_facts[i].binding_syntax_id
+            == fact->binding_syntax_id) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "duplicate HIR collection ownership fact identity");
+            return false;
+        }
+    }
+    if (routine->collection_ownership_fact_count
+        == routine->collection_ownership_fact_capacity) {
+        next_capacity = routine->collection_ownership_fact_capacity == 0
+            ? 8 : routine->collection_ownership_fact_capacity * 2;
+        if (next_capacity < routine->collection_ownership_fact_capacity
+            || next_capacity > SIZE_MAX / sizeof(*grown))
+            return false;
+        grown = realloc(routine->collection_ownership_facts,
+                        next_capacity * sizeof(*grown));
+        if (grown == NULL)
+            return false;
+        routine->collection_ownership_facts = grown;
+        routine->collection_ownership_fact_capacity = next_capacity;
+    }
+    routine->collection_ownership_facts[
+        routine->collection_ownership_fact_count++] = *fact;
+    return true;
+}
+
+bool
+hir_attach_collection_ownership_facts(
+    HIRProgram *hir,
+    const PgyCollectionOwnershipFact *facts,
+    size_t fact_count,
+    char **error_message)
+{
+    if (error_message != NULL)
+        *error_message = NULL;
+    if (hir == NULL || (facts == NULL && fact_count != 0))
+        return false;
+    for (size_t i = 0; i < fact_count; i++) {
+        HIRRoutine *routine = NULL;
+        for (size_t r = 0; r < hir->routine_count; r++) {
+            if (hir->routines[r].source_syntax_id
+                == facts[i].function_syntax_id) {
+                routine = &hir->routines[r];
+                break;
+            }
+        }
+        if (routine == NULL) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "Collection ownership fact references an unknown HIR routine");
+            return false;
+        }
+        if (!hir_append_collection_ownership_fact(
+                routine, &facts[i], error_message)) {
+            if (error_message != NULL && *error_message == NULL)
+                *error_message = pergyra_strdup(
+                    "Invalid or unallocatable HIR collection ownership fact");
+            return false;
+        }
+    }
+    hir->has_collection_ownership_facts = fact_count != 0;
+    return true;
+}
+
 HIRProgram *
 hir_lower_with_semantic_facts(const SemanticResult *semantic,
                               HIRSemanticProjectionFailure *failure,
@@ -417,6 +559,16 @@ hir_lower_with_semantic_facts(const SemanticResult *semantic,
             error_message)) {
         if (failure != NULL)
             *failure = HIR_SEMANTIC_PROJECTION_MATCH_BINDING_TYPE;
+        hir_destroy(hir);
+        return NULL;
+    }
+    if (!hir_attach_collection_ownership_facts(
+            hir,
+            semantic->collection_ownership_facts,
+            semantic->collection_ownership_fact_count,
+            error_message)) {
+        if (failure != NULL)
+            *failure = HIR_SEMANTIC_PROJECTION_COLLECTION_OWNERSHIP;
         hir_destroy(hir);
         return NULL;
     }

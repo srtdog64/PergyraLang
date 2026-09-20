@@ -360,6 +360,7 @@ typedef struct
 typedef PgyIterationTypeFact MIRIterationTypeFact;
 typedef PgyDestructureTypeFact MIRDestructureTypeFact;
 typedef PgyMatchBindingTypeFact MIRMatchBindingTypeFact;
+typedef PgyCollectionOwnershipFact MIRCollectionOwnershipFact;
 
 typedef enum
 {
@@ -509,6 +510,9 @@ typedef struct
     MIRMatchBindingTypeFact *match_binding_type_facts;
     size_t             match_binding_type_fact_count;
     size_t             match_binding_type_fact_capacity;
+    MIRCollectionOwnershipFact *collection_ownership_facts;
+    size_t             collection_ownership_fact_count;
+    size_t             collection_ownership_fact_capacity;
     MIRBasicBlock     *blocks;
     size_t             block_count;
     size_t             block_capacity;

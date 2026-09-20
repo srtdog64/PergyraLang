@@ -14,6 +14,7 @@
 #include "../semantic/iteration_type_fact.h"
 #include "../semantic/destructure_type_fact.h"
 #include "../semantic/match_binding_type_fact.h"
+#include "../semantic/collection_ownership_fact.h"
 #include "../semantic/region_escape_fact.h"
 #include "../semantic/domain_runtime_fact.h"
 
@@ -30,6 +31,7 @@ typedef enum
     HIR_SEMANTIC_PROJECTION_ITERATION_TYPE,
     HIR_SEMANTIC_PROJECTION_DESTRUCTURE_TYPE,
     HIR_SEMANTIC_PROJECTION_MATCH_BINDING_TYPE,
+    HIR_SEMANTIC_PROJECTION_COLLECTION_OWNERSHIP,
     HIR_SEMANTIC_PROJECTION_REGION_ESCAPE,
     HIR_SEMANTIC_PROJECTION_DOMAIN_RUNTIME_FACT,
     HIR_SEMANTIC_PROJECTION_VALIDATE
@@ -58,6 +60,7 @@ typedef PgyLoopFlowSummaryFact HIRLoopFlowSummaryFact;
 typedef PgyIterationTypeFact HIRIterationTypeFact;
 typedef PgyDestructureTypeFact HIRDestructureTypeFact;
 typedef PgyMatchBindingTypeFact HIRMatchBindingTypeFact;
+typedef PgyCollectionOwnershipFact HIRCollectionOwnershipFact;
 
 typedef enum
 {
@@ -161,6 +164,9 @@ typedef struct
     HIRMatchBindingTypeFact      *match_binding_type_facts;
     size_t                        match_binding_type_fact_count;
     size_t                        match_binding_type_fact_capacity;
+    HIRCollectionOwnershipFact   *collection_ownership_facts;
+    size_t                        collection_ownership_fact_count;
+    size_t                        collection_ownership_fact_capacity;
     struct {
         struct HIRBasicBlock *blocks;
         size_t                block_count;
@@ -383,6 +389,7 @@ struct HIRProgram
     bool              has_iteration_type_facts;
     bool              has_destructure_type_facts;
     bool              has_match_binding_type_facts;
+    bool              has_collection_ownership_facts;
     /* Semantic-owned bounded region rows retained at the HIR boundary. */
     bool              has_region_escape_facts;
     PgyRegionEscapeFact *region_escape_facts;
@@ -435,6 +442,11 @@ bool hir_attach_destructure_type_facts(
 bool hir_attach_match_binding_type_facts(
         HIRProgram *hir,
         const PgyMatchBindingTypeFact *facts,
+        size_t fact_count,
+        char **error_message);
+bool hir_attach_collection_ownership_facts(
+        HIRProgram *hir,
+        const PgyCollectionOwnershipFact *facts,
         size_t fact_count,
         char **error_message);
 bool hir_attach_region_escape_facts(

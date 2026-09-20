@@ -18,13 +18,38 @@ PGY_RT_DECL void pgy_map_set_i32_int(PgyHashMap_Int *m, int32_t key, int32_t val
 
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
-    char *key_str = pgy_map_format_i32_key(key);
-    if (key_str == NULL) {
-        pgy_runtime_warn_invalid_collection("map_set_i32_int", "key formatting failed");
+    uint32_t h, first_deleted = UINT32_MAX;
+    size_t probes = 0;
+    if (!pgy_map_int_is_initialized(m)) {
+        pgy_runtime_warn_invalid_collection("map_set_i32_int", "map is not initialized");
         return;
     }
-    pgy_map_set_int(m, key_str, val);
-    free(key_str);
+    pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_I32);
+    h = pgy_hashmap_hash_i32(key) % (uint32_t)m->capacity;
+    while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
+        if (m->occupied[h] == PGY_HASHMAP_LIVE
+            && PGY_HASHMAP_I32_KEYS(m)[h] == key) {
+            m->values[h] = val; return;
+        }
+        if (m->occupied[h] == PGY_HASHMAP_DELETED && first_deleted == UINT32_MAX)
+            first_deleted = h;
+        h = (h + 1) % (uint32_t)m->capacity; probes++;
+    }
+    if ((m->count + m->deleted_count + 1) * 4 > m->capacity * 3) {
+        if (!pgy_map_grow_int(m)) return;
+        h = pgy_hashmap_hash_i32(key) % (uint32_t)m->capacity;
+        first_deleted = UINT32_MAX; probes = 0;
+        while (m->occupied[h] == PGY_HASHMAP_LIVE && probes < m->capacity) {
+            h = (h + 1) % (uint32_t)m->capacity; probes++;
+        }
+    }
+    if (first_deleted != UINT32_MAX) h = first_deleted;
+    else if (probes >= m->capacity) {
+        pgy_runtime_warn_invalid_collection("map_set_i32_int", "map is full"); return;
+    }
+    PGY_HASHMAP_I32_KEYS(m)[h] = key; m->values[h] = val;
+    m->occupied[h] = PGY_HASHMAP_LIVE; m->count++;
+    if (first_deleted != UINT32_MAX) m->deleted_count--;
 }
 #else
 ;
@@ -35,15 +60,17 @@ PGY_RT_DECL int32_t pgy_map_get_i32_int(PgyHashMap_Int *m, int32_t key)
 
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
-    int32_t value = 0;
-    char *key_str = pgy_map_format_i32_key(key);
-    if (key_str == NULL) {
-        pgy_runtime_warn_invalid_collection("map_get_i32_int", "key formatting failed");
-        return value;
+    if (!pgy_map_int_is_initialized(m))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map i32 get on invalid map");
+    pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_I32);
+    uint32_t h = pgy_hashmap_hash_i32(key) % (uint32_t)m->capacity; size_t probes = 0;
+    while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
+        if (m->occupied[h] == PGY_HASHMAP_LIVE
+            && PGY_HASHMAP_I32_KEYS(m)[h] == key) return m->values[h];
+        h = (h + 1) % (uint32_t)m->capacity; probes++;
     }
-    value = pgy_map_get_int(m, key_str);
-    free(key_str);
-    return value;
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found");
+    return 0;
 }
 #else
 ;
@@ -54,15 +81,15 @@ PGY_RT_DECL bool pgy_map_has_i32_int(PgyHashMap_Int *m, int32_t key)
 
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
-    bool result = false;
-    char *key_str = pgy_map_format_i32_key(key);
-    if (key_str == NULL) {
-        pgy_runtime_warn_invalid_collection("map_has_i32_int", "key formatting failed");
-        return false;
+    if (!pgy_map_int_is_initialized(m)) return false;
+    pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_I32);
+    uint32_t h = pgy_hashmap_hash_i32(key) % (uint32_t)m->capacity; size_t probes = 0;
+    while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
+        if (m->occupied[h] == PGY_HASHMAP_LIVE
+            && PGY_HASHMAP_I32_KEYS(m)[h] == key) return true;
+        h = (h + 1) % (uint32_t)m->capacity; probes++;
     }
-    result = pgy_map_has_int(m, key_str);
-    free(key_str);
-    return result;
+    return false;
 }
 #else
 ;
@@ -73,13 +100,19 @@ PGY_RT_DECL void pgy_map_remove_i32_int(PgyHashMap_Int *m, int32_t key)
 
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
-    char *key_str = pgy_map_format_i32_key(key);
-    if (key_str == NULL) {
-        pgy_runtime_warn_invalid_collection("map_remove_i32_int", "key formatting failed");
-        return;
+    if (!pgy_map_int_is_initialized(m))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map i32 remove on invalid map");
+    pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_I32);
+    uint32_t h = pgy_hashmap_hash_i32(key) % (uint32_t)m->capacity; size_t probes = 0;
+    while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
+        if (m->occupied[h] == PGY_HASHMAP_LIVE
+            && PGY_HASHMAP_I32_KEYS(m)[h] == key) {
+            PGY_HASHMAP_I32_KEYS(m)[h] = 0; m->values[h] = 0;
+            m->occupied[h] = PGY_HASHMAP_DELETED; m->count--; m->deleted_count++; return;
+        }
+        h = (h + 1) % (uint32_t)m->capacity; probes++;
     }
-    pgy_map_remove_int(m, key_str);
-    free(key_str);
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map remove key not found");
 }
 #else
 ;
@@ -90,13 +123,38 @@ PGY_RT_DECL void pgy_map_set_i64_int(PgyHashMap_Int *m, int64_t key, int32_t val
 
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
-    char *key_str = pgy_map_format_i64_key(key);
-    if (key_str == NULL) {
-        pgy_runtime_warn_invalid_collection("map_set_i64_int", "key formatting failed");
+    uint32_t h, first_deleted = UINT32_MAX;
+    size_t probes = 0;
+    if (!pgy_map_int_is_initialized(m)) {
+        pgy_runtime_warn_invalid_collection("map_set_i64_int", "map is not initialized");
         return;
     }
-    pgy_map_set_int(m, key_str, val);
-    free(key_str);
+    pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_I64);
+    h = pgy_hashmap_hash_i64(key) % (uint32_t)m->capacity;
+    while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
+        if (m->occupied[h] == PGY_HASHMAP_LIVE
+            && PGY_HASHMAP_I64_KEYS(m)[h] == key) {
+            m->values[h] = val; return;
+        }
+        if (m->occupied[h] == PGY_HASHMAP_DELETED && first_deleted == UINT32_MAX)
+            first_deleted = h;
+        h = (h + 1) % (uint32_t)m->capacity; probes++;
+    }
+    if ((m->count + m->deleted_count + 1) * 4 > m->capacity * 3) {
+        if (!pgy_map_grow_int(m)) return;
+        h = pgy_hashmap_hash_i64(key) % (uint32_t)m->capacity;
+        first_deleted = UINT32_MAX; probes = 0;
+        while (m->occupied[h] == PGY_HASHMAP_LIVE && probes < m->capacity) {
+            h = (h + 1) % (uint32_t)m->capacity; probes++;
+        }
+    }
+    if (first_deleted != UINT32_MAX) h = first_deleted;
+    else if (probes >= m->capacity) {
+        pgy_runtime_warn_invalid_collection("map_set_i64_int", "map is full"); return;
+    }
+    PGY_HASHMAP_I64_KEYS(m)[h] = key; m->values[h] = val;
+    m->occupied[h] = PGY_HASHMAP_LIVE; m->count++;
+    if (first_deleted != UINT32_MAX) m->deleted_count--;
 }
 #else
 ;
@@ -107,15 +165,17 @@ PGY_RT_DECL int32_t pgy_map_get_i64_int(PgyHashMap_Int *m, int64_t key)
 
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
-    int32_t value = 0;
-    char *key_str = pgy_map_format_i64_key(key);
-    if (key_str == NULL) {
-        pgy_runtime_warn_invalid_collection("map_get_i64_int", "key formatting failed");
-        return value;
+    if (!pgy_map_int_is_initialized(m))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map i64 get on invalid map");
+    pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_I64);
+    uint32_t h = pgy_hashmap_hash_i64(key) % (uint32_t)m->capacity; size_t probes = 0;
+    while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
+        if (m->occupied[h] == PGY_HASHMAP_LIVE
+            && PGY_HASHMAP_I64_KEYS(m)[h] == key) return m->values[h];
+        h = (h + 1) % (uint32_t)m->capacity; probes++;
     }
-    value = pgy_map_get_int(m, key_str);
-    free(key_str);
-    return value;
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found");
+    return 0;
 }
 #else
 ;
@@ -126,15 +186,15 @@ PGY_RT_DECL bool pgy_map_has_i64_int(PgyHashMap_Int *m, int64_t key)
 
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
-    bool result = false;
-    char *key_str = pgy_map_format_i64_key(key);
-    if (key_str == NULL) {
-        pgy_runtime_warn_invalid_collection("map_has_i64_int", "key formatting failed");
-        return false;
+    if (!pgy_map_int_is_initialized(m)) return false;
+    pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_I64);
+    uint32_t h = pgy_hashmap_hash_i64(key) % (uint32_t)m->capacity; size_t probes = 0;
+    while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
+        if (m->occupied[h] == PGY_HASHMAP_LIVE
+            && PGY_HASHMAP_I64_KEYS(m)[h] == key) return true;
+        h = (h + 1) % (uint32_t)m->capacity; probes++;
     }
-    result = pgy_map_has_int(m, key_str);
-    free(key_str);
-    return result;
+    return false;
 }
 #else
 ;
@@ -145,13 +205,19 @@ PGY_RT_DECL void pgy_map_remove_i64_int(PgyHashMap_Int *m, int64_t key)
 
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
-    char *key_str = pgy_map_format_i64_key(key);
-    if (key_str == NULL) {
-        pgy_runtime_warn_invalid_collection("map_remove_i64_int", "key formatting failed");
-        return;
+    if (!pgy_map_int_is_initialized(m))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map i64 remove on invalid map");
+    pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_I64);
+    uint32_t h = pgy_hashmap_hash_i64(key) % (uint32_t)m->capacity; size_t probes = 0;
+    while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
+        if (m->occupied[h] == PGY_HASHMAP_LIVE
+            && PGY_HASHMAP_I64_KEYS(m)[h] == key) {
+            PGY_HASHMAP_I64_KEYS(m)[h] = 0; m->values[h] = 0;
+            m->occupied[h] = PGY_HASHMAP_DELETED; m->count--; m->deleted_count++; return;
+        }
+        h = (h + 1) % (uint32_t)m->capacity; probes++;
     }
-    pgy_map_remove_int(m, key_str);
-    free(key_str);
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map remove key not found");
 }
 #else
 ;
@@ -162,13 +228,38 @@ PGY_RT_DECL void pgy_map_set_bool_int(PgyHashMap_Int *m, bool key, int32_t val)
 
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
-    char *key_str = pgy_map_format_bool_key(key);
-    if (key_str == NULL) {
-        pgy_runtime_warn_invalid_collection("map_set_bool_int", "key formatting failed");
+    uint32_t h, first_deleted = UINT32_MAX;
+    size_t probes = 0;
+    if (!pgy_map_int_is_initialized(m)) {
+        pgy_runtime_warn_invalid_collection("map_set_bool_int", "map is not initialized");
         return;
     }
-    pgy_map_set_int(m, key_str, val);
-    free(key_str);
+    pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_BOOL);
+    h = pgy_hashmap_hash_bool(key) % (uint32_t)m->capacity;
+    while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
+        if (m->occupied[h] == PGY_HASHMAP_LIVE
+            && PGY_HASHMAP_BOOL_KEYS(m)[h] == key) {
+            m->values[h] = val; return;
+        }
+        if (m->occupied[h] == PGY_HASHMAP_DELETED && first_deleted == UINT32_MAX)
+            first_deleted = h;
+        h = (h + 1) % (uint32_t)m->capacity; probes++;
+    }
+    if ((m->count + m->deleted_count + 1) * 4 > m->capacity * 3) {
+        if (!pgy_map_grow_int(m)) return;
+        h = pgy_hashmap_hash_bool(key) % (uint32_t)m->capacity;
+        first_deleted = UINT32_MAX; probes = 0;
+        while (m->occupied[h] == PGY_HASHMAP_LIVE && probes < m->capacity) {
+            h = (h + 1) % (uint32_t)m->capacity; probes++;
+        }
+    }
+    if (first_deleted != UINT32_MAX) h = first_deleted;
+    else if (probes >= m->capacity) {
+        pgy_runtime_warn_invalid_collection("map_set_bool_int", "map is full"); return;
+    }
+    PGY_HASHMAP_BOOL_KEYS(m)[h] = key; m->values[h] = val;
+    m->occupied[h] = PGY_HASHMAP_LIVE; m->count++;
+    if (first_deleted != UINT32_MAX) m->deleted_count--;
 }
 #else
 ;
@@ -179,15 +270,17 @@ PGY_RT_DECL int32_t pgy_map_get_bool_int(PgyHashMap_Int *m, bool key)
 
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
-    int32_t value = 0;
-    char *key_str = pgy_map_format_bool_key(key);
-    if (key_str == NULL) {
-        pgy_runtime_warn_invalid_collection("map_get_bool_int", "key formatting failed");
-        return value;
+    if (!pgy_map_int_is_initialized(m))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map bool get on invalid map");
+    pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_BOOL);
+    uint32_t h = pgy_hashmap_hash_bool(key) % (uint32_t)m->capacity; size_t probes = 0;
+    while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
+        if (m->occupied[h] == PGY_HASHMAP_LIVE
+            && PGY_HASHMAP_BOOL_KEYS(m)[h] == key) return m->values[h];
+        h = (h + 1) % (uint32_t)m->capacity; probes++;
     }
-    value = pgy_map_get_int(m, key_str);
-    free(key_str);
-    return value;
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found");
+    return 0;
 }
 #else
 ;
@@ -198,15 +291,15 @@ PGY_RT_DECL bool pgy_map_has_bool_int(PgyHashMap_Int *m, bool key)
 
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
-    bool result = false;
-    char *key_str = pgy_map_format_bool_key(key);
-    if (key_str == NULL) {
-        pgy_runtime_warn_invalid_collection("map_has_bool_int", "key formatting failed");
-        return false;
+    if (!pgy_map_int_is_initialized(m)) return false;
+    pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_BOOL);
+    uint32_t h = pgy_hashmap_hash_bool(key) % (uint32_t)m->capacity; size_t probes = 0;
+    while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
+        if (m->occupied[h] == PGY_HASHMAP_LIVE
+            && PGY_HASHMAP_BOOL_KEYS(m)[h] == key) return true;
+        h = (h + 1) % (uint32_t)m->capacity; probes++;
     }
-    result = pgy_map_has_int(m, key_str);
-    free(key_str);
-    return result;
+    return false;
 }
 #else
 ;
@@ -217,13 +310,19 @@ PGY_RT_DECL void pgy_map_remove_bool_int(PgyHashMap_Int *m, bool key)
 
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
-    char *key_str = pgy_map_format_bool_key(key);
-    if (key_str == NULL) {
-        pgy_runtime_warn_invalid_collection("map_remove_bool_int", "key formatting failed");
-        return;
+    if (!pgy_map_int_is_initialized(m))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map bool remove on invalid map");
+    pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_BOOL);
+    uint32_t h = pgy_hashmap_hash_bool(key) % (uint32_t)m->capacity; size_t probes = 0;
+    while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
+        if (m->occupied[h] == PGY_HASHMAP_LIVE
+            && PGY_HASHMAP_BOOL_KEYS(m)[h] == key) {
+            PGY_HASHMAP_BOOL_KEYS(m)[h] = false; m->values[h] = 0;
+            m->occupied[h] = PGY_HASHMAP_DELETED; m->count--; m->deleted_count++; return;
+        }
+        h = (h + 1) % (uint32_t)m->capacity; probes++;
     }
-    pgy_map_remove_int(m, key_str);
-    free(key_str);
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map remove key not found");
 }
 #else
 ;

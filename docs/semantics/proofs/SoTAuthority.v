@@ -1088,6 +1088,12 @@ Inductive SpineFact : Type :=
   | SFAssignmentTypeVerdict
   | SFCallTargetIdentity
   | SFCollectionCallProtocol
+  | SFHashMapStringKeyStorage
+  | SFHashMapOwnedRelease
+  | SFCollectionOwnership
+  | SFHashMapIntKeyStorage
+  | SFHashMapLongKeyStorage
+  | SFHashMapBoolKeyStorage
   | SFQueueCallRuntimeSurface
   | SFSetCallRuntimeSurface
   | SFSetLiteralRuntimeSurface
@@ -1156,6 +1162,12 @@ Inductive SpineOwner : Type :=
   | SOSemanticAssignmentType
   | SOSemanticCallTarget
   | SOCollectionCallProtocol
+  | SOHashMapStringKeyStorage
+  | SOHashMapOwnedRelease
+  | SOCollectionOwnership
+  | SOHashMapIntKeyStorage
+  | SOHashMapLongKeyStorage
+  | SOHashMapBoolKeyStorage
   | SOQueueCallRuntime
   | SOSetCallRuntime
   | SOSetLiteralRuntime
@@ -1245,6 +1257,12 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFAssignmentTypeVerdict => SOSemanticAssignmentType
   | SFCallTargetIdentity => SOSemanticCallTarget
   | SFCollectionCallProtocol => SOCollectionCallProtocol
+  | SFHashMapStringKeyStorage => SOHashMapStringKeyStorage
+  | SFHashMapOwnedRelease => SOHashMapOwnedRelease
+  | SFCollectionOwnership => SOCollectionOwnership
+  | SFHashMapIntKeyStorage => SOHashMapIntKeyStorage
+  | SFHashMapLongKeyStorage => SOHashMapLongKeyStorage
+  | SFHashMapBoolKeyStorage => SOHashMapBoolKeyStorage
   | SFQueueCallRuntimeSurface => SOQueueCallRuntime
   | SFSetCallRuntimeSurface => SOSetCallRuntime
   | SFSetLiteralRuntimeSurface => SOSetLiteralRuntime

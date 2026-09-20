@@ -8,6 +8,7 @@
 #include "llvm_expr_emit_support.h"
 #include "llvm_expr_call_collections_map_exports.h"
 #include "llvm_internal_api.h"
+#include "codegen_hashmap_key_policy.h"
 
 LLVMValueRef
 llvm_emit_tuple_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
@@ -433,6 +434,7 @@ llvm_emit_map_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef value_ty;
     LLVMValueRef tmp;
     LLVMFuncEntry *new_fn;
+    PgyHashMapKeyStorageKind key_storage_kind;
 
     if (map_type == NULL || pgy_classify_type(map_type) != PGY_TK_HASHMAP
         || !llvm_constructed_arg_name_copy(map_type, 0, key_buf, sizeof(key_buf))
@@ -446,6 +448,10 @@ llvm_emit_map_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
     if (ctx->has_error || map_ty == NULL || value_ty == NULL)
         return llvm_expression_error(ctx, node,
             "LLVM map literal could not lower HashMap<K, V> type");
+    key_storage_kind = pgy_hashmap_key_storage_kind_from_name(key_buf);
+    if (key_storage_kind == PGY_HASHMAP_KEY_STORAGE_INVALID)
+        return llvm_expression_error(ctx, node,
+            "LLVM map literal has no physical key storage kind");
     tmp = llvm_create_entry_alloca(ctx, map_ty, llvm_tmp_name(ctx));
     if (tmp == NULL)
         return llvm_expression_error(ctx, node,
@@ -458,9 +464,10 @@ llvm_emit_map_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef args[] = {
             LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr,
                 llvm_tmp_name(ctx)),
-            llvm_sizeof_type_i64(ctx, value_ty)
+            llvm_sizeof_type_i64(ctx, value_ty),
+            LLVMConstInt(ctx->type_i32, (unsigned)key_storage_kind, 0)
         };
-        LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
+        LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 3, "");
     }
     for (size_t i = 0; i < count; i++) {
         if (!llvm_map_literal_emit_entry(ctx, node, i, tmp, key_buf,

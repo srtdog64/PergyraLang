@@ -244,6 +244,44 @@ func SelfMirJsonRoutineWriteFile(
     JsonOwnedFragmentWriteFile(
         output, SelfMirJsonDestructureTypeFacts(rows, routine_index)
     );
+    let collection_start: Int =
+        rows.collection_ownership_facts.routine_starts[routine_index];
+    let collection_count: Int =
+        rows.collection_ownership_facts.routine_counts[routine_index];
+    CompilerArtifactWrite(output, ",\"collection_ownership_fact_count\":");
+    JsonOwnedFragmentWriteFile(output, ToString(collection_count));
+    CompilerArtifactWrite(output, ",\"collection_ownership_facts\":[");
+    let collection_i: Int = 0;
+    while collection_i < collection_count {
+        if collection_i > 0 { CompilerArtifactWrite(output, ","); }
+        let collection_row: Int = collection_start + collection_i;
+        JsonOwnedFragmentWriteFile(output, JsonEmitObject([
+            JsonEmitFieldNumber("function_syntax_id", ToString(
+                rows.collection_ownership_facts.function_syntax_ids[
+                    collection_row])),
+            JsonEmitFieldNumber("binding_syntax_id", ToString(
+                rows.collection_ownership_facts.binding_syntax_ids[
+                    collection_row])),
+            JsonEmitFieldNumber("origin_syntax_id", ToString(
+                rows.collection_ownership_facts.origin_syntax_ids[
+                    collection_row])),
+            JsonEmitFieldNumber("source_binding_syntax_id", ToString(
+                rows.collection_ownership_facts.source_binding_syntax_ids[
+                    collection_row])),
+            JsonEmitFieldString("element_ownership",
+                SelfMirCollectionOwnershipName(
+                    rows.collection_ownership_facts.element_ownerships[
+                        collection_row])),
+            JsonEmitFieldString("disposition",
+                SelfMirCollectionDispositionName(
+                    rows.collection_ownership_facts.dispositions[
+                        collection_row])),
+            JsonEmitFieldString("origin", SelfMirCollectionOriginName(
+                rows.collection_ownership_facts.origins[collection_row]))
+        ]));
+        collection_i = collection_i + 1;
+    }
+    CompilerArtifactWrite(output, "]");
     CompilerArtifactWrite(output, ",\"blocks\":[");
     let block_i: Int = 0;
     while block_i < rows.block_counts[routine_index] {
@@ -262,7 +300,9 @@ func SelfMirJsonRoutineWriteFile(
         let local_row: Int = rows.local_starts[routine_index] + local_i;
         JsonOwnedFragmentWriteFile(output, JsonEmitObject([
             JsonEmitFieldString("name", rows.local_names[local_row]),
-            JsonEmitFieldString("type", rows.local_types[local_row])
+            JsonEmitFieldString("type", rows.local_types[local_row]),
+            JsonEmitFieldNumber("binding_syntax_id", ToString(
+                rows.local_binding_syntax_ids[local_row]))
         ]));
         local_i = local_i + 1;
     }

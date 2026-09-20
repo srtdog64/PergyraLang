@@ -12,6 +12,7 @@
 #include "mir_domain_runtime.h"
 #include "mir_parallel_capture_facts.h"
 #include "mir_region_escape_facts.h"
+#include "mir_branch_source_facts.h"
 #include "mir_generic_method_specialization.h"
 #include "mir_intent_execution.h"
 #include "mir_validation.h"
@@ -63,6 +64,7 @@ mir_validate(const MIRProgram *mir, char **error_message)
         size_t resource_flow_symbol_total = 0;
         size_t function_param_flow_summary_total = 0;
         size_t loop_flow_summary_total = 0;
+        size_t collection_ownership_fact_total = 0;
         for (size_t i = 0; i < inventory.count; i++) {
             const MIRRoutine *routine =
                 mir_routine_inventory_get(&inventory, i);
@@ -72,6 +74,8 @@ mir_validate(const MIRProgram *mir, char **error_message)
                 function_param_flow_summary_total +=
                     routine->function_param_flow_summary_count;
                 loop_flow_summary_total += routine->loop_flow_summary_count;
+                collection_ownership_fact_total +=
+                    routine->collection_ownership_fact_count;
             }
         }
         if (mir->has_resource_flow_facts
@@ -94,6 +98,13 @@ mir_validate(const MIRProgram *mir, char **error_message)
                     "MIR LoopFlowSummary flag does not match carried rows");
             return false;
         }
+        if (mir->has_collection_ownership_facts
+            != (collection_ownership_fact_total > 0)) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "MIR collection ownership flag does not match carried rows");
+            return false;
+        }
     }
     for (size_t i = 0; i < inventory.count; i++) {
         const MIRRoutine *routine = mir_routine_inventory_get(&inventory, i);
@@ -113,6 +124,9 @@ mir_validate(const MIRProgram *mir, char **error_message)
                                                         error_message))
             return false;
         if (!mir_validate_loop_flow_facts(routine, error_message))
+            return false;
+        if (!mir_validate_collection_ownership_facts(
+                routine, error_message))
             return false;
         if (!mir_validate_intent_execution_plan(routine, error_message))
             return false;

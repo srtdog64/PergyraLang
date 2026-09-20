@@ -80,6 +80,7 @@ struct MIRProgram
     bool        has_resource_flow_facts;
     bool        has_function_param_flow_facts;
     bool        has_loop_flow_facts;
+    bool        has_collection_ownership_facts;
     bool        has_non_cfg_body_fallback_inventory;
     size_t      non_cfg_body_fallback_total;
     size_t      non_cfg_body_fallback_routine_count;

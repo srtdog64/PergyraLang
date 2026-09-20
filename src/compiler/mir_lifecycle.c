@@ -120,6 +120,7 @@ mir_destroy(MIRProgram *mir)
             free(routine->iteration_type_facts);
             mir_free_destructure_type_facts(routine);
             mir_free_match_binding_type_facts(routine);
+            mir_free_collection_ownership_facts(routine);
             mir_routine_signature_metadata_clear(routine);
             mir_routine_source_local_type_names_clear(routine);
             free(routine->blocks);
