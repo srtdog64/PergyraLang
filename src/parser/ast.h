@@ -418,6 +418,7 @@ struct ASTNode
             size_t pattern_capacity;
             ASTNode* guard;             /* optional if guard */
             ASTNode* body;              /* case body block */
+            int semantic_subject_family; /* PgyMatchSubjectFamily, set by semantic */
         } match_case;
 
         /* Async block */

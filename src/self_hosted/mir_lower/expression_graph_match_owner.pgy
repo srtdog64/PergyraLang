@@ -35,7 +35,11 @@ func MirExpressionGraphSequenceAppendMatchOccurrence(
         return MirExpressionGraphSequenceError(sequence);
     }
     let variant_opt: Option<String> = MirMatchVariant(instruction);
-    if IsSome(variant_opt) &&
+    // A user enum may spell a variant Some, None, Ok or Err; its carried
+    // subject family sends it to the tagged-enum occurrence below.
+    let family: Option<String> = MirMatchSubjectFamily(instruction);
+    let wrapper_subject: Bool = !IsSome(family) || UnwrapOption(family) != "enum";
+    if wrapper_subject && IsSome(variant_opt) &&
         (UnwrapOption(variant_opt) == "Some" ||
             UnwrapOption(variant_opt) == "None" ||
             UnwrapOption(variant_opt) == "Ok" ||

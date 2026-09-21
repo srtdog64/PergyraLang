@@ -159,6 +159,10 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
         const char *result_kind = NULL;
         const char *result_binding = NULL;
         LLVMValueRef cmp = NULL;
+        /* A user enum may spell a variant Some, None, Ok or Err; semantic
+         * recorded the subject family, so such a case stays on the enum path. */
+        bool enum_subject = ast_match_case_semantic_subject_family(mc)
+            == PGY_MATCH_SUBJECT_ENUM;
 
         if (ast_match_case_patterns(mc, NULL) != NULL
             && ast_match_case_pattern_count(mc) > 1) {
@@ -184,7 +188,7 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
                     "LLVM match lowering requires at least one case pattern");
                 return;
             }
-        } else if (llvm_match_is_option_destructor(
+        } else if (!enum_subject && llvm_match_is_option_destructor(
                        ast_match_case_pattern(mc),
                        &option_kind,
                        &option_binding)) {
@@ -195,7 +199,7 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
                     pgy_codegen_match_variant_llvm_tag(
                         pgy_codegen_match_variant_lookup(option_kind)), 0),
                 llvm_tmp_name(ctx));
-        } else if (llvm_match_is_result_destructor(
+        } else if (!enum_subject && llvm_match_is_result_destructor(
                        ast_match_case_pattern(mc),
                        &result_kind,
                        &result_binding)) {

@@ -232,6 +232,20 @@ type_check_special_match_pattern(ASTNode *match_case_node, ASTNode *pat,
 
     *handled = false;
 
+    /* The subject type, not the variant spelling, decides the family; MIR
+     * and backends read this fact instead of guessing from `Ok` or `Some`. */
+    if (subj_type != NULL) {
+        PgyMatchSubjectFamily family = PGY_MATCH_SUBJECT_UNKNOWN;
+        if (type_is_constructed_named(subj_type, "Option"))
+            family = PGY_MATCH_SUBJECT_OPTION;
+        else if (type_is_constructed_named(subj_type, "Result"))
+            family = PGY_MATCH_SUBJECT_RESULT;
+        else if (subj_type->kind == TYPE_KIND_ENUM)
+            family = PGY_MATCH_SUBJECT_ENUM;
+        (void)ast_match_case_set_semantic_subject_family(
+            match_case_node, (int)family);
+    }
+
     if (!match_pattern_is_named_variant(pat, &variant, &args, &arg_count)
         || variant == NULL || subj_type == NULL) {
         return true;

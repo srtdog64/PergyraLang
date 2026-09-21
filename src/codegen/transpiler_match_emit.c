@@ -96,6 +96,10 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *mc = ast_match_case_at(node, i);
         const char *kind = NULL, *binding = NULL;
         ASTNode *pattern_node = ast_match_case_pattern(mc);
+        /* A user enum may spell a variant Ok or Err; semantic recorded the
+         * subject family, so such a case stays on the enum path below. */
+        bool enum_subject = ast_match_case_semantic_subject_family(mc)
+            == PGY_MATCH_SUBJECT_ENUM;
         bool option_case = subject_is_option
             && transpiler_match_is_option_destructor(pattern_node, &kind, &binding);
 
@@ -123,7 +127,8 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                 i == 0 ? "if (__match_%d.tag == %s"
                        : "else if (__match_%d.tag == %s",
                 tmp_id, tag_val);
-        } else if (transpiler_match_is_result_destructor(pattern_node, &kind, &binding)) {
+        } else if (!enum_subject
+                   && transpiler_match_is_result_destructor(pattern_node, &kind, &binding)) {
             const char *tag_val = pgy_codegen_match_variant_c_result_tag(
                 pgy_codegen_match_variant_lookup(kind));
             codebuf_write(ctx->out,

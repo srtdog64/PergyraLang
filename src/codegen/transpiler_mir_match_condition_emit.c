@@ -74,8 +74,8 @@ transpiler_mir_remap_case_bindings(TranspilerCtx *ctx,
     pattern_node = mir_instruction_match_pattern_at(inst, 0);
     if (pattern_node == NULL)
         return true;
-    if (transpiler_mir_is_option_destructor(pattern_node, &kind, &binding)
-        || transpiler_mir_is_result_destructor(pattern_node, &kind, &binding)) {
+    if (transpiler_mir_is_option_destructor(inst, pattern_node, &kind, &binding)
+        || transpiler_mir_is_result_destructor(inst, pattern_node, &kind, &binding)) {
         (void)kind;
         return transpiler_mir_remap_payload_binding(ctx, ssa_map,
                                                     case_stable_id, binding);
@@ -145,8 +145,8 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
     if (subject == NULL)
         return false;
 
-    if (transpiler_mir_is_option_destructor(pattern_node, &kind, &binding)
-        || transpiler_mir_is_result_destructor(pattern_node, &kind, &binding)) {
+    if (transpiler_mir_is_option_destructor(branch_inst, pattern_node, &kind, &binding)
+        || transpiler_mir_is_result_destructor(branch_inst, pattern_node, &kind, &binding)) {
         if (binding != NULL) {
             char emitted_name[256];
             transpiler_mir_match_binding_name(case_stable_id, binding,
@@ -328,7 +328,7 @@ transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
         const char *kind = NULL;
         const char *binding = NULL;
         ASTNode *pattern_node = mir_instruction_match_pattern_at(inst, 0);
-        if (transpiler_mir_is_option_destructor(
+        if (transpiler_mir_is_option_destructor(inst,
                 pattern_node, &kind, &binding)) {
             const char *tag = pgy_codegen_match_variant_c_option_tag(
                 pgy_codegen_match_variant_lookup(kind));
@@ -361,7 +361,7 @@ transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
                                                       field);
                 }
             }
-        } else if (transpiler_mir_is_result_destructor(
+        } else if (transpiler_mir_is_result_destructor(inst,
                        pattern_node, &kind, &binding)) {
             const char *tag = pgy_codegen_match_variant_c_result_tag(
                 pgy_codegen_match_variant_lookup(kind));

@@ -37,7 +37,8 @@ llvm_mir_match_payload_alloca_name(uint32_t case_stable_id,
 }
 
 bool
-llvm_mir_is_option_destructor(ASTNode *pat,
+llvm_mir_is_option_destructor(const MIRInstruction *inst,
+                              ASTNode *pat,
                               const char **kind,
                               const char **binding)
 {
@@ -49,6 +50,11 @@ llvm_mir_is_option_destructor(ASTNode *pat,
         *kind = NULL;
     if (binding != NULL)
         *binding = NULL;
+    /* A user enum may spell a variant Some, None, Ok or Err; semantic
+     * recorded the subject family, so such a case is never a wrapper. */
+    if (inst != NULL
+        && inst->match_subject_family == PGY_MATCH_SUBJECT_ENUM)
+        return false;
     if (pat == NULL)
         return false;
 
@@ -99,7 +105,8 @@ llvm_mir_is_option_destructor(ASTNode *pat,
 }
 
 bool
-llvm_mir_is_result_destructor(ASTNode *pat,
+llvm_mir_is_result_destructor(const MIRInstruction *inst,
+                              ASTNode *pat,
                               const char **kind,
                               const char **binding)
 {
@@ -111,6 +118,11 @@ llvm_mir_is_result_destructor(ASTNode *pat,
         *kind = NULL;
     if (binding != NULL)
         *binding = NULL;
+    /* A user enum may spell a variant Some, None, Ok or Err; semantic
+     * recorded the subject family, so such a case is never a wrapper. */
+    if (inst != NULL
+        && inst->match_subject_family == PGY_MATCH_SUBJECT_ENUM)
+        return false;
     if (pat == NULL)
         return false;
 

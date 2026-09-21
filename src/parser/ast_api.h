@@ -149,6 +149,10 @@ size_t ast_match_case_pattern_count(const ASTNode* node);
 ASTNode* ast_match_case_pattern_at(const ASTNode* node, size_t index);
 ASTNode* ast_match_case_guard(const ASTNode* node);
 ASTNode* ast_match_case_body(const ASTNode* node);
+/* Subject type family (PgyMatchSubjectFamily) that semantic recorded for this
+ * case; 0 when semantic did not classify the subject. */
+int ast_match_case_semantic_subject_family(const ASTNode* node);
+bool ast_match_case_set_semantic_subject_family(ASTNode* node, int family);
 ASTNode* ast_find_match_subject_for_case(const ASTNode* root,
                                          const ASTNode* case_node);
 ASTNode* ast_create_if_statement(void);

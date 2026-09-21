@@ -27,7 +27,8 @@ transpiler_mir_match_binding_name(uint32_t case_stable_id,
 }
 
 bool
-transpiler_mir_is_option_destructor(ASTNode *pat,
+transpiler_mir_is_option_destructor(const MIRInstruction *inst,
+                                    ASTNode *pat,
                                     const char **kind,
                                     const char **binding)
 {
@@ -39,6 +40,11 @@ transpiler_mir_is_option_destructor(ASTNode *pat,
         *kind = NULL;
     if (binding != NULL)
         *binding = NULL;
+    /* A user enum may spell a variant Some, None, Ok or Err; semantic
+     * recorded the subject family, so such a case is never a wrapper. */
+    if (inst != NULL
+        && inst->match_subject_family == PGY_MATCH_SUBJECT_ENUM)
+        return false;
     if (pat == NULL)
         return false;
 
@@ -88,7 +94,8 @@ transpiler_mir_is_option_destructor(ASTNode *pat,
 }
 
 bool
-transpiler_mir_is_result_destructor(ASTNode *pat,
+transpiler_mir_is_result_destructor(const MIRInstruction *inst,
+                                    ASTNode *pat,
                                     const char **kind,
                                     const char **binding)
 {
@@ -100,6 +107,11 @@ transpiler_mir_is_result_destructor(ASTNode *pat,
         *kind = NULL;
     if (binding != NULL)
         *binding = NULL;
+    /* A user enum may spell a variant Some, None, Ok or Err; semantic
+     * recorded the subject family, so such a case is never a wrapper. */
+    if (inst != NULL
+        && inst->match_subject_family == PGY_MATCH_SUBJECT_ENUM)
+        return false;
     if (pat == NULL || pat->type != AST_CALL
         || ast_call_callee(pat) == NULL
         || ast_call_callee(pat)->type != AST_IDENTIFIER) {

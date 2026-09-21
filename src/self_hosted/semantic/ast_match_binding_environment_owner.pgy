@@ -37,9 +37,6 @@ func SemanticAstExpressionSeedMatchCaseBindings(
     // This owner seeds bindings; payload-free pattern validity belongs to the
     // match semantic owner and must not trigger a second subject-type proof.
     if ArrayLength(pattern.bindings) == 0 { return true; }
-    if pattern.variant == "None" {
-        return ArrayLength(pattern.bindings) == 0;
-    }
     if pattern.variant == "" &&
         ToString(ToInt(pattern.pattern)) == pattern.pattern {
         return ArrayLength(pattern.bindings) == 0;
@@ -69,8 +66,11 @@ func SemanticAstExpressionSeedMatchCaseBindings(
         return false;
     }
     let subject_type: String = UnwrapOption(subject_type_fact);
-    if pattern.variant != "Some" && pattern.variant != "Ok" &&
-        pattern.variant != "Err" {
+    // The subject type decides the family, not the variant spelling: a user
+    // enum may declare variants named Some, None, Ok or Err (docs/205 §2.3).
+    let wrapper_subject: Bool = IsSome(OptionPayloadTypeOpt(subject_type)) ||
+        IsSome(ResultPayloadTypeOpt(subject_type));
+    if !wrapper_subject {
         let variant_name: String = pattern.variant;
         if variant_name == "" {
             variant_name = pattern.pattern;
@@ -114,7 +114,7 @@ func SemanticAstExpressionSeedMatchCaseBindings(
         }
         return true;
     }
-    if ArrayLength(pattern.bindings) != 1 {
+    if ArrayLength(pattern.bindings) != 1 || pattern.variant == "None" {
         return false;
     }
     let payload_type: Option<String> = None;

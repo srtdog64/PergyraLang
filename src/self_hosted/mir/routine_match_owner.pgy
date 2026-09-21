@@ -55,16 +55,14 @@ func SelfMirMatchCaseSubjectReady(
     );
     if !IsSome(subject_type_opt) { return false; }
     let subject_type: String = UnwrapOption(subject_type_opt);
-    if fact.variant == "Some" {
-        return StartsWith(subject_type, "Option<") &&
-            ArrayLength(fact.bindings) == 1;
+    // The subject type decides the family, not the variant spelling: a user
+    // enum may declare variants named Some, None, Ok or Err (docs/205 §2.3).
+    if StartsWith(subject_type, "Option<") {
+        if fact.variant == "Some" { return ArrayLength(fact.bindings) == 1; }
+        return fact.variant == "None" && ArrayLength(fact.bindings) == 0;
     }
-    if fact.variant == "None" {
-        return StartsWith(subject_type, "Option<") &&
-            ArrayLength(fact.bindings) == 0;
-    }
-    if fact.variant == "Ok" || fact.variant == "Err" {
-        return StartsWith(subject_type, "Result<") &&
+    if StartsWith(subject_type, "Result<") {
+        return (fact.variant == "Ok" || fact.variant == "Err") &&
             ArrayLength(fact.bindings) == 1;
     }
     if fact.variant != "" {

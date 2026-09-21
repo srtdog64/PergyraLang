@@ -40,6 +40,14 @@ func MirMatchVariant(
     return JsonObjectFactStringFieldOpt(instruction, "match_variant");
 }
 
+// Semantic's subject family ("option", "result" or "enum"); None when the
+// case carries no family.
+func MirMatchSubjectFamily(
+    ref instruction: JsonObjectFactTable
+) -> Option<String> {
+    return JsonObjectFactStringFieldOpt(instruction, "match_subject_family");
+}
+
 func MirMatchBindingCount(
     ref instruction: JsonObjectFactTable
 ) -> Option<Int> {

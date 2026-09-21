@@ -1,10 +1,10 @@
 // Match binding statement reconstruction from carried MIR facts.
 //
-// Known gap: Option/Result wrapper cases are recognized by the carried
-// `match_variant` spelling (Some/Ok/Err). MIR JSON does not carry the match
-// subject's type family, so a user enum variant spelled `Ok` would be rendered
-// as `Unwrap(subject)`. See
-// docs/audits/2026-09-22_mir_lower_stmt_render_review.md (L3).
+// Option/Result wrapper cases are recognized by the carried
+// `match_subject_family` fact, not by the `match_variant` spelling: a user
+// enum may declare a variant spelled `Ok` (docs/205 section 2.3, formerly L3 in
+// docs/audits/2026-09-22_mir_lower_stmt_render_review.md). A case without a
+// family, such as a compiler-synthesized match, keeps the spelling rule.
 
 import "error_owner.pgy";
 import "json_fact_read.pgy";
@@ -61,6 +61,20 @@ func MirMatchBindingLineForInstruction(
     if binding_count == 0 { return ""; }
     let is_wrapper: Bool =
         variant == "Some" || variant == "Ok" || variant == "Err";
+    let family: Option<String> = JsonObjectStringFieldOptWithin(
+        json, instruction_start, instruction_end, "match_subject_family"
+    );
+    if IsSome(family) {
+        let subject_family: String = UnwrapOption(family);
+        is_wrapper = subject_family == "option" || subject_family == "result";
+        if (subject_family == "option" && variant != "Some") ||
+            (subject_family == "result" && variant != "Ok" &&
+                variant != "Err") {
+            MirLowerFailClosed(Concat(
+                variant, " match case disagrees with its subject family"
+            ));
+        }
+    }
     if is_wrapper && binding_count != 1 {
         MirLowerFailClosed(Concat(
             variant, " wrapper match case binding cardinality is invalid"

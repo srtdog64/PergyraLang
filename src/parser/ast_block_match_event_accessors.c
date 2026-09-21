@@ -214,6 +214,23 @@ ast_match_case_guard(const ASTNode* node)
     return node->data.match_case.guard;
 }
 
+int
+ast_match_case_semantic_subject_family(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_MATCH_CASE)
+        return 0;
+    return node->data.match_case.semantic_subject_family;
+}
+
+bool
+ast_match_case_set_semantic_subject_family(ASTNode* node, int family)
+{
+    if (node == NULL || node->type != AST_MATCH_CASE || family < 0)
+        return false;
+    node->data.match_case.semantic_subject_family = family;
+    return true;
+}
+
 ASTNode*
 ast_match_case_body(const ASTNode* node)
 {

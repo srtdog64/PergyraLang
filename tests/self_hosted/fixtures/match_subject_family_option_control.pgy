@@ -1,0 +1,11 @@
+func FromOption(o: Option<Int>) -> Int {
+    match o {
+        case Some(v): return v;
+        case None: return 0;
+    }
+}
+
+func Main() -> Void {
+    Log(FromOption(Some(5)));
+    Log(FromOption(None));
+}

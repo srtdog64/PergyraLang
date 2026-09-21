@@ -1,0 +1,13 @@
+enum Verdict { Ok(Int), Bad(String) }
+
+func Describe(v: Verdict) -> Int {
+    match v {
+        case Ok(p): return p;
+        case Bad(r): return 0 - StringLength(r);
+    }
+}
+
+func Main() -> Void {
+    Log(Describe(Verdict.Ok(7)));
+    Log(Describe(Verdict.Bad("abc")));
+}

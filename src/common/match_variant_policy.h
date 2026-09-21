@@ -22,4 +22,17 @@ bool pgy_match_variant_is_builtin(PgyMatchVariantKind kind);
 const char * const *pgy_match_variant_option_names(size_t *count_out);
 const char * const *pgy_match_variant_result_names(size_t *count_out);
 
+/* Type family of a match subject. Semantic decides it from the subject type
+ * and records it on the match case; consumers branch on it, never on a
+ * variant spelling, because a user enum may declare variants named Some,
+ * None, Ok or Err (docs/205 section 2.3). */
+typedef enum PgyMatchSubjectFamily {
+    PGY_MATCH_SUBJECT_UNKNOWN = 0,
+    PGY_MATCH_SUBJECT_OPTION,
+    PGY_MATCH_SUBJECT_RESULT,
+    PGY_MATCH_SUBJECT_ENUM,
+} PgyMatchSubjectFamily;
+
+const char *pgy_match_subject_family_name(PgyMatchSubjectFamily family);
+
 #endif /* PERGYRA_MATCH_VARIANT_POLICY_H */

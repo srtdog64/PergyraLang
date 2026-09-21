@@ -1,0 +1,13 @@
+enum Maybe { Some(Int), None }
+
+func Get(m: Maybe) -> Int {
+    match m {
+        case Some(x): return x;
+        case None: return 0 - 1;
+    }
+}
+
+func Main() -> Void {
+    Log(Get(Maybe.Some(4)));
+    Log(Get(Maybe.None));
+}

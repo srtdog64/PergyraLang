@@ -8,6 +8,7 @@
 #include "mir_json_expression_graph.h"
 #include "mir_json_local_ref.h"
 #include "mir_json_generic_method_specialization.h"
+#include "../common/match_variant_policy.h"
 #include "mir_json_dump_internal.h"
 #include "mir_json_dump_runtime_abi.h"
 #include "mir_json_dump_intent_execution.h"
@@ -91,6 +92,19 @@ mir_json_identifier_name(ASTNode *node)
     return ast_identifier_name(node);
 }
 
+/* Semantic's subject family for a match case; consumers branch on it instead
+ * of the variant spelling (docs/205 section 2.3). Other instructions carry no
+ * such key. */
+static void
+mir_json_emit_match_subject_family(FILE *out, const MIRInstruction *inst)
+{
+    if (inst == NULL || mir_instruction_match_pattern_count(inst) == 0)
+        return;
+    fputs(",\"match_subject_family\":", out);
+    mir_json_emit_str_or_null(out, pgy_match_subject_family_name(
+        (PgyMatchSubjectFamily)inst->match_subject_family));
+}
+
 static void
 mir_json_emit_match_variant_facts(FILE *out, const MIRInstruction *inst)
 {
@@ -101,6 +115,7 @@ mir_json_emit_match_variant_facts(FILE *out, const MIRInstruction *inst)
     fputs(",\"match_variant\":", out);
     if (inst == NULL || mir_instruction_match_pattern_count(inst) != 1) {
         fputs("null,\"match_bindings\":[],\"match_binding_types\":[]", out);
+        mir_json_emit_match_subject_family(out, inst);
         return;
     }
 
@@ -116,6 +131,7 @@ mir_json_emit_match_variant_facts(FILE *out, const MIRInstruction *inst)
 
     if (variant == NULL) {
         fputs("null,\"match_bindings\":[],\"match_binding_types\":[]", out);
+        mir_json_emit_match_subject_family(out, inst);
         return;
     }
 
@@ -143,6 +159,7 @@ mir_json_emit_match_variant_facts(FILE *out, const MIRInstruction *inst)
             out, mir_instruction_match_binding_type_at(inst, i));
     }
     fputc(']', out);
+    mir_json_emit_match_subject_family(out, inst);
 }
 
 

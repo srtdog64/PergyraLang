@@ -172,6 +172,8 @@ typedef struct
     ASTNode         *match_case_guard;
     const char     **match_binding_type_names;
     size_t           match_binding_type_count;
+    /* PgyMatchSubjectFamily semantic recorded on the source match case. */
+    int              match_subject_family;
     const char     **destructure_binding_names;
     size_t           destructure_binding_count;
     /* SSA owner projection, positional with the existing destructure names.

@@ -115,6 +115,26 @@ R6(`inout_argument_alias`, 레드팀 캠페인)도 같은 방식으로 착지했
 `build_source_inventory_smoke.sh:362-383`(정책 파일 밖의 variant 문자열 금지)은 L3c에서
 같이 갱신한다.
 
+### 2.6 착지 상태
+
+- **L3b·L3c (native, mir_lower) 착지.** semantic이 case마다 `PgyMatchSubjectFamily`를
+  기록하고(`type_check_special_match_pattern`), MIR 명령어와 MIR JSON
+  `match_subject_family`(match case에만)로 흘린다. C/LLVM의 MIR·AST match 방출기와
+  mir_lower의 렌더러·조건·expression graph가 이 fact로 wrapper 여부를 정한다.
+  `enum Verdict { Ok(Int), Bad(String) }`와 `enum Maybe { Some(Int), None }`이 native C와
+  LLVM에서 정답을 출력한다. 게이트는
+  `tests/self_hosted/parity/match_subject_family_owner.sh`(push CI core shard)다.
+- 계열이 없는 case(semantic 이후 컴파일러가 합성한 match)는 기존 철자 규칙을 쓴다.
+- **self-host 기본 경로는 아직 이 프로그램들을 거부한다.** self-host semantic과 MIR producer는
+  대상 타입으로 계열을 먼저 정하도록 바뀌었지만, self-host에는 한정 payload 생성식
+  (`Verdict.Ok(7)`, `Shape.Circle(2)`)이 없다. 내장 이름과 겹치는 variant는 한정해야만
+  만들 수 있으므로 이것이 L3d의 첫 항목이다. 게이트는 지금의 거부(산출물 없음)를
+  고정하고, 생성식이 들어오면 실행 확인으로 바뀐다.
+- 확인 중 드러난 기존 결함(이 변경과 무관, L3가 없는 빌드에서도 같다):
+  `Result<Int, String>` match가 native C에서 `PgyResult_Int_String` 타입을 만들지 못하고,
+  self-host C에서는 인자 타입이 맞지 않는다. Option match는 self-host LLVM direct MIR에서
+  `enum-match` admission으로 거부된다.
+
 ## 3. F2 — 컴파일러 임시 이름의 위생
 
 - destructure 임시 변수는 `_pgy_destructure_<첫 바인딩>`이다. 사용자가 같은 이름을 선언하는

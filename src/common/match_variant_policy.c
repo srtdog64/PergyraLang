@@ -100,3 +100,19 @@ pgy_match_variant_result_names(size_t *count_out)
         *count_out = sizeof(result_variants) / sizeof(result_variants[0]);
     return result_variants;
 }
+
+const char *
+pgy_match_subject_family_name(PgyMatchSubjectFamily family)
+{
+    switch (family) {
+    case PGY_MATCH_SUBJECT_OPTION:
+        return "option";
+    case PGY_MATCH_SUBJECT_RESULT:
+        return "result";
+    case PGY_MATCH_SUBJECT_ENUM:
+        return "enum";
+    case PGY_MATCH_SUBJECT_UNKNOWN:
+    default:
+        return NULL;
+    }
+}

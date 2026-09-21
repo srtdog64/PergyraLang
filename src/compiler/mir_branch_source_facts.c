@@ -383,6 +383,8 @@ mir_capture_match_case_facts(MIRRoutine *routine, MIRInstruction *inst,
     inst->match_case_patterns =
         ast_match_case_patterns(case_node, &inst->match_case_pattern_count);
     inst->match_case_guard = ast_match_case_guard(case_node);
+    inst->match_subject_family =
+        ast_match_case_semantic_subject_family(case_node);
     binding_count = mir_instruction_match_binding_count(inst);
     if (binding_count == 0)
         return true;

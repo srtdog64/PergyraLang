@@ -54,16 +54,22 @@ func BlockCondWithExpressionOrder(ref index: MirRoutineFactIndex,
         }
         let pattern: String = patterns[0];
         let variant: String = scalar.match_variant;
-        if variant == "Some" {
+        // A user enum may spell a variant Some, None, Ok or Err; the carried
+        // subject family keeps such a case on the enum comparison below.
+        let family: Option<String> = JsonObjectStringFieldOptWithin(
+            json, kp, inst_end, "match_subject_family"
+        );
+        let wrapper: Bool = !IsSome(family) || UnwrapOption(family) != "enum";
+        if wrapper && variant == "Some" {
             return Concat("IsSome(", Concat(match_subject, ")"));
         }
-        if variant == "None" {
+        if wrapper && variant == "None" {
             return Concat("!IsSome(", Concat(match_subject, ")"));
         }
-        if variant == "Ok" {
+        if wrapper && variant == "Ok" {
             return Concat("IsOk(", Concat(match_subject, ")"));
         }
-        if variant == "Err" {
+        if wrapper && variant == "Err" {
             return Concat("IsErr(", Concat(match_subject, ")"));
         }
         let variant_name: String = variant;

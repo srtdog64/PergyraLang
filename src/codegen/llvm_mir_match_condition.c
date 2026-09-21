@@ -104,7 +104,7 @@ llvm_mir_emit_match_case_condition(const MIRInstruction *inst,
         const char *result_kind = NULL;
         const char *binding = NULL;
         ASTNode *pattern_node = mir_instruction_match_pattern_at(inst, 0);
-        if (llvm_mir_is_option_destructor(pattern_node,
+        if (llvm_mir_is_option_destructor(inst, pattern_node,
                                           &option_kind, &binding)) {
             LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, subject, 0,
                 llvm_tmp_name(ctx));
@@ -116,7 +116,7 @@ llvm_mir_emit_match_case_condition(const MIRInstruction *inst,
             return llvm_mir_emit_guarded_match_condition(
                 ctx, guard_node, case_stable_id, tag_cmp, subject, 1, binding);
         }
-        if (llvm_mir_is_result_destructor(pattern_node,
+        if (llvm_mir_is_result_destructor(inst, pattern_node,
                                           &result_kind, &binding)) {
             PgyCodegenMatchVariantKind result_variant =
                 pgy_codegen_match_variant_lookup(result_kind);
@@ -366,8 +366,8 @@ llvm_mir_remap_case_bindings(LLVMGenCtx *ctx,
     pattern_node = mir_instruction_match_pattern_at(inst, 0);
     if (pattern_node == NULL)
         return true;
-    if (llvm_mir_is_option_destructor(pattern_node, &kind, &binding)
-        || llvm_mir_is_result_destructor(pattern_node, &kind, &binding)) {
+    if (llvm_mir_is_option_destructor(inst, pattern_node, &kind, &binding)
+        || llvm_mir_is_result_destructor(inst, pattern_node, &kind, &binding)) {
         LLVMTypeRef payload_ty =
             llvm_mir_case_payload_type(ctx, inst, kind);
         return llvm_mir_remap_payload_binding(ctx, case_stable_id, binding,
@@ -564,7 +564,7 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
         return false;
     }
 
-    if (llvm_mir_is_option_destructor(pattern_node, &option_kind, &binding)) {
+    if (llvm_mir_is_option_destructor(branch_inst, pattern_node, &option_kind, &binding)) {
         if (binding != NULL) {
             if (mir_instruction_match_guard(branch_inst) != NULL)
                 return true;
@@ -576,7 +576,7 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
         return true;
     }
 
-    if (llvm_mir_is_result_destructor(pattern_node, &result_kind, &binding)) {
+    if (llvm_mir_is_result_destructor(branch_inst, pattern_node, &result_kind, &binding)) {
         if (binding != NULL) {
             unsigned payload_index =
                 pgy_codegen_match_variant_result_payload_index(
