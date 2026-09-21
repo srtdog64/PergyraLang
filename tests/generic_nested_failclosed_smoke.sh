@@ -57,13 +57,6 @@ expect_reject() {
         fail "$backend/$fixture failed without the expected diagnostic: $needle"
 }
 
-expect_reject_any() {
-    local backend="$1" fixture="$2"
-    if compile "$backend" "$fixture" "rejany_${backend}_${fixture%.pgy}.exe"; then
-        fail "$backend/$fixture compiled but must fail (known gap: never a silent bad binary)"
-    fi
-}
-
 expect_runs() {
     local backend="$1" fixture="$2" want="$3"
     local exe="run_${backend}_${fixture%.pgy}.exe"

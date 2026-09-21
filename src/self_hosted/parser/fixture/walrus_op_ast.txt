@@ -1,9 +1,0 @@
-Program:
-  Function: Main
-    Parameters:
-    Returns: Void
-    Body:
-      Block:
-        Let: a = 10
-        Let: b = 20
-        Log(a)

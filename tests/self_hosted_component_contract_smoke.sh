@@ -333,24 +333,6 @@ find_stage_owner_sources() {
         | sort
 }
 
-extract_shell_array_items() {
-    local file="$1"
-    local array_name="$2"
-    awk -v array_name="$array_name" '
-        $0 ~ "^" array_name "=\\(" { inside = 1; next }
-        inside && $0 ~ "^[[:space:]]*\\)" { inside = 0; next }
-        inside {
-            line = $0
-            sub(/[[:space:]]*#.*/, "", line)
-            gsub(/"/, "", line)
-            gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
-            if (line != "") {
-                print line
-            }
-        }
-    ' "$file"
-}
-
 require_owner_surface() {
     local stage="$1"
     shift
@@ -19860,8 +19842,6 @@ require_text \
     "pgy.selfhost.direct-mir-scalar-cfg-graph-plan.v81"
 require_file \
     "tests/self_hosted/fixtures/direct_mir_zero_parameter_callable.pgy"
-require_file \
-    "tests/self_hosted/fixtures/direct_mir_zero_parameter_call_rejected.pgy"
 require_file \
     "tests/self_hosted/parity/direct_mir_scalar_zero_parameter_callable_owner.sh"
 require_max_lines \

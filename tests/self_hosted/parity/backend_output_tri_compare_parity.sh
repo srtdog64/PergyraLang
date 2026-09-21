@@ -102,38 +102,6 @@ run_windows_fallback() {
         "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; Set-Location -LiteralPath $(pgy_quote_ps "$cwd_native"); & $(pgy_quote_ps "$bin_native")${ps_args} > $(pgy_quote_ps "$out_native") 2> $(pgy_quote_ps "$err_native"); exit \$LASTEXITCODE"
 }
 
-run_pgy_windows_capture() {
-    local cwd="$1"
-    local out="$2"
-    local err="$3"
-    shift 3
-
-    local bin_native
-    local out_native
-    local err_native
-    local cwd_native
-    local ps_args=""
-    local arg
-
-    case "$(uname -s 2>/dev/null || echo unknown)" in
-        MINGW*|MSYS*|CYGWIN*) ;;
-        *) return 127 ;;
-    esac
-    command -v powershell.exe >/dev/null 2>&1 || return 127
-
-    bin_native="$(pgy_path_for_windows_tool "$PGY")"
-    out_native="$(pgy_path_for_windows_tool "$out")"
-    err_native="$(pgy_path_for_windows_tool "$err")"
-    cwd_native="$(pgy_path_for_windows_tool "$cwd")"
-
-    for arg in "$@"; do
-        ps_args="${ps_args} $(pgy_quote_ps "$arg")"
-    done
-
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
-        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; Set-Location -LiteralPath $(pgy_quote_ps "$cwd_native"); & $(pgy_quote_ps "$bin_native")${ps_args} > $(pgy_quote_ps "$out_native") 2> $(pgy_quote_ps "$err_native"); exit \$LASTEXITCODE"
-}
-
 run_native_bin() {
     local bin="$1"
     local out="$2"

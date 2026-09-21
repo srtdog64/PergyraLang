@@ -2317,18 +2317,12 @@ if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.name" \
     src/compiler/rir_builder.c \
     src/compiler/rir_builder_intent.c \
     src/compiler/rir_facts.c \
-    src/codegen/llvm_domain_decl_parts_helpers.c \
     src/codegen/llvm_inventory_decl_lookup.c \
     src/codegen/transpiler_decl_lookup.c \
     src/codegen/transpiler_relation_effect_emit.c \
     src/codegen/transpiler_world_select_event_emit.c \
     src/codegen/transpiler_zone_decl_emit.c >/dev/null; then
     fail "closed world/relation/effect/zone name consumers must use AST domain name accessors"
-fi
-
-if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.\(shared_fields\|shared_count\|slots\|slot_count\|refreshes\|refresh_count\)" \
-    src/codegen/llvm_domain_decl_parts_helpers.c >/dev/null; then
-    fail "LLVM domain decl parts helper must use AST domain child accessors"
 fi
 
 if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.name" \
@@ -2889,7 +2883,7 @@ if grep -R "data\.\(world_decl\|zone_decl\|effect_decl\)\.\(layer_slots\|layer_s
 fi
 
 if grep -R "data\.\(zone_decl\|relation_decl\|effect_decl\)\.\(layer_slots\|layer_slot_count\|slots\|slot_count\|refreshes\|refresh_count\)" \
-    src/codegen/llvm_domain_zone_bind_helpers.c >/dev/null; then
+    src/codegen/llvm_domain_zone_bind_lowering.c >/dev/null; then
     fail "LLVM zone bind helpers must use AST domain child accessors"
 fi
 

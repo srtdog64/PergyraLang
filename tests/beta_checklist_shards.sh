@@ -21,12 +21,3 @@ pgy_beta_checklist_contains() {
     done < <(pgy_beta_checklist_files)
     return 1
 }
-
-pgy_beta_checklist_cat() {
-    local path
-
-    while IFS= read -r path; do
-        cat "$path"
-        printf '\n'
-    done < <(pgy_beta_checklist_files)
-}
