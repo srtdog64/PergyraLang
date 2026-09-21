@@ -1,4 +1,10 @@
 // Match binding statement reconstruction from carried MIR facts.
+//
+// Known gap: Option/Result wrapper cases are recognized by the carried
+// `match_variant` spelling (Some/Ok/Err). MIR JSON does not carry the match
+// subject's type family, so a user enum variant spelled `Ok` would be rendered
+// as `Unwrap(subject)`. See
+// docs/audits/2026-09-22_mir_lower_stmt_render_review.md (L3).
 
 import "error_owner.pgy";
 import "json_fact_read.pgy";
@@ -22,27 +28,48 @@ func MirMatchBindingLineForInstruction(
             variant, " match case is missing subject MIR fact"
         ));
     }
-    let bindings: Array<String> = MirObjectArrayStringFactsAtBounds(
-        json, instruction_start, instruction_end, "match_bindings"
-    );
-    let binding_types: Array<String> = MirObjectArrayStringFactsAtBounds(
-        json, instruction_start, instruction_end, "match_binding_types"
-    );
-    let binding_count: Int = ArrayLength(bindings);
-    let binding_type_count: Int = ArrayLength(binding_types);
-    if binding_count != binding_type_count {
+    let bindings: Array<String> = [];
+    let binding_types: Array<String> = [];
+    let binding_bounds: Array<Int> = [0, 0];
+    let type_bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBoundsAtBounds(
+            json, instruction_start, instruction_end, "match_bindings",
+            binding_bounds
+        ) ||
+        !JsonArrayStringsWithin(
+            json, binding_bounds[0], binding_bounds[1], bindings
+        ) ||
+        !MirObjectArrayBoundsAtBounds(
+            json, instruction_start, instruction_end, "match_binding_types",
+            type_bounds
+        ) ||
+        !JsonArrayStringsWithin(
+            json, type_bounds[0], type_bounds[1], binding_types
+        ) {
         MirLowerFailClosed(Concat(
-            variant, " match case binding/type cardinality is inconsistent"
+            variant,
+            " match case match_bindings/match_binding_types facts are missing or malformed"
+        ));
+    }
+    let binding_count: Int = ArrayLength(bindings);
+    if binding_count != ArrayLength(binding_types) {
+        MirLowerFailClosed(Concat(
+            variant,
+            " match case match_bindings/match_binding_types cardinality is inconsistent"
         ));
     }
     if binding_count == 0 { return ""; }
-    if (variant == "Some" || variant == "Ok" || variant == "Err") &&
-        binding_count != 1 {
+    let is_wrapper: Bool =
+        variant == "Some" || variant == "Ok" || variant == "Err";
+    if is_wrapper && binding_count != 1 {
         MirLowerFailClosed(Concat(
             variant, " wrapper match case binding cardinality is invalid"
         ));
     }
-    let out: String = "";
+    let unwrap_name: String = "UnwrapOption";
+    if variant == "Ok" { unwrap_name = "Unwrap"; }
+    if variant == "Err" { unwrap_name = "UnwrapErr"; }
+    let lines: Array<String> = [];
     let binding_index: Int = 0;
     while binding_index < binding_count {
         let binding: String = bindings[binding_index];
@@ -51,33 +78,27 @@ func MirMatchBindingLineForInstruction(
             binding_type == "Unknown" {
             MirLowerFailClosed(Concat(
                 variant,
-                " match case is missing a concrete binding type MIR fact"
+                " match case is missing a concrete match_binding_type MIR fact"
             ));
         }
         let initializer: String = "";
-        if variant == "Some" || variant == "Ok" || variant == "Err" {
-            let unwrap_name: String = "UnwrapOption";
-            if variant == "Ok" { unwrap_name = "Unwrap"; }
-            if variant == "Err" { unwrap_name = "UnwrapErr"; }
-            initializer = Concat(
-                unwrap_name, Concat("(", Concat(match_subject, ")\n"))
-            );
+        if is_wrapper {
+            let unwrap_parts: Array<String> = [
+                unwrap_name, "(", match_subject, ")"
+            ];
+            initializer = StringJoin(unwrap_parts, "");
         } else {
-            initializer = Concat(
-                match_subject,
-                Concat(".", Concat(
-                    variant, Concat("._", Concat(
-                        ToString(binding_index), "\n"
-                    ))
-                ))
-            );
+            let payload_parts: Array<String> = [
+                match_subject, ".", variant, "._", ToString(binding_index)
+            ];
+            initializer = StringJoin(payload_parts, "");
         }
-        out = Concat(out, Concat(indent, Concat("Let: ", Concat(
-            binding, Concat(" : ", Concat(
-                binding_type, Concat(" = ", initializer)
-            ))
-        ))));
+        let line: Array<String> = [
+            indent, "Let: ", binding, " : ", binding_type, " = ",
+            initializer, "\n"
+        ];
+        ArrayPush(lines, StringJoin(line, ""));
         binding_index = binding_index + 1;
     }
-    return out;
+    return StringJoin(lines, "");
 }

@@ -2332,6 +2332,7 @@ test-mir: $(MIR_TEST) $(PGY)
 	"$(BASH)" tests/domain_runtime_topology_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/destructure_type_fact_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/match_binding_type_fact_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_lower_stmt_render_fail_closed_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/mir_speculation_fact_smoke.sh
 
 test-hir: $(HIR_TEST)
@@ -4219,6 +4220,9 @@ self-host-mir-json-artifact-writer-lifetime-test-smoke:
 
 match-binding-type-fact-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/match_binding_type_fact_smoke.sh
+
+mir-lower-stmt-render-fail-closed-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/mir_lower_stmt_render_fail_closed_smoke.sh
 
 self-host-fuzz-backend-generator-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh

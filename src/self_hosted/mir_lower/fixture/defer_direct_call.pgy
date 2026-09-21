@@ -1,0 +1,8 @@
+func Cleanup(label: String) -> Void {
+    Log(label);
+}
+
+func Main() -> Void {
+    defer { Cleanup("done"); };
+    Log("work");
+}

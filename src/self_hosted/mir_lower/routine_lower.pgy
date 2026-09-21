@@ -92,8 +92,9 @@ func EmitBlockStmtsWithExpressionOrder(
         // def/stmt row.  Re-emitting expr0 here would manufacture a second
         // source statement (for example, a machine Write row becomes the bare
         // expression `current`) and reopen AST inference during canonicalization.
+        // Destructure rows are fully rendered above.
         if ikind != "branch" && ikind != "loop-init" &&
-            ikind != "resource-op" {
+            ikind != "resource-op" && ikind != "destructure" {
             let expr0: String = scalar.expr0;
             let expr1: String = scalar.expr1;
             let arg0: String = scalar.arg0;
@@ -109,26 +110,20 @@ func EmitBlockStmtsWithExpressionOrder(
                         "ability bind is missing party/slot/role MIR facts"
                     );
                 }
-                ArrayPush(chunks, Concat(
-                    indent, Concat(
-                        "BindStmt: ", Concat(
-                            arg0, Concat(
-                                ".", Concat(
-                                    slot_anchor, Concat(" = ", Concat(arg1, "\n"))
-                                )
-                            )
-                        )
-                    )
-                ));
-            } else if ikind != "destructure" && source_type == "AST_DEFER_STMT" {
+                let bind_parts: Array<String> = [
+                    indent, "BindStmt: ", arg0, ".", slot_anchor, " = ", arg1,
+                    "\n"
+                ];
+                ArrayPush(chunks, StringJoin(bind_parts, ""));
+            } else if source_type == "AST_DEFER_STMT" {
                 ArrayPush(chunks, RenderDeferFromFactsWithExpressionOrder(
                     json, kp, inst_end, indent, arg0,
                     instruction.global_row, expression_order
                 ));
             } else if (ikind == "return" && StringLength(expr0) == 0) ||
-                (ikind != "destructure" && source_type == "AST_RETURN_VOID") {
+                source_type == "AST_RETURN_VOID" {
                 ArrayPush(chunks, Concat(indent, "Return\n"));
-            } else if ikind != "destructure" && StringLength(expr0) > 0 {
+            } else if StringLength(expr0) > 0 {
                 if !MirStructuredExpressionEmissionOrderAppendStatement(
                     instruction, scalar, expression_order
                 ) {

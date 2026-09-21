@@ -22,29 +22,43 @@ func RenderDestructureFromFactsWithExpressionOrder(
     if StringLength(init) == 0 {
         MirLowerFailClosed("destructure instruction is missing initializer fact");
     }
-    if StringLength(elem_type) == 0 {
+    if StringLength(elem_type) == 0 || elem_type == "Unknown" {
         MirLowerFailClosed(Concat("destructure initializer element type is unknown: ", init));
     }
+    let bindings: Array<String> = [];
     let binding_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBoundsAtBounds(
-        json, inst_start, inst_end, "destructure_bindings", binding_bounds
-    ) {
+            json, inst_start, inst_end, "destructure_bindings", binding_bounds
+        ) ||
+        !JsonArrayStringsWithin(
+            json, binding_bounds[0], binding_bounds[1], bindings
+        ) {
         MirLowerFailClosed("destructure instruction is missing binding-name facts");
     }
-    let bindings: Array<String> = MirObjectArrayStringFactsAtBounds(
-        json, inst_start, inst_end, "destructure_bindings"
-    );
-    if ArrayLength(bindings) == 0 || bindings[0] == "" {
+    if ArrayLength(bindings) == 0 {
         MirLowerFailClosed("destructure instruction has no binding-name facts");
     }
-    let first_binding: String = bindings[0];
+    let checked: Int = 0;
+    while checked < ArrayLength(bindings) {
+        if bindings[checked] == "" {
+            MirLowerFailClosed(Concat(
+                "destructure binding-name fact is empty at index ",
+                ToString(checked)
+            ));
+        }
+        checked = checked + 1;
+    }
 
-    let out: String = "";
+    let lines: Array<String> = [];
     let source: String = init;
+    let ordinal_base: Int = 0;
     if MirDestructureNeedsTemp(init) {
+        let first_binding: String = bindings[0];
         source = MirDestructureTempName(first_binding);
-        out = Concat(out, Concat(indent, Concat("Let: ", Concat(source,
-            Concat(" : Array<", Concat(elem_type, Concat("> = ", Concat(init, "\n"))))))));
+        let temp_line: Array<String> = [
+            indent, "Let: ", source, " : Array<", elem_type, "> = ", init, "\n"
+        ];
+        ArrayPush(lines, StringJoin(temp_line, ""));
         if !MirStructuredExpressionEmissionOrderAppend(
             expression_order, global_instruction_row,
             AstExpressionLaneValue(), 0
@@ -53,20 +67,20 @@ func RenderDestructureFromFactsWithExpressionOrder(
                 "destructure temporary expression occurrence is invalid"
             );
         }
+        ordinal_base = 1;
     }
 
     let index: Int = 0;
-    while index < ArrayLength(bindings) &&
-        StringLength(bindings[index]) > 0 {
+    while index < ArrayLength(bindings) {
         let name: String = bindings[index];
-        out = Concat(out, Concat(indent, Concat("Let: ", Concat(name,
-            Concat(" : ", Concat(elem_type, Concat(" = ", Concat(source,
-                Concat("[", Concat(ToString(index), "]\n"))))))))));
-        let ordinal: Int = index;
-        if MirDestructureNeedsTemp(init) { ordinal = ordinal + 1; }
+        let binding_line: Array<String> = [
+            indent, "Let: ", name, " : ", elem_type, " = ",
+            source, "[", ToString(index), "]\n"
+        ];
+        ArrayPush(lines, StringJoin(binding_line, ""));
         if !MirStructuredExpressionEmissionOrderAppend(
             expression_order, global_instruction_row,
-            AstExpressionLaneValue(), ordinal
+            AstExpressionLaneValue(), ordinal_base + index
         ) {
             MirLowerFailClosed(
                 "destructure binding expression occurrence is invalid"
@@ -74,42 +88,25 @@ func RenderDestructureFromFactsWithExpressionOrder(
         }
         index = index + 1;
     }
-    if index == 0 {
-        MirLowerFailClosed("destructure instruction has no binding-name facts");
-    }
-    return out;
-}
-
-func RenderDestructureFromFacts(
-    json: String,
-    inst_start: Int,
-    inst_end: Int,
-    indent: String,
-    expr0: String
-) -> String {
-    let ignored_order: MirStructuredExpressionEmissionOrder =
-        MirStructuredExpressionEmissionOrderEmpty();
-    return RenderDestructureFromFactsWithExpressionOrder(
-        json, inst_start, inst_end, indent, expr0, 0, ignored_order
-    );
+    return StringJoin(lines, "");
 }
 
 // Convert one fact-rendered statement text to its AST-tree line. `Log(...)` and
 // bare calls pass through unchanged; `let NAME: T = V` becomes
-// `Let: NAME : T = V`.
+// `Let: NAME : T = V`. A `let` whose first `:` does not separate a name from a
+// type before the `=` is rejected instead of splitting inside the value.
 func StmtToTreeLine(stmt: String) -> String {
     let s: String = StringTrim(stmt);
-    if StringLength(s) >= 4 && Substring(s, 0, 4) == "let " {
-        let rest: String = Substring(s, 4, StringLength(s) - 4);
-        let colon: Int = StringIndexOf(rest, ":");
-        if colon < 0 {
-            MirLowerFailClosed(Concat("let without type annotation: ", s));
-        }
-        let name: String = StringTrim(Substring(rest, 0, colon));
-        let after: String = StringTrim(Substring(rest, colon + 1, StringLength(rest) - (colon + 1)));
-        return Concat("Let: ", Concat(name, Concat(" : ", after)));
+    if StringLength(s) < 4 || Substring(s, 0, 4) != "let " { return s; }
+    let rest: String = Substring(s, 4, StringLength(s) - 4);
+    let colon: Int = StringIndexOf(rest, ":");
+    let equals: Int = StringIndexOf(rest, "=");
+    if colon <= 0 || equals < 0 || equals < colon {
+        MirLowerFailClosed(Concat("let without type annotation: ", s));
     }
-    return s;
+    let name: String = StringTrim(Substring(rest, 0, colon));
+    let after: String = StringTrim(Substring(rest, colon + 1, StringLength(rest) - (colon + 1)));
+    return Concat("Let: ", Concat(name, Concat(" : ", after)));
 }
 
 func MirDeclaredLocalTypeFact(
@@ -126,22 +123,33 @@ func RenderDirectDeferCallFromGraph(
     ref arena: SemanticExpressionGraphArena,
     root: Int
 ) -> String {
+    let node_count: Int = ArrayLength(arena.topology.node_kinds);
+    if ArrayLength(arena.node_texts) != node_count ||
+        ArrayLength(arena.topology.left_children) != node_count ||
+        ArrayLength(arena.topology.right_children) != node_count ||
+        ArrayLength(arena.call_target_kinds) != node_count ||
+        ArrayLength(arena.call_target_names) != node_count {
+        MirLowerFailClosed("defer body graph arena columns disagree in length");
+    }
     let arguments: Array<String> = [];
     let call_node: Int = root;
-    while call_node >= 0 &&
-        call_node < ArrayLength(arena.topology.node_kinds) &&
+    let steps: Int = 0;
+    while call_node >= 0 && call_node < node_count &&
         arena.topology.node_kinds[call_node] ==
             AstExpressionNodeCallArgument() {
+        if steps >= node_count {
+            MirLowerFailClosed("defer body graph call-argument chain is cyclic");
+        }
+        steps = steps + 1;
         let argument_node: Int = arena.topology.right_children[call_node];
-        if argument_node < 0 || argument_node >= ArrayLength(arena.node_texts) ||
+        if argument_node < 0 || argument_node >= node_count ||
             arena.node_texts[argument_node] == "" {
             MirLowerFailClosed("defer body graph has an invalid call argument fact");
         }
         ArrayPush(arguments, arena.node_texts[argument_node]);
         call_node = arena.topology.left_children[call_node];
     }
-    if call_node < 0 ||
-        call_node >= ArrayLength(arena.topology.node_kinds) ||
+    if call_node < 0 || call_node >= node_count ||
         arena.topology.node_kinds[call_node] != AstExpressionNodeCall() ||
         arena.call_target_kinds[call_node] != SemanticCallTargetDirect() ||
         arena.call_target_names[call_node] == "" {
@@ -150,7 +158,7 @@ func RenderDirectDeferCallFromGraph(
     let target: String = arena.call_target_names[call_node];
     let callee_node: Int = arena.topology.left_children[call_node];
     let empty_call: String = Concat(target, "()");
-    if callee_node < 0 || callee_node >= ArrayLength(arena.node_texts) ||
+    if callee_node < 0 || callee_node >= node_count ||
         arena.topology.node_kinds[callee_node] != AstExpressionNodeLeaf() ||
         arena.node_texts[callee_node] != target ||
         arena.node_texts[call_node] != empty_call {
@@ -174,6 +182,9 @@ func RenderDirectDeferCallFromGraph(
     return body;
 }
 
+// Defer bodies use the same statement spelling as the non-deferred path:
+// `Log(...)` stays bare and a direct user call is tagged `Call: `, so the AST
+// inventory classifies a call the same way inside and outside a defer block.
 func RenderDeferFromFactsWithExpressionOrder(
     json: String,
     inst_start: Int,
@@ -210,65 +221,66 @@ func RenderDeferFromFactsWithExpressionOrder(
     if arg0 == "Log" {
         body = Concat("Log(", Concat(sequence.arena.node_texts[root], ")"));
     } else {
-        body = RenderDirectDeferCallFromGraph(sequence.arena, root);
+        body = Concat(
+            "Call: ", RenderDirectDeferCallFromGraph(sequence.arena, root)
+        );
     }
-    let out: String = Concat(indent, "Defer:\n");
-    out = Concat(out, Concat(indent, "  Block:\n"));
     if !MirStructuredExpressionEmissionOrderAppend(
         expression_order, global_instruction_row,
         AstExpressionLaneAtom(), 0
     ) {
         MirLowerFailClosed("defer expression occurrence is invalid");
     }
-    return Concat(
-        out,
-        Concat(indent, Concat("    ", Concat(body, "\n")))
-    );
+    let lines: Array<String> = [
+        indent, "Defer:\n",
+        indent, "  Block:\n",
+        indent, "    ", body, "\n"
+    ];
+    return StringJoin(lines, "");
 }
 
-func RenderDeferFromFacts(
-    json: String,
-    inst_start: Int,
-    inst_end: Int,
-    indent: String,
-    arg0: String
-) -> String {
-    let ignored_order: MirStructuredExpressionEmissionOrder =
-        MirStructuredExpressionEmissionOrderEmpty();
-    return RenderDeferFromFactsWithExpressionOrder(
-        json, inst_start, inst_end, indent, arg0, 0, ignored_order
-    );
-}
-
+// Render one non-structural MIR statement row. Every accepted kind has an
+// explicit spelling; a row that reaches here without its required facts, or
+// with a kind that has no statement form, stops lowering instead of being
+// reclassified (for example a nameless `let` becoming an assignment).
 func RenderStmtFromFacts(kind: String, source_type: String,
                          arg0: String, expr0: String, expr1: String,
                          local_type: String) -> String {
-    let value: String = expr0;
+    if expr0 == "" {
+        MirLowerFailClosed(Concat(kind, " instruction is missing its expr0 statement fact"));
+    }
     if kind == "return" {
-        return Concat("Return: ", value);
+        return Concat("Return: ", expr0);
     }
     if kind == "assign" {
-        if StringLength(expr0) > 0 && StringLength(expr1) > 0 {
-            return Concat("Assign: ", Concat(expr0, Concat(" = ", expr1)));
+        if expr1 == "" {
+            MirLowerFailClosed("assignment instruction is missing target/value MIR facts");
         }
-        MirLowerFailClosed("assignment instruction is missing target/value MIR facts");
-        return "";
+        let assign_parts: Array<String> = ["Assign: ", expr0, " = ", expr1];
+        return StringJoin(assign_parts, "");
+    }
+    if kind == "def" && source_type == "AST_LET_DECL" {
+        if arg0 == "" {
+            MirLowerFailClosed(Concat("local declaration is missing its binding-name fact: ", expr0));
+        }
+        if local_type == "" {
+            MirLowerFailClosed("local declaration is missing its MIR ABI type fact");
+        }
+        let let_parts: Array<String> = ["Let: ", arg0, " : ", local_type, " = ", expr0];
+        return StringJoin(let_parts, "");
     }
     if kind == "def" {
-        if source_type == "AST_LET_DECL"
-            && StringLength(arg0) > 0
-            && StringLength(local_type) > 0
-            && StringLength(expr0) > 0 {
-            return Concat("Let: ", Concat(arg0, Concat(" : ", Concat(local_type, Concat(" = ", expr0)))));
+        if expr1 == "" {
+            MirLowerFailClosed(Concat("definition is missing its assignment target fact: ", expr0));
         }
-        if StringLength(expr1) > 0 && StringLength(expr0) > 0 {
-            return Concat("Assign: ", Concat(expr1, Concat(" = ", expr0)));
-        }
-        return Concat("Assign: ", value);
+        let def_parts: Array<String> = ["Assign: ", expr1, " = ", expr0];
+        return StringJoin(def_parts, "");
     }
-    if kind == "stmt" && source_type == "AST_CALL" && arg0 == "" &&
-        value != "" {
-        return Concat("Call: ", value);
+    if kind != "stmt" {
+        MirLowerFailClosed(Concat("instruction kind has no statement rendering: ", kind));
     }
-    return StmtToTreeLine(value);
+    if source_type == "AST_CALL" && arg0 == "" {
+        return Concat("Call: ", expr0);
+    }
+    return StmtToTreeLine(expr0);
 }

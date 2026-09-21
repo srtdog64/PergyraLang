@@ -17059,7 +17059,12 @@ require_text "Makefile" "self-host-mir-loop-flow-summary-test-smoke"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "JsonFieldString(json,"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "JsonFirstArrayString(json,"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'FindFrom(json, "\"match_patterns\":['
-require_text "src/self_hosted/mir_lower/stmt_render.pgy" "MirObjectArrayStringFactsAtBounds("
+require_text "src/self_hosted/mir_lower/stmt_render.pgy" "JsonArrayStringsWithin("
+require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" "JsonArrayStringsWithin("
+# Render owners read binding arrays strictly; the prefix-truncating reader
+# must not come back (docs/audits/2026-09-22_mir_lower_stmt_render_review.md).
+reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "MirObjectArrayStringFactsAtBounds("
+reject_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" "MirObjectArrayStringFactsAtBounds("
 require_text "src/self_hosted/mir_lower/stmt_render.pgy" "let name: String = bindings[index]"
 reject_text "src/self_hosted/mir_lower/stmt_render.pgy" '"defer_body"'
 require_text "src/self_hosted/mir_lower/stmt_render.pgy" \

@@ -435,3 +435,16 @@ func JsonObjectArrayStringAt(
         json, bounds[0], bounds[1], target_index
     );
 }
+
+func JsonArrayStringsWithin(json: String, array_open: Int, array_end: Int,
+                            inout values: Array<String>) -> Bool {
+    let fact: JsonArrayStringFact = JsonArrayStringFact(true, -1, false, "");
+    let index: Int = 0;
+    while fact.count < 0 || index < fact.count {
+        fact = JsonArrayStringFactWithin(json, array_open, array_end, index);
+        if !fact.valid { return false; }
+        if index < fact.count { ArrayPush(values, fact.target_value); }
+        index = index + 1;
+    }
+    return true;
+}
