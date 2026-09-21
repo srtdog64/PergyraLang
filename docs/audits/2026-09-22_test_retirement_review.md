@@ -38,7 +38,13 @@ by hand against every reference in the repository, including docs:
 - 18 fixtures nothing consumes, including one pinned only by a `require_file`
   line (the pin went with it);
 - three `machine_layer_*_parity.sh` wrappers with no assertion of their own
-  that printed SKIP with exit 0, and their manual-inventory rows;
+  that printed SKIP with exit 0, and their manual-inventory rows. **Restored
+  in the next source commit:** `tests/self_hosted_scaffold_smoke.sh` requires
+  a parity script for every tool under `src/self_hosted/tools/`, and these are
+  the ones for `machine_layer_air_validator`, `machine_layer_mir_projection_probe`
+  and `machine_layer_rir_validator`. The verification below did not run that
+  gate, and the CI for this commit ran only the markdown-only jobs, so the
+  break first showed in a local run of the self-host push shard;
 - four uncalled shell functions;
 - in `semantic_core_shape_smoke.sh`, a deleted file dropped from a fifteen-file
   `grep -R` whose exit 2 had disabled the whole check since June, one check on
@@ -46,7 +52,8 @@ by hand against every reference in the repository, including docs:
 
 Verified on a `git archive` of HEAD with only this change applied: the
 component contract end to end, semantic core shape, gate reachability,
-build source inventory and documentation quality.
+build source inventory and documentation quality. That set missed
+`self-host-preparation-contract-test-smoke`, which runs the scaffold gate.
 
 **Not removed, although unused:** `src/self_hosted/lexer/expected/clean.txt`.
 It is the only file in a directory the component contract requires; removing

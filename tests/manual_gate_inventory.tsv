@@ -40,6 +40,9 @@ tests/self_hosted/parity/hashmap_signature_fact_owner.sh	Manual isolated parity 
 tests/self_hosted/parity/intent_result_signature_carriage_owner.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/intent_typed_transition_frontend_owner.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/lexer_scale_probe.sh	Manual compiler-scale resource measurement; no routine CI budget.
+tests/self_hosted/parity/machine_layer_air_validator_parity.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/machine_layer_mir_projection_probe_parity.sh	Manual isolated parity probe; not current CI evidence.
+tests/self_hosted/parity/machine_layer_rir_validator_parity.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/mir_expression_graph_persisted_read_owner.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/mir_resource_graph_owner_smoke.sh	Manual isolated parity probe; not current CI evidence.
 tests/self_hosted/parity/nominal_field_write_fact_owner.sh	Manual isolated parity probe; not current CI evidence.
