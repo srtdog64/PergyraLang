@@ -1,0 +1,283 @@
+# 205. 언어 한계와 fact 공백 해소 설계 (L1–L4, F1–F5)
+
+Updated: 2026-09-22 (Asia/Seoul)
+
+Status: **DESIGN — 구현 순서와 규칙 제안.** 게이트나 owner 문서가 아니다. 문장 하나가
+실행 계약이 되려면 해당 owner 문서에 들어가고 동작 게이트가 붙어야 한다.
+
+출처: `docs/audits/2026-09-22_mir_lower_stmt_render_review.md` §4–5 (L1–L4, F1–F5).
+조사 스냅숏: `main@c1a0e4a7`. 파일 위치는 그 시점 기준이며, 일부 파일은 다른 세션이
+미커밋으로 수정 중이었다.
+
+## 0. 요약
+
+| 항목 | 판정 | 첫 단계 |
+| --- | --- | --- |
+| L3 사용자 enum의 `Ok`/`Err`/`Some`/`None` | **정확성 결함.** self-host가 틀린 AST를 만든다 | match subject의 타입 계열을 MIR fact로 싣는다 |
+| L2 문자열 조립 | 보간은 **이미 있다**. 문제는 두 컴파일러의 escape 차이, 소유권, 누수다 | self-host escape parity (정확성 결함) |
+| L1 `Never` | 언어 기능. `Exit`조차 경로 종료로 취급되지 않는다 | native semantic의 경로 종료 규칙 |
+| L4 한 칸 out 배열 | DX 부채. 튜플 없이 지금 고칠 수 있다 | `Option<명명 struct>` 반환으로 이관 |
+| F2 `_pgy_` 임시 이름 | 사용자 이름과 겹칠 수 있다. 저장소 정책은 예약이 아니라 위생이다 | mir_lower 임시 이름 gensym |
+| F1, F3, F4, F5 | mir_lower의 fact/인프라 공백 | F3 (엄격한 reader 이관) |
+
+**착지 상태 (2026-09-22):** L2a와 F3는 이 문서와 같은 날 착지했다(각 절의 "착지" 문단).
+R6(`inout_argument_alias`, 레드팀 캠페인)도 같은 방식으로 착지했다.
+
+## 1. 공통 원칙
+
+- **의미는 semantic이 한 번 결정해 fact로 싣는다.** 백엔드와 self-host 단계는 그 fact를
+  읽고, 이름이나 텍스트에서 의미를 다시 만들지 않는다. L3과 F1이 이 원칙을 어긴 사례다.
+- **각 단계는 native와 self-host를 함께 닫는다.** 한쪽만 고치면 parity 부채가 남는다.
+  R6(`inout_argument_alias`)가 이 방식의 첫 사례다.
+- **각 단계는 동작 게이트를 가진다.** 소스 문자열 검사가 아니라 거부 여부, 산출물이
+  남지 않는지, 실행 결과를 본다. 그리고 push CI에 연결한다.
+- **언어 어휘는 늘리지 않는다.** `Never`는 `Void`처럼 builtin 타입 이름이다.
+  `src/lexer/language_keyword_registry.def` 146행은 바뀌지 않는다.
+
+## 2. L3 — match subject의 타입 계열 fact와 variant 이름 해석
+
+### 2.1 현재
+
+- 이름표 하나(`src/common/match_variant_policy.c`)를 parser, semantic, C, LLVM이 함께 쓴다.
+  MIR 계층(`src/compiler`)은 이 표를 쓰지 않는다. `mir_json_dump.c:113`은 `"None"`을
+  직접 비교한다.
+- native semantic은 이미 subject 타입으로 먼저 분기한다
+  (`type_checker_flow_match.c:224`: Option :241, Result :279, 사용자 enum :321).
+  그런데 이 결정을 기록하는 fact가 없다. `match_binding_type_fact.h:17-25`에는 바인딩
+  타입만 있다.
+- MIR match arm에는 subject 타입 필드가 없다(`mir_types.h:169-174`). JSON에는
+  `match_variant`, `match_bindings`, `match_binding_types`만 나간다(`mir_json_dump.c:95-146`).
+- 그 결과 소비자가 이름으로 분기한다. 네이티브 C MIR는 사용자 enum `Ok(p)`에서 실패하고,
+  self-host는 `Unwrap(v)`를 렌더링한다(`mir_lower/match_binding_render_owner.pgy:62-71`).
+  2026-09-22에 네 경로를 직접 돌려 보면 올바른 프로그램이 모두 거부된다. native C는
+  payload 타입을 유도하지 못한다고 거부하고, native LLVM은 **내부 verify 오류**
+  (`ret %"Verdict$Ok"` 대 `i32`)로 죽고, self-host 기본 경로 C/LLVM은
+  `ast_artifact_invalid`(`match_binding_environment`)로 거부한다.
+  같은 이름 분기가 `structured_condition_emission_owner.pgy:56-68`,
+  `expression_graph_match_owner.pgy:38-54`, `mir/routine_match_owner.pgy:58-70`,
+  `semantic/ast_match_binding_environment_owner.pgy:121-127`,
+  `codegen/emission/option_match_owner.pgy:45-70`에도 있다.
+- 이름 해석 쪽에도 결함이 둘 있다.
+  - 서로 다른 enum이 같은 variant 이름을 선언하면 **먼저 선언된 쪽이 진단 없이 이긴다**
+    (`type_checker_program.c:302`, `scope_lookup_current`가 이미 있으면 `continue`).
+  - `Verdict.Bad(..)`는 `Verdict_Bad`를 찾지 못하면 bare `Bad`로 돌아간다
+    (`type_checker_expr_call.c:282-288`). 한정자가 그 variant를 가졌는지 확인하지 않는다.
+
+### 2.2 결정: 이름을 예약하지 않고 fact로 간다
+
+이름 예약(`Some`/`None`/`Ok`/`Err`를 사용자 variant로 금지)은 가장 작은 수정이지만,
+언어가 커지면 막다른 규칙이 된다.
+
+- 사용자 enum과 제네릭 enum이 늘면, 이름으로 의미를 고르는 코드가 다른 이름으로 같은
+  문제를 다시 만든다. 위 2.1의 결함 둘도 이름 기반 해석에서 나왔다.
+- Option/Result를 나중에 일반 stdlib enum으로 옮기면, 그 variant 이름은 평범한 variant
+  이름이 된다. 예약 규칙은 그때 다시 풀어야 한다.
+- 이 저장소의 fact-owner 원칙과 맞는 쪽은 fact다. semantic은 이미 답을 알고 있다.
+
+### 2.3 규칙
+
+1. **패턴은 subject 타입 안에서 해석한다.** `case Ok(p)`는 subject가 `Result`면
+   Result의 `Ok`, `Verdict`면 Verdict의 `Ok`다. 패턴 위치에는 모호성이 없다.
+2. **한정 생성식 `E.V(..)`는 E가 V를 가졌는지 검사한다.** bare로 돌아가는 경로를 없앤다.
+3. **비한정 생성식 `V(..)`**
+   - 문맥 기대 타입(`let x: Verdict = Ok(1)`, 인자, 반환)이 있으면 그 타입의 variant로 해석한다.
+   - 기대 타입이 없으면, 그 이름을 선언한 후보가 하나일 때만 해석한다.
+   - 후보가 둘 이상이면 모호성 오류로 거부하고 한정(`Verdict.Ok(1)`)을 요구한다. 내장
+     `Ok`와 사용자 `Ok`가 겹치는 경우도 여기에 포함된다.
+4. **서로 다른 enum의 같은 variant 이름은 허용한다.** 조용한 first-wins는 없앤다.
+   비한정 사용이 모호하면 3번 규칙으로 거부한다.
+
+### 2.4 fact 모양
+
+- semantic의 match 결정 결과를 **case 단위의 새 fact**로 기록한다:
+  `subject_family ∈ {option, result, enum}`, 그리고 enum일 때 `subject_enum` 이름.
+  `PgyMatchBindingTypeFact`에 넣지 않는 이유: 그 fact는 바인딩마다 한 행이라
+  바인딩이 없는 case(`case None:`, `case Red:`)에는 행이 없다. 그런데 조건 방출
+  (`IsSome`/태그 비교)은 그런 case에서도 계열을 알아야 한다.
+- HIR routine fact → `mir_capture_match_case_facts`(`mir_branch_source_facts.c:1200-1239`)
+  → MIR JSON으로 흘린다. JSON 필드는 `match_binding_types` **뒤에** 넣는다
+  (`"match_subject_family":"enum","match_subject_enum":"Verdict"`).
+  기존 연속 문자열 핀(`mir_json_parity.sh:507-538`, `driver_rung2_match_parity_owner.sh:32-47`)은
+  `match_binding_types`에서 끝나므로 그대로 둘 수 있다.
+- self-host MIR producer(`mir/json_projection_owner.pgy:136-141`,
+  `mir/instruction_json_artifact_writer_owner.pgy:150`)도 같은 키를 낸다.
+
+### 2.5 단계와 게이트
+
+| 단계 | 내용 | 동작 게이트 |
+| --- | --- | --- |
+| L3a | 같은 variant 이름의 조용한 first-wins를 진단으로 바꾸고, 한정자 소유 검사를 넣는다 (native + self-host) | 두 enum이 같은 variant를 선언한 프로그램, `Verdict.Bad`가 아닌 한정자 사용이 모두 산출물 없이 거부된다 |
+| L3b | subject 타입 계열 fact를 native와 self-host MIR JSON에 싣는다 | Option, Result, 사용자 enum `Ok` 세 프로그램에서 필드 값이 정확하다. 필드가 없거나 틀린 MIR은 소비자가 거부한다 |
+| L3c | 소비자를 fact 기반으로 바꾼다. 틀린 AST를 만드는 self-host `mir_lower`가 먼저다. 그다음 C/LLVM MIR 순서로 바꾼다 | `enum Verdict { Ok(Int), Bad(String) }` 재현이 C, LLVM, self-host 기본 경로에서 모두 정답을 출력한다. 이름 분기로 되돌리는 변경은 음성 게이트가 잡는다 |
+| L3d | 비한정 생성식의 문맥 해석과 모호성 진단 | 기대 타입이 있는 `Ok(1)`은 사용자 enum으로 실행되고, 기대 타입이 없는 모호한 `Ok(1)`은 거부된다 |
+
+`perf_contract_smoke.sh:960-989`(match 파일의 lookup 사용 핀)와
+`build_source_inventory_smoke.sh:362-383`(정책 파일 밖의 variant 문자열 금지)은 L3c에서
+같이 갱신한다.
+
+## 3. F2 — 컴파일러 임시 이름의 위생
+
+- destructure 임시 변수는 `_pgy_destructure_<첫 바인딩>`이다. 사용자가 같은 이름을 선언하는
+  것을 막지 않는다.
+- **리뷰 문서의 제안(접두사 예약)은 채택하지 않는다.** 저장소는 이미 반대 결정을 했다.
+  `tests/concept_semantics/nominal/named_record_identifier_hygiene_valid.pgy`는 사용자 변수
+  `_pgy_record_value_1`을 **정상 프로그램**으로 고정하고(`source_admission_parity.sh`),
+  native C는 레코드 임시 변수를 충돌 검사 gensym으로 만든다
+  (`transpiler_class_constructor_emit.c`: "source identifiers can use compiler-looking
+  prefixes. This is C name hygiene"). 예약은 이 결정을 뒤집고 기존 프로그램을 거부하게 된다.
+- 규칙: 컴파일러가 만드는 임시 이름은 그 routine의 선언 이름과 겹치지 않게 고른다.
+  mir_lower의 destructure 임시 이름도 routine의 지역 변수 목록에 있으면 번호를 붙여 피한다.
+  `stmt_render.pgy`와 `destructure_expression_projection_owner.pgy`가 같은 이름을 써야
+  하므로(F1), 이름을 고르는 함수 하나를 두 owner가 함께 호출한다.
+- 게이트: 사용자가 `_pgy_destructure_<첫 바인딩>`을 이미 선언한 프로그램을 mir_lower가
+  재구성하고, 그 결과가 native와 같은 값을 출력한다.
+
+## 4. L1 — `Never` 반환 타입
+
+### 4.1 현재
+
+- `Void`는 키워드가 아니라 builtin 타입 이름이다(`parser_type.c:394`, `type_system.c:231`).
+  semantic에는 bottom 타입 종류가 없다(`type_system.h:16-26`).
+- 경로를 끝내는 문장은 `return`, `break`, `continue`뿐이다. `Exit(...)`를 포함한 식 문장은
+  `FLOW_FALLTHROUGH`다(`type_checker_flow.c:399-401`). 그래서 `-> String` 함수가
+  `Die(...)`로 끝나도 뒤에 `return`이 필요하다.
+- self-host semantic에는 모든 경로가 값을 반환하는지 보는 검사가 없다. L1c에서 이 공백을
+  먼저 확인하고 메운다. 그 전까지 이 점을 결함으로 단정하지 않는다.
+- self-host에서 `Exit`는 전용 문장 종류(`TypedAstKindExitStmtTag` 17)가 된다.
+  self-host MIR은 여기서 routine을 끝낸다(`mir/routine_statement_owner.pgy:91-93`).
+  사용자 실패 헬퍼 호출에는 그런 처리가 없다.
+- MIR에는 unreachable terminator가 없다(`mir_types.h:81-93`, 후속자는 암묵적).
+  HIR에는 `HIR_BLOCK_UNREACHABLE`이 있다.
+- 백엔드는 이름으로 추측한다. LLVM `llvm_fn_never_returns`(`llvm_runtime_attrs.c:196-213`)는
+  이름에 `panic`이 들어가거나 `pgy_exit`면 noreturn으로 본다. C의 `PGY_RUNTIME_NORETURN`은
+  `pgy_runtime_panic_emit`에만 붙어 있고, `pgy_exit`에는 없다.
+- 실패 헬퍼는 `Die`(호출 1,965곳, 451 파일), `MirLowerFailClosed`(198곳),
+  `LspLiveSessionFail`, `ParserProgramGraphFail`이 있고, 맨 `Exit(1)`이 559곳 있다.
+  바로 뒤에 죽은 `return`이 붙은 곳은 대략 37곳이다.
+
+### 4.2 규칙
+
+1. `-> Never` 함수는 fallthrough와 `return`이 모두 금지다. 모든 경로가 Never 호출로 끝나야 한다.
+2. Never 호출 **문장**은 경로를 끝낸다. 새 flow 플래그(`FLOW_DIVERGE`)가 missing-return을
+   충족시키고, 그 뒤 문장에는 기존 unreachable 경고가 붙는다.
+3. 첫 단계에서는 값 위치의 Never 호출(`let x: Int = Die("..")`)을 거부한다. 모든 타입으로
+   바뀌는 bottom 변환은 나중에 따로 정한다.
+4. builtin `Exit`의 반환 타입을 `Never`로 바꾼다
+   (`pgy_builtin_type_table.c:70`, self-host `builtin_signature_owner.pgy:70`).
+
+### 4.3 단계
+
+| 단계 | 내용 |
+| --- | --- |
+| L1a | native semantic: `Never` 타입, 규칙 1–4, 진단 |
+| L1b | MIR: Never 호출 뒤 블록을 명시적으로 끝내는 fact(JSON 포함). C: 선언에 `PGY_RUNTIME_NORETURN`, 호출 뒤 `__builtin_unreachable()`. LLVM: 선언에 `noreturn`, 호출 뒤 `unreachable`. 이름 추측(`llvm_fn_never_returns`)을 fact로 바꾼다 |
+| L1c | self-host semantic: missing-return 검사 확인·보강, 그다음 Never 규칙 |
+| L1d | self-host codegen과 direct MIR의 noreturn 방출 |
+| L1e | 이관: `Die`, `MirLowerFailClosed`, `LspLiveSessionFail`, `ParserProgramGraphFail`을 `-> Never`로 바꾸고 죽은 `return`을 지운다. gen2==gen3 fixpoint 유지 |
+
+게이트: Never 함수 안의 `return`과 fallthrough가 거부된다. Never 호출로 끝나는 non-Void
+함수가 missing-return 없이 컴파일되고, 실행하면 호출 지점에서 종료 코드가 나온다
+(C, LLVM, self-host 모두).
+
+## 5. L2 — 문자열 조립
+
+### 5.1 현재 (리뷰 문서의 전제 정정)
+
+리뷰 문서는 "2항 `Concat`뿐"이라고 했지만, **문자열 보간은 두 컴파일러 모두에 이미 있다.**
+
+- 형태: `"...${expr}..."`, `f"...{expr}..."`, `$"...{expr}..."`. 모두 `ToString(expr)` 조각을
+  잇는 왼쪽으로 기운 `+` 체인이 된다(native `parser_expr.c:556-567`,
+  `parser_expr_string.c:72-178`; self-host `parser/expr_string_owner.pgy`).
+  self-host 소스에서도 74곳이 이미 쓴다.
+- **escape가 두 컴파일러에서 다르다.** native는 홀수 개의 백슬래시가 앞에 붙은 opener
+  (`\${`, `\{`)를 문자 그대로 둔다(`parser_expr_string.c:53-69`). self-host parser는 이
+  검사를 하지 않는다(`expr_string_owner.pgy:42,107`). 같은 소스가 두 컴파일러에서 다른
+  문자열이 될 수 있다.
+- **보간 결과는 owned String으로 인정되지 않는다.** owned producer는 stdlib
+  `Concat`/`StringConcat` 직접 호출뿐이다(`type_checker_ownership_call.c:330-349`). 그래서
+  보간 결과는 `own String` 인자나 `Array<String>` 소유 이전에 쓸 수 없다.
+- **중간 임시 문자열이 해제되지 않는다.** `docs/197_region_arena_strategy.md:92-98`의
+  "measured leak"다. region 경로는 문자열 리터럴이 척추에 있는 `+` 체인이 호출 인자로
+  빌려질 때만 적용된다.
+- `Concat`의 인자 수는 모든 계층에서 2로 고정이다. self-host에는 `Concat` 호출이
+  13,961개 있고, 그중 2,388개가 최상위 피라미드다(400 파일, 최대 깊이 17).
+
+### 5.2 단계
+
+| 단계 | 내용 | 동작 게이트 |
+| --- | --- | --- |
+| L2a (착지) | self-host parser의 opener escape를 native와 맞춘다 | `\${x}`, `\{x}`, `\\${x}`가 native와 self-host 기본 경로에서 같은 문자열을 출력한다 |
+| L2b | 보간과 N항 `Concat(a, b, c, ...)`을 하나의 typed 연산(StringBuild)으로 낮춘다. semantic에서 owned producer로 인정한다. 런타임은 길이를 합산해 한 번만 할당한다 | 보간 결과를 `own String` 인자와 `ArrayPush`에 넘길 수 있다. ASan/누수 검사에서 중간 임시 할당이 없다. C와 LLVM 출력이 같다 |
+| L2c | self-host 피라미드를 기계적으로 이관한다(owner 단위 배치). likeness 래칫에 Concat 중첩 깊이 지표를 추가해 역행을 막는다 | gen2==gen3 fixpoint, 드라이버 메모리와 빌드 시간 측정치 |
+
+서식 지정자와 중첩 보간은 범위 밖이다(`docs/grammar/01_syntax.md:530-548`의 beta 범위 유지).
+
+**L2a 착지.** 재현 결과는 예상보다 나빴다. `Log("a\${x}b")`는 native에서 `a${x}b`,
+self-host 기본 경로에서 `5b`였다. opener 앞에서 잘린 리터럴 조각이 `\"`로 끝나 자기
+닫는 따옴표를 escape했고, 그 앞의 텍스트가 사라졌다. self-host parser는 이제 현재 조각
+안의 백슬래시 개수로 opener escape를 판단한다. direct MIR 문자열 리터럴 해석은 `\$`와
+`\{`에서 백슬래시를 뗀다. 게이트는
+`tests/self_hosted/parity/string_interpolation_escape_parity_owner.sh`(push CI core shard)다.
+
+## 6. L4 — 한 칸 out 배열
+
+### 6.1 현재
+
+- 성공 여부 `Bool`과 out 배열 조합을 쓰는 함수가 약 95개(45 파일) 있다. 호출부의
+  `[0]`/`[""]`/`[false]` 임시 배열이 159개, `[0, 0]` 범위 배열이 186개다.
+  예: `lib/json.pgy:96` `ReadJsonStringBounded`(호출 24곳),
+  `mir_lower/json_fact_read.pgy:206` `MirObjectArrayBoundsAtBounds`(참조 61곳),
+  `parser/expr_precedence_owner.pgy:368` `ParseExprFact`(`cursor_out[0]` 읽기 226곳).
+- 리뷰 문서는 튜플과 제네릭 Option 지원을 선행 조건으로 봤다. 그런데 self-host는 이미
+  `Option<Struct>`를 반환한다(`mir_lower/machine_layer_fact_owner.pgy:313`,
+  `lib/snapshot_ticket.pgy:24`). `Option<Array<..>>`와 튜플만 없다.
+
+### 6.2 설계
+
+튜플을 기다리지 않는다. 명명 struct를 담은 `Option`으로 옮긴다.
+
+- 범위: `struct JsonSpan { start: Int; end: Int; }`, `-> Option<JsonSpan>`
+- 값과 끝 위치: `struct JsonStringRead { value: String; end: Int; }`
+- 배열 결과: `struct JsonStringList { values: Array<String>; }`. Array 필드를 가진 struct가
+  Option payload로 C/LLVM과 소유권 규칙을 통과하는지 L4a 첫 커밋에서 먼저 확인한다.
+
+단계: L4a `lib/json*` → L4b `mir_lower/json_fact_read.pgy` → L4c parser `cursor_out`(가장 큼).
+각 단계마다 gen2==gen3 fixpoint를 유지하고, 드라이버 메모리를 측정한다. 반환 struct 복사가
+메모리 벽(38.5GB 사례)을 되살리지 않는지 확인한다.
+
+## 7. F1, F3, F4, F5 — mir_lower 공백
+
+- **F3 (착지)**: 리뷰 문서는 남은 호출부를 3곳으로 적었지만, 실제로는 9개 파일에
+  12곳이었다. 호출부를 하나씩 옮기는 대신 `MirObjectArrayStringFactsAtBounds` 자체를
+  엄격하게 바꿨다. 필드가 없으면 빈 배열이고, 있는데 문자열이 아닌 원소가 있으면
+  `MIR string array fact is malformed: <field>`로 멈춘다. 한 번 훑는 구현이다.
+  렌더러 두 곳이 쓰는 `JsonArrayStringsWithin`은 여전히 원소 수의 제곱 비용이다.
+  두 렌더러의 배열은 바인딩 이름처럼 짧아서 남겨 두었다. 게이트는
+  `tests/self_hosted/mir_lower_stmt_render_fail_closed_smoke.sh`의 `non-string-use` 행이다.
+- **F1**: destructure 초기식을 한 번만 평가해야 하는지를 C MIR가 fact로 싣는다(초기식
+  graph의 루트가 지역 식별자 leaf가 아니면 참). `stmt_render.pgy`와
+  `destructure_expression_projection_owner.pgy`가 같은 fact를 읽는다. 텍스트 휴리스틱
+  `MirDestructureNeedsTemp`는 지운다.
+- **F4**: MIR instruction에 "문장을 내는 행인가" fact를 싣는다. 또는 문장을 내지 않는
+  kind(`cleanup`, `phi`, 구조적 `stmt`)의 닫힌 목록을 둔다. 그다음 `routine_lower`가 `expr0`
+  없는 나머지 행을 fail-closed로 거부한다.
+- **F5**: F4 뒤에 defer 본문을 여러 문장으로 재구성한다(`Log`, 직접 호출, 대입).
+
+## 8. 순서
+
+1. L3a → L3b → L3c: 틀린 AST를 없애는 정확성 결함이 먼저다.
+2. L2a: 두 컴파일러의 문자열 불일치(정확성 결함).
+3. F2: 임시 이름 위생. mir_lower 안에서 끝난다.
+4. L1a–L1e: Never. 실패 헬퍼 정리의 전제다.
+5. F3 → F1 → F4 → F5.
+6. L2b → L2c, L3d, L4a–L4c: DX 이관. 기계적이지만 양이 크다.
+
+native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션이 미커밋으로 고치고
+있는 경우가 많다. 겹치는 단계는 별도 worktree에서 개발하고, 그 파일이 커밋된 뒤 합친다.
+
+## 9. 사용자 결정이 필요한 것
+
+- Never를 값 위치에서 모든 타입으로 받아들일지(bottom 변환). 첫 단계는 문장 위치만 허용한다.
+- 비한정 variant의 모호성을 오류로 할지 경고로 할지. 이 문서는 오류를 제안한다.
+- N항 `Concat`을 공개 표면에 둘지, 보간만 강화할지. 이 문서는 둘 다 같은 연산으로 낮추는
+  것을 제안한다.
