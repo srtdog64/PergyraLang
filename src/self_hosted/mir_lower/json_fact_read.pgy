@@ -7,6 +7,7 @@
 import "../lib/json.pgy";
 import "../lib/json_bounded_fact_read.pgy";
 import "../lib/json_fact_table.pgy";
+import "error_owner.pgy";
 
 struct MirDocumentFactIndex {
     let valid: Bool;
@@ -360,6 +361,8 @@ func MirObjectArrayObjectBoundsAt(
     return JsonArrayObjectBoundsAt(json, array_bounds[0], array_bounds[1], row, bounds);
 }
 
+// A missing field reads as empty. A present array must hold only strings:
+// returning the prefix before a bad element would lower it silently.
 func MirObjectArrayStringFactsAtBounds(
     json: String,
     start: Int,
@@ -374,22 +377,23 @@ func MirObjectArrayStringFactsAtBounds(
     let cursor: Int = array_bounds[0] + 1;
     while cursor < array_bounds[1] {
         cursor = JsonSkipWhitespaceWithin(json, cursor, array_bounds[1]);
-        if cursor >= array_bounds[1] { return values; }
+        if cursor >= array_bounds[1] { break; }
         let code: Int = JsonCharCodeAt(json, array_bounds[1], cursor);
         if code == JsonAsciiCode("]") { return values; }
         if code == JsonAsciiCode(",") {
             cursor = cursor + 1;
             continue;
         }
-        if code != JsonAsciiCode("\"") { return values; }
+        if code != JsonAsciiCode("\"") { break; }
         let value_end: Array<Int> = [0];
         let value: String = ReadJsonStringBounded(
             json, cursor, array_bounds[1], value_end
         );
-        if value_end[0] <= cursor { return values; }
+        if value_end[0] <= cursor { break; }
         ArrayPush(values, value);
         cursor = value_end[0];
     }
+    MirLowerFailClosed(Concat("MIR string array fact is malformed: ", field));
     return values;
 }
 

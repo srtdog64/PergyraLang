@@ -17865,7 +17865,7 @@ reject_text "src/self_hosted/compiler/direct_mir_array_return_emission_owner.pgy
     "@pgy_"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
     "func MirObjectUniqueStringFactAtBounds("
-require_max_lines "src/self_hosted/mir_lower/json_fact_read.pgy" 450
+require_max_lines "src/self_hosted/mir_lower/json_fact_read.pgy" 454
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" \
     "func MirObjectUniqueNumberFactAtBounds("
 require_text \

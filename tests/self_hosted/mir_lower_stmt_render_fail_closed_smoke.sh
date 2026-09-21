@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # MIR statement render fail-closed gate.
 #
-# Owner: src/self_hosted/mir_lower/stmt_render.pgy and
-# src/self_hosted/mir_lower/match_binding_render_owner.pgy.
+# Owner: src/self_hosted/mir_lower/stmt_render.pgy,
+# src/self_hosted/mir_lower/match_binding_render_owner.pgy and the string-array
+# fact reader in src/self_hosted/mir_lower/json_fact_read.pgy.
 #
 # Positive rows pin the reconstructed AST lines for destructure temporaries and
 # direct-call defer bodies. Negative rows mutate native MIR JSON so that each
@@ -145,6 +146,8 @@ mutate("let_log", "let_log.nameless-let", is_let_decl,
        set_field("arg0", ""))
 mutate("let_log", "let_log.cleanup-kind", is_log_stmt,
        set_field("kind", "cleanup"))
+mutate("let_log", "let_log.non-string-use", is_log_stmt,
+       set_field("uses", [7]))
 PY
 
 (cd "$ROOT_DIR" && "$PGY" \
@@ -190,12 +193,16 @@ negative_rows=(
     "destructure.hollow-binding|destructure binding-name fact is empty"
     "destructure.non-string-binding|destructure instruction is missing binding-name facts"
     "destructure.unknown-element|destructure initializer element type is unknown"
-    # Field absence is already rejected by the routine fact index before the
-    # binding renderer runs; the row pins that no partial AST escapes.
+    # Field absence reads as an empty array and the routine fact index then
+    # rejects it before the binding renderer runs. A present array with a
+    # null element is refused earlier, by the string-array fact reader.
     "option_match.absent-bindings|routine MIR fact index is incomplete"
-    "option_match.null-binding-type|routine MIR fact index is incomplete"
+    "option_match.null-binding-type|MIR string array fact is malformed: match_binding_types"
     "let_log.nameless-let|local declaration is missing its binding-name fact"
     "let_log.cleanup-kind|instruction kind has no statement rendering"
+    # A present string array with a non-string element used to read as
+    # its (here empty) prefix.
+    "let_log.non-string-use|MIR string array fact is malformed: uses"
 )
 
 for row in "${negative_rows[@]}"; do
@@ -220,4 +227,4 @@ for row in "${negative_rows[@]}"; do
     fi
 done
 
-echo "$LABEL destructure/defer/match/let render facts fail closed"
+echo "$LABEL destructure/defer/match/let render facts and string-array facts fail closed"
