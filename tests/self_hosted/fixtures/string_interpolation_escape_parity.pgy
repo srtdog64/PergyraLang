@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let x: Int = 5;
+    Log("a\${x}b");
+    Log($"c\{x}d");
+    Log("e\\${x}f");
+    Log("g${x}h");
+    Log("i\\\${x}j");
+    Log($"{x}k\{x}");
+}

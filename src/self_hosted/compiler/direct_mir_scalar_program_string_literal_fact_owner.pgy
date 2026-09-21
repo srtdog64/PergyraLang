@@ -2,6 +2,7 @@
 // docs/110 owns byte preservation; this is not Unicode normalization.
 
 import "../lib/json.pgy";
+import "direct_mir_scalar_program_string_literal_escape_owner.pgy";
 
 func DirectMirScalarProgramStringLiteralContent(
     spelling: String
@@ -16,14 +17,17 @@ func DirectMirScalarProgramStringLiteralContent(
         if code == 92 {
             if index + 1 >= length - 1 { return None; }
             let escaped: Int = CharCode(spelling, length, index + 1);
-            if escaped != 110 && escaped != 114 && escaped != 116 &&
-                escaped != 34 && escaped != 92 { return None; }
+            if escaped != 110 && escaped != 114 && escaped != 116 && escaped != 34 &&
+                escaped != 92 && escaped != 36 && escaped != 123 { return None; }
             index = index + 2;
         } else { index = index + 1; }
     }
+    let json_spelling: String =
+        DirectMirScalarProgramStringLiteralJsonSpelling(spelling, length);
+    let json_length: Int = StringLength(json_spelling);
     let end: Array<Int> = [0];
     let value: String = ReadJsonStringBounded(
-        spelling, 0, length, end);
-    if end[0] != length { return None; }
+        json_spelling, 0, json_length, end);
+    if end[0] != json_length { return None; }
     return Some(value);
 }

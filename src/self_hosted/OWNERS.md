@@ -4075,6 +4075,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- exact decoding of persisted Pergyra String literal spelling into the
   sealed expression payload. It accepts only the owned ASCII escape vocabulary
   and consumes the bounded String decoder with an exact-end receipt.
+- `src/self_hosted/compiler/direct_mir_scalar_program_string_literal_escape_owner.pgy`
+  -- drops the backslash of the literal-opener escapes `\$` and `\{`, which are
+  not JSON escapes, before that decoder runs; the native AST decoder does
+  the same.
 - `src/self_hosted/compiler/direct_mir_scalar_program_c_string_search_expression_owner.pgy`
   and
   `src/self_hosted/compiler/direct_mir_scalar_program_c_string_index_materialization_owner.pgy`
