@@ -415,9 +415,10 @@ A symbol (variable, function, class, ability, role, party, roster, world, world 
 
 A borrow would escape its admitted boundary or its backing storage would be
 invalidated while the borrow remains live. Covered cases include forwarding a
-`ref` value through a storing/return/helper boundary and growing, shrinking,
+`ref` value through a storing/return/helper boundary, growing, shrinking,
 retiring, or rebinding an `Array<T>` while a direct local `Slice<T>` view is
-lexically live.
+lexically live, and passing one variable to two `inout` parameters of the same
+call (the self-host semantic code is `inout_argument_alias`).
 
 - **Reason**: borrowed references do not transfer ownership, and a Slice's raw
   view cannot survive replacement of the Array storage identity it observes.
@@ -426,6 +427,7 @@ lexically live.
   before creating the view, end the Slice scope first, or use
   `SliceCopy(view)` when an owned snapshot is required. Element writes that do
   not replace Array storage remain permitted and are visible through the Slice.
+  For two `inout` parameters, pass a distinct variable to each.
 
 ### Domain Contracts
 

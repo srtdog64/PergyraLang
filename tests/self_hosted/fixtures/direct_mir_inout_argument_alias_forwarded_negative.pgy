@@ -1,0 +1,14 @@
+func Spread(inout x: Int, step: Int, inout y: Int) -> Void {
+    x = x + step;
+    y = y + 10;
+}
+
+func Twice(inout total: Int) -> Void {
+    Spread(total, 1, total);
+}
+
+func Main() -> Void {
+    let mut a: Int = 0;
+    Twice(a);
+    Log(a);
+}

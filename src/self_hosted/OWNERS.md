@@ -610,6 +610,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   for canonical `Array<T>` named-value boundaries. It consumes the Array shape
   owner instead of maintaining an element-type allowlist; MIR and backends may
   not reconstruct or defer this source-semantic rejection.
+- `src/self_hosted/semantic/ast_inout_argument_alias_verdict_owner.pgy` --
+  distinct-binding rule for the inout arguments of one direct call, matching
+  the native checker; the named-value boundary verdict dispatches it per call
+  and owns the `inout_argument_alias` refusal.
 - `src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy` --
   target-neutral admission for local zone-resource value carriage. It joins
   admitted resource shape, initializer/assignment types, and resolved fresh

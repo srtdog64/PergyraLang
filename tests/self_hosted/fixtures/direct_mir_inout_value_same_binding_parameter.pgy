@@ -1,0 +1,9 @@
+func AddInto(inout x: Int, y: Int) -> Void {
+    x = x + y;
+}
+
+func Main() -> Void {
+    let mut a: Int = 5;
+    AddInto(a, a);
+    Log(a);
+}

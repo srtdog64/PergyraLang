@@ -20291,7 +20291,7 @@ require_max_lines "tests/self_hosted/parity/direct_mir_cfg_identity_digest_refer
 require_max_lines "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" 300
 require_function_text "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" \
     "func SemanticCollectionMutationError(" 'mode != "default_param" && mode != "ref_param"'
-require_max_lines "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" 280
+require_max_lines "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" 286
 require_function_text "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" \
     "func SemanticAstReadonlySequenceBoundaryVerdict(" 'SemanticExpressionGraphPlaceKind('
 require_function_text "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" \

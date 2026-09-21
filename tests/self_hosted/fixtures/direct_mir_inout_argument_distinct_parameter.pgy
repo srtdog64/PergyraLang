@@ -1,0 +1,12 @@
+func Both(inout x: Int, inout y: Int) -> Void {
+    x = x + 1;
+    y = y + 10;
+}
+
+func Main() -> Void {
+    let mut a: Int = 0;
+    let mut b: Int = 0;
+    Both(a, b);
+    Log(a);
+    Log(b);
+}

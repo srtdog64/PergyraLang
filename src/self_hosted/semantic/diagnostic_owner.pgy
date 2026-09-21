@@ -73,13 +73,12 @@ func SemanticReason(code: String) -> String {
     }
     if code == "named_value_boundary_argument_required" { return "borrow-tracked value boundaries require one stable source binding"; }
     if code == "borrow_boundary_escape" { return "a readonly borrowed sequence cannot cross a value, owning, copy-out or return boundary"; }
+    if code == "inout_argument_alias" { return "one binding cannot be passed to two inout parameters of the same call; one update would be lost"; }
     if code == "slice_storage_invalidation" { return "Array storage cannot change while a borrowed Slice view is live"; }
     if code == "zone_value_copy_requires_transfer" || code == "zone_value_reassignment_requires_transfer" || code == "zone_value_parameter_requires_transfer" { return "zone identity cannot be carried without an admitted transfer plan"; }
     if code == "zone_spawn_transport_unavailable" { return "zone identity cannot be copied or borrowed across a spawn worker boundary"; }
     if code == "builtin_arg_type_mismatch" { return "builtin argument type does not match the builtin contract"; }
-    if code == "option_concrete_type_required" {
-        return "Option builtin requires a concrete Option<T> payload type";
-    }
+    if code == "option_concrete_type_required" { return "Option builtin requires a concrete Option<T> payload type"; }
     if code == "value_param_collection_mutation" {
         return "caller-visible collection mutation requires an explicit inout boundary";
     }
@@ -206,6 +205,7 @@ func SemanticFix(code: String) -> String {
     }
     if code == "named_value_boundary_argument_required" { return "bind the value to a local variable before passing it through the boundary"; }
     if code == "borrow_boundary_escape" { return "keep the sequence within a ref boundary or explicitly transfer an owned value"; }
+    if code == "inout_argument_alias" { return "pass a distinct variable to each inout parameter"; }
     if code == "slice_storage_invalidation" { return "grow or replace the Array before slicing it, or end the Slice scope first"; }
     if code == "zone_value_copy_requires_transfer" || code == "zone_value_reassignment_requires_transfer" || code == "zone_value_parameter_requires_transfer" { return "construct a fresh zone or use an explicit admitted transfer boundary"; }
     if code == "zone_spawn_transport_unavailable" { return "pass a projected value or keep the zone operation within the current task"; }

@@ -1,0 +1,54 @@
+// Distinct-binding rule for the inout arguments of one direct call.
+//
+// The callee writes every inout formal back, so one binding passed to two of
+// them loses one update. A direct-binding place is a resolved leaf whose text
+// names that binding for the whole call: an argument list declares nothing.
+// Member and element places are outside this rule, as they are in the native
+// checker (src/semantic/type_checker_helpers_late.c). The named-value boundary
+// verdict already visits every direct call with its signature and argument
+// places; it calls this once per call and owns the resulting refusal.
+
+import "ast_signature_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression_place_fact_owner.pgy";
+import "diagnostic_owner.pgy";
+
+// Parameter mode 1 is `inout` in the typed AST arena (TypedAstArenaMode).
+func SemanticAstInoutArgumentAliasMessage(
+    signatures: SemanticAstFunctionSignatureFacts,
+    signature_index: Int,
+    ref graph: SemanticExpressionGraphFacts,
+    ref call: SemanticCallSpineView,
+    callee: String
+) -> Option<String> {
+    let inout_bindings: Array<String> = [];
+    let argument_index: Int = 0;
+    while argument_index < ArrayLength(call.argument_nodes) {
+        let argument_node_id: Int = call.argument_nodes[argument_index];
+        let mode: Option<Int> = SemanticAstFunctionParamModeAt(
+            signatures, signature_index, argument_index);
+        let place: Option<Int> = SemanticExpressionGraphPlaceKind(
+            graph, argument_node_id);
+        let binding: Option<String> = SemanticExpressionGraphNodeText(
+            graph, argument_node_id);
+        if IsSome(mode) && UnwrapOption(mode) == 1 && IsSome(place) &&
+            UnwrapOption(place) == SemanticExpressionPlaceBinding() &&
+            IsSome(binding) {
+            let seen: Int = 0;
+            while seen < ArrayLength(inout_bindings) {
+                if inout_bindings[seen] == UnwrapOption(binding) {
+                    return Some(SemanticError3(
+                        "inout_argument_alias", "callee", callee,
+                        "binding", UnwrapOption(binding),
+                        "argument_index", ToString(argument_index)
+                    ));
+                }
+                seen = seen + 1;
+            }
+            ArrayPush(inout_bindings, UnwrapOption(binding));
+        }
+        argument_index = argument_index + 1;
+    }
+    return None;
+}

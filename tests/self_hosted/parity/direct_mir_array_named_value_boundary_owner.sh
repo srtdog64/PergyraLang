@@ -106,4 +106,8 @@ for entry in "${POSITIVE_CASES[@]}"; do
         fail "$positive_case control emitted no MIR"
 done
 
+# The inout alias rule lives in the same owner; its gate checks behaviour.
+PGY_BIN="$PGY" PGY_SELF_DRIVER_BIN="$DRIVER" \
+    bash "$ROOT_DIR/tests/self_hosted/parity/inout_argument_alias_owner.sh"
+
 echo "[$LABEL] native/self Array family rejection + named/default/copy-only controls: PASS"
