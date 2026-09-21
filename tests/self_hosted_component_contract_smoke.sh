@@ -16322,7 +16322,7 @@ reject_function_text "src/self_hosted/lib/json.pgy" \
 reject_function_text "src/self_hosted/lib/json.pgy" \
     "func JsonArrayNextObjectBounds(" "StringLength(json)"
 require_file "src/self_hosted/lib/json_bounded_fact_read.pgy"
-require_max_lines "src/self_hosted/lib/json_bounded_fact_read.pgy" 450
+require_max_lines "src/self_hosted/lib/json_bounded_fact_read.pgy" 465
 require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonStringValueEqualsWithin("
 require_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \

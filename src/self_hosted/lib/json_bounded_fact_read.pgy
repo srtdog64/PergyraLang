@@ -436,15 +436,30 @@ func JsonObjectArrayStringAt(
     );
 }
 
+// One validity scan, then one sequential read of the already-proven strings.
 func JsonArrayStringsWithin(json: String, array_open: Int, array_end: Int,
                             inout values: Array<String>) -> Bool {
-    let fact: JsonArrayStringFact = JsonArrayStringFact(true, -1, false, "");
-    let index: Int = 0;
-    while fact.count < 0 || index < fact.count {
-        fact = JsonArrayStringFactWithin(json, array_open, array_end, index);
-        if !fact.valid { return false; }
-        if index < fact.count { ArrayPush(values, fact.target_value); }
-        index = index + 1;
+    let fact: JsonArrayStringFact = JsonArrayStringFactWithin(
+        json, array_open, array_end, 0 - 1);
+    if !fact.valid { return false; }
+    let read: Int = 0;
+    let cursor: Int = array_open + 1;
+    while read < fact.count {
+        cursor = JsonSkipWhitespaceWithin(json, cursor, array_end);
+        if JsonCharCodeAt(json, array_end, cursor) != JsonAsciiCode("\"") {
+            cursor = cursor + 1;
+            continue;
+        }
+        // The same exact-end decode receipt JsonArrayStringFactWithin takes.
+        let string_end: Option<Int> = JsonStringEndWithin(json, cursor, array_end);
+        if !IsSome(string_end) { return false; }
+        let decoded_end: Array<Int> = [0];
+        let value: String = ReadJsonStringBounded(
+            json, cursor, UnwrapOption(string_end), decoded_end);
+        if decoded_end[0] != UnwrapOption(string_end) { return false; }
+        ArrayPush(values, value);
+        cursor = UnwrapOption(string_end);
+        read = read + 1;
     }
     return true;
 }
