@@ -1449,7 +1449,7 @@ require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh"
 require_function_text "src/self_hosted/mir_lower/stmt_render.pgy" \
     "RenderStmtFromFacts" 'source_type == "AST_CALL"'
 require_function_text "src/self_hosted/mir_lower/stmt_render.pgy" \
-    "RenderStmtFromFacts" 'return Concat("Call: ", value)'
+    "RenderStmtFromFacts" 'return Concat("Call: ", expr0)'
 require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
     "TypedAstTextKindOf" 'StartsWith(text, "Call: ")'
 require_function_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" \
