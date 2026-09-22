@@ -13,7 +13,7 @@ func ParserFixtureExpectedPath(base: String) -> String {
 }
 
 func ParserFixtureManifestCount() -> Int {
-    return 189;
+    return 190;
 }
 
 func ParserFixtureDuplicateCoverageCount() -> Int {

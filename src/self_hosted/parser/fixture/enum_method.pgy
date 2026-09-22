@@ -1,0 +1,14 @@
+enum Decision {
+    Ready
+    Value(value: Int)
+
+    func StableCode(self) -> Int {
+        return 7;
+    }
+
+    Pair(left: Int, right: String)
+}
+
+func Main() -> Void {
+    Log("ok");
+}

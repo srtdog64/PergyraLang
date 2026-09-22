@@ -442,7 +442,7 @@ func ParseDeclsInto(
         }
 
         if MatchLanguageWord(content, i, LanguageWordId.WordEnum) {
-            let enum_block: String = ParseEnumDecl(content, i, cursor_out, decl_prefix);
+            let enum_block: String = ParseEnumDecl(content, i, cursor_out, decl_prefix, active_within_zone, expression_graphs, diagnostic_projection);
             i = cursor_out[0];
             ArrayPush(out_blocks, enum_block);
             ArrayPush(out_module_paths, source_path);

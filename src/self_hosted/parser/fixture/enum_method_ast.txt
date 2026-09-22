@@ -1,0 +1,16 @@
+Program:
+  Enum: Decision { Ready, Value(Int), Pair(Int, String) }
+    Function: StableCode
+      Parameters:
+        self
+      Returns: Int
+      Body:
+        Block:
+          Return: 7
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+
