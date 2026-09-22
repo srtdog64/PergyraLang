@@ -69,6 +69,37 @@ for lane in native-c native-llvm self-c self-llvm; do
     [[ -z "$leftover" ]] || fail "$lane left a staging binary: $leftover"
 done
 
+# Every lane above appends the platform suffix itself, so the request a
+# user actually types -- `-o name` with no extension -- was never
+# exercised. On Windows that request is published as "<name>.exe", and
+# invalidation has to drop the name publication writes, not the one the
+# command line spelled.
+bare_output="$WORK_DIR/bare$suffix"
+cp "$WORK_DIR/seed$suffix" "$bare_output"
+set +e
+(cd "$ROOT_DIR" && "$PGY" "$INVALID" --backend=c \
+    -o "$WORK_REL/bare") >"$WORK_DIR/bare.out" 2>"$WORK_DIR/bare.err"
+rc=$?
+set -e
+[[ "$rc" -ne 0 && ! -e "$bare_output" ]] ||
+    fail "an extension-less request kept an executable after refusal (rc=$rc)"
+
+(cd "$ROOT_DIR" && "$PGY" "$VALID" --backend=c \
+    -o "$WORK_REL/bare") >"$WORK_DIR/bare.valid.out" \
+    2>"$WORK_DIR/bare.valid.err" ||
+    fail "an extension-less request no longer compiles a valid program"
+[[ -x "$bare_output" ]] ||
+    fail "an extension-less request did not publish $bare_output"
+"$bare_output" 2>"$WORK_DIR/bare.run.err" | tr -d '\r' \
+    >"$WORK_DIR/bare.run" ||
+    fail "the extension-less executable did not run"
+printf '42\n' >"$WORK_DIR/expected.run"
+cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/bare.run" ||
+    fail "the extension-less executable changed behavior"
+leftover="$(find "$WORK_DIR" -maxdepth 1 -name '*.pgy-staging-*' | head -1)"
+[[ -z "$leftover" ]] ||
+    fail "an extension-less request left a staging binary: $leftover"
+
 # Parsing errors still have a known binary target once the full command line
 # has been read. They must not leave the previous successful output behind.
 for lane in native-c native-llvm self-c self-llvm; do

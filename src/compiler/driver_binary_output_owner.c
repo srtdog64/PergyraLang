@@ -98,8 +98,11 @@ driver_binary_output_is_source(const char *source, const char *output)
 bool
 driver_binary_output_prepare(const DriverFlags *flags)
 {
-    char *output = driver_binary_output_resolve(flags);
+    char *requested = driver_binary_output_resolve(flags);
+    char *output = driver_binary_output_published_target(requested);
     bool ok = true;
+
+    free(requested);
     if (output == NULL)
         return driver_binary_output_reject(flags,
             "binary output path could not be resolved");
@@ -171,6 +174,43 @@ driver_binary_output_refuse_invalid_args(const DriverFlags *flags)
     return 1;
 }
 
+/* The name a success publishes for a requested output path. On Windows
+ * the linker writes "<name>.exe" when the request carries no extension,
+ * so invalidation and publication read this one answer instead of
+ * deciding it twice and disagreeing. */
+char *
+driver_binary_output_published_target(const char *requested_path)
+{
+#ifdef _WIN32
+    const char *base;
+    const char *back;
+    const char *dot;
+    char       *target;
+    size_t      size;
+
+    if (requested_path == NULL)
+        return NULL;
+    base = strrchr(requested_path, '/');
+    back = strrchr(requested_path, '\\');
+    if (back != NULL && (base == NULL || back > base))
+        base = back;
+    base = base != NULL ? base + 1 : requested_path;
+    dot = strrchr(base, '.');
+    if (dot != NULL && dot != base)
+        return pergyra_strdup(requested_path);
+    size = strlen(requested_path) + 5;
+    target = malloc(size);
+    if (target == NULL)
+        return NULL;
+    snprintf(target, size, "%s.exe", requested_path);
+    return target;
+#else
+    return requested_path != NULL
+        ? pergyra_strdup(requested_path)
+        : NULL;
+#endif
+}
+
 /* The staging file sits in the destination's directory so the publishing
  * rename never crosses a filesystem, and keeps the destination's extension
  * so no toolchain appends one. On Windows a destination without an
@@ -180,6 +220,7 @@ driver_binary_output_publication_begin(const char *requested_path,
                                        DriverBinaryPublication *out)
 {
     const char *base;
+    const char *back;
     const char *dot;
     size_t stem_length;
     char suffix[64];
@@ -188,37 +229,16 @@ driver_binary_output_publication_begin(const char *requested_path,
     if (out == NULL)
         return false;
     out->staging_path = NULL;
-    out->target_path = NULL;
-    if (requested_path == NULL)
+    out->target_path =
+        driver_binary_output_published_target(requested_path);
+    if (out->target_path == NULL)
         return false;
-    base = strrchr(requested_path, '/');
-#ifdef _WIN32
-    {
-        const char *back = strrchr(requested_path, '\\');
-        if (back != NULL && (base == NULL || back > base))
-            base = back;
-    }
-#endif
-    base = base != NULL ? base + 1 : requested_path;
+    base = strrchr(out->target_path, '/');
+    back = strrchr(out->target_path, '\\');
+    if (back != NULL && (base == NULL || back > base))
+        base = back;
+    base = base != NULL ? base + 1 : out->target_path;
     dot = strrchr(base, '.');
-#ifdef _WIN32
-    if (dot == NULL || dot == base) {
-        size = strlen(requested_path) + 5;
-        out->target_path = malloc(size);
-        if (out->target_path == NULL)
-            return false;
-        snprintf(out->target_path, size, "%s.exe", requested_path);
-        base = out->target_path + (base - requested_path);
-        dot = strrchr(base, '.');
-    }
-#endif
-    if (out->target_path == NULL) {
-        out->target_path = pergyra_strdup(requested_path);
-        if (out->target_path == NULL)
-            return false;
-        base = out->target_path + (base - requested_path);
-        dot = strrchr(base, '.');
-    }
     if (dot == base)
         dot = NULL;
     stem_length = dot != NULL ? (size_t)(dot - out->target_path)

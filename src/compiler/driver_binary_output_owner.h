@@ -6,6 +6,10 @@
 /* Resolve the binary actually published by a plain C/LLVM compile request. */
 char *driver_binary_output_resolve(const DriverFlags *flags);
 
+/* The name a success publishes for a requested output path; on Windows a
+ * request without an extension is published as "<name>.exe". */
+char *driver_binary_output_published_target(const char *requested_path);
+
 /* Invalidate a previous binary before any source admission or backend work. */
 bool driver_binary_output_prepare(const DriverFlags *flags);
 
@@ -15,7 +19,8 @@ bool driver_binary_output_prepare_for_target(const DriverFlags *flags);
 
 /* A binary is built at a private staging path next to its destination and
  * published by one rename only after the toolchain succeeded; on any failure
- * no new binary appears (the old one was already dropped by prepare). */
+ * no new binary appears (prepare already dropped the published name, which
+ * driver_binary_output_published_target answers for both sides). */
 typedef struct DriverBinaryPublication {
     char *staging_path; /* where the toolchain writes */
     char *target_path;  /* what a success publishes */
