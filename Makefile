@@ -4988,6 +4988,10 @@ collection-ownership-fact-projection-test-smoke: $(PGY)
 long-literal-exactness-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/long_literal_exactness_smoke.sh
 
+.PHONY: call-argument-evaluation-order-test-smoke
+call-argument-evaluation-order-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/call_argument_evaluation_order_smoke.sh
+
 .PHONY: self-host-collection-ownership-semantic-test-smoke
 self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \

@@ -43,6 +43,76 @@ transpiler_user_call_emit_part(TranspilerCtx *ctx,
     return NULL;
 }
 
+/* An argument whose value cannot change while its siblings evaluate: a
+ * binding, a literal, or a field of a binding. */
+static bool
+transpiler_user_call_arg_is_simple(const ASTNode *arg)
+{
+    if (arg == NULL || arg->type == AST_IDENTIFIER || arg->type == AST_NUMBER
+        || arg->type == AST_STRING || arg->type == AST_BOOLEAN)
+        return true;
+    return arg->type == AST_MEMBER_ACCESS
+        && ast_member_object(arg) != NULL
+        && ast_member_object(arg)->type == AST_IDENTIFIER;
+}
+
+/* C leaves argument evaluation order unspecified and GCC evaluates right to
+ * left, while the language and LLVM evaluate left to right. When any of two
+ * or more arguments could change or observe another, bind each argument text
+ * in `args` (pieces [starts[i], ends[i])) to a temporary in order, as binary
+ * operands already are, and rewrite `args` to the temporaries. A slot
+ * argument (`inline_piece`) has no effects and stays in place. Returns the
+ * temporaries' declarations, "" when no ordering is needed, and NULL on
+ * OOM or when the pieces are not separated by exactly ", ". */
+static char *
+transpiler_user_call_order_args(ASTNode *call, CodeBuf *args,
+                                const size_t *starts, const size_t *ends,
+                                const bool *inline_piece)
+{
+    size_t count = ast_call_arg_count(call);
+    bool ordered = false;
+    for (size_t i = 0; count >= 2 && i < count; i++)
+        ordered = ordered || !transpiler_user_call_arg_is_simple(
+            ast_call_argument(call, i));
+    if (!ordered || args->data == NULL)
+        return pergyra_strdup("");
+    for (size_t i = 0; i < count; i++) {
+        if (starts[i] > ends[i] || ends[i] > args->len
+            || (i > 0 && (ends[i - 1] + 2 != starts[i]
+                || args->data[ends[i - 1]] != ','
+                || args->data[ends[i - 1] + 1] != ' ')))
+            return NULL;
+    }
+    CodeBuf *prefix = codebuf_create();
+    CodeBuf *rewritten = codebuf_create();
+    char *result = NULL;
+    if (prefix == NULL || rewritten == NULL)
+        goto done;
+    if (starts[0] > 0)
+        codebuf_write(rewritten, "%.*s", (int)starts[0], args->data);
+    for (size_t i = 0; i < count; i++) {
+        int length = (int)(ends[i] - starts[i]);
+        if (i > 0)
+            codebuf_write(rewritten, ", ");
+        if (inline_piece[i]) {
+            codebuf_write(rewritten, "%.*s", length, args->data + starts[i]);
+            continue;
+        }
+        codebuf_write(prefix, "__auto_type __pgy_arg_%u_%zu = (%.*s); ",
+            (unsigned)ast_node_stable_id(call), i, length, args->data + starts[i]);
+        codebuf_write(rewritten, "__pgy_arg_%u_%zu",
+            (unsigned)ast_node_stable_id(call), i);
+    }
+    args->len = 0;
+    args->data[0] = '\0';
+    codebuf_write(args, "%s", rewritten->data != NULL ? rewritten->data : "");
+    result = pergyra_strdup(prefix->data != NULL ? prefix->data : "");
+done:
+    codebuf_destroy(prefix);
+    codebuf_destroy(rewritten);
+    return result;
+}
+
 char *
 emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
@@ -96,6 +166,17 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return NULL;
         }
         if (host_method_meta != NULL && host_name != NULL) {
+            size_t hosted_starts[64];
+            size_t hosted_ends[64];
+            bool hosted_inline[64] = {false};
+            if (ast_call_arg_count(call) > 64) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "C backend: hosted call '%s' has more than 64 arguments",
+                    callee_name != NULL ? callee_name : "<call>");
+                return NULL;
+            }
             CodeBuf *args_buf = codebuf_create();
             codebuf_write(args_buf, "self");
             for (size_t i = 0; i < ast_call_arg_count(call); i++) {
@@ -121,12 +202,28 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     codebuf_destroy(args_buf);
                     return NULL;
                 }
-                codebuf_write(args_buf, ", %s", arg);
+                codebuf_write(args_buf, ", ");
+                hosted_starts[i] = args_buf->len;
+                codebuf_write(args_buf, "%s", arg);
+                hosted_ends[i] = args_buf->len;
                 free(arg);
             }
             {
-                char *result = strdup_fmt("%s_%s(%s)",
-                    host_name, callee_name, args_buf->data);
+                char *hosted_prefix = transpiler_user_call_order_args(
+                    call, args_buf, hosted_starts, hosted_ends, hosted_inline);
+                char *result = hosted_prefix == NULL ? NULL
+                    : hosted_prefix[0] != '\0'
+                    ? strdup_fmt("({ %s%s_%s(%s); })", hosted_prefix,
+                        host_name, callee_name, args_buf->data)
+                    : strdup_fmt("%s_%s(%s)",
+                        host_name, callee_name, args_buf->data);
+                if (hosted_prefix == NULL)
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                        "C backend: ordered arguments for '%s.%s' could not be built",
+                        host_name, callee_name != NULL ? callee_name : "<call>");
+                free(hosted_prefix);
                 codebuf_destroy(args_buf);
                 return result;
             }
@@ -254,6 +351,21 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
     }
 
+    /* Each argument's text ends at arg_ends[i]; a later one starts after
+     * the ", " separator (transpiler_user_call_order_args). */
+    size_t arg_starts[64];
+    size_t arg_ends[64];
+    bool arg_inline[64];
+    if (ast_call_arg_count(call) > 64) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: call '%s' has more than 64 arguments",
+            callee_name != NULL ? callee_name : "<call>");
+        free(callee_str);
+        intent_binding_metadata_view_dispose(&binding_metadata);
+        return NULL;
+    }
     CodeBuf *args_buf = codebuf_create();
     for (size_t i = 0; i < ast_call_arg_count(call); i++) {
         ASTNode *arg_node = ast_call_argument(call, i);
@@ -502,7 +614,23 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 codebuf_write(args_buf, "%s", arg);
             }
         }
+        arg_starts[i] = i == 0 ? 0 : arg_ends[i - 1] + 2;
+        arg_ends[i] = args_buf->len;
+        arg_inline[i] = handled;
         free(arg);
+    }
+    char *arg_prefix = transpiler_user_call_order_args(
+        call, args_buf, arg_starts, arg_ends, arg_inline);
+    if (arg_prefix == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: ordered arguments for '%s' could not be built",
+            callee_name != NULL ? callee_name : "<call>");
+        free(callee_str);
+        intent_binding_metadata_view_dispose(&binding_metadata);
+        codebuf_destroy(args_buf);
+        return NULL;
     }
 
     /* Captured-closure dispatch: a local declared with the closure struct type
@@ -518,6 +646,12 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     } else {
         result = strdup_fmt("%s(%s)", callee_str, args_buf->data);
     }
+    if (result != NULL && arg_prefix[0] != '\0') {
+        char *ordered = strdup_fmt("({ %s%s; })", arg_prefix, result);
+        free(result);
+        result = ordered;
+    }
+    free(arg_prefix);
     free(callee_str);
     intent_binding_metadata_view_dispose(&binding_metadata);
     codebuf_destroy(args_buf);

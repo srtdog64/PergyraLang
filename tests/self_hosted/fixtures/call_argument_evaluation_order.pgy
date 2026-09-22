@@ -1,0 +1,28 @@
+// Call arguments evaluate left to right on every backend. GCC evaluates C
+// arguments right to left, so native C printed "c b a" and 21 here while
+// LLVM printed "a b c" and 22.
+func Tag(t: String) -> Int {
+    Log(t);
+    return 1;
+}
+
+func Sum(a: Int, b: Int, c: Int) -> Int {
+    return a + b + c;
+}
+
+func Bump(inout n: Int) -> Int {
+    n = n + 1;
+    return n;
+}
+
+func Pair(x: Int, y: Int) -> Int {
+    return x * 10 + y;
+}
+
+func Main() -> Void {
+    Log(Sum(Tag("a"), Tag("b"), Tag("c")));
+    let n: Int = 1;
+    Log(Pair(Bump(n), n));
+    let m: Int = 1;
+    Log(Pair(m, Bump(m)));
+}
