@@ -16,6 +16,12 @@ PARITY_DIR="$ROOT_DIR/tests/self_hosted/parity"
 
 bash "$SCRIPT_DIR/self_hosted_component_checker_smoke.sh"
 
+# A generated self-hosted source that no longer matches its native authority
+# is a structural inventory fact, and this checker had no CI caller at all:
+# the Never primitive reached src/semantic/type_system.c and the projection
+# stayed behind for three days without a gate noticing.
+python3 "$ROOT_DIR/scripts/render_native_primitive_type_projection.py" --check
+
 # Zone effect/relation slots are nominal field facts. Dropping either label
 # reopens a parser-text classification hole and erases the slot before MIR.
 grep -Fq 'StartsWith(text, "EffectSlot:")' \

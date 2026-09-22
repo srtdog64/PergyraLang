@@ -12,6 +12,7 @@ func SemanticNativePrimitiveTypeName(name: String) -> Bool {
     if name == "projection" { return true; }
     if name == "QubitSlot" { return true; }
     if name == "Void" { return true; }
+    if name == "Never" { return true; }
     if name == "<unknown>" { return true; }
     if name == "Array" { return true; }
     if name == "Slice" { return true; }
