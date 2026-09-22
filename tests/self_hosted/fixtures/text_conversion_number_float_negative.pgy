@@ -1,0 +1,8 @@
+// ToFloat parses text; a number is refused (docs/205 section 11.2). A
+// numeric conversion is spelled `value as Float`.
+func Main() -> Void {
+    let f: Float = ToFloat(2);
+    if f > 1.0 {
+        Log("big");
+    }
+}

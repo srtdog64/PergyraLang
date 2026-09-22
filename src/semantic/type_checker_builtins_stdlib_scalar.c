@@ -346,13 +346,16 @@ stdlib_scalar_check_string_split(ASTNode *expr, const char *name,
     return type_create_constructed(TYPE_ARRAY, args, 1);
 }
 
+/* ToInt and ToFloat parse text: the runtime reads the argument as a C
+ * string, so a number reached it as a pointer and crashed. A numeric
+ * conversion is spelled `value as Int` / `value as Float`. */
 static Type *
 stdlib_scalar_check_to_int(ASTNode *expr, const char *name,
                            SemanticContext *ctx)
 {
     if (!check_call_arity(expr, 1, name, ctx))
         return TYPE_UNKNOWN;
-    type_check_expression(ast_call_argument(expr, 0), ctx);
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
     return TYPE_INT;
 }
 
@@ -362,7 +365,7 @@ stdlib_scalar_check_to_float(ASTNode *expr, const char *name,
 {
     if (!check_call_arity(expr, 1, name, ctx))
         return TYPE_UNKNOWN;
-    type_check_expression(ast_call_argument(expr, 0), ctx);
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
     return TYPE_FLOAT;
 }
 

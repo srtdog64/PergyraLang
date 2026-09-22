@@ -1,0 +1,6 @@
+// ToInt parses text; a number is refused (docs/205 section 11.2). A
+// numeric conversion is spelled `value as Int`.
+func Main() -> Void {
+    let n: Int = ToInt(1);
+    Log(ToString(n));
+}

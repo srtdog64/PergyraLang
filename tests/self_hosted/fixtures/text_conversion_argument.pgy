@@ -1,0 +1,9 @@
+// ToInt and ToFloat parse text (docs/205 section 11.2).
+func Main() -> Void {
+    let n: Int = ToInt("12");
+    Log(ToString(n + 1));
+    let f: Float = ToFloat("2.5");
+    if f > 2.0 {
+        Log("float ok");
+    }
+}

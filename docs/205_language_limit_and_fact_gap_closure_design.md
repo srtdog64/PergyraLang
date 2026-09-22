@@ -472,3 +472,11 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
   픽스처의 모양을 아직 받지 않고 거부한다. 틀린 순서로 도는 경로는 없다.
 - 남은 것: member 호출의 receiver는 제자리에서 평가된다. 동적 ability 호출(vtable)은 이 경로를
   타지 않는다.
+
+### 11.2 `ToInt`/`ToFloat`는 문자열만 받는다
+
+런타임의 `ToInt`/`ToFloat`는 인자를 C 문자열로 읽는다. 두 컴파일러가 인자 타입을 보지 않아서
+`ToInt(1)`이 컴파일되고 실행 중에 죽었다(native C, 기본 C). 이제 두 컴파일러 모두 String 인자만
+받는다. 숫자 변환은 `value as Int`다. 게이트는
+`tests/self_hosted/parity/text_conversion_argument_owner.sh`다. 문자열 변환은 native C/LLVM과
+기본 C 경로에서 돌고, 숫자 인자는 두 front end 모두 바이너리 없이 거부한다.
