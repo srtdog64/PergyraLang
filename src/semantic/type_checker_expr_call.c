@@ -133,8 +133,16 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         bool program_function = callable_decl != NULL
             && callable_decl->type == AST_FUNC_DECL
             && !pgy_match_variant_is_builtin(pgy_match_variant_lookup(name));
+        /* Inside a method the host's methods are the nearer scope, so a
+         * bare call reaches one before a builtin of the same spelling. A
+         * reserved spelling means the builtin in every bare call; the
+         * method stays reachable as self.Name(..). */
+        ASTNode *host_method = value_binding
+                || semantic_builtin_name_reserved_family(name) != NULL
+            ? NULL
+            : expr_current_host_method_decl(ctx, name);
         BuiltinKind bk = value_binding || user_class_overrides_builtin
-                || program_function
+                || program_function || host_method != NULL
             ? BUILTIN_NOT_BUILTIN
             : builtin_resolve(name);
         if ((value_binding && sym->decl_syntax_id == 0)
@@ -162,14 +170,13 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         if (value_binding)
             return type_check_function_symbol_call(expr, sym, name, ctx);
 
-        {
-            ASTNode *host_method = expr_current_host_method_decl(ctx, name);
-            if (host_method != NULL)
-                return expr_type_check_host_method_call(expr, host_method, ctx);
+        if (host_method != NULL) {
+            (void)ast_call_set_semantic_callee_declared_callable(expr, true);
+            return expr_type_check_host_method_call(expr, host_method, ctx);
         }
 
         if (program_function) {
-            (void)ast_call_set_semantic_callee_program_function(expr, true);
+            (void)ast_call_set_semantic_callee_declared_callable(expr, true);
             return type_check_function_symbol_call(expr, sym, name, ctx);
         }
 

@@ -353,11 +353,17 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         if (member_type != NULL || ctx->has_error)
             return member_type;
     }
-    /* Semantic chose the program function over a builtin or stdlib
-     * operation of the same spelling (docs/205 R7): its declared return
-     * type owns the result. */
-    if (ast_call_semantic_callee_program_function(expr)) {
+    /* Semantic chose a declaration over a builtin or stdlib operation of
+     * the same spelling (docs/205 R7): its declared return type owns the
+     * result. */
+    if (ast_call_semantic_callee_declared_callable(expr)) {
         const char *callee = ast_identifier_name(callee_node);
+        if (llvm_current_host_class_name(ctx) != NULL) {
+            LLVMTypeRef method_ret = llvm_stmt_host_method_return_type(
+                ctx, llvm_current_host_class_name(ctx), callee);
+            if (method_ret != NULL)
+                return method_ret;
+        }
         LLVMFuncEntry *fn = llvm_stmt_lookup_visible_function(ctx, callee);
         if (fn != NULL)
             return fn->ret_type;
@@ -368,7 +374,7 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     }
     if (callee_node != NULL && callee_node->type == AST_IDENTIFIER
         && ast_identifier_name(callee_node) != NULL
-        && !ast_call_semantic_callee_program_function(expr)) {
+        && !ast_call_semantic_callee_declared_callable(expr)) {
         const char *callee = ast_identifier_name(callee_node);
         PgyCodegenMatchVariantKind match_variant =
             pgy_codegen_match_variant_lookup(callee);

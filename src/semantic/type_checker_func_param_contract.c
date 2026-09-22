@@ -217,10 +217,11 @@ type_check_func_validate_param_boundary(ASTNode *node,
     }
 }
 
-/* The family that reserves a builtin spelling from top-level functions, or
- * NULL when a program function may take it (docs/205 R7). */
-static const char *
-builtin_name_reserved_family(const char *name)
+/* The family that reserves a builtin spelling from top-level functions and
+ * bare host-method calls, or NULL when a declaration may take it
+ * (docs/205 R7). */
+const char *
+semantic_builtin_name_reserved_family(const char *name)
 {
     static const struct { const char *family; const char *name; } rows[] = {
 #define PGY_BUILTIN_NAME_RESERVED(family, source_name) {#family, source_name},
@@ -251,7 +252,7 @@ void
 type_check_func_validate_builtin_name(ASTNode *node, SemanticContext *ctx,
                                       const char *name)
 {
-    const char *family = builtin_name_reserved_family(name);
+    const char *family = semantic_builtin_name_reserved_family(name);
 
     if (family == NULL)
         return;

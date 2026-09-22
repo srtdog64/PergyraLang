@@ -341,13 +341,13 @@ mir_source_call_is_pure_query(const char *callee)
                    sizeof(k_pure_query_builtins[0]), mir_string_pointer_compare) != NULL;
 }
 
-/* A pure query builtin's call statement has no effect. A program function
- * spelled the same way is an ordinary call; semantic recorded which one the
- * call resolved to (docs/205 R7). */
+/* A pure query builtin's call statement has no effect. A declared function
+ * or method spelled the same way is an ordinary call; semantic recorded which
+ * one the call resolved to (docs/205 R7). */
 static bool
 mir_instruction_call_stmt_is_pure_query(const MIRInstruction *inst)
 {
-    return !ast_call_semantic_callee_program_function(inst->expr0)
+    return !ast_call_semantic_callee_declared_callable(inst->expr0)
         && mir_source_call_is_pure_query(inst->arg0);
 }
 

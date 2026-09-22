@@ -260,11 +260,12 @@ bool ast_call_set_semantic_callee_is_stdlib(ASTNode *node, bool is_stdlib);
 /* A call statement whose type is Never: its path ends at the call. */
 bool ast_call_semantic_diverges(const ASTNode *node);
 bool ast_call_set_semantic_diverges(ASTNode *node, bool diverges);
-/* Semantic resolved the identifier callee to a function declared in the
- * program, over any builtin or stdlib operation spelled the same way. */
-bool ast_call_semantic_callee_program_function(const ASTNode *node);
-bool ast_call_set_semantic_callee_program_function(ASTNode *node,
-                                                   bool program_function);
+/* Semantic resolved the identifier callee to a declaration in the program
+ * (a top-level function or the enclosing host's method), over any builtin
+ * or stdlib operation spelled the same way. */
+bool ast_call_semantic_callee_declared_callable(const ASTNode *node);
+bool ast_call_set_semantic_callee_declared_callable(ASTNode *node,
+                                                   bool declared);
 bool ast_call_set_semantic_callee_decl_id(ASTNode* node, uint32_t decl_id);
 uint32_t ast_call_semantic_callee_value_binding_id(const ASTNode *node);
 bool ast_call_set_semantic_callee_value_binding_id(ASTNode *node, uint32_t binding_id);

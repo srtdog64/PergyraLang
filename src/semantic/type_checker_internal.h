@@ -195,6 +195,7 @@ void type_check_func_validate_identifier_hygiene(ASTNode *node,
                                                  const char *role,
                                                  const char *name);
 /* docs/205 R7: builtin spellings a top-level function may not take. */
+const char *semantic_builtin_name_reserved_family(const char *name);
 void type_check_func_validate_builtin_name(ASTNode *node,
                                            SemanticContext *ctx,
                                            const char *name);

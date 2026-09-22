@@ -98,18 +98,18 @@ ast_call_set_semantic_diverges(ASTNode *node, bool diverges)
 }
 
 bool
-ast_call_semantic_callee_program_function(const ASTNode *node)
+ast_call_semantic_callee_declared_callable(const ASTNode *node)
 {
     return node != NULL && node->type == AST_CALL
-        && node->data.call.semantic_callee_program_function;
+        && node->data.call.semantic_callee_declared_callable;
 }
 
 bool
-ast_call_set_semantic_callee_program_function(ASTNode *node,
-                                              bool program_function)
+ast_call_set_semantic_callee_declared_callable(ASTNode *node,
+                                              bool declared)
 {
     if (node == NULL || node->type != AST_CALL) return false;
-    node->data.call.semantic_callee_program_function = program_function;
+    node->data.call.semantic_callee_declared_callable = declared;
     return true;
 }
 

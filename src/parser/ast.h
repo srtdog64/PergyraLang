@@ -249,7 +249,7 @@ struct ASTNode
             bool           semantic_runtime_call_abi_id_set;
             bool           uses_braced_initializer_syntax;
             bool           semantic_diverges; /* statement call typed Never (docs/205 L1) */
-            bool           semantic_callee_program_function; /* docs/205 R7 */
+            bool           semantic_callee_declared_callable; /* docs/205 R7 */
         } call;
         
         /* Member access */

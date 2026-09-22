@@ -125,6 +125,48 @@ for leg in native-c native-llvm default-c default-llvm; do
         fail "$leg did not run every program function (diff $WORK_REL/shadow.expected $WORK_REL/shadow-$leg.out)"
 done
 
+# --- a host method takes a shadowable spelling too (native legs) ----------
+# Inside a method the host's methods are the nearer scope, so a bare call to
+# one reaches it before a builtin of the same spelling. The default route
+# does not resolve bare method calls at all yet, so only native legs run.
+HOST_PROGRAM="$WORK_DIR/host.pgy"
+HOST_EXPECTED="$WORK_DIR/host.expected"
+{
+    printf 'class Host {\n    let base: Int;\n\n'
+    index=0
+    while read -r name; do
+        base=$(( (index + 1) * 1000 ))
+        printf '    func %s(self, x: Int) -> Int {\n        Log(x + %d);\n        return self.base + x + %d;\n    }\n\n' \
+            "$name" "$(( base + 100 ))" "$(( base + 41 ))"
+        index=$(( index + 1 ))
+    done < "$SHADOW_NAMES"
+    printf '    func Total(self) -> Void {\n'
+    index=0
+    while read -r name; do
+        printf '        let r%d: Int = %s(1);\n        Log(r%d);\n        %s(3);\n' \
+            "$index" "$name" "$index" "$name"
+        index=$(( index + 1 ))
+    done < "$SHADOW_NAMES"
+    printf '    }\n}\n\nfunc Main() -> Void {\n    let host: Host = Host(0);\n    host.Total();\n}\n'
+} > "$HOST_PROGRAM"
+: > "$HOST_EXPECTED"
+index=0
+while read -r name; do
+    base=$(( (index + 1) * 1000 ))
+    printf '%d\n%d\n%d\n' "$(( base + 101 ))" "$(( base + 42 ))" "$(( base + 103 ))" >> "$HOST_EXPECTED"
+    index=$(( index + 1 ))
+done < "$SHADOW_NAMES"
+for leg in native-c native-llvm; do
+    out_rel="$WORK_REL/host-$leg.exe"
+    (cd "$ROOT_DIR" && "$PGY" "$WORK_REL/host.pgy" --native-pipeline \
+        --backend="${leg#native-}" -o "$out_rel") >"$WORK_DIR/host-$leg.log" 2>&1 ||
+        fail "$leg refused the host-method program (see $WORK_REL/host-$leg.log)"
+    "$ROOT_DIR/$out_rel" </dev/null 2>&1 | tr -d '\r' >"$WORK_DIR/host-$leg.out" ||
+        fail "$leg host-method program exited non-zero"
+    cmp -s "$HOST_EXPECTED" "$WORK_DIR/host-$leg.out" ||
+        fail "$leg did not run every host method (diff $WORK_REL/host.expected $WORK_REL/host-$leg.out)"
+done
+
 # --- reserved names are refused, one per family ---------------------------
 for entry in CAPABILITY:Now RUNTIME_ABI:Sqrt RESOURCE:Read STATEMENT_FORM:Log CONSTRUCTOR:Ok TYPED_PROTOCOL:MapKeys; do
     family="${entry%%:*}"
@@ -151,4 +193,4 @@ for entry in CAPABILITY:Now RUNTIME_ABI:Sqrt RESOURCE:Read STATEMENT_FORM:Log CO
     done
 done
 
-echo "[$LABEL] $(wc -l < "$WORK_DIR/shadow.names") shadowable names run the program function and 6 reserved families refuse, on native and default C/LLVM: PASS"
+echo "[$LABEL] $(wc -l < "$WORK_DIR/shadow.names") shadowable names run the program function (native and default C/LLVM) and the host method (native C/LLVM); 6 reserved families refuse: PASS"

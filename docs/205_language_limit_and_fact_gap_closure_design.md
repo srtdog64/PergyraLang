@@ -394,7 +394,7 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
 
 - **top-level 함수가 빌트인·stdlib 철자를 가린다.** 새 빌트인이 생겨도 그 이름을 쓰던
   프로그램이 깨지지 않는다. native semantic이 결정하고 호출 노드에
-  `semantic_callee_program_function` fact를 싣는다. C·LLVM emitter, 두 백엔드의 호출 타입
+  `semantic_callee_declared_callable` fact를 싣는다. C·LLVM emitter, 두 백엔드의 호출 타입
   추론, MIR의 부작용 판정(`mir_source_shape.c`), C `let` Box 방출은 이 fact를 읽고 이름으로
   다시 고르지 않는다. self-host는 함수 표가 그 함수가 가져간 빌트인 행을 싣지 않는다
   (`semantic/builtin_shadow_owner.pgy`).
@@ -437,6 +437,17 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
   `tests/alpha_full_keyword_test.pgy`의 `Max`는 `Larger`로, semantic 단위 테스트의 top-level
   `Read`는 `Inspect`로 바꿨다. `tests/concept_semantics/hashmap/shadowed_map_keys_drop.pgy`
   (`MapKeys`)는 이제 선언에서 거부된다.
-- 남은 것: method와 ability 구현은 이 규칙 밖이다(owner가 있는 함수). native C의 사용자 함수
-  이름과 런타임 심볼의 충돌은 빌트인 철자가 아닌 이름에도 있을 수 있다(`SlotRead` 등). 이것은
-  emitted-name 소유 문제이고 여기서 닫지 않는다.
+- 남은 것(10.5에서 다룸): method의 bare 호출, 빌트인 철자가 아닌 이름과 런타임 심볼의 충돌.
+
+### 10.5 host method와 런타임 심볼
+
+- **host method도 빌트인 철자를 가린다.** method 본문 안의 bare 호출 `Clone(1)`은 native에서
+  host의 `Clone` method가 아니라 빌트인이 됐다. 코퍼스에서 `Abs`, `Clone`, `ToString`, `Trim`을
+  포함해 30개 이름이 틀린 값을 냈다. 이제 host의 method가 더 가까운 scope이므로 먼저 잡힌다.
+  예약 철자는 bare 호출에서 언제나 빌트인이고, 같은 이름의 method는 `self.Name(..)`으로 부른다.
+  fact 이름은 `semantic_callee_declared_callable`(top-level 함수 또는 host method)로 바꿨다.
+  기본 경로는 bare method 호출 자체를 아직 해석하지 못한다(`call_arity_mismatch`). 이 차이는
+  빌트인 이름과 무관한 기존 공백이라 게이트는 native C/LLVM만 본다.
+- **런타임 심볼.** 런타임 라이브러리 object가 export하는 PascalCase 심볼 42개를 `nm`으로 뽑았다.
+  모두 `RUNTIME_ABI` 또는 `CAPABILITY` 가족에 이미 들어 있다. 빌트인이 아닌 이름(`SlotRead` 등)은
+  네 경로 모두에서 컴파일되고 돈다.

@@ -159,6 +159,62 @@ transpiler_infer_function_decl_call_type_name(TranspilerCtx *ctx,
     return "Unknown";
 }
 
+/* A call semantic resolved to a declaration: the host's method first, the
+ * way semantic chose it, then the program function. */
+static const char *
+transpiler_infer_declared_call_type_name(TranspilerCtx *ctx, ASTNode *expr,
+                                         const char *name)
+{
+    ASTNode *decl = find_callable_decl(ctx, name);
+    {
+        ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
+        const char *host_name = transpiler_decl_name_local(host_decl);
+        const MIRDeclMethod *host_method_meta =
+            transpiler_find_host_method_metadata_in_context(
+                ctx, host_name, name);
+        ASTNode *host_return_type = NULL;
+        const char *host_return_type_name =
+            transpiler_mir_decl_method_return_type_name(
+                host_method_meta);
+        if (host_decl != NULL
+            && host_name != NULL
+            && host_method_meta == NULL
+            && decl == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing hosted self-call inference method metadata for '%s.%s'",
+                host_name,
+                name != NULL ? name : "(anonymous)");
+            return "Unknown";
+        }
+        if (!transpiler_mir_decl_method_metadata_complete_for(ctx,
+                host_method_meta,
+                host_name,
+                name,
+                TRANSPILER_MIR_DECL_METHOD_REQUIRE_RETURN_TYPE_NAME,
+                "MIR-only C path missing hosted self-call inference return type-name metadata for '%s.%s'",
+                NULL)) {
+            return "Unknown";
+        }
+        if (host_return_type_name != NULL) {
+            return transpiler_infer_arena_copy_type_name(
+                ctx, host_return_type_name);
+        }
+        host_return_type =
+            transpiler_mir_decl_method_return_type(host_method_meta);
+        if (host_return_type != NULL) {
+            char *resolved =
+                render_type_name_in_ctx(ctx, host_return_type);
+            const char *copied =
+                transpiler_infer_arena_copy_type_name(ctx, resolved);
+            free(resolved);
+            return copied != NULL ? copied : "Unknown";
+        }
+    }
+
+    return transpiler_infer_function_decl_call_type_name(
+        ctx, expr, name, decl);
+}
+
 const char *
 transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
 {
@@ -241,13 +297,11 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
         }
     }
 
-    /* Semantic chose the program function over a builtin or stdlib
-     * operation of the same spelling (docs/205 R7). */
-    if (ast_call_semantic_callee_program_function(expr)) {
-        const char *name = ast_identifier_name(ast_call_callee(expr));
-        return transpiler_infer_function_decl_call_type_name(
-            ctx, expr, name, find_callable_decl(ctx, name));
-    }
+    /* Semantic chose a declaration over a builtin or stdlib operation of
+     * the same spelling (docs/205 R7). */
+    if (ast_call_semantic_callee_declared_callable(expr))
+        return transpiler_infer_declared_call_type_name(
+            ctx, expr, ast_identifier_name(ast_call_callee(expr)));
 
     if (ast_call_callee(expr) != NULL
         && ast_call_callee(expr)->type == AST_IDENTIFIER
@@ -469,56 +523,7 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
         }
         if (transpiler_has_known_nominal_type(ctx, name))
             return name;
-        {
-            ASTNode *decl = find_callable_decl(ctx, name);
-            {
-                ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
-                const char *host_name = transpiler_decl_name_local(host_decl);
-                const MIRDeclMethod *host_method_meta =
-                    transpiler_find_host_method_metadata_in_context(
-                        ctx, host_name, name);
-                ASTNode *host_return_type = NULL;
-                const char *host_return_type_name =
-                    transpiler_mir_decl_method_return_type_name(
-                        host_method_meta);
-                if (host_decl != NULL
-                    && host_name != NULL
-                    && host_method_meta == NULL
-                    && decl == NULL) {
-                    transpiler_set_mir_inventory_missing(ctx,
-                        "MIR-only C path missing hosted self-call inference method metadata for '%s.%s'",
-                        host_name,
-                        name != NULL ? name : "(anonymous)");
-                    return "Unknown";
-                }
-                if (!transpiler_mir_decl_method_metadata_complete_for(ctx,
-                        host_method_meta,
-                        host_name,
-                        name,
-                        TRANSPILER_MIR_DECL_METHOD_REQUIRE_RETURN_TYPE_NAME,
-                        "MIR-only C path missing hosted self-call inference return type-name metadata for '%s.%s'",
-                        NULL)) {
-                    return "Unknown";
-                }
-                if (host_return_type_name != NULL) {
-                    return transpiler_infer_arena_copy_type_name(
-                        ctx, host_return_type_name);
-                }
-                host_return_type =
-                    transpiler_mir_decl_method_return_type(host_method_meta);
-                if (host_return_type != NULL) {
-                    char *resolved =
-                        render_type_name_in_ctx(ctx, host_return_type);
-                    const char *copied =
-                        transpiler_infer_arena_copy_type_name(ctx, resolved);
-                    free(resolved);
-                    return copied != NULL ? copied : "Unknown";
-                }
-            }
-
-            return transpiler_infer_function_decl_call_type_name(
-                ctx, expr, name, decl);
-        }
+        return transpiler_infer_declared_call_type_name(ctx, expr, name);
     }
 
     return "Unknown";

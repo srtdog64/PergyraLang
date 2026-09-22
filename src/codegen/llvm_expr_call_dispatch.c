@@ -57,10 +57,10 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
      * global function. Missing callable facts must not reopen that route. */
     if (ast_call_semantic_callee_value_binding_id(node) != 0)
         return llvm_emit_callable_variable_call(node, ctx, callee_name);
-    /* Semantic chose the program function over a builtin or stdlib
-     * operation of the same spelling (docs/205 R7); no builtin route below
-     * may claim the call by its name. */
-    if (ast_call_semantic_callee_program_function(node))
+    /* Semantic chose a declaration (the host's method or a program
+     * function) over a builtin or stdlib operation of the same spelling
+     * (docs/205 R7); no builtin route below may claim the call by name. */
+    if (ast_call_semantic_callee_declared_callable(node))
         goto emit_declared_callable;
 
     LLVMCallInlineOp inline_op = llvm_call_inline_lookup(callee_name, argc);
@@ -192,6 +192,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (task_channel_call != NULL)
             return task_channel_call;
     }
+emit_declared_callable:;
     if (callee_node->type == AST_IDENTIFIER) {
         LLVMValueRef hosted_call =
             llvm_emit_hosted_self_call(node, ctx, callee_name);
@@ -201,7 +202,6 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return hosted_call;
     }
 
-emit_declared_callable:;
     ASTNode *callable_decl = llvm_find_callable_decl(ctx, callee_name);
     ASTNode *decl = callable_decl != NULL
         && callable_decl->type == AST_FUNC_DECL ? callable_decl : NULL;
