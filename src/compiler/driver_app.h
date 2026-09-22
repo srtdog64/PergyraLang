@@ -85,6 +85,7 @@ typedef struct
     bool        check_only;   /* Package/tooling command: validate through MIR/AIR without backend output. */
     bool        verbose;
     bool        repl;
+    bool        invalid_args; /* the command line failed to parse; see driver_binary_output_owner.c */
     bool        emit_debug_lines;  /* --debug-lines: #line directives in C */
     BackendKind backend;
     PgyOptProfile opt_profile;

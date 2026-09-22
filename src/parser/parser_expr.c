@@ -384,6 +384,15 @@ ASTNode* parse_unary(Parser* parser) {
         parser_match(parser, TOKEN_AMP) ||
         parser_match(parser, TOKEN_REFLECT)) {
         Token op = parser->previous_token;
+        /* The magnitude of INT64_MIN is not a positive Long value. Fold only
+         * this signed spelling before the positive-literal range check. */
+        if (op.type == TOKEN_MINUS && parser_check(parser, TOKEN_NUMBER)
+            && parser->current_token.text != NULL
+            && strcmp(parser->current_token.text,
+                "9223372036854775808L") == 0) {
+            parser_advance(parser);
+            return ast_create_number("-9223372036854775808L");
+        }
         ASTNode* right = parse_unary(parser);
         return ast_create_unary(op, right);
     }
@@ -491,6 +500,11 @@ ASTNode* parser_parse_primary(Parser* parser) {
     if (parser_match(parser, TOKEN_NUMBER)) {
         Token num = parser->previous_token;
         ASTNode* number = ast_create_number(num.text);
+        if (number == NULL) {
+            parser_error(parser,
+                "Long literal is outside the signed 64-bit range");
+            return NULL;
+        }
         /* Duration literal (docs/181 SS2.3): `<digits><unit>` with no
          * space. The previous path ATE the unit and kept the bare
          * number -- 1500ms silently meant 1500 -- which is exactly the

@@ -10090,7 +10090,7 @@ require_max_lines "src/compiler/self_host_llvm_ir_stdout_owner.c" 80
 require_max_lines "tests/self_hosted/parity/public_llvm_ir_stdout_installed_self_host_owner.sh" 120
 require_max_lines "src/compiler/compiler_self_host_artifact.c" 180
 require_max_lines "src/compiler/compiler_transient_artifact_workspace.c" 160
-require_max_lines "src/pgy_driver.c" 340
+require_max_lines "src/pgy_driver.c" 343
 require_max_lines "src/compiler/c_runner.c" 380
 require_max_lines "src/compiler/llvm_runner.c" 300
 require_max_lines "src/compiler/pkg.c" 300

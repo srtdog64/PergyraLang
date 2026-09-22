@@ -159,6 +159,15 @@ ast_number_value(const ASTNode* node)
     return node->data.number.value;
 }
 
+int64_t
+ast_number_exact_long_value(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_NUMBER
+        || !node->data.number.is_long)
+        return 0;
+    return node->data.number.exact_long_value;
+}
+
 bool
 ast_number_is_long(const ASTNode* node)
 {
@@ -189,6 +198,7 @@ ast_number_make_duration(ASTNode* node, double ns_value)
     if (node == NULL || node->type != AST_NUMBER)
         return false;
     node->data.number.value = ns_value;
+    node->data.number.exact_long_value = (int64_t)ns_value;
     node->data.number.is_long = true;
     node->data.number.is_float = false;
     node->data.number.is_duration = true;

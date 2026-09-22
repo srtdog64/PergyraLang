@@ -901,6 +901,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/compiler_transient_artifact_workspace.c \
                    $(COMPILER_DIR)/driver_self_host_selection_owner.c \
                    $(COMPILER_DIR)/driver_self_host_llvm_selection_owner.c \
+                   $(COMPILER_DIR)/driver_binary_output_owner.c \
                    $(COMPILER_DIR)/self_host_driver.c \
                    $(COMPILER_DIR)/self_host_source_stdout_owner.c \
                    $(COMPILER_DIR)/self_host_debug_driver.c \
@@ -4481,6 +4482,8 @@ self-host-public-debug-replacement-test-smoke: $(PGY) self-host-compiler
 self-host-installed-driver-cli-mode-test-smoke: self-host-public-machine-manifest-replacement-test-smoke self-host-source-inspection-opt-profile-test-smoke self-host-mir-opt-profile-test-smoke self-host-llvm-ir-opt-profile-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/installed_driver_cli_mode_owner.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/binary_output_refusal_owner.sh
 
 self-host-default-c-emit-replacement-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
@@ -4980,6 +4983,10 @@ hashmap-admission-test-smoke: $(PGY) self-host-compiler
 .PHONY: collection-ownership-fact-projection-test-smoke
 collection-ownership-fact-projection-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/collection_ownership_fact_projection_smoke.sh
+
+.PHONY: long-literal-exactness-test-smoke
+long-literal-exactness-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/long_literal_exactness_smoke.sh
 
 .PHONY: self-host-collection-ownership-semantic-test-smoke
 self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-compiler

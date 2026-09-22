@@ -5,6 +5,7 @@
 
 #include "ast_constructors_internal.h"
 #include "../common/string_compat.h"
+#include "../common/numeric_parse.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -573,16 +574,17 @@ ASTNode* ast_create_assignment(ASTNode* target, ASTNode* value) {
 // Literal constructors
 // Number literal
 ASTNode* ast_create_number(const char* value) {
+    size_t len = value != NULL ? strlen(value) : 0;
+    bool is_long = len > 0 && value[len - 1] == 'L';
+    int64_t exact_long_value = 0;
+    if (is_long && !pgy_parse_i64_with_suffix(value, 'L', &exact_long_value))
+        return NULL;
     ASTNode* node = ast_create_node(AST_NUMBER);
-    node->data.number.is_long = false;
+    node->data.number.is_long = is_long;
     node->data.number.is_float = false;
+    node->data.number.exact_long_value = exact_long_value;
     if (value != NULL) {
-        size_t len = strlen(value);
         node->data.number.is_float = strchr(value, '.') != NULL;
-        if (len > 0 && value[len - 1] == 'L') {
-            node->data.number.is_long = true;
-            /* strtod stops at 'L' automatically, so no need to strip. */
-        }
     }
     node->data.number.value = strtod(value, NULL);
     return node;

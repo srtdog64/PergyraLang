@@ -13,6 +13,7 @@
 #include "compiler.h"
 #include "compiler_toolchain.h"
 #include "compiler_transient_artifact_workspace.h"
+#include "driver_binary_output_owner.h"
 #include "driver_app.h"
 #include "path_utils.h"
 #include "self_host_llvm_driver.h"
@@ -36,20 +37,6 @@ static bool
 llvm_path_has_object_suffix(const char *path)
 {
     return llvm_path_has_suffix(path, ".o") || llvm_path_has_suffix(path, ".obj");
-}
-
-static char *
-llvm_resolve_runnable_binary_path(const char *binary_path, bool do_run)
-{
-    if (binary_path == NULL)
-        return NULL;
-    if (!do_run || !llvm_path_has_object_suffix(binary_path))
-        return pergyra_strdup(binary_path);
-#ifdef _WIN32
-    return path_replace_extension(binary_path, ".exe");
-#else
-    return pergyra_strdup(binary_path);
-#endif
 }
 
 int
@@ -80,9 +67,7 @@ llvm_runner_execute_installed_self_host_llvm(
     requested_path = flags->output_path != NULL
         ? pergyra_strdup(flags->output_path)
         : path_default_binary(flags->source_path);
-    binary_path = llvm_resolve_runnable_binary_path(
-        requested_path, flags->do_run
-    );
+    binary_path = driver_binary_output_resolve(flags);
     if (requested_path == NULL || binary_path == NULL) {
         fprintf(stderr, "pgy: out of memory\n");
         free(requested_path);
@@ -96,15 +81,7 @@ llvm_runner_execute_installed_self_host_llvm(
                 requested_path, binary_path);
     }
     free(requested_path);
-    if (!pgy_path_is_safe(binary_path)) {
-        fprintf(stderr, "pgy: unsafe self-host LLVM output path\n");
-        compiler_transient_artifact_workspace_close(&workspace);
-        free(binary_path);
-        return 1;
-    }
-    if (path_file_exists(binary_path) && remove(binary_path) != 0) {
-        fprintf(stderr,
-                "pgy: could not remove the stale self-host LLVM output\n");
+    if (!driver_binary_output_prepare(flags)) {
         compiler_transient_artifact_workspace_close(&workspace);
         free(binary_path);
         return 1;
@@ -194,7 +171,7 @@ llvm_runner_execute(const DriverFlags *flags,
         ? pergyra_strdup(flags->output_path)
         : path_default_binary(flags->source_path);
     bool output_looks_object = llvm_path_has_object_suffix(bin_path);
-    char *runnable_bin_path = llvm_resolve_runnable_binary_path(bin_path, flags->do_run);
+    char *runnable_bin_path = driver_binary_output_resolve(flags);
     char *obj_path = bin_path != NULL
         ? (llvm_path_has_object_suffix(bin_path)
            ? pergyra_strdup(bin_path)

@@ -18,6 +18,7 @@
 #include "compiler/self_host_machine_manifest_artifact_owner.h"
 #include "compiler/driver_self_host_selection_owner.h"
 #include "compiler/driver_self_host_llvm_selection_owner.h"
+#include "compiler/driver_binary_output_owner.h"
 #include "compiler/self_host_llvm_ir_artifact_owner.h"
 #include "compiler/self_host_llvm_ir_stdout_owner.h"
 #include "compiler/self_host_mir_diagnostic_stdout_owner.h"
@@ -158,31 +159,31 @@ parse_args(int argc, char *argv[])
             fprintf(stderr,
                     "pgy: unknown runtime mode '%s' (expected --runtime=default or --runtime=none)\n",
                     argv[i] + 10);
-            exit(1);
+            f.invalid_args = true;
         } else if (strcmp(argv[i], "-o") == 0) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "pgy: -o requires an argument\n");
-                exit(1);
+                f.invalid_args = true;
             }
-            f.output_path = argv[++i];
+            f.output_path = argv[++i]; /* argv[argc] is NULL */
         } else if (argv[i][0] != '-') {
             f.source_path = argv[i];
         } else {
             fprintf(stderr, "pgy: unknown option '%s'\n", argv[i]);
-            exit(1);
+            f.invalid_args = true;
         }
     }
 
     if (f.source_path == NULL && !f.repl
         && !f.dump_machine_manifest_json) {
         driver_print_usage();
-        exit(1);
+        f.invalid_args = true;
     }
 
 #ifndef PGY_LLVM_ENABLED
     if (f.emit_llvm_ir) {
         fprintf(stderr, "pgy: this build was compiled without LLVM backend support\n");
-        exit(1);
+        f.invalid_args = true;
     }
 #endif
 
@@ -232,6 +233,7 @@ main(int argc, char *argv[])
         }
     }
     DriverFlags flags = parse_args(argc, argv);
+    if (flags.invalid_args) return driver_binary_output_refuse_invalid_args(&flags);
     if (flags.repl)
         return repl_run(argv[0]);
     if (flags.test_native_mir_json_oracle) {
@@ -258,7 +260,7 @@ main(int argc, char *argv[])
      * sources still fail closed inside the delegated path. See docs/152. */
     if (flags.native_pipeline
         || pgy_env_value_is_truthy(getenv("PGY_NATIVE_PIPELINE")))
-        return driver_run_pipeline(&flags);
+        return driver_binary_output_prepare_for_target(&flags) ? driver_run_pipeline(&flags) : 1;
     if (flags.dump_mir) return driver_run_self_host_mir_diagnostic_request(argv[0], &flags);
     if (flags.dump_machine_manifest_json) {
         if (!driver_self_host_machine_manifest_request_supported(&flags)) {
@@ -318,6 +320,7 @@ main(int argc, char *argv[])
         return driver_run_self_host_c_emit_artifact(
             argv[0], flags.source_path, flags.output_path, flags.verbose, flags.diag_format == DIAG_FORMAT_JSON);
     }
+    if (!driver_binary_output_prepare_for_target(&flags)) return 1;
     if (driver_plain_c_binary_target_requested(&flags)) {
         if (!driver_self_host_c_artifact_request_supported(&flags)) {
             fprintf(stderr,

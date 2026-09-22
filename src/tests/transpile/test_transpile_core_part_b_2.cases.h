@@ -225,6 +225,7 @@
         ASTNode *node;
         const char *out;
         literal->data.number.is_long = true;
+        literal->data.number.exact_long_value = 42;
         args[0] = literal;
         node = make_let("shared",
                         make_generic_type("Rc", "Long"),

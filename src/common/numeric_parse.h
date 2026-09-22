@@ -12,5 +12,8 @@ bool pgy_parse_size_prefix(const char *text, size_t *out);
 bool pgy_parse_size_strict(const char *text, size_t *out);
 bool pgy_parse_size_strict_allow_zero(const char *text, size_t *out);
 bool pgy_parse_u64_strict_allow_zero(const char *text, uint64_t *out);
+/* A signed decimal whose only trailing character is `suffix` (a Long
+ * literal's 'L'); false when it is out of int64_t range. */
+bool pgy_parse_i64_with_suffix(const char *text, char suffix, int64_t *out);
 
 #endif /* PGY_NUMERIC_PARSE_H */

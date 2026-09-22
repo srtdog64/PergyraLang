@@ -176,6 +176,7 @@ const char* ast_assignment_semantic_binding_type_name(const ASTNode* node);
 bool ast_assignment_set_semantic_binding_type_name_copy(ASTNode* node,
                                                         const char* type_name);
 double ast_number_value(const ASTNode* node);
+int64_t ast_number_exact_long_value(const ASTNode* node);
 bool ast_number_is_long(const ASTNode* node);
 bool ast_number_is_float(const ASTNode* node);
 /* Duration literal (docs/181 SS2.3): value = normalized nanoseconds. */

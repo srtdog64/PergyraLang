@@ -1,0 +1,7 @@
+func Main() -> Void {
+    Log(ToString(9223372036854775807L));
+    Log(ToString(9223372036854775806L));
+    Log(ToString(-9223372036854775808L));
+    Log(ToString(9223372036854775807L + 1L));
+    Log(ToString(--9223372036854775808L));
+}

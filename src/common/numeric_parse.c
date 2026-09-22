@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 static bool
 pgy_parse_int_internal(const char *text, int *out, bool positive_only,
@@ -119,4 +120,24 @@ bool
 pgy_parse_u64_strict_allow_zero(const char *text, uint64_t *out)
 {
     return pgy_parse_u64_internal(text, out, true, true);
+}
+
+bool
+pgy_parse_i64_with_suffix(const char *text, char suffix, int64_t *out)
+{
+    char *end = NULL;
+    long long parsed;
+    size_t length;
+
+    if (text == NULL || out == NULL)
+        return false;
+    length = strlen(text);
+    if (length < 2 || text[length - 1] != suffix)
+        return false;
+    errno = 0;
+    parsed = strtoll(text, &end, 10);
+    if (errno == ERANGE || end == text || end != text + length - 1)
+        return false;
+    *out = (int64_t)parsed;
+    return true;
 }

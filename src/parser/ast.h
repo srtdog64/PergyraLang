@@ -322,6 +322,7 @@ struct ASTNode
         /* Literals */
         struct {
             double value;
+            int64_t exact_long_value; /* Long/Duration literal identity; never round via double. */
             bool is_long;   /* true if source had 'L' suffix (int64_t literal) */
             bool is_float;  /* true if source had a decimal point */
             /* Duration literal (docs/181 SS2.3): `1500ms`/`5s` -- value
