@@ -5,8 +5,9 @@
 #
 # - native C and LLVM run user enums with such variants and print the
 #   expected values;
-# - an Option control still runs on native C, native LLVM and the default C
-#   route;
+# - an Option control and a Result<Int, String> control still run on native
+#   C, native LLVM and the default C route (native C once left
+#   PgyResult_Int_String undeclared);
 # - native MIR JSON carries match_subject_family for every case;
 # - mir_lower reconstructs a user-enum `Ok(p)` case as a payload read, never
 #   as Unwrap(subject);
@@ -79,6 +80,10 @@ OPTION_CONTROL="$FIXTURES/match_subject_family_option_control.pgy"
 run_expect option-native-c "$OPTION_CONTROL" "5|0" --native-pipeline --backend=c
 run_expect option-native-llvm "$OPTION_CONTROL" "5|0" --native-pipeline --backend=llvm
 run_expect option-default-c "$OPTION_CONTROL" "5|0" --backend=c
+RESULT_CONTROL="$FIXTURES/match_subject_family_result_control.pgy"
+run_expect result-native-c "$RESULT_CONTROL" "7|-3" --native-pipeline --backend=c
+run_expect result-native-llvm "$RESULT_CONTROL" "7|-3" --native-pipeline --backend=llvm
+run_expect result-default-c "$RESULT_CONTROL" "7|-3" --backend=c
 
 families() {
     local fixture="$1" json="$2"
@@ -109,6 +114,7 @@ check_families() {
 check_families verdict-ok "$FIXTURES/match_subject_family_verdict_ok.pgy" "Ok=enum Bad=enum"
 check_families maybe-some-none "$FIXTURES/match_subject_family_maybe_some_none.pgy" "Some=enum None=enum"
 check_families option-control "$OPTION_CONTROL" "Some=option None=option"
+check_families result-control "$RESULT_CONTROL" "Ok=result Err=result"
 
 MIR_LOWER="$WORK_DIR/mir_lower.exe"
 (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$MIR_LOWER_SOURCE")" \

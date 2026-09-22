@@ -1,0 +1,18 @@
+func Parse(flag: Bool) -> Result<Int, String> {
+    if flag {
+        return Ok(7);
+    }
+    return Err("bad");
+}
+
+func Describe(r: Result<Int, String>) -> Int {
+    match r {
+        case Ok(v): return v;
+        case Err(e): return 0 - StringLength(e);
+    }
+}
+
+func Main() -> Void {
+    Log(Describe(Parse(true)));
+    Log(Describe(Parse(false)));
+}

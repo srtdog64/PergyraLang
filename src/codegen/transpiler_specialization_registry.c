@@ -233,14 +233,10 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
         return;
     }
 
-    if (strcmp(err_type, "PgyError") == 0 || strcmp(err_type, "String") == 0) {
-        if (strcmp(ok_type, "Int") == 0
-            || strcmp(ok_type, "Bool") == 0
-            || strcmp(ok_type, "String") == 0) {
-            return;
-        }
-    }
-
+    /* Every caller passes a two-argument Result, which the type mapper names
+     * PgyResult_<Ok>_<Err>. The runtime predefines only the one-argument
+     * PgyResult_Int/Bool/String, so no two-argument spelling may be skipped
+     * here: skipping Result<Int, String> left PgyResult_Int_String undeclared. */
     char ok_suffix[128];
     char err_suffix[128];
     sanitize_c_suffix(ok_type, ok_suffix, sizeof(ok_suffix));

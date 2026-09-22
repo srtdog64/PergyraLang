@@ -137,9 +137,12 @@ R6(`inout_argument_alias`, 레드팀 캠페인)도 같은 방식으로 착지했
   게이트는 `tests/self_hosted/parity/enum_variant_identity_owner.sh`다. 서로 다른 enum의 같은
   variant 이름을 한정해서 허용하는 규칙 4는 L3d의 문맥 해석과 함께 들어온다.
 - 확인 중 드러난 기존 결함(이 변경과 무관, L3가 없는 빌드에서도 같다):
-  `Result<Int, String>` match가 native C에서 `PgyResult_Int_String` 타입을 만들지 못하고,
-  self-host C에서는 인자 타입이 맞지 않는다. Option match는 self-host LLVM direct MIR에서
-  `enum-match` admission으로 거부된다.
+  - **고침.** `Result<Int, String>`이 native C에서 `PgyResult_Int_String` 미선언으로
+    컴파일되지 않았다. C 특수화 등록기가 `Int/Bool/String` + `String` 오류를 런타임에 이미
+    있는 타입으로 보고 건너뛰었지만, 런타임은 인자 하나짜리 `PgyResult_Int` 등만 정의한다.
+    두 인자 Result는 이제 모두 특수화된다. self-host C 경로는 이 프로그램을 이미 정답으로
+    실행한다(2026-09-22 재확인). 게이트는 match subject family 게이트의 `result-control` 행이다.
+  - Option match는 self-host LLVM direct MIR에서 `enum-match` admission으로 거부된다.
 
 ## 3. F2 — 컴파일러 임시 이름의 위생
 
