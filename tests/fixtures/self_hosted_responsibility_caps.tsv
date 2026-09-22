@@ -8,7 +8,7 @@ src/self_hosted/semantic/ast_enum_payload_variant_provenance_verdict_owner.pgy|1
 src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy|600
 src/self_hosted/semantic/ast_statement_fact_owner.pgy|600
 # One renderer owns the stable diagnostic reason/fix vocabulary.
-src/self_hosted/semantic/diagnostic_owner.pgy|660
+src/self_hosted/semantic/diagnostic_owner.pgy|670
 # Composite intent admission and LLVM projection remain distinct bounded owners.
 src/self_hosted/compiler/direct_mir_composite_intent_program_plan_owner.pgy|900
 src/self_hosted/compiler/direct_mir_composite_intent_program_llvm_emission_owner.pgy|860

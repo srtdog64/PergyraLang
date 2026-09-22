@@ -116,6 +116,9 @@ func SemanticReason(code: String) -> String {
     if code == "capability_fact_invalid" {
         return "admitted callable capability facts are missing or inconsistent";
     }
+    if code == "collection_ownership_unresolved" {
+        return "the collection ownership owner has no admitted row for this binding boundary";
+    }
     if code == "ast_artifact_invalid" {
         return "parser-owned AST artifact does not satisfy the shared HIR contract";
     }
@@ -252,6 +255,9 @@ func SemanticFix(code: String) -> String {
     }
     if code == "capability_fact_invalid" {
         return "repair the semantic capability producer before publishing an artifact";
+    }
+    if code == "collection_ownership_unresolved" {
+        return "bind the collection through a boundary the ownership owner admits, or extend that owner first";
     }
     if code == "ast_artifact_invalid" {
         return "repair the parser artifact producer instead of reconstructing syntax downstream";

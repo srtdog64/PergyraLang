@@ -55,6 +55,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "declared_effect_missing",
         "call_effect_fact_unavailable",
         "capability_fact_invalid",
+        "collection_ownership_unresolved",
         "ast_artifact_invalid",
         "entrypoint_cardinality",
         "function_signature_invalid",
