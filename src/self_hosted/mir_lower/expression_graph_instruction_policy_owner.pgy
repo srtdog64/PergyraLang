@@ -33,7 +33,8 @@ func MirInstructionRequiresExpr0Graph(
     if source == "AST_DEFER_STMT" {
         return IsSome(arg0) &&
             (UnwrapOption(arg0) == "Log" ||
-             UnwrapOption(arg0) == "Call") &&
+             UnwrapOption(arg0) == "Call" ||
+             UnwrapOption(arg0) == "Assign") &&
             UnwrapOption(expr0) == "{...}";
     }
     if instruction_kind == "assign" && source == "AST_ASSIGNMENT" {

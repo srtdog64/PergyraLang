@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# A defer body of several Log and direct-call statements (docs/205 F5) runs
-# in order at scope exit on native C/LLVM and on the default C route, which
-# carries it as consecutive "k/n" MIR rows and rebuilds one defer block in
-# mir_lower. An assignment in a defer body is still refused on the default
-# route with no binary. The default LLVM route refuses every defer today, so
-# it is not a leg.
+# A defer body of several Log, direct-call and assignment statements
+# (docs/205 F5) runs in order at scope exit on native C/LLVM and on the
+# default C route, which carries it as consecutive "k/n" MIR rows and rebuilds
+# one defer block in mir_lower. The default route admits an assignment only to
+# a local binding, and a control statement in a defer body is still refused
+# there with no binary. The default LLVM route refuses
+# every defer today, so it is not a leg.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -50,13 +51,44 @@ for leg in native-c native-llvm default-c; do
           fail "$leg ran the defer bodies in another order"; }
 done
 
-out_rel="$WORK_REL/assignment-default-c.exe"
-if compile "$FIXTURES/defer_assignment_body_negative.pgy" default-c "$out_rel"; then
-    fail "default-c accepted an assignment in a defer body"
+printf '1\nfirst\n3\n' >"$WORK_DIR/assignment.expected"
+for leg in native-c native-llvm default-c; do
+    out_rel="$WORK_REL/assignment-$leg.exe"
+    compile "$FIXTURES/defer_assignment_body.pgy" "$leg" "$out_rel" ||
+        { cat "$ROOT_DIR/$out_rel.log" >&2; fail "$leg did not compile the assignment defer body"; }
+    "$ROOT_DIR/$out_rel" | tr -d '\r' >"$WORK_DIR/assignment-$leg.out" ||
+        fail "$leg assignment defer binary failed"
+    cmp -s "$WORK_DIR/assignment.expected" "$WORK_DIR/assignment-$leg.out" ||
+        { diff -u "$WORK_DIR/assignment.expected" "$WORK_DIR/assignment-$leg.out" >&2 || true
+          fail "$leg ran the assignment defer body in another order"; }
+done
+
+printf '1\n2\n' >"$WORK_DIR/param.expected"
+for leg in native-c native-llvm; do
+    out_rel="$WORK_REL/param-$leg.exe"
+    compile "$FIXTURES/defer_assignment_param_negative.pgy" "$leg" "$out_rel" ||
+        { cat "$ROOT_DIR/$out_rel.log" >&2; fail "$leg did not compile the parameter defer assignment"; }
+    "$ROOT_DIR/$out_rel" | tr -d '\r' >"$WORK_DIR/param-$leg.out" ||
+        fail "$leg parameter defer assignment binary failed"
+    cmp -s "$WORK_DIR/param.expected" "$WORK_DIR/param-$leg.out" ||
+        { diff -u "$WORK_DIR/param.expected" "$WORK_DIR/param-$leg.out" >&2 || true
+          fail "$leg ran the parameter defer assignment another way"; }
+done
+out_rel="$WORK_REL/param-default-c.exe"
+if compile "$FIXTURES/defer_assignment_param_negative.pgy" default-c "$out_rel"; then
+    fail "default-c accepted a defer assignment to a parameter"
+fi
+[[ ! -e "$ROOT_DIR/$out_rel" ]] || fail "default-c left a binary for the refused parameter defer assignment"
+grep -Fq "defer assignment target is not a local binding" "$ROOT_DIR/$out_rel.log" ||
+    { cat "$ROOT_DIR/$out_rel.log" >&2; fail "default-c refused the parameter defer assignment for another reason"; }
+
+out_rel="$WORK_REL/control-default-c.exe"
+if compile "$FIXTURES/defer_control_body_negative.pgy" default-c "$out_rel"; then
+    fail "default-c accepted a control statement in a defer body"
 fi
 [[ ! -e "$ROOT_DIR/$out_rel" ]] || fail "default-c left a binary for the refused defer body"
-grep -Fq "defer body statement is outside the Log and direct-call rung" \
+grep -Fq "defer body statement is outside the Log, direct-call and assignment rung" \
     "$ROOT_DIR/$out_rel.log" ||
     { cat "$ROOT_DIR/$out_rel.log" >&2; fail "default-c refused the defer body for another reason"; }
 
-echo "[$LABEL] multi-statement Log/call defer bodies run in order on native C/LLVM and the default C route; assignment bodies are refused there: PASS"
+echo "[$LABEL] multi-statement Log/call/assignment defer bodies run in order on native C/LLVM and the default C route; non-local assignment targets and control statements are refused there: PASS"

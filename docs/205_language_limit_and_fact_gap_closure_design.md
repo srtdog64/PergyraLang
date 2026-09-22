@@ -356,9 +356,19 @@ Option<JsonStringRead>`(`value`, `end`)가 실패를 None으로 돌려주고, �
   싣는다(한 문장이면 빈 값). defer를 n개로 쪼개면 역순으로 실행되므로 mir_lower는 연속한
   행을 하나의 `Defer` 블록으로 다시 묶는다. 순서가 어긋나거나, 빠지거나, 형식이 틀린 part는
   거부한다. 게이트는 `tests/self_hosted/parity/defer_multi_statement_owner.sh`(native C/LLVM,
-  기본 C 경로)와 렌더러 스모크의 part 행이다. 대입 문장은 아직 기본 경로에서 거부되고,
-  native MIR JSON은 여러 문장 본문을 여전히 `arg0` 없는 한 행으로 낸다. 기본 LLVM 경로는
-  defer 자체를 거부한다.
+  기본 C 경로)와 렌더러 스모크의 part 행이다. native MIR JSON은 여러 문장 본문을 여전히
+  `arg0` 없는 한 행으로 낸다. 기본 LLVM 경로는 defer 자체를 거부한다.
+- **F5 착지 (대입).** 대입 문장은 `arg0=Assign` 행이 된다. 일반 대입 행처럼 값 graph가
+  주 graph이고 대상 graph가 보조 graph(`expr1_graph`)다. mir_lower는
+  `Assign: <대상> = <값>`으로 재구성하고, 대상 graph가 없으면
+  `defer assignment target graph is missing`으로 거부한다. defer 행에는 binding mode를 실을
+  자리가 없어서, 기본 경로는 대상이 지역 변수(`local`)인 대입만 받는다. inout 매개변수나
+  owner field 대상은 `defer assignment target is not a local binding`으로 거부하고,
+  mir_lower의 binding mode 검사도 defer 대입 행을 semantic 대입 fact와 짝지어 `local`인지
+  본다. native C/LLVM은 매개변수 대상도 실행한다. `Log`, 직접 호출, 대입 밖의
+  문장(if, while 등)은 기본 경로에서 행을 하나도 내기 전에
+  `defer body statement is outside the Log, direct-call and assignment rung`으로
+  거부된다. 게이트는 같은 parity owner의 대입 픽스처(세 경로)와 제어문 음성 픽스처다.
 
 ## 8. 순서
 

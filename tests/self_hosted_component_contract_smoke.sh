@@ -8146,7 +8146,7 @@ require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"src/self_hosted/codegen/fixture/for_continue.pgy"'
 require_file "src/self_hosted/mir/routine_defer_owner.pgy"
-require_max_lines "src/self_hosted/mir/routine_defer_owner.pgy" 100
+require_max_lines "src/self_hosted/mir/routine_defer_owner.pgy" 120
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     "SelfMirLowerDeferFromArtifact(input, build, node_id)"
 require_text "src/self_hosted/mir/routine_defer_owner.pgy" \
@@ -8163,7 +8163,7 @@ require_text "src/self_hosted/mir/routine_defer_owner.pgy" \
 require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
     "func MirDeferPartAdvance(part: String, inout open_part: String) -> Bool"
 require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
-    'arg0 != "Log" && arg0 != "Call"'
+    'arg0 != "Log" && arg0 != "Call" && arg0 != "Assign"'
 require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
     "defer body graph has no direct call target fact"
 require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
@@ -9461,6 +9461,10 @@ require_text "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy" 
     'routines.instruction_kinds[global_row]'
 require_text "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy" \
     'scalar.arg1 != facts.target_binding_modes[assignment_i]'
+require_text "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy" \
+    'scalar.valid && scalar.arg0 == "Assign"'
+require_text "src/self_hosted/mir/routine_defer_owner.pgy" \
+    '"defer assignment target is not a local binding"'
 reject_text "src/self_hosted/mir_lower/assignment_binding_mode_fact_owner.pgy" \
     'BuildMirProgramRoutineIndex('
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \

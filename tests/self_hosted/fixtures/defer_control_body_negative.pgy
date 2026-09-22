@@ -1,0 +1,12 @@
+// The default route rebuilds Log, direct-call and assignment defer
+// statements; a control statement in a defer body is refused there
+// (docs/205 F5).
+func Main() -> Void {
+    let count: Int = 1;
+    defer {
+        if count > 0 {
+            Log("positive");
+        }
+    }
+    Log(ToString(count));
+}

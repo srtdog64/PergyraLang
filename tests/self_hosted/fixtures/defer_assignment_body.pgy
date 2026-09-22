@@ -1,0 +1,11 @@
+// An assignment in a defer body runs at scope exit, after the body's
+// earlier statements and before its later ones (docs/205 F5).
+func Main() -> Void {
+    let count: Int = 1;
+    defer {
+        Log("first");
+        count = count + 2;
+        Log(ToString(count));
+    }
+    Log(ToString(count));
+}

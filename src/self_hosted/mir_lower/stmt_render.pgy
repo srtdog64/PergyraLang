@@ -235,7 +235,7 @@ func RenderDeferFromFactsWithExpressionOrder(
     global_instruction_row: Int,
     inout expression_order: MirStructuredExpressionEmissionOrder
 ) -> String {
-    if arg0 != "Log" && arg0 != "Call" {
+    if arg0 != "Log" && arg0 != "Call" && arg0 != "Assign" {
         MirLowerFailClosed("defer instruction has no typed body kind");
     }
     let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
@@ -259,16 +259,33 @@ func RenderDeferFromFactsWithExpressionOrder(
         MirLowerFailClosed("defer body graph has no root expression");
     }
     let body: String = "";
+    let lane: Int = AstExpressionLaneAtom();
     if arg0 == "Log" {
         body = Concat("Log(", Concat(sequence.arena.node_texts[root], ")"));
+    } else if arg0 == "Assign" {
+        // The value is the primary graph and the target the secondary one.
+        let target: MirExpressionGraphSequence =
+            MirExpressionGraphSequenceAppend(MirExpressionGraphSequenceEmpty(),
+                JsonObjectFactObjectTable(instruction, "expr1_graph"));
+        if !target.ok || ArrayLength(target.roots) != 1 ||
+            target.roots[0] < 0 || target.roots[0] >= ArrayLength(target.arena.node_texts) ||
+            target.arena.node_texts[target.roots[0]] == "" {
+            MirLowerFailClosed("defer assignment target graph is missing");
+        }
+        body = Concat("Assign: ", Concat(target.arena.node_texts[target.roots[0]],
+            Concat(" = ", sequence.arena.node_texts[root])));
+        if !MirStructuredExpressionEmissionOrderAppend(
+            expression_order, global_instruction_row, lane, 0) {
+            MirLowerFailClosed("defer expression occurrence is invalid");
+        }
+        lane = AstExpressionLaneValue();
     } else {
         body = Concat(
             "Call: ", RenderDirectDeferCallFromGraph(sequence.arena, root)
         );
     }
     if !MirStructuredExpressionEmissionOrderAppend(
-        expression_order, global_instruction_row,
-        AstExpressionLaneAtom(), 0
+        expression_order, global_instruction_row, lane, 0
     ) {
         MirLowerFailClosed("defer expression occurrence is invalid");
     }

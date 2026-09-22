@@ -1,0 +1,15 @@
+// The default route admits a defer assignment only to a local binding; an
+// inout parameter target is refused there (docs/205 F5). Native C/LLVM run
+// it.
+func Bump(inout n: Int) -> Void {
+    defer {
+        n = n + 1;
+    }
+    Log(ToString(n));
+}
+
+func Main() -> Void {
+    let count: Int = 1;
+    Bump(count);
+    Log(ToString(count));
+}

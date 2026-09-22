@@ -105,6 +105,13 @@ func MirExpressionGraphOccurrenceGraphSlot(
             return MirExpressionGraphSlotExpr0();
         }
     }
+    if source == "AST_DEFER_STMT" &&
+        MirProgramInstructionExpressionRoutingEquals(json, expression, 1, "Assign") {
+        // Like a `def` assignment row: the value graph, then the target.
+        if lane == AstExpressionLaneValue() { return MirExpressionGraphSlotExpr0(); }
+        if lane == AstExpressionLaneAtom() { return MirExpressionGraphSlotExpr1(); }
+        return MirExpressionGraphSlotNone();
+    }
     if source == "AST_DEFER_STMT" && lane == AstExpressionLaneAtom() {
         return MirExpressionGraphSlotExpr0();
     }

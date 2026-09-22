@@ -27,17 +27,30 @@ func MirAssignmentBindingModesMatchSemanticFacts(
         }
         let instruction_kind: String =
             routines.instruction_kinds[global_row];
-        let assignment_source: Bool =
-            routines.instruction_source_types[global_row] ==
-                "AST_ASSIGNMENT";
+        let source: String = routines.instruction_source_types[global_row];
+        let assignment_source: Bool = source == "AST_ASSIGNMENT";
+        let scalar: MirRoutineInstructionScalarCapture =
+            InvalidMirRoutineInstructionScalarCapture();
+        if assignment_source || source == "AST_DEFER_STMT" {
+            scalar = MirRoutineInstructionScalarCaptureWithin(
+                routines.source_json,
+                routines.instruction_starts[global_row],
+                routines.instruction_ends[global_row]
+            );
+        }
+        // A defer assignment row (docs/205 F5) has no binding-mode slot; its
+        // producer admits only a local target.
+        let defer_assignment: Bool = source == "AST_DEFER_STMT" &&
+            scalar.valid && scalar.arg0 == "Assign";
         if instruction_kind == "assign" && !assignment_source {
             return false;
         }
-        if !assignment_source {
+        if !assignment_source && !defer_assignment {
             order_i = order_i + 1;
             continue;
         }
-        if instruction_kind != "assign" && instruction_kind != "def" {
+        if assignment_source && instruction_kind != "assign" &&
+            instruction_kind != "def" {
             return false;
         }
         let value_i: Int = order_i + 1;
@@ -50,13 +63,11 @@ func MirAssignmentBindingModesMatchSemanticFacts(
             facts.target_binding_modes[assignment_i] == "" {
             return false;
         }
-        let scalar: MirRoutineInstructionScalarCapture =
-            MirRoutineInstructionScalarCaptureWithin(
-                routines.source_json,
-                routines.instruction_starts[global_row],
-                routines.instruction_ends[global_row]
-            );
-        if !scalar.valid || scalar.arg1 == "" ||
+        if defer_assignment {
+            if facts.target_binding_modes[assignment_i] != "local" {
+                return false;
+            }
+        } else if !scalar.valid || scalar.arg1 == "" ||
             scalar.arg1 != facts.target_binding_modes[assignment_i] {
             return false;
         }

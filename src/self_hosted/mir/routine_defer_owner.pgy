@@ -1,8 +1,11 @@
-// Typed MIR lowering for defer bodies made of Log and direct-call statements.
+// Typed MIR lowering for defer bodies made of Log, direct-call and assignment
+// statements.
 //
 // Each body statement becomes one `stmt`/`AST_DEFER_STMT` row with its own
-// expression graph, in source order. A single-statement body keeps `arg1`
-// empty; a body of n statements marks its rows "1/n" .. "n/n" so mir_lower
+// expression graph, in source order; an assignment carries its value graph
+// and, as the secondary graph, its target, like an ordinary assignment row.
+// A single-statement body keeps `arg1` empty; a body of n statements marks
+// its rows "1/n" .. "n/n" so mir_lower
 // rebuilds one defer block instead of n defers, which would run in reverse
 // (docs/205 F5).
 
@@ -23,7 +26,23 @@ func SelfMirDeferBodyStatementRouting(
     ) {
         return "Call";
     }
+    if TypedAstArenaNodeKindIs(
+        input.artifact.arena, stmt_node_id, TypedAstKindAssignStmtTag()
+    ) {
+        return "Assign";
+    }
     return "";
+}
+
+// A defer row has no binding-mode slot, so the default route admits only a
+// local assignment target; mir_lower checks the same semantic fact.
+func SelfMirDeferAssignmentTargetIsLocal(
+    ref input: SelfMirRoutineInput, stmt_node_id: Int
+) -> Bool {
+    let row: Option<Int> = SelfMirAssignmentRowForNodeFromReadyRows(
+        input.assignments, stmt_node_id);
+    return IsSome(row) &&
+        input.assignments.target_binding_modes[UnwrapOption(row)] == "local";
 }
 
 func SelfMirLowerDeferFromArtifact(
@@ -51,12 +70,17 @@ func SelfMirLowerDeferFromArtifact(
     let routings: Array<String> = [];
     let index: Int = 0;
     while index < count {
-        let routing: String = SelfMirDeferBodyStatementRouting(input,
-            UnwrapOption(TypedAstArenaChildAt(input.artifact.arena, body_node_id, index)));
+        let stmt_id: Int = UnwrapOption(
+            TypedAstArenaChildAt(input.artifact.arena, body_node_id, index));
+        let routing: String = SelfMirDeferBodyStatementRouting(input, stmt_id);
         if routing == "" {
             return SelfMirRoutineBuildError(
-                build, "defer body statement is outside the Log and direct-call rung"
+                build, "defer body statement is outside the Log, direct-call and assignment rung"
             );
+        }
+        if routing == "Assign" && !SelfMirDeferAssignmentTargetIsLocal(input, stmt_id) {
+            return SelfMirRoutineBuildError(
+                build, "defer assignment target is not a local binding");
         }
         ArrayPush(routings, routing);
         index = index + 1;
@@ -68,18 +92,24 @@ func SelfMirLowerDeferFromArtifact(
         if count > 1 {
             part = Concat(ToString(index + 1), Concat("/", ToString(count)));
         }
+        let statement_id: Int = UnwrapOption(
+            TypedAstArenaChildAt(input.artifact.arena, body_node_id, index));
+        let lane: Int = AstExpressionLaneAtom();
+        if routings[index] == "Assign" { lane = AstExpressionLaneValue(); }
         build = SelfMirRoutineAttachLastExpressionGraph(
             SelfMirRoutineAddInstruction(
                 build, "stmt", "stmt", "", routings[index], part, "{...}", "",
                 "AST_DEFER_STMT", empty_uses
             ),
             SemanticAstExpressionGraphForNode(
-                input.analysis.expression_surfaces,
-                UnwrapOption(TypedAstArenaChildAt(input.artifact.arena, body_node_id, index)),
-                AstExpressionLaneAtom()
-            ),
+                input.analysis.expression_surfaces, statement_id, lane),
             input.machine_declaration
         );
+        if routings[index] == "Assign" {
+            build = SelfMirRoutineAttachLastSecondaryExpressionGraph(build,
+                SemanticAstExpressionGraphForNode(input.analysis.expression_surfaces,
+                    statement_id, AstExpressionLaneAtom()));
+        }
         index = index + 1;
     }
     return build;

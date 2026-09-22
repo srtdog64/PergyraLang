@@ -271,7 +271,8 @@ func SelfMirInstructionRowsValidationErrorObserved(
             );
         }
         let typed_defer: Bool = kind == "stmt" &&
-            (rows.arg0s[i] == "Log" || rows.arg0s[i] == "Call") &&
+            (rows.arg0s[i] == "Log" || rows.arg0s[i] == "Call" ||
+             (rows.arg0s[i] == "Assign" && rows.expr1_graphs.has_roots[i] == 1)) &&
             rows.expr0s[i] == "{...}" &&
             rows.expr0_graphs.has_roots[i] == 1;
         if rows.source_types[i] == "AST_DEFER_STMT" &&

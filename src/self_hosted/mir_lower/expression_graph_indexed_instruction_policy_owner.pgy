@@ -19,7 +19,9 @@ func MirInstructionExpressionRequiresExpr0Graph(
         return (MirProgramInstructionExpressionRoutingEquals(
                     json, expression, 1, "Log") ||
                 MirProgramInstructionExpressionRoutingEquals(
-                    json, expression, 1, "Call")) &&
+                    json, expression, 1, "Call") ||
+                MirProgramInstructionExpressionRoutingEquals(
+                    json, expression, 1, "Assign")) &&
             MirProgramInstructionExpressionText(json, expression, 0) ==
                 "{...}";
     }
@@ -69,6 +71,12 @@ func MirInstructionExpressionRequiresExpr1Graph(
     source: String,
     ref expression: MirProgramInstructionExpressionFact
 ) -> Bool {
+    // A defer assignment row keeps expr1 text empty and carries its target
+    // only as the secondary graph (docs/205 F5).
+    if expression.valid && kind == "stmt" && source == "AST_DEFER_STMT" {
+        return MirProgramInstructionExpressionRoutingEquals(
+            json, expression, 1, "Assign");
+    }
     if !expression.valid || kind == "" || source == "" ||
         !MirProgramInstructionExpressionTextPresent(expression, 0) ||
         !MirProgramInstructionExpressionTextPresent(expression, 1) {
