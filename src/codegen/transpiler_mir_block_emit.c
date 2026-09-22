@@ -374,7 +374,10 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         if (inst->kind != MIR_INST_STMT)
             continue;
         if (mir_instruction_source_is_defer_stmt(inst)) {
-            transpiler_register_defer(inst->expr0, ctx);
+            /* A body of n statements is carried by n rows; the block is
+             * registered once, by its first row (docs/205 F5). */
+            if (inst->defer_part_index == 0)
+                transpiler_register_defer(inst->expr0, ctx);
             continue;
         }
         if (mir_instruction_source_stmt_reemit_is_redundant(inst)) {

@@ -6,6 +6,10 @@
 #include "../parser/ast.h"
 
 void mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt);
+ASTNode *mir_defer_part_statement(const MIRInstruction *inst);
+const char *mir_defer_statement_routing(const ASTNode *stmt);
+ASTNode *mir_defer_assignment_value_fact(const MIRInstruction *inst);
+ASTNode *mir_defer_assignment_target_fact(const MIRInstruction *inst);
 ASTNode *mir_defer_log_expression_fact(const MIRInstruction *inst);
 ASTNode *mir_defer_call_expression_fact(const MIRInstruction *inst);
 void mir_attach_def_initializer_call_fact(MIRRoutine *routine,

@@ -157,6 +157,12 @@ typedef struct
     bool             source_terminator_has_value;
     size_t           source_statement_index;
     bool             has_source_statement_index;
+    /* A defer body of n statements becomes n instructions, each carrying the
+     * body statement it runs. `defer_part_count` is 0 for every other
+     * instruction, and 1 only when a single-statement body still needs its
+     * own routing (docs/205 F5). */
+    size_t           defer_part_index;
+    size_t           defer_part_count;
     bool             has_surface_usage_facts;
     bool             uses_thread_pool_surface;
     bool             uses_intent_observability_surface;

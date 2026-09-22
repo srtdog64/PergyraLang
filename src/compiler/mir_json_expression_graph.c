@@ -22,10 +22,21 @@ mir_json_instruction_expression(const MIRInstruction *inst, int lane)
         && inst->branch_shape == MIR_BRANCH_FOR_RANGE) {
         return inst->expr1;
     }
-    if (lane == 0 && mir_instruction_source_is_defer_stmt(inst)) {
-        if (inst->arg0 != NULL && strcmp(inst->arg0, "Log") == 0)
+    if (mir_instruction_source_is_defer_stmt(inst)) {
+        if (inst->arg0 == NULL)
+            return NULL;
+        /* An assignment body statement carries its value first and its
+         * target second, like an ordinary assignment row (docs/205 F5). */
+        if (strcmp(inst->arg0, "Assign") == 0) {
+            return lane == 0
+                ? mir_defer_assignment_value_fact(inst)
+                : (lane == 1 ? mir_defer_assignment_target_fact(inst) : NULL);
+        }
+        if (lane != 0)
+            return NULL;
+        if (strcmp(inst->arg0, "Log") == 0)
             return mir_defer_log_expression_fact(inst);
-        if (inst->arg0 != NULL && strcmp(inst->arg0, "Call") == 0)
+        if (strcmp(inst->arg0, "Call") == 0)
             return mir_defer_call_expression_fact(inst);
         return NULL;
     }

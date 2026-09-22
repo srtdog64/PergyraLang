@@ -35,18 +35,25 @@ mir_append_non_cfg_source_statement(MIRRoutine *routine,
                                     ASTNode *stmt,
                                     size_t source_index)
 {
-    MIRInstruction inst = {
-        .kind = MIR_INST_STMT,
-        .name = "stmt",
-        .ast = stmt,
-        .source_statement_index = source_index,
-        .has_source_statement_index = true,
-    };
+    /* A defer body of n statements is carried by n instructions in source
+     * order (docs/205 F5); every other statement is one. */
+    size_t parts = mir_source_stmt_instruction_count(stmt);
 
-    mir_instruction_capture_source_provenance(&inst, stmt);
-    mir_attach_statement_call_fact(&inst, stmt);
-    if (!mir_commit_non_cfg_instruction(routine, block, &inst))
-        return false;
+    for (size_t part = 0; part < parts; part++) {
+        MIRInstruction inst = {
+            .kind = MIR_INST_STMT,
+            .name = "stmt",
+            .ast = stmt,
+            .source_statement_index = source_index,
+            .has_source_statement_index = true,
+        };
+
+        mir_instruction_capture_source_provenance(&inst, stmt);
+        mir_attach_statement_call_fact(&inst, stmt);
+        mir_apply_defer_part_fact(routine, &inst, stmt, part);
+        if (!mir_commit_non_cfg_instruction(routine, block, &inst))
+            return false;
+    }
     mir_record_non_cfg_body_fallback(routine);
     return true;
 }

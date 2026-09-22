@@ -169,7 +169,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                     break;
                 continue;
             }
-            stmt_count++;
+            /* A defer body of n statements takes n rows (docs/205 F5). */
+            stmt_count += mir_source_stmt_instruction_count(stmt);
         }
         if (stmt_count == 0) {
             free(copied_flags);
@@ -356,15 +357,22 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                             return false;
                         }
                         if (!handled) {
-                            MIRInstruction inst =
-                                mir_make_source_stmt_instruction(routine, stmt, s);
-                            if (!mir_stmt_population_append(new_insts,
-                                                            new_cap,
-                                                            &new_count,
-                                                            inst)) {
-                                free(copied_flags);
-                                free(new_insts);
-                                return false;
+                            size_t parts =
+                                mir_source_stmt_instruction_count(stmt);
+                            for (size_t part = 0; part < parts; part++) {
+                                MIRInstruction inst =
+                                    mir_make_source_stmt_instruction(
+                                        routine, stmt, s);
+                                mir_apply_defer_part_fact(routine, &inst,
+                                                          stmt, part);
+                                if (!mir_stmt_population_append(new_insts,
+                                                                new_cap,
+                                                                &new_count,
+                                                                inst)) {
+                                    free(copied_flags);
+                                    free(new_insts);
+                                    return false;
+                                }
                             }
                         }
                         continue;
@@ -377,12 +385,36 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                          * declaration twice (plain AST stmt + SSA DEF). */
                         continue;
                     }
+                    size_t parts = mir_source_stmt_instruction_count(stmt);
+                    for (size_t part = 0; part < parts; part++) {
+                        MIRInstruction inst =
+                            stmt != NULL && stmt->type == AST_ASSIGNMENT
+                                ? mir_make_assignment_instruction(routine, stmt, s)
+                                : (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE
+                                    ? mir_make_destructure_instruction(routine, stmt, s)
+                                    : mir_make_source_stmt_instruction(routine, stmt, s));
+                        mir_apply_defer_part_fact(routine, &inst, stmt, part);
+                        if (!mir_stmt_population_append(new_insts,
+                                                        new_cap,
+                                                        &new_count,
+                                                        inst)) {
+                            free(copied_flags);
+                            free(new_insts);
+                            return false;
+                        }
+                    }
+                }
+            } else {
+                /* Create the residual instruction owned by this source shape. */
+                size_t parts = mir_source_stmt_instruction_count(stmt);
+                for (size_t part = 0; part < parts; part++) {
                     MIRInstruction inst =
                         stmt != NULL && stmt->type == AST_ASSIGNMENT
                             ? mir_make_assignment_instruction(routine, stmt, s)
                             : (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE
                                 ? mir_make_destructure_instruction(routine, stmt, s)
                                 : mir_make_source_stmt_instruction(routine, stmt, s));
+                    mir_apply_defer_part_fact(routine, &inst, stmt, part);
                     if (!mir_stmt_population_append(new_insts,
                                                     new_cap,
                                                     &new_count,
@@ -391,22 +423,6 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                         free(new_insts);
                         return false;
                     }
-                }
-            } else {
-                /* Create the residual instruction owned by this source shape. */
-                MIRInstruction inst =
-                    stmt != NULL && stmt->type == AST_ASSIGNMENT
-                        ? mir_make_assignment_instruction(routine, stmt, s)
-                        : (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE
-                            ? mir_make_destructure_instruction(routine, stmt, s)
-                            : mir_make_source_stmt_instruction(routine, stmt, s));
-                if (!mir_stmt_population_append(new_insts,
-                                                new_cap,
-                                                &new_count,
-                                                inst)) {
-                    free(copied_flags);
-                    free(new_insts);
-                    return false;
                 }
             }
         }

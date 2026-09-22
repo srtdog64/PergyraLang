@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "mir_base_helpers.h"
 #include "mir_call_fact.h"
 #include "mir_cfg_contract_control.h"
 #include "mir_decl_headers.h"
@@ -219,6 +220,48 @@ mir_stmt_population_is_semantic_carrier(const MIRInstruction *inst)
     if (inst == NULL || inst->kind != MIR_INST_STMT || inst->name == NULL)
         return false;
     return mir_instruction_is_intent_semantic_carrier(inst);
+}
+
+/* A defer body of n statements is carried by n instructions, one per
+ * statement, so a consumer rebuilds the body in source order instead of
+ * re-reading the block (docs/205 F5). Every other statement is one row. */
+size_t
+mir_source_stmt_instruction_count(const ASTNode *stmt)
+{
+    size_t count;
+
+    if (stmt == NULL || stmt->type != AST_DEFER_STMT)
+        return 1;
+    count = ast_block_statement_count(ast_defer_body(stmt));
+    return count > 0 ? count : 1;
+}
+
+/* Bind an already-built defer instruction to one body statement: the row
+ * routes that statement (`arg0`) and marks its place in the body
+ * (`arg1` = "k/n" when the body has more than one). */
+void
+mir_apply_defer_part_fact(MIRRoutine *routine,
+                          MIRInstruction *inst,
+                          ASTNode *stmt,
+                          size_t part_index)
+{
+    size_t part_count;
+
+    if (inst == NULL || stmt == NULL || stmt->type != AST_DEFER_STMT)
+        return;
+    part_count = mir_source_stmt_instruction_count(stmt);
+    inst->defer_part_index = part_index;
+    inst->defer_part_count = part_count;
+    inst->arg0 = NULL;
+    mir_attach_statement_call_fact(inst, stmt);
+    if (part_count > 1 && routine != NULL) {
+        char *part_text = mir_strdup_fmt("%zu/%zu", part_index + 1,
+                                         part_count);
+        if (part_text != NULL) {
+            inst->arg1 = pgy_arena_strdup(&routine->scratch, part_text);
+            free(part_text);
+        }
+    }
 }
 
 MIRInstruction

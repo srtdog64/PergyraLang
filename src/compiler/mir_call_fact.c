@@ -69,55 +69,103 @@ mir_attach_lifecycle_guard_fact(MIRInstruction *inst, const ASTNode *stmt)
         : NULL;
 }
 
-static ASTNode *
-mir_defer_single_log_expression(ASTNode *body)
+/* The body statement this instruction runs. A defer body of n statements
+ * becomes n instructions, so the row's part index selects the statement
+ * whose facts and expression graph it carries (docs/205 F5). */
+ASTNode *
+mir_defer_part_statement(const MIRInstruction *inst)
 {
-    ASTNode *stmt;
-    ASTNode *callee;
+    ASTNode *body;
+    size_t   part;
 
-    if (body == NULL || ast_block_statement_count(body) != 1)
+    if (inst == NULL)
         return NULL;
-    stmt = ast_block_statement(body, 0);
-    if (stmt == NULL || stmt->type != AST_CALL
-        || ast_call_arg_count(stmt) != 1)
+    body = inst->expr0;
+    if (body == NULL)
         return NULL;
-    callee = ast_call_callee(stmt);
-    if (callee == NULL || callee->type != AST_IDENTIFIER
-        || ast_identifier_name(callee) == NULL
-        || strcmp(ast_identifier_name(callee), "Log") != 0)
+    part = inst->defer_part_count > 0 ? inst->defer_part_index : 0;
+    if (part >= ast_block_statement_count(body))
         return NULL;
-    return ast_call_argument(stmt, 0);
+    return ast_block_statement(body, part);
 }
 
-static ASTNode *
-mir_defer_single_call_statement(ASTNode *body)
+/* "Log", "Call", "Assign", or NULL for a statement this rung does not
+ * carry; the MIR consumers rebuild the body from this routing. */
+const char *
+mir_defer_statement_routing(const ASTNode *stmt)
 {
-    ASTNode *stmt;
+    ASTNode *callee;
 
-    if (body == NULL || ast_block_statement_count(body) != 1)
+    if (stmt == NULL)
         return NULL;
-    stmt = ast_block_statement(body, 0);
-    if (stmt == NULL || stmt->type != AST_CALL)
+    if (stmt->type == AST_ASSIGNMENT)
+        return "Assign";
+    if (stmt->type != AST_CALL)
         return NULL;
-    return stmt;
+    callee = ast_call_callee((ASTNode *)stmt);
+    if (callee != NULL && callee->type == AST_IDENTIFIER
+        && ast_identifier_name(callee) != NULL
+        && strcmp(ast_identifier_name(callee), "Log") == 0
+        && ast_call_arg_count((ASTNode *)stmt) == 1) {
+        return "Log";
+    }
+    return "Call";
 }
 
 ASTNode *
 mir_defer_log_expression_fact(const MIRInstruction *inst)
 {
+    ASTNode *stmt;
+
     if (inst == NULL || inst->arg0 == NULL
         || strcmp(inst->arg0, "Log") != 0)
         return NULL;
-    return mir_defer_single_log_expression(inst->expr0);
+    stmt = mir_defer_part_statement(inst);
+    return stmt != NULL && ast_call_arg_count(stmt) > 0
+        ? ast_call_argument(stmt, 0)
+        : NULL;
 }
 
 ASTNode *
 mir_defer_call_expression_fact(const MIRInstruction *inst)
 {
+    ASTNode *stmt;
+
     if (inst == NULL || inst->arg0 == NULL
         || strcmp(inst->arg0, "Call") != 0)
         return NULL;
-    return mir_defer_single_call_statement(inst->expr0);
+    stmt = mir_defer_part_statement(inst);
+    return stmt != NULL && stmt->type == AST_CALL ? stmt : NULL;
+}
+
+/* An assignment body statement carries its value as the primary graph and
+ * its target as the secondary one, like an ordinary assignment row. */
+ASTNode *
+mir_defer_assignment_value_fact(const MIRInstruction *inst)
+{
+    ASTNode *stmt;
+
+    if (inst == NULL || inst->arg0 == NULL
+        || strcmp(inst->arg0, "Assign") != 0)
+        return NULL;
+    stmt = mir_defer_part_statement(inst);
+    return stmt != NULL && stmt->type == AST_ASSIGNMENT
+        ? ast_assignment_value(stmt)
+        : NULL;
+}
+
+ASTNode *
+mir_defer_assignment_target_fact(const MIRInstruction *inst)
+{
+    ASTNode *stmt;
+
+    if (inst == NULL || inst->arg0 == NULL
+        || strcmp(inst->arg0, "Assign") != 0)
+        return NULL;
+    stmt = mir_defer_part_statement(inst);
+    return stmt != NULL && stmt->type == AST_ASSIGNMENT
+        ? ast_assignment_target(stmt)
+        : NULL;
 }
 
 void
@@ -126,15 +174,16 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
     if (inst == NULL || stmt == NULL)
         return;
     if (stmt->type == AST_DEFER_STMT) {
-        ASTNode *deferred_call;
+        ASTNode    *part;
+        const char *routing;
 
         inst->expr0 = ast_defer_body(stmt);
-        deferred_call = mir_defer_single_call_statement(inst->expr0);
-        if (mir_defer_single_log_expression(inst->expr0) != NULL)
-            inst->arg0 = "Log";
-        else if (deferred_call != NULL)
-            inst->arg0 = "Call";
-        mir_attach_text_builder_runtime_row(inst, deferred_call);
+        part = mir_defer_part_statement(inst);
+        routing = mir_defer_statement_routing(part);
+        if (routing != NULL)
+            inst->arg0 = routing;
+        mir_attach_text_builder_runtime_row(inst,
+            part != NULL && part->type == AST_CALL ? part : NULL);
         return;
     }
     if (stmt->type == AST_LET_DECL) {

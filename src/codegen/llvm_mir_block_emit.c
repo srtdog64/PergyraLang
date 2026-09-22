@@ -553,7 +553,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             break;
         case MIR_INST_STMT:
             if (mir_instruction_source_is_defer_stmt(inst)) {
-                if (inst->expr0 != NULL)
+                /* One registration per defer: the body's first row owns it
+                 * even when the body is carried by several rows (docs/205 F5). */
+                if (inst->expr0 != NULL && inst->defer_part_index == 0)
                     llvm_register_defer(inst->expr0, ctx);
             } else if (mir_instruction_source_stmt_reemit_is_redundant(inst)) {
                 break;

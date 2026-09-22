@@ -24,6 +24,11 @@ bool mir_stmt_population_is_semantic_carrier(const MIRInstruction *inst);
 MIRInstruction mir_make_source_stmt_instruction(MIRRoutine *routine,
                                                 ASTNode *stmt,
                                                 size_t source_statement_index);
+size_t mir_source_stmt_instruction_count(const ASTNode *stmt);
+void mir_apply_defer_part_fact(MIRRoutine *routine,
+                               MIRInstruction *inst,
+                               ASTNode *stmt,
+                               size_t part_index);
 MIRInstruction mir_make_destructure_instruction(MIRRoutine *routine,
                                                 ASTNode *stmt,
                                                 size_t source_statement_index);
