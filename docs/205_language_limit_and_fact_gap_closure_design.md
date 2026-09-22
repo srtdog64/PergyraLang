@@ -321,6 +321,14 @@ self-host 기본 경로에서 `5b`였다. opener 앞에서 잘린 리터럴 조�
   `routine_lower`는 이제 그 둘 밖의 행을 `instruction has no statement text: <kind>/<source>`로
   거부한다. 게이트는 렌더러 fail-closed 스모크의 `textless-stmt` 행이다.
 - **F5**: F4 뒤에 defer 본문을 여러 문장으로 재구성한다(`Log`, 직접 호출, 대입).
+- **F5 착지 (`Log`와 직접 호출).** self-host MIR producer는 본문 문장마다
+  `stmt`/`AST_DEFER_STMT` 행을 소스 순서로 내고, 문장이 n개면 `arg1`에 `1/n`..`n/n`을
+  싣는다(한 문장이면 빈 값). defer를 n개로 쪼개면 역순으로 실행되므로 mir_lower는 연속한
+  행을 하나의 `Defer` 블록으로 다시 묶는다. 순서가 어긋나거나, 빠지거나, 형식이 틀린 part는
+  거부한다. 게이트는 `tests/self_hosted/parity/defer_multi_statement_owner.sh`(native C/LLVM,
+  기본 C 경로)와 렌더러 스모크의 part 행이다. 대입 문장은 아직 기본 경로에서 거부되고,
+  native MIR JSON은 여러 문장 본문을 여전히 `arg0` 없는 한 행으로 낸다. 기본 LLVM 경로는
+  defer 자체를 거부한다.
 
 ## 8. 순서
 

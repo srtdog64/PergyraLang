@@ -192,12 +192,46 @@ func RenderDirectDeferCallFromGraph(
 // Defer bodies use the same statement spelling as the non-deferred path:
 // `Log(...)` stays bare and a direct user call is tagged `Call: `, so the AST
 // inventory classifies a call the same way inside and outside a defer block.
+// A defer body of n statements arrives as consecutive rows whose arg1 is
+// "1/n" .. "n/n"; a single-statement body has arg1 "". `open_part` is the
+// part the next defer row must carry, "" when no body is open. Returns
+// whether this row continues an open body.
+func MirDeferPartAdvance(part: String, inout open_part: String) -> Bool {
+    if part == "" {
+        if open_part != "" {
+            MirLowerFailClosed(Concat("defer body part is missing: ", open_part));
+        }
+        return false;
+    }
+    let slash: Int = StringIndexOf(part, "/");
+    let k_text: String = "";
+    let n_text: String = "";
+    if slash > 0 {
+        k_text = Substring(part, 0, slash);
+        n_text = Substring(part, slash + 1, StringLength(part) - slash - 1);
+    }
+    let k: Int = ToInt(k_text);
+    let n: Int = ToInt(n_text);
+    if slash <= 0 || ToString(k) != k_text || ToString(n) != n_text ||
+        n < 2 || k < 1 || k > n {
+        MirLowerFailClosed(Concat("defer body part fact is malformed: ", part));
+    }
+    if (k == 1 && open_part != "") || (k > 1 && open_part != part) {
+        MirLowerFailClosed(Concat("defer body part is out of order: ", part));
+    }
+    open_part = "";
+    if k < n { open_part = Concat(ToString(k + 1), Concat("/", n_text)); }
+    return k > 1;
+}
+
 func RenderDeferFromFactsWithExpressionOrder(
     json: String,
     inst_start: Int,
     inst_end: Int,
     indent: String,
     arg0: String,
+    part: String,
+    inout open_part: String,
     global_instruction_row: Int,
     inout expression_order: MirStructuredExpressionEmissionOrder
 ) -> String {
@@ -237,6 +271,9 @@ func RenderDeferFromFactsWithExpressionOrder(
         AstExpressionLaneAtom(), 0
     ) {
         MirLowerFailClosed("defer expression occurrence is invalid");
+    }
+    if MirDeferPartAdvance(part, open_part) {
+        return Concat(indent, Concat("    ", Concat(body, "\n")));
     }
     let lines: Array<String> = [
         indent, "Defer:\n",

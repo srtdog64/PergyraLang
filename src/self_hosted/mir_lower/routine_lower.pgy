@@ -53,6 +53,7 @@ func EmitBlockStmtsWithExpressionOrder(
         );
     if instruction_count < 0 { MirLowerFailClosed("invalid block instruction view"); }
     let row: Int = 0;
+    let defer_part: String = "";
     while row < instruction_count {
         let instruction: MirRoutineInstructionView =
             MirRoutineInstructionViewAt(
@@ -68,6 +69,7 @@ func EmitBlockStmtsWithExpressionOrder(
         let inst_end: Int = instruction.end;
         let ikind: String = instruction.kind;
         let source_type: String = instruction.source_type;
+        if defer_part != "" && source_type != "AST_DEFER_STMT" { MirLowerFailClosed(Concat("defer body part is missing: ", defer_part)); }
         if !MirCapturedAbiLayoutFactReady(
             json, scalar.abi_type_name, scalar.abi_type_value_ready,
             scalar.abi_type_start, scalar.abi_type_end,
@@ -117,7 +119,7 @@ func EmitBlockStmtsWithExpressionOrder(
                 ArrayPush(chunks, StringJoin(bind_parts, ""));
             } else if source_type == "AST_DEFER_STMT" {
                 ArrayPush(chunks, RenderDeferFromFactsWithExpressionOrder(
-                    json, kp, inst_end, indent, arg0,
+                    json, kp, inst_end, indent, arg0, arg1, defer_part,
                     instruction.global_row, expression_order
                 ));
             } else if (ikind == "return" && StringLength(expr0) == 0) ||
@@ -140,6 +142,7 @@ func EmitBlockStmtsWithExpressionOrder(
         if observe_instruction { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:instruction:", Concat(ToString(block_row), Concat(":", Concat(ToString(row), ":render:done"))))); }
         row = row + 1;
     }
+    if defer_part != "" { MirLowerFailClosed(Concat("defer body part is missing: ", defer_part)); }
     return StringJoin(chunks, "");
 }
 

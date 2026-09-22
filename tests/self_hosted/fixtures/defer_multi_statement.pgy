@@ -1,0 +1,19 @@
+// A defer body of several Log and direct-call statements runs them in order
+// at scope exit, after later defers (docs/205 F5).
+func Cleanup(tag: String) -> Void {
+    Log(Concat("cleanup ", tag));
+}
+
+func Main() -> Void {
+    let count: Int = 1;
+    defer {
+        Log("first");
+        Cleanup("second");
+        Log(ToString(count));
+    }
+    defer {
+        Log("inner");
+    }
+    count = 2;
+    Log("body");
+}

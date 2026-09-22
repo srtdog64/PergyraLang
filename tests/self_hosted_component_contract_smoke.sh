@@ -8125,7 +8125,7 @@ require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \
     '"src/self_hosted/codegen/fixture/for_continue.pgy"'
 require_file "src/self_hosted/mir/routine_defer_owner.pgy"
-require_max_lines "src/self_hosted/mir/routine_defer_owner.pgy" 80
+require_max_lines "src/self_hosted/mir/routine_defer_owner.pgy" 100
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     "SelfMirLowerDeferFromArtifact(input, build, node_id)"
 require_text "src/self_hosted/mir/routine_defer_owner.pgy" \
@@ -8138,7 +8138,9 @@ reject_text "src/self_hosted/mir/routine_defer_owner.pgy" \
 reject_text "src/self_hosted/mir/program_fact_owner.pgy" \
     "SelfMirDeferBodyTextReady("
 require_text "src/self_hosted/mir/routine_defer_owner.pgy" \
-    '"Call", "", "{...}", ""'
+    'routings[index], part, "{...}", ""'
+require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
+    "func MirDeferPartAdvance(part: String, inout open_part: String) -> Bool"
 require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
     'arg0 != "Log" && arg0 != "Call"'
 require_text "src/self_hosted/mir_lower/stmt_render.pgy" \

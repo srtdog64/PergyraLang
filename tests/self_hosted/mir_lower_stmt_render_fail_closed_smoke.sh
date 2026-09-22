@@ -105,6 +105,10 @@ def is_let_decl(row):
         row.get("source_type") == "AST_LET_DECL"
 
 
+def is_defer(row):
+    return row.get("source_type") == "AST_DEFER_STMT"
+
+
 def is_log_stmt(row):
     return row.get("kind") == "stmt" and row.get("arg0") == "Log"
 
@@ -148,6 +152,13 @@ mutate("option_match", "option_match.absent-bindings", is_some_case,
        drop_fields("match_bindings", "match_binding_types"))
 mutate("option_match", "option_match.null-binding-type", is_some_case,
        set_field("match_binding_types", [None]))
+# A multi-statement defer body arrives as consecutive "k/n" rows (F5).
+mutate("defer_direct_call", "defer.orphan-part", is_defer,
+       set_field("arg1", "2/2"))
+mutate("defer_direct_call", "defer.open-part", is_defer,
+       set_field("arg1", "1/2"))
+mutate("defer_direct_call", "defer.malformed-part", is_defer,
+       set_field("arg1", "one/2"))
 mutate("let_log", "let_log.nameless-let", is_let_decl,
        set_field("arg0", ""))
 mutate("let_log", "let_log.cleanup-kind", is_log_stmt,
@@ -217,6 +228,9 @@ negative_rows=(
     # null element is refused earlier, by the string-array fact reader.
     "option_match.absent-bindings|routine MIR fact index is incomplete"
     "option_match.null-binding-type|MIR string array fact is malformed: match_binding_types"
+    "defer.orphan-part|defer body part is out of order: 2/2"
+    "defer.open-part|defer body part is missing: 2/2"
+    "defer.malformed-part|defer body part fact is malformed: one/2"
     "let_log.nameless-let|local declaration is missing its binding-name fact"
     "let_log.cleanup-kind|instruction kind has no statement rendering"
     # A present string array with a non-string element used to read as
