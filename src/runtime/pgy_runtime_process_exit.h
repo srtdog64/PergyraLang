@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "pgy_runtime_panic_contract.h"
+
 /*
  * Explicit language-level Exit(Int) owner.
  *
@@ -11,7 +13,7 @@
  * Keep raw exit() here so runtime hard-fail auditing can distinguish
  * intentional process exit from internal invariant failure.
  */
-static inline void
+static inline PGY_RUNTIME_NORETURN void
 pgy_runtime_process_exit(int32_t code)
 {
     exit((int)code);

@@ -368,7 +368,7 @@ char *pgy_input(const char *prompt)
         ? result.ok
         : pgy_runtime_lib_strdup("");
 }
-void pgy_exit(int32_t code)
+PGY_RUNTIME_NORETURN void pgy_exit(int32_t code)
 {
     pgy_runtime_process_exit(code);
 }

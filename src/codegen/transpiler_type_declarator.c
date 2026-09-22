@@ -436,6 +436,12 @@ pergyra_func_signature_declarator_in_ctx(TranspilerCtx *ctx,
             return_type_buf, sizeof(return_type_buf))) {
         return NULL;
     }
+    /* A `-> Never` function never returns to its caller (docs/205 L1b). */
+    if (return_type != NULL && ast_type_name(return_type) != NULL
+        && strcmp(ast_type_name(return_type), "Never") == 0) {
+        return declarator_heap_fmt(ctx, "PGY_RUNTIME_NORETURN %s %s(%s)",
+            return_type_buf, fn_name, sig);
+    }
     return declarator_heap_fmt(ctx, "%s %s(%s)",
         return_type_buf, fn_name, sig);
 }

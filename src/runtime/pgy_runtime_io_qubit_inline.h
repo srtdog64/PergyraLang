@@ -393,7 +393,7 @@ pgy_sleep_ms(int32_t ms)
     }
 #endif
 }
-static inline void
+static inline PGY_RUNTIME_NORETURN void
 pgy_exit(int32_t code)
 {
     pgy_runtime_process_exit(code);
