@@ -51,6 +51,11 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             "C backend: expression lowering received a null AST node");
         return NULL;
     }
+    {
+        const char *ordered = transpiler_ordered_argument_name(ctx, node);
+        if (ordered != NULL)
+            return strdup_fmt("%s", ordered);
+    }
 
     switch (node->type) {
     case AST_NUMBER:

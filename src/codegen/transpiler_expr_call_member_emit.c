@@ -14,6 +14,7 @@
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_receiver_query.h"
+#include "transpiler_expr_call_user_emit.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_generic_class_specialization.h"
@@ -218,11 +219,24 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     free(obj_expr);
                 }
 
+                size_t arg_starts[64];
+                size_t arg_ends[64];
+                bool arg_inline[64] = {false};
+                if (ast_call_arg_count(call) > 64) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                        "C backend: method call '%s' has more than 64 arguments",
+                        method != NULL ? method : "<method>");
+                    codebuf_destroy(args_buf);
+                    return NULL;
+                }
                 for (size_t i = 0; i < ast_call_arg_count(call); i++) {
                     ASTNode *arg_node = ast_call_argument(call, i);
                     char *arg = transpiler_member_call_emit_part(ctx,
                         arg_node, method, "argument");
                     bool pass_by_ptr = false;
+                    arg_starts[i] = args_buf->len + 2;
                     if (arg == NULL) {
                         codebuf_destroy(args_buf);
                         return NULL;
@@ -291,12 +305,27 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     } else {
                         codebuf_write(args_buf, ", %s", arg);
                     }
+                    arg_ends[i] = args_buf->len;
                     free(arg);
                 }
 
                 {
                     char *authority_check = NULL;
                     char *result;
+                    /* Arguments evaluate left to right (docs/205 §11). */
+                    char *ordered_prefix = ast_call_arg_count(call) > 0
+                        ? transpiler_user_call_order_args(call, args_buf,
+                              arg_starts, arg_ends, arg_inline)
+                        : pergyra_strdup("");
+                    if (ordered_prefix == NULL) {
+                        transpiler_set_backend_error_with_hints(ctx,
+                            PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                            "C backend: ordered arguments for method '%s' could not be built",
+                            method != NULL ? method : "<method>");
+                        codebuf_destroy(args_buf);
+                        return NULL;
+                    }
 
                     if (!emit_world_embedded_action_authority_check(
                             ctx, obj, method_meta, &authority_check)
@@ -310,6 +339,13 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                               args_buf->data)
                         : strdup_fmt("%s_%s(%s)",
                               owned_type_name, method, args_buf->data);
+                    if (ordered_prefix[0] != '\0' && result != NULL) {
+                        char *ordered_result = strdup_fmt(
+                            "({ %s%s; })", ordered_prefix, result);
+                        free(result);
+                        result = ordered_result;
+                    }
+                    free(ordered_prefix);
                     if (authority_check != NULL && result != NULL) {
                         char *authorized_result = strdup_fmt(
                             "({ %s%s; })", authority_check, result);

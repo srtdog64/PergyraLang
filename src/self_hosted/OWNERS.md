@@ -1894,6 +1894,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   addressability consumption. A non-addressable readonly `String` temporary is
   admitted only for one graph-carried direct, non-runtime, single-parameter
   `Void` call; family emitters must not rebuild or widen this policy.
+- `src/self_hosted/codegen/emission/call_argument_order_owner.pgy` -- binds
+  by-value call arguments to temporaries in source order when C would
+  otherwise choose their evaluation order (docs/205 §11).
 - `src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy`
   -- direct C call emission for formal-parameter and declared-callable lanes;
   carried target/binding SyntaxNodeIds select the exact C binding before any

@@ -1,0 +1,24 @@
+// Method call and collection builtin arguments evaluate left to right too.
+// Native C passed a nominal method's arguments straight to C, and the default
+// C route did the same for ArraySet, so both printed "b a" and "e d" here.
+class Acc {
+    let base: Int;
+
+    func Pair(self, x: Int, y: Int) -> Int {
+        return self.base + x * 10 + y;
+    }
+}
+
+func Tag(t: String) -> Int {
+    Log(t);
+    return 1;
+}
+
+func Main() -> Void {
+    let a: Acc = Acc(100);
+    Log(a.Pair(Tag("a"), Tag("b")));
+    let items: Array<Int> = [];
+    ArrayPush(items, Tag("c"));
+    ArraySet(items, Tag("d") - 1, Tag("e") + 5);
+    Log(items[0]);
+}

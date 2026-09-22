@@ -1,0 +1,148 @@
+// Call arguments evaluate left to right (docs/205 §11).
+//
+// C leaves argument evaluation order unspecified and GCC evaluates right to
+// left. When a call has two or more non-literal arguments and one of them is
+// more than a local read, every by-value argument is bound to a temporary in
+// source order inside a statement expression, the way ordered binary
+// operands already are. A literal has no effect and observes none; an
+// address argument (inout, identity, ref) stays in place too.
+import "../text/text_owner.pgy";
+import "expr_semantic_call_argument_owner.pgy";
+import "expression_c_text_materialization_owner.pgy";
+import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_node_view_owner.pgy";
+import "../../hir/ast_expression_graph_owner.pgy";
+
+func CodegenOperandIsLiteral(kind: Option<Int>) -> Bool {
+    return IsSome(kind) && AstExpressionNodeIsScalarLeaf(UnwrapOption(kind)) &&
+        UnwrapOption(kind) != AstExpressionNodeLeaf();
+}
+
+func CodegenOperandIsLeaf(kind: Option<Int>) -> Bool {
+    return IsSome(kind) && AstExpressionNodeIsScalarLeaf(UnwrapOption(kind));
+}
+
+func CodegenCallArgumentsNeedOrder(
+    graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView
+) -> Bool {
+    let non_literal: Int = 0;
+    let effectful: Bool = false;
+    let i: Int = 0;
+    while i < ArrayLength(view.argument_nodes) {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph, view.argument_nodes[i]);
+        if !CodegenOperandIsLiteral(kind) { non_literal = non_literal + 1; }
+        if !CodegenOperandIsLeaf(kind) { effectful = true; }
+        i = i + 1;
+    }
+    return non_literal >= 2 && effectful;
+}
+
+// A runtime call whose leading argument is an address and whose two value
+// operands come from separate graphs or nodes (ArraySet, ListSet).
+func CodegenOrderedOperandCall(
+    call_symbol: String, leading: String,
+    first: String, first_kind: Option<Int>,
+    second: String, second_kind: Option<Int>,
+    seed: Int
+) -> String {
+    if CodegenOperandIsLiteral(first_kind) || CodegenOperandIsLiteral(second_kind) ||
+        (CodegenOperandIsLeaf(first_kind) && CodegenOperandIsLeaf(second_kind)) {
+        return Concat(call_symbol, Concat("(", Concat(leading, Concat(", ",
+            Concat(first, Concat(", ", Concat(second, ")")))))));
+    }
+    let first_name: String = Concat("__pgy_operand_", Concat(ToString(seed), "_0"));
+    let second_name: String = Concat("__pgy_operand_", Concat(ToString(seed), "_1"));
+    // Only avoids collisions in emitted C.
+    while StringIndexOf(first, first_name) >= 0 || StringIndexOf(second, first_name) >= 0 {
+        first_name = Concat(first_name, "_");
+    }
+    while StringIndexOf(first, second_name) >= 0 || StringIndexOf(second, second_name) >= 0 {
+        second_name = Concat(second_name, "_");
+    }
+    let parts: Array<String> = [
+        "({ __auto_type ", first_name, " = (", first, "); __auto_type ",
+        second_name, " = (", second, "); ", call_symbol, "(", leading, ", ",
+        first_name, ", ", second_name, "); })"
+    ];
+    return StringJoin(parts, "");
+}
+
+func CodegenCallArgumentIsAddress(mode: String) -> Bool {
+    return mode == "inout" || mode == "ref" || mode == "identity";
+}
+
+func RewriteSemanticOrderedCall(
+    call_symbol: String,
+    graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView,
+    modes: String,
+    param_types: String,
+    param_offset: Int,
+    prefix_argument: String,
+    env: CodegenTypeEnv,
+    inout owned_fragments: Array<String>
+) -> String {
+    if !CodegenCallArgumentsNeedOrder(graph, view) {
+        let args: String = RewriteSemanticCallArguments(
+            graph, view, modes, param_types, param_offset, prefix_argument,
+            env, owned_fragments);
+        return CodegenCCallExpression(call_symbol, args);
+    }
+    let readonly_string_temporary_ready: Bool =
+        SemanticCallReadonlyStringTemporaryReady(
+            graph, view, modes, param_types);
+    let bindings: Array<String> = [];
+    let arguments: Array<String> = [];
+    if prefix_argument != "" {
+        ArrayPush(arguments, prefix_argument);
+    }
+    let i: Int = 0;
+    while i < ArrayLength(view.argument_nodes) {
+        let param_index: Int = i + param_offset;
+        let mode: String = "default";
+        if param_index < ParamModeCsvCount(modes) {
+            mode = ParamModeCsvAt(modes, param_index);
+        }
+        let argument: String =
+            RewriteSemanticCallArgumentWithReadonlyStringTemporary(
+                graph, view.argument_nodes[i], CsvAt(param_types, param_index),
+                mode, env, readonly_string_temporary_ready);
+        if CodegenCallArgumentIsAddress(mode) {
+            ArrayPush(arguments, argument);
+        } else {
+            let name: String = Concat("__pgy_arg_", Concat(
+                ToString(view.call_node), Concat("_", ToString(i))));
+            // Only avoids collisions in emitted C; no source binding is
+            // recovered from the spelling.
+            while StringIndexOf(argument, name) >= 0 {
+                name = Concat(name, "_");
+            }
+            ArrayPush(bindings, Concat("__auto_type ", Concat(name,
+                Concat(" = (", Concat(argument, "); ")))));
+            ArrayPush(arguments, name);
+        }
+        i = i + 1;
+    }
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(128);
+    TextBuilderAppend(output, "({ ");
+    i = 0;
+    while i < ArrayLength(bindings) {
+        TextBuilderAppend(output, bindings[i]);
+        i = i + 1;
+    }
+    TextBuilderAppend(output, call_symbol);
+    TextBuilderAppend(output, "(");
+    i = 0;
+    while i < ArrayLength(arguments) {
+        if i > 0 { TextBuilderAppend(output, ", "); }
+        TextBuilderAppend(output, arguments[i]);
+        i = i + 1;
+    }
+    TextBuilderAppend(output, "); })");
+    let text: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return text;
+}

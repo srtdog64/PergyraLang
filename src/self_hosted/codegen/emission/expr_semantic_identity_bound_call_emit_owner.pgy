@@ -1,6 +1,7 @@
 // C emission for direct calls whose callee lane is fixed by carried syntax ID.
 
 import "expr_semantic_call_argument_owner.pgy";
+import "call_argument_order_owner.pgy";
 import "expression_c_text_materialization_owner.pgy";
 import "function_binding_env_owner.pgy";
 import "../text/text_owner.pgy";
@@ -54,7 +55,7 @@ func RewriteSemanticIdentityBoundCall(
     }
     let modes: String = LookupKindType(env, call_symbol, "pm");
     let param_types: String = LookupKindType(env, call_symbol, "pt");
-    let args: String = RewriteSemanticCallArguments(
-        graph, view, modes, param_types, 0, "", env, owned_fragments);
-    return CodegenCCallExpression(call_symbol, args);
+    return RewriteSemanticOrderedCall(
+        call_symbol, graph, view, modes, param_types, 0, "", env,
+        owned_fragments);
 }

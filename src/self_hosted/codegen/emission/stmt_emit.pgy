@@ -379,7 +379,8 @@ func EmitStmtList(count: Int, arena: AstArena,
             );
             let a_index: String = RewriteSemanticExpectedValue(
                 a_index_graph.graph, a_index_graph.root_id, "Int", env);
-            let set_stmt: String = Concat(array_fact.c_set_fn, Concat("(&", Concat(c_a_arr, Concat(", ", Concat(a_index, Concat(", ", Concat(a_rhs, ");")))))));
+            let set_stmt: String = Concat(CodegenOrderedOperandCall(array_fact.c_set_fn, Concat("&", c_a_arr), a_index, SemanticExpressionGraphNodeKind(a_index_graph.graph, a_index_graph.root_id),
+                a_rhs, SemanticExpressionGraphNodeKind(a_graph.graph, a_graph.root_id), idx), ";");
             ArrayPush(result, Concat(pad, Concat(set_stmt, "\n")));
             ArraySet(cur, 0, idx + 1); continue;
         }

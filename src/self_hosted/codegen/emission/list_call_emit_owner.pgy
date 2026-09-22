@@ -6,6 +6,7 @@ import "../../semantic/ast_expression_graph_call_view_owner.pgy";
 import "../../semantic/ast_expression_graph_collection_call_protocol_owner.pgy";
 import "../runtime_abi/list_runtime_owner.pgy";
 import "expr_semantic_call_argument_owner.pgy";
+import "call_argument_order_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 
 func RewriteSemanticListCall(
@@ -70,10 +71,13 @@ func RewriteSemanticListCall(
             graph, view.argument_nodes[protocol.value_argument_index],
             fact.element_type, "default", env
         );
-        return Concat(fact.c_set_fn, Concat("(", Concat(
-            receiver, Concat(", ", Concat(index, Concat(", ",
-                Concat(value, ")"))))
-        )));
+        return CodegenOrderedOperandCall(
+            fact.c_set_fn, receiver,
+            index, SemanticExpressionGraphNodeKind(
+                graph, view.argument_nodes[protocol.index_argument_index]),
+            value, SemanticExpressionGraphNodeKind(
+                graph, view.argument_nodes[protocol.value_argument_index]),
+            view.call_node);
     }
     if protocol.operation == "ListRemove" {
         let index: String = RewriteSemanticCallArgument(

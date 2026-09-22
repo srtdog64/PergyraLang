@@ -12811,15 +12811,20 @@ reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
 require_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberCall(" \
-    "CodegenCCallExpression(call_symbol, args)"
+    "return RewriteSemanticOrderedCall("
 require_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticDirectCall(" \
-    "CodegenCCallExpression(call_symbol, args)"
+    "return RewriteSemanticOrderedCall("
 require_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_call_argument_owner.pgy" \
     "func RewriteSemanticCallArguments(" \
     "CodegenCExpressionTextOwned(owned_fragments, args)"
+require_file "src/self_hosted/codegen/emission/call_argument_order_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/call_argument_order_owner.pgy" 160
+require_function_text \
+    "src/self_hosted/codegen/emission/call_argument_order_owner.pgy" \
+    "func RewriteSemanticOrderedCall(" "CodegenCCallExpression(call_symbol, args)"
 require_file \
     "src/self_hosted/codegen/emission/expr_semantic_identity_bound_call_emit_owner.pgy"
 require_max_lines \

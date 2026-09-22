@@ -64,7 +64,7 @@ transpiler_user_call_arg_is_simple(const ASTNode *arg)
  * argument (`inline_piece`) has no effects and stays in place. Returns the
  * temporaries' declarations, "" when no ordering is needed, and NULL on
  * OOM or when the pieces are not separated by exactly ", ". */
-static char *
+char *
 transpiler_user_call_order_args(ASTNode *call, CodeBuf *args,
                                 const size_t *starts, const size_t *ends,
                                 const bool *inline_piece)

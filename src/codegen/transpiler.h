@@ -345,6 +345,17 @@ typedef struct
      * stack by the transaction emitter. */
     int txn_counter;
     int current_txn_id;
+
+    /* Builtin call arguments bound to temporaries in source order
+     * (docs/205 §11). While a builtin emitter runs, emit_expression answers
+     * each bound argument node with its temporary. A stack: an argument's
+     * own nested call pushes and pops its frame first. */
+    struct {
+        const ASTNode *node;
+        char name[48];
+        unsigned uses;
+    } ordered_args[64];
+    size_t ordered_arg_count;
 } TranspilerCtx;
 
 #include "transpiler_inventory_view.h"
@@ -438,6 +449,9 @@ void emit_async_block(ASTNode *node, TranspilerCtx *ctx);
 
 /* Expressions return a C expression string (caller frees). */
 char *emit_expression(ASTNode *node, TranspilerCtx *ctx);
+/* The temporary bound to this builtin call argument, or NULL. */
+const char *transpiler_ordered_argument_name(TranspilerCtx *ctx,
+                                             const ASTNode *node);
 char *emit_call(ASTNode *node, TranspilerCtx *ctx);
 char *emit_binary(ASTNode *node, TranspilerCtx *ctx);
 char *emit_unary(ASTNode *node, TranspilerCtx *ctx);

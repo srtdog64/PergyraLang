@@ -1,9 +1,15 @@
 // Call arguments evaluate left to right on every backend. GCC evaluates C
 // arguments right to left, so native C printed "c b a" and 21 here while
-// LLVM printed "a b c" and 22.
+// LLVM printed "a b c" and 22. Builtin calls, and every call on the default
+// C route, kept the C order after user calls were fixed.
 func Tag(t: String) -> Int {
     Log(t);
     return 1;
+}
+
+func Word(t: String) -> String {
+    Log(t);
+    return t;
 }
 
 func Sum(a: Int, b: Int, c: Int) -> Int {
@@ -25,4 +31,8 @@ func Main() -> Void {
     Log(Pair(Bump(n), n));
     let m: Int = 1;
     Log(Pair(m, Bump(m)));
+    Log(Concat(Word("x"), Word("y")));
+    Log(Substring(Word("hello"), Tag("p"), Tag("q")));
+    let k: Int = 1;
+    Log(Pair(Bump(k), Bump(k)));
 }

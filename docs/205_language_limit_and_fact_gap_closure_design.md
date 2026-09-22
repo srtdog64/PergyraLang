@@ -451,3 +451,24 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
 - **런타임 심볼.** 런타임 라이브러리 object가 export하는 PascalCase 심볼 42개를 `nm`으로 뽑았다.
   모두 `RUNTIME_ABI` 또는 `CAPABILITY` 가족에 이미 들어 있다. 빌트인이 아닌 이름(`SlotRead` 등)은
   네 경로 모두에서 컴파일되고 돈다.
+
+## 11. 호출 인자 평가 순서, `ToInt`, 산출물 게시
+
+### 11.1 인자 평가 순서
+
+- 사용자 함수 호출은 native C에서 이미 왼쪽부터 평가됐다. 빌트인·stdlib 호출(`Concat`,
+  `Substring` 등)과 기본 C 경로의 모든 호출은 C의 순서(GCC는 오른쪽부터)를 따랐다. LLVM 두
+  경로는 왼쪽부터였다.
+- native C: 인자가 둘 이상이고 그중 하나가 literal이나 지역 읽기보다 큰 빌트인 호출은, 효과를
+  내거나 관찰할 수 있는 인자를 소스 순서대로 임시 변수에 묶는다. 빌트인 emitter는
+  `emit_expression`을 거쳐 그 임시 변수를 읽는다. 어떤 인자를 임시 변수로 읽지 않은 emitter는
+  두 번 평가할 수 있으므로, 조용히 순서를 되돌리지 않고 컴파일을 거부한다. 저장소 인자
+  (컬렉션, slot, builder)는 주소를 쓰므로 제자리에 둔다.
+- 기본 C 경로: `codegen/emission/call_argument_order_owner.pgy`가 같은 규칙으로 by-value 인자를
+  statement expression 안의 임시 변수에 묶는다. inout·ref·identity 인자는 주소라 제자리에 둔다.
+  이항 연산자 피연산자는 이미 같은 방식이었다.
+- 게이트: `tests/call_argument_evaluation_order_smoke.sh`가 네 경로에서 사용자·빌트인 호출을 보고,
+  native C/LLVM과 기본 C 경로에서 method 호출과 `ArraySet`을 본다. 기본 LLVM 경로는 method
+  픽스처의 모양을 아직 받지 않고 거부한다. 틀린 순서로 도는 경로는 없다.
+- 남은 것: member 호출의 receiver는 제자리에서 평가된다. 동적 ability 호출(vtable)은 이 경로를
+  타지 않는다.
