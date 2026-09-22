@@ -1,0 +1,11 @@
+// A user function whose name contains "panic" returns normally. Only a
+// declared Never type makes a function noreturn (docs/205 L1b).
+func count_panics(n: Int) -> Int {
+    return n + 1;
+}
+
+func Main() -> Void {
+    let x: Int = count_panics(1);
+    Log(ToString(x));
+    Log("after");
+}

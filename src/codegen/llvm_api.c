@@ -338,9 +338,16 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
     for (LLVMValueRef fn = LLVMGetFirstFunction(ctx->module);
          fn != NULL; fn = LLVMGetNextFunction(fn)) {
         const char *fn_name = LLVMGetValueName(fn);
-        if (llvm_fn_never_returns(fn_name))
+        /* The name tables describe runtime entrypoints, which are
+         * declarations here: the linker stripped the bodies of the
+         * noreturn ones, and the bodies it kept carry their own C
+         * attributes. A user definition whose name merely contains "panic"
+         * returns normally; marking it noreturn made LLVM drop the code after
+         * its calls. A user function is noreturn only by its declared Never
+         * type (llvm_decl.c). */
+        if (LLVMIsDeclaration(fn) && llvm_fn_never_returns(fn_name))
             llvm_add_fn_attr(ctx, fn, noreturn_kind);
-        if (llvm_fn_is_panic(fn_name))
+        if (LLVMIsDeclaration(fn) && llvm_fn_is_panic(fn_name))
             llvm_add_fn_attr(ctx, fn, cold_kind);
         /* Keep fail-closed checked arithmetic out of the inliner/folder so its
          * overflow and divide-by-zero guards survive optimization. optnone

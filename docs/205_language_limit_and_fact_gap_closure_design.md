@@ -227,9 +227,15 @@ R6(`inout_argument_alias`, 레드팀 캠페인)도 같은 방식으로 착지했
   `never_function_fallthrough`로 거부한다. 모든 분기가 Never로 끝나는 본문은 native는
   받고 self-host는 거부한다. 틀린 쪽으로 받아들이지 않도록 고른 차이다.
 - 게이트: `tests/self_hosted/parity/never_return_type_owner.sh`(push CI core shard).
-- 남은 것: L1b의 noreturn 표시(C `PGY_RUNTIME_NORETURN`, LLVM `noreturn`/`unreachable`)와
-  L1e의 이관(`Die`, `MirLowerFailClosed` 등을 `-> Never`로 바꾸고 `Exit` 뒤 죽은 문장
-  84곳을 지우는 일). 지금은 동작은 맞고 최적화 힌트와 정리가 남은 상태다.
+- **L1b (LLVM) 착지.** 확인 중에 이름 추측이 오컴파일을 만든다는 것이 드러났다. LLVM 속성
+  패스는 모듈의 **모든** 함수에 이름 표(`panic`을 포함하거나 `pgy_exit`)를 적용했다.
+  그래서 `count_panics(n: Int) -> Int` 같은 사용자 함수가 noreturn이 되었고, native LLVM
+  실행 파일은 호출 뒤 코드가 사라져 `machine-layer runtime bind rejected`로 중단되었다.
+  이제 이름 표는 런타임 선언에만 적용하고, 사용자 함수는 선언된 `Never` 타입으로만
+  `noreturn`을 얻는다(`llvm_decl.c`). 게이트는 Never 게이트의 `panic-name` 행(네 경로)이다.
+- 남은 것: C의 `PGY_RUNTIME_NORETURN`(런타임 `pgy_exit` 선언부터 필요), 호출 뒤 명시적
+  `unreachable`, L1e의 이관(`Die`, `MirLowerFailClosed` 등을 `-> Never`로 바꾸고 죽은
+  문장을 지우는 일).
 
 ## 5. L2 — 문자열 조립
 

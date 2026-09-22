@@ -266,6 +266,16 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
     LLVMValueRef fn = LLVMAddFunction(ctx->module, name, fn_type);
     llvm_register_function(ctx, name, fn, fn_type, ret_type);
 
+    /* A `-> Never` function never returns to its caller (docs/205 L1b). The
+     * declared type decides this; the function's name never does. */
+    const char *declared_return = return_type_name != NULL
+        ? return_type_name
+        : (return_type != NULL ? ast_type_name(return_type) : NULL);
+    if (declared_return != NULL && strcmp(declared_return, "Never") == 0) {
+        LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
+            LLVMCreateEnumAttribute(ctx->context,
+                LLVMGetEnumAttributeKindForName("noreturn", 8), 0));
+    }
 }
 
 void

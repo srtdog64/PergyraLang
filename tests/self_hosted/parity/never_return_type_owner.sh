@@ -5,7 +5,9 @@
 # - positive programs run on every route that admits their shape and stop at
 #   the Never call with its exit code;
 # - `return` in, falling off the end of, or a value use of a Never function is
-#   refused on every route with no binary.
+#   refused on every route with no binary;
+# - a function whose name contains "panic" but whose type is not Never
+#   returns normally (docs/205 L1b: LLVM once marked it noreturn by name).
 # The three-routine positive is not run on the default LLVM route: that route
 # refuses any three-routine program today, Never or not.
 set -euo pipefail
@@ -51,6 +53,7 @@ POSITIVE_CASES=(
     "chain:$FIXTURES/never_chain_positive.pgy:chain:5:native-c native-llvm default-c default-llvm"
     "exit-tail:$FIXTURES/never_exit_tail_positive.pgy::1:native-c native-llvm default-c default-llvm"
     "pick:$FIXTURES/never_pick_positive.pgy:1|no pick:3:native-c native-llvm default-c"
+    "panic-name:$FIXTURES/panic_named_user_function.pgy:2|after:0:native-c native-llvm default-c default-llvm"
 )
 for entry in "${POSITIVE_CASES[@]}"; do
     IFS=: read -r name fixture expected code legs <<<"$entry"
