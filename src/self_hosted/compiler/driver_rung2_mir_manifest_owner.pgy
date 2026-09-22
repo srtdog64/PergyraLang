@@ -98,6 +98,7 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/codegen/fixture/array_param.pgy",
         "src/self_hosted/codegen/fixture/bool_logic.pgy",
         "src/self_hosted/codegen/fixture/defer_scope.pgy",
+        "tests/self_hosted/fixtures/defer_multi_statement.pgy",
         "src/self_hosted/codegen/fixture/else_if_chain.pgy",
         "tests/cases/backend_compare/allocator_defer_cleanup/main.pgy",
         "tests/cases/backend_compare/device_slot_machine_layer/main.pgy",
@@ -297,8 +298,10 @@ func DriverRung2MirFixtureRows() -> Array<String> {
 // collides with examples/break_continue.pgy and let the two fixtures
 // overwrite each other's oracle artifacts. The backend-compare harness
 // still runs that fixture under its own identity.
+// 284 -> 285: added the multi-statement defer body, which both MIR
+// producers now carry as one row per body statement (docs/205 F5).
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 284;
+    return 285;
 }
 
 func EmitDriverRung2MirFixtureManifest() -> Void {

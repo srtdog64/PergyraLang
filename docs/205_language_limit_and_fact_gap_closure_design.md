@@ -356,8 +356,14 @@ Option<JsonStringRead>`(`value`, `end`)가 실패를 None으로 돌려주고, �
   싣는다(한 문장이면 빈 값). defer를 n개로 쪼개면 역순으로 실행되므로 mir_lower는 연속한
   행을 하나의 `Defer` 블록으로 다시 묶는다. 순서가 어긋나거나, 빠지거나, 형식이 틀린 part는
   거부한다. 게이트는 `tests/self_hosted/parity/defer_multi_statement_owner.sh`(native C/LLVM,
-  기본 C 경로)와 렌더러 스모크의 part 행이다. native MIR JSON은 여러 문장 본문을 여전히
-  `arg0` 없는 한 행으로 낸다. 기본 LLVM 경로는 defer 자체를 거부한다.
+  기본 C 경로)와 렌더러 스모크의 part 행이다. 기본 LLVM 경로는 defer 자체를 거부한다.
+- **F5 착지 (native MIR 행).** native MIR도 본문 문장마다 `stmt`/`AST_DEFER_STMT` 행을 낸다.
+  각 행은 자기 part 인덱스와 routing(`Log`/`Call`/`Assign`)을 싣고, 문장이 둘 이상이면
+  `arg1`에 `k/n`을 싣는다. 표현식 graph의 lane도 그 문장을 따른다(대입은 값이 lane 0,
+  대상이 lane 1). MIR 경로의 C/LLVM 백엔드는 본문의 첫 행에서만 defer 블록을 등록하므로
+  n개 행이어도 본문은 한 번만 돈다. 그래서 여러 문장 defer 픽스처를 rung2 MIR parity
+  매니페스트에 넣을 수 있게 됐고(픽스처 285개), native oracle과 self-host MIR이 같은
+  canonical 형태로 모인다.
 - **F5 착지 (대입).** 대입 문장은 `arg0=Assign` 행이 된다. 일반 대입 행처럼 값 graph가
   주 graph이고 대상 graph가 보조 graph(`expr1_graph`)다. mir_lower는
   `Assign: <대상> = <값>`으로 재구성하고, 대상 graph가 없으면
@@ -507,7 +513,7 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
 
 | 항목 | 측정된 규모 | 판단 |
 | --- | --- | --- |
-| F5(b) native MIR JSON의 여러 문장 defer | native는 defer 한 개를 `stmt` 행 하나로 내고 본문은 `defer_body` 배열로 싣는다. 행을 쪼개려면 MIR 명령어에 본문 문장 인덱스 fact가 필요하고, `mir_stmt_population_source.c`·`mir_non_cfg_stmt_population.c`의 생성부 2곳과 JSON 덤프·fact 검증·표면 shape 판정이 함께 바뀐다 | 다음 칸. rung2 MIR parity 매니페스트에 여러 문장 defer 픽스처를 넣으려면 이것이 먼저다 |
+| F5(b) native MIR JSON의 여러 문장 defer | **착지.** MIR 명령어가 본문 문장 인덱스를 싣고, CFG 생성부 3곳과 non-CFG 생성부 1곳이 문장마다 행을 낸다. rung2 MIR parity 매니페스트의 여러 문장 defer 픽스처가 native와 self-host MIR을 같은 자리에서 비교한다 | 7절 참고 |
 | F5(c) 기본 LLVM 경로의 defer | `src/self_hosted/compiler/direct_mir_*.pgy` 974개 파일에 defer 관련 코드가 0곳이다. 현재는 `scalar CFG program routine admission` 단계에서 `source=AST_DEFER_STMT`로 거부한다 | 새 기능 규모. cleanup 등록과 모든 탈출 경로의 LIFO 실행이 필요하다 |
 | L4b 범위 배열(`[0, 0]`) | `MirObjectArrayBoundsAtBounds` 호출부 59곳, 30파일. 그중 2파일(`mir_lower/collection_ownership_fact_owner.pgy`, `mir_lower/routine_fact_index_owner.pgy`)은 다른 레인이 미커밋으로 고치는 중이라 L4a처럼 옛 함수를 남겨야 한다 | 다음 칸. 기계적이지만 드라이버 메모리를 다시 재야 한다 |
 | L4c parser `cursor_out` | `inout cursor_out: Array<Int>` 시그니처 48개, `cursor_out[0]` 읽기 226곳, 26파일. parser는 self-host 전체 소스를 도는 가장 뜨거운 경로다 | 크다. 슬라이스를 나눠 각 슬라이스마다 fixpoint와 메모리를 재야 한다 |
