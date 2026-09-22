@@ -61,7 +61,6 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
     }
     if !indexed_assignments.valid {
         Die("direct MIR scalar CFG indexed-assignment facts are invalid");
-        return empty;
     }
     let local_names: Array<String> = [];
     let local_ref_kinds: Array<Int> = [];
@@ -88,7 +87,6 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
               kind != "loop-init" && kind != "branch" &&
               !collection_mutation_receiver)) {
             Die("direct MIR scalar CFG instruction LocalRef coverage is invalid");
-            return empty;
         }
         if result != "" && !DirectMirScalarCfgForEachOwnsDefinition(
             foreach_sources, global
@@ -121,7 +119,6 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
                     (parameter_ordinal < 0 || parameter_ordinal >= ArrayLength(parameters.names))) ||
                     (source == "AST_LET_DECL" && !StartsWith(local_identity, "declaration:")) {
                     Die("direct MIR scalar CFG LocalRef declaration role or owner is invalid");
-                    return empty;
                 }
             }
             let local_row: Int = -1;
@@ -140,7 +137,6 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
                         ranges, local_name, local_identity, wire.required
                     )) {
                 Die("direct MIR scalar CFG value LocalRef ownership is invalid");
-                return empty;
             }
             if local_row < 0 {
                 local_row = ArrayLength(local_names);
@@ -155,7 +151,6 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
                 }
             } else if local_names[local_row] != local_name {
                 Die("direct MIR scalar CFG LocalRef name identity disagrees");
-                return empty;
             }
             let definition: MirRoutineResultDefinitionFact =
                 MirRoutineFactIndexUniqueResultDefinition(index, result);
@@ -164,7 +159,6 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
                 !MirSsaNameMatches(result, local_name, false) ||
                 DirectMirScalarCfgGraphValueRow(value_names, result) >= 0 {
                 Die("direct MIR scalar CFG result definition LocalRef is invalid");
-                return empty;
             }
             ArrayPush(value_names, result);
             ArrayPush(value_local_rows, local_row);
@@ -177,21 +171,18 @@ func DirectMirScalarCfgLocalRefPlanFromOwners(ref admitted: MirMachineLayerAdmit
         local_ref_kinds, local_ref_value_ids, local_ref_syntax_ids
     ) {
         Die("direct MIR scalar CFG range LocalRef binding is invalid");
-        return empty;
     }
     if !DirectMirScalarCfgAppendForEachLocals(
         index, wire, foreach_sources, local_names, local_ref_kinds,
         local_ref_value_ids, local_ref_syntax_ids
     ) {
         Die("direct MIR scalar CFG foreach LocalRef binding is invalid");
-        return empty;
     }
     if !DirectMirScalarCfgAppendMatchBindingLocals(
         admitted, index, logical_record, local_names, local_ref_kinds,
         local_ref_value_ids, local_ref_syntax_ids
     ) {
         Die("direct MIR scalar CFG match binding LocalRef is invalid");
-        return empty;
     }
     return DirectMirScalarCfgLocalRefPlan(
         true, local_names, local_ref_kinds, local_ref_value_ids,

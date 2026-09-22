@@ -76,5 +76,4 @@ func CompileAdmittedDirectMirThreeRoutine(
         return DirectMirStructArgumentEmitC(plan, formatted_print, line_format);
     }
     Die("direct MIR three-routine projection rejected the classification");
-    return "";
 }

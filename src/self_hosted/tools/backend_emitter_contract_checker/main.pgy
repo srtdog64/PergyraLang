@@ -52,7 +52,6 @@ func Main() -> Void {
     if !BackendEmitterReportOwnerReady() {
         Log(CompilerBackendEmitterOwnerNotReadyMessage());
         Exit(1);
-        return;
     }
 
     let args: Array<String> = Args();
@@ -71,7 +70,6 @@ func Main() -> Void {
     if !CompilerBackendEmitterContractReady() {
         Log(CompilerBackendEmitterOwnerNotReadyMessage());
         Exit(1);
-        return;
     }
 
     let missing_required: Int = 0;

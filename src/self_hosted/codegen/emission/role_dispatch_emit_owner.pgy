@@ -172,7 +172,6 @@ func CodegenSemanticRoleMethodSignatureIndexByNameOrDie(
         "role implementation method is missing for ability method: ",
         method_name
     ));
-    return -1;
 }
 
 // A parameter whose type owns identity is passed by pointer, and the

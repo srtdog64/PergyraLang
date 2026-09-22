@@ -45,7 +45,6 @@ func CodegenSemanticAssignmentTargetTypeOrDie(
     Die(Concat(
         "missing semantic assignment target type: ", ToString(node_id)
     ));
-    return "";
 }
 
 func CodegenSemanticAssignmentIs(
@@ -113,5 +112,4 @@ func CodegenSemanticAssignmentExpectedTypeOrDie(
     Die(Concat(
         "missing semantic assignment expected type: ", ToString(node_id)
     ));
-    return "";
 }

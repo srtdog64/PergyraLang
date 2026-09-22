@@ -74,5 +74,4 @@ func RewriteSemanticMachineCall(
         )));
     }
     Die(Concat(source_name, " is not a supported machine-layer call"));
-    return "";
 }

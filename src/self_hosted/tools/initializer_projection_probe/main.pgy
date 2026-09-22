@@ -886,12 +886,10 @@ func Main() -> Void with caps env {
             Log("scalar graph damage did not reach initializer type owner");
         }
         Exit(1);
-        return;
     }
     if !SemanticAstBodyTypeBundleReady(artifact, analysis, body_types) {
         Log(body_types.verdict.diagnostic_message);
         Exit(1);
-        return;
     }
     let initializer_types: SemanticAstInitializerTypeFacts =
         ProbeInitializerFacts(body_types, mode);
@@ -906,7 +904,6 @@ func Main() -> Void with caps env {
     if !SelfMirProgramFactsReady(facts) {
         Log(SelfMirProgramFactsValidationError(facts));
         Exit(1);
-        return;
     }
     if ArrayLength(facts.routines.local_names) != 2 ||
         facts.routines.local_names[1] != "x" ||
@@ -915,7 +912,6 @@ func Main() -> Void with caps env {
         facts.cfg.instructions.source_types[1] != "AST_LET_DECL" {
         Log("initializer projection probe observed invalid MIR rows");
         Exit(1);
-        return;
     }
     Log("local=x type=Int source=AST_LET_DECL");
 }

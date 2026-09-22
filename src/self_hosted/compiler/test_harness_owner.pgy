@@ -142,7 +142,6 @@ func CompilerHarnessProjectionOrExit(index: Int) -> String {
     if !CompilerHarnessProjectionIndexKnown(index) {
         Log("HARNESS ERROR: unknown projection row");
         Exit(1);
-        return "";
     }
     return CompilerHarnessProjectionAt(index);
 }

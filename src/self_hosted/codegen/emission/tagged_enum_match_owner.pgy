@@ -12,7 +12,6 @@ func EmitMatchCaseValue(pattern: String, subject_type: String, env: CodegenTypeE
     let enum_fact_opt: Option<EnumLiteralProjectionFact> = EnumLiteralProjectionFactOpt(pattern, subject_type, env);
     if IsSome(enum_fact_opt) { return UnwrapOption(enum_fact_opt).c_value; }
     Die(Concat("unsupported match case pattern in self-host codegen subset: ", pattern));
-    return "0";
 }
 
 func EmitTaggedEnumMatchCondition(

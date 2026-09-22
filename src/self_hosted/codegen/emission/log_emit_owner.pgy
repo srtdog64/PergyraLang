@@ -61,5 +61,4 @@ func EmitLog(
         )));
     }
     Die(Concat("unsupported Log expression type: ", inferred_type_name));
-    return "";
 }

@@ -175,7 +175,6 @@ func Main() -> Void with caps io_read, env {
         }
         Log("explicit generic mismatch was not rejected");
         Exit(2);
-        return;
     }
     if mode == "--callable-resolution" {
         let base: SemanticAstFunctionSignatureFacts =
@@ -280,7 +279,6 @@ func Main() -> Void with caps io_read, env {
         if !callable_contract_ok {
             Log("callable canonical comparison contract failed");
             Exit(1);
-            return;
         }
         Log("callable-compare=exact index=0 syntax=101");
         Log("callable-compare=empty-owner index=1 syntax=202");
@@ -307,14 +305,12 @@ func Main() -> Void with caps io_read, env {
         }
         Log("generic target mismatch was not rejected");
         Exit(2);
-        return;
     } else if mode == "--nested-mismatch" {
         if GenericReturnProbeNestedMismatchRejected(analysis.signatures) {
             Exit(1);
         }
         Log("nested generic mismatch was not rejected");
         Exit(2);
-        return;
     }
     if !SemanticAstBodyTypeBundleReady(artifact, analysis, body_types) ||
         SemanticAstInitializerTypeCount(body_types.initializer_types) != 4 ||
@@ -331,7 +327,6 @@ func Main() -> Void with caps io_read, env {
         ) {
         Log("generic return substitution did not reach initializer facts");
         Exit(1);
-        return;
     }
     Log("generic-call=x type=Int");
     Log("generic-call=wrapped type=Option<Int>");

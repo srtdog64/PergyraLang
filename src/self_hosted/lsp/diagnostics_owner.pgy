@@ -185,7 +185,6 @@ func RunLspDiagnosticsFromArgs(args: Array<String>) -> Void with caps io_read {
         let missing: String = SemanticError2("input_missing", "expected", "source", "actual", "none");
         Log(LspPublishDiagnosticsJson("file://", missing));
         Exit(1);
-        return;
     }
 
     let source_path: String = args[0];

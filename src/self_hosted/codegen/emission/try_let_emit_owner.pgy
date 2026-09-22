@@ -182,5 +182,4 @@ func EmitTryLet(
         "try expression requires Result<Int> or Option<T> function return: ",
         CodegenAstArenaProvenanceOrDie(arena, idx)
     ));
-    return "";
 }

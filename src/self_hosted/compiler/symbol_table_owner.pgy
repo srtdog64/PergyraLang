@@ -115,7 +115,6 @@ func CompilerSymbolCIdentifier(source_name: String) -> String {
     if n == 0 {
         Log("SYMBOL ERROR: empty source name cannot be projected");
         Exit(1);
-        return "";
     }
     let result_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(n + 5);

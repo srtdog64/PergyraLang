@@ -100,7 +100,6 @@ func Main() -> Void {
         produced.required_ability_names[0] != "Runnable" {
         Log("zone-authority-producer=failed");
         Exit(1);
-        return;
     }
     let empty_ints: Array<Int> = [];
     let empty_strings: Array<String> = [];
@@ -115,14 +114,12 @@ func Main() -> Void {
     ) {
         Log("zone-authority-missing-row=accepted");
         Exit(1);
-        return;
     }
     let roles: SemanticAstRoleFacts = ZoneAuthorityProbeRoles();
     let facts: SemanticAstZoneAuthorityFacts = ZoneAuthorityProbeFacts();
     if !SemanticAstZoneAuthorityFactsAdmittedReady(8, roles, facts) {
         Log("zone-authority-positive=failed");
         Exit(1);
-        return;
     }
     let missing: SemanticAstZoneAuthorityFacts =
         ZoneAuthorityProbeMissingAbility(facts);
@@ -138,7 +135,6 @@ func Main() -> Void {
         ) {
         Log("zone-authority-negative=accepted");
         Exit(1);
-        return;
     }
     Log("zone-authority-carriage=PASS");
 }

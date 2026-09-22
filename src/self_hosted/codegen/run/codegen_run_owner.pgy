@@ -14,7 +14,6 @@ import "../../compiler/target_capability_owner.pgy";
 func EmitCodegenParityFixtureManifest() -> Void {
     if !CodegenParityFixtureManifestReady() {
         Exit(1);
-        return;
     }
     let rows: Array<String> = CodegenParityFixtureManifestRows();
     let i: Int = 0;
@@ -36,7 +35,6 @@ func RunCodegenFromArgs(args: Array<String>) -> Void {
             Log("Status: error");
             Log("Reason: input_missing");
             Exit(1);
-            return;
         }
         if !CompilerTargetCapabilityEnvelopeReady() {
             Die("target capability envelope is not ready for self-host C codegen");
@@ -67,7 +65,6 @@ func RunCodegenFromArgs(args: Array<String>) -> Void {
             Log("Status: error");
             Log("Reason: input_missing");
             Exit(1);
-            return;
         }
         if !CompilerTargetCapabilityEnvelopeReady() {
             Die("target capability envelope is not ready for self-host C codegen");

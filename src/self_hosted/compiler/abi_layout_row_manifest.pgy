@@ -42,7 +42,6 @@ func Main() -> Void {
     if !CompilerAbiLayoutRowsReady() {
         Log("ABI_LAYOUT ERROR: row owner is not ready");
         Exit(1);
-        return;
     }
     Log(Concat("schema=", CompilerAbiLayoutRowSchema()));
     Log(Concat("count=", ToString(CompilerAbiLayoutConcreteRowCount())));

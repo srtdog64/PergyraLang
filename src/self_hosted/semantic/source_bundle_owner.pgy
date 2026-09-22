@@ -63,7 +63,6 @@ func LoadSemanticSourceBundleVisit(path: String, inout seen_paths: Array<String>
     }
     if !FileExists(path) {
         Exit(1);
-        return "";
     }
     ArrayPush(seen_paths, path);
 
@@ -170,7 +169,6 @@ func LoadSemanticSourceSignatureBundleVisit(path: String, inout seen_paths: Arra
     }
     if !FileExists(path) {
         Exit(1);
-        return SemanticSourceBundle("");
     }
     ArrayPush(seen_paths, path);
 
@@ -223,7 +221,6 @@ func LoadSemanticSourceSignatureBundleVisit(path: String, inout seen_paths: Arra
 func LoadSemanticSourceCheckBundle(root_path: String) -> SemanticSourceBundle {
     if !FileExists(root_path) {
         Exit(1);
-        return SemanticSourceBundle("");
     }
     let seen_paths: Array<String> = [];
     ArrayPush(seen_paths, root_path);

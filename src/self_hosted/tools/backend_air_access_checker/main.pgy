@@ -45,7 +45,6 @@ func Main() -> Void {
     if !BackendAirAccessReportOwnerReady() {
         Log(CompilerBackendAirAccessOwnerNotReadyMessage());
         Exit(1);
-        return;
     }
 
     let args: Array<String> = Args();
@@ -56,7 +55,6 @@ func Main() -> Void {
     if !CompilerBackendAirAccessContractReady() {
         Log(CompilerBackendAirAccessOwnerNotReadyMessage());
         Exit(1);
-        return;
     }
 
     let entries: Array<String> = DirWalk(CompilerBackendAirAccessRoot());

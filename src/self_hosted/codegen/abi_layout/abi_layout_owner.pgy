@@ -108,7 +108,6 @@ func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
         return enum_fact.c_value_type;
     }
     Die(Concat("unsupported C ABI value type (only Int/Long/Bool/Float/Double/String/Array/Result/Option/struct/enum): ", type_name));
-    return "";
 }
 
 func AbiLayoutCParamType(type_name: String, struct_env: CodegenTypeEnv) -> String {
@@ -203,7 +202,6 @@ func AbiLayoutCDefaultReturnValue(type_name: String, struct_env: CodegenTypeEnv)
         return enum_fact.default_return_value;
     }
     Die(Concat("unsupported bare return default for C ABI type: ", type_name));
-    return "";
 }
 
 func AbiLayoutCLocalType(type_name: String, struct_env: CodegenTypeEnv) -> String {

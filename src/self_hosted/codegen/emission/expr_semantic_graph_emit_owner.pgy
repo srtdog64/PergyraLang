@@ -67,7 +67,6 @@ func RewriteSemanticLeaf(graph: SemanticExpressionGraphFacts, node_id: Int, text
         Die(Concat("semantic leaf value fact is missing: ", text));
     }
     Die(Concat("unsupported semantic leaf expression: ", text));
-    return "";
 }
 func CodegenSemanticTaggedEnumVariantTagFromGraph(graph: SemanticExpressionGraphFacts, node_id: Int,
     env: CodegenTypeEnv) -> Option<String> {

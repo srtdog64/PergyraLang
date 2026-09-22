@@ -382,5 +382,4 @@ func ParseNominalDecl(
         ArraySet(cursor_out, 0, i); return out;
     }
     Exit(1);
-    return "";
 }

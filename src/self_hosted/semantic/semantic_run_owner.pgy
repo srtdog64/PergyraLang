@@ -12,7 +12,6 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
     if ArrayLength(args) < 1 {
         Log(SemanticError2("input_missing", "expected", "source", "actual", "none"));
         Exit(1);
-        return;
     }
     if args[0] == "--fixture-manifest" {
         EmitSemanticVerdictPayloadFixtureManifest();
@@ -33,7 +32,6 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
     if args[0] == "--enum-callable-contract" {
         if !SemanticEnumCallableProjectionContractReady() {
             Exit(1);
-            return;
         }
         Log("enum-callable-projection: ok");
         return;
@@ -42,7 +40,6 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
         if ArrayLength(args) < 3 {
             Log(SemanticError2("input_missing", "expected", "oracle-json-and-code", "actual", "none"));
             Exit(1);
-            return;
         }
         EmitSemanticOracleJsonCodeMatch(args[1], args[2]);
         return;
@@ -51,7 +48,6 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
         if ArrayLength(args) < 2 {
             Log(SemanticError2("input_missing", "expected", "source", "actual", "none"));
             Exit(1);
-            return;
         }
         let check_bundle: SemanticSourceBundle = LoadSemanticSourceCheckBundle(args[1]);
         let check_content: String = check_bundle.content;
@@ -59,7 +55,6 @@ func RunSemanticFromArgs(args: Array<String>) -> Void {
         if StringLength(check_error) > 0 {
             Log(check_error);
             Exit(1);
-            return;
         }
         Log(SemanticOk());
         return;

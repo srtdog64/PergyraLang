@@ -275,7 +275,6 @@ func ParserExpressionGraphRowsBoxStart(
         !ParserExpressionGraphRowsAppendShapeReady(initial) ||
         ArrayLength(initial.roots) != 0 {
         Exit(1);
-        return;
     }
     ArrayPush(rows_box, initial);
 }
@@ -339,7 +338,6 @@ func ParserExpressionGraphsAppendInto(
 ) -> Void {
     if ArrayLength(rows_box) != 1 {
         Exit(1);
-        return;
     }
     let rows: AstExpressionGraphRows = rows_box[0];
     ArraySet(rows_box, 0, AstExpressionGraphRowsEmpty());
@@ -402,7 +400,6 @@ func ParserExpressionGraphsAppendRowsInto(
 ) -> Void {
     if ArrayLength(target_box) != 1 {
         Exit(1);
-        return;
     }
     let target: AstExpressionGraphRows = target_box[0];
     ArraySet(target_box, 0, AstExpressionGraphRowsEmpty());

@@ -35,5 +35,4 @@ func CodegenMemberCallReceiverArgument(
         return receiver_value;
     }
     Die("member-call receiver carriage fact is invalid");
-    return "";
 }

@@ -24,5 +24,4 @@ func DirectMirScalarCfgLlvmOperandLocal(
         return Concat("%pgy.local.", ToString(local_row));
     }
     Die("direct MIR scalar CFG LLVM LocalRef is invalid");
-    return "";
 }

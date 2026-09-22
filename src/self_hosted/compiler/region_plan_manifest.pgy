@@ -37,7 +37,6 @@ func Main() -> Void {
     if !RegionPlanReady() {
         Log("REGION_PLAN ERROR: owner is not ready");
         Exit(1);
-        return;
     }
     Log(Concat("schema=", RegionPlanSchema()));
     Log(Concat("revision=", ToString(RegionPlanRevision())));

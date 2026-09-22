@@ -4,7 +4,7 @@
 
 import "../../hir/ast_text_scan_owner.pgy";
 
-func Die(msg: String) -> Void {
+func Die(msg: String) -> Never {
     Log(Concat("CODEGEN ERROR: ", msg));
     Exit(1);
 }

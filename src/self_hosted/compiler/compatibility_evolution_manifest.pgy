@@ -115,7 +115,6 @@ func CompilerCompatibilityEvolutionReceiptSelfTest(
     if CompilerCompatibilityEvolutionReceiptReady(mutated) {
         Log(Concat("COMPATIBILITY_EVOLUTION ERROR: accepted ", mode));
         Exit(1);
-        return;
     }
     Log(Concat("receipt_rejected=", mode));
 }
@@ -148,7 +147,6 @@ func CompilerCompatibilityExecutionViewSelfTest(
     if CompilerCompatibilityExecutionViewReady(mutated) {
         Log(Concat("COMPATIBILITY_EVOLUTION ERROR: accepted ", mode));
         Exit(1);
-        return;
     }
     Log(Concat("view_rejected=", mode));
 }
@@ -163,7 +161,6 @@ func Main() -> Void {
         !CompilerCompatibilityExecutionViewReady(view) {
         Log("COMPATIBILITY_EVOLUTION ERROR: owner is not ready");
         Exit(1);
-        return;
     }
     let args: Array<String> = Args();
     if ArrayLength(args) > 0 &&

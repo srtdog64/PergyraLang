@@ -154,7 +154,6 @@ func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx:
             Concat(c_name, Concat(" = ", Concat(value, ";")))));
     }
     Die(Concat("unsupported let type (only Int/Long/Bool/Float/Double/String/Array/Slice/List/Queue/Set/Option/struct/enum): ", type_name));
-    return "";
 }
 func EmitStmtList(count: Int, arena: AstArena,
                   local_bindings: SemanticAstLocalBindingFacts,

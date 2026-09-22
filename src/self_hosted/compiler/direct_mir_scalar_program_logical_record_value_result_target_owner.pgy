@@ -30,7 +30,6 @@ func DirectMirScalarProgramLogicalRecordValueResultLocalRow(
         if plan.local_ref_value_ids[row] == wanted {
             if found >= 0 {
                 Die("direct MIR logical-record value-result local is ambiguous");
-                return -1;
             }
             found = row;
         }

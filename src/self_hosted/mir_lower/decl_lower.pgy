@@ -502,7 +502,6 @@ func EmitCanonicalDeclRow(
         "unsupported MIR declaration in self-host subset: ",
         Concat(kind, Concat(" ", name))
     ));
-    return "";
 }
 
 func EmitStructDecls(

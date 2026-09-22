@@ -9,7 +9,7 @@
 
 import "manifest_owner.pgy";
 
-func Die(message: String) -> Void {
+func Die(message: String) -> Never {
     Log(Concat("FUZZ GENERATOR ERROR ", message));
     Exit(1);
 }

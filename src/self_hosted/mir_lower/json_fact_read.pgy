@@ -394,7 +394,6 @@ func MirObjectArrayStringFactsAtBounds(
         cursor = value_end[0];
     }
     MirLowerFailClosed(Concat("MIR string array fact is malformed: ", field));
-    return values;
 }
 
 func MirDeclArrayObjectFactTable(json: String) -> JsonArrayObjectFactTable {

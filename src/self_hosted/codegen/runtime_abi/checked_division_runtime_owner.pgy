@@ -51,7 +51,6 @@ func CheckedDivisionRuntimeCSymbolFactForType(
         );
     }
     Die(Concat("checked division runtime requires Int or Long, got: ", type_name));
-    return CheckedDivisionRuntimeCSymbolFact("", "");
 }
 
 // Integer division and modulo route through the checked helper; float division

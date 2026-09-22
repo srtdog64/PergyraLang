@@ -257,7 +257,6 @@ func DirectMirCfgLlvmFormatName(shape_kind: Int) -> String {
         return ".pgy.int.line.format";
     }
     Die("direct MIR CFG LLVM projection shape is unsupported");
-    return "";
 }
 
 func DirectMirCfgEmitLlvm(

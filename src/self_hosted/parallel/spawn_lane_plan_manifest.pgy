@@ -37,7 +37,6 @@ func Main() -> Void {
     if !SpawnLanePlanReady() {
         Log("SPAWN_LANE_PLAN ERROR: owner is not ready");
         Exit(1);
-        return;
     }
     Log(Concat("schema=", SpawnLanePlanSchema()));
     Log(Concat("revision=", ToString(SpawnLanePlanRevision())));

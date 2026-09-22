@@ -111,7 +111,6 @@ func Main() -> Void with caps env {
             sequence.arena.node_texts[sequence.roots[0]] != "1 + 2") {
         Log("valid persisted graph did not reconstruct exactly");
         Exit(1);
-        return;
     }
     Log("persisted-graph-read=one-pass-exact");
 }

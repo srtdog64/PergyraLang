@@ -363,12 +363,10 @@ func Main() -> Void {
     if !CompilerTestHarnessReady() {
         Log("HARNESS ERROR: test harness owner rows not ready");
         Exit(1);
-        return;
     }
     if !CompilerStagePathManifestReady() {
         Log("HARNESS ERROR: compiler world path manifest rows not ready");
         Exit(1);
-        return;
     }
     if ArrayLength(args) > 0 && args[0] == CompilerWorldPathProjectionSuiteName() {
         EmitCompilerWorldProjectionPaths();

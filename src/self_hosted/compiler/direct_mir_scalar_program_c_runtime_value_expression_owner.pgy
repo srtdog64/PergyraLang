@@ -19,7 +19,6 @@ func DirectMirScalarProgramCRuntimeValueOwnerAddress(
             expressions.node_parameter_ordinals[argument]));
     }
     Die("direct MIR C runtime-value owner argument is invalid");
-    return "";
 }
 func DirectMirScalarProgramCRuntimeValueExpressionAt(
     ref expressions: DirectMirScalarProgramExpressionSet, node: Int,
@@ -61,5 +60,4 @@ func DirectMirScalarProgramCRuntimeValueExpressionAt(
             left_owner, Concat(", ", Concat(right_owner, ")"))))));
     }
     Die("direct MIR C runtime-value call shape is invalid");
-    return None;
 }

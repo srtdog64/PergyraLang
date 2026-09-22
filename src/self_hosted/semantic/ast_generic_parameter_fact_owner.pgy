@@ -230,7 +230,6 @@ func SemanticAstGenericDefaultTypeForName(
     if ArrayLength(names) != ArrayLength(default_type_names) {
         Log("semantic generic parameter default rows are misaligned");
         Exit(1);
-        return "";
     }
     let i: Int = 0;
     while i < ArrayLength(names) {

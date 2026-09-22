@@ -17,7 +17,6 @@ func DriverRung2ExecuteInstalledRequest(
     if !CompilerCompatibilityExecutionViewReady(compatibility_view) {
         Log("SELFHOST COMPATIBILITY ERROR: execution view is not ready");
         Exit(1);
-        return;
     }
     match request {
         case DriverCliDebugSession(source_path):

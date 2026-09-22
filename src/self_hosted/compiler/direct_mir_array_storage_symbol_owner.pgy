@@ -52,5 +52,4 @@ func DirectMirArrayStorageSymbolFactFromOccupied(
         ordinal = ordinal + 1;
     }
     Die("direct MIR Array storage has no collision-free C symbol");
-    return DirectMirArrayStorageSymbolFact(false, "", 0 - 1, "");
 }

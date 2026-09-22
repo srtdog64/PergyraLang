@@ -25,5 +25,4 @@ func CompileAdmittedDirectMirTwoRoutineNominal(
         );
     }
     Die("direct MIR two-routine nominal classification is unsupported");
-    return "";
 }

@@ -71,7 +71,6 @@ func Main() -> Void {
     if !CompilerSandboxCapabilityEnvelopeReady() {
         Log("SANDBOX_CAPABILITY ERROR: envelope owner is not ready");
         Exit(1);
-        return;
     }
 
     Log(Concat("schema=", CompilerSandboxCapabilitySchema()));

@@ -46,7 +46,7 @@ func ParserProgramBuildSourceLocationRowsReady(
     return true;
 }
 
-func ParserProgramGraphFail(reason: String) -> Void {
+func ParserProgramGraphFail(reason: String) -> Never {
     Log(Concat("PARSER GRAPH ERROR: ", reason));
     Exit(1);
 }

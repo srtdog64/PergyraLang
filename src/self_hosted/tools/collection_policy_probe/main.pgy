@@ -112,7 +112,6 @@ func Main() -> Void with caps io_read, env {
         }
         Log("value parameter collection mutation was accepted");
         Exit(2);
-        return;
     }
 
     let valid: SemanticAstBodyTypeBundle = CollectionPolicyProbeBundle(
@@ -122,17 +121,14 @@ func Main() -> Void with caps io_read, env {
         Log(valid.verdict.diagnostic_code);
         Log(valid.verdict.diagnostic_message);
         Exit(1);
-        return;
     }
     if !CollectionPolicyProbeGraphOwned() {
         Log("call-policy=unowned");
         Exit(1);
-        return;
     }
     if !CollectionPolicyProbeRejectsTargetDrift() {
         Log("target-drift=accepted");
         Exit(1);
-        return;
     }
     Log("statement-policy=owner");
     Log("call-policy=graph");

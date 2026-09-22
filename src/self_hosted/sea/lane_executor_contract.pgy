@@ -42,7 +42,6 @@ func Main() -> Void {
             LaneExecutorMissingSelfTestTerm()));
         LaneExecutorReport(missing, findings);
         Exit(1);
-        return;
     }
     if ArrayLength(args) > 0 && args[0] == LaneExecutorMissingSelfTestMode() {
         missing = 1;
@@ -51,7 +50,6 @@ func Main() -> Void {
             LaneExecutorMissingSelfTestTerm()));
         LaneExecutorReport(missing, findings);
         Exit(1);
-        return;
     }
 
     let i: Int = 0;

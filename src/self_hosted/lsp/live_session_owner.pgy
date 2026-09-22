@@ -33,7 +33,7 @@ func NewLspLiveSessionState() -> LspLiveSessionState {
     );
 }
 
-func LspLiveSessionFail() -> Void {
+func LspLiveSessionFail() -> Never {
     Exit(1);
 }
 

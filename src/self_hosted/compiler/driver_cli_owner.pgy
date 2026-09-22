@@ -83,7 +83,6 @@ func DriverCliArtifact(source_path: String, mode: String) -> String with caps io
         return CompileSourceToCArtifact(source_path).payload;
     }
     Die(Concat("unknown driver artifact mode: ", mode));
-    return "";
 }
 
 func DriverCliWriteArtifact(

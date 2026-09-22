@@ -52,7 +52,6 @@ func Main() -> Void {
     if !ParallelChunkPolicyReady() {
         Log("PARALLEL_CHUNK_POLICY ERROR: owner is not ready");
         Exit(1);
-        return;
     }
     Log(Concat("schema=", ParallelChunkPolicySchema()));
     Log(Concat("factor=", ToString(ParallelChunkFactor())));

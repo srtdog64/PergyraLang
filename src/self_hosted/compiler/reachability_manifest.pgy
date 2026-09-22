@@ -34,7 +34,6 @@ func Main() -> Void {
     if !ReachabilityContractReady() {
         Log("REACHABILITY_CONTRACT ERROR: owner is not ready");
         Exit(1);
-        return;
     }
     Log(Concat("schema=", ReachabilitySchema()));
     Log(Concat("rows=", ToString(ReachabilityRowCount())));

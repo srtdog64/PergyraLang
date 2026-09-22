@@ -120,7 +120,6 @@ func DirectMirScalarCfgProgramAppendRoutine(
             option_string_abi, option_bool_abi);
     if !input.index.valid || !DirectMirScalarCfgProgramInputReady(input) {
         Die("direct MIR scalar program routine input has an external collection plan");
-        return invalid;
     }
     let signature: DirectMirRoutineSignatureFact = DirectMirRoutineInstanceSignatureAt(callables.instances, routine_ordinal);
     if !DirectMirRoutineSignatureFactReady(signature) || signature.row != routine_row ||
@@ -132,7 +131,6 @@ func DirectMirScalarCfgProgramAppendRoutine(
           signature.digest !=
               callables.signature_digests[routine_ordinal - 1])) {
         Die("direct MIR scalar program routine signature is invalid");
-        return invalid;
     }
     callables = DirectMirScalarProgramCallableUseContext(callables, routine_ordinal);
     option_int_abi = DirectMirScalarProgramOptionIntAbiFromRoutineParameters(option_int_abi, admitted.routines, routine_row, signature.param_count);
@@ -183,7 +181,6 @@ func DirectMirScalarCfgProgramAppendRoutine(
             storage.values, locals, types, block_offset);
     if !values.valid {
         Die("direct MIR scalar program routine value storage is invalid");
-        return invalid;
     }
     let blocks: DirectMirScalarCfgProgramBlockStorage = storage.blocks;
     let operations: DirectMirScalarCfgProgramOperationStorage =

@@ -10,7 +10,6 @@ func Main() -> Void {
     if !CompilerRuntimeCallAbiRowsReady() {
         Log("RUNTIME_CALL_ABI ERROR: row owner is not ready");
         Exit(1);
-        return;
     }
     Log(Concat("schema=", CompilerRuntimeCallAbiRowSchema()));
     Log(Concat("count=", ToString(CompilerRuntimeCallAbiConcreteRowCount())));

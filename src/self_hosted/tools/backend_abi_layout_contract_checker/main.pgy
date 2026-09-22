@@ -52,7 +52,6 @@ func Main() -> Void {
     if !BackendAbiLayoutReportOwnerReady() {
         Log(CompilerBackendAbiLayoutOwnerNotReadyMessage());
         Exit(1);
-        return;
     }
 
     let args: Array<String> = Args();
@@ -71,7 +70,6 @@ func Main() -> Void {
     if !CompilerBackendAbiLayoutContractReady() {
         Log(CompilerBackendAbiLayoutOwnerNotReadyMessage());
         Exit(1);
-        return;
     }
 
     let missing_required: Int = 0;

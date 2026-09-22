@@ -3319,7 +3319,7 @@ require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"FileClose^
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" "func CollectionArrayReturnType"
 require_text "src/self_hosted/semantic/expr_validation_owner.pgy" "SemanticCallableIndex(callable_names, name)"
 require_text "src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy" "SemanticCallableIndex(callable_names, text)"
-require_text "src/self_hosted/codegen/text/text_owner.pgy" "func Die(msg: String) -> Void"
+require_text "src/self_hosted/codegen/text/text_owner.pgy" "func Die(msg: String) -> Never"
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func Trim(content: String) -> String"
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func CharAt(s: String, i: Int) -> String"
 require_text "src/self_hosted/lib/diagnostic.pgy" "export func RenderOk(schema: String) -> String"

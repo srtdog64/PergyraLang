@@ -89,7 +89,6 @@ func Main() -> Void {
     if !CompilerTargetCapabilityEnvelopeReady() {
         Log("TARGET_CAPABILITY ERROR: envelope owner is not ready");
         Exit(1);
-        return;
     }
 
     Log(Concat("schema=", CompilerTargetCapabilitySchema()));

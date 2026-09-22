@@ -196,7 +196,6 @@ func CodegenWrapperDeclarationDependenciesReady(
         );
     }
     Die("constructed value declaration fact is invalid");
-    return false;
 }
 
 func CodegenWrapperDeclarationBlock(

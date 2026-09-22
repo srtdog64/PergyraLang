@@ -15,7 +15,6 @@ func RunParserFromArgs(args: Array<String>) -> Void with caps env, io_read {
     if ArrayLength(args) > 0 && args[0] == "--source-unit-ast" {
         if ArrayLength(args) < 2 {
             Exit(1);
-            return;
         }
         Log(ParseProgramBuildWithImportPolicy(args[1], false).tree_text);
         Log("");
@@ -28,7 +27,6 @@ func RunParserFromArgs(args: Array<String>) -> Void with caps env, io_read {
             Log("Status: error");
             Log("Reason: input_missing");
             Exit(1);
-            return;
         }
         Log("Phase: import-composition:start");
         let root_build: ParserProgramBuild =
@@ -46,7 +44,6 @@ func RunParserFromArgs(args: Array<String>) -> Void with caps env, io_read {
         Log("Status: error");
         Log("Reason: composed_program_invalid");
         Exit(1);
-        return;
     }
     if ArrayLength(args) > 0 && args[0] == "--check" {
         if ArrayLength(args) < 2 {
@@ -55,7 +52,6 @@ func RunParserFromArgs(args: Array<String>) -> Void with caps env, io_read {
             Log("Status: error");
             Log("Reason: input_missing");
             Exit(1);
-            return;
         }
         let parse_text: String = ParseProgramBuildWithImportPolicy(
             args[1],
