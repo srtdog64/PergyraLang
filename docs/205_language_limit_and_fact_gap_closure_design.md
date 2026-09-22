@@ -130,6 +130,16 @@ R6(`inout_argument_alias`, 레드팀 캠페인)도 같은 방식으로 착지했
   (`Verdict.Ok(7)`, `Shape.Circle(2)`)이 없다. 내장 이름과 겹치는 variant는 한정해야만
   만들 수 있으므로 이것이 L3d의 첫 항목이다. 게이트는 지금의 거부(산출물 없음)를
   고정하고, 생성식이 들어오면 실행 확인으로 바뀐다.
+- **L3d 한정 생성식 착지(기본 C 경로).** 함수 표가 한정 variant 행을 `Shape.Circle`로
+  등록했지만 호출 조회는 `.`을 `_`로 바꿔 찾았으므로 자기 행을 찾지 못했다. 행을 C 생성자
+  심볼과 같은 `Shape_Circle`로 등록하자 Namespace 호출로 해석되고, C codegen은 기존
+  namespace 행으로 방출한다. payload provenance 검사도 Namespace 대상을 받는다.
+  `Shape.Circle(2)`는 기본 C 경로에서 실행된다. 기본 LLVM 경로(direct MIR)는
+  `payload-enum-zero-constructor` admission에서 거부한다.
+- **남은 L3d.** `Verdict.Ok(7)`/`Maybe.Some(4)` 프로그램은 생성식은 통과하지만 기본 경로가
+  여전히 거부한다. self-host MIR producer가 match case에 `match_subject_family`를 싣지
+  않아서 mir_lower가 `case Ok(p)`를 철자로 읽고 `IsOk(v)`로 재구성하기 때문이다. native
+  MIR처럼 계열을 싣는 것이 다음 단계다(self-host MIR 행 스키마와 두 JSON writer 변경).
 - **L3a 착지.** native는 variant 이름이 같은 범위의 다른 선언(다른 enum의 variant, 함수)과
   겹치면 `PGY_SEM_REDECLARATION`으로 거부하고, `Enum.Variant(..)`의 이름 폴백이 다른
   enum의 variant에 닿으면 거부한다. self-host는 두 enum의 같은 variant를

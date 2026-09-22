@@ -11,9 +11,12 @@
 # - native MIR JSON carries match_subject_family for every case;
 # - mir_lower reconstructs a user-enum `Ok(p)` case as a payload read, never
 #   as Unwrap(subject);
-# - the default self-host route refuses the user-enum programs with no binary:
-#   qualified payload constructors (`Verdict.Ok(7)`) are not implemented there
-#   yet (docs/205 L3d). When they land, this becomes an execution check.
+# - a qualified payload constructor (`Shape.Circle(2)`) runs on native C/LLVM
+#   and the default C route (docs/205 L3d); the default LLVM route refuses it;
+# - the default self-host route still refuses the builtin-named variant
+#   programs with no binary: self-host MIR does not carry
+#   match_subject_family yet, so mir_lower reads `case Ok(p)` by its spelling.
+#   When it does, this becomes an execution check.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -76,6 +79,16 @@ for entry in "${USER_ENUM_CASES[@]}"; do
     done
 done
 
+QUALIFIED="$FIXTURES/enum_qualified_payload_constructor.pgy"
+run_expect qualified-native-c "$QUALIFIED" "12|9" --native-pipeline --backend=c
+run_expect qualified-native-llvm "$QUALIFIED" "12|9" --native-pipeline --backend=llvm
+run_expect qualified-default-c "$QUALIFIED" "12|9" --backend=c
+out_rel="$WORK_REL/qualified-default-llvm.exe"
+if compile "$QUALIFIED" "$out_rel" "$WORK_DIR/qualified-default-llvm.log" --backend=llvm; then
+    fail "default llvm route accepted the qualified constructor; turn this into an execution check"
+fi
+[[ ! -e "$ROOT_DIR/$out_rel" ]] || fail "default llvm route left a binary for the refused qualified constructor"
+
 OPTION_CONTROL="$FIXTURES/match_subject_family_option_control.pgy"
 run_expect option-native-c "$OPTION_CONTROL" "5|0" --native-pipeline --backend=c
 run_expect option-native-llvm "$OPTION_CONTROL" "5|0" --native-pipeline --backend=llvm
@@ -133,4 +146,4 @@ MIR_LOWER="$WORK_DIR/mir_lower.exe"
 grep -Fq 'v.Ok._0' "$WORK_DIR/verdict-ok.reast" ||
     fail "mir_lower lost the user-enum payload read"
 
-echo "[$LABEL] family-decided user-enum and Option cases on native C/LLVM, MIR JSON and mir_lower: PASS"
+echo "[$LABEL] family-decided user-enum, Option and Result cases on native C/LLVM, MIR JSON and mir_lower; qualified constructor on the default C route: PASS"

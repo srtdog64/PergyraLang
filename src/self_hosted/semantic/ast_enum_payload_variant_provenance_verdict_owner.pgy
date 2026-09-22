@@ -352,16 +352,28 @@ func SemanticAstEnumPayloadConstructorVariant(
         SemanticCallSpineViewFromGraph(graph, root_node);
     if !call.ok || call.call_node < 0 || call.call_node >=
         SemanticExpressionGraphArenaNodeCount(graph.arena) ||
-        graph.arena.call_target_kinds[call.call_node] !=
-            SemanticCallTargetDirect() ||
+        (graph.arena.call_target_kinds[call.call_node] !=
+            SemanticCallTargetDirect() &&
+         graph.arena.call_target_kinds[call.call_node] !=
+            SemanticCallTargetNamespace()) ||
         graph.arena.identities.call_target_syntax_ids[call.call_node] != 0 ||
         graph.arena.identities.runtime_call_abi_ids[call.call_node] != 0 ||
         graph.arena.call_return_type_names[call.call_node] != enum_name {
         return SemanticAstEnumPayloadVariantUnproven();
     }
-    let variant: Option<Int> = SemanticAstEnumPayloadVariantRowForName(
-        enums, enum_name, graph.arena.call_target_names[call.call_node]
-    );
+    let target_name: String = graph.arena.call_target_names[call.call_node];
+    let variant: Option<Int> = SemanticAstEnumPayloadVariantRowForName(enums, enum_name, target_name);
+    // `Enum.Variant(..)` is a Namespace call to the variant's canonical declared name.
+    let row: Int = 0;
+    while graph.arena.call_target_kinds[call.call_node] == SemanticCallTargetNamespace() &&
+        row < ArrayLength(enums.variant_names) {
+        variant = None;
+        if enums.variant_enum_names[row] == enum_name && target_name ==
+            SemanticCallableCanonicalDeclaredName(enum_name, enums.variant_names[row]) {
+            variant = Some(row); row = ArrayLength(enums.variant_names);
+        }
+        row = row + 1;
+    }
     if !IsSome(variant) || enums.variant_param_counts[
         UnwrapOption(variant)
     ] != ArrayLength(call.argument_nodes) {

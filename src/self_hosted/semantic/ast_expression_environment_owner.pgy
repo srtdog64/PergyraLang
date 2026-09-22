@@ -175,8 +175,8 @@ func SemanticAstExpressionFunctionTables(
             );
             param_index = param_index + 1;
         }
-        let qualified_name: String = Concat(
-            enum_name, Concat(".", variant_name)
+        let qualified_name: String = SemanticCallableCanonicalDeclaredName(
+            enum_name, variant_name
         );
         let existing: Int = SemanticAstExpressionFunctionRowIndex(
             names, qualified_name

@@ -1,0 +1,15 @@
+// `Enum.Variant(..)` builds the named enum's variant (docs/205 L3d).
+enum Shape { Circle(Int), Square(Int) }
+
+func Area(s: Shape) -> Int {
+    match s {
+        case Circle(r): return r * r * 3;
+        case Square(w): return w * w;
+    }
+}
+
+func Main() -> Void {
+    let c: Shape = Shape.Circle(2);
+    Log(Area(c));
+    Log(Area(Shape.Square(3)));
+}
