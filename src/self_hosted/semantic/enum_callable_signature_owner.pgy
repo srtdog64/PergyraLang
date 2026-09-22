@@ -82,10 +82,31 @@ func SemanticEnumCallableRowsFromFacts(
 // Presence gate, not a projection: the word decides whether the parser is
 // asked at all. What an enum is, which variants it has and what their payload
 // types are stays the parser's answer. The lightweight checker also accepts
-// statement shapes the self-host parser does not cover yet, so a source that
-// declares no enum is never parsed here.
+// statement shapes the self-host parser does not cover yet, and the parser
+// leaves by Exit(1) rather than by a refusal, so arming it costs the whole
+// tool its diagnostic. The word therefore has to open a declaration: a
+// mention in a comment, a string or an identifier is not one.
 func SemanticSourceMayDeclareEnum(content: String) -> Bool {
-    return StringIndexOf(content, "enum") >= 0;
+    let n: Int = StringLength(content);
+    let i: Int = 0;
+    let line_open: Bool = true;
+    while i < n {
+        let c: String = Substring(content, i, 1);
+        if c == "\n" {
+            line_open = true;
+        } else if c != " " && c != "\t" && c != "\r" {
+            if line_open && i + 5 <= n && Substring(content, i, 5) == "enum " {
+                return true;
+            }
+            if line_open && i + 12 <= n
+                && Substring(content, i, 12) == "export enum " {
+                return true;
+            }
+            line_open = false;
+        }
+        i = i + 1;
+    }
+    return false;
 }
 
 func SemanticEnumFactsForCheckedSource(
