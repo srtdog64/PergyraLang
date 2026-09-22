@@ -385,6 +385,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_expression_environment_owner.pgy` -- shared
   artifact-native function, parameter, visible-local, and lexical scope
   environment construction for expression verdict owners.
+- `src/self_hosted/semantic/builtin_shadow_owner.pgy` -- which builtin
+  rows a top-level program function takes over in the callable table, and
+  the admission refusal for the spellings it may not take; the rows mirror
+  `src/semantic/builtin_name_reservation.def` (docs/205 R7).
 - `src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy` --
   shared immutable callable-table fact for body-analysis consumers; per-pass
   table rebuilding is forbidden.

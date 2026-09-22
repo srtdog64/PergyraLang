@@ -3363,7 +3363,13 @@ require_text "src/self_hosted/semantic/ast_expression_graph_collection_mutation_
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'CompilerCompletenessPathContains(path, "_probe/")'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/parser/expression_graph_owner.pgy"'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" "SeedSemanticBuiltinSignatures(func_names, func_rets, func_params)"
-require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "SeedSemanticOwnedBuiltinSignatures(names, returns, params)"
+require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "SeedSemanticOwnedBuiltinSignaturesUnclaimed(signatures, names, returns, params)"
+require_file "src/self_hosted/semantic/builtin_shadow_owner.pgy"
+require_max_lines "src/self_hosted/semantic/builtin_shadow_owner.pgy" 240
+require_text "src/self_hosted/semantic/builtin_shadow_owner.pgy" \
+    "SemanticBuiltinCapabilityRowForName(name).valid"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
+    "SemanticAstFunctionSignatureFactsWithBuiltinNames(artifact);"
 reject_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "StringLength")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" \
     'SemanticMatchKeywordWithin(content, content_length, i, "let")'

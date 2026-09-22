@@ -8,7 +8,7 @@ import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_expression_owner_field_environment_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
-import "builtin_signature_owner.pgy";
+import "builtin_shadow_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
 import "nominal_constructor_argument_policy_owner.pgy";
@@ -112,7 +112,7 @@ func SemanticAstExpressionFunctionTables(
     inout returns: Array<String>,
     inout params: Array<String>
 ) -> Bool {
-    if !SeedSemanticOwnedBuiltinSignatures(names, returns, params) {
+    if !SeedSemanticOwnedBuiltinSignaturesUnclaimed(signatures, names, returns, params) {
         return false;
     }
     if !SemanticAstNominalConstructorRowsReady(constructors) {

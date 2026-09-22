@@ -216,3 +216,55 @@ type_check_func_validate_param_boundary(ASTNode *node,
             "- or mark it as 'own' for transfer");
     }
 }
+
+/* The family that reserves a builtin spelling from top-level functions, or
+ * NULL when a program function may take it (docs/205 R7). */
+static const char *
+builtin_name_reserved_family(const char *name)
+{
+    static const struct { const char *family; const char *name; } rows[] = {
+#define PGY_BUILTIN_NAME_RESERVED(family, source_name) {#family, source_name},
+#include "builtin_name_reservation.def"
+#undef PGY_BUILTIN_NAME_RESERVED
+    };
+    static const char *const capability_names[] = {
+#define PGY_BUILTIN_CAPABILITY(identity, stable_id, source_name, primary, \
+                               secondary, policy) source_name,
+#include "builtin_capability_registry.def"
+#undef PGY_BUILTIN_CAPABILITY
+    };
+
+    if (name == NULL)
+        return NULL;
+    for (size_t i = 0; i < sizeof(capability_names) / sizeof(capability_names[0]); i++) {
+        if (strcmp(capability_names[i], name) == 0)
+            return "CAPABILITY";
+    }
+    for (size_t i = 0; i < sizeof(rows) / sizeof(rows[0]); i++) {
+        if (strcmp(rows[i].name, name) == 0)
+            return rows[i].family;
+    }
+    return NULL;
+}
+
+void
+type_check_func_validate_builtin_name(ASTNode *node, SemanticContext *ctx,
+                                      const char *name)
+{
+    const char *family = builtin_name_reserved_family(name);
+
+    if (family == NULL)
+        return;
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_REDECLARATION,
+        PGY_CAUSE_FUNCTION_BUILTIN_NAME_RESERVED,
+        PGY_FIX_RENAME_IDENTIFIER,
+        node,
+        "Function name '%s' is reserved by the %s builtin family.\n"
+        "Reason:\n"
+        "- a top-level function owns a builtin's spelling, except where that spelling carries meaning beyond the call\n"
+        "- see src/semantic/builtin_name_reservation.def for the families\n"
+        "Fix:\n"
+        "- rename the function",
+        name, family);
+}

@@ -186,7 +186,7 @@ intent ExecuteTrade(market: MarketZone, seller: Player, buyer: Player) {
 }
 
 // --- generic function -------------------------------------------------------
-func Max(a: Int, b: Int) -> Int {
+func Larger(a: Int, b: Int) -> Int {
     if a > b { return a; }
     return b;
 }

@@ -378,3 +378,65 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
 - 비한정 variant의 모호성을 오류로 할지 경고로 할지. 이 문서는 오류를 제안한다.
 - N항 `Concat`을 공개 표면에 둘지, 보간만 강화할지. 이 문서는 둘 다 같은 연산으로 낮추는
   것을 제안한다.
+
+## 10. R7 — 빌트인 철자와 프로그램 함수
+
+### 10.1 현재 (착지 전)
+
+- native는 이름 해석에서 빌트인을 사용자 함수보다 먼저 골랐다. `func Max(a, b)`를 선언해도
+  `Max(2, 3)`은 빌트인이 됐고, `MapKeys`·`IsCancelled`·`Clone`·`Contains`·`Trim`도 같았다.
+  진단은 없었다(SILENT-WRONG).
+- 기본 경로(self-host)는 함수 표에서 빌트인 행과 시그니처가 같으면 사용자 함수를 부르고,
+  다르면 `ast_artifact_invalid`로 거부했다. 같은 프로그램이 두 컴파일러에서 다르게 돌았다.
+- 지역 값과 사용자 class는 이미 빌트인 철자를 가린다. 함수만 예외였다.
+
+### 10.2 결정: 가리기가 규칙이고, 예약은 철자가 호출 이상의 뜻을 가질 때만이다
+
+- **top-level 함수가 빌트인·stdlib 철자를 가린다.** 새 빌트인이 생겨도 그 이름을 쓰던
+  프로그램이 깨지지 않는다. native semantic이 결정하고 호출 노드에
+  `semantic_callee_program_function` fact를 싣는다. C·LLVM emitter, 두 백엔드의 호출 타입
+  추론, MIR의 부작용 판정(`mir_source_shape.c`), C `let` Box 방출은 이 fact를 읽고 이름으로
+  다시 고르지 않는다. self-host는 함수 표가 그 함수가 가져간 빌트인 행을 싣지 않는다
+  (`semantic/builtin_shadow_owner.pgy`).
+- **예약 가족.** 아래 철자는 top-level 함수가 쓸 수 없고, 두 컴파일러가 선언에서 거부한다
+  (native `PGY_SEM_REDECLARATION` / `semantic:function:builtin_name_reserved`, self-host
+  `builtin_name_reserved`). 행은 `src/semantic/builtin_name_reservation.def`가 소유하고
+  self-host 행은 그 투영이다.
+  - `CAPABILITY`: ambient capability 빌트인. 행은 `builtin_capability_registry.def` 그 자체다.
+    `ReadFile(...)`을 읽는 사람은 그것이 권한 게이트가 걸린 연산이라고 믿을 수 있어야 한다.
+  - `RUNTIME_ABI`: 런타임이 같은 철자의 C/LLVM 심볼을 선언한다. native C는 사용자 함수 이름을
+    그대로 내므로 충돌한다. 게이트가 행을 런타임 선언과 대조한다.
+  - `RESOURCE`: slot·device slot·view·move·channel 연산. 자원 패스(MIR/RIR)와 LLVM의 source-local
+    channel let이 이 철자로 수명을 추적한다.
+  - `STATEMENT_FORM`: self-host typed AST가 이 callee의 호출 문장에 전용 statement kind를 준다
+    (`hir/ast_node_kind_owner.pgy`). 문장 위치 `Log(r);`가 사용자 함수 대신 빌트인이 됐다.
+  - `CONSTRUCTOR`: `Some`/`None`/`Ok`/`Err`. 같은 이름의 함수는 생성식과 모호하다(2.3의 3번 규칙).
+  - `TYPED_PROTOCOL`: self-host semantic이 이름 해석 전에 빌트인 프로토콜로 타입을 매긴다
+    (collection 프로토콜, Option/Result 투영, `Max`/`Min`, domain query). **이관 부채**다. 그
+    owner들이 declared-callable fact를 읽으면 행이 이 가족을 떠나고, 떠난 이름은 가리기 쪽이
+    된다. 예약을 푸는 것은 호환되는 완화다.
+- 나머지 이름은 `tests/self_hosted/fixtures/builtin_name_shadow_names.txt`에 있다.
+
+### 10.3 게이트
+
+`tests/self_hosted/parity/builtin_name_shadow_owner.sh`:
+
+- 두 예약 표가 같은지, `RUNTIME_ABI` 행이 런타임 선언인지, 가리기 목록의 이름이 런타임 선언이
+  아닌지, 빌트인 표(`builtin_resolve`, `pgy_builtin_type_table.c`, self-host 시그니처 행)의 모든
+  이름이 두 부류 중 하나에 들어가는지 본다. 새 빌트인은 분류되기 전까지 게이트를 통과하지 못한다.
+- 가리기 목록의 모든 이름으로 함수를 선언한 한 프로그램을 native C/LLVM과 기본 C/LLVM 경로에서
+  돌리고, 식 위치와 문장 위치의 모든 호출이 프로그램 함수를 실행했는지 출력으로 확인한다.
+- 예약 가족마다 한 이름이 네 경로 모두에서 바이너리 없이 거부되는지 본다.
+
+### 10.4 착지하면서 드러난 것
+
+- 문장 위치 호출을 넣자 native가 `ChannelCapacity`·`HasZone` 계열 이름의 사용자 함수 호출
+  문장을 "순수 질의"로 보고 DCE로 지우는 것이 드러났다. 이름 표(`mir_source_call_is_pure_query`)
+  앞에서 fact를 먼저 본다.
+- 기존 픽스처 셋이 예약 이름을 함수로 선언하고 있었다. `backend_compare/max_reduction_slot`과
+  `tests/alpha_full_keyword_test.pgy`의 `Max`는 `Larger`로, semantic 단위 테스트의 top-level
+  `Read`는 `Inspect`로 바꿨다. `tests/concept_semantics/hashmap/shadowed_map_keys_drop.pgy`
+  (`MapKeys`)는 이제 선언에서 거부된다.
+- 남은 것: method와 ability 구현은 이 규칙 밖이다(owner가 있는 함수). native C의 사용자 함수
+  이름과 런타임 심볼의 충돌은 빌트인 철자가 아닌 이름에도 있을 수 있다(`SlotRead` 등). 이것은
+  emitted-name 소유 문제이고 여기서 닫지 않는다.

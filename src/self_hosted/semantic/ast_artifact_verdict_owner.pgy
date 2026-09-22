@@ -1,5 +1,6 @@
 // Semantic verdicts derived from the shared parser-owned AST artifact.
 
+import "builtin_shadow_owner.pgy";
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
@@ -151,7 +152,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
     require_carried_call_targets: Bool
 ) -> SemanticAstArtifactAnalysis {
     let signatures: SemanticAstFunctionSignatureFacts =
-        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+        SemanticAstFunctionSignatureFactsWithBuiltinNames(artifact);
     let intent_signatures: SemanticAstIntentSignatureFacts =
         SemanticAstIntentSignatureFactsFromArtifact(artifact);
     let intent_transitions: SemanticAstIntentTransitionFacts =

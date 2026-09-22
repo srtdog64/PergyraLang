@@ -84,6 +84,81 @@ transpiler_infer_static_member_call_type_name(TranspilerCtx *ctx,
     return transpiler_infer_arena_copy_type_name(ctx, return_type_name);
 }
 
+/* The declared function's own return type; no builtin spelling applies. */
+static const char *
+transpiler_infer_function_decl_call_type_name(TranspilerCtx *ctx,
+                                              ASTNode *expr,
+                                              const char *name,
+                                              ASTNode *decl)
+{
+    if (decl != NULL && decl->type == AST_INTENT_DECL)
+        return "Bool";
+    if (decl == NULL || decl->type != AST_FUNC_DECL)
+        return "Unknown";
+    {
+        ASTNode *return_type = NULL;
+        const MIRRoutine *routine =
+            transpiler_find_mir_function(ctx, decl);
+        bool generic_call =
+            transpiler_mir_or_ast_function_is_generic(routine, decl);
+        bool extern_func =
+            transpiler_decl_is_extern_function(ctx, decl);
+        if (generic_call) {
+            char *resolved = transpiler_generic_call_return_type_from_mir(ctx, decl, expr);
+            if (resolved == NULL) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "C generic call return requires MIR specialization metadata for '%s'", name);
+                return "Unknown";
+            }
+            const char *copied = transpiler_infer_arena_copy_type_name(ctx, resolved);
+            free(resolved);
+            return copied != NULL ? copied : "Unknown";
+        }
+        if (!generic_call && !extern_func
+            && transpiler_active_has_mir(ctx)) {
+            const char *return_type_name = NULL;
+            if (routine == NULL) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "MIR-only C path missing function inference routine for '%s'",
+                    name != NULL ? name : "(anonymous-call)");
+                return "Unknown";
+            }
+            if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
+                    routine,
+                    decl,
+                    TRANSPILER_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME,
+                    "MIR-only C path missing function inference signature metadata for '%s'",
+                    "MIR-only C path missing function inference return type-name metadata for '%s'",
+                    NULL)) {
+                return "Unknown";
+            }
+            return_type_name =
+                transpiler_mir_routine_return_type_name(routine);
+            if (return_type_name != NULL) {
+                return transpiler_infer_arena_copy_type_name(
+                    ctx, return_type_name);
+            }
+            return_type =
+                transpiler_mir_routine_return_type(routine);
+        } else if (extern_func) {
+            return_type = ast_func_return_type(decl);
+        } else {
+            return_type = NULL;
+        }
+        if (return_type != NULL) {
+            char *resolved = render_type_name_in_ctx(ctx, return_type);
+            {
+                const char *copied =
+                    transpiler_infer_arena_copy_type_name(ctx,
+                                                          resolved);
+                free(resolved);
+                return copied != NULL ? copied : "Unknown";
+            }
+        }
+    }
+    return "Unknown";
+}
+
 const char *
 transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
 {
@@ -164,6 +239,14 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return copied != NULL ? copied : "Unknown";
             }
         }
+    }
+
+    /* Semantic chose the program function over a builtin or stdlib
+     * operation of the same spelling (docs/205 R7). */
+    if (ast_call_semantic_callee_program_function(expr)) {
+        const char *name = ast_identifier_name(ast_call_callee(expr));
+        return transpiler_infer_function_decl_call_type_name(
+            ctx, expr, name, find_callable_decl(ctx, name));
     }
 
     if (ast_call_callee(expr) != NULL
@@ -433,71 +516,8 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
             }
 
-            if (decl != NULL && decl->type == AST_INTENT_DECL)
-                return "Bool";
-            if (decl == NULL || decl->type != AST_FUNC_DECL)
-                return "Unknown";
-            {
-                ASTNode *return_type = NULL;
-                const MIRRoutine *routine =
-                    transpiler_find_mir_function(ctx, decl);
-                bool generic_call =
-                    transpiler_mir_or_ast_function_is_generic(routine, decl);
-                bool extern_func =
-                    transpiler_decl_is_extern_function(ctx, decl);
-                if (generic_call) {
-                    char *resolved = transpiler_generic_call_return_type_from_mir(ctx, decl, expr);
-                    if (resolved == NULL) {
-                        transpiler_set_mir_inventory_missing(ctx,
-                            "C generic call return requires MIR specialization metadata for '%s'", name);
-                        return "Unknown";
-                    }
-                    const char *copied = transpiler_infer_arena_copy_type_name(ctx, resolved);
-                    free(resolved);
-                    return copied != NULL ? copied : "Unknown";
-                }
-                if (!generic_call && !extern_func
-                    && transpiler_active_has_mir(ctx)) {
-                    const char *return_type_name = NULL;
-                    if (routine == NULL) {
-                        transpiler_set_mir_inventory_missing(ctx,
-                            "MIR-only C path missing function inference routine for '%s'",
-                            name != NULL ? name : "(anonymous-call)");
-                        return "Unknown";
-                    }
-                    if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
-                            routine,
-                            decl,
-                            TRANSPILER_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME,
-                            "MIR-only C path missing function inference signature metadata for '%s'",
-                            "MIR-only C path missing function inference return type-name metadata for '%s'",
-                            NULL)) {
-                        return "Unknown";
-                    }
-                    return_type_name =
-                        transpiler_mir_routine_return_type_name(routine);
-                    if (return_type_name != NULL) {
-                        return transpiler_infer_arena_copy_type_name(
-                            ctx, return_type_name);
-                    }
-                    return_type =
-                        transpiler_mir_routine_return_type(routine);
-                } else if (extern_func) {
-                    return_type = ast_func_return_type(decl);
-                } else {
-                    return_type = NULL;
-                }
-                if (return_type != NULL) {
-                    char *resolved = render_type_name_in_ctx(ctx, return_type);
-                    {
-                        const char *copied =
-                            transpiler_infer_arena_copy_type_name(ctx,
-                                                                  resolved);
-                        free(resolved);
-                        return copied != NULL ? copied : "Unknown";
-                    }
-                }
-            }
+            return transpiler_infer_function_decl_call_type_name(
+                ctx, expr, name, decl);
         }
     }
 

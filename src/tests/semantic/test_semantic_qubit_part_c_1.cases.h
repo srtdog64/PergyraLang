@@ -27,7 +27,7 @@ test_qubit_slot_semantics_part_c(void)
             "    let x: Int;\n"
             "    let y: Int;\n"
             "}\n"
-            "func Read(s: Slot<Vec2>) -> Void {\n"
+            "func Inspect(s: Slot<Vec2>) -> Void {\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);

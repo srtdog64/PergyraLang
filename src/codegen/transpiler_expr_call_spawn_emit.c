@@ -24,6 +24,10 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
          * pre-registers locals that are not yet in source scope. */
         if (ast_call_semantic_callee_value_binding_id(call) != 0)
             return emit_call_user_function(call, callee, ctx);
+        /* Semantic chose the program function over a builtin or stdlib
+         * operation of the same spelling (docs/205 R7). */
+        if (ast_call_semantic_callee_program_function(call))
+            return emit_call_user_function(call, callee, ctx);
         bk = builtin_resolve(callee_name);
         if ((bk == BUILTIN_BOX || bk == BUILTIN_RC_NEW)
             && transpiler_projection_nominal_decl_exists_local(

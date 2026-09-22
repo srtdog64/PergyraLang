@@ -214,7 +214,8 @@ transpiler_try_render_box_array_let_ctor(
         || ast_call_callee(init)->type != AST_IDENTIFIER
         || callee_name == NULL
         || transpiler_box_let_lookup(callee_name)
-            != TRANS_BOX_LET_OP_BOX_ARRAY) {
+            != TRANS_BOX_LET_OP_BOX_ARRAY
+        || ast_call_semantic_callee_program_function(init)) {
         return false;
     }
 
@@ -388,7 +389,8 @@ transpiler_try_emit_box_or_rc_let(TranspilerCtx *ctx,
     TranspilerBoxLetOp op = transpiler_box_let_lookup(callee_name);
     if ((op != TRANS_BOX_LET_OP_BOX && op != TRANS_BOX_LET_OP_RC)
         || transpiler_projection_nominal_decl_exists_local(
-            ctx, callee_name)) {
+            ctx, callee_name)
+        || ast_call_semantic_callee_program_function(init)) {
         return false;
     }
 

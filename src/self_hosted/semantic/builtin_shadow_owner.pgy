@@ -1,0 +1,238 @@
+// Builtin spellings and program functions (docs/205 R7).
+//
+// A top-level function declared in the program owns its spelling over a
+// builtin or stdlib operation, as a local value and a user class already do.
+// The callable table seeds only the builtin rows no such function claims, so
+// the program row is the one every later lookup of that spelling finds.
+//
+// The spellings below are the exception, and a top-level function may not
+// take them. The rows are src/semantic/builtin_name_reservation.def projected
+// one to one; the ambient-capability family is the capability registry.
+import "ast_signature_fact_owner.pgy";
+import "builtin_signature_owner.pgy";
+import "builtin_capability_projection_owner.pgy";
+import "diagnostic_owner.pgy";
+
+func SemanticBuiltinNameReservationRows() -> Array<String> {
+    let rows: Array<String> = [
+        "RUNTIME_ABI^Acos",
+        "RUNTIME_ABI^Asin",
+        "RUNTIME_ABI^Atan",
+        "RUNTIME_ABI^Atan2",
+        "RUNTIME_ABI^Ceil",
+        "RUNTIME_ABI^CharAtN",
+        "RUNTIME_ABI^CharCode",
+        "RUNTIME_ABI^ClaimQubit",
+        "RUNTIME_ABI^Clamp",
+        "RUNTIME_ABI^Cos",
+        "RUNTIME_ABI^Entangle",
+        "RUNTIME_ABI^Exp",
+        "RUNTIME_ABI^Floor",
+        "RUNTIME_ABI^H",
+        "RUNTIME_ABI^IntoClassical",
+        "RUNTIME_ABI^IsCollapsed",
+        "RUNTIME_ABI^Log10",
+        "RUNTIME_ABI^Log2",
+        "RUNTIME_ABI^MathLog",
+        "RUNTIME_ABI^Measure",
+        "RUNTIME_ABI^Pow",
+        "RUNTIME_ABI^QubitState",
+        "RUNTIME_ABI^ReleaseQubit",
+        "RUNTIME_ABI^Round",
+        "RUNTIME_ABI^Sin",
+        "RUNTIME_ABI^Sqrt",
+        "RUNTIME_ABI^StringConcat",
+        "RUNTIME_ABI^StringContains",
+        "RUNTIME_ABI^StringIndexOf",
+        "RUNTIME_ABI^StringJoin",
+        "RUNTIME_ABI^StringReplace",
+        "RUNTIME_ABI^StringSplit",
+        "RUNTIME_ABI^StringTrim",
+        "RUNTIME_ABI^SubContains",
+        "RUNTIME_ABI^SubContainsWithLen",
+        "RUNTIME_ABI^SubEquals",
+        "RUNTIME_ABI^SubEqualsWithLen",
+        "RUNTIME_ABI^SubIndexOf",
+        "RUNTIME_ABI^SubIndexOfWithLen",
+        "RUNTIME_ABI^SubStartsWith",
+        "RUNTIME_ABI^SubStartsWithLen",
+        "RUNTIME_ABI^Substring",
+        "RUNTIME_ABI^SubstringWithLen",
+        "RUNTIME_ABI^Tan",
+        "RUNTIME_ABI^ToFloat",
+        "RUNTIME_ABI^ToInt",
+        "RUNTIME_ABI^ToLower",
+        "RUNTIME_ABI^ToUpper",
+        "RESOURCE^Channel",
+        "RESOURCE^ClaimDeviceSlot",
+        "RESOURCE^ClaimSecureSlot",
+        "RESOURCE^ClaimSlot",
+        "RESOURCE^DeviceRead",
+        "RESOURCE^DeviceWrite",
+        "RESOURCE^Move",
+        "RESOURCE^Read",
+        "RESOURCE^Release",
+        "RESOURCE^ReleaseDeviceSlot",
+        "RESOURCE^SlotRawPointer",
+        "RESOURCE^SubmitDeviceRead",
+        "RESOURCE^ViewRead",
+        "RESOURCE^ViewWrite",
+        "RESOURCE^Write",
+        "STATEMENT_FORM^ArrayPop",
+        "STATEMENT_FORM^ArrayPush",
+        "STATEMENT_FORM^ArraySet",
+        "STATEMENT_FORM^Exit",
+        "STATEMENT_FORM^Log",
+        "CONSTRUCTOR^Err",
+        "CONSTRUCTOR^None",
+        "CONSTRUCTOR^Ok",
+        "CONSTRUCTOR^Some",
+        "TYPED_PROTOCOL^ArrayFilter",
+        "TYPED_PROTOCOL^ArrayMap",
+        "TYPED_PROTOCOL^ArrayReverse",
+        "TYPED_PROTOCOL^ArraySort",
+        "TYPED_PROTOCOL^CompilerRetireArrayStorage",
+        "TYPED_PROTOCOL^HasLayer",
+        "TYPED_PROTOCOL^HasProjection",
+        "TYPED_PROTOCOL^HasZoneLayer",
+        "TYPED_PROTOCOL^HasZoneProjection",
+        "TYPED_PROTOCOL^IsErr",
+        "TYPED_PROTOCOL^IsOk",
+        "TYPED_PROTOCOL^IsSome",
+        "TYPED_PROTOCOL^ListGet",
+        "TYPED_PROTOCOL^ListNew",
+        "TYPED_PROTOCOL^ListPush",
+        "TYPED_PROTOCOL^ListRemove",
+        "TYPED_PROTOCOL^ListSet",
+        "TYPED_PROTOCOL^ListSize",
+        "TYPED_PROTOCOL^MapGet",
+        "TYPED_PROTOCOL^MapHas",
+        "TYPED_PROTOCOL^MapKeys",
+        "TYPED_PROTOCOL^MapNew",
+        "TYPED_PROTOCOL^MapRemove",
+        "TYPED_PROTOCOL^MapSet",
+        "TYPED_PROTOCOL^MapSize",
+        "TYPED_PROTOCOL^Max",
+        "TYPED_PROTOCOL^Min",
+        "TYPED_PROTOCOL^QueueEmpty",
+        "TYPED_PROTOCOL^QueueNew",
+        "TYPED_PROTOCOL^QueuePop",
+        "TYPED_PROTOCOL^QueuePush",
+        "TYPED_PROTOCOL^QueueSize",
+        "TYPED_PROTOCOL^SetAdd",
+        "TYPED_PROTOCOL^SetHas",
+        "TYPED_PROTOCOL^SetNew",
+        "TYPED_PROTOCOL^SetRemove",
+        "TYPED_PROTOCOL^SetSize",
+        "TYPED_PROTOCOL^SliceCopy",
+        "TYPED_PROTOCOL^Unwrap",
+        "TYPED_PROTOCOL^UnwrapErr",
+        "TYPED_PROTOCOL^UnwrapOption",
+        "TYPED_PROTOCOL^UnwrapOr"
+    ];
+    return rows;
+}
+
+// Whether a family reserves a spelling from top-level functions, and which.
+struct SemanticBuiltinNameReservation {
+    reserved: Bool;
+    family: String;
+}
+
+func SemanticBuiltinNameReservationFor(name: String) -> SemanticBuiltinNameReservation {
+    if SemanticBuiltinCapabilityRowForName(name).valid {
+        return SemanticBuiltinNameReservation(true, "CAPABILITY");
+    }
+    let rows: Array<String> = SemanticBuiltinNameReservationRows();
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        let parts: Array<String> = Split(rows[i], "^");
+        if ArrayLength(parts) == 2 && parts[1] == name {
+            return SemanticBuiltinNameReservation(true, parts[0]);
+        }
+        i = i + 1;
+    }
+    return SemanticBuiltinNameReservation(false, "");
+}
+
+func SemanticProgramFunctionClaimsName(
+    signatures: SemanticAstFunctionSignatureFacts,
+    name: String
+) -> Bool {
+    let i: Int = 0;
+    while i < SemanticAstFunctionSignatureCount(signatures) {
+        let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
+            signatures, i
+        );
+        let function_name: Option<String> = SemanticAstFunctionNameAt(
+            signatures, i
+        );
+        if IsSome(owner) && IsSome(function_name) &&
+            UnwrapOption(owner) == "" &&
+            UnwrapOption(function_name) == name {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+// A reserved spelling keeps its builtin row, so a declaration that reaches
+// the table without the admission check below still fails the table.
+func SeedSemanticOwnedBuiltinSignaturesUnclaimed(
+    signatures: SemanticAstFunctionSignatureFacts,
+    inout names: Array<String>,
+    inout returns: Array<String>,
+    inout params: Array<String>
+) -> Bool {
+    let rows: Array<String> = SemanticBuiltinSignatureRows();
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        let parts: Array<String> = Split(rows[i], "^");
+        if ArrayLength(parts) != 3 {
+            return false;
+        }
+        if SemanticBuiltinNameReservationFor(parts[0]).reserved ||
+            !SemanticProgramFunctionClaimsName(signatures, parts[0]) {
+            let param_types: String = parts[2];
+            if param_types == "none" {
+                param_types = "";
+            }
+            ArrayPushOwnedString(names, parts[0]);
+            ArrayPushOwnedString(returns, parts[1]);
+            ArrayPushOwnedString(params, param_types);
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+// Admission: the first top-level function that takes a reserved spelling.
+func SemanticAstFunctionSignatureFactsWithBuiltinNames(
+    artifact: AstTreeArtifact
+) -> SemanticAstFunctionSignatureFacts {
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let i: Int = 0;
+    while signatures.ok && i < SemanticAstFunctionSignatureCount(signatures) {
+        let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
+            signatures, i
+        );
+        let name: Option<String> = SemanticAstFunctionNameAt(signatures, i);
+        if IsSome(owner) && IsSome(name) && UnwrapOption(owner) == "" {
+            let reservation: SemanticBuiltinNameReservation =
+                SemanticBuiltinNameReservationFor(UnwrapOption(name));
+            if reservation.reserved {
+                signatures.ok = false;
+                signatures.diagnostic_code = "builtin_name_reserved";
+                signatures.diagnostic_message = SemanticError2(
+                    "builtin_name_reserved",
+                    "function", UnwrapOption(name),
+                    "family", reservation.family
+                );
+            }
+        }
+        i = i + 1;
+    }
+    return signatures;
+}

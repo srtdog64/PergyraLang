@@ -185,6 +185,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             const char *fname = ast_declaration_name(stmt);
             if (fname == NULL)
                 continue;
+            type_check_func_validate_builtin_name(stmt, ctx, fname);
             if (scope_lookup_current(ctx->scope, fname) == NULL) {
                 /* Forward-declare with correct param count so that
                  * call-site arity checks pass before Pass 2. */

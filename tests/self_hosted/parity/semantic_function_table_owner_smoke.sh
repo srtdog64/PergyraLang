@@ -24,13 +24,14 @@ GENERIC_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_generic_specialization_fac
 PLACE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_place_fact_owner.pgy"
 MATCH_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_match_binding_environment_owner.pgy"
 BUILTIN_OWNER="$ROOT_DIR/src/self_hosted/semantic/builtin_signature_owner.pgy"
+SHADOW_OWNER="$ROOT_DIR/src/self_hosted/semantic/builtin_shadow_owner.pgy"
 
 fail() {
     echo "[self-host-parity:semantic-function-table-owner] $*" >&2
     exit 1
 }
 
-for file in "$ENV_OWNER" "$FACT_OWNER" "$ANALYSIS_OWNER" "$CAPTURE_OWNER" "$BODY_OWNER" "$DRIVER_OWNER" "$INIT_OWNER" "$BRIDGE_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER" "$PLACE_OWNER" "$MATCH_OWNER" "$BUILTIN_OWNER"; do
+for file in "$ENV_OWNER" "$FACT_OWNER" "$ANALYSIS_OWNER" "$CAPTURE_OWNER" "$BODY_OWNER" "$DRIVER_OWNER" "$INIT_OWNER" "$BRIDGE_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER" "$PLACE_OWNER" "$MATCH_OWNER" "$BUILTIN_OWNER" "$SHADOW_OWNER"; do
     [[ -f "$file" ]] || fail "owner is missing: ${file#$ROOT_DIR/}"
 done
 
@@ -62,8 +63,16 @@ if grep -Eq 'ArrayPush\((names|returns|params)' <<<"$table_body"; then
 fi
 grep -Fq 'func SeedSemanticOwnedBuiltinSignatures' "$BUILTIN_OWNER" ||
     fail "owned builtin table seed is missing"
-grep -Fq 'SeedSemanticOwnedBuiltinSignatures(names, returns, params)' "$ENV_OWNER" ||
+# Repointed (docs/205 R7): the producer seeds the owned builtin rows that no
+# top-level program function takes; the seed still inserts owned strings only.
+grep -Fq 'SeedSemanticOwnedBuiltinSignaturesUnclaimed(signatures, names, returns, params)' "$ENV_OWNER" ||
     fail "callable-table producer does not request owned builtin rows"
+seed_body="$(awk '/^func SeedSemanticOwnedBuiltinSignaturesUnclaimed\(/ { found=1 } found { print } found && /^}/ { exit }' "$SHADOW_OWNER")"
+grep -Fq 'ArrayPushOwnedString(names, parts[0]);' <<<"$seed_body" ||
+    fail "unclaimed builtin seed does not insert owned rows"
+if grep -Eq 'ArrayPush\((names|returns|params)' <<<"$seed_body"; then
+    fail "unclaimed builtin seed retains ordinary String-array insertion"
+fi
 
 for consumer in "$CAPTURE_OWNER" "$BODY_OWNER" "$INIT_OWNER" "$ITER_OWNER" "$REFINE_OWNER" "$CALL_TARGET_OWNER" "$ASSIGNMENT_OWNER" "$STATEMENT_OWNER" "$GENERIC_OWNER" "$PLACE_OWNER" "$MATCH_OWNER"; do
     if grep -Fq 'SemanticAstExpressionFunctionTables(' "$consumer"; then

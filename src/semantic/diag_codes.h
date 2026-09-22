@@ -292,6 +292,7 @@
 #define PGY_CAUSE_WORLD_DUPLICATE_NAME          "semantic:world:duplicate_name"
 #define PGY_CAUSE_WORLD_STATE_DUPLICATE_NAME    "semantic:world_state:duplicate_name"
 #define PGY_CAUSE_ZONE_STATE_DUPLICATE_NAME     "semantic:zone_state:duplicate_name"
+#define PGY_CAUSE_FUNCTION_BUILTIN_NAME_RESERVED "semantic:function:builtin_name_reserved"
 
 /* --- Semantic: parameter modes --- */
 #define PGY_CAUSE_PARAM_MODE_UNSUPPORTED_BOUNDARY_TYPE \

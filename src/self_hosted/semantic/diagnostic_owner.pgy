@@ -26,9 +26,7 @@ func SemanticDiagnosticMessageFact2(code: String, first_key: String, first_value
 func SemanticDiagnosticMessageFactRender(
     fact: SemanticDiagnosticMessageFact
 ) -> String {
-    if !fact.present {
-        return "";
-    }
+    if !fact.present { return ""; }
     return SemanticError2(
         fact.code,
         fact.first_key, fact.first_value,
@@ -88,6 +86,7 @@ func SemanticReason(code: String) -> String {
     }
     if code == "call_arity_mismatch" { return "call argument count does not match the callee parameter count"; }
     if code == "enum_variant_redeclaration" { return "a bare variant name must belong to one enum; the first declaration used to win silently"; }
+    if code == "builtin_name_reserved" { return "a top-level function owns a builtin spelling except where it carries meaning beyond the call"; }
     if code == "generic_argument_count_mismatch" { return "explicit generic argument count does not match the callable generic parameters"; }
     if code == "generic_argument_type_invalid" { return "explicit generic argument is missing or malformed"; }
     if code == "let_type_mismatch" {
@@ -215,6 +214,7 @@ func SemanticFix(code: String) -> String {
     if code == "option_concrete_type_required" { return "annotate the None value or pass a concretely typed Option<T>"; }
     if code == "never_function_fallthrough" { return "end the body in Exit(code) or a call to another Never function"; }
     if code == "enum_variant_redeclaration" { return "rename one of the variants"; }
+    if code == "builtin_name_reserved" { return "rename the function"; }
     if code == "value_param_collection_mutation" {
         return "spell the parameter as inout or mutate a local collection and return it";
     }

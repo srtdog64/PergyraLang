@@ -121,7 +121,20 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 || sym->kind == SYMBOL_TOKEN);
         bool user_class_overrides_builtin =
             !value_binding && semantic_find_class_decl_by_name(ctx, name) != NULL;
+        /* A function declared in the program owns its spelling over a
+         * builtin or stdlib operation, as a local value and a user class
+         * already do. An event is not a function here: its call is an
+         * invocation. The Option/Result constructors stay language forms
+         * (docs/205 R7). */
+        ASTNode *callable_decl = value_binding || sym == NULL
+                || sym->kind != SYMBOL_FUNCTION || sym->decl_syntax_id == 0
+            ? NULL
+            : semantic_find_callable_decl_by_name(ctx, name);
+        bool program_function = callable_decl != NULL
+            && callable_decl->type == AST_FUNC_DECL
+            && !pgy_match_variant_is_builtin(pgy_match_variant_lookup(name));
         BuiltinKind bk = value_binding || user_class_overrides_builtin
+                || program_function
             ? BUILTIN_NOT_BUILTIN
             : builtin_resolve(name);
         if ((value_binding && sym->decl_syntax_id == 0)
@@ -153,6 +166,11 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
             ASTNode *host_method = expr_current_host_method_decl(ctx, name);
             if (host_method != NULL)
                 return expr_type_check_host_method_call(expr, host_method, ctx);
+        }
+
+        if (program_function) {
+            (void)ast_call_set_semantic_callee_program_function(expr, true);
+            return type_check_function_symbol_call(expr, sym, name, ctx);
         }
 
         if (strcmp(name, "Channel") == 0)

@@ -51,6 +51,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'bash tests/self_hosted/parity/enum_variant_identity_owner.sh'
     run 'bash tests/self_hosted/parity/destructure_temporary_hygiene_owner.sh'
     run 'bash tests/self_hosted/parity/defer_multi_statement_owner.sh'
+    run 'bash tests/self_hosted/parity/builtin_name_shadow_owner.sh'
 
     run 'make build-source-inventory-test-smoke'
     run 'make gate-subject-declaration-test-smoke'
