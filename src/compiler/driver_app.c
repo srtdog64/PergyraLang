@@ -4,6 +4,7 @@
  */
 
 #include "driver_app.h"
+#include "driver_binary_output_owner.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -93,6 +94,10 @@ driver_run_pipeline(const DriverFlags *flags)
     DriverPhaseTimings timings;
     int exit_code;
 
+    /* A refused compile must not leave the previous binary in place
+     * (driver_binary_output_owner.c); requests with no binary are left alone. */
+    if (!driver_binary_output_prepare_for_target(flags))
+        return 1;
     /* One level up from PGY_DEBUG_MIR_TIMING: the pipeline must answer
      * "which phase did the time go to" without a debugger. */
     if (getenv("PGY_DEBUG_PIPELINE_TIMING") == NULL)

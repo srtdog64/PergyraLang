@@ -260,7 +260,7 @@ main(int argc, char *argv[])
      * sources still fail closed inside the delegated path. See docs/152. */
     if (flags.native_pipeline
         || pgy_env_value_is_truthy(getenv("PGY_NATIVE_PIPELINE")))
-        return driver_binary_output_prepare_for_target(&flags) ? driver_run_pipeline(&flags) : 1;
+        return driver_run_pipeline(&flags);
     if (flags.dump_mir) return driver_run_self_host_mir_diagnostic_request(argv[0], &flags);
     if (flags.dump_machine_manifest_json) {
         if (!driver_self_host_machine_manifest_request_supported(&flags)) {
