@@ -171,7 +171,7 @@ emit_call_ordered(ASTNode *call, TranspilerCtx *ctx)
     for (size_t b = 0; b < bound; b++) {
         ctx->ordered_args[base + b].node = ast_call_argument(call, bound_index[b]);
         memcpy(ctx->ordered_args[base + b].name, bound_name[b],
-            sizeof(ctx->ordered_args[base + b].name));
+            strlen(bound_name[b]) + 1);
         ctx->ordered_args[base + b].uses = 0;
     }
     ctx->ordered_arg_count = base + bound;
