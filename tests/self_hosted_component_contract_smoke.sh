@@ -25347,6 +25347,17 @@ require_file \
     "tests/self_hosted/parity/one_mir_enum_value_match_mutations.py"
 require_max_lines \
     "tests/self_hosted/parity/one_mir_enum_value_match_mutations.py" 160
+# The enum value-match projection gate owns two forbidden fallbacks by name.
+# direct_mir_enum_value_match_retry: the admitted route is issued once and the
+# nominal literal route never re-reads a refused enum selection.
+require_text \
+    "tests/self_hosted/parity/one_mir_enum_value_match_projection.sh" \
+    'DirectMirEnumValueMatchRouteFactFromAdmitted(admitted)'
+# direct_mir_enum_runtime_aggregate: the emitted C and LLVM carry a scalar
+# ordinal, never aggregate storage or a runtime helper.
+require_text \
+    "tests/self_hosted/parity/one_mir_enum_value_match_projection.sh" \
+    'alloca|insertvalue|extractvalue|pgy_runtime'
 enum_value_match_family_lines=$((
     $(wc -l < src/self_hosted/compiler/direct_mir_enum_value_match_route_owner.pgy) +
     $(wc -l < src/self_hosted/compiler/direct_mir_payload_free_enum_abi_owner.pgy) +
