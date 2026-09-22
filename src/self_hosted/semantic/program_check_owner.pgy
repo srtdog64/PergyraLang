@@ -342,7 +342,7 @@ func CheckProgram(source_path: String, content: String) -> String {
     }
     SeedNominalConstructors(content, func_names, func_rets, func_params);
     if !SeedDeclaredEnumVariantSignatures(
-        content, func_names, func_rets, func_params
+        source_path, content, func_names, func_rets, func_params
     ) {
         return SemanticError1(
             "function_signature_invalid", "owner",

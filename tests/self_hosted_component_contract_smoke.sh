@@ -3151,7 +3151,7 @@ require_file "src/self_hosted/semantic/call_check_owner.pgy"
 require_file "src/self_hosted/semantic/body_check_owner.pgy"
 require_file "src/self_hosted/semantic/program_check_owner.pgy"
 require_file "src/self_hosted/semantic/enum_callable_signature_owner.pgy"
-require_max_lines "src/self_hosted/semantic/enum_callable_signature_owner.pgy" 280
+require_max_lines "src/self_hosted/semantic/enum_callable_signature_owner.pgy" 200
 require_text "src/self_hosted/semantic/program_check_owner.pgy" \
     'import "enum_callable_signature_owner.pgy";'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" \
@@ -3159,17 +3159,29 @@ require_text "src/self_hosted/semantic/program_check_owner.pgy" \
 require_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
     "SemanticCallableCanonicalDeclaredName("
 require_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
-    "func SemanticEnumMethodEnd("
+    "SemanticAstEnumFactsFromArtifact("
+require_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
+    "ParseProgramBuildContentWithImportPolicy("
 require_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
     "let staged_names: Array<String> = [];"
 require_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
     "SemanticEnumVariantParamSignature("
 require_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
     "func SemanticEnumCallableProjectionContractReady()"
+# lightweight_checker_source_enum_projection: the checker reads parser-owned
+# enum facts. No enum text scan may come back into this owner.
 reject_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
     "let variants_source: String"
 reject_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
     "let variants: SemanticDelimitedRangeFacts"
+reject_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
+    "func SemanticEnumMethodEnd("
+reject_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
+    "SemanticMatchKeywordWithin("
+reject_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
+    "FindMatchingBraceWithin("
+reject_text "src/self_hosted/semantic/enum_callable_signature_owner.pgy" \
+    "SemanticReadIdentWithin("
 require_text "src/self_hosted/semantic/program_check_owner.pgy" \
     '"SemanticEnumCallableProjection"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" \

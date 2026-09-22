@@ -860,8 +860,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   nominal constructor signature checks, including exact zone/world field rows.
 - `src/self_hosted/semantic/enum_callable_signature_owner.pgy` -- atomic
   lightweight-checker projection of local and imported enum variant callable/
-  value rows; it follows parser-owned comma-optional variants, erases payload
-  labels, skips enum methods, and fails closed before publishing partial rows.
+  value rows. It parses the checked source with the parser owner and reads the
+  typed enum facts, so comma-optional variants, payload labels and enum
+  methods are decided once by the parser; it fails closed before publishing
+  partial rows.
 - `src/self_hosted/semantic/semantic_run_owner.pgy` -- semantic CLI run boundary.
 - `src/self_hosted/semantic/source_bundle_owner.pgy` -- root/import source
   bundle ordering and one-pass TextBuilder assembly over a sealed source length.
