@@ -257,6 +257,9 @@ ASTNode* ast_call_callee(const ASTNode* node);
 uint32_t ast_call_semantic_callee_decl_id(const ASTNode* node);
 bool ast_call_semantic_callee_is_stdlib(const ASTNode *node);
 bool ast_call_set_semantic_callee_is_stdlib(ASTNode *node, bool is_stdlib);
+/* A call statement whose type is Never: its path ends at the call. */
+bool ast_call_semantic_diverges(const ASTNode *node);
+bool ast_call_set_semantic_diverges(ASTNode *node, bool diverges);
 bool ast_call_set_semantic_callee_decl_id(ASTNode* node, uint32_t decl_id);
 uint32_t ast_call_semantic_callee_value_binding_id(const ASTNode *node);
 bool ast_call_set_semantic_callee_value_binding_id(ASTNode *node, uint32_t binding_id);

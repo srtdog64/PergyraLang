@@ -1,0 +1,18 @@
+// A statement after a Never call is unreachable; the compiler warns and does
+// not lower it, as after a return (docs/205 L1).
+func Fail(m: String) -> Never {
+    Log(m);
+    Exit(1);
+}
+
+func Pick(flag: Bool) -> Int {
+    let fallback: Int = 7;
+    if flag {
+        Fail("x"); return fallback;
+    }
+    return 1;
+}
+
+func Main() -> Void {
+    Log(Pick(false));
+}

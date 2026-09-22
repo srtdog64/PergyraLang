@@ -500,6 +500,13 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
         default:
             if (!hir_cfg_append_block_stmt(&(*blocks)[(size_t)current_block], node))
                 return -1;
+            /* A call statement semantic typed Never ends its path like a
+             * return: the block ends unreachable after the call, and the
+             * statements after it are not lowered (docs/205 L1). */
+            if (ast_call_semantic_diverges(node)) {
+                hir_cfg_set_unreachable(&(*blocks)[(size_t)current_block]);
+                return -1;
+            }
             return current_block;
     }
 }

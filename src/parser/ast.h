@@ -248,6 +248,7 @@ struct ASTNode
             uint32_t       semantic_runtime_call_abi_id;
             bool           semantic_runtime_call_abi_id_set;
             bool           uses_braced_initializer_syntax;
+            bool           semantic_diverges; /* statement call typed Never (docs/205 L1) */
         } call;
         
         /* Member access */

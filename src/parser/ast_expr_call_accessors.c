@@ -84,6 +84,20 @@ ast_call_set_semantic_callee_is_stdlib(ASTNode *node, bool is_stdlib)
 }
 
 bool
+ast_call_semantic_diverges(const ASTNode *node)
+{
+    return node != NULL && node->type == AST_CALL && node->data.call.semantic_diverges;
+}
+
+bool
+ast_call_set_semantic_diverges(ASTNode *node, bool diverges)
+{
+    if (node == NULL || node->type != AST_CALL) return false;
+    node->data.call.semantic_diverges = diverges;
+    return true;
+}
+
+bool
 ast_call_set_semantic_callee_value_binding_id(ASTNode *node, uint32_t binding_id)
 {
     if (node == NULL || node->type != AST_CALL)
