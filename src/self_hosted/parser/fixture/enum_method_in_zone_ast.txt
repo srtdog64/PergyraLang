@@ -1,0 +1,23 @@
+Program:
+  Enum: Decision { Ready }
+    Function: StableCode
+      Parameters:
+        self
+      Returns: Int
+      Body:
+        Block:
+          Return: 7
+  Function: Helper
+    Parameters:
+    Returns: Int
+    Within: BattleZone
+    Body:
+      Block:
+        Return: 1
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

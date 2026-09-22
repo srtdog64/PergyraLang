@@ -1,0 +1,23 @@
+// enum_method_in_zone.pgy
+//
+// An enum method declared inside a lexical `within Zone { ... }` block is not
+// bound to that zone: it prints as a plain function under the Enum line, while
+// a sibling top-level function in the same block does carry `Within:`.
+
+within BattleZone {
+    enum Decision {
+        Ready
+
+        func StableCode(self) -> Int {
+            return 7;
+        }
+    }
+
+    func Helper() -> Int {
+        return 1;
+    }
+}
+
+func Main() -> Void {
+    Log("ok");
+}

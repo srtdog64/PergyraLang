@@ -13,7 +13,6 @@ func ParseEnumDecl(
     start: Int,
     inout cursor_out: Array<Int>,
     decl_prefix: String,
-    within_zone: String,
     inout expression_graphs: Array<AstExpressionGraphRows>,
     diagnostic_projection: ParseDiagnosticProjection
 ) -> String {
@@ -45,7 +44,7 @@ func ParseEnumDecl(
             ArraySet(cursor_out, 0, i);
             let method_block: String = ParseFunction(
                 content, i, cursor_out, "", false, 4,
-                "func", "Function: ", false, within_zone,
+                "func", "Function: ", false, "",
                 expression_graphs, diagnostic_projection
             );
             i = cursor_out[0];
@@ -117,7 +116,11 @@ func ParseEnumDecl(
         }
     }
     ArraySet(cursor_out, 0, i);
-    let enum_line: String = Concat("  Enum: ", Concat(decl_prefix, Concat(enum_name, Concat(" { ", Concat(variants, " }")))));
+    let variant_group: String = "";
+    if StringLength(variants) > 0 {
+        variant_group = Concat(" { ", Concat(variants, " }"));
+    }
+    let enum_line: String = Concat("  Enum: ", Concat(decl_prefix, Concat(enum_name, variant_group)));
     if StringLength(method_blocks) == 0 {
         return enum_line;
     }
