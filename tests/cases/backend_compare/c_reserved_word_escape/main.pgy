@@ -1,0 +1,13 @@
+// A C reserved word and the name its C escape spells are distinct bindings.
+// The default C route renamed `register` to `pgy_register`, which the inner
+// scope then shadowed, so the outer read printed 1 instead of 100.
+func Main() -> Void {
+    let pgy_register: Int = 100;
+    let gate: Int = 1;
+    if gate <= 2 {
+        let register: Int = 1;
+        Log(pgy_register);
+        Log(register);
+    }
+    Log(pgy_register);
+}

@@ -108,6 +108,16 @@ func CompilerSymbolCReservedWord(name: String) -> Bool {
         name == "unsigned" || name == "void" || name == "volatile" ||
         name == "while";
 }
+func CompilerSymbolCEscapedReservedWord(name: String) -> Bool {
+    let cursor: String = name;
+    while StringLength(cursor) > 4 && Substring(cursor, 0, 4) == "pgy_" {
+        cursor = Substring(cursor, 4, StringLength(cursor) - 4);
+        if CompilerSymbolCReservedWord(cursor) {
+            return true;
+        }
+    }
+    return false;
+}
 func CompilerSymbolCIdentifier(source_name: String) -> String {
     CompilerSymbolRequireTable();
     let name: String = StringTrim(source_name);
@@ -139,7 +149,8 @@ func CompilerSymbolCIdentifier(source_name: String) -> String {
     }
     let out: String = TextBuilderFinish(output, result_allocator);
     AllocatorDestroy(result_allocator);
-    if CompilerSymbolCReservedWord(out) {
+    if CompilerSymbolCReservedWord(out)
+        || CompilerSymbolCEscapedReservedWord(out) {
         return Concat("pgy_", out);
     }
     return out;
