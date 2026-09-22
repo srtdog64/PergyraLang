@@ -1,0 +1,7 @@
+func Code() -> Int {
+    Exit(1);
+}
+
+func Main() -> Void {
+    Log(Code());
+}

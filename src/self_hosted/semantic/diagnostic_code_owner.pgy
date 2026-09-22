@@ -45,6 +45,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "generic_constraint_unsatisfied",
         "let_type_mismatch",
         "return_type_mismatch",
+        "never_function_fallthrough",
         "condition_not_bool",
         "assign_type_mismatch",
         "immutable_field_write",
@@ -178,6 +179,7 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     if code == "return_type_mismatch" {
         return "PGY_SEM_TYPE_MISMATCH";
     }
+    if code == "never_function_fallthrough" { return "PGY_SEM_MISSING_RETURN"; }
     if code == "condition_not_bool" {
         return "PGY_SEM_TYPE_MISMATCH";
     }

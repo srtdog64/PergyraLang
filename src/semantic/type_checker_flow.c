@@ -383,8 +383,10 @@ type_check_statement_flow_dispatch(ASTNode *node, SemanticContext *ctx,
     case AST_IMPORT_DECL:
         return FLOW_FALLTHROUGH;
     default:
-        type_check_expression(node, ctx);
-        return FLOW_FALLTHROUGH;
+        /* A Never-typed statement (Exit, a `-> Never` call) never completes:
+         * it ends the path like a return (docs/205 L1). */
+        return type_equals(type_check_expression(node, ctx), TYPE_NEVER)
+            ? FLOW_RETURN : FLOW_FALLTHROUGH;
     }
 }
 

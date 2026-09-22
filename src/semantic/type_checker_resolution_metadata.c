@@ -259,6 +259,7 @@ semantic_type_resolution_metadata_builtin_singleton(const char *name)
         { "Float", &TYPE_FLOAT },
         { "Int", &TYPE_INT },
         { "Long", &TYPE_LONG },
+        { "Never", &TYPE_NEVER },
         { "QubitSlot", &TYPE_QUBIT },
         { "String", &TYPE_STRING },
         { "TextBuilder", &TYPE_TEXT_BUILDER },

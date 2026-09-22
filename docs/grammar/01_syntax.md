@@ -357,6 +357,30 @@ func Score() -> Int {
 - `action`이라고 해서 자동으로 `Void`인 것은 아니다.
 - `Void`와 `action`은 별도 개념이다. `action`은 공적 행위의 의미론이고, `Void`는 결과 타입이다.
 
+#### `Never`
+
+`-> Never`는 **호출이 끝나지 않는** 함수를 선언한다. builtin `Exit(code)`의 결과 타입이 `Never`다.
+
+```pergyra
+func Die(message: String) -> Never {
+    Log(message);
+    Exit(3);
+}
+
+func Pick(flag: Bool) -> Int {
+    if flag { return 1; }
+    Die("no pick");
+}
+```
+
+- `Never` 호출 문장은 그 경로를 끝낸다. 그래서 non-`Void` 함수가 `Never` 호출로 끝나도
+  반환 누락이 아니고, 그 뒤 문장은 도달할 수 없다는 경고를 받는다.
+- `-> Never` 함수는 `return`을 쓸 수 없고, 어떤 경로도 끝까지 흘러가면 안 된다.
+- `Never`는 값이 아니다. `let x: Int = Die("x");`처럼 값 위치에 쓰면 타입 불일치다.
+- self-host 컴파일러는 아직 보수적으로 검사한다. 본문의 마지막 최상위 문장이 `Exit`이거나
+  다른 `Never` 함수 호출이어야 하며, 모든 분기가 `Never`로 끝나는 본문은 거부한다
+  (`docs/205_language_limit_and_fact_gap_closure_design.md` L1).
+
 ### 2.3 타입 선언
 
 ```pergyra

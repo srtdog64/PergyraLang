@@ -14,6 +14,7 @@ import "ast_match_binding_environment_owner.pgy";
 import "ast_bind_statement_type_fact_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
 import "ast_expression_graph_enum_payload_owner.pgy";
+import "ast_never_function_verdict_owner.pgy";
 struct SemanticAstStatementTypeFacts {
     ok: Bool;
     diagnostic_code: String;
@@ -525,6 +526,13 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
         i = i + 1;
     }
     SemanticAstExpressionEnvironmentClear(names, types, modes);
+    let never_tail: Option<String> =
+        SemanticAstNeverFunctionFallthroughMessage(artifact, signatures, statements);
+    if IsSome(never_tail) {
+        return SemanticAstStatementTypeFacts(false, "never_function_fallthrough",
+            UnwrapOption(never_tail), artifact.count, node_ids, kind_tags, expected_types,
+            inferred_types, verified, diagnostic_codes, diagnostic_messages);
+    }
     return SemanticAstStatementTypeFacts(
         true, "", "", artifact.count, node_ids, kind_tags,
         expected_types, inferred_types, verified,

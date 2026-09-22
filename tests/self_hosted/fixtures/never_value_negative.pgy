@@ -1,0 +1,8 @@
+func Die(message: String) -> Never {
+    Exit(4);
+}
+
+func Main() -> Void {
+    let x: Int = Die("x");
+    Log(x);
+}

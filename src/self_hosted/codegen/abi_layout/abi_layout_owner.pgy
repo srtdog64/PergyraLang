@@ -167,14 +167,16 @@ func AbiLayoutCFieldlessNominalInitializer() -> String {
 }
 
 func AbiLayoutCReturnType(type_name: String, struct_env: CodegenTypeEnv) -> String {
-    if type_name == CompilerAbiLayoutVoidTypeName() {
+    if AbiLayoutIsVoidReturnType(type_name) {
         return CompilerAbiLayoutVoidCValueType();
     }
     return AbiLayoutCValueType(type_name, struct_env);
 }
 
+// A Never function returns no value either (docs/205 L1).
 func AbiLayoutIsVoidReturnType(type_name: String) -> Bool {
-    return type_name == CompilerAbiLayoutVoidTypeName();
+    return type_name == CompilerAbiLayoutVoidTypeName() ||
+        type_name == CompilerAbiLayoutNeverTypeName();
 }
 
 func AbiLayoutCEntrypointBodyReturnType() -> String {

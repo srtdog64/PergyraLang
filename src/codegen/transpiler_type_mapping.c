@@ -73,6 +73,8 @@ pergyra_primitive_to_c(const char *name)
         {"Float", "float"},
         {"Int", "int32_t"},
         {"Long", "int64_t"},
+        /* Never (docs/205 L1): a call that never completes has no value. */
+        {"Never", "void"},
         {"QubitSlot", "int32_t"},
         {"String", "char*"},
         {"Void", "void"},

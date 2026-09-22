@@ -47,6 +47,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'make self-host-array-named-value-boundary-test-smoke'
     run 'bash tests/self_hosted/parity/string_interpolation_escape_parity_owner.sh'
     run 'bash tests/self_hosted/parity/match_subject_family_owner.sh'
+    run 'bash tests/self_hosted/parity/never_return_type_owner.sh'
 
     run 'make build-source-inventory-test-smoke'
     run 'make gate-subject-declaration-test-smoke'

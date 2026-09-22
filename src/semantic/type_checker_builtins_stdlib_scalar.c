@@ -452,7 +452,8 @@ stdlib_scalar_check_exit(ASTNode *expr, const char *name, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     require_assignable(type_check_expression(ast_call_argument(expr, 0), ctx),
         TYPE_INT, ast_call_argument(expr, 0), ctx);
-    return TYPE_VOID;
+    /* Exit never completes; its statement ends the path (docs/205 L1). */
+    return TYPE_NEVER;
 }
 
 static const StdlibScalarSpec stdlib_scalar_specs[] = {

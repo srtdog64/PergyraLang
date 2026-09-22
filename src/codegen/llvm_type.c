@@ -63,6 +63,7 @@ pgy_classify_type(const char *type_name)
         if (strcmp(type_name, "TextBuilder") == 0) return PGY_TK_TEXT_BUILDER;
         break;
     case 'V': if (strcmp(type_name, "Void") == 0)       return PGY_TK_VOID;       break;
+    case 'N': if (strcmp(type_name, "Never") == 0)      return PGY_TK_VOID;       break;
     case 'H':
         if (strncmp(type_name, "HashMap<", 8) == 0)     return PGY_TK_HASHMAP;
         break;

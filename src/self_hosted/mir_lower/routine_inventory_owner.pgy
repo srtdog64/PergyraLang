@@ -19,6 +19,13 @@ struct MirRoutineHeaderFacts {
     let return_type: String;
 }
 
+// The header's return type as routine consumers read it: an absent return and
+// a Never routine (docs/205 L1) both return no value.
+func MirRoutineHeaderReturnTypeName(raw: String) -> String {
+    if raw == "" || raw == "Never" { return "Void"; }
+    return raw;
+}
+
 // Signature consumers join the indexed identity to exact, unique header
 // members here. Parameter ABI and callable-kind policy remain with their owners.
 func MirRoutineHeaderSignatureEnvelopeReady(
@@ -31,7 +38,10 @@ func MirRoutineHeaderSignatureEnvelopeReady(
     let row: Int = 0;
     while row < ArrayLength(fields) {
         let value: Option<String> = MirObjectUniqueStringFactAtBounds(json, start, end, fields[row]);
-        if !IsSome(value) || UnwrapOption(value) != expected[row] { return false; }
+        if !IsSome(value) { return false; }
+        let actual: String = UnwrapOption(value);
+        if fields[row] == "return" { actual = MirRoutineHeaderReturnTypeName(actual); }
+        if actual != expected[row] { return false; }
         row = row + 1;
     }
     let syntax: Option<String> = MirObjectUniqueNumberFactAtBounds(json, start, end, "source_syntax_id");
@@ -185,7 +195,7 @@ func BuildMirRoutineHeaderFacts(
     let return_type: String = MirObjectStringFactAtBounds(
         json, routine_start, routine_end, "return"
     );
-    if return_type == "" { return_type = "Void"; }
+    return_type = MirRoutineHeaderReturnTypeName(return_type);
     return MirRoutineHeaderFacts(
         generic_names, generic_constraints, generic_constraints_valid,
         param_names, param_source_syntax_ids,

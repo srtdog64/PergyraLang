@@ -250,6 +250,10 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return type_check_stdlib_call(call, "Now", ctx);
     case BUILTIN_SLEEP:
         return type_check_stdlib_call(call, "Sleep", ctx);
+    case BUILTIN_EXIT:
+        /* Checks the Int code and types the call Never (docs/205 L1); the
+         * default below used to leave Exit unchecked and Unknown. */
+        return type_check_stdlib_call(call, "Exit", ctx);
     default:
         return TYPE_UNKNOWN;
     }

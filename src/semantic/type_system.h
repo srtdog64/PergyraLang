@@ -278,6 +278,8 @@ extern Type* TYPE_STRING;
 extern Type* TYPE_PROJECTION;
 extern Type* TYPE_QUBIT;
 extern Type* TYPE_VOID;
+/* Return type of a call that never completes (docs/205 L1). */
+extern Type* TYPE_NEVER;
 extern Type* TYPE_UNKNOWN;
 extern Type* TYPE_ARRAY;
 extern Type* TYPE_SLICE;

@@ -164,6 +164,7 @@ Type *TYPE_STRING = NULL;
 Type *TYPE_PROJECTION = NULL; /* reflect result; compile-time, String runtime rep */
 Type *TYPE_QUBIT = NULL;
 Type *TYPE_VOID   = NULL;
+Type *TYPE_NEVER  = NULL;
 Type *TYPE_UNKNOWN = NULL; /* Sentinel for error recovery */
 Type *TYPE_ARRAY  = NULL;
 Type *TYPE_SLICE  = NULL;
@@ -229,6 +230,7 @@ type_system_init(void)
     TYPE_PROJECTION = type_create_primitive("projection", 0, false);
     TYPE_QUBIT  = type_create_primitive("QubitSlot", 4, false);
     TYPE_VOID   = type_create_primitive("Void",   0, false);
+    TYPE_NEVER  = type_create_primitive("Never",  0, false);
     TYPE_UNKNOWN = type_create_primitive("<unknown>", 0, false);
     TYPE_ARRAY  = type_create_primitive("Array",  0, false);
     TYPE_SLICE  = type_create_primitive("Slice",  0, false);
@@ -264,6 +266,7 @@ type_system_cleanup(void)
     type_free_singleton(&TYPE_STRING);
     type_free_singleton(&TYPE_QUBIT);
     type_free_singleton(&TYPE_VOID);
+    type_free_singleton(&TYPE_NEVER);
     type_free_singleton(&TYPE_UNKNOWN);
     type_free_singleton(&TYPE_ARRAY);
     type_free_singleton(&TYPE_SLICE);

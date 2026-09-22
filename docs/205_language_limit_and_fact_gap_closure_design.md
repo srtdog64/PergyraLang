@@ -199,6 +199,24 @@ R6(`inout_argument_alias`, 레드팀 캠페인)도 같은 방식으로 착지했
 함수가 missing-return 없이 컴파일되고, 실행하면 호출 지점에서 종료 코드가 나온다
 (C, LLVM, self-host 모두).
 
+**L1a·L1c·L1d 착지.**
+
+- native: `Never` primitive, Never 식 문장의 경로 종료, Never 함수 안 `return` 거부,
+  값 위치 거부. `Exit`의 결과 타입이 Never다. 확인 중에 `Exit`가 native semantic에서
+  **한 번도 타입 검사되지 않았다**는 것이 드러났다. `type_check_builtin_call`의 switch에
+  `BUILTIN_EXIT`가 없어 `Unknown`으로 빠졌고, 인자도 검사하지 않았다. 이제 Int 인자를
+  요구한다. C/LLVM 타입 매핑은 `Never`를 void로 내린다. HIR은 이미 non-Void 함수의
+  끝을 도달 불가로 표시하므로 Never 함수의 끝도 그렇게 처리된다.
+- self-host: C 방출과 direct MIR의 routine 목록이 `Never`를 Void로 읽는다. self-host에는
+  missing-return 분석이 없어서, `ast_never_function_verdict_owner.pgy`가 보수적으로
+  검사한다. 마지막 최상위 문장이 `Exit`이거나 다른 Never 함수 호출이어야 하고, 아니면
+  `never_function_fallthrough`로 거부한다. 모든 분기가 Never로 끝나는 본문은 native는
+  받고 self-host는 거부한다. 틀린 쪽으로 받아들이지 않도록 고른 차이다.
+- 게이트: `tests/self_hosted/parity/never_return_type_owner.sh`(push CI core shard).
+- 남은 것: L1b의 noreturn 표시(C `PGY_RUNTIME_NORETURN`, LLVM `noreturn`/`unreachable`)와
+  L1e의 이관(`Die`, `MirLowerFailClosed` 등을 `-> Never`로 바꾸고 `Exit` 뒤 죽은 문장
+  84곳을 지우는 일). 지금은 동작은 맞고 최적화 힌트와 정리가 남은 상태다.
+
 ## 5. L2 — 문자열 조립
 
 ### 5.1 현재 (리뷰 문서의 전제 정정)

@@ -1,0 +1,9 @@
+func Die(message: String) -> Never {
+    Log(message);
+    Exit(3);
+}
+
+func Main() -> Void {
+    Log(1);
+    Die("stop");
+}

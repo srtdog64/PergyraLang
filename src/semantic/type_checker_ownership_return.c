@@ -74,6 +74,22 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
 
     semantic_require_no_live_text_builder(ctx->scope, node, ctx, "return");
 
+    if (ctx->current_return != NULL
+        && type_equals(ctx->current_return, TYPE_NEVER)) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_ASSIGNABILITY_CHECK,
+            PGY_FIX_ALIGN_OPERAND_TYPE,
+            node,
+            "A Never function cannot return.\n"
+            "Reason:\n"
+            "- '-> Never' promises that a call to this function never completes\n"
+            "Fix:\n"
+            "- end every path in a Never call such as Exit(code)\n"
+            "- or declare the result type the function actually returns");
+        return false;
+    }
+
     semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_RETURN);
 
     if (value != NULL && value->type == AST_LAMBDA_EXPR

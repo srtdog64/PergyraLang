@@ -1,0 +1,15 @@
+func Die(message: String) -> Never {
+    Log(message);
+    Exit(3);
+}
+
+func Pick(flag: Bool) -> Int {
+    if flag { return 1; }
+    Die("no pick");
+}
+
+func Main() -> Void {
+    Log(Pick(true));
+    Log(Pick(false));
+    Log(99);
+}

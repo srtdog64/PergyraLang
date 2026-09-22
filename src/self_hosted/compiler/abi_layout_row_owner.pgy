@@ -170,6 +170,9 @@ func CompilerAbiLayoutSetStringTypeName() -> String {
 func CompilerAbiLayoutVoidTypeName() -> String {
     return "Void";
 }
+func CompilerAbiLayoutNeverTypeName() -> String {
+    return "Never";
+}
 func CompilerAbiLayoutArrayIntExplicitTypeName() -> String {
     return "Array<Int: Int>";
 }

@@ -614,6 +614,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   distinct-binding rule for the inout arguments of one direct call, matching
   the native checker; the named-value boundary verdict dispatches it per call
   and owns the `inout_argument_alias` refusal.
+- `src/self_hosted/semantic/ast_never_function_verdict_owner.pgy` --
+  refuses a `-> Never` function whose body can complete. It is conservative:
+  the last top-level statement must be Exit or a call to another Never
+  function; the statement type facts owner reports `never_function_fallthrough`.
 - `src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy` --
   target-neutral admission for local zone-resource value carriage. It joins
   admitted resource shape, initializer/assignment types, and resolved fresh

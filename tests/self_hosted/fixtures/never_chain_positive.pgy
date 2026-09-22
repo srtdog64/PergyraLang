@@ -1,0 +1,12 @@
+func Die(message: String) -> Never {
+    Log(message);
+    Exit(5);
+}
+
+func Fail() -> Never {
+    Die("chain");
+}
+
+func Main() -> Void {
+    Fail();
+}

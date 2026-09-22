@@ -1,0 +1,7 @@
+func Die(message: String) -> Never {
+    Log(message);
+}
+
+func Main() -> Void {
+    Die("x");
+}
