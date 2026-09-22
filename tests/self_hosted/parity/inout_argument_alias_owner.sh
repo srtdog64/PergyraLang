@@ -2,7 +2,10 @@
 # Native and self-host admission both refuse one binding passed to two inout
 # parameters of the same call, on every backend, before any MIR or binary is
 # published. Distinct inout arguments and an inout+value pair on one binding
-# stay admitted and run with the expected values.
+# stay admitted and run with the expected values. A field or element place
+# passed inout is refused on every route with no binary: native semantic
+# names it, the default C route stops at codegen, and the default LLVM route
+# stops at direct MIR admission.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -83,6 +86,32 @@ for entry in "${NEGATIVE_CASES[@]}"; do
     done
 done
 
+# name:fixture
+PLACE_CASES=(
+    "field:$FIXTURES/inout_field_place_negative.pgy"
+    "element:$FIXTURES/inout_element_place_negative.pgy"
+)
+for entry in "${PLACE_CASES[@]}"; do
+    IFS=: read -r name fixture <<<"$entry"
+    for leg in native-c native-llvm default-c default-llvm; do
+        case "$leg" in
+            native-c) flags=(--native-pipeline --backend=c); want="An inout argument must be a variable" ;;
+            native-llvm) flags=(--native-pipeline --backend=llvm); want="An inout argument must be a variable" ;;
+            default-c) flags=(--backend=c); want="inout argument must be a variable" ;;
+            default-llvm) flags=(--backend=llvm); want="" ;;
+        esac
+        binary_rel="$WORK_REL/place-$name-$leg.exe"
+        if (cd "$ROOT_DIR" && "$PGY" "$fixture" "${flags[@]}" -o "$binary_rel") \
+            >"$WORK_DIR/place-$name-$leg.log" 2>&1; then
+            fail "$leg accepted an inout $name place"
+        fi
+        [[ ! -e "$ROOT_DIR/$binary_rel" ]] ||
+            fail "$leg published a binary for an inout $name place"
+        [[ -z "$want" ]] || grep -Fq "$want" "$WORK_DIR/place-$name-$leg.log" ||
+            fail "$leg refused the inout $name place for another reason"
+    done
+done
+
 for entry in "${POSITIVE_CASES[@]}"; do
     IFS=: read -r name fixture expected <<<"$entry"
     for backend in c llvm; do
@@ -101,4 +130,4 @@ for entry in "${POSITIVE_CASES[@]}"; do
     done
 done
 
-echo "[$LABEL] native/self-host refusal on C and LLVM + distinct and inout+value controls: PASS"
+echo "[$LABEL] native/self-host refusal on C and LLVM, field and element place refusal, distinct and inout+value controls: PASS"

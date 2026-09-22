@@ -169,6 +169,23 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     int mut_ref_arg_count = 0;
     for (size_t i = 0; i < provided; i++) {
         ASTNode *arg_expr = ast_call_argument(expr, i);
+        /* A field or element place passed inout was a lost update on C
+         * (`Both(s.a, s.a)` printed 11), invalid IR on LLVM, and a codegen
+         * refusal on the self-host route. Only a variable is carried as an
+         * inout reference on every route. */
+        if (callable_decl != NULL
+            && i < ast_func_param_count(callable_decl)
+            && arg_expr != NULL
+            && arg_expr->type != AST_IDENTIFIER
+            && ast_func_param(callable_decl, i) != NULL
+            && ast_func_param(callable_decl, i)->mode == PARAM_MODE_MUT_REF) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE,
+                PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+                arg_expr,
+                "An inout argument must be a variable; copy the field or element into a local, pass the local, and assign it back");
+        }
         if (callable_decl != NULL
             && i < ast_func_param_count(callable_decl)
             && arg_expr != NULL

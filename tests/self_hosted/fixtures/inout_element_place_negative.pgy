@@ -1,0 +1,11 @@
+// An element passed inout emitted C that did not compile and IR that did not
+// verify.
+func Inc(inout x: Int) -> Void {
+    x = x + 1;
+}
+
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2, 3];
+    Inc(xs[1]);
+    Log(xs[1]);
+}
