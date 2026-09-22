@@ -132,6 +132,9 @@ func EmitBlockStmtsWithExpressionOrder(
                     );
                 }
                 ArrayPush(chunks, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
+            } else if ikind != "phi" && ikind != "cleanup" {
+                // Only phi and cleanup rows carry no statement (docs/205 F4).
+                MirLowerFailClosed(Concat("instruction has no statement text: ", Concat(ikind, Concat("/", source_type))));
             }
         }
         if observe_instruction { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:instruction:", Concat(ToString(block_row), Concat(":", Concat(ToString(row), ":render:done"))))); }

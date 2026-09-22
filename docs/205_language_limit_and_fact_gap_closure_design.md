@@ -278,9 +278,11 @@ self-host 기본 경로에서 `5b`였다. opener 앞에서 잘린 리터럴 조�
   graph의 루트가 지역 식별자 leaf가 아니면 참). `stmt_render.pgy`와
   `destructure_expression_projection_owner.pgy`가 같은 fact를 읽는다. 텍스트 휴리스틱
   `MirDestructureNeedsTemp`는 지운다.
-- **F4**: MIR instruction에 "문장을 내는 행인가" fact를 싣는다. 또는 문장을 내지 않는
-  kind(`cleanup`, `phi`, 구조적 `stmt`)의 닫힌 목록을 둔다. 그다음 `routine_lower`가 `expr0`
-  없는 나머지 행을 fail-closed로 거부한다.
+- **F4 (착지)**: 닫힌 목록을 측정으로 정했다. mir_lower 픽스처와 backend_compare 케이스
+  1,049개를 계측한 mir_lower에 통과시키니, 문장 텍스트 없이 이 분기에 닿는 행은 `phi`
+  (1,131행), `cleanup`(83행), `cleanup`/`AST_BLOCK`(23행)뿐이었다. 구조적 `stmt`는 없었다.
+  `routine_lower`는 이제 그 둘 밖의 행을 `instruction has no statement text: <kind>/<source>`로
+  거부한다. 게이트는 렌더러 fail-closed 스모크의 `textless-stmt` 행이다.
 - **F5**: F4 뒤에 defer 본문을 여러 문장으로 재구성한다(`Log`, 직접 호출, 대입).
 
 ## 8. 순서

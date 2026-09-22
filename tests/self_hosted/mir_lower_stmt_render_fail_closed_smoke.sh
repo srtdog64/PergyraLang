@@ -148,6 +148,8 @@ mutate("let_log", "let_log.cleanup-kind", is_log_stmt,
        set_field("kind", "cleanup"))
 mutate("let_log", "let_log.non-string-use", is_log_stmt,
        set_field("uses", [7]))
+mutate("let_log", "let_log.textless-stmt", is_log_stmt,
+       set_field("expr0", ""))
 PY
 
 (cd "$ROOT_DIR" && "$PGY" \
@@ -203,6 +205,9 @@ negative_rows=(
     # A present string array with a non-string element used to read as
     # its (here empty) prefix.
     "let_log.non-string-use|MIR string array fact is malformed: uses"
+    # A statement row without statement text used to vanish from the AST;
+    # only phi and cleanup rows may carry none.
+    "let_log.textless-stmt|instruction has no statement text: stmt/"
 )
 
 for row in "${negative_rows[@]}"; do
