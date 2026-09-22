@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # A refused public binary compile must not leave the previous executable at
-# the requested output path. Compare all four selectors to an external oracle.
+# the requested output path, and a published one appears by a single rename
+# from a staging file. Compare all four selectors to an external oracle.
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
@@ -62,6 +63,10 @@ for lane in native-c native-llvm self-c self-llvm; do
     printf '42\n' >"$WORK_DIR/expected.run"
     cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/$lane.run" ||
         fail "$lane valid executable changed behavior"
+    # The toolchain writes a staging file and one rename publishes it; neither
+    # the refused nor the published compile may leave that file behind.
+    leftover="$(find "$WORK_DIR" -maxdepth 1 -name '*.pgy-staging-*' | head -1)"
+    [[ -z "$leftover" ]] || fail "$lane left a staging binary: $leftover"
 done
 
 # Parsing errors still have a known binary target once the full command line

@@ -170,3 +170,115 @@ driver_binary_output_refuse_invalid_args(const DriverFlags *flags)
     (void)driver_binary_output_prepare_for_target(flags);
     return 1;
 }
+
+/* The staging file sits in the destination's directory so the publishing
+ * rename never crosses a filesystem, and keeps the destination's extension
+ * so no toolchain appends one. On Windows a destination without an
+ * extension is published as "<name>.exe", the name the linker writes. */
+bool
+driver_binary_output_publication_begin(const char *requested_path,
+                                       DriverBinaryPublication *out)
+{
+    const char *base;
+    const char *dot;
+    size_t stem_length;
+    char suffix[64];
+    size_t size;
+
+    if (out == NULL)
+        return false;
+    out->staging_path = NULL;
+    out->target_path = NULL;
+    if (requested_path == NULL)
+        return false;
+    base = strrchr(requested_path, '/');
+#ifdef _WIN32
+    {
+        const char *back = strrchr(requested_path, '\\');
+        if (back != NULL && (base == NULL || back > base))
+            base = back;
+    }
+#endif
+    base = base != NULL ? base + 1 : requested_path;
+    dot = strrchr(base, '.');
+#ifdef _WIN32
+    if (dot == NULL || dot == base) {
+        size = strlen(requested_path) + 5;
+        out->target_path = malloc(size);
+        if (out->target_path == NULL)
+            return false;
+        snprintf(out->target_path, size, "%s.exe", requested_path);
+        base = out->target_path + (base - requested_path);
+        dot = strrchr(base, '.');
+    }
+#endif
+    if (out->target_path == NULL) {
+        out->target_path = pergyra_strdup(requested_path);
+        if (out->target_path == NULL)
+            return false;
+        base = out->target_path + (base - requested_path);
+        dot = strrchr(base, '.');
+    }
+    if (dot == base)
+        dot = NULL;
+    stem_length = dot != NULL ? (size_t)(dot - out->target_path)
+                              : strlen(out->target_path);
+#ifdef _WIN32
+    snprintf(suffix, sizeof(suffix), ".pgy-staging-%lu",
+             (unsigned long)GetCurrentProcessId());
+#else
+    snprintf(suffix, sizeof(suffix), ".pgy-staging-%ld", (long)getpid());
+#endif
+    size = stem_length + strlen(suffix) + (dot != NULL ? strlen(dot) : 0) + 1;
+    out->staging_path = malloc(size);
+    if (out->staging_path == NULL) {
+        driver_binary_output_publication_free(out);
+        return false;
+    }
+    snprintf(out->staging_path, size, "%.*s%s%s", (int)stem_length,
+             out->target_path, suffix, dot != NULL ? dot : "");
+    (void)remove(out->staging_path);
+    return true;
+}
+
+bool
+driver_binary_output_publication_commit(const DriverFlags *flags,
+                                        DriverBinaryPublication *publication)
+{
+    bool published;
+
+    if (publication == NULL || publication->staging_path == NULL
+        || publication->target_path == NULL)
+        return false;
+#ifdef _WIN32
+    published = MoveFileExA(publication->staging_path, publication->target_path,
+                            MOVEFILE_REPLACE_EXISTING) != 0;
+#else
+    published = rename(publication->staging_path, publication->target_path) == 0;
+#endif
+    if (published)
+        return true;
+    driver_binary_output_publication_abort(publication);
+    driver_emit_stage_fail(flags, "binary_output",
+        "binary publication failed",
+        "the built binary could not be renamed over the requested output path");
+    return false;
+}
+
+void
+driver_binary_output_publication_abort(DriverBinaryPublication *publication)
+{
+    if (publication != NULL && publication->staging_path != NULL)
+        (void)remove(publication->staging_path);
+}
+
+void
+driver_binary_output_publication_free(DriverBinaryPublication *publication)
+{
+    if (publication == NULL)
+        return;
+    free(publication->staging_path);
+    free(publication->target_path);
+    publication->staging_path = NULL;
+    publication->target_path = NULL;
+}

@@ -480,3 +480,12 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
 받는다. 숫자 변환은 `value as Int`다. 게이트는
 `tests/self_hosted/parity/text_conversion_argument_owner.sh`다. 문자열 변환은 native C/LLVM과
 기본 C 경로에서 돌고, 숫자 인자는 두 front end 모두 바이너리 없이 거부한다.
+
+### 11.3 산출물 게시
+
+리뷰가 지적한 대로 기존 동작은 "먼저 지우기"였다. 이제 네 경로 모두 바이너리를 목적지와 같은
+디렉터리의 staging 파일(`<name>.pgy-staging-<pid><ext>`)에 만들고, toolchain이 성공한 뒤에만
+한 번의 rename으로 목적지에 게시한다(Windows는 `MoveFileEx(MOVEFILE_REPLACE_EXISTING)`).
+실패하면 staging 파일을 지우므로 새 바이너리는 나타나지 않는다. 옛 바이너리는 여전히 compile
+시작 전에 지운다(stale 실행 방지). `tests/self_hosted/parity/binary_output_refusal_owner.sh`가
+거부와 성공 뒤에 staging 파일이 남지 않는지 본다.

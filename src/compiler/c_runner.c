@@ -13,6 +13,7 @@
 #include "compiler.h"
 #include "compiler_transient_artifact_workspace.h"
 #include "driver_app.h"
+#include "driver_binary_output_owner.h"
 #include "driver_diag.h"
 #include "path_utils.h"
 #include "self_host_driver.h"
@@ -66,8 +67,16 @@ c_runner_execute_installed_self_host_c(
         return materialize_rc;
     }
 
+    DriverBinaryPublication publication;
+    if (!driver_binary_output_publication_begin(binary_path, &publication)) {
+        fprintf(stderr, "pgy: out of memory\n");
+        compiler_transient_artifact_workspace_close(&workspace);
+        free(binary_path);
+        return 1;
+    }
     result = compiler_compile_link_self_host_c_artifact(
-        workspace.primary_path, binary_path, flags->verbose, flags->opt_profile);
+        workspace.primary_path, publication.staging_path, flags->verbose,
+        flags->opt_profile);
     compiler_transient_artifact_workspace_close(&workspace);
     if (result == NULL || !result->success) {
         const char *message = result != NULL && result->error_message != NULL
@@ -75,19 +84,28 @@ c_runner_execute_installed_self_host_c(
         fprintf(stderr, "pgy: self-host C compile failed: %s\n", message);
         if (backend_timings != NULL && result != NULL)
             *backend_timings = result->backend_timings;
+        driver_binary_output_publication_abort(&publication);
+        driver_binary_output_publication_free(&publication);
         compiler_result_destroy(result);
         free(binary_path);
         return 1;
     }
     if (backend_timings != NULL)
         *backend_timings = result->backend_timings;
-    printf("pgy: compiled → %s\n", binary_path);
+    if (!driver_binary_output_publication_commit(flags, &publication)) {
+        driver_binary_output_publication_free(&publication);
+        compiler_result_destroy(result);
+        free(binary_path);
+        return 1;
+    }
+    printf("pgy: compiled → %s\n", publication.target_path);
     int exit_code = 0;
     if (flags->do_run) {
-        exit_code = compiler_run_binary(binary_path, flags->verbose);
+        exit_code = compiler_run_binary(publication.target_path, flags->verbose);
         if (exit_code != 0)
             fprintf(stderr, "pgy: program exited with code %d\n", exit_code);
     }
+    driver_binary_output_publication_free(&publication);
     compiler_result_destroy(result);
     free(binary_path);
     return exit_code;
@@ -183,7 +201,15 @@ CompilerResult *result;
     if (flags->verbose)
         printf("pgy: generating C → %s\n", workspace.primary_path);
 
-    result = compiler_build_native(bundle, air, workspace.primary_path, bin_path, flags->verbose,
+    DriverBinaryPublication publication;
+    if (!driver_binary_output_publication_begin(bin_path, &publication)) {
+        fprintf(stderr, "pgy: out of memory\n");
+        compiler_transient_artifact_workspace_close(&workspace);
+        free(bin_path);
+        return 1;
+    }
+    result = compiler_build_native(bundle, air, workspace.primary_path,
+                                   publication.staging_path, flags->verbose,
                                    flags->opt_profile);
     compiler_transient_artifact_workspace_close(&workspace);
 
@@ -206,21 +232,30 @@ CompilerResult *result;
         }
         if (backend_timings != NULL && result != NULL)
             *backend_timings = result->backend_timings;
+        driver_binary_output_publication_abort(&publication);
+        driver_binary_output_publication_free(&publication);
         compiler_result_destroy(result);
         free(bin_path);
         return 1;
     }
     if (backend_timings != NULL)
         *backend_timings = result->backend_timings;
+    if (!driver_binary_output_publication_commit(flags, &publication)) {
+        driver_binary_output_publication_free(&publication);
+        compiler_result_destroy(result);
+        free(bin_path);
+        return 1;
+    }
 
-    printf("pgy: compiled → %s\n", bin_path);
+    printf("pgy: compiled → %s\n", publication.target_path);
     int exit_code = 0;
     if (flags->do_run) {
-        exit_code = compiler_run_binary(bin_path, flags->verbose);
+        exit_code = compiler_run_binary(publication.target_path, flags->verbose);
         if (exit_code != 0)
             fprintf(stderr, "pgy: program exited with code %d\n", exit_code);
     }
 
+    driver_binary_output_publication_free(&publication);
     compiler_result_destroy(result);
     free(bin_path);
     return exit_code;

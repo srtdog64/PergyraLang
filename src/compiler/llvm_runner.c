@@ -98,8 +98,15 @@ llvm_runner_execute_installed_self_host_llvm(
         return materialize_rc;
     }
 
+    DriverBinaryPublication publication;
+    if (!driver_binary_output_publication_begin(binary_path, &publication)) {
+        fprintf(stderr, "pgy: out of memory\n");
+        compiler_transient_artifact_workspace_close(&workspace);
+        free(binary_path);
+        return 1;
+    }
     result = compiler_compile_link_self_host_llvm_artifact(
-        workspace.secondary_path, binary_path, flags->verbose,
+        workspace.secondary_path, publication.staging_path, flags->verbose,
         flags->opt_profile);
     compiler_transient_artifact_workspace_close(&workspace);
     if (result == NULL || !result->success) {
@@ -108,18 +115,27 @@ llvm_runner_execute_installed_self_host_llvm(
         fprintf(stderr, "pgy: self-host LLVM compile failed: %s\n", message);
         if (backend_timings != NULL && result != NULL)
             *backend_timings = result->backend_timings;
+        driver_binary_output_publication_abort(&publication);
+        driver_binary_output_publication_free(&publication);
         compiler_result_destroy(result);
         free(binary_path);
         return 1;
     }
     if (backend_timings != NULL)
         *backend_timings = result->backend_timings;
-    printf("pgy: compiled (self-host LLVM) → %s\n", binary_path);
+    if (!driver_binary_output_publication_commit(flags, &publication)) {
+        driver_binary_output_publication_free(&publication);
+        compiler_result_destroy(result);
+        free(binary_path);
+        return 1;
+    }
+    printf("pgy: compiled (self-host LLVM) → %s\n", publication.target_path);
     if (flags->do_run) {
-        exit_code = compiler_run_binary(binary_path, flags->verbose);
+        exit_code = compiler_run_binary(publication.target_path, flags->verbose);
         if (exit_code != 0)
             fprintf(stderr, "pgy: program exited with code %d\n", exit_code);
     }
+    driver_binary_output_publication_free(&publication);
     compiler_result_destroy(result);
     free(binary_path);
     return exit_code;
@@ -192,7 +208,16 @@ llvm_runner_execute(const DriverFlags *flags,
                 bin_path, runnable_bin_path);
     }
 
-    result = compiler_build_native_llvm(bundle, air, obj_path, runnable_bin_path, flags->verbose,
+    DriverBinaryPublication publication;
+    if (!driver_binary_output_publication_begin(runnable_bin_path, &publication)) {
+        fprintf(stderr, "pgy: out of memory\n");
+        free(bin_path);
+        free(obj_path);
+        free(runnable_bin_path);
+        return 1;
+    }
+    result = compiler_build_native_llvm(bundle, air, obj_path,
+                                        publication.staging_path, flags->verbose,
                                         flags->opt_profile);
     const char *identity_error = NULL;
     bool identity_ready = result != NULL
@@ -213,6 +238,8 @@ llvm_runner_execute(const DriverFlags *flags,
         }
         if (backend_timings != NULL && result != NULL)
             *backend_timings = result->backend_timings;
+        driver_binary_output_publication_abort(&publication);
+        driver_binary_output_publication_free(&publication);
         compiler_result_destroy(result);
         free(obj_path);
         free(bin_path);
@@ -221,11 +248,19 @@ llvm_runner_execute(const DriverFlags *flags,
     }
     if (backend_timings != NULL)
         *backend_timings = result->backend_timings;
+    if (!driver_binary_output_publication_commit(flags, &publication)) {
+        driver_binary_output_publication_free(&publication);
+        compiler_result_destroy(result);
+        free(obj_path);
+        free(bin_path);
+        free(runnable_bin_path);
+        return 1;
+    }
 
-    printf("pgy: compiled (LLVM) → %s\n", runnable_bin_path);
+    printf("pgy: compiled (LLVM) → %s\n", publication.target_path);
     int exit_code = 0;
     if (flags->do_run) {
-        exit_code = compiler_run_binary(runnable_bin_path, flags->verbose);
+        exit_code = compiler_run_binary(publication.target_path, flags->verbose);
         if (exit_code != 0)
             fprintf(stderr, "pgy: program exited with code %d\n", exit_code);
     }
