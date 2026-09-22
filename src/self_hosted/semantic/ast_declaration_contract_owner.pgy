@@ -1,0 +1,59 @@
+// Program-wide declaration contracts, checked once after statement typing:
+// a Never function must not complete (ast_never_function_verdict_owner.pgy),
+// and a bare enum variant name must have a single declaration (docs/205 L3a).
+// A variant that reuses a function's name is already refused elsewhere.
+
+import "ast_never_function_verdict_owner.pgy";
+import "ast_enum_fact_owner.pgy";
+import "diagnostic_owner.pgy";
+
+struct SemanticAstDeclarationContractVerdict {
+    ok: Bool;
+    code: String;
+    message: String;
+}
+
+func SemanticAstEnumVariantRedeclarationMessage(
+    enums: SemanticAstEnumFacts
+) -> Option<String> {
+    let row: Int = 0;
+    while row < ArrayLength(enums.variant_names) {
+        let other: Int = 0;
+        while other < row {
+            if enums.variant_names[other] == enums.variant_names[row] &&
+                enums.variant_enum_names[other] != enums.variant_enum_names[row] {
+                return Some(SemanticError3(
+                    "enum_variant_redeclaration",
+                    "variant", enums.variant_names[row],
+                    "enum", enums.variant_enum_names[row],
+                    "first_enum", enums.variant_enum_names[other]
+                ));
+            }
+            other = other + 1;
+        }
+        row = row + 1;
+    }
+    return None;
+}
+
+func SemanticAstDeclarationContractVerdictFrom(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    ref statements: SemanticAstStatementFacts,
+    enums: SemanticAstEnumFacts
+) -> SemanticAstDeclarationContractVerdict {
+    let never_tail: Option<String> =
+        SemanticAstNeverFunctionFallthroughMessage(artifact, signatures, statements);
+    if IsSome(never_tail) {
+        return SemanticAstDeclarationContractVerdict(
+            false, "never_function_fallthrough", UnwrapOption(never_tail)
+        );
+    }
+    let redeclared: Option<String> = SemanticAstEnumVariantRedeclarationMessage(enums);
+    if IsSome(redeclared) {
+        return SemanticAstDeclarationContractVerdict(
+            false, "enum_variant_redeclaration", UnwrapOption(redeclared)
+        );
+    }
+    return SemanticAstDeclarationContractVerdict(true, "", "");
+}

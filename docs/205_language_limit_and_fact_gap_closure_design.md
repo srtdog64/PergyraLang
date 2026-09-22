@@ -130,6 +130,12 @@ R6(`inout_argument_alias`, 레드팀 캠페인)도 같은 방식으로 착지했
   (`Verdict.Ok(7)`, `Shape.Circle(2)`)이 없다. 내장 이름과 겹치는 variant는 한정해야만
   만들 수 있으므로 이것이 L3d의 첫 항목이다. 게이트는 지금의 거부(산출물 없음)를
   고정하고, 생성식이 들어오면 실행 확인으로 바뀐다.
+- **L3a 착지.** native는 variant 이름이 같은 범위의 다른 선언(다른 enum의 variant, 함수)과
+  겹치면 `PGY_SEM_REDECLARATION`으로 거부하고, `Enum.Variant(..)`의 이름 폴백이 다른
+  enum의 variant에 닿으면 거부한다. self-host는 두 enum의 같은 variant를
+  `enum_variant_redeclaration`으로 거부한다(`ast_declaration_contract_owner.pgy`).
+  게이트는 `tests/self_hosted/parity/enum_variant_identity_owner.sh`다. 서로 다른 enum의 같은
+  variant 이름을 한정해서 허용하는 규칙 4는 L3d의 문맥 해석과 함께 들어온다.
 - 확인 중 드러난 기존 결함(이 변경과 무관, L3가 없는 빌드에서도 같다):
   `Result<Int, String>` match가 native C에서 `PgyResult_Int_String` 타입을 만들지 못하고,
   self-host C에서는 인자 타입이 맞지 않는다. Option match는 self-host LLVM direct MIR에서

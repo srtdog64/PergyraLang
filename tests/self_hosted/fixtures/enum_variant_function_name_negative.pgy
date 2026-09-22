@@ -1,0 +1,7 @@
+func Bad(x: Int) -> Int { return x; }
+
+enum Verdict { Ok(Int), Bad(String) }
+
+func Main() -> Void {
+    Log(Bad(2));
+}

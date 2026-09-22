@@ -1,0 +1,6 @@
+enum Light { Red, Green }
+enum Paint { Red, Blue }
+
+func Main() -> Void {
+    Log(1);
+}

@@ -298,8 +298,29 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             Type *etype = enum_sym != NULL ? enum_sym->type : TYPE_UNKNOWN;
             for (size_t j = 0; j < variant_count; j++) {
                 const char *vname = variants != NULL ? variants[j] : NULL;
-                if (vname == NULL || scope_lookup_current(ctx->scope, vname) != NULL)
+                Symbol *existing;
+                if (vname == NULL)
                     continue;
+                existing = scope_lookup_current(ctx->scope, vname);
+                if (existing != NULL) {
+                    /* Re-registering this enum's own variant is a no-op. Any
+                     * other declaration of the name used to win silently
+                     * (docs/205 L3a). */
+                    if (existing->decl_syntax_id != ast_node_stable_id(stmt)) {
+                        semantic_error_with_hints(ctx,
+                            PGY_CODE_SEM_REDECLARATION,
+                            PGY_CAUSE_SCOPE_DUPLICATE_SYMBOL,
+                            PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
+                            stmt,
+                            "Enum variant '%s' of '%s' reuses a name already declared in this scope.\n"
+                            "Reason:\n"
+                            "- a bare variant name must resolve to one declaration; the earlier one used to win silently\n"
+                            "Fix:\n"
+                            "- rename the variant or the other declaration",
+                            vname, ename != NULL ? ename : "<enum>");
+                    }
+                    continue;
+                }
                 size_t vpc = ast_enum_variant_param_count(stmt, j);
                 if (vpc > 0) {
                     /* Tagged union variant constructor: register as function
@@ -335,6 +356,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     if (vs == NULL)
                         return program_report_resolution_oom(ctx, stmt,
                             "enum variant symbol");
+                    symbol_mark_declaration(vs, ast_node_stable_id(stmt), false);
                     scope_declare(ctx->scope, vs);
                 }
             }

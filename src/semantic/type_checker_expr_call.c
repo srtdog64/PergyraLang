@@ -13,6 +13,28 @@ expr_call_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
+/* For `Q.Name(..)` where Q names an enum, the bare-name fallback must land on
+ * a variant of Q. Any other qualifier keeps the fallback unchanged. */
+static bool
+expr_call_qualified_variant_owner_ok(SemanticContext *ctx, ASTNode *callee,
+                                     Symbol *sym)
+{
+    ASTNode *object = ast_member_object(callee);
+    const char *qualifier = object != NULL && object->type == AST_IDENTIFIER
+        ? ast_identifier_name(object) : NULL;
+    Symbol *owner_sym = qualifier != NULL
+        ? scope_lookup(ctx->scope, qualifier) : NULL;
+    Type *owner;
+
+    if (owner_sym == NULL || owner_sym->type == NULL
+        || owner_sym->type->kind != TYPE_KIND_ENUM)
+        return true;
+    owner = sym->kind == SYMBOL_ENUM_CONSTRUCTOR
+        ? type_function_return_type(sym->type) : sym->type;
+    return owner != NULL && owner->kind == TYPE_KIND_ENUM
+        && owner->name != NULL && strcmp(owner->name, qualifier) == 0;
+}
+
 static void
 expr_call_report_unknown_member(SemanticContext *ctx, ASTNode *site,
                                 const Type *object_type,
@@ -256,8 +278,25 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
             Symbol *sym = flat_name != NULL
                 ? scope_lookup(ctx->scope, flat_name)
                 : NULL;
-            if (sym == NULL && method_name != NULL)
+            if (sym == NULL && method_name != NULL) {
                 sym = scope_lookup(ctx->scope, method_name);
+                /* `Enum.Variant(..)` must name a variant of that enum; the
+                 * bare-name fallback used to accept any owner (docs/205 L3a). */
+                if (sym != NULL
+                    && !expr_call_qualified_variant_owner_ok(ctx, callee, sym)) {
+                    semantic_error_with_hints(ctx,
+                        PGY_CODE_SEM_UNDEFINED_SYMBOL,
+                        PGY_CAUSE_SYMBOL_UNDEFINED,
+                        PGY_FIX_IMPORT_OR_DECLARE_SYMBOL,
+                        expr,
+                        "'%s' is not a variant of enum '%s'",
+                        method_name,
+                        ast_identifier_name(ast_member_object(callee)));
+                    free(flat_name);
+                    free(display_name);
+                    return TYPE_UNKNOWN;
+                }
+            }
             Type *result = type_check_function_symbol_call(
                 expr, sym, display_name != NULL ? display_name : "<member>", ctx);
             free(flat_name);

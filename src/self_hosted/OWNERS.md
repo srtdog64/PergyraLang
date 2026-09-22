@@ -618,6 +618,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   refuses a `-> Never` function whose body can complete. It is conservative:
   the last top-level statement must be Exit or a call to another Never
   function; the statement type facts owner reports `never_function_fallthrough`.
+- `src/self_hosted/semantic/ast_declaration_contract_owner.pgy` -- program-wide
+  declaration contracts checked once after statement typing: the Never tail rule
+  above and `enum_variant_redeclaration` for a variant name two enums declare.
 - `src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy` --
   target-neutral admission for local zone-resource value carriage. It joins
   admitted resource shape, initializer/assignment types, and resolved fresh

@@ -86,9 +86,8 @@ func SemanticReason(code: String) -> String {
     if code == "undefined_function" {
         return "called function is not declared in the checked subset";
     }
-    if code == "call_arity_mismatch" {
-        return "call argument count does not match the callee parameter count";
-    }
+    if code == "call_arity_mismatch" { return "call argument count does not match the callee parameter count"; }
+    if code == "enum_variant_redeclaration" { return "a bare variant name must belong to one enum; the first declaration used to win silently"; }
     if code == "generic_argument_count_mismatch" { return "explicit generic argument count does not match the callable generic parameters"; }
     if code == "generic_argument_type_invalid" { return "explicit generic argument is missing or malformed"; }
     if code == "let_type_mismatch" {
@@ -215,6 +214,7 @@ func SemanticFix(code: String) -> String {
     }
     if code == "option_concrete_type_required" { return "annotate the None value or pass a concretely typed Option<T>"; }
     if code == "never_function_fallthrough" { return "end the body in Exit(code) or a call to another Never function"; }
+    if code == "enum_variant_redeclaration" { return "rename one of the variants"; }
     if code == "value_param_collection_mutation" {
         return "spell the parameter as inout or mutate a local collection and return it";
     }

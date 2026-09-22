@@ -1,0 +1,7 @@
+enum Verdict { Ok(Int), Bad(String) }
+enum Shape { Circle(Int) }
+
+func Main() -> Void {
+    let v: Verdict = Shape.Bad("x");
+    Log(1);
+}
