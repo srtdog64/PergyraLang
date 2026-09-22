@@ -499,3 +499,34 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
 실패하면 staging 파일을 지우므로 새 바이너리는 나타나지 않는다. 옛 바이너리는 여전히 compile
 시작 전에 지운다(stale 실행 방지). `tests/self_hosted/parity/binary_output_refusal_owner.sh`가
 거부와 성공 뒤에 staging 파일이 남지 않는지 본다.
+
+## 12. 남은 일과 측정된 규모 (2026-09-23)
+
+이 표는 이 문서의 항목 중 아직 닫히지 않은 것과, 착지하면서 새로 드러난 공백을 규모와 함께
+적는다. 숫자는 2026-09-23 트리에서 센 값이다.
+
+| 항목 | 측정된 규모 | 판단 |
+| --- | --- | --- |
+| F5(b) native MIR JSON의 여러 문장 defer | native는 defer 한 개를 `stmt` 행 하나로 내고 본문은 `defer_body` 배열로 싣는다. 행을 쪼개려면 MIR 명령어에 본문 문장 인덱스 fact가 필요하고, `mir_stmt_population_source.c`·`mir_non_cfg_stmt_population.c`의 생성부 2곳과 JSON 덤프·fact 검증·표면 shape 판정이 함께 바뀐다 | 다음 칸. rung2 MIR parity 매니페스트에 여러 문장 defer 픽스처를 넣으려면 이것이 먼저다 |
+| F5(c) 기본 LLVM 경로의 defer | `src/self_hosted/compiler/direct_mir_*.pgy` 974개 파일에 defer 관련 코드가 0곳이다. 현재는 `scalar CFG program routine admission` 단계에서 `source=AST_DEFER_STMT`로 거부한다 | 새 기능 규모. cleanup 등록과 모든 탈출 경로의 LIFO 실행이 필요하다 |
+| L4b 범위 배열(`[0, 0]`) | `MirObjectArrayBoundsAtBounds` 호출부 59곳, 30파일. 그중 2파일(`mir_lower/collection_ownership_fact_owner.pgy`, `mir_lower/routine_fact_index_owner.pgy`)은 다른 레인이 미커밋으로 고치는 중이라 L4a처럼 옛 함수를 남겨야 한다 | 다음 칸. 기계적이지만 드라이버 메모리를 다시 재야 한다 |
+| L4c parser `cursor_out` | `inout cursor_out: Array<Int>` 시그니처 48개, `cursor_out[0]` 읽기 226곳, 26파일. parser는 self-host 전체 소스를 도는 가장 뜨거운 경로다 | 크다. 슬라이스를 나눠 각 슬라이스마다 fixpoint와 메모리를 재야 한다 |
+| L2b StringBuild | 보간·N항 `Concat`을 typed 연산으로 낮추고 owned producer로 인정하는 일이다. 같은 트리에서 다른 레인이 `own String`의 `Array<String>` 이전과 P0 R1/R2/R3/R5 반례를 작업 중이다(`docs/current_work_handoff.md`) | 대기. 같은 소유권 표면을 두 레인이 동시에 바꾸면 안 된다 |
+| L2c self-host 피라미드 이관 | L2b 뒤에만 의미가 있다. `Concat` 호출 13,961개, 최상위 피라미드 2,388개(400 파일) | 대기 |
+
+### 12.1 착지하면서 드러난 공백
+
+- **기본 경로는 bare method 호출을 해석하지 못한다.** method 본문 안의 `Name(..)`은 기본
+  C/LLVM 경로에서 `call_arity_mismatch`로 거부된다. 빌트인 이름과 무관한 기존 공백이라
+  R7 게이트는 host method 구간을 native C/LLVM에서만 본다(10.5). 닫으려면 self-host
+  semantic이 호출부의 enclosing host를 scope로 넣어야 한다.
+- **기본 LLVM 경로(direct MIR)의 모양 coverage.** 인자 순서 픽스처를 돌리면서 세 가지
+  거부를 봤다: `let` 초기식의 literal 단계(`stage=literal ... source=AST_LET_DECL`),
+  세 루틴짜리 프로그램(`three-routine structural shape is unsupported`), defer 전체.
+  모두 틀린 출력이 아니라 거부이고, 각각 별도 rung이다.
+- **member 호출의 receiver**와 **동적 ability 호출(vtable)**은 인자 순서 고정 경로를
+  타지 않는다(11.1).
+- **native C의 emitted-name 충돌.** 빌트인 철자가 아닌 사용자 함수 이름이 런타임 심볼과
+  겹칠 수 있다. 런타임이 export하는 PascalCase 심볼 42개는 모두 예약 가족에 들어 있으므로
+  지금은 충돌이 없지만(10.5), 런타임에 새 심볼이 생기면 다시 열린다. emitted-name 소유를
+  한 곳에서 정하는 것이 진짜 해법이다.
