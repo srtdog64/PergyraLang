@@ -565,7 +565,7 @@ func SelfMirCfgAttachLastMatchCase(
     let match_facts: SelfMirMatchFactRows =
         SelfMirMatchFactRowsAttachCase(
             instructions.match_facts, instruction_index,
-            fact.pattern, fact.variant, fact.bindings, fact.binding_types
+            fact.pattern, fact.variant, fact.bindings, fact.binding_types, fact.subject_family
         );
     return SelfMirCfgRows(
         cfg.blocks,

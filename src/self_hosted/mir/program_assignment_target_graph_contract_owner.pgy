@@ -110,7 +110,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
     let scalar_match_facts: SelfMirMatchFactRows =
         SelfMirMatchFactRowsAttachCase(
             SelfMirMatchFactRowsEmpty(), 0, "1", "",
-            no_match_bindings, no_match_binding_types
+            no_match_bindings, no_match_binding_types, ""
         );
     let valid_match: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["branch"], ["branch"], [""], [""], [""], [""],

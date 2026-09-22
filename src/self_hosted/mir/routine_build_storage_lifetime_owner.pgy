@@ -59,6 +59,7 @@ func SelfMirRoutineBuildStorageRetireAfterLastConsumer(
     let match_binding_counts: Array<Int> = build.cfg.instructions.match_facts.binding_counts;
     let match_bindings: Array<String> = build.cfg.instructions.match_facts.bindings;
     let match_binding_types: Array<String> = build.cfg.instructions.match_facts.binding_types;
+    let match_subject_families: Array<String> = build.cfg.instructions.match_facts.subject_families;
 
     let destructure_instruction_indices: Array<Int> = build.cfg.instructions.destructure_facts.instruction_indices;
     let destructure_element_types: Array<String> = build.cfg.instructions.destructure_facts.element_types;
@@ -131,7 +132,7 @@ func SelfMirRoutineBuildStorageRetireAfterLastConsumer(
     CompilerRetireArrayStorage(match_pattern_counts); CompilerRetireArrayStorage(match_patterns);
     CompilerRetireArrayStorage(match_variants); CompilerRetireArrayStorage(match_binding_starts);
     CompilerRetireArrayStorage(match_binding_counts); CompilerRetireArrayStorage(match_bindings);
-    CompilerRetireArrayStorage(match_binding_types);
+    CompilerRetireArrayStorage(match_binding_types); CompilerRetireArrayStorage(match_subject_families);
     CompilerRetireArrayStorage(destructure_instruction_indices); CompilerRetireArrayStorage(destructure_element_types);
     CompilerRetireArrayStorage(destructure_binding_starts); CompilerRetireArrayStorage(destructure_binding_counts);
     CompilerRetireArrayStorage(destructure_bindings); CompilerRetireArrayStorage(abi_present);

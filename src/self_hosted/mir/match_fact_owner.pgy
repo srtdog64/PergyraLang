@@ -14,13 +14,15 @@ struct SelfMirMatchFactRows {
     binding_counts: Array<Int>;
     bindings: Array<String>;
     binding_types: Array<String>;
+    subject_families: Array<String>;
 }
 
 func SelfMirMatchFactRowsEmpty() -> SelfMirMatchFactRows {
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
     return SelfMirMatchFactRows(
-        ints, ints, ints, strings, strings, ints, ints, strings, strings
+        ints, ints, ints, strings, strings, ints, ints, strings, strings,
+        strings
     );
 }
 
@@ -42,7 +44,8 @@ func SelfMirMatchFactRowsAttachCase(
     pattern: String,
     variant: String,
     case_bindings: Array<String>,
-    case_binding_types: Array<String>
+    case_binding_types: Array<String>,
+    subject_family: String
 ) -> SelfMirMatchFactRows {
     let instruction_indices: Array<Int> = rows.instruction_indices;
     let pattern_starts: Array<Int> = rows.pattern_starts;
@@ -53,11 +56,13 @@ func SelfMirMatchFactRowsAttachCase(
     let binding_counts: Array<Int> = rows.binding_counts;
     let bindings: Array<String> = rows.bindings;
     let binding_types: Array<String> = rows.binding_types;
+    let subject_families: Array<String> = rows.subject_families;
     ArrayPush(instruction_indices, instruction_index);
     ArrayPush(pattern_starts, ArrayLength(patterns));
     ArrayPush(pattern_counts, 1);
     ArrayPush(patterns, pattern);
     ArrayPush(variants, variant);
+    ArrayPush(subject_families, subject_family);
     ArrayPush(binding_starts, ArrayLength(bindings));
     let binding_count: Int = ArrayLength(case_bindings);
     if ArrayLength(case_binding_types) != binding_count { return rows; }
@@ -75,7 +80,8 @@ func SelfMirMatchFactRowsAttachCase(
     ArrayPush(binding_counts, binding_count);
     return SelfMirMatchFactRows(
         instruction_indices, pattern_starts, pattern_counts, patterns,
-        variants, binding_starts, binding_counts, bindings, binding_types
+        variants, binding_starts, binding_counts, bindings, binding_types,
+        subject_families
     );
 }
 
@@ -93,6 +99,7 @@ func SelfMirMatchFactRowsAppend(
     let binding_counts: Array<Int> = target.binding_counts;
     let bindings: Array<String> = target.bindings;
     let binding_types: Array<String> = target.binding_types;
+    let subject_families: Array<String> = target.subject_families;
     let row: Int = 0;
     while row < ArrayLength(source.instruction_indices) {
         ArrayPush(
@@ -110,6 +117,7 @@ func SelfMirMatchFactRowsAppend(
             pattern_i = pattern_i + 1;
         }
         ArrayPush(variants, source.variants[row]);
+        ArrayPush(subject_families, source.subject_families[row]);
         ArrayPush(binding_starts, ArrayLength(bindings));
         ArrayPush(binding_counts, source.binding_counts[row]);
         let binding_i: Int = 0;
@@ -130,7 +138,8 @@ func SelfMirMatchFactRowsAppend(
     }
     return SelfMirMatchFactRows(
         instruction_indices, pattern_starts, pattern_counts, patterns,
-        variants, binding_starts, binding_counts, bindings, binding_types
+        variants, binding_starts, binding_counts, bindings, binding_types,
+        subject_families
     );
 }
 
@@ -142,6 +151,7 @@ func SelfMirMatchFactRowsValidationError(
     if ArrayLength(rows.pattern_starts) != count ||
         ArrayLength(rows.pattern_counts) != count ||
         ArrayLength(rows.variants) != count ||
+        ArrayLength(rows.subject_families) != count ||
         ArrayLength(rows.binding_starts) != count ||
         ArrayLength(rows.binding_counts) != count {
         return "match fact parallel row counts differ";
@@ -170,6 +180,11 @@ func SelfMirMatchFactRowsValidationError(
         }
         if ArrayLength(rows.binding_types) != ArrayLength(rows.bindings) {
             return "match binding type rows differ";
+        }
+        let family: String = rows.subject_families[i];
+        if family != "" && family != "enum" && family != "option" &&
+            family != "result" {
+            return "match subject family row is invalid";
         }
         let variant: String = rows.variants[i];
         let pattern: String = rows.patterns[pattern_cursor];

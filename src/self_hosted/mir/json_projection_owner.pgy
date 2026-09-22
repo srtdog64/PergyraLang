@@ -138,17 +138,15 @@ func SelfMirJsonInstruction(facts: SelfMirProgramFacts,
         JsonEmitFieldRaw("match_bindings", match_fields.bindings),
         JsonEmitFieldRaw(
             "match_binding_types", match_fields.binding_types
-        ),
-        JsonEmitFieldRaw(
-            "destructure_element_type",
-            SelfMirJsonDestructureElementType(rows, instruction_index)
-        ),
-        JsonEmitFieldRaw(
-            "destructure_bindings",
-            SelfMirJsonDestructureBindings(rows, instruction_index)
-        ),
-        JsonEmitFieldRaw("uses", JsonEmitArray(uses))
+        )
     ];
+    // Only match case rows carry a subject family, as in native MIR JSON.
+    if match_fields.subject_family != "" { ArrayPush(fields, JsonEmitFieldRaw("match_subject_family", match_fields.subject_family)); }
+    ArrayPush(fields, JsonEmitFieldRaw("destructure_element_type",
+        SelfMirJsonDestructureElementType(rows, instruction_index)));
+    ArrayPush(fields, JsonEmitFieldRaw("destructure_bindings",
+        SelfMirJsonDestructureBindings(rows, instruction_index)));
+    ArrayPush(fields, JsonEmitFieldRaw("uses", JsonEmitArray(uses)));
     if rows.binding_source_syntax_ids[instruction_index] > 0 {
         ArrayPush(fields, JsonEmitFieldRaw("binding_source_syntax_id",
             ToString(rows.binding_source_syntax_ids[instruction_index])));

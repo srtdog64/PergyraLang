@@ -185,6 +185,16 @@ func SelfMirJsonMatchFieldsWriteFile(
         }
     }
     CompilerArtifactWrite(output, "]");
+    // Only match case rows carry a subject family, as in native MIR JSON.
+    if IsSome(fact_index) {
+        CompilerArtifactWrite(output, ",\"match_subject_family\":");
+        let family: String = rows.match_facts.subject_families[UnwrapOption(fact_index)];
+        if family == "" {
+            CompilerArtifactWrite(output, "null");
+        } else if !JsonStringLiteralWriteFile(output, family) {
+            return false;
+        }
+    }
     return true;
 }
 

@@ -13,10 +13,10 @@
 #   as Unwrap(subject);
 # - a qualified payload constructor (`Shape.Circle(2)`) runs on native C/LLVM
 #   and the default C route (docs/205 L3d); the default LLVM route refuses it;
-# - the default self-host route still refuses the builtin-named variant
-#   programs with no binary: self-host MIR does not carry
-#   match_subject_family yet, so mir_lower reads `case Ok(p)` by its spelling.
-#   When it does, this becomes an execution check.
+# - the builtin-named variant programs run on the default C route too:
+#   self-host MIR carries match_subject_family like native MIR, so mir_lower
+#   reads `case Ok(p)` of a Verdict as a payload read; the default LLVM route
+#   refuses their qualified constructors with no binary.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -68,15 +68,14 @@ for entry in "${USER_ENUM_CASES[@]}"; do
     IFS=: read -r name fixture expected <<<"$entry"
     run_expect "$name-native-c" "$fixture" "$expected" --native-pipeline --backend=c
     run_expect "$name-native-llvm" "$fixture" "$expected" --native-pipeline --backend=llvm
-    for backend in c llvm; do
-        out_rel="$WORK_REL/$name-default-$backend.exe"
-        if compile "$fixture" "$out_rel" "$WORK_DIR/$name-default-$backend.log" \
-            --backend="$backend"; then
-            fail "default $backend route accepted $name; turn this into an execution check"
-        fi
-        [[ ! -e "$ROOT_DIR/$out_rel" ]] ||
-            fail "default $backend route left a binary for refused $name"
-    done
+    run_expect "$name-default-c" "$fixture" "$expected" --backend=c
+    out_rel="$WORK_REL/$name-default-llvm.exe"
+    if compile "$fixture" "$out_rel" "$WORK_DIR/$name-default-llvm.log" \
+        --backend=llvm; then
+        fail "default llvm route accepted $name; turn this into an execution check"
+    fi
+    [[ ! -e "$ROOT_DIR/$out_rel" ]] ||
+        fail "default llvm route left a binary for refused $name"
 done
 
 QUALIFIED="$FIXTURES/enum_qualified_payload_constructor.pgy"
@@ -146,4 +145,4 @@ MIR_LOWER="$WORK_DIR/mir_lower.exe"
 grep -Fq 'v.Ok._0' "$WORK_DIR/verdict-ok.reast" ||
     fail "mir_lower lost the user-enum payload read"
 
-echo "[$LABEL] family-decided user-enum, Option and Result cases on native C/LLVM, MIR JSON and mir_lower; qualified constructor on the default C route: PASS"
+echo "[$LABEL] family-decided user-enum, Option and Result cases on native C/LLVM, MIR JSON and mir_lower; user enums and a qualified constructor on the default C route: PASS"

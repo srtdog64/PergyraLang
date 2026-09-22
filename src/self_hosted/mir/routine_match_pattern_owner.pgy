@@ -6,9 +6,11 @@ struct SelfMirMatchCaseFact {
     variant: String;
     bindings: Array<String>;
     binding_types: Array<String>;
+    // "option", "result", "enum" or "" (docs/205 section 2.3).
+    subject_family: String;
 }
 
 func SelfMirMatchCaseFactInvalid() -> SelfMirMatchCaseFact {
     let strings: Array<String> = [];
-    return SelfMirMatchCaseFact(false, "", "", strings, strings);
+    return SelfMirMatchCaseFact(false, "", "", strings, strings, "");
 }

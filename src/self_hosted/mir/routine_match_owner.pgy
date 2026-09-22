@@ -25,7 +25,7 @@ func SelfMirMatchCaseFactForNode(
     if !fact.ok { return SelfMirMatchCaseFactInvalid(); }
     let binding_types: Array<String> = [];
     return SelfMirMatchCaseFact(
-        true, fact.pattern, fact.variant, fact.bindings, binding_types
+        true, fact.pattern, fact.variant, fact.bindings, binding_types, ""
     );
 }
 
@@ -37,6 +37,27 @@ func SelfMirMatchSubjectType(
         input.statement_types, match_node_id,
         TypedAstKindMatchStmtTag()
     );
+}
+
+// The subject type's family as native MIR spells it: "option", "result",
+// "enum" for a user enum, or "" for any other subject.
+func SelfMirMatchSubjectFamily(
+    ref input: SelfMirRoutineInput,
+    match_node_id: Int
+) -> String {
+    let subject_type_opt: Option<String> = SelfMirMatchSubjectType(
+        input, match_node_id
+    );
+    if !IsSome(subject_type_opt) { return ""; }
+    let subject_type: String = UnwrapOption(subject_type_opt);
+    if StartsWith(subject_type, "Option<") { return "option"; }
+    if StartsWith(subject_type, "Result<") { return "result"; }
+    let i: Int = 0;
+    while i < ArrayLength(input.analysis.enums.variant_enum_names) {
+        if input.analysis.enums.variant_enum_names[i] == subject_type { return "enum"; }
+        i = i + 1;
+    }
+    return "";
 }
 
 func SelfMirMatchCaseSubjectReady(
@@ -204,7 +225,8 @@ func SelfMirLowerMatchCaseBranch(
         );
     }
     let carried_fact: SelfMirMatchCaseFact = SelfMirMatchCaseFact(
-        fact.ok, fact.pattern, fact.variant, fact.bindings, binding_types
+        fact.ok, fact.pattern, fact.variant, fact.bindings, binding_types,
+        SelfMirMatchSubjectFamily(input, match_node_id)
     );
     if !match_graph.ok {
         return SelfMirRoutineBuildError(
