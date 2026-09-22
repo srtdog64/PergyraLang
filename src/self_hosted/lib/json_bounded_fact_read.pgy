@@ -23,10 +23,9 @@ func JsonStringValueEqualsWithin(
             json, value_end, value_open + 1 + row
         );
         if actual == JsonAsciiCode("\\") {
-            let decoded_end: Array<Int> = [0];
-            return ReadJsonStringBounded(
-                json, value_open, value_end, decoded_end
-            ) == expected && decoded_end[0] == value_end;
+            let decoded: Option<String> = JsonStringValueSpanning(
+                json, value_open, value_end);
+            return IsSome(decoded) && UnwrapOption(decoded) == expected;
         }
         if row >= expected_length ||
             actual != JsonCharCodeAt(expected, expected_length, row) {
@@ -195,12 +194,9 @@ func JsonObjectStringFieldOptWithin(
         JsonCharCodeAt(json, bounds[1], bounds[0]) != JsonAsciiCode("\"") {
         return None;
     }
-    let string_end: Array<Int> = [0];
-    let value: String = ReadJsonStringBounded(
-        json, bounds[0], bounds[1], string_end
-    );
-    if string_end[0] <= bounds[0] { return None; }
-    return Some(value);
+    let read: Option<JsonStringRead> = JsonReadStringBounded(json, bounds[0], bounds[1]);
+    if !IsSome(read) { return None; }
+    return Some(UnwrapOption(read).value);
 }
 
 func JsonIntegerValueOptWithin(
@@ -382,13 +378,11 @@ func JsonArrayStringFactWithin(
         }
         let value_end: Int = UnwrapOption(value_end_opt);
         if count == target_index {
-            let decoded_end: Array<Int> = [0];
-            target_value = ReadJsonStringBounded(
-                json, i, value_end, decoded_end
-            );
-            if decoded_end[0] != value_end {
+            let decoded: Option<String> = JsonStringValueSpanning(json, i, value_end);
+            if !IsSome(decoded) {
                 return JsonArrayStringFact(false, 0, false, "");
             }
+            target_value = UnwrapOption(decoded);
             target_found = true;
         }
         count = count + 1;
@@ -453,11 +447,10 @@ func JsonArrayStringsWithin(json: String, array_open: Int, array_end: Int,
         // The same exact-end decode receipt JsonArrayStringFactWithin takes.
         let string_end: Option<Int> = JsonStringEndWithin(json, cursor, array_end);
         if !IsSome(string_end) { return false; }
-        let decoded_end: Array<Int> = [0];
-        let value: String = ReadJsonStringBounded(
-            json, cursor, UnwrapOption(string_end), decoded_end);
-        if decoded_end[0] != UnwrapOption(string_end) { return false; }
-        ArrayPush(values, value);
+        let decoded: Option<String> = JsonStringValueSpanning(
+            json, cursor, UnwrapOption(string_end));
+        if !IsSome(decoded) { return false; }
+        ArrayPush(values, UnwrapOption(decoded));
         cursor = UnwrapOption(string_end);
         read = read + 1;
     }

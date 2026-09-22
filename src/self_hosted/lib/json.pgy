@@ -93,34 +93,42 @@ func JsonStringEnd(json: String, open: Int, limit: Int) -> Option<Int> {
     return None;
 }
 
-func ReadJsonStringBounded(
+// A decoded JSON string literal and the index just past its closing quote.
+struct JsonStringRead {
+    let value: String;
+    let end: Int;
+}
+
+// Decode the JSON string literal whose opening quote is at `open`, reading
+// no further than `limit`. None when the literal does not close before
+// `limit` (docs/205 L4a).
+func JsonReadStringBounded(
     json: String,
     open: Int,
-    limit: Int,
-    inout end: Array<Int>
-) -> String {
+    limit: Int
+) -> Option<JsonStringRead> {
     let n: Int = limit;
     let close: Int = open + 1;
     let escaped: Bool = false;
     while close < n {
         let c: Int = JsonCharCodeAt(json, n, close);
         if c == JsonAsciiCode("\"") {
-            ArraySet(end, 0, close + 1);
             if !escaped {
-                if close == open + 1 { return ""; }
-                return SubstringWithLen(json, n, open + 1, close - open - 1);
+                if close == open + 1 { return Some(JsonStringRead("", close + 1)); }
+                return Some(JsonStringRead(
+                    SubstringWithLen(json, n, open + 1, close - open - 1), close + 1));
             }
             break;
         }
         if c == JsonAsciiCode("\\") {
             escaped = true;
-            if close + 1 >= n { return ""; }
+            if close + 1 >= n { return None; }
             close = close + 2;
         } else {
             close = close + 1;
         }
     }
-    if close >= n { return ""; }
+    if close >= n { return None; }
     let i: Int = open + 1;
     let chunks: Array<String> = [];
     while i < close {
@@ -143,13 +151,30 @@ func ReadJsonStringBounded(
             i = i + 2;
         } else { ArrayPush(chunks, CharAtN(json, n, i)); i = i + 1; }
     }
-    return StringJoin(chunks, "");
+    return Some(JsonStringRead(StringJoin(chunks, ""), close + 1));
 }
 
-func ReadJsonString(json: String, open: Int, inout end: Array<Int>) -> String {
-    return ReadJsonStringBounded(
-        json, open, StringLength(json), end
-    );
+// The value of the JSON string literal that spans exactly [start, end).
+func JsonStringValueSpanning(json: String, start: Int, end: Int) -> Option<String> {
+    let read: Option<JsonStringRead> = JsonReadStringBounded(json, start, end);
+    if !IsSome(read) || UnwrapOption(read).end != end { return None; }
+    return Some(UnwrapOption(read).value);
+}
+
+// The out-array form, kept only for
+// mir_lower/routine_instruction_scalar_capture_owner.pgy while that file has
+// uncommitted edits in the shared working tree. Remove it once that file
+// reads through JsonReadStringBounded.
+func ReadJsonStringBounded(
+    json: String,
+    open: Int,
+    limit: Int,
+    inout end: Array<Int>
+) -> String {
+    let read: Option<JsonStringRead> = JsonReadStringBounded(json, open, limit);
+    if !IsSome(read) { return ""; }
+    ArraySet(end, 0, UnwrapOption(read).end);
+    return UnwrapOption(read).value;
 }
 
 func JsonFieldString(json: String, start: Int, end: Int, key: String) -> String {
@@ -169,8 +194,9 @@ func JsonFieldString(json: String, start: Int, end: Int, key: String) -> String 
     if vstart >= end || JsonCharCodeAt(json, StringLength(json), vstart) != JsonAsciiCode("\"") {
         return "";
     }
-    let e: Array<Int> = [0];
-    return ReadJsonString(json, vstart, e);
+    let read: Option<JsonStringRead> = JsonReadStringBounded(json, vstart, StringLength(json));
+    if !IsSome(read) { return ""; }
+    return UnwrapOption(read).value;
 }
 
 func JsonFieldKey(field: String) -> String {
@@ -304,12 +330,12 @@ func JsonObjectFieldValueBounds(json: String, start: Int, end: Int, field: Strin
         if c != JsonAsciiCode("\"") {
             return false;
         }
-        let key_end: Array<Int> = [0];
-        let key: String = ReadJsonString(json, i, key_end);
-        if key_end[0] <= i {
+        let key_read: Option<JsonStringRead> = JsonReadStringBounded(json, i, StringLength(json));
+        if !IsSome(key_read) {
             return false;
         }
-        i = JsonSkipWhitespace(json, key_end[0], end);
+        let key: String = UnwrapOption(key_read).value;
+        i = JsonSkipWhitespace(json, UnwrapOption(key_read).end, end);
         if i >= end || JsonCharCodeAt(json, n, i) != JsonAsciiCode(":") {
             return false;
         }
@@ -345,12 +371,11 @@ func JsonObjectStringFieldOpt(json: String, start: Int, end: Int, field: String)
     if bounds[0] >= bounds[1] || JsonCharCodeAt(json, StringLength(json), bounds[0]) != JsonAsciiCode("\"") {
         return None;
     }
-    let string_end: Array<Int> = [0];
-    let value: String = ReadJsonString(json, bounds[0], string_end);
-    if string_end[0] <= bounds[0] {
+    let read: Option<JsonStringRead> = JsonReadStringBounded(json, bounds[0], StringLength(json));
+    if !IsSome(read) {
         return None;
     }
-    return Some(value);
+    return Some(UnwrapOption(read).value);
 }
 
 func JsonObjectNumberField(json: String, start: Int, end: Int, field: String) -> String {

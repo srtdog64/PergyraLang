@@ -111,14 +111,13 @@ func JsonObjectFactCount(ref table: JsonObjectFactTable) -> Int {
         if c != JsonAsciiCode("\"") {
             return 0;
         }
-        let key_end: Array<Int> = [0];
-        let ignored: String = ReadJsonStringBounded(
-            table.json, i, table.end, key_end
+        let key_read: Option<JsonStringRead> = JsonReadStringBounded(
+            table.json, i, table.end
         );
-        if key_end[0] <= i {
+        if !IsSome(key_read) {
             return 0;
         }
-        i = JsonSkipWhitespaceWithin(table.json, key_end[0], table.end);
+        i = JsonSkipWhitespaceWithin(table.json, UnwrapOption(key_read).end, table.end);
         if i >= table.end ||
             JsonCharCodeAt(table.json, table.end, i) != JsonAsciiCode(":") {
             return 0;
@@ -158,14 +157,14 @@ func JsonObjectFactIndex(ref table: JsonObjectFactTable, field: String) -> Optio
         if c != JsonAsciiCode("\"") {
             return None;
         }
-        let key_end: Array<Int> = [0];
-        let key: String = ReadJsonStringBounded(
-            table.json, cursor, table.end, key_end
+        let key_read: Option<JsonStringRead> = JsonReadStringBounded(
+            table.json, cursor, table.end
         );
-        if key_end[0] <= cursor {
+        if !IsSome(key_read) {
             return None;
         }
-        cursor = JsonSkipWhitespaceWithin(table.json, key_end[0], table.end);
+        let key: String = UnwrapOption(key_read).value;
+        cursor = JsonSkipWhitespaceWithin(table.json, UnwrapOption(key_read).end, table.end);
         if cursor >= table.end ||
             JsonCharCodeAt(table.json, table.end, cursor) != JsonAsciiCode(":") {
             return None;
@@ -271,8 +270,9 @@ func JsonScalarToken(json: String, start: Int, end: Int) -> String {
         return "";
     }
     if JsonCharCodeAt(json, end, value_start) == JsonAsciiCode("\"") {
-        let string_end: Array<Int> = [0];
-        return ReadJsonStringBounded(json, value_start, end, string_end);
+        let read: Option<JsonStringRead> = JsonReadStringBounded(json, value_start, end);
+        if !IsSome(read) { return ""; }
+        return UnwrapOption(read).value;
     }
     return Substring(json, value_start, end - value_start);
 }
@@ -303,12 +303,12 @@ func JsonCollectScalarFieldValues(
             if JsonCharCodeAt(json, n, i) != JsonAsciiCode("\"") {
                 return;
             }
-            let key_end: Array<Int> = [0];
-            let key: String = ReadJsonStringBounded(json, i, end, key_end);
-            if key_end[0] <= i {
+            let key_read: Option<JsonStringRead> = JsonReadStringBounded(json, i, end);
+            if !IsSome(key_read) {
                 return;
             }
-            i = JsonSkipWhitespace(json, key_end[0], end);
+            let key: String = UnwrapOption(key_read).value;
+            i = JsonSkipWhitespace(json, UnwrapOption(key_read).end, end);
             if i >= end || JsonCharCodeAt(json, n, i) != JsonAsciiCode(":") {
                 return;
             }
@@ -460,11 +460,10 @@ func JsonArrayObjectFactStringFieldEqualsCount(
                 JsonCharCodeAt(
                     table.json, value_bounds[1], value_bounds[0]
                 ) == JsonAsciiCode("\"") {
-                let value_end: Array<Int> = [0];
-                let actual: String = ReadJsonStringBounded(
-                    table.json, value_bounds[0], value_bounds[1], value_end
+                let actual: Option<JsonStringRead> = JsonReadStringBounded(
+                    table.json, value_bounds[0], value_bounds[1]
                 );
-                if value_end[0] > value_bounds[0] && actual == expected {
+                if IsSome(actual) && UnwrapOption(actual).value == expected {
                     count = count + 1;
                 }
             }

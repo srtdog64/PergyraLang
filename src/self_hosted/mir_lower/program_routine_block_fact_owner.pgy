@@ -106,9 +106,9 @@ func MirProgramRoutineBlockCaptureWithin(
             if !IsSome(string_end) || UnwrapOption(string_end) != value_end {
                 return InvalidMirProgramRoutineBlockCapture();
             }
-            let parsed_end: Array<Int> = [0];
-            intent_role = ReadJsonStringBounded(json, i, value_end, parsed_end);
-            if parsed_end[0] != value_end || !MirIntentBlockRoleKnown(intent_role) {
+            let decoded: Option<String> = JsonStringValueSpanning(json, i, value_end);
+            if IsSome(decoded) { intent_role = UnwrapOption(decoded); }
+            if !IsSome(decoded) || !MirIntentBlockRoleKnown(intent_role) {
                 return InvalidMirProgramRoutineBlockCapture();
             }
         } else if is_id {

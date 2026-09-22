@@ -155,13 +155,11 @@ func MirProgramInstructionExpressionCaptureWithin(
             }
             let value: String = "";
             if JsonValueKindAt(json, i, value_end) == "string" {
-                let decoded_end: Array<Int> = [0];
-                value = ReadJsonStringBounded(
-                    json, i, value_end, decoded_end
-                );
-                if decoded_end[0] != value_end {
+                let decoded: Option<String> = JsonStringValueSpanning(json, i, value_end);
+                if !IsSome(decoded) {
                     return InvalidMirProgramInstructionExpressionCapture();
                 }
+                value = UnwrapOption(decoded);
             } else if JsonValueKindAt(json, i, value_end) != "null" {
                 return InvalidMirProgramInstructionExpressionCapture();
             }
@@ -405,10 +403,9 @@ func MirProgramInstructionExpressionText(
     let start: Int = fact.expr0_start;
     let end: Int = fact.expr0_end;
     if slot == 1 { start = fact.expr1_start; end = fact.expr1_end; }
-    let decoded_end: Array<Int> = [0];
-    let value: String = ReadJsonStringBounded(json, start, end, decoded_end);
-    if decoded_end[0] != end { return ""; }
-    return value;
+    let decoded: Option<String> = JsonStringValueSpanning(json, start, end);
+    if !IsSome(decoded) { return ""; }
+    return UnwrapOption(decoded);
 }
 
 func MirProgramInstructionExpressionGraphTable(

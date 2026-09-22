@@ -80,22 +80,22 @@ func MirDeclarationMethodContractReadStringArray(
         if JsonCharCodeAt(json, bounds[1], cursor) != JsonAsciiCode("\"") {
             return false;
         }
-        let value_end: Array<Int> = [0];
-        let value: String = ReadJsonStringBounded(
-            json, cursor, bounds[1], value_end
+        let read: Option<JsonStringRead> = JsonReadStringBounded(
+            json, cursor, bounds[1]
         );
+        if !IsSome(read) { return false; }
+        let value: String = UnwrapOption(read).value;
         let duplicate: Bool = false;
         let duplicate_i: Int = value_start;
         while duplicate_i < ArrayLength(values) {
             if values[duplicate_i] == value { duplicate = true; }
             duplicate_i = duplicate_i + 1;
         }
-        if value_end[0] <= cursor || StringLength(value) == 0 ||
-            (reject_duplicates && duplicate) {
+        if StringLength(value) == 0 || (reject_duplicates && duplicate) {
             return false;
         }
         ArrayPush(values, value);
-        cursor = value_end[0];
+        cursor = UnwrapOption(read).end;
         need_value = false;
     }
     return false;

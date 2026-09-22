@@ -856,7 +856,22 @@ require_text "src/self_hosted/lib/json_scan.pgy" "func JsonCharAt"
 reject_text "src/self_hosted/lib/json_scan.pgy" "func CharAt"
 require_text "src/self_hosted/lib/json_scan.pgy" "func FindFrom(hay: String, needle: String, start: Int) -> Option<Int>"
 reject_text "src/self_hosted/lib/json_scan.pgy" "func FindFrom(hay: String, needle: String, start: Int) -> Int"
-require_text "src/self_hosted/lib/json.pgy" "func ReadJsonString"
+require_text "src/self_hosted/lib/json.pgy" "func JsonReadStringBounded("
+require_text "src/self_hosted/lib/json.pgy" "func JsonStringValueSpanning("
+# docs/205 L4a: the one-slot out-array read survives only for the file below.
+for l4a_reader in lib/json.pgy lib/json_fact_table.pgy lib/json_bounded_fact_read.pgy \
+    mir_lower/json_fact_read.pgy mir_lower/abi_layout_fact_owner.pgy \
+    mir_lower/declaration_method_contract_fact_owner.pgy \
+    mir_lower/expression_graph_persisted_node_read_owner.pgy \
+    mir_lower/intent_execution_json_decode_owner.pgy \
+    mir_lower/machine_layer_fact_owner.pgy \
+    mir_lower/program_instruction_expression_index_owner.pgy \
+    mir_lower/program_instruction_routing_span_owner.pgy \
+    mir_lower/program_routine_block_fact_owner.pgy \
+    compiler/direct_mir_scalar_program_string_literal_fact_owner.pgy; do
+    reject_text "src/self_hosted/$l4a_reader" "= ReadJsonStringBounded("
+    reject_text "src/self_hosted/$l4a_reader" "return ReadJsonStringBounded("
+done
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldString"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldNumber"
 require_text "src/self_hosted/lib/json.pgy" "func JsonFieldKey"
@@ -16356,7 +16371,7 @@ require_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
 require_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonArrayStringFactWithin(" "JsonStringEndWithin("
 require_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
-    "func JsonArrayStringFactWithin(" "ReadJsonStringBounded("
+    "func JsonArrayStringFactWithin(" "JsonStringValueSpanning("
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
     "func JsonArrayStringFactWithin(" "StringLength(json)"
 reject_function_text "src/self_hosted/lib/json_bounded_fact_read.pgy" \
@@ -16368,12 +16383,14 @@ reject_text "src/self_hosted/lib/json.pgy" "func JsonArrayStringCount("
 reject_text "src/self_hosted/lib/json.pgy" "func JsonObjectArrayStringAt("
 require_text "src/self_hosted/lib/json.pgy" \
     "func ReadJsonStringBounded("
+require_function_text "src/self_hosted/lib/json.pgy" \
+    "func ReadJsonStringBounded(" "JsonReadStringBounded(json, open, limit)"
 reject_function_text "src/self_hosted/lib/json.pgy" \
-    "func ReadJsonStringBounded(" "Substring(json"
+    "func JsonReadStringBounded(" "Substring(json"
 require_function_text "src/self_hosted/lib/json.pgy" \
-    "func ReadJsonStringBounded(" "return SubstringWithLen(json, n"
+    "func JsonReadStringBounded(" "SubstringWithLen(json, n, open + 1, close - open - 1)"
 require_function_text "src/self_hosted/lib/json.pgy" \
-    "func ReadJsonStringBounded(" 'if close == open + 1 { return ""; }'
+    "func JsonReadStringBounded(" 'if close == open + 1 { return Some(JsonStringRead("", close + 1)); }'
 require_text "src/self_hosted/lib/json.pgy" \
     "ArrayPush(chunks, CharAtN("
 require_file "tests/self_hosted/fixtures/json_bounded_string_owner.pgy"

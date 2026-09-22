@@ -25,9 +25,5 @@ func DirectMirScalarProgramStringLiteralContent(
     let json_spelling: String =
         DirectMirScalarProgramStringLiteralJsonSpelling(spelling, length);
     let json_length: Int = StringLength(json_spelling);
-    let end: Array<Int> = [0];
-    let value: String = ReadJsonStringBounded(
-        json_spelling, 0, json_length, end);
-    if end[0] != json_length { return None; }
-    return Some(value);
+    return JsonStringValueSpanning(json_spelling, 0, json_length);
 }

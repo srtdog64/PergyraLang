@@ -317,6 +317,16 @@ self-host 기본 경로에서 `5b`였다. opener 앞에서 잘린 리터럴 조�
 각 단계마다 gen2==gen3 fixpoint를 유지하고, 드라이버 메모리를 측정한다. 반환 struct 복사가
 메모리 벽(38.5GB 사례)을 되살리지 않는지 확인한다.
 
+**L4a 첫 칸 착지 (문자열 읽기).** `ReadJsonStringBounded(json, open, limit, end)`는 실패를
+빈 문자열로 돌려주고 `end[0]`을 건드리지 않아서, 호출부마다 `end[0]`을 다시 비교해야
+실패와 빈 문자열을 구분할 수 있었다. 이제 `JsonReadStringBounded(json, open, limit) ->
+Option<JsonStringRead>`(`value`, `end`)가 실패를 None으로 돌려주고, 정확히 `[start, end)`를
+차지하는 리터럴은 `JsonStringValueSpanning(json, start, end) -> Option<String>`으로 읽는다.
+`lib/json*`, `mir_lower`, direct MIR 문자열 리터럴의 호출부 24곳이 옮겨 갔다.
+`mir_lower/routine_instruction_scalar_capture_owner.pgy`의 2곳은 공유 작업 트리에 다른
+레인의 미커밋 수정이 겹쳐 있어 옛 형태를 쓰고, 옛 함수는 그 호출부만을 위한 얇은 형태로
+남았다. 그 파일이 커밋되면 지운다. 범위 배열(`[0, 0]`)과 parser `cursor_out`은 다음 칸이다.
+
 ## 7. F1, F3, F4, F5 — mir_lower 공백
 
 - **F3 (착지)**: 리뷰 문서는 남은 호출부를 3곳으로 적었지만, 실제로는 9개 파일에

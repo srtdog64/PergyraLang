@@ -198,12 +198,7 @@ func MirAbiStringValueAtBounds(
         return None;
     }
     if kind != "string" { return None; }
-    let decoded_end: Array<Int> = [0];
-    let value: String = ReadJsonStringBounded(
-        json, start, end, decoded_end
-    );
-    if decoded_end[0] != end { return None; }
-    return Some(value);
+    return JsonStringValueSpanning(json, start, end);
 }
 
 func MirAbiIntegerValueAtBounds(

@@ -385,13 +385,12 @@ func MirObjectArrayStringFactsAtBounds(
             continue;
         }
         if code != JsonAsciiCode("\"") { break; }
-        let value_end: Array<Int> = [0];
-        let value: String = ReadJsonStringBounded(
-            json, cursor, array_bounds[1], value_end
+        let read: Option<JsonStringRead> = JsonReadStringBounded(
+            json, cursor, array_bounds[1]
         );
-        if value_end[0] <= cursor { break; }
-        ArrayPush(values, value);
-        cursor = value_end[0];
+        if !IsSome(read) { break; }
+        ArrayPush(values, UnwrapOption(read).value);
+        cursor = UnwrapOption(read).end;
     }
     MirLowerFailClosed(Concat("MIR string array fact is malformed: ", field));
 }

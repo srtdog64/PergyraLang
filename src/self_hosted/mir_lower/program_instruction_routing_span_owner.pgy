@@ -39,9 +39,6 @@ func MirProgramInstructionExpressionRoutingEquals(
         return length == StringLength(expected) &&
             SubEqualsWithLen(json, end, start + 1, length, expected);
     }
-    let decoded_end: Array<Int> = [0];
-    let value: String = ReadJsonStringBounded(
-        json, start, end, decoded_end
-    );
-    return decoded_end[0] == end && value == expected;
+    let decoded: Option<String> = JsonStringValueSpanning(json, start, end);
+    return IsSome(decoded) && UnwrapOption(decoded) == expected;
 }

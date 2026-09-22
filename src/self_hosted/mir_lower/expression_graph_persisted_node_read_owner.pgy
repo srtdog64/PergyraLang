@@ -198,13 +198,11 @@ func MirExpressionGraphNodeCaptureWithin(
                 (field_kind == 4 && target_name_seen) {
                 return InvalidMirExpressionGraphNodeCapture();
             }
-            ArraySet(string_end_scratch, 0, 0);
-            let value: String = ReadJsonStringBounded(
-                json, i, value_end, string_end_scratch
-            );
-            if string_end_scratch[0] != value_end {
+            let decoded: Option<String> = JsonStringValueSpanning(json, i, value_end);
+            if !IsSome(decoded) {
                 return InvalidMirExpressionGraphNodeCapture();
             }
+            let value: String = UnwrapOption(decoded);
             if field_kind == 2 { text = value; text_seen = true; }
             if field_kind == 4 {
                 target_name = value;

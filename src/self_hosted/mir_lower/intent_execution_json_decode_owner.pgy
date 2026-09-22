@@ -101,13 +101,9 @@ func MirIntentExecutionStringAt(
     let end: Int = fields.ends[row];
     if start < end &&
         JsonCharCodeAt(json, end, start) == JsonAsciiCode("\"") {
-        let decoded_end: Array<Int> = [0];
-        let value: String = ReadJsonStringBounded(
-            json, start, end, decoded_end
-        );
-        return MirIntentExecutionStringValue(
-            decoded_end[0] == end, value
-        );
+        let decoded: Option<String> = JsonStringValueSpanning(json, start, end);
+        if !IsSome(decoded) { return MirIntentExecutionStringValue(false, ""); }
+        return MirIntentExecutionStringValue(true, UnwrapOption(decoded));
     }
     if nullable && end == start + 4 &&
         SubEqualsWithLen(json, end, start, 4, "null") {
@@ -185,15 +181,13 @@ func MirIntentExecutionStringArrayAt(
             JsonCharCodeAt(json, end, cursor) != JsonAsciiCode("\"") {
             return MirIntentExecutionStringArray(false, values);
         }
-        let value_end: Array<Int> = [0];
-        let value: String = ReadJsonStringBounded(
-            json, cursor, end, value_end
-        );
-        if value_end[0] <= cursor || value == "" {
+        let read: Option<JsonStringRead> = JsonReadStringBounded(json, cursor, end);
+        if !IsSome(read) || UnwrapOption(read).value == "" {
             return MirIntentExecutionStringArray(false, values);
         }
+        let value: String = UnwrapOption(read).value;
         ArrayPush(values, value);
-        cursor = value_end[0];
+        cursor = UnwrapOption(read).end;
         first = false;
     }
     return MirIntentExecutionStringArray(false, values);
