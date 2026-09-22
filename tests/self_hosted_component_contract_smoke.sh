@@ -8092,7 +8092,13 @@ require_max_lines "src/self_hosted/mir_lower/destructure_expression_projection_o
 require_text "src/self_hosted/mir_lower/expression_graph_occurrence_owner.pgy" \
     "MirExpressionGraphSequenceAppendDestructureOccurrence("
 require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
-    "MirDestructureTempName(first_binding)"
+    "routines, global_instruction_row, bindings[0]);"
+require_file "src/self_hosted/mir_lower/destructure_temporary_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/destructure_temporary_owner.pgy" 160
+for destructure_owner in stmt_render.pgy destructure_expression_projection_owner.pgy \
+    expression_graph_occurrence_owner.pgy expression_graph_fact_owner.pgy; do
+    reject_text "src/self_hosted/mir_lower/$destructure_owner" "MirDestructureNeedsTemp("
+done
 reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ToString(inst_start)"
 reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "Split("
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" \

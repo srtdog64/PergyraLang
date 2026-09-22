@@ -7,6 +7,7 @@ import "program_instruction_expression_index_owner.pgy";
 import "program_instruction_routing_span_owner.pgy";
 import "expression_graph_match_owner.pgy";
 import "destructure_expression_projection_owner.pgy";
+import "destructure_temporary_owner.pgy";
 
 func MirExpressionGraphSlotNone() -> Int { return 0; }
 func MirExpressionGraphSlotExpr0() -> Int { return 1; }
@@ -48,11 +49,10 @@ func MirExpressionGraphOccurrenceGraphSlot(
         return MirExpressionGraphSlotExpr0();
     }
     if kind == "destructure" {
+        let needs_temporary: Option<Bool> =
+            MirDestructureNeedsTemporary(json, expression);
         if lane == AstExpressionLaneValue() && ordinal == 0 &&
-            MirProgramInstructionExpressionTextPresent(expression, 0) &&
-            MirDestructureNeedsTemp(
-                MirProgramInstructionExpressionText(json, expression, 0)
-            ) {
+            IsSome(needs_temporary) && UnwrapOption(needs_temporary) {
             return MirExpressionGraphSlotExpr0();
         }
         return MirExpressionGraphSlotNone();
@@ -138,7 +138,8 @@ func MirExpressionGraphSequenceAppendOccurrence(
     kind: String,
     source: String,
     lane: Int,
-    ordinal: Int
+    ordinal: Int,
+    destructure_temporary: String
 ) -> MirExpressionGraphSequence {
     if !sequence.ok || !JsonObjectFactTableReady(instruction) ||
         !expression.valid || kind == "" || source == "" ||
@@ -155,7 +156,7 @@ func MirExpressionGraphSequenceAppendOccurrence(
             return MirExpressionGraphSequenceError(sequence);
         }
         return MirExpressionGraphSequenceAppendDestructureOccurrence(
-            sequence, instruction, expr0_graph, ordinal
+            sequence, instruction, expr0_graph, destructure_temporary, ordinal
         );
     }
     if source == "AST_MATCH_CASE" {

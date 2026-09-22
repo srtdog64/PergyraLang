@@ -1,0 +1,20 @@
+// A user local spelled like the destructure temporary keeps its own value
+// (docs/205 F2). The second destructure reads a local, so it needs no
+// temporary (F1).
+func Words() -> Array<String> {
+    return ["hello", "world", "foo"];
+}
+
+func Main() -> Void {
+    let _pgy_destructure_first: String = "user";
+    let _pgy_destructure_first_1: String = "user1";
+    let (first, second, third) = Words();
+    Log(first);
+    Log(second);
+    Log(third);
+    Log(_pgy_destructure_first);
+    Log(_pgy_destructure_first_1);
+    let xs: Array<Int> = [10, 20, 30];
+    let (a, b, c) = xs;
+    Log(ToString(a + b + c));
+}

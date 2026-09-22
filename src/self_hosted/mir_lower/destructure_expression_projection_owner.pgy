@@ -1,17 +1,7 @@
 // MIR destructure facts -> canonical let-expression graph sequence.
 
 import "expression_graph_sequence_owner.pgy";
-
-func MirDestructureNeedsTemp(expr0: String) -> Bool {
-    let init: String = StringTrim(expr0);
-    return StringIndexOf(init, "(") >= 0 || StringIndexOf(init, "[") >= 0 ||
-        StringIndexOf(init, " ") >= 0 || StringIndexOf(init, ",") >= 0;
-}
-
-func MirDestructureTempName(first_binding: String) -> String {
-    if first_binding == "" { return ""; }
-    return Concat("_pgy_destructure_", first_binding);
-}
+import "destructure_temporary_owner.pgy";
 
 func MirExpressionGraphSequenceAppendIndexProjection(
     sequence: MirExpressionGraphSequence,
@@ -73,6 +63,7 @@ func MirExpressionGraphSequenceAppendDestructureOccurrence(
     sequence: MirExpressionGraphSequence,
     instruction: JsonObjectFactTable,
     graph: JsonObjectFactTable,
+    temporary: String,
     ordinal: Int
 ) -> MirExpressionGraphSequence {
     let expr0: Option<String> = JsonObjectFactStringFieldOpt(instruction, "expr0");
@@ -90,7 +81,14 @@ func MirExpressionGraphSequenceAppendDestructureOccurrence(
     let first_binding: String = JsonArrayStringAt(instruction.json, binding_bounds[0], binding_bounds[1], 0);
     if first_binding == "" { return MirExpressionGraphSequenceError(sequence); }
     let init: String = UnwrapOption(expr0);
-    let needs_temp: Bool = MirDestructureNeedsTemp(init);
+    // The initializer graph decides whether a temporary exists; the name
+    // comes from destructure_temporary_owner.pgy and must agree with it.
+    let root_kind: Option<Int> = MirExpressionGraphRootNodeKind(graph);
+    let needs_temp: Bool = temporary != "";
+    if !IsSome(root_kind) ||
+        needs_temp != (UnwrapOption(root_kind) != AstExpressionNodeLeaf()) {
+        return MirExpressionGraphSequenceError(sequence);
+    }
     if (needs_temp && ordinal > binding_count) ||
         (!needs_temp && ordinal >= binding_count) {
         return MirExpressionGraphSequenceError(sequence);
@@ -105,7 +103,7 @@ func MirExpressionGraphSequenceAppendDestructureOccurrence(
     let source: String = init;
     if needs_temp {
         binding_index = ordinal - 1;
-        source = MirDestructureTempName(first_binding);
+        source = temporary;
     }
     if binding_index < 0 || binding_index >= binding_count ||
         JsonArrayStringAt(

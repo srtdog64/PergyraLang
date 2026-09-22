@@ -157,6 +157,14 @@ R6(`inout_argument_alias`, 레드팀 캠페인)도 같은 방식으로 착지했
   하므로(F1), 이름을 고르는 함수 하나를 두 owner가 함께 호출한다.
 - 게이트: 사용자가 `_pgy_destructure_<첫 바인딩>`을 이미 선언한 프로그램을 mir_lower가
   재구성하고, 그 결과가 native와 같은 값을 출력한다.
+- **F2 착지.** `mir_lower/destructure_temporary_owner.pgy`가 이름을 고른다. 그 routine의
+  매개변수, `source_locals`, 프로그램의 routine 이름에 없을 때까지 `_1`, `_2`를 붙인다.
+  두 목록 중 하나라도 없거나 두 번 있으면 이름을 정하지 않고 거부한다. 렌더러와
+  expression graph projection이 이 owner를 함께 부른다. 재현에서 사용자 지역 변수
+  `_pgy_destructure_first`는 기본 C 경로에서 `Array<String>`으로 덮여 컴파일되지 않았다.
+  게이트는 `tests/self_hosted/parity/destructure_temporary_hygiene_owner.sh`(native C/LLVM,
+  기본 C 경로. 기본 LLVM 경로는 지금 모든 destructure를 거부한다)와 렌더러 스모크의
+  numbered-temporary 행이다.
 
 ## 4. L1 — `Never` 반환 타입
 
@@ -302,6 +310,11 @@ self-host 기본 경로에서 `5b`였다. opener 앞에서 잘린 리터럴 조�
   graph의 루트가 지역 식별자 leaf가 아니면 참). `stmt_render.pgy`와
   `destructure_expression_projection_owner.pgy`가 같은 fact를 읽는다. 텍스트 휴리스틱
   `MirDestructureNeedsTemp`는 지운다.
+- **F1 (착지)**: 새 MIR 키를 두지 않았다. native와 self-host MIR producer가 이미 싣는
+  `expr0_graph`의 루트 노드 종류가 그 fact다. 루트가 leaf면 제자리에서 읽고, 아니면
+  임시 변수에 한 번 담는다. 그래프를 읽을 수 없으면 거부한다(렌더러 스모크의
+  `rootless-graph` 행). 식별자 leaf는 두 번 읽어도 값이 같으므로 지역 변수인지는
+  따로 보지 않는다. 필드 접근 같은 초기식은 이전 휴리스틱과 달리 임시 변수를 얻는다.
 - **F4 (착지)**: 닫힌 목록을 측정으로 정했다. mir_lower 픽스처와 backend_compare 케이스
   1,049개를 계측한 mir_lower에 통과시키니, 문장 텍스트 없이 이 분기에 닿는 행은 `phi`
   (1,131행), `cleanup`(83행), `cleanup`/`AST_BLOCK`(23행)뿐이었다. 구조적 `stmt`는 없었다.

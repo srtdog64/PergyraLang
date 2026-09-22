@@ -50,6 +50,10 @@ emit_mir_json array_destructure "$BUILD_DIR/destructure.mirjson"
 emit_mir_json option_match "$BUILD_DIR/option_match.mirjson"
 emit_mir_json let_log "$BUILD_DIR/let_log.mirjson"
 emit_mir_json defer_direct_call "$BUILD_DIR/defer_direct_call.mirjson"
+# A user local named like the temporary (docs/205 F1, F2).
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+    "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/tests/self_hosted/fixtures/destructure_temporary_hygiene.pgy")" \
+    >"$BUILD_DIR/destructure_hygiene.mirjson")
 
 "$PYTHON_BIN" - "$BUILD_DIR" <<'PY'
 import copy
@@ -136,6 +140,8 @@ mutate("destructure", "destructure.hollow-binding", is_destructure,
        hollow_middle_binding)
 mutate("destructure", "destructure.non-string-binding", is_destructure,
        non_string_binding)
+mutate("destructure_hygiene", "destructure_hygiene.rootless-graph",
+       is_destructure, set_field("expr0_graph", {"root": 9, "nodes": []}))
 mutate("destructure", "destructure.unknown-element", is_destructure,
        set_field("destructure_element_type", "Unknown"))
 mutate("option_match", "option_match.absent-bindings", is_some_case,
@@ -185,6 +191,16 @@ expect_line "$BUILD_DIR/destructure.reast" \
     'Let: active_str : String = _pgy_destructure_id_str[2]' \
     "destructure binding"
 
+run_mir_lower "$BUILD_DIR/destructure_hygiene.mirjson" \
+    "$BUILD_DIR/destructure_hygiene.reast" "$BUILD_DIR/destructure_hygiene.err"
+expect_line "$BUILD_DIR/destructure_hygiene.reast" \
+    'Let: _pgy_destructure_first_2 : Array<String> = Words()' \
+    "numbered destructure temporary"
+expect_line "$BUILD_DIR/destructure_hygiene.reast" \
+    'Let: first : String = _pgy_destructure_first_2[0]' \
+    "binding read from the numbered temporary"
+expect_line "$BUILD_DIR/destructure_hygiene.reast" \
+    'Let: a : Int = xs[0]' "binding read in place from a local"
 run_mir_lower "$BUILD_DIR/defer_direct_call.mirjson" \
     "$BUILD_DIR/defer_direct_call.reast" "$BUILD_DIR/defer_direct_call.err"
 expect_line "$BUILD_DIR/defer_direct_call.reast" \
@@ -195,6 +211,7 @@ negative_rows=(
     "destructure.hollow-binding|destructure binding-name fact is empty"
     "destructure.non-string-binding|destructure instruction is missing binding-name facts"
     "destructure.unknown-element|destructure initializer element type is unknown"
+    "destructure_hygiene.rootless-graph|destructure temporary cannot be decided from its facts"
     # Field absence reads as an empty array and the routine fact index then
     # rejects it before the binding renderer runs. A present array with a
     # null element is refused earlier, by the string-array fact reader.

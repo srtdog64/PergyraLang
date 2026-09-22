@@ -1,0 +1,152 @@
+// MIR destructure temporary owner (docs/205 F1, F2).
+//
+// A destructure reads its initializer into a temporary unless the persisted
+// initializer graph is one leaf, which names a value that reading twice
+// cannot change. The temporary is `_pgy_destructure_<first binding>`,
+// numbered past every parameter, source local and routine name the program
+// declares, so a user local spelled the same way keeps its own value. The
+// statement renderer and the expression-graph projection both read the
+// decision and the name from here.
+
+import "json_fact_read.pgy";
+import "program_routine_index_owner.pgy";
+import "program_instruction_expression_index_owner.pgy";
+import "expression_graph_persisted_read_owner.pgy";
+import "expression_graph_persisted_node_read_owner.pgy";
+
+// The kind of the persisted graph's root node, or None when the graph is not
+// a readable persisted graph.
+func MirExpressionGraphRootNodeKind(ref graph: JsonObjectFactTable) -> Option<Int> {
+    let header: MirExpressionGraphHeaderCapture =
+        MirExpressionGraphHeaderCaptureFromTable(graph);
+    if !header.valid { return None; }
+    let row: Int = 0;
+    let cursor: Int = header.nodes_start + 1;
+    let scratch: Array<Int> = [0];
+    while cursor < header.nodes_end {
+        cursor = JsonSkipWhitespaceWithin(graph.json, cursor, header.nodes_end);
+        if cursor >= header.nodes_end { return None; }
+        let c: Int = JsonCharCodeAt(graph.json, header.nodes_end, cursor);
+        if c == JsonAsciiCode("]") { return None; }
+        if c == JsonAsciiCode(",") {
+            cursor = cursor + 1;
+            continue;
+        }
+        let node: MirExpressionGraphNodeCapture = MirExpressionGraphNodeCaptureWithin(
+            graph.json, cursor, header.nodes_end, scratch);
+        if !node.valid { return None; }
+        if row == header.root { return Some(node.kind); }
+        row = row + 1;
+        cursor = node.end;
+    }
+    return None;
+}
+
+// Whether a destructure must read its initializer once into a temporary:
+// None when its expr0 graph cannot be read.
+func MirDestructureNeedsTemporary(
+    json: String, ref expression: MirProgramInstructionExpressionFact
+) -> Option<Bool> {
+    let graph: JsonObjectFactTable =
+        MirProgramInstructionExpressionGraphTable(json, expression, 0);
+    let root_kind: Option<Int> = MirExpressionGraphRootNodeKind(graph);
+    if !IsSome(root_kind) { return None; }
+    return Some(UnwrapOption(root_kind) != AstExpressionNodeLeaf());
+}
+
+// Collect the routine names, parameters and source locals the temporary must
+// not reuse. False when the routine does not carry exactly one of each list.
+func MirDestructureTakenNamesInto(
+    ref routines: MirProgramRoutineIndex, routine_row: Int,
+    inout names: Array<String>
+) -> Bool {
+    let json: String = routines.source_json;
+    let start: Int = routines.starts[routine_row];
+    let end: Int = routines.ends[routine_row];
+    let row: Int = 0;
+    while row < ArrayLength(routines.names) {
+        ArrayPush(names, routines.names[row]);
+        row = row + 1;
+    }
+    let fields: Array<String> = ["params", "source_locals"];
+    let field: Int = 0;
+    while field < ArrayLength(fields) {
+        let bounds: Array<Int> = [0, 0];
+        if MirObjectFieldOccurrenceCountAtBounds(json, start, end, fields[field]) != 1 ||
+            !MirObjectArrayBoundsAtBounds(json, start, end, fields[field], bounds) {
+            return false;
+        }
+        let cursor: Int = bounds[0] + 1;
+        let entry: Array<Int> = [0, 0];
+        while JsonArrayNextObjectBounds(json, cursor, bounds[1], entry) {
+            ArrayPush(names, MirObjectStringFactAtBounds(json, entry[0], entry[1], "name"));
+            cursor = entry[1];
+        }
+        field = field + 1;
+    }
+    return true;
+}
+
+// The temporary of the destructure at `global_row` whose first binding is
+// `first`: Some("") when the initializer is read in place, None when the
+// facts cannot decide.
+func MirDestructureTemporaryAt(
+    ref routines: MirProgramRoutineIndex, global_row: Int, first: String
+) -> Option<String> {
+    if global_row < 0 || global_row >= ArrayLength(routines.instruction_starts) {
+        return None;
+    }
+    let json: String = routines.source_json;
+    let expression: MirProgramInstructionExpressionFact =
+        MirProgramInstructionExpressionIndexAt(
+            routines.instruction_expressions, global_row);
+    let needs: Option<Bool> = MirDestructureNeedsTemporary(json, expression);
+    if !IsSome(needs) { return None; }
+    if !UnwrapOption(needs) { return Some(""); }
+    let position: Int = routines.instruction_starts[global_row];
+    let routine_row: Int = 0;
+    while routine_row < ArrayLength(routines.starts) &&
+        !(routines.starts[routine_row] <= position &&
+            position < routines.ends[routine_row]) {
+        routine_row = routine_row + 1;
+    }
+    if routine_row >= ArrayLength(routines.starts) { return None; }
+    let names: Array<String> = [];
+    if first == "" || !MirDestructureTakenNamesInto(routines, routine_row, names) {
+        return None;
+    }
+    let base: String = Concat("_pgy_destructure_", first);
+    let name: String = base;
+    let suffix: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(names) {
+        if names[row] == name {
+            suffix = suffix + 1;
+            name = Concat(base, Concat("_", ToString(suffix)));
+            row = 0;
+        } else {
+            row = row + 1;
+        }
+    }
+    return Some(name);
+}
+
+// The temporary for an occurrence of `kind` at `global_row`: "" for every
+// other kind and when the facts cannot decide. The destructure projection
+// checks "" against the initializer graph, so an undecidable temporary is
+// refused there.
+func MirDestructureTemporaryTextAt(
+    ref routines: MirProgramRoutineIndex, global_row: Int, kind: String
+) -> String {
+    if kind != "destructure" || global_row < 0 ||
+        global_row >= ArrayLength(routines.instruction_starts) { return ""; }
+    let json: String = routines.source_json;
+    let bindings: Array<Int> = [0, 0];
+    if !MirObjectArrayBoundsAtBounds(json, routines.instruction_starts[global_row],
+            routines.instruction_ends[global_row], "destructure_bindings", bindings) ||
+        JsonArrayStringCount(json, bindings[0], bindings[1]) <= 0 { return ""; }
+    let temporary: Option<String> = MirDestructureTemporaryAt(routines, global_row,
+        JsonArrayStringAt(json, bindings[0], bindings[1], 0));
+    if !IsSome(temporary) { return ""; }
+    return UnwrapOption(temporary);
+}

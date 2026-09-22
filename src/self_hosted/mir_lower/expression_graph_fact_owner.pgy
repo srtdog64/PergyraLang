@@ -161,7 +161,8 @@ func MirExpressionGraphFactsForArtifactObserved(
                             sequence = MirExpressionGraphSequenceAppendOccurrence(
                                 sequence, routines.declarations.enum_variants,
                                 instruction, expression, kind, source,
-                                lane, ordinal
+                                lane, ordinal,
+                                MirDestructureTemporaryTextAt(routines, global_row, kind)
                             );
                             let target_projection:
                                 MirIntentExecutionGraphTargetProjection =
@@ -238,12 +239,11 @@ func MirExpressionGraphFactsForArtifactObserved(
         let expr1_required: Bool = MirInstructionExpressionRequiresExpr1Graph(
             routines.source_json, kind, source, expression
         );
-        let special_expr0_required: Bool =
-            source == "AST_MATCH_CASE" ||
-            (kind == "destructure" &&
-             MirProgramInstructionExpressionTextPresent(expression, 0) &&
-             MirDestructureNeedsTemp(MirProgramInstructionExpressionText(
-                 routines.source_json, expression, 0)));
+        let special_expr0_required: Bool = source == "AST_MATCH_CASE";
+        if kind == "destructure" {
+            let needs: Option<Bool> = MirDestructureNeedsTemporary(routines.source_json, expression);
+            special_expr0_required = !IsSome(needs) || UnwrapOption(needs);
+        }
         if (expr0_required || special_expr0_required) &&
             !expr0_seen[coverage_i] {
             valid = false;

@@ -2,7 +2,7 @@
 
 import "error_owner.pgy";
 import "json_fact_read.pgy";
-import "destructure_expression_projection_owner.pgy";
+import "destructure_temporary_owner.pgy";
 import "expression_graph_sequence_owner.pgy";
 import "structured_expression_emission_order_owner.pgy";
 
@@ -12,6 +12,7 @@ func RenderDestructureFromFactsWithExpressionOrder(
     inst_end: Int,
     indent: String,
     expr0: String,
+    ref routines: MirProgramRoutineIndex,
     global_instruction_row: Int,
     inout expression_order: MirStructuredExpressionEmissionOrder
 ) -> String {
@@ -52,9 +53,15 @@ func RenderDestructureFromFactsWithExpressionOrder(
     let lines: Array<String> = [];
     let source: String = init;
     let ordinal_base: Int = 0;
-    if MirDestructureNeedsTemp(init) {
-        let first_binding: String = bindings[0];
-        source = MirDestructureTempName(first_binding);
+    // destructure_temporary_owner.pgy decides the temporary; "" reads the
+    // initializer in place.
+    let temporary: Option<String> = MirDestructureTemporaryAt(
+        routines, global_instruction_row, bindings[0]);
+    if !IsSome(temporary) {
+        MirLowerFailClosed("destructure temporary cannot be decided from its facts");
+    }
+    if UnwrapOption(temporary) != "" {
+        source = UnwrapOption(temporary);
         let temp_line: Array<String> = [
             indent, "Let: ", source, " : Array<", elem_type, "> = ", init, "\n"
         ];

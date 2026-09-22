@@ -85,7 +85,7 @@ func EmitBlockStmtsWithExpressionOrder(
         if observe_instruction { Log(Concat("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:instruction:", Concat(ToString(block_row), Concat(":", Concat(ToString(row), ":resource:done"))))); }
         if ikind == "destructure" {
             ArrayPush(chunks, RenderDestructureFromFactsWithExpressionOrder(
-                json, kp, inst_end, indent, scalar.expr0,
+                json, kp, inst_end, indent, scalar.expr0, routines,
                 instruction.global_row, expression_order));
         }
         // Resource-op rows are MIR evidence for an already-owned executable

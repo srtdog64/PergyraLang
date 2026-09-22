@@ -1273,6 +1273,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy` --
   canonical temp/index expression graphs derived from typed MIR destructure
   facts; source text and builtin-name inference are forbidden.
+- `src/self_hosted/mir_lower/destructure_temporary_owner.pgy` -- whether a
+  destructure reads its initializer into a temporary (the persisted
+  initializer graph root is not a leaf) and the temporary's name, numbered
+  past the routine's parameters, source locals and the program's routine
+  names (docs/205 F1, F2).
 - `src/self_hosted/mir_lower/match_json_fact_owner.pgy` -- typed optional reads
   for match pattern arrays consumed during graph reconstruction.
 - `src/self_hosted/mir_lower/match_binding_local_fact_owner.pgy` -- validates
