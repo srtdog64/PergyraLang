@@ -19,6 +19,7 @@ driver_materialize_self_host_mir_artifact(const char *launcher_path,
     const char *child_argv[6];
     char *binary;
     char *canonical_source_path;
+    char *child_output_path;
     int rc;
 
     if (source_path == NULL || source_path[0] == '\0') {
@@ -48,12 +49,22 @@ driver_materialize_self_host_mir_artifact(const char *launcher_path,
         return 1;
     }
 
+    child_output_path = driver_self_host_child_output_path_dup(output_path);
+    if (child_output_path == NULL) {
+        fprintf(stderr,
+                "pgy: the directory of output path %s does not exist or cannot be resolved\n",
+                output_path);
+        free(canonical_source_path);
+        free(binary);
+        return 1;
+    }
+
     remove(output_path);
     child_argv[0] = binary;
     child_argv[1] = "--emit-mir-json-verified";
     child_argv[2] = canonical_source_path;
     child_argv[3] = "-o";
-    child_argv[4] = output_path;
+    child_argv[4] = child_output_path;
     child_argv[5] = NULL;
     driver_authorize_self_host_child_io();
     rc = pgy_exec_argv(child_argv, verbose);
@@ -66,6 +77,7 @@ driver_materialize_self_host_mir_artifact(const char *launcher_path,
         rc = 1;
     }
 
+    free(child_output_path);
     free(canonical_source_path);
     free(binary);
     return rc;

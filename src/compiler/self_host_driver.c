@@ -164,7 +164,7 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
 {
     const char *child_argv[7];
     char *binary;
-    char *canonical_source_path, *manifest_path;
+    char *canonical_source_path, *manifest_path, *child_output_path;
     int rc;
 
     if (source_path == NULL || source_path[0] == '\0') {
@@ -200,10 +200,19 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
         return 1;
     }
 
+    child_output_path = driver_self_host_child_output_path_dup(output_path);
+    if (child_output_path == NULL) {
+        fprintf(stderr, "pgy: the directory of output path %s does not exist "
+                "or cannot be resolved\n", output_path);
+        free(canonical_source_path);
+        free(manifest_path);
+        free(binary);
+        return 1;
+    }
     child_argv[0] = binary;
     child_argv[1] = emit_json_diagnostic ? "--emit-c-artifact-json-diagnostic-verified" : "--emit-c-artifact-verified";
     child_argv[2] = canonical_source_path;
-    child_argv[3] = output_path;
+    child_argv[3] = child_output_path;
     child_argv[4] = "--machine-manifest-json";
     child_argv[5] = manifest_path;
     child_argv[6] = NULL;
@@ -222,6 +231,7 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
         rc = 1;
     }
 
+    free(child_output_path);
     free(canonical_source_path);
     free(manifest_path);
     free(binary);

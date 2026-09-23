@@ -10220,7 +10220,9 @@ require_text "src/compiler/self_host_driver.c" \
     'driver_run_self_host_artifact_process('
 require_text "src/compiler/self_host_driver.c" \
     'child_argv[2] = canonical_source_path'
-require_text "src/compiler/self_host_driver.c" 'child_argv[3] = output_path'
+require_text "src/compiler/self_host_driver.c" \
+    'child_output_path = driver_self_host_child_output_path_dup(output_path)'
+require_text "src/compiler/self_host_driver.c" 'child_argv[3] = child_output_path'
 require_text "src/compiler/self_host_driver.c" \
     'child_argv[4] = "--machine-manifest-json"'
 require_text "src/compiler/self_host_driver.c" \
