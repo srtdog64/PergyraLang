@@ -263,3 +263,53 @@ With it, `make self-host-compiler` fails, and native C and native LLVM still
 print the overwritten value for M1 (`MapGet` then `MapRemove`/`MapSet`) and a
 freed buffer for the `ListGet`/`ListSet` shape. M1, M3, M4 and M12 stay with
 that lane.
+
+## Third round, 2026-09-24
+
+A dogfooding session building an agent harness in Pergyra reported language
+problems as PP-001 to PP-034 (its record lives outside this repository). The
+ones this round repaired, and the audit items it closed, each with its gate:
+
+- **M8, PP-017.** The self-host semantic refuses a non-Void function that can
+  reach its end, by native's flow rules, with `PGY_SEM_MISSING_RETURN` in text
+  and JSON (`missing_return_flow_owner.sh`). An empty uncalled body no longer
+  reaches MIR lowering.
+- **M2, M6, M9.** Rc, Weak, builtin Box, Allocator and TextBuilder copies are
+  refused on both front ends; a second RcDrop panics on both native backends
+  (`single_owner_handle_owner.sh`, `text-builder-owner-test-smoke`, now in CI).
+- **A2, A3, A4, E4, R4 undefined behaviour.** One owner decides the Int and
+  Long literal ranges, Float `%` is refused, Int widens into Long, and ToInt
+  is `strtoll` narrowed the same way on every leg
+  (`numeric_literal_conversion_owner.sh`).
+- **R5, E2.** Loop temporaries stay in the entry block on the default LLVM
+  route and on native LLVM, where a StringSplit loop and a parallel join in a
+  loop segfaulted; runtime attributes go only to registered runtime
+  entrypoints (`loop_stack_storage_owner.sh`,
+  `llvm_runtime_entrypoint_attrs_smoke.sh`).
+- **PP-007.** A parent-relative `-o ../gen/x.c` on the default route
+  (`parent_relative_output_path_owner.sh`).
+- **PP-020.** Args() hands UTF-8 on Windows (`process_args_utf8_smoke.sh`,
+  Windows push shard).
+- **PP-021.** More than one `extern "C"` block (`extern_block_identity_owner.sh`).
+- **PP-025.** An extern member may declare caps and effects.
+- **PP-030.** `return TextBuilderFinish(builder, ...)` is refused on both front
+  ends, as native already did.
+
+Still open, each needing a decision rather than a fix:
+
+- **Capabilities are optional and do not propagate (PP-024).** A function with
+  no `with caps` clause may call ReadFile, and a caller without caps may call a
+  callable, or an extern, that declares them; both front ends accept this.
+  Making undeclared effects fail closed would change most existing programs.
+- **ToInt has no failure contract.** `ToInt("abc")` is 0 on every leg; about
+  550 calls, many in the self-host compiler, depend on that.
+- **M10 on the default LLVM route.** The fix exists but makes every record
+  program reference the runtime panic export, which breaks about twenty
+  direct-MIR gates that link IR without the runtime; the helpers should be
+  emitted only when used.
+- **Zone and subject lending (PP-022), FFI string ownership (PP-002), FFI
+  headers and linking (PP-004, PP-005, PP-019), stdlib gaps (PP-003, PP-006),
+  receiver-field collection mutation (PP-027).** Design work; PP-027 belongs
+  with the collection-ownership lane.
+- **M5, M7, M11.** A pool-lifetime fact, a length-carrying text view, and slot
+  and move flow in the self-host checker, as recorded above.
