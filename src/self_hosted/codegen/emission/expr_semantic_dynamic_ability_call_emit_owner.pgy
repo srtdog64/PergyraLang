@@ -7,6 +7,7 @@ import "../../semantic/ast_expression_graph_member_view_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 import "expression_c_text_materialization_owner.pgy";
+import "call_argument_order_owner.pgy";
 import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 
 func RewriteSemanticDynamicAbilityCall(
@@ -63,6 +64,24 @@ func RewriteSemanticDynamicAbilityCall(
     let party_expr: String = RewriteExprFromSemanticGraphTracked(
         graph, slot_member.receiver_node, env, owned_fragments
     ).text;
+    // The call reads the party twice, for the slot and for its vtable. A
+    // binding or a field of one is read in place; any other party is bound
+    // once, ahead of the arguments.
+    let party_place: Option<Int> = SemanticExpressionGraphPlaceKind(
+        graph, slot_member.receiver_node);
+    if !IsSome(party_place) {
+        Die("dynamic ability call party place fact is missing");
+    }
+    let party_binding: String = "";
+    if !SemanticExpressionPlaceKindAddressable(UnwrapOption(party_place)) {
+        let party_name: String = Concat("__pgy_party_", ToString(view.call_node));
+        // Only avoids collisions in emitted C.
+        while StringIndexOf(party_expr, party_name) >= 0 {
+            party_name = Concat(party_name, "_");
+        }
+        party_binding = "__auto_type ${party_name} = (${party_expr}); ";
+        party_expr = party_name;
+    }
     let c_slot: String = CodegenCExpressionTextOwned(
         owned_fragments, CompilerSymbolCFieldName(UnwrapOption(slot_name))
     ).text;
@@ -74,21 +93,23 @@ func RewriteSemanticDynamicAbilityCall(
     if param_offset < 0 || param_offset > 1 {
         Die("dynamic ability call parameter carriage does not match");
     }
-    let args: String = RewriteSemanticCallArguments(
-        graph, view, modes, param_types,
-        param_offset, prefix_argument, env, owned_fragments
-    );
     let vtable_field: String = CodegenCExpressionTextOwned(
         owned_fragments, Concat(
             c_slot, Concat("_", Concat(dispatch_identity, "_vt"))
         )
     ).text;
-    return Some(Concat(
+    let vtable_callee: String = Concat(
         party_expr, Concat(".", Concat(
-            vtable_field, Concat("->", Concat(
-                CompilerSymbolCFieldName(UnwrapOption(method_name)),
-                Concat("(", Concat(args, ")"))
-            ))
+            vtable_field, Concat("->",
+                CompilerSymbolCFieldName(UnwrapOption(method_name)))
         ))
-    ));
+    );
+    // The slot read now has no effect, so it takes no receiver binding, and
+    // the arguments run left to right (docs/205 §11.1).
+    let call: String = RewriteSemanticOrderedCall(
+        vtable_callee, graph, view, modes, param_types,
+        param_offset, prefix_argument, -1, env, owned_fragments
+    );
+    if party_binding == "" { return Some(call); }
+    return Some("({ ${party_binding}${call}; })");
 }
