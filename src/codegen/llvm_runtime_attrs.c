@@ -6,13 +6,30 @@
 #include <string.h>
 
 /*
- * Runtime panics are the cold error family: any function whose name carries
- * the "panic" marker traps and never returns.
+ * Runtime panics are the cold error family: each exported panic entrypoint
+ * reports and aborts, so it never returns. The table spells the runtime's own
+ * exports exactly. A name that merely contains "panic" (a user extern "c"
+ * declaration, say) is not one of them: marking it noreturn made LLVM delete
+ * the code after its calls (red-team audit E2).
  */
 bool
-llvm_fn_is_panic(const char *fn_name)
+llvm_fn_is_runtime_panic_entrypoint(const char *fn_name)
 {
-    return fn_name != NULL && strstr(fn_name, "panic") != NULL;
+    static const char *const runtime_panic_entrypoints[] = {
+        "pgy_runtime_panic_internal_invariant_export",
+        "pgy_runtime_panic_out_of_bounds_export",
+        "pgy_runtime_panic_authority_mismatch_export",
+    };
+    size_t i;
+
+    if (fn_name == NULL)
+        return false;
+    for (i = 0; i < sizeof(runtime_panic_entrypoints)
+                    / sizeof(runtime_panic_entrypoints[0]); i++) {
+        if (strcmp(fn_name, runtime_panic_entrypoints[i]) == 0)
+            return true;
+    }
+    return false;
 }
 
 /*
@@ -186,9 +203,9 @@ llvm_fn_is_stateful_runtime(const char *fn_name)
 }
 
 /*
- * Functions that provably never return to their caller. The panic family
- * qualifies, plus an exact-name table of terminal runtime entrypoints.
- * Matching is exact (not substring) so that returning lookalikes such as
+ * Runtime entrypoints that provably never return to their caller: the panic
+ * exports plus an exact-name table of terminal entrypoints. Matching is exact
+ * (not substring) so that returning lookalikes such as
  * pgy_intent_exit_export, which exits an intent scope and returns, are never
  * mismarked noreturn.
  */
@@ -202,7 +219,7 @@ llvm_fn_never_returns(const char *fn_name)
 
     if (fn_name == NULL)
         return false;
-    if (llvm_fn_is_panic(fn_name))
+    if (llvm_fn_is_runtime_panic_entrypoint(fn_name))
         return true;
     for (i = 0; i < sizeof(exact_never_return) / sizeof(exact_never_return[0]); i++) {
         if (strcmp(fn_name, exact_never_return[i]) == 0)
@@ -264,6 +281,41 @@ llvm_fn_is_readonly_runtime(const char *fn_name)
             return true;
     }
     return false;
+}
+
+static void
+llvm_runtime_entrypoint_attr_add(LLVMContextRef context, LLVMValueRef fn,
+                                 const char *attr_name)
+{
+    unsigned kind = LLVMGetEnumAttributeKindForName(attr_name,
+                                                    strlen(attr_name));
+    if (kind != 0)
+        LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
+            LLVMCreateEnumAttribute(context, kind, 0));
+}
+
+/*
+ * The caller keys this on the runtime registry row, so the name tables above
+ * only choose which facts a runtime entrypoint carries; they never decide
+ * whether a declaration is one. Every runtime entrypoint is nounwind, and
+ * willreturn unless it is terminal.
+ */
+void
+llvm_runtime_entrypoint_attrs_apply(LLVMContextRef context, LLVMValueRef fn)
+{
+    const char *fn_name = LLVMGetValueName(fn);
+
+    llvm_runtime_entrypoint_attr_add(context, fn, "nounwind");
+    if (llvm_fn_never_returns(fn_name))
+        llvm_runtime_entrypoint_attr_add(context, fn, "noreturn");
+    else
+        llvm_runtime_entrypoint_attr_add(context, fn, "willreturn");
+    if (llvm_fn_is_runtime_panic_entrypoint(fn_name))
+        llvm_runtime_entrypoint_attr_add(context, fn, "cold");
+    if (llvm_fn_is_readnone_runtime(fn_name))
+        llvm_runtime_entrypoint_attr_add(context, fn, "readnone");
+    else if (llvm_fn_is_readonly_runtime(fn_name))
+        llvm_runtime_entrypoint_attr_add(context, fn, "readonly");
 }
 
 #endif

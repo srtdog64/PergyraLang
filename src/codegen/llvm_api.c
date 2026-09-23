@@ -327,52 +327,33 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
     llvm_apply_target_machine(ctx, machine, triple);
     llvm_link_runtime_bitcode(ctx);
 
-    unsigned noreturn_kind = LLVMGetEnumAttributeKindForName("noreturn", 8);
-    unsigned cold_kind = LLVMGetEnumAttributeKindForName("cold", 4);
-    unsigned nounwind_kind = LLVMGetEnumAttributeKindForName("nounwind", 8);
-    unsigned willreturn_kind = LLVMGetEnumAttributeKindForName("willreturn", 10);
-    unsigned readnone_kind = LLVMGetEnumAttributeKindForName("readnone", 8);
-    unsigned readonly_kind = LLVMGetEnumAttributeKindForName("readonly", 8);
     unsigned noinline_kind = LLVMGetEnumAttributeKindForName("noinline", 8);
     unsigned optnone_kind = LLVMGetEnumAttributeKindForName("optnone", 7);
     for (LLVMValueRef fn = LLVMGetFirstFunction(ctx->module);
          fn != NULL; fn = LLVMGetNextFunction(fn)) {
         const char *fn_name = LLVMGetValueName(fn);
-        /* The name tables describe runtime entrypoints, which are
-         * declarations here: the linker stripped the bodies of the
-         * noreturn ones, and the bodies it kept carry their own C
-         * attributes. A user definition whose name merely contains "panic"
-         * returns normally; marking it noreturn made LLVM drop the code after
-         * its calls. A user function is noreturn only by its declared Never
-         * type (llvm_decl.c). */
-        if (LLVMIsDeclaration(fn) && llvm_fn_never_returns(fn_name))
-            llvm_add_fn_attr(ctx, fn, noreturn_kind);
-        if (LLVMIsDeclaration(fn) && llvm_fn_is_panic(fn_name))
-            llvm_add_fn_attr(ctx, fn, cold_kind);
+        /* Runtime attribute facts belong to the runtime entrypoints the
+         * registry declared, which are still declarations here: the linker
+         * stripped the bodies of the noreturn ones, and the bodies it kept
+         * carry their own C attributes. Every other declaration (a user
+         * extern "c" function, a libc symbol from the runtime bitcode) gets
+         * none, whatever its name. A user function is noreturn only by its
+         * declared Never type (llvm_decl.c). */
+        if (LLVMIsDeclaration(fn)) {
+            const LLVMFuncEntry *entry = llvm_lookup_function(ctx, fn_name);
+            if (entry != NULL && entry->runtime_entrypoint)
+                llvm_runtime_entrypoint_attrs_apply(ctx->context, fn);
+            continue;
+        }
         /* Keep fail-closed checked arithmetic out of the inliner/folder so its
          * overflow and divide-by-zero guards survive optimization. optnone
          * implies (and requires) noinline and excludes the body from IPA. */
-        if (!LLVMIsDeclaration(fn) && llvm_fn_is_checked_arith(fn_name)) {
+        if (llvm_fn_is_checked_arith(fn_name)) {
             llvm_add_fn_attr(ctx, fn, noinline_kind);
             llvm_add_fn_attr(ctx, fn, optnone_kind);
         }
         if (llvm_function_returns_large_aggregate(ctx, fn))
             llvm_add_fn_attr(ctx, fn, noinline_kind);
-        /*
-         * Memory-effect attributes apply only to declarations (the external
-         * runtime), never to user definitions that might shadow a builtin name
-         * with a side-effecting body.
-         */
-        if (LLVMIsDeclaration(fn)) {
-            llvm_add_fn_attr(ctx, fn, nounwind_kind);
-            if (!llvm_fn_never_returns(fn_name))
-                llvm_add_fn_attr(ctx, fn, willreturn_kind);
-            if (llvm_fn_is_readnone_runtime(fn_name))
-                llvm_add_fn_attr(ctx, fn, readnone_kind);
-            else if (llvm_fn_is_readonly_runtime(fn_name))
-                llvm_add_fn_attr(ctx, fn, readonly_kind);
-            continue;
-        }
         if (fn_name != NULL && strcmp(fn_name, "main") == 0)
             continue;
         LLVMSetLinkage(fn, LLVMInternalLinkage);
@@ -503,6 +484,29 @@ llvm_codegen_from_mir_with_projection_plans(
                                  spawn_lane_plan, region_plan, module_name);
 }
 
+/* Debug view of the object path: write the module to the file the named
+ * environment variable gives. PGY_LLVM_DUMP_OBJ_IR is the module before
+ * optimization; PGY_LLVM_DUMP_OPT_IR is the one the object is emitted from. */
+static void
+llvm_debug_dump_module_ir(LLVMGenCtx *ctx, const char *env_name)
+{
+    const char *dump_path = getenv(env_name);
+    char *ir;
+    FILE *fp;
+
+    if (dump_path == NULL)
+        return;
+    fp = fopen(dump_path, "w");
+    if (fp == NULL) {
+        fprintf(stderr, "pgy: %s could not open '%s'\n", env_name, dump_path);
+        return;
+    }
+    ir = LLVMPrintModuleToString(ctx->module);
+    fputs(ir, fp);
+    fclose(fp);
+    LLVMDisposeMessage(ir);
+}
+
 static LLVMGenResult *
 llvm_codegen_to_object_core(const MIRProgram *mir,
                             const PgyVerifiedProjectionPlanRow *projection_plan,
@@ -574,18 +578,7 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
         return verify_result;
     }
 
-    {
-        const char *dump_path = getenv("PGY_LLVM_DUMP_OBJ_IR");
-        if (dump_path != NULL) {
-            char *pre_opt = LLVMPrintModuleToString(ctx->module);
-            FILE *fp = fopen(dump_path, "w");
-            if (fp != NULL) {
-                fputs(pre_opt, fp);
-                fclose(fp);
-            }
-            LLVMDisposeMessage(pre_opt);
-        }
-    }
+    llvm_debug_dump_module_ir(ctx, "PGY_LLVM_DUMP_OBJ_IR");
 
     llvm_debug_stage("codegen_to_object:create_machine");
     machine = llvm_create_host_machine(&triple, &cpu, &features);
@@ -598,6 +591,8 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
     llvm_debug_stage("codegen_to_object:optimize");
     llvm_run_optimization(ctx, machine, triple, release_opt);
     llvm_apply_target_machine(ctx, machine, triple);
+    /* The module the object is emitted from, runtime attributes included. */
+    llvm_debug_dump_module_ir(ctx, "PGY_LLVM_DUMP_OPT_IR");
 
     {
         char *emit_error = NULL;

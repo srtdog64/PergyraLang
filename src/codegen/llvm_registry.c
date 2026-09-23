@@ -285,6 +285,7 @@ llvm_register_function(LLVMGenCtx *ctx, const char *name,
     ctx->functions[ctx->func_count].ret_type = ret_type;
     ctx->functions[ctx->func_count].is_action = false;
     ctx->functions[ctx->func_count].action_self_only = false;
+    ctx->functions[ctx->func_count].runtime_entrypoint = false;
     ctx->func_count++;
 }
 

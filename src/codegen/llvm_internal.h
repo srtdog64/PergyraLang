@@ -254,6 +254,10 @@ typedef struct
     LLVMTypeRef   ret_type;
     bool          is_action;
     bool          action_self_only;
+    /* Declared by the runtime registry (llvm_declare_runtime). Only these
+     * declarations receive the runtime attribute facts in
+     * llvm_runtime_attrs.c; a user extern "c" declaration never does. */
+    bool          runtime_entrypoint;
 } LLVMFuncEntry;
 
 #include "llvm_generic_registry_types_internal.h"

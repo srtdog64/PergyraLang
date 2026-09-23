@@ -84,8 +84,27 @@ llvm_runtime_export_name(char *out,
     return written >= 0 && (size_t)written < out_size;
 }
 
+static void llvm_declare_runtime_entrypoints(LLVMGenCtx *ctx);
+
+/*
+ * Declare every runtime entrypoint and mark each registry row it created.
+ * The mark is what llvm_run_optimization keys the runtime attribute facts on:
+ * a declaration the program adds later (a user extern "c" function, a libc
+ * symbol the runtime bitcode brings in) is not a runtime entrypoint, whatever
+ * its name.
+ */
 void
 llvm_declare_runtime(LLVMGenCtx *ctx)
+{
+    int first_runtime_entry = ctx->func_count;
+
+    llvm_declare_runtime_entrypoints(ctx);
+    for (int i = first_runtime_entry; i < ctx->func_count; i++)
+        ctx->functions[i].runtime_entrypoint = true;
+}
+
+static void
+llvm_declare_runtime_entrypoints(LLVMGenCtx *ctx)
 {
     if (ctx->type_task_handle == NULL) {
         LLVMTypeRef task_handle_fields[] = { ctx->type_i8ptr };
