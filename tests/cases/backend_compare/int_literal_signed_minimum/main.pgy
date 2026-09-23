@@ -1,0 +1,13 @@
+// -2147483648 and -9223372036854775808L are one literal each, so arithmetic
+// over them stays in the type's width. Native C evaluated -2147483648 * 2 in
+// 64 bits and native LLVM printed -4294967296; Int arithmetic wraps to 0.
+func Main() -> Void {
+    let m: Int = -2147483648;
+    Log(m);
+    Log(-2147483648 * 2);
+    Log(m - 1);
+    Log(-2147483648 / 2);
+    Log(2147483647 + 1);
+    Log(ToString(-9223372036854775808L));
+    Log(ToString(-9223372036854775808L - 1L));
+}

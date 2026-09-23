@@ -1,10 +1,12 @@
 // Regression: `as Long` widening and narrowing round-trip.
 // 5 (Int->Long), a 64-bit literal beyond int32, and the truncating Long->Int.
+// An unsuffixed 3000000000 is an Int literal outside Int's range and is
+// refused, so the 64-bit value is spelled as a Long literal.
 // C and LLVM must produce identical output.
 func Main() -> Void {
     let n: Int = 5;
     let promoted: Long = n as Long;
-    let big: Long = 3000000000 as Long;
+    let big: Long = 3000000000L;
     let back: Int = big as Int;
     Log(ToString(promoted));
     Log(ToString(big));

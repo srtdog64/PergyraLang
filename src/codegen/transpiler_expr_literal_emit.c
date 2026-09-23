@@ -32,6 +32,10 @@ emit_literal_expression(ASTNode *node)
          * digits and made native C the leg that disagreed. */
         if (ast_number_is_float(node))
             return strdup_fmt("((float)%.17g)", ast_number_value(node));
+        /* C spells -2147483648 as the negation of a long constant, so
+         * arithmetic over it would run in 64 bits instead of Int's 32. */
+        if (ast_number_value(node) == -2147483648.0)
+            return pergyra_strdup("(-2147483647 - 1)");
         if (ast_number_value(node) == (int64_t)ast_number_value(node))
             return strdup_fmt("%lld",
                 (long long)(int64_t)ast_number_value(node));

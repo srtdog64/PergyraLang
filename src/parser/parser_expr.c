@@ -384,14 +384,21 @@ ASTNode* parse_unary(Parser* parser) {
         parser_match(parser, TOKEN_AMP) ||
         parser_match(parser, TOKEN_REFLECT)) {
         Token op = parser->previous_token;
-        /* The magnitude of INT64_MIN is not a positive Long value. Fold only
-         * this signed spelling before the positive-literal range check. */
+        /* The magnitudes of INT64_MIN and INT32_MIN are not positive Long
+         * and Int values. Fold only these signed spellings before the
+         * positive-literal range checks. */
         if (op.type == TOKEN_MINUS && parser_check(parser, TOKEN_NUMBER)
             && parser->current_token.text != NULL
             && strcmp(parser->current_token.text,
                 "9223372036854775808L") == 0) {
             parser_advance(parser);
             return ast_create_number("-9223372036854775808L");
+        }
+        if (op.type == TOKEN_MINUS && parser_check(parser, TOKEN_NUMBER)
+            && parser->current_token.text != NULL
+            && strcmp(parser->current_token.text, "2147483648") == 0) {
+            parser_advance(parser);
+            return ast_create_number("-2147483648");
         }
         ASTNode* right = parse_unary(parser);
         return ast_create_unary(op, right);
@@ -549,6 +556,18 @@ ASTNode* parser_parse_primary(Parser* parser) {
                 }
                 parser_advance(parser);  /* the unit word */
             }
+        }
+        /* An unsuffixed integer literal is an Int, and Int is 32-bit
+         * (docs/semantics/11_arithmetic_ub_model.md), so its value must
+         * fit. Typing it Int while emitting a wider constant made the
+         * legs disagree on 2147483648 and on arithmetic over it. */
+        if (!ast_number_is_long(number) && !ast_number_is_float(number)
+            && ast_number_value(number) > 2147483647.0) {
+            parser_error(parser,
+                "Int literal is outside the signed 32-bit range; "
+                "write a Long literal with the L suffix");
+            ast_destroy(number);
+            return NULL;
         }
         return number;
     }
