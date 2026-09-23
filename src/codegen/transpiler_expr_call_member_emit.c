@@ -196,6 +196,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     return NULL;
                 }
 
+                char *receiver_prefix = NULL;
                 if (is_self_ident && use_self_cell) {
                     codebuf_write(args_buf, "self");
                 } else {
@@ -205,6 +206,24 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     if (obj_expr == NULL) {
                         codebuf_destroy(args_buf);
                         return NULL;
+                    }
+                    /* A call receiver runs before the arguments, as it does
+                     * on LLVM and in source order; left inline, C evaluated
+                     * it after them. Only a call is hoisted: a binding or a
+                     * member of one has no effect and may be taken by
+                     * address. */
+                    if (obj->type == AST_CALL && ast_call_arg_count(call) > 0) {
+                        unsigned recv_id = (unsigned)ast_node_stable_id(call);
+                        receiver_prefix = strdup_fmt(
+                            "__auto_type __pgy_recv_%u = (%s); ", recv_id, obj_expr);
+                        free(obj_expr);
+                        obj_expr = strdup_fmt("__pgy_recv_%u", recv_id);
+                        if (receiver_prefix == NULL || obj_expr == NULL) {
+                            free(receiver_prefix);
+                            free(obj_expr);
+                            codebuf_destroy(args_buf);
+                            return NULL;
+                        }
                     }
                     if (obj->type == AST_IDENTIFIER) {
                         TypedVarEntry *entry = lookup_typed_entry(ctx,
@@ -228,6 +247,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                         "C backend: method call '%s' has more than 64 arguments",
                         method != NULL ? method : "<method>");
+                    free(receiver_prefix);
                     codebuf_destroy(args_buf);
                     return NULL;
                 }
@@ -238,6 +258,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     bool pass_by_ptr = false;
                     arg_starts[i] = args_buf->len + 2;
                     if (arg == NULL) {
+                        free(receiver_prefix);
                         codebuf_destroy(args_buf);
                         return NULL;
                     }
@@ -299,6 +320,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                                 "C backend: subject argument %zu for method '%s' requires addressable storage",
                                 i + 1, method != NULL ? method : "<method>");
                             free(arg);
+                            free(receiver_prefix);
                             codebuf_destroy(args_buf);
                             return NULL;
                         }
@@ -324,6 +346,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                             "C backend: ordered arguments for method '%s' could not be built",
                             method != NULL ? method : "<method>");
                         codebuf_destroy(args_buf);
+                        free(receiver_prefix);
                         return NULL;
                     }
 
@@ -332,6 +355,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         || ctx->backend_error != NULL) {
                         free(authority_check);
                         codebuf_destroy(args_buf);
+                        free(receiver_prefix);
                         return NULL;
                     }
                     result = specialization != NULL
@@ -339,13 +363,16 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                               args_buf->data)
                         : strdup_fmt("%s_%s(%s)",
                               owned_type_name, method, args_buf->data);
-                    if (ordered_prefix[0] != '\0' && result != NULL) {
-                        char *ordered_result = strdup_fmt(
-                            "({ %s%s; })", ordered_prefix, result);
+                    if ((ordered_prefix[0] != '\0' || receiver_prefix != NULL)
+                        && result != NULL) {
+                        char *ordered_result = strdup_fmt("({ %s%s%s; })",
+                            receiver_prefix != NULL ? receiver_prefix : "",
+                            ordered_prefix, result);
                         free(result);
                         result = ordered_result;
                     }
                     free(ordered_prefix);
+                    free(receiver_prefix);
                     if (authority_check != NULL && result != NULL) {
                         char *authorized_result = strdup_fmt(
                             "({ %s%s; })", authority_check, result);

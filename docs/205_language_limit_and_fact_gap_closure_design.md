@@ -486,8 +486,14 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
 - 게이트: `tests/call_argument_evaluation_order_smoke.sh`가 네 경로에서 사용자·빌트인 호출을 보고,
   native C/LLVM과 기본 C 경로에서 method 호출과 `ArraySet`을 본다. 기본 LLVM 경로는 method
   픽스처의 모양을 아직 받지 않고 거부한다. 틀린 순서로 도는 경로는 없다.
-- 남은 것: member 호출의 receiver는 제자리에서 평가된다. 동적 ability 호출(vtable)은 이 경로를
-  타지 않는다.
+- receiver: native C는 호출식 receiver를 인자보다 먼저 임시값에 묶는다
+  (`tests/cases/backend_compare/method_receiver_before_arguments`). 전에는 receiver가 호출 안에
+  남아 인자보다 늦게 평가됐다: `Make("r").Pair(Tag("a"), Tag("b"))`가 C에서 `a b r`,
+  LLVM에서 `r a b`였고, 인자가 하나일 때도 갈렸다. 바인딩이나 그 멤버인 receiver는 효과가 없고
+  주소를 넘길 수 있어야 하므로 제자리에 둔다.
+- 남은 것: 기본 C 경로(self-host)는 아직 호출식 receiver를 인자보다 늦게 평가한다(`a b r`).
+  그 방출 owner는 메인 체크아웃에서 커밋 전 작업이 진행 중이라 이번에 고치지 않았다.
+  인덱스 식 receiver(`xs[F()].M(...)`)와 동적 ability 호출(vtable)도 이 경로를 타지 않는다.
 
 ### 11.2 `ToInt`/`ToFloat`는 문자열만 받는다
 
@@ -530,8 +536,8 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
   거부를 봤다: `let` 초기식의 literal 단계(`stage=literal ... source=AST_LET_DECL`),
   세 루틴짜리 프로그램(`three-routine structural shape is unsupported`), defer 전체.
   모두 틀린 출력이 아니라 거부이고, 각각 별도 rung이다.
-- **member 호출의 receiver**와 **동적 ability 호출(vtable)**은 인자 순서 고정 경로를
-  타지 않는다(11.1).
+- **기본 C 경로의 member 호출 receiver**, 인덱스 식 receiver, **동적 ability 호출(vtable)**은
+  인자 순서 고정 경로를 타지 않는다(11.1). native C의 호출식 receiver는 닫혔다.
 - **native C의 emitted-name 충돌.** 빌트인 철자가 아닌 사용자 함수 이름이 런타임 심볼과
   겹칠 수 있다. 런타임이 export하는 PascalCase 심볼 42개는 모두 예약 가족에 들어 있으므로
   지금은 충돌이 없지만(10.5), 런타임에 새 심볼이 생기면 다시 열린다. emitted-name 소유를

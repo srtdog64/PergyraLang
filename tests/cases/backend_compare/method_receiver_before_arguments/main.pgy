@@ -1,0 +1,29 @@
+// A call receiver evaluates before the method's arguments. Native C left the
+// receiver inline in the call, so it ran after them: "a b receiver" on C,
+// "receiver a b" on LLVM. A single argument showed the same split.
+class Acc {
+    let base: Int;
+
+    func Pair(self, x: Int, y: Int) -> Int {
+        return self.base + x * 10 + y;
+    }
+
+    func Plus(self, x: Int) -> Int {
+        return self.base + x;
+    }
+}
+
+func Tag(t: String) -> Int {
+    Log(t);
+    return 1;
+}
+
+func Make(t: String) -> Acc {
+    Log(t);
+    return Acc(100);
+}
+
+func Main() -> Void {
+    Log(Make("receiver").Pair(Tag("a"), Tag("b")));
+    Log(Make("single").Plus(Tag("c")));
+}
