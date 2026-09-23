@@ -56,14 +56,15 @@ func MathRuntimeCSeedRandomBlock() -> String {
     return block;
 }
 
+// Abs, Min and Max take Int, Long and Float operands through one call-site
+// rewrite that does not see the operand type, so the helpers must not pick a
+// width either: an int32_t signature truncated every Long operand. They
+// evaluate each operand once, left to right, and keep its type, as the native
+// C emitter does.
 func MathRuntimeCIntUtilityBlock() -> String {
-    let int_type: String = CompilerAbiLayoutIntCValueType();
     let block: String = "";
-    block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(MathRuntimeCAbsFn(), Concat("(", Concat(int_type, " v)\n{\n")))))));
-    block = Concat(block, "    return v < 0 ? -v : v;\n}\n\n");
-    block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(MathRuntimeCMinFn(), Concat("(", Concat(int_type, Concat(" a, ", Concat(int_type, " b)\n{\n")))))))));
-    block = Concat(block, "    return a < b ? a : b;\n}\n\n");
-    block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(MathRuntimeCMaxFn(), Concat("(", Concat(int_type, Concat(" a, ", Concat(int_type, " b)\n{\n")))))))));
-    block = Concat(block, "    return a > b ? a : b;\n}\n\n");
+    block = Concat(block, Concat("#define ", Concat(MathRuntimeCAbsFn(), "(v) (({ __auto_type pgy_abs_v_ = (v); pgy_abs_v_ < 0 ? -pgy_abs_v_ : pgy_abs_v_; }))\n")));
+    block = Concat(block, Concat("#define ", Concat(MathRuntimeCMinFn(), "(a, b) (({ __auto_type pgy_min_a_ = (a); __auto_type pgy_min_b_ = (b); pgy_min_a_ < pgy_min_b_ ? pgy_min_a_ : pgy_min_b_; }))\n")));
+    block = Concat(block, Concat("#define ", Concat(MathRuntimeCMaxFn(), "(a, b) (({ __auto_type pgy_max_a_ = (a); __auto_type pgy_max_b_ = (b); pgy_max_a_ > pgy_max_b_ ? pgy_max_a_ : pgy_max_b_; }))\n\n")));
     return block;
 }
