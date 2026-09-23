@@ -55,6 +55,22 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
     if code == "world_zone_escape" || code == "subject_value_copy" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:anchored_handle:copy_attempt", "use-move-or-retain-binding");
     }
+    if code == "single_owner_handle_copy" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:movable_handle:copy_attempt", "use-move-or-retain-binding");
+    }
+    if code == "single_owner_handle_owner_required" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:builtin:signature_mismatch", "match-builtin-signature");
+    }
+    if code == "single_owner_handle_released" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:move:from_released", "reclaim-or-trace-earlier-move");
+    }
+    if code == "single_owner_handle_not_consumed" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:owner:not_consumed", "consume-owner-before-exit");
+    }
+    if code == "single_owner_handle_boundary" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:param_mode:unsupported_boundary_type",
+            "use-boundary-visible-type-or-drop-qualifier");
+    }
     if code == "subject_value_return" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:anchored_handle:return_boundary", "return-projection-or-keep-local");
     }

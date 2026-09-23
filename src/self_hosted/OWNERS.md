@@ -618,6 +618,15 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   distinct-binding rule for the inout arguments of one direct call, matching
   the native checker; the named-value boundary verdict dispatches it per call
   and owns the `inout_argument_alias` refusal.
+- `src/self_hosted/semantic/ast_single_owner_handle_verdict_owner.pgy` --
+  refuses a plain copy of a single-owner runtime handle (TextBuilder,
+  Allocator, builtin Box): a let or assignment from a place, a return of a
+  parameter, field or element, a generic instantiation, and AllocatorDestroy
+  of a borrowed parameter. It also owns the bounded TextBuilder rung that the
+  native checker enforces: one immutable top-level TextBuilderNew local,
+  finished or dropped once in its declaration scope before any return.
+  `tests/self_hosted/parity/single_owner_handle_owner.sh` checks it against
+  native semantic.
 - `src/self_hosted/semantic/ast_never_function_verdict_owner.pgy` --
   refuses a `-> Never` function whose body can complete. It is conservative:
   the last top-level statement must be Exit or a call to another Never

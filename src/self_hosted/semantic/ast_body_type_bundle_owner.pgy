@@ -20,6 +20,7 @@ import "ast_collection_ownership_verdict_owner.pgy";
 import "ast_zone_value_carriage_verdict_owner.pgy";
 import "ast_zone_spawn_transport_verdict_owner.pgy";
 import "ast_subject_value_boundary_owner.pgy";
+import "ast_single_owner_handle_verdict_owner.pgy";
 import "ast_match_coverage_owner.pgy";
 import "ast_intent_retry_admission_owner.pgy";
 import "ast_intent_boundary_predicate_admission_owner.pgy";
@@ -202,6 +203,10 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
         }
     }
     verdict = SemanticAstBodyZoneSpawnBoundaryVerdictFromAdmittedFacts(verdict, artifact, analysis.signatures, analysis.constructors, analysis.expression_surfaces);
+    if verdict.ok {
+        verdict = SemanticAstSingleOwnerHandleVerdictFromResolvedFacts(artifact, analysis,
+            initializer_types, assignment_types, generic_specializations, resolved_leaf_types);
+    }
     if verdict.ok && !SemanticAstAnalysisResolveCallReturnTypes(
         artifact, analysis, generic_specializations) {
         verdict = SemanticAstBodyVerdictError("call_return_type_unresolved",

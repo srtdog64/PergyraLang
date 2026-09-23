@@ -47,20 +47,19 @@ func SemanticReason(code: String) -> String {
     if code == "parallel_unsafe_forbidden" { return "Unsafe blocks cannot execute inside parallel tasks"; }
     if code == "action_ability_unsatisfied" { return "Action requires a declared ability with matching subject role implementation"; }
     if code == "subject_value_return" { return "Returning subjects by value is not supported yet"; }
+    if code == "single_owner_handle_copy" { return "a single-owner runtime handle cannot be copied: two bindings would name one runtime storage"; }
+    if code == "single_owner_handle_owner_required" { return "the operation requires a handle held by a local of the current function in its declaration scope"; }
+    if code == "single_owner_handle_released" { return "the TextBuilder was already finished or dropped"; }
+    if code == "single_owner_handle_not_consumed" { return "a TextBuilder must be finished or dropped once before its function returns"; }
+    if code == "single_owner_handle_boundary" { return "a TextBuilder cannot cross a parameter or return boundary"; }
     if code == "generic_constraint_unsatisfied" { return "concrete generic arguments must satisfy every declared bound"; }
     if code == "zone_contract_invalid" { return "zone rules require exact declared layer and participant authority identities"; }
     if code == "undefined_symbol" {
         return "identifier is used before a local binding is in scope";
     }
-    if code == "logical_operand_not_bool" {
-        return "logical operators require Bool operands";
-    }
-    if code == "not_operand_not_bool" {
-        return "logical not requires a Bool operand";
-    }
-    if code == "compare_type_mismatch" {
-        return "comparison operands must have the same type";
-    }
+    if code == "logical_operand_not_bool" { return "logical operators require Bool operands"; }
+    if code == "not_operand_not_bool" { return "logical not requires a Bool operand"; }
+    if code == "compare_type_mismatch" { return "comparison operands must have the same type"; }
     if code == "binop_type_mismatch" { return "arithmetic operands must have the same type"; }
     if code == "array_index_type_mismatch" { return "array access requires an Int index"; }
     if code == "call_arg_type_mismatch" || code == "member_call_arg_type_mismatch" {
@@ -173,6 +172,11 @@ func SemanticReason(code: String) -> String {
 func SemanticFix(code: String) -> String {
     if code == "world_zone_escape" { return "use an explicit detached Clone or access state through the owning world"; }
     if code == "subject_value_copy" { return "construct a fresh subject or keep using its current binding"; }
+    if code == "single_owner_handle_copy" { return "keep using the existing binding, or take a new handle from its constructor"; }
+    if code == "single_owner_handle_owner_required" { return "name the local that owns the handle and release it in the scope that declared it"; }
+    if code == "single_owner_handle_released" { return "create a new TextBuilder instead of reusing a finished one"; }
+    if code == "single_owner_handle_not_consumed" { return "call TextBuilderFinish or TextBuilderDrop on the builder before the function returns"; }
+    if code == "single_owner_handle_boundary" { return "keep the TextBuilder in one function and pass the finished String across the boundary"; }
     if code == "match_pattern_invalid" { return "cover every enum variant with the declared payload arity or add a default arm"; }
     if code == "intent_retry_unavailable" { return "remove the retry modifier until both backends implement the same retry contract"; }
     if code == "intent_predicate_plan_unavailable" { return "use an admitted Intent outcome plan before checking the boundary predicate"; }
@@ -229,12 +233,8 @@ func SemanticFix(code: String) -> String {
     }
     if code == "generic_argument_count_mismatch" { return "pass one explicit type argument for each generic parameter"; }
     if code == "generic_argument_type_invalid" { return "replace the malformed generic argument with a concrete type"; }
-    if code == "let_type_mismatch" {
-        return "change the initializer or the declared local type";
-    }
-    if code == "return_type_mismatch" {
-        return "return the declared function result type";
-    }
+    if code == "let_type_mismatch" { return "change the initializer or the declared local type"; }
+    if code == "return_type_mismatch" { return "return the declared function result type"; }
     if code == "condition_not_bool" {
         return "use a Bool expression for the condition";
     }

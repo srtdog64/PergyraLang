@@ -35,6 +35,11 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "world_zone_escape",
         "subject_value_copy",
         "subject_value_return",
+        "single_owner_handle_copy",
+        "single_owner_handle_owner_required",
+        "single_owner_handle_released",
+        "single_owner_handle_not_consumed",
+        "single_owner_handle_boundary",
         "builtin_arg_type_mismatch",
         "option_concrete_type_required",
         "value_param_collection_mutation",
@@ -109,6 +114,11 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     if code == "match_pattern_invalid" { return "PGY_SEM_MATCH_PATTERN_INVALID"; }
     if code == "world_zone_escape" { return "PGY_SEM_ANCHORED_HANDLE_COPY"; }
     if code == "subject_value_copy" || code == "subject_value_return" { return "PGY_SEM_ANCHORED_HANDLE_COPY"; }
+    if code == "single_owner_handle_copy" { return "PGY_SEM_ANCHORED_HANDLE_COPY"; }
+    if code == "single_owner_handle_owner_required" { return "PGY_SEM_BUILTIN_ARGS_INVALID"; }
+    if code == "single_owner_handle_released" { return "PGY_SEM_MOVE_FROM_RELEASED"; }
+    if code == "single_owner_handle_not_consumed" { return "PGY_SEM_OWNER_NOT_CONSUMED"; }
+    if code == "single_owner_handle_boundary" { return "PGY_SEM_TYPE_MISMATCH"; }
     if code == "generic_constraint_unsatisfied" { return "PGY_SEM_CLASS_CONTRACT_INVALID"; }
     if code == "zone_contract_invalid" { return "PGY_SEM_ZONE_CONTRACT_INVALID"; }
     if code == "undefined_symbol" {

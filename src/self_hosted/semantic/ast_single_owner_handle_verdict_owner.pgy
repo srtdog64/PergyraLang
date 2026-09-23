@@ -1,0 +1,402 @@
+// Single-owner runtime handles: TextBuilder, Allocator and builtin Box<...>.
+// Rc and Weak have no builtin surface on this front end yet (RcNew is an
+// undefined symbol here), so the native checker owns their copy refusal alone.
+// A handle value is the one owner of its runtime storage. A let, assignment,
+// return or generic argument that copies an existing binding would give that
+// storage a second name, and the first release would leave the other one
+// dangling. A by-value parameter borrows the caller's handle, so the callee
+// may read it but not release it. A TextBuilder also keeps its bounded owner
+// rung: one immutable local made by TextBuilderNew at its function's top
+// level, named by every use, and finished or dropped exactly once in that
+// scope before any return. The native checker owns the same contract in
+// src/semantic/type_checker_builtin_owner_let_contract.c and publishes the
+// same public codes. This verdict runs after expression identities resolve,
+// so leaf types and formal-parameter identities are carried facts here.
+import "ast_artifact_verdict_owner.pgy";
+import "ast_body_verdict_owner.pgy";
+import "ast_initializer_type_fact_owner.pgy";
+import "ast_assignment_type_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_generic_specialization_fact_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+import "ast_expression_identity_fact_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "ast_never_function_verdict_owner.pgy";
+import "wrapper_type_owner.pgy";
+import "diagnostic_owner.pgy";
+
+// One row per TextBuilder local; consume_ids holds the syntax node of its
+// Finish or Drop, or -1 while the builder is live.
+struct SemanticSingleOwnerTextBuilders {
+    node_ids: Array<Int>;
+    function_ids: Array<Int>;
+    scope_ids: Array<Int>;
+    names: Array<String>;
+    consume_ids: Array<Int>;
+}
+
+func SemanticSingleOwnerHandleTypeName(type_name: String, box_builtin: Bool) -> Bool {
+    if type_name == "TextBuilder" || type_name == "Allocator" { return true; }
+    return box_builtin && IsBoxType(type_name);
+}
+
+func SemanticSingleOwnerHandleIsPlace(kind: Int) -> Bool {
+    return kind == AstExpressionNodeLeaf() || kind == AstExpressionNodeMemberAccess() ||
+        kind == AstExpressionNodeIndex();
+}
+
+func SemanticSingleOwnerHandleInvalid(owner: String, node_id: Int) -> SemanticAstBodyVerdict {
+    return SemanticAstBodyVerdictError("ast_artifact_invalid",
+        SemanticError1("ast_artifact_invalid", "owner", owner), node_id);
+}
+
+// A TextBuilder cannot cross a parameter or return boundary.
+func SemanticSingleOwnerTextBuilderBoundary(
+    ref signatures: SemanticAstFunctionSignatureFacts
+) -> SemanticAstBodyVerdict {
+    let row: Int = 0;
+    while row < ArrayLength(signatures.param_types) {
+        if signatures.param_types[row] == "TextBuilder" {
+            return SemanticAstBodyVerdictError("single_owner_handle_boundary", SemanticError2(
+                "single_owner_handle_boundary", "parameter", signatures.param_names[row],
+                "type", "TextBuilder"), signatures.param_node_ids[row]);
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(signatures.return_types) {
+        if signatures.return_types[row] == "TextBuilder" {
+            return SemanticAstBodyVerdictError("single_owner_handle_boundary", SemanticError2(
+                "single_owner_handle_boundary", "function", signatures.names[row],
+                "type", "TextBuilder"), signatures.function_node_ids[row]);
+        }
+        row = row + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}
+
+// A TextBuilder local starts from TextBuilderNew in an immutable binding at
+// its function's top level; any other handle local refuses a place initializer.
+func SemanticSingleOwnerHandleLocals(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    ref initializers: SemanticAstInitializerTypeFacts,
+    box_builtin: Bool,
+    inout builders: SemanticSingleOwnerTextBuilders
+) -> SemanticAstBodyVerdict {
+    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    let local_count: Int = ArrayLength(analysis.local_bindings.node_ids);
+    if ArrayLength(initializers.verified) != local_count {
+        return SemanticSingleOwnerHandleInvalid("SingleOwnerHandleInitializerTypes", -1);
+    }
+    let row: Int = 0;
+    while row < local_count {
+        let type_name: String = analysis.local_bindings.declared_type_names[row];
+        if analysis.local_bindings.has_declared_types[row] == 0 {
+            type_name = "";
+            if initializers.verified[row] == 1 { type_name = initializers.inferred_type_names[row]; }
+        }
+        let node_id: Int = analysis.local_bindings.node_ids[row];
+        let name: String = analysis.local_bindings.names[row];
+        if analysis.local_bindings.binding_kinds[row] == SemanticAstLocalBindingKindNormal() &&
+            SemanticSingleOwnerHandleTypeName(type_name, box_builtin) {
+            let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                analysis.expression_surfaces, node_id, AstExpressionLaneValue());
+            let kind: Int = -1;
+            if IsSome(root) { kind = graph.arena.topology.node_kinds[UnwrapOption(root)]; }
+            if type_name == "TextBuilder" {
+                let fresh: Bool = false;
+                if kind == AstExpressionNodeCall() || kind == AstExpressionNodeCallArgument() {
+                    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, UnwrapOption(root));
+                    fresh = call.ok && graph.arena.call_target_kinds[call.call_node] == SemanticCallTargetDirect() &&
+                        graph.arena.identities.call_target_syntax_ids[call.call_node] == 0 &&
+                        graph.arena.call_target_names[call.call_node] == "TextBuilderNew";
+                }
+                if !fresh || artifact.arena.modes[node_id] != 0 {
+                    return SemanticAstBodyVerdictError("single_owner_handle_copy", SemanticError2(
+                        "single_owner_handle_copy", "type", type_name, "binding", name), node_id);
+                }
+                let function_id: Int = analysis.local_bindings.function_node_ids[row];
+                let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+                    analysis.signatures, function_id);
+                if !IsSome(signature) { return SemanticSingleOwnerHandleInvalid("TextBuilderOwner", node_id); }
+                let body: Option<Int> = SemanticAstNeverFunctionBodyBlock(
+                    artifact, analysis.signatures, UnwrapOption(signature));
+                if !IsSome(body) || UnwrapOption(body) != analysis.local_bindings.scope_node_ids[row] {
+                    return SemanticAstBodyVerdictError("single_owner_handle_owner_required", SemanticError2(
+                        "single_owner_handle_owner_required", "operation", "TextBuilderNew",
+                        "binding", name), node_id);
+                }
+                ArrayPush(builders.node_ids, node_id);
+                ArrayPush(builders.function_ids, function_id);
+                ArrayPush(builders.scope_ids, analysis.local_bindings.scope_node_ids[row]);
+                ArrayPush(builders.names, name);
+                ArrayPush(builders.consume_ids, -1);
+            } else if SemanticSingleOwnerHandleIsPlace(kind) {
+                return SemanticAstBodyVerdictError("single_owner_handle_copy", SemanticError2(
+                    "single_owner_handle_copy", "type", type_name, "binding", name), node_id);
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}
+
+// Assignment may not copy a handle place; a TextBuilder local is never rebound.
+func SemanticSingleOwnerHandleAssignments(
+    analysis: SemanticAstArtifactAnalysis,
+    ref assignment_types: SemanticAstAssignmentTypeFacts,
+    box_builtin: Bool
+) -> SemanticAstBodyVerdict {
+    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    let index: Int = 0;
+    while index < ArrayLength(assignment_types.target_type_names) {
+        let type_name: String = assignment_types.target_type_names[index];
+        if assignment_types.verified[index] == 1 && SemanticSingleOwnerHandleTypeName(type_name, box_builtin) {
+            let node_id: Int = analysis.assignments.node_ids[index];
+            let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                analysis.expression_surfaces, node_id, AstExpressionLaneValue());
+            if !IsSome(root) { return SemanticSingleOwnerHandleInvalid("SingleOwnerHandleAssignment", node_id); }
+            if type_name == "TextBuilder" ||
+                SemanticSingleOwnerHandleIsPlace(graph.arena.topology.node_kinds[UnwrapOption(root)]) {
+                return SemanticAstBodyVerdictError("single_owner_handle_copy", SemanticError2(
+                    "single_owner_handle_copy", "type", type_name,
+                    "target", analysis.assignments.target_texts[index]), node_id);
+            }
+        }
+        index = index + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}
+
+// Only a handle held by a local of the returning function moves out; a
+// parameter, field or element still belongs to someone else.
+func SemanticSingleOwnerHandleReturns(
+    analysis: SemanticAstArtifactAnalysis,
+    box_builtin: Bool
+) -> SemanticAstBodyVerdict {
+    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    let row: Int = 0;
+    while row < ArrayLength(analysis.statements.node_ids) {
+        if analysis.statements.kind_tags[row] == TypedAstKindValueReturnStmtTag() {
+            let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+                analysis.signatures, analysis.statements.function_node_ids[row]);
+            if IsSome(signature) && SemanticSingleOwnerHandleTypeName(
+                analysis.signatures.return_types[UnwrapOption(signature)], box_builtin) {
+                let node_id: Int = analysis.statements.node_ids[row];
+                let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                    analysis.expression_surfaces, node_id, AstExpressionLaneAtom());
+                if !IsSome(root) { return SemanticSingleOwnerHandleInvalid("SingleOwnerHandleReturn", node_id); }
+                let value: Int = UnwrapOption(root);
+                let kind: Int = graph.arena.topology.node_kinds[value];
+                if (kind == AstExpressionNodeLeaf() && graph.arena.identities.binding_kinds[value] ==
+                    SemanticExpressionBindingFormalParameter()) ||
+                    kind == AstExpressionNodeMemberAccess() || kind == AstExpressionNodeIndex() {
+                    return SemanticAstBodyVerdictError("single_owner_handle_copy", SemanticError2(
+                        "single_owner_handle_copy", "type",
+                        analysis.signatures.return_types[UnwrapOption(signature)],
+                        "return", graph.arena.node_texts[value]), node_id);
+                }
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}
+
+// A generic body copies its T value freely (`return x`, `[x, x]`), so a
+// handle may not instantiate a type parameter of a source function. The
+// specialization owner carries every source generic call's actual types.
+func SemanticSingleOwnerHandleGenericActuals(
+    ref specializations: SemanticAstGenericSpecializationFacts,
+    box_builtin: Bool
+) -> SemanticAstBodyVerdict {
+    if ArrayLength(specializations.source_owner_node_ids) != ArrayLength(specializations.call_node_ids) {
+        return SemanticSingleOwnerHandleInvalid("SingleOwnerHandleGenericActuals", -1);
+    }
+    let row: Int = 0;
+    while row < ArrayLength(specializations.call_node_ids) {
+        let actual: Int = specializations.actual_starts[row];
+        let end: Int = actual + specializations.actual_counts[row];
+        while actual < end {
+            if SemanticSingleOwnerHandleTypeName(specializations.actual_type_names[actual], box_builtin) {
+                return SemanticAstBodyVerdictError("single_owner_handle_copy", SemanticError2(
+                    "single_owner_handle_copy", "type", specializations.actual_type_names[actual],
+                    "boundary", "generic argument"), specializations.source_owner_node_ids[row]);
+            }
+            actual = actual + 1;
+        }
+        row = row + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}
+
+// A named TextBuilder local of the calling function; Finish and Drop also
+// run in the builder's declaration scope and retire it.
+func SemanticSingleOwnerTextBuilderOperation(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    ref leaf_types: Array<String>,
+    ref call: SemanticCallSpineView,
+    inout builders: SemanticSingleOwnerTextBuilders,
+    target: String,
+    use_node: Int
+) -> SemanticAstBodyVerdict {
+    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    let retires: Bool = target == "TextBuilderFinish" || target == "TextBuilderDrop";
+    let binding: Int = -1;
+    if ArrayLength(call.argument_nodes) > 0 {
+        let node: Int = call.argument_nodes[0];
+        let function_id: Option<Int> = SemanticAstFunctionScopeNodeId(analysis.function_scopes, use_node);
+        if graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() && IsSome(function_id) &&
+            leaf_types[node] == "TextBuilder" && graph.arena.identities.binding_kinds[node] !=
+                SemanticExpressionBindingFormalParameter() {
+            let index: Int = ArrayLength(builders.node_ids) - 1;
+            while index >= 0 && binding < 0 {
+                if builders.function_ids[index] == UnwrapOption(function_id) &&
+                    builders.names[index] == graph.arena.node_texts[node] &&
+                    builders.node_ids[index] < use_node {
+                    binding = index;
+                }
+                index = index - 1;
+            }
+        }
+    }
+    let scope: Option<Int> = TypedAstArenaParentId(artifact.arena, use_node);
+    let named_allocator: Bool = target != "TextBuilderFinish" || (ArrayLength(call.argument_nodes) == 2 &&
+        graph.arena.topology.node_kinds[call.argument_nodes[1]] == AstExpressionNodeLeaf());
+    if binding < 0 || !named_allocator ||
+        (retires && (!IsSome(scope) || UnwrapOption(scope) != builders.scope_ids[binding])) {
+        return SemanticAstBodyVerdictError("single_owner_handle_owner_required", SemanticError1(
+            "single_owner_handle_owner_required", "operation", target), use_node);
+    }
+    if builders.consume_ids[binding] >= 0 {
+        return SemanticAstBodyVerdictError("single_owner_handle_released", SemanticError2(
+            "single_owner_handle_released", "operation", target,
+            "binding", builders.names[binding]), use_node);
+    }
+    if retires { ArraySet(builders.consume_ids, binding, use_node); }
+    return SemanticAstBodyVerdictOk();
+}
+
+// Every direct builtin call in source order: AllocatorDestroy of a borrowed
+// parameter, and the TextBuilder operations.
+func SemanticSingleOwnerHandleCalls(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    ref leaf_types: Array<String>,
+    inout builders: SemanticSingleOwnerTextBuilders
+) -> SemanticAstBodyVerdict {
+    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    if ArrayLength(leaf_types) != count { return SemanticSingleOwnerHandleInvalid("SingleOwnerHandleLeafTypes", -1); }
+    let call_roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(graph);
+    if !call_roots.ok { return SemanticSingleOwnerHandleInvalid("SingleOwnerHandleCallSpine", -1); }
+    let last_root: Int = -1;
+    let slot: Int = 0;
+    while slot < ArrayLength(graph.roots) {
+        if graph.has_roots[slot] {
+            let root_id: Int = graph.roots[slot];
+            let use_node: Int = analysis.expression_surfaces.node_ids[slot / 3];
+            let node: Int = last_root + 1;
+            while node <= root_id && node < count {
+                let target: String = "";
+                if graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() &&
+                    graph.arena.call_target_kinds[node] == SemanticCallTargetDirect() &&
+                    graph.arena.identities.call_target_syntax_ids[node] == 0 {
+                    target = graph.arena.call_target_names[node];
+                }
+                if target == "AllocatorDestroy" || target == "TextBuilderAppend" ||
+                    target == "TextBuilderFinish" || target == "TextBuilderDrop" {
+                    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, call_roots.root_nodes[node]);
+                    if !call.ok || call.call_node != node {
+                        return SemanticSingleOwnerHandleInvalid("SingleOwnerHandleCall", use_node);
+                    }
+                    let verdict: SemanticAstBodyVerdict = SemanticAstBodyVerdictOk();
+                    if target == "AllocatorDestroy" {
+                        let argument: Int = -1;
+                        if ArrayLength(call.argument_nodes) == 1 { argument = call.argument_nodes[0]; }
+                        if argument < 0 || graph.arena.topology.node_kinds[argument] != AstExpressionNodeLeaf() ||
+                            graph.arena.identities.binding_kinds[argument] == SemanticExpressionBindingFormalParameter() {
+                            verdict = SemanticAstBodyVerdictError("single_owner_handle_owner_required",
+                                SemanticError1("single_owner_handle_owner_required", "operation", target), use_node);
+                        }
+                    } else {
+                        verdict = SemanticSingleOwnerTextBuilderOperation(
+                            artifact, analysis, leaf_types, call, builders, target, use_node);
+                    }
+                    if !verdict.ok { return verdict; }
+                }
+                node = node + 1;
+            }
+            last_root = root_id;
+        }
+        slot = slot + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}
+
+// A TextBuilder is retired before every return after its declaration and
+// before its function ends.
+func SemanticSingleOwnerTextBuilderRetirement(
+    analysis: SemanticAstArtifactAnalysis,
+    ref builders: SemanticSingleOwnerTextBuilders
+) -> SemanticAstBodyVerdict {
+    if ArrayLength(builders.node_ids) == 0 { return SemanticAstBodyVerdictOk(); }
+    let row: Int = 0;
+    while row < ArrayLength(analysis.statements.node_ids) {
+        let kind: Int = analysis.statements.kind_tags[row];
+        if kind == TypedAstKindValueReturnStmtTag() || kind == TypedAstKindBareReturnStmtTag() {
+            let node_id: Int = analysis.statements.node_ids[row];
+            let index: Int = 0;
+            while index < ArrayLength(builders.node_ids) {
+                if builders.function_ids[index] == analysis.statements.function_node_ids[row] &&
+                    builders.node_ids[index] < node_id &&
+                    (builders.consume_ids[index] < 0 || node_id <= builders.consume_ids[index]) {
+                    return SemanticAstBodyVerdictError("single_owner_handle_not_consumed", SemanticError2(
+                        "single_owner_handle_not_consumed", "binding", builders.names[index],
+                        "boundary", "return"), node_id);
+                }
+                index = index + 1;
+            }
+        }
+        row = row + 1;
+    }
+    let index: Int = 0;
+    while index < ArrayLength(builders.node_ids) {
+        if builders.consume_ids[index] < 0 {
+            return SemanticAstBodyVerdictError("single_owner_handle_not_consumed", SemanticError2(
+                "single_owner_handle_not_consumed", "binding", builders.names[index],
+                "boundary", "function exit"), builders.node_ids[index]);
+        }
+        index = index + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}
+
+func SemanticAstSingleOwnerHandleVerdictFromResolvedFacts(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    ref initializers: SemanticAstInitializerTypeFacts,
+    ref assignment_types: SemanticAstAssignmentTypeFacts,
+    ref specializations: SemanticAstGenericSpecializationFacts,
+    ref leaf_types: Array<String>
+) -> SemanticAstBodyVerdict {
+    // A source declaration named Box owns that spelling; Box<...> is then a
+    // user type, not the builtin handle.
+    let box_builtin: Bool = !IsSome(SemanticAstNominalConstructorIndexForName(analysis.constructors, "Box"));
+    let verdict: SemanticAstBodyVerdict = SemanticSingleOwnerTextBuilderBoundary(analysis.signatures);
+    let node_ids: Array<Int> = []; let function_ids: Array<Int> = []; let scope_ids: Array<Int> = [];
+    let names: Array<String> = []; let consume_ids: Array<Int> = [];
+    let builders: SemanticSingleOwnerTextBuilders = SemanticSingleOwnerTextBuilders(
+        node_ids, function_ids, scope_ids, names, consume_ids);
+    if verdict.ok {
+        verdict = SemanticSingleOwnerHandleLocals(artifact, analysis, initializers, box_builtin, builders);
+    }
+    if verdict.ok { verdict = SemanticSingleOwnerHandleAssignments(analysis, assignment_types, box_builtin); }
+    if verdict.ok { verdict = SemanticSingleOwnerHandleReturns(analysis, box_builtin); }
+    if verdict.ok { verdict = SemanticSingleOwnerHandleGenericActuals(specializations, box_builtin); }
+    if verdict.ok { verdict = SemanticSingleOwnerHandleCalls(artifact, analysis, leaf_types, builders); }
+    if verdict.ok { verdict = SemanticSingleOwnerTextBuilderRetirement(analysis, builders); }
+    return verdict;
+}
