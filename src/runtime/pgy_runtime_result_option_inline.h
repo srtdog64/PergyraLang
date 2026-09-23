@@ -55,7 +55,7 @@ PGY_RT_PROGRAM_DECL ErrType \
 pgy_result_unwrap_err_##SuffixName(PgyResult_##SuffixName* r) \
 PGY_RT_PROGRAM_BODY({ \
     if (r->tag != PgyResultErr) { \
-        PGY_PANIC("Result unwrap_err on Ok value"); \
+        PGY_PANIC(PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR_ON_OK); \
     } \
     return r->err; \
 })

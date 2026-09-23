@@ -71,6 +71,8 @@
     "signed integer multiplication overflow"
 #define PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR \
     "Result unwrap on Err value"
+#define PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR_ON_OK \
+    "Result unwrap_err on Ok value"
 #define PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE \
     "Option unwrap on None value"
 #define PGY_RUNTIME_PANIC_REASON_INVALID_LIFECYCLE_STATE \

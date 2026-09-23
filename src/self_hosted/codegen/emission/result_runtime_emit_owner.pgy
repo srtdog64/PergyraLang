@@ -56,14 +56,14 @@ func EmitResultRuntimeDefinition(
     block = Concat(block, Concat(
             "static ", Concat(payload_c, Concat(" ", Concat(
                 fact.unwrap_fn, Concat("(", Concat(fact.c_type,
-                    " r) { return r.value.ok; }\n"
+                    " r) { if (!r.is_ok) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR); } return r.value.ok; }\n"
                 ))
             )))
     ));
     block = Concat(block, Concat(
             "static ", Concat(error_c, Concat(" ", Concat(
                 fact.unwrap_err_fn, Concat("(", Concat(fact.c_type,
-                    " r) { return r.value.err; }\n\n"
+                    " r) { if (r.is_ok) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR_ON_OK); } return r.value.err; }\n\n"
                 ))
             )))
     ));

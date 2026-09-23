@@ -358,7 +358,7 @@ func OptionResultRuntimeCResultIntBlock() -> String {
     block = Concat(block, Concat(result_type, " r; r.is_ok = false; r.value = 0; return r; }\n"));
     block = Concat(block, Concat("static bool ", Concat(OptionResultRuntimeCResultIsOkFn(), Concat("(", Concat(result_type, " r) { return r.is_ok; }\n")))));
     block = Concat(block, Concat("static bool ", Concat(OptionResultRuntimeCResultIsErrFn(), Concat("(", Concat(result_type, " r) { return !r.is_ok; }\n")))));
-    block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(OptionResultRuntimeCResultUnwrapFn(), Concat("(", Concat(result_type, " r) { return r.value; }\n")))))));
+    block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(OptionResultRuntimeCResultUnwrapFn(), Concat("(", Concat(result_type, " r) { if (!r.is_ok) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR); } return r.value; }\n")))))));
     block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(OptionResultRuntimeCResultUnwrapOrFn(), Concat("(", Concat(result_type, Concat(" r, ", Concat(int_type, " fallback) { return r.is_ok ? r.value : fallback; }\n\n")))))))));
     return block;
 }
@@ -408,7 +408,9 @@ func OptionResultRuntimeCOptionScalarBlock() -> String {
     block = Concat(block, Concat("static ", Concat(option_bool_type, Concat(" ", Concat(OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindBool()), "(void) { ")))));
     block = Concat(block, Concat(option_bool_type, " o; o.is_some = false; o.value = false; return o; }\n"));
     block = Concat(block, Concat("#define ", Concat(OptionResultRuntimeCOptionIsSomeFn(), "(o) ((o).is_some)\n")));
-    block = Concat(block, Concat("#define ", Concat(OptionResultRuntimeCOptionUnwrapFn(), "(o) ((o).value)\n\n")));
+    // Unwrapping None panics as native C does; returning the payload slot
+    // handed the program a zero it never stored.
+    block = Concat(block, Concat("#define ", Concat(OptionResultRuntimeCOptionUnwrapFn(), "(o) (({ __auto_type pgy_unwrap_o_ = (o); if (!pgy_unwrap_o_.is_some) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE); } pgy_unwrap_o_.value; }))\n\n")));
     return block;
 }
 
