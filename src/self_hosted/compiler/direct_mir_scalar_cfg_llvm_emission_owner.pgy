@@ -13,6 +13,7 @@ import "direct_mir_scalar_cfg_array_int_program_llvm_storage_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_llvm_storage_owner.pgy";
 import "direct_mir_scalar_cfg_program_llvm_emission_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
+import "direct_mir_llvm_entry_block_storage_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy";
 import "../mir/runtime_call_abi_fact_owner.pgy";
 
@@ -40,10 +41,10 @@ func DirectMirScalarCfgEmitLlvm(
                 runtime, plan.program.runtime_abi) {
             Die("direct MIR scalar CFG program LLVM runtime ABI is invalid");
         }
-        return DirectMirScalarCfgEmitProgramLlvm(
+        return DirectMirLlvmEntryBlockStorage(DirectMirScalarCfgEmitProgramLlvm(
             plan, formatted_print, process_exit, runtime, int_line_format,
             string_line_format, target
-        );
+        ));
     }
     let int_size: Int =
         DirectMirScalarLlvmFormatByteCount(int_line_format);
@@ -121,5 +122,5 @@ func DirectMirScalarCfgEmitLlvm(
         block = block + 1;
     }
     output = Concat(output, "}\n");
-    return output;
+    return DirectMirLlvmEntryBlockStorage(output);
 }

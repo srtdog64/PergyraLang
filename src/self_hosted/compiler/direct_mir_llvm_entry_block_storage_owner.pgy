@@ -1,0 +1,143 @@
+// Entry-block placement of LLVM stack storage in the direct-MIR projection.
+//
+// Operation and expression fragments write an `alloca` next to the first use
+// of its temporary. Inside a loop body that allocates a fresh stack slot on
+// every iteration, and a long loop overflows the stack: MapSet in a
+// two-million-round while loop crashed the default LLVM route only (red-team
+// audit R5). This owner makes the placement decision once per emitted module:
+// every fixed-size alloca of a function moves to the top of that function's
+// entry block, so its slot is allocated once per call, as the native backend
+// does through llvm_create_entry_alloca. An alloca with a runtime element
+// count cannot move above its operand, so it is refused instead of kept.
+
+import "../codegen/text/text_owner.pgy";
+
+func DirectMirLlvmLineEnd(text: String, n: Int, start: Int) -> Int {
+    let index: Int = start;
+    while index < n && CharCode(text, n, index) != 10 { index = index + 1; }
+    if index < n { return index + 1; }
+    return n;
+}
+
+// Length of a line without its trailing newline.
+func DirectMirLlvmLineLength(text: String, n: Int, start: Int, end: Int) -> Int {
+    if end > start && CharCode(text, n, end - 1) == 10 { return end - start - 1; }
+    return end - start;
+}
+
+// A basic-block label: `name:` at column zero.
+func DirectMirLlvmLineIsLabel(text: String, n: Int, start: Int, end: Int) -> Bool {
+    let length: Int = DirectMirLlvmLineLength(text, n, start, end);
+    if length < 2 { return false; }
+    let first: Int = CharCode(text, n, start);
+    if first == 32 || first == 9 || first == 59 || first == 125 { return false; }
+    return CharCode(text, n, start + length - 1) == 58;
+}
+
+func DirectMirLlvmLineIsDefine(text: String, n: Int, start: Int, end: Int) -> Bool {
+    return DirectMirLlvmLineLength(text, n, start, end) >= 7 &&
+        SubEqualsWithLen(text, n, start, 7, "define ");
+}
+
+func DirectMirLlvmLineIsFunctionEnd(text: String, n: Int, start: Int, end: Int) -> Bool {
+    return DirectMirLlvmLineLength(text, n, start, end) == 1 &&
+        CharCode(text, n, start) == 125;
+}
+
+// `  %name = alloca <type>[, align N]`. Returns false for any other line and
+// refuses an alloca whose operand list carries an element count.
+func DirectMirLlvmLineIsAlloca(text: String, n: Int, start: Int, end: Int) -> Bool {
+    let length: Int = DirectMirLlvmLineLength(text, n, start, end);
+    if length < 13 || !SubEqualsWithLen(text, n, start, 3, "  %") { return false; }
+    let line_end: Int = start + length;
+    let index: Int = start + 3;
+    while index < line_end && CharCode(text, n, index) != 32 { index = index + 1; }
+    if index + 10 > line_end || !SubEqualsWithLen(text, n, index, 10, " = alloca ") {
+        return false;
+    }
+    index = index + 10;
+    let depth: Int = 0;
+    while index < line_end {
+        let code: Int = CharCode(text, n, index);
+        if code == 123 || code == 91 || code == 60 || code == 40 { depth = depth + 1; }
+        if code == 125 || code == 93 || code == 62 || code == 41 { depth = depth - 1; }
+        if code == 44 && depth == 0 {
+            if index + 8 > line_end || !SubEqualsWithLen(text, n, index, 8, ", align ") {
+                Die("direct MIR LLVM alloca carries an element count; entry-block storage placement cannot move it");
+            }
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+func DirectMirLlvmEntryBlockStorage(module_text: String) -> String {
+    let n: Int = StringLength(module_text);
+    // One row per function that loses an alloca: where its entry block begins.
+    let insert_points: Array<Int> = [];
+    // One row per moved alloca line: its span and the insert row it moves to.
+    let moved_starts: Array<Int> = [];
+    let moved_ends: Array<Int> = [];
+    let moved_targets: Array<Int> = [];
+    let in_function: Bool = false;
+    let entry_open: Bool = false;
+    let entry_start: Int = 0;
+    let target: Int = -1;
+    let start: Int = 0;
+    while start < n {
+        let end: Int = DirectMirLlvmLineEnd(module_text, n, start);
+        if !in_function {
+            if DirectMirLlvmLineIsDefine(module_text, n, start, end) {
+                in_function = true;
+                entry_open = true;
+                entry_start = end;
+                target = -1;
+                if end < n && DirectMirLlvmLineIsLabel(module_text, n, end,
+                        DirectMirLlvmLineEnd(module_text, n, end)) {
+                    entry_start = DirectMirLlvmLineEnd(module_text, n, end);
+                    start = entry_start;
+                    continue;
+                }
+            }
+        } else if DirectMirLlvmLineIsFunctionEnd(module_text, n, start, end) {
+            in_function = false;
+        } else if DirectMirLlvmLineIsLabel(module_text, n, start, end) {
+            entry_open = false;
+        } else if !entry_open && DirectMirLlvmLineIsAlloca(module_text, n, start, end) {
+            if target < 0 {
+                ArrayPush(insert_points, entry_start);
+                target = ArrayLength(insert_points) - 1;
+            }
+            ArrayPush(moved_starts, start);
+            ArrayPush(moved_ends, end);
+            ArrayPush(moved_targets, target);
+        }
+        start = end;
+    }
+    if in_function { Die("direct MIR LLVM function text has no closing brace"); }
+    if ArrayLength(moved_starts) == 0 { return module_text; }
+    let allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(n + 1);
+    let cursor: Int = 0;
+    let moved: Int = 0;
+    let point: Int = 0;
+    while point < ArrayLength(insert_points) {
+        TextBuilderAppend(output, SubstringWithLen(module_text, n, cursor, insert_points[point] - cursor));
+        let row: Int = moved;
+        while row < ArrayLength(moved_starts) && moved_targets[row] == point {
+            TextBuilderAppend(output, SubstringWithLen(module_text, n, moved_starts[row], moved_ends[row] - moved_starts[row]));
+            row = row + 1;
+        }
+        cursor = insert_points[point];
+        while moved < row {
+            TextBuilderAppend(output, SubstringWithLen(module_text, n, cursor, moved_starts[moved] - cursor));
+            cursor = moved_ends[moved];
+            moved = moved + 1;
+        }
+        point = point + 1;
+    }
+    TextBuilderAppend(output, SubstringWithLen(module_text, n, cursor, n - cursor));
+    let placed: String = TextBuilderFinish(output, allocator);
+    AllocatorDestroy(allocator);
+    return placed;
+}
