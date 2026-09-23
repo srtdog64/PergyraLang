@@ -69,12 +69,18 @@ done
 expect_child_panic runtime set-invalid-map "$INVALID" 'op=map_set_i64_int reason=map is not initialized'
 expect_child_panic raw-runtime set-invalid-map "$INVALID" 'op=map_set_i64 reason=map is not initialized'
 
-for forbidden in pgy_map_format_i64_key pgy_map_i64_key_string_export strtoll; do
+for forbidden in pgy_map_format_i64_key pgy_map_i64_key_string_export; do
     if grep -R -Fq --include='*.h' --include='*.c' "$forbidden" src/runtime; then
         echo "[hashmap-i64-runtime] retired Long string bridge returned: $forbidden" >&2
         exit 1
     fi
 done
+# The bridge parsed Long keys back out of text; ToInt's own strtoll is not a
+# map key path, so the ban covers the map runtime only.
+if grep -R -Fq --include='*map*.h' --include='*map*.c' strtoll src/runtime; then
+    echo "[hashmap-i64-runtime] retired Long string bridge returned: strtoll in the map runtime" >&2
+    exit 1
+fi
 for required in \
     'pgy_map_new_i64_int' \
     'pgy_hashmap_hash_i64' \

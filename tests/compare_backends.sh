@@ -1540,6 +1540,7 @@ main() {
         "tests/cases/backend_compare/party_ability_call_argument_order"
         "tests/cases/backend_compare/int_literal_signed_minimum"
         "tests/cases/backend_compare/int_to_long_widening"
+        "tests/cases/backend_compare/string_to_int_long_narrowing"
     )
 
     local use_default_cases=0

@@ -1,0 +1,14 @@
+// ToInt reads the leading decimal as a Long (saturating at the Long bounds)
+// and narrows it to Int by truncation, as `as Int` does. The C runtime used
+// strtol, whose width is C long: it clamped on Windows and wrapped on Linux.
+func Main() -> Void {
+    Log(ToInt("2147483647"));
+    Log(ToInt("-2147483648"));
+    Log(ToInt("9999999999"));
+    Log(ToInt("-2147483649"));
+    Log(ToInt("4294967296"));
+    Log(ToInt("99999999999999999999"));
+    Log(ToInt("  -7"));
+    Log(ToInt("12abc"));
+    Log(ToInt("abc"));
+}

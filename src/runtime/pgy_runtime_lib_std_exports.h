@@ -39,10 +39,12 @@ char *StringJoin(PgyArray_String *arr, const char *sep)
     return buf;
 }
 
+/* Same value as the inline C runtime's ToInt: the leading decimal read as a
+ * Long, narrowed to Int by truncation. */
 int32_t ToInt(const char *s)
 {
     if (s == NULL) return 0;
-    return (int32_t)strtol(s, NULL, 10);
+    return (int32_t)(uint32_t)(unsigned long long)strtoll(s, NULL, 10);
 }
 
 float ToFloat(const char *s)

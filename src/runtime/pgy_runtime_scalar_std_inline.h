@@ -92,9 +92,13 @@ pgy_log_banner(const char *v)
 
 #include <math.h>
 
-PGY_RT_DECL int32_t ToInt(const char *s)    
+/* ToInt reads the leading decimal as a Long (strtoll: it saturates at the
+ * Long bounds) and narrows it to Int by truncation, as `as Int` does. strtol
+ * made the result depend on the width of C long (it clamped on Windows and
+ * wrapped on Linux); every leg now computes this same value. */
+PGY_RT_DECL int32_t ToInt(const char *s)
 #ifndef PGY_RUNTIME_DECLS_ONLY
-{ return s == NULL ? 0 : (int32_t)strtol(s, NULL, 10); }
+{ return s == NULL ? 0 : (int32_t)(uint32_t)(unsigned long long)strtoll(s, NULL, 10); }
 #else
 ;
 #endif

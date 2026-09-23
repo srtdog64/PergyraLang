@@ -235,9 +235,11 @@ func StringRuntimeCStringContainsBlock() -> String {
 }
 
 func StringRuntimeCToIntBlock() -> String {
-    let block: String = Concat("static long long ",
+    // atoll overflow is undefined; read a Long with strtoll and narrow it to
+    // Int by truncation, the value the native runtime's ToInt computes.
+    let block: String = Concat("static int32_t ",
         Concat(StringRuntimeCToIntFn(), "(const char *s)\n{\n"));
-    return Concat(block, "    return atoll(s);\n}\n\n");
+    return Concat(block, "    return (int32_t)(uint32_t)(unsigned long long)strtoll(s, NULL, 10);\n}\n\n");
 }
 
 func StringRuntimeCSplitBlock() -> String {
