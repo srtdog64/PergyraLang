@@ -1,0 +1,11 @@
+// A loop whose condition is not a literal may run zero times.
+func First(limit: Int) -> Int {
+    let i: Int = 0;
+    while i < limit {
+        return i;
+    }
+}
+
+func Main() -> Void {
+    Log(First(3));
+}

@@ -1,0 +1,10 @@
+// A non-Void function whose if has no else can fall off its end.
+func Pick(x: Int) -> Int {
+    if x > 0 {
+        return 1;
+    }
+}
+
+func Main() -> Void {
+    Log(Pick(1));
+}

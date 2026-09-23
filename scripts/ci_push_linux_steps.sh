@@ -48,6 +48,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'bash tests/self_hosted/parity/string_interpolation_escape_parity_owner.sh'
     run 'bash tests/self_hosted/parity/match_subject_family_owner.sh'
     run 'bash tests/self_hosted/parity/never_return_type_owner.sh'
+    run 'bash tests/self_hosted/parity/missing_return_flow_owner.sh'
     run 'bash tests/self_hosted/parity/enum_variant_identity_owner.sh'
     run 'bash tests/self_hosted/parity/destructure_temporary_hygiene_owner.sh'
     run 'bash tests/self_hosted/parity/defer_multi_statement_owner.sh'

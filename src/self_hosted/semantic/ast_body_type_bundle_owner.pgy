@@ -22,6 +22,7 @@ import "ast_zone_spawn_transport_verdict_owner.pgy";
 import "ast_subject_value_boundary_owner.pgy";
 import "ast_single_owner_handle_verdict_owner.pgy";
 import "ast_match_coverage_owner.pgy";
+import "ast_body_flow_verdict_owner.pgy";
 import "ast_intent_retry_admission_owner.pgy";
 import "ast_intent_boundary_predicate_admission_owner.pgy";
 import "ast_action_contract_admission_owner.pgy";
@@ -34,7 +35,8 @@ import "ast_body_type_bundle_schema_owner.pgy";
 func SemanticAstBodyTypeStage(enabled: Bool, stage: String) -> Void { if enabled { Log(Concat("[semantic-body-type-stage] ", stage)); } }
 func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis, observe_pressure: Bool,
-    require_carried_expression_identities: Bool, require_enum_payload_variant_proof: Bool
+    require_carried_expression_identities: Bool, require_enum_payload_variant_proof: Bool,
+    require_source_body_flow: Bool
 ) -> SemanticAstBodyTypeBundle {
     if !SemanticAstBodyAnalysisAdmissionReady(artifact, analysis) {
         return SemanticAstBodyTypeBundleAdmissionError(
@@ -203,10 +205,8 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
         }
     }
     verdict = SemanticAstBodyZoneSpawnBoundaryVerdictFromAdmittedFacts(verdict, artifact, analysis.signatures, analysis.constructors, analysis.expression_surfaces);
-    if verdict.ok {
-        verdict = SemanticAstSingleOwnerHandleVerdictFromResolvedFacts(artifact, analysis,
-            initializer_types, assignment_types, generic_specializations, resolved_leaf_types);
-    }
+    if verdict.ok { verdict = SemanticAstSingleOwnerHandleVerdictFromResolvedFacts(artifact, analysis,
+        initializer_types, assignment_types, generic_specializations, resolved_leaf_types); }
     if verdict.ok && !SemanticAstAnalysisResolveCallReturnTypes(
         artifact, analysis, generic_specializations) {
         verdict = SemanticAstBodyVerdictError("call_return_type_unresolved",
@@ -247,6 +247,9 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
         }
         SemanticAstBodyTypeStage(observe_pressure, "enum-payload-variant:done");
     }
+    // Source-only (a tree rebuilt from MIR lost Never); after body errors, as native.
+    if verdict.ok && require_source_body_flow { verdict = SemanticAstBodyFlowVerdictFromFacts(artifact,
+        analysis.signatures, analysis.statements, statement_types, analysis.expression_surfaces, exhaustive_match_nodes); }
     let capabilities: SemanticAstCapabilityFacts = SemanticAstCapabilityFactsError(
         artifact, "body admission did not reach capability inference");
     if verdict.ok {
@@ -273,7 +276,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(artifact: AstTreeArti
     inout analysis: SemanticAstArtifactAnalysis, observe_pressure: Bool
 ) -> SemanticAstBodyTypeBundle {
     return SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
-        artifact, analysis, observe_pressure, false, true);
+        artifact, analysis, observe_pressure, false, true, true);
 }
 func SemanticAstBodyTypeBundleFromAnalysisObserved(artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis, observe_pressure: Bool

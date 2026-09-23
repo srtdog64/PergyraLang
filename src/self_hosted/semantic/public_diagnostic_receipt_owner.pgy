@@ -104,6 +104,10 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "import-or-declare-symbol"
         );
     }
+    if code == "missing_return" || code == "never_function_fallthrough" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:cfg:missing_return_path", "add-return-on-all-paths");
+    }
     if code == "return_type_mismatch" {
         return SemanticPublicDiagnosticIdentity(
             true,

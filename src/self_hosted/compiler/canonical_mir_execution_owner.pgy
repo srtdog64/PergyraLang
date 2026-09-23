@@ -72,7 +72,7 @@ func CanonicalizeMirJsonVerified(
         );
     let verified: DriverRung2VerifiedFacts =
         VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
-            artifact, analysis, false
+            artifact, analysis, false, false
         );
     if !MirAssignmentBindingModesMatchSemanticFacts(
         routines, emission.expression_order,
@@ -106,7 +106,7 @@ func CanonicalizeOracleMirJsonBridge(
     let verified: DriverRung2VerifiedFacts =
         VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(
             artifact,
-            SemanticAstArtifactAnalyzeTyped(artifact, true), false
+            SemanticAstArtifactAnalyzeTyped(artifact, true), false, false
         );
     return CanonicalizeMirArtifactWithAdmittedTopology(
         artifact, verified, admitted, machine_declaration, identity_epoch

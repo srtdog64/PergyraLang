@@ -1,0 +1,14 @@
+// The enum match is exhaustive, but one case completes without a value.
+enum Light { Red, Green }
+
+func Score(light: Light) -> Int {
+    match light {
+        case Red: return 1;
+        case Green: Log(2);
+    }
+}
+
+func Main() -> Void {
+    let light: Light = Red;
+    Log(Score(light));
+}

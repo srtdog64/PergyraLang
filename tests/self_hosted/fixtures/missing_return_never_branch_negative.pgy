@@ -1,0 +1,10 @@
+// A Never function whose if has no else can complete.
+func Stop(code: Int) -> Never {
+    if code > 0 {
+        Exit(code);
+    }
+}
+
+func Main() -> Void {
+    Stop(1);
+}

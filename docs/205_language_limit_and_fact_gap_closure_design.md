@@ -240,6 +240,11 @@ R6(`inout_argument_alias`, 레드팀 캠페인)도 같은 방식으로 착지했
   검사한다. 마지막 최상위 문장이 `Exit`이거나 다른 Never 함수 호출이어야 하고, 아니면
   `never_function_fallthrough`로 거부한다. 모든 분기가 Never로 끝나는 본문은 native는
   받고 self-host는 거부한다. 틀린 쪽으로 받아들이지 않도록 고른 차이다.
+  (2026-09-23) 이 규칙은 `ast_body_flow_verdict_owner.pgy`로 바뀌었다. native
+  `semantic_check_body_flow_summary`의 흐름 규칙을 그대로 따르므로 모든 분기가 Never로
+  끝나는 본문도 받는다. 같은 owner가 non-Void 함수의 반환 누락을 `missing_return`
+  (PGY_SEM_MISSING_RETURN)으로 거부한다. 전에는 default route가 이 검사 없이 함수 끝을
+  지나 흘러가는 코드를 냈다(red-team 감사 M8).
 - 게이트: `tests/self_hosted/parity/never_return_type_owner.sh`(push CI core shard).
 - **L1b (LLVM) 착지.** 확인 중에 이름 추측이 오컴파일을 만든다는 것이 드러났다. LLVM 속성
   패스는 모듈의 **모든** 함수에 이름 표(`panic`을 포함하거나 `pgy_exit`)를 적용했다.

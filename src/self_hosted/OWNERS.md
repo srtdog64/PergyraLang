@@ -627,13 +627,17 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   finished or dropped once in its declaration scope before any return.
   `tests/self_hosted/parity/single_owner_handle_owner.sh` checks it against
   native semantic.
-- `src/self_hosted/semantic/ast_never_function_verdict_owner.pgy` --
-  refuses a `-> Never` function whose body can complete. It is conservative:
-  the last top-level statement must be Exit or a call to another Never
-  function; the statement type facts owner reports `never_function_fallthrough`.
+- `src/self_hosted/semantic/ast_body_flow_verdict_owner.pgy` -- body flow of
+  every callable with a declared result, by native's
+  `semantic_check_body_flow_summary` rules: `missing_return` for a non-Void
+  body that can complete, `never_function_fallthrough` and a visited `return`
+  (`return_type_mismatch`) for a `-> Never` one. The body type bundle runs it
+  last, on source artifacts only (`require_source_body_flow`): a tree rebuilt
+  from MIR has lost Never types, and the source producer already ran the rule.
+  It reads the exhaustive match rows of enum match coverage.
 - `src/self_hosted/semantic/ast_declaration_contract_owner.pgy` -- program-wide
-  declaration contracts checked once after statement typing: the Never tail rule
-  above and `enum_variant_redeclaration` for a variant name two enums declare.
+  declaration contracts checked once after statement typing:
+  `enum_variant_redeclaration` for a variant name two enums declare.
 - `src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy` --
   target-neutral admission for local zone-resource value carriage. It joins
   admitted resource shape, initializer/assignment types, and resolved fresh

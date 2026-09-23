@@ -52,6 +52,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "let_type_mismatch",
         "return_type_mismatch",
         "never_function_fallthrough",
+        "missing_return",
         "enum_variant_redeclaration",
         "builtin_name_reserved",
         "condition_not_bool",
@@ -196,7 +197,9 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     if code == "return_type_mismatch" {
         return "PGY_SEM_TYPE_MISMATCH";
     }
-    if code == "never_function_fallthrough" { return "PGY_SEM_MISSING_RETURN"; }
+    if code == "never_function_fallthrough" || code == "missing_return" {
+        return "PGY_SEM_MISSING_RETURN";
+    }
     if code == "enum_variant_redeclaration" { return "PGY_SEM_REDECLARATION"; }
     if code == "builtin_name_reserved" { return "PGY_SEM_REDECLARATION"; }
     if code == "condition_not_bool" {

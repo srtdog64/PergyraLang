@@ -21,7 +21,7 @@ import "ast_generic_specialization_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_identity_fact_owner.pgy";
 import "ast_nominal_constructor_lookup_owner.pgy";
-import "ast_never_function_verdict_owner.pgy";
+import "ast_body_flow_verdict_owner.pgy";
 import "wrapper_type_owner.pgy";
 import "diagnostic_owner.pgy";
 
@@ -120,8 +120,13 @@ func SemanticSingleOwnerHandleLocals(
                 let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
                     analysis.signatures, function_id);
                 if !IsSome(signature) { return SemanticSingleOwnerHandleInvalid("TextBuilderOwner", node_id); }
-                let body: Option<Int> = SemanticAstNeverFunctionBodyBlock(
-                    artifact, analysis.signatures, UnwrapOption(signature));
+                let signature_index: Int = UnwrapOption(signature);
+                if signature_index >= ArrayLength(analysis.signatures.action_contracts.body_node_ids) ||
+                    analysis.signatures.action_contracts.body_node_ids[signature_index] < 0 {
+                    return SemanticSingleOwnerHandleInvalid("TextBuilderOwner", node_id);
+                }
+                let body: Option<Int> = SemanticAstBodyFlowBlockChild(artifact,
+                    analysis.signatures.action_contracts.body_node_ids[signature_index]);
                 if !IsSome(body) || UnwrapOption(body) != analysis.local_bindings.scope_node_ids[row] {
                     return SemanticAstBodyVerdictError("single_owner_handle_owner_required", SemanticError2(
                         "single_owner_handle_owner_required", "operation", "TextBuilderNew",

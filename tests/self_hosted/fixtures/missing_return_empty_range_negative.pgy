@@ -1,0 +1,10 @@
+// A literal range with no iterations never runs its body.
+func Zero() -> Int {
+    for i in 0..0 {
+        return i;
+    }
+}
+
+func Main() -> Void {
+    Log(Zero());
+}

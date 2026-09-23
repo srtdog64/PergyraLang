@@ -1,0 +1,7 @@
+// A non-Void function with an empty body, never called (PP-017). The default
+// route once reached MIR lowering with it and failed there, not in semantic.
+func T() -> Int {
+}
+
+func Main() -> Void {
+}

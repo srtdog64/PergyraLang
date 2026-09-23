@@ -78,6 +78,7 @@ func SemanticReason(code: String) -> String {
     if code == "builtin_arg_type_mismatch" { return "builtin argument type does not match the builtin contract"; }
     if code == "option_concrete_type_required" { return "Option builtin requires a concrete Option<T> payload type"; }
     if code == "never_function_fallthrough" { return "a Never function must not complete; its body can reach its end"; }
+    if code == "missing_return" { return "a function with a result type must return on every path; its body can reach its end"; }
     if code == "value_param_collection_mutation" {
         return "caller-visible collection mutation requires an explicit inout boundary";
     }
@@ -222,6 +223,7 @@ func SemanticFix(code: String) -> String {
     }
     if code == "option_concrete_type_required" { return "annotate the None value or pass a concretely typed Option<T>"; }
     if code == "never_function_fallthrough" { return "end the body in Exit(code) or a call to another Never function"; }
+    if code == "missing_return" { return "add a return on the path that reaches the end, or declare the result Void"; }
     if code == "enum_variant_redeclaration" { return "rename one of the variants"; }
     if code == "builtin_name_reserved" { return "rename the function"; }
     if code == "value_param_collection_mutation" {

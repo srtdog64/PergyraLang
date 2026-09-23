@@ -1,0 +1,11 @@
+// A for-each loop may run zero times.
+func Head(values: Array<Int>) -> Int {
+    for v in values {
+        return v;
+    }
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [4, 5];
+    Log(Head(values));
+}

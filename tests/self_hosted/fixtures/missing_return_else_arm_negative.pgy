@@ -1,0 +1,14 @@
+// One arm of an else-if chain completes without a value.
+func Pick(x: Int) -> Int {
+    if x > 0 {
+        return 1;
+    } else if x < 0 {
+        return 2;
+    } else {
+        Log(x);
+    }
+}
+
+func Main() -> Void {
+    Log(Pick(1));
+}

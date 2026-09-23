@@ -6301,6 +6301,12 @@ reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "Chec
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 305
+# Body flow has one owner; the conservative Never tail rule stays deleted.
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    "SemanticAstBodyFlowVerdictFromFacts("
+reject_file "src/self_hosted/semantic/ast_never_function_verdict_owner.pgy"
+reject_text "src/self_hosted/semantic/ast_declaration_contract_owner.pgy" \
+    "never_function_fallthrough"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy" "struct SemanticAstBodyTypeBundle"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleFromAnalysis"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \

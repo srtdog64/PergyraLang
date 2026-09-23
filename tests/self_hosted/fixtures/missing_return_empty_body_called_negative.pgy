@@ -1,0 +1,7 @@
+// A non-Void function with an empty body whose result is used.
+func T() -> Int {
+}
+
+func Main() -> Void {
+    Log(T());
+}

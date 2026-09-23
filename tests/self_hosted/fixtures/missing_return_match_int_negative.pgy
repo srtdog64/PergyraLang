@@ -1,0 +1,11 @@
+// An Int match without a default can match no case.
+func Scale(x: Int) -> Int {
+    match x {
+        case 1: return 10;
+        case 2: return 20;
+    }
+}
+
+func Main() -> Void {
+    Log(Scale(1));
+}

@@ -1,0 +1,14 @@
+// A break leaves `while true`, so the function can reach its end.
+func Scan(limit: Int) -> Int {
+    let i: Int = 0;
+    while true {
+        if i >= limit {
+            break;
+        }
+        i = i + 1;
+    }
+}
+
+func Main() -> Void {
+    Log(Scan(3));
+}

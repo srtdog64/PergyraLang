@@ -1,0 +1,125 @@
+// Every non-Void function below returns or stops on every path, by the
+// flow rules native semantic applies (src/semantic/type_checker_flow*.c).
+enum Light { Red, Green }
+
+func Die(message: String) -> Never {
+    Log(message);
+    Exit(9);
+}
+
+func Sign(x: Int) -> Int {
+    if x > 0 {
+        return 1;
+    } else if x < 0 {
+        return 0 - 1;
+    } else {
+        return 0;
+    }
+}
+
+func Classify(x: Int) -> Int {
+    match x {
+        case 1: return 10;
+        default: return 0;
+    }
+}
+
+func Score(light: Light) -> Int {
+    match light {
+        case Red: return 1;
+        case Green: return 2;
+    }
+}
+
+func OrZero(value: Option<Int>) -> Int {
+    match value {
+        case Some(v): return v;
+        case None: return 0;
+    }
+}
+
+func FirstAtLeast(limit: Int) -> Int {
+    let i: Int = 0;
+    while true {
+        if i >= limit {
+            return i;
+        }
+        i = i + 1;
+    }
+}
+
+func Countdown(start: Int) -> Int {
+    let n: Int = start;
+    loop {
+        if n <= 0 {
+            return n;
+        }
+        n = n - 1;
+    }
+}
+
+func Pick(flag: Bool) -> Int {
+    if flag {
+        return 1;
+    } else {
+        Die("no pick");
+    }
+}
+
+func Code(flag: Bool) -> Int {
+    if flag {
+        return 7;
+    }
+    Exit(3);
+}
+
+func Always() -> Int {
+    if true {
+        return 5;
+    }
+}
+
+func FirstIndex() -> Int {
+    for i in 0..3 {
+        return i;
+    }
+}
+
+func LiteralArm() -> Int {
+    match 2 {
+        case 1: return 1;
+        case 2: return 2;
+    }
+}
+
+func Stop(code: Int) -> Never {
+    if code > 0 {
+        Exit(code);
+    } else {
+        Die("stop");
+    }
+}
+
+func Main() -> Void {
+    Log(Sign(5));
+    Log(Sign(0 - 5));
+    Log(Sign(0));
+    Log(Classify(1));
+    Log(Classify(2));
+    let red: Light = Red;
+    let green: Light = Green;
+    Log(Score(red));
+    Log(Score(green));
+    let some: Option<Int> = Some(4);
+    let none: Option<Int> = None;
+    Log(OrZero(some));
+    Log(OrZero(none));
+    Log(FirstAtLeast(3));
+    Log(Countdown(2));
+    Log(Pick(true));
+    Log(Code(true));
+    Log(Always());
+    Log(FirstIndex());
+    Log(LiteralArm());
+    Stop(0);
+}

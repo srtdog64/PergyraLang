@@ -377,9 +377,9 @@ func Pick(flag: Bool) -> Int {
   반환 누락이 아니고, 그 뒤 문장은 도달할 수 없다는 경고를 받는다.
 - `-> Never` 함수는 `return`을 쓸 수 없고, 어떤 경로도 끝까지 흘러가면 안 된다.
 - `Never`는 값이 아니다. `let x: Int = Die("x");`처럼 값 위치에 쓰면 타입 불일치다.
-- self-host 컴파일러는 아직 보수적으로 검사한다. 본문의 마지막 최상위 문장이 `Exit`이거나
-  다른 `Never` 함수 호출이어야 하며, 모든 분기가 `Never`로 끝나는 본문은 거부한다
-  (`docs/205_language_limit_and_fact_gap_closure_design.md` L1).
+- native와 self-host 컴파일러는 같은 흐름 규칙으로 검사한다. 모든 분기가 `Never`로 끝나는
+  본문은 받고, 끝까지 흘러갈 수 있는 non-`Void` 본문은 `PGY_SEM_MISSING_RETURN`으로
+  거부한다(`docs/205_language_limit_and_fact_gap_closure_design.md` L1).
 
 ### 2.3 타입 선언
 
