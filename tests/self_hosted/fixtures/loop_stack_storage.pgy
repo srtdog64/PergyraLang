@@ -1,0 +1,39 @@
+// Loop-body temporaries (red-team audit R5). MapNew, MapSet and MapGet carry
+// map and value temporaries, and StringSplit returns its array through a
+// caller slot. A temporary placed in a loop body takes a new stack slot on
+// every round, so two million rounds overflow the stack. Entry-block storage
+// takes one slot per call.
+func CountRound(limit: Int) -> Int {
+    let seen: HashMap<Int, Int> = MapNew();
+    let found: Int = 0;
+    let i: Int = 0;
+    while i < limit {
+        MapSet(seen, i, 1);
+        found = found + MapGet(seen, i);
+        MapRemove(seen, i);
+        let parts: Array<String> = StringSplit("a,b", ",");
+        found = found + ArrayLength(parts);
+        i = i + 1;
+    }
+    return found;
+}
+
+func Main() -> Void {
+    let counts: HashMap<Int, Int> = MapNew();
+    let hits: Int = 0;
+    let checksum: Int = 0;
+    let i: Int = 0;
+    while i < 2000000 {
+        MapSet(counts, i, i % 7);
+        if MapHas(counts, i) {
+            hits = hits + 1;
+            checksum = (checksum + MapGet(counts, i)) % 1000;
+        }
+        MapRemove(counts, i);
+        i = i + 1;
+    }
+    Log(MapSize(counts));
+    Log(hits);
+    Log(checksum);
+    Log(CountRound(2000000));
+}

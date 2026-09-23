@@ -1,0 +1,19 @@
+// A parallel join inside a loop (red-team audit R5, native LLVM). The join
+// sizes its task contexts and handles by the fan-out, which is known only at
+// run time, so that storage cannot move to the entry block. Unless the join
+// gives the stack back when it completes, 400 rounds of a 4096-way fan-out
+// overflow the stack.
+func Main() -> Void {
+    let mut buckets: Array<Int> = [];
+    let mut k: Int = 0;
+    while k < 4096 { ArrayPush(buckets, 0); k = k + 1; }
+    let round: Int = 0;
+    while round < 400 {
+        parallel (i in 0..4096) join with all {
+            buckets[i] = buckets[i] + 1;
+        }
+        round = round + 1;
+    }
+    Log(buckets[0]);
+    Log(buckets[4095]);
+}
