@@ -95,6 +95,10 @@ func AstExpressionStringLiteralPayloadReady(text: String) -> Bool {
     return true;
 }
 
+// The payload is the digits of a Long literal plus `L`; the sign is a
+// separate unary minus. Native parses it with strtoll and refuses ERANGE, so
+// the digits may not exceed 9223372036854775807 here either. Without this
+// the C emitter pasted the text and the C compiler wrapped it.
 func AstExpressionLongLiteralPayloadReady(text: String) -> Bool {
     let n: Int = StringLength(text);
     if n < 2 || CodegenCharAt(text, n - 1) != "L" { return false; }
@@ -102,6 +106,29 @@ func AstExpressionLongLiteralPayloadReady(text: String) -> Bool {
     while i < n - 1 {
         if StringIndexOf("0123456789", CodegenCharAt(text, i)) < 0 {
             return false;
+        }
+        i = i + 1;
+    }
+    return AstExpressionLongLiteralDigitsInRange(text, n - 1);
+}
+
+func AstExpressionLongLiteralDigitsInRange(text: String, digits: Int) -> Bool {
+    let limit: String = "9223372036854775807";
+    let limit_length: Int = StringLength(limit);
+    let start: Int = 0;
+    while start < digits - 1 && CodegenCharAt(text, start) == "0" {
+        start = start + 1;
+    }
+    let length: Int = digits - start;
+    if length != limit_length {
+        return length < limit_length;
+    }
+    let i: Int = 0;
+    while i < length {
+        let digit: Int = CodegenCharCodeAt(text, StringLength(text), start + i);
+        let bound: Int = CodegenCharCodeAt(limit, limit_length, i);
+        if digit != bound {
+            return digit < bound;
         }
         i = i + 1;
     }
