@@ -200,14 +200,10 @@ PGY_RT_PROGRAM_BODY({ \
     uint8_t *new_occupied; \
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_STRING) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map key storage kind mismatch"); \
-    if (m->capacity == 0) { \
-        new_capacity = PGY_HASHMAP_INIT_CAP; \
-    } else { \
-        if (m->capacity > SIZE_MAX / 2) { \
-            pgy_runtime_panic_collection_oom("map_grow_" #SuffixName, "capacity overflow"); \
-            return false; \
-        } \
-        new_capacity = m->capacity * 2; \
+    new_capacity = pgy_hashmap_rebuild_capacity(m->capacity, m->count, PGY_HASHMAP_INIT_CAP); \
+    if (new_capacity == 0) { \
+        pgy_runtime_panic_collection_oom("map_grow_" #SuffixName, "capacity overflow"); \
+        return false; \
     } \
     if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(new_capacity, CType)) { \
         pgy_runtime_panic_collection_oom("map_grow_" #SuffixName, "allocation size overflow"); \
@@ -372,10 +368,10 @@ PGY_RT_PROGRAM_BODY({ \
     size_t new_capacity; int32_t *new_keys; CType *new_values; uint8_t *new_occupied; \
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_I32) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map key storage kind mismatch"); \
-    if (m->capacity > SIZE_MAX / 2) { \
+    new_capacity = pgy_hashmap_rebuild_capacity(m->capacity, m->count, PGY_HASHMAP_INIT_CAP); \
+    if (new_capacity == 0) { \
         pgy_runtime_panic_collection_oom("map_grow_i32_" #SuffixName, "capacity overflow"); return false; \
     } \
-    new_capacity = m->capacity == 0 ? PGY_HASHMAP_INIT_CAP : m->capacity * 2; \
     if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(new_capacity, CType)) { \
         pgy_runtime_panic_collection_oom("map_grow_i32_" #SuffixName, "allocation size overflow"); return false; \
     } \
@@ -469,10 +465,10 @@ PGY_RT_PROGRAM_BODY({ \
     size_t new_capacity; int64_t *new_keys; CType *new_values; uint8_t *new_occupied; \
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_I64) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map key storage kind mismatch"); \
-    if (m->capacity > SIZE_MAX / 2) { \
+    new_capacity = pgy_hashmap_rebuild_capacity(m->capacity, m->count, PGY_HASHMAP_INIT_CAP); \
+    if (new_capacity == 0) { \
         pgy_runtime_panic_collection_oom("map_grow_i64_" #SuffixName, "capacity overflow"); return false; \
     } \
-    new_capacity = m->capacity == 0 ? PGY_HASHMAP_INIT_CAP : m->capacity * 2; \
     if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(new_capacity, CType)) { \
         pgy_runtime_panic_collection_oom("map_grow_i64_" #SuffixName, "allocation size overflow"); return false; \
     } \
@@ -565,10 +561,10 @@ PGY_RT_PROGRAM_BODY({ \
     size_t new_capacity; bool *new_keys; CType *new_values; uint8_t *new_occupied; \
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_BOOL) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map key storage kind mismatch"); \
-    if (m->capacity > SIZE_MAX / 2) { \
+    new_capacity = pgy_hashmap_rebuild_capacity(m->capacity, m->count, PGY_HASHMAP_INIT_CAP); \
+    if (new_capacity == 0) { \
         pgy_runtime_panic_collection_oom("map_grow_bool_" #SuffixName, "capacity overflow"); return false; \
     } \
-    new_capacity = m->capacity == 0 ? PGY_HASHMAP_INIT_CAP : m->capacity * 2; \
     if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(new_capacity, CType)) { \
         pgy_runtime_panic_collection_oom("map_grow_bool_" #SuffixName, "allocation size overflow"); return false; \
     } \

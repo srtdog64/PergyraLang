@@ -106,7 +106,7 @@ expect_child_panic runtime generic-invalid-mapkeys \
 
 for required in PGY_HASHMAP_KEY_STORAGE_STRING pgy_runtime_strdup \
     'PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM' pgy_map_keys_raw_export \
-    pgy_runtime_panic_collection_oom; do
+    pgy_runtime_panic_collection_oom pgy_hashmap_rebuild_capacity; do
     grep -R -Fq "$required" src/runtime || { echo "[hashmap-string-runtime] missing owner term: $required" >&2; exit 1; }
 done
 

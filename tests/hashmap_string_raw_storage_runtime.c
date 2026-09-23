@@ -5,7 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TEST_ALLOCATION_CAPACITY 4096
+/* Every allocation keeps its record and stays quarantined (poisoned, never
+ * reused) for the whole run, so the registry must hold every allocation of the
+ * tombstone churn (three per pair plus rebuild arrays) and live growth. */
+#define TEST_ALLOCATION_CAPACITY 524288
+#define CHURN_PAIRS 100000
+#define LIVE_KEYS 10000
 
 typedef struct TestAllocationRecord {
     void *ptr;
@@ -265,6 +270,48 @@ static bool string_value_self_alias_is_owned(void) {
     drop_raw(&map, true); return true;
 }
 
+/* Each pair inserts a new key and removes it again. A rebuild at 75% load
+ * counts tombstones, so it must keep the capacity while the live entries fit
+ * in half of it; doubling on every rebuild grew such a map without bound.
+ * The quarantine allocator poisons every array a rebuild frees. */
+static bool tombstone_churn_keeps_capacity(void) {
+    PgyHashMapRaw scalar = {0}, strings = {0};
+    char key[32]; int32_t value; bool ok;
+    pgy_map_new_raw_export(&scalar, sizeof(value), PGY_HASHMAP_KEY_STORAGE_STRING);
+    pgy_map_new_raw_export(&strings, sizeof(char *), PGY_HASHMAP_KEY_STORAGE_STRING);
+    for (int i = 0; i < CHURN_PAIRS; i++) {
+        snprintf(key, sizeof(key), "churn-%d", i); value = i;
+        pgy_map_set_raw_export(&scalar, key, &value, sizeof(value));
+        pgy_map_remove_raw_export(&scalar, key, sizeof(value));
+        pgy_map_set_string_value_raw_export(&strings, key, "value");
+        pgy_map_remove_string_value_raw_export(&strings, key);
+    }
+    ok = scalar.capacity <= 64 && scalar.count == 0
+        && strings.capacity <= 64 && strings.count == 0;
+    if (!ok)
+        fprintf(stderr, "raw churn capacity scalar=%zu string=%zu\n",
+                scalar.capacity, strings.capacity);
+    drop_raw(&scalar, false); drop_raw(&strings, true);
+    return ok;
+}
+
+static bool live_keys_still_grow(void) {
+    PgyHashMapRaw map = {0}; char key[32]; int32_t value, actual; bool ok = true;
+    pgy_map_new_raw_export(&map, sizeof(value), PGY_HASHMAP_KEY_STORAGE_STRING);
+    for (int i = 0; i < LIVE_KEYS; i++) {
+        snprintf(key, sizeof(key), "live-%d", i); value = i + 7;
+        pgy_map_set_raw_export(&map, key, &value, sizeof(value));
+    }
+    for (int i = 0; i < LIVE_KEYS && ok; i++) {
+        snprintf(key, sizeof(key), "live-%d", i); actual = 0;
+        pgy_map_get_raw_export(&map, key, &actual, sizeof(actual));
+        ok = actual == i + 7;
+    }
+    ok = ok && map.count == LIVE_KEYS && map.capacity >= 16384;
+    drop_raw(&map, false);
+    return ok;
+}
+
 static bool production_drop_is_exact_and_idempotent(void) {
     PgyHashMapRaw scalar = {0}, strings = {0}, scalar_keys = {0};
     int32_t value = 1; size_t before;
@@ -300,5 +347,9 @@ int main(int argc, char **argv) {
         || !grow_value_slot_alias_is_snapshotted()
         || !string_value_self_alias_is_owned()
         || !production_drop_is_exact_and_idempotent()) return 3;
+    if (!tombstone_churn_keeps_capacity() || !live_keys_still_grow()) {
+        fputs("raw tombstone rebuild capacity gate failed\n", stderr);
+        return 4;
+    }
     puts("hashmap raw string storage runtime: ok"); return 0;
 }

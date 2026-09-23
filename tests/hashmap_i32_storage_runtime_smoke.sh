@@ -66,7 +66,8 @@ for required in \
     'pgy_hashmap_hash_i32' \
     'PGY_HASHMAP_KEY_STORAGE_I32' \
     'map->deleted_count' \
-    'pgy_map_raw_require_storage_kind'; do
+    'pgy_map_raw_require_storage_kind' \
+    'pgy_hashmap_rebuild_capacity'; do
     grep -R -Fq "$required" src/runtime || {
         echo "[hashmap-i32-runtime] required owner term missing: $required" >&2
         exit 1

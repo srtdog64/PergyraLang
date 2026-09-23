@@ -227,11 +227,11 @@ static inline bool pgy_map_grow_int(PgyHashMap_Int *m)
     void *new_keys;
     int32_t *new_values;
     uint8_t *new_occupied;
-    if (key_size == 0 || m->capacity > SIZE_MAX / 2) {
+    new_capacity = pgy_hashmap_rebuild_capacity(m->capacity, m->count, PGY_HASHMAP_INIT_CAP);
+    if (key_size == 0 || new_capacity == 0) {
         pgy_runtime_panic_invalid_collection("map_grow_int", "invalid storage or capacity overflow");
         return false;
     }
-    new_capacity = m->capacity == 0 ? PGY_HASHMAP_INIT_CAP : m->capacity * 2;
     if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(new_capacity, int32_t)
         || new_capacity > SIZE_MAX / key_size) {
         pgy_runtime_panic_collection_oom("map_grow_int", "allocation size overflow");

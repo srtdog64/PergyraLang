@@ -60,4 +60,22 @@ pgy_hashmap_key_storage_size(PgyHashMapKeyStorageKind kind)
     return 0;
 }
 
+/* Capacity for a rebuild that insertion triggers at 75% load, tombstones
+ * included. A table whose live entries fit in half of it is rebuilt at the
+ * same capacity, which drops the tombstones; only a table at least half live
+ * doubles. Counting tombstones alone would double a set/remove workload with
+ * no live entries forever. 0 means the doubled capacity overflows size_t. */
+static inline size_t
+pgy_hashmap_rebuild_capacity(size_t capacity, size_t live_count,
+                             size_t initial_capacity)
+{
+    if (capacity == 0)
+        return initial_capacity;
+    if (live_count < capacity / 2)
+        return capacity;
+    if (capacity > SIZE_MAX / 2)
+        return 0;
+    return capacity * 2;
+}
+
 #endif /* PGY_RUNTIME_HASHMAP_KEY_STORAGE_OWNER_H */

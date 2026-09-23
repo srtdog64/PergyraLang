@@ -185,11 +185,11 @@ pgy_map_grow_raw_export(PgyHashMapRaw *map, int64_t value_size)
         pgy_runtime_panic_invalid_collection("map_grow", "invalid key storage kind");
         return false;
     }
-    if (map->capacity > SIZE_MAX / 2) {
+    size_t new_capacity = pgy_hashmap_rebuild_capacity(map->capacity, map->count, 16);
+    if (new_capacity == 0) {
         pgy_runtime_panic_collection_oom("map_grow", "capacity overflow");
         return false;
     }
-    size_t new_capacity = map->capacity == 0 ? 16 : map->capacity * 2;
     if (!pgy_map_raw_shape_fits(new_capacity, elem_size)
         || new_capacity > SIZE_MAX / key_size) {
         pgy_runtime_panic_collection_oom("map_grow", "allocation size overflow");

@@ -47,6 +47,9 @@ hashmap_string_test_free(void *ptr)
 PGY_HASHMAP_DEFINE(TestValue, uint16_t)
 PGY_DEFINE_MAP_KEYS_EXPORTS(TestValue, test_value)
 
+#define CHURN_PAIRS 100000
+#define LIVE_KEYS 10000
+
 static void
 drop_int_map(PgyHashMap_Int *map)
 {
@@ -252,6 +255,65 @@ string_value_self_alias_is_owned(void)
     return true;
 }
 
+/* Each pair inserts a new key and removes it again. A rebuild at 75% load
+ * counts tombstones, so it must keep the capacity while the live entries fit
+ * in half of it; doubling on every rebuild grew such a map without bound.
+ * HashMap<String, String> deletes by backward shift and has no tombstones, so
+ * its capacity must stay at the initial size. */
+static bool
+tombstone_churn_keeps_capacity(void)
+{
+    PgyHashMap_Int ints = pgy_map_new_int();
+    PgyHashMap_TestValue generic = pgy_map_new_TestValue();
+    PgyHashMap_String strings = pgy_map_new_string();
+    char key[32];
+    bool ok;
+    for (int i = 0; i < CHURN_PAIRS; i++) {
+        snprintf(key, sizeof(key), "churn-%d", i);
+        pgy_map_set_int(&ints, key, i);
+        pgy_map_remove_int(&ints, key);
+        pgy_map_set_TestValue(&generic, key, (uint16_t)i);
+        pgy_map_remove_TestValue(&generic, key);
+        pgy_map_set_string(&strings, key, "value");
+        pgy_map_remove_string(&strings, key);
+    }
+    ok = ints.capacity <= 64 && ints.count == 0
+        && generic.capacity <= 64 && generic.count == 0
+        && strings.capacity <= 64 && strings.count == 0
+        && strings.deleted_count == 0;
+    if (!ok)
+        fprintf(stderr, "churn capacity int=%zu generic=%zu string=%zu\n",
+                ints.capacity, generic.capacity, strings.capacity);
+    drop_int_map(&ints);
+    pgy_map_drop_TestValue(&generic);
+    drop_string_map(&strings);
+    return ok;
+}
+
+static bool
+live_keys_still_grow(void)
+{
+    PgyHashMap_Int ints = pgy_map_new_int();
+    PgyHashMap_TestValue generic = pgy_map_new_TestValue();
+    char key[32];
+    bool ok = true;
+    for (int i = 0; i < LIVE_KEYS; i++) {
+        snprintf(key, sizeof(key), "live-%d", i);
+        pgy_map_set_int(&ints, key, i + 7);
+        pgy_map_set_TestValue(&generic, key, (uint16_t)(i + 3));
+    }
+    for (int i = 0; i < LIVE_KEYS && ok; i++) {
+        snprintf(key, sizeof(key), "live-%d", i);
+        ok = pgy_map_get_int(&ints, key) == i + 7
+            && pgy_map_get_TestValue(&generic, key) == (uint16_t)(i + 3);
+    }
+    ok = ok && ints.count == LIVE_KEYS && ints.capacity >= 16384
+        && generic.count == LIVE_KEYS && generic.capacity >= 16384;
+    drop_int_map(&ints);
+    pgy_map_drop_TestValue(&generic);
+    return ok;
+}
+
 static bool
 key_shapes_and_snapshot_are_owned(void)
 {
@@ -378,6 +440,10 @@ main(int argc, char **argv)
         || !production_drop_is_exact_and_idempotent()) {
         fputs("String ownership/update gate failed\n", stderr);
         return 3;
+    }
+    if (!tombstone_churn_keeps_capacity() || !live_keys_still_grow()) {
+        fputs("tombstone rebuild capacity gate failed\n", stderr);
+        return 4;
     }
     puts("hashmap string storage runtime: ok");
     return 0;

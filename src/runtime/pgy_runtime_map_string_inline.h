@@ -257,15 +257,11 @@ PGY_RT_DECL void pgy_map_set_string(PgyHashMap_String *m, const char *key, const
         char **new_keys;
         char **new_values;
         uint8_t *new_occupied;
-        if (m->capacity == 0) {
-            new_capacity = PGY_HASHMAP_INIT_CAP;
-        } else {
-            if (m->capacity > SIZE_MAX / 2) {
-                free(owned_key); free(owned_value);
-                pgy_runtime_panic_collection_oom("map_set_string", "capacity overflow");
-                return;
-            }
-            new_capacity = m->capacity * 2;
+        new_capacity = pgy_hashmap_rebuild_capacity(m->capacity, m->count, PGY_HASHMAP_INIT_CAP);
+        if (new_capacity == 0) {
+            free(owned_key); free(owned_value);
+            pgy_runtime_panic_collection_oom("map_set_string", "capacity overflow");
+            return;
         }
         if (!pgy_map_string_capacity_fits(new_capacity)) {
             free(owned_key); free(owned_value);
@@ -446,12 +442,11 @@ PGY_RT_DECL bool pgy_map_grow_i32_string(PgyHashMap_String *m)
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_I32)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                           "map key storage kind mismatch");
-    if (m->capacity > SIZE_MAX / 2) {
+    new_capacity = pgy_hashmap_rebuild_capacity(m->capacity, m->count, PGY_HASHMAP_INIT_CAP);
+    if (new_capacity == 0) {
         pgy_runtime_panic_collection_oom("map_grow_i32_string", "capacity overflow");
         return false;
     }
-    new_capacity = m->capacity == 0
-        ? PGY_HASHMAP_INIT_CAP : m->capacity * 2;
     if (!pgy_map_string_capacity_fits(new_capacity)) {
         pgy_runtime_panic_collection_oom("map_grow_i32_string", "capacity overflow");
         return false;
@@ -606,12 +601,11 @@ PGY_RT_DECL bool pgy_map_grow_i64_string(PgyHashMap_String *m)
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_I64)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                           "map key storage kind mismatch");
-    if (m->capacity > SIZE_MAX / 2) {
+    new_capacity = pgy_hashmap_rebuild_capacity(m->capacity, m->count, PGY_HASHMAP_INIT_CAP);
+    if (new_capacity == 0) {
         pgy_runtime_panic_collection_oom("map_grow_i64_string", "capacity overflow");
         return false;
     }
-    new_capacity = m->capacity == 0
-        ? PGY_HASHMAP_INIT_CAP : m->capacity * 2;
     if (!pgy_map_string_capacity_fits(new_capacity)) {
         pgy_runtime_panic_collection_oom("map_grow_i64_string", "capacity overflow");
         return false;
@@ -779,7 +773,7 @@ PGY_RT_DECL void pgy_map_set_bool_string(PgyHashMap_String *m, bool key, const c
         bool *old_keys = PGY_HASHMAP_BOOL_KEYS(m);
         char **old_values = m->values;
         uint8_t *old_occupied = m->occupied;
-        size_t new_capacity = m->capacity > SIZE_MAX / 2 ? 0 : m->capacity * 2;
+        size_t new_capacity = pgy_hashmap_rebuild_capacity(m->capacity, m->count, PGY_HASHMAP_INIT_CAP);
         bool *new_keys;
         char **new_values;
         uint8_t *new_occupied;

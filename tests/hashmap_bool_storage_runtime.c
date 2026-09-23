@@ -111,6 +111,9 @@ run_child_mode(const char *name)
     return 98;
 }
 
+/* A Bool-keyed map holds at most two keys, so remove/reinsert leaves at most
+ * two tombstones and never reaches the rebuild threshold; the churn below is
+ * the tombstone regression for this key kind (capacity stays initial). */
 static bool
 identity_update_churn_and_keys(void)
 {

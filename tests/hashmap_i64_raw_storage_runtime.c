@@ -21,6 +21,9 @@ hashmap_raw_test_calloc(size_t count, size_t size)
 #define PGY_LLVM_ENABLED
 #include "runtime/pgy_runtime_lib.c"
 
+#define CHURN_PAIRS 100000
+#define LIVE_KEYS 10000
+
 static void
 drop_raw_map(PgyHashMapRaw *map)
 {
@@ -165,6 +168,54 @@ existing_update_never_grows(void)
     return true;
 }
 
+/* Each pair inserts a new key and removes it again. A rebuild at 75% load
+ * counts tombstones, so it must keep the capacity while the live entries fit
+ * in half of it; doubling on every rebuild grew such a map without bound. */
+static bool
+tombstone_churn_keeps_capacity(void)
+{
+    PgyHashMapRaw map = {0};
+    int32_t value;
+    bool ok;
+    pgy_map_new_raw_export(&map, (int64_t)sizeof(value),
+                           PGY_HASHMAP_KEY_STORAGE_I64);
+    for (int64_t i = 0; i < CHURN_PAIRS; i++) {
+        int64_t key = i * INT64_C(4294967296) + 7;
+        value = (int32_t)i;
+        pgy_map_set_raw_i64_export(&map, key, &value, (int64_t)sizeof(value));
+        pgy_map_remove_raw_i64_export(&map, key, (int64_t)sizeof(value));
+    }
+    ok = map.capacity <= 64 && map.count == 0;
+    if (!ok)
+        fprintf(stderr, "raw churn capacity=%zu\n", map.capacity);
+    drop_raw_map(&map);
+    return ok;
+}
+
+static bool
+live_keys_still_grow(void)
+{
+    PgyHashMapRaw map = {0};
+    int32_t value;
+    bool ok = true;
+    pgy_map_new_raw_export(&map, (int64_t)sizeof(value),
+                           PGY_HASHMAP_KEY_STORAGE_I64);
+    for (int64_t i = 0; i < LIVE_KEYS; i++) {
+        value = (int32_t)i + 1;
+        pgy_map_set_raw_i64_export(&map,
+            i * INT64_C(4294967296) + 7, &value, (int64_t)sizeof(value));
+    }
+    for (int64_t i = 0; i < LIVE_KEYS && ok; i++) {
+        int32_t actual = 0;
+        pgy_map_get_raw_i64_export(&map,
+            i * INT64_C(4294967296) + 7, &actual, (int64_t)sizeof(actual));
+        ok = actual == (int32_t)i + 1;
+    }
+    ok = ok && map.count == LIVE_KEYS && map.capacity >= 16384;
+    drop_raw_map(&map);
+    return ok;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -173,6 +224,10 @@ main(int argc, char **argv)
     if (!existing_update_never_grows()) {
         fputs("raw existing update allocated or was lost\n", stderr);
         return 3;
+    }
+    if (!tombstone_churn_keeps_capacity() || !live_keys_still_grow()) {
+        fputs("raw tombstone rebuild capacity gate failed\n", stderr);
+        return 4;
     }
     puts("hashmap raw i64 storage runtime: ok");
     return 0;

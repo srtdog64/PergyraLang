@@ -20,6 +20,9 @@ hashmap_test_calloc(size_t count, size_t size)
 #define PGY_HASHMAP_CALLOC(count, size) hashmap_test_calloc((count), (size))
 #include "runtime/pgy_runtime.h"
 
+#define CHURN_PAIRS 100000
+#define LIVE_KEYS 10000
+
 static void
 drop_i64_map(PgyHashMap_Int *map)
 {
@@ -157,6 +160,48 @@ existing_update_never_grows(void)
     return true;
 }
 
+/* Each pair inserts a new key and removes it again. A rebuild at 75% load
+ * counts tombstones, so it must keep the capacity while the live entries fit
+ * in half of it; doubling on every rebuild grew such a map without bound.
+ * The keys differ only in the high half. */
+static bool
+tombstone_churn_keeps_capacity(void)
+{
+    PgyHashMap_Int ints = pgy_map_new_i64_int();
+    PgyHashMap_String strings = pgy_map_new_i64_string();
+    bool ok;
+    for (int64_t i = 0; i < CHURN_PAIRS; i++) {
+        int64_t key = i * INT64_C(4294967296) + 7;
+        pgy_map_set_i64_int(&ints, key, (int32_t)i);
+        pgy_map_remove_i64_int(&ints, key);
+        pgy_map_set_i64_string(&strings, key, "value");
+        pgy_map_remove_i64_string(&strings, key);
+    }
+    ok = ints.capacity <= 64 && ints.count == 0
+        && strings.capacity <= 64 && strings.count == 0;
+    if (!ok)
+        fprintf(stderr, "churn capacity int=%zu string=%zu\n",
+                ints.capacity, strings.capacity);
+    drop_i64_map(&ints);
+    pgy_map_drop_string(&strings);
+    return ok;
+}
+
+static bool
+live_keys_still_grow(void)
+{
+    PgyHashMap_Int map = pgy_map_new_i64_int();
+    bool ok = true;
+    for (int64_t i = 0; i < LIVE_KEYS; i++)
+        pgy_map_set_i64_int(&map, i * INT64_C(4294967296) + 7, (int32_t)i + 1);
+    for (int64_t i = 0; i < LIVE_KEYS && ok; i++)
+        ok = pgy_map_get_i64_int(&map, i * INT64_C(4294967296) + 7)
+            == (int32_t)i + 1;
+    ok = ok && map.count == LIVE_KEYS && map.capacity >= 16384;
+    drop_i64_map(&map);
+    return ok;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -171,6 +216,10 @@ main(int argc, char **argv)
         || !existing_update_never_grows()) {
         fputs("high-half hash/update allocation gate failed\n", stderr);
         return 4;
+    }
+    if (!tombstone_churn_keeps_capacity() || !live_keys_still_grow()) {
+        fputs("tombstone rebuild capacity gate failed\n", stderr);
+        return 5;
     }
     puts("hashmap i64 storage runtime: ok");
     return 0;

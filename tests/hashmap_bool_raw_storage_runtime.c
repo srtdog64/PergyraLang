@@ -114,6 +114,9 @@ run_child_mode(const char *name)
     return 98;
 }
 
+/* A Bool-keyed map holds at most two keys, so remove/reinsert leaves at most
+ * two tombstones and never reaches the rebuild threshold; the churn loop is
+ * the tombstone regression for this key kind (capacity stays initial). */
 static bool
 scalar_and_keys(void)
 {
@@ -122,10 +125,12 @@ scalar_and_keys(void)
     int32_t value;
     int32_t actual = 0;
     size_t allocation_count;
+    size_t capacity;
     pgy_map_new_raw_export(&map, (int64_t)sizeof(value),
                            PGY_HASHMAP_KEY_STORAGE_BOOL);
     if (!pgy_map_raw_is_initialized(&map))
         return false;
+    capacity = map.capacity;
     value = 10;
     pgy_map_set_raw_bool_export(&map, false, &value, (int64_t)sizeof(value));
     value = 20;
@@ -134,9 +139,15 @@ scalar_and_keys(void)
     fail_at = fault_call + 1;
     value = 30;
     pgy_map_set_raw_bool_export(&map, true, &value, (int64_t)sizeof(value));
+    for (int32_t i = 0; i < 100000; i++) {
+        pgy_map_remove_raw_bool_export(&map, false, (int64_t)sizeof(value));
+        value = i;
+        pgy_map_set_raw_bool_export(&map, false, &value, (int64_t)sizeof(value));
+    }
     fail_at = 0;
     pgy_map_get_raw_bool_export(&map, true, &actual, (int64_t)sizeof(actual));
-    if (fault_call != allocation_count || actual != 30 || map.count != 2) {
+    if (fault_call != allocation_count || actual != 30 || map.count != 2
+        || map.capacity != capacity || map.deleted_count != 0) {
         drop_raw_map(&map, false);
         return false;
     }
