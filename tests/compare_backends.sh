@@ -1537,6 +1537,7 @@ main() {
         "tests/cases/backend_compare/c_reserved_word_escape"
         "tests/cases/backend_compare/float_literal_round_trip"
         "tests/cases/backend_compare/method_receiver_before_arguments"
+        "tests/cases/backend_compare/party_ability_call_argument_order"
     )
 
     local use_default_cases=0

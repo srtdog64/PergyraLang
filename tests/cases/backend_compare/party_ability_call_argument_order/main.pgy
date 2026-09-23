@@ -1,0 +1,40 @@
+// A party ability call dispatches through the slot's vtable. Its arguments
+// evaluate left to right, as a nominal method's do. Native C and the default
+// C route passed them straight to C and printed "b a"; LLVM printed "a b".
+subject Fighter {
+    let power: Int;
+}
+
+ability Combatable {
+    func Hit(self, x: Int, y: Int) -> Int;
+    func Poke(self, x: Int) -> Int;
+}
+
+role Warrior for Fighter {
+    impl Combatable {
+        func Hit(self, x: Int, y: Int) -> Int {
+            return 100 + x * 10 + y;
+        }
+
+        func Poke(self, x: Int) -> Int {
+            return 200 + x;
+        }
+    }
+}
+
+party Team {
+    dyn role slot fighter: Combatable;
+    shared hp: Int;
+}
+
+func Tag(t: String) -> Int {
+    Log(t);
+    return 1;
+}
+
+func Main() -> Void {
+    let team: Team = Team(0);
+    bind team.fighter = Warrior;
+    Log(team.fighter.Hit(Tag("a"), Tag("b")));
+    Log(team.fighter.Poke(Tag("c")));
+}

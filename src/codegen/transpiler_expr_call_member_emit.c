@@ -90,15 +90,30 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
                 if (ability_name != NULL) {
                     char *party_expr = emit_expression(party_node, ctx);
+                    size_t argc = ast_call_arg_count(call);
+                    size_t arg_starts[64];
+                    size_t arg_ends[64];
+                    bool arg_inline[64] = {false};
                     CodeBuf *args_buf;
+                    char *ordered_prefix;
                     char *result;
                     if (party_expr == NULL) {
                         free(ability_name);
                         return NULL;
                     }
+                    if (argc > 64) {
+                        transpiler_set_backend_error_with_hints(ctx,
+                            PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                            "C backend: party ability call '%s' has more than 64 arguments",
+                            method);
+                        free(ability_name);
+                        free(party_expr);
+                        return NULL;
+                    }
                     args_buf = codebuf_create();
                     codebuf_write(args_buf, "%s.%s", party_expr, slot_name);
-                    for (size_t i = 0; i < ast_call_arg_count(call); i++) {
+                    for (size_t i = 0; i < argc; i++) {
                         char *arg = transpiler_member_call_emit_part(ctx,
                             ast_call_argument(call, i), method,
                             "party ability argument");
@@ -108,13 +123,39 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                             free(party_expr);
                             return NULL;
                         }
+                        arg_starts[i] = args_buf->len + 2;
                         codebuf_write(args_buf, ", %s", arg);
+                        arg_ends[i] = args_buf->len;
                         free(arg);
                     }
 
+                    /* Arguments evaluate left to right (docs/205 §11); the
+                     * party is a binding, so the slot read stays in place. */
+                    ordered_prefix = argc > 0
+                        ? transpiler_user_call_order_args(call, args_buf,
+                              arg_starts, arg_ends, arg_inline)
+                        : pergyra_strdup("");
+                    if (ordered_prefix == NULL) {
+                        transpiler_set_backend_error_with_hints(ctx,
+                            PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                            "C backend: ordered arguments for party ability call '%s' could not be built",
+                            method);
+                        codebuf_destroy(args_buf);
+                        free(ability_name);
+                        free(party_expr);
+                        return NULL;
+                    }
                     result = strdup_fmt("%s.%s_%s_vt->%s(%s)",
                                         party_expr, slot_name, ability_name,
                                         method, args_buf->data);
+                    if (ordered_prefix[0] != '\0' && result != NULL) {
+                        char *ordered_result = strdup_fmt("({ %s%s; })",
+                            ordered_prefix, result);
+                        free(result);
+                        result = ordered_result;
+                    }
+                    free(ordered_prefix);
                     codebuf_destroy(args_buf);
                     free(ability_name);
                     free(party_expr);
@@ -207,12 +248,22 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         codebuf_destroy(args_buf);
                         return NULL;
                     }
-                    /* A call receiver runs before the arguments, as it does
-                     * on LLVM and in source order; left inline, C evaluated
-                     * it after them. Only a call is hoisted: a binding or a
-                     * member of one has no effect and may be taken by
-                     * address. */
-                    if (obj->type == AST_CALL && ast_call_arg_count(call) > 0) {
+                    /* The receiver runs before the arguments, as it does on
+                     * LLVM and in source order; left inline, C evaluated it
+                     * after them. A binding or a member of one has no effect
+                     * and may be taken by address, so it stays in place. So
+                     * does any other identity receiver but a call result: a
+                     * copy of an element or a field would drop the method's
+                     * writes. */
+                    const ASTNode *receiver_root = obj;
+                    while (receiver_root != NULL
+                           && receiver_root->type == AST_MEMBER_ACCESS)
+                        receiver_root = ast_member_object(receiver_root);
+                    bool receiver_is_binding_place = receiver_root != NULL
+                        && receiver_root->type == AST_IDENTIFIER;
+                    if (ast_call_arg_count(call) > 0
+                        && !receiver_is_binding_place
+                        && (obj->type == AST_CALL || !use_self_cell)) {
                         unsigned recv_id = (unsigned)ast_node_stable_id(call);
                         receiver_prefix = strdup_fmt(
                             "__auto_type __pgy_recv_%u = (%s); ", recv_id, obj_expr);

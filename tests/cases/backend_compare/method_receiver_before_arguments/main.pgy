@@ -1,6 +1,9 @@
 // A call receiver evaluates before the method's arguments. Native C left the
 // receiver inline in the call, so it ran after them: "a b receiver" on C,
 // "receiver a b" on LLVM. A single argument showed the same split.
+// An index receiver and a field of a call receiver split the same way. A
+// binding receiver, or a field of one, stays in place: an identity method
+// writes through its address into the caller's object.
 class Acc {
     let base: Int;
 
@@ -13,6 +16,23 @@ class Acc {
     }
 }
 
+class Outer {
+    let inner: Acc;
+}
+
+subject Counter {
+    let mut n: Int;
+
+    func Step(self, x: Int, y: Int) -> Int {
+        self.n = self.n + x * 10 + y;
+        return self.n;
+    }
+}
+
+class Holder {
+    let mut counter: Counter;
+}
+
 func Tag(t: String) -> Int {
     Log(t);
     return 1;
@@ -23,7 +43,30 @@ func Make(t: String) -> Acc {
     return Acc(100);
 }
 
+func MakeOuter(t: String) -> Outer {
+    Log(t);
+    return Outer(Acc(300));
+}
+
+func Items(t: String) -> Array<Acc> {
+    Log(t);
+    return [Acc(100), Acc(200)];
+}
+
 func Main() -> Void {
     Log(Make("receiver").Pair(Tag("a"), Tag("b")));
     Log(Make("single").Plus(Tag("c")));
+
+    let items: Array<Acc> = [Acc(100), Acc(200)];
+    Log(items[Tag("index")].Plus(Tag("d")));
+    Log(items[Tag("index")].Pair(Tag("e"), Tag("f")));
+    Log(Items("items")[Tag("index")].Plus(Tag("g")));
+    Log(MakeOuter("outer").inner.Plus(Tag("h")));
+
+    let counter: Counter = Counter(5);
+    Log(counter.Step(Tag("i"), Tag("j")));
+    Log(counter.n);
+    let holder: Holder = Holder(Counter(7));
+    Log(holder.counter.Step(Tag("k"), Tag("l")));
+    Log(holder.counter.n);
 }
