@@ -1,7 +1,7 @@
 # Red-Team Audit: Ownership, Runtime Memory and Arithmetic Legs
 
 Status: READ-ONLY FINDING — REPRODUCED, NOT REPAIRED, except the items listed
-under "Repaired in this round".
+under "Repaired in this round" and "Second round".
 
 Observed tree: `81dbd5d2`, content-equal to main `70531de2` on 2026-09-23. A
 frozen WSL build of that tree ran every reproduction on four legs: native C,
@@ -15,9 +15,10 @@ filter, so it contributes no finding here. The M1 reproduction below was re-run
 independently of the red team and matched exactly, including the ASan frames.
 
 Several defects sit in files that the main checkout is changing without a
-commit yet (the map runtime headers, `pgy_runtime_panic_contract.h`,
-`option_result_runtime_owner.pgy`, `runtime_call_rewrite_owner.pgy`). Repairs
-there need that lane's agreement first.
+commit yet (`pgy_runtime_panic_contract.h`, `option_result_runtime_owner.pgy`,
+`runtime_call_rewrite_owner.pgy`). An earlier version of this note also named
+the map runtime headers; that was wrong, and the second round below repaired
+them.
 
 ## Why these reached main
 
@@ -199,3 +200,66 @@ instead of native's "Long literal is outside the signed 64-bit range".
 - Native C evaluates a call receiver before the method's arguments (E1), and
   `method_receiver_before_arguments` in `tests/compare_backends.sh` compares it
   with native LLVM.
+
+## Second round, 2026-09-23 evening
+
+Reproductions ran on WSL builds of main with a per-tree `TMPDIR` (see E5) on
+all four legs.
+
+### Repaired, with the gate that now fails if it returns
+
+- **R2.** A failed map, set, list or queue operation panics: class `oom` for
+  allocation and size-overflow failures, `internal-invariant` for a broken
+  invariant. The hashmap runtime smokes run every injected failure point as a
+  child process and require the panic; `runtime_panic_contract_smoke.sh`
+  forbids the old warn helper under `src/runtime`.
+- **R1.** A rebuild keeps the capacity when live entries fit in half of it.
+  Two million set/remove pairs on `HashMap<Int, Int>` now stay at 2 MB RSS on
+  native C, native LLVM and the default C route (12 MB before). The hashmap
+  runtime smokes check capacity after 100,000 pairs.
+- **R3.** The panic emitter flushes stdout first.
+  `tests/self_hosted/parity/runtime_panic_leg_owner.sh` checks the output
+  printed before an index and a division panic on all four legs.
+- **M10, C half.** The default C route panics on `UnwrapOption(None)`,
+  `Unwrap(Err)` and `UnwrapErr(Ok)`; the same gate checks class and reason.
+- **E1.** The default C route evaluates a method receiver before its arguments,
+  and both C routes now order index receivers, a field of a call result and
+  party ability (vtable) calls. `default_route_method_receiver_order_owner.sh`
+  compares native C, native LLVM and the default C route. What stays open is
+  in docs/205 section 11.1.
+- **E3.** The gate was red because the self-host semantic typed a call argument
+  of `Min`, `Max`, `Abs` or `Clamp` as Unknown and refused `Max(lo, Min(hi, v))`
+  and `Max(Twice(3), 4)` on both default routes. That is repaired; the gate is
+  green and runs in the Linux push shard, and `default_route_scalar_value_owner.sh`
+  runs the shapes on all four legs.
+
+### Found in this round
+
+- **E5. The runtime object cache was shared across checkouts (repaired).** The
+  cache key named the compiler revision, toolchain, profile and target but not
+  the source tree, and freshness only asked whether this tree's runtime sources
+  were newer than the object. A second worktree that built last supplied the
+  runtime for every other tree using the same temp directory. The key now
+  hashes `PGY_RUNTIME_DIR`.
+- **E6. `UnwrapErr` exists only in the self-host front end.** Native C reports
+  "Undefined function 'UnwrapErr'", while the default C route compiles it. A
+  program accepted on one front end and refused on the other; open.
+- **R5, wider.** The default LLVM route also segfaults (rc 139) on the
+  two-million-iteration `HashMap<Int, Int>` set/remove loop above.
+- **M10, LLVM half.** On `UnwrapOption(None)` the default LLVM route aborts with
+  no panic line and loses the output printed before it.
+- **A2, two more shapes.** Native refuses `Max(3000000001, Twice(big))` with
+  "cannot assign 'Long' to 'Int'"; the default C route refuses
+  `Max(Twice(big), 3000000001)`, which native accepts.
+- **Observation, not investigated.** A loop that binds `ToString(i)` 400,000
+  times holds about 14 MB at exit on every leg, against 2 MB for the Int-keyed
+  loop; the temporaries look unreleased.
+
+### State of the collection-ownership lane
+
+The main checkout's uncommitted collection-ownership work was copied into a
+local snapshot branch and built separately, without touching the checkout.
+With it, `make self-host-compiler` fails, and native C and native LLVM still
+print the overwritten value for M1 (`MapGet` then `MapRemove`/`MapSet`) and a
+freed buffer for the `ListGet`/`ListSet` shape. M1, M3, M4 and M12 stay with
+that lane.
