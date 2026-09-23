@@ -352,8 +352,20 @@ func SemanticExpressionGraphResolvedCallReturnTypeName(
         let argument_types: Array<String> = [];
         let argument: Int = 0;
         while argument < ArrayLength(polymorphic_call.argument_nodes) {
-            ArrayPush(argument_types, SemanticExpressionGraphCallArgumentScalarTypeName(
-                graph, polymorphic_call.argument_nodes[argument], names, types));
+            let argument_node: Int = polymorphic_call.argument_nodes[argument];
+            let argument_type: String = SemanticExpressionGraphCallArgumentScalarTypeName(
+                graph, argument_node, names, types);
+            // A call argument, as in Max(lo, Min(hi, v)), types through its
+            // own resolved return instead of reading as Unknown.
+            if argument_type == "Unknown" {
+                let nested: Option<String> =
+                    SemanticExpressionGraphResolvedCallReturnTypeName(
+                        graph, argument_node, constructors, names, types,
+                        function_names, function_returns
+                    );
+                if IsSome(nested) { argument_type = UnwrapOption(nested); }
+            }
+            ArrayPush(argument_types, argument_type);
             argument = argument + 1;
         }
         return SemanticPolymorphicBuiltinReturnTypeOpt(

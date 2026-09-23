@@ -55,6 +55,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'bash tests/self_hosted/parity/text_conversion_argument_owner.sh'
     run 'bash tests/self_hosted/parity/default_route_scalar_value_owner.sh'
     run 'bash tests/self_hosted/parity/runtime_panic_leg_owner.sh'
+    run 'bash tests/self_hosted/parity/one_mir_string_case_math_projection.sh'
 
     run 'make build-source-inventory-test-smoke'
     run 'make gate-subject-declaration-test-smoke'

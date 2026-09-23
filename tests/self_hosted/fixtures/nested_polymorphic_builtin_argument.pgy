@@ -1,0 +1,15 @@
+func ClampVal(v: Int, lo: Int, hi: Int) -> Int {
+    return Max(lo, Min(hi, v));
+}
+
+func Twice(x: Int) -> Int {
+    return x + x;
+}
+
+func Main() -> Void {
+    Log(ClampVal(99, 0, 50));
+    Log(ClampVal(-3, 0, 50));
+    Log(Max(1, Min(9, 4)));
+    Log(Abs(Min(-7, 2)));
+    Log(Max(Twice(3), 4));
+}

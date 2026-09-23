@@ -5,6 +5,8 @@
 # - A C reserved word and the name its C escape spells are distinct bindings.
 # - Abs, Min and Max keep a Long operand's width.
 # - A Long literal past the signed 64-bit range is refused, not wrapped.
+# - A call argument of Min, Max or Abs, as in Max(lo, Min(hi, v)), is typed
+#   instead of refused.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -66,6 +68,9 @@ expect_values reserved-word-escape \
 expect_values long-math-width "$FIXTURES/long_math_width.pgy" \
     $'5000000000\n5000000000\n-5000000000\n7\n3\n9\n9223372036854775807' \
     native-c native-llvm default-c
+expect_values nested-polymorphic-builtin-argument \
+    "$FIXTURES/nested_polymorphic_builtin_argument.pgy" \
+    $'50\n0\n4\n7\n6' native-c native-llvm default-c default-llvm
 
 # Both front ends refuse the out-of-range Long literal and publish nothing.
 for leg in native-c default-c; do
@@ -80,4 +85,4 @@ grep -Fq "Long literal is outside the signed 64-bit range" \
     "$ROOT_DIR/$WORK_REL/long-literal-range-native-c.exe.log" ||
     fail "native refusal lost its range diagnostic"
 
-echo "[$LABEL] reserved-word escape and Long Abs/Min/Max agree with native C, and an out-of-range Long literal is refused by both front ends: PASS"
+echo "[$LABEL] reserved-word escape, Long Abs/Min/Max and nested builtin arguments agree with native C, and an out-of-range Long literal is refused by both front ends: PASS"
