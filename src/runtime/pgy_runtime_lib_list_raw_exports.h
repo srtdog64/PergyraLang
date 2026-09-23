@@ -44,17 +44,17 @@ pgy_list_new_raw_export(void *list_ptr, int64_t elem_size)
 {
     PgyListRaw *list = (PgyListRaw *)list_ptr;
     if (list == NULL) {
-        pgy_runtime_warn_invalid_collection("list_new", "null list");
+        pgy_runtime_panic_invalid_collection("list_new", "null list");
         return;
     }
     if (elem_size <= 0) {
-        pgy_runtime_warn_invalid_collection("list_new", "non-positive element size");
+        pgy_runtime_panic_invalid_collection("list_new", "non-positive element size");
         return;
     }
     list->capacity = 16;
     if (!pgy_list_raw_shape_fits(list->capacity, (size_t)elem_size)) {
         list->capacity = 0;
-        pgy_runtime_warn_invalid_collection("list_new", "allocation size overflow");
+        pgy_runtime_panic_collection_oom("list_new", "allocation size overflow");
         return;
     }
     list->count = 0;
@@ -68,7 +68,7 @@ pgy_list_new_raw_export(void *list_ptr, int64_t elem_size)
     list->data = calloc((size_t)list->capacity, (size_t)elem_size);
     if (list->data == NULL) {
         list->capacity = 0;
-        pgy_runtime_warn_invalid_collection("list_new", "allocation failed");
+        pgy_runtime_panic_collection_oom("list_new", "allocation failed");
     }
 }
 
@@ -78,19 +78,19 @@ pgy_list_push_raw_export(void *list_ptr, void *value_ptr, int64_t elem_size)
     PgyListRaw *list = (PgyListRaw *)list_ptr;
     char *dst;
     if (list == NULL) {
-        pgy_runtime_warn_invalid_collection("list_push", "null list");
+        pgy_runtime_panic_invalid_collection("list_push", "null list");
         return;
     }
     if (value_ptr == NULL) {
-        pgy_runtime_warn_invalid_collection("list_push", "null value");
+        pgy_runtime_panic_invalid_collection("list_push", "null value");
         return;
     }
     if (elem_size <= 0) {
-        pgy_runtime_warn_invalid_collection("list_push", "non-positive element size");
+        pgy_runtime_panic_invalid_collection("list_push", "non-positive element size");
         return;
     }
     if (!pgy_list_raw_is_initialized(list)) {
-        pgy_runtime_warn_invalid_collection("list_push", "list is not initialized");
+        pgy_runtime_panic_invalid_collection("list_push", "list is not initialized");
         return;
     }
     if (list->count >= list->capacity) {
@@ -100,13 +100,13 @@ pgy_list_push_raw_export(void *list_ptr, void *value_ptr, int64_t elem_size)
             new_capacity = 16;
         } else {
             if (list->capacity > SIZE_MAX / 2) {
-                pgy_runtime_warn_invalid_collection("list_push", "capacity overflow");
+                pgy_runtime_panic_collection_oom("list_push", "capacity overflow");
                 return;
             }
             new_capacity = list->capacity * 2;
         }
         if (!pgy_list_raw_shape_fits(new_capacity, (size_t)elem_size)) {
-            pgy_runtime_warn_invalid_collection("list_push", "allocation size overflow");
+            pgy_runtime_panic_collection_oom("list_push", "allocation size overflow");
             return;
         }
         if (pgy_budget_is_imposed_export())
@@ -115,7 +115,7 @@ pgy_list_push_raw_export(void *list_ptr, void *value_ptr, int64_t elem_size)
                 "list-alloc");
         grown = realloc(list->data, new_capacity * (size_t)elem_size);
         if (grown == NULL) {
-            pgy_runtime_warn_invalid_collection("list_push", "realloc failed");
+            pgy_runtime_panic_collection_oom("list_push", "realloc failed");
             return;
         }
         list->data = grown;
@@ -134,18 +134,18 @@ pgy_list_push_string_raw_export(void *list_ptr, const char *value)
     char *owned;
 
     if (list == NULL) {
-        pgy_runtime_warn_invalid_collection("list_push_string", "null list");
+        pgy_runtime_panic_invalid_collection("list_push_string", "null list");
         return;
     }
     if (!pgy_list_raw_is_initialized(list)
         || !pgy_list_raw_shape_fits(list->capacity, sizeof(char *))) {
-        pgy_runtime_warn_invalid_collection("list_push_string",
+        pgy_runtime_panic_invalid_collection("list_push_string",
             "list is not initialized");
         return;
     }
     owned = pgy_runtime_strdup_export(value != NULL ? value : "");
     if (owned == NULL) {
-        pgy_runtime_warn_invalid_collection("list_push_string", "string duplication failed");
+        pgy_runtime_panic_collection_oom("list_push_string", "string duplication failed");
         return;
     }
     before_count = list->count;
@@ -261,11 +261,11 @@ pgy_list_size_raw_export(void *list_ptr)
 {
     PgyListRaw *list = (PgyListRaw *)list_ptr;
     if (list == NULL) {
-        pgy_runtime_warn_invalid_collection("list_size", "null list");
+        pgy_runtime_panic_invalid_collection("list_size", "null list");
         return 0;
     }
     if (!pgy_list_raw_is_initialized(list)) {
-        pgy_runtime_warn_invalid_collection("list_size", "list is not initialized");
+        pgy_runtime_panic_invalid_collection("list_size", "list is not initialized");
         return 0;
     }
     return (int32_t)list->count;

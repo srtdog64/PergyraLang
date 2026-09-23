@@ -10,11 +10,11 @@ pgy_map_set_raw_i32_export(void *map_ptr, int32_t key, void *value_ptr,
     uint32_t first_deleted = UINT32_MAX;
     size_t probes = 0;
     if (map == NULL || value_ptr == NULL || value_size <= 0) {
-        pgy_runtime_warn_invalid_collection("map_set_i32", "invalid argument");
+        pgy_runtime_panic_invalid_collection("map_set_i32", "invalid argument");
         return;
     }
     if (!pgy_map_raw_is_initialized(map)) {
-        pgy_runtime_warn_invalid_collection("map_set_i32", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_set_i32", "map is not initialized");
         return;
     }
     pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_I32);
@@ -43,7 +43,7 @@ pgy_map_set_raw_i32_export(void *map_ptr, int32_t key, void *value_ptr,
     if (first_deleted != UINT32_MAX)
         h = first_deleted;
     else if (probes >= map->capacity) {
-        pgy_runtime_warn_invalid_collection("map_set_i32", "map is full");
+        pgy_runtime_panic_invalid_collection("map_set_i32", "map is full");
         return;
     }
     PGY_MAP_RAW_I32_KEYS(map)[h] = key;
@@ -95,11 +95,11 @@ pgy_map_set_raw_i64_export(void *map_ptr, int64_t key, void *value_ptr,
     uint32_t first_deleted = UINT32_MAX;
     size_t probes = 0;
     if (map == NULL || value_ptr == NULL || value_size <= 0) {
-        pgy_runtime_warn_invalid_collection("map_set_i64", "invalid argument");
+        pgy_runtime_panic_invalid_collection("map_set_i64", "invalid argument");
         return;
     }
     if (!pgy_map_raw_is_initialized(map)) {
-        pgy_runtime_warn_invalid_collection("map_set_i64", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_set_i64", "map is not initialized");
         return;
     }
     pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_I64);
@@ -128,7 +128,7 @@ pgy_map_set_raw_i64_export(void *map_ptr, int64_t key, void *value_ptr,
     if (first_deleted != UINT32_MAX)
         h = first_deleted;
     else if (probes >= map->capacity) {
-        pgy_runtime_warn_invalid_collection("map_set_i64", "map is full");
+        pgy_runtime_panic_invalid_collection("map_set_i64", "map is full");
         return;
     }
     PGY_MAP_RAW_I64_KEYS(map)[h] = key;
@@ -178,7 +178,7 @@ pgy_map_has_raw_i64_export(void *map_ptr, int64_t key)
     uint32_t h;
     size_t probes = 0;
     if (!pgy_map_raw_is_initialized(map)) {
-        pgy_runtime_warn_invalid_collection("map_has_i64", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_has_i64", "map is not initialized");
         return false;
     }
     pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_I64);
@@ -231,11 +231,11 @@ pgy_map_set_raw_bool_export(void *map_ptr, bool key, void *value_ptr,
     uint32_t first_deleted = UINT32_MAX;
     size_t probes = 0;
     if (map == NULL || value_ptr == NULL || value_size <= 0) {
-        pgy_runtime_warn_invalid_collection("map_set_bool", "invalid argument");
+        pgy_runtime_panic_invalid_collection("map_set_bool", "invalid argument");
         return;
     }
     if (!pgy_map_raw_is_initialized(map)) {
-        pgy_runtime_warn_invalid_collection("map_set_bool", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_set_bool", "map is not initialized");
         return;
     }
     pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_BOOL);
@@ -264,7 +264,7 @@ pgy_map_set_raw_bool_export(void *map_ptr, bool key, void *value_ptr,
     if (first_deleted != UINT32_MAX)
         h = first_deleted;
     else if (probes >= map->capacity) {
-        pgy_runtime_warn_invalid_collection("map_set_bool", "map is full");
+        pgy_runtime_panic_invalid_collection("map_set_bool", "map is full");
         return;
     }
     PGY_MAP_RAW_BOOL_KEYS(map)[h] = key;
@@ -314,7 +314,7 @@ pgy_map_has_raw_bool_export(void *map_ptr, bool key)
     uint32_t h;
     size_t probes = 0;
     if (!pgy_map_raw_is_initialized(map)) {
-        pgy_runtime_warn_invalid_collection("map_has_bool", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_has_bool", "map is not initialized");
         return false;
     }
     pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_BOOL);
@@ -365,7 +365,7 @@ pgy_map_has_raw_i32_export(void *map_ptr, int32_t key)
     uint32_t h;
     size_t probes = 0;
     if (!pgy_map_raw_is_initialized(map)) {
-        pgy_runtime_warn_invalid_collection("map_has_i32", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_has_i32", "map is not initialized");
         return false;
     }
     pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_I32);
@@ -419,7 +419,7 @@ pgy_map_set_string_value_raw_i32_export(void *map_ptr, int32_t key,
     size_t probes = 0;
     char *owned;
     if (!pgy_map_raw_is_initialized(map)) {
-        pgy_runtime_warn_invalid_collection("map_set_string_value_i32", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_set_string_value_i32", "map is not initialized");
         return;
     }
     pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_I32);
@@ -430,7 +430,7 @@ pgy_map_set_string_value_raw_i32_export(void *map_ptr, int32_t key,
             char **slot = (char **)((char *)map->values + h * sizeof(char *));
             owned = pgy_runtime_strdup_export(value != NULL ? value : "");
             if (owned == NULL) {
-                pgy_runtime_warn_invalid_collection("map_set_string_value_i32", "value duplication failed");
+                pgy_runtime_panic_collection_oom("map_set_string_value_i32", "value duplication failed");
                 return;
             }
             free(*slot);
@@ -454,12 +454,12 @@ pgy_map_set_string_value_raw_i32_export(void *map_ptr, int32_t key,
     if (first_deleted != UINT32_MAX)
         h = first_deleted;
     else if (probes >= map->capacity) {
-        pgy_runtime_warn_invalid_collection("map_set_string_value_i32", "map is full");
+        pgy_runtime_panic_invalid_collection("map_set_string_value_i32", "map is full");
         return;
     }
     owned = pgy_runtime_strdup_export(value != NULL ? value : "");
     if (owned == NULL) {
-        pgy_runtime_warn_invalid_collection("map_set_string_value_i32", "value duplication failed");
+        pgy_runtime_panic_collection_oom("map_set_string_value_i32", "value duplication failed");
         return;
     }
     PGY_MAP_RAW_I32_KEYS(map)[h] = key;
@@ -539,7 +539,7 @@ pgy_map_set_string_value_raw_i64_export(void *map_ptr, int64_t key,
     size_t probes = 0;
     char *owned;
     if (!pgy_map_raw_is_initialized(map)) {
-        pgy_runtime_warn_invalid_collection("map_set_string_value_i64", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_set_string_value_i64", "map is not initialized");
         return;
     }
     pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_I64);
@@ -550,7 +550,7 @@ pgy_map_set_string_value_raw_i64_export(void *map_ptr, int64_t key,
             char **slot = (char **)((char *)map->values + h * sizeof(char *));
             owned = pgy_runtime_strdup_export(value != NULL ? value : "");
             if (owned == NULL) {
-                pgy_runtime_warn_invalid_collection("map_set_string_value_i64", "value duplication failed");
+                pgy_runtime_panic_collection_oom("map_set_string_value_i64", "value duplication failed");
                 return;
             }
             free(*slot);
@@ -574,12 +574,12 @@ pgy_map_set_string_value_raw_i64_export(void *map_ptr, int64_t key,
     if (first_deleted != UINT32_MAX)
         h = first_deleted;
     else if (probes >= map->capacity) {
-        pgy_runtime_warn_invalid_collection("map_set_string_value_i64", "map is full");
+        pgy_runtime_panic_invalid_collection("map_set_string_value_i64", "map is full");
         return;
     }
     owned = pgy_runtime_strdup_export(value != NULL ? value : "");
     if (owned == NULL) {
-        pgy_runtime_warn_invalid_collection("map_set_string_value_i64", "value duplication failed");
+        pgy_runtime_panic_collection_oom("map_set_string_value_i64", "value duplication failed");
         return;
     }
     PGY_MAP_RAW_I64_KEYS(map)[h] = key;
@@ -659,7 +659,7 @@ pgy_map_set_string_value_raw_bool_export(void *map_ptr, bool key,
     size_t probes = 0;
     char *owned;
     if (!pgy_map_raw_is_initialized(map)) {
-        pgy_runtime_warn_invalid_collection("map_set_string_value_bool", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_set_string_value_bool", "map is not initialized");
         return;
     }
     pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_BOOL);
@@ -670,7 +670,7 @@ pgy_map_set_string_value_raw_bool_export(void *map_ptr, bool key,
             char **slot = (char **)((char *)map->values + h * sizeof(char *));
             owned = pgy_runtime_strdup_export(value != NULL ? value : "");
             if (owned == NULL) {
-                pgy_runtime_warn_invalid_collection("map_set_string_value_bool", "value duplication failed");
+                pgy_runtime_panic_collection_oom("map_set_string_value_bool", "value duplication failed");
                 return;
             }
             free(*slot);
@@ -694,12 +694,12 @@ pgy_map_set_string_value_raw_bool_export(void *map_ptr, bool key,
     if (first_deleted != UINT32_MAX)
         h = first_deleted;
     else if (probes >= map->capacity) {
-        pgy_runtime_warn_invalid_collection("map_set_string_value_bool", "map is full");
+        pgy_runtime_panic_invalid_collection("map_set_string_value_bool", "map is full");
         return;
     }
     owned = pgy_runtime_strdup_export(value != NULL ? value : "");
     if (owned == NULL) {
-        pgy_runtime_warn_invalid_collection("map_set_string_value_bool", "value duplication failed");
+        pgy_runtime_panic_collection_oom("map_set_string_value_bool", "value duplication failed");
         return;
     }
     PGY_MAP_RAW_BOOL_KEYS(map)[h] = key;

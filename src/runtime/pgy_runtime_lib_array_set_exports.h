@@ -10,12 +10,12 @@ pgy_set_values_raw_i32_export(void *set_ptr, void *out_array_ptr)
     PgyArray_Int *out = (PgyArray_Int *)out_array_ptr;
 
     if (out == NULL) {
-        pgy_runtime_warn_invalid_collection("set_values_i32", "null output");
+        pgy_runtime_panic_invalid_collection("set_values_i32", "null output");
         return;
     }
     *out = pgy_array_new_Int(set != NULL ? set->count : 0);
     if (set == NULL) {
-        pgy_runtime_warn_invalid_collection("set_values_i32", "null set");
+        pgy_runtime_panic_invalid_collection("set_values_i32", "null set");
         return;
     }
     if (!pgy_set_raw_is_initialized(set) || set->count == 0)
@@ -36,12 +36,12 @@ pgy_set_values_raw_i64_export(void *set_ptr, void *out_array_ptr)
     PgyArray_Long *out = (PgyArray_Long *)out_array_ptr;
 
     if (out == NULL) {
-        pgy_runtime_warn_invalid_collection("set_values_i64", "null output");
+        pgy_runtime_panic_invalid_collection("set_values_i64", "null output");
         return;
     }
     *out = pgy_array_new_Long(set != NULL ? set->count : 0);
     if (set == NULL) {
-        pgy_runtime_warn_invalid_collection("set_values_i64", "null set");
+        pgy_runtime_panic_invalid_collection("set_values_i64", "null set");
         return;
     }
     if (!pgy_set_raw_is_initialized(set) || set->count == 0)
@@ -62,12 +62,12 @@ pgy_set_values_raw_bool_export(void *set_ptr, void *out_array_ptr)
     PgyArray_Bool *out = (PgyArray_Bool *)out_array_ptr;
 
     if (out == NULL) {
-        pgy_runtime_warn_invalid_collection("set_values_bool", "null output");
+        pgy_runtime_panic_invalid_collection("set_values_bool", "null output");
         return;
     }
     *out = pgy_array_new_Bool(set != NULL ? set->count : 0);
     if (set == NULL) {
-        pgy_runtime_warn_invalid_collection("set_values_bool", "null set");
+        pgy_runtime_panic_invalid_collection("set_values_bool", "null set");
         return;
     }
     if (!pgy_set_raw_is_initialized(set) || set->count == 0)
@@ -88,12 +88,12 @@ pgy_set_values_raw_string_export(void *set_ptr, void *out_array_ptr)
     PgyArray_String *out = (PgyArray_String *)out_array_ptr;
 
     if (out == NULL) {
-        pgy_runtime_warn_invalid_collection("set_values_string", "null output");
+        pgy_runtime_panic_invalid_collection("set_values_string", "null output");
         return;
     }
     *out = pgy_array_new_String(set != NULL ? set->count : 0);
     if (set == NULL) {
-        pgy_runtime_warn_invalid_collection("set_values_string", "null set");
+        pgy_runtime_panic_invalid_collection("set_values_string", "null set");
         return;
     }
     if (!pgy_set_raw_is_initialized(set) || set->count == 0)

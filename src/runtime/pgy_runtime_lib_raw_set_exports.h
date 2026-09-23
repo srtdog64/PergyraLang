@@ -107,18 +107,18 @@ pgy_set_new_raw_export(void *set_ptr, int64_t elem_size)
     PgySetRaw *set = (PgySetRaw *)set_ptr;
     size_t elem_bytes;
     if (set == NULL) {
-        pgy_runtime_warn_invalid_collection("set_new", "null set");
+        pgy_runtime_panic_invalid_collection("set_new", "null set");
         return;
     }
     if (elem_size <= 0) {
-        pgy_runtime_warn_invalid_collection("set_new", "non-positive element size");
+        pgy_runtime_panic_invalid_collection("set_new", "non-positive element size");
         return;
     }
     elem_bytes = (size_t)elem_size;
     set->capacity = 16;
     if (!pgy_set_raw_shape_fits(set->capacity, elem_bytes)) {
         set->capacity = 0;
-        pgy_runtime_warn_invalid_collection("set_new", "allocation size overflow");
+        pgy_runtime_panic_collection_oom("set_new", "allocation size overflow");
         return;
     }
     set->count = 0;
@@ -130,7 +130,7 @@ pgy_set_new_raw_export(void *set_ptr, int64_t elem_size)
         set->data = NULL;
         set->occupied = NULL;
         set->capacity = 0;
-        pgy_runtime_warn_invalid_collection("set_new", "allocation failed");
+        pgy_runtime_panic_collection_oom("set_new", "allocation failed");
     }
 }
 
@@ -144,7 +144,7 @@ pgy_set_raw_rehash(PgySetRaw *set, int64_t elem_size)
     size_t new_capacity;
     void *new_data;
     if (elem_size <= 0) {
-        pgy_runtime_warn_invalid_collection("set_rehash", "non-positive element size");
+        pgy_runtime_panic_invalid_collection("set_rehash", "non-positive element size");
         return;
     }
     elem_bytes = (size_t)elem_size;
@@ -152,7 +152,7 @@ pgy_set_raw_rehash(PgySetRaw *set, int64_t elem_size)
         new_capacity = 16;
     } else {
         if (set->capacity > SIZE_MAX / 2) {
-            pgy_runtime_warn_invalid_collection("set_rehash", "capacity overflow");
+            pgy_runtime_panic_collection_oom("set_rehash", "capacity overflow");
             return;
         }
         new_capacity = set->capacity * 2;
@@ -160,7 +160,7 @@ pgy_set_raw_rehash(PgySetRaw *set, int64_t elem_size)
     if (new_capacity > UINT32_MAX
         || !pgy_set_raw_shape_fits(new_capacity, elem_bytes)
         || new_capacity > SIZE_MAX / sizeof(uint8_t)) {
-        pgy_runtime_warn_invalid_collection("set_rehash", "allocation size overflow");
+        pgy_runtime_panic_collection_oom("set_rehash", "allocation size overflow");
         return;
     }
     new_data = calloc(new_capacity, elem_bytes);
@@ -168,7 +168,7 @@ pgy_set_raw_rehash(PgySetRaw *set, int64_t elem_size)
     if (new_data == NULL || new_occupied == NULL) {
         free(new_data);
         free(new_occupied);
-        pgy_runtime_warn_invalid_collection("set_rehash", "allocation failed");
+        pgy_runtime_panic_collection_oom("set_rehash", "allocation failed");
         return;
     }
     set->capacity = new_capacity;
@@ -204,7 +204,7 @@ pgy_set_raw_rehash_string(PgySetRaw *set)
         new_capacity = 16;
     } else {
         if (set->capacity > SIZE_MAX / 2) {
-            pgy_runtime_warn_invalid_collection("set_rehash_string",
+            pgy_runtime_panic_collection_oom("set_rehash_string",
                 "capacity overflow");
             return;
         }
@@ -213,7 +213,7 @@ pgy_set_raw_rehash_string(PgySetRaw *set)
     if (new_capacity > UINT32_MAX
         || !pgy_set_raw_shape_fits(new_capacity, sizeof(char *))
         || new_capacity > SIZE_MAX / sizeof(uint8_t)) {
-        pgy_runtime_warn_invalid_collection("set_rehash_string",
+        pgy_runtime_panic_collection_oom("set_rehash_string",
             "allocation size overflow");
         return;
     }
@@ -222,7 +222,7 @@ pgy_set_raw_rehash_string(PgySetRaw *set)
     if (new_data == NULL || new_occupied == NULL) {
         free(new_data);
         free(new_occupied);
-        pgy_runtime_warn_invalid_collection("set_rehash_string",
+        pgy_runtime_panic_collection_oom("set_rehash_string",
             "allocation failed");
         return;
     }
@@ -252,19 +252,19 @@ pgy_set_add_raw_export(void *set_ptr, void *elem_ptr, int64_t elem_size)
 {
     PgySetRaw *set = (PgySetRaw *)set_ptr;
     if (set == NULL) {
-        pgy_runtime_warn_invalid_collection("set_add", "null set");
+        pgy_runtime_panic_invalid_collection("set_add", "null set");
         return;
     }
     if (elem_ptr == NULL) {
-        pgy_runtime_warn_invalid_collection("set_add", "null element");
+        pgy_runtime_panic_invalid_collection("set_add", "null element");
         return;
     }
     if (elem_size <= 0) {
-        pgy_runtime_warn_invalid_collection("set_add", "non-positive element size");
+        pgy_runtime_panic_invalid_collection("set_add", "non-positive element size");
         return;
     }
     if (!pgy_set_raw_is_initialized(set)) {
-        pgy_runtime_warn_invalid_collection("set_add", "set is not initialized");
+        pgy_runtime_panic_invalid_collection("set_add", "set is not initialized");
         return;
     }
     /* Check if already present */
@@ -283,7 +283,7 @@ pgy_set_add_raw_export(void *set_ptr, void *elem_ptr, int64_t elem_size)
     if ((double)set->count / (double)set->capacity > 0.75) {
         pgy_set_raw_rehash(set, elem_size);
         if (!pgy_set_raw_is_initialized(set)) {
-            pgy_runtime_warn_invalid_collection("set_add", "set rehash failed");
+            pgy_runtime_panic_collection_oom("set_add", "set rehash failed");
             return;
         }
         h = pgy_set_raw_hash(elem_ptr, elem_size) % (uint32_t)set->capacity;
@@ -309,11 +309,11 @@ pgy_set_add_string_raw_export(void *set_ptr, const char *value)
     char *owned;
 
     if (set == NULL) {
-        pgy_runtime_warn_invalid_collection("set_add_string", "null set");
+        pgy_runtime_panic_invalid_collection("set_add_string", "null set");
         return;
     }
     if (!pgy_set_raw_is_initialized(set)) {
-        pgy_runtime_warn_invalid_collection("set_add_string",
+        pgy_runtime_panic_invalid_collection("set_add_string",
             "set is not initialized");
         return;
     }
@@ -334,7 +334,7 @@ pgy_set_add_string_raw_export(void *set_ptr, const char *value)
     if ((double)set->count / (double)set->capacity > 0.75) {
         pgy_set_raw_rehash_string(set);
         if (!pgy_set_raw_is_initialized(set)) {
-            pgy_runtime_warn_invalid_collection("set_add_string",
+            pgy_runtime_panic_collection_oom("set_add_string",
                 "set rehash failed");
             return;
         }
@@ -355,7 +355,7 @@ pgy_set_add_string_raw_export(void *set_ptr, const char *value)
             p++;
         }
         if (p >= set->capacity && first_deleted == UINT32_MAX) {
-            pgy_runtime_warn_invalid_collection("set_add_string",
+            pgy_runtime_panic_invalid_collection("set_add_string",
                 "set has no insertion slot after rehash");
             return;
         }
@@ -364,7 +364,7 @@ pgy_set_add_string_raw_export(void *set_ptr, const char *value)
         h = first_deleted;
     owned = pgy_runtime_strdup_export(value != NULL ? value : "");
     if (owned == NULL) {
-        pgy_runtime_warn_invalid_collection("set_add_string", "string duplication failed");
+        pgy_runtime_panic_collection_oom("set_add_string", "string duplication failed");
         return;
     }
     memcpy(SET_RAW_ELEM(set, h, sizeof(char *)), &owned, sizeof(char *));

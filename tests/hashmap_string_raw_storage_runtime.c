@@ -98,73 +98,144 @@ static void drop_raw(PgyHashMapRaw *map, bool string_values) {
         pgy_map_drop_raw_export(map);
 }
 
-static bool constructor_failure(size_t offset) {
+static void fill_twelve_scalar_keys(PgyHashMapRaw *map) {
+    char key[32]; int32_t value;
+    pgy_map_new_raw_export(map, sizeof(value), PGY_HASHMAP_KEY_STORAGE_STRING);
+    for (int i = 0; i < 12; i++) {
+        snprintf(key, sizeof(key), "key-%d", i); value = i + 100;
+        pgy_map_set_raw_export(map, key, &value, sizeof(value));
+    }
+}
+
+/* Child modes. A failed allocation now panics with class oom
+ * (docs/105_runtime_panic_contract.md), so each injected failure runs in its
+ * own process and the smoke script checks the exit status and stderr. The
+ * physical-rollback checks that used to follow a failed constructor, grow or
+ * duplication (same arrays, same count, key absent) described a process that
+ * kept running; the abort replaces them. */
+
+static void constructor_oom(size_t offset) {
     PgyHashMapRaw map = {0};
     calloc_calls = 0; fail_calloc_at = offset;
     pgy_map_new_raw_export(&map, sizeof(int32_t), PGY_HASHMAP_KEY_STORAGE_STRING);
-    fail_calloc_at = 0;
-    return map.capacity == 0 && map.keys == NULL && map.values == NULL
-        && map.occupied == NULL && map.key_storage_kind == PGY_HASHMAP_KEY_STORAGE_INVALID;
 }
 
-static bool scalar_update_and_growth_failure(size_t offset) {
-    PgyHashMapRaw map = {0};
-    char key[32]; int32_t value, actual = 0;
-    void *keys, *values; uint8_t *occupied; size_t capacity, count;
-    pgy_map_new_raw_export(&map, sizeof(value), PGY_HASHMAP_KEY_STORAGE_STRING);
-    for (int i = 0; i < 12; i++) {
-        snprintf(key, sizeof(key), "key-%d", i); value = i + 100;
-        pgy_map_set_raw_export(&map, key, &value, sizeof(value));
-    }
-    {
-        size_t c = calloc_calls, m = malloc_calls;
-        fail_calloc_at = calloc_calls + 1; fail_malloc_at = malloc_calls + 1;
-        value = 9001; pgy_map_set_raw_export(&map, "key-11", &value, sizeof(value));
-        fail_calloc_at = 0; fail_malloc_at = 0;
-        pgy_map_get_raw_export(&map, "key-11", &actual, sizeof(actual));
-        if (calloc_calls != c || malloc_calls != m || actual != 9001) { drop_raw(&map, false); return false; }
-    }
-    keys = map.keys; values = map.values; occupied = map.occupied;
-    capacity = map.capacity; count = map.count;
-    fail_calloc_at = calloc_calls + offset; value = 77;
+static void grow_oom(size_t offset) {
+    PgyHashMapRaw map = {0}; int32_t value = 77;
+    fill_twelve_scalar_keys(&map);
+    fail_calloc_at = calloc_calls + offset;
     pgy_map_set_raw_export(&map, "trigger-grow", &value, sizeof(value));
-    fail_calloc_at = 0;
-    if (map.keys != keys || map.values != values || map.occupied != occupied
-        || map.capacity != capacity || map.count != count
-        || pgy_map_has_raw_export(&map, "trigger-grow")) { drop_raw(&map, false); return false; }
-    drop_raw(&map, false); return true;
 }
 
-static bool duplication_failure_before_growth_is_physical_rollback(void) {
-    PgyHashMapRaw map = {0}; char key[32]; int32_t value = 0;
-    void *keys, *values; uint8_t *occupied; size_t capacity, count, deleted_count;
-    pgy_map_new_raw_export(&map, sizeof(value), PGY_HASHMAP_KEY_STORAGE_STRING);
-    for (int i = 0; i < 12; i++) {
-        snprintf(key, sizeof(key), "key-%d", i); value = i;
-        pgy_map_set_raw_export(&map, key, &value, sizeof(value));
-    }
-    keys = map.keys; values = map.values; occupied = map.occupied;
-    capacity = map.capacity; count = map.count; deleted_count = map.deleted_count;
-    fail_malloc_at = malloc_calls + 1; value = 77;
+/* The 13th key reaches the grow threshold. Both the key copy and the first
+ * grow allocation are armed; the key copy must fail first. */
+static void duplication_before_grow_oom(size_t offset) {
+    PgyHashMapRaw map = {0}; int32_t value = 77;
+    (void)offset;
+    fill_twelve_scalar_keys(&map);
+    fail_malloc_at = malloc_calls + 1; fail_calloc_at = calloc_calls + 1;
     pgy_map_set_raw_export(&map, "dup-before-grow", &value, sizeof(value));
-    fail_malloc_at = 0;
-    if (map.keys != keys || map.values != values || map.occupied != occupied
-        || map.capacity != capacity || map.count != count
-        || map.deleted_count != deleted_count
-        || pgy_map_has_raw_export(&map, "dup-before-grow")) {
-        drop_raw(&map, false); return false;
+}
+
+/* offset 1 fails the key copy, offset 2 the value copy; both precede growth. */
+static void string_value_duplication_before_grow_oom(size_t offset) {
+    PgyHashMapRaw map = {0}; char key[32];
+    pgy_map_new_raw_export(&map, sizeof(char *), PGY_HASHMAP_KEY_STORAGE_STRING);
+    for (int i = 0; i < 12; i++) {
+        snprintf(key, sizeof(key), "key-%d", i);
+        pgy_map_set_string_value_raw_export(&map, key, "value");
     }
+    fail_malloc_at = malloc_calls + offset; fail_calloc_at = calloc_calls + 1;
+    pgy_map_set_string_value_raw_export(&map, "dup-before-grow", "new-value");
+}
+
+static void string_value_update_oom(size_t offset) {
+    PgyHashMapRaw map = {0};
+    (void)offset;
+    pgy_map_new_raw_export(&map, sizeof(char *), PGY_HASHMAP_KEY_STORAGE_STRING);
+    pgy_map_set_string_value_raw_export(&map, "k", "owned");
+    fail_malloc_at = malloc_calls + 1;
+    pgy_map_set_string_value_raw_export(&map, "k", "replacement");
+}
+
+static void key_storage_mismatch(size_t offset) {
+    PgyHashMapRaw map = {0}; int32_t value = 1;
+    (void)offset;
+    pgy_map_new_raw_export(&map, sizeof(value), PGY_HASHMAP_KEY_STORAGE_I32);
+    fail_malloc_at = malloc_calls + 1;
+    pgy_map_set_raw_export(&map, "x", &value, sizeof(value));
+}
+
+static void set_on_invalid_map(size_t offset) {
+    PgyHashMapRaw map = {0}; int32_t value = 1;
+    (void)offset;
+    pgy_map_set_raw_export(&map, "x", &value, sizeof(value));
+}
+
+static void map_keys_oom(size_t offset) {
+    PgyHashMapRaw map = {0}; PgyArray_String out = {0}; int32_t value = 1;
+    pgy_map_new_raw_export(&map, sizeof(value), PGY_HASHMAP_KEY_STORAGE_STRING);
+    pgy_map_set_raw_export(&map, "a", &value, sizeof(value));
+    pgy_map_set_raw_export(&map, "b", &value, sizeof(value));
+    pgy_map_set_raw_export(&map, "c", &value, sizeof(value));
+    fail_malloc_at = malloc_calls + offset;
+    pgy_map_keys_raw_export(&map, &out);
+}
+
+typedef struct {
+    const char *name;
+    void (*run)(size_t offset);
+    size_t offset;
+} ChildMode;
+
+static const ChildMode child_modes[] = {
+    {"ctor-oom-1", constructor_oom, 1},
+    {"ctor-oom-2", constructor_oom, 2},
+    {"ctor-oom-3", constructor_oom, 3},
+    {"grow-oom-1", grow_oom, 1},
+    {"grow-oom-2", grow_oom, 2},
+    {"grow-oom-3", grow_oom, 3},
+    {"dup-before-grow-oom", duplication_before_grow_oom, 0},
+    {"string-dup-before-grow-oom-1", string_value_duplication_before_grow_oom, 1},
+    {"string-dup-before-grow-oom-2", string_value_duplication_before_grow_oom, 2},
+    {"string-update-oom", string_value_update_oom, 0},
+    {"mismatch", key_storage_mismatch, 0},
+    {"set-invalid-map", set_on_invalid_map, 0},
+    {"mapkeys-oom", map_keys_oom, 2},
+    {"mapkeys-mid-oom", map_keys_oom, 3},
+};
+
+static int run_child_mode(const char *name) {
+    for (size_t i = 0; i < sizeof(child_modes) / sizeof(child_modes[0]); i++) {
+        if (strcmp(child_modes[i].name, name) != 0)
+            continue;
+        child_modes[i].run(child_modes[i].offset);
+        fprintf(stderr, "child mode %s returned instead of panicking\n", name);
+        return 99;
+    }
+    fprintf(stderr, "unknown child mode %s\n", name);
+    return 98;
+}
+
+/* A failed grow now panics (child modes grow-oom-N); only the update of an
+ * existing key, which must not allocate, is checked here. */
+static bool scalar_update_never_allocates(void) {
+    PgyHashMapRaw map = {0}; int32_t value = 9001, actual = 0;
+    size_t c, m;
+    fill_twelve_scalar_keys(&map);
+    c = calloc_calls; m = malloc_calls;
+    fail_calloc_at = calloc_calls + 1; fail_malloc_at = malloc_calls + 1;
+    pgy_map_set_raw_export(&map, "key-11", &value, sizeof(value));
+    fail_calloc_at = 0; fail_malloc_at = 0;
+    pgy_map_get_raw_export(&map, "key-11", &actual, sizeof(actual));
+    if (calloc_calls != c || malloc_calls != m || actual != 9001) { drop_raw(&map, false); return false; }
     drop_raw(&map, false); return true;
 }
 
 static bool grow_value_slot_alias_is_snapshotted(void) {
-    PgyHashMapRaw map = {0}; char key[32]; int32_t value = 0, actual = 0;
+    PgyHashMapRaw map = {0}; int32_t actual = 0;
     int32_t *aliased = NULL;
-    pgy_map_new_raw_export(&map, sizeof(value), PGY_HASHMAP_KEY_STORAGE_STRING);
-    for (int i = 0; i < 12; i++) {
-        snprintf(key, sizeof(key), "key-%d", i); value = i + 100;
-        pgy_map_set_raw_export(&map, key, &value, sizeof(value));
-    }
+    fill_twelve_scalar_keys(&map);
     for (size_t i = 0; i < map.capacity; i++) {
         if (map.occupied[i] == PGY_MAP_RAW_LIVE
             && strcmp(PGY_MAP_RAW_STRING_KEYS(&map)[i], "key-0") == 0) {
@@ -179,43 +250,17 @@ static bool grow_value_slot_alias_is_snapshotted(void) {
     drop_raw(&map, false); return true;
 }
 
-static bool string_value_duplication_failure_precedes_growth(size_t offset) {
-    PgyHashMapRaw map = {0}; char key[32];
-    void *keys, *values; uint8_t *occupied; size_t capacity, count, deleted_count;
-    pgy_map_new_raw_export(&map, sizeof(char *), PGY_HASHMAP_KEY_STORAGE_STRING);
-    for (int i = 0; i < 12; i++) {
-        snprintf(key, sizeof(key), "key-%d", i);
-        pgy_map_set_string_value_raw_export(&map, key, "value");
-    }
-    keys = map.keys; values = map.values; occupied = map.occupied;
-    capacity = map.capacity; count = map.count; deleted_count = map.deleted_count;
-    fail_malloc_at = malloc_calls + offset;
-    pgy_map_set_string_value_raw_export(&map, "dup-before-grow", "new-value");
-    fail_malloc_at = 0;
-    if (map.keys != keys || map.values != values || map.occupied != occupied
-        || map.capacity != capacity || map.count != count
-        || map.deleted_count != deleted_count
-        || pgy_map_has_raw_export(&map, "dup-before-grow")) {
-        drop_raw(&map, true); return false;
-    }
-    drop_raw(&map, true); return true;
-}
-
-static bool string_value_alias_and_oom(void) {
+/* A failed value copy on update now panics (child mode string-update-oom);
+ * only the self-alias update is checked here. */
+static bool string_value_self_alias_is_owned(void) {
     PgyHashMapRaw map = {0}; char *borrowed = NULL;
     pgy_map_new_raw_export(&map, sizeof(char *), PGY_HASHMAP_KEY_STORAGE_STRING);
     pgy_map_set_string_value_raw_export(&map, "k", "owned");
     pgy_map_get_string_value_raw_export(&map, "k", &borrowed);
     pgy_map_set_string_value_raw_export(&map, "k", borrowed);
     borrowed = NULL; pgy_map_get_string_value_raw_export(&map, "k", &borrowed);
-    if (borrowed == NULL || strcmp(borrowed, "owned") != 0) { drop_raw(&map, true); return false; }
-    {
-        char *old = borrowed;
-        fail_malloc_at = malloc_calls + 1;
-        pgy_map_set_string_value_raw_export(&map, "k", "replacement");
-        fail_malloc_at = 0; borrowed = NULL;
-        pgy_map_get_string_value_raw_export(&map, "k", &borrowed);
-        if (borrowed != old || strcmp(borrowed, "owned") != 0) { drop_raw(&map, true); return false; }
+    if (borrowed == NULL || strcmp(borrowed, "owned") != 0 || map.count != 1) {
+        drop_raw(&map, true); return false;
     }
     drop_raw(&map, true); return true;
 }
@@ -249,37 +294,11 @@ static bool production_drop_is_exact_and_idempotent(void) {
 }
 
 int main(int argc, char **argv) {
-    if (argc == 2 && strcmp(argv[1], "mismatch") == 0) {
-        PgyHashMapRaw map = {0}; int32_t value = 1;
-        pgy_map_new_raw_export(&map, sizeof(value), PGY_HASHMAP_KEY_STORAGE_I32);
-        fail_malloc_at = malloc_calls + 1;
-        pgy_map_set_raw_export(&map, "x", &value, sizeof(value)); return 99;
-    }
-    if (argc == 2 && strcmp(argv[1], "mapkeys-oom") == 0) {
-        PgyHashMapRaw map = {0}; PgyArray_String out = {0}; int32_t value = 1;
-        pgy_map_new_raw_export(&map, sizeof(value), PGY_HASHMAP_KEY_STORAGE_STRING);
-        pgy_map_set_raw_export(&map, "a", &value, sizeof(value));
-        pgy_map_set_raw_export(&map, "b", &value, sizeof(value));
-        pgy_map_set_raw_export(&map, "c", &value, sizeof(value));
-        fail_malloc_at = malloc_calls + 2;
-        pgy_map_keys_raw_export(&map, &out); return 99;
-    }
-    if (argc == 2 && strcmp(argv[1], "mapkeys-mid-oom") == 0) {
-        PgyHashMapRaw map = {0}; PgyArray_String out = {0}; int32_t value = 1;
-        pgy_map_new_raw_export(&map, sizeof(value), PGY_HASHMAP_KEY_STORAGE_STRING);
-        pgy_map_set_raw_export(&map, "a", &value, sizeof(value));
-        pgy_map_set_raw_export(&map, "b", &value, sizeof(value));
-        pgy_map_set_raw_export(&map, "c", &value, sizeof(value));
-        fail_malloc_at = malloc_calls + 3;
-        pgy_map_keys_raw_export(&map, &out); return 99;
-    }
-    for (size_t i = 1; i <= 3; i++)
-        if (!constructor_failure(i) || !scalar_update_and_growth_failure(i)) return 2;
-    if (!duplication_failure_before_growth_is_physical_rollback()
+    if (argc == 2)
+        return run_child_mode(argv[1]);
+    if (!scalar_update_never_allocates()
         || !grow_value_slot_alias_is_snapshotted()
-        || !string_value_duplication_failure_precedes_growth(1)
-        || !string_value_duplication_failure_precedes_growth(2)
-        || !string_value_alias_and_oom()
+        || !string_value_self_alias_is_owned()
         || !production_drop_is_exact_and_idempotent()) return 3;
     puts("hashmap raw string storage runtime: ok"); return 0;
 }

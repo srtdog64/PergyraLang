@@ -68,14 +68,14 @@ PGY_RT_DECL PgyList_Int pgy_list_new_int(void)
     if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(l.capacity, int32_t)) {
         l.data = NULL;
         l.capacity = 0;
-        pgy_runtime_warn_invalid_collection("list_new_int", "allocation size overflow");
+        pgy_runtime_panic_collection_oom("list_new_int", "allocation size overflow");
         return l;
     }
     pgy_budget_charge_alloc(l.capacity * sizeof(int32_t));
     l.data = (int32_t *)calloc(l.capacity, sizeof(int32_t));
     if (l.data == NULL) {
         l.capacity = 0;
-        pgy_runtime_warn_invalid_collection("list_new_int", "allocation failed");
+        pgy_runtime_panic_collection_oom("list_new_int", "allocation failed");
     }
     return l;
 }
@@ -89,7 +89,7 @@ PGY_RT_DECL void pgy_list_push_int(PgyList_Int *l, int32_t val)
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, int32_t)) {
-        pgy_runtime_warn_invalid_collection("list_push_int", "list is not initialized");
+        pgy_runtime_panic_invalid_collection("list_push_int", "list is not initialized");
         return;
     }
     if (l->count >= l->capacity) {
@@ -99,19 +99,19 @@ PGY_RT_DECL void pgy_list_push_int(PgyList_Int *l, int32_t val)
             new_capacity = 16;
         } else {
             if (l->capacity > SIZE_MAX / 2) {
-                pgy_runtime_warn_invalid_collection("list_push_int", "capacity overflow");
+                pgy_runtime_panic_collection_oom("list_push_int", "capacity overflow");
                 return;
             }
             new_capacity = l->capacity * 2;
         }
         if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(new_capacity, int32_t)) {
-            pgy_runtime_warn_invalid_collection("list_push_int", "allocation size overflow");
+            pgy_runtime_panic_collection_oom("list_push_int", "allocation size overflow");
             return;
         }
         pgy_budget_charge_alloc((new_capacity - l->capacity) * sizeof(int32_t));
         grown = (int32_t *)realloc(l->data, new_capacity * sizeof(int32_t));
         if (grown == NULL) {
-            pgy_runtime_warn_invalid_collection("list_push_int", "realloc failed");
+            pgy_runtime_panic_collection_oom("list_push_int", "realloc failed");
             return;
         }
         l->data = grown;
@@ -204,13 +204,13 @@ PGY_RT_DECL PgyList_String pgy_list_new_string(void)
     if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(l.capacity, char *)) {
         l.data = NULL;
         l.capacity = 0;
-        pgy_runtime_warn_invalid_collection("list_new_string", "allocation size overflow");
+        pgy_runtime_panic_collection_oom("list_new_string", "allocation size overflow");
         return l;
     }
     l.data = (char **)calloc(l.capacity, sizeof(char *));
     if (l.data == NULL) {
         l.capacity = 0;
-        pgy_runtime_warn_invalid_collection("list_new_string", "allocation failed");
+        pgy_runtime_panic_collection_oom("list_new_string", "allocation failed");
     }
     return l;
 }
@@ -224,7 +224,7 @@ PGY_RT_DECL void pgy_list_push_string(PgyList_String *l, const char *val)
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, char *)) {
-        pgy_runtime_warn_invalid_collection("list_push_string", "list is not initialized");
+        pgy_runtime_panic_invalid_collection("list_push_string", "list is not initialized");
         return;
     }
     if (l->count >= l->capacity) {
@@ -234,18 +234,18 @@ PGY_RT_DECL void pgy_list_push_string(PgyList_String *l, const char *val)
             new_capacity = 16;
         } else {
             if (l->capacity > SIZE_MAX / 2) {
-                pgy_runtime_warn_invalid_collection("list_push_string", "capacity overflow");
+                pgy_runtime_panic_collection_oom("list_push_string", "capacity overflow");
                 return;
             }
             new_capacity = l->capacity * 2;
         }
         if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(new_capacity, char *)) {
-            pgy_runtime_warn_invalid_collection("list_push_string", "allocation size overflow");
+            pgy_runtime_panic_collection_oom("list_push_string", "allocation size overflow");
             return;
         }
         grown = (char **)realloc(l->data, new_capacity * sizeof(char *));
         if (grown == NULL) {
-            pgy_runtime_warn_invalid_collection("list_push_string", "realloc failed");
+            pgy_runtime_panic_collection_oom("list_push_string", "realloc failed");
             return;
         }
         l->data = grown;
@@ -253,7 +253,7 @@ PGY_RT_DECL void pgy_list_push_string(PgyList_String *l, const char *val)
     }
     l->data[l->count] = pgy_runtime_strdup(val ? val : "");
     if (l->data[l->count] == NULL) {
-        pgy_runtime_warn_invalid_collection("list_push_string", "string duplication failed");
+        pgy_runtime_panic_collection_oom("list_push_string", "string duplication failed");
         return;
     }
     l->count++;
@@ -357,7 +357,7 @@ PGY_RT_DECL PgySet_String pgy_set_new_string(void)
         || !PGY_RUNTIME_ELEM_CAPACITY_FITS(s.capacity, char *)
         || s.capacity > SIZE_MAX / sizeof(uint8_t)) {
         s.keys = NULL; s.occupied = NULL; s.capacity = 0;
-        pgy_runtime_warn_invalid_collection("set_new_string", "allocation size overflow");
+        pgy_runtime_panic_collection_oom("set_new_string", "allocation size overflow");
         return s;
     }
     s.keys = (char **)calloc(s.capacity, sizeof(char *));
@@ -365,7 +365,7 @@ PGY_RT_DECL PgySet_String pgy_set_new_string(void)
     if (s.keys == NULL || s.occupied == NULL) {
         free(s.keys); free(s.occupied);
         s.keys = NULL; s.occupied = NULL; s.capacity = 0;
-        pgy_runtime_warn_invalid_collection("set_new_string", "allocation failed");
+        pgy_runtime_panic_collection_oom("set_new_string", "allocation failed");
     }
     return s;
 }
@@ -399,11 +399,11 @@ PGY_RT_DECL void pgy_set_add_string(PgySet_String *s, const char *key)
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (!PGY_RUNTIME_STRING_SET_IS_INITIALIZED(s)) {
-        pgy_runtime_warn_invalid_collection("set_add_string", "set is not initialized");
+        pgy_runtime_panic_invalid_collection("set_add_string", "set is not initialized");
         return;
     }
     if (key == NULL) {
-        pgy_runtime_warn_invalid_collection("set_add_string", "null key");
+        pgy_runtime_panic_invalid_collection("set_add_string", "null key");
         return;
     }
     if (pgy_set_has_string(s, key)) return;
@@ -416,7 +416,7 @@ PGY_RT_DECL void pgy_set_add_string(PgySet_String *s, const char *key)
             new_capacity = 16;
         } else {
             if (s->capacity > SIZE_MAX / 2) {
-                pgy_runtime_warn_invalid_collection("set_add_string", "capacity overflow");
+                pgy_runtime_panic_collection_oom("set_add_string", "capacity overflow");
                 return;
             }
             new_capacity = s->capacity * 2;
@@ -424,14 +424,14 @@ PGY_RT_DECL void pgy_set_add_string(PgySet_String *s, const char *key)
         if (!PGY_RUNTIME_HASH_CAPACITY_FITS(new_capacity)
             || !PGY_RUNTIME_ELEM_CAPACITY_FITS(new_capacity, char *)
             || new_capacity > SIZE_MAX / sizeof(uint8_t)) {
-            pgy_runtime_warn_invalid_collection("set_add_string", "allocation size overflow");
+            pgy_runtime_panic_collection_oom("set_add_string", "allocation size overflow");
             return;
         }
         new_keys = (char **)calloc(new_capacity, sizeof(char *));
         new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t));
         if (new_keys == NULL || new_occupied == NULL) {
             free(new_keys); free(new_occupied);
-            pgy_runtime_warn_invalid_collection("set_add_string", "growth allocation failed");
+            pgy_runtime_panic_collection_oom("set_add_string", "growth allocation failed");
             return;
         }
         s->capacity = new_capacity;
@@ -453,7 +453,7 @@ PGY_RT_DECL void pgy_set_add_string(PgySet_String *s, const char *key)
     if (first_deleted != UINT32_MAX) h = first_deleted;
     s->keys[h] = pgy_runtime_strdup(key);
     if (s->keys[h] == NULL) {
-        pgy_runtime_warn_invalid_collection("set_add_string", "string duplication failed");
+        pgy_runtime_panic_collection_oom("set_add_string", "string duplication failed");
         return;
     }
     s->occupied[h] = PGY_SET_INLINE_LIVE; s->count++;
@@ -503,7 +503,7 @@ PGY_RT_DECL PgyArray_String pgy_set_values_string(PgySet_String *s)
     PgyArray_String out = pgy_array_new_String(s != NULL ? s->count : 0);
 
     if (s == NULL) {
-        pgy_runtime_warn_invalid_collection("set_values_string", "null set");
+        pgy_runtime_panic_invalid_collection("set_values_string", "null set");
         return out;
     }
     if (!PGY_RUNTIME_STRING_SET_IS_INITIALIZED(s) || s->count == 0)
@@ -514,7 +514,7 @@ PGY_RT_DECL PgyArray_String pgy_set_values_string(PgySet_String *s)
             continue;
         dup_value = pgy_runtime_strdup(s->keys[i]);
         if (dup_value == NULL) {
-            pgy_runtime_warn_invalid_collection("set_values_string",
+            pgy_runtime_panic_collection_oom("set_values_string",
                 "value duplication failed");
             continue;
         }

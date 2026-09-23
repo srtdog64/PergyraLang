@@ -39,17 +39,17 @@ pgy_queue_new_raw_export(void *queue_ptr, int64_t elem_size)
 {
     PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
     if (queue == NULL) {
-        pgy_runtime_warn_invalid_collection("queue_new", "null queue");
+        pgy_runtime_panic_invalid_collection("queue_new", "null queue");
         return;
     }
     if (elem_size <= 0) {
-        pgy_runtime_warn_invalid_collection("queue_new", "non-positive element size");
+        pgy_runtime_panic_invalid_collection("queue_new", "non-positive element size");
         return;
     }
     queue->capacity = 16;
     if (!pgy_queue_raw_shape_fits(queue->capacity, (size_t)elem_size)) {
         queue->capacity = 0;
-        pgy_runtime_warn_invalid_collection("queue_new", "allocation size overflow");
+        pgy_runtime_panic_collection_oom("queue_new", "allocation size overflow");
         return;
     }
     queue->head = 0;
@@ -58,7 +58,7 @@ pgy_queue_new_raw_export(void *queue_ptr, int64_t elem_size)
     queue->data = calloc(queue->capacity, (size_t)elem_size);
     if (queue->data == NULL) {
         queue->capacity = 0;
-        pgy_runtime_warn_invalid_collection("queue_new", "allocation failed");
+        pgy_runtime_panic_collection_oom("queue_new", "allocation failed");
     }
 }
 
@@ -67,19 +67,19 @@ pgy_queue_push_raw_export(void *queue_ptr, void *value_ptr, int64_t elem_size)
 {
     PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
     if (queue == NULL) {
-        pgy_runtime_warn_invalid_collection("queue_push", "null queue");
+        pgy_runtime_panic_invalid_collection("queue_push", "null queue");
         return;
     }
     if (value_ptr == NULL) {
-        pgy_runtime_warn_invalid_collection("queue_push", "null value");
+        pgy_runtime_panic_invalid_collection("queue_push", "null value");
         return;
     }
     if (elem_size <= 0) {
-        pgy_runtime_warn_invalid_collection("queue_push", "non-positive element size");
+        pgy_runtime_panic_invalid_collection("queue_push", "non-positive element size");
         return;
     }
     if (!pgy_queue_raw_is_initialized(queue)) {
-        pgy_runtime_warn_invalid_collection("queue_push", "queue is not initialized");
+        pgy_runtime_panic_invalid_collection("queue_push", "queue is not initialized");
         return;
     }
     if (queue->count >= queue->capacity) {
@@ -90,18 +90,18 @@ pgy_queue_push_raw_export(void *queue_ptr, void *value_ptr, int64_t elem_size)
             new_capacity = 16;
         } else {
             if (queue->capacity > SIZE_MAX / 2) {
-                pgy_runtime_warn_invalid_collection("queue_push", "capacity overflow");
+                pgy_runtime_panic_collection_oom("queue_push", "capacity overflow");
                 return;
             }
             new_capacity = queue->capacity * 2;
         }
         if (!pgy_queue_raw_shape_fits(new_capacity, elem_bytes)) {
-            pgy_runtime_warn_invalid_collection("queue_push", "allocation size overflow");
+            pgy_runtime_panic_collection_oom("queue_push", "allocation size overflow");
             return;
         }
         new_data = calloc(new_capacity, elem_bytes);
         if (new_data == NULL) {
-            pgy_runtime_warn_invalid_collection("queue_push", "allocation failed");
+            pgy_runtime_panic_collection_oom("queue_push", "allocation failed");
             return;
         }
         for (size_t i = 0; i < queue->count; i++) {
@@ -129,18 +129,18 @@ pgy_queue_push_string_raw_export(void *queue_ptr, const char *value)
     char *owned;
 
     if (queue == NULL) {
-        pgy_runtime_warn_invalid_collection("queue_push_string", "null queue");
+        pgy_runtime_panic_invalid_collection("queue_push_string", "null queue");
         return;
     }
     if (!pgy_queue_raw_is_initialized(queue)
         || !pgy_queue_raw_shape_fits(queue->capacity, sizeof(char *))) {
-        pgy_runtime_warn_invalid_collection("queue_push_string",
+        pgy_runtime_panic_invalid_collection("queue_push_string",
             "queue is not initialized");
         return;
     }
     owned = pgy_runtime_strdup_export(value != NULL ? value : "");
     if (owned == NULL) {
-        pgy_runtime_warn_invalid_collection("queue_push_string", "string duplication failed");
+        pgy_runtime_panic_collection_oom("queue_push_string", "string duplication failed");
         return;
     }
     before_count = queue->count;
@@ -200,11 +200,11 @@ pgy_queue_size_raw_export(void *queue_ptr)
 {
     PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
     if (queue == NULL) {
-        pgy_runtime_warn_invalid_collection("queue_size", "null queue");
+        pgy_runtime_panic_invalid_collection("queue_size", "null queue");
         return 0;
     }
     if (!pgy_queue_raw_is_initialized(queue)) {
-        pgy_runtime_warn_invalid_collection("queue_size", "queue is not initialized");
+        pgy_runtime_panic_invalid_collection("queue_size", "queue is not initialized");
         return 0;
     }
     return (int32_t)queue->count;
@@ -215,11 +215,11 @@ pgy_queue_empty_raw_export(void *queue_ptr)
 {
     PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
     if (queue == NULL)
-        pgy_runtime_warn_invalid_collection("queue_empty", "null queue");
+        pgy_runtime_panic_invalid_collection("queue_empty", "null queue");
     if (queue == NULL)
         return true;
     if (!pgy_queue_raw_is_initialized(queue)) {
-        pgy_runtime_warn_invalid_collection("queue_empty", "queue is not initialized");
+        pgy_runtime_panic_invalid_collection("queue_empty", "queue is not initialized");
         return true;
     }
     return queue->count == 0;

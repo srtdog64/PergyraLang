@@ -24,14 +24,14 @@ PGY_RT_PROGRAM_BODY({ \
     l.count = 0; \
     if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(l.capacity, CType)) { \
         l.data = NULL; l.capacity = 0; \
-        pgy_runtime_warn_invalid_collection("list_new_" #SuffixName, "allocation size overflow"); \
+        pgy_runtime_panic_collection_oom("list_new_" #SuffixName, "allocation size overflow"); \
         return l; \
     } \
     pgy_budget_charge_alloc(l.capacity * sizeof(CType)); \
     l.data = (CType *)calloc(l.capacity, sizeof(CType)); \
     if (l.data == NULL) { \
         l.capacity = 0; \
-        pgy_runtime_warn_invalid_collection("list_new_" #SuffixName, "allocation failed"); \
+        pgy_runtime_panic_collection_oom("list_new_" #SuffixName, "allocation failed"); \
     } \
     return l; \
 }) \
@@ -39,7 +39,7 @@ PGY_RT_PROGRAM_BODY({ \
 PGY_RT_PROGRAM_DECL void pgy_list_push_##SuffixName(PgyList_##SuffixName *l, CType val) \
 PGY_RT_PROGRAM_BODY({ \
     if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType)) { \
-        pgy_runtime_warn_invalid_collection("list_push_" #SuffixName, "list is not initialized"); \
+        pgy_runtime_panic_invalid_collection("list_push_" #SuffixName, "list is not initialized"); \
         return; \
     } \
     if (l->count >= l->capacity) { \
@@ -49,19 +49,19 @@ PGY_RT_PROGRAM_BODY({ \
             new_capacity = 16; \
         } else { \
             if (l->capacity > SIZE_MAX / 2) { \
-                pgy_runtime_warn_invalid_collection("list_push_" #SuffixName, "capacity overflow"); \
+                pgy_runtime_panic_collection_oom("list_push_" #SuffixName, "capacity overflow"); \
                 return; \
             } \
             new_capacity = l->capacity * 2; \
         } \
         if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(new_capacity, CType)) { \
-            pgy_runtime_warn_invalid_collection("list_push_" #SuffixName, "allocation size overflow"); \
+            pgy_runtime_panic_collection_oom("list_push_" #SuffixName, "allocation size overflow"); \
             return; \
         } \
         pgy_budget_charge_alloc((new_capacity - l->capacity) * sizeof(CType)); \
         grown = (CType *)realloc(l->data, new_capacity * sizeof(CType)); \
         if (grown == NULL) { \
-            pgy_runtime_warn_invalid_collection("list_push_" #SuffixName, "realloc failed"); \
+            pgy_runtime_panic_collection_oom("list_push_" #SuffixName, "realloc failed"); \
             return; \
         } \
         l->data = grown; \

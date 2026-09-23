@@ -111,12 +111,25 @@ pgy_runtime_warn_invalid_channel(const char *op, const char *reason)
             reason != NULL ? reason : "invalid channel operation");
 }
 
-static inline void
-pgy_runtime_warn_invalid_collection(const char *op, const char *reason)
+/* A failed collection operation is a hard failure. Printing a warning and
+ * returning dropped the write the program asked for, and the next read failed
+ * somewhere else. Each call site picks the class for its own reason. */
+static inline PGY_RUNTIME_NORETURN void
+pgy_runtime_panic_collection_oom(const char *op, const char *reason)
 {
-    fprintf(stderr, "[pgy][collection] %s: %s\n",
-            op != NULL ? op : "<op>",
-            reason != NULL ? reason : "invalid collection operation");
+    fprintf(stderr, "%s collection op=%s reason=%s\n", PGY_RUNTIME_PANIC_PREFIX,
+            op != NULL ? op : "<op>", reason != NULL ? reason : "<reason>");
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                      PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
+}
+
+static inline PGY_RUNTIME_NORETURN void
+pgy_runtime_panic_invalid_collection(const char *op, const char *reason)
+{
+    fprintf(stderr, "%s collection op=%s reason=%s\n", PGY_RUNTIME_PANIC_PREFIX,
+            op != NULL ? op : "<op>", reason != NULL ? reason : "<reason>");
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                      PGY_RUNTIME_PANIC_REASON_INVALID_COLLECTION_OPERATION);
 }
 
 static inline size_t

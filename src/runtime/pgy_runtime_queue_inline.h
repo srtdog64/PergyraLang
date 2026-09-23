@@ -27,13 +27,13 @@ static inline PgyQueue_##SuffixName pgy_queue_new_##SuffixName(void) \
     q.count = q.head = q.tail = 0; \
     if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(q.capacity, CType)) { \
         q.data = NULL; q.capacity = 0; \
-        pgy_runtime_warn_invalid_collection("queue_new_" #SuffixName, "allocation size overflow"); \
+        pgy_runtime_panic_collection_oom("queue_new_" #SuffixName, "allocation size overflow"); \
         return q; \
     } \
     q.data = (CType *)calloc(q.capacity, sizeof(CType)); \
     if (q.data == NULL) { \
         q.capacity = 0; \
-        pgy_runtime_warn_invalid_collection("queue_new_" #SuffixName, "allocation failed"); \
+        pgy_runtime_panic_collection_oom("queue_new_" #SuffixName, "allocation failed"); \
     } \
     return q; \
 } \
@@ -42,7 +42,7 @@ static inline void pgy_queue_push_##SuffixName(PgyQueue_##SuffixName *q, CType v
 { \
     if (q == NULL || q->data == NULL || q->capacity == 0 \
         || q->capacity > (size_t)INT32_MAX) { \
-        pgy_runtime_warn_invalid_collection("queue_push_" #SuffixName, "queue is not initialized"); \
+        pgy_runtime_panic_invalid_collection("queue_push_" #SuffixName, "queue is not initialized"); \
         return; \
     } \
     if (q->count >= q->capacity) { \
@@ -52,25 +52,25 @@ static inline void pgy_queue_push_##SuffixName(PgyQueue_##SuffixName *q, CType v
             nc = 16; \
         } else { \
             if (q->capacity > SIZE_MAX / 2) { \
-                pgy_runtime_warn_invalid_collection("queue_push_" #SuffixName, "capacity overflow"); \
+                pgy_runtime_panic_collection_oom("queue_push_" #SuffixName, "capacity overflow"); \
                 return; \
             } \
             nc = q->capacity * 2; \
         } \
         if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(nc, CType)) { \
-            pgy_runtime_warn_invalid_collection("queue_push_" #SuffixName, "allocation size overflow"); \
+            pgy_runtime_panic_collection_oom("queue_push_" #SuffixName, "allocation size overflow"); \
             return; \
         } \
         if (q->head == 0) { \
             nd = (CType *)realloc(q->data, nc * sizeof(CType)); \
             if (nd == NULL) { \
-                pgy_runtime_warn_invalid_collection("queue_push_" #SuffixName, "growth allocation failed"); \
+                pgy_runtime_panic_collection_oom("queue_push_" #SuffixName, "growth allocation failed"); \
                 return; \
             } \
         } else { \
             nd = (CType *)calloc(nc, sizeof(CType)); \
             if (nd == NULL) { \
-                pgy_runtime_warn_invalid_collection("queue_push_" #SuffixName, "growth allocation failed"); \
+                pgy_runtime_panic_collection_oom("queue_push_" #SuffixName, "growth allocation failed"); \
                 return; \
             } \
             for (size_t i = 0; i < q->count; i++) \
@@ -118,13 +118,13 @@ static inline PgyQueue_Int pgy_queue_new_int(void)
     if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(q.capacity, int32_t)) {
         q.data = NULL;
         q.capacity = 0;
-        pgy_runtime_warn_invalid_collection("queue_new_int", "allocation size overflow");
+        pgy_runtime_panic_collection_oom("queue_new_int", "allocation size overflow");
         return q;
     }
     q.data = (int32_t *)calloc(q.capacity, sizeof(int32_t));
     if (q.data == NULL) {
         q.capacity = 0;
-        pgy_runtime_warn_invalid_collection("queue_new_int", "allocation failed");
+        pgy_runtime_panic_collection_oom("queue_new_int", "allocation failed");
     }
     return q;
 }
@@ -133,7 +133,7 @@ static inline void pgy_queue_push_int(PgyQueue_Int *q, int32_t val)
 {
     if (q == NULL || q->data == NULL || q->capacity == 0
         || q->capacity > (size_t)INT32_MAX) {
-        pgy_runtime_warn_invalid_collection("queue_push_int", "queue is not initialized");
+        pgy_runtime_panic_invalid_collection("queue_push_int", "queue is not initialized");
         return;
     }
     if (q->count >= q->capacity) {
@@ -143,25 +143,25 @@ static inline void pgy_queue_push_int(PgyQueue_Int *q, int32_t val)
             nc = 16;
         } else {
             if (q->capacity > SIZE_MAX / 2) {
-                pgy_runtime_warn_invalid_collection("queue_push_int", "capacity overflow");
+                pgy_runtime_panic_collection_oom("queue_push_int", "capacity overflow");
                 return;
             }
             nc = q->capacity * 2;
         }
         if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(nc, int32_t)) {
-            pgy_runtime_warn_invalid_collection("queue_push_int", "allocation size overflow");
+            pgy_runtime_panic_collection_oom("queue_push_int", "allocation size overflow");
             return;
         }
         if (q->head == 0) {
             nd = (int32_t *)realloc(q->data, nc * sizeof(int32_t));
             if (nd == NULL) {
-                pgy_runtime_warn_invalid_collection("queue_push_int", "growth allocation failed");
+                pgy_runtime_panic_collection_oom("queue_push_int", "growth allocation failed");
                 return;
             }
         } else {
             nd = (int32_t *)calloc(nc, sizeof(int32_t));
             if (nd == NULL) {
-                pgy_runtime_warn_invalid_collection("queue_push_int", "growth allocation failed");
+                pgy_runtime_panic_collection_oom("queue_push_int", "growth allocation failed");
                 return;
             }
             for (size_t i = 0; i < q->count; i++)
@@ -214,13 +214,13 @@ static inline PgyQueue_String pgy_queue_new_string(void)
     if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(q.capacity, char *)) {
         q.data = NULL;
         q.capacity = 0;
-        pgy_runtime_warn_invalid_collection("queue_new_string", "allocation size overflow");
+        pgy_runtime_panic_collection_oom("queue_new_string", "allocation size overflow");
         return q;
     }
     q.data = (char **)calloc(q.capacity, sizeof(char *));
     if (q.data == NULL) {
         q.capacity = 0;
-        pgy_runtime_warn_invalid_collection("queue_new_string", "allocation failed");
+        pgy_runtime_panic_collection_oom("queue_new_string", "allocation failed");
     }
     return q;
 }
@@ -229,7 +229,7 @@ static inline void pgy_queue_push_string(PgyQueue_String *q, const char *val)
 {
     if (q == NULL || q->data == NULL || q->capacity == 0
         || q->capacity > (size_t)INT32_MAX) {
-        pgy_runtime_warn_invalid_collection("queue_push_string", "queue is not initialized");
+        pgy_runtime_panic_invalid_collection("queue_push_string", "queue is not initialized");
         return;
     }
     if (q->count >= q->capacity) {
@@ -239,25 +239,25 @@ static inline void pgy_queue_push_string(PgyQueue_String *q, const char *val)
             nc = 16;
         } else {
             if (q->capacity > SIZE_MAX / 2) {
-                pgy_runtime_warn_invalid_collection("queue_push_string", "capacity overflow");
+                pgy_runtime_panic_collection_oom("queue_push_string", "capacity overflow");
                 return;
             }
             nc = q->capacity * 2;
         }
         if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(nc, char *)) {
-            pgy_runtime_warn_invalid_collection("queue_push_string", "allocation size overflow");
+            pgy_runtime_panic_collection_oom("queue_push_string", "allocation size overflow");
             return;
         }
         if (q->head == 0) {
             nd = (char **)realloc(q->data, nc * sizeof(char *));
             if (nd == NULL) {
-                pgy_runtime_warn_invalid_collection("queue_push_string", "growth allocation failed");
+                pgy_runtime_panic_collection_oom("queue_push_string", "growth allocation failed");
                 return;
             }
         } else {
             nd = (char **)calloc(nc, sizeof(char *));
             if (nd == NULL) {
-                pgy_runtime_warn_invalid_collection("queue_push_string", "growth allocation failed");
+                pgy_runtime_panic_collection_oom("queue_push_string", "growth allocation failed");
                 return;
             }
             for (size_t i = 0; i < q->count; i++)
@@ -271,7 +271,7 @@ static inline void pgy_queue_push_string(PgyQueue_String *q, const char *val)
     }
     q->data[q->tail] = pgy_runtime_strdup(val != NULL ? val : "");
     if (q->data[q->tail] == NULL) {
-        pgy_runtime_warn_invalid_collection("queue_push_string", "string duplication failed");
+        pgy_runtime_panic_collection_oom("queue_push_string", "string duplication failed");
         return;
     }
     q->tail = (q->tail + 1) % q->capacity;

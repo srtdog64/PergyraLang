@@ -90,7 +90,7 @@ PGY_RT_PROGRAM_BODY({ \
     if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(m.capacity, CType)) { \
         m.keys = NULL; m.values = NULL; m.occupied = NULL; \
         m.capacity = 0; \
-        pgy_runtime_warn_invalid_collection("map_new_" #SuffixName, "allocation size overflow"); \
+        pgy_runtime_panic_collection_oom("map_new_" #SuffixName, "allocation size overflow"); \
         return m; \
     } \
     m.keys = PGY_HASHMAP_CALLOC(m.capacity, sizeof(char *)); \
@@ -99,7 +99,7 @@ PGY_RT_PROGRAM_BODY({ \
     if (m.keys == NULL || m.values == NULL || m.occupied == NULL) { \
         free(m.keys); free(m.values); free(m.occupied); \
         memset(&m, 0, sizeof(m)); \
-        pgy_runtime_warn_invalid_collection("map_new_" #SuffixName, "allocation failed"); \
+        pgy_runtime_panic_collection_oom("map_new_" #SuffixName, "allocation failed"); \
     } \
     return m; \
 }) \
@@ -111,7 +111,7 @@ PGY_RT_PROGRAM_BODY({ \
     m.key_storage_kind = PGY_HASHMAP_KEY_STORAGE_I32; \
     if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(m.capacity, CType)) { \
         m.capacity = 0; \
-        pgy_runtime_warn_invalid_collection("map_new_i32_" #SuffixName, "allocation size overflow"); \
+        pgy_runtime_panic_collection_oom("map_new_i32_" #SuffixName, "allocation size overflow"); \
         return m; \
     } \
     m.keys = PGY_HASHMAP_CALLOC(m.capacity, sizeof(int32_t)); \
@@ -120,7 +120,7 @@ PGY_RT_PROGRAM_BODY({ \
     if (m.keys == NULL || m.values == NULL || m.occupied == NULL) { \
         free(m.keys); free(m.values); free(m.occupied); \
         memset(&m, 0, sizeof(m)); \
-        pgy_runtime_warn_invalid_collection("map_new_i32_" #SuffixName, "allocation failed"); \
+        pgy_runtime_panic_collection_oom("map_new_i32_" #SuffixName, "allocation failed"); \
     } \
     return m; \
 }) \
@@ -132,7 +132,7 @@ PGY_RT_PROGRAM_BODY({ \
     m.key_storage_kind = PGY_HASHMAP_KEY_STORAGE_I64; \
     if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(m.capacity, CType)) { \
         m.capacity = 0; \
-        pgy_runtime_warn_invalid_collection("map_new_i64_" #SuffixName, "allocation size overflow"); \
+        pgy_runtime_panic_collection_oom("map_new_i64_" #SuffixName, "allocation size overflow"); \
         return m; \
     } \
     m.keys = PGY_HASHMAP_CALLOC(m.capacity, sizeof(int64_t)); \
@@ -141,7 +141,7 @@ PGY_RT_PROGRAM_BODY({ \
     if (m.keys == NULL || m.values == NULL || m.occupied == NULL) { \
         free(m.keys); free(m.values); free(m.occupied); \
         memset(&m, 0, sizeof(m)); \
-        pgy_runtime_warn_invalid_collection("map_new_i64_" #SuffixName, "allocation failed"); \
+        pgy_runtime_panic_collection_oom("map_new_i64_" #SuffixName, "allocation failed"); \
     } \
     return m; \
 }) \
@@ -153,7 +153,7 @@ PGY_RT_PROGRAM_BODY({ \
     m.key_storage_kind = PGY_HASHMAP_KEY_STORAGE_BOOL; \
     if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(m.capacity, CType)) { \
         m.capacity = 0; \
-        pgy_runtime_warn_invalid_collection("map_new_bool_" #SuffixName, "allocation size overflow"); \
+        pgy_runtime_panic_collection_oom("map_new_bool_" #SuffixName, "allocation size overflow"); \
         return m; \
     } \
     m.keys = PGY_HASHMAP_CALLOC(m.capacity, sizeof(bool)); \
@@ -162,7 +162,7 @@ PGY_RT_PROGRAM_BODY({ \
     if (m.keys == NULL || m.values == NULL || m.occupied == NULL) { \
         free(m.keys); free(m.values); free(m.occupied); \
         memset(&m, 0, sizeof(m)); \
-        pgy_runtime_warn_invalid_collection("map_new_bool_" #SuffixName, "allocation failed"); \
+        pgy_runtime_panic_collection_oom("map_new_bool_" #SuffixName, "allocation failed"); \
     } \
     return m; \
 }) \
@@ -204,13 +204,13 @@ PGY_RT_PROGRAM_BODY({ \
         new_capacity = PGY_HASHMAP_INIT_CAP; \
     } else { \
         if (m->capacity > SIZE_MAX / 2) { \
-            pgy_runtime_warn_invalid_collection("map_grow_" #SuffixName, "capacity overflow"); \
+            pgy_runtime_panic_collection_oom("map_grow_" #SuffixName, "capacity overflow"); \
             return false; \
         } \
         new_capacity = m->capacity * 2; \
     } \
     if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(new_capacity, CType)) { \
-        pgy_runtime_warn_invalid_collection("map_grow_" #SuffixName, "allocation size overflow"); \
+        pgy_runtime_panic_collection_oom("map_grow_" #SuffixName, "allocation size overflow"); \
         return false; \
     } \
     new_keys = (char **)PGY_HASHMAP_CALLOC(new_capacity, sizeof(char *)); \
@@ -218,7 +218,7 @@ PGY_RT_PROGRAM_BODY({ \
     new_occupied = (uint8_t *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(uint8_t)); \
     if (new_keys == NULL || new_values == NULL || new_occupied == NULL) { \
         free(new_keys); free(new_values); free(new_occupied); \
-        pgy_runtime_warn_invalid_collection("map_grow_" #SuffixName, "allocation failed"); \
+        pgy_runtime_panic_collection_oom("map_grow_" #SuffixName, "allocation failed"); \
         return false; \
     } \
     m->capacity = new_capacity; \
@@ -245,11 +245,11 @@ PGY_RT_PROGRAM_DECL void pgy_map_set_##SuffixName(PgyHashMap_##SuffixName *m, co
 PGY_RT_PROGRAM_BODY({ \
     char *owned_key; \
     if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) { \
-        pgy_runtime_warn_invalid_collection("map_set_" #SuffixName, "map is not initialized"); \
+        pgy_runtime_panic_invalid_collection("map_set_" #SuffixName, "map is not initialized"); \
         return; \
     } \
     if (key == NULL) { \
-        pgy_runtime_warn_invalid_collection("map_set_" #SuffixName, "null key"); \
+        pgy_runtime_panic_invalid_collection("map_set_" #SuffixName, "null key"); \
         return; \
     } \
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_STRING) \
@@ -268,7 +268,7 @@ PGY_RT_PROGRAM_BODY({ \
     } \
     owned_key = pgy_runtime_strdup(key); \
     if (owned_key == NULL) { \
-        pgy_runtime_warn_invalid_collection("map_set_" #SuffixName, "key duplication failed"); \
+        pgy_runtime_panic_collection_oom("map_set_" #SuffixName, "key duplication failed"); \
         return; \
     } \
     if ((m->count + m->deleted_count + 1) * 4 > m->capacity * 3) { \
@@ -280,7 +280,7 @@ PGY_RT_PROGRAM_BODY({ \
     if (first_deleted != UINT32_MAX) h = first_deleted; \
     if (probes >= m->capacity && first_deleted == UINT32_MAX) { \
         free(owned_key); \
-        pgy_runtime_warn_invalid_collection("map_set_" #SuffixName, "map is full"); \
+        pgy_runtime_panic_invalid_collection("map_set_" #SuffixName, "map is full"); \
         return; \
     } \
     PGY_HASHMAP_STRING_KEYS(m)[h] = owned_key; \
@@ -373,18 +373,18 @@ PGY_RT_PROGRAM_BODY({ \
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_I32) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map key storage kind mismatch"); \
     if (m->capacity > SIZE_MAX / 2) { \
-        pgy_runtime_warn_invalid_collection("map_grow_i32_" #SuffixName, "capacity overflow"); return false; \
+        pgy_runtime_panic_collection_oom("map_grow_i32_" #SuffixName, "capacity overflow"); return false; \
     } \
     new_capacity = m->capacity == 0 ? PGY_HASHMAP_INIT_CAP : m->capacity * 2; \
     if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(new_capacity, CType)) { \
-        pgy_runtime_warn_invalid_collection("map_grow_i32_" #SuffixName, "allocation size overflow"); return false; \
+        pgy_runtime_panic_collection_oom("map_grow_i32_" #SuffixName, "allocation size overflow"); return false; \
     } \
     new_keys = (int32_t *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(int32_t)); \
     new_values = (CType *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(CType)); \
     new_occupied = (uint8_t *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(uint8_t)); \
     if (new_keys == NULL || new_values == NULL || new_occupied == NULL) { \
         free(new_keys); free(new_values); free(new_occupied); \
-        pgy_runtime_warn_invalid_collection("map_grow_i32_" #SuffixName, "allocation failed"); return false; \
+        pgy_runtime_panic_collection_oom("map_grow_i32_" #SuffixName, "allocation failed"); return false; \
     } \
     m->capacity = new_capacity; m->keys = new_keys; m->values = new_values; \
     m->occupied = new_occupied; m->count = 0; m->deleted_count = 0; \
@@ -401,7 +401,7 @@ PGY_RT_PROGRAM_BODY({ \
 PGY_RT_PROGRAM_DECL void pgy_map_set_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key, CType val) \
 PGY_RT_PROGRAM_BODY({ \
     uint32_t h, first_deleted = UINT32_MAX; size_t probes = 0; \
-    if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) { pgy_runtime_warn_invalid_collection("map_set_i32_" #SuffixName, "map is not initialized"); return; } \
+    if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) { pgy_runtime_panic_invalid_collection("map_set_i32_" #SuffixName, "map is not initialized"); return; } \
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_I32) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map key storage kind mismatch"); \
     h = pgy_hashmap_hash_i32(key) % (uint32_t)m->capacity; \
@@ -417,7 +417,7 @@ PGY_RT_PROGRAM_BODY({ \
         while (m->occupied[h] == PGY_HASHMAP_LIVE && probes < m->capacity) { h = (h + 1) % (uint32_t)m->capacity; probes++; } \
     } \
     if (first_deleted != UINT32_MAX) h = first_deleted; \
-    else if (probes >= m->capacity) { pgy_runtime_warn_invalid_collection("map_set_i32_" #SuffixName, "map is full"); return; } \
+    else if (probes >= m->capacity) { pgy_runtime_panic_invalid_collection("map_set_i32_" #SuffixName, "map is full"); return; } \
     PGY_HASHMAP_I32_KEYS(m)[h] = key; m->values[h] = val; m->occupied[h] = PGY_HASHMAP_LIVE; m->count++; \
     if (first_deleted != UINT32_MAX) m->deleted_count--; \
 }) \
@@ -470,18 +470,18 @@ PGY_RT_PROGRAM_BODY({ \
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_I64) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map key storage kind mismatch"); \
     if (m->capacity > SIZE_MAX / 2) { \
-        pgy_runtime_warn_invalid_collection("map_grow_i64_" #SuffixName, "capacity overflow"); return false; \
+        pgy_runtime_panic_collection_oom("map_grow_i64_" #SuffixName, "capacity overflow"); return false; \
     } \
     new_capacity = m->capacity == 0 ? PGY_HASHMAP_INIT_CAP : m->capacity * 2; \
     if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(new_capacity, CType)) { \
-        pgy_runtime_warn_invalid_collection("map_grow_i64_" #SuffixName, "allocation size overflow"); return false; \
+        pgy_runtime_panic_collection_oom("map_grow_i64_" #SuffixName, "allocation size overflow"); return false; \
     } \
     new_keys = (int64_t *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(int64_t)); \
     new_values = (CType *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(CType)); \
     new_occupied = (uint8_t *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(uint8_t)); \
     if (new_keys == NULL || new_values == NULL || new_occupied == NULL) { \
         free(new_keys); free(new_values); free(new_occupied); \
-        pgy_runtime_warn_invalid_collection("map_grow_i64_" #SuffixName, "allocation failed"); return false; \
+        pgy_runtime_panic_collection_oom("map_grow_i64_" #SuffixName, "allocation failed"); return false; \
     } \
     m->capacity = new_capacity; m->keys = new_keys; m->values = new_values; \
     m->occupied = new_occupied; m->count = 0; m->deleted_count = 0; \
@@ -498,7 +498,7 @@ PGY_RT_PROGRAM_BODY({ \
 PGY_RT_PROGRAM_DECL void pgy_map_set_i64_##SuffixName(PgyHashMap_##SuffixName *m, int64_t key, CType val) \
 PGY_RT_PROGRAM_BODY({ \
     uint32_t h, first_deleted = UINT32_MAX; size_t probes = 0; \
-    if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) { pgy_runtime_warn_invalid_collection("map_set_i64_" #SuffixName, "map is not initialized"); return; } \
+    if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) { pgy_runtime_panic_invalid_collection("map_set_i64_" #SuffixName, "map is not initialized"); return; } \
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_I64) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map key storage kind mismatch"); \
     h = pgy_hashmap_hash_i64(key) % (uint32_t)m->capacity; \
     while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) { \
@@ -513,7 +513,7 @@ PGY_RT_PROGRAM_BODY({ \
         while (m->occupied[h] == PGY_HASHMAP_LIVE && probes < m->capacity) { h = (h + 1) % (uint32_t)m->capacity; probes++; } \
     } \
     if (first_deleted != UINT32_MAX) h = first_deleted; \
-    else if (probes >= m->capacity) { pgy_runtime_warn_invalid_collection("map_set_i64_" #SuffixName, "map is full"); return; } \
+    else if (probes >= m->capacity) { pgy_runtime_panic_invalid_collection("map_set_i64_" #SuffixName, "map is full"); return; } \
     PGY_HASHMAP_I64_KEYS(m)[h] = key; m->values[h] = val; m->occupied[h] = PGY_HASHMAP_LIVE; m->count++; \
     if (first_deleted != UINT32_MAX) m->deleted_count--; \
 }) \
@@ -566,18 +566,18 @@ PGY_RT_PROGRAM_BODY({ \
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_BOOL) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map key storage kind mismatch"); \
     if (m->capacity > SIZE_MAX / 2) { \
-        pgy_runtime_warn_invalid_collection("map_grow_bool_" #SuffixName, "capacity overflow"); return false; \
+        pgy_runtime_panic_collection_oom("map_grow_bool_" #SuffixName, "capacity overflow"); return false; \
     } \
     new_capacity = m->capacity == 0 ? PGY_HASHMAP_INIT_CAP : m->capacity * 2; \
     if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(new_capacity, CType)) { \
-        pgy_runtime_warn_invalid_collection("map_grow_bool_" #SuffixName, "allocation size overflow"); return false; \
+        pgy_runtime_panic_collection_oom("map_grow_bool_" #SuffixName, "allocation size overflow"); return false; \
     } \
     new_keys = (bool *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(bool)); \
     new_values = (CType *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(CType)); \
     new_occupied = (uint8_t *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(uint8_t)); \
     if (new_keys == NULL || new_values == NULL || new_occupied == NULL) { \
         free(new_keys); free(new_values); free(new_occupied); \
-        pgy_runtime_warn_invalid_collection("map_grow_bool_" #SuffixName, "allocation failed"); return false; \
+        pgy_runtime_panic_collection_oom("map_grow_bool_" #SuffixName, "allocation failed"); return false; \
     } \
     m->capacity = new_capacity; m->keys = new_keys; m->values = new_values; \
     m->occupied = new_occupied; m->count = 0; m->deleted_count = 0; \
@@ -594,7 +594,7 @@ PGY_RT_PROGRAM_BODY({ \
 PGY_RT_PROGRAM_DECL void pgy_map_set_bool_##SuffixName(PgyHashMap_##SuffixName *m, bool key, CType val) \
 PGY_RT_PROGRAM_BODY({ \
     uint32_t h, first_deleted = UINT32_MAX; size_t probes = 0; \
-    if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) { pgy_runtime_warn_invalid_collection("map_set_bool_" #SuffixName, "map is not initialized"); return; } \
+    if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) { pgy_runtime_panic_invalid_collection("map_set_bool_" #SuffixName, "map is not initialized"); return; } \
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_BOOL) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map key storage kind mismatch"); \
     h = pgy_hashmap_hash_bool(key) % (uint32_t)m->capacity; \
     while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) { \
@@ -609,7 +609,7 @@ PGY_RT_PROGRAM_BODY({ \
         while (m->occupied[h] == PGY_HASHMAP_LIVE && probes < m->capacity) { h = (h + 1) % (uint32_t)m->capacity; probes++; } \
     } \
     if (first_deleted != UINT32_MAX) h = first_deleted; \
-    else if (probes >= m->capacity) { pgy_runtime_warn_invalid_collection("map_set_bool_" #SuffixName, "map is full"); return; } \
+    else if (probes >= m->capacity) { pgy_runtime_panic_invalid_collection("map_set_bool_" #SuffixName, "map is full"); return; } \
     PGY_HASHMAP_BOOL_KEYS(m)[h] = key; m->values[h] = val; m->occupied[h] = PGY_HASHMAP_LIVE; m->count++; \
     if (first_deleted != UINT32_MAX) m->deleted_count--; \
 }) \

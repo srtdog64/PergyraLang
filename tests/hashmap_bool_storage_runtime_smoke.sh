@@ -18,29 +18,59 @@ esac
     -Isrc tests/hashmap_bool_raw_storage_runtime.c -o "$WORK/raw-runtime.exe" \
     "${RAW_RUNTIME_LINK_FLAGS[@]}"
 
-"$WORK/runtime.exe" >"$WORK/out" 2>"$WORK/err"
-grep -Fxq 'hashmap bool storage runtime: ok' "$WORK/out"
-grep -Fq 'allocation failed' "$WORK/err"
-"$WORK/raw-runtime.exe" >"$WORK/raw.out" 2>"$WORK/raw.err"
-grep -Fxq 'hashmap raw bool storage runtime: ok' "$WORK/raw.out"
-grep -Fq 'allocation failed' "$WORK/raw.err"
+fail() { echo "[hashmap-bool-runtime] $*" >&2; exit 1; }
 
+# The success run injects no failure: exit 0, the ok line, nothing on stderr.
+expect_success_run() {
+    local exe="$1" ok_line="$2" status=0
+    "$WORK/$exe.exe" >"$WORK/$exe.out" 2>"$WORK/$exe.err" || status=$?
+    if [[ "$status" != 0 ]] || ! grep -Fxq -- "$ok_line" "$WORK/$exe.out" ||
+        [[ -s "$WORK/$exe.err" ]]; then
+        cat "$WORK/$exe.err" >&2; fail "$exe success run failed (exit $status)"
+    fi
+}
+expect_success_run runtime 'hashmap bool storage runtime: ok'
+expect_success_run raw-runtime 'hashmap raw bool storage runtime: ok'
+
+# A failed allocation panics (docs/105_runtime_panic_contract.md, class oom),
+# so each injected failure runs as a child mode that must abort: exit 0 means
+# it continued, 99 that the operation returned, 98 an unknown mode. <detail>
+# is the text after "[PGY PANIC] collection "; an empty detail means the
+# panic site has no collection detail line and none may appear.
+expect_child_panic() {
+    local exe="$1" mode="$2" panic="$3" detail="$4" forbidden="${5:-}"
+    local err="$WORK/$exe-$mode.err" status=0
+    "$WORK/$exe.exe" "$mode" >"$WORK/$exe-$mode.out" 2>"$err" || status=$?
+    case "$status" in
+        0|98|99) cat "$err" >&2; fail "$exe $mode exited $status instead of panicking" ;;
+    esac
+    grep -Fq -- "$panic" "$err" || { cat "$err" >&2; fail "$exe $mode lacks: $panic"; }
+    if [[ -n "$detail" ]]; then
+        grep -Fq -- "[PGY PANIC] collection $detail" "$err" ||
+            { cat "$err" >&2; fail "$exe $mode lacks detail: $detail"; }
+    elif grep -Fq -- '[PGY PANIC] collection ' "$err"; then
+        cat "$err" >&2; fail "$exe $mode printed an unexpected collection detail"
+    fi
+    if [[ -n "$forbidden" ]] && grep -Fq -- "$forbidden" "$err"; then
+        cat "$err" >&2; fail "$exe $mode must not print: $forbidden"
+    fi
+}
+OOM='class=oom reason=allocation failed'
+INVALID='class=internal-invariant reason=invalid collection operation'
+MISMATCH='class=internal-invariant reason=map key storage kind mismatch'
+
+for n in 1 2 3; do
+    expect_child_panic runtime "ctor-oom-$n" "$OOM" 'op=map_new_bool_int reason=allocation failed'
+    expect_child_panic raw-runtime "ctor-oom-$n" "$OOM" 'op=map_new reason=allocation failed'
+done
 for exe in runtime raw-runtime; do
+    # Kind validation must precede any allocation, which is armed to fail.
     for mode in mismatch mapkeys-mismatch; do
-        status=0
-        "$WORK/$exe.exe" "$mode" >"$WORK/$exe-$mode.out" \
-            2>"$WORK/$exe-$mode.err" || status=$?
-        if [[ "$status" == 0 ]] ||
-            ! grep -Fq 'map key storage kind mismatch' "$WORK/$exe-$mode.err"; then
-            echo "[hashmap-bool-runtime] $exe $mode did not fail closed" >&2
-            exit 1
-        fi
-        if grep -Fq 'allocation failed' "$WORK/$exe-$mode.err"; then
-            echo "[hashmap-bool-runtime] $exe $mode allocated before kind validation" >&2
-            exit 1
-        fi
+        expect_child_panic "$exe" "$mode" "$MISMATCH" '' 'allocation failed'
     done
 done
+expect_child_panic runtime set-invalid-map "$INVALID" 'op=map_set_bool_int reason=map is not initialized'
+expect_child_panic raw-runtime set-invalid-map "$INVALID" 'op=map_set_bool reason=map is not initialized'
 
 for forbidden in pgy_map_format_bool_key pgy_map_bool_key_string_export \
     'invalid stored bool key'; do

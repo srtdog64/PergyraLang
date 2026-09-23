@@ -17,38 +17,57 @@ esac
 "$CC_BIN" -std=c11 -O2 -Wall -Wextra -Werror=implicit-function-declaration \
     -Isrc tests/hashmap_i64_raw_storage_runtime.c -o "$WORK/raw-runtime.exe" \
     "${RAW_RUNTIME_LINK_FLAGS[@]}"
-"$WORK/runtime.exe" >"$WORK/out" 2>"$WORK/err"
-grep -Fxq 'hashmap i64 storage runtime: ok' "$WORK/out"
-if ! grep -Fq 'allocation failed' "$WORK/err"; then
-    echo '[hashmap-i64-runtime] allocation failure was not observable' >&2
-    exit 1
-fi
 
-"$WORK/raw-runtime.exe" >"$WORK/raw.out" 2>"$WORK/raw.err"
-grep -Fxq 'hashmap raw i64 storage runtime: ok' "$WORK/raw.out"
-if ! grep -Fq 'allocation failed' "$WORK/raw.err"; then
-    echo '[hashmap-i64-runtime] raw allocation failure was not observable' >&2
-    exit 1
-fi
-for mode in mismatch mapkeys-mismatch; do
-    status=0
-    "$WORK/raw-runtime.exe" "$mode" >"$WORK/raw-$mode.out" \
-        2>"$WORK/raw-$mode.err" || status=$?
-    if [[ "$status" == 0 ]] ||
-        ! grep -Fq 'map key storage kind mismatch' "$WORK/raw-$mode.err"; then
-        echo "[hashmap-i64-runtime] raw $mode did not fail closed" >&2
-        exit 1
+fail() { echo "[hashmap-i64-runtime] $*" >&2; exit 1; }
+
+# The success run injects no failure: exit 0, the ok line, nothing on stderr.
+expect_success_run() {
+    local exe="$1" ok_line="$2" status=0
+    "$WORK/$exe.exe" >"$WORK/$exe.out" 2>"$WORK/$exe.err" || status=$?
+    if [[ "$status" != 0 ]] || ! grep -Fxq -- "$ok_line" "$WORK/$exe.out" ||
+        [[ -s "$WORK/$exe.err" ]]; then
+        cat "$WORK/$exe.err" >&2; fail "$exe success run failed (exit $status)"
     fi
-done
+}
+expect_success_run runtime 'hashmap i64 storage runtime: ok'
+expect_success_run raw-runtime 'hashmap raw i64 storage runtime: ok'
 
-status=0
-"$WORK/runtime.exe" mismatch >"$WORK/mismatch.out" \
-    2>"$WORK/mismatch.err" || status=$?
-if [[ "$status" == 0 ]] ||
-    ! grep -Fq 'map key storage kind mismatch' "$WORK/mismatch.err"; then
-    echo '[hashmap-i64-runtime] key storage mismatch did not fail closed' >&2
-    exit 1
-fi
+# A failed allocation panics (docs/105_runtime_panic_contract.md, class oom),
+# so each injected failure runs as a child mode that must abort: exit 0 means
+# it continued, 99 that the operation returned, 98 an unknown mode. <detail>
+# is the text after "[PGY PANIC] collection "; an empty detail means the
+# panic site has no collection detail line and none may appear.
+expect_child_panic() {
+    local exe="$1" mode="$2" panic="$3" detail="$4"
+    local err="$WORK/$exe-$mode.err" status=0
+    "$WORK/$exe.exe" "$mode" >"$WORK/$exe-$mode.out" 2>"$err" || status=$?
+    case "$status" in
+        0|98|99) cat "$err" >&2; fail "$exe $mode exited $status instead of panicking" ;;
+    esac
+    grep -Fq -- "$panic" "$err" || { cat "$err" >&2; fail "$exe $mode lacks: $panic"; }
+    if [[ -n "$detail" ]]; then
+        grep -Fq -- "[PGY PANIC] collection $detail" "$err" ||
+            { cat "$err" >&2; fail "$exe $mode lacks detail: $detail"; }
+    elif grep -Fq -- '[PGY PANIC] collection ' "$err"; then
+        cat "$err" >&2; fail "$exe $mode printed an unexpected collection detail"
+    fi
+}
+OOM='class=oom reason=allocation failed'
+INVALID='class=internal-invariant reason=invalid collection operation'
+MISMATCH='class=internal-invariant reason=map key storage kind mismatch'
+
+for n in 1 2 3; do
+    expect_child_panic runtime "ctor-oom-$n" "$OOM" 'op=map_new_i64_int reason=allocation failed'
+    expect_child_panic runtime "grow-oom-$n" "$OOM" 'op=map_grow_int reason=allocation failed'
+    expect_child_panic raw-runtime "ctor-oom-$n" "$OOM" 'op=map_new reason=allocation failed'
+    expect_child_panic raw-runtime "grow-oom-$n" "$OOM" 'op=map_grow reason=allocation failed'
+done
+expect_child_panic runtime mismatch "$MISMATCH" ''
+for mode in mismatch mapkeys-mismatch; do
+    expect_child_panic raw-runtime "$mode" "$MISMATCH" ''
+done
+expect_child_panic runtime set-invalid-map "$INVALID" 'op=map_set_i64_int reason=map is not initialized'
+expect_child_panic raw-runtime set-invalid-map "$INVALID" 'op=map_set_i64 reason=map is not initialized'
 
 for forbidden in pgy_map_format_i64_key pgy_map_i64_key_string_export strtoll; do
     if grep -R -Fq --include='*.h' --include='*.c' "$forbidden" src/runtime; then

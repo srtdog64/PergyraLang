@@ -7,7 +7,7 @@ static inline PgyArray_String pgy_map_keys_##FuncSuffix(PgyHashMap_##TypeSuffix 
 { \
     PgyArray_String out = {0}; \
     if (m == NULL) { \
-        pgy_runtime_warn_invalid_collection("map_keys_" #FuncSuffix, "null map"); \
+        pgy_runtime_panic_invalid_collection("map_keys_" #FuncSuffix, "null map"); \
         return out; \
     } \
     if (m->capacity == 0 || m->capacity > (size_t)INT32_MAX \
@@ -36,7 +36,7 @@ static inline PgyArray_Int pgy_map_keys_i32_##FuncSuffix(PgyHashMap_##TypeSuffix
 { \
     PgyArray_Int out = {0}; \
     if (m == NULL) { \
-        pgy_runtime_warn_invalid_collection("map_keys_i32_" #FuncSuffix, "null map"); \
+        pgy_runtime_panic_invalid_collection("map_keys_i32_" #FuncSuffix, "null map"); \
         return out; \
     } \
     if (m->capacity == 0 || m->capacity > (size_t)INT32_MAX \
@@ -60,7 +60,7 @@ static inline PgyArray_Long pgy_map_keys_i64_##FuncSuffix(PgyHashMap_##TypeSuffi
 { \
     PgyArray_Long out = {0}; \
     if (m == NULL) { \
-        pgy_runtime_warn_invalid_collection("map_keys_i64_" #FuncSuffix, "null map"); \
+        pgy_runtime_panic_invalid_collection("map_keys_i64_" #FuncSuffix, "null map"); \
         return out; \
     } \
     if (m->capacity == 0 || m->capacity > (size_t)INT32_MAX \
@@ -84,7 +84,7 @@ static inline PgyArray_Bool pgy_map_keys_bool_##FuncSuffix(PgyHashMap_##TypeSuff
 { \
     PgyArray_Bool out = {0}; \
     if (m == NULL) { \
-        pgy_runtime_warn_invalid_collection("map_keys_bool_" #FuncSuffix, "null map"); \
+        pgy_runtime_panic_invalid_collection("map_keys_bool_" #FuncSuffix, "null map"); \
         return out; \
     } \
     if (m->capacity == 0 || m->capacity > (size_t)INT32_MAX \

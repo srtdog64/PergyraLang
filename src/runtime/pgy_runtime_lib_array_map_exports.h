@@ -276,13 +276,13 @@ pgy_map_keys_raw_export(void *map_ptr, void *out_array_ptr)
     PgyArray_String *out = (PgyArray_String *)out_array_ptr;
 
     if (out == NULL) {
-        pgy_runtime_warn_invalid_collection("map_keys", "null output");
+        pgy_runtime_panic_invalid_collection("map_keys", "null output");
         return;
     }
 
     if (map == NULL) {
         *out = (PgyArray_String){0};
-        pgy_runtime_warn_invalid_collection("map_keys", "null map");
+        pgy_runtime_panic_invalid_collection("map_keys", "null map");
         return;
     }
     if (!pgy_map_raw_is_initialized(map))
@@ -316,13 +316,13 @@ pgy_map_keys_raw_i32_export(void *map_ptr, void *out_array_ptr)
     PgyArray_Int *out = (PgyArray_Int *)out_array_ptr;
 
     if (out == NULL) {
-        pgy_runtime_warn_invalid_collection("map_keys_i32", "null output");
+        pgy_runtime_panic_invalid_collection("map_keys_i32", "null output");
         return;
     }
 
     *out = pgy_array_new_Int(map != NULL ? map->count : 0);
     if (map == NULL) {
-        pgy_runtime_warn_invalid_collection("map_keys_i32", "null map");
+        pgy_runtime_panic_invalid_collection("map_keys_i32", "null map");
         return;
     }
     pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_I32);
@@ -344,13 +344,13 @@ pgy_map_keys_raw_i64_export(void *map_ptr, void *out_array_ptr)
     PgyArray_Long *out = (PgyArray_Long *)out_array_ptr;
 
     if (out == NULL) {
-        pgy_runtime_warn_invalid_collection("map_keys_i64", "null output");
+        pgy_runtime_panic_invalid_collection("map_keys_i64", "null output");
         return;
     }
 
     *out = pgy_array_new_Long(map != NULL ? map->count : 0);
     if (map == NULL) {
-        pgy_runtime_warn_invalid_collection("map_keys_i64", "null map");
+        pgy_runtime_panic_invalid_collection("map_keys_i64", "null map");
         return;
     }
     pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_I64);
@@ -372,13 +372,13 @@ pgy_map_keys_raw_bool_export(void *map_ptr, void *out_array_ptr)
     PgyArray_Bool *out = (PgyArray_Bool *)out_array_ptr;
 
     if (out == NULL) {
-        pgy_runtime_warn_invalid_collection("map_keys_bool", "null output");
+        pgy_runtime_panic_invalid_collection("map_keys_bool", "null output");
         return;
     }
 
     if (map == NULL) {
         *out = (PgyArray_Bool){0};
-        pgy_runtime_warn_invalid_collection("map_keys_bool", "null map");
+        pgy_runtime_panic_invalid_collection("map_keys_bool", "null map");
         return;
     }
     pgy_map_raw_require_storage_kind(map, PGY_HASHMAP_KEY_STORAGE_BOOL);

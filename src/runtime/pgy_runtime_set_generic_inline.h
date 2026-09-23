@@ -33,7 +33,7 @@ PGY_RT_PROGRAM_BODY({ \
         || !PGY_RUNTIME_ELEM_CAPACITY_FITS(s.capacity, CType) \
         || s.capacity > SIZE_MAX / sizeof(uint8_t)) { \
         s.data = NULL; s.occupied = NULL; s.capacity = 0; \
-        pgy_runtime_warn_invalid_collection("set_new_" #SuffixName, "allocation size overflow"); \
+        pgy_runtime_panic_collection_oom("set_new_" #SuffixName, "allocation size overflow"); \
         return s; \
     } \
     s.data = (CType *)calloc(s.capacity, sizeof(CType)); \
@@ -41,7 +41,7 @@ PGY_RT_PROGRAM_BODY({ \
     if (s.data == NULL || s.occupied == NULL) { \
         free(s.data); free(s.occupied); \
         s.data = NULL; s.occupied = NULL; s.capacity = 0; \
-        pgy_runtime_warn_invalid_collection("set_new_" #SuffixName, "allocation failed"); \
+        pgy_runtime_panic_collection_oom("set_new_" #SuffixName, "allocation failed"); \
     } \
     return s; \
 }) \
@@ -63,7 +63,7 @@ PGY_RT_PROGRAM_BODY({ \
 PGY_RT_PROGRAM_DECL void pgy_set_add_##SuffixName(PgySet_##SuffixName *s, CType val) \
 PGY_RT_PROGRAM_BODY({ \
     if (!PGY_RUNTIME_SET_IS_INITIALIZED(s, CType)) { \
-        pgy_runtime_warn_invalid_collection("set_add_" #SuffixName, "set is not initialized"); \
+        pgy_runtime_panic_invalid_collection("set_add_" #SuffixName, "set is not initialized"); \
         return; \
     } \
     if (pgy_set_has_##SuffixName(s, val)) return; \
@@ -76,7 +76,7 @@ PGY_RT_PROGRAM_BODY({ \
             nc = 16; \
         } else { \
             if (s->capacity > SIZE_MAX / 2) { \
-                pgy_runtime_warn_invalid_collection("set_add_" #SuffixName, "capacity overflow"); \
+                pgy_runtime_panic_collection_oom("set_add_" #SuffixName, "capacity overflow"); \
                 return; \
             } \
             nc = s->capacity * 2; \
@@ -84,14 +84,14 @@ PGY_RT_PROGRAM_BODY({ \
         if (!PGY_RUNTIME_HASH_CAPACITY_FITS(nc) \
             || !PGY_RUNTIME_ELEM_CAPACITY_FITS(nc, CType) \
             || nc > SIZE_MAX / sizeof(uint8_t)) { \
-            pgy_runtime_warn_invalid_collection("set_add_" #SuffixName, "allocation size overflow"); \
+            pgy_runtime_panic_collection_oom("set_add_" #SuffixName, "allocation size overflow"); \
             return; \
         } \
         nd = (CType *)calloc(nc, sizeof(CType)); \
         no = (uint8_t *)calloc(nc, sizeof(uint8_t)); \
         if (nd == NULL || no == NULL) { \
             free(nd); free(no); \
-            pgy_runtime_warn_invalid_collection("set_add_" #SuffixName, "rehash allocation failed"); \
+            pgy_runtime_panic_collection_oom("set_add_" #SuffixName, "rehash allocation failed"); \
             return; \
         } \
         s->capacity = nc; \
@@ -136,7 +136,7 @@ PGY_RT_PROGRAM_DECL PgyArray_##ArraySuffixName pgy_set_values_##SetSuffixName(Pg
 PGY_RT_PROGRAM_BODY({ \
     PgyArray_##ArraySuffixName out = pgy_array_new_##ArraySuffixName(s != NULL ? s->count : 0); \
     if (s == NULL) { \
-        pgy_runtime_warn_invalid_collection("set_values_" #SetSuffixName, "null set"); \
+        pgy_runtime_panic_invalid_collection("set_values_" #SetSuffixName, "null set"); \
         return out; \
     } \
     if (!PGY_RUNTIME_SET_IS_INITIALIZED(s, CType) || s->count == 0) \

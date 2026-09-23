@@ -55,6 +55,8 @@
     "slice out of bounds"
 #define PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED \
     "allocation failed"
+#define PGY_RUNTIME_PANIC_REASON_INVALID_COLLECTION_OPERATION \
+    "invalid collection operation"
 #define PGY_RUNTIME_PANIC_REASON_ARENA_OUT_OF_MEMORY \
     "arena out of memory"
 #define PGY_RUNTIME_PANIC_REASON_POOL_OUT_OF_MEMORY \

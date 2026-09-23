@@ -21,7 +21,7 @@ PGY_RT_DECL void pgy_map_set_i32_int(PgyHashMap_Int *m, int32_t key, int32_t val
     uint32_t h, first_deleted = UINT32_MAX;
     size_t probes = 0;
     if (!pgy_map_int_is_initialized(m)) {
-        pgy_runtime_warn_invalid_collection("map_set_i32_int", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_set_i32_int", "map is not initialized");
         return;
     }
     pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_I32);
@@ -45,7 +45,7 @@ PGY_RT_DECL void pgy_map_set_i32_int(PgyHashMap_Int *m, int32_t key, int32_t val
     }
     if (first_deleted != UINT32_MAX) h = first_deleted;
     else if (probes >= m->capacity) {
-        pgy_runtime_warn_invalid_collection("map_set_i32_int", "map is full"); return;
+        pgy_runtime_panic_invalid_collection("map_set_i32_int", "map is full"); return;
     }
     PGY_HASHMAP_I32_KEYS(m)[h] = key; m->values[h] = val;
     m->occupied[h] = PGY_HASHMAP_LIVE; m->count++;
@@ -126,7 +126,7 @@ PGY_RT_DECL void pgy_map_set_i64_int(PgyHashMap_Int *m, int64_t key, int32_t val
     uint32_t h, first_deleted = UINT32_MAX;
     size_t probes = 0;
     if (!pgy_map_int_is_initialized(m)) {
-        pgy_runtime_warn_invalid_collection("map_set_i64_int", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_set_i64_int", "map is not initialized");
         return;
     }
     pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_I64);
@@ -150,7 +150,7 @@ PGY_RT_DECL void pgy_map_set_i64_int(PgyHashMap_Int *m, int64_t key, int32_t val
     }
     if (first_deleted != UINT32_MAX) h = first_deleted;
     else if (probes >= m->capacity) {
-        pgy_runtime_warn_invalid_collection("map_set_i64_int", "map is full"); return;
+        pgy_runtime_panic_invalid_collection("map_set_i64_int", "map is full"); return;
     }
     PGY_HASHMAP_I64_KEYS(m)[h] = key; m->values[h] = val;
     m->occupied[h] = PGY_HASHMAP_LIVE; m->count++;
@@ -231,7 +231,7 @@ PGY_RT_DECL void pgy_map_set_bool_int(PgyHashMap_Int *m, bool key, int32_t val)
     uint32_t h, first_deleted = UINT32_MAX;
     size_t probes = 0;
     if (!pgy_map_int_is_initialized(m)) {
-        pgy_runtime_warn_invalid_collection("map_set_bool_int", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_set_bool_int", "map is not initialized");
         return;
     }
     pgy_map_int_require_storage(m, PGY_HASHMAP_KEY_STORAGE_BOOL);
@@ -255,7 +255,7 @@ PGY_RT_DECL void pgy_map_set_bool_int(PgyHashMap_Int *m, bool key, int32_t val)
     }
     if (first_deleted != UINT32_MAX) h = first_deleted;
     else if (probes >= m->capacity) {
-        pgy_runtime_warn_invalid_collection("map_set_bool_int", "map is full"); return;
+        pgy_runtime_panic_invalid_collection("map_set_bool_int", "map is full"); return;
     }
     PGY_HASHMAP_BOOL_KEYS(m)[h] = key; m->values[h] = val;
     m->occupied[h] = PGY_HASHMAP_LIVE; m->count++;

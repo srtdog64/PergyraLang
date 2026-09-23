@@ -77,7 +77,7 @@ PGY_RT_DECL PgyHashMap_String pgy_map_new_string(void)
     m.key_storage_kind = PGY_HASHMAP_KEY_STORAGE_STRING;
     if (!pgy_map_string_capacity_fits(m.capacity)) {
         m.keys = NULL; m.values = NULL; m.occupied = NULL; m.capacity = 0;
-        pgy_runtime_warn_invalid_collection("map_new_string", "allocation size overflow");
+        pgy_runtime_panic_collection_oom("map_new_string", "allocation size overflow");
         return m;
     }
     m.keys     = PGY_HASHMAP_CALLOC(m.capacity, sizeof(char *));
@@ -86,7 +86,7 @@ PGY_RT_DECL PgyHashMap_String pgy_map_new_string(void)
     if (m.keys == NULL || m.values == NULL || m.occupied == NULL) {
         free(m.keys); free(m.values); free(m.occupied);
         memset(&m, 0, sizeof(m));
-        pgy_runtime_warn_invalid_collection("map_new_string", "allocation failed");
+        pgy_runtime_panic_collection_oom("map_new_string", "allocation failed");
     }
     return m;
 }
@@ -104,7 +104,7 @@ PGY_RT_DECL PgyHashMap_String pgy_map_new_i32_string(void)
     m.key_storage_kind = PGY_HASHMAP_KEY_STORAGE_I32;
     if (!pgy_map_string_capacity_fits(m.capacity)) {
         m.capacity = 0;
-        pgy_runtime_warn_invalid_collection("map_new_i32_string", "allocation size overflow");
+        pgy_runtime_panic_collection_oom("map_new_i32_string", "allocation size overflow");
         return m;
     }
     m.keys = PGY_HASHMAP_CALLOC(m.capacity, sizeof(int32_t));
@@ -113,7 +113,7 @@ PGY_RT_DECL PgyHashMap_String pgy_map_new_i32_string(void)
     if (m.keys == NULL || m.values == NULL || m.occupied == NULL) {
         free(m.keys); free(m.values); free(m.occupied);
         memset(&m, 0, sizeof(m));
-        pgy_runtime_warn_invalid_collection("map_new_i32_string", "allocation failed");
+        pgy_runtime_panic_collection_oom("map_new_i32_string", "allocation failed");
     }
     return m;
 }
@@ -131,7 +131,7 @@ PGY_RT_DECL PgyHashMap_String pgy_map_new_i64_string(void)
     m.key_storage_kind = PGY_HASHMAP_KEY_STORAGE_I64;
     if (!pgy_map_string_capacity_fits(m.capacity)) {
         m.capacity = 0;
-        pgy_runtime_warn_invalid_collection("map_new_i64_string", "allocation size overflow");
+        pgy_runtime_panic_collection_oom("map_new_i64_string", "allocation size overflow");
         return m;
     }
     m.keys = PGY_HASHMAP_CALLOC(m.capacity, sizeof(int64_t));
@@ -140,7 +140,7 @@ PGY_RT_DECL PgyHashMap_String pgy_map_new_i64_string(void)
     if (m.keys == NULL || m.values == NULL || m.occupied == NULL) {
         free(m.keys); free(m.values); free(m.occupied);
         memset(&m, 0, sizeof(m));
-        pgy_runtime_warn_invalid_collection("map_new_i64_string", "allocation failed");
+        pgy_runtime_panic_collection_oom("map_new_i64_string", "allocation failed");
     }
     return m;
 }
@@ -157,7 +157,7 @@ PGY_RT_DECL PgyHashMap_String pgy_map_new_bool_string(void)
     m.key_storage_kind = PGY_HASHMAP_KEY_STORAGE_BOOL;
     if (!pgy_map_string_capacity_fits(m.capacity)) {
         m.capacity = 0;
-        pgy_runtime_warn_invalid_collection("map_new_bool_string", "allocation size overflow");
+        pgy_runtime_panic_collection_oom("map_new_bool_string", "allocation size overflow");
         return m;
     }
     m.keys = PGY_HASHMAP_CALLOC(m.capacity, sizeof(bool));
@@ -166,7 +166,7 @@ PGY_RT_DECL PgyHashMap_String pgy_map_new_bool_string(void)
     if (m.keys == NULL || m.values == NULL || m.occupied == NULL) {
         free(m.keys); free(m.values); free(m.occupied);
         memset(&m, 0, sizeof(m));
-        pgy_runtime_warn_invalid_collection("map_new_bool_string", "allocation failed");
+        pgy_runtime_panic_collection_oom("map_new_bool_string", "allocation failed");
     }
     return m;
 }
@@ -216,11 +216,11 @@ PGY_RT_DECL void pgy_map_set_string(PgyHashMap_String *m, const char *key, const
     char *owned_key;
     char *owned_value;
     if (!pgy_map_string_is_initialized(m)) {
-        pgy_runtime_warn_invalid_collection("map_set_string", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_set_string", "map is not initialized");
         return;
     }
     if (key == NULL) {
-        pgy_runtime_warn_invalid_collection("map_set_string", "null key");
+        pgy_runtime_panic_invalid_collection("map_set_string", "null key");
         return;
     }
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_STRING)
@@ -233,7 +233,7 @@ PGY_RT_DECL void pgy_map_set_string(PgyHashMap_String *m, const char *key, const
             && strcmp(PGY_HASHMAP_STRING_KEYS(m)[h], key) == 0) {
             char *owned = pgy_runtime_strdup(val != NULL ? val : "");
             if (owned == NULL) {
-                pgy_runtime_warn_invalid_collection("map_set_string", "value duplication failed");
+                pgy_runtime_panic_collection_oom("map_set_string", "value duplication failed");
                 return;
             }
             free(m->values[h]);
@@ -247,7 +247,7 @@ PGY_RT_DECL void pgy_map_set_string(PgyHashMap_String *m, const char *key, const
     owned_value = pgy_runtime_strdup(val != NULL ? val : "");
     if (owned_key == NULL || owned_value == NULL) {
         free(owned_key); free(owned_value);
-        pgy_runtime_warn_invalid_collection("map_set_string", "key/value duplication failed");
+        pgy_runtime_panic_collection_oom("map_set_string", "key/value duplication failed");
         return;
     }
     if ((m->count + m->deleted_count + 1) * 4 > m->capacity * 3) {
@@ -262,14 +262,14 @@ PGY_RT_DECL void pgy_map_set_string(PgyHashMap_String *m, const char *key, const
         } else {
             if (m->capacity > SIZE_MAX / 2) {
                 free(owned_key); free(owned_value);
-                pgy_runtime_warn_invalid_collection("map_set_string", "capacity overflow");
+                pgy_runtime_panic_collection_oom("map_set_string", "capacity overflow");
                 return;
             }
             new_capacity = m->capacity * 2;
         }
         if (!pgy_map_string_capacity_fits(new_capacity)) {
             free(owned_key); free(owned_value);
-            pgy_runtime_warn_invalid_collection("map_set_string", "allocation size overflow");
+            pgy_runtime_panic_collection_oom("map_set_string", "allocation size overflow");
             return;
         }
         new_keys = (char **)PGY_HASHMAP_CALLOC(new_capacity, sizeof(char *));
@@ -278,7 +278,7 @@ PGY_RT_DECL void pgy_map_set_string(PgyHashMap_String *m, const char *key, const
         if (new_keys == NULL || new_values == NULL || new_occupied == NULL) {
             free(new_keys); free(new_values); free(new_occupied);
             free(owned_key); free(owned_value);
-            pgy_runtime_warn_invalid_collection("map_set_string", "map growth allocation failed");
+            pgy_runtime_panic_collection_oom("map_set_string", "map growth allocation failed");
             return;
         }
         m->capacity = new_capacity;
@@ -304,7 +304,7 @@ PGY_RT_DECL void pgy_map_set_string(PgyHashMap_String *m, const char *key, const
     }
     if (probes >= m->capacity) {
         free(owned_key); free(owned_value);
-        pgy_runtime_warn_invalid_collection("map_set_string", "map is full");
+        pgy_runtime_panic_invalid_collection("map_set_string", "map is full");
         return;
     }
     PGY_HASHMAP_STRING_KEYS(m)[h] = owned_key;
@@ -447,13 +447,13 @@ PGY_RT_DECL bool pgy_map_grow_i32_string(PgyHashMap_String *m)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                           "map key storage kind mismatch");
     if (m->capacity > SIZE_MAX / 2) {
-        pgy_runtime_warn_invalid_collection("map_grow_i32_string", "capacity overflow");
+        pgy_runtime_panic_collection_oom("map_grow_i32_string", "capacity overflow");
         return false;
     }
     new_capacity = m->capacity == 0
         ? PGY_HASHMAP_INIT_CAP : m->capacity * 2;
     if (!pgy_map_string_capacity_fits(new_capacity)) {
-        pgy_runtime_warn_invalid_collection("map_grow_i32_string", "capacity overflow");
+        pgy_runtime_panic_collection_oom("map_grow_i32_string", "capacity overflow");
         return false;
     }
     new_keys = (int32_t *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(int32_t));
@@ -461,7 +461,7 @@ PGY_RT_DECL bool pgy_map_grow_i32_string(PgyHashMap_String *m)
     new_occupied = (uint8_t *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(uint8_t));
     if (new_keys == NULL || new_values == NULL || new_occupied == NULL) {
         free(new_keys); free(new_values); free(new_occupied);
-        pgy_runtime_warn_invalid_collection("map_grow_i32_string", "allocation failed");
+        pgy_runtime_panic_collection_oom("map_grow_i32_string", "allocation failed");
         return false;
     }
     m->capacity = new_capacity; m->keys = new_keys; m->values = new_values;
@@ -491,7 +491,7 @@ PGY_RT_DECL void pgy_map_set_i32_string(PgyHashMap_String *m, int32_t key, const
     size_t probes = 0;
     char *owned;
     if (!pgy_map_string_is_initialized(m)) {
-        pgy_runtime_warn_invalid_collection("map_set_i32_string", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_set_i32_string", "map is not initialized");
         return;
     }
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_I32)
@@ -500,7 +500,7 @@ PGY_RT_DECL void pgy_map_set_i32_string(PgyHashMap_String *m, int32_t key, const
     while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
         if (m->occupied[h] == PGY_HASHMAP_LIVE && PGY_HASHMAP_I32_KEYS(m)[h] == key) {
             owned = pgy_runtime_strdup(val != NULL ? val : "");
-            if (owned == NULL) { pgy_runtime_warn_invalid_collection("map_set_i32_string", "value duplication failed"); return; }
+            if (owned == NULL) { pgy_runtime_panic_collection_oom("map_set_i32_string", "value duplication failed"); return; }
             free(m->values[h]); m->values[h] = owned; return;
         }
         if (m->occupied[h] == PGY_HASHMAP_DELETED && first_deleted == UINT32_MAX) first_deleted = h;
@@ -515,9 +515,9 @@ PGY_RT_DECL void pgy_map_set_i32_string(PgyHashMap_String *m, int32_t key, const
         }
     }
     if (first_deleted != UINT32_MAX) h = first_deleted;
-    else if (probes >= m->capacity) { pgy_runtime_warn_invalid_collection("map_set_i32_string", "map is full"); return; }
+    else if (probes >= m->capacity) { pgy_runtime_panic_invalid_collection("map_set_i32_string", "map is full"); return; }
     owned = pgy_runtime_strdup(val != NULL ? val : "");
-    if (owned == NULL) { pgy_runtime_warn_invalid_collection("map_set_i32_string", "value duplication failed"); return; }
+    if (owned == NULL) { pgy_runtime_panic_collection_oom("map_set_i32_string", "value duplication failed"); return; }
     PGY_HASHMAP_I32_KEYS(m)[h] = key; m->values[h] = owned;
     m->occupied[h] = PGY_HASHMAP_LIVE; m->count++;
     if (first_deleted != UINT32_MAX) m->deleted_count--;
@@ -607,13 +607,13 @@ PGY_RT_DECL bool pgy_map_grow_i64_string(PgyHashMap_String *m)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                           "map key storage kind mismatch");
     if (m->capacity > SIZE_MAX / 2) {
-        pgy_runtime_warn_invalid_collection("map_grow_i64_string", "capacity overflow");
+        pgy_runtime_panic_collection_oom("map_grow_i64_string", "capacity overflow");
         return false;
     }
     new_capacity = m->capacity == 0
         ? PGY_HASHMAP_INIT_CAP : m->capacity * 2;
     if (!pgy_map_string_capacity_fits(new_capacity)) {
-        pgy_runtime_warn_invalid_collection("map_grow_i64_string", "capacity overflow");
+        pgy_runtime_panic_collection_oom("map_grow_i64_string", "capacity overflow");
         return false;
     }
     new_keys = (int64_t *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(int64_t));
@@ -621,7 +621,7 @@ PGY_RT_DECL bool pgy_map_grow_i64_string(PgyHashMap_String *m)
     new_occupied = (uint8_t *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(uint8_t));
     if (new_keys == NULL || new_values == NULL || new_occupied == NULL) {
         free(new_keys); free(new_values); free(new_occupied);
-        pgy_runtime_warn_invalid_collection("map_grow_i64_string", "allocation failed");
+        pgy_runtime_panic_collection_oom("map_grow_i64_string", "allocation failed");
         return false;
     }
     m->capacity = new_capacity; m->keys = new_keys; m->values = new_values;
@@ -651,7 +651,7 @@ PGY_RT_DECL void pgy_map_set_i64_string(PgyHashMap_String *m, int64_t key, const
     size_t probes = 0;
     char *owned;
     if (!pgy_map_string_is_initialized(m)) {
-        pgy_runtime_warn_invalid_collection("map_set_i64_string", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_set_i64_string", "map is not initialized");
         return;
     }
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_I64)
@@ -660,7 +660,7 @@ PGY_RT_DECL void pgy_map_set_i64_string(PgyHashMap_String *m, int64_t key, const
     while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
         if (m->occupied[h] == PGY_HASHMAP_LIVE && PGY_HASHMAP_I64_KEYS(m)[h] == key) {
             owned = pgy_runtime_strdup(val != NULL ? val : "");
-            if (owned == NULL) { pgy_runtime_warn_invalid_collection("map_set_i64_string", "value duplication failed"); return; }
+            if (owned == NULL) { pgy_runtime_panic_collection_oom("map_set_i64_string", "value duplication failed"); return; }
             free(m->values[h]); m->values[h] = owned; return;
         }
         if (m->occupied[h] == PGY_HASHMAP_DELETED && first_deleted == UINT32_MAX) first_deleted = h;
@@ -675,9 +675,9 @@ PGY_RT_DECL void pgy_map_set_i64_string(PgyHashMap_String *m, int64_t key, const
         }
     }
     if (first_deleted != UINT32_MAX) h = first_deleted;
-    else if (probes >= m->capacity) { pgy_runtime_warn_invalid_collection("map_set_i64_string", "map is full"); return; }
+    else if (probes >= m->capacity) { pgy_runtime_panic_invalid_collection("map_set_i64_string", "map is full"); return; }
     owned = pgy_runtime_strdup(val != NULL ? val : "");
-    if (owned == NULL) { pgy_runtime_warn_invalid_collection("map_set_i64_string", "value duplication failed"); return; }
+    if (owned == NULL) { pgy_runtime_panic_collection_oom("map_set_i64_string", "value duplication failed"); return; }
     PGY_HASHMAP_I64_KEYS(m)[h] = key; m->values[h] = owned;
     m->occupied[h] = PGY_HASHMAP_LIVE; m->count++;
     if (first_deleted != UINT32_MAX) m->deleted_count--;
@@ -759,7 +759,7 @@ PGY_RT_DECL void pgy_map_set_bool_string(PgyHashMap_String *m, bool key, const c
     size_t probes = 0;
     char *owned;
     if (!pgy_map_string_is_initialized(m)) {
-        pgy_runtime_warn_invalid_collection("map_set_bool_string", "map is not initialized");
+        pgy_runtime_panic_invalid_collection("map_set_bool_string", "map is not initialized");
         return;
     }
     if (m->key_storage_kind != PGY_HASHMAP_KEY_STORAGE_BOOL)
@@ -768,7 +768,7 @@ PGY_RT_DECL void pgy_map_set_bool_string(PgyHashMap_String *m, bool key, const c
     while (m->occupied[h] != PGY_HASHMAP_EMPTY && probes < m->capacity) {
         if (m->occupied[h] == PGY_HASHMAP_LIVE && PGY_HASHMAP_BOOL_KEYS(m)[h] == key) {
             owned = pgy_runtime_strdup(val != NULL ? val : "");
-            if (owned == NULL) { pgy_runtime_warn_invalid_collection("map_set_bool_string", "value duplication failed"); return; }
+            if (owned == NULL) { pgy_runtime_panic_collection_oom("map_set_bool_string", "value duplication failed"); return; }
             free(m->values[h]); m->values[h] = owned; return;
         }
         if (m->occupied[h] == PGY_HASHMAP_DELETED && first_deleted == UINT32_MAX) first_deleted = h;
@@ -784,14 +784,14 @@ PGY_RT_DECL void pgy_map_set_bool_string(PgyHashMap_String *m, bool key, const c
         char **new_values;
         uint8_t *new_occupied;
         if (!pgy_map_string_capacity_fits(new_capacity)) {
-            pgy_runtime_warn_invalid_collection("map_grow_bool_string", "capacity overflow"); return;
+            pgy_runtime_panic_collection_oom("map_grow_bool_string", "capacity overflow"); return;
         }
         new_keys = (bool *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(bool));
         new_values = (char **)PGY_HASHMAP_CALLOC(new_capacity, sizeof(char *));
         new_occupied = (uint8_t *)PGY_HASHMAP_CALLOC(new_capacity, sizeof(uint8_t));
         if (new_keys == NULL || new_values == NULL || new_occupied == NULL) {
             free(new_keys); free(new_values); free(new_occupied);
-            pgy_runtime_warn_invalid_collection("map_grow_bool_string", "allocation failed"); return;
+            pgy_runtime_panic_collection_oom("map_grow_bool_string", "allocation failed"); return;
         }
         m->capacity = new_capacity; m->keys = new_keys; m->values = new_values;
         m->occupied = new_occupied; m->count = 0; m->deleted_count = 0;
@@ -809,9 +809,9 @@ PGY_RT_DECL void pgy_map_set_bool_string(PgyHashMap_String *m, bool key, const c
         while (m->occupied[h] == PGY_HASHMAP_LIVE && probes < m->capacity) { h = (h + 1) % (uint32_t)m->capacity; probes++; }
     }
     if (first_deleted != UINT32_MAX) h = first_deleted;
-    else if (probes >= m->capacity) { pgy_runtime_warn_invalid_collection("map_set_bool_string", "map is full"); return; }
+    else if (probes >= m->capacity) { pgy_runtime_panic_invalid_collection("map_set_bool_string", "map is full"); return; }
     owned = pgy_runtime_strdup(val != NULL ? val : "");
-    if (owned == NULL) { pgy_runtime_warn_invalid_collection("map_set_bool_string", "value duplication failed"); return; }
+    if (owned == NULL) { pgy_runtime_panic_collection_oom("map_set_bool_string", "value duplication failed"); return; }
     PGY_HASHMAP_BOOL_KEYS(m)[h] = key; m->values[h] = owned;
     m->occupied[h] = PGY_HASHMAP_LIVE; m->count++;
     if (first_deleted != UINT32_MAX) m->deleted_count--;

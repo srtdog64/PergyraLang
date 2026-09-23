@@ -59,103 +59,152 @@ drop_string_map(PgyHashMap_String *map)
     pgy_map_drop_string(map);
 }
 
-static bool
-constructor_failure_is_closed(size_t offset)
+static void
+fill_twelve_int_keys(PgyHashMap_Int *map)
 {
-    PgyHashMap_Int map;
-    calloc_calls = 0; fail_calloc_at = offset;
-    map = pgy_map_new_int();
-    fail_calloc_at = 0;
-    return map.capacity == 0 && map.keys == NULL && map.values == NULL
-        && map.occupied == NULL && map.count == 0
-        && map.key_storage_kind == PGY_HASHMAP_KEY_STORAGE_INVALID;
-}
-
-static bool
-generic_constructor_failure_is_closed(size_t offset)
-{
-    PgyHashMap_TestValue map;
-    calloc_calls = 0; fail_calloc_at = offset;
-    map = pgy_map_new_TestValue();
-    fail_calloc_at = 0;
-    return map.capacity == 0 && map.keys == NULL && map.values == NULL
-        && map.occupied == NULL && map.count == 0
-        && map.key_storage_kind == PGY_HASHMAP_KEY_STORAGE_INVALID;
-}
-
-static bool
-insert_duplication_failure_is_closed(void)
-{
-    PgyHashMap_Int map = pgy_map_new_int();
-    fail_malloc_at = malloc_calls + 1;
-    pgy_map_set_int(&map, "alpha", 1);
-    fail_malloc_at = 0;
-    if (map.count != 0 || pgy_map_has_int(&map, "alpha")) {
-        drop_int_map(&map);
-        return false;
-    }
-    drop_int_map(&map);
-    return true;
-}
-
-static bool
-grow_failure_is_closed(size_t offset)
-{
-    PgyHashMap_Int map = pgy_map_new_int();
-    void *keys; int32_t *values; uint8_t *occupied;
-    size_t capacity, count, deleted_count;
     char key[32];
     for (int i = 0; i < 12; i++) {
         snprintf(key, sizeof(key), "key-%d", i);
-        pgy_map_set_int(&map, key, i + 100);
+        pgy_map_set_int(map, key, i + 100);
     }
-    keys = map.keys; values = map.values; occupied = map.occupied;
-    capacity = map.capacity; count = map.count; deleted_count = map.deleted_count;
+}
+
+/* Child modes. A failed allocation now panics with class oom
+ * (docs/105_runtime_panic_contract.md), so each injected failure runs in its
+ * own process and the smoke script checks the exit status and stderr. The
+ * rollback checks that used to follow a failed constructor, grow or
+ * duplication (map left unchanged, key absent) described a process that kept
+ * running; the abort replaces them. */
+
+static void
+constructor_oom(size_t offset)
+{
+    calloc_calls = 0; fail_calloc_at = offset;
+    (void)pgy_map_new_int();
+}
+
+static void
+generic_constructor_oom(size_t offset)
+{
+    calloc_calls = 0; fail_calloc_at = offset;
+    (void)pgy_map_new_TestValue();
+}
+
+static void
+grow_oom(size_t offset)
+{
+    PgyHashMap_Int map = pgy_map_new_int();
+    fill_twelve_int_keys(&map);
     fail_calloc_at = calloc_calls + offset;
     pgy_map_set_int(&map, "trigger-grow", 77);
-    fail_calloc_at = 0;
-    if (map.keys != keys || map.values != values || map.occupied != occupied
-        || map.capacity != capacity || map.count != count
-        || map.deleted_count != deleted_count || pgy_map_has_int(&map, "trigger-grow")) {
-        drop_int_map(&map);
-        return false;
-    }
-    for (int i = 0; i < 12; i++) {
-        snprintf(key, sizeof(key), "key-%d", i);
-        if (pgy_map_get_int(&map, key) != i + 100) {
-            drop_int_map(&map);
-            return false;
-        }
-    }
-    drop_int_map(&map);
-    return true;
 }
 
-static bool
-duplication_failure_before_growth_is_physical_rollback(void)
+static void
+insert_duplication_oom(size_t offset)
 {
     PgyHashMap_Int map = pgy_map_new_int();
-    void *keys; int32_t *values; uint8_t *occupied;
-    size_t capacity, count, deleted_count;
-    char key[32];
-    for (int i = 0; i < 12; i++) {
-        snprintf(key, sizeof(key), "key-%d", i);
-        pgy_map_set_int(&map, key, i);
-    }
-    keys = map.keys; values = map.values; occupied = map.occupied;
-    capacity = map.capacity; count = map.count; deleted_count = map.deleted_count;
+    (void)offset;
     fail_malloc_at = malloc_calls + 1;
+    pgy_map_set_int(&map, "alpha", 1);
+}
+
+/* The 13th key reaches the grow threshold. Both the key copy and the first
+ * grow allocation are armed; the key copy must fail first. */
+static void
+duplication_before_grow_oom(size_t offset)
+{
+    PgyHashMap_Int map = pgy_map_new_int();
+    (void)offset;
+    fill_twelve_int_keys(&map);
+    fail_malloc_at = malloc_calls + 1;
+    fail_calloc_at = calloc_calls + 1;
     pgy_map_set_int(&map, "dup-before-grow", 77);
-    fail_malloc_at = 0;
-    if (map.keys != keys || map.values != values || map.occupied != occupied
-        || map.capacity != capacity || map.count != count
-        || map.deleted_count != deleted_count
-        || pgy_map_has_int(&map, "dup-before-grow")) {
-        drop_int_map(&map);
-        return false;
+}
+
+static void
+string_value_update_oom(size_t offset)
+{
+    PgyHashMap_String map = pgy_map_new_string();
+    (void)offset;
+    pgy_map_set_string(&map, "k", "owned");
+    fail_malloc_at = malloc_calls + 1;
+    pgy_map_set_string(&map, "k", "replacement");
+}
+
+static void
+key_storage_mismatch(size_t offset)
+{
+    PgyHashMap_Int map = pgy_map_new_i32_int();
+    (void)offset;
+    fail_malloc_at = malloc_calls + 1;
+    pgy_map_set_int(&map, "x", 1);
+}
+
+static void
+set_on_invalid_map(size_t offset)
+{
+    PgyHashMap_Int map = {0};
+    (void)offset;
+    pgy_map_set_int(&map, "x", 1);
+}
+
+static void
+map_keys_oom(size_t offset)
+{
+    PgyHashMap_Int map = pgy_map_new_int();
+    pgy_map_set_int(&map, "a", 1);
+    pgy_map_set_int(&map, "b", 2);
+    pgy_map_set_int(&map, "c", 3);
+    fail_malloc_at = malloc_calls + offset;
+    (void)pgy_map_keys_int(&map);
+}
+
+static void
+generic_map_keys_on_invalid_map(size_t offset)
+{
+    PgyHashMap_TestValue map = {0};
+    (void)offset;
+    (void)pgy_map_keys_test_value(&map);
+}
+
+typedef struct {
+    const char *name;
+    void (*run)(size_t offset);
+    size_t offset;
+} ChildMode;
+
+static const ChildMode child_modes[] = {
+    {"ctor-oom-1", constructor_oom, 1},
+    {"ctor-oom-2", constructor_oom, 2},
+    {"ctor-oom-3", constructor_oom, 3},
+    {"generic-ctor-oom-1", generic_constructor_oom, 1},
+    {"generic-ctor-oom-2", generic_constructor_oom, 2},
+    {"generic-ctor-oom-3", generic_constructor_oom, 3},
+    {"grow-oom-1", grow_oom, 1},
+    {"grow-oom-2", grow_oom, 2},
+    {"grow-oom-3", grow_oom, 3},
+    {"insert-dup-oom", insert_duplication_oom, 0},
+    {"dup-before-grow-oom", duplication_before_grow_oom, 0},
+    {"string-update-oom", string_value_update_oom, 0},
+    {"mismatch", key_storage_mismatch, 0},
+    {"set-invalid-map", set_on_invalid_map, 0},
+    {"mapkeys-oom", map_keys_oom, 2},
+    {"mapkeys-mid-oom", map_keys_oom, 3},
+    {"generic-invalid-mapkeys", generic_map_keys_on_invalid_map, 0},
+};
+
+static int
+run_child_mode(const char *name)
+{
+    for (size_t i = 0; i < sizeof(child_modes) / sizeof(child_modes[0]); i++) {
+        if (strcmp(child_modes[i].name, name) != 0)
+            continue;
+        child_modes[i].run(child_modes[i].offset);
+        fprintf(stderr, "child mode %s returned instead of panicking\n", name);
+        return 99;
     }
-    drop_int_map(&map);
-    return true;
+    fprintf(stderr, "unknown child mode %s\n", name);
+    return 98;
 }
 
 static bool
@@ -185,24 +234,17 @@ existing_update_never_allocates(void)
     return true;
 }
 
+/* A failed value copy on update now panics (child mode string-update-oom);
+ * only the self-alias update is checked here. */
 static bool
-string_value_update_is_atomic(void)
+string_value_self_alias_is_owned(void)
 {
     PgyHashMap_String map = pgy_map_new_string();
     char *borrowed;
     pgy_map_set_string(&map, "k", "owned");
     borrowed = pgy_map_get_string(&map, "k");
     pgy_map_set_string(&map, "k", borrowed);
-    if (strcmp(pgy_map_get_string(&map, "k"), "owned") != 0) {
-        drop_string_map(&map);
-        return false;
-    }
-    borrowed = pgy_map_get_string(&map, "k");
-    fail_malloc_at = malloc_calls + 1;
-    pgy_map_set_string(&map, "k", "replacement");
-    fail_malloc_at = 0;
-    if (pgy_map_get_string(&map, "k") != borrowed
-        || strcmp(borrowed, "owned") != 0 || map.count != 1) {
+    if (strcmp(pgy_map_get_string(&map, "k"), "owned") != 0 || map.count != 1) {
         drop_string_map(&map);
         return false;
     }
@@ -328,50 +370,10 @@ production_drop_is_exact_and_idempotent(void)
 int
 main(int argc, char **argv)
 {
-    if (argc == 2 && strcmp(argv[1], "mismatch") == 0) {
-        PgyHashMap_Int map = pgy_map_new_i32_int();
-        fail_malloc_at = malloc_calls + 1;
-        pgy_map_set_int(&map, "x", 1);
-        return 99;
-    }
-    if (argc == 2 && strcmp(argv[1], "mapkeys-oom") == 0) {
-        PgyHashMap_Int map = pgy_map_new_int();
-        pgy_map_set_int(&map, "a", 1);
-        pgy_map_set_int(&map, "b", 2);
-        pgy_map_set_int(&map, "c", 3);
-        fail_malloc_at = malloc_calls + 2;
-        (void)pgy_map_keys_int(&map);
-        return 99;
-    }
-    if (argc == 2 && strcmp(argv[1], "mapkeys-mid-oom") == 0) {
-        PgyHashMap_Int map = pgy_map_new_int();
-        pgy_map_set_int(&map, "a", 1);
-        pgy_map_set_int(&map, "b", 2);
-        pgy_map_set_int(&map, "c", 3);
-        fail_malloc_at = malloc_calls + 3;
-        (void)pgy_map_keys_int(&map);
-        return 99;
-    }
-    if (argc == 2 && strcmp(argv[1], "generic-invalid-mapkeys") == 0) {
-        PgyHashMap_TestValue map;
-        calloc_calls = 0; fail_calloc_at = 1;
-        map = pgy_map_new_TestValue();
-        fail_calloc_at = 0;
-        (void)pgy_map_keys_test_value(&map);
-        return 99;
-    }
-    for (size_t i = 1; i <= 3; i++) {
-        if (!constructor_failure_is_closed(i)
-            || !generic_constructor_failure_is_closed(i)
-            || !grow_failure_is_closed(i)) {
-            fprintf(stderr, "allocation failure case %zu did not fail closed\n", i);
-            return 2;
-        }
-    }
-    if (!insert_duplication_failure_is_closed()
-        || !duplication_failure_before_growth_is_physical_rollback()
-        || !existing_update_never_allocates()
-        || !string_value_update_is_atomic()
+    if (argc == 2)
+        return run_child_mode(argv[1]);
+    if (!existing_update_never_allocates()
+        || !string_value_self_alias_is_owned()
         || !key_shapes_and_snapshot_are_owned()
         || !production_drop_is_exact_and_idempotent()) {
         fputs("String ownership/update gate failed\n", stderr);
