@@ -111,9 +111,18 @@ for backend in c llvm; do
             fail "LLVM artifact omitted argc/argv"
         grep -Fq 'define internal %pgy.array.string @pgy_selfhost_args()' \
             "$artifact" || fail "LLVM artifact omitted the Args owner"
-        "$CLANG" -x ir "$artifact" -o "$binary" \
+        # main() stores argv through the runtime, which rereads it as UTF-8
+        # on Windows, so the artifact links the runtime object.
+        grep -Fq 'call void @pgy_runtime_process_utf8_argv_export(' "$artifact" ||
+            fail "LLVM artifact stored argv without the UTF-8 argv owner"
+        runtime_obj="$WORK_DIR/runtime.o"
+        "$CLANG" -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+            -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$runtime_obj" \
+            >"$WORK_DIR/runtime.compile.out" 2>"$WORK_DIR/runtime.compile.err" ||
+            { cat "$WORK_DIR/runtime.compile.err" >&2; fail "runtime ABI object did not compile"; }
+        "$CLANG" -x ir "$artifact" -x none "$runtime_obj" -pthread -lm -o "$binary" \
             >"$WORK_DIR/llvm.compile.out" 2>"$WORK_DIR/llvm.compile.err" ||
-            fail "LLVM artifact did not compile"
+            { cat "$WORK_DIR/llvm.compile.err" >&2; fail "LLVM artifact did not compile"; }
     fi
     "$binary" alpha beta | tr -d '\r' >"$WORK_DIR/$backend.run"
     cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/$backend.run" ||

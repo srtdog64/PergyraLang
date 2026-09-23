@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "pgy_runtime_linkage.h"
+#include "pgy_runtime_process_utf8_argv.h"
 
 /*
  * Process argument snapshot owner for C-backend generated binaries.
@@ -18,13 +19,23 @@ PGY_RT_GLOBAL char **pgy_runtime_argv
     = NULL
 #endif
 ;
+PGY_RT_GLOBAL int32_t pgy_runtime_argv_utf8
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = 1
+#endif
+;
 
 PGY_RT_DECL void
 pgy_args_init(int32_t argc, char **argv)
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
-    pgy_runtime_argc = argc;
-    pgy_runtime_argv = argv;
+    int utf8_argc = 0;
+    char **utf8_argv = NULL;
+
+    pgy_runtime_argv_utf8 = pgy_runtime_process_utf8_argv(
+        (int)argc, argv, &utf8_argc, &utf8_argv);
+    pgy_runtime_argc = (int32_t)utf8_argc;
+    pgy_runtime_argv = utf8_argv;
 }
 #else
 ;
@@ -40,6 +51,9 @@ pgy_args(void)
      * surface. Twin of the gate in pgy_runtime_process_args_exports.h. Only the
      * reader is gated; pgy_args_init (startup infra) is not. */
     pgy_cap_require_export(PGY_CAP_ENV, "args");
+    if (!pgy_runtime_argv_utf8)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          PGY_RUNTIME_PANIC_REASON_PROCESS_ARGS_NOT_UTF16);
     count = (pgy_runtime_argc > 1 && pgy_runtime_argv != NULL)
         ? pgy_runtime_argc - 1
         : 0;

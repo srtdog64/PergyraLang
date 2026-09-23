@@ -4961,6 +4961,10 @@ runtime-abi-lifetime-test-smoke:
 hashmap-owned-string-provenance-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/hashmap_owned_string_provenance_smoke.sh
 
+.PHONY: process-args-utf8-test-smoke
+process-args-utf8-test-smoke:
+	CC="$(CC)" "$(BASH)" tests/process_args_utf8_smoke.sh
+
 .PHONY: hashmap-string-storage-runtime-test-smoke hashmap-i32-storage-runtime-test-smoke hashmap-i64-storage-runtime-test-smoke hashmap-bool-storage-runtime-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke
 hashmap-string-storage-runtime-test-smoke:
 	CC="$(CC)" "$(BASH)" tests/hashmap_string_storage_runtime_smoke.sh

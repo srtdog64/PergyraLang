@@ -20,10 +20,10 @@ func DirectMirScalarProgramCProcessArgsBlock(
     }
     let argc_name: String = HostIORuntimeCArgcGlobal();
     let argv_name: String = HostIORuntimeCArgvGlobal();
-    let output: String = Concat("static int ", Concat(argc_name, " = 0;\n"));
-    output = Concat(output, Concat("static char **", Concat(argv_name, " = NULL;\n")));
-    output = Concat(output, Concat("static pgy_as ", Concat(
-        runtime.process_args.symbol, "(void) {\n    pgy_as out = pgy_as_new();\n")));
+    let output: String = Concat("#include \"pgy_runtime_process_utf8_argv.h\"\nstatic int ", Concat(argc_name, " = 0;\n"));
+    output = Concat(output, Concat("static char **", Concat(argv_name, Concat(" = NULL;\nstatic int ", Concat(HostIORuntimeCArgvUtf8Global(), " = 1;\n")))));
+    output = Concat(output, Concat("static pgy_as ", Concat(runtime.process_args.symbol, Concat("(void) {\n    if (!", Concat(HostIORuntimeCArgvUtf8Global(),
+        ") { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_PROCESS_ARGS_NOT_UTF16); }\n    pgy_as out = pgy_as_new();\n")))));
     output = Concat(output, Concat("    for (int i = 1; i < ", Concat(
         argc_name, "; i++) {\n")));
     output = Concat(output, Concat(

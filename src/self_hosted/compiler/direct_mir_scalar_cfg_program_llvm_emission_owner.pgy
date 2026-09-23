@@ -52,7 +52,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan,
     if routine == plan.routines.entrypoint_ordinal &&
         plan.program.runtime_abi.process_args_id != 0 {
         TextBuilderAppend(output,
-            "  store i32 %argc, ptr @pgy.selfhost.argc, align 4\n  store ptr %argv, ptr @pgy.selfhost.argv, align 8\n");
+            "  call void @pgy_runtime_process_utf8_argv_export(i32 %argc, ptr %argv, ptr @pgy.selfhost.argc, ptr @pgy.selfhost.argv)\n");
     }
     TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayValueParameterAddressableCopyIn(
         plan, routine, array_string_projection, array_int_projection));

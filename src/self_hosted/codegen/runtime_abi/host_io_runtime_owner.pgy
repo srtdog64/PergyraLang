@@ -138,11 +138,18 @@ func HostIORuntimeCEntrypointSuccessValue() -> String {
     return "0";
 }
 
+func HostIORuntimeCArgvUtf8Global() -> String {
+    return "pgy_argv_utf8";
+}
+
+// main() receives argv in the ANSI code page on Windows; the runtime owner
+// rereads it as UTF-8 there and hands argv through elsewhere.
 func HostIORuntimeCArgsCapturePrefix() -> String {
-    let block: String = "";
-    block = Concat(block, Concat("    ", Concat(HostIORuntimeCArgcGlobal(), Concat(" = ", Concat(HostIORuntimeCArgcParam(), ";\n")))));
-    block = Concat(block, Concat("    ", Concat(HostIORuntimeCArgvGlobal(), Concat(" = ", Concat(HostIORuntimeCArgvParam(), ";\n")))));
-    return block;
+    return Concat("    ", Concat(HostIORuntimeCArgvUtf8Global(), Concat(
+        " = pgy_runtime_process_utf8_argv(", Concat(HostIORuntimeCArgcParam(),
+        Concat(", ", Concat(HostIORuntimeCArgvParam(), Concat(", &",
+        Concat(HostIORuntimeCArgcGlobal(), Concat(", &",
+        Concat(HostIORuntimeCArgvGlobal(), ");\n"))))))))));
 }
 
 func HostIORuntimeCLowercaseEntrypointWrapper(
@@ -168,10 +175,12 @@ func HostIORuntimeCLowercaseEntrypointWrapper(
 }
 
 func HostIORuntimeCArgsBlock() -> String {
-    let block: String = "";
+    let block: String = "#include \"pgy_runtime_process_utf8_argv.h\"\n";
     block = Concat(block, Concat("static int ", Concat(HostIORuntimeCArgcGlobal(), " = 0;\n")));
     block = Concat(block, Concat("static char **", Concat(HostIORuntimeCArgvGlobal(), " = NULL;\n")));
+    block = Concat(block, Concat("static int ", Concat(HostIORuntimeCArgvUtf8Global(), " = 1;\n")));
     block = Concat(block, Concat("static pgy_as ", Concat(HostIORuntimeCArgsFn(), "(void)\n{\n")));
+    block = Concat(block, Concat("    if (!", Concat(HostIORuntimeCArgvUtf8Global(), ") { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_PROCESS_ARGS_NOT_UTF16); }\n")));
     block = Concat(block, Concat("    pgy_as a = ", Concat(CollectionRuntimeCNewFn(2), "();\n")));
     block = Concat(block, Concat("    for (int i = 1; i < ", Concat(HostIORuntimeCArgcGlobal(), Concat("; i++) { ", Concat(CollectionRuntimeCPushFn(2), Concat("(&a, ", Concat(HostIORuntimeCArgvGlobal(), "[i]); }\n")))))));
     block = Concat(block, "    return a;\n}\n\n");

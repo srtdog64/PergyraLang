@@ -125,6 +125,8 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
     if plan.program.runtime_abi.string_to_int_id != 0 {
         output = Concat(output, "declare i64 @atoll(ptr)\n");
     }
+    if plan.program.runtime_abi.process_args_id != 0 {
+        output = Concat(output, "declare void @pgy_runtime_process_utf8_argv_export(i32, ptr, ptr, ptr)\n"); }
     if StringLength(output) != 0 { output = Concat(output, "\n"); }
     return output;
 }

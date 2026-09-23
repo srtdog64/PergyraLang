@@ -5,6 +5,7 @@ run 'make check-windows-toolchain'
 
 if [[ "$CI_WINDOWS_RUNNABLE" == "1" ]]; then
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 runtime-spawn-context-propagation-test-smoke'
+    run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 process-args-utf8-test-smoke'
 fi
 run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" clean'
 if [[ "$CI_WINDOWS_RUNNABLE" == "1" ]]; then
