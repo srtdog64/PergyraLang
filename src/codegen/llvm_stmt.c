@@ -479,7 +479,7 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         snprintf(cont_name, sizeof(cont_name), "txn.cont.%d", txn_id);
 
         LLVMValueRef failed_flag =
-            LLVMBuildAlloca(ctx->builder, ctx->type_i1, "__txn_failed");
+            llvm_create_entry_alloca(ctx, ctx->type_i1, "__txn_failed");
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), failed_flag);
 
         LLVMBasicBlockRef end_bb =

@@ -316,6 +316,9 @@ bool          llvm_constructed_arg_name_copy(const char *type_name,
 const char   *llvm_tmp_name(LLVMGenCtx *ctx);
 LLVMValueRef  llvm_create_entry_alloca(LLVMGenCtx *ctx, LLVMTypeRef type,
                                         const char *name);
+/* Save/restore the stack pointer around run-time-sized stack storage. */
+LLVMValueRef  llvm_stack_scope_save(LLVMGenCtx *ctx);
+void          llvm_stack_scope_restore(LLVMGenCtx *ctx, LLVMValueRef saved);
 char         *llvm_stmt_render_type_arg(GenericParam *param);
 char         *llvm_stmt_render_type_arg_scratch(GenericParam *param,
                                                 PgyArena *arena);

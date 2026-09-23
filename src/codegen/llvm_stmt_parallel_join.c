@@ -382,12 +382,12 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
         return;
     LLVMValueRef nch_val = chunk_plan.count;
 
+    LLVMValueRef stack = llvm_stack_scope_save(ctx);
     LLVMValueRef ctxs = LLVMBuildArrayAlloca(ctx->builder, ctx_struct_type,
         n_or_one, "_pj_ctxs");
     LLVMValueRef handles = LLVMBuildArrayAlloca(ctx->builder, handle_type,
         chunk_plan.allocation_count, "_pj_hs");
-    LLVMValueRef i_slot = LLVMBuildAlloca(ctx->builder, ctx->type_i64,
-        "_pj_i");
+    LLVMValueRef i_slot = llvm_create_entry_alloca(ctx, ctx->type_i64, "_pj_i");
     LLVMBuildStore(ctx->builder, zero, i_slot);
 
     /* R3 shared cells: decision (i32, 0 = undecided) and winner result
@@ -396,11 +396,10 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
     LLVMValueRef any_state = NULL;
     LLVMValueRef any_res = NULL;
     if (expr_mode && is_any) {
-        any_state = LLVMBuildAlloca(ctx->builder, ctx->type_i32,
-            "_pj_any");
+        any_state = llvm_create_entry_alloca(ctx, ctx->type_i32, "_pj_any");
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0),
             any_state);
-        any_res = LLVMBuildAlloca(ctx->builder, give_type, "_pj_any_res");
+        any_res = llvm_create_entry_alloca(ctx, give_type, "_pj_any_res");
         LLVMBuildStore(ctx->builder, LLVMConstNull(give_type), any_res);
     }
 
@@ -679,6 +678,7 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
                 ctx_struct_type, ctxs, n_captured, n_val, i_slot,
                 result_out);
     }
+    llvm_stack_scope_restore(ctx, stack);
 }
 
 void

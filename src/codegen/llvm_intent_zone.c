@@ -146,7 +146,7 @@ llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx,
 
         original_ptr = LLVMBuildLoad2(ctx->builder, participant_var.type,
             participant_var.alloca, llvm_tmp_name(ctx));
-        saved_allocas[i] = LLVMBuildAlloca(ctx->builder,
+        saved_allocas[i] = llvm_create_entry_alloca(ctx,
             participant_var.type, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, original_ptr, saved_allocas[i]);
         slot_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type, zone_ptr,

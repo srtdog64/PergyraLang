@@ -179,4 +179,50 @@ llvm_create_entry_alloca(LLVMGenCtx *ctx, LLVMTypeRef type, const char *name)
     return alloca;
 }
 
+/*
+ * Stack storage whose element count is known only at run time cannot move to
+ * the entry block. A statement that allocates it saves the stack pointer
+ * before its first dynamic alloca and restores it once nothing reads that
+ * storage, so a loop around the statement reuses the same stack instead of
+ * growing it every round.
+ */
+static LLVMValueRef
+llvm_stack_scope_call(LLVMGenCtx *ctx, const char *intrinsic,
+                      LLVMValueRef *args, unsigned arg_count)
+{
+    unsigned id = LLVMLookupIntrinsicID(intrinsic, strlen(intrinsic));
+    LLVMTypeRef ptr_type = ctx->type_i8ptr;
+    unsigned overload_count = 0;
+    LLVMValueRef fn;
+    LLVMTypeRef fn_type;
+
+    if (id == 0) {
+        llvm_set_error(ctx, "LLVM intrinsic '%s' is unavailable", intrinsic);
+        return NULL;
+    }
+    if (LLVMIntrinsicIsOverloaded(id))
+        overload_count = 1;
+    fn = LLVMGetIntrinsicDeclaration(ctx->module, id, &ptr_type,
+                                     overload_count);
+    fn_type = LLVMIntrinsicGetType(ctx->context, id, &ptr_type,
+                                   overload_count);
+    return LLVMBuildCall2(ctx->builder, fn_type, fn, args, arg_count, "");
+}
+
+LLVMValueRef
+llvm_stack_scope_save(LLVMGenCtx *ctx)
+{
+    return llvm_stack_scope_call(ctx, "llvm.stacksave", NULL, 0);
+}
+
+void
+llvm_stack_scope_restore(LLVMGenCtx *ctx, LLVMValueRef saved)
+{
+    LLVMValueRef args[1] = { saved };
+
+    if (saved == NULL || ctx->has_error)
+        return;
+    (void)llvm_stack_scope_call(ctx, "llvm.stackrestore", args, 1);
+}
+
 #endif

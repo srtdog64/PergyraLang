@@ -40,7 +40,7 @@ llvm_pjoin_materialize_result(LLVMGenCtx *ctx, ASTNode *node,
     if (arr_struct == NULL || new_fn == NULL || push_fn == NULL)
         return;
 
-    LLVMValueRef res_alloca = LLVMBuildAlloca(ctx->builder, arr_struct,
+    LLVMValueRef res_alloca = llvm_create_entry_alloca(ctx, arr_struct,
         "_pj_res");
     LLVMValueRef new_args[] = { n_val };
     LLVMValueRef res_init = LLVMBuildCall2(ctx->builder,
@@ -132,7 +132,7 @@ llvm_pjoin_materialize_reduce(LLVMGenCtx *ctx, ASTNode *node,
             return;
     }
 
-    LLVMValueRef acc = LLVMBuildAlloca(ctx->builder, give_type, "_pj_acc");
+    LLVMValueRef acc = llvm_create_entry_alloca(ctx, give_type, "_pj_acc");
 
     if (seeded) {
         LLVMFuncEntry *panic_fn = llvm_required_runtime_function(ctx, node,

@@ -354,8 +354,10 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef ctx_struct_type = LLVMStructCreateNamed(ctx->context, ctx_name);
     LLVMStructSetBody(ctx_struct_type, ctx_fields, (unsigned)n_ctx_fields, 0);
 
-    LLVMValueRef ctx_alloca = LLVMBuildAlloca(ctx->builder, ctx_struct_type,
-                                               "_pctx");
+    /* The tasks are awaited before the statement ends, so one entry-block
+     * slot per call serves every execution of this statement. */
+    LLVMValueRef ctx_alloca = llvm_create_entry_alloca(ctx, ctx_struct_type,
+                                                       "_pctx");
     for (size_t i = 0; i < n_captured; i++) {
         LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder, ctx_struct_type,
                                                  ctx_alloca, (unsigned)i,

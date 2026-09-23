@@ -128,7 +128,9 @@ llvm_emit_runtime_aggregate_return_call(ASTNode *node, LLVMGenCtx *ctx,
         return NULL;
     }
 
-    slot = LLVMBuildAlloca(ctx->builder, ctx->array_type_String,
+    /* The call site can sit in a loop body; the sret slot is entry-block
+     * storage so the loop does not take a new stack slot per round. */
+    slot = llvm_create_entry_alloca(ctx, ctx->array_type_String,
         llvm_tmp_name(ctx));
     args[0] = slot;
     for (size_t i = 0; i < source_arg_count; i++) {
