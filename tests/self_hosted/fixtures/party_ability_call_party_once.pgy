@@ -1,0 +1,40 @@
+// A party ability call reads the party for the slot and for its vtable. The
+// default C route emitted the party expression in both places, so a party
+// returned from a call ran twice, after the argument: "party c party". It
+// now runs once, before the argument. Native C and LLVM refuse this shape.
+subject Fighter {
+    let power: Int;
+}
+
+ability Combatable {
+    func Poke(self, x: Int) -> Int;
+}
+
+role Warrior for Fighter {
+    impl Combatable {
+        func Poke(self, x: Int) -> Int {
+            return 200 + x;
+        }
+    }
+}
+
+party Team {
+    dyn role slot fighter: Combatable;
+    shared hp: Int;
+}
+
+func Tag(t: String) -> Int {
+    Log(t);
+    return 1;
+}
+
+func MakeTeam(t: String) -> Team {
+    Log(t);
+    let team: Team = Team(0);
+    bind team.fighter = Warrior;
+    return team;
+}
+
+func Main() -> Void {
+    Log(MakeTeam("party").fighter.Poke(Tag("c")));
+}

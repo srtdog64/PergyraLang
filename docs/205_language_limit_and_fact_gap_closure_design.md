@@ -486,14 +486,36 @@ native parser/semantic 파일과 self-host `mir_lower` 파일은 다른 세션�
 - 게이트: `tests/call_argument_evaluation_order_smoke.sh`가 네 경로에서 사용자·빌트인 호출을 보고,
   native C/LLVM과 기본 C 경로에서 method 호출과 `ArraySet`을 본다. 기본 LLVM 경로는 method
   픽스처의 모양을 아직 받지 않고 거부한다. 틀린 순서로 도는 경로는 없다.
-- receiver: native C는 호출식 receiver를 인자보다 먼저 임시값에 묶는다
-  (`tests/cases/backend_compare/method_receiver_before_arguments`). 전에는 receiver가 호출 안에
-  남아 인자보다 늦게 평가됐다: `Make("r").Pair(Tag("a"), Tag("b"))`가 C에서 `a b r`,
-  LLVM에서 `r a b`였고, 인자가 하나일 때도 갈렸다. 바인딩이나 그 멤버인 receiver는 효과가 없고
-  주소를 넘길 수 있어야 하므로 제자리에 둔다.
-- 남은 것: 기본 C 경로(self-host)는 아직 호출식 receiver를 인자보다 늦게 평가한다(`a b r`).
-  그 방출 owner는 메인 체크아웃에서 커밋 전 작업이 진행 중이라 이번에 고치지 않았다.
-  인덱스 식 receiver(`xs[F()].M(...)`)와 동적 ability 호출(vtable)도 이 경로를 타지 않는다.
+- receiver: method receiver는 인자보다 먼저 평가한다. 전에는 receiver가 호출 안에 남아 인자보다
+  늦게 평가됐다: `Make("r").Pair(Tag("a"), Tag("b"))`가 native C와 기본 C 경로에서 `a b r`,
+  LLVM에서 `r a b`였고, 인자가 하나일 때도 갈렸다. 인덱스 식 receiver(`xs[Tag("i")].M(...)`)와
+  호출 결과의 필드인 receiver(`MakeOuter("o").inner.M(...)`)도 같은 식으로 갈렸다.
+  - 바인딩이나 그 필드인 receiver는 효과가 없고, identity method는 그 주소로 호출자의 객체에
+    쓴다. 그래서 제자리에 두고, 나머지 receiver는 인자가 있을 때 임시값에 먼저 묶는다.
+  - 기본 C 경로는 이 판단을 `call_argument_order_owner.pgy`에서 receiver 노드의 place 사실로
+    한다(주소를 가질 수 있는 place면 제자리). native C
+    (`transpiler_expr_call_member_emit.c`)는 식별자나 그 멤버 사슬이면 제자리에 둔다. 호출
+    결과가 아닌 identity receiver(원소, 필드)도 제자리에 둔다. 복사본에 쓰면 method의 쓰기가
+    사라진다.
+  - 기본 C 경로의 인덱스 읽기는 배열과 인덱스를 런타임 getter의 C 인자로 넘겨서
+    `Items("items")[Tag("i")]`가 `i items` 순서였다. `expr_semantic_index_emit_owner.pgy`가 지역
+    읽기보다 큰 배열 식을 먼저 임시값에 묶는다. native C는 이미 배열을 먼저 묶었다.
+- 동적 ability 호출(party slot의 vtable 호출): 인자를 왼쪽부터 평가한다. 전에는 native C와 기본
+  C 경로가 인자를 C에 그대로 넘겨 `team.fighter.Hit(Tag("a"), Tag("b"))`가 `b a`, LLVM에서
+  `a b`였다. 기본 C 경로는 party를 slot과 vtable 두 곳에서 읽으므로, 바인딩이 아닌 party
+  (`MakeTeam("p").fighter.Poke(Tag("c"))`)는 두 번, 인자 뒤에 평가됐다(`p c p`). 이제 그런
+  party는 한 번, 인자 앞에서 임시값에 묶는다. native 두 경로는 이 모양을 받지 않는다(C는 C
+  컴파일 오류, LLVM은 method registry 거부).
+- 게이트: backend_compare의 `method_receiver_before_arguments`와
+  `party_ability_call_argument_order`가 native C와 native LLVM을 비교한다.
+  `tests/self_hosted/parity/default_route_method_receiver_order_owner.sh`는 같은 두 프로그램을
+  native C, native LLVM, 기본 C 경로에서 돌려 같은 출력을 요구하고, 바인딩이 아닌 party는 기본 C
+  경로에서만 돌린다. 기본 LLVM 경로는 세 프로그램을 모두 컴파일 전에 거부한다(틀린 순서로 돌지는
+  않는다).
+- 남은 것: 배열 원소인 identity receiver(`cs[Tag("i")].Step(...)`, `cs: Array<Counter>`)는 순서가
+  아니라 수용의 공백이다. LLVM은 돌리고, 기본 C 경로는 방출 전에 거부하며("mutable-identity member
+  call requires a stable receiver address"), native C는 rvalue의 주소를 잡아 C 컴파일 오류를 낸다.
+  원소의 주소를 넘기는 getter가 생기면 그 주소를 인자보다 먼저 묶으면 된다.
 
 ### 11.2 `ToInt`/`ToFloat`는 문자열만 받는다
 
