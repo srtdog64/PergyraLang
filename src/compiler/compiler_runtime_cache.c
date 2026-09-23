@@ -116,6 +116,11 @@ compiler_runtime_cache_identity(const char *linkage,
     hash = compiler_runtime_cache_hash_text(hash, obs);
     hash = compiler_runtime_cache_hash_text(hash, toolchain);
     hash = compiler_runtime_cache_hash_text(hash, revision);
+    /* The runtime sources this compiler was built against. Freshness only
+     * asks whether a source in THIS tree is newer than the object, so two
+     * checkouts sharing one temp dir would otherwise link each other's
+     * runtime whenever the other tree built last. */
+    hash = compiler_runtime_cache_hash_text(hash, PGY_RUNTIME_DIR);
     hash = compiler_runtime_cache_hash_text(
         hash, compiler_runtime_cache_target_identity());
     hash = compiler_runtime_cache_hash_text(hash, sanitizer);

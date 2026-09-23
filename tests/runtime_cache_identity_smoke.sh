@@ -64,4 +64,11 @@ fi
 [[ "$first" == *"pgy_runtime_cext_v2_"* ]] || { echo "[$LABEL] first path missing v2 identity" >&2; exit 1; }
 [[ "$second" == *"pgy_runtime_cext_v2_"* ]] || { echo "[$LABEL] second path missing v2 identity" >&2; exit 1; }
 
-echo "[$LABEL] PASS compiler revision selects distinct runtime cache identities"
+# Two checkouts share one temp dir, and freshness only compares this tree's
+# sources with the object's mtime, so the identity must name the source tree.
+grep -Fq 'compiler_runtime_cache_hash_text(hash, PGY_RUNTIME_DIR)'     "$ROOT_DIR/src/compiler/compiler_runtime_cache.c" || {
+    echo "[$LABEL] runtime cache identity no longer names the runtime source tree" >&2
+    exit 1
+}
+
+echo "[$LABEL] PASS compiler revision and runtime source tree select distinct runtime cache identities"
