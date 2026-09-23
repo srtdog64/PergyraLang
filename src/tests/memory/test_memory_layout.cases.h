@@ -560,13 +560,19 @@ test_pointer_lifetime_guards(void)
 {
     printf("\n[pointer_lifetime_guards]\n");
 
-    TEST("Rc double drop is ignored safely");
+    TEST("Rc drop clears the dropped handle");
     {
         PgyRc_Int rc = pgy_rc_new_Int(10);
         pgy_rc_drop_Int(&rc);
-        pgy_rc_drop_Int(&rc);
         EXPECT(rc.ctrl == NULL);
     }
+
+    /* The LLVM export panics on a second drop; the C inline must agree. */
+    EXPECT_PANIC("Rc double drop triggers panic", {
+        PgyRc_Int rc = pgy_rc_new_Int(10);
+        pgy_rc_drop_Int(&rc);
+        pgy_rc_drop_Int(&rc);
+    });
 
     EXPECT_PANIC("Rc get after drop triggers panic", {
         PgyRc_Int rc = pgy_rc_new_Int(11);
@@ -574,15 +580,21 @@ test_pointer_lifetime_guards(void)
         (void)pgy_rc_get_Int(&rc);
     });
 
-    TEST("Weak double drop is ignored safely");
+    TEST("Weak drop clears the dropped handle");
     {
         PgyRc_Int rc = pgy_rc_new_Int(12);
         PgyWeak_Int weak = pgy_rc_downgrade_Int(rc);
         pgy_weak_drop_Int(&weak);
-        pgy_weak_drop_Int(&weak);
         EXPECT(weak.ctrl == NULL);
         pgy_rc_drop_Int(&rc);
     }
+
+    EXPECT_PANIC("Weak double drop triggers panic", {
+        PgyRc_Int rc = pgy_rc_new_Int(12);
+        PgyWeak_Int weak = pgy_rc_downgrade_Int(rc);
+        pgy_weak_drop_Int(&weak);
+        pgy_weak_drop_Int(&weak);
+    });
 
     EXPECT_PANIC("Weak upgrade after drop triggers panic", {
         PgyRc_Int rc = pgy_rc_new_Int(13);

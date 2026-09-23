@@ -476,15 +476,14 @@ pgy_rc_downgrade_##SuffixName(PgyRc_##SuffixName rc) \
     return weak; \
 } \
 \
+/* A dropped handle is invalid, exactly as the LLVM export treats it: dropping \
+ * it again panics instead of returning, so both backends fail closed. */ \
 static inline void \
 pgy_rc_drop_##SuffixName(PgyRc_##SuffixName *rc) \
 { \
-    if (rc == NULL) \
-        return; \
-    if (rc->ctrl == NULL) \
-        return; \
-    if (rc->ctrl->strong_count == 0) \
-        PGY_PANIC("RcDrop on empty Rc"); \
+    if (rc == NULL || rc->ctrl == NULL || rc->ctrl->strong_count == 0) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "RcDrop on invalid Rc"); \
     rc->ctrl->strong_count--; \
     if (rc->ctrl->strong_count == 0) { \
         rc->ctrl->alive = false; \
@@ -510,12 +509,9 @@ pgy_weak_upgrade_##SuffixName(PgyWeak_##SuffixName weak) \
 static inline void \
 pgy_weak_drop_##SuffixName(PgyWeak_##SuffixName *weak) \
 { \
-    if (weak == NULL) \
-        return; \
-    if (weak->ctrl == NULL) \
-        return; \
-    if (weak->ctrl->weak_count == 0) \
-        PGY_PANIC("WeakDrop on empty Weak"); \
+    if (weak == NULL || weak->ctrl == NULL || weak->ctrl->weak_count == 0) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "WeakDrop on invalid Weak"); \
     weak->ctrl->weak_count--; \
     if (weak->ctrl->weak_count == 0 && weak->ctrl->strong_count == 0) \
         free(weak->ctrl); \
