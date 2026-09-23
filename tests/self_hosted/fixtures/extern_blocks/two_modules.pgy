@@ -1,0 +1,7 @@
+import "module_a.pgy";
+import "module_b.pgy";
+
+func Main() -> Void {
+    Log(ModuleATag());
+    Log(ModuleBTag());
+}

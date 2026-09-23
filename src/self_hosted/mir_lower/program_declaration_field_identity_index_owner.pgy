@@ -87,9 +87,13 @@ func BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans(
             StringLength(kind) == 0 {
             return EmptyMirProgramDeclarationFieldIdentityIndex();
         }
+        // An extern block is named by its ABI, not by an identity, and a
+        // program may hold several blocks for one ABI, in one module or one
+        // per module. Every other declaration name is an identity.
         let prior_declaration: Int = 0;
-        while prior_declaration < ArrayLength(names) {
-            if names[prior_declaration] == name {
+        while kind != "extern" && prior_declaration < ArrayLength(names) {
+            if kinds[prior_declaration] != "extern" &&
+                names[prior_declaration] == name {
                 return EmptyMirProgramDeclarationFieldIdentityIndex();
             }
             prior_declaration = prior_declaration + 1;

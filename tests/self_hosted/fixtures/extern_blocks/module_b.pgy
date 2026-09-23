@@ -1,0 +1,7 @@
+extern "C" {
+    func pgy_fixture_module_b(x: Int) -> Int;
+}
+
+func ModuleBTag() -> String {
+    return "module b";
+}

@@ -1,0 +1,11 @@
+extern "C" {
+    func pgy_fixture_extern_a(x: Int) -> Int;
+}
+
+extern "C" {
+    func pgy_fixture_extern_b(x: Int) -> Int;
+}
+
+func Main() -> Void {
+    Log("two extern blocks");
+}
