@@ -7,7 +7,6 @@ tests/concept_semantics/callable_capability_admission.sh	Manual concept countere
 tests/concept_semantics/callable_capability_execution.sh	Manual concept counterexample campaign; explicit run only.
 tests/concept_semantics/capability_admission.sh	Manual concept counterexample campaign; explicit run only.
 tests/concept_semantics/domain_axes/run.sh	Manual concept counterexample campaign driver; explicit run only.
-tests/concept_semantics/effect_admission.sh	Manual concept experiment; registry citation is historical, not CI evidence.
 tests/concept_semantics/field_write_admission.sh	Manual concept counterexample campaign; explicit run only.
 tests/concept_semantics/generic_bound_admission.sh	Manual concept counterexample campaign; explicit run only.
 tests/concept_semantics/generic_call_occurrence.sh	Manual concept counterexample campaign; explicit run only.

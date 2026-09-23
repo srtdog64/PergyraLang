@@ -2,6 +2,22 @@
 # Canonical effect-family claims, separate from capability authority.
 # Keep admission and execution outcomes distinct; no expected-failure allowance.
 # Invalid sources are checked for admission only. Only valid local controls run.
+#
+# SoT semantic.builtin_effect_policy fallback IDs, each kept closed by a check
+# here or in the companion tests/builtin_effect_registry_smoke.sh:
+# - capability_bits_as_effects: every case below is decided by declared
+#   effects alone, and the companion smoke keeps capability out of the
+#   generated self projection; capabilities are recorded on their own axis.
+# - missing_fixed_effect_as_pure: a fixed builtin without a registry row is a
+#   refusal, never a pure call. Native reports "Fixed builtin effect policy is
+#   missing", the self projection answers -1, and the self call graph turns -1
+#   into unknown effects; the companion smoke asserts all three.
+# - renderer_only_effect_admission: the self projection is rendered from the
+#   registry with no private rows and checked byte for byte, and every refusal
+#   below must happen before publication on both public backends.
+# - scalar_callee_mask_as_complete_effects: a fixed mask is a lower bound. The
+#   self call graph marks unknown effects instead of reading the mask as the
+#   whole set, and the refusals below come from the derived callable body.
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
@@ -86,7 +102,14 @@ effect_declared_rejected|remote|Main
 effect_builtin_argument_rejected|nondeterministic|Main
 effect_mutator_argument_rejected|nondeterministic|Main
 effect_builtin_shadow_rejected|nondeterministic|Main
+effect_is_cancelled_rejected|remote|CheckCancellation
 CASES
+# A fixed row the self checker cannot reach yet: the quantum builtins have no
+# self-host signature, and an effect row does not assert one. Native refuses
+# with the owned effect conflict. The self driver and both public backends
+# must still refuse without publishing, so the gap stays fail-closed rather
+# than admitting the call as pure. Move a row into CASES above once its self
+# refusal is the owned effect diagnostic, as IsCancelled was.
 while IFS='|' read -r name expected owner; do
     source="tests/concept_semantics/authority_effect/$name.pgy"
     sha256sum "$source" >>"$WORK/inputs.sha256"
@@ -103,8 +126,31 @@ while IFS='|' read -r name expected owner; do
     else
         echo "[effect-admission] PASS $name/native fixed-effect refusal"
     fi
+    checks=$((checks + 1))
+    status=0
+    timeout 30 "$DRIVER" --emit-mir-json-verified "$source" \
+        >"$WORK/$name.self.out" 2>"$WORK/$name.self.err" || status=$?
+    if [[ "$status" != 1 ]] || grep -Fq '"pgy.mir.v1"' "$WORK/$name.self.out"; then
+        echo "[effect-admission] FAIL $name/self fixed-effect source admitted (status $status)" >&2
+        failures=$((failures + 1))
+    else
+        echo "[effect-admission] PASS $name/self fail-closed refusal"
+    fi
+    for backend in c llvm; do
+        checks=$((checks + 1))
+        stem="$name.public.$backend"
+        status=0
+        env -u PGY_NATIVE_PIPELINE PGY_SELF_DRIVER_BIN="$DRIVER" \
+            timeout 30 "$PGY" "$source" "--backend=$backend" --opt=dev -o "$WORK/$stem.exe" \
+            >"$WORK/$stem.reject" 2>&1 || status=$?
+        if [[ "$status" != 1 || -e "$WORK/$stem.exe" ]]; then
+            echo "[effect-admission] FAIL $stem: fixed-effect source published (status $status)" >&2
+            failures=$((failures + 1))
+        else
+            echo "[effect-admission] PASS $stem fail-closed refusal before publication"
+        fi
+    done
 done <<'NATIVE_FIXED_CASES'
-effect_is_cancelled_rejected|remote|CheckCancellation
 effect_measure_rejected|nondeterministic, collapse|Observe
 NATIVE_FIXED_CASES
 admission_checks=$checks

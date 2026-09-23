@@ -84,5 +84,6 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_SELF_HOST" == "1" ]]; then
     run 'make self-host-slice-copy-semantic-bridge-test-smoke'
     run 'make self-host-zone-spawn-transport-admission-test-smoke'
     run 'make self-host-future-aggregate-storage-admission-test-smoke'
+    run 'make effect-admission-test-smoke'
     run 'make self-host-preparation-contract-test-smoke'
 fi

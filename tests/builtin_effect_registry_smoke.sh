@@ -46,9 +46,24 @@ for filename, pattern, invoked_callbacks in groups:
     assert not (dispatch - invoked_callbacks - names), (filename, dispatch - invoked_callbacks - names)
     assert not (invoked_callbacks & names), "callback effect classified as fixed"
     assert "semantic_record_builtin_effect(ctx, expr," in text, filename
+# missing_fixed_effect_as_pure, native half: a name the registry lacks is a
+# semantic error, not a silent return with no effect recorded.
+helpers = (root / "src/semantic/type_checker_helpers_effects.c").read_text(encoding="utf-8")
+record = re.search(
+    r'semantic_record_builtin_effect\(SemanticContext \*ctx, ASTNode \*site, const char \*name\)\n\{(.*?)\n\}',
+    helpers,
+    flags=re.S,
+)
+assert record is not None, "semantic_record_builtin_effect body not found"
+assert '#include "builtin_effect_registry.def"' in record.group(1)
+assert 'semantic_error(ctx, site, "Fixed builtin effect policy is missing for' in record.group(1)
+# missing_fixed_effect_as_pure and capability_bits_as_effects, self half: the
+# generated projection answers -1 for an absent name and never reads capability.
 projection = (root / "src/self_hosted/semantic/builtin_effect_projection_owner.pgy").read_text(encoding="utf-8")
 assert "return -1;" in projection
 assert "capability" not in projection.lower()
+# scalar_callee_mask_as_complete_effects: -1 from the projection becomes
+# unknown effects in the self call graph, never an empty mask.
 graph = (root / "src/self_hosted/semantic/ast_capability_call_graph_owner.pgy").read_text(encoding="utf-8")
 assert "SemanticBuiltinFixedEffectMask(name)" in graph
 assert "state.unknown_effects[callable_index] = true" in graph

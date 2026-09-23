@@ -4391,6 +4391,11 @@ self-host-task-is-cancelled-builtin-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/task_is_cancelled_builtin_owner.sh
 
+.PHONY: effect-admission-test-smoke
+effect-admission-test-smoke: $(PGY) self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_PREBUILT_DRIVER="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/concept_semantics/effect_admission.sh
+
 .PHONY: self-host-zone-spawn-transport-admission-test-smoke
 self-host-zone-spawn-transport-admission-test-smoke: $(PGY) self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
