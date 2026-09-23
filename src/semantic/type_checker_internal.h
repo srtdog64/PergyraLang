@@ -18,6 +18,19 @@ bool type_is_move_token(const Type *type);
 bool type_is_resource_handle(const Type *type);
 bool type_is_anchored_resource_handle(const Type *type);
 bool type_is_builtin_owner_handle(const Type *type);
+bool type_is_single_owner_runtime_handle(const Type *type);
+bool semantic_reject_single_owner_handle_place_copy(ASTNode *site,
+                                                    ASTNode *value,
+                                                    SemanticContext *ctx,
+                                                    const Type *type,
+                                                    const char *consumer);
+bool semantic_reject_single_owner_handle_return(ASTNode *site,
+                                                ASTNode *value,
+                                                SemanticContext *ctx,
+                                                const Type *type);
+void semantic_reject_single_owner_handle_parameter_release(ASTNode *call,
+                                                           BuiltinKind kind,
+                                                           SemanticContext *ctx);
 bool type_is_movable_resource_handle(const Type *type);
 bool semantic_require_no_live_text_builder(Scope *scope,
                                            ASTNode *site,

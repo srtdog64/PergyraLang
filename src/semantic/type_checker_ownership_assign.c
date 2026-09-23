@@ -28,6 +28,14 @@ semantic_check_assignment_borrow_rebind(ASTNode *expr,
         || value_ownership == OWNERSHIP_TYPE_MOVE_ONLY;
     bool handle_or_move_boundary = anchored_boundary || move_boundary;
 
+    if (semantic_reject_single_owner_handle_place_copy(
+            expr, ast_assignment_value(expr), ctx,
+            type_is_single_owner_runtime_handle(target_type)
+                ? target_type : value_type,
+            "an assigned binding")) {
+        return true;
+    }
+
     if (handle_or_move_boundary) {
         if (semantic_validate_borrowed_escape(
                 expr, ast_assignment_value(expr), ctx, value_type, NULL,

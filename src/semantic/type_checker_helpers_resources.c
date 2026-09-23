@@ -82,6 +82,29 @@ type_is_builtin_owner_handle(const Type *type)
         && type_equals(type, TYPE_TEXT_BUILDER);
 }
 
+/* A value of these types is one owner of runtime storage: RcDrop, WeakDrop,
+ * BoxDrop, AllocatorDestroy and TextBuilderFinish/Drop release what the value
+ * points at. A second binding to the same value would dangle after the first
+ * release, so no plain copy may produce one. The comparison is by builtin
+ * constructor identity, so a user class that happens to be named Box is not
+ * a handle. TextBuilder additionally keeps its stricter bounded owner rung. */
+bool
+type_is_single_owner_runtime_handle(const Type *type)
+{
+    Type *constructor;
+
+    if (type == NULL)
+        return false;
+    if (type_is_builtin_owner_handle(type))
+        return true;
+    if (TYPE_ALLOCATOR != NULL && type_equals(type, TYPE_ALLOCATOR))
+        return true;
+    constructor = type_constructed_constructor(type);
+    return constructor != NULL
+        && (constructor == TYPE_RC || constructor == TYPE_WEAK
+            || constructor == TYPE_BOX);
+}
+
 bool
 type_is_movable_resource_handle(const Type *type)
 {

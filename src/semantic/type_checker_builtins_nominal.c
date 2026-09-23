@@ -19,8 +19,10 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
     bool nominal_owner_handled = false;
     Type *nominal_owner_type = type_check_nominal_ownership_builtin(
         call, kind, ctx, &nominal_owner_handled);
-    if (nominal_owner_handled)
+    if (nominal_owner_handled) {
+        semantic_reject_single_owner_handle_parameter_release(call, kind, ctx);
         return nominal_owner_type;
+    }
 
     switch (kind) {
     case BUILTIN_CLAIM_SLOT:

@@ -248,6 +248,45 @@ Remaining proof obligation:
 - Extend the same lifetime gate to additional runtime-owned handles as they
   become beta-stable.
 
+## Rule: Single-Owner Runtime Handles
+
+`Rc<T>`, `Weak<T>`, builtin `Box<T>`, `Allocator` and `TextBuilder` values are
+each the one owner of runtime storage that `RcDrop`, `WeakDrop`, `BoxDrop`,
+`AllocatorDestroy` or `TextBuilderFinish`/`TextBuilderDrop` releases. A second
+binding to the same value would dangle after the first release, so no plain
+copy may create one:
+
+- `let b: H = a;` and `b = a;` are refused when the value is a binding, a field
+  or an element (`PGY_SEM_ANCHORED_HANDLE_COPY`). A fresh value, such as a
+  constructor call or a call result, is not a copy.
+- `return p;` is refused when `p` is a parameter, a field or an element. A
+  handle held by a local of the returning function moves out through return.
+- A handle may not instantiate a generic type parameter, because a generic body
+  may return or store its value.
+- A parameter borrows the caller's handle for the call: the callee may read
+  it, but `RcDrop`, `WeakDrop`, `BoxDrop` and `AllocatorDestroy` of a
+  parameter or a receiver field are refused (`PGY_SEM_BUILTIN_ARGS_INVALID`).
+  This holds in every parameter mode for now: the self-host front end does not
+  retire the caller's binding at an `own` argument, so an `own` transfer of a
+  handle is not yet proven.
+- A second owner of Rc storage comes only from `RcClone` (strong) or
+  `RcDowngrade` (weak), which count it.
+- `TextBuilder` keeps its stricter bounded rung: one immutable local made by
+  `TextBuilderNew` at its function's top level, never rebound, never a parameter
+  or return type, and finished or dropped exactly once in its declaration scope
+  before any return.
+
+Dropping an Rc or Weak twice through the same binding is not refused
+statically; both backends panic on it (`RcDrop on invalid Rc`,
+`WeakDrop on invalid Weak`) instead of returning. A `String` produced by
+`TextBuilderFinish(builder, pool)` for an `AllocatorPool` lane lives in that
+pool, and nothing yet stops a read after `AllocatorDestroy(pool)`.
+
+Evidence: native semantic (`type_checker_builtin_owner_let_contract.c`), the
+self-host semantic (`ast_single_owner_handle_verdict_owner.pgy`, which has no
+Rc/Weak/`Box<class>` surface yet), and
+`tests/self_hosted/parity/single_owner_handle_owner.sh`.
+
 ## Theorem: Slice Borrowed View Safety
 
 `Slice<T>` is a borrowed contiguous view, not an owner. It may carry a raw

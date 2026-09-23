@@ -12,6 +12,43 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* A generic body copies a T value freely (`return x`, `[x, x]`), so a
+ * single-owner runtime handle may not instantiate a type parameter: the body
+ * could hand back a second binding to the caller's runtime storage. */
+static void
+generic_call_reject_single_owner_handle_arguments(ASTNode *expr,
+                                                  SemanticContext *ctx,
+                                                  ASTNode *decl,
+                                                  GenericParams *decl_gp,
+                                                  const char *display_name,
+                                                  size_t provided,
+                                                  Type **call_arg_types)
+{
+    for (size_t ai = 0; call_arg_types != NULL && ai < provided; ai++) {
+        FuncParam *fp = ai < ast_func_param_count(decl)
+            ? ast_func_param(decl, ai) : NULL;
+        const char *param_type_name = fp != NULL && fp->type != NULL
+            ? ast_type_name(fp->type) : NULL;
+        if (param_type_name == NULL
+            || find_generic_param_index(decl_gp, param_type_name) < 0
+            || !type_is_single_owner_runtime_handle(call_arg_types[ai]))
+            continue;
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
+            PGY_CAUSE_MOVABLE_HANDLE_COPY_ATTEMPT,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            ai < ast_call_arg_count(expr) ? ast_call_argument(expr, ai) : expr,
+            "'%s' is a single-owner runtime handle and cannot instantiate generic parameter '%s' of '%s'.\n"
+            "Reason:\n"
+            "- a generic body may return or store its parameter, which would give the caller's runtime storage a second binding\n"
+            "Fix:\n"
+            "- pass the value the handle holds instead\n"
+            "- or declare the parameter with the concrete handle type",
+            type_name_or_unknown(call_arg_types[ai]), param_type_name,
+            display_name);
+    }
+}
+
 void
 semantic_validate_function_call_generic_where(ASTNode *expr,
                                               SemanticContext *ctx,
@@ -29,6 +66,9 @@ semantic_validate_function_call_generic_where(ASTNode *expr,
     GenericParams *decl_gp = ast_func_generic_params(stmt);
     size_t decl_count = ast_generic_param_count(decl_gp);
     WhereClause *wc = ast_func_where_clause(stmt);
+    if (decl_count > 0)
+        generic_call_reject_single_owner_handle_arguments(
+            expr, ctx, stmt, decl_gp, display_name, provided, call_arg_types);
     if (decl_count == 0 || wc == NULL)
         return;
 
