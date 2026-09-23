@@ -1535,6 +1535,7 @@ main() {
         "tests/cases/backend_compare/array_elem_class_method"
         "tests/cases/backend_compare/array_elem_class_literal"
         "tests/cases/backend_compare/c_reserved_word_escape"
+        "tests/cases/backend_compare/float_literal_round_trip"
     )
 
     local use_default_cases=0

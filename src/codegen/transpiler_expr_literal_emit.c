@@ -27,12 +27,15 @@ emit_literal_expression(ASTNode *node)
                 return pergyra_strdup("(-9223372036854775807LL - 1LL)");
             return strdup_fmt("%lldLL", (long long)value);
         }
+        /* %.17g round-trips the parsed double, so the (float) cast rounds
+         * the same value LLVMConstReal does; %g kept six significant
+         * digits and made native C the leg that disagreed. */
         if (ast_number_is_float(node))
-            return strdup_fmt("((float)%g)", ast_number_value(node));
+            return strdup_fmt("((float)%.17g)", ast_number_value(node));
         if (ast_number_value(node) == (int64_t)ast_number_value(node))
             return strdup_fmt("%lld",
                 (long long)(int64_t)ast_number_value(node));
-        return strdup_fmt("%g", ast_number_value(node));
+        return strdup_fmt("%.17g", ast_number_value(node));
     case AST_STRING: {
         char *escaped = escape_c_string_literal(ast_string_value(node));
         if (escaped == NULL)

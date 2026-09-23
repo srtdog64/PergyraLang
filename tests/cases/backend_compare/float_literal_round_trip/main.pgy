@@ -1,0 +1,10 @@
+// Native C emitted a Float literal with %g, six significant digits, so it
+// printed 1.234570 and 2147480064.000000 where native LLVM printed the
+// literal's own float value.
+func Main() -> Void {
+    let x: Float = 1.2345678;
+    Log(x);
+    let y: Float = 2147483520.0;
+    Log(y);
+    Log(1.2345678);
+}
