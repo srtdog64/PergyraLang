@@ -1539,6 +1539,7 @@ main() {
         "tests/cases/backend_compare/method_receiver_before_arguments"
         "tests/cases/backend_compare/party_ability_call_argument_order"
         "tests/cases/backend_compare/int_literal_signed_minimum"
+        "tests/cases/backend_compare/int_to_long_widening"
     )
 
     local use_default_cases=0

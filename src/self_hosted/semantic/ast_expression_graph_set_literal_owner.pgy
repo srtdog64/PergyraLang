@@ -141,7 +141,7 @@ func SemanticSetLiteralElementMatchesDeclaredType(
     let text: Option<String> = SemanticExpressionGraphNodeText(
         graph, node_id
     );
-    return IsSome(actual) && IsSome(text) && ExpressionAssignableTo(
+    return IsSome(actual) && IsSome(text) && ExpressionElementAssignableTo(
         element_type, UnwrapOption(actual), UnwrapOption(text)
     );
 }

@@ -146,7 +146,7 @@ func SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
         let element_text: Option<String> =
             SemanticExpressionGraphNodeText(graph, element);
         if !IsSome(element_text) || actual == "Unknown" || actual == "" ||
-            !ExpressionAssignableTo(
+            !ExpressionElementAssignableTo(
                 element_type, actual, UnwrapOption(element_text)
             ) {
             return false;

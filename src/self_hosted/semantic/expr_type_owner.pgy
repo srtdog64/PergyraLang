@@ -442,16 +442,26 @@ func ExpressionAssignableTo(expected: String, actual: String, expr: String) -> B
     if IsChannelType(expected) && actual == "Channel<Unknown>" {
         return true;
     }
-    if expected == "Long" && actual == "Int" &&
-        IsIntLiteral(SemanticTrimSourceReuse(expr)) {
+    // Scalar widening follows native type_is_assignable: an Int value may
+    // enter a Long context and a Float value a Double context, never the
+    // reverse. Only an Int literal was admitted here, so `let l: Long = n;`
+    // compiled natively and was refused on the default route.
+    if expected == "Long" && actual == "Int" {
         return true;
     }
-    // Keep scalar widening with the canonical type-system direction:
-    // a Float value may enter a Double context, never the reverse.
     if expected == "Double" && actual == "Float" {
         return true;
     }
     return false;
+}
+// Native types a collection literal from its elements, and Array<Int> is not
+// an Array<Long>, so an element does not take the scalar widening above.
+func ExpressionElementAssignableTo(expected: String, actual: String, expr: String) -> Bool {
+    if (expected == "Long" && actual == "Int") ||
+        (expected == "Double" && actual == "Float") {
+        return false;
+    }
+    return ExpressionAssignableTo(expected, actual, expr);
 }
 func ExprType(expr: String, names: Array<String>, types: Array<String>, ref func_names: Array<String>, ref func_rets: Array<String>) -> String {
     let text: String = SemanticStripOuterParens(expr);

@@ -3486,7 +3486,7 @@ require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" \
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadSchema"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "pgy.selfhost.semantic.v1"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureFrontierCount() -> Int"
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "return 117;"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "return 118;"
 require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount()"
 reject_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureCount() != 110"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureManifestRows"
@@ -17135,11 +17135,11 @@ reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ReadJsonString(json,"
 
 semantic_fixture_count="$(find "$SELF_HOST_DIR/semantic/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 semantic_expected_count="$(find "$SELF_HOST_DIR/semantic/expected" -maxdepth 1 -type f -name '*.diag' | wc -l | tr -d ' ')"
-[[ "$semantic_fixture_count" -eq 117 ]] ||
-    fail "semantic fixture count drifted: $semantic_fixture_count != 117"
-[[ "$semantic_expected_count" -eq 117 ]] ||
-    fail "semantic expected count drifted: $semantic_expected_count != 117"
-require_text "src/self_hosted/PROGRESS.md" "across 117 fixtures"
+[[ "$semantic_fixture_count" -eq 118 ]] ||
+    fail "semantic fixture count drifted: $semantic_fixture_count != 118"
+[[ "$semantic_expected_count" -eq 118 ]] ||
+    fail "semantic expected count drifted: $semantic_expected_count != 118"
+require_text "src/self_hosted/PROGRESS.md" "across 118 fixtures"
 require_file "src/self_hosted/semantic/fixture/valid_long_suffix.pgy"
 require_file "src/self_hosted/semantic/expected/valid_long_suffix.diag"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" \

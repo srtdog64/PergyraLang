@@ -1,0 +1,16 @@
+// An Int value widens into a Long binding, assignment and return, as native
+// type_is_assignable allows. The sum past Int's range shows the value is
+// carried at Long width after the widening.
+func Grow(n: Int) -> Long {
+    return n;
+}
+
+func Main() -> Void {
+    let n: Int = 2147483647;
+    let wide: Long = n;
+    Log(ToString(wide + 1L));
+    let other: Long = 0L;
+    other = n;
+    Log(ToString(other * 2L));
+    Log(ToString(Grow(-2147483648) - 1L));
+}
