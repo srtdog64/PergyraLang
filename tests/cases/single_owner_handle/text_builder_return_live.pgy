@@ -1,0 +1,15 @@
+func Render(early: Bool) -> String {
+    let result: Allocator = AllocatorResult();
+    let text: TextBuilder = TextBuilderNew(8);
+    if early {
+        return "early";
+    }
+    TextBuilderAppend(text, "late");
+    let rendered: String = TextBuilderFinish(text, result);
+    AllocatorDestroy(result);
+    return rendered;
+}
+
+func Main() -> Void {
+    Print(Render(false));
+}

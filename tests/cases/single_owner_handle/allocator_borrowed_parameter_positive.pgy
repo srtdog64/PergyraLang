@@ -1,0 +1,15 @@
+func Render(value: String, result_allocator: Allocator) -> String {
+    let output: TextBuilder = TextBuilderNew(8);
+    TextBuilderAppend(output, "<");
+    TextBuilderAppend(output, value);
+    TextBuilderAppend(output, ">");
+    let rendered: String = TextBuilderFinish(output, result_allocator);
+    return rendered;
+}
+
+func Main() -> Void {
+    let result: Allocator = AllocatorResult();
+    let text: String = Render("ok", result);
+    AllocatorDestroy(result);
+    Print(text);
+}

@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let pool: Allocator = AllocatorPool(64);
+    let copy: Allocator = pool;
+    AllocatorDestroy(pool);
+    AllocatorDestroy(copy);
+}

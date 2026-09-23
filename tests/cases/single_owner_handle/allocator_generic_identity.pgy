@@ -1,0 +1,10 @@
+func Identity<T>(x: T) -> T {
+    return x;
+}
+
+func Main() -> Void {
+    let pool: Allocator = AllocatorPool(64);
+    let kept: Allocator = Identity(pool);
+    AllocatorDestroy(pool);
+    AllocatorDestroy(kept);
+}

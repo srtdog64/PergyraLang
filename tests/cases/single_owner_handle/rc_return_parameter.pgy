@@ -1,0 +1,10 @@
+func PassShared(held: Rc<Int>) -> Rc<Int> {
+    return held;
+}
+
+func Main() -> Void {
+    let root: Rc<Int> = RcNew(41);
+    let copy: Rc<Int> = PassShared(root);
+    RcDrop(root);
+    Log(RcGet(copy));
+}

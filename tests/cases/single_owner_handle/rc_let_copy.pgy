@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let root: Rc<Int> = RcNew(41);
+    let copy: Rc<Int> = root;
+    RcDrop(root);
+    Log(RcGet(copy));
+}

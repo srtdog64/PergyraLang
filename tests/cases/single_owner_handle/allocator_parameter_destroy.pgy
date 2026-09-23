@@ -1,0 +1,9 @@
+func RetireLane(lane: Allocator) -> Void {
+    AllocatorDestroy(lane);
+}
+
+func Main() -> Void {
+    let pool: Allocator = AllocatorPool(64);
+    RetireLane(pool);
+    AllocatorDestroy(pool);
+}

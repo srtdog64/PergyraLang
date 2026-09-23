@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let root: Rc<Int> = RcNew(41);
+    RcDrop(root);
+    RcDrop(root);
+    Log("second drop returned");
+}

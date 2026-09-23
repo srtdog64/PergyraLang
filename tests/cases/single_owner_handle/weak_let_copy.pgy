@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let root: Rc<Int> = RcNew(41);
+    let weak: Weak<Int> = RcDowngrade(root);
+    let copy: Weak<Int> = weak;
+    WeakDrop(weak);
+    RcDrop(root);
+    let revived: Rc<Int> = WeakUpgrade(copy);
+    Log(RcGet(revived));
+}

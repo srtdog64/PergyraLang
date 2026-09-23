@@ -1,0 +1,19 @@
+class Vec2 {
+    let x: Int;
+    let y: Int;
+}
+
+func MakeVec() -> Box<Vec2> {
+    return Box(Vec2(1, 2));
+}
+
+func SumX(cell: Box<Vec2>) -> Int {
+    return BoxGet(cell).x;
+}
+
+func Main() -> Void {
+    let handle: Box<Vec2> = MakeVec();
+    Log(SumX(handle));
+    Log(BoxGet(handle).y);
+    BoxDrop(handle);
+}

@@ -1,0 +1,8 @@
+func Main() -> Void {
+    let root: Rc<Int> = RcNew(41);
+    let weak: Weak<Int> = RcDowngrade(root);
+    WeakDrop(weak);
+    WeakDrop(weak);
+    RcDrop(root);
+    Log("second drop returned");
+}

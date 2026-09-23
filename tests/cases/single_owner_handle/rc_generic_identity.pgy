@@ -1,0 +1,10 @@
+func Identity<T>(x: T) -> T {
+    return x;
+}
+
+func Main() -> Void {
+    let root: Rc<Int> = RcNew(41);
+    let copy: Rc<Int> = Identity(root);
+    RcDrop(root);
+    Log(RcGet(copy));
+}

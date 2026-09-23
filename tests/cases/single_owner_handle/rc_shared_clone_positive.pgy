@@ -1,0 +1,23 @@
+func Identity<T>(x: T) -> T {
+    return x;
+}
+
+func MakeShared(seed: Int) -> Rc<Int> {
+    let fresh: Rc<Int> = RcNew(seed);
+    return fresh;
+}
+
+func PeekShared(held: Rc<Int>) -> Int {
+    return RcGet(held);
+}
+
+func Main() -> Void {
+    let root: Rc<Int> = MakeShared(5);
+    let second: Rc<Int> = RcClone(root);
+    Log(PeekShared(root));
+    let payload: Int = RcGet(second);
+    Log(Identity(payload));
+    RcDrop(root);
+    Log(RcGet(second));
+    RcDrop(second);
+}

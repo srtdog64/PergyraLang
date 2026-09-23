@@ -1,0 +1,9 @@
+func DropShared(held: Rc<Int>) -> Void {
+    RcDrop(held);
+}
+
+func Main() -> Void {
+    let root: Rc<Int> = RcNew(41);
+    DropShared(root);
+    Log(RcGet(root));
+}

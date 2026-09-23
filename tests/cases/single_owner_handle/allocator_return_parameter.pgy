@@ -1,0 +1,10 @@
+func KeepLane(lane: Allocator) -> Allocator {
+    return lane;
+}
+
+func Main() -> Void {
+    let pool: Allocator = AllocatorPool(64);
+    let kept: Allocator = KeepLane(pool);
+    AllocatorDestroy(pool);
+    AllocatorDestroy(kept);
+}

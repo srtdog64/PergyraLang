@@ -1,0 +1,10 @@
+class Cell {
+    let value: Int;
+}
+
+func Main() -> Void {
+    let boxed: Box<Cell> = Box(Cell(7));
+    let copy: Box<Cell> = boxed;
+    BoxDrop(boxed);
+    Log(BoxGet(copy).value);
+}

@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let lane: Allocator = AllocatorResult();
+    let storage: Box<Array<Int>> = BoxArray(4, lane);
+    let copy: Box<Array<Int>> = storage;
+    Log(1);
+    AllocatorDestroy(lane);
+}
