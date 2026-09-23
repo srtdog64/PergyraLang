@@ -104,6 +104,21 @@ run_literal_contract_smoke() {
     require_literal "src/runtime/pgy_runtime_panic_contract.h" "pgy_runtime_panic_emit"
     require_literal "src/runtime/pgy_runtime_platform_io_core.h" "pgy_runtime_panic_contract.h"
     require_literal "src/runtime/pgy_runtime_lib_authority_file_core.h" "pgy_runtime_panic_contract.h"
+    require_literal "src/runtime/pgy_runtime_panic_contract.h" "fflush(stdout)"
+    require_literal "src/runtime/pgy_runtime_panic_contract.h" "PGY_RUNTIME_PANIC_REASON_INVALID_COLLECTION_OPERATION"
+    # A failed collection operation panics; the inline and exported runtimes
+    # each define the two collection panic owners.
+    for rel in src/runtime/pgy_runtime_platform_io_core.h \
+        src/runtime/pgy_runtime_lib_authority_file_core.h; do
+        require_literal "$rel" "pgy_runtime_panic_collection_oom(const char *op, const char *reason)"
+        require_literal "$rel" "pgy_runtime_panic_invalid_collection(const char *op, const char *reason)"
+        require_literal "$rel" "PGY_RUNTIME_PANIC_REASON_INVALID_COLLECTION_OPERATION"
+    done
+    if grep -R -Fq -e "pgy_runtime_warn_invalid_collection" -e "[pgy][collection]" \
+        "$ROOT_DIR/src/runtime"; then
+        echo "[runtime-panic-contract] src/runtime warns and continues after a failed collection operation" >&2
+        exit 1
+    fi
     require_literal "src/runtime/pgy_runtime_memory_array_slot_inline.h" "PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT"
     require_literal "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT"
     require_literal "src/runtime/pgy_runtime_slot_macros.h" "pgy_runtime_panic_contract.h"
@@ -260,6 +275,47 @@ for path in [inline_top, lib_top]:
     text = path.read_text(encoding="utf-8")
     if "pgy_runtime_panic_contract.h" not in text:
         raise SystemExit(f"{path.relative_to(root)} does not include panic contract")
+
+# Output the program already wrote must reach the pipe before the panic line,
+# on both the function and the macro emitter.
+for label, pattern in [
+    ("pgy_runtime_panic_emit", r"pgy_runtime_panic_emit\(const char \*panic_class.*?abort\(\);"),
+    ("PGY_RUNTIME_PANIC_AT", r"#define PGY_RUNTIME_PANIC_AT\(.*?abort\(\);"),
+]:
+    body = re.search(pattern, header_text, flags=re.S)
+    if body is None:
+        raise SystemExit(f"panic contract missing {label}")
+    body_text = body.group(0)
+    if "fflush(stdout)" not in body_text or (
+        body_text.index("fflush(stdout)") > body_text.index("fprintf(stderr")
+    ):
+        raise SystemExit(f"{label} must fflush(stdout) before the panic line")
+if "PGY_RUNTIME_PANIC_REASON_INVALID_COLLECTION_OPERATION" not in header_text:
+    raise SystemExit("panic contract missing PGY_RUNTIME_PANIC_REASON_INVALID_COLLECTION_OPERATION")
+
+# A failed collection operation panics: allocation failure as oom, a broken
+# invariant as internal-invariant. The inline and exported runtimes each
+# define both owners; the warn-and-continue path must not come back.
+for path in [inline_top, lib_top]:
+    text = path.read_text(encoding="utf-8")
+    for token in [
+        "pgy_runtime_panic_collection_oom(const char *op, const char *reason)",
+        "pgy_runtime_panic_invalid_collection(const char *op, const char *reason)",
+        "PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED",
+        "PGY_RUNTIME_PANIC_REASON_INVALID_COLLECTION_OPERATION",
+    ]:
+        if token not in text:
+            raise SystemExit(f"{path.relative_to(root)} missing collection panic token {token}")
+for path in sorted((root / "src" / "runtime").rglob("*")):
+    if path.suffix not in (".h", ".c"):
+        continue
+    text = path.read_text(encoding="utf-8", errors="replace")
+    for token in ["pgy_runtime_warn_invalid_collection", "[pgy][collection]"]:
+        if token in text:
+            raise SystemExit(
+                f"{path.relative_to(root)} warns and continues after a failed "
+                f"collection operation: {token}"
+            )
 
 for path in [slot_macros, device_slot_export]:
     text = path.read_text(encoding="utf-8")

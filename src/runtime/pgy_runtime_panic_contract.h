@@ -94,6 +94,9 @@ static inline PGY_RUNTIME_NORETURN void
 pgy_runtime_panic_emit(const char *panic_class, const char *reason,
                        const char *file, int line)
 {
+    /* Output the program already produced must survive the abort: Log(Int)
+     * and Log(Bool) leave it in the stdout buffer when stdout is a pipe. */
+    fflush(stdout);
     fprintf(stderr, "%s %s:%d class=%s reason=%s\n",
             PGY_RUNTIME_PANIC_PREFIX,
             file != NULL ? file : "<runtime>",
@@ -106,6 +109,7 @@ pgy_runtime_panic_emit(const char *panic_class, const char *reason,
 
 #define PGY_RUNTIME_PANIC_AT(panic_class, reason, file, line) \
     do { \
+        fflush(stdout); \
         fprintf(stderr, "%s %s:%d class=%s reason=%s\n", \
                 PGY_RUNTIME_PANIC_PREFIX, \
                 (file) != NULL ? (file) : "<runtime>", \
