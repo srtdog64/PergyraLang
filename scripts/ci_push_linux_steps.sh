@@ -61,6 +61,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'bash tests/self_hosted/parity/extern_block_identity_owner.sh'
     run 'bash tests/self_hosted/parity/single_owner_handle_owner.sh'
     run 'make text-builder-owner-test-smoke'
+    run 'bash tests/self_hosted/parity/numeric_literal_conversion_owner.sh'
 
     run 'make build-source-inventory-test-smoke'
     run 'make gate-subject-declaration-test-smoke'

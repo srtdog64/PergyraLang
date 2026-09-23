@@ -151,6 +151,43 @@ export before `unreachable`. The ordinary well-typed match corpus remains under
 backend-compare parity; the invalid-tag path is a hard-fail boundary, not a
 source-visible value result.
 
+## 4a. Literal range, Float remainder and text conversion
+
+- An unsuffixed integer literal is an `Int`, so its value must fit the signed
+  32-bit range. `-2147483648` is one literal (the parser folds the sign, as it
+  does for `-9223372036854775808L`), because its magnitude is not an `Int`.
+  A literal past the range is refused before type checking: "Int literal is
+  outside the signed 32-bit range; write a Long literal with the L suffix".
+  Before this rule native typed `2147483648` as `Int` while emitting a wider
+  constant, so the legs printed different values for it and for arithmetic
+  over it. The self-host owner is `AstExpressionIntegerLiteralPayloadReady`
+  in `src/self_hosted/hir/ast_expression_graph_owner.pgy`; native checks in
+  `parser_parse_primary` (`src/parser/parser_expr.c`).
+- `%` is defined for `Int` and `Long`. No backend lowered it for `Float` or
+  `Double` (C rejects `float % float`, LLVM has no integer remainder over
+  floats), so both checkers refuse it: native with
+  `PGY_SEM_BINOP_TYPE_MISMATCH`, the self-host checker with
+  `modulo_operand_not_integer`.
+- Numeric operands of a comparison or arithmetic operator have one type:
+  `Int < Float` and `Int + Long` are refused wherever they appear, including
+  inside a builtin call argument. An `Int` value is assignable to a `Long`
+  binding, assignment target or return, and a `Float` to a `Double`. A
+  collection literal is typed by its elements, so `[n]` with `n: Int` is an
+  `Array<Int>` and does not initialize an `Array<Long>`.
+- `ToInt(text)` reads the leading decimal as a `Long` (C `strtoll`: optional
+  leading whitespace and sign, saturating at the `Long` bounds) and narrows it
+  to `Int` by truncation, the way `value as Int` narrows a `Long`. Text with no
+  leading digits gives `0`. Every leg computes this value; before, the C
+  runtime used `strtol`, whose result depended on the width of C `long`, and
+  the default route used `atoll`, which is undefined on overflow. Whether
+  invalid or out-of-range text should fail instead (a panic or a
+  `Result`-returning form) is not decided by these documents.
+- Gate: `tests/self_hosted/parity/numeric_literal_conversion_owner.sh` runs
+  the values on native C, native LLVM and the default C route and the
+  refusals on both front ends; the `int_literal_signed_minimum`,
+  `string_to_int_long_narrowing` and `int_to_long_widening` backend-compare
+  cases hold the expected output.
+
 ## 5. FFI / `extern` escape hatch
 
 `extern` declarations and `unsafe { ... }` blocks are the explicit trust
