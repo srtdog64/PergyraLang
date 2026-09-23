@@ -3486,7 +3486,7 @@ require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" \
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadSchema"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "pgy.selfhost.semantic.v1"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureFrontierCount() -> Int"
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "return 115;"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "return 117;"
 require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount()"
 reject_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureCount() != 110"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureManifestRows"
@@ -10048,9 +10048,9 @@ require_file "tests/self_hosted/parity/fixture/array_index_type_bad.pgy"
 require_file "tests/self_hosted/parity/fixture/array_index_type_min_bad.pgy"
 require_file "tests/self_hosted/parity/fixture/array_index_type_valid.pgy"
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy" \
-    'func SemanticExpressionGraphIndexAccessErrorFromTree('
+    'func SemanticExpressionGraphOperandErrorFromTree('
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
-    'SemanticExpressionGraphIndexAccessErrorFromTree('
+    'SemanticExpressionGraphOperandErrorFromTree('
 require_text "src/self_hosted/semantic/public_diagnostic_receipt_owner.pgy" \
     'if code == "array_index_type_mismatch" {'
 reject_text "src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy" \
@@ -17135,11 +17135,11 @@ reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ReadJsonString(json,"
 
 semantic_fixture_count="$(find "$SELF_HOST_DIR/semantic/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 semantic_expected_count="$(find "$SELF_HOST_DIR/semantic/expected" -maxdepth 1 -type f -name '*.diag' | wc -l | tr -d ' ')"
-[[ "$semantic_fixture_count" -eq 115 ]] ||
-    fail "semantic fixture count drifted: $semantic_fixture_count != 115"
-[[ "$semantic_expected_count" -eq 115 ]] ||
-    fail "semantic expected count drifted: $semantic_expected_count != 115"
-require_text "src/self_hosted/PROGRESS.md" "across 115 fixtures"
+[[ "$semantic_fixture_count" -eq 117 ]] ||
+    fail "semantic fixture count drifted: $semantic_fixture_count != 117"
+[[ "$semantic_expected_count" -eq 117 ]] ||
+    fail "semantic expected count drifted: $semantic_expected_count != 117"
+require_text "src/self_hosted/PROGRESS.md" "across 117 fixtures"
 require_file "src/self_hosted/semantic/fixture/valid_long_suffix.pgy"
 require_file "src/self_hosted/semantic/expected/valid_long_suffix.diag"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" \

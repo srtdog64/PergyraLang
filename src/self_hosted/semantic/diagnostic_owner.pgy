@@ -61,6 +61,7 @@ func SemanticReason(code: String) -> String {
     if code == "not_operand_not_bool" { return "logical not requires a Bool operand"; }
     if code == "compare_type_mismatch" { return "comparison operands must have the same type"; }
     if code == "binop_type_mismatch" { return "arithmetic operands must have the same type"; }
+    if code == "modulo_operand_not_integer" { return "the remainder operator is defined only for Int and Long operands"; }
     if code == "array_index_type_mismatch" { return "array access requires an Int index"; }
     if code == "call_arg_type_mismatch" || code == "member_call_arg_type_mismatch" {
         return "call argument type does not match the callee parameter type";
@@ -202,6 +203,7 @@ func SemanticFix(code: String) -> String {
         return "compare values with matching types";
     }
     if code == "binop_type_mismatch" { return "use operands with matching arithmetic types"; }
+    if code == "modulo_operand_not_integer" { return "apply % to Int or Long operands"; }
     if code == "array_index_type_mismatch" { return "use an Int expression for the array index"; }
     if code == "call_arg_type_mismatch" || code == "member_call_arg_type_mismatch" {
         return "change the argument expression or the callee parameter type";
@@ -325,7 +327,7 @@ func SemanticVerdictPayloadFixtureCount() -> Int {
 }
 
 func SemanticVerdictPayloadFixtureFrontierCount() -> Int {
-    return 115;
+    return 117;
 }
 
 func SemanticVerdictPayloadFixtureDir() -> String {

@@ -253,6 +253,12 @@ func CheckBinaryOperands(expr: String, names: Array<String>, types: Array<String
             right, names, types, func_names, func_rets) {
         return "";
     }
+    // `%` over Float or Double has no meaning (no backend lowers it); the
+    // graph owner, SemanticExpressionGraphNumericOperandError, refuses it too.
+    if kind == "arith" && Substring(text, split_idx, 1) == "%" &&
+        (lt == "Float" || lt == "Double") {
+        return SemanticError1("modulo_operand_not_integer", "actual", lt);
+    }
     if lt == rt {
         return "";
     }

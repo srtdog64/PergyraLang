@@ -157,10 +157,10 @@ valid_output="$("$valid_bin" | tr -d '\r')" ||
 [[ "$valid_output" == $'2\n5\n11' ]] ||
     fail "valid public C control changed runtime output"
 
-require_text "$GRAPH_OWNER" 'func SemanticExpressionGraphIndexAccessErrorFromTree('
+require_text "$GRAPH_OWNER" 'func SemanticExpressionGraphOperandErrorFromTree('
 require_text "$GRAPH_OWNER" 'kind == AstExpressionNodeIndex()'
 require_text "$GRAPH_OWNER" '"array_index_type_mismatch"'
-require_text "$VERDICT_OWNER" 'SemanticExpressionGraphIndexAccessErrorFromTree('
+require_text "$VERDICT_OWNER" 'SemanticExpressionGraphOperandErrorFromTree('
 require_text "$RECEIPT_OWNER" 'if code == "array_index_type_mismatch" {'
 ! grep -Fq 'primes[' "$GRAPH_OWNER" "$VERDICT_OWNER" ||
     fail "semantic owner gained fixture-specific source spelling"

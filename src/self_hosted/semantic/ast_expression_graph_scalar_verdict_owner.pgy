@@ -4,7 +4,11 @@ import "ast_expression_graph_scalar_type_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
 import "diagnostic_owner.pgy";
 
-func SemanticExpressionGraphIndexAccessErrorFromTree(
+// Operand types checked at every node of the tree, including the arguments of
+// builtin calls such as Log(ToString(i < f)), which the root operator verdict
+// does not reach: an index must be an Int, and numeric operands must follow
+// SemanticExpressionGraphNumericOperandError.
+func SemanticExpressionGraphOperandErrorFromTree(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
@@ -61,6 +65,15 @@ func SemanticExpressionGraphIndexAccessErrorFromTree(
                 );
             }
         }
+        if kind >= AstExpressionNodeEquality() &&
+            kind <= AstExpressionNodeModulo() {
+            let numeric_error: String =
+                SemanticExpressionGraphNumericOperandError(
+                    graph, node_id, kind, constructors, names, types,
+                    function_names, function_returns
+                );
+            if StringLength(numeric_error) > 0 { return numeric_error; }
+        }
         let arity_opt: Option<Int> = AstExpressionNodeArityOpt(kind);
         if !IsSome(arity_opt) {
             return SemanticError1(
@@ -80,6 +93,52 @@ func SemanticExpressionGraphIndexAccessErrorFromTree(
         }
     }
     return "";
+}
+
+// Native type_check_binary: numeric operands of a comparison or arithmetic
+// operator must have one type, and `%` over Float or Double has no meaning
+// (no backend lowers it). Operands of other types are left to the root
+// operator verdict and the call owners.
+func SemanticExpressionGraphNumericOperandError(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    kind: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    ref function_names: Array<String>,
+    ref function_returns: Array<String>
+) -> String {
+    let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(graph, node_id);
+    let right_opt: Option<Int> = SemanticExpressionGraphRightChild(graph, node_id);
+    if !IsSome(left_opt) || !IsSome(right_opt) {
+        return SemanticError1(
+            "ast_artifact_invalid", "owner", "expression_graph"
+        );
+    }
+    let left: String = SemanticExpressionGraphScalarTypeName(
+        graph, UnwrapOption(left_opt), constructors, names, types,
+        function_names, function_returns
+    );
+    let right: String = SemanticExpressionGraphScalarTypeName(
+        graph, UnwrapOption(right_opt), constructors, names, types,
+        function_names, function_returns
+    );
+    if kind == AstExpressionNodeModulo() &&
+        (left == "Float" || left == "Double") {
+        return SemanticError1("modulo_operand_not_integer", "actual", left);
+    }
+    let left_numeric: Bool = SemanticExpressionGraphNumericTypeName(left) ||
+        left == "Double";
+    let right_numeric: Bool = SemanticExpressionGraphNumericTypeName(right) ||
+        right == "Double";
+    if left == right || !left_numeric || !right_numeric { return ""; }
+    if kind <= AstExpressionNodeGreaterEqual() {
+        return SemanticError2(
+            "compare_type_mismatch", "left", left, "right", right
+        );
+    }
+    return SemanticError2("binop_type_mismatch", "left", left, "right", right);
 }
 
 func SemanticExpressionGraphScalarOperatorError(
@@ -202,6 +261,12 @@ func SemanticExpressionGraphScalarOperatorError(
                 "binop_type_mismatch", "left", left, "right", right
             );
         }
+    }
+    if kind == AstExpressionNodeModulo() {
+        return SemanticExpressionGraphNumericOperandError(
+            graph, node_id, kind, constructors, names, types,
+            function_names, function_returns
+        );
     }
     return "";
 }

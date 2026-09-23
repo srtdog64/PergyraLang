@@ -1,0 +1,5 @@
+func Main() -> Int {
+    let a: Float = 7.5;
+    let r: Float = a % 2.0;
+    return 0;
+}

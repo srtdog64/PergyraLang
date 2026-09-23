@@ -1,0 +1,10 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: modulo_operand_not_integer
+Reason: the remainder operator is defined only for Int and Long operands
+Fix: apply % to Int or Long operands
+Span: none
+Facts:
+- actual: Float

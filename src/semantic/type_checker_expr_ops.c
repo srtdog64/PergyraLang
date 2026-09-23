@@ -327,6 +327,21 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
+    /* `%` over Float or Double has no defined meaning (the language
+     * documents do not give one) and no backend lowers it: C rejects
+     * `float % float` and LLVM has no integer remainder over floats. */
+    if (op == TOKEN_PERCENT
+        && (type_equals(left, TYPE_FLOAT) || type_equals(left, TYPE_DOUBLE))) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_BINOP_TYPE_MISMATCH,
+            PGY_CAUSE_BINOP_OPERAND_TYPES,
+            PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD,
+            expr,
+            "Operator '%%' requires Int or Long operands, got '%s'",
+            type_name_or_unknown(left));
+        return TYPE_UNKNOWN;
+    }
+
     return left;
 }
 
