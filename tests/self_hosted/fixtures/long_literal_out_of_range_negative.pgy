@@ -1,0 +1,7 @@
+// A Long literal past 9223372036854775807 is refused by both front ends. The
+// self-host front end accepted it and the C compiler wrapped it to
+// -9223372036854775808.
+func Main() -> Void {
+    let a: Long = 9223372036854775808L;
+    Log(ToString(a));
+}

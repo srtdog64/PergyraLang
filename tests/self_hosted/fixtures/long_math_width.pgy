@@ -1,0 +1,12 @@
+// Abs, Min and Max keep a Long operand's width on every route. The default C
+// route emitted int32_t helpers and printed 705032704 for Abs(-5000000000L).
+func Main() -> Void {
+    let a: Long = -5000000000L;
+    Log(ToString(Abs(a)));
+    Log(ToString(Max(5000000000L, 1L)));
+    Log(ToString(Min(-5000000000L, 1L)));
+    Log(ToString(Abs(-7)));
+    Log(ToString(Min(3, 9)));
+    Log(ToString(Max(3, 9)));
+    Log(ToString(9223372036854775807L));
+}
