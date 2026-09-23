@@ -252,13 +252,14 @@ func EmitExternBlockDecl(
             MirDeclarationMethodContractFactFromBounds(
                 json, method_bounds[0], method_bounds[1]
             );
-        // Host-ABI members declare a signature and nothing else: any action
-        // vocabulary here means the producer classified the callable wrong.
+        // Host-ABI members declare a signature and, like any callable, the
+        // capabilities and effects a caller must hold; the semantic stage
+        // checks those at each call. Action vocabulary here means the
+        // producer classified the callable wrong.
         if !contract.valid || contract.callable_kind != "function" ||
             ArrayLength(contract.requires_bases) != 0 ||
             contract.within_zone != "" || contract.causes_name != "" ||
-            ArrayLength(contract.authorized_by_names) != 0 ||
-            contract.caps_present || contract.effects_present {
+            ArrayLength(contract.authorized_by_names) != 0 {
             MirLowerFailClosed(Concat(
                 "extern member contract is invalid: ",
                 Concat(abi_name, Concat(".", mname))
