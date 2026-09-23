@@ -167,6 +167,7 @@ func RewriteSemanticMemberCall(
     let call_symbol: String = "";
     let param_offset: Int = 0;
     let prefix_argument: String = "";
+    let receiver_node: Int = -1;
     if UnwrapOption(target_kind) == SemanticCallTargetNamespace() {
         if UnwrapOption(target_name) == "" {
             Die("semantic qualified-call target fact is missing");
@@ -209,6 +210,7 @@ func RewriteSemanticMemberCall(
         let stable_addressable: Bool = SemanticExpressionPlaceKindAddressable(UnwrapOption(receiver_place_kind));
         prefix_argument = CodegenMemberCallReceiverArgument(
             call_symbol, receiver_value, stable_addressable, env);
+        receiver_node = member.receiver_node;
         if LookupKindType(env, call_symbol, "rc") !=
             CallableReceiverCarriageValue() {
             prefix_argument = CodegenCExpressionTextOwned(
@@ -226,7 +228,7 @@ func RewriteSemanticMemberCall(
     }
     return RewriteSemanticOrderedCall(
         call_symbol, graph, view, modes, param_types, param_offset,
-        prefix_argument, env, owned_fragments
+        prefix_argument, receiver_node, env, owned_fragments
     );
 }
 func RewriteSemanticOwnedStringArrayCall(
@@ -512,7 +514,7 @@ func RewriteSemanticDirectCall(
         }
     }
     return RewriteSemanticOrderedCall(
-        call_symbol, graph, view, modes, param_types, 0, "", env,
+        call_symbol, graph, view, modes, param_types, 0, "", -1, env,
         owned_fragments
     );
 }

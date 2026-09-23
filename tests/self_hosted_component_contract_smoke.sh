@@ -12843,7 +12843,7 @@ require_function_text \
     "func RewriteSemanticCallArguments(" \
     "CodegenCExpressionTextOwned(owned_fragments, args)"
 require_file "src/self_hosted/codegen/emission/call_argument_order_owner.pgy"
-require_max_lines "src/self_hosted/codegen/emission/call_argument_order_owner.pgy" 160
+require_max_lines "src/self_hosted/codegen/emission/call_argument_order_owner.pgy" 200
 require_function_text \
     "src/self_hosted/codegen/emission/call_argument_order_owner.pgy" \
     "func RewriteSemanticOrderedCall(" "CodegenCCallExpression(call_symbol, args)"

@@ -5,7 +5,8 @@
 // more than a local read, every by-value argument is bound to a temporary in
 // source order inside a statement expression, the way ordered binary
 // operands already are. A literal has no effect and observes none; an
-// address argument (inout, identity, ref) stays in place too.
+// address argument (inout, identity, ref) stays in place too. A method
+// receiver that is not a binding or a field of one is bound first.
 import "../text/text_owner.pgy";
 import "expr_semantic_call_argument_owner.pgy";
 import "expression_c_text_materialization_owner.pgy";
@@ -73,6 +74,31 @@ func CodegenCallArgumentIsAddress(mode: String) -> Bool {
     return mode == "inout" || mode == "ref" || mode == "identity";
 }
 
+// The receiver evaluates before the arguments (docs/205 §11.1). A binding or
+// a field of one has no effect and may be passed by address, so it stays in
+// place; any other receiver (a call, an index) is bound to a temporary ahead
+// of the arguments. `receiver_node` is the node `prefix_argument` renders, or
+// -1 for a call without a receiver.
+func CodegenCallReceiverNeedsBinding(
+    graph: SemanticExpressionGraphFacts,
+    view: SemanticCallSpineView,
+    prefix_argument: String,
+    receiver_node: Int
+) -> Bool {
+    if receiver_node < 0 || ArrayLength(view.argument_nodes) == 0 {
+        return false;
+    }
+    if prefix_argument == "" {
+        Die("member-call receiver text is missing for its receiver node");
+    }
+    let place_kind: Option<Int> =
+        SemanticExpressionGraphPlaceKind(graph, receiver_node);
+    if !IsSome(place_kind) {
+        Die("member-call receiver place fact is missing");
+    }
+    return !SemanticExpressionPlaceKindAddressable(UnwrapOption(place_kind));
+}
+
 func RewriteSemanticOrderedCall(
     call_symbol: String,
     graph: SemanticExpressionGraphFacts,
@@ -81,10 +107,14 @@ func RewriteSemanticOrderedCall(
     param_types: String,
     param_offset: Int,
     prefix_argument: String,
+    receiver_node: Int,
     env: CodegenTypeEnv,
     inout owned_fragments: Array<String>
 ) -> String {
-    if !CodegenCallArgumentsNeedOrder(graph, view) {
+    let receiver_bound: Bool = CodegenCallReceiverNeedsBinding(
+        graph, view, prefix_argument, receiver_node);
+    let arguments_ordered: Bool = CodegenCallArgumentsNeedOrder(graph, view);
+    if !receiver_bound && !arguments_ordered {
         let args: String = RewriteSemanticCallArguments(
             graph, view, modes, param_types, param_offset, prefix_argument,
             env, owned_fragments);
@@ -95,7 +125,16 @@ func RewriteSemanticOrderedCall(
             graph, view, modes, param_types);
     let bindings: Array<String> = [];
     let arguments: Array<String> = [];
-    if prefix_argument != "" {
+    if receiver_bound {
+        let receiver_name: String = Concat("__pgy_recv_", ToString(view.call_node));
+        // Only avoids collisions in emitted C.
+        while StringIndexOf(prefix_argument, receiver_name) >= 0 {
+            receiver_name = Concat(receiver_name, "_");
+        }
+        ArrayPush(bindings, Concat("__auto_type ", Concat(receiver_name,
+            Concat(" = (", Concat(prefix_argument, "); ")))));
+        ArrayPush(arguments, receiver_name);
+    } else if prefix_argument != "" {
         ArrayPush(arguments, prefix_argument);
     }
     let i: Int = 0;
@@ -109,7 +148,9 @@ func RewriteSemanticOrderedCall(
             RewriteSemanticCallArgumentWithReadonlyStringTemporary(
                 graph, view.argument_nodes[i], CsvAt(param_types, param_index),
                 mode, env, readonly_string_temporary_ready);
-        if CodegenCallArgumentIsAddress(mode) {
+        // Arguments that need no ordering (at most one has an effect) stay
+        // in the call, after the receiver binding.
+        if !arguments_ordered || CodegenCallArgumentIsAddress(mode) {
             ArrayPush(arguments, argument);
         } else {
             let name: String = Concat("__pgy_arg_", Concat(

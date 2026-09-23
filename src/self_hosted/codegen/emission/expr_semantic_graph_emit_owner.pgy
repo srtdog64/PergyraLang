@@ -441,7 +441,7 @@ func RewriteSemanticBinaryOperationTracked(
     if kind == AstExpressionNodeIndex() {
         return CodegenCExpressionTextOwned(
             owned_fragments, RewriteSemanticIndex(
-                graph, left_id, left, right, env
+                graph, left_id, left, right_id, right, env
             )
         );
     }

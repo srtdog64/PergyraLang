@@ -56,6 +56,6 @@ func RewriteSemanticIdentityBoundCall(
     let modes: String = LookupKindType(env, call_symbol, "pm");
     let param_types: String = LookupKindType(env, call_symbol, "pt");
     return RewriteSemanticOrderedCall(
-        call_symbol, graph, view, modes, param_types, 0, "", env,
+        call_symbol, graph, view, modes, param_types, 0, "", -1, env,
         owned_fragments);
 }
