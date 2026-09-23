@@ -139,6 +139,15 @@ func RewriteExprFromSemanticGraphTracked(
     }
     let kind: Int = UnwrapOption(kind_opt);
     let text: String = UnwrapOption(text_opt);
+    // C spells the two minimum literals as negated wider constants, so
+    // arithmetic over them would leave the type's width; native emits these.
+    if kind == AstExpressionNodeIntegerLiteral() && text == "-2147483648" {
+        return CodegenCExpressionTextBorrowed("(-2147483647 - 1)");
+    }
+    if kind == AstExpressionNodeLongLiteral() &&
+        text == "-9223372036854775808L" {
+        return CodegenCExpressionTextBorrowed("(-9223372036854775807LL - 1LL)");
+    }
     if kind == AstExpressionNodeIntegerLiteral() { return CodegenCExpressionTextBorrowed(text); }
     if kind == AstExpressionNodeLongLiteral() {
         return CodegenCExpressionTextOwned(owned_fragments, Concat(text, "L"));

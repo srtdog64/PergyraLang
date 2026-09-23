@@ -191,7 +191,9 @@ func MirExpressionGraphSequenceAppend(
         }
         let kind: Int = node.kind;
         let node_text: String = node.text;
-        if (kind == AstExpressionNodeLongLiteral() &&
+        if (kind == AstExpressionNodeIntegerLiteral() &&
+                !AstExpressionIntegerLiteralPayloadReady(node_text)) ||
+            (kind == AstExpressionNodeLongLiteral() &&
                 !AstExpressionLongLiteralPayloadReady(node_text)) ||
             (kind == AstExpressionNodeBoolLiteral() &&
                 !AstExpressionBoolLiteralPayloadReady(node_text)) ||

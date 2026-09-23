@@ -7,7 +7,7 @@ import "type_name_owner.pgy";
 func ParseUnaryFact(
     content: String,
     start: Int,
-    cursor_out: Array<Int>
+    inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
     let i: Int = SkipWhitespaceAndComments(content, start);
     if ParserCharAt(content, i) == "!" && ParserCharAt(content, i + 1) != "=" {
@@ -20,6 +20,26 @@ func ParseUnaryFact(
     }
     if ParserCharAt(content, i) == "-" {
         i = i + 1;
+        // The magnitudes of INT32_MIN and INT64_MIN are not positive Int and
+        // Long values, so these two signed spellings are one literal, as in
+        // native parse_unary. Any other magnitude stays a negation.
+        let magnitude_start: Int = SkipWhitespaceAndComments(content, i);
+        if IsDigit(ParserCharAt(content, magnitude_start)) {
+            let magnitude_cursor: Array<Int> = [magnitude_start];
+            let magnitude: String =
+                ReadNumber(content, magnitude_start, magnitude_cursor);
+            let magnitude_end: Int = magnitude_cursor[0];
+            let suffix: String = ParserCharAt(content, magnitude_end);
+            if magnitude == "2147483648" && !IsAlpha(suffix) {
+                ArraySet(cursor_out, 0, magnitude_end);
+                return ParserExpressionIntegerLiteral("-2147483648");
+            }
+            if magnitude == "9223372036854775808" && suffix == "L" &&
+                !IsAlpha(ParserCharAt(content, magnitude_end + 1)) {
+                ArraySet(cursor_out, 0, magnitude_end + 1);
+                return ParserExpressionLongLiteral("-9223372036854775808");
+            }
+        }
         let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
         return ParserExpressionUnary(
             AstExpressionNodeNegate(),

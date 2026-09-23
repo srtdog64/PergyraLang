@@ -95,37 +95,58 @@ func AstExpressionStringLiteralPayloadReady(text: String) -> Bool {
     return true;
 }
 
-// The payload is the digits of a Long literal plus `L`; the sign is a
-// separate unary minus. Native parses it with strtoll and refuses ERANGE, so
-// the digits may not exceed 9223372036854775807 here either. Without this
-// the C emitter pasted the text and the C compiler wrapped it.
+// An Int or Long literal payload is a signed decimal inside its type's range:
+// Int is 32-bit and Long 64-bit (docs/semantics/11_arithmetic_ub_model.md).
+// The parser reads the sign as a unary minus except for -2147483648 and
+// -9223372036854775808L, whose magnitudes are not positive values of the
+// type, so it folds those two; native does the same. Without the Int bound
+// the C emitter pasted 2147483648 and C evaluated it in 64 bits.
+func AstExpressionIntegerLiteralPayloadReady(text: String) -> Bool {
+    return AstExpressionSignedDecimalWithin(
+        text, StringLength(text), "2147483647", "2147483648"
+    );
+}
+
+// The Long payload is the same signed decimal plus `L`. Native parses it
+// with strtoll and refuses ERANGE.
 func AstExpressionLongLiteralPayloadReady(text: String) -> Bool {
     let n: Int = StringLength(text);
     if n < 2 || CodegenCharAt(text, n - 1) != "L" { return false; }
-    let i: Int = 0;
-    while i < n - 1 {
+    return AstExpressionSignedDecimalWithin(
+        text, n - 1, "9223372036854775807", "9223372036854775808"
+    );
+}
+
+func AstExpressionSignedDecimalWithin(
+    text: String, digits_end: Int, positive_limit: String,
+    negative_limit: String
+) -> Bool {
+    let text_length: Int = StringLength(text);
+    let start: Int = 0;
+    let limit: String = positive_limit;
+    if digits_end > 0 && CodegenCharAt(text, 0) == "-" {
+        start = 1;
+        limit = negative_limit;
+    }
+    if start >= digits_end { return false; }
+    let i: Int = start;
+    while i < digits_end {
         if StringIndexOf("0123456789", CodegenCharAt(text, i)) < 0 {
             return false;
         }
         i = i + 1;
     }
-    return AstExpressionLongLiteralDigitsInRange(text, n - 1);
-}
-
-func AstExpressionLongLiteralDigitsInRange(text: String, digits: Int) -> Bool {
-    let limit: String = "9223372036854775807";
-    let limit_length: Int = StringLength(limit);
-    let start: Int = 0;
-    while start < digits - 1 && CodegenCharAt(text, start) == "0" {
+    while start < digits_end - 1 && CodegenCharAt(text, start) == "0" {
         start = start + 1;
     }
-    let length: Int = digits - start;
+    let limit_length: Int = StringLength(limit);
+    let length: Int = digits_end - start;
     if length != limit_length {
         return length < limit_length;
     }
-    let i: Int = 0;
+    i = 0;
     while i < length {
-        let digit: Int = CodegenCharCodeAt(text, StringLength(text), start + i);
+        let digit: Int = CodegenCharCodeAt(text, text_length, start + i);
         let bound: Int = CodegenCharCodeAt(limit, limit_length, i);
         if digit != bound {
             return digit < bound;
@@ -221,6 +242,10 @@ func AstExpressionArenaReady(ref arena: AstExpressionArena) -> Bool {
         let right: Int = arena.right_children[i];
         if arena.node_texts[i] == "" ||
             !AstExpressionNodeKindKnown(kind) {
+            return false;
+        }
+        if kind == AstExpressionNodeIntegerLiteral() &&
+            !AstExpressionIntegerLiteralPayloadReady(arena.node_texts[i]) {
             return false;
         }
         if kind == AstExpressionNodeLongLiteral() &&

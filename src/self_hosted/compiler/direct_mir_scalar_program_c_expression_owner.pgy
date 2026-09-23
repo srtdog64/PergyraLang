@@ -104,7 +104,7 @@ func DirectMirScalarProgramCExpressionValues(
                     expressions.node_parameter_ordinals[node], value);
             }
         } else if kind == DirectMirScalarProgramExprIntLiteral() || kind == DirectMirScalarProgramExprLongLiteral() {
-            value = Concat(expressions.node_literals[node], "LL");
+            value = Concat(expressions.node_literals[node], "LL"); if value == "-9223372036854775808LL" { value = "(-9223372036854775807LL - 1LL)"; }
         } else if kind == DirectMirScalarProgramExprBoolLiteral() {
             value = expressions.node_literals[node];
         } else if kind == DirectMirScalarProgramExprPayloadFreeEnumVariant() {

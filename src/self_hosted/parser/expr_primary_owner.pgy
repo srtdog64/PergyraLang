@@ -310,6 +310,21 @@ func ParsePrimaryFact(
             ParserCharAt(content, i) == "L";
         preserves_integer_literal_fact = !preserves_float_literal_fact &&
             !preserves_long_literal_fact;
+        // The literal must fit its type; native refuses with these words.
+        if preserves_integer_literal_fact &&
+            !AstExpressionIntegerLiteralPayloadReady(base) {
+            Fail(
+                "Int literal is outside the signed 32-bit range; write a Long literal with the L suffix",
+                content, number_start
+            );
+        }
+        if preserves_long_literal_fact &&
+            !AstExpressionLongLiteralPayloadReady(Concat(base, "L")) {
+            Fail(
+                "Long literal is outside the signed 64-bit range",
+                content, number_start
+            );
+        }
         while IsAlpha(ParserCharAt(content, i)) {
             i = i + 1;
         }
