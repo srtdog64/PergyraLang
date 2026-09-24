@@ -75,10 +75,13 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             transpiler_mir_routine_return_callable_sig(mir_routine);
         param_count = transpiler_mir_routine_param_count(mir_routine);
     }
+    /* Specializations named by the prototype go into the prototype's own
+     * stream ahead of it: a staged prototype must not name a container type
+     * that is only published with the late file-scope declarations. */
     if (return_type_name != NULL) {
         ensure_type_specializations_from_type_name_to(
             ctx,
-            ctx != NULL ? ctx->decls : NULL,
+            buf,
             return_type_name);
     } else {
         ensure_type_specializations_from_ast(ctx, return_type);
@@ -132,7 +135,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         if (type_name != NULL) {
             ensure_type_specializations_from_type_name_to(
                 ctx,
-                ctx != NULL ? ctx->decls : NULL,
+                buf,
                 type_name);
         } else if (p->type != NULL) {
             ensure_type_specializations_from_ast(ctx, p->type);

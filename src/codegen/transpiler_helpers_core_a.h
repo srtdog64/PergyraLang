@@ -13,10 +13,6 @@ bool transpiler_can_forward_declare_type_early(TranspilerCtx *ctx,
                                                ASTNode *type_node);
 bool transpiler_can_forward_declare_type_name_early(TranspilerCtx *ctx,
                                                     const char *type_name);
-bool transpiler_can_forward_declare_func_early(TranspilerCtx *ctx,
-                                               ASTNode *func);
-bool transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
-                                                     ASTNode *func);
 bool transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                                      CodeBuf *out,
                                      int indent,

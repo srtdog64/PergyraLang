@@ -19,6 +19,7 @@
 #include "transpiler_enum.h"
 #include "transpiler_extern.h"
 #include "transpiler_func_forward_helpers.h"
+#include "transpiler_func_forward_policy.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_log_normalize.h"
 #include "transpiler_mir_signature.h"
@@ -154,6 +155,33 @@ transpiler_is_synthetic_executable_func(ASTNode *fn)
     return name != NULL && strcmp(name, "__pgy_top_level_exec") == 0;
 }
 
+/* Emit the prototypes whose first nameable stage is `stage`; the synthetic
+ * top-level executable keeps its place after the named functions. */
+static void
+emit_c_function_forwards_at_stage(TranspilerCtx *ctx,
+                                  ASTNode **functions,
+                                  size_t function_count,
+                                  const TranspilerFuncForwardStage *stages,
+                                  TranspilerFuncForwardStage stage)
+{
+    ASTNode *synthetic = NULL;
+
+    for (size_t i = 0; stages != NULL && i < function_count; i++) {
+        if (stages[i] != stage)
+            continue;
+        if (transpiler_is_synthetic_executable_func(functions[i])) {
+            synthetic = functions[i];
+            continue;
+        }
+        emit_func_forward_decl_named(functions[i],
+            transpiler_c_executable_emitted_name(
+                ast_declaration_name(functions[i])),
+            ctx->out, ctx);
+    }
+    if (synthetic != NULL)
+        emit_func_forward_decl(synthetic, ctx->out, ctx);
+}
+
 /* Host headers may expose function-like macros with ordinary API names (for
  * example Win32's FindResource -> FindResourceA).  A Pergyra declaration owns
  * its generated translation-unit identifier, so remove any macro carrying the
@@ -255,6 +283,7 @@ emit_program(TranspilerCtx *ctx)
     bool has_main_function = false;
     bool has_top_level_exec = false;
     const char *main_function_name = NULL;
+    TranspilerFuncForwardStage *forward_stages = NULL;
 
     if (!transpiler_active_has_mir(ctx))
         return;
@@ -357,36 +386,34 @@ emit_program(TranspilerCtx *ctx)
             emit_statement(type_decl, ctx);
     }
 
-    /* Pass 1.4: early forward declarations for standalone functions so
-     * class/domain hosted methods can call file-scope helpers declared later. */
-    for (size_t i = 0; i < function_count; i++) {
-        if (transpiler_is_synthetic_executable_func(functions[i]))
-            continue;
-        if (transpiler_can_forward_declare_func_early(ctx, functions[i])) {
-            emit_func_forward_decl_named(
-                functions[i],
-                transpiler_c_executable_emitted_name(
-                    ast_declaration_name(functions[i])),
-                ctx->out,
-                ctx);
-        }
-    }
-    if (synthetic_executable_func != NULL
-        && transpiler_can_forward_declare_func_early(ctx, synthetic_executable_func)) {
-        emit_func_forward_decl(synthetic_executable_func, ctx->out, ctx);
-    }
+    /* Pass 1.4: staged function prototypes. Each one is emitted at the first
+     * stage whose declarations name its signature, so every hosted body
+     * emitted after that stage can call it. */
+    forward_stages = transpiler_func_forward_stages_create(
+        ctx, functions, function_count);
+    if (function_count > 0 && forward_stages == NULL)
+        return;
+    emit_c_function_forwards_at_stage(ctx, functions, function_count,
+        forward_stages, TRANSPILER_FUNC_FORWARD_STAGE_EARLY);
     for (size_t i = 0; i < intent_count; i++) {
         if (transpiler_can_forward_declare_intent_early(ctx, intents[i]))
             emit_intent_forward_decl(intents[i], ctx->out, ctx);
     }
 
     /* Semantic MIR field/payload rows own the by-value dependency schedule. */
-    if (!transpiler_emit_mir_type_declarations(ctx, types, type_count))
+    if (!transpiler_emit_mir_type_declarations(ctx, types, type_count)) {
+        free(forward_stages);
         return;
+    }
 
     /* Pass 2.5: extern declarations */
     for (size_t i = 0; i < exten_count; i++)
         emit_extern_block(externs[i], ctx);
+
+    /* Class/enum layouts are complete: prototypes over them and their
+     * container specializations precede the first hosted body. */
+    emit_c_function_forwards_at_stage(ctx, functions, function_count,
+        forward_stages, TRANSPILER_FUNC_FORWARD_STAGE_NOMINAL_LAYOUTS);
 
     /* Pass 3: roles (vtable instances + free functions) */
     for (size_t i = 0; i < role_count; i++)
@@ -477,24 +504,8 @@ emit_program(TranspilerCtx *ctx)
         if (!transpiler_can_forward_declare_intent_early(ctx, intents[i]))
             emit_intent_forward_decl(intents[i], ctx->out, ctx);
     }
-    for (size_t i = 0; i < function_count; i++) {
-        if (transpiler_is_synthetic_executable_func(functions[i]))
-            continue;
-        if (!transpiler_can_forward_declare_func_early(ctx, functions[i])
-            && transpiler_can_forward_declare_func_after_zones(ctx, functions[i])) {
-            emit_func_forward_decl_named(
-                functions[i],
-                transpiler_c_executable_emitted_name(
-                    ast_declaration_name(functions[i])),
-                ctx->out,
-                ctx);
-        }
-    }
-    if (synthetic_executable_func != NULL
-        && !transpiler_can_forward_declare_func_early(ctx, synthetic_executable_func)
-        && transpiler_can_forward_declare_func_after_zones(ctx, synthetic_executable_func)) {
-        emit_func_forward_decl(synthetic_executable_func, ctx->out, ctx);
-    }
+    emit_c_function_forwards_at_stage(ctx, functions, function_count,
+        forward_stages, TRANSPILER_FUNC_FORWARD_STAGE_AFTER_ZONES);
 
     /* Pass 3.9: worlds (struct + methods). Active MIR selects the
      * declaration header directly; world state and command rows are consumed
@@ -519,7 +530,11 @@ emit_program(TranspilerCtx *ctx)
      * owner-scheduled type pass, but their MIR bodies wait until every domain
      * value type is complete.  A hosted method may take a later object/zone
      * by value, so defining it during the class layout pass would expose an
-     * incomplete C parameter type. */
+     * incomplete C parameter type. Every layout is complete here, so the
+     * remaining staged prototypes go out first. */
+    emit_c_function_forwards_at_stage(ctx, functions, function_count,
+        forward_stages, TRANSPILER_FUNC_FORWARD_STAGE_HOSTED_BODIES);
+    free(forward_stages);
     if (!transpiler_emit_class_method_bodies_from_inventory(ctx))
         return;
 

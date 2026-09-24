@@ -1,0 +1,119 @@
+// Hosted bodies call free functions declared after them in the source whose
+// signatures name container types (Array, Option), a class result, or an
+// enum. Each prototype has to precede the zone method body and the subject
+// action body that call it; an implicit declaration would return int.
+class Item {
+    let name: String;
+    let weight: Int;
+}
+
+class ProviderPolicy {
+    let name: String;
+}
+
+class ChatResult {
+    let text: String;
+    let count: Int;
+}
+
+enum Mode {
+    Fast,
+    Slow,
+}
+
+subject Ent {
+    let id: Int;
+}
+
+zone Arena {
+    subject slot fighter: Ent
+    shared rounds: Int = 0
+
+    func Tick(self) -> Int {
+        let items: Array<Item> = [];
+        ArrayPush(items, Item("z", 9));
+        let top: Item = Heaviest(items);
+        return rounds + top.weight + Pick(Some(Item("q", 1))) + Cost(Slow);
+    }
+}
+
+subject Agent {
+    let mut total: Int;
+
+    action Run(self) -> Int
+        authorized by self
+    {
+        let items: Array<Item> = Build(3);
+        let top: Item = Heaviest(items);
+        total = total + top.weight + Pick(None) + Cost(Fast) + ArrayLength(Names());
+        return total;
+    }
+
+    action Chat(self) -> Int
+        authorized by self
+    {
+        let messages: Array<String> = [];
+        ArrayPush(messages, "hi");
+        ArrayPush(messages, "there");
+        let result: ChatResult = ChatComplete(ProviderPolicy("p"), messages, "[]");
+        total = total + result.count;
+        Log(result.text);
+        return total;
+    }
+}
+
+func Heaviest(items: Array<Item>) -> Item {
+    let best: Item = items[0];
+    let i: Int = 1;
+    while i < ArrayLength(items) {
+        if items[i].weight > best.weight {
+            best = items[i];
+        }
+        i = i + 1;
+    }
+    return best;
+}
+
+func Build(count: Int) -> Array<Item> {
+    let items: Array<Item> = [];
+    let i: Int = 0;
+    while i < count {
+        ArrayPush(items, Item("b", i * 2));
+        i = i + 1;
+    }
+    return items;
+}
+
+func Pick(maybe: Option<Item>) -> Int {
+    match maybe {
+        case Some(item): return item.weight;
+        case None: return 0;
+    }
+    return 0;
+}
+
+func Cost(mode: Mode) -> Int {
+    match mode {
+        case Fast: return 1;
+        case Slow: return 5;
+    }
+    return 0;
+}
+
+func Names() -> Array<String> {
+    let names: Array<String> = [];
+    ArrayPush(names, "n");
+    return names;
+}
+
+func ChatComplete(policy: ProviderPolicy, messages: Array<String>, toolsJson: String) -> ChatResult {
+    return ChatResult(policy.name + ":" + messages[1], ArrayLength(messages) + StringLength(toolsJson));
+}
+
+func Main() -> Void {
+    let arena: Arena = Arena(Ent(1));
+    Log(ToString(arena.Tick()));
+    let agent: Agent = Agent(0);
+    Log(ToString(agent.Run()));
+    Log(ToString(agent.Chat()));
+}

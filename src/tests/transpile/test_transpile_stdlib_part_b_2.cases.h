@@ -318,18 +318,24 @@
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->decls->data,
+        /* The staged prototype publishes its container specialization in
+         * the program stream ahead of itself, before any hosted body; the
+         * late file-scope prototypes follow it. */
+        EXPECT_STR_CONTAINS(ctx->out->data,
             "PGY_HASHMAP_DEFINE(List_String, PgyList_String)");
-        EXPECT_STR_CONTAINS(ctx->decls->data,
+        EXPECT_STR_CONTAINS(ctx->out->data,
             "PgyHashMap_List_String BuildBuckets(void);");
-        EXPECT_STR_CONTAINS(ctx->decls->data,
+        EXPECT_STR_CONTAINS(ctx->out->data,
             "char* RenderBuckets(PgyHashMap_List_String buckets);");
 
-        map_define_pos = strstr(ctx->decls->data,
+        map_define_pos = strstr(ctx->out->data,
             "PGY_HASHMAP_DEFINE(List_String, PgyList_String)");
-        build_decl_pos = strstr(ctx->decls->data,
+        build_decl_pos = strstr(ctx->out->data,
             "PgyHashMap_List_String BuildBuckets(void);");
         EXPECT(map_define_pos != NULL && build_decl_pos != NULL && map_define_pos < build_decl_pos);
+        EXPECT(map_define_pos != NULL
+            && strstr(map_define_pos + 1,
+                   "PGY_HASHMAP_DEFINE(List_String, PgyList_String)") == NULL);
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
