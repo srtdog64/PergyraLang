@@ -1,0 +1,25 @@
+subject ToolGate {
+    let grants: Int;
+    let admitted: Int;
+
+    action Admit(self, bit: Int) -> Bool
+        authorized by self
+    {
+        admitted = admitted + 1;
+        return (grants / bit) % 2 == 1;
+    }
+}
+
+zone Workspace {
+    subject slot gate: ToolGate
+    authority gate
+}
+
+func UseZone(inout ws: Workspace) -> Bool {
+    return ws.gate.Admit(1);
+}
+
+func Main() -> Void {
+    let ws: Workspace = Workspace(ToolGate(1, 0));
+    Log(ToString(UseZone(ws)));
+}

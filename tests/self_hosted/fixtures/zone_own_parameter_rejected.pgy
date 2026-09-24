@@ -1,0 +1,18 @@
+subject ToolGate {
+    let grants: Int;
+    let admitted: Int;
+}
+
+zone Workspace {
+    subject slot gate: ToolGate
+    authority gate
+}
+
+func Take(own ws: Workspace) -> Int {
+    return ws.gate.grants;
+}
+
+func Main() -> Void {
+    let ws: Workspace = Workspace(ToolGate(1, 0));
+    Log(ToString(Take(ws)));
+}

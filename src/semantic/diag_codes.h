@@ -203,6 +203,7 @@
 #define PGY_CAUSE_ANCHORED_HANDLE_RETURN_BOUNDARY \
                                                 "semantic:anchored_handle:return_boundary"
 #define PGY_CAUSE_MOVABLE_HANDLE_COPY_ATTEMPT   "semantic:movable_handle:copy_attempt"
+#define PGY_CAUSE_ZONE_PARAMETER_CARRIAGE       "semantic:zone:parameter_carriage"
 
 /* --- Semantic: channels --- */
 #define PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION \
@@ -440,6 +441,8 @@
 #define PGY_FIX_RETURN_INNER_VALUE_OR_KEEP_LOCAL \
                                                 "return-inner-value-or-keep-local"
 #define PGY_FIX_RETURN_PROJECTION_OR_KEEP_LOCAL "return-projection-or-keep-local"
+#define PGY_FIX_USE_READONLY_REF_OR_ADMITTED_TRANSFER \
+                                                "use-readonly-ref-or-admitted-transfer"
 
 /* --- meta / structural --- */
 #define PGY_FIX_AWAIT_FUTURE                    "await-future"

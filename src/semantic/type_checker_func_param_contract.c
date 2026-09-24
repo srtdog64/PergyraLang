@@ -105,6 +105,54 @@ type_check_func_validate_return_boundary(ASTNode *node,
         "TextBuilder cannot cross a return boundary in the bounded owner rung; return the finished String instead");
 }
 
+/* Zone identity carries lock and generation state. Default and `ref`
+ * parameters borrow the caller's cell, and a world that embeds a zone also
+ * admits an in-place `inout`. Any other mode would copy or move that identity
+ * without an admitted transfer plan. The self-host route owns the same verdict
+ * (SemanticAstZoneParameterBoundaryVerdict,
+ * zone_value_parameter_requires_transfer); both routes publish this identity. */
+static bool
+type_check_func_reject_zone_param_carriage(ASTNode *node,
+                                           SemanticContext *ctx,
+                                           const char *func_name,
+                                           FuncParam *param,
+                                           Type *param_type)
+{
+    ASTNode *world;
+    size_t zone_count = 0;
+
+    if (param->mode == PARAM_MODE_DEFAULT || param->mode == PARAM_MODE_REF)
+        return false;
+    if (param_type == NULL || param_type->name == NULL
+        || (param->name != NULL && strcmp(param->name, "self") == 0))
+        return false;
+    if (semantic_find_zone_decl_by_name(ctx, param_type->name) == NULL) {
+        world = semantic_find_world_decl_by_name(ctx, param_type->name);
+        if (world == NULL || param->mode == PARAM_MODE_MUT_REF)
+            return false;
+        (void)ast_world_zones(world, &zone_count);
+        if (zone_count == 0)
+            return false;
+    }
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
+        PGY_CAUSE_ZONE_PARAMETER_CARRIAGE,
+        PGY_FIX_USE_READONLY_REF_OR_ADMITTED_TRANSFER,
+        param->type != NULL ? param->type : node,
+        "Parameter '%s' of function '%s' cannot carry zone identity '%s' as '%s'.\n"
+        "Reason:\n"
+        "- zone_value_parameter_requires_transfer: zone identity cannot be carried without an admitted transfer plan\n"
+        "- '%s' would copy or move the zone's lock and generation state out of the caller's cell\n"
+        "Fix:\n"
+        "- drop the qualifier or use 'ref' to borrow the caller's zone\n"
+        "- or construct a fresh zone or use an explicit admitted transfer boundary",
+        param->name != NULL ? param->name : "<param>",
+        func_name != NULL ? func_name : "<anonymous>",
+        param_type->name,
+        param->mode == PARAM_MODE_OWN ? "own" : "inout",
+        param->mode == PARAM_MODE_OWN ? "own" : "inout");
+    return true;
+}
+
 void
 type_check_func_validate_param_boundary(ASTNode *node,
                                         SemanticContext *ctx,
@@ -117,6 +165,9 @@ type_check_func_validate_param_boundary(ASTNode *node,
 
     type_check_func_validate_identifier_hygiene(node, ctx, "parameter",
                                                 param->name);
+    if (type_check_func_reject_zone_param_carriage(node, ctx, func_name,
+            param, param_type))
+        return;
 
     /* Channel<T> descriptors are by-value structs with interior cursors: a
      * parameter silently copies {buffer, head, count} and the copies drift
