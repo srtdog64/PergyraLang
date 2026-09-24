@@ -1,0 +1,977 @@
+# Call shapes for tests/self_hosted/parity/builtin_surface_parity_owner.sh.
+#
+# One block per row of src/common/pgy_builtin_type_table.c, plus the rows the
+# gate lists in EXTRA_ROWS. A block starts with `== Name` and holds one whole
+# program: the smallest well-typed program that calls the builtin. The gate
+# fails when a table row has no block, so a new builtin cannot skip it.
+#
+# Each program prints through Log/Print only; Float results are compared
+# inside the program so the printed text does not depend on float formatting.
+# Every binary runs in an empty directory with `stdin-line` on stdin.
+
+== Acos
+func Main() -> Void {
+    if Acos(1.0) == 0.0 { Log("acos ok"); } else { Log("acos bad"); }
+}
+
+== AllocatorDebug
+func Main() -> Void {
+    let a: Allocator = AllocatorDebug();
+    AllocatorDestroy(a);
+    Log("debug allocator");
+}
+
+== AllocatorDestroy
+func Main() -> Void {
+    let a: Allocator = AllocatorScratch();
+    AllocatorDestroy(a);
+    Log("destroyed");
+}
+
+== AllocatorPersistent
+func Main() -> Void {
+    let a: Allocator = AllocatorPersistent();
+    AllocatorDestroy(a);
+    Log("persistent allocator");
+}
+
+== AllocatorPool
+func Main() -> Void {
+    let a: Allocator = AllocatorPool(128);
+    AllocatorDestroy(a);
+    Log("pool allocator");
+}
+
+== AllocatorResult
+func Main() -> Void {
+    let b: TextBuilder = TextBuilderNew(8);
+    TextBuilderAppend(b, "result");
+    let a: Allocator = AllocatorResult();
+    let s: String = TextBuilderFinish(b, a);
+    AllocatorDestroy(a);
+    Log(s);
+}
+
+== AllocatorScratch
+func Main() -> Void {
+    let a: Allocator = AllocatorScratch();
+    AllocatorDestroy(a);
+    Log("scratch allocator");
+}
+
+== AllocatorSystem
+func Main() -> Void {
+    let a: Allocator = AllocatorSystem();
+    AllocatorDestroy(a);
+    Log("system allocator");
+}
+
+== AllocatorTracing
+func Main() -> Void {
+    let a: Allocator = AllocatorTracing();
+    AllocatorDestroy(a);
+    Log("tracing allocator");
+}
+
+== Args
+func Main() -> Void {
+    let a: Array<String> = Args();
+    Log(ToString(ArrayLength(a)));
+}
+
+== ArrayLength
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2, 3];
+    Log(ToString(ArrayLength(xs)));
+}
+
+== ArrayPop
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2, 3];
+    ArrayPop(xs);
+    Log(ToString(ArrayLength(xs)));
+}
+
+== ArrayPush
+func Main() -> Void {
+    let xs: Array<Int> = [1];
+    ArrayPush(xs, 2);
+    Log(ToString(xs[1]));
+}
+
+== ArraySet
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2];
+    ArraySet(xs, 0, 7);
+    Log(ToString(xs[0]));
+}
+
+== Asin
+func Main() -> Void {
+    if Asin(0.0) == 0.0 { Log("asin ok"); } else { Log("asin bad"); }
+}
+
+== Atan
+func Main() -> Void {
+    if Atan(0.0) == 0.0 { Log("atan ok"); } else { Log("atan bad"); }
+}
+
+== Atan2
+func Main() -> Void {
+    if Atan2(0.0, 1.0) == 0.0 { Log("atan2 ok"); } else { Log("atan2 bad"); }
+}
+
+== Cancel
+func Child(code: Int) -> Int {
+    return code;
+}
+
+async func Main() -> Void {
+    let child: Future<Int> = spawn Child(9);
+    let cancelled: Bool = Cancel(child);
+    let value: Int = await child;
+    Log("awaited");
+}
+
+== Ceil
+func Main() -> Void {
+    if Ceil(1.2) == 2.0 { Log("ceil ok"); } else { Log("ceil bad"); }
+}
+
+== ChannelCapacity
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(2);
+    Log(ToString(ChannelCapacity(ch)));
+}
+
+== ChannelClose
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(2);
+    ChannelClose(ch);
+    Log("closed");
+}
+
+== ChannelClosed
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(2);
+    if ChannelClosed(ch) { Log("closed"); } else { Log("open"); }
+}
+
+== ChannelFull
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(1);
+    ch <- 7;
+    if ChannelFull(ch) { Log("full"); } else { Log("not full"); }
+}
+
+== ChannelLength
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(2);
+    ch <- 7;
+    Log(ToString(ChannelLength(ch)));
+}
+
+== ChannelReady
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(2);
+    ch <- 7;
+    if ChannelReady(ch) { Log("ready"); } else { Log("empty"); }
+}
+
+== ChannelSpace
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(2);
+    ch <- 7;
+    Log(ToString(ChannelSpace(ch)));
+}
+
+== CharAtN
+func Main() -> Void {
+    let s: String = "hello";
+    Log(CharAtN(s, StringLength(s), 1));
+}
+
+== CharCode
+func Main() -> Void {
+    let s: String = "hello";
+    Log(ToString(CharCode(s, StringLength(s), 0)));
+}
+
+== CheckedAdd
+func Main() -> Void {
+    Log(ToString(CheckedAdd(2, 3)));
+}
+
+== CheckedMul
+func Main() -> Void {
+    Log(ToString(CheckedMul(4, 5)));
+}
+
+== ClaimQubit
+func Main() -> Void {
+    let q: QubitSlot = ClaimQubit();
+    ReleaseQubit(q);
+    Log("claimed");
+}
+
+== CompilerArtifactAbort
+func Main() -> Void {
+    let h: Int = CompilerArtifactBegin("aborted.txt");
+    Log(ToString(CompilerArtifactAbort(h)));
+}
+
+== CompilerArtifactBegin
+func Main() -> Void {
+    let h: Int = CompilerArtifactBegin("begun.txt");
+    CompilerArtifactAbort(h);
+    Log("begun");
+}
+
+== CompilerArtifactCommit
+func Main() -> Void {
+    let h: Int = CompilerArtifactBegin("committed.txt");
+    CompilerArtifactWrite(h, "body");
+    Log(ToString(CompilerArtifactCommit(h)));
+    Log(ReadFile("committed.txt"));
+}
+
+== CompilerArtifactWrite
+func Main() -> Void {
+    let h: Int = CompilerArtifactBegin("written.txt");
+    if CompilerArtifactWrite(h, "text") { Log("wrote"); } else { Log("write failed"); }
+    CompilerArtifactCommit(h);
+}
+
+== CompilerRetireArrayStorage
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2];
+    CompilerRetireArrayStorage(xs);
+    Log("retired");
+}
+
+== Concat
+func Main() -> Void {
+    Log(Concat("con", "cat"));
+}
+
+== Contains
+func Main() -> Void {
+    if Contains("hello", "ell") { Log("contains"); } else { Log("missing"); }
+}
+
+== CooldownNew
+func Main() -> Void {
+    let c = CooldownNew(3);
+    Log("cooldown");
+}
+
+== Cos
+func Main() -> Void {
+    if Cos(0.0) == 1.0 { Log("cos ok"); } else { Log("cos bad"); }
+}
+
+== DirWalk
+func Main() -> Void {
+    WriteFile("walked.txt", "x");
+    let files: Array<String> = DirWalk(".");
+    Log(ToString(ArrayLength(files)));
+}
+
+== E
+func Main() -> Void {
+    let e: Float = E();
+    if e > 2.71 && e < 2.72 { Log("e ok"); } else { Log("e bad"); }
+}
+
+== Exit
+func Main() -> Void {
+    Log("before exit");
+    Exit(3);
+}
+
+== Exp
+func Main() -> Void {
+    if Exp(0.0) == 1.0 { Log("exp ok"); } else { Log("exp bad"); }
+}
+
+== FileClose
+func Main() -> Void {
+    let fd: Int = FileOpen("closed.txt", "w");
+    FileClose(fd);
+    if FileExists("closed.txt") { Log("closed file exists"); } else { Log("no file"); }
+}
+
+== FileExists
+func Main() -> Void {
+    if FileExists("absent.txt") { Log("present"); } else { Log("absent"); }
+}
+
+== FileOpen
+func Main() -> Void {
+    let fd: Int = FileOpen("opened.txt", "w");
+    FileWrite(fd, "opened");
+    FileClose(fd);
+    Log(ReadFile("opened.txt"));
+}
+
+== FileRead
+func Main() -> Void {
+    WriteFile("read.txt", "file body");
+    let fd: Int = FileOpen("read.txt", "r");
+    Log(FileRead(fd));
+    FileClose(fd);
+}
+
+== FileWrite
+func Main() -> Void {
+    let fd: Int = FileOpen("write.txt", "w");
+    FileWrite(fd, "written");
+    FileClose(fd);
+    Log(ReadFile("write.txt"));
+}
+
+== Floor
+func Main() -> Void {
+    if Floor(1.8) == 1.0 { Log("floor ok"); } else { Log("floor bad"); }
+}
+
+== FsmNew
+func Main() -> Void {
+    let f = FsmNew();
+    Log("fsm");
+}
+
+== H
+func Spin(q: QubitSlot) -> Void {
+    H(q);
+}
+
+func Main() -> Void {
+    Log("hadamard declared");
+}
+
+== HasLayer
+subject Player {
+    let hp: Int;
+}
+
+effect Poisoned for bearer: Player { }
+
+zone BattleZone {
+    subject slot player: Player
+    effect slot poison: Poisoned
+
+    func Show(self) -> Void {
+        if HasLayer(poison) { Log("layer"); } else { Log("no layer"); }
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(7));
+    battle.Show();
+}
+
+== HasProjection
+subject Player {
+    let hp: Int;
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+zone BattleZone {
+    subject slot player: Player
+    object slot playerView: PlayerView
+    refresh playerView from player
+
+    func Show(self) -> Void {
+        if HasProjection(playerView) { Log("projection"); } else { Log("no projection"); }
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(7));
+    battle.Show();
+}
+
+== HasState
+subject Player {
+    let hp: Int;
+}
+
+effect Poisoned for bearer: Player { }
+
+zone BattleZone {
+    subject slot player: Player
+    effect slot poison: Poisoned
+    state poisoned: effect poison on player
+
+    func Show(self) -> Void {
+        if HasState(poisoned) { Log("state"); } else { Log("no state"); }
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(7));
+    battle.Show();
+}
+
+== HasZone
+subject Player {
+    let hp: Int;
+}
+
+zone BattleZone {
+    subject slot player: Player
+}
+
+world GameWorld {
+    zone battle: BattleZone
+
+    func Show(self) -> Void {
+        if HasZone(battle) { Log("zone"); } else { Log("no zone"); }
+    }
+}
+
+func Main() -> Void {
+    let gameWorld = GameWorld(BattleZone(Player(7)));
+    gameWorld.Show();
+}
+
+== HasZoneLayer
+subject Player {
+    let hp: Int;
+}
+
+effect Poisoned for bearer: Player { }
+
+zone BattleZone {
+    subject slot player: Player
+    effect slot poison: Poisoned
+}
+
+world GameWorld {
+    zone battle: BattleZone
+
+    func Show(self) -> Void {
+        if HasZoneLayer(battle, poison) { Log("zone layer"); } else { Log("no zone layer"); }
+    }
+}
+
+func Main() -> Void {
+    let gameWorld = GameWorld(BattleZone(Player(7)));
+    gameWorld.Show();
+}
+
+== HasZoneProjection
+subject Player {
+    let hp: Int;
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+zone BattleZone {
+    subject slot player: Player
+    object slot playerView: PlayerView
+    refresh playerView from player
+}
+
+world GameWorld {
+    zone battle: BattleZone
+
+    func Show(self) -> Void {
+        if HasZoneProjection(battle, playerView) { Log("zone projection"); } else { Log("no zone projection"); }
+    }
+}
+
+func Main() -> Void {
+    let gameWorld = GameWorld(BattleZone(Player(7)));
+    gameWorld.Show();
+}
+
+== HasZoneState
+subject Player {
+    let hp: Int;
+}
+
+effect Poisoned for bearer: Player { }
+
+zone BattleZone {
+    subject slot player: Player
+    effect slot poison: Poisoned
+    state poisoned: effect poison on player
+}
+
+world GameWorld {
+    zone battle: BattleZone
+
+    func Show(self) -> Void {
+        if HasZoneState(battle, poisoned) { Log("zone state"); } else { Log("no zone state"); }
+    }
+}
+
+func Main() -> Void {
+    let gameWorld = GameWorld(BattleZone(Player(7)));
+    gameWorld.Show();
+}
+
+== Input
+func Main() -> Void {
+    let line: String = Input("prompt> ");
+    Log(line);
+}
+
+== IntoClassical
+func Main() -> Void {
+    let q: QubitSlot = ClaimQubit();
+    let bit: Int = Measure(q);
+    let classical: Bool = IntoClassical(q);
+    if classical == (bit == 1) { Log("classical agrees"); } else { Log("classical differs"); }
+}
+
+== IsCancelled
+func CheckCancellation() -> Bool with effects remote {
+    return IsCancelled();
+}
+
+func Main() -> Void with effects remote {
+    if CheckCancellation() { Log("cancelled"); } else { Log("running"); }
+}
+
+== IsCollapsed
+func Collapsed(q: QubitSlot) -> Bool {
+    return IsCollapsed(q);
+}
+
+func Main() -> Void {
+    Log("is collapsed declared");
+}
+
+== IsErr
+func Main() -> Void {
+    let r: Result<Int, String> = Err("bad");
+    if IsErr(r) { Log("err"); } else { Log("ok"); }
+}
+
+== IsNone
+func Main() -> Void {
+    let o: Option<Int> = None();
+    if IsNone(o) { Log("none"); } else { Log("some"); }
+}
+
+== IsOk
+func Main() -> Void {
+    let r: Result<Int, String> = Ok(3);
+    if IsOk(r) { Log("ok"); } else { Log("err"); }
+}
+
+== IsSome
+func Main() -> Void {
+    let o: Option<Int> = Some(4);
+    if IsSome(o) { Log("some"); } else { Log("none"); }
+}
+
+== Join
+func Main() -> Void {
+    let parts: Array<String> = ["a", "b", "c"];
+    Log(Join(parts, "-"));
+}
+
+== Length
+func Main() -> Void {
+    Log(ToString(Length("four")));
+}
+
+== ListNew
+func Main() -> Void {
+    let l: List<Int> = ListNew();
+    ListPush(l, 5);
+    Log(ToString(ListGet(l, 0)));
+}
+
+== ListSize
+func Main() -> Void {
+    let l: List<Int> = ListNew();
+    ListPush(l, 5);
+    ListPush(l, 6);
+    Log(ToString(ListSize(l)));
+}
+
+== Log10
+func Main() -> Void {
+    if Log10(100.0) == 2.0 { Log("log10 ok"); } else { Log("log10 bad"); }
+}
+
+== Log2
+func Main() -> Void {
+    if Log2(8.0) == 3.0 { Log("log2 ok"); } else { Log("log2 bad"); }
+}
+
+== Lower
+func Main() -> Void {
+    Log(Lower("MiXeD"));
+}
+
+== MapHas
+func Main() -> Void {
+    let m: HashMap<String, Int> = MapNew();
+    MapSet(m, "k", 1);
+    if MapHas(m, "k") { Log("has"); } else { Log("missing"); }
+}
+
+== MapNew
+func Main() -> Void {
+    let m: HashMap<String, Int> = MapNew();
+    MapSet(m, "k", 9);
+    Log(ToString(MapGet(m, "k")));
+}
+
+== MapSize
+func Main() -> Void {
+    let m: HashMap<String, Int> = MapNew();
+    MapSet(m, "a", 1);
+    MapSet(m, "b", 2);
+    Log(ToString(MapSize(m)));
+}
+
+== MathLog
+func Main() -> Void {
+    if MathLog(1.0) == 0.0 { Log("log ok"); } else { Log("log bad"); }
+}
+
+== Measure
+func Bit(q: QubitSlot) -> Int {
+    return Measure(q);
+}
+
+func Main() -> Void {
+    Log("measure declared");
+}
+
+== PI
+func Main() -> Void {
+    let p: Float = PI();
+    if p > 3.14 && p < 3.15 { Log("pi ok"); } else { Log("pi bad"); }
+}
+
+== Pow
+func Main() -> Void {
+    if Pow(2.0, 10.0) == 1024.0 { Log("pow ok"); } else { Log("pow bad"); }
+}
+
+== QubitState
+func State(q: QubitSlot) -> Int {
+    return QubitState(q);
+}
+
+func Main() -> Void {
+    Log("qubit state declared");
+}
+
+== QueueEmpty
+func Main() -> Void {
+    let q: Queue<Int> = QueueNew();
+    if QueueEmpty(q) { Log("empty"); } else { Log("not empty"); }
+}
+
+== QueueNew
+func Main() -> Void {
+    let q: Queue<Int> = QueueNew();
+    QueuePush(q, 3);
+    Log(ToString(QueuePop(q)));
+}
+
+== QueueSize
+func Main() -> Void {
+    let q: Queue<Int> = QueueNew();
+    QueuePush(q, 3);
+    QueuePush(q, 4);
+    Log(ToString(QueueSize(q)));
+}
+
+== Random
+func Main() -> Void {
+    SeedRandom(7);
+    let r: Int = Random(10);
+    if r >= 0 && r < 10 { Log("in range"); } else { Log("out of range"); }
+}
+
+== ReadFile
+func Main() -> Void {
+    WriteFile("readfile.txt", "read back");
+    Log(ReadFile("readfile.txt"));
+}
+
+== ReadStdin
+func Main() -> Void {
+    Log(ReadStdin(64));
+}
+
+== Replace
+func Main() -> Void {
+    Log(Replace("a-b-c", "-", "+"));
+}
+
+== Round
+func Main() -> Void {
+    if Round(2.6) == 3.0 { Log("round ok"); } else { Log("round bad"); }
+}
+
+== SeedRandom
+func Main() -> Void {
+    SeedRandom(11);
+    Log("seeded");
+}
+
+== SendTimeout
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(1);
+    if SendTimeout(ch, 4, 1000) { Log("sent"); } else { Log("timed out"); }
+}
+
+== SetHas
+func Main() -> Void {
+    let s: Set<Int> = SetNew();
+    SetAdd(s, 2);
+    if SetHas(s, 2) { Log("has"); } else { Log("missing"); }
+}
+
+== SetNew
+func Main() -> Void {
+    let s: Set<Int> = SetNew();
+    SetAdd(s, 2);
+    SetAdd(s, 2);
+    Log(ToString(SetSize(s)));
+}
+
+== SetSize
+func Main() -> Void {
+    let s: Set<Int> = SetNew();
+    SetAdd(s, 1);
+    SetAdd(s, 2);
+    Log(ToString(SetSize(s)));
+}
+
+== Sin
+func Main() -> Void {
+    if Sin(0.0) == 0.0 { Log("sin ok"); } else { Log("sin bad"); }
+}
+
+== SliceCopy
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2, 3];
+    let view: Slice<Int> = xs.Slice(1, 2);
+    let copy: Array<Int> = SliceCopy(view);
+    Log(ToString(copy[0] + copy[1]));
+}
+
+== Split
+func Main() -> Void {
+    let parts: Array<String> = Split("a,b,c", ",");
+    Log(parts[1]);
+}
+
+== Sqrt
+func Main() -> Void {
+    if Sqrt(16.0) == 4.0 { Log("sqrt ok"); } else { Log("sqrt bad"); }
+}
+
+== StringConcat
+func Main() -> Void {
+    Log(StringConcat("string", "concat"));
+}
+
+== StringContains
+func Main() -> Void {
+    if StringContains("hello", "ll") { Log("contains"); } else { Log("missing"); }
+}
+
+== StringIndexOf
+func Main() -> Void {
+    Log(ToString(StringIndexOf("hello", "lo")));
+}
+
+== StringJoin
+func Main() -> Void {
+    let parts: Array<String> = ["x", "y"];
+    Log(StringJoin(parts, "+"));
+}
+
+== StringLength
+func Main() -> Void {
+    Log(ToString(StringLength("seven77")));
+}
+
+== StringReplace
+func Main() -> Void {
+    Log(StringReplace("aXbX", "X", "y"));
+}
+
+== StringSplit
+func Main() -> Void {
+    let parts: Array<String> = StringSplit("p;q", ";");
+    Log(parts[0]);
+}
+
+== StringTrim
+func Main() -> Void {
+    Log(StringTrim("  trimmed  "));
+}
+
+== SubContains
+func Main() -> Void {
+    if SubContains("abcdef", 1, 3, "cd") { Log("sub contains"); } else { Log("sub missing"); }
+}
+
+== SubContainsWithLen
+func Main() -> Void {
+    let s: String = "abcdef";
+    if SubContainsWithLen(s, StringLength(s), 1, 3, "cd") { Log("sub contains"); } else { Log("sub missing"); }
+}
+
+== SubEquals
+func Main() -> Void {
+    if SubEquals("abcdef", 2, 2, "cd") { Log("sub equal"); } else { Log("sub differ"); }
+}
+
+== SubEqualsWithLen
+func Main() -> Void {
+    let s: String = "abcdef";
+    if SubEqualsWithLen(s, StringLength(s), 2, 2, "cd") { Log("sub equal"); } else { Log("sub differ"); }
+}
+
+== SubIndexOf
+func Main() -> Void {
+    Log(ToString(SubIndexOf("abcdef", 1, 4, "d")));
+}
+
+== SubIndexOfWithLen
+func Main() -> Void {
+    let s: String = "abcdef";
+    Log(ToString(SubIndexOfWithLen(s, StringLength(s), 1, 4, "d")));
+}
+
+== SubStartsWith
+func Main() -> Void {
+    if SubStartsWith("abcdef", 2, "cd") { Log("starts"); } else { Log("does not start"); }
+}
+
+== SubStartsWithLen
+func Main() -> Void {
+    let s: String = "abcdef";
+    if SubStartsWithLen(s, StringLength(s), 2, "cd") { Log("starts"); } else { Log("does not start"); }
+}
+
+== Substring
+func Main() -> Void {
+    Log(Substring("substring", 3, 6));
+}
+
+== SubstringWithLen
+func Main() -> Void {
+    let s: String = "substring";
+    Log(SubstringWithLen(s, StringLength(s), 0, 3));
+}
+
+== Tan
+func Main() -> Void {
+    if Tan(0.0) == 0.0 { Log("tan ok"); } else { Log("tan bad"); }
+}
+
+== TextBuilderAppend
+func Main() -> Void {
+    let b: TextBuilder = TextBuilderNew(4);
+    TextBuilderAppend(b, "ab");
+    TextBuilderAppend(b, "cd");
+    let a: Allocator = AllocatorResult();
+    let s: String = TextBuilderFinish(b, a);
+    AllocatorDestroy(a);
+    Log(s);
+}
+
+== TextBuilderDrop
+func Main() -> Void {
+    let b: TextBuilder = TextBuilderNew(4);
+    TextBuilderAppend(b, "dropped");
+    TextBuilderDrop(b);
+    Log("dropped");
+}
+
+== TextBuilderFinish
+func Main() -> Void {
+    let b: TextBuilder = TextBuilderNew(4);
+    TextBuilderAppend(b, "finished");
+    let a: Allocator = AllocatorResult();
+    let s: String = TextBuilderFinish(b, a);
+    AllocatorDestroy(a);
+    Log(s);
+}
+
+== TextBuilderNew
+func Main() -> Void {
+    let b: TextBuilder = TextBuilderNew(16);
+    TextBuilderDrop(b);
+    Log("new builder");
+}
+
+== TimerNew
+func Main() -> Void {
+    let t = TimerNew(5);
+    Log("timer");
+}
+
+== ToFloat
+func Main() -> Void {
+    if ToFloat("2.5") == 2.5 { Log("float ok"); } else { Log("float bad"); }
+}
+
+== ToInt
+func Main() -> Void {
+    Log(ToString(ToInt("41") + 1));
+}
+
+== ToLower
+func Main() -> Void {
+    Log(ToLower("LOWER"));
+}
+
+== ToString
+func Main() -> Void {
+    Log(ToString(12345));
+}
+
+== ToUpper
+func Main() -> Void {
+    Log(ToUpper("upper"));
+}
+
+== Trim
+func Main() -> Void {
+    Log(Trim("  both sides  "));
+}
+
+== TrySend
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(1);
+    if TrySend(ch, 1) { Log("sent"); } else { Log("full"); }
+}
+
+== Upper
+func Main() -> Void {
+    Log(Upper("shout"));
+}
+
+== WriteFile
+func Main() -> Void {
+    WriteFile("writefile.txt", "file text");
+    Log(ReadFile("writefile.txt"));
+}
+
+== UnwrapErr
+func Main() -> Void {
+    let r: Result<Int, String> = Err("the error");
+    Log(UnwrapErr(r));
+}
