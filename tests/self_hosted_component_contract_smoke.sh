@@ -25630,24 +25630,39 @@ done
 require_text "Makefile" \
     "self-host-replacement-frontier-test-smoke: self-host-compiler"
 if command -v make >/dev/null 2>&1; then
+    # These dry-runs read the build-mode Makefile. A push CI job exports
+    # PGY_SELF_HOST_COMPILER_ADMITTED=1, which turns self-host-compiler into an
+    # admission check, so clear it here and test the admitted form below.
     installed_frontier_dry_run="$(
+        env -u PGY_SELF_HOST_COMPILER_ADMITTED \
         make -C "$ROOT_DIR" --no-print-directory -n \
             self-host-replacement-frontier-installed-test-smoke
     )" || fail "installed replacement frontier dry-run failed"
     standalone_frontier_dry_run="$(
+        env -u PGY_SELF_HOST_COMPILER_ADMITTED \
         make -C "$ROOT_DIR" --no-print-directory -n \
             self-host-replacement-frontier-test-smoke
     )" || fail "standalone replacement frontier dry-run failed"
+    admitted_frontier_dry_run="$(
+        make -C "$ROOT_DIR" --no-print-directory -n \
+            PGY_SELF_HOST_COMPILER_ADMITTED=1 \
+            self-host-replacement-frontier-test-smoke
+    )" || fail "admitted replacement frontier dry-run failed"
     installed_bootstraps="$(grep -F -c \
         'tests/self_hosted/parity/self_host_compiler_build.sh' \
         <<<"$installed_frontier_dry_run" || true)"
     standalone_bootstraps="$(grep -F -c \
         'tests/self_hosted/parity/self_host_compiler_build.sh' \
         <<<"$standalone_frontier_dry_run" || true)"
+    admitted_bootstraps="$(grep -F -c \
+        'tests/self_hosted/parity/self_host_compiler_build.sh' \
+        <<<"$admitted_frontier_dry_run" || true)"
     [[ "$installed_bootstraps" -eq 0 ]] ||
         fail "installed replacement frontier must be bootstrap-free"
     [[ "$standalone_bootstraps" -eq 1 ]] ||
         fail "standalone replacement frontier must bootstrap exactly once"
+    [[ "$admitted_bootstraps" -eq 0 ]] ||
+        fail "an admitted compiler pair must not be rebuilt"
 fi
 require_text "scripts/ci_push_linux_steps.sh" \
     "self-host-replacement-frontier-installed-test-smoke"
