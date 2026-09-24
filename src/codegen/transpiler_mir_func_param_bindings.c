@@ -6,6 +6,7 @@
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
+#include "transpiler_defer_emit.h"
 #include "transpiler_generic_binding_query.h"
 #include "transpiler_host_self_policy.h"
 #include "transpiler_inventory_view.h"
@@ -73,7 +74,10 @@ transpiler_register_mir_func_param_bindings(
                 transpiler_mir_routine_param_is_boundary_resource(
                     mir_routine, i);
             register_typed_var(ctx, p->name, type_name);
+            /* An inout copy-in local is a value even for a pointer-self
+             * host type; only the `__mutref` parameter is indirect. */
             if (strcmp(p->name, "self") != 0
+                && !transpiler_mut_ref_param_is_copy_in_local(ctx, p->name)
                 && (is_pointer_self_host_type_name(ctx, type_name)
                     || pass_indirect)) {
                 TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);

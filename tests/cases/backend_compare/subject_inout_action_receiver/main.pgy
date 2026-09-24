@@ -1,0 +1,44 @@
+// An inout subject parameter is a copy-in value local inside the callee. Its
+// action receiver, a nested inout forward, a field write and a default
+// (pointer) argument all have to address that local, and the caller sees
+// every write after the call.
+subject ToolGate {
+    let grants: Int;
+    let mut admitted: Int;
+
+    action Admit(self, bit: Int) -> Bool
+        authorized by self
+    {
+        admitted = admitted + 1;
+        return (grants / bit) % 2 == 1;
+    }
+}
+
+func Peek(gate: ToolGate) -> Int {
+    return gate.admitted;
+}
+
+func AdmitOnce(inout gate: ToolGate) -> Bool {
+    return gate.Admit(1);
+}
+
+func Forward(inout gate: ToolGate) -> Bool {
+    return gate.Admit(2);
+}
+
+func Use(inout gate: ToolGate) -> Int {
+    let first: Bool = gate.Admit(1);
+    let second: Bool = Forward(gate);
+    if first && !second {
+        gate.admitted = gate.admitted + 10;
+    }
+    return Peek(gate) + gate.grants;
+}
+
+func Main() -> Void {
+    let gate: ToolGate = ToolGate(1, 0);
+    Log(ToString(AdmitOnce(gate)));
+    Log(ToString(Use(gate)));
+    Log(ToString(Use(gate)));
+    Log(ToString(gate.admitted));
+}

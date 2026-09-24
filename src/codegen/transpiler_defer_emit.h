@@ -12,6 +12,10 @@ void transpiler_emit_defers_from(TranspilerCtx *ctx, int start_depth);
 void transpiler_mut_ref_params_reset(TranspilerCtx *ctx);
 void transpiler_register_mut_ref_param(TranspilerCtx *ctx, const char *name,
     const char *ctype);
+/* True when `name` is the copy-in value local of a registered inout
+ * parameter: the body sees a value, not the `<name>__mutref` pointer. */
+bool transpiler_mut_ref_param_is_copy_in_local(const TranspilerCtx *ctx,
+    const char *name);
 void transpiler_emit_mut_ref_copyins(TranspilerCtx *ctx);
 void transpiler_emit_mut_ref_writebacks(TranspilerCtx *ctx);
 const char *transpiler_emit_mut_ref_return_capture(

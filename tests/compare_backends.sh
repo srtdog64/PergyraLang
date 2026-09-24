@@ -1543,6 +1543,7 @@ main() {
         "tests/cases/backend_compare/string_to_int_long_narrowing"
         "tests/cases/backend_compare/empty_literal_typed_site"
         "tests/cases/backend_compare/empty_literal_collection_result"
+        "tests/cases/backend_compare/subject_inout_action_receiver"
     )
 
     local use_default_cases=0

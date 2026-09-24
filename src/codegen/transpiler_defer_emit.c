@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 void
 transpiler_defer_scope_push(TranspilerCtx *ctx)
@@ -123,6 +124,19 @@ transpiler_register_mut_ref_param(TranspilerCtx *ctx, const char *name,
     pergyra_str_copy(ctx->mut_ref_param_ctypes[ctx->mut_ref_param_count],
         sizeof(ctx->mut_ref_param_ctypes[ctx->mut_ref_param_count]), ctype);
     ctx->mut_ref_param_count++;
+}
+
+bool
+transpiler_mut_ref_param_is_copy_in_local(const TranspilerCtx *ctx,
+                                          const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return false;
+    for (int i = 0; i < ctx->mut_ref_param_count; i++) {
+        if (strcmp(ctx->mut_ref_param_names[i], name) == 0)
+            return true;
+    }
+    return false;
 }
 
 void
