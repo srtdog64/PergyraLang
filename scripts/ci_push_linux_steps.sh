@@ -12,6 +12,9 @@ case "${PGY_CI_SELF_HOST_MODE:-build}" in
             echo "ci-push-linux: prebuilt self-host toolchain artifact is incomplete" >&2
             exit 1
         fi
+        # Every make target below that depends on self-host-compiler admits
+        # this pair instead of rebuilding DRV-2 (Makefile, self-host-compiler).
+        export PGY_SELF_HOST_COMPILER_ADMITTED=1
         ;;
     *)
         echo "ci-push-linux: invalid PGY_CI_SELF_HOST_MODE=${PGY_CI_SELF_HOST_MODE}" >&2

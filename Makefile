@@ -1796,10 +1796,21 @@ all: $(PGY) $(PGY_LSP) self-host-compiler self-host-lsp
 
 compiler: $(PGY)
 
+# A push CI job that downloaded the compiler pair the toolchain job built
+# exports PGY_SELF_HOST_COMPILER_ADMITTED=1 (scripts/ci_push_linux_steps.sh).
+# There the pair is admitted, never rebuilt: a rebuild spent 13-16 minutes of
+# a 30-minute shard and replaced the pair the job had just admitted.
+ifeq ($(PGY_SELF_HOST_COMPILER_ADMITTED),1)
+self-host-compiler:
+	@test -x "$(PGY)" && test -x "$(SELF_HOST_DRIVER)" && \
+		test -s "$(SELF_HOST_DRIVER).machine-layer-manifest.json" || \
+		{ echo "self-host-compiler: the admitted compiler pair is incomplete" >&2; exit 1; }
+else
 self-host-compiler: self-host-codegen-bootstrap-seed-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		PGY_SELFHOST_CC="$(CC)" \
 		"$(BASH)" tests/self_hosted/parity/self_host_compiler_build.sh
+endif
 
 self-host-lsp: self-host-codegen-bootstrap-seed-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_LSP_BIN="$(abspath $(SELF_HOST_LSP))" \

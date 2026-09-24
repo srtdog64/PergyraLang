@@ -521,7 +521,10 @@ Repaired, each with a row that fails if it returns:
   6 depended on `self-host-compiler`, so it rebuilt DRV-2 for 14 minutes on
   top of the admitted pair. The step now runs its script on the admitted
   pair, and `self_host_ci_profile_smoke.sh` refuses a core-shard target that
-  depends on `self-host-compiler`.
+  depends on `self-host-compiler`. The self-host contract shard rebuilt the
+  same way; on run 35990536278 the rebuild took 16 minutes and the shard was
+  cancelled at 30. Push jobs now export `PGY_SELF_HOST_COMPILER_ADMITTED=1`,
+  and `self-host-compiler` then only checks the admitted pair.
 
 Found and left open:
 
@@ -541,9 +544,6 @@ Found and left open:
 - **Default LLVM JSON receipts.** Any direct-MIR codegen refusal under
   `--error-format=json` prints `self-host JSON diagnostic receipt is
   malformed`.
-- **Self-host shard rebuild.** The self-host contract shard also rebuilds
-  DRV-2 once, 12 minutes, in its first step. It runs in 25 minutes, inside
-  its budget.
 - **Channel send on the default route.** `ch <- 10;` as a statement ends in
   `AST node is outside bounded MIR producer` with no code. The builtin
   surface gate already records that the default route has no channel

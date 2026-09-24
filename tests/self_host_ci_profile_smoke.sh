@@ -438,6 +438,14 @@ core_make_targets="$(awk '
             break
         }
     }' "$PUSH_LINUX_STEPS")"
+# The self-host shard's targets depend on self-host-compiler too; in prebuilt
+# mode that target admits the downloaded pair (run 35990536278 spent 16 minutes
+# rebuilding DRV-2 there and was cancelled at 30).
+grep -Fq 'export PGY_SELF_HOST_COMPILER_ADMITTED=1' "$PUSH_LINUX_STEPS" &&
+    grep -Fq 'ifeq ($(PGY_SELF_HOST_COMPILER_ADMITTED),1)' "$MAKEFILE" || {
+    echo "[self-host-ci-profile] prebuilt push jobs must admit the compiler pair, not rebuild it" >&2
+    exit 1
+}
 [[ -n "$core_make_targets" ]] || {
     echo "[self-host-ci-profile] could not read the Linux push core shard make targets" >&2
     exit 1
