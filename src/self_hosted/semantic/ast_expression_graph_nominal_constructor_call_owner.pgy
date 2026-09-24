@@ -7,6 +7,8 @@
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_graph_field_type_owner.pgy";
+import "ast_expression_graph_array_literal_owner.pgy";
+import "ast_expression_graph_set_literal_owner.pgy";
 import "ast_nominal_constructor_lookup_owner.pgy";
 import "nominal_constructor_argument_policy_owner.pgy";
 import "diagnostic_owner.pgy";
@@ -101,6 +103,26 @@ func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
             graph, call.argument_nodes[i], constructors, names, types,
             function_names, function_returns
         );
+        // The field type is the argument's storage site: an empty literal
+        // takes it, exactly as a call argument or an annotated let does. A
+        // non-empty literal keeps its own type and is checked below.
+        let array_view: SemanticArrayLiteralView =
+            SemanticArrayLiteralViewFromGraph(graph, call.argument_nodes[i]);
+        let set_view: SemanticSetLiteralView =
+            SemanticSetLiteralViewFromGraph(graph, call.argument_nodes[i]);
+        let empty_literal: Bool =
+            (array_view.ok && ArrayLength(array_view.element_nodes) == 0) ||
+            (set_view.ok && ArrayLength(set_view.element_nodes) == 0);
+        if IsSome(expected) && empty_literal &&
+            (SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+                graph, call.argument_nodes[i], UnwrapOption(expected),
+                constructors, names, types, function_names, function_returns
+            ) || SemanticExpressionGraphSetLiteralMatchesDeclaredType(
+                graph, call.argument_nodes[i], UnwrapOption(expected),
+                constructors, names, types, function_names, function_returns
+            )) {
+            actual = expected;
+        }
         if !IsSome(expected) || !IsSome(actual) {
             return SemanticExpressionGraphNominalConstructorCallError(
                 "ast_artifact_invalid",

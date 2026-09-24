@@ -28,7 +28,11 @@ func EmitReturnValue(
     if return_type == "Long" {
         return WrapExprWithSemanticGraph(rexpr, env, graph);
     }
-    if StartsWith(return_type, "Array<") {
+    // A collection value lowers against the declared result type, as an
+    // annotated let does, so a `[]` or `{}` literal takes that type.
+    if StartsWith(return_type, "Array<") || StartsWith(return_type, "List<") ||
+        StartsWith(return_type, "Queue<") || StartsWith(return_type, "Set<") ||
+        StartsWith(return_type, "HashMap<") {
         return RewriteExpectedValueWithSemanticGraph(
             rexpr, return_type, env, graph
         );

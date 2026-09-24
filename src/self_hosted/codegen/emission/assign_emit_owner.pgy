@@ -94,7 +94,13 @@ func EmitAssign(
             option_expr.c_expr, ";"
         )));
     }
-    if StartsWith(expected_type, "Array<") {
+    // A collection value lowers against the target's type, as an annotated
+    // let does, so a `[]` or `{}` literal takes that type.
+    if StartsWith(expected_type, "Array<") ||
+        StartsWith(expected_type, "List<") ||
+        StartsWith(expected_type, "Queue<") ||
+        StartsWith(expected_type, "Set<") ||
+        StartsWith(expected_type, "HashMap<") {
         return Concat(c_name, Concat(" = ", Concat(
             RewriteExpectedValueWithSemanticGraph(
                 expr, expected_type, env, graph

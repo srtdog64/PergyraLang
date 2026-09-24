@@ -309,7 +309,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
                 "binding", locals.names[i],
                 "actual", inferred
             );
-        } else if inferred == "Unknown" || inferred == "" ||
+        } else if inferred == "Unknown" || inferred == "" || (!IsSome(declared) && inferred == "Array<Unknown>") ||
             inferred == "List<Unknown>" || inferred == "Queue<Unknown>" ||
             inferred == "Set<Unknown>" || inferred == "HashMap<Unknown, Unknown>" {
             row_verified = 0;
