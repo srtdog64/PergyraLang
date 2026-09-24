@@ -78,10 +78,10 @@ func ParseNominalDecl(
             i = LanguageWordEnd(i, LanguageWordId.WordExtends);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
-            let parent_name: String = ReadType(content, i, cursor_out);
+            let parent_name: String = ReadTypeIn(location_context, content, i, cursor_out);
             i = cursor_out[0];
             if StringLength(parent_name) == 0 {
-                Exit(1);
+                ParseRefuse(location_context, i, "type_name_invalid", "construct", "extends", "", "");
             }
             decl_suffix = Concat(" extends ", parent_name);
         }
@@ -136,7 +136,9 @@ func ParseNominalDecl(
             // instead of `Function:` but keeps the same shape and
             // base_indent.
             if MatchLanguageWord(content, i, LanguageWordId.WordAction) {
-                if decl_label != "Subject" { Exit(1); }
+                if decl_label != "Subject" {
+                    ParseRefuse(location_context, i, "expected_token", "expected", Concat(decl_label, " member"), "construct", decl_label);
+                }
                 ArraySet(cursor_out, 0, i);
                 let a_block: String = ParseFunction(
                     content, i, cursor_out, "", false, host_method_indent,
@@ -178,7 +180,7 @@ func ParseNominalDecl(
                 i = LanguageWordEnd(i, LanguageWordId.WordParty);
                 i = SkipWhitespaceAndComments(content, i);
                 if !MatchLanguageWord(content, i, LanguageWordId.WordSlot) {
-                    Exit(1);
+                    ParseRefuse(location_context, i, "expected_token", "expected", "slot", "construct", decl_label);
                 }
                 i = LanguageWordEnd(i, LanguageWordId.WordSlot);
                 i = SkipWhitespaceAndComments(content, i);
@@ -214,7 +216,7 @@ func ParseNominalDecl(
                     let df_name: String = ReadIdent(content, i, cursor_out);
                     i = cursor_out[0];
                     if StringLength(df_name) == 0 {
-                        Exit(1);
+                        ParseRefuse(location_context, i, "declaration_name_missing", "construct", "destructure_field", "", "");
                     }
                     ArrayPush(destructure_fields, df_name);
                     i = SkipWhitespaceAndComments(content, i);
@@ -224,16 +226,10 @@ func ParseNominalDecl(
                     }
                     break;
                 }
-                i = Expect(content, i, ")");
-                if i < 0 {
-                    Exit(1);
-                }
-                i = Expect(content, i, "=");
-                if i < 0 {
-                    Exit(1);
-                }
+                i = ParseExpectIn(location_context, content, i, ")", "destructure_field");
+                i = ParseExpectIn(location_context, content, i, "=", "destructure_field");
                 ArraySet(cursor_out, 0, i);
-                let df_init: String = ParseExpr(content, i, cursor_out);
+                let df_init: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
                 i = cursor_out[0];
                 df_init = df_init;
                 let df_end: Int = i;
@@ -243,10 +239,7 @@ func ParseNominalDecl(
                 if ParserCharAt(content, df_end) == "," {
                     i = df_end + 1;
                 } else {
-                    i = ConsumeStmtTerminator(content, df_end);
-                    if i < 0 {
-                        Exit(1);
-                    }
+                    i = ParseStatementTerminatorIn(location_context, content, df_end, "destructure_field");
                 }
                 let df_len: Int = ArrayLength(destructure_fields);
                 let df_i: Int = 0;

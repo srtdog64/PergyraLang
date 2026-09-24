@@ -1,0 +1,7 @@
+intent Deliver() with retry(0) {
+    success: true;
+}
+
+func Main() -> Void {
+    Log("unreached");
+}

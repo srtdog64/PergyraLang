@@ -101,7 +101,12 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 # 76 -> 74 (2026-09-21): the typed HashMap storage and collection-ownership
 # carrier packet removes two compiler-core text-to-text paths. Preserve the
 # measured reduction while the next ownership execution rung remains ACTIVE.
-CORE_STRING_MUNGE_SIG_MAX=74
+# 74 -> 70 (2026-09-24): the type, event, effect and relation declaration
+# parsers now take the dispatcher's source-location context as their last
+# parameter so their refusals carry a position. They still return tree text;
+# the count fell because the signature no longer ends in `: String) -> String`,
+# not because a text bridge was removed.
+CORE_STRING_MUNGE_SIG_MAX=70
 AST_STRING_SURFACE_MAX=0
 # 0 -> 11 (2026-07-27): audit repaired a stale ratchet baseline. The exact
 # pre-change HEAD already contains these 11 tracked `-1` comparisons/returns;

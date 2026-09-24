@@ -1,0 +1,9 @@
+subject Player {
+    let hp: Int;
+}
+
+relation Link for left: Player right: Player { }
+
+func Main() -> Void {
+    Log("unreached");
+}

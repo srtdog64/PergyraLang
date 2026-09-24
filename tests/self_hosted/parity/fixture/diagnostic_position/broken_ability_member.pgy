@@ -1,0 +1,7 @@
+ability Shape {
+    let sides: Int;
+}
+
+func Main() -> Void {
+    Log("unreached");
+}

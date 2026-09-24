@@ -113,9 +113,20 @@ reject_source() {
     [[ "$rc" -ne 0 ]] || fail "$name accepted malformed override syntax"
     [[ -z "$artifact" || ! -e "$artifact" ]] ||
         fail "$name published a malformed-source artifact"
-    grep -Fiq "expected 'func' after 'override'" \
-        "$WORK/$name.out" "$WORK/$name.err" ||
-        fail "$name lost the stable override diagnostic"
+    # Native words the refusal; the self-hosted parser names its code and
+    # the construct it refused.
+    case "$name" in
+        native-*)
+            grep -Fiq "expected 'func' after 'override'" \
+                "$WORK/$name.out" "$WORK/$name.err" ||
+                fail "$name lost the stable override diagnostic" ;;
+        *)
+            local refusal
+            refusal="$(cat "$WORK/$name.out" "$WORK/$name.err" | tr -d '\r')"
+            grep -Fxq 'Code: expected_token' <<<"$refusal" &&
+                grep -Fxq -- '- construct: role_override' <<<"$refusal" ||
+                fail "$name lost the stable override diagnostic" ;;
+    esac
     ! grep -Eq '^Program$|"schema":"pgy.mir.v1"' "$WORK/$name.out" ||
         fail "$name emitted a successful AST/MIR payload"
     ! grep -Fq '[pipeline timing]' "$WORK/$name.err" ||

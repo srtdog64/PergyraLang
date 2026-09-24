@@ -1,0 +1,9 @@
+subject Player {}
+
+role Guard for Player {
+    let watch: Int;
+}
+
+func Main() -> Void {
+    Log("unreached");
+}

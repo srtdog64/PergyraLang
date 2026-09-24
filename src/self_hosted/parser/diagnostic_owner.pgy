@@ -161,6 +161,24 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "move the statements into func Main, or remove func Main and keep them at top level"
         );
     }
+    if code == "declaration_clause_duplicate" {
+        return ParseDiagnosticRow(
+            "a clause the declaration admits once is written again",
+            "remove the repeated clause"
+        );
+    }
+    if code == "declaration_clause_invalid" {
+        return ParseDiagnosticRow(
+            "the clause breaks the rule named in the facts",
+            "rewrite the clause so it keeps that rule"
+        );
+    }
+    if code == "intent_shape_invalid" {
+        return ParseDiagnosticRow(
+            "the intent's steps and terminals do not have the shape its return type requires",
+            "follow the rule named in the facts: a typed intent labels its terminals, and each of its steps binds one action outcome"
+        );
+    }
     return ParseDiagnosticRow(
         "the parser rejected this source",
         "check the reported source position"
@@ -199,9 +217,19 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
         code == "statement_kind_unsupported" ||
         code == "int_literal_out_of_range" ||
         code == "long_literal_out_of_range" ||
-        code == "script_statement_with_main" {
+        code == "script_statement_with_main" ||
+        code == "surface_not_covered" ||
+        code == "declaration_clause_duplicate" ||
+        code == "declaration_clause_invalid" {
         return ParsePublicDiagnosticIdentity(
             true, "PGY_PARSE_SYNTAX", "parse:unexpected_token", "check-syntax"
+        );
+    }
+    // Native checks the typed-intent outcome shape in semantic; keep its identity.
+    if code == "intent_shape_invalid" {
+        return ParsePublicDiagnosticIdentity(
+            true, "PGY_SEM_INTENT_STEP_INVALID", "semantic:intent_step",
+            "check-intent-step-lowering"
         );
     }
     if code == "builtin_type_name_taken" {
@@ -287,18 +315,5 @@ func ParseDiagnosticReportContractName(
     ParseDiagnosticReport2(
         projection, code,
         "axis", ParseDiagnosticAxisLabel(axis), "name", name
-    );
-}
-
-// A surface the self-hosted parser knows it does not cover yet -- lifecycle,
-// use, extern. Naming the surface keeps the refusal honest: the old path fell
-// through to statement parsing and reported "expected statement terminator",
-// which sent the reader to the wrong layer. Fail-closed is unchanged; only
-// the reason is now true.
-func ParseDiagnosticReportUncoveredSurface(surface: String) -> Void {
-    ParseDiagnosticReport2(
-        ParseDiagnosticText, "surface_not_covered",
-        "surface", surface,
-        "position", "top_level_declaration"
     );
 }

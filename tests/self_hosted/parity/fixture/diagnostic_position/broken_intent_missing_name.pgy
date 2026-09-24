@@ -1,0 +1,7 @@
+intent (count: Int) {
+    success: true;
+}
+
+func Main() -> Void {
+    Log("unreached");
+}

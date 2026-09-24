@@ -1,0 +1,3 @@
+intent Deliver() {
+    step Ship {
+        guard: true;

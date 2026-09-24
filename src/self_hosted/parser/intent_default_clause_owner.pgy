@@ -1,59 +1,65 @@
 // Intent-level who/where clause parsing and exact step-default application.
+// A malformed clause is refused where it goes wrong.
 
 import "cursor_owner.pgy";
 import "type_name_owner.pgy";
+import "source_refusal_owner.pgy";
 
 struct ParserIntentDefaultClause {
     matched: Bool;
-    ok: Bool;
     next: Int;
     who_names: String;
     where_type: String;
 }
 
 func ParserIntentDefaultClauseNone(start: Int) -> ParserIntentDefaultClause {
-    return ParserIntentDefaultClause(false, true, start, "", "");
-}
-
-func ParserIntentDefaultClauseInvalid(start: Int) -> ParserIntentDefaultClause {
-    return ParserIntentDefaultClause(true, false, start, "", "");
+    return ParserIntentDefaultClause(false, start, "", "");
 }
 
 func ParserIntentDefaultClauseFromSource(
-    content: String, start: Int
+    context: ParserSourceLocationContext, content: String, start: Int
 ) -> ParserIntentDefaultClause {
     let cursor: Array<Int> = [start];
     if MatchLanguageWord(content, start, LanguageWordId.WordWho) {
         let i: Int = LanguageWordEnd(start, LanguageWordId.WordWho);
-        i = Expect(content, i, ":");
-        if i < 0 { return ParserIntentDefaultClauseInvalid(start); }
+        // Native also admits `who <alias>: <Type>;` participant declarations.
+        if ParserCharAt(content, SkipWhitespaceAndComments(content, i)) != ":" {
+            ParseRefuse(context, start, "surface_not_covered", "surface",
+                "intent who participant declaration", "construct", "intent");
+        }
+        i = ParseExpectIn(context, content, i, ":", "intent_who");
         let names: String = "";
         while true {
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor, 0, i);
             let name: String = ReadIdent(content, i, cursor);
             i = cursor[0];
-            if name == "" { return ParserIntentDefaultClauseInvalid(start); }
+            if name == "" {
+                ParseRefuse(context, i, "expected_token", "expected",
+                    "participant name", "construct", "intent_who");
+            }
             if names != "" { names = Concat(names, ", "); }
             names = Concat(names, name);
             i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) != "," { break; }
             i = i + 1;
         }
-        i = Expect(content, i, ";");
-        return ParserIntentDefaultClause(true, i >= 0, i, names, "");
+        i = ParseExpectIn(context, content, i, ";", "intent_who");
+        return ParserIntentDefaultClause(true, i, names, "");
     }
     if MatchLanguageWord(content, start, LanguageWordId.WordWhere) {
-        let i: Int = LanguageWordEnd(start, LanguageWordId.WordWhere);
-        i = Expect(content, i, ":");
-        if i < 0 { return ParserIntentDefaultClauseInvalid(start); }
+        let i: Int = ParseExpectIn(context, content,
+            LanguageWordEnd(start, LanguageWordId.WordWhere), ":", "intent_where");
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor, 0, i);
-        let type_name: String = ReadType(content, i, cursor);
+        let type_name: String = ReadTypeIn(context, content, i, cursor);
         i = cursor[0];
-        if type_name == "" { return ParserIntentDefaultClauseInvalid(start); }
-        i = Expect(content, i, ";");
-        return ParserIntentDefaultClause(true, i >= 0, i, "", type_name);
+        if type_name == "" {
+            ParseRefuse(context, i, "type_name_invalid",
+                "construct", "intent_where", "", "");
+        }
+        i = ParseExpectIn(context, content, i, ";", "intent_where");
+        return ParserIntentDefaultClause(true, i, "", type_name);
     }
     return ParserIntentDefaultClauseNone(start);
 }

@@ -43,10 +43,10 @@ def main() -> int:
         print(f"[resilience-admission] {'PASS' if ok else 'FAIL'}: explicit-full-valid {origin}")
 
     for name, old, new, reason in (
-        ("duplicate-mode", "exclusive;", "exclusive; concurrent;", "duplicate Intent execution mode"),
-        ("duplicate-full", "rollback: full;", "rollback: full; rollback: full;", "duplicate Intent rollback policy"),
-        ("duplicate-priority", "priority: 3;", "priority: 3; priority: 4;", "invalid Intent policy clause"),
-        ("invalid-rollback", "rollback: full;", "rollback: mystery;", "rollback currently requires full"),
+        ("duplicate-mode", "exclusive;", "exclusive; concurrent;", "- clause: execution mode"),
+        ("duplicate-full", "rollback: full;", "rollback: full; rollback: full;", "- clause: rollback policy"),
+        ("duplicate-priority", "priority: 3;", "priority: 3; priority: 4;", "- clause: priority"),
+        ("invalid-rollback", "rollback: full;", "rollback: mystery;", "- expected: full, current or none"),
     ):
         source = work / f"{name}.pgy"
         source.write_text(policy_template.replace(old, new), encoding="utf-8")

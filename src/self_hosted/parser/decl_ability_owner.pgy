@@ -5,6 +5,7 @@ import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "function_decl_owner.pgy";
 import "generic_parameter_list_owner.pgy";
+import "source_refusal_owner.pgy";
 
 // `ability NAME { func SIG; ... }` declares an interface-shaped collection of
 // function signatures. AST emits as `  [export] Ability: NAME`.
@@ -23,7 +24,7 @@ func ParseAbilityDecl(
     let ab_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if StringLength(ab_name) == 0 {
-        Exit(1);
+        ParseRefuse(location_context, i, "declaration_name_missing", "construct", "ability", "", "");
     }
     ArraySet(cursor_out, 0, i);
     let generic_parameters: String = ParseGenericParameterListText(
@@ -44,15 +45,13 @@ func ParseAbilityDecl(
             content, where_start, i - where_start
         ));
     }
-    i = Expect(content, i, "{");
-    if i < 0 {
-        Exit(1);
-    }
+    let open_at: Int = SkipWhitespaceAndComments(content, i);
+    i = ParseExpectIn(location_context, content, i, "{", "ability");
     let sig_blocks: String = "";
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
-            Exit(1);
+            ParseRefuse(location_context, open_at, "block_unclosed", "construct", "ability", "", "");
         }
         if ParserCharAt(content, i) == "}" {
             i = i + 1;
@@ -65,27 +64,21 @@ func ParseAbilityDecl(
             let req_name: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             if StringLength(req_name) == 0 {
-                Exit(1);
+                ParseRefuse(location_context, i, "declaration_name_missing", "construct", "ability_fields", "", "");
             }
-            i = Expect(content, i, ":");
-            if i < 0 {
-                Exit(1);
-            }
+            i = ParseExpectIn(location_context, content, i, ":", "ability_fields");
             ArraySet(cursor_out, 0, i);
-            let req_type: String = ReadType(content, i, cursor_out);
+            let req_type: String = ReadTypeIn(location_context, content, i, cursor_out);
             i = cursor_out[0];
             if StringLength(req_type) == 0 {
-                Exit(1);
+                ParseRefuse(location_context, i, "type_name_invalid", "construct", "ability_fields", "", "");
             }
-            i = ConsumeStmtTerminator(content, i);
-            if i < 0 {
-                Exit(1);
-            }
+            i = ParseStatementTerminatorIn(location_context, content, i, "ability_fields");
             sig_blocks = AppendLine(sig_blocks, Concat("    Require: ", Concat(req_name, Concat(": ", req_type))));
             continue;
         }
         if !MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
-            Exit(1);
+            ParseRefuse(location_context, i, "expected_token", "expected", "fields or func", "construct", "ability");
         }
         ArraySet(cursor_out, 0, i);
         let sig: String = ParseFunction(

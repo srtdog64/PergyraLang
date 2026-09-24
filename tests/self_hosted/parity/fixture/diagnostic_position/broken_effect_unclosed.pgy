@@ -1,0 +1,6 @@
+subject Player {
+    let hp: Int;
+}
+
+effect Burn for bearer: Player {
+    shared power: Int;

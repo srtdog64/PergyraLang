@@ -1,47 +1,42 @@
 // One exact legacy or step-labelled intent terminal expression clause.
+//
+// A malformed clause is refused where it goes wrong, so a returned clause is
+// always complete. Whether a step label is admitted belongs to the intent
+// declaration, which knows the intent's return type; `step_offset` is where
+// the label is, or would be.
 
 import "cursor_owner.pgy";
 import "expr_owner.pgy";
+import "source_refusal_owner.pgy";
 
 struct ParserIntentTerminalClause {
-    ok: Bool;
     step_name: String;
+    step_offset: Int;
     expression: ParserExpressionFact;
 }
 
 func ParseIntentTerminalClause(
+    context: ParserSourceLocationContext,
     content: String, start: Int, inout cursor_out: Array<Int>
 ) -> ParserIntentTerminalClause {
     let i: Int = SkipWhitespaceAndComments(content, start);
+    let step_offset: Int = i;
     let step_name: String = "";
     if ParserCharAt(content, i) != ":" {
         ArraySet(cursor_out, 0, i);
         step_name = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
         if step_name == "" {
-            return ParserIntentTerminalClause(
-                false, "", ParserExpressionInvalid()
-            );
+            ParseRefuse(context, i, "expected_token",
+                "expected", ":", "construct", "intent_terminal");
         }
     }
-    i = Expect(content, i, ":");
-    if i < 0 {
-        return ParserIntentTerminalClause(
-            false, "", ParserExpressionInvalid()
-        );
-    }
+    i = ParseExpectIn(context, content, i, ":", "intent_terminal");
     ArraySet(cursor_out, 0, i);
-    let expression: ParserExpressionFact = ParseExprFact(
-        content, i, cursor_out
+    let expression: ParserExpressionFact = ParseExprFactIn(
+        context, content, i, cursor_out
     );
-    i = cursor_out[0];
-    if !expression.ok {
-        return ParserIntentTerminalClause(false, "", expression);
-    }
-    i = Expect(content, i, ";");
-    if i < 0 {
-        return ParserIntentTerminalClause(false, "", expression);
-    }
+    i = ParseExpectIn(context, content, cursor_out[0], ";", "intent_terminal");
     ArraySet(cursor_out, 0, i);
-    return ParserIntentTerminalClause(true, step_name, expression);
+    return ParserIntentTerminalClause(step_name, step_offset, expression);
 }

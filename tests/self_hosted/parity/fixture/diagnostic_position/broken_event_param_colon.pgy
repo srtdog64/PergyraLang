@@ -1,0 +1,5 @@
+event Hit(amount Int);
+
+func Main() -> Void {
+    Log("unreached");
+}

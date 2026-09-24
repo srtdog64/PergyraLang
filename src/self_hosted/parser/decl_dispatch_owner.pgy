@@ -225,8 +225,7 @@ func ParseDeclsInto(
                 ArrayPush(out_module_paths, source_path);
                 continue;
             }
-            ParseDiagnosticReportUncoveredSurface("use");
-            Exit(1);
+            ParseRefuse(location_context, i, "surface_not_covered", "surface", "use", "construct", "top_level_declaration");
         }
 
         // `extern "ABI" { func NAME(params) -> Type; ... }` declares host
@@ -241,11 +240,12 @@ func ParseDeclsInto(
                 ParseRefuse(location_context, i, "expected_token", "expected", "\"", "construct", "extern");
             }
             ArraySet(cursor_out, 0, i);
+            let abi_at: Int = i;
             let raw_abi: String = ReadString(content, i, cursor_out);
             i = cursor_out[0];
             let abi_len: Int = StringLength(raw_abi);
             if abi_len < 2 {
-                Exit(1);
+                ParseRefuse(location_context, abi_at, "string_unterminated", "construct", "extern", "", "");
             }
             let abi_name: String = Substring(raw_abi, 1, abi_len - 2);
             let extern_open: Int = SkipWhitespaceAndComments(content, i);
@@ -299,8 +299,7 @@ func ParseDeclsInto(
                     ArrayPush(out_module_paths, source_path);
                     continue;
                 }
-                ParseDiagnosticReportUncoveredSurface("lifecycle");
-                Exit(1);
+                ParseRefuse(location_context, i, "surface_not_covered", "surface", "lifecycle", "construct", "top_level_declaration");
             }
         }
 
@@ -341,7 +340,7 @@ func ParseDeclsInto(
         }
 
         if MatchLanguageWord(content, i, LanguageWordId.WordType) {
-            let type_block: String = ParseTypeDecl(content, i, cursor_out, decl_prefix);
+            let type_block: String = ParseTypeDecl(content, i, cursor_out, decl_prefix, location_context);
             i = cursor_out[0];
             ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, type_block, source_locations));
             ArrayPush(out_module_paths, source_path);
@@ -371,7 +370,7 @@ func ParseDeclsInto(
 
 
         if MatchLanguageWord(content, i, LanguageWordId.WordEffect) {
-            let effect_block: String = ParseEffectDecl(content, i, cursor_out, decl_prefix);
+            let effect_block: String = ParseEffectDecl(content, i, cursor_out, decl_prefix, location_context);
             i = cursor_out[0];
             ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, effect_block, source_locations));
             ArrayPush(out_module_paths, source_path);
@@ -380,7 +379,7 @@ func ParseDeclsInto(
 
 
         if MatchLanguageWord(content, i, LanguageWordId.WordRelation) {
-            let relation_block: String = ParseRelationDecl(content, i, cursor_out, decl_prefix);
+            let relation_block: String = ParseRelationDecl(content, i, cursor_out, decl_prefix, location_context);
             i = cursor_out[0];
             ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, relation_block, source_locations));
             ArrayPush(out_module_paths, source_path);
@@ -401,7 +400,7 @@ func ParseDeclsInto(
 
         if MatchLanguageWord(content, i, LanguageWordId.WordIntent) {
             let intent_block: String = ParseIntentDecl(
-                content, i, cursor_out, decl_prefix, expression_graphs
+                content, i, cursor_out, decl_prefix, expression_graphs, location_context
             );
             i = cursor_out[0];
             ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, intent_block, source_locations));
@@ -424,7 +423,7 @@ func ParseDeclsInto(
 
 
         if MatchLanguageWord(content, i, LanguageWordId.WordEvent) {
-            let event_block: String = ParseEventDecl(content, i, cursor_out, decl_prefix);
+            let event_block: String = ParseEventDecl(content, i, cursor_out, decl_prefix, location_context);
             i = cursor_out[0];
             ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, event_block, source_locations));
             ArrayPush(out_module_paths, source_path);

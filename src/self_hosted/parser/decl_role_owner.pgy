@@ -5,7 +5,7 @@ import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "stmt_owner.pgy";
 import "function_decl_owner.pgy";
-import "error_owner.pgy";
+import "source_refusal_owner.pgy";
 
 func ParseRoleDecl(
     content: String,
@@ -25,11 +25,11 @@ func ParseRoleDecl(
     let role_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if StringLength(role_name) == 0 {
-        Exit(1);
+        ParseRefuse(location_context, i, "declaration_name_missing", "construct", "role", "", "");
     }
     i = SkipWhitespaceAndComments(content, i);
     if !MatchLanguageWord(content, i, LanguageWordId.WordFor) {
-        Exit(1);
+        ParseRefuse(location_context, i, "expected_token", "expected", "for", "construct", "role");
     }
     i = LanguageWordEnd(i, LanguageWordId.WordFor);
     i = SkipWhitespaceAndComments(content, i);
@@ -37,7 +37,7 @@ func ParseRoleDecl(
     let role_subj: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if StringLength(role_subj) == 0 {
-        Exit(1);
+        ParseRefuse(location_context, i, "type_name_invalid", "construct", "role", "", "");
     }
     let compact_impl: String = "";
     i = SkipWhitespaceAndComments(content, i);
@@ -49,16 +49,14 @@ func ParseRoleDecl(
             i = SkipWhitespaceAndComments(content, i);
         }
         ArraySet(cursor_out, 0, i);
-        compact_impl = ReadType(content, i, cursor_out);
+        compact_impl = ReadTypeIn(location_context, content, i, cursor_out);
         i = cursor_out[0];
         if StringLength(compact_impl) == 0 {
-            Exit(1);
+            ParseRefuse(location_context, i, "type_name_invalid", "construct", "role_impl", "", "");
         }
     }
-    i = Expect(content, i, "{");
-    if i < 0 {
-        Exit(1);
-    }
+    let open_at: Int = SkipWhitespaceAndComments(content, i);
+    i = ParseExpectIn(location_context, content, i, "{", "role");
     let impl_blocks: String = "";
     if StringLength(compact_impl) > 0 {
         impl_blocks = AppendLine(impl_blocks, Concat("    Impl ability: ", compact_impl));
@@ -66,7 +64,7 @@ func ParseRoleDecl(
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
-            Exit(1);
+            ParseRefuse(location_context, open_at, "block_unclosed", "construct", "role", "", "");
         }
         if ParserCharAt(content, i) == "}" {
             i = i + 1;
@@ -96,7 +94,7 @@ func ParseRoleDecl(
             i = LanguageWordEnd(i, LanguageWordId.WordOverride);
             i = SkipWhitespaceAndComments(content, i);
             if !MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
-                Fail("expected 'func' after 'override'", content, i);
+                ParseRefuse(location_context, i, "expected_token", "expected", "func", "construct", "role_override");
             }
             ArraySet(cursor_out, 0, i);
             let override_method: String = ParseFunction(
@@ -108,8 +106,16 @@ func ParseRoleDecl(
             impl_blocks = AppendLine(impl_blocks, override_method);
             continue;
         }
+        // Native also admits `include ROLE;` and a bare method in a role
+        // without a compact `impl`; this parser does not cover them yet.
+        if MatchLanguageWord(content, i, LanguageWordId.WordInclude) {
+            ParseRefuse(location_context, i, "surface_not_covered", "surface", "role include", "construct", "role");
+        }
+        if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
+            ParseRefuse(location_context, i, "surface_not_covered", "surface", "role method outside an impl", "construct", "role");
+        }
         if !MatchLanguageWord(content, i, LanguageWordId.WordImpl) {
-            Exit(1);
+            ParseRefuse(location_context, i, "expected_token", "expected", "impl, override or func", "construct", "role");
         }
         i = LanguageWordEnd(i, LanguageWordId.WordImpl);
         i = SkipWhitespaceAndComments(content, i);
@@ -118,27 +124,25 @@ func ParseRoleDecl(
             i = SkipWhitespaceAndComments(content, i);
         }
         ArraySet(cursor_out, 0, i);
-        let ab_name_impl: String = ReadType(content, i, cursor_out);
+        let ab_name_impl: String = ReadTypeIn(location_context, content, i, cursor_out);
         i = cursor_out[0];
         if StringLength(ab_name_impl) == 0 {
-            Exit(1);
+            ParseRefuse(location_context, i, "type_name_invalid", "construct", "role_impl", "", "");
         }
-        i = Expect(content, i, "{");
-        if i < 0 {
-            Exit(1);
-        }
+        let impl_open_at: Int = SkipWhitespaceAndComments(content, i);
+        i = ParseExpectIn(location_context, content, i, "{", "role_impl");
         let impl_methods: String = "";
         while true {
             i = SkipWhitespaceAndComments(content, i);
             if i >= n {
-                Exit(1);
+                ParseRefuse(location_context, impl_open_at, "block_unclosed", "construct", "role_impl", "", "");
             }
             if ParserCharAt(content, i) == "}" {
                 i = i + 1;
                 break;
             }
             if !MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
-                Exit(1);
+                ParseRefuse(location_context, i, "expected_token", "expected", "func", "construct", "role_impl");
             }
             ArraySet(cursor_out, 0, i);
             let m_block: String = ParseFunction(

@@ -84,8 +84,8 @@ def main():
         ("invariant-type", "invariant: w.calls <= 3;", "invariant: 3;", "condition_not_bool"),
         ("success-type", "success: true;", "success: 3;", "condition_not_bool"),
         ("failure-type", "failure: false;", "failure: 3;", "condition_not_bool"),
-        ("pre-duplicate", "pre: w.calls == 2 && z.w.calls == 2;", "pre: true; pre: false;", "duplicate Intent step predicate"),
-        ("invariant-duplicate", "invariant: w.calls <= 3;", "invariant: true; invariant: false;", "duplicate Intent step predicate"),
+        ("pre-duplicate", "pre: w.calls == 2 && z.w.calls == 2;", "pre: true; pre: false;", "- clause: pre"),
+        ("invariant-duplicate", "invariant: w.calls <= 3;", "invariant: true; invariant: false;", "- clause: invariant"),
     ):
         source = work / (name + ".pgy")
         assert template.count(before) == 1

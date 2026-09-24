@@ -1,0 +1,10 @@
+intent Deliver() {
+    step Ship {
+        guard: true;
+        guard: false;
+    }
+}
+
+func Main() -> Void {
+    Log("unreached");
+}

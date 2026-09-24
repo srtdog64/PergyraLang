@@ -1,0 +1,9 @@
+subject Player {
+    let hp: Int;
+}
+
+effect Burn bearer: Player { }
+
+func Main() -> Void {
+    Log("unreached");
+}

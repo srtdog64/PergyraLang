@@ -11,6 +11,9 @@
 #   whole registry signature on the default route; native names it for the
 #   TextBuilder family.
 # - Broken-input rows: each must exit non-zero with one positioned diagnostic.
+# - Uncovered rows: programs native compiles whose declaration form the
+#   self-hosted parser does not cover are refused as surface_not_covered at
+#   the form's position.
 # - Binding names follow the registry NAME context on both front ends.
 set -euo pipefail
 
@@ -163,11 +166,47 @@ BROKEN_CASES=(
     "expression_statement|3|statement_kind_unsupported"
     "member_expression_statement|5|statement_kind_unsupported"
     "match_unclosed|3|block_unclosed"
+    "intent_missing_name|1|declaration_name_missing"
+    "intent_step_unclosed|2|block_unclosed"
+    "intent_duplicate_guard|4|declaration_clause_duplicate"
+    "intent_step_outcome|4|intent_shape_invalid"
+    "intent_retry_zero|1|declaration_clause_invalid"
+    "zone_apply_target|10|expected_token"
+    "zone_slot_type|6|type_name_invalid"
+    "effect_for|5|expected_token"
+    "effect_unclosed|5|block_unclosed"
+    "relation_comma|5|expected_token"
+    "relation_field_type|6|type_name_invalid"
+    "type_alias_equals|1|expected_token"
+    "event_param_colon|1|expected_token"
+    "role_member|4|expected_token"
+    "ability_member|2|expected_token"
 )
 for row in "${BROKEN_CASES[@]}"; do
     IFS='|' read -r name line code <<<"$row"
     expect_refusal "broken-$name" "$FIXTURES/broken_$name.pgy" \
         "broken_$name.pgy" "$line" "$code"
+done
+
+# Declaration forms native compiles and the self-hosted parser does not
+# cover yet: the default route names the form at its position instead of a
+# bare `self-host driver failed (exit 1)`. When the form is implemented,
+# its row leaves this list and the case joins the default-route sweep.
+# case|expected line in main.pgy|code|required text
+UNCOVERED_CASES=(
+    "zone_effect_pool_runtime|9|surface_not_covered|- surface: zone pool slot"
+    "role_include_methods|21|surface_not_covered|- surface: role include"
+    "relation_effect_projection_sync|21|surface_not_covered|- surface: relation method"
+    "intent_decl_overlay|51|surface_not_covered|- surface: repeated intent step on clause"
+    "zone_layer_projection_state_alias|30|surface_not_covered|- surface: zone apply of a state"
+)
+for row in "${UNCOVERED_CASES[@]}"; do
+    IFS='|' read -r name line code extra <<<"$row"
+    source_rel="tests/cases/backend_compare/$name/main.pgy"
+    (cd "$ROOT_DIR" && "$PGY" "$source_rel" --native-pipeline --backend=c \
+        -o "$WORK_REL/native-$name.bin") >"$WORK_DIR/native-$name.log" 2>&1 ||
+        { cat "$WORK_DIR/native-$name.log" >&2; fail "native no longer compiles $name; its uncovered row is stale"; }
+    expect_refusal "uncovered-$name" "$source_rel" main.pgy "$line" "$code" "$extra"
 done
 
 # Reserved binding names: native refuses the same spellings, and the words
@@ -219,5 +258,21 @@ grep -Fq 'PGY_KEYWORD_CONTEXT_NAME' "$ROOT_DIR/src/parser/parser_name_tokens.c" 
     fail "native binding names no longer read the registry NAME context"
 grep -Fq 'row.context_mask / 256' "$ROOT_DIR/src/self_hosted/parser/cursor_owner.pgy" ||
     fail "self-host binding names no longer read the registry NAME context"
+# Declaration parsers refuse through ParseRefuse. A bare Exit(1) printed
+# nothing, and Fail/Expect/ConsumeStmtTerminator print an uncoded
+# `PARSE ERROR` with a byte offset; context-free ReadType/ParseExpr refuse
+# with `Span: none`. Nominal and dispatch keep one invariant Exit(1) each.
+for owner in decl_intent_owner decl_zone_owner decl_effect_relation_owner \
+    decl_type_owner decl_event_owner decl_role_owner decl_ability_owner \
+    decl_nominal_owner decl_dispatch_owner domain_projection_map_owner \
+    intent_policy_clause_owner intent_default_clause_owner \
+    intent_terminal_clause_owner intent_variant_binding_owner; do
+    owner_path="$ROOT_DIR/src/self_hosted/parser/$owner.pgy"
+    owner_code="$(sed 's://.*$::' "$owner_path")"
+    ! grep -Eq '(^|[^A-Za-z])(Fail|Expect|ConsumeStmtTerminator|ReadType|ParseExpr)\(' <<<"$owner_code" ||
+        fail "$owner regained an uncoded or unpositioned parse refusal"
+    case "$owner" in decl_nominal_owner|decl_dispatch_owner) continue ;; esac
+    ! grep -Fq 'Exit(1)' <<<"$owner_code" || fail "$owner regained a bare Exit(1)"
+done
 
-echo "[$LABEL] ${#IMPORTED_CASES[@]} imported-file spans, ${#BROKEN_CASES[@]} broken inputs x 4 default legs, reserved binding names, builtin signatures: PASS"
+echo "[$LABEL] ${#IMPORTED_CASES[@]} imported-file spans, ${#BROKEN_CASES[@]} broken inputs, ${#UNCOVERED_CASES[@]} uncovered native forms x 4 default legs, reserved binding names, builtin signatures: PASS"

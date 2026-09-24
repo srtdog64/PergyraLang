@@ -1,0 +1,11 @@
+enum Delivery { Done(Int), Lost(Int) }
+
+intent Deliver() -> Delivery {
+    step Ship {
+        guard: true;
+    }
+}
+
+func Main() -> Void {
+    Log("unreached");
+}

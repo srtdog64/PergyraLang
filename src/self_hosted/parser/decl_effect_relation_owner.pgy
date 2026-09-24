@@ -1,9 +1,15 @@
 // Self-host parser effect/relation declaration owner.
+//
+// Every refusal names its code and the position the cursor held. A form the
+// native parser admits and this parser does not (a method, a body `for`, a
+// subject, vessel or binding slot, a projection group, a header with another
+// participant count) is refused as surface_not_covered, not as a syntax error.
 
 import "cursor_owner.pgy";
 import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "domain_projection_map_owner.pgy";
+import "source_refusal_owner.pgy";
 
 func DomainHeaderParticipantSlotLabel(content: String, i: Int) -> String {
     if MatchLanguageWord(content, i, LanguageWordId.WordObject) {
@@ -12,7 +18,34 @@ func DomainHeaderParticipantSlotLabel(content: String, i: Int) -> String {
     return "SubjectSlot";
 }
 
+// Body members native admits in an effect or relation body and this parser
+// does not cover yet.
+func DomainBodyUncoveredMemberRefusal(
+    context: ParserSourceLocationContext,
+    content: String, i: Int, construct: String
+) -> Void {
+    let surface: String = "";
+    if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
+        surface = Concat(construct, " method");
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordFor) {
+        surface = Concat(construct, " body participant");
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordSubject) {
+        surface = Concat(construct, " subject slot");
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordVessel) {
+        surface = Concat(construct, " vessel slot");
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordBinding) &&
+        MatchLanguageWord(content, SkipWhitespaceAndComments(content,
+            LanguageWordEnd(i, LanguageWordId.WordBinding)), LanguageWordId.WordSlot) {
+        surface = Concat(construct, " binding slot");
+    }
+    if surface != "" {
+        ParseRefuse(context, i, "surface_not_covered",
+            "surface", surface, "construct", construct);
+    }
+}
+
 func ParseEffectRelationProjectionDirective(
+    context: ParserSourceLocationContext,
     content: String,
     start: Int,
     inout cursor_out: Array<Int>
@@ -29,22 +62,35 @@ func ParseEffectRelationProjectionDirective(
         label = "Bind";
         i = LanguageWordEnd(i, LanguageWordId.WordBind);
     } else {
-        Exit(1);
+        ParseRefuse(context, i, "expected_token", "expected",
+            "refresh, publish or bind", "construct", "projection");
     }
     i = SkipWhitespaceAndComments(content, i);
+    if ParserCharAt(content, i) == "[" {
+        ParseRefuse(context, i, "surface_not_covered", "surface",
+            "projection slot group", "construct", "projection");
+    }
     ArraySet(cursor_out, 0, i);
     let projection_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
+    if projection_name == "" {
+        ParseRefuse(context, i, "expected_token", "expected", "slot name",
+            "construct", "projection");
+    }
     i = SkipWhitespaceAndComments(content, i);
-    if projection_name == "" ||
-        !MatchLanguageWord(content, i, LanguageWordId.WordFrom) {
-        Exit(1);
+    if !MatchLanguageWord(content, i, LanguageWordId.WordFrom) {
+        ParseRefuse(context, i, "expected_token", "expected", "from",
+            "construct", "projection");
     }
     i = LanguageWordEnd(i, LanguageWordId.WordFrom);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
     let source_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
+    if source_name == "" {
+        ParseRefuse(context, i, "expected_token", "expected",
+            "source slot name", "construct", "projection");
+    }
     i = SkipWhitespaceAndComments(content, i);
     let participant_name: String = "";
     if MatchLanguageWord(content, i, LanguageWordId.WordBy) {
@@ -57,13 +103,12 @@ func ParseEffectRelationProjectionDirective(
     }
     ArraySet(cursor_out, 0, i);
     let projection_map: ParserDomainProjectionMapRows =
-        ParseDomainProjectionMapRows(content, i, cursor_out);
+        ParseDomainProjectionMapRows(context, content, i, cursor_out);
     i = cursor_out[0];
     i = SkipWhitespaceAndComments(content, i);
     if i < StringLength(content) && ParserCharAt(content, i) == ";" {
         i = i + 1;
     }
-    if source_name == "" { Exit(1); }
     ArraySet(cursor_out, 0, i);
     let row: String = Concat(
         "    ", Concat(label, Concat(": ", Concat(
@@ -80,6 +125,7 @@ func ParseEffectRelationProjectionDirective(
 }
 
 func ParseEffectRelationProjectionSlot(
+    context: ParserSourceLocationContext,
     content: String,
     start: Int,
     inout cursor_out: Array<Int>
@@ -93,25 +139,35 @@ func ParseEffectRelationProjectionSlot(
         label = "TObjectSlot";
         i = LanguageWordEnd(i, LanguageWordId.WordTobject);
     } else {
-        Exit(1);
+        ParseRefuse(context, i, "expected_token", "expected",
+            "object or tobject", "construct", "projection_slot");
     }
     i = SkipWhitespaceAndComments(content, i);
-    if !MatchLanguageWord(content, i, LanguageWordId.WordSlot) { Exit(1); }
+    if !MatchLanguageWord(content, i, LanguageWordId.WordSlot) {
+        ParseRefuse(context, i, "expected_token", "expected", "slot",
+            "construct", "projection_slot");
+    }
     i = LanguageWordEnd(i, LanguageWordId.WordSlot);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
     let slot_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
-    i = Expect(content, i, ":");
-    if i < 0 || slot_name == "" { Exit(1); }
+    if slot_name == "" {
+        ParseRefuse(context, i, "declaration_name_missing",
+            "construct", "projection_slot", "", "");
+    }
+    i = ParseExpectIn(context, content, i, ":", "projection_slot");
     ArraySet(cursor_out, 0, i);
-    let slot_type: String = ReadType(content, i, cursor_out);
+    let slot_type: String = ReadTypeIn(context, content, i, cursor_out);
     i = cursor_out[0];
+    if slot_type == "" {
+        ParseRefuse(context, i, "type_name_invalid",
+            "construct", "projection_slot", "", "");
+    }
     i = SkipWhitespaceAndComments(content, i);
     if i < StringLength(content) && ParserCharAt(content, i) == ";" {
         i = i + 1;
     }
-    if slot_type == "" { Exit(1); }
     ArraySet(cursor_out, 0, i);
     return Concat(
         "    ", Concat(label, Concat(": ", Concat(
@@ -120,7 +176,8 @@ func ParseEffectRelationProjectionSlot(
     );
 }
 
-func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {
+func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String,
+    location_context: ParserSourceLocationContext) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
@@ -129,9 +186,16 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     ArraySet(cursor_out, 0, i);
     let eff_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
+    if eff_name == "" {
+        ParseRefuse(location_context, i, "declaration_name_missing", "construct", "effect", "", "");
+    }
     i = SkipWhitespaceAndComments(content, i);
     if !MatchLanguageWord(content, i, LanguageWordId.WordFor) {
-        Exit(1);
+        if ParserCharAt(content, i) == "{" {
+            ParseRefuse(location_context, i, "surface_not_covered", "surface",
+                "effect without a participant", "construct", "effect");
+        }
+        ParseRefuse(location_context, i, "expected_token", "expected", "for", "construct", "effect");
     }
     i = LanguageWordEnd(i, LanguageWordId.WordFor);
     i = SkipWhitespaceAndComments(content, i);
@@ -148,32 +212,41 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     ArraySet(cursor_out, 0, i);
     let eff_param_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
-    i = Expect(content, i, ":");
-    if i < 0 {
-        Exit(1);
+    if eff_param_name == "" {
+        ParseRefuse(location_context, i, "declaration_name_missing", "construct", "effect_participant", "", "");
     }
+    i = ParseExpectIn(location_context, content, i, ":", "effect");
     ArraySet(cursor_out, 0, i);
-    let eff_param_type: String = ReadType(content, i, cursor_out);
+    let eff_param_type: String = ReadTypeIn(location_context, content, i, cursor_out);
     i = cursor_out[0];
-    i = Expect(content, i, "{");
-    if i < 0 {
-        Exit(1);
+    if eff_param_type == "" {
+        ParseRefuse(location_context, i, "type_name_invalid", "construct", "effect_participant", "", "");
     }
+    i = SkipWhitespaceAndComments(content, i);
+    if ParserCharAt(content, i) == "," {
+        ParseRefuse(location_context, i, "surface_not_covered", "surface",
+            "effect with more than one participant", "construct", "effect");
+    }
+    let open_at: Int = i;
+    i = ParseExpectIn(location_context, content, i, "{", "effect");
 
     let eff_fields: String = "";
     while true {
         i = SkipWhitespaceAndComments(content, i);
-        if i >= n { Exit(1); }
+        if i >= n {
+            ParseRefuse(location_context, open_at, "block_unclosed", "construct", "effect", "", "");
+        }
         if ParserCharAt(content, i) == "}" {
             i = i + 1;
             break;
         }
+        DomainBodyUncoveredMemberRefusal(location_context, content, i, "effect");
         if MatchLanguageWord(content, i, LanguageWordId.WordObject) ||
             MatchLanguageWord(content, i, LanguageWordId.WordTobject) {
             ArraySet(cursor_out, 0, i);
             eff_fields = AppendLine(
                 eff_fields,
-                ParseEffectRelationProjectionSlot(content, i, cursor_out)
+                ParseEffectRelationProjectionSlot(location_context, content, i, cursor_out)
             );
             i = cursor_out[0];
             continue;
@@ -184,7 +257,7 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             ArraySet(cursor_out, 0, i);
             eff_fields = AppendLine(
                 eff_fields,
-                ParseEffectRelationProjectionDirective(content, i, cursor_out)
+                ParseEffectRelationProjectionDirective(location_context, content, i, cursor_out)
             );
             i = cursor_out[0];
             continue;
@@ -201,14 +274,21 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
         ArraySet(cursor_out, 0, i);
         let f_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
-        if StringLength(f_name) == 0 { Exit(1); }
-        i = Expect(content, i, ":");
-        if i < 0 { Exit(1); }
+        if f_name == "" {
+            ParseRefuse(location_context, i, "declaration_name_missing", "construct", "effect_field", "", "");
+        }
+        i = ParseExpectIn(location_context, content, i, ":", "effect_field");
         ArraySet(cursor_out, 0, i);
-        let f_type: String = ReadType(content, i, cursor_out);
+        let f_type: String = ReadTypeIn(location_context, content, i, cursor_out);
         i = cursor_out[0];
-        i = Expect(content, i, ";");
-        if i < 0 { Exit(1); }
+        if f_type == "" {
+            ParseRefuse(location_context, i, "type_name_invalid", "construct", "effect_field", "", "");
+        }
+        if ParserCharAt(content, SkipWhitespaceAndComments(content, i)) == "=" {
+            ParseRefuse(location_context, SkipWhitespaceAndComments(content, i), "surface_not_covered", "surface",
+                "effect field initializer", "construct", "effect_field");
+        }
+        i = ParseExpectIn(location_context, content, i, ";", "effect_field");
 
         if is_shared_eff {
             eff_fields = AppendLine(eff_fields, Concat("    Shared: ", Concat(f_name, Concat(": ", f_type))));
@@ -224,7 +304,8 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
     ArraySet(cursor_out, 0, i); return out;
 }
 
-func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {
+func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String,
+    location_context: ParserSourceLocationContext) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
@@ -233,8 +314,21 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
     ArraySet(cursor_out, 0, i);
     let rel_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
+    if rel_name == "" {
+        ParseRefuse(location_context, i, "declaration_name_missing", "construct", "relation", "", "");
+    }
     i = SkipWhitespaceAndComments(content, i);
-    if !MatchLanguageWord(content, i, LanguageWordId.WordFor) { Exit(1); }
+    if MatchLanguageWord(content, i, LanguageWordId.WordBetween) {
+        ParseRefuse(location_context, i, "surface_not_covered", "surface",
+            "relation between clause", "construct", "relation");
+    }
+    if !MatchLanguageWord(content, i, LanguageWordId.WordFor) {
+        if ParserCharAt(content, i) == "{" {
+            ParseRefuse(location_context, i, "surface_not_covered", "surface",
+                "relation without participants", "construct", "relation");
+        }
+        ParseRefuse(location_context, i, "expected_token", "expected", "for", "construct", "relation");
+    }
     i = LanguageWordEnd(i, LanguageWordId.WordFor);
 
     // Param 1
@@ -252,15 +346,24 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
     ArraySet(cursor_out, 0, i);
     let p1_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
-    i = Expect(content, i, ":");
-    if i < 0 { Exit(1); }
+    if p1_name == "" {
+        ParseRefuse(location_context, i, "declaration_name_missing", "construct", "relation_participant", "", "");
+    }
+    i = ParseExpectIn(location_context, content, i, ":", "relation");
     ArraySet(cursor_out, 0, i);
-    let p1_type: String = ReadType(content, i, cursor_out);
+    let p1_type: String = ReadTypeIn(location_context, content, i, cursor_out);
     i = cursor_out[0];
+    if p1_type == "" {
+        ParseRefuse(location_context, i, "type_name_invalid", "construct", "relation_participant", "", "");
+    }
 
     // Comma
-    i = Expect(content, i, ",");
-    if i < 0 { Exit(1); }
+    i = SkipWhitespaceAndComments(content, i);
+    if ParserCharAt(content, i) == "{" {
+        ParseRefuse(location_context, i, "surface_not_covered", "surface",
+            "relation with one participant", "construct", "relation");
+    }
+    i = ParseExpectIn(location_context, content, i, ",", "relation");
 
     // Param 2
     i = SkipWhitespaceAndComments(content, i);
@@ -277,30 +380,42 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
     ArraySet(cursor_out, 0, i);
     let p2_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
-    i = Expect(content, i, ":");
-    if i < 0 { Exit(1); }
+    if p2_name == "" {
+        ParseRefuse(location_context, i, "declaration_name_missing", "construct", "relation_participant", "", "");
+    }
+    i = ParseExpectIn(location_context, content, i, ":", "relation");
     ArraySet(cursor_out, 0, i);
-    let p2_type: String = ReadType(content, i, cursor_out);
+    let p2_type: String = ReadTypeIn(location_context, content, i, cursor_out);
     i = cursor_out[0];
-
-    i = Expect(content, i, "{");
-    if i < 0 { Exit(1); }
+    if p2_type == "" {
+        ParseRefuse(location_context, i, "type_name_invalid", "construct", "relation_participant", "", "");
+    }
+    i = SkipWhitespaceAndComments(content, i);
+    if ParserCharAt(content, i) == "," {
+        ParseRefuse(location_context, i, "surface_not_covered", "surface",
+            "relation with more than two participants", "construct", "relation");
+    }
+    let open_at: Int = i;
+    i = ParseExpectIn(location_context, content, i, "{", "relation");
 
     // Fields
     let rel_fields: String = "";
     while true {
         i = SkipWhitespaceAndComments(content, i);
-        if i >= n { Exit(1); }
+        if i >= n {
+            ParseRefuse(location_context, open_at, "block_unclosed", "construct", "relation", "", "");
+        }
         if ParserCharAt(content, i) == "}" {
             i = i + 1;
             break;
         }
+        DomainBodyUncoveredMemberRefusal(location_context, content, i, "relation");
         if MatchLanguageWord(content, i, LanguageWordId.WordObject) ||
             MatchLanguageWord(content, i, LanguageWordId.WordTobject) {
             ArraySet(cursor_out, 0, i);
             rel_fields = AppendLine(
                 rel_fields,
-                ParseEffectRelationProjectionSlot(content, i, cursor_out)
+                ParseEffectRelationProjectionSlot(location_context, content, i, cursor_out)
             );
             i = cursor_out[0];
             continue;
@@ -311,7 +426,7 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
             ArraySet(cursor_out, 0, i);
             rel_fields = AppendLine(
                 rel_fields,
-                ParseEffectRelationProjectionDirective(content, i, cursor_out)
+                ParseEffectRelationProjectionDirective(location_context, content, i, cursor_out)
             );
             i = cursor_out[0];
             continue;
@@ -328,14 +443,21 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
         ArraySet(cursor_out, 0, i);
         let f_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
-        if StringLength(f_name) == 0 { Exit(1); }
-        i = Expect(content, i, ":");
-        if i < 0 { Exit(1); }
+        if f_name == "" {
+            ParseRefuse(location_context, i, "declaration_name_missing", "construct", "relation_field", "", "");
+        }
+        i = ParseExpectIn(location_context, content, i, ":", "relation_field");
         ArraySet(cursor_out, 0, i);
-        let f_type: String = ReadType(content, i, cursor_out);
+        let f_type: String = ReadTypeIn(location_context, content, i, cursor_out);
         i = cursor_out[0];
-        i = Expect(content, i, ";");
-        if i < 0 { Exit(1); }
+        if f_type == "" {
+            ParseRefuse(location_context, i, "type_name_invalid", "construct", "relation_field", "", "");
+        }
+        if ParserCharAt(content, SkipWhitespaceAndComments(content, i)) == "=" {
+            ParseRefuse(location_context, SkipWhitespaceAndComments(content, i), "surface_not_covered", "surface",
+                "relation field initializer", "construct", "relation_field");
+        }
+        i = ParseExpectIn(location_context, content, i, ";", "relation_field");
 
         if is_shared_rel {
             rel_fields = AppendLine(rel_fields, Concat("    Shared: ", Concat(f_name, Concat(": ", f_type))));

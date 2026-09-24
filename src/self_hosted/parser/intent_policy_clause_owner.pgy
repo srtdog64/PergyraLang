@@ -1,12 +1,13 @@
 // Intent declaration mode/priority and explicit default-rollback clause owner.
+// A malformed or repeated clause is refused where it goes wrong.
 
 import "cursor_owner.pgy";
 import "expr_owner.pgy";
 import "tree_text_owner.pgy";
+import "source_refusal_owner.pgy";
 
 struct ParserIntentPolicyClause {
     matched: Bool;
-    ok: Bool;
     next: Int;
     mode: String;
     priority_text: String;
@@ -17,17 +18,19 @@ struct ParserIntentPolicyClause {
 
 func ParserIntentPolicyClauseDefault() -> ParserIntentPolicyClause {
     return ParserIntentPolicyClause(
-        false, true, 0, "exclusive", "", ParserExpressionInvalid(), false, false
+        false, 0, "exclusive", "", ParserExpressionInvalid(), false, false
     );
 }
 
 func ParserIntentPolicyClauseFromSource(
+    context: ParserSourceLocationContext,
     content: String, start: Int, current: ParserIntentPolicyClause
 ) -> ParserIntentPolicyClause {
     if MatchLanguageWord(content, start, LanguageWordId.WordExclusive) ||
         MatchLanguageWord(content, start, LanguageWordId.WordConcurrent) {
         if current.mode_explicit {
-            Fail("duplicate Intent execution mode", content, start);
+            ParseRefuse(context, start, "declaration_clause_duplicate",
+                "clause", "execution mode", "construct", "intent");
         }
         let mode: String = "exclusive";
         let word: LanguageWordId = LanguageWordId.WordExclusive;
@@ -37,69 +40,58 @@ func ParserIntentPolicyClauseFromSource(
             mode = "concurrent";
             word = LanguageWordId.WordConcurrent;
         }
-        let next: Int = Expect(content, LanguageWordEnd(start, word), ";");
+        let next: Int = ParseExpectIn(
+            context, content, LanguageWordEnd(start, word), ";", "intent_mode");
         return ParserIntentPolicyClause(
-            true, next >= 0, next, mode, current.priority_text,
+            true, next, mode, current.priority_text,
             current.priority_expression, true, current.rollback_explicit
         );
     }
     if MatchLanguageWord(content, start, LanguageWordId.WordRollback) {
         if current.rollback_explicit {
-            Fail("duplicate Intent rollback policy", content, start);
+            ParseRefuse(context, start, "declaration_clause_duplicate",
+                "clause", "rollback policy", "construct", "intent");
         }
-        let value_start: Int = Expect(
-            content, LanguageWordEnd(start, LanguageWordId.WordRollback), ":");
-        if value_start < 0 {
-            Fail("expected Intent rollback policy", content, start);
-        }
+        let value_start: Int = ParseExpectIn(context, content,
+            LanguageWordEnd(start, LanguageWordId.WordRollback), ":", "intent_rollback");
         value_start = SkipWhitespaceAndComments(content, value_start);
         let cursor: Array<Int> = [value_start];
         let policy: String = ReadIdent(content, value_start, cursor);
         // Only the existing full-rollback execution owner is substituted.
-        // Other native policies must not be accepted and erased to this default.
-        if policy != "full" {
-            Fail("self-host Intent rollback currently requires full", content, value_start);
+        // Native's other policies are refused as uncovered, never accepted
+        // and erased to this default.
+        if policy == "current" || policy == "none" {
+            ParseRefuse(context, value_start, "surface_not_covered",
+                "surface", Concat("intent rollback ", policy), "construct", "intent");
         }
-        let next: Int = Expect(content, cursor[0], ";");
+        if policy != "full" {
+            ParseRefuse(context, value_start, "expected_token",
+                "expected", "full, current or none", "construct", "intent_rollback");
+        }
+        let next: Int = ParseExpectIn(context, content, cursor[0], ";", "intent_rollback");
         return ParserIntentPolicyClause(
-            true, next >= 0, next, current.mode, current.priority_text,
+            true, next, current.mode, current.priority_text,
             current.priority_expression, current.mode_explicit, true);
     }
     if !MatchLanguageWord(content, start, LanguageWordId.WordPriority) {
         return ParserIntentPolicyClause(
-            false, true, start, current.mode, current.priority_text,
+            false, start, current.mode, current.priority_text,
             current.priority_expression, current.mode_explicit, current.rollback_explicit
         );
     }
     if current.priority_text != "" {
-        return ParserIntentPolicyClause(
-            true, false, start, current.mode, current.priority_text,
-            current.priority_expression, current.mode_explicit, current.rollback_explicit
-        );
+        ParseRefuse(context, start, "declaration_clause_duplicate",
+            "clause", "priority", "construct", "intent");
     }
-    let expression_start: Int = Expect(
-        content,
-        LanguageWordEnd(start, LanguageWordId.WordPriority), ":"
-    );
-    if expression_start < 0 {
-        return ParserIntentPolicyClause(
-            true, false, start, current.mode, "", ParserExpressionInvalid(),
-            current.mode_explicit, current.rollback_explicit
-        );
-    }
+    let expression_start: Int = ParseExpectIn(context, content,
+        LanguageWordEnd(start, LanguageWordId.WordPriority), ":", "intent_priority");
     let cursor: Array<Int> = [expression_start];
-    let expression: ParserExpressionFact = ParseExprFact(
-        content, expression_start, cursor
+    let expression: ParserExpressionFact = ParseExprFactIn(
+        context, content, expression_start, cursor
     );
-    if !expression.ok {
-        return ParserIntentPolicyClause(
-            true, false, start, current.mode, "", expression,
-            current.mode_explicit, current.rollback_explicit
-        );
-    }
-    let next: Int = Expect(content, cursor[0], ";");
+    let next: Int = ParseExpectIn(context, content, cursor[0], ";", "intent_priority");
     return ParserIntentPolicyClause(
-        true, next >= 0, next, current.mode, expression.text, expression,
+        true, next, current.mode, expression.text, expression,
         current.mode_explicit, current.rollback_explicit
     );
 }

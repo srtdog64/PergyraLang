@@ -1,0 +1,5 @@
+type Score Int;
+
+func Main() -> Void {
+    Log("unreached");
+}

@@ -1,9 +1,11 @@
 // Parser-owned syntax carriage for `map { target <- source }` projection
 // entries.  This owner preserves spelling and parent structure only; DIR and
-// semantic owners resolve declaration and field identity later.
+// semantic owners resolve declaration and field identity later. A malformed
+// map is refused where it goes wrong.
 
 import "cursor_owner.pgy";
 import "tree_text_owner.pgy";
+import "source_refusal_owner.pgy";
 
 struct ParserDomainProjectionMapRows {
     present: Bool;
@@ -16,6 +18,7 @@ func ParserDomainProjectionMapRowsAbsent() -> ParserDomainProjectionMapRows {
 }
 
 func ParseDomainProjectionMapRows(
+    context: ParserSourceLocationContext,
     content: String,
     start: Int,
     inout cursor_out: Array<Int>
@@ -26,16 +29,22 @@ func ParseDomainProjectionMapRows(
         return ParserDomainProjectionMapRowsAbsent();
     }
     i = LanguageWordEnd(i, LanguageWordId.WordMap);
-    i = Expect(content, i, "{");
-    if i < 0 { Exit(1); }
+    let open_at: Int = SkipWhitespaceAndComments(content, i);
+    i = ParseExpectIn(context, content, i, "{", "projection_map");
 
     let rows: String = "";
     let count: Int = 0;
     while true {
         i = SkipWhitespaceAndComments(content, i);
-        if i >= StringLength(content) { Exit(1); }
+        if i >= StringLength(content) {
+            ParseRefuse(context, open_at, "block_unclosed",
+                "construct", "projection_map", "", "");
+        }
         if ParserCharAt(content, i) == "}" {
-            if count == 0 { Exit(1); }
+            if count == 0 {
+                ParseRefuse(context, i, "expected_token", "expected",
+                    "target <- source", "construct", "projection_map");
+            }
             i = i + 1;
             break;
         }
@@ -43,14 +52,19 @@ func ParseDomainProjectionMapRows(
         ArraySet(cursor_out, 0, i);
         let target_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
-        if target_name == "" { Exit(1); }
-        i = Expect(content, i, "<-");
-        if i < 0 { Exit(1); }
+        if target_name == "" {
+            ParseRefuse(context, i, "expected_token", "expected",
+                "target field name", "construct", "projection_map");
+        }
+        i = ParseExpectIn(context, content, i, "<-", "projection_map");
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
         let source_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
-        if source_name == "" { Exit(1); }
+        if source_name == "" {
+            ParseRefuse(context, i, "expected_token", "expected",
+                "source field name", "construct", "projection_map");
+        }
 
         rows = AppendLine(rows, Concat(
             "      ProjectionMap: ", Concat(
