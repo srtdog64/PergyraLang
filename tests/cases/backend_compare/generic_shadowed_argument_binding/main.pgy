@@ -1,0 +1,28 @@
+// A shadowed local keeps its own type as a generic argument: the inner call
+// binds T = String, the outer one T = Int.
+func Wrap<T>(x: T) -> Option<T> {
+    return Some(x);
+}
+
+func Twice<T>(x: T) -> Array<T> {
+    return [x, x];
+}
+
+func Main() -> Void {
+    let v: Int = 1;
+    if v > 0 {
+        let v: String = "inner";
+        let w: Option<String> = Wrap(v);
+        if IsSome(w) {
+            Log(UnwrapOption(w));
+        }
+        let pair: Array<String> = Twice(v);
+        Log(pair[1]);
+    }
+    let o: Option<Int> = Wrap(v);
+    if IsSome(o) {
+        Log(ToString(UnwrapOption(o)));
+    }
+    let nums: Array<Int> = Twice(v);
+    Log(ToString(nums[0] + nums[1]));
+}

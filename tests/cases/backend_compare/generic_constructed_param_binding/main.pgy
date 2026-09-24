@@ -1,0 +1,80 @@
+// Generic parameters bound from constructed parameter types. The checker
+// binds each call's type arguments and MIR specializes from that binding.
+ability Sortable {}
+subject Card { let value: Int; }
+role CardContract for Card { impl ability Sortable {} }
+
+// Holder's parameter is V, not T: native LLVM reads a class parameter T as
+// the constraint of another declaration's `T: Sortable` (open, LLVM type map).
+class Holder<V> {
+    let item: V;
+
+    func Get(self) -> V {
+        return self.item;
+    }
+}
+
+func TakeOpt<T>(o: Option<T>) -> Int {
+    if IsSome(o) {
+        return 1;
+    }
+    return 0;
+}
+
+func Count<T>(xs: Array<T>) -> Int {
+    return ArrayLength(xs);
+}
+
+func First<T>(xs: Array<T>) -> T {
+    return xs[0];
+}
+
+func Or<T, E>(r: Result<T, E>, fallback: T) -> T {
+    match r {
+        case Ok(v): return v;
+        case Err(e): return fallback;
+    }
+    return fallback;
+}
+
+func Peek<T>(o: Option<T>) -> Int where T: Sortable {
+    if IsSome(o) {
+        return 2;
+    }
+    return 0;
+}
+
+func Settle<T>(o: Option<T>, fallback: T) -> T {
+    if IsSome(o) {
+        return UnwrapOption(o);
+    }
+    return fallback;
+}
+
+func Relay<U>(o: Option<U>, fallback: U) -> U {
+    return Settle(o, fallback);
+}
+
+func Id<T>(x: T) -> T {
+    return x;
+}
+
+func Main() -> Void {
+    Log(ToString(TakeOpt(Some(5))));
+    let xs: Array<Int> = [4, 5, 6];
+    Log(ToString(Count(xs)));
+    Log(ToString(First(xs)));
+    let names: Array<String> = ["a", "b"];
+    Log(First(names));
+    let good: Result<Int, String> = Ok(3);
+    let bad: Result<Int, String> = Err("no");
+    Log(ToString(Or(good, 9)));
+    Log(ToString(Or(bad, 9)));
+    Log(ToString(Peek(Some(Card(4)))));
+    let some: Option<Int> = Some(8);
+    let none: Option<String> = None;
+    Log(ToString(Relay(some, 0)));
+    Log(Relay(none, "empty"));
+    let h: Holder<Int> = Holder(7);
+    Log(ToString(Id(h.Get())));
+}

@@ -1,0 +1,18 @@
+// The argument is the result of a generic class method (T = Int for
+// Holder<Int>). The checker binds Id's T from it.
+class Holder<T> {
+    let item: T;
+
+    func Get(self) -> T {
+        return self.item;
+    }
+}
+
+func Id<T>(x: T) -> T {
+    return x;
+}
+
+func Main() -> Void {
+    let h: Holder<Int> = Holder(7);
+    Log(ToString(Id(h.Get())));
+}

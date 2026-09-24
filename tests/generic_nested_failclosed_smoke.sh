@@ -1,21 +1,45 @@
 #!/usr/bin/env bash
 #
 # generic_nested_failclosed_smoke.sh — generic functions over constructed
-# types must never reach the native compiler as broken source. This locks
-# BOTH backends' voices on the same fixtures (G-1 landed 2026-07-04,
-# docs/151 §8; original asymmetry measured 2026-07-03):
+# types on the native backends. A call either runs with the same output on
+# C and LLVM or is refused with a diagnostic; it never reaches a native
+# compiler as broken source unless a row below names that open fault.
 #
-#   - RETURN position and body-locals (Option<T> over a bare-T-inferable
-#     binding) now RUN on BOTH backends — C substitutes bindings at the
-#     type-require/expr-infer choke points and the specialization registry
-#     skips unbound type-parameter scans (G-1).
-#   - PARAM position is split after G-2: C structurally binds constructed
-#     params and runs; LLVM still fail-closes on the G-2L argument-metadata
-#     cluster. This asymmetry is intentional and documented in docs/151.
-#   - bare-T generics must keep compiling AND running on both backends
-#     (no-false-positive leg).
+# 2026-09-25 (registry row mir.generic_specialization): the checker binds a
+# generic call's type arguments structurally (explicit type argument, the
+# matching component of the first argument whose parameter type mentions
+# the parameter, then the default) and seals the binding on the call. MIR
+# specializes from that sealed binding only; its text matcher is gone, and a
+# call with no sealed binding is refused in MIR with PGY_MIR_TOPOLOGY_INVALID.
+#
+#   - PARAM position (Option<T>, Array<T>, Result<T, E>) runs on both
+#     backends; nested_param no longer fails closed on LLVM.
+#   - A generic struct parameter (Crate<T>) binds T = Int and runs on LLVM;
+#     native C still declares the specialized prototype before the
+#     monomorphized struct typedef, so the C compiler rejects it (open,
+#     C emission order, not the binder).
+#   - Conflicting bindings (nested or explicit) and a parameter no argument
+#     fixes are refused at native semantic with a coded diagnostic; they used
+#     to pass semantic and fail in MIR lowering, the C compiler or the LLVM
+#     verifier.
+#   - A shadowed local no longer borrows the outer local's type: the text
+#     binder bound T = Int for a String and both backends failed.
+#   - Class-generic constructed-over-T FIELD: C substitutes and runs; LLVM
+#     still fails closed on aggregate lowering (G-5 owns it).
 
 set -euo pipefail
+
+# Subject of this gate:
+#   the native generic call binding and MIR specialization.
+# That is a fact about the native pipeline, so the gate compiles
+# in-process instead of delegating to the installed self-host driver.
+# Delegated, a self-host coverage gap would read as a regression in
+# the subject above. Declared per harness because the compiler is
+# reached through make and nested scripts, and the variable is the
+# same declared opt-out as --native-pipeline -- never a fallback.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -67,26 +91,57 @@ expect_runs() {
     [ "$got" = "$want" ] || fail "$backend/$fixture printed '$got', expected '$want'"
 }
 
-# Param position (G-2): C binds structurally and RUNS; LLVM still needs
-# argument type metadata (G-2L cluster) — asymmetry locked.
-expect_runs   c    nested_param.pgy "1"
-expect_reject llvm nested_param.pgy "requires concrete argument"
+for backend in c llvm; do
+    # Constructed parameter positions bind from the checked argument type.
+    expect_runs "$backend" nested_param.pgy "1"
+    expect_runs "$backend" nested_array_result.pgy $'3\n4\na\n3\n9'
+    expect_runs "$backend" nested_where.pgy "1"
+    expect_runs "$backend" class_member_argument.pgy "7"
+    expect_runs "$backend" shadowed_argument.pgy $'inner\n1'
 
-# G-1 cell: return position + body-locals run with identical output on
-# both backends (run-equal parity).
-expect_runs c    nested_return.pgy "7"
-expect_runs llvm nested_return.pgy "7"
-expect_runs c    body_local.pgy    "9"
-expect_runs llvm body_local.pgy    "9"
+    # G-1 cell: return position + body-locals (run-equal parity).
+    expect_runs "$backend" nested_return.pgy "7"
+    expect_runs "$backend" body_local.pgy "9"
 
-# Class-generic constructed-over-T FIELD (measured 2026-07-04): C
-# substitutes and runs; LLVM fails closed on aggregate lowering — the
-# REVERSE of the pre-G-1 function asymmetry. G-5 owns closing it.
+    # No false positives: bare-T generics stay green.
+    expect_runs "$backend" bare_ok.pgy "42"
+
+    # Refused at native semantic, with the checker's code.
+    expect_reject "$backend" nested_conflict.pgy \
+        "binds generic parameter 'T' to both 'Int' (argument 1) and 'String' (argument 2)"
+    expect_reject "$backend" explicit_conflict.pgy \
+        "binds generic parameter 'T' to 'Int' by its explicit type argument, but argument 1 gives it 'String'"
+    expect_reject "$backend" nested_unbound.pgy \
+        "cannot infer generic parameter 'T' from its arguments"
+done
+# The refusals are semantic diagnostics with a code and a position, not an
+# uncoded mir_lower stage failure at location null.
+expect_semantic_code() {
+    local fixture="$1" code="$2"
+    local log="$OUT_DIR/json_${fixture%.pgy}.log"
+    local src out
+    src="$(pgy_path_for_compiler "$PGY" "$FIXTURES/$fixture")"
+    out="$(pgy_path_for_compiler "$PGY" "$OUT_DIR/json_${fixture%.pgy}.exe")"
+    if (cd "$ROOT_DIR" && "$PGY" "$src" --backend=llvm --error-format=json \
+            -o "$out") >"$log" 2>&1; then
+        fail "$fixture compiled under --error-format=json"
+    fi
+    grep -Fq "\"stage\":\"semantic\"" "$log" && grep -Fq "\"code\":\"$code\"" "$log" \
+        && grep -Fq '"location":{"line":' "$log" ||
+        fail "$fixture is not a positioned semantic $code refusal: $(head -c 300 "$log")"
+}
+expect_semantic_code nested_conflict.pgy PGY_SEM_TYPE_MISMATCH
+expect_semantic_code explicit_conflict.pgy PGY_SEM_TYPE_MISMATCH
+expect_semantic_code nested_unbound.pgy PGY_SEM_INFER_GENERIC
+
+# Generic struct parameter: LLVM runs; native C emits the Open_Int prototype
+# before the Crate_Int typedef (open). Flip this row when C emission orders it.
+expect_runs   llvm nested_struct_param.pgy "4"
+expect_reject c    nested_struct_param.pgy "unknown type name 'Crate_Int'"
+
+# Class-generic constructed-over-T FIELD: C substitutes and runs; LLVM fails
+# closed on aggregate lowering. G-5 owns closing it.
 expect_runs   c    class_field.pgy $'7\n7'
 expect_reject llvm class_field.pgy "movable handle lowering"
 
-# No false positives: bare-T generics stay green on both backends.
-expect_runs c    bare_ok.pgy "42"
-expect_runs llvm bare_ok.pgy "42"
-
-echo "[generic-nested] G-1 run-parity + G-2 C param open / LLVM G-2L reject locked"
+echo "[generic-nested] checker-sealed generic bindings: constructed params run on c and llvm; conflicting and unbindable calls refused at semantic"

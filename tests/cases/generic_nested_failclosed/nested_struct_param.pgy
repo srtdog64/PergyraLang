@@ -1,0 +1,13 @@
+// T binds from a generic struct parameter: Crate<T> with Crate<Int>.
+struct Crate<T> {
+    let item: T;
+}
+
+func Open<T>(c: Crate<T>) -> T {
+    return c.item;
+}
+
+func Main() -> Void {
+    let c: Crate<Int> = Crate(4);
+    Log(ToString(Open(c)));
+}

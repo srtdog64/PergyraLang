@@ -1,0 +1,9 @@
+// The explicit type argument binds T to Int; the argument is a String. It
+// used to pass semantic and fail in the C compiler and the LLVM verifier.
+func Keep<T>(value: T) -> T {
+    return value;
+}
+
+func Main() -> Void {
+    Log(ToString(Keep<Int>("seven")));
+}

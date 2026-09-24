@@ -1,0 +1,28 @@
+// T and E bind from constructed parameters: Array<T> and Result<T, E>.
+func Count<T>(xs: Array<T>) -> Int {
+    return ArrayLength(xs);
+}
+
+func First<T>(xs: Array<T>) -> T {
+    return xs[0];
+}
+
+func Or<T, E>(r: Result<T, E>, fallback: T) -> T {
+    match r {
+        case Ok(v): return v;
+        case Err(e): return fallback;
+    }
+    return fallback;
+}
+
+func Main() -> Void {
+    let xs: Array<Int> = [4, 5, 6];
+    Log(ToString(Count(xs)));
+    Log(ToString(First(xs)));
+    let names: Array<String> = ["a", "b"];
+    Log(First(names));
+    let good: Result<Int, String> = Ok(3);
+    let bad: Result<Int, String> = Err("no");
+    Log(ToString(Or(good, 9)));
+    Log(ToString(Or(bad, 9)));
+}

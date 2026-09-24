@@ -301,7 +301,7 @@ Decision-0 닫힘·seam 해소는 §7에 이행 기록).
 
 | 생성자 | World | Zone | Actor | Auth | Intent/Eff | slot | 현행 판정 |
 |---|---|---|---|---|---|---|---|
-| `Option<T>`/`Result<T,E>` | 보존 | 보존 | 보존 | 보존 | 보존 | 약 | **G-1 OPEN**: return+body-local run-parity / C param OPEN(G-2) / LLVM param REJECT(G-2L) / per-type 우회 축소 |
+| `Option<T>`/`Result<T,E>` | 보존 | 보존 | 보존 | 보존 | 보존 | 약 | **G-1 OPEN**: return+body-local run-parity / param은 C·LLVM 모두 검사기 봉인 바인딩으로 실행(2026-09-25) / 잔여 aggregate 인자 ABI는 G-2L / per-type 우회 축소 |
 | `List<T>` | 보존 | 보존+T제약 | 보존 | 보존 | — | 약 | REJECT |
 | `Slot<T>` | 보존 | 강 | — | **승격**: T가 auth-bearing(=nominal 토큰, §2.1 auth_val 실증 한정)이면 Slot도 auth-aware — G-4 생성자 경계 검사로, 값 태깅 아님(Decision-0 준수) | 강 | 강 | REJECT + 런타임 GATE(항상-on) |
 | **`Channel<T>`** | **유일 합법 cross-World 운반체** | 경계 통과=증거 | — | 위임 위험 | send/recv | 강 | REJECT |
@@ -394,6 +394,20 @@ status ∈ {planned, landed}. landed = artifact와 gate 실존, planned =
   이 국소 실행 증거는 `Option<subject>`를 비롯한 잔여 aggregate ABI나
   G-2L 전체의 닫힘을 뜻하지 않는다. 제약·필드 읽기의 MIR 왕복도 같은
   실행 게이트에서 확인하며, LLVM 검증기 오류를 의미론적 거절로 세지 않는다.
+- **바인딩 소유권 이동(2026-09-25, registry row `mir.generic_specialization`)**:
+  generic 호출의 타입 인자는 검사기가 정한다. 함수 호출은
+  `type_checker_call_generic_where.c`, 메서드 호출은
+  `type_checker_expr_host.c`가 explicit 인자, 인자 타입의 구조적 대응
+  성분(`Option<T>`, `Array<T>`, `Result<T, E>`, generic struct, tuple),
+  default 순으로 바인딩하고 호출 노드에 MIR 타입 문법으로 봉인한다.
+  `mir_generic_method_specialization.c`는 그 봉인만 복사한다. 타입 텍스트
+  매칭은 삭제됐고, 봉인이 없는 호출은 MIR에서 `PGY_MIR_TOPOLOGY_INVALID`로
+  거절된다. 단일화 충돌(중첩과 explicit 인자 포함)과 어떤 인자도 정하지
+  못하는 매개변수는 native semantic에서 코드와 위치가 있는 진단으로
+  거절된다. `nested_param`은 LLVM에서도 1을 출력한다.
+  `generic_nested_failclosed_smoke`가 이 목소리와 남은 open 행(native C가
+  generic struct 매개변수의 특수화 prototype을 struct typedef보다 먼저
+  내보내는 문제)을 잠근다.
 - G-4 전 금지: §5의 Slot/Channel 행 개방은 Decision-0의 carriage 규칙
   (positional 기본)에 따라 **생성자 경계 검사**로 설계한다 — 값 태깅
   으로의 표류 금지.

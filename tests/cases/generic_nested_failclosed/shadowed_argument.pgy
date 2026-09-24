@@ -1,0 +1,22 @@
+// The inner `v` is a String that shadows the outer Int. The text binder read
+// the argument's type by the local's name, bound T = Int for the inner call,
+// and C and LLVM both received a String for an Int parameter. The checker
+// binds T = String for the inner call and T = Int for the outer one.
+func Wrap<T>(x: T) -> Option<T> {
+    return Some(x);
+}
+
+func Main() -> Void {
+    let v: Int = 1;
+    if v > 0 {
+        let v: String = "inner";
+        let w: Option<String> = Wrap(v);
+        if IsSome(w) {
+            Log(UnwrapOption(w));
+        }
+    }
+    let o: Option<Int> = Wrap(v);
+    if IsSome(o) {
+        Log(ToString(UnwrapOption(o)));
+    }
+}

@@ -114,3 +114,8 @@ for backend in c llvm; do
 done
 
 echo "[generic-falsification] constraint, unification and unbound-T claims hold at native semantic on c and llvm; default args, satisfied where-bounds and Option<T> over a subject run on both"
+
+# Constructed-parameter binding (registry row mir.generic_specialization):
+# the checker-sealed binding rows live in their own fixture set and run as
+# part of this push step.
+bash "$ROOT_DIR/tests/generic_nested_failclosed_smoke.sh"
