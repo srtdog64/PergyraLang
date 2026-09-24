@@ -2,6 +2,7 @@
 
 import "text_scan_owner.pgy";
 import "diagnostic_owner.pgy";
+import "native_pipeline_only_builtin_owner.pgy";
 import "env_owner.pgy";
 import "expr_type_owner.pgy";
 import "expr_validation_owner.pgy";
@@ -259,7 +260,7 @@ func CheckCallWithIdentifierOwner(
     } else {
         let found_opt: Option<Int> = SemanticCallableIndex(func_names, callee);
         if !IsSome(found_opt) {
-            return SemanticError1("undefined_function", "func", callee);
+            return SemanticUnresolvedCallableError(callee);
         }
         sig = func_params[UnwrapOption(found_opt)];
     }

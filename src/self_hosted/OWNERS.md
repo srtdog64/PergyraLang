@@ -868,6 +868,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- generated projection of the common compiler-internal caller registry;
   owns complete module/function/signature admission rows and path-boundary
   matching, not a consumer-local allowlist.
+- `src/self_hosted/semantic/native_pipeline_only_builtin_owner.pgy` -- the
+  one refusal for a callee that resolves to nothing on the default route;
+  names the native builtins the default route does not run yet
+  (builtin_native_pipeline_only) and is held equal to the shrink-only
+  allowlist of `tests/self_hosted/parity/builtin_surface_parity_owner.sh`.
 - `src/self_hosted/semantic/expr_validation_owner.pgy` -- expression validation facts.
 - `src/self_hosted/semantic/program_check_owner.pgy` -- program/function and
   nominal constructor signature checks, including exact zone/world field rows.

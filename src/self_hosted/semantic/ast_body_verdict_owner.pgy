@@ -1,6 +1,7 @@
 // Ordered body verdict over initializer, assignment, and statement facts.
 
 import "ast_initializer_type_fact_owner.pgy";
+import "ast_initializer_type_query_owner.pgy";
 import "ast_assignment_type_fact_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
 import "ast_statement_type_fact_owner.pgy";
@@ -51,7 +52,14 @@ func SemanticAstBodyVerdictFromFacts(
             -1
         );
     }
-    if !statements.ok {
+    // A statement environment left incomplete by a refused initializer
+    // reports that initializer's row below, not an artifact fault.
+    let initializer_code: String =
+        SemanticAstInitializerFirstDiagnosticCode(initializers);
+    let initializer_row_explains: Bool =
+        statements.diagnostic_code == "ast_artifact_invalid" &&
+        initializer_code != "" && initializer_code != "ast_artifact_invalid";
+    if !statements.ok && !initializer_row_explains {
         return SemanticAstBodyVerdictError(
             statements.diagnostic_code,
             statements.diagnostic_message,

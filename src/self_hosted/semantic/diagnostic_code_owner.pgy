@@ -45,6 +45,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "option_concrete_type_required",
         "value_param_collection_mutation",
         "undefined_function",
+        "builtin_native_pipeline_only",
         "call_arity_mismatch",
         "generic_argument_count_mismatch",
         "generic_argument_type_invalid",
@@ -181,7 +182,7 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     if code == "value_param_collection_mutation" {
         return "PGY_SEM_BUILTIN_ARGS_INVALID";
     }
-    if code == "undefined_function" {
+    if code == "undefined_function" || code == "builtin_native_pipeline_only" {
         return "PGY_SEM_UNDEFINED_SYMBOL";
     }
     if code == "call_arity_mismatch" {

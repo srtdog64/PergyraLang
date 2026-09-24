@@ -23,6 +23,7 @@ import "ast_expression_graph_enum_scalar_type_owner.pgy";
 import "ast_expression_graph_declared_callable_value_type_owner.pgy";
 import "ast_expression_verdict_fact_owner.pgy";
 import "diagnostic_owner.pgy";
+import "native_pipeline_only_builtin_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 func SemanticAstExpressionCallErrorFromGraph(
     ref graph: SemanticExpressionGraphFacts,
@@ -55,9 +56,7 @@ func SemanticAstExpressionCallErrorFromGraph(
             graph, facts.call.callee_node
         );
         if IsSome(callee) && UnwrapOption(callee) != "" {
-            return SemanticError1(
-                "undefined_function", "func", UnwrapOption(callee)
-            );
+            return SemanticUnresolvedCallableError(UnwrapOption(callee));
         }
         return SemanticError1(
             "ast_artifact_invalid", "owner", "expression_graph_call_target"
@@ -104,6 +103,19 @@ func SemanticAstExpressionCallErrorFromGraph(
                 function_names, function_returns, function_params,
                 member_root_names, current_function_node_id
             );
+        // An argument left untyped because a call inside it resolves to
+        // nothing reports that call, not an artifact fault.
+        if !argument_verdict.ok &&
+            argument_verdict.diagnostic_code == "ast_artifact_invalid" {
+            let inner_call_error: String =
+                SemanticAstExpressionCallTreeErrorFromGraphNode(
+                    graph, argument_node, false, constructors, enum_facts,
+                    signatures, names, types, modes, function_names,
+                    function_returns, function_params, member_root_names,
+                    current_function_node_id
+                );
+            if inner_call_error != "" { return inner_call_error; }
+        }
         if !argument_verdict.ok {
             return argument_verdict.diagnostic_message;
         }

@@ -1,0 +1,60 @@
+// Builtins the native pipeline runs and the default route does not run yet.
+//
+// A call whose callee resolves to no declaration and no default-route builtin
+// is refused here. When the spelling is one of these native builtins the
+// refusal says so (builtin_native_pipeline_only) instead of reporting an
+// undefined function, so the user learns the builtin exists and which route
+// runs it. tests/self_hosted/parity/builtin_surface_parity_owner.sh holds this
+// list equal to its NATIVE_ONLY allowlist, which only shrinks.
+
+import "diagnostic_owner.pgy";
+
+func SemanticNativePipelineOnlyBuiltinNames() -> Array<String> {
+    return [
+        "ChannelCapacity",
+        "ChannelClose",
+        "ChannelClosed",
+        "ChannelFull",
+        "ChannelLength",
+        "ChannelReady",
+        "ChannelSpace",
+        "ClaimQubit",
+        "CooldownNew",
+        "FsmNew",
+        "H",
+        "HasLayer",
+        "HasProjection",
+        "HasState",
+        "HasZone",
+        "HasZoneLayer",
+        "HasZoneProjection",
+        "HasZoneState",
+        "Input",
+        "IntoClassical",
+        "IsNone",
+        "IsCollapsed",
+        "Measure",
+        "QubitState",
+        "SendTimeout",
+        "TimerNew",
+        "TrySend"
+    ];
+}
+
+func SemanticNativePipelineOnlyBuiltin(name: String) -> Bool {
+    let names: Array<String> = SemanticNativePipelineOnlyBuiltinNames();
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        if names[i] == name { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+// The one refusal for a callee that resolves to nothing on this route.
+func SemanticUnresolvedCallableError(callee: String) -> String {
+    if SemanticNativePipelineOnlyBuiltin(callee) {
+        return SemanticError1("builtin_native_pipeline_only", "func", callee);
+    }
+    return SemanticError1("undefined_function", "func", callee);
+}

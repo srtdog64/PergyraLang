@@ -97,7 +97,8 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
     if code == "generic_constraint_unsatisfied" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:class_contract", "satisfy-generic-bound-or-widen");
     }
-    if code == "undefined_symbol" || code == "undefined_function" {
+    if code == "undefined_symbol" || code == "undefined_function" ||
+        code == "builtin_native_pipeline_only" {
         return SemanticPublicDiagnosticIdentity(
             true,
             "semantic:symbol:undefined",
