@@ -73,22 +73,33 @@ PGY_RESULT_DEFINE(String, char*, PgyError)
 #define Err_Int(...)        pgy_result_err_Int(__VA_ARGS__)
 #define IsOk_Int(r)         ((r).tag == PgyResultOk)
 #define IsErr_Int(r)        ((r).tag == PgyResultErr)
-#define Unwrap_Int(r)       pgy_result_unwrap_Int(&(PgyResult_Int){(r).tag, {.ok=(r).ok}})
-#define UnwrapOr_Int(r, f)  ((r).tag == PgyResultOk ? (r).ok : (f))
+#define Unwrap_Int(r)       pgy_result_unwrap_Int(&(PgyResult_Int[1]){ (r) }[0])
+/* A function, so the result and the fallback are each evaluated once,
+ * left to right, as for any call. */
+static inline int32_t UnwrapOr_Int(PgyResult_Int pgy_r, int32_t pgy_fallback)
+{
+    return pgy_r.tag == PgyResultOk ? pgy_r.ok : pgy_fallback;
+}
 
 #define Ok_Bool(...)        pgy_result_ok_Bool(__VA_ARGS__)
 #define Err_Bool(...)       pgy_result_err_Bool(__VA_ARGS__)
 #define IsOk_Bool(r)        ((r).tag == PgyResultOk)
 #define IsErr_Bool(r)       ((r).tag == PgyResultErr)
-#define Unwrap_Bool(r)      pgy_result_unwrap_Bool(&(PgyResult_Bool){(r).tag, {.ok=(r).ok}})
-#define UnwrapOr_Bool(r, f) ((r).tag == PgyResultOk ? (r).ok : (f))
+#define Unwrap_Bool(r)      pgy_result_unwrap_Bool(&(PgyResult_Bool[1]){ (r) }[0])
+static inline bool UnwrapOr_Bool(PgyResult_Bool pgy_r, bool pgy_fallback)
+{
+    return pgy_r.tag == PgyResultOk ? pgy_r.ok : pgy_fallback;
+}
 
 #define Ok_String(...)        pgy_result_ok_String(__VA_ARGS__)
 #define Err_String(...)       pgy_result_err_String(__VA_ARGS__)
 #define IsOk_String(r)        ((r).tag == PgyResultOk)
 #define IsErr_String(r)       ((r).tag == PgyResultErr)
-#define Unwrap_String(r)      pgy_result_unwrap_String(&(PgyResult_String){(r).tag, {.ok=(r).ok}})
-#define UnwrapOr_String(r, f) ((r).tag == PgyResultOk ? (r).ok : (f))
+#define Unwrap_String(r)      pgy_result_unwrap_String(&(PgyResult_String[1]){ (r) }[0])
+static inline char* UnwrapOr_String(PgyResult_String pgy_r, char* pgy_fallback)
+{
+    return pgy_r.tag == PgyResultOk ? pgy_r.ok : pgy_fallback;
+}
 
 /* Result helper macros (similar to Rust's ? operator)
  * ResultType: the concrete result struct type (e.g. PgyResult_Int)
@@ -177,22 +188,22 @@ PGY_OPTION_DEFINE(String, char*)
 #define None_Int()              pgy_option_none_Int()
 #define IsSome_Int(o)           ((o).tag == PgyOptionSome)
 #define IsNone_Int(o)           ((o).tag == PgyOptionNone)
-#define UnwrapOption_Int(o)     pgy_option_unwrap_Int(&(PgyOption_Int){(o).tag, (o).value})
+#define UnwrapOption_Int(o)     pgy_option_unwrap_Int(&(PgyOption_Int[1]){ (o) }[0])
 
 #define Some_Float(...)         pgy_option_some_Float(__VA_ARGS__)
 #define None_Float()            pgy_option_none_Float()
 #define IsSome_Float(o)         ((o).tag == PgyOptionSome)
 #define IsNone_Float(o)         ((o).tag == PgyOptionNone)
-#define UnwrapOption_Float(o)   pgy_option_unwrap_Float(&(PgyOption_Float){(o).tag, (o).value})
+#define UnwrapOption_Float(o)   pgy_option_unwrap_Float(&(PgyOption_Float[1]){ (o) }[0])
 
 #define Some_Double(...)        pgy_option_some_Double(__VA_ARGS__)
 #define None_Double()           pgy_option_none_Double()
 #define IsSome_Double(o)        ((o).tag == PgyOptionSome)
 #define IsNone_Double(o)        ((o).tag == PgyOptionNone)
-#define UnwrapOption_Double(o)  pgy_option_unwrap_Double(&(PgyOption_Double){(o).tag, (o).value})
+#define UnwrapOption_Double(o)  pgy_option_unwrap_Double(&(PgyOption_Double[1]){ (o) }[0])
 
 #define Some_String(...)        pgy_option_some_String(__VA_ARGS__)
 #define None_String()           pgy_option_none_String()
 #define IsSome_String(o)        ((o).tag == PgyOptionSome)
 #define IsNone_String(o)        ((o).tag == PgyOptionNone)
-#define UnwrapOption_String(o)  pgy_option_unwrap_String(&(PgyOption_String){(o).tag, (o).value})
+#define UnwrapOption_String(o)  pgy_option_unwrap_String(&(PgyOption_String[1]){ (o) }[0])

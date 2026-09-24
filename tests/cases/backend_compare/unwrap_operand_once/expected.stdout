@@ -1,0 +1,9 @@
+next unwrap
+1
+fetch unwrap
+2
+fetch or
+fallback evaluated
+2
+next is-some
+true

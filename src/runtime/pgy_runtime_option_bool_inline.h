@@ -88,6 +88,6 @@ pgy_option_unwrap_Bool(PgyOption_Bool *o)
 
 
 #define UnwrapOption_Bool(o) \
-    pgy_option_unwrap_Bool(&(PgyOption_Bool){(o).tag, (o).value})
+    pgy_option_unwrap_Bool(&(PgyOption_Bool[1]){ (o) }[0])
 
 #endif /* PGY_RUNTIME_OPTION_BOOL_ENABLE_UNWRAP */

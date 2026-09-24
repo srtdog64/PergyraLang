@@ -191,7 +191,8 @@ ensure_option_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
         "#define None_%s()              pgy_option_none_%s()\n"
         "#define IsSome_%s(o)           ((o).tag == %s)\n"
         "#define IsNone_%s(o)           ((o).tag == %s)\n"
-        "#define UnwrapOption_%s(o)     pgy_option_unwrap_%s(&(PgyOption_%s){(o).tag, (o).%s})\n"
+        /* One-element compound literal: the operand is evaluated once. */
+        "#define UnwrapOption_%s(o)     pgy_option_unwrap_%s(&(PgyOption_%s[1]){ (o) }[0])\n"
         "#pragma GCC diagnostic pop\n",
         suffix,
         suffix, ctype_buf,
@@ -199,7 +200,7 @@ ensure_option_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
         suffix, suffix,
         suffix, some_tag,
         suffix, none_tag,
-        suffix, suffix, suffix, some_field);
+        suffix, suffix, suffix);
 }
 
 void
@@ -320,9 +321,12 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
         "#define Err_%s(...)       pgy_result_err_%s(__VA_ARGS__)\n"
         "#define IsOk_%s(r)        ((r).tag == %s)\n"
         "#define IsErr_%s(r)       ((r).tag == %s)\n"
-        "#define Unwrap_%s(r)      pgy_result_unwrap_%s(&(PgyResult_%s){(r).tag, {.%s=(r).%s}})\n"
-        "#define UnwrapErr_%s(r)   pgy_result_unwrap_err_%s(&(PgyResult_%s){(r).tag, {.%s=(r).%s}})\n"
-        "#define UnwrapOr_%s(r, f) ((r).tag == %s ? (r).%s : (f))\n"
+        /* The operand is evaluated once (one-element compound literal), and
+         * UnwrapOr is a function so both operands are evaluated left to
+         * right like any call, as native LLVM does. */
+        "#define Unwrap_%s(r)      pgy_result_unwrap_%s(&(PgyResult_%s[1]){ (r) }[0])\n"
+        "#define UnwrapErr_%s(r)   pgy_result_unwrap_err_%s(&(PgyResult_%s[1]){ (r) }[0])\n"
+        "static inline %s UnwrapOr_%s(PgyResult_%s pgy_r, %s pgy_fallback) { return pgy_r.tag == %s ? pgy_r.%s : pgy_fallback; }\n"
         "#pragma GCC diagnostic pop\n",
         combined,
         combined, ok_ctype, err_ctype,
@@ -330,9 +334,9 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
         combined, combined,
         combined, ok_tag,
         combined, err_tag,
-        combined, combined, combined, ok_field, ok_field,
-        combined, combined, combined, err_field, err_field,
-        combined, ok_tag, ok_field);
+        combined, combined, combined,
+        combined, combined, combined,
+        ok_ctype, combined, combined, ok_ctype, ok_tag, ok_field);
 }
 
 void

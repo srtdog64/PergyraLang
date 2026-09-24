@@ -1548,6 +1548,7 @@ main() {
         "tests/cases/backend_compare/function_prototype_before_hosted_bodies"
         "tests/cases/backend_compare/enum_payload_tobject_array_fields"
         "tests/cases/backend_compare/match_guard_enum_payload"
+        "tests/cases/backend_compare/unwrap_operand_once"
     )
 
     local use_default_cases=0

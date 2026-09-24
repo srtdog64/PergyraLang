@@ -1,0 +1,24 @@
+// An unwrap evaluates its operand once, and UnwrapOr evaluates both of its
+// operands once, left to right, like any call. Native C expanded the operand
+// twice, so each call below logged its line twice there.
+func Next(label: String) -> Option<Int> {
+    Log("next " + label);
+    return Some(1);
+}
+
+func Fetch(label: String) -> Result<Int, String> {
+    Log("fetch " + label);
+    return Ok(2);
+}
+
+func Fallback() -> Int {
+    Log("fallback evaluated");
+    return 9;
+}
+
+func Main() -> Void {
+    Log(UnwrapOption(Next("unwrap")));
+    Log(Unwrap(Fetch("unwrap")));
+    Log(UnwrapOr(Fetch("or"), Fallback()));
+    Log(IsSome(Next("is-some")));
+}
