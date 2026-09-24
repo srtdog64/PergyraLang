@@ -1,0 +1,15 @@
+enum Turn { Reply(Int), Failed(Int, String), }
+
+func Describe(turn: Turn) -> Int {
+    match turn {
+        case Reply(n): {
+            let doubled: Int = n + n;
+            return doubled;
+        }
+        case Failed(code, text): return code;
+    }
+}
+
+func Main() -> Void {
+    Log(ToString(Describe(Turn.Reply(2))));
+}

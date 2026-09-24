@@ -1,0 +1,9 @@
+class ToolGate { let limit: Int; let used: Int; func Admit(self, n: Int) -> Bool { return n <= self.limit; } }
+
+func UseGate(inout gate: ToolGate) -> Bool { return gate.Admit(1); }
+
+func Main() -> Void {
+    let g: ToolGate = ToolGate(1, 0);
+    let holder: Array<ToolGate> = [g];
+    Log(ToString(UseGate(holder[0])));
+}

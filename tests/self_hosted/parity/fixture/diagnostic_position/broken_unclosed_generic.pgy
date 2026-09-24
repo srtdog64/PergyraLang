@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let xs: Array<Int = [1, 2];
+    Log(ToString(ArrayLength(xs)));
+}

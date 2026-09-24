@@ -1,0 +1,7 @@
+// `zone` is reserved but admitted as a binding name on both front ends;
+// `spawned` is an ordinary identifier.
+func Main() -> Void {
+    let zone: Int = 1;
+    let spawned: Int = 2;
+    Log(ToString(zone + spawned));
+}

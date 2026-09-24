@@ -1,0 +1,5 @@
+func Helper() -> Int {
+    let a: Int = 1;
+    let b: Int = a + nope;
+    return b;
+}

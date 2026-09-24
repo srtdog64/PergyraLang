@@ -1,0 +1,8 @@
+func Twice(x: Int) -> Int {
+    return x + x;
+}
+
+func Helper() -> Int {
+    let a: Int = Twice("nope");
+    return a;
+}

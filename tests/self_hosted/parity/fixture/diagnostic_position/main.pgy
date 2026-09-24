@@ -1,0 +1,7 @@
+// Entry file for the imported-file span rows: every refusal lives in lib.pgy,
+// which the gate copies from one lib_<case>.pgy next to this file.
+import "lib.pgy";
+
+func Main() -> Void {
+    Log(ToString(Helper()));
+}

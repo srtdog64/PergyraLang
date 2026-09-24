@@ -1,0 +1,5 @@
+struct Point { let x Int; }
+
+func Main() -> Void {
+    Log("x");
+}

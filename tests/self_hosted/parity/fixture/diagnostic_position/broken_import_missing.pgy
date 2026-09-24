@@ -1,0 +1,5 @@
+import "no_such_file.pgy";
+
+func Main() -> Void {
+    Log("x");
+}

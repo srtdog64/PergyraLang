@@ -1,0 +1,1 @@
+func Main() -> Void { let spawn: Int = 1; Log(ToString(spawn)); }

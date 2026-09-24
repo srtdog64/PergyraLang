@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let async: Int = 1;
+    Log(ToString(async));
+}

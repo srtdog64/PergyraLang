@@ -1,0 +1,9 @@
+class Counter {
+    let n: Int;
+    func Bump() -> Int {
+        return 1;
+}
+
+func Main() -> Void {
+    Log("x");
+}

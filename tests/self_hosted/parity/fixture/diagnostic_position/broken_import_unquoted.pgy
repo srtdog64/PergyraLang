@@ -1,0 +1,5 @@
+import lib;
+
+func Main() -> Void {
+    Log("x");
+}

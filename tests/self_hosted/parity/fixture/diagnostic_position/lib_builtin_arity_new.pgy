@@ -1,0 +1,5 @@
+func Helper() -> Int {
+    let size: Int = 1;
+    let b: TextBuilder = TextBuilderNew();
+    return size;
+}

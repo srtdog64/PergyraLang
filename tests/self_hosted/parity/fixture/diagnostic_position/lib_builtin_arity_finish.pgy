@@ -1,0 +1,6 @@
+func Helper() -> Int {
+    let b: TextBuilder = TextBuilderNew(8);
+    TextBuilderAppend(b, "x");
+    let s: String = TextBuilderFinish(b);
+    return StringLength(s);
+}

@@ -1,0 +1,5 @@
+enum Color { Red, Green,
+
+func Main() -> Void {
+    Log("x");
+}

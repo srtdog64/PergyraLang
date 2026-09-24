@@ -1,0 +1,4 @@
+func Helper() -> Int {
+    let n: Int = 5;
+    return StringLength(n);
+}

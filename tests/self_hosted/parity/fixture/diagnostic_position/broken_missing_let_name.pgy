@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let : Int = 5;
+    Log("x");
+}

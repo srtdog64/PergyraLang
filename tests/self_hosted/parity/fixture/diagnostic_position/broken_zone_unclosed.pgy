@@ -1,0 +1,8 @@
+zone Store {
+    func Put() -> Void {
+        Log("x");
+    }
+
+func Main() -> Void {
+    Log("x");
+}

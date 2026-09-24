@@ -1,0 +1,7 @@
+func () -> Void {
+    Log("x");
+}
+
+func Main() -> Void {
+    Log("y");
+}
