@@ -8,11 +8,94 @@ import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../input/semantic_local_binding_codegen_view_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
+import "../../compiler/abi_layout_row_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
+import "../../semantic/ast_type_name_canonical_owner.pgy";
+import "../../semantic/wrapper_type_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
+import "../runtime_abi/result_runtime_owner.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 import "function_binding_env_owner.pgy";
+
+// How a try-let over a Result operand binds its payload: the operand's own
+// C type and runtime functions, and the statement that leaves on its error.
+struct CodegenResultTryLetShape {
+    operand_c_type: String;
+    is_ok_fn: String;
+    unwrap_fn: String;
+    failure_stmt: String;
+}
+
+// The operand's Result type owns the value, so its specialization, not the
+// enclosing function's return type, names the temporary and its functions.
+// The return type decides only how the error leaves: a Result return passes
+// it out (rebuilt in the return's specialization when the payloads differ),
+// an Int return panics.
+func CodegenResultTryLetShapeOrDie(
+    operand_type: String,
+    payload_type: String,
+    return_type: String,
+    tmp: String,
+    env: CodegenTypeEnv,
+    provenance: String
+) -> CodegenResultTryLetShape {
+    let operand: String = SemanticCanonicalTypeName(operand_type);
+    if !IsResultType(operand) {
+        Die(Concat(
+            "try expression outside an Option function needs a Result operand: ",
+            provenance
+        ));
+    }
+    let operand_payload: Option<String> = ResultPayloadTypeOpt(operand);
+    if !IsSome(operand_payload) ||
+        UnwrapOption(operand_payload) != payload_type {
+        Die(Concat(
+            "try expression payload type does not match let type: ",
+            provenance
+        ));
+    }
+    let operand_c_type: String = AbiLayoutCLocalType(operand, env);
+    let fact: ResultRuntimeFact = ResultRuntimeFactForType(operand);
+    let is_ok_fn: String = fact.is_ok_fn;
+    let unwrap_fn: String = fact.unwrap_fn;
+    if !fact.ok {
+        if operand != CompilerAbiLayoutResultIntTypeName() {
+            Die(Concat(
+                "try expression Result operand has no runtime fact: ",
+                provenance
+            ));
+        }
+        is_ok_fn = OptionResultRuntimeCResultIsOkFn();
+        unwrap_fn = OptionResultRuntimeCResultUnwrapFn();
+    }
+    if !IsResultType(return_type) {
+        return CodegenResultTryLetShape(
+            operand_c_type, is_ok_fn, unwrap_fn,
+            CompilerRuntimeCallAbiMachineLayerRemoteFutureTryFailureStmt()
+        );
+    }
+    if SemanticCanonicalTypeName(return_type) == operand {
+        return CodegenResultTryLetShape(
+            operand_c_type, is_ok_fn, unwrap_fn,
+            Concat("return ", Concat(tmp, ";"))
+        );
+    }
+    let return_fact: ResultRuntimeFact = ResultRuntimeFactForType(return_type);
+    if !fact.ok || !return_fact.ok ||
+        return_fact.error_type != fact.error_type {
+        Die(Concat(
+            "try expression error type does not match the function's Result error type: ",
+            provenance
+        ));
+    }
+    return CodegenResultTryLetShape(
+        operand_c_type, is_ok_fn, unwrap_fn,
+        Concat("return ", Concat(return_fact.err_fn, Concat("(", Concat(
+            fact.unwrap_err_fn, Concat("(", Concat(tmp, "));"))
+        ))))
+    );
+}
 
 func EmitTryLet(
     local_bindings: SemanticAstLocalBindingFacts,
@@ -39,68 +122,41 @@ func EmitTryLet(
         graph.graph, operand_node, env
     );
     let tmp: String = CompilerSymbolCTryTempName(idx);
-    if cur_fn_ret == "Int" && type_name == "Int" {
+    if cur_fn_ret == "Int" || IsResultType(cur_fn_ret) {
+        let operand_type: Option<String> = CodegenExpressionTypeFromGraph(
+            graph.graph, operand_node, env
+        );
+        if !IsSome(operand_type) {
+            Die(Concat(
+                "semantic try-expression operand type is missing: ",
+                CodegenAstArenaProvenanceOrDie(arena, idx)
+            ));
+        }
+        let shape: CodegenResultTryLetShape = CodegenResultTryLetShapeOrDie(
+            UnwrapOption(operand_type), type_name, cur_fn_ret, tmp, env,
+            CodegenAstArenaProvenanceOrDie(arena, idx)
+        );
         CodegenTypeEnvStateAppendTypedValueBinding(
             env_state, env, name, type_name, binding.value_kind, c_name
         );
         let result_out: String = Concat(
-            AbiLayoutCLocalType("Result<Int>", env),
+            shape.operand_c_type,
             Concat(" ", Concat(tmp, Concat(" = ",
                 Concat(rendered_inner, ";\n"))))
         );
         result_out = Concat(result_out, Concat(pad, Concat(
-            "if (!", Concat(OptionResultRuntimeCResultIsOkFn(),
+            "if (!", Concat(shape.is_ok_fn,
             Concat("(", Concat(tmp, ")) {\n")))
         )));
         result_out = Concat(result_out, cleanup);
         result_out = Concat(result_out, Concat(
-            pad, Concat("    ", Concat(
-                CompilerRuntimeCallAbiMachineLayerRemoteFutureTryFailureStmt(),
-                "\n"
-            ))
+            pad, Concat("    ", Concat(shape.failure_stmt, "\n"))
         ));
         result_out = Concat(result_out, Concat(pad, "}\n"));
         result_out = Concat(result_out, Concat(pad, Concat(
-            AbiLayoutCLocalType("Int", env), Concat(" ", Concat(
+            AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(
                 c_name, Concat(" = ", Concat(
-                    OptionResultRuntimeCResultUnwrapFn(),
-                    Concat("(", Concat(tmp, ");"))
-                ))
-            ))
-        )));
-        return result_out;
-    }
-    if StartsWith(cur_fn_ret, "Result<") &&
-        StringIndexOf(cur_fn_ret, "Int") >= 0 {
-        if type_name != "Int" {
-            Die(Concat(
-                "unsupported Result try let payload type in self-host codegen subset: ",
-                CodegenAstArenaProvenanceOrDie(arena, idx)
-            ));
-        }
-        CodegenTypeEnvStateAppendTypedValueBinding(
-            env_state, env, name, type_name, binding.value_kind, c_name
-        );
-        let result_out: String = Concat(
-            AbiLayoutCLocalType("Result<Int>", env),
-            Concat(" ", Concat(tmp, Concat(" = ", Concat(
-                rendered_inner, ";\n"
-            ))))
-        );
-        result_out = Concat(result_out, Concat(pad, Concat(
-            "if (!", Concat(OptionResultRuntimeCResultIsOkFn(),
-            Concat("(", Concat(tmp, ")) {\n")))
-        )));
-        result_out = Concat(result_out, cleanup);
-        result_out = Concat(result_out, Concat(
-            pad, Concat("    return ", Concat(tmp, ";\n"))
-        ));
-        result_out = Concat(result_out, Concat(pad, "}\n"));
-        result_out = Concat(result_out, Concat(pad, Concat(
-            AbiLayoutCLocalType("Int", env), Concat(" ", Concat(
-                c_name, Concat(" = ", Concat(
-                    OptionResultRuntimeCResultUnwrapFn(),
-                    Concat("(", Concat(tmp, ");"))
+                    shape.unwrap_fn, Concat("(", Concat(tmp, ");"))
                 ))
             ))
         )));
@@ -179,7 +235,7 @@ func EmitTryLet(
         return option_out;
     }
     Die(Concat(
-        "try expression requires Result<Int> or Option<T> function return: ",
+        "try expression requires an Int, Result or Option function return: ",
         CodegenAstArenaProvenanceOrDie(arena, idx)
     ));
 }
