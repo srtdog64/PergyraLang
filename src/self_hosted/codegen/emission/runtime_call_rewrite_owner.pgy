@@ -111,6 +111,9 @@ func RuntimeCallCName(source_name: String) -> Option<String> {
         return Some(CollectionRuntimeCOwnedStringDropFn());
     }
     if source_name == "IsSome" { return Some(OptionResultRuntimeCOptionIsSomeFn()); }
+    if source_name == "CharFromCode" {
+        return Some(OptionResultRuntimeCCharFromCodeFn());
+    }
     if source_name == "Cancel" { return Some(SpawnRuntimeCCancelFn()); }
     if source_name == "UnwrapOption" { return Some(OptionResultRuntimeCOptionUnwrapFn()); }
     if source_name == "Ok" { return Some(OptionResultRuntimeCResultOkFn()); }

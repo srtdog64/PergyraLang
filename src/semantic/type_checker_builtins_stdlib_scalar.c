@@ -448,6 +448,19 @@ stdlib_scalar_check_seed_random(ASTNode *expr, const char *name,
     return TYPE_VOID;
 }
 
+/* CharFromCode(code: Int) -> Option<String>: a bad code point comes from
+ * data, so it is a None, not a panic (docs/105). */
+static Type *
+stdlib_scalar_check_char_from_code(ASTNode *expr, const char *name,
+                                   SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 1, name, ctx))
+        return TYPE_UNKNOWN;
+    require_assignable(type_check_expression(ast_call_argument(expr, 0), ctx),
+        TYPE_INT, ast_call_argument(expr, 0), ctx);
+    return wrap_constructed(TYPE_OPTION, TYPE_STRING);
+}
+
 static Type *
 stdlib_scalar_check_exit(ASTNode *expr, const char *name, SemanticContext *ctx)
 {
@@ -468,6 +481,7 @@ static const StdlibScalarSpec stdlib_scalar_specs[] = {
     { "Ceil", stdlib_scalar_check_math_unary_float },
     { "CharAtN", stdlib_scalar_check_string_substring },
     { "CharCode", stdlib_scalar_check_string_char_code },
+    { "CharFromCode", stdlib_scalar_check_char_from_code },
     { "CheckedAdd", stdlib_scalar_check_checked_arith },
     { "CheckedMul", stdlib_scalar_check_checked_arith },
     { "Clamp", stdlib_scalar_check_clamp },

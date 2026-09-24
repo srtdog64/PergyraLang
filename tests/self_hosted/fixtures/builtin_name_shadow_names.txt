@@ -25,6 +25,7 @@ ChannelFull
 ChannelLength
 ChannelReady
 ChannelSpace
+CharFromCode
 CheckedAdd
 CheckedMul
 Clone

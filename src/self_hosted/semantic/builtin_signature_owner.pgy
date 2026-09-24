@@ -88,6 +88,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "StringTrim^String^Unknown",
         "CharCode^Int^String|Int|Int",
         "CharAtN^String^String|Int|Int",
+        "CharFromCode^Option<String>^Int",
         "Some^Unknown^Unknown",
         "None^Option<Unknown>^none",
         "IsSome^Bool^Unknown",

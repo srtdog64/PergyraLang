@@ -29,6 +29,11 @@ These are compiler/runtime builtins, not `use` modules:
   files under the requested directory, using `/` path separators.
 - Strings: `Concat`, `StringLength`, `Contains`, `StringIndexOf`, `Replace`,
   `Substring`, `Trim`, `Split`, `Join`, `Upper`, `Lower`, `ToString`.
+  `CharFromCode(code: Int) -> Option<String>` returns `Some` of the UTF-8
+  encoding of the Unicode scalar value `code` (one to four bytes). It returns
+  `None` for a negative value, a value above `0x10FFFF`, a surrogate
+  (`0xD800` to `0xDFFF`), and `0`: a `String` ends at its first NUL byte, so
+  it cannot hold U+0000.
 - Numeric helpers: `Abs`, `Min`, `Max`.
 - Time helpers: `Now`, `Sleep`.
 - Process/tooling helpers: `Args`, `Exit`. `Args() -> Array<String>` returns

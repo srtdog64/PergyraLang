@@ -38,6 +38,7 @@ func SemanticBuiltinFixedEffectMask(name: String) -> Int {
     if name == "Ceil" { return SemanticEffectMaskForWord("local"); }
     if name == "CharAtN" { return SemanticEffectMaskForWord("local"); }
     if name == "CharCode" { return SemanticEffectMaskForWord("local"); }
+    if name == "CharFromCode" { return SemanticEffectMaskForWord("local"); }
     if name == "CheckedAdd" { return SemanticEffectMaskForWord("local"); }
     if name == "CheckedMul" { return SemanticEffectMaskForWord("local"); }
     if name == "Clamp" { return SemanticEffectMaskForWord("local"); }

@@ -95,7 +95,7 @@ func CodegenUsageBuiltinGroupCalleeCount(group: Int) -> Int {
     if group == CodegenUsageBuiltinGroupArrayMap() { return 1; }
     if group == CodegenUsageBuiltinGroupArrayFilter() { return 1; }
     if group == CodegenUsageBuiltinGroupResult() { return 7; }
-    if group == CodegenUsageBuiltinGroupOption() { return 3; }
+    if group == CodegenUsageBuiltinGroupOption() { return 4; }
     if group == CodegenUsageBuiltinGroupExit() { return 1; }
     if group == CodegenUsageBuiltinGroupArrayCore() { return 9; }
     if group == CodegenUsageBuiltinGroupIo() { return 4; }
@@ -174,6 +174,7 @@ func CodegenUsageBuiltinGroupCalleeAt(group: Int, index: Int) -> String {
         if index == 0 { return "Some"; }
         if index == 1 { return "IsSome"; }
         if index == 2 { return "UnwrapOption"; }
+        if index == 3 { return "CharFromCode"; }
     }
     if group == CodegenUsageBuiltinGroupExit() && index == 0 { return "Exit"; }
     if group == CodegenUsageBuiltinGroupArrayCore() {

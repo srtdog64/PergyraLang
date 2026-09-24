@@ -31,6 +31,7 @@ static const TranspilerScalarSpec kTranspilerScalarSpecs[] = {
     {"Atan2", 2, TRANSPILER_SCALAR_OP_ATAN2},
     {"CharAtN", 3, TRANSPILER_SCALAR_OP_CHAR_AT_N},
     {"CharCode", 3, TRANSPILER_SCALAR_OP_CHAR_CODE},
+    {"CharFromCode", 1, TRANSPILER_SCALAR_OP_CHAR_FROM_CODE},
     {"CheckedAdd", 2, TRANSPILER_SCALAR_OP_CHECKED_ADD},
     {"CheckedMul", 2, TRANSPILER_SCALAR_OP_CHECKED_MUL},
     {"Clamp", 3, TRANSPILER_SCALAR_OP_CLAMP},

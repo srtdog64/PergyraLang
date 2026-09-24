@@ -134,6 +134,44 @@ int32_t CharCode(const char *s, int32_t len, int32_t i)
         return -1;
     return (int32_t)(unsigned char)s[i];
 }
+/* CharFromCode's runtime half; same contract as the inline header's copy:
+ * UTF-8 of one Unicode scalar value, NULL for a negative value, 0, a value
+ * above 0x10FFFF, or a surrogate. */
+char *pgy_char_from_code(int32_t code)
+{
+    unsigned char bytes[4];
+    size_t n;
+    char *r;
+
+    if (code <= 0 || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF))
+        return NULL;
+    if (code < 0x80) {
+        bytes[0] = (unsigned char)code;
+        n = 1;
+    } else if (code < 0x800) {
+        bytes[0] = (unsigned char)(0xC0 | (code >> 6));
+        bytes[1] = (unsigned char)(0x80 | (code & 0x3F));
+        n = 2;
+    } else if (code < 0x10000) {
+        bytes[0] = (unsigned char)(0xE0 | (code >> 12));
+        bytes[1] = (unsigned char)(0x80 | ((code >> 6) & 0x3F));
+        bytes[2] = (unsigned char)(0x80 | (code & 0x3F));
+        n = 3;
+    } else {
+        bytes[0] = (unsigned char)(0xF0 | (code >> 18));
+        bytes[1] = (unsigned char)(0x80 | ((code >> 12) & 0x3F));
+        bytes[2] = (unsigned char)(0x80 | ((code >> 6) & 0x3F));
+        bytes[3] = (unsigned char)(0x80 | (code & 0x3F));
+        n = 4;
+    }
+    r = (char *)malloc(n + 1);
+    if (r == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
+    memcpy(r, bytes, n);
+    r[n] = '\0';
+    return r;
+}
 char *StringReplace(const char *s, const char *old_str, const char *new_str)
 {
     if (s == NULL || old_str == NULL || new_str == NULL)

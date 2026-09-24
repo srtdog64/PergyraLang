@@ -197,6 +197,45 @@ func Main() -> Void {
     Log(ToString(CharCode(s, StringLength(s), 0)));
 }
 
+== CharFromCode
+func Describe(code: Int) -> Void {
+    let c: Option<String> = CharFromCode(code);
+    if IsSome(c) {
+        let s: String = UnwrapOption(c);
+        let n: Int = StringLength(s);
+        let text: String = ToString(code) + ":" + ToString(n);
+        let i: Int = 0;
+        while i < n {
+            text = text + " " + ToString(CharCode(s, n, i));
+            i = i + 1;
+        }
+        Log(text);
+    } else {
+        Log(ToString(code) + ":none");
+    }
+}
+
+func Main() -> Void {
+    Describe(65);
+    Describe(127);
+    Describe(128);
+    Describe(233);
+    Describe(2047);
+    Describe(2048);
+    Describe(8364);
+    Describe(55295);
+    Describe(57344);
+    Describe(65535);
+    Describe(65536);
+    Describe(128512);
+    Describe(1114111);
+    Describe(0);
+    Describe(-1);
+    Describe(55296);
+    Describe(57343);
+    Describe(1114112);
+}
+
 == CheckedAdd
 func Main() -> Void {
     Log(ToString(CheckedAdd(2, 3)));

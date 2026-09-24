@@ -16,6 +16,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "pgy_runtime_panic_contract.h"
+
 /* Copy s[start..start+len) without rediscovering the source length. This is
  * the allocating counterpart to the Sub*WithLen read-only window builtins. */
 PGY_RT_DECL char *
@@ -82,6 +84,53 @@ CharCode(const char *s, int32_t len, int32_t i)
     if (s == NULL || i < 0 || i >= len)
         return -1;
     return (int32_t)(unsigned char)s[i];
+}
+#else
+;
+#endif
+
+
+/* CharFromCode's runtime half: the UTF-8 encoding of one Unicode scalar
+ * value as a fresh string, or NULL (None) when code is negative, above
+ * 0x10FFFF, a surrogate (0xD800-0xDFFF), or 0 (a NUL-terminated String has
+ * no encoding of U+0000). Allocation failure panics; it is not a None. */
+PGY_RT_DECL char *
+pgy_char_from_code(int32_t code)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{
+    unsigned char bytes[4];
+    size_t n;
+    char *r;
+
+    if (code <= 0 || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF))
+        return NULL;
+    if (code < 0x80) {
+        bytes[0] = (unsigned char)code;
+        n = 1;
+    } else if (code < 0x800) {
+        bytes[0] = (unsigned char)(0xC0 | (code >> 6));
+        bytes[1] = (unsigned char)(0x80 | (code & 0x3F));
+        n = 2;
+    } else if (code < 0x10000) {
+        bytes[0] = (unsigned char)(0xE0 | (code >> 12));
+        bytes[1] = (unsigned char)(0x80 | ((code >> 6) & 0x3F));
+        bytes[2] = (unsigned char)(0x80 | (code & 0x3F));
+        n = 3;
+    } else {
+        bytes[0] = (unsigned char)(0xF0 | (code >> 18));
+        bytes[1] = (unsigned char)(0x80 | ((code >> 12) & 0x3F));
+        bytes[2] = (unsigned char)(0x80 | ((code >> 6) & 0x3F));
+        bytes[3] = (unsigned char)(0x80 | (code & 0x3F));
+        n = 4;
+    }
+    r = (char *)malloc(n + 1);
+    if (r == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
+    memcpy(r, bytes, n);
+    r[n] = '\0';
+    return r;
 }
 #else
 ;

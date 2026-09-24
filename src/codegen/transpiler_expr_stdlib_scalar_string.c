@@ -28,6 +28,7 @@ transpiler_scalar_op_is_string(TranspilerScalarOp op)
     switch (op) {
     case TRANSPILER_SCALAR_OP_CHAR_AT_N:
     case TRANSPILER_SCALAR_OP_CHAR_CODE:
+    case TRANSPILER_SCALAR_OP_CHAR_FROM_CODE:
     case TRANSPILER_SCALAR_OP_CONCAT:
     case TRANSPILER_SCALAR_OP_LOWER:
     case TRANSPILER_SCALAR_OP_REPLACE:
@@ -198,6 +199,18 @@ transpiler_scalar_emit_string(TranspilerScalarOp op,
         }
         char *result = strdup_fmt("CharCode(%s, %s, %s)", s, slen, idx);
         free(s); free(slen); free(idx);
+        return result;
+    }
+    if (op == TRANSPILER_SCALAR_OP_CHAR_FROM_CODE) {
+        /* The runtime returns NULL for a code point with no encoding. */
+        char *code = transpiler_scalar_emit_arg(ctx, a0, fn, "code point");
+        if (code == NULL)
+            return NULL;
+        char *result = strdup_fmt(
+            "({ char *pgy_cfc_ = pgy_char_from_code(%s); "
+            "pgy_cfc_ != NULL ? Some_String(pgy_cfc_) : None_String(); })",
+            code);
+        free(code);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_SUB_INDEX_OF) {

@@ -235,6 +235,36 @@ func OptionResultRuntimeCOptionIsSomeFn() -> String {
     return "pgy_option_is_some";
 }
 
+// CharFromCode(code) -> Option<String>. The encoding rule is the native
+// runtime's pgy_char_from_code: None for a negative value, 0, a value above
+// 0x10FFFF, or a surrogate; allocation failure panics.
+func OptionResultRuntimeCCharFromCodeFn() -> String {
+    return "pgy_opt_char_from_code";
+}
+
+func OptionResultRuntimeCCharFromCodeBlock(
+    option_string_type: String, int_type: String
+) -> String {
+    let none_fn: String = OptionResultRuntimeCOptionNoneFnForPayloadKind(
+        OptionResultRuntimeOptionPayloadKindString());
+    let some_fn: String = OptionResultRuntimeCOptionSomeFnForPayloadKind(
+        OptionResultRuntimeOptionPayloadKindString());
+    let block: String = Concat("static ", Concat(option_string_type, Concat(" ",
+        Concat(OptionResultRuntimeCCharFromCodeFn(), Concat("(", Concat(int_type,
+            " code)\n{\n"))))));
+    block = Concat(block, "    unsigned char b[4];\n    int n = 0;\n");
+    block = Concat(block, Concat("    if (code <= 0 || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF)) { return ",
+        Concat(none_fn, "(); }\n")));
+    block = Concat(block, "    if (code < 0x80) { b[0] = (unsigned char)code; n = 1; }\n");
+    block = Concat(block, "    else if (code < 0x800) { b[0] = (unsigned char)(0xC0 | (code >> 6)); b[1] = (unsigned char)(0x80 | (code & 0x3F)); n = 2; }\n");
+    block = Concat(block, "    else if (code < 0x10000) { b[0] = (unsigned char)(0xE0 | (code >> 12)); b[1] = (unsigned char)(0x80 | ((code >> 6) & 0x3F)); b[2] = (unsigned char)(0x80 | (code & 0x3F)); n = 3; }\n");
+    block = Concat(block, "    else { b[0] = (unsigned char)(0xF0 | (code >> 18)); b[1] = (unsigned char)(0x80 | ((code >> 12) & 0x3F)); b[2] = (unsigned char)(0x80 | ((code >> 6) & 0x3F)); b[3] = (unsigned char)(0x80 | (code & 0x3F)); n = 4; }\n");
+    block = Concat(block, "    char *r = (char *)malloc((size_t)n + 1);\n");
+    block = Concat(block, "    if (r == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); }\n");
+    block = Concat(block, "    for (int i = 0; i < n; i++) { r[i] = (char)b[i]; }\n    r[n] = '\\0';\n");
+    return Concat(block, Concat("    return ", Concat(some_fn, "(r);\n}\n\n")));
+}
+
 func OptionResultRuntimeCOptionUnwrapFn() -> String {
     return "pgy_option_unwrap";
 }
@@ -411,7 +441,8 @@ func OptionResultRuntimeCOptionScalarBlock() -> String {
     // Unwrapping None panics as native C does; returning the payload slot
     // handed the program a zero it never stored.
     block = Concat(block, Concat("#define ", Concat(OptionResultRuntimeCOptionUnwrapFn(), "(o) (({ __auto_type pgy_unwrap_o_ = (o); if (!pgy_unwrap_o_.is_some) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE); } pgy_unwrap_o_.value; }))\n\n")));
-    return block;
+    return Concat(block,
+        OptionResultRuntimeCCharFromCodeBlock(option_string_type, int_type));
 }
 
 func OptionResultRuntimeCResultOkFn() -> String {

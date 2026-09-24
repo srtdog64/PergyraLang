@@ -253,6 +253,42 @@ llvm_stdlib_io_special_lookup(const char *callee_name, size_t argc)
     return match->op;
 }
 
+/* CharFromCode builds Option<String> from the runtime's nullable pointer:
+ * NULL is None (tag 1), any other pointer is Some (tag 0). */
+static LLVMValueRef
+llvm_emit_char_from_code_option(ASTNode *node, LLVMGenCtx *ctx,
+                                const char *callee_name)
+{
+    LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+        "stdlib string", callee_name, "pgy_char_from_code");
+    LLVMTypeRef option_ty = pergyra_type_to_llvm(ctx, "Option<String>");
+    LLVMValueRef code;
+    LLVMValueRef text;
+    LLVMValueRef is_none;
+    LLVMValueRef option;
+
+    if (fn == NULL)
+        return NULL;
+    if (option_ty == NULL || LLVMGetTypeKind(option_ty) != LLVMStructTypeKind
+        || LLVMCountStructElementTypes(option_ty) != 2)
+        return llvm_stdlib_error_value(node, ctx, callee_name,
+            "requires the two-field Option<String> layout");
+    code = llvm_emit_expression(ast_call_argument(node, 0), ctx);
+    if (code == NULL || LLVMTypeOf(code) != ctx->type_i32)
+        return llvm_stdlib_error_value(node, ctx, callee_name,
+            "requires an Int code point argument");
+    text = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, &code, 1,
+        llvm_tmp_name(ctx));
+    is_none = LLVMBuildICmp(ctx->builder, LLVMIntEQ, text,
+        LLVMConstNull(LLVMTypeOf(text)), llvm_tmp_name(ctx));
+    option = LLVMGetUndef(option_ty);
+    option = LLVMBuildInsertValue(ctx->builder, option,
+        LLVMBuildZExt(ctx->builder, is_none, ctx->type_i32,
+            llvm_tmp_name(ctx)), 0, llvm_tmp_name(ctx));
+    return LLVMBuildInsertValue(ctx->builder, option, text, 1,
+        llvm_tmp_name(ctx));
+}
+
 bool
 llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
                                   const char *callee_name,
@@ -264,6 +300,12 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
         return false;
 
     op = llvm_stdlib_string_special_lookup(callee_name, ast_call_arg_count(node));
+
+    if (strcmp(callee_name, "CharFromCode") == 0
+        && ast_call_arg_count(node) == 1) {
+        *out_result = llvm_emit_char_from_code_option(node, ctx, callee_name);
+        return true;
+    }
 
     if (op == LLVM_STDLIB_STRING_SPECIAL_LENGTH) {
         LLVMValueRef s = llvm_emit_expression(ast_call_argument(node, 0), ctx);
