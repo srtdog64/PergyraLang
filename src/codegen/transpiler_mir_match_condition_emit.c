@@ -15,6 +15,7 @@
 #include "transpiler_mir_match_pattern_emit.h"
 #include "transpiler_mir_match_payload_emit.h"
 #include "transpiler_mir_match_region_emit.h"
+#include "transpiler_symbols.h"
 #include "transpiler_type_require.h"
 
 static bool
@@ -38,6 +39,22 @@ transpiler_mir_set_payload_binding_name(TranspilerCtx *ctx,
             binding, stable_name);
     }
     return transpiler_ssa_name_map_set(ssa_map, binding, stable_name);
+}
+
+/* A user-enum payload binding carries the variant's MIR parameter type, like
+ * an Option/Result payload does. Field reads, index access, and Array
+ * builtins on the binding resolve their C types from this row. */
+static void
+transpiler_mir_register_enum_payload_binding_type(TranspilerCtx *ctx,
+                                                  const char *binding,
+                                                  const char *emitted_name,
+                                                  const char **type_names,
+                                                  size_t index)
+{
+    if (type_names == NULL || type_names[index] == NULL)
+        return;
+    register_typed_var(ctx, binding, type_names[index]);
+    register_typed_var(ctx, emitted_name, type_names[index]);
 }
 
 static bool
@@ -234,6 +251,8 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
                     free(subject);
                     return false;
                 }
+                transpiler_mir_register_enum_payload_binding_type(ctx,
+                    binding_name, emitted_name, enum_binding_type_names, b);
             }
         }
     }
@@ -445,6 +464,9 @@ transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
                             free(guard_payload_assign);
                             return NULL;
                         }
+                        transpiler_mir_register_enum_payload_binding_type(
+                            ctx, enum_bindings[b], emitted_name,
+                            enum_binding_type_names, b);
                         assignment = strdup_fmt(
                             "%s = (%s).%s._%zu",
                             emitted_name, subject, enum_vname, b);

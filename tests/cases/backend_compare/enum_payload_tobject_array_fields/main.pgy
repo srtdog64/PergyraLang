@@ -1,0 +1,43 @@
+// A match-bound enum payload carries its variant's parameter type, so the
+// Array fields of a tobject payload keep their element type: ArrayLength
+// and index reads on turn.callIds need no annotated local.
+tobject ProviderTurn {
+    let finishReason: String;
+    let callIds: Array<String>;
+    let callNames: Array<String>;
+    let tokens: Int;
+}
+
+enum TurnResult {
+    Reply(ProviderTurn),
+    Failed(Int, String),
+}
+
+func Parse(ok: Bool) -> TurnResult {
+    if !ok {
+        return Failed(500, "down");
+    }
+    let ids: Array<String> = [];
+    ArrayPush(ids, "c1");
+    ArrayPush(ids, "c2");
+    let names: Array<String> = [];
+    ArrayPush(names, "read");
+    ArrayPush(names, "write");
+    return Reply(ProviderTurn("tool_calls", ids, names, 7));
+}
+
+func Describe(result: TurnResult) -> String {
+    match result {
+        case Reply(turn):
+            let calls: Int = ArrayLength(turn.callIds);
+            return turn.finishReason + " " + ToString(calls) + " " + turn.callNames[0] + " " + turn.callIds[1] + " " + ToString(turn.tokens);
+        case Failed(code, message):
+            return message + " " + ToString(code);
+    }
+    return "";
+}
+
+func Main() -> Void {
+    Log(Describe(Parse(true)));
+    Log(Describe(Parse(false)));
+}

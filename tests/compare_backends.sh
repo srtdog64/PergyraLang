@@ -1545,6 +1545,7 @@ main() {
         "tests/cases/backend_compare/empty_literal_collection_result"
         "tests/cases/backend_compare/subject_inout_action_receiver"
         "tests/cases/backend_compare/function_prototype_before_hosted_bodies"
+        "tests/cases/backend_compare/enum_payload_tobject_array_fields"
     )
 
     local use_default_cases=0
