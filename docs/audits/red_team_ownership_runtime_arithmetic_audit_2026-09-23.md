@@ -313,3 +313,40 @@ Still open, each needing a decision rather than a fix:
   with the collection-ownership lane.
 - **M5, M7, M11.** A pool-lifetime fact, a length-carrying text view, and slot
   and move flow in the self-host checker, as recorded above.
+
+### Parallel access
+
+The native `parallel` checks decided by name: a collection binding could not
+be captured, and at most one task could assign a binding. Six falsifiers
+looked for storage reached without the name; two were accepted and raced
+under ThreadSanitizer on native C, and both native backends lost updates.
+
+- **DRF-1. A method call writes the receiver (repaired).** Two tasks calling
+  `counter.Step(1)`, where `Step` assigns `self.n`, contain no assignment to
+  `counter`, so both were admitted. The same held one call deeper, through a
+  bare field name inside the method, and when each task handed `counter` to a
+  default-mode parameter, which writes the caller's value.
+- **DRF-2. An aggregate shares a collection's storage (repaired).**
+  `Holder(arr)` copies the Array header, so a task reading `holder.data[5]`
+  read the elements another task wrote through a split half of `arr`. Nesting
+  (`outer.inner.data`) and `Option<Array<Int>>` behaved the same.
+
+`src/semantic/parallel_capture_write_reach.c` and
+`src/semantic/parallel_capture_storage_reach.c` answer them. A task writes
+through a binding when it assigns a path rooted at it, calls a method whose
+body writes `self` (followed to depth 8), or hands the binding anywhere but a
+`ref` parameter (a read-only borrow) or an `own` parameter (a move, which the
+resource snapshot already rejects when another task also uses the value). A
+capture reaches storage when a field, tuple element or type argument does;
+fields come from the class field model or, for zones and other hosts, from the
+same families the host field typing reads. An
+unresolved field type, method or unmodeled node counts as a write, so a gap
+rejects rather than admits. `parallel_capture_reach_smoke.sh` (Linux push
+shard) holds eleven race rejections (two on zones), the own-move conflict
+that stays with the resource snapshot, and five admitted programs, which run
+on both native backends; the full backend compare still passes.
+
+Not covered yet: an enum payload that holds a collection, a function-typed
+capture whose closure holds one, and a nominal read through `Option<Subject>`.
+The default routes refuse every program in this set; they do not compile these
+`parallel` shapes yet.

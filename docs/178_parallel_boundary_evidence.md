@@ -98,6 +98,19 @@ DOP가 가장 병렬-친화적 지향(그래서 게임 엔진이 ECS로 감)인�
   백엔드가 같은 walk를 소비해 admission↔materialization drift 불가. 게이트:
   `parallel-snapshot-test-smoke` + backend_compare `parallel_snapshot_read`
   (채널-순서화 판별자: 포인터 의미=42/42 강제, 스냅샷=42/1).
+- **바인딩 너머의 배타성(2026-09-24)**: 이름 기준 판정이 놓친 두 경로를
+  닫음 — ① 수신자를 쓰는 메서드 호출(`counter.Step(1)`을 두 arm이 호출,
+  대입 0건이라 admit되던 write-write race), ② 컬렉션 필드를 가진 집합체
+  (`Holder(arr)`는 Array 헤더만 복사 → 원소 저장소 공유). 소유자
+  `src/semantic/parallel_capture_write_reach.c`(①)와
+  `parallel_capture_storage_reach.c`(②, 호스트 필드 모델 포함): 메서드
+  본문의 `self` 쓰기를 깊이 8까지 추적, `ref` 인자는 읽기 전용 차용, `own`
+  인자는 resource snapshot 충돌이 담당, 그 외 바인딩 전달은 쓰기. 필드·튜플
+  원소·타입 인자 경유 저장소 도달은 컬렉션 캡처와 같은 거절. 해석 불가 필드
+  타입/메서드/미모델 노드는 쓰기로 계산(fail-closed). 게이트:
+  `parallel-capture-reach-test-smoke`(거절 12 — zone 2건 포함, admit 5 양
+  백엔드). 잔여: 컬렉션을 담은 enum payload, 컬렉션을 붙잡은 클로저 캡처,
+  `Option<Subject>` 값 읽기.
 - **bare-block arm(`39da6046`, 2026-07-09, docs/177 F3(a))**: 다중-문장 arm
   표면이 열려 §2의 관용구들이 실제로 작성 가능해짐. 목격자 =
   `parallel_pingpong_witness`(교대-강제 프로토콜, 직렬=deadlock=RED).
