@@ -464,4 +464,98 @@
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("own enum with a runtime handle payload is consumed once");
+    {
+        const char *source =
+            "enum Outcome {\n"
+            "    Ready(Rc<Int>),\n"
+            "    Rejected(Int),\n"
+            "}\n"
+            "func Consume(own outcome: Outcome) -> Void {\n"
+            "    Log(1);\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let outcome: Outcome = Ready(RcNew(5));\n"
+            "    Consume(outcome);\n"
+            "    Consume(outcome);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "was moved or released and cannot be used again"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("own enum with a subject payload is consumed once");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "enum Outcome {\n"
+            "    Ready(Hero),\n"
+            "    Rejected(Int),\n"
+            "}\n"
+            "func Consume(own outcome: Outcome) -> Void {\n"
+            "    Log(1);\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let outcome: Outcome = Ready(Hero(3));\n"
+            "    Consume(outcome);\n"
+            "    Consume(outcome);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "was moved or released and cannot be used again"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("own enum with copy-only payloads stays a copy");
+    {
+        const char *source =
+            "enum Outcome {\n"
+            "    Ready(Int),\n"
+            "    Rejected(Int),\n"
+            "}\n"
+            "func Consume(own outcome: Outcome) -> Void {\n"
+            "    Log(1);\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let outcome: Outcome = Ready(4);\n"
+            "    Consume(outcome);\n"
+            "    Consume(outcome);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }
