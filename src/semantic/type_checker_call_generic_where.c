@@ -49,6 +49,157 @@ generic_call_reject_single_owner_handle_arguments(ASTNode *expr,
     }
 }
 
+/* Does the type reference `type_ref` mention generic parameter `name` (`T`,
+ * `Array<T>`, `(T, Int)`)? A reference this walk cannot read, such as a
+ * callable type, counts as mentioning it, so the unbound check below never
+ * refuses a call it cannot judge. */
+static bool
+generic_type_ref_mentions(const ASTNode *type_ref, const char *name)
+{
+    GenericParams *args;
+
+    if (type_ref == NULL || name == NULL)
+        return false;
+    if (type_ref->type != AST_TYPE)
+        return true;
+    if (type_ref->data.type.name != NULL
+        && strcmp(type_ref->data.type.name, name) == 0)
+        return true;
+    args = type_ref->data.type.generic_args;
+    for (size_t i = 0; i < ast_generic_param_count(args); i++) {
+        GenericParam *arg = ast_generic_param_at(args, i);
+        if (arg != NULL && generic_type_ref_mentions(arg->constraint, name))
+            return true;
+    }
+    for (size_t i = 0; i < type_ref->data.type.tuple_element_count; i++) {
+        if (generic_type_ref_mentions(type_ref->data.type.tuple_elements[i],
+                                      name))
+            return true;
+    }
+    return false;
+}
+
+/* A generic parameter that no parameter type mentions and that has no
+ * default cannot be bound from the call: `Make<T>() -> Option<T>` called as
+ * `Make()` left T unbound, and MIR lowering refused the call after semantic
+ * had admitted it. */
+static bool
+generic_call_reject_unbound_parameters(ASTNode *expr, SemanticContext *ctx,
+                                       ASTNode *stmt, GenericParams *decl_gp,
+                                       const char *display_name)
+{
+    if (expr != NULL && expr->type == AST_CALL
+        && expr->data.call.generic_args != NULL)
+        return false; /* explicit type arguments bind every parameter */
+    for (size_t gi = 0; gi < ast_generic_param_count(decl_gp); gi++) {
+        GenericParam *gp = ast_generic_param_at(decl_gp, gi);
+        const char *name = ast_generic_param_name(gp);
+        bool mentioned = false;
+
+        if (name == NULL || ast_generic_param_default_type(gp) != NULL)
+            continue;
+        for (size_t pi = 0; pi < ast_func_param_count(stmt) && !mentioned;
+             pi++) {
+            FuncParam *fp = ast_func_param(stmt, pi);
+            mentioned = fp != NULL && generic_type_ref_mentions(fp->type, name);
+        }
+        if (mentioned)
+            continue;
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_CALL_ARG_TYPE_MISMATCH,
+            PGY_FIX_ALIGN_ARG_TYPE,
+            expr,
+            "Call to '%s' cannot bind generic parameter '%s': no parameter of '%s' mentions it.\n"
+            "Reason:\n"
+            "- a generic parameter is bound from the call's arguments\n"
+            "- '%s' appears only in the result or body, so this call leaves it unbound\n"
+            "Fix:\n"
+            "- pass the type explicitly: %s<...>(...)\n"
+            "- or add a parameter of type '%s', or a default type for it",
+            display_name, name, display_name, name, display_name, name);
+        return true;
+    }
+    return false;
+}
+
+/* One generic parameter takes one type per call. The first argument whose
+ * parameter is spelled `T` binds `T`; a later argument for `T` must be
+ * assignable to that binding, the rule the default route checks too. Without
+ * it `Pick(1, "x")` bound `T` to whichever argument came last, and MIR
+ * lowering refused the call after semantic had admitted it. */
+static bool
+generic_call_reject_conflicting_bindings(ASTNode *expr, SemanticContext *ctx,
+                                         ASTNode *stmt, GenericParams *decl_gp,
+                                         const char *display_name,
+                                         size_t provided,
+                                         Type **call_arg_types)
+{
+    size_t decl_count = ast_generic_param_count(decl_gp);
+    Type **bound;
+    size_t *bound_arg;
+    bool conflict = false;
+
+    if (call_arg_types == NULL || decl_count == 0
+        || (expr != NULL && expr->type == AST_CALL
+            && expr->data.call.generic_args != NULL))
+        return false; /* explicit type arguments fix T; argument checks own it */
+    bound = calloc(decl_count, sizeof(Type *));
+    bound_arg = calloc(decl_count, sizeof(size_t));
+    if (bound == NULL || bound_arg == NULL) {
+        free(bound);
+        free(bound_arg);
+        semantic_error(ctx, expr,
+            "Generic binding table allocation failed while checking a call");
+        return true;
+    }
+    for (size_t ai = 0; ai < provided && !conflict; ai++) {
+        FuncParam *fp = ai < ast_func_param_count(stmt)
+            ? ast_func_param(stmt, ai) : NULL;
+        Type *arg = call_arg_types[ai];
+        int index;
+
+        if (fp == NULL || fp->type == NULL || ast_type_name(fp->type) == NULL
+            || arg == NULL || arg == TYPE_UNKNOWN)
+            continue;
+        index = find_generic_param_index(decl_gp, ast_type_name(fp->type));
+        if (index < 0 || (size_t)index >= decl_count)
+            continue;
+        if (bound[index] == NULL) {
+            bound[index] = arg;
+            bound_arg[index] = ai;
+            continue;
+        }
+        if (type_is_assignable(arg, bound[index]))
+            continue;
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_CALL_ARG_TYPE_MISMATCH,
+            PGY_FIX_ALIGN_ARG_TYPE,
+            expr,
+            "Call to '%s' binds generic parameter '%s' to both '%s' (argument %zu) and '%s' (argument %zu).\n"
+            "Reason:\n"
+            "- one generic parameter takes one type per call\n"
+            "- argument %zu is not assignable to the type argument %zu bound\n"
+            "Fix:\n"
+            "- pass arguments of one type for '%s'\n"
+            "- or give the parameters separate generic parameters",
+            display_name,
+            ast_type_name(fp->type),
+            bound[index]->name != NULL ? bound[index]->name : "<type>",
+            bound_arg[index] + 1,
+            arg->name != NULL ? arg->name : "<type>",
+            ai + 1,
+            ai + 1,
+            bound_arg[index] + 1,
+            ast_type_name(fp->type));
+        conflict = true;
+    }
+    free(bound);
+    free(bound_arg);
+    return conflict;
+}
+
 void
 semantic_validate_function_call_generic_where(ASTNode *expr,
                                               SemanticContext *ctx,
@@ -69,6 +220,13 @@ semantic_validate_function_call_generic_where(ASTNode *expr,
     if (decl_count > 0)
         generic_call_reject_single_owner_handle_arguments(
             expr, ctx, stmt, decl_gp, display_name, provided, call_arg_types);
+    if (decl_count > 0
+        && (generic_call_reject_unbound_parameters(
+                expr, ctx, stmt, decl_gp, display_name)
+            || generic_call_reject_conflicting_bindings(
+                expr, ctx, stmt, decl_gp, display_name, provided,
+                call_arg_types)))
+        return;
     if (decl_count == 0 || wc == NULL)
         return;
 
