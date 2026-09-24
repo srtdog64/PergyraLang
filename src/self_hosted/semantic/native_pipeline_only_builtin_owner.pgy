@@ -51,10 +51,9 @@ func SemanticNativePipelineOnlyBuiltin(name: String) -> Bool {
     return false;
 }
 
-// The one refusal for a callee that resolves to nothing on this route.
-func SemanticUnresolvedCallableError(callee: String) -> String {
-    if SemanticNativePipelineOnlyBuiltin(callee) {
-        return SemanticError1("builtin_native_pipeline_only", "func", callee);
-    }
-    return SemanticError1("undefined_function", "func", callee);
+// The one refusal code for a callee that resolves to nothing on this route:
+// a builtin only the native pipeline implements, or an undefined function.
+func SemanticUnresolvedCallableCode(native_pipeline_only: Bool) -> String {
+    if native_pipeline_only { return "builtin_native_pipeline_only"; }
+    return "undefined_function";
 }

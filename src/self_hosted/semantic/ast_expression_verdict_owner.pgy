@@ -56,7 +56,8 @@ func SemanticAstExpressionCallErrorFromGraph(
             graph, facts.call.callee_node
         );
         if IsSome(callee) && UnwrapOption(callee) != "" {
-            return SemanticUnresolvedCallableError(UnwrapOption(callee));
+            return SemanticError1(SemanticUnresolvedCallableCode(
+                SemanticNativePipelineOnlyBuiltin(UnwrapOption(callee))), "func", UnwrapOption(callee));
         }
         return SemanticError1(
             "ast_artifact_invalid", "owner", "expression_graph_call_target"

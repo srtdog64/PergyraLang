@@ -260,7 +260,7 @@ func CheckCallWithIdentifierOwner(
     } else {
         let found_opt: Option<Int> = SemanticCallableIndex(func_names, callee);
         if !IsSome(found_opt) {
-            return SemanticUnresolvedCallableError(callee);
+            return SemanticError1(SemanticUnresolvedCallableCode(SemanticNativePipelineOnlyBuiltin(callee)), "func", callee);
         }
         sig = func_params[UnwrapOption(found_opt)];
     }

@@ -52,20 +52,19 @@ func DirectMirScalarProgramLlvmInternalInvariantPanicDeclarations(
         "@.pgy.unwrap.ok.reason = private unnamed_addr constant [30 x i8] c\"Result unwrap_err on Ok value\\00\", align 1\n";
 }
 
-// The body of a failed unwrap block: report through the runtime, never return.
-func DirectMirScalarProgramLlvmUnwrapPanic(reason_global: String) -> String {
-    return "  call void @" + DirectMirScalarProgramLlvmInternalInvariantPanicFn() +
-        "(ptr " + reason_global + ")\n  unreachable\n";
-}
-
+// The body of a failed unwrap block: report one of the reason globals above
+// through the runtime, never return.
 func DirectMirScalarProgramLlvmUnwrapNonePanic() -> String {
-    return DirectMirScalarProgramLlvmUnwrapPanic("@.pgy.unwrap.none.reason");
+    return "  call void @" + DirectMirScalarProgramLlvmInternalInvariantPanicFn() +
+        "(ptr @.pgy.unwrap.none.reason)\n  unreachable\n";
 }
 
 func DirectMirScalarProgramLlvmUnwrapErrPanic() -> String {
-    return DirectMirScalarProgramLlvmUnwrapPanic("@.pgy.unwrap.err.reason");
+    return "  call void @" + DirectMirScalarProgramLlvmInternalInvariantPanicFn() +
+        "(ptr @.pgy.unwrap.err.reason)\n  unreachable\n";
 }
 
 func DirectMirScalarProgramLlvmUnwrapOkPanic() -> String {
-    return DirectMirScalarProgramLlvmUnwrapPanic("@.pgy.unwrap.ok.reason");
+    return "  call void @" + DirectMirScalarProgramLlvmInternalInvariantPanicFn() +
+        "(ptr @.pgy.unwrap.ok.reason)\n  unreachable\n";
 }

@@ -529,7 +529,7 @@ func SemanticExpressionGraphConcreteScalarValueError(
         );
     }
     if !argument_facts.signature_found {
-        return SemanticUnresolvedCallableError(callee);
+        return SemanticError1(SemanticUnresolvedCallableCode(SemanticNativePipelineOnlyBuiltin(callee)), "func", callee);
     }
     let signature: String = argument_facts.signature;
     let signature_facts: SemanticDelimitedRangeFacts =
