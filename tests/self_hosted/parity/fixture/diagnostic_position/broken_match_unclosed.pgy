@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let o: Option<Int> = Some(3);
+    match o {
+        case Some(v): Log(ToString(v));
+        case None: Log("none");

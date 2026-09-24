@@ -1,0 +1,13 @@
+subject Seat {
+    let mut n: Int;
+
+    func Show(self) -> Void {
+        self.n + 1;
+        Log(ToString(self.n));
+    }
+}
+
+func Main() -> Void {
+    let s: Seat = Seat(1);
+    s.Show();
+}

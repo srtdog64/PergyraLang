@@ -149,6 +149,12 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "fix the import path; it is relative to the importing file"
         );
     }
+    if code == "builtin_type_name_taken" {
+        return ParseDiagnosticRow(
+            "this program declares a builtin type name; IoError is the error enum of TryReadFile and TryWriteFile",
+            "rename the declaration"
+        );
+    }
     if code == "script_statement_with_main" {
         return ParseDiagnosticRow(
             "top-level statements form the program's Main, and the program also declares func Main",
@@ -196,6 +202,12 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
         code == "script_statement_with_main" {
         return ParsePublicDiagnosticIdentity(
             true, "PGY_PARSE_SYNTAX", "parse:unexpected_token", "check-syntax"
+        );
+    }
+    if code == "builtin_type_name_taken" {
+        return ParsePublicDiagnosticIdentity(
+            true, "PGY_SEM_REDECLARATION", "semantic:scope:duplicate_symbol",
+            "rename-or-remove-duplicate"
         );
     }
     // Native reports an unclosed string from its lexer; keep that identity.

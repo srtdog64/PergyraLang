@@ -126,7 +126,7 @@ func ParseParallelStmt(
         return Concat(IndentStr(stmt_indent), "Parallel:");
     }
     ArraySet(cursor_out, 0, i);
-    let pbody: String = ParseBlockObserved(
+    let pbody: String = ParseBlockStatementsObserved(
         content, i, cursor_out, stmt_indent + 2, expression_graphs,
         location_context, source_locations
     );

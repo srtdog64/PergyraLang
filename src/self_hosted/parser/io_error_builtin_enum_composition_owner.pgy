@@ -8,6 +8,9 @@
 // tests/self_hosted/parity/io_result_builtin_owner.sh holds the rows equal.
 
 import "../hir/ast_expression_graph_owner.pgy";
+import "../lib/path.pgy";
+import "source_location_observation_owner.pgy";
+import "diagnostic_owner.pgy";
 
 func ParserIoErrorVariantNames() -> Array<String> {
     return [
@@ -56,4 +59,30 @@ func ParserComposedGraphCallsTryFileBuiltin(
         i = i + 1;
     }
     return false;
+}
+
+// A program that declares IoError itself, as any top-level declaration, is
+// refused at that declaration before the builtin one is composed, as native
+// import_resolver_compose_io_error_enum refuses it.
+func ParserRefuseProgramIoErrorDeclaration(
+    observations: Array<ParserSourceLocationObservation>,
+    display_root: String,
+    projection: ParseDiagnosticProjection
+) -> Void {
+    let row: Int = 0;
+    while row < ArrayLength(observations) {
+        let observed: ParserSourceLocationObservation = observations[row];
+        if observed.declared_name == "IoError" {
+            Log(ParseDiagnosticPayloadAt2(
+                projection, "builtin_type_name_taken",
+                SelfHostPath.RelativeToDirectory(
+                    observed.source_path, display_root
+                ),
+                observed.source_line, observed.source_column,
+                "name", "IoError", "builtin", "TryReadFile, TryWriteFile"
+            ));
+            Exit(1);
+        }
+        row = row + 1;
+    }
 }

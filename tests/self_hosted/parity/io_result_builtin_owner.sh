@@ -20,10 +20,10 @@
 # directory (OpenFailed) and into a directory without write permission
 # (OpenFailed). Under uid 0 the binaries run without CAP_DAC_OVERRIDE so the
 # permission bits bind. A program that declares its own IoError beside the
-# builtin one is refused on native C, native LLVM and the default C route; the
-# native legs must name the program's declaration. The default C route refuses
-# it today with an unrelated match_pattern_invalid ("duplicate enum identity"),
-# so only the refusal is held there, and the default LLVM leg is not run.
+# builtin one, as an enum or a struct, is refused on all four legs: native
+# names the program's declaration, and the default route refuses it at that
+# declaration with builtin_type_name_taken before the builtin enum is
+# composed.
 set -euo pipefail
 
 # The default legs are the self-hosted front end; an exported
@@ -201,6 +201,15 @@ func Main() -> Void {
 }
 PGY
 
+cat > "$WORK_DIR/dup_struct.pgy" <<'PGY'
+struct IoError { code: Int; }
+
+func Main() -> Void {
+    let ok: Result<Bool, IoError> = TryWriteFile("x.txt", "a");
+    Log("done");
+}
+PGY
+
 # Under uid 0 the permission bits of io_probe_ro_dir do not bind unless the
 # binary runs without CAP_DAC_OVERRIDE.
 RUN_PREFIX=()
@@ -280,16 +289,30 @@ for leg in native-c native-llvm default-c; do
     expect_same "$WORK_DIR/cfc.expected" "$WORK_DIR/cfc.$leg.out" \
         "$leg: CharFromCode results differ from the expected rows"
 
-    if compile dup "$leg"; then
-        fail "$leg accepted a program that declares its own IoError beside the builtin one"
-    fi
-    # Native composition names the user's declaration, not the builtin one.
-    if [[ "$leg" == native-* ]] &&
-        ! grep -Fq "dup.pgy:1: this program declares IoError, which is the builtin error enum" \
-            "$WORK_DIR/dup.$leg.log"; then
-        cat "$WORK_DIR/dup.$leg.log" >&2
-        fail "$leg refused the duplicate IoError without naming the program's declaration"
-    fi
+done
+
+# A program's own IoError: native names the declaration; the default route
+# refuses it there with its own code on C and LLVM.
+for program in dup dup_struct; do
+    for leg in native-c native-llvm default-c default-llvm; do
+        if compile "$program" "$leg"; then
+            fail "$leg accepted $program.pgy, which declares its own IoError beside the builtin one"
+        fi
+        log="$WORK_DIR/$program.$leg.log"
+        case "$leg" in
+            native-*)
+                grep -Fq "$program.pgy:" "$log" &&
+                    grep -Fq "this program declares IoError, which is the builtin error enum" "$log"
+                ;;
+            default-*)
+                tr -d '\r' <"$log" | grep -Fxq "Code: builtin_type_name_taken" &&
+                    tr -d '\r' <"$log" | grep -Fxq "Span: $program.pgy:1:1"
+                ;;
+        esac || {
+            cat "$log" >&2
+            fail "$leg refused $program.pgy without naming its IoError declaration"
+        }
+    done
 done
 
 # The default LLVM route prints the same or refuses with its route diagnostic.

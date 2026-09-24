@@ -161,6 +161,8 @@ BROKEN_CASES=(
     "script_with_main|4|script_statement_with_main"
     "long_literal|2|long_literal_out_of_range"
     "expression_statement|3|statement_kind_unsupported"
+    "member_expression_statement|5|statement_kind_unsupported"
+    "match_unclosed|3|block_unclosed"
 )
 for row in "${BROKEN_CASES[@]}"; do
     IFS='|' read -r name line code <<<"$row"
@@ -198,7 +200,13 @@ grep -Fq 'Declared signature: TextBuilderNew(Int) -> TextBuilder' \
     "$WORK_DIR/native-arity.log" ||
     { cat "$WORK_DIR/native-arity.log" >&2; fail "native TextBuilderNew arity lost its signature"; }
 
-# Ownership ratchets: one span policy, one binding-name authority.
+# Ownership ratchets: one span policy, one binding-name authority, and a
+# location join that fails closed instead of printing `Span: none`.
+grep -Fq 'source-location rows do not join the admitted tree' \
+    "$ROOT_DIR/src/self_hosted/parser/program_parse_owner.pgy" &&
+    ! grep -Fq 'locations = AstSourceLocationFactsUnknown()' \
+        "$ROOT_DIR/src/self_hosted/parser/program_parse_owner.pgy" ||
+    fail "a location join that does not match the tree regained a silent fallback"
 grep -Fq 'func SemanticDiagnosticSpanIsProgramWide(' \
     "$ROOT_DIR/src/self_hosted/semantic/diagnostic_code_owner.pgy" ||
     fail "the program-wide span policy left diagnostic_code_owner"

@@ -28,7 +28,10 @@ struct ParserSourceLocationObservation {
     source_line: Int;
     source_column: Int;
     source_offset: Int;
-    callable_name: String;
+    // A top-level declaration's name, as the arena atom spells it: a
+    // function's callable name or a type's name. Statement rows leave it
+    // empty.
+    declared_name: String;
 }
 
 struct ParserSourcePoint {
@@ -133,7 +136,7 @@ func ParserSourceLocationReserve(
 func ParserSourceLocationCommit(
     slot: Int,
     kind: Int,
-    callable_name: String,
+    declared_name: String,
     inout observations: Array<ParserSourceLocationObservation>
 ) -> Void {
     if slot < 0 || slot >= ArrayLength(observations) ||
@@ -146,9 +149,23 @@ func ParserSourceLocationCommit(
         slot,
         ParserSourceLocationObservation(
             kind, prior.source_path, prior.source_line,
-            prior.source_column, prior.source_offset, callable_name
+            prior.source_column, prior.source_offset, declared_name
         )
     );
+}
+
+// The typed kind a parsed statement takes in the arena: the kind its owner
+// bound, else the classification of its first tree line.
+func ParserStatementTreeKind(tree_text: String, owner_kind: Int) -> Int {
+    if owner_kind != TypedAstKindUnknownTag() {
+        return owner_kind;
+    }
+    let newline: Int = StringIndexOf(tree_text, "\n");
+    let first_line: String = tree_text;
+    if newline >= 0 {
+        first_line = Substring(tree_text, 0, newline);
+    }
+    return TypedAstTextKindOf(StringTrim(first_line));
 }
 
 func ParserObservedStatementFinish(
@@ -160,25 +177,17 @@ func ParserObservedStatementFinish(
     if slot < 0 {
         return tree_text;
     }
-    let observed_kind: Int = owner_kind;
-    if observed_kind == TypedAstKindUnknownTag() {
-        let newline: Int = StringIndexOf(tree_text, "\n");
-        let first_line: String = tree_text;
-        if newline >= 0 {
-            first_line = Substring(tree_text, 0, newline);
-        }
-        observed_kind = TypedAstTextKindOf(StringTrim(first_line));
-    }
     ParserSourceLocationCommit(
-        slot, observed_kind, "", observations
+        slot, ParserStatementTreeKind(tree_text, owner_kind), "", observations
     );
     return tree_text;
 }
 
 // A top-level declaration other than a function records its start after its
 // block is parsed; its members record no rows, so the row still precedes
-// every later one in preorder. The block's first line names the kind, the
-// same classification the arena uses; an unclassified block records none.
+// every later one in preorder. The block's first line names the kind and
+// the declared name, the same classification and atom the arena uses; an
+// unclassified block records none.
 func ParserObservedDeclarationRow(
     context: ParserSourceLocationContext,
     start: Int,
@@ -188,14 +197,16 @@ func ParserObservedDeclarationRow(
     let newline: Int = StringIndexOf(block_text, "\n");
     let first_line: String = block_text;
     if newline >= 0 { first_line = Substring(block_text, 0, newline); }
-    let kind: Int = TypedAstTextKindOf(StringTrim(first_line));
+    let header: String = StringTrim(first_line);
+    let kind: Int = TypedAstTextKindOf(header);
     let point: ParserSourcePoint = ParserSourcePointForOffset(context, start);
     if !context.observe || !point.known || !TypedAstKindKnown(kind) ||
         kind == TypedAstKindUnknownTag() || kind == TypedAstKindFuncDeclTag() {
         return block_text;
     }
     ArrayPush(observations, ParserSourceLocationObservation(
-        kind, context.source_path, point.line, point.column, start, ""));
+        kind, context.source_path, point.line, point.column, start,
+        CodegenAstTextPayloadFor(header, kind)));
     return block_text;
 }
 
@@ -205,7 +216,7 @@ func ParserSourceLocationAppendSynthetic(
     source_line: Int,
     source_column: Int,
     source_offset: Int,
-    callable_name: String,
+    declared_name: String,
     inout observations: Array<ParserSourceLocationObservation>
 ) -> Void {
     if !TypedAstKindKnown(kind) || kind == TypedAstKindUnknownTag() ||
@@ -217,7 +228,7 @@ func ParserSourceLocationAppendSynthetic(
         observations,
         ParserSourceLocationObservation(
             kind, source_path, source_line, source_column, source_offset,
-            callable_name
+            declared_name
         )
     );
 }

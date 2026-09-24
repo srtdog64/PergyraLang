@@ -465,13 +465,12 @@ func ParseOneStmtObservedProjected(
     );
     let finished: String = ParserObservedStatementFinish(tree_text, slot, owner_kind[0], source_locations);
     // A statement no typed kind covers (`123 + 4;`) is refused here, where
-    // its position is known, instead of failing the whole row join later.
-    if slot >= 0 {
-        let row: ParserSourceLocationObservation = source_locations[slot];
-        if row.kind == TypedAstKindUnknownTag() {
-            ParseRefuse(location_context, observed_start, "statement_kind_unsupported",
-                "construct", "expression_statement", "", "");
-        }
+    // its position is known, instead of failing the row join or MIR later.
+    // Member bodies record no rows, so the kind decides, not the row.
+    if location_context.known &&
+        ParserStatementTreeKind(tree_text, owner_kind[0]) == TypedAstKindUnknownTag() {
+        ParseRefuse(location_context, observed_start, "statement_kind_unsupported",
+            "construct", "expression_statement", "", "");
     }
     return finished;
 }
@@ -514,6 +513,25 @@ func ParseBlockObserved(
     ParserSourceLocationCommit(
         block_slot, TypedAstKindBlockTag(), "", source_locations
     );
+    return ParseBlockStatementsObserved(
+        content, start, cursor_out, stmt_indent, expression_graphs,
+        location_context, source_locations
+    );
+}
+
+// The statements of a `{ ... }` block without its Block row, for a caller
+// whose tree text prints no `Block:` line (the compact `parallel { }`); a
+// Block row there has no arena node to join.
+func ParseBlockStatementsObserved(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>,
+    stmt_indent: Int,
+    inout expression_graphs: Array<AstExpressionGraphRows>,
+    location_context: ParserSourceLocationContext,
+    inout source_locations: Array<ParserSourceLocationObservation>
+) -> String {
+    let block_start: Int = SkipWhitespaceAndComments(content, start);
     let i: Int = ParseExpectIn(location_context, content, start, "{", "block");
     let n: Int = StringLength(content);
     let out: String = "";
