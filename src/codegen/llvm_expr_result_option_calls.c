@@ -264,6 +264,28 @@ llvm_coerce_result_option_payload(LLVMGenCtx *ctx,
     return val;
 }
 
+/* A subject (pointer-self) value travels by address, but Option<Subject>
+ * stores the value, as a subject field does. Load the value; any other
+ * mismatch keeps the scalar payload coercion. */
+static LLVMValueRef
+llvm_option_some_payload_value(LLVMGenCtx *ctx, LLVMValueRef val,
+                               LLVMTypeRef payload_ty)
+{
+    LLVMClassTypeEntry *cls;
+
+    if (ctx == NULL || val == NULL || payload_ty == NULL
+        || LLVMTypeOf(val) == payload_ty)
+        return val;
+    if (LLVMGetTypeKind(payload_ty) == LLVMStructTypeKind
+        && LLVMGetTypeKind(LLVMTypeOf(val)) == LLVMPointerTypeKind) {
+        cls = llvm_lookup_class_by_type(ctx, payload_ty);
+        if (cls != NULL && cls->is_pointer_self_host)
+            return LLVMBuildLoad2(ctx->builder, payload_ty, val,
+                llvm_tmp_name(ctx));
+    }
+    return llvm_coerce_result_option_payload(ctx, val, payload_ty);
+}
+
 LLVMValueRef
 llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_name)
 {
@@ -490,7 +512,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         if (val == NULL)
             return llvm_result_option_error(ctx, node,
                 "LLVM Some(value) could not lower payload expression");
-        val = llvm_coerce_result_option_payload(ctx, val, fields[1]);
+        val = llvm_option_some_payload_value(ctx, val, fields[1]);
         LLVMValueRef o = LLVMGetUndef(option_ty);
         o = LLVMBuildInsertValue(ctx->builder, o,
             LLVMConstInt(ctx->type_i32, 0, 0), 0, llvm_tmp_name(ctx));

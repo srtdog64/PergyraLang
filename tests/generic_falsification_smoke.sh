@@ -17,9 +17,13 @@
 #   - default type args (<T = Int>) bind on both native backends (f_default).
 #   - `return None;` inside a generic body emitted None_T -> the option
 #     context copy now substitutes bindings.
-# Still open, not asserted here: f_where_g1 (a where-bound T instantiated
-# with a subject, wrapped in Option<T>) fails in code generation on both
-# native backends, and so does the same Some(subject) without generics.
+#   - f_where_g1 (a where-bound T instantiated with a subject, wrapped in
+#     Option<T>) failed in code generation on both native backends: C
+#     passed the subject's address to pgy_option_some_Card, and LLVM typed
+#     Hold(c) from Option<T> with T read as its constraint 'Sortable'.
+#     Some(x) now stores the subject's value and LLVM takes a generic
+#     call's type from its MIR specialization; it runs on both. The same
+#     Some(subject) without generics is backend_compare/option_subject_payload.
 #
 # 2026-09-24: this gate ran on the default route after the default route
 # became the self-hosted front end, so it had been red and unrun since; it
@@ -102,15 +106,11 @@ for backend in c llvm; do
         "cannot bind generic parameter 'T': no parameter of 'Make' mentions it"
 done
 
-# --- known open: Option<T> over a subject fails in code generation ------
-# Recorded, not endorsed: when either line changes, update the header above.
-expect_reject c    f_where_g1.pgy "pgy_option_some_Card"
-expect_reject llvm f_where_g1.pgy "LLVM type 'Sortable' is not registered"
-
-# --- default type args and a satisfied where-bound run on both -----------
+# --- default type args, a satisfied where-bound, Option<T> over a subject --
 for backend in c llvm; do
     expect_runs "$backend" f_default.pgy "fresh-none"
     expect_runs "$backend" f_where_ability_ok.pgy "1"
+    expect_runs "$backend" f_where_g1.pgy "held"
 done
 
-echo "[generic-falsification] constraint, unification and unbound-T claims hold at native semantic on c and llvm; default args and satisfied where-bounds run on both"
+echo "[generic-falsification] constraint, unification and unbound-T claims hold at native semantic on c and llvm; default args, satisfied where-bounds and Option<T> over a subject run on both"

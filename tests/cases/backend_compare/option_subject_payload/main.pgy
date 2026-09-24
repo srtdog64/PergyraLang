@@ -1,0 +1,35 @@
+// Some(card) for a subject parameter, and Some(self) in a subject method.
+// Both travel by address; Option<Card> stores the value, as a subject
+// field and Some(local) do. Native C passed the pointer to
+// pgy_option_some_Card and native LLVM inserted a ptr into { i32, %Card };
+// both failed in code generation.
+subject Card {
+    let v: Int;
+
+    func Held(self) -> Option<Card> {
+        return Some(self);
+    }
+}
+
+func Wrap(card: Card) -> Option<Card> {
+    return Some(card);
+}
+
+func Value(o: Option<Card>) -> Int {
+    match o {
+        case Some(k): return k.v;
+        case None: return 0;
+    }
+}
+
+func Main() -> Void {
+    let c = Card(9);
+    let h: Option<Card> = Wrap(c);
+    if IsSome(h) {
+        Log("held");
+    }
+    Log(Value(Wrap(c)));
+    let kept: Option<Card> = Some(c);
+    Log(UnwrapOption(kept).v);
+    Log(Value(c.Held()));
+}

@@ -1,6 +1,8 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "llvm_backend_generic.h"
 #include "llvm_domain_lookup.h"
+#include "llvm_expr_spawn_call_helpers.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_host_methods.h"
 #include "llvm_inventory_internal.h"
@@ -364,6 +366,15 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 ctx, llvm_current_host_class_name(ctx), callee);
             if (method_ret != NULL)
                 return method_ret;
+        }
+        /* A generic function's result is its specialization's: the MIR
+         * call fact binds the formals, so `Option<T>` never reaches the
+         * type map with T unbound (it would read T's constraint). */
+        if (llvm_lookup_generic_template_entry(ctx, callee) != NULL) {
+            LLVMFuncEntry *specialized =
+                llvm_resolve_callee_entry(ctx, expr, callee, NULL);
+            return specialized != NULL && !ctx->has_error
+                ? specialized->ret_type : NULL;
         }
         LLVMFuncEntry *fn = llvm_stmt_lookup_visible_function(ctx, callee);
         if (fn != NULL)
