@@ -1,0 +1,22 @@
+// A ref borrow in one task, a writing method in the other.
+subject Counter {
+    let mut n: Int;
+
+    func Step(self) -> Void {
+        self.n = self.n + 1;
+    }
+}
+
+func Inspect(ref c: Counter) -> Int {
+    return c.n;
+}
+
+func Main() -> Void {
+    let counter: Counter = Counter(0);
+    let mut a: Int = 0;
+    parallel {
+        { a = Inspect(counter); }
+        { counter.Step(); }
+    }
+    Log(a);
+}

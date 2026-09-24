@@ -1,0 +1,17 @@
+// The method writes a field without naming self.
+subject Counter {
+    let mut n: Int;
+
+    func Step(self) -> Void {
+        n = n + 1;
+    }
+}
+
+func Main() -> Void {
+    let counter: Counter = Counter(0);
+    parallel {
+        { counter.Step(); }
+        { counter.Step(); }
+    }
+    Log(counter.n);
+}

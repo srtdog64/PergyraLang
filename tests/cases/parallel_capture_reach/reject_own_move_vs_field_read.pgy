@@ -1,0 +1,18 @@
+// One task moves the subject away while another reads its field.
+subject Hero {
+    let hp: Int;
+}
+
+func Take(own hero: Hero) -> Void {
+    return;
+}
+
+func Main() -> Void {
+    let hero: Hero = Hero(10);
+    let mut a: Int = 0;
+    parallel {
+        { Take(hero); }
+        { a = hero.hp; }
+    }
+    Log(a);
+}

@@ -1,0 +1,16 @@
+// A struct of scalars read by both arms: admitted.
+struct Point {
+    x: Int;
+    y: Int;
+}
+
+func Main() -> Void {
+    let p: Point = Point(3, 4);
+    let mut a: Int = 0;
+    let mut b: Int = 0;
+    parallel {
+        { a = p.x * 2; }
+        { b = p.y * 3; }
+    }
+    Log(a + b);
+}

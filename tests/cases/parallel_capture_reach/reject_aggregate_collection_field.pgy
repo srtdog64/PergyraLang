@@ -1,0 +1,21 @@
+// The split base reaches arm 2 through a struct field copy: holder.data
+// shares arr's storage, so arm 2 reads the elements arm 1 writes through hi.
+struct Holder {
+    data: Array<Int>;
+}
+
+func Main() -> Void {
+    let mut arr: Array<Int> = [];
+    let mut k: Int = 0;
+    while k < 8 { ArrayPush(arr, 0); k = k + 1; }
+    let holder: Holder = Holder(arr);
+    let lo: Slice<Int> = arr.Slice(0, 4);
+    let hi: Slice<Int> = arr.Slice(4, 4);
+    let mut i: Int = 0;
+    let mut j: Int = 0;
+    parallel {
+        while i < 1000 { hi[1] = i; i = i + 1; }
+        while j < 1000 { lo[0] = holder.data[5]; j = j + 1; }
+    }
+    Log(arr[5]);
+}

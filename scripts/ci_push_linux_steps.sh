@@ -83,6 +83,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'make source-utf8-test-smoke'
     run 'make backend-fail-closed-test-smoke'
     run 'make worker-boundary-ub-test-smoke'
+    run 'make parallel-capture-reach-test-smoke'
     run 'make CC="$CI_LINUX_CC" runtime-spawn-context-propagation-test-smoke'
     run 'make CC="$CI_LINUX_CC" structured-spawn-lifecycle-test-smoke'
     run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" clean'

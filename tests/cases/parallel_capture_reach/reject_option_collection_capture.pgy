@@ -1,0 +1,12 @@
+// An Option wrapping an Array shares the Array's storage.
+func Main() -> Void {
+    let mut arr: Array<Int> = [];
+    ArrayPush(arr, 1);
+    let boxed: Option<Array<Int>> = Some(arr);
+    let mut a: Int = 0;
+    parallel {
+        { if IsSome(boxed) { a = 1; } }
+        { ArrayPush(arr, 9); }
+    }
+    Log(a);
+}

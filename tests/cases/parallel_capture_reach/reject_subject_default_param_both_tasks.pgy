@@ -1,0 +1,20 @@
+// Both arms hand the subject to a function that writes it: rejected.
+subject Counter {
+    let mut n: Int;
+}
+
+func Bump(c: Counter) -> Int {
+    c.n = c.n + 1;
+    return c.n;
+}
+
+func Main() -> Void {
+    let counter: Counter = Counter(0);
+    let mut a: Int = 0;
+    let mut b: Int = 0;
+    parallel {
+        { a = Bump(counter); }
+        { b = Bump(counter); }
+    }
+    Log(a + b);
+}

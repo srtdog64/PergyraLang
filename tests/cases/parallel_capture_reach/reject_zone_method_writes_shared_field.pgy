@@ -1,0 +1,17 @@
+// A zone method writes a shared Int from both tasks.
+zone Tally {
+    shared total: Int = 0
+
+    func Bump(self) -> Void {
+        total = total + 1;
+    }
+}
+
+func Main() -> Void {
+    let tally: Tally = Tally();
+    parallel {
+        { tally.Bump(); }
+        { tally.Bump(); }
+    }
+    Log(tally.total);
+}

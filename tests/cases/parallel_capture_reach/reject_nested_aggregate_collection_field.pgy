@@ -1,0 +1,22 @@
+// The collection sits two fields deep: Outer.inner.data.
+struct Holder {
+    data: Array<Int>;
+}
+
+struct Outer {
+    inner: Holder;
+    tag: Int;
+}
+
+func Main() -> Void {
+    let mut arr: Array<Int> = [];
+    let mut k: Int = 0;
+    while k < 8 { ArrayPush(arr, 0); k = k + 1; }
+    let outer: Outer = Outer(Holder(arr), 1);
+    let mut a: Int = 0;
+    parallel {
+        { a = outer.inner.data[5]; }
+        { ArrayPush(arr, 9); }
+    }
+    Log(a);
+}

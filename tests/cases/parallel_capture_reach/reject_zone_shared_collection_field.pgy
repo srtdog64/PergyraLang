@@ -1,0 +1,18 @@
+// A zone's shared Array field is grown by one task and read by the other.
+zone Ledger {
+    shared rows: Array<Int> = []
+
+    func Add(self, v: Int) -> Void {
+        ArrayPush(self.rows, v);
+    }
+}
+
+func Main() -> Void {
+    let ledger: Ledger = Ledger();
+    let mut n: Int = 0;
+    parallel {
+        { ledger.Add(1); }
+        { n = ArrayLength(ledger.rows); }
+    }
+    Log(n);
+}

@@ -1,0 +1,19 @@
+// Both arms only read the subject through a read-only method: admitted.
+subject Counter {
+    let mut n: Int;
+
+    func Get(self) -> Int {
+        return self.n;
+    }
+}
+
+func Main() -> Void {
+    let counter: Counter = Counter(7);
+    let mut a: Int = 0;
+    let mut b: Int = 0;
+    parallel {
+        { a = counter.Get(); }
+        { b = counter.Get() + counter.n; }
+    }
+    Log(a + b);
+}

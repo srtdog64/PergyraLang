@@ -1,0 +1,20 @@
+// One arm writes through a method while the other reads a field: rejected.
+subject Counter {
+    let mut n: Int;
+
+    func Step(self, x: Int) -> Int {
+        self.n = self.n + x;
+        return self.n;
+    }
+}
+
+func Main() -> Void {
+    let counter: Counter = Counter(0);
+    let mut a: Int = 0;
+    let mut b: Int = 0;
+    parallel {
+        { let i: Int = 0; while i < 1000 { a = counter.Step(1); i = i + 1; } }
+        { b = counter.n; }
+    }
+    Log(a + b);
+}

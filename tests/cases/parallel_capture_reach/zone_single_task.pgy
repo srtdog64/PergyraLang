@@ -1,0 +1,20 @@
+// A zone used by one task only: admitted.
+subject Seat {
+    let mut reserved: Bool;
+}
+
+zone Booking {
+    subject slot seat: Seat
+    authority seat
+}
+
+func Main() -> Void {
+    let a: Seat = Seat(false);
+    let za: Booking = Booking(Clone(a));
+    let mut n: Int = 0;
+    parallel {
+        { if za.seat.reserved { n = 1; } else { n = 2; } }
+        { Log(0); }
+    }
+    Log(n);
+}

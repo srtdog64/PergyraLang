@@ -1,0 +1,24 @@
+// The write hides one call deeper: Tick calls Step, which writes self.
+subject Counter {
+    let mut n: Int;
+
+    func Step(self, x: Int) -> Int {
+        self.n = self.n + x;
+        return self.n;
+    }
+
+    func Tick(self) -> Int {
+        return self.Step(1);
+    }
+}
+
+func Main() -> Void {
+    let counter: Counter = Counter(0);
+    let mut a: Int = 0;
+    let mut b: Int = 0;
+    parallel {
+        { a = counter.Tick(); }
+        { b = counter.Tick(); }
+    }
+    Log(a + b);
+}
