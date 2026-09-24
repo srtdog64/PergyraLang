@@ -191,10 +191,18 @@ print(f"COMPLETED rc={r.returncode} {last}")
 PY
 }
 
+# The default set skips LLVM on a C-only compiler and says so; a backend the
+# caller names explicitly must run. The closing line names only the
+# backends that ran, so a skipped leg cannot read as a pass.
 BACKENDS="${PGY_CHANNEL_STARVATION_BACKENDS:-c llvm}"
+EXECUTED=""
 for backend in $BACKENDS; do
     if [[ "$backend" == "llvm" ]] \
         && ! "$PGY" --help 2>&1 | grep -q -- "--backend=llvm"; then
+        if [[ -n "${PGY_CHANNEL_STARVATION_BACKENDS:-}" ]]; then
+            echo "[$LABEL] llvm was requested but the compiler has no LLVM support" >&2
+            exit 1
+        fi
         echo "[$LABEL] SKIP llvm (compiler built without LLVM support)"
         continue
     fi
@@ -213,6 +221,7 @@ for backend in $BACKENDS; do
     case "$starve_res" in
         "COMPLETED rc=0 total=28")
             echo "[$LABEL] PASS $backend/starvation (total=28 within ${TIMEOUT_SECONDS}s)"
+            EXECUTED="${EXECUTED:+$EXECUTED }$backend"
             ;;
         TIMEOUT)
             echo "[$LABEL] $backend/starvation REGRESSED: channel-parked pool" \
@@ -226,4 +235,8 @@ for backend in $BACKENDS; do
     esac
 done
 
-echo "[$LABEL] blocked channel chains unwind via bounded compensation on both backends"
+if [[ -z "$EXECUTED" ]]; then
+    echo "[$LABEL] no backend ran" >&2
+    exit 1
+fi
+echo "[$LABEL] blocked channel chains unwind via bounded compensation on: $EXECUTED"
