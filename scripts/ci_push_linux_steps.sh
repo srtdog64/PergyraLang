@@ -61,6 +61,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'bash tests/self_hosted/parity/parent_relative_output_path_owner.sh'
     run 'bash tests/self_hosted/parity/extern_block_identity_owner.sh'
     run 'bash tests/self_hosted/parity/single_owner_handle_owner.sh'
+    run 'bash tests/self_hosted/parity/containment_embedding_copy_owner.sh'
     run 'make text-builder-owner-test-smoke'
     run 'bash tests/self_hosted/parity/numeric_literal_conversion_owner.sh'
     run 'bash tests/self_hosted/parity/loop_stack_storage_owner.sh'

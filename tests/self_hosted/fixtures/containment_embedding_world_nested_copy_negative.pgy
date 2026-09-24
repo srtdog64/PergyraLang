@@ -1,0 +1,24 @@
+// A zone constructor nested in a world constructor argument is the same
+// undeclared subject fork as a zone constructor on its own.
+subject Seat {
+    let mut reserved: Bool;
+}
+
+zone Booking {
+    subject slot seat: Seat
+    authority seat
+}
+
+world Venue {
+    zone booking: Booking
+
+    func Report(self) -> Void {
+        Log(booking.seat.reserved);
+    }
+}
+
+func Main() -> Void {
+    let a: Seat = Seat(false);
+    let v: Venue = Venue(Booking(a));
+    v.Report();
+}

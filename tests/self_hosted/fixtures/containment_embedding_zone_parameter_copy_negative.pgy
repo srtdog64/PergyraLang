@@ -1,0 +1,20 @@
+// A subject parameter is a live binding too: passing it to a zone
+// constructor forks the caller's subject into the zone-owned slot.
+subject Seat {
+    let mut reserved: Bool;
+}
+
+zone Booking {
+    subject slot seat: Seat
+    authority seat
+}
+
+func Book(s: Seat) -> Bool {
+    let z: Booking = Booking(s);
+    return z.seat.reserved;
+}
+
+func Main() -> Void {
+    let a: Seat = Seat(false);
+    Log(Book(a));
+}

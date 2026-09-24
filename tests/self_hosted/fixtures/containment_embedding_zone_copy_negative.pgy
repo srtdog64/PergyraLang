@@ -1,0 +1,18 @@
+// A live subject binding passed to a zone constructor forks its identity
+// into the zone-owned slot without a declaration. Every front end refuses it
+// with PGY_SEM_ANCHORED_HANDLE_COPY; Clone(a) or an inline Seat(...) is the
+// declared form (containment_embedding_declared_forms.pgy).
+subject Seat {
+    let mut reserved: Bool;
+}
+
+zone Booking {
+    subject slot seat: Seat
+    authority seat
+}
+
+func Main() -> Void {
+    let a: Seat = Seat(false);
+    let za: Booking = Booking(a);
+    Log(za.seat.reserved);
+}

@@ -1,0 +1,24 @@
+// A live zone binding passed to a world constructor forks the zone's
+// identity into the world-owned slot; Clone(z) is the declared copy.
+subject Seat {
+    let mut reserved: Bool;
+}
+
+zone Booking {
+    subject slot seat: Seat
+    authority seat
+}
+
+world Venue {
+    zone booking: Booking
+
+    func Report(self) -> Void {
+        Log(booking.seat.reserved);
+    }
+}
+
+func Main() -> Void {
+    let z: Booking = Booking(Seat(false));
+    let v: Venue = Venue(z);
+    v.Report();
+}

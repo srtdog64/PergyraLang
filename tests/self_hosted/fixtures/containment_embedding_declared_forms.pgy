@@ -1,0 +1,33 @@
+// Declared containment embeddings stay admitted on every front end: Clone of
+// a live binding is a detached copy, and an inline constructor argument is a
+// fresh value with no other name.
+subject Seat {
+    let mut reserved: Bool;
+}
+
+zone Booking {
+    subject slot seat: Seat
+    authority seat
+}
+
+world Venue {
+    zone booking: Booking
+
+    func Report(self) -> Void {
+        Log(booking.seat.reserved);
+    }
+}
+
+func Main() -> Void {
+    let a: Seat = Seat(false);
+    let cloned: Booking = Booking(Clone(a));
+    let fresh: Booking = Booking(Seat(true));
+    Log(cloned.seat.reserved);
+    Log(fresh.seat.reserved);
+    Log(a.reserved);
+    let z: Booking = Booking(Seat(true));
+    let venue_cloned: Venue = Venue(Clone(z));
+    let venue_fresh: Venue = Venue(Booking(Seat(false)));
+    venue_cloned.Report();
+    venue_fresh.Report();
+}
