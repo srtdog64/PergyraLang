@@ -251,6 +251,10 @@ struct ASTNode
             bool           semantic_diverges; /* statement call typed Never (docs/205 L1) */
             bool           semantic_callee_declared_callable; /* docs/205 R7 */
             char*          semantic_value_type_name; /* checker-sealed: Some, UnwrapOption */
+            /* checker-sealed type argument per generic parameter of the
+             * callee, in MIR type grammar; NULL for a non-generic callee */
+            char**         semantic_generic_arg_type_names;
+            size_t         semantic_generic_arg_count;
         } call;
         /* Member access */
         struct {

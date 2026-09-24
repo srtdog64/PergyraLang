@@ -87,11 +87,24 @@ bool semantic_param_summary_has_any_escape(unsigned summary_mask);
 bool semantic_param_summary_has_return_escape(unsigned summary_mask);
 bool semantic_param_summary_has_channel_escape(unsigned summary_mask);
 bool semantic_param_summary_has_call_escape(unsigned summary_mask);
+/* Binds a generic function call's type arguments (explicit, inferred from
+ * the checked argument types structurally, or default), refuses a
+ * conflicting or missing binding, seals the binding on the call and checks
+ * the where-clause against it. */
 void semantic_validate_function_call_generic_where(ASTNode *expr,
                                                    SemanticContext *ctx,
                                                    const char *display_name,
                                                    size_t provided,
                                                    Type **call_arg_types);
+/* Seals one checked type argument per generic parameter on the call, in MIR
+ * type grammar; MIR's generic specialization reads only this. Reports a
+ * coded diagnostic and returns false when a type has no such spelling. */
+bool semantic_generic_call_seal_type_arguments(SemanticContext *ctx,
+                                               ASTNode *call,
+                                               const char *display_name,
+                                               GenericParams *params,
+                                               Type *const *types,
+                                               size_t count);
 bool semantic_reject_active_slot_view_boundary(ASTNode *site,
                                                SemanticContext *ctx,
                                                const char *boundary_name,

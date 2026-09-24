@@ -109,6 +109,7 @@ main(int argc, char **argv)
     if (argc == 2
         && strcmp(argv[1], "generic-method-specialization") == 0) {
         test_generic_method_specialization_fact();
+        test_generic_sealed_binding_fact();
         test_generic_direct_specialization_fact();
         printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
         type_system_cleanup();
@@ -121,6 +122,7 @@ main(int argc, char **argv)
     test_statement_emit();
     test_program_emit();
     test_generic_method_specialization_fact();
+    test_generic_sealed_binding_fact();
     test_generic_direct_specialization_fact();
     test_ability_role_emit();
     test_party_emit();

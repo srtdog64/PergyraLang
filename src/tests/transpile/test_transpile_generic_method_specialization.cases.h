@@ -111,6 +111,94 @@ test_generic_method_specialization_fact(void)
     ast_destroy(program);
 }
 
+/* The checker seals each generic call's type arguments; MIR copies them and
+ * has no text matcher to fall back on (registry row
+ * mir.generic_specialization). */
+static void
+test_generic_sealed_binding_fact(void)
+{
+    const char *source =
+        "func TakeOpt<T>(o: Option<T>) -> Int {\n"
+        "  if IsSome(o) { return 1; }\n"
+        "  return 0;\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "  let hit: Int = TakeOpt(Some(5));\n"
+        "  Log(ToString(hit));\n"
+        "}\n";
+    ASTNode *program = NULL;
+    HIRProgram *hir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram *mir = NULL;
+    ASTNode *call = NULL;
+    char *error = NULL;
+    bool lowered;
+
+    printf("\n[generic_sealed_binding]\n");
+    TEST("Checker seals a nested generic call's type argument; MIR copies it");
+    lowered = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+    for (size_t i = 0; lowered && i < ast_program_statement_count(program); i++) {
+        ASTNode *decl = ast_program_statement(program, i);
+        const char *name = decl != NULL && decl->type == AST_FUNC_DECL
+            ? ast_declaration_name(decl) : NULL;
+        if (name != NULL && strcmp(name, "Main") == 0)
+            call = ast_let_initializer(
+                ast_block_statement(ast_func_body(decl), 0));
+    }
+    {
+        const MIRGenericMethodSpecializationFact *fact =
+            mir_generic_method_specialization_at(mir, 0);
+        EXPECT(lowered && call != NULL && call->type == AST_CALL
+            && ast_call_semantic_generic_arg_count(call) == 1
+            && strcmp(ast_call_semantic_generic_arg_type_name(call, 0),
+                "Int") == 0
+            && mir_generic_method_specialization_count(mir) == 1
+            && fact != NULL && fact->binding_count == 1
+            && strcmp(fact->actual_type_names[0], "Int") == 0
+            && strcmp(fact->specialized_name, "TakeOpt_Int") == 0);
+    }
+
+    TEST("MIR specializes from the sealed binding, not from argument type text");
+    if (call != NULL && call->type == AST_CALL) {
+        char **names = calloc(1, sizeof(char *));
+        const MIRGenericMethodSpecializationFact *fact;
+        if (names != NULL)
+            names[0] = pergyra_strdup("Bool");
+        EXPECT(names != NULL && names[0] != NULL
+            && ast_call_seal_semantic_generic_arg_type_names(call, names, 1)
+            && mir_generic_method_specializations_capture(mir, &error));
+        fact = mir_generic_method_specialization_at(mir, 0);
+        EXPECT(fact != NULL && strcmp(fact->actual_type_names[0], "Bool") == 0
+            && strcmp(fact->specialized_name, "TakeOpt_Bool") == 0);
+        free(error);
+        error = NULL;
+    } else {
+        EXPECT(false);
+    }
+
+    TEST("MIR refuses a generic call the checker sealed no binding for");
+    if (call != NULL && call->type == AST_CALL) {
+        for (size_t i = 0; i < call->data.call.semantic_generic_arg_count; i++)
+            free(call->data.call.semantic_generic_arg_type_names[i]);
+        free(call->data.call.semantic_generic_arg_type_names);
+        call->data.call.semantic_generic_arg_type_names = NULL;
+        call->data.call.semantic_generic_arg_count = 0;
+        EXPECT(!mir_generic_method_specializations_capture(mir, &error)
+            && error != NULL
+            && strstr(error, "PGY_MIR_TOPOLOGY_INVALID") != NULL
+            && strstr(error, "0 checker-sealed type argument(s) for 1 generic parameter(s)") != NULL
+            && mir_generic_method_specialization_count(mir) == 0);
+        free(error);
+    } else {
+        EXPECT(false);
+    }
+
+    mir_destroy(mir);
+    rir_destroy(rir);
+    hir_destroy(hir);
+    ast_destroy(program);
+}
+
 static void
 test_generic_direct_specialization_fact(void)
 {

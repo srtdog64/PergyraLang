@@ -137,6 +137,41 @@ ast_call_set_semantic_value_type_name_copy(ASTNode *node,
     return true;
 }
 
+size_t
+ast_call_semantic_generic_arg_count(const ASTNode *node)
+{
+    return node != NULL && node->type == AST_CALL
+        ? node->data.call.semantic_generic_arg_count : 0;
+}
+
+const char *
+ast_call_semantic_generic_arg_type_name(const ASTNode *node, size_t index)
+{
+    if (index >= ast_call_semantic_generic_arg_count(node))
+        return NULL;
+    return node->data.call.semantic_generic_arg_type_names[index];
+}
+
+bool
+ast_call_seal_semantic_generic_arg_type_names(ASTNode *node,
+                                              char **type_names,
+                                              size_t count)
+{
+    if (node == NULL || node->type != AST_CALL || type_names == NULL
+        || count == 0)
+        return false;
+    for (size_t i = 0; i < count; i++) {
+        if (type_names[i] == NULL || type_names[i][0] == '\0')
+            return false;
+    }
+    for (size_t i = 0; i < node->data.call.semantic_generic_arg_count; i++)
+        free(node->data.call.semantic_generic_arg_type_names[i]);
+    free(node->data.call.semantic_generic_arg_type_names);
+    node->data.call.semantic_generic_arg_type_names = type_names;
+    node->data.call.semantic_generic_arg_count = count;
+    return true;
+}
+
 bool
 ast_call_set_semantic_callee_value_binding_id(ASTNode *node, uint32_t binding_id)
 {

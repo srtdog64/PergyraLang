@@ -319,6 +319,12 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
         Type *resolved_ret;
         expr_host_method_generic_validate_constraints(
             &generic_bindings, expr, method, ctx, method_display);
+        /* MIR specializes the method from this binding; a failure is
+         * reported as a diagnostic by the seal itself. */
+        if (generic_bindings.count > 0)
+            (void)semantic_generic_call_seal_type_arguments(ctx, expr,
+                method_display, generic_bindings.params,
+                generic_bindings.types, generic_bindings.count);
         resolved_ret = expr_host_method_generic_substitute(
             ret, host_decl, receiver_type, &generic_bindings);
         callable_capability_record_method_call(ctx, expr, param_types, arg_types);

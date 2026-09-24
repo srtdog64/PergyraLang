@@ -8579,8 +8579,12 @@ reject_text "src/self_hosted/mir_lower/fixture/generic_member_array_return_flow.
     "Echo<Array<Int>>"
 reject_text "src/self_hosted/mir_lower/fixture/generic_member_record_array_return_flow.pgy" \
     "Echo<Array<Point>>"
-require_text "src/compiler/mir_generic_method_specialization.c" \
+reject_text "src/compiler/mir_generic_method_specialization.c" \
     "mir_generic_method_captured_return_type("
+reject_text "src/compiler/mir_generic_method_specialization.c" \
+    "mir_generic_binding_type_names("
+require_text "src/compiler/mir_generic_method_specialization.c" \
+    "ast_call_semantic_generic_arg_type_name(call, i)"
 reject_text "src/compiler/mir_generic_method_specialization.c" \
     "mir_generic_method_captured_exact_return_type("
 require_text "src/compiler/mir_generic_method_specialization_validate.c" \

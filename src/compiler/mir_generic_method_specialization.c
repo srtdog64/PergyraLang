@@ -9,9 +9,9 @@
 #include "mir_base_helpers.h"
 #include "mir_decl_headers.h"
 #include "mir_source_local_expr_types.h"
-#include "mir_type_helpers.h"
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "../semantic/diag_codes.h"
 
 typedef struct
 {
@@ -177,100 +177,12 @@ mir_generic_specialization_symbol(const char *owner_name,
     return name;
 }
 
-static char *
-mir_generic_method_captured_return_type(
-    const MIRGenericMethodCaptureCtx *ctx,
-    ASTNode *expr)
-{
-    const MIRGenericMethodSpecializationFact *fact;
-    const MIRRoutine *method_routine;
-
-    if (ctx == NULL || ctx->mir == NULL || expr == NULL
-        || expr->type != AST_CALL) {
-        return NULL;
-    }
-    fact = mir_generic_method_specialization_for_call(
-        ctx->mir, ast_node_stable_id(expr));
-    if (fact == NULL || fact->method_routine_index >= ctx->mir->routine_count)
-        return NULL;
-    method_routine = &ctx->mir->routines[fact->method_routine_index];
-    if (method_routine->return_type == NULL)
-        return NULL;
-    return mir_render_substituted_type_name(method_routine->return_type,
-        fact->generic_param_names, fact->actual_type_names,
-        fact->binding_count);
-}
-
-/* Structural unification over the canonical rendered type grammar. The
- * semantic checker has admitted the call; this copies its actual/formal
- * relation, including constructed types, into MIR-owned binding strings. */
-static bool
-mir_generic_binding_type_names(const char *pattern, const char *actual,
-                        char *const *formal_names, char **bindings,
-                        size_t binding_count)
-{
-    if (pattern == NULL || actual == NULL)
-        return false;
-    while (*pattern != '\0') {
-        while (isspace((unsigned char)*pattern)) pattern++;
-        while (isspace((unsigned char)*actual)) actual++;
-        if (*pattern == '\0') break;
-        const char *token_end = pattern;
-        if (isalpha((unsigned char)*pattern) || *pattern == '_') {
-            do { token_end++; }
-            while (isalnum((unsigned char)*token_end) || *token_end == '_');
-        }
-        size_t binding = binding_count;
-        for (size_t i = 0; i < binding_count; i++) {
-            if (formal_names[i] != NULL
-                && strlen(formal_names[i]) == (size_t)(token_end - pattern)
-                && strncmp(pattern, formal_names[i], token_end - pattern) == 0) {
-                binding = i;
-                break;
-            }
-        }
-        if (binding < binding_count) {
-            const char *end = actual;
-            int angle = 0, paren = 0;
-            while (*end != '\0') {
-                if (angle == 0 && paren == 0
-                    && (*end == ',' || *end == '>' || *end == ')')) break;
-                if (*end == '<') angle++;
-                if (*end == '>') angle--;
-                if (*end == '(') paren++;
-                if (*end == ')') paren--;
-                if (angle < 0 || paren < 0) return false;
-                end++;
-            }
-            const char *trimmed = end;
-            while (trimmed > actual && isspace((unsigned char)trimmed[-1]))
-                trimmed--;
-            size_t length = (size_t)(trimmed - actual);
-            if (length == 0 || angle != 0 || paren != 0) return false;
-            if (bindings[binding] != NULL) {
-                if (strlen(bindings[binding]) != length
-                    || strncmp(bindings[binding], actual, length) != 0)
-                    return false;
-            } else {
-                bindings[binding] = malloc(length + 1);
-                if (bindings[binding] == NULL) return false;
-                memcpy(bindings[binding], actual, length);
-                bindings[binding][length] = '\0';
-            }
-            pattern = token_end;
-            actual = end;
-        } else {
-            size_t length = token_end > pattern
-                ? (size_t)(token_end - pattern) : 1;
-            if (strncmp(pattern, actual, length) != 0) return false;
-            pattern += length;
-            actual += length;
-        }
-    }
-    while (isspace((unsigned char)*actual)) actual++;
-    return *actual == '\0';
-}
-
+/* The checker owns generic inference: for every generic call it admits it
+ * seals one type argument per generic parameter of the callee (explicit,
+ * inferred from the checked argument types, or default) in MIR type
+ * grammar. MIR copies that binding and never re-derives one from type text.
+ * A call with no sealed binding, or one sealed for another parameter count,
+ * is refused here instead of being guessed. */
 static bool
 mir_generic_method_capture_actuals(
     MIRGenericMethodCaptureCtx *ctx,
@@ -278,90 +190,38 @@ mir_generic_method_capture_actuals(
     const MIRRoutine *method_routine,
     MIRGenericMethodSpecializationFact *fact)
 {
-    size_t explicit_count = ast_call_generic_arg_count(call);
-    MIRSourceLocalTypeScratch scratch = {0};
+    size_t sealed_count = ast_call_semantic_generic_arg_count(call);
 
     fact->binding_count = method_routine->generic_param_count;
     if (fact->binding_count == 0)
         return true;
+    if (sealed_count != fact->binding_count) {
+        if (ctx->error_message != NULL && *ctx->error_message == NULL)
+            *ctx->error_message = mir_strdup_fmt(
+                "%s: MIR generic call %u to '%s' has %zu checker-sealed type argument(s) for %zu generic parameter(s); the checker must bind every parameter before MIR specializes the call",
+                PGY_CODE_MIR_TOPOLOGY_INVALID, ast_node_stable_id(call),
+                method_routine->name != NULL ? method_routine->name : "<routine>",
+                sealed_count, fact->binding_count);
+        return false;
+    }
     if (fact->binding_count > SIZE_MAX / sizeof(char *))
         return false;
     fact->generic_param_names = calloc(fact->binding_count, sizeof(char *));
     fact->actual_type_names = calloc(fact->binding_count, sizeof(char *));
     if (fact->generic_param_names == NULL || fact->actual_type_names == NULL)
         return false;
-    if (explicit_count > fact->binding_count)
-        goto invalid;
-
     for (size_t i = 0; i < fact->binding_count; i++) {
         fact->generic_param_names[i] =
             pergyra_strdup(method_routine->generic_param_names[i]);
-        if (fact->generic_param_names[i] == NULL)
+        fact->actual_type_names[i] = pergyra_strdup(
+            ast_call_semantic_generic_arg_type_name(call, i));
+        if (fact->generic_param_names[i] == NULL
+            || fact->actual_type_names[i] == NULL)
             return false;
-        if (i < explicit_count) {
-            GenericParam *actual = ast_call_generic_arg(call, i);
-            fact->actual_type_names[i] = mir_capture_type_name(
-                ast_generic_param_constraint(actual),
-                ast_generic_param_name(actual));
-            if (fact->actual_type_names[i] == NULL)
-                goto invalid;
-        }
-    }
-    if (explicit_count == 0) {
-        size_t argument_index = 0;
-        for (size_t p = 0; p < method_routine->param_count; p++) {
-            FuncParam *param = method_routine->params[p];
-            const char *pattern = method_routine->param_type_names[p];
-            bool has_formal = false;
-            if (param != NULL && param->name != NULL
-                && strcmp(param->name, "self") == 0)
-                continue;
-            ASTNode *argument = ast_call_argument(call, argument_index++);
-            for (const char *token = pattern; token != NULL && *token != '\0';) {
-                if (!isalpha((unsigned char)*token) && *token != '_') {
-                    token++;
-                    continue;
-                }
-                const char *end = token + 1;
-                while (isalnum((unsigned char)*end) || *end == '_') end++;
-                for (size_t i = 0; i < fact->binding_count; i++)
-                    if (strlen(fact->generic_param_names[i]) == (size_t)(end - token)
-                        && strncmp(token, fact->generic_param_names[i], end - token) == 0)
-                        has_formal = true;
-                token = end;
-            }
-            if (!has_formal) continue;
-            char *captured_return =
-                mir_generic_method_captured_return_type(ctx, argument);
-            const char *actual = captured_return != NULL ? captured_return
-                : mir_source_local_expr_type_name(
-                    ctx->mir, ctx->caller, &scratch, argument);
-            bool bound = mir_generic_binding_type_names(pattern, actual,
-                fact->generic_param_names, fact->actual_type_names,
-                fact->binding_count);
-            free(captured_return);
-            if (!bound) goto invalid;
-        }
-    }
-    for (size_t i = 0; i < fact->binding_count; i++) {
-        if (fact->actual_type_names[i] == NULL) {
-            GenericParam *param = ast_generic_param_at(
-                ast_declaration_generic_params(method_routine->ast), i);
-            fact->actual_type_names[i] =
-                mir_render_type_name(ast_generic_param_default_type(param));
-        }
-        if (fact->actual_type_names[i] == NULL
-            || fact->actual_type_names[i][0] == '\0')
-            goto invalid;
     }
     return true;
-invalid:
-    if (ctx->error_message != NULL && *ctx->error_message == NULL)
-        *ctx->error_message = mir_strdup_fmt(
-            "MIR generic call %u cannot resolve consistent actual/formal bindings",
-            ast_node_stable_id(call));
-    return false;
 }
+
 static bool
 mir_generic_method_append(MIRGenericMethodCaptureCtx *ctx,
                           ASTNode *call,

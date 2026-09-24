@@ -147,6 +147,7 @@ test_semantic_enter_isolated_cwd(void)
 #include "tests/semantic/test_semantic_misc_b2_part_g.cases.h"
 #include "tests/semantic/test_semantic_squiggle.cases.h"
 #include "tests/semantic/test_semantic_callable_capability.cases.h"
+#include "tests/semantic/test_semantic_generic_call_binding.cases.h"
 
 
 /* -----------------------------------------------------------------
@@ -207,6 +208,7 @@ main(void)
     test_squiggle_class();
     test_squiggle_advisory();
     test_callable_capability_inference();
+    test_generic_call_binding();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
 

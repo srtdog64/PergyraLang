@@ -271,6 +271,16 @@ bool ast_call_set_semantic_callee_declared_callable(ASTNode *node,
 const char *ast_call_semantic_value_type_name(const ASTNode *node);
 bool ast_call_set_semantic_value_type_name_copy(ASTNode *node,
                                                 const char *type_name);
+/* The checker's type argument for each generic parameter of the callee, in
+ * declaration order and MIR type grammar. A count of zero means the checker
+ * sealed no binding for this call. Sealing replaces a previous binding and,
+ * on success, takes ownership of the array and its strings. */
+size_t ast_call_semantic_generic_arg_count(const ASTNode *node);
+const char *ast_call_semantic_generic_arg_type_name(const ASTNode *node,
+                                                    size_t index);
+bool ast_call_seal_semantic_generic_arg_type_names(ASTNode *node,
+                                                   char **type_names,
+                                                   size_t count);
 bool ast_call_set_semantic_callee_decl_id(ASTNode* node, uint32_t decl_id);
 uint32_t ast_call_semantic_callee_value_binding_id(const ASTNode *node);
 bool ast_call_set_semantic_callee_value_binding_id(ASTNode *node, uint32_t binding_id);
