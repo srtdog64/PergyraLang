@@ -457,12 +457,18 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             if (math_type != NULL)
                 return math_type;
         }
+        /* A bare call inside a host body is an implicit-self method call only
+         * when the host declares that method; otherwise it is a builtin or a
+         * free function (UnwrapOption in a subject action) and the branches
+         * below type it. */
         if (llvm_current_host_class_name(ctx) != NULL
             && !llvm_stmt_call_is_slot_builtin(callee)
             && strcmp(callee, "Log") != 0
             && strcmp(callee, "Print") != 0
             && strcmp(callee, "ToString") != 0
-            && strcmp(callee, "Clone") != 0) {
+            && strcmp(callee, "Clone") != 0
+            && llvm_find_host_method_metadata_in_context(
+                   ctx, llvm_current_host_class_name(ctx), callee) != NULL) {
             LLVMTypeRef method_ret = llvm_stmt_host_method_return_type(
                 ctx, llvm_current_host_class_name(ctx), callee);
             if (method_ret != NULL)

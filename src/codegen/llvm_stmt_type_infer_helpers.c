@@ -152,8 +152,13 @@ llvm_stmt_infer_builtin_return_type(LLVMGenCtx *ctx, const char *callee)
     type_name = pgy_builtin_simple_return_type(callee);
     if (type_name == NULL)
         return NULL;
+    /* Option and Result rows (CharFromCode, TryReadFile, TryWriteFile) name
+     * their layout like any other; without them a call inside a method body
+     * fell through to the implicit-self method lookup. */
     if (!llvm_stmt_type_name_is_simple_builtin_return(type_name)
-        && strcmp(type_name, "Array<String>") != 0) {
+        && strcmp(type_name, "Array<String>") != 0
+        && strncmp(type_name, "Option<", 7) != 0
+        && strncmp(type_name, "Result<", 7) != 0) {
         return NULL;
     }
     return pergyra_type_to_llvm(ctx, type_name);

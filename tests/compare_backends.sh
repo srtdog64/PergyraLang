@@ -1550,6 +1550,7 @@ main() {
         "tests/cases/backend_compare/match_guard_enum_payload"
         "tests/cases/backend_compare/unwrap_operand_once"
         "tests/cases/backend_compare/result_consumer_operand_type"
+        "tests/cases/backend_compare/io_result_in_hosted_bodies"
         "tests/cases/backend_compare/enum_variant_builtin_spelling"
         "tests/cases/backend_compare/enum_type_builtin_spelling"
     )

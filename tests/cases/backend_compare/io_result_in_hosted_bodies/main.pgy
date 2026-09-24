@@ -1,0 +1,46 @@
+// TryReadFile and CharFromCode inside class methods and a subject action.
+// Native C emitted the Result<_, IoError> specialization after the hosted
+// bodies that used it; native LLVM could not type the builtin call there.
+class Loader {
+    let name: String;
+
+    func Probe(self) -> Bool {
+        return IsErr(TryReadFile(name));
+    }
+
+    func Load(self) -> String {
+        let r: Result<String, IoError> = TryReadFile(name);
+        if IsOk(r) { return "ok"; }
+        return "err";
+    }
+
+    func Glyph(self, code: Int) -> String {
+        match CharFromCode(code) {
+            case Some(s): return s;
+            case None: return "?";
+        }
+        return "";
+    }
+}
+
+subject Glyphs {
+    let n: Int;
+
+    action First(self) -> String
+        authorized by self
+    {
+        let o: Option<String> = CharFromCode(66);
+        if IsSome(o) { return UnwrapOption(o); }
+        return "?";
+    }
+}
+
+func Main() -> Void {
+    let l: Loader = Loader("pgy_compare_missing_input.txt");
+    Log(ToString(l.Probe()));
+    Log(l.Load());
+    Log(l.Glyph(65));
+    Log(l.Glyph(-1));
+    let g: Glyphs = Glyphs(1);
+    Log(g.First());
+}
