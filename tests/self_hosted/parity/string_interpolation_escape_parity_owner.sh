@@ -3,7 +3,9 @@
 # way. An opener preceded by an odd run of backslashes (`\${`, `\{` in `$"..."`)
 # is literal text and the backslash is dropped; an even run escapes only the
 # backslashes (docs/grammar/01_syntax.md). The expected lines are written from
-# that rule, not from either compiler's output.
+# that rule, not from either compiler's output. An escaped opener that names
+# no local (`\${HOME}`) stays literal too: no leg may resolve the name inside
+# it.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -24,7 +26,7 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR"
 printf '%s\n' 'a${x}b' 'c{x}d' 'e\5f' 'g5h' 'i\${x}j' '5k{x}' \
-    >"$WORK_DIR/expected.out"
+    'l ${HOME} m' 'n {HOME} o' >"$WORK_DIR/expected.out"
 
 for leg in native-c native-llvm default-c default-llvm; do
     case "$leg" in

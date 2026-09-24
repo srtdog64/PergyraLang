@@ -6,4 +6,6 @@ func Main() -> Void {
     Log("g${x}h");
     Log("i\\\${x}j");
     Log($"{x}k\{x}");
+    Log("l \${HOME} m");
+    Log($"n \{HOME} o");
 }
