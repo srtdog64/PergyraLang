@@ -78,7 +78,13 @@ for backend in c llvm; do
     else
         grep -Eq '^%pgy\.scalar\.option\.logical\.record\.[0-9]+ = type' "$artifact" ||
             fail "LLVM artifact omitted logical-record Option representation"
-        "$CLANG" -x ir "$artifact" -o "$bin" \
+        # UnwrapOption's failing path reports through the runtime panic export.
+        grep -Fq 'declare void @pgy_runtime_panic_internal_invariant_export(ptr)' "$artifact" ||
+            fail "LLVM logical-record Option unwrap lost the runtime panic ABI"
+        "$CLANG" -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" \
+            -I"$ROOT_DIR/src/runtime" -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
+            -o "$WORK_DIR/runtime.o" || fail "runtime object did not compile"
+        "$CLANG" -x ir "$artifact" -x none "$WORK_DIR/runtime.o" -pthread -lm -o "$bin" \
             >"$WORK_DIR/$backend.compile.out" \
             2>"$WORK_DIR/$backend.compile.err" || {
                 cat "$WORK_DIR/$backend.compile.err" >&2

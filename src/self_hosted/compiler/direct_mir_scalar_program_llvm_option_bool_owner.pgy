@@ -3,6 +3,7 @@
 import "direct_mir_scalar_program_option_bool_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_option_bool_abi_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_unwrap_panic_owner.pgy";
 import "target_projection_fact_owner.pgy";
 
 func DirectMirScalarProgramLlvmOptionBoolTypeName() -> String {
@@ -46,7 +47,7 @@ func DirectMirScalarProgramLlvmOptionBoolExpressionAt(
 
 func DirectMirScalarProgramLlvmOptionBoolPreamble(
     ref fact: DirectMirOptionMatchAbiFact,
-    ref target: CompilerTargetProjectionFact
+    ref target: CompilerTargetProjectionFact, unwrap_called: Bool
 ) -> String {
     if DirectMirScalarProgramOptionBoolAbiCanonicalEmpty(fact) { return ""; }
     if !DirectMirOptionBoolAbiFactReady(fact) ||
@@ -89,7 +90,9 @@ func DirectMirScalarProgramLlvmOptionBoolPreamble(
     output = Concat(output, t);
     output = Concat(output, " %value, 0\n  %ok = icmp eq i32 %tag, ");
     output = Concat(output, fact.some_tag);
-    output = Concat(output, "\n  ret i1 %ok\n}\n\ndefine internal i1 @pgy.scalar.option.bool.unwrap(");
+    output = Concat(output, "\n  ret i1 %ok\n}\n\n");
+    if !unwrap_called { return output; }
+    output = Concat(output, "define internal i1 @pgy.scalar.option.bool.unwrap(");
     output = Concat(output, t);
     output = Concat(output,
         " %value) {\nentry:\n  %unwrap.tag = extractvalue ");
@@ -97,7 +100,8 @@ func DirectMirScalarProgramLlvmOptionBoolPreamble(
     output = Concat(output, " %value, 0\n  %unwrap.ok = icmp eq i32 %unwrap.tag, ");
     output = Concat(output, fact.some_tag);
     output = Concat(output,
-        "\n  br i1 %unwrap.ok, label %some, label %none\nnone:\n  call void @abort()\n  unreachable\nsome:\n  %payload = extractvalue ");
+        "\n  br i1 %unwrap.ok, label %some, label %none\nnone:\n" +
+        DirectMirScalarProgramLlvmUnwrapNonePanic() + "some:\n  %payload = extractvalue ");
     output = Concat(output, t);
     output = Concat(output, " %value, 1\n  ret i1 %payload\n}\n");
     return output;

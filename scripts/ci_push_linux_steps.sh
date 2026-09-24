@@ -64,6 +64,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'make text-builder-owner-test-smoke'
     run 'bash tests/self_hosted/parity/numeric_literal_conversion_owner.sh'
     run 'bash tests/self_hosted/parity/loop_stack_storage_owner.sh'
+    run 'bash tests/self_hosted/parity/default_llvm_unwrap_panic_owner.sh'
     run 'bash tests/llvm_runtime_entrypoint_attrs_smoke.sh'
 
     run 'make build-source-inventory-test-smoke'

@@ -19726,15 +19726,32 @@ require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy" \
     "func DirectMirScalarCfgLlvmForeignDeclarations(" \
     "plan.program.logical_record.present"
-for option_abort_fact in \
-    plan.program.option_int_abi.valid \
-    plan.program.option_string_abi.valid \
-    plan.program.option_bool_abi.valid; do
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy" \
+    "func DirectMirScalarCfgLlvmForeignDeclarations(" \
+    "DirectMirScalarProgramLlvmInternalInvariantPanicDeclarations(plan)"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_unwrap_panic_owner.pgy" \
+    "func DirectMirScalarProgramLlvmInternalInvariantPanicDeclarations(" \
+    "DirectMirScalarProgramLlvmUnwrapPanicKinds()"
+# A failing unwrap helper is emitted only for a program that calls it, so the
+# declaration keys on the unwrap expression kinds, never on an ABI being valid.
+for option_unwrap_panic_kind in \
+    DirectMirScalarProgramExprUnwrapOptionInt \
+    DirectMirScalarProgramExprUnwrapOptionString \
+    DirectMirScalarProgramExprUnwrapOptionBool \
+    DirectMirScalarProgramExprUnwrapOptionLogicalRecord \
+    DirectMirScalarProgramExprUnwrapResultInt \
+    DirectMirScalarProgramExprUnwrapErrInt; do
     require_function_text \
-        "src/self_hosted/compiler/direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy" \
-        "func DirectMirScalarCfgLlvmForeignDeclarations(" \
-        "$option_abort_fact"
+        "src/self_hosted/compiler/direct_mir_scalar_program_llvm_unwrap_panic_owner.pgy" \
+        "func DirectMirScalarProgramLlvmUnwrapPanicKinds(" \
+        "$option_unwrap_panic_kind()"
 done
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_unwrap_panic_owner.pgy" \
+    "func DirectMirScalarProgramLlvmInternalInvariantPanicDeclarations(" \
+    "_abi.valid"
 reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_llvm_emission_owner.pgy" \
     "func DirectMirScalarCfgEmitProgramLlvm(" \

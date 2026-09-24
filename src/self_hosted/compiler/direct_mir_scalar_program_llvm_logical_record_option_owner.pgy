@@ -3,6 +3,7 @@
 import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_llvm_logical_record_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_unwrap_panic_owner.pgy";
 import "target_projection_fact_owner.pgy";
 
 func DirectMirScalarProgramLlvmLogicalRecordOptionTypeName(
@@ -67,7 +68,7 @@ func DirectMirScalarProgramLlvmLogicalRecordOptionExpressionAt(
 
 func DirectMirScalarProgramLlvmLogicalRecordOptionPreamble(
     ref fact: DirectMirScalarProgramLogicalRecordFact,
-    ref target: CompilerTargetProjectionFact
+    ref target: CompilerTargetProjectionFact, unwrap_called: Bool
 ) -> String {
     if !DirectMirScalarProgramLogicalRecordFactReady(fact) ||
         !CompilerTargetProjectionFactReadyFor(
@@ -105,14 +106,17 @@ func DirectMirScalarProgramLlvmLogicalRecordOptionPreamble(
             " %value) {\nentry:\n  %tag = extractvalue ")));
         output = Concat(output, Concat(t,
             " %value, 0\n  ret i1 %tag\n}\n"));
-        output = Concat(output, Concat("define internal ", payload));
-        output = Concat(output, Concat(" ", Concat(stem, ".unwrap(")));
-        output = Concat(output, Concat(t,
-            " %value) {\nentry:\n  %unwrap.tag = extractvalue "));
-        output = Concat(output, Concat(t,
-            " %value, 0\n  br i1 %unwrap.tag, label %some, label %none\nnone:\n  call void @abort()\n  unreachable\nsome:\n  %payload = extractvalue "));
-        output = Concat(output, Concat(t, Concat(" %value, 1\n  ret ",
-            Concat(payload, " %payload\n}\n"))));
+        if unwrap_called {
+            output = Concat(output, Concat("define internal ", payload));
+            output = Concat(output, Concat(" ", Concat(stem, ".unwrap(")));
+            output = Concat(output, Concat(t,
+                " %value) {\nentry:\n  %unwrap.tag = extractvalue "));
+            output = Concat(output, Concat(t,
+                " %value, 0\n  br i1 %unwrap.tag, label %some, label %none\nnone:\n" +
+                DirectMirScalarProgramLlvmUnwrapNonePanic() + "some:\n  %payload = extractvalue "));
+            output = Concat(output, Concat(t, Concat(" %value, 1\n  ret ",
+                Concat(payload, " %payload\n}\n"))));
+        }
         row = row + 1;
     }
     return output;

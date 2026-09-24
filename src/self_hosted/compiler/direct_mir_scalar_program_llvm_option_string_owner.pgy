@@ -3,6 +3,7 @@
 import "direct_mir_scalar_program_option_string_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_option_string_abi_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_unwrap_panic_owner.pgy";
 import "target_projection_fact_owner.pgy";
 
 func DirectMirScalarProgramLlvmOptionStringTypeName() -> String {
@@ -46,7 +47,7 @@ func DirectMirScalarProgramLlvmOptionStringExpressionAt(
 
 func DirectMirScalarProgramLlvmOptionStringPreamble(
     ref fact: DirectMirOptionMatchAbiFact,
-    ref target: CompilerTargetProjectionFact
+    ref target: CompilerTargetProjectionFact, unwrap_called: Bool
 ) -> String {
     if DirectMirScalarProgramOptionStringAbiCanonicalEmpty(fact) { return ""; }
     if !DirectMirOptionStringAbiFactReady(fact) ||
@@ -95,6 +96,7 @@ func DirectMirScalarProgramLlvmOptionStringPreamble(
         " %value, 0\n  %ok = icmp eq i32 %tag, ");
     output = Concat(output, fact.some_tag);
     output = Concat(output, "\n  ret i1 %ok\n}\n\n");
+    if !unwrap_called { return output; }
     output = Concat(output,
         "define internal ptr @pgy.scalar.option.string.unwrap(");
     output = Concat(output, t);
@@ -107,7 +109,7 @@ func DirectMirScalarProgramLlvmOptionStringPreamble(
     output = Concat(output,
         "\n  br i1 %unwrap.ok, label %some, label %none\n");
     output = Concat(output,
-        "none:\n  call void @abort()\n  unreachable\nsome:\n");
+        "none:\n" + DirectMirScalarProgramLlvmUnwrapNonePanic() + "some:\n");
     output = Concat(output, "  %payload = extractvalue ");
     output = Concat(output, t);
     output = Concat(output, " %value, 1\n  ret ptr %payload\n}\n");

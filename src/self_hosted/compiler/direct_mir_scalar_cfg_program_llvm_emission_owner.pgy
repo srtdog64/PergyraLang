@@ -281,9 +281,8 @@ func DirectMirScalarCfgEmitProgramLlvm(
             plan.program.logical_record, target));
     TextBuilderAppend(output, DirectMirIdentityCellPreamble(plan.program.logical_record.identity_cells, true));
     TextBuilderAppend(output, DirectMirScalarProgramLlvmLogicalRecordArrayPreamble(plan, target));
-    TextBuilderAppend(output,
-        DirectMirScalarProgramLlvmLogicalRecordOptionPreamble(
-            plan.program.logical_record, target));
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmLogicalRecordOptionPreamble(plan.program.logical_record, target,
+        DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprUnwrapOptionLogicalRecord())));
     TextBuilderAppend(output, DirectMirScalarProgramLlvmPayloadEnumPreamble(
         plan.program.referenced_enum,
         plan.program.logical_record, plan.program.payload_free_enum));

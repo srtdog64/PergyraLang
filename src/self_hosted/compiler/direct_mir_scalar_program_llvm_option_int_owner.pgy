@@ -3,6 +3,7 @@
 import "direct_mir_scalar_program_option_int_expression_kind_owner.pgy";
 import "direct_mir_scalar_program_option_int_abi_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_unwrap_panic_owner.pgy";
 import "direct_mir_option_match_abi_projection_owner.pgy";
 
 func DirectMirScalarProgramLlvmOptionIntTypeName() -> String {
@@ -47,7 +48,7 @@ func DirectMirScalarProgramLlvmOptionIntExpressionAt(
 
 func DirectMirScalarProgramLlvmOptionIntPreamble(
     ref fact: DirectMirOptionMatchAbiFact,
-    ref target: CompilerTargetProjectionFact
+    ref target: CompilerTargetProjectionFact, unwrap_called: Bool
 ) -> String {
     if DirectMirScalarProgramOptionIntAbiCanonicalEmpty(fact) { return ""; }
     let abi: DirectMirOptionMatchAbiProjection =
@@ -137,6 +138,7 @@ func DirectMirScalarProgramLlvmOptionIntPreamble(
     output = Concat(output, "\n  ret ");
     output = Concat(output, abi.llvm_print_type);
     output = Concat(output, " %payload.extended\n}\n\n");
+    if !unwrap_called { return output; }
     output = Concat(output, "define internal ");
     output = Concat(output, abi.llvm_print_type);
     output = Concat(output, " @pgy.scalar.option.int.unwrap(");
@@ -151,7 +153,8 @@ func DirectMirScalarProgramLlvmOptionIntPreamble(
     output = Concat(output, " %unwrap.tag, ");
     output = Concat(output, fact.some_tag);
     output = Concat(output,
-        "\n  br i1 %unwrap.ok, label %some, label %none\nnone:\n  call void @abort()\n  unreachable\nsome:\n  %payload = extractvalue ");
+        "\n  br i1 %unwrap.ok, label %some, label %none\nnone:\n" +
+        DirectMirScalarProgramLlvmUnwrapNonePanic() + "some:\n  %payload = extractvalue ");
     output = Concat(output, t);
     output = Concat(output, " %value, ");
     output = Concat(output, ToString(abi.value_index));

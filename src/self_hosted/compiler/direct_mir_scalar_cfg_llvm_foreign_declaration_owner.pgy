@@ -8,6 +8,7 @@ import "../codegen/runtime_abi/collection_bounds_owner.pgy";
 import "../codegen/runtime_abi/set_runtime_owner.pgy";
 import "direct_mir_scalar_program_llvm_hashmap_owner.pgy";
 import "direct_mir_scalar_program_llvm_slice_expression_owner.pgy";
+import "direct_mir_scalar_program_llvm_unwrap_panic_owner.pgy";
 func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraphPlan) -> String {
     let array_int_runtime: DirectMirScalarProgramArrayIntRuntimeRequirement = DirectMirScalarProgramArrayIntRuntimeRequirementFromPlan(plan);
     if !array_int_runtime.valid { Die("direct MIR LLVM Array<Int> runtime requirement is invalid"); }
@@ -115,16 +116,15 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
         CollectionSetRuntimeLlvmAddStringRawFn(), "(ptr, ptr)\n"))); }
     if set_has { output = Concat(output, Concat("declare i1 @", Concat(
         CollectionSetRuntimeLlvmHasStringRawFn(), "(ptr, ptr)\n"))); }
-    if collection { output = Concat(output,
-        "declare ptr @realloc(ptr, i64)\ndeclare void @free(ptr)\n"); }
-    if collection || plan.program.runtime_abi.string_length_id != 0 || plan.program.option_int_abi.valid || plan.program.result_int_abi.valid || plan.program.option_string_abi.valid || plan.program.option_bool_abi.valid || plan.program.logical_record.present || slice_any { output = Concat(output, "declare void @abort()\n"); }
+    if collection { output = Concat(output, "declare ptr @realloc(ptr, i64)\ndeclare void @free(ptr)\n"); }
+    if collection || plan.program.runtime_abi.string_length_id != 0 || plan.program.logical_record.present || slice_any { output = Concat(output, "declare void @abort()\n"); }
+    output = Concat(output, DirectMirScalarProgramLlvmInternalInvariantPanicDeclarations(plan));
     if scalar_array_index || bounded_array_set || slice_any || DirectMirScalarProgramExpressionContainsKind(
             plan.program.expressions, DirectMirScalarProgramExprArrayLongIndex()) {
         output = Concat(output, Concat("declare void @", Concat(
             CollectionRuntimeLlvmBoundsPanicFn(), "(ptr)\n"))); }
     if plan.program.runtime_abi.string_to_int_id != 0 { output = Concat(output, "declare i64 @strtoll(ptr, ptr, i32)\n"); }
-    if plan.program.runtime_abi.process_args_id != 0 {
-        output = Concat(output, "declare void @pgy_runtime_process_utf8_argv_export(i32, ptr, ptr, ptr)\n"); }
+    if plan.program.runtime_abi.process_args_id != 0 { output = Concat(output, "declare void @pgy_runtime_process_utf8_argv_export(i32, ptr, ptr, ptr)\n"); }
     if StringLength(output) != 0 { output = Concat(output, "\n"); }
     return output;
 }

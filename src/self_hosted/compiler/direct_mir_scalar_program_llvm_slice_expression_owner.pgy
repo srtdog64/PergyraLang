@@ -329,9 +329,10 @@ func DirectMirScalarProgramLlvmSliceForeignDeclarations(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> String {
     let output: String = "";
+    // The internal-invariant panic export it also calls is declared once by
+    // the foreign declaration owner, which the unwrap helpers share.
     if DirectMirScalarProgramSliceCopyReached(expressions) {
         output = output + "declare ptr @pgy_alloc_export(ptr, i64, i64)\n";
-        output = output + "declare void @pgy_runtime_panic_internal_invariant_export(ptr)\n";
     }
     if DirectMirScalarProgramExpressionContainsKind(
             expressions, DirectMirScalarProgramExprSliceIntIndex()) {

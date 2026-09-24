@@ -38,7 +38,10 @@ rm -f "$WORK_DIR"/*.{ll,out,err,exe} "$COUNT_FILE"
     >"$WORK_DIR/file.out" 2>"$WORK_DIR/file.err"
 cmp -s "$WORK_DIR/file.ll" "$WORK_DIR/stdout.ll" ||
     fail "stdout LLVM IR differs from the closed public file form"
-"$CLANG" "$WORK_DIR/stdout.ll" -o "$WORK_DIR/stdout-program$suffix" \
+# UnwrapOption's failing path reports through the runtime panic export.
+"$CLANG" -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
+    -o "$WORK_DIR/runtime.o" 2>"$WORK_DIR/runtime.err" || fail "runtime object did not compile"
+"$CLANG" -x ir "$WORK_DIR/stdout.ll" -x none "$WORK_DIR/runtime.o" -pthread -lm -o "$WORK_DIR/stdout-program$suffix" \
     2>"$WORK_DIR/clang.err"
 "$WORK_DIR/stdout-program$suffix" | tr -d '\r' >"$WORK_DIR/program.out"
 printf '7\n11\n5\n' >"$WORK_DIR/expected.out"

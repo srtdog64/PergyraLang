@@ -61,7 +61,10 @@ cmp -s "$WORK_DIR/dev.stdout.ll" "$WORK_DIR/dev.file.ll" ||
 cmp -s "$WORK_DIR/native.release.ll" "$WORK_DIR/native.dev.ll" ||
     fail "native LLVM IR contract became profile-sensitive"
 
-"$CLANG" "$WORK_DIR/dev.stdout.ll" -o "$WORK_DIR/dev-program$suffix" \
+# UnwrapOption's failing path reports through the runtime panic export.
+"$CLANG" -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
+    -o "$WORK_DIR/runtime.o" 2>"$WORK_DIR/runtime.err" || fail "runtime object did not compile"
+"$CLANG" -x ir "$WORK_DIR/dev.stdout.ll" -x none "$WORK_DIR/runtime.o" -pthread -lm -o "$WORK_DIR/dev-program$suffix" \
     2>"$WORK_DIR/clang.err"
 "$WORK_DIR/dev-program$suffix" | tr -d '\r' >"$WORK_DIR/program.out"
 printf '7\n11\n5\n' >"$WORK_DIR/expected.out"

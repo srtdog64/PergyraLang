@@ -1,0 +1,71 @@
+// Fail-closed unwrap paths of the direct-MIR LLVM projection.
+//
+// UnwrapOption on None, Unwrap on Err and UnwrapErr on Ok stop the program.
+// Their helpers called @abort directly, so the default LLVM route died with
+// no panic line where every other route reports one (red-team audit M10).
+// Each failed path now calls the runtime's registered internal-invariant
+// panic export with the reason the runtime panic contract spells
+// (PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE and
+// PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR in pgy_runtime_panic_contract.h,
+// and the unwrap_err reason in pgy_runtime_result_option_inline.h), so the
+// class, the reason and the report come from the one shared runtime panic.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_llvm_slice_expression_owner.pgy";
+import "direct_mir_scalar_program_option_int_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_option_bool_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_option_string_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_logical_record_option_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_result_int_expression_kind_owner.pgy";
+
+func DirectMirScalarProgramLlvmInternalInvariantPanicFn() -> String {
+    return "pgy_runtime_panic_internal_invariant_export";
+}
+
+// The expression kinds whose helpers carry a failing unwrap path. A preamble
+// emits such a helper only when the program has its kind, so an Option, a
+// Result or a record that is never unwrapped keeps its IR free of the export
+// and links without the runtime object.
+func DirectMirScalarProgramLlvmUnwrapPanicKinds() -> Array<Int> {
+    return [DirectMirScalarProgramExprUnwrapOptionInt(), DirectMirScalarProgramExprUnwrapOptionBool(),
+        DirectMirScalarProgramExprUnwrapOptionString(), DirectMirScalarProgramExprUnwrapOptionLogicalRecord(),
+        DirectMirScalarProgramExprUnwrapResultInt(), DirectMirScalarProgramExprUnwrapErrInt()];
+}
+
+// The one declaration of the export in the module, for the unwrap helpers and
+// for SliceCopy's missing-storage path, plus the unwrap reason globals.
+func DirectMirScalarProgramLlvmInternalInvariantPanicDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> String {
+    let kinds: Array<Int> = DirectMirScalarProgramLlvmUnwrapPanicKinds();
+    let unwrap: Bool = false; let row: Int = 0;
+    while row < ArrayLength(kinds) {
+        if DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, kinds[row]) { unwrap = true; }
+        row = row + 1;
+    }
+    if !unwrap && !DirectMirScalarProgramSliceCopyReached(plan.program.expressions) { return ""; }
+    let output: String = "declare void @" + DirectMirScalarProgramLlvmInternalInvariantPanicFn() + "(ptr)\n";
+    if !unwrap { return output; }
+    return output +
+        "@.pgy.unwrap.none.reason = private unnamed_addr constant [28 x i8] c\"Option unwrap on None value\\00\", align 1\n" +
+        "@.pgy.unwrap.err.reason = private unnamed_addr constant [27 x i8] c\"Result unwrap on Err value\\00\", align 1\n" +
+        "@.pgy.unwrap.ok.reason = private unnamed_addr constant [30 x i8] c\"Result unwrap_err on Ok value\\00\", align 1\n";
+}
+
+// The body of a failed unwrap block: report through the runtime, never return.
+func DirectMirScalarProgramLlvmUnwrapPanic(reason_global: String) -> String {
+    return "  call void @" + DirectMirScalarProgramLlvmInternalInvariantPanicFn() +
+        "(ptr " + reason_global + ")\n  unreachable\n";
+}
+
+func DirectMirScalarProgramLlvmUnwrapNonePanic() -> String {
+    return DirectMirScalarProgramLlvmUnwrapPanic("@.pgy.unwrap.none.reason");
+}
+
+func DirectMirScalarProgramLlvmUnwrapErrPanic() -> String {
+    return DirectMirScalarProgramLlvmUnwrapPanic("@.pgy.unwrap.err.reason");
+}
+
+func DirectMirScalarProgramLlvmUnwrapOkPanic() -> String {
+    return DirectMirScalarProgramLlvmUnwrapPanic("@.pgy.unwrap.ok.reason");
+}

@@ -107,7 +107,13 @@ for backend in c llvm; do
         "${command[@]}" >"$WORK_DIR/c.compile.out" 2>"$WORK_DIR/c.compile.err" ||
             fail "C artifact did not compile"
     else
-        "$CLANG" -x ir "$artifact" -o "$binary" \
+        # UnwrapOption's failing path reports through the runtime panic export.
+        grep -Fq 'declare void @pgy_runtime_panic_internal_invariant_export(ptr)' "$artifact" ||
+            fail "LLVM Option unwrap lost the runtime panic ABI"
+        "$CLANG" -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" \
+            -I"$ROOT_DIR/src/runtime" -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
+            -o "$WORK_DIR/runtime.o" || fail "runtime object did not compile"
+        "$CLANG" -x ir "$artifact" -x none "$WORK_DIR/runtime.o" -pthread -lm -o "$binary" \
             >"$WORK_DIR/llvm.compile.out" 2>"$WORK_DIR/llvm.compile.err" ||
             fail "LLVM artifact did not compile"
     fi
