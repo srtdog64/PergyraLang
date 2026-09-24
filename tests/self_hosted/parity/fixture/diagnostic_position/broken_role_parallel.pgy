@@ -1,0 +1,15 @@
+subject Citizen {
+    let id: Int;
+}
+
+role Ticker for Citizen {
+    parallel on (aiThread) {
+        every (1000ms) {
+            Log(1);
+        }
+    }
+}
+
+func Main() -> Void {
+    Log(0);
+}

@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let x: Int = 1;
+    parallel on (cpu) {
+        Log(ToString(x));
+    }
+}

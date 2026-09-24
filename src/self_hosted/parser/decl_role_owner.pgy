@@ -70,14 +70,11 @@ func ParseRoleDecl(
             i = i + 1;
             break;
         }
+        // A role reactive parallel block (`parallel on`/`every`/`continuous`)
+        // is a declared vision surface (docs/181); native refuses it here too.
         if MatchLanguageWord(content, i, LanguageWordId.WordParallel) {
-            ArraySet(cursor_out, 0, i);
-            let role_parallel: String = ParseOneStmt(
-                content, i, cursor_out, 4, expression_graphs
-            );
-            i = cursor_out[0];
-            impl_blocks = AppendLine(impl_blocks, role_parallel);
-            continue;
+            ParseRefuse(location_context, i, "vision_surface_not_executable",
+                "surface", "role parallel block", "construct", "role");
         }
         if StringLength(compact_impl) > 0 && MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
             ArraySet(cursor_out, 0, i);

@@ -181,11 +181,34 @@ BROKEN_CASES=(
     "event_param_colon|1|expected_token"
     "role_member|4|expected_token"
     "ability_member|2|expected_token"
+    "parallel_on|3|expected_token"
+    "role_parallel|6|vision_surface_not_executable"
 )
 for row in "${BROKEN_CASES[@]}"; do
     IFS='|' read -r name line code <<<"$row"
     expect_refusal "broken-$name" "$FIXTURES/broken_$name.pgy" \
         "broken_$name.pgy" "$line" "$code"
+done
+
+# Native never compiles `parallel on`: in a statement it expects `{` after
+# `parallel` and refuses at `on`; in a role body it is a declared vision
+# surface. The default route refuses both at native's line and column.
+# name|line|column|native text
+for row in "parallel_on|3|14|Expected '{' after 'parallel'" \
+    "role_parallel|6|5|declared vision surface"; do
+    IFS='|' read -r name line column needle <<<"$row"
+    native_log="$WORK_DIR/native-$name.log"
+    if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_$name.pgy" --native-pipeline \
+        --backend=c --error-format=json -o "$WORK_REL/native-$name.bin") \
+        >"$native_log" 2>&1; then
+        fail "native accepted $name"
+    fi
+    grep -Fq "$needle" "$native_log" &&
+        grep -Fq "\"location\":{\"line\":$line,\"column\":$column}" "$native_log" ||
+        { cat "$native_log" >&2; fail "native no longer refuses $name at $line:$column"; }
+    tr -d '\r' <"$WORK_DIR/broken-$name-c-text.log" |
+        grep -Fxq "Span: broken_$name.pgy:$line:$column" ||
+        { cat "$WORK_DIR/broken-$name-c-text.log" >&2; fail "default route refuses $name away from $line:$column"; }
 done
 
 # Declaration forms native compiles and the self-hosted parser does not

@@ -71,6 +71,12 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "compile through --native-pipeline until the self-hosted compiler covers this surface"
         );
     }
+    if code == "vision_surface_not_executable" {
+        return ParseDiagnosticRow(
+            "this form is a declared vision surface (docs/181); neither pipeline executes it yet",
+            "remove the form; docs/181 names the rung that will open it"
+        );
+    }
     if code == "expression_statement_terminator" {
         return ParseDiagnosticRow(
             "an expression is followed by a token that cannot terminate its statement",
@@ -219,6 +225,7 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
         code == "long_literal_out_of_range" ||
         code == "script_statement_with_main" ||
         code == "surface_not_covered" ||
+        code == "vision_surface_not_executable" ||
         code == "declaration_clause_duplicate" ||
         code == "declaration_clause_invalid" {
         return ParsePublicDiagnosticIdentity(
