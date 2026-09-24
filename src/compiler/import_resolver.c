@@ -11,9 +11,11 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../common/string_compat.h"
 #include "../lexer/lexer.h"
+#include "../parser/ast_analysis.h"
 #include "../parser/parser.h"
 #include "module_normalizer.h"
 #include "path_utils.h"
@@ -239,6 +241,94 @@ fail:
     return NULL;
 }
 
+static bool
+import_resolver_is_try_file_builtin(const char *name, void *userdata)
+{
+    (void)userdata;
+    return name != NULL
+        && (strcmp(name, "TryReadFile") == 0
+            || strcmp(name, "TryWriteFile") == 0);
+}
+
+/* A program that calls TryReadFile or TryWriteFile gets the builtin IoError
+ * enum (src/runtime/pgy_runtime_io_error.def) as one more root declaration,
+ * appended after the composed statements so no source line moves. The
+ * self-host parser composes the same declaration
+ * (src/self_hosted/parser/io_error_builtin_enum_composition_owner.pgy). */
+static bool
+import_resolver_compose_io_error_enum(ASTNode *program,
+                                      const char *source_path,
+                                      char **error_message)
+{
+    static const char *const variants[] = {
+#define PGY_IO_ERROR_VARIANT(variant_name, runtime_status) #variant_name,
+#include "../runtime/pgy_runtime_io_error.def"
+#undef PGY_IO_ERROR_VARIANT
+    };
+    char source[512];
+    size_t used;
+    Lexer *lexer;
+    Parser *parser;
+    ASTNode *decls;
+    bool ok = false;
+
+    if (!ast_contains_identifier_call(program,
+            import_resolver_is_try_file_builtin, NULL))
+        return true;
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        const ASTNode *statement = ast_program_statement(program, i);
+        const char *declared = ast_declaration_name(statement);
+        if (declared != NULL && strcmp(declared, "IoError") == 0) {
+            set_error(error_message,
+                "%s:%u: this program declares IoError, which is the builtin "
+                "error enum of TryReadFile and TryWriteFile; rename the "
+                "declaration",
+                statement->origin_path != NULL ? statement->origin_path
+                                               : source_path,
+                (unsigned)statement->line);
+            return false;
+        }
+    }
+    used =(size_t)snprintf(source, sizeof(source), "enum IoError {");
+    for (size_t i = 0; i < sizeof(variants) / sizeof(variants[0]); i++)
+        used += (size_t)snprintf(source + used, sizeof(source) - used,
+                                 "%s %s", i == 0 ? "" : ",", variants[i]);
+    used += (size_t)snprintf(source + used, sizeof(source) - used, " }\n");
+    if (used >= sizeof(source)) {
+        set_error(error_message, "builtin IoError declaration exceeds its buffer");
+        return false;
+    }
+    lexer = lexer_create(source);
+    parser = lexer != NULL ? parser_create(lexer) : NULL;
+    if (parser == NULL) {
+        set_error(error_message, "out of memory while composing IoError");
+        lexer_destroy(lexer);
+        return false;
+    }
+    parser->source_path = source_path;
+    decls = parser_parse_program_for_module_composition(parser);
+    if (decls == NULL || parser_has_error(parser)) {
+        set_error(error_message, "builtin IoError declaration did not parse: %s",
+                  parser_get_error(parser));
+    } else {
+        /* detach leaves a NULL slot behind, so walk the indices. */
+        ok = true;
+        for (size_t i = 0; ok && i < ast_program_statement_count(decls); i++) {
+            ASTNode *statement = ast_program_detach_statement(decls, i);
+            ok = statement != NULL
+                && ast_program_append_statement(program, statement);
+            if (!ok)
+                ast_destroy(statement);
+        }
+        if (!ok)
+            set_error(error_message, "could not append the builtin IoError declaration");
+    }
+    ast_destroy(decls);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return ok;
+}
+
 ASTNode *
 import_resolver_load_program(const char *source_path, char **error_message)
 {
@@ -261,6 +351,12 @@ import_resolver_load_program(const char *source_path, char **error_message)
                                             NULL,
                                             "",
                                             error_message);
+    if (program != NULL
+        && !import_resolver_compose_io_error_enum(program, source_path,
+                                                  error_message)) {
+        ast_destroy(program);
+        program = NULL;
+    }
     if (program != NULL) {
         char *composition_error = NULL;
         if (!parser_finalize_composed_intent_parameter_roles(

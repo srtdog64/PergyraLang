@@ -2,7 +2,9 @@
 //
 // Self-host C host file/argv runtime symbol facts for the supported codegen subset.
 
+import "../text/text_owner.pgy";
 import "collection_runtime_owner.pgy";
+import "result_runtime_owner.pgy";
 
 func HostIORuntimeCFileExistsFn() -> String {
     return "pgy_fexists";
@@ -299,4 +301,47 @@ func HostIORuntimeCDirWalkBlock() -> String {
     block = Concat(block, Concat("    qsort(a.data, (size_t)a.len, sizeof(const char *), ", Concat(HostIORuntimeCStringCompareFn(), ");\n")));
     block = Concat(block, "    return a;\n}\n\n");
     return block;
+}
+
+// TryReadFile / TryWriteFile call the canonical runtime's typed file entries
+// (pgy_runtime_io_result_inline.h, reached through pgy_runtime.h): true on
+// success, otherwise the IoError variant ordinal through an out slot. The
+// Result<_, IoError> value is built at the call site by a function-like macro
+// that the Result<String, IoError> or Result<Bool, IoError> declaration
+// carries, right after the constructors it calls.
+func HostIORuntimeCTryReadFileFn() -> String {
+    return "pgy_try_read_file_call";
+}
+
+func HostIORuntimeCTryWriteFileFn() -> String {
+    return "pgy_try_write_file_call";
+}
+
+func HostIORuntimeCTryFileProjection(result: ResultRuntimeFact) -> String {
+    let read_fact: ResultRuntimeFact =
+        ResultRuntimeFactForType("Result<String, IoError>");
+    let write_fact: ResultRuntimeFact =
+        ResultRuntimeFactForType("Result<Bool, IoError>");
+    if !read_fact.ok || !write_fact.ok {
+        Die("TryReadFile/TryWriteFile Result<_, IoError> runtime fact is missing");
+    }
+    if result.type_name == read_fact.type_name {
+        return Concat("#define ", Concat(
+            HostIORuntimeCTryReadFileFn(), Concat(
+                "(path) ({ char *pgy_trf_text_ = NULL; int32_t pgy_trf_err_ = 0; pgy_try_read_file_export((path), &pgy_trf_text_, &pgy_trf_err_) ? ",
+                Concat(read_fact.ok_fn, Concat("(pgy_trf_text_) : ", Concat(
+                    read_fact.err_fn, "(pgy_trf_err_); })\n\n"
+                )))
+            )
+        ));
+    }
+    if result.type_name != write_fact.type_name { return ""; }
+    return Concat("#define ", Concat(
+        HostIORuntimeCTryWriteFileFn(), Concat(
+            "(path, data) ({ int32_t pgy_twf_err_ = 0; pgy_try_write_file_export((path), (data), &pgy_twf_err_) ? ",
+            Concat(write_fact.ok_fn, Concat("(true) : ", Concat(
+                write_fact.err_fn, "(pgy_twf_err_); })\n\n"
+            )))
+        )
+    ));
 }

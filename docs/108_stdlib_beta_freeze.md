@@ -27,6 +27,14 @@ These are compiler/runtime builtins, not `use` modules:
   `WriteFile`, `FileExists`, `DirWalk`. `DirWalk(String) -> Array<String>`
   returns a deterministic, lexicographically sorted owned snapshot of regular
   files under the requested directory, using `/` path separators.
+  `TryReadFile(path: String) -> Result<String, IoError>` and
+  `TryWriteFile(path: String, data: String) -> Result<Bool, IoError>` return
+  the failure that `ReadFile` (an empty string) and `WriteFile` (no result)
+  drop. `TryWriteFile` returns `Ok(true)` when the data was written. Both
+  resolve the path through the runtime file-path policy: a path containing
+  `..` is refused, an absolute path needs `PGY_IO_ALLOW_ABSOLUTE=1`, and with
+  `PGY_IO_ROOT` set the path must stay under that root. Their error type is
+  the builtin `IoError` enum below.
 - Strings: `Concat`, `StringLength`, `Contains`, `StringIndexOf`, `Replace`,
   `Substring`, `Trim`, `Split`, `Join`, `Upper`, `Lower`, `ToString`.
   `CharFromCode(code: Int) -> Option<String>` returns `Some` of the UTF-8
@@ -65,6 +73,30 @@ These are compiler/runtime builtins, not `use` modules:
   checked separately by `tests/concept_semantics/hashmap_admission.sh`.
 - Result/Option baseline: `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, `UnwrapOr`,
   `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`.
+
+### `IoError`
+
+`IoError` is the error type of `TryReadFile` and `TryWriteFile`, and the only
+I/O error type in the stable surface. It is a builtin enum: a program that
+calls either builtin can name `IoError` and its variants and `match` on them,
+and a program may not declare its own `IoError` beside it. Each variant names
+one runtime failure status. The names and their order are stable and
+append-only (`src/runtime/pgy_runtime_io_error.def`;
+`tests/self_hosted/parity/io_result_builtin_owner.sh` holds this list equal to
+that file):
+
+<!-- io-error-variants:start -->
+1. `ResolveFailed`: the path policy refused the path (`..`, an absolute path
+   without `PGY_IO_ALLOW_ABSOLUTE=1`, or a path outside `PGY_IO_ROOT`).
+2. `OpenFailed`: the file could not be opened: it does not exist, or its
+   directory is missing or not writable.
+3. `SeekFailed`: a read could not seek in the file.
+4. `TellFailed`: a read could not learn the file's size.
+5. `TooLarge`: the file is larger than the runtime read limit.
+6. `AllocFailed`: a read could not allocate its buffer.
+7. `ReadFailed`: a read returned fewer bytes than the file holds.
+8. `WriteFailed`: a write stored fewer bytes than the data holds.
+<!-- io-error-variants:end -->
 
 ## Stable `use` Modules
 

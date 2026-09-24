@@ -2,6 +2,7 @@
 
 import "../text/text_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
+import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/result_runtime_owner.pgy";
 
 func EmitResultRuntimeDefinition(
@@ -67,5 +68,7 @@ func EmitResultRuntimeDefinition(
                 ))
             )))
     ));
-    return block;
+    // Result<String, IoError> and Result<Bool, IoError> carry the TryReadFile
+    // and TryWriteFile call projections that build them.
+    return Concat(block, HostIORuntimeCTryFileProjection(fact));
 }

@@ -20,6 +20,10 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "ReadFile^String^String",
         "ReadStdin^String^Int",
         "WriteFile^Void^String|String",
+        // The builtin IoError enum is composed by the parser when a program
+        // calls either (parser/io_error_builtin_enum_composition_owner.pgy).
+        "TryReadFile^Result<String, IoError>^String",
+        "TryWriteFile^Result<Bool, IoError>^String|String",
         "ToInt^Int^String",
         "ToFloat^Float^String",
         "Sqrt^Float^Float",

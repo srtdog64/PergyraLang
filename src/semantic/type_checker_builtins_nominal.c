@@ -7,6 +7,39 @@
 #include "runtime/pgy_runtime_capability.h"
 #include "runtime/pgy_runtime_file_mode_capability.h"
 
+/* TryReadFile(path) -> Result<String, IoError> and
+ * TryWriteFile(path, data) -> Result<Bool, IoError>. IoError is the builtin
+ * enum the import resolver composes into a program that calls either
+ * (pgy_runtime_io_error.def); its absence here is a composition fault. */
+static Type *
+type_check_try_file_builtin(ASTNode *call, BuiltinKind kind,
+                            SemanticContext *ctx)
+{
+    bool write = kind == BUILTIN_TRY_WRITE_FILE;
+    const char *name = write ? "TryWriteFile" : "TryReadFile";
+    Symbol *io_error = scope_lookup(ctx->scope, "IoError");
+    Type *args[2];
+
+    if (check_call_arity(call, write ? 2 : 1, name, ctx)) {
+        for (size_t i = 0; i < (write ? 2u : 1u); i++)
+            require_assignable(
+                type_check_expression(ast_call_argument(call, i), ctx),
+                TYPE_STRING, ast_call_argument(call, i), ctx);
+    }
+    semantic_record_builtin_effect(ctx, call, name);
+    semantic_record_capability(ctx, capability_for_builtin(name));
+    if (io_error == NULL || io_error->type == NULL) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL,
+            PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL,
+            call, "%s needs the builtin IoError enum, which was not composed "
+            "into this program", name);
+        return TYPE_UNKNOWN;
+    }
+    args[0] = write ? TYPE_BOOL : TYPE_STRING;
+    args[1] = io_error->type;
+    return type_create_constructed(TYPE_RESULT, args, 2);
+}
+
 Type *
 type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
 {
@@ -230,6 +263,9 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         semantic_record_builtin_effect(ctx, call, "WriteFile");
         semantic_record_capability(ctx, capability_for_builtin("WriteFile"));
         return TYPE_VOID;
+    case BUILTIN_TRY_READ_FILE:
+    case BUILTIN_TRY_WRITE_FILE:
+        return type_check_try_file_builtin(call, kind, ctx);
     case BUILTIN_INPUT:
         semantic_record_builtin_effect(ctx, call, "Input");
         semantic_record_capability(ctx, capability_for_builtin("Input"));

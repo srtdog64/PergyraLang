@@ -13,6 +13,7 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
+#include "transpiler_specialization_registry.h"
 
 static char *
 io_builtin_heap_fmt(TranspilerCtx *ctx, const char *fmt, ...)
@@ -232,6 +233,53 @@ emit_builtin_read_file(ASTNode *call, TranspilerCtx *ctx)
     return result;
 }
 
+/* TryReadFile / TryWriteFile build their Result<_, IoError> value from the
+ * runtime's bool-plus-ordinal ABI (pgy_runtime_io_result_inline.h). The
+ * IoError C enum's values are the rows of pgy_runtime_io_error.def. */
+static char *
+emit_builtin_try_file(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx)
+{
+    bool write = bk == BUILTIN_TRY_WRITE_FILE;
+    const char *name = write ? "TryWriteFile" : "TryReadFile";
+    char *path;
+    char *data = NULL;
+    char *result;
+
+    if (ast_call_arg_count(call) != (write ? 2u : 1u))
+        return io_builtin_unsupported(ctx,
+            "C backend: TryReadFile takes a path and TryWriteFile a path and data");
+    path = io_builtin_emit_arg(ctx, ast_call_argument(call, 0), name, "path");
+    if (path == NULL)
+        return NULL;
+    if (write) {
+        data = io_builtin_emit_arg(ctx, ast_call_argument(call, 1), name,
+                                   "data");
+        if (data == NULL) {
+            free(path);
+            return NULL;
+        }
+    }
+    ensure_result_specialization_to(ctx, ctx->decls,
+                                    write ? "Bool" : "String", "IoError");
+    if (write)
+        result = io_builtin_heap_fmt(ctx,
+            "({ int32_t pgy_twf_err_ = 0; "
+            "pgy_try_write_file_export(%s, %s, &pgy_twf_err_) "
+            "? Ok_Bool_IoError(true) "
+            ": Err_Bool_IoError((IoError)pgy_twf_err_); })",
+            path, data);
+    else
+        result = io_builtin_heap_fmt(ctx,
+            "({ char *pgy_trf_text_ = NULL; int32_t pgy_trf_err_ = 0; "
+            "pgy_try_read_file_export(%s, &pgy_trf_text_, &pgy_trf_err_) "
+            "? Ok_String_IoError(pgy_trf_text_) "
+            ": Err_String_IoError((IoError)pgy_trf_err_); })",
+            path);
+    free(path);
+    free(data);
+    return result;
+}
+
 static char *
 emit_builtin_read_stdin(ASTNode *call, TranspilerCtx *ctx)
 {
@@ -375,6 +423,9 @@ emit_builtin_io(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx)
         return emit_builtin_read_stdin(call, ctx);
     case BUILTIN_WRITE_FILE:
         return emit_builtin_write_file(call, ctx);
+    case BUILTIN_TRY_READ_FILE:
+    case BUILTIN_TRY_WRITE_FILE:
+        return emit_builtin_try_file(call, bk, ctx);
     case BUILTIN_INPUT:
         return emit_builtin_input(call, ctx);
     case BUILTIN_ARGS:

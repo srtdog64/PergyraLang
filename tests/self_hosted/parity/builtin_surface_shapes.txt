@@ -992,10 +992,68 @@ func Main() -> Void {
     Log(Trim("  both sides  "));
 }
 
+== TryReadFile
+func DescribeError(e: IoError) -> String {
+    match e {
+        case ResolveFailed: return "err ResolveFailed";
+        case OpenFailed: return "err OpenFailed";
+        case SeekFailed: return "err SeekFailed";
+        case TellFailed: return "err TellFailed";
+        case TooLarge: return "err TooLarge";
+        case AllocFailed: return "err AllocFailed";
+        case ReadFailed: return "err ReadFailed";
+        case WriteFailed: return "err WriteFailed";
+    }
+}
+
+func Describe(r: Result<String, IoError>) -> String {
+    match r {
+        case Ok(text): return "ok " + text;
+        case Err(e): return DescribeError(e);
+    }
+}
+
+func Main() -> Void {
+    WriteFile("shape_read.txt", "shape text");
+    Log(Describe(TryReadFile("shape_read.txt")));
+    Log(Describe(TryReadFile("shape_missing.txt")));
+    Log(Describe(TryReadFile("../shape_read.txt")));
+}
+
 == TrySend
 func Main() -> Void {
     let ch: Channel<Int> = Channel(1);
     if TrySend(ch, 1) { Log("sent"); } else { Log("full"); }
+}
+
+== TryWriteFile
+func DescribeError(e: IoError) -> String {
+    match e {
+        case ResolveFailed: return "err ResolveFailed";
+        case OpenFailed: return "err OpenFailed";
+        case SeekFailed: return "err SeekFailed";
+        case TellFailed: return "err TellFailed";
+        case TooLarge: return "err TooLarge";
+        case AllocFailed: return "err AllocFailed";
+        case ReadFailed: return "err ReadFailed";
+        case WriteFailed: return "err WriteFailed";
+    }
+}
+
+func Describe(r: Result<Bool, IoError>) -> String {
+    match r {
+        case Ok(done):
+            if done { return "ok true"; }
+            return "ok false";
+        case Err(e): return DescribeError(e);
+    }
+}
+
+func Main() -> Void {
+    Log(Describe(TryWriteFile("shape_write.txt", "written")));
+    Log(ReadFile("shape_write.txt"));
+    Log(Describe(TryWriteFile("shape_no_dir/x.txt", "x")));
+    Log(Describe(TryWriteFile("../shape_write.txt", "x")));
 }
 
 == Upper

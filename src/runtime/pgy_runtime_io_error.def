@@ -1,0 +1,25 @@
+/* PGY_IO_ERROR_VARIANT_ROWS
+ *
+ * The builtin enum IoError, the error payload of TryReadFile and
+ * TryWriteFile. One row per runtime failure status that
+ * pgy_try_read_file_result or pgy_try_write_file_result can return; the
+ * variant ordinal is the row index.
+ *
+ * PGY_IO_ERROR_VARIANT(variant_name, runtime_status)
+ *
+ * Append-only: a program matches on these names, and both front ends append
+ * `enum IoError { ... }` in this order to a program that calls TryReadFile
+ * or TryWriteFile (import_resolver_compose_io_error_enum natively,
+ * src/self_hosted/parser/io_error_builtin_enum_composition_owner.pgy on the
+ * self-host route). tests/self_hosted/parity/io_result_builtin_owner.sh holds
+ * this file, the self-host list and the docs/108 list equal.
+ */
+
+PGY_IO_ERROR_VARIANT(ResolveFailed, PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED)
+PGY_IO_ERROR_VARIANT(OpenFailed, PGY_RUNTIME_IO_STATUS_OPEN_FAILED)
+PGY_IO_ERROR_VARIANT(SeekFailed, PGY_RUNTIME_IO_STATUS_SEEK_FAILED)
+PGY_IO_ERROR_VARIANT(TellFailed, PGY_RUNTIME_IO_STATUS_TELL_FAILED)
+PGY_IO_ERROR_VARIANT(TooLarge, PGY_RUNTIME_IO_STATUS_TOO_LARGE)
+PGY_IO_ERROR_VARIANT(AllocFailed, PGY_RUNTIME_IO_STATUS_ALLOC_FAILED)
+PGY_IO_ERROR_VARIANT(ReadFailed, PGY_RUNTIME_IO_STATUS_READ_FAILED)
+PGY_IO_ERROR_VARIANT(WriteFailed, PGY_RUNTIME_IO_STATUS_WRITE_FAILED)

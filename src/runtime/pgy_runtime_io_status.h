@@ -146,6 +146,21 @@ pgy_runtime_io_status_boundary_recoverable(PgyRuntimeIoStatus status)
     }
 }
 
+/* The builtin IoError variant ordinal of a failure status (row index in
+ * pgy_runtime_io_error.def), or -1 when no variant names the status. */
+static inline int32_t
+pgy_runtime_io_error_ordinal(PgyRuntimeIoStatus status)
+{
+    int32_t ordinal = 0;
+#define PGY_IO_ERROR_VARIANT(variant_name, runtime_status) \
+    if (status == (runtime_status))                        \
+        return ordinal;                                    \
+    ordinal++;
+#include "pgy_runtime_io_error.def"
+#undef PGY_IO_ERROR_VARIANT
+    return -1;
+}
+
 static inline PgyRuntimeIoFailure
 pgy_runtime_io_failure_from_status(PgyRuntimeIoStatus status,
                                    const char *stage,

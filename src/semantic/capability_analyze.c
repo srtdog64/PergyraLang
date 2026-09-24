@@ -77,7 +77,7 @@ capability_builtin_registry_ready(void)
     const size_t count = sizeof(k_builtin_caps) / sizeof(k_builtin_caps[0]);
     size_t file_mode_count = 0;
 
-    if (count != 18 || !pgy_callable_contract_vocabulary_ready())
+    if (count != 20 || !pgy_callable_contract_vocabulary_ready())
         return false;
     for (size_t i = 0; i < count; i++) {
         const PgyBuiltinCapabilitySpec *row = &k_builtin_caps[i];

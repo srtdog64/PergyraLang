@@ -410,6 +410,72 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
     return false;
 }
 
+/* TryReadFile / TryWriteFile: the runtime returns true on success and the
+ * IoError ordinal (pgy_runtime_io_error.def) through an out slot; the Result
+ * aggregate {tag, ok, err} is built here, tag 0 for Ok and 1 for Err. */
+static LLVMValueRef
+llvm_emit_try_file_result(ASTNode *node, LLVMGenCtx *ctx,
+                          const char *callee_name, bool write)
+{
+    LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+        "stdlib io", callee_name,
+        write ? "pgy_try_write_file_export" : "pgy_try_read_file_export");
+    LLVMTypeRef result_ty = pergyra_type_to_llvm(ctx,
+        write ? "Result<Bool, IoError>" : "Result<String, IoError>");
+    LLVMTypeRef fields[3];
+    LLVMValueRef args[3];
+    LLVMValueRef text_slot = NULL;
+    LLVMValueRef err_slot;
+    LLVMValueRef succeeded;
+    LLVMValueRef ok_value;
+    LLVMValueRef err_value;
+    LLVMValueRef result;
+    unsigned argc = 0;
+
+    if (fn == NULL)
+        return NULL;
+    if (result_ty == NULL || LLVMGetTypeKind(result_ty) != LLVMStructTypeKind
+        || LLVMCountStructElementTypes(result_ty) != 3)
+        return llvm_stdlib_error_value(node, ctx, callee_name,
+            "requires the three-field Result<_, IoError> layout");
+    LLVMGetStructElementTypes(result_ty, fields);
+    for (unsigned i = 0; i < (write ? 2u : 1u); i++) {
+        args[argc] = llvm_emit_expression(ast_call_argument(node, i), ctx);
+        if (args[argc] == NULL)
+            return llvm_stdlib_error_value(node, ctx, callee_name,
+                "could not lower its String argument");
+        argc++;
+    }
+    if (!write) {
+        text_slot = llvm_create_entry_alloca(ctx, ctx->type_i8ptr,
+            "try_read_text");
+        args[argc++] = text_slot;
+    }
+    err_slot = llvm_create_entry_alloca(ctx, ctx->type_i32, "try_file_error");
+    args[argc++] = err_slot;
+    succeeded = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, argc,
+        llvm_tmp_name(ctx));
+    ok_value = write
+        ? LLVMConstInt(fields[1], 1, 0)
+        : LLVMBuildLoad2(ctx->builder, ctx->type_i8ptr, text_slot,
+            llvm_tmp_name(ctx));
+    err_value = LLVMBuildLoad2(ctx->builder, ctx->type_i32, err_slot,
+        llvm_tmp_name(ctx));
+    if (fields[2] != ctx->type_i32)
+        err_value = LLVMBuildIntCast2(ctx->builder, err_value, fields[2], 0,
+            llvm_tmp_name(ctx));
+    result = LLVMGetUndef(result_ty);
+    result = LLVMBuildInsertValue(ctx->builder, result,
+        LLVMBuildSelect(ctx->builder, succeeded,
+            LLVMConstInt(ctx->type_i32, 0, 0),
+            LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx)),
+        0, llvm_tmp_name(ctx));
+    result = LLVMBuildInsertValue(ctx->builder, result, ok_value, 1,
+        llvm_tmp_name(ctx));
+    return LLVMBuildInsertValue(ctx->builder, result, err_value, 2,
+        llvm_tmp_name(ctx));
+}
+
 bool
 llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
                                  const char *callee_name,
@@ -419,6 +485,15 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (node == NULL || ctx == NULL || callee_name == NULL || out_result == NULL)
         return false;
+
+    if ((strcmp(callee_name, "TryReadFile") == 0
+            && ast_call_arg_count(node) == 1)
+        || (strcmp(callee_name, "TryWriteFile") == 0
+            && ast_call_arg_count(node) == 2)) {
+        *out_result = llvm_emit_try_file_result(node, ctx, callee_name,
+            callee_name[3] == 'W');
+        return true;
+    }
 
     {
         const LLVMStdlibRuntimeCallSpec *spec =

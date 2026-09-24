@@ -94,6 +94,8 @@ static const BuiltinEntry k_builtin_entries[] = {
     {"ToObject", BUILTIN_TO_OBJECT},
     {"ToTObject", BUILTIN_TO_TOBJECT},
     {"ToUpper", BUILTIN_NOT_BUILTIN},
+    {"TryReadFile", BUILTIN_TRY_READ_FILE},
+    {"TryWriteFile", BUILTIN_TRY_WRITE_FILE},
     {"ViewRead", BUILTIN_VIEW_READ},
     {"ViewWrite", BUILTIN_VIEW_WRITE},
     {"WeakDrop", BUILTIN_WEAK_DROP},

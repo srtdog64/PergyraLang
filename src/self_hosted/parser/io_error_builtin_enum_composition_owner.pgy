@@ -1,0 +1,59 @@
+// The builtin IoError enum, composed into a program that calls TryReadFile or
+// TryWriteFile.
+//
+// The variant rows project src/runtime/pgy_runtime_io_error.def in order;
+// the variant ordinal is the runtime's IoError ordinal. The native import
+// resolver composes the same declaration (import_resolver_compose_io_error_enum
+// in src/compiler/import_resolver.c) and
+// tests/self_hosted/parity/io_result_builtin_owner.sh holds the rows equal.
+
+import "../hir/ast_expression_graph_owner.pgy";
+
+func ParserIoErrorVariantNames() -> Array<String> {
+    return [
+        "ResolveFailed",
+        "OpenFailed",
+        "SeekFailed",
+        "TellFailed",
+        "TooLarge",
+        "AllocFailed",
+        "ReadFailed",
+        "WriteFailed"
+    ];
+}
+
+func ParserIoErrorEnumSource() -> String {
+    let names: Array<String> = ParserIoErrorVariantNames();
+    let text: String = "enum IoError {";
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        if i > 0 { text = Concat(text, ","); }
+        text = Concat(text, Concat(" ", names[i]));
+        i = i + 1;
+    }
+    return Concat(text, " }\n");
+}
+
+// Whether the composed expression graph calls TryReadFile or TryWriteFile: a
+// Call node whose callee is that leaf, as native ast_contains_identifier_call
+// asks of the composed AST.
+func ParserComposedGraphCallsTryFileBuiltin(
+    rows: AstExpressionGraphRows
+) -> Bool {
+    let kinds: Array<Int> = rows.arena.node_kinds;
+    let n: Int = ArrayLength(kinds);
+    let i: Int = 0;
+    while i < n {
+        if kinds[i] == AstExpressionNodeCall() {
+            let callee: Int = rows.arena.left_children[i];
+            if callee >= 0 && callee < n &&
+                kinds[callee] == AstExpressionNodeLeaf() &&
+                (rows.arena.node_texts[callee] == "TryReadFile" ||
+                    rows.arena.node_texts[callee] == "TryWriteFile") {
+                return true;
+            }
+        }
+        i = i + 1;
+    }
+    return false;
+}

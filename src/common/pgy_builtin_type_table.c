@@ -154,7 +154,9 @@ pgy_builtin_entries(size_t *count)
         { "ToString", "String", PGY_BUILTIN_FLAG_NONE },
         { "ToUpper", "String", PGY_BUILTIN_FLAG_NONE },
         { "Trim", "String", PGY_BUILTIN_FLAG_NONE },
+        { "TryReadFile", "Result<String, IoError>", PGY_BUILTIN_FLAG_NONE },
         { "TrySend", "Bool", PGY_BUILTIN_FLAG_NONE },
+        { "TryWriteFile", "Result<Bool, IoError>", PGY_BUILTIN_FLAG_NONE },
         { "Upper", "String", PGY_BUILTIN_FLAG_NONE },
         { "WriteFile", "Void", PGY_BUILTIN_FLAG_NONE },
     };

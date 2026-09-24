@@ -30,6 +30,8 @@ func SemanticBuiltinFixedEffectMask(name: String) -> Int {
     if name == "ReadFile" { return SemanticEffectMaskForWord("io"); }
     if name == "ReadStdin" { return SemanticEffectMaskJoin(SemanticEffectMaskForWord("io"), SemanticEffectMaskForWord("nondeterministic")); }
     if name == "WriteFile" { return SemanticEffectMaskForWord("io"); }
+    if name == "TryReadFile" { return SemanticEffectMaskForWord("io"); }
+    if name == "TryWriteFile" { return SemanticEffectMaskForWord("io"); }
     if name == "Abs" { return SemanticEffectMaskForWord("local"); }
     if name == "Acos" { return SemanticEffectMaskForWord("local"); }
     if name == "Asin" { return SemanticEffectMaskForWord("local"); }

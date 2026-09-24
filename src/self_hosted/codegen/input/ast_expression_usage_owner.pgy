@@ -39,6 +39,7 @@ struct CodegenExpressionUsageFacts {
     let has_checked_long_cast: Bool;
     let has_spawn: Bool;
     let has_task_observation: Bool;
+    let has_try_file: Bool;
 }
 
 struct CodegenExpressionParts {
@@ -85,6 +86,7 @@ func CodegenUsageBuiltinGroupSeedRandom() -> Int { return 21; }
 func CodegenUsageBuiltinGroupArtifactTransaction() -> Int { return 22; }
 func CodegenUsageBuiltinGroupIntentObservability() -> Int { return 23; }
 func CodegenUsageBuiltinGroupTaskObservation() -> Int { return 24; }
+func CodegenUsageBuiltinGroupTryFile() -> Int { return 25; }
 
 func CodegenUsageBuiltinGroupCalleeCount(group: Int) -> Int {
     if group == CodegenUsageBuiltinGroupArgs() { return 1; }
@@ -113,6 +115,7 @@ func CodegenUsageBuiltinGroupCalleeCount(group: Int) -> Int {
         return IntentObservabilityAbiCount();
     }
     if group == CodegenUsageBuiltinGroupTaskObservation() { return 1; }
+    if group == CodegenUsageBuiltinGroupTryFile() { return 2; }
     return 0;
 }
 
@@ -247,6 +250,8 @@ func CodegenUsageBuiltinGroupCalleeAt(group: Int, index: Int) -> String {
     if group == CodegenUsageBuiltinGroupTaskObservation() && index == 0 {
         return SemanticBuiltinIsCancelledName();
     }
+    if group == CodegenUsageBuiltinGroupTryFile() && index == 0 { return "TryReadFile"; }
+    if group == CodegenUsageBuiltinGroupTryFile() && index == 1 { return "TryWriteFile"; }
     return "";
 }
 
@@ -262,15 +267,9 @@ func CodegenSemanticExpressionPartsAt(
     let atom_text: String = "";
     let value_text: String = "";
     let aux_value_text: String = "";
-    if IsSome(atom_opt) {
-        atom_text = UnwrapOption(atom_opt);
-    }
-    if IsSome(value_opt) {
-        value_text = UnwrapOption(value_opt);
-    }
-    if IsSome(aux_value_opt) {
-        aux_value_text = UnwrapOption(aux_value_opt);
-    }
+    if IsSome(atom_opt) { atom_text = UnwrapOption(atom_opt); }
+    if IsSome(value_opt) { value_text = UnwrapOption(value_opt); }
+    if IsSome(aux_value_opt) { aux_value_text = UnwrapOption(aux_value_opt); }
     return CodegenExpressionParts(
         IsSome(atom_opt),
         atom_text,
@@ -298,7 +297,7 @@ func CodegenExpressionSurfaceUsagePresenceFromSemantic(
 ) -> CodegenExpressionSurfaceUsagePresence {
     let groups: Array<Bool> = [];
     let group: Int = 0;
-    while group <= CodegenUsageBuiltinGroupTaskObservation() {
+    while group <= CodegenUsageBuiltinGroupTryFile() {
         ArrayPush(groups, false);
         group = group + 1;
     }
@@ -310,7 +309,7 @@ func CodegenExpressionSurfaceUsagePresenceFromSemantic(
             has_none = true;
         }
         group = CodegenUsageBuiltinGroupArgs();
-        while group <= CodegenUsageBuiltinGroupTaskObservation() {
+        while group <= CodegenUsageBuiltinGroupTryFile() {
             if !groups[group] {
                 let callee_index: Int = 0;
                 while callee_index < CodegenUsageBuiltinGroupCalleeCount(group) &&
@@ -400,12 +399,13 @@ func CodegenExpressionUsageFactsFromSemantic(facts: SemanticAstExpressionSurface
         graph.has_checked_int_cast,
         graph.has_checked_long_cast,
         graph.has_spawn,
-        surface.groups[CodegenUsageBuiltinGroupTaskObservation()]
+        surface.groups[CodegenUsageBuiltinGroupTaskObservation()],
+        surface.groups[CodegenUsageBuiltinGroupTryFile()]
     );
 }
 
 func CodegenExpressionUsageKnownGroup(group: Int) -> Result<Int> {
-    if group >= CodegenUsageBuiltinGroupArgs() && group <= CodegenUsageBuiltinGroupTaskObservation() {
+    if group >= CodegenUsageBuiltinGroupArgs() && group <= CodegenUsageBuiltinGroupTryFile() {
         return Ok(group);
     }
     return Err("unknown expression usage builtin group");
@@ -441,6 +441,7 @@ func CodegenExpressionUsageGroupPresent(facts: CodegenExpressionUsageFacts, grou
     if known_group == CodegenUsageBuiltinGroupArtifactTransaction() { return facts.has_artifact_transaction; }
     if known_group == CodegenUsageBuiltinGroupIntentObservability() { return facts.has_intent_observability; }
     if known_group == CodegenUsageBuiltinGroupTaskObservation() { return facts.has_task_observation; }
+    if known_group == CodegenUsageBuiltinGroupTryFile() { return facts.has_try_file; }
     return false;
 }
 

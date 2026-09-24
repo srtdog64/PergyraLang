@@ -114,6 +114,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/parser/decl_enum_owner.pgy` -- enum declarations and
   canonical variant parameter-type preservation.
 - `src/self_hosted/parser/decl_event_owner.pgy` -- event declarations.
+- `src/self_hosted/parser/io_error_builtin_enum_composition_owner.pgy` -- the
+  builtin `IoError` enum appended to a composed program that calls
+  TryReadFile or TryWriteFile, in the variant order of
+  `src/runtime/pgy_runtime_io_error.def`.
 - `src/self_hosted/parser/decl_intent_owner.pgy` -- intent declarations,
   singleton guard/post/expect admission, ordered compensation rows, and their
   parser-owned expression graphs.

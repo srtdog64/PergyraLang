@@ -113,8 +113,12 @@ func CodegenRuntimeUsageFactsFromSemantic(
     let uses_log: Bool = kind_usage.has_log_stmt
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupLog());
     let uses_fhandle: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupFileHandle());
+    // TryReadFile/TryWriteFile call the canonical runtime's typed file entries,
+    // so they select pgy_runtime.h as the artifact transaction builtins do.
     let uses_artifact_transaction: Bool = CodegenExpressionUsageGroupPresent(
         expr_usage, CodegenUsageBuiltinGroupArtifactTransaction()
+    ) || CodegenExpressionUsageGroupPresent(
+        expr_usage, CodegenUsageBuiltinGroupTryFile()
     );
     let uses_intent_observability: Bool = CodegenExpressionUsageGroupPresent(
         expr_usage, CodegenUsageBuiltinGroupIntentObservability()

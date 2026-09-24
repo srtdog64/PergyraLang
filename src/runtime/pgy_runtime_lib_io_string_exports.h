@@ -337,6 +337,45 @@ void pgy_write_file(const char *path, const char *data)
 {
     (void)pgy_try_write_file_result(path, data);
 }
+/* TryReadFile / TryWriteFile runtime ABI for LLVM; same contract as
+ * pgy_runtime_io_result_inline.h: true on success, otherwise the IoError
+ * variant ordinal of pgy_runtime_io_error.def in out_error. */
+bool pgy_try_read_file_export(const char *path, char **out_text,
+                              int32_t *out_error)
+{
+    PgyRuntimeIoStringResult result = pgy_try_read_file_result(path);
+    int32_t ordinal;
+
+    if (result.tag == PGY_RUNTIME_IO_RESULT_OK) {
+        *out_text = result.ok;
+        *out_error = 0;
+        return true;
+    }
+    ordinal = pgy_runtime_io_error_ordinal(result.err.status);
+    if (ordinal < 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "read-file status has no IoError variant");
+    *out_text = NULL;
+    *out_error = ordinal;
+    return false;
+}
+bool pgy_try_write_file_export(const char *path, const char *data,
+                               int32_t *out_error)
+{
+    PgyRuntimeIoVoidResult result = pgy_try_write_file_result(path, data);
+    int32_t ordinal;
+
+    if (result.tag == PGY_RUNTIME_IO_RESULT_OK) {
+        *out_error = 0;
+        return true;
+    }
+    ordinal = pgy_runtime_io_error_ordinal(result.err.status);
+    if (ordinal < 0)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "write-file status has no IoError variant");
+    *out_error = ordinal;
+    return false;
+}
 PgyRuntimeIoStringResult pgy_try_input_result(const char *prompt)
 {
     char tmp[4096];

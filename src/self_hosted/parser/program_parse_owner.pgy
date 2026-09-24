@@ -10,6 +10,7 @@ import "../hir/ast_destructure_graph_owner.pgy";
 import "cursor_owner.pgy";
 import "decl_dispatch_owner.pgy";
 import "intent_parameter_resolution_owner.pgy";
+import "io_error_builtin_enum_composition_owner.pgy";
 
 struct ParserProgramBuild {
     tree_text: String;
@@ -81,6 +82,17 @@ func ParseProgramBuildContentWithImportPolicyObserved(
         import_paths, expression_graphs,
         source_locations, declaration_module_paths
     );
+    if ParserComposedGraphCallsTryFileBuiltin(expression_graphs[0]) {
+        let io_error_cursor: Array<Int> = [0];
+        let io_error_decls: String = ParseDecls(
+            ParserIoErrorEnumSource(), 0, io_error_cursor, "", false,
+            src_dir, source_path, false, false, admit_format_surfaces,
+            diagnostic_projection, "", involve_types, import_paths,
+            expression_graphs, source_locations, declaration_module_paths
+        );
+        if StringLength(decls) > 0 { decls = Concat(decls, "\n"); }
+        decls = Concat(decls, io_error_decls);
+    }
     if observe_phases { Log("Phase: declaration-composition:done"); }
     if !ParserIntentParameterResolutionContractReady() {
         ParserProgramGraphFail("intent parameter resolution contract drifted");
