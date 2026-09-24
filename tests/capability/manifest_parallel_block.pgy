@@ -1,0 +1,8 @@
+// A manifest request lowers no routine body. The default route does not
+// lower a parallel block yet, and still prints the manifest native prints.
+func Main() -> Void {
+    parallel {
+        Log("a");
+        Log("b");
+    }
+}

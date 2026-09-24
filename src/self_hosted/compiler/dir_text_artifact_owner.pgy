@@ -161,8 +161,11 @@ func CompileSourceDirTextVerified(
     source_path: String
 ) -> String with caps io_read {
     let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
+    // DIR projects declarations and lowers no routine body.
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeTyped(artifact, true);
+        SemanticAstArtifactAnalyzeFromExpressionSurfaces(artifact, true,
+            SemanticAstExpressionSurfaceFactsFromTypedArtifact(artifact), false,
+            SemanticArtifactAdmissionPurpose.SemanticAdmissionInspectsOnly);
     if !analysis.verdict.ok ||
         !SemanticAstArtifactAdmissionReady(artifact, analysis, true) {
         Log(analysis.verdict.diagnostic_message);

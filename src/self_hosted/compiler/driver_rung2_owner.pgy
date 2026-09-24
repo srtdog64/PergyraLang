@@ -42,7 +42,7 @@ func VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(
 ) -> DriverRung2VerifiedFacts {
     if !semantic_analysis.verdict.ok {
         Log(SemanticDiagnosticPayloadForPublicBoundaryAt(semantic_analysis.verdict.diagnostic_code, semantic_analysis.verdict.diagnostic_message,
-            SemanticAstArtifactDiagnosticSpan(artifact, !semantic_analysis.signatures.ok, semantic_analysis.signatures.diagnostic_fact), emit_json_diagnostic));
+            SemanticAstArtifactDiagnosticSpan(artifact, semantic_analysis.verdict.diagnostic_fact), emit_json_diagnostic));
         Exit(1);
     }
     if !AstTreeArtifactReady(artifact) {

@@ -209,6 +209,72 @@ for row in "${UNCOVERED_CASES[@]}"; do
     expect_refusal "uncovered-$name" "$source_rel" main.pgy "$line" "$code" "$extra"
 done
 
+# Statement forms native compiles and runs that the default route does not
+# lower yet (native_pipeline_only_statement_owner.pgy). Semantic admission
+# refuses the first one at its own position; before, the MIR producer failed
+# with `AST node is outside bounded MIR producer` and no code, and a let in a
+# parallel body was refused as local_binding_invalid with `Span: none`. A form
+# that the default route lowers leaves this list and joins the sweep.
+# name|expected line|required text. A fixture row reads native_only_NAME.pgy;
+# a `case:NAME` row reads tests/cases/backend_compare/NAME/main.pgy.
+NATIVE_ONLY_STATEMENT_CODE="statement_native_pipeline_only"
+NATIVE_ONLY_STATEMENT_CASES=(
+    "parallel_block|3|- surface: parallel block"
+    "parallel_let|3|- surface: parallel block"
+    "nested_parallel|3|- surface: parallel block"
+    "channel_send|3|- surface: channel send"
+    "case:llvm_dynamic_scope_capture|264|- surface: parallel block"
+    "case:channel_basic|3|- surface: channel send"
+)
+for row in "${NATIVE_ONLY_STATEMENT_CASES[@]}"; do
+    IFS='|' read -r name line extra <<<"$row"
+    source_rel="$FIXTURES/native_only_$name.pgy"
+    file="native_only_$name.pgy"
+    if [[ "$name" == case:* ]]; then
+        name="${name#case:}"
+        source_rel="tests/cases/backend_compare/$name/main.pgy"
+        file=main.pgy
+    fi
+    tag="native-only-$name"
+    (cd "$ROOT_DIR" && "$PGY" "$source_rel" --native-pipeline --backend=c \
+        -o "$WORK_REL/$tag.exe") >"$WORK_DIR/$tag.native.log" 2>&1 ||
+        { cat "$WORK_DIR/$tag.native.log" >&2; fail "native no longer compiles $source_rel; its native-only row is stale"; }
+    expect_refusal "$tag" "$source_rel" "$file" "$line" "$NATIVE_ONLY_STATEMENT_CODE" "$extra"
+    grep -Fq 'outside bounded MIR producer' "$WORK_DIR/$tag-c-text.log" &&
+        fail "$source_rel reached the MIR producer"
+done
+# The refusal is for requests that lower routine bodies. The capability
+# manifest and DIR lower none, so for these programs the default route prints
+# what native prints (public_capability_manifest_installed_self_host_owner.sh
+# holds the manifest rows too).
+for name in parallel_block channel_send; do
+    for mode in --capability-manifest --dir; do
+        tag="inspect-$name${mode#--}"
+        (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE PGY_SELF_DRIVER_BIN="$DRIVER" \
+            "$PGY" "$mode" "$FIXTURES/native_only_$name.pgy") \
+            >"$WORK_DIR/$tag.default" 2>"$WORK_DIR/$tag.default.err" ||
+            { cat "$WORK_DIR/$tag.default" >&2; fail "the default route refused $mode for native_only_$name.pgy"; }
+        (cd "$ROOT_DIR" && "$PGY" --native-pipeline "$mode" "$FIXTURES/native_only_$name.pgy") \
+            >"$WORK_DIR/$tag.native" 2>"$WORK_DIR/$tag.native.err" ||
+            fail "native refused $mode for native_only_$name.pgy"
+        [[ -s "$WORK_DIR/$tag.native" && "$(tr -d '\r' <"$WORK_DIR/$tag.default")" == "$(tr -d '\r' <"$WORK_DIR/$tag.native")" ]] ||
+            fail "default-route $mode of native_only_$name.pgy differs from native's"
+    done
+done
+# The refusal reads the kind rows before the local-binding rows exist.
+verdict_owner="$ROOT_DIR/src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
+refusal_at="$(grep -n 'SemanticAstNativePipelineOnlyStatementRefusal(kind_surfaces, purpose)' "$verdict_owner" | cut -d: -f1 || true)"
+locals_at="$(grep -n 'let local_bindings: SemanticAstLocalBindingFacts' "$verdict_owner" | cut -d: -f1 || true)"
+[[ -n "$refusal_at" && -n "$locals_at" && "$refusal_at" -lt "$locals_at" ]] ||
+    fail "artifact admission no longer refuses native-only statements before the local-binding rows"
+# Only the inspection requests (capability manifest, DIR) skip the refusal;
+# public_capability_manifest_installed_self_host_owner.sh and the inspection
+# loop above hold their output equal to native's.
+inspecting="$(grep -RFl --include='*.pgy' 'SemanticAdmissionInspectsOnly' \
+    "$ROOT_DIR/src/self_hosted" | sed "s#^$ROOT_DIR/##" | LC_ALL=C sort | tr '\n' ' ')"
+[[ "$inspecting" == "src/self_hosted/compiler/capability_manifest_owner.pgy src/self_hosted/compiler/dir_text_artifact_owner.pgy src/self_hosted/semantic/native_pipeline_only_statement_owner.pgy " ]] ||
+    fail "a request outside the capability manifest and DIR skips the native-only statement refusal: $inspecting"
+
 # Reserved binding names: native refuses the same spellings, and the words
 # the registry admits as names compile on both front ends.
 for name in spawn_local async_local; do
@@ -275,4 +341,4 @@ for owner in decl_intent_owner decl_zone_owner decl_effect_relation_owner \
     ! grep -Fq 'Exit(1)' <<<"$owner_code" || fail "$owner regained a bare Exit(1)"
 done
 
-echo "[$LABEL] ${#IMPORTED_CASES[@]} imported-file spans, ${#BROKEN_CASES[@]} broken inputs, ${#UNCOVERED_CASES[@]} uncovered native forms x 4 default legs, reserved binding names, builtin signatures: PASS"
+echo "[$LABEL] ${#IMPORTED_CASES[@]} imported-file spans, ${#BROKEN_CASES[@]} broken inputs, ${#UNCOVERED_CASES[@]} uncovered native forms, ${#NATIVE_ONLY_STATEMENT_CASES[@]} native-only statements x 4 default legs, reserved binding names, builtin signatures: PASS"

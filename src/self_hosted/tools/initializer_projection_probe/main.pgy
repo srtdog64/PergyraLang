@@ -457,7 +457,8 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
                 artifact, analysis.expression_surfaces, "ToTextValue", false
             );
         analysis = SemanticAstArtifactAnalyzeFromExpressionSurfaces(
-            artifact, true, damaged_surfaces, false
+            artifact, true, damaged_surfaces, false,
+            SemanticArtifactAdmissionPurpose.SemanticAdmissionLowersBodies
         );
     } else if mode == "--direct-call-nested-call-mismatch" ||
         mode == "--scalar-call-mismatch" {
@@ -466,7 +467,8 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
                 artifact, analysis.expression_surfaces, "ToTextValue", true
             );
         analysis = SemanticAstArtifactAnalyzeFromExpressionSurfaces(
-            artifact, true, damaged_nested_call, false
+            artifact, true, damaged_nested_call, false,
+            SemanticArtifactAdmissionPurpose.SemanticAdmissionLowersBodies
         );
     } else if mode == "--direct-call-argument-mismatch" ||
         mode == "--direct-call-nested-mismatch" {
@@ -476,7 +478,8 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
                 AstExpressionNodeStringLiteral()
             );
         analysis = SemanticAstArtifactAnalyzeFromExpressionSurfaces(
-            artifact, true, damaged_arguments, false
+            artifact, true, damaged_arguments, false,
+            SemanticArtifactAdmissionPurpose.SemanticAdmissionLowersBodies
         );
     } else if mode == "--namespace-call-target-mismatch" {
         analysis = ProbeAnalysisWithCallTarget(
@@ -492,7 +495,8 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
                 artifact, analysis.expression_surfaces, "Text"
             );
         analysis = SemanticAstArtifactAnalyzeFromExpressionSurfaces(
-            artifact, true, damaged_member, false
+            artifact, true, damaged_member, false,
+            SemanticArtifactAdmissionPurpose.SemanticAdmissionLowersBodies
         );
     }
     let body_types: SemanticAstBodyTypeBundle =
@@ -852,7 +856,8 @@ func Main() -> Void with caps env {
                 replacement_kind
             );
         analysis = SemanticAstArtifactAnalyzeFromExpressionSurfaces(
-            artifact, true, damaged_surfaces, false
+            artifact, true, damaged_surfaces, false,
+            SemanticArtifactAdmissionPurpose.SemanticAdmissionLowersBodies
         );
     }
     let body_types: SemanticAstBodyTypeBundle =

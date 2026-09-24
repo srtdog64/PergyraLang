@@ -1,0 +1,11 @@
+func Work(n: Int) -> Void {
+    if n > 0 {
+        parallel {
+            Log(ToString(n));
+        }
+    }
+}
+
+func Main() -> Void {
+    Work(1);
+}

@@ -23,6 +23,7 @@ import "ast_intent_signature_fact_owner.pgy";
 import "ast_intent_transition_fact_owner.pgy";
 import "ast_type_surface_fact_owner.pgy";
 import "ast_kind_surface_fact_owner.pgy";
+import "native_pipeline_only_statement_owner.pgy";
 import "ast_function_scope_fact_owner.pgy";
 
 struct SemanticAstArtifactVerdict {
@@ -33,6 +34,7 @@ struct SemanticAstArtifactVerdict {
     artifact_identity_digest: Int;
     main_count: Int;
     requires_entrypoint: Bool;
+    diagnostic_fact: SemanticDiagnosticMessageFact;
 }
 
 struct SemanticAstArtifactAnalysis {
@@ -57,7 +59,7 @@ struct SemanticAstArtifactAnalysis {
 func SemanticAstArtifactVerdictOk(node_count: Int, artifact_identity_digest: Int, main_count: Int,
                                   requires_entrypoint: Bool) -> SemanticAstArtifactVerdict {
     return SemanticAstArtifactVerdict(true, "", "", node_count, artifact_identity_digest,
-        main_count, requires_entrypoint);
+        main_count, requires_entrypoint, SemanticDiagnosticMessageFactEmpty());
 }
 
 func SemanticAstArtifactVerdictError(code: String, message: String,
@@ -65,7 +67,7 @@ func SemanticAstArtifactVerdictError(code: String, message: String,
                                      main_count: Int,
                                      requires_entrypoint: Bool) -> SemanticAstArtifactVerdict {
     return SemanticAstArtifactVerdict(false, code, message, node_count, artifact_identity_digest,
-        main_count, requires_entrypoint);
+        main_count, requires_entrypoint, SemanticDiagnosticMessageFactEmpty());
 }
 
 func SemanticAstArtifactEntrypointVerdict(artifact: AstTreeArtifact,
@@ -149,7 +151,8 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
     artifact: AstTreeArtifact,
     requires_entrypoint: Bool,
     input_expression_surfaces: SemanticAstExpressionSurfaceFacts,
-    require_carried_call_targets: Bool
+    require_carried_call_targets: Bool,
+    purpose: SemanticArtifactAdmissionPurpose
 ) -> SemanticAstArtifactAnalysis {
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsWithBuiltinNames(artifact);
@@ -219,6 +222,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             0,
             requires_entrypoint
         );
+        if !signatures.ok { rejected.diagnostic_fact = signatures.diagnostic_fact; }
         let empty_locals: SemanticAstLocalBindingFacts =
             SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
         let empty_assignments: SemanticAstAssignmentFacts =
@@ -405,16 +409,13 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             function_tables, function_scopes
         );
     }
-    if !kind_surfaces.ok {
-        let rejected_kind_surface: SemanticAstArtifactVerdict =
-            SemanticAstArtifactVerdictError(
-                "ast_artifact_invalid",
-                SemanticError1(
-                    "ast_artifact_invalid", "owner", "SemanticAstKindSurfaceFacts"
-                ),
-                artifact.count, artifact.identity_digest,
-                0, requires_entrypoint
-            );
+    // Before the local-binding rows: a parallel body gives a let no Block scope.
+    let kind_refusal: SemanticDiagnosticMessageFact =
+        SemanticAstNativePipelineOnlyStatementRefusal(kind_surfaces, purpose);
+    if kind_refusal.present {
+        let rejected_kind_surface: SemanticAstArtifactVerdict = SemanticAstArtifactVerdict(
+            false, kind_refusal.code, SemanticDiagnosticMessageFactRender(kind_refusal),
+            artifact.count, artifact.identity_digest, 0, requires_entrypoint, kind_refusal);
         return SemanticAstArtifactAnalysis(
             rejected_kind_surface, signatures, intent_signatures,
             intent_transitions, constructors, zone_authorities,
@@ -508,7 +509,7 @@ func SemanticAstArtifactAnalyzeTyped(
     return SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         artifact, requires_entrypoint,
         SemanticAstExpressionSurfaceFactsFromTypedArtifact(artifact),
-        false
+        false, SemanticArtifactAdmissionPurpose.SemanticAdmissionLowersBodies
     );
 }
 
@@ -524,7 +525,8 @@ func SemanticAstArtifactAnalyzeWithExpressionGraph(
             graph
         );
     return SemanticAstArtifactAnalyzeFromExpressionSurfaces(
-        artifact, requires_entrypoint, expression_surfaces, true
+        artifact, requires_entrypoint, expression_surfaces, true,
+        SemanticArtifactAdmissionPurpose.SemanticAdmissionLowersBodies
     );
 }
 

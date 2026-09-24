@@ -108,6 +108,10 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
             "import-or-declare-symbol"
         );
     }
+    if code == "statement_native_pipeline_only" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:route:native_pipeline_only", "compile-with-native-pipeline");
+    }
     if code == "missing_return" || code == "never_function_fallthrough" {
         return SemanticPublicDiagnosticIdentity(
             true, "semantic:cfg:missing_return_path", "add-return-on-all-paths");

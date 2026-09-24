@@ -891,6 +891,13 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   names the native builtins the default route does not run yet
   (builtin_native_pipeline_only) and is held equal to the shrink-only
   allowlist of `tests/self_hosted/parity/builtin_surface_parity_owner.sh`.
+- `src/self_hosted/semantic/native_pipeline_only_statement_owner.pgy` -- the
+  statement forms (parallel block, channel send) the native pipeline runs
+  and the default route does not lower; artifact admission refuses the first
+  one at its node (statement_native_pipeline_only), read from the kind rows,
+  before the local-binding rows and the MIR producer see it. It also owns the
+  admission purpose: requests that lower routine bodies get the refusal;
+  inspection requests (capability manifest, DIR) do not.
 - `src/self_hosted/semantic/expr_validation_owner.pgy` -- expression validation facts.
 - `src/self_hosted/semantic/program_check_owner.pgy` -- program/function and
   nominal constructor signature checks, including exact zone/world field rows.

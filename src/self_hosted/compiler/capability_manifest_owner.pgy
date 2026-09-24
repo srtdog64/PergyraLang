@@ -71,8 +71,12 @@ func CompileSourceCapabilityManifestVerified(
     source_path: String
 ) -> CompilerCapabilityManifestOutcome with caps io_read {
     let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
+    // A manifest request lowers no routine body, so a statement the default
+    // route cannot lower does not stop it (native prints the same manifest).
     let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeTyped(artifact, false);
+        SemanticAstArtifactAnalyzeFromExpressionSurfaces(artifact, false,
+            SemanticAstExpressionSurfaceFactsFromTypedArtifact(artifact), false,
+            SemanticArtifactAdmissionPurpose.SemanticAdmissionInspectsOnly);
     if !analysis.verdict.ok {
         return CompilerCapabilityManifestOutcome(
             true, false, analysis.verdict.diagnostic_message, ""

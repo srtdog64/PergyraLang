@@ -51,13 +51,13 @@ Length|a type-table row for the .Length member; neither route declares a callabl
 # when the default route accepts it, drop it from
 # native_pipeline_only_builtin_owner.pgy, and lower NATIVE_ONLY_PINNED.
 NATIVE_ONLY_ROWS='
-ChannelCapacity|the default route has no channel runtime (a <- receive is refused)
-ChannelClose|the default route has no channel runtime (a <- receive is refused)
-ChannelClosed|the default route has no channel runtime (a <- receive is refused)
-ChannelFull|the default route has no channel runtime (a <- receive is refused)
-ChannelLength|the default route has no channel runtime (a <- receive is refused)
-ChannelReady|the default route has no channel runtime (a <- receive is refused)
-ChannelSpace|the default route has no channel runtime (a <- receive is refused)
+ChannelCapacity|the default route has no channel runtime (a <- send or receive is refused)
+ChannelClose|the default route has no channel runtime (a <- send or receive is refused)
+ChannelClosed|the default route has no channel runtime (a <- send or receive is refused)
+ChannelFull|the default route has no channel runtime (a <- send or receive is refused)
+ChannelLength|the default route has no channel runtime (a <- send or receive is refused)
+ChannelReady|the default route has no channel runtime (a <- send or receive is refused)
+ChannelSpace|the default route has no channel runtime (a <- send or receive is refused)
 ClaimQubit|experimental qubit surface; the default route has no qubit runtime
 CooldownNew|untyped state tool (native types it Unknown); no default-route runtime
 FsmNew|untyped state tool (native types it Unknown); no default-route runtime
@@ -75,9 +75,9 @@ IsCollapsed|experimental qubit surface; the default route has no qubit runtime
 IsNone|the self-host types Option builtins by name before resolution (TYPED_PROTOCOL, docs/205 R7); IsNone is shadowable, so it waits for the declared-callable fact
 Measure|experimental qubit surface; the default route has no qubit runtime
 QubitState|experimental qubit surface; the default route has no qubit runtime
-SendTimeout|the default route has no channel runtime (a <- receive is refused)
+SendTimeout|the default route has no channel runtime (a <- send or receive is refused)
 TimerNew|untyped state tool (native types it Unknown); no default-route runtime
-TrySend|the default route has no channel runtime (a <- receive is refused)
+TrySend|the default route has no channel runtime (a <- send or receive is refused)
 '
 NATIVE_ONLY_PINNED=27
 

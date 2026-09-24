@@ -1,0 +1,54 @@
+// Statement forms the native pipeline runs and the default route does not
+// run yet: the self-host MIR producer has no lowering for them, and a let in
+// a parallel body has no Block scope for the local-binding facts. Artifact
+// admission refuses the first one at its own node
+// (statement_native_pipeline_only) before those fact families run, instead of
+// failing later with no code or position. The decision reads the kind rows
+// only; a form leaves this list when the default route lowers it.
+
+import "ast_kind_surface_fact_owner.pgy";
+import "diagnostic_owner.pgy";
+
+// What the admitted artifact is for. A request that lowers routine bodies
+// (C, LLVM, MIR, run, debug) needs a default-route lowering for every
+// statement; an inspection request (capability manifest, DIR) lowers none,
+// so a missing lowering does not stop it. Each request's execution owner
+// names its purpose; the lowering entry SemanticAstArtifactAnalyzeTyped
+// always lowers.
+enum SemanticArtifactAdmissionPurpose {
+    SemanticAdmissionLowersBodies,
+    SemanticAdmissionInspectsOnly,
+}
+
+func SemanticNativePipelineOnlyStatementSurface(kind: Int) -> String {
+    if kind == TypedAstKindParallelBlockTag() { return "parallel block"; }
+    if kind == TypedAstKindChannelSendStmtTag() { return "channel send"; }
+    return "";
+}
+
+// The kind rows' own failure, else (for a lowering request) the first
+// native-only statement in node order, where an enclosing form precedes the
+// forms nested in it, else empty.
+func SemanticAstNativePipelineOnlyStatementRefusal(
+    ref kinds: SemanticAstKindSurfaceFacts, purpose: SemanticArtifactAdmissionPurpose
+) -> SemanticDiagnosticMessageFact {
+    let count: Int = ArrayLength(kinds.node_ids);
+    if !kinds.ok || ArrayLength(kinds.kind_tags) != count {
+        return SemanticDiagnosticMessageFact2("ast_artifact_invalid",
+            "node_count", ToString(kinds.artifact_node_count),
+            "owner", "SemanticAstKindSurfaceFacts");
+    }
+    if purpose == SemanticArtifactAdmissionPurpose.SemanticAdmissionInspectsOnly {
+        return SemanticDiagnosticMessageFactEmpty();
+    }
+    let row: Int = 0;
+    while row < count {
+        let surface: String = SemanticNativePipelineOnlyStatementSurface(kinds.kind_tags[row]);
+        if surface != "" {
+            return SemanticDiagnosticMessageFact2("statement_native_pipeline_only",
+                "node_id", ToString(kinds.node_ids[row]), "surface", surface);
+        }
+        row = row + 1;
+    }
+    return SemanticDiagnosticMessageFactEmpty();
+}

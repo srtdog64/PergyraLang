@@ -85,6 +85,7 @@ func SemanticReason(code: String) -> String {
     }
     if code == "undefined_function" { return "called function is not declared in the checked subset"; }
     if code == "builtin_native_pipeline_only" { return "this builtin runs on the native pipeline only; the default route does not support it yet"; }
+    if code == "statement_native_pipeline_only" { return "this statement runs on the native pipeline only; the default route does not lower it yet"; }
     if code == "call_arity_mismatch" { return "call argument count does not match the callee parameter count"; }
     if code == "enum_variant_redeclaration" { return "a bare variant name must belong to one enum; the first declaration used to win silently"; }
     if code == "builtin_name_reserved" { return "a top-level function owns a builtin spelling except where it carries meaning beyond the call"; }
@@ -233,6 +234,7 @@ func SemanticFix(code: String) -> String {
         return "declare the function before calling it";
     }
     if code == "builtin_native_pipeline_only" { return "compile with --native-pipeline, or use a builtin the default route supports"; }
+    if code == "statement_native_pipeline_only" { return "compile with --native-pipeline, or keep this statement out of code the default route compiles"; }
     if code == "call_arity_mismatch" { return "pass the declared number of arguments"; }
     if code == "generic_argument_count_mismatch" { return "pass one explicit type argument for each generic parameter"; }
     if code == "generic_argument_type_invalid" { return "replace the malformed generic argument with a concrete type"; }

@@ -60,14 +60,13 @@ func SemanticAstExpressionGraphOwnerAstNode(
     return 0 - 1;
 }
 
-// An artifact-level refusal carries a node only when the signature facts
-// produced it (`signatures_failed`): their first typed fact names the
-// declaration node.
+// An artifact-level refusal carries a node when the verdict's structured fact
+// names one first: the signature facts' declaration node, or the node of a
+// statement form the default route does not lower.
 func SemanticAstArtifactDiagnosticSpan(
-    artifact: AstTreeArtifact, signatures_failed: Bool,
-    fact: SemanticDiagnosticMessageFact
+    artifact: AstTreeArtifact, fact: SemanticDiagnosticMessageFact
 ) -> AstSourceSpan {
-    if !signatures_failed || !fact.present || fact.first_key != "node_id" {
+    if !fact.present || fact.first_key != "node_id" {
         return AstSourceSpanUnknown();
     }
     return AstSourceSpanForNode(artifact.source_modules.locations,

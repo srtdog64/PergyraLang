@@ -49,6 +49,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "value_param_collection_mutation",
         "undefined_function",
         "builtin_native_pipeline_only",
+        "statement_native_pipeline_only",
         "call_arity_mismatch",
         "generic_argument_count_mismatch",
         "generic_argument_type_invalid",
@@ -199,6 +200,9 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     if code == "undefined_function" || code == "builtin_native_pipeline_only" {
         return "PGY_SEM_UNDEFINED_SYMBOL";
     }
+    // Native lowers these statements; the nearest public class is a MIR
+    // lowering gap. The receipt's cause names the route.
+    if code == "statement_native_pipeline_only" { return "PGY_MIR_SIGNATURE_UNSUPPORTED"; }
     if code == "call_arity_mismatch" {
         return "PGY_SEM_BUILTIN_ARGS_INVALID";
     }

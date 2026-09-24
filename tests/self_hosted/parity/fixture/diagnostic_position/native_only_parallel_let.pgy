@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let x: Int = 1;
+    parallel {
+        let y: Int = x + 1;
+    }
+    Log(ToString(x));
+}

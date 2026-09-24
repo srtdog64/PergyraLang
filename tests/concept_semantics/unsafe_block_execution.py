@@ -47,8 +47,10 @@ def main():
         ("nested-effect", "func Main() -> Void with effects local { if true { unsafe { } } }", None, "PGY_SEM_EFFECT_CONFLICT", "declared_effect_missing"),
         ("transitive-effect", "func Forward() -> Int { return Work(); } func Work() -> Int { unsafe { return 7; } } func Main() -> Void with effects local { Log(Forward()); }", None, "PGY_SEM_EFFECT_CONFLICT", "declared_effect_missing"),
         ("callable-effect", "func Work(n: Int) -> Int { unsafe { return n; } } func Invoke(op: func(Int) -> Int) -> Int { return op(1); } func Main() -> Void with effects local { Log(Invoke(Work)); }", None, "PGY_SEM_EFFECT_CONFLICT", "declared_effect_missing"),
-        ("parallel", "func Main() -> Void { parallel { unsafe { } } }", None, "PGY_SEM_PARALLEL_SECURE_FORBIDDEN", "parallel_unsafe_forbidden"),
-        ("nested-parallel", "func Main() -> Void { parallel { if true { unsafe { } } } }", None, "PGY_SEM_PARALLEL_SECURE_FORBIDDEN", "parallel_unsafe_forbidden"),
+        # The default route does not lower a parallel block, so artifact
+        # admission refuses the block before the unsafe body rule runs.
+        ("parallel", "func Main() -> Void { parallel { unsafe { } } }", None, "PGY_SEM_PARALLEL_SECURE_FORBIDDEN", "statement_native_pipeline_only"),
+        ("nested-parallel", "func Main() -> Void { parallel { if true { unsafe { } } } }", None, "PGY_SEM_PARALLEL_SECURE_FORBIDDEN", "statement_native_pipeline_only"),
         ("wrong-body", 'func Main() -> Void { unsafe { let n: Int = "wrong"; } }', None, "PGY_SEM_TYPE_MISMATCH", "let_type_mismatch"),
         ("scope-escape", "func Main() -> Void { unsafe { let n: Int = 2; } Log(n); }", None, "PGY_SEM_UNDEFINED_SYMBOL", "undefined_symbol"),
         ("task-exit", "async func Work() -> Int { return 1; } async func Main() -> Void { unsafe { let task: Future<Int> = spawn Work(); } }", None, "PGY_SEM_TASK_LIFECYCLE", "task_lifecycle_invalid"),

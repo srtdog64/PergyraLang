@@ -160,28 +160,24 @@ func Main() -> Void {
 == ChannelFull
 func Main() -> Void {
     let ch: Channel<Int> = Channel(1);
-    ch <- 7;
     if ChannelFull(ch) { Log("full"); } else { Log("not full"); }
 }
 
 == ChannelLength
 func Main() -> Void {
     let ch: Channel<Int> = Channel(2);
-    ch <- 7;
     Log(ToString(ChannelLength(ch)));
 }
 
 == ChannelReady
 func Main() -> Void {
     let ch: Channel<Int> = Channel(2);
-    ch <- 7;
     if ChannelReady(ch) { Log("ready"); } else { Log("empty"); }
 }
 
 == ChannelSpace
 func Main() -> Void {
     let ch: Channel<Int> = Channel(2);
-    ch <- 7;
     Log(ToString(ChannelSpace(ch)));
 }
 

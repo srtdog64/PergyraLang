@@ -1,0 +1,7 @@
+func Main() -> Void {
+    Log("start");
+    parallel {
+        Log("a");
+        Log("b");
+    }
+}

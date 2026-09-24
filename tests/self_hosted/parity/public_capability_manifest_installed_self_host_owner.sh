@@ -49,10 +49,16 @@ SELF_DRIVER="$(cd "$(dirname "$SELF_DRIVER")" && pwd -P)/$(basename "$SELF_DRIVE
 rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR"
 
-for case_name in manifest_clean manifest_declared_ok; do
+# A manifest request lowers no routine body. budget_channel_demo sends on a
+# channel and manifest_parallel_block runs a parallel block, statements the
+# default route refuses to compile (statement_native_pipeline_only); their
+# installed manifests still equal native's.
+for case_name in manifest_clean manifest_declared_ok budget_channel_demo \
+    manifest_parallel_block; do
     source_path="tests/capability/${case_name}.pgy"
     (cd "$ROOT_DIR" && "$SELF_DRIVER" "$DIRECT_MODE" "$source_path") \
-        >"$WORK_DIR/${case_name}.direct" 2>"$WORK_DIR/${case_name}.direct.err"
+        >"$WORK_DIR/${case_name}.direct" 2>"$WORK_DIR/${case_name}.direct.err" ||
+        { cat "$WORK_DIR/${case_name}.direct" >&2; fail "$case_name installed manifest was refused"; }
     (cd "$ROOT_DIR" && unset PGY_SELF_DRIVER_BIN PGY_NATIVE_PIPELINE && \
         "$PGY" --capability-manifest "$source_path") \
         >"$WORK_DIR/${case_name}.public" 2>"$WORK_DIR/${case_name}.public.err"
