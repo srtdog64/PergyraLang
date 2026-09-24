@@ -59,6 +59,39 @@ llvm_member_call_store_arg(LLVMGenCtx *ctx, ASTNode *node,
     return false;
 }
 
+/* A method argument lowers against its MIR parameter type, as on the C
+ * backend, so an empty collection literal takes the declared type. */
+LLVMValueRef
+llvm_member_call_emit_arg(LLVMGenCtx *ctx,
+                          const MIRDeclMethod *method_meta,
+                          size_t logical_index,
+                          ASTNode *arg_node)
+{
+    const char *saved_expected_type_name = ctx->expected_type_name;
+    const char *param_type_name = NULL;
+    size_t logical_idx = 0;
+    size_t param_count = method_meta != NULL
+        ? llvm_mir_decl_method_param_count(method_meta) : 0;
+    LLVMValueRef value;
+
+    for (size_t pk = 0; pk < param_count; pk++) {
+        FuncParam *p = llvm_mir_decl_method_param(method_meta, pk);
+        if (p == NULL || p->name == NULL
+            || (p->type == NULL && strcmp(p->name, "self") == 0))
+            continue;
+        if (logical_idx++ == logical_index) {
+            param_type_name =
+                llvm_mir_decl_method_param_type_name(method_meta, pk);
+            break;
+        }
+    }
+    if (param_type_name != NULL)
+        ctx->expected_type_name = param_type_name;
+    value = llvm_emit_expression(arg_node, ctx);
+    ctx->expected_type_name = saved_expected_type_name;
+    return value;
+}
+
 LLVMValueRef
 llvm_member_call_adjust_pointer_self_arg(LLVMGenCtx *ctx,
                                          const MIRDeclMethod *method_meta,

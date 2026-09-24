@@ -209,8 +209,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     }
                     for (size_t i = 0; i < argc; i++) {
                         ASTNode *arg_node = ast_call_argument(node, i);
-                        LLVMValueRef arg_val = llvm_emit_expression(
-                            arg_node, ctx);
+                        LLVMValueRef arg_val = llvm_member_call_emit_arg(
+                            ctx, method_meta, i, arg_node);
                         arg_val = llvm_member_call_adjust_pointer_self_arg(
                             ctx, method_meta, method_decl, class_name,
                             method_name, i, arg_node, arg_val);
@@ -270,8 +270,10 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         return llvm_member_call_error_recovery(ctx, node,
                             class_name, method_name, "could not lower receiver");
                     for (size_t i = 0; i < argc; i++) {
-                        LLVMValueRef arg_val = llvm_emit_expression(
-                            ast_call_argument(node, i), ctx);
+                        LLVMValueRef arg_val = llvm_member_call_emit_arg(ctx,
+                            llvm_find_host_method_metadata_in_context(ctx,
+                                class_name, method_name),
+                            i, ast_call_argument(node, i));
                         if (!llvm_member_call_store_arg(ctx, node, class_name,
                                 method_name, args, i, arg_val))
                             return NULL;
@@ -362,8 +364,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
 
                 for (size_t i = 0; i < argc; i++) {
                     ASTNode *arg_node = ast_call_argument(node, i);
-                    LLVMValueRef arg_val = llvm_emit_expression(
-                        arg_node, ctx);
+                    LLVMValueRef arg_val = llvm_member_call_emit_arg(
+                        ctx, method_meta, i, arg_node);
                     arg_val = llvm_member_call_adjust_pointer_self_arg(
                         ctx, method_meta, method_decl, class_name,
                         method_name, i, arg_node, arg_val);
@@ -456,8 +458,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
 
                 for (size_t i = 0; i < argc; i++) {
                     ASTNode *arg_node = ast_call_argument(node, i);
-                    LLVMValueRef arg_val = llvm_emit_expression(
-                        arg_node, ctx);
+                    LLVMValueRef arg_val = llvm_member_call_emit_arg(
+                        ctx, method_meta, i, arg_node);
                     arg_val = llvm_member_call_adjust_pointer_self_arg(
                         ctx, method_meta, method_decl, class_name,
                         method_name, i, arg_node, arg_val);
@@ -546,7 +548,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 }
                 for (size_t i = 0; i < argc; i++) {
                     ASTNode *arg_node = ast_call_argument(node, i);
-                    LLVMValueRef arg_val = llvm_emit_expression(arg_node, ctx);
+                    LLVMValueRef arg_val = llvm_member_call_emit_arg(
+                        ctx, method_meta, i, arg_node);
                     arg_val = llvm_member_call_adjust_pointer_self_arg(
                         ctx, method_meta, method_decl, class_name,
                         method_name, i, arg_node, arg_val);
@@ -592,8 +595,10 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         class_name, method_name, "could not lower receiver");
                 args[0] = recv;
                 for (size_t i = 0; i < argc; i++) {
-                    LLVMValueRef arg_val = llvm_emit_expression(
-                        ast_call_argument(node, i), ctx);
+                    LLVMValueRef arg_val = llvm_member_call_emit_arg(ctx,
+                        llvm_find_host_method_metadata_in_context(ctx,
+                            class_name, method_name),
+                        i, ast_call_argument(node, i));
                     if (!llvm_member_call_store_arg(ctx, node, class_name,
                             method_name, args, i, arg_val))
                         return NULL;

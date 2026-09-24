@@ -1,0 +1,37 @@
+// A returned empty `[]` or `{}` takes the declared List or Set result type.
+// Native C refused `return []` from a List<Int> function: only an Array
+// result had a rule. Each result is pushed into and read back through a
+// parameter, so the element type it lowered with is checked at run time.
+func NoItems() -> List<Int> {
+    return [];
+}
+
+func NoneSeen() -> Set<Int> {
+    return {};
+}
+
+func FirstItem(items: List<Int>) -> Int {
+    let buf: List<Int> = items;
+    ListPush(buf, 3);
+    return ListGet(buf, 0) + ListSize(items);
+}
+
+func AddFive(seen: Set<Int>) -> Int {
+    let buf: Set<Int> = seen;
+    SetAdd(buf, 5);
+    if SetHas(buf, 5) {
+        return SetSize(buf) + 10;
+    }
+    return SetSize(buf);
+}
+
+func Main() -> Void {
+    let items: List<Int> = NoItems();
+    ListPush(items, 8);
+    Log(ListGet(items, 0));
+    let seen: Set<Int> = NoneSeen();
+    SetAdd(seen, 2);
+    Log(SetSize(seen));
+    Log(FirstItem(NoItems()));
+    Log(AddFive(NoneSeen()));
+}

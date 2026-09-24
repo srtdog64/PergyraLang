@@ -1,0 +1,105 @@
+// An empty `[]` or `{}` takes the type its storage site already fixes, the
+// rule an annotated let binding already had: a constructor field, a function
+// or method parameter, a declared result type, an assigned binding or field.
+// Both front ends refused `Doc(true, [], [])` with Array<Unknown>, and native
+// C refused `Fill([])` the same way. Each literal is pushed into afterwards,
+// so the element type it lowered with is read back at run time.
+struct Doc {
+    ok: Bool;
+    values: Array<Int>;
+    names: Array<String>;
+}
+
+class Acc {
+    let base: Int;
+
+    func Sum(self, values: Array<Int>) -> Int {
+        let buf: Array<Int> = values;
+        ArrayPush(buf, 7);
+        return self.base + buf[0] + ArrayLength(values);
+    }
+}
+
+func Fill(values: Array<Int>) -> Int {
+    let buf: Array<Int> = values;
+    ArrayPush(buf, 5);
+    ArrayPush(buf, 6);
+    return buf[0] * 10 + buf[1] + ArrayLength(values) * 100;
+}
+
+func FirstName(names: Array<String>) -> String {
+    let buf: Array<String> = names;
+    ArrayPush(buf, "x");
+    return buf[0];
+}
+
+func FirstItem(items: List<Int>) -> Int {
+    let buf: List<Int> = items;
+    ListPush(buf, 3);
+    return ListGet(buf, 0) + ListSize(items);
+}
+
+func AddFive(seen: Set<Int>) -> Int {
+    let buf: Set<Int> = seen;
+    SetAdd(buf, 5);
+    if SetHas(buf, 5) {
+        return SetSize(buf) + 10;
+    }
+    return SetSize(buf);
+}
+
+func NoValues() -> Array<Int> {
+    return [];
+}
+
+func NoNames() -> Array<String> {
+    return [];
+}
+
+func Main() -> Void {
+    let d: Doc = Doc(true, [], []);
+    Log(ArrayLength(d.values));
+    Log(ArrayLength(d.names));
+    let values: Array<Int> = d.values;
+    ArrayPush(values, 41);
+    Log(values[0] + 1);
+    let names: Array<String> = d.names;
+    ArrayPush(names, "n");
+    Log(names[0]);
+
+    Log(Fill([]));
+    Log(FirstName([]));
+    let acc: Acc = Acc(100);
+    Log(acc.Sum([]));
+    Log(FirstItem([]));
+    Log(AddFive({}));
+
+    let returned: Array<Int> = NoValues();
+    ArrayPush(returned, 9);
+    Log(returned[0]);
+    let returned_names: Array<String> = NoNames();
+    ArrayPush(returned_names, "z");
+    Log(returned_names[0]);
+
+    let rebound: Array<Int> = [1, 2];
+    rebound = [];
+    Log(ArrayLength(rebound));
+    ArrayPush(rebound, 3);
+    Log(rebound[0]);
+    let pending: List<Int> = [4];
+    pending = [];
+    ListPush(pending, 6);
+    Log(ListGet(pending, 0));
+    let tags: Set<Int> = {1, 2};
+    tags = {};
+    SetAdd(tags, 7);
+    Log(SetSize(tags));
+    let e: Doc = Doc(false, [4, 5], ["p"]);
+    e.values = [];
+    e.names = [];
+    Log(ArrayLength(e.values));
+    Log(ArrayLength(e.names));
+    let field_values: Array<Int> = e.values;
+    ArrayPush(field_values, 12);
+    Log(field_values[0]);
+}

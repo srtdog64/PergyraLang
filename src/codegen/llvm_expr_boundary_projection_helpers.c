@@ -334,7 +334,13 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
             }
             if (expected_ty != NULL)
                 ctx->current_ret_type = expected_ty;
+            /* The parameter type is the argument's expected type, as on the
+             * C backend: an empty collection literal lowers to it. */
+            const char *saved_expected_type_name = ctx->expected_type_name;
+            if (param_type_name != NULL)
+                ctx->expected_type_name = param_type_name;
             LLVMValueRef value = llvm_emit_expression(arg_node, ctx);
+            ctx->expected_type_name = saved_expected_type_name;
             if (value != NULL && pointer_self) {
                 if (LLVMTypeOf(value) == expected_ty) {
                     LLVMValueRef temporary = llvm_create_entry_alloca(

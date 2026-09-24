@@ -1541,6 +1541,8 @@ main() {
         "tests/cases/backend_compare/int_literal_signed_minimum"
         "tests/cases/backend_compare/int_to_long_widening"
         "tests/cases/backend_compare/string_to_int_long_narrowing"
+        "tests/cases/backend_compare/empty_literal_typed_site"
+        "tests/cases/backend_compare/empty_literal_collection_result"
     )
 
     local use_default_cases=0

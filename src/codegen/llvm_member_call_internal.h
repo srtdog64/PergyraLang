@@ -21,6 +21,10 @@ bool llvm_member_call_store_arg(LLVMGenCtx *ctx,
                                 LLVMValueRef *args,
                                 size_t index,
                                 LLVMValueRef value);
+LLVMValueRef llvm_member_call_emit_arg(LLVMGenCtx *ctx,
+                                       const MIRDeclMethod *method_meta,
+                                       size_t logical_index,
+                                       ASTNode *arg_node);
 LLVMValueRef llvm_member_call_adjust_pointer_self_arg(
     LLVMGenCtx *ctx,
     const MIRDeclMethod *method_meta,

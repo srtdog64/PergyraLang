@@ -12,6 +12,7 @@
 #include "llvm_runtime_internal.h"
 #include "llvm_mir_local_expected_type.h"
 #include "../compiler/mir_abi_layout.h"
+#include "../compiler/mir_source_local_expr_types.h"
 
 static LLVMValueRef
 llvm_assignment_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
@@ -369,6 +370,7 @@ llvm_emit_mir_assignment_parts(const MIRRoutine *routine,
     LLVMTypeRef saved_current_ret_type;
     const char *expected_type_name;
     LLVMValueRef assigned;
+    MIRSourceLocalTypeScratch field_scratch = {0};
 
     if (ctx == NULL)
         return NULL;
@@ -376,6 +378,15 @@ llvm_emit_mir_assignment_parts(const MIRRoutine *routine,
     saved_current_ret_type = ctx->current_ret_type;
     expected_type_name = llvm_mir_local_expected_type_name(
         routine, inst, inst != NULL ? inst->arg0 : NULL);
+    /* A field target expects the field's MIR type, as on the C backend,
+     * not the type of the binding the field belongs to. */
+    if (target != NULL && target->type == AST_MEMBER_ACCESS
+        && routine != NULL && llvm_active_mir_identity(ctx) != NULL) {
+        const char *field_type_name = mir_source_local_expr_type_name(
+            llvm_active_mir_identity(ctx), routine, &field_scratch, target);
+        if (field_type_name != NULL && field_type_name[0] != '\0')
+            expected_type_name = field_type_name;
+    }
     if (expected_type_name != NULL && expected_type_name[0] != '\0') {
         ctx->expected_type_name = expected_type_name;
         ctx->current_ret_type = pergyra_type_to_llvm(ctx, expected_type_name);
