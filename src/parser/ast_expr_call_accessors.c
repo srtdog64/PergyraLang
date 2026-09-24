@@ -113,6 +113,30 @@ ast_call_set_semantic_callee_declared_callable(ASTNode *node,
     return true;
 }
 
+const char *
+ast_call_semantic_value_type_name(const ASTNode *node)
+{
+    return node != NULL && node->type == AST_CALL
+        ? node->data.call.semantic_value_type_name : NULL;
+}
+
+bool
+ast_call_set_semantic_value_type_name_copy(ASTNode *node,
+                                           const char *type_name)
+{
+    char *copy;
+
+    if (node == NULL || node->type != AST_CALL || type_name == NULL
+        || type_name[0] == '\0')
+        return false;
+    copy = pergyra_strdup(type_name);
+    if (copy == NULL)
+        return false;
+    free(node->data.call.semantic_value_type_name);
+    node->data.call.semantic_value_type_name = copy;
+    return true;
+}
+
 bool
 ast_call_set_semantic_callee_value_binding_id(ASTNode *node, uint32_t binding_id)
 {

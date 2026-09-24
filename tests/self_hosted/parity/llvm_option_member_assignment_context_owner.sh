@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # A registered member field owns the contextual Option layout for its RHS.
-# Contextless Some remains fail-closed; no anonymous aggregate is permitted.
+# A Some(value) with no declared Option consumer takes the type the checker
+# sealed on the call. The Some layout owner never reads the active return
+# layout, so it cannot borrow the enclosing function's Option type, and a
+# Some without either fact still fails closed.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -12,13 +15,14 @@ PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 WORK_REL=".tmp/self_hosted/llvm_option_member_assignment_context"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 POSITIVE="tests/self_hosted/fixtures/llvm_option_member_assignment_context.pgy"
-NEGATIVE="tests/self_hosted/fixtures/llvm_option_contextless_some_negative.pgy"
+STATEMENT="tests/self_hosted/fixtures/llvm_option_statement_some.pgy"
 ASSIGNMENT_OWNER="$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
 OPTION_CONSUMER="$ROOT_DIR/src/codegen/llvm_expr_result_option_calls.c"
+SEALED_TYPE_OWNER="$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_variant.c"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
-[[ -f "$ROOT_DIR/$POSITIVE" && -f "$ROOT_DIR/$NEGATIVE" ]] ||
+[[ -f "$ROOT_DIR/$POSITIVE" && -f "$ROOT_DIR/$STATEMENT" ]] ||
     fail "fixture set is incomplete"
 
 grep -Fq 'saved_current_ret_type = ctx->current_ret_type;' \
@@ -27,8 +31,19 @@ grep -Fq 'ctx->current_ret_type = field_type;' "$ASSIGNMENT_OWNER" ||
     fail "registered field layout is not the RHS context"
 grep -Fq 'ctx->current_ret_type = saved_current_ret_type;' \
     "$ASSIGNMENT_OWNER" || fail "member assignment context is not restored"
-grep -Fq 'LLVM Some(value) requires contextual Option<T>;' \
-    "$OPTION_CONSUMER" || fail "contextless Some no longer fails closed"
+grep -Fq 'ast_call_set_semantic_value_type_name_copy(expr,' \
+    "$SEALED_TYPE_OWNER" || fail "the checker no longer seals the Some type"
+grep -Fq 'LLVM Some(value) requires contextual Option<T> or a checker-sealed Option type;' \
+    "$OPTION_CONSUMER" || fail "Some without a layout fact no longer fails closed"
+some_layout_owner="$(awk '/^llvm_option_some_layout_type\(/,/^}/' \
+    "$OPTION_CONSUMER")"
+[[ -n "$some_layout_owner" ]] || fail "Some layout owner is missing"
+grep -Fq 'ast_call_semantic_value_type_name(call)' \
+    <<<"$some_layout_owner" ||
+    fail "Some layout does not read the checker-sealed type"
+if grep -Fq 'current_ret_type' <<<"$some_layout_owner"; then
+    fail "Some layout reads the active return layout"
+fi
 
 [[ "$WORK_DIR" == "$ROOT_DIR/.tmp/self_hosted/llvm_option_member_assignment_context" ]] ||
     fail "refusing to clean an unexpected work directory"
@@ -37,39 +52,35 @@ mkdir -p "$WORK_DIR"
 
 suffix=""
 [[ "$PGY" == *.exe ]] && suffix=".exe"
-for backend in c llvm; do
-    output_rel="$WORK_REL/positive-$backend$suffix"
-    if ! (cd "$ROOT_DIR" && "$PGY" "$POSITIVE" --native-pipeline \
-        --backend="$backend" -o "$output_rel") \
-        >"$WORK_DIR/positive-$backend.compile.out" \
-        2>"$WORK_DIR/positive-$backend.compile.err"; then
-        cat "$WORK_DIR/positive-$backend.compile.out" \
-            "$WORK_DIR/positive-$backend.compile.err" >&2
-        fail "$backend rejected a member-owned Option constructor"
-    fi
-    [[ -x "$WORK_DIR/positive-$backend$suffix" ]] ||
-        fail "$backend published no executable"
-    "$WORK_DIR/positive-$backend$suffix" | tr -d '\r' \
-        >"$WORK_DIR/positive-$backend.run"
+for fixture in positive statement; do
+    source_rel="$POSITIVE"
+    [[ "$fixture" == statement ]] && source_rel="$STATEMENT"
+    for backend in c llvm; do
+        output_rel="$WORK_REL/$fixture-$backend$suffix"
+        if ! (cd "$ROOT_DIR" && "$PGY" "$source_rel" --native-pipeline \
+            --backend="$backend" -o "$output_rel") \
+            >"$WORK_DIR/$fixture-$backend.compile.out" \
+            2>"$WORK_DIR/$fixture-$backend.compile.err"; then
+            cat "$WORK_DIR/$fixture-$backend.compile.out" \
+                "$WORK_DIR/$fixture-$backend.compile.err" >&2
+            fail "$backend rejected the $fixture Option constructor"
+        fi
+        [[ -x "$WORK_DIR/$fixture-$backend$suffix" ]] ||
+            fail "$backend published no $fixture executable"
+        "$WORK_DIR/$fixture-$backend$suffix" | tr -d '\r' \
+            >"$WORK_DIR/$fixture-$backend.run"
+    done
 done
 
-printf '41\ntrue\n' >"$WORK_DIR/expected.run"
-cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/positive-c.run" ||
+printf '41\ntrue\n' >"$WORK_DIR/expected-positive.run"
+cmp -s "$WORK_DIR/expected-positive.run" "$WORK_DIR/positive-c.run" ||
     fail "C behavior drifted from exact 41/true"
 cmp -s "$WORK_DIR/positive-c.run" "$WORK_DIR/positive-llvm.run" ||
     fail "C/LLVM member-owned Option behavior differs"
+printf 'statement some\n' >"$WORK_DIR/expected-statement.run"
+cmp -s "$WORK_DIR/expected-statement.run" "$WORK_DIR/statement-c.run" ||
+    fail "C statement Some behavior drifted"
+cmp -s "$WORK_DIR/statement-c.run" "$WORK_DIR/statement-llvm.run" ||
+    fail "C/LLVM statement Some behavior differs"
 
-negative_rel="$WORK_REL/contextless-negative$suffix"
-if (cd "$ROOT_DIR" && "$PGY" "$NEGATIVE" --native-pipeline \
-    --backend=llvm -o "$negative_rel") \
-    >"$WORK_DIR/contextless-negative.out" \
-    2>"$WORK_DIR/contextless-negative.err"; then
-    fail "LLVM accepted a contextless Some expression"
-fi
-[[ ! -e "$WORK_DIR/contextless-negative$suffix" ]] ||
-    fail "LLVM published an artifact for contextless Some"
-grep -Fq 'LLVM Some(value) requires contextual Option<T>' \
-    "$WORK_DIR/contextless-negative.err" ||
-    fail "contextless Some diagnostic identity drifted"
-
-echo "[$LABEL] member Option C/LLVM parity + contextless negative: PASS"
+echo "[$LABEL] member Option + checker-typed statement Some C/LLVM parity: PASS"

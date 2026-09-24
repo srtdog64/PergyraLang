@@ -1,0 +1,8 @@
+func EmitStatementSome(value: Int) -> Void {
+    Some(value);
+}
+
+func Main() -> Void {
+    EmitStatementSome(7);
+    Log("statement some");
+}

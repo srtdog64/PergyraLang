@@ -106,10 +106,21 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
             ASTNode *value = ast_call_argument(expr, 0);
             Type *payload = stdlib_variant_normalize_type(
                 type_check_expression(value, ctx));
+            Type *option_type;
             if (semantic_future_reject_aggregate_storage(
                     value, payload, ctx, "Option Some payload"))
                 return TYPE_UNKNOWN;
-            return wrap_constructed(TYPE_OPTION, payload);
+            option_type = wrap_constructed(TYPE_OPTION, payload);
+            /* Native LLVM lays out Some(x) from this type when no consumer
+             * declares an Option type for it. */
+            if (payload != TYPE_UNKNOWN && option_type != NULL
+                && option_type->name != NULL
+                && !ast_call_set_semantic_value_type_name_copy(expr,
+                    option_type->name)) {
+                semantic_error(ctx, expr,
+                    "Out of memory while recording the Some(value) type");
+            }
+            return option_type;
         }
     case STDLIB_VARIANT_NONE:
         if (!check_call_arity(expr, 0, name, ctx))

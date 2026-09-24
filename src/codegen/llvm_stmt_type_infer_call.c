@@ -5,6 +5,7 @@
 #include "llvm_inventory_host_methods.h"
 #include "llvm_inventory_internal.h"
 #include "llvm_backend_type_map_internal.h"
+#include "llvm_expr_result_option_calls.h"
 #include "llvm_mir_slice_fact.h"
 #include "llvm_stmt_source_local_fallback.h"
 #include "llvm_stmt_type_infer_helpers.h"
@@ -378,8 +379,15 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         const char *callee = ast_identifier_name(callee_node);
         PgyCodegenMatchVariantKind match_variant =
             pgy_codegen_match_variant_lookup(callee);
-        if (match_variant == PGY_MATCH_VARIANT_SOME
-            || match_variant == PGY_MATCH_VARIANT_NONE_CTOR) {
+        if (match_variant == PGY_MATCH_VARIANT_SOME) {
+            LLVMTypeRef option_ty =
+                llvm_option_some_layout_type(ctx, expr, NULL);
+            if (option_ty != NULL || ctx->has_error)
+                return option_ty;
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "Some(value) requires contextual Option<T> or a checker-sealed Option type");
+        }
+        if (match_variant == PGY_MATCH_VARIANT_NONE_CTOR) {
             LLVMTypeRef option_ty = llvm_stmt_contextual_option_type(ctx);
             if (option_ty != NULL)
                 return option_ty;

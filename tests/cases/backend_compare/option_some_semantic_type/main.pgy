@@ -1,0 +1,39 @@
+// Some(value) with no declared Option consumer takes the checker's type,
+// Option<payload>. Native C typed it from the payload; native LLVM refused
+// IsSome(Some(5)), Some(5) in a condition, a statement Some(value) and
+// IsSome(Some(x)) in a generic body, and inside a function returning
+// Option<Float> it borrowed that return type,
+// so UnwrapOption(Some(7)) printed 7.000000. The last line keeps a Some
+// nested in the payload of a declared Option<String> on its own type.
+func Pick(flag: Bool) -> Option<Float> {
+    Log(UnwrapOption(Some(7)));
+    if IsSome(Some(3)) {
+        Log("inner some");
+    }
+    if flag {
+        return Some(1.5);
+    }
+    return None;
+}
+
+func Has<T>(x: T) -> Bool {
+    return IsSome(Some(x));
+}
+
+func EmitSome(value: Int) -> Void {
+    Some(value);
+}
+
+func Main() -> Void {
+    Log(ToString(IsSome(Some(5))));
+    if IsSome(Some(5)) {
+        Log("some");
+    }
+    EmitSome(7);
+    let p: Option<Float> = Pick(true);
+    Log(ToString(IsSome(p)));
+    Log(ToString(Has(5)));
+    Log(ToString(Has("a")));
+    let s: Option<String> = Some(ToString(UnwrapOption(Some(42))));
+    Log(UnwrapOption(s));
+}

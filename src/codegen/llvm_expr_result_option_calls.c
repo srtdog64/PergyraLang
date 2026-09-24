@@ -180,6 +180,41 @@ llvm_result_option_context_type(LLVMGenCtx *ctx, unsigned field_count,
     return candidate;
 }
 
+/* The Option<T> of a Some(value) expression. A consumer that declares an
+ * Option type (annotation, parameter, field, return) owns the layout;
+ * otherwise the type the checker sealed on the call does. The enclosing
+ * function's return type is not a consumer of this expression, so the
+ * active return layout is never read here. */
+LLVMTypeRef
+llvm_option_some_layout_type(LLVMGenCtx *ctx, ASTNode *call,
+                             const char **option_type_name_out)
+{
+    const char *option_type_name = NULL;
+    LLVMTypeRef option_ty;
+
+    if (option_type_name_out != NULL)
+        *option_type_name_out = NULL;
+    if (ctx == NULL || call == NULL)
+        return NULL;
+    if (ctx->expected_type_name != NULL
+        && pgy_classify_type(ctx->expected_type_name) == PGY_TK_OPTION)
+        option_type_name = ctx->expected_type_name;
+    else
+        option_type_name = ast_call_semantic_value_type_name(call);
+    if (option_type_name == NULL
+        || pgy_classify_type(option_type_name) != PGY_TK_OPTION)
+        return NULL;
+    option_ty = pergyra_type_to_llvm(ctx, option_type_name);
+    if (ctx->has_error || option_ty == NULL
+        || LLVMGetTypeKind(option_ty) != LLVMStructTypeKind
+        || LLVMCountStructElementTypes(option_ty) != 2
+        || LLVMStructGetTypeAtIndex(option_ty, 0) != ctx->type_i32)
+        return NULL;
+    if (option_type_name_out != NULL)
+        *option_type_name_out = option_type_name;
+    return option_ty;
+}
+
 static bool
 llvm_result_option_value_struct(LLVMValueRef aggregate, unsigned field_count,
                                 LLVMTypeRef *fields_out)
@@ -420,21 +455,38 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         return LLVMBuildSelect(ctx->builder, ok, val, def, llvm_tmp_name(ctx));
     }
 
-    /* Built-in: Some(value) creates the active Option<T> some-tag payload. */
+    /* Built-in: Some(value) creates the Option<T> some-tag payload. */
     if (op == LLVM_RESULT_OPTION_OP_SOME) {
         LLVMValueRef val;
-        LLVMTypeRef option_ty = NULL;
+        const char *option_type_name = NULL;
+        const char *saved_expected_type_name = ctx->expected_type_name;
+        LLVMTypeRef saved_current_ret_type = ctx->current_ret_type;
+        LLVMTypeRef option_ty;
         LLVMTypeRef fields[2];
-        option_ty = llvm_result_option_context_type(ctx, 2, fields);
-        if (option_ty == NULL || fields[0] != ctx->type_i32) {
+        char payload_type_name[256];
+        option_ty = llvm_option_some_layout_type(ctx, node,
+            &option_type_name);
+        if (option_ty == NULL) {
+            if (ctx->has_error)
+                return NULL;
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "LLVM Some(value) requires contextual Option<T>; anonymous Option layout fallback is disabled");
+                "LLVM Some(value) requires contextual Option<T> or a checker-sealed Option type; anonymous Option layout fallback is disabled");
             return NULL;
         }
+        LLVMGetStructElementTypes(option_ty, fields);
+        /* The payload's consumer is the Option's value field, not whatever
+         * the Some expression itself is nested in. */
+        ctx->expected_type_name = llvm_constructed_arg_name_copy(
+                option_type_name, 0, payload_type_name,
+                sizeof(payload_type_name)) && payload_type_name[0] != '\0'
+            ? payload_type_name : NULL;
+        ctx->current_ret_type = fields[1];
         val = llvm_emit_expression(ast_call_argument(node, 0), ctx);
+        ctx->current_ret_type = saved_current_ret_type;
+        ctx->expected_type_name = saved_expected_type_name;
         if (val == NULL)
             return llvm_result_option_error(ctx, node,
                 "LLVM Some(value) could not lower payload expression");

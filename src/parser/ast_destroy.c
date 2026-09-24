@@ -284,6 +284,7 @@ void ast_destroy(ASTNode* node) {
             free(node->data.call.arguments);
             free(node->data.call.arg_names);
             ast_destroy_generic_params(node->data.call.generic_args);
+            free(node->data.call.semantic_value_type_name);
             break;
             
         case AST_MEMBER_ACCESS:
