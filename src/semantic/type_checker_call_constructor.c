@@ -321,8 +321,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                         const char *field_name = NULL;
                         ASTNode *field_type_node = NULL;
                         ASTNode *arg = ast_call_argument(expr, i);
-                        Type *arg_type = constructor_call_normalize_type(
-                            type_check_expression(arg, ctx));
+                        Type *arg_type = NULL;
                         Type *field_type = NULL;
                         const char *arg_nm =
                             ast_call_argument_name(expr, i);
@@ -331,6 +330,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                 constructor_decl_field_type_by_name(
                                     decl, arg_nm, field_count, &field_name);
                             if (field_type_node == NULL) {
+                                (void)type_check_expression(arg, ctx);
                                 semantic_error_with_hints(ctx,
                                     PGY_CODE_SEM_CLASS_CONTRACT_INVALID,
                                     PGY_CAUSE_CLASS_CONTRACT,
@@ -345,6 +345,10 @@ type_check_constructor_symbol_call(ASTNode *expr,
                             field_type = constructor_decl_field_resolved_type_at(
                                 decl, i, &field_name, ctx);
                         }
+                        /* The field type is the argument's storage site. */
+                        arg_type = constructor_call_normalize_type(
+                            type_check_expression_at_typed_site(
+                                arg, field_type, ctx));
                         if (field_type == NULL)
                             continue;
                         if (type_equals(arg_type, TYPE_VOID)) {

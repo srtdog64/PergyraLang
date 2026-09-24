@@ -105,12 +105,17 @@ Type *
 type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 {
     Type *value_type;
-    Type *target_type;
+    Type *target_type = NULL;
     ASTNode *target = ast_assignment_target(expr);
     ASTNode *value = ast_assignment_value(expr);
+    /* An empty collection literal takes the target's type as its storage
+     * site, so the target is typed first; the literal has no operands. */
+    bool target_typed_first = semantic_expr_is_empty_collection_literal(value);
 
     reject_if_embedded_world_zone_mutation(ctx, expr, target, "assignment");
-    value_type = type_check_expression(value, ctx);
+    if (target_typed_first)
+        target_type = type_check_expression(target, ctx);
+    value_type = type_check_expression_at_typed_site(value, target_type, ctx);
     if (value_type == NULL)
         value_type = TYPE_UNKNOWN;
     if (type_equals(value_type, TYPE_VOID)) {
@@ -183,7 +188,8 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         }
     }
 
-    target_type = type_check_expression(target, ctx);
+    if (!target_typed_first)
+        target_type = type_check_expression(target, ctx);
     if (target_type == NULL)
         target_type = TYPE_UNKNOWN;
 

@@ -422,6 +422,12 @@ Type* type_check_array_literal(ASTNode* expr, SemanticContext* ctx);
 Type* type_check_map_literal(ASTNode* expr, SemanticContext* ctx);
 Type* type_check_set_literal(ASTNode* expr, SemanticContext* ctx);
 Type* type_check_assignment(ASTNode* expr, SemanticContext* ctx);
+/* Types expr at a storage site whose type is already fixed; an empty
+ * collection literal takes site_type (see type_checker_expr_collections.c). */
+Type* type_check_expression_at_typed_site(ASTNode* expr, Type* site_type,
+                                          SemanticContext* ctx);
+bool semantic_type_mentions_generic_param(const Type* type);
+bool semantic_expr_is_empty_collection_literal(const ASTNode* expr);
 
 /* -----------------------------------------------------------------
  * Resource-handle checkers (Pergyra core rules)

@@ -167,23 +167,6 @@ expr_host_method_function_type(SemanticContext *ctx,
     return sym->type;
 }
 
-static bool
-expr_host_type_contains_generic(const Type *type)
-{
-    if (type == NULL)
-        return false;
-    if (type->kind == TYPE_KIND_GENERIC)
-        return true;
-    if (type->kind == TYPE_KIND_CONSTRUCTED) {
-        size_t n = type_constructed_arg_count(type);
-        for (size_t i = 0; i < n; i++)
-            if (expr_host_type_contains_generic(
-                    type_constructed_arg(type, i)))
-                return true;
-    }
-    return false;
-}
-
 Type *
 expr_type_check_host_method_call_on_host(ASTNode *expr,
                                          ASTNode *host_decl,
@@ -296,7 +279,10 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
         ASTNode *arg = ast_call_argument(expr, i);
         param_types[i] = expr_host_resolve_func_param_type(param, ctx);
         arg_types[i] = expr_host_normalize_type(
-            type_check_expression(arg, ctx));
+            type_check_expression_at_typed_site(arg,
+                semantic_type_mentions_generic_param(param_types[i])
+                    ? NULL : param_types[i],
+                ctx));
         expr_host_method_generic_infer_argument(
             &generic_bindings, param_types[i], arg_types[i],
             host_decl, receiver_type);
@@ -314,7 +300,7 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
         Type *param_type = expr_host_method_generic_substitute(
             param_types[i], host_decl, receiver_type, &generic_bindings);
         if (param_type != NULL
-            && !expr_host_type_contains_generic(param_type)
+            && !semantic_type_mentions_generic_param(param_type)
             && !type_is_assignable(arg_types[i], param_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_CALL_ARG_TYPE_MISMATCH, PGY_FIX_ALIGN_ARG_TYPE,

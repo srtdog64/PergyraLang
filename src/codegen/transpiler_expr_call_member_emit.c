@@ -304,15 +304,9 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 }
                 for (size_t i = 0; i < ast_call_arg_count(call); i++) {
                     ASTNode *arg_node = ast_call_argument(call, i);
-                    char *arg = transpiler_member_call_emit_part(ctx,
-                        arg_node, method, "argument");
+                    char *owned_ptn = NULL;
+                    const char *ptn = NULL;
                     bool pass_by_ptr = false;
-                    arg_starts[i] = args_buf->len + 2;
-                    if (arg == NULL) {
-                        free(receiver_prefix);
-                        codebuf_destroy(args_buf);
-                        return NULL;
-                    }
                     if (method_meta != NULL) {
                         size_t param_index = i;
                         size_t param_count =
@@ -330,10 +324,9 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                             FuncParam *param =
                                 transpiler_mir_decl_method_param(
                                     method_meta, param_index);
-                            const char *ptn =
-                                transpiler_mir_decl_method_param_type_name(
-                                    method_meta, param_index);
-                            char *owned_ptn = (ptn == NULL
+                            ptn = transpiler_mir_decl_method_param_type_name(
+                                method_meta, param_index);
+                            owned_ptn = (ptn == NULL
                                     && param != NULL && param->type != NULL)
                                 ? render_type_name_in_ctx(ctx, param->type)
                                 : NULL;
@@ -341,8 +334,22 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                                 ptn = owned_ptn;
                             if (ptn != NULL && is_pointer_self_host_type_name(ctx, ptn))
                                 pass_by_ptr = true;
-                            free(owned_ptn);
                         }
+                    }
+                    /* The parameter type is the argument's expected type, as
+                     * for a function call: an empty literal lowers to it. */
+                    const char *saved_expected_type = ctx->expected_type;
+                    if (ptn != NULL)
+                        ctx->expected_type = ptn;
+                    char *arg = transpiler_member_call_emit_part(ctx,
+                        arg_node, method, "argument");
+                    ctx->expected_type = saved_expected_type;
+                    free(owned_ptn);
+                    arg_starts[i] = args_buf->len + 2;
+                    if (arg == NULL) {
+                        free(receiver_prefix);
+                        codebuf_destroy(args_buf);
+                        return NULL;
                     }
                     if (pass_by_ptr) {
                         bool already_pointer = false;

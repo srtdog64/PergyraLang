@@ -167,14 +167,6 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
                        && decl_type != NULL
                        && decl_type->kind == TYPE_KIND_CONSTRUCTED) {
                 init_type = decl_type;
-            } else if (init->type == AST_ARRAY_LITERAL
-                       && ast_array_literal_count(init) == 0
-                       && type_is_constructed_named(decl_type, "Array")) {
-                init_type = decl_type;
-            } else if (init->type == AST_SET_LITERAL
-                       && ast_set_literal_count(init) == 0
-                       && type_is_constructed_named(decl_type, "Set")) {
-                init_type = decl_type;
             } else if (init->type == AST_CALL
                        && init_callee_name != NULL
                        && strcmp(init_callee_name,

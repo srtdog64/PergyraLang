@@ -75,12 +75,17 @@ emit_call_resolved(ASTNode *call, TranspilerCtx *ctx)
  * temporary in source order, as ordered user calls and binary operands
  * already do (docs/205 §11). The builtin emitter reads each temporary through
  * emit_expression. Literals stay in place; so do non-scalar reads, whose
- * storage the emitter may take the address of. */
+ * storage the emitter may take the address of. An empty collection literal
+ * has no operand to order and lowers only against its parameter or field
+ * type, so it stays in place too. */
 static bool
 emit_call_arg_is_literal(const ASTNode *arg)
 {
     return arg != NULL && (arg->type == AST_NUMBER || arg->type == AST_STRING
-        || arg->type == AST_BOOLEAN);
+        || arg->type == AST_BOOLEAN
+        || (arg->type == AST_ARRAY_LITERAL && ast_array_literal_count(arg) == 0)
+        || (arg->type == AST_SET_LITERAL && ast_set_literal_count(arg) == 0)
+        || (arg->type == AST_MAP_LITERAL && ast_map_literal_count(arg) == 0));
 }
 
 static bool

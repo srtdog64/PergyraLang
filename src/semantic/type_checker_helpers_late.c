@@ -218,7 +218,10 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             semantic_future_use_is_invalid(arg_expr, ctx);
         Type *arg_type = declared_param_ownership == OWNERSHIP_TYPE_MOVE_ONLY
             ? type_check_qubit_use(arg_expr, ctx)
-            : type_check_expression(arg_expr, ctx);
+            : type_check_expression_at_typed_site(arg_expr,
+                semantic_type_mentions_generic_param(param_type)
+                    ? NULL : param_type,
+                ctx);
         if (type_equals(arg_type, TYPE_VOID)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_ASSIGNABILITY_CHECK,

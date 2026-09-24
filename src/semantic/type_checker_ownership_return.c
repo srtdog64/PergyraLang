@@ -16,20 +16,6 @@ ownership_return_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
-static Type *
-ownership_return_apply_context(ASTNode *value, Type *value_type,
-                               Type *expected_type)
-{
-    if (value == NULL || expected_type == NULL || expected_type == TYPE_UNKNOWN)
-        return value_type;
-    if (value->type == AST_ARRAY_LITERAL
-        && ast_array_literal_count(value) == 0
-        && type_is_constructed_named(expected_type, "Array")) {
-        return expected_type;
-    }
-    return value_type;
-}
-
 /* Accumulate one return's type into the inferred return for a function with no
  * `-> Type`. The first record sets the type; later records must unify or a loud
  * conflict is raised (mirrors the "loud, never silent" stance elsewhere). */
@@ -101,8 +87,10 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
             type_check_expression(value, ctx));
         ctx->expected_lambda_type = saved_expected_lambda;
     } else if (value != NULL) {
+        /* The declared result type is the returned value's storage site. */
         ret_type = ownership_return_normalize_type(
-            type_check_expression(value, ctx));
+            type_check_expression_at_typed_site(value,
+                ctx->inferring_return ? NULL : ctx->current_return, ctx));
     }
     /* A returned world-owned zone is the same live value escape as a local
      * initializer or call argument; Clone's resolved boundary remains legal. */
@@ -110,8 +98,6 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
         semantic_reject_world_zone_member_escape(value, ctx);
     if (ret_type != NULL && ret_type->kind == TYPE_KIND_FUNCTION)
         callable_capability_record_return(ctx, value);
-    ret_type = ownership_return_apply_context(value, ret_type,
-                                               ctx->current_return);
 
     if (value != NULL && ctx->current_return != NULL
         && type_equals(ctx->current_return, TYPE_VOID)

@@ -73,6 +73,79 @@ expr_collection_reject_unsupported_nested_sequence(ASTNode *node, Type *elem_typ
     return false;
 }
 
+bool
+semantic_expr_is_empty_collection_literal(const ASTNode *expr)
+{
+    if (expr == NULL)
+        return false;
+    if (expr->type == AST_ARRAY_LITERAL)
+        return ast_array_literal_count(expr) == 0;
+    if (expr->type == AST_SET_LITERAL)
+        return ast_set_literal_count(expr) == 0;
+    if (expr->type == AST_MAP_LITERAL)
+        return ast_map_literal_count(expr) == 0;
+    return false;
+}
+
+/* An unresolved site type does not fix the literal's type. */
+static bool
+expr_collection_site_type_is_resolved(const Type *type)
+{
+    if (type == NULL || type_equals(type, TYPE_UNKNOWN))
+        return false;
+    if (type->kind != TYPE_KIND_CONSTRUCTED)
+        return true;
+    for (size_t i = 0; i < type_constructed_arg_count(type); i++) {
+        if (!expr_collection_site_type_is_resolved(
+                type_constructed_arg(type, i)))
+            return false;
+    }
+    return true;
+}
+
+bool
+semantic_type_mentions_generic_param(const Type *type)
+{
+    if (type == NULL)
+        return false;
+    if (type->kind == TYPE_KIND_GENERIC)
+        return true;
+    if (type->kind != TYPE_KIND_CONSTRUCTED)
+        return false;
+    for (size_t i = 0; i < type_constructed_arg_count(type); i++) {
+        if (semantic_type_mentions_generic_param(
+                type_constructed_arg(type, i)))
+            return true;
+    }
+    return false;
+}
+
+/* An empty `[]` or `{}` whose storage site already fixes its type (a call,
+ * method or constructor argument, a return value, an assignment) takes that
+ * type through the same contextual rule as an annotated let binding: the
+ * site type reaches the literal checkers as expected_collection_type.
+ * A non-empty literal keeps its own inferred type and is checked against the
+ * site afterwards; an empty literal with no known site stays unresolved and
+ * is refused where it is stored. A call site passes NULL for a parameter
+ * that names one of the callee's generic parameters, which the arguments
+ * bind rather than fix. */
+Type *
+type_check_expression_at_typed_site(ASTNode *expr, Type *site_type,
+                                    SemanticContext *ctx)
+{
+    Type *saved_expected_collection;
+    Type *result;
+
+    if (ctx == NULL || !semantic_expr_is_empty_collection_literal(expr)
+        || !expr_collection_site_type_is_resolved(site_type))
+        return type_check_expression(expr, ctx);
+    saved_expected_collection = ctx->expected_collection_type;
+    ctx->expected_collection_type = site_type;
+    result = type_check_expression(expr, ctx);
+    ctx->expected_collection_type = saved_expected_collection;
+    return result;
+}
+
 Type *
 type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
 {
@@ -153,11 +226,16 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_set_literal(ASTNode *expr, SemanticContext *ctx)
 {
-    /* An empty `{}` carries no element type; defer to the binding annotation
-     * by reporting Unknown, which is assignable to any Set<T> (mirrors the
-     * empty-map rule). */
-    if (ast_set_literal_count(expr) == 0)
+    /* An empty `{}` carries no element type; it takes a Set<T> or
+     * HashMap<K, V> site type, else reports Unknown for the binding
+     * annotation to settle (mirrors the empty-map rule). */
+    if (ast_set_literal_count(expr) == 0) {
+        Type *expected = ctx != NULL ? ctx->expected_collection_type : NULL;
+        if (type_is_constructed_named(expected, "Set")
+            || type_is_constructed_named(expected, "HashMap"))
+            return expected;
         return TYPE_UNKNOWN;
+    }
 
     Type *elem_type = type_check_expression(ast_set_literal_element(expr, 0), ctx);
     semantic_future_reject_aggregate_storage(
@@ -235,10 +313,13 @@ type_check_map_literal(ASTNode *expr, SemanticContext *ctx)
     Type *value_type = TYPE_UNKNOWN;
     Type *args[2];
 
-    /* An empty `{}` carries no entry types; defer to the binding annotation
-     * by reporting Unknown, which is assignable to any HashMap<K, V>. */
-    if (n == 0)
-        return TYPE_UNKNOWN;
+    /* An empty map literal carries no entry types; it takes a HashMap<K, V>
+     * site type, else reports Unknown for the binding annotation to settle. */
+    if (n == 0) {
+        Type *expected = ctx != NULL ? ctx->expected_collection_type : NULL;
+        return type_is_constructed_named(expected, "HashMap")
+            ? expected : TYPE_UNKNOWN;
+    }
 
     for (size_t i = 0; i < n; i++) {
         Type *k = expr_collection_normalize_type(
