@@ -1004,6 +1004,7 @@ main() {
         "tests/cases/backend_compare/party_role_bind_dispatch"
         "tests/cases/backend_compare/party_roster_host_methods"
         "tests/cases/backend_compare/result_custom_error"
+        "tests/cases/backend_compare/result_unwrap_err"
         "tests/cases/backend_compare/result_class_chain_methods"
         "tests/cases/backend_compare/result_class_method_call"
         "tests/cases/backend_compare/result_class_method_err"

@@ -17,6 +17,7 @@ typedef enum LLVMResultOptionOp {
     LLVM_RESULT_OPTION_OP_OK,
     LLVM_RESULT_OPTION_OP_SOME,
     LLVM_RESULT_OPTION_OP_UNWRAP,
+    LLVM_RESULT_OPTION_OP_UNWRAP_ERR,
     LLVM_RESULT_OPTION_OP_UNWRAP_OPTION,
     LLVM_RESULT_OPTION_OP_UNWRAP_OR,
 } LLVMResultOptionOp;
@@ -45,6 +46,7 @@ llvm_result_option_lookup(const char *callee_name, size_t argc)
         { "IsOk", 1, LLVM_RESULT_OPTION_OP_IS_OK },
         { "IsSome", 1, LLVM_RESULT_OPTION_OP_IS_SOME },
         { "Unwrap", 1, LLVM_RESULT_OPTION_OP_UNWRAP },
+        { "UnwrapErr", 1, LLVM_RESULT_OPTION_OP_UNWRAP_ERR },
         { "UnwrapOption", 1, LLVM_RESULT_OPTION_OP_UNWRAP_OPTION },
         { "UnwrapOr", 2, LLVM_RESULT_OPTION_OP_UNWRAP_OR },
     };
@@ -94,6 +96,7 @@ llvm_result_option_error(LLVMGenCtx *ctx, ASTNode *node,
 static LLVMValueRef
 llvm_emit_checked_result_option_unwrap(LLVMGenCtx *ctx, ASTNode *node,
                                        LLVMValueRef aggregate,
+                                       unsigned expected_tag,
                                        unsigned value_index,
                                        const char *reason)
 {
@@ -109,7 +112,7 @@ llvm_emit_checked_result_option_unwrap(LLVMGenCtx *ctx, ASTNode *node,
 
     tag = LLVMBuildExtractValue(ctx->builder, aggregate, 0, llvm_tmp_name(ctx));
     ok = LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
-        LLVMConstInt(ctx->type_i32, 0, 0), llvm_tmp_name(ctx));
+        LLVMConstInt(ctx->type_i32, expected_tag, 0), llvm_tmp_name(ctx));
     current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(ctx->builder));
     if (current_fn == NULL)
         return llvm_result_option_error(ctx, node,
@@ -371,8 +374,25 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 "LLVM Unwrap(result) requires concrete Result<T, E> aggregate operand");
             return NULL;
         }
-        return llvm_emit_checked_result_option_unwrap(ctx, node, r, 1,
+        return llvm_emit_checked_result_option_unwrap(ctx, node, r, 0, 1,
             "Result unwrap on Err value");
+    }
+
+    /* Built-in: UnwrapErr(result) extracts the error field. */
+    if (op == LLVM_RESULT_OPTION_OP_UNWRAP_ERR) {
+        LLVMValueRef r = llvm_emit_expression(ast_call_argument(node, 0), ctx);
+        LLVMTypeRef fields[3];
+        if (!llvm_result_option_value_struct(r, 3, fields)
+            || fields[0] != ctx->type_i32) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM UnwrapErr(result) requires concrete Result<T, E> aggregate operand");
+            return NULL;
+        }
+        return llvm_emit_checked_result_option_unwrap(ctx, node, r, 1, 2,
+            "Result unwrap_err on Ok value");
     }
 
     /* Built-in: UnwrapOr(result, default) emits ok ? value : default. */
@@ -482,7 +502,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 "LLVM UnwrapOption(option) requires concrete Option<T> aggregate operand");
             return NULL;
         }
-        return llvm_emit_checked_result_option_unwrap(ctx, node, o, 1,
+        return llvm_emit_checked_result_option_unwrap(ctx, node, o, 0, 1,
             "Option unwrap on None value");
     }
 

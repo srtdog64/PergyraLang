@@ -23,6 +23,7 @@ typedef enum StdlibVariantBuiltinKind {
     STDLIB_VARIANT_IS_NONE,
     STDLIB_VARIANT_UNWRAP_OPTION,
     STDLIB_VARIANT_UNWRAP,
+    STDLIB_VARIANT_UNWRAP_ERR,
     STDLIB_VARIANT_UNWRAP_OR
 } StdlibVariantBuiltinKind;
 
@@ -56,6 +57,7 @@ stdlib_variant_builtin_kind(const char *name)
         { "IsOk", STDLIB_VARIANT_IS_OK },
         { "IsSome", STDLIB_VARIANT_IS_SOME },
         { "Unwrap", STDLIB_VARIANT_UNWRAP },
+        { "UnwrapErr", STDLIB_VARIANT_UNWRAP_ERR },
         { "UnwrapOption", STDLIB_VARIANT_UNWRAP_OPTION },
         { "UnwrapOr", STDLIB_VARIANT_UNWRAP_OR }
     };
@@ -153,6 +155,23 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
             type_check_expression(ast_call_argument(expr, 0), ctx));
         if (type_is_constructed_named(rt, "Result"))
             return stdlib_variant_normalize_type(type_get_constructed_arg(rt, 0));
+        return TYPE_UNKNOWN;
+    }
+    case STDLIB_VARIANT_UNWRAP_ERR: {
+        /* The error payload needs a declared E; Result<T> names none. */
+        Type *rt;
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        rt = stdlib_variant_normalize_type(
+            type_check_expression(ast_call_argument(expr, 0), ctx));
+        if (type_is_constructed_named(rt, "Result")
+            && type_constructed_arg_count(rt) == 2)
+            return stdlib_variant_normalize_type(type_get_constructed_arg(rt, 1));
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+            PGY_FIX_MATCH_BUILTIN_SIGNATURE, ast_call_argument(expr, 0),
+            "UnwrapErr requires Result<T, E>, got '%s'",
+            type_name_or_unknown(rt));
         return TYPE_UNKNOWN;
     }
     case STDLIB_VARIANT_UNWRAP_OR: {

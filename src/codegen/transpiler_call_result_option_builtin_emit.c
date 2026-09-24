@@ -31,6 +31,7 @@ typedef enum TranspilerResultOptionOp {
     TRANS_RESULT_OPTION_OP_OK,
     TRANS_RESULT_OPTION_OP_SOME,
     TRANS_RESULT_OPTION_OP_UNWRAP,
+    TRANS_RESULT_OPTION_OP_UNWRAP_ERR,
     TRANS_RESULT_OPTION_OP_UNWRAP_OPTION,
     TRANS_RESULT_OPTION_OP_UNWRAP_OR,
 } TranspilerResultOptionOp;
@@ -59,6 +60,7 @@ transpiler_result_option_lookup(const char *fn)
         { "IsOk", TRANS_RESULT_OPTION_OP_IS_OK },
         { "IsSome", TRANS_RESULT_OPTION_OP_IS_SOME },
         { "Unwrap", TRANS_RESULT_OPTION_OP_UNWRAP },
+        { "UnwrapErr", TRANS_RESULT_OPTION_OP_UNWRAP_ERR },
         { "UnwrapOption", TRANS_RESULT_OPTION_OP_UNWRAP_OPTION },
         { "UnwrapOr", TRANS_RESULT_OPTION_OP_UNWRAP_OR },
     };
@@ -133,7 +135,7 @@ emit_call_result_option_builtin(ASTNode *call,
 {
     /* Result<T, E> built-in functions:
      * - Ok/Err require explicit Result context from the surrounding type.
-     * - IsOk/IsErr/Unwrap/UnwrapOr may also derive suffix from their Result
+     * - IsOk/IsErr/Unwrap/UnwrapErr/UnwrapOr may also derive suffix from their Result
      *   operand when the surrounding expression context is not specific. */
     if (handled != NULL)
         *handled = false;
@@ -148,6 +150,7 @@ emit_call_result_option_builtin(ASTNode *call,
         bool is_result_consumer = op == TRANS_RESULT_OPTION_OP_IS_OK
             || op == TRANS_RESULT_OPTION_OP_IS_ERR
             || op == TRANS_RESULT_OPTION_OP_UNWRAP
+            || op == TRANS_RESULT_OPTION_OP_UNWRAP_ERR
             || op == TRANS_RESULT_OPTION_OP_UNWRAP_OR;
         char result_suffix[128] = {0};
         bool have_result_suffix = transpiler_result_suffix_from_context(
@@ -215,6 +218,15 @@ emit_call_result_option_builtin(ASTNode *call,
             if (arg == NULL)
                 return NULL;
             char *result = strdup_fmt("Unwrap_%s(%s)", result_suffix, arg);
+            free(arg);
+            return result;
+        }
+        if (op == TRANS_RESULT_OPTION_OP_UNWRAP_ERR && argc == 1) {
+            char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
+                "operand");
+            if (arg == NULL)
+                return NULL;
+            char *result = strdup_fmt("UnwrapErr_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }

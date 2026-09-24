@@ -1,0 +1,24 @@
+enum DivErr { ByZero, Negative }
+
+func Divide(a: Int, b: Int) -> Result<Int, DivErr> {
+    if b == 0 { return Err(ByZero); }
+    if a < 0 { return Err(Negative); }
+    return Ok(a / b);
+}
+
+func Describe(r: Result<Int, DivErr>) -> String {
+    if IsOk(r) { return "ok " + ToString(Unwrap(r)); }
+    let e: DivErr = UnwrapErr(r);
+    match e {
+        case ByZero: return "by zero";
+        case Negative: return "negative";
+    }
+}
+
+func Main() -> Void {
+    Log(Describe(Divide(8, 2)));
+    Log(Describe(Divide(1, 0)));
+    Log(Describe(Divide(-4, 2)));
+    let text: Result<Int, String> = Err("text error");
+    Log(UnwrapErr(text));
+}

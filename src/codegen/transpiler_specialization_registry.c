@@ -211,6 +211,7 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     const char *ok_tag;
     const char *err_tag;
     const char *ok_field;
+    const char *err_field;
 
     if (ctx == NULL || dst == NULL || ok_type == NULL || err_type == NULL)
         return;
@@ -302,7 +303,9 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     ok_tag = pgy_codegen_match_variant_c_result_tag(PGY_MATCH_VARIANT_OK);
     err_tag = pgy_codegen_match_variant_c_result_tag(PGY_MATCH_VARIANT_ERR);
     ok_field = pgy_codegen_match_variant_c_payload_field(PGY_MATCH_VARIANT_OK);
-    if (ok_tag == NULL || err_tag == NULL || ok_field == NULL) {
+    err_field = pgy_codegen_match_variant_c_payload_field(PGY_MATCH_VARIANT_ERR);
+    if (ok_tag == NULL || err_tag == NULL || ok_field == NULL
+        || err_field == NULL) {
         transpiler_set_backend_error(ctx,
             "C Result<T,E> specialization requires complete Result variant ABI policy");
         return;
@@ -318,6 +321,7 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
         "#define IsOk_%s(r)        ((r).tag == %s)\n"
         "#define IsErr_%s(r)       ((r).tag == %s)\n"
         "#define Unwrap_%s(r)      pgy_result_unwrap_%s(&(PgyResult_%s){(r).tag, {.%s=(r).%s}})\n"
+        "#define UnwrapErr_%s(r)   pgy_result_unwrap_err_%s(&(PgyResult_%s){(r).tag, {.%s=(r).%s}})\n"
         "#define UnwrapOr_%s(r, f) ((r).tag == %s ? (r).%s : (f))\n"
         "#pragma GCC diagnostic pop\n",
         combined,
@@ -327,6 +331,7 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
         combined, ok_tag,
         combined, err_tag,
         combined, combined, combined, ok_field, ok_field,
+        combined, combined, combined, err_field, err_field,
         combined, ok_tag, ok_field);
 }
 

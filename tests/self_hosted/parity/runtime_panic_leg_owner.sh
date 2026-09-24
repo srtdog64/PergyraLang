@@ -140,10 +140,10 @@ expect_panic unwrap_none '1' internal-invariant "Option unwrap on None value" \
     native-c native-llvm default-c default-llvm
 expect_panic unwrap_err '2' internal-invariant "Result unwrap on Err value" \
     native-c native-llvm default-c
-# UnwrapErr is a self-host builtin that native does not define (recorded in
-# docs/audits/red_team_ownership_runtime_arithmetic_audit_2026-09-23.md), so
-# only the default C route runs it.
+# Native used to refuse UnwrapErr (E6 in
+# docs/audits/red_team_ownership_runtime_arithmetic_audit_2026-09-23.md); it
+# now panics on Ok the way the default C route does.
 expect_panic unwrap_err_on_ok '3' internal-invariant "Result unwrap_err on Ok value" \
-    default-c
+    native-c native-llvm default-c
 
 echo "[$LABEL] index, divide and unwrap panics keep their class and the printed output on every leg that builds them: PASS"
