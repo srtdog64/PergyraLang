@@ -4,6 +4,7 @@ import "text_scan_owner.pgy";
 import "expr_type_owner.pgy";
 import "body_check_owner.pgy";
 import "builtin_signature_owner.pgy";
+import "builtin_shadow_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "enum_callable_signature_owner.pgy";
 
@@ -332,6 +333,28 @@ func SeedDeclaredFunctionSignatures(
     }
 }
 
+// The text checker seeds every builtin row before the program's callables.
+// A program callable that takes a shadowable spelling (docs/205 R7) releases
+// the builtin row, so a lookup finds one match instead of an ambiguous pair.
+func SemanticReleaseClaimedBuiltinRows(
+    builtin_row_count: Int,
+    inout names: Array<String>
+) -> Void {
+    let i: Int = 0;
+    while i < builtin_row_count {
+        let claimed: Bool = false;
+        let j: Int = builtin_row_count;
+        while j < ArrayLength(names) && !claimed {
+            claimed = names[j] == names[i];
+            j = j + 1;
+        }
+        if claimed && !SemanticBuiltinNameReservationFor(names[i]).reserved {
+            ArraySet(names, i, "");
+        }
+        i = i + 1;
+    }
+}
+
 func CheckProgram(source_path: String, content: String) -> String {
     let cursor: Array<Int> = [0];
     let func_names: Array<String> = [];
@@ -340,6 +363,7 @@ func CheckProgram(source_path: String, content: String) -> String {
     if !SeedSemanticBuiltinSignatures(func_names, func_rets, func_params) {
         return SemanticError1("function_signature_invalid", "owner", "SemanticBuiltinSignatureRows");
     }
+    let builtin_row_count: Int = ArrayLength(func_names);
     SeedNominalConstructors(content, func_names, func_rets, func_params);
     if !SeedDeclaredEnumVariantSignatures(
         source_path, content, func_names, func_rets, func_params
@@ -353,6 +377,7 @@ func CheckProgram(source_path: String, content: String) -> String {
     SeedDeclaredFunctionSignatures(
         content, n, 0, n, "", func_names, func_rets, func_params
     );
+    SemanticReleaseClaimedBuiltinRows(builtin_row_count, func_names);
     let root_marker: String = "/*PGY_SEMANTIC_ROOT_START*/";
     let root_pos: Int = StringIndexOf(content, root_marker);
     let i: Int = 0;

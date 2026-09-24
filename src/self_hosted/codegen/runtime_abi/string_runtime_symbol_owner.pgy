@@ -118,6 +118,13 @@ func StringRuntimeCSubStartsWithLenFn() -> String {
     return "pgy_substartswith_with_len";
 }
 
+// The Sub* windows without a source-length argument measure the source once
+// and call their *WithLen form, as the native runtime's pgy_strview does.
+func StringRuntimeCSubContainsFn() -> String { return "pgy_subcontains"; }
+func StringRuntimeCSubEqualsFn() -> String { return "pgy_subequals"; }
+func StringRuntimeCSubIndexOfFn() -> String { return "pgy_subindexof"; }
+func StringRuntimeCSubStartsWithFn() -> String { return "pgy_substartswith"; }
+
 func StringRuntimeCSubstringFn() -> String {
     return "pgy_substr";
 }

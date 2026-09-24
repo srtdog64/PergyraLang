@@ -74,6 +74,12 @@ func SpawnRuntimeCCall(
     ));
 }
 
+// Cancel(Future<T>) requests cancellation through the lane scheduler, as the
+// native C transpiler lowers it.
+func SpawnRuntimeCCancelFn() -> String {
+    return "pgy_lane_cancel";
+}
+
 func SpawnRuntimeCAwaitTake(operand: String, payload_c: String) -> String {
     if operand == "" || payload_c == "" {
         Die("spawn await runtime fact is missing");

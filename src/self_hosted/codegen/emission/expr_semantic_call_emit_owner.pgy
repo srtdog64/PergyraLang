@@ -383,6 +383,14 @@ func RewriteSemanticDirectCall(
     if LookupKindType(env, source_name, "s") == "struct" {
         return RewriteSemanticStructCall(graph, view, source_name, env);
     }
+    let float_constant: Option<String> =
+        MathRuntimeCFloatConstantLiteral(source_name);
+    if IsSome(float_constant) {
+        if ArrayLength(view.argument_nodes) != 0 {
+            Die(Concat(source_name, " takes no arguments"));
+        }
+        return UnwrapOption(float_constant);
+    }
     let call_symbol: String = source_name;
     let runtime_call_abi_id: Option<Int> =
         SemanticExpressionGraphRuntimeCallAbiId(graph, view.call_node);
@@ -555,7 +563,17 @@ func RewriteSemanticCallTracked(
     let result: String = RewriteSemanticDirectCall(
         graph, root_id, env, owned_fragments
     );
-    if source_name == "Clone" {
+    // A builtin Float constant is static literal text, not an owned
+    // fragment; a program function spelled E or PI returns an owned call.
+    let callee_binding: Option<Int> =
+        SemanticExpressionGraphBindingKind(graph, view.callee_node);
+    let builtin_callee: Bool = IsSome(callee_binding) &&
+        UnwrapOption(callee_binding) !=
+            SemanticExpressionBindingDeclaredCallable() &&
+        UnwrapOption(callee_binding) !=
+            SemanticExpressionBindingFormalParameter();
+    if source_name == "Clone" || (builtin_callee &&
+        IsSome(MathRuntimeCFloatConstantLiteral(source_name))) {
         return CodegenCExpressionTextBorrowed(result);
     }
     if source_name == "ToString" && ArrayLength(view.argument_nodes) == 1 {

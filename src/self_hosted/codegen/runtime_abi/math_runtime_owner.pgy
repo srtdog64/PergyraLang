@@ -32,6 +32,33 @@ func MathRuntimeCCeilFn() -> String {
     return "ceil";
 }
 
+// Float math builtins. Pergyra Float is C float, and native C lowers these to
+// the runtime's float wrappers over the <math.h> f-suffixed functions
+// (src/runtime/pgy_runtime_scalar_std_inline.h), so the default route calls
+// the same f-suffixed functions.
+func MathRuntimeCLibmFloatFn(source_name: String) -> Option<String> {
+    if source_name == "Acos" { return Some("acosf"); }
+    if source_name == "Asin" { return Some("asinf"); }
+    if source_name == "Atan" { return Some("atanf"); }
+    if source_name == "Atan2" { return Some("atan2f"); }
+    if source_name == "Cos" { return Some("cosf"); }
+    if source_name == "Exp" { return Some("expf"); }
+    if source_name == "Log10" { return Some("log10f"); }
+    if source_name == "Log2" { return Some("log2f"); }
+    if source_name == "MathLog" { return Some("logf"); }
+    if source_name == "Round" { return Some("roundf"); }
+    if source_name == "Sin" { return Some("sinf"); }
+    if source_name == "Tan" { return Some("tanf"); }
+    return None;
+}
+
+// E() and PI() are Float constants; the literals are native's PGY_E/PGY_PI.
+func MathRuntimeCFloatConstantLiteral(source_name: String) -> Option<String> {
+    if source_name == "E" { return Some("2.71828182845904523536f"); }
+    if source_name == "PI" { return Some("3.14159265358979323846f"); }
+    return None;
+}
+
 func MathRuntimeCSeedRandomFn() -> String {
     return "pgy_seedrandom";
 }

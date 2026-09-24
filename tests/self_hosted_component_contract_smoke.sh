@@ -3357,7 +3357,13 @@ require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func Trim(content: 
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func CharAt(s: String, i: Int) -> String"
 require_text "src/self_hosted/lib/diagnostic.pgy" "export func RenderOk(schema: String) -> String"
 reject_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Die^'
-reject_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Trim^'
+# Trim is the native builtin row again (docs/108). Under docs/205 R7 the
+# compiler's own func Trim (text_scan_owner.pgy) releases that row instead of
+# being typed by it, in the AST checker and in the text checker alike.
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Trim^String^String"'
+require_text "tests/self_hosted/fixtures/builtin_name_shadow_names.txt" 'Trim'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" \
+    'SemanticReleaseClaimedBuiltinRows(builtin_row_count, func_names);'
 reject_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"CharAt^'
 reject_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"SelfHostDiagnostic_'
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" 'import "../text/text_owner.pgy";'

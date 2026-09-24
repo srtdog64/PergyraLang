@@ -183,6 +183,19 @@ func StringRuntimeCSubEqualsWithLenBlock() -> String {
         "    return memcmp(s + start, other, n) == 0;\n}\n\n");
 }
 
+// Emitted after the *WithLen forms it calls.
+func StringRuntimeCSubWindowSourceLengthBlock() -> String {
+    let source_len: String = "s == NULL ? 0 : (long long)strlen(s)";
+    let block: String = Concat("static int ", Concat(StringRuntimeCSubContainsFn(), "(const char *s, long long start, long long len, const char *needle)\n{\n"));
+    block = Concat(block, Concat("    return ", Concat(StringRuntimeCSubContainsWithLenFn(), Concat("(s, ", Concat(source_len, ", start, len, needle);\n}\n\n")))));
+    block = Concat(block, Concat("static int ", Concat(StringRuntimeCSubEqualsFn(), "(const char *s, long long start, long long len, const char *other)\n{\n")));
+    block = Concat(block, Concat("    return ", Concat(StringRuntimeCSubEqualsWithLenFn(), Concat("(s, ", Concat(source_len, ", start, len, other);\n}\n\n")))));
+    block = Concat(block, Concat("static long long ", Concat(StringRuntimeCSubIndexOfFn(), "(const char *s, long long start, long long len, const char *needle)\n{\n")));
+    block = Concat(block, Concat("    return ", Concat(StringRuntimeCSubIndexOfWithLenFn(), Concat("(s, ", Concat(source_len, ", start, len, needle);\n}\n\n")))));
+    block = Concat(block, Concat("static int ", Concat(StringRuntimeCSubStartsWithFn(), "(const char *s, long long start, const char *prefix)\n{\n")));
+    return Concat(block, Concat("    return ", Concat(StringRuntimeCSubStartsWithLenFn(), Concat("(s, ", Concat(source_len, ", start, prefix);\n}\n\n")))));
+}
+
 func StringRuntimeCStringCoreBlock(
     runtime_header_owns_bool_to_string: Bool
 ) -> String {
@@ -211,6 +224,7 @@ func StringRuntimeCStringCoreBlock(
     block = Concat(block, "    if (s == NULL || prefix == NULL || source_len < 0 || start < 0 || start > source_len) return 0;\n");
     block = Concat(block, "    size_t n = strlen(prefix);\n    if (n == 0) return 1;\n    if ((size_t)(source_len - start) < n) return 0;\n");
     block = Concat(block, Concat("    return ", Concat(StringRuntimeCSubEqualsWithLenFn(), "(s, source_len, start, (long long)n, prefix);\n}\n\n")));
+    block = Concat(block, StringRuntimeCSubWindowSourceLengthBlock());
     block = Concat(block, StringRuntimeCToIntBlock());
     block = Concat(block, StringRuntimeCToUpperBlock());
     block = Concat(block, StringRuntimeCToLowerBlock());

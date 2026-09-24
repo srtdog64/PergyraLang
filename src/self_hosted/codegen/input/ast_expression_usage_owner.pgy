@@ -88,7 +88,7 @@ func CodegenUsageBuiltinGroupTaskObservation() -> Int { return 24; }
 
 func CodegenUsageBuiltinGroupCalleeCount(group: Int) -> Int {
     if group == CodegenUsageBuiltinGroupArgs() { return 1; }
-    if group == CodegenUsageBuiltinGroupString() { return 20; }
+    if group == CodegenUsageBuiltinGroupString() { return 30; }
     if group == CodegenUsageBuiltinGroupMath() { return 3; }
     if group == CodegenUsageBuiltinGroupArraySort() { return 1; }
     if group == CodegenUsageBuiltinGroupArrayReverse() { return 1; }
@@ -105,7 +105,7 @@ func CodegenUsageBuiltinGroupCalleeCount(group: Int) -> Int {
     if group == CodegenUsageBuiltinGroupLog() { return 1; }
     if group == CodegenUsageBuiltinGroupFileHandle() { return 4; }
     if group == CodegenUsageBuiltinGroupPrint() { return 1; }
-    if group == CodegenUsageBuiltinGroupFloat() { return 5; }
+    if group == CodegenUsageBuiltinGroupFloat() { return 19; }
     if group == CodegenUsageBuiltinGroupRandomValue() { return 1; }
     if group == CodegenUsageBuiltinGroupSeedRandom() { return 1; }
     if group == CodegenUsageBuiltinGroupArtifactTransaction() { return 4; }
@@ -141,6 +141,16 @@ func CodegenUsageBuiltinGroupCalleeAt(group: Int, index: Int) -> String {
         if index == 17 { return "StringJoin"; }
         if index == 18 { return "Join"; }
         if index == 19 { return "Split"; }
+        if index == 20 { return "Contains"; }
+        if index == 21 { return "Replace"; }
+        if index == 22 { return "Trim"; }
+        if index == 23 { return "Upper"; }
+        if index == 24 { return "Lower"; }
+        if index == 25 { return "StringConcat"; }
+        if index == 26 { return "SubContains"; }
+        if index == 27 { return "SubEquals"; }
+        if index == 28 { return "SubIndexOf"; }
+        if index == 29 { return "SubStartsWith"; }
     }
     if group == CodegenUsageBuiltinGroupMath() {
         if index == 0 { return "Abs"; }
@@ -206,6 +216,20 @@ func CodegenUsageBuiltinGroupCalleeAt(group: Int, index: Int) -> String {
         if index == 2 { return "Floor"; }
         if index == 3 { return "Ceil"; }
         if index == 4 { return "ToFloat"; }
+        if index == 5 { return "Acos"; }
+        if index == 6 { return "Asin"; }
+        if index == 7 { return "Atan"; }
+        if index == 8 { return "Atan2"; }
+        if index == 9 { return "Cos"; }
+        if index == 10 { return "Exp"; }
+        if index == 11 { return "Log10"; }
+        if index == 12 { return "Log2"; }
+        if index == 13 { return "MathLog"; }
+        if index == 14 { return "Round"; }
+        if index == 15 { return "Sin"; }
+        if index == 16 { return "Tan"; }
+        if index == 17 { return "E"; }
+        if index == 18 { return "PI"; }
     }
     if group == CodegenUsageBuiltinGroupRandomValue() && index == 0 { return "Random"; }
     if group == CodegenUsageBuiltinGroupSeedRandom() && index == 0 { return "SeedRandom"; }

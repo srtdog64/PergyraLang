@@ -53,6 +53,19 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "ToLower^String^Unknown",
         "ToUpper^String^Unknown",
         "Upper^String^Unknown",
+        // Native rows the default route runs with the same meaning;
+        // tests/self_hosted/parity/builtin_surface_parity_owner.sh holds the
+        // two routes to one output per row.
+        "Contains^Bool^String|String",
+        "Replace^String^String|String|String",
+        "Trim^String^String",
+        "Lower^String^String",
+        "E^Float^none",
+        "PI^Float^none",
+        "SubContains^Bool^String|Int|Int|String",
+        "SubEquals^Bool^String|Int|Int|String",
+        "SubIndexOf^Int^String|Int|Int|String",
+        "SubStartsWith^Bool^String|Int|String",
         "StringReplace^String^Unknown|Unknown|Unknown",
         "StringContains^Bool^String|String",
         "SubContainsWithLen^Bool^String|Int|Int|Int|String",
