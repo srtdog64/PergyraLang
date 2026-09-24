@@ -1,0 +1,67 @@
+// A guard decides the case: a matching tag or literal alone is not enough.
+// Every guard below is false for at least one subject its pattern matches,
+// so a backend that drops the guard prints a different line.
+enum Shape {
+    Circle(Int),
+    Rect(Int, Int),
+    Dot,
+}
+
+enum Light {
+    Red,
+    Green,
+}
+
+func Name(s: Shape) -> String {
+    match s {
+        case Circle(r) if r > 10:
+            return "big circle " + ToString(r);
+        case Circle(r):
+            return "circle " + ToString(r);
+        case Rect(w, h) if w == h:
+            return "square " + ToString(w);
+        case Rect(w, h):
+            return "rect " + ToString(w) + "x" + ToString(h);
+        case Dot:
+            return "dot";
+    }
+    return "";
+}
+
+func Go(light: Light, clear: Bool) -> String {
+    match light {
+        case Green if clear:
+            return "go";
+        case Green:
+            return "wait";
+        case Red:
+            return "stop";
+    }
+    return "";
+}
+
+func Bucket(n: Int, strict: Bool) -> String {
+    match n {
+        case 2 if strict:
+            return "two strict";
+        case 1 | 2 if n > 1:
+            return "one or two above one";
+        default:
+            return "other";
+    }
+    return "";
+}
+
+func Main() -> Void {
+    Log(Name(Circle(20)));
+    Log(Name(Circle(3)));
+    Log(Name(Rect(4, 4)));
+    Log(Name(Rect(4, 5)));
+    Log(Name(Dot));
+    Log(Go(Green, true));
+    Log(Go(Green, false));
+    Log(Go(Red, true));
+    Log(Bucket(2, true));
+    Log(Bucket(2, false));
+    Log(Bucket(1, false));
+}

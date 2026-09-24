@@ -27,7 +27,14 @@ llvm_mir_emit_guarded_match_condition(LLVMGenCtx *ctx,
                                       LLVMValueRef tag_cmp,
                                       LLVMValueRef subject,
                                       unsigned payload_index,
-                                      const char *binding);
+                                      const char *binding,
+                                      ASTNode *variant_pattern);
+
+static bool
+llvm_mir_bind_enum_variant_payload(LLVMGenCtx *ctx,
+                                   uint32_t case_stable_id,
+                                   LLVMValueRef subject,
+                                   ASTNode *pattern_node);
 
 static void
 llvm_mir_match_lower_error(ASTNode *node,
@@ -96,7 +103,8 @@ llvm_mir_emit_match_case_condition(const MIRInstruction *inst,
                 "LLVM MIR match lowering requires at least one case pattern");
             return NULL;
         }
-        return cmp;
+        return llvm_mir_emit_guarded_match_condition(
+            ctx, guard_node, case_stable_id, cmp, NULL, 0, NULL, NULL);
     }
 
     {
@@ -114,7 +122,8 @@ llvm_mir_emit_match_case_condition(const MIRInstruction *inst,
                         pgy_codegen_match_variant_lookup(option_kind)), 0),
                 llvm_tmp_name(ctx));
             return llvm_mir_emit_guarded_match_condition(
-                ctx, guard_node, case_stable_id, tag_cmp, subject, 1, binding);
+                ctx, guard_node, case_stable_id, tag_cmp, subject, 1, binding,
+                NULL);
         }
         if (llvm_mir_is_result_destructor(inst, pattern_node,
                                           &result_kind, &binding)) {
@@ -131,7 +140,7 @@ llvm_mir_emit_match_case_condition(const MIRInstruction *inst,
                 llvm_tmp_name(ctx));
             return llvm_mir_emit_guarded_match_condition(
                 ctx, guard_node, case_stable_id, tag_cmp, subject,
-                payload_index, binding);
+                payload_index, binding, NULL);
         }
         /* General enum variant destructor: Circle(r), Empty, etc */
         {
@@ -169,20 +178,30 @@ llvm_mir_emit_match_case_condition(const MIRInstruction *inst,
                     LLVMTypeKind subject_kind =
                         LLVMGetTypeKind(LLVMTypeOf(subject));
                     if (subject_kind != LLVMStructTypeKind) {
-                        return LLVMBuildICmp(ctx->builder, LLVMIntEQ,
-                            subject,
+                        LLVMValueRef plain_cmp = LLVMBuildICmp(ctx->builder,
+                            LLVMIntEQ, subject,
                             LLVMConstInt(LLVMTypeOf(subject),
                                 (unsigned long long)variant->value, 0),
                             llvm_tmp_name(ctx));
+                        return llvm_mir_emit_guarded_match_condition(
+                            ctx, guard_node, case_stable_id, plain_cmp,
+                            NULL, 0, NULL, NULL);
                     }
                     LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder,
                         subject, 0, llvm_tmp_name(ctx));
+                    LLVMValueRef variant_cmp;
                     (void)variant_argc;
                     (void)enum_cls;
-                    return LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
+                    variant_cmp = LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
                         LLVMConstInt(ctx->type_i32,
                             (unsigned long long)variant->value, 0),
                         llvm_tmp_name(ctx));
+                    /* The guard reads the payload bindings, so they are
+                     * bound on the guard's path; the case body reuses them. */
+                    return llvm_mir_emit_guarded_match_condition(
+                        ctx, guard_node, case_stable_id, variant_cmp, subject,
+                        0, NULL,
+                        pattern_node->type == AST_CALL ? pattern_node : NULL);
                 }
             }
         }
@@ -192,8 +211,11 @@ llvm_mir_emit_match_case_condition(const MIRInstruction *inst,
                 "LLVM MIR match lowering could not lower case pattern");
             return NULL;
         }
-        return LLVMBuildICmp(ctx->builder, LLVMIntEQ, subject, pattern,
-                             llvm_tmp_name(ctx));
+        return llvm_mir_emit_guarded_match_condition(
+            ctx, guard_node, case_stable_id,
+            LLVMBuildICmp(ctx->builder, LLVMIntEQ, subject, pattern,
+                          llvm_tmp_name(ctx)),
+            NULL, 0, NULL, NULL);
     }
 }
 
@@ -457,6 +479,56 @@ llvm_mir_emit_payload_binding(LLVMGenCtx *ctx,
     return true;
 }
 
+/* Bind each identifier argument of an enum-variant pattern (`Circle(r)`,
+ * `Failed(code, message)`) to its payload field. */
+static bool
+llvm_mir_bind_enum_variant_payload(LLVMGenCtx *ctx,
+                                   uint32_t case_stable_id,
+                                   LLVMValueRef subject,
+                                   ASTNode *pattern_node)
+{
+    ASTNode *callee = ast_call_callee(pattern_node);
+    const char *variant_name = NULL;
+    LLVMEnumVariantEntry *variant;
+    LLVMClassTypeEntry *enum_cls;
+    int field_idx;
+    size_t argc;
+    LLVMValueRef payload;
+
+    if (callee != NULL && callee->type == AST_IDENTIFIER)
+        variant_name = ast_identifier_name(callee);
+    else if (callee != NULL && callee->type == AST_MEMBER_ACCESS)
+        variant_name = ast_member_name(callee);
+    variant = variant_name != NULL
+        ? llvm_lookup_enum_variant(ctx, variant_name) : NULL;
+    enum_cls = variant != NULL ? llvm_lookup_class(ctx, variant->enum_name)
+                               : NULL;
+    if (variant == NULL || enum_cls == NULL)
+        return true;
+    field_idx = llvm_class_field_index(enum_cls, variant_name);
+    argc = ast_call_arg_count(pattern_node);
+    if (field_idx <= 0 || argc == 0)
+        return true;
+    payload = LLVMBuildExtractValue(ctx->builder, subject, (unsigned)field_idx,
+                                    llvm_tmp_name(ctx));
+    for (size_t i = 0; i < argc; i++) {
+        ASTNode *arg = ast_call_argument(pattern_node, i);
+        const char *binding;
+        LLVMValueRef binding_val;
+        if (arg == NULL || arg->type != AST_IDENTIFIER)
+            continue;
+        binding = ast_identifier_name(arg);
+        if (binding == NULL)
+            continue;
+        binding_val = LLVMBuildExtractValue(ctx->builder, payload,
+                                            (unsigned)i, llvm_tmp_name(ctx));
+        if (!llvm_mir_emit_payload_binding(ctx, case_stable_id, binding_val,
+                                           binding))
+            return false;
+    }
+    return true;
+}
+
 static LLVMValueRef
 llvm_mir_emit_guarded_match_condition(LLVMGenCtx *ctx,
                                       ASTNode *guard_node,
@@ -464,7 +536,8 @@ llvm_mir_emit_guarded_match_condition(LLVMGenCtx *ctx,
                                       LLVMValueRef tag_cmp,
                                       LLVMValueRef subject,
                                       unsigned payload_index,
-                                      const char *binding)
+                                      const char *binding,
+                                      ASTNode *variant_pattern)
 {
     LLVMBasicBlockRef tag_block;
     LLVMBasicBlockRef guard_block;
@@ -496,6 +569,10 @@ llvm_mir_emit_guarded_match_condition(LLVMGenCtx *ctx,
     LLVMBuildCondBr(ctx->builder, tag_cmp, guard_block, cont_block);
 
     LLVMPositionBuilderAtEnd(ctx->builder, guard_block);
+    if (variant_pattern != NULL && subject != NULL
+        && !llvm_mir_bind_enum_variant_payload(ctx, case_stable_id, subject,
+                                               variant_pattern))
+        return NULL;
     if (binding != NULL && subject != NULL) {
         LLVMValueRef payload = LLVMBuildExtractValue(ctx->builder, subject,
             payload_index, llvm_tmp_name(ctx));
@@ -591,45 +668,11 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
         return true;
     }
 
-    if (pattern_node->type == AST_CALL) {
-        ASTNode *callee = ast_call_callee(pattern_node);
-        const char *variant_name = NULL;
-        if (callee != NULL && callee->type == AST_IDENTIFIER)
-            variant_name = ast_identifier_name(callee);
-        else if (callee != NULL && callee->type == AST_MEMBER_ACCESS)
-            variant_name = ast_member_name(callee);
-        LLVMEnumVariantEntry *variant = variant_name != NULL
-            ? llvm_lookup_enum_variant(ctx, variant_name)
-            : NULL;
-        LLVMClassTypeEntry *enum_cls = variant != NULL
-            ? llvm_lookup_class(ctx, variant->enum_name)
-            : NULL;
-        if (variant != NULL && enum_cls != NULL) {
-            int field_idx = llvm_class_field_index(enum_cls, variant_name);
-            size_t argc = ast_call_arg_count(pattern_node);
-            if (field_idx > 0 && argc > 0) {
-                LLVMValueRef payload = LLVMBuildExtractValue(
-                    ctx->builder, subject, (unsigned)field_idx,
-                    llvm_tmp_name(ctx));
-                for (size_t i = 0; i < argc; i++) {
-                    ASTNode *arg = ast_call_argument(pattern_node, i);
-                    LLVMValueRef binding_val;
-                    if (arg == NULL || arg->type != AST_IDENTIFIER)
-                        continue;
-                    binding = ast_identifier_name(arg);
-                    if (binding == NULL)
-                        continue;
-                    binding_val = LLVMBuildExtractValue(ctx->builder,
-                        payload, (unsigned)i, llvm_tmp_name(ctx));
-                    if (!llvm_mir_emit_payload_binding(ctx, case_stable_id,
-                                                       binding_val, binding)) {
-                        return false;
-                    }
-                }
-            }
-        }
-    }
-
+    /* A guarded case bound its payload on the guard's path. */
+    if (pattern_node->type == AST_CALL
+        && mir_instruction_match_guard(branch_inst) == NULL)
+        return llvm_mir_bind_enum_variant_payload(ctx, case_stable_id,
+                                                  subject, pattern_node);
     return true;
 }
 
