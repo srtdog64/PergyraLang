@@ -5358,7 +5358,7 @@ llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memo
 .PHONY: hir-routine-identity-test-smoke dir-domain-identity-test-smoke verified-projection-plan-test-smoke artifact-zone-plan-identity-test-smoke target-capability-test-smoke machine-layer-manifest-test-smoke machine-layer-core-test-smoke machine-layer-pipeline-test-smoke parallel-model-adequacy-test-smoke async-model-adequacy-test-smoke async-direction-adequacy-test-smoke evidence-lifecycle-adequacy-test-smoke
 .PHONY: lexer-token-stream-anchor-test-smoke source-module-graph-test-smoke iteration-type-fact-test-smoke compatibility-evolution-native-test-smoke
 .PHONY: self-host-preparation-impact-test-smoke self-host-preparation-impact-changed-paths-test-smoke
-.PHONY: machine-neutral-status air-erasure-gate border-registry-test-smoke axis-carriage-probe-test-smoke generic-axis-matrix-test-smoke generic-falsification-test-smoke generic-nested-failclosed-test-smoke text-builder-owner-test-smoke axis-composition-test-smoke sandbox-symlink-nofollow-test-smoke
+.PHONY: machine-neutral-status air-erasure-gate border-registry-test-smoke axis-carriage-probe-test-smoke generic-axis-matrix-test-smoke generic-falsification-test-smoke parallel-capture-reach-test-smoke generic-nested-failclosed-test-smoke text-builder-owner-test-smoke axis-composition-test-smoke sandbox-symlink-nofollow-test-smoke
 .PHONY: test-asan asan-uaf-witness-test-smoke test-tsan tsan-race-witness-test-smoke emitted-c-sanitizer-test-smoke
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

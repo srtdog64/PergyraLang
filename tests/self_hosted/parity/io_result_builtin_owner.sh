@@ -20,8 +20,15 @@
 # directory (OpenFailed) and into a directory without write permission
 # (OpenFailed). Under uid 0 the binaries run without CAP_DAC_OVERRIDE so the
 # permission bits bind. A program that declares its own IoError beside the
-# builtin one is refused on every leg.
+# builtin one is refused on native C, native LLVM and the default C route; the
+# native legs must name the program's declaration. The default C route refuses
+# it today with an unrelated match_pattern_invalid ("duplicate enum identity"),
+# so only the refusal is held there, and the default LLVM leg is not run.
 set -euo pipefail
+
+# The default legs are the self-hosted front end; an exported
+# PGY_NATIVE_PIPELINE would silently turn them into native legs.
+unset PGY_NATIVE_PIPELINE
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"

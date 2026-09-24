@@ -102,6 +102,11 @@ for backend in c llvm; do
         "cannot bind generic parameter 'T': no parameter of 'Make' mentions it"
 done
 
+# --- known open: Option<T> over a subject fails in code generation ------
+# Recorded, not endorsed: when either line changes, update the header above.
+expect_reject c    f_where_g1.pgy "pgy_option_some_Card"
+expect_reject llvm f_where_g1.pgy "LLVM type 'Sortable' is not registered"
+
 # --- default type args and a satisfied where-bound run on both -----------
 for backend in c llvm; do
     expect_runs "$backend" f_default.pgy "fresh-none"

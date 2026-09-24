@@ -59,8 +59,14 @@ check_text() {
     local log="$1" file="$2" line="$3" code="$4"
     tr -d '\r' <"$log" | grep -Fxq "Code: $code" ||
         { cat "$log" >&2; fail "$log lost code $code"; }
-    tr -d '\r' <"$log" | grep -Eq "^Span: ${file//./\\.}:$line:[1-9][0-9]*$" ||
-        { cat "$log" >&2; fail "$log does not place $code at $file:$line"; }
+    # Both lines must sit in one block, which starts at a Diagnostic: line.
+    tr -d '\r' <"$log" | PGY_DIAG_CODE_LINE="Code: $code" \
+        PGY_DIAG_SPAN_RE="^Span: ${file//./\\.}:$line:[1-9][0-9]*$" awk '
+        /^Diagnostic:/ { if (c && s) ok = 1; c = 0; s = 0 }
+        $0 == ENVIRON["PGY_DIAG_CODE_LINE"] { c = 1 }
+        $0 ~ ENVIRON["PGY_DIAG_SPAN_RE"] { s = 1 }
+        END { if (c && s) ok = 1; exit !ok }' ||
+        { cat "$log" >&2; fail "$log does not place $code at $file:$line in one diagnostic"; }
 }
 
 # check_json LOG FILE LINE CODE: one receipt entry has a code and a location

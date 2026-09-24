@@ -13,6 +13,10 @@
 #   the same values on every leg that compiles them.
 set -euo pipefail
 
+# The default legs are the self-hosted front end; an exported
+# PGY_NATIVE_PIPELINE would silently turn them into native legs.
+unset PGY_NATIVE_PIPELINE
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
@@ -106,11 +110,15 @@ expect_values declared_forms "$DECLARED_VALUES" native-c native-llvm default-c
 # semantic. A refusal there must not be a semantic one, and the self-host front
 # end must publish MIR for the declared forms; if the leg compiles the program,
 # it must print the same values.
-if compile "$DECLARED" default-llvm "$WORK_REL/declared_forms-default-llvm.exe"; then
+declared_llvm_rel="$WORK_REL/declared_forms-default-llvm.exe"
+if (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$DRIVER" \
+        "$PGY" "$DECLARED" --backend=llvm -o "$declared_llvm_rel") \
+        >"$ROOT_DIR/$declared_llvm_rel.log" 2>&1; then
     expect_values declared_forms "$DECLARED_VALUES" default-llvm
-elif grep -Eq 'Code: [a-z_]+|"code": *"PGY_SEM_' "$WORK_DIR/declared_forms-default-llvm.exe.log"; then
-    tail -20 "$WORK_DIR/declared_forms-default-llvm.exe.log" >&2
-    fail "default-llvm refused the declared forms in semantic"
+elif grep -Eq '^Code: [a-z_]+' "$ROOT_DIR/$declared_llvm_rel.log" ||
+    ! grep -Fq 'CODEGEN ERROR: direct MIR' "$ROOT_DIR/$declared_llvm_rel.log"; then
+    tail -20 "$ROOT_DIR/$declared_llvm_rel.log" >&2
+    fail "default-llvm refused the declared forms somewhere other than direct-MIR codegen"
 fi
 (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$DRIVER" \
     "$PGY" --self-driver --emit-mir-json-verified "$DECLARED") \

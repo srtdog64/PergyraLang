@@ -12,6 +12,10 @@
 # - A failing unwrap helper is emitted only for a program that calls it.
 set -euo pipefail
 
+# The default legs are the self-hosted front end; an exported
+# PGY_NATIVE_PIPELINE would silently turn them into native legs.
+unset PGY_NATIVE_PIPELINE
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
