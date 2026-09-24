@@ -422,6 +422,33 @@ if [[ "$(grep -Ec "^[[:space:]]*run '" "$PUSH_LINUX_STEPS")" != "65" ]]; then
     echo "[self-host-ci-profile] Linux push shard inventory must retain 64 prebuilt gates plus the build-mode compiler step" >&2
     exit 1
 fi
+# The core shard runs on the admitted compiler pair inside a 30-minute job. A
+# make target that depends on self-host-compiler rebuilds DRV-2 there (14
+# minutes in run 35975030140) and replaces the admitted driver.
+core_make_targets="$(awk '
+    /PGY_CI_PUSH_LINUX_RUN_CORE" == "1"/ { core = 1; next }
+    core && /^fi$/ { core = 0 }
+    core && /^[[:space:]]*run .make / {
+        line = $0
+        sub(/.*run .make /, "", line)
+        n = split(line, words, " ")
+        for (i = n; i >= 1; i--) if (words[i] !~ /=/) {
+            gsub(/[^A-Za-z0-9_-]/, "", words[i])
+            print words[i]
+            break
+        }
+    }' "$PUSH_LINUX_STEPS")"
+[[ -n "$core_make_targets" ]] || {
+    echo "[self-host-ci-profile] could not read the Linux push core shard make targets" >&2
+    exit 1
+}
+while IFS= read -r target; do
+    rule="$(grep -E "^${target}:" "$MAKEFILE" | head -1)"
+    if [[ " ${rule#*:} " == *" self-host-compiler "* ]]; then
+        echo "[self-host-ci-profile] Linux push core shard rebuilds the self-host compiler through $target; run its script on the admitted pair" >&2
+        exit 1
+    fi
+done <<<"$core_make_targets"
 
 for required in \
     'PGY_CI_SELF_HOST_PARITY_SHARD' \

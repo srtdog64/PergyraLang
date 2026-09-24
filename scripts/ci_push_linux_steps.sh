@@ -44,7 +44,7 @@ if [[ "$PGY_CI_PUSH_LINUX_RUN_CORE" == "1" ]]; then
     run 'make self-host-llvm-option-member-assignment-context-test-smoke'
     run 'make self-host-llvm-intent-value-argument-abi-test-smoke'
     run 'make self-host-replacement-frontier-installed-test-smoke'
-    run 'make self-host-array-named-value-boundary-test-smoke'
+    run 'bash tests/self_hosted/parity/direct_mir_array_named_value_boundary_owner.sh'
     run 'bash tests/self_hosted/parity/string_interpolation_escape_parity_owner.sh'
     run 'bash tests/self_hosted/parity/match_subject_family_owner.sh'
     run 'bash tests/self_hosted/parity/never_return_type_owner.sh'
