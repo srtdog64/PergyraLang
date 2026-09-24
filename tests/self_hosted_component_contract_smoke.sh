@@ -686,6 +686,16 @@ reject_text \
 require_text \
     "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
     "SemanticAstZoneCarriageVerdictFromAdmittedFacts("
+# Containment boundary forks (docs/157) have one self-host verdict owner; the
+# bundle no longer wraps the world-zone escape rule itself.
+require_file "src/self_hosted/semantic/ast_containment_boundary_verdict_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_containment_boundary_verdict_owner.pgy" 160
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    "SemanticAstContainmentBoundaryVerdictFromResolvedFacts("
+reject_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    "SemanticAstWorldZoneEscapeViolation("
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/semantic/ast_containment_boundary_verdict_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/semantic/ast_zone_parameter_boundary_verdict_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" \

@@ -34,6 +34,8 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "zone_spawn_transport_unavailable",
         "zone_contract_invalid",
         "world_zone_escape",
+        "zone_subject_embedding_copy",
+        "world_zone_embedding_copy",
         "subject_value_copy",
         "subject_value_return",
         "single_owner_handle_copy",
@@ -116,6 +118,7 @@ func SemanticDiagnosticPublicLayer(code: String) -> String {
 func SemanticDiagnosticOracleCode(code: String) -> String {
     if code == "match_pattern_invalid" { return "PGY_SEM_MATCH_PATTERN_INVALID"; }
     if code == "world_zone_escape" { return "PGY_SEM_ANCHORED_HANDLE_COPY"; }
+    if code == "zone_subject_embedding_copy" || code == "world_zone_embedding_copy" { return "PGY_SEM_ANCHORED_HANDLE_COPY"; }
     if code == "subject_value_copy" || code == "subject_value_return" { return "PGY_SEM_ANCHORED_HANDLE_COPY"; }
     if code == "single_owner_handle_copy" { return "PGY_SEM_ANCHORED_HANDLE_COPY"; }
     if code == "single_owner_handle_owner_required" { return "PGY_SEM_BUILTIN_ARGS_INVALID"; }

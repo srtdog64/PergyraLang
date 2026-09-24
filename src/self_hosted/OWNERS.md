@@ -242,6 +242,12 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   unsafe lexical-body admission at parallel task boundaries.
 - `src/self_hosted/semantic/ast_subject_value_boundary_owner.pgy` --
   source admission of identity-bearing subject value boundaries.
+- `src/self_hosted/semantic/ast_containment_boundary_verdict_owner.pgy` --
+  containment boundary-fork admission (docs/157), the counterpart of native
+  `type_checker_world_embedding.c`: a bare live subject binding passed to a
+  zone constructor, a live zone binding passed to a world constructor, and a
+  world-owned zone read out as a live value are refused before MIR. Clone or
+  an inline constructor argument is the declared form.
 - `src/self_hosted/semantic/ast_match_coverage_owner.pgy` --
   named-enum exhaustiveness from typed scrutinees and admitted arm facts.
 - `src/self_hosted/semantic/native_primitive_type_projection_owner.pgy` --

@@ -142,7 +142,7 @@ func SemanticAstZoneValueCarriageVerdictFromAdmittedFacts(artifact: AstTreeArtif
 // Value-use admission after binding/call identities have been sealed. The
 // transient postorder projection joins existing lexical types; it does not seed
 // another name environment or rediscover world declarations from source text.
-func SemanticAstWorldZoneEscapeViolation(constructors: SemanticAstNominalConstructorFacts,
+func SemanticAstWorldZoneEscapeViolation(ref constructors: SemanticAstNominalConstructorFacts,
     ref leaf_type_names: Array<String>, ref graph: SemanticExpressionGraphFacts
 ) -> Option<String> {
     if !constructors.ok || !SemanticAstNominalConstructorRowsReady(constructors) ||

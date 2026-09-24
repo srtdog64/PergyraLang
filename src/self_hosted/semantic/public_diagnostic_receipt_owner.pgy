@@ -52,7 +52,8 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
     if code == "match_pattern_invalid" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:match:pattern_shape", "align-pattern-arity-or-kind");
     }
-    if code == "world_zone_escape" || code == "subject_value_copy" {
+    if code == "world_zone_escape" || code == "subject_value_copy" ||
+        code == "zone_subject_embedding_copy" || code == "world_zone_embedding_copy" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:anchored_handle:copy_attempt", "use-move-or-retain-binding");
     }
     if code == "single_owner_handle_copy" {

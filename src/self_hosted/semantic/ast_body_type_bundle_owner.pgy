@@ -20,6 +20,7 @@ import "ast_collection_ownership_verdict_owner.pgy";
 import "ast_zone_value_carriage_verdict_owner.pgy";
 import "ast_zone_spawn_transport_verdict_owner.pgy";
 import "ast_subject_value_boundary_owner.pgy";
+import "ast_containment_boundary_verdict_owner.pgy";
 import "ast_single_owner_handle_verdict_owner.pgy";
 import "ast_match_coverage_owner.pgy";
 import "ast_body_flow_verdict_owner.pgy";
@@ -225,14 +226,8 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             exhaustive_match_nodes);
     }
     if verdict.ok {
-        let world_zone_escape: Option<String> = SemanticAstWorldZoneEscapeViolation(
-            analysis.constructors, resolved_leaf_types,
-            analysis.expression_surfaces.expression_graph);
-        if IsSome(world_zone_escape) {
-            verdict = SemanticAstBodyVerdictError("world_zone_escape",
-                SemanticError1("world_zone_escape", "boundary", UnwrapOption(world_zone_escape)), -1
-            );
-        }
+        verdict = SemanticAstContainmentBoundaryVerdictFromResolvedFacts(
+            analysis.constructors, analysis.expression_surfaces, resolved_leaf_types);
     }
     if verdict.ok && require_enum_payload_variant_proof {
         SemanticAstBodyTypeStage(observe_pressure, "enum-payload-variant:start");

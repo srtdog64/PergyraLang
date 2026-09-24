@@ -1,0 +1,147 @@
+// Containment boundary-fork admission (docs/157, theorem T), the self-host
+// counterpart of the native type_checker_world_embedding.c. Three faces:
+// - a live subject binding passed to a zone constructor;
+// - a live zone binding passed to a world constructor;
+// - a world-owned zone read out of its world as a live value.
+// Each forks identity across the boundary without a declaration. Clone is the
+// declared copy and an inline constructor argument the declared fresh value;
+// anything else fails closed before MIR. Slot rows come from admitted
+// constructor facts; argument types are the lexical leaf types that the
+// expression identity resolver has already joined.
+import "ast_body_verdict_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_expression_surface_fact_owner.pgy";
+import "ast_zone_value_carriage_verdict_owner.pgy";
+import "../lib/nominal_field_kind_owner.pgy";
+
+func SemanticAstContainmentBoundaryVerdictFromResolvedFacts(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref leaf_type_names: Array<String>
+) -> SemanticAstBodyVerdict {
+    let embedding: SemanticAstBodyVerdict = SemanticAstContainmentEmbeddingVerdictFromResolvedFacts(
+        constructors, surfaces, leaf_type_names);
+    if !embedding.ok { return embedding; }
+    let world_zone_escape: Option<String> = SemanticAstWorldZoneEscapeViolation(
+        constructors, leaf_type_names, surfaces.expression_graph);
+    if IsSome(world_zone_escape) {
+        return SemanticAstBodyVerdictError("world_zone_escape",
+            SemanticError1("world_zone_escape", "boundary", UnwrapOption(world_zone_escape)), -1);
+    }
+    return SemanticAstBodyVerdictOk();
+}
+
+// What one expression node says about containment: its call spine is
+// malformed, or it is a bare binding argument that would fork into slot row
+// `row` of the called zone or world (found), or neither.
+struct SemanticAstContainmentSlotRow {
+    malformed: Bool;
+    found: Bool;
+    row: Int;
+}
+
+func SemanticAstContainmentEmbeddingSlotRow(ref graph: SemanticExpressionGraphFacts, node: Int,
+    ref leaf_type_names: Array<String>, ref owner_names: Array<String>, ref slot_types: Array<String>
+) -> SemanticAstContainmentSlotRow {
+    let none: SemanticAstContainmentSlotRow = SemanticAstContainmentSlotRow(false, false, 0);
+    let argument: Int = graph.arena.topology.right_children[node];
+    if graph.arena.topology.node_kinds[node] != AstExpressionNodeCallArgument() { return none; }
+    if argument < 0 || argument >= node { return SemanticAstContainmentSlotRow(true, false, 0); }
+    if graph.arena.topology.node_kinds[argument] != AstExpressionNodeLeaf() { return none; }
+    let argument_type: String = leaf_type_names[argument];
+    let call: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(owner_names) {
+        if slot_types[row] == argument_type {
+            if call < 0 {
+                call = graph.arena.topology.left_children[node];
+                while call >= 0 && call < node &&
+                    graph.arena.topology.node_kinds[call] == AstExpressionNodeCallArgument() {
+                    call = graph.arena.topology.left_children[call];
+                }
+                if call < 0 || call >= node ||
+                    graph.arena.topology.node_kinds[call] != AstExpressionNodeCall() {
+                    return SemanticAstContainmentSlotRow(true, false, 0);
+                }
+                if graph.arena.call_target_kinds[call] != SemanticCallTargetDirect() { return none; }
+            }
+            if owner_names[row] == graph.arena.call_target_names[call] {
+                return SemanticAstContainmentSlotRow(false, true, row);
+            }
+        }
+        row = row + 1;
+    }
+    return none;
+}
+
+func SemanticAstContainmentEmbeddingVerdictFromResolvedFacts(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref leaf_type_names: Array<String>
+) -> SemanticAstBodyVerdict {
+    let invalid: SemanticAstBodyVerdict = SemanticAstBodyVerdictError("ast_artifact_invalid",
+        SemanticError1("ast_artifact_invalid", "owner", "ContainmentEmbedding"), -1);
+    if !constructors.ok || !SemanticAstNominalConstructorRowsReady(constructors) || !surfaces.ok {
+        return invalid;
+    }
+    // One row per embedding slot: a zone's subject slot or a world's zone slot.
+    let owner_names: Array<String> = [];
+    let owner_kinds: Array<String> = [];
+    let slot_names: Array<String> = [];
+    let slot_types: Array<String> = [];
+    let owner: Int = 0;
+    while owner < SemanticAstNominalConstructorCount(constructors) {
+        let slot_kind: String = "";
+        if constructors.nominal_kinds[owner] == "zone" { slot_kind = NominalFieldKindSubjectSlot(); }
+        if constructors.nominal_kinds[owner] == "world" { slot_kind = NominalFieldKindWorldZone(); }
+        let field: Int = constructors.param_starts[owner];
+        let end: Int = field + constructors.param_counts[owner];
+        while slot_kind != "" && field < end {
+            if constructors.field_kinds[field] == slot_kind {
+                ArrayPush(owner_names, constructors.names[owner]);
+                ArrayPush(owner_kinds, constructors.nominal_kinds[owner]);
+                ArrayPush(slot_names, constructors.field_names[field]);
+                ArrayPush(slot_types, constructors.param_type_names[field]);
+            }
+            field = field + 1;
+        }
+        owner = owner + 1;
+    }
+    if ArrayLength(owner_names) == 0 { return SemanticAstBodyVerdictOk(); }
+    let root_count: Int = ArrayLength(surfaces.expression_graph.roots);
+    if !SemanticExpressionGraphFactsReady(surfaces.expression_graph, root_count) ||
+        ArrayLength(leaf_type_names) != SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena) {
+        return invalid;
+    }
+    // Roots are postorder and increasing, so nodes (last_root, root] belong to
+    // the surface that owns the root; that surface names the source location.
+    let last_root: Int = -1;
+    let root_slot: Int = 0;
+    while root_slot < root_count {
+        if surfaces.expression_graph.has_roots[root_slot] {
+            let root: Int = surfaces.expression_graph.roots[root_slot];
+            if root <= last_root || root_slot / 3 >= ArrayLength(surfaces.node_ids) { return invalid; }
+            let node: Int = last_root + 1;
+            while node <= root {
+                let lookup: SemanticAstContainmentSlotRow = SemanticAstContainmentEmbeddingSlotRow(
+                    surfaces.expression_graph, node, leaf_type_names, owner_names, slot_types);
+                if lookup.malformed { return invalid; }
+                if lookup.found {
+                    let row: Int = lookup.row;
+                    let code: String = "zone_subject_embedding_copy";
+                    if owner_kinds[row] == "world" { code = "world_zone_embedding_copy"; }
+                    let argument: Int = surfaces.expression_graph.arena.topology.right_children[node];
+                    return SemanticAstBodyVerdictError(code, SemanticError3(code,
+                            "constructor", owner_names[row],
+                            "binding", surfaces.expression_graph.arena.node_texts[argument],
+                            "slot", slot_names[row]),
+                        surfaces.node_ids[root_slot / 3]);
+                }
+                node = node + 1;
+            }
+            last_root = root;
+        }
+        root_slot = root_slot + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

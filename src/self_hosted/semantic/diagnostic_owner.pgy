@@ -37,6 +37,8 @@ func SemanticDiagnosticMessageFactRender(
 func SemanticReason(code: String) -> String {
     if code == "world_zone_escape" { return "world-owned zone identity must not escape through a live value"; }
     if code == "subject_value_copy" { return "Subjects cannot be copied into a new binding"; }
+    if code == "zone_subject_embedding_copy" { return "Zone constructor implicitly copies subject binding into its slot; the binding and the zone-owned slot would diverge"; }
+    if code == "world_zone_embedding_copy" { return "World constructor implicitly copies zone binding into its slot; the binding and the world-owned slot would diverge"; }
     if code == "match_pattern_invalid" { return "Invalid or non-exhaustive match pattern"; }
     if code == "intent_retry_unavailable" { return "Intent retry execution lowering is not implemented"; }
     if code == "intent_predicate_plan_unavailable" { return "the typed Intent outcome plan required by this boundary predicate is unavailable"; }
@@ -54,9 +56,7 @@ func SemanticReason(code: String) -> String {
     if code == "single_owner_handle_boundary" { return "a TextBuilder cannot cross a parameter or return boundary"; }
     if code == "generic_constraint_unsatisfied" { return "concrete generic arguments must satisfy every declared bound"; }
     if code == "zone_contract_invalid" { return "zone rules require exact declared layer and participant authority identities"; }
-    if code == "undefined_symbol" {
-        return "identifier is used before a local binding is in scope";
-    }
+    if code == "undefined_symbol" { return "identifier is used before a local binding is in scope"; }
     if code == "logical_operand_not_bool" { return "logical operators require Bool operands"; }
     if code == "not_operand_not_bool" { return "logical not requires a Bool operand"; }
     if code == "compare_type_mismatch" { return "comparison operands must have the same type"; }
@@ -173,6 +173,7 @@ func SemanticReason(code: String) -> String {
 func SemanticFix(code: String) -> String {
     if code == "world_zone_escape" { return "use an explicit detached Clone or access state through the owning world"; }
     if code == "subject_value_copy" { return "construct a fresh subject or keep using its current binding"; }
+    if code == "zone_subject_embedding_copy" || code == "world_zone_embedding_copy" { return "use Clone(binding) for a declared, detached copy, or construct the value inline in the constructor argument"; }
     if code == "single_owner_handle_copy" { return "keep using the existing binding, or take a new handle from its constructor"; }
     if code == "single_owner_handle_owner_required" { return "name the local that owns the handle and release it in the scope that declared it"; }
     if code == "single_owner_handle_released" { return "create a new TextBuilder instead of reusing a finished one"; }
@@ -196,9 +197,7 @@ func SemanticFix(code: String) -> String {
     if code == "logical_operand_not_bool" {
         return "convert the operand to Bool or compare it explicitly before using && or ||";
     }
-    if code == "not_operand_not_bool" {
-        return "apply ! only to a Bool expression";
-    }
+    if code == "not_operand_not_bool" { return "apply ! only to a Bool expression"; }
     if code == "compare_type_mismatch" {
         return "compare values with matching types";
     }
