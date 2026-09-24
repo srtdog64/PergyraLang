@@ -558,4 +558,36 @@
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("parallel read of a self-referential type reaches no storage");
+    {
+        const char *source =
+            "class Node {\n"
+            "    let value: Int;\n"
+            "    let next: Option<Node>;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let tail: Node = Node(2, None);\n"
+            "    let head: Node = Node(1, Some(tail));\n"
+            "    let mut a: Int = 0;\n"
+            "    let mut b: Int = 0;\n"
+            "    parallel {\n"
+            "        { a = head.value; }\n"
+            "        { b = head.value * 3; }\n"
+            "    }\n"
+            "    Log(a + b);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }

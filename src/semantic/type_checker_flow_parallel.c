@@ -133,8 +133,10 @@ parallel_reject_shared_collection_capture(ASTNode *parallel_node,
                 continue;
             if (!ast_contains_free_identifier_ref(task, sym->name))
                 continue;
-            /* An aggregate holding a collection shares its storage. */
-            if (kind == NULL
+            /* An aggregate holding a collection shares its storage. Only a
+             * value binding carries storage; a type or function name that a
+             * task mentions (a constructor call) does not. */
+            if (kind == NULL && sym->kind == SYMBOL_VARIABLE
                 && parallel_capture_type_reaches_storage(ctx, sym->type,
                                                          path, sizeof path,
                                                          &kind)) {
@@ -247,8 +249,9 @@ parallel_reject_scalar_write_race(ASTNode *node, SemanticContext *ctx)
                 /* A method call that writes the receiver, or the binding
                  * handed on, writes as surely as an assignment does. */
                 if (parallel_task_assigns_name(task, sym->name)
-                    || parallel_task_writes_through_binding(
-                        ctx, task, sym->name, sym->type)) {
+                    || (sym->kind == SYMBOL_VARIABLE
+                        && parallel_task_writes_through_binding(
+                            ctx, task, sym->name, sym->type))) {
                     writers++;
                     writer_task = t;
                 }

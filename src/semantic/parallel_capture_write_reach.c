@@ -104,6 +104,34 @@ reach_value_read_escapes(const ReachWalk *w, const ASTNode *node, bool *rooted)
     return parallel_reach_nominal_decl(w->ctx, type) != NULL;
 }
 
+/* Walk the body of `callable` as the code that holds the binding under
+ * `name`: self in a method, the parameter's name in a function. A callable
+ * already on the stack adds nothing new (the cycle's other statements are
+ * walked already); no body to read or the depth limit fails closed. */
+static bool
+reach_callable_body_writes(const ReachWalk *w, const ASTNode *callable,
+                           const char *name, const Type *type, ASTNode *decl,
+                           bool in_method)
+{
+    const ASTNode *stack[PARALLEL_REACH_DEPTH_LIMIT + 1];
+    ReachWalk inner;
+
+    if (callable == NULL || name == NULL)
+        return true;
+    for (size_t a = 0; a < w->active_count; a++) {
+        if (w->active[a] == callable)
+            return false;
+    }
+    if (w->depth >= PARALLEL_REACH_DEPTH_LIMIT || ast_func_body(callable) == NULL)
+        return true;
+    for (size_t a = 0; a < w->active_count; a++)
+        stack[a] = w->active[a];
+    stack[w->active_count] = callable;
+    inner = (ReachWalk){ w->ctx, name, type, decl, in_method, w->depth + 1,
+                         stack, w->active_count + 1 };
+    return reach_walk(&inner, ast_func_body(callable));
+}
+
 static bool
 reach_method_writes_self(const ReachWalk *w, const Type *receiver_type,
                          const char *method_name)
@@ -115,31 +143,15 @@ reach_method_writes_self(const ReachWalk *w, const Type *receiver_type,
 
     if (decl == NULL || method_name == NULL)
         return true;
-    if (w->depth >= PARALLEL_REACH_DEPTH_LIMIT)
-        return true;
     methods = semantic_host_decl_methods(decl, &method_count);
     for (size_t i = 0; i < method_count; i++) {
-        const ASTNode *method = methods[i];
-        const char *name = ast_declaration_name(method);
-        const ASTNode *stack[PARALLEL_REACH_DEPTH_LIMIT + 1];
-        bool active = false;
-        ReachWalk inner;
+        const char *name = ast_declaration_name(methods[i]);
 
         if (name == NULL || strcmp(name, method_name) != 0)
             continue;
         found = true;
-        for (size_t a = 0; a < w->active_count; a++)
-            active = active || w->active[a] == method;
-        if (active)
-            continue; /* the cycle's other statements are walked already */
-        for (size_t a = 0; a < w->active_count; a++)
-            stack[a] = w->active[a];
-        stack[w->active_count] = method;
-        if (ast_func_body(method) == NULL)
-            return true; /* no body to read: extern or abstract member */
-        inner = (ReachWalk){ w->ctx, "self", receiver_type, decl, true,
-                             w->depth + 1, stack, w->active_count + 1 };
-        if (reach_walk(&inner, ast_func_body(method)))
+        if (reach_callable_body_writes(w, methods[i], "self", receiver_type,
+                                       decl, true))
             return true;
     }
     return !found; /* a callable field or an unknown member: fail closed */
@@ -171,6 +183,24 @@ reach_callee_param_mode(const ReachWalk *w, const ASTNode *call, size_t index)
     return type->data.function.param_modes[index];
 }
 
+/* A ref parameter forbids assigning through it, but the callee may still
+ * call a method that writes the receiver, so the callee's body is walked with
+ * the parameter as the binding. Only identifier callees resolve a mode. */
+static bool
+reach_ref_argument_writes(const ReachWalk *w, const ASTNode *call, size_t index)
+{
+    const ASTNode *callee = call->data.call.callee;
+    ASTNode *function = semantic_find_function_decl_by_name(
+        w->ctx, callee->data.identifier.name);
+    FuncParam *param = function != NULL && index < ast_func_param_count(function)
+        ? ast_func_param(function, index) : NULL;
+
+    if (param == NULL || param->name == NULL)
+        return true;
+    return reach_callable_body_writes(w, function, param->name, w->type,
+                                      w->decl, false);
+}
+
 static bool
 reach_walk_call(const ReachWalk *w, const ASTNode *node)
 {
@@ -179,15 +209,20 @@ reach_walk_call(const ReachWalk *w, const ASTNode *node)
     for (size_t i = 0; i < node->data.call.arg_count; i++) {
         const ASTNode *arg = node->data.call.arguments[i];
 
-        /* The binding handed to a ref parameter is a read-only borrow (the
-         * callee cannot write through it); handed to an own parameter it is
-         * a move, which the parallel resource snapshot already rejects when
-         * another task also moves or borrows it. */
+        /* The binding handed to an own parameter is a move, which the
+         * parallel resource snapshot already rejects when another task also
+         * moves or borrows it; handed to a ref parameter it writes only if
+         * the callee's body writes through that parameter. */
         if (arg != NULL && arg->type == AST_IDENTIFIER
             && strcmp(arg->data.identifier.name, w->name) == 0) {
             ParamMode mode = reach_callee_param_mode(w, node, i);
-            if (mode == PARAM_MODE_REF || mode == PARAM_MODE_OWN)
+            if (mode == PARAM_MODE_OWN)
                 continue;
+            if (mode == PARAM_MODE_REF) {
+                if (reach_ref_argument_writes(w, node, i))
+                    return true;
+                continue;
+            }
         }
         if (reach_walk(w, arg))
             return true;

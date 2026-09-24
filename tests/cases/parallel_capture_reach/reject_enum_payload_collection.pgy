@@ -1,0 +1,26 @@
+// A user enum payload holds the Array a split half writes.
+enum Bag { Full(Array<Int>), Empty }
+
+func Peek(b: Bag) -> Int {
+    match b {
+        case Full(d): return d[5];
+        case Empty: return 0;
+    }
+    return 0;
+}
+
+func Main() -> Void {
+    let mut arr: Array<Int> = [];
+    let mut k: Int = 0;
+    while k < 8 { ArrayPush(arr, 0); k = k + 1; }
+    let bag: Bag = Full(arr);
+    let lo: Slice<Int> = arr.Slice(0, 4);
+    let hi: Slice<Int> = arr.Slice(4, 4);
+    let mut i: Int = 0;
+    let mut j: Int = 0;
+    parallel {
+        while i < 1000 { hi[1] = i; i = i + 1; }
+        while j < 1000 { lo[0] = Peek(bag); j = j + 1; }
+    }
+    Log(arr[5]);
+}

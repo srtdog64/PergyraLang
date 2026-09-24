@@ -1,0 +1,26 @@
+// Both tasks hand the subject to a ref parameter whose callee calls a
+// method that writes self; ref forbids only assignment, so this races.
+subject Counter {
+    let mut n: Int;
+
+    func Step(self) -> Void {
+        self.n = self.n + 1;
+    }
+}
+
+func Bump(ref c: Counter) -> Int {
+    c.Step();
+    return 1;
+}
+
+func Main() -> Void {
+    let counter: Counter = Counter(0);
+    let mut a: Int = 0;
+    let mut b: Int = 0;
+    parallel {
+        { a = Bump(counter); }
+        { b = Bump(counter); }
+    }
+    Log(a + b);
+    Log(counter.n);
+}

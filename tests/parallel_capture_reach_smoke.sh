@@ -100,6 +100,7 @@ expect_reject reject_subject_default_param_both_tasks.pgy "write-write race"
 expect_reject reject_subject_method_vs_field_read.pgy     "read-write race"
 expect_reject reject_ref_borrow_vs_method_write.pgy       "read-write race"
 expect_reject reject_zone_method_writes_shared_field.pgy  "write-write race"
+expect_reject reject_ref_param_method_write.pgy           "write-write race"
 
 # DRF-2: collection storage reached through an aggregate.
 expect_reject reject_aggregate_collection_field.pgy \
@@ -110,6 +111,8 @@ expect_reject reject_option_collection_capture.pgy \
     "Parallel task cannot capture 'boxed': its type 'Option<Array<Int>>' reaches shared storage (Array)"
 expect_reject reject_zone_shared_collection_field.pgy \
     "Parallel task cannot capture 'ledger': its field 'rows' reaches shared storage (Array)"
+expect_reject reject_enum_payload_collection.pgy \
+    "Parallel task cannot capture 'bag': its type 'Bag' reaches shared storage (Array)"
 
 # An own move is the resource snapshot owner's conflict, not a write race.
 expect_reject reject_own_move_vs_field_read.pgy \
@@ -123,6 +126,9 @@ for backend in $BACKENDS; do
     expect_runs "$backend" subject_ref_borrow_both_tasks.pgy       '12'
     expect_runs "$backend" struct_scalar_fields_both_tasks.pgy     '18'
     expect_runs "$backend" zone_single_task.pgy                    $'0\n2'
+    # A type a task only names in a constructor call is not a shared binding.
+    expect_runs "$backend" type_constructor_in_each_task.pgy       '5'
+    expect_runs "$backend" local_aggregate_in_task.pgy             '7'
 done
 
 echo "[parallel-capture-reach] method writes, handed-on references, and aggregate collection fields fail closed; exclusive and read-only sharing run on: $BACKENDS"

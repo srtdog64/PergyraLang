@@ -1,0 +1,18 @@
+// Each task builds its own subject; the type name is not a shared binding.
+subject Counter {
+    let mut n: Int;
+
+    func Step(self) -> Void {
+        self.n = self.n + 1;
+    }
+}
+
+func Main() -> Void {
+    let mut a: Int = 0;
+    let mut b: Int = 0;
+    parallel {
+        { let c: Counter = Counter(1); c.Step(); a = c.n; }
+        { let d: Counter = Counter(2); d.Step(); b = d.n; }
+    }
+    Log(a + b);
+}

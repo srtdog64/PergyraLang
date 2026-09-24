@@ -160,11 +160,14 @@ parallel_reach_field_type(SemanticContext *ctx, ASTNode *decl, const char *field
     return resolved;
 }
 
-/* The field path to the storage, innermost name first. */
+/* The field path to the storage, innermost name first, and the nominal
+ * declarations entered on the way down. */
 typedef struct {
     const char *names[PARALLEL_REACH_DEPTH_LIMIT + 2];
     size_t count;
     const char *kind;
+    const ASTNode *entered[PARALLEL_REACH_DEPTH_LIMIT + 1];
+    size_t entered_count;
 } ReachPath;
 
 static void
@@ -174,13 +177,33 @@ reach_path_push(ReachPath *path, const char *name)
         path->names[path->count++] = name != NULL ? name : "?";
 }
 
+typedef enum {
+    REACH_ENTER_NEW,      /* first visit on this path: walk its members */
+    REACH_ENTER_CYCLE,    /* already on the path: adds no new storage */
+    REACH_ENTER_TOO_DEEP  /* beyond the checked depth: fail closed */
+} ReachEnter;
+
+static ReachEnter
+reach_enter(ReachPath *path, const ASTNode *decl)
+{
+    for (size_t i = 0; i < path->entered_count; i++) {
+        if (path->entered[i] == decl)
+            return REACH_ENTER_CYCLE;
+    }
+    if (path->entered_count >= PARALLEL_REACH_DEPTH_LIMIT) {
+        path->kind = "nesting beyond the checked depth";
+        return REACH_ENTER_TOO_DEEP;
+    }
+    path->entered[path->entered_count++] = decl;
+    return REACH_ENTER_NEW;
+}
+
 static bool
-reach_storage(SemanticContext *ctx, const Type *type, unsigned depth,
-              ReachPath *path);
+reach_storage(SemanticContext *ctx, const Type *type, ReachPath *path);
 
 static bool
 reach_storage_through_fields(SemanticContext *ctx, ASTNode *decl,
-                             unsigned depth, ReachPath *path)
+                             ReachPath *path)
 {
     ParallelReachFields fields = parallel_reach_host_fields(ctx, decl);
     bool reaches = false;
@@ -198,7 +221,7 @@ reach_storage_through_fields(SemanticContext *ctx, ASTNode *decl,
         } else if (field_type->kind == TYPE_KIND_GENERIC) {
             continue; /* covered by the instantiation's arguments */
         } else {
-            reaches = reach_storage(ctx, field_type, depth + 1, path);
+            reaches = reach_storage(ctx, field_type, path);
         }
         if (reaches)
             reach_path_push(path, fields.items[i].name);
@@ -207,19 +230,41 @@ reach_storage_through_fields(SemanticContext *ctx, ASTNode *decl,
     return reaches;
 }
 
+/* A user enum shares what any variant payload shares (`Full(Array<Int>)`). */
 static bool
-reach_storage(SemanticContext *ctx, const Type *type, unsigned depth,
-              ReachPath *path)
+reach_storage_through_variants(SemanticContext *ctx, ASTNode *decl,
+                               ReachPath *path)
+{
+    size_t variant_count = 0;
+
+    (void)ast_enum_variants(decl, &variant_count);
+    for (size_t v = 0; v < variant_count; v++) {
+        for (size_t p = 0; p < ast_enum_variant_param_count(decl, v); p++) {
+            Type *payload = semantic_type_resolution_lookup_metadata_type_ref(
+                ctx, ast_enum_variant_param(decl, v, p));
+
+            if (payload == NULL || payload == TYPE_UNKNOWN) {
+                path->kind = "unresolved payload type";
+                return true;
+            }
+            if (payload->kind == TYPE_KIND_GENERIC)
+                continue;
+            if (reach_storage(ctx, payload, path))
+                return true;
+        }
+    }
+    return false;
+}
+
+static bool
+reach_storage(SemanticContext *ctx, const Type *type, ReachPath *path)
 {
     const char *kind;
     ASTNode *decl;
+    bool reaches;
 
     if (type == NULL)
         return false;
-    if (depth > PARALLEL_REACH_DEPTH_LIMIT) {
-        path->kind = "field nesting beyond the checked depth";
-        return true;
-    }
     kind = worker_boundary_storage_display_name(type);
     if (kind != NULL) {
         path->kind = kind;
@@ -229,27 +274,43 @@ reach_storage(SemanticContext *ctx, const Type *type, unsigned depth,
         return false;
     if (type->kind == TYPE_KIND_TUPLE) {
         for (size_t i = 0; i < type->data.tuple.element_count; i++) {
-            if (reach_storage(ctx, type->data.tuple.elements[i], depth + 1,
-                              path))
+            if (reach_storage(ctx, type->data.tuple.elements[i], path))
                 return true;
         }
         return false;
     }
     if (type->kind == TYPE_KIND_CONSTRUCTED) {
         for (size_t i = 0; i < type->data.constructed.arg_count; i++) {
-            if (reach_storage(ctx, type->data.constructed.args[i], depth + 1,
-                              path))
+            if (reach_storage(ctx, type->data.constructed.args[i], path))
                 return true;
         }
     }
-    if (type->kind != TYPE_KIND_CLASS && type->kind != TYPE_KIND_CONSTRUCTED)
+    if (type->kind == TYPE_KIND_ENUM) {
+        decl = type->name != NULL
+            ? semantic_find_enum_decl_by_name(ctx, type->name) : NULL;
+    } else if (type->kind == TYPE_KIND_CLASS
+               || type->kind == TYPE_KIND_CONSTRUCTED) {
+        /* Builtin nominals (String, IoError, ...) have no declaration and no
+         * collection fields; user aggregates always resolve to one. */
+        decl = parallel_reach_nominal_decl(ctx, type);
+    } else {
         return false;
-    /* Builtin nominals (String, IoError, ...) have no declaration and no
-     * collection fields; user aggregates always resolve to one. */
-    decl = parallel_reach_nominal_decl(ctx, type);
+    }
     if (decl == NULL)
         return false;
-    return reach_storage_through_fields(ctx, decl, depth, path);
+    switch (reach_enter(path, decl)) {
+    case REACH_ENTER_CYCLE:
+        return false;
+    case REACH_ENTER_TOO_DEEP:
+        return true;
+    case REACH_ENTER_NEW:
+        break;
+    }
+    reaches = decl->type == AST_ENUM_DECL
+        ? reach_storage_through_variants(ctx, decl, path)
+        : reach_storage_through_fields(ctx, decl, path);
+    path->entered_count--;
+    return reaches;
 }
 
 bool
@@ -257,7 +318,7 @@ parallel_capture_type_reaches_storage(SemanticContext *ctx, const Type *type,
                                       char *path_out, size_t path_cap,
                                       const char **kind_out)
 {
-    ReachPath path = { { NULL }, 0, NULL };
+    ReachPath path = { { NULL }, 0, NULL, { NULL }, 0 };
     size_t used = 0;
 
     if (path_out != NULL && path_cap > 0)
@@ -266,7 +327,7 @@ parallel_capture_type_reaches_storage(SemanticContext *ctx, const Type *type,
         return false;
     if (worker_boundary_storage_display_name(type) != NULL)
         return false; /* the binding itself is a collection: not an aggregate */
-    if (!reach_storage(ctx, type, 0, &path))
+    if (!reach_storage(ctx, type, &path))
         return false;
     for (size_t i = path.count; i > 0 && path_out != NULL; i--) {
         const char *name = path.names[i - 1];
