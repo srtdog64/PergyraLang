@@ -350,3 +350,65 @@ Not covered yet: an enum payload that holds a collection, a function-typed
 capture whose closure holds one, and a nominal read through `Option<Subject>`.
 The default routes refuse every program in this set; they do not compile these
 `parallel` shapes yet.
+
+### Intent: a semantic race the checks admit
+
+The 2026-09-24 architecture review asked for the smallest program where two
+intents write different places and still break one business rule. It exists
+and runs on both native backends:
+
+```pergyra
+intent ReserveOne(booking: Booking, seat: Seat, otherFree: Bool) {
+    concurrent;
+    step reserve {
+        using: booking;
+        who: seat;
+        authorized by: seat;
+        pre: otherFree;
+        on: seat.Reserve();
+        expect: seat.reserved;
+    }
+    success: seat.reserved;
+    failure: false;
+}
+
+// Rule: at most one of a and b is reserved.
+let aFree: Bool = !a.reserved;
+let bFree: Bool = !b.reserved;
+parallel {
+    { okA = ReserveOne(za, a, bFree); }
+    { okB = ReserveOne(zb, b, aFree); }
+}
+```
+
+Both intents succeed and both seats end up reserved (`true true true`), on
+native C and native LLVM. With `exclusive` instead of `concurrent` the result
+is the same. Run one after the other, reading the other seat each time, the
+second intent is refused by its `pre:` clause.
+
+Nothing reports it, for three reasons:
+
+- The parallel capture checks see disjoint bindings (`a` in one task, `b` in
+  the other) and two reads of primitive `Bool` snapshots, which docs/178
+  admits as Copy evidence.
+- The runtime admission (`pgy_intent_enter_export`) compares subject
+  identity. The two intents name different seats, so neither `exclusive`
+  nor `concurrent` makes them conflict.
+- The rule itself, one reservation across both seats, has no place in the
+  program. Step `invariant:` and `pre:` clauses are checked inside one
+  intent, against values that intent was handed.
+
+Reading the other seat live instead of through a snapshot does not compile:
+one task writes the seat the other reads, and the capture check rejects the
+read-write race. So inside `parallel` the only way to this race is a stale
+observation. That locates what is missing. A precondition that reads a
+parallel snapshot names no logical resource and no revision, and the commit
+does not check that the observation still holds. The review's list
+(`LogicalResourceId`, observed revision, precondition, commit rule) maps onto
+those three gaps. Closing them is a language decision (where a logical
+resource is declared, what a commit revalidates, and whether a snapshot may
+feed `pre:` at all), so this round records the program and makes no change.
+
+Also found while building it: native refuses `Booking(a)` for a subject `a`
+("implicitly copies subject binding 'a' into slot 'seat'") and asks for
+`Booking(Clone(a))`; the default C route accepts `Booking(a)`.
