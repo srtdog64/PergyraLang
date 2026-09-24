@@ -642,6 +642,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_flow_loops.c \
                    $(SEMANTIC_DIR)/type_checker_flow_branch.c \
                    $(SEMANTIC_DIR)/parallel_capture_facts.c \
+                   $(SEMANTIC_DIR)/parallel_capture_storage_reach.c \
+                   $(SEMANTIC_DIR)/parallel_capture_write_reach.c \
                    $(SEMANTIC_DIR)/type_checker_flow_parallel.c \
                    $(SEMANTIC_DIR)/type_checker_flow_parallel_join.c \
                    $(SEMANTIC_DIR)/type_checker_flow_statement_kinds.c \

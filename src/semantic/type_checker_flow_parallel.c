@@ -4,6 +4,7 @@
 #include "diag_codes.h"
 #include "type_checker_flow_internal.h"
 #include "../parser/ast_analysis.h"
+#include "parallel_capture_storage_reach.h"
 
 /* Writer analysis is owned by the AST layer (ast_statement_assigns_identifier)
  * so this checker and both backend capture emitters agree on who writes. */
@@ -127,9 +128,37 @@ parallel_reject_shared_collection_capture(ASTNode *parallel_node,
             const char *kind = sym != NULL
                 ? worker_boundary_storage_display_name(sym->type)
                 : NULL;
-            if (kind == NULL || sym->name == NULL)
+            char path[128];
+            if (sym == NULL || sym->name == NULL)
                 continue;
             if (!ast_contains_free_identifier_ref(task, sym->name))
+                continue;
+            /* An aggregate holding a collection shares its storage. */
+            if (kind == NULL
+                && parallel_capture_type_reaches_storage(ctx, sym->type,
+                                                         path, sizeof path,
+                                                         &kind)) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_BORROW_ESCAPE,
+                    PGY_CAUSE_BORROW_ESCAPE,
+                    PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
+                    task,
+                    "Parallel task cannot capture '%s': %s '%s' reaches shared storage (%s).\n"
+                    "Reason:\n"
+                    "- copying an aggregate copies a collection's header, not its elements\n"
+                    "- another task can reach the same elements through the source collection or another copy\n"
+                    "Fix:\n"
+                    "- copy the collection before entering parallel\n"
+                    "- or send values through a channel/result boundary",
+                    sym->name,
+                    path[0] != '\0' ? "its field" : "its type",
+                    path[0] != '\0' ? path
+                        : (sym->type != NULL && sym->type->name != NULL
+                               ? sym->type->name : "?"),
+                    kind != NULL ? kind : "unresolved");
+                return true;
+            }
+            if (kind == NULL)
                 continue;
             /* Disjoint split halves carry their own evidence. */
             if (type_is_constructed_named(sym->type, "Slice")
@@ -215,7 +244,11 @@ parallel_reject_scalar_write_race(ASTNode *node, SemanticContext *ctx)
 
             for (size_t t = 0; t < task_count; t++) {
                 ASTNode *task = ast_parallel_task(node, t);
-                if (parallel_task_assigns_name(task, sym->name)) {
+                /* A method call that writes the receiver, or the binding
+                 * handed on, writes as surely as an assignment does. */
+                if (parallel_task_assigns_name(task, sym->name)
+                    || parallel_task_writes_through_binding(
+                        ctx, task, sym->name, sym->type)) {
                     writers++;
                     writer_task = t;
                 }
