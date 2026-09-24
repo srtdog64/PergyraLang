@@ -52,6 +52,12 @@ func DriverSourceLlvmProjectionRejectedOutcome(
     return DriverSourceLlvmProjectionRejected(failure);
 }
 
+func DriverSourceLlvmRouteRefusedOutcome(
+    refusal: CodegenRouteRefusal
+) -> DriverSourceLlvmIntentOutcome {
+    return DriverSourceLlvmRouteRefused(refusal);
+}
+
 func DriverLlvmPayloadRequestFailure(
     final_path: String,
     diagnostic: String

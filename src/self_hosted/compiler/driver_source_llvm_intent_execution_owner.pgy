@@ -75,7 +75,7 @@ subject DriverSourceLlvmIntentExecution {
                         return false;
                     case DriverLlvmPayloadRouteRefused(refusal):
                         self.outcome = Some(
-                            DriverSourceLlvmRouteRefused(refusal)
+                            DriverSourceLlvmRouteRefusedOutcome(refusal)
                         );
                         return false;
                 }
