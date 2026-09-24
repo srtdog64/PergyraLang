@@ -10,7 +10,8 @@ func ParserExpressionFloatLiteral(text: String) -> ParserExpressionFact {
     let right_children: Array<Int> = [0];
     return ParserExpressionFact(
         true, text, 0,
-        AstExpressionArena(kinds, texts, left_children, right_children)
+        AstExpressionArena(kinds, texts, left_children, right_children),
+        0 - 1, ""
     );
 }
 
@@ -22,7 +23,8 @@ func ParserExpressionIntegerLiteral(text: String) -> ParserExpressionFact {
     let right_children: Array<Int> = [0];
     return ParserExpressionFact(
         true, text, 0,
-        AstExpressionArena(kinds, texts, left_children, right_children)
+        AstExpressionArena(kinds, texts, left_children, right_children),
+        0 - 1, ""
     );
 }
 
@@ -35,7 +37,8 @@ func ParserExpressionLongLiteral(text: String) -> ParserExpressionFact {
     let right_children: Array<Int> = [0];
     return ParserExpressionFact(
         true, source_text, 0,
-        AstExpressionArena(kinds, texts, left_children, right_children)
+        AstExpressionArena(kinds, texts, left_children, right_children),
+        0 - 1, ""
     );
 }
 
@@ -49,7 +52,8 @@ func ParserExpressionBoolLiteral(text: String) -> ParserExpressionFact {
     let right_children: Array<Int> = [0];
     return ParserExpressionFact(
         true, text, 0,
-        AstExpressionArena(kinds, texts, left_children, right_children)
+        AstExpressionArena(kinds, texts, left_children, right_children),
+        0 - 1, ""
     );
 }
 
@@ -63,7 +67,8 @@ func ParserExpressionStringLiteral(text: String) -> ParserExpressionFact {
     let right_children: Array<Int> = [0];
     return ParserExpressionFact(
         true, text, 0,
-        AstExpressionArena(kinds, texts, left_children, right_children)
+        AstExpressionArena(kinds, texts, left_children, right_children),
+        0 - 1, ""
     );
 }
 

@@ -1,8 +1,9 @@
-// Typed debugger source-location fact owner.
+// Typed debugger source-location view.
 //
-// Parser observations carry the source offset while the source cursor owns it.
-// This owner joins those observations to one admitted AST identity in preorder.
-// It never reparses source text or guesses a location from serialized AST rows.
+// The admitted artifact already carries the parser-observed positions joined
+// to its node ids once (hir/ast_source_location_fact_owner.pgy). This view
+// reads that join and adds the debugger's Main entry; it never reparses
+// source text or joins the parser rows a second time.
 
 import "../parser/program_parse_owner.pgy";
 
@@ -20,69 +21,20 @@ func DebugSourceLocationFactsEmpty() -> DebugSourceLocationFacts {
     return DebugSourceLocationFacts(false, 0, lines, paths, 0 - 1);
 }
 
-func DebugSourceLocationRowMatches(
-    arena: AstArena,
-    node_id: Int,
-    kind: Int,
-    callable_name: String
-) -> Bool {
-    if !TypedAstArenaNodeKindIs(arena, node_id, kind) {
-        return false;
-    }
-    if kind != TypedAstKindFuncDeclTag() {
-        return true;
-    }
-    let atom_opt: Option<String> = TypedAstArenaAtomText(arena, node_id);
-    let parent_opt: Option<Int> = TypedAstArenaParentId(arena, node_id);
-    return callable_name != "" && IsSome(atom_opt) &&
-        UnwrapOption(atom_opt) == callable_name &&
-        IsSome(parent_opt) && TypedAstArenaNodeKindIs(
-            arena, UnwrapOption(parent_opt), TypedAstKindProgramTag()
-        );
-}
-
 func DebugSourceLocationFactsFromParserBuild(
     artifact: AstTreeArtifact,
     build: ParserProgramBuild
 ) -> DebugSourceLocationFacts {
+    let locations: AstSourceLocationFacts = artifact.source_modules.locations;
     if !AstTreeArtifactReady(artifact) ||
-        !ParserProgramBuildSourceLocationRowsReady(build) {
+        !ParserProgramBuildSourceLocationRowsReady(build) ||
+        !locations.known ||
+        ArrayLength(locations.node_lines) != artifact.count {
         return DebugSourceLocationFactsEmpty();
     }
-    let node_lines: Array<Int> = [];
-    let node_paths: Array<String> = [];
+    let node_lines: Array<Int> = locations.node_lines;
+    let node_paths: Array<String> = locations.node_paths;
     let node_id: Int = 0;
-    while node_id < artifact.count {
-        ArrayPush(node_lines, 0);
-        ArrayPush(node_paths, "");
-        node_id = node_id + 1;
-    }
-
-    let search_node: Int = 0;
-    let row: Int = 0;
-    while row < ArrayLength(build.source_location_kinds) {
-        let matched_node: Int = 0 - 1;
-        while search_node < artifact.count && matched_node < 0 {
-            if DebugSourceLocationRowMatches(
-                artifact.arena, search_node,
-                build.source_location_kinds[row],
-                build.source_location_callable_names[row]
-            ) {
-                matched_node = search_node;
-            }
-            search_node = search_node + 1;
-        }
-        if matched_node < 0 || node_lines[matched_node] != 0 {
-            return DebugSourceLocationFactsEmpty();
-        }
-        ArraySet(
-            node_lines, matched_node, build.source_location_lines[row]
-        );
-        ArraySet(
-            node_paths, matched_node, build.source_location_paths[row]
-        );
-        row = row + 1;
-    }
 
     let main_node_id: Int = 0 - 1;
     let main_count: Int = 0;

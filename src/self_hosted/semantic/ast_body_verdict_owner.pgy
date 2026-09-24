@@ -5,6 +5,7 @@ import "ast_initializer_type_query_owner.pgy";
 import "ast_assignment_type_fact_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
 import "ast_statement_type_fact_owner.pgy";
+import "diagnostic_span_owner.pgy";
 
 struct SemanticAstBodyVerdict {
     ok: Bool;
@@ -63,7 +64,7 @@ func SemanticAstBodyVerdictFromFacts(
         return SemanticAstBodyVerdictError(
             statements.diagnostic_code,
             statements.diagnostic_message,
-            -1
+            statements.failure_node_id
         );
     }
     let first_node_id: Int = -1;

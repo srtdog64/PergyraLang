@@ -72,7 +72,7 @@ rm -f "$WORK_DIR"/*
 grep -Fq '"name":"Tags"' "$MIR" || fail "producer omitted Tags"
 grep -Fq '"name":"Mixed"' "$MIR" || fail "producer omitted Mixed"
 grep -Fq '"name":"TagPair"' "$MIR" || fail "producer omitted TagPair"
-grep -Fq 'TagPair([FirstTag(), 4, 5], [SecondTag()], [local])' "$MIR" ||
+grep -Fq 'TagPair([FirstTag(), 4, 5], [SecondTag()], [local_tag])' "$MIR" ||
     fail "producer omitted nested zero-call/local Array<Int> fields"
 grep -Fq '"expr0":"[1, 0]"' "$MIR" ||
     fail "producer omitted the literal Array<Int> canary"

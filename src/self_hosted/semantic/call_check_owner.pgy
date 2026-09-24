@@ -9,6 +9,7 @@ import "expr_validation_owner.pgy";
 import "delimited_range_fact_owner.pgy";
 import "collection_mutation_policy_owner.pgy";
 import "ast_signature_type_expression_fact_owner.pgy";
+import "builtin_signature_display_owner.pgy";
 
 func CompareCallArgs(
     ref argument_facts: SemanticDelimitedRangeFacts,
@@ -47,8 +48,8 @@ func CompareCallArgs(
                 !SemanticExpressionArithmeticTypeGuessed(
                     part, names, types, func_names, func_rets) &&
                 !ExpressionAssignableTo(expected, actual, part) {
-                return SemanticError3(
-                    "call_arg_type_mismatch", "func", callee,
+                return SemanticCallSignatureRefusal(
+                    "call_arg_type_mismatch", callee, sig,
                     "expected", expected, "actual", actual
                 );
             }
@@ -282,7 +283,7 @@ func CheckCallWithIdentifierOwner(
     let expected_count: Int = ParamCountFromFacts(signature_facts, sig);
     let actual_count: Int = ArgCountFromFacts(argument_facts);
     if expected_count != actual_count {
-        return SemanticError3("call_arity_mismatch", "func", callee, "expected", NumToStr(expected_count), "actual", NumToStr(actual_count));
+        return SemanticCallSignatureRefusal("call_arity_mismatch", callee, sig, "expected", NumToStr(expected_count), "actual", NumToStr(actual_count));
     }
     let option_error: String = CheckOptionBuiltinArgs(
         argument_facts, callee, args_src,

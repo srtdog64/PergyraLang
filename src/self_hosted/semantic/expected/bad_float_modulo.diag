@@ -5,6 +5,6 @@ Severity: error
 Code: modulo_operand_not_integer
 Reason: the remainder operator is defined only for Int and Long operands
 Fix: apply % to Int or Long operands
-Span: none
+Span: bad_float_modulo.pgy:3:5
 Facts:
 - actual: Float

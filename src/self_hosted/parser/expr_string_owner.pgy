@@ -3,6 +3,17 @@
 import "cursor_owner.pgy";
 import "expression_graph_owner.pgy";
 
+// A rejected literal that ran to the end of the file never closed; any other
+// rejection is a malformed literal. Both point at the opening quote.
+func ParserExpressionStringRefusal(
+    content: String, open: Int, end: Int
+) -> ParserExpressionFact {
+    if end >= StringLength(content) && ParserCharAt(content, end - 1) != "\"" {
+        return ParserExpressionInvalidAt(open, "string_unterminated");
+    }
+    return ParserExpressionInvalidAt(open, "expression_invalid");
+}
+
 func ParserExpressionInterpolationAppend(
     expression: ParserExpressionFact,
     part: ParserExpressionFact
@@ -85,6 +96,10 @@ func ParseStringInterpolationFact(s: String) -> ParserExpressionFact {
             let value_cursor: Array<Int> = [0];
             let value: ParserExpressionFact =
                 ParseExprFact(value_source, 0, value_cursor);
+            // A refused placeholder stops the literal; it is not text.
+            if !value.ok && value.failure_offset >= 0 {
+                return ParserExpressionInvalid();
+            }
             if !value.ok ||
                 value_cursor[0] != StringLength(value_source) {
                 return ParserExpressionStringLiteral(s);
@@ -155,6 +170,9 @@ func ParseDollarStringInterpolationFact(s: String) -> ParserExpressionFact {
             let value: ParserExpressionFact = ParseExprFact(
                 value_source, 0, value_cursor
             );
+            if !value.ok && value.failure_offset >= 0 {
+                return ParserExpressionInvalid();
+            }
             if !value.ok ||
                 value_cursor[0] != StringLength(value_source) {
                 return ParserExpressionStringLiteral(s);

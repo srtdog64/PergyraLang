@@ -6,6 +6,7 @@ import "type_name_owner.pgy";
 import "expr_owner.pgy";
 import "function_decl_owner.pgy";
 import "generic_parameter_list_owner.pgy";
+import "source_refusal_owner.pgy";
 
 func ParseNominalDecl(
     content: String,
@@ -16,7 +17,7 @@ func ParseNominalDecl(
     within_zone: String,
     inout involve_types: Array<String>,
     inout expression_graphs: Array<AstExpressionGraphRows>,
-    diagnostic_projection: ParseDiagnosticProjection
+    location_context: ParserSourceLocationContext
 ) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
@@ -58,7 +59,7 @@ func ParseNominalDecl(
         let decl_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
         if StringLength(decl_name) == 0 {
-            Exit(1);
+            ParseRefuse(location_context, i, "declaration_name_missing", "construct", decl_label, "", "");
         }
         if decl_label == "Subject" {
             ArrayPush(involve_types, decl_name);
@@ -90,10 +91,8 @@ func ParseNominalDecl(
                 i = i + 1;
             }
         }
-        i = Expect(content, i, "{");
-        if i < 0 {
-            Exit(1);
-        }
+        let open_at: Int = SkipWhitespaceAndComments(content, i);
+        i = ParseExpectIn(location_context, content, i, "{", decl_label);
         // Body accepts both `let f: T;` fields and `func NAME(...) ...`
         // methods, in any order. Methods are emitted with base_indent
         // 6 for nominal class-like declarations and base_indent 4 for
@@ -109,7 +108,7 @@ func ParseNominalDecl(
         while true {
             i = SkipWhitespaceAndComments(content, i);
             if i >= n {
-                Exit(1);
+                ParseRefuse(location_context, open_at, "block_unclosed", "construct", decl_label, "", "");
             }
             if ParserCharAt(content, i) == "}" {
                 i = i + 1;
@@ -127,7 +126,7 @@ func ParseNominalDecl(
                 let m_block: String = ParseFunction(
                     content, i, cursor_out, "", false, host_method_indent,
                     "func", "Function: ", false, within_zone,
-                    expression_graphs, diagnostic_projection
+                    expression_graphs, location_context
                 );
                 i = cursor_out[0];
                 method_blocks = AppendLine(method_blocks, m_block);
@@ -142,7 +141,7 @@ func ParseNominalDecl(
                 let a_block: String = ParseFunction(
                     content, i, cursor_out, "", false, host_method_indent,
                     "action", "Action: ", false, within_zone,
-                    expression_graphs, diagnostic_projection
+                    expression_graphs, location_context
                 );
                 i = cursor_out[0];
                 method_blocks = AppendLine(method_blocks, a_block);
@@ -263,18 +262,15 @@ func ParseNominalDecl(
             let f_name: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             if StringLength(f_name) == 0 {
-                Exit(1);
+                ParseRefuse(location_context, i, "declaration_name_missing", "construct", "field", "", "");
             }
-            i = Expect(content, i, ":");
-            if i < 0 {
-                Exit(1);
-            }
+            i = ParseExpectIn(location_context, content, i, ":", "field");
             ArraySet(cursor_out, 0, i);
-            let f_type: String = ReadType(content, i, cursor_out);
-            i = cursor_out[0];
+            let f_type: String = ReadTypeIn(location_context, content, i, cursor_out);
             if StringLength(f_type) == 0 {
-                Exit(1);
+                ParseRefuse(location_context, cursor_out[0], "type_name_invalid", "construct", "field", "", "");
             }
+            i = cursor_out[0];
             let default_text: String = "";
             let after_type: Int = i;
             while ParserCharAt(content, after_type) == " " || ParserCharAt(content, after_type) == "\t" || ParserCharAt(content, after_type) == "\r" {
@@ -283,7 +279,7 @@ func ParseNominalDecl(
             if ParserCharAt(content, after_type) == "=" {
                 i = after_type + 1;
                 ArraySet(cursor_out, 0, i);
-                let default_expr: String = ParseExpr(content, i, cursor_out);
+                let default_expr: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
                 i = cursor_out[0];
                 default_text = default_expr;
             } else {
@@ -296,10 +292,7 @@ func ParseNominalDecl(
             if ParserCharAt(content, field_end) == "," {
                 i = field_end + 1;
             } else {
-                i = ConsumeStmtTerminator(content, field_end);
-                if i < 0 {
-                    Exit(1);
-                }
+                i = ParseStatementTerminatorIn(location_context, content, field_end, "field");
             }
             if is_role_slot {
                 field_blocks = AppendLine(field_blocks, Concat("    RoleSlot: ", Concat(f_name, Concat(" requires ", f_type))));

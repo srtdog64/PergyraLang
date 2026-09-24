@@ -5,8 +5,9 @@ Severity: error
 Code: call_arity_mismatch
 Reason: call argument count does not match the callee parameter count
 Fix: pass the declared number of arguments
-Span: none
+Span: nested_setsize_arity_invalid.pgy:1:1
 Facts:
 - func: SetSize
 - expected: 1
 - actual: 2
+- signature: SetSize(any) -> Int

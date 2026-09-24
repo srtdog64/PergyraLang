@@ -53,11 +53,11 @@ func LanguageWordRegistryRowAt(index: Int) -> LanguageWordRegistryRow {
     if index == 32 { return LanguageWordRegistryRow(true, "defer", "DEFER", 1, "reserved", 2, 2, "execution", 3, 4, "keyword.control.pergyra", false); }
     if index == 33 { return LanguageWordRegistryRow(true, "detach", "DETACH", 2, "contextual", 128, 3, "domain", 1, 0, "", false); }
     if index == 34 { return LanguageWordRegistryRow(true, "dyn", "DYN", 1, "reserved", 8, 4, "type-contract", 3, 4, "storage.modifier.pergyra", false); }
-    if index == 35 { return LanguageWordRegistryRow(true, "effect", "EFFECT", 1, "reserved", 17, 3, "domain", 3, 4, "storage.type.pergyra", false); }
+    if index == 35 { return LanguageWordRegistryRow(true, "effect", "EFFECT", 1, "reserved", 273, 3, "domain", 3, 4, "storage.type.pergyra", false); }
     if index == 36 { return LanguageWordRegistryRow(true, "effects", "EFFECTS", 2, "contextual", 144, 3, "domain", 3, 2, "", false); }
     if index == 37 { return LanguageWordRegistryRow(true, "else", "ELSE", 1, "reserved", 16, 2, "execution", 3, 4, "keyword.control.pergyra", false); }
     if index == 38 { return LanguageWordRegistryRow(true, "enum", "ENUM", 1, "reserved", 9, 4, "type-contract", 3, 4, "keyword.declaration.pergyra", false); }
-    if index == 39 { return LanguageWordRegistryRow(true, "event", "EVENT", 1, "reserved", 9, 4, "type-contract", 3, 4, "keyword.other.domain.pergyra", false); }
+    if index == 39 { return LanguageWordRegistryRow(true, "event", "EVENT", 1, "reserved", 265, 4, "type-contract", 3, 4, "keyword.other.domain.pergyra", false); }
     if index == 40 { return LanguageWordRegistryRow(true, "every", "EVERY", 2, "contextual", 2, 2, "execution", 3, 0, "", false); }
     if index == 41 { return LanguageWordRegistryRow(true, "exclusive", "EXCLUSIVE", 2, "contextual", 16, 2, "execution", 3, 4, "keyword.other.intent.pergyra", false); }
     if index == 42 { return LanguageWordRegistryRow(true, "expect", "EXPECT", 2, "contextual", 64, 2, "execution", 3, 0, "", false); }
@@ -109,7 +109,7 @@ func LanguageWordRegistryRowAt(index: Int) -> LanguageWordRegistryRow {
     if index == 88 { return LanguageWordRegistryRow(true, "override", "OVERRIDE", 1, "reserved", 16, 4, "type-contract", 3, 4, "storage.modifier.pergyra", false); }
     if index == 89 { return LanguageWordRegistryRow(true, "own", "OWN", 1, "reserved", 512, 1, "resource", 3, 4, "storage.modifier.pergyra", false); }
     if index == 90 { return LanguageWordRegistryRow(true, "parallel", "PARALLEL", 1, "reserved", 6, 2, "execution", 3, 7, "keyword.control.pergyra", true); }
-    if index == 91 { return LanguageWordRegistryRow(true, "party", "PARTY", 1, "reserved", 9, 3, "domain", 3, 6, "storage.type.pergyra", false); }
+    if index == 91 { return LanguageWordRegistryRow(true, "party", "PARTY", 1, "reserved", 265, 3, "domain", 3, 6, "storage.type.pergyra", false); }
     if index == 92 { return LanguageWordRegistryRow(true, "pin", "PIN", 2, "contextual", 2, 1, "resource", 1, 0, "", false); }
     if index == 93 { return LanguageWordRegistryRow(true, "pool", "POOL", 2, "contextual", 128, 1, "resource", 1, 0, "", false); }
     if index == 94 { return LanguageWordRegistryRow(true, "post", "POST", 2, "contextual", 64, 2, "execution", 3, 4, "keyword.other.intent.pergyra", false); }
@@ -123,19 +123,19 @@ func LanguageWordRegistryRowAt(index: Int) -> LanguageWordRegistryRow {
     if index == 102 { return LanguageWordRegistryRow(true, "ref", "REF", 1, "reserved", 512, 1, "resource", 3, 4, "storage.modifier.pergyra", false); }
     if index == 103 { return LanguageWordRegistryRow(true, "reflect", "REFLECT", 1, "reserved", 12, 4, "type-contract", 3, 4, "storage.modifier.pergyra", false); }
     if index == 104 { return LanguageWordRegistryRow(true, "refresh", "REFRESH", 2, "contextual", 128, 3, "domain", 3, 0, "", false); }
-    if index == 105 { return LanguageWordRegistryRow(true, "relation", "RELATION", 1, "reserved", 1, 3, "domain", 3, 4, "storage.type.pergyra", false); }
+    if index == 105 { return LanguageWordRegistryRow(true, "relation", "RELATION", 1, "reserved", 257, 3, "domain", 3, 4, "storage.type.pergyra", false); }
     if index == 106 { return LanguageWordRegistryRow(true, "relations", "RELATIONS", 2, "contextual", 128, 3, "domain", 1, 0, "", false); }
     if index == 107 { return LanguageWordRegistryRow(true, "remote", "REMOTE", 1, "reserved", 16, 2, "execution", 3, 4, "storage.modifier.pergyra", false); }
     if index == 108 { return LanguageWordRegistryRow(true, "requires", "REQUIRES", 2, "contextual", 208, 4, "type-contract", 3, 7, "keyword.other.domain.pergyra", true); }
     if index == 109 { return LanguageWordRegistryRow(true, "retry", "RETRY", 2, "contextual", 16, 2, "execution", 0, 0, "", false); }
     if index == 110 { return LanguageWordRegistryRow(true, "return", "RETURN", 1, "reserved", 2, 2, "execution", 3, 4, "keyword.control.pergyra", false); }
-    if index == 111 { return LanguageWordRegistryRow(true, "role", "ROLE", 1, "reserved", 9, 3, "domain", 3, 5, "storage.type.pergyra", true); }
+    if index == 111 { return LanguageWordRegistryRow(true, "role", "ROLE", 1, "reserved", 265, 3, "domain", 3, 5, "storage.type.pergyra", true); }
     if index == 112 { return LanguageWordRegistryRow(true, "rollback", "ROLLBACK", 2, "contextual", 16, 2, "execution", 1, 0, "", false); }
-    if index == 113 { return LanguageWordRegistryRow(true, "roster", "ROSTER", 1, "reserved", 9, 3, "domain", 3, 7, "storage.type.pergyra", true); }
+    if index == 113 { return LanguageWordRegistryRow(true, "roster", "ROSTER", 1, "reserved", 265, 3, "domain", 3, 7, "storage.type.pergyra", true); }
     if index == 114 { return LanguageWordRegistryRow(true, "secure", "SECURE", 1, "reserved", 24, 1, "resource", 3, 4, "storage.modifier.pergyra", false); }
     if index == 115 { return LanguageWordRegistryRow(true, "select", "SELECT", 1, "reserved", 2, 2, "execution", 3, 5, "keyword.control.pergyra", true); }
     if index == 116 { return LanguageWordRegistryRow(true, "shared", "SHARED", 1, "reserved", 24, 1, "resource", 3, 4, "keyword.other.domain.pergyra", false); }
-    if index == 117 { return LanguageWordRegistryRow(true, "slot", "SLOT", 1, "reserved", 9, 1, "resource", 3, 4, "keyword.other.domain.pergyra", false); }
+    if index == 117 { return LanguageWordRegistryRow(true, "slot", "SLOT", 1, "reserved", 265, 1, "resource", 3, 4, "keyword.other.domain.pergyra", false); }
     if index == 118 { return LanguageWordRegistryRow(true, "spawn", "SPAWN", 1, "reserved", 4, 2, "execution", 3, 5, "keyword.control.pergyra", true); }
     if index == 119 { return LanguageWordRegistryRow(true, "state", "STATE", 2, "contextual", 144, 3, "domain", 3, 4, "keyword.other.domain.pergyra", false); }
     if index == 120 { return LanguageWordRegistryRow(true, "step", "STEP", 2, "contextual", 16, 2, "execution", 3, 4, "keyword.other.intent.pergyra", false); }
@@ -162,7 +162,7 @@ func LanguageWordRegistryRowAt(index: Int) -> LanguageWordRegistryRow {
     if index == 141 { return LanguageWordRegistryRow(true, "who", "WHO", 2, "contextual", 80, 3, "domain", 3, 7, "keyword.other.intent.pergyra", true); }
     if index == 142 { return LanguageWordRegistryRow(true, "with", "WITH", 1, "reserved", 18, 1, "resource", 3, 7, "keyword.control.pergyra", true); }
     if index == 143 { return LanguageWordRegistryRow(true, "within", "WITHIN", 2, "contextual", 18, 3, "domain", 3, 7, "keyword.other.domain.pergyra", true); }
-    if index == 144 { return LanguageWordRegistryRow(true, "world", "WORLD", 1, "reserved", 1, 3, "domain", 3, 5, "storage.type.pergyra", true); }
-    if index == 145 { return LanguageWordRegistryRow(true, "zone", "ZONE", 1, "reserved", 1, 3, "domain", 3, 5, "storage.type.pergyra", true); }
+    if index == 144 { return LanguageWordRegistryRow(true, "world", "WORLD", 1, "reserved", 257, 3, "domain", 3, 5, "storage.type.pergyra", true); }
+    if index == 145 { return LanguageWordRegistryRow(true, "zone", "ZONE", 1, "reserved", 257, 3, "domain", 3, 5, "storage.type.pergyra", true); }
     return LanguageWordRegistryRow(false, "", "", -1, "", -1, -1, "", -1, -1, "", false);
 }

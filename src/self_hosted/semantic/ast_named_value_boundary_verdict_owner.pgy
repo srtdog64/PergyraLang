@@ -213,11 +213,11 @@ func SemanticAstNamedValueBoundaryVerdictFromResolvedFacts(
                 call_node, -1
             );
         }
-        let alias: Option<String> = SemanticAstInoutArgumentAliasMessage(
+        let alias: SemanticAstInoutArgumentRefusal = SemanticAstInoutArgumentRefusalFor(
             signatures, UnwrapOption(signature_index), graph, call, UnwrapOption(target_name));
-        if IsSome(alias) {
+        if alias.present {
             return SemanticAstNamedValueBoundaryVerdictError(
-                "inout_argument_alias", UnwrapOption(alias), call_node, -1);
+                alias.code, alias.message, call_node, -1);
         }
         let argument_index: Int = 0;
         while argument_index < ArrayLength(call.argument_nodes) {

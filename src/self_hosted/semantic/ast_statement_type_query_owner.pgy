@@ -50,7 +50,7 @@ func SemanticAstStatementTypeQueryContractReady() -> Bool {
         true, "", "", 3,
         [7, 9, 11], [41, 41, 41], ["", "", ""],
         ["String", "Unknown", "Int"], [1, 1, 0],
-        ["", "", ""], ["", "", ""]
+        ["", "", ""], ["", "", ""], 0 - 1
     );
     let found: Option<String> = SemanticAstStatementInferredTypeForNode(
         facts, 7, 41

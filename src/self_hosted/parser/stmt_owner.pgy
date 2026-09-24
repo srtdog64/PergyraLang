@@ -18,6 +18,7 @@ import "stmt_loop_owner.pgy";
 import "stmt_parallel_owner.pgy";
 import "stmt_match_owner.pgy";
 import "source_location_observation_owner.pgy";
+import "source_refusal_owner.pgy";
 import "diagnostic_owner.pgy";
 // Parse one statement. Returns its formatted AST lines joined by "\n";
 // empty string only if a parse error path was reached (which Exits anyway).
@@ -32,24 +33,19 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     let head: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if StringLength(head) == 0 {
-        ParseDiagnosticReportPublicStatementHeadUnexpectedToken(diagnostic_projection, head_start); Exit(1);
+        ParseRefuse(location_context, head_start, "statement_head_unexpected_token",
+            "construct", "statement", "source_offset", ToString(head_start));
     }
     if head == "bind" {
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
-        let bind_lhs: String = ParseExpr(content, i, cursor_out);
+        let bind_lhs: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
         i = cursor_out[0];
-        i = Expect(content, i, "=");
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseExpectIn(location_context, content, i, "=", "statement");
         ArraySet(cursor_out, 0, i);
-        let bind_rhs: String = ParseExpr(content, i, cursor_out);
+        let bind_rhs: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
         i = cursor_out[0];
-        i = ConsumeStmtTerminator(content, i);
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
         return Concat(IndentStr(stmt_indent), Concat("BindStmt: ", Concat(bind_lhs, Concat(" = ", bind_rhs))));
     }
@@ -73,24 +69,24 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         //       <body at stmt_indent + 4>
         i = SkipWhitespaceAndComments(content, i);
         if !MatchLanguageWord(content, i, LanguageWordId.WordSlot) {
-            Exit(1);
+            ParseRefuse(location_context, i, "expected_token", "construct", "with", "source_offset", ToString(i));
         }
         i = LanguageWordEnd(i, LanguageWordId.WordSlot);
         i = SkipWhitespaceAndComments(content, i);
         if ParserCharAt(content, i) != "<" {
-            Exit(1);
+            ParseRefuse(location_context, i, "expected_token", "construct", "with", "source_offset", ToString(i));
         }
         i = i + 1;
         ArraySet(cursor_out, 0, i);
         let with_type: String = ReadType(content, i, cursor_out);
         i = cursor_out[0];
         if ParserCharAt(content, i) != ">" {
-            Exit(1);
+            ParseRefuse(location_context, i, "expected_token", "construct", "with", "source_offset", ToString(i));
         }
         i = i + 1;
         i = SkipWhitespaceAndComments(content, i);
         if !MatchLanguageWord(content, i, LanguageWordId.WordAs) {
-            Exit(1);
+            ParseRefuse(location_context, i, "expected_token", "construct", "with", "source_offset", ToString(i));
         }
         i = LanguageWordEnd(i, LanguageWordId.WordAs);
         i = SkipWhitespaceAndComments(content, i);
@@ -98,7 +94,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         let as_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
         if StringLength(as_name) == 0 {
-            Exit(1);
+            ParseRefuse(location_context, i, "expected_token", "construct", "with", "source_offset", ToString(i));
         }
         ArraySet(cursor_out, 0, i);
         let with_body: String = ParseBlockObserved(
@@ -132,17 +128,15 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         // `transaction { ... }` owns top-level `compensate EXPR` handlers.
         // The C AST printer stores compensations on the transaction node but
         // does not print them; only non-compensate statements remain in body.
-        i = Expect(content, i, "{");
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseExpectIn(location_context, content, i, "{", "statement");
         let tx_out: String = Concat(IndentStr(stmt_indent), "TransactionBlock:");
         tx_out = AppendLine(tx_out, Concat(IndentStr(stmt_indent + 2), "Block:"));
         let n_tx: Int = StringLength(content);
         while true {
             i = SkipWhitespaceAndComments(content, i);
             if i >= n_tx {
-                Exit(1);
+                ParseRefuse(location_context, head_start, "block_unclosed",
+                    "construct", "transaction", "source_offset", ToString(head_start));
             }
             if ParserCharAt(content, i) == "}" {
                 i = i + 1;
@@ -151,13 +145,10 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
             if MatchLanguageWord(content, i, LanguageWordId.WordCompensate) {
                 i = LanguageWordEnd(i, LanguageWordId.WordCompensate);
                 ArraySet(cursor_out, 0, i);
-                let handler_expr: String = ParseExpr(content, i, cursor_out);
+                let handler_expr: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
                 i = cursor_out[0];
                 handler_expr = handler_expr;
-                i = ConsumeStmtTerminator(content, i);
-                if i < 0 {
-                    Exit(1);
-                }
+                i = ParseStatementTerminatorIn(location_context, content, i, "statement");
                 continue;
             }
             ArraySet(cursor_out, 0, i);
@@ -190,26 +181,17 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         if StringLength(body) > 0 {
             out = Concat(out, Concat("\n", body));
         }
-        i = ConsumeStmtTerminator(content, i);
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
         return out;
     }
     if head == "break" {
-        i = ConsumeStmtTerminator(content, i);
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
         return Concat(IndentStr(stmt_indent), "Break");
     }
     if head == "continue" {
-        i = ConsumeStmtTerminator(content, i);
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
         return Concat(IndentStr(stmt_indent), "Continue");
     }
@@ -223,20 +205,14 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         }
         let fail_out: String = Concat(IndentStr(stmt_indent), "Fail:");
         if ParserCharAt(content, reason_start) == "\n" || ParserCharAt(content, reason_start) == ";" || ParserCharAt(content, reason_start) == "}" {
-            i = ConsumeStmtTerminator(content, fail_cursor);
-            if i < 0 {
-                Exit(1);
-            }
+            i = ParseStatementTerminatorIn(location_context, content, fail_cursor, "statement");
             ArraySet(cursor_out, 0, i);
             return AppendLine(fail_out, Concat(IndentStr(stmt_indent + 2), "(null)"));
         }
         ArraySet(cursor_out, 0, reason_start);
-        let fail_reason: String = ParseExpr(content, reason_start, cursor_out);
+        let fail_reason: String = ParseExprFactIn(location_context, content, reason_start, cursor_out).text;
         i = cursor_out[0];
-        i = ConsumeStmtTerminator(content, i);
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
         return AppendLine(fail_out, Concat(IndentStr(stmt_indent + 2), fail_reason));
     }
@@ -261,20 +237,16 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
             return Concat(IndentStr(stmt_indent), "Return");
         }
         ArraySet(cursor_out, 0, i);
-        let value_fact: ParserExpressionFact = ParseExprFact(
-            content, i, cursor_out
+        let value_fact: ParserExpressionFact = ParseExprFactIn(
+            location_context, content, i, cursor_out
         );
-        if !value_fact.ok { Exit(1); }
         ParserExpressionGraphsAppendInto(
             expression_graphs, TypedAstKindValueReturnStmtTag(),
             AstExpressionLaneAtom(), value_fact
         );
         let val_text: String = value_fact.text;
         i = cursor_out[0];
-        i = ConsumeStmtTerminator(content, i);
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseStatementTerminatorIn(location_context, content, i, "return");
         ArraySet(cursor_out, 0, i);
         return Concat(IndentStr(stmt_indent), Concat("Return: ", val_text));
     }
@@ -296,10 +268,16 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
         }
+        let name_start: Int = i;
         let var_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
         if StringLength(var_name) == 0 {
-            Exit(1);
+            ParseRefuse(location_context, name_start, "declaration_name_missing",
+                "construct", "let", "source_offset", ToString(name_start));
+        }
+        if ParserBindingNameReserved(var_name) {
+            ParseRefuse(location_context, name_start, "binding_name_reserved",
+                "name", var_name, "construct", "let");
         }
         i = SkipWhitespaceAndComments(content, i);
         let var_type: String = "";
@@ -307,32 +285,26 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         if ParserCharAt(content, i) == ":" {
             i = i + 1;
             ArraySet(cursor_out, 0, i);
-            var_type = ReadType(content, i, cursor_out);
+            var_type = ReadTypeIn(location_context, content, i, cursor_out);
             i = cursor_out[0];
             if StringLength(var_type) == 0 {
-                Exit(1);
+                ParseRefuse(location_context, SkipWhitespaceAndComments(content, i),
+                    "type_name_invalid", "construct", "let", "name", var_name);
             }
             has_type = true;
         }
-        i = Expect(content, i, "=");
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseExpectIn(location_context, content, i, "=", "let");
         ArraySet(cursor_out, 0, i);
-        let value_fact: ParserExpressionFact = ParseExprFact(
-            content, i, cursor_out
+        let value_fact: ParserExpressionFact = ParseExprFactIn(
+            location_context, content, i, cursor_out
         );
-        if !value_fact.ok { Exit(1); }
         ParserExpressionGraphsAppendInto(
             expression_graphs, TypedAstKindLetStmtTag(),
             AstExpressionLaneValue(), value_fact
         );
         let val_text: String = value_fact.text;
         i = cursor_out[0];
-        i = ConsumeStmtTerminator(content, i);
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseStatementTerminatorIn(location_context, content, i, "let");
         ArraySet(cursor_out, 0, i);
         let let_text: String = "";
         let binding_name: String = var_name;
@@ -356,7 +328,9 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     let lhs_fact: ParserExpressionFact = ParsePrimaryFact(
         content, head_start, cursor_out
     );
-    if !lhs_fact.ok { Exit(1); }
+    if !lhs_fact.ok {
+        ParseExpressionRefuse(location_context, lhs_fact, head_start, "statement");
+    }
     let lhs: String = lhs_fact.text;
     let i_after_lhs: Int = cursor_out[0];
     let peek: Int = SkipWhitespaceAndComments(content, i_after_lhs);
@@ -368,12 +342,9 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     if ParserCharAt(content, peek) == "+" && ParserCharAt(content, peek + 1) == "=" {
         i = peek + 2;
         ArraySet(cursor_out, 0, i);
-        let rhs: String = ParseExpr(content, i, cursor_out);
+        let rhs: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
         i = cursor_out[0];
-        i = ConsumeStmtTerminator(content, i);
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
         let sub_text: String = Concat("EventSubscribe: ", Concat(lhs, Concat(" += ", rhs)));
         return Concat(IndentStr(stmt_indent), sub_text);
@@ -383,12 +354,9 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     if ParserCharAt(content, peek) == "-" && ParserCharAt(content, peek + 1) == "=" {
         i = peek + 2;
         ArraySet(cursor_out, 0, i);
-        let unsub_rhs: String = ParseExpr(content, i, cursor_out);
+        let unsub_rhs: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
         i = cursor_out[0];
-        i = ConsumeStmtTerminator(content, i);
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
         let unsub_text: String = Concat("EventUnsubscribe: ", Concat(lhs, Concat(" -= ", unsub_rhs)));
         return Concat(IndentStr(stmt_indent), unsub_text);
@@ -399,12 +367,9 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     if ParserCharAt(content, peek) == "<" && ParserCharAt(content, peek + 1) == "-" {
         i = peek + 2;
         ArraySet(cursor_out, 0, i);
-        let send_rhs: String = ParseExpr(content, i, cursor_out);
+        let send_rhs: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
         i = cursor_out[0];
-        i = ConsumeStmtTerminator(content, i);
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
         let send_text: String = Concat("ChannelSend: ", Concat(lhs, Concat(" <- ", send_rhs)));
         return Concat(IndentStr(stmt_indent), send_text);
@@ -412,10 +377,9 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     if ParserCharAt(content, peek) == "=" && ParserCharAt(content, peek + 1) != "=" {
         i = peek + 1;
         ArraySet(cursor_out, 0, i);
-        let rhs_fact: ParserExpressionFact = ParseExprFact(
-            content, i, cursor_out
+        let rhs_fact: ParserExpressionFact = ParseExprFactIn(
+            location_context, content, i, cursor_out
         );
-        if !rhs_fact.ok { Exit(1); }
         ParserExpressionGraphsAppendInto(
             expression_graphs, TypedAstKindAssignStmtTag(),
             AstExpressionLaneAtom(), lhs_fact
@@ -426,10 +390,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         );
         let rhs: String = rhs_fact.text;
         i = cursor_out[0];
-        i = ConsumeStmtTerminator(content, i);
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseStatementTerminatorIn(location_context, content, i, "assignment");
         ArraySet(cursor_out, 0, i);
         let assign_text: String = Concat("Assign: ", Concat(lhs, Concat(" = ", rhs)));
         return Concat(IndentStr(stmt_indent), assign_text);
@@ -437,10 +398,9 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
 
     // Expression statement fallback.
     ArraySet(cursor_out, 0, head_start);
-    let expr_fact: ParserExpressionFact = ParseExprFact(
-        content, head_start, cursor_out
+    let expr_fact: ParserExpressionFact = ParseExprFactIn(
+        location_context, content, head_start, cursor_out
     );
-    if !expr_fact.ok { Exit(1); }
     let owner_kind: Int = ParserExpressionCallStatementKind(expr_fact);
     ArraySet(owner_kind_out, 0, owner_kind);
     if owner_kind != TypedAstKindUnknownTag() {
@@ -479,16 +439,8 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
     }
     let expr_text: String = expr_fact.text;
     i = cursor_out[0];
-    let terminator: Option<Int> = ConsumeStmtTerminatorOpt(content, i);
-    if !IsSome(terminator) {
-        if ParseDiagnosticProjectionPublishesPublicJson(diagnostic_projection) {
-            ParseDiagnosticReportExpressionStatementTerminator(
-                diagnostic_projection, SkipWhitespaceAndComments(content, i));
-            Exit(1);
-        }
-        Fail("expected statement terminator", content, i);
-    }
-    i = UnwrapOption(terminator);
+    i = ParseStatementTerminatorIn(
+        location_context, content, i, "expression_statement");
     ArraySet(cursor_out, 0, i);
     return Concat(IndentStr(stmt_indent), expr_text);
 }
@@ -511,7 +463,17 @@ func ParseOneStmtObservedProjected(
         content, start, cursor_out, stmt_indent, expression_graphs,
         location_context, source_locations, owner_kind, diagnostic_projection
     );
-    return ParserObservedStatementFinish(tree_text, slot, owner_kind[0], source_locations);
+    let finished: String = ParserObservedStatementFinish(tree_text, slot, owner_kind[0], source_locations);
+    // A statement no typed kind covers (`123 + 4;`) is refused here, where
+    // its position is known, instead of failing the whole row join later.
+    if slot >= 0 {
+        let row: ParserSourceLocationObservation = source_locations[slot];
+        if row.kind == TypedAstKindUnknownTag() {
+            ParseRefuse(location_context, observed_start, "statement_kind_unsupported",
+                "construct", "expression_statement", "", "");
+        }
+    }
+    return finished;
 }
 func ParseOneStmtObserved(
     content: String, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int,
@@ -552,16 +514,14 @@ func ParseBlockObserved(
     ParserSourceLocationCommit(
         block_slot, TypedAstKindBlockTag(), "", source_locations
     );
-    let i: Int = Expect(content, start, "{");
-    if i < 0 {
-        Exit(1);
-    }
+    let i: Int = ParseExpectIn(location_context, content, start, "{", "block");
     let n: Int = StringLength(content);
     let out: String = "";
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
-            Exit(1);
+            ParseRefuse(location_context, block_start, "block_unclosed",
+                "construct", "block", "source_offset", ToString(block_start));
         }
         if ParserCharAt(content, i) == "}" {
             i = i + 1;

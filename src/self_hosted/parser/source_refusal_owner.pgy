@@ -1,0 +1,86 @@
+// Positioned parse refusal owner.
+//
+// Most parser refusals used to end in a bare Exit(1), so a broken source
+// produced no output at all. This owner turns one refusal into one
+// diagnostic naming its code and the file:line:column the parser cursor
+// held, in the projection the request selected (text or public JSON).
+// ParseRefusalReport only reports; ParseRefuse is the documented stop
+// boundary for a refusal whose caller cannot continue.
+
+import "source_location_observation_owner.pgy";
+import "expression_fact_owner.pgy";
+import "cursor_owner.pgy";
+
+func ParseRefusalReport(
+    context: ParserSourceLocationContext,
+    offset: Int,
+    code: String,
+    k1: String, v1: String,
+    k2: String, v2: String
+) -> Void {
+    let point: ParserSourcePoint = ParserSourcePointForOffset(context, offset);
+    let line: Int = 0;
+    let column: Int = 0;
+    if point.known {
+        line = point.line;
+        column = point.column;
+    }
+    Log(ParseDiagnosticPayloadAt2(
+        context.projection, code, context.display_path, line, column,
+        k1, v1, k2, v2
+    ));
+}
+
+func ParseRefuse(
+    context: ParserSourceLocationContext,
+    offset: Int,
+    code: String,
+    k1: String, v1: String,
+    k2: String, v2: String
+) -> Never {
+    ParseRefusalReport(context, offset, code, k1, v1, k2, v2);
+    Exit(1);
+}
+
+// A required token: returns the offset after it, or refuses at the first
+// non-trivia position where it was expected.
+func ParseExpectIn(
+    context: ParserSourceLocationContext,
+    content: String, start: Int, token: String, construct: String
+) -> Int {
+    let next: Option<Int> = ExpectOpt(content, start, token);
+    if !IsSome(next) {
+        ParseRefuse(context, SkipWhitespaceAndComments(content, start),
+            "expected_token", "expected", token, "construct", construct);
+    }
+    return UnwrapOption(next);
+}
+
+func ParseStatementTerminatorIn(
+    context: ParserSourceLocationContext,
+    content: String, start: Int, construct: String
+) -> Int {
+    let next: Option<Int> = ConsumeStmtTerminatorOpt(content, start);
+    if !IsSome(next) {
+        let at: Int = SkipWhitespaceAndComments(content, start);
+        ParseRefuse(context, at, "expression_statement_terminator",
+            "construct", construct, "source_offset", ToString(at));
+    }
+    return UnwrapOption(next);
+}
+
+// An invalid expression fact names where and why it failed; a fact without
+// a recorded failure falls back to the expression's own start.
+func ParseExpressionRefuse(
+    context: ParserSourceLocationContext,
+    fact: ParserExpressionFact,
+    expression_start: Int,
+    construct: String
+) -> Never {
+    let offset: Int = fact.failure_offset;
+    if offset < 0 { offset = expression_start; }
+    let code: String = fact.failure_code;
+    if code == "" { code = "expression_invalid"; }
+    ParseRefuse(context, offset, code,
+        "construct", construct, "source_offset", ToString(offset));
+}

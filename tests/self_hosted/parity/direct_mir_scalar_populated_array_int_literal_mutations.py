@@ -127,7 +127,7 @@ def main():
         row = routine(document, "BoxedTags")
         instruction = next(
             inst for block in row["blocks"] for inst in block["instructions"]
-            if inst.get("expr0") and "[local]" in inst["expr0"]
+            if inst.get("expr0") and "[local_tag]" in inst["expr0"]
         )
         instruction["uses"] = []
     elif mode == "wrong-parameter-owner":

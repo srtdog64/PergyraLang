@@ -65,7 +65,13 @@ grep -Fxq 'pgy.selfhost.public-diagnostic.v1' \
     "$WORK_DIR/min.json.out" || fail "deletion minimum lost its wire marker"
 tail -n +2 "$WORK_DIR/direct.json.out" >"$WORK_DIR/expected.json"
 tail -n +2 "$WORK_DIR/min.json.out" >"$WORK_DIR/min.expected.json"
-cmp -s "$WORK_DIR/expected.json" "$WORK_DIR/min.expected.json" ||
+# The two fixtures refuse at different source positions; the identity is
+# everything but the location and the span line of the message.
+strip_position() {
+    sed -E 's/"location":\{[^}]*\}/"location":_/; s/Span: [^\\]*\\n/Span: _\\n/' "$1"
+}
+cmp -s <(strip_position "$WORK_DIR/expected.json") \
+    <(strip_position "$WORK_DIR/min.expected.json") ||
     fail "deletion minimum changed the owned public identity"
 for fact in \
     '"severity":"error"' \
@@ -89,7 +95,7 @@ run_public_failure() {
     set -e
     [[ "$rc" -ne 0 && ! -s "$WORK_DIR/$label.out" ]] ||
         fail "$label published output for a non-Int index"
-    cmp -s "$WORK_DIR/expected.json" "$WORK_DIR/$label.err" ||
+    cmp -s "$WORK_DIR/${expected_receipt:-expected.json}" "$WORK_DIR/$label.err" ||
         fail "$label did not relay the exact Pergyra-owned receipt"
     [[ -z "$artifact" || ! -e "$ROOT_DIR/$artifact" ]] ||
         fail "$label published an invalid artifact"
@@ -102,7 +108,9 @@ run_public_failure c "$WORK_REL/invalid-c.bin" --backend=c \
     --error-format=json "$INVALID_REL" -o "$WORK_REL/invalid-c.bin"
 run_public_failure llvm "$WORK_REL/invalid-llvm.bin" --backend=llvm \
     --error-format=json "$INVALID_REL" -o "$WORK_REL/invalid-llvm.bin"
-run_public_failure min-mir "" --mir --error-format=json "$MIN_INVALID_REL"
+# The deletion minimum refuses at its own position; relay its own receipt.
+expected_receipt=min.expected.json \
+    run_public_failure min-mir "" --mir --error-format=json "$MIN_INVALID_REL"
 
 for mode in mir c llvm; do
     native_args=("$INVALID_REL" --native-pipeline --error-format=json)

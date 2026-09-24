@@ -406,6 +406,7 @@ src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy | CompilerRu
 src/self_hosted/compiler/target_projection_fact_owner.pgy | CompilerTargetProjectionFactFromOwner | target.capability_profile | projection
 src/self_hosted/hir/ast_text_row_fact_owner.pgy | CodegenAstTextRowFactInput | hir.typed_control_flow | bridge
 src/self_hosted/hir/ast_source_module_fact_owner.pgy | AstSourceModuleFactsFromTopLevelPaths | parser.syntax_provenance | projection
+src/self_hosted/hir/ast_source_location_fact_owner.pgy | AstSourceLocationFactsFromParserRows | parser.syntax_provenance | projection
 src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy | SemanticAstGenericParameterRowsFromNode | selfhost.function_declaration_rows | local_view
 src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy | SemanticAstSignatureTypeExpressionFacts | selfhost.function_declaration_rows | local_view
 src/self_hosted/semantic/try_expression_fact_owner.pgy | SemanticTryOperand | selfhost.expression_graph | bridge

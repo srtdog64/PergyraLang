@@ -5,8 +5,9 @@ Severity: error
 Code: call_arg_type_mismatch
 Reason: call argument type does not match the callee parameter type
 Fix: change the argument expression or the callee parameter type
-Span: none
+Span: bad_atan2_arg.pgy:2:5
 Facts:
 - func: Atan2
 - expected: Float
 - actual: String
+- signature: Atan2(Float, Float) -> Float

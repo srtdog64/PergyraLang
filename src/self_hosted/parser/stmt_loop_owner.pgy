@@ -16,7 +16,7 @@ func ParseWhileStmt(
     let i: Int = after_head;
     ArraySet(cursor_out, 0, i);
     let condition: ParserExpressionFact = ParseExprFact(content, i, cursor_out);
-    if !condition.ok { Exit(1); }
+    if !condition.ok { ParseExpressionRefuse(location_context, condition, i, "statement"); }
     ParserExpressionGraphsAppendInto(
         expression_graphs, TypedAstKindWhileStmtTag(),
         AstExpressionLaneAtom(), condition
@@ -83,18 +83,18 @@ func ParseForStmt(
     let var_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if StringLength(var_name) == 0 {
-        Exit(1);
+        ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
     }
     i = SkipWhitespaceAndComments(content, i);
     if !MatchLanguageWord(content, i, LanguageWordId.WordIn) {
-        Exit(1);
+        ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
     }
     i = LanguageWordEnd(i, LanguageWordId.WordIn);
     ArraySet(cursor_out, 0, i);
     let lower_fact: ParserExpressionFact = ParseExprFact(
         content, i, cursor_out
     );
-    if !lower_fact.ok { Exit(1); }
+    if !lower_fact.ok { ParseExpressionRefuse(location_context, lower_fact, i, "statement"); }
     let lower: String = lower_fact.text;
     ParserExpressionGraphsAppendInto(
         expression_graphs, TypedAstKindForStmtTag(),
@@ -109,7 +109,7 @@ func ParseForStmt(
         let upper_fact: ParserExpressionFact = ParseExprFact(
             content, i, cursor_out
         );
-        if !upper_fact.ok { Exit(1); }
+        if !upper_fact.ok { ParseExpressionRefuse(location_context, upper_fact, i, "statement"); }
         let upper: String = upper_fact.text;
         ParserExpressionGraphsAppendInto(
             expression_graphs, TypedAstKindForStmtTag(),

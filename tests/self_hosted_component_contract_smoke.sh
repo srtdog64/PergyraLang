@@ -6591,7 +6591,7 @@ require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy("
 require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(" \
-    "SemanticDiagnosticPayloadForPublicBoundary("
+    "SemanticDiagnosticPayloadForPublicBoundaryAt("
 require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func VerifyArtifactForDriverRung2FromAdmittedAnalysisObserved(" \
     "VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy("
@@ -11021,7 +11021,7 @@ reject_file "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy"
 require_text "src/parser/ast_print.c" "variant_param_counts"
 require_text "src/parser/ast_print.c" "ast_print_inline("
 require_text "src/self_hosted/parser/decl_enum_owner.pgy" 'import "type_name_owner.pgy";'
-require_text "src/self_hosted/parser/decl_enum_owner.pgy" "let param_type: String = ReadType("
+require_text "src/self_hosted/parser/decl_enum_owner.pgy" "let param_type: String = ReadTypeIn("
 require_text "src/self_hosted/parser/fixture/enum_data_ast.txt" "Enum: Shape { Circle(Int), Rect(Int, Int), None }"
 require_text "src/self_hosted/parser/fixture/tagged_union_ast.txt" "Enum: Shape { Circle(Int), Rect(Int, Int), None }"
 require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumFactsMatchArtifact"
@@ -23777,7 +23777,7 @@ reject_text \
     "DirectMirScalarProgramNestedSingleArrayIntLiteralOperandRow("
 require_text \
     "tests/self_hosted/fixtures/direct_mir_populated_array_int_literal_return.pgy" \
-    'TagPair([FirstTag(), 4, 5], [SecondTag()], [local])'
+    'TagPair([FirstTag(), 4, 5], [SecondTag()], [local_tag])'
 require_text \
     "tests/self_hosted/fixtures/direct_mir_populated_array_int_literal_return.pgy" \
     'let pending: Array<Int> = [root_id]'

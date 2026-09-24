@@ -5,7 +5,7 @@ Severity: error
 Code: let_type_mismatch
 Reason: let initializer type does not match the declared local type
 Fix: change the initializer or the declared local type
-Span: none
+Span: bad_result_unwrap_assign.pgy:3:5
 Facts:
 - expected: String
 - actual: Int

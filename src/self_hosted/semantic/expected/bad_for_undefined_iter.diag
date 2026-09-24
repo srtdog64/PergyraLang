@@ -5,6 +5,6 @@ Severity: error
 Code: undefined_symbol
 Reason: identifier is used before a local binding is in scope
 Fix: declare the local before use or pass it as a parameter
-Span: none
+Span: bad_for_undefined_iter.pgy:2:5
 Facts:
 - name: nope

@@ -1,4 +1,9 @@
 // Canonical parser expression result and unclassified leaf constructor.
+//
+// An invalid fact may carry where and why the expression parser refused
+// (failure_offset / failure_code) so the statement owner that holds the
+// source context can publish one positioned diagnostic instead of the
+// expression parser stopping in silence.
 
 import "../hir/ast_expression_graph_owner.pgy";
 
@@ -7,10 +12,20 @@ struct ParserExpressionFact {
     text: String;
     root: Int;
     arena: AstExpressionArena;
+    failure_offset: Int;
+    failure_code: String;
 }
 
 func ParserExpressionInvalid() -> ParserExpressionFact {
-    return ParserExpressionFact(false, "", 0, AstExpressionArenaEmpty());
+    return ParserExpressionFact(
+        false, "", 0, AstExpressionArenaEmpty(), 0 - 1, ""
+    );
+}
+
+func ParserExpressionInvalidAt(offset: Int, code: String) -> ParserExpressionFact {
+    return ParserExpressionFact(
+        false, "", 0, AstExpressionArenaEmpty(), offset, code
+    );
 }
 
 func ParserExpressionLeaf(text: String) -> ParserExpressionFact {
@@ -21,6 +36,7 @@ func ParserExpressionLeaf(text: String) -> ParserExpressionFact {
     let right_children: Array<Int> = [0];
     return ParserExpressionFact(
         true, text, 0,
-        AstExpressionArena(kinds, texts, left_children, right_children)
+        AstExpressionArena(kinds, texts, left_children, right_children),
+        0 - 1, ""
     );
 }

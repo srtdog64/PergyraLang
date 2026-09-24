@@ -5,7 +5,7 @@ Severity: error
 Code: condition_not_bool
 Reason: branch condition must be Bool
 Fix: use a Bool expression for the condition
-Span: none
+Span: bad_condition_not_bool.pgy:2:5
 Facts:
 - expected: Bool
 - actual: Int

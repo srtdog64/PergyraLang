@@ -17,6 +17,6 @@ func LexerInvalidTokenDiagnosticPayloadForPublicBoundary(
     if !emit_json_receipt { return message; }
     return SelfHostPublicDiagnosticReceiptWireFromOwnedFacts(
         "lex", "syntax", "PGY_LEX_INVALID_TOKEN",
-        "lex:invalid_token", "remove-or-escape-character", message
+        "lex:invalid_token", "remove-or-escape-character", message, "null"
     );
 }

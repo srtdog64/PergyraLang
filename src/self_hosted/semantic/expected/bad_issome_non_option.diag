@@ -5,7 +5,7 @@ Severity: error
 Code: builtin_arg_type_mismatch
 Reason: builtin argument type does not match the builtin contract
 Fix: pass a value that satisfies the builtin signature
-Span: none
+Span: bad_issome_non_option.pgy:2:5
 Facts:
 - func: IsSome
 - expected: Option<T>

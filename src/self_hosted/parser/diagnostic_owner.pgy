@@ -83,6 +83,78 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "start the statement with a supported declaration, control word, or expression name"
         );
     }
+    if code == "block_unclosed" {
+        return ParseDiagnosticRow(
+            "the block opened here reaches the end of the file without its `}`",
+            "add the matching `}` to close the block"
+        );
+    }
+    if code == "expected_token" {
+        return ParseDiagnosticRow(
+            "a required token is missing at this position",
+            "insert the expected token or remove what stands in its place"
+        );
+    }
+    if code == "expression_invalid" {
+        return ParseDiagnosticRow(
+            "the expression starting here cannot be parsed",
+            "complete the expression or remove the stray token"
+        );
+    }
+    if code == "string_unterminated" {
+        return ParseDiagnosticRow(
+            "the string literal starting here is never closed",
+            "add the closing `\"` or escape the quote inside the string"
+        );
+    }
+    if code == "binding_name_reserved" {
+        return ParseDiagnosticRow(
+            "a reserved language word cannot name a local binding",
+            "rename the binding, for example by adding a suffix"
+        );
+    }
+    if code == "declaration_name_missing" {
+        return ParseDiagnosticRow(
+            "the declaration has no name at this position",
+            "write the declaration name after its keyword"
+        );
+    }
+    if code == "type_name_invalid" {
+        return ParseDiagnosticRow(
+            "a type name is missing or malformed at this position",
+            "write a complete type, closing every `<` with `>`"
+        );
+    }
+    if code == "int_literal_out_of_range" {
+        return ParseDiagnosticRow(
+            "Int literal is outside the signed 32-bit range",
+            "write a Long literal with the L suffix"
+        );
+    }
+    if code == "long_literal_out_of_range" {
+        return ParseDiagnosticRow(
+            "Long literal is outside the signed 64-bit range",
+            "write a value between -9223372036854775808 and 9223372036854775807"
+        );
+    }
+    if code == "statement_kind_unsupported" {
+        return ParseDiagnosticRow(
+            "the self-hosted compiler has no statement form for this expression",
+            "call a function, assign the value, or compile through --native-pipeline"
+        );
+    }
+    if code == "import_source_missing" {
+        return ParseDiagnosticRow(
+            "the imported file does not exist",
+            "fix the import path; it is relative to the importing file"
+        );
+    }
+    if code == "script_statement_with_main" {
+        return ParseDiagnosticRow(
+            "top-level statements form the program's Main, and the program also declares func Main",
+            "move the statements into func Main, or remove func Main and keep them at top level"
+        );
+    }
     return ParseDiagnosticRow(
         "the parser rejected this source",
         "check the reported source position"
@@ -113,9 +185,24 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
         code == "callable_contract_unknown_name" ||
         code == "callable_contract_exclusive_effect" ||
         code == "expression_statement_terminator" ||
-        code == "statement_head_unexpected_token" {
+        code == "statement_head_unexpected_token" ||
+        code == "block_unclosed" || code == "expected_token" ||
+        code == "expression_invalid" || code == "binding_name_reserved" ||
+        code == "declaration_name_missing" || code == "type_name_invalid" ||
+        code == "import_source_missing" ||
+        code == "statement_kind_unsupported" ||
+        code == "int_literal_out_of_range" ||
+        code == "long_literal_out_of_range" ||
+        code == "script_statement_with_main" {
         return ParsePublicDiagnosticIdentity(
             true, "PGY_PARSE_SYNTAX", "parse:unexpected_token", "check-syntax"
+        );
+    }
+    // Native reports an unclosed string from its lexer; keep that identity.
+    if code == "string_unterminated" {
+        return ParsePublicDiagnosticIdentity(
+            true, "PGY_LEX_INVALID_TOKEN", "lex:invalid_token",
+            "remove-or-escape-character"
         );
     }
     return ParsePublicDiagnosticIdentity(false, "", "", "");
@@ -127,11 +214,31 @@ func ParseDiagnosticPayload2(
     k1: String, v1: String,
     k2: String, v2: String
 ) -> String {
+    return ParseDiagnosticPayloadAt2(projection, code, "", 0, 0, k1, v1, k2, v2);
+}
+
+// The parser cursor owned `file:line:column` when it refused, so text
+// carries it in `Span:` and JSON in `location`; an unknown position is
+// `none` / `null`.
+func ParseDiagnosticPayloadAt2(
+    projection: ParseDiagnosticProjection,
+    code: String,
+    file: String, line: Int, column: Int,
+    k1: String, v1: String,
+    k2: String, v2: String
+) -> String {
     let row: ParseDiagnosticRow = ParseDiagnosticRowForCode(code);
+    let span: String = "none";
+    if file != "" && line >= 1 && column >= 1 {
+        span = Concat(file, Concat(":", Concat(ToString(line),
+            Concat(":", ToString(column)))));
+    }
+    // An unused fact pair (empty key) is left out rather than printed as `- : `.
+    let facts: String = SelfHostDiagnostic.Fact2(k1, v1, k2, v2);
+    if k2 == "" { facts = SelfHostDiagnostic.Fact1(k1, v1); }
     let text: String = SelfHostDiagnostic.RenderError(
         ParseDiagnosticSchema(), "parse", "error",
-        code, row.reason, row.fix, "none",
-        SelfHostDiagnostic.Fact2(k1, v1, k2, v2)
+        code, row.reason, row.fix, span, facts
     );
     if !ParseDiagnosticProjectionPublishesPublicJson(projection) {
         return text;
@@ -145,7 +252,8 @@ func ParseDiagnosticPayload2(
     }
     return SelfHostPublicDiagnosticReceiptWireFromOwnedFacts(
         "parse", "syntax", identity.code, identity.cause_ir,
-        identity.fix_source, text
+        identity.fix_source, text,
+        SelfHostDiagnostic.LocationJson(file, line, column)
     );
 }
 
@@ -167,29 +275,6 @@ func ParseDiagnosticReportContractName(
     ParseDiagnosticReport2(
         projection, code,
         "axis", ParseDiagnosticAxisLabel(axis), "name", name
-    );
-}
-
-func ParseDiagnosticReportExpressionStatementTerminator(
-    projection: ParseDiagnosticProjection,
-    source_offset: Int
-) -> Void {
-    ParseDiagnosticReport2(
-        projection, "expression_statement_terminator",
-        "construct", "expression_statement",
-        "source_offset", ToString(source_offset)
-    );
-}
-
-func ParseDiagnosticReportPublicStatementHeadUnexpectedToken(
-    projection: ParseDiagnosticProjection,
-    source_offset: Int
-) -> Void {
-    if !ParseDiagnosticProjectionPublishesPublicJson(projection) { return; }
-    ParseDiagnosticReport2(
-        projection, "statement_head_unexpected_token",
-        "construct", "statement",
-        "source_offset", ToString(source_offset)
     );
 }
 

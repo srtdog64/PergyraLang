@@ -1,0 +1,58 @@
+// Builtin call-signature display for call refusals.
+//
+// A builtin has no declaration the user can open, so an arity or argument
+// refusal against one names its whole registry signature. The row must be
+// the one the call resolved against (same parameter list); a user function
+// that shadows the builtin keeps its own facts.
+
+import "builtin_signature_owner.pgy";
+
+func SemanticBuiltinCallSignatureDisplay(
+    callee: String, resolved_params: String
+) -> Option<String> {
+    let rows: Array<String> = SemanticBuiltinSignatureRows();
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        let parts: Array<String> = Split(rows[i], "^");
+        if ArrayLength(parts) == 3 && parts[0] == callee {
+            let params: String = parts[2];
+            if params == "none" { params = ""; }
+            if params != resolved_params { return None; }
+            let shown: String = "";
+            if params != "" {
+                let names: Array<String> = Split(params, "|");
+                let p: Int = 0;
+                while p < ArrayLength(names) {
+                    // The registry's Unknown parameter accepts any type.
+                    let param_type: String = names[p];
+                    if param_type == "Unknown" { param_type = "any"; }
+                    if p > 0 { shown = Concat(shown, ", "); }
+                    shown = Concat(shown, param_type);
+                    p = p + 1;
+                }
+            }
+            let result_type: String = parts[1];
+            if result_type == "Unknown" { result_type = "any"; }
+            return Some(Concat(callee, Concat("(", Concat(shown, Concat(") -> ", result_type)))));
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+// One owner renders every general-call arity/argument refusal, so both
+// self-host checkers attach the same `signature` fact to a builtin call.
+func SemanticCallSignatureRefusal(
+    code: String, callee: String, resolved_params: String,
+    k2: String, v2: String, k3: String, v3: String
+) -> String {
+    let display: Option<String> =
+        SemanticBuiltinCallSignatureDisplay(callee, resolved_params);
+    if !IsSome(display) {
+        return SemanticError3(code, "func", callee, k2, v2, k3, v3);
+    }
+    return SemanticErrorWithFacts(code, Concat(
+        SelfHostDiagnostic_Fact3("func", callee, k2, v2, k3, v3),
+        Concat("\n", SelfHostDiagnostic_Fact1("signature", UnwrapOption(display)))
+    ));
+}

@@ -5,7 +5,7 @@ Severity: error
 Code: value_param_collection_mutation
 Reason: caller-visible collection mutation requires an explicit inout boundary
 Fix: spell the parameter as inout or mutate a local collection and return it
-Span: none
+Span: bad_value_param_arraypush.pgy:2:5
 Facts:
 - func: ArrayPush
 - param: xs

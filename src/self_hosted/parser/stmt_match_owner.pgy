@@ -28,23 +28,20 @@ func ParseMatchStmt(
     let scrutinee: ParserExpressionFact = ParseExprFact(
         content, i, cursor_out
     );
-    if !scrutinee.ok { Exit(1); }
+    if !scrutinee.ok { ParseExpressionRefuse(location_context, scrutinee, i, "statement"); }
     ParserExpressionGraphsAppendInto(
         expression_graphs, TypedAstKindMatchStmtTag(),
         AstExpressionLaneAtom(), scrutinee
     );
     let scrut: String = scrutinee.text;
     i = cursor_out[0];
-    i = Expect(content, i, "{");
-    if i < 0 {
-        Exit(1);
-    }
+    i = ParseExpectIn(location_context, content, i, "{", "statement");
     let out: String = Concat(IndentStr(stmt_indent), Concat("Match: ", scrut));
     let n_m: Int = StringLength(content);
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n_m {
-            Exit(1);
+            ParseRefuse(location_context, i, "block_unclosed", "construct", "statement", "source_offset", ToString(i));
         }
         if ParserCharAt(content, i) == "}" {
             i = i + 1;
@@ -58,30 +55,24 @@ func ParseMatchStmt(
             let case_pattern: ParserExpressionFact = ParseExprFact(
                 content, i, cursor_out
             );
-            if !case_pattern.ok { Exit(1); }
+            if !case_pattern.ok { ParseExpressionRefuse(location_context, case_pattern, i, "statement"); }
             case_label = case_pattern.text;
             i = cursor_out[0];
-            i = Expect(content, i, ":");
-            if i < 0 {
-                Exit(1);
-            }
+            i = ParseExpectIn(location_context, content, i, ":", "statement");
             out = AppendLine(out, Concat(IndentStr(stmt_indent + 2), Concat("Case: ", case_label)));
         } else if MatchLanguageWord(content, i, LanguageWordId.WordDefault) {
             i = LanguageWordEnd(i, LanguageWordId.WordDefault);
             i = SkipWhitespaceAndComments(content, i);
-            i = Expect(content, i, ":");
-            if i < 0 {
-                Exit(1);
-            }
+            i = ParseExpectIn(location_context, content, i, ":", "statement");
             out = AppendLine(out, Concat(IndentStr(stmt_indent + 2), "Default:"));
         } else {
-            Exit(1);
+            ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
         }
         out = AppendLine(out, Concat(IndentStr(stmt_indent + 4), "Block:"));
         while true {
             i = SkipWhitespaceAndComments(content, i);
             if i >= n_m {
-                Exit(1);
+                ParseRefuse(location_context, i, "block_unclosed", "construct", "statement", "source_offset", ToString(i));
             }
             if ParserCharAt(content, i) == "}" || MatchLanguageWord(content, i, LanguageWordId.WordCase) || MatchLanguageWord(content, i, LanguageWordId.WordDefault) {
                 break;

@@ -5,7 +5,7 @@ Severity: error
 Code: assign_type_mismatch
 Reason: assigned expression type does not match the local type
 Fix: assign a value that matches the local type
-Span: none
+Span: bad_assign_type.pgy:3:5
 Facts:
 - expected: Int
 - actual: String

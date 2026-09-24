@@ -8,6 +8,8 @@
 // Do not hand-build diagnostic strings in each tool. A tool may own its
 // domain-specific code/reason/fix table, but the output shape belongs here.
 
+import "json_emit.pgy";
+
 namespace SelfHostDiagnostic {
     export func Fact1(k1: String, v1: String) -> String {
         return "- ${k1}: ${v1}";
@@ -27,5 +29,27 @@ namespace SelfHostDiagnostic {
 
     export func RenderError(schema: String, stage: String, severity: String, code: String, reason: String, fix: String, span: String, facts: String) -> String {
         return "Diagnostic: ${schema}\nStatus: error\nStage: ${stage}\nSeverity: ${severity}\nCode: ${code}\nReason: ${reason}\nFix: ${fix}\nSpan: ${span}\nFacts:\n${facts}";
+    }
+
+    // The `location` of a public receipt: display file, 1-based line and
+    // column. A missing position renders as `null` and is never guessed.
+    export func LocationJson(file: String, line: Int, column: Int) -> String {
+        if line < 1 || column < 1 || file == "" { return "null"; }
+        return JsonEmitObject([JsonEmitFieldString("file", file),
+            JsonEmitFieldNumber("line", ToString(line)),
+            JsonEmitFieldNumber("column", ToString(column))]);
+    }
+
+    // A checker renders before the publishing boundary knows the construct's
+    // position; the boundary fills the one `Span:` slot this renderer owns.
+    // A block without an unfilled slot is returned unchanged.
+    export func WithSpan(rendered: String, span: String) -> String {
+        let slot: String = "\nSpan: none\n";
+        let at: Int = StringIndexOf(rendered, slot);
+        if at < 0 || span == "" || span == "none" { return rendered; }
+        let tail_start: Int = at + StringLength(slot);
+        return Concat(Substring(rendered, 0, at), Concat("\nSpan: ",
+            Concat(span, Concat("\n", Substring(rendered, tail_start,
+                StringLength(rendered) - tail_start)))));
     }
 }

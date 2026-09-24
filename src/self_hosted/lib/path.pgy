@@ -83,4 +83,19 @@ namespace SelfHostPath {
         }
         return JoinRelativePath(dir, path);
     }
+
+    // Display spelling of a source path for diagnostics: relative to the
+    // entry file's directory when the path lies under it, else unchanged.
+    // Identity (import dedup, module provenance) keeps the full path.
+    export func RelativeToDirectory(path: String, dir: String) -> String {
+        let dir_length: Int = StringLength(dir);
+        if dir_length == 0 || StringLength(path) <= dir_length + 1 {
+            return path;
+        }
+        if Substring(path, 0, dir_length) != dir ||
+            PathCharAt(path, dir_length) != "/" {
+            return path;
+        }
+        return Substring(path, dir_length + 1, StringLength(path) - dir_length - 1);
+    }
 }

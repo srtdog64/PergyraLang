@@ -95,7 +95,10 @@ compare_semantic_verdict_with_owner() {
     local expected_rel
     local actual_rel
 
-    pgy_selfhost_normalize_text_artifact < "$expected_file" > "$expected_norm"
+    # The goldens carry the installed driver's span; this text-scan checker
+    # has no source positions, so it is compared with the span slot empty.
+    pgy_selfhost_normalize_text_artifact < "$expected_file" |
+        sed -E 's/^Span: .+$/Span: none/' > "$expected_norm"
     printf '%s' "$actual_text" | pgy_selfhost_normalize_text_artifact > "$actual_norm"
     expected_rel="$(pgy_selfhost_path_relative_to_root "$expected_norm")"
     actual_rel="$(pgy_selfhost_path_relative_to_root "$actual_norm")"

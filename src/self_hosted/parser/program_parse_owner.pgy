@@ -19,8 +19,10 @@ struct ParserProgramBuild {
     source_location_kinds: Array<Int>;
     source_location_paths: Array<String>;
     source_location_lines: Array<Int>;
+    source_location_columns: Array<Int>;
     source_location_offsets: Array<Int>;
     source_location_callable_names: Array<String>;
+    source_display_root: String;
 }
 
 func ParserProgramBuildSourceLocationRowsReady(
@@ -29,6 +31,7 @@ func ParserProgramBuildSourceLocationRowsReady(
     let count: Int = ArrayLength(build.source_location_kinds);
     if count == 0 || ArrayLength(build.source_location_paths) != count ||
         ArrayLength(build.source_location_lines) != count ||
+        ArrayLength(build.source_location_columns) != count ||
         ArrayLength(build.source_location_offsets) != count ||
         ArrayLength(build.source_location_callable_names) != count {
         return false;
@@ -76,7 +79,7 @@ func ParseProgramBuildContentWithImportPolicyObserved(
     let source_locations: Array<ParserSourceLocationObservation> = [];
     if observe_phases { Log("Phase: declaration-composition:start"); }
     let decls: String = ParseDecls(
-        content, i, cursor, "", false, src_dir, source_path, false,
+        content, i, cursor, "", false, src_dir, source_path, src_dir, false,
         follow_imports, admit_format_surfaces, diagnostic_projection,
         "", involve_types,
         import_paths, expression_graphs,
@@ -86,7 +89,7 @@ func ParseProgramBuildContentWithImportPolicyObserved(
         let io_error_cursor: Array<Int> = [0];
         let io_error_decls: String = ParseDecls(
             ParserIoErrorEnumSource(), 0, io_error_cursor, "", false,
-            src_dir, source_path, false, false, admit_format_surfaces,
+            src_dir, source_path, src_dir, false, false, admit_format_surfaces,
             diagnostic_projection, "", involve_types, import_paths,
             expression_graphs, source_locations, declaration_module_paths
         );
@@ -116,6 +119,7 @@ func ParseProgramBuildContentWithImportPolicyObserved(
     let source_location_kinds: Array<Int> = [];
     let source_location_paths: Array<String> = [];
     let source_location_lines: Array<Int> = [];
+    let source_location_columns: Array<Int> = [];
     let source_location_offsets: Array<Int> = [];
     let source_location_callable_names: Array<String> = [];
     let source_location_row: Int = 0;
@@ -125,6 +129,7 @@ func ParseProgramBuildContentWithImportPolicyObserved(
         ArrayPush(source_location_kinds, source_location.kind);
         ArrayPush(source_location_paths, source_location.source_path);
         ArrayPush(source_location_lines, source_location.source_line);
+        ArrayPush(source_location_columns, source_location.source_column);
         ArrayPush(source_location_offsets, source_location.source_offset);
         ArrayPush(
             source_location_callable_names, source_location.callable_name
@@ -144,7 +149,8 @@ func ParseProgramBuildContentWithImportPolicyObserved(
             Concat(empty_program, "\n"), composed_rows,
             declaration_module_paths, source_location_kinds,
             source_location_paths, source_location_lines,
-            source_location_offsets, source_location_callable_names
+            source_location_columns, source_location_offsets,
+            source_location_callable_names, src_dir
         );
     }
     let program_text: String = Concat("Program:\n", decls);
@@ -152,7 +158,8 @@ func ParseProgramBuildContentWithImportPolicyObserved(
         Concat(program_text, "\n"), composed_rows,
         declaration_module_paths, source_location_kinds,
         source_location_paths, source_location_lines,
-        source_location_offsets, source_location_callable_names
+        source_location_columns, source_location_offsets,
+        source_location_callable_names, src_dir
     );
 }
 
@@ -249,7 +256,35 @@ func ParserProgramArtifactFromBuild(
     );
     let owner_bound: AstTreeArtifact =
         AstTreeArtifactBindExpressionOwnerKinds(typed);
-    return AstTreeArtifactBindDestructurePayloads(owner_bound);
+    return ParserProgramArtifactWithLocations(
+        AstTreeArtifactBindDestructurePayloads(owner_bound), build
+    );
+}
+
+// The parser rows name statement kinds as their owners bind them, so the
+// join runs on the final arena. Positions are a projection of the admitted
+// tree: a row set that does not join leaves every position unknown (spans
+// print `none`) instead of refusing a tree the parser admitted. The
+// debugger requires known positions and still refuses such a tree.
+// Positions stay outside the identity digest.
+func ParserProgramArtifactWithLocations(
+    artifact: AstTreeArtifact, build: ParserProgramBuild
+) -> AstTreeArtifact {
+    let locations: AstSourceLocationFacts = AstSourceLocationFactsFromParserRows(
+        artifact.arena, artifact.count, build.source_location_kinds,
+        build.source_location_paths, build.source_location_lines,
+        build.source_location_columns, build.source_location_callable_names,
+        build.source_display_root
+    );
+    if !locations.ok { locations = AstSourceLocationFactsUnknown(); }
+    let modules: AstSourceModuleFacts = artifact.source_modules;
+    return AstTreeArtifact(
+        artifact.tree_text, artifact.arena, artifact.count,
+        artifact.expression_graphs,
+        AstSourceModuleFacts(modules.ok, modules.known,
+            modules.declaration_node_ids, modules.module_paths, locations),
+        artifact.identity_digest
+    );
 }
 
 func ParseRootProgramArtifact(source_path: String) -> AstTreeArtifact {

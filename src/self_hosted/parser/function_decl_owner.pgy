@@ -140,7 +140,8 @@ func ParseFunctionObserved(
     let fn_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if StringLength(fn_name) == 0 {
-        Exit(1);
+        ParseRefuse(location_context, i, "declaration_name_missing",
+            "construct", "function", "source_offset", ToString(i));
     }
     ParserSourceLocationCommit(
         function_slot, TypedAstKindFuncDeclTag(),
@@ -153,10 +154,7 @@ func ParseFunctionObserved(
         content, i, cursor_out
     );
     i = cursor_out[0];
-    i = Expect(content, i, "(");
-    if i < 0 {
-        Exit(1);
-    }
+    i = ParseExpectIn(location_context, content, i, "(", "function");
     let param_lines: Array<String> = [];
     i = SkipWhitespaceAndComments(content, i);
     if ParserCharAt(content, i) != ")" {
@@ -184,7 +182,8 @@ func ParseFunctionObserved(
             let p_name: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             if StringLength(p_name) == 0 {
-                Exit(1);
+                ParseRefuse(location_context, i, "declaration_name_missing",
+                    "construct", "parameter", "source_offset", ToString(i));
             }
             // `self` parameter has no `: TYPE` annotation. Emit a bare
             // `self` row when the name is `self` and the next char is
@@ -199,15 +198,13 @@ func ParseFunctionObserved(
                 }
                 break;
             }
-            i = Expect(content, i, ":");
-            if i < 0 {
-                Exit(1);
-            }
+            i = ParseExpectIn(location_context, content, i, ":", "function");
             ArraySet(cursor_out, 0, i);
-            let p_type: String = ReadType(content, i, cursor_out);
+            let p_type: String = ReadTypeIn(location_context, content, i, cursor_out);
             i = cursor_out[0];
             if StringLength(p_type) == 0 {
-                Exit(1);
+                ParseRefuse(location_context, i, "type_name_invalid",
+                    "construct", "parameter", "name", p_name);
             }
             ArrayPush(param_lines, Concat(IndentStr(base_indent + 4), Concat(param_mode_prefix, Concat(p_name, Concat(": ", p_type)))));
             i = SkipWhitespaceAndComments(content, i);
@@ -218,10 +215,7 @@ func ParseFunctionObserved(
             break;
         }
     }
-    i = Expect(content, i, ")");
-    if i < 0 {
-        Exit(1);
-    }
+    i = ParseExpectIn(location_context, content, i, ")", "function");
     let signature_done: Bool = false;
     if is_signature {
         let sig_probe: Int = i;
@@ -229,10 +223,7 @@ func ParseFunctionObserved(
             sig_probe = sig_probe + 1;
         }
         if ParserCharAt(content, sig_probe) == "\n" || ParserCharAt(content, sig_probe) == ";" || ParserCharAt(content, sig_probe) == "}" {
-            i = ConsumeStmtTerminator(content, i);
-            if i < 0 {
-                Exit(1);
-            }
+            i = ParseStatementTerminatorIn(location_context, content, i, "function");
             signature_done = true;
         }
     }
@@ -257,8 +248,12 @@ func ParseFunctionObserved(
         i = i + 2;
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
-        ret_type = ReadType(content, i, cursor_out);
+        ret_type = ReadTypeIn(location_context, content, i, cursor_out);
         i = cursor_out[0];
+        if ret_type == "" {
+            ParseRefuse(location_context, i, "type_name_invalid",
+                "construct", "return_type", "name", fn_name);
+        }
     }
     if is_signature {
         let ret_term_probe: Int = i;
@@ -266,10 +261,7 @@ func ParseFunctionObserved(
             ret_term_probe = ret_term_probe + 1;
         }
         if ParserCharAt(content, ret_term_probe) == "\n" || ParserCharAt(content, ret_term_probe) == ";" || ParserCharAt(content, ret_term_probe) == "}" {
-            i = ConsumeStmtTerminator(content, i);
-            if i < 0 {
-                Exit(1);
-            }
+            i = ParseStatementTerminatorIn(location_context, content, i, "function");
             signature_done = true;
         }
     }
@@ -282,7 +274,7 @@ func ParseFunctionObserved(
             i = LanguageWordEnd(i, LanguageWordId.WordRequires);
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
-            req_type = ReadType(content, i, cursor_out);
+            req_type = ReadTypeIn(location_context, content, i, cursor_out);
             i = cursor_out[0];
             while true {
                 i = SkipWhitespaceAndComments(content, i);
@@ -290,7 +282,7 @@ func ParseFunctionObserved(
                     i = i + 1;
                     i = SkipWhitespaceAndComments(content, i);
                     ArraySet(cursor_out, 0, i);
-                    let next_req: String = ReadType(content, i, cursor_out);
+                    let next_req: String = ReadTypeIn(location_context, content, i, cursor_out);
                     i = cursor_out[0];
                     req_type = Concat(req_type, Concat(", ", next_req));
                     continue;
@@ -416,10 +408,7 @@ func ParseFunctionObserved(
         // Ability function signatures can end at `;` or a member-boundary
         // newline; both print as signature rows with no body.
         if !signature_done {
-            i = ConsumeStmtTerminator(content, i);
-            if i < 0 {
-                Exit(1);
-            }
+            i = ParseStatementTerminatorIn(location_context, content, i, "function");
         }
     } else {
         ArraySet(cursor_out, 0, i);
@@ -507,14 +496,16 @@ func ParseFunction(
     is_signature: Bool,
     within_zone_arg: String,
     inout expression_graphs: Array<AstExpressionGraphRows>,
-    diagnostic_projection: ParseDiagnosticProjection
+    location_context: ParserSourceLocationContext
 ) -> String {
+    // Member bodies keep refusal positions but record no observation rows,
+    // so the preorder join of top-level rows stays exact.
     let context: ParserSourceLocationContext =
-        ParserSourceLocationContextUnknown();
+        ParserSourceLocationContextWithoutObservation(location_context);
     let locations: Array<ParserSourceLocationObservation> = [];
     return ParseFunctionObserved(
         content, start, cursor_out, name_prefix, is_export, base_indent,
         fn_keyword, fn_label, is_signature, within_zone_arg,
-        expression_graphs, context, locations, diagnostic_projection
+        expression_graphs, context, locations, location_context.projection
     );
 }

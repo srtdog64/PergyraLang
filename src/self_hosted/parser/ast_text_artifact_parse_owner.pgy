@@ -41,7 +41,7 @@ func ParserSerializedExpressionFact(text: String) -> ParserExpressionFact {
         // the carried lane without reparsing it.
         ArraySet(parsed.arena.node_texts, parsed.root, expression);
         return ParserExpressionFact(
-            true, expression, parsed.root, parsed.arena
+            true, expression, parsed.root, parsed.arena, 0 - 1, ""
         );
     }
     return ParserExpressionInvalid();

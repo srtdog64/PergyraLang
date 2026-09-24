@@ -10,7 +10,8 @@ func ParserExpressionSetLiteral(text: String) -> ParserExpressionFact {
     let right_children: Array<Int> = [0];
     return ParserExpressionFact(
         true, text, 0,
-        AstExpressionArena(kinds, texts, left_children, right_children)
+        AstExpressionArena(kinds, texts, left_children, right_children),
+        0 - 1, ""
     );
 }
 

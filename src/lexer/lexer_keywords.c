@@ -45,8 +45,8 @@ lexer_language_word_row(PgyLanguageWordId word_id)
     return &kLanguageKeywordRegistry[index];
 }
 
-const char *
-lexer_keyword_debug_name(PgyTokenType type)
+const PgyLanguageKeywordRow *
+lexer_reserved_keyword_row(PgyTokenType type)
 {
     size_t row = 0;
     size_t count = lexer_keyword_registry_count();
@@ -55,10 +55,18 @@ lexer_keyword_debug_name(PgyTokenType type)
         if (kLanguageKeywordRegistry[row].keyword_class ==
                 PGY_KEYWORD_CLASS_RESERVED &&
             kLanguageKeywordRegistry[row].token_type == type)
-            return kLanguageKeywordRegistry[row].debug_identity;
+            return &kLanguageKeywordRegistry[row];
         row++;
     }
     return NULL;
+}
+
+const char *
+lexer_keyword_debug_name(PgyTokenType type)
+{
+    const PgyLanguageKeywordRow *row = lexer_reserved_keyword_row(type);
+
+    return row != NULL ? row->debug_identity : NULL;
 }
 
 static int

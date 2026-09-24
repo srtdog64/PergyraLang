@@ -48,7 +48,7 @@ func ParsePrimaryFact(
                 i = i + 1;
             }
             if pipe_pat_depth != 0 {
-                Exit(1);
+                return ParserExpressionInvalidAt(i, "expected_token");
             }
             lam_params = "<node:26>";
         } else {
@@ -58,7 +58,7 @@ func ParsePrimaryFact(
                 let pipe_name: String = ReadIdent(content, i, cursor_out);
                 i = cursor_out[0];
                 if StringLength(pipe_name) == 0 {
-                    Exit(1);
+                    return ParserExpressionInvalidAt(i, "expected_token");
                 }
                 if StringLength(lam_params) == 0 {
                     lam_params = pipe_name;
@@ -75,7 +75,7 @@ func ParsePrimaryFact(
         }
         i = SkipWhitespaceAndComments(content, i);
         if ParserCharAt(content, i) != "|" {
-            Exit(1);
+            return ParserExpressionInvalidAt(i, "expected_token");
         }
         i = i + 1;
         i = SkipWhitespaceAndComments(content, i);
@@ -91,7 +91,7 @@ func ParsePrimaryFact(
                 i = i + 1;
             }
             if pipe_body_depth != 0 {
-                Exit(1);
+                return ParserExpressionInvalidAt(i, "block_unclosed");
             }
         } else {
             ArraySet(cursor_out, 0, i);
@@ -161,7 +161,7 @@ func ParsePrimaryFact(
                     let lp_name: String = ReadIdent(content, i, cursor_out);
                     i = cursor_out[0];
                     if StringLength(lp_name) == 0 {
-                        Exit(1);
+                        return ParserExpressionInvalidAt(i, "expected_token");
                     }
                     let pair_text: String = lp_name;
                     let after_lp_name: Int = SkipWhitespaceAndComments(content, i);
@@ -171,7 +171,7 @@ func ParsePrimaryFact(
                         let lp_type: String = ReadType(content, i, cursor_out);
                         i = cursor_out[0];
                         if StringLength(lp_type) == 0 {
-                            Exit(1);
+                            return ParserExpressionInvalidAt(i, "type_name_invalid");
                         }
                         pair_text = Concat("let ", Concat(lp_name, Concat(": ", lp_type)));
                     } else {
@@ -190,13 +190,14 @@ func ParsePrimaryFact(
                     break;
                 }
             }
-            i = Expect(content, i, ")");
-            if i < 0 {
-                Exit(1);
+            let lambda_close: Option<Int> = ExpectOpt(content, i, ")");
+            if !IsSome(lambda_close) {
+                return ParserExpressionInvalidAt(
+                    SkipWhitespaceAndComments(content, i), "expected_token");
             }
-            i = SkipWhitespaceAndComments(content, i);
+            i = SkipWhitespaceAndComments(content, UnwrapOption(lambda_close));
             if ParserCharAt(content, i) != "=" || ParserCharAt(content, i + 1) != ">" {
-                Exit(1);
+                return ParserExpressionInvalidAt(i, "expected_token");
             }
             i = i + 2;
             i = SkipWhitespaceAndComments(content, i);
@@ -260,7 +261,7 @@ func ParsePrimaryFact(
                     tuple_probe = tuple_probe + 1;
                 }
                 if tuple_depth != 0 {
-                    Exit(1);
+                    return ParserExpressionInvalidAt(i, "expected_token");
                 }
                 if is_tuple_lit {
                     i = tuple_probe;
@@ -268,14 +269,17 @@ func ParsePrimaryFact(
                 } else {
                     i = i + 1;
                     grouped = ParseExprFact(content, i, cursor_out);
-                    if !grouped.ok { Exit(1); }
+                    if !grouped.ok { return grouped; }
                     base = grouped.text;
                     preserves_grouped_graph = true;
                     i = cursor_out[0];
-                    i = Expect(content, i, ")");
-                    if i < 0 {
-                        Exit(1);
+                    let group_close: Option<Int> = ExpectOpt(content, i, ")");
+                    if !IsSome(group_close) {
+                        return ParserExpressionInvalidAt(
+                            SkipWhitespaceAndComments(content, i),
+                            "expected_token");
                     }
+                    i = UnwrapOption(group_close);
                 }
             }
         }
@@ -286,14 +290,18 @@ func ParsePrimaryFact(
         // check precedes the identifier branch so `f"` is not read as a name.
         let raw_interp: String = ReadString(content, i + 1, cursor_out);
         interpolation = ParseDollarStringInterpolationFact(raw_interp);
-        if !interpolation.ok { Exit(1); }
+        if !interpolation.ok {
+            return ParserExpressionStringRefusal(content, i, cursor_out[0]);
+        }
         base = interpolation.text;
         preserves_interpolation_graph = true;
         i = cursor_out[0];
     } else if c == "\"" {
         let raw_str: String = ReadString(content, i, cursor_out);
         interpolation = ParseStringInterpolationFact(raw_str);
-        if !interpolation.ok { Exit(1); }
+        if !interpolation.ok {
+            return ParserExpressionStringRefusal(content, i, cursor_out[0]);
+        }
         base = interpolation.text;
         preserves_interpolation_graph = true;
         i = cursor_out[0];
@@ -310,20 +318,14 @@ func ParsePrimaryFact(
             ParserCharAt(content, i) == "L";
         preserves_integer_literal_fact = !preserves_float_literal_fact &&
             !preserves_long_literal_fact;
-        // The literal must fit its type; native refuses with these words.
+        // The literal must fit its type; the codes' reasons carry native's words.
         if preserves_integer_literal_fact &&
             !AstExpressionIntegerLiteralPayloadReady(base) {
-            Fail(
-                "Int literal is outside the signed 32-bit range; write a Long literal with the L suffix",
-                content, number_start
-            );
+            return ParserExpressionInvalidAt(number_start, "int_literal_out_of_range");
         }
         if preserves_long_literal_fact &&
             !AstExpressionLongLiteralPayloadReady(Concat(base, "L")) {
-            Fail(
-                "Long literal is outside the signed 64-bit range",
-                content, number_start
-            );
+            return ParserExpressionInvalidAt(number_start, "long_literal_out_of_range");
         }
         while IsAlpha(ParserCharAt(content, i)) {
             i = i + 1;
@@ -348,7 +350,7 @@ func ParsePrimaryFact(
                     i = i + 1;
                 }
                 if pexpr_depth != 0 {
-                    Exit(1);
+                    return ParserExpressionInvalidAt(i, "expected_token");
                 }
             }
             i = SkipWhitespaceAndComments(content, i);
@@ -369,7 +371,7 @@ func ParsePrimaryFact(
                     i = i + 1;
                 }
                 if pbody_depth != 0 {
-                    Exit(1);
+                    return ParserExpressionInvalidAt(i, "block_unclosed");
                 }
                 base = "parallel {...}";
                 ArraySet(cursor_out, 0, i);
@@ -389,7 +391,7 @@ func ParsePrimaryFact(
                     i = i + 1;
                 }
                 if async_depth != 0 {
-                    Exit(1);
+                    return ParserExpressionInvalidAt(i, "block_unclosed");
                 }
                 base = "parallel {...}";
                 ArraySet(cursor_out, 0, i);
@@ -415,7 +417,7 @@ func ParsePrimaryFact(
                 let element: ParserExpressionFact = ParseExprFact(
                     content, i, cursor_out
                 );
-                if !element.ok { Exit(1); }
+                if !element.ok { return element; }
                 i = cursor_out[0];
                 if StringLength(elems) == 0 {
                     elems = element.text;
@@ -426,7 +428,7 @@ func ParsePrimaryFact(
                     Concat("[", Concat(elems, "]")),
                     array_literal, element
                 );
-                if !array_literal.ok { Exit(1); }
+                if !array_literal.ok { return array_literal; }
                 i = SkipWhitespaceAndComments(content, i);
                 if ParserCharAt(content, i) == "," {
                     i = i + 1;
@@ -435,10 +437,12 @@ func ParsePrimaryFact(
                 break;
             }
         }
-        i = Expect(content, i, "]");
-        if i < 0 {
-            Exit(1);
+        let array_close: Option<Int> = ExpectOpt(content, i, "]");
+        if !IsSome(array_close) {
+            return ParserExpressionInvalidAt(
+                SkipWhitespaceAndComments(content, i), "expected_token");
         }
+        i = UnwrapOption(array_close);
         base = array_literal.text;
         preserves_array_literal_graph = true;
     } else if c == "{" {
@@ -454,7 +458,7 @@ func ParsePrimaryFact(
                 let element: ParserExpressionFact = ParseExprFact(
                     content, i, cursor_out
                 );
-                if !element.ok { Exit(1); }
+                if !element.ok { return element; }
                 i = cursor_out[0];
                 if StringLength(elems) == 0 {
                     elems = element.text;
@@ -465,7 +469,7 @@ func ParsePrimaryFact(
                     Concat("{", Concat(elems, "}")),
                     set_literal, element
                 );
-                if !set_literal.ok { Exit(1); }
+                if !set_literal.ok { return set_literal; }
                 i = SkipWhitespaceAndComments(content, i);
                 if ParserCharAt(content, i) == "," {
                     i = i + 1;
@@ -474,12 +478,17 @@ func ParsePrimaryFact(
                 break;
             }
         }
-        i = Expect(content, i, "}");
-        if i < 0 { Exit(1); }
+        let set_close: Option<Int> = ExpectOpt(content, i, "}");
+        if !IsSome(set_close) {
+            return ParserExpressionInvalidAt(
+                SkipWhitespaceAndComments(content, i), "expected_token");
+        }
+        i = UnwrapOption(set_close);
         base = set_literal.text;
         preserves_set_literal_graph = true;
     } else {
-        Exit(1);
+        // No primary expression begins with this token.
+        return ParserExpressionInvalidAt(i, "expression_invalid");
     }
 
     let base_fact: ParserExpressionFact = ParserExpressionLeaf(base);

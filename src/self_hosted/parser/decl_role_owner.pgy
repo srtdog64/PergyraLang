@@ -14,7 +14,7 @@ func ParseRoleDecl(
     decl_prefix: String,
     within_zone: String,
     inout expression_graphs: Array<AstExpressionGraphRows>,
-    diagnostic_projection: ParseDiagnosticProjection
+    location_context: ParserSourceLocationContext
 ) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
@@ -85,7 +85,7 @@ func ParseRoleDecl(
             ArraySet(cursor_out, 0, i);
             let compact_m: String = ParseFunction(
                 content, i, cursor_out, "", false, 6, "func", "Function: ",
-                false, within_zone, expression_graphs, diagnostic_projection
+                false, within_zone, expression_graphs, location_context
             );
             i = cursor_out[0];
             impl_blocks = AppendLine(impl_blocks, "    Impl ability: (null)");
@@ -101,7 +101,7 @@ func ParseRoleDecl(
             ArraySet(cursor_out, 0, i);
             let override_method: String = ParseFunction(
                 content, i, cursor_out, "", false, 6, "func", "Function: ",
-                false, within_zone, expression_graphs, diagnostic_projection
+                false, within_zone, expression_graphs, location_context
             );
             i = cursor_out[0];
             impl_blocks = AppendLine(impl_blocks, "    Override");
@@ -143,7 +143,7 @@ func ParseRoleDecl(
             ArraySet(cursor_out, 0, i);
             let m_block: String = ParseFunction(
                 content, i, cursor_out, "", false, 6, "func", "Function: ",
-                false, within_zone, expression_graphs, diagnostic_projection
+                false, within_zone, expression_graphs, location_context
             );
             i = cursor_out[0];
             impl_methods = AppendLine(impl_methods, m_block);

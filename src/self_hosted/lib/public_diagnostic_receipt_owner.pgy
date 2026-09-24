@@ -2,7 +2,8 @@
 //
 // Domain owners retain code, stage, layer, cause, fix, and message identity.
 // This owner only validates and serializes those admitted facts into the
-// envelope consumed opaquely by the native launcher.
+// envelope consumed opaquely by the native launcher. `location_json` is
+// `null` or SelfHostDiagnostic.LocationJson of the construct the owner names.
 
 import "json_emit.pgy";
 
@@ -28,7 +29,8 @@ func SelfHostPublicDiagnosticReceiptJsonFromOwnedFacts(
     code: String,
     cause_ir: String,
     fix_source: String,
-    message: String
+    message: String,
+    location_json: String
 ) -> String {
     if !SelfHostPublicDiagnosticReceiptFactsReady(
         stage, layer, code, cause_ir, fix_source, message
@@ -42,7 +44,7 @@ func SelfHostPublicDiagnosticReceiptJsonFromOwnedFacts(
         JsonEmitFieldString("code", code),
         JsonEmitFieldString("cause_ir", cause_ir),
         JsonEmitFieldString("fix_source", fix_source),
-        JsonEmitFieldRaw("location", "null"),
+        JsonEmitFieldRaw("location", location_json),
         JsonEmitFieldString("message", message)
     ])]);
 }
@@ -53,10 +55,11 @@ func SelfHostPublicDiagnosticReceiptWireFromOwnedFacts(
     code: String,
     cause_ir: String,
     fix_source: String,
-    message: String
+    message: String,
+    location_json: String
 ) -> String {
     let json: String = SelfHostPublicDiagnosticReceiptJsonFromOwnedFacts(
-        stage, layer, code, cause_ir, fix_source, message
+        stage, layer, code, cause_ir, fix_source, message, location_json
     );
     if json == "" { return ""; }
     return Concat(

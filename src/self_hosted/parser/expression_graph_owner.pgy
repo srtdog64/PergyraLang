@@ -10,7 +10,8 @@ func ParserExpressionStructFieldName(text: String) -> ParserExpressionFact {
     let right_children: Array<Int> = [0];
     return ParserExpressionFact(
         true, text, 0,
-        AstExpressionArena(kinds, texts, left_children, right_children)
+        AstExpressionArena(kinds, texts, left_children, right_children),
+        0 - 1, ""
     );
 }
 
@@ -22,7 +23,8 @@ func ParserExpressionTypeName(text: String) -> ParserExpressionFact {
     let right_children: Array<Int> = [0];
     return ParserExpressionFact(
         true, text, 0,
-        AstExpressionArena(kinds, texts, left_children, right_children)
+        AstExpressionArena(kinds, texts, left_children, right_children),
+        0 - 1, ""
     );
 }
 
@@ -31,7 +33,8 @@ func ParserExpressionCast(
     operand: ParserExpressionFact,
     target_type: String
 ) -> ParserExpressionFact {
-    if text == "" || !operand.ok || target_type == "" {
+    if !operand.ok { return operand; }
+    if text == "" || target_type == "" {
         return ParserExpressionInvalid();
     }
     return ParserExpressionBinary(
@@ -43,8 +46,8 @@ func ParserExpressionCast(
 func ParserExpressionUnary(
     kind: Int, text: String, operand: ParserExpressionFact
 ) -> ParserExpressionFact {
-    if !operand.ok || text == "" ||
-        !AstExpressionNodeIsUnaryOperator(kind) {
+    if !operand.ok { return operand; }
+    if text == "" || !AstExpressionNodeIsUnaryOperator(kind) {
         return ParserExpressionInvalid();
     }
     let kinds: Array<Int> = operand.arena.node_kinds;
@@ -60,7 +63,7 @@ func ParserExpressionUnary(
         kinds, texts, left_children, right_children
     );
     return ParserExpressionFact(
-        AstExpressionArenaReady(arena), text, root, arena
+        AstExpressionArenaReady(arena), text, root, arena, 0 - 1, ""
     );
 }
 
@@ -68,7 +71,8 @@ func ParserExpressionCall(
     text: String,
     callee: ParserExpressionFact
 ) -> ParserExpressionFact {
-    if !callee.ok || text == "" ||
+    if !callee.ok { return callee; }
+    if text == "" ||
         !AstExpressionNodeIsCallableCallee(
             callee.arena.node_kinds[callee.root]
         ) {
@@ -87,7 +91,7 @@ func ParserExpressionCall(
         kinds, texts, left_children, right_children
     );
     return ParserExpressionFact(
-        AstExpressionArenaReady(arena), text, root, arena
+        AstExpressionArenaReady(arena), text, root, arena, 0 - 1, ""
     );
 }
 
@@ -96,8 +100,9 @@ func ParserExpressionCallArgument(
     call: ParserExpressionFact,
     argument: ParserExpressionFact
 ) -> ParserExpressionFact {
-    if !call.ok || !argument.ok ||
-        !AstExpressionNodeIsCallSpine(
+    if !call.ok { return call; }
+    if !argument.ok { return argument; }
+    if !AstExpressionNodeIsCallSpine(
             call.arena.node_kinds[call.root]
         ) {
         return ParserExpressionInvalid();
@@ -115,7 +120,8 @@ func ParserExpressionArrayLiteral(text: String) -> ParserExpressionFact {
     let right_children: Array<Int> = [0];
     return ParserExpressionFact(
         true, text, 0,
-        AstExpressionArena(kinds, texts, left_children, right_children)
+        AstExpressionArena(kinds, texts, left_children, right_children),
+        0 - 1, ""
     );
 }
 
@@ -124,7 +130,8 @@ func ParserExpressionArrayElement(
     literal: ParserExpressionFact,
     element: ParserExpressionFact
 ) -> ParserExpressionFact {
-    if !literal.ok || !AstExpressionNodeIsArrayLiteralSpine(
+    if !literal.ok { return literal; }
+    if !AstExpressionNodeIsArrayLiteralSpine(
         literal.arena.node_kinds[literal.root]
     ) {
         return ParserExpressionInvalid();
@@ -138,7 +145,8 @@ func ParserExpressionStructLiteral(
     text: String,
     type_expression: ParserExpressionFact
 ) -> ParserExpressionFact {
-    if !type_expression.ok || text == "" ||
+    if !type_expression.ok { return type_expression; }
+    if text == "" ||
         type_expression.arena.node_kinds[type_expression.root] !=
             AstExpressionNodeLeaf() {
         return ParserExpressionInvalid();
@@ -156,7 +164,7 @@ func ParserExpressionStructLiteral(
         kinds, texts, left_children, right_children
     );
     return ParserExpressionFact(
-        AstExpressionArenaReady(arena), text, root, arena
+        AstExpressionArenaReady(arena), text, root, arena, 0 - 1, ""
     );
 }
 
@@ -165,7 +173,8 @@ func ParserExpressionStructFieldBinding(
     field_name: String,
     value: ParserExpressionFact
 ) -> ParserExpressionFact {
-    if field_name == "" || !value.ok {
+    if !value.ok { return value; }
+    if field_name == "" {
         return ParserExpressionInvalid();
     }
     return ParserExpressionBinary(
@@ -179,8 +188,9 @@ func ParserExpressionStructField(
     literal: ParserExpressionFact,
     binding: ParserExpressionFact
 ) -> ParserExpressionFact {
-    if !literal.ok || !binding.ok ||
-        !AstExpressionNodeIsStructLiteralSpine(
+    if !literal.ok { return literal; }
+    if !binding.ok { return binding; }
+    if !AstExpressionNodeIsStructLiteralSpine(
             literal.arena.node_kinds[literal.root]
         ) || binding.arena.node_kinds[binding.root] !=
             AstExpressionNodeStructFieldBinding() {
@@ -197,8 +207,9 @@ func ParserExpressionBinary(
     left: ParserExpressionFact,
     right: ParserExpressionFact
 ) -> ParserExpressionFact {
-    if !left.ok || !right.ok || text == "" ||
-        kind == AstExpressionNodeLeaf() ||
+    if !left.ok { return left; }
+    if !right.ok { return right; }
+    if text == "" || kind == AstExpressionNodeLeaf() ||
         !AstExpressionNodeKindKnown(kind) {
         return ParserExpressionInvalid();
     }
@@ -244,7 +255,7 @@ func ParserExpressionBinary(
         kinds, texts, left_children, right_children
     );
     return ParserExpressionFact(
-        AstExpressionArenaReady(arena), text, root, arena
+        AstExpressionArenaReady(arena), text, root, arena, 0 - 1, ""
     );
 }
 
@@ -459,7 +470,7 @@ func ParserExpressionSubtree(
     );
     return ParserExpressionFact(
         AstExpressionGraphRowsReady(rows), texts[local_root],
-        local_root, arena
+        local_root, arena, 0 - 1, ""
     );
 }
 

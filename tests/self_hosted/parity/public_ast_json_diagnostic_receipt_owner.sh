@@ -151,7 +151,9 @@ set -e
    ! -s "$WORK_DIR/direct-terminator-text.err" ]] ||
     fail "statement-terminator text rejection changed its legacy channel"
 require_text "$WORK_DIR/direct-terminator-text.out" \
-    'PARSE ERROR: expected statement terminator'
+    'Code: expression_statement_terminator'
+require_text "$WORK_DIR/direct-terminator-text.out" \
+    'Span: expression-statement-terminator.pgy:1:3'
 [[ "$public_terminator_text_rc" -ne 0 && \
    ! -s "$WORK_DIR/public-terminator-text.err" ]] ||
     fail "public statement-terminator text rejection changed channels"
@@ -192,6 +194,8 @@ for fact in 'expression_statement_terminator' \
 done
 require_text "$WORK_DIR/native-terminator-json.err" \
     '"location":{"line":1,"column":3}'
+require_text "$WORK_DIR/expected-terminator.json" \
+    '"location":{"file":"expression-statement-terminator.pgy","line":1,"column":3}'
 require_text "$WORK_DIR/native-terminator-json.err" \
     "Expected ';' after expression"
 
@@ -222,12 +226,18 @@ public_head_json_rc=$?
     2>"$WORK_DIR/native-head-json.err"
 native_head_json_rc=$?
 set -e
+# The text form used to be silent; it now names the code and position.
 [[ "$direct_head_text_rc" -ne 0 && "$public_head_text_rc" -ne 0 && \
-   ! -s "$WORK_DIR/direct-head-text.out" && \
+   -s "$WORK_DIR/direct-head-text.out" && \
    ! -s "$WORK_DIR/direct-head-text.err" && \
-   ! -s "$WORK_DIR/public-head-text.out" && \
    ! -s "$WORK_DIR/public-head-text.err" ]] ||
-    fail "statement-head unexpected-token text rejection changed its silent channels"
+    fail "statement-head unexpected-token text rejection changed its channels"
+require_text "$WORK_DIR/direct-head-text.out" \
+    'Code: statement_head_unexpected_token'
+require_text "$WORK_DIR/direct-head-text.out" \
+    'Span: statement-head-unexpected-token.pgy:1:1'
+cmp -s "$WORK_DIR/direct-head-text.out" "$WORK_DIR/public-head-text.out" ||
+    fail "public statement-head text rejection differs from DRV-2"
 [[ "$direct_head_json_rc" -ne 0 && \
    -s "$WORK_DIR/direct-head-json.out" && \
    ! -s "$WORK_DIR/direct-head-json.err" ]] ||
@@ -262,6 +272,8 @@ for fact in 'statement_head_unexpected_token' \
 done
 require_text "$WORK_DIR/native-head-json.err" \
     '"location":{"line":1,"column":1}'
+require_text "$WORK_DIR/expected-head.json" \
+    '"location":{"file":"statement-head-unexpected-token.pgy","line":1,"column":1}'
 require_text "$WORK_DIR/native-head-json.err" \
     'Unexpected token in expression'
 
@@ -351,6 +363,7 @@ REQUEST_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_request_owner
 READ_OWNER="$ROOT_DIR/src/self_hosted/compiler/driver_rung2_cli_read_execution_owner.pgy"
 PARSER_DIAGNOSTIC_OWNER="$ROOT_DIR/src/self_hosted/parser/diagnostic_owner.pgy"
 PARSER_STATEMENT_OWNER="$ROOT_DIR/src/self_hosted/parser/stmt_owner.pgy"
+PARSER_REFUSAL_OWNER="$ROOT_DIR/src/self_hosted/parser/source_refusal_owner.pgy"
 require_text "$SELECTION_OWNER" 'flags->dump_ast && flags->diag_format == DIAG_FORMAT_JSON'
 require_text "$SELECTION_OWNER" '"--ast-json-diagnostic-verified"'
 require_text "$DRIVER_OWNER" 'DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_AST'
@@ -358,13 +371,16 @@ require_text "$REQUEST_OWNER" 'DriverCliSourceAstStdout(String, Bool)'
 require_text "$REQUEST_OWNER" 'args[0] == "--ast-json-diagnostic-verified"'
 require_text "$READ_OWNER" 'CompileSourceToAstArtifactForPublicDiagnosticRequest('
 require_text "$PARSER_DIAGNOSTIC_OWNER" \
-    'ParseDiagnosticReportExpressionStatementTerminator('
-require_text "$PARSER_DIAGNOSTIC_OWNER" \
-    'ParseDiagnosticReportPublicStatementHeadUnexpectedToken('
+    'func ParseDiagnosticPayloadAt2('
+require_text "$PARSER_REFUSAL_OWNER" \
+    'ConsumeStmtTerminatorOpt(content, start)'
 require_text "$PARSER_STATEMENT_OWNER" \
     'ParseOneStmtObservedProjected('
 require_text "$PARSER_STATEMENT_OWNER" \
-    'ConsumeStmtTerminatorOpt(content, i)'
+    'ParseRefuse(location_context, head_start, "statement_head_unexpected_token",'
+! grep -Fq 'ParseDiagnosticReportPublicStatementHeadUnexpectedToken' \
+    "$PARSER_DIAGNOSTIC_OWNER" "$PARSER_STATEMENT_OWNER" ||
+    fail "statement-head refusal regained its JSON-only silent text path"
 require_text "$PROCESS_OWNER" 'pgy_exec_argv_capture_stdout('
 require_text "$PROCESS_OWNER" 'driver_self_host_public_diagnostic_wire_relay('
 require_text "$MIR_OWNER" 'DRIVER_SELF_HOST_PUBLIC_DIAGNOSTIC_STDOUT_MIR'

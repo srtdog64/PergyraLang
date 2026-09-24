@@ -3,7 +3,7 @@
 import "cursor_owner.pgy";
 import "source_location_observation_owner.pgy";
 
-func ParseIfLetPayload(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
+func ParseIfLetPayload(location_context: ParserSourceLocationContext, content: String, start: Int, inout cursor_out: Array<Int>) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
     if ParserCharAt(content, i) == "(" {
         let pat_depth: Int = 1;
@@ -17,7 +17,7 @@ func ParseIfLetPayload(content: String, start: Int, inout cursor_out: Array<Int>
             i = i + 1;
         }
         if pat_depth != 0 {
-            Exit(1);
+            ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
         }
         ArraySet(cursor_out, 0, i);
         return "<node:26>";
@@ -26,7 +26,7 @@ func ParseIfLetPayload(content: String, start: Int, inout cursor_out: Array<Int>
     ArraySet(cursor_out, 0, i);
     let payload: String = ReadIdent(content, i, cursor_out);
     if StringLength(payload) == 0 {
-        Exit(1);
+        ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
     }
     return payload;
 }
@@ -49,26 +49,17 @@ func ParseIfStmt(
         let variant_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
         if StringLength(variant_name) == 0 {
-            Exit(1);
+            ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
         }
-        i = Expect(content, i, "(");
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseExpectIn(location_context, content, i, "(", "statement");
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
-        let case_payload: String = ParseIfLetPayload(content, i, cursor_out);
+        let case_payload: String = ParseIfLetPayload(location_context, content, i, cursor_out);
         i = cursor_out[0];
-        i = Expect(content, i, ")");
-        if i < 0 {
-            Exit(1);
-        }
-        i = Expect(content, i, "=");
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseExpectIn(location_context, content, i, ")", "statement");
+        i = ParseExpectIn(location_context, content, i, "=", "statement");
         ArraySet(cursor_out, 0, i);
-        let match_expr: String = ParseExpr(content, i, cursor_out);
+        let match_expr: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
         i = cursor_out[0];
         let match_out: String = Concat(IndentStr(stmt_indent), Concat("Match: ", match_expr));
         match_out = AppendLine(match_out, Concat(IndentStr(stmt_indent + 2), Concat("Case: ", Concat(variant_name, Concat("(", Concat(case_payload, ")"))))));
@@ -87,7 +78,7 @@ func ParseIfStmt(
     }
     ArraySet(cursor_out, 0, i);
     let condition: ParserExpressionFact = ParseExprFact(content, i, cursor_out);
-    if !condition.ok { Exit(1); }
+    if !condition.ok { ParseExpressionRefuse(location_context, condition, i, "statement"); }
     ParserExpressionGraphsAppendInto(
         expression_graphs, TypedAstKindIfStmtTag(),
         AstExpressionLaneAtom(), condition

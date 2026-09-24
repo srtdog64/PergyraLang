@@ -5,7 +5,7 @@ Severity: error
 Code: call_arity_mismatch
 Reason: call argument count does not match the callee parameter count
 Fix: pass the declared number of arguments
-Span: none
+Span: bad_arity_too_few.pgy:5:5
 Facts:
 - func: Twice
 - expected: 1

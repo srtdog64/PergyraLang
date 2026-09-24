@@ -29,18 +29,15 @@ func ParseParallelStmt(
                 i = i + 1;
             }
             if on_depth != 0 {
-                Exit(1);
+                ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
             }
         } else {
             ArraySet(cursor_out, 0, i);
-            let on_target: String = ParseExpr(content, i, cursor_out);
+            let on_target: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
             i = cursor_out[0];
             on_target = on_target;
         }
-        i = Expect(content, i, "{");
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseExpectIn(location_context, content, i, "{", "statement");
         i = SkipWhitespaceAndComments(content, i);
         let on_body: String = "";
         if MatchLanguageWord(content, i, LanguageWordId.WordEvery) || MatchLanguageWord(content, i, LanguageWordId.WordContinuous) {
@@ -63,7 +60,7 @@ func ParseParallelStmt(
                     i = i + 1;
                 }
                 if every_depth != 0 {
-                    Exit(1);
+                    ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
                 }
             }
             ArraySet(cursor_out, 0, i);
@@ -72,10 +69,7 @@ func ParseParallelStmt(
                 location_context, source_locations
             );
             i = cursor_out[0];
-            i = Expect(content, i, "}");
-            if i < 0 {
-                Exit(1);
-            }
+            i = ParseExpectIn(location_context, content, i, "}", "statement");
         } else {
             let direct_out: String = "";
             while true {
@@ -122,15 +116,12 @@ func ParseParallelStmt(
             i = i + 1;
         }
         if ptarget_depth != 0 {
-            Exit(1);
+            ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
         }
         while i < StringLength(content) && ParserCharAt(content, i) != "\n" && ParserCharAt(content, i) != ";" && ParserCharAt(content, i) != "}" {
             i = i + 1;
         }
-        i = ConsumeStmtTerminator(content, i);
-        if i < 0 {
-            Exit(1);
-        }
+        i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
         return Concat(IndentStr(stmt_indent), "Parallel:");
     }

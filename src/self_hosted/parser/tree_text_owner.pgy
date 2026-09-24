@@ -37,6 +37,21 @@ func AppendImplicitMain(decls: String, body: String) -> String {
     return AppendLine(decls, main_block);
 }
 
+// Top-level statements become the implicit Main above, so a root block
+// that already declares `func Main` leaves them no Main to join.
+func ParserBlocksDeclareExplicitMain(blocks: Array<String>) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(blocks) {
+        let head: String = blocks[i];
+        let newline: Int = StringIndexOf(head, "\n");
+        if newline >= 0 { head = Substring(head, 0, newline); }
+        let at: Int = StringIndexOf(head, "Function: Main");
+        if at >= 0 && at + 14 == StringLength(head) { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
 func ParserAstTreePayloadSchema() -> String {
     return "pgy.selfhost.parser-ast-tree.v1";
 }

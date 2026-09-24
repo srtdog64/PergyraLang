@@ -5,7 +5,7 @@ Severity: error
 Code: compare_type_mismatch
 Reason: comparison operands must have the same type
 Fix: compare values with matching types
-Span: none
+Span: bad_compare_operand.pgy:2:5
 Facts:
 - left: Int
 - right: String

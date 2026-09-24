@@ -265,14 +265,22 @@ type_check_text_builder_builtin(ASTNode *call, SemanticContext *ctx,
                 ? "TextBuilderFinish" : "TextBuilderDrop";
     size_t expected_count = (kind == BUILTIN_TEXT_BUILDER_NEW
         || kind == BUILTIN_TEXT_BUILDER_DROP) ? 1 : 2;
+    /* Same spelling as the self-host builtin signature display. */
+    const char *signature = kind == BUILTIN_TEXT_BUILDER_NEW
+        ? "TextBuilderNew(Int) -> TextBuilder"
+        : kind == BUILTIN_TEXT_BUILDER_APPEND
+            ? "TextBuilderAppend(TextBuilder, String) -> Void"
+            : kind == BUILTIN_TEXT_BUILDER_FINISH
+                ? "TextBuilderFinish(TextBuilder, Allocator) -> String"
+                : "TextBuilderDrop(TextBuilder) -> Void";
     Symbol *builder_symbol = NULL;
 
     if (ast_call_arg_count(call) != expected_count) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
             PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
-            "%s requires exactly %llu arguments", operation,
-            (unsigned long long)expected_count);
+            "%s requires exactly %llu arguments. Declared signature: %s",
+            operation, (unsigned long long)expected_count, signature);
         return TYPE_UNKNOWN;
     }
 

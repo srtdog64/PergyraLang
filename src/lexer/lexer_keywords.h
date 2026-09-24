@@ -91,6 +91,8 @@ PgyLanguageWordId lexer_lookup_language_word(const char *text, size_t length);
 size_t lexer_keyword_registry_count(void);
 const PgyLanguageKeywordRow *lexer_keyword_registry_row(size_t index);
 const PgyLanguageKeywordRow *lexer_language_word_row(PgyLanguageWordId word_id);
+/* The reserved row that owns a lexer token, or NULL for identifiers. */
+const PgyLanguageKeywordRow *lexer_reserved_keyword_row(PgyTokenType type);
 const char *lexer_keyword_debug_name(PgyTokenType type);
 
 #endif /* PGY_LEXER_KEYWORDS_H */

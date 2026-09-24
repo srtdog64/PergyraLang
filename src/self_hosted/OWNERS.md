@@ -185,6 +185,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   source path, parser-cursor offset, line, node kind, and enclosing callable at
   the parser owner boundary. It does not reconstruct locations from AST text
   or own debugger session policy.
+- `src/self_hosted/parser/source_refusal_owner.pgy` -- turns one parse
+  refusal into one diagnostic with its code and the file:line:column the
+  parser cursor held, in the requested text or public JSON projection.
 - `src/self_hosted/hir/ast_match_pattern_fact_owner.pgy` -- interprets the
   canonical typed `MatchCase` spelling as one bounded pattern fact. Semantic
   admission proves the full artifact once, then the ready-artifact projection
@@ -737,6 +740,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   name, return-type, and parameter-type rows shared by source and artifact
   semantic paths; stable aliases append rows without shifting existing builtin
   identity.
+- `src/self_hosted/semantic/builtin_signature_display_owner.pgy` -- renders a
+  builtin's registry signature into call arity and argument-type refusals.
+- `src/self_hosted/semantic/diagnostic_span_owner.pgy` -- chooses the AST node
+  a published semantic refusal is about and maps expression-graph nodes to
+  their owning AST node; positions come from the artifact's location facts.
 - `src/self_hosted/semantic/call_check_owner.pgy` -- call arity and argument checks.
 - `src/self_hosted/semantic/callable_resolution_owner.pgy` -- exact-first,
   unique namespace-local callable resolution.
@@ -930,6 +938,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/hir/ast_source_module_fact_owner.pgy` -- parser-owned
   top-level declaration-to-module provenance carried by the artifact identity
   and projected into callable signature facts.
+- `src/self_hosted/hir/ast_source_location_fact_owner.pgy` -- binds the
+  parser's observed function and statement positions to arena node ids once;
+  diagnostic spans and the debugger read positions by node id.
 - `src/self_hosted/hir/typed_ast_arena_owner.pgy` -- shared typed AST arena
   payload contract and `NodeId` lookup facts.
 

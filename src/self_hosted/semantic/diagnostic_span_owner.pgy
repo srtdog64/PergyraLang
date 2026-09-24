@@ -1,0 +1,75 @@
+// Semantic diagnostic span owner.
+//
+// A refusal names the construct it is about by an AST node id; the admitted
+// artifact's location facts (hir/ast_source_location_fact_owner.pgy) turn
+// that node into file:line:column. This owner only chooses the node for the
+// two publishing verdicts and maps expression-graph nodes to their owning AST
+// node; it never reopens source text. Whether a code shows its span at all is
+// SemanticDiagnosticSpanIsProgramWide (diagnostic_code_owner.pgy).
+
+import "../hir/ast_source_location_fact_owner.pgy";
+import "diagnostic_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+
+// Children precede their parent in the arena, so a descent from a root only
+// visits smaller ids; the walk is bounded by the arena size.
+func SemanticAstExpressionGraphSubtreeHolds(
+    ref graph: SemanticExpressionGraphFacts, root: Int, target: Int
+) -> Bool {
+    if root < target { return false; }
+    // `pending[next..]` is the unvisited frontier; visited slots stay put.
+    let pending: Array<Int> = [root];
+    let next: Int = 0;
+    let budget: Int = SemanticExpressionGraphArenaNodeCount(graph.arena) + 1;
+    while next < ArrayLength(pending) && budget > 0 {
+        let node: Int = pending[next];
+        next = next + 1;
+        budget = budget - 1;
+        if node == target { return true; }
+        if node > target {
+            let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, node);
+            if IsSome(left) && UnwrapOption(left) < node { ArrayPush(pending, UnwrapOption(left)); }
+            let right: Option<Int> = SemanticExpressionGraphRightChild(graph, node);
+            if IsSome(right) && UnwrapOption(right) < node { ArrayPush(pending, UnwrapOption(right)); }
+        }
+    }
+    return false;
+}
+
+// Error-path reverse lookup: the AST node whose carried expression lane holds
+// graph node `target`, or -1 when no carried lane holds it.
+func SemanticAstExpressionGraphOwnerAstNode(
+    ref facts: SemanticAstExpressionSurfaceFacts, target: Int
+) -> Int {
+    if !facts.ok || target < 0 { return 0 - 1; }
+    let row: Int = 0;
+    while row < ArrayLength(facts.node_ids) {
+        let lane: Int = 0;
+        while lane < 3 {
+            let root_index: Int = row * 3 + lane;
+            if root_index < ArrayLength(facts.expression_graph.has_roots) &&
+                facts.expression_graph.has_roots[root_index] &&
+                SemanticAstExpressionGraphSubtreeHolds(facts.expression_graph,
+                    facts.expression_graph.roots[root_index], target) {
+                return facts.node_ids[row];
+            }
+            lane = lane + 1;
+        }
+        row = row + 1;
+    }
+    return 0 - 1;
+}
+
+// An artifact-level refusal carries a node only when the signature facts
+// produced it (`signatures_failed`): their first typed fact names the
+// declaration node.
+func SemanticAstArtifactDiagnosticSpan(
+    artifact: AstTreeArtifact, signatures_failed: Bool,
+    fact: SemanticDiagnosticMessageFact
+) -> AstSourceSpan {
+    if !signatures_failed || !fact.present || fact.first_key != "node_id" {
+        return AstSourceSpanUnknown();
+    }
+    return AstSourceSpanForNode(artifact.source_modules.locations,
+        artifact.arena, ToInt(fact.first_value));
+}

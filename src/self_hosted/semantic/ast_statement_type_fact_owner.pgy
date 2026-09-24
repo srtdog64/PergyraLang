@@ -27,6 +27,7 @@ struct SemanticAstStatementTypeFacts {
     verified: Array<Int>;
     diagnostic_codes: Array<String>;
     diagnostic_messages: Array<String>;
+    failure_node_id: Int;
 }
 func SemanticAstStatementTypeStructuralError(
     artifact: AstTreeArtifact,
@@ -42,7 +43,7 @@ func SemanticAstStatementTypeStructuralError(
             "owner", Concat("SemanticAstStatementTypeFacts:", fact)
         ),
         artifact.count, empty_ints, empty_ints, empty_strings, empty_strings,
-        empty_ints, empty_strings, empty_strings
+        empty_ints, empty_strings, empty_strings, 0 - 1
     );
 }
 func SemanticAstStatementTypeFactsFromArtifact(
@@ -529,12 +530,11 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
     let contract: SemanticAstDeclarationContractVerdict =
         SemanticAstDeclarationContractVerdictFrom(enum_facts);
     if !contract.ok {
-        return SemanticAstStatementTypeFacts(false, contract.code,
-            contract.message, artifact.count, node_ids, kind_tags, expected_types,
-            inferred_types, verified, diagnostic_codes, diagnostic_messages);
+        return SemanticAstStatementTypeFacts(false, contract.code, contract.message,
+            artifact.count, node_ids, kind_tags, expected_types, inferred_types,
+            verified, diagnostic_codes, diagnostic_messages, contract.node_id);
     }
-    return SemanticAstStatementTypeFacts(
-        true, "", "", artifact.count, node_ids, kind_tags,
-        expected_types, inferred_types, verified,
-        diagnostic_codes, diagnostic_messages);
+    return SemanticAstStatementTypeFacts(true, "", "", artifact.count, node_ids,
+        kind_tags, expected_types, inferred_types, verified, diagnostic_codes,
+        diagnostic_messages, 0 - 1);
 }

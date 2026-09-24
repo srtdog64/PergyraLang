@@ -59,6 +59,22 @@ func LanguageWordEnd(start: Int, id: LanguageWordId) -> Int {
     return start + LanguageWordLength(id);
 }
 
+// A reserved word may name a local binding only when its registry row
+// carries the NAME context (the same rows native admits). Non-reserved
+// spellings are identifiers.
+func ParserBindingNameReserved(name: String) -> Bool {
+    if LanguageKeywordDebugIdentity(name) == "IDENTIFIER" { return false; }
+    let index: Int = 0;
+    while index < LanguageWordRegistryCount() {
+        let row: LanguageWordRegistryRow = LanguageWordRegistryRowAt(index);
+        if row.spelling == name {
+            return (row.context_mask / 256) % 2 == 0;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
 // Read a numeric literal (integer or float). Returns the text as the
 // C printer emits it: trailing zeros after the decimal point are
 // trimmed while one fractional zero preserves Float kind - so `2.0`

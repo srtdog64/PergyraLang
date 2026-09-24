@@ -2,7 +2,8 @@
 // a bare enum variant name must have a single declaration (docs/205 L3a).
 // A variant that reuses a function's name is already refused elsewhere.
 // Body flow (missing return, Never fallthrough) is owned by
-// ast_body_flow_verdict_owner.pgy.
+// ast_body_flow_verdict_owner.pgy. A refusal carries the declaration node it
+// is about, for its span.
 
 import "ast_enum_fact_owner.pgy";
 import "diagnostic_owner.pgy";
@@ -11,39 +12,62 @@ struct SemanticAstDeclarationContractVerdict {
     ok: Bool;
     code: String;
     message: String;
+    node_id: Int;
 }
 
-func SemanticAstEnumVariantRedeclarationMessage(
-    enums: SemanticAstEnumFacts
-) -> Option<String> {
+// The first variant row whose bare name another enum already declared.
+func SemanticAstEnumVariantRedeclarationRow(enums: SemanticAstEnumFacts) -> Int {
     let row: Int = 0;
     while row < ArrayLength(enums.variant_names) {
         let other: Int = 0;
         while other < row {
             if enums.variant_names[other] == enums.variant_names[row] &&
                 enums.variant_enum_names[other] != enums.variant_enum_names[row] {
-                return Some(SemanticError3(
-                    "enum_variant_redeclaration",
-                    "variant", enums.variant_names[row],
-                    "enum", enums.variant_enum_names[row],
-                    "first_enum", enums.variant_enum_names[other]
-                ));
+                return row;
             }
             other = other + 1;
         }
         row = row + 1;
     }
-    return None;
+    return 0 - 1;
+}
+
+func SemanticAstEnumVariantFirstEnum(enums: SemanticAstEnumFacts, row: Int) -> String {
+    let other: Int = 0;
+    while other < row {
+        if enums.variant_names[other] == enums.variant_names[row] &&
+            enums.variant_enum_names[other] != enums.variant_enum_names[row] {
+            return enums.variant_enum_names[other];
+        }
+        other = other + 1;
+    }
+    return "";
+}
+
+func SemanticAstEnumDeclarationNode(enums: SemanticAstEnumFacts, enum_name: String) -> Int {
+    let i: Int = 0;
+    while i < ArrayLength(enums.enum_names) {
+        if enums.enum_names[i] == enum_name { return enums.node_ids[i]; }
+        i = i + 1;
+    }
+    return 0 - 1;
 }
 
 func SemanticAstDeclarationContractVerdictFrom(
     enums: SemanticAstEnumFacts
 ) -> SemanticAstDeclarationContractVerdict {
-    let redeclared: Option<String> = SemanticAstEnumVariantRedeclarationMessage(enums);
-    if IsSome(redeclared) {
+    let row: Int = SemanticAstEnumVariantRedeclarationRow(enums);
+    if row >= 0 {
         return SemanticAstDeclarationContractVerdict(
-            false, "enum_variant_redeclaration", UnwrapOption(redeclared)
+            false, "enum_variant_redeclaration",
+            SemanticError3(
+                "enum_variant_redeclaration",
+                "variant", enums.variant_names[row],
+                "enum", enums.variant_enum_names[row],
+                "first_enum", SemanticAstEnumVariantFirstEnum(enums, row)
+            ),
+            SemanticAstEnumDeclarationNode(enums, enums.variant_enum_names[row])
         );
     }
-    return SemanticAstDeclarationContractVerdict(true, "", "");
+    return SemanticAstDeclarationContractVerdict(true, "", "", 0 - 1);
 }

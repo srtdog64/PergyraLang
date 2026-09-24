@@ -26,8 +26,8 @@ struct TagPair {
 }
 
 func BoxedTags() -> TagPair {
-    let local: Int = 3;
-    return TagPair([FirstTag(), 4, 5], [SecondTag()], [local]);
+    let local_tag: Int = 3;
+    return TagPair([FirstTag(), 4, 5], [SecondTag()], [local_tag]);
 }
 
 func Tags() -> Array<Int> {

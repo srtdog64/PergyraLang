@@ -1,19 +1,22 @@
-// Parser-owned module provenance for top-level declarations in one AST epoch.
+// Parser-owned module provenance for top-level declarations in one AST epoch,
+// with the parser-observed positions of the same epoch (not in the digest).
 
 import "typed_ast_arena_owner.pgy";
+import "ast_source_location_fact_owner.pgy";
 
 struct AstSourceModuleFacts {
     ok: Bool;
     known: Bool;
     declaration_node_ids: Array<Int>;
     module_paths: Array<String>;
+    locations: AstSourceLocationFacts;
 }
 
 func AstSourceModuleFactsUnknown() -> AstSourceModuleFacts {
     let declaration_node_ids: Array<Int> = [];
     let module_paths: Array<String> = [];
     return AstSourceModuleFacts(
-        true, false, declaration_node_ids, module_paths
+        true, false, declaration_node_ids, module_paths, AstSourceLocationFactsUnknown()
     );
 }
 
@@ -21,7 +24,7 @@ func AstSourceModuleFactsInvalid() -> AstSourceModuleFacts {
     let declaration_node_ids: Array<Int> = [];
     let module_paths: Array<String> = [];
     return AstSourceModuleFacts(
-        false, false, declaration_node_ids, module_paths
+        false, false, declaration_node_ids, module_paths, AstSourceLocationFactsUnknown()
     );
 }
 
@@ -48,14 +51,14 @@ func AstSourceModuleFactsFromTopLevelPaths(
         return AstSourceModuleFactsInvalid();
     }
     return AstSourceModuleFacts(
-        true, true, declaration_node_ids, module_paths
+        true, true, declaration_node_ids, module_paths, AstSourceLocationFactsUnknown()
     );
 }
 
 func AstSourceModuleFactsReady(
     arena: AstArena, facts: AstSourceModuleFacts
 ) -> Bool {
-    if !facts.ok { return false; }
+    if !facts.ok || !AstSourceLocationFactsReady(arena, facts.locations) { return false; }
     if !facts.known {
         return ArrayLength(facts.declaration_node_ids) == 0 &&
             ArrayLength(facts.module_paths) == 0;

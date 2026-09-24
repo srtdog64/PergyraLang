@@ -5,7 +5,7 @@ Severity: error
 Code: let_type_mismatch
 Reason: let initializer type does not match the declared local type
 Fix: change the initializer or the declared local type
-Span: none
+Span: bad_for_body.pgy:3:9
 Facts:
 - expected: Bool
 - actual: Int

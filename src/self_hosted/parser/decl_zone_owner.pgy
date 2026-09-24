@@ -6,6 +6,7 @@ import "type_name_owner.pgy";
 import "expr_owner.pgy";
 import "function_decl_owner.pgy";
 import "domain_projection_map_owner.pgy";
+import "source_refusal_owner.pgy";
 
 func ParseZoneDecl(
     content: String,
@@ -14,7 +15,7 @@ func ParseZoneDecl(
     decl_prefix: String,
     inout involve_types: Array<String>,
     inout expression_graphs: Array<AstExpressionGraphRows>,
-    diagnostic_projection: ParseDiagnosticProjection
+    location_context: ParserSourceLocationContext
 ) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
@@ -25,15 +26,11 @@ func ParseZoneDecl(
     let zone_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if StringLength(zone_name) == 0 {
-        Exit(1);
+        ParseRefuse(location_context, i, "declaration_name_missing", "construct", "zone", "", "");
     }
-    if StringLength(zone_name) > 0 {
-        ArrayPush(involve_types, zone_name);
-    }
-    i = Expect(content, i, "{");
-    if i < 0 {
-        Exit(1);
-    }
+    ArrayPush(involve_types, zone_name);
+    let open_at: Int = SkipWhitespaceAndComments(content, i);
+    i = ParseExpectIn(location_context, content, i, "{", "zone");
     let slot_accum: String = "";
     let shared_accum: String = "";
     let apply_accum: String = "";
@@ -44,7 +41,7 @@ func ParseZoneDecl(
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
-            Exit(1);
+            ParseRefuse(location_context, open_at, "block_unclosed", "construct", "zone", "", "");
         }
         if ParserCharAt(content, i) == "}" {
             i = i + 1;
@@ -379,13 +376,13 @@ func ParseZoneDecl(
             ArraySet(cursor_out, 0, i);
             let m_block: String = ParseFunction(
                 content, i, cursor_out, "", false, 4, "func", "Function: ",
-                false, "", expression_graphs, diagnostic_projection
+                false, "", expression_graphs, location_context
             );
             i = cursor_out[0];
             auth_accum = AppendLine(auth_accum, m_block);
             continue;
         } else {
-            Exit(1);
+            ParseRefuse(location_context, i, "expected_token", "expected", "zone member", "construct", "zone");
         }
         i = SkipWhitespaceAndComments(content, i);
         if is_auth {

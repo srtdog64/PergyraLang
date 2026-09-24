@@ -1,4 +1,5 @@
 #include "parser_internal.h"
+#include "../lexer/lexer_keywords.h"
 
 Token
 consume_name_token(Parser *parser, const char *message)
@@ -83,27 +84,20 @@ parser_check_decl_name_token(Parser *parser)
     }
 }
 
+/* A reserved word names a binding only when its registry row carries the
+ * NAME context; the self-hosted parser reads the same rows. */
 bool
 parser_check_binding_name_token(Parser *parser)
 {
+    const PgyLanguageKeywordRow *row;
+
     if (parser == NULL)
         return false;
-
-    switch (parser->current_token.type) {
-    case TOKEN_IDENTIFIER:
-    case TOKEN_SLOT:
-    case TOKEN_EVENT:
-    case TOKEN_WORLD:
-    case TOKEN_ZONE:
-    case TOKEN_ROSTER:
-    case TOKEN_RELATION:
-    case TOKEN_EFFECT:
-    case TOKEN_ROLE:
-    case TOKEN_PARTY:
+    if (parser->current_token.type == TOKEN_IDENTIFIER)
         return true;
-    default:
-        return false;
-    }
+    row = lexer_reserved_keyword_row(parser->current_token.type);
+    return row != NULL
+        && (row->context_mask & PGY_KEYWORD_CONTEXT_NAME) != 0;
 }
 
 bool

@@ -41,7 +41,7 @@
   },
   "current_scan_owner_closure": {
     "measured_at": "2026-07-30",
-    "owner_set_sha256": "2C1267703948A3A57B05948448D65FD3E852CEFAB0C3651424F4167A985C4905",
+    "owner_set_sha256": "D3DF0BECADFE108046C3EC0003113743C318536115159CF78151216083C78800",
     "focused_target": "src/self_hosted/compiler/compiler_world_direct_mir_owner.pgy",
     "source_bundle_bytes": 760066,
     "source_bundle_elapsed_ms": 2978,

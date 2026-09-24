@@ -2,6 +2,8 @@
 // never the source of semantic identity.
 
 import "../lib/public_diagnostic_receipt_owner.pgy";
+import "../lib/diagnostic.pgy";
+import "../hir/ast_source_location_fact_owner.pgy";
 import "diagnostic_code_owner.pgy";
 
 struct SemanticPublicDiagnosticReceipt {
@@ -179,6 +181,11 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
         return SemanticPublicDiagnosticIdentity(
             true, "semantic:borrow_escape", "change-ref-to-own-or-stop-escape");
     }
+    // Native reports both inout argument rules with this one identity.
+    if code == "inout_argument_not_variable" || code == "inout_argument_alias" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:borrow_escape", "bind-to-named-variable-before-move");
+    }
     if code == "call_arity_mismatch" {
         return SemanticPublicDiagnosticIdentity(
             true,
@@ -281,12 +288,12 @@ func SemanticPublicDiagnosticReceiptJson(
     if !receipt.ready { return ""; }
     return SelfHostPublicDiagnosticReceiptJsonFromOwnedFacts(
         receipt.stage, receipt.layer, receipt.code, receipt.cause_ir,
-        receipt.fix_source, receipt.message
+        receipt.fix_source, receipt.message, "null"
     );
 }
 
 func SemanticPublicDiagnosticReceiptWirePayload(
-    receipt: SemanticPublicDiagnosticReceipt
+    receipt: SemanticPublicDiagnosticReceipt, location_json: String
 ) -> String {
     if !receipt.ready ||
         receipt.schema != SelfHostPublicDiagnosticReceiptSchema() {
@@ -294,7 +301,7 @@ func SemanticPublicDiagnosticReceiptWirePayload(
     }
     return SelfHostPublicDiagnosticReceiptWireFromOwnedFacts(
         receipt.stage, receipt.layer, receipt.code, receipt.cause_ir,
-        receipt.fix_source, receipt.message
+        receipt.fix_source, receipt.message, location_json
     );
 }
 
@@ -311,5 +318,32 @@ func SemanticDiagnosticPayloadForPublicBoundary(
         // reject the receipt without importing another failure vocabulary.
         return "";
     }
-    return SemanticPublicDiagnosticReceiptWirePayload(receipt);
+    return SemanticPublicDiagnosticReceiptWirePayload(receipt, "null");
+}
+
+// The checker rendered the message before any position was in hand; the
+// verdict carries the failing construct's AST node, and the artifact's
+// location facts turn it into the span shown in `Span:` and `location`.
+// Codes the span policy marks program-wide keep `none`.
+func SemanticDiagnosticPayloadForPublicBoundaryAt(
+    code: String,
+    message: String,
+    span: AstSourceSpan,
+    emit_json_receipt: Bool
+) -> String {
+    if !span.known || SemanticDiagnosticSpanIsProgramWide(code) {
+        return SemanticDiagnosticPayloadForPublicBoundary(
+            code, message, emit_json_receipt
+        );
+    }
+    let spanned: String =
+        SelfHostDiagnostic_WithSpan(message, AstSourceSpanText(span));
+    if !emit_json_receipt { return spanned; }
+    let receipt: SemanticPublicDiagnosticReceipt =
+        SemanticPublicDiagnosticReceiptFromOwnedFacts(code, spanned);
+    if !SemanticPublicDiagnosticReceiptReadyFor(receipt, code) {
+        return "";
+    }
+    return SemanticPublicDiagnosticReceiptWirePayload(receipt,
+        SelfHostDiagnostic_LocationJson(span.display_path, span.line, span.column));
 }

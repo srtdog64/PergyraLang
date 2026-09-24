@@ -225,11 +225,10 @@ func SemanticAstFunctionSignatureFactsWithBuiltinNames(
             if reservation.reserved {
                 signatures.ok = false;
                 signatures.diagnostic_code = "builtin_name_reserved";
-                signatures.diagnostic_message = SemanticError2(
-                    "builtin_name_reserved",
-                    "function", UnwrapOption(name),
-                    "family", reservation.family
-                );
+                signatures.diagnostic_message = SemanticError2("builtin_name_reserved",
+                    "function", UnwrapOption(name), "family", reservation.family);
+                signatures.diagnostic_fact = SemanticDiagnosticMessageFact2("builtin_name_reserved",
+                    "node_id", ToString(signatures.function_node_ids[i]), "function", UnwrapOption(name));
             }
         }
         i = i + 1;

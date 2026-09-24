@@ -97,8 +97,8 @@ for entry in "${PLACE_CASES[@]}"; do
         case "$leg" in
             native-c) flags=(--native-pipeline --backend=c); want="An inout argument must be a variable" ;;
             native-llvm) flags=(--native-pipeline --backend=llvm); want="An inout argument must be a variable" ;;
-            default-c) flags=(--backend=c); want="inout argument must be a variable" ;;
-            default-llvm) flags=(--backend=llvm); want="" ;;
+            default-c) flags=(--backend=c); want="Code: inout_argument_not_variable" ;;
+            default-llvm) flags=(--backend=llvm); want="inout_argument_not_variable" ;;
         esac
         binary_rel="$WORK_REL/place-$name-$leg.exe"
         if (cd "$ROOT_DIR" && "$PGY" "$fixture" "${flags[@]}" -o "$binary_rel") \

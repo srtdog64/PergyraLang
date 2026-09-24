@@ -110,12 +110,13 @@ func ApplyPostfixFact(
                     );
                     actual_cursor = cursor_out[0];
                     if actual_type == "" {
-                        Exit(1);
+                        return ParserExpressionInvalidAt(
+                            actual_cursor, "type_name_invalid");
                     }
                     generic_callee = ParserExpressionGenericCalleeActual(
                         generic_callee, actual_type
                     );
-                    if !generic_callee.ok { Exit(1); }
+                    if !generic_callee.ok { return generic_callee; }
                     actual_count = actual_count + 1;
                     actual_cursor = SkipWhitespaceAndComments(
                         content, actual_cursor
@@ -128,7 +129,8 @@ func ApplyPostfixFact(
                 }
                 if actual_count == 0 ||
                     ParserCharAt(content, actual_cursor) != ">" {
-                    Exit(1);
+                    return ParserExpressionInvalidAt(
+                        actual_cursor, "expected_token");
                 }
                 base = generic_callee;
                 continue;
@@ -157,7 +159,7 @@ func ApplyPostfixFact(
                 ParserExpressionStructLiteral(
                     Concat(base.text, " { }"), base
                 );
-            if !struct_literal.ok { Exit(1); }
+            if !struct_literal.ok { return struct_literal; }
             i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) != "}" {
                 while true {
@@ -166,17 +168,20 @@ func ApplyPostfixFact(
                     let init_name: String = ReadIdent(content, i, cursor_out);
                     i = cursor_out[0];
                     if StringLength(init_name) == 0 {
-                        Exit(1);
+                        return ParserExpressionInvalidAt(i, "expected_token");
                     }
-                    i = Expect(content, i, ":");
-                    if i < 0 {
-                        Exit(1);
+                    let colon: Option<Int> = ExpectOpt(content, i, ":");
+                    if !IsSome(colon) {
+                        return ParserExpressionInvalidAt(
+                            SkipWhitespaceAndComments(content, i),
+                            "expected_token");
                     }
+                    i = UnwrapOption(colon);
                     ArraySet(cursor_out, 0, i);
                     let init_value: ParserExpressionFact = ParseExprFact(
                         content, i, cursor_out
                     );
-                    if !init_value.ok { Exit(1); }
+                    if !init_value.ok { return init_value; }
                     i = cursor_out[0];
                     let init_pair: String = Concat(
                         init_name, Concat(": ", init_value.text)
@@ -196,7 +201,7 @@ func ApplyPostfixFact(
                         )),
                         struct_literal, binding
                     );
-                    if !struct_literal.ok { Exit(1); }
+                    if !struct_literal.ok { return struct_literal; }
                     i = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, i) == "," {
                         i = i + 1;
@@ -205,10 +210,12 @@ func ApplyPostfixFact(
                     break;
                 }
             }
-            i = Expect(content, i, "}");
-            if i < 0 {
-                Exit(1);
+            let brace_close: Option<Int> = ExpectOpt(content, i, "}");
+            if !IsSome(brace_close) {
+                return ParserExpressionInvalidAt(
+                    SkipWhitespaceAndComments(content, i), "expected_token");
             }
+            i = UnwrapOption(brace_close);
             base = struct_literal;
             continue;
         }
@@ -221,7 +228,7 @@ func ApplyPostfixFact(
                 call = ParserExpressionCall(
                     Concat(base.text, "()"), base
                 );
-                if !call.ok { Exit(1); }
+                if !call.ok { return call; }
             }
             i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) != ")" {
@@ -230,7 +237,7 @@ func ApplyPostfixFact(
                     let argument: ParserExpressionFact = ParseExprFact(
                         content, i, cursor_out
                     );
-                    if !argument.ok { Exit(1); }
+                    if !argument.ok { return argument; }
                     i = cursor_out[0];
                     if StringLength(arg_text) == 0 {
                         arg_text = argument.text;
@@ -246,7 +253,7 @@ func ApplyPostfixFact(
                             )),
                             call, argument
                         );
-                        if !call.ok { Exit(1); }
+                        if !call.ok { return call; }
                     }
                     i = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, i) == "," {
@@ -256,10 +263,12 @@ func ApplyPostfixFact(
                     break;
                 }
             }
-            i = Expect(content, i, ")");
-            if i < 0 {
-                Exit(1);
+            let paren_close: Option<Int> = ExpectOpt(content, i, ")");
+            if !IsSome(paren_close) {
+                return ParserExpressionInvalidAt(
+                    SkipWhitespaceAndComments(content, i), "expected_token");
             }
+            i = UnwrapOption(paren_close);
             if graph_call {
                 base = call;
             } else {
@@ -275,19 +284,21 @@ func ApplyPostfixFact(
             let idx: ParserExpressionFact = ParseExprFact(
                 content, i, cursor_out
             );
-            if !idx.ok { Exit(1); }
+            if !idx.ok { return idx; }
             i = cursor_out[0];
-            i = Expect(content, i, "]");
-            if i < 0 {
-                Exit(1);
+            let bracket_close: Option<Int> = ExpectOpt(content, i, "]");
+            if !IsSome(bracket_close) {
+                return ParserExpressionInvalidAt(
+                    SkipWhitespaceAndComments(content, i), "expected_token");
             }
+            i = UnwrapOption(bracket_close);
             let rendered: String = Concat(
                 base.text, Concat("[", Concat(idx.text, "]"))
             );
             base = ParserExpressionBinary(
                 AstExpressionNodeIndex(), rendered, base, idx
             );
-            if !base.ok { Exit(1); }
+            if !base.ok { return base; }
             continue;
         }
         if nc == "?" && ParserCharAt(content, after_ws + 1) != "?" {
@@ -296,7 +307,7 @@ func ApplyPostfixFact(
             base = ParserExpressionUnary(
                 AstExpressionNodeTry(), try_text, base
             );
-            if !base.ok { Exit(1); }
+            if !base.ok { return base; }
             base.text = Concat("(", Concat(try_text, ")"));
             continue;
         }
@@ -307,7 +318,7 @@ func ApplyPostfixFact(
             let member: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             if StringLength(member) == 0 {
-                Exit(1);
+                return ParserExpressionInvalidAt(i, "expected_token");
             }
             let rendered_member: String = Concat(
                 base.text, Concat(".", member)
@@ -316,7 +327,7 @@ func ApplyPostfixFact(
                 AstExpressionNodeMemberAccess(), rendered_member,
                 base, ParserExpressionLeaf(member)
             );
-            if !base.ok { Exit(1); }
+            if !base.ok { return base; }
             continue;
         }
         break;

@@ -72,8 +72,8 @@ func SemanticAstExpressionCallErrorFromGraph(
         facts.signature_count - facts.target.parameter_offset;
     let actual_count: Int = ArrayLength(facts.call.argument_nodes);
     if expected_count != actual_count {
-        return SemanticError3(
-            "call_arity_mismatch", "func", facts.target.name,
+        return SemanticCallSignatureRefusal(
+            "call_arity_mismatch", facts.target.name, facts.signature,
             "expected", ToString(expected_count),
             "actual", ToString(actual_count)
         );
@@ -149,8 +149,8 @@ func SemanticAstExpressionCallErrorFromGraph(
             if facts.target.kind == SemanticCallTargetMember() {
                 code = "member_call_arg_type_mismatch";
             }
-            return SemanticError3(
-                code, "func", facts.target.name,
+            return SemanticCallSignatureRefusal(
+                code, facts.target.name, facts.signature,
                 "expected", expected, "actual", actual
             );
         }

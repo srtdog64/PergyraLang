@@ -1,0 +1,185 @@
+// Parser-observed source positions bound to one typed AST epoch.
+//
+// The parser records (kind, file, line, column) for every function and
+// statement while its cursor owns the offset. This owner binds those rows to
+// arena node ids once, in preorder, when the artifact is built. Diagnostics
+// and the debugger read positions by node id and never reopen source text.
+// A node the parser did not observe (an expression, a nested declaration)
+// resolves to its nearest observed ancestor.
+
+import "typed_ast_arena_owner.pgy";
+import "../lib/path.pgy";
+
+struct AstSourceLocationFacts {
+    ok: Bool;
+    known: Bool;
+    display_root: String;
+    node_paths: Array<String>;
+    node_lines: Array<Int>;
+    node_columns: Array<Int>;
+}
+
+struct AstSourceSpan {
+    known: Bool;
+    path: String;
+    display_path: String;
+    line: Int;
+    column: Int;
+}
+
+func AstSourceLocationFactsUnknown() -> AstSourceLocationFacts {
+    let no_paths: Array<String> = [];
+    let no_lines: Array<Int> = [];
+    let no_columns: Array<Int> = [];
+    return AstSourceLocationFacts(
+        true, false, "", no_paths, no_lines, no_columns
+    );
+}
+
+func AstSourceLocationFactsInvalid() -> AstSourceLocationFacts {
+    let no_paths: Array<String> = [];
+    let no_lines: Array<Int> = [];
+    let no_columns: Array<Int> = [];
+    return AstSourceLocationFacts(
+        false, false, "", no_paths, no_lines, no_columns
+    );
+}
+
+func AstSourceSpanUnknown() -> AstSourceSpan {
+    return AstSourceSpan(false, "", "", 0, 0);
+}
+
+// A function row names its callable and sits directly under Program; every
+// other row is matched by kind in preorder after the previous match.
+func AstSourceLocationRowMatches(
+    arena: AstArena,
+    node_id: Int,
+    kind: Int,
+    callable_name: String
+) -> Bool {
+    if !TypedAstArenaNodeKindIs(arena, node_id, kind) {
+        return false;
+    }
+    if kind != TypedAstKindFuncDeclTag() {
+        return true;
+    }
+    let atom_opt: Option<String> = TypedAstArenaAtomText(arena, node_id);
+    let parent_opt: Option<Int> = TypedAstArenaParentId(arena, node_id);
+    return callable_name != "" && IsSome(atom_opt) &&
+        UnwrapOption(atom_opt) == callable_name &&
+        IsSome(parent_opt) && TypedAstArenaNodeKindIs(
+            arena, UnwrapOption(parent_opt), TypedAstKindProgramTag()
+        );
+}
+
+// Fails closed: a row that finds no node, or two rows on one node, means the
+// parser rows and the arena describe different trees.
+func AstSourceLocationFactsFromParserRows(
+    arena: AstArena,
+    node_count: Int,
+    kinds: Array<Int>,
+    paths: Array<String>,
+    lines: Array<Int>,
+    columns: Array<Int>,
+    callable_names: Array<String>,
+    display_root: String
+) -> AstSourceLocationFacts {
+    let row_count: Int = ArrayLength(kinds);
+    if node_count != TypedAstArenaNodeCount(arena) ||
+        ArrayLength(paths) != row_count || ArrayLength(lines) != row_count ||
+        ArrayLength(columns) != row_count ||
+        ArrayLength(callable_names) != row_count {
+        return AstSourceLocationFactsInvalid();
+    }
+    if row_count == 0 {
+        return AstSourceLocationFactsUnknown();
+    }
+    let node_paths: Array<String> = [];
+    let node_lines: Array<Int> = [];
+    let node_columns: Array<Int> = [];
+    let node_id: Int = 0;
+    while node_id < node_count {
+        ArrayPush(node_paths, "");
+        ArrayPush(node_lines, 0);
+        ArrayPush(node_columns, 0);
+        node_id = node_id + 1;
+    }
+    let search_node: Int = 0;
+    let row: Int = 0;
+    while row < row_count {
+        if paths[row] == "" || lines[row] < 1 || columns[row] < 1 {
+            return AstSourceLocationFactsInvalid();
+        }
+        let matched_node: Int = 0 - 1;
+        while search_node < node_count && matched_node < 0 {
+            if AstSourceLocationRowMatches(
+                arena, search_node, kinds[row], callable_names[row]
+            ) {
+                matched_node = search_node;
+            }
+            search_node = search_node + 1;
+        }
+        if matched_node < 0 || node_lines[matched_node] != 0 {
+            return AstSourceLocationFactsInvalid();
+        }
+        ArraySet(node_paths, matched_node, paths[row]);
+        ArraySet(node_lines, matched_node, lines[row]);
+        ArraySet(node_columns, matched_node, columns[row]);
+        row = row + 1;
+    }
+    return AstSourceLocationFacts(
+        true, true, display_root, node_paths, node_lines, node_columns
+    );
+}
+
+func AstSourceLocationFactsReady(
+    arena: AstArena, facts: AstSourceLocationFacts
+) -> Bool {
+    if !facts.ok { return false; }
+    if !facts.known {
+        return ArrayLength(facts.node_lines) == 0 &&
+            ArrayLength(facts.node_paths) == 0 &&
+            ArrayLength(facts.node_columns) == 0;
+    }
+    let count: Int = TypedAstArenaNodeCount(arena);
+    return ArrayLength(facts.node_lines) == count &&
+        ArrayLength(facts.node_paths) == count &&
+        ArrayLength(facts.node_columns) == count;
+}
+
+// The nearest observed node at or above node_id. The walk is bounded by the
+// node count so a malformed parent chain cannot loop.
+func AstSourceSpanForNode(
+    facts: AstSourceLocationFacts, arena: AstArena, node_id: Int
+) -> AstSourceSpan {
+    if !facts.ok || !facts.known || node_id < 0 ||
+        node_id >= ArrayLength(facts.node_lines) {
+        return AstSourceSpanUnknown();
+    }
+    let current: Int = node_id;
+    let remaining: Int = ArrayLength(facts.node_lines);
+    while remaining > 0 {
+        if facts.node_lines[current] > 0 {
+            let path: String = facts.node_paths[current];
+            return AstSourceSpan(
+                true, path,
+                SelfHostPath.RelativeToDirectory(path, facts.display_root),
+                facts.node_lines[current], facts.node_columns[current]
+            );
+        }
+        let parent: Option<Int> = TypedAstArenaParentId(arena, current);
+        if !IsSome(parent) { return AstSourceSpanUnknown(); }
+        current = UnwrapOption(parent);
+        if current < 0 || current >= ArrayLength(facts.node_lines) {
+            return AstSourceSpanUnknown();
+        }
+        remaining = remaining - 1;
+    }
+    return AstSourceSpanUnknown();
+}
+
+func AstSourceSpanText(span: AstSourceSpan) -> String {
+    if !span.known { return "none"; }
+    return Concat(span.display_path, Concat(":", Concat(ToString(span.line),
+        Concat(":", ToString(span.column)))));
+}

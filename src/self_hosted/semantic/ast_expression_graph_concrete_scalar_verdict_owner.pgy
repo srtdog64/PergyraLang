@@ -10,6 +10,7 @@ import "ast_signature_type_expression_fact_owner.pgy";
 import "ast_contextual_builtin_type_owner.pgy";
 import "ast_callable_receiver_source_parameter_owner.pgy";
 import "builtin_signature_owner.pgy";
+import "builtin_signature_display_owner.pgy";
 func SemanticExpressionGraphCallTargetSourceParameterOffset(
     target: SemanticExpressionCallTargetFact, local_callable: SemanticAstCallableTypeShape,
     signatures: SemanticAstFunctionSignatureFacts) -> Option<Int> {
@@ -543,8 +544,8 @@ func SemanticExpressionGraphConcreteScalarValueError(
     let expected_count: Int = signature_count - target_fact.parameter_offset;
     let actual_count: Int = ArrayLength(call.argument_nodes);
     if expected_count != actual_count {
-        return SemanticError3(
-            "call_arity_mismatch", "func", callee,
+        return SemanticCallSignatureRefusal(
+            "call_arity_mismatch", callee, signature,
             "expected", ToString(expected_count),
             "actual", ToString(actual_count)
         );
@@ -589,10 +590,8 @@ func SemanticExpressionGraphConcreteScalarValueError(
             if target_fact.kind == SemanticCallTargetMember() {
                 diagnostic_code = "member_call_arg_type_mismatch";
             }
-            return SemanticError3(
-                diagnostic_code, "func", callee,
-                "expected", expected, "actual", actual
-            );
+            return SemanticCallSignatureRefusal(diagnostic_code, callee,
+                signature, "expected", expected, "actual", actual);
         }
         i = i + 1;
     }

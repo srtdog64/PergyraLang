@@ -5,8 +5,9 @@ Severity: error
 Code: call_arg_type_mismatch
 Reason: call argument type does not match the callee parameter type
 Fix: change the argument expression or the callee parameter type
-Span: none
+Span: bad_seedrandom_arg.pgy:2:5
 Facts:
 - func: SeedRandom
 - expected: Int
 - actual: String
+- signature: SeedRandom(Int) -> Void

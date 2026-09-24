@@ -41,8 +41,8 @@ func VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(
     require_enum_payload_variant_proof: Bool, require_source_body_flow: Bool, emit_json_diagnostic: Bool
 ) -> DriverRung2VerifiedFacts {
     if !semantic_analysis.verdict.ok {
-        Log(SemanticDiagnosticPayloadForPublicBoundary(semantic_analysis.verdict.diagnostic_code,
-            semantic_analysis.verdict.diagnostic_message, emit_json_diagnostic));
+        Log(SemanticDiagnosticPayloadForPublicBoundaryAt(semantic_analysis.verdict.diagnostic_code, semantic_analysis.verdict.diagnostic_message,
+            SemanticAstArtifactDiagnosticSpan(artifact, !semantic_analysis.signatures.ok, semantic_analysis.signatures.diagnostic_fact), emit_json_diagnostic));
         Exit(1);
     }
     if !AstTreeArtifactReady(artifact) {
@@ -68,8 +68,8 @@ func VerifyArtifactForDriverRung2FromAdmittedAnalysisObservedWithIdentityPolicy(
     if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(
         body_type_admission, artifact, semantic_analysis, body_types
     ) {
-        Log(SemanticDiagnosticPayloadForPublicBoundary(body_types.verdict.diagnostic_code,
-            body_types.verdict.diagnostic_message, emit_json_diagnostic));
+        Log(SemanticDiagnosticPayloadForPublicBoundaryAt(body_types.verdict.diagnostic_code, body_types.verdict.diagnostic_message,
+            AstSourceSpanForNode(artifact.source_modules.locations, artifact.arena, body_types.verdict.first_node_id), emit_json_diagnostic));
         Exit(1);
     }
     DriverRung2PressureStage(observe_pressure, "body-types:ready");

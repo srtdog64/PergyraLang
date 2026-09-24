@@ -5,7 +5,7 @@ Severity: error
 Code: logical_operand_not_bool
 Reason: logical operators require Bool operands
 Fix: convert the operand to Bool or compare it explicitly before using && or ||
-Span: none
+Span: bad_logical_return.pgy:2:5
 Facts:
 - side: left
 - actual: Int

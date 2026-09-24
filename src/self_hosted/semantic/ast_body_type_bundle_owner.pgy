@@ -149,7 +149,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             "semantic expression place rows are incomplete after body fixpoint", -1);
     } else if verdict.ok && !named_boundary.ok {
         verdict = SemanticAstBodyVerdictError(named_boundary.diagnostic_code,
-            named_boundary.diagnostic_message, named_boundary.call_node_id);
+            named_boundary.diagnostic_message, SemanticAstExpressionGraphOwnerAstNode(analysis.expression_surfaces, named_boundary.call_node_id));
     } else if verdict.ok && !zone_carriage.ok {
         verdict = SemanticAstBodyVerdictError(zone_carriage.diagnostic_code,
             zone_carriage.diagnostic_message, zone_carriage.syntax_node_id);

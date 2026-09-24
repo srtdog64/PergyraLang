@@ -5,8 +5,9 @@ Severity: error
 Code: call_arity_mismatch
 Reason: call argument count does not match the callee parameter count
 Fix: pass the declared number of arguments
-Span: none
+Span: bad_arity_builtin.pgy:2:5
 Facts:
 - func: StringLength
 - expected: 1
 - actual: 0
+- signature: StringLength(String) -> Int

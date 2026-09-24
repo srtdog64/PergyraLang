@@ -27,6 +27,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "named_value_boundary_argument_required",
         "borrow_boundary_escape",
         "inout_argument_alias",
+        "inout_argument_not_variable",
         "slice_storage_invalidation",
         "zone_value_copy_requires_transfer",
         "zone_value_reassignment_requires_transfer",
@@ -105,7 +106,7 @@ func SemanticDiagnosticCodeCount() -> Int {
 
 func SemanticDiagnosticPublicLayer(code: String) -> String {
     if code == "borrow_boundary_escape" ||
-        code == "inout_argument_alias" ||
+        code == "inout_argument_alias" || code == "inout_argument_not_variable" ||
         code == "slice_storage_invalidation" ||
         code == "zone_value_copy_requires_transfer" ||
         code == "zone_value_reassignment_requires_transfer" ||
@@ -113,6 +114,16 @@ func SemanticDiagnosticPublicLayer(code: String) -> String {
         code == "zone_spawn_transport_unavailable" { return "resource"; }
     if !SemanticDiagnosticCodeKnown(code) { return ""; }
     return "type";
+}
+
+// Span policy, decided per code in this one place. These codes describe the
+// program or the compiler rather than one source construct, so their public
+// span stays `none`. Every other registered code names a construct, and the
+// publishing boundary takes its span from that construct's AST node.
+func SemanticDiagnosticSpanIsProgramWide(code: String) -> Bool {
+    return code == "entrypoint_cardinality" || code == "input_missing" ||
+        code == "unregistered_diagnostic_code" ||
+        code == "capability_fact_invalid" || code == "ast_artifact_invalid";
 }
 
 func SemanticDiagnosticOracleCode(code: String) -> String {
@@ -161,7 +172,7 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
         return "PGY_SEM_TYPE_MISMATCH";
     }
     if code == "borrow_boundary_escape" { return "PGY_SEM_BORROW_ESCAPE"; }
-    if code == "inout_argument_alias" { return "PGY_SEM_BORROW_ESCAPE"; }
+    if code == "inout_argument_alias" || code == "inout_argument_not_variable" { return "PGY_SEM_BORROW_ESCAPE"; }
     if code == "slice_storage_invalidation" {
         return "PGY_SEM_BORROW_ESCAPE";
     }

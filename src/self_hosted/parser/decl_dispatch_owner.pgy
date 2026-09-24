@@ -17,6 +17,7 @@ import "decl_intent_owner.pgy";
 import "decl_nominal_owner.pgy";
 import "diagnostic_owner.pgy";
 import "source_location_observation_owner.pgy";
+import "source_refusal_owner.pgy";
 import "format_surface_decl_owner.pgy";
 
 // Imported-module visibility is a token fact, not a substring fact. Comments
@@ -61,7 +62,7 @@ func ParseDeclsInto(
     name_prefix: String,
     until_brace: Bool,
     source_dir: String,
-    source_path: String,
+    source_path: String, display_root: String,
     force_export: Bool,
     follow_imports: Bool,
     admit_format_surfaces: Bool,
@@ -77,8 +78,8 @@ func ParseDeclsInto(
     inout out_module_paths: Array<String>,
     inout script_blocks: Array<String>
 ) -> Void {
-    let location_context: ParserSourceLocationContext =
-        ParserSourceLocationContextFromSource(source_path, content);
+    let location_context: ParserSourceLocationContext = ParserSourceLocationContextFromSource(source_path,
+        SelfHostPath.RelativeToDirectory(source_path, display_root), content, diagnostic_projection);
     let i: Int = start;
     let n: Int = StringLength(content);
     let active_within_zone: String = within_zone;
@@ -90,9 +91,10 @@ func ParseDeclsInto(
 
     while true {
         i = SkipWhitespaceAndComments(content, i);
+        let decl_start: Int = i;
         if until_brace {
             if i >= n {
-                Exit(1);
+                ParseRefuse(location_context, start, "block_unclosed", "construct", "declaration_block", "", "");
             }
             if ParserCharAt(content, i) == "}" {
                 i = i + 1;
@@ -116,15 +118,11 @@ func ParseDeclsInto(
             i = LanguageWordEnd(i, LanguageWordId.WordImport);
             i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) != "\"" {
-                Exit(1);
+                ParseRefuse(location_context, i, "expected_token", "expected", "\"", "construct", "import");
             }
             ArraySet(cursor_out, 0, i);
             let raw_path: String = ReadString(content, i, cursor_out);
-            i = cursor_out[0];
-            i = Expect(content, i, ";");
-            if i < 0 {
-                Exit(1);
-            }
+            i = ParseExpectIn(location_context, content, cursor_out[0], ";", "import");
             // Strip the leading and trailing `"` from raw_path.
             let rp_len: Int = StringLength(raw_path);
             let imp_rel: String = Substring(raw_path, 1, rp_len - 2);
@@ -134,12 +132,12 @@ func ParseDeclsInto(
                     continue;
                 }
                 SetAdd(import_paths, imp_path);
-                let imp_content: String = ParserReadImportedSource(imp_path);
+                let imp_content: String = ParserReadImportedSource(location_context, decl_start, imp_path);
                 let imp_dir: String = SelfHostPath.Dirname(imp_path);
                 let imp_cursor: Array<Int> = [0];
                 ParseDeclsInto(
                     imp_content, 0, imp_cursor, name_prefix, false, imp_dir,
-                    imp_path, true, true, admit_format_surfaces,
+                    imp_path, display_root, true, true, admit_format_surfaces,
                     diagnostic_projection, active_within_zone, involve_types,
                     import_paths, expression_graphs, script_graphs,
                     source_locations, script_source_locations,
@@ -159,17 +157,14 @@ func ParseDeclsInto(
             let ns_name: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             if StringLength(ns_name) == 0 {
-                Exit(1);
+                ParseRefuse(location_context, i, "declaration_name_missing", "construct", "namespace", "", "");
             }
-            i = Expect(content, i, "{");
-            if i < 0 {
-                Exit(1);
-            }
+            i = ParseExpectIn(location_context, content, i, "{", "namespace");
             let new_prefix: String = Concat(name_prefix, Concat(ns_name, "_"));
             ArraySet(cursor_out, 0, i);
             ParseDeclsInto(
                 content, i, cursor_out, new_prefix, true, source_dir,
-                source_path, force_export, follow_imports,
+                source_path, display_root, force_export, follow_imports,
                 admit_format_surfaces, diagnostic_projection,
                 active_within_zone,
                 involve_types, import_paths, expression_graphs, script_graphs,
@@ -189,16 +184,13 @@ func ParseDeclsInto(
             let wz_name: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             if StringLength(wz_name) == 0 {
-                Exit(1);
+                ParseRefuse(location_context, i, "declaration_name_missing", "construct", "within", "", "");
             }
-            i = Expect(content, i, "{");
-            if i < 0 {
-                Exit(1);
-            }
+            i = ParseExpectIn(location_context, content, i, "{", "within");
             ArraySet(cursor_out, 0, i);
             ParseDeclsInto(
                 content, i, cursor_out, name_prefix, true, source_dir,
-                source_path, force_export, follow_imports,
+                source_path, display_root, force_export, follow_imports,
                 admit_format_surfaces, diagnostic_projection,
                 wz_name, involve_types,
                 import_paths, expression_graphs, script_graphs,
@@ -246,7 +238,7 @@ func ParseDeclsInto(
             i = LanguageWordEnd(i, LanguageWordId.WordExtern);
             i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) != "\"" {
-                Exit(1);
+                ParseRefuse(location_context, i, "expected_token", "expected", "\"", "construct", "extern");
             }
             ArraySet(cursor_out, 0, i);
             let raw_abi: String = ReadString(content, i, cursor_out);
@@ -256,22 +248,20 @@ func ParseDeclsInto(
                 Exit(1);
             }
             let abi_name: String = Substring(raw_abi, 1, abi_len - 2);
-            i = Expect(content, i, "{");
-            if i < 0 {
-                Exit(1);
-            }
+            let extern_open: Int = SkipWhitespaceAndComments(content, i);
+            i = ParseExpectIn(location_context, content, i, "{", "extern");
             let extern_out: String = Concat("  Extern Block (", Concat(abi_name, "):"));
             while true {
                 i = SkipWhitespaceAndComments(content, i);
                 if i >= n {
-                    Exit(1);
+                    ParseRefuse(location_context, extern_open, "block_unclosed", "construct", "extern", "", "");
                 }
                 if ParserCharAt(content, i) == "}" {
                     i = i + 1;
                     break;
                 }
                 if !MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
-                    Exit(1);
+                    ParseRefuse(location_context, i, "expected_token", "expected", "func", "construct", "extern");
                 }
                 ArraySet(cursor_out, 0, i);
                 // ABI names are never namespaced: the member's C symbol is
@@ -279,7 +269,7 @@ func ParseDeclsInto(
                 let extern_sig: String = ParseFunction(
                     content, i, cursor_out, "", false, 4,
                     "func", "Function: ", true, "", expression_graphs,
-                    diagnostic_projection
+                    location_context
                 );
                 i = cursor_out[0];
                 extern_out = AppendLine(extern_out, extern_sig);
@@ -353,7 +343,7 @@ func ParseDeclsInto(
         if MatchLanguageWord(content, i, LanguageWordId.WordType) {
             let type_block: String = ParseTypeDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            ArrayPush(out_blocks, type_block);
+            ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, type_block, source_locations));
             ArrayPush(out_module_paths, source_path);
             continue;
         }
@@ -361,9 +351,9 @@ func ParseDeclsInto(
         if MatchLanguageWord(content, i, LanguageWordId.WordAbility) {
             let ability_block: String = ParseAbilityDecl(
                 content, i, cursor_out, decl_prefix, expression_graphs,
-                diagnostic_projection);
+                location_context);
             i = cursor_out[0];
-            ArrayPush(out_blocks, ability_block);
+            ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, ability_block, source_locations));
             ArrayPush(out_module_paths, source_path);
             continue;
         }
@@ -371,10 +361,10 @@ func ParseDeclsInto(
         if MatchLanguageWord(content, i, LanguageWordId.WordZone) {
             let zone_block: String = ParseZoneDecl(
                 content, i, cursor_out, decl_prefix, involve_types,
-                expression_graphs, diagnostic_projection
+                expression_graphs, location_context
             );
             i = cursor_out[0];
-            ArrayPush(out_blocks, zone_block);
+            ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, zone_block, source_locations));
             ArrayPush(out_module_paths, source_path);
             continue;
         }
@@ -383,7 +373,7 @@ func ParseDeclsInto(
         if MatchLanguageWord(content, i, LanguageWordId.WordEffect) {
             let effect_block: String = ParseEffectDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            ArrayPush(out_blocks, effect_block);
+            ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, effect_block, source_locations));
             ArrayPush(out_module_paths, source_path);
             continue;
         }
@@ -392,7 +382,7 @@ func ParseDeclsInto(
         if MatchLanguageWord(content, i, LanguageWordId.WordRelation) {
             let relation_block: String = ParseRelationDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            ArrayPush(out_blocks, relation_block);
+            ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, relation_block, source_locations));
             ArrayPush(out_module_paths, source_path);
             continue;
         }
@@ -401,9 +391,9 @@ func ParseDeclsInto(
         if MatchLanguageWord(content, i, LanguageWordId.WordRole) {
             let role_block: String = ParseRoleDecl(
                 content, i, cursor_out, decl_prefix, active_within_zone,
-                expression_graphs, diagnostic_projection);
+                expression_graphs, location_context);
             i = cursor_out[0];
-            ArrayPush(out_blocks, role_block);
+            ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, role_block, source_locations));
             ArrayPush(out_module_paths, source_path);
             continue;
         }
@@ -414,7 +404,7 @@ func ParseDeclsInto(
                 content, i, cursor_out, decl_prefix, expression_graphs
             );
             i = cursor_out[0];
-            ArrayPush(out_blocks, intent_block);
+            ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, intent_block, source_locations));
             ArrayPush(out_module_paths, source_path);
             continue;
         }
@@ -424,10 +414,10 @@ func ParseDeclsInto(
             let nominal_block: String = ParseNominalDecl(
                 content, i, cursor_out, decl_prefix, is_export,
                 active_within_zone,
-                involve_types, expression_graphs, diagnostic_projection
+                involve_types, expression_graphs, location_context
             );
             i = cursor_out[0];
-            ArrayPush(out_blocks, nominal_block);
+            ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, nominal_block, source_locations));
             ArrayPush(out_module_paths, source_path);
             continue;
         }
@@ -436,15 +426,15 @@ func ParseDeclsInto(
         if MatchLanguageWord(content, i, LanguageWordId.WordEvent) {
             let event_block: String = ParseEventDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            ArrayPush(out_blocks, event_block);
+            ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, event_block, source_locations));
             ArrayPush(out_module_paths, source_path);
             continue;
         }
 
         if MatchLanguageWord(content, i, LanguageWordId.WordEnum) {
-            let enum_block: String = ParseEnumDecl(content, i, cursor_out, decl_prefix, expression_graphs, diagnostic_projection);
+            let enum_block: String = ParseEnumDecl(content, i, cursor_out, decl_prefix, expression_graphs, location_context);
             i = cursor_out[0];
-            ArrayPush(out_blocks, enum_block);
+            ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, enum_block, source_locations));
             ArrayPush(out_module_paths, source_path);
             continue;
         }
@@ -475,7 +465,7 @@ func ParseDeclsInto(
         // bare call, or assignment). Root script statements are collected
         // under the implicit Main function to match the C parser oracle.
         if is_export {
-            Exit(1);
+            ParseRefuse(location_context, i, "expected_token", "expected", "declaration", "construct", "export");
         }
         ArraySet(cursor_out, 0, i);
         let stmt_indent: Int = 2;
@@ -519,7 +509,7 @@ func ParseDecls(
     name_prefix: String,
     until_brace: Bool,
     source_dir: String,
-    source_path: String,
+    source_path: String, display_root: String,
     force_export: Bool,
     follow_imports: Bool,
     admit_format_surfaces: Bool,
@@ -540,15 +530,21 @@ func ParseDecls(
     );
     ParseDeclsInto(
         content, start, cursor_out, name_prefix, until_brace, source_dir,
-        source_path, force_export, follow_imports, admit_format_surfaces,
-        diagnostic_projection, within_zone, involve_types,
-        import_paths, expression_graphs, script_graphs,
+        source_path, display_root, force_export, follow_imports,
+        admit_format_surfaces, diagnostic_projection, within_zone,
+        involve_types, import_paths, expression_graphs, script_graphs,
         source_locations, script_source_locations,
         out_blocks, declaration_module_paths, script_blocks
     );
     ParserExpressionGraphsAppendRowsInto(expression_graphs, script_graphs[0]);
     if ArrayLength(script_blocks) > 0 &&
         ArrayLength(script_source_locations) == 0 { Exit(1); }
+    if ArrayLength(script_blocks) > 0 && ParserBlocksDeclareExplicitMain(out_blocks) {
+        let first_statement: ParserSourceLocationObservation = script_source_locations[0];
+        ParseRefuse(ParserSourceLocationContextFromSource(source_path,
+            SelfHostPath.RelativeToDirectory(source_path, display_root), content, diagnostic_projection),
+            first_statement.source_offset, "script_statement_with_main", "construct", "top_level_statement", "", "");
+    }
     let out: TextBuilder = TextBuilderNew(4096);
     let block_index: Int = 0;
     while block_index < ArrayLength(out_blocks) {
@@ -576,13 +572,13 @@ func ParseDecls(
             script_source_locations[0];
         ParserSourceLocationAppendSynthetic(
             TypedAstKindFuncDeclTag(), first_script.source_path,
-            first_script.source_line, first_script.source_offset, "Main",
-            source_locations
+            first_script.source_line, first_script.source_column,
+            first_script.source_offset, "Main", source_locations
         );
         ParserSourceLocationAppendSynthetic(
             TypedAstKindBlockTag(), first_script.source_path,
-            first_script.source_line, first_script.source_offset, "",
-            source_locations
+            first_script.source_line, first_script.source_column,
+            first_script.source_offset, "", source_locations
         );
         let script_location_index: Int = 0;
         while script_location_index < ArrayLength(script_source_locations) {

@@ -5,7 +5,7 @@ Severity: error
 Code: option_concrete_type_required
 Reason: Option builtin requires a concrete Option<T> payload type
 Fix: annotate the None value or pass a concretely typed Option<T>
-Span: none
+Span: bad_issome_none_call.pgy:2:5
 Facts:
 - func: IsSome
 - expected: Option<T>

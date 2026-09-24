@@ -4,6 +4,7 @@ import "cursor_owner.pgy";
 import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "function_decl_owner.pgy";
+import "source_refusal_owner.pgy";
 
 // `enum NAME { V1, V2(T), V3 }` single-line canonical emission. An enum body
 // may also declare methods in any position; they are children of the enum
@@ -14,7 +15,7 @@ func ParseEnumDecl(
     inout cursor_out: Array<Int>,
     decl_prefix: String,
     inout expression_graphs: Array<AstExpressionGraphRows>,
-    diagnostic_projection: ParseDiagnosticProjection
+    location_context: ParserSourceLocationContext
 ) -> String {
     let i: Int = LanguageWordEnd(start, LanguageWordId.WordEnum);
     let n: Int = StringLength(content);
@@ -23,18 +24,16 @@ func ParseEnumDecl(
     let enum_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if StringLength(enum_name) == 0 {
-        Exit(1);
+        ParseRefuse(location_context, i, "declaration_name_missing", "construct", "enum", "", "");
     }
-    i = Expect(content, i, "{");
-    if i < 0 {
-        Exit(1);
-    }
+    let open_at: Int = SkipWhitespaceAndComments(content, i);
+    i = ParseExpectIn(location_context, content, i, "{", "enum");
     let variants: String = "";
     let method_blocks: String = "";
     while true {
         i = SkipWhitespaceAndComments(content, i);
         if i >= n {
-            Exit(1);
+            ParseRefuse(location_context, open_at, "block_unclosed", "construct", "enum", "", "");
         }
         if ParserCharAt(content, i) == "}" {
             i = i + 1;
@@ -45,7 +44,7 @@ func ParseEnumDecl(
             let method_block: String = ParseFunction(
                 content, i, cursor_out, "", false, 4,
                 "func", "Function: ", false, "",
-                expression_graphs, diagnostic_projection
+                expression_graphs, location_context
             );
             i = cursor_out[0];
             method_blocks = AppendLine(method_blocks, method_block);
@@ -55,7 +54,7 @@ func ParseEnumDecl(
         let v_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
         if StringLength(v_name) == 0 {
-            Exit(1);
+            ParseRefuse(location_context, i, "declaration_name_missing", "construct", "enum_variant", "", "");
         }
         let variant_text: String = v_name;
         i = SkipWhitespaceAndComments(content, i);
@@ -81,11 +80,11 @@ func ParseEnumDecl(
                     i = type_start;
                 }
                 ArraySet(cursor_out, 0, i);
-                let param_type: String = ReadType(content, i, cursor_out);
-                i = cursor_out[0];
+                let param_type: String = ReadTypeIn(location_context, content, i, cursor_out);
                 if StringLength(param_type) == 0 {
-                    Exit(1);
+                    ParseRefuse(location_context, cursor_out[0], "type_name_invalid", "construct", "enum_variant", "", "");
                 }
+                i = cursor_out[0];
                 if StringLength(params) == 0 {
                     params = param_type;
                 } else {
@@ -97,7 +96,7 @@ func ParseEnumDecl(
                     continue;
                 }
                 if ParserCharAt(content, i) != ")" {
-                    Exit(1);
+                    ParseRefuse(location_context, i, "expected_token", "expected", ")", "construct", "enum_variant");
                 }
             }
             if StringLength(params) > 0 {

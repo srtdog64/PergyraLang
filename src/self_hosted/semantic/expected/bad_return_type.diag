@@ -5,7 +5,7 @@ Severity: error
 Code: return_type_mismatch
 Reason: return expression type does not match the function return type
 Fix: return the declared function result type
-Span: none
+Span: bad_return_type.pgy:6:5
 Facts:
 - expected: Float
 - actual: Double
