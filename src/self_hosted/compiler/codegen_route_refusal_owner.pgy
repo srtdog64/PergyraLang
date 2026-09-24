@@ -1,0 +1,58 @@
+// Typed code-generation route refusal.
+//
+// A direct-MIR route owner that declines a program returns this value instead
+// of exiting. Each consumer carries it to its request owner, which renders it
+// once: the historical `CODEGEN ERROR:` line for text, or a public receipt for
+// a JSON-selected source-LLVM request. Internal invariants still end in Die;
+// only a route owner's decision about the program travels here.
+
+import "../lib/public_diagnostic_receipt_owner.pgy";
+import "target_capability_owner.pgy";
+
+// owner/stage name the route owner that decided and its rejecting stage;
+// message is the text the refusal has always printed.
+struct CodegenRouteRefusal {
+    let owner: String;
+    let stage: String;
+    let message: String;
+}
+
+enum CodegenRoutePayload {
+    CodegenRoutePayloadEmitted(String),
+    CodegenRoutePayloadRefused(CodegenRouteRefusal),
+}
+
+func CodegenRouteRefusalReady(ref refusal: CodegenRouteRefusal) -> Bool {
+    return refusal.owner != "" && refusal.stage != "" && refusal.message != "";
+}
+
+func CodegenRouteRefusalText(refusal: CodegenRouteRefusal) -> String {
+    if !CodegenRouteRefusalReady(refusal) {
+        return "CODEGEN ERROR: code generation route refusal is invalid";
+    }
+    return Concat("CODEGEN ERROR: ", refusal.message);
+}
+
+// Native reports a program shape its LLVM backend cannot lower as
+// PGY_LLVM_TYPE_UNSUPPORTED (src/semantic/diag_codes.h); a direct-MIR LLVM
+// refusal keeps that identity. Only the source-LLVM request selects JSON, so
+// no other target has a receipt identity here. The refusal names a route and
+// a program, not a source construct, so the receipt location is null.
+func CodegenRouteRefusalPayloadForPublicBoundary(
+    refusal: CodegenRouteRefusal,
+    target_projection: String,
+    emit_json_receipt: Bool
+) -> String {
+    let text: String = CodegenRouteRefusalText(refusal);
+    if !emit_json_receipt { return text; }
+    if target_projection != CompilerTargetCpuLlvmProjection() ||
+        !CodegenRouteRefusalReady(refusal) {
+        // Empty output makes the opaque transport fail closed.
+        return "";
+    }
+    return SelfHostPublicDiagnosticReceiptWireFromOwnedFacts(
+        "llvm_codegen", "backend", "PGY_LLVM_TYPE_UNSUPPORTED",
+        "llvm:type:unsupported_or_unknown", "inspect-mir-inventory", text,
+        "null"
+    );
+}

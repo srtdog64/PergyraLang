@@ -4,6 +4,7 @@
 
 import "driver_source_mir_protocol_owner.pgy";
 import "driver_rung2_execution_protocol_owner.pgy";
+import "codegen_route_refusal_owner.pgy";
 
 tobject DriverLlvmPayloadPublicationFailure {
     schema: String;
@@ -19,12 +20,14 @@ tobject DriverLlvmPayloadPublicationFailure {
 enum DriverLlvmPayloadPublicationOutcome {
     DriverLlvmPayloadPublished(DriverRung2ExecutionReceipt),
     DriverLlvmPayloadPublicationRejected(DriverLlvmPayloadPublicationFailure),
+    DriverLlvmPayloadRouteRefused(CodegenRouteRefusal),
 }
 
 enum DriverSourceLlvmIntentOutcome {
     DriverSourceLlvmPublished(DriverRung2ExecutionReceipt),
     DriverSourceLlvmSourceRejected(DriverSourceMirExecutionRejection),
     DriverSourceLlvmProjectionRejected(DriverLlvmPayloadPublicationFailure),
+    DriverSourceLlvmRouteRefused(CodegenRouteRefusal),
 }
 
 func DriverSourceLlvmIntentSchema() -> String {
@@ -102,6 +105,7 @@ func DriverLlvmPayloadPublicationOutcomeReadyFor(
                 CompilerTargetCpuLlvmProjection()
             );
         case DriverLlvmPayloadPublicationRejected(failure): return false;
+        case DriverLlvmPayloadRouteRefused(refusal): return false;
     }
 }
 
@@ -129,6 +133,7 @@ func DriverSourceLlvmIntentOutcomeReadyFor(
             );
         case DriverSourceLlvmSourceRejected(rejection): return false;
         case DriverSourceLlvmProjectionRejected(failure): return false;
+        case DriverSourceLlvmRouteRefused(refusal): return false;
     }
 }
 
@@ -152,6 +157,13 @@ func DriverSourceLlvmIntentOutcomeDiagnostic(
         case DriverSourceLlvmProjectionRejected(failure):
             return DriverLlvmPayloadPublicationFailureDiagnostic(
                 failure, expected_final_path
+            );
+        case DriverSourceLlvmRouteRefused(refusal):
+            return CodegenRouteRefusalPayloadForPublicBoundary(
+                refusal, CompilerTargetCpuLlvmProjection(),
+                DriverSourceMirRequestEmitsJsonDiagnostic(
+                    expected_source_request
+                )
             );
     }
 }

@@ -85,14 +85,22 @@ subject DriverRung2Execution {
                 "direct MIR execution target admission failed"
             );
         }
-        let artifact: CompilerEmissionArtifact =
+        let emission: CompilerEmissionOutcome =
             CompileMirJsonToDirectBackendVerifiedObserved(
                 mir_json_path, machine_declaration, target_projection,
                 observe_pressure
             );
-        return DriverRung2CommitArtifactForTarget(
-            artifact, target_projection, output_path
-        );
+        // A direct MIR request has no JSON diagnostic selection.
+        match emission {
+            case CompilerEmissionProduced(artifact):
+                return DriverRung2CommitArtifactForTarget(
+                    artifact, target_projection, output_path
+                );
+            case CompilerEmissionRouteRefused(refusal):
+                return DriverRung2RejectedOutcome(
+                    projection_name, CodegenRouteRefusalText(refusal)
+                );
+        }
     }
 
     action ProduceMirC(

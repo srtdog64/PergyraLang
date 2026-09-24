@@ -257,7 +257,15 @@ func DirectMirIdentityCellFactsFromDeclarations(
     }
     let sealed: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsSeal(result);
     if cursor != fields || !DirectMirIdentityCellFactsReady(sealed) {
-        Die("direct MIR identity cell declaration inventory is invalid");
+        return DirectMirIdentityCellFactsInventoryRefused();
     }
     return sealed;
+}
+
+// The declarations do not form a cell inventory direct MIR admits. The
+// scalar-program route admission turns this into its typed refusal.
+func DirectMirIdentityCellFactsInventoryRefused() -> DirectMirIdentityCellFacts {
+    let strings: Array<String> = []; let ints: Array<Int> = [];
+    return DirectMirIdentityCellFacts(false, 0, strings, ints, ints, strings,
+        ints, ints, strings, strings, ints, strings);
 }

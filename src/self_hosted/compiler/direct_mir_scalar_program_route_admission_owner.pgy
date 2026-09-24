@@ -9,6 +9,7 @@ import "direct_mir_scalar_program_callable_route_envelope_owner.pgy";
 import "direct_mir_scalar_program_callable_signature_owner.pgy";
 import "direct_mir_routine_signature_fact_owner.pgy";
 import "../mir_lower/routine_inventory_owner.pgy";
+import "codegen_route_refusal_owner.pgy";
 
 struct DirectMirScalarProgramRouteAdmission {
     let valid: Bool;
@@ -34,6 +35,7 @@ func DirectMirScalarProgramRouteAdmissionOwnerStageReady(
             stage == "array-int-value-result-abi" || stage == "array-bool-abi" ||
             stage == "array-string-abi" || stage == "seal";
     }
+    if owner == "identity-cell" { return stage == "declaration-inventory"; }
     if owner == "callable-route-envelope" {
         return stage == "signature" || stage == "parameter-count" ||
             stage == "return-type" ||
@@ -91,21 +93,28 @@ func DirectMirScalarProgramRouteAdmissionAccepted(
         true, route, "scalar-program-route", "ready", -1, "", -1, "", "");
 }
 
-func DirectMirScalarProgramRouteAdmissionDie(
-    ref admission: DirectMirScalarProgramRouteAdmission
-) -> Void {
-    if !DirectMirScalarProgramRouteAdmissionReady(admission) ||
-        admission.route.claimed {
-        Die("direct MIR scalar program route admission receipt is invalid");
-    }
-    Die(Concat(
-        "direct MIR scalar program route rejected: owner=",
-        Concat(admission.owner, Concat(" stage=", Concat(admission.stage,
-        Concat(" routine=", Concat(ToString(admission.routine_ordinal),
-        Concat(" name=", Concat(admission.routine_name,
-        Concat(" parameter=", Concat(ToString(admission.parameter_ordinal),
-        Concat(" type=", Concat(admission.type_name,
-        Concat(" carriage=", admission.carriage))))))))))))));
+// An identity-cell refusal is outside every direct-MIR route: a dispatcher
+// refuses it at once and never offers it to a later route.
+func DirectMirScalarProgramRouteAdmissionEndsDispatch(ref admission: DirectMirScalarProgramRouteAdmission) -> Bool {
+    return admission.valid && !admission.route.claimed && admission.owner == "identity-cell";
+}
+
+func DirectMirScalarProgramRouteAdmissionRefusal(ref admission: DirectMirScalarProgramRouteAdmission) -> CodegenRouteRefusal {
+    if !DirectMirScalarProgramRouteAdmissionReady(admission) || admission.route.claimed {
+        Die("direct MIR scalar program route admission receipt is invalid"); }
+    if DirectMirScalarProgramRouteAdmissionEndsDispatch(admission) { return CodegenRouteRefusal(
+        admission.owner, admission.stage, "direct MIR identity cell declaration inventory is invalid"); }
+    return CodegenRouteRefusal(admission.owner, admission.stage, Concat(
+        "direct MIR scalar program route rejected: owner=", Concat(admission.owner,
+        Concat(" stage=", Concat(admission.stage, Concat(" routine=", Concat(ToString(admission.routine_ordinal),
+        Concat(" name=", Concat(admission.routine_name, Concat(" parameter=", Concat(ToString(admission.parameter_ordinal),
+        Concat(" type=", Concat(admission.type_name, Concat(" carriage=", admission.carriage))))))))))))));
+}
+
+// The default C scalar substitution has no typed refusal consumer yet.
+func DirectMirScalarProgramRouteAdmissionDie(ref admission: DirectMirScalarProgramRouteAdmission) -> Void {
+    let refusal: CodegenRouteRefusal = DirectMirScalarProgramRouteAdmissionRefusal(admission);
+    Die(refusal.message);
 }
 
 func DirectMirScalarProgramRouteAdmissionFromAdmitted(
@@ -115,6 +124,8 @@ func DirectMirScalarProgramRouteAdmissionFromAdmitted(
 ) -> DirectMirScalarProgramRouteAdmission {
     let identity_cells: DirectMirIdentityCellFacts = DirectMirIdentityCellFactsFromDeclarations(
         admitted.document.root.json, admitted.domain_runtime_admission.declarations);
+    if !identity_cells.valid { return DirectMirScalarProgramRouteAdmissionRejected(
+        "identity-cell", "declaration-inventory", -1, "", -1, "", ""); }
     let routine_instances: DirectMirRoutineInstanceInventory = DirectMirRoutineInstanceInventoryFromOwners(
         admitted.routines, generic_calls, generic_instances, identity_cells);
     if !routine_instances.valid {

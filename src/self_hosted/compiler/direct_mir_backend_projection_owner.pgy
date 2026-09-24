@@ -69,20 +69,11 @@ func CompileAdmittedDirectMirCfgPayloadForTarget(ref admitted: MirMachineLayerAd
     );
 }
 
-func CompileAdmittedDirectMirForTarget(
-    ref admitted: MirMachineLayerAdmittedJsonInput,
-    target_projection: CompilerTargetProjectionFact
-) -> CompilerEmissionArtifact {
-    return CompileAdmittedDirectMirForTargetObserved(
-        admitted, target_projection, false
-    );
-}
-
 func CompileAdmittedDirectMirForTargetObserved(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     target_projection: CompilerTargetProjectionFact,
     observe_pressure: Bool
-) -> CompilerEmissionArtifact {
+) -> CompilerEmissionOutcome {
     let is_c: Bool = CompilerTargetProjectionFactReadyFor(
         target_projection, CompilerTargetCpuCProjection()
     );
@@ -104,9 +95,12 @@ func CompileAdmittedDirectMirForTargetObserved(
     let payload: String = "";
     let routine_count: Int = MirProgramRoutineIndexCount(admitted.routines);
     if routine_count > 1 {
-        payload = CompileAdmittedDirectMirMultiRoutineForTargetObserved(
-            admitted, target_projection, observe_pressure, generic_calls, generic_instances
-        );
+        let routed: CodegenRoutePayload = CompileAdmittedDirectMirMultiRoutineForTargetObserved(
+            admitted, target_projection, observe_pressure, generic_calls, generic_instances);
+        match routed {
+            case CodegenRoutePayloadEmitted(text): payload = text;
+            case CodegenRoutePayloadRefused(refusal): return CompilerEmissionRouteRefused(refusal);
+        }
     } else if routine_count == 1 {
         let block_count: Int = admitted.routines.routine_block_counts[0];
         let instruction_count: Int =
@@ -137,6 +131,8 @@ func CompileAdmittedDirectMirForTargetObserved(
                         scalar_program_admission) {
                     Die("direct MIR scalar program route admission receipt is invalid");
                 }
+                if DirectMirScalarProgramRouteAdmissionEndsDispatch(scalar_program_admission) { return CompilerEmissionRouteRefused(
+                    DirectMirScalarProgramRouteAdmissionRefusal(scalar_program_admission)); }
                 let scalar_program_route: DirectMirScalarProgramRouteFact =
                     scalar_program_admission.route;
                 // Runtime-bearing declarations already have an owned record/enum
@@ -195,12 +191,10 @@ func CompileAdmittedDirectMirForTargetObserved(
                             );
                         }
                     } else {
-                        let int_c_type: String =
-                            CompilerAbiLayoutIntCValueType();
-                        if !DirectMirScalarBlockProjectionCandidate(
-                                admitted) {
-                            DirectMirScalarProgramRouteAdmissionDie(
-                                scalar_program_admission);
+                        let int_c_type: String = CompilerAbiLayoutIntCValueType();
+                        if !DirectMirScalarBlockProjectionCandidate(admitted) {
+                            return CompilerEmissionRouteRefused(DirectMirScalarProgramRouteAdmissionRefusal(
+                                scalar_program_admission));
                         }
                         let scalar: DirectMirScalarBlockProjection =
                             DirectMirScalarBlockProjectionFromAdmitted(admitted);
@@ -250,7 +244,8 @@ func CompileAdmittedDirectMirForTargetObserved(
                         admitted, enum_route, target_projection
                     );
                 } else {
-                    Die("direct MIR backend projection rejected unsupported CFG shape");
+                    return CompilerEmissionRouteRefused(CodegenRouteRefusal("backend-projection", "cfg-shape",
+                        "direct MIR backend projection rejected unsupported CFG shape"));
                 }
             }
         }
@@ -276,14 +271,14 @@ func CompileAdmittedDirectMirForTargetObserved(
     if !CompilerEmissionArtifactReady(artifact) {
         Die("direct MIR backend emission artifact fingerprint is missing or invalid");
     }
-    return artifact;
+    return CompilerEmissionProduced(artifact);
 }
 
 func CompileMirJsonToDirectBackendVerified(
     mir_json_path: String,
     machine_declaration: SelfHostMachineLayerDeclaration,
     target_projection: CompilerTargetProjectionFact
-) -> CompilerEmissionArtifact with caps io_read {
+) -> CompilerEmissionOutcome with caps io_read {
     return CompileMirJsonToDirectBackendVerifiedObserved(
         mir_json_path, machine_declaration, target_projection, false
     );
@@ -294,7 +289,7 @@ func CompileMirJsonTextToDirectBackendVerifiedObserved(
     machine_declaration: SelfHostMachineLayerDeclaration,
     target_projection: CompilerTargetProjectionFact,
     observe_pressure: Bool
-) -> CompilerEmissionArtifact {
+) -> CompilerEmissionOutcome {
     DirectMirPressureStage(observe_pressure, "input:start");
     let admitted_opt: Option<MirMachineLayerAdmittedJsonInput> =
         MirMachineLayerAdmitJsonInput(mir_json, machine_declaration);
@@ -305,12 +300,12 @@ func CompileMirJsonTextToDirectBackendVerifiedObserved(
     DirectMirPressureStage(observe_pressure, "projection:start");
     let admitted: MirMachineLayerAdmittedJsonInput =
         UnwrapOption(admitted_opt);
-    let artifact: CompilerEmissionArtifact =
+    let emission: CompilerEmissionOutcome =
         CompileAdmittedDirectMirForTargetObserved(
             admitted, target_projection, observe_pressure
         );
     DirectMirPressureStage(observe_pressure, "projection:done");
-    return artifact;
+    return emission;
 }
 
 func CompileMirJsonToDirectBackendVerifiedObserved(
@@ -318,7 +313,7 @@ func CompileMirJsonToDirectBackendVerifiedObserved(
     machine_declaration: SelfHostMachineLayerDeclaration,
     target_projection: CompilerTargetProjectionFact,
     observe_pressure: Bool
-) -> CompilerEmissionArtifact with caps io_read {
+) -> CompilerEmissionOutcome with caps io_read {
     DirectMirPressureStage(observe_pressure, "input:start");
     let admitted: MirMachineLayerAdmittedJsonInput =
         MirJsonReadMachineAdmittedInput(
@@ -326,10 +321,10 @@ func CompileMirJsonToDirectBackendVerifiedObserved(
         );
     DirectMirPressureStage(observe_pressure, "input:done");
     DirectMirPressureStage(observe_pressure, "projection:start");
-    let artifact: CompilerEmissionArtifact =
+    let emission: CompilerEmissionOutcome =
         CompileAdmittedDirectMirForTargetObserved(
             admitted, target_projection, observe_pressure
         );
     DirectMirPressureStage(observe_pressure, "projection:done");
-    return artifact;
+    return emission;
 }

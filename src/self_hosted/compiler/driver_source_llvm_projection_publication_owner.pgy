@@ -43,27 +43,32 @@ func DriverRung2PublishMirPayloadLlvmArtifactForIdentity(
             )
         );
     }
-    let artifact: CompilerEmissionArtifact =
+    let emission: CompilerEmissionOutcome =
         CompileMirJsonTextToDirectBackendVerifiedObserved(
             source_receipt.payload, machine_declaration,
             target_projection, false
         );
-    let committed: DriverRung2ExecutionOutcome =
-        DriverRung2CommitArtifactForTarget(
-            artifact, target_projection, output_path
-        );
-    match committed {
-        case DriverRung2Executed(receipt):
-            return DriverLlvmPayloadPublished(receipt);
-        case DriverRung2Rejected(rejection):
-            return DriverLlvmPayloadPublicationRejected(
-                DriverLlvmPayloadRequestFailure(
-                    output_path, rejection.diagnostic
-                )
-            );
-        case DriverRung2ArtifactRejected(failure):
-            return DriverLlvmPayloadPublicationRejected(
-                DriverLlvmPayloadArtifactFailure(failure)
-            );
+    match emission {
+        case CompilerEmissionRouteRefused(refusal):
+            return DriverLlvmPayloadRouteRefused(refusal);
+        case CompilerEmissionProduced(artifact):
+            let committed: DriverRung2ExecutionOutcome =
+                DriverRung2CommitArtifactForTarget(
+                    artifact, target_projection, output_path
+                );
+            match committed {
+                case DriverRung2Executed(receipt):
+                    return DriverLlvmPayloadPublished(receipt);
+                case DriverRung2Rejected(rejection):
+                    return DriverLlvmPayloadPublicationRejected(
+                        DriverLlvmPayloadRequestFailure(
+                            output_path, rejection.diagnostic
+                        )
+                    );
+                case DriverRung2ArtifactRejected(failure):
+                    return DriverLlvmPayloadPublicationRejected(
+                        DriverLlvmPayloadArtifactFailure(failure)
+                    );
+            }
     }
 }

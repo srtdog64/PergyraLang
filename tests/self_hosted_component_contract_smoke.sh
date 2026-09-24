@@ -8393,9 +8393,9 @@ done
 require_text \
     "src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" \
     '    let composite_intent_payload: Option<String> = CompileAdmittedDirectMirCompositeIntentProgramLlvmIfClaimed(admitted, is_llvm);
-    if IsSome(composite_intent_payload) { return UnwrapOption(composite_intent_payload); }
+    if IsSome(composite_intent_payload) { return CodegenRoutePayloadEmitted(UnwrapOption(composite_intent_payload)); }
     let nested_intent_payload: Option<String> = CompileAdmittedDirectMirNestedIntentProgramForTargetIfClaimed(admitted, target_projection);
-    if IsSome(nested_intent_payload) { return UnwrapOption(nested_intent_payload); }
+    if IsSome(nested_intent_payload) { return CodegenRoutePayloadEmitted(UnwrapOption(nested_intent_payload)); }
     DirectMirPressureStage(observe_pressure, "scalar-route:start");'
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_route_fact_owner.pgy" \
@@ -19994,7 +19994,7 @@ require_text \
     '"callable-signature", "signature-family"'
 require_text \
     "src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy" \
-    "DirectMirScalarProgramRouteAdmissionDie(scalar_program_admission)"
+    "DirectMirScalarProgramRouteAdmissionRefusal(scalar_program_admission)"
 reject_text \
     "src/self_hosted/compiler/direct_mir_multi_routine_terminal_projection_owner.pgy" \
     "terminal multi-routine graph is unsupported"

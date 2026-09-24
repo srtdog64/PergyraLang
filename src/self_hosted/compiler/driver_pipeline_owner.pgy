@@ -12,6 +12,7 @@ import "../semantic/ast_body_type_bundle_owner.pgy";
 import "../codegen/emission/program_entry_owner.pgy";
 import "machine_layer_declaration_consumer.pgy";
 import "target_projection_fact_owner.pgy";
+import "codegen_route_refusal_owner.pgy";
 
 struct CompilerEmissionArtifact {
     kind: String;
@@ -19,6 +20,13 @@ struct CompilerEmissionArtifact {
     target_capability_schema: String;
     target_projection: String;
     target_capability_fingerprint: Int;
+}
+
+// A direct-MIR emission either produces the target artifact or carries the
+// route owner's refusal to the request owner that renders it.
+enum CompilerEmissionOutcome {
+    CompilerEmissionProduced(CompilerEmissionArtifact),
+    CompilerEmissionRouteRefused(CodegenRouteRefusal),
 }
 
 func CompilerEmissionArtifactReady(artifact: CompilerEmissionArtifact) -> Bool {

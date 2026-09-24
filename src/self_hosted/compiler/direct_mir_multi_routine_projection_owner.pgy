@@ -16,7 +16,7 @@ import "direct_mir_scalar_program_projection_owner.pgy";
 import "direct_mir_scalar_program_route_admission_owner.pgy";
 import "direct_mir_pressure_observation_owner.pgy";
 func CompileAdmittedDirectMirMultiRoutineForTarget(
-    ref admitted: MirMachineLayerAdmittedJsonInput, target_projection: CompilerTargetProjectionFact) -> String {
+    ref admitted: MirMachineLayerAdmittedJsonInput, target_projection: CompilerTargetProjectionFact) -> CodegenRoutePayload {
     let calls: MirGenericCallOccurrenceIndex = MirGenericCallOccurrenceIndexFromDocument(admitted.document, admitted.routines);
     if !calls.valid { Die("MIR generic call occurrences are missing or invalid"); }
     let instances: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(calls);
@@ -26,59 +26,59 @@ func CompileAdmittedDirectMirMultiRoutineForTarget(
 func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
     ref admitted: MirMachineLayerAdmittedJsonInput, target_projection: CompilerTargetProjectionFact,
     observe_pressure: Bool, generic_calls: MirGenericCallOccurrenceIndex,
-    generic_instances: GenericInstanceClosure) -> String {
+    generic_instances: GenericInstanceClosure) -> CodegenRoutePayload {
     let is_c: Bool = CompilerTargetProjectionFactReadyFor(
         target_projection, CompilerTargetCpuCProjection());
     let is_llvm: Bool = CompilerTargetProjectionFactReadyFor(
         target_projection, CompilerTargetCpuLlvmProjection());
-    if !is_c && !is_llvm {
-        Die("direct MIR multi-routine projection rejected the program graph");
-    }
+    if !is_c && !is_llvm { Die("direct MIR multi-routine projection rejected the program graph"); }
     let formatted_print: CompilerRuntimeCallAbiFact = CompilerRuntimeCallAbiFormattedPrintFact();
     if !CompilerRuntimeCallAbiFlatFactOwnerReady(formatted_print) {
         Die("direct MIR multi-routine runtime ABI owner is incomplete");
     }
     let line_format: String = StringRuntimeCIntLineFormat();
-    if DirectMirRoleOperatorProgramCandidate(admitted) { return CompileAdmittedDirectMirRoleOperatorForTarget(
-        admitted, target_projection, is_llvm, formatted_print, line_format); }
+    if DirectMirRoleOperatorProgramCandidate(admitted) { return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirRoleOperatorForTarget(
+        admitted, target_projection, is_llvm, formatted_print, line_format)); }
     if DirectMirReturnedArrayForEachProgramCandidate(admitted) {
-        return CompileAdmittedDirectMirReturnedArrayForEachForTarget(admitted, target_projection); }
+        return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirReturnedArrayForEachForTarget(admitted, target_projection)); }
     if DirectMirArrayReturnProgramCandidate(admitted) {
         let return_plan: DirectMirArrayReturnPlan = DirectMirArrayReturnPlanFromAdmitted(admitted);
         let return_abi: DirectMirArrayIntAbiProjection =
             DirectMirArrayReturnAbiProjectionFromPlan(return_plan, target_projection);
         if is_llvm {
-            return DirectMirArrayReturnEmitLlvm(
-                return_plan, return_abi, formatted_print, line_format);
+            return CodegenRoutePayloadEmitted(DirectMirArrayReturnEmitLlvm(
+                return_plan, return_abi, formatted_print, line_format));
         }
-        return DirectMirArrayReturnEmitC(
-            return_plan, return_abi, formatted_print, line_format);
+        return CodegenRoutePayloadEmitted(DirectMirArrayReturnEmitC(
+            return_plan, return_abi, formatted_print, line_format));
     }
     let collection_route: DirectMirCollectionProgramRouteFact =
         DirectMirCollectionProgramRouteFactFromAdmitted(admitted);
     if collection_route.claimed {
-        return CompileAdmittedDirectMirCollectionProgramForTarget(
-            admitted, target_projection, formatted_print, line_format);
+        return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirCollectionProgramForTarget(
+            admitted, target_projection, formatted_print, line_format));
     }
     let intent_payload: Option<String> = CompileAdmittedDirectMirLegacyIntentProgramLlvmIfClaimed(admitted, is_llvm);
-    if IsSome(intent_payload) { return UnwrapOption(intent_payload); }
+    if IsSome(intent_payload) { return CodegenRoutePayloadEmitted(UnwrapOption(intent_payload)); }
     let composite_intent_payload: Option<String> = CompileAdmittedDirectMirCompositeIntentProgramLlvmIfClaimed(admitted, is_llvm);
-    if IsSome(composite_intent_payload) { return UnwrapOption(composite_intent_payload); }
+    if IsSome(composite_intent_payload) { return CodegenRoutePayloadEmitted(UnwrapOption(composite_intent_payload)); }
     let nested_intent_payload: Option<String> = CompileAdmittedDirectMirNestedIntentProgramForTargetIfClaimed(admitted, target_projection);
-    if IsSome(nested_intent_payload) { return UnwrapOption(nested_intent_payload); }
+    if IsSome(nested_intent_payload) { return CodegenRoutePayloadEmitted(UnwrapOption(nested_intent_payload)); }
     DirectMirPressureStage(observe_pressure, "scalar-route:start");
     let scalar_program_admission: DirectMirScalarProgramRouteAdmission =
         DirectMirScalarProgramRouteAdmissionFromAdmitted(admitted, generic_calls, generic_instances);
     if !DirectMirScalarProgramRouteAdmissionReady(scalar_program_admission) {
         Die("direct MIR scalar program route admission receipt is invalid");
     }
+    if DirectMirScalarProgramRouteAdmissionEndsDispatch(scalar_program_admission) { return CodegenRoutePayloadRefused(
+        DirectMirScalarProgramRouteAdmissionRefusal(scalar_program_admission)); }
     DirectMirPressureStage(observe_pressure, "scalar-route:done");
     let scalar_program_route: DirectMirScalarProgramRouteFact = scalar_program_admission.route;
     if scalar_program_route.claimed {
-        return CompileAdmittedDirectMirScalarProgramForTargetObserved(
+        return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirScalarProgramForTargetObserved(
             admitted, scalar_program_route, target_projection,
             observe_pressure
-        );
+        ));
     }
     if DirectMirTwoRoutineNominalProgramCandidate(admitted) {
         let two_routine: DirectMirTwoRoutineClassificationFact =
@@ -88,23 +88,23 @@ func CompileAdmittedDirectMirMultiRoutineForTargetObserved(
         }
         if two_routine.kind ==
             DirectMirTwoRoutineInferredGenericNominal() {
-            return CompileAdmittedDirectMirInferredGenericNominal(
+            return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirInferredGenericNominal(
                 admitted, two_routine, is_llvm, formatted_print, line_format
-            );
+            ));
         }
         if DirectMirTwoRoutineInferredMemberKindMatches(
             two_routine.kind, two_routine.shape.nominal_kind
         ) {
-            return CompileAdmittedDirectMirInferredGenericMember(
+            return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirInferredGenericMember(
                 admitted, two_routine, is_llvm, formatted_print, line_format
-            );
+            ));
         }
         if two_routine.kind != DirectMirTwoRoutineClosedNominal() {
             Die("direct MIR two-routine classification is unsupported");
         }
-        return CompileAdmittedDirectMirTwoRoutineNominal(
+        return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirTwoRoutineNominal(
             admitted, is_llvm, formatted_print, line_format
-        );
+        ));
     }
     return CompileAdmittedDirectMirTerminalMultiRoutine(admitted, target_projection, is_llvm, formatted_print, line_format, scalar_program_admission);
 }

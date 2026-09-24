@@ -65,7 +65,7 @@ if grep -Eq 'routine_count[[:space:]]*==[[:space:]]*4' "$ROUTE_OWNER"; then
 fi
 grep -Fq 'DirectMirScalarProgramCallableRouteEnvelopeAssessWithReferencedEnum(' \
     "$ADMISSION_OWNER" || fail "route admission reconstructs callable policy"
-grep -Fq 'DirectMirScalarProgramRouteAdmissionDie(' "$TERMINAL_OWNER" ||
+grep -Fq 'DirectMirScalarProgramRouteAdmissionRefusal(' "$TERMINAL_OWNER" ||
     fail "terminal projector discards the scalar route receipt"
 ! grep -Fq 'terminal multi-routine graph is unsupported' "$TERMINAL_OWNER" ||
     fail "terminal projector retained the coarse fallback diagnostic"

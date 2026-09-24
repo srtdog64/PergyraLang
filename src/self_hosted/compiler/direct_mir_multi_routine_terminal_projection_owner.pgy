@@ -1,4 +1,5 @@
 // Terminal multi-routine dispatch after earlier nominal/role families decline.
+// A program no route claims is refused with the scalar route's receipt.
 
 import "direct_mir_three_routine_projection_owner.pgy";
 import "direct_mir_scalar_program_route_admission_owner.pgy";
@@ -10,13 +11,13 @@ func CompileAdmittedDirectMirTerminalMultiRoutine(
     formatted_print: CompilerRuntimeCallAbiFact,
     line_format: String,
     ref scalar_program_admission: DirectMirScalarProgramRouteAdmission
-) -> String {
+) -> CodegenRoutePayload {
     if MirProgramRoutineIndexCount(admitted.routines) == 3 {
-        return CompileAdmittedDirectMirThreeRoutine(
+        return CodegenRoutePayloadEmitted(CompileAdmittedDirectMirThreeRoutine(
             admitted, target_projection, is_llvm, formatted_print,
             line_format
-        );
+        ));
     }
-    DirectMirScalarProgramRouteAdmissionDie(scalar_program_admission);
-    return "";
+    return CodegenRoutePayloadRefused(
+        DirectMirScalarProgramRouteAdmissionRefusal(scalar_program_admission));
 }
