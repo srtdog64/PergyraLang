@@ -8,21 +8,36 @@
 #   - where type-bound / func-level ability-bound / ability multi-bound are
 #     STATIC semantic rejections with named constraints (G-6: constraints
 #     are the one static channel carrying axes through T — enforced).
-#   - where-bound composes with G-1 on C, including a NON-builtin Option
-#     payload (Option<Card>).
 # Falsifications that SUCCEEDED (= implementation coordinates, now fixed):
-#   - unification conflict and unbound-T used to die at the native/verify
-#     stage with no diagnostic -> C now says "cannot bind generic
-#     parameter(s)" (LLVM had its own diagnostics already).
-#   - default type args (<T = Int>) were dead at C call-site binding ->
-#     now bind (f_default runs); LLVM side still rejects (G-2L).
+#   - unification conflict and unbound-T died in MIR lowering after the
+#     native semantic pass had admitted them ("MIR generic call cannot
+#     resolve consistent actual/formal bindings", no semantic diagnostic).
+#     The native semantic pass now refuses both at the call
+#     (type_checker_call_generic_where.c), on C and LLVM alike.
+#   - default type args (<T = Int>) bind on both native backends (f_default).
 #   - `return None;` inside a generic body emitted None_T -> the option
 #     context copy now substitutes bindings.
-# LLVM G-2L cluster (locked as rejects until that rung lands): constructed
-# params, subject-typed args, default-arg binding all need argument type
-# metadata on the LLVM side.
+# Still open, not asserted here: f_where_g1 (a where-bound T instantiated
+# with a subject, wrapped in Option<T>) fails in code generation on both
+# native backends, and so does the same Some(subject) without generics.
+#
+# 2026-09-24: this gate ran on the default route after the default route
+# became the self-hosted front end, so it had been red and unrun since; it
+# now names its native subject and runs in the Linux push shard.
 
 set -euo pipefail
+
+# Subject of this gate:
+#   the native semantic generic call checks changed.
+# That is a fact about the native pipeline, so the gate compiles
+# in-process instead of delegating to the installed self-host driver.
+# Delegated, a self-host coverage gap would read as a regression in
+# the subject above. Declared per harness because the compiler is
+# reached through make and nested scripts, and the variable is the
+# same declared opt-out as --native-pipeline -- never a fallback.
+# See docs/152_validation_isolation_policy.md.
+PGY_NATIVE_PIPELINE=1
+export PGY_NATIVE_PIPELINE
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -79,20 +94,18 @@ expect_reject c f_where_type_bad.pgy    "does not satisfy constraint 'UserId'"
 expect_reject c f_where_ability_bad.pgy "does not satisfy constraint 'Sortable'"
 expect_reject c f_multibound_bad.pgy    "does not satisfy"
 
-# --- unification + unbound diagnostics ------------------------------------
-expect_reject c    f_unify.pgy       "cannot bind generic parameter"
-expect_reject llvm f_unify.pgy       "Call parameter type does not match"
-expect_reject c    f_return_only.pgy "cannot bind generic parameter"
-expect_reject llvm f_return_only.pgy "requires argument 1 to bind"
+# --- unification + unbound diagnostics (semantic, both backends) ---------
+for backend in c llvm; do
+    expect_reject "$backend" f_unify.pgy \
+        "binds generic parameter 'T' to both 'Int' (argument 1) and 'String' (argument 2)"
+    expect_reject "$backend" f_return_only.pgy \
+        "cannot bind generic parameter 'T': no parameter of 'Make' mentions it"
+done
 
-# --- default type args: C binds, LLVM is G-2L ------------------------------
-expect_runs   c    f_default.pgy "fresh-none"
-expect_reject llvm f_default.pgy "requires argument 1 to bind"
+# --- default type args and a satisfied where-bound run on both -----------
+for backend in c llvm; do
+    expect_runs "$backend" f_default.pgy "fresh-none"
+    expect_runs "$backend" f_where_ability_ok.pgy "1"
+done
 
-# --- where-bound satisfied paths: C runs; LLVM subject-arg metadata = G-2L -
-expect_runs   c    f_where_ability_ok.pgy "1"
-expect_reject llvm f_where_ability_ok.pgy "requires concrete argument"
-expect_runs   c    f_where_g1.pgy "held"
-expect_reject llvm f_where_g1.pgy "requires concrete argument"
-
-echo "[generic-falsification] claims verified, refuted claims fixed, voices locked (c/llvm)"
+echo "[generic-falsification] constraint, unification and unbound-T claims hold at native semantic on c and llvm; default args and satisfied where-bounds run on both"
