@@ -153,21 +153,25 @@ emit_call_result_option_builtin(ASTNode *call,
             || op == TRANS_RESULT_OPTION_OP_UNWRAP_ERR
             || op == TRANS_RESULT_OPTION_OP_UNWRAP_OR;
         char result_suffix[128] = {0};
-        bool have_result_suffix = transpiler_result_suffix_from_context(
-            ctx, result_suffix, sizeof(result_suffix));
+        bool have_result_suffix = false;
 
         if (op == TRANS_RESULT_OPTION_OP_NONE)
             return NULL;
         if (handled != NULL)
             *handled = true;
 
-        if (!have_result_suffix && is_result_consumer
-            && argc >= 1
-            && arg0 != NULL) {
-            const char *arg_type = transpiler_expr_infer_type_name(
-                ctx, arg0);
-            have_result_suffix = transpiler_result_suffix_from_type_name(
-                arg_type, result_suffix, sizeof(result_suffix));
+        /* A consumer takes its specialization from the Result it reads; the
+         * expected or return type around the call belongs to another value
+         * (`let a: Int = UnwrapOr(r, 7)` inside a function returning
+         * Result<Bool, String>). A constructor takes it from that context. */
+        if (is_result_consumer) {
+            if (argc >= 1 && arg0 != NULL)
+                have_result_suffix = transpiler_result_suffix_from_type_name(
+                    transpiler_expr_infer_type_name(ctx, arg0),
+                    result_suffix, sizeof(result_suffix));
+        } else if (is_result_ctor) {
+            have_result_suffix = transpiler_result_suffix_from_context(
+                ctx, result_suffix, sizeof(result_suffix));
         }
 
         if ((is_result_ctor || is_result_consumer) && !have_result_suffix) {

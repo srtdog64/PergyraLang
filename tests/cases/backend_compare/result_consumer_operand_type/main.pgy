@@ -1,0 +1,28 @@
+// A Result consumer takes its type from the Result it reads, not from the
+// Result the enclosing function returns. Native C used the return type and
+// wrote UnwrapOr_Bool_String for a Result<Int, String> operand.
+func Fetch(n: Int) -> Result<Int, String> {
+    if n < 0 { return Err("neg"); }
+    return Ok(n * 2);
+}
+
+func Wrap(n: Int) -> Result<Bool, String> {
+    let r: Result<Int, String> = Fetch(n);
+    let a: Int = UnwrapOr(r, 7);
+    Log(ToString(a));
+    if IsOk(r) {
+        let b: Int = Unwrap(r);
+        Log(ToString(b));
+    }
+    if IsErr(r) {
+        Log(UnwrapErr(r));
+    }
+    return Ok(true);
+}
+
+func Main() -> Void {
+    let x: Result<Bool, String> = Wrap(3);
+    Log(ToString(IsOk(x)));
+    let y: Result<Bool, String> = Wrap(-1);
+    Log(ToString(IsOk(y)));
+}

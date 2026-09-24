@@ -26,6 +26,7 @@
 #include "transpiler_nominal.h"
 #include "transpiler_operator.h"
 #include "transpiler_program.h"
+#include "transpiler_specialization_registry.h"
 #include "transpiler_projection.h"
 #include "transpiler_symbols.h"
 #include "transpiler_thread_pool.h"
@@ -404,6 +405,19 @@ emit_program(TranspilerCtx *ctx)
     if (!transpiler_emit_mir_type_declarations(ctx, types, type_count)) {
         free(forward_stages);
         return;
+    }
+    /* TryReadFile/TryWriteFile build Result<_, IoError> values in any body,
+     * hosted method bodies included, so once the IoError enum is laid out
+     * both specializations precede the first hosted body. */
+    for (size_t i = 0; i < type_count; i++) {
+        const char *type_name = types[i] != NULL
+            && types[i]->type == AST_ENUM_DECL
+            ? ast_declaration_name(types[i]) : NULL;
+        if (type_name != NULL && strcmp(type_name, "IoError") == 0) {
+            ensure_result_specialization_to(ctx, ctx->out, "String", "IoError");
+            ensure_result_specialization_to(ctx, ctx->out, "Bool", "IoError");
+            break;
+        }
     }
 
     /* Pass 2.5: extern declarations */
