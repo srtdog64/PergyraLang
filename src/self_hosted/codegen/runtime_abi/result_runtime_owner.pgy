@@ -16,11 +16,12 @@ struct ResultRuntimeFact {
     is_err_fn: String;
     unwrap_fn: String;
     unwrap_err_fn: String;
+    unwrap_or_fn: String;
 }
 
 func ResultRuntimeFactInvalid(type_name: String) -> ResultRuntimeFact {
     return ResultRuntimeFact(
-        false, type_name, "", "", "", "", "", "", "", "", ""
+        false, type_name, "", "", "", "", "", "", "", "", "", ""
     );
 }
 
@@ -45,6 +46,7 @@ func ResultRuntimeFactForType(type_name: String) -> ResultRuntimeFact {
         Concat("pgy_result_is_ok_", suffix),
         Concat("pgy_result_is_err_", suffix),
         Concat("pgy_result_unwrap_", suffix),
-        Concat("pgy_result_unwrap_err_", suffix)
+        Concat("pgy_result_unwrap_err_", suffix),
+        Concat("pgy_result_unwrap_or_", suffix)
     );
 }

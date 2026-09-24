@@ -437,19 +437,20 @@ func RewriteSemanticDirectCall(
             )
         );
     } else if source_name == "IsOk" || source_name == "IsErr" ||
-        source_name == "Unwrap" || source_name == "UnwrapErr" {
-        if ArrayLength(view.argument_nodes) != 1 {
-            Die("Result projection call requires one argument graph");
+        source_name == "Unwrap" || source_name == "UnwrapErr" ||
+        source_name == "UnwrapOr" {
+        let projection_arguments: Int = 1;
+        if source_name == "UnwrapOr" { projection_arguments = 2; }
+        if ArrayLength(view.argument_nodes) != projection_arguments {
+            Die("Result projection call argument graphs do not match its builtin");
         }
-        let result_type: Option<String> = CodegenExpressionTypeFromGraph(
-            graph, view.argument_nodes[0], env
-        );
+        let result_type: Option<String> =
+            CodegenExpressionTypeFromGraph(graph, view.argument_nodes[0], env);
         if (!IsSome(result_type)) {
             Die("Result projection argument type fact is missing");
         }
-        let result_fact: ResultRuntimeFact = ResultRuntimeFactForType(
-            UnwrapOption(result_type)
-        );
+        let result_fact: ResultRuntimeFact =
+            ResultRuntimeFactForType(UnwrapOption(result_type));
         if result_fact.ok {
             if source_name == "IsOk" {
                 call_symbol = result_fact.is_ok_fn;
@@ -457,6 +458,8 @@ func RewriteSemanticDirectCall(
                 call_symbol = result_fact.is_err_fn;
             } else if source_name == "Unwrap" {
                 call_symbol = result_fact.unwrap_fn;
+            } else if source_name == "UnwrapOr" {
+                call_symbol = result_fact.unwrap_or_fn;
             } else {
                 call_symbol = result_fact.unwrap_err_fn;
             }

@@ -64,8 +64,19 @@ func EmitResultRuntimeDefinition(
     block = Concat(block, Concat(
             "static ", Concat(error_c, Concat(" ", Concat(
                 fact.unwrap_err_fn, Concat("(", Concat(fact.c_type,
-                    " r) { if (r.is_ok) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR_ON_OK); } return r.value.err; }\n\n"
+                    " r) { if (r.is_ok) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR_ON_OK); } return r.value.err; }\n"
                 ))
+            )))
+    ));
+    // A function, so the Result and the fallback are each evaluated once,
+    // left to right, as native C and LLVM evaluate them.
+    block = Concat(block, Concat(
+            "static ", Concat(payload_c, Concat(" ", Concat(
+                fact.unwrap_or_fn, Concat("(", Concat(fact.c_type, Concat(
+                    " r, ", Concat(payload_c,
+                        " fallback) { return r.is_ok ? r.value.ok : fallback; }\n\n"
+                    )
+                )))
             )))
     ));
     // Result<String, IoError> and Result<Bool, IoError> carry the TryReadFile

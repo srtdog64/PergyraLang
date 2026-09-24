@@ -36,7 +36,7 @@ SURVEY="${PGY_BUILTIN_SURFACE_SURVEY:-0}"
 NATIVE_ONLY_CODE="builtin_native_pipeline_only"
 
 # Builtins outside the table that the matrix also holds to one surface.
-EXTRA_ROWS="UnwrapErr"
+EXTRA_ROWS="UnwrapErr UnwrapOr"
 
 # Rows neither front end accepts: name|reason.
 BOTH_REFUSED_ROWS='

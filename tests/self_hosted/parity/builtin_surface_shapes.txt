@@ -1072,3 +1072,14 @@ func Main() -> Void {
     let r: Result<Int, String> = Err("the error");
     Log(UnwrapErr(r));
 }
+
+== UnwrapOr
+func Fetch(n: Int) -> Result<Int, String> {
+    if n < 0 { return Err("neg"); }
+    return Ok(n * 2);
+}
+
+func Main() -> Void {
+    Log(ToString(UnwrapOr(Fetch(3), 7)));
+    Log(ToString(UnwrapOr(Fetch(0 - 1), 7)));
+}

@@ -52,8 +52,10 @@ func CodegenExpressionCallTypeFromGraph(
         }
         return Some("Bool");
     }
-    if (source_name == "UnwrapOption" || source_name == "Unwrap") &&
-        ArrayLength(call.argument_nodes) == 1 {
+    // UnwrapOr(r, fallback) yields r's payload type, as Unwrap(r) does.
+    if ((source_name == "UnwrapOption" || source_name == "Unwrap") &&
+        ArrayLength(call.argument_nodes) == 1) ||
+        (source_name == "UnwrapOr" && ArrayLength(call.argument_nodes) == 2) {
         let wrapped: Option<String> = CodegenExpressionTypeFromGraph(
             graph, call.argument_nodes[0], env
         );
