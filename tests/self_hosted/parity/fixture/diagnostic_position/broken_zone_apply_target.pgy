@@ -7,8 +7,7 @@ effect Burn for bearer: Player { }
 zone Arena {
     subject slot player: Player
     effect slot burn: Burn
-    apply burn to ;
-}
+    apply burn to }
 
 func Main() -> Void {
     Log("unreached");
