@@ -412,3 +412,59 @@ feed `pre:` at all), so this round records the program and makes no change.
 Also found while building it: native refuses `Booking(a)` for a subject `a`
 ("implicitly copies subject binding 'a' into slot 'seat'") and asks for
 `Booking(Clone(a))`; the default C route accepts `Booking(a)`.
+
+## Fourth round, 2026-09-24: against the whole-repository reproduction
+
+`docs/audits/2026-09-24_whole_repository_redteam_reproduction.md` and the GUI
+audits of the same day were observed on `e48ca632` with another lane's
+uncommitted work and, for the GUI, an older Windows build. Each finding was
+rerun on a clean build of `761531dc`:
+
+| Finding | On clean `761531dc` | Outcome |
+|---|---|---|
+| R1 `Array<T>` value copy aliases storage | reproduces on native C, native LLVM, default C | collection lane (M3) |
+| R2 shallow `Array<String>` accepted | reproduces on all three | collection lane |
+| R3 `Unwrap(Err)` succeeds | does not reproduce | repaired in the second round |
+| R5 Float `ToString` precision | default C only | the other lane's pending formatter work (A1) |
+| `own` enum consumed twice | accepted on all three | native repaired, see below |
+| contextless `Some`: C accepts, LLVM refuses | reproduces | open, see below |
+| generic unification diagnosed in MIR | reproduces | repaired, see below |
+| channel starvation gate passes without LLVM | script behavior | repaired |
+| GUI `ToString(Bool)` prints `1/0` on C | does not reproduce | repaired by `c4162629` (match-bound payload typing); pre-fix builds print `edit 1/0` |
+| SoT row gate, 49 unreachable gates, stale handoff and census | the gates pass on the clean tree | state of the other lane's uncommitted work |
+| optional capabilities, `ToInt` | unchanged | decisions (PP-024, ToInt contract) |
+
+Repaired in this round:
+
+- **`own` enum double consume.** An enum whose payloads are not all copy-only
+  is now tracked like a struct, so a second `own` use is refused. The default
+  route still has no move tracking for `own` (M11).
+- **Generic binding.** Native semantic refuses a call that binds `T` to two
+  incompatible types or leaves it unbound; `generic_falsification_smoke.sh`
+  had run on the default route since that route changed and was red, and now
+  runs natively in the push shard.
+- **Unwrap operands evaluated twice on native C (found here).**
+  `UnwrapOption(Next())` ran `Next` twice, and `UnwrapOr` evaluated its
+  fallback lazily where LLVM evaluates it. Both backends now evaluate each
+  operand once (`unwrap_operand_once` in the backend compare).
+- **Native LLVM dropped match guards (found here).** `case Circle(r) if r > 10`
+  matched every `Circle`; fixed in `761531dc`.
+
+Found and left open:
+
+- **Contextless `Some` on LLVM.** C types `Some(x)` from its payload, so it is
+  not anonymous; LLVM needs a consumer type and refuses `IsSome(Some(5))`,
+  `let x = Some(5)` and `Some(5)` in a condition. Without a consumer it also
+  borrows the enclosing function's return type for the layout. The fix is for
+  LLVM to take the expression's semantic type, not to refuse these programs.
+- **`Option<Subject>`.** `Some(card)` for a subject parameter fails in code
+  generation on both native backends, with or without generics.
+- **MIR generic binder.** `TakeOpt(Some(5))` for `TakeOpt<T>(o: Option<T>)`
+  fails in MIR lowering on both native backends because the binder matches
+  type-name text instead of consuming the semantic binding;
+  `generic_nested_failclosed_smoke.sh`, outside CI, has been red since.
+- **Default route coverage.** All 944 backend-compare cases were compiled on
+  the default C route and compared with native C: 751 print the same output,
+  5 differ (all Float formatting, R5), and 188 are refused. About 30 of the
+  refusals end with the driver exiting and no diagnostic, and 8 fail in the C
+  compiler or linker instead of before code generation.
