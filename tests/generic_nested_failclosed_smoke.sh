@@ -137,7 +137,11 @@ expect_semantic_code nested_unbound.pgy PGY_SEM_INFER_GENERIC
 # Generic struct parameter: LLVM runs; native C emits the Open_Int prototype
 # before the Crate_Int typedef (open). Flip this row when C emission orders it.
 expect_runs   llvm nested_struct_param.pgy "4"
-expect_reject c    nested_struct_param.pgy "unknown type name 'Crate_Int'"
+# gcc quotes the name with the locale's quote marks (' or U+2018), so the
+# type name is matched on its own.
+expect_reject c    nested_struct_param.pgy "unknown type name"
+grep -Fq "Crate_Int" "$OUT_DIR/rej_c_nested_struct_param.exe.log" ||
+    fail "c/nested_struct_param.pgy no longer fails on the Crate_Int typedef"
 
 # Class-generic constructed-over-T FIELD: C substitutes and runs; LLVM fails
 # closed on aggregate lowering. G-5 owns closing it.
