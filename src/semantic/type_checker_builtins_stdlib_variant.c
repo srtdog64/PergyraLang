@@ -48,6 +48,19 @@ stdlib_variant_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
+/* Records the checker's type for the call's value (Some, UnwrapOption) so
+ * backends and MIR read it instead of re-deriving it. */
+static void
+stdlib_variant_seal_value_type(ASTNode *expr, const Type *type,
+                               SemanticContext *ctx)
+{
+    if (type == NULL || type->name == NULL)
+        return;
+    if (!ast_call_set_semantic_value_type_name_copy(expr, type->name))
+        semantic_error(ctx, expr,
+            "Out of memory while recording the call's value type");
+}
+
 static StdlibVariantBuiltinKind
 stdlib_variant_builtin_kind(const char *name)
 {
@@ -112,14 +125,9 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
                 return TYPE_UNKNOWN;
             option_type = wrap_constructed(TYPE_OPTION, payload);
             /* Native LLVM lays out Some(x) from this type when no consumer
-             * declares an Option type for it. */
-            if (payload != TYPE_UNKNOWN && option_type != NULL
-                && option_type->name != NULL
-                && !ast_call_set_semantic_value_type_name_copy(expr,
-                    option_type->name)) {
-                semantic_error(ctx, expr,
-                    "Out of memory while recording the Some(value) type");
-            }
+             * declares an Option type for it; MIR types a local from it. */
+            if (payload != TYPE_UNKNOWN)
+                stdlib_variant_seal_value_type(expr, option_type, ctx);
             return option_type;
         }
     case STDLIB_VARIANT_NONE:
@@ -149,8 +157,14 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
             return TYPE_UNKNOWN;
         ot = stdlib_variant_normalize_type(
             type_check_expression(ast_call_argument(expr, 0), ctx));
-        if (type_is_constructed_named(ot, "Option"))
-            return stdlib_variant_normalize_type(type_get_constructed_arg(ot, 0));
+        if (type_is_constructed_named(ot, "Option")) {
+            Type *payload = stdlib_variant_normalize_type(
+                type_get_constructed_arg(ot, 0));
+            /* The operand's payload type; MIR types a local from it. */
+            if (payload != TYPE_UNKNOWN)
+                stdlib_variant_seal_value_type(expr, payload, ctx);
+            return payload;
+        }
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
             PGY_FIX_MATCH_BUILTIN_SIGNATURE, ast_call_argument(expr, 0),

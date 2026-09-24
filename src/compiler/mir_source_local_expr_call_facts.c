@@ -370,7 +370,13 @@ mir_source_local_call_expr_type_name(const MIRProgram *program,
                                      ASTNode *expr)
 {
     ASTNode *callee = ast_call_callee(expr);
+    /* The checker sealed this call's value type (Some(x) -> Option<T>,
+     * UnwrapOption(o) -> the payload type of o). It owns the answer; the
+     * callee spelling is not consulted. */
+    const char *sealed_type_name = ast_call_semantic_value_type_name(expr);
 
+    if (sealed_type_name != NULL)
+        return sealed_type_name;
     if (callee != NULL && callee->type == AST_MEMBER_ACCESS) {
         return mir_source_local_member_call_type_name(program, routine,
             scratch, callee);

@@ -266,7 +266,8 @@ bool ast_call_set_semantic_diverges(ASTNode *node, bool diverges);
 bool ast_call_semantic_callee_declared_callable(const ASTNode *node);
 bool ast_call_set_semantic_callee_declared_callable(ASTNode *node,
                                                    bool declared);
-/* The checker's type for the value of this call; sealed for Some(x). */
+/* The checker's type for the value of this call; sealed for Some(x) and
+ * UnwrapOption(o). */
 const char *ast_call_semantic_value_type_name(const ASTNode *node);
 bool ast_call_set_semantic_value_type_name_copy(ASTNode *node,
                                                 const char *type_name);

@@ -1,12 +1,16 @@
 // Some(value) with no declared Option consumer takes the checker's type,
-// Option<payload>. Native C typed it from the payload; native LLVM refused
-// IsSome(Some(5)), Some(5) in a condition, a statement Some(value) and
-// IsSome(Some(x)) in a generic body, and inside a function returning
-// Option<Float> it borrowed that return type,
-// so UnwrapOption(Some(7)) printed 7.000000. The last line keeps a Some
-// nested in the payload of a declared Option<String> on its own type.
+// Option<payload>, and UnwrapOption(o) the payload type of o. Native C typed
+// both from the payload; native LLVM refused IsSome(Some(5)), Some(5) in a
+// condition, a statement Some(value) and IsSome(Some(x)) in a generic body,
+// and inside a function returning Option<Float> it borrowed that return
+// type, so UnwrapOption(Some(7)) printed 7.000000. let x = Some(5),
+// let n = UnwrapOption(Some(7)) and match Some(5) left the local without a
+// MIR type on LLVM. The Option<String> line keeps a Some nested in the
+// payload of a declared Option on its own type.
 func Pick(flag: Bool) -> Option<Float> {
     Log(UnwrapOption(Some(7)));
+    let n = UnwrapOption(Some(7));
+    Log(n / 2);
     if IsSome(Some(3)) {
         Log("inner some");
     }
@@ -36,4 +40,12 @@ func Main() -> Void {
     Log(ToString(Has("a")));
     let s: Option<String> = Some(ToString(UnwrapOption(Some(42))));
     Log(UnwrapOption(s));
+    let x = Some(5);
+    Log(UnwrapOption(x) + 1);
+    let word = UnwrapOption(Some("w"));
+    Log(word);
+    match Some(5) {
+        case Some(v): Log(v * 3);
+        case None: Log("none");
+    }
 }
