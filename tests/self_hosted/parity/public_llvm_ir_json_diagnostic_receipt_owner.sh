@@ -169,6 +169,68 @@ require_text "$WORK_DIR/malformed.err" 'self-host JSON diagnostic receipt is mal
 require_text "$WORK_DIR/crosswired.err" 'self-host JSON diagnostic receipt is malformed'
 require_text "$WORK_DIR/missing.err" 'without a JSON diagnostic receipt'
 
+# A direct-MIR code-generation route refusal is a typed outcome of the source
+# LLVM intent: text prints its historical line, and JSON is one receipt with
+# native LLVM's backend identity whose message is that line. Before, `Die`
+# printed the text line in both modes and JSON relayed no receipt.
+llvm_route_refusal_receipt() {
+    local name="$1" expected="$2" source_rel="$WORK_REL/$1.pgy" rc
+    shift 2
+    printf '%s\n' "$@" >"$ROOT_DIR/$source_rel"
+    set +e
+    (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE PGY_SELF_DRIVER_BIN="$SELF_DRIVER" \
+        "$PGY" "$source_rel" --backend=llvm -o "$WORK_REL/$name-text.exe") \
+        >"$WORK_DIR/$name-text.out" 2>"$WORK_DIR/$name-text.err"
+    rc=$?
+    set -e
+    [[ "$rc" -ne 0 && ! -e "$WORK_DIR/$name-text.exe" ]] || fail "$name text leg was not refused"
+    cat "$WORK_DIR/$name-text.out" "$WORK_DIR/$name-text.err" | tr -d '\r' |
+        grep -Fxq -- "$expected" ||
+        { cat "$WORK_DIR/$name-text.out" "$WORK_DIR/$name-text.err" >&2
+          fail "$name text leg lost its route refusal line"; }
+    set +e
+    (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-source-llvm-ir-json-diagnostic-verified \
+        "$source_rel" -o "$WORK_REL/$name-direct.ll") \
+        >"$WORK_DIR/$name-direct.out" 2>"$WORK_DIR/$name-direct.err"
+    rc=$?
+    set -e
+    [[ "$rc" -ne 0 && ! -s "$WORK_DIR/$name-direct.err" && ! -e "$WORK_DIR/$name-direct.ll" ]] ||
+        fail "$name direct JSON request changed channels or published LLVM IR"
+    [[ "$(head -1 "$WORK_DIR/$name-direct.out" | tr -d '\r')" == 'pgy.selfhost.public-diagnostic.v1' ]] ||
+        { cat "$WORK_DIR/$name-direct.out" >&2; fail "$name direct JSON request wrote no receipt"; }
+    tail -n +2 "$WORK_DIR/$name-direct.out" >"$WORK_DIR/$name-expected.json"
+    set +e
+    (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE PGY_SELF_DRIVER_BIN="$SELF_DRIVER" \
+        "$PGY" "$source_rel" --backend=llvm --error-format=json -o "$WORK_REL/$name-json.exe") \
+        >"$WORK_DIR/$name-json.out" 2>"$WORK_DIR/$name-json.err"
+    rc=$?
+    set -e
+    [[ "$rc" -ne 0 && ! -s "$WORK_DIR/$name-json.out" && ! -e "$WORK_DIR/$name-json.exe" ]] ||
+        fail "$name JSON leg did not fail on stderr only"
+    cmp -s "$WORK_DIR/$name-expected.json" "$WORK_DIR/$name-json.err" ||
+        { cat "$WORK_DIR/$name-json.err" >&2; fail "$name JSON leg did not relay the driver receipt"; }
+    for fact in '"stage":"llvm_codegen"' '"layer":"backend"' \
+        '"code":"PGY_LLVM_TYPE_UNSUPPORTED"' '"cause_ir":"llvm:type:unsupported_or_unknown"' \
+        '"fix_source":"inspect-mir-inventory"' '"location":null' "\"message\":\"$expected\""; do
+        require_text "$WORK_DIR/$name-expected.json" "$fact"
+    done
+}
+# One routine with a Float local: the single-routine dispatcher refuses it.
+llvm_route_refusal_receipt float-log \
+    'CODEGEN ERROR: direct MIR scalar program route rejected: owner=scalar-program-route stage=single-program-shape routine=-1 name= parameter=-1 type= carriage=' \
+    'func Main() -> Void {' '    let f: Float = 1.5;' '    Log(f);' '}'
+# One routine whose CFG shape no single-routine route claims.
+llvm_route_refusal_receipt float-cfg-shape \
+    'CODEGEN ERROR: direct MIR backend projection rejected unsupported CFG shape' \
+    'func Main() -> Void {' '    let f: Float = 1.5;' '    if f > 1.0 { Log(1); }' \
+    '    if f > 2.0 { Log(2); }' '    if f > 3.0 { Log(3); }' '    if f > 4.0 { Log(4); }' '}'
+# A Float-returning callable: the multi-routine terminal owner refuses it with
+# the scalar route's receipt.
+llvm_route_refusal_receipt float-callable \
+    'CODEGEN ERROR: direct MIR scalar program route rejected: owner=callable-route-envelope stage=return-type routine=1 name=Twice parameter=-1 type=Float carriage=' \
+    'func Twice(x: Float) -> Float {' '    return x * 2.0;' '}' '' \
+    'func Main() -> Void {' '    Log(Twice(1.5));' '}'
+
 SELECTION_OWNER="$ROOT_DIR/src/compiler/driver_self_host_llvm_selection_owner.c"
 STDOUT_OWNER="$ROOT_DIR/src/compiler/self_host_llvm_ir_stdout_owner.c"
 FILE_OWNER="$ROOT_DIR/src/compiler/self_host_llvm_ir_artifact_owner.c"
@@ -195,4 +257,4 @@ grep -Fq -- '--emit-source-llvm-ir-json-diagnostic-verified' "$REQUEST_OWNER" ||
 grep -Fq 'flags->runtime_mode == RUNTIME_DEFAULT' <<<"$selector_body" ||
     fail "LLVM IR selector relaxed runtime ownership"
 
-echo "[self-host-public-llvm-ir-json-diagnostic] stdout/file bytes, exact Pergyra receipt, and opaque C relay: PASS"
+echo "[self-host-public-llvm-ir-json-diagnostic] stdout/file bytes, exact Pergyra receipt, and opaque C relay; 3 typed direct-MIR route refusals: PASS"

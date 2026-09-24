@@ -10,7 +10,9 @@
 #   as its first public code and leaves no binary;
 # - the default routes name the owned self-host code for each shape;
 # - Clone(binding) and an inline constructor argument still compile and print
-#   the same values on every leg that compiles them.
+#   the same values on every leg that compiles them;
+# - a default-LLVM code-generation refusal of those forms is a public JSON
+#   receipt with a code under --error-format=json.
 set -euo pipefail
 
 # The default legs are the self-hosted front end; an exported
@@ -109,16 +111,41 @@ expect_values declared_forms "$DECLARED_VALUES" native-c native-llvm default-c
 # The default LLVM route refuses zone programs in direct-MIR codegen, after
 # semantic. A refusal there must not be a semantic one, and the self-host front
 # end must publish MIR for the declared forms; if the leg compiles the program,
-# it must print the same values.
+# it must print the same values. The refusal is a typed route outcome: text
+# prints its `CODEGEN ERROR: direct MIR` line, and --error-format=json relays
+# one receipt with native LLVM's backend identity and that line as its message
+# (it used to be `self-host JSON diagnostic receipt is malformed`).
 declared_llvm_rel="$WORK_REL/declared_forms-default-llvm.exe"
+declared_json_rel="$WORK_REL/declared_forms-default-llvm-json.exe"
 if (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$DRIVER" \
         "$PGY" "$DECLARED" --backend=llvm -o "$declared_llvm_rel") \
         >"$ROOT_DIR/$declared_llvm_rel.log" 2>&1; then
     expect_values declared_forms "$DECLARED_VALUES" default-llvm
-elif grep -Eq '^Code: [a-z_]+' "$ROOT_DIR/$declared_llvm_rel.log" ||
-    ! grep -Fq 'CODEGEN ERROR: direct MIR' "$ROOT_DIR/$declared_llvm_rel.log"; then
-    tail -20 "$ROOT_DIR/$declared_llvm_rel.log" >&2
-    fail "default-llvm refused the declared forms somewhere other than direct-MIR codegen"
+else
+    if grep -Eq '^Code: [a-z_]+' "$ROOT_DIR/$declared_llvm_rel.log" ||
+        ! grep -Fq 'CODEGEN ERROR: direct MIR' "$ROOT_DIR/$declared_llvm_rel.log"; then
+        tail -20 "$ROOT_DIR/$declared_llvm_rel.log" >&2
+        fail "default-llvm refused the declared forms somewhere other than direct-MIR codegen"
+    fi
+    refusal="$(tr -d '\r' <"$ROOT_DIR/$declared_llvm_rel.log" | grep -m1 '^CODEGEN ERROR: direct MIR')"
+    if (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$DRIVER" \
+            "$PGY" "$DECLARED" --backend=llvm --error-format=json -o "$declared_json_rel") \
+            >"$ROOT_DIR/$declared_json_rel.log" 2>&1; then
+        fail "default-llvm compiled the declared forms only under --error-format=json"
+    fi
+    [[ ! -e "$ROOT_DIR/$declared_json_rel" ]] ||
+        fail "default-llvm left a binary for the refused declared forms"
+    for fact in '"stage":"llvm_codegen"' '"layer":"backend"' \
+        '"code":"PGY_LLVM_TYPE_UNSUPPORTED"' \
+        '"cause_ir":"llvm:type:unsupported_or_unknown"' \
+        '"fix_source":"inspect-mir-inventory"' '"location":null' \
+        "\"message\":\"$refusal\""; do
+        grep -Fq -- "$fact" "$ROOT_DIR/$declared_json_rel.log" ||
+            { cat "$ROOT_DIR/$declared_json_rel.log" >&2
+              fail "default-llvm JSON refusal of the declared forms lacks $fact"; }
+    done
+    ! grep -Fq 'receipt is malformed' "$ROOT_DIR/$declared_json_rel.log" ||
+        fail "default-llvm JSON refusal of the declared forms is not a receipt"
 fi
 (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$DRIVER" \
     "$PGY" --self-driver --emit-mir-json-verified "$DECLARED") \
@@ -127,4 +154,4 @@ fi
 grep -Fq '"schema":"pgy.mir.v1"' "$WORK_DIR/declared_forms.mir.json" ||
     fail "self-host front end published no MIR for the declared forms"
 
-echo "[$LABEL] undeclared subject-into-zone and zone-into-world embeddings are refused on all four legs with one code, and the Clone and inline forms stay admitted: PASS"
+echo "[$LABEL] undeclared subject-into-zone and zone-into-world embeddings are refused on all four legs with one code, the Clone and inline forms stay admitted, and a default-LLVM codegen refusal of them is a JSON receipt: PASS"
