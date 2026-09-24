@@ -1,0 +1,43 @@
+// User enums may take the builtin type spellings `Result` and `Option`. The
+// C backend's early function prototypes treated both as the builtin
+// generics and declared `Result Step(bool)` before the user enum's typedef.
+struct Turn { let text: String; }
+
+enum Result { Reply(Turn), Failed(Int, String), }
+
+enum Option { Empty, Value(Turn), }
+
+func Step(ok: Bool) -> Result {
+    if ok {
+        return Result.Reply(Turn("hi"));
+    }
+    return Result.Failed(7, "no");
+}
+
+func Pick(n: Int) -> Option {
+    if n == 0 {
+        return Option.Empty;
+    }
+    return Option.Value(Turn(ToString(n)));
+}
+
+func Show(r: Result) -> Void {
+    match r {
+        case Reply(turn): Log(turn.text);
+        case Failed(code, text): Log(Concat(text, ToString(code)));
+    }
+}
+
+func ShowPick(o: Option) -> Void {
+    match o {
+        case Empty: Log("empty");
+        case Value(turn): Log(turn.text);
+    }
+}
+
+func Main() -> Void {
+    Show(Step(true));
+    Show(Step(false));
+    ShowPick(Pick(0));
+    ShowPick(Pick(4));
+}

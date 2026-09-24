@@ -154,6 +154,18 @@ R6(`inout_argument_alias`, 레드팀 캠페인)도 같은 방식으로 착지했
     두 인자 Result는 이제 모두 특수화된다. self-host C 경로는 이 프로그램을 이미 정답으로
     실행한다(2026-09-22 재확인). 게이트는 match subject family 게이트의 `result-control` 행이다.
   - Option match는 self-host LLVM direct MIR에서 `enum-match` admission으로 거부된다.
+- **내장 철자를 쓰는 사용자 선언 (2026-09-24).** 이 절의 규칙대로 사용자 enum의 variant는
+  `None`/`Some`/`Ok`/`Err` 철자를, 사용자 enum은 `Result`/`Option` 타입 철자를 쓸 수 있다.
+  거부하지 않고 native C를 고쳤다.
+  - payload 없는 `enum ErrorCode { None, ... }`의 `case None:`을 native C match 조건이 Option
+    `None`으로 읽고 "None requires contextual Option<T>"로 멈췄다. 계열 fact가 사용자 enum이면
+    case 라벨을 그 enum의 variant로 방출한다(`transpiler_mir_match_condition_emit.c`).
+  - `enum Result { ... }`나 `enum Option { ... }`을 반환하는 함수의 이른 C 원형이 내장
+    이름을 전방 선언 가능한 이름으로 보고 사용자 typedef보다 먼저 나왔다. 같은 이름의 사용자
+    enum이 있으면 이른 원형을 내지 않는다(`transpiler_func_forward_policy.c`).
+  - 게이트는 backend_compare `enum_variant_builtin_spelling`, `enum_type_builtin_spelling`이다.
+    기본 C 경로는 두 프로그램을 이미 정답으로 실행한다. 기본 LLVM 경로(direct MIR)는 둘 다
+    admission에서 거부한다(`enum-match`, match binding LocalRef).
 
 ## 3. F2 — 컴파일러 임시 이름의 위생
 

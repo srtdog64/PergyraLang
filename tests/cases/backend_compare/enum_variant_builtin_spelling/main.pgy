@@ -1,0 +1,29 @@
+// A user enum may spell a payload-free variant like Option's None
+// (docs/205 L3). The C match condition used to read the bare `None` label
+// as Option None and stop with "None requires contextual Option<T>".
+enum ErrorCode { None, PathDenied, Timeout, }
+
+func Classify(n: Int) -> ErrorCode {
+    if n == 0 {
+        return ErrorCode.None;
+    }
+    if n == 1 {
+        return ErrorCode.PathDenied;
+    }
+    return ErrorCode.Timeout;
+}
+
+func Describe(code: ErrorCode) -> String {
+    match code {
+        case None: return "none";
+        case PathDenied: return "denied";
+        case Timeout: return "timeout";
+    }
+    return "unreachable";
+}
+
+func Main() -> Void {
+    Log(Describe(Classify(0)));
+    Log(Describe(Classify(1)));
+    Log(Describe(Classify(2)));
+}

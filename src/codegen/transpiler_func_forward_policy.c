@@ -71,8 +71,11 @@ transpiler_can_forward_declare_type_name_early(TranspilerCtx *ctx,
 {
     if (ctx == NULL || type_name == NULL)
         return true;
+    /* A user enum may take a builtin type's spelling (`enum Result`); its
+     * typedef is emitted with the user enums, after the early prototypes,
+     * so the builtin early-forward row does not cover it. */
     if (transpiler_forward_type_name_is_allowed(type_name))
-        return true;
+        return !transpiler_decl_exists_local(ctx, AST_ENUM_DECL, type_name);
     return transpiler_decl_exists_local(ctx, AST_CLASS_DECL, type_name);
 }
 
@@ -169,7 +172,9 @@ transpiler_forward_type_name_stage(TranspilerCtx *ctx,
 
     if (type_name == NULL || depth > 8)
         return TRANSPILER_FUNC_FORWARD_STAGE_NONE;
-    if (transpiler_forward_type_name_is_allowed(type_name))
+    /* A user `enum Result` / `enum Option` takes the enum row below. */
+    if (transpiler_forward_type_name_is_allowed(type_name)
+        && !transpiler_decl_exists_local(ctx, AST_ENUM_DECL, type_name))
         return TRANSPILER_FUNC_FORWARD_STAGE_EARLY;
     if (transpiler_forward_type_name_container_arity(type_name, &arity)) {
         for (size_t i = 0; i < arity; i++) {

@@ -17,6 +17,28 @@
 #include "transpiler_mir_match_region_emit.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_require.h"
+#include "transpiler_enum.h"
+
+/* A payload-free case label of a user enum subject names that enum's
+ * variant even when it is spelled like an Option/Result constructor
+ * (docs/205 L3: `enum ErrorCode { None, ... }`). The subject family is the
+ * semantic fact; the expression emitter would read a bare `None` as
+ * Option None and fail without an Option context. */
+static char *
+transpiler_mir_emit_match_label(const MIRInstruction *inst, ASTNode *pattern,
+                                TranspilerCtx *ctx,
+                                TranspilerSSANameMap *ssa_map)
+{
+    char variant[128];
+
+    if (inst != NULL && pattern != NULL
+        && inst->match_subject_family == PGY_MATCH_SUBJECT_ENUM
+        && pattern->type == AST_IDENTIFIER
+        && lookup_enum_variant_qualified_name_copy(
+               ctx, ast_identifier_name(pattern), variant, sizeof(variant)))
+        return pergyra_strdup(variant);
+    return emit_expression_with_ssa_map(pattern, ctx, ssa_map);
+}
 
 static bool
 transpiler_mir_set_payload_binding_name(TranspilerCtx *ctx,
@@ -331,7 +353,7 @@ transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
 
     if (pattern_count > 1) {
         for (size_t i = 0; i < pattern_count; i++) {
-            char *pat = emit_expression_with_ssa_map(
+            char *pat = transpiler_mir_emit_match_label(inst,
                 mir_instruction_match_pattern_at(inst, i), ctx, ssa_map);
             char *next = NULL;
             if (pat == NULL)
@@ -497,7 +519,7 @@ transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
                 cond = strdup_fmt("(%s).tag == %s_TAG_%s",
                     subject, enum_ename, enum_vname);
             } else {
-                char *pat = emit_expression_with_ssa_map(
+                char *pat = transpiler_mir_emit_match_label(inst,
                     pattern_node, ctx, ssa_map);
                 if (pat != NULL)
                     cond = strdup_fmt("%s == %s", subject, pat);
