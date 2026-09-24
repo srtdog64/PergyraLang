@@ -436,6 +436,11 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
         class_decl = ast_create_class(name.text);
         break;
     }
+    /* A nominal declaration sits at its name token, like every other named
+     * declaration the parser builds; without this the node kept line 0 and
+     * each diagnostic about it lost its position. */
+    class_decl->line = name.line;
+    class_decl->column = name.column;
     class_decl->data.class_decl.doc_comment = parser_take_pending_doc_comment(parser);
 
     // 제네릭 파라미터

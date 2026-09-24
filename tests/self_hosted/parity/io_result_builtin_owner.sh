@@ -21,9 +21,9 @@
 # (OpenFailed). Under uid 0 the binaries run without CAP_DAC_OVERRIDE so the
 # permission bits bind. A program that declares its own IoError beside the
 # builtin one, as an enum or a struct, is refused on all four legs: native
-# names the program's declaration, and the default route refuses it at that
-# declaration with builtin_type_name_taken before the builtin enum is
-# composed.
+# names the program's declaration and its line, and the default route
+# refuses it at that declaration with builtin_type_name_taken before the
+# builtin enum is composed.
 set -euo pipefail
 
 # The default legs are the self-hosted front end; an exported
@@ -301,8 +301,10 @@ for program in dup dup_struct; do
         log="$WORK_DIR/$program.$leg.log"
         case "$leg" in
             native-*)
-                grep -Fq "$program.pgy:" "$log" &&
-                    grep -Fq "this program declares IoError, which is the builtin error enum" "$log"
+                # Both programs declare IoError on line 1; a struct used to
+                # be reported at line 0 because the native parser left the
+                # nominal declaration node without a position.
+                grep -Fq "$program.pgy:1: this program declares IoError, which is the builtin error enum" "$log"
                 ;;
             default-*)
                 tr -d '\r' <"$log" | grep -Fxq "Code: builtin_type_name_taken" &&
