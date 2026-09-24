@@ -7,7 +7,8 @@
 # - stdout is a file, as in a pipe or a CI log: Log(Bool) and Log(Int) must be
 #   flushed before the abort.
 # - UnwrapOption(None), Unwrap(Err) and UnwrapErr(Ok) panic on the default C
-#   route as they do natively.
+#   route as they do natively; UnwrapOption(None) also on the default LLVM
+#   route.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -136,7 +137,7 @@ expect_panic index $'true\n42' out-of-bounds "array index out of bounds" \
 expect_panic divide $'false\n7' divide-by-zero "integer division or modulo by zero" \
     native-c native-llvm default-c default-llvm
 expect_panic unwrap_none '1' internal-invariant "Option unwrap on None value" \
-    native-c native-llvm default-c
+    native-c native-llvm default-c default-llvm
 expect_panic unwrap_err '2' internal-invariant "Result unwrap on Err value" \
     native-c native-llvm default-c
 # UnwrapErr is a self-host builtin that native does not define (recorded in
