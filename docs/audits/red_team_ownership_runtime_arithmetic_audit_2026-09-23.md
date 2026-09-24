@@ -468,3 +468,83 @@ Found and left open:
   5 differ (all Float formatting, R5), and 188 are refused. About 30 of the
   refusals end with the driver exiting and no diagnostic, and 8 fail in the C
   compiler or linker instead of before code generation.
+
+## Fifth round, 2026-09-24: review of `e48ca632..e196e1c5`
+
+The round's own changes were reviewed on a WSL build of `e196e1c5`. The
+push run for `e196e1c5` (35975030140) passed every job except build-linux,
+which was cancelled at its 30-minute limit. The limit is repaired below.
+
+Repaired, each with a row that fails if it returns:
+
+- **Parallel reach.** Two tasks that each built their own `Seat(1)`, or
+  wrote `Array<Int>` in a local's annotation, were refused as a race: the
+  type name was looked up as a captured binding. A `ref` argument was never
+  counted as a write, although the callee could call a method that writes
+  it. An enum payload holding an `Array` was not followed. A
+  self-referential type recursed into the depth limit. Rows in
+  `parallel_capture_reach_smoke.sh` and a semantic unit test.
+- **Result consumers on native C.** A consumer took its specialization from
+  the enclosing return or expected type. Once `b31cbdd0` made `UnwrapOr` a
+  typed function, `UnwrapOr(r, 7)` on a `Result<Int, String>` inside a
+  function returning `Result<Bool, String>` stopped compiling
+  (`result_consumer_operand_type`).
+- **IoError in hosted bodies.** Native C emitted the `Result<_, IoError>`
+  specializations after the class and subject bodies that use them. Native
+  LLVM could not type `CharFromCode`, `TryReadFile` or `UnwrapOption` inside
+  a method or an action; the `UnwrapOption` case predates this range
+  (`io_result_in_hosted_bodies`).
+- **A program's own IoError on the default route.** The struct form died in
+  C emission. The enum form was refused as `match_pattern_invalid` with
+  `Span: none`. Both are now refused as `builtin_type_name_taken` at the
+  declaration (`io_result_builtin_owner.sh`).
+- **`self.n + 1;` in a method body** reached MIR on the default route, and
+  an unclosed `match` was reported at the end of the file
+  (`default_route_diagnostic_position_owner.sh`).
+- **Location join.** Parser rows that do not join the tree used to print
+  `Span: none` for every later diagnostic. The parse now stops there. A
+  default-route sweep of the backend-compare corpus found the one source:
+  the compact `parallel { }` body recorded a Block row with no `Block:` line
+  in the tree, so every diagnostic in a program with a parallel block had no
+  position. Seven corpus programs were affected.
+- **`UnwrapOr` on the default C route** called the fixed Result<Int> helper,
+  so a `Result<Int, String>` operand failed in the C compiler. Each Result
+  specialization now defines its own (`builtin_surface_parity_owner.sh`).
+- **Gates.**
+  - Five default-route gates ran native legs whenever `PGY_NATIVE_PIPELINE`
+    was exported.
+  - The containment gate accepted any default LLVM refusal of the declared
+    forms.
+  - The position gate could take a code and a span from two different
+    diagnostics.
+- **CI budget.** The last green build-linux took 29 minutes. Core shard step
+  6 depended on `self-host-compiler`, so it rebuilt DRV-2 for 14 minutes on
+  top of the admitted pair. The step now runs its script on the admitted
+  pair, and `self_host_ci_profile_smoke.sh` refuses a core-shard target that
+  depends on `self-host-compiler`.
+
+Found and left open:
+
+- **Bare exits in declaration parsers.** `93d1d9a8` says every
+  default-route diagnostic has a code and a position. The intent, zone and
+  effect/relation parsers still end about 90 refusals with a bare `Exit(1)`.
+  `zone_effect_pool_runtime` and `role_include_methods` print only
+  `self-host driver failed (exit 1)` on the default route, and
+  `relation_effect_projection_sync` prints an uncoded `PARSE ERROR`.
+- **Native line for a struct IoError.** Native names `dup.pgy:1` for
+  `enum IoError` but `:0` for `struct IoError`.
+- **IoError variant names.** The builtin variants share the enum-variant
+  namespace, so a user enum with a variant named like one of them collides.
+- **A `for` loop with an early return** (`for x in xs { if x == v { return
+  true; } }`) passes the self-host semantic checker, then fails in MIR on both
+  default legs. Not attributed to this range.
+- **Default LLVM JSON receipts.** Any direct-MIR codegen refusal under
+  `--error-format=json` prints `self-host JSON diagnostic receipt is
+  malformed`.
+- **Self-host shard rebuild.** The self-host contract shard also rebuilds
+  DRV-2 once, 12 minutes, in its first step. It runs in 25 minutes, inside
+  its budget.
+- **Channel send on the default route.** `ch <- 10;` as a statement ends in
+  `AST node is outside bounded MIR producer` with no code. The builtin
+  surface gate already records that the default route has no channel
+  runtime.
