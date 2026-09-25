@@ -77,6 +77,28 @@ llvm_identifier_base_ptr(LLVMGenCtx *ctx, const char *name, LLVMClassTypeEntry *
     return NULL;
 }
 
+/* The parameter prologue binds a parameter it passes by address (a subject
+ * parameter, self in a pointer-self body) as a pointer, so the operand
+ * evaluates to that address. Storage that holds the value (an Option
+ * payload, a constructor field) loads it; every other operand is unchanged. */
+LLVMValueRef
+llvm_operand_value_for_storage(LLVMGenCtx *ctx, ASTNode *operand,
+                               LLVMValueRef value, LLVMTypeRef storage_ty)
+{
+    LLVMVarEntry binding;
+
+    if (ctx == NULL || operand == NULL || value == NULL
+        || storage_ty == NULL || operand->type != AST_IDENTIFIER
+        || LLVMGetTypeKind(storage_ty) == LLVMPointerTypeKind
+        || LLVMGetTypeKind(LLVMTypeOf(value)) != LLVMPointerTypeKind)
+        return value;
+    if (!llvm_scope_lookup_snapshot(ctx, ast_identifier_name(operand),
+            &binding)
+        || LLVMGetTypeKind(binding.type) != LLVMPointerTypeKind)
+        return value;
+    return LLVMBuildLoad2(ctx->builder, storage_ty, value, llvm_tmp_name(ctx));
+}
+
 LLVMValueRef
 llvm_current_self_call_arg(LLVMGenCtx *ctx)
 {

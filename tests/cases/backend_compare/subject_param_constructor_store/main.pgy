@@ -1,0 +1,54 @@
+// A subject parameter, and self in a subject body, are carried by address.
+// A constructor field of subject type stores the value, as Some(x) does:
+// positional, named, nested and relation constructors. Native C put the
+// Card * into the compound literal and native LLVM inserted a ptr into the
+// struct; both failed in code generation.
+subject Card {
+    let v: Int;
+
+    func BoxedValue(self) -> Int {
+        let b = Box(self);
+        return b.card.v;
+    }
+}
+
+class Box {
+    let card: Card;
+}
+
+class Crate {
+    let box: Box;
+    let spare: Card;
+}
+
+relation Pair for left: Card, right: Card {
+}
+
+func Wrap(card: Card) -> Box {
+    return Box(card);
+}
+
+func WrapNamed(card: Card) -> Box {
+    return Box(card: card);
+}
+
+func Pack(card: Card) -> Crate {
+    return Crate(Box(card), card);
+}
+
+func Join(a: Card, b: Card) -> Pair {
+    return Pair(a, b);
+}
+
+func Main() -> Void {
+    let c = Card(9);
+    let d = Card(4);
+    Log(Wrap(c).card.v);
+    Log(WrapNamed(d).card.v);
+    let k = Pack(c);
+    Log(k.box.card.v);
+    Log(k.spare.v);
+    Log(c.BoxedValue());
+    let p = Join(c, d);
+    Log(p.left.v * 10 + p.right.v);
+}

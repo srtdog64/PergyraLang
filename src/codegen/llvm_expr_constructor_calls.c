@@ -593,6 +593,10 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         if (arg == NULL)
             return llvm_constructor_error(node, ctx,
                 "LLVM class constructor could not lower field argument");
+        /* A subject parameter, and self in a subject body, are carried by
+         * address; the field stores the value, as Some(x) does. */
+        arg = llvm_operand_value_for_storage(ctx, ast_call_argument(node, i),
+            arg, expected_ty);
         {
             LLVMTypeRef actual_ty = LLVMTypeOf(arg);
             if (expected_ty != actual_ty) {

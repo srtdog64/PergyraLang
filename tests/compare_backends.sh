@@ -1554,6 +1554,7 @@ main() {
         "tests/cases/backend_compare/io_result_in_hosted_bodies"
         "tests/cases/backend_compare/option_some_semantic_type"
         "tests/cases/backend_compare/option_subject_payload"
+        "tests/cases/backend_compare/subject_param_constructor_store"
         "tests/cases/backend_compare/enum_variant_builtin_spelling"
         "tests/cases/backend_compare/enum_type_builtin_spelling"
         "tests/cases/backend_compare/generic_constructed_param_binding"

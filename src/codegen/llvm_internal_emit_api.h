@@ -16,6 +16,10 @@ LLVMValueRef llvm_current_self_base_ptr(LLVMGenCtx *ctx,
 LLVMValueRef llvm_identifier_base_ptr(LLVMGenCtx *ctx, const char *name,
                                       LLVMClassTypeEntry *cls);
 LLVMValueRef llvm_current_self_call_arg(LLVMGenCtx *ctx);
+LLVMValueRef llvm_operand_value_for_storage(LLVMGenCtx *ctx,
+                                            ASTNode *operand,
+                                            LLVMValueRef value,
+                                            LLVMTypeRef storage_ty);
 const char *llvm_operator_overload_suffix(PgyTokenType op);
 bool llvm_is_upper_ident(ASTNode *node);
 const char *llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx);
