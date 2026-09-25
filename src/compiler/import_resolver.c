@@ -289,12 +289,15 @@ import_resolver_compose_io_error_enum(ASTNode *program,
             return false;
         }
     }
-    used =(size_t)snprintf(source, sizeof(source), "enum IoError {");
+    source[0] = '\0';
+    used = pergyra_str_append(source, sizeof(source), "enum IoError {");
     for (size_t i = 0; i < sizeof(variants) / sizeof(variants[0]); i++)
-        used += (size_t)snprintf(source + used, sizeof(source) - used,
-                                 "%s %s", i == 0 ? "" : ",", variants[i]);
-    used += (size_t)snprintf(source + used, sizeof(source) - used, " }\n");
-    if (used >= sizeof(source)) {
+        used = pergyra_str_appendf(source, sizeof(source), "%s %s",
+                                   i == 0 ? "" : ",", variants[i]);
+    used = pergyra_str_append(source, sizeof(source), " }\n");
+    /* The bounded appends stop at the last byte, so a full buffer means the
+     * declaration was cut short. */
+    if (used >= sizeof(source) - 1) {
         set_error(error_message, "builtin IoError declaration exceeds its buffer");
         return false;
     }
