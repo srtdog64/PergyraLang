@@ -51,13 +51,13 @@ reach_is_binding_root(const ReachWalk *w, const ASTNode *node)
 
     if (node == NULL || node->type != AST_IDENTIFIER)
         return false;
-    id = node->data.identifier.name;
+    id = ast_identifier_name(node);
     if (id == NULL)
         return false;
     if (strcmp(id, w->name) == 0)
         return true;
     return w->in_method
-        && (node->data.identifier.semantic_binding_is_host_field
+        && (ast_identifier_binding_is_host_field(node)
             || parallel_reach_field_type(w->ctx, w->decl, id) != NULL);
 }
 
@@ -77,17 +77,17 @@ reach_path_type(const ReachWalk *w, const ASTNode *node, bool *rooted)
         if (!reach_is_binding_root(w, node))
             return NULL;
         *rooted = true;
-        if (strcmp(node->data.identifier.name, w->name) == 0)
+        if (strcmp(ast_identifier_name(node), w->name) == 0)
             return w->type;
-        return parallel_reach_field_type(w->ctx, w->decl, node->data.identifier.name);
+        return parallel_reach_field_type(w->ctx, w->decl, ast_identifier_name(node));
     }
     if (node->type != AST_MEMBER_ACCESS)
         return NULL;
-    object_type = reach_path_type(w, node->data.member.object, rooted);
+    object_type = reach_path_type(w, ast_member_object(node), rooted);
     if (!*rooted || object_type == NULL)
         return NULL;
     decl = parallel_reach_nominal_decl(w->ctx, object_type);
-    return parallel_reach_field_type(w->ctx, decl, node->data.member.name);
+    return parallel_reach_field_type(w->ctx, decl, ast_member_name(node));
 }
 
 /* A value read of a path rooted at the binding copies a scalar out; a nominal
@@ -163,24 +163,19 @@ reach_method_writes_self(const ReachWalk *w, const Type *receiver_type,
 static ParamMode
 reach_callee_param_mode(const ReachWalk *w, const ASTNode *call, size_t index)
 {
-    const ASTNode *callee = call->data.call.callee;
+    const ASTNode *callee = ast_call_callee(call);
     const Symbol *sym;
     const Type *type;
 
     if (callee == NULL || callee->type != AST_IDENTIFIER)
         return PARAM_MODE_DEFAULT;
-    for (size_t i = 0; call->data.call.arg_names != NULL
-                       && i < call->data.call.arg_count; i++) {
-        if (call->data.call.arg_names[i] != NULL)
+    for (size_t i = 0; i < ast_call_arg_count(call); i++) {
+        if (ast_call_argument_name(call, i) != NULL)
             return PARAM_MODE_DEFAULT;
     }
-    sym = scope_lookup(w->ctx->scope, callee->data.identifier.name);
+    sym = scope_lookup(w->ctx->scope, ast_identifier_name(callee));
     type = sym != NULL ? sym->type : NULL;
-    if (type == NULL || type->kind != TYPE_KIND_FUNCTION
-        || type->data.function.param_modes == NULL
-        || index >= type->data.function.param_count)
-        return PARAM_MODE_DEFAULT;
-    return type->data.function.param_modes[index];
+    return type_function_param_mode(type, index);
 }
 
 /* A ref parameter forbids assigning through it, but the callee may still
@@ -189,9 +184,9 @@ reach_callee_param_mode(const ReachWalk *w, const ASTNode *call, size_t index)
 static bool
 reach_ref_argument_writes(const ReachWalk *w, const ASTNode *call, size_t index)
 {
-    const ASTNode *callee = call->data.call.callee;
+    const ASTNode *callee = ast_call_callee(call);
     ASTNode *function = semantic_find_function_decl_by_name(
-        w->ctx, callee->data.identifier.name);
+        w->ctx, ast_identifier_name(callee));
     FuncParam *param = function != NULL && index < ast_func_param_count(function)
         ? ast_func_param(function, index) : NULL;
 
@@ -204,17 +199,17 @@ reach_ref_argument_writes(const ReachWalk *w, const ASTNode *call, size_t index)
 static bool
 reach_walk_call(const ReachWalk *w, const ASTNode *node)
 {
-    const ASTNode *callee = node->data.call.callee;
+    const ASTNode *callee = ast_call_callee(node);
 
-    for (size_t i = 0; i < node->data.call.arg_count; i++) {
-        const ASTNode *arg = node->data.call.arguments[i];
+    for (size_t i = 0; i < ast_call_arg_count(node); i++) {
+        const ASTNode *arg = ast_call_argument(node, i);
 
         /* The binding handed to an own parameter is a move, which the
          * parallel resource snapshot already rejects when another task also
          * moves or borrows it; handed to a ref parameter it writes only if
          * the callee's body writes through that parameter. */
         if (arg != NULL && arg->type == AST_IDENTIFIER
-            && strcmp(arg->data.identifier.name, w->name) == 0) {
+            && strcmp(ast_identifier_name(arg), w->name) == 0) {
             ParamMode mode = reach_callee_param_mode(w, node, i);
             if (mode == PARAM_MODE_OWN)
                 continue;
@@ -232,25 +227,25 @@ reach_walk_call(const ReachWalk *w, const ASTNode *node)
     if (callee->type == AST_MEMBER_ACCESS) {
         bool rooted = false;
         const Type *receiver =
-            reach_path_type(w, callee->data.member.object, &rooted);
+            reach_path_type(w, ast_member_object(callee), &rooted);
 
         if (!rooted)
-            return reach_walk(w, callee->data.member.object);
+            return reach_walk(w, ast_member_object(callee));
         if (receiver == NULL)
             return true;
         if (worker_boundary_storage_display_name(receiver) != NULL)
             return true; /* a collection field method may grow the storage */
         if (parallel_reach_nominal_decl(w->ctx, receiver) == NULL)
             return false; /* builtin method on a scalar or String value */
-        return reach_method_writes_self(w, receiver, callee->data.member.name);
+        return reach_method_writes_self(w, receiver, ast_member_name(callee));
     }
     if (callee->type == AST_IDENTIFIER
-        && strcmp(callee->data.identifier.name, w->name) == 0)
+        && strcmp(ast_identifier_name(callee), w->name) == 0)
         return true; /* the binding itself is called */
     if (callee->type == AST_IDENTIFIER
-        && reach_names_host_member(w, callee->data.identifier.name))
+        && reach_names_host_member(w, ast_identifier_name(callee)))
         return reach_method_writes_self(w, w->type,
-                                        callee->data.identifier.name);
+                                        ast_identifier_name(callee));
     if (callee->type == AST_IDENTIFIER)
         return false; /* a free function or builtin: its arguments were walked */
     return reach_walk(w, callee);
@@ -300,75 +295,83 @@ reach_walk(const ReachWalk *w, const ASTNode *node)
     case AST_CONTINUE:
         return false;
     case AST_IDENTIFIER:
-        if (strcmp(node->data.identifier.name, w->name) == 0)
+        if (strcmp(ast_identifier_name(node), w->name) == 0)
             return true; /* the reference itself flows elsewhere */
         return reach_value_read_escapes(w, node, &rooted);
     case AST_MEMBER_ACCESS:
         if (reach_value_read_escapes(w, node, &rooted))
             return true;
-        return rooted ? false : reach_walk(w, node->data.member.object);
+        return rooted ? false : reach_walk(w, ast_member_object(node));
     case AST_ASSIGNMENT: {
-        const ASTNode *root = node->data.assignment.target;
+        const ASTNode *root = ast_assignment_target(node);
         while (root != NULL && (root->type == AST_MEMBER_ACCESS
                                 || root->type == AST_ARRAY_ACCESS)) {
             if (root->type == AST_ARRAY_ACCESS
-                && reach_walk(w, root->data.array_access.index))
+                && reach_walk(w, ast_array_access_index(root)))
                 return true;
             root = root->type == AST_MEMBER_ACCESS
-                ? root->data.member.object : root->data.array_access.array;
+                ? ast_member_object(root) : ast_array_access_array(root);
         }
         if (reach_is_binding_root(w, root))
             return true;
-        return reach_walk(w, node->data.assignment.value);
+        return reach_walk(w, ast_assignment_value(node));
     }
     case AST_CALL:
         return reach_walk_call(w, node);
     case AST_ARRAY_ACCESS:
-        return reach_walk(w, node->data.array_access.array)
-            || reach_walk(w, node->data.array_access.index);
+        return reach_walk(w, ast_array_access_array(node))
+            || reach_walk(w, ast_array_access_index(node));
     case AST_BINARY:
-        return reach_walk(w, node->data.binary.left)
-            || reach_walk(w, node->data.binary.right);
+        return reach_walk(w, ast_binary_left(node))
+            || reach_walk(w, ast_binary_right(node));
     case AST_UNARY:
-        return reach_walk(w, node->data.unary.operand);
+        return reach_walk(w, ast_unary_operand(node));
     case AST_CAST:
-        return reach_walk(w, node->data.cast.operand);
+        return reach_walk(w, ast_cast_operand(node));
     case AST_TYPE_TEST:
-        return reach_walk(w, node->data.type_test.operand);
-    case AST_BLOCK:
-        return reach_walk_list(w, node->data.block.statements,
-                               node->data.block.count);
+        return reach_walk(w, ast_type_test_operand(node));
+    case AST_BLOCK: {
+        size_t count = 0;
+        ASTNode **statements = ast_block_statements(node, &count);
+        return reach_walk_list(w, statements, count);
+    }
     case AST_IF_STMT:
-        return reach_walk(w, node->data.if_stmt.condition)
-            || reach_walk(w, node->data.if_stmt.then_branch)
-            || reach_walk(w, node->data.if_stmt.else_branch);
+        return reach_walk(w, ast_if_condition(node))
+            || reach_walk(w, ast_if_then_branch(node))
+            || reach_walk(w, ast_if_else_branch(node));
     case AST_WHILE_LOOP:
-        return reach_walk(w, node->data.while_loop.condition)
-            || reach_walk(w, node->data.while_loop.body);
+        return reach_walk(w, ast_while_condition(node))
+            || reach_walk(w, ast_while_body(node));
     case AST_FOR_LOOP:
-        return reach_walk(w, node->data.for_loop.range_start)
-            || reach_walk(w, node->data.for_loop.range_end)
-            || reach_walk(w, node->data.for_loop.iterable)
-            || reach_walk(w, node->data.for_loop.body);
+        return reach_walk(w, ast_for_range_start(node))
+            || reach_walk(w, ast_for_range_end(node))
+            || reach_walk(w, ast_for_iterable(node))
+            || reach_walk(w, ast_for_body(node));
     case AST_RETURN:
-        return reach_walk(w, node->data.return_stmt.value);
+        return reach_walk(w, ast_return_value(node));
     case AST_GIVE_STMT:
-        return reach_walk(w, node->data.give_stmt.value);
+        return reach_walk(w, ast_give_value(node));
     case AST_LET_DECL:
-        return reach_walk(w, node->data.let_decl.initializer);
+        return reach_walk(w, ast_let_initializer(node));
     case AST_ARRAY_LITERAL:
-        return reach_walk_list(w, node->data.array_literal.elements,
-                               node->data.array_literal.count);
+        for (size_t i = 0; i < ast_array_literal_count(node); i++) {
+            if (reach_walk(w, ast_array_literal_element(node, i)))
+                return true;
+        }
+        return false;
     case AST_TUPLE_LITERAL:
-        return reach_walk_list(w, node->data.tuple_literal.elements,
-                               node->data.tuple_literal.count);
+        for (size_t i = 0; i < ast_tuple_literal_count(node); i++) {
+            if (reach_walk(w, ast_tuple_literal_element(node, i)))
+                return true;
+        }
+        return false;
     case AST_CHANNEL_SEND:
-        return reach_walk(w, node->data.channel_send.channel)
-            || reach_walk(w, node->data.channel_send.value);
+        return reach_walk(w, ast_channel_send_channel(node))
+            || reach_walk(w, ast_channel_send_value(node));
     case AST_CHANNEL_RECV:
-        return reach_walk(w, node->data.channel_recv.channel);
+        return reach_walk(w, ast_channel_recv_channel(node));
     case AST_AWAIT_EXPR:
-        return reach_walk(w, node->data.await_expr.expression);
+        return reach_walk(w, ast_await_expression(node));
     default:
         /* closures, match arms, channel ops, defers, ...: not modeled, so
          * any mention of the binding counts as a write */

@@ -64,17 +64,17 @@ generic_type_ref_mentions(const ASTNode *type_ref, const char *name)
         return false;
     if (type_ref->type != AST_TYPE)
         return true;
-    if (type_ref->data.type.name != NULL
-        && strcmp(type_ref->data.type.name, name) == 0)
+    if (ast_type_name(type_ref) != NULL
+        && strcmp(ast_type_name(type_ref), name) == 0)
         return true;
-    args = type_ref->data.type.generic_args;
+    args = ast_type_generic_args(type_ref);
     for (size_t i = 0; i < ast_generic_param_count(args); i++) {
         GenericParam *arg = ast_generic_param_at(args, i);
         if (arg != NULL && generic_type_ref_mentions(arg->constraint, name))
             return true;
     }
-    for (size_t i = 0; i < type_ref->data.type.tuple_element_count; i++) {
-        if (generic_type_ref_mentions(type_ref->data.type.tuple_elements[i],
+    for (size_t i = 0; i < ast_type_tuple_element_count(type_ref); i++) {
+        if (generic_type_ref_mentions(ast_type_tuple_element(type_ref, i),
                                       name))
             return true;
     }
@@ -90,8 +90,7 @@ generic_call_reject_unbound_parameters(ASTNode *expr, SemanticContext *ctx,
                                        ASTNode *stmt, GenericParams *decl_gp,
                                        const char *display_name)
 {
-    if (expr != NULL && expr->type == AST_CALL
-        && expr->data.call.generic_args != NULL)
+    if (ast_call_generic_args(expr) != NULL)
         return false; /* explicit type arguments bind every parameter */
     for (size_t gi = 0; gi < ast_generic_param_count(decl_gp); gi++) {
         GenericParam *gp = ast_generic_param_at(decl_gp, gi);

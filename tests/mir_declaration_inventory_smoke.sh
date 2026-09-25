@@ -819,14 +819,14 @@ for term in \
     "transpiler_find_mir_function(ctx, func)" \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
-    "if (routine == NULL)" \
+    "|| routine == NULL)" \
     "transpiler_mir_or_ast_function_is_generic(routine, func)" \
     "transpiler_mir_routine_return_type_name(routine)" \
     "transpiler_mir_routine_param_type_name(routine, i)" \
     "MIR-only C path missing function forward routine" \
     "MIR-only C path missing function forward signature metadata" \
     "transpiler_active_decl_header_of_type(" \
-    "transpiler_can_forward_declare_type_name_after_zones"; do
+    "transpiler_forward_type_name_stage("; do
     require_term "src/codegen/transpiler_func_forward_policy.c" "$term"
 done
 require_term "src/codegen/transpiler_decl_lookup.c" \

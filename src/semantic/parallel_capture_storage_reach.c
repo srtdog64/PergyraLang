@@ -273,15 +273,15 @@ reach_storage(SemanticContext *ctx, const Type *type, ReachPath *path)
     if (reach_type_is_runtime_transport(type))
         return false;
     if (type->kind == TYPE_KIND_TUPLE) {
-        for (size_t i = 0; i < type->data.tuple.element_count; i++) {
-            if (reach_storage(ctx, type->data.tuple.elements[i], path))
+        for (size_t i = 0; i < type_tuple_arity(type); i++) {
+            if (reach_storage(ctx, type_tuple_get_element(type, i), path))
                 return true;
         }
         return false;
     }
     if (type->kind == TYPE_KIND_CONSTRUCTED) {
-        for (size_t i = 0; i < type->data.constructed.arg_count; i++) {
-            if (reach_storage(ctx, type->data.constructed.args[i], path))
+        for (size_t i = 0; i < type_constructed_arg_count(type); i++) {
+            if (reach_storage(ctx, type_constructed_arg(type, i), path))
                 return true;
         }
     }
