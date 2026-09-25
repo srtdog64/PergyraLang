@@ -1,4 +1,5 @@
 #include "mir_abi_layout.h"
+#include "mir_abi_resource_runtime_internal.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -313,7 +314,7 @@ mir_abi_resource_runtime_row_for_type_name(const char *abi_type_name,
         return NULL;
     memcpy(inner_type_name, abi_type_name + prefix_len, inner_len);
     inner_type_name[inner_len] = '\0';
-    return mir_abi_resource_runtime_row_by_kind(
+    return mir_abi_resource_runtime_constructed_row(
         kind, inner_type_name, resource_op_name);
 }
 
@@ -423,19 +424,4 @@ mir_abi_resource_runtime_fn_by_type_name(const char *abi_type_name,
 {
     return mir_abi_resource_runtime_fn(mir_abi_lookup(abi_type_name),
                                       resource_op_name);
-}
-
-const char *
-mir_abi_resource_runtime_fn_by_kind(MIRResourceAbiKind kind,
-                                    const char *inner_type_name,
-                                    const char *resource_op_name)
-{
-    const MIRResourceRuntimeRow *row;
-
-    if (inner_type_name == NULL || resource_op_name == NULL)
-        return NULL;
-
-    row = mir_abi_resource_runtime_row_by_kind(kind, inner_type_name,
-                                               resource_op_name);
-    return row != NULL ? row->runtime_fn : NULL;
 }

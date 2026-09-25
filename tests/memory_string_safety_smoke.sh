@@ -326,10 +326,10 @@ reject_literal "src/codegen/llvm_runtime_channels.c" \
 reject_literal "src/codegen/llvm_runtime_channels.c" \
     "llvm_runtime_lane_channel_name"
 require_literal "src/codegen/llvm_runtime_secure_slot_decl.c" \
-    "llvm_slot_runtime_row_for_operation"
+    "llvm_runtime_declaration_row(abi_type_name, operation)"
 require_literal "src/codegen/llvm_runtime_secure_slot_decl.c" \
     "\"PinReadInit\""
-require_literal "src/codegen/llvm_runtime_row.c" \
+reject_literal "src/codegen/llvm_runtime_row.c" \
     "mir_abi_resource_runtime_row_by_kind"
 require_literal "src/codegen/llvm_runtime.c" \
     "llvm_runtime_export_name"

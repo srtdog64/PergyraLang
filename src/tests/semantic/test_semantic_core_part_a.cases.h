@@ -327,6 +327,36 @@ test_type_checker_slot_rules(void)
         lexer_destroy(lexer);
     }
 
+    /* A claimed class field has no annotation, so its payload type must be
+     * spelled on the claim. MIR used to default it to Int. */
+    TEST("Class field ClaimSlot without a type argument is rejected");
+    {
+        const char *source =
+            "class Box {\n"
+            "    private let (_s) = ClaimSlot()\n"
+            "    public func Run() -> Void { Log(\"run\") }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let b: Box = Box()\n"
+            "    b.Run()\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(
+                result, "Cannot infer Slot<T> for class field '_s'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     /* --- R2: SecureSlot requires token --- */
     TEST("R2: Write to SecureSlot without token ->error");
     {

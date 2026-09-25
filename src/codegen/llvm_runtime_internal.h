@@ -25,6 +25,15 @@ const MIRResourceRuntimeRow *llvm_slot_runtime_row_for_operation(
     const char *inner_type_name,
     const char *operation);
 
+/*
+ * Module-level runtime declarations run before any MIR routine is active and
+ * cover the static scalar rows only. They read the ABI owner's table by the
+ * canonical type name; a missing row is NULL.
+ */
+const MIRResourceRuntimeRow *llvm_runtime_declaration_row(
+    const char *abi_type_name,
+    const char *operation);
+
 #endif /* PGY_LLVM_ENABLED */
 
 #endif /* PERGYRA_LLVM_RUNTIME_INTERNAL_H */

@@ -69,8 +69,8 @@ func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
 
 func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
     if index == 0 { return "mir_abi_resource_runtime_row_by_type_name("; }
-    if index == 1 { return "llvm_slot_runtime_row_for_operation("; }
-    if index == 2 { return "llvm_slot_runtime_row_for_operation("; }
+    if index == 1 { return "llvm_runtime_declaration_row("; }
+    if index == 2 { return "llvm_runtime_declaration_row("; }
     if index == 3 { return "llvm_slot_runtime_row_for_operation("; }
     if index == 4 { return "llvm_slot_runtime_row_for_operation("; }
     if index == 5 { return "C source slot auto-release requires MIR ABI runtime function row"; }
@@ -78,7 +78,7 @@ func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
     if index == 7 { return "C let-slot %s requires MIR ABI runtime function row"; }
     if index == 8 { return "transpiler_slot_runtime_fn("; }
     if index == 9 { return "transpiler_slot_runtime_fn("; }
-    if index == 10 { return "transpiler_slot_runtime_fn("; }
+    if index == 10 { return "transpiler_slot_runtime_fn_for_decl_claim("; }
     if index == 11 { return "transpiler_slot_runtime_fn("; }
     if index == 12 { return "transpiler_slot_runtime_row_for_operation("; }
     if index == 13 { return "row->call_shape"; }
@@ -190,7 +190,7 @@ func CompilerBackendEmitterContractReady() -> Bool {
             CompilerBackendEmitterPrimaryRequiredTerm()) &&
         CompilerBackendEmitterRequiredRowKnown(
             "src/codegen/llvm_runtime.c",
-            "llvm_slot_runtime_row_for_operation(") &&
+            "llvm_runtime_declaration_row(") &&
         CompilerBackendEmitterRequiredRowKnown(
             "src/codegen/llvm_runtime_row.c",
             "llvm_slot_runtime_row_for_operation(") &&
@@ -199,7 +199,7 @@ func CompilerBackendEmitterContractReady() -> Bool {
             "row->call_shape") &&
         CompilerBackendEmitterRequiredRowKnown(
             "src/codegen/llvm_runtime_secure_slot_decl.c",
-            "llvm_slot_runtime_row_for_operation(") &&
+            "llvm_runtime_declaration_row(") &&
         CompilerBackendEmitterRequiredRowKnown(
             "src/codegen/llvm_expr_slot_device_calls.c",
             "llvm_slot_runtime_row_for_operation(") &&

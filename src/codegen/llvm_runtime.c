@@ -22,43 +22,11 @@ llvm_runtime_resource_row_or_error(LLVMGenCtx *ctx,
     const char *expected_call_shape,
     const char *missing_message)
 {
-    MIRResourceAbiKind kind;
-    const char *inner_start;
-    const char *inner_end;
-    char inner_type_name[128];
-    size_t inner_len;
     const MIRResourceRuntimeRow *row =
-        NULL;
+        llvm_runtime_declaration_row(abi_type_name, operation);
 
-    if (abi_type_name == NULL)
+    if (row == NULL || row->runtime_fn == NULL || row->call_shape == NULL)
         goto missing;
-    if (strncmp(abi_type_name, "SecureSlot<", 11) == 0) {
-        kind = MIR_RESOURCE_ABI_SECURE_SLOT;
-    } else if (strncmp(abi_type_name, "DeviceSlot<", 11) == 0) {
-        kind = MIR_RESOURCE_ABI_DEVICE_SLOT;
-    } else if (strncmp(abi_type_name, "Slot<", 5) == 0) {
-        kind = MIR_RESOURCE_ABI_SLOT;
-    } else {
-        goto missing;
-    }
-    inner_start = strchr(abi_type_name, '<');
-    inner_end = strrchr(abi_type_name, '>');
-    if (inner_start == NULL || inner_end == NULL || inner_end <= inner_start + 1)
-        goto missing;
-    inner_start++;
-    inner_len = (size_t)(inner_end - inner_start);
-    if (inner_len >= sizeof(inner_type_name))
-        goto missing;
-    memcpy(inner_type_name, inner_start, inner_len);
-    inner_type_name[inner_len] = '\0';
-    row = llvm_slot_runtime_row_for_operation(
-        NULL, ctx, kind, inner_type_name, operation);
-
-    if (row == NULL || row->runtime_fn == NULL || row->call_shape == NULL) {
-        if (ctx != NULL && ctx->has_error)
-            return NULL;
-        goto missing;
-    }
     (void)expected_call_shape;
     return row;
 

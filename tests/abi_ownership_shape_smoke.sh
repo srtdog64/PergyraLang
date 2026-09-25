@@ -151,7 +151,7 @@ require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_PLAIN_RESOURCE_OPS("
 require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_PLAIN_RESOURCE_OPS("DeviceSlot<Long>"'
 require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_RESOURCE_OP("DeviceSlot<Int>", "SubmitRead"'
 require_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_runtime_row_by_type_name("
-require_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_runtime_row_by_kind("
+reject_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_runtime_row_by_kind("
 require_term "src/codegen/transpiler_mir_resource_op_core.c" "runtime_row->call_shape"
 reject_term "src/codegen/transpiler_mir_resource_op_core.c" "transpiler_format_slot_runtime_fn"
 require_term "src/codegen/llvm_runtime_row.c" "llvm_slot_runtime_row_for_operation("
@@ -182,7 +182,8 @@ reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "device_write", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release_device", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "submit_device_read", suffix)'
-require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "llvm_slot_runtime_row_for_operation("
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "llvm_runtime_declaration_row(abi_type_name, operation)"
+require_term "src/codegen/llvm_runtime.c" "llvm_runtime_declaration_row(abi_type_name, operation)"
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "row->call_shape"
 require_term "src/codegen/llvm_runtime_row.c" '"token_ptr_to_container"'
 require_term "src/codegen/llvm_runtime_row.c" '"container_ptr_token_ptr_to_value"'
@@ -202,8 +203,9 @@ reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_s
 require_term "src/compiler/mir_abi_layout.h" "MIRResourceAbiKind"
 require_term "src/compiler/mir_abi.h" "typedef struct MIRResourceRuntimeRow"
 require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_row_for_type_name"
-require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_row_by_kind"
-require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_fn_by_kind"
+reject_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_row_by_kind"
+reject_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_fn_by_kind"
+reject_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_constructed_row"
 require_term "src/codegen/llvm_expr_slot_device_calls.c" "llvm_slot_runtime_row_for_operation("
 require_term "src/codegen/llvm_expr_slot_device_calls.c" "row->call_shape"
 require_term "src/codegen/llvm_expr_slot_device_calls.c" "MIR_RESOURCE_ABI_SECURE_SLOT"
@@ -223,7 +225,7 @@ require_term "src/codegen/llvm_runtime_row.c" "mir_machine_layer_fact_matches_ru
 require_term "src/codegen/transpiler_slot_builtin_emit.c" "transpiler_slot_runtime_row_for_source_operation("
 require_term "src/codegen/transpiler_slot_builtin_emit.c" "row->call_shape"
 require_term "src/codegen/transpiler_slot_builtin_emit.c" "C source slot builtin %s requires MIR ABI runtime function row"
-require_term "src/codegen/transpiler_slot_runtime_row.c" "mir_abi_resource_runtime_row_by_kind("
+reject_term "src/codegen/transpiler_slot_runtime_row.c" "mir_abi_resource_runtime_row_by_kind("
 require_term "src/codegen/transpiler_slot_runtime_row.c" "row->call_shape"
 require_term "src/codegen/transpiler_slot_runtime_row.c" "transpiler_slot_runtime_expected_call_shape"
 require_term "src/codegen/transpiler_slot_runtime_row.c" '"PinRead"'
@@ -246,7 +248,7 @@ require_term "src/codegen/transpiler_func_class_flow_emit.c" "transpiler_slot_ru
 reject_term "src/codegen/transpiler_func_class_flow_emit.c" "mir_abi_resource_runtime_fn_by_kind("
 require_term "src/codegen/transpiler_mir_destructure_emit.c" "transpiler_slot_runtime_fn("
 reject_term "src/codegen/transpiler_mir_destructure_emit.c" "mir_abi_resource_runtime_fn_by_kind("
-require_term "src/codegen/transpiler_class_decl_emit.c" "transpiler_slot_runtime_fn("
+require_term "src/codegen/transpiler_class_decl_emit.c" "transpiler_slot_runtime_fn_for_decl_claim("
 reject_term "src/codegen/transpiler_class_decl_emit.c" "mir_abi_resource_runtime_fn_by_kind("
 require_term "src/codegen/transpiler_expr_stdlib_builtin.c" "transpiler_slot_runtime_fn("
 reject_term "src/codegen/transpiler_expr_stdlib_builtin.c" "mir_abi_resource_runtime_fn_by_kind("
@@ -361,7 +363,9 @@ require_term "src/compiler/mir_abi_layout.c" "Stable identity for a complete sta
 require_term "src/compiler/mir_abi_layout.c" "UINT32_C(0x20000000)"
 require_term "src/compiler/mir_abi_resource_runtime.c" "UINT32_C(0x40000000)"
 require_term "src/compiler/mir_abi_resource_runtime_constructed.c" "constructed_resource_runtime_spelling"
-require_term "src/compiler/mir_abi_resource_runtime_constructed.c" "mir_abi_resource_runtime_row_by_kind("
+require_term "src/compiler/mir_abi_resource_runtime_constructed.c" "mir_abi_resource_runtime_constructed_row("
+require_term "src/compiler/mir_abi_resource_runtime.c" "return mir_abi_resource_runtime_constructed_row("
+reject_term "src/compiler/mir_abi_resource_runtime_constructed.c" "mir_abi_resource_runtime_row_by_kind("
 require_term "src/compiler/mir_types.h" "abi_layout_id"
 require_term "src/compiler/mir_types.h" "resource_runtime_aux_fact_count"
 require_term "src/compiler/mir_types.h" "resource_runtime_aux_facts"
@@ -674,5 +678,57 @@ require_term "docs/145_bit_layout_boundary_matrix.md" "Zig"
 require_term "docs/145_bit_layout_boundary_matrix.md" "Rust"
 require_term "docs/145_bit_layout_boundary_matrix.md" "C#"
 require_term "docs/145_bit_layout_boundary_matrix.md" "WebAssembly"
+
+# Forbidden fallbacks of the abi.runtime_call_rows registry row. Each check
+# names the token it rejects.
+#
+# mir_abi_resource_runtime_row_by_kind( and mir_abi_resource_runtime_fn_by_kind(:
+# nothing outside the ABI owner rebuilds a runtime-call row from a resource
+# kind plus a payload spelling. The constructed-row generator is internal to
+# the owner and is reached only after its static table missed.
+runtime_row_by_kind_hits="$(
+    cd "$ROOT_DIR" &&
+    grep -RIlE 'mir_abi_resource_runtime_(row|fn)_by_kind\(' src \
+        --include='*.c' --include='*.h' || true
+)"
+[[ -z "$runtime_row_by_kind_hits" ]] ||
+    fail "a runtime-call row is rebuilt from its kind in: $runtime_row_by_kind_hits"
+constructed_row_users="$(
+    cd "$ROOT_DIR" &&
+    grep -RIl 'mir_abi_resource_runtime_constructed_row' src \
+        --include='*.c' --include='*.h' | sort | tr '\n' ' ' || true
+)"
+[[ "$constructed_row_users" == "src/compiler/mir_abi_resource_runtime.c src/compiler/mir_abi_resource_runtime_constructed.c src/compiler/mir_abi_resource_runtime_internal.h " ]] ||
+    fail "the constructed runtime-call row generator left the ABI owner: $constructed_row_users"
+
+# class_field_claim_type_recovery: a claimed class field takes its payload
+# type from the claim's type argument. Semantics refuses a claim without one,
+# and neither MIR nor the C backend defaults it to Int.
+require_term "src/semantic/type_checker_class_decl.c" "for class field '%s' from %s without a type argument"
+reject_term "src/compiler/mir_decl_header_fields.c" 'mir_capture_type_name(NULL, "Int")'
+reject_term "src/codegen/transpiler_class_decl_emit.c" "emit_one_field_slot_claim("
+require_term "src/tests/semantic/test_semantic_core_part_a.cases.h" "Class field ClaimSlot without a type argument is rejected"
+
+# claim_expr1_type_recovery: Claim's ABI type is the result SSA binding's
+# carried local type, never the expression text in expr1.
+require_term "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" "cfg.instructions.results[instruction_index]"
+reject_term "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" "return cfg.instructions.expr1s[instruction_index];"
+
+# runtime_resource_expr_graph_receiver_type_recovery: a non-Claim resource
+# call reads its receiver from the attached semantic expression graph, not
+# from the raw use list or a text search.
+require_term "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" "SemanticExpressionGraphRightChild("
+reject_term "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" "cfg.instructions.uses[cfg.instructions.use_starts[instruction_index]]"
+reject_term "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" "SelfMirTextContainsIdentifier("
+
+# serialized_runtime_row_reparse: the typed runtime-call fact owner never
+# splits the serialized manifest rows back into facts.
+reject_term "src/self_hosted/compiler/runtime_call_abi_structured_fact_owner.pgy" "Split("
+
+# direct_backend_runtime_symbol_guess: the direct MIR backends take runtime
+# symbols from the typed fact and spell no ABI text of their own.
+require_term "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy" ".symbol"
+reject_term "src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy" "snprintf"
+reject_term "src/self_hosted/compiler/direct_mir_backend_emission_owner.pgy" "snprintf"
 
 echo "[abi-ownership-shape] Slot/Pin ABI shape, cleanup, and docs contract are gated"

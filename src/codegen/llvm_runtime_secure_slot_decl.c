@@ -16,13 +16,16 @@ llvm_secure_runtime_resource_row_or_error(LLVMGenCtx *ctx,
     const char *operation,
     const char *missing_message)
 {
-    const MIRResourceRuntimeRow *row =
-        llvm_slot_runtime_row_for_operation(
-            NULL, ctx, MIR_RESOURCE_ABI_SECURE_SLOT, inner_type_name, operation);
+    char abi_type_name[96];
+    const MIRResourceRuntimeRow *row = NULL;
+    int written = snprintf(abi_type_name, sizeof(abi_type_name),
+                           "SecureSlot<%s>",
+                           inner_type_name != NULL ? inner_type_name : "");
 
+    if (inner_type_name != NULL && written > 0
+        && (size_t)written < sizeof(abi_type_name))
+        row = llvm_runtime_declaration_row(abi_type_name, operation);
     if (row == NULL || row->runtime_fn == NULL || row->call_shape == NULL) {
-        if (ctx != NULL && ctx->has_error)
-            return NULL;
         llvm_set_error(ctx, "%s", missing_message != NULL
             ? missing_message
             : "secure slot runtime ABI row is missing");

@@ -314,8 +314,6 @@ mir_decl_field_claim_capture(MIRDeclFieldClaim *claim,
     if (ast_call_generic_arg_count(init) > 0) {
         claim->inner_type_name = mir_capture_generic_actual_type_name(
             ast_call_generic_arg(init, 0));
-    } else {
-        claim->inner_type_name = mir_capture_type_name(NULL, "Int");
     }
     return claim->slot_name != NULL && claim->inner_type_name != NULL
         && mir_decl_field_claim_abi_capture(claim);

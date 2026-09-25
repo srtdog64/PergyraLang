@@ -104,48 +104,11 @@ emit_one_field_slot_claim_meta(TranspilerCtx *ctx,
     }
 }
 
-static void
-emit_one_field_slot_claim(TranspilerCtx *ctx, ASTNode *group)
-{
-    ASTNode *init;
-    const char *callee;
-    const char *slot;
-    const char *suffix;
-    const char *claim_fn;
-
-    if (group == NULL || ast_let_destructure_name_count(group) < 1)
-        return;
-    init = ast_let_destructure_initializer(group);
-    if (init == NULL || ast_call_callee(init) == NULL)
-        return;
-
-    callee = ast_identifier_name(ast_call_callee(init));
-    slot = ast_let_destructure_name(group, 0);
-    suffix = ast_call_generic_arg_count(init) > 0
-        ? ast_generic_param_name(ast_call_generic_arg(init, 0)) : "Int";
-    if (callee != NULL && strcmp(callee, "ClaimSecureSlot") == 0
-        && ast_let_destructure_name_count(group) >= 2) {
-        claim_fn = transpiler_slot_runtime_fn(ctx, true, suffix, "Claim");
-        if (claim_fn == NULL)
-            return;
-        codebuf_write(ctx->out,
-            "    self.%s = %s(&self.%s);\n",
-            slot, claim_fn, ast_let_destructure_name(group, 1));
-    } else if (callee != NULL && strcmp(callee, "ClaimSlot") == 0) {
-        claim_fn = transpiler_slot_runtime_fn(ctx, false, suffix, "Claim");
-        if (claim_fn == NULL)
-            return;
-        codebuf_write(ctx->out,
-            "    self.%s = %s();\n", slot, claim_fn);
-    }
-}
-
 /* Emit a constructor helper that claims the class's destructure slot fields so
  * a freshly-built object has live (occupied) secure/plain slots instead of a
  * `{0}` cell that would panic on first Write. */
 static void
-emit_class_field_slot_initializer(TranspilerCtx *ctx, ASTNode *node,
-                                  const char *name)
+emit_class_field_slot_initializer(TranspilerCtx *ctx, const char *name)
 {
     const MIRDeclHeader *header =
         transpiler_active_decl_header_of_type(ctx, AST_CLASS_DECL, name);
@@ -153,37 +116,23 @@ emit_class_field_slot_initializer(TranspilerCtx *ctx, ASTNode *node,
 
     if (name == NULL)
         return;
-    if (transpiler_active_has_mir(ctx)) {
-        if (header == NULL) {
-            transpiler_set_mir_inventory_missing(ctx,
-                "MIR-only C path missing class field-claim metadata for '%s'",
-                name);
-            return;
-        }
-        if (claim_count == 0)
-            return;
-        codebuf_write(ctx->out,
-            "\nstatic %s %s__pgy_field_slot_init(%s self)\n{\n",
-            name, name, name);
-        for (size_t i = 0; i < claim_count; i++)
-            emit_one_field_slot_claim_meta(
-                ctx, mir_decl_header_field_claim(header, i));
-        codebuf_write(ctx->out, "    return self;\n}\n");
+    /* The MIR declaration header owns the claimed fields; without it there
+     * is nothing to read a payload type from. */
+    if (header == NULL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing class field-claim metadata for '%s'",
+            name);
         return;
     }
-
-    {
-        size_t group_count = ast_class_field_destructure_count(node);
-        if (group_count == 0)
-            return;
-        codebuf_write(ctx->out,
-            "\nstatic %s %s__pgy_field_slot_init(%s self)\n{\n",
-            name, name, name);
-        for (size_t gi = 0; gi < group_count; gi++)
-            emit_one_field_slot_claim(
-                ctx, ast_class_field_destructure_at(node, gi));
-        codebuf_write(ctx->out, "    return self;\n}\n");
-    }
+    if (claim_count == 0)
+        return;
+    codebuf_write(ctx->out,
+        "\nstatic %s %s__pgy_field_slot_init(%s self)\n{\n",
+        name, name, name);
+    for (size_t i = 0; i < claim_count; i++)
+        emit_one_field_slot_claim_meta(
+            ctx, mir_decl_header_field_claim(header, i));
+    codebuf_write(ctx->out, "    return self;\n}\n");
 }
 
 static void
@@ -330,7 +279,7 @@ emit_class_decl_impl(ASTNode *node,
     codebuf_write(ctx->out, "} %s;\n", name);
     transpiler_emit_nominal_container_runtime_rows(ctx->out, name, true);
 
-    emit_class_field_slot_initializer(ctx, node, name);
+    emit_class_field_slot_initializer(ctx, name);
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =

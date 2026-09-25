@@ -222,8 +222,11 @@ grep -Fq "LLVM MIR source operation has a missing or mismatched ABI layout ident
     "$ROOT_DIR/src/codegen/llvm_runtime_row.c"
 grep -Fq "mir_abi_resource_runtime_row_by_type_name(" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
-grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+if grep -F "mir_abi_resource_runtime_row_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c" >/dev/null; then
+    echo "[backend-fail-closed] C resource ops rebuilt a runtime row from its kind" >&2
+    exit 1
+fi
 grep -Fq "mir_abi_resource_runtime_instruction_for_abi(" \
     "$ROOT_DIR/src/compiler/mir_abi_resource_runtime_mir.c"
 mir_mir_row_helper="$(awk '
@@ -255,8 +258,11 @@ if grep -E 'transpiler_mir_find_prior_(borrow_source_for_view|resource_layout_fo
 fi
 grep -Fq "inst->resource_owner_slot_anchor" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.c"
-grep -Fq "if (!mir_active && fn == NULL" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+if grep -Fq "if (!mir_active && fn == NULL && inner_name != NULL" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"; then
+    echo "[backend-fail-closed] C resource ops reopened the non-MIR runtime row lookup" >&2
+    exit 1
+fi
 grep -Fq "resource_runtime_fact_present" \
     "$ROOT_DIR/src/compiler/mir_fact_surface_validate.c"
 grep -Fq "resource op is missing lowered runtime-call ABI row fact" \
@@ -365,8 +371,11 @@ if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "submit_device_read
     echo "[backend-fail-closed] LLVM device slot submit-read declaration must consume MIR ABI runtime function rows" >&2
     exit 1
 fi
-grep -Fq "llvm_slot_runtime_row_for_operation(" \
+# Module-level declarations read static rows from the ABI owner by name.
+grep -Fq "llvm_runtime_declaration_row(abi_type_name, operation)" \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+grep -Fq "llvm_runtime_declaration_row(abi_type_name, operation)" \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
 grep -Fq '"token_ptr_to_container"' \
@@ -700,8 +709,11 @@ if grep -F 'slot_builtin_strdup_fmt(const char *fmt' \
     echo "[backend-fail-closed] slot builtin formatter lost backend diagnostics" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
-    "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
+if grep -F "mir_abi_resource_runtime_row_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c" >/dev/null; then
+    echo "[backend-fail-closed] C slot runtime rows rebuilt a row from its kind" >&2
+    exit 1
+fi
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
 grep -Fq "C slot operation %s requires MIR ABI runtime function row" \
@@ -898,7 +910,7 @@ if grep -F 'pgy_claim_secure_%s(&%s)' \
     echo "[backend-fail-closed] C MIR ClaimSecureSlot destructuring must consume MIR ABI runtime rows" >&2
     exit 1
 fi
-grep -Fq "transpiler_slot_runtime_fn(" \
+grep -Fq "transpiler_slot_runtime_fn_for_decl_claim(" \
     "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
 if grep -F "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c" >/dev/null; then

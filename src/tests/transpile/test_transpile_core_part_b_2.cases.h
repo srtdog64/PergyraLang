@@ -303,15 +303,16 @@
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("Write(slot, 42) -> pgy_write_Int(&slot, 42);");
+    TEST("Write(slot, 42) without MIR fails closed instead of guessing its runtime row");
     {
         ASTNode *args[2] = { make_identifier("slot", 1), make_number(42, 1) };
         ASTNode *call    = make_call("Write", args, 2, 1);
         ctx = transpiler_ctx_create();
         register_slot_var(ctx, "slot", "Int", false, false);
         emit_statement(call, ctx);
-        const char *out  = ctx->out->data;
-        EXPECT_STR_CONTAINS(out, "pgy_write_Int(&slot, 42)");
+        EXPECT_STR_NOT_CONTAINS(ctx->out->data, "pgy_write_Int(&slot, 42)");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error, "missing active routine for runtime-call ABI row");
         transpiler_ctx_destroy(ctx);
     }
 

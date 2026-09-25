@@ -80,6 +80,14 @@ llvm_slot_runtime_operation_is_synthetic_pin(const char *operation)
 }
 
 const MIRResourceRuntimeRow *
+llvm_runtime_declaration_row(const char *abi_type_name, const char *operation)
+{
+    if (abi_type_name == NULL || operation == NULL)
+        return NULL;
+    return mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation);
+}
+
+const MIRResourceRuntimeRow *
 llvm_slot_runtime_row_for_operation(ASTNode *node,
                                     LLVMGenCtx *ctx,
                                     MIRResourceAbiKind kind,
@@ -193,24 +201,16 @@ llvm_slot_runtime_row_for_operation(ASTNode *node,
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "LLVM MIR source operation is missing its lowered runtime-call ABI row");
         return NULL;
-    } else if (ctx != NULL && ctx->current_mir_routine == NULL
-               && node == NULL) {
-        /* Runtime declaration is a module-level ABI materialization phase,
-         * before any MIR routine is active.  It consumes the canonical ABI
-         * row vocabulary to declare the exported functions; source-level
-         * operations remain fail-closed below once a routine is active. */
-        row = mir_abi_resource_runtime_row_by_kind(
-            kind, inner_type_name, operation);
-    } else if (llvm_active_has_mir(ctx)) {
+    } else {
+        /* A runtime-call row comes from the active MIR routine. Module-level
+         * runtime declarations read static rows by type name and never reach
+         * this lookup. */
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "MIR-only LLVM path missing active routine for runtime-call ABI row");
         return NULL;
-    } else {
-        row = mir_abi_resource_runtime_row_by_kind(
-            kind, inner_type_name, operation);
     }
 
     if (row_is_mir_fact && row != NULL

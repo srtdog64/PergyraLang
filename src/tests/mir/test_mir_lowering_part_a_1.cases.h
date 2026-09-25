@@ -1,3 +1,12 @@
+/* Runtime symbol of the ABI owner's row for a canonical resource type. */
+static const char *
+test_mir_runtime_fn_for_type(const char *abi_type_name, const char *operation)
+{
+    const MIRResourceRuntimeRow *row =
+        mir_abi_resource_runtime_row_for_type_name(abi_type_name, operation);
+    return row != NULL ? row->runtime_fn : NULL;
+}
+
 static void
 test_mir_lowering_part_a(void)
 {
@@ -201,28 +210,27 @@ test_mir_lowering_part_a(void)
 
     TEST("MIR ABI owner synthesizes constructed resource runtime spellings");
     {
-        const char *slot_claim = mir_abi_resource_runtime_fn_by_kind(
-            MIR_RESOURCE_ABI_SLOT, "Vec2", "Claim");
-        const char *slot_write = mir_abi_resource_runtime_fn_by_kind(
-            MIR_RESOURCE_ABI_SLOT, "Vec2", "Write");
-        const char *secure_claim = mir_abi_resource_runtime_fn_by_kind(
-            MIR_RESOURCE_ABI_SECURE_SLOT, "Vec2", "Claim");
-        const char *secure_release = mir_abi_resource_runtime_fn_by_kind(
-            MIR_RESOURCE_ABI_SECURE_SLOT, "Vec2", "Release");
-        const char *device_read = mir_abi_resource_runtime_fn_by_kind(
-            MIR_RESOURCE_ABI_DEVICE_SLOT, "Vec2", "Read");
-        const char *nested_write = mir_abi_resource_runtime_fn_by_kind(
-            MIR_RESOURCE_ABI_SLOT, "Array<Int>", "Write");
-        const char *device_pin = mir_abi_resource_runtime_fn_by_kind(
-            MIR_RESOURCE_ABI_DEVICE_SLOT, "Int", "PinRead");
-        const char *void_write = mir_abi_resource_runtime_fn_by_kind(
-            MIR_RESOURCE_ABI_SLOT, "Void", "Write");
+        const char *slot_claim =
+            test_mir_runtime_fn_for_type("Slot<Vec2>", "Claim");
+        const char *slot_write =
+            test_mir_runtime_fn_for_type("Slot<Vec2>", "Write");
+        const char *secure_claim =
+            test_mir_runtime_fn_for_type("SecureSlot<Vec2>", "Claim");
+        const char *secure_release =
+            test_mir_runtime_fn_for_type("SecureSlot<Vec2>", "Release");
+        const char *device_read =
+            test_mir_runtime_fn_for_type("DeviceSlot<Vec2>", "Read");
+        const char *nested_write =
+            test_mir_runtime_fn_for_type("Slot<Array<Int>>", "Write");
+        const char *device_pin =
+            test_mir_runtime_fn_for_type("DeviceSlot<Int>", "PinRead");
+        const char *void_write =
+            test_mir_runtime_fn_for_type("Slot<Void>", "Write");
         const MIRResourceRuntimeRow *slot_row =
-            mir_abi_resource_runtime_row_by_kind(
-                MIR_RESOURCE_ABI_SLOT, "Int", "Read");
+            mir_abi_resource_runtime_row_for_type_name("Slot<Int>", "Read");
         const MIRResourceRuntimeRow *constructed_row =
-            mir_abi_resource_runtime_row_by_kind(
-                MIR_RESOURCE_ABI_SECURE_SLOT, "Vec2", "Write");
+            mir_abi_resource_runtime_row_for_type_name(
+                "SecureSlot<Vec2>", "Write");
 
         EXPECT(slot_claim != NULL
                && slot_write != NULL
@@ -246,8 +254,7 @@ test_mir_lowering_part_a(void)
                && strcmp(constructed_row->domain, "constructed-resource") == 0
                && strcmp(constructed_row->runtime_fn, "pgy_secure_write_Vec2") == 0
                && strcmp(constructed_row->call_shape, "container_ptr_value_token_ptr_to_void") == 0);
-        EXPECT(mir_abi_resource_runtime_fn_by_kind(
-                   MIR_RESOURCE_ABI_SLOT, "Unknown", "Claim") == NULL);
+        EXPECT(test_mir_runtime_fn_for_type("Slot<Unknown>", "Claim") == NULL);
     }
 
     TEST("MIR owns TextBuilder layout and target-specific runtime symbols");

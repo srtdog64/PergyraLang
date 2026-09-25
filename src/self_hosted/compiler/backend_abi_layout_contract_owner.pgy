@@ -54,7 +54,7 @@ func CompilerBackendAbiLayoutRequiredTermAt(index: Int) -> String {
     if index == 2 { return "ABI_TAGGED_TYPE(\"Option<Float>\""; }
     if index == 3 { return "ABI_TAGGED_TYPE(\"Option<Double>\""; }
     if index == 4 { return "ABI_SECURE_RESOURCE_OPS(\"SecureSlot<Long>\""; }
-    if index == 5 { return "mir_abi_resource_runtime_fn_by_kind"; }
+    if index == 5 { return "mir_abi_resource_runtime_row_for_type_name"; }
     if index == 6 { return "mir_abi_resource_runtime_row_by_type_name("; }
     if index == 7 { return "Runtime function spelling is payload carried"; }
     if index == 8 { return "typedef struct MIRAbiTargetPolicy"; }

@@ -1,4 +1,5 @@
 #include "mir_abi_layout.h"
+#include "mir_abi_resource_runtime_internal.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -159,10 +160,10 @@ abi_constructed_resource_runtime_prefix(MIRResourceAbiKind kind,
     return NULL;
 }
 
-static const MIRResourceRuntimeRow *
-abi_constructed_resource_runtime_row(MIRResourceAbiKind kind,
-                                     const char *inner_type_name,
-                                     const char *resource_op_name)
+const MIRResourceRuntimeRow *
+mir_abi_resource_runtime_constructed_row(MIRResourceAbiKind kind,
+                                         const char *inner_type_name,
+                                         const char *resource_op_name)
 {
     enum {
         ABI_RUNTIME_ROW_RING_SIZE = 16,
@@ -235,45 +236,4 @@ abi_constructed_resource_runtime_row(MIRResourceAbiKind kind,
         0
     };
     return &rows[row_index];
-}
-
-const MIRResourceRuntimeRow *
-mir_abi_resource_runtime_row_by_kind(MIRResourceAbiKind kind,
-                                     const char *inner_type_name,
-                                     const char *resource_op_name)
-{
-    const char *container_name;
-    char abi_type_name[96];
-    const MIRResourceRuntimeRow *row;
-    int written;
-
-    if (inner_type_name == NULL || resource_op_name == NULL)
-        return NULL;
-
-    switch (kind) {
-    case MIR_RESOURCE_ABI_SLOT:
-        container_name = "Slot";
-        break;
-    case MIR_RESOURCE_ABI_SECURE_SLOT:
-        container_name = "SecureSlot";
-        break;
-    case MIR_RESOURCE_ABI_DEVICE_SLOT:
-        container_name = "DeviceSlot";
-        break;
-    default:
-        return NULL;
-    }
-
-    written = snprintf(abi_type_name, sizeof(abi_type_name), "%s<%s>",
-                       container_name, inner_type_name);
-    if (written < 0 || (size_t)written >= sizeof(abi_type_name))
-        return NULL;
-
-    row = mir_abi_resource_runtime_row_by_type_name(abi_type_name,
-                                                    resource_op_name);
-    if (row != NULL)
-        return row;
-
-    return abi_constructed_resource_runtime_row(kind, inner_type_name,
-                                                resource_op_name);
 }

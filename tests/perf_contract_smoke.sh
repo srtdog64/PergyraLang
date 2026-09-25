@@ -3034,7 +3034,10 @@ grep -Fq "tests/cases/backend_compare/sequence_literal_list_queue" "$ROOT_DIR/te
 grep -Fq "C array literal could not lower element %zu" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.c"
 ! grep -Fq "return pergyra_strdup(\"0\")" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.c"
 grep -Fq "C slot SSA auto-read requires concrete Slot<T> payload metadata" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
-grep -Fq "mir_abi_resource_runtime_row_by_kind(" "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
+if grep -Fq "mir_abi_resource_runtime_row_by_kind(" "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"; then
+    echo "[perf-contract] C slot runtime rows rebuilt a row from its kind" >&2
+    exit 1
+fi
 grep -Fq "row->call_shape" "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
 grep -Fq "C slot operation %s requires MIR ABI runtime function row" "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
 ! grep -Fq "pgy_write_%s(%s, %s)" "$ROOT_DIR/src/codegen/transpiler_expr_assignment_emit.c"
@@ -3851,7 +3854,7 @@ grep -Fq "emit_hosted_method_forward_decl_from_metadata(" \
     "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
 ! grep -Fq "ast_func_return_type(method)" \
     "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
-grep -Fq "transpiler_slot_runtime_fn(" "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
+grep -Fq "transpiler_slot_runtime_fn_for_decl_claim(" "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
 ! grep -Fq "mir_abi_resource_runtime_fn_by_kind(" "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
 ! grep -Fq "pgy_claim_%s()" "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
 ! grep -Fq "pgy_claim_secure_%s(&self.%s)" "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"

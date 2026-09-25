@@ -178,34 +178,39 @@ test_statement_emit(void)
         lexer_destroy(lexer);
     }
 
-    TEST("let slot: Slot<Int> = ClaimSlot<Int>() -> PgySlot_Int slot = pgy_claim_Int();");
+    TEST("let slot: Slot<Int> = ClaimSlot<Int>() without MIR fails closed");
     {
         ASTNode *args[0];
         ASTNode *init = make_call("ClaimSlot", args, 0, 1);
         ASTNode *node = make_let("slot", make_type_node("Slot<Int>"), init, 1);
         const char *out = emit_stmt_to_str(node, &ctx);
-        EXPECT_STR_CONTAINS(out, "PgySlot_Int slot = pgy_claim_Int();");
+        EXPECT_STR_NOT_CONTAINS(out, "pgy_claim_Int();");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error, "missing active routine for runtime-call ABI row");
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("let slot = ClaimSlot<String>() -> PgySlot_String slot = pgy_claim_String();");
+    TEST("let slot = ClaimSlot<String>() without MIR fails closed");
     {
         ASTNode *args[0];
         ASTNode *init = make_call_generic1("ClaimSlot", "String", args, 0, 1);
         ASTNode *node = make_let("slot", NULL, init, 1);
         const char *out = emit_stmt_to_str(node, &ctx);
-        EXPECT_STR_CONTAINS(out, "PgySlot_String slot = pgy_claim_String();");
+        EXPECT_STR_NOT_CONTAINS(out, "pgy_claim_String();");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error, "missing active routine for runtime-call ABI row");
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("let ss: SecureSlot<Int> = ClaimSecureSlot() -> PgySecureSlot_Int + token");
+    TEST("let ss: SecureSlot<Int> = ClaimSecureSlot() without MIR fails closed");
     {
         ASTNode *args[0];
         ASTNode *init = make_call("ClaimSecureSlot", args, 0, 1);
         ASTNode *node = make_let("ss", make_type_node("SecureSlot<Int>"), init, 1);
         const char *out = emit_stmt_to_str(node, &ctx);
-        EXPECT_STR_CONTAINS(out, "PgyToken_Int ss_token;");
-        EXPECT_STR_CONTAINS(out, "PgySecureSlot_Int ss = pgy_claim_secure_Int(");
+        EXPECT_STR_NOT_CONTAINS(out, "pgy_claim_secure_Int(");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error, "missing active routine for runtime-call ABI row");
         transpiler_ctx_destroy(ctx);
     }
 
@@ -231,19 +236,37 @@ test_statement_emit(void)
 
     TEST("let srv: ReadView<Int> = ViewRead(ss) on SecureSlot emits token alias");
     {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let ss: SecureSlot<Int> = ClaimSecureSlot<Int>(1);\n"
+            "    Write(ss, 7, ss_token);\n"
+            "    if true {\n"
+            "        let srv: ReadView<Int> = ViewRead(ss);\n"
+            "        Log(ToString(Read(srv, srv_token)));\n"
+            "    }\n"
+            "    Release(ss, ss_token);\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         ctx = transpiler_ctx_create();
-        ASTNode *claim = make_call("ClaimSecureSlot", NULL, 0, 1);
-        ASTNode *secure = make_let("ss", make_type_node("SecureSlot<Int>"), claim, 1);
-        emit_statement(secure, ctx);
-        EXPECT_STR_CONTAINS(ctx->out->data, "PgyToken_Int ss_token;");
+        ctx->mir = mir;
 
-        ASTNode *args[1] = { make_identifier("ss", 2) };
-        ASTNode *node = make_let("srv", make_type_node("ReadView<Int>"),
-                                 make_call("ViewRead", args, 1, 2), 2);
-        emit_statement(node, ctx);
+        EXPECT(ok);
+        emit_program(ctx);
+
+        EXPECT(ctx->backend_error == NULL);
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgyToken_Int ss_token;");
         EXPECT_STR_CONTAINS(ctx->out->data, "srv = ss;");
         EXPECT_STR_CONTAINS(ctx->out->data, "srv_token = ss_token;");
+
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
     }
 
     TEST("function-return Array<String> destructuring preserves MIR local C types");

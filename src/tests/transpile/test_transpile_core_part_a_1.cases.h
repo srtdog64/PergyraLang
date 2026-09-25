@@ -255,24 +255,28 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("Read(s) -> pgy_read_Int(&s)");
+    TEST("Read(s) without MIR fails closed instead of guessing its runtime row");
     {
         ctx = transpiler_ctx_create();
         register_slot_var(ctx, "s", "Int", false, false);
         ASTNode *args[1] = { make_identifier("s", 1) };
         result = emit_expression(make_call("Read", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "pgy_read_Int(&s)") == 0);
+        EXPECT(result == NULL || strstr(result, "pgy_read_Int") == NULL);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error, "missing active routine for runtime-call ABI row");
         free(result);
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("Release(s) -> pgy_release_Int(&s)");
+    TEST("Release(s) without MIR fails closed instead of guessing its runtime row");
     {
         ctx = transpiler_ctx_create();
         register_slot_var(ctx, "s", "Int", false, false);
         ASTNode *args[1] = { make_identifier("s", 1) };
         result = emit_expression(make_call("Release", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "pgy_release_Int(&s)") == 0);
+        EXPECT(result == NULL || strstr(result, "pgy_release_Int") == NULL);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error, "missing active routine for runtime-call ABI row");
         free(result);
         transpiler_ctx_destroy(ctx);
     }

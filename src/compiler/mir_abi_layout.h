@@ -31,10 +31,6 @@ const char *mir_abi_resource_runtime_fn(const MIRTypeLayout *layout,
 const char *mir_abi_resource_runtime_fn_by_type_name(
     const char *abi_type_name,
     const char *resource_op_name);
-const char *mir_abi_resource_runtime_fn_by_kind(
-    MIRResourceAbiKind kind,
-    const char *inner_type_name,
-    const char *resource_op_name);
 const MIRResourceRuntimeRow *mir_abi_resource_runtime_row_at(size_t index);
 const MIRResourceRuntimeRow *mir_abi_resource_runtime_row_by_type_name(
     const char *abi_type_name,
@@ -107,10 +103,6 @@ const MIRInstruction *mir_abi_resource_runtime_pin_owner_for_mir(
  * the ABI owner without allowing a backend to synthesize it from a slot name. */
 const MIRResourceRuntimeRow *mir_abi_resource_runtime_pin_row_for_mir(
     const MIRRoutine *routine,
-    MIRResourceAbiKind kind,
-    const char *inner_type_name,
-    const char *resource_op_name);
-const MIRResourceRuntimeRow *mir_abi_resource_runtime_row_by_kind(
     MIRResourceAbiKind kind,
     const char *inner_type_name,
     const char *resource_op_name);

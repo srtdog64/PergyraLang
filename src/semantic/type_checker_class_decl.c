@@ -83,7 +83,7 @@ class_assign_field_type_ref(ASTNode *node, const char *field_name,
 }
 
 static void
-class_set_destructure_field_types(ASTNode *node)
+class_set_destructure_field_types(ASTNode *node, SemanticContext *ctx)
 {
     size_t group_count = ast_class_field_destructure_count(node);
 
@@ -105,6 +105,25 @@ class_set_destructure_field_types(ASTNode *node)
         if (ast_call_generic_arg_count(init) >= 1)
             inner_node = ast_generic_param_constraint(
                 ast_call_generic_arg(init, 0));
+        if (inner_node == NULL
+            && destructure_field_shell_name(callee, 0) != NULL) {
+            const char *shell = destructure_field_shell_name(callee, 0);
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_INFER_REQUIRED,
+                PGY_CAUSE_INFER_NO_SOURCE,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                init,
+                "Cannot infer %s<T> for class field '%s' from %s without a type argument.\n"
+                "Reason:\n"
+                "- %s allocates a resource but carries no payload value\n"
+                "- a claimed class field has no annotation to supply T\n"
+                "Fix:\n"
+                "- call '%s<T>()' with a concrete T",
+                shell,
+                ast_let_destructure_name(group, 0) != NULL
+                    ? ast_let_destructure_name(group, 0) : "slot",
+                callee, callee, callee);
+        }
 
         for (size_t ni = 0; ni < ast_let_destructure_name_count(group); ni++)
             class_assign_field_type_ref(node,
@@ -277,7 +296,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
      * struct members emit and the backends can lower field-slot resource ops.
      * Done after the scope pre-pass so the field loop above never re-declares
      * these names (their placeholder type was still NULL during that loop). */
-    class_set_destructure_field_types(node);
+    class_set_destructure_field_types(node, ctx);
 
     /* struct declarations cannot have methods — use class or object */
     size_t method_count = 0;

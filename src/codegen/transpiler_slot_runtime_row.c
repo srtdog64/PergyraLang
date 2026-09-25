@@ -140,7 +140,9 @@ transpiler_slot_runtime_row_for_source_operation(TranspilerCtx *ctx,
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "C MIR source operation has no active instruction-owned runtime-call ABI row");
         return NULL;
-    } else if (transpiler_active_has_mir(ctx)) {
+    } else {
+        /* A runtime-call row comes from the active MIR routine; there is no
+         * kind-based table lookup to fall back to. */
         transpiler_set_backend_error_with_hints(
             ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -148,11 +150,6 @@ transpiler_slot_runtime_row_for_source_operation(TranspilerCtx *ctx,
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "MIR-only C path missing active routine for runtime-call ABI row");
         return NULL;
-    } else {
-        row = mir_abi_resource_runtime_row_by_kind(
-            secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
-            inner_type,
-            operation);
     }
 
     if (row_is_mir_fact && row != NULL

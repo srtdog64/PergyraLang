@@ -95,7 +95,6 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     const char *suffix = NULL;
     const MIRTypeLayout *effective_layout = layout;
     const MIRResourceRuntimeRow *runtime_row = NULL;
-    char suffix_buf[96];
     char inner_name_buf[128];
     const char *slot_anchor;
     const char *effective_abi_type_name = NULL;
@@ -264,35 +263,6 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                 inner_name = inner_name_buf;
         }
     }
-    if (!mir_active && fn == NULL && inner_name != NULL
-        && effective_abi_type_name != NULL) {
-        MIRResourceAbiKind kind = MIR_RESOURCE_ABI_SLOT;
-        bool has_resource_kind = false;
-
-        if (is_device_slot) {
-            kind = MIR_RESOURCE_ABI_DEVICE_SLOT;
-            has_resource_kind = true;
-        } else if (is_secure_slot) {
-            kind = MIR_RESOURCE_ABI_SECURE_SLOT;
-            has_resource_kind = true;
-        } else if (strncmp(effective_abi_type_name, "Slot<", 5) == 0) {
-            kind = MIR_RESOURCE_ABI_SLOT;
-            has_resource_kind = true;
-        }
-
-        if (has_resource_kind) {
-            runtime_row = mir_abi_resource_runtime_row_by_kind(
-                kind, inner_name, op_name);
-            if (runtime_row != NULL && runtime_row->runtime_fn != NULL) {
-                fn = runtime_row->runtime_fn;
-                if (!sanitize_c_suffix(inner_name, suffix_buf,
-                        sizeof(suffix_buf)))
-                    return false;
-                suffix = suffix_buf;
-            }
-        }
-    }
-
     if (ctx != NULL && slot_anchor != NULL && mir_active) {
         TypedVarEntry *typed_entry;
         anchor_is_indirect = lookup_slot_is_indirect(ctx, slot_anchor);

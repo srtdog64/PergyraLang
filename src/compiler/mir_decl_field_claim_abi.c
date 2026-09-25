@@ -1,6 +1,8 @@
 #include "mir_decl_field_claim_abi.h"
 
 #include "mir_abi_layout.h"
+
+#include <stdio.h>
 #include "mir_fact_validate_internal.h"
 
 #include "../common/string_compat.h"
@@ -63,14 +65,19 @@ bool
 mir_decl_field_claim_abi_capture(MIRDeclFieldClaim *claim)
 {
     const MIRResourceRuntimeRow *row;
+    char abi_type_name[160];
+    int written;
 
     if (claim == NULL || claim->inner_type_name == NULL)
         return false;
-    row = mir_abi_resource_runtime_row_by_kind(
-        claim->is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
-                         : MIR_RESOURCE_ABI_SLOT,
-        claim->inner_type_name,
-        "Claim");
+    /* The claimed field's declared type is Slot<T> or SecureSlot<T>; the ABI
+     * owner resolves that canonical spelling like any other resource type. */
+    written = snprintf(abi_type_name, sizeof(abi_type_name), "%s<%s>",
+                       claim->is_secure ? "SecureSlot" : "Slot",
+                       claim->inner_type_name);
+    if (written < 0 || (size_t)written >= sizeof(abi_type_name))
+        return false;
+    row = mir_abi_resource_runtime_row_for_type_name(abi_type_name, "Claim");
     if (row == NULL
         || !mir_decl_field_claim_runtime_row_copy(
             &claim->runtime_call_abi, row)) {
