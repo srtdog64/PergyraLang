@@ -1,0 +1,11 @@
+subject Player {
+    let hp: Int;
+}
+
+relation Link for left: Player, right: Player {
+    trust: Int;
+}
+
+func Main() -> Void {
+    Log("unreached");
+}

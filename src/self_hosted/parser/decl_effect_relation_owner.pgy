@@ -52,14 +52,18 @@ func ParseEffectRelationProjectionDirective(
 ) -> String {
     let i: Int = start;
     let label: String = "";
+    let target_expected: String = "";
     if MatchLanguageWord(content, i, LanguageWordId.WordRefresh) {
         label = "Refresh";
+        target_expected = "object slot name";
         i = LanguageWordEnd(i, LanguageWordId.WordRefresh);
     } else if MatchLanguageWord(content, i, LanguageWordId.WordPublish) {
         label = "Publish";
+        target_expected = "tobject slot name";
         i = LanguageWordEnd(i, LanguageWordId.WordPublish);
     } else if MatchLanguageWord(content, i, LanguageWordId.WordBind) {
         label = "Bind";
+        target_expected = "object/tobject slot name";
         i = LanguageWordEnd(i, LanguageWordId.WordBind);
     } else {
         ParseRefuse(context, i, "expected_token", "expected",
@@ -70,38 +74,19 @@ func ParseEffectRelationProjectionDirective(
         ParseRefuse(context, i, "surface_not_covered", "surface",
             "projection slot group", "construct", "projection");
     }
-    ArraySet(cursor_out, 0, i);
-    let projection_name: String = ReadIdent(content, i, cursor_out);
-    i = cursor_out[0];
-    if projection_name == "" {
-        ParseRefuse(context, i, "expected_token", "expected", "slot name",
-            "construct", "projection");
-    }
-    i = SkipWhitespaceAndComments(content, i);
+    let projection_name: String = ParseNameIn(context, content, i,
+        target_expected, "projection", cursor_out);
+    i = SkipWhitespaceAndComments(content, cursor_out[0]);
     if !MatchLanguageWord(content, i, LanguageWordId.WordFrom) {
         ParseRefuse(context, i, "expected_token", "expected", "from",
             "construct", "projection");
     }
-    i = LanguageWordEnd(i, LanguageWordId.WordFrom);
-    i = SkipWhitespaceAndComments(content, i);
-    ArraySet(cursor_out, 0, i);
-    let source_name: String = ReadIdent(content, i, cursor_out);
+    // Native takes no `by PARTICIPANT` here (only a zone names one); a `by`
+    // is refused as the next body member, at native's position.
+    let source_name: String = ParseNameIn(context, content,
+        LanguageWordEnd(i, LanguageWordId.WordFrom), "source slot name",
+        "projection", cursor_out);
     i = cursor_out[0];
-    if source_name == "" {
-        ParseRefuse(context, i, "expected_token", "expected",
-            "source slot name", "construct", "projection");
-    }
-    i = SkipWhitespaceAndComments(content, i);
-    let participant_name: String = "";
-    if MatchLanguageWord(content, i, LanguageWordId.WordBy) {
-        i = LanguageWordEnd(i, LanguageWordId.WordBy);
-        i = SkipWhitespaceAndComments(content, i);
-        ArraySet(cursor_out, 0, i);
-        participant_name = ReadIdent(content, i, cursor_out);
-        i = cursor_out[0];
-        i = SkipWhitespaceAndComments(content, i);
-    }
-    ArraySet(cursor_out, 0, i);
     let projection_map: ParserDomainProjectionMapRows =
         ParseDomainProjectionMapRows(context, content, i, cursor_out);
     i = cursor_out[0];
@@ -115,9 +100,6 @@ func ParseEffectRelationProjectionDirective(
             projection_name, Concat(" from ", source_name)
         )))
     );
-    if participant_name != "" {
-        row = Concat(row, Concat(" by ", participant_name));
-    }
     if projection_map.present {
         row = AppendLine(row, projection_map.tree_rows);
     }
@@ -148,15 +130,9 @@ func ParseEffectRelationProjectionSlot(
             "construct", "projection_slot");
     }
     i = LanguageWordEnd(i, LanguageWordId.WordSlot);
-    i = SkipWhitespaceAndComments(content, i);
-    ArraySet(cursor_out, 0, i);
-    let slot_name: String = ReadIdent(content, i, cursor_out);
-    i = cursor_out[0];
-    if slot_name == "" {
-        ParseRefuse(context, i, "declaration_name_missing",
-            "construct", "projection_slot", "", "");
-    }
-    i = ParseExpectIn(context, content, i, ":", "projection_slot");
+    let slot_name: String = ParseNameIn(context, content, i, "slot name",
+        "projection_slot", cursor_out);
+    i = ParseExpectIn(context, content, cursor_out[0], ":", "projection_slot");
     ArraySet(cursor_out, 0, i);
     let slot_type: String = ReadTypeIn(context, content, i, cursor_out);
     i = cursor_out[0];
@@ -262,15 +238,12 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
             i = cursor_out[0];
             continue;
         }
-        let is_shared_eff: Bool = false;
-        if MatchLanguageWord(content, i, LanguageWordId.WordLet) {
-            i = LanguageWordEnd(i, LanguageWordId.WordLet);
-            i = SkipWhitespaceAndComments(content, i);
-        } else if MatchLanguageWord(content, i, LanguageWordId.WordShared) {
-            i = LanguageWordEnd(i, LanguageWordId.WordShared);
-            i = SkipWhitespaceAndComments(content, i);
-            is_shared_eff = true;
+        // Native admits only `shared` fields here and refuses `let x: T` and
+        // a bare `x: T` at their first token.
+        if !MatchLanguageWord(content, i, LanguageWordId.WordShared) {
+            ParseRefuse(location_context, i, "expected_token", "expected", "effect member", "construct", "effect");
         }
+        i = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordShared));
         ArraySet(cursor_out, 0, i);
         let f_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
@@ -289,12 +262,7 @@ func ParseEffectDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                 "effect field initializer", "construct", "effect_field");
         }
         i = ParseExpectIn(location_context, content, i, ";", "effect_field");
-
-        if is_shared_eff {
-            eff_fields = AppendLine(eff_fields, Concat("    Shared: ", Concat(f_name, Concat(": ", f_type))));
-        } else {
-            eff_fields = AppendLine(eff_fields, Concat("    ", Concat(f_name, Concat(": ", f_type))));
-        }
+        eff_fields = AppendLine(eff_fields, Concat("    Shared: ", Concat(f_name, Concat(": ", f_type))));
     }
     out = AppendLine(out, Concat("  Effect: ", Concat(decl_prefix, eff_name)));
     out = AppendLine(out, Concat("    ", Concat(eff_slot_label, Concat(": ", Concat(eff_param_name, Concat(": ", eff_param_type))))));
@@ -431,15 +399,10 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
             i = cursor_out[0];
             continue;
         }
-        let is_shared_rel: Bool = false;
-        if MatchLanguageWord(content, i, LanguageWordId.WordLet) {
-            i = LanguageWordEnd(i, LanguageWordId.WordLet);
-            i = SkipWhitespaceAndComments(content, i);
-        } else if MatchLanguageWord(content, i, LanguageWordId.WordShared) {
-            i = LanguageWordEnd(i, LanguageWordId.WordShared);
-            i = SkipWhitespaceAndComments(content, i);
-            is_shared_rel = true;
+        if !MatchLanguageWord(content, i, LanguageWordId.WordShared) {
+            ParseRefuse(location_context, i, "expected_token", "expected", "relation member", "construct", "relation");
         }
+        i = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordShared));
         ArraySet(cursor_out, 0, i);
         let f_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
@@ -458,12 +421,7 @@ func ParseRelationDecl(content: String, start: Int, inout cursor_out: Array<Int>
                 "relation field initializer", "construct", "relation_field");
         }
         i = ParseExpectIn(location_context, content, i, ";", "relation_field");
-
-        if is_shared_rel {
-            rel_fields = AppendLine(rel_fields, Concat("    Shared: ", Concat(f_name, Concat(": ", f_type))));
-        } else {
-            rel_fields = AppendLine(rel_fields, Concat("    ", Concat(f_name, Concat(": ", f_type))));
-        }
+        rel_fields = AppendLine(rel_fields, Concat("    Shared: ", Concat(f_name, Concat(": ", f_type))));
     }
 
     out = AppendLine(out, Concat("  Relation: ", Concat(decl_prefix, rel_name)));

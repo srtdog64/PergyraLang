@@ -181,8 +181,13 @@ BROKEN_CASES=(
     "zone_slot_type|6|type_name_invalid"
     "effect_for|5|expected_token"
     "effect_unclosed|5|block_unclosed"
+    "effect_let_field|6|expected_token"
+    "effect_bare_field|6|expected_token"
+    "effect_refresh_by|11|expected_token"
     "relation_comma|5|expected_token"
     "relation_field_type|6|type_name_invalid"
+    "relation_let_field|6|expected_token"
+    "relation_bare_field|6|expected_token"
     "type_alias_equals|1|expected_token"
     "event_param_colon|1|expected_token"
     "role_member|4|expected_token"
@@ -198,11 +203,13 @@ done
 
 # Native never compiles `parallel on`: in a statement it expects `{` after
 # `parallel` and refuses at `on`; in a role body it is a declared vision
-# surface. A zone fact names its slots with names, so native refuses a number
-# or a reserved word there. The self-hosted parser read `42` and `subject` as
-# names, and those rows then failed in DIR with no code (`apply directive
-# field identity is missing`). The default route refuses each at native's
-# line and column.
+# surface. A zone, effect or relation fact names its slots with names, so
+# native refuses a number or a reserved word there, and an effect or relation
+# body takes `shared` fields but no `let x: T`, bare `x: T` or `by`. The
+# self-hosted parser read `42` and `subject` as names and admitted those
+# members; the zone rows then failed in DIR with no code (`apply directive
+# field identity is missing`), the effect rows compiled on default C. The
+# default route refuses each at native's line and column.
 # name|line|column|native text
 for row in "parallel_on|3|14|Expected '{' after 'parallel'" \
     "role_parallel|6|5|declared vision surface" \
@@ -211,7 +218,12 @@ for row in "parallel_on|3|14|Expected '{' after 'parallel'" \
     "zone_refresh_keyword|12|13|Expected object slot name after 'refresh'" \
     "zone_bind_number|12|20|Expected source slot name after 'from'" \
     "zone_state_number|11|35|Expected target slot name after 'on'" \
-    "zone_authority_number|7|15|Expected subject slot name after 'authority'"; do
+    "zone_authority_number|7|15|Expected subject slot name after 'authority'" \
+    "effect_let_field|6|5|in effect body" \
+    "effect_bare_field|6|5|in effect body" \
+    "effect_refresh_by|11|30|in effect body" \
+    "relation_let_field|6|5|in relation body" \
+    "relation_bare_field|6|5|in relation body"; do
     IFS='|' read -r name line column needle <<<"$row"
     native_log="$WORK_DIR/native-$name.log"
     if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_$name.pgy" --native-pipeline \

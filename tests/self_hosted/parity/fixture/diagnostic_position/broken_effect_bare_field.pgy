@@ -1,0 +1,11 @@
+subject Player {
+    let hp: Int;
+}
+
+effect Burn for bearer: Player {
+    power: Int;
+}
+
+func Main() -> Void {
+    Log("unreached");
+}
