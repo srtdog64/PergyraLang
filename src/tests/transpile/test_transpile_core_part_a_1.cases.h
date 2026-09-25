@@ -119,6 +119,40 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    /* The Option<T> registry names Option<Result<Int, String>> by its whole
+     * inner type (Result_Int_String); `IsSome_Result<Int, String>(o)` reads
+     * as an undeclared IsSome_Result in C. */
+    TEST("IsSome/IsNone/UnwrapOption on Option<Result<Int, String>> use the registry suffix");
+    {
+        static const char *const consumers[3][2] = {
+            { "IsSome", "IsSome_Result_Int_String(o)" },
+            { "IsNone", "IsNone_Result_Int_String(o)" },
+            { "UnwrapOption", "UnwrapOption_Result_Int_String(o)" },
+        };
+        for (size_t i = 0; i < 3; i++) {
+            ctx = transpiler_ctx_create();
+            register_typed_var(ctx, "o", "Option<Result<Int, String>>");
+            ASTNode *args[1] = { make_identifier("o", 1) };
+            result = emit_expression(make_call(consumers[i][0], args, 1, 1),
+                                     ctx);
+            EXPECT(result != NULL && strcmp(result, consumers[i][1]) == 0);
+            free(result);
+            transpiler_ctx_destroy(ctx);
+        }
+    }
+
+    TEST("Some(r) with a Result<Int, String> payload uses the registry suffix");
+    {
+        ctx = transpiler_ctx_create();
+        register_typed_var(ctx, "r", "Result<Int, String>");
+        ASTNode *args[1] = { make_identifier("r", 1) };
+        result = emit_expression(make_call("Some", args, 1, 1), ctx);
+        EXPECT(result != NULL
+               && strcmp(result, "Some_Result_Int_String(r)") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("Ok(value) with unknown Result payload fails closed");
     {
         ctx = transpiler_ctx_create();

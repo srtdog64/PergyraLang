@@ -1559,6 +1559,7 @@ main() {
         "tests/cases/backend_compare/generic_shadowed_argument_binding"
         "tests/cases/backend_compare/enum_variant_in_hosted_bodies"
         "tests/cases/backend_compare/generic_struct_layout_before_use"
+        "tests/cases/backend_compare/option_of_result_consumers"
     )
 
     local use_default_cases=0

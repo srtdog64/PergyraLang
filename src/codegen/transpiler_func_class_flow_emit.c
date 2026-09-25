@@ -15,6 +15,7 @@
 #include "transpiler_mir_emit_state.h"
 #include "transpiler_mir_func_emit.h"
 #include "transpiler_mir_reason_classifier.h"
+#include "transpiler_option_context.h"
 #include "transpiler_slot_runtime_row.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_declarator.h"
@@ -335,10 +336,9 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
     if (value != NULL) {
         if (ctx->current_return_type[0] != '\0'
             && transpiler_type_name_is_option(ctx->current_return_type)) {
-            char inner_buf[128];
-            const char *inner = inner_buf;
-            if (!slot_inner_type_name_copy(ctx->current_return_type, inner_buf,
-                    sizeof(inner_buf))) {
+            char suffix[128];
+            if (!transpiler_option_suffix_from_type_name(
+                    ctx->current_return_type, suffix, sizeof(suffix))) {
                 transpiler_set_backend_error_with_hints(ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
                     PGY_CAUSE_C_TYPE_UNSUPPORTED,
@@ -357,14 +357,14 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
                     && ast_call_arg_count(value) == 1) {
                     char *arg = emit_expression(ast_call_argument(value, 0), ctx);
                     val = arg != NULL
-                        ? strdup_fmt("Some_%s(%s)", inner, arg)
+                        ? strdup_fmt("Some_%s(%s)", suffix, arg)
                         : NULL;
                     free(arg);
                     goto return_value_ready;
                 }
                 if (op == TRANS_RETURN_OPTION_CTOR_NONE_VALUE
                     && ast_call_arg_count(value) == 0) {
-                    val = strdup_fmt("None_%s()", inner);
+                    val = strdup_fmt("None_%s()", suffix);
                     goto return_value_ready;
                 }
             }
@@ -372,7 +372,7 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
                 && transpiler_return_option_ctor_lookup(
                     ast_identifier_name(value))
                     == TRANS_RETURN_OPTION_CTOR_NONE_VALUE) {
-                val = strdup_fmt("None_%s()", inner);
+                val = strdup_fmt("None_%s()", suffix);
                 goto return_value_ready;
             }
         }

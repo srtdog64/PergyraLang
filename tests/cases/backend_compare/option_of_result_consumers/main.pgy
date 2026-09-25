@@ -1,0 +1,43 @@
+// Option<Result<Int, String>> read by IsSome, IsNone and UnwrapOption, in
+// specialized generic functions and in plain ones. The C Option registry
+// names this specialization Result_Int_String; native C pasted the inner
+// spelling into the macro name, `IsSome_Result<Int,String>(o)`, which the C
+// compiler read as an undeclared IsSome_Result (Some(r) likewise).
+func Has<T>(o: Option<T>) -> Bool {
+    return IsSome(o);
+}
+
+func Missing<T>(o: Option<T>) -> Bool {
+    return IsNone(o);
+}
+
+func Pick<T>(o: Option<T>, fallback: T) -> T {
+    if IsSome(o) {
+        return UnwrapOption(o);
+    }
+    return fallback;
+}
+
+func Wrap(r: Result<Int, String>) -> Option<Result<Int, String>> {
+    return Some(r);
+}
+
+func Nothing() -> Option<Result<Int, String>> {
+    return None;
+}
+
+func Main() -> Void {
+    let good: Result<Int, String> = Ok(3);
+    let o: Option<Result<Int, String>> = Some(good);
+    let n: Option<Result<Int, String>> = None;
+    Log(ToString(Has(o)));
+    Log(ToString(Has(n)));
+    Log(ToString(Missing(n)));
+    Log(ToString(IsSome(o)));
+    let bad: Result<Int, String> = Err("no");
+    let picked: Result<Int, String> = Pick(n, bad);
+    Log(ToString(IsErr(picked)));
+    Log(ToString(UnwrapOr(Pick(o, bad), 0)));
+    Log(ToString(IsSome(Wrap(good))));
+    Log(ToString(IsNone(Nothing())));
+}

@@ -10,6 +10,14 @@ const char *transpiler_contextual_option_type_name(TranspilerCtx *ctx);
 bool transpiler_contextual_option_inner_type_copy(TranspilerCtx *ctx,
                                                   char *out,
                                                   size_t out_size);
+/* C name suffix of an Option<T> specialization, from its inner type or from
+ * the whole Option<T> type name. False when the type is not concrete. */
+bool transpiler_option_suffix_from_inner_type_name(const char *inner_type,
+                                                   char *out,
+                                                   size_t out_size);
+bool transpiler_option_suffix_from_type_name(const char *option_type,
+                                             char *out,
+                                             size_t out_size);
 char *transpiler_emit_none_with_context(TranspilerCtx *ctx, ASTNode *site);
 
 #endif /* PGY_TRANSPILER_OPTION_CONTEXT_H */

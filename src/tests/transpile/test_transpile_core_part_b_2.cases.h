@@ -197,6 +197,19 @@
         transpiler_ctx_destroy(ctx);
     }
 
+    /* A return in an Option<Result<Int, String>> body names None_/Some_ by
+     * the registry suffix, not by the inner spelling. */
+    TEST("return None in Option<Result<Int, String>> -> return None_Result_Int_String();");
+    {
+        ctx = transpiler_ctx_create();
+        snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+                 "%s", "Option<Result<Int, String>>");
+        emit_statement(make_return(make_call("None", NULL, 0, 1), 1), ctx);
+        EXPECT(ctx->backend_error == NULL);
+        EXPECT_STR_CONTAINS(ctx->out->data, "return None_Result_Int_String();");
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("let vertices: Array<Vertex> = meshData -> PgyArray_Vertex vertices = meshData;");
     {
         ASTNode *node = make_let("vertices",

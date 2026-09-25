@@ -96,21 +96,6 @@ transpiler_result_option_lookup(const char *fn)
     return match != NULL ? match->op : TRANS_RESULT_OPTION_OP_NONE;
 }
 
-static bool
-transpiler_option_type_has_concrete_inner(const char *opt_type)
-{
-    const char *inner = NULL;
-    char inner_buf[128];
-    if (!transpiler_type_name_is_option(opt_type))
-        return false;
-    if (!slot_inner_type_name_copy(opt_type, inner_buf, sizeof(inner_buf)))
-        return false;
-    inner = inner_buf;
-    return inner != NULL
-        && inner[0] != '\0'
-        && strcmp(inner, "Unknown") != 0;
-}
-
 static char *
 transpiler_result_option_emit_arg(TranspilerCtx *ctx,
                                   ASTNode *expr,
@@ -267,8 +252,9 @@ emit_call_result_option_builtin(ASTNode *call,
                     inner = inner_buf;
                 }
             }
-            if (inner == NULL || inner[0] == '\0'
-                || strcmp(inner, "Unknown") == 0) {
+            char suffix[128];
+            if (!transpiler_option_suffix_from_inner_type_name(inner,
+                    suffix, sizeof(suffix))) {
                 free(arg);
                 transpiler_set_backend_error_with_hints(ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -289,21 +275,29 @@ emit_call_result_option_builtin(ASTNode *call,
                             transpiler_current_host_decl_local(ctx))));
             char *result = strdup_fmt(
                 payload_by_address ? "Some_%s(*%s)" : "Some_%s(%s)",
-                inner, arg);
+                suffix, arg);
             free(arg);
             return result;
         }
         if (op == TRANS_RESULT_OPTION_OP_NONE_VALUE && argc == 0) {
             return transpiler_emit_none_with_context(ctx, call);
         }
-        if (op == TRANS_RESULT_OPTION_OP_IS_SOME && argc == 1) {
+        /* IsSome/IsNone/UnwrapOption take their specialization from the
+         * whole Option<T> they read, named as the registry names it. */
+        if ((op == TRANS_RESULT_OPTION_OP_IS_SOME
+             || op == TRANS_RESULT_OPTION_OP_IS_NONE
+             || op == TRANS_RESULT_OPTION_OP_UNWRAP_OPTION)
+            && argc == 1) {
             const char *opt_type = transpiler_expr_infer_type_name(ctx, arg0);
-            if (!transpiler_option_type_has_concrete_inner(opt_type)) {
+            char option_suffix[128];
+            if (!transpiler_option_suffix_from_type_name(opt_type,
+                    option_suffix, sizeof(option_suffix))) {
                 transpiler_set_backend_error_with_hints(ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
                     PGY_CAUSE_C_TYPE_UNSUPPORTED,
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                    "C backend: IsSome requires concrete Option<T>; inferred '%s'",
+                    "C backend: %s requires concrete Option<T>; inferred '%s'",
+                    fn,
                     opt_type != NULL ? opt_type : "<unknown>");
                 return NULL;
             }
@@ -311,57 +305,7 @@ emit_call_result_option_builtin(ASTNode *call,
                 "operand");
             if (arg == NULL)
                 return NULL;
-            char inner_buf[128];
-            const char *inner = inner_buf;
-            (void)slot_inner_type_name_copy(opt_type, inner_buf,
-                sizeof(inner_buf));
-            char *result = strdup_fmt("IsSome_%s(%s)", inner, arg);
-            free(arg);
-            return result;
-        }
-        if (op == TRANS_RESULT_OPTION_OP_IS_NONE && argc == 1) {
-            const char *opt_type = transpiler_expr_infer_type_name(ctx, arg0);
-            if (!transpiler_option_type_has_concrete_inner(opt_type)) {
-                transpiler_set_backend_error_with_hints(ctx,
-                    PGY_CODE_C_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                    "C backend: IsNone requires concrete Option<T>; inferred '%s'",
-                    opt_type != NULL ? opt_type : "<unknown>");
-                return NULL;
-            }
-            char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
-                "operand");
-            if (arg == NULL)
-                return NULL;
-            char inner_buf[128];
-            const char *inner = inner_buf;
-            (void)slot_inner_type_name_copy(opt_type, inner_buf,
-                sizeof(inner_buf));
-            char *result = strdup_fmt("IsNone_%s(%s)", inner, arg);
-            free(arg);
-            return result;
-        }
-        if (op == TRANS_RESULT_OPTION_OP_UNWRAP_OPTION && argc == 1) {
-            const char *opt_type = transpiler_expr_infer_type_name(ctx, arg0);
-            if (!transpiler_option_type_has_concrete_inner(opt_type)) {
-                transpiler_set_backend_error_with_hints(ctx,
-                    PGY_CODE_C_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                    "C backend: UnwrapOption requires concrete Option<T>; inferred '%s'",
-                    opt_type != NULL ? opt_type : "<unknown>");
-                return NULL;
-            }
-            char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
-                "operand");
-            if (arg == NULL)
-                return NULL;
-            char inner_buf[128];
-            const char *inner = inner_buf;
-            (void)slot_inner_type_name_copy(opt_type, inner_buf,
-                sizeof(inner_buf));
-            char *result = strdup_fmt("UnwrapOption_%s(%s)", inner, arg);
+            char *result = strdup_fmt("%s_%s(%s)", fn, option_suffix, arg);
             free(arg);
             return result;
         }

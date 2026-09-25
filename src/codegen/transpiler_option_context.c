@@ -50,6 +50,44 @@ transpiler_contextual_option_inner_type_copy(TranspilerCtx *ctx,
     return slot_inner_type_name_copy(option_type, out, out_size);
 }
 
+/* The registry (ensure_option_specialization_to) and the C type mapping
+ * (PgyOption_<suffix>) both name an Option<T> specialization by the whole
+ * inner type mangled with sanitize_c_suffix, so Option<Result<Int, String>>
+ * is Result_Int_String. Some_/IsSome_/IsNone_/UnwrapOption_ and a return's
+ * Some_/None_ take their suffix from here (None below mangles its contextual
+ * inner type the same way); pasting the inner spelling itself gave
+ * `IsSome_Result<Int, String>(o)`, which C reads as IsSome_Result. */
+bool
+transpiler_option_suffix_from_inner_type_name(const char *inner_type,
+                                              char *out,
+                                              size_t out_size)
+{
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+    if (inner_type == NULL || inner_type[0] == '\0'
+        || strcmp(inner_type, "Unknown") == 0)
+        return false;
+    return sanitize_c_suffix(inner_type, out, out_size);
+}
+
+bool
+transpiler_option_suffix_from_type_name(const char *option_type,
+                                        char *out,
+                                        size_t out_size)
+{
+    char inner[128];
+
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+    if (!transpiler_type_name_is_option(option_type)
+        || !slot_inner_type_name_copy(option_type, inner, sizeof(inner)))
+        return false;
+    return transpiler_option_suffix_from_inner_type_name(
+        inner, out, out_size);
+}
+
 char *
 transpiler_emit_none_with_context(TranspilerCtx *ctx, ASTNode *site)
 {
