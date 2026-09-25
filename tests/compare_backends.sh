@@ -1557,6 +1557,7 @@ main() {
         "tests/cases/backend_compare/enum_type_builtin_spelling"
         "tests/cases/backend_compare/generic_constructed_param_binding"
         "tests/cases/backend_compare/generic_shadowed_argument_binding"
+        "tests/cases/backend_compare/enum_variant_in_hosted_bodies"
     )
 
     local use_default_cases=0

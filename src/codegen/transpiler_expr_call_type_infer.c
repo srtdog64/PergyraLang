@@ -523,7 +523,12 @@ transpiler_expr_infer_call_type_name(TranspilerCtx *ctx, ASTNode *expr)
         }
         if (transpiler_has_known_nominal_type(ctx, name))
             return name;
-        return transpiler_infer_declared_call_type_name(ctx, expr, name);
+        /* Semantic resolved this bare call to no declared callable, so it
+         * is not an implicit-self method call even inside a host body: an
+         * enum variant constructor, an intent or an extern function. Only
+         * a declared call above reads the host's method rows. */
+        return transpiler_infer_function_decl_call_type_name(
+            ctx, expr, name, find_callable_decl(ctx, name));
     }
 
     return "Unknown";

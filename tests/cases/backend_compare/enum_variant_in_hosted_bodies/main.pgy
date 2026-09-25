@@ -1,0 +1,132 @@
+// Variants of a top-level payload enum built directly inside a subject
+// action, a class method and a zone method: stored through Some(..), passed
+// to one of the host's own methods, and returned. Native C typed each bare
+// variant constructor there as an implicit-self method call and refused the
+// body ("missing hosted self-call inference method metadata for
+// 'Runner.Done'"). Semantic resolves these calls to no host method, and
+// native LLVM already built them.
+enum Outcome {
+    Done(Int),
+    Failed(String),
+    Pending
+}
+
+enum Signal {
+    Ready(Int),
+    Broken(String)
+}
+
+subject Ent {
+    let id: Int;
+}
+
+subject Runner {
+    let mut outcome: Option<Outcome>;
+    let mut last: Int;
+
+    action Finish(self, n: Int) -> Bool
+        authorized by self
+    {
+        self.outcome = Some(Done(n));
+        return true;
+    }
+
+    action Observe(self, s: Signal) -> Int
+        authorized by self
+    {
+        match s {
+            case Ready(v):
+                self.outcome = Some(Done(v));
+                return v;
+            case Broken(why):
+                self.outcome = Some(Failed(why));
+                return 0;
+        }
+    }
+
+    action Note(self) -> String
+        authorized by self
+    {
+        let o: Outcome = Done(last + 1);
+        return Keep(o) + " " + Keep(Failed("late"));
+    }
+
+    func Keep(self, o: Outcome) -> String {
+        return Show(o);
+    }
+}
+
+class Builder {
+    let label: String;
+
+    func Make(self, ok: Bool) -> Outcome {
+        if ok {
+            return Done(7);
+        }
+        return Failed(label);
+    }
+
+    func Wrap(self) -> Option<Outcome> {
+        return Some(Failed(label));
+    }
+
+    func Keep(self, o: Outcome) -> String {
+        return Show(o);
+    }
+
+    func Relay(self) -> String {
+        return Keep(Done(3)) + " " + Keep(Pending);
+    }
+}
+
+zone Arena {
+    subject slot fighter: Ent
+    shared rounds: Int = 3
+
+    func Keep(self, o: Outcome) -> String {
+        return Show(o);
+    }
+
+    func Tick(self) -> String {
+        return Keep(Done(rounds + fighter.id));
+    }
+
+    func Wrap(self) -> Option<Outcome> {
+        return Some(Done(rounds));
+    }
+}
+
+func Show(o: Outcome) -> String {
+    match o {
+        case Done(v): return "done " + ToString(v);
+        case Failed(s): return "failed " + s;
+        case Pending: return "pending";
+    }
+}
+
+func Opened(o: Option<Outcome>) -> String {
+    match o {
+        case Some(v): return Show(v);
+        case None: return "none";
+    }
+}
+
+func Main() -> Void {
+    let r: Runner = Runner(None, 4);
+    Log(Opened(r.outcome));
+    Log(ToString(r.Finish(5)));
+    Log(Opened(r.outcome));
+    Log(ToString(r.Observe(Ready(8))));
+    Log(Opened(r.outcome));
+    Log(ToString(r.Observe(Broken("fuse"))));
+    Log(Opened(r.outcome));
+    Log(r.Note());
+    let b: Builder = Builder("oops");
+    Log(Show(b.Make(true)));
+    Log(Show(b.Make(false)));
+    Log(Opened(b.Wrap()));
+    Log(b.Relay());
+    let arena: Arena = Arena(Ent(2));
+    Log(arena.Tick());
+    Log(Opened(arena.Wrap()));
+}
