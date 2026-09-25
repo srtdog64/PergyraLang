@@ -5,9 +5,11 @@
 
 #include "../parser/ast_api.h"
 #include "../compiler/mir_decl_headers.h"
+#include "transpiler_decl_lookup.h"
 #include "transpiler_host_self_policy.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_intent_participant.h"
+#include "transpiler_overlay_host_fields.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_render.h"
 
@@ -89,4 +91,21 @@ transpiler_call_arg_is_indirect_ref(TranspilerCtx *ctx, ASTNode *arg_node)
 
     entry = lookup_typed_entry(ctx, ast_identifier_name(arg_node));
     return entry != NULL && entry->is_indirect_ref;
+}
+
+/* The emitted C expression is the address of the value: a parameter the
+ * prologue binds indirectly (its MIR carriage passes it by address, as for a
+ * subject parameter), or self in a pointer-self host body. A store into
+ * by-value storage (an Option payload, a constructor field) dereferences it. */
+bool
+transpiler_call_arg_is_carried_by_address(TranspilerCtx *ctx,
+                                          ASTNode *arg_node)
+{
+    if (ctx == NULL || arg_node == NULL || arg_node->type != AST_IDENTIFIER)
+        return false;
+    if (strcmp(ast_identifier_name(arg_node), "self") == 0)
+        return current_class_uses_self_cell(ctx)
+            || transpiler_host_decl_uses_pointer_self(
+                transpiler_current_host_decl_local(ctx));
+    return transpiler_call_arg_is_indirect_ref(ctx, arg_node);
 }

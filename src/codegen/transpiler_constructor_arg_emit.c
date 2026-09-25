@@ -1,12 +1,15 @@
 #include "transpiler_domain_constructor_internal.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "../semantic/diag_codes.h"
 #include "codegen_type_mapping.h"
+#include "transpiler_call_subject_arg_policy.h"
 #include "transpiler_constructor_channel_guard.h"
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
+#include "transpiler_format.h"
 #include "transpiler_type_require.h"
 
 char *
@@ -56,6 +59,13 @@ transpiler_emit_ctor_arg_with_expected_type_name(TranspilerCtx *ctx,
             "C constructor field '%s' could not lower initializer expression",
             field_name != NULL ? field_name : "<field>");
         return NULL;
+    }
+    /* A subject parameter, and self in a subject body, are carried by
+     * address; the field stores the value, as Some(x) does. */
+    if (transpiler_call_arg_is_carried_by_address(ctx, arg)) {
+        char *value = strdup_fmt("(*%s)", result);
+        free(result);
+        return value;
     }
     return result;
 }

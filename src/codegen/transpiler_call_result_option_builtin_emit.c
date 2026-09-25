@@ -15,9 +15,6 @@
 #include "codegen_match_variant_policy.h"
 #include "transpiler_call_subject_arg_policy.h"
 #include "transpiler_context.h"
-#include "transpiler_decl_lookup.h"
-#include "transpiler_host_self_policy.h"
-#include "transpiler_overlay_host_fields.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_option_context.h"
@@ -266,15 +263,9 @@ emit_call_result_option_builtin(ASTNode *call,
             /* A subject parameter, and self in a subject body, are carried
              * by address; Option<Subject> stores the value, as a subject
              * field does. */
-            bool payload_by_address =
-                transpiler_call_arg_is_indirect_ref(ctx, arg0)
-                || (arg0->type == AST_IDENTIFIER
-                    && strcmp(ast_identifier_name(arg0), "self") == 0
-                    && (current_class_uses_self_cell(ctx)
-                        || transpiler_host_decl_uses_pointer_self(
-                            transpiler_current_host_decl_local(ctx))));
             char *result = strdup_fmt(
-                payload_by_address ? "Some_%s(*%s)" : "Some_%s(%s)",
+                transpiler_call_arg_is_carried_by_address(ctx, arg0)
+                    ? "Some_%s(*%s)" : "Some_%s(%s)",
                 suffix, arg);
             free(arg);
             return result;
