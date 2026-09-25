@@ -61,6 +61,97 @@ access = (root / "src/semantic/slot_analyzer_access.c").read_text(
 if re.search(r"slot_access_mask_for_named_symbol\s*\(\s*body\b", access):
     raise SystemExit("access propagation reopened a callee body")
 
+# Forbidden fallbacks of the semantic.function_param_flow_summary registry
+# row. Each check below names the token it rejects.
+#
+# recursive_callee_body_reopen: nobody walks a callee body to summarize one
+# of its parameters. The deleted AST seams stay deleted, the call contract
+# asks the owner, and only the owner runs the program-point walker.
+reopen_seams = (
+    "slot_analyze_legacy_ast_param_summary_in_program",
+    "slot_analyze_escape_flags",
+    "slot_param_summary_in_program(",
+)
+walker_owners = {
+    "src/semantic/function_param_flow_summary.c",
+    "src/semantic/slot_analyzer_summary.c",
+    "src/semantic/slot_analyzer_internal.h",
+}
+for path in sorted((root / "src").rglob("*.[ch]")):
+    rel = path.relative_to(root).as_posix()
+    text = path.read_text(encoding="utf-8", errors="replace")
+    for seam in reopen_seams:
+        if seam in text:
+            raise SystemExit(
+                f"recursive_callee_body_reopen: {rel} reopened {seam}")
+    if "slot_param_summary_in_program_points(" in text \
+            and rel not in walker_owners:
+        raise SystemExit(
+            f"recursive_callee_body_reopen: {rel} runs the summary walker")
+contract = (root / "src/semantic/type_checker_call_contract_helpers.c") \
+    .read_text(encoding="utf-8")
+if "function_param_flow_summary_for_param(" not in contract:
+    raise SystemExit(
+        "recursive_callee_body_reopen: the call contract does not ask the owner")
+
+# depth_limited_summary_truncation: the walkers carry no depth budget that
+# could cut a summary short. The owner's per-demand work budget fails closed
+# with a diagnostic instead (checked by the pressure controls below).
+for rel in (
+    "src/semantic/slot_analyzer_access.c",
+    "src/semantic/slot_analyzer_escape.c",
+    "src/semantic/slot_analyzer_summary.c",
+    "src/semantic/slot_analyzer_internal.h",
+):
+    if re.search(r"\bdepth\b", (root / rel).read_text(encoding="utf-8")):
+        raise SystemExit(
+            f"depth_limited_summary_truncation: {rel} carries a depth budget")
+
+# unknown_HIR_routine_attachment, unknown_MIR_routine_attachment and
+# unknown_AIR_routine_attachment: a row that names no routine stops the
+# stage that receives it. The unit tests named here execute each refusal.
+attachment_refusals = (
+    ("unknown_HIR_routine_attachment", "src/compiler/hir.c",
+     "Function parameter flow fact references an unknown HIR routine"),
+    ("unknown_HIR_routine_attachment", "src/test_hir.c",
+     "HIR rejects a function parameter flow fact for an unknown routine"),
+    ("unknown_MIR_routine_attachment", "src/compiler/mir_program_fact_validate.c",
+     "has incomplete function parameter flow summary identity"),
+    ("unknown_AIR_routine_attachment", "src/compiler/air_evidence_mir.c",
+     "AIR MIR function parameter flow requires stable routine identity"),
+    ("unknown_MIR_routine_attachment", "src/test_air.c",
+     "MIR and AIR reject parameter flow rows without routine identity"),
+)
+for token, rel, needle in attachment_refusals:
+    if needle not in (root / rel).read_text(encoding="utf-8"):
+        raise SystemExit(f"{token}: {rel} lost {needle!r}")
+
+# unknown_selfhost_summary_consumer: only the routine fact index reads the
+# summary rows. Any other self-host file may refuse a routine that carries
+# them (a JsonObjectFactHasField presence check) or read the index's typed
+# columns, and nothing else.
+index_owners = {
+    "src/self_hosted/mir_lower/routine_fact_index_owner.pgy",
+    "src/self_hosted/mir_lower/routine_fact_index_schema_owner.pgy",
+}
+presence_refusal = re.compile(
+    r'JsonObjectFactHasField\(\s*routine,\s*"function_param_flow_summar'
+    r'(?:y_count|ies)"')
+for path in sorted((root / "src/self_hosted").rglob("*.pgy")):
+    rel = path.relative_to(root).as_posix()
+    if rel in index_owners:
+        continue
+    text = path.read_text(encoding="utf-8", errors="replace")
+    literals = len(re.findall(r'"function_param_flow_', text))
+    if literals != len(presence_refusal.findall(text)):
+        raise SystemExit(
+            f"unknown_selfhost_summary_consumer: {rel} reads summary rows")
+    stripped = re.sub(r'"function_param_flow_[a-z_]*"', "", text)
+    stripped = re.sub(r"\bindex\.function_param_flow_", "", stripped)
+    if "function_param_flow_" in stripped:
+        raise SystemExit(
+            f"unknown_selfhost_summary_consumer: {rel} names summary rows")
+
 env = os.environ.copy()
 env["PGY_DEBUG_FUNCTION_PARAM_FLOW"] = "1"
 env["PGY_DEBUG_RESOURCE_FLOW_FACTS"] = "1"

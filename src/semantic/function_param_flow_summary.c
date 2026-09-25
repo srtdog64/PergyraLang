@@ -463,7 +463,7 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     roots = program_points->roots_by_param[store->entries[index].param_index];
     root_count = program_points->root_counts[store->entries[index].param_index];
     candidate = slot_param_summary_in_program_points(
-        roots, root_count, param->name, &lookup, 0, &origin);
+        roots, root_count, param->name, &lookup, &origin);
 
     /* Recursive demands may grow the entries array, so reacquire by index. */
     previous = store->entries[index].mask;
@@ -590,4 +590,15 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
     if (store->failed)
         return SLOT_PARAM_SUMMARY_ALL;
     return store->entries[root_index].mask;
+}
+
+unsigned
+function_param_flow_summary_for_param(SemanticContext *ctx,
+                                      ASTNode *function_decl,
+                                      size_t param_index)
+{
+    SlotFunctionLookup lookup = {ctx, ctx != NULL ? ctx->program_root : NULL};
+
+    return function_param_flow_summary_demand(&lookup, function_decl,
+                                              param_index);
 }

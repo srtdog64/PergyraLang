@@ -68,9 +68,11 @@ root. Compiler-owned entry points always supply the context. In that lane,
 `semantic_host_index_find_decl_by_name(...)` directly and returns its answer.
 There is no `new ? old` AST fallback after an indexed miss.
 
-The program-root scan remains only for the public standalone compatibility API
-that has no semantic context. This boundary is explicit: `{NULL, program_root}`.
-It is not reachable from the normal compiler semantic pipeline.
+The program-root scan served only the context-free compatibility entry points
+(`slot_analyze_escape_flags*` and the context-free branch of
+`slot_analyze_legacy_ast_param_summary_in_program`). They had no remaining
+caller and were deleted on 2026-09-25 with the scan itself; a lookup without a
+`SemanticContext` now finds nothing.
 
 The hash owner preserves the old first-declaration match rule. If allocating
 the hash table fails, the owner may scan its own compact parallel arrays. That

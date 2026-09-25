@@ -30,20 +30,13 @@ typedef enum
     SLOT_PARAM_SUMMARY_ALL            = (1 << 6) - 1
 } SlotParamSummaryFlags;
 
-unsigned slot_analyze_escape_flags(ASTNode *node, const char *slot_name);
-unsigned slot_analyze_escape_flags_in_program(ASTNode *node,
-                                              const char *slot_name,
-                                              ASTNode *program_root);
 /*
- * Compatibility seam: AST-walking parameter summaries are retained for
- * diagnostic/provenance coverage while CFG/MIR body facts are being promoted
- * to the beta-final source of truth. New safety consumers should prefer
- * CFG/MIR facts; use this name only when the AST compatibility path is
- * intentionally accepted and smoke-gated.
+ * The demanded parameter flow summary owned by function_param_flow_summary.c.
+ * Without a semantic context there is no owner to ask, so the answer is
+ * SLOT_PARAM_SUMMARY_ALL; no caller walks the callee body itself.
  */
-unsigned slot_analyze_legacy_ast_param_summary_in_program(ASTNode *func_decl,
-                                                          size_t param_index,
-                                                          ASTNode *program_root,
-                                                          SemanticContext *ctx);
+unsigned function_param_flow_summary_for_param(SemanticContext *ctx,
+                                               ASTNode *function_decl,
+                                               size_t param_index);
 
 #endif /* PERGYRA_SLOT_SUMMARY_H */

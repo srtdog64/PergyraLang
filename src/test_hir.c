@@ -152,6 +152,45 @@ test_hir_function_param_flow_carriage(void)
     lexer_destroy(lexer);
 }
 
+/* A summary row whose function identity names no HIR routine must stop
+ * lowering; HIR may not drop the row or attach it to a routine by name. */
+static void
+test_hir_function_param_flow_rejects_unknown_routine(void)
+{
+    const char *source =
+        "func Param(value: Int) -> Int { return value; }\n";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *ast = parser_parse_program(parser);
+    SemanticResult *sem = semantic_analyze(ast);
+    PgyFunctionParamFlowFact fact;
+    HIRProgram *hir = NULL;
+    char *error_message = NULL;
+    bool rejected = false;
+
+    memset(&fact, 0, sizeof(fact));
+    fact.function_syntax_id = UINT32_MAX;
+    fact.parameter_index = 0;
+    fact.mask = 0x5u;
+    if (!parser_has_error(parser) && sem != NULL && sem->success) {
+        hir = hir_lower_with_resource_and_param_flow_facts(
+            sem->annotated_ast, NULL, 0, &fact, 1, &error_message);
+        rejected = hir == NULL && error_message != NULL
+            && strstr(error_message,
+                   "Function parameter flow fact references an unknown HIR routine")
+                != NULL;
+    }
+    TEST("HIR rejects a function parameter flow fact for an unknown routine");
+    EXPECT(rejected);
+    if (hir != NULL)
+        hir_destroy(hir);
+    free(error_message);
+    semantic_result_destroy(sem);
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+}
+
 static void
 test_hir_region_escape_fact_carriage(void)
 {
@@ -217,6 +256,7 @@ main(void)
     test_hir_lowering_part_a();
     test_hir_lowering_part_b();
     test_hir_function_param_flow_carriage();
+    test_hir_function_param_flow_rejects_unknown_routine();
     test_hir_region_escape_fact_carriage();
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;

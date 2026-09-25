@@ -14,6 +14,7 @@ fi
 
 OUTPUT="$($AIR_TEST)"
 grep -Fq -- "AIR carries MIR function parameter flow summaries by stable identity" <<<"$OUTPUT"
+grep -Fq -- "MIR and AIR reject parameter flow rows without routine identity" <<<"$OUTPUT"
 grep -Fq -- "AIRFunctionParamFlowSummary" "$ROOT_DIR/src/compiler/air.h"
 grep -Fq -- "air_collect_function_param_flow_summaries" \
     "$ROOT_DIR/src/compiler/air_evidence_mir.c"

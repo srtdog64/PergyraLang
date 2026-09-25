@@ -86,11 +86,11 @@ run_literal_doc_contract_smoke() {
     require_literal "docs/103_cfg_body_dataflow_need.md" "pre-CFG residual"
     require_literal "docs/125_source_of_truth_spine.md" "mir_validate_emission_contract(...)"
     require_literal "docs/125_source_of_truth_spine.md" "topology-plus-fact contract"
-    require_literal "src/semantic/slot_summary.h" "slot_analyze_legacy_ast_param_summary_in_program"
+    require_literal "src/semantic/slot_summary.h" "function_param_flow_summary_for_param"
     require_literal "src/semantic/type_checker_ownership_call.c" "semantic_param_summary_has_any_escape"
     require_literal "src/semantic/type_checker_ownership_param_summary.c" "semantic_callable_param_escape_summary"
     require_literal "src/semantic/type_checker_ownership_param_summary.c" "semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_ESCAPE_REF)"
-    require_literal "src/semantic/type_checker_call_contract_helpers.c" "slot_analyze_legacy_ast_param_summary_in_program"
+    require_literal "src/semantic/type_checker_call_contract_helpers.c" "function_param_flow_summary_for_param"
     if grep -Fq '#include "slot_summary.h"' "$ROOT_DIR/src/semantic/type_checker_ownership_param_summary.c" \
         || grep -Fq '#include "slot_summary.h"' "$ROOT_DIR/src/semantic/type_checker_ownership_call.c"; then
         echo "ownership call/param summary consumers must treat slot summaries as opaque call-contract facts" >&2
@@ -102,27 +102,11 @@ run_literal_doc_contract_smoke() {
         echo "ownership call/param summary consumers must not depend on the full slot_analyzer.h" >&2
         exit 1
     fi
-    if grep -R -n "slot_analyze_legacy_ast_param_summary_in_program" "$ROOT_DIR/src/codegen" "$ROOT_DIR/src/compiler"; then
-        echo "codegen/compiler must not consume legacy AST parameter summaries" >&2
-        exit 1
-    fi
-    legacy_slot_summary_consumers="$(
-        cd "$ROOT_DIR"
-        grep -R -n "slot_analyze_legacy_ast_param_summary_in_program" src \
-            --include='*.c' --include='*.h' \
-            | grep -v '^src/semantic/slot_summary.h:' \
-            | grep -v '^src/semantic/slot_analyzer.c:' \
-            | grep -v '^src/semantic/type_checker_call_contract_helpers.c:' \
-            || true
-    )"
-    if [[ -n "$legacy_slot_summary_consumers" ]]; then
-        printf '%s\n' "$legacy_slot_summary_consumers" >&2
-        echo "legacy AST parameter summary consumers must stay on the narrow semantic allow-list" >&2
-        exit 1
-    fi
-    if grep -R -n "slot_analyze_param_summary_in_program(" "$ROOT_DIR/src" \
-        | grep -v "src/semantic/slot_analyzer.c:"; then
-        echo "AST parameter summary compatibility consumers must use the explicit legacy seam" >&2
+    # The AST-walking parameter summary seam is deleted; the demanded owner in
+    # function_param_flow_summary.c is the only summary producer.
+    if grep -R -n -E "slot_analyze_legacy_ast_param_summary_in_program|slot_analyze_param_summary_in_program\(|slot_param_summary_in_program\(" \
+        "$ROOT_DIR/src" --include='*.c' --include='*.h'; then
+        echo "a legacy AST parameter summary seam came back" >&2
         exit 1
     fi
     if grep -R -n "semantic_assignment_target_path(" "$ROOT_DIR/src/semantic" \

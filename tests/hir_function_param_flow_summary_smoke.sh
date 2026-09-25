@@ -20,10 +20,11 @@ fi
 
 OUTPUT="$($HIR_TEST)"
 [[ "$OUTPUT" == *"HIR carries function parameter flow summaries by stable SyntaxNodeId"* ]]
-DRIVER_SOURCE="$(< "$ROOT_DIR/src/compiler/driver_app.c")"
+[[ "$OUTPUT" == *"HIR rejects a function parameter flow fact for an unknown routine"* ]]
+PROJECTION_SOURCE="$(< "$ROOT_DIR/src/compiler/hir_semantic_fact_projection.c")"
 HIR_HEADER="$(< "$ROOT_DIR/src/compiler/hir.h")"
 HIR_VALIDATOR="$(< "$ROOT_DIR/src/compiler/hir_validate.c")"
-[[ "$DRIVER_SOURCE" == *"hir_lower_with_resource_and_param_flow_facts"* ]]
+[[ "$PROJECTION_SOURCE" == *"hir_lower_with_resource_and_param_flow_facts"* ]]
 [[ "$HIR_HEADER" == *"function_param_flow_summaries"* ]]
 [[ "$HIR_HEADER" == *"parameter_count;"* ]]
 [[ "$HIR_VALIDATOR" == *"hir_validate_function_param_flow_summaries"* ]]

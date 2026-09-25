@@ -62,7 +62,7 @@ slot_call_is_non_escape_builtin(ASTNode *callee)
 
 unsigned
 slot_escape_mask_in_program(ASTNode *node, const char *slot_name,
-                            const SlotFunctionLookup *program_root, int depth,
+                            const SlotFunctionLookup *program_root,
                             const SlotSummaryOrigin *origin,
                             bool *failed_out)
 {
@@ -73,11 +73,9 @@ slot_escape_mask_in_program(ASTNode *node, const char *slot_name,
 
     if (node == NULL || slot_name == NULL)
         return SLOT_ESCAPE_NONE;
-    if (depth > 6)
-        return SLOT_ESCAPE_CALL;
 
     if (!collect_slot_escapes(node, &entries, &count, &capacity, program_root,
-            depth, origin, failed_out)) {
+            origin, failed_out)) {
         free(entries);
         if (failed_out != NULL)
             *failed_out = true;
@@ -96,7 +94,7 @@ slot_escape_mask_in_program(ASTNode *node, const char *slot_name,
 bool
 collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                      size_t *count, size_t *capacity,
-                     const SlotFunctionLookup *program_root, int depth,
+                     const SlotFunctionLookup *program_root,
                      const SlotSummaryOrigin *origin,
                      bool *failed_out)
 {
@@ -107,57 +105,57 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
     case AST_BLOCK:
         for (size_t i = 0; i < ast_block_statement_count(node); i++)
             if (!collect_slot_escapes(ast_block_statement(node, i), entries,
-                    count, capacity, program_root, depth, origin, failed_out))
+                    count, capacity, program_root, origin, failed_out))
                 return false;
         break;
     case AST_IF_STMT:
         if (!collect_slot_escapes(ast_if_condition(node), entries, count,
-                capacity, program_root, depth, origin, failed_out)
+                capacity, program_root, origin, failed_out)
             || !collect_slot_escapes(ast_if_then_branch(node), entries, count,
-                capacity, program_root, depth, origin, failed_out)
+                capacity, program_root, origin, failed_out)
             || !collect_slot_escapes(ast_if_else_branch(node), entries, count,
-                capacity, program_root, depth, origin, failed_out))
+                capacity, program_root, origin, failed_out))
             return false;
         break;
     case AST_WITH_STMT:
         if (!collect_slot_escapes(ast_with_body(node), entries, count,
-                capacity, program_root, depth, origin, failed_out))
+                capacity, program_root, origin, failed_out))
             return false;
         break;
     case AST_FOR_LOOP:
         if (!collect_slot_escapes(ast_for_range_start(node), entries, count,
-                capacity, program_root, depth, origin, failed_out)
+                capacity, program_root, origin, failed_out)
             || !collect_slot_escapes(ast_for_range_end(node), entries, count,
-                capacity, program_root, depth, origin, failed_out)
+                capacity, program_root, origin, failed_out)
             || !collect_slot_escapes(ast_for_iterable(node), entries, count,
-                capacity, program_root, depth, origin, failed_out)
+                capacity, program_root, origin, failed_out)
             || !collect_slot_escapes(ast_for_body(node), entries, count,
-                capacity, program_root, depth, origin, failed_out))
+                capacity, program_root, origin, failed_out))
             return false;
         break;
     case AST_WHILE_LOOP:
         if (!collect_slot_escapes(ast_while_condition(node), entries, count,
-                capacity, program_root, depth, origin, failed_out)
+                capacity, program_root, origin, failed_out)
             || !collect_slot_escapes(ast_while_body(node), entries, count,
-                capacity, program_root, depth, origin, failed_out))
+                capacity, program_root, origin, failed_out))
             return false;
         break;
     case AST_PARALLEL_BLOCK:
         for (size_t i = 0; i < ast_parallel_task_count(node); i++)
             if (!collect_slot_escapes(ast_parallel_task(node, i), entries, count,
-                    capacity, program_root, depth, origin, failed_out))
+                    capacity, program_root, origin, failed_out))
                 return false;
         break;
     case AST_LET_DECL:
         if (!collect_slot_escapes(ast_let_initializer(node), entries, count,
-                capacity, program_root, depth, origin, failed_out))
+                capacity, program_root, origin, failed_out))
             return false;
         break;
     case AST_ASSIGNMENT:
         if (!collect_slot_escapes(ast_assignment_target(node), entries, count,
-                capacity, program_root, depth, origin, failed_out)
+                capacity, program_root, origin, failed_out)
             || !collect_slot_escapes(ast_assignment_value(node), entries, count,
-                capacity, program_root, depth, origin, failed_out))
+                capacity, program_root, origin, failed_out))
             return false;
         break;
     case AST_CALL: {
@@ -167,7 +165,7 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
         ASTNode *callee = ast_call_callee(node);
 
         if (!collect_slot_escapes(callee, entries, count, capacity,
-                program_root, depth, origin, failed_out))
+                program_root, origin, failed_out))
             return false;
         if (callee != NULL
             && callee->type == AST_IDENTIFIER
@@ -234,15 +232,14 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                         return false;
                 }
             }
-            if (!collect_slot_escapes(arg, entries, count, capacity, program_root,
-                    depth, origin, failed_out))
+            if (!collect_slot_escapes(arg, entries, count, capacity, program_root, origin, failed_out))
                 return false;
         }
         break;
     }
     case AST_CHANNEL_SEND:
         if (!collect_slot_escapes(ast_channel_send_channel(node), entries, count,
-                capacity, program_root, depth, origin, failed_out))
+                capacity, program_root, origin, failed_out))
             return false;
         if (ast_channel_send_value(node) != NULL
             && ast_channel_send_value(node)->type == AST_IDENTIFIER
@@ -253,7 +250,7 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                 return false;
         }
         if (!collect_slot_escapes(ast_channel_send_value(node), entries, count,
-                capacity, program_root, depth, origin, failed_out))
+                capacity, program_root, origin, failed_out))
             return false;
         break;
     case AST_RETURN:
@@ -266,7 +263,7 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                 return false;
         }
         if (!collect_slot_escapes(ast_return_value(node), entries, count,
-                capacity, program_root, depth, origin, failed_out))
+                capacity, program_root, origin, failed_out))
             return false;
         break;
     default:

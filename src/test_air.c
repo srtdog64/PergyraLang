@@ -10,6 +10,7 @@
 #include "compiler/air.h"
 #include "compiler/air_erasure_squiggle.h"
 #include "compiler/air_internal.h"
+#include "compiler/mir_program_fact_validate.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "runtime/pgy_runtime_capability.h"
@@ -54,6 +55,56 @@ test_air_erasure_squiggle_policy(void)
 }
 
 static AIRProgram *lower_air_from_source(const char *source);
+
+/* Summary rows on a MIR routine without a stable routine identity have no
+ * routine to attach to. The MIR validator and the AIR collector must both
+ * refuse them instead of attaching the rows by name or dropping them. */
+static bool
+test_air_rejects_function_param_flow_without_routine_identity(void)
+{
+    MIRProgram mir;
+    MIRRoutine mir_routine;
+    MIRFunctionParamFlowSummary mir_flow_row;
+    AIRProgram *air = lower_air_from_source("func Main() -> Void { }\n");
+    char *error = NULL;
+    bool mir_rejected;
+    bool air_rejected = false;
+
+    memset(&mir, 0, sizeof(mir));
+    memset(&mir_routine, 0, sizeof(mir_routine));
+    memset(&mir_flow_row, 0, sizeof(mir_flow_row));
+    mir_flow_row.parameter_index = 0;
+    mir_flow_row.mask = 0x5u;
+    mir_routine.name = "Recur";
+    mir_routine.owner_ast_type = AST_FUNC_DECL;
+    mir_routine.has_signature = true;
+    mir_routine.param_count = 1;
+    mir_routine.source_syntax_id = 0u;
+    mir_routine.function_param_flow_summaries = &mir_flow_row;
+    mir_routine.function_param_flow_summary_count = 1;
+    mir_routine.function_param_flow_summary_capacity = 1;
+    mir.routines = &mir_routine;
+    mir.routine_count = 1;
+    mir.has_function_param_flow_facts = true;
+
+    mir_rejected = !mir_validate_function_param_flow_summaries(
+        &mir_routine, &error);
+    mir_rejected = mir_rejected && error != NULL
+        && strstr(error, "incomplete function parameter flow summary identity")
+            != NULL;
+    free(error);
+    error = NULL;
+    if (air != NULL) {
+        air_rejected = !air_collect_mir_evidence(air, &mir, &error)
+            && error != NULL
+            && strstr(error,
+                   "AIR MIR function parameter flow requires stable routine identity")
+                != NULL;
+    }
+    free(error);
+    air_destroy(air);
+    return mir_rejected && air_rejected;
+}
 
 static void
 test_air_carries_function_param_flow_summary(void)
@@ -302,6 +353,9 @@ main(void)
     EXPECT(test_air_synthesizes_intent_and_boundary());
 
     test_air_carries_function_param_flow_summary();
+
+    TEST("MIR and AIR reject parameter flow rows without routine identity");
+    EXPECT(test_air_rejects_function_param_flow_without_routine_identity());
 
     TEST("AIR rejects a second MIR evidence binding");
     EXPECT(test_air_rejects_mir_evidence_rebind());

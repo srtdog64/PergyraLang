@@ -214,7 +214,7 @@ slot_analyze_func_body(ASTNode *func, SlotAnalyzer *sa)
 
     bool escape_collection_failed = false;
     if (!collect_slot_escapes(body, &escapes, &escape_count, &escape_capacity,
-            &lookup, 0, NULL, &escape_collection_failed)) {
+            &lookup, NULL, &escape_collection_failed)) {
         free(live_before);
         free(live_after);
         free(escapes);
@@ -483,47 +483,4 @@ slot_analyze_program(ASTNode *program, SlotAnalyzer *sa)
     }
 
     return !sa->ctx->has_error;
-}
-
-unsigned
-slot_analyze_escape_flags(ASTNode *node, const char *slot_name)
-{
-    return slot_analyze_escape_flags_in_program(node, slot_name, NULL);
-}
-
-unsigned
-slot_analyze_escape_flags_in_program(ASTNode *node, const char *slot_name,
-                                     ASTNode *program_root)
-{
-    SlotFunctionLookup lookup = {NULL, program_root};
-    return slot_escape_mask_in_program(node, slot_name, &lookup, 0, NULL, NULL);
-}
-
-unsigned
-slot_analyze_legacy_ast_param_summary_in_program(ASTNode *func_decl,
-                                                 size_t param_index,
-                                                 ASTNode *program_root,
-                                                 SemanticContext *ctx)
-{
-    FuncParam *param;
-    SlotSummaryOrigin origin;
-    SlotFunctionLookup lookup = {ctx, program_root};
-
-    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL
-        || param_index >= ast_func_param_count(func_decl)) {
-        return SLOT_PARAM_SUMMARY_NONE;
-    }
-
-    param = ast_func_param(func_decl, param_index);
-    if (param == NULL || param->name == NULL || ast_func_body(func_decl) == NULL)
-        return SLOT_PARAM_SUMMARY_NONE;
-
-    origin.function_decl = func_decl;
-    origin.param_index = param_index;
-    origin.param_name = param->name;
-    if (ctx != NULL)
-        return function_param_flow_summary_demand(
-            &lookup, func_decl, param_index);
-    return slot_param_summary_in_program(ast_func_body(func_decl), param->name,
-        &lookup, 0, &origin);
 }

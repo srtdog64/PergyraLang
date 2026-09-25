@@ -35,7 +35,7 @@ ensure_shape_scan_cache() {
 while IFS=: read -r path line text; do
     [ -n "$path" ] || continue
     if [ "$path" = "src/semantic/callable_capability_record.c" ] ||
-       [ "$path" = "src/semantic/type_checker_call_contract_helpers.c" ] ||
+       [ "$path" = "src/semantic/function_param_flow_summary.c" ] ||
        [ "$path" = "src/semantic/type_checker_domain_role_lookup.c" ] ||
        [ "$path" = "src/semantic/type_checker_host_helpers.c" ] ||
        [ "$path" = "src/semantic/type_checker_host_lookup.c" ] ||
@@ -1079,9 +1079,13 @@ grep -q 'semantic_host_index_find_top_level_decl_by_label(' \
     src/semantic/type_checker_host_index.c \
     || fail "host declaration index must expose DAG top-level label lookup"
 
-grep -q 'legacy_ast_param_summary_program(ctx)' \
-    src/semantic/type_checker_call_contract_helpers.c \
-    || fail "legacy AST param-summary owner must name its program-root seam explicitly"
+grep -Fq 'SlotFunctionLookup lookup = {ctx, ctx != NULL ? ctx->program_root : NULL};' \
+    src/semantic/function_param_flow_summary.c \
+    || fail "parameter flow summary owner must name its program-root seam explicitly"
+
+if grep -RIn 'legacy_ast_param_summary_program' src/semantic >/dev/null; then
+    fail "the deleted legacy AST param-summary program-root seam came back"
+fi
 
 grep -q 'semantic_callable_param_escape_summary' \
     src/semantic/type_checker_call_contract_helpers.c \

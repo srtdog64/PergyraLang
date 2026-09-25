@@ -52,8 +52,7 @@ static bool
 slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
                                     SlotAccessEntry **entries,
                                     size_t *count, size_t *capacity,
-                                    const SlotFunctionLookup *program_root,
-                                    int depth)
+                                    const SlotFunctionLookup *program_root)
 {
     size_t param_count = 0;
     ASTNode *body = NULL;
@@ -78,7 +77,6 @@ slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
         if (param->mode != PARAM_MODE_REF && param->mode != PARAM_MODE_OWN)
             continue;
 
-        (void)depth;
         mask = function_param_flow_summary_demand(
             program_root, func_decl, i);
         if ((mask & SLOT_PARAM_SUMMARY_READ) != 0) {
@@ -102,114 +100,113 @@ slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
 
 unsigned
 slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
-                                  const SlotFunctionLookup *program_root,
-                                  int depth)
+                                  const SlotFunctionLookup *program_root)
 {
     unsigned mask = 0;
 
-    if (node == NULL || symbol_name == NULL || depth > 6)
+    if (node == NULL || symbol_name == NULL)
         return 0;
 
     switch (node->type) {
     case AST_BLOCK:
         for (size_t i = 0; i < ast_block_statement_count(node); i++)
             mask |= slot_access_mask_for_named_symbol(
-                ast_block_statement(node, i), symbol_name, program_root, depth);
+                ast_block_statement(node, i), symbol_name, program_root);
         break;
 
     case AST_LET_DECL:
         mask |= slot_access_mask_for_named_symbol(
-            ast_let_initializer(node), symbol_name, program_root, depth);
+            ast_let_initializer(node), symbol_name, program_root);
         break;
 
     case AST_IF_STMT:
         mask |= slot_access_mask_for_named_symbol(
-            ast_if_condition(node), symbol_name, program_root, depth);
+            ast_if_condition(node), symbol_name, program_root);
         mask |= slot_access_mask_for_named_symbol(
-            ast_if_then_branch(node), symbol_name, program_root, depth);
+            ast_if_then_branch(node), symbol_name, program_root);
         mask |= slot_access_mask_for_named_symbol(
-            ast_if_else_branch(node), symbol_name, program_root, depth);
+            ast_if_else_branch(node), symbol_name, program_root);
         break;
 
     case AST_WITH_STMT:
         mask |= slot_access_mask_for_named_symbol(
-            ast_with_slot_type(node), symbol_name, program_root, depth);
+            ast_with_slot_type(node), symbol_name, program_root);
         mask |= slot_access_mask_for_named_symbol(
-            ast_with_body(node), symbol_name, program_root, depth);
+            ast_with_body(node), symbol_name, program_root);
         break;
 
     case AST_FOR_LOOP:
         mask |= slot_access_mask_for_named_symbol(
-            ast_for_range_start(node), symbol_name, program_root, depth);
+            ast_for_range_start(node), symbol_name, program_root);
         mask |= slot_access_mask_for_named_symbol(
-            ast_for_range_end(node), symbol_name, program_root, depth);
+            ast_for_range_end(node), symbol_name, program_root);
         mask |= slot_access_mask_for_named_symbol(
-            ast_for_body(node), symbol_name, program_root, depth);
+            ast_for_body(node), symbol_name, program_root);
         break;
 
     case AST_WHILE_LOOP:
         mask |= slot_access_mask_for_named_symbol(
-            ast_while_condition(node), symbol_name, program_root, depth);
+            ast_while_condition(node), symbol_name, program_root);
         mask |= slot_access_mask_for_named_symbol(
-            ast_while_body(node), symbol_name, program_root, depth);
+            ast_while_body(node), symbol_name, program_root);
         break;
 
     case AST_ASYNC_BLOCK:
         for (size_t i = 0; i < ast_async_block_statement_count(node); i++)
             mask |= slot_access_mask_for_named_symbol(
-                ast_async_block_statement(node, i), symbol_name, program_root, depth);
+                ast_async_block_statement(node, i), symbol_name, program_root);
         break;
 
     case AST_PARALLEL_BLOCK:
         for (size_t i = 0; i < ast_parallel_task_count(node); i++)
             mask |= slot_access_mask_for_named_symbol(
-                ast_parallel_task(node, i), symbol_name, program_root, depth);
+                ast_parallel_task(node, i), symbol_name, program_root);
         break;
 
     case AST_SELECT_STMT:
         for (size_t i = 0; i < ast_select_case_count(node); i++)
             mask |= slot_access_mask_for_named_symbol(
-                ast_select_case(node, i), symbol_name, program_root, depth);
+                ast_select_case(node, i), symbol_name, program_root);
         mask |= slot_access_mask_for_named_symbol(
-            ast_select_default_case(node), symbol_name, program_root, depth);
+            ast_select_default_case(node), symbol_name, program_root);
         break;
 
     case AST_MATCH_STMT:
         mask |= slot_access_mask_for_named_symbol(
-            ast_match_subject(node), symbol_name, program_root, depth);
+            ast_match_subject(node), symbol_name, program_root);
         for (size_t i = 0; i < ast_match_case_count(node); i++)
             mask |= slot_access_mask_for_named_symbol(
-                ast_match_case_at(node, i), symbol_name, program_root, depth);
+                ast_match_case_at(node, i), symbol_name, program_root);
         mask |= slot_access_mask_for_named_symbol(
-            ast_match_default_body(node), symbol_name, program_root, depth);
+            ast_match_default_body(node), symbol_name, program_root);
         break;
 
     case AST_MATCH_CASE:
         mask |= slot_access_mask_for_named_symbol(
-            ast_match_case_pattern(node), symbol_name, program_root, depth);
+            ast_match_case_pattern(node), symbol_name, program_root);
         mask |= slot_access_mask_for_named_symbol(
-            ast_match_case_guard(node), symbol_name, program_root, depth);
+            ast_match_case_guard(node), symbol_name, program_root);
         mask |= slot_access_mask_for_named_symbol(
-            ast_match_case_body(node), symbol_name, program_root, depth);
+            ast_match_case_body(node), symbol_name, program_root);
         break;
 
     case AST_ASSIGNMENT:
         mask |= slot_access_mask_for_named_symbol(
-            ast_assignment_target(node), symbol_name, program_root, depth);
+            ast_assignment_target(node), symbol_name, program_root);
         mask |= slot_access_mask_for_named_symbol(
-            ast_assignment_value(node), symbol_name, program_root, depth);
+            ast_assignment_value(node), symbol_name, program_root);
         break;
 
     case AST_BINARY:
         mask |= slot_access_mask_for_named_symbol(
-            ast_binary_left(node), symbol_name, program_root, depth);
+            ast_binary_left(node), symbol_name, program_root);
         mask |= slot_access_mask_for_named_symbol(
-            ast_binary_right(node), symbol_name, program_root, depth);
+            ast_binary_right(node), symbol_name, program_root);
         break;
 
     case AST_UNARY:
         mask |= slot_access_mask_for_named_symbol(
-            ast_unary_operand(node), symbol_name, program_root, depth);
+            ast_unary_operand(node), symbol_name, program_root);
         break;
 
     case AST_CALL:
@@ -257,39 +254,39 @@ slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
         }
 
         mask |= slot_access_mask_for_named_symbol(
-            ast_call_callee(node), symbol_name, program_root, depth);
+            ast_call_callee(node), symbol_name, program_root);
         for (size_t i = 0; i < ast_call_arg_count(node); i++)
             mask |= slot_access_mask_for_named_symbol(
-                ast_call_argument(node, i), symbol_name, program_root, depth);
+                ast_call_argument(node, i), symbol_name, program_root);
         break;
 
     case AST_MEMBER_ACCESS:
         mask |= slot_access_mask_for_named_symbol(
-            ast_member_object(node), symbol_name, program_root, depth);
+            ast_member_object(node), symbol_name, program_root);
         break;
 
     case AST_ARRAY_ACCESS:
         mask |= slot_access_mask_for_named_symbol(
-            ast_array_access_array(node), symbol_name, program_root, depth);
+            ast_array_access_array(node), symbol_name, program_root);
         mask |= slot_access_mask_for_named_symbol(
-            ast_array_access_index(node), symbol_name, program_root, depth);
+            ast_array_access_index(node), symbol_name, program_root);
         break;
 
     case AST_CHANNEL_SEND:
         mask |= slot_access_mask_for_named_symbol(
-            ast_channel_send_channel(node), symbol_name, program_root, depth);
+            ast_channel_send_channel(node), symbol_name, program_root);
         mask |= slot_access_mask_for_named_symbol(
-            ast_channel_send_value(node), symbol_name, program_root, depth);
+            ast_channel_send_value(node), symbol_name, program_root);
         break;
 
     case AST_CHANNEL_RECV:
         mask |= slot_access_mask_for_named_symbol(
-            ast_channel_recv_channel(node), symbol_name, program_root, depth);
+            ast_channel_recv_channel(node), symbol_name, program_root);
         break;
 
     case AST_RETURN:
         mask |= slot_access_mask_for_named_symbol(
-            ast_return_value(node), symbol_name, program_root, depth);
+            ast_return_value(node), symbol_name, program_root);
         break;
 
     default:
@@ -425,7 +422,7 @@ collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
                 program_root, ast_identifier_name(ast_call_callee(node)));
             if (callee_decl != NULL) {
                 if (!slot_access_record_function_aliases(node, callee_decl,
-                        entries, count, capacity, program_root, 0))
+                        entries, count, capacity, program_root))
                     return false;
             }
         }
