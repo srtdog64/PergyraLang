@@ -7,6 +7,145 @@ test_mir_runtime_fn_for_type(const char *abi_type_name, const char *operation)
     return row != NULL ? row->runtime_fn : NULL;
 }
 
+/* Split `line` in place at '|' into at most `max` fields. */
+static size_t
+test_mir_split_bar_fields(char *line, char **fields, size_t max)
+{
+    size_t count = 0;
+    char *cursor = line;
+
+    while (cursor != NULL && count < max) {
+        char *bar = strchr(cursor, '|');
+        fields[count++] = cursor;
+        if (bar == NULL)
+            break;
+        *bar = '\0';
+        cursor = bar + 1;
+    }
+    return count;
+}
+
+/* The committed self-host runtime_call_abi artifact lists the constructed
+ * rows its own spelling rule produces for a few probe payloads. Each listed
+ * row must equal the native ABI owner's row for the same type and operation,
+ * stable id included, and every constructed row the native owner produces
+ * for a listed payload must be listed. */
+static bool
+test_mir_constructed_rows_match_selfhost_artifact(size_t *compared_out)
+{
+    static const char *const containers[] = {"Slot", "SecureSlot", "DeviceSlot"};
+    static const char *const operations[] = {
+        "Claim", "Read", "Write", "Release", "PinRead", "PinWrite",
+        "PinReadInit", "PinWriteInit", "Unpin", "UnpinCleanup", "SubmitRead",
+    };
+    char path[1024];
+    char line[512];
+    char listed[160][96];
+    char payloads[8][128];
+    size_t listed_count = 0;
+    size_t payload_count = 0;
+    long header_count = -1;
+    FILE *fp;
+    int written = snprintf(
+        path, sizeof(path),
+        "%s/src/self_hosted/compiler/expected/runtime_call_abi_rows.txt",
+        PGY_PROJECT_ROOT);
+
+    *compared_out = 0;
+    if (written < 0 || (size_t)written >= sizeof(path))
+        return false;
+    fp = fopen(path, "rb");
+    if (fp == NULL)
+        return false;
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        char *fields[9];
+        char *dot;
+        char type_name[96];
+        const char *operation;
+        const MIRResourceRuntimeRow *row;
+
+        line[strcspn(line, "\r\n")] = '\0';
+        if (strncmp(line, "constructed_count=", 18) == 0) {
+            header_count = strtol(line + 18, NULL, 10);
+            continue;
+        }
+        if (strncmp(line, "constructed_probe=", 18) == 0) {
+            if (payload_count >= sizeof(payloads) / sizeof(payloads[0])
+                || strlen(line + 18) >= sizeof(payloads[0])) {
+                fclose(fp);
+                return false;
+            }
+            snprintf(payloads[payload_count++], sizeof(payloads[0]), "%s",
+                     line + 18);
+            continue;
+        }
+        if (strncmp(line, "constructed|", 12) != 0)
+            continue;
+        if (test_mir_split_bar_fields(line, fields, 9) != 8
+            || listed_count >= sizeof(listed) / sizeof(listed[0])
+            || strlen(fields[2]) >= sizeof(listed[0])) {
+            fclose(fp);
+            return false;
+        }
+        snprintf(listed[listed_count++], sizeof(listed[0]), "%s", fields[2]);
+        dot = strrchr(fields[2], '.');
+        if (dot == NULL || (size_t)(dot - fields[2]) >= sizeof(type_name)) {
+            fclose(fp);
+            return false;
+        }
+        memcpy(type_name, fields[2], (size_t)(dot - fields[2]));
+        type_name[dot - fields[2]] = '\0';
+        operation = dot + 1;
+        row = mir_abi_resource_runtime_row_for_type_name(type_name, operation);
+        if (row == NULL
+            || strcmp(row->domain, fields[1]) != 0
+            || strcmp(row->runtime_fn, fields[3]) != 0
+            || strcmp(row->target_kind, fields[4]) != 0
+            || strcmp(row->materialization, fields[5]) != 0
+            || strcmp(row->call_shape, fields[6]) != 0
+            || mir_abi_resource_runtime_row_id(row)
+                != (uint32_t)strtoul(fields[7], NULL, 10)) {
+            fclose(fp);
+            return false;
+        }
+        (*compared_out)++;
+    }
+    fclose(fp);
+    if (header_count < 0 || (size_t)header_count != *compared_out
+        || payload_count == 0)
+        return false;
+
+    for (size_t p = 0; p < payload_count; p++) {
+        for (size_t c = 0; c < sizeof(containers) / sizeof(containers[0]); c++) {
+            for (size_t o = 0; o < sizeof(operations) / sizeof(operations[0]); o++) {
+                char type_name[160];
+                char key[192];
+                bool present = false;
+                const MIRResourceRuntimeRow *row;
+
+                int type_len = snprintf(type_name, sizeof(type_name), "%s<%s>",
+                                        containers[c], payloads[p]);
+                if (type_len < 0 || (size_t)type_len >= sizeof(type_name))
+                    return false;
+                row = mir_abi_resource_runtime_row_for_type_name(
+                    type_name, operations[o]);
+                if (row == NULL
+                    || !mir_abi_resource_runtime_row_is_constructed_nominal(row))
+                    continue;
+                int key_len = snprintf(key, sizeof(key), "%s.%s", type_name,
+                                       operations[o]);
+                if (key_len < 0 || (size_t)key_len >= sizeof(key))
+                    return false;
+                for (size_t i = 0; i < listed_count; i++)
+                    present = present || strcmp(listed[i], key) == 0;
+                if (!present)
+                    return false;
+            }
+        }
+    }
+    return true;
+}
+
 static void
 test_mir_lowering_part_a(void)
 {
@@ -255,6 +394,13 @@ test_mir_lowering_part_a(void)
                && strcmp(constructed_row->runtime_fn, "pgy_secure_write_Vec2") == 0
                && strcmp(constructed_row->call_shape, "container_ptr_value_token_ptr_to_void") == 0);
         EXPECT(test_mir_runtime_fn_for_type("Slot<Unknown>", "Claim") == NULL);
+    }
+
+    TEST("self-host constructed runtime rows match the native ABI owner");
+    {
+        size_t compared = 0;
+        bool matched = test_mir_constructed_rows_match_selfhost_artifact(&compared);
+        EXPECT(matched && compared > 0);
     }
 
     TEST("MIR owns TextBuilder layout and target-specific runtime symbols");

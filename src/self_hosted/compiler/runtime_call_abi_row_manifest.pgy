@@ -1,9 +1,80 @@
 // Runnable runtime-call ABI row projection over runtime_call_abi_row_owner.pgy.
 
 import "runtime_call_abi_row_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
 
 func CompilerRuntimeCallAbiManifestRowAt(index: Int) -> String {
     return Concat(Concat(ToString(index), "|"), CompilerRuntimeCallAbiRowAt(index));
+}
+
+// Constructed-resource rows have no fixed table: the self-host spells them
+// from the payload type like the native ABI owner does. These probe payloads
+// cover a plain nominal, a nested generic, and a generic with a comma and a
+// space, so test-mir can compare every spelling rule with the native owner.
+// The last payload is longer than the native runtime-name suffix limit, so
+// both owners must refuse every row for it.
+func CompilerRuntimeCallAbiConstructedProbePayloadCount() -> Int { return 4; }
+
+func CompilerRuntimeCallAbiConstructedProbePayloadAt(index: Int) -> String {
+    if index == 0 { return "Vec2"; }
+    if index == 1 { return "Array<Int>"; }
+    if index == 2 { return "HashMap<String, Int>"; }
+    if index == 3 {
+        return "OverlongPayloadXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+    }
+    return "";
+}
+
+func CompilerRuntimeCallAbiConstructedProbeContainerAt(index: Int) -> String {
+    if index == 0 { return "Slot"; }
+    if index == 1 { return "SecureSlot"; }
+    if index == 2 { return "DeviceSlot"; }
+    return "";
+}
+
+func CompilerRuntimeCallAbiConstructedProbeOperationAt(index: Int) -> String {
+    if index == 0 { return "Claim"; }
+    if index == 1 { return "Read"; }
+    if index == 2 { return "Write"; }
+    if index == 3 { return "Release"; }
+    if index == 4 { return "PinRead"; }
+    if index == 5 { return "PinWrite"; }
+    if index == 6 { return "PinReadInit"; }
+    if index == 7 { return "PinWriteInit"; }
+    if index == 8 { return "Unpin"; }
+    if index == 9 { return "UnpinCleanup"; }
+    if index == 10 { return "SubmitRead"; }
+    return "";
+}
+
+func CompilerRuntimeCallAbiConstructedProbeCount() -> Int {
+    return CompilerRuntimeCallAbiConstructedProbePayloadCount() * 33;
+}
+
+// Probe index -> fact: payload-major, then container, then operation.
+func CompilerRuntimeCallAbiConstructedProbeFactAt(
+    index: Int
+) -> CompilerRuntimeCallAbiFact {
+    let payload: String =
+        CompilerRuntimeCallAbiConstructedProbePayloadAt(index / 33);
+    let container: String =
+        CompilerRuntimeCallAbiConstructedProbeContainerAt((index / 11) % 3);
+    let operation: String =
+        CompilerRuntimeCallAbiConstructedProbeOperationAt(index % 11);
+    return CompilerRuntimeCallAbiFactForConstructedResource(
+        Concat(Concat(Concat(container, "<"), payload), ">"), operation);
+}
+
+func CompilerRuntimeCallAbiConstructedProbeRow(
+    fact: CompilerRuntimeCallAbiFact
+) -> String {
+    let row: String = Concat("constructed|", fact.domain);
+    row = Concat(Concat(row, "|"), fact.operation);
+    row = Concat(Concat(row, "|"), fact.symbol);
+    row = Concat(Concat(row, "|"), fact.symbol_kind);
+    row = Concat(Concat(row, "|"), fact.materialization);
+    row = Concat(Concat(row, "|"), fact.call_shape);
+    return Concat(Concat(row, "|"), ToString(fact.runtime_call_abi_id));
 }
 
 func Main() -> Void {
@@ -17,5 +88,29 @@ func Main() -> Void {
     while i < CompilerRuntimeCallAbiConcreteRowCount() {
         Log(CompilerRuntimeCallAbiManifestRowAt(i));
         i = i + 1;
+    }
+    let payload: Int = 0;
+    while payload < CompilerRuntimeCallAbiConstructedProbePayloadCount() {
+        Log(Concat("constructed_probe=",
+            CompilerRuntimeCallAbiConstructedProbePayloadAt(payload)));
+        payload = payload + 1;
+    }
+    let constructed: Int = 0;
+    let probe: Int = 0;
+    while probe < CompilerRuntimeCallAbiConstructedProbeCount() {
+        if CompilerRuntimeCallAbiConstructedProbeFactAt(probe).ok {
+            constructed = constructed + 1;
+        }
+        probe = probe + 1;
+    }
+    Log(Concat("constructed_count=", ToString(constructed)));
+    probe = 0;
+    while probe < CompilerRuntimeCallAbiConstructedProbeCount() {
+        let fact: CompilerRuntimeCallAbiFact =
+            CompilerRuntimeCallAbiConstructedProbeFactAt(probe);
+        if fact.ok {
+            Log(CompilerRuntimeCallAbiConstructedProbeRow(fact));
+        }
+        probe = probe + 1;
     }
 }

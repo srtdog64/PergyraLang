@@ -406,10 +406,10 @@ func CompilerRuntimeCallAbiFlatFactOwnerReady(
         ) && !missing.ok;
 }
 
-// This is the self-host projection of the native constructed-resource spelling
-// rule.  The native MIR owner remains authoritative; keeping the same bounded
-// character walk here makes a self-host-produced row comparable without
-// rediscovering the type from the AST or accepting an arbitrary symbol.
+// Self-host projection of the native constructed-resource spelling rule; the
+// native MIR owner is authoritative. The manifest writes these rows for probe
+// payloads and test-mir compares each with the native owner's row, so the
+// same bounded character walk here cannot drift from it silently.
 func CompilerRuntimeCallAbiConstructedSuffix(
     inner_type_name: String
 ) -> Option<String> {
