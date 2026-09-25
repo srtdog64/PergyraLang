@@ -1,0 +1,16 @@
+subject Player {
+    let hp: Int;
+}
+
+relation Allied for source: Player, dest: Player { }
+
+zone Arena {
+    subject slot player: Player
+    subject slot ally: Player
+    relation slot trust: Allied
+    link trust between player, 42
+}
+
+func Main() -> Void {
+    Log("unreached");
+}

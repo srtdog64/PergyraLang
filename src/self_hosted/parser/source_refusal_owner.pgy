@@ -56,6 +56,25 @@ func ParseExpectIn(
     return UnwrapOption(next);
 }
 
+// A required name: returns it, or refuses at the first non-trivia position
+// where nothing lexes as a name. ReadIdent alone also reads a number (`42`)
+// or a reserved word (`subject`); native refuses both there, and a zone fact
+// that carried one reached DIR and failed without a code.
+func ParseNameIn(
+    context: ParserSourceLocationContext,
+    content: String, start: Int, expected: String, construct: String,
+    inout cursor_out: Array<Int>
+) -> String {
+    let at: Int = SkipWhitespaceAndComments(content, start);
+    let name: String = ReadIdent(content, at, cursor_out);
+    if name == "" || IsDigit(ParserCharAt(content, at)) ||
+        ParserBindingNameReserved(name) {
+        ParseRefuse(context, at, "expected_token",
+            "expected", expected, "construct", construct);
+    }
+    return name;
+}
+
 func ParseStatementTerminatorIn(
     context: ParserSourceLocationContext,
     content: String, start: Int, construct: String

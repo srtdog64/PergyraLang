@@ -1,0 +1,12 @@
+subject Player {
+    let hp: Int;
+}
+
+zone Arena {
+    subject slot player: Player
+    authority 42
+}
+
+func Main() -> Void {
+    Log("unreached");
+}

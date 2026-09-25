@@ -1,0 +1,17 @@
+subject Player {
+    let hp: Int;
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+zone Arena {
+    subject slot player: Player
+    object slot view: PlayerView
+    bind view from 42
+}
+
+func Main() -> Void {
+    Log("unreached");
+}

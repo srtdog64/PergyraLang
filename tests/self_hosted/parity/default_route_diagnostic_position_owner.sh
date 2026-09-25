@@ -172,6 +172,12 @@ BROKEN_CASES=(
     "intent_step_outcome|4|intent_shape_invalid"
     "intent_retry_zero|1|declaration_clause_invalid"
     "zone_apply_target|10|expected_token"
+    "zone_apply_number|10|expected_token"
+    "zone_link_number|11|expected_token"
+    "zone_refresh_keyword|12|expected_token"
+    "zone_bind_number|12|expected_token"
+    "zone_state_number|11|expected_token"
+    "zone_authority_number|7|expected_token"
     "zone_slot_type|6|type_name_invalid"
     "effect_for|5|expected_token"
     "effect_unclosed|5|block_unclosed"
@@ -192,10 +198,20 @@ done
 
 # Native never compiles `parallel on`: in a statement it expects `{` after
 # `parallel` and refuses at `on`; in a role body it is a declared vision
-# surface. The default route refuses both at native's line and column.
+# surface. A zone fact names its slots with names, so native refuses a number
+# or a reserved word there. The self-hosted parser read `42` and `subject` as
+# names, and those rows then failed in DIR with no code (`apply directive
+# field identity is missing`). The default route refuses each at native's
+# line and column.
 # name|line|column|native text
 for row in "parallel_on|3|14|Expected '{' after 'parallel'" \
-    "role_parallel|6|5|declared vision surface"; do
+    "role_parallel|6|5|declared vision surface" \
+    "zone_apply_number|10|19|Expected target slot name after 'to'" \
+    "zone_link_number|11|32|Expected right slot name after ','" \
+    "zone_refresh_keyword|12|13|Expected object slot name after 'refresh'" \
+    "zone_bind_number|12|20|Expected source slot name after 'from'" \
+    "zone_state_number|11|35|Expected target slot name after 'on'" \
+    "zone_authority_number|7|15|Expected subject slot name after 'authority'"; do
     IFS='|' read -r name line column needle <<<"$row"
     native_log="$WORK_DIR/native-$name.log"
     if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_$name.pgy" --native-pipeline \

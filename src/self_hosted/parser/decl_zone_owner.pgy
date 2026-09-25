@@ -77,33 +77,22 @@ func ParseZoneDecl(
         } else if MatchLanguageWord(content, i, LanguageWordId.WordApply) {
             let apply_at: Int = i;
             i = LanguageWordEnd(i, LanguageWordId.WordApply);
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-            let a_eff: String = ReadIdent(content, i, cursor_out);
-            i = cursor_out[0];
-            if a_eff == "" {
-                ParseRefuse(location_context, i, "expected_token", "expected", "effect slot name", "construct", "zone_apply");
-            }
-            i = SkipWhitespaceAndComments(content, i);
+            let a_eff: String = ParseNameIn(location_context, content, i,
+                "effect slot name or state name", "zone_apply", cursor_out);
+            i = SkipWhitespaceAndComments(content, cursor_out[0]);
             // Native also admits `apply STATE` without a target.
             if !MatchLanguageWord(content, i, LanguageWordId.WordTo) {
                 ParseRefuse(location_context, apply_at, "surface_not_covered", "surface", "zone apply of a state", "construct", "zone");
             }
             i = LanguageWordEnd(i, LanguageWordId.WordTo);
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-	                    let a_dest: String = ReadIdent(content, i, cursor_out);
-	                    i = cursor_out[0];
-	                    if a_dest == "" {
-	                        ParseRefuse(location_context, i, "expected_token", "expected", "target slot name", "construct", "zone_apply");
-	                    }
-	                    i = SkipWhitespaceAndComments(content, i);
+	                    let a_dest: String = ParseNameIn(location_context, content, i,
+	                        "target slot name", "zone_apply", cursor_out);
+	                    i = SkipWhitespaceAndComments(content, cursor_out[0]);
 	                    let a_by: String = "";
 	                    if MatchLanguageWord(content, i, LanguageWordId.WordBy) {
-	                        i = LanguageWordEnd(i, LanguageWordId.WordBy);
-	                        i = SkipWhitespaceAndComments(content, i);
-	                        ArraySet(cursor_out, 0, i);
-	                        a_by = ReadIdent(content, i, cursor_out);
+	                        a_by = ParseNameIn(location_context, content,
+	                            LanguageWordEnd(i, LanguageWordId.WordBy),
+	                            "subject slot name", "zone_apply", cursor_out);
 	                        i = cursor_out[0];
 	                    }
 	                    if i < n && ParserCharAt(content, i) == ";" {
@@ -118,35 +107,25 @@ func ParseZoneDecl(
 	                } else if MatchLanguageWord(content, i, LanguageWordId.WordLink) {
             let link_at: Int = i;
             i = LanguageWordEnd(i, LanguageWordId.WordLink);
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-            let l_rel: String = ReadIdent(content, i, cursor_out);
-            i = cursor_out[0];
-            if l_rel == "" {
-                ParseRefuse(location_context, i, "expected_token", "expected", "relation slot name", "construct", "zone_link");
-            }
-            i = SkipWhitespaceAndComments(content, i);
+            let l_rel: String = ParseNameIn(location_context, content, i,
+                "relation slot name or state name", "zone_link", cursor_out);
+            i = SkipWhitespaceAndComments(content, cursor_out[0]);
             // Native also admits `link STATE` without `between`.
             if !MatchLanguageWord(content, i, LanguageWordId.WordBetween) {
                 ParseRefuse(location_context, link_at, "surface_not_covered", "surface", "zone link of a state", "construct", "zone");
             }
             i = LanguageWordEnd(i, LanguageWordId.WordBetween);
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-            let l_p1: String = ReadIdent(content, i, cursor_out);
-            i = cursor_out[0];
-            i = ParseExpectIn(location_context, content, i, ",", "zone_link");
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-	                    let l_p2: String = ReadIdent(content, i, cursor_out);
-	                    i = cursor_out[0];
-	                    i = SkipWhitespaceAndComments(content, i);
+            let l_p1: String = ParseNameIn(location_context, content, i,
+                "left slot name", "zone_link", cursor_out);
+            i = ParseExpectIn(location_context, content, cursor_out[0], ",", "zone_link");
+	                    let l_p2: String = ParseNameIn(location_context, content, i,
+	                        "right slot name", "zone_link", cursor_out);
+	                    i = SkipWhitespaceAndComments(content, cursor_out[0]);
 	                    let l_by: String = "";
 	                    if MatchLanguageWord(content, i, LanguageWordId.WordBy) {
-	                        i = LanguageWordEnd(i, LanguageWordId.WordBy);
-	                        i = SkipWhitespaceAndComments(content, i);
-	                        ArraySet(cursor_out, 0, i);
-	                        l_by = ReadIdent(content, i, cursor_out);
+	                        l_by = ParseNameIn(location_context, content,
+	                            LanguageWordEnd(i, LanguageWordId.WordBy),
+	                            "subject slot name", "zone_link", cursor_out);
 	                        i = cursor_out[0];
 	                    }
 	                    if i < n && ParserCharAt(content, i) == ";" {
@@ -193,13 +172,37 @@ func ParseZoneDecl(
             continue;
         } else if MatchLanguageWord(content, i, LanguageWordId.WordState) {
             i = LanguageWordEnd(i, LanguageWordId.WordState);
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-            let st_name: String = ReadIdent(content, i, cursor_out);
-            i = cursor_out[0];
-            i = ParseExpectIn(location_context, content, i, ":", "zone_state");
+            let st_name: String = ParseNameIn(location_context, content, i,
+                "state name", "zone_state", cursor_out);
+            i = ParseExpectIn(location_context, content, cursor_out[0], ":", "zone_state");
             i = SkipWhitespaceAndComments(content, i);
             let st_start: Int = i;
+            // The tree keeps the value as text; its layer and slot names are
+            // read here so a non-name refuses where native refuses it.
+            if MatchLanguageWord(content, st_start, LanguageWordId.WordEffect) {
+                let st_effect: String = ParseNameIn(location_context, content,
+                    LanguageWordEnd(st_start, LanguageWordId.WordEffect), "effect slot name", "zone_state", cursor_out);
+                i = SkipWhitespaceAndComments(content, cursor_out[0]);
+                if !MatchLanguageWord(content, i, LanguageWordId.WordOn) {
+                    ParseRefuse(location_context, i, "expected_token", "expected", "on", "construct", "zone_state");
+                }
+                let st_target: String = ParseNameIn(location_context, content,
+                    LanguageWordEnd(i, LanguageWordId.WordOn), "target slot name", "zone_state", cursor_out);
+            } else if MatchLanguageWord(content, st_start, LanguageWordId.WordRelation) {
+                let st_relation: String = ParseNameIn(location_context, content,
+                    LanguageWordEnd(st_start, LanguageWordId.WordRelation), "relation slot name", "zone_state", cursor_out);
+                i = SkipWhitespaceAndComments(content, cursor_out[0]);
+                if !MatchLanguageWord(content, i, LanguageWordId.WordBetween) {
+                    ParseRefuse(location_context, i, "expected_token", "expected", "between", "construct", "zone_state");
+                }
+                let st_left: String = ParseNameIn(location_context, content,
+                    LanguageWordEnd(i, LanguageWordId.WordBetween), "left slot name", "zone_state", cursor_out);
+                i = ParseExpectIn(location_context, content, cursor_out[0], ",", "zone_state");
+                let st_right: String = ParseNameIn(location_context, content, i, "right slot name", "zone_state", cursor_out);
+            } else {
+                ParseRefuse(location_context, st_start, "expected_token", "expected", "effect or relation", "construct", "zone_state");
+            }
+            i = st_start;
             while i < n && ParserCharAt(content, i) != ";" &&
                 ParserCharAt(content, i) != "\n" &&
                 ParserCharAt(content, i) != "\r" &&
@@ -210,9 +213,6 @@ func ParseZoneDecl(
                 Substring(content, st_start, i - st_start)
             );
             if i < n && ParserCharAt(content, i) == ";" { i = i + 1; }
-            if st_val == "" {
-                ParseRefuse(location_context, st_start, "expected_token", "expected", "state value", "construct", "zone_state");
-            }
             state_accum = AppendLine(state_accum, Concat("    State: ", Concat(st_name, Concat(": ", st_val))));
             continue;
         } else if MatchLanguageWord(content, i, LanguageWordId.WordBind) {
@@ -222,14 +222,9 @@ func ParseZoneDecl(
             if ParserCharAt(content, i) == "[" {
                 i = i + 1;
                 while true {
-                    i = SkipWhitespaceAndComments(content, i);
-                    ArraySet(cursor_out, 0, i);
-                    let dummy: String = ReadIdent(content, i, cursor_out);
-                    i = cursor_out[0];
-                    if StringLength(dummy) == 0 {
-                        ParseRefuse(location_context, i, "expected_token", "expected", "slot name", "construct", "zone_bind");
-                    }
-                    i = SkipWhitespaceAndComments(content, i);
+                    let dummy: String = ParseNameIn(location_context, content, i,
+                        "object/tobject slot name", "zone_bind", cursor_out);
+                    i = SkipWhitespaceAndComments(content, cursor_out[0]);
                     if ParserCharAt(content, i) == "," {
                         i = i + 1;
                         continue;
@@ -238,23 +233,17 @@ func ParseZoneDecl(
                 }
                 i = ParseExpectIn(location_context, content, i, "]", "zone_bind");
             } else {
-                ArraySet(cursor_out, 0, i);
-                let dummy: String = ReadIdent(content, i, cursor_out);
+                let dummy: String = ParseNameIn(location_context, content, i,
+                    "object/tobject slot name", "zone_bind", cursor_out);
                 i = cursor_out[0];
-                if StringLength(dummy) == 0 {
-                    ParseRefuse(location_context, i, "expected_token", "expected", "slot name", "construct", "zone_bind");
-                }
             }
             i = SkipWhitespaceAndComments(content, i);
             if !MatchLanguageWord(content, i, LanguageWordId.WordFrom) {
                 ParseRefuse(location_context, i, "expected_token", "expected", "from", "construct", "zone_bind");
             }
-            i = LanguageWordEnd(i, LanguageWordId.WordFrom);
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-            let from_name: String = ReadIdent(content, i, cursor_out);
-            i = cursor_out[0];
-            i = SkipWhitespaceAndComments(content, i);
+            let from_name: String = ParseNameIn(location_context, content,
+                LanguageWordEnd(i, LanguageWordId.WordFrom), "source slot name", "zone_bind", cursor_out);
+            i = SkipWhitespaceAndComments(content, cursor_out[0]);
             // Native also admits `bind ... by PARTICIPANT` and a projection map.
             if MatchLanguageWord(content, i, LanguageWordId.WordBy) || MatchLanguageWord(content, i, LanguageWordId.WordMap) {
                 ParseRefuse(location_context, i, "surface_not_covered", "surface", "zone bind participant or map", "construct", "zone");
@@ -299,18 +288,15 @@ func ParseZoneDecl(
             i = SkipWhitespaceAndComments(content, i);
             let list_start: Int = i;
             let target_count: Int = 0;
+            let target_expected: String = "tobject slot name";
+            if is_ref { target_expected = "object slot name"; }
             if ParserCharAt(content, i) == "[" {
                 i = i + 1;
                 while true {
-                    i = SkipWhitespaceAndComments(content, i);
-                    ArraySet(cursor_out, 0, i);
-                    let dummy: String = ReadIdent(content, i, cursor_out);
-                    i = cursor_out[0];
-                    if StringLength(dummy) == 0 {
-                        ParseRefuse(location_context, i, "expected_token", "expected", "slot name", "construct", "zone_projection");
-                    }
+                    let dummy: String = ParseNameIn(location_context, content, i,
+                        target_expected, "zone_projection", cursor_out);
                     target_count = target_count + 1;
-                    i = SkipWhitespaceAndComments(content, i);
+                    i = SkipWhitespaceAndComments(content, cursor_out[0]);
                     if ParserCharAt(content, i) == "," {
                         i = i + 1;
                         continue;
@@ -319,34 +305,23 @@ func ParseZoneDecl(
                 }
                 i = ParseExpectIn(location_context, content, i, "]", "zone_projection");
             } else {
-                ArraySet(cursor_out, 0, i);
-                let dummy: String = ReadIdent(content, i, cursor_out);
+                let dummy: String = ParseNameIn(location_context, content, i,
+                    target_expected, "zone_projection", cursor_out);
                 i = cursor_out[0];
-                if StringLength(dummy) == 0 {
-                    ParseRefuse(location_context, i, "expected_token", "expected", "slot name", "construct", "zone_projection");
-                }
                 target_count = 1;
             }
             i = SkipWhitespaceAndComments(content, i);
             if !MatchLanguageWord(content, i, LanguageWordId.WordFrom) {
                 ParseRefuse(location_context, i, "expected_token", "expected", "from", "construct", "zone_projection");
             }
-            i = LanguageWordEnd(i, LanguageWordId.WordFrom);
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-            let from_name: String = ReadIdent(content, i, cursor_out);
-            i = cursor_out[0];
-            i = SkipWhitespaceAndComments(content, i);
+            let from_name: String = ParseNameIn(location_context, content,
+                LanguageWordEnd(i, LanguageWordId.WordFrom), "source slot name", "zone_projection", cursor_out);
+            i = SkipWhitespaceAndComments(content, cursor_out[0]);
             let by_name: String = "";
             if MatchLanguageWord(content, i, LanguageWordId.WordBy) {
-                i = LanguageWordEnd(i, LanguageWordId.WordBy);
-                i = SkipWhitespaceAndComments(content, i);
-                ArraySet(cursor_out, 0, i);
-                by_name = ReadIdent(content, i, cursor_out);
+                by_name = ParseNameIn(location_context, content,
+                    LanguageWordEnd(i, LanguageWordId.WordBy), "subject slot name", "zone_projection", cursor_out);
                 i = cursor_out[0];
-                if StringLength(by_name) == 0 {
-                    ParseRefuse(location_context, i, "expected_token", "expected", "participant name", "construct", "zone_projection");
-                }
             }
             i = SkipWhitespaceAndComments(content, i);
             let map_at: Int = i;
@@ -432,10 +407,9 @@ func ParseZoneDecl(
         }
         i = SkipWhitespaceAndComments(content, i);
         if is_auth {
-            ArraySet(cursor_out, 0, i);
-            let auth_name: String = ReadIdent(content, i, cursor_out);
-            i = cursor_out[0];
-            i = SkipWhitespaceAndComments(content, i);
+            let auth_name: String = ParseNameIn(location_context, content, i,
+                "subject slot name", "zone_authority", cursor_out);
+            i = SkipWhitespaceAndComments(content, cursor_out[0]);
             let auth_req: String = "";
             if MatchLanguageWord(content, i, LanguageWordId.WordRequires) {
                 i = LanguageWordEnd(i, LanguageWordId.WordRequires);
@@ -474,14 +448,8 @@ func ParseZoneDecl(
                 ParseRefuse(location_context, i, "expected_token", "expected", "slot", "construct", "zone_slot");
             }
             i = LanguageWordEnd(i, LanguageWordId.WordSlot);
-            i = SkipWhitespaceAndComments(content, i);
-            ArraySet(cursor_out, 0, i);
-            let s_name: String = ReadIdent(content, i, cursor_out);
-            i = cursor_out[0];
-            if StringLength(s_name) == 0 {
-                ParseRefuse(location_context, i, "declaration_name_missing", "construct", "zone_slot", "", "");
-            }
-            i = ParseExpectIn(location_context, content, i, ":", "zone_slot");
+            let s_name: String = ParseNameIn(location_context, content, i, "slot name", "zone_slot", cursor_out);
+            i = ParseExpectIn(location_context, content, cursor_out[0], ":", "zone_slot");
             ArraySet(cursor_out, 0, i);
             let s_type: String = ReadTypeIn(location_context, content, i, cursor_out);
             i = cursor_out[0];
