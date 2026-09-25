@@ -13,6 +13,7 @@
 #include "transpiler_inventory_view.h"
 #include "transpiler_let_box_emit.h"
 #include "transpiler_let_channel_emit.h"
+#include "transpiler_let_emit.h"
 #include "transpiler_let_slot_emit.h"
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_effective_type.h"
@@ -247,7 +248,7 @@ transpiler_emit_mir_source_local_let_def_inst(
         const char *result_c_type = NULL;
         char *operand_expr = NULL;
         int try_id;
-        bool current_returns_result;
+        char leave_stmt[768];
 
         ctx->active_type_hint = saved_type_hint;
         free(rendered_type_hint);
@@ -336,9 +337,6 @@ transpiler_emit_mir_source_local_let_def_inst(
             free(local_type_name_owned);
             return TRANSPILE_MIR_LOCAL_LET_HANDLED;
         }
-        current_returns_result = ctx->current_return_type[0] != '\0'
-            && transpiler_type_name_is_result(ctx->current_return_type);
-
         if (!transpiler_require_type_name_c_type_copy(ctx, result_type,
                 "MIR preserved try operand Result", result_c_type_buf,
                 sizeof(result_c_type_buf))) {
@@ -365,21 +363,24 @@ transpiler_emit_mir_source_local_let_def_inst(
             return TRANSPILE_MIR_LOCAL_LET_FAILED;
         }
         try_id = ctx->tmp_counter++;
-        const char *ok_tag =
-            pgy_codegen_match_variant_c_result_tag(PGY_MATCH_VARIANT_OK);
+        if (!transpiler_result_try_leave_stmt(ctx, try_id, result_c_type,
+                leave_stmt, sizeof(leave_stmt))) {
+            free(operand_expr);
+            free(lhs);
+            free(local_type_name_owned);
+            if (reason != NULL && reason_cap > 0) {
+                transpiler_mir_reasonf(reason, reason_cap,
+                    "MIR block %llu emission failed: '?' let binding '%s' has no C error exit for the function's return type",
+                    (unsigned long long) block->id,
+                    let_name != NULL ? let_name : "<binding>");
+            }
+            return TRANSPILE_MIR_LOCAL_LET_FAILED;
+        }
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "%s __try_%d = %s;\n",
                       result_c_type, try_id, operand_expr);
         write_indent_to(buf, ctx->indent);
-        if (current_returns_result) {
-            codebuf_write(buf,
-                          "if (__try_%d.tag != %s) return __try_%d;\n",
-                          try_id, ok_tag, try_id);
-        } else {
-            codebuf_write(buf,
-                          "if (__try_%d.tag != %s) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR);\n",
-                          try_id, ok_tag);
-        }
+        codebuf_write(buf, "%s\n", leave_stmt);
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "%s = __try_%d.ok;\n", lhs, try_id);
         free(operand_expr);

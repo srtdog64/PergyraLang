@@ -1239,6 +1239,7 @@ main() {
         "tests/cases/backend_compare/stats_class_build"
         "tests/cases/backend_compare/three_func_compose"
         "tests/cases/backend_compare/try_class_method_chain"
+        "tests/cases/backend_compare/try_result_payload_conversion"
         "tests/cases/backend_compare/two_class_chained_compose"
         "tests/cases/backend_compare/two_step_pure_func_compose"
         "tests/cases/backend_compare/while_class_method_returning_int"

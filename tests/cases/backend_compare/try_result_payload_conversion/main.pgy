@@ -1,0 +1,73 @@
+// `?` in a function whose Result has the operand's error type and another
+// payload: the error leaves rebuilt in the function's Result. Native C
+// returned the operand's Result and failed in the C compiler.
+enum Fault { Low, High }
+
+func Check(n: Int) -> Result<Int, Fault> {
+    if n < 0 { return Err(Low); }
+    if n > 9 { return Err(High); }
+    return Ok(n);
+}
+
+func Name(n: Int) -> Result<String, Fault> {
+    let v: Int = Check(n)?;
+    if v == 0 { return Ok("zero"); }
+    return Ok("some");
+}
+
+func Even(n: Int) -> Result<Bool, Fault> {
+    let v: Int = Check(n)?;
+    return Ok(v % 2 == 0);
+}
+
+func Parse(n: Int) -> Result<Int> {
+    if n < 0 { return Err("negative"); }
+    return Ok(n * 2);
+}
+
+func Label(n: Int) -> Result<String> {
+    let v: Int = Parse(n)?;
+    if v > 10 { return Ok("big"); }
+    return Ok("small");
+}
+
+func ShowName(r: Result<String, Fault>) -> Void {
+    match r {
+        case Ok(s): Log(s);
+        case Err(e):
+            match e {
+                case Low: Log("low");
+                case High: Log("high");
+            }
+    }
+}
+
+func ShowEven(r: Result<Bool, Fault>) -> Void {
+    match r {
+        case Ok(b):
+            if b { Log("even"); } else { Log("odd"); }
+        case Err(e):
+            match e {
+                case Low: Log("even low");
+                case High: Log("even high");
+            }
+    }
+}
+
+func ShowLabel(r: Result<String>) -> Void {
+    if IsOk(r) { Log(Unwrap(r)); } else { Log("label failed"); }
+}
+
+func Main() -> Void {
+    ShowName(Name(0));
+    ShowName(Name(3));
+    ShowName(Name(-4));
+    ShowName(Name(12));
+    ShowEven(Even(4));
+    ShowEven(Even(7));
+    ShowEven(Even(-1));
+    ShowEven(Even(30));
+    ShowLabel(Label(9));
+    ShowLabel(Label(1));
+    ShowLabel(Label(-1));
+}

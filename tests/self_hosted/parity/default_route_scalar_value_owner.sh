@@ -11,9 +11,9 @@
 #   in the operand's own specialization. The default route declared the
 #   one-argument Result<Int> struct, and the C compiler refused the
 #   initializer. When the function returns Result<T, E> with another T, the
-#   error leaves rebuilt in the return's specialization; a Result with
-#   another error type is refused by the native checker and by default C
-#   code generation.
+#   error leaves rebuilt in the return's specialization on native C, native
+#   LLVM and default C; a Result with another error type is refused by the
+#   native checker and by default C code generation.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -88,8 +88,9 @@ expect_values try-method-chain \
     tests/cases/backend_compare/try_class_method_chain/main.pgy \
     $'8\n101\n-1\n53\n3' native-c native-llvm default-c
 
-# Native C returns the operand's Result where the String one is declared and
-# fails in the C compiler, so this row holds the default route to native LLVM.
+# The error leaves rebuilt in the function's Result<String, Fault> on every
+# leg that compiles explicit Result<T, E> signatures. Native C used to return
+# the operand's Result<Int, Fault> and fail in the C compiler.
 cat >"$WORK_DIR/try_payload_conversion.pgy" <<'PGY'
 enum Fault { Low, High }
 
@@ -130,7 +131,7 @@ func Main() -> Void {
 }
 PGY
 expect_values try-payload-conversion "$WORK_REL/try_payload_conversion.pgy" \
-    $'zero\nsome\nlow\nhigh\n4' native-llvm default-c
+    $'zero\nsome\nlow\nhigh\n4' native-c native-llvm default-c
 
 cat >"$WORK_DIR/try_error_mismatch.pgy" <<'PGY'
 enum FaultA { Low }
