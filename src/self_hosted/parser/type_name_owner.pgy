@@ -37,23 +37,24 @@ func ReadTypeFact(content: String, start: Int, inout cursor_out: Array<Int>) -> 
         return "Void";
     }
     ArraySet(cursor_out, 0, i);
+    let base_start: Int = i;
     let base: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
     if StringLength(base) == 0 {
         ArraySet(cursor_out, 0, i);
         return base;
     }
-    if base == "slot" {
+    if MatchLanguageWord(content, base_start, LanguageWordId.WordSlot) {
         base = "Slot";
     }
-    if base == "impl" {
+    if MatchLanguageWord(content, base_start, LanguageWordId.WordImpl) {
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
         return ReadTypeFact(content, i, cursor_out);
     }
     let type_text: String = base;
     let after_ws: Int = SkipWhitespaceAndComments(content, i);
-    if base == "func" && ParserCharAt(content, after_ws) == "(" {
+    if MatchLanguageWord(content, base_start, LanguageWordId.WordFunc) && ParserCharAt(content, after_ws) == "(" {
         i = after_ws + 1;
         let params: String = "";
         i = SkipWhitespaceAndComments(content, i);

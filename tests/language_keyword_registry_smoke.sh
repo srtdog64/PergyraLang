@@ -5,9 +5,11 @@
 # SoT fallback IDs covered here or by the companion enforcement refs in the
 # owner registry: native_keyword_table, token_debug_keyword_switch,
 # selfhost_handwritten_keyword_map, parser_unregistered_contextual_selector,
-# lsp_hardcoded_completion_words, lsp_unregistered_hover_word,
+# selfhost_raw_keyword_selector, lsp_hardcoded_completion_words,
+# selfhost_empty_completion_provider, lsp_unregistered_hover_word,
 # selfhost_handwritten_hover_table, textmate_only_language_word,
-# docs_keyword_list_as_authority, second_tmLanguage.
+# textmate_scope_as_authority, docs_keyword_list_as_authority,
+# second_tmLanguage.
 
 set -euo pipefail
 
@@ -328,6 +330,33 @@ if [ "$dead_reserved" != "$expected_dead" ]; then
     echo "  KNOWN_DEAD_RESERVED in this gate." >&2
     exit 1
 fi
+
+# selfhost_raw_keyword_selector: the self-host parser selects every language
+# word through MatchLanguageWord and a LanguageWordId. The generated inventory
+# (checked against the sources above) counts raw `head == "word"` and
+# MatchKeyword(..., "word") selectors, and that debt must stay at zero.
+grep -Fq -- "- Direct-selector debt: 0 occurrences across 0 language words." "$INVENTORY" || {
+    echo "[language-keyword-registry] selfhost_raw_keyword_selector: a self-host parser owner selects a word by its spelling" >&2
+    grep -F -- "- Direct-selector debt:" "$INVENTORY" >&2 || true
+    exit 1
+}
+
+# selfhost_empty_completion_provider: the self-host completion owner builds its
+# items from the registry rows; tests/lsp_completion_registry_smoke.sh runs it
+# and rejects an empty provider.
+grep -Fq 'LanguageWordRegistryRowAt(index)' \
+    "$ROOT_DIR/src/self_hosted/lsp/completion_owner.pgy" || {
+    echo "[language-keyword-registry] selfhost_empty_completion_provider: completion no longer reads the registry rows" >&2
+    exit 1
+}
+
+# textmate_scope_as_authority: the TextMate grammar is rendered from the
+# registry's highlight-scope column (the --check above compares it), and the
+# inventory reports a scope only as tooling exposure, never as parser evidence.
+grep -Fq "while TextMate scope is" "$INVENTORY" || {
+    echo "[language-keyword-registry] textmate_scope_as_authority: the inventory no longer separates TextMate scope from parser evidence" >&2
+    exit 1
+}
 
 echo "[language-keyword-registry] ok (146 rows; 70 reserved lexer rows; 76 parser selectors; 9 fixtures;" \
      "no reserved word lacks a parser selector)"

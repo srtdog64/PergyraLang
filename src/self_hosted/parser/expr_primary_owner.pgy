@@ -332,11 +332,13 @@ func ParsePrimaryFact(
         }
         ArraySet(cursor_out, 0, i);
     } else if IsAlpha(c) {
+        let base_start: Int = i;
         base = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
         preserves_bool_literal_fact =
-            base == "true" || base == "false";
-        if base == "parallel" {
+            MatchLanguageWord(content, base_start, LanguageWordId.WordTrue) ||
+            MatchLanguageWord(content, base_start, LanguageWordId.WordFalse);
+        if MatchLanguageWord(content, base_start, LanguageWordId.WordParallel) {
             i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) == "(" {
                 let pexpr_depth: Int = 1;
@@ -377,7 +379,7 @@ func ParsePrimaryFact(
                 ArraySet(cursor_out, 0, i);
             }
         }
-        if base == "async" {
+        if MatchLanguageWord(content, base_start, LanguageWordId.WordAsync) {
             i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) == "{" {
                 let async_depth: Int = 1;

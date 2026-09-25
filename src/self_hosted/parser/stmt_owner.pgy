@@ -36,7 +36,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         ParseRefuse(location_context, head_start, "statement_head_unexpected_token",
             "construct", "statement", "source_offset", ToString(head_start));
     }
-    if head == "bind" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordBind) {
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
         let bind_lhs: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
@@ -49,19 +49,19 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         ArraySet(cursor_out, 0, i);
         return Concat(IndentStr(stmt_indent), Concat("BindStmt: ", Concat(bind_lhs, Concat(" = ", bind_rhs))));
     }
-    if head == "if" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordIf) {
         return ParseIfStmt(content, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations);
     }
-    if head == "while" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordWhile) {
         return ParseWhileStmt(content, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations);
     }
-    if head == "loop" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordLoop) {
         return ParseLoopStmt(content, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations);
     }
-    if head == "with" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordWith) {
         // `with slot<TYPE> as VAR { stmts }` — scoped slot binding.
         // AST:
         //   With slot<TYPE> as VAR
@@ -109,7 +109,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         ArraySet(cursor_out, 0, i);
         return with_out;
     }
-    if head == "unsafe" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordUnsafe) {
         let body: String = ParseBlockObserved(
             content, i, cursor_out, stmt_indent + 4, expression_graphs,
             location_context, source_locations);
@@ -118,13 +118,13 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         if body != "" { output = AppendLine(output, body); }
         return output;
     }
-    if head == "parallel" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordParallel) {
         return ParseParallelStmt(
             content, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations
         );
     }
-    if head == "transaction" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordTransaction) {
         // `transaction { ... }` owns top-level `compensate EXPR` handlers.
         // The C AST printer stores compensations on the transaction node but
         // does not print them; only non-compensate statements remain in body.
@@ -164,7 +164,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         ArraySet(cursor_out, 0, i);
         return tx_out;
     }
-    if head == "defer" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordDefer) {
         // `defer { stmts } ;` — block with trailing semicolon. AST:
         //   Defer:
         //     Block:
@@ -185,17 +185,17 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         ArraySet(cursor_out, 0, i);
         return out;
     }
-    if head == "break" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordBreak) {
         i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
         return Concat(IndentStr(stmt_indent), "Break");
     }
-    if head == "continue" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordContinue) {
         i = ParseStatementTerminatorIn(location_context, content, i, "statement");
         ArraySet(cursor_out, 0, i);
         return Concat(IndentStr(stmt_indent), "Continue");
     }
-    if head == "fail" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordFail) {
         // `fail` prints as a transaction rollback marker. A reason is present
         // only when it begins on the same source line.
         let fail_cursor: Int = i;
@@ -216,19 +216,19 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         ArraySet(cursor_out, 0, i);
         return AppendLine(fail_out, Concat(IndentStr(stmt_indent + 2), fail_reason));
     }
-    if head == "match" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordMatch) {
         return ParseMatchStmt(
             content, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations
         );
     }
-    if head == "for" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordFor) {
         return ParseForStmt(
             content, i, cursor_out, stmt_indent, expression_graphs,
             location_context, source_locations
         );
     }
-    if head == "return" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordReturn) {
         // `return ;`  or  `return EXPR ;`
         i = SkipWhitespaceAndComments(content, i);
         if ParserCharAt(content, i) == ";" {
@@ -250,7 +250,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         ArraySet(cursor_out, 0, i);
         return Concat(IndentStr(stmt_indent), Concat("Return: ", val_text));
     }
-    if head == "let" {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordLet) {
         // `let IDENT (: TYPE)? = EXPR ;`. The `: TYPE` annotation is
         // optional; without it the AST emits `Let: IDENT = EXPR` (no
         // `:` segment), matching type-inferred bindings.

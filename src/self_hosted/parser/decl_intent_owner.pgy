@@ -276,9 +276,9 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                     ParseRefuse(location_context, i, "expected_token", "expected", "intent step clause", "construct", "intent_step");
                 }
                 let is_transfer: Bool = false;
-                if clause == "move" {
+                if MatchLanguageWord(content, clause_start, LanguageWordId.WordMove) {
                     is_transfer = true;
-                } else if clause == "transfer" {
+                } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordTransfer) {
                     let peek_colon: Int = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, peek_colon) != ":" {
                         is_transfer = true;
@@ -301,38 +301,38 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                     s_transfer = Concat(t_from, Concat(" -> ", t_to));
                     continue;
                 }
-                if clause == "success" || clause == "failure" {
+                if MatchLanguageWord(content, clause_start, LanguageWordId.WordSuccess) || MatchLanguageWord(content, clause_start, LanguageWordId.WordFailure) {
                     if intent_return_type == "" {
                         ParseRefuse(location_context, clause_start, "intent_shape_invalid", "rule", "a step of an untyped intent declares no outcome patterns", "construct", "intent_step");
                     }
-                    if (clause == "success" && s_success_pattern != "") ||
-                        (clause == "failure" && s_failure_pattern != "") {
+                    if (MatchLanguageWord(content, clause_start, LanguageWordId.WordSuccess) && s_success_pattern != "") ||
+                        (MatchLanguageWord(content, clause_start, LanguageWordId.WordFailure) && s_failure_pattern != "") {
                         ParseRefuse(location_context, clause_start, "declaration_clause_duplicate", "clause", clause, "construct", "intent_step");
                     }
                     i = ParseExpectIn(location_context, content, i, ":", "intent_step_outcome");
                     ArraySet(cursor_out, 0, i);
                     let pattern: ParserIntentVariantBinding = ParseIntentVariantBinding(location_context, content, i, cursor_out);
                     i = ParseExpectIn(location_context, content, cursor_out[0], ";", "intent_step_outcome");
-                    if clause == "success" {
+                    if MatchLanguageWord(content, clause_start, LanguageWordId.WordSuccess) {
                         s_success_pattern = pattern.text;
                     } else {
                         s_failure_pattern = pattern.text;
                     }
                     continue;
                 }
-                if clause == "authorized" {
+                if MatchLanguageWord(content, clause_start, LanguageWordId.WordAuthorized) {
                     let peek_by: Int = SkipWhitespaceAndComments(content, i);
                     if MatchLanguageWord(content, peek_by, LanguageWordId.WordBy) {
                         i = LanguageWordEnd(peek_by, LanguageWordId.WordBy);
                         clause = "authorized by";
                     }
                 }
-                let repeated: Bool = (clause == "pre" && s_pre != "") || (clause == "invariant" && s_invariant != "");
+                let repeated: Bool = (MatchLanguageWord(content, clause_start, LanguageWordId.WordPre) && s_pre != "") || (MatchLanguageWord(content, clause_start, LanguageWordId.WordInvariant) && s_invariant != "");
                 let on_clause: Bool = false;
-                if clause == "on" { on_clause = true; }
-                if clause == "guard" { repeated = s_guard_seen; s_guard_seen = true; }
-                if clause == "post" { repeated = s_post_seen; s_post_seen = true; }
-                if clause == "expect" { repeated = s_expect_seen; s_expect_seen = true; }
+                if MatchLanguageWord(content, clause_start, LanguageWordId.WordOn) { on_clause = true; }
+                if MatchLanguageWord(content, clause_start, LanguageWordId.WordGuard) { repeated = s_guard_seen; s_guard_seen = true; }
+                if MatchLanguageWord(content, clause_start, LanguageWordId.WordPost) { repeated = s_post_seen; s_post_seen = true; }
+                if MatchLanguageWord(content, clause_start, LanguageWordId.WordExpect) { repeated = s_expect_seen; s_expect_seen = true; }
                 if repeated {
                     ParseRefuse(location_context, clause_start, "declaration_clause_duplicate", "clause", clause, "construct", "intent_step");
                 }
@@ -358,7 +358,7 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                 }
                 i = ParseExpectIn(location_context, content, i, ":", "intent_step_clause");
                 let val: String = "";
-                if clause == "transfer" {
+                if MatchLanguageWord(content, clause_start, LanguageWordId.WordTransfer) {
                     i = SkipWhitespaceAndComments(content, i);
                     let t_start: Int = i;
                     while i < n && ParserCharAt(content, i) != ";" {
@@ -371,49 +371,49 @@ func ParseIntentDecl(content: String, start: Int, inout cursor_out: Array<Int>, 
                     ArraySet(cursor_out, 0, i);
                     let val_fact: ParserExpressionFact = ParseExprFactIn(location_context, content, i, cursor_out);
                     val = val_fact.text;
-                    if clause == "on" { s_on_fact = val_fact; }
-                    if clause == "guard" { s_guard_fact = val_fact; }
-                    if clause == "pre" { s_pre_fact = val_fact; }
-                    if clause == "invariant" { s_invariant_fact = val_fact; }
-                    if clause == "expect" { s_expect_fact = val_fact; }
-                    if clause == "compensate" {
+                    if MatchLanguageWord(content, clause_start, LanguageWordId.WordOn) { s_on_fact = val_fact; }
+                    if MatchLanguageWord(content, clause_start, LanguageWordId.WordGuard) { s_guard_fact = val_fact; }
+                    if MatchLanguageWord(content, clause_start, LanguageWordId.WordPre) { s_pre_fact = val_fact; }
+                    if MatchLanguageWord(content, clause_start, LanguageWordId.WordInvariant) { s_invariant_fact = val_fact; }
+                    if MatchLanguageWord(content, clause_start, LanguageWordId.WordExpect) { s_expect_fact = val_fact; }
+                    if MatchLanguageWord(content, clause_start, LanguageWordId.WordCompensate) {
                         s_compensate_graphs = ParserExpressionGraphsAppend(s_compensate_graphs,
                             TypedAstKindIntentStepCompensateTag(), AstExpressionLaneAtom(), val_fact);
                     }
-                    if clause == "post" { s_post_fact = val_fact; }
-                    if clause == "intent" { s_intent_fact = val_fact; }
+                    if MatchLanguageWord(content, clause_start, LanguageWordId.WordPost) { s_post_fact = val_fact; }
+                    if MatchLanguageWord(content, clause_start, LanguageWordId.WordIntent) { s_intent_fact = val_fact; }
                     i = cursor_out[0];
                 }
                 i = ParseExpectIn(location_context, content, i, ";", "intent_step_clause");
-                if clause == "where" {
+                if MatchLanguageWord(content, clause_start, LanguageWordId.WordWhere) {
                     s_where = val;
-                } else if clause == "using" {
+                } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordUsing) {
                     s_using = val;
-                } else if clause == "who" {
+                } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordWho) {
                     s_who = val;
-                } else if clause == "on" {
+                } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordOn) {
                     s_on = val;
-                } else if clause == "guard" {
+                } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordGuard) {
                     s_guard = val;
-                } else if clause == "pre" {
+                } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordPre) {
                     s_pre = val;
-                } else if clause == "invariant" {
+                } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordInvariant) {
                     s_invariant = val;
-                } else if clause == "expect" {
+                } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordExpect) {
                     s_expect = val;
-                } else if clause == "requires" {
+                } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordRequires) {
                     s_requires = val;
                 } else if clause == "authorized by" {
                     s_auth = val;
-                } else if clause == "causes" {
+                } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordCauses) {
                     s_causes = val;
-                } else if clause == "compensate" {
+                } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordCompensate) {
                     ArrayPush(s_compensates, val);
-                } else if clause == "post" {
+                } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordPost) {
                     s_post = val;
-                } else if clause == "intent" {
+                } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordIntent) {
                     s_intent = val;
-                } else if clause == "transfer" {
+                } else if MatchLanguageWord(content, clause_start, LanguageWordId.WordTransfer) {
                     s_transfer = val;
                 } else {
                     ParseRefuse(location_context, clause_start, "expected_token", "expected", "intent step clause", "construct", "intent_step");
