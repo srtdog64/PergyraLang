@@ -4,7 +4,12 @@
 #include "../parser/ast.h"
 #include "transpiler.h"
 
+/* The specialization's declaration (struct layout, runtime rows and method
+ * prototypes) goes into `decls`, the declaration stream of the request, so
+ * it precedes the prototype or layout that named the type. Method bodies go
+ * into ctx->helpers. */
 const char *ensure_generic_class_specialization(TranspilerCtx *ctx,
+                                                CodeBuf *decls,
                                                 ASTNode *class_decl,
                                                 ASTNode *ann);
 

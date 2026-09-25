@@ -57,7 +57,8 @@ transpiler_render_effective_local_type_name(TranspilerCtx *ctx,
         ASTNode *class_decl = find_class_decl(ctx, ast_type_name(type_node));
         if (class_decl != NULL && transpiler_class_has_generic_params(class_decl)) {
             const char *spec_name =
-                ensure_generic_class_specialization(ctx, class_decl, type_node);
+                ensure_generic_class_specialization(ctx, ctx->decls,
+                    class_decl, type_node);
             if (spec_name != NULL
                 && strcmp(spec_name, ast_type_name(type_node)) != 0) {
                 return transpiler_canonical_effective_local_type_name(

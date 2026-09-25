@@ -28,6 +28,7 @@ void ensure_type_specializations_from_type_name_to(TranspilerCtx *ctx,
                                                    const char *type_name);
 const char *transpiler_ensure_generic_class_specialization_from_type_name(
     TranspilerCtx *ctx,
+    CodeBuf *decls,
     const char *type_name);
 void ensure_type_specializations_from_ast_to(TranspilerCtx *ctx,
                                              CodeBuf *dst,

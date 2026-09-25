@@ -1,0 +1,42 @@
+// A generic struct instance (Crate<Int>) named by a prototype or a layout.
+// Native C wrote the Crate_Int typedef into the late helper stream, after
+// the Open_Int and Label prototypes in the declaration stream and after the
+// Shelf layout that embeds it, so the C compiler rejected Crate_Int as an
+// unknown type name. The layout now precedes its first user; a nested
+// instance (Crate<Crate<Int>>) declares its field's layout first.
+struct Crate<T> {
+    let item: T;
+}
+
+class Shelf {
+    let top: Crate<Int>;
+
+    func Top(self) -> Int {
+        return self.top.item;
+    }
+}
+
+func Open<T>(c: Crate<T>) -> T {
+    return c.item;
+}
+
+func Nest<T>(c: Crate<Crate<T>>) -> T {
+    return c.item.item;
+}
+
+func Label(c: Crate<String>) -> String {
+    return c.item;
+}
+
+func Main() -> Void {
+    let c: Crate<Int> = Crate(4);
+    Log(ToString(Open(c)));
+    let s: Crate<String> = Crate("s");
+    Log(Label(s));
+    Log(Open(s));
+    let inner: Crate<Int> = Crate(5);
+    let outer: Crate<Crate<Int>> = Crate(inner);
+    Log(ToString(Nest(outer)));
+    let shelf: Shelf = Shelf(c);
+    Log(ToString(shelf.Top()));
+}

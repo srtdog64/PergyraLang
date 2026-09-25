@@ -180,7 +180,7 @@ transpiler_require_type_name_c_type_copy(TranspilerCtx *ctx,
         transpiler_bound_type_name(ctx, eff_type_name);
     const char *generic_class_type_name =
         transpiler_ensure_generic_class_specialization_from_type_name(
-            ctx, resolved_type_name);
+            ctx, ctx != NULL ? ctx->decls : NULL, resolved_type_name);
     if (generic_class_type_name != NULL)
         resolved_type_name = generic_class_type_name;
 

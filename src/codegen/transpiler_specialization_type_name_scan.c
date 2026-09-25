@@ -148,6 +148,7 @@ fail:
 const char *
 transpiler_ensure_generic_class_specialization_from_type_name(
     TranspilerCtx *ctx,
+    CodeBuf *decls,
     const char *type_name)
 {
     char *base_name;
@@ -169,7 +170,7 @@ transpiler_ensure_generic_class_specialization_from_type_name(
     if (type_ast == NULL)
         return NULL;
     const char *spec_name =
-        ensure_generic_class_specialization(ctx, class_decl, type_ast);
+        ensure_generic_class_specialization(ctx, decls, class_decl, type_ast);
     ast_destroy(type_ast);
     return spec_name;
 }
@@ -234,7 +235,7 @@ ensure_type_specializations_from_type_name_to(TranspilerCtx *ctx,
 
     transpiler_specialization_scan_type_name_args(ctx, dst, type_name);
     if (transpiler_ensure_generic_class_specialization_from_type_name(
-            ctx, type_name) != NULL) {
+            ctx, dst, type_name) != NULL) {
         return;
     }
 

@@ -110,7 +110,8 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *gc_decl = find_class_decl(ctx, ann_node_type_name);
         if (gc_decl != NULL && transpiler_class_has_generic_params(gc_decl)) {
             generic_class_spec_name =
-                ensure_generic_class_specialization(ctx, gc_decl, ann);
+                ensure_generic_class_specialization(ctx, ctx->decls,
+                    gc_decl, ann);
             if (generic_class_spec_name == NULL)
                 return;
             free(ann_type_name);

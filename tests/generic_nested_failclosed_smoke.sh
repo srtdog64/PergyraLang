@@ -14,10 +14,11 @@
 #
 #   - PARAM position (Option<T>, Array<T>, Result<T, E>) runs on both
 #     backends; nested_param no longer fails closed on LLVM.
-#   - A generic struct parameter (Crate<T>) binds T = Int and runs on LLVM;
-#     native C still declares the specialized prototype before the
-#     monomorphized struct typedef, so the C compiler rejects it (open,
-#     C emission order, not the binder).
+#   - A generic struct parameter (Crate<T>) binds T = Int and runs on both
+#     backends. Native C used to declare the Open_Int prototype before the
+#     Crate_Int typedef (the layout went to the late helper stream); the
+#     layout now goes into the declaration stream of the prototype or type
+#     that first names it.
 #   - Conflicting bindings (nested or explicit) and a parameter no argument
 #     fixes are refused at native semantic with a coded diagnostic; they used
 #     to pass semantic and fail in MIR lowering, the C compiler or the LLVM
@@ -134,14 +135,10 @@ expect_semantic_code nested_conflict.pgy PGY_SEM_TYPE_MISMATCH
 expect_semantic_code explicit_conflict.pgy PGY_SEM_TYPE_MISMATCH
 expect_semantic_code nested_unbound.pgy PGY_SEM_INFER_GENERIC
 
-# Generic struct parameter: LLVM runs; native C emits the Open_Int prototype
-# before the Crate_Int typedef (open). Flip this row when C emission orders it.
+# Generic struct parameter: runs on both backends. Native C declares the
+# Crate_Int layout ahead of the Open_Int prototype that takes it by value.
 expect_runs   llvm nested_struct_param.pgy "4"
-# gcc quotes the name with the locale's quote marks (' or U+2018), so the
-# type name is matched on its own.
-expect_reject c    nested_struct_param.pgy "unknown type name"
-grep -Fq "Crate_Int" "$OUT_DIR/rej_c_nested_struct_param.exe.log" ||
-    fail "c/nested_struct_param.pgy no longer fails on the Crate_Int typedef"
+expect_runs   c    nested_struct_param.pgy "4"
 
 # Class-generic constructed-over-T FIELD: C substitutes and runs; LLVM fails
 # closed on aggregate lowering. G-5 owns closing it.

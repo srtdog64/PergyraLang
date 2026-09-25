@@ -170,7 +170,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             const char *type_name = transpiler_resolve_nominal_host_expr_type_name(ctx, obj);
             const char *materialized_type_name =
                 transpiler_ensure_generic_class_specialization_from_type_name(
-                    ctx, type_name);
+                    ctx, ctx->decls, type_name);
             if (materialized_type_name != NULL)
                 type_name = materialized_type_name;
             if (type_name != NULL && is_nominal_host_type_name(ctx, type_name)) {

@@ -27,7 +27,7 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 : (ctx != NULL ? ctx->active_type_hint : NULL);
             const char *hint_spec_name =
                 transpiler_ensure_generic_class_specialization_from_type_name(
-                    ctx, type_hint);
+                    ctx, ctx != NULL ? ctx->decls : NULL, type_hint);
             ASTNode *hint_base = type_hint != NULL
                 ? transpiler_generic_class_spec_base_decl(ctx, type_hint)
                 : NULL;
@@ -46,7 +46,7 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 if (synthetic_type != NULL) {
                     const char *spec_name =
                         ensure_generic_class_specialization(
-                            ctx, class_decl, synthetic_type);
+                            ctx, ctx->decls, class_decl, synthetic_type);
                     if (spec_name != NULL)
                         ctor_type = spec_name;
                     ast_destroy(synthetic_type);

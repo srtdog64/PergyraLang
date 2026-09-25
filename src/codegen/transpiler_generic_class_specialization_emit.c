@@ -17,6 +17,7 @@
 #include "transpiler_mir_emit_state.h"
 #include "transpiler_mir_func_emit.h"
 #include "transpiler_slot_runtime_row.h"
+#include "transpiler_specialization_registry.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
 
@@ -27,11 +28,13 @@
 typedef struct TranspilerGenericClassSpecSnapshot {
     int class_spec_count;
     size_t helpers_len;
+    CodeBuf *decls;
+    size_t decls_len;
     TranspilerGenericBindingSnapshot generic_binding;
 } TranspilerGenericClassSpecSnapshot;
 
 static TranspilerGenericClassSpecSnapshot
-transpiler_generic_class_spec_snapshot(TranspilerCtx *ctx)
+transpiler_generic_class_spec_snapshot(TranspilerCtx *ctx, CodeBuf *decls)
 {
     TranspilerGenericClassSpecSnapshot snapshot;
 
@@ -39,6 +42,8 @@ transpiler_generic_class_spec_snapshot(TranspilerCtx *ctx)
         ctx != NULL ? ctx->generic_class_spec_count : 0;
     snapshot.helpers_len =
         ctx != NULL && ctx->helpers != NULL ? ctx->helpers->len : 0;
+    snapshot.decls = decls;
+    snapshot.decls_len = decls != NULL ? decls->len : 0;
     snapshot.generic_binding = transpiler_generic_binding_snapshot(ctx);
     return snapshot;
 }
@@ -53,6 +58,7 @@ transpiler_generic_class_spec_rollback(
 
     ctx->generic_class_spec_count = snapshot.class_spec_count;
     codebuf_truncate(ctx->helpers, snapshot.helpers_len);
+    codebuf_truncate(snapshot.decls, snapshot.decls_len);
     transpiler_generic_binding_restore(ctx, snapshot.generic_binding);
 }
 
@@ -66,14 +72,18 @@ transpiler_generic_class_spec_commit(
 
 /* Ensure a monomorphized specialization of a generic class exists.
  * Returns the specialized name (e.g. "Node_Int") that should be used
- * as the C struct type name. The struct + methods are emitted into
- * ctx->helpers on first invocation.
+ * as the C struct type name. On first invocation the struct layout and its
+ * runtime rows go into `decls`, the declaration stream of the request (a
+ * prototype that takes Node<Int> by value names the layout, so the layout
+ * must precede it in the same stream); the method prototypes and bodies go
+ * into ctx->helpers.
  *
  * `ann` is the AST_TYPE node for the annotation (e.g. Node<Int>).
  * We extract generic_args from it and match them to class_decl's
  * generic_params to build the bindings. */
 const char *
 ensure_generic_class_specialization(TranspilerCtx *ctx,
+                                     CodeBuf *decls,
                                      ASTNode *class_decl,
                                      ASTNode *ann)
 {
@@ -114,6 +124,18 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         }
     }
 
+    if (decls == NULL) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "C backend: generic class specialization '%s' has no declaration stream",
+            specialization_name);
+        free(specialization_name);
+        return NULL;
+    }
+
     if (ctx->generic_class_spec_count >= MAX_GENERIC_CLASS_SPECIALIZATIONS) {
         transpiler_set_backend_error_with_hints(
             ctx,
@@ -139,7 +161,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     }
 
     TranspilerGenericClassSpecSnapshot spec_snapshot =
-        transpiler_generic_class_spec_snapshot(ctx);
+        transpiler_generic_class_spec_snapshot(ctx, decls);
     GenericClassSpecEntry *entry = &ctx->generic_class_specs[ctx->generic_class_spec_count++];
     entry->class_decl = class_decl;
     if (!transpiler_generic_class_copy_name(
@@ -216,7 +238,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     }
     entry->binding_count = formal_count;
 
-    codebuf_write(ctx->helpers, "\ntypedef struct %s\n{\n", spec_name);
     TranspilerHostedFieldView field_view =
         transpiler_hosted_class_field_view_from_decl(ctx, base_class_name,
             class_decl);
@@ -229,11 +250,24 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
         return NULL;
     }
+    /* The field rows are collected first: a field whose type is itself a
+     * specialization (Crate<Crate<Int>>, Option<Point>) publishes its own
+     * declaration into `decls` while it is rendered, and it must land
+     * ahead of this layout, which embeds it by value. */
+    CodeBuf *layout_fields = codebuf_create();
+    if (layout_fields == NULL) {
+        transpiler_set_backend_error(ctx,
+            "C backend: generic class specialization layout allocation failed for '%s'",
+            spec_name);
+        transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
+        return NULL;
+    }
     for (size_t i = 0; i < field_view.count; i++) {
         const char *field_name =
             transpiler_hosted_field_view_name(&field_view, i);
         ASTNode *field_type =
             transpiler_hosted_field_view_type(&field_view, i);
+        char *field_type_name;
         char ft[256];
         char surface_desc[256];
         if (field_name == NULL) {
@@ -245,6 +279,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                 "C backend: generic class '%s' field[%zu] is missing declaration field metadata",
                 base_class_name != NULL ? base_class_name : "(anonymous-class)",
                 i);
+            codebuf_destroy(layout_fields);
             transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
             return NULL;
         }
@@ -256,29 +291,42 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                 NULL)) {
             transpiler_generic_class_format_too_long(
                 ctx, "generic class field diagnostic surface");
+            codebuf_destroy(layout_fields);
             transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
             return NULL;
         }
-        if (!transpiler_require_ast_c_type_copy(ctx,
+        /* A field type that renders to no name is refused by the C type
+         * requirement below; the scan only orders declarations. */
+        field_type_name = render_type_name_in_ctx(ctx, field_type);
+        if (field_type_name != NULL) {
+            ensure_type_specializations_from_type_name_to(
+                ctx, decls, field_type_name);
+            free(field_type_name);
+        }
+        if (ctx->backend_error != NULL
+            || !transpiler_require_ast_c_type_copy(ctx,
                 field_type,
                 surface_desc,
                 ft,
                 sizeof(ft))) {
+            codebuf_destroy(layout_fields);
             transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
             return NULL;
         }
-        codebuf_write(ctx->helpers, "    %s %s;\n", ft, field_name);
+        codebuf_write(layout_fields, "    %s %s;\n", ft, field_name);
     }
     if (field_view.count == 0) {
         /* Fieldless generic specialization: keep the struct standard C so the
          * (Type){0} constructor initializer is valid (see the same guard in
          * transpiler_class_decl_emit.c). */
-        codebuf_write(ctx->helpers, "    char _pgy_reserved;\n");
+        codebuf_write(layout_fields, "    char _pgy_reserved;\n");
     }
-    codebuf_write(ctx->helpers, "} %s;\n", spec_name);
+    codebuf_write(decls, "\ntypedef struct %s\n{\n", spec_name);
+    codebuf_write_raw(decls, layout_fields->data, layout_fields->len);
+    codebuf_write(decls, "} %s;\n", spec_name);
+    codebuf_destroy(layout_fields);
 
-    transpiler_emit_nominal_container_runtime_rows(ctx->helpers, spec_name,
-        false);
+    transpiler_emit_nominal_container_runtime_rows(decls, spec_name, false);
 
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, base_class_name,
