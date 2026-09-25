@@ -483,4 +483,113 @@ test_stdlib_and_io(void)
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    /* `?` returns the operand's error unchanged; native LLVM ran this
+     * program and native C failed in the C compiler. */
+    TEST("try operator error type must be the function's error type");
+    {
+        const char *source =
+            "enum FaultA { Low }\n"
+            "enum FaultB { Bad }\n"
+            "func Check(n: Int) -> Result<Int, FaultA> {\n"
+            "    if n < 0 { return Err(Low); }\n"
+            "    return Ok(n);\n"
+            "}\n"
+            "func Wrap(n: Int) -> Result<Int, FaultB> {\n"
+            "    let v: Int = Check(n)?;\n"
+            "    return Ok(v + 1);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        const Diagnostic *diag = NULL;
+
+        for (size_t i = 0; result != NULL && i < result->diagnostic_count; i++) {
+            if (result->diagnostics[i] != NULL
+                && result->diagnostics[i]->message != NULL
+                && strstr(result->diagnostics[i]->message,
+                    "'?' cannot propagate error type 'FaultA' out of a function returning 'Result<Int, FaultB>'") != NULL)
+                diag = result->diagnostics[i];
+        }
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 1);
+        EXPECT(diag != NULL && diag->line == 8 && diag->col == 18
+            && diag->code != NULL
+            && strcmp(diag->code, PGY_CODE_SEM_TYPE_MISMATCH) == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("try operator Result<T> error is String, not a declared enum");
+    {
+        const char *source =
+            "enum Fault { Low }\n"
+            "func Check(n: Int) -> Result<Int, Fault> {\n"
+            "    if n < 0 { return Err(Low); }\n"
+            "    return Ok(n);\n"
+            "}\n"
+            "func Wrap(n: Int) -> Result<Int> {\n"
+            "    let v: Int = Check(n)?;\n"
+            "    return Ok(v + 1);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 1
+            && ctx_has_diagnostic_code_from_result(result,
+                PGY_CODE_SEM_TYPE_MISMATCH)
+            && ctx_has_diagnostic_substring_from_result(result,
+                "'?' cannot propagate error type 'Fault' out of a function returning 'Result<Int>'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    /* The payload may change across `?`; an Int function keeps its panic. */
+    TEST("try operator accepts the same error type with another payload");
+    {
+        const char *source =
+            "enum Fault { Low }\n"
+            "func Check(n: Int) -> Result<Int, Fault> {\n"
+            "    if n < 0 { return Err(Low); }\n"
+            "    return Ok(n);\n"
+            "}\n"
+            "func Name(n: Int) -> Result<String, Fault> {\n"
+            "    let v: Int = Check(n)?;\n"
+            "    return Ok(\"ok\");\n"
+            "}\n"
+            "func Parse(n: Int) -> Result<Int> {\n"
+            "    if n < 0 { return Err(\"negative\"); }\n"
+            "    return Ok(n);\n"
+            "}\n"
+            "func Flag(n: Int) -> Result<Bool> {\n"
+            "    let v: Int = Parse(n)?;\n"
+            "    return Ok(v == 2);\n"
+            "}\n"
+            "func Plain(n: Int) -> Int {\n"
+            "    let v: Int = Check(n)?;\n"
+            "    return v + 1;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }

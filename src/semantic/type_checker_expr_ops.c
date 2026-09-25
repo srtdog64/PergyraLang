@@ -345,6 +345,62 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
     return left;
 }
 
+/* The error a Result carries: its declared E, or String for the
+ * one-argument Result<T>, whose Err takes a message. */
+static Type *
+expr_ops_result_error_type(Type *result)
+{
+    size_t arg_count = type_constructed_arg_count(result);
+
+    if (arg_count == 2)
+        return expr_ops_normalize_type(type_get_constructed_arg(result, 1));
+    if (arg_count == 1)
+        return TYPE_STRING;
+    return TYPE_UNKNOWN;
+}
+
+/*
+ * `result?` inside a function returning Result leaves with the operand's
+ * error, so the operand's error type must be the function's. Payloads may
+ * differ: the backends rebuild the error in the return's Result. Before this
+ * check a mismatch ran on native LLVM (enum errors share a representation)
+ * and failed in the C compiler on native C. Functions that do not return a
+ * Result keep their existing contract (panic on Err, or Option None
+ * propagation); an unknown error type was already reported where it arose.
+ */
+static void
+type_check_try_error_type(ASTNode *expr, Type *operand, SemanticContext *ctx)
+{
+    Type *returned = ctx->current_return;
+    /* The parser gives the `?` node a line only; its operand has a column. */
+    ASTNode *site = ast_unary_operand(expr) != NULL
+        ? ast_unary_operand(expr) : expr;
+    Type *operand_error;
+    Type *return_error;
+
+    if (ctx->inferring_return || returned == NULL
+        || !type_is_constructed_named(operand, "Result")
+        || !type_is_constructed_named(returned, "Result"))
+        return;
+    operand_error = expr_ops_result_error_type(operand);
+    return_error = expr_ops_result_error_type(returned);
+    if (operand_error == TYPE_UNKNOWN || return_error == TYPE_UNKNOWN
+        || type_equals(operand_error, return_error))
+        return;
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+        PGY_CAUSE_ASSIGNABILITY_CHECK, PGY_FIX_ALIGN_RESULT_ERROR_TYPE, site,
+        "'?' cannot propagate error type '%s' out of a function returning '%s'.\n"
+        "Reason:\n"
+        "- '?' returns the operand's error unchanged, so it must be the function's error type '%s'\n"
+        "Fix:\n"
+        "- declare the function's Result with error type '%s'\n"
+        "- or match the operand and return Err(...) of the function's error type",
+        type_name_or_unknown(operand_error),
+        type_name_or_unknown(returned),
+        type_name_or_unknown(return_error),
+        type_name_or_unknown(operand_error));
+}
+
 Type *
 type_check_unary(ASTNode *expr, SemanticContext *ctx)
 {
@@ -409,6 +465,7 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
                 type_name_or_unknown(operand));
             return TYPE_UNKNOWN;
         }
+        type_check_try_error_type(expr, operand, ctx);
         return expr_ops_normalize_type(type_get_constructed_arg(operand, 0));
     }
 

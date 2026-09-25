@@ -12,7 +12,8 @@
 #   one-argument Result<Int> struct, and the C compiler refused the
 #   initializer. When the function returns Result<T, E> with another T, the
 #   error leaves rebuilt in the return's specialization; a Result with
-#   another error type is refused.
+#   another error type is refused by the native checker and by default C
+#   code generation.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -150,15 +151,27 @@ func Main() -> Void {
     if IsOk(r) { Log(Unwrap(r)); }
 }
 PGY
-out_rel="$WORK_REL/try-error-mismatch-default-c.exe"
-if compile "$WORK_REL/try_error_mismatch.pgy" default-c "$out_rel"; then
-    fail "default-c accepted a try whose error type is not the return's"
-fi
-[[ ! -e "$ROOT_DIR/$out_rel" ]] ||
-    fail "default-c left a binary for the mismatched try error type"
+for leg in native-c native-llvm default-c; do
+    out_rel="$WORK_REL/try-error-mismatch-$leg.exe"
+    if compile "$WORK_REL/try_error_mismatch.pgy" "$leg" "$out_rel"; then
+        fail "$leg accepted a try whose error type is not the return's"
+    fi
+    [[ ! -e "$ROOT_DIR/$out_rel" ]] ||
+        fail "$leg left a binary for the mismatched try error type"
+done
 grep -Fq "try expression error type does not match the function's Result error type" \
-    "$ROOT_DIR/$out_rel.log" ||
-    { cat "$ROOT_DIR/$out_rel.log" >&2; fail "mismatched try error type lost its refusal"; }
+    "$ROOT_DIR/$WORK_REL/try-error-mismatch-default-c.exe.log" ||
+    { cat "$ROOT_DIR/$WORK_REL/try-error-mismatch-default-c.exe.log" >&2
+      fail "default-c mismatched try error type lost its refusal"; }
+# The native checker refuses it at the operand `Check(n)` (line 10, column
+# 18) before either backend runs: native LLVM used to run it and native C
+# failed in the C compiler.
+for leg in native-c native-llvm; do
+    log="$ROOT_DIR/$WORK_REL/try-error-mismatch-$leg.exe.log"
+    grep -Fq "10:18 - '?' cannot propagate error type 'FaultA' out of a function returning 'Result<Int, FaultB>'" \
+        "$log" ||
+        { cat "$log" >&2; fail "$leg mismatched try error type lost its semantic refusal"; }
+done
 
 # Both front ends refuse the out-of-range Long literal and publish nothing.
 for leg in native-c default-c; do
