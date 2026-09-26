@@ -1,0 +1,74 @@
+Program:
+  Extern Block (C):
+    Function: HostSeal
+      Parameters:
+        value: Int
+      Returns: Int
+      Effects: secure, unsafe
+  [export] Ability: Sealed
+    Function: Seal
+      Parameters:
+        self
+      Returns: Int
+      Effects: secure
+    Function: Probe
+      Parameters:
+        self
+      Returns: Int
+      Effects: remote, nondeterministic
+  Subject: Vault
+    Fields:
+      let level: Int
+    Methods:
+      Action: Lock
+        Parameters:
+          self
+        Returns: Void
+        Effects: secure, collapse
+        Body:
+          Block:
+            Return
+  Function: Pure
+    Parameters:
+      value: Int
+    Returns: Int
+    Effects: local
+    Body:
+      Block:
+        Return: value
+  Function: Remote
+    Parameters:
+    Returns: Int
+    Effects: remote
+    Body:
+      Block:
+        Return: 1
+  Function: Scrambled
+    Parameters:
+    Returns: Int
+    Effects: secure, remote, nondeterministic, collapse, unsafe
+    Body:
+      Block:
+        Return: 2
+  Function: CapsFirst
+    Parameters:
+    Returns: Int
+    Caps: io_read
+    Effects: secure, alloc
+    Body:
+      Block:
+        Return: 3
+  Function: EffectsFirst
+    Parameters:
+    Returns: Int
+    Caps: clock
+    Effects: nondeterministic, io
+    Body:
+      Block:
+        Return: 4
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log(Pure(Remote()))

@@ -308,6 +308,7 @@ func ParseDeclsInto(
         // Native AST identity maps both `export` and `public` to `[export]`;
         // `private` is explicit but carries the ordinary non-export shape.
         let is_export: Bool = false;
+        let is_private: Bool = false;
         if MatchLanguageWord(content, i, LanguageWordId.WordExport) ||
             MatchLanguageWord(content, i, LanguageWordId.WordPublic) {
             if MatchLanguageWord(content, i, LanguageWordId.WordExport) {
@@ -320,6 +321,7 @@ func ParseDeclsInto(
         } else if MatchLanguageWord(content, i, LanguageWordId.WordPrivate) {
             i = LanguageWordEnd(i, LanguageWordId.WordPrivate);
             i = SkipWhitespaceAndComments(content, i);
+            is_private = true;
         }
 
         let effective_export: Bool = is_export;
@@ -348,10 +350,12 @@ func ParseDeclsInto(
             continue;
         }
 
-        if MatchLanguageWord(content, i, LanguageWordId.WordAbility) {
+        if MatchLanguageWord(content, i, LanguageWordId.WordAbility) ||
+            MatchLanguageWord(content, i, LanguageWordId.WordInnate) {
+            // An ability is exported unless it is declared private.
             let ability_block: String = ParseAbilityDecl(
-                content, i, cursor_out, decl_prefix, expression_graphs,
-                location_context);
+                content, i, cursor_out, decl_prefix, !is_private,
+                expression_graphs, location_context);
             i = cursor_out[0];
             ArrayPush(out_blocks, ParserObservedDeclarationRow(location_context, decl_start, ability_block, source_locations));
             ArrayPush(out_module_paths, source_path);

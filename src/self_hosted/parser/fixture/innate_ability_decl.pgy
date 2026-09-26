@@ -1,0 +1,34 @@
+// `innate` marks an ability that only its declaring module may implement.
+// The native AST prints an innate ability exactly like a plain one; the
+// modifier reaches semantics through the declaration, not the tree text.
+
+innate ability Combatable {
+    func Attack(self) -> Int;
+}
+
+export innate ability Guarded {
+    func Guard(self) -> Int;
+}
+
+public innate ability Visible {
+    func Show(self) -> Int;
+}
+
+private innate ability Hidden {
+    func Hide(self) -> Int;
+}
+
+subject Fighter {
+    let hp: Int;
+}
+
+role Warrior for Fighter {
+    impl ability Combatable {
+        func Attack(self) -> Int { return 10; }
+    }
+}
+
+func Main() -> Void {
+    let fighter: Fighter = Fighter(1);
+    Log(fighter.hp);
+}

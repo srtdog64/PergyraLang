@@ -1,0 +1,40 @@
+Program:
+  [export] Ability: Combatable
+    Function: Attack
+      Parameters:
+        self
+      Returns: Int
+  [export] Ability: Guarded
+    Function: Guard
+      Parameters:
+        self
+      Returns: Int
+  [export] Ability: Visible
+    Function: Show
+      Parameters:
+        self
+      Returns: Int
+  Ability: Hidden
+    Function: Hide
+      Parameters:
+        self
+      Returns: Int
+  Subject: Fighter
+    Fields:
+      let hp: Int
+  Role: Warrior for Fighter
+    Impl ability: Combatable
+      Function: Attack
+        Parameters:
+          self
+        Returns: Int
+        Body:
+          Block:
+            Return: 10
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: fighter : Fighter = Fighter(1)
+        Log(fighter.hp)

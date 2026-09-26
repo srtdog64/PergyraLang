@@ -1,0 +1,49 @@
+// Every effect word the lexer reserves, in a `with effects` clause on a
+// function, a signature, an action and an extern signature. The clause
+// prints in canonical order, so the source order below is deliberately
+// scrambled.
+
+extern "C" {
+    func HostSeal(value: Int) -> Int with effects secure, unsafe;
+}
+
+ability Sealed {
+    func Seal(self) -> Int with effects secure
+    func Probe(self) -> Int with effects nondeterministic, remote;
+}
+
+subject Vault {
+    let level: Int;
+
+    action Lock(self) -> Void
+        with effects collapse, secure
+    {
+        return;
+    }
+}
+
+func Pure(value: Int) -> Int with effects local {
+    return value;
+}
+
+func Remote() -> Int with effects remote {
+    return 1;
+}
+
+func Scrambled() -> Int
+    with effects unsafe, collapse, nondeterministic, remote, secure
+{
+    return 2;
+}
+
+func CapsFirst() -> Int with caps io_read with effects secure, alloc {
+    return 3;
+}
+
+func EffectsFirst() -> Int with effects nondeterministic, io with caps clock {
+    return 4;
+}
+
+func Main() -> Void {
+    Log(Pure(Remote()));
+}

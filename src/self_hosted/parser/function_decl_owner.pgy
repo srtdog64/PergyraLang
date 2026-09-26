@@ -10,6 +10,48 @@ import "source_location_observation_owner.pgy";
 import "../lib/callable_contract_vocabulary_projection_owner.pgy";
 import "diagnostic_owner.pgy";
 
+// An ability signature may end at `;`, `}` or the end of its line; native
+// takes the `;` as optional. True when one of those follows `at` on this line.
+func ParserSignatureMemberBoundaryAt(content: String, at: Int) -> Bool {
+    let probe: Int = at;
+    while ParserCharAt(content, probe) == " " || ParserCharAt(content, probe) == "\t" ||
+        ParserCharAt(content, probe) == "\r" {
+        probe = probe + 1;
+    }
+    return ParserCharAt(content, probe) == "\n" || ParserCharAt(content, probe) == ";" ||
+        ParserCharAt(content, probe) == "}";
+}
+
+struct ParserEffectWordRead {
+    reserved: Bool;
+    word: LanguageWordId;
+}
+
+// Native accepts six effect names as reserved tokens and every other effect
+// name as an identifier (parse_optional_effects_clause); the self-host
+// selects the same six by registry identity.
+func ParserReservedEffectWordAt(content: String, at: Int) -> ParserEffectWordRead {
+    if MatchLanguageWord(content, at, LanguageWordId.WordSecure) {
+        return ParserEffectWordRead(true, LanguageWordId.WordSecure);
+    }
+    if MatchLanguageWord(content, at, LanguageWordId.WordRemote) {
+        return ParserEffectWordRead(true, LanguageWordId.WordRemote);
+    }
+    if MatchLanguageWord(content, at, LanguageWordId.WordNondeterministic) {
+        return ParserEffectWordRead(true, LanguageWordId.WordNondeterministic);
+    }
+    if MatchLanguageWord(content, at, LanguageWordId.WordCollapse) {
+        return ParserEffectWordRead(true, LanguageWordId.WordCollapse);
+    }
+    if MatchLanguageWord(content, at, LanguageWordId.WordLocal) {
+        return ParserEffectWordRead(true, LanguageWordId.WordLocal);
+    }
+    if MatchLanguageWord(content, at, LanguageWordId.WordUnsafe) {
+        return ParserEffectWordRead(true, LanguageWordId.WordUnsafe);
+    }
+    return ParserEffectWordRead(false, LanguageWordId.WordEffects);
+}
+
 func ParserCallableContractContains(names: Array<String>, name: String) -> Bool {
     let i: Int = 0;
     while i < ArrayLength(names) {
@@ -217,15 +259,9 @@ func ParseFunctionObserved(
     }
     i = ParseExpectIn(location_context, content, i, ")", "function");
     let signature_done: Bool = false;
-    if is_signature {
-        let sig_probe: Int = i;
-        while ParserCharAt(content, sig_probe) == " " || ParserCharAt(content, sig_probe) == "\t" || ParserCharAt(content, sig_probe) == "\r" {
-            sig_probe = sig_probe + 1;
-        }
-        if ParserCharAt(content, sig_probe) == "\n" || ParserCharAt(content, sig_probe) == ";" || ParserCharAt(content, sig_probe) == "}" {
-            i = ParseStatementTerminatorIn(location_context, content, i, "function");
-            signature_done = true;
-        }
+    if is_signature && ParserSignatureMemberBoundaryAt(content, i) {
+        i = ParseStatementTerminatorIn(location_context, content, i, "function");
+        signature_done = true;
     }
     let ret_type: String = "";
     let req_type: String = "";
@@ -255,18 +291,16 @@ func ParseFunctionObserved(
                 "construct", "return_type", "name", fn_name);
         }
     }
-    if is_signature {
-        let ret_term_probe: Int = i;
-        while ParserCharAt(content, ret_term_probe) == " " || ParserCharAt(content, ret_term_probe) == "\t" || ParserCharAt(content, ret_term_probe) == "\r" {
-            ret_term_probe = ret_term_probe + 1;
-        }
-        if ParserCharAt(content, ret_term_probe) == "\n" || ParserCharAt(content, ret_term_probe) == ";" || ParserCharAt(content, ret_term_probe) == "}" {
-            i = ParseStatementTerminatorIn(location_context, content, i, "function");
-            signature_done = true;
-        }
+    if is_signature && ParserSignatureMemberBoundaryAt(content, i) {
+        i = ParseStatementTerminatorIn(location_context, content, i, "function");
+        signature_done = true;
     }
-    
+
     while true {
+        // A clause ends a signature at its line end like the return type does.
+        if is_signature && ParserSignatureMemberBoundaryAt(content, i) {
+            break;
+        }
         i = SkipWhitespaceAndComments(content, i);
         if MatchLanguageWord(content, i, LanguageWordId.WordRequires) {
             if !is_action || saw_requires { Exit(1); }
@@ -349,17 +383,27 @@ func ParseFunctionObserved(
                 i = LanguageWordEnd(next_i, LanguageWordId.WordEffects);
                 while true {
                     i = SkipWhitespaceAndComments(content, i);
-                    ArraySet(cursor_out, 0, i);
-                    let effect_name: String = ReadIdent(content, i, cursor_out);
-                    i = cursor_out[0];
+                    let effect_word: ParserEffectWordRead =
+                        ParserReservedEffectWordAt(content, i);
+                    let effect_name: String = "";
+                    if effect_word.reserved {
+                        effect_name = LanguageWordSpelling(effect_word.word);
+                        i = LanguageWordEnd(i, effect_word.word);
+                    } else {
+                        ArraySet(cursor_out, 0, i);
+                        effect_name = ReadIdent(content, i, cursor_out);
+                        i = cursor_out[0];
+                    }
                     if !ParserCallableContractAppendName(
                         effect_names, effect_name,
                         CallableContractVocabularyEffectAxis(),
                         diagnostic_projection
                     ) { Exit(1); }
-                    i = SkipWhitespaceAndComments(content, i);
-                    if ParserCharAt(content, i) == "," {
-                        i = i + 1;
+                    // Look for the next `,` without moving past a line end
+                    // that may close an ability signature.
+                    let after_name: Int = SkipWhitespaceAndComments(content, i);
+                    if ParserCharAt(content, after_name) == "," {
+                        i = after_name + 1;
                         continue;
                     }
                     break;
@@ -380,9 +424,11 @@ func ParseFunctionObserved(
                         CallableContractVocabularyCapabilityAxis(),
                         diagnostic_projection
                     ) { Exit(1); }
-                    i = SkipWhitespaceAndComments(content, i);
-                    if ParserCharAt(content, i) == "," {
-                        i = i + 1;
+                    // Look for the next `,` without moving past a line end
+                    // that may close an ability signature.
+                    let after_name: Int = SkipWhitespaceAndComments(content, i);
+                    if ParserCharAt(content, after_name) == "," {
+                        i = after_name + 1;
                         continue;
                     }
                     break;

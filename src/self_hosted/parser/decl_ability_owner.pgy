@@ -14,10 +14,20 @@ func ParseAbilityDecl(
     start: Int,
     inout cursor_out: Array<Int>,
     decl_prefix: String,
+    exported: Bool,
     inout expression_graphs: Array<AstExpressionGraphRows>,
     location_context: ParserSourceLocationContext
 ) -> String {
-    let i: Int = LanguageWordEnd(start, LanguageWordId.WordAbility);
+    let i: Int = start;
+    // `innate` only limits implementors to the declaring module; the native
+    // tree prints an innate ability like a plain one.
+    if MatchLanguageWord(content, i, LanguageWordId.WordInnate) {
+        i = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordInnate));
+        if !MatchLanguageWord(content, i, LanguageWordId.WordAbility) {
+            ParseRefuse(location_context, i, "expected_token", "expected", "ability", "construct", "innate");
+        }
+    }
+    i = LanguageWordEnd(i, LanguageWordId.WordAbility);
     let n: Int = StringLength(content);
     i = SkipWhitespaceAndComments(content, i);
     ArraySet(cursor_out, 0, i);
@@ -88,7 +98,11 @@ func ParseAbilityDecl(
         i = cursor_out[0];
         sig_blocks = AppendLine(sig_blocks, sig);
     }
-    let ability_out: String = Concat("  [export] Ability: ", Concat(decl_prefix, ab_name));
+    let ability_label: String = "  Ability: ";
+    if exported {
+        ability_label = "  [export] Ability: ";
+    }
+    let ability_out: String = Concat(ability_label, Concat(decl_prefix, ab_name));
     if constraint_clause != "" {
         ability_out = AppendLine(
             ability_out,

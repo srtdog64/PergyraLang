@@ -97,7 +97,8 @@ if manual_advances:
 
 entry_consumers = {
     "decl_ability_owner.pgy": (
-        "LanguageWordEnd(start, LanguageWordId.WordAbility)"
+        "LanguageWordEnd(i, LanguageWordId.WordAbility)",
+        "LanguageWordEnd(i, LanguageWordId.WordInnate)",
     ),
     "decl_type_owner.pgy": "LanguageWordEnd(start, LanguageWordId.WordType)",
     "decl_event_owner.pgy": "LanguageWordEnd(start, LanguageWordId.WordEvent)",
