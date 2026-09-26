@@ -55,20 +55,23 @@ func ParserIntentPolicyClauseFromSource(
         let value_start: Int = ParseExpectIn(context, content,
             LanguageWordEnd(start, LanguageWordId.WordRollback), ":", "intent_rollback");
         value_start = SkipWhitespaceAndComments(content, value_start);
-        let cursor: Array<Int> = [value_start];
-        let policy: String = ReadIdent(content, value_start, cursor);
         // Only the existing full-rollback execution owner is substituted.
         // Native's other policies are refused as uncovered, never accepted
         // and erased to this default.
-        if policy == "current" || policy == "none" {
+        if MatchLanguageWord(content, value_start, LanguageWordId.WordCurrent) {
             ParseRefuse(context, value_start, "surface_not_covered",
-                "surface", Concat("intent rollback ", policy), "construct", "intent");
+                "surface", "intent rollback current", "construct", "intent");
         }
-        if policy != "full" {
+        if MatchLanguageWord(content, value_start, LanguageWordId.WordNone) {
+            ParseRefuse(context, value_start, "surface_not_covered",
+                "surface", "intent rollback none", "construct", "intent");
+        }
+        if !MatchLanguageWord(content, value_start, LanguageWordId.WordFull) {
             ParseRefuse(context, value_start, "expected_token",
                 "expected", "full, current or none", "construct", "intent_rollback");
         }
-        let next: Int = ParseExpectIn(context, content, cursor[0], ";", "intent_rollback");
+        let next: Int = ParseExpectIn(context, content,
+            LanguageWordEnd(value_start, LanguageWordId.WordFull), ";", "intent_rollback");
         return ParserIntentPolicyClause(
             true, next, current.mode, current.priority_text,
             current.priority_expression, current.mode_explicit, true);

@@ -157,7 +157,7 @@ func ParseFunctionObserved(
     name_prefix: String,
     is_export: Bool,
     base_indent: Int,
-    fn_keyword: String,
+    fn_word: LanguageWordId,
     fn_label: String,
     is_signature: Bool,
     within_zone_arg: String,
@@ -169,15 +169,12 @@ func ParseFunctionObserved(
     let function_slot: Int = ParserSourceLocationReserve(
         location_context, start, source_locations
     );
-    let kw: String = fn_keyword;
-    if StringLength(kw) == 0 {
-        kw = "func";
+    // Every caller selected `func` or `action` by identity at `start`.
+    if !MatchLanguageWord(content, start, fn_word) {
+        ParseRefuse(location_context, start, "expected_token",
+            "expected", LanguageWordSpelling(fn_word), "construct", "function");
     }
-    let i: Int = Expect(content, start, kw);
-    if i < 0 {
-        Exit(1);
-    }
-    i = SkipWhitespaceAndComments(content, i);
+    let i: Int = SkipWhitespaceAndComments(content, LanguageWordEnd(start, fn_word));
     ArraySet(cursor_out, 0, i);
     let fn_name: String = ReadIdent(content, i, cursor_out);
     i = cursor_out[0];
@@ -277,7 +274,7 @@ func ParseFunctionObserved(
     let saw_authorized_by: Bool = false;
     let saw_caps: Bool = false;
     let saw_effects: Bool = false;
-    let is_action: Bool = fn_keyword == "action";
+    let is_action: Bool = fn_word == LanguageWordId.WordAction;
     if !signature_done {
     i = SkipWhitespaceAndComments(content, i);
     if ParserCharAt(content, i) == "-" && ParserCharAt(content, i + 1) == ">" {
@@ -537,7 +534,7 @@ func ParseFunction(
     name_prefix: String,
     is_export: Bool,
     base_indent: Int,
-    fn_keyword: String,
+    fn_word: LanguageWordId,
     fn_label: String,
     is_signature: Bool,
     within_zone_arg: String,
@@ -551,7 +548,7 @@ func ParseFunction(
     let locations: Array<ParserSourceLocationObservation> = [];
     return ParseFunctionObserved(
         content, start, cursor_out, name_prefix, is_export, base_indent,
-        fn_keyword, fn_label, is_signature, within_zone_arg,
+        fn_word, fn_label, is_signature, within_zone_arg,
         expression_graphs, context, locations, location_context.projection
     );
 }

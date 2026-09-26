@@ -13,7 +13,7 @@ evidence.
 
 - `BRIDGE`: stable IDs and projections exist, but row implementation
   remains split across native, typed self-host, and direct selectors.
-- Typed-selector evidence: 292 calls across 133 language words.
+- Typed-selector evidence: 295 calls across 136 language words.
 - Direct-selector debt: 0 occurrences across 0 language words.
 - No row is promoted to `CLOSED` by this inventory.
 
@@ -21,9 +21,9 @@ evidence.
 
 | classification | rows |
 |---|---:|
-| native+selfhost-typed | 133 |
+| native+selfhost-typed | 136 |
 | native+selfhost-direct-only | 0 |
-| native-only | 13 |
+| native-only | 10 |
 | selfhost-typed-only | 0 |
 | selfhost-direct-only | 0 |
 | no-parser-selector | 0 |
@@ -70,7 +70,7 @@ evidence.
 | `concurrent` | contextual | native+self_host | 1 | 2 | 0 | 1 | TextMate:keyword.other.intent.pergyra | native+selfhost-typed |
 | `continue` | reserved | native+self_host | 2 | 1 | 0 | 8 | TextMate:keyword.control.pergyra | native+selfhost-typed |
 | `continuous` | contextual | native+self_host | 1 | 0 | 0 | 0 | none | native-only |
-| `current` | soft | native | 1 | 0 | 0 | 7 | none | native-only |
+| `current` | soft | native | 1 | 1 | 0 | 7 | none | native+selfhost-typed |
 | `deactivate` | contextual | native | 1 | 1 | 0 | 1 | none | native+selfhost-typed |
 | `default` | reserved | native+self_host | 3 | 3 | 0 | 13 | TextMate:keyword.control.pergyra | native+selfhost-typed |
 | `defer` | reserved | native+self_host | 1 | 1 | 0 | 9 | TextMate:keyword.control.pergyra | native+selfhost-typed |
@@ -94,7 +94,7 @@ evidence.
 | `for` | reserved | native+self_host | 7 | 5 | 0 | 89 | TextMate:keyword.control.pergyra | native+selfhost-typed |
 | `forbids` | contextual | native | 1 | 1 | 0 | 1 | none | native+selfhost-typed |
 | `from` | contextual | native+self_host | 2 | 3 | 0 | 22 | none | native+selfhost-typed |
-| `full` | soft | native | 1 | 0 | 0 | 3 | none | native-only |
+| `full` | soft | native | 1 | 1 | 0 | 3 | none | native+selfhost-typed |
 | `func` | reserved | native+self_host | 21 | 13 | 0 | 950 | completion, hover, TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `give` | contextual | native | 1 | 0 | 0 | 0 | none | native-only |
 | `guard` | contextual | native+self_host | 1 | 3 | 0 | 7 | TextMate:keyword.other.intent.pergyra | native+selfhost-typed |
@@ -125,7 +125,7 @@ evidence.
 | `mut` | contextual | native+self_host | 5 | 2 | 0 | 37 | TextMate:storage.modifier.pergyra | native+selfhost-typed |
 | `namespace` | reserved | native+self_host | 3 | 1 | 0 | 7 | TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `nondeterministic` | reserved | native+self_host | 1 | 1 | 0 | 3 | TextMate:storage.modifier.pergyra | native+selfhost-typed |
-| `none` | soft | native | 1 | 0 | 0 | 8 | none | native-only |
+| `none` | soft | native | 1 | 1 | 0 | 8 | none | native+selfhost-typed |
 | `object` | reserved | native+self_host | 10 | 10 | 0 | 35 | completion, hover, TextMate:storage.type.pergyra | native+selfhost-typed |
 | `objects` | contextual | native | 1 | 1 | 0 | 1 | none | native+selfhost-typed |
 | `on` | contextual | native+self_host | 4 | 5 | 0 | 40 | TextMate:keyword.other.intent.pergyra | native+selfhost-typed |

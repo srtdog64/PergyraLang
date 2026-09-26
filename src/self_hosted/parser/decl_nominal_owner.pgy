@@ -125,7 +125,7 @@ func ParseNominalDecl(
                 ArraySet(cursor_out, 0, i);
                 let m_block: String = ParseFunction(
                     content, i, cursor_out, "", false, host_method_indent,
-                    "func", "Function: ", false, within_zone,
+                    LanguageWordId.WordFunc, "Function: ", false, within_zone,
                     expression_graphs, location_context
                 );
                 i = cursor_out[0];
@@ -142,7 +142,7 @@ func ParseNominalDecl(
                 ArraySet(cursor_out, 0, i);
                 let a_block: String = ParseFunction(
                     content, i, cursor_out, "", false, host_method_indent,
-                    "action", "Action: ", false, within_zone,
+                    LanguageWordId.WordAction, "Action: ", false, within_zone,
                     expression_graphs, location_context
                 );
                 i = cursor_out[0];

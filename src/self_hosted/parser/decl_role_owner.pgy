@@ -79,7 +79,7 @@ func ParseRoleDecl(
         if StringLength(compact_impl) > 0 && MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
             ArraySet(cursor_out, 0, i);
             let compact_m: String = ParseFunction(
-                content, i, cursor_out, "", false, 6, "func", "Function: ",
+                content, i, cursor_out, "", false, 6, LanguageWordId.WordFunc, "Function: ",
                 false, within_zone, expression_graphs, location_context
             );
             i = cursor_out[0];
@@ -95,7 +95,7 @@ func ParseRoleDecl(
             }
             ArraySet(cursor_out, 0, i);
             let override_method: String = ParseFunction(
-                content, i, cursor_out, "", false, 6, "func", "Function: ",
+                content, i, cursor_out, "", false, 6, LanguageWordId.WordFunc, "Function: ",
                 false, within_zone, expression_graphs, location_context
             );
             i = cursor_out[0];
@@ -143,7 +143,7 @@ func ParseRoleDecl(
             }
             ArraySet(cursor_out, 0, i);
             let m_block: String = ParseFunction(
-                content, i, cursor_out, "", false, 6, "func", "Function: ",
+                content, i, cursor_out, "", false, 6, LanguageWordId.WordFunc, "Function: ",
                 false, within_zone, expression_graphs, location_context
             );
             i = cursor_out[0];

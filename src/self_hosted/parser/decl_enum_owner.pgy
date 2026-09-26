@@ -43,7 +43,7 @@ func ParseEnumDecl(
             ArraySet(cursor_out, 0, i);
             let method_block: String = ParseFunction(
                 content, i, cursor_out, "", false, 4,
-                "func", "Function: ", false, "",
+                LanguageWordId.WordFunc, "Function: ", false, "",
                 expression_graphs, location_context
             );
             i = cursor_out[0];

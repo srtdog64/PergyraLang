@@ -1,6 +1,7 @@
 // Parser-owned scalar literal graph construction and identity contract.
 
 import "expression_fact_owner.pgy";
+import "../lexer/language_keyword_registry_projection_owner.pgy";
 
 func ParserExpressionFloatLiteral(text: String) -> ParserExpressionFact {
     if text == "" { return ParserExpressionInvalid(); }
@@ -93,6 +94,7 @@ func ParserExpressionScalarFactContractReady() -> Bool {
             AstExpressionNodeStringLiteral() &&
         integer.text == floating.text && long_value.text == "16L" &&
         long_value.arena.node_texts[long_value.root] == "16L" &&
-        bool_value.arena.node_texts[bool_value.root] == "true" &&
+        bool_value.arena.node_texts[bool_value.root] ==
+            LanguageWordSpelling(LanguageWordId.WordTrue) &&
         string_value.arena.node_texts[string_value.root] == "\"text\"";
 }

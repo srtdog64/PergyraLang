@@ -269,7 +269,7 @@ func ParseDeclsInto(
                 // the declared name itself, so no decl prefix applies.
                 let extern_sig: String = ParseFunction(
                     content, i, cursor_out, "", false, 4,
-                    "func", "Function: ", true, "", expression_graphs,
+                    LanguageWordId.WordFunc, "Function: ", true, "", expression_graphs,
                     location_context
                 );
                 i = cursor_out[0];
@@ -455,7 +455,7 @@ func ParseDeclsInto(
             ArraySet(cursor_out, 0, i);
             let fn_block: String = ParseFunctionObserved(
                 content, i, cursor_out, decl_prefix, effective_export, 2,
-                "func", "Function: ", false, active_within_zone,
+                LanguageWordId.WordFunc, "Function: ", false, active_within_zone,
                 expression_graphs, location_context, source_locations,
                 diagnostic_projection
             );

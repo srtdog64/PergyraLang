@@ -415,7 +415,7 @@ func ParseZoneDecl(
         } else if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
             ArraySet(cursor_out, 0, i);
             let m_block: String = ParseFunction(
-                content, i, cursor_out, "", false, 4, "func", "Function: ",
+                content, i, cursor_out, "", false, 4, LanguageWordId.WordFunc, "Function: ",
                 false, "", expression_graphs, location_context
             );
             i = cursor_out[0];

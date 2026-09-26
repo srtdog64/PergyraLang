@@ -634,38 +634,27 @@ def _self_host_parser_use_counts(
 def _self_host_direct_selector_counts(
     rows: list[KeywordRow], root: Path
 ) -> dict[str, int]:
+    """Count registry spellings a self-host parser owner selects by text.
+
+    Any `==`/`!=` against a registry spelling, and a MatchKeyword, Expect or
+    ExpectOpt call given one as a literal, chooses a word by its text instead
+    of its LanguageWordId. Every parser owner is scanned whatever it names its
+    variables; a spelling passed to a diagnostic as a fact label is an
+    argument of another call and is not a selector.
+    """
     counts = {row.spelling: 0 for row in rows}
-    selector_variables = {
-        "stmt_owner.pgy": ("head",),
-        "expr_primary_owner.pgy": ("base",),
-        "type_name_owner.pgy": ("base",),
-        "decl_intent_owner.pgy": ("clause",),
-    }
-    parser_root = root / "src/self_hosted/parser"
-    for owner_name, variables in selector_variables.items():
-        source = _without_comments(
-            (parser_root / owner_name).read_text(encoding="utf-8")
-        )
-        variable_pattern = "|".join(re.escape(value) for value in variables)
-        right_literal = re.compile(
-            rf"\b(?:{variable_pattern})\s*(?:==|!=)\s*"
-            r'"([a-z][a-z0-9_]*)"'
-        )
-        left_literal = re.compile(
-            r'"([a-z][a-z0-9_]*)"\s*(?:==|!=)\s*'
-            rf"(?:{variable_pattern})\b"
-        )
-        for spelling in right_literal.findall(source) + left_literal.findall(source):
-            if spelling in counts:
-                counts[spelling] += 1
+    right_literal = re.compile(r'(?:==|!=)\s*"([a-z][a-z0-9_]*)"')
+    left_literal = re.compile(r'"([a-z][a-z0-9_]*)"\s*(?:==|!=)')
     raw_match = re.compile(
-        r'MatchKeyword\s*\([^;\n]*,\s*"([a-z][a-z0-9_]*)"\s*\)'
+        r"\b(?:MatchKeyword|Expect|ExpectOpt)\s*\([^;\n]*,\s*"
+        r'"([a-z][a-z0-9_]*)"\s*\)'
     )
-    for owner in sorted(parser_root.glob("*.pgy")):
+    for owner in sorted((root / "src/self_hosted/parser").glob("*.pgy")):
         source = _without_comments(owner.read_text(encoding="utf-8"))
-        for spelling in raw_match.findall(source):
-            if spelling in counts:
-                counts[spelling] += 1
+        for pattern in (right_literal, left_literal, raw_match):
+            for spelling in pattern.findall(source):
+                if spelling in counts:
+                    counts[spelling] += 1
     return counts
 
 
