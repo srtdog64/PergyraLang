@@ -348,14 +348,34 @@ stdlib_scalar_check_string_split(ASTNode *expr, const char *name,
 
 /* ToInt and ToFloat parse text: the runtime reads the argument as a C
  * string, so a number reached it as a pointer and crashed. A numeric
- * conversion is spelled `value as Int` / `value as Float`. */
+ * conversion is spelled `value as Int` / `value as Float`, and a number
+ * passed to them is refused at the call with that spelling. */
+static void
+stdlib_scalar_require_parsed_text_arg(ASTNode *expr, const char *name,
+                                      const char *target, SemanticContext *ctx)
+{
+    ASTNode *arg = ast_call_argument(expr, 0);
+    Type *arg_type = type_check_expression(arg, ctx);
+
+    if (type_equals(arg_type, TYPE_INT) || type_equals(arg_type, TYPE_LONG)
+        || type_equals(arg_type, TYPE_FLOAT) || type_equals(arg_type, TYPE_DOUBLE)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+            PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
+            "%s parses a String; convert a number with 'value as %s'",
+            name, target);
+        return;
+    }
+    require_assignable(arg_type, TYPE_STRING, arg, ctx);
+}
+
 static Type *
 stdlib_scalar_check_to_int(ASTNode *expr, const char *name,
                            SemanticContext *ctx)
 {
     if (!check_call_arity(expr, 1, name, ctx))
         return TYPE_UNKNOWN;
-    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    stdlib_scalar_require_parsed_text_arg(expr, name, "Int", ctx);
     return TYPE_INT;
 }
 
@@ -365,7 +385,7 @@ stdlib_scalar_check_to_float(ASTNode *expr, const char *name,
 {
     if (!check_call_arity(expr, 1, name, ctx))
         return TYPE_UNKNOWN;
-    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    stdlib_scalar_require_parsed_text_arg(expr, name, "Float", ctx);
     return TYPE_FLOAT;
 }
 

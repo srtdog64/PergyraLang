@@ -59,6 +59,12 @@ for name in int float; do
         [[ ! -e "$ROOT_DIR/$out_rel" ]] || fail "$leg left a binary for the refused To${name^} call"
         grep -Eiq "type mismatch|String" "$ROOT_DIR/$out_rel.log" ||
             { cat "$ROOT_DIR/$out_rel.log" >&2; fail "$leg refused To${name^} for another reason"; }
+        # Native names the cast at the call; it once said only "cannot
+        # assign 'Float' to 'String'" at 0:0 for an argument expression.
+        [[ "$leg" != native-c ]] ||
+            grep -Fq "To${name^} parses a String; convert a number with 'value as ${name^}'" \
+                "$ROOT_DIR/$out_rel.log" ||
+            { cat "$ROOT_DIR/$out_rel.log" >&2; fail "native no longer names the cast for To${name^}"; }
     done
 done
 
