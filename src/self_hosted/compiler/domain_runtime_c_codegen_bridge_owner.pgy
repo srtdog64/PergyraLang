@@ -369,17 +369,8 @@ func CompilerDomainRuntimeCZoneSyncBlock(
             )
         ))
     );
-    return Concat(
-        "static void ", Concat(
-            CompilerSymbolCQualifiedName(owner_name, "sync"), Concat(
-                "(", Concat(
-                    CompilerSymbolCIdentifier(owner_name), Concat(
-                        " *self)\n{\n", Concat(wrapped, "}\n\n")
-                    )
-                )
-            )
-        )
-    );
+    return Concat(Concat("static void ", CompilerSymbolCQualifiedName(owner_name, "sync")),
+        Concat(Concat("(", CompilerSymbolCIdentifier(owner_name)), Concat(" *self)\n{\n", Concat(wrapped, "}\n\n"))));
 }
 
 func CompilerDomainRuntimeCZoneFrontierPassLimit(
@@ -403,10 +394,16 @@ func CompilerDomainRuntimeCZoneFrontierPassLimit(
     if found >= 0 {
         let pass_limit: Int =
             admitted.domain_topology_plan.owner_pass_limits[found];
-        if pass_limit <= 0 {
+        if pass_limit > 0 { return pass_limit; }
+        // Apply rows are one-shot lifecycle transitions with no refresh node,
+        // so an apply-only owner has no graph pass. Its sync turns each layer
+        // on in one pass and sees nothing change in the next, the room
+        // native's count floor gives it.
+        if admitted.domain_topology_plan.owner_node_counts[found] != 0 ||
+            MirDomainRuntimePlanOperationCountForOwner(admitted.domain_runtime_plan, owner_name) <= 0 {
             Die("domain runtime zone frontier pass limit is invalid");
         }
-        return pass_limit;
+        return 2;
     }
     if MirDomainRuntimePlanOperationCountForOwner(
         admitted.domain_runtime_plan, owner_name

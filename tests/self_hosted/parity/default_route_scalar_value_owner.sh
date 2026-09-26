@@ -8,6 +8,10 @@
 # - DirWalk stays inside PGY_IO_ROOT: a relative root resolves under it, and
 #   `..` or an absolute directory outside it lists nothing. The default route
 #   once walked any path with its own opendir loop.
+# - A zone whose only topology row is `apply` runs its typed intent on the
+#   default route. Apply rows add no refresh node, so the self-host frontier
+#   plan gave the zone no sync pass and code generation stopped; its sync
+#   needs one pass to turn the layer on and one to see nothing change.
 # - Abs, Min and Max keep a Long operand's width.
 # - A Long literal past the signed 64-bit range is refused, not wrapped.
 # - A call argument of Min, Max or Abs, as in Max(lo, Min(hi, v)), is typed
@@ -218,4 +222,67 @@ for leg in native-c native-llvm default-c; do
           fail "$leg DirWalk left PGY_IO_ROOT"; }
 done
 
-echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result and DirWalk inside PGY_IO_ROOT agree with native C, and an out-of-range Long literal and a mismatched try error type are refused: PASS"
+cat >"$WORK_DIR/zone_apply_only.pgy" <<'PGY'
+tobject Hit { left: Int; }
+tobject Miss { code: Int; }
+enum Swing { Landed(Hit), Missed(Miss) }
+enum Bout { Won(Hit), Lost(Miss) }
+
+effect Poisoned for bearer: Player { }
+
+within BattleZone {
+    subject Player {
+        let mut hp: Int;
+
+        action Strike(self, amount: Int) -> Swing
+            authorized by self
+            causes Poisoned
+        {
+            if amount > self.hp { return Missed(Miss(1)); }
+            self.hp = self.hp - amount;
+            return Landed(Hit(self.hp));
+        }
+    }
+}
+
+zone BattleZone {
+    subject slot player: Player
+    effect slot poison: Poisoned
+    authority player
+    apply poison to player by player
+}
+
+intent Fight(battle: BattleZone, player: Player, amount: Int) -> Bout {
+    step Swing {
+        where: BattleZone;
+        using: battle;
+        who: player;
+        authorized by: player;
+        on swing: player.Strike(amount);
+        success: Landed(hit);
+        failure: Missed(miss);
+    }
+    success Swing: Won(hit);
+    failure Swing: Lost(miss);
+}
+
+func Show(bout: Bout) -> Void {
+    match bout {
+        case Won(hit): Log("won " + ToString(hit.left));
+        case Lost(miss): Log("lost " + ToString(miss.code));
+    }
+}
+
+func Main() -> Void {
+    let player = Player(10);
+    let battle = BattleZone(Clone(player));
+    Show(Fight(battle, player, 3));
+    Show(Fight(battle, player, 4));
+    Show(Fight(battle, player, 9));
+    Log(player.hp);
+}
+PGY
+expect_values zone-apply-only "$WORK_REL/zone_apply_only.pgy" \
+    $'won 7\nwon 3\nlost 1\n3' native-c native-llvm default-c
+
+echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result, DirWalk inside PGY_IO_ROOT and a zone made only of apply rows agree with native C, and an out-of-range Long literal and a mismatched try error type are refused: PASS"
