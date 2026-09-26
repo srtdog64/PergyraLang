@@ -12,6 +12,10 @@
 #   default route. Apply rows add no refresh node, so the self-host frontier
 #   plan gave the zone no sync pass and code generation stopped; its sync
 #   needs one pass to turn the layer on and one to see nothing change.
+#   The zone's subject slot is not a live view of the participant: it keeps
+#   the value its constructor got and is bound to `who` only during a
+#   `using:` step (docs/34), so it still reads 10 after the participant
+#   drops to 3.
 # - Abs, Min and Max keep a Long operand's width.
 # - A Long literal past the signed 64-bit range is refused, not wrapped.
 # - A call argument of Min, Max or Abs, as in Max(lo, Min(hi, v)), is typed
@@ -280,9 +284,10 @@ func Main() -> Void {
     Show(Fight(battle, player, 4));
     Show(Fight(battle, player, 9));
     Log(player.hp);
+    Log(battle.player.hp);
 }
 PGY
 expect_values zone-apply-only "$WORK_REL/zone_apply_only.pgy" \
-    $'won 7\nwon 3\nlost 1\n3' native-c native-llvm default-c
+    $'won 7\nwon 3\nlost 1\n3\n10' native-c native-llvm default-c
 
 echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result, DirWalk inside PGY_IO_ROOT and a zone made only of apply rows agree with native C, and an out-of-range Long literal and a mismatched try error type are refused: PASS"

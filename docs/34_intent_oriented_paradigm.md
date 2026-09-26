@@ -232,9 +232,14 @@ registry를 직접 읽을 수 있다.
 실제로 materialize한 뒤 sync를 돈다. `transfer: source -> target;`가 붙으면
 source/target zone을 둘 다 live sync하고 `[transfer] ...` trace를 남기며
 target zone 쪽으로 handoff materialization을 수행한다. 이제 step body는
-`using:` zone의 live subject slot pointer에 `who` participant alias를 재바인딩한 뒤
-실행되고, sync 후 canonical participant로 복구된다. 그래서 zone method가 deep nested
+`using:` zone의 subject slot을 `who` participant에 묶은 채 실행되고, sync가 끝나면
+slot은 zone이 보관하던 원래 값으로 돌아간다. 그래서 zone method가 deep nested
 participant state를 직접 바꿔도 clause evaluation, rollback, final participant state가 맞는다.
+상태의 기준은 participant 변수다. zone의 subject slot은 participant를 가리키는 live
+참조가 아니다. 생성자가 받은 값을 보관하다가 `using:` step 동안에만 participant에
+묶인다. step 밖에서 `zone.slot`을 읽으면 생성 때 값이 보이고, step 밖에서
+participant를 바꿔도 slot은 그대로다. 세 경로(native C, native LLVM, default C)가
+같은 값을 낸다.
 rollback도 이제 intent-level policy를 가진다:
 
 - `rollback: full` = completed step 전체를 reverse-order로 보상
