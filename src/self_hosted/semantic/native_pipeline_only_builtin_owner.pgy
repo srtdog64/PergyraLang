@@ -32,9 +32,13 @@ func SemanticNativePipelineOnlyBuiltinNames() -> Array<String> {
         "Input",
         "IntoClassical",
         "IsNone",
+        "LogBanner",
+        "LogBlock",
+        "LogRaw",
         "IsCollapsed",
         "Measure",
         "QubitState",
+        "ReadLine",
         "SendTimeout",
         "TimerNew",
         "TrySend"

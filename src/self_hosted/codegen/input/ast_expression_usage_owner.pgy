@@ -40,6 +40,7 @@ struct CodegenExpressionUsageFacts {
     let has_spawn: Bool;
     let has_task_observation: Bool;
     let has_try_file: Bool;
+    let has_clock: Bool;
 }
 
 struct CodegenExpressionParts {
@@ -87,6 +88,7 @@ func CodegenUsageBuiltinGroupArtifactTransaction() -> Int { return 22; }
 func CodegenUsageBuiltinGroupIntentObservability() -> Int { return 23; }
 func CodegenUsageBuiltinGroupTaskObservation() -> Int { return 24; }
 func CodegenUsageBuiltinGroupTryFile() -> Int { return 25; }
+func CodegenUsageBuiltinGroupClock() -> Int { return 26; }
 
 func CodegenUsageBuiltinGroupCalleeCount(group: Int) -> Int {
     if group == CodegenUsageBuiltinGroupArgs() { return 1; }
@@ -116,6 +118,7 @@ func CodegenUsageBuiltinGroupCalleeCount(group: Int) -> Int {
     }
     if group == CodegenUsageBuiltinGroupTaskObservation() { return 1; }
     if group == CodegenUsageBuiltinGroupTryFile() { return 2; }
+    if group == CodegenUsageBuiltinGroupClock() { return 2; }
     return 0;
 }
 
@@ -155,30 +158,24 @@ func CodegenUsageBuiltinGroupCalleeAt(group: Int, index: Int) -> String {
         if index == 28 { return "SubIndexOf"; }
         if index == 29 { return "SubStartsWith"; }
     }
-    if group == CodegenUsageBuiltinGroupMath() {
-        if index == 0 { return "Abs"; }
-        if index == 1 { return "Min"; }
-        if index == 2 { return "Max"; }
-    }
+    if group == CodegenUsageBuiltinGroupMath() && index == 0 { return "Abs"; }
+    if group == CodegenUsageBuiltinGroupMath() && index == 1 { return "Min"; }
+    if group == CodegenUsageBuiltinGroupMath() && index == 2 { return "Max"; }
     if group == CodegenUsageBuiltinGroupArraySort() && index == 0 { return "ArraySort"; }
     if group == CodegenUsageBuiltinGroupArrayReverse() && index == 0 { return "ArrayReverse"; }
     if group == CodegenUsageBuiltinGroupArrayMap() && index == 0 { return "ArrayMap"; }
     if group == CodegenUsageBuiltinGroupArrayFilter() && index == 0 { return "ArrayFilter"; }
-    if group == CodegenUsageBuiltinGroupResult() {
-        if index == 0 { return "Ok"; }
-        if index == 1 { return "Err"; }
-        if index == 2 { return "IsOk"; }
-        if index == 3 { return "IsErr"; }
-        if index == 4 { return "Unwrap"; }
-        if index == 5 { return "UnwrapErr"; }
-        if index == 6 { return "UnwrapOr"; }
-    }
-    if group == CodegenUsageBuiltinGroupOption() {
-        if index == 0 { return "Some"; }
-        if index == 1 { return "IsSome"; }
-        if index == 2 { return "UnwrapOption"; }
-        if index == 3 { return "CharFromCode"; }
-    }
+    if group == CodegenUsageBuiltinGroupResult() && index == 0 { return "Ok"; }
+    if group == CodegenUsageBuiltinGroupResult() && index == 1 { return "Err"; }
+    if group == CodegenUsageBuiltinGroupResult() && index == 2 { return "IsOk"; }
+    if group == CodegenUsageBuiltinGroupResult() && index == 3 { return "IsErr"; }
+    if group == CodegenUsageBuiltinGroupResult() && index == 4 { return "Unwrap"; }
+    if group == CodegenUsageBuiltinGroupResult() && index == 5 { return "UnwrapErr"; }
+    if group == CodegenUsageBuiltinGroupResult() && index == 6 { return "UnwrapOr"; }
+    if group == CodegenUsageBuiltinGroupOption() && index == 0 { return "Some"; }
+    if group == CodegenUsageBuiltinGroupOption() && index == 1 { return "IsSome"; }
+    if group == CodegenUsageBuiltinGroupOption() && index == 2 { return "UnwrapOption"; }
+    if group == CodegenUsageBuiltinGroupOption() && index == 3 { return "CharFromCode"; }
     if group == CodegenUsageBuiltinGroupExit() && index == 0 { return "Exit"; }
     if group == CodegenUsageBuiltinGroupArrayCore() {
         if index == 0 { return "ArrayPush"; }
@@ -197,10 +194,8 @@ func CodegenUsageBuiltinGroupCalleeAt(group: Int, index: Int) -> String {
         if index == 2 { return "FileExists"; }
         if index == 3 { return "WriteFile"; }
     }
-    if group == CodegenUsageBuiltinGroupJoin() {
-        if index == 0 { return "StringJoin"; }
-        if index == 1 { return "Join"; }
-    }
+    if group == CodegenUsageBuiltinGroupJoin() && index == 0 { return "StringJoin"; }
+    if group == CodegenUsageBuiltinGroupJoin() && index == 1 { return "Join"; }
     if group == CodegenUsageBuiltinGroupSplit() {
         if index == 0 { return "Split"; }
         if index == 1 { return "StringSplit"; }
@@ -252,6 +247,8 @@ func CodegenUsageBuiltinGroupCalleeAt(group: Int, index: Int) -> String {
     }
     if group == CodegenUsageBuiltinGroupTryFile() && index == 0 { return "TryReadFile"; }
     if group == CodegenUsageBuiltinGroupTryFile() && index == 1 { return "TryWriteFile"; }
+    if group == CodegenUsageBuiltinGroupClock() && index == 0 { return "Now"; }
+    if group == CodegenUsageBuiltinGroupClock() && index == 1 { return "Sleep"; }
     return "";
 }
 
@@ -297,7 +294,7 @@ func CodegenExpressionSurfaceUsagePresenceFromSemantic(
 ) -> CodegenExpressionSurfaceUsagePresence {
     let groups: Array<Bool> = [];
     let group: Int = 0;
-    while group <= CodegenUsageBuiltinGroupTryFile() {
+    while group <= CodegenUsageBuiltinGroupClock() {
         ArrayPush(groups, false);
         group = group + 1;
     }
@@ -309,7 +306,7 @@ func CodegenExpressionSurfaceUsagePresenceFromSemantic(
             has_none = true;
         }
         group = CodegenUsageBuiltinGroupArgs();
-        while group <= CodegenUsageBuiltinGroupTryFile() {
+        while group <= CodegenUsageBuiltinGroupClock() {
             if !groups[group] {
                 let callee_index: Int = 0;
                 while callee_index < CodegenUsageBuiltinGroupCalleeCount(group) &&
@@ -400,12 +397,13 @@ func CodegenExpressionUsageFactsFromSemantic(facts: SemanticAstExpressionSurface
         graph.has_checked_long_cast,
         graph.has_spawn,
         surface.groups[CodegenUsageBuiltinGroupTaskObservation()],
-        surface.groups[CodegenUsageBuiltinGroupTryFile()]
+        surface.groups[CodegenUsageBuiltinGroupTryFile()],
+        surface.groups[CodegenUsageBuiltinGroupClock()]
     );
 }
 
 func CodegenExpressionUsageKnownGroup(group: Int) -> Result<Int> {
-    if group >= CodegenUsageBuiltinGroupArgs() && group <= CodegenUsageBuiltinGroupTryFile() {
+    if group >= CodegenUsageBuiltinGroupArgs() && group <= CodegenUsageBuiltinGroupClock() {
         return Ok(group);
     }
     return Err("unknown expression usage builtin group");
@@ -442,6 +440,7 @@ func CodegenExpressionUsageGroupPresent(facts: CodegenExpressionUsageFacts, grou
     if known_group == CodegenUsageBuiltinGroupIntentObservability() { return facts.has_intent_observability; }
     if known_group == CodegenUsageBuiltinGroupTaskObservation() { return facts.has_task_observation; }
     if known_group == CodegenUsageBuiltinGroupTryFile() { return facts.has_try_file; }
+    if known_group == CodegenUsageBuiltinGroupClock() { return facts.has_clock; }
     return false;
 }
 

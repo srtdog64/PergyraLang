@@ -86,6 +86,8 @@ func RuntimeCallCName(source_name: String) -> Option<String> {
     if source_name == "TryReadFile" { return Some(HostIORuntimeCTryReadFileFn()); }
     if source_name == "TryWriteFile" { return Some(HostIORuntimeCTryWriteFileFn()); }
     if source_name == "ReadStdin" { return Some(HostIORuntimeCReadStdinFn()); }
+    if source_name == "Now" { return Some(HostIORuntimeCNowFn()); }
+    if source_name == "Sleep" { return Some(HostIORuntimeCSleepFn()); }
     if source_name == "DirWalk" { return Some(HostIORuntimeCDirWalkFn()); }
     if source_name == "Args" { return Some(HostIORuntimeCArgsFn()); }
     if source_name == "CharCode" { return Some(StringRuntimeCCharCodeFn()); }

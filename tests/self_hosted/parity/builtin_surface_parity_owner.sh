@@ -35,8 +35,12 @@ JOBS="${PGY_BUILTIN_SURFACE_JOBS:-8}"
 SURVEY="${PGY_BUILTIN_SURFACE_SURVEY:-0}"
 NATIVE_ONLY_CODE="builtin_native_pipeline_only"
 
-# Builtins outside the table that the matrix also holds to one surface.
-EXTRA_ROWS="UnwrapErr UnwrapOr"
+# Builtins outside the table that the matrix also holds to one surface. The
+# native checker resolves more names than the table lists
+# (src/semantic/type_checker_builtins_resolve.c); the clock and log/read rows
+# here are the ones a program on the default route reported as an undefined
+# function, or accepted and then failed in the C compiler (Now).
+EXTRA_ROWS="LogBanner LogBlock LogRaw Now ReadLine Sleep UnwrapErr UnwrapOr"
 
 # Rows neither front end accepts: name|reason.
 BOTH_REFUSED_ROWS='
@@ -72,14 +76,18 @@ HasZoneState|world state query; no self-host domain-query protocol row
 Input|prompted console read; the default route has no Input runtime
 IntoClassical|experimental qubit surface; the default route has no qubit runtime|ClaimQubit
 IsCollapsed|experimental qubit surface; the default route has no qubit runtime
+LogBanner|the default route has no banner log runtime; it reported an undefined function
+LogBlock|the default route has no block log runtime; it reported an undefined function
+LogRaw|the default route has no raw log runtime; it reported an undefined function
 IsNone|the self-host types Option builtins by name before resolution (TYPED_PROTOCOL, docs/205 R7); IsNone is shadowable, so it waits for the declared-callable fact
 Measure|experimental qubit surface; the default route has no qubit runtime
 QubitState|experimental qubit surface; the default route has no qubit runtime
+ReadLine|the default route has no line-read runtime (ReadStdin reads a byte count); it reported an undefined function
 SendTimeout|the default route has no channel runtime (a <- send or receive is refused)
 TimerNew|untyped state tool (native types it Unknown); no default-route runtime
 TrySend|the default route has no channel runtime (a <- send or receive is refused)
 '
-NATIVE_ONLY_PINNED=27
+NATIVE_ONLY_PINNED=31
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1

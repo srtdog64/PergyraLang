@@ -4918,7 +4918,7 @@ require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" 'impor
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "func CompilerRuntimeCallAbiManifestRowAt"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "CompilerRuntimeCallAbiConcreteRowCount()"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "schema=pgy.selfhost.runtime-call-abi-row.v2"
-require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=268"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=270"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
     '267|task|is-cancelled|pgy_task_is_cancelled_export|function|target_library|returns_bool'
 require_file "src/self_hosted/codegen/runtime_abi/task_runtime_owner.pgy"

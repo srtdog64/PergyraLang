@@ -56,6 +56,7 @@ struct CodegenRuntimeUsageFacts {
     let uses_checked_long_cast: Bool;
     hashmap_type_names: Array<String>;
     let uses_task_observation: Bool;
+    let uses_clock: Bool;
 }
 
 func CodegenRuntimeUsageFactsFromSemantic(
@@ -183,6 +184,7 @@ func CodegenRuntimeUsageFactsFromSemantic(
         uses_checked_int_cast,
         uses_checked_long_cast,
         type_usage.hashmap_type_names,
-        uses_task_observation
+        uses_task_observation,
+        CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupClock())
     );
 }

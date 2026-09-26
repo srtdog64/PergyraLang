@@ -645,6 +645,22 @@ func Main() -> Void {
     if Log2(8.0) == 3.0 { Log("log2 ok"); } else { Log("log2 bad"); }
 }
 
+== LogBanner
+func Main() -> Void {
+    LogBanner("banner");
+}
+
+== LogBlock
+func Main() -> Void {
+    LogBlock("block");
+}
+
+== LogRaw
+func Main() -> Void {
+    LogRaw("raw");
+    Log("");
+}
+
 == Lower
 func Main() -> Void {
     Log(Lower("MiXeD"));
@@ -684,6 +700,12 @@ func Bit(q: QubitSlot) -> Int {
 
 func Main() -> Void {
     Log("measure declared");
+}
+
+== Now
+func Main() -> Void {
+    let t: Int = Now();
+    if t >= 0 || t < 0 { Log("now ok"); }
 }
 
 == PI
@@ -740,6 +762,12 @@ func Main() -> Void {
     Log(ReadFile("readfile.txt"));
 }
 
+== ReadLine
+func Main() -> Void {
+    let line: String = ReadLine();
+    Log(line);
+}
+
 == ReadStdin
 func Main() -> Void {
     Log(ReadStdin(64));
@@ -793,6 +821,12 @@ func Main() -> Void {
 == Sin
 func Main() -> Void {
     if Sin(0.0) == 0.0 { Log("sin ok"); } else { Log("sin bad"); }
+}
+
+== Sleep
+func Main() -> Void {
+    Sleep(1);
+    Log("slept");
 }
 
 == SliceCopy

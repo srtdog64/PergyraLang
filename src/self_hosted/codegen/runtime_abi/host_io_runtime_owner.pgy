@@ -3,6 +3,7 @@
 // Self-host C host file/argv runtime symbol facts for the supported codegen subset.
 
 import "../text/text_owner.pgy";
+import "../../compiler/abi_layout_row_owner.pgy";
 import "collection_runtime_owner.pgy";
 import "result_runtime_owner.pgy";
 
@@ -68,6 +69,35 @@ func HostIORuntimeCFileHandleValidFn() -> String {
 
 func HostIORuntimeCReadFileFn() -> String {
     return "pgy_readfile";
+}
+
+func HostIORuntimeCNowFn() -> String {
+    return "pgy_host_now_ms";
+}
+
+func HostIORuntimeCSleepFn() -> String {
+    return "pgy_host_sleep_ms";
+}
+
+// Now() and Sleep(ms) as native's pgy_now_ms and pgy_sleep_ms define them:
+// milliseconds as Int, truncated like native, and a non-positive sleep
+// returns at once. The names cannot collide with native's when
+// pgy_runtime.h is also included. Windows gets the two kernel32
+// declarations instead of <windows.h>, so no Windows macro reaches the
+// emitted program.
+func HostIORuntimeCClockBlock() -> String {
+    let int_type: String = CompilerAbiLayoutIntCValueType();
+    let block: String = "#ifdef _WIN32\n__declspec(dllimport) void __stdcall Sleep(unsigned long);\n";
+    block = Concat(block, "__declspec(dllimport) unsigned long long __stdcall GetTickCount64(void);\n#else\n#include <errno.h>\n#include <time.h>\n#endif\n");
+    block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(HostIORuntimeCNowFn(), "(void)\n{\n")))));
+    block = Concat(block, Concat("#ifdef _WIN32\n    return (", Concat(int_type, ")GetTickCount64();\n#else\n    struct timespec ts;\n")));
+    block = Concat(block, "    if (clock_gettime(CLOCK_REALTIME, &ts) != 0)\n        return 0;\n");
+    block = Concat(block, Concat("    return (", Concat(int_type, ")((ts.tv_sec * 1000LL) + (ts.tv_nsec / 1000000LL));\n#endif\n}\n\n")));
+    block = Concat(block, Concat("static void ", Concat(HostIORuntimeCSleepFn(), Concat("(", Concat(int_type, " ms)\n{\n")))));
+    block = Concat(block, "    if (ms <= 0)\n        return;\n#ifdef _WIN32\n    Sleep((unsigned long)ms);\n#else\n    struct timespec req;\n");
+    block = Concat(block, "    req.tv_sec = ms / 1000;\n    req.tv_nsec = (long)((ms % 1000) * 1000000L);\n");
+    block = Concat(block, "    while (nanosleep(&req, &req) != 0 && errno == EINTR) {\n    }\n#endif\n}\n\n");
+    return block;
 }
 
 func HostIORuntimeCReadStdinFn() -> String {

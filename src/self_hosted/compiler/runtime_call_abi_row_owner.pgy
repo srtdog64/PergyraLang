@@ -197,18 +197,16 @@ func CompilerRuntimeCallAbiStringCallShape(operation: String) -> String {
 }
 
 func CompilerRuntimeCallAbiHostIoCallShape(operation: String) -> String {
-    if operation == "file-exists" || operation == "path-allowed" {
-        return "string_to_bool";
-    }
+    if operation == "file-exists" || operation == "path-allowed" { return "string_to_bool"; }
     if operation == "write-file" { return "string_string_to_bool"; }
-    if operation == "file-open" || operation == "secure-file-open" {
-        return "string_string_to_handle";
-    }
+    if operation == "file-open" || operation == "secure-file-open" { return "string_string_to_handle"; }
     if operation == "file-write" { return "handle_string_to_bool"; }
     if operation == "file-close" { return "handle_to_void"; }
     if operation == "file-read" { return "handle_to_string"; }
     if operation == "read-file" { return "string_to_string"; }
     if operation == "read-stdin" { return "returns_string"; }
+    if operation == "now-ms" { return "returns_int"; }
+    if operation == "sleep-ms" { return "int_to_void"; }
     if operation == "dir-walk" { return "string_to_array_string"; }
     if operation == "dir-walk-rec" { return "string_array_string_to_void"; }
     if operation == "string-compare" { return "string_string_to_int"; }
@@ -216,10 +214,7 @@ func CompilerRuntimeCallAbiHostIoCallShape(operation: String) -> String {
     if operation == "exit" { return "int_to_noreturn"; }
     if operation == "compiler-artifact-write" { return "int_string_to_bool"; }
     if operation == "compiler-artifact-begin" { return "string_to_int"; }
-    if operation == "compiler-artifact-commit" ||
-            operation == "compiler-artifact-abort" {
-        return "int_to_int";
-    }
+    if operation == "compiler-artifact-commit" || operation == "compiler-artifact-abort" { return "int_to_int"; }
     return "host_io_runtime_call";
 }
 
@@ -264,7 +259,7 @@ func CompilerRuntimeCallAbiRow(input: CompilerRuntimeCallAbiRowInput) -> String 
     return Concat(row, CompilerRuntimeCallAbiCallShape(input.domain, input.operation, input.materialization));
 }
 
-func CompilerRuntimeCallAbiConcreteRowCount() -> Int { return 268; }
+func CompilerRuntimeCallAbiConcreteRowCount() -> Int { return 270; }
 func CompilerRuntimeCallAbiNativeScalarTypeAt(index: Int) -> String {
     if index == 0 { return "Int"; }
     if index == 1 { return "Long"; }
@@ -556,6 +551,8 @@ func CompilerRuntimeCallAbiRowAt(index: Int) -> String {
     if index == 265 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.reverse-data", CollectionRuntimeLlvmIntReverseFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
     if index == 266 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("checked-arithmetic", "int-division", CheckedArithmeticRuntimeCIntDivisionFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
     if index == 267 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("task", TaskRuntimeIsCancelledOperation(), TaskRuntimeIsCancelledSymbol(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
+    if index == 268 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "now-ms", HostIORuntimeCNowFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 269 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "sleep-ms", HostIORuntimeCSleepFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     return "";
 }
 

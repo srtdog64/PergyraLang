@@ -43,6 +43,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "Log10^Float^Float",
         "Log2^Float^Float",
         "Now^Int^none",
+        "Sleep^Void^Int",
         "Cancel^Bool^Unknown",
         "Random^Int^Int",
         "SeedRandom^Void^Int",

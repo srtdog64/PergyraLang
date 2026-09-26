@@ -487,9 +487,8 @@ func GenerateCUnitFromReadySemanticFacts(
     if uses_random_value {
         TextBuilderAppend(output, MathRuntimeCRandomValueBlock());
     }
-    if uses_seed_random {
-        TextBuilderAppend(output, MathRuntimeCSeedRandomBlock());
-    }
+    if uses_seed_random { TextBuilderAppend(output, MathRuntimeCSeedRandomBlock()); }
+    if usage.uses_clock { TextBuilderAppend(output, HostIORuntimeCClockBlock()); }
     if uses_result { TextBuilderAppend(output, OptionResultRuntimeCResultIntBlock()); if usage.uses_remote_future { TextBuilderAppend(output, CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitHelperBlock()); } }
     if uses_option {
         TextBuilderAppend(output, OptionResultRuntimeCOptionScalarBlock());

@@ -1,5 +1,5 @@
 schema=pgy.selfhost.runtime-call-abi-row.v2
-count=268
+count=270
 0|collection|array-int.new|pgy_ai_new|function|generated_runtime_helper|returns_collection
 1|collection|array-int.push|pgy_ai_push|function|generated_runtime_helper|collection_value_to_void
 2|collection|array-int.set|pgy_ai_set|function|generated_runtime_helper|collection_index_value_to_void
@@ -268,6 +268,8 @@ count=268
 265|collection|array-int.reverse-data|pgy_array_reverse_Int|function|target_library|data_count_to_void
 266|checked-arithmetic|int-division|pgy_checked_div_i32_export|function|target_library|i32_i32_to_i32
 267|task|is-cancelled|pgy_task_is_cancelled_export|function|target_library|returns_bool
+268|host-io|now-ms|pgy_host_now_ms|function|generated_runtime_helper|returns_int
+269|host-io|sleep-ms|pgy_host_sleep_ms|function|generated_runtime_helper|int_to_void
 constructed_probe=Vec2
 constructed_probe=Array<Int>
 constructed_probe=HashMap<String, Int>
