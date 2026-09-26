@@ -74,10 +74,12 @@ require_text src/codegen/transpiler_entry.c \
     "C backend: verified parallel-capture plan required"
 require_text src/codegen/llvm_api.c \
     "LLVM backend: verified parallel-capture plan required"
+# Module-level runtime declarations read static rows by type name; a
+# runtime-call row lookup without an active MIR routine fails closed.
 require_text src/codegen/llvm_runtime_row.c \
-    "ctx != NULL && ctx->current_mir_routine == NULL"
+    "llvm_runtime_declaration_row(const char *abi_type_name"
 require_text src/codegen/llvm_runtime_row.c \
-    "module-level ABI materialization phase"
+    "MIR-only LLVM path missing active routine for runtime-call ABI row"
 
 # Exercise the carrier through both production backends.  This fixture has a
 # real snapshot capture, so a declaration-only LLVM success is insufficient.
