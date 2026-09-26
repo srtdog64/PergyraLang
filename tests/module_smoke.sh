@@ -127,6 +127,58 @@ func Main() -> Void {
 EOF
 run_ok "implicit_export" "$WORK_DIR/implicit_export/main.pgy" "8"
 
+# An intent takes its file's export visibility like a function: public in a
+# file with no `export`, private in a file with exports unless exported. The
+# module normalizer skipped intents, so an imported intent stayed private.
+mkdir -p "$WORK_DIR/implicit_export_intent" "$WORK_DIR/explicit_export_hides_intent"
+cat > "$WORK_DIR/implicit_export_intent/tasks.pgy" <<'EOF'
+within Shop {
+    subject Worker {
+        let mut done: Int;
+
+        action Finish(self) -> Bool
+            authorized by self
+        {
+            self.done = self.done + 1;
+            return true;
+        }
+    }
+}
+
+zone Shop {
+    subject slot worker: Worker
+    authority worker
+}
+
+intent RunTask(shop: Shop, worker: Worker) {
+    step Work {
+        where: Shop;
+        using: shop;
+        who: worker;
+        authorized by: worker;
+        on: worker.Finish();
+    }
+    success: worker.done > 0;
+}
+EOF
+cat > "$WORK_DIR/implicit_export_intent/main.pgy" <<'EOF'
+import "tasks.pgy";
+func Main() -> Void {
+    let worker = Worker(0);
+    let shop = Shop(Clone(worker));
+    Log(ToString(RunTask(shop, worker)));
+}
+EOF
+run_ok "implicit_export_intent" "$WORK_DIR/implicit_export_intent/main.pgy" "true"
+{ echo 'export func Ping() -> Int { return 1; }'
+  cat "$WORK_DIR/implicit_export_intent/tasks.pgy"; } \
+    > "$WORK_DIR/explicit_export_hides_intent/tasks.pgy"
+cp "$WORK_DIR/implicit_export_intent/main.pgy" \
+    "$WORK_DIR/explicit_export_hides_intent/main.pgy"
+run_fail "explicit_export_hides_intent" \
+    "Callable 'RunTask' is not accessible across the current visibility boundary" \
+    "$WORK_DIR/explicit_export_hides_intent/main.pgy"
+
 mkdir -p "$WORK_DIR/ability_zone_same_module"
 cat > "$WORK_DIR/ability_zone_same_module/mod.pgy" <<'EOF'
 ability Analyst {

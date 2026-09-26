@@ -130,16 +130,23 @@ normalize_statement_list(ASTNode **statements,
         const char *name;
         if (stmt == NULL || stmt->type == AST_NAMESPACE_DECL)
             continue;
-        name = ast_declaration_name(stmt);
-        if (name == NULL)
-            continue;
-
-        char *public_name = join_names(public_prefix, name);
         bool visible = !imported || !has_explicit_exports
             || inherited_export || stmt->is_exported;
         bool explicit_private =
             stmt->has_explicit_access
             && (stmt->access == ACCESS_PRIVATE || stmt->access == ACCESS_PROTECTED);
+        name = ast_declaration_name(stmt);
+        if (name == NULL) {
+            /* An intent has no renamable name slot, so it keeps its name,
+             * but it takes the file's export visibility like a function:
+             * a file with no `export` publishes it, one with exports keeps
+             * it private unless it is exported. */
+            if (imported && stmt->type == AST_INTENT_DECL)
+                stmt->is_exported = visible && !explicit_private;
+            continue;
+        }
+
+        char *public_name = join_names(public_prefix, name);
         char *final_name = visible
             ? pergyra_strdup(public_name)
             : join_names(private_prefix, public_name);
