@@ -39,6 +39,14 @@
       "src/self_hosted/semantic/ast_expression_carried_callable_identity_owner.pgy": "0B86CD17C373EC82DDBA35E44442F00E276080F33F4C9C15D7F7CE5EA06F4C66"
     }
   },
+  "current_delimited_owner_hashes": {
+    "observed_at": "2026-09-27",
+    "note": "Source fingerprint only. This hash sat in current_owner_hashes, where the main scan owner set's hash now is; the smoke looks for each set's hash anywhere in this file, so replacing it dropped the delimited owner's current hash. Historical figures under semantic_delimited_range_facts were not remeasured.",
+    "owner_set_sha256": "5B6DFCD460486EDB9B6AEDCCE0ACCE0F15BA73ACBD543B9EA01E1B926671AEA9",
+    "owner_files_sha256": {
+      "src/self_hosted/semantic/delimited_range_fact_owner.pgy": "01DF83BC86C0A57EAEFEB60690032151E954E46E504FAE796217BBDA2F06B444"
+    }
+  },
   "current_scan_owner_closure": {
     "measured_at": "2026-07-30",
     "owner_set_sha256": "D3DF0BECADFE108046C3EC0003113743C318536115159CF78151216083C78800",
