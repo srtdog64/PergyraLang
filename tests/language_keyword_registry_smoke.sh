@@ -351,6 +351,17 @@ grep -Fq -- "- Direct-selector debt: 0 occurrences across 0 language words." "$I
     exit 1
 }
 
+# parser_unregistered_contextual_selector, self-host half: every word a
+# native parser selects, the self-host parser selects too, by LanguageWordId,
+# and then parses the form or refuses it at that word with a coded
+# diagnostic. A native-only row is a word the self-host parser reads as an
+# ordinary name, so its error lands on the token after it.
+grep -Fxq -- "| native-only | 0 |" "$INVENTORY" || {
+    echo "[language-keyword-registry] parser_unregistered_contextual_selector: a word native selects has no self-host selector" >&2
+    grep -F -- "| native-only |" "$INVENTORY" >&2 || true
+    exit 1
+}
+
 # selfhost_empty_completion_provider: the self-host completion owner builds its
 # items from the registry rows; tests/lsp_completion_registry_smoke.sh runs it
 # and rejects an empty provider.
