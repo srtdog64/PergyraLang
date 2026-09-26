@@ -21,9 +21,16 @@ parser_apply_lexical_zone_context(ASTNode *node, const char *zone_name)
             node->data.func_decl.within_zone = pergyra_strdup(zone_name);
         break;
     case AST_CLASS_DECL:
-        for (size_t i = 0; i < node->data.class_decl.method_count; i++)
-            parser_apply_lexical_zone_context(
-                node->data.class_decl.methods[i], zone_name);
+        /* A subject's actions run under the enclosing zone's contract. Its
+         * plain funcs are hosted methods with no zone contract; MIR refuses a
+         * zone on a non-action method, so they keep none. */
+        for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
+            ASTNode *method = node->data.class_decl.methods[i];
+            if (method != NULL && method->type == AST_FUNC_DECL
+                && !ast_func_is_action(method))
+                continue;
+            parser_apply_lexical_zone_context(method, zone_name);
+        }
         break;
     case AST_NAMESPACE_DECL:
         for (size_t i = 0; i < node->data.namespace_decl.count; i++)

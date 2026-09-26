@@ -123,9 +123,11 @@ func ParseNominalDecl(
             }
             if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
                 ArraySet(cursor_out, 0, i);
+                // A plain func in a `within` subject is a hosted method: only
+                // the subject's actions take the zone's contract.
                 let m_block: String = ParseFunction(
                     content, i, cursor_out, "", false, host_method_indent,
-                    LanguageWordId.WordFunc, "Function: ", false, within_zone,
+                    LanguageWordId.WordFunc, "Function: ", false, "",
                     expression_graphs, location_context
                 );
                 i = cursor_out[0];

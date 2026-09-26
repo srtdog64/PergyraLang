@@ -16,6 +16,9 @@
 #   the value its constructor got and is bound to `who` only during a
 #   `using:` step (docs/34), so it still reads 10 after the participant
 #   drops to 3.
+# - A plain func in a `within` subject is a hosted method an action can call.
+#   Both front ends gave it the zone's action contract: native MIR refused a
+#   zone on a function, and the self-host refused with an unregistered code.
 # - Abs, Min and Max keep a Long operand's width.
 # - A Long literal past the signed 64-bit range is refused, not wrapped.
 # - A call argument of Min, Max or Abs, as in Max(lo, Min(hi, v)), is typed
@@ -290,4 +293,43 @@ PGY
 expect_values zone-apply-only "$WORK_REL/zone_apply_only.pgy" \
     $'won 7\nwon 3\nlost 1\n3\n10' native-c native-llvm default-c
 
-echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result, DirWalk inside PGY_IO_ROOT and a zone made only of apply rows agree with native C, and an out-of-range Long literal and a mismatched try error type are refused: PASS"
+cat >"$WORK_DIR/within_hosted_func.pgy" <<'PGY'
+effect Spent for bearer: Meter { }
+
+within MeterZone {
+    subject Meter {
+        let mut used: Int;
+        let limit: Int;
+
+        func Left(self) -> Int {
+            return limit - used;
+        }
+
+        action Spend(self, k: Int) -> Bool
+            authorized by self
+            causes Spent
+        {
+            if self.Left() < k { return false; }
+            self.used = self.used + k;
+            return true;
+        }
+    }
+}
+
+zone MeterZone {
+    subject slot meter: Meter
+    effect slot spent: Spent
+    authority meter
+    apply spent to meter by meter
+}
+
+func Main() -> Void {
+    let m = Meter(0, 5);
+    Log(ToString(m.Spend(3)) + " " + ToString(m.Spend(3)));
+    Log(m.Left());
+}
+PGY
+expect_values within-hosted-func "$WORK_REL/within_hosted_func.pgy" \
+    $'true false\n2' native-c native-llvm default-c
+
+echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result, DirWalk inside PGY_IO_ROOT, a zone made only of apply rows and a hosted func in a within subject agree with native C, and an out-of-range Long literal and a mismatched try error type are refused: PASS"
