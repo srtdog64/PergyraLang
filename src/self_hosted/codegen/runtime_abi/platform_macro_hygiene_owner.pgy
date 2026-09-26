@@ -1,0 +1,34 @@
+// Self-host C platform macro hygiene owner.
+//
+// The runtime headers include <windows.h> on Windows (file I/O, directory
+// walks, parallel tasks, secure open). Its headers define macros over names a
+// Pergyra program may spell as ordinary identifiers: a local `near` or `far`
+// became nothing and `int32_t near = 1;` failed in the C compiler, and a
+// function `max` would expand into the Windows macro. Native C never meets
+// them because it emits renamed identifiers. Every include and runtime block
+// that could need these macros is emitted before this block, and no runtime
+// macro expands to one of them, so the program's own declarations start with
+// the names free.
+
+func PlatformMacroCIdentifierNames() -> Array<String> {
+    return [
+        // Lowercase macros from minwindef.h, rpcndr.h and objbase.h.
+        "near", "far", "pascal", "cdecl", "small", "hyper", "interface",
+        "min", "max",
+        // Uppercase macros from minwindef.h, winnt.h, wingdi.h and winbase.h.
+        "IN", "OUT", "OPTIONAL", "CONST", "VOID", "ERROR", "DELETE",
+        "TRUE", "FALSE", "NEAR", "FAR", "PASCAL", "CDECL", "CALLBACK",
+        "WINAPI", "APIENTRY", "INFINITE"
+    ];
+}
+
+func PlatformMacroCIdentifierUndefBlock() -> String {
+    let names: Array<String> = PlatformMacroCIdentifierNames();
+    let block: String = "#ifdef _WIN32\n";
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        block = Concat(block, Concat("#undef ", Concat(names[i], "\n")));
+        i = i + 1;
+    }
+    return Concat(block, "#endif\n\n");
+}

@@ -1,0 +1,18 @@
+// Names that Windows headers define as macros. The default route emits them
+// as C identifiers, and file I/O makes the runtime include <windows.h>, so
+// each must still be an ordinary name: a local `near`, `far`, `small`,
+// `interface` or `ERROR`, and a function `max`.
+func max(a: Int, b: Int) -> Int {
+    return a + b;
+}
+
+func Main() -> Void {
+    let r: Result<String, IoError> = TryReadFile("platform_macro_names_missing.txt");
+    let near: Int = 1;
+    let far: Int = 2;
+    let small: Int = 3;
+    let interface: Int = 4;
+    let ERROR: Int = 5;
+    Log(max(near, far) + small + interface + ERROR);
+    if IsErr(r) { Log("missing"); }
+}

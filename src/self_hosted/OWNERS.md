@@ -1905,6 +1905,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   stable target-runtime spellings for intent admission/exit, observation, and
   MIR cleanup shared by self-host C and direct LLVM consumers.
 - `src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy` -- self-host C Allocator/TextBuilder symbol facts; implementation bodies remain owned by the canonical runtime inline headers.
+- `src/self_hosted/codegen/runtime_abi/platform_macro_hygiene_owner.pgy` --
+  undefines the Windows header macros that spell ordinary Pergyra names
+  (`near`, `far`, `max`, ...) before the program's own declarations.
 - `src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy` --
   owner-directed canonical runtime header composition for allocator,
   TextBuilder, BoxArray, and collection consumers; it does not duplicate

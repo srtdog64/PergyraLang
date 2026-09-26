@@ -3,6 +3,8 @@
 # tests/compare_backends.sh cannot see: that harness runs the native pipeline
 # only, so a wrong answer on the default route reached no gate at all.
 # - A C reserved word and the name its C escape spells are distinct bindings.
+# - A name <windows.h> defines as a macro (a local `near`, a function `max`)
+#   is an ordinary name when file I/O pulls the Windows headers in.
 # - Abs, Min and Max keep a Long operand's width.
 # - A Long literal past the signed 64-bit range is refused, not wrapped.
 # - A call argument of Min, Max or Abs, as in Max(lo, Min(hi, v)), is typed
@@ -72,6 +74,8 @@ expect_values() {
 expect_values reserved-word-escape \
     tests/cases/backend_compare/c_reserved_word_escape/main.pgy \
     $'100\n1\n100' native-c native-llvm default-c default-llvm
+expect_values platform-macro-names "$FIXTURES/platform_macro_names.pgy" \
+    $'15\nmissing' native-c native-llvm default-c
 expect_values long-math-width "$FIXTURES/long_math_width.pgy" \
     $'5000000000\n5000000000\n-5000000000\n7\n3\n9\n9223372036854775807' \
     native-c native-llvm default-c

@@ -1,5 +1,6 @@
 // Program-level C assembly owner for self-host C emission.
 import "../text/text_owner.pgy";
+import "../runtime_abi/platform_macro_hygiene_owner.pgy";
 import "../../semantic/ast_artifact_verdict_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/ast_usage_owner.pgy";
@@ -558,9 +559,7 @@ func GenerateCUnitFromReadySemanticFacts(
             )
         ));
     }
-    if uses_math {
-        TextBuilderAppend(output, MathRuntimeCIntUtilityBlock());
-    }
+    if uses_math { TextBuilderAppend(output, MathRuntimeCIntUtilityBlock()); }
     if uses_split {
         TextBuilderAppend(output, StringRuntimeCSplitBlock());
     }
@@ -578,6 +577,7 @@ func GenerateCUnitFromReadySemanticFacts(
         // unit does not re-import scalar runtime bodies it already emitted.
         TextBuilderAppend(output, DomainRuntimeZoneCHeaderIncludeBlock());
     }
+    TextBuilderAppend(output, PlatformMacroCIdentifierUndefBlock());
     TextBuilderAppend(output, type_declaration_block);
     TextBuilderAppend(output, record_array_block);
     TextBuilderAppend(output, CodegenDomainRuntimeSyncBlock(domain_runtime));
