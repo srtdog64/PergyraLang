@@ -19,6 +19,9 @@
 # - A plain func in a `within` subject is a hosted method an action can call.
 #   Both front ends gave it the zone's action contract: native MIR refused a
 #   zone on a function, and the self-host refused with an unregistered code.
+# - An intent called inside the action a step runs is recorded under the
+#   step's intent: IntentActiveParentHandle names the running intent
+#   (docs/34 §9.2.1 (b)).
 # - Abs, Min and Max keep a Long operand's width.
 # - A Long literal past the signed 64-bit range is refused, not wrapped.
 # - A call argument of Min, Max or Abs, as in Max(lo, Min(hi, v)), is typed
@@ -332,4 +335,104 @@ PGY
 expect_values within-hosted-func "$WORK_REL/within_hosted_func.pgy" \
     $'true false\n2' native-c native-llvm default-c
 
-echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result, DirWalk inside PGY_IO_ROOT, a zone made only of apply rows and a hosted func in a within subject agree with native C, and an out-of-range Long literal and a mismatched try error type are refused: PASS"
+cat >"$WORK_DIR/intent_parent_in_action.pgy" <<'PGY'
+tobject Done { n: Int; }
+tobject Stop { code: Int; }
+enum Turn { Answered(Done), Stopped(Stop) }
+enum Task { Delivered(Done), Failed(Stop) }
+
+func ShowActive(tag: String) -> Void {
+    let i: Int = 0;
+    while i < IntentActiveCount() {
+        Log(tag + " " + IntentActiveName(i) + " handle=" + ToString(IntentActiveHandle(i)) +
+            " parent=" + ToString(IntentActiveParentHandle(i)));
+        i = i + 1;
+    }
+}
+
+within Desk {
+    subject Agent {
+        let mut turns: Int;
+
+        action Work(self) -> Turn
+            authorized by self
+        {
+            self.turns = self.turns + 1;
+            ShowActive("child");
+            return Answered(Done(self.turns));
+        }
+    }
+}
+
+within Office {
+    subject Lead {
+        let mut asks: Int;
+
+        action Ask(self, desk: Desk, agent: Agent) -> Turn
+            authorized by self
+        {
+            self.asks = self.asks + 1;
+            let sub: Task = Child(desk, agent);
+            match sub {
+                case Delivered(done): return Answered(done);
+                case Failed(stop): return Stopped(stop);
+            }
+        }
+    }
+}
+
+zone Desk {
+    subject slot agent: Agent
+    authority agent
+}
+
+zone Office {
+    subject slot lead: Lead
+    authority lead
+}
+
+intent Child(desk: Desk, agent: Agent) -> Task {
+    step Run {
+        where: Desk;
+        using: desk;
+        who: agent;
+        authorized by: agent;
+        on turn: agent.Work();
+        success: Answered(done);
+        failure: Stopped(stop);
+    }
+    success Run: Delivered(done);
+    failure Run: Failed(stop);
+}
+
+intent Parent(office: Office, desk: Desk, lead: Lead, agent: Agent) -> Task {
+    step Delegate {
+        where: Office;
+        using: office;
+        who: lead;
+        authorized by: lead;
+        on turn: lead.Ask(desk, agent);
+        success: Answered(done);
+        failure: Stopped(stop);
+    }
+    success Delegate: Delivered(done);
+    failure Delegate: Failed(stop);
+}
+
+func Main() -> Void {
+    let agent = Agent(0);
+    let lead = Lead(0);
+    let desk = Desk(Clone(agent));
+    let office = Office(Clone(lead));
+    let result: Task = Parent(office, desk, lead, agent);
+    match result {
+        case Delivered(done): Log("delivered " + ToString(done.n));
+        case Failed(stop): Log("failed " + ToString(stop.code));
+    }
+}
+PGY
+expect_values intent-parent-in-action "$WORK_REL/intent_parent_in_action.pgy" \
+    $'child Parent handle=1 parent=0\nchild Child handle=2 parent=1\ndelivered 1' \
+    native-c native-llvm default-c
+
+echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result, DirWalk inside PGY_IO_ROOT, a zone made only of apply rows, a hosted func in a within subject and an intent called inside an action agree with native C, and an out-of-range Long literal and a mismatched try error type are refused: PASS"

@@ -718,6 +718,9 @@ intent CompletePurchase(buyer: Member)
 3. 상위 intent의 `compensate`는 하위 intent의 `compensate`를 역순으로 호출한다
 4. 하위 intent는 독립적으로도 호출 가능하다 (소목차만 단독 실행)
 5. 깊이 제한은 없지만, 3단 이상 중첩은 설계 냄새
+6. `intent:`로 부르는 하위 intent는 반환 타입이 없는 Bool intent다. typed intent
+   (`-> Outcome`)는 이 자리에 올 수 없고, native와 default 경로 모두 거부한다.
+   typed 하위 intent의 설계와 결정 대기 항목은 docs/34 §9.2.1에 있다.
 
 ---
 

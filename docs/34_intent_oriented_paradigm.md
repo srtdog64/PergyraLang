@@ -938,6 +938,68 @@ intent CompletePurchase(payment: PaymentZone, buyer: Member)
 - orchestration step은 `where` / `who` 없이도 하위 intent 호출만으로 합법이다
 - 호출되는 하위 intent 자체는 여전히 자기 `where` / `using` / `who` 계약을 만족해야 한다
 - `on:`과 `intent:`를 함께 둘 수 있고, 둘 다 있으면 현재 구현은 `on:`을 먼저 실행한 뒤 하위 intent 호출을 평가한다
+- typed intent(`-> Outcome`)를 `intent:`에 부르면 거부된다. native checker는
+  `intent clause must return Bool for boolean-orchestration`으로, default 경로는
+  `intent_step_clause_not_bool`로 거부한다. default 경로의 위치는 아직 감싼 intent
+  선언 줄이다. step 절은 소스 위치 행을 기록하지 않기 때문이다.
+- typed step의 `on <binding>:` 자리는 subject action 호출 하나만 받는다. typed
+  intent를 step 대상으로 두는 문법은 아직 없다(§9.2.1).
+- intent는 함수나 action 본문에서 값으로 부를 수 있다. action 본문에서 부른 intent는
+  그 action을 돌리는 step의 intent를 부모로 기록한다(`IntentActiveParentHandle`).
+  native C, native LLVM, default C가 같은 값을 낸다(2026-09-27 측정).
+- native는 typed intent 호출을 `match`의 대상으로 바로 쓰면 실패한다. C는 match
+  임시값을 `bool`로 선언해 C 컴파일러가 거부하고, LLVM은 컴파일러가 도중에 멈춘다.
+  `let r: Outcome = Call(...);`로 먼저 받은 뒤 `match r`를 쓰면 된다. default C는
+  바로 쓴 모양도 받는다. 아직 고치지 않았다.
+
+#### 9.2.1 typed 하위 intent — 설계 (미구현)
+
+요구: 부모 목적 안에서 자식 목적이 typed 결과를 내야 하는 경우가 있다. 서브에이전트
+위임이 그 예다(pergyraAgents 하네스). Bool 하위 intent는 자식의 결과 payload를
+버리므로 이 요구를 채우지 못한다.
+
+**(a) 정적 합성.** step의 `on <binding>:` 자리가 typed intent 호출도 받는다. 새
+키워드는 없다.
+
+```pergyra
+intent Delegate(team: TeamZone, child: Agent, prompt: String) -> TaskOutcome {
+    step Hand {
+        on handed: CompleteTask(team, child, prompt);
+        success: TaskDelivered(answer);
+        failure: TaskFailed(stop);
+    }
+    success Hand: TaskDelivered(answer);
+    failure Hand: TaskFailed(stop);
+}
+```
+
+규칙은 action outcome과 같게 둔다.
+
+1. binding의 타입은 자식 intent의 반환 enum이다. `success:`와 `failure:`는 그
+   enum의 서로 다른 variant를 하나씩 정확히 이름 짓고, payload는 tobject다.
+2. 대상이 intent인 step은 `where`/`using`/`who`를 요구하지 않는다. 자식 intent의
+   step들이 자기 계약을 진다. Bool 오케스트레이션과 같다.
+3. intent 호출 그래프의 사이클은 정적으로 거부한다. 자기 자신이나 조상 intent를 다시
+   부르는 경우다. INT-3(docs/173)의 step DAG 규칙을 intent 사이로 넓힌 것이다.
+4. 자식이 성공한 뒤 부모의 뒤 step이 실패하면, 부모 step의 명시 `compensate:` 절이
+   돈다. 자식 안에서 이미 끝난 전이는 다시 보상하지 않는다. 성공 완료 증거가 있는
+   전이만 보상한다는 규칙(docs/self_hosted/19)을 그대로 따른다.
+
+**(b) 동적 호출.** step이 돌리는 action 본문 안에서 부르는 intent다. 모델이 실행 중에
+위임을 고르는 하네스에는 이 모양이 필요하다. (a)는 위임 여부를 선언할 때 정한다.
+
+1. 추적: 자식 intent의 기록은 부르는 순간 활성인 intent를 부모로 가진다. 세 경로가
+   이미 이렇게 기록한다. `default_route_scalar_value_owner.sh`의
+   `intent-parent-in-action` 행이 세 경로의 값을 고정한다.
+2. 권한: 지금 자식 intent의 step은 자기 zone의 authority slot을 다시 요구한다.
+   자식이 부모 step의 zone 권한을 넘지 못하게 하는 규칙은 아직 없다. 자식 zone이
+   부모 step zone 안의 경계여야 하는지가 결정할 문제다.
+3. caps: 지금은 caps를 호출자 쪽으로 전파해 검사하지 않는다. 직접 호출도 같다.
+   2026-09-27 측정에서, `with caps network` action을 caps 선언 없는 `Main`이 불러도
+   native C와 default C가 모두 컴파일했다. "자식의 caps가 부르는 action의 caps에
+   포함되어야 한다"는 규칙은 caps 전파 규칙 전체와 함께 정해야 한다.
+
+결정 대기: (a)의 채택과 문법, (b)-2의 권한 상한, (b)-3의 caps 전파.
 
 ### 9.3 닫힌 시스템 철학
 
