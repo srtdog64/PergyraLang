@@ -23,10 +23,10 @@ evidence.
 |---|---:|
 | native+selfhost-typed | 144 |
 | native+selfhost-direct-only | 0 |
-| native-only | 2 |
+| native-only | 0 |
 | selfhost-typed-only | 0 |
 | selfhost-direct-only | 0 |
-| no-parser-selector | 0 |
+| no-parser-selector | 2 |
 
 ## Action audit
 
@@ -69,7 +69,7 @@ evidence.
 | `compensate` | reserved | native+self_host | 3 | 3 | 0 | 5 | TextMate:keyword.control.pergyra | native+selfhost-typed |
 | `concurrent` | contextual | native+self_host | 1 | 2 | 0 | 1 | TextMate:keyword.other.intent.pergyra | native+selfhost-typed |
 | `continue` | reserved | native+self_host | 2 | 1 | 0 | 8 | TextMate:keyword.control.pergyra | native+selfhost-typed |
-| `continuous` | contextual | native+self_host | 1 | 0 | 0 | 0 | none | native-only |
+| `continuous` | contextual | 0 | 0 | 0 | 0 | 0 | none | no-parser-selector |
 | `current` | soft | native | 1 | 1 | 0 | 7 | none | native+selfhost-typed |
 | `deactivate` | contextual | native | 1 | 1 | 0 | 1 | none | native+selfhost-typed |
 | `default` | reserved | native+self_host | 3 | 3 | 0 | 13 | TextMate:keyword.control.pergyra | native+selfhost-typed |
@@ -81,7 +81,7 @@ evidence.
 | `else` | reserved | native+self_host | 2 | 1 | 0 | 69 | TextMate:keyword.control.pergyra | native+selfhost-typed |
 | `enum` | reserved | native+self_host | 2 | 1 | 0 | 81 | TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `event` | reserved | native+self_host | 5 | 1 | 0 | 17 | TextMate:keyword.other.domain.pergyra | native+selfhost-typed |
-| `every` | contextual | native+self_host | 1 | 0 | 0 | 1 | none | native-only |
+| `every` | contextual | 0 | 0 | 0 | 0 | 1 | none | no-parser-selector |
 | `exclusive` | contextual | native+self_host | 1 | 1 | 0 | 14 | TextMate:keyword.other.intent.pergyra | native+selfhost-typed |
 | `expect` | contextual | native+self_host | 1 | 3 | 0 | 37 | none | native+selfhost-typed |
 | `export` | reserved | native+self_host | 2 | 3 | 0 | 14 | TextMate:keyword.declaration.pergyra | native+selfhost-typed |

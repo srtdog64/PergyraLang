@@ -181,9 +181,12 @@ if actual_native_only != native_only:
         f"actual={sorted(actual_native_only)}"
     )
 
+# No implementation behind the word: the resilience clauses, and the role
+# reactive parallel members, a declared vision surface both parsers refuse
+# at `parallel` (docs/181).
 unavailable = {row.spelling for row in all_rows if row.implementation_support == "0"}
-if unavailable != {"retry", "timeout", "backoff"}:
-    raise SystemExit(f"unimplemented resilience support drifted: {sorted(unavailable)}")
+if unavailable != {"retry", "timeout", "backoff", "every", "continuous"}:
+    raise SystemExit(f"unimplemented word support drifted: {sorted(unavailable)}")
 
 completion = {
     "action", "authority", "authorized", "binding", "causes", "requires", "transfer",
@@ -252,11 +255,18 @@ if missing_registry_rows:
         f"{sorted(missing_registry_rows)}"
     )
 parser_non_reserved = parser_selectors - reserved
-if parser_non_reserved != non_reserved:
+# A contextual word the registry declares unimplemented (support 0, pinned in
+# `unavailable` above) needs no selector; every other contextual/soft row
+# must be read by a native parser.
+unimplemented = {
+    row.spelling for row in non_reserved_rows if row.implementation_support == "0"
+}
+selector_required = non_reserved - unimplemented
+if parser_non_reserved - non_reserved or selector_required - parser_non_reserved:
     raise SystemExit(
         "registry contextual/soft rows and parser selectors disagree: "
         f"parser-only={sorted(parser_non_reserved - non_reserved)}, "
-        f"registry-only={sorted(non_reserved - parser_non_reserved)}"
+        f"registry-only={sorted(selector_required - parser_non_reserved)}"
     )
 PY
 

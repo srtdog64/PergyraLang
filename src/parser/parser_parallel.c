@@ -172,8 +172,9 @@ ASTNode* parser_parse_parallel_block(Parser* parser) {
  * declared vision surface (docs/181 SS2): pinned as the SEA lane surface,
  * gated on duration literals + virtual clock + cooperative cancellation.
  * No rung executes yet, so the form fails closed instead of parsing into
- * a block no checker or emitter consumes. Tokens are still consumed for
- * clean recovery. */
+ * a block no checker or emitter consumes. The body is skipped as one
+ * balanced block for recovery: no parser reads `every` or `continuous`,
+ * and the registry declares no implementation for them. */
 ASTNode*
 parser_parse_reactive_parallel_block(Parser* parser)
 {
@@ -191,40 +192,13 @@ parser_parse_reactive_parallel_block(Parser* parser)
     }
 
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' for parallel block");
-    bool saved_async = parser->in_async_context;
-    parser->in_parallel_block = true;
-    parser->in_async_context = true;
-    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
-        if (parser->current_token.text != NULL
-            && strcmp(parser->current_token.text, "every") == 0) {
-            parser_advance(parser);
-            parser_consume(parser, TOKEN_LPAREN, "Expected '(' after 'every'");
-            ast_destroy(parser_parse_expression(parser));  /* duration count */
-            if (parser_check(parser, TOKEN_IDENTIFIER))
-                parser_advance(parser);  /* unit suffix: ms / s / ... */
-            parser_consume(parser, TOKEN_RPAREN, "Expected ')' after duration");
-            parser_consume(parser, TOKEN_LBRACE, "Expected '{' for every block");
-            ASTNode* body = parser_parse_block(parser);
-            if (body != NULL)
-                ast_add_parallel_task(blk, body);
-        } else if (parser->current_token.text != NULL
-            && strcmp(parser->current_token.text, "continuous") == 0
-            && parser_peek_next(parser).type == TOKEN_LBRACE) {
-            parser_advance(parser);
-            parser_consume(parser, TOKEN_LBRACE, "Expected '{' for continuous block");
-            ASTNode* body = parser_parse_block(parser);
-            if (body != NULL)
-                ast_add_parallel_task(blk, body);
-        } else {
-            ASTNode* stmt = parser_parse_statement(parser);
-            if (stmt != NULL)
-                ast_add_parallel_task(blk, stmt);
-        }
-        if (parser->has_error)
-            parser_synchronize(parser);
+    int depth = 1;
+    while (depth > 0 && !parser_is_at_end(parser)) {
+        if (parser_check(parser, TOKEN_LBRACE))
+            depth++;
+        else if (parser_check(parser, TOKEN_RBRACE))
+            depth--;
+        parser_advance(parser);
     }
-    parser->in_parallel_block = false;
-    parser->in_async_context = saved_async;
-    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after parallel block");
     return blk;
 }

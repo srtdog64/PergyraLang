@@ -46,7 +46,7 @@ func LanguageWordRegistryRowAt(index: Int) -> LanguageWordRegistryRow {
     if index == 25 { return LanguageWordRegistryRow(true, "compensate", "COMPENSATE", 1, "reserved", 18, 2, "execution", 3, 4, "keyword.control.pergyra", false); }
     if index == 26 { return LanguageWordRegistryRow(true, "concurrent", "CONCURRENT", 2, "contextual", 16, 2, "execution", 3, 4, "keyword.other.intent.pergyra", false); }
     if index == 27 { return LanguageWordRegistryRow(true, "continue", "CONTINUE", 1, "reserved", 2, 2, "execution", 3, 4, "keyword.control.pergyra", false); }
-    if index == 28 { return LanguageWordRegistryRow(true, "continuous", "CONTINUOUS", 2, "contextual", 2, 2, "execution", 3, 0, "", false); }
+    if index == 28 { return LanguageWordRegistryRow(true, "continuous", "CONTINUOUS", 2, "contextual", 2, 2, "execution", 0, 0, "", false); }
     if index == 29 { return LanguageWordRegistryRow(true, "current", "CURRENT", 3, "soft", 16, 2, "execution", 1, 0, "", false); }
     if index == 30 { return LanguageWordRegistryRow(true, "deactivate", "DEACTIVATE", 2, "contextual", 128, 3, "domain", 1, 0, "", false); }
     if index == 31 { return LanguageWordRegistryRow(true, "default", "DEFAULT", 1, "reserved", 16, 0, "general", 3, 4, "keyword.control.pergyra", false); }
@@ -58,7 +58,7 @@ func LanguageWordRegistryRowAt(index: Int) -> LanguageWordRegistryRow {
     if index == 37 { return LanguageWordRegistryRow(true, "else", "ELSE", 1, "reserved", 16, 2, "execution", 3, 4, "keyword.control.pergyra", false); }
     if index == 38 { return LanguageWordRegistryRow(true, "enum", "ENUM", 1, "reserved", 9, 4, "type-contract", 3, 4, "keyword.declaration.pergyra", false); }
     if index == 39 { return LanguageWordRegistryRow(true, "event", "EVENT", 1, "reserved", 265, 4, "type-contract", 3, 4, "keyword.other.domain.pergyra", false); }
-    if index == 40 { return LanguageWordRegistryRow(true, "every", "EVERY", 2, "contextual", 2, 2, "execution", 3, 0, "", false); }
+    if index == 40 { return LanguageWordRegistryRow(true, "every", "EVERY", 2, "contextual", 2, 2, "execution", 0, 0, "", false); }
     if index == 41 { return LanguageWordRegistryRow(true, "exclusive", "EXCLUSIVE", 2, "contextual", 16, 2, "execution", 3, 4, "keyword.other.intent.pergyra", false); }
     if index == 42 { return LanguageWordRegistryRow(true, "expect", "EXPECT", 2, "contextual", 64, 2, "execution", 3, 0, "", false); }
     if index == 43 { return LanguageWordRegistryRow(true, "export", "EXPORT", 1, "reserved", 33, 0, "general", 3, 4, "keyword.declaration.pergyra", false); }
