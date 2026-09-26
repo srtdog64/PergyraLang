@@ -1,0 +1,24 @@
+// World members the native parser reads with language words: zone slots,
+// state rows over a zone slot with a projection, layer or zone-state detail,
+// composed states, and the activate / deactivate / maintain directives. The
+// source order is mixed; the tree prints native's member order.
+
+zone BattleZone { }
+
+world GameWorld {
+    zone battle: BattleZone
+    state battleView: zone battle projection scoreboard
+    activate battle
+    zone camp: BattleZone
+    state battleLive: zone battle
+    state battleLayer: zone battle layer burning
+    deactivate camp
+    state campWarm: zone camp state warm
+    state allLive: all battleLive, campWarm
+    state anyLive: any battleView, battleLayer
+    maintain camp
+}
+
+func Main() -> Void {
+    Log("world state directives");
+}

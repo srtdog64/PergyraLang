@@ -1,0 +1,85 @@
+// Self-host parser zone slot-group owner.
+//
+// Native parse_zone_declaration reads `subjects|objects|tobjects [a, b]: T`
+// and `effects|relations [a, b]: T` (src/parser/parser_domain_projection.c
+// selects the group word) and appends one slot per listed name, so the tree
+// shows the same rows as one `<kind> slot NAME: T` line per name. A slot
+// group takes any type; a layer group takes a type name, as native does.
+
+import "cursor_owner.pgy";
+import "tree_text_owner.pgy";
+import "type_name_owner.pgy";
+import "source_refusal_owner.pgy";
+
+struct ParserZoneSlotGroupRows {
+    present: Bool;
+    // Effect and relation groups are layer slots; native prints them after
+    // every subject/object/tobject slot.
+    layer: Bool;
+    tree_rows: String;
+}
+
+func ParseZoneSlotGroupRows(
+    context: ParserSourceLocationContext,
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>
+) -> ParserZoneSlotGroupRows {
+    let group_word: LanguageWordId = LanguageWordId.WordSubjects;
+    let row_label: String = "SubjectSlot";
+    let layer: Bool = false;
+    if MatchLanguageWord(content, start, LanguageWordId.WordObjects) {
+        group_word = LanguageWordId.WordObjects;
+        row_label = "ObjectSlot";
+    } else if MatchLanguageWord(content, start, LanguageWordId.WordTobjects) {
+        group_word = LanguageWordId.WordTobjects;
+        row_label = "TObjectSlot";
+    } else if MatchLanguageWord(content, start, LanguageWordId.WordEffects) {
+        group_word = LanguageWordId.WordEffects;
+        row_label = "EffectSlot";
+        layer = true;
+    } else if MatchLanguageWord(content, start, LanguageWordId.WordRelations) {
+        group_word = LanguageWordId.WordRelations;
+        row_label = "RelationSlot";
+        layer = true;
+    } else if !MatchLanguageWord(content, start, LanguageWordId.WordSubjects) {
+        ArraySet(cursor_out, 0, start);
+        return ParserZoneSlotGroupRows(false, false, "");
+    }
+    let i: Int = ParseExpectIn(context, content,
+        LanguageWordEnd(start, group_word), "[", "zone_slot_group");
+    let names: Array<String> = [];
+    while true {
+        ArrayPush(names, ParseNameIn(context, content, i,
+            "slot name in group", "zone_slot_group", cursor_out));
+        i = SkipWhitespaceAndComments(content, cursor_out[0]);
+        if ParserCharAt(content, i) != "," {
+            break;
+        }
+        i = i + 1;
+    }
+    i = ParseExpectIn(context, content, i, "]", "zone_slot_group");
+    i = ParseExpectIn(context, content, i, ":", "zone_slot_group");
+    let group_type: String = "";
+    if layer {
+        group_type = ParseNameIn(context, content, i,
+            "layer type", "zone_slot_group", cursor_out);
+    } else {
+        ArraySet(cursor_out, 0, i);
+        group_type = ReadTypeIn(context, content, i, cursor_out);
+        if group_type == "" {
+            ParseRefuse(context, SkipWhitespaceAndComments(content, i),
+                "type_name_invalid", "construct", "zone_slot_group", "", "");
+        }
+    }
+    let end: Int = cursor_out[0];
+    let rows: String = "";
+    let k: Int = 0;
+    while k < ArrayLength(names) {
+        rows = AppendLine(rows, Concat("    ", Concat(row_label, Concat(": ",
+            Concat(names[k], Concat(": ", group_type))))));
+        k = k + 1;
+    }
+    ArraySet(cursor_out, 0, end);
+    return ParserZoneSlotGroupRows(true, layer, rows);
+}

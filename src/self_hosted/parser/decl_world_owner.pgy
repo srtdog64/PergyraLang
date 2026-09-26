@@ -1,0 +1,213 @@
+// Self-host parser world declaration owner.
+//
+// A world body holds exactly what native parse_world_declaration
+// (src/parser/parser_domain_world.c) reads: roster and zone slots, the
+// activate / deactivate / maintain directives, world states, shared fields
+// and methods. The tree rows print in native's member order whatever the
+// source order, and any other member is refused where it starts.
+
+import "cursor_owner.pgy";
+import "tree_text_owner.pgy";
+import "type_name_owner.pgy";
+import "expr_owner.pgy";
+import "function_decl_owner.pgy";
+import "source_refusal_owner.pgy";
+
+func ParseWorldDecl(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>,
+    decl_prefix: String,
+    exported: Bool,
+    inout expression_graphs: Array<AstExpressionGraphRows>,
+    location_context: ParserSourceLocationContext
+) -> String {
+    let n: Int = StringLength(content);
+    let i: Int = SkipWhitespaceAndComments(content, LanguageWordEnd(start, LanguageWordId.WordWorld));
+    let world_name: String = ReadIdent(content, i, cursor_out);
+    if world_name == "" || IsDigit(ParserCharAt(content, i)) ||
+        ParserBindingNameReserved(world_name) {
+        ParseRefuse(location_context, i, "declaration_name_missing", "construct", "World", "", "");
+    }
+    i = cursor_out[0];
+    let open_at: Int = SkipWhitespaceAndComments(content, i);
+    i = ParseExpectIn(location_context, content, i, "{", "World");
+    let roster_rows: String = "";
+    let zone_rows: String = "";
+    let activate_rows: String = "";
+    let deactivate_rows: String = "";
+    let maintain_rows: String = "";
+    let state_rows: String = "";
+    let shared_rows: String = "";
+    let method_blocks: String = "";
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if i >= n {
+            ParseRefuse(location_context, open_at, "block_unclosed", "construct", "World", "", "");
+        }
+        if ParserCharAt(content, i) == "}" {
+            i = i + 1;
+            break;
+        }
+        if MatchLanguageWord(content, i, LanguageWordId.WordRoster) {
+            let roster_name: String = ParseNameIn(location_context, content,
+                LanguageWordEnd(i, LanguageWordId.WordRoster), "roster name", "world_roster", cursor_out);
+            i = ParseExpectIn(location_context, content, cursor_out[0], ":", "world_roster");
+            let roster_type: String = ParseNameIn(location_context, content, i,
+                "roster type", "world_roster", cursor_out);
+            i = cursor_out[0];
+            roster_rows = AppendLine(roster_rows, Concat("    WorldSystemic: ", Concat(roster_name, Concat(": ", roster_type))));
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordZone) {
+            let zone_name: String = ParseNameIn(location_context, content,
+                LanguageWordEnd(i, LanguageWordId.WordZone), "zone name", "world_zone", cursor_out);
+            i = ParseExpectIn(location_context, content, cursor_out[0], ":", "world_zone");
+            let zone_type: String = ParseNameIn(location_context, content, i,
+                "zone type", "world_zone", cursor_out);
+            i = cursor_out[0];
+            zone_rows = AppendLine(zone_rows, Concat("    WorldZone: ", Concat(zone_name, Concat(": ", zone_type))));
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordActivate) {
+            let activated: String = ParseNameIn(location_context, content,
+                LanguageWordEnd(i, LanguageWordId.WordActivate),
+                "zone slot name or world state name", "world_activate", cursor_out);
+            i = cursor_out[0];
+            activate_rows = AppendLine(activate_rows, Concat("    ActivateState: ", activated));
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordDeactivate) {
+            let deactivated: String = ParseNameIn(location_context, content,
+                LanguageWordEnd(i, LanguageWordId.WordDeactivate),
+                "zone slot name or world state name", "world_deactivate", cursor_out);
+            i = cursor_out[0];
+            deactivate_rows = AppendLine(deactivate_rows, Concat("    DeactivateState: ", deactivated));
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordMaintain) {
+            let maintained: String = ParseNameIn(location_context, content,
+                LanguageWordEnd(i, LanguageWordId.WordMaintain),
+                "zone slot name or world state name", "world_maintain", cursor_out);
+            i = cursor_out[0];
+            maintain_rows = AppendLine(maintain_rows, Concat("    MaintainZoneState: ", maintained));
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordState) {
+            let state_row: String = ParseWorldStateRow(location_context, content,
+                LanguageWordEnd(i, LanguageWordId.WordState), cursor_out);
+            i = cursor_out[0];
+            state_rows = AppendLine(state_rows, state_row);
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordShared) {
+            let field_name: String = ParseNameIn(location_context, content,
+                LanguageWordEnd(i, LanguageWordId.WordShared), "field name", "world_shared", cursor_out);
+            i = ParseExpectIn(location_context, content, cursor_out[0], ":", "world_shared");
+            let field_type: String = ReadTypeIn(location_context, content, i, cursor_out);
+            i = cursor_out[0];
+            if field_type == "" {
+                ParseRefuse(location_context, i, "type_name_invalid", "construct", "world_shared", "", "");
+            }
+            let shared_row: String = Concat("    Shared: ", Concat(field_name, Concat(": ", field_type)));
+            i = SkipWhitespaceAndComments(content, i);
+            if ParserCharAt(content, i) == "=" {
+                ArraySet(cursor_out, 0, i + 1);
+                shared_row = Concat(shared_row, Concat(" = ",
+                    ParseExprFactIn(location_context, content, i + 1, cursor_out).text));
+                i = cursor_out[0];
+            }
+            shared_rows = AppendLine(shared_rows, shared_row);
+        } else if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
+            ArraySet(cursor_out, 0, i);
+            let method_block: String = ParseFunction(
+                content, i, cursor_out, "", false, 4, "func", "Function: ",
+                false, "", expression_graphs, location_context
+            );
+            i = cursor_out[0];
+            method_blocks = AppendLine(method_blocks, method_block);
+            continue;
+        } else {
+            ParseRefuse(location_context, i, "expected_token", "expected", "world member", "construct", "World");
+        }
+        // Native ends every non-method member at an optional `;`.
+        i = SkipWhitespaceAndComments(content, i);
+        if ParserCharAt(content, i) == ";" {
+            i = i + 1;
+        }
+    }
+    let header: String = Concat("World: ", Concat(decl_prefix, world_name));
+    if exported {
+        header = Concat("[export] ", header);
+    }
+    let out: String = Concat("  ", header);
+    let groups: Array<String> = [
+        roster_rows, zone_rows, activate_rows, deactivate_rows,
+        maintain_rows, state_rows, shared_rows, method_blocks
+    ];
+    let g: Int = 0;
+    while g < ArrayLength(groups) {
+        if StringLength(groups[g]) > 0 {
+            out = AppendLine(out, groups[g]);
+        }
+        g = g + 1;
+    }
+    ArraySet(cursor_out, 0, i);
+    return out;
+}
+
+// `state NAME: zone SLOT [projection P | layer L | state S]` or
+// `state NAME: all|any A, B, ...`. Native reads the suffix only on the zone
+// slot's own line; a suffix on a later line is the next world member.
+func ParseWorldStateRow(
+    location_context: ParserSourceLocationContext,
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>
+) -> String {
+    let state_name: String = ParseNameIn(location_context, content, start,
+        "world state name", "world_state", cursor_out);
+    let i: Int = ParseExpectIn(location_context, content, cursor_out[0], ":", "world_state");
+    i = SkipWhitespaceAndComments(content, i);
+    let row: String = Concat("    WorldState: ", Concat(state_name, ": "));
+    if MatchLanguageWord(content, i, LanguageWordId.WordAll) ||
+        MatchLanguageWord(content, i, LanguageWordId.WordAny) {
+        let compose_word: LanguageWordId = LanguageWordId.WordAny;
+        if MatchLanguageWord(content, i, LanguageWordId.WordAll) {
+            compose_word = LanguageWordId.WordAll;
+        }
+        row = Concat(row, Concat(LanguageWordSpelling(compose_word), " "));
+        i = LanguageWordEnd(i, compose_word);
+        let first: Bool = true;
+        while true {
+            let input: String = ParseNameIn(location_context, content, i,
+                "world zone/state name", "world_state", cursor_out);
+            if !first {
+                row = Concat(row, ", ");
+            }
+            row = Concat(row, input);
+            first = false;
+            i = SkipWhitespaceAndComments(content, cursor_out[0]);
+            if ParserCharAt(content, i) != "," {
+                break;
+            }
+            i = i + 1;
+        }
+        ArraySet(cursor_out, 0, i);
+        return row;
+    }
+    if !MatchLanguageWord(content, i, LanguageWordId.WordZone) {
+        ParseRefuse(location_context, i, "expected_token", "expected", "zone", "construct", "world_state");
+    }
+    let zone_slot: String = ParseNameIn(location_context, content,
+        LanguageWordEnd(i, LanguageWordId.WordZone), "zone slot name", "world_state", cursor_out);
+    row = Concat(row, Concat("zone ", zone_slot));
+    let slot_end: Int = cursor_out[0];
+    i = SkipWhitespaceAndComments(content, slot_end);
+    if StringIndexOf(Substring(content, slot_end, i - slot_end), "\n") >= 0 {
+        ArraySet(cursor_out, 0, slot_end);
+        return row;
+    }
+    let detail_word: LanguageWordId = LanguageWordId.WordState;
+    if MatchLanguageWord(content, i, LanguageWordId.WordProjection) {
+        detail_word = LanguageWordId.WordProjection;
+    } else if MatchLanguageWord(content, i, LanguageWordId.WordLayer) {
+        detail_word = LanguageWordId.WordLayer;
+    } else if !MatchLanguageWord(content, i, LanguageWordId.WordState) {
+        ArraySet(cursor_out, 0, slot_end);
+        return row;
+    }
+    let detail_label: String = LanguageWordSpelling(detail_word);
+    let detail: String = ParseNameIn(location_context, content,
+        LanguageWordEnd(i, detail_word), Concat(detail_label, " name"),
+        "world_state", cursor_out);
+    return Concat(row, Concat(" ", Concat(detail_label, Concat(" ", detail))));
+}

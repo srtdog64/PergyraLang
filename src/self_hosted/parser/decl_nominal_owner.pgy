@@ -7,6 +7,7 @@ import "expr_owner.pgy";
 import "function_decl_owner.pgy";
 import "generic_parameter_list_owner.pgy";
 import "source_refusal_owner.pgy";
+import "decl_world_owner.pgy";
 
 func ParseNominalDecl(
     content: String,
@@ -24,6 +25,10 @@ func ParseNominalDecl(
     let out: String = "";
     let decl_label: String = "";
     let decl_kw_len: Int = 0;
+    if MatchLanguageWord(content, i, LanguageWordId.WordWorld) {
+        return ParseWorldDecl(content, i, cursor_out, decl_prefix, exported,
+            expression_graphs, location_context);
+    }
     if MatchLanguageWord(content, i, LanguageWordId.WordSubject) {
         decl_label = "Subject";
         decl_kw_len = LanguageWordLength(LanguageWordId.WordSubject);
@@ -48,9 +53,6 @@ func ParseNominalDecl(
     } else if MatchLanguageWord(content, i, LanguageWordId.WordRoster) {
         decl_label = "Roster";
         decl_kw_len = LanguageWordLength(LanguageWordId.WordRoster);
-    } else if MatchLanguageWord(content, i, LanguageWordId.WordWorld) {
-        decl_label = "World";
-        decl_kw_len = LanguageWordLength(LanguageWordId.WordWorld);
     }
     if decl_kw_len > 0 {
         i = i + decl_kw_len;
@@ -98,12 +100,10 @@ func ParseNominalDecl(
         // 6 for nominal class-like declarations and base_indent 4 for
         // domain host declarations whose methods are direct children.
         let host_method_indent: Int = 6;
-        if decl_label == "Party" || decl_label == "World" || decl_label == "Roster" {
+        if decl_label == "Party" || decl_label == "Roster" {
             host_method_indent = 4;
         }
         let field_blocks: String = "";
-        let world_systemic_blocks: String = "";
-        let world_zone_blocks: String = "";
         let method_blocks: String = "";
         while true {
             i = SkipWhitespaceAndComments(content, i);
@@ -296,18 +296,9 @@ func ParseNominalDecl(
                 }
                 field_blocks = AppendLine(field_blocks, shared_row);
             } else if is_world_zone {
-                let world_zone_row: String = Concat("    WorldZone: ", Concat(f_name, Concat(": ", f_type)));
-                if decl_label == "World" {
-                    world_zone_blocks = AppendLine(world_zone_blocks, world_zone_row);
-                } else {
-                    field_blocks = AppendLine(field_blocks, world_zone_row);
-                }
+                field_blocks = AppendLine(field_blocks, Concat("    WorldZone: ", Concat(f_name, Concat(": ", f_type))));
             } else if is_systemic_slot {
-                if decl_label == "World" {
-                    world_systemic_blocks = AppendLine(world_systemic_blocks, Concat("    WorldSystemic: ", Concat(f_name, Concat(": ", f_type))));
-                } else {
-                    field_blocks = AppendLine(field_blocks, Concat("    SystemicSlot: ", Concat(f_name, Concat(": ", f_type))));
-                }
+                field_blocks = AppendLine(field_blocks, Concat("    SystemicSlot: ", Concat(f_name, Concat(": ", f_type))));
             } else {
                 let field_prefix: String = "      ";
                 if immutable_field { field_prefix = "      let "; }
@@ -333,20 +324,10 @@ func ParseNominalDecl(
         if StringLength(decl_generic) > 0 && decl_label != "Party" {
             out = AppendLine(out, Concat("    Generic params: ", decl_generic));
         }
-        if decl_label == "World" {
-            if StringLength(world_systemic_blocks) > 0 {
-                out = AppendLine(out, world_systemic_blocks);
-            }
-            if StringLength(world_zone_blocks) > 0 {
-                out = AppendLine(out, world_zone_blocks);
-            }
-        }
         if StringLength(field_blocks) > 0 {
             if decl_label == "Party" {
                 out = AppendLine(out, field_blocks);
             } else if decl_label == "Roster" {
-                out = AppendLine(out, field_blocks);
-            } else if decl_label == "World" {
                 out = AppendLine(out, field_blocks);
             } else {
                 out = AppendLine(out, "    Fields:");
@@ -354,9 +335,7 @@ func ParseNominalDecl(
             }
         }
         if StringLength(method_blocks) > 0 {
-            if decl_label == "World" {
-                out = AppendLine(out, method_blocks);
-            } else if decl_label == "Party" {
+            if decl_label == "Party" {
                 out = AppendLine(out, method_blocks);
             } else if decl_label == "Roster" {
                 out = AppendLine(out, method_blocks);

@@ -1,0 +1,26 @@
+Program:
+  Subject: Player
+    Fields:
+      let hp: Int
+  Object: PlayerView
+    Fields:
+      hp: Int
+  Effect: Burn
+    SubjectSlot: bearer: Player
+  Effect: Heat
+    SubjectSlot: bearer: Player
+  Zone: Arena
+    SubjectSlot: alpha: Player
+    SubjectSlot: beta: Player
+    ObjectSlot: view: PlayerView
+    SubjectSlot: gamma: Player
+    EffectSlot: heat: Heat
+    EffectSlot: burn: Burn
+    EffectSlot: burn2: Burn
+    EffectPool: flames: Burn capacity 4
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("zone words")

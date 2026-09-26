@@ -245,7 +245,6 @@ done
 # its row leaves this list and the case joins the default-route sweep.
 # case|expected line in main.pgy|code|required text
 UNCOVERED_CASES=(
-    "zone_effect_pool_runtime|9|surface_not_covered|- surface: zone pool slot"
     "role_include_methods|21|surface_not_covered|- surface: role include"
     "relation_effect_projection_sync|21|surface_not_covered|- surface: relation method"
     "intent_decl_overlay|51|surface_not_covered|- surface: repeated intent step on clause"

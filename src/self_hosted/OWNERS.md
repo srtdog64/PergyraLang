@@ -135,6 +135,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/parser/decl_role_owner.pgy` -- role declarations.
 - `src/self_hosted/parser/decl_type_owner.pgy` -- type declarations.
 - `src/self_hosted/parser/decl_zone_owner.pgy` -- zone declarations.
+- `src/self_hosted/parser/decl_zone_slot_group_owner.pgy` -- zone
+  `subjects`/`objects`/`tobjects` slot groups.
+- `src/self_hosted/parser/decl_world_owner.pgy` -- world declarations:
+  zone slots, state rows, composed states and activation directives in
+  native's member order.
 - `src/self_hosted/parser/error_owner.pgy` -- parser diagnostic strings.
 - `src/self_hosted/parser/generic_parameter_list_owner.pgy` -- declaration-site
   generic parameter/default type list parsing shared by functions, nominals,

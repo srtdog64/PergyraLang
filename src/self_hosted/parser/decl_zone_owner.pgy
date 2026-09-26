@@ -6,6 +6,7 @@ import "type_name_owner.pgy";
 import "expr_owner.pgy";
 import "function_decl_owner.pgy";
 import "domain_projection_map_owner.pgy";
+import "decl_zone_slot_group_owner.pgy";
 import "source_refusal_owner.pgy";
 
 func ParseZoneDecl(
@@ -32,6 +33,9 @@ func ParseZoneDecl(
     let open_at: Int = SkipWhitespaceAndComments(content, i);
     i = ParseExpectIn(location_context, content, i, "{", "zone");
     let slot_accum: String = "";
+    // Effect and relation slots, pools and groups print after every
+    // subject/object/tobject/binding slot, as native keeps them apart.
+    let layer_accum: String = "";
     let shared_accum: String = "";
     let apply_accum: String = "";
     let link_accum: String = "";
@@ -53,6 +57,28 @@ func ParseZoneDecl(
         // with the same `NAME: TYPE` payload.
         let slot_label: String = "";
         let is_auth: Bool = false;
+        // `forbids unsafe` sets a zone flag the native tree does not print.
+        if MatchLanguageWord(content, i, LanguageWordId.WordForbids) {
+            i = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordForbids));
+            if !MatchLanguageWord(content, i, LanguageWordId.WordUnsafe) {
+                ParseRefuse(location_context, i, "expected_token", "expected", "unsafe", "construct", "zone_forbids");
+            }
+            i = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordUnsafe));
+            if ParserCharAt(content, i) == ";" { i = i + 1; }
+            continue;
+        }
+        let group: ParserZoneSlotGroupRows =
+            ParseZoneSlotGroupRows(location_context, content, i, cursor_out);
+        if group.present {
+            i = SkipWhitespaceAndComments(content, cursor_out[0]);
+            if ParserCharAt(content, i) == ";" { i = i + 1; }
+            if group.layer {
+                layer_accum = AppendLine(layer_accum, group.tree_rows);
+            } else {
+                slot_accum = AppendLine(slot_accum, group.tree_rows);
+            }
+            continue;
+        }
         if MatchLanguageWord(content, i, LanguageWordId.WordSubject) {
             slot_label = "SubjectSlot";
             i = LanguageWordEnd(i, LanguageWordId.WordSubject);
@@ -397,9 +423,7 @@ func ParseZoneDecl(
             continue;
         } else {
             // Zone members native admits and this parser does not cover yet.
-            if MatchLanguageWord(content, i, LanguageWordId.WordVessel) ||
-                MatchLanguageWord(content, i, LanguageWordId.WordSubjects) || MatchLanguageWord(content, i, LanguageWordId.WordEffects) ||
-                MatchLanguageWord(content, i, LanguageWordId.WordRelations) || MatchLanguageWord(content, i, LanguageWordId.WordDetach) ||
+            if MatchLanguageWord(content, i, LanguageWordId.WordVessel) || MatchLanguageWord(content, i, LanguageWordId.WordDetach) ||
                 MatchLanguageWord(content, i, LanguageWordId.WordUnlink) || MatchLanguageWord(content, i, LanguageWordId.WordMaintain) {
                 ParseRefuse(location_context, i, "surface_not_covered", "surface", Concat("zone ", ReadIdent(content, i, cursor_out)), "construct", "zone");
             }
@@ -440,9 +464,32 @@ func ParseZoneDecl(
                 auth_accum = AppendLine(auth_accum, Concat("      Requires: ", auth_req));
             }
         } else {
-            // Native also admits `<kind> pool NAME: TYPE capacity N` members.
-            if MatchLanguageWord(content, i, LanguageWordId.WordPool) {
-                ParseRefuse(location_context, i, "surface_not_covered", "surface", "zone pool slot", "construct", "zone");
+            // `effect pool NAME: TYPE capacity N`; only an effect takes a pool.
+            if slot_label == "EffectSlot" && MatchLanguageWord(content, i, LanguageWordId.WordPool) {
+                let pool_name: String = ParseNameIn(location_context, content,
+                    LanguageWordEnd(i, LanguageWordId.WordPool), "pool name", "zone_pool", cursor_out);
+                i = ParseExpectIn(location_context, content, cursor_out[0], ":", "zone_pool");
+                let pool_type: String = ParseNameIn(location_context, content, i,
+                    "effect type", "zone_pool", cursor_out);
+                i = SkipWhitespaceAndComments(content, cursor_out[0]);
+                if !MatchLanguageWord(content, i, LanguageWordId.WordCapacity) {
+                    ParseRefuse(location_context, i, "expected_token", "expected", "capacity", "construct", "zone_pool");
+                }
+                i = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordCapacity));
+                let capacity_at: Int = i;
+                ArraySet(cursor_out, 0, i);
+                let capacity: String = ReadNumber(content, i, cursor_out);
+                i = cursor_out[0];
+                if StringLength(capacity) == 0 || StringIndexOf(capacity, ".") >= 0 ||
+                    ToInt(capacity) <= 0 {
+                    ParseRefuse(location_context, capacity_at, "expected_token", "expected",
+                        "positive pool capacity", "construct", "zone_pool");
+                }
+                i = SkipWhitespaceAndComments(content, i);
+                if ParserCharAt(content, i) == ";" { i = i + 1; }
+                layer_accum = AppendLine(layer_accum, Concat("    EffectPool: ", Concat(pool_name,
+                    Concat(": ", Concat(pool_type, Concat(" capacity ", ToString(ToInt(capacity))))))));
+                continue;
             }
             if !MatchLanguageWord(content, i, LanguageWordId.WordSlot) {
                 ParseRefuse(location_context, i, "expected_token", "expected", "slot", "construct", "zone_slot");
@@ -475,13 +522,21 @@ func ParseZoneDecl(
             if ParserCharAt(content, i) == ";" {
                 i = i + 1;
             }
-            slot_accum = AppendLine(slot_accum, Concat("    ", Concat(slot_label, Concat(": ", Concat(s_name, Concat(": ", s_type))))));
+            let slot_row: String = Concat("    ", Concat(slot_label, Concat(": ", Concat(s_name, Concat(": ", s_type)))));
+            if slot_label == "EffectSlot" || slot_label == "RelationSlot" {
+                layer_accum = AppendLine(layer_accum, slot_row);
+            } else {
+                slot_accum = AppendLine(slot_accum, slot_row);
+            }
         }
     }
     out = AppendLine(out, Concat("  Zone: ", Concat(decl_prefix, zone_name)));
     let zone_body: String = "";
     if StringLength(slot_accum) > 0 {
         zone_body = AppendLine(zone_body, slot_accum);
+    }
+    if StringLength(layer_accum) > 0 {
+        zone_body = AppendLine(zone_body, layer_accum);
     }
     if StringLength(shared_accum) > 0 {
         zone_body = AppendLine(zone_body, shared_accum);

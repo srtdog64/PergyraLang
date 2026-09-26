@@ -1,0 +1,24 @@
+subject Player {
+    let hp: Int;
+}
+
+object PlayerView {
+    hp: Int
+}
+
+effect Burn for bearer: Player { }
+effect Heat for bearer: Player { }
+
+zone Arena {
+    forbids unsafe
+    effect slot heat: Heat
+    subjects [alpha, beta]: Player
+    objects [view]: PlayerView
+    effects [burn, burn2]: Burn
+    effect pool flames: Burn capacity 4
+    subject slot gamma: Player
+}
+
+func Main() -> Void {
+    Log("zone words");
+}

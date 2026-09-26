@@ -1,0 +1,20 @@
+Program:
+  Zone: BattleZone
+  World: GameWorld
+    WorldZone: battle: BattleZone
+    WorldZone: camp: BattleZone
+    ActivateState: battle
+    DeactivateState: camp
+    MaintainZoneState: camp
+    WorldState: battleView: zone battle projection scoreboard
+    WorldState: battleLive: zone battle
+    WorldState: battleLayer: zone battle layer burning
+    WorldState: campWarm: zone camp state warm
+    WorldState: allLive: all battleLive, campWarm
+    WorldState: anyLive: any battleView, battleLayer
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("world state directives")
