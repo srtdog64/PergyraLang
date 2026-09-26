@@ -1,0 +1,83 @@
+// Self-host parser duration literal owner.
+//
+// Native reads `<digits><unit>` with no space as a Duration normalized to
+// nanoseconds (src/parser/parser_expr.c): `ns`, `us`, `ms`, `s`, or the
+// language word `min`. The count must be a bare integer and the result must
+// stay within 2^53 ns, the exactly representable range. Any other identifier
+// right after a number is not consumed, so the grammar reports it.
+
+import "cursor_owner.pgy";
+
+struct ParserDurationUnitRead {
+    present: Bool;
+    // Characters of the unit spelling after the number.
+    length: Int;
+    // Decimal zeros the unit appends to the count (ns=0, us=3, ms=6, s=9).
+    zeros: Int;
+    // `min` is sixty seconds: the count is multiplied by 6 before 10 zeros.
+    times_six: Bool;
+}
+
+func ParserDurationUnitAt(content: String, at: Int) -> ParserDurationUnitRead {
+    if MatchLanguageWord(content, at, LanguageWordId.WordMin) {
+        return ParserDurationUnitRead(true, LanguageWordLength(LanguageWordId.WordMin), 10, true);
+    }
+    let cursor: Array<Int> = [at];
+    let unit: String = ReadIdent(content, at, cursor);
+    if unit == "ns" { return ParserDurationUnitRead(true, 2, 0, false); }
+    if unit == "us" { return ParserDurationUnitRead(true, 2, 3, false); }
+    if unit == "ms" { return ParserDurationUnitRead(true, 2, 6, false); }
+    if unit == "s" { return ParserDurationUnitRead(true, 1, 9, false); }
+    return ParserDurationUnitRead(false, 0, 0, false);
+}
+
+// Nanoseconds of `count_digits` in `unit`, or None past 2^53 ns.
+func ParserDurationNanosOpt(
+    count_digits: String,
+    unit: ParserDurationUnitRead
+) -> Option<String> {
+    let n: Int = StringLength(count_digits);
+    let first: Int = 0;
+    while first < n - 1 && Substring(count_digits, first, 1) == "0" {
+        first = first + 1;
+    }
+    let digits: String = Substring(count_digits, first, n - first);
+    if unit.times_six {
+        let product: String = "";
+        let carry: Int = 0;
+        let k: Int = StringLength(digits) - 1;
+        while k >= 0 {
+            let value: Int = (CharCode(digits, StringLength(digits), k) - 48) * 6 + carry;
+            product = Concat(ToString(value % 10), product);
+            carry = value / 10;
+            k = k - 1;
+        }
+        if carry > 0 {
+            product = Concat(ToString(carry), product);
+        }
+        digits = product;
+    }
+    if digits != "0" {
+        let z: Int = 0;
+        while z < unit.zeros {
+            digits = Concat(digits, "0");
+            z = z + 1;
+        }
+    }
+    let limit: String = "9007199254740992";
+    let width: Int = StringLength(limit);
+    if StringLength(digits) > width {
+        return None;
+    }
+    if StringLength(digits) == width {
+        let j: Int = 0;
+        while j < width {
+            let got: Int = CharCode(digits, width, j);
+            let most: Int = CharCode(limit, width, j);
+            if got > most { return None; }
+            if got < most { return Some(digits); }
+            j = j + 1;
+        }
+    }
+    return Some(digits);
+}

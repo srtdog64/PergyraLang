@@ -1,0 +1,17 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: d : Duration = 1500000000L
+        Let: m : Duration = 120000000000L
+        Let: n : Duration = 7L
+        Let: u : Duration = 25000L
+        Let: s : Duration = 5000000000L
+        Let: z : Duration = 0L
+        Let: lead : Duration = 7000000L
+        Let: big : Duration = 9000000000000000L
+        Let: top : Duration = 9007199254740992L
+        Let: l : Long = 5L
+        Log(d)

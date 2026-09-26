@@ -1,6 +1,7 @@
 // Self-host parser primary expression owner.
 
 import "cursor_owner.pgy";
+import "duration_literal_owner.pgy";
 import "expression_graph_owner.pgy";
 import "expression_set_literal_graph_owner.pgy";
 import "expr_string_owner.pgy";
@@ -318,6 +319,26 @@ func ParsePrimaryFact(
             ParserCharAt(content, i) == "L";
         preserves_integer_literal_fact = !preserves_float_literal_fact &&
             !preserves_long_literal_fact;
+        // Native's lexer takes one `L` after an integer. A unit right after
+        // the number makes a Duration in nanoseconds (a Long literal in the
+        // tree); any other adjacent word is left for the grammar to refuse.
+        if preserves_long_literal_fact {
+            i = i + 1;
+        }
+        let duration_unit: ParserDurationUnitRead = ParserDurationUnitAt(content, i);
+        if duration_unit.present {
+            if !preserves_integer_literal_fact {
+                return ParserExpressionInvalidAt(number_start, "duration_literal_invalid");
+            }
+            let nanos: Option<String> = ParserDurationNanosOpt(base, duration_unit);
+            if !IsSome(nanos) {
+                return ParserExpressionInvalidAt(number_start, "duration_literal_invalid");
+            }
+            base = UnwrapOption(nanos);
+            preserves_integer_literal_fact = false;
+            preserves_long_literal_fact = true;
+            i = i + duration_unit.length;
+        }
         // The literal must fit its type; the codes' reasons carry native's words.
         if preserves_integer_literal_fact &&
             !AstExpressionIntegerLiteralPayloadReady(base) {
@@ -326,9 +347,6 @@ func ParsePrimaryFact(
         if preserves_long_literal_fact &&
             !AstExpressionLongLiteralPayloadReady(Concat(base, "L")) {
             return ParserExpressionInvalidAt(number_start, "long_literal_out_of_range");
-        }
-        while IsAlpha(ParserCharAt(content, i)) {
-            i = i + 1;
         }
         ArraySet(cursor_out, 0, i);
     } else if IsAlpha(c) {

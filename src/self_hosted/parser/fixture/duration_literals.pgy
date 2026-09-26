@@ -1,0 +1,17 @@
+// Duration literals: `<digits><unit>` with no space, normalized to
+// nanoseconds as a Long. `min` is the language word; ns, us, ms and s are
+// plain unit spellings. Leading zeros drop; 2^53 ns is the largest count.
+
+func Main() -> Void {
+    let d: Duration = 1500ms;
+    let m: Duration = 2min;
+    let n: Duration = 7ns;
+    let u: Duration = 25us;
+    let s: Duration = 5s;
+    let z: Duration = 0ms;
+    let lead: Duration = 007ms;
+    let big: Duration = 150000min;
+    let top: Duration = 9007199254740992ns;
+    let l: Long = 5L;
+    Log(d);
+}

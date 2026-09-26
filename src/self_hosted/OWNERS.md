@@ -171,6 +171,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   edge.
 - `src/self_hosted/parser/expr_precedence_owner.pgy` -- precedence expression parsing.
 - `src/self_hosted/parser/expr_primary_owner.pgy` -- primary expression parsing.
+- `src/self_hosted/parser/duration_literal_owner.pgy` -- duration literal
+  units and their nanosecond value within 2^53.
 - `src/self_hosted/parser/expr_string_owner.pgy` -- string literal and
   interpolation graph construction; interpolation carries `Add` and `Call`
   nodes instead of a desugared text leaf.

@@ -137,6 +137,12 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "write a Long literal with the L suffix"
         );
     }
+    if code == "duration_literal_invalid" {
+        return ParseDiagnosticRow(
+            "a duration literal takes a bare integer count and must stay within 2^53 nanoseconds",
+            "write a whole count directly before its unit: ns, us, ms, s or min"
+        );
+    }
     if code == "long_literal_out_of_range" {
         return ParseDiagnosticRow(
             "Long literal is outside the signed 64-bit range",
@@ -223,6 +229,7 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
         code == "statement_kind_unsupported" ||
         code == "int_literal_out_of_range" ||
         code == "long_literal_out_of_range" ||
+        code == "duration_literal_invalid" ||
         code == "script_statement_with_main" ||
         code == "surface_not_covered" ||
         code == "vision_surface_not_executable" ||
