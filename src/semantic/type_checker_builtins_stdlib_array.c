@@ -157,8 +157,8 @@ type_check_stdlib_array_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         arr = stdlib_array_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_non_inout_param_collection_mutator_receiver(
-                arg0, arr, op_name, "array", ctx))
+        if (reject_invalid_array_mutator_receiver(
+                arg0, arr, op_name, ctx))
             return TYPE_UNKNOWN;
         if (reject_array_storage_invalidation_with_live_slice(
                 arg0, op_name, ctx))
@@ -197,8 +197,8 @@ type_check_stdlib_array_call(ASTNode *expr,
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         arr = stdlib_array_normalize_type(type_check_expression(arg0, ctx));
-        if (reject_non_inout_param_collection_mutator_receiver(
-                arg0, arr, "ArrayDropOwnedStrings", "array", ctx))
+        if (reject_invalid_array_mutator_receiver(
+                arg0, arr, "ArrayDropOwnedStrings", ctx))
             return TYPE_UNKNOWN;
         if (reject_array_storage_invalidation_with_live_slice(
                 arg0, "ArrayDropOwnedStrings", ctx))
@@ -263,8 +263,8 @@ type_check_stdlib_array_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         arr = stdlib_array_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_non_inout_param_collection_mutator_receiver(
-                arg0, arr, "ArraySet", "array", ctx))
+        if (reject_invalid_array_mutator_receiver(
+                arg0, arr, "ArraySet", ctx))
             return TYPE_UNKNOWN;
         if (semantic_collection_reject_unsafe_owned_string_mutation(
                 arg0, "ArraySet", ctx))
@@ -295,8 +295,8 @@ type_check_stdlib_array_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         arr = stdlib_array_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_non_inout_param_collection_mutator_receiver(
-                arg0, arr, "ArrayPop", "array", ctx))
+        if (reject_invalid_array_mutator_receiver(
+                arg0, arr, "ArrayPop", ctx))
             return TYPE_UNKNOWN;
         if (reject_array_storage_invalidation_with_live_slice(
                 arg0, "ArrayPop", ctx))
@@ -319,8 +319,8 @@ type_check_stdlib_array_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         arr = stdlib_array_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_non_inout_param_collection_mutator_receiver(
-                arg0, arr, name, "array", ctx))
+        if (reject_invalid_array_mutator_receiver(
+                arg0, arr, name, ctx))
             return TYPE_UNKNOWN;
         if (!type_is_constructed_named(arr, "Array"))
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,

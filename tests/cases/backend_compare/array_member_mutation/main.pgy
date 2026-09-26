@@ -1,0 +1,59 @@
+// A mutating collection builtin must retain the exact addressable member
+// receiver while effectful later arguments are evaluated. Copying an Array
+// descriptor into the ordered-call temporary loses length/capacity write-back.
+struct Buffer {
+    values: Array<Int>;
+}
+
+struct Frame {
+    buffer: Buffer;
+}
+
+func Next(inout trace: Int, digit: Int, value: Int) -> Int {
+    trace = trace * 10 + digit;
+    return value;
+}
+
+func PushWithinCapacity(inout buffer: Buffer, inout trace: Int) -> Void {
+    ArrayPush(buffer.values, 0);
+    ArrayPop(buffer.values);
+    ArrayPush(buffer.values, Next(trace, 1, 41));
+}
+
+func PushAndSetThroughNestedMember(inout frame: Frame, inout trace: Int) -> Void {
+    ArrayPush(frame.buffer.values, Next(trace, 2, 42));
+    if ArrayLength(frame.buffer.values) != 1 || frame.buffer.values[0] != 42 {
+        Log("FAIL nested member push payload");
+        Exit(1);
+    }
+    ArraySet(
+        frame.buffer.values,
+        Next(trace, 3, 0),
+        Next(trace, 4, 43)
+    );
+}
+
+func Main() -> Void {
+    let mut trace: Int = 0;
+    let mut buffer: Buffer = Buffer([]);
+    let mut frame: Frame = Frame(Buffer([]));
+
+    PushWithinCapacity(buffer, trace);
+    PushAndSetThroughNestedMember(frame, trace);
+
+    if ArrayLength(buffer.values) != 1 || buffer.values[0] != 41 {
+        Log("FAIL one-level member mutation lost write-back");
+        Exit(1);
+    }
+    if ArrayLength(frame.buffer.values) != 1 || frame.buffer.values[0] != 43 {
+        Log("FAIL nested member mutation lost write-back");
+        Exit(1);
+    }
+    if trace != 1234 {
+        Log("FAIL member mutation argument order");
+        Exit(1);
+    }
+
+    Log("ARRAY MEMBER MUTATION PASS");
+    Log(ToString(trace));
+}

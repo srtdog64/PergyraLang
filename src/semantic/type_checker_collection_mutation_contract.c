@@ -65,6 +65,38 @@ reject_non_inout_param_collection_mutator_receiver(ASTNode *receiver_expr,
 }
 
 bool
+reject_invalid_array_mutator_receiver(ASTNode *receiver_expr,
+                                      const Type *receiver_type,
+                                      const char *mutator_name,
+                                      SemanticContext *ctx)
+{
+    ASTNode *receiver_root = receiver_expr;
+
+    if (reject_non_inout_param_collection_mutator_receiver(
+            receiver_expr, receiver_type, mutator_name, "array", ctx))
+        return true;
+    if (ctx == NULL || receiver_expr == NULL
+        || !type_is_constructed_named(receiver_type, "Array"))
+        return false;
+    while (receiver_root != NULL && receiver_root->type == AST_MEMBER_ACCESS)
+        receiver_root = ast_member_object(receiver_root);
+    if (receiver_root != NULL && receiver_root->type == AST_IDENTIFIER)
+        return false;
+
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+        PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+        PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE, receiver_expr,
+        "Collection mutator '%s' requires addressable array storage rooted in a named binding.\n"
+        "Reason:\n"
+        "- mutation must write length, capacity, and element state back to one exact place\n"
+        "- a temporary, call result, or indexed aggregate does not own a stable mutable place\n"
+        "Fix:\n"
+        "- bind the array to a named local or named aggregate field before mutation",
+        mutator_name != NULL ? mutator_name : "<array mutator>");
+    return true;
+}
+
+bool
 reject_parallel_collection_mutator(ASTNode *expr,
                                    const char *name,
                                    bool mutates_storage,

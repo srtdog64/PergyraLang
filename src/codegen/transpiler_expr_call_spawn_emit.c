@@ -15,6 +15,8 @@
 #include "transpiler_expr_call_member_emit.h"
 #include "transpiler_expr_call_user_emit.h"
 #include "transpiler_expr_stdlib_builtin.h"
+#include "transpiler_expr_stdlib_builtin_policy.h"
+#include "transpiler_expr_stdlib_collection_support.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 
@@ -110,6 +112,31 @@ emit_call_arg_is_scalar(TranspilerCtx *ctx, ASTNode *arg)
     return false;
 }
 
+/* ArrayPush and ArraySet mutate the exact receiver storage. When another
+ * argument is effectful, ordered-call lowering must preserve that lvalue as an
+ * address, not snapshot the Array<T> descriptor into a value temporary. */
+static bool
+emit_call_arg_requires_array_storage_address(ASTNode *call, size_t index,
+                                             ASTNode *arg)
+{
+    ASTNode *callee;
+    TranspilerArrayStdlibOp op;
+
+    if (call == NULL || index != 0
+        || !transpiler_expr_is_c_addressable_storage(arg))
+        return false;
+    callee = ast_call_callee(call);
+    if (callee == NULL || callee->type != AST_IDENTIFIER
+        || ast_call_semantic_callee_value_binding_id(call) != 0
+        || ast_call_semantic_callee_declared_callable(call))
+        return false;
+    op = transpiler_array_lookup(ast_identifier_name(callee),
+                                 ast_call_arg_count(call));
+    return op == TRANSPILER_ARRAY_OP_PUSH
+        || op == TRANSPILER_ARRAY_OP_PUSH_OWNED_STRING
+        || op == TRANSPILER_ARRAY_OP_SET;
+}
+
 static bool
 emit_call_args_need_order(ASTNode *call)
 {
@@ -145,6 +172,7 @@ emit_call_ordered(ASTNode *call, TranspilerCtx *ctx)
     size_t bound = 0;
     size_t bound_index[64];
     char bound_name[64][sizeof(ctx->ordered_args[0].name)];
+    char storage_name[64][sizeof(ctx->ordered_args[0].name)];
     CodeBuf *prefix = codebuf_create();
     char *inner = NULL;
     char *result = NULL;
@@ -153,9 +181,12 @@ emit_call_ordered(ASTNode *call, TranspilerCtx *ctx)
         return NULL;
     for (size_t i = 0; i < count; i++) {
         ASTNode *arg = ast_call_argument(call, i);
+        bool bind_storage_address =
+            emit_call_arg_requires_array_storage_address(call, i, arg);
         char *text;
         if (emit_call_arg_is_literal(arg)
-            || (emit_call_arg_is_read(arg) && !emit_call_arg_is_scalar(ctx, arg)))
+            || (!bind_storage_address && emit_call_arg_is_read(arg)
+                && !emit_call_arg_is_scalar(ctx, arg)))
             continue;
         if (bound >= 64 || base + bound >= 64) {
             transpiler_set_backend_error_with_hints(ctx,
@@ -167,9 +198,19 @@ emit_call_ordered(ASTNode *call, TranspilerCtx *ctx)
         text = emit_expression(arg, ctx);
         if (text == NULL)
             goto done;
-        snprintf(bound_name[bound], sizeof(bound_name[bound]),
+        snprintf(storage_name[bound], sizeof(storage_name[bound]),
             "__pgy_seq_%u_%zu", (unsigned)ast_node_stable_id(call), i);
-        codebuf_write(prefix, "__auto_type %s = (%s); ", bound_name[bound], text);
+        if (bind_storage_address) {
+            snprintf(bound_name[bound], sizeof(bound_name[bound]),
+                "(*%s)", storage_name[bound]);
+            codebuf_write(prefix, "__auto_type %s = &(%s); ",
+                storage_name[bound], text);
+        } else {
+            memcpy(bound_name[bound], storage_name[bound],
+                strlen(storage_name[bound]) + 1);
+            codebuf_write(prefix, "__auto_type %s = (%s); ",
+                storage_name[bound], text);
+        }
         free(text);
         bound_index[bound++] = i;
     }

@@ -201,9 +201,9 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
                 ? scope_lookup(ctx->scope, array_name)
                 : NULL;
             if (array_sym != NULL
-                && reject_non_inout_param_collection_mutator_receiver(
+                && reject_invalid_array_mutator_receiver(
                     array_node, array_sym->type, "array index assignment",
-                    "array", ctx)) {
+                    ctx)) {
                 return target_type;
             }
             /* Slice<T> is a borrowed view: writing through a default value

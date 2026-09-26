@@ -1,0 +1,284 @@
+// Program-internal comparison for the CPU RGBA storage candidates used by
+// Alrescha. Allocation/growth is outside the measured window: every array is
+// fully populated before warmup, and timed kernels use indexed reads/writes.
+struct Pixel {
+    r: Int;
+    g: Int;
+    b: Int;
+    a: Int;
+}
+
+struct PixelBuffer {
+    values: Array<Int>;
+}
+
+struct PixelFrame {
+    buffer: PixelBuffer;
+}
+
+struct TimedChecksum {
+    elapsedMs: Int;
+    checksum: Long;
+}
+
+func BlendChannel(srcPremul: Int, dst: Int, inverseAlpha: Int) -> Int {
+    return srcPremul + (dst * inverseAlpha + 127) / 255;
+}
+
+func RunFlat(inout values: Array<Int>, pixelCount: Int, rounds: Int) -> Long {
+    let checksum: Long = 0L;
+    let round: Int = 0;
+    while round < rounds {
+        let i: Int = 0;
+        while i < pixelCount {
+            let base: Int = i * 4;
+            ArraySet(values, base, 20);
+            ArraySet(values, base + 1, 40);
+            ArraySet(values, base + 2, 60);
+            ArraySet(values, base + 3, 255);
+            i = i + 1;
+        }
+
+        i = 0;
+        while i < pixelCount {
+            let base: Int = i * 4;
+            ArraySet(values, base, BlendChannel(30, values[base], 159));
+            ArraySet(values, base + 1, BlendChannel(40, values[base + 1], 159));
+            ArraySet(values, base + 2, BlendChannel(50, values[base + 2], 159));
+            ArraySet(values, base + 3, BlendChannel(96, values[base + 3], 159));
+            i = i + 1;
+        }
+
+        i = 0;
+        while i < pixelCount {
+            let base: Int = i * 4;
+            checksum = checksum + (values[base] as Long) * 3L;
+            checksum = checksum + (values[base + 1] as Long) * 5L;
+            checksum = checksum + (values[base + 2] as Long) * 7L;
+            checksum = checksum + (values[base + 3] as Long) * 11L;
+            i = i + 1;
+        }
+        round = round + 1;
+    }
+    return checksum;
+}
+
+func RunNominal(inout values: Array<Pixel>, pixelCount: Int, rounds: Int) -> Long {
+    let checksum: Long = 0L;
+    let round: Int = 0;
+    while round < rounds {
+        let i: Int = 0;
+        while i < pixelCount {
+            ArraySet(values, i, Pixel(20, 40, 60, 255));
+            i = i + 1;
+        }
+
+        i = 0;
+        while i < pixelCount {
+            let current: Pixel = values[i];
+            ArraySet(values, i, Pixel(
+                BlendChannel(30, current.r, 159),
+                BlendChannel(40, current.g, 159),
+                BlendChannel(50, current.b, 159),
+                BlendChannel(96, current.a, 159)
+            ));
+            i = i + 1;
+        }
+
+        i = 0;
+        while i < pixelCount {
+            let current: Pixel = values[i];
+            checksum = checksum + (current.r as Long) * 3L;
+            checksum = checksum + (current.g as Long) * 5L;
+            checksum = checksum + (current.b as Long) * 7L;
+            checksum = checksum + (current.a as Long) * 11L;
+            i = i + 1;
+        }
+        round = round + 1;
+    }
+    return checksum;
+}
+
+func RunNested(inout frame: PixelFrame, pixelCount: Int, rounds: Int) -> Long {
+    let checksum: Long = 0L;
+    let round: Int = 0;
+    while round < rounds {
+        let i: Int = 0;
+        while i < pixelCount {
+            let base: Int = i * 4;
+            ArraySet(frame.buffer.values, base, 20);
+            ArraySet(frame.buffer.values, base + 1, 40);
+            ArraySet(frame.buffer.values, base + 2, 60);
+            ArraySet(frame.buffer.values, base + 3, 255);
+            i = i + 1;
+        }
+
+        i = 0;
+        while i < pixelCount {
+            let base: Int = i * 4;
+            ArraySet(frame.buffer.values, base,
+                BlendChannel(30, frame.buffer.values[base], 159));
+            ArraySet(frame.buffer.values, base + 1,
+                BlendChannel(40, frame.buffer.values[base + 1], 159));
+            ArraySet(frame.buffer.values, base + 2,
+                BlendChannel(50, frame.buffer.values[base + 2], 159));
+            ArraySet(frame.buffer.values, base + 3,
+                BlendChannel(96, frame.buffer.values[base + 3], 159));
+            i = i + 1;
+        }
+
+        i = 0;
+        while i < pixelCount {
+            let base: Int = i * 4;
+            checksum = checksum + (frame.buffer.values[base] as Long) * 3L;
+            checksum = checksum + (frame.buffer.values[base + 1] as Long) * 5L;
+            checksum = checksum + (frame.buffer.values[base + 2] as Long) * 7L;
+            checksum = checksum + (frame.buffer.values[base + 3] as Long) * 11L;
+            i = i + 1;
+        }
+        round = round + 1;
+    }
+    return checksum;
+}
+
+func Report(label: String, inout samples: Array<Int>, checksum: Long, length: Int) -> Void {
+    ArraySort(samples);
+    Log(label);
+    Log(ToString(checksum));
+    Log(ToString(length));
+    Log(ToString(samples[0]));
+    Log(ToString(samples[50]));
+    Log(ToString(samples[95]));
+    Log(ToString(samples[99]));
+}
+
+func RequireChecksum(actual: Long, expected: Long) -> Void {
+    if actual != expected {
+        Log("FAIL checksum");
+        Exit(1);
+    }
+}
+
+func MeasureFlat(inout values: Array<Int>, pixelCount: Int, rounds: Int) -> TimedChecksum {
+    let start: Int = Now();
+    let checksum: Long = RunFlat(values, pixelCount, rounds);
+    return TimedChecksum(Now() - start, checksum);
+}
+
+func MeasureNominal(inout values: Array<Pixel>, pixelCount: Int, rounds: Int) -> TimedChecksum {
+    let start: Int = Now();
+    let checksum: Long = RunNominal(values, pixelCount, rounds);
+    return TimedChecksum(Now() - start, checksum);
+}
+
+func MeasureNested(inout frame: PixelFrame, pixelCount: Int, rounds: Int) -> TimedChecksum {
+    let start: Int = Now();
+    let checksum: Long = RunNested(frame, pixelCount, rounds);
+    return TimedChecksum(Now() - start, checksum);
+}
+
+func Main() -> Void {
+    let pixelCount: Int = 4096;
+    let rounds: Int = 2000;
+    let expected: Long = 31662080000L;
+
+    let flat: Array<Int> = [];
+    let nominal: Array<Pixel> = [];
+    let mut frame: PixelFrame = PixelFrame(PixelBuffer([]));
+    let i: Int = 0;
+    while i < pixelCount {
+        ArrayPush(flat, 0);
+        ArrayPush(flat, 0);
+        ArrayPush(flat, 0);
+        ArrayPush(flat, 0);
+        ArrayPush(nominal, Pixel(0, 0, 0, 0));
+        ArrayPush(frame.buffer.values, 0);
+        ArrayPush(frame.buffer.values, 0);
+        ArrayPush(frame.buffer.values, 0);
+        ArrayPush(frame.buffer.values, 0);
+        i = i + 1;
+    }
+
+    let warmup: Int = 0;
+    while warmup < 3 {
+        RunFlat(flat, pixelCount, rounds);
+        RunNominal(nominal, pixelCount, rounds);
+        RunNested(frame, pixelCount, rounds);
+        warmup = warmup + 1;
+    }
+
+    let flatSamples: Array<Int> = [];
+    let nominalSamples: Array<Int> = [];
+    let nestedSamples: Array<Int> = [];
+    let flatChecksum: Long = 0L;
+    let nominalChecksum: Long = 0L;
+    let nestedChecksum: Long = 0L;
+    let sample: Int = 0;
+    while sample < 101 {
+        if sample % 3 == 0 {
+            let flatResult: TimedChecksum = MeasureFlat(flat, pixelCount, rounds);
+            let nominalResult: TimedChecksum = MeasureNominal(nominal, pixelCount, rounds);
+            let nestedResult: TimedChecksum = MeasureNested(frame, pixelCount, rounds);
+            RequireChecksum(flatResult.checksum, expected);
+            RequireChecksum(nominalResult.checksum, expected);
+            RequireChecksum(nestedResult.checksum, expected);
+            flatChecksum = flatResult.checksum;
+            nominalChecksum = nominalResult.checksum;
+            nestedChecksum = nestedResult.checksum;
+            ArrayPush(flatSamples, flatResult.elapsedMs);
+            ArrayPush(nominalSamples, nominalResult.elapsedMs);
+            ArrayPush(nestedSamples, nestedResult.elapsedMs);
+        } else if sample % 3 == 1 {
+            let nominalResult: TimedChecksum = MeasureNominal(nominal, pixelCount, rounds);
+            let nestedResult: TimedChecksum = MeasureNested(frame, pixelCount, rounds);
+            let flatResult: TimedChecksum = MeasureFlat(flat, pixelCount, rounds);
+            RequireChecksum(flatResult.checksum, expected);
+            RequireChecksum(nominalResult.checksum, expected);
+            RequireChecksum(nestedResult.checksum, expected);
+            flatChecksum = flatResult.checksum;
+            nominalChecksum = nominalResult.checksum;
+            nestedChecksum = nestedResult.checksum;
+            ArrayPush(flatSamples, flatResult.elapsedMs);
+            ArrayPush(nominalSamples, nominalResult.elapsedMs);
+            ArrayPush(nestedSamples, nestedResult.elapsedMs);
+        } else {
+            let nestedResult: TimedChecksum = MeasureNested(frame, pixelCount, rounds);
+            let flatResult: TimedChecksum = MeasureFlat(flat, pixelCount, rounds);
+            let nominalResult: TimedChecksum = MeasureNominal(nominal, pixelCount, rounds);
+            RequireChecksum(flatResult.checksum, expected);
+            RequireChecksum(nominalResult.checksum, expected);
+            RequireChecksum(nestedResult.checksum, expected);
+            flatChecksum = flatResult.checksum;
+            nominalChecksum = nominalResult.checksum;
+            nestedChecksum = nestedResult.checksum;
+            ArrayPush(flatSamples, flatResult.elapsedMs);
+            ArrayPush(nominalSamples, nominalResult.elapsedMs);
+            ArrayPush(nestedSamples, nestedResult.elapsedMs);
+        }
+        sample = sample + 1;
+    }
+
+    Log("PIXEL STORAGE BENCH v1");
+    Log("fields: label checksum length min_ms p50_ms p95_ms p99_ms");
+    Report("flat-int-rgba", flatSamples, flatChecksum, ArrayLength(flat));
+    Report("nominal-pixel", nominalSamples, nominalChecksum, ArrayLength(nominal));
+    Report("nested-int-rgba", nestedSamples, nestedChecksum,
+        ArrayLength(frame.buffer.values));
+    Log("timed_growth=0_by_operation_inventory");
+    Log("allocation_count=UNMEASURED_no_public_counter");
+    Log("lifetime=Main_scope_reused_across_samples_cleanup_UNMEASURED");
+    Log("clock=Now_Int_ms_host_specific");
+    Log("warmups=3 samples=101 pixels=4096 rounds=2000");
+
+    if flatChecksum != expected || nominalChecksum != expected ||
+        nestedChecksum != expected {
+        Log("FAIL checksum");
+        Exit(1);
+    }
+    if ArrayLength(flat) != pixelCount * 4 ||
+        ArrayLength(nominal) != pixelCount ||
+        ArrayLength(frame.buffer.values) != pixelCount * 4 {
+        Log("FAIL timed storage length changed");
+        Exit(1);
+    }
+}

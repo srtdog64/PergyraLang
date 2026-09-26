@@ -1,0 +1,17 @@
+struct Buffer {
+    values: Array<Int>;
+}
+
+struct Frame {
+    buffer: Buffer;
+}
+
+func Value(value: Int) -> Int {
+    return value;
+}
+
+func Main() -> Void {
+    // A temporary aggregate is not mutable storage whose collection descriptor
+    // can receive length/capacity write-back.
+    ArrayPush(Frame(Buffer([])).buffer.values, Value(42));
+}
