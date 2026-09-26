@@ -70,7 +70,7 @@ func ParseDeclsInto(
     diagnostic_projection: ParseDiagnosticProjection,
     within_zone: String,
     inout involve_types: Array<String>,
-    inout import_paths: Set<String>,
+    inout import_paths: Set<String>, inout import_chain: Array<String>,
     inout expression_graphs: Array<AstExpressionGraphRows>,
     inout script_graphs: Array<AstExpressionGraphRows>,
     inout source_locations: Array<ParserSourceLocationObservation>,
@@ -129,21 +129,22 @@ func ParseDeclsInto(
             let imp_rel: String = Substring(raw_path, 1, rp_len - 2);
             if follow_imports {
                 let imp_path: String = SelfHostPath.NormalizeImportRelative(source_dir, imp_rel);
-                if ParserImportGraphSeen(import_paths, imp_path) {
-                    continue;
-                }
+                if ParserImportChainHolds(import_chain, imp_path) { ParseRefuse(location_context, decl_start, "import_cycle", "path", imp_path, "", ""); }
+                if ParserImportGraphSeen(import_paths, imp_path) { continue; }
                 SetAdd(import_paths, imp_path);
                 let imp_content: String = ParserReadImportedSource(location_context, decl_start, imp_path);
                 let imp_dir: String = SelfHostPath.Dirname(imp_path);
                 let imp_cursor: Array<Int> = [0];
+                ArrayPush(import_chain, imp_path);
                 ParseDeclsInto(
                     imp_content, 0, imp_cursor, name_prefix, false, imp_dir,
                     imp_path, display_root, true, true, admit_format_surfaces,
                     diagnostic_projection, active_within_zone, involve_types,
-                    import_paths, expression_graphs, script_graphs,
+                    import_paths, import_chain, expression_graphs, script_graphs,
                     source_locations, script_source_locations,
                     out_blocks, out_module_paths, script_blocks
                 );
+                ArrayPop(import_chain);
             }
             continue;
         }
@@ -168,7 +169,7 @@ func ParseDeclsInto(
                 source_path, display_root, force_export, follow_imports,
                 admit_format_surfaces, diagnostic_projection,
                 active_within_zone,
-                involve_types, import_paths, expression_graphs, script_graphs,
+                involve_types, import_paths, import_chain, expression_graphs, script_graphs,
                 source_locations, script_source_locations,
                 out_blocks, out_module_paths, script_blocks
             );
@@ -194,7 +195,7 @@ func ParseDeclsInto(
                 source_path, display_root, force_export, follow_imports,
                 admit_format_surfaces, diagnostic_projection,
                 wz_name, involve_types,
-                import_paths, expression_graphs, script_graphs,
+                import_paths, import_chain, expression_graphs, script_graphs,
                 source_locations, script_source_locations,
                 out_blocks, out_module_paths, script_blocks
             );
@@ -520,7 +521,7 @@ func ParseDecls(
     diagnostic_projection: ParseDiagnosticProjection,
     within_zone: String,
     inout involve_types: Array<String>,
-    inout import_paths: Set<String>,
+    inout import_paths: Set<String>, inout import_chain: Array<String>,
     inout expression_graphs: Array<AstExpressionGraphRows>,
     inout source_locations: Array<ParserSourceLocationObservation>,
     inout declaration_module_paths: Array<String>
@@ -536,7 +537,7 @@ func ParseDecls(
         content, start, cursor_out, name_prefix, until_brace, source_dir,
         source_path, display_root, force_export, follow_imports,
         admit_format_surfaces, diagnostic_projection, within_zone,
-        involve_types, import_paths, expression_graphs, script_graphs,
+        involve_types, import_paths, import_chain, expression_graphs, script_graphs,
         source_locations, script_source_locations,
         out_blocks, declaration_module_paths, script_blocks
     );

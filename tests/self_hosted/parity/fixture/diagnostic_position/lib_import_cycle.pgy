@@ -1,0 +1,5 @@
+import "main.pgy";
+
+func Helper() -> Int {
+    return 1;
+}

@@ -71,6 +71,7 @@ func ParseProgramBuildContentWithImportPolicyObserved(
     let involve_types: Array<String> = [];
     let import_paths: Set<String> = SetNew();
     SetAdd(import_paths, source_path);
+    let import_chain: Array<String> = [source_path];
     let expression_graphs: Array<AstExpressionGraphRows> = [];
     ParserExpressionGraphRowsBoxStart(
         expression_graphs, AstExpressionGraphRowsEmpty()
@@ -82,7 +83,7 @@ func ParseProgramBuildContentWithImportPolicyObserved(
         content, i, cursor, "", false, src_dir, source_path, src_dir, false,
         follow_imports, admit_format_surfaces, diagnostic_projection,
         "", involve_types,
-        import_paths, expression_graphs,
+        import_paths, import_chain, expression_graphs,
         source_locations, declaration_module_paths
     );
     if ParserComposedGraphCallsTryFileBuiltin(expression_graphs[0]) {
@@ -93,7 +94,7 @@ func ParseProgramBuildContentWithImportPolicyObserved(
         let io_error_decls: String = ParseDecls(
             ParserIoErrorEnumSource(), 0, io_error_cursor, "", false,
             src_dir, source_path, src_dir, false, false, admit_format_surfaces,
-            diagnostic_projection, "", involve_types, import_paths,
+            diagnostic_projection, "", involve_types, import_paths, import_chain,
             expression_graphs, source_locations, declaration_module_paths
         );
         if StringLength(decls) > 0 { decls = Concat(decls, "\n"); }

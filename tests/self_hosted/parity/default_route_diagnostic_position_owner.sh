@@ -6,7 +6,9 @@
 # nothing: the launcher's `self-host driver failed (exit 1)` was all a user
 # saw, and JSON mode had no receipt at all.
 # - Imported-file rows: the refusal lives in lib.pgy, so the span must name
-#   lib.pgy and its line, not the entry file.
+#   lib.pgy and its line, not the entry file. An import back to main.pgy is a
+#   cycle, refused at lib.pgy's import as native refuses it; the self-hosted
+#   parser used to skip the second visit and compile the pair.
 # - A builtin call refused for arity or argument type names the builtin's
 #   whole registry signature on the default route; native names it for the
 #   TextBuilder family.
@@ -124,6 +126,7 @@ IMPORTED_CASES=(
     "builtin_arity_new|3|call_arity_mismatch|signature: TextBuilderNew(Int) -> TextBuilder"
     "builtin_arity_finish|4|call_arity_mismatch|signature: TextBuilderFinish(TextBuilder, Allocator) -> String"
     "builtin_arg_type|3|call_arg_type_mismatch|signature: StringLength(String) -> Int"
+    "import_cycle|1|import_cycle|- path:"
 )
 for row in "${IMPORTED_CASES[@]}"; do
     IFS='|' read -r name line code extra <<<"$row"

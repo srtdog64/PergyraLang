@@ -95,12 +95,12 @@ evidence.
 | `forbids` | contextual | native | 1 | 1 | 0 | 1 | none | native+selfhost-typed |
 | `from` | contextual | native+self_host | 2 | 3 | 0 | 22 | none | native+selfhost-typed |
 | `full` | soft | native | 1 | 1 | 0 | 3 | none | native+selfhost-typed |
-| `func` | reserved | native+self_host | 21 | 13 | 0 | 959 | completion, hover, TextMate:keyword.declaration.pergyra | native+selfhost-typed |
+| `func` | reserved | native+self_host | 21 | 13 | 0 | 960 | completion, hover, TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `give` | contextual | native | 1 | 1 | 0 | 3 | none | native+selfhost-typed |
 | `guard` | contextual | native+self_host | 1 | 3 | 0 | 7 | TextMate:keyword.other.intent.pergyra | native+selfhost-typed |
 | `if` | reserved | native+self_host | 4 | 2 | 0 | 238 | TextMate:keyword.control.pergyra | native+selfhost-typed |
 | `impl` | reserved | native+self_host | 3 | 3 | 0 | 26 | TextMate:keyword.declaration.pergyra | native+selfhost-typed |
-| `import` | reserved | native+self_host | 2 | 1 | 0 | 88 | hover, TextMate:keyword.declaration.pergyra | native+selfhost-typed |
+| `import` | reserved | native+self_host | 2 | 1 | 0 | 89 | hover, TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `in` | reserved | native+self_host | 3 | 2 | 0 | 41 | TextMate:keyword.control.pergyra | native+selfhost-typed |
 | `include` | reserved | native+self_host | 1 | 1 | 0 | 2 | TextMate:keyword.declaration.pergyra | native+selfhost-typed |
 | `innate` | reserved | native+self_host | 4 | 2 | 0 | 2 | TextMate:storage.modifier.pergyra | native+selfhost-typed |
@@ -151,7 +151,7 @@ evidence.
 | `remote` | reserved | native+self_host | 1 | 1 | 0 | 4 | TextMate:storage.modifier.pergyra | native+selfhost-typed |
 | `requires` | contextual | native+self_host | 4 | 3 | 0 | 29 | completion, hover, TextMate:keyword.other.domain.pergyra | native+selfhost-typed |
 | `retry` | contextual | 0 | 1 | 1 | 0 | 3 | none | native+selfhost-typed |
-| `return` | reserved | native+self_host | 2 | 1 | 0 | 479 | TextMate:keyword.control.pergyra | native+selfhost-typed |
+| `return` | reserved | native+self_host | 2 | 1 | 0 | 480 | TextMate:keyword.control.pergyra | native+selfhost-typed |
 | `role` | reserved | native+self_host | 6 | 3 | 0 | 32 | completion, TextMate:storage.type.pergyra | native+selfhost-typed |
 | `rollback` | contextual | native | 1 | 1 | 0 | 2 | none | native+selfhost-typed |
 | `roster` | reserved | native+self_host | 7 | 4 | 0 | 1 | completion, hover, TextMate:storage.type.pergyra | native+selfhost-typed |

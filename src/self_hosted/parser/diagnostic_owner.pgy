@@ -167,6 +167,12 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "fix the import path; it is relative to the importing file"
         );
     }
+    if code == "import_cycle" {
+        return ParseDiagnosticRow(
+            "this import reaches a file that is still being imported, so the files import each other",
+            "move the shared declarations into a file both can import"
+        );
+    }
     if code == "builtin_type_name_taken" {
         return ParseDiagnosticRow(
             "this program declares a builtin type name; IoError is the error enum of TryReadFile and TryWriteFile",
@@ -231,7 +237,7 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
         code == "block_unclosed" || code == "expected_token" ||
         code == "expression_invalid" || code == "binding_name_reserved" ||
         code == "declaration_name_missing" || code == "type_name_invalid" ||
-        code == "import_source_missing" ||
+        code == "import_source_missing" || code == "import_cycle" ||
         code == "statement_kind_unsupported" ||
         code == "int_literal_out_of_range" ||
         code == "long_literal_out_of_range" ||
