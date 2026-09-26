@@ -156,7 +156,16 @@ func ReadString(content: String, start: Int, inout cursor_out: Array<Int>) -> St
         i = i + 1;
     }
     ArraySet(cursor_out, 0, i);
-    return Substring(content, start, i - start);
+    let text: String = Substring(content, start, i - start);
+    // Native prints a literal's value with a line break, CR and tab escaped.
+    // A raw one between the quotes must read the same, or the line-based
+    // tree text splits the literal across two rows.
+    if StringIndexOf(text, "\n") < 0 && StringIndexOf(text, "\r") < 0 &&
+        StringIndexOf(text, "\t") < 0 {
+        return text;
+    }
+    return StringReplace(StringReplace(StringReplace(
+        text, "\n", "\\n"), "\r", "\\r"), "\t", "\\t");
 }
 
 // Expect the literal `tok` at the cursor, skipping leading whitespace/comments.

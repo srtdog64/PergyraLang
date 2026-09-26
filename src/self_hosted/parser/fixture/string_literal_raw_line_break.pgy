@@ -1,0 +1,12 @@
+// A raw line break and a tab between the quotes of a string literal.
+// Native prints them escaped; the tree text must stay one row.
+func Count(text: String) -> Int {
+    let parts: Array<String> = Split(text, "
+");
+    let tabbed: String = "a	b";
+    return ArrayLength(parts) + StringLength(tabbed);
+}
+
+func Main() -> Void {
+    Log(ToString(Count("a,b,c")));
+}

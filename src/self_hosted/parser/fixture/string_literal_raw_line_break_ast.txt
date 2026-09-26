@@ -1,0 +1,16 @@
+Program:
+  Function: Count
+    Parameters:
+      text: String
+    Returns: Int
+    Body:
+      Block:
+        Let: parts : Array<String: String> = Split(text, "\n")
+        Let: tabbed : String = "a\tb"
+        Return: (ArrayLength(parts) + StringLength(tabbed))
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log(ToString(Count("a,b,c")))
