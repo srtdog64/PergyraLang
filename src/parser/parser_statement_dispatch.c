@@ -171,7 +171,7 @@ static ASTNode* parser_parse_statement_dispatch(Parser* parser) {
             ASTNode *stmt = parser_parse_statement(parser);
             if (stmt != NULL)
                 ast_add_statement(ns, stmt);
-            if (parser->has_error)
+            if (parser->panic_mode)
                 parser_synchronize(parser);
         }
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after namespace body");

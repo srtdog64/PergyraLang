@@ -197,6 +197,7 @@ BROKEN_CASES=(
     "parallel_join_mode|3|expected_token"
     "parallel_join_binding|3|expected_token"
     "give_statement|3|give_outside_parallel_join"
+    "reserved_recovery|3|binding_name_reserved"
 )
 for row in "${BROKEN_CASES[@]}"; do
     IFS='|' read -r name line code <<<"$row"
@@ -347,6 +348,23 @@ for name in spawn_local async_local; do
         fail "native accepted the reserved binding in $name"
     fi
 done
+# Native names the cause of a reserved binding name and recovers at the next
+# statement: the fixture has two defects (a binding at 3:13 and a use at
+# 4:16) and a valid second function. Native once said only "Expected
+# variable name", and its recovery skipped a statement after every later
+# one and swallowed the braces, so the valid function reported a set literal.
+native_log="$WORK_DIR/native-reserved-recovery.log"
+if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_reserved_recovery.pgy" --native-pipeline \
+    --backend=c -o "$WORK_REL/native-reserved-recovery.bin") >"$native_log" 2>&1; then
+    fail "native accepted reserved_recovery"
+fi
+grep -Fq "'remote' is a reserved language word and cannot name a binding" "$native_log" &&
+    grep -Fq "check-syntax at line 3, column 13" "$native_log" &&
+    grep -Fq "'remote' is a reserved language word, not a value or a name" "$native_log" &&
+    grep -Fq "check-syntax at line 4, column 16" "$native_log" ||
+    { cat "$native_log" >&2; fail "native does not name the reserved word at both defects"; }
+[[ "$(grep -c '^pgy: parse error' "$native_log")" -eq 2 ]] ||
+    { cat "$native_log" >&2; fail "native recovery reported an error past the two defects"; }
 for leg in native default; do
     flags=(--backend=c)
     [[ "$leg" == native ]] && flags+=(--native-pipeline)

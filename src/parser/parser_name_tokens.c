@@ -22,6 +22,17 @@ consume_binding_name_token(Parser *parser, const char *message)
 {
     if (parser_check_binding_name_token(parser))
         return parser_advance(parser);
+    /* A reserved word the registry does not admit as a name: say so at the
+     * word, as the self-host parser does (binding_name_reserved), instead of
+     * only naming what was expected. */
+    if (parser != NULL && parser->current_token.text != NULL
+        && lexer_reserved_keyword_row(parser->current_token.type) != NULL) {
+        parser_error(parser,
+            "'%s' is a reserved language word and cannot name a binding; "
+            "rename it, for example by adding a suffix",
+            parser->current_token.text);
+        return parser->current_token;
+    }
     return parser_consume(parser, TOKEN_IDENTIFIER, message);
 }
 

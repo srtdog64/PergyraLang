@@ -124,7 +124,7 @@ parser_parse_pin_block(Parser *parser)
         ASTNode *stmt = parser_parse_statement(parser);
         if (stmt != NULL)
             ast_add_statement(wrapper, stmt);
-        if (parser->has_error)
+        if (parser->panic_mode)
             parser_synchronize(parser);
     }
     parser->scope_depth--;

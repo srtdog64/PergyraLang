@@ -2,6 +2,7 @@
 #include "ast_constructors_internal.h"
 #include "../common/match_variant_policy.h"
 #include "../common/numeric_parse.h"
+#include "../lexer/lexer_keywords.h"
 
 ASTNode* parse_pipe(Parser* parser);
 
@@ -24,7 +25,7 @@ static ASTNode*
 parser_chain_binary(Parser* parser, ASTNode* left, Token op, ASTNode* right)
 {
     if (parser->binary_op_count >= PARSER_MAX_EXPR_OPERATORS) {
-        if (!parser->has_error) {
+        if (!parser->panic_mode) {
             parser_error(parser,
                 "Expression has too many chained operators (limit is 4096); "
                 "split it into smaller subexpressions");
@@ -684,6 +685,15 @@ ASTNode* parser_parse_primary(Parser* parser) {
         return first;
     }
 
+    /* A reserved word where a value was expected is most often a name that
+     * collides with the language vocabulary; say which word it is. */
+    if (parser->current_token.text != NULL
+        && lexer_reserved_keyword_row(parser->current_token.type) != NULL) {
+        parser_error(parser,
+            "'%s' is a reserved language word, not a value or a name",
+            parser->current_token.text);
+        return NULL;
+    }
     parser_error(parser, "Unexpected token in expression");
     return NULL;
 }

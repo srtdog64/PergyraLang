@@ -163,7 +163,7 @@ ASTNode* parse_match_statement(Parser* parser) {
                    !parser_is_at_end(parser)) {
                 ASTNode* stmt = parser_parse_statement(parser);
                 if (stmt) ast_add_statement(body, stmt);
-                if (parser->has_error)
+                if (parser->panic_mode)
                     parser_synchronize(parser);
             }
             mc->data.match_case.body = body;
@@ -177,7 +177,7 @@ ASTNode* parse_match_statement(Parser* parser) {
             while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
                 ASTNode* stmt = parser_parse_statement(parser);
                 if (stmt) ast_add_statement(body, stmt);
-                if (parser->has_error)
+                if (parser->panic_mode)
                     parser_synchronize(parser);
             }
             match->data.match_stmt.default_body = body;
@@ -221,7 +221,7 @@ ASTNode* parse_if_statement(Parser* parser) {
             break;
         }
         ASTNode* arm = parse_if_statement_arm(parser);
-        if (parser->has_error) {
+        if (parser->panic_mode) {
             if (arm_count < PARSER_MAX_ELSE_IF_CHAIN && !chain_capped)
                 tail->data.if_stmt.else_branch = arm;
             else
@@ -239,7 +239,7 @@ ASTNode* parse_if_statement(Parser* parser) {
             break;  /* an if-let arm owns its own else clause */
         tail = arm;
     }
-    if (chain_capped && !parser->has_error) {
+    if (chain_capped && !parser->panic_mode) {
         parser_error(parser,
             "If statement has too many chained else-if arms (limit is "
             "512); refactor into a match statement or a lookup table");
@@ -373,14 +373,14 @@ ASTNode* parse_transaction_block(Parser* parser) {
                 "Expected ';' after compensate handler");
             if (handler != NULL)
                 transaction_add_compensation(node, handler);
-            if (parser->has_error)
+            if (parser->panic_mode)
                 parser_synchronize(parser);
             continue;
         }
         ASTNode* stmt = parser_parse_statement(parser);
         if (stmt != NULL)
             ast_add_statement(body, stmt);
-        if (parser->has_error)
+        if (parser->panic_mode)
             parser_synchronize(parser);
     }
     parser_consume(parser, TOKEN_RBRACE, "Expected '}' to close transaction");

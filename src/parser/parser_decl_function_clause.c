@@ -320,7 +320,7 @@ parser_decl_parse_next_function_clause(Parser *parser, ASTNode *func,
         return true;
     }
 
-    if (parser_has_error(parser))
+    if (parser->panic_mode)
         return false;
 
     if (parser_decl_report_invalid_function_clause(parser, is_action))

@@ -200,7 +200,7 @@ ASTNode* parser_parse_async_block(Parser* parser)
                                      stmt,
                                      "Out of memory while parsing async block");
         }
-        if (parser->has_error) {
+        if (parser->panic_mode) {
             parser_synchronize(parser);
         }
     }
@@ -361,7 +361,7 @@ ASTNode* parser_parse_select_statement(Parser* parser)
 
             // Parse case body and attach to the case node
             ASTNode* body = parser_parse_statement(parser);
-            if (parser->has_error) {
+            if (parser->panic_mode) {
                 parser_synchronize(parser);
             }
 
@@ -384,7 +384,7 @@ ASTNode* parser_parse_select_statement(Parser* parser)
             // Default case
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'default'");
             select_stmt->data.select_stmt.default_case = parser_parse_statement(parser);
-            if (parser->has_error) {
+            if (parser->panic_mode) {
                 parser_synchronize(parser);
             }
         } else {

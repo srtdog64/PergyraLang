@@ -102,6 +102,7 @@ void parser_destroy(Parser* parser) {
 Token parser_advance(Parser* parser) {
     parser->previous_token = parser->current_token;
     parser->current_token = lexer_next_token(parser->lexer);
+    parser->consumed_tokens++;
     if (!lexer_token_stream_handle_equal(parser->token_stream,
                                          parser->current_token.stream)) {
         parser_error(parser, "parser token stream anchor changed during parse");
@@ -160,9 +161,11 @@ void parser_consume_statement_terminator(Parser* parser, const char* message) {
 }
 
 /*
- * Error reporting (docs/189 C10). Recovery dynamics are unchanged --
- * has_error stays sticky and the statement loops keep synchronizing on
- * it -- but reporting is no longer first-error-only:
+ * Error reporting and recovery (docs/189 C10). has_error is sticky and
+ * only says the file failed. panic_mode says the CURRENT statement failed:
+ * statement loops synchronize, and declaration parsers stop, on panic_mode
+ * alone, so a valid statement or declaration after a recovered error parses
+ * normally instead of being skipped. Reporting is not first-error-only:
  *
  * - panic_mode suppresses the cascade INSIDE the failing statement
  *   (set here, cleared when parser_synchronize reaches a boundary), so
@@ -185,12 +188,16 @@ void parser_error(Parser* parser, const char* format, ...) {
         return;
     if (parser->panic_mode)
         return;
-    if (parser->error_count >= PARSER_MAX_REPORTED_ERRORS)
-        return;
 
+    /* The statement fails and its enclosing loop recovers at the next
+     * statement boundary (parser_synchronize) whether or not the report is
+     * past the cap; only the report is suppressed there. */
     first = !parser->has_error;
     parser->has_error = true;
     parser->panic_mode = true;
+    parser->error_consumed_tokens = parser->consumed_tokens;
+    if (parser->error_count >= PARSER_MAX_REPORTED_ERRORS)
+        return;
     parser->error_count++;
 
     /* Heap-exact throughout: the rendered text is what the user (and the
@@ -236,6 +243,15 @@ void parser_error(Parser* parser, const char* format, ...) {
 
 // 에러 복구 - 다음 문장까지 건너뛰기
 static void parser_synchronize_scan(Parser* parser) {
+    /* The failed statement went on past the error to its own `;` or closing
+     * brace: the current token already begins the next statement or closes
+     * the block, and skipping it would desync the block structure. With no
+     * token consumed since the error, advance as before so recovery always
+     * makes progress. */
+    if (parser->consumed_tokens > parser->error_consumed_tokens
+        && (parser->previous_token.type == TOKEN_SEMICOLON
+            || parser->previous_token.type == TOKEN_RBRACE))
+        return;
     parser_advance(parser);
 
     while (!parser_is_at_end(parser)) {
@@ -508,7 +524,7 @@ ASTNode* parser_parse_block(Parser* parser) {
         if (stmt) {
             ast_add_statement(block, stmt);
         }
-        if (parser->has_error) {
+        if (parser->panic_mode) {
             parser_synchronize(parser);
         }
     }

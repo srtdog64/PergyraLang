@@ -145,7 +145,7 @@ parser_parse_program_with_intent_finalization(Parser *parser,
                 ast_add_statement(program, statement);
             }
         }
-        if (parser->has_error)
+        if (parser->panic_mode)
             parser_synchronize(parser);
     }
 

@@ -200,7 +200,7 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
 
         if (!parser_decl_parse_next_function_clause(parser, func, is_action,
                                                     &matched)
-            || parser_has_error(parser)) {
+            || parser->panic_mode) {
             return func;
         }
         if (!matched) {

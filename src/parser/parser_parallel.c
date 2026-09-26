@@ -157,7 +157,7 @@ ASTNode* parser_parse_parallel_block(Parser* parser) {
         if (stmt != NULL) {
             ast_add_parallel_task(parallel, stmt);
         }
-        if (parser->has_error) {
+        if (parser->panic_mode) {
             parser_synchronize(parser);
         }
     }

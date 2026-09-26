@@ -74,7 +74,7 @@ parser_parse_within_context_block(Parser *parser)
             ast_add_statement(block, stmt);
         }
 
-        if (parser->has_error)
+        if (parser->panic_mode)
             parser_synchronize(parser);
     }
 
