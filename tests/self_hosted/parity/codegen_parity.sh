@@ -73,6 +73,15 @@ if ! command -v "$CC" >/dev/null 2>&1; then
     echo "[self-host-parity:codegen] SKIP missing C compiler on PATH: $CC"
     exit 0
 fi
+# The emitted C builds with the standard and feature macros the driver uses
+# (src/compiler/compiler.c). A program that includes pgy_runtime.h, as one
+# using DirWalk does, needs C11: a C23 default drops ATOMIC_VAR_INIT.
+CODEGEN_C_FLAGS=(-std=c11 -fwrapv -fno-strict-aliasing)
+case "$(uname -s 2>/dev/null || echo unknown)" in
+    MINGW*|MSYS*|CYGWIN*) ;;
+    Darwin) CODEGEN_C_FLAGS+=(-D_DARWIN_C_SOURCE -D_XOPEN_SOURCE=700) ;;
+    *) CODEGEN_C_FLAGS+=(-D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700) ;;
+esac
 CODEGEN_JOBS="${PGY_SELFHOST_CODEGEN_JOBS:-2}"
 if ! [[ "$CODEGEN_JOBS" =~ ^[1-9][0-9]*$ ]] || [[ "$CODEGEN_JOBS" -gt 4 ]]; then
     echo "[self-host-parity:codegen] PGY_SELFHOST_CODEGEN_JOBS must be 1..4" >&2
@@ -443,7 +452,8 @@ run_tool_fixture() {
         fi
 
         # 2. gcc the emitted C and run it.
-        if ! "$CC" "$c_file" -I"$ROOT_DIR/src/runtime" -o "$self_exe" \
+        if ! "$CC" "${CODEGEN_C_FLAGS[@]}" "$c_file" -I"$ROOT_DIR/src" \
+            -I"$ROOT_DIR/src/runtime" -o "$self_exe" \
             2>"$ABS_BUILD/${base}_${backend}_cc.log"; then
             echo "[self-host-parity:codegen] backend=$backend $base: emitted C failed to compile" >&2
             cat "$ABS_BUILD/${base}_${backend}_cc.log" >&2

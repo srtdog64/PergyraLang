@@ -8215,13 +8215,15 @@ reject_text "src/self_hosted/mir/json_projection_owner.pgy" \
 require_file "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
 require_max_lines "src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy" 60
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, usage.uses_task_observation, uses_hashmap)"
+    "let uses_host_runtime: Bool = usage.uses_task_observation || uses_dirwalk;"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, usage.uses_task_observation, uses_hashmap)"
+    "RuntimeCHeaderRequired(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_host_runtime, uses_hashmap)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "RuntimeCHeaderIncludeBlock(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_array, usage.uses_spawn, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_host_runtime, uses_hashmap)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "RuntimeCHeaderOwnsCheckedArithmetic(usage.uses_allocator, uses_text_builder, usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
-    "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap, usage.uses_task_observation)"
+    "RuntimeCHeaderOwnsScalarLog(usage.uses_box_array, uses_list, uses_queue, uses_set, uses_artifact_transaction, uses_intent_observability, uses_hashmap, uses_host_runtime)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "RuntimeCHeaderOwnsBoolToString("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \

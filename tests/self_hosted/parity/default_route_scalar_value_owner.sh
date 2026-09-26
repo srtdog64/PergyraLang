@@ -5,6 +5,9 @@
 # - A C reserved word and the name its C escape spells are distinct bindings.
 # - A name <windows.h> defines as a macro (a local `near`, a function `max`)
 #   is an ordinary name when file I/O pulls the Windows headers in.
+# - DirWalk stays inside PGY_IO_ROOT: a relative root resolves under it, and
+#   `..` or an absolute directory outside it lists nothing. The default route
+#   once walked any path with its own opendir loop.
 # - Abs, Min and Max keep a Long operand's width.
 # - A Long literal past the signed 64-bit range is refused, not wrapped.
 # - A call argument of Min, Max or Abs, as in Max(lo, Min(hi, v)), is typed
@@ -191,4 +194,28 @@ grep -Fq "Long literal is outside the signed 64-bit range" \
     "$ROOT_DIR/$WORK_REL/long-literal-range-native-c.exe.log" ||
     fail "native refusal lost its range diagnostic"
 
-echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments and try on an explicit Result agree with native C, and an out-of-range Long literal and a mismatched try error type are refused: PASS"
+io_root="$WORK_DIR/dir_walk_root"
+mkdir -p "$io_root/inside"
+printf 'a' >"$io_root/inside/a.txt"
+printf 'b' >"$io_root/inside/b.txt"
+outside="$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/src/self_hosted/parser")"
+cat >"$WORK_DIR/dir_walk_isolation.pgy" <<EOF
+func Main() -> Void {
+    Log(ArrayLength(DirWalk("inside")));
+    Log(ArrayLength(DirWalk("..")));
+    Log(ArrayLength(DirWalk("$outside")));
+}
+EOF
+printf '2\n0\n0\n' >"$WORK_DIR/dir-walk.expected"
+for leg in native-c native-llvm default-c; do
+    out_rel="$WORK_REL/dir-walk-$leg.exe"
+    compile "$WORK_REL/dir_walk_isolation.pgy" "$leg" "$out_rel" ||
+        { cat "$ROOT_DIR/$out_rel.log" >&2; fail "$leg did not compile the DirWalk isolation case"; }
+    PGY_IO_ROOT="$(pgy_path_for_compiler "$PGY" "$io_root")" "$ROOT_DIR/$out_rel" |
+        tr -d '\r' >"$WORK_DIR/dir-walk-$leg.out" || fail "$leg DirWalk isolation binary failed"
+    cmp -s "$WORK_DIR/dir-walk.expected" "$WORK_DIR/dir-walk-$leg.out" ||
+        { diff -u "$WORK_DIR/dir-walk.expected" "$WORK_DIR/dir-walk-$leg.out" >&2 || true
+          fail "$leg DirWalk left PGY_IO_ROOT"; }
+done
+
+echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result and DirWalk inside PGY_IO_ROOT agree with native C, and an out-of-range Long literal and a mismatched try error type are refused: PASS"
