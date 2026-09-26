@@ -41,6 +41,7 @@ func SemanticReason(code: String) -> String {
     if code == "world_zone_embedding_copy" { return "World constructor implicitly copies zone binding into its slot; the binding and the world-owned slot would diverge"; }
     if code == "match_pattern_invalid" { return "Invalid or non-exhaustive match pattern"; }
     if code == "intent_retry_unavailable" { return "Intent retry execution lowering is not implemented"; }
+    if code == "intent_step_clause_not_bool" { return "An intent step's intent clause gates the step on a Bool child intent; a typed intent returns its outcome enum"; }
     if code == "intent_predicate_plan_unavailable" { return "the typed Intent outcome plan required by this boundary predicate is unavailable"; }
     if code == "action_contract_invalid" { return "Action authority requires a declared binding and matching zone contract"; }
     if code == "task_lifecycle_invalid" { return "Owned task handle must be retired on every normal exit"; }
@@ -97,9 +98,7 @@ func SemanticReason(code: String) -> String {
     if code == "return_type_mismatch" {
         return "return expression type does not match the function return type";
     }
-    if code == "condition_not_bool" {
-        return "branch condition must be Bool";
-    }
+    if code == "condition_not_bool" { return "branch condition must be Bool"; }
     if code == "assign_type_mismatch" {
         return "assigned expression type does not match the local type";
     }
@@ -183,6 +182,7 @@ func SemanticFix(code: String) -> String {
     if code == "single_owner_handle_boundary" { return "keep the TextBuilder in one function and pass the finished String across the boundary"; }
     if code == "match_pattern_invalid" { return "cover every enum variant with the declared payload arity or add a default arm"; }
     if code == "intent_retry_unavailable" { return "remove the retry modifier until both backends implement the same retry contract"; }
+    if code == "intent_step_clause_not_bool" { return "call an intent without a return type here, or call the typed intent outside the step gate and match its outcome"; }
     if code == "intent_predicate_plan_unavailable" { return "use an admitted Intent outcome plan before checking the boundary predicate"; }
     if code == "action_contract_invalid" { return "align the action binding, subject slot and explicit zone authority"; }
     if code == "task_lifecycle_invalid" { return "await the task or transfer it to an explicit own parameter before exiting its scope"; }

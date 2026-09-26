@@ -1,0 +1,48 @@
+tobject Done { n: Int; }
+tobject Stop { code: Int; }
+enum Turn { Answered(Done), Stopped(Stop) }
+enum Task { Delivered(Done), Failed(Stop) }
+
+within Office {
+    subject Agent {
+        let mut turns: Int;
+
+        action Ask(self) -> Turn
+            authorized by self
+        {
+            self.turns = self.turns + 1;
+            return Answered(Done(self.turns));
+        }
+    }
+}
+
+zone Office {
+    subject slot agent: Agent
+    authority agent
+}
+
+intent Complete(office: Office, agent: Agent) -> Task {
+    step Work {
+        where: Office;
+        using: office;
+        who: agent;
+        authorized by: agent;
+        on outcome: agent.Ask();
+        success: Answered(done);
+        failure: Stopped(stop);
+    }
+    success Work: Delivered(done);
+    failure Work: Failed(stop);
+}
+
+intent Delegate(office: Office, agent: Agent) {
+    step Child {
+        intent: Complete(office, agent);
+    }
+}
+
+func Main() -> Void {
+    let agent = Agent(0);
+    let office = Office(Clone(agent));
+    Delegate(office, agent);
+}

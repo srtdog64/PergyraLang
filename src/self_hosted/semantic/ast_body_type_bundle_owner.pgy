@@ -25,6 +25,7 @@ import "ast_single_owner_handle_verdict_owner.pgy";
 import "ast_match_coverage_owner.pgy";
 import "ast_body_flow_verdict_owner.pgy";
 import "ast_intent_retry_admission_owner.pgy";
+import "ast_intent_step_clause_admission_owner.pgy";
 import "ast_intent_boundary_predicate_admission_owner.pgy";
 import "ast_action_contract_admission_owner.pgy";
 import "ast_future_lifecycle_admission_owner.pgy";
@@ -130,6 +131,10 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     if verdict.ok {
         verdict = SemanticAstIntentRetryAdmissionFromFacts(
             artifact, analysis.kind_surfaces, analysis.intent_signatures);
+    }
+    if verdict.ok {
+        verdict = SemanticAstIntentStepClauseAdmissionFromFacts(artifact, analysis.kind_surfaces,
+            analysis.intent_signatures, analysis.expression_surfaces);
     }
     if verdict.ok {
         verdict = SemanticAstIntentBoundaryPredicateAdmission(artifact, analysis, function_tables);

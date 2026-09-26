@@ -134,6 +134,11 @@ for row in "${IMPORTED_CASES[@]}"; do
     expect_refusal "imported-$name" "$case_rel/main.pgy" lib.pgy "$line" "$code" "$extra"
 done
 
+# A typed intent called in a step's Bool `intent:` gate reached MIR lowering
+# or C emission and failed there with no position. The self-host semantic now
+# refuses it with a code. Step clauses record no source row, so the span names
+# the enclosing intent (38:1) where native names the call (40:17); a clause
+# row would move it.
 # name|expected line|code
 BROKEN_CASES=(
     "spawn_local|1|binding_name_reserved"
@@ -171,6 +176,7 @@ BROKEN_CASES=(
     "intent_duplicate_guard|4|declaration_clause_duplicate"
     "intent_step_outcome|4|intent_shape_invalid"
     "intent_retry_zero|1|declaration_clause_invalid"
+    "intent_clause_typed|38|intent_step_clause_not_bool"
     "zone_apply_target|10|expected_token"
     "zone_apply_number|10|expected_token"
     "zone_link_number|11|expected_token"

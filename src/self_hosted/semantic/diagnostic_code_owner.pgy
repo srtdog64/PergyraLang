@@ -6,6 +6,7 @@
 func SemanticDiagnosticCodes() -> Array<String> {
     let codes: Array<String> = [
         "intent_retry_unavailable",
+        "intent_step_clause_not_bool",
         "intent_predicate_plan_unavailable",
         "action_contract_invalid",
         "action_ability_unsatisfied",
@@ -244,7 +245,8 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
         code == "destructure_initializer_not_array" {
         return "PGY_SEM_TYPE_MISMATCH";
     }
-    if code == "intent_signature_invalid" || code == "intent_retry_unavailable" || code == "intent_predicate_plan_unavailable" {
+    if code == "intent_signature_invalid" || code == "intent_retry_unavailable" || code == "intent_predicate_plan_unavailable" ||
+        code == "intent_step_clause_not_bool" {
         return "PGY_SEM_INTENT_STEP_INVALID";
     }
     if code == "action_contract_invalid" { return "PGY_SEM_ACTION_CONTRACT_INVALID"; }

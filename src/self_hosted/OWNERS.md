@@ -254,6 +254,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   exact nominal-bound witnesses projected into callable body type views.
 - `src/self_hosted/semantic/ast_intent_retry_admission_owner.pgy` --
   common source refusal of parsed but unimplemented retry metadata.
+- `src/self_hosted/semantic/ast_intent_step_clause_admission_owner.pgy` --
+  positioned refusal of a typed intent called in a step's Bool `intent:` gate.
 - `src/self_hosted/semantic/ast_unsafe_block_admission_owner.pgy` --
   unsafe lexical-body admission at parallel task boundaries.
 - `src/self_hosted/semantic/ast_subject_value_boundary_owner.pgy` --

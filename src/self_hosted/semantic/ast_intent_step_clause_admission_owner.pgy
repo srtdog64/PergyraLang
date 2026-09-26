@@ -1,0 +1,35 @@
+// A step's `intent:` clause gates the step on a Bool child intent: the parent
+// step fails when the child returns false. A typed intent returns its outcome
+// enum, which cannot decide that gate, so the call is refused here, as
+// native's checker refuses it, instead of reaching MIR lowering or C
+// emission with carriers they cannot complete. Step clauses record no source
+// row, so the refusal's span resolves to the enclosing intent declaration.
+import "ast_body_verdict_owner.pgy";
+import "ast_intent_call_fact_owner.pgy";
+import "ast_kind_surface_fact_owner.pgy";
+
+func SemanticAstIntentStepClauseAdmissionFromFacts(
+    artifact: AstTreeArtifact, ref kinds: SemanticAstKindSurfaceFacts,
+    ref intents: SemanticAstIntentSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts
+) -> SemanticAstBodyVerdict {
+    if !kinds.ok || kinds.artifact_node_count != artifact.count ||
+        ArrayLength(kinds.kind_tags) != artifact.count {
+        return SemanticAstBodyVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "IntentStepClauseAdmission"), -1);
+    }
+    let row: Int = 0;
+    while row < ArrayLength(kinds.kind_tags) {
+        if kinds.kind_tags[row] == TypedAstKindIntentStepIntentTag() {
+            let call: SemanticAstIntentCallFact =
+                SemanticAstIntentCallFromGraph(intents, surfaces, row);
+            if call.ok && call.return_type_name != "Bool" {
+                return SemanticAstBodyVerdictError("intent_step_clause_not_bool",
+                    SemanticError2("intent_step_clause_not_bool", "intent", call.name,
+                        "returns", call.return_type_name), row);
+            }
+        }
+        row = row + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}
