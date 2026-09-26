@@ -194,6 +194,9 @@ BROKEN_CASES=(
     "ability_member|2|expected_token"
     "parallel_on|3|expected_token"
     "role_parallel|6|vision_surface_not_executable"
+    "parallel_join_mode|3|expected_token"
+    "parallel_join_binding|3|expected_token"
+    "give_statement|3|give_outside_parallel_join"
 )
 for row in "${BROKEN_CASES[@]}"; do
     IFS='|' read -r name line code <<<"$row"
@@ -209,10 +212,15 @@ done
 # self-hosted parser read `42` and `subject` as names and admitted those
 # members; the zone rows then failed in DIR with no code (`apply directive
 # field identity is missing`), the effect rows compiled on default C. The
-# default route refuses each at native's line and column.
+# default route refuses each at native's line and column. The self-hosted
+# parser skipped a parallel join header to its brace and read `give VALUE`
+# as a name followed by a stray token; it now refuses where native does.
 # name|line|column|native text
 for row in "parallel_on|3|14|Expected '{' after 'parallel'" \
     "role_parallel|6|5|declared vision surface" \
+    "parallel_join_mode|3|51|Expected join mode" \
+    "parallel_join_binding|3|15|requires an element binding" \
+    "give_statement|3|9|only legal as the final statement" \
     "zone_apply_number|10|19|Expected target slot name after 'to'" \
     "zone_link_number|11|32|Expected right slot name after ','" \
     "zone_refresh_keyword|12|13|Expected object slot name after 'refresh'" \
@@ -249,6 +257,10 @@ UNCOVERED_CASES=(
     "relation_effect_projection_sync|21|surface_not_covered|- surface: relation method"
     "intent_decl_overlay|51|surface_not_covered|- surface: repeated intent step on clause"
     "zone_layer_projection_state_alias|30|surface_not_covered|- surface: zone apply of a state"
+    "select_match_case|5|surface_not_covered|- surface: select statement"
+    "pin_inside_for_loop|5|surface_not_covered|- surface: pin block"
+    "reflect_type_name|14|surface_not_covered|"
+    "type_test|3|surface_not_covered|"
 )
 for row in "${UNCOVERED_CASES[@]}"; do
     IFS='|' read -r name line code extra <<<"$row"
@@ -273,6 +285,7 @@ NATIVE_ONLY_STATEMENT_CASES=(
     "parallel_let|3|- surface: parallel block"
     "nested_parallel|3|- surface: parallel block"
     "channel_send|3|- surface: channel send"
+    "parallel_join_stmt|3|- surface: parallel block"
     "case:llvm_dynamic_scope_capture|264|- surface: parallel block"
     "case:channel_basic|3|- surface: channel send"
 )

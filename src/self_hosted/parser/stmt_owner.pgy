@@ -16,6 +16,7 @@ import "stmt_destructure_owner.pgy";
 import "stmt_if_owner.pgy";
 import "stmt_loop_owner.pgy";
 import "stmt_parallel_owner.pgy";
+import "stmt_uncovered_surface_owner.pgy";
 import "stmt_match_owner.pgy";
 import "source_location_observation_owner.pgy";
 import "source_refusal_owner.pgy";
@@ -36,6 +37,7 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         ParseRefuse(location_context, head_start, "statement_head_unexpected_token",
             "construct", "statement", "source_offset", ToString(head_start));
     }
+    ParseRefuseUncoveredStatementSurface(content, head_start, location_context);
     if MatchLanguageWord(content, head_start, LanguageWordId.WordBind) {
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);

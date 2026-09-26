@@ -1,0 +1,20 @@
+// The parallel join header: the element and index forms and every join
+// mode. A statement prints its body as one Block under `Parallel:` and an
+// expression stays one leaf; native's tree prints no header.
+
+func Main() -> Void {
+    let xs: Array<Int> = [2];
+    parallel (x in xs) {
+        Log(x);
+    }
+    parallel (i in 0..3) join with all {
+        Log(i);
+    }
+    parallel (i in 0..2) join with any { }
+    let total: Int = parallel (x in xs) join with sum { give x * x; };
+    let prod: Int = parallel (i in 1..5) join with product { give i; };
+    let lo: Int = parallel (x in xs) join with min { give x; };
+    let hi: Int = parallel (x in xs) join with max { give x; };
+    let first: Int = parallel (x in xs) join with any { give x; };
+    Log(total + prod + lo + hi + first);
+}

@@ -1,0 +1,82 @@
+// Self-host parser parallel join header owner.
+//
+// Native (src/parser/parser_parallel.c) reads `parallel (x in xs)` and the
+// index form `parallel (i in lo..hi)`, then an optional `join with MODE`,
+// before the body. Its tree prints none of the header, but it refuses a
+// malformed one, so both the statement and the expression form read the
+// header here instead of skipping to a brace.
+
+import "cursor_owner.pgy";
+
+struct ParserParallelJoinHeader {
+    ok: Bool;
+    // The offset of the body's `{`, or of the token native refuses.
+    at: Int;
+    // The token native expected at `at`; empty when an expression inside
+    // the header failed, which `failure` then carries.
+    expected: String;
+    failure: ParserExpressionFact;
+}
+
+func ParserParallelJoinHeaderExpected(at: Int, expected: String) -> ParserParallelJoinHeader {
+    return ParserParallelJoinHeader(
+        false, at, expected, ParserExpressionInvalidAt(at, "expected_token"));
+}
+
+// `open` is the offset of the header's `(`.
+func ParserParallelJoinHeaderAt(content: String, open: Int) -> ParserParallelJoinHeader {
+    let i: Int = SkipWhitespaceAndComments(content, open + 1);
+    let cursor: Array<Int> = [i];
+    let binding: String = ReadIdent(content, i, cursor);
+    let after_binding: Int = SkipWhitespaceAndComments(content, cursor[0]);
+    // Native reads the join form only for `NAME in`; any other target is the
+    // binding-less sketch it refuses.
+    if StringLength(binding) == 0 ||
+        LanguageKeywordDebugIdentity(binding) != "IDENTIFIER" ||
+        !MatchLanguageWord(content, after_binding, LanguageWordId.WordIn) {
+        return ParserParallelJoinHeaderExpected(i, "element binding");
+    }
+    i = LanguageWordEnd(after_binding, LanguageWordId.WordIn);
+    ArraySet(cursor, 0, i);
+    let collection: ParserExpressionFact = ParseExprFact(content, i, cursor);
+    if !collection.ok {
+        return ParserParallelJoinHeader(false, i, "", collection);
+    }
+    i = SkipWhitespaceAndComments(content, cursor[0]);
+    if ParserCharAt(content, i) == "." && ParserCharAt(content, i + 1) == "." {
+        ArraySet(cursor, 0, i + 2);
+        let range_end: ParserExpressionFact = ParseExprFact(content, i + 2, cursor);
+        if !range_end.ok {
+            return ParserParallelJoinHeader(false, i + 2, "", range_end);
+        }
+        i = SkipWhitespaceAndComments(content, cursor[0]);
+    }
+    if ParserCharAt(content, i) != ")" {
+        return ParserParallelJoinHeaderExpected(i, ")");
+    }
+    i = SkipWhitespaceAndComments(content, i + 1);
+    if MatchLanguageWord(content, i, LanguageWordId.WordJoin) {
+        i = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordJoin));
+        if !MatchLanguageWord(content, i, LanguageWordId.WordWith) {
+            return ParserParallelJoinHeaderExpected(i, "with");
+        }
+        i = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordWith));
+        // The closed join modes: `all` (the default), `any`, and the reduce
+        // combinators `sum`, `product`, `min` and `max`.
+        let mode_end: Int = i;
+        if MatchLanguageWord(content, i, LanguageWordId.WordAll) { mode_end = LanguageWordEnd(i, LanguageWordId.WordAll); }
+        if MatchLanguageWord(content, i, LanguageWordId.WordAny) { mode_end = LanguageWordEnd(i, LanguageWordId.WordAny); }
+        if MatchLanguageWord(content, i, LanguageWordId.WordSum) { mode_end = LanguageWordEnd(i, LanguageWordId.WordSum); }
+        if MatchLanguageWord(content, i, LanguageWordId.WordProduct) { mode_end = LanguageWordEnd(i, LanguageWordId.WordProduct); }
+        if MatchLanguageWord(content, i, LanguageWordId.WordMin) { mode_end = LanguageWordEnd(i, LanguageWordId.WordMin); }
+        if MatchLanguageWord(content, i, LanguageWordId.WordMax) { mode_end = LanguageWordEnd(i, LanguageWordId.WordMax); }
+        if mode_end == i {
+            return ParserParallelJoinHeaderExpected(i, "join mode");
+        }
+        i = SkipWhitespaceAndComments(content, mode_end);
+    }
+    if ParserCharAt(content, i) != "{" {
+        return ParserParallelJoinHeaderExpected(i, "{");
+    }
+    return ParserParallelJoinHeader(true, i, "", collection);
+}

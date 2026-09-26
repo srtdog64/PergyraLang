@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2];
+    parallel (x in xs) join with all {
+        Log(x);
+    }
+}

@@ -1,6 +1,7 @@
 // Self-host parser statement branch owner.
 
 import "cursor_owner.pgy";
+import "parallel_join_header_owner.pgy";
 import "source_location_observation_owner.pgy";
 
 func ParseParallelStmt(
@@ -26,26 +27,28 @@ func ParseParallelStmt(
     // directly under it at stmt_indent + 2 (no intermediate `Block:`
     // wrapper).
     i = SkipWhitespaceAndComments(content, i);
+    // The join form `parallel (x in xs) [join with MODE] { body }` prints its
+    // body as one Block under `Parallel:`; native's tree omits the header.
     if ParserCharAt(content, i) == "(" {
-        let ptarget_depth: Int = 1;
-        i = i + 1;
-        while i < StringLength(content) && ptarget_depth > 0 {
-            if ParserCharAt(content, i) == "(" {
-                ptarget_depth = ptarget_depth + 1;
-            } else if ParserCharAt(content, i) == ")" {
-                ptarget_depth = ptarget_depth - 1;
-            }
-            i = i + 1;
+        let header: ParserParallelJoinHeader = ParserParallelJoinHeaderAt(content, i);
+        if !header.ok && header.expected == "" {
+            ParseExpressionRefuse(location_context, header.failure, header.at, "parallel_join");
         }
-        if ptarget_depth != 0 {
-            ParseRefuse(location_context, i, "expected_token", "construct", "statement", "source_offset", ToString(i));
+        if !header.ok {
+            ParseRefuse(location_context, header.at, "expected_token",
+                "expected", header.expected, "construct", "parallel_join");
         }
-        while i < StringLength(content) && ParserCharAt(content, i) != "\n" && ParserCharAt(content, i) != ";" && ParserCharAt(content, i) != "}" {
-            i = i + 1;
+        ArraySet(cursor_out, 0, header.at);
+        let join_body: String = ParseBlockObserved(
+            content, header.at, cursor_out, stmt_indent + 4, expression_graphs,
+            location_context, source_locations
+        );
+        let join_out: String = Concat(IndentStr(stmt_indent), "Parallel:");
+        join_out = Concat(join_out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
+        if StringLength(join_body) > 0 {
+            join_out = Concat(join_out, Concat("\n", join_body));
         }
-        i = ParseStatementTerminatorIn(location_context, content, i, "statement");
-        ArraySet(cursor_out, 0, i);
-        return Concat(IndentStr(stmt_indent), "Parallel:");
+        return join_out;
     }
     ArraySet(cursor_out, 0, i);
     let pbody: String = ParseBlockStatementsObserved(

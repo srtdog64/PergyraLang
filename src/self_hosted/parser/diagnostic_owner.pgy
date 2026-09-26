@@ -71,6 +71,12 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "compile through --native-pipeline until the self-hosted compiler covers this surface"
         );
     }
+    if code == "give_outside_parallel_join" {
+        return ParseDiagnosticRow(
+            "give names a per-task result; it is only legal as the final statement of an expression-form parallel join",
+            "give the value from the body of `let r = parallel (x in xs) join with MODE { ... }`"
+        );
+    }
     if code == "vision_surface_not_executable" {
         return ParseDiagnosticRow(
             "this form is a declared vision surface (docs/181); neither pipeline executes it yet",
@@ -232,6 +238,7 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
         code == "duration_literal_invalid" ||
         code == "script_statement_with_main" ||
         code == "surface_not_covered" ||
+        code == "give_outside_parallel_join" ||
         code == "vision_surface_not_executable" ||
         code == "declaration_clause_duplicate" ||
         code == "declaration_clause_invalid" {

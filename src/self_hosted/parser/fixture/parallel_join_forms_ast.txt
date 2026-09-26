@@ -1,0 +1,21 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: xs : Array<Int: Int> = [2]
+        Parallel:
+          Block:
+            Log(x)
+        Parallel:
+          Block:
+            Log(i)
+        Parallel:
+          Block:
+        Let: total : Int = parallel {...}
+        Let: prod : Int = parallel {...}
+        Let: lo : Int = parallel {...}
+        Let: hi : Int = parallel {...}
+        Let: first : Int = parallel {...}
+        Log(((((total + prod) + lo) + hi) + first))

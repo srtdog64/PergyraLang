@@ -1,0 +1,48 @@
+// Self-host parser uncovered statement surface owner.
+//
+// Native parses these statement forms, and this parser does not read them
+// yet. Each is selected here by its language word and refused at that word,
+// instead of being misread as an expression statement whose error names
+// the token after it.
+
+import "cursor_owner.pgy";
+import "source_location_observation_owner.pgy";
+import "source_refusal_owner.pgy";
+
+func ParseRefuseUncoveredStatementSurface(
+    content: String,
+    head_start: Int,
+    location_context: ParserSourceLocationContext
+) -> Void {
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordSelect) {
+        ParseRefuse(location_context, head_start, "surface_not_covered",
+            "surface", "select statement", "construct", "statement");
+    }
+    // Native starts a pin block at `pin` unless `(`, `;` or the end of the
+    // source follows; those keep `pin` an ordinary name.
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordPin) {
+        let after_pin: Int = SkipWhitespaceAndComments(
+            content, LanguageWordEnd(head_start, LanguageWordId.WordPin));
+        let pin_next: String = ParserCharAt(content, after_pin);
+        if after_pin < StringLength(content) && pin_next != "(" && pin_next != ";" {
+            ParseRefuse(location_context, head_start, "surface_not_covered",
+                "surface", "pin block", "construct", "statement");
+        }
+    }
+    // `give VALUE` is a statement only in a parallel body, and it is legal
+    // only in an expression-form join body, which this parser keeps as one
+    // leaf. So every `give VALUE` it reaches is refused by native too. A
+    // name, number or string on the same line makes it that statement;
+    // anything else leaves `give` an ordinary name.
+    if MatchLanguageWord(content, head_start, LanguageWordId.WordGive) {
+        let after_give: Int = LanguageWordEnd(head_start, LanguageWordId.WordGive);
+        while ParserCharAt(content, after_give) == " " || ParserCharAt(content, after_give) == "\t" {
+            after_give = after_give + 1;
+        }
+        let give_next: String = ParserCharAt(content, after_give);
+        if IsAlpha(give_next) || IsDigit(give_next) || give_next == "\"" {
+            ParseRefuse(location_context, head_start, "give_outside_parallel_join",
+                "construct", "statement", "source_offset", ToString(head_start));
+        }
+    }
+}

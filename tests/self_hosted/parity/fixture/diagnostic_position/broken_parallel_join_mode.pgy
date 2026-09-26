@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    let total: Int = parallel (x in xs) join with mean { give x; };
+    Log(total);
+}

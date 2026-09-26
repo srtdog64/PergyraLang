@@ -217,6 +217,12 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   parser-owned scrutinee Atom graph roots.
 - `src/self_hosted/parser/stmt_owner.pgy` -- statement dispatch.
 - `src/self_hosted/parser/stmt_parallel_owner.pgy` -- parallel/async statements.
+- `src/self_hosted/parser/parallel_join_header_owner.pgy` -- the parallel
+  join header (`(x in xs)`, `(i in lo..hi)`, `join with MODE`) for the
+  statement and expression forms.
+- `src/self_hosted/parser/stmt_uncovered_surface_owner.pgy` -- statement
+  forms native parses and this parser refuses at their word: `select`,
+  `pin` blocks and `give`.
 - `src/self_hosted/parser/tree_text_owner.pgy` -- compact AST text rendering
   and current AST payload contract consumed by `PgyCompilerWorld`.
 - `src/self_hosted/parser/type_name_owner.pgy` -- written type-name parsing.

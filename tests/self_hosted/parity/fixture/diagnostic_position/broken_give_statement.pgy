@@ -1,0 +1,5 @@
+func Main() -> Void {
+    parallel {
+        give 1;
+    }
+}
