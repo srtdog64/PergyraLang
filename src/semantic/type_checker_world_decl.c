@@ -35,8 +35,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
     if (symbol_is_forward_declaration_for(existing,
-            SYMBOL_CLASS, ast_node_stable_id(node))) {
-        existing->kind = SYMBOL_WORLD;
+            SYMBOL_WORLD, ast_node_stable_id(node))) {
         if (existing->type == NULL || existing->type == TYPE_VOID)
             existing->type = create_overlay_nominal_type(name);
         symbol_complete_forward_declaration(existing);

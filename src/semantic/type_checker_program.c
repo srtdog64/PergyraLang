@@ -448,21 +448,32 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                    || stmt->type == AST_RELATION_DECL
                    || stmt->type == AST_EFFECT_DECL
                    || stmt->type == AST_ZONE_DECL) {
-            /* Register domain declarations as class-like symbols
-             * so that constructor-like syntax can be introduced consistently */
+            /* Register each domain declaration under its own symbol kind.
+             * A body checked before the declaration (an action of a
+             * `within Z` subject, above `zone Z`) must see Z as a zone:
+             * as a class placeholder its constructor call found no class
+             * declaration and skipped its arguments, which then reached
+             * MIR without their binding identity (harness PP-056). */
             const char *dname = NULL;
-            if (stmt->type == AST_PARTY_DECL)
+            SymbolKind dkind = SYMBOL_ZONE;
+            if (stmt->type == AST_PARTY_DECL) {
                 dname = ast_party_name(stmt);
-            else if (stmt->type == AST_ROSTER_DECL)
+                dkind = SYMBOL_PARTY;
+            } else if (stmt->type == AST_ROSTER_DECL) {
                 dname = ast_roster_name(stmt);
-            else if (stmt->type == AST_WORLD_DECL)
+                dkind = SYMBOL_ROSTER;
+            } else if (stmt->type == AST_WORLD_DECL) {
                 dname = ast_world_name(stmt);
-            else if (stmt->type == AST_RELATION_DECL)
+                dkind = SYMBOL_WORLD;
+            } else if (stmt->type == AST_RELATION_DECL) {
                 dname = ast_relation_name(stmt);
-            else if (stmt->type == AST_EFFECT_DECL)
+                dkind = SYMBOL_RELATION;
+            } else if (stmt->type == AST_EFFECT_DECL) {
                 dname = ast_effect_name(stmt);
-            else
+                dkind = SYMBOL_EFFECT;
+            } else {
                 dname = ast_zone_name(stmt);
+            }
             if (dname != NULL && scope_lookup_current(ctx->scope, dname) == NULL) {
                 Type *t = type_alloc();
                 if (t == NULL)
@@ -477,7 +488,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     return program_report_resolution_oom(ctx, stmt,
                         "domain placeholder symbol");
                 symbol_mark_declaration(s, ast_node_stable_id(stmt), true);
-                s->kind = SYMBOL_CLASS;
+                s->kind = dkind;
                 scope_declare(ctx->scope, s);
             }
         }

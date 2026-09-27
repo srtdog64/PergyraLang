@@ -31,6 +31,9 @@
 #   one subject passed through (harness PP-055, PP-057).
 # - A struct constructor takes every field: native used to zero-fill the
 #   missing ones while the default route refused the call (harness PP-054).
+# - An action of a `within Z` subject declared above `zone Z` can build a Z
+#   from a local: native saw Z as a class placeholder there, skipped the
+#   constructor's arguments and failed MIR lowering (PP-056).
 # - An intent called inside the action a step runs is recorded under the
 #   step's intent: IntentActiveParentHandle names the running intent
 #   (docs/34 §9.2.1 (b)).
@@ -729,5 +732,33 @@ done
 grep -Fq "Code: call_arity_mismatch" "$ROOT_DIR/$WORK_REL/struct-ctor-arity-default-c.exe.log" ||
     { cat "$ROOT_DIR/$WORK_REL/struct-ctor-arity-default-c.exe.log" >&2
       fail "default-c lost its struct constructor arity refusal"; }
+cat >"$WORK_DIR/zone_built_in_action.pgy" <<'PGY'
+within Work {
+    subject Agent {
+        let depth: Int;
 
-echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result, DirWalk inside PGY_IO_ROOT, a zone made only of apply rows, a hosted func in a within subject, an intent called inside an action, a typed child intent step and the capability gate on Print, Now and Random agree with native C, and an out-of-range Long literal, a mismatched try error type, a nested intent cycle and a struct constructor missing a field are refused: PASS"
+        action Spawn(self) -> Int
+            authorized by self
+        {
+            let child: Agent = Agent(1);
+            let zone: Work = Work(Clone(child));
+            return child.depth + 1;
+        }
+    }
+}
+
+zone Work {
+    subject slot agent: Agent
+    authority agent
+}
+
+func Main() -> Void {
+    let lead: Agent = Agent(0);
+    let zone: Work = Work(Clone(lead));
+    Log(lead.Spawn());
+}
+PGY
+expect_values zone-built-in-action "$WORK_REL/zone_built_in_action.pgy" \
+    '2' native-c native-llvm default-c
+
+echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result, DirWalk inside PGY_IO_ROOT, a zone made only of apply rows, a hosted func in a within subject, an intent called inside an action, a typed child intent step, a zone built inside an action above its declaration and the capability gate on Print, Now and Random agree with native C, and an out-of-range Long literal, a mismatched try error type, a nested intent cycle and a struct constructor missing a field are refused: PASS"

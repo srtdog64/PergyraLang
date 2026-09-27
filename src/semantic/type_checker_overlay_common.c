@@ -61,8 +61,7 @@ type_check_overlay_decl_common(ASTNode *node,
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
     if (symbol_is_forward_declaration_for(existing,
-            SYMBOL_CLASS, ast_node_stable_id(node))) {
-        existing->kind = kind;
+            kind, ast_node_stable_id(node))) {
         if (existing->type == NULL || existing->type == TYPE_VOID)
             existing->type = create_overlay_nominal_type(name);
         symbol_complete_forward_declaration(existing);
