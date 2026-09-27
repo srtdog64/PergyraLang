@@ -431,8 +431,9 @@ func GenerateCUnitFromReadySemanticFacts(
     let uses_join: Bool = usage.uses_join;
     let uses_split: Bool = usage.uses_split;
     let uses_dirwalk: Bool = usage.uses_dirwalk;
-    // Task observation and DirWalk run on the canonical runtime header.
-    let uses_host_runtime: Bool = usage.uses_task_observation || uses_dirwalk;
+    // Task observation and every capability-gated builtin run on the canonical
+    // runtime header, whose gate a private copy would skip.
+    let uses_host_runtime: Bool = usage.uses_task_observation || uses_dirwalk || usage.uses_print || usage.uses_clock || usage.uses_random_value || usage.uses_seed_random;
     let uses_log: Bool = usage.uses_log;
     let uses_fhandle: Bool = usage.uses_fhandle;
     let uses_artifact_transaction: Bool = usage.uses_artifact_transaction;

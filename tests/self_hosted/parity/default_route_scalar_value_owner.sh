@@ -19,6 +19,10 @@
 # - A plain func in a `within` subject is a hosted method an action can call.
 #   Both front ends gave it the zone's action contract: native MIR refused a
 #   zone on a function, and the self-host refused with an unregistered code.
+# - Print, Now and Random take the host capability grant (PGY_CAP_GRANT) on
+#   every leg: under a grant that names their capability they run, under one
+#   that omits it the native runtime gate refuses them before any output. The
+#   default route used to emit private copies with no gate.
 # - An intent called inside the action a step runs is recorded under the
 #   step's intent: IntentActiveParentHandle names the running intent
 #   (docs/34 §9.2.1 (b)).
@@ -435,4 +439,26 @@ expect_values intent-parent-in-action "$WORK_REL/intent_parent_in_action.pgy" \
     $'child Parent handle=1 parent=0\nchild Child handle=2 parent=1\ndelivered 1' \
     native-c native-llvm default-c
 
-echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result, DirWalk inside PGY_IO_ROOT, a zone made only of apply rows, a hosted func in a within subject and an intent called inside an action agree with native C, and an out-of-range Long literal and a mismatched try error type are refused: PASS"
+for row in "print_demo|io_write|io_read|print ok" \
+    "cap_clock_demo|clock|io_read|clock ok" \
+    "cap_random_demo|random|clock|random ok"; do
+    IFS='|' read -r name allow deny marker <<<"$row"
+    for leg in native-c native-llvm default-c; do
+        out_rel="$WORK_REL/cap-$name-$leg.exe"
+        compile "tests/capability/$name.pgy" "$leg" "$out_rel" ||
+            { cat "$ROOT_DIR/$out_rel.log" >&2; fail "$leg did not compile $name"; }
+        PGY_CAP_GRANT="$allow" "$ROOT_DIR/$out_rel" 2>&1 | tr -d '\r' |
+            grep -Fxq "$marker" || fail "$leg $name did not run under grant $allow"
+        if PGY_CAP_GRANT="$deny" "$ROOT_DIR/$out_rel" >"$WORK_DIR/cap-$name-$leg.denied" 2>&1; then
+            fail "$leg $name ran under grant $deny"
+        fi
+        grep -Fq "class=capability-denied" "$WORK_DIR/cap-$name-$leg.denied" ||
+            { cat "$WORK_DIR/cap-$name-$leg.denied" >&2
+              fail "$leg $name was not refused by the capability gate under grant $deny"; }
+        if tr -d '\r' <"$WORK_DIR/cap-$name-$leg.denied" | grep -Fxq "$marker"; then
+            fail "$leg $name reached its output under grant $deny"
+        fi
+    done
+done
+
+echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result, DirWalk inside PGY_IO_ROOT, a zone made only of apply rows, a hosted func in a within subject, an intent called inside an action and the capability gate on Print, Now and Random agree with native C, and an out-of-range Long literal and a mismatched try error type are refused: PASS"

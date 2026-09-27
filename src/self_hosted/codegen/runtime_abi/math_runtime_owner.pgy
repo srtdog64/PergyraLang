@@ -67,11 +67,15 @@ func MathRuntimeCRandomFn() -> String {
     return "pgy_random";
 }
 
+// Random and SeedRandom are native's Random and SeedRandom (pgy_runtime.h,
+// which the program then includes): they take the random capability and share
+// the runtime's locked generator. A bound past 32 bits clamps, which leaves
+// rand() % n unchanged because rand() stays below 2^31.
 func MathRuntimeCRandomValueBlock() -> String {
     let int_type: String = CompilerAbiLayoutIntCValueType();
     let block: String = "";
     block = Concat(block, Concat("static ", Concat(int_type, Concat(" ", Concat(MathRuntimeCRandomFn(), Concat("(", Concat(int_type, " n)\n{\n")))))));
-    block = Concat(block, "    return n > 0 ? (long long)(rand() % n) : 0;\n}\n\n");
+    block = Concat(block, "    return (long long)Random(n <= 0 ? 0 : (n > 2147483647LL ? 2147483647 : (int32_t)n));\n}\n\n");
     return block;
 }
 
@@ -79,7 +83,7 @@ func MathRuntimeCSeedRandomBlock() -> String {
     let int_type: String = CompilerAbiLayoutIntCValueType();
     let block: String = "";
     block = Concat(block, Concat("static void ", Concat(MathRuntimeCSeedRandomFn(), Concat("(", Concat(int_type, " seed)\n{\n")))));
-    block = Concat(block, "    srand((unsigned int)seed);\n}\n\n");
+    block = Concat(block, "    SeedRandom((int32_t)seed);\n}\n\n");
     return block;
 }
 
