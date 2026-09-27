@@ -128,7 +128,10 @@ func Main() -> Void {
     let f: Float = 2.5;
     let w: Long = 4294967297L;
     Log((f as Int) + (w as Int));
-    Log(Now() >= 0);
+    // Now() narrows the host clock to Int and may be negative (docs/audits
+    // 2026-09-26 R11); the row needs the call, not its sign.
+    let t: Int = Now();
+    Log(t == t);
     Print("done\n");
 }
 PGY
