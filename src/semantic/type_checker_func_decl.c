@@ -179,11 +179,24 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         symbol_complete_forward_declaration(existing);
         symbol_destroy(func_sym);
     } else if (!scope_declare(ctx->scope, func_sym)) {
-        semantic_error_with_hints(ctx,
-            PGY_CODE_SEM_REDECLARATION,
-            PGY_CAUSE_FUNCTION_DUPLICATE_NAME,
-            PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
-            node, "Redeclaration of function '%s'", name);
+        /* Name the earlier declaration: an enum variant, for one, owns its
+         * bare name at the enum's position. */
+        if (existing != NULL && existing->decl_line > 0) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_REDECLARATION,
+                PGY_CAUSE_FUNCTION_DUPLICATE_NAME,
+                PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
+                node,
+                "Redeclaration of function '%s': the declaration at line %u, column %u already owns this name (a function, type or enum variant); rename one of them",
+                name, (unsigned) existing->decl_line,
+                (unsigned) existing->decl_col);
+        } else {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_REDECLARATION,
+                PGY_CAUSE_FUNCTION_DUPLICATE_NAME,
+                PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
+                node, "Redeclaration of function '%s'", name);
+        }
         symbol_destroy(func_sym);
         return false;
     }

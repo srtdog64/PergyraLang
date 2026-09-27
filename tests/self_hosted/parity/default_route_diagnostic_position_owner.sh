@@ -208,6 +208,7 @@ BROKEN_CASES=(
     "give_statement|3|give_outside_parallel_join"
     "reserved_recovery|3|binding_name_reserved"
     "field_reserved|2|field_name_reserved"
+    "variant_function_clash|6|enum_variant_function_clash"
 )
 for row in "${BROKEN_CASES[@]}"; do
     IFS='|' read -r name line code <<<"$row"
@@ -388,6 +389,15 @@ grep -Fq "'ref' is a reserved language word and cannot name a field" "$native_lo
     { cat "$native_log" >&2; fail "native does not name the reserved field"; }
 [[ "$(grep -c '^pgy: parse error' "$native_log")" -eq 1 ]] ||
     { cat "$native_log" >&2; fail "native reported more than the reserved field"; }
+# A function that reuses an enum variant's name (harness PP-060): native named
+# neither declaration (0:0) and the default route had no code or span.
+native_log="$WORK_DIR/native-variant-function-clash.log"
+if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_variant_function_clash.pgy" --native-pipeline \
+    --backend=c -o "$WORK_REL/native-variant-function-clash.bin") >"$native_log" 2>&1; then
+    fail "native accepted a function that reuses a variant name"
+fi
+grep -Fq "[ERROR] 6:6 - Redeclaration of function 'Quiet': the declaration at line 1, column 6 already owns this name" "$native_log" ||
+    { cat "$native_log" >&2; fail "native does not place the variant/function clash"; }
 for leg in native default; do
     flags=(--backend=c)
     [[ "$leg" == native ]] && flags+=(--native-pipeline)

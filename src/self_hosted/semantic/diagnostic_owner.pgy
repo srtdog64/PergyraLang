@@ -90,13 +90,12 @@ func SemanticReason(code: String) -> String {
     if code == "statement_native_pipeline_only" { return "this statement runs on the native pipeline only; the default route does not lower it yet"; }
     if code == "call_arity_mismatch" { return "call argument count does not match the callee parameter count"; }
     if code == "enum_variant_redeclaration" { return "a bare variant name must belong to one enum; the first declaration used to win silently"; }
+    if code == "enum_variant_function_clash" { return "a top-level function reuses the bare name of an enum variant, so a call could mean either"; }
     if code == "builtin_name_reserved" { return "a top-level function owns a builtin spelling except where it carries meaning beyond the call"; }
     if code == "generic_argument_count_mismatch" { return "explicit generic argument count does not match the callable generic parameters"; }
     if code == "generic_argument_type_invalid" { return "explicit generic argument is missing or malformed"; }
     if code == "let_type_mismatch" { return "let initializer type does not match the declared local type"; }
-    if code == "return_type_mismatch" {
-        return "return expression type does not match the function return type";
-    }
+    if code == "return_type_mismatch" { return "return expression type does not match the function return type"; }
     if code == "condition_not_bool" { return "branch condition must be Bool"; }
     if code == "assign_type_mismatch" {
         return "assigned expression type does not match the local type";
@@ -226,6 +225,7 @@ func SemanticFix(code: String) -> String {
     if code == "never_function_fallthrough" { return "end the body in Exit(code) or a call to another Never function"; }
     if code == "missing_return" { return "add a return on the path that reaches the end, or declare the result Void"; }
     if code == "enum_variant_redeclaration" { return "rename one of the variants"; }
+    if code == "enum_variant_function_clash" { return "rename the function or the variant"; }
     if code == "builtin_name_reserved" { return "rename the function"; }
     if code == "value_param_collection_mutation" {
         return "spell the parameter as inout or mutate a local collection and return it";

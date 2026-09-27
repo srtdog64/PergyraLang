@@ -115,6 +115,10 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
     Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected function name");
 
     ASTNode* func = ast_create_function(name.text);
+    /* A function sits at its name token like every other named declaration;
+     * without this its diagnostics (a redeclaration, for one) said 0:0. */
+    func->line = name.line;
+    func->column = name.column;
     parser->last_func_decl_async = false;
     func->data.func_decl.doc_comment = parser_take_pending_doc_comment(parser);
     func->data.func_decl.is_action = is_action;

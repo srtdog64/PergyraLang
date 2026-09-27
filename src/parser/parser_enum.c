@@ -160,6 +160,7 @@ parser_parse_enum_declaration_after_keyword(Parser *parser)
 
     node = ast_create_node(AST_ENUM_DECL);
     node->line = name_tok.line;
+    node->column = name_tok.column;
     node->data.enum_decl.name = pergyra_strndup(name_tok.text, name_tok.length);
     node->data.enum_decl.variants = NULL;
     node->data.enum_decl.variant_params = NULL;

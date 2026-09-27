@@ -528,7 +528,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
     }
     SemanticAstExpressionEnvironmentClear(names, types, modes);
     let contract: SemanticAstDeclarationContractVerdict =
-        SemanticAstDeclarationContractVerdictFrom(enum_facts);
+        SemanticAstDeclarationContractVerdictFrom(signatures, enum_facts);
     if !contract.ok {
         return SemanticAstStatementTypeFacts(false, contract.code, contract.message,
             artifact.count, node_ids, kind_tags, expected_types, inferred_types,

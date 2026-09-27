@@ -25,12 +25,9 @@ rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR"
 
 # name:fixture:native diagnostic fragment:default-route diagnostic fragment
-# (the default route refuses a variant that reuses a function name while it
-# builds call-target facts, before this rule runs, so that row only needs the
-# refusal itself there).
 CASES=(
     "duplicate:$FIXTURES/enum_variant_duplicate_negative.pgy:Enum variant 'Red' of 'Paint' reuses a name:enum_variant_redeclaration"
-    "function:$FIXTURES/enum_variant_function_name_negative.pgy:Enum variant 'Bad' of 'Verdict' reuses a name:Status: error"
+    "function:$FIXTURES/enum_variant_function_name_negative.pgy:Enum variant 'Bad' of 'Verdict' reuses a name:enum_variant_function_clash"
     "qualifier:$FIXTURES/enum_variant_foreign_qualifier_negative.pgy:'Bad' is not a variant of enum 'Shape':undefined_function"
 )
 for entry in "${CASES[@]}"; do

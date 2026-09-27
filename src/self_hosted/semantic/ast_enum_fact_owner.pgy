@@ -346,6 +346,16 @@ func SemanticAstEnumVariantRowIndex(
     return None;
 }
 
+// The first variant row whose bare name is `name`, or -1.
+func SemanticAstEnumVariantRowForBareName(ref facts: SemanticAstEnumFacts, name: String) -> Int {
+    let row: Int = 0;
+    while row < ArrayLength(facts.variant_names) {
+        if facts.variant_names[row] == name { return row; }
+        row = row + 1;
+    }
+    return 0 - 1;
+}
+
 func SemanticAstEnumVariantNameAt(
     ref facts: SemanticAstEnumFacts,
     enum_name: String,

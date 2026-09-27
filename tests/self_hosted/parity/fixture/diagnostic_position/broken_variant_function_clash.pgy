@@ -1,0 +1,10 @@
+enum Line {
+    Text(String),
+    Quiet,
+}
+
+func Quiet() -> Int { return 1; }
+
+func Main() -> Void {
+    Log(ToString(Quiet()));
+}

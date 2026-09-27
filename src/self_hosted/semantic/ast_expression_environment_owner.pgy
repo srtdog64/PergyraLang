@@ -239,8 +239,8 @@ func SemanticAstExpressionFunctionTables(
             names, declared_name
         );
         if existing >= 0 {
-            if returns[existing] != UnwrapOption(return_type) ||
-                params[existing] != param_row {
+            if (returns[existing] != UnwrapOption(return_type) || params[existing] != param_row) &&
+                (UnwrapOption(owner) != "" || SemanticAstEnumVariantRowForBareName(enums, declared_name) < 0) {
                 return false;
             }
         } else {
