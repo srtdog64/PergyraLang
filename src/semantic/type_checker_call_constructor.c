@@ -289,10 +289,20 @@ type_check_constructor_symbol_call(ASTNode *expr,
                     constructor_reject_channel_field_store(ctx,
                         expr, display_name, channel_field_name);
                 }
+                /* A struct is a plain value record, so every field comes
+                 * from the call, as the self-host checker requires; the
+                 * missing ones used to be zero-filled. Domain nominals
+                 * may still omit trailing fields on both front ends. */
+                bool exact_fields = decl->type == AST_CLASS_DECL
+                    && ast_class_is_struct(decl);
                 /* Skip field-type validation for generic classes — the
                  * generic params (T, U) aren't in scope at the call site.
                  * Type safety is handled by the let-annotation type. */
-                if (provided > field_count) {
+                if (exact_fields && provided < field_count) {
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, expr,
+                        "Constructor '%s' takes exactly %llu field argument(s), got %llu; a struct has no default fields",
+                        display_name, (unsigned long long) field_count, (unsigned long long) provided);
+                } else if (provided > field_count) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, expr,
                         "Constructor '%s' accepts at most %llu positional field argument(s), got %llu",
                         display_name, (unsigned long long) field_count, (unsigned long long) provided);

@@ -29,6 +29,8 @@
 #   the parent is refused. The child step has no zone and names no
 #   participant, so it runs with intent observability on and with more than
 #   one subject passed through (harness PP-055, PP-057).
+# - A struct constructor takes every field: native used to zero-fill the
+#   missing ones while the default route refused the call (harness PP-054).
 # - An intent called inside the action a step runs is recorded under the
 #   step's intent: IntentActiveParentHandle names the running intent
 #   (docs/34 §9.2.1 (b)).
@@ -700,4 +702,32 @@ grep -Fq "Code: intent_child_cycle" "$ROOT_DIR/$WORK_REL/intent-child-cycle-defa
     { cat "$ROOT_DIR/$WORK_REL/intent-child-cycle-default-c.exe.log" >&2
       fail "default-c lost its nested intent cycle refusal"; }
 
-echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result, DirWalk inside PGY_IO_ROOT, a zone made only of apply rows, a hosted func in a within subject, an intent called inside an action, a typed child intent step and the capability gate on Print, Now and Random agree with native C, and an out-of-range Long literal, a mismatched try error type and a nested intent cycle are refused: PASS"
+cat >"$WORK_DIR/struct_ctor_arity.pgy" <<'PGY'
+struct Three {
+    a: Int;
+    b: String;
+    c: Int;
+}
+
+func Main() -> Void {
+    let t: Three = Three(1, "x");
+    Log(t.c);
+}
+PGY
+for leg in native-c native-llvm default-c; do
+    out_rel="$WORK_REL/struct-ctor-arity-$leg.exe"
+    if compile "$WORK_REL/struct_ctor_arity.pgy" "$leg" "$out_rel"; then
+        fail "$leg accepted a struct constructor that leaves a field out"
+    fi
+done
+for leg in native-c native-llvm; do
+    grep -Fq "Constructor 'Three' takes exactly 3 field argument(s), got 2" \
+        "$ROOT_DIR/$WORK_REL/struct-ctor-arity-$leg.exe.log" ||
+        { cat "$ROOT_DIR/$WORK_REL/struct-ctor-arity-$leg.exe.log" >&2
+          fail "$leg lost its struct constructor arity refusal"; }
+done
+grep -Fq "Code: call_arity_mismatch" "$ROOT_DIR/$WORK_REL/struct-ctor-arity-default-c.exe.log" ||
+    { cat "$ROOT_DIR/$WORK_REL/struct-ctor-arity-default-c.exe.log" >&2
+      fail "default-c lost its struct constructor arity refusal"; }
+
+echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result, DirWalk inside PGY_IO_ROOT, a zone made only of apply rows, a hosted func in a within subject, an intent called inside an action, a typed child intent step and the capability gate on Print, Now and Random agree with native C, and an out-of-range Long literal, a mismatched try error type, a nested intent cycle and a struct constructor missing a field are refused: PASS"

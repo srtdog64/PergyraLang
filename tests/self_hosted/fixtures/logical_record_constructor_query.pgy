@@ -38,14 +38,16 @@ func ConstructorRecord(fields: Int, corruption: Int) -> DirectMirScalarProgramLo
             absent_ids, absent_ids, zeros, sizes, zeros);
     let source: DirectMirScalarProgramLogicalRecordFact = DirectMirScalarProgramLogicalRecordFact(
         true, 0, true, rows, names, syntax, starts, counts,
-        field_names, field_types, field_ids, field_enums, physical);
+        field_names, field_types, field_ids, field_enums, physical,
+        DirectMirIdentityCellFactsEmpty());
     let digest: Int = DirectMirScalarProgramLogicalRecordFactDigest(source);
     if corruption == 1 {
         if digest == 1 { digest = 2; } else { digest = 1; }
     }
     return DirectMirScalarProgramLogicalRecordFact(true, digest, true,
         rows, names, syntax, starts, counts,
-        field_names, field_types, field_ids, field_enums, physical);
+        field_names, field_types, field_ids, field_enums, physical,
+        DirectMirIdentityCellFactsEmpty());
 }
 
 struct ConstructorQueryInput {
@@ -92,8 +94,8 @@ func ConstructorInput(arguments: Int, corruption: Int) -> ConstructorQueryInput 
     arena = SemanticExpressionGraphArena(arena.topology, arena.node_texts,
         arena.call_target_kinds, arena.call_target_names, arena.call_return_type_names,
         identities, arena.place_kinds);
-    let node: Int = 1 + 2 * arguments; let roots: Array<Int> = [node];
-    return ConstructorQueryInput(MirExpressionGraphSequence(true, 1, roots, arena), rows, types, node);
+    let node: Int = 1 + 2 * arguments; let roots: Array<Int> = [node]; let ordinals: Array<Int> = [];
+    return ConstructorQueryInput(MirExpressionGraphSequence(true, 1, roots, arena, ordinals), rows, types, node);
 }
 
 func ConstructorResult(ref input: ConstructorQueryInput, ref record: DirectMirScalarProgramLogicalRecordFact) -> DirectMirScalarProgramLogicalRecordExpressionFact {

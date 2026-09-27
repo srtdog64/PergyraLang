@@ -4,7 +4,7 @@ struct Point {
 }
 
 func Main() -> Void {
-    let p: Point = Point();
+    let p: Point = Point(0, 0);
     p.x = 10;
     p.y = 32;
     Log(p.x + p.y);

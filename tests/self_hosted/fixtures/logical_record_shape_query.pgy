@@ -40,14 +40,16 @@ func QueryRecord(fields: Int, corruption: Int) -> DirectMirScalarProgramLogicalR
     }
     let source: DirectMirScalarProgramLogicalRecordFact = DirectMirScalarProgramLogicalRecordFact(
         true, 0, true, rows, names, syntax, starts, counts,
-        field_names, field_types, field_ids, field_enums, physical);
+        field_names, field_types, field_ids, field_enums, physical,
+        DirectMirIdentityCellFactsEmpty());
     let digest: Int = DirectMirScalarProgramLogicalRecordFactDigest(source);
     if corruption == 1 {
         if digest == 1 { digest = 2; } else { digest = 1; }
     }
     return DirectMirScalarProgramLogicalRecordFact(true, digest, true,
         rows, names, syntax, starts, counts,
-        field_names, field_types, field_ids, field_enums, physical);
+        field_names, field_types, field_ids, field_enums, physical,
+        DirectMirIdentityCellFactsEmpty());
 }
 
 func QuerySequence() -> MirExpressionGraphSequence {
@@ -61,8 +63,9 @@ func QuerySequence() -> MirExpressionGraphSequence {
     let targets: Array<Int> = [0,0,0,0,0,0,0,0,0];
     let target_names: Array<String> = ["","","","","","","","",""];
     let roots: Array<Int> = [7];
+    let ordinals: Array<Int> = [];
     return MirExpressionGraphSequence(true, 1, roots,
-        SemanticExpressionGraphArenaUnclassified(kinds, texts, lefts, rights, targets, target_names));
+        SemanticExpressionGraphArenaUnclassified(kinds, texts, lefts, rights, targets, target_names), ordinals);
 }
 
 func MissingMember(ref value: DirectMirScalarProgramLogicalRecordExpressionFact) -> Bool {

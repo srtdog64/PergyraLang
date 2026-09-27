@@ -457,7 +457,7 @@ test_effect_inference(void)
             "    x: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
-            "    let a: Vec2 = Vec2();\n"
+            "    let a: Vec2 = Vec2(0);\n"
             "    let b: Vec2 = a;\n"
             "    b.x = 1;\n"
             "}\n";
