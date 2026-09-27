@@ -732,7 +732,7 @@ required_impl_terms = [
     "air_rir_scope_matches_boundary",
     "scope->kind == RIR_SCOPE_INTENT",
     "air_name_matches(scope->name, boundary->owner_name)",
-    "air_boundary_required_ability_count(boundary) > 0",
+    "boundary->zone_owns_rir_authority",
     "air_mir_cleanup_root_is_valid",
     "air_mir_pin_block_has_cleanup_successor",
     "air_mir_routine_cleanup_fact_count",

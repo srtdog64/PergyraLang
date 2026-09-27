@@ -276,6 +276,73 @@ test_air_collects_local_intent_authority_alias_evidence(void)
     return ok;
 }
 
+/* The alias admission rests on the zone owning authority, not on the step
+ * requiring an ability (harness PP-058): a step with no `requires` binds its
+ * alias the same way, and a zone that declares no authority proves nothing. */
+static bool
+test_air_local_intent_authority_alias_needs_zone_authority_only(void)
+{
+    bool ok = true;
+    for (int zone_owns = 0; zone_owns <= 1; zone_owns++) {
+        DIRNode nodes[] = {
+            { .id = 1, .kind = DIR_NODE_INTENT, .name = "PlanTarget", .ast = NULL },
+        };
+        const char *authorized_by[] = { "target_planner" };
+        DIRIntentStep steps[] = {
+            {
+                .index = 0,
+                .name = "project",
+                .where_type_name = "TargetCapabilityZone",
+                .authorized_by = authorized_by,
+                .authorized_by_count = 1,
+            },
+        };
+        DIRIntentInfo intents[] = {
+            { .node_id = 1, .steps = steps, .step_count = 1 },
+        };
+        DIRProgram dir = {
+            .nodes = nodes, .node_count = 1, .intents = intents, .intent_count = 1,
+        };
+        RIROp ops[] = {
+            {
+                .kind = RIR_OP_AUTHORIZE,
+                .subject = "target_planner",
+                .arg0 = "project",
+                .arg1 = "TargetCapabilityZone",
+            },
+        };
+        RIRFact zone_facts[] = {
+            {
+                .kind = RIR_FACT_AUTHORITY,
+                .name = "planner",
+                .resource_kind = RIR_RESOURCE_AUTHORITY_HANDLE,
+                .state = RIR_STATE_AUTHORIZED,
+            },
+        };
+        RIRScope scopes[] = {
+            {
+                .kind = RIR_SCOPE_ZONE,
+                .name = "TargetCapabilityZone",
+                .facts = zone_facts,
+                .fact_count = zone_owns ? 1 : 0,
+            },
+            { .kind = RIR_SCOPE_INTENT, .name = "PlanTarget", .ops = ops, .op_count = 1 },
+        };
+        RIRProgram rir = { .scopes = scopes, .scope_count = 2 };
+        char *error = NULL;
+        AIRProgram *air = air_synthesize(NULL, &dir, &rir, &error);
+        bool admitted = air != NULL
+            && air->rir_authority_evidence_count == 1
+            && air->boundaries[0].has_rir_authority_evidence
+            && strcmp(air->boundaries[0].rir_authority_evidence_name,
+                      "target_planner") == 0;
+        ok = ok && air != NULL && admitted == (zone_owns == 1);
+        air_destroy(air);
+        free(error);
+    }
+    return ok;
+}
+
 static bool
 test_air_rejects_mismatched_authority_evidence(void)
 {

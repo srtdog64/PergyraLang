@@ -521,6 +521,7 @@ main(void)
 
     TEST("AIR synthesis keeps local intent authority aliases");
     EXPECT(test_air_collects_local_intent_authority_alias_evidence());
+    EXPECT(test_air_local_intent_authority_alias_needs_zone_authority_only());
 
     TEST("AIR strict evidence rejects mismatched authority participant");
     EXPECT(test_air_rejects_mismatched_authority_evidence());

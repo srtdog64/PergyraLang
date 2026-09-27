@@ -176,13 +176,16 @@ air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
      * exact step owns an Authorize op for a declared boundary participant,
      * and only against a zone that owns authority to grant: a zone with no
      * `authority` declaration has nothing a step-local `authorized by:` could
-     * bind to, so such a boundary stays evidence-missing (fail closed). */
+     * bind to, so such a boundary stays evidence-missing (fail closed).
+     * Whether the step also `requires` an ability is not part of the
+     * question: a step without one used to fall through to the zone's own
+     * authority row, which matched only when the alias happened to spell the
+     * slot name. */
     if (scope != NULL && boundary != NULL
         && scope->kind == RIR_SCOPE_INTENT
         && boundary->kind == AIR_BOUNDARY_ZONE
         && boundary->authority_required
         && boundary->zone_owns_rir_authority
-        && air_boundary_required_ability_count(boundary) > 0
         && air_name_matches(scope->name, boundary->owner_name)) {
         for (size_t i = 0; i < rir_scope_op_count(scope); i++) {
             const RIROp *op = rir_scope_op_at(scope, i);
