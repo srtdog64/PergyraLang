@@ -2249,6 +2249,13 @@ native-c-callable-macro-hygiene-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 	"$(BASH)" tests/native_c_callable_macro_hygiene_smoke.sh
 
+# An Array mutator on a nested member writes back to the member's storage
+# through native C's ordered-call lowering and LLVM, and a temporary receiver
+# is refused. call-argument-evaluation-order-test-smoke runs it in CI.
+.PHONY: array-member-mutation-test-smoke
+array-member-mutation-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/array_member_mutation_smoke.sh
+
 native-imported-private-nominal-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_NATIVE_BOUNDARY_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
@@ -5014,7 +5021,7 @@ long-literal-exactness-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/long_literal_exactness_smoke.sh
 
 .PHONY: call-argument-evaluation-order-test-smoke
-call-argument-evaluation-order-test-smoke: $(PGY)
+call-argument-evaluation-order-test-smoke: $(PGY) array-member-mutation-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/call_argument_evaluation_order_smoke.sh
 
 .PHONY: self-host-collection-ownership-semantic-test-smoke

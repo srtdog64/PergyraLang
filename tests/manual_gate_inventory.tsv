@@ -22,6 +22,7 @@ tests/concept_semantics/world_zone_admission.sh	Manual concept counterexample ca
 tests/concept_semantics/zone_rule_admission.sh	Manual concept counterexample campaign; explicit run only.
 tests/mir_lexical_binding_owner_smoke.sh	Manual source-admission campaign dependency; caller is manual.
 tests/mir_or_abort_invariant_smoke.sh	Manual readiness-scorecard probe; not push or platform proof.
+tests/perf/array_pixel_storage_benchmark.sh	Manual Pixel storage timing benchmark (flat, Array<Pixel>, nested member); timing evidence, no routine CI budget.
 tests/perf_close_to_c_smoke.sh	Manual compiler performance measurement; no routine CI budget.
 tests/self_host_ast_text_assignment_colon_literal_smoke.sh	Manual isolated parser regression probe; no automatic coverage claim.
 tests/self_host_readiness_scorecard.sh	Manual readiness report, not an executable acceptance gate.
