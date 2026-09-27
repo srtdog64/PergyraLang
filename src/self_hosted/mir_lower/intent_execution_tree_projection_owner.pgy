@@ -103,8 +103,12 @@ func MirIntentExecutionStepHeader(
     step_row: Int,
     zone_alias: String
 ) -> String {
+    // A step that hands its purpose to a child intent has no zone of its own,
+    // so it carries no using clause; every action step keeps one.
     if step_row < 0 || step_row >= ArrayLength(plan.steps.transition_ids) ||
-        zone_alias == "" { return ""; }
+        (zone_alias == "") != (plan.steps.where_zone_names[step_row] == "") {
+        return "";
+    }
     let header: String = Concat(
         "    IntentStep: ", plan.steps.step_names[step_row]
     );
@@ -113,6 +117,7 @@ func MirIntentExecutionStepHeader(
             " after ", plan.steps.predecessor_step_names[step_row]
         ));
     }
+    if zone_alias == "" { return header; }
     return Concat(header, Concat(" using ", zone_alias));
 }
 

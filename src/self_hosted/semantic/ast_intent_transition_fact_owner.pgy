@@ -310,6 +310,9 @@ func SemanticAstIntentTransitionFactsFromArtifact(
                         signatures, intent_signatures, intent_index, on_text
                     );
                 if !call.ok {
+                    call = SemanticAstIntentChildCallFromText(intent_signatures, on_text);
+                }
+                if !call.ok {
                     return SemanticAstIntentTransitionFactsError(
                         "typed intent action contract is unresolved", artifact.count
                     );

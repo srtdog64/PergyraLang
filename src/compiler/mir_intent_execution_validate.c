@@ -72,6 +72,28 @@ intent_execution_decl_by_identity(const MIRProgram *mir,
     return found;
 }
 
+/* The one declaration header of `ast_type` with this identity, or NULL. */
+static const MIRDeclHeader *
+intent_execution_decl_by_syntax_id(const MIRProgram *mir,
+                                   uint32_t source_syntax_id,
+                                   ASTNodeType ast_type)
+{
+    const MIRDeclHeader *found = NULL;
+
+    if (mir == NULL || source_syntax_id == 0)
+        return NULL;
+    for (size_t i = 0; i < mir->decl_header_count; i++) {
+        const MIRDeclHeader *candidate = &mir->decl_headers[i];
+        if (candidate->source_syntax_id == source_syntax_id
+            && candidate->ast_type == ast_type) {
+            if (found != NULL)
+                return NULL;
+            found = candidate;
+        }
+    }
+    return found;
+}
+
 static const MIRDeclHeader *
 intent_execution_tobject_by_identity(const MIRProgram *mir,
                                      uint32_t source_syntax_id,
@@ -273,8 +295,10 @@ intent_execution_validate_step(const MIRRoutine *routine,
         || row->transition_id != row->step_syntax_id
         || row->routine_syntax_id != routine->source_syntax_id
         || row->step_name == NULL || row->step_name[0] == '\0'
-        || row->where_zone_name == NULL || row->where_zone_name[0] == '\0'
-        || row->where_zone_syntax_id == 0
+        || (row->target_is_intent
+            ? row->where_zone_name != NULL || row->where_zone_syntax_id != 0
+            : row->where_zone_name == NULL || row->where_zone_name[0] == '\0'
+                || row->where_zone_syntax_id == 0)
         || row->action_syntax_id == 0
         || row->outcome_result_name == NULL
         || row->outcome_result_name[0] == '\0'
@@ -608,11 +632,16 @@ mir_validate_intent_execution_program(const MIRProgram *mir,
              s < routine->intent_step_transition_count; s++) {
             const MIRIntentStepTransitionFact *step =
                 &routine->intent_step_transitions[s];
-            if (intent_execution_decl_by_identity(mir,
-                    step->where_zone_syntax_id, AST_ZONE_DECL,
-                    step->where_zone_name) == NULL) {
+            if (step->target_is_intent
+                    ? intent_execution_decl_by_syntax_id(mir,
+                        step->action_syntax_id, AST_INTENT_DECL) == NULL
+                    : intent_execution_decl_by_identity(mir,
+                        step->where_zone_syntax_id, AST_ZONE_DECL,
+                        step->where_zone_name) == NULL) {
                 return intent_execution_reject(error_message, routine,
-                    "step zone identity cross-seal failed");
+                    step->target_is_intent
+                        ? "step child intent identity cross-seal failed"
+                        : "step zone identity cross-seal failed");
             }
             if (!intent_execution_enum_branch_is_sealed(mir,
                     step->outcome_enum_syntax_id,

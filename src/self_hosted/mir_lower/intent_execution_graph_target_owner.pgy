@@ -88,6 +88,12 @@ func MirIntentExecutionGraphTargetForInstruction(
     if matches != 1 || syntax_id <= 0 {
         return MirIntentExecutionGraphTargetProjection(false, false, 0, "", "");
     }
+    // A step that hands its purpose to a child intent calls that intent's
+    // routine directly; the call graph already names it, so nothing projects.
+    if expected_name == "" &&
+        MirIntentExecutionGraphTargetRoutineRow(routines, syntax_id) >= 0 {
+        return MirIntentExecutionGraphTargetProjection(true, false, 0, "", "");
+    }
     let callable_row: Int = 0 - 1;
     let row: Int = 0;
     while row < ArrayLength(routines.names) {

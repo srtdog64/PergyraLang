@@ -471,7 +471,8 @@ llvm_emit_typed_intent_execution(ASTNode *node,
         LLVMPositionBuilderAtEnd(ctx->builder, transition_bbs[i]);
         if (ctx->uses_intent_observability) {
             llvm_emit_intent_trace_step(ctx, trace_step_fn, handle_alloca,
-                row->step_name, row->where_zone_name);
+                row->step_name,
+                row->where_zone_name != NULL ? row->where_zone_name : "");
         }
         {
             const char *saved_expected = ctx->expected_type_name;

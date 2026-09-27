@@ -1,3 +1,8 @@
+// A step hands part of its intent's purpose to a child intent through its
+// `intent:` gate or a bound `on` call to a typed intent. The child chain must
+// not lead back to the step's own intent: the purpose would contain itself.
+// Native's checker refuses the same cycle.
+//
 // A step's `intent:` clause gates the step on a Bool child intent: the parent
 // step fails when the child returns false. A typed intent returns its outcome
 // enum, which cannot decide that gate, so the call is refused here, as
@@ -18,8 +23,12 @@ func SemanticAstIntentStepClauseAdmissionFromFacts(
         return SemanticAstBodyVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "IntentStepClauseAdmission"), -1);
     }
+    let edge_nodes: Array<Int> = [];
+    let edge_owners: Array<Int> = [];
+    let edge_children: Array<Int> = [];
     let row: Int = 0;
     while row < ArrayLength(kinds.kind_tags) {
+        let child_edge: Bool = kinds.kind_tags[row] == TypedAstKindIntentStepIntentTag();
         if kinds.kind_tags[row] == TypedAstKindIntentStepIntentTag() {
             let call: SemanticAstIntentCallFact =
                 SemanticAstIntentCallFromGraph(intents, surfaces, row);
@@ -29,7 +38,78 @@ func SemanticAstIntentStepClauseAdmissionFromFacts(
                         "returns", call.return_type_name), row);
             }
         }
+        if kinds.kind_tags[row] == TypedAstKindIntentStepOnTag() {
+            child_edge = SemanticAstIntentStepHasOutcome(artifact, kinds, row);
+        }
+        if child_edge {
+            let call: SemanticAstIntentCallFact = SemanticAstIntentCallFromGraph(intents, surfaces, row);
+            let owner: Int = SemanticAstIntentOwnerIndex(artifact, intents, row);
+            if call.ok && owner >= 0 {
+                ArrayPush(edge_nodes, row);
+                ArrayPush(edge_owners, owner);
+                ArrayPush(edge_children, call.intent_index);
+            }
+        }
         row = row + 1;
     }
+    let edge: Int = 0;
+    while edge < ArrayLength(edge_nodes) {
+        if SemanticAstIntentChildChainReaches(edge_owners, edge_children,
+                edge_children[edge], edge_owners[edge], ArrayLength(edge_nodes) + 1) {
+            let child: Int = edge_children[edge];
+            return SemanticAstBodyVerdictError("intent_child_cycle",
+                SemanticError2("intent_child_cycle", "intent", intents.names[child],
+                    "parent", intents.names[edge_owners[edge]]), edge_nodes[edge]);
+        }
+        edge = edge + 1;
+    }
     return SemanticAstBodyVerdictOk();
+}
+
+// A step's `on` clause names a child purpose only when its outcome is bound.
+func SemanticAstIntentStepHasOutcome(
+    artifact: AstTreeArtifact, ref kinds: SemanticAstKindSurfaceFacts, on_row: Int
+) -> Bool {
+    let step: Option<Int> = TypedAstArenaParentId(artifact.arena, on_row);
+    if !IsSome(step) { return false; }
+    let index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(artifact.arena, UnwrapOption(step), 0);
+    while IsSome(child) {
+        if kinds.kind_tags[UnwrapOption(child)] == TypedAstKindIntentStepOutcomeTag() { return true; }
+        index = index + 1;
+        child = TypedAstArenaChildAt(artifact.arena, UnwrapOption(step), index);
+    }
+    return false;
+}
+
+// The intent declaration a step clause belongs to, as a signature index.
+func SemanticAstIntentOwnerIndex(
+    artifact: AstTreeArtifact, ref intents: SemanticAstIntentSignatureFacts, row: Int
+) -> Int {
+    let current: Option<Int> = TypedAstArenaParentId(artifact.arena, row);
+    let budget: Int = artifact.count;
+    while IsSome(current) && budget > 0 {
+        let index: Option<Int> = SemanticAstIntentSignatureIndexForNode(intents, UnwrapOption(current));
+        if IsSome(index) { return UnwrapOption(index); }
+        current = TypedAstArenaParentId(artifact.arena, UnwrapOption(current));
+        budget = budget - 1;
+    }
+    return 0 - 1;
+}
+
+// True when the child edges lead from `from` to `needle` within `depth` steps.
+func SemanticAstIntentChildChainReaches(
+    owners: Array<Int>, targets: Array<Int>, from: Int, needle: Int, depth: Int
+) -> Bool {
+    if from == needle { return true; }
+    if depth <= 0 { return false; }
+    let edge: Int = 0;
+    while edge < ArrayLength(owners) {
+        if owners[edge] == from &&
+            SemanticAstIntentChildChainReaches(owners, targets, targets[edge], needle, depth - 1) {
+            return true;
+        }
+        edge = edge + 1;
+    }
+    return false;
 }

@@ -8,10 +8,103 @@
 
 #include <string.h>
 
+/* The intent a step hands its purpose to: the callee of its `intent:` gate,
+ * or of a bound `on <binding>:` call to a declared intent (docs/34 9.2.1 (a)).
+ * NULL when the step targets an action or anything else. */
+static ASTNode *
+intent_step_child_intent_decl(ASTNode *call, SemanticContext *ctx)
+{
+    ASTNode *callee;
+    ASTNode *decl;
+
+    if (call == NULL || call->type != AST_CALL)
+        return NULL;
+    callee = ast_call_callee(call);
+    if (callee == NULL || callee->type != AST_IDENTIFIER
+        || ast_identifier_name(callee) == NULL) {
+        return NULL;
+    }
+    decl = semantic_find_callable_decl_by_name(ctx, ast_identifier_name(callee));
+    return decl != NULL && decl->type == AST_INTENT_DECL ? decl : NULL;
+}
+
+static ASTNode *
+intent_step_on_child_intent_decl(ASTNode *step, SemanticContext *ctx)
+{
+    ASTNode **on_exprs;
+    size_t on_expr_count = 0;
+
+    if (ast_intent_step_outcome_binding_name(step) == NULL)
+        return NULL;
+    on_exprs = ast_intent_step_on_exprs(step, &on_expr_count);
+    return on_expr_count == 1
+        ? intent_step_child_intent_decl(on_exprs[0], ctx) : NULL;
+}
+
+/* True when `from`, through its steps' child intents, reaches `needle`.
+ * `depth` bounds the walk by the number of steps a chain can take. */
+static bool
+intent_child_chain_reaches(ASTNode *from, ASTNode *needle,
+                           SemanticContext *ctx, size_t depth)
+{
+    ASTNode **steps;
+    size_t step_count = 0;
+
+    if (from == NULL || depth == 0)
+        return false;
+    steps = ast_intent_decl_steps(from, &step_count);
+    for (size_t i = 0; i < step_count; i++) {
+        ASTNode *children[2];
+        if (steps[i] == NULL || steps[i]->type != AST_INTENT_STEP)
+            continue;
+        children[0] = intent_step_child_intent_decl(
+            ast_intent_step_intent_expr(steps[i]), ctx);
+        children[1] = intent_step_on_child_intent_decl(steps[i], ctx);
+        for (size_t c = 0; c < 2; c++) {
+            if (children[c] == needle
+                || intent_child_chain_reaches(children[c], needle, ctx,
+                                              depth - 1)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/* A nested intent is a sub-purpose of its parent, so the child chain must not
+ * lead back to the parent: the purpose would contain itself. */
+static void
+intent_step_reject_child_cycle(ASTNode *intent_decl, ASTNode *step,
+                               ASTNode *child, SemanticContext *ctx)
+{
+    if (child == NULL
+        || (child != intent_decl
+            && !intent_child_chain_reaches(child, intent_decl, ctx, 64))) {
+        return;
+    }
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_INTENT_STEP_INVALID,
+        PGY_CAUSE_INTENT_STEP,
+        PGY_FIX_CHECK_INTENT_STEP_LOWERING,
+        step,
+        "Intent step '%s' calls intent '%s', whose child intents lead back to '%s'.\n"
+        "Reason:\n"
+        "- a nested intent is a sub-purpose of its parent and cannot contain the parent\n"
+        "Fix:\n"
+        "- call a child intent that does not reach '%s' again",
+        ast_intent_step_name(step) != NULL ? ast_intent_step_name(step) : "<step>",
+        ast_intent_decl_name(child) != NULL ? ast_intent_decl_name(child) : "<intent>",
+        ast_intent_decl_name(intent_decl) != NULL
+            ? ast_intent_decl_name(intent_decl) : "<intent>",
+        ast_intent_decl_name(intent_decl) != NULL
+            ? ast_intent_decl_name(intent_decl) : "<intent>");
+}
+
 static bool
 type_check_intent_step_bind_outcome(ASTNode *intent_decl,
                                     ASTNode *step,
                                     Type *outcome_type,
+                                    ASTNode *child_intent,
                                     SemanticContext *ctx,
                                     bool *scope_entered_out)
 {
@@ -83,20 +176,24 @@ type_check_intent_step_bind_outcome(ASTNode *intent_decl,
         return false;
     }
 
-    action_decl = intent_step_resolve_single_on_action_decl(
-        intent_decl, step, ctx, NULL);
-    if (action_decl == NULL || action_decl->type != AST_FUNC_DECL
-        || !ast_func_is_action(action_decl)) {
+    action_decl = child_intent != NULL
+        ? child_intent
+        : intent_step_resolve_single_on_action_decl(
+            intent_decl, step, ctx, NULL);
+    if (action_decl == NULL
+        || (child_intent == NULL
+            && (action_decl->type != AST_FUNC_DECL
+                || !ast_func_is_action(action_decl)))) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_INTENT_STEP_INVALID,
             PGY_CAUSE_INTENT_STEP,
             PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS,
             step,
-            "Intent step '%s' outcome binding '%s' requires one exactly resolved subject action call.\n"
+            "Intent step '%s' outcome binding '%s' requires one exactly resolved subject action call or declared intent call.\n"
             "Reason:\n"
             "- ordinary functions and computed callees do not carry action authority identity\n"
             "Fix:\n"
-            "- bind the result of '<participant>.<Action>(...)'\n"
+            "- bind the result of '<participant>.<Action>(...)' or of a typed '<Intent>(...)'\n"
             "- keep an unbound legacy 'on: <expr>;' for non-action expressions",
             ast_intent_step_name(step) != NULL
                 ? ast_intent_step_name(step) : "<step>",
@@ -209,6 +306,7 @@ type_check_intent_step_sequence(
         bool matched_action = false;
         ASTNode *zone_decl = NULL;
         bool has_subintent = false;
+        ASTNode *child_intent = NULL;
         bool step_requires_authority_flow = false;
         bool on_action_zone_conflict = false;
         bool outcome_scope_entered = false;
@@ -231,17 +329,20 @@ type_check_intent_step_sequence(
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
 
-        intent_step_derive_who_from_on_receiver(node, step, ctx);
-        intent_step_derive_who_from_action(node, step, ctx);
-        intent_step_derive_who_from_single_participant(node, step, ctx);
-        intent_step_derive_where_from_on_receiver(node, step, ctx);
-        on_action_zone_conflict =
-            intent_step_report_on_action_zone_conflict(node, step, ctx);
-        intent_step_inherit_contract_from_on_receiver(node, step, ctx);
-        intent_step_inherit_action_contract(node, step, ctx);
-        intent_step_derive_transfer_context(node, step, ctx);
-        intent_step_derive_zone_binding_context(node, step, ctx);
-        intent_step_warn_redundant_action_contract(node, step, ctx);
+        child_intent = intent_step_on_child_intent_decl(step, ctx);
+        if (child_intent == NULL) {
+            intent_step_derive_who_from_on_receiver(node, step, ctx);
+            intent_step_derive_who_from_action(node, step, ctx);
+            intent_step_derive_who_from_single_participant(node, step, ctx);
+            intent_step_derive_where_from_on_receiver(node, step, ctx);
+            on_action_zone_conflict =
+                intent_step_report_on_action_zone_conflict(node, step, ctx);
+            intent_step_inherit_contract_from_on_receiver(node, step, ctx);
+            intent_step_inherit_action_contract(node, step, ctx);
+            intent_step_derive_transfer_context(node, step, ctx);
+            intent_step_derive_zone_binding_context(node, step, ctx);
+            intent_step_warn_redundant_action_contract(node, step, ctx);
+        }
 
         step_name = ast_intent_step_name(step);
         where_type = ast_intent_step_where_type(step);
@@ -256,7 +357,11 @@ type_check_intent_step_sequence(
         invariant_expr = ast_intent_step_invariant_expr(step);
         expect_expr = ast_intent_step_expect_expr(step);
         causes_effect = ast_intent_step_causes_effect(step);
-        has_subintent = (intent_expr != NULL);
+        has_subintent = (intent_expr != NULL || child_intent != NULL);
+        intent_step_reject_child_cycle(node, step,
+            child_intent != NULL
+                ? child_intent : intent_step_child_intent_decl(intent_expr, ctx),
+            ctx);
 
         if (where_type == NULL
             && !has_subintent
@@ -472,7 +577,8 @@ type_check_intent_step_sequence(
             }
         }
         (void)type_check_intent_step_bind_outcome(
-            node, step, bound_outcome_type, ctx, &outcome_scope_entered);
+            node, step, bound_outcome_type, child_intent, ctx,
+            &outcome_scope_entered);
         if (typed_result && outcome_scope_entered) {
             if (intent_typed_resolve_step_branches(
                     step, bound_outcome_type, ctx,

@@ -166,8 +166,8 @@ func MirIntentStepTransitionFactsReady(
         if rows.transition_ids[row] <= 0 ||
             rows.transition_ids[row] != rows.step_syntax_ids[row] ||
             rows.routine_syntax_ids[row] <= 0 || rows.step_names[row] == "" ||
-            rows.where_zone_names[row] == "" ||
-            rows.where_zone_syntax_ids[row] <= 0 ||
+            (rows.where_zone_names[row] == "") !=
+                (rows.where_zone_syntax_ids[row] <= 0) ||
             rows.action_syntax_ids[row] <= 0 ||
             rows.outcome_instruction_block_ids[row] < 0 ||
             rows.outcome_instruction_ids[row] < 0 ||

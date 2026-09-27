@@ -431,6 +431,9 @@ typedef struct
     size_t      compensation_count;
     const char *where_zone_name;
     uint32_t    where_zone_syntax_id;
+    /* action_syntax_id names a declared intent: the step hands its purpose
+     * to that child intent and has no zone of its own (docs/34 9.2.1 (a)). */
+    bool        target_is_intent;
 } MIRIntentStepTransitionFact;
 
 typedef struct

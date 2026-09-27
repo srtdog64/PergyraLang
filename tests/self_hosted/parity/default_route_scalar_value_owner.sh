@@ -23,6 +23,10 @@
 #   every leg: under a grant that names their capability they run, under one
 #   that omits it the native runtime gate refuses them before any output. The
 #   default route used to emit private copies with no gate.
+# - A typed step may hand its purpose to a child intent with
+#   `on <binding>: Child(...)` (docs/34 9.2.1 (a)): the child's result enum
+#   maps onto the parent's terminals, and a child chain that leads back to
+#   the parent is refused.
 # - An intent called inside the action a step runs is recorded under the
 #   step's intent: IntentActiveParentHandle names the running intent
 #   (docs/34 §9.2.1 (b)).
@@ -461,4 +465,150 @@ for row in "print_demo|io_write|io_read|print ok" \
     done
 done
 
-echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result, DirWalk inside PGY_IO_ROOT, a zone made only of apply rows, a hosted func in a within subject, an intent called inside an action and the capability gate on Print, Now and Random agree with native C, and an out-of-range Long literal and a mismatched try error type are refused: PASS"
+cat >"$WORK_DIR/intent_typed_child.pgy" <<'PGY'
+tobject Done { n: Int; }
+tobject Stop { code: Int; }
+enum Turn { Answered(Done), Stopped(Stop) }
+enum Task { Delivered(Done), Failed(Stop) }
+enum Hand { Handed(Done), Dropped(Stop) }
+
+within Desk {
+    subject Agent {
+        let mut turns: Int;
+
+        action Work(self, limit: Int) -> Turn
+            authorized by self
+        {
+            self.turns = self.turns + 1;
+            if self.turns > limit { return Stopped(Stop(self.turns)); }
+            return Answered(Done(self.turns));
+        }
+    }
+}
+
+zone Desk {
+    subject slot agent: Agent
+    authority agent
+}
+
+intent Complete(desk: Desk, agent: Agent, limit: Int) -> Task {
+    step Run {
+        where: Desk;
+        using: desk;
+        who: agent;
+        authorized by: agent;
+        on turn: agent.Work(limit);
+        success: Answered(done);
+        failure: Stopped(stop);
+    }
+    success Run: Delivered(done);
+    failure Run: Failed(stop);
+}
+
+intent Delegate(desk: Desk, agent: Agent, limit: Int) -> Hand {
+    step Child {
+        on task: Complete(desk, agent, limit);
+        success: Delivered(done);
+        failure: Failed(stop);
+    }
+    success Child: Handed(done);
+    failure Child: Dropped(stop);
+}
+
+func Show(hand: Hand) -> Void {
+    match hand {
+        case Handed(done): Log("handed " + ToString(done.n));
+        case Dropped(stop): Log("dropped " + ToString(stop.code));
+    }
+}
+
+func Main() -> Void {
+    let agent = Agent(0);
+    let desk = Desk(Clone(agent));
+    Show(Delegate(desk, agent, 2));
+    Show(Delegate(desk, agent, 2));
+    Show(Delegate(desk, agent, 2));
+    Log(agent.turns);
+}
+PGY
+expect_values intent-typed-child "$WORK_REL/intent_typed_child.pgy" \
+    $'handed 1\nhanded 2\ndropped 3\n3' native-c native-llvm default-c
+cat >"$WORK_DIR/intent_child_cycle.pgy" <<'PGY'
+tobject Done { n: Int; }
+tobject Stop { code: Int; }
+enum Turn { Answered(Done), Stopped(Stop) }
+enum Task { Delivered(Done), Failed(Stop) }
+enum Hand { Handed(Done), Dropped(Stop) }
+
+within Desk {
+    subject Agent {
+        let mut turns: Int;
+
+        action Work(self, limit: Int) -> Turn
+            authorized by self
+        {
+            self.turns = self.turns + 1;
+            if self.turns > limit { return Stopped(Stop(self.turns)); }
+            return Answered(Done(self.turns));
+        }
+    }
+}
+
+zone Desk {
+    subject slot agent: Agent
+    authority agent
+}
+
+intent Complete(desk: Desk, agent: Agent, limit: Int) -> Task {
+    step Run {
+        on back: Delegate(desk, agent, limit);
+        success: Handed(done);
+        failure: Dropped(stop);
+    }
+    success Run: Delivered(done);
+    failure Run: Failed(stop);
+}
+
+intent Delegate(desk: Desk, agent: Agent, limit: Int) -> Hand {
+    step Child {
+        on task: Complete(desk, agent, limit);
+        success: Delivered(done);
+        failure: Failed(stop);
+    }
+    success Child: Handed(done);
+    failure Child: Dropped(stop);
+}
+
+func Show(hand: Hand) -> Void {
+    match hand {
+        case Handed(done): Log("handed " + ToString(done.n));
+        case Dropped(stop): Log("dropped " + ToString(stop.code));
+    }
+}
+
+func Main() -> Void {
+    let agent = Agent(0);
+    let desk = Desk(Clone(agent));
+    Show(Delegate(desk, agent, 2));
+    Show(Delegate(desk, agent, 2));
+    Show(Delegate(desk, agent, 2));
+    Log(agent.turns);
+}
+PGY
+for leg in native-c native-llvm default-c; do
+    out_rel="$WORK_REL/intent-child-cycle-$leg.exe"
+    if compile "$WORK_REL/intent_child_cycle.pgy" "$leg" "$out_rel"; then
+        fail "$leg accepted an intent whose child chain leads back to it"
+    fi
+done
+for leg in native-c native-llvm; do
+    grep -Fq "whose child intents lead back to 'Complete'" \
+        "$ROOT_DIR/$WORK_REL/intent-child-cycle-$leg.exe.log" ||
+        { cat "$ROOT_DIR/$WORK_REL/intent-child-cycle-$leg.exe.log" >&2
+          fail "$leg lost its nested intent cycle refusal"; }
+done
+grep -Fq "Code: intent_child_cycle" "$ROOT_DIR/$WORK_REL/intent-child-cycle-default-c.exe.log" ||
+    { cat "$ROOT_DIR/$WORK_REL/intent-child-cycle-default-c.exe.log" >&2
+      fail "default-c lost its nested intent cycle refusal"; }
+
+echo "[$LABEL] reserved-word escape, Long Abs/Min/Max, nested builtin arguments, try on an explicit Result, DirWalk inside PGY_IO_ROOT, a zone made only of apply rows, a hosted func in a within subject, an intent called inside an action, a typed child intent step and the capability gate on Print, Now and Random agree with native C, and an out-of-range Long literal, a mismatched try error type and a nested intent cycle are refused: PASS"

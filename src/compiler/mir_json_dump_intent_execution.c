@@ -120,8 +120,11 @@ mir_json_emit_intent_step(FILE *out,
             fputc(',', out);
         mir_json_emit_intent_compensation(out, &row->compensations[i]);
     }
+    /* A child-intent step has no zone: the empty name matches the
+     * self-host plan row. */
     fputs("],\"where_zone_name\":", out);
-    mir_json_emit_str_or_null(out, row->where_zone_name);
+    mir_json_emit_str_or_null(out,
+        row->where_zone_name != NULL ? row->where_zone_name : "");
     fprintf(out, ",\"where_zone_syntax_id\":%u",
             row->where_zone_syntax_id);
     fputc('}', out);

@@ -192,16 +192,27 @@ func MirIntentExecutionPlanSemanticCrossSeal(
         let routine_row: Int = MirIntentExecutionRoutineRowByIdentity(
             signatures, plan.steps.routine_syntax_ids[step], "intent"
         );
+        // A step targets an action inside its zone, or hands its purpose to a
+        // child intent routine and has no zone of its own (docs/34 9.2.1 (a)).
+        let child_row: Int = MirIntentExecutionRoutineRowByIdentity(
+            signatures, plan.steps.action_syntax_ids[step], "intent"
+        );
         if routine_row < 0 ||
             signatures.return_type_names[routine_row] == "Bool" ||
-            !MirIntentExecutionZoneDeclarationReady(
-                declarations, plan.steps.where_zone_names[step],
-                plan.steps.where_zone_syntax_ids[step]
-            ) ||
-            !MirIntentExecutionCallableReturnReady(
-                signatures, plan.steps.action_syntax_ids[step],
-                plan.steps.outcome_type_names[step]
-            ) ||
+            (child_row >= 0 &&
+                (plan.steps.where_zone_names[step] != "" ||
+                 plan.steps.where_zone_syntax_ids[step] != 0 ||
+                 signatures.return_type_names[child_row] !=
+                    plan.steps.outcome_type_names[step])) ||
+            (child_row < 0 &&
+                (!MirIntentExecutionZoneDeclarationReady(
+                    declarations, plan.steps.where_zone_names[step],
+                    plan.steps.where_zone_syntax_ids[step]
+                ) ||
+                !MirIntentExecutionCallableReturnReady(
+                    signatures, plan.steps.action_syntax_ids[step],
+                    plan.steps.outcome_type_names[step]
+                ))) ||
             !MirIntentExecutionEnumVariantReady(
                 declarations, plan.steps.outcome_enum_names[step],
                 plan.steps.outcome_enum_syntax_ids[step],

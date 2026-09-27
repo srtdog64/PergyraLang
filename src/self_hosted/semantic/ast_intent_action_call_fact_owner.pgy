@@ -104,6 +104,28 @@ func SemanticAstIntentActionCallFromText(
     );
 }
 
+// A bound `on` call to a declared typed intent hands the step's purpose to that
+// child intent (docs/34 9.2.1 (a)). The step's outcome is the child's result
+// enum; the fact has no receiver and no action signature.
+func SemanticAstIntentChildCallFromText(
+    ref intents: SemanticAstIntentSignatureFacts, text: String
+) -> SemanticAstIntentActionCallFact {
+    let open: Int = StringIndexOf(text, "(");
+    if !intents.ok || open <= 0 { return SemanticAstIntentActionCallFact(false, "", "", -1, ""); }
+    let name: String = StringTrim(Substring(text, 0, open));
+    let found: Int = -1;
+    let i: Int = 0;
+    while IsIdentifier(name) && i < ArrayLength(intents.names) {
+        if intents.names[i] == name && intents.result_modes[i] == "typed_enum" {
+            if found >= 0 { return SemanticAstIntentActionCallFact(false, "", "", -1, ""); }
+            found = i;
+        }
+        i = i + 1;
+    }
+    if found < 0 { return SemanticAstIntentActionCallFact(false, "", "", -1, ""); }
+    return SemanticAstIntentActionCallFact(true, "", name, -1, intents.return_type_names[found]);
+}
+
 func SemanticAstIntentStepActorFromFacts(
     signatures: SemanticAstFunctionSignatureFacts,
     ref intents: SemanticAstIntentSignatureFacts,

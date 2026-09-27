@@ -942,8 +942,8 @@ intent CompletePurchase(payment: PaymentZone, buyer: Member)
   `intent clause must return Bool for boolean-orchestration`으로, default 경로는
   `intent_step_clause_not_bool`로 거부한다. default 경로의 위치는 아직 감싼 intent
   선언 줄이다. step 절은 소스 위치 행을 기록하지 않기 때문이다.
-- typed step의 `on <binding>:` 자리는 subject action 호출 하나만 받는다. typed
-  intent를 step 대상으로 두는 문법은 아직 없다(§9.2.1).
+- typed step의 `on <binding>:` 자리는 subject action 호출 하나, 또는 선언된 typed
+  intent 호출 하나를 받는다(§9.2.1 (a)).
 - intent는 함수나 action 본문에서 값으로 부를 수 있다. action 본문에서 부른 intent는
   그 action을 돌리는 step의 intent를 부모로 기록한다(`IntentActiveParentHandle`).
   native C, native LLVM, default C가 같은 값을 낸다(2026-09-27 측정).
@@ -952,14 +952,18 @@ intent CompletePurchase(payment: PaymentZone, buyer: Member)
   `let r: Outcome = Call(...);`로 먼저 받은 뒤 `match r`를 쓰면 된다. default C는
   바로 쓴 모양도 받는다. 아직 고치지 않았다.
 
-#### 9.2.1 typed 하위 intent — 설계 (미구현)
+#### 9.2.1 typed 하위 intent
+
+(a)는 채택되어 구현되었다(2026-09-27). native C, native LLVM, default C가 같은
+결과를 내고, 사이클은 두 front end가 모두 거부한다. (b)는 추적만 동작하고,
+권한과 caps 규칙은 결정 대기다.
 
 요구: 부모 목적 안에서 자식 목적이 typed 결과를 내야 하는 경우가 있다. 서브에이전트
 위임이 그 예다(pergyraAgents 하네스). Bool 하위 intent는 자식의 결과 payload를
 버리므로 이 요구를 채우지 못한다.
 
-**(a) 정적 합성.** step의 `on <binding>:` 자리가 typed intent 호출도 받는다. 새
-키워드는 없다.
+**(a) 정적 합성 (구현됨).** step의 `on <binding>:` 자리가 typed intent 호출도
+받는다. 새 키워드는 없다.
 
 ```pergyra
 intent Delegate(team: TeamZone, child: Agent, prompt: String) -> TaskOutcome {
@@ -977,10 +981,14 @@ intent Delegate(team: TeamZone, child: Agent, prompt: String) -> TaskOutcome {
 
 1. binding의 타입은 자식 intent의 반환 enum이다. `success:`와 `failure:`는 그
    enum의 서로 다른 variant를 하나씩 정확히 이름 짓고, payload는 tobject다.
-2. 대상이 intent인 step은 `where`/`using`/`who`를 요구하지 않는다. 자식 intent의
-   step들이 자기 계약을 진다. Bool 오케스트레이션과 같다.
+2. 대상이 intent인 step은 `where`/`using`/`who`를 요구하지 않고, 자기 zone을 갖지
+   않는다. 자식 intent의 step들이 자기 계약을 진다. Bool 오케스트레이션과 같다.
+   MIR의 전이 행에서 zone이 비어 있는 것과 대상이 intent 선언이라는 것은 함께만
+   성립한다.
 3. intent 호출 그래프의 사이클은 정적으로 거부한다. 자기 자신이나 조상 intent를 다시
-   부르는 경우다. INT-3(docs/173)의 step DAG 규칙을 intent 사이로 넓힌 것이다.
+   부르는 경우다. `intent:` 게이트와 typed `on` 호출 모두를 따라간다. INT-3
+   (docs/173)의 step DAG 규칙을 intent 사이로 넓힌 것이다. native는 "whose child
+   intents lead back to"로, default 경로는 `intent_child_cycle`로 거부한다.
 4. 자식이 성공한 뒤 부모의 뒤 step이 실패하면, 부모 step의 명시 `compensate:` 절이
    돈다. 자식 안에서 이미 끝난 전이는 다시 보상하지 않는다. 성공 완료 증거가 있는
    전이만 보상한다는 규칙(docs/self_hosted/19)을 그대로 따른다.
@@ -999,7 +1007,15 @@ intent Delegate(team: TeamZone, child: Agent, prompt: String) -> TaskOutcome {
    native C와 default C가 모두 컴파일했다. "자식의 caps가 부르는 action의 caps에
    포함되어야 한다"는 규칙은 caps 전파 규칙 전체와 함께 정해야 한다.
 
-결정 대기: (a)의 채택과 문법, (b)-2의 권한 상한, (b)-3의 caps 전파.
+결정 대기: (b)-2의 권한 상한, (b)-3의 caps 전파.
+
+DDD로 보면 intent는 use case(process manager), subject/action은 aggregate와 그
+행위다. aggregate는 결정을 사실로 돌려주고, 다음 목적의 조율은 use case가 한다.
+그래서 중첩은 (a)가 주 경로다. (b)는 action이 intent를 부르는 계층 역전이라
+권장하지 않는다. 동작은 유지하되 권한과 caps가 넓어지지 않게만 보장한다. 실행 중에
+위임을 고르는 경우는 action이 `DelegationRequested(task)` 같은 variant로 결정을
+돌려주고, 부모 intent의 다음 step이 (a)로 자식 intent를 부르는 모양이 맞다. 이를
+위해 앞 step의 결과 variant에 따라 다음 step을 고르는 분기가 다음 확장 과제다.
 
 ### 9.3 닫힌 시스템 철학
 

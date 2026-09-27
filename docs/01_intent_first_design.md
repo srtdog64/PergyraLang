@@ -720,7 +720,8 @@ intent CompletePurchase(buyer: Member)
 5. 깊이 제한은 없지만, 3단 이상 중첩은 설계 냄새
 6. `intent:`로 부르는 하위 intent는 반환 타입이 없는 Bool intent다. typed intent
    (`-> Outcome`)는 이 자리에 올 수 없고, native와 default 경로 모두 거부한다.
-   typed 하위 intent의 설계와 결정 대기 항목은 docs/34 §9.2.1에 있다.
+   typed 하위 intent는 typed step의 `on <binding>: Child(...)`로 부른다. 자식의
+   결과 enum이 부모 step의 success/failure 패턴에 대응된다(docs/34 §9.2.1).
 
 ---
 

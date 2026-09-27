@@ -5,6 +5,16 @@ import "program_fact_owner.pgy";
 import "expression_graph_digest_owner.pgy";
 import "../dir/intent_fact_owner.pgy";
 
+// True when `target` is the node of a declared intent: the step's child.
+func SelfMirIntentTargetIsIntent(ref intents: SelfDirIntentFacts, target: Int) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(intents.intent_node_ids) {
+        if intents.intent_node_ids[i] == target { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
 func SelfMirIntentInstructionRow(
     ref facts: SelfMirProgramFacts, routine: Int,
     block_id: Int, name: String, anchor: String
@@ -193,9 +203,18 @@ func SelfMirIntentExecutionPlanAppend(
                 "typed Intent compensation carriage is incomplete");
         }
         ArrayPush(steps.compensation_counts, compensation_count);
-        ArrayPush(steps.where_zone_names, intents.steps.where_zone_names[step]);
-        ArrayPush(steps.where_zone_syntax_ids, SelfMirIntentPayloadDeclarationId(
-            facts.declarations, intents.steps.where_zone_names[step]));
+        // A step whose target is a declared intent hands its purpose to that
+        // child and has no zone of its own; an action step always has one.
+        let zone_name: String = intents.steps.where_zone_names[step];
+        if SelfMirIntentTargetIsIntent(intents, intents.steps.target_declaration_node_ids[step]) !=
+            (zone_name == "") {
+            return SelfMirProgramFactsError(facts, "mir_intent_plan_invalid",
+                "typed Intent step zone does not match its action or child intent target");
+        }
+        let zone_id: Int = 0;
+        if zone_name != "" { zone_id = SelfMirIntentPayloadDeclarationId(facts.declarations, zone_name); }
+        ArrayPush(steps.where_zone_names, zone_name);
+        ArrayPush(steps.where_zone_syntax_ids, zone_id);
         step = step + 1;
     }
     let terminal: Int = intents.transitions.terminal_starts[intent_index];

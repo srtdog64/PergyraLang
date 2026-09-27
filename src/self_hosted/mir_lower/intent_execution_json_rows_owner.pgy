@@ -206,8 +206,9 @@ func MirIntentExecutionCaptureStep(
         failure_payload_decl_syntax_id.value <= 0 ||
         !failure_successor_block_id.valid ||
         !completion_block_id.valid || !completion_instruction_id.valid ||
-        !where_zone_name.valid || where_zone_name.value == "" ||
-        !where_zone_syntax_id.valid || where_zone_syntax_id.value <= 0 ||
+        // A child-intent step carries no zone: name and identity are empty together.
+        !where_zone_name.valid || !where_zone_syntax_id.valid ||
+        (where_zone_name.value == "") != (where_zone_syntax_id.value <= 0) ||
         fields.starts[31] >= fields.ends[31] ||
         JsonCharCodeAt(json, fields.ends[31], fields.starts[31]) !=
             JsonAsciiCode("[") {

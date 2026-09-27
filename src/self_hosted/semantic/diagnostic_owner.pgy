@@ -42,6 +42,7 @@ func SemanticReason(code: String) -> String {
     if code == "match_pattern_invalid" { return "Invalid or non-exhaustive match pattern"; }
     if code == "intent_retry_unavailable" { return "Intent retry execution lowering is not implemented"; }
     if code == "intent_step_clause_not_bool" { return "An intent step's intent clause gates the step on a Bool child intent; a typed intent returns its outcome enum"; }
+    if code == "intent_child_cycle" { return "A nested intent is a sub-purpose of its parent, but this child's intents lead back to the parent"; }
     if code == "intent_predicate_plan_unavailable" { return "the typed Intent outcome plan required by this boundary predicate is unavailable"; }
     if code == "action_contract_invalid" { return "Action authority requires a declared binding and matching zone contract"; }
     if code == "task_lifecycle_invalid" { return "Owned task handle must be retired on every normal exit"; }
@@ -92,9 +93,7 @@ func SemanticReason(code: String) -> String {
     if code == "builtin_name_reserved" { return "a top-level function owns a builtin spelling except where it carries meaning beyond the call"; }
     if code == "generic_argument_count_mismatch" { return "explicit generic argument count does not match the callable generic parameters"; }
     if code == "generic_argument_type_invalid" { return "explicit generic argument is missing or malformed"; }
-    if code == "let_type_mismatch" {
-        return "let initializer type does not match the declared local type";
-    }
+    if code == "let_type_mismatch" { return "let initializer type does not match the declared local type"; }
     if code == "return_type_mismatch" {
         return "return expression type does not match the function return type";
     }
@@ -183,6 +182,7 @@ func SemanticFix(code: String) -> String {
     if code == "match_pattern_invalid" { return "cover every enum variant with the declared payload arity or add a default arm"; }
     if code == "intent_retry_unavailable" { return "remove the retry modifier until both backends implement the same retry contract"; }
     if code == "intent_step_clause_not_bool" { return "call an intent without a return type here, or call the typed intent outside the step gate and match its outcome"; }
+    if code == "intent_child_cycle" { return "call a child intent that does not reach the parent intent again"; }
     if code == "intent_predicate_plan_unavailable" { return "use an admitted Intent outcome plan before checking the boundary predicate"; }
     if code == "action_contract_invalid" { return "align the action binding, subject slot and explicit zone authority"; }
     if code == "task_lifecycle_invalid" { return "await the task or transfer it to an explicit own parameter before exiting its scope"; }

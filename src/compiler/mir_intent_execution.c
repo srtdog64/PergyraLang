@@ -31,6 +31,22 @@ intent_execution_dir_info(const DIRProgram *dir, const MIRRoutine *routine)
     return NULL;
 }
 
+/* The DIR intent inventory owns intent identity; a step whose outcome target
+ * is one of its intents hands its purpose to that child intent. */
+static bool
+intent_execution_target_is_intent(const DIRProgram *dir, uint32_t syntax_id)
+{
+    for (size_t i = 0; dir != NULL && syntax_id != 0 && i < dir->intent_count;
+         i++) {
+        const DIRIntentInfo *info = &dir->intents[i];
+        if (info->node_id < dir->node_count
+            && dir->nodes[info->node_id].source_syntax_id == syntax_id) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static bool
 intent_execution_append_terminal_instruction(
     MIRRoutine *routine,
@@ -311,13 +327,21 @@ mir_materialize_intent_execution_plan(MIRRoutine *routine,
         row->routine_syntax_id = routine->source_syntax_id;
         row->step_syntax_id = step->syntax_id;
         row->step_name = step->name;
-        row->where_zone_name = pgy_arena_strdup(
-            &routine->scratch, step->where_type_name);
-        if (row->where_zone_name == NULL)
-            goto fail;
-        row->where_zone_syntax_id =
-            step->where_type_node_id < dir->node_count
-                ? dir->nodes[step->where_type_node_id].source_syntax_id : 0;
+        row->target_is_intent = intent_execution_target_is_intent(
+            dir, step->outcome_action_decl_syntax_id);
+        if (row->target_is_intent) {
+            if (step->where_type_name != NULL)
+                goto fail;
+        } else {
+            row->where_zone_name = pgy_arena_strdup(
+                &routine->scratch, step->where_type_name);
+            if (row->where_zone_name == NULL)
+                goto fail;
+            row->where_zone_syntax_id =
+                step->where_type_node_id < dir->node_count
+                    ? dir->nodes[step->where_type_node_id].source_syntax_id
+                    : 0;
+        }
         row->has_predecessor = step->predecessor_step_syntax_id != 0;
         row->predecessor_transition_id = step->predecessor_step_syntax_id;
         row->predecessor_step_syntax_id = step->predecessor_step_syntax_id;
@@ -482,6 +506,8 @@ intent_execution_digest_rows(uint32_t hash, const MIRRoutine *routine)
             hash, row->predecessor_step_syntax_id);
         hash = intent_execution_hash_string(
             hash, row->predecessor_step_name);
+        /* A child-intent target already shows in the empty where zone below,
+         * so the digest stays the one the self-host plan reader computes. */
         hash = intent_execution_hash_int(hash, row->action_syntax_id);
         hash = intent_execution_hash_int(
             hash, (uint32_t)row->outcome_instruction_block_id);
