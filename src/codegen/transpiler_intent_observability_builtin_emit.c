@@ -61,8 +61,20 @@ emit_builtin_intent_observability(ASTNode *call, TranspilerCtx *ctx)
     if (!intent_observability_require_arg_count(call, ctx, row))
         return NULL;
 
-    if (ctx != NULL)
-        ctx->uses_intent_observability = true;
+    /* transpiler_entry.c set materialization from the verified projection
+     * plan before emission. A call the plan erased is a plan/program
+     * mismatch, not a cue for the backend to materialize the runtime. */
+    if (ctx == NULL)
+        return NULL;
+    if (!ctx->uses_intent_observability) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: intent observability builtin '%s' was erased by the verified projection plan",
+            row->source_name);
+        return NULL;
+    }
     for (size_t i = 0; i < argument_count; i++) {
         args[i] = emit_expression(ast_call_argument(call, i), ctx);
         if (args[i] == NULL) {

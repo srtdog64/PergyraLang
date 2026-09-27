@@ -151,12 +151,52 @@ require_text src/codegen/transpiler_entry.c \
     "PGY_PROJECTION_TARGET_C"
 require_text src/codegen/llvm_api.c \
     "PGY_PROJECTION_TARGET_LLVM"
-if grep -Fq "pgy_verified_projection_plan_intent_observability(" \
-        "$ROOT_DIR/src/codegen/transpiler_entry.c" \
-        "$ROOT_DIR/src/codegen/llvm_api.c"; then
-    echo "[verified-projection-plan] production backend retained MIR-only planner path" >&2
+# The plan row is the only owner of the intent-observability decision
+# (docs/semantics/sot_owner_spine_registry.md, projection.verified_plan).
+# Each forbidden fallback of that row is refused here by name.
+#
+# MIR_only_plan_without_AIR_certificate: a planner that returned
+# verified=true from MIR alone, with no AIR evidence certificate, is gone
+# from the compiler and from the unit probe; only the AIR-bound entrypoint
+# issues a plan.
+if grep -RFq "pgy_verified_projection_plan_intent_observability(" \
+        "$ROOT_DIR/src" "$ROOT_DIR/tests/verified_projection_plan_probe.c"; then
+    echo "[verified-projection-plan] MIR-only planner without an AIR certificate returned" >&2
     exit 1
 fi
+require_text src/compiler/verified_projection_plan.c \
+    "if (!pgy_air_evidence_certificate_ready(air, &certificate_error)) {"
+# AST_HIR_usage_inference: the planner reads the recorded MIR inventory
+# surface, never source or HIR usage.
+require_text src/compiler/verified_projection_plan.c \
+    "mir_program_recorded_inventory_uses_intent_observability_surface(mir)"
+if grep -Eq '#include "[^"]*(ast|hir)[a-z_]*\.h"' \
+        "$ROOT_DIR/src/compiler/verified_projection_plan.c"; then
+    echo "[verified-projection-plan] planner reads AST or HIR usage" >&2
+    exit 1
+fi
+# backend_materialization_guess: the C and LLVM call emitters consume the
+# plan's disposition set at entry. They never turn materialization on at a
+# call site, and a call the plan erased is refused.
+for emitter in \
+    src/codegen/transpiler_intent_observability_builtin_emit.c \
+    src/codegen/llvm_expr_intent_observability_calls.c; do
+    if grep -Fq "uses_intent_observability = true" "$ROOT_DIR/$emitter"; then
+        echo "[verified-projection-plan] $emitter materializes observability outside the plan" >&2
+        exit 1
+    fi
+    require_text "$emitter" "was erased by the verified projection plan"
+done
+require_text src/codegen/transpiler_entry.c \
+    "observability_plan.disposition == PGY_PROJECTION_MATERIALIZE;"
+require_text src/codegen/llvm_api.c \
+    "row.disposition == PGY_PROJECTION_MATERIALIZE;"
+# unbound_machine_manifest: both entrypoints refuse a plan whose machine-layer
+# manifest fingerprint is unbound.
+require_text src/codegen/transpiler_entry.c \
+    "projection_plan->machine_layer_manifest_fingerprint == 0"
+require_text src/codegen/llvm_api.c \
+    "row.machine_layer_manifest_fingerprint == 0"
 require_text scripts/ci_linux_steps.sh \
     'BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" verified-projection-plan-test-smoke'
 require_text scripts/ci_macos_steps.sh \

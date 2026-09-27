@@ -168,19 +168,6 @@ verified_projection_plan_intent_observability_from_mir(
 }
 
 bool
-pgy_verified_projection_plan_intent_observability(
-    const MIRProgram *mir,
-    PgyProjectionTarget target,
-    PgyVerifiedProjectionPlanRow *row_out,
-    const char **error_out)
-{
-    /* Kept for the MIR-only unit probe.  Production C/LLVM entrypoints use
-       the AIR-bound function below and therefore cannot bypass certification. */
-    return verified_projection_plan_intent_observability_from_mir(
-        mir, target, row_out, error_out);
-}
-
-bool
 pgy_verified_projection_plan_intent_observability_with_air(
     const PgyAirVerification *air,
     const MIRProgram *mir,

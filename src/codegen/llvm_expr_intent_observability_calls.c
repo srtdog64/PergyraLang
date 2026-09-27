@@ -52,7 +52,19 @@ llvm_emit_intent_observability_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    ctx->uses_intent_observability = true;
+    /* llvm_api.c set materialization from the verified projection plan
+     * before emission. A call the plan erased is a plan/program mismatch,
+     * not a cue for the backend to materialize the runtime itself. */
+    if (!ctx->uses_intent_observability) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM intent observability builtin '%s' was erased by the verified projection plan",
+            row->source_name);
+        *out = NULL;
+        return true;
+    }
     fn = llvm_lookup_function(ctx, row->runtime_name);
     if (fn == NULL) {
         llvm_set_error_at_with_hints(ctx, node,

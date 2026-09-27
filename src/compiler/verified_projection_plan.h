@@ -110,12 +110,6 @@ uint64_t pgy_verified_projection_plan_digest(
 bool pgy_verified_projection_plan_identity_ready(
     const PgyVerifiedProjectionPlanRow *row);
 
-bool pgy_verified_projection_plan_intent_observability(
-    const MIRProgram *mir,
-    PgyProjectionTarget target,
-    PgyVerifiedProjectionPlanRow *row_out,
-    const char **error_out);
-
 /* Production planner entrypoint.  The AIR certificate is the only permitted
  * evidence bridge; C/LLVM callers must not derive this row from source or
  * backend-local observations. */

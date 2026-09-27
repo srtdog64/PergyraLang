@@ -256,8 +256,13 @@ main(void)
     const char *previous = NULL;
     size_t count = pgy_intent_observability_abi_row_count();
 
-    if (pgy_verified_projection_plan_intent_observability(
-            &mir, PGY_PROJECTION_TARGET_C, &plan, &error)) {
+    air.has_hir_input = true;
+    air.has_rir_input = true;
+    air.has_mir_input = true;
+    if (!pgy_air_evidence_certificate_issue(&air, &error))
+        return 12;
+    if (pgy_verified_projection_plan_intent_observability_with_air(
+            &air, &mir, PGY_PROJECTION_TARGET_C, &plan, &error)) {
         return 1;
     }
     if (error == NULL
@@ -266,8 +271,8 @@ main(void)
     }
 
     mir.has_inventory_surface_usage_facts = true;
-    if (!pgy_verified_projection_plan_intent_observability(
-            &mir, PGY_PROJECTION_TARGET_C, &plan, &error)) {
+    if (!pgy_verified_projection_plan_intent_observability_with_air(
+            &air, &mir, PGY_PROJECTION_TARGET_C, &plan, &error)) {
         return 3;
     }
     if (!plan.verified || plan.projection_plan_id != 1
@@ -295,11 +300,6 @@ main(void)
         compiler_result_destroy(artifact);
     }
 
-    air.has_hir_input = true;
-    air.has_rir_input = true;
-    air.has_mir_input = true;
-    if (!pgy_air_evidence_certificate_issue(&air, &error))
-        return 12;
     if (!pgy_verified_projection_plan_intent_observability_with_air(
             &air, &mir, PGY_PROJECTION_TARGET_C, &plan, &error)) {
         return 13;
