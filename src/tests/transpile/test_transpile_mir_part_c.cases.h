@@ -202,7 +202,11 @@ test_intent_observability_emit(void)
         TranspilerCtx *ctx = NULL;
         ctx = transpiler_ctx_create();
 
+        /* emit_program skips the entrypoint, so the test sets the
+         * disposition the verified projection plan gives a program with an
+         * observability surface. The emitter never turns it on itself. */
         ctx->mir = mir;
+        ctx->uses_intent_observability = true;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_intent_current_handle_export(");
@@ -220,6 +224,17 @@ test_intent_observability_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_intent_active_step_to_slot_export(");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_intent_active_step_ok_export(");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_intent_active_step_failure_export(");
+
+        transpiler_ctx_destroy(ctx);
+        ctx = transpiler_ctx_create();
+        ctx->mir = mir;
+        ctx->uses_intent_observability = false;
+        emit_program(ctx);
+        EXPECT(ctx->backend_error != NULL);
+        if (ctx->backend_error != NULL)
+            EXPECT_STR_CONTAINS(ctx->backend_error,
+                "was erased by the verified projection plan");
+        EXPECT(!ctx->uses_intent_observability);
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
