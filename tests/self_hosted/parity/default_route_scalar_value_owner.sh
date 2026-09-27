@@ -26,7 +26,9 @@
 # - A typed step may hand its purpose to a child intent with
 #   `on <binding>: Child(...)` (docs/34 9.2.1 (a)): the child's result enum
 #   maps onto the parent's terminals, and a child chain that leads back to
-#   the parent is refused.
+#   the parent is refused. The child step has no zone and names no
+#   participant, so it runs with intent observability on and with more than
+#   one subject passed through (harness PP-055, PP-057).
 # - An intent called inside the action a step runs is recorded under the
 #   step's intent: IntentActiveParentHandle names the running intent
 #   (docs/34 §9.2.1 (b)).
@@ -533,6 +535,93 @@ func Main() -> Void {
 PGY
 expect_values intent-typed-child "$WORK_REL/intent_typed_child.pgy" \
     $'handed 1\nhanded 2\ndropped 3\n3' native-c native-llvm default-c
+cat >"$WORK_DIR/intent_typed_child_carriers.pgy" <<'PGY'
+tobject Done { n: Int; }
+tobject Stop { code: Int; }
+enum Turn { Answered(Done), Stopped(Stop) }
+enum Task { Delivered(Done), Failed(Stop) }
+enum Hand { Handed(Done), Dropped(Stop) }
+
+within Provider {
+    subject Backend {
+        let mut calls: Int;
+
+        action Call(self) -> Int
+            authorized by self
+        {
+            self.calls = self.calls + 1;
+            return self.calls;
+        }
+    }
+}
+
+zone Provider {
+    subject slot backend: Backend
+    authority backend
+}
+
+within Desk {
+    subject Agent {
+        let mut turns: Int;
+
+        action Work(self, backend: Backend, limit: Int) -> Turn
+            authorized by self
+        {
+            self.turns = self.turns + 1;
+            if self.turns > limit { return Stopped(Stop(self.turns)); }
+            return Answered(Done(self.turns));
+        }
+    }
+}
+
+zone Desk {
+    subject slot agent: Agent
+    authority agent
+}
+
+intent Complete(desk: Desk, agent: Agent, backend: Backend, limit: Int) -> Task {
+    step Run {
+        where: Desk;
+        using: desk;
+        who: agent;
+        authorized by: agent;
+        on turn: agent.Work(backend, limit);
+        success: Answered(done);
+        failure: Stopped(stop);
+    }
+    success Run: Delivered(done);
+    failure Run: Failed(stop);
+}
+
+intent Delegate(desk: Desk, agent: Agent, backend: Backend, limit: Int) -> Hand {
+    step Child {
+        on task: Complete(desk, agent, backend, limit);
+        success: Delivered(done);
+        failure: Failed(stop);
+    }
+    success Child: Handed(done);
+    failure Child: Dropped(stop);
+}
+
+func Show(hand: Hand) -> Void {
+    match hand {
+        case Handed(done): Log("handed " + ToString(done.n));
+        case Dropped(stop): Log("dropped " + ToString(stop.code));
+    }
+}
+
+func Main() -> Void {
+    let agent = Agent(0);
+    let desk = Desk(Clone(agent));
+    let backend = Backend(0);
+    Show(Delegate(desk, agent, backend, 1));
+    Show(Delegate(desk, agent, backend, 1));
+    Log(agent.turns);
+    Log(IntentHistoryCount());
+}
+PGY
+expect_values intent-typed-child-carriers "$WORK_REL/intent_typed_child_carriers.pgy" \
+    $'handed 1\ndropped 2\n2\n1' native-c native-llvm default-c
 cat >"$WORK_DIR/intent_child_cycle.pgy" <<'PGY'
 tobject Done { n: Int; }
 tobject Stop { code: Int; }

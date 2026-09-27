@@ -124,7 +124,10 @@ func CodegenIntentObservabilityEmitTypedStepBegin(
     step_name: String, zone_name: String
 ) -> Void {
     if !enabled { return; }
-    if step_name == "" || zone_name == "" {
+    // A step that hands its purpose to a child intent has no zone; plan
+    // admission ties the empty zone to that target, and native C and LLVM
+    // also trace it with "" (docs/34 9.2.1).
+    if step_name == "" {
         Die("typed intent observability step identity is missing");
     }
     ArrayPush(body, Concat(

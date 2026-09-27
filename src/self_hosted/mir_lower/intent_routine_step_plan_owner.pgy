@@ -160,10 +160,10 @@ func MirIntentRoutineStepPlanFromOwners(
             MirIntentStepPlacementContractFromCarriers(
                 direct_intent_target, zone_count, alias_count,
                 invalidation_count, zone_name, zone_alias);
-        if !placement.ok || who_count != 1 ||
-            authority_count > 1 || who_name == "" ||
-            cause_count > 1 ||
-            eval_text == "" || eval_row < 0 {
+        // A typed child-intent step names no participant (docs/34 9.2.1).
+        let who_ready: Bool = (who_count == 1 && who_name != "") || (typed_child_target && who_count == 0);
+        if !placement.ok || !who_ready || authority_count > 1 ||
+            cause_count > 1 || eval_text == "" || eval_row < 0 {
             MirLowerFailClosed("MIR intent step semantic carriers are incomplete");
         }
         if outcome_count > 1 ||
