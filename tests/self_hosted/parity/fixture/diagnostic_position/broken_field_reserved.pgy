@@ -1,0 +1,8 @@
+struct Entry {
+    ref: String;
+}
+
+func Main() -> Void {
+    let e: Entry = Entry("g1");
+    Log(e.name);
+}

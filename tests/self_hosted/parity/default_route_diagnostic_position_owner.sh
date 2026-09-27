@@ -207,6 +207,7 @@ BROKEN_CASES=(
     "parallel_join_binding|3|expected_token"
     "give_statement|3|give_outside_parallel_join"
     "reserved_recovery|3|binding_name_reserved"
+    "field_reserved|2|field_name_reserved"
 )
 for row in "${BROKEN_CASES[@]}"; do
     IFS='|' read -r name line code <<<"$row"
@@ -374,6 +375,19 @@ grep -Fq "'remote' is a reserved language word and cannot name a binding" "$nati
     { cat "$native_log" >&2; fail "native does not name the reserved word at both defects"; }
 [[ "$(grep -c '^pgy: parse error' "$native_log")" -eq 2 ]] ||
     { cat "$native_log" >&2; fail "native recovery reported an error past the two defects"; }
+# A reserved word cannot name a struct field either (harness PP-059): native
+# once reported "Unexpected token in expression" and the default route
+# accepted the field.
+native_log="$WORK_DIR/native-field-reserved.log"
+if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_field_reserved.pgy" --native-pipeline \
+    --backend=c -o "$WORK_REL/native-field-reserved.bin") >"$native_log" 2>&1; then
+    fail "native accepted a reserved field name"
+fi
+grep -Fq "'ref' is a reserved language word and cannot name a field" "$native_log" &&
+    grep -Fq "check-syntax at line 2, column 5" "$native_log" ||
+    { cat "$native_log" >&2; fail "native does not name the reserved field"; }
+[[ "$(grep -c '^pgy: parse error' "$native_log")" -eq 1 ]] ||
+    { cat "$native_log" >&2; fail "native reported more than the reserved field"; }
 for leg in native default; do
     flags=(--backend=c)
     [[ "$leg" == native ]] && flags+=(--native-pipeline)

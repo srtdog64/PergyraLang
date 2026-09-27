@@ -46,6 +46,8 @@ bool            parser_check_decl_name_token(Parser *parser);
 Token           consume_decl_name_token(Parser *parser, const char *message);
 bool            parser_check_binding_name_token(Parser *parser);
 Token           consume_binding_name_token(Parser *parser, const char *message);
+Token           consume_field_name_token(Parser *parser, const char *message);
+bool            parser_check_field_name_ahead(Parser *parser);
 bool            parser_append_destructure_name(Parser *parser, ASTNode *node,
                                                const char *name);
 bool            parser_check_expr_name_token(Parser *parser);

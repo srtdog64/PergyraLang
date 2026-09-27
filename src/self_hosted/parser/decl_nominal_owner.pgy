@@ -254,10 +254,14 @@ func ParseNominalDecl(
                 continue;
             }
             ArraySet(cursor_out, 0, i);
+            let f_start: Int = SkipWhitespaceAndComments(content, i);
             let f_name: String = ReadIdent(content, i, cursor_out);
             i = cursor_out[0];
             if StringLength(f_name) == 0 {
                 ParseRefuse(location_context, i, "declaration_name_missing", "construct", "field", "", "");
+            }
+            if ParserBindingNameReserved(f_name) {
+                ParseRefuse(location_context, f_start, "field_name_reserved", "name", f_name, "construct", "field");
             }
             i = ParseExpectIn(location_context, content, i, ":", "field");
             ArraySet(cursor_out, 0, i);

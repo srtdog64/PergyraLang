@@ -17,23 +17,55 @@ consume_decl_name_token(Parser *parser, const char *message)
     return parser_consume(parser, TOKEN_IDENTIFIER, message);
 }
 
-Token
-consume_binding_name_token(Parser *parser, const char *message)
+static Token
+consume_unreserved_name_token(Parser *parser, const char *message,
+                              const char *role)
 {
     if (parser_check_binding_name_token(parser))
         return parser_advance(parser);
     /* A reserved word the registry does not admit as a name: say so at the
-     * word, as the self-host parser does (binding_name_reserved), instead of
-     * only naming what was expected. */
+     * word, as the self-host parser does (binding_name_reserved,
+     * field_name_reserved), instead of only naming what was expected. */
     if (parser != NULL && parser->current_token.text != NULL
         && lexer_reserved_keyword_row(parser->current_token.type) != NULL) {
         parser_error(parser,
-            "'%s' is a reserved language word and cannot name a binding; "
+            "'%s' is a reserved language word and cannot name a %s; "
             "rename it, for example by adding a suffix",
-            parser->current_token.text);
+            parser->current_token.text, role);
         return parser->current_token;
     }
     return parser_consume(parser, TOKEN_IDENTIFIER, message);
+}
+
+Token
+consume_binding_name_token(Parser *parser, const char *message)
+{
+    return consume_unreserved_name_token(parser, message, "binding");
+}
+
+Token
+consume_field_name_token(Parser *parser, const char *message)
+{
+    Token name = consume_unreserved_name_token(parser, message, "field");
+    /* A refused reserved word still stands in the name position; step past
+     * it so the field's ':' and type parse and the body recovers at its end
+     * instead of reporting the closing brace as a second error. */
+    if (parser != NULL && lexer_reserved_keyword_row(name.type) != NULL
+        && parser->current_token.line == name.line
+        && parser->current_token.column == name.column)
+        parser_advance(parser);
+    return name;
+}
+
+/* A field name position: a name token, or a reserved word the field
+ * consumer will refuse by name, followed by ':'. */
+bool
+parser_check_field_name_ahead(Parser *parser)
+{
+    if (parser == NULL || parser_peek_next(parser).type != TOKEN_COLON)
+        return false;
+    return parser_check_binding_name_token(parser)
+        || lexer_reserved_keyword_row(parser->current_token.type) != NULL;
 }
 
 bool
@@ -137,5 +169,15 @@ consume_member_name_token(Parser *parser, const char *message)
 {
     if (parser_check_expr_name_token(parser))
         return parser_advance(parser);
+    /* No field can carry a reserved word (consume_field_name_token), so a
+     * member access naming one gets the same reason. */
+    if (parser != NULL && parser->current_token.text != NULL
+        && lexer_reserved_keyword_row(parser->current_token.type) != NULL) {
+        parser_error(parser,
+            "'%s' is a reserved language word and cannot name a field; "
+            "rename the field, for example by adding a suffix",
+            parser->current_token.text);
+        return parser_advance(parser);
+    }
     return parser_consume(parser, TOKEN_IDENTIFIER, message);
 }
