@@ -29,7 +29,7 @@ func Main() -> Void {
     Log(!CollectionHashMapRuntimeFactFromTypeName("List<Int>").ok);
     Log(CollectionListRuntimeElementCValueType("HashMap<Long, String>") == "PgyHashMap_String");
     Log(RuntimeCHeaderIncludeBlock(false, false, false, false, false, false, false, false, false, false, false, true) == "#include \"pgy_runtime.h\"\n");
-    Log(RuntimeCHeaderOwnsCheckedArithmetic(false, false, false, false, false, false, false, false, true) &&
+    Log(RuntimeCHeaderOwnsCheckedArithmetic(false, false, false, false, false, false, false, false, false, false, true) &&
         RuntimeCHeaderOwnsScalarLog(false, false, false, false, false, false, true, false));
     let raw_int: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName("HashMap<String, Int>");
     let raw_string: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName("HashMap<Int, String>");

@@ -51,7 +51,7 @@ func CheckedArithmeticRuntimeCProgramBlock(
     uses_long_cast: Bool
 ) -> String {
     if !uses_int_cast && !uses_long_cast { return ""; }
-    let block: String = "#include <stdint.h>\n\n";
+    let block: String = "#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n\n";
     if uses_int_cast {
         block = Concat(
             block, CheckedArithmeticRuntimeCFloatToIntegerBlock("Int")

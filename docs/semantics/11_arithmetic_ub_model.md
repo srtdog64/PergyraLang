@@ -182,6 +182,11 @@ source-visible value result.
   the default route used `atoll`, which is undefined on overflow. Whether
   invalid or out-of-range text should fail instead (a panic or a
   `Result`-returning form) is not decided by these documents.
+- `value as Int` keeps the low 32 bits of a `Long` on every leg. The
+  default LLVM route carries an `Int` sign-extended in `i64`, so it
+  truncates to `i32` and re-extends; before 2026-09-27 it passed the `Long`
+  through and printed `9223372036854775807` for `9223372036854775807L as Int`
+  where every other leg printed `-1`.
 - Gate: `tests/self_hosted/parity/numeric_literal_conversion_owner.sh` runs
   the values on native C, native LLVM and the default C route and the
   refusals on both front ends; the `int_literal_signed_minimum`,

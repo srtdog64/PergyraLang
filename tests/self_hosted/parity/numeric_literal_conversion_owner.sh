@@ -14,6 +14,9 @@
 # - An Int value widens into a Long binding, assignment and return, but an
 #   Array<Int> literal is not an Array<Long>.
 # - ToInt of an out-of-range decimal gives the same Int on every leg.
+# - `w as Int` narrows a Long to its low 32 bits on every leg, and a checked
+#   cast compiles beside Print, Now or spawn on the default C route (the
+#   runtime header already defines the checked cast exports).
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -104,6 +107,50 @@ expect_values string-to-int-long-narrowing \
     "$CASES/string_to_int_long_narrowing/expected.stdout" \
     native-c native-llvm default-c
 
+cat >"$WORK_DIR/long-to-int-narrowing.pgy" <<'PGY'
+func Narrow(w: Long) -> Int { return w as Int; }
+
+func Main() -> Void {
+    let big: Long = 9223372036854775807L;
+    let n: Int = big as Int;
+    Log(n);
+    Log(Narrow(4294967297L));
+    let m: Long = 4294967296L;
+    Log((m as Int) == 0);
+}
+PGY
+printf '%s\n' -1 1 true >"$WORK_DIR/long-to-int-narrowing.expected"
+expect_values long-to-int-narrowing "$WORK_REL/long-to-int-narrowing.pgy" \
+    "$WORK_REL/long-to-int-narrowing.expected" \
+    native-c native-llvm default-c default-llvm
+cat >"$WORK_DIR/checked-cast-host-runtime.pgy" <<'PGY'
+func Main() -> Void {
+    let f: Float = 2.5;
+    let w: Long = 4294967297L;
+    Log((f as Int) + (w as Int));
+    Log(Now() >= 0);
+    Print("done\n");
+}
+PGY
+printf '%s\n' 3 true done >"$WORK_DIR/checked-cast-host-runtime.expected"
+expect_values checked-cast-host-runtime "$WORK_REL/checked-cast-host-runtime.pgy" \
+    "$WORK_REL/checked-cast-host-runtime.expected" native-c native-llvm default-c
+cat >"$WORK_DIR/checked-cast-spawn.pgy" <<'PGY'
+async func Inc(x: Int) -> Int {
+    return x + 1;
+}
+
+async func Main() -> Void {
+    let f: Float = 3.5;
+    let task: Future<Int> = spawn Inc(f as Int);
+    let value: Int = await task;
+    Log(value);
+}
+PGY
+printf '%s\n' 4 >"$WORK_DIR/checked-cast-spawn.expected"
+expect_values checked-cast-spawn "$WORK_REL/checked-cast-spawn.pgy" \
+    "$WORK_REL/checked-cast-spawn.expected" native-c native-llvm default-c
+
 expect_refused int-literal-past-int "$INT_RANGE" "$INT_RANGE" <<'PGY'
 func Main() -> Void {
     Log(ToString(2147483648));
@@ -158,4 +205,4 @@ func Main() -> Void {
 }
 PGY
 
-echo "[$LABEL] Int literal range, Float remainder, Int-to-Long widening and ToInt agree on every leg that compiles them: PASS"
+echo "[$LABEL] Int literal range, Float remainder, Int-to-Long widening, Long-to-Int narrowing, checked casts beside the runtime header and ToInt agree on every leg that compiles them: PASS"

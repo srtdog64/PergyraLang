@@ -7,20 +7,19 @@
 
 import "runtime_header_owner.pgy";
 
+// Every include except the Array-only panic contract brings the checked
+// cast and division exports (pgy_runtime_panic_checked_inline.h).
 func RuntimeCHeaderOwnsCheckedArithmetic(
-    uses_allocator: Bool,
-    uses_text_builder: Bool,
-    uses_box_array: Bool,
-    uses_list: Bool,
-    uses_queue: Bool,
-    uses_set: Bool,
+    uses_allocator: Bool, uses_text_builder: Bool, uses_box_array: Bool,
+    uses_spawn: Bool, uses_list: Bool, uses_queue: Bool, uses_set: Bool,
     uses_artifact_transaction: Bool,
-    uses_intent_observability: Bool, uses_hashmap: Bool
+    uses_intent_observability: Bool, uses_task_observation: Bool,
+    uses_hashmap: Bool
 ) -> Bool {
     return RuntimeCHeaderRequired(
-        uses_allocator, uses_text_builder, uses_box_array, false, false,
+        uses_allocator, uses_text_builder, uses_box_array, false, uses_spawn,
         uses_list, uses_queue, uses_set, uses_artifact_transaction,
-        uses_intent_observability, false, uses_hashmap
+        uses_intent_observability, uses_task_observation, uses_hashmap
     );
 }
 

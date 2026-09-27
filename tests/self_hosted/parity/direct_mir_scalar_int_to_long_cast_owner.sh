@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Exact Int/Long cast identities are admitted once and consumed by C/LLVM.
+# Long-to-Int narrows to 32 bits on both (docs/semantics/11 4a).
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -72,7 +73,7 @@ grep -Fq '"kind":"cast","text":"value as Int"' "$MIR" ||
     fail "producer omitted the Long-to-Int cast graph"
 
 printf '%s\n' '-17' '536870919' >"$WORK_DIR/expected-ordinary.run"
-printf '%s\n' '-2147483648' '2147483648' >"$WORK_DIR/expected-boundary.run"
+printf '%s\n' '-2147483648' '-2147483648' >"$WORK_DIR/expected-boundary.run"
 for backend in c llvm; do
     extension=c; [[ "$backend" == llvm ]] && extension=ll
     artifact_rel="$WORK_REL/program.$extension"
@@ -82,14 +83,16 @@ for backend in c llvm; do
         2>"$WORK_DIR/$backend.project.err" || fail "$backend projection failed"
     [[ -s "$artifact" ]] || fail "$backend projection emitted no artifact"
     if [[ "$backend" == c ]]; then
-        [[ "$(grep -Fc 'return ((int64_t)(pgy_param_0));' "$artifact")" -eq 1 ]] &&
-            [[ "$(grep -Fc 'return ((int32_t)(pgy_param_0));' "$artifact")" -eq 1 ]] ||
+        [[ "$(grep -Fc '= ((int64_t)(pgy_param_0));' "$artifact")" -eq 1 ]] &&
+            [[ "$(grep -Fc '= ((int32_t)(pgy_param_0));' "$artifact")" -eq 1 ]] ||
             fail "C omitted one of the exact Int/Long casts"
     else
-        grep -Fq 'ret i64 %pgy.param.0' "$artifact" ||
-            fail "LLVM did not preserve the Int value over the shared i64 ABI"
-        ! grep -Eq '\b(sext|zext|trunc)\b' "$artifact" ||
-            fail "LLVM changed the shared-i64 cast into a width conversion"
+        # Int-to-Long keeps the sign-extended carrier; Long-to-Int is the
+        # one width conversion: truncate to 32 bits, then re-extend.
+        [[ "$(grep -Ec '= trunc i64 .* to i32$' "$artifact")" -eq 1 ]] &&
+            [[ "$(grep -Ec '= sext i32 .* to i64$' "$artifact")" -eq 1 ]] &&
+            ! grep -Eq '\bzext\b' "$artifact" ||
+            fail "LLVM Long-to-Int did not narrow to 32 bits exactly once"
     fi
     for mode in ordinary boundary; do
         variant="$WORK_DIR/$backend-$mode.$extension"

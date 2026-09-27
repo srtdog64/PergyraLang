@@ -1,13 +1,14 @@
-// LLVM value projection for admitted Int/Long casts over the shared i64 ABI.
+// LLVM projection for admitted Int/Long casts over the shared i64 ABI.
+// Int travels sign-extended in i64: Long-to-Int truncates and re-extends.
 
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
 
-func DirectMirScalarProgramLlvmNumericCastExpressionValue(
-    kind: Int, left: String
-) -> Option<String> {
-    if kind == DirectMirScalarProgramExprTypeNameLong() { return Some(""); }
-    if kind == DirectMirScalarProgramExprTypeNameInt() { return Some(""); }
-    if kind == DirectMirScalarProgramExprCastIntToLong() { return Some(left); }
-    if kind == DirectMirScalarProgramExprCastLongToInt() { return Some(left); }
-    return None;
+func DirectMirScalarProgramLlvmNumericCastExpressionAt(
+    kind: Int, result: String, left: String
+) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind == DirectMirScalarProgramExprTypeNameLong() || kind == DirectMirScalarProgramExprTypeNameInt() { return DirectMirScalarProgramLlvmStringExpression(true, true, "", ""); }
+    if kind == DirectMirScalarProgramExprCastIntToLong() { return DirectMirScalarProgramLlvmStringExpression(true, true, "", left); }
+    if kind != DirectMirScalarProgramExprCastLongToInt() { return DirectMirScalarProgramLlvmStringExpressionMissing(); }
+    return DirectMirScalarProgramLlvmStringExpression(true, left != "", "  " + result + ".narrow = trunc i64 " + left + " to i32\n  " + result + " = sext i32 " + result + ".narrow to i64\n", result);
 }

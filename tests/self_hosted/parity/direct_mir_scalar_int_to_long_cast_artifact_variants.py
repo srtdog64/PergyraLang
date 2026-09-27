@@ -10,12 +10,12 @@ if backend == "c":
     pattern = r'printf\("%s\\n", "int-to-long-cast-ready"\);'
     values = {
         "ordinary": (
-            'printf("%lld\\n", pgy_scalar_routine_1(-17LL));\n'
-            '    printf("%lld\\n", pgy_scalar_routine_2(536870919LL));'
+            'printf("%lld\\n", (long long)pgy_scalar_routine_1(-17LL));\n'
+            '    printf("%lld\\n", (long long)pgy_scalar_routine_2(536870919LL));'
         ),
         "boundary": (
-            'printf("%lld\\n", pgy_scalar_routine_1(-2147483648LL));\n'
-            '    printf("%lld\\n", pgy_scalar_routine_2(2147483648LL));'
+            'printf("%lld\\n", (long long)pgy_scalar_routine_1(-2147483648LL));\n'
+            '    printf("%lld\\n", (long long)pgy_scalar_routine_2(2147483648LL));'
         ),
     }
 elif backend == "llvm":

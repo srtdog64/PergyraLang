@@ -109,7 +109,7 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
         }
         let value: String = "";
         let result: String = DirectMirScalarProgramLlvmNodeName(expression_row, node);
-        let cast_value: Option<String> = DirectMirScalarProgramLlvmNumericCastExpressionValue(kind, left);
+        let cast: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmNumericCastExpressionAt(kind, result, left);
         let hashmap: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmHashMapExpressionAt(expressions, node, result, values, start);
         let slice: DirectMirScalarProgramLlvmStringExpression = DirectMirScalarProgramLlvmSliceExpressionAt(
             kind, result, expressions.node_types[node], left, left_type,
@@ -145,7 +145,7 @@ func DirectMirScalarProgramLlvmExpressionAt(ref plan: DirectMirScalarCfgGraphPla
             value = left;
         } else if kind == DirectMirScalarProgramExprNegateLong() {
             value = result; node_instructions = "  " + result + " = sub i64 0, " + left + "\n";
-        } else if IsSome(cast_value) { value = UnwrapOption(cast_value);
+        } else if cast.matched { if !cast.valid { return DirectMirScalarProgramLlvmExpression(false, "", "", ""); } value = cast.value; node_instructions = Concat(node_instructions, cast.instructions);
         } else if kind == DirectMirScalarProgramExprLocal() {
             let type_name: String = DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
                     expressions.node_types[node], logical_record,
