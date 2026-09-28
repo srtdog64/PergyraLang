@@ -382,7 +382,7 @@ func SelfMirLowerMatchFromArtifact(
                 );
             }
             ArrayPush(arm_exits, body_exit);
-            arm_versions = SelfMirMatchArmVersionsAppend(
+            SelfMirMatchArmVersionsAppend(
                 arm_versions, build.local_versions,
                 ArrayLength(entry_versions)
             );
@@ -431,7 +431,7 @@ func SelfMirLowerMatchFromArtifact(
                 );
             }
             ArrayPush(arm_exits, default_exit);
-            arm_versions = SelfMirMatchArmVersionsAppend(
+            SelfMirMatchArmVersionsAppend(
                 arm_versions, build.local_versions,
                 ArrayLength(entry_versions)
             );

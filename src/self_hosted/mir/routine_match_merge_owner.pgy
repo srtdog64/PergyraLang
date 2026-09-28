@@ -4,15 +4,13 @@ import "routine_build_owner.pgy";
 import "routine_local_ref_attachment_owner.pgy";
 
 func SelfMirMatchArmVersionsAppend(
-    rows: Array<Int>, versions: Array<Int>, entry_count: Int
-) -> Array<Int> {
-    let appended: Array<Int> = rows;
+    inout rows: Array<Int>, ref versions: Array<Int>, entry_count: Int
+) -> Void {
     let i: Int = 0;
     while i < entry_count {
-        ArrayPush(appended, versions[i]);
+        ArrayPush(rows, versions[i]);
         i = i + 1;
     }
-    return appended;
 }
 
 func SelfMirMergeMatchArms(
