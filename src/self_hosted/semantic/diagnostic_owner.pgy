@@ -50,6 +50,7 @@ func SemanticReason(code: String) -> String {
     if code == "cancel_payload_unsupported" { return "Cancellation has no cleanup contract for this ownership-bearing payload"; }
     if code == "parallel_unsafe_forbidden" { return "Unsafe blocks cannot execute inside parallel tasks"; }
     if code == "action_ability_unsatisfied" { return "Action requires a declared ability with matching subject role implementation"; }
+    if code == "zone_authority_ability_unsatisfied" { return "Zone authority requires a declared ability with matching subject role implementation"; }
     if code == "subject_value_return" { return "Returning subjects by value is not supported yet"; }
     if code == "single_owner_handle_copy" { return "a single-owner runtime handle cannot be copied: two bindings would name one runtime storage"; }
     if code == "single_owner_handle_owner_required" { return "the operation requires a handle held by a local of the current function in its declaration scope"; }
@@ -97,9 +98,7 @@ func SemanticReason(code: String) -> String {
     if code == "let_type_mismatch" { return "let initializer type does not match the declared local type"; }
     if code == "return_type_mismatch" { return "return expression type does not match the function return type"; }
     if code == "condition_not_bool" { return "branch condition must be Bool"; }
-    if code == "assign_type_mismatch" {
-        return "assigned expression type does not match the local type";
-    }
+    if code == "assign_type_mismatch" { return "assigned expression type does not match the local type"; }
     if code == "immutable_field_write" {
         return "assignment requires a mutable field and a writable receiver";
     }
@@ -189,6 +188,7 @@ func SemanticFix(code: String) -> String {
     if code == "cancel_payload_unsupported" { return "await the task and explicitly handle its payload instead"; }
     if code == "parallel_unsafe_forbidden" { return "serialize the unsafe block outside the parallel task"; }
     if code == "action_ability_unsatisfied" { return "implement the exact required ability and type arguments for this subject"; }
+    if code == "zone_authority_ability_unsatisfied" { return "implement the required ability for the authority slot's subject type"; }
     if code == "subject_value_return" { return "return a value projection or keep the subject local to its owner"; }
     if code == "generic_constraint_unsatisfied" { return "provide the required ability implementation or forward a sufficient declared generic bound"; }
     if code == "zone_contract_invalid" { return "use a declared layer contract and the approving subject slot of this zone"; }

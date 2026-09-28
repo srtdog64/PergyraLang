@@ -11,6 +11,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "intent_predicate_plan_unavailable",
         "action_contract_invalid",
         "action_ability_unsatisfied",
+        "zone_authority_ability_unsatisfied",
         "task_lifecycle_invalid",
         "cancel_argument_invalid",
         "cancel_payload_unsupported",
@@ -258,6 +259,7 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     if code == "cancel_payload_unsupported" { return "PGY_SEM_REMOTE_FUTURE_MISUSE"; }
     if code == "parallel_unsafe_forbidden" { return "PGY_SEM_PARALLEL_SECURE_FORBIDDEN"; }
     if code == "action_ability_unsatisfied" { return "PGY_SEM_ABILITY_CONTRACT_INVALID"; }
+    if code == "zone_authority_ability_unsatisfied" { return "PGY_SEM_ABILITY_CONTRACT_INVALID"; }
     if code == "parse_syntax" {
         return "PGY_PARSE_SYNTAX";
     }

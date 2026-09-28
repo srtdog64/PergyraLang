@@ -180,16 +180,18 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         symbol_destroy(func_sym);
     } else if (!scope_declare(ctx->scope, func_sym)) {
         /* Name the earlier declaration: an enum variant, for one, owns its
-         * bare name at the enum's position. */
-        if (existing != NULL && existing->decl_line > 0) {
+         * bare name at the enum's position. The position is diagnostic
+         * provenance only; identity stays decl_syntax_id (docs/semantics/24). */
+        const Symbol *name_owner = existing;
+        if (name_owner != NULL && name_owner->decl_line > 0) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_REDECLARATION,
                 PGY_CAUSE_FUNCTION_DUPLICATE_NAME,
                 PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
                 node,
                 "Redeclaration of function '%s': the declaration at line %u, column %u already owns this name (a function, type or enum variant); rename one of them",
-                name, (unsigned) existing->decl_line,
-                (unsigned) existing->decl_col);
+                name, (unsigned) name_owner->decl_line,
+                (unsigned) name_owner->decl_col);
         } else {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_REDECLARATION,

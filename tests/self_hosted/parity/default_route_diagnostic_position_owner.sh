@@ -209,6 +209,7 @@ BROKEN_CASES=(
     "reserved_recovery|3|binding_name_reserved"
     "field_reserved|2|field_name_reserved"
     "variant_function_clash|6|enum_variant_function_clash"
+    "zone_authority_requires|9|zone_authority_ability_unsatisfied"
 )
 for row in "${BROKEN_CASES[@]}"; do
     IFS='|' read -r name line code <<<"$row"
@@ -398,6 +399,15 @@ if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_variant_function_clash.pgy" --nat
 fi
 grep -Fq "[ERROR] 6:6 - Redeclaration of function 'Quiet': the declaration at line 1, column 6 already owns this name" "$native_log" ||
     { cat "$native_log" >&2; fail "native does not place the variant/function clash"; }
+# A zone authority's `requires` needs the slot subject's role on both front
+# ends (harness PP-065); the default route used to accept the program.
+native_log="$WORK_DIR/native-zone-authority-requires.log"
+if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_zone_authority_requires.pgy" --native-pipeline \
+    --backend=c -o "$WORK_REL/native-zone-authority-requires.bin") >"$native_log" 2>&1; then
+    fail "native accepted a zone authority whose subject lacks the required role"
+fi
+grep -Fq "Zone authority 'agent' requires ability 'WorkspaceActor', but subject type 'Agent' has no matching role impl" "$native_log" ||
+    { cat "$native_log" >&2; fail "native lost the zone authority ability check"; }
 for leg in native default; do
     flags=(--backend=c)
     [[ "$leg" == native ]] && flags+=(--native-pipeline)

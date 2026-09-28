@@ -1,0 +1,18 @@
+ability WorkspaceActor {
+    func ActorKind() -> String;
+}
+
+subject Agent {
+    let name: String;
+}
+
+zone Workspace {
+    subject slot agent: Agent
+    authority agent requires WorkspaceActor
+}
+
+func Main() -> Void {
+    let a = Agent("gyri");
+    let space = Workspace(Clone(a));
+    Log(a.name);
+}

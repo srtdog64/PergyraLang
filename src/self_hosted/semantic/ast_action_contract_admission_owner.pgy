@@ -120,6 +120,58 @@ func SemanticAstActionZoneSubjectPresence(
     return presence;
 }
 
+// A zone authority's `requires` list is a contract on the subject type its
+// slot holds, the same one an action's `requires` states (docs/42 5: ability
+// is the capability, authority exercises it). Native already refused a
+// subject without the role; the default route accepted it (harness PP-065).
+func SemanticAstZoneAuthorityAbilityVerdict(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref roles: SemanticAstRoleFacts,
+    ref authorities: SemanticAstZoneAuthorityFacts
+) -> SemanticAstBodyVerdict {
+    let row: Int = 0;
+    while row < ArrayLength(authorities.authority_node_ids) {
+        let subject_type: String = "";
+        let zone: Int = 0;
+        while zone < ArrayLength(constructors.node_ids) {
+            if constructors.node_ids[zone] == authorities.owner_zone_node_ids[row] {
+                let field: Int = constructors.param_starts[zone];
+                let end: Int = field + constructors.param_counts[zone];
+                while field < end {
+                    if constructors.field_source_syntax_ids[field] == authorities.subject_slot_node_ids[row] {
+                        subject_type = constructors.param_type_names[field];
+                    }
+                    field = field + 1;
+                }
+            }
+            zone = zone + 1;
+        }
+        let required: Int = authorities.required_ability_starts[row];
+        let required_end: Int = required + authorities.required_ability_counts[row];
+        if required < required_end && subject_type == "" {
+            return SemanticAstBodyVerdictError("ast_artifact_invalid",
+                SemanticError1("ast_artifact_invalid", "owner", "ZoneAuthoritySlotType"),
+                authorities.authority_node_ids[row]);
+        }
+        while required < required_end {
+            let requirement: String = authorities.required_ability_names[required];
+            let canonical: Option<String> = SemanticAstActionAbilityRequirementCanonical(roles, requirement);
+            if !IsSome(canonical) ||
+                !SemanticAstActionRequirementImplemented(roles, subject_type, UnwrapOption(canonical)) {
+                return SemanticAstBodyVerdictError("zone_authority_ability_unsatisfied",
+                    SemanticError3("zone_authority_ability_unsatisfied",
+                        "zone", authorities.owner_zone_names[row],
+                        "authority", authorities.subject_slot_names[row],
+                        "requires", requirement),
+                    authorities.authority_node_ids[row]);
+            }
+            required = required + 1;
+        }
+        row = row + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}
+
 func SemanticAstActionContractAdmissionFromFacts(
     artifact: AstTreeArtifact,
     ref signatures: SemanticAstFunctionSignatureFacts,
@@ -216,5 +268,5 @@ func SemanticAstActionContractAdmissionFromFacts(
         }
         callable = callable + 1;
     }
-    return SemanticAstBodyVerdictOk();
+    return SemanticAstZoneAuthorityAbilityVerdict(constructors, roles, authorities);
 }

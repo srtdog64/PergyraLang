@@ -45,7 +45,7 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
     if code == "action_contract_invalid" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:action_contract", "align-action-surface-with-zone");
     }
-    if code == "action_ability_unsatisfied" {
+    if code == "action_ability_unsatisfied" || code == "zone_authority_ability_unsatisfied" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:ability_contract", "align-ability-generics-or-fields");
     }
     if code == "intent_retry_unavailable" || code == "intent_step_clause_not_bool" || code == "intent_child_cycle" {
