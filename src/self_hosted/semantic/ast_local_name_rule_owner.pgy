@@ -92,14 +92,11 @@ func SemanticAstNamedBindingsFromFacts(
 // The refusal names the function and whether the name belongs to a
 // parameter or an earlier local: a multi-module route may carry no span.
 func SemanticAstLocalNameRebound(
-    arena: AstArena, name: String, function_node: Int, prior: String, node_id: Int
+    name: String, function_name: String, prior: String, node_id: Int
 ) -> SemanticAstDeclarationContractVerdict {
-    let function_name: Option<String> = TypedAstArenaAtomText(arena, function_node);
-    let owner: String = "";
-    if IsSome(function_name) { owner = UnwrapOption(function_name); }
     return SemanticAstDeclarationContractVerdict(
         false, "local_name_rebound",
-        SemanticError3("local_name_rebound", "name", name, "function", owner,
+        SemanticError3("local_name_rebound", "name", name, "function", function_name,
             "prior", prior), node_id);
 }
 
@@ -121,6 +118,8 @@ func SemanticAstLocalNameRuleVerdict(
         }
         let signature: Option<Int> =
             SemanticAstFunctionSignatureIndexForNode(signatures, function_node);
+        let function_name: String = "";
+        if IsSome(signature) { function_name = signatures.names[UnwrapOption(signature)]; }
         let row: Int = start;
         while row < end {
             let name: String = bindings.names[row];
@@ -130,8 +129,8 @@ func SemanticAstLocalNameRuleVerdict(
                 let param_end: Int = param + signatures.param_counts[index];
                 while param < param_end {
                     if signatures.param_names[param] == name {
-                        return SemanticAstLocalNameRebound(artifact.arena, name,
-                            function_node, "parameter", bindings.node_ids[row]);
+                        return SemanticAstLocalNameRebound(name, function_name,
+                            "parameter", bindings.node_ids[row]);
                     }
                     param = param + 1;
                 }
@@ -141,8 +140,8 @@ func SemanticAstLocalNameRuleVerdict(
                 if bindings.names[prior] == name &&
                     SemanticAstScopeEncloses(artifact.arena,
                         bindings.scope_node_ids[prior], bindings.scope_node_ids[row]) {
-                    return SemanticAstLocalNameRebound(artifact.arena, name,
-                        function_node, "local", bindings.node_ids[row]);
+                    return SemanticAstLocalNameRebound(name, function_name,
+                        "local", bindings.node_ids[row]);
                 }
                 prior = prior + 1;
             }
