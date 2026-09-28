@@ -1,0 +1,110 @@
+// Consume stable semantic event identities at the exact MIR instruction.
+
+import "program_fact_owner.pgy";
+import "collection_ownership_receipt_fact_owner.pgy";
+import "../semantic/ast_collection_ownership_verdict_owner.pgy";
+import "../semantic/ast_expression_call_identity_owner.pgy";
+
+func SelfMirCollectionOwnershipReceiptBindingIsEmptyOrigin(
+    ref facts: SemanticAstCollectionOwnershipVerdict,
+    function_syntax_id: Int,
+    binding_syntax_id: Int
+) -> Bool {
+    let matched: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(facts.binding_syntax_ids) {
+        if facts.function_syntax_ids[row] == function_syntax_id &&
+            facts.binding_syntax_ids[row] == binding_syntax_id {
+            matched = matched + 1;
+            if facts.origins[row] !=
+                SemanticAstCollectionOriginEmptyLiteral() {
+                return false;
+            }
+        }
+        row = row + 1;
+    }
+    return matched == 1;
+}
+
+func SelfMirCollectionOwnershipReceiptRowsAppendRoutine(
+    rows: SelfMirCollectionOwnershipReceiptRows,
+    ref facts: SemanticAstCollectionOwnershipVerdict,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_syntax_id: Int,
+    ref instructions: SelfMirInstructionRows,
+    ref local_refs: SelfMirInstructionLocalRefRows
+) -> SelfMirCollectionOwnershipReceiptRows {
+    let base: Int = ArrayLength(rows.effect_kinds);
+    rows = SelfMirCollectionOwnershipReceiptRowsAppendEmptyInstructions(
+        rows, ArrayLength(instructions.ids)
+    );
+    let effects: Array<Int> = rows.effect_kinds;
+    let receiver_ids: Array<Int> = rows.receiver_binding_syntax_ids;
+    let source_ids: Array<Int> = rows.source_binding_syntax_ids;
+    let valid: Bool = rows.valid && facts.ok &&
+        SemanticAstCollectionOwnershipReceiptRowsReady(facts.receipts);
+    let receipt: Int = 0;
+    while valid && receipt < ArrayLength(
+            facts.receipts.function_syntax_ids) {
+        if facts.receipts.function_syntax_ids[receipt] !=
+                function_syntax_id {
+            receipt = receipt + 1;
+            continue;
+        }
+        let target_node: Int = -1;
+        let ordinal: Int = facts.receipts.local_call_ordinals[receipt];
+        if ordinal >= 0 {
+            let node: Option<Int> = SemanticExpressionCallNodeForIdentity(
+                surfaces,
+                facts.receipts.owner_node_ids[receipt],
+                facts.receipts.lanes[receipt], ordinal
+            );
+            if IsSome(node) { target_node = UnwrapOption(node); }
+        }
+        if (ordinal >= 0 && target_node < 0) ||
+            !SelfMirCollectionOwnershipReceiptBindingIsEmptyOrigin(
+                facts, function_syntax_id,
+                facts.receipts.receiver_binding_syntax_ids[receipt]) {
+            valid = false;
+            continue;
+        }
+        let matched: Int = -1;
+        let expected_ref: String = SelfMirLocalRef(
+            "declaration",
+            facts.receipts.receiver_binding_syntax_ids[receipt], 0
+        );
+        let instruction: Int = 0;
+        while instruction < ArrayLength(instructions.ids) {
+            let call_match: Bool = ordinal >= 0 &&
+                instructions.expr0_graphs.has_roots[instruction] == 1 &&
+                target_node >=
+                    instructions.expr0_graphs.node_starts[instruction] &&
+                target_node <
+                    instructions.expr0_graphs.node_starts[instruction] +
+                    instructions.expr0_graphs.node_counts[instruction];
+            let statement_match: Bool = ordinal < 0 &&
+                local_refs.source_statement_syntax_ids[instruction] ==
+                    facts.receipts.owner_node_ids[receipt] &&
+                local_refs.primary_refs[instruction] == expected_ref;
+            if call_match || statement_match {
+                if matched >= 0 { valid = false; }
+                matched = instruction;
+            }
+            instruction = instruction + 1;
+        }
+        if matched < 0 || effects[base + matched] != 0 {
+            valid = false;
+            continue;
+        }
+        ArraySet(effects, base + matched,
+            facts.receipts.effect_kinds[receipt]);
+        ArraySet(receiver_ids, base + matched,
+            facts.receipts.receiver_binding_syntax_ids[receipt]);
+        ArraySet(source_ids, base + matched,
+            facts.receipts.source_binding_syntax_ids[receipt]);
+        receipt = receipt + 1;
+    }
+    return SelfMirCollectionOwnershipReceiptRows(
+        valid, effects, receiver_ids, source_ids
+    );
+}

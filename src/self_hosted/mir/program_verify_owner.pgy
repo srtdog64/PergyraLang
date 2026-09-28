@@ -1,5 +1,6 @@
 // Structural verifier for the self-host MIR fact graph.
 import "program_fact_owner.pgy";
+import "local_ref_validation_owner.pgy";
 import "generic_specialization_occurrence_owner.pgy";
 import "domain_runtime_assignment_verify_owner.pgy";
 import "declaration_verify_owner.pgy";
@@ -425,6 +426,11 @@ func SelfMirProgramFactsValidationErrorObserved(facts: SelfMirProgramFacts, obse
         return "MIR instruction LocalRef rows are invalid"; }
     if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:instruction-abi:start"); }
     if !SelfMirInstructionAbiReceiptRowsReady(facts.instruction_abi_receipts, facts.cfg.instructions.abi_type_names, facts.declarations) { return "MIR instruction ABI receipt rows are invalid"; }
+    if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:collection-ownership-receipts:start"); }
+    if !SelfMirCollectionOwnershipReceiptRowsReady(
+        facts.collection_ownership_receipts,
+        ArrayLength(facts.cfg.instructions.ids)
+    ) { return "MIR collection ownership receipt rows are invalid"; }
     if observe_pressure { Log("[driver-pressure-stage] mir-facts:validation:blocks:start"); }
     if !SelfMirBlockRowsReady(facts.cfg.blocks, ArrayLength(facts.cfg.instructions.ids)) {
         let block_error: String = SelfMirBlockRowsValidationError(

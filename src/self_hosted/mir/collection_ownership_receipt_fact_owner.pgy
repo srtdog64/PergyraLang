@@ -1,0 +1,64 @@
+// Instruction-aligned Array<String> ownership transition receipts.
+
+struct SelfMirCollectionOwnershipReceiptRows {
+    valid: Bool;
+    effect_kinds: Array<Int>;
+    receiver_binding_syntax_ids: Array<Int>;
+    source_binding_syntax_ids: Array<Int>;
+}
+
+func SelfMirCollectionOwnershipReceiptRowsEmpty(
+) -> SelfMirCollectionOwnershipReceiptRows {
+    let effects: Array<Int> = [];
+    let receiver_ids: Array<Int> = [];
+    let source_ids: Array<Int> = [];
+    return SelfMirCollectionOwnershipReceiptRows(
+        true, effects, receiver_ids, source_ids
+    );
+}
+
+func SelfMirCollectionOwnershipReceiptRowsReady(
+    ref rows: SelfMirCollectionOwnershipReceiptRows,
+    instruction_count: Int
+) -> Bool {
+    if !rows.valid || instruction_count < 0 ||
+        ArrayLength(rows.effect_kinds) != instruction_count ||
+        ArrayLength(rows.receiver_binding_syntax_ids) != instruction_count ||
+        ArrayLength(rows.source_binding_syntax_ids) != instruction_count {
+        return false;
+    }
+    let row: Int = 0;
+    while row < instruction_count {
+        let effect: Int = rows.effect_kinds[row];
+        if (effect == 0 &&
+                (rows.receiver_binding_syntax_ids[row] != 0 ||
+                 rows.source_binding_syntax_ids[row] != 0)) ||
+            (effect != 0 &&
+                (effect < 1 || effect > 3 ||
+                 rows.receiver_binding_syntax_ids[row] <= 0 ||
+                 rows.source_binding_syntax_ids[row] != 0)) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SelfMirCollectionOwnershipReceiptRowsAppendEmptyInstructions(
+    rows: SelfMirCollectionOwnershipReceiptRows,
+    count: Int
+) -> SelfMirCollectionOwnershipReceiptRows {
+    let effects: Array<Int> = rows.effect_kinds;
+    let receiver_ids: Array<Int> = rows.receiver_binding_syntax_ids;
+    let source_ids: Array<Int> = rows.source_binding_syntax_ids;
+    let row: Int = 0;
+    while row < count {
+        ArrayPush(effects, 0);
+        ArrayPush(receiver_ids, 0);
+        ArrayPush(source_ids, 0);
+        row = row + 1;
+    }
+    return SelfMirCollectionOwnershipReceiptRows(
+        rows.valid && count >= 0, effects, receiver_ids, source_ids
+    );
+}

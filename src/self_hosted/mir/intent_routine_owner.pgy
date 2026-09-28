@@ -478,6 +478,10 @@ func SelfMirAppendIntentRoutine(
             facts.instruction_abi_receipts,
             build.cfg.instructions.abi_type_names, facts.declarations
         ),
+        SelfMirCollectionOwnershipReceiptRowsAppendEmptyInstructions(
+            facts.collection_ownership_receipts,
+            ArrayLength(build.cfg.instructions.ids)
+        ),
         facts.expression_graph, facts.intent_execution
     );
 }

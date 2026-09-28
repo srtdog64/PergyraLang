@@ -1,5 +1,4 @@
 // MIR dispatch for semantic statement rows.
-
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
 import "routine_expression_use_owner.pgy";
@@ -10,7 +9,7 @@ import "routine_while_owner.pgy";
 import "routine_for_owner.pgy";
 import "routine_match_owner.pgy";
 import "routine_defer_owner.pgy";
-
+import "routine_source_statement_attachment_owner.pgy";
 func SelfMirValueReturnSourceType(graph: SemanticExpressionGraphView, expression: String
 ) -> String {
     let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(graph.graph, graph.root_id);
@@ -103,6 +102,7 @@ func SelfMirLowerTrackedStatementFromArtifact(
             build, kind, payload, value_payload, auxiliary_payload,
             target_graph, value_graph, auxiliary_graph
         );
+        build = SelfMirRoutineAttachLastSourceStatement(build, node_id);
         let graph_lane: Option<Int> =
             SelfMirSimpleStatementExpressionGraphLane(kind);
         if IsSome(graph_lane) {

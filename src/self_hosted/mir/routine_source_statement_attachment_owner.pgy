@@ -1,0 +1,39 @@
+// Exact source-statement identity attachment for the last MIR instruction.
+
+import "routine_build_owner.pgy";
+
+func SelfMirInstructionLocalRefRowsAttachSourceStatement(
+    rows: SelfMirInstructionLocalRefRows,
+    source_statement_syntax_id: Int
+) -> SelfMirInstructionLocalRefRows {
+    let index: Int = ArrayLength(rows.primary_refs) - 1;
+    if index < 0 || source_statement_syntax_id <= 0 ||
+        rows.source_statement_syntax_ids[index] != 0 {
+        return rows;
+    }
+    let statement_ids: Array<Int> = rows.source_statement_syntax_ids;
+    ArraySet(statement_ids, index, source_statement_syntax_id);
+    return SelfMirInstructionLocalRefRows(
+        rows.primary_refs, statement_ids,
+        rows.expr0_starts, rows.expr0_counts,
+        rows.expr0_nodes, rows.expr0_refs
+    );
+}
+
+func SelfMirRoutineAttachLastSourceStatement(
+    build: SelfMirRoutineBuild,
+    source_statement_syntax_id: Int
+) -> SelfMirRoutineBuild {
+    if source_statement_syntax_id <= 0 {
+        return SelfMirRoutineBuildError(
+            build, "MIR instruction source statement identity is missing"
+        );
+    }
+    let refs: SelfMirInstructionLocalRefRows =
+        SelfMirInstructionLocalRefRowsAttachSourceStatement(
+            build.cfg.local_refs, source_statement_syntax_id
+        );
+    return SelfMirRoutineWithCfg(
+        build, SelfMirCfgRows(build.cfg.blocks, build.cfg.instructions, refs)
+    );
+}

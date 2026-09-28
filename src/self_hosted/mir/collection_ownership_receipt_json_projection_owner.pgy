@@ -1,0 +1,39 @@
+// Bounded JSON projection of an instruction-bound collection ownership event.
+
+import "collection_ownership_receipt_fact_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirCollectionOwnershipReceiptKindName(effect_kind: Int) -> String {
+    if effect_kind == 1 { return "owned-string-push"; }
+    if effect_kind == 2 { return "shallow-mutation"; }
+    if effect_kind == 3 { return "drop"; }
+    return "";
+}
+
+func SelfMirCollectionOwnershipReceiptJsonForInstruction(
+    ref rows: SelfMirCollectionOwnershipReceiptRows,
+    instruction_index: Int
+) -> String {
+    if instruction_index < 0 ||
+        instruction_index >= ArrayLength(rows.effect_kinds) {
+        return "";
+    }
+    let effect_kind: Int = rows.effect_kinds[instruction_index];
+    if effect_kind == 0 { return "null"; }
+    let kind: String = SelfMirCollectionOwnershipReceiptKindName(effect_kind);
+    if kind == "" || rows.receiver_binding_syntax_ids[instruction_index] <= 0 ||
+        rows.source_binding_syntax_ids[instruction_index] != 0 {
+        return "";
+    }
+    return JsonEmitObject([
+        JsonEmitFieldString("kind", kind),
+        JsonEmitFieldNumber(
+            "receiver_binding_syntax_id",
+            ToString(rows.receiver_binding_syntax_ids[instruction_index])
+        ),
+        JsonEmitFieldNumber(
+            "source_binding_syntax_id",
+            ToString(rows.source_binding_syntax_ids[instruction_index])
+        )
+    ]);
+}

@@ -255,6 +255,11 @@ func SelfMirJsonInstructionWriteFile(
     if !abi_projection.ready { return false; }
     let abi_layout: String = abi_projection.layout;
     let abi_layout_required: Bool = StringLength(abi_layout) > 0;
+    let collection_ownership_receipt: String =
+        SelfMirCollectionOwnershipReceiptJsonForInstruction(
+            facts.collection_ownership_receipts, instruction_index
+        );
+    if collection_ownership_receipt == "" { return false; }
     let machine: SelfMirMachineLayerProjection =
         SelfMirMachineLayerProjection(
             true,
@@ -338,6 +343,16 @@ func SelfMirJsonInstructionWriteFile(
     if !SelfMirJsonExpressionGraphWriteFile(
         rows.expr1_graphs, facts.expression_graph, instruction_index, output
     ) { return false; }
+    CompilerArtifactWrite(output, ",\"collection_ownership_receipt\":");
+    if facts.collection_ownership_receipts.effect_kinds[
+            instruction_index] == 0 {
+        // `null` is a borrowed JSON token. JsonOwnedFragmentWriteFile owns
+        // and retires its input, so only the allocated object projection may
+        // cross that boundary.
+        CompilerArtifactWrite(output, "null");
+    } else {
+        JsonOwnedFragmentWriteFile(output, collection_ownership_receipt);
+    }
     CompilerArtifactWrite(output, ",\"source_type\":");
     if !SelfMirJsonOptionalStringWriteFile(
         output, rows.source_types[instruction_index]

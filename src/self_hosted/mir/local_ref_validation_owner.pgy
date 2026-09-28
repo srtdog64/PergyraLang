@@ -1,0 +1,47 @@
+// Structural validation for instruction-aligned lexical LocalRef rows.
+
+import "local_ref_fact_owner.pgy";
+
+func SelfMirInstructionLocalRefRowsReady(
+    rows: SelfMirInstructionLocalRefRows,
+    graphs: SelfMirExpressionGraphRows,
+    instruction_count: Int
+) -> Bool {
+    if instruction_count != ArrayLength(rows.primary_refs) ||
+        instruction_count != ArrayLength(rows.source_statement_syntax_ids) ||
+        instruction_count != ArrayLength(rows.expr0_starts) ||
+        instruction_count != ArrayLength(rows.expr0_counts) ||
+        ArrayLength(rows.expr0_nodes) != ArrayLength(rows.expr0_refs) {
+        return false;
+    }
+    let cursor: Int = 0;
+    let row: Int = 0;
+    while row < instruction_count {
+        if rows.expr0_starts[row] != cursor || rows.expr0_counts[row] < 0 {
+            return false;
+        }
+        let use_entry: Int = 0;
+        while use_entry < rows.expr0_counts[row] {
+            let index: Int = cursor + use_entry;
+            if rows.expr0_nodes[index] < 0 ||
+                rows.expr0_nodes[index] >= graphs.node_counts[row] ||
+                !SelfMirLocalRefValid(rows.expr0_refs[index]) {
+                return false;
+            }
+            use_entry = use_entry + 1;
+        }
+        cursor = cursor + rows.expr0_counts[row];
+        row = row + 1;
+    }
+    if cursor != ArrayLength(rows.expr0_nodes) { return false; }
+    let primary: Int = 0;
+    while primary < instruction_count {
+        if rows.source_statement_syntax_ids[primary] < 0 { return false; }
+        if rows.primary_refs[primary] != "" &&
+            !SelfMirLocalRefValid(rows.primary_refs[primary]) {
+            return false;
+        }
+        primary = primary + 1;
+    }
+    return true;
+}

@@ -12,6 +12,7 @@ import "ast_arena_storage_lifetime_owner.pgy";
 import "intent_routine_owner.pgy";
 import "intent_execution_source_plan_owner.pgy";
 import "canonical_instruction_id_owner.pgy";
+import "collection_ownership_receipt_projection_owner.pgy";
 import "../dir/domain_graph_fact_owner.pgy";
 import "../dir/domain_projection_map_row_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
@@ -220,6 +221,20 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
             "MIR collection ownership rows are missing or inconsistent"
         );
     }
+    let collection_ownership_receipts:
+        SelfMirCollectionOwnershipReceiptRows =
+            SelfMirCollectionOwnershipReceiptRowsAppendRoutine(
+                facts.collection_ownership_receipts,
+                collection_ownership, analysis.expression_surfaces,
+                function_node_id, build.cfg.instructions,
+                build.cfg.local_refs
+            );
+    if !collection_ownership_receipts.valid {
+        return SelfMirProgramFactsError(
+            facts, "mir_collection_ownership_receipt_invalid",
+            "MIR collection ownership receipt identity did not attach exactly once"
+        );
+    }
     return SelfMirProgramFacts(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
         facts.artifact_node_count, facts.declarations,
@@ -243,7 +258,8 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
         SelfMirInstructionAbiReceiptRowsAppend(
             facts.instruction_abi_receipts,
             build.cfg.instructions.abi_type_names, facts.declarations
-        ), facts.expression_graph, facts.intent_execution
+        ), collection_ownership_receipts,
+        facts.expression_graph, facts.intent_execution
     );
 }
 
@@ -325,7 +341,9 @@ func SelfMirProgramFactsBeforeCanonicalIdsObserved(
         domain_facts.domain_topology,
         domain_facts.domain_runtime_assignments, generic_rows,
         facts.parallel_captures, facts.routines, facts.cfg,
-        facts.instruction_abi_receipts, facts.expression_graph, facts.intent_execution);
+        facts.instruction_abi_receipts,
+        facts.collection_ownership_receipts,
+        facts.expression_graph, facts.intent_execution);
     let initializer_rows: SelfMirInitializerRows =
         SelfMirInitializerRowsFromSemantic(initializer_types);
     let iteration_rows: SelfMirIterationRows =

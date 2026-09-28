@@ -21,6 +21,7 @@ import "instruction_abi_receipt_fact_owner.pgy";
 import "local_ref_fact_owner.pgy";
 import "intent_execution_fact_owner.pgy";
 import "collection_ownership_fact_owner.pgy";
+import "collection_ownership_receipt_fact_owner.pgy";
 
 struct SelfMirInstructionRows {
     ids: Array<Int>;
@@ -54,7 +55,6 @@ struct SelfMirInstructionRows {
     runtime_call_abi: SelfMirRuntimeCallAbiRows;
     binding_source_syntax_ids: Array<Int>;
 }
-
 struct SelfMirBlockRows {
     ids: Array<Int>;
     reachable: Array<Int>;
@@ -123,6 +123,7 @@ struct SelfMirProgramFacts {
     routines: SelfMirRoutineRows;
     cfg: SelfMirCfgRows;
     instruction_abi_receipts: SelfMirInstructionAbiReceiptRows;
+    collection_ownership_receipts: SelfMirCollectionOwnershipReceiptRows;
     expression_graph: SemanticExpressionGraphFacts;
     intent_execution: MirIntentExecutionPlan;
 }
@@ -212,6 +213,7 @@ func SelfMirProgramFactsEmpty(
         SelfMirRoutineRowsEmpty(),
         SelfMirCfgRowsEmpty(),
         SelfMirInstructionAbiReceiptRowsEmpty(),
+        SelfMirCollectionOwnershipReceiptRowsEmpty(),
         expression_graph, MirIntentExecutionPlanFromFacts(
             MirIntentStepTransitionFactsEmpty(), MirIntentTerminalTransitionFactsEmpty())
     );
@@ -229,6 +231,7 @@ func SelfMirProgramFactsError(
         facts.generic_specializations,
         facts.parallel_captures, facts.routines, facts.cfg,
         facts.instruction_abi_receipts,
+        facts.collection_ownership_receipts,
         facts.expression_graph, facts.intent_execution
     );
 }
@@ -244,6 +247,7 @@ func SelfMirProgramFactsWithDomainTopology(
         facts.generic_specializations, facts.parallel_captures,
         facts.routines, facts.cfg,
         facts.instruction_abi_receipts,
+        facts.collection_ownership_receipts,
         facts.expression_graph, facts.intent_execution
     );
 }
@@ -591,8 +595,4 @@ func SelfMirCfgAttachLastMatchCase(
             instructions.runtime_call_abi, instructions.binding_source_syntax_ids
         ), cfg.local_refs
     );
-}
-
-func SelfMirCfgBlockCount(cfg: SelfMirCfgRows) -> Int {
-    return ArrayLength(cfg.blocks.ids);
 }

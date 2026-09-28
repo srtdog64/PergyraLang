@@ -1,5 +1,4 @@
 // Canonical per-routine instruction identity projection.
-
 import "program_fact_owner.pgy";
 import "intent_execution_canonical_instruction_owner.pgy";
 import "generic_specialization_occurrence_owner.pgy";
@@ -85,6 +84,7 @@ func SelfMirCanonicalInstructionIds(facts: SelfMirProgramFacts) -> SelfMirProgra
                 instructions.destructure_facts, instructions.abi_type_names,
                 instructions.runtime_call_abi, instructions.binding_source_syntax_ids
             ), facts.cfg.local_refs
-        ), facts.instruction_abi_receipts, facts.expression_graph, plan
+        ), facts.instruction_abi_receipts, facts.collection_ownership_receipts,
+        facts.expression_graph, plan
     );
 }

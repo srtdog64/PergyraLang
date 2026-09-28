@@ -213,6 +213,9 @@ func MachineProbeFacts(
         routines, cfg5, SelfMirInstructionAbiReceiptRowsAppend(
             SelfMirInstructionAbiReceiptRowsEmpty(),
             cfg5.instructions.abi_type_names, declarations
+        ), SelfMirCollectionOwnershipReceiptRowsAppendEmptyInstructions(
+            SelfMirCollectionOwnershipReceiptRowsEmpty(),
+            ArrayLength(cfg5.instructions.ids)
         ), program_graph.graph, MirIntentExecutionPlanFromFacts(
             MirIntentStepTransitionFactsEmpty(), MirIntentTerminalTransitionFactsEmpty())
     );

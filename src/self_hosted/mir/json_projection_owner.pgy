@@ -14,6 +14,7 @@ import "machine_layer_json_projection_owner.pgy";
 import "json_projection_support_owner.pgy";
 import "routine_param_json_projection_owner.pgy";
 import "instruction_abi_receipt_json_projection_owner.pgy";
+import "collection_ownership_receipt_json_projection_owner.pgy";
 import "expression_identity_json_projection_owner.pgy";
 import "domain_runtime_assignment_json_owner.pgy";
 import "local_ref_json_projection_owner.pgy";
@@ -68,6 +69,11 @@ func SelfMirJsonInstruction(facts: SelfMirProgramFacts,
     if abi_layout_required {
         abi_layout_wire = abi_layout;
     }
+    let collection_ownership_receipt: String =
+        SelfMirCollectionOwnershipReceiptJsonForInstruction(
+            facts.collection_ownership_receipts, instruction_index
+        );
+    if collection_ownership_receipt == "" { return ""; }
     let fields: Array<String> = [
         JsonEmitFieldNumber("id", ToString(rows.ids[instruction_index])),
         JsonEmitFieldString("kind", rows.kinds[instruction_index]),
@@ -119,6 +125,9 @@ func SelfMirJsonInstruction(facts: SelfMirProgramFacts,
             "expr1_graph", SelfMirJsonExpressionGraph(
                 rows.expr1_graphs, facts.expression_graph, instruction_index
             )
+        ),
+        JsonEmitFieldRaw(
+            "collection_ownership_receipt", collection_ownership_receipt
         ),
         JsonEmitFieldRaw(
             "source_type",

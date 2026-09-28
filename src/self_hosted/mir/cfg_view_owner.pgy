@@ -1,0 +1,7 @@
+// Read-only views over the canonical MIR CFG rows.
+
+import "program_fact_owner.pgy";
+
+func SelfMirCfgBlockCount(cfg: SelfMirCfgRows) -> Int {
+    return ArrayLength(cfg.blocks.ids);
+}
