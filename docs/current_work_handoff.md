@@ -4,10 +4,10 @@ Updated: 2026-09-28 (Asia/Seoul). This top card is navigation only; the SoT
 registry, source owners, and executable gates own the compiler facts.
 
 Source checkpoint: `origin/main ==
-2f021b0b37722954d79818a6d6cb4661ef189ad7`. The isolated
-`codex/docs-curation` checkout was clean at that revision before this
-documentation edit. The shared `D:\PergyraLang` checkout has separate dirty
-work and is not evidence for this branch.
+037efc8d138a31a6e4f169d9ecc665df139b18d7` before this documentation
+commit. The isolated `codex/docs-curation` checkout was rebased onto that
+revision and was clean before this edit. The shared `D:\PergyraLang`
+checkout has separate dirty work and is not evidence for this branch.
 
 ## Active self-host context — collection ownership admission and cleanup
 
@@ -29,7 +29,7 @@ Objective card:
   descriptor type, spelling, Slot, generation, or pointer identity.
 - Forbidden fallback and gate: no automatic type/name-based deep drop and no
   `UNKNOWN -> OWNED` promotion. The two focused ownership smoke gates plus the
-  pending unknown-origin fixtures below must reject without publishing an
+  pending unknown-origin fixture below must reject without publishing an
   artifact, while the owned-drop control remains admitted.
 
 - Active owner/rung: `semantic.hashmap_collection_ownership` is `ACTIVE` in
@@ -38,22 +38,29 @@ Objective card:
   readers. The row is not closed: `EMPTY` and producer/transfer receipts,
   `UNKNOWN` deep-drop refusal, borrow escape, parameter/return/inout facts,
   and one exact-once CFG cleanup plan still lack full consumer evidence.
-- Last exact-SHA full push CI: run `36350754757` on
-  `226f69dbb68c44a8259f8424e3f6ff2a59ec5f07` succeeded in all 31 jobs,
+  `docs/206_minimal_unit_decisions.md` now model-checks move and clone as
+  distinct ownership units, but explicitly leaves their implementation to
+  this active lane; that proof is not substitution or closure evidence.
+- Last exact-SHA full push CI: run `36395466660` on
+  `037efc8d138a31a6e4f169d9ecc665df139b18d7` succeeded in all 31 jobs,
   including self-host bootstrap, Windows, Rocq, and backend comparison. The
-  current `2f021b0b` push run `36388322640` succeeded only in change
-  classification and the Markdown contract; ten compiler/platform jobs were
-  skipped. Neither run verifies this documentation edit or the shared dirty
-  checkout.
-- Next falsifier: the existing
-  `tests/concept_semantics/hashmap/unknown_string_array_drop.pgy` and
-  `shadowed_map_keys_drop.pgy` cases are outside the six negatives in
-  `tests/hashmap_owned_string_provenance_smoke.sh` and
-  `tests/self_hosted/parity/collection_ownership_semantic_owner.sh`. Extend
-  the focused native/public C/LLVM and installed-driver refusal gate so an
-  `UNKNOWN` origin cannot deep-drop or publish an artifact; then verify the
-  exact producer/transfer and CFG cleanup receipts. No current-HEAD focused
-  collection gate was run for this docs-only edit.
+  parent `78ff1127` TextBuilder argument-diagnostic isolation fix and this
+  revision's minimal-unit proofs landed independently; neither is progress on
+  the active collection-ownership rung. The run does not verify this
+  documentation refresh or the shared dirty checkout.
+- Next falsifier: `tests/concept_semantics/hashmap/unknown_string_array_drop.pgy`
+  is the collection-ownership `UNKNOWN` fail-open case outside the six
+  negatives in `tests/hashmap_owned_string_provenance_smoke.sh` and
+  `tests/self_hosted/parity/collection_ownership_semantic_owner.sh`.
+  `shadowed_map_keys_drop.pgy` is refused earlier because `MapKeys` is a
+  reserved `TYPED_PROTOCOL` name; keep it as separate name-reservation
+  diagnostic evidence, not an ownership falsifier. The next owner blocker is
+  to split `EMPTY` into a stable fact and carry the `[] -> push -> deep-drop`
+  transition receipt through both the C and Pergyra semantic owners before
+  `UNKNOWN` can fail closed. The focused native/public C/LLVM and installed
+  driver gate must then refuse the unknown-origin drop without publishing an
+  artifact while retaining a valid owned-drop control. No current-HEAD
+  focused collection gate was run for this docs-only edit.
 
 ## Historical archive boundary — earlier collection-ownership handoff
 
