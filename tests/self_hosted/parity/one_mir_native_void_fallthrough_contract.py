@@ -19,7 +19,8 @@ def native_source_rows(routine):
         **dict.fromkeys((
             "result", "arg0", "arg1", "slot_anchor", "abi_layout",
             "machine_layer", "machine_contact_kind", "expr0", "expr0_graph",
-            "expr1", "expr1_graph", "speculation", "source_type",
+            "expr1", "expr1_graph", "collection_ownership_receipt",
+            "speculation", "source_type",
             "match_variant", "destructure_element_type", "ast",
         )),
         **{key: [] for key in (
@@ -48,7 +49,8 @@ if __name__ == "__main__":
         **dict.fromkeys((
             "result", "arg0", "arg1", "slot_anchor", "abi_layout",
             "machine_layer", "machine_contact_kind", "expr0", "expr0_graph",
-            "expr1", "expr1_graph", "speculation", "source_type",
+            "expr1", "expr1_graph", "collection_ownership_receipt",
+            "speculation", "source_type",
             "match_variant", "destructure_element_type", "ast",
         )),
         **{key: [] for key in (
@@ -64,6 +66,7 @@ if __name__ == "__main__":
         "expr0": "7", "expr0_graph": {"root": 0}, "uses": ["value.1"],
         "abi_layout_required": True, "abi_type_name": "Int", "abi_layout_id": 1,
         "machine_layer": {"effect": "write"}, "future_unknown_fact": True,
+        "collection_ownership_receipt": {"transition": "push"},
     }
     for key, value in mutations.items():
         changed = copy.deepcopy(routine)
@@ -76,4 +79,4 @@ if __name__ == "__main__":
     nonvoid = copy.deepcopy(routine)
     nonvoid["return"] = "Int"
     assert len(native_source_rows(nonvoid)) == 2
-    print("[native-void-fallthrough] one exact exit plus 13 non-erasable controls: PASS")
+    print("[native-void-fallthrough] one exact exit plus 14 non-erasable controls: PASS")
