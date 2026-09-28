@@ -13,8 +13,8 @@ func CodegenPrefixOwnedStatementLine(own fragment: String, prefix: String, leade
     let terminated: String = Concat(fragment, suffix);
     let statement: String = Concat(leader, terminated);
     let output: String = Concat(prefix, statement);
-    ArrayPush(fragments, terminated);
-    ArrayPush(fragments, statement);
+    ArrayPushOwnedString(fragments, terminated);
+    ArrayPushOwnedString(fragments, statement);
     ArrayDropOwnedStrings(fragments);
     return output;
 }
