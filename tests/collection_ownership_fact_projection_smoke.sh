@@ -127,4 +127,5 @@ grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/borrowed.err" ||
 grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/empty.err" ||
     fail "empty oracle emitted diagnostics"
 
-echo "[$LABEL] stable borrowed/owned/empty-literal semantic -> HIR -> MIR rows PASS"
+echo "[$LABEL] stable semantic -> HIR -> MIR rows and Symbol-owner deletion PASS"
+echo "[$LABEL] borrowed/owned/empty-literal origin rows PASS"
