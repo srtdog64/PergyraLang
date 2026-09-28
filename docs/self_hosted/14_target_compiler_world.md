@@ -78,8 +78,11 @@ PgyCompilerWorld
   이미 있다. 다만 경로마다 따로 있다. source→LLVM은 `CompilePergyraProgram`
   intent를 거친다.
   - `AGENTS.md`, `docs/55_keyword_progress_board.md`,
-    `18_c_oracle_bootstrap_contract.md`는 world가 direct-MIR 조각에서만 실행
-    루트라고 적고 있었다. 2026-09-29에 이 도달 범위로 고쳤다.
+    `18_c_oracle_bootstrap_contract.md`는 world가 direct-MIR 조각
+    (`--mir-json-backend`)에서만 실행 루트라고 적고 있었다. 2026-09-29에 이
+    도달 범위로 고쳤다. MIR 입력 플래그는 둘 다 `direct_mir` zone을 거친다.
+    `--mir-json`은 MIR→AST 재구성 경로이고, `--mir-json-backend=c|llvm`은
+    직접 MIR 경로다.
 - **내부 단계는 세계 밖에 있다.**
   - `Compile` action 안의 lexer부터 codegen까지는 평범한 함수 호출이다.
   - `LexerStage`, `ParserStage`, `SemanticStage`, `MirLowerStage`,
@@ -220,7 +223,8 @@ owner, 마지막 consumer, 게이트 하나를 요구한다.
     - 게이트: 넓힌 조각마다 emitted C/LLVM parity를 둔다. 재구성 경로로
       떨어지는 프로그램 수는 줄어들기만 하는 래칫으로 막는다.
   - **P2a(그다음).** MIR를 구조화된 revision 사실로 두고, JSON은 경계
-    (`--emit-mir-json-verified`, `--mir-json`)에서만 직렬화한다.
+    (`--emit-mir-json-verified`, `--mir-json`, `--mir-json-backend`)에서만
+    직렬화한다.
     - 소비자 family를 하나씩 옮긴다. 옮긴 family가 JSON 텍스트를 다시 읽지
       못하게 negative ratchet으로 막는다.
 - **P3. `ArtifactTransactionZone` 하나로.**

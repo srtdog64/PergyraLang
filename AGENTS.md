@@ -167,7 +167,8 @@ cosmetic reshuffling.
   execution/parity/negative gate. Do not leave `Main -> old function` as a
   fallback beside the Pergyra-native path.
 - `PgyCompilerWorld` is the executable composition root for the four
-  installed-driver artifact routes: direct MIR (`--mir-json`), source-to-MIR
+  installed-driver artifact routes: MIR input (`--mir-json` and
+  `--mir-json-backend=c|llvm`), source-to-MIR
   (`--emit-mir-json-verified`), source-to-C (`intent CompilePergyraCArtifact`
   -> `DriverSourceCExecution.Compile`), and source-to-LLVM
   (`intent CompilePergyraProgram`). Its members are those four route zones;
