@@ -60,10 +60,10 @@ func MirProgramInstructionIdentitiesReady(
             }
             local_block = local_block + 1;
         }
-        let sorted_ids: Array<Int> = ArraySort(ids);
+        ArraySort(ids);
         let sorted_row: Int = 1;
-        while sorted_row < ArrayLength(sorted_ids) {
-            if sorted_ids[sorted_row] == sorted_ids[sorted_row - 1] {
+        while sorted_row < ArrayLength(ids) {
+            if ids[sorted_row] == ids[sorted_row - 1] {
                 return false;
             }
             sorted_row = sorted_row + 1;
