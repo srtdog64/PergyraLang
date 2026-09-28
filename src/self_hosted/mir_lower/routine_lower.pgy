@@ -512,18 +512,18 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
             }
             generic_i = generic_i + 1;
         }
-        ArrayPush(
+        ArrayPushOwnedString(
             chunks,
             Concat(ppad, Concat(
                 "Generic params: <", Concat(generic_text, ">\n")
             ))
         );
         if constraint_text != "" {
-            ArrayPush(chunks, Concat(ppad,
+            ArrayPushOwnedString(chunks, Concat(ppad,
                 Concat("Constraints: where ", Concat(constraint_text, "\n"))));
         }
     }
-    ArrayPush(chunks, Concat(ppad, "Parameters:\n"));
+    ArrayPushOwnedString(chunks, Concat(ppad, "Parameters:\n"));
     let param_count: Int = ArrayLength(header.param_names);
     let param_row: Int = 0;
     while param_row < param_count {
@@ -551,20 +551,20 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
         }
         let rendered_name: String = Concat(param_prefix, pname);
         if StringLength(ptype) > 0 {
-            ArrayPush(chunks, Concat(item_pad, Concat(rendered_name, Concat(": ", Concat(ptype, "\n")))));
+            ArrayPushOwnedString(chunks, Concat(item_pad, Concat(rendered_name, Concat(": ", Concat(ptype, "\n")))));
         } else {
-            ArrayPush(chunks, Concat(item_pad, Concat(rendered_name, "\n")));
+            ArrayPushOwnedString(chunks, Concat(item_pad, Concat(rendered_name, "\n")));
         }
         param_row = param_row + 1;
     }
 
     let rtype: String = header.return_type;
-    ArrayPush(chunks, Concat(ppad, Concat("Returns: ", Concat(rtype, "\n"))));
+    ArrayPushOwnedString(chunks, Concat(ppad, Concat("Returns: ", Concat(rtype, "\n"))));
     if StringLength(contract_rows) > 0 {
-        ArrayPush(chunks, contract_rows);
+        ArrayPushOwnedString(chunks, contract_rows);
     }
-    ArrayPush(chunks, Concat(ppad, "Body:\n"));
-    ArrayPush(chunks, Concat(item_pad, "Block:\n"));
+    ArrayPushOwnedString(chunks, Concat(ppad, "Body:\n"));
+    ArrayPushOwnedString(chunks, Concat(item_pad, "Block:\n"));
 
     let region: String = EmitRegionWithExpressionOrder(
         index, routines, routine_row,
@@ -581,8 +581,10 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
         MirLowerFailClosed(Concat("unsupported or empty MIR CFG shape in routine: ", routine));
     }
     if observe_focused_routine { Log("[driver-pressure-stage] consumer:mir-to-ast:focused-routine:region:done"); }
-    ArrayPush(chunks, region);
-    return StringJoin(chunks, "");
+    ArrayPushOwnedString(chunks, region);
+    let rendered: String = StringJoin(chunks, "");
+    ArrayDropOwnedStrings(chunks);
+    return rendered;
 }
 
 func EmitRoutineTreeAtRowWithExpressionOrder(
