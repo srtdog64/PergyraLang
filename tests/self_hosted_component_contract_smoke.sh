@@ -4381,10 +4381,10 @@ require_function_text "src/self_hosted/codegen/text/owned_string_join_owner.pgy"
     "let fragments: Array<String> = [fragment];"
 require_function_text "src/self_hosted/codegen/text/owned_string_join_owner.pgy" \
     "func CodegenPrefixOwnedStatementLine(" \
-    "ArrayPush(fragments, terminated);"
+    "ArrayPushOwnedString(fragments, terminated);"
 require_function_text "src/self_hosted/codegen/text/owned_string_join_owner.pgy" \
     "func CodegenPrefixOwnedStatementLine(" \
-    "ArrayPush(fragments, statement);"
+    "ArrayPushOwnedString(fragments, statement);"
 require_function_text "src/self_hosted/codegen/text/owned_string_join_owner.pgy" \
     "func CodegenPrefixOwnedStatementLine(" \
     "ArrayDropOwnedStrings(fragments);"
@@ -20611,8 +20611,15 @@ require_function_text \
     "plan.local_ref_kinds[local_row] !="
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy" \
-    "func DirectMirScalarProgramArrayStringLocalBorrowsElements(" \
+    "func DirectMirScalarProgramLegacyArrayStringLocalBorrowsElements(" \
     "definition_count == 1"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy" \
+    "func DirectMirScalarProgramArrayStringLocalBorrowsElements("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy" \
+    "func DirectMirScalarProgramArrayStringCleanupDropSymbol(" \
+    "DirectMirScalarProgramCollectionOwnershipTransitionRow("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy" \
     "func DirectMirScalarProgramArrayStringCleanupDropSymbol(" \
@@ -21595,8 +21602,16 @@ require_function_text \
     "SelfMirRoutineAttachLastPrimaryLocalRef("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy" \
-    "func DirectMirScalarCfgWireLocalRefsRequired(" \
+    "func DirectMirScalarCfgWireLocalRefsRouteIdentityRequired(" \
     'arg0 == "ArraySet"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy" \
+    "func DirectMirScalarCfgWireLocalRefsRequired(" \
+    '"empty-literal"'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_local_ref_owner.pgy" \
+    "func DirectMirScalarCfgWireLocalRefsRequired(" \
+    "DirectMirScalarCfgWireLocalRefsRouteIdentityRequired("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_local_ref_plan_owner.pgy" \
     "func DirectMirScalarCfgLocalRefPlanFromOwners(" \
@@ -26999,12 +27014,36 @@ require_max_lines \
     "tests/self_hosted/parity/driver_source_mir_install_transaction_gate.sh" 60
 require_file "src/self_hosted/mir/local_ref_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir/local_ref_fact_owner.pgy" 180
+require_file "src/self_hosted/mir/local_ref_validation_owner.pgy"
+require_max_lines "src/self_hosted/mir/local_ref_validation_owner.pgy" 70
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/local_ref_validation_owner.pgy"
+require_text "src/self_hosted/mir/local_ref_validation_owner.pgy" \
+    "func SelfMirInstructionLocalRefRowsReady("
+reject_text "src/self_hosted/mir/local_ref_fact_owner.pgy" \
+    "func SelfMirInstructionLocalRefRowsReady("
+require_file "src/self_hosted/mir/cfg_view_owner.pgy"
+require_max_lines "src/self_hosted/mir/cfg_view_owner.pgy" 20
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/mir/cfg_view_owner.pgy"
+require_text "src/self_hosted/mir/cfg_view_owner.pgy" \
+    "func SelfMirCfgBlockCount("
+reject_text "src/self_hosted/mir/program_fact_owner.pgy" \
+    "func SelfMirCfgBlockCount("
 require_file "src/self_hosted/mir/local_ref_identity_owner.pgy"
 require_max_lines "src/self_hosted/mir/local_ref_identity_owner.pgy" 55
 require_file "src/self_hosted/mir/local_ref_json_projection_owner.pgy"
 require_max_lines "src/self_hosted/mir/local_ref_json_projection_owner.pgy" 115
 require_file "src/self_hosted/mir/routine_local_ref_attachment_owner.pgy"
 require_max_lines "src/self_hosted/mir/routine_local_ref_attachment_owner.pgy" 40
+require_file "src/self_hosted/mir/routine_source_statement_attachment_owner.pgy"
+require_max_lines \
+    "src/self_hosted/mir/routine_source_statement_attachment_owner.pgy" 60
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/mir/routine_source_statement_attachment_owner.pgy"
+require_text "src/self_hosted/mir/routine_source_statement_attachment_owner.pgy" \
+    "func SelfMirRoutineAttachLastSourceStatement("
+reject_text "src/self_hosted/mir/routine_local_ref_attachment_owner.pgy" \
+    "func SelfMirRoutineAttachLastSourceStatement("
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy" \
     'DirectMirScalarCfgWireLocalRefsFromOwners('
 require_text "src/self_hosted/compiler/direct_mir_scalar_cfg_wire_range_scope_admission_owner.pgy" \
@@ -28310,6 +28349,105 @@ require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_array_int_
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/direct_mir_scalar_program_array_int_abi_projection_contract_owner.pgy"
 require_text "src/self_hosted/compiler/direct_mir_scalar_program_array_int_abi_projection_contract_owner.pgy" "func DirectMirScalarProgramArrayIntAbiProjectionReadyForFact("
 reject_text "src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_result_target_owner.pgy" "func DirectMirScalarProgramArrayIntAbiProjectionReadyForFact("
+
+# Collection ownership transition receipts are one reached semantic -> MIR ->
+# direct-backend seam. Pin every new owner and keep the large verdict split by
+# responsibility instead of raising its cap.
+for collection_owner_cap in \
+    src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy:600 \
+    src/self_hosted/semantic/ast_collection_ownership_receipt_owner.pgy:120 \
+    src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy:200 \
+    src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy:100 \
+    src/self_hosted/mir/collection_ownership_receipt_fact_owner.pgy:180 \
+    src/self_hosted/mir/collection_ownership_receipt_projection_owner.pgy:180 \
+    src/self_hosted/mir/collection_ownership_receipt_json_projection_owner.pgy:100 \
+    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy:180 \
+    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy:380 \
+    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy:100; do
+    collection_owner="${collection_owner_cap%%:*}"
+    collection_cap="${collection_owner_cap##*:}"
+    require_file "$collection_owner"
+    require_max_lines "$collection_owner" "$collection_cap"
+    require_text "src/self_hosted/OWNERS.md" "$collection_owner"
+done
+require_text \
+    "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+    'SemanticAstCollectionOwnershipAssignmentAliasAt('
+reject_text \
+    "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+    'func SemanticAstCollectionOwnershipParameterModeForArgument('
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy" \
+    'DirectMirCollectionOwnershipOperationSetRequiresTransition('
+require_file \
+    "tests/self_hosted/parity/collection_ownership_receipt_mutations.py"
+require_max_lines \
+    "tests/self_hosted/parity/collection_ownership_receipt_mutations.py" 100
+require_text \
+    "tests/self_hosted/parity/collection_ownership_semantic_owner.sh" \
+    'collection_ownership_receipt_mutations.py'
+require_text \
+    "tests/self_hosted/parity/collection_ownership_semantic_owner.sh" \
+    '"--mir-json-backend=$backend"'
+require_text \
+    "src/self_hosted/mir_lower/program_instruction_identity_owner.pgy" \
+    'ArraySort(ids);'
+reject_text \
+    "src/self_hosted/mir_lower/program_instruction_identity_owner.pgy" \
+    'let sorted_ids: Array<Int> = ArraySort(ids);'
+require_function_text \
+    "src/self_hosted/mir/routine_match_merge_owner.pgy" \
+    'func SelfMirMatchArmVersionsAppend(' \
+    'inout rows: Array<Int>'
+reject_text \
+    "src/self_hosted/mir/routine_match_merge_owner.pgy" \
+    'let appended: Array<Int> = rows;'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
+    'func DirectMirScalarProgramLlvmDirectCallExpressionAt(' \
+    'inout argument_kinds: Array<Int>'
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
+    'let kinds: Array<Int> = argument_kinds;'
+reject_text \
+    "src/self_hosted/compiler/direct_mir_composite_intent_program_llvm_emission_owner.pgy" \
+    'let formats: Array<String> = ['
+require_function_text \
+    "src/self_hosted/codegen/emission/function_emit.pgy" \
+    'func EmitFunctionWithSpecialization(' \
+    'ArrayPushOwnedString(function_env_rows,'
+reject_function_text \
+    "src/self_hosted/codegen/emission/function_emit.pgy" \
+    'func EmitFunctionWithSpecialization(' \
+    'ArrayPush(function_env_rows,'
+require_function_text \
+    "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'func EmitRoutineTreeWithContractAtRowWithExpressionOrder(' \
+    'ArrayPushOwnedString(chunks,'
+require_function_text \
+    "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'func EmitRoutineTreeWithContractAtRowWithExpressionOrder(' \
+    'ArrayDropOwnedStrings(chunks);'
+reject_function_text \
+    "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'func EmitRoutineTreeWithContractAtRowWithExpressionOrder(' \
+    'ArrayPush(chunks,'
+require_function_text \
+    "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy" \
+    'func SemanticAstAnalysisResolveCallReturnTypes(' \
+    'let candidate_ready: Bool = true;'
+require_function_text \
+    "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy" \
+    'func SemanticAstAnalysisResolveCallReturnTypes(' \
+    'ArrayDropOwnedStrings(call_return_types);'
+reject_function_text \
+    "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy" \
+    'func SemanticAstAnalysisResolveCallReturnTypes(' \
+    'if !published.ok {'
+reject_function_text \
+    "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy" \
+    'func SemanticAstAnalysisResolveCallReturnTypes(' \
+    'if !surfaces.ok {'
 
 echo "[self-host-component-contract] checkpoint: checking line caps"
 run_line_cap_checks

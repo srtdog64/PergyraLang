@@ -576,6 +576,18 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   stable local-binding ownership and disposition facts for `Array<String>`
   elements at call boundaries. It consumes the admitted expression graph and
   forbids MIR or backend inference from projected collection type spelling.
+- `src/self_hosted/semantic/ast_collection_ownership_receipt_owner.pgy` --
+  stable semantic event rows for owned push, shallow mutation, and explicit
+  drop. Call identity is consumed at MIR attachment; the persisted receipt is
+  keyed by the exact receiver binding rather than a source spelling.
+- `src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy` --
+  stable callable, parameter-mode, literal-origin, and local-binding identity
+  queries shared by the collection ownership verdict. It does not own state
+  transitions or infer ownership from a descriptor type.
+- `src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy`
+  -- exact local-to-local `Array<String>` assignment identity. It reports the
+  source and target binding rows; the verdict owner remains the sole state
+  policy and rejects a tracked shallow alias.
 - `src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy` --
   operand diagnostics for fully graph-owned scalar operator trees.
 - `src/self_hosted/semantic/ast_expression_graph_view_owner.pgy` -- borrowed
@@ -1044,6 +1056,13 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   carriage, validation, and JSON projection of semantic collection ownership
   rows keyed by stable binding identity; names and type spelling never own the
   join.
+- `src/self_hosted/mir/collection_ownership_receipt_fact_owner.pgy`,
+  `src/self_hosted/mir/collection_ownership_receipt_projection_owner.pgy`, and
+  `src/self_hosted/mir/collection_ownership_receipt_json_projection_owner.pgy`
+  -- instruction-aligned ownership events, exact semantic-call or source-
+  statement identity attachment, and the bounded persisted JSON projection.
+  Missing and duplicate attachments fail closed; the wire never carries a
+  guessed post-state.
 - `src/self_hosted/mir/expression_identity_json_projection_owner.pgy` -- the
   shared streaming/String projection of semantic call-target SyntaxNodeId and
   formal-parameter ordinal rows into each persisted expression node.
@@ -1202,7 +1221,18 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   row verification consumed by the program verifier.
 - `src/self_hosted/mir/local_ref_fact_owner.pgy` -- canonical lexical binding
   identity and aligned instruction/direct-expression LocalRef rows. It owns
-  `(role, owner_syntax_id, binding_index)` carriage, not display spelling.
+  `(role, owner_syntax_id, binding_index)` carriage plus the internal source-
+  statement identity consumed by exact receipt attachment, not display
+  spelling.
+- `src/self_hosted/mir/local_ref_validation_owner.pgy` -- structural
+  validation of instruction-aligned LocalRef and source-statement rows. It is
+  the verifier boundary, not another producer or identity owner.
+- `src/self_hosted/mir/routine_source_statement_attachment_owner.pgy` --
+  attaches one parser-owned statement identity to the last emitted MIR
+  instruction. It refuses missing and duplicate attachment rather than
+  guessing identity from instruction order.
+- `src/self_hosted/mir/cfg_view_owner.pgy` -- read-only queries over canonical
+  MIR CFG rows. Mutation and CFG identity remain in their existing owners.
 - `src/self_hosted/mir/local_ref_identity_owner.pgy` -- the single canonical
   LocalRef role vocabulary, textual grammar, constructor, and validator shared
   by producer verification and admitted wire consumption.
@@ -3911,6 +3941,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy`,
   and
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_expression_kind_owner.pgy`
   --
@@ -3919,8 +3952,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   literal spine containing already-normalized String expressions with exact
   instruction-use and LocalRef receipts, plus semantic readiness and the
   stable expression kind identity.
-  The cleanup policy derives borrowed versus owned element storage for each
-  local from the admitted expression and operation facts; the obsolete
+  The transition owners parse instruction-bound receipts, join the exact
+  declaration LocalRef and empty-origin fact, and seal the one-block first
+  slice as EMPTY/BORROWED/OWNED/RETIRED. The cleanup policy consumes that
+  sealed plan for tracked locals; its legacy operation scan is restricted to
+  untracked rows and is not an alternate transition authority. The obsolete
   one-literal program boundary is not an alternate cleanup authority.
   The common seed owner is shared with nested `Array<Int>` admission and owns
   the one-seed/one-spine identity. Mixed literals retain source element order
