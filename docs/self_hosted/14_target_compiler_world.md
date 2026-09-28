@@ -151,6 +151,7 @@ PgyCompilerWorld
 ### 실현 우선순위 (높음)
 
 현재 진행 중인 활성 rung이 착지한 뒤에는 아래 순서가 다음 활성 rung을 정한다.
+P1만은 예외로, 지금 활성인 소유권 rung 자신의 닫힘 조건이다. 이 순서는
 `docs/206`의 남은 단위(PP-063, R11/R13)보다 앞선다. 각 rung은 `AGENTS.md`의
 진척 가드를 따른다. 가드는 production entrypoint, 지울 direct bypass, fact
 owner, 마지막 consumer, 게이트 하나를 요구한다.
@@ -159,7 +160,43 @@ owner, 마지막 consumer, 게이트 하나를 요구한다.
   - PP-064 3b(bind subject, role `self`, bound party escape)를 착지한다.
   - `dyn` 표현 구멍을 닫는다. 두 파서의 AST 텍스트가 dyn 여부를 싣고,
     default route가 static slot bind를 거부하게 한다.
-- **P1. 단계 인계를 revision 사실로.**
+- **P1. 소유권 레인을 닫을 수 있게 만든다(사용자 결정, 2026-09-29).**
+  - 걱정: owner가 너무 잘게 쪼개져 끝내 닫지 못하게 되는 것.
+  - 측정: 전체는 수렴 중이다.
+    - owner 파일 증가폭은 2주 단위로 +672 → +356 → +106 → +63이다.
+    - SoT 행은 63에서 95로 늘었고, CLOSED는 33에서 69로 늘었다. 열린 행은
+      26개다.
+  - 위험은 타입과 모양별로 쪼개지는 곳에 몰려 있다.
+    - 열린 projection 행 다섯 개가 모양별이다: `array_int_program`,
+      `string_array_push`, `collection_pop_effect`, `collection_program_plan`,
+      `scalar_cfg_program_extension`.
+    - `HashMap<Int,V>`, `<Long,V>`, `<Bool,V>`, `<String,V>`가 각각 따로
+      rung이었다.
+  - **전이표 완결성.** `CollectionOwnershipTransfer.v`에 유한한 전이표를 넣고,
+    표가 완결됐음을 증명한다.
+    - 상태: EMPTY, OWNED, MOVED, BORROWED, UNKNOWN
+    - 전이: push, move, clone, drop, 인자, 반환, inout
+
+    `semantic.hashmap_collection_ownership`는 표의 모든 칸에 owner 하나와
+    게이트 하나가 있을 때 CLOSED다. 표 밖의 새 항목은 먼저 표를 고친 뒤에만
+    들어온다.
+  - **타입과 연산은 매개변수로 둔다.**
+    - 원소 타입은 ABI layout 행의 매개변수다. 소유 전이는 타입과 무관한
+      행 하나다.
+    - 모양별 projection 행 다섯 개는 `collection_program_plan` 하나로 합쳐
+      닫는다.
+  - **행 수 래칫.** SoT 행 수(현재 95)를 상한으로 둔다.
+    - 새 사실 가족은 기존 행의 매개변수로 표현할 수 없음을 보인 뒤에만
+      추가한다.
+    - 하나를 추가하면 다른 행 하나를 합치거나 닫는다.
+    - `scripts/sot_registry_gate.py`가 이 상한을 검사한다.
+  - `docs/206` §4에 맞춰, 레인 WIP의 암묵적 deep copy를 move/clone 결정으로
+    바꾼다.
+  - 이 레인은 활성 rung이다. 그래서 전이표와 래칫은 병렬 트랙이 아니라 그
+    rung의 닫힘 조건으로 넘긴다.
+  - 진척은 CLOSED 수와 열린 행 수로 센다. owner 파일 수나 테스트 수는 세지
+    않는다.
+- **P2. 단계 인계를 revision 사실로.**
   - production entrypoint: `pgy-self-driver` source→C
     (`CompileSourceToCVerified`).
   - 지울 bypass: 같은 프로세스 안에서 MIR JSON 문자열을 만들고 다시 읽는 인계.
@@ -167,19 +204,19 @@ owner, 마지막 consumer, 게이트 하나를 요구한다.
     넘긴다.
   - 게이트: emitted C가 같음을 보이는 parity, 그리고 source 경로가 MIR JSON
     텍스트를 다시 읽지 않는다는 negative ratchet.
-- **P2. `ArtifactTransactionZone` 하나로.**
+- **P3. `ArtifactTransactionZone` 하나로.**
   - 경로별 zone 네 개의 commit/reject를 target environment를 인자로 받는
     transaction 하나로 합친다.
   - 경로별 중복 receipt 코드를 지운다.
   - Compile과 Check가 같은 revision을 쓰고, 게시 여부만 다르게 한다.
-- **P3. 단계 subject를 실제 전이의 주인으로.**
+- **P4. 단계 subject를 실제 전이의 주인으로.**
   - readiness 불리언 action을 지운다.
   - 입수 경계와 revision 층 봉인을 action이 소유하게 한다.
   - 소스 입수(`io_read`)부터 시작한다.
-- **P4. `TargetEnvironmentZone`과 `VerifiedProjectionPlan`.**
+- **P5. `TargetEnvironmentZone`과 `VerifiedProjectionPlan`.**
   - C, LLVM, self-host projection이 같은 계획과 같은 MIR/ABI 사실을 소비함을
     게이트로 증명한다(이 문서의 Gate Direction).
-- **P5. Check/Format/Debug intent.**
+- **P6. Check/Format/Debug intent.**
   - LSP, `fmt`, `debug` 세션을 같은 world의 intent로 올린다.
   - 따로 가진 revision/store를 `CompilationRevisionZone`으로 합친다.
 
