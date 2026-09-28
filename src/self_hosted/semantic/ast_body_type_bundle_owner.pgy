@@ -34,6 +34,7 @@ import "ast_unsafe_block_admission_owner.pgy";
 import "ast_enum_payload_variant_provenance_verdict_owner.pgy";
 import "ast_capability_fact_owner.pgy";
 import "ast_body_type_bundle_schema_owner.pgy";
+import "ast_local_name_rule_owner.pgy";
 func SemanticAstBodyTypeStage(enabled: Bool, stage: String) -> Void { if enabled { Log(Concat("[semantic-body-type-stage] ", stage)); } }
 func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis, observe_pressure: Bool,
@@ -85,21 +86,14 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             artifact, analysis, initializer_types, iteration_types, function_tables);
     SemanticAstBodyTypeStage(observe_pressure, "expression-places:done");
     SemanticAstBodyTypeStage(observe_pressure, "assignment:start");
-    let assignment_types: SemanticAstAssignmentTypeFacts =
-        SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
-            artifact, analysis.signatures, analysis.constructors,
-            analysis.local_bindings, initializer_types, analysis.statements,
-            analysis.expression_surfaces, iteration_types,
-            analysis.assignments, analysis.enums, analysis.function_scopes, function_tables);
+    let assignment_types: SemanticAstAssignmentTypeFacts = SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
+        artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, initializer_types, analysis.statements,
+        analysis.expression_surfaces, iteration_types, analysis.assignments, analysis.enums, analysis.function_scopes, function_tables);
     SemanticAstBodyTypeStage(observe_pressure, "assignment:done");
     SemanticAstBodyTypeStage(observe_pressure, "statement:start");
-    let statement_types: SemanticAstStatementTypeFacts =
-        SemanticAstStatementTypeFactsFromAdmittedArtifact(
-            artifact, analysis.signatures, analysis.constructors,
-            analysis.local_bindings, initializer_types,
-            analysis.expression_surfaces, iteration_types,
-            analysis.statements, analysis.enums, analysis.roles,
-            analysis.function_scopes, function_tables);
+    let statement_types: SemanticAstStatementTypeFacts = SemanticAstStatementTypeFactsFromAdmittedArtifact(
+        artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, initializer_types,
+        analysis.expression_surfaces, iteration_types, analysis.statements, analysis.enums, analysis.roles, analysis.function_scopes, function_tables);
     SemanticAstBodyTypeStage(observe_pressure, "statement:done");
     let match_materializations: SemanticAstMatchMaterializationFacts =
         SemanticAstMatchMaterializationFactsAttach(artifact, analysis, statement_types);
@@ -128,6 +122,12 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     SemanticAstBodyTypeStage(observe_pressure, "verdict:start");
     let verdict: SemanticAstBodyVerdict = SemanticAstBodyVerdictFromFacts(
         initializer_types, iteration_types, assignment_types, statement_types);
+    // Source-only like body flow (a MIR-rebuilt tree regroups locals); outranks body errors.
+    if require_source_body_flow {
+        let names: SemanticAstDeclarationContractVerdict = SemanticAstLocalNameRuleVerdict(
+            artifact, analysis.signatures, analysis.local_bindings, analysis.statements);
+        if !names.ok { verdict = SemanticAstBodyVerdictError(names.code, names.message, names.node_id); }
+    }
     if verdict.ok {
         verdict = SemanticAstIntentRetryAdmissionFromFacts(
             artifact, analysis.kind_surfaces, analysis.intent_signatures);

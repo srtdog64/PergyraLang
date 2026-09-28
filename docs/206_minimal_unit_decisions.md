@@ -124,8 +124,12 @@ C#식 규칙을 적었지만, 코퍼스를 측정해 보고 바꿨다. C#식은 
   같은 이름이면 전에는 semantic을 통과하고 생성된 C에서 SSA 이름이 없어
   깨졌다.
 - default route: `SemanticAstLocalNameRuleVerdict`
-  (`ast_local_name_rule_owner.pgy`)가 본문 타입 검사보다 먼저
-  `local_name_rebound`로 거부한다. match 바인딩의 범위는 case 노드이고, case
+  (`ast_local_name_rule_owner.pgy`)가 `local_name_rebound`로 거부하고, 본문
+  오류보다 우선해 보고한다. body flow처럼 소스 artifact에서만 돈다. MIR에서
+  재구성한 트리는 지역 변수를 다시 묶어 형제 블록이 중첩처럼 보일 수 있고,
+  그 소스는 이미 검사를 받았다. 거부에는 함수 이름과 앞선 바인딩의
+  종류(parameter/local)가 붙는다. 여러 모듈을 거치는 경로에는 span이 없을
+  수 있기 때문이다. match 바인딩의 범위는 case 노드이고, case
   본문 블록은 그 아래에 있다. self-host 파서가 case 위치를 기록하지 않으므로
   match 바인딩 위반의 span은 match 문을 가리킨다(native는 case를 가리킨다).
   default route는 람다를 아직 받지 않는다.

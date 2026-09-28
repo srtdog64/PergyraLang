@@ -89,10 +89,18 @@ func SemanticAstNamedBindingsFromFacts(
     return bindings;
 }
 
-func SemanticAstLocalNameRebound(name: String, node_id: Int) -> SemanticAstDeclarationContractVerdict {
+// The refusal names the function and whether the name belongs to a
+// parameter or an earlier local: a multi-module route may carry no span.
+func SemanticAstLocalNameRebound(
+    arena: AstArena, name: String, function_node: Int, prior: String, node_id: Int
+) -> SemanticAstDeclarationContractVerdict {
+    let function_name: Option<String> = TypedAstArenaAtomText(arena, function_node);
+    let owner: String = "";
+    if IsSome(function_name) { owner = UnwrapOption(function_name); }
     return SemanticAstDeclarationContractVerdict(
         false, "local_name_rebound",
-        SemanticError1("local_name_rebound", "name", name), node_id);
+        SemanticError3("local_name_rebound", "name", name, "function", owner,
+            "prior", prior), node_id);
 }
 
 func SemanticAstLocalNameRuleVerdict(
@@ -122,7 +130,8 @@ func SemanticAstLocalNameRuleVerdict(
                 let param_end: Int = param + signatures.param_counts[index];
                 while param < param_end {
                     if signatures.param_names[param] == name {
-                        return SemanticAstLocalNameRebound(name, bindings.node_ids[row]);
+                        return SemanticAstLocalNameRebound(artifact.arena, name,
+                            function_node, "parameter", bindings.node_ids[row]);
                     }
                     param = param + 1;
                 }
@@ -132,7 +141,8 @@ func SemanticAstLocalNameRuleVerdict(
                 if bindings.names[prior] == name &&
                     SemanticAstScopeEncloses(artifact.arena,
                         bindings.scope_node_ids[prior], bindings.scope_node_ids[row]) {
-                    return SemanticAstLocalNameRebound(name, bindings.node_ids[row]);
+                    return SemanticAstLocalNameRebound(artifact.arena, name,
+                        function_node, "local", bindings.node_ids[row]);
                 }
                 prior = prior + 1;
             }

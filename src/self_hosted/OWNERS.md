@@ -669,8 +669,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_local_name_rule_owner.pgy` -- the local name
   rule (docs/206 section 3): a let, destructure, for or match binding may not
   reuse a name that a parameter or an earlier binding in its own or an
-  enclosing scope holds (`local_name_rebound`). Statement typing runs it
-  before any body is typed.
+  enclosing scope holds (`local_name_rebound`). The body type bundle runs it
+  on source artifacts only, as it runs body flow, and a rebound name outranks
+  body errors. A tree rebuilt from MIR regroups locals, and its source
+  producer already ran the rule.
 - `src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy` --
   target-neutral admission for local zone-resource value carriage. It joins
   admitted resource shape, initializer/assignment types, and resolved fresh
