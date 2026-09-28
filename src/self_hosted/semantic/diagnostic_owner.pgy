@@ -51,7 +51,7 @@ func SemanticReason(code: String) -> String {
     if code == "parallel_unsafe_forbidden" { return "Unsafe blocks cannot execute inside parallel tasks"; }
     if code == "action_ability_unsatisfied" { return "Action requires a declared ability with matching subject role implementation"; }
     if code == "zone_authority_ability_unsatisfied" { return "Zone authority requires a declared ability with matching subject role implementation"; }
-    if code == "bind_subject_invalid" { return "a bound slot borrows a local subject of the role's for type that outlives the party"; }
+    if code == "bind_subject_invalid" { return "a dyn slot borrows a local subject of the role's for type that outlives the party"; }
     if code == "bound_party_escape" { return "a party with a slot bound to a local subject cannot leave the function that bound it"; }
     if code == "subject_value_return" { return "Returning subjects by value is not supported yet"; }
     if code == "single_owner_handle_copy" { return "a single-owner runtime handle cannot be copied: two bindings would name one runtime storage"; }
@@ -188,7 +188,7 @@ func SemanticFix(code: String) -> String {
     if code == "parallel_unsafe_forbidden" { return "serialize the unsafe block outside the parallel task"; }
     if code == "action_ability_unsatisfied" { return "implement the exact required ability and type arguments for this subject"; }
     if code == "zone_authority_ability_unsatisfied" { return "implement the required ability for the authority slot's subject type"; }
-    if code == "bind_subject_invalid" { return "bind a local subject of the role's for type declared where it outlives the party"; }
+    if code == "bind_subject_invalid" { return "bind a dyn slot to a local subject of the role's for type declared where it outlives the party"; }
     if code == "bound_party_escape" { return "call the slot in this function, or bind it in the function that uses the party"; }
     if code == "subject_value_return" { return "return a value projection or keep the subject local to its owner"; }
     if code == "generic_constraint_unsatisfied" { return "provide the required ability implementation or forward a sufficient declared generic bound"; }

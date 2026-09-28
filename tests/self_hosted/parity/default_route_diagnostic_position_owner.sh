@@ -217,6 +217,7 @@ BROKEN_CASES=(
     "bind_role_only|7|bind_subject_missing"
     "bind_subject_type|8|bind_subject_invalid"
     "bound_party_escape|9|bound_party_escape"
+    "bind_static_slot|8|bind_subject_invalid"
 )
 for row in "${BROKEN_CASES[@]}"; do
     IFS='|' read -r name line code <<<"$row"
@@ -441,7 +442,8 @@ done
 # native segfaulted on a field read and LLVM read the party as the subject.
 for row in "bind_role_only|7|32|bind names only the role 'Warrior'" \
     "bind_subject_type|8|25|bind subject 'n' has type 'Int', but role 'Warrior' is for 'Fighter'" \
-    "bound_party_escape|9|12|Party 'team' has a slot bound to a local subject"; do
+    "bound_party_escape|9|12|Party 'team' has a slot bound to a local subject" \
+    "bind_static_slot|8|5|party slot 'Team.fighter' is not a \`dyn role slot\`"; do
     IFS='|' read -r name line column needle <<<"$row"
     native_log="$WORK_DIR/native-$name.log"
     if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_$name.pgy" --native-pipeline \

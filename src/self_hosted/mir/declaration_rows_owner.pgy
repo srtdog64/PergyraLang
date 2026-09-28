@@ -188,7 +188,7 @@ func SelfMirDeclarationsFromAnalysis(
                 role_slot_types,
                 analysis.constructors.role_slot_type_names[slot_row]
             );
-            ArrayPush(role_slot_dynamic, 1);
+            ArrayPush(role_slot_dynamic, analysis.constructors.role_slot_dynamic[slot_row]);
             role_slot_count = role_slot_count + 1;
             slot_i = slot_i + 1;
         }

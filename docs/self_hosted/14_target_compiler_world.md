@@ -156,7 +156,8 @@ P1만은 예외로, 지금 활성인 소유권 rung 자신의 닫힘 조건이�
 진척 가드를 따른다. 가드는 production entrypoint, 지울 direct bypass, fact
 owner, 마지막 consumer, 게이트 하나를 요구한다.
 
-- **P0. 세계관 구성요소 건전성 마무리.**
+- **P0. 세계관 구성요소 건전성 마무리.** (2026-09-29 완료: 3b는 f04c10ed, dyn은
+  그 다음 커밋)
   - PP-064 3b(bind subject, role `self`, bound party escape)를 착지한다.
   - `dyn` 표현 구멍을 닫는다. 두 파서의 AST 텍스트가 dyn 여부를 싣고,
     default route가 static slot bind를 거부하게 한다.

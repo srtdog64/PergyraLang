@@ -121,11 +121,16 @@ func EmitDeclRoleSlots(
                 "party role slot requires exactly one ability: ", slot_name
             ));
         }
-        out = Concat(out, Concat(
-            "    RoleSlot: ", Concat(
-                slot_name, Concat(" requires ", Concat(ability_name, "\n"))
-            )
-        ));
+        let dynamic: Bool = JsonObjectBoolFieldEqualsWithin(
+            json, slot_bounds[0], slot_bounds[1], "dynamic", true);
+        if !dynamic && !JsonObjectBoolFieldEqualsWithin(
+            json, slot_bounds[0], slot_bounds[1], "dynamic", false) {
+            MirLowerFailClosed(Concat("party role slot is missing its dynamic fact: ", slot_name));
+        }
+        let slot_head: String = "    RoleSlot: ";
+        if dynamic { slot_head = "    RoleSlot: dyn "; }
+        out = Concat(out, Concat(slot_head, Concat(
+            slot_name, Concat(" requires ", Concat(ability_name, "\n")))));
         cursor = slot_bounds[1];
     }
     return out;

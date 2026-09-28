@@ -106,7 +106,8 @@ ast_print_domain_node(ASTNode *node, int indent)
             break;
 
         case AST_ROLE_SLOT:
-            printf("RoleSlot: %s", node->data.role_slot.slot_name);
+            printf("RoleSlot: %s%s", node->data.role_slot.is_dynamic ? "dyn " : "",
+                   node->data.role_slot.slot_name);
             if (node->data.role_slot.is_array)
                 printf("[]");
             if (node->data.role_slot.ability_count > 0) {

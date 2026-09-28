@@ -93,9 +93,12 @@ harness PP-061~065와 red-team R11/R13은 따로 보면 다섯 개의 패치다.
   규칙을 검사한다(`bound_party_escape`). MIR bind 행은 subject를 `expr0`으로
   싣는다. C는 `&subject`를 넘기고, 비어 있는 slot 호출은 panic한다. role
   본문의 `self`는 signature owner가 role의 `for` 타입으로 매긴다.
-- 남은 차이: 두 파서가 만드는 AST 텍스트가 dyn 여부를 담지 않는다. 그래서
-  default route는 모든 role slot을 dyn으로 다루고, non-dyn slot의 bind를
-  native만 거부한다.
+- dyn 여부(vision P0): 두 파서의 AST 텍스트가 `RoleSlot: dyn ...`으로 dyn
+  여부를 싣는다. 행 사실의 mode(1=dyn)가 이를 들고, 생성자 사실
+  `role_slot_dynamic`이 MIR 선언 행의 `dynamic`을 채운다. 전에는 1로 고정돼
+  있었다. MIR에서 AST를 다시 만들 때도 `dynamic`을 읽어 `dyn`을 싣는다. 이제
+  default route도 static slot의 bind를 거부한다(`bind_subject_invalid`,
+  reason `slot_not_dyn`).
 
 ## 2. PP-065: zone authority = identity × witness
 

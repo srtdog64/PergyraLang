@@ -29,6 +29,7 @@ struct SemanticAstNominalConstructorFacts {
     role_slot_counts: Array<Int>;
     role_slot_names: Array<String>;
     role_slot_type_names: Array<String>;
+    role_slot_dynamic: Array<Int>;
 }
 func SemanticAstNominalConstructorFactsFromArtifact(
     artifact: AstTreeArtifact
@@ -48,6 +49,7 @@ func SemanticAstNominalConstructorFactsFromArtifact(
     let role_slot_counts: Array<Int> = [];
     let role_slot_names: Array<String> = [];
     let role_slot_type_names: Array<String> = [];
+    let role_slot_dynamic: Array<Int> = [];
     let ok: Bool = AstTreeArtifactReady(artifact);
     let diagnostic_fact: SemanticDiagnosticMessageFact =
         SemanticDiagnosticMessageFactEmpty();
@@ -312,11 +314,23 @@ func SemanticAstNominalConstructorFactsFromArtifact(
                     );
                     continue;
                 }
+                let slot_mode_opt: Option<Int> = TypedAstArenaMode(artifact.arena, child_id);
+                if !IsSome(slot_mode_opt) || UnwrapOption(slot_mode_opt) < 0 ||
+                    UnwrapOption(slot_mode_opt) > 1 {
+                    ok = false;
+                    diagnostic_fact = SemanticDiagnosticMessageFact2(
+                        "nominal_constructor_fact_invalid",
+                        "node_id", ToString(child_id),
+                        "missing_fact", "party_role_slot_dynamic"
+                    );
+                    continue;
+                }
                 ArrayPush(role_slot_names, UnwrapOption(slot_name_opt));
                 ArrayPush(
                     role_slot_type_names,
                     SemanticCanonicalTypeName(UnwrapOption(slot_type_opt))
                 );
+                ArrayPush(role_slot_dynamic, UnwrapOption(slot_mode_opt));
             }
             child_index = child_index + 1;
             child_opt = TypedAstArenaChildAt(
@@ -349,7 +363,8 @@ func SemanticAstNominalConstructorFactsFromArtifact(
         artifact.count,
         node_ids, nominal_kinds, names, return_types, param_starts,
         param_counts, field_source_syntax_ids, field_names, field_kinds, field_write_modes,
-        param_types, role_slot_starts, role_slot_counts, role_slot_names, role_slot_type_names
+        param_types, role_slot_starts, role_slot_counts, role_slot_names, role_slot_type_names,
+        role_slot_dynamic
     );
 }
 func SemanticAstNominalConstructorCount(ref facts: SemanticAstNominalConstructorFacts) -> Int { return ArrayLength(facts.node_ids); }
@@ -387,7 +402,8 @@ func SemanticAstNominalConstructorRowsReady(ref facts: SemanticAstNominalConstru
         ArrayLength(facts.param_starts) != count ||
         ArrayLength(facts.param_counts) != count ||
         ArrayLength(facts.role_slot_starts) != count ||
-        ArrayLength(facts.role_slot_counts) != count {
+        ArrayLength(facts.role_slot_counts) != count ||
+        ArrayLength(facts.role_slot_dynamic) != ArrayLength(facts.role_slot_names) {
         return false;
     }
     let expected_param_count: Int = 0;
@@ -517,6 +533,30 @@ func SemanticAstNominalConstructorFieldSourceSyntaxIdAt(
     }
     return Some(facts.field_source_syntax_ids[facts.param_starts[constructor_index] + field_index]);
 }
+// Whether `slot_name` of `nominal_name` is a `dyn role slot`; None when the
+// nominal has no such slot.
+func SemanticAstNominalRoleSlotDynamic(
+    ref facts: SemanticAstNominalConstructorFacts, nominal_name: String,
+    slot_name: String
+) -> Option<Bool> {
+    let constructor_index: Int = 0;
+    while constructor_index < SemanticAstNominalConstructorCount(facts) {
+        if facts.names[constructor_index] == nominal_name {
+            let slot_index: Int = 0;
+            while slot_index < facts.role_slot_counts[constructor_index] {
+                let slot_row: Int = facts.role_slot_starts[constructor_index] + slot_index;
+                if facts.role_slot_names[slot_row] == slot_name {
+                    return Some(facts.role_slot_dynamic[slot_row] == 1);
+                }
+                slot_index = slot_index + 1;
+            }
+            return None;
+        }
+        constructor_index = constructor_index + 1;
+    }
+    return None;
+}
+
 func SemanticAstNominalFieldType(
     ref facts: SemanticAstNominalConstructorFacts, nominal_name: String,
     field_name: String

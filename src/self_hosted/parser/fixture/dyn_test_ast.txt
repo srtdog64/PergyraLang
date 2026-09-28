@@ -26,7 +26,7 @@ Program:
           Block:
             Return: (self.power * 2)
   Party: Team
-    RoleSlot: fighter requires Combatable
+    RoleSlot: dyn fighter requires Combatable
     Shared: hp: Int
   Function: Main
     Parameters:

@@ -155,6 +155,7 @@ func ParseNominalDecl(
             // `let mut` fields have the same mutable field mode.
             let immutable_field: Bool = false;
             let is_role_slot: Bool = false;
+            let is_dyn_slot: Bool = false;
             let is_shared: Bool = false;
             let is_world_zone: Bool = false;
             let is_systemic_slot: Bool = false;
@@ -202,6 +203,7 @@ func ParseNominalDecl(
                         i = LanguageWordEnd(next_next_i, LanguageWordId.WordSlot);
                         i = SkipWhitespaceAndComments(content, i);
                         is_role_slot = true;
+                        is_dyn_slot = true;
                     }
                 }
             } else if MatchLanguageWord(content, i, LanguageWordId.WordShared) {
@@ -294,7 +296,10 @@ func ParseNominalDecl(
                 i = ParseStatementTerminatorIn(location_context, content, field_end, "field");
             }
             if is_role_slot {
-                field_blocks = AppendLine(field_blocks, Concat("    RoleSlot: ", Concat(f_name, Concat(" requires ", f_type))));
+                // docs/206 section 1: only a dyn slot is bound at run time.
+                let slot_head: String = "    RoleSlot: ";
+                if is_dyn_slot { slot_head = "    RoleSlot: dyn "; }
+                field_blocks = AppendLine(field_blocks, Concat(slot_head, Concat(f_name, Concat(" requires ", f_type))));
             } else if is_shared {
                 let shared_row: String = Concat("    Shared: ", Concat(f_name, Concat(": ", f_type)));
                 if StringLength(default_text) > 0 {

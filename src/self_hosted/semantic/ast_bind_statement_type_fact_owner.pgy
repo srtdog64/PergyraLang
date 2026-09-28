@@ -92,6 +92,12 @@ func SemanticAstBindStatementTypeVerdictFor(
             subject_name = UnwrapOption(text);
         }
     }
+    let slot_dynamic: Option<Bool> = SemanticAstNominalRoleSlotDynamic(
+        constructors, party_type, slot_name);
+    if !IsSome(slot_dynamic) || !UnwrapOption(slot_dynamic) {
+        return SemanticAstBindSubjectInvalid(subject_name, "slot_not_dyn",
+            Concat(party_type, Concat(".", slot_name)));
+    }
     let role_index: Option<Int> = SemanticAstRoleIndexForName(roles, role_name);
     let target: Option<String> = None;
     if IsSome(role_index) { target = SemanticAstRoleTargetTypeAt(roles, UnwrapOption(role_index)); }
