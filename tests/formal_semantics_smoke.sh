@@ -1084,7 +1084,7 @@ docs/semantics/proofs/SuspensionRevalidationCore.v \
 docs/semantics/proofs/DeterministicSubsetCore.v \
 docs/semantics/proofs/ParallelSchedulingCore.v \
 docs/semantics/proofs/ParallelReductionCore.v \
-docs/semantics/proofs/PergyraMulCost.v"
+docs/semantics/proofs/PergyraMulCost.v docs/semantics/proofs/PartySlotBinding.v docs/semantics/proofs/AuthorityRequiresWitness.v docs/semantics/proofs/BindingIdentityScope.v docs/semantics/proofs/CollectionOwnershipTransfer.v docs/semantics/proofs/ForeignStringOwnership.v docs/semantics/proofs/ClockDomains.v docs/semantics/proofs/RecoverableArithmetic.v"
 
 # Inventory: every proof on disk must be registered above, or it silently never
 # gets machine-checked.

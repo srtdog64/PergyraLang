@@ -71,6 +71,13 @@ for rel in \
 done
 
 require_text "docs/semantics/proofs/SlotCalculus.v" "Lemma pin_non_eviction"
+require_text "docs/semantics/proofs/PartySlotBinding.v" "Theorem slot_call_defined"
+require_text "docs/semantics/proofs/AuthorityRequiresWitness.v" "Theorem identity_only_fails_open"
+require_text "docs/semantics/proofs/BindingIdentityScope.v" "Theorem unique_resolution"
+require_text "docs/semantics/proofs/CollectionOwnershipTransfer.v" "Theorem alias_breaks_unique"
+require_text "docs/semantics/proofs/ForeignStringOwnership.v" "Theorem no_lane_fits_both"
+require_text "docs/semantics/proofs/ClockDomains.v" "Theorem long_keeps_monotonic"
+require_text "docs/semantics/proofs/RecoverableArithmetic.v" "Theorem wrap_hides_overflow"
 require_text "docs/semantics/proofs/AxisOwnership.v" "Theorem ownership_unique"
 require_text "docs/semantics/proofs/IntentStepSoundness.v" "Theorem intent_step_preservation"
 require_text "docs/semantics/proofs/IRMinimality.v" "Theorem air_is_minimal_witness_set"
