@@ -236,6 +236,58 @@ ast_call_set_semantic_runtime_call_abi_id(
 }
 
 bool
+ast_call_semantic_collection_effect(
+    const ASTNode *node,
+    uint32_t *kind_out,
+    uint32_t *receiver_binding_id_out,
+    uint32_t *source_binding_id_out)
+{
+    if (kind_out != NULL)
+        *kind_out = 0;
+    if (receiver_binding_id_out != NULL)
+        *receiver_binding_id_out = 0;
+    if (source_binding_id_out != NULL)
+        *source_binding_id_out = 0;
+    if (node == NULL || node->type != AST_CALL
+        || !node->data.call.semantic_collection_effect_set
+        || node->data.call.semantic_collection_effect_kind == 0
+        || node->data.call.semantic_collection_receiver_binding_id == 0) {
+        return false;
+    }
+    if (kind_out != NULL)
+        *kind_out = node->data.call.semantic_collection_effect_kind;
+    if (receiver_binding_id_out != NULL) {
+        *receiver_binding_id_out =
+            node->data.call.semantic_collection_receiver_binding_id;
+    }
+    if (source_binding_id_out != NULL) {
+        *source_binding_id_out =
+            node->data.call.semantic_collection_source_binding_id;
+    }
+    return true;
+}
+
+bool
+ast_call_set_semantic_collection_effect(
+    ASTNode *node,
+    uint32_t kind,
+    uint32_t receiver_binding_id,
+    uint32_t source_binding_id)
+{
+    if (node == NULL || node->type != AST_CALL || kind == 0
+        || receiver_binding_id == 0
+        || node->data.call.semantic_collection_effect_set) {
+        return false;
+    }
+    node->data.call.semantic_collection_effect_kind = kind;
+    node->data.call.semantic_collection_receiver_binding_id =
+        receiver_binding_id;
+    node->data.call.semantic_collection_source_binding_id = source_binding_id;
+    node->data.call.semantic_collection_effect_set = true;
+    return true;
+}
+
+bool
 ast_call_uses_braced_initializer_syntax(const ASTNode *node)
 {
     return node != NULL && node->type == AST_CALL

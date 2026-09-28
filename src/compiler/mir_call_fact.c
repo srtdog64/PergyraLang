@@ -223,6 +223,19 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         return;
     }
     inst->expr0 = (ASTNode *)stmt;
+    {
+        uint32_t kind = 0;
+        uint32_t receiver_binding_id = 0;
+        uint32_t source_binding_id = 0;
+        if (ast_call_semantic_collection_effect(
+                stmt, &kind, &receiver_binding_id, &source_binding_id)) {
+            inst->has_collection_ownership_receipt = true;
+            inst->collection_ownership_effect_kind = kind;
+            inst->collection_ownership_receiver_binding_id =
+                receiver_binding_id;
+            inst->collection_ownership_source_binding_id = source_binding_id;
+        }
+    }
     mir_attach_lifecycle_guard_fact(inst, stmt);
     if (ast_call_callee(stmt) == NULL
         || ast_call_callee(stmt)->type != AST_IDENTIFIER) {

@@ -128,6 +128,9 @@ mir_validate(const MIRProgram *mir, char **error_message)
         if (!mir_validate_collection_ownership_facts(
                 routine, error_message))
             return false;
+        if (!mir_validate_collection_ownership_transitions(
+                routine, error_message))
+            return false;
         if (!mir_validate_intent_execution_plan(routine, error_message))
             return false;
         if (!mir_validate_cfg_contract_state(routine, false, true, true,

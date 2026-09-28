@@ -36,6 +36,14 @@ typedef enum
     PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
 } PgyCollectionOrigin;
 
+typedef enum
+{
+    PGY_COLLECTION_EFFECT_NONE = 0,
+    PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH,
+    PGY_COLLECTION_EFFECT_SHALLOW_MUTATION,
+    PGY_COLLECTION_EFFECT_DROP
+} PgyCollectionOwnershipEffectKind;
+
 /* Semantic-owned stable row.  Symbol pointers are permitted only as a
  * transient scope lookup while recording or locating this row; they are not
  * semantic identity and are never projected to HIR/MIR. */
@@ -63,6 +71,19 @@ bool semantic_collection_reject_unsafe_owned_string_mutation(
 
 bool semantic_collection_admit_owned_string_drop(
     ASTNode *receiver,
+    SemanticContext *ctx);
+
+bool semantic_collection_reject_unsafe_string_array_assignment(
+    ASTNode *target,
+    ASTNode *value,
+    const Type *target_type,
+    const Type *value_type,
+    SemanticContext *ctx);
+
+bool semantic_collection_record_call_effect(
+    ASTNode *call,
+    ASTNode *receiver,
+    PgyCollectionOwnershipEffectKind kind,
     SemanticContext *ctx);
 
 const PgyCollectionOwnershipFact *semantic_collection_ownership_fact_find(

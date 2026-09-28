@@ -225,6 +225,8 @@ semantic_collection_ownership_initialize_binding(
             fact.origin = PGY_COLLECTION_ORIGIN_BINDING;
             reject_shallow_owned_copy =
                 source_fact->disposition == PGY_COLLECTION_DISPOSITION_RETIRED
+                || source_fact->origin ==
+                    PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
                 || source_fact->element_ownership ==
                     PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
                 || source_fact->element_ownership ==
@@ -247,16 +249,41 @@ semantic_collection_ownership_initialize_binding(
         PGY_CAUSE_BORROW_ESCAPE,
         PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
         initializer,
-        "Owned Array<String> binding '%s' cannot be shallow-copied into '%s'.\n"
+        "Tracked Array<String> binding '%s' cannot be shallow-copied into '%s'.\n"
         "Reason:\n"
-        "- both descriptors would point at the same owned string elements\n"
-        "- releasing either binding would leave the other dangling or cause a double free\n"
+        "- both descriptors would share one element-storage lifetime\n"
+        "- a later ownership-producing mutation or release could leave an alias dangling\n"
         "Fix:\n"
         "- keep one binding as the owner\n"
         "- or materialize a separately owned snapshot",
         source != NULL && source->name != NULL ? source->name : "<source>",
         binding->name != NULL ? binding->name : "<binding>");
     return true;
+}
+
+bool
+semantic_collection_record_call_effect(
+    ASTNode *call,
+    ASTNode *receiver,
+    PgyCollectionOwnershipEffectKind kind,
+    SemanticContext *ctx)
+{
+    Symbol *binding = NULL;
+    PgyCollectionOwnershipFact *fact;
+    uint32_t binding_id;
+
+    if (call == NULL || call->type != AST_CALL || receiver == NULL
+        || kind <= PGY_COLLECTION_EFFECT_NONE
+        || kind > PGY_COLLECTION_EFFECT_DROP) {
+        return false;
+    }
+    fact = receiver_collection_fact(receiver, ctx, &binding);
+    if (fact == NULL || fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL)
+        return true;
+    binding_id = receiver_binding_syntax_id(receiver, binding);
+    return binding_id != 0
+        && ast_call_set_semantic_collection_effect(
+            call, (uint32_t)kind, binding_id, 0);
 }
 
 static bool
@@ -328,6 +355,24 @@ semantic_collection_admit_owned_string_drop(
         ? binding->name : "<array>";
 
     if (fact == NULL) {
+        if (binding != NULL && binding->is_parameter
+            && is_array_string(binding->type)
+            && binding->param_mode != PARAM_MODE_OWN) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                receiver,
+                "ArrayDropOwnedStrings cannot release parameter '%s' without an own boundary.\n"
+                "Reason:\n"
+                "- default, ref, and inout parameters do not transfer string-element lifetime\n"
+                "- a deep drop could free borrowed or caller-owned elements\n"
+                "Fix:\n"
+                "- spell the parameter as 'own %s: Array<String>' when the callee consumes it\n"
+                "- or leave deep release with the caller's ownership fact",
+                name, name);
+            return false;
+        }
         if (reject_missing_collection_fact(
                 receiver, binding, "ArrayDropOwnedStrings", ctx))
             return false;
@@ -370,6 +415,62 @@ semantic_collection_admit_owned_string_drop(
         && fact->element_ownership != PGY_STRING_ARRAY_OWNED_ELEMENTS)
         return false;
     fact->disposition = PGY_COLLECTION_DISPOSITION_RETIRED;
+    return true;
+}
+
+bool
+semantic_collection_reject_unsafe_string_array_assignment(
+    ASTNode *target,
+    ASTNode *value,
+    const Type *target_type,
+    const Type *value_type,
+    SemanticContext *ctx)
+{
+    Symbol *target_binding;
+    Symbol *source_binding;
+    const PgyCollectionOwnershipFact *source_fact;
+    uint32_t target_id;
+    uint32_t source_id;
+
+    if (target == NULL || value == NULL || ctx == NULL
+        || target->type != AST_IDENTIFIER || value->type != AST_IDENTIFIER
+        || !is_array_string(target_type) || !is_array_string(value_type)) {
+        return false;
+    }
+    target_binding = scope_lookup(ctx->scope, ast_identifier_name(target));
+    source_binding = scope_lookup(ctx->scope, ast_identifier_name(value));
+    target_id = receiver_binding_syntax_id(target, target_binding);
+    source_id = receiver_binding_syntax_id(value, source_binding);
+    if (target_id == 0 || source_id == 0 || target_id == source_id)
+        return false;
+    source_fact = semantic_collection_ownership_fact_find(
+        ctx, current_function_syntax_id(ctx), source_id);
+    if (source_fact == NULL
+        || (source_fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
+            && source_fact->disposition !=
+                PGY_COLLECTION_DISPOSITION_RETIRED
+            && source_fact->element_ownership !=
+                PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
+            && source_fact->element_ownership !=
+                PGY_STRING_ARRAY_OWNED_ELEMENTS)) {
+        return false;
+    }
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_BORROW_ESCAPE,
+        PGY_CAUSE_BORROW_ESCAPE,
+        PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+        value,
+        "Tracked Array<String> binding '%s' cannot be shallow-assigned into '%s'.\n"
+        "Reason:\n"
+        "- both descriptors would share one element-storage lifetime\n"
+        "- a later ownership-producing mutation or release could leave an alias dangling\n"
+        "Fix:\n"
+        "- keep one binding as the owner\n"
+        "- or materialize a separately owned snapshot",
+        source_binding != NULL && source_binding->name != NULL
+            ? source_binding->name : "<source>",
+        target_binding != NULL && target_binding->name != NULL
+            ? target_binding->name : "<target>");
     return true;
 }
 

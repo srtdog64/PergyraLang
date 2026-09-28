@@ -2,6 +2,7 @@
 #include "callable_capability_inference.h"
 #include "type_checker_assignment.h"
 #include "type_checker_builtins_internal.h"
+#include "collection_ownership_fact.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_resolution_internal.h"
 #include "diag_codes.h"
@@ -239,6 +240,11 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         && type_slot_inner_type(target_type) != NULL
         && !type_is_resource_handle(value_type)
         && type_is_assignable(value_type, type_slot_inner_type(target_type))) {
+        return target_type;
+    }
+
+    if (semantic_collection_reject_unsafe_string_array_assignment(
+            target, value, target_type, value_type, ctx)) {
         return target_type;
     }
 

@@ -134,6 +134,10 @@ typedef struct
     const char      *arg1;
     const char      *result_name;
     uint32_t         binding_syntax_id;
+    bool             has_collection_ownership_receipt;
+    uint32_t         collection_ownership_effect_kind;
+    uint32_t         collection_ownership_receiver_binding_id;
+    uint32_t         collection_ownership_source_binding_id;
     const char     **uses;
     size_t           use_count;
     size_t           use_capacity;

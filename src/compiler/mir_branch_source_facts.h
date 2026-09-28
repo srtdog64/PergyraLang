@@ -27,6 +27,9 @@ const MIRCollectionOwnershipFact *mir_routine_collection_ownership_fact(
 bool mir_validate_collection_ownership_facts(
     const MIRRoutine *routine,
     char **error_message);
+bool mir_validate_collection_ownership_transitions(
+    const MIRRoutine *routine,
+    char **error_message);
 bool mir_capture_match_case_facts(MIRRoutine *routine,
                                   MIRInstruction *inst,
                                   ASTNode *case_node,

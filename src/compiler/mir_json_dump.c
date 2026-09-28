@@ -348,6 +348,34 @@ mir_json_emit_instruction(FILE *out, const MIRRoutine *routine,
     mir_json_emit_expr_or_null(out, inst->expr1);
     fputs(",\"expr1_graph\":", out);
     mir_json_emit_instruction_expression_graph(out, routine, inst, 1);
+    fputs(",\"collection_ownership_receipt\":", out);
+    if (inst->has_collection_ownership_receipt) {
+        const char *kind = NULL;
+        switch ((PgyCollectionOwnershipEffectKind)
+                    inst->collection_ownership_effect_kind) {
+        case PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH:
+            kind = "owned-string-push";
+            break;
+        case PGY_COLLECTION_EFFECT_SHALLOW_MUTATION:
+            kind = "shallow-mutation";
+            break;
+        case PGY_COLLECTION_EFFECT_DROP:
+            kind = "drop";
+            break;
+        default:
+            kind = "invalid";
+            break;
+        }
+        fputs("{\"kind\":", out);
+        mir_json_emit_str(out, kind);
+        fprintf(out,
+            ",\"receiver_binding_syntax_id\":%u"
+            ",\"source_binding_syntax_id\":%u}",
+            inst->collection_ownership_receiver_binding_id,
+            inst->collection_ownership_source_binding_id);
+    } else {
+        fputs("null", out);
+    }
     if (emit_local_refs)
         mir_json_emit_instruction_local_ref(out, routine, inst);
     if (!mir_json_emit_instruction_runtime_abi(out, inst)

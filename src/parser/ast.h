@@ -247,6 +247,12 @@ struct ASTNode
             bool           semantic_callee_builtin_kind_set, semantic_callee_is_stdlib;
             uint32_t       semantic_runtime_call_abi_id;
             bool           semantic_runtime_call_abi_id_set;
+            /* Semantic-owned Array<String> element-lifetime transition.
+             * Parser code only preserves this sealed receipt. */
+            uint32_t       semantic_collection_effect_kind;
+            uint32_t       semantic_collection_receiver_binding_id;
+            uint32_t       semantic_collection_source_binding_id;
+            bool           semantic_collection_effect_set;
             bool           uses_braced_initializer_syntax;
             bool           semantic_diverges; /* statement call typed Never (docs/205 L1) */
             bool           semantic_callee_declared_callable; /* docs/205 R7 */

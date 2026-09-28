@@ -1,0 +1,9 @@
+func RetireValues(inout values: Array<String>) -> Void {
+    ArrayDropOwnedStrings(values);
+}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPush(values, "borrowed");
+    RetireValues(values);
+}

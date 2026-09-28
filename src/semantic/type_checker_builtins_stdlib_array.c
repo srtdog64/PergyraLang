@@ -188,6 +188,17 @@ type_check_stdlib_array_call(ASTNode *expr,
                     type_name_or_unknown(arr));
             } else if (inner != NULL)
                 require_assignable(val, inner, arg1, ctx);
+            if (inner != NULL && type_equals(inner, TYPE_STRING)
+                && !semantic_collection_record_call_effect(
+                    expr, arg0,
+                    kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING
+                        ? PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH
+                        : PGY_COLLECTION_EFFECT_SHALLOW_MUTATION,
+                    ctx)) {
+                semantic_error(ctx, expr,
+                    "Could not seal Array<String> ownership transition receipt");
+                return TYPE_UNKNOWN;
+            }
         }
         return TYPE_VOID;
     }
@@ -213,6 +224,11 @@ type_check_stdlib_array_call(ASTNode *expr,
                 PGY_FIX_MATCH_BUILTIN_SIGNATURE, arg0,
                 "ArrayDropOwnedStrings requires Array<String>, got '%s'",
                 type_name_or_unknown(arr));
+        } else if (!semantic_collection_record_call_effect(
+                       expr, arg0, PGY_COLLECTION_EFFECT_DROP, ctx)) {
+            semantic_error(ctx, expr,
+                "Could not seal Array<String> ownership transition receipt");
+            return TYPE_UNKNOWN;
         }
         return TYPE_VOID;
     }
@@ -286,6 +302,14 @@ type_check_stdlib_array_call(ASTNode *expr,
             Type *inner = type_get_constructed_arg(arr, 0);
             if (inner != NULL)
                 require_assignable(val, inner, arg2, ctx);
+            if (inner != NULL && type_equals(inner, TYPE_STRING)
+                && !semantic_collection_record_call_effect(
+                    expr, arg0, PGY_COLLECTION_EFFECT_SHALLOW_MUTATION,
+                    ctx)) {
+                semantic_error(ctx, expr,
+                    "Could not seal Array<String> ownership transition receipt");
+                return TYPE_UNKNOWN;
+            }
         }
         return TYPE_VOID;
     }
@@ -310,6 +334,17 @@ type_check_stdlib_array_call(ASTNode *expr,
                 PGY_FIX_MATCH_BUILTIN_SIGNATURE, arg0,
                 "ArrayPop requires Array<T>, got '%s'",
                 type_name_or_unknown(arr));
+        else {
+            Type *inner = type_get_constructed_arg(arr, 0);
+            if (inner != NULL && type_equals(inner, TYPE_STRING)
+                && !semantic_collection_record_call_effect(
+                    expr, arg0, PGY_COLLECTION_EFFECT_SHALLOW_MUTATION,
+                    ctx)) {
+                semantic_error(ctx, expr,
+                    "Could not seal Array<String> ownership transition receipt");
+                return TYPE_UNKNOWN;
+            }
+        }
         return TYPE_VOID;
     }
     if (kind == STDLIB_COLLECTION_ARRAY_SORT

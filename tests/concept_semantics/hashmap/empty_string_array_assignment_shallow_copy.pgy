@@ -1,0 +1,8 @@
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Concat("owned", "-value"));
+    let alias: Array<String> = [];
+    alias = values;
+    ArrayDropOwnedStrings(values);
+    Log(ArrayLength(alias));
+}
