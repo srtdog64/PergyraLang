@@ -157,7 +157,7 @@ P1만은 예외로, 지금 활성인 소유권 rung 자신의 닫힘 조건이�
 owner, 마지막 consumer, 게이트 하나를 요구한다.
 
 - **P0. 세계관 구성요소 건전성 마무리.** (2026-09-29 완료: 3b는 f04c10ed, dyn은
-  그 다음 커밋)
+  cfc4ac1b)
   - PP-064 3b(bind subject, role `self`, bound party escape)를 착지한다.
   - `dyn` 표현 구멍을 닫는다. 두 파서의 AST 텍스트가 dyn 여부를 싣고,
     default route가 static slot bind를 거부하게 한다.
@@ -200,11 +200,29 @@ owner, 마지막 consumer, 게이트 하나를 요구한다.
 - **P2. 단계 인계를 revision 사실로.**
   - production entrypoint: `pgy-self-driver` source→C
     (`CompileSourceToCVerified`).
-  - 지울 bypass: 같은 프로세스 안에서 MIR JSON 문자열을 만들고 다시 읽는 인계.
-  - MIR는 계속 codegen의 단일 입력이다. 문자열 대신 revision 안의 MIR 사실을
-    넘긴다.
-  - 게이트: emitted C가 같음을 보이는 parity, 그리고 source 경로가 MIR JSON
-    텍스트를 다시 읽지 않는다는 negative ratchet.
+  - MIR는 계속 codegen의 단일 입력이다.
+  - 측정(2026-09-29)해 보니 일이 두 층이다.
+    - MIR의 메모리 표현 자체가 JSON 텍스트와 오프셋 색인이다
+      (`MirProgramRoutineIndex.source_json`, instruction start/end). `mir_lower`
+      owner 전체가 이 텍스트를 오프셋으로 읽는다. source→C는 MIR JSON 문자열을
+      만든 뒤 `MirMachineLayerAdmitJsonInput`으로 다시 색인한다.
+    - 그 뒤 `DriverRung2IntentTreeEmissionOrDie`가 MIR에서 AST 텍스트를 다시
+      만들고 semantic 분석을 한 번 더 돌린다. codegen은 그 결과를 소비한다.
+    - 직접 MIR→C 경로는 주장한 조각만 덮는다:
+      `DriverRung2ScalarCSubstitutionIfClaimed`,
+      `DriverRung2NestedIntentCSubstitutionIfClaimed`, 그리고 레지스트리의
+      `projection.direct_mir_*` 행.
+  - **P2b(먼저).** codegen이 MIR 사실을 직접 소비하게 해서 MIR→AST 재구성과
+    두 번째 semantic 분석을 지운다.
+    - 이미 있는 direct-MIR GraphPlan 조각을 넓히는 일이다. P1의 모양별
+      projection 행 합치기와 같은 일이라 함께 진행한다.
+    - 지울 bypass: `DriverRung2IntentTreeEmissionOrDie` 이후의 재구성 경로.
+    - 게이트: 넓힌 조각마다 emitted C/LLVM parity를 둔다. 재구성 경로로
+      떨어지는 프로그램 수는 줄어들기만 하는 래칫으로 막는다.
+  - **P2a(그다음).** MIR를 구조화된 revision 사실로 두고, JSON은 경계
+    (`--emit-mir-json-verified`, `--mir-json`)에서만 직렬화한다.
+    - 소비자 family를 하나씩 옮긴다. 옮긴 family가 JSON 텍스트를 다시 읽지
+      못하게 negative ratchet으로 막는다.
 - **P3. `ArtifactTransactionZone` 하나로.**
   - 경로별 zone 네 개의 commit/reject를 target environment를 인자로 받는
     transaction 하나로 합친다.
