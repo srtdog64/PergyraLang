@@ -54,7 +54,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     );
     let function_env_rows: Array<String> = [Concat("", "|")];
     if specialized_name != "" {
-        ArrayPush(function_env_rows, CodegenGenericSpecializationCallEnvRows(
+        ArrayPushOwnedString(function_env_rows, CodegenGenericSpecializationCallEnvRows(
             body_types.generic_specializations, specialized_name));
     }
     let prologue: String = "";
@@ -113,7 +113,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     }
     if owner_name != "" &&
         LookupKindType(base_env, owner_name, "s") == "struct" {
-        ArrayPush(
+        ArrayPushOwnedString(
             function_env_rows,
             CodegenFunctionOwnerFieldEnvRows(
                 owner_name, owner_receiver_c_expression, base_env
@@ -134,7 +134,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                     "self", owner_name, base_env,
                     owner_receiver_c_expression
                 );
-            ArrayPush(function_env_rows, self_binding.env_rows);
+            ArrayPushOwnedString(function_env_rows, self_binding.env_rows);
         }
     }
     while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
@@ -237,11 +237,11 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             params = Concat(params, Concat(", ", c_param));
         }
         if p_mode == 3 && !readonly_ref_direct {
-            ArrayPush(function_env_rows, TypeEnvTypedReadonlyRefBindingRows(
+            ArrayPushOwnedString(function_env_rows, TypeEnvTypedReadonlyRefBindingRows(
                 p_name, p_type, p_binding.value_kind, c_ref_name
             ));
         } else {
-            ArrayPush(function_env_rows, p_env_binding.env_rows);
+            ArrayPushOwnedString(function_env_rows, p_env_binding.env_rows);
             let callable_rows: String =
                 CodegenCallableParameterBindingRows(
                     cur[0],
@@ -249,7 +249,7 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                     p_env_binding.c_name
                 );
             if callable_rows != "" {
-                ArrayPush(function_env_rows, callable_rows);
+                ArrayPushOwnedString(function_env_rows, callable_rows);
             }
         }
         param_n = param_n + 1;
