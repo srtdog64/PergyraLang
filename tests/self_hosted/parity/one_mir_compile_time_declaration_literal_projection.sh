@@ -56,7 +56,7 @@ reject_case() {
             fail "$target accepted negative MIR: ${input##*/}"
         fi
         [[ ! -e "$output" ]] || fail "$target published a rejected artifact: ${input##*/}"
-        grep -Eiq 'compile-time declaration erasure|literal Log|MIR machine-layer' "$output.out" "$output.err" || {
+        grep -Eiq 'compile-time declaration erasure|literal Log|MIR machine-layer|MIR instruction identities' "$output.out" "$output.err" || {
             cat "$output.out" "$output.err" >&2 || true
             fail "$target negative escaped the declaration/literal owner: ${input##*/}"
         }
@@ -121,5 +121,5 @@ done
 
 negative_count=0
 for input in "$WORK"/*.negative.json; do reject_case "$input"; negative_count=$((negative_count + 1)); done
-[[ "$negative_count" -eq 28 ]] || fail "expected 28 negative cases, got $negative_count"
+[[ "$negative_count" -eq 30 ]] || fail "expected 30 negative cases, got $negative_count"
 echo "[$LABEL] ability exact 7, zero-decl/rename/display equality, literal 73, and $negative_count negatives ok; string literal ready also C/LLVM exact"

@@ -160,7 +160,7 @@ func DirectMirConstructedRecordArrayMemberMainAdmissionFromProgram(
             envelope3, "3", identity.main_graph.first_local,
             first.result, identity.record.name, identity.record.name,
             true, identity.record.name
-        ) || JsonObjectFactCount(envelope4) != 25 ||
+        ) || JsonObjectFactCount(envelope4) != 26 ||
         !DirectMirLogInstructionEnvelopeReady(envelope4, "4") ||
         wrapper.arg0 != identity.main_graph.receiver_local ||
         wrapper.arg1 != identity.wrapper.name ||

@@ -223,6 +223,9 @@ func DirectMirLogInstructionEnvelopeReady(
         DirectMirObjectFieldKindEquals(instruction, "expr0", "string") &&
         DirectMirObjectFieldKindEquals(instruction, "expr1", "null") &&
         DirectMirObjectFieldKindEquals(instruction, "expr1_graph", "null") &&
+        DirectMirObjectFieldKindEquals(
+            instruction, "collection_ownership_receipt", "null"
+        ) &&
         DirectMirObjectFieldKindEquals(instruction, "machine_layer", "null") &&
         JsonObjectFactStringFieldEquals(instruction, "machine_contact_kind", "") &&
         DirectMirObjectArrayEmpty(instruction, "match_patterns") &&

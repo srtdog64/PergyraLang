@@ -42,7 +42,7 @@ func DirectMirConstructedRecordArrayDefinitionEnvelopeReady(
         );
     }
     return JsonObjectFactTableReady(instruction) &&
-        JsonObjectFactCount(instruction) == 25 &&
+        JsonObjectFactCount(instruction) == 26 &&
         DirectMirObjectNumberEquals(instruction, "id", expected_id) &&
         JsonObjectFactStringFieldEquals(instruction, "kind", "def") &&
         JsonObjectFactStringFieldEquals(instruction, "name", "ssa-def") &&
@@ -63,6 +63,8 @@ func DirectMirConstructedRecordArrayDefinitionEnvelopeReady(
             instruction, "expr1", expected_expr1
         ) && DirectMirObjectFieldKindEquals(
             instruction, "expr1_graph", "null"
+        ) && DirectMirObjectFieldKindEquals(
+            instruction, "collection_ownership_receipt", "null"
         ) && JsonObjectFactStringFieldEquals(
             instruction, "source_type", "AST_LET_DECL"
         ) && JsonObjectFactStringFieldEquals(

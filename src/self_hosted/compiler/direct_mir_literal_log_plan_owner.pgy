@@ -152,7 +152,7 @@ func DirectMirLiteralLogPlanFromAdmitted(
     );
     let uses: MirRoutineInstructionUseFacts =
         BuildMirRoutineInstructionUseFacts(admitted.routines, 0);
-    if JsonObjectFactCount(instruction) != 25 ||
+    if JsonObjectFactCount(instruction) != 26 ||
         !DirectMirLogInstructionEnvelopeReady(instruction, "0") ||
         !MirRoutineInstructionUseFactsReady(uses, 2) ||
         MirRoutineInstructionUseCountAtGlobal(uses, instruction_row) != 0 {

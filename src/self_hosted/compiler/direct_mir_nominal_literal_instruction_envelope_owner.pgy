@@ -8,7 +8,7 @@ func DirectMirNominalLiteralDefinitionEnvelopeReady(
     result_value: String
 ) -> Bool {
     return JsonObjectFactTableReady(instruction) &&
-        JsonObjectFactCount(instruction) == 25 &&
+        JsonObjectFactCount(instruction) == 26 &&
         DirectMirObjectNumberEquals(instruction, "id", "0") &&
         JsonObjectFactStringFieldEquals(instruction, "kind", "def") &&
         JsonObjectFactStringFieldEquals(instruction, "name", "ssa-def") &&
@@ -29,6 +29,8 @@ func DirectMirNominalLiteralDefinitionEnvelopeReady(
             instruction, "expr1", program.declaration.name
         ) && DirectMirObjectFieldKindEquals(
             instruction, "expr1_graph", "null"
+        ) && DirectMirObjectFieldKindEquals(
+            instruction, "collection_ownership_receipt", "null"
         ) && JsonObjectFactStringFieldEquals(
             instruction, "source_type", "AST_LET_DECL"
         ) && JsonObjectFactStringFieldEquals(

@@ -86,6 +86,18 @@ def main() -> int:
         "extra-instruction": lambda d: d["routines"][0]["blocks"][0]["instructions"].append(copy.deepcopy(d["routines"][0]["blocks"][0]["instructions"][0])),
         "unreachable-block": lambda d: d["routines"][0]["blocks"][0].update(reachable=False),
         "instruction-kind": lambda d: d["routines"][0]["blocks"][0]["instructions"][0].update(kind="def"),
+        "missing-ownership-receipt": lambda d: d["routines"][0]["blocks"][0][
+            "instructions"
+        ][0].pop("collection_ownership_receipt"),
+        "forged-ownership-receipt": lambda d: d["routines"][0]["blocks"][0][
+            "instructions"
+        ][0].update(
+            collection_ownership_receipt={
+                "kind": "drop",
+                "receiver_binding_syntax_id": 1,
+                "source_binding_syntax_id": 0,
+            }
+        ),
         "forged-use": lambda d: d["routines"][0]["blocks"][0]["instructions"][0].update(uses=["x.1"]),
         "graph-kind": lambda d: d["routines"][0]["blocks"][0]["instructions"][0]["expr0_graph"]["nodes"][0].update(kind="bool_literal", text="true"),
         "graph-tail": lambda d: d["routines"][0]["blocks"][0]["instructions"][0]["expr0_graph"]["nodes"].append({"kind": "integer_literal", "text": "9", "call_target_kind": "none", "call_target_name": "", "left": None, "right": None}),

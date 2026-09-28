@@ -238,7 +238,7 @@ func DirectMirRoleOverrideLiteralFromRoutine(
         MirRoutineInstructionFactBundleAtGlobal(
             index.instruction_facts, global
         );
-    if !capture.valid || JsonObjectFactCount(instruction) != 25 ||
+    if !capture.valid || JsonObjectFactCount(instruction) != 26 ||
         !DirectMirObjectNumberEquals(instruction, "id", "0") ||
         admitted.routines.instruction_kinds[global] != "return" ||
         capture.name != "return" ||
@@ -252,6 +252,9 @@ func DirectMirRoleOverrideLiteralFromRoutine(
         !DirectMirObjectFieldKindEquals(instruction, "expr0_graph", "object") ||
         !DirectMirObjectFieldKindEquals(instruction, "expr1", "null") ||
         !DirectMirObjectFieldKindEquals(instruction, "expr1_graph", "null") ||
+        !DirectMirObjectFieldKindEquals(
+            instruction, "collection_ownership_receipt", "null"
+        ) ||
         !DirectMirObjectFieldKindEquals(instruction, "machine_layer", "null") ||
         !JsonObjectFactStringFieldEquals(
             instruction, "machine_contact_kind", ""
@@ -416,7 +419,7 @@ func DirectMirRoleOverrideMainFromRoutine(
             index.instruction_facts, definition_global
         );
     let local_name: String = index.source_local_names[0];
-    if JsonObjectFactCount(definition) != 25 ||
+    if JsonObjectFactCount(definition) != 26 ||
         !definition_capture.valid ||
         admitted.routines.instruction_kinds[definition_global] != "def" ||
         definition_capture.name != "ssa-def" ||
@@ -434,6 +437,9 @@ func DirectMirRoleOverrideMainFromRoutine(
         !DirectMirObjectFieldKindEquals(definition, "expr0_graph", "object") ||
         !DirectMirObjectFieldKindEquals(definition, "expr1", "string") ||
         !DirectMirObjectFieldKindEquals(definition, "expr1_graph", "null") ||
+        !DirectMirObjectFieldKindEquals(
+            definition, "collection_ownership_receipt", "null"
+        ) ||
         !DirectMirObjectFieldKindEquals(definition, "machine_layer", "null") ||
         !DirectMirObjectArrayEmpty(definition, "match_patterns") ||
         !DirectMirObjectArrayEmpty(definition, "match_bindings") ||
@@ -441,7 +447,7 @@ func DirectMirRoleOverrideMainFromRoutine(
         !DirectMirObjectArrayEmpty(definition, "destructure_bindings") ||
         MirRoutineInstructionUseCountAtGlobal(
             uses, definition_global
-        ) != 0 || JsonObjectFactCount(log_instruction) != 25 ||
+        ) != 0 || JsonObjectFactCount(log_instruction) != 26 ||
         !DirectMirLogInstructionEnvelopeReady(log_instruction, "1") ||
         MirRoutineInstructionUseCountAtGlobal(uses, log_global) != 1 {
         return invalid;

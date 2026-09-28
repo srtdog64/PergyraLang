@@ -107,7 +107,7 @@ func DirectMirNominalLiteralProgramAdmissionFromAdmitted(
             definition.result, program.graph.local_name, false
         ) || !DirectMirNominalLiteralDefinitionEnvelopeReady(
             definition_object, program, definition.result
-        ) || JsonObjectFactCount(output_object) != 25 ||
+        ) || JsonObjectFactCount(output_object) != 26 ||
         !DirectMirLogInstructionEnvelopeReady(output_object, "1") ||
         !DirectMirNominalLiteralExpectedUse(uses, first, "") ||
         !DirectMirNominalLiteralExpectedUse(
