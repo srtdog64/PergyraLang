@@ -182,49 +182,59 @@ func DirectMirCompositeIntentLlvmGlobals(
         }
         row = row + 1;
     }
-    let formats: Array<String> = [
-        Concat(plan.main.log_literals[0], "%s"),
+    output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
+        DirectMirCompositeIntentLlvmIndexedSymbol("format", 0),
+        Concat(plan.main.log_literals[0], "%s")
+    ));
+    output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
+        DirectMirCompositeIntentLlvmIndexedSymbol("format", 1),
         Concat(plan.main.log_literals[1], Concat("%s", Concat(
             plan.main.log_literals[2], Concat("%d", Concat(
                 plan.main.log_literals[3], "%s"
             ))
-        ))),
+        )))
+    ));
+    output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
+        DirectMirCompositeIntentLlvmIndexedSymbol("format", 2),
         Concat(plan.main.log_literals[4], Concat("%d", Concat(
             plan.main.log_literals[5], Concat("%d", Concat(
                 plan.main.log_literals[6], "%d"
             ))
-        ))),
-        Concat(plan.main.log_literals[7], "%d"),
-        Concat(plan.main.log_literals[8], "%d"),
-        Concat(plan.main.log_literals[9], "%d"),
-        Concat(plan.main.log_literals[10], "%d"),
+        )))
+    ));
+    output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
+        DirectMirCompositeIntentLlvmIndexedSymbol("format", 3),
+        Concat(plan.main.log_literals[7], "%d")
+    ));
+    output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
+        DirectMirCompositeIntentLlvmIndexedSymbol("format", 4),
+        Concat(plan.main.log_literals[8], "%d")
+    ));
+    output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
+        DirectMirCompositeIntentLlvmIndexedSymbol("format", 5),
+        Concat(plan.main.log_literals[9], "%d")
+    ));
+    output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
+        DirectMirCompositeIntentLlvmIndexedSymbol("format", 6),
+        Concat(plan.main.log_literals[10], "%d")
+    ));
+    output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
+        DirectMirCompositeIntentLlvmIndexedSymbol("format", 7),
         Concat(plan.main.log_literals[11], Concat("%s", Concat(
             plan.main.log_literals[12], Concat("%s", Concat(
                 plan.main.log_literals[13], Concat("%s", Concat(
                     plan.main.log_literals[14], "%s"
                 ))
             ))
-        ))),
-        Concat(plan.main.log_literals[15], "%s")
-    ];
-    row = 0;
-    while row < ArrayLength(formats) {
-        if row == 8 {
-            output = Concat(
-                output,
-                DirectMirCompositeIntentLlvmFormatNoNewlineGlobal(
-                    DirectMirCompositeIntentLlvmIndexedSymbol("format", row),
-                    formats[row]
-                )
-            );
-        } else {
-            output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
-                DirectMirCompositeIntentLlvmIndexedSymbol("format", row),
-                formats[row]
-            ));
-        }
-        row = row + 1;
-    }
+        )))
+    ));
+    output = Concat(
+        output,
+        DirectMirCompositeIntentLlvmFormatNoNewlineGlobal(
+            DirectMirCompositeIntentLlvmIndexedSymbol("format", 8),
+            Concat(plan.main.log_literals[15], "%s")
+        )
+    );
     return Concat(output, "\n");
 }
 
