@@ -166,9 +166,16 @@ cosmetic reshuffling.
   deleted, the existing fact owner, the last orchestration consumer, and one
   execution/parity/negative gate. Do not leave `Main -> old function` as a
   fallback beside the Pergyra-native path.
-- `PgyCompilerWorld` is the executable composition root only for the
-  `--mir-json-backend` direct-MIR slice already reached from
-  `driver_bootstrap_main.pgy`. It remains the target root for source/MIR-to-C
-  modes and for a canonical compiler-purpose intent until the production root
-  reaches a real-purpose intent and deletes its direct bypass. Do not promote
-  slice reachability into whole-root dogfood.
+- `PgyCompilerWorld` is the executable composition root for the four
+  installed-driver artifact routes: direct MIR (`--mir-json`), source-to-MIR
+  (`--emit-mir-json-verified`), source-to-C (`intent CompilePergyraCArtifact`
+  -> `DriverSourceCExecution.Compile`), and source-to-LLVM
+  (`intent CompilePergyraProgram`). Its members are those four route zones;
+  that is route-level `REACHABLE` dogfood. The stage topology in `world.pgy`
+  (`LexerStage` through `ProgramEmitter`, the stage zones, and the stage
+  intents) is declared target topology, not world members, and its
+  readiness-only actions are not dogfood evidence. Inside a route action the
+  stages still run as plain function calls and hand off through MIR JSON text.
+  The target shape and its ordered rungs live in
+  `docs/self_hosted/14_target_compiler_world.md`. Do not promote route
+  reachability into stage-level or whole-compiler dogfood.

@@ -1,6 +1,7 @@
 # Target Compiler World
 
-Status: `target-architecture-contract` (2026-06-25)
+Status: `target-architecture-contract` (2026-06-25); vision revised and
+prioritized 2026-09-29 (see the first section below)
 
 This document records the target shape for hard self-hosting. It is the
 architecture that `11_compiler_world_architecture.md`,
@@ -11,6 +12,176 @@ This is not a release claim that the compiler is already self-hosted. It is the
 target contract: the Pergyra compiler should read as one compiler world whose
 facts are owned by zones and whose backends are projections, not as a C folder
 graph rewritten in Pergyra.
+
+## 2026-09-29 비전 개정: 컴파일러를 자기 세계 위에
+
+사용자 결정(2026-09-29): 컴파일러의 설계 구조가 언어가 추구하는 세계관을
+따르게 만드는 일을 높은 우선순위로 둔다. 아래 모양이 목표다. 이 절 뒤의
+`Shape`, `Contract`, `What This Rejects`는 이 모양의 세부 계약으로 계속 유효하다.
+
+```text
+PgyCompilerWorld
+├─ CompileProgram intent
+├─ CheckProgram intent
+├─ FormatSource intent
+├─ DebugProgram intent
+│
+├─ CompilationRevisionZone
+│  ├─ SourceGraph
+│  ├─ TypeDag + HIR
+│  ├─ DIR
+│  ├─ RIR
+│  ├─ MIR
+│  └─ AIR certificate
+│
+├─ TargetEnvironmentZone
+│  └─ ABI + capability facts
+│
+├─ VerifiedProjectionPlan
+│  ├─ C projection
+│  ├─ LLVM projection
+│  └─ self-host projection
+│
+└─ ArtifactTransactionZone
+   └─ published artifact | typed rejection
+```
+
+원칙은 다음과 같다.
+
+- 순수 계산은 `func`/`struct` owner로 남는다. 권한, 상태 전이, 효과가 실제로
+  있는 곳만 `subject`/`action`/`zone`/`intent`가 소유한다. 그런 곳은 소스
+  입수(IO 권한), revision 봉인, 산출물 게시(효과), 워커 경계다.
+- intent는 실제 목적 하나에 성공과 실패의 의미가 닫혀 있을 때만 둔다.
+  Compile(산출물 게시), Check(판정만), Format(소스 재작성), Debug(세션)는
+  성공의 의미가 서로 달라서 intent가 넷이다.
+- 한 규칙은 한 곳에서만 결정된다. 단계 사이의 인계는 같은 revision 안의 사실을
+  읽는 것이다. 텍스트로 직렬화했다가 다시 파싱하는 것은 인계가 아니다.
+
+`Shape`의 기존 다섯 fact zone은 다음처럼 옮겨진다.
+
+| 기존(2026-06-25) | 개정 |
+|---|---|
+| `SourceFacts`, `TypeDag`, `AIR Evidence`, `MIR Fact` | `CompilationRevisionZone`의 층 |
+| `ABI Layout`, target capability | `TargetEnvironmentZone` |
+| C/LLVM/SelfHosted emission zone | `VerifiedProjectionPlan`의 projection |
+| `Artifact Zone` | `ArtifactTransactionZone` |
+
+### 현재와의 거리 (2026-09-29, `unit-scope` 트리에서 측정)
+
+- **외곽은 이미 세계 위에 있다.** `PgyCompilerWorld`의 멤버는 경로마다 둔
+  zone 네 개(`direct_mir`, `source_mir`, `source_llvm`, `source_c`)다. 기본
+  경로 `pgy file --backend=c`는 self-host 드라이버를 거쳐 다음 순서로 간다.
+  `CompileSourceToCThroughPgyCompilerWorld` → `PgyCompilerWorld.CompileSourceToC`
+  → `intent CompilePergyraCArtifact` → `DriverSourceCExecution.Compile`.
+  이 action은 `io_read`/`io_write` 권한 아래 산출물을 원자적으로 commit하고,
+  receipt나 typed rejection을 남긴다. 따라서 `ArtifactTransactionZone`의 실체는
+  이미 있다. 다만 경로마다 따로 있다. source→LLVM은 `CompilePergyraProgram`
+  intent를 거친다.
+  - `AGENTS.md`, `docs/55_keyword_progress_board.md`,
+    `18_c_oracle_bootstrap_contract.md`는 world가 direct-MIR 조각에서만 실행
+    루트라고 적고 있었다. 2026-09-29에 이 도달 범위로 고쳤다.
+- **내부 단계는 세계 밖에 있다.**
+  - `Compile` action 안의 lexer부터 codegen까지는 평범한 함수 호출이다.
+  - `LexerStage`, `ParserStage`, `SemanticStage`, `MirLowerStage`,
+    `ProgramEmitter`와 단계 zone들은 world 멤버가 아니다. 선언된 목표
+    토폴로지일 뿐이다. 그 action들은 `CompilerTokenStreamFactReady()` 같은
+    readiness 불리언만 돌려준다.
+- **단계 인계가 텍스트를 거친다.**
+  - `CompileSourceToCVerified`는 `CompileSourceToMirJsonVerified`로 MIR JSON
+    문자열을 만든다. 그 문자열을 `CompileMirJsonTextToCForTargetVerifiedObserved`가
+    다시 읽는다.
+  - canonical MIR 실행은 MIR에서 AST 텍스트를 다시 만들고 semantic을 한 번 더
+    돌린다(`MirExpressionGraphFactsForArtifact`). PP-064에서 bind subject를
+    이 재구성 경로에 따로 등록해야 했던 것이 그 비용이다.
+  - 이는 이 문서의 `What This Rejects`와 부딪친다.
+- **선언 분포.**
+  - self-host 선언: `func` 9,206, `struct` 735, `action` 24, `subject` 20,
+    `zone` 18, `intent` 14, `world` 2.
+  - 파일: `.pgy` 1,915개 중 1,810개가 `*_owner.pgy`다.
+- **규칙이 두 번 구현된다.** native C와 self-host가 semantic 규칙을 각자
+  결정한다. PP-064 한 단위에서만 다음이 두 번 구현됐다.
+  - local name rule
+  - bind subject 검사
+  - bound party escape
+  - role 본문 `self`
+
+  그 과정에서 두 구현의 어긋남이 둘 드러났다: 파라미터 subject 허용 여부와
+  dyn slot 구분.
+- **세계관 구성요소가 아직 건전하지 않았다.**
+  - role 본문 `self`는 native에서 타입이 없었고(f13090b0에서 수정), default
+    route에서는 role 이름으로 잘못 매겨졌다.
+  - party slot은 subject 없이 NULL이나 party 자신을 `self`로 넘겼다.
+  - 두 파서의 AST 텍스트는 `dyn` 여부를 담지 않는다.
+- **이미 있는 조각.**
+  - LSP의 `document_revision_owner.pgy`와 `document_store_owner.pgy`는 revision
+    개념의 씨앗이다.
+  - `SelfHostMachineLayerDeclaration`과 `CompilerTargetProjectionFact`는
+    `TargetEnvironmentZone`의 씨앗이다.
+
+### 열린 설계 결정 (권고 포함, 사용자 확정 전)
+
+1. **`VerifiedProjectionPlan`의 자리.**
+   - 권고: world 멤버가 아니라 (revision, target environment) 쌍의 파생 사실로
+     둔다.
+   - 같은 revision이 여러 target으로 투영되기 때문이다.
+   - 계획을 만드는 단계와 계획 게이트(`Projection Plan Gate`)는 Compile intent의
+     step이다.
+2. **소스 입수 경계.**
+   - 권고: 파일 시스템과 편집 버퍼를 읽는 `io_read` 권한 경계를 revision
+     바깥에 둔다. 그 경계가 봉인된 revision을 만든다.
+   - Format과 LSP 편집도 같은 입수 경계를 쓴다.
+3. **revision 봉인.**
+   - 권고: 한 층의 사실은 봉인된 뒤 불변이다.
+   - 그래서 병렬 워커는 문서화된 read-only view로 공유한다. 이는 AGENTS의
+     컨테이너 경계 규칙과 맞는다.
+4. **IR 층의 표현.**
+   - 권고: HIR, DIR, RIR, MIR, AIR는 revision 안의 fact owner(`func`/`struct`)로
+     둔다. 층마다 zone을 두지 않는다(`What This Rejects`: zone per function
+     family).
+5. **MIR 중간 진입.**
+   - 권고: `--mir-json` 입력은 MIR 층에서 시작하는 revision으로 둔다. 출처는
+     provenance로 표시한다.
+   - 재도출 검증을 원하면, 그 검증은 CheckProgram의 인증서 owner가 명시적으로
+     소유한다. 인계 수단으로 쓰지 않는다.
+6. **native C 컴파일러의 자리.**
+   - 권고: world 바깥의 bootstrap oracle로 둔다.
+   - 새 규칙 family는 권위 쪽을 먼저 정하고, 양쪽 parity/negative 게이트를
+     함께 둔다.
+
+### 실현 우선순위 (높음)
+
+현재 진행 중인 활성 rung이 착지한 뒤에는 아래 순서가 다음 활성 rung을 정한다.
+`docs/206`의 남은 단위(PP-063, R11/R13)보다 앞선다. 각 rung은 `AGENTS.md`의
+진척 가드를 따른다. 가드는 production entrypoint, 지울 direct bypass, fact
+owner, 마지막 consumer, 게이트 하나를 요구한다.
+
+- **P0. 세계관 구성요소 건전성 마무리.**
+  - PP-064 3b(bind subject, role `self`, bound party escape)를 착지한다.
+  - `dyn` 표현 구멍을 닫는다. 두 파서의 AST 텍스트가 dyn 여부를 싣고,
+    default route가 static slot bind를 거부하게 한다.
+- **P1. 단계 인계를 revision 사실로.**
+  - production entrypoint: `pgy-self-driver` source→C
+    (`CompileSourceToCVerified`).
+  - 지울 bypass: 같은 프로세스 안에서 MIR JSON 문자열을 만들고 다시 읽는 인계.
+  - MIR는 계속 codegen의 단일 입력이다. 문자열 대신 revision 안의 MIR 사실을
+    넘긴다.
+  - 게이트: emitted C가 같음을 보이는 parity, 그리고 source 경로가 MIR JSON
+    텍스트를 다시 읽지 않는다는 negative ratchet.
+- **P2. `ArtifactTransactionZone` 하나로.**
+  - 경로별 zone 네 개의 commit/reject를 target environment를 인자로 받는
+    transaction 하나로 합친다.
+  - 경로별 중복 receipt 코드를 지운다.
+  - Compile과 Check가 같은 revision을 쓰고, 게시 여부만 다르게 한다.
+- **P3. 단계 subject를 실제 전이의 주인으로.**
+  - readiness 불리언 action을 지운다.
+  - 입수 경계와 revision 층 봉인을 action이 소유하게 한다.
+  - 소스 입수(`io_read`)부터 시작한다.
+- **P4. `TargetEnvironmentZone`과 `VerifiedProjectionPlan`.**
+  - C, LLVM, self-host projection이 같은 계획과 같은 MIR/ABI 사실을 소비함을
+    게이트로 증명한다(이 문서의 Gate Direction).
+- **P5. Check/Format/Debug intent.**
+  - LSP, `fmt`, `debug` 세션을 같은 world의 intent로 올린다.
+  - 따로 가진 revision/store를 `CompilationRevisionZone`으로 합친다.
 
 ## Shape
 

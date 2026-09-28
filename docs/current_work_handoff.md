@@ -9,6 +9,17 @@ commit. The isolated `codex/docs-curation` checkout was rebased onto that
 revision and was clean before this edit. The shared `D:\PergyraLang`
 checkout has separate dirty work and is not evidence for this branch.
 
+## Priority directive — compiler world realization (user, 2026-09-29)
+
+The user raised the compiler-world vision to high priority. Its target shape,
+measured distance, open decisions, and ordered rungs P0-P5 live in
+`docs/self_hosted/14_target_compiler_world.md` (first section). This does not
+open a parallel track: once the active rung below lands (and PP-064 unit 3b
+from `docs/206_minimal_unit_decisions.md`), the next active rung is chosen
+from P0-P5 in order, ahead of the remaining `docs/206` units (PP-063,
+R11/R13). Each rung still names its production entrypoint, the direct bypass
+to delete, the fact owner, the last consumer, and one gate.
+
 ## Active self-host context — collection ownership admission and cleanup
 
 Objective card:

@@ -106,14 +106,16 @@ gate가 소유한다. Backend가 C source나 C oracle 결과에서 의미를 재
 현재 bootstrap은 가능성 증명과 부분 실행 대체를 넘었지만 아직 완전 독립
 closure는 아니다.
 
-- Production `--mir-json-backend=c|llvm`의 direct-MIR slice는
-  `PgyCompilerWorld -> DriverRung2DirectMirZone -> DriverRung2Execution`에
-  실제로 도달한다.
+- Installed driver의 네 artifact 경로(direct MIR, source→MIR, source→C,
+  source→LLVM)는 `PgyCompilerWorld`의 경로 zone과 실행 action에 실제로
+  도달한다. source→C는 `CompilePergyraCArtifact`를, source→LLVM은
+  `CompilePergyraProgram` intent를 거친다(2026-09-29 확인).
 - 입력 기능의 admitted binding-slot 및 typed intent-transition slice만 기존
   C-owned consumer를 대체해 bounded `SUBSTITUTING`이다.
-- Source-to-C, source-to-MIR과 general MIR-to-C root는 아직 direct
-  `CompileSourceTo*` / `CompileMirJsonToC*` orchestration을 사용한다. Compiler
-  root의 canonical real-purpose `intent`도 아직 `SURFACE`다.
+- 다만 경로 action 안쪽은 아직 direct `CompileSourceTo*` /
+  `CompileMirJsonToC*` orchestration이고, 단계 사이를 MIR JSON 텍스트로
+  인계한다. 단계 subject/zone/intent는 world 멤버가 아닌 `SURFACE`다. 목표와
+  우선순위는 `14_target_compiler_world.md` 첫 절이 소유한다.
 - 일부 canonical/oracle bridge, 완전한 LLVM self projection, 전체 role/domain
   runtime 의미, frozen seed provenance와 Stage 2/3 convergence는 열려 있다.
 - 따라서 지금 C oracle을 삭제하면 비교 기준과 복구 seed를 동시에 잃는다.

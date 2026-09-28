@@ -1,6 +1,7 @@
 # Keyword Progress Board
 
-Updated: 2026-07-28 (Asia/Seoul)
+Updated: 2026-07-28 (Asia/Seoul). 2절의 `subject`/`action`/`intent`/`world`
+판정은 2026-09-29에 코드와 맞춰 고쳤다.
 
 이 문서는 키워드별 임의 백분율을 매기는 표가 아니다. 언어 어휘의 현재 권위와
 구현 증거를 어디서 확인해야 하는지, 그리고 object-to-action 경계의 다음 폐쇄
@@ -40,13 +41,13 @@ best practice는 `docs/200_object_to_action_boundary_patterns.md`가 소유한�
 | `object` | reserved | native + typed self-host | 같은 실행 경계의 local read projection | non-empty self DIR `refresh` row는 `SUBSTITUTING`; 일반 compiler object 사용은 `SURFACE` |
 | `tobject` | reserved | native + typed self-host | source lifecycle에서 분리된 immutable transfer | artifact receipt는 `REACHABLE`; non-empty self DIR `publish` row는 `SUBSTITUTING` |
 | `vessel` | reserved | native + typed self-host | subject-owned pointer-self state/resource | production declaration 0, `SURFACE` |
-| `subject` | reserved | native + typed self-host | 복제 불가능한 결정·승인 identity | direct-MIR 한 slice가 `REACHABLE` |
-| `action` | contextual | native + typed self-host | subject가 소유하는 관측 가능한 transition | direct-MIR 한 action이 `REACHABLE` |
+| `subject` | reserved | native + typed self-host | 복제 불가능한 결정·승인 identity | installed driver의 네 artifact 경로 실행 subject(`DriverRung2Execution`, `DriverSourceMirExecution`, `DriverSourceCExecution`, `DriverSourceLlvmIntentExecution`)가 `REACHABLE`; `world.pgy`의 단계 subject는 `SURFACE` |
+| `action` | contextual | native + typed self-host | subject가 소유하는 관측 가능한 transition | 네 경로의 실행 action(예: `DriverSourceCExecution.Compile`의 원자적 commit)이 `REACHABLE`; 단계 action은 readiness 불리언뿐이라 `SURFACE` |
 | `effect` | reserved | native + typed self-host | participant에 적용·유지되는 typed layer | exact bearer + refresh member/path + self eager bind/sync 실행은 좁은 `SUBSTITUTING`; full lifecycle은 열림 |
 | `relation` | reserved | native + typed self-host | 두 participant identity 사이의 materialized edge | exact source/target + publish member/path + self eager bind/sync 실행은 좁은 `SUBSTITUTING`; unlink/epoch은 열림 |
 | `zone` | reserved | native + typed self-host | membership, authority, lifetime, topology frontier | direct source→self MIR→plan→general C의 `7`/`dst`는 `SUBSTITUTING`; 전체 lifecycle/authority는 `BRIDGE` |
-| `intent` | reserved | typed selector와 direct-selector debt 공존 | 여러 실제 action의 성공·실패·보상 protocol | production call 없음, `SURFACE` |
-| `world` | reserved | native + typed self-host | 여러 실제 zone을 묶는 하나의 composition root | direct-MIR 한 composition이 `REACHABLE` |
+| `intent` | reserved | typed selector와 direct-selector debt 공존 | 여러 실제 action의 성공·실패·보상 protocol | `CompilePergyraCArtifact`(source→C, trace 검사)와 `CompilePergyraProgram`(source→LLVM)이 `REACHABLE`; 단계 intent는 `SURFACE` |
+| `world` | reserved | native + typed self-host | 여러 실제 zone을 묶는 하나의 composition root | 네 경로 zone을 묶은 `PgyCompilerWorld`가 `REACHABLE`; 단계 zone은 멤버가 아니다(`docs/self_hosted/14_target_compiler_world.md`) |
 
 `action`이 contextual인 것은 약한 기능이라는 뜻이 아니다. lexer는 identifier로
 남기고 subject body parser가 exact declaration 문맥에서 선택한다. 반대로
