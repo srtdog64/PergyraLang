@@ -200,6 +200,29 @@ owner, 마지막 consumer, 게이트 하나를 요구한다.
     rung의 닫힘 조건으로 넘긴다.
   - 진척은 CLOSED 수와 열린 행 수로 센다. owner 파일 수나 테스트 수는 세지
     않는다.
+- **H. 하네스 보고(사용자 결정, 2026-09-29: P2보다 앞선다).** Pergyra
+  Agents 하네스 세션이 올린 PP다. main CI 복구 다음, H1부터 순서대로 한다.
+  - **H1. PP-068.** native C가 사용자 함수를 이름 그대로 내보낸다. 생성 C가
+    `windows.h`를 포함하므로 `func Escape`가 `wingdi.h`의 `Escape`와 부딪혀
+    gcc가 멈춘다. native LLVM과 default C 경로는 통과한다. native C의 사용자
+    심볼 이름을 한 owner가 정하게 하고, Win32 이름 fixture로 막는다.
+  - **H2. PP-069의 진단 결함.** self-host는 String 대상 `match`를 위치 없는
+    `ast_artifact_invalid`로 거부한다. native는 `9:11`에서 "not beta-stable"로
+    거부한다. 기능을 넣기 전에도 위치와 이유가 있는 거부여야 한다.
+  - **H3. PP-066.** `SubIndexOf`/`SubIndexOfWithLen`은 시작 위치를 받는 할당
+    없는 검색 빌트인이다. 그런데 성능 문서에만 있고, 문자열 API 문서
+    (`docs/108_stdlib_beta_freeze.md`)에는 없다. 새 이름을 더하지 않고 문서에
+    올린다.
+  - **H4. PP-069 기능.** 식 형태 `match`(`return match c { 34 => "q", _ => "" };`)와
+    String 대상 `match`다. 언어 표면이 커지는 결정이라, `docs/206`처럼 최소
+    단위 결정과 증명을 먼저 적고 두 경로에 함께 넣는다.
+  - **PP-067(P1의 falsifier, Codex 소관).** `let pieces = acc.pieces;
+    ArrayPush(pieces, x)`가 세 경로 모두 컴파일된다. 반대 방향(로컬을 필드에
+    대입)은 native가 거부한다. push가 재할당하면 원래 `acc.pieces`는 해제된
+    메모리를 가리킨다. default C 경로에서 `a.pieces[0]`이 쓰레기 값을 읽는
+    것을 확인했다(재현: 필드에서 꺼낸 배열에 네 번 push한 뒤 원본을 읽기).
+    P1 전이표의 "필드 → 로컬" 칸이다. move는 소유한 출처에서만 허용하고,
+    나머지는 `Clone`을 요구해야 한다.
 - **P2. 단계 인계를 revision 사실로.**
   - production entrypoint: `pgy-self-driver` source→C
     (`CompileSourceToCVerified`).

@@ -24,7 +24,11 @@ collection-ownership rung itself. That condition is a finite ownership
 transition table proved complete in `CollectionOwnershipTransfer.v`. Element
 type and operation are parameters, not new rows. The per-shape projection rows
 merge into `collection_program_plan`. A registry row-count ratchet caps the
-registry at 95 rows. Each rung still names its production entrypoint, the direct bypass
+registry at 95 rows. The user also moved the harness reports H1-H4 (PP-068
+Win32 symbol clash, PP-069 String-match diagnostic, PP-066 `SubIndexOf`
+documentation, PP-069 match forms) ahead of P2. PP-067, a field-to-local
+array alias that reads freed memory on the default C route, is the next
+falsifier for the active collection-ownership rung. Each rung still names its production entrypoint, the direct bypass
 to delete, the fact owner, the last consumer, and one gate.
 
 ## Active self-host context — collection ownership, tranche 1 of 3 landed
