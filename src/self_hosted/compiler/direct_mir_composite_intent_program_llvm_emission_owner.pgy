@@ -175,9 +175,7 @@ func DirectMirCompositeIntentLlvmGlobals(
     ));
     row = 0;
     while row < ArrayLength(plan.main.log_literals) {
-        if !DirectMirCompositeIntentLlvmLiteralReady(
-                plan.main.log_literals[row]
-            ) {
+        if !DirectMirCompositeIntentLlvmLiteralReady(plan.main.log_literals[row]) {
             Die("direct MIR composite intent Main literal is invalid");
         }
         row = row + 1;
@@ -202,22 +200,14 @@ func DirectMirCompositeIntentLlvmGlobals(
             ))
         )))
     ));
-    output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
-        DirectMirCompositeIntentLlvmIndexedSymbol("format", 3),
-        Concat(plan.main.log_literals[7], "%d")
-    ));
-    output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
-        DirectMirCompositeIntentLlvmIndexedSymbol("format", 4),
-        Concat(plan.main.log_literals[8], "%d")
-    ));
-    output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
-        DirectMirCompositeIntentLlvmIndexedSymbol("format", 5),
-        Concat(plan.main.log_literals[9], "%d")
-    ));
-    output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
-        DirectMirCompositeIntentLlvmIndexedSymbol("format", 6),
-        Concat(plan.main.log_literals[10], "%d")
-    ));
+    row = 3;
+    while row < 7 {
+        output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
+            DirectMirCompositeIntentLlvmIndexedSymbol("format", row),
+            Concat(plan.main.log_literals[row + 4], "%d")
+        ));
+        row = row + 1;
+    }
     output = Concat(output, DirectMirCompositeIntentLlvmFormatGlobal(
         DirectMirCompositeIntentLlvmIndexedSymbol("format", 7),
         Concat(plan.main.log_literals[11], Concat("%s", Concat(
