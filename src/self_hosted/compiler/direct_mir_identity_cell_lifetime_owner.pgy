@@ -99,12 +99,12 @@ func DirectMirIdentityCellLifetimeReady(ref plan: DirectMirScalarCfgGraphPlan) -
                     let callee: Int = plan.program.expressions.node_callable_rows[node];
                     if callee < 1 || callee >= ArrayLength(plan.routines.parameter_counts) ||
                         operand >= plan.routines.parameter_counts[callee] { return false; }
-                    let parameter: Int = plan.routines.parameter_starts[callee] + operand;
-                    if plan.routines.parameter_types[parameter] != type_name ||
+                    let callee_parameter: Int = plan.routines.parameter_starts[callee] + operand;
+                    if plan.routines.parameter_types[callee_parameter] != type_name ||
                         (!DirectMirScalarProgramIdentityCellParameterCarriageReady(
                                 plan.program.logical_record.identity_cells,
                                 type_name,
-                                plan.routines.parameter_carriages[parameter]) &&
+                                plan.routines.parameter_carriages[callee_parameter]) &&
                          !DirectMirIdentityCellStoredReceiverParameterReady(
                                 plan, callee, operand)) {
                         return false;

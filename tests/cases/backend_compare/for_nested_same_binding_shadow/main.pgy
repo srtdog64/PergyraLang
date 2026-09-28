@@ -1,10 +1,15 @@
+// A local name binds once in a function (docs/206 section 3): a nested loop
+// cannot rebind `i`, but a loop that starts after the first has closed can.
 func Score() -> Int {
     let total: Int = 0;
     for i in 1..3 {
         total = total + i;
-        for i in 10..12 {
-            total = total + i;
+        for j in 10..12 {
+            total = total + j;
         }
+        total = total + i;
+    }
+    for i in 20..22 {
         total = total + i;
     }
     return total;

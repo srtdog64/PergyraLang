@@ -14,7 +14,7 @@ import "ast_match_binding_environment_owner.pgy";
 import "ast_bind_statement_type_fact_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
 import "ast_expression_graph_enum_payload_owner.pgy";
-import "ast_declaration_contract_owner.pgy";
+import "ast_local_name_rule_owner.pgy";
 struct SemanticAstStatementTypeFacts {
     ok: Bool;
     diagnostic_code: String;
@@ -136,23 +136,23 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
     let verified: Array<Int> = [];
     let diagnostic_codes: Array<String> = [];
     let diagnostic_messages: Array<String> = [];
+    // A rebound local name is refused before any body is typed against it.
+    let names_verdict: SemanticAstDeclarationContractVerdict =
+        SemanticAstLocalNameRuleVerdict(artifact, signatures, locals, statements);
+    if !names_verdict.ok {
+        return SemanticAstStatementTypeFacts(false, names_verdict.code, names_verdict.message,
+            artifact.count, node_ids, kind_tags, expected_types, inferred_types, verified,
+            diagnostic_codes, diagnostic_messages, names_verdict.node_id);
+    }
     let member_root_names: Array<String> = [];
-    if !SemanticAstExpressionMemberRootNames(
-        constructors, enum_facts, member_root_names
-    ) {
-        return SemanticAstStatementTypeStructuralError(
-            artifact, "member_root_environment"
-        );
+    if !SemanticAstExpressionMemberRootNames(constructors, enum_facts, member_root_names) {
+        return SemanticAstStatementTypeStructuralError(artifact, "member_root_environment");
     }
     let names: Array<String> = [];
     let types: Array<String> = [];
     let modes: Array<String> = [];
-    if !SemanticAstExpressionSeedEnumValues(
-        enum_facts, names, types, modes
-    ) {
-        return SemanticAstStatementTypeStructuralError(
-            artifact, "enum_environment"
-        );
+    if !SemanticAstExpressionSeedEnumValues(enum_facts, names, types, modes) {
+        return SemanticAstStatementTypeStructuralError(artifact, "enum_environment");
     }
     let enum_environment_count: Int = ArrayLength(names);
     let i: Int = 0;

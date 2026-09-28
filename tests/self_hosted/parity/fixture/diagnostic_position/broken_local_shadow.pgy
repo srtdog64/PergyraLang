@@ -1,0 +1,17 @@
+func Label(flag: Bool, n: Int) -> String {
+    let tag: String = "";
+    if flag { tag = "!"; }
+    let out: String = "a" + tag;
+    let i: Int = 0;
+    while i < n {
+        let tag: String = "";
+        if i > 0 { tag = "+"; }
+        out = out + tag;
+        i = i + 1;
+    }
+    return out;
+}
+
+func Main() -> Void {
+    Log(Label(true, 3));
+}

@@ -21,12 +21,16 @@ test_misc_grammar_edges(void)
         ast_destroy(unsafe_block);
     }
 
-    TEST("unsafe body owns lexical shadowing and forbids local escape");
+    TEST("unsafe body owns its lexical scope and forbids local escape");
     {
+        /* Row 0 reuses the unsafe body's name after the body has closed;
+         * the last row rebinds an enclosing local, which docs/206 section 3
+         * refuses. */
         const char *sources[] = {
-            "func Main() -> Void { let n: Int = 1; unsafe { let n: Int = 2; Log(n); } Log(n); }",
+            "func Main() -> Void { unsafe { let n: Int = 2; Log(n); } let n: Int = 1; Log(n); }",
             "func Main() -> Void { unsafe { let hidden: Int = 2; } Log(hidden); }",
-            "func Main() -> Void with effects local { unsafe { } }"
+            "func Main() -> Void with effects local { unsafe { } }",
+            "func Main() -> Void { let n: Int = 1; unsafe { let n: Int = 2; Log(n); } Log(n); }"
         };
         for (size_t row = 0; row < sizeof(sources) / sizeof(sources[0]); row++) {
             Lexer *lexer = lexer_create(sources[row]);

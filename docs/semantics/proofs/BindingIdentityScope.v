@@ -26,14 +26,25 @@
         binding or two, so a table keyed by name (the phi join) cannot
         tell them apart. Lowering must key locals by binding identity
         even though the rule rejects the ambiguous source.
+    (6) unique_resolution_ordered:
+        with declaration order modeled (a binding is visible after its
+        position; a scope spans a source interval), a weaker rule is
+        enough: a binding may not reuse a name that an earlier binding in
+        its own or an enclosing scope holds. The front ends enforce this
+        rule. It still refuses both PP shapes, and it admits a name reused
+        after the block that bound it has closed, which the order-free
+        rule of (2) refuses (closed_block_reuse_admitted,
+        closed_block_reuse_refused_order_free). The order-free rule
+        implies it (order_free_rule_is_stronger).
 
-  Honest scope: scopes form a forest given by a parent function;
-  declaration order inside a scope is not modeled (the rule does not
-  depend on it).
+  Honest scope: scopes form a forest given by a parent function. Sections
+  (1)-(5) do not model declaration order; section (6) models it with a
+  source position per binding and a source interval per scope.
 *)
 
 Require Import Coq.Lists.List.
 Require Import Coq.Arith.PeanoNat.
+Require Import Lia.
 Import ListNotations.
 
 (* encloses p a b: scope a is b or an ancestor of b. *)
@@ -183,3 +194,175 @@ Definition visible_ids (ds : list Decl) (name t : nat) : list nat :=
 Theorem name_is_not_identity :
   visible_ids single_tag 4 3 = [200] /\ visible_ids double_tag 4 3 = [200; 201].
 Proof. split; reflexivity. Qed.
+
+(* ---- (6) declaration order: the rule the front ends enforce ------- *)
+
+Record ODecl := { o_name : nat; o_id : nat; o_scope : nat; o_pos : nat }.
+
+(* Scope s spans the source positions [lo s, hi s). *)
+Definition inside (lo hi : nat -> nat) (s q : nat) : Prop :=
+  lo s <= q /\ q < hi s.
+
+(* The scope tree and the source agree: an enclosed scope's span lies
+   within the span of the scope that encloses it. *)
+Definition spans_nest (parent : nat -> option nat) (lo hi : nat -> nat)
+    : Prop :=
+  forall a b, encloses parent a b -> lo a <= lo b /\ hi b <= hi a.
+
+(* A declaration sits in its own scope, outside every scope nested in it. *)
+Definition placed (parent : nat -> option nat) (lo hi : nat -> nat)
+    (d : ODecl) : Prop :=
+  inside lo hi (o_scope d) (o_pos d) /\
+  forall s, encloses parent (o_scope d) s -> s <> o_scope d ->
+    ~ inside lo hi s (o_pos d).
+
+(* One declaration per source position. *)
+Definition positions_distinct (ds : list ODecl) : Prop :=
+  forall d1 d2, In d1 ds -> In d2 ds -> o_pos d1 = o_pos d2 ->
+    o_id d1 = o_id d2.
+
+(* A binding is visible at position q of scope t once declared, in every
+   scope its own encloses. *)
+Definition ovisible (parent : nat -> option nat) (d : ODecl) (t q : nat)
+    : Prop :=
+  encloses parent (o_scope d) t /\ o_pos d < q.
+
+(* The rule: a binding may not reuse a name that an earlier binding in its
+   own scope or an enclosing scope holds. *)
+Definition no_rebinding_ordered (parent : nat -> option nat)
+    (ds : list ODecl) : Prop :=
+  forall d1 d2, In d1 ds -> In d2 ds ->
+    o_name d1 = o_name d2 -> o_id d1 <> o_id d2 ->
+    encloses parent (o_scope d1) (o_scope d2) -> o_pos d2 <= o_pos d1.
+
+Theorem unique_resolution_ordered :
+  forall parent lo hi ds d1 d2 t q,
+    spans_nest parent lo hi ->
+    (forall d, In d ds -> placed parent lo hi d) ->
+    positions_distinct ds ->
+    no_rebinding_ordered parent ds ->
+    In d1 ds -> In d2 ds -> o_name d1 = o_name d2 ->
+    inside lo hi t q ->
+    ovisible parent d1 t q -> ovisible parent d2 t q ->
+    o_id d1 = o_id d2.
+Proof.
+  intros parent lo hi ds d1 d2 t q Hnest Hplaced Hdist Hrule H1 H2 Hname
+    Ht V1 V2.
+  unfold ovisible in V1, V2.
+  destruct V1 as [E1 P1]. destruct V2 as [E2 P2].
+  unfold inside in Ht. destruct Ht as [_ Hq].
+  destruct (Nat.eq_dec (o_id d1) (o_id d2)) as [Heq | Hne];
+    [exact Heq | exfalso].
+  (* The binding in the enclosing scope cannot be visible at q. *)
+  assert (Key : forall a b, In a ds -> In b ds ->
+      o_name a = o_name b -> o_id a <> o_id b ->
+      encloses parent (o_scope b) t -> o_pos a < q ->
+      encloses parent (o_scope a) (o_scope b) -> False).
+  { intros a b Ha Hb Hn Hid Eb Pa Eab.
+    pose proof (Hrule a b Ha Hb Hn Hid Eab) as Hle.
+    destruct (Nat.eq_dec (o_scope a) (o_scope b)) as [Hs | Hs].
+    - (* Same scope: the rule also runs the other way. *)
+      assert (Eba : encloses parent (o_scope b) (o_scope a))
+        by (rewrite Hs; apply enc_refl).
+      pose proof (Hrule b a Hb Ha (eq_sym Hn)
+                    (fun e => Hid (eq_sym e)) Eba) as Hle'.
+      apply Hid. apply Hdist; [exact Ha | exact Hb | lia].
+    - (* a sits outside b's span, which has closed before q. *)
+      destruct (Hplaced a Ha) as [_ Hout].
+      destruct (Hplaced b Hb) as [Hin _].
+      unfold inside in Hin. destruct Hin as [Lb _].
+      destruct (Hnest (o_scope b) t Eb) as [_ Hhi].
+      apply (Hout (o_scope b) Eab (fun e => Hs (eq_sym e))).
+      unfold inside. split; lia. }
+  destruct (ancestors_linear parent (o_scope d1) t E1 (o_scope d2) E2)
+    as [E | E].
+  - exact (Key d1 d2 H1 H2 Hname Hne E2 P1 E).
+  - exact (Key d2 d1 H2 H1 (eq_sym Hname) (fun e => Hne (eq_sym e))
+             E1 P2 E).
+Qed.
+
+(* Both PP shapes stay refused. PP-061: `tag` at 12 in scope 1, then an
+   inner `tag` at 24 in scope 3. *)
+Definition outer_tag_at : ODecl :=
+  {| o_name := 4; o_id := 200; o_scope := 1; o_pos := 12 |}.
+Definition inner_tag_at : ODecl :=
+  {| o_name := 4; o_id := 201; o_scope := 3; o_pos := 24 |}.
+
+Theorem shadow_refused_ordered :
+  ~ no_rebinding_ordered tree [outer_tag_at; inner_tag_at].
+Proof.
+  intros Hrule.
+  pose proof (Hrule outer_tag_at inner_tag_at (or_introl eq_refl)
+                (or_intror (or_introl eq_refl)) eq_refl ltac:(discriminate)
+                scope1_encloses_3) as H.
+  simpl in H. lia.
+Qed.
+
+(* PP-062: two `started` in scope 1. *)
+Definition started_first : ODecl :=
+  {| o_name := 5; o_id := 300; o_scope := 1; o_pos := 14 |}.
+Definition started_second : ODecl :=
+  {| o_name := 5; o_id := 301; o_scope := 1; o_pos := 16 |}.
+
+Theorem redeclare_refused_ordered :
+  ~ no_rebinding_ordered tree [started_first; started_second].
+Proof.
+  intros Hrule.
+  pose proof (Hrule started_first started_second (or_introl eq_refl)
+                (or_intror (or_introl eq_refl)) eq_refl ltac:(discriminate)
+                (enc_refl tree 1)) as H.
+  simpl in H. lia.
+Qed.
+
+(* A name reused after the block that bound it has closed: `x` at 22 in
+   scope 3, then `x` at 35 in scope 1. *)
+Definition x_inner : ODecl :=
+  {| o_name := 7; o_id := 400; o_scope := 3; o_pos := 22 |}.
+Definition x_later : ODecl :=
+  {| o_name := 7; o_id := 401; o_scope := 1; o_pos := 35 |}.
+
+Lemma not_encloses_3_1 : ~ encloses tree 3 1.
+Proof.
+  intros E.
+  inversion E as [| a b p Hp Hrest]; subst. simpl in Hp.
+  injection Hp as Hp0. subst p.
+  inversion Hrest as [| a' b' p' Hp' _]; subst. simpl in Hp'.
+  discriminate Hp'.
+Qed.
+
+Theorem closed_block_reuse_admitted :
+  no_rebinding_ordered tree [x_inner; x_later].
+Proof.
+  intros d1 d2 H1 H2 Hn Hid E.
+  destruct H1 as [H1 | [H1 | []]]; destruct H2 as [H2 | [H2 | []]];
+    subst d1 d2; simpl in *.
+  - exfalso. apply Hid. reflexivity.
+  - exfalso. exact (not_encloses_3_1 E).
+  - lia.
+  - exfalso. apply Hid. reflexivity.
+Qed.
+
+Definition unordered (d : ODecl) : Decl :=
+  {| d_name := o_name d; d_id := o_id d; d_scope := o_scope d |}.
+
+Theorem closed_block_reuse_refused_order_free :
+  ~ no_rebinding tree [unordered x_inner; unordered x_later].
+Proof.
+  intros Hrule.
+  destruct (Hrule (unordered x_later) (unordered x_inner)
+              (or_intror (or_introl eq_refl)) (or_introl eq_refl) eq_refl
+              ltac:(discriminate)) as [N _].
+  apply N. exact scope1_encloses_3.
+Qed.
+
+Theorem order_free_rule_is_stronger :
+  forall parent ds,
+    no_rebinding parent (map unordered ds) -> no_rebinding_ordered parent ds.
+Proof.
+  intros parent ds Hrule d1 d2 H1 H2 Hn Hid E.
+  exfalso.
+  destruct (Hrule (unordered d1) (unordered d2)
+              (in_map unordered ds d1 H1) (in_map unordered ds d2 H2)
+              Hn Hid) as [N _].
+  exact (N E).
+Qed.

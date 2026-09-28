@@ -51,7 +51,7 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
     if code == "intent_retry_unavailable" || code == "intent_step_clause_not_bool" || code == "intent_child_cycle" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:intent_step", "check-intent-step-lowering");
     }
-    if code == "enum_variant_redeclaration" {
+    if code == "enum_variant_redeclaration" || code == "local_name_rebound" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:scope:duplicate_symbol", "rename-or-remove-duplicate");
     }
     if code == "enum_variant_function_clash" {

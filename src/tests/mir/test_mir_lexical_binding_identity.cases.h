@@ -5,10 +5,12 @@ test_mir_lexical_binding_identity(void)
     RIRProgram *rir = NULL;
     MIRProgram *mir = NULL;
     MIRRoutine *routine = NULL;
+    /* The block's `n` closes before the later `n` is declared, so the two
+     * same-spelled bindings are legal (docs/206 section 3). */
     const char *source =
-        "func Main() -> Void { let n: Int = 1; unsafe {"
+        "func Main() -> Void { unsafe {"
         " let n: Int = 2; Log(n); unsafe { n = n + 1; Log(n); }"
-        " } Log(n); }";
+        " } let n: Int = 1; Log(n); }";
     bool ok = lower_mir_from_source(source, &hir, &rir, &mir);
     if (ok)
         routine = find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION);
@@ -35,13 +37,13 @@ test_mir_lexical_binding_identity(void)
            && defs[1]->binding_syntax_id != 0
            && defs[0]->binding_syntax_id != defs[1]->binding_syntax_id
            && strcmp(defs[0]->result_name, defs[1]->result_name) != 0);
-    TEST("MIR inner reads and post-scope reads use exact binding versions");
+    TEST("MIR block reads and later reads use exact binding versions");
     EXPECT(def_count == 2 && log_count == 3
            && logs[0]->use_count == 1 && logs[1]->use_count == 1
            && logs[2]->use_count == 1
-           && strcmp(logs[0]->uses[0], defs[1]->result_name) == 0
-           && strcmp(logs[1]->uses[0], defs[1]->result_name) == 0
-           && strcmp(logs[2]->uses[0], defs[0]->result_name) == 0);
+           && strcmp(logs[0]->uses[0], defs[0]->result_name) == 0
+           && strcmp(logs[1]->uses[0], defs[0]->result_name) == 0
+           && strcmp(logs[2]->uses[0], defs[1]->result_name) == 0);
     TEST("MIR source-local inventory retains both lexical declarations");
     EXPECT(routine != NULL && routine->source_local_type_count == 2
            && routine->source_local_types[0].binding_syntax_id != 0
@@ -355,8 +357,9 @@ test_mir_destructure_output_identity(void)
     RIRProgram *rir = NULL;
     MIRProgram *mir = NULL;
     bool ok = lower_mir_from_source(
-        "func Main() -> Void { let (n, s) = (42, \"outer\"); Log(n); Log(s);"
-        " unsafe { let (n, s) = (7, \"inner\"); Log(n); Log(s); } Log(n); }",
+        "func Main() -> Void {"
+        " unsafe { let (n, s) = (7, \"inner\"); Log(n); Log(s); }"
+        " let (n, s) = (42, \"outer\"); Log(n); Log(s); }",
         &hir, &rir, &mir);
     MIRRoutine *routine = ok ? find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION) : NULL;
     MIRInstruction *outputs[2] = {0};
@@ -376,7 +379,7 @@ test_mir_destructure_output_identity(void)
     for (size_t d = 0; distinct && d < 2; d++)
         distinct = outputs[0]->destructure_binding_ids[d] != outputs[1]->destructure_binding_ids[d]
             && strcmp(outputs[0]->destructure_result_names[d], outputs[1]->destructure_result_names[d]) != 0;
-    TEST("destructure outputs preserve shadowed positional SSA identities");
+    TEST("destructure outputs keep reused-name positional SSA identities distinct");
     EXPECT(ok && distinct && mir_validate(mir, NULL));
     bool independent = false, missing = false, crosswired = false;
     char *error = NULL;
@@ -466,7 +469,7 @@ test_mir_scalar_parameter_wire_identity(void)
         "func Constant(inout n: Int) -> Int { n = 7; return 9; }"
         "func Formal(inout n: Int) -> Int { return n; }"
         "func Shadow(inout n: Int) -> Int {"
-        " unsafe { let n: String = \"inner\"; n = Concat(n, \"!\"); Log(n); } return n; }"
+        " unsafe { let label: String = \"inner\"; label = Concat(label, \"!\"); Log(label); } return n; }"
         "func Main() -> Void {}", &hir, &rir, &mir);
     TEST("MIR scalar copy-out wire controls lower successfully");
     EXPECT(ok);
@@ -509,8 +512,9 @@ test_mir_scalar_parameter_wire_identity(void)
         TEST("invalid return use prefix is refused without projection");
         EXPECT(rejects_prefix);
         if (r == 2) {
-            TEST("same-spelled local read is not stamped as a formal parameter");
-            EXPECT(shadow_is_local && mir_json_routine_local_refs_required(routine));
+            /* A local cannot reuse a parameter's name (docs/206 section 3). */
+            TEST("local read beside an inout formal is not stamped as a formal parameter");
+            EXPECT(shadow_is_local);
         }
     }
     mir_destroy(mir);

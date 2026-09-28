@@ -68,7 +68,10 @@ parse_pipe_lambda_param(Parser* parser)
 
     Token name = consume_binding_name_token(parser,
         "Expected lambda parameter name");
-    return ast_create_identifier(name.text);
+    ASTNode* param = ast_create_identifier(name.text);
+    param->line = name.line;
+    param->column = name.column;
+    return param;
 }
 
 /* Pipe-closure form `|p1, p2| body` (params may be tuple patterns). */
@@ -76,6 +79,8 @@ ASTNode*
 parse_pipe_lambda_expression(Parser* parser)
 {
     ASTNode* lambda = ast_create_lambda_expression();
+    lambda->line = parser->current_token.line;
+    lambda->column = parser->current_token.column;
 
     parser_consume(parser, TOKEN_PATTERN_OR,
         "Expected '|' before lambda parameters");
@@ -115,6 +120,8 @@ ASTNode*
 parse_lambda_expression(Parser* parser)
 {
     ASTNode* lambda = ast_create_lambda_expression();
+    lambda->line = parser->current_token.line;
+    lambda->column = parser->current_token.column;
 
     parser_consume(parser, TOKEN_LPAREN, "Expected '(' before lambda parameters");
 
@@ -130,6 +137,8 @@ parse_lambda_expression(Parser* parser)
             ast_destroy(param);
             param = typed_param;
         }
+        param->line = param_name.line;
+        param->column = param_name.column;
         if (parser_match(parser, TOKEN_ASSIGN)) {
             parser_error(parser,
                 "Default value arguments are reserved but not implemented.\n"

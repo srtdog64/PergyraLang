@@ -354,6 +354,10 @@ bool type_check_class_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_enum_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_extern_block(ASTNode* node, SemanticContext* ctx);
 bool type_check_let_decl(ASTNode* node, SemanticContext* ctx);
+/* docs/206 section 3: report a body binding whose name an enclosing scope
+ * of the same function already binds. */
+void semantic_local_name_rule_check(SemanticContext* ctx, ASTNode* site,
+                                    const char* name);
 
 /* -----------------------------------------------------------------
  * Statement checkers

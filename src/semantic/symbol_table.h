@@ -197,6 +197,9 @@ struct Scope
     Scope*    parent;
     ScopeKind kind;
     uint32_t  depth;
+    /* The SCOPE_FUNCTION of a lambda. Its body sees the enclosing
+     * function's locals, so the local name rule walks past it. */
+    bool      is_lambda;
 
     Symbol**  symbols;
     size_t    symbol_count;

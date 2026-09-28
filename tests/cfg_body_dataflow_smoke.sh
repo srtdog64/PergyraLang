@@ -162,7 +162,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/semantic/type_checker_async_channel.c" "semantic_report_worker_storage_boundary"
     require_literal "src/semantic/type_checker_async_channel.c" "generated C/LLVM behavior depend on undefined behavior"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_b_1.cases.h" "CFG parallel rejects shared collection capture"
-    require_literal "src/tests/semantic/test_semantic_misc_a_part_b_1.cases.h" "CFG parallel allows task-local collection shadowing"
+    require_literal "src/tests/semantic/test_semantic_misc_a_part_b_1.cases.h" "CFG parallel refuses a task-local rebinding of an outer collection by name only"
     require_literal "src/runtime/pgy_runtime_lib_raw_map_exports.h" "Growable runtime storage is not a synchronization boundary"
     require_literal "src/runtime/pgy_runtime_lib_raw_set_exports.h" "Growable runtime storage is not a synchronization boundary"
     require_literal "src/runtime/pgy_runtime_lib_raw_queue_exports.h" "Growable runtime storage is not a synchronization boundary"
@@ -1971,7 +1971,7 @@ for term in [
     "CFG parallel tasks reject ref and own subject boundary conflict",
     "CFG parallel tasks allow shared ref subject boundary reads",
     "CFG parallel rejects shared collection capture",
-    "CFG parallel allows task-local collection shadowing",
+    "CFG parallel refuses a task-local rebinding of an outer collection by name only",
     "CFG spawn rejects borrowed subject boundary crossing",
     "CFG spawn allows copy ref boundary crossing",
     "CFG spawn rejects authority Token boundary crossing",
@@ -2018,7 +2018,7 @@ for term in [
     "lambda body summary stays on lambda type",
     "lambda body summary does not leak to enclosing function",
     "lambda value-type local is captured by copy (docs/135 Stage A)",
-    "lambda block local shadow is not treated as capture",
+    "lambda block local reusing a later name is not treated as capture",
     "lambda call propagates lambda body summary",
     "ReadView return escape uses pin escape diagnostic",
     "await with active ReadView uses pin await diagnostic",

@@ -6323,6 +6323,9 @@ require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
 reject_file "src/self_hosted/semantic/ast_never_function_verdict_owner.pgy"
 reject_text "src/self_hosted/semantic/ast_declaration_contract_owner.pgy" \
     "never_function_fallthrough"
+# One local name rule; statement typing runs it before any body is typed.
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    "SemanticAstLocalNameRuleVerdict(artifact, signatures, locals, statements)"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy" "struct SemanticAstBodyTypeBundle"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleFromAnalysis"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \

@@ -564,6 +564,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_call.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_destructure.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let.c \
+                   $(SEMANTIC_DIR)/type_checker_local_name_rule.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let_slice.c \
                    $(SEMANTIC_DIR)/type_checker_builtin_owner_let_contract.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let_helpers.c \

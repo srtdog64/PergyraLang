@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let total: Int = 0;
+    for i in 0..2 {
+        for i in 0..2 {
+            total = total + i;
+        }
+    }
+    Log(ToString(total));
+}

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Explicit LocalRef identity keeps a range binder distinct from an outer local.
+# Explicit LocalRef identity keeps a range binder distinct from a later local
+# that reuses its name after the loop has closed (docs/206 section 3).
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -48,15 +49,16 @@ rm -f "$WORK_DIR"/*
 import copy, json, pathlib, sys
 doc = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
 target = pathlib.Path(sys.argv[2]); routine = doc["routines"][0]
-assert routine["source_locals"] == [
-    {"name": "i", "type": "Int"}, {"name": "i", "type": "Int"}]
+# The loop binder and the later `let i` are two identities under one name.
+assert [(x["name"], x["type"]) for x in routine["source_locals"]] == [
+    ("i", "Int"), ("i", "Int")]
 ins = [row for block in routine["blocks"] for row in block["instructions"]]
 assert [row["kind"] for row in ins] == [
-    "def", "loop-init", "branch", "stmt", "stmt"]
-assert ins[0]["result"] == "i.1" and ins[0]["local_ref"] == "declaration:6:0"
-assert ins[1]["local_ref"] == ins[2]["local_ref"] == "iteration:7:0"
-assert ins[3]["uses"] == [] and ins[3]["expr0_local_refs"] == [
-    {"node": 0, "ref": "iteration:7:0"}]
+    "loop-init", "branch", "stmt", "def", "stmt", "return"]
+assert ins[0]["local_ref"] == ins[1]["local_ref"] == "iteration:6:0"
+assert ins[2]["uses"] == [] and ins[2]["expr0_local_refs"] == [
+    {"node": 0, "ref": "iteration:6:0"}]
+assert ins[3]["result"] == "i.1" and ins[3]["local_ref"] == "declaration:9:0"
 assert ins[4]["uses"] == ["i.1"] and ins[4]["expr0_local_refs"] == []
 assert all(row["kind"] != "phi" for row in ins)
 def write(name, mutate):
@@ -65,16 +67,16 @@ def write(name, mutate):
     mutate(changed["routines"][0], rows)
     (target / f"{name}.json").write_text(
         json.dumps(changed, separators=(",", ":")), encoding="utf-8")
-write("missing-def-ref", lambda r, x: x[0].pop("local_ref"))
-write("forged-def-ref", lambda r, x: x[0].__setitem__("local_ref", "iteration:7:0"))
-write("forged-init-ref", lambda r, x: x[1].__setitem__("local_ref", "declaration:6:0"))
-write("missing-body-ref", lambda r, x: x[3].__setitem__("expr0_local_refs", []))
-write("forged-body-ref", lambda r, x: x[3]["expr0_local_refs"][0].__setitem__(
-    "ref", "declaration:6:0"))
-write("body-outer-use", lambda r, x: x[3].__setitem__("uses", ["i.1"]))
-write("missing-outer-use", lambda r, x: x[4].__setitem__("uses", []))
-write("orphan-outer-ref", lambda r, x: x[4].__setitem__("expr0_local_refs", [
-    {"node": 99, "ref": "iteration:7:0"}]))
+write("missing-def-ref", lambda r, x: x[3].pop("local_ref"))
+write("forged-def-ref", lambda r, x: x[3].__setitem__("local_ref", "iteration:6:0"))
+write("forged-init-ref", lambda r, x: x[0].__setitem__("local_ref", "declaration:9:0"))
+write("missing-body-ref", lambda r, x: x[2].__setitem__("expr0_local_refs", []))
+write("forged-body-ref", lambda r, x: x[2]["expr0_local_refs"][0].__setitem__(
+    "ref", "declaration:9:0"))
+write("body-later-use", lambda r, x: x[2].__setitem__("uses", ["i.1"]))
+write("missing-later-use", lambda r, x: x[4].__setitem__("uses", []))
+write("orphan-later-ref", lambda r, x: x[4].__setitem__("expr0_local_refs", [
+    {"node": 99, "ref": "iteration:6:0"}]))
 write("duplicate-local", lambda r, x: r["source_locals"].append(
     copy.deepcopy(r["source_locals"][0])))
 PY
@@ -86,8 +88,11 @@ project() {
         fail "$target rejected $input"
 }
 project program c c; project program llvm ll
+# The C/LLVM pins below predate the fixture's move to a closed-loop reuse;
+# direct MIR projection rejects this CFG shape on main, so re-pin them when
+# projection accepts it again.
 [[ "$(sha256sum "$MIR" | awk '{print $1}')" == \
-    fe64a5314b7a1146bbcffa826752f2c9aeeea6f2c8fe603d0955b1c76dfff006 ]] ||
+    34a1d66592ed6e3e8fa3dfc0fb1e8184742fa30fa671b5ec80713a907ac77e7c ]] ||
     fail "single-range MIR identity drifted"
 [[ "$(sha256sum "$WORK_DIR/program.c" | awk '{print $1}')" == \
     e2724f4f1b6972be932c30e4545ae89eb749e7f8883b322e2df23eb9c25fdf31 ]] ||
@@ -107,8 +112,8 @@ cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/c.run" &&
     fail "C/LLVM execution did not preserve lexical binding identity"
 
 for mutation in missing-def-ref forged-def-ref forged-init-ref \
-    missing-body-ref forged-body-ref body-outer-use missing-outer-use \
-    orphan-outer-ref duplicate-local; do
+    missing-body-ref forged-body-ref body-later-use missing-later-use \
+    orphan-later-ref duplicate-local; do
     case "$mutation" in
         missing-def-ref)
             diagnostic='direct MIR scalar CFG LocalRef plan is invalid' ;;

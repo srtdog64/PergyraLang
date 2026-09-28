@@ -1,0 +1,144 @@
+// Local name rule owner (docs/206 section 3, BindingIdentityScope.v section
+// 6): a let, destructure, for or match binding may not reuse a name that a
+// parameter of the same function or an earlier binding in its own scope or
+// an enclosing scope holds. A name bound in a block that has closed may be
+// bound again, and sibling scopes may share a name; no point sees both.
+//
+// Rows arrive in arena order, which is source order, so the bindings of one
+// function are contiguous and a lower row was declared earlier.
+
+import "ast_local_binding_fact_owner.pgy";
+import "ast_statement_fact_owner.pgy";
+import "ast_declaration_contract_owner.pgy";
+
+struct SemanticAstNamedBindings {
+    node_ids: Array<Int>;
+    function_node_ids: Array<Int>;
+    scope_node_ids: Array<Int>;
+    names: Array<String>;
+}
+
+// True when scope node `outer` is `inner` or one of its ancestors. A scope
+// node is a block or, for a match binding, the case node, whose body block
+// descends from it.
+func SemanticAstScopeEncloses(arena: AstArena, outer: Int, inner: Int) -> Bool {
+    let cursor: Option<Int> = Some(inner);
+    let steps: Int = 0;
+    while IsSome(cursor) && steps <= TypedAstArenaNodeCount(arena) {
+        if UnwrapOption(cursor) == outer { return true; }
+        cursor = TypedAstArenaParentId(arena, UnwrapOption(cursor));
+        steps = steps + 1;
+    }
+    return false;
+}
+
+func SemanticAstNamedBindingPush(
+    inout bindings: SemanticAstNamedBindings,
+    node_id: Int, function_node_id: Int, scope_node_id: Int, name: String
+) -> Void {
+    ArrayPush(bindings.node_ids, node_id);
+    ArrayPush(bindings.function_node_ids, function_node_id);
+    ArrayPush(bindings.scope_node_ids, scope_node_id);
+    ArrayPush(bindings.names, name);
+}
+
+// Let/destructure rows and for/match rows, merged in arena order.
+func SemanticAstNamedBindingsFromFacts(
+    ref locals: SemanticAstLocalBindingFacts,
+    ref statements: SemanticAstStatementFacts
+) -> SemanticAstNamedBindings {
+    let node_ids: Array<Int> = [];
+    let function_node_ids: Array<Int> = [];
+    let scope_node_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let bindings: SemanticAstNamedBindings = SemanticAstNamedBindings(
+        node_ids, function_node_ids, scope_node_ids, names);
+    let local_row: Int = 0;
+    let statement_row: Int = 0;
+    while local_row < ArrayLength(locals.node_ids) || statement_row < ArrayLength(statements.node_ids) {
+        if statement_row >= ArrayLength(statements.node_ids) ||
+            (local_row < ArrayLength(locals.node_ids) &&
+             locals.node_ids[local_row] <= statements.node_ids[statement_row]) {
+            SemanticAstNamedBindingPush(bindings, locals.node_ids[local_row],
+                locals.function_node_ids[local_row], locals.scope_node_ids[local_row],
+                locals.names[local_row]);
+            local_row = local_row + 1;
+            continue;
+        }
+        let kind: Int = statements.kind_tags[statement_row];
+        if kind == TypedAstKindForStmtTag() && statements.payload_texts[statement_row] != "" {
+            SemanticAstNamedBindingPush(bindings, statements.node_ids[statement_row],
+                statements.function_node_ids[statement_row],
+                statements.body_scope_node_ids[statement_row],
+                statements.payload_texts[statement_row]);
+        }
+        if kind == TypedAstKindMatchCaseStmtTag() {
+            // A case binding is scoped to its case node.
+            let binding: Int = statements.match_pattern_binding_starts[statement_row];
+            let end: Int = binding + statements.match_pattern_binding_counts[statement_row];
+            while binding < end {
+                SemanticAstNamedBindingPush(bindings, statements.node_ids[statement_row],
+                    statements.function_node_ids[statement_row],
+                    statements.node_ids[statement_row],
+                    statements.match_pattern_bindings[binding]);
+                binding = binding + 1;
+            }
+        }
+        statement_row = statement_row + 1;
+    }
+    return bindings;
+}
+
+func SemanticAstLocalNameRebound(name: String, node_id: Int) -> SemanticAstDeclarationContractVerdict {
+    return SemanticAstDeclarationContractVerdict(
+        false, "local_name_rebound",
+        SemanticError1("local_name_rebound", "name", name), node_id);
+}
+
+func SemanticAstLocalNameRuleVerdict(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref statements: SemanticAstStatementFacts
+) -> SemanticAstDeclarationContractVerdict {
+    let bindings: SemanticAstNamedBindings =
+        SemanticAstNamedBindingsFromFacts(locals, statements);
+    let count: Int = ArrayLength(bindings.node_ids);
+    let start: Int = 0;
+    while start < count {
+        let function_node: Int = bindings.function_node_ids[start];
+        let end: Int = start;
+        while end < count && bindings.function_node_ids[end] == function_node {
+            end = end + 1;
+        }
+        let signature: Option<Int> =
+            SemanticAstFunctionSignatureIndexForNode(signatures, function_node);
+        let row: Int = start;
+        while row < end {
+            let name: String = bindings.names[row];
+            if IsSome(signature) {
+                let index: Int = UnwrapOption(signature);
+                let param: Int = signatures.param_starts[index];
+                let param_end: Int = param + signatures.param_counts[index];
+                while param < param_end {
+                    if signatures.param_names[param] == name {
+                        return SemanticAstLocalNameRebound(name, bindings.node_ids[row]);
+                    }
+                    param = param + 1;
+                }
+            }
+            let prior: Int = start;
+            while prior < row {
+                if bindings.names[prior] == name &&
+                    SemanticAstScopeEncloses(artifact.arena,
+                        bindings.scope_node_ids[prior], bindings.scope_node_ids[row]) {
+                    return SemanticAstLocalNameRebound(name, bindings.node_ids[row]);
+                }
+                prior = prior + 1;
+            }
+            row = row + 1;
+        }
+        start = end;
+    }
+    return SemanticAstDeclarationContractVerdict(true, "", "", 0 - 1);
+}

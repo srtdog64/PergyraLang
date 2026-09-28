@@ -89,11 +89,11 @@ test_squiggle_class(void)
 static void
 test_squiggle_advisory(void)
 {
-    TEST("shadowing a Subject binding emits a non-blocking amber advisory");
+    TEST("rebinding a Subject name is refused and emits no advisory");
     {
-        /* End-to-end "third state" (docs/140): the program COMPILES (0 errors)
-         * yet a meaning-axis drift is surfaced as an advisory. The inner `hero`
-         * shadows the Subject-typed outer `hero`. */
+        /* The inner `hero` rebinds the Subject-typed outer `hero`. The amber
+         * advisory for this shape (docs/140 slice 3) is retired: the local
+         * name rule refuses it (docs/206 section 3). */
         const char *source =
             "subject Hero {\n"
             "    let name: String;\n"
@@ -114,12 +114,10 @@ test_squiggle_advisory(void)
         SemanticResult *result = semantic_analyze_ex(program, true);
 
         EXPECT(!parser_has_error(parser));
-        /* Non-blocking: compiles cleanly. */
-        EXPECT(result != NULL && result->error_count == 0);
-        /* But the meaning drift is shown. */
-        EXPECT(result != NULL && result->advisory_count >= 1);
+        EXPECT(result != NULL && result->error_count >= 1);
+        EXPECT(result != NULL && result->advisory_count == 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Domain identity of 'hero' is shadowed"));
+            "Local 'hero' reuses the name of the binding at line 7"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -129,21 +127,16 @@ test_squiggle_advisory(void)
 
     TEST("advisories are off by default (batch compile pays zero)");
     {
-        /* The same shadow source via the plain (batch) entry point emits no
-         * advisory — production compiles run none of it (docs/140). */
+        /* The over-declared capability source via the plain (batch) entry
+         * point emits no advisory; production compiles run none of it
+         * (docs/140). */
         const char *source =
-            "subject Hero {\n"
-            "    let name: String;\n"
-            "    let hp: Int;\n"
-            "    action Hp(self) -> Int { return hp; }\n"
+            "func Pure() -> Int\n"
+            "    with caps clock {\n"
+            "    return 42;\n"
             "}\n"
             "func Main() -> Void {\n"
-            "    let hero = Hero(\"knight\", 100);\n"
-            "    if true {\n"
-            "        let hero: Int = 7;\n"
-            "        Log(hero);\n"
-            "    }\n"
-            "    Log(hero.Hp());\n"
+            "    Log(Pure());\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -189,16 +182,17 @@ test_squiggle_advisory(void)
         lexer_destroy(lexer);
     }
 
-    TEST("no advisory when a plain (non-Subject) binding is shadowed");
+    TEST("no advisory when a local name is reused after its block closes");
     {
-        /* Shadowing an Int carries no domain identity -> no squiggle. */
+        /* Reusing a name after the block that bound it has closed is legal
+         * and carries no meaning drift -> no squiggle. */
         const char *source =
             "func Main() -> Void {\n"
-            "    let x: Int = 1;\n"
             "    if true {\n"
             "        let x: Int = 2;\n"
             "        Log(x);\n"
             "    }\n"
+            "    let x: Int = 1;\n"
             "    Log(x);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

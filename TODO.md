@@ -900,7 +900,10 @@ and identifier auto-read now consume that same owner instead of local row
   plus copies source-local declarations into versioned MIR allocas. This is
   locked by `tests/cases/backend_compare/lexical_shadow_class_method` and
   `tests/cases/backend_compare/list_shadow_scope_metadata`, which guards the
-  List<Int> outer / List<String> inner metadata case across C and LLVM.
+  List<String> closed-block / List<Int> later metadata case across C and LLVM.
+  Since docs/206 section 3 both front ends refuse a local that rebinds a name
+  visible from an enclosing scope, so these cases now reuse the name in a
+  sibling scope or after the first binding's block has closed.
   Remaining semantic work is true binding-id facts beyond the current
   stable-AST-id physical-name seam. The explicit multi-tick target is sibling
   match-case binding collisions as first-class binding ids, not only

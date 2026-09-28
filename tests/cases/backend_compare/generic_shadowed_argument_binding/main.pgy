@@ -1,5 +1,6 @@
-// A shadowed local keeps its own type as a generic argument: the inner call
-// binds T = String, the outer one T = Int.
+// A name reused after its block has closed keeps each binding's type as a
+// generic argument: the calls in the block bind T = String, the later ones
+// T = Int.
 func Wrap<T>(x: T) -> Option<T> {
     return Some(x);
 }
@@ -9,8 +10,8 @@ func Twice<T>(x: T) -> Array<T> {
 }
 
 func Main() -> Void {
-    let v: Int = 1;
-    if v > 0 {
+    let flag: Int = 1;
+    if flag > 0 {
         let v: String = "inner";
         let w: Option<String> = Wrap(v);
         if IsSome(w) {
@@ -19,6 +20,7 @@ func Main() -> Void {
         let pair: Array<String> = Twice(v);
         Log(pair[1]);
     }
+    let v: Int = 1;
     let o: Option<Int> = Wrap(v);
     if IsSome(o) {
         Log(ToString(UnwrapOption(o)));

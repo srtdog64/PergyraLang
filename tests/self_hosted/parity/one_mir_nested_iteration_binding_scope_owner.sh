@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Canonical receipt-set identity preserves nested same-spelling range binders.
+# Canonical receipt-set identity keeps nested range binders and a later local
+# that reuses the outer binder's name apart (docs/206 section 3).
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -40,29 +41,30 @@ rm -f "$WORK_DIR"/*
 import copy, json, pathlib, sys
 doc = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
 out = pathlib.Path(sys.argv[2]); r = doc["routines"][0]
-assert r["source_locals"] == [{"name":"i","type":"Int"}]*3
-assert [x["iteration_syntax_id"] for x in r["iteration_type_facts"]] == [7,9]
-assert [x["loop_syntax_id"] for x in r["loop_flow_summaries"]] == [7,9]
+# Two range binders nest; a later `let i` reuses the outer binder's name.
+assert [x["name"] for x in r["source_locals"]] == ["i", "j", "i"]
+assert [x["iteration_syntax_id"] for x in r["iteration_type_facts"]] == [6,8]
+assert [x["loop_syntax_id"] for x in r["loop_flow_summaries"]] == [6,8]
 rows = [x for b in r["blocks"] for x in b["instructions"]]
 assert [(b.get("succ_true"), b.get("succ_false")) for b in r["blocks"]] == [
     (1,None),(2,6),(3,None),(4,5),(3,None),(1,None),(None,None)]
-assert [x["kind"] for x in rows] == ["def","loop-init","branch","loop-init","branch","stmt","stmt","stmt"]
-assert rows[0]["local_ref"] == "declaration:6:0"
-assert [rows[x]["local_ref"] for x in (1,2,3,4)] == ["iteration:7:0","iteration:7:0","iteration:9:0","iteration:9:0"]
-assert rows[5]["expr0_local_refs"] == [{"node":0,"ref":"iteration:9:0"}]
-assert rows[6]["expr0_local_refs"] == [{"node":0,"ref":"iteration:7:0"}]
+assert [x["kind"] for x in rows] == ["loop-init","branch","loop-init","branch","stmt","stmt","def","stmt","return"]
+assert [rows[x]["local_ref"] for x in (0,1,2,3)] == ["iteration:6:0","iteration:6:0","iteration:8:0","iteration:8:0"]
+assert rows[4]["expr0_local_refs"] == [{"node":0,"ref":"iteration:8:0"}]
+assert rows[5]["expr0_local_refs"] == [{"node":0,"ref":"iteration:6:0"}]
+assert rows[6]["result"] == "i.1" and rows[6]["local_ref"] == "declaration:12:0"
 assert rows[7]["uses"] == ["i.1"] and rows[7]["expr0_local_refs"] == []
 def emit(name, fn):
     x=copy.deepcopy(doc); rr=x["routines"][0]; ins=[y for b in rr["blocks"] for y in b["instructions"]]
     fn(rr,ins); (out/f"{name}.json").write_text(json.dumps(x,separators=(",",":")),encoding="utf-8")
 emit("type-order",lambda r,x:r["iteration_type_facts"].reverse())
 emit("flow-order",lambda r,x:r["loop_flow_summaries"].reverse())
-emit("inner-init-ref",lambda r,x:x[3].__setitem__("local_ref","iteration:7:0"))
-emit("inner-branch-ref",lambda r,x:x[4].__setitem__("local_ref","iteration:7:0"))
-emit("inner-body-ref",lambda r,x:x[5]["expr0_local_refs"][0].__setitem__("ref","iteration:7:0"))
-emit("escaped-inner-ref",lambda r,x:x[6]["expr0_local_refs"][0].__setitem__("ref","iteration:9:0"))
+emit("inner-init-ref",lambda r,x:x[2].__setitem__("local_ref","iteration:6:0"))
+emit("inner-branch-ref",lambda r,x:x[3].__setitem__("local_ref","iteration:6:0"))
+emit("inner-body-ref",lambda r,x:x[4]["expr0_local_refs"][0].__setitem__("ref","iteration:6:0"))
+emit("escaped-inner-ref",lambda r,x:x[5]["expr0_local_refs"][0].__setitem__("ref","iteration:8:0"))
 def final_direct(r,x):
-    x[7]["uses"]=[]; x[7]["expr0_local_refs"]=[{"node":0,"ref":"iteration:7:0"}]
+    x[7]["uses"]=[]; x[7]["expr0_local_refs"]=[{"node":0,"ref":"iteration:6:0"}]
 emit("final-direct-ref",final_direct)
 def missing_type(r,x):
     r["iteration_type_facts"].pop(); r["iteration_type_fact_count"]=1

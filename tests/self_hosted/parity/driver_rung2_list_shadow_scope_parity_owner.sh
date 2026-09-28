@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Owns lexical List binding identity, declaration ABI type carriage, and scope restoration.
+# Owns lexical List binding identity and declaration ABI type carriage when a
+# later local reuses the name of a List whose block has closed.
 
 pgy_selfhost_verify_driver_rung2_list_shadow_scope() {
     local backend="$1" base="$2" self_mir_json="$3" driver_bin="$4"
@@ -7,18 +8,18 @@ pgy_selfhost_verify_driver_rung2_list_shadow_scope() {
     [[ "$base" == "list_shadow_scope_metadata" ]] || return 0
 
     for fact in \
-        '"result":"items.1","arg0":"items","arg1":null,"slot_anchor":null,"abi_type_name":"List<Int>"' \
-        '"result":"items.2","arg0":"items","arg1":null,"slot_anchor":null,"abi_type_name":"List<String>"' \
-        '"expr0":"ListPush(items, \"shadow\")"' \
-        '"uses":["items.2"]' \
+        '"result":"items.1","arg0":"items","arg1":null,"slot_anchor":null,"abi_type_name":"List<String>"' \
+        '"result":"items.2","arg0":"items","arg1":null,"slot_anchor":null,"abi_type_name":"List<Int>"' \
+        '"expr0":"ListPush(items, \"inner\")"' \
+        '"uses":["items.1"]' \
         '"expr0":"ListPush(items, 20)"'; do
         grep -Fq "$fact" "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend List shadow fact drifted: $fact" >&2
             exit 1
         }
     done
-    [[ "$(grep -oF '"uses":["items.1"]' "$self_mir_json" | wc -l | tr -d ' ')" -eq 4 ]] || {
-        echo "[self-host-parity:driver-rung2] $backend outer List identity was not restored" >&2
+    [[ "$(grep -oF '"uses":["items.2"]' "$self_mir_json" | wc -l | tr -d ' ')" -eq 4 ]] || {
+        echo "[self-host-parity:driver-rung2] $backend later List identity lost its uses" >&2
         exit 1
     }
 
@@ -46,7 +47,7 @@ pgy_selfhost_verify_driver_rung2_list_shadow_scope_emitted_c() {
     for term in \
         'PgyList_Int items = pgy_list_new_int()' \
         'PgyList_String items = pgy_list_new_string()' \
-        'pgy_list_push_string(&items, "shadow")' \
+        'pgy_list_push_string(&items, "inner")' \
         'pgy_list_get_string(&items, 0)' \
         'pgy_list_push_int(&items, 20)' \
         'pgy_list_get_int(&items, 1)'; do

@@ -7,9 +7,14 @@ enum OuterTag {
     Wrap(InnerTag)
 }
 
+// The case binding reuses the name of a local whose block has closed. That
+// local's Aster proof must not reach the case binding, which holds Brume.
 func Main() -> Void {
-    let inner: InnerTag = Aster(74);
     let outer: OuterTag = Wrap(Brume(75));
+    if true {
+        let inner: InnerTag = Aster(74);
+        Log(inner.Aster._0);
+    }
     match outer {
         case Wrap(inner):
             Log(inner.Aster._0);

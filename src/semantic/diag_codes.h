@@ -86,9 +86,6 @@
 #define PGY_CODE_SEM_CLASS_CONTRACT_INVALID     "PGY_SEM_CLASS_CONTRACT_INVALID"
 #define PGY_CODE_SEM_ZONE_CONTRACT_INVALID      "PGY_SEM_ZONE_CONTRACT_INVALID"
 #define PGY_CODE_SEM_WORLD_CONTRACT_INVALID     "PGY_SEM_WORLD_CONTRACT_INVALID"
-/* Advisory (non-blocking, docs/140): a Subject (domain-identity) binding is
- * shadowed in a nested scope, so the same name denotes a non-domain value here. */
-#define PGY_CODE_SEM_SUBJECT_IDENTITY_SHADOWED  "PGY_SEM_SUBJECT_IDENTITY_SHADOWED"
 #define PGY_CODE_SEM_LOOP_CONTROL_INVALID       "PGY_SEM_LOOP_CONTROL_INVALID"
 #define PGY_CODE_SEM_TRANSACTION_CONTROL_INVALID \
     "PGY_SEM_TRANSACTION_CONTROL_INVALID"
@@ -152,7 +149,6 @@
 #define PGY_CAUSE_CLASS_CONTRACT                "semantic:class_contract"
 #define PGY_CAUSE_ROLE_CONTRACT                 "semantic:role_contract"
 #define PGY_CAUSE_ZONE_CONTRACT                 "semantic:zone_contract"
-#define PGY_CAUSE_SUBJECT_SHADOW                "semantic:axis:subject_shadow"
 #define PGY_CAUSE_CAPABILITY_OVER_DECLARED      "semantic:authority:capability_over_declared"
 #define PGY_CAUSE_WORLD_CONTRACT                "semantic:world_contract"
 
@@ -356,8 +352,6 @@
 #define PGY_FIX_ALIGN_INTENT_BOUNDARY_SYNC       "align-intent-boundary-sync"
 #define PGY_FIX_ALIGN_INTENT_BOUNDARY_EVIDENCE   "align-intent-boundary-evidence"
 #define PGY_FIX_ALIGN_SUBJECT_ARG_TYPE          "align-subject-arg-type"
-#define PGY_FIX_RENAME_SHADOW_OR_KEEP_DOMAIN_BINDING \
-                                                   "rename-shadow-or-keep-domain-binding"
 #define PGY_FIX_NARROW_CAPS_TO_USED_SET         "narrow-caps-to-used-set"
 #define PGY_FIX_NARROW_ENUM_VARIANT_BEFORE_PROJECTION \
     "narrow-enum-variant-before-projection"

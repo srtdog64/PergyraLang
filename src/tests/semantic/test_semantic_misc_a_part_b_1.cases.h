@@ -110,8 +110,12 @@
         lexer_destroy(lexer);
     }
 
-    TEST("CFG parallel allows task-local collection shadowing");
+    TEST("CFG parallel refuses a task-local rebinding of an outer collection by name only");
     {
+        /* The lambda parameter rebinds the outer collection's name, which the
+         * local name rule refuses (docs/206 section 3). The refusal names the
+         * rebinding; the parallel capture check does not report the lambda
+         * parameter as a capture of the outer collection. */
         const char *source =
             "func Main() -> Void {\n"
             "    let items: Array<Int> = [1, 2, 3];\n"
@@ -126,7 +130,11 @@
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->error_count == 1);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Local 'items' reuses the name of the binding at line 2"));
+        EXPECT(!ctx_has_diagnostic_substring_from_result(result,
+            "cannot capture mutable collection"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

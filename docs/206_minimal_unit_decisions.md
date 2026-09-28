@@ -98,10 +98,49 @@ harness PP-061~065와 red-team R11/R13은 따로 보면 다섯 개의 패치다.
   PP-062(같은 범위 재선언)는 같은 규칙 하나가 둘 다 거부한다.
 - `name_is_not_identity`: 같은 지점에 같은 이름이 보여도 바인딩은 하나일 수도
   둘일 수도 있다. 이름을 키로 쓰는 phi join은 둘을 구분할 수 없다.
+- `unique_resolution_ordered`: 선언 순서를 모델에 넣으면(바인딩은 선언 위치
+  뒤에서만 보이고, 범위는 소스 구간이다) 더 약한 규칙으로 충분하다. 바인딩은
+  자기 범위나 감싸는 범위에 있는 **앞선** 바인딩의 이름을 다시 쓸 수 없다. 이
+  규칙도 두 PP 형태를 거부하고(`shadow_refused_ordered`,
+  `redeclare_refused_ordered`), 블록이 닫힌 뒤의 재사용은 허용한다
+  (`closed_block_reuse_admitted`). 순서 없는 규칙은 이 규칙을 함의하지만 그
+  재사용까지 거부한다(`order_free_rule_is_stronger`,
+  `closed_block_reuse_refused_order_free`).
 
-결정: 두 front end가 같은 규칙으로 거부한다(C#식). 그리고 source에서 막는 것과
-별개로, self-host MIR의 phi와 지역 변수 표는 이름이 아니라 binding identity를
-키로 쓴다. 잘못된 입력이 들어와도 내부 phi 오류로 끝나면 안 된다.
+결정: 두 front end가 순서를 보는 같은 규칙으로 거부한다. 처음에는 순서 없는
+C#식 규칙을 적었지만, 코퍼스를 측정해 보고 바꿨다. C#식은 self-host 소스의
+`{ let output } let output` 형태 약 120곳을 추가로 거부한다. 그런데 이 형태는
+어느 지점에서도 두 바인딩이 함께 보이지 않으므로, 막아도 안전 이득이 없다. 최소
+단위는 유일 해석을 보장하는 가장 약한 규칙이다.
+
+- 매개변수는 함수 전체에서 보이므로, 같은 이름의 지역 바인딩은 항상 거부한다.
+- `shared` 같은 호스트 필드는 지역 바인딩이 아니므로 지역 이름이 가릴 수 있다.
+- native: `semantic_local_name_rule_check`
+  (`src/semantic/type_checker_local_name_rule.c`)가 let, destructure, for,
+  match 바인딩과 람다 매개변수를 선언할 때 감싸는 범위를 본다. 람다 본문은
+  바깥 함수의 로컬을 보므로 규칙은 람다 경계를 넘고, 이름 있는 함수의 범위에서
+  멈춘다. 위반을 보고한 뒤에도 새 바인딩을 선언하므로, 뒤의 사용이 타입이 다른
+  바깥 바인딩으로 풀리며 생기던 연쇄 오류가 없다. 람다 매개변수가 바깥 로컬과
+  같은 이름이면 전에는 semantic을 통과하고 생성된 C에서 SSA 이름이 없어
+  깨졌다.
+- default route: `SemanticAstLocalNameRuleVerdict`
+  (`ast_local_name_rule_owner.pgy`)가 본문 타입 검사보다 먼저
+  `local_name_rebound`로 거부한다. match 바인딩의 범위는 case 노드이고, case
+  본문 블록은 그 아래에 있다. self-host 파서가 case 위치를 기록하지 않으므로
+  match 바인딩 위반의 span은 match 문을 가리킨다(native는 case를 가리킨다).
+  default route는 람다를 아직 받지 않는다.
+- docs/140의 Subject 가림 amber advisory는 은퇴했다. 그 형태가 이제 오류다.
+- 게이트: `default_route_diagnostic_position_owner.sh`가 네 형태(블록 안 가림,
+  같은 범위 재선언, 중첩 `for`, match 바인딩)를 두 front end에서 위치까지
+  확인한다. 형제 범위와 닫힌 블록 뒤 재사용은 두 front end 모두 받아들여
+  실행한다. 대조 fixture에는 PP-061이 충돌하던 루프 안 조건부 대입의 합법
+  형태가 들어 있다.
+
+가림에 기대던 테스트는 같은 이름을 형제 범위나 닫힌 블록 뒤에서 다시 쓰도록
+옮겼다. 그래서 한 함수의 MIR에 같은 이름의 두 identity가 여전히 나타나고,
+LocalRef identity 검사는 계속 의미가 있다. 이 변경은 phi join의 키를 바꾸지
+않았다. 규칙 때문에 가림 형태가 MIR에 도달하지 않고, 합법적인 재사용은 default
+C에서 실행된다는 것까지가 증거다.
 
 ## 4. Array: move와 clone만 기저다
 

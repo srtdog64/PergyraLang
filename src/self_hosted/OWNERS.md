@@ -666,6 +666,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_declaration_contract_owner.pgy` -- program-wide
   declaration contracts checked once after statement typing:
   `enum_variant_redeclaration` for a variant name two enums declare.
+- `src/self_hosted/semantic/ast_local_name_rule_owner.pgy` -- the local name
+  rule (docs/206 section 3): a let, destructure, for or match binding may not
+  reuse a name that a parameter or an earlier binding in its own or an
+  enclosing scope holds (`local_name_rebound`). Statement typing runs it
+  before any body is typed.
 - `src/self_hosted/semantic/ast_zone_value_carriage_verdict_owner.pgy` --
   target-neutral admission for local zone-resource value carriage. It joins
   admitted resource shape, initializer/assignment types, and resolved fresh

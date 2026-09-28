@@ -101,6 +101,7 @@ annotation 또는 explicit observability marker가 있는 site부터만 보여�
    ✅ slice 1: `squiggle_class_classify()` 순수 Policy + 단위 테스트(`src/common/squiggle_class.*`).
 2. ✅ slice 2: `DiagnosticLevel`에 `DIAG_ADVISORY`(non-blocking, `advisory_count` 분리) + JSON emit에 `squiggleClass` 필드. 첫 advisory 생산자가 없으면 amber/violet은 안 뜨므로, 같은 슬라이스에서 첫 생산자를 추가한다(↓).
 3. ✅ slice 3: 첫 net-new advisory = **Subject 정체성 섀도잉**(`type_checker_ownership_let.c`, 코드 `PGY_SEM_SUBJECT_IDENTITY_SHADOWED` → amber). 기존 에러 0개 강등, 보장 불변. 단위 테스트가 "0 error로 컴파일 + advisory≥1" 검증.
+   - 은퇴: docs/206 3절 이후 두 front end가 바깥 범위에서 보이는 이름을 다시 묶는 지역 바인딩을 오류로 거부한다(`local_name_rebound`). 이 형태가 더는 컴파일되지 않으므로 advisory를 지웠다. advisory 기본 꺼짐 검사는 violet capability advisory로 옮겼다.
 4. ✅ slice 4a: `src/lsp/pgy_lsp_diagnostics.c`가 `data.squiggleClass` 송출 + advisory→LSP severity 3(Information). LSP publish 루프는 모든 진단을 순회하므로 advisory가 자연히 나간다(드라이버 `--error-format=json`은 에러 시에만 출력 — 이 분기는 LSP에 없음). 실제 LSP 세션(initialize+didOpen)으로 `severity:3 + squiggleClass:"amber"` 검증.
    ✅ slice 4b: thin VS Code decoration 클라이언트(`editors/vscode/`). `data.squiggleClass`를 읽어 amber/violet/blue 물결 밑줄 decoration(보라 포함 — LSP severity로 불가능한 4색). `npm install`+`tsc` 타입체크 통과. Extension Host 실행은 데스크톱 VS Code 필요(수동).
 5. ✅ slice 5: BLUE — AIR 소거 사이트를 LSP-only 라이브 진단에 연결 — §9.

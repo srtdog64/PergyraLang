@@ -1,0 +1,19 @@
+// Sibling scopes and a closed block may reuse a local name: no point
+// sees both bindings (docs/206 section 3). The while body assigns its own
+// `step` on one path, the shape whose name-keyed phi join crashed (PP-061).
+func Main() -> Void {
+    let total: Int = 0;
+    for i in 0..2 { total = total + i; }
+    for i in 0..3 { total = total + i; }
+    let n: Int = 0;
+    while n < 2 {
+        let step: Int = 10;
+        if n > 0 { step = 20; }
+        total = total + step;
+        n = n + 1;
+    }
+    let step: Int = 100;
+    step = step + 1;
+    total = total + step;
+    Log(ToString(total));
+}

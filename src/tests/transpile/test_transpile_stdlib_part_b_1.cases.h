@@ -322,8 +322,8 @@ test_stdlib_and_enum_emit(void)
             "    return policy(base, ctx);\n"
             "}\n"
             "func Run() -> Int {\n"
-            "    let ctx = StrategyContext(3);\n"
-            "    return Apply(2, ctx, (base: Int, ctx: StrategyContext) => base + ctx.morale);\n"
+            "    let context = StrategyContext(3);\n"
+            "    return Apply(2, context, (base: Int, ctx: StrategyContext) => base + ctx.morale);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);

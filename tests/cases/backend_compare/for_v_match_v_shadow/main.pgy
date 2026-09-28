@@ -7,7 +7,7 @@ func MapSum(arr: Array<Int>) -> Int {
     let s: Int = 0;
     for v in arr {
         match TrySquare(v) {
-            case Some(v): s = s + v;
+            case Some(sq): s = s + sq;
             case None: s = s + 0;
         }
     }

@@ -210,6 +210,10 @@ BROKEN_CASES=(
     "field_reserved|2|field_name_reserved"
     "variant_function_clash|6|enum_variant_function_clash"
     "zone_authority_requires|9|zone_authority_ability_unsatisfied"
+    "local_shadow|7|local_name_rebound"
+    "local_redeclare|4|local_name_rebound"
+    "loop_binding_shadow|4|local_name_rebound"
+    "match_binding_shadow|8|local_name_rebound"
 )
 for row in "${BROKEN_CASES[@]}"; do
     IFS='|' read -r name line code <<<"$row"
@@ -408,6 +412,38 @@ if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_zone_authority_requires.pgy" --na
 fi
 grep -Fq "Zone authority 'agent' requires ability 'WorkspaceActor', but subject type 'Agent' has no matching role impl" "$native_log" ||
     { cat "$native_log" >&2; fail "native lost the zone authority ability check"; }
+# One local name rule on both front ends (harness PP-061/062, docs/206
+# section 3): a local may not reuse a name that a parameter or an earlier
+# local in its own or an enclosing scope holds. The default route crashed in
+# a phi join on the inner-scope shape and accepted the same-scope one. For a
+# match binding the default route names the match (line 8), because the
+# self-hosted parser records no position for a case; native names the case.
+for row in "local_shadow|7|13|Local 'tag' reuses the name of the binding at line 2" \
+    "local_redeclare|4|9|Redeclaration of 'started' in the same scope" \
+    "loop_binding_shadow|4|9|Local 'i' reuses the name of the binding at line 3" \
+    "match_binding_shadow|9|19|Local 'v' reuses the name of the binding at line 7"; do
+    IFS='|' read -r name line column needle <<<"$row"
+    native_log="$WORK_DIR/native-$name.log"
+    if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_$name.pgy" --native-pipeline \
+        --backend=c --error-format=json -o "$WORK_REL/native-$name.bin") \
+        >"$native_log" 2>&1; then
+        fail "native accepted $name"
+    fi
+    grep -Fq "$needle" "$native_log" &&
+        grep -Fq "\"location\":{\"line\":$line,\"column\":$column}" "$native_log" ||
+        { cat "$native_log" >&2; fail "native no longer refuses $name at $line:$column"; }
+done
+# Sibling scopes and a closed block may reuse the name on both front ends.
+for leg in native default; do
+    flags=(--backend=c)
+    [[ "$leg" == native ]] && flags+=(--native-pipeline)
+    (cd "$ROOT_DIR" && PGY_SELF_DRIVER_BIN="$DRIVER" "$PGY" \
+        "$FIXTURES/control_local_name_reuse.pgy" "${flags[@]}" \
+        -o "$WORK_REL/reuse-$leg.exe") >"$WORK_DIR/reuse-$leg.log" 2>&1 ||
+        { cat "$WORK_DIR/reuse-$leg.log" >&2; fail "$leg refused a sibling or closed-block name reuse"; }
+    [[ "$("$WORK_DIR/reuse-$leg.exe" | tr -d '\r')" == "135" ]] ||
+        fail "$leg reuse control printed the wrong value"
+done
 for leg in native default; do
     flags=(--backend=c)
     [[ "$leg" == native ]] && flags+=(--native-pipeline)

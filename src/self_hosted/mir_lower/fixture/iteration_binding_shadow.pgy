@@ -1,7 +1,7 @@
 func Main() -> Void {
-    let i: Int = 40;
     for i in 0..3 {
         Log(i);
     }
+    let i: Int = 40;
     Log(i);
 }

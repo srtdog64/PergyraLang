@@ -32,20 +32,20 @@ rm -f "$WORK_DIR"/*
 import copy, json, pathlib, sys
 doc=json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")); out=pathlib.Path(sys.argv[2])
 r=doc["routines"][0]; rows=[x for b in r["blocks"] for x in b["instructions"]]
-assert r["source_locals"] == [{"name":"i","type":"Int"}]*3
-assert [x["iteration_syntax_id"] for x in r["iteration_type_facts"]] == [7,9]
-assert [x["loop_syntax_id"] for x in r["loop_flow_summaries"]] == [7,9]
+assert [x["name"] for x in r["source_locals"]] == ["i", "j", "i"]
+assert [x["iteration_syntax_id"] for x in r["iteration_type_facts"]] == [6,8]
+assert [x["loop_syntax_id"] for x in r["loop_flow_summaries"]] == [6,8]
 assert [(b.get("succ_true"),b.get("succ_false")) for b in r["blocks"]] == [
     (1,None),(2,8),(3,None),(4,7),(5,6),(3,None),(3,None),(1,None),(None,None)]
 assert [x["kind"] for x in rows] == [
-    "def","loop-init","branch","loop-init","branch","branch","branch","stmt","stmt","stmt"]
-assert rows[0]["local_ref"] == "declaration:6:0"
-assert [rows[x]["local_ref"] for x in (1,2)] == ["iteration:7:0"]*2
-assert [rows[x]["local_ref"] for x in (3,4)] == ["iteration:9:0"]*2
-assert rows[5]["expr0_local_refs"] == [{"node":0,"ref":"iteration:9:0"}]
-assert rows[6]["source_type"] == "AST_CONTINUE" and rows[6]["uses"] == []
-assert rows[7]["expr0_local_refs"] == [{"node":0,"ref":"iteration:9:0"}]
-assert rows[8]["expr0_local_refs"] == [{"node":0,"ref":"iteration:7:0"}]
+    "loop-init","branch","loop-init","branch","branch","branch","stmt","stmt","def","stmt","return"]
+assert [rows[x]["local_ref"] for x in (0,1)] == ["iteration:6:0"]*2
+assert [rows[x]["local_ref"] for x in (2,3)] == ["iteration:8:0"]*2
+assert rows[4]["expr0_local_refs"] == [{"node":0,"ref":"iteration:8:0"}]
+assert rows[5]["source_type"] == "AST_CONTINUE" and rows[5]["uses"] == []
+assert rows[6]["expr0_local_refs"] == [{"node":0,"ref":"iteration:8:0"}]
+assert rows[7]["expr0_local_refs"] == [{"node":0,"ref":"iteration:6:0"}]
+assert rows[8]["result"] == "i.1" and rows[8]["local_ref"] == "declaration:16:0"
 assert rows[9]["uses"] == ["i.1"] and rows[9]["expr0_local_refs"] == []
 assert all(x["kind"] != "phi" for x in rows)
 def emit(name,fn):
@@ -53,9 +53,9 @@ def emit(name,fn):
     fn(rr,ins); (out/f"{name}.json").write_text(json.dumps(x,separators=(",",":")),encoding="utf-8")
 emit("type-order",lambda r,x:r["iteration_type_facts"].reverse())
 emit("flow-order",lambda r,x:r["loop_flow_summaries"].reverse())
-emit("condition-outer-ref",lambda r,x:x[5]["expr0_local_refs"][0].__setitem__("ref","iteration:7:0"))
-def outer_ssa(r,x): x[5]["expr0_local_refs"]=[]; x[5]["uses"]=["i.1"]
-emit("condition-outer-ssa",outer_ssa)
+emit("condition-outer-ref",lambda r,x:x[4]["expr0_local_refs"][0].__setitem__("ref","iteration:6:0"))
+def later_ssa(r,x): x[4]["expr0_local_refs"]=[]; x[4]["uses"]=["i.1"]
+emit("condition-later-ssa",later_ssa)
 emit("continue-outer-header",lambda r,x:r["blocks"][5].__setitem__("succ_true",1))
 emit("fallthrough-outer-header",lambda r,x:r["blocks"][6].__setitem__("succ_true",1))
 PY
@@ -80,7 +80,7 @@ printf '0\n2\n0\n0\n2\n1\n40\n' >"$WORK_DIR/expected.run"
 cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/c.run" &&
     cmp -s "$WORK_DIR/c.run" "$WORK_DIR/llvm.run" || fail "execution mismatch"
 
-for mutation in condition-outer-ref condition-outer-ssa; do
+for mutation in condition-outer-ref condition-later-ssa; do
     for target in c llvm; do
         artifact="$WORK_DIR/$mutation-$target.artifact"
         if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$target" \

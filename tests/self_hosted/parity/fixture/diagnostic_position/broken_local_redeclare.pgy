@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let started: Int = 1;
+    Log(ToString(started));
+    let started: String = "two";
+    Log(started);
+}

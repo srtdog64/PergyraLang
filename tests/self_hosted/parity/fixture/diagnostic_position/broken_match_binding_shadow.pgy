@@ -1,0 +1,12 @@
+func Pick(x: Int) -> Option<Int> {
+    if x == 0 { return None; }
+    return Some(x);
+}
+
+func Main() -> Void {
+    let v: Int = 3;
+    match Pick(v) {
+        case Some(v): Log(ToString(v));
+        case None: Log("none");
+    }
+}

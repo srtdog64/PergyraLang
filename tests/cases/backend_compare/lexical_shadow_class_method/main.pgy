@@ -14,11 +14,13 @@ class B {
     }
 }
 
+// A name reused after its block has closed dispatches on each binding's own
+// class (docs/206 section 3).
 func Main() -> Void {
-    let x: A = A(1);
     if true {
         let x: B = B(2);
         Log(x.Value());
     }
+    let x: A = A(1);
     Log(x.Value());
 }

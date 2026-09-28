@@ -63,6 +63,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "missing_return",
         "enum_variant_redeclaration",
         "enum_variant_function_clash",
+        "local_name_rebound",
         "builtin_name_reserved",
         "condition_not_bool",
         "assign_type_mismatch",
@@ -225,6 +226,7 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     }
     if code == "enum_variant_redeclaration" { return "PGY_SEM_REDECLARATION"; }
     if code == "enum_variant_function_clash" { return "PGY_SEM_REDECLARATION"; }
+    if code == "local_name_rebound" { return "PGY_SEM_REDECLARATION"; }
     if code == "builtin_name_reserved" { return "PGY_SEM_REDECLARATION"; }
     if code == "condition_not_bool" {
         return "PGY_SEM_TYPE_MISMATCH";

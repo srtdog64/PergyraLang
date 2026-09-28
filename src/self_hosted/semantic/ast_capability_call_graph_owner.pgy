@@ -129,13 +129,13 @@ func SemanticAstCapabilityCallGraphFromSignatures(
         if index < function_count {
             id = analysis.signatures.function_node_ids[index];
             let declared_mask: Option<Int> = SemanticAstCapabilityDeclaredMaskAt(analysis.signatures.action_contracts, index);
-            let declared_effects: Option<Int> = SemanticAstDeclaredEffectMaskAt(analysis.signatures.action_contracts, index);
+            let declared_effect_mask: Option<Int> = SemanticAstDeclaredEffectMaskAt(analysis.signatures.action_contracts, index);
             let offset: Option<Int> = SemanticAstFunctionReceiverSourceParameterOffsetAt(analysis.signatures, index);
             let param_count: Option<Int> = SemanticAstFunctionParamCountAt(analysis.signatures, index);
-            if !IsSome(offset) || !IsSome(param_count) || !IsSome(declared_mask) || !IsSome(declared_effects) { graph.ok = false; }
+            if !IsSome(offset) || !IsSome(param_count) || !IsSome(declared_mask) || !IsSome(declared_effect_mask) { graph.ok = false; }
             else {
                 mask = UnwrapOption(declared_mask);
-                effects = UnwrapOption(declared_effects);
+                effects = UnwrapOption(declared_effect_mask);
                 receiver = UnwrapOption(offset);
                 let ordinal: Int = 0;
                 while ordinal < UnwrapOption(param_count) && graph.ok {

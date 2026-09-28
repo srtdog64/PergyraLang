@@ -92,6 +92,7 @@ func SemanticReason(code: String) -> String {
     if code == "call_arity_mismatch" { return "call argument count does not match the callee parameter count"; }
     if code == "enum_variant_redeclaration" { return "a bare variant name must belong to one enum; the first declaration used to win silently"; }
     if code == "enum_variant_function_clash" { return "a top-level function reuses the bare name of an enum variant, so a call could mean either"; }
+    if code == "local_name_rebound" { return "a local reuses a name that a parameter or an earlier local in its own or an enclosing scope still holds, so one name would mean two bindings"; }
     if code == "builtin_name_reserved" { return "a top-level function owns a builtin spelling except where it carries meaning beyond the call"; }
     if code == "generic_argument_count_mismatch" { return "explicit generic argument count does not match the callable generic parameters"; }
     if code == "generic_argument_type_invalid" { return "explicit generic argument is missing or malformed"; }
@@ -218,14 +219,13 @@ func SemanticFix(code: String) -> String {
     if code == "slice_storage_invalidation" { return "grow or replace the Array before slicing it, or end the Slice scope first"; }
     if code == "zone_value_copy_requires_transfer" || code == "zone_value_reassignment_requires_transfer" || code == "zone_value_parameter_requires_transfer" { return "construct a fresh zone or use an explicit admitted transfer boundary"; }
     if code == "zone_spawn_transport_unavailable" { return "pass a projected value or keep the zone operation within the current task"; }
-    if code == "builtin_arg_type_mismatch" {
-        return "pass a value that satisfies the builtin signature";
-    }
+    if code == "builtin_arg_type_mismatch" { return "pass a value that satisfies the builtin signature"; }
     if code == "option_concrete_type_required" { return "annotate the None value or pass a concretely typed Option<T>"; }
     if code == "never_function_fallthrough" { return "end the body in Exit(code) or a call to another Never function"; }
     if code == "missing_return" { return "add a return on the path that reaches the end, or declare the result Void"; }
     if code == "enum_variant_redeclaration" { return "rename one of the variants"; }
     if code == "enum_variant_function_clash" { return "rename the function or the variant"; }
+    if code == "local_name_rebound" { return "rename one of the bindings"; }
     if code == "builtin_name_reserved" { return "rename the function"; }
     if code == "value_param_collection_mutation" {
         return "spell the parameter as inout or mutate a local collection and return it";

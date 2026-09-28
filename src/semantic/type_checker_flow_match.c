@@ -200,6 +200,7 @@ declare_match_binding(SemanticContext *ctx, ASTNode *match_case_node,
         return false;
     }
 
+    semantic_local_name_rule_check(ctx, binding_node, name);
     binding = symbol_create_variable(name, binding_type,
         binding_node->line, binding_node->column);
     if (binding != NULL) {

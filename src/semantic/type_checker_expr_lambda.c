@@ -56,6 +56,7 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
         return TYPE_UNKNOWN;
 
     scope_enter(&ctx->scope, SCOPE_FUNCTION);
+    ctx->scope->is_lambda = true;
     for (size_t i = 0; i < param_count; i++) {
         ASTNode *param = ast_lambda_param(expr, i);
         const char *param_name = NULL;
@@ -80,6 +81,8 @@ type_check_lambda_expression(ASTNode *expr, SemanticContext *ctx)
         }
 
         if (param_name != NULL) {
+            semantic_local_name_rule_check(ctx,
+                param->line != 0 ? param : expr, param_name);
             Symbol *param_sym = symbol_create_variable(
                 param_name, param_type, expr->line, expr->column);
             if (param_sym != NULL) {

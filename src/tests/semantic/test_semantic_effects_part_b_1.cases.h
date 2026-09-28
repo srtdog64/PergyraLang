@@ -512,10 +512,12 @@
         lexer_destroy(lexer);
     }
 
-    TEST("lambda block local shadow is not treated as capture");
+    TEST("lambda block local reusing a later name is not treated as capture");
     {
+        /* The outer `value` is declared after the lambda, so the lambda's
+         * `value` cannot be a capture of it (docs/206 section 3). */
         SemanticContext *ctx = semantic_context_create();
-        ASTNode *func = ast_create_function("LambdaLocalShadow");
+        ASTNode *func = ast_create_function("LambdaLocalLaterName");
         ASTNode *outer = ast_create_let_declaration("value");
         ASTNode *lambda = ast_create_lambda_expression();
         ASTNode *inner = ast_create_let_declaration("value");
@@ -524,10 +526,6 @@
 
         func->data.func_decl.return_type = ast_create_type("Void");
         func->data.func_decl.body = ast_create_block();
-
-        outer->data.let_decl.type = ast_create_type("Int");
-        outer->data.let_decl.initializer = make_number(1, 2);
-        ast_add_statement(func->data.func_decl.body, outer);
 
         lambda->data.lambda_expr.return_type = ast_create_type("Int");
         lambda->data.lambda_expr.body = ast_create_block();
@@ -540,10 +538,58 @@
         decl->data.let_decl.initializer = lambda;
         ast_add_statement(func->data.func_decl.body, decl);
 
+        outer->data.let_decl.type = ast_create_type("Int");
+        outer->data.let_decl.initializer = make_number(1, 5);
+        ast_add_statement(func->data.func_decl.body, outer);
+
         type_check_func_decl(func, ctx);
 
         EXPECT(!ctx->has_error);
 
         semantic_context_destroy(ctx);
         ast_destroy(func);
+    }
+
+    TEST("lambda parameter or local that rebinds an enclosing local is refused");
+    {
+        /* A lambda body sees the enclosing function's locals, so reusing one
+         * of their names in a parameter, a body local or a nested block local
+         * is refused. The parameter shape used to pass semantic and fail in
+         * generated C on an undeclared SSA name. */
+        const char *sources[] = {
+            "func Main() -> Void {\n"
+            "    let value: Int = 1;\n"
+            "    let f: func(Int) -> Int = (value: Int) -> Int => { return value + 1; };\n"
+            "    Log(f(value));\n"
+            "}\n",
+            "func Main() -> Void {\n"
+            "    let value: Int = 1;\n"
+            "    let f: func(Int) -> Int = (x: Int) -> Int => { let value: Int = x; return value; };\n"
+            "    Log(f(value));\n"
+            "}\n",
+            "func Main() -> Void {\n"
+            "    let value: Int = 1;\n"
+            "    let f: func(Int) -> Int = (x: Int) -> Int => {\n"
+            "        if x > 0 { let value: Int = x; return value; }\n"
+            "        return 0;\n"
+            "    };\n"
+            "    Log(f(value));\n"
+            "}\n"
+        };
+        for (size_t row = 0; row < sizeof(sources) / sizeof(sources[0]); row++) {
+            Lexer *lexer = lexer_create(sources[row]);
+            Parser *parser = parser_create(lexer);
+            ASTNode *program = parser_parse_program(parser);
+            SemanticResult *result = semantic_analyze(program);
+
+            EXPECT(!parser_has_error(parser));
+            EXPECT(result != NULL && result->error_count >= 1);
+            EXPECT(ctx_has_diagnostic_substring_from_result(result,
+                "Local 'value' reuses the name of the binding at line 2"));
+
+            semantic_result_destroy(result);
+            ast_destroy(program);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+        }
     }

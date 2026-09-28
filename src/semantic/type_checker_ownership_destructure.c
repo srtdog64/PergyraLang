@@ -65,6 +65,7 @@ type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
                     binding_name, NULL,
                     false, NULL, NULL);
             }
+            semantic_local_name_rule_check(ctx, node, binding_name);
             Symbol *s = symbol_create_variable(
                 binding_name,
                 elem != NULL ? elem : TYPE_UNKNOWN,
@@ -97,6 +98,7 @@ type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
                 binding_name, NULL,
                 false, NULL, NULL);
         }
+        semantic_local_name_rule_check(ctx, node, binding_name);
         Symbol *s = symbol_create_variable(
             binding_name, elem_type,
             node->line, node->column);

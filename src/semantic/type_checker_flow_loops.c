@@ -85,6 +85,7 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         }
     }
 
+    semantic_local_name_rule_check(ctx, node, ast_for_variable(node));
     Symbol *loop_var = symbol_create_variable(
         ast_for_variable(node), var_type, node->line, node->column);
     symbol_mark_declaration(loop_var, ast_node_stable_id(node), false);

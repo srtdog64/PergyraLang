@@ -84,6 +84,8 @@ parse_condition_expression(Parser *parser)
 
 ASTNode* parse_for_loop(Parser* parser) {
     ASTNode* for_loop = ast_create_for_loop();
+    for_loop->line = parser->previous_token.line;
+    for_loop->column = parser->previous_token.column;
 
     Token var = consume_binding_name_token(parser, "Expected loop variable");
     for_loop->data.for_loop.variable = pergyra_strdup(var.text);

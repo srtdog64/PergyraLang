@@ -515,17 +515,13 @@ the required layered provenance.
 - **Reason**: world is a composition of zones and their states; every name in a clause must resolve to a slot/state the world already declares at that point.
 - **Fix**: declare or reorder the referenced zones/states; switch to the underlying zone slot instead of a derived alias; make the copy explicit via `Clone(...)` where unavoidable.
 
-#### `PGY_SEM_SUBJECT_IDENTITY_SHADOWED` (advisory)
+#### `PGY_SEM_SUBJECT_IDENTITY_SHADOWED` (retired advisory)
 
-A nested binding reuses the name of an enclosing `Subject` / domain-identity
-binding, so the name no longer denotes that domain entity inside the nested
-scope.
-
-- **Reason**: subject identity is a semantic axis; shadowing it is legal but can
-  make later intent, role, or zone code read as if it still refers to the
-  domain entity.
-- **Fix**: rename the nested binding, or keep using the enclosing subject
-  binding if the domain identity was intended.
+Retired. The advisory fired when a nested binding reused the name of an
+enclosing `Subject` binding. Since docs/206 section 3, both front ends refuse
+any local that rebinds a name visible from an enclosing scope
+(`PGY_SEM_REDECLARATION`, default-route code `local_name_rebound`), so the
+shape no longer compiles and the advisory had nothing left to report.
 
 ### Loop Control
 
