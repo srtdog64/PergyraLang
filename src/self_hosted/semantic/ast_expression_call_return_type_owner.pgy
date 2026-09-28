@@ -158,7 +158,8 @@ func SemanticAstAnalysisResolveCallReturnTypes(
     // touched until every row succeeds and the replacement surface is ready.
     let call_return_types: Array<String> = [];
     let node_id: Int = 0;
-    while node_id < node_count {
+    let candidate_ready: Bool = true;
+    while node_id < node_count && candidate_ready {
         let type_name: String = "";
         if graph.arena.call_target_kinds[node_id] ==
             SemanticCallTargetRoleOperator() {
@@ -166,8 +167,7 @@ func SemanticAstAnalysisResolveCallReturnTypes(
                 "", graph.arena.call_return_type_names[node_id]
             );
         } else if graph.arena.call_return_type_names[node_id] != "" {
-            ArrayDropOwnedStrings(call_return_types);
-            return false;
+            candidate_ready = false;
         } else if graph.arena.topology.node_kinds[node_id] ==
             AstExpressionNodeCall() {
             let projection: SemanticExpressionCallReturnProjection =
@@ -176,43 +176,43 @@ func SemanticAstAnalysisResolveCallReturnTypes(
                     generic_specializations
                 );
             if !projection.ok {
-                ArrayDropOwnedStrings(call_return_types);
-                return false;
-            }
-            if projection.carried {
+                candidate_ready = false;
+            } else if projection.carried {
                 type_name = Concat("", projection.type_name);
             }
         }
-        if type_name == "" { type_name = Concat("", ""); }
-        ArrayPushOwnedString(call_return_types, type_name);
-        node_id = node_id + 1;
+        if candidate_ready {
+            if type_name == "" { type_name = Concat("", ""); }
+            ArrayPushOwnedString(call_return_types, type_name);
+            node_id = node_id + 1;
+        }
     }
-    let arena: SemanticExpressionGraphArena =
-        SemanticExpressionGraphArenaFromTopologyWithIdentities(
-            graph.arena.topology, graph.arena.node_texts,
-            graph.arena.call_target_kinds, graph.arena.call_target_names,
-            call_return_types, graph.arena.identities,
-            graph.arena.place_kinds
-        );
-    let published: SemanticExpressionGraphFacts =
-        SemanticExpressionGraphFacts(
-            SemanticExpressionGraphArenaReady(arena),
-            graph.roots, graph.has_roots, arena
-        );
-    if !published.ok {
-        ArrayDropOwnedStrings(call_return_types);
-        return false;
+    if candidate_ready {
+        let arena: SemanticExpressionGraphArena =
+            SemanticExpressionGraphArenaFromTopologyWithIdentities(
+                graph.arena.topology, graph.arena.node_texts,
+                graph.arena.call_target_kinds, graph.arena.call_target_names,
+                call_return_types, graph.arena.identities,
+                graph.arena.place_kinds
+            );
+        let published: SemanticExpressionGraphFacts =
+            SemanticExpressionGraphFacts(
+                SemanticExpressionGraphArenaReady(arena),
+                graph.roots, graph.has_roots, arena
+            );
+        if published.ok {
+            let surfaces: SemanticAstExpressionSurfaceFacts =
+                SemanticAstExpressionSurfaceFactsWithGraph(
+                    artifact, analysis.expression_surfaces, published
+                );
+            if surfaces.ok {
+                analysis.expression_surfaces = surfaces;
+                return true;
+            }
+        }
     }
-    let surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsWithGraph(
-            artifact, analysis.expression_surfaces, published
-        );
-    if !surfaces.ok {
-        ArrayDropOwnedStrings(call_return_types);
-        return false;
-    }
-    analysis.expression_surfaces = surfaces;
-    return true;
+    ArrayDropOwnedStrings(call_return_types);
+    return false;
 }
 
 func SemanticExpressionGraphCallReturnTypesResolved(
