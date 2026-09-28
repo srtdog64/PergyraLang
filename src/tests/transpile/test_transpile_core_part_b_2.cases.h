@@ -346,12 +346,13 @@
 
     TEST("bind statement emits party-role rebinding call");
     {
-        ASTNode *bind = ast_create_bind_statement("team", "fighter", "Warrior");
+        ASTNode *bind = ast_create_bind_statement("team", "fighter",
+            ast_create_identifier("hero"), "Warrior");
         const char *out = emit_stmt_to_str(bind, &ctx);
         EXPECT(strcmp(out, "") == 0);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
-            "cannot resolve party type for bind statement 'team.fighter = Warrior'");
+            "cannot resolve party type for bind statement 'team.fighter = hero as Warrior'");
         transpiler_ctx_destroy(ctx);
     }
 }

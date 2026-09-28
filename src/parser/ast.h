@@ -595,10 +595,11 @@ struct ASTNode
             ASTNode* body;           /* Block or expression */
         } defer_stmt;
 
-        /* bind party.slot = RoleName; */
+        /* bind party.slot = subject as RoleName; (docs/206 section 1) */
         struct {
             char* party_var;         /* "team" */
             char* slot_name;         /* "fighter" */
+            ASTNode* subject;        /* borrowed subject: an identifier */
             char* role_name;         /* "Warrior" */
         } bind_stmt;
     } data;

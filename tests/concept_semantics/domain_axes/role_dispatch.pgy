@@ -24,8 +24,9 @@ party Team {
 
 func Main() -> Void {
     let team = Team();
-    bind team.fighter = Warrior;
+    let hero = Fighter(1);
+    bind team.fighter = hero as Warrior;
     Log(team.fighter.Score());
-    bind team.fighter = Berserker;
+    bind team.fighter = hero as Berserker;
     Log(team.fighter.Score());
 }

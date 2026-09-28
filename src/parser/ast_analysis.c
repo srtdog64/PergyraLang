@@ -511,6 +511,8 @@ ast_contains_identifier_call(const ASTNode *node,
         return ast_contains_identifier_call(node->data.fail_stmt.reason, predicate, userdata);
     case AST_DEFER_STMT:
         return ast_contains_identifier_call(node->data.defer_stmt.body, predicate, userdata);
+    case AST_BIND_STMT:
+        return ast_contains_identifier_call(node->data.bind_stmt.subject, predicate, userdata);
     default:
         return false;
     }

@@ -1,7 +1,8 @@
-// A party ability call reads the party for the slot and for its vtable. The
-// default C route emitted the party expression in both places, so a party
-// returned from a call ran twice, after the argument: "party c party". It
-// now runs once, before the argument. Native C and LLVM refuse this shape.
+// A party returned from a call cannot carry a bound slot: the bind stores the
+// address of a subject local to MakeTeam, which ends when MakeTeam returns
+// (docs/206 section 1). Both front ends refuse returning the bound party.
+// Before, the default C route ran this and native refused it for another
+// reason, so the party-once receiver order it once checked has no legal form.
 subject Fighter {
     let power: Int;
 }
@@ -30,8 +31,9 @@ func Tag(t: String) -> Int {
 
 func MakeTeam(t: String) -> Team {
     Log(t);
+    let hero: Fighter = Fighter(1);
     let team: Team = Team(0);
-    bind team.fighter = Warrior;
+    bind team.fighter = hero as Warrior;
     return team;
 }
 

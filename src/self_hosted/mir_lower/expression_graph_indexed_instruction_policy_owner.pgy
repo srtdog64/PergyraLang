@@ -62,6 +62,8 @@ func MirInstructionExpressionRequiresExpr0Graph(
         return !MirProgramInstructionExpressionRoutingEquals(
             json, expression, 1, "ArrayPop");
     }
+    // A bind's subject, the slot's borrowed self (docs/206 section 1).
+    if kind == "stmt" && source == "AST_BIND_STMT" { return true; }
     return kind == "return" && source != "AST_RETURN_VOID";
 }
 

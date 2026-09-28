@@ -105,6 +105,15 @@ struct SemanticContext
     ASTNode*     current_party;    /* Enclosing party decl when any */
     ASTNode*     current_role_decl; /* Role whose impl bodies are checked;
                                       * their `self` is its `for` target */
+    /* docs/206 section 1: parties this function binds and the party
+     * identifiers it uses as values, crossed when the function ends
+     * (type_checker_bound_party_escape.c). */
+    const char** bound_party_names;
+    size_t       bound_party_count;
+    size_t       bound_party_capacity;
+    ASTNode**    party_value_uses;
+    size_t       party_value_use_count;
+    size_t       party_value_use_capacity;
     ASTNode*     current_roster;   /* Enclosing roster decl when any */
     ASTNode*     current_nominal_decl; /* Enclosing nominal decl      */
     ASTNode*     current_zone;   /* Enclosing zone decl when any   */
@@ -356,6 +365,10 @@ bool type_check_class_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_enum_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_extern_block(ASTNode* node, SemanticContext* ctx);
 bool type_check_let_decl(ASTNode* node, SemanticContext* ctx);
+void semantic_bound_party_begin_function(SemanticContext* ctx);
+void semantic_bound_party_note_bind(SemanticContext* ctx, const char* party_var);
+void semantic_bound_party_note_value_use(SemanticContext* ctx, ASTNode* node);
+void semantic_bound_party_end_function(SemanticContext* ctx);
 /* docs/206 section 3: report a body binding whose name an enclosing scope
  * of the same function already binds. */
 void semantic_local_name_rule_check(SemanticContext* ctx, ASTNode* site,

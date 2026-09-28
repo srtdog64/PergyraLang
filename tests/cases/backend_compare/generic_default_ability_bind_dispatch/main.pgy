@@ -20,6 +20,7 @@ party StorageParty {
 
 func Main() -> Void {
     let storage: StorageParty = StorageParty();
-    bind storage.buffer = IntBuffer;
+    let bag: Bag = Bag(0);
+    bind storage.buffer = bag as IntBuffer;
     Log(storage.buffer.Put(7));
 }

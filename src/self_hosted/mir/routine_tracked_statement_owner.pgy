@@ -124,20 +124,13 @@ func SelfMirLowerTrackedStatementFromArtifact(
         return build;
     }
     if SelfMirSimpleStatementKind(kind) {
-        build = SelfMirLowerSimpleStatement(
-            build, kind, payload, value_payload, auxiliary_payload
-        );
-        let graph_lane: Option<Int> =
-            SelfMirSimpleStatementExpressionGraphLane(kind);
-        if IsSome(graph_lane) {
-            build = SelfMirRoutineAttachLastExpressionGraph(
-                build, SemanticAstExpressionGraphForNode(
-                    input.analysis.expression_surfaces,
-                    node_id, UnwrapOption(graph_lane)
-                ), input.machine_declaration
-            );
-        }
-        return build;
+        let value_graph: SemanticExpressionGraphView = SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces, node_id, AstExpressionLaneValue());
+        build = SelfMirLowerSimpleStatement(build, kind, payload,
+            input.analysis.statements.type_name_texts[statement_index],
+            auxiliary_payload, value_graph);
+        return SelfMirRoutineAttachLastExpressionGraph(
+            build, value_graph, input.machine_declaration);
     }
     if kind == TypedAstKindBareReturnStmtTag() {
         build = SelfMirRoutineAddInstruction(

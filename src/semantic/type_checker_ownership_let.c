@@ -113,6 +113,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
      * initializers are covered by the hook in type_check_call. */
     if (init != NULL && init->type == AST_MEMBER_ACCESS)
         semantic_reject_world_zone_member_escape(init, ctx);
+        semantic_bound_party_note_value_use(ctx, init);
 
     /* Type inference: if no annotation, infer from initializer */
     if (ann != NULL) {

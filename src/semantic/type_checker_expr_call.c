@@ -162,6 +162,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         /* The resolved builtin identity, not Clone's spelling, authorizes
          * the declared-copy boundary for a world-owned zone (docs/157). */
         semantic_reject_world_zone_member_escape(expr, ctx);
+        semantic_bound_party_note_value_use(ctx, expr);
         if (bk != BUILTIN_NOT_BUILTIN)
             return type_check_builtin_call(expr, bk, ctx);
 
@@ -214,6 +215,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
     }
 
     semantic_reject_world_zone_member_escape(expr, ctx);
+    semantic_bound_party_note_value_use(ctx, expr);
     if (callee->type == AST_MEMBER_ACCESS) {
         ASTNode *object = ast_member_object(callee);
         const char *method_name = ast_member_name(callee);

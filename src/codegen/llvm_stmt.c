@@ -181,9 +181,15 @@ llvm_emit_if_stmt(ASTNode *node, LLVMGenCtx *ctx)
 
 bool
 llvm_emit_bind_statement_parts(LLVMGenCtx *ctx, const char *party_var,
-                               const char *slot_name, const char *role_name,
+                               const char *slot_name, const ASTNode *subject,
+                               const char *role_name,
                                ASTNode *diagnostic_node)
 {
+    const char *subject_name = ast_identifier_name(subject);
+    LLVMVarEntry subject_entry;
+    char impl_field[256];
+    int impl_idx;
+    LLVMValueRef subject_ptr;
     LLVMVarEntry party_entry;
     const char *party_class_name;
     LLVMClassTypeEntry *cls;
@@ -196,12 +202,13 @@ llvm_emit_bind_statement_parts(LLVMGenCtx *ctx, const char *party_var,
 
     if (ctx == NULL)
         return false;
-    if (party_var == NULL || slot_name == NULL || role_name == NULL) {
+    if (party_var == NULL || slot_name == NULL || role_name == NULL
+        || subject_name == NULL) {
         llvm_set_error_at_with_hints(ctx, diagnostic_node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
-            "LLVM bind emission requires party variable, slot name, and role name");
+            "LLVM bind emission requires party variable, slot name, subject, and role name");
         return false;
     }
 
@@ -265,11 +272,40 @@ llvm_emit_bind_statement_parts(LLVMGenCtx *ctx, const char *party_var,
         return false;
     }
 
+    if (!llvm_stmt_format_bind_name(ctx, diagnostic_node, impl_field,
+            sizeof(impl_field), slot_name, "_impl", "subject field")) {
+        return false;
+    }
+    impl_idx = llvm_class_field_index(cls, impl_field);
+    if (impl_idx < 0
+        || !llvm_scope_lookup_snapshot(ctx, subject_name, &subject_entry)) {
+        llvm_set_error_at_with_hints(ctx, diagnostic_node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
+            "LLVM bind emission cannot resolve subject '%s' or slot field '%s'",
+            subject_name, impl_field);
+        return false;
+    }
+
     field_ptr = LLVMBuildStructGEP2(ctx->builder, cls->struct_type,
         party_entry.alloca, (unsigned)field_idx, llvm_tmp_name(ctx));
     vt_ptr = LLVMBuildBitCast(ctx->builder, vt_global, ctx->type_i8ptr,
                               llvm_tmp_name(ctx));
     LLVMBuildStore(ctx->builder, vt_ptr, field_ptr);
+
+    /* The slot borrows the subject: store its address. A binding that
+     * already holds a pointer (a by-reference parameter) stores that. */
+    subject_ptr = LLVMGetTypeKind(subject_entry.type) == LLVMPointerTypeKind
+        ? LLVMBuildLoad2(ctx->builder, subject_entry.type,
+              subject_entry.alloca, llvm_tmp_name(ctx))
+        : subject_entry.alloca;
+    field_ptr = LLVMBuildStructGEP2(ctx->builder, cls->struct_type,
+        party_entry.alloca, (unsigned)impl_idx, llvm_tmp_name(ctx));
+    LLVMBuildStore(ctx->builder,
+        LLVMBuildBitCast(ctx->builder, subject_ptr, ctx->type_i8ptr,
+                         llvm_tmp_name(ctx)),
+        field_ptr);
     return true;
 }
 
@@ -542,6 +578,7 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         (void)llvm_emit_bind_statement_parts(ctx,
             ast_bind_statement_party_var(node),
             ast_bind_statement_slot_name(node),
+            ast_bind_statement_subject(node),
             ast_bind_statement_role_name(node),
             node);
         break;

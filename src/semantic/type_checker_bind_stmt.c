@@ -3,6 +3,8 @@
 #include "type_checker_decls_a_helpers_internal.h"
 #include "diag_codes.h"
 
+#include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 
 static ASTNode *
@@ -68,6 +70,118 @@ semantic_role_satisfies_party_slot(SemanticContext *ctx,
         return false;
     return role_satisfies_party_slot(role_decl, role_slot, ctx,
                                     missing_ability_out);
+}
+
+
+/* The scope that declares `name`, searching outward from the current one. */
+static Scope *
+bind_declaring_scope(SemanticContext *ctx, const char *name)
+{
+    for (Scope *s = ctx->scope; s != NULL; s = s->parent) {
+        if (scope_lookup_current(s, name) != NULL)
+            return s;
+    }
+    return NULL;
+}
+
+static bool
+bind_scope_encloses(const Scope *outer, const Scope *inner)
+{
+    for (const Scope *s = inner; s != NULL; s = s->parent) {
+        if (s == outer)
+            return true;
+    }
+    return false;
+}
+
+static bool
+bind_refuse(SemanticContext *ctx, ASTNode *node, const char *format, ...)
+{
+    char message[512];
+    va_list args;
+
+    va_start(args, format);
+    vsnprintf(message, sizeof(message), format, args);
+    va_end(args);
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_ROLE_CONTRACT_INVALID,
+        PGY_CAUSE_ROLE_CONTRACT,
+        PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
+        node, "%s", message);
+    return false;
+}
+
+/* docs/206 section 1, PartySlotBinding.v: the slot borrows the subject's
+ * identity and the role supplies the witness. The subject is a local of this
+ * function whose scope encloses the party's, so it outlives the party
+ * (scoped_borrow_live); its type is the role's `for` target, which the role
+ * body reads as `self`. Only a dyn slot is bound at run time. */
+static bool
+bind_admit_subject(ASTNode *node, SemanticContext *ctx,
+                   Symbol *party_symbol, ASTNode *role_decl,
+                   ASTNode *role_slot, const char *party_type_name)
+{
+    const char *party_var = ast_bind_statement_party_var(node);
+    const char *slot_name = ast_bind_statement_slot_name(node);
+    const char *role_name = ast_bind_statement_role_name(node);
+    ASTNode *subject = ast_bind_statement_subject(node);
+    const char *subject_name = ast_identifier_name(subject);
+    Scope *party_scope;
+    Scope *subject_scope;
+    Symbol *subject_symbol;
+    Type *subject_type;
+    Type *for_type;
+
+    if (!ast_role_slot_is_dynamic(role_slot)) {
+        return bind_refuse(ctx, node,
+            "party slot '%s.%s' is not a `dyn role slot`; only a dyn slot is bound at run time",
+            party_type_name, slot_name);
+    }
+    party_scope = bind_declaring_scope(ctx, party_var);
+    if (party_symbol->is_parameter || party_symbol->is_host_field
+        || party_scope == NULL || party_scope->kind == SCOPE_GLOBAL
+        || party_scope->kind == SCOPE_CLASS) {
+        return bind_refuse(ctx, node,
+            "bind target '%s' must be a local party binding of this function; "
+            "a party borrows its subjects only while the function runs",
+            party_var);
+    }
+    if (subject == NULL || subject->type != AST_IDENTIFIER || subject_name == NULL) {
+        return bind_refuse(ctx, node,
+            "bind '%s.%s' needs a local subject: `bind %s.%s = <subject> as Role;`",
+            party_var, slot_name, party_var, slot_name);
+    }
+    subject_symbol = scope_lookup(ctx->scope, subject_name);
+    subject_scope = bind_declaring_scope(ctx, subject_name);
+    if (subject_symbol == NULL || subject_symbol->kind != SYMBOL_VARIABLE
+        || subject_symbol->is_host_field || subject_symbol->is_parameter
+        || subject_scope == NULL || subject_scope->kind == SCOPE_GLOBAL
+        || subject_scope->kind == SCOPE_CLASS) {
+        return bind_refuse(ctx, subject,
+            "bind subject '%s' must be a local `let` binding of this function",
+            subject_name);
+    }
+    subject_type = type_check_expression(subject, ctx);
+    for_type = semantic_host_resolve_type_ref(
+        semantic_role_for_type_node(role_decl), ctx);
+    if (subject_type == NULL || for_type == NULL
+        || !type_equals(subject_type, for_type)) {
+        return bind_refuse(ctx, subject,
+            "bind subject '%s' has type '%s', but role '%s' is for '%s'",
+            subject_name,
+            subject_type != NULL && subject_type->name != NULL
+                ? subject_type->name : "<unknown>",
+            role_name,
+            for_type != NULL && for_type->name != NULL
+                ? for_type->name : "<unknown>");
+    }
+    if (!bind_scope_encloses(subject_scope, party_scope)) {
+        return bind_refuse(ctx, subject,
+            "bind subject '%s' is declared in a scope that ends before party '%s'; "
+            "declare the subject where it outlives the party",
+            subject_name, party_var);
+    }
+    return true;
 }
 
 bool
@@ -168,6 +282,11 @@ type_check_bind_stmt(ASTNode *node, SemanticContext *ctx)
             missing_ability != NULL ? missing_ability : "<ability>");
         return false;
     }
+
+    if (!bind_admit_subject(node, ctx, party_symbol, role_decl, role_slot,
+                            party_type_name))
+        return false;
+    semantic_bound_party_note_bind(ctx, party_var);
 
     return !ctx->has_error;
 }

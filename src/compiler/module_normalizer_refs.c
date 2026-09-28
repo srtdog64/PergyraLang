@@ -480,6 +480,10 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             module_normalizer_normalize_node_refs(ast_defer_body(node), scope, shadow);
             return;
 
+        case AST_BIND_STMT:
+            module_normalizer_normalize_node_refs(ast_bind_statement_subject(node), scope, shadow);
+            return;
+
         case AST_NUMBER:
         case AST_STRING:
         case AST_BOOLEAN:

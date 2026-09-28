@@ -1,0 +1,9 @@
+subject Fighter { let power: Int; }
+ability Talkable { func Speak(self) -> Int; }
+role Warrior for Fighter { impl ability Talkable { func Speak(self) -> Int { return self.power; } } }
+party Team { dyn role slot fighter: Talkable; }
+func Main() -> Void {
+    let n: Int = 1;
+    let team: Team = Team();
+    bind team.fighter = n as Warrior;
+}

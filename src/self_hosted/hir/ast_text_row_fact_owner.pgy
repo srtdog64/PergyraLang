@@ -204,12 +204,15 @@ func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
         return "";
     }
     if kind == TypedAstKindBindStmtTag() {
+        // `party.slot = subject as Role`: the value is the subject the slot
+        // borrows; the role is the row's type name.
         let bind_pos: Option<Int> = FindTextFrom(payload, " = ", 0);
         if IsSome(bind_pos) {
             let start: Int = UnwrapOption(bind_pos) + 3;
-            return StringTrim(Substring(
-                payload, start, StringLength(payload) - start
-            ));
+            let as_pos: Option<Int> = FindTextFrom(payload, " as ", start);
+            if IsSome(as_pos) {
+                return StringTrim(Substring(payload, start, UnwrapOption(as_pos) - start));
+            }
         }
         return "";
     }
@@ -360,6 +363,17 @@ func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput) -> String 
         let colon: Int = StringIndexOf(row, ": ");
         if colon >= 0 {
             return Substring(row, colon + 2, StringLength(row) - (colon + 2));
+        }
+        return "";
+    }
+    if kind == TypedAstKindBindStmtTag() {
+        let bind_sep: Option<Int> = FindTextFrom(payload, " = ", 0);
+        if IsSome(bind_sep) {
+            let role_sep: Option<Int> = FindTextFrom(payload, " as ", UnwrapOption(bind_sep));
+            if IsSome(role_sep) {
+                let role_start: Int = UnwrapOption(role_sep) + 4;
+                return StringTrim(Substring(payload, role_start, StringLength(payload) - role_start));
+            }
         }
         return "";
     }

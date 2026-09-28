@@ -144,9 +144,56 @@ llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
                         fn_ptr = LLVMBuildLoad2(ctx->builder, fn_ptr_ty,
                             fn_ptr_field, llvm_tmp_name(ctx));
 
-                        args[0] = LLVMBuildBitCast(ctx->builder,
-                            pvar.alloca, ctx->type_i8ptr,
-                            llvm_tmp_name(ctx));
+                        /* self is the subject the bind stored; a slot no
+                         * bind has filled stops instead of passing NULL. */
+                        {
+                            char impl_field[256];
+                            int impl_idx;
+                            LLVMFuncEntry *panic_fn;
+                            LLVMValueRef impl_ptr_field;
+                            LLVMValueRef impl;
+                            LLVMValueRef unbound;
+                            LLVMValueRef fn_now;
+                            LLVMBasicBlockRef fail_bb;
+                            LLVMBasicBlockRef bound_bb;
+                            LLVMValueRef reason;
+
+                            snprintf(impl_field, sizeof(impl_field),
+                                "%s_impl", slot_name);
+                            impl_idx = llvm_class_field_index(cls, impl_field);
+                            panic_fn = llvm_lookup_function(ctx,
+                                "pgy_runtime_panic_internal_invariant_export");
+                            if (impl_idx < 0 || panic_fn == NULL) {
+                                return llvm_vtable_dispatch_error(node, ctx,
+                                    method_name,
+                                    "requires the slot's bound-subject field and the panic runtime");
+                            }
+                            impl_ptr_field = LLVMBuildStructGEP2(ctx->builder,
+                                cls->struct_type, pvar.alloca,
+                                (unsigned)impl_idx, llvm_tmp_name(ctx));
+                            impl = LLVMBuildLoad2(ctx->builder,
+                                ctx->type_i8ptr, impl_ptr_field,
+                                llvm_tmp_name(ctx));
+                            unbound = LLVMBuildIsNull(ctx->builder, impl,
+                                llvm_tmp_name(ctx));
+                            fn_now = LLVMGetBasicBlockParent(
+                                LLVMGetInsertBlock(ctx->builder));
+                            fail_bb = LLVMAppendBasicBlockInContext(
+                                ctx->context, fn_now, "party.slot.unbound");
+                            bound_bb = LLVMAppendBasicBlockInContext(
+                                ctx->context, fn_now, "party.slot.bound");
+                            LLVMBuildCondBr(ctx->builder, unbound,
+                                fail_bb, bound_bb);
+                            LLVMPositionBuilderAtEnd(ctx->builder, fail_bb);
+                            reason = LLVMBuildGlobalStringPtr(ctx->builder,
+                                "party slot called before a subject was bound to it",
+                                "party.slot.unbound.reason");
+                            LLVMBuildCall2(ctx->builder, panic_fn->fn_type,
+                                panic_fn->fn, &reason, 1, "");
+                            LLVMBuildUnreachable(ctx->builder);
+                            LLVMPositionBuilderAtEnd(ctx->builder, bound_bb);
+                            args[0] = impl;
+                        }
                         for (size_t ai = 0; ai < argc; ai++) {
                             args[ai + 1] = llvm_emit_expression(
                                 ast_call_argument(node, ai), ctx);

@@ -58,6 +58,10 @@ func MirExpressionGraphOccurrenceGraphSlot(
         return MirExpressionGraphSlotNone();
     }
     if ordinal != 0 { return MirExpressionGraphSlotNone(); }
+    if source == "AST_BIND_STMT" && kind == "stmt" &&
+        lane == AstExpressionLaneValue() {
+        return MirExpressionGraphSlotExpr0();
+    }
     if source == "AST_FOR_LOOP" &&
         ((kind == "loop-init" && lane == AstExpressionLaneValue()) ||
          (kind == "branch" && lane == AstExpressionLaneAuxiliary())) {

@@ -36,6 +36,7 @@ struct SemanticAstFunctionSignatureFacts {
 }
 struct SemanticAstFunctionOwnerFact {
     name: String;
+    receiver_type: String;
     runtime_callable: Bool;
 }
 func SemanticAstFunctionAbilityDefaultRows(arena: AstArena, function_node_id: Int,
@@ -58,10 +59,13 @@ func SemanticAstFunctionOwnerFactFromArena(arena: AstArena, function_node_id: In
         if TypedAstArenaNodeKindIs(arena, parent_id, TypedAstKindNominalDeclTag()
         ) || TypedAstArenaNodeKindIs(arena, parent_id, TypedAstKindRoleDeclTag()) {
             let name: Option<String> = TypedAstArenaAtomText(arena, parent_id);
-            if !IsSome(name) {
-                return None;
+            // A role body's self is the role's `for` target (docs/206 section 1).
+            let receiver: Option<String> = name;
+            if TypedAstArenaNodeKindIs(arena, parent_id, TypedAstKindRoleDeclTag()) {
+                receiver = TypedAstArenaTypeName(arena, parent_id);
             }
-            return Some(SemanticAstFunctionOwnerFact(UnwrapOption(name), true));
+            if !IsSome(name) || !IsSome(receiver) { return None; }
+            return Some(SemanticAstFunctionOwnerFact(UnwrapOption(name), UnwrapOption(receiver), true));
         }
         if TypedAstArenaNodeKindIs(
             arena, parent_id, TypedAstKindAbilityDeclTag()
@@ -69,11 +73,9 @@ func SemanticAstFunctionOwnerFactFromArena(arena: AstArena, function_node_id: In
             let ability_name: Option<String> = TypedAstArenaAtomText(
                 arena, parent_id
             );
-            if !IsSome(ability_name) {
-                return None;
-            }
+            if !IsSome(ability_name) { return None; }
             return Some(SemanticAstFunctionOwnerFact(
-                UnwrapOption(ability_name), false
+                UnwrapOption(ability_name), UnwrapOption(ability_name), false
             ));
         }
         if TypedAstArenaNodeKindIs(
@@ -82,15 +84,13 @@ func SemanticAstFunctionOwnerFactFromArena(arena: AstArena, function_node_id: In
             // Host-ABI members: callable under their bare name like a free
             // function (owner ""), but signature-only like an ability member
             // -- the body lives on the host side of the ABI.
-            return Some(SemanticAstFunctionOwnerFact("", false));
+            return Some(SemanticAstFunctionOwnerFact("", "", false));
         }
         parent = TypedAstArenaParentId(arena, parent_id);
         remaining = remaining - 1;
     }
-    if IsSome(parent) {
-        return None;
-    }
-    return Some(SemanticAstFunctionOwnerFact("", true));
+    if IsSome(parent) { return None; }
+    return Some(SemanticAstFunctionOwnerFact("", "", true));
 }
 func SemanticAstFunctionSignatureFactsFromArtifact(
     artifact: AstTreeArtifact
@@ -258,7 +258,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                             ability_generic_names, ability_generic_defaults,
                             resolved_param_type);
                     } else if owner_self {
-                        resolved_param_type = UnwrapOption(owner).name;
+                        resolved_param_type = UnwrapOption(owner).receiver_type;
                         receiver_source_param_offset = 1;
                     } else {
                         ok = false;

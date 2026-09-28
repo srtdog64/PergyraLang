@@ -42,7 +42,8 @@ func AstExpressionGraphValueLaneRequiredForKind(kind: Int) -> Bool {
         kind == TypedAstKindForStmtTag() ||
         kind == TypedAstKindArrayPushStmtTag() ||
         kind == TypedAstKindArraySetStmtTag() ||
-        kind == TypedAstKindDestructureStmtTag();
+        kind == TypedAstKindDestructureStmtTag() ||
+        kind == TypedAstKindBindStmtTag();
 }
 
 func AstExpressionGraphAuxiliaryLaneRequiredForKind(kind: Int) -> Bool {

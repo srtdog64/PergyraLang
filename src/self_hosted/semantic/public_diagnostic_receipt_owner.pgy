@@ -191,6 +191,14 @@ func SemanticPublicDiagnosticIdentityForOwnedCode(
         return SemanticPublicDiagnosticIdentity(
             true, "semantic:borrow_escape", "change-ref-to-own-or-stop-escape");
     }
+    if code == "bound_party_escape" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:borrow_escape", "keep-handle-local-or-project");
+    }
+    if code == "bind_subject_invalid" {
+        return SemanticPublicDiagnosticIdentity(
+            true, "semantic:role_contract", "align-role-impl-with-ability");
+    }
     // Native reports both inout argument rules with this one identity.
     if code == "inout_argument_not_variable" || code == "inout_argument_alias" {
         return SemanticPublicDiagnosticIdentity(

@@ -1,0 +1,44 @@
+// A dyn role slot borrows its subject (docs/206 section 1): the role body
+// reads the bound subject as self, a write through the slot lands on the
+// subject, and a rebind replaces both the subject and the role.
+subject Fighter {
+    let mut power: Int;
+}
+
+ability Talkable {
+    func Speak(self) -> Int;
+    func Train(self) -> Void;
+}
+
+role Warrior for Fighter {
+    impl ability Talkable {
+        func Speak(self) -> Int { return self.power + 1; }
+        func Train(self) -> Void { self.power = self.power + 10; }
+    }
+}
+
+role Archer for Fighter {
+    impl ability Talkable {
+        func Speak(self) -> Int { return self.power * 2; }
+        func Train(self) -> Void { self.power = self.power + 100; }
+    }
+}
+
+party Team {
+    dyn role slot fighter: Talkable;
+}
+
+func Main() -> Void {
+    let hero: Fighter = Fighter(41);
+    let other: Fighter = Fighter(5);
+    let team: Team = Team();
+    bind team.fighter = hero as Warrior;
+    Log(team.fighter.Speak());
+    team.fighter.Train();
+    Log(hero.power);
+    bind team.fighter = other as Archer;
+    Log(team.fighter.Speak());
+    team.fighter.Train();
+    Log(other.power);
+    Log(hero.power);
+}

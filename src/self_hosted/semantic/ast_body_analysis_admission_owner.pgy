@@ -62,7 +62,7 @@ func SemanticAstBodyAnalysisAdmissionReady(
         ArrayLength(analysis.statements.body_scope_node_ids) != statement_count ||
         ArrayLength(analysis.statements.payload_texts) != statement_count ||
         ArrayLength(analysis.statements.value_texts) != statement_count ||
-        ArrayLength(analysis.statements.auxiliary_texts) != statement_count {
+        ArrayLength(analysis.statements.auxiliary_texts) != statement_count || ArrayLength(analysis.statements.type_name_texts) != statement_count {
         return false;
     }
     let surface_count: Int = ArrayLength(analysis.expression_surfaces.node_ids);

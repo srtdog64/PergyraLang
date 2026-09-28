@@ -34,7 +34,8 @@ func Tag(t: String) -> Int {
 
 func Main() -> Void {
     let team: Team = Team(0);
-    bind team.fighter = Warrior;
+    let hero: Fighter = Fighter(1);
+    bind team.fighter = hero as Warrior;
     Log(team.fighter.Hit(Tag("a"), Tag("b")));
     Log(team.fighter.Poke(Tag("c")));
 }

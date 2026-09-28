@@ -288,6 +288,8 @@ ast_contains_identifier_ref(const ASTNode *node,
         return ast_contains_identifier_ref(node->data.fail_stmt.reason, predicate, userdata);
     case AST_DEFER_STMT:
         return ast_contains_identifier_ref(node->data.defer_stmt.body, predicate, userdata);
+    case AST_BIND_STMT:
+        return ast_contains_identifier_ref(node->data.bind_stmt.subject, predicate, userdata);
     default:
         return false;
     }
@@ -412,6 +414,8 @@ ast_contains_free_identifier_ref(const ASTNode *node, const char *name)
         return ast_contains_free_identifier_ref(node->data.fail_stmt.reason, name);
     case AST_DEFER_STMT:
         return ast_contains_free_identifier_ref(node->data.defer_stmt.body, name);
+    case AST_BIND_STMT:
+        return ast_contains_free_identifier_ref(node->data.bind_stmt.subject, name);
     default:
         return false;
     }

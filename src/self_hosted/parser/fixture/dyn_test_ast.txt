@@ -15,7 +15,7 @@ Program:
         Returns: Int
         Body:
           Block:
-            Return: 10
+            Return: self.power
   Role: Archer for Fighter
     Impl ability: Combatable
       Function: Attack
@@ -24,7 +24,7 @@ Program:
         Returns: Int
         Body:
           Block:
-            Return: 20
+            Return: (self.power * 2)
   Party: Team
     RoleSlot: fighter requires Combatable
     Shared: hp: Int
@@ -34,7 +34,8 @@ Program:
     Body:
       Block:
         Let: team : Team = Team()
-        BindStmt: team.fighter = Warrior
+        Let: hero : Fighter = Fighter(10)
+        BindStmt: team.fighter = hero as Warrior
         Log(team.fighter.Attack())
-        BindStmt: team.fighter = Archer
+        BindStmt: team.fighter = hero as Archer
         Log(team.fighter.Attack())

@@ -35,6 +35,7 @@ import "ast_enum_payload_variant_provenance_verdict_owner.pgy";
 import "ast_capability_fact_owner.pgy";
 import "ast_body_type_bundle_schema_owner.pgy";
 import "ast_local_name_rule_owner.pgy";
+import "ast_bound_party_escape_owner.pgy";
 func SemanticAstBodyTypeStage(enabled: Bool, stage: String) -> Void { if enabled { Log(Concat("[semantic-body-type-stage] ", stage)); } }
 func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis, observe_pressure: Bool,
@@ -69,10 +70,8 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     SemanticAstBodyTypeStage(observe_pressure, "initializer-refine:start");
     let initializer_types: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsRefinedByIterationsFromAdmittedFactsWithFunctionTables(
-            artifact, analysis.signatures, analysis.constructors,
-            analysis.local_bindings, analysis.expression_surfaces,
-            analysis.enums, analysis.function_scopes, analysis.statements,
-            base_initializer_types, iteration_types, function_tables);
+            artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, analysis.expression_surfaces,
+            analysis.enums, analysis.function_scopes, analysis.statements, base_initializer_types, iteration_types, function_tables);
     SemanticAstBodyTypeStage(observe_pressure, "initializer-refine:done");
     SemanticAstBodyTypeStage(observe_pressure, "role-operators:start");
     let role_operators_resolved: Bool =
@@ -126,6 +125,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     if require_source_body_flow {
         let names: SemanticAstDeclarationContractVerdict = SemanticAstLocalNameRuleVerdict(
             artifact, analysis.signatures, analysis.local_bindings, analysis.statements);
+        if names.ok { names = SemanticAstBoundPartyEscapeVerdict(analysis.statements, analysis.expression_surfaces); }
         if !names.ok { verdict = SemanticAstBodyVerdictError(names.code, names.message, names.node_id); }
     }
     if verdict.ok {

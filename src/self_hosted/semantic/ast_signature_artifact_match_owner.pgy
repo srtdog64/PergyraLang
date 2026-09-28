@@ -120,7 +120,7 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
                         UnwrapOption(parameter_type)
                     );
                 } else if owner_self {
-                    resolved_type = UnwrapOption(owner).name;
+                    resolved_type = UnwrapOption(owner).receiver_type;
                     receiver_source_param_offset = 1;
                 } else {
                     return false;

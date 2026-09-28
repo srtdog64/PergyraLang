@@ -72,33 +72,33 @@ test_callable_capability_inference(void)
          "subject Device { let value: Int; } ability Clockable { func Read(self) -> Int; }"
          "role Clock for Device { impl Clockable { func Read(self) -> Int { return Now(); } } }"
          "party Panel { dyn role slot device: Clockable; }"
-         "func Main() -> Void with caps random { let p = Panel(); bind p.device = Clock; Log(p.device.Read()); }",
+         "func Main() -> Void with caps random { let d = Device(0); let p = Panel(); bind p.device = d as Clock; Log(p.device.Read()); }",
          "Function 'Main' is missing declared capabilities: clock"},
         {"dynamic ability invocation includes implementation effects",
          "subject Device { let value: Int; } ability Clockable { func Read(self) -> Int; }"
          "role Clock for Device { impl Clockable { func Read(self) -> Int { return Now(); } } }"
          "party Panel { dyn role slot device: Clockable; }"
-         "func Main() -> Void with effects local { let p = Panel(); bind p.device = Clock; Log(p.device.Read()); }",
+         "func Main() -> Void with effects local { let d = Device(0); let p = Panel(); bind p.device = d as Clock; Log(p.device.Read()); }",
          "Function 'Main' is missing declared effects: nondeterministic"},
         {"dynamic ability does not pick a pure implementation by bind order",
          "subject Device { let value: Int; } ability Clockable { func Read(self) -> Int; }"
          "role Clock for Device { impl Clockable { func Read(self) -> Int { return Now(); } } }"
          "role Pure for Device { impl Clockable { func Read(self) -> Int { return 1; } } }"
          "party Panel { dyn role slot device: Clockable; }"
-         "func Main() -> Void with caps random { let p = Panel(); bind p.device = Pure; Log(p.device.Read()); }",
+         "func Main() -> Void with caps random { let d = Device(0); let p = Panel(); bind p.device = d as Pure; Log(p.device.Read()); }",
          "Function 'Main' is missing declared capabilities: clock"},
         {"dynamic ability callback keeps the supplied callable authority",
          "func Clock(x: Int) -> Int { return Now(); }"
          "subject Device { let value: Int; } ability Callable { func Apply(self, f: func(Int) -> Int) -> Int; }"
          "role Invoke for Device { impl Callable { func Apply(self, f: func(Int) -> Int) -> Int { return f(1); } } }"
          "party Panel { dyn role slot device: Callable; }"
-         "func Main() -> Void with caps random { let p = Panel(); bind p.device = Invoke; Log(p.device.Apply(Clock)); }",
+         "func Main() -> Void with caps random { let d = Device(0); let p = Panel(); bind p.device = d as Invoke; Log(p.device.Apply(Clock)); }",
          "Function 'Main' is missing declared capabilities: clock"},
         {"dynamic ability with sufficient capability remains admitted",
          "subject Device { let value: Int; } ability Clockable { func Read(self) -> Int; }"
          "role Clock for Device { impl Clockable { func Read(self) -> Int { return Now(); } } }"
          "party Panel { dyn role slot device: Clockable; }"
-         "func Main() -> Void with caps clock { let p = Panel(); bind p.device = Clock; Log(p.device.Read()); }", NULL},
+         "func Main() -> Void with caps clock { let d = Device(0); let p = Panel(); bind p.device = d as Clock; Log(p.device.Read()); }", NULL},
         {"party rejects absent ability implementation before callable sealing",
          "ability Clockable { func Read(self) -> Int; } party Panel { dyn role slot device: Clockable; }"
          "func Main() -> Void { let p = Panel(); Log(p.device.Read()); }",

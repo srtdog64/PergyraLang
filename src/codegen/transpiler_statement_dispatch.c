@@ -29,8 +29,11 @@ bool
 transpiler_emit_bind_statement_parts(TranspilerCtx *ctx,
                                      const char *pvar,
                                      const char *slot_name,
+                                     const ASTNode *subject,
+                                     const char *subject_expr,
                                      const char *role_name)
 {
+    const char *subject_name = ast_identifier_name(subject);
     const char *party_type;
     const char *pvar_ssa;
     char *pvar_c_owned;
@@ -53,9 +56,10 @@ transpiler_emit_bind_statement_parts(TranspilerCtx *ctx,
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED,
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-            "cannot resolve party type for bind statement '%s.%s = %s'",
+            "cannot resolve party type for bind statement '%s.%s = %s as %s'",
             pvar != NULL ? pvar : "<party>",
             slot_name != NULL ? slot_name : "<slot>",
+            subject_name != NULL ? subject_name : "<subject>",
             role_name != NULL ? role_name : "<role>");
         free(pvar_c_owned);
         return false;
@@ -88,10 +92,28 @@ transpiler_emit_bind_statement_parts(TranspilerCtx *ctx,
         free(pvar_c_owned);
         return false;
     }
+    if (subject_name == NULL || subject_expr == NULL) {
+        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "bind statement '%s.%s' is missing its subject",
+            pvar != NULL ? pvar : "<party>",
+            slot_name != NULL ? slot_name : "<slot>");
+        free(ability_tag);
+        free(pvar_c_owned);
+        return false;
+    }
+    /* The slot borrows the subject, so it stores the subject's address; a
+     * binding already held by pointer is passed as it is. */
+    TypedVarEntry *subject_entry = lookup_typed_entry(ctx, subject_name);
+    bool subject_is_pointer = subject_entry != NULL
+        && subject_entry->is_indirect_ref;
     write_indent(ctx);
     codebuf_write(ctx->out,
-        "%s_bind_%s(&%s, NULL, &%s_%s_vtable_instance);\n",
-        party_type, slot_name, pvar_c, role_name, ability_name);
+        "%s_bind_%s(&%s, %s%s, &%s_%s_vtable_instance);\n",
+        party_type, slot_name, pvar_c,
+        subject_is_pointer ? "" : "&", subject_expr,
+        role_name, ability_name);
     free(ability_tag);
     free(pvar_c_owned);
     return true;
@@ -259,10 +281,15 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         break;
     }
     case AST_BIND_STMT: {
+        ASTNode *subject = ast_bind_statement_subject(node);
+        char *subject_expr = subject != NULL
+            ? emit_expression(subject, ctx) : NULL;
         (void)transpiler_emit_bind_statement_parts(ctx,
             ast_bind_statement_party_var(node),
             ast_bind_statement_slot_name(node),
+            subject, subject_expr,
             ast_bind_statement_role_name(node));
+        free(subject_expr);
         break;
     }
     case AST_ABILITY_DECL:

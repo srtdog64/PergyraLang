@@ -468,9 +468,16 @@
         {
             "Bind Statement",
             "func Main() -> Void {\n"
-            "    bind team.fighter = Warrior;\n"
+            "    bind team.fighter = hero as Warrior;\n"
             "}",
             1
+        },
+        {
+            "Bind Without Subject Is Rejected",
+            "func Main() -> Void {\n"
+            "    bind team.fighter = Warrior;\n"
+            "}",
+            0
         },
         {
             "Context Identifier Allowed",

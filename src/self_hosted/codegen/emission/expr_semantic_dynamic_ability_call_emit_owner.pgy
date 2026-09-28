@@ -110,6 +110,9 @@ func RewriteSemanticDynamicAbilityCall(
         vtable_callee, graph, view, modes, param_types,
         param_offset, prefix_argument, -1, env, owned_fragments
     );
-    if party_binding == "" { return Some(call); }
-    return Some("({ ${party_binding}${call}; })");
+    // A slot no bind has filled holds no subject for the role's self.
+    let guard: String = Concat("if (", Concat(prefix_argument, Concat(
+        " == NULL) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, ",
+        "PGY_RUNTIME_PANIC_REASON_PARTY_SLOT_UNBOUND); ")));
+    return Some("({ ${party_binding}${guard}${call}; })");
 }

@@ -28,6 +28,7 @@ struct SemanticAstStatementFacts {
     match_pattern_bindings: Array<String>;
     value_texts: Array<String>;
     auxiliary_texts: Array<String>;
+    type_name_texts: Array<String>;
 }
 func SemanticAstStatementKindTracked(kind: Int) -> Bool {
     return kind == TypedAstKindLogStmtTag() || kind == TypedAstKindBareReturnStmtTag() ||
@@ -75,7 +76,7 @@ func SemanticAstStatementStructuralError(
         empty_ints, empty_ints, empty_ints, empty_ints, empty_ints,
         empty_strings, empty_strings,
         empty_ints, empty_ints, empty_ints,
-        empty_strings, empty_strings, empty_strings
+        empty_strings, empty_strings, empty_strings, empty_strings
     );
 }
 func SemanticAstStatementFactsFromArtifact(
@@ -103,6 +104,7 @@ func SemanticAstStatementFactsFromArtifact(
     let match_pattern_bindings: Array<String> = [];
     let value_texts: Array<String> = [];
     let auxiliary_texts: Array<String> = [];
+    let type_name_texts: Array<String> = [];
     let node_id: Int = 0;
     while node_id < artifact.count {
         let kind_opt: Option<Int> = TypedAstArenaNodeKind(
@@ -182,19 +184,14 @@ func SemanticAstStatementFactsFromArtifact(
             payload = UnwrapOption(payload_opt);
         }
         let value: String = "";
-        let value_opt: Option<String> = TypedAstArenaValueText(
-            artifact.arena, node_id
-        );
-        if IsSome(value_opt) {
-            value = UnwrapOption(value_opt);
-        }
+        let value_opt: Option<String> = TypedAstArenaValueText(artifact.arena, node_id);
+        if IsSome(value_opt) { value = UnwrapOption(value_opt); }
         let auxiliary: String = "";
-        let auxiliary_opt: Option<String> = TypedAstArenaAuxValueText(
-            artifact.arena, node_id
-        );
-        if IsSome(auxiliary_opt) {
-            auxiliary = UnwrapOption(auxiliary_opt);
-        }
+        let auxiliary_opt: Option<String> = TypedAstArenaAuxValueText(artifact.arena, node_id);
+        if IsSome(auxiliary_opt) { auxiliary = UnwrapOption(auxiliary_opt); }
+        let type_name: String = "";
+        let type_name_opt: Option<String> = TypedAstArenaTypeName(artifact.arena, node_id);
+        if IsSome(type_name_opt) { type_name = UnwrapOption(type_name_opt); }
         let body_scope_node_id: Int = -1;
         if kind == TypedAstKindForStmtTag() || kind == TypedAstKindUnsafeBlockTag() {
             let candidate: Int = node_id + 1;
@@ -226,6 +223,7 @@ func SemanticAstStatementFactsFromArtifact(
         ArrayPush(match_pattern_fact_digests, match_pattern_fact_digest);
         ArrayPush(value_texts, value);
         ArrayPush(auxiliary_texts, auxiliary);
+        ArrayPush(type_name_texts, type_name);
         node_id = node_id + 1;
     }
     return SemanticAstStatementFacts(
@@ -234,7 +232,7 @@ func SemanticAstStatementFactsFromArtifact(
         payload_texts, match_pattern_variants,
         match_pattern_binding_starts, match_pattern_binding_counts,
         match_pattern_fact_digests, match_pattern_bindings,
-        value_texts, auxiliary_texts
+        value_texts, auxiliary_texts, type_name_texts
     );
 }
 func SemanticAstStatementCount(ref facts: SemanticAstStatementFacts) -> Int {
@@ -431,6 +429,7 @@ func SemanticAstStatementFactsMatchArtifact(
         ArrayLength(facts.match_pattern_fact_digests) != n ||
         ArrayLength(facts.value_texts) != n ||
         ArrayLength(facts.auxiliary_texts) != n ||
+        ArrayLength(facts.type_name_texts) != n ||
         !SemanticAstStatementMatchPatternRowsReady(facts) ||
         !SemanticAstStatementMatchPatternRowsReady(rebuilt) ||
         ArrayLength(facts.match_pattern_bindings) !=
@@ -454,7 +453,8 @@ func SemanticAstStatementFactsMatchArtifact(
             rebuilt.match_pattern_fact_digests[i] !=
                 facts.match_pattern_fact_digests[i] ||
             rebuilt.value_texts[i] != facts.value_texts[i] ||
-            rebuilt.auxiliary_texts[i] != facts.auxiliary_texts[i] {
+            rebuilt.auxiliary_texts[i] != facts.auxiliary_texts[i] ||
+            rebuilt.type_name_texts[i] != facts.type_name_texts[i] {
             return false;
         }
         i = i + 1;

@@ -107,15 +107,17 @@ func EmitBlockStmtsWithExpressionOrder(
             );
             if ikind == "stmt" && source_type == "AST_BIND_STMT" {
                 if arg0 == "" || arg1 == "" || slot_anchor == "" ||
-                    expr0 != "" || expr1 != "" {
+                    expr0 == "" || expr1 != "" {
                     MirLowerFailClosed(
-                        "ability bind is missing party/slot/role MIR facts"
+                        "ability bind is missing party/slot/subject/role MIR facts"
                     );
                 }
-                let bind_parts: Array<String> = [
-                    indent, "BindStmt: ", arg0, ".", slot_anchor, " = ", arg1,
-                    "\n"
-                ];
+                if !MirStructuredExpressionEmissionOrderAppendStatement(
+                    instruction, scalar, expression_order) {
+                    MirLowerFailClosed("ability bind subject occurrence is invalid");
+                }
+                let bind_parts: Array<String> = [indent, "BindStmt: ", arg0, ".",
+                    slot_anchor, " = ", expr0, " as ", arg1, "\n"];
                 ArrayPush(chunks, StringJoin(bind_parts, ""));
             } else if source_type == "AST_DEFER_STMT" {
                 ArrayPush(chunks, RenderDeferFromFactsWithExpressionOrder(

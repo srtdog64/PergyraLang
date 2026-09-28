@@ -214,6 +214,9 @@ BROKEN_CASES=(
     "local_redeclare|4|local_name_rebound"
     "loop_binding_shadow|4|local_name_rebound"
     "match_binding_shadow|8|local_name_rebound"
+    "bind_role_only|7|bind_subject_missing"
+    "bind_subject_type|8|bind_subject_invalid"
+    "bound_party_escape|9|bound_party_escape"
 )
 for row in "${BROKEN_CASES[@]}"; do
     IFS='|' read -r name line code <<<"$row"
@@ -422,6 +425,23 @@ for row in "local_shadow|7|13|Local 'tag' reuses the name of the binding at line
     "local_redeclare|4|9|Redeclaration of 'started' in the same scope" \
     "loop_binding_shadow|4|9|Local 'i' reuses the name of the binding at line 3" \
     "match_binding_shadow|9|19|Local 'v' reuses the name of the binding at line 7"; do
+    IFS='|' read -r name line column needle <<<"$row"
+    native_log="$WORK_DIR/native-$name.log"
+    if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_$name.pgy" --native-pipeline \
+        --backend=c --error-format=json -o "$WORK_REL/native-$name.bin") \
+        >"$native_log" 2>&1; then
+        fail "native accepted $name"
+    fi
+    grep -Fq "$needle" "$native_log" &&
+        grep -Fq "\"location\":{\"line\":$line,\"column\":$column}" "$native_log" ||
+        { cat "$native_log" >&2; fail "native no longer refuses $name at $line:$column"; }
+done
+# A party slot borrows a local subject through its role (docs/206 section 1,
+# harness PP-064). A role-only bind left the role's self without a subject:
+# native segfaulted on a field read and LLVM read the party as the subject.
+for row in "bind_role_only|7|32|bind names only the role 'Warrior'" \
+    "bind_subject_type|8|25|bind subject 'n' has type 'Int', but role 'Warrior' is for 'Fighter'" \
+    "bound_party_escape|9|12|Party 'team' has a slot bound to a local subject"; do
     IFS='|' read -r name line column needle <<<"$row"
     native_log="$WORK_DIR/native-$name.log"
     if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_$name.pgy" --native-pipeline \

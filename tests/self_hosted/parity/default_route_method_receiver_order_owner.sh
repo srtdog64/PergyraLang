@@ -72,10 +72,17 @@ expect_output party-ability-arguments \
     "$CASES/party_ability_call_argument_order/main.pgy" \
     "$(printf '%s\n' a b 111 c 201)" \
     native-c native-llvm default-c
-# Only the default C route admits a party that is not a binding; it must run
-# once, before the argument.
-expect_output party-once "tests/self_hosted/fixtures/party_ability_call_party_once.pgy" \
-    "$(printf '%s\n' party c 201)" \
-    default-c
+# A party returned from a call cannot carry a bound slot: the bind borrows a
+# subject local to the callee (docs/206 section 1). Every leg refuses it; the
+# default C route used to run it with a NULL self.
+for leg in native-c native-llvm default-c; do
+    out_rel="$WORK_REL/party-once-$leg.exe"
+    if compile "tests/self_hosted/fixtures/party_ability_call_party_once.pgy" "$leg" "$out_rel"; then
+        fail "$leg compiled a returned party with a bound slot"
+    fi
+    grep -Eq "Party 'team' has a slot bound to a local subject|bound_party_escape" \
+        "$ROOT_DIR/$out_rel.log" ||
+        { cat "$ROOT_DIR/$out_rel.log" >&2; fail "$leg lost the bound party escape refusal"; }
+done
 
-echo "[$LABEL] call, index and field-of-call receivers run before the arguments, binding receivers keep their address, and party ability calls read the party once and their arguments left to right on native C, native LLVM and the default C route: PASS"
+echo "[$LABEL] call, index and field-of-call receivers run before the arguments, binding receivers keep their address, party ability calls read their arguments left to right, and a returned party with a bound slot is refused on native C, native LLVM and the default C route: PASS"

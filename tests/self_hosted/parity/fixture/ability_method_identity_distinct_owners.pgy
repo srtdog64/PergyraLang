@@ -29,8 +29,9 @@ party DualStorage {
 
 func Main() -> Void {
     let storage: DualStorage = DualStorage();
-    bind storage.first = FirstBuffer;
-    bind storage.second = SecondBuffer;
+    let bag: SharedBag = SharedBag(0);
+    bind storage.first = bag as FirstBuffer;
+    bind storage.second = bag as SecondBuffer;
     Log(storage.first.Put(7));
     Log(storage.second.Put(7));
 }

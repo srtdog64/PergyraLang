@@ -30,7 +30,8 @@ party Team {
 
 func Main() -> Void {
     let team: Team = Team();
+    let hero: Fighter = Fighter(1);
 
-    bind team.fighter = Warrior;
+    bind team.fighter = hero as Warrior;
     Log(7);
 }

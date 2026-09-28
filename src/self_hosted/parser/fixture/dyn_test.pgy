@@ -14,7 +14,7 @@ ability Combatable {
 role Warrior for Fighter {
     impl Combatable {
         func Attack(self) -> Int {
-            return 10;
+            return self.power;
         }
     }
 }
@@ -22,7 +22,7 @@ role Warrior for Fighter {
 role Archer for Fighter {
     impl Combatable {
         func Attack(self) -> Int {
-            return 20;
+            return self.power * 2;
         }
     }
 }
@@ -34,12 +34,13 @@ party Team {
 
 func Main() -> Void {
     let team: Team = Team();
+    let hero: Fighter = Fighter(10);
 
-    // Bind Warrior → vtable dispatch
-    bind team.fighter = Warrior;
+    // Bind hero through Warrior → vtable dispatch, hero is self
+    bind team.fighter = hero as Warrior;
     Log(team.fighter.Attack());
 
     // Swap to Archer at runtime → same call, different result
-    bind team.fighter = Archer;
+    bind team.fighter = hero as Archer;
     Log(team.fighter.Attack());
 }

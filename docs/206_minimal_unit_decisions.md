@@ -68,6 +68,35 @@ harness PP-061~065와 red-team R11/R13은 따로 보면 다섯 개의 패치다.
 - role 본문의 `self`는 role의 `for` 대상 타입을 가진다. native가 이것을
   `TYPE_UNKNOWN`으로 두어 없는 필드 읽기를 조용히 통과시키던 구멍도 닫힌다.
 
+구현(f13090b0 뒤):
+
+- native: role 본문의 `self`가 `for` 타입이다. 파서는 `subject as Role`을
+  읽고, role만 쓴 bind를 전용 메시지로 거부한다. semantic은 다음을 거부한다.
+  - dyn이 아닌 slot
+  - 함수 로컬 `let`이 아닌 party와 subject
+  - 타입이 role의 `for`와 다른 subject
+  - party보다 먼저 끝나는 범위의 subject
+- native escape: 함수가 bind한 party의 식별자를 값으로 쓰는 곳을 흐름과
+  무관하게 모두 거부한다(`type_checker_bound_party_escape.c`). let 초기값,
+  대입, 반환, 호출 인자(spawn과 channel 전송 포함)가 대상이다.
+  `team.slot.M()`처럼 멤버로 쓰면 괜찮다.
+- C: bind가 subject 주소를 slot에 저장하고, slot 호출은 그것을 `self`로
+  넘긴다. LLVM: dyn slot마다 `<slot>_impl` 필드를 두고, dispatch가 party
+  alloca 대신 그 값을 넘긴다. 전에는 party를 subject처럼 읽었다. 비어 있는
+  slot을 부르면 두 백엔드 모두 `party slot called before a subject was bound
+  to it`으로 panic한다.
+- default route: bind 행의 value는 subject이고 type name은 role이다.
+  subject는 value expression graph로 실리므로, 직렬화된 AST를 다시 읽어도
+  남는다. `ast_bind_statement_type_fact_owner`가 subject의 타입과 범위, party와
+  subject가 로컬 `let`인지를 검사한다(`bind_subject_invalid`).
+  `ast_bound_party_escape_owner`는 소스 artifact에서 native와 같은 escape
+  규칙을 검사한다(`bound_party_escape`). MIR bind 행은 subject를 `expr0`으로
+  싣는다. C는 `&subject`를 넘기고, 비어 있는 slot 호출은 panic한다. role
+  본문의 `self`는 signature owner가 role의 `for` 타입으로 매긴다.
+- 남은 차이: 두 파서가 만드는 AST 텍스트가 dyn 여부를 담지 않는다. 그래서
+  default route는 모든 role slot을 dyn으로 다루고, non-dyn slot의 bind를
+  native만 거부한다.
+
 ## 2. PP-065: zone authority = identity × witness
 
 증명: `docs/semantics/proofs/AuthorityRequiresWitness.v`.

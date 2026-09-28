@@ -503,8 +503,8 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
         }
         if row_verified == 1 && kind == TypedAstKindBindStmtTag() {
             let bind_verdict: SemanticAstBindStatementTypeVerdict = SemanticAstBindStatementTypeVerdictFor(
-                constructors, role_facts, names, types, statements.payload_texts[i],
-                statements.value_texts[i], statements.auxiliary_texts[i]);
+                constructors, role_facts, names, types, statements, i,
+                expression_surfaces, locals, artifact);
             row_verified = bind_verdict.verified;
             row_code = bind_verdict.diagnostic_code;
             row_message = bind_verdict.diagnostic_message;

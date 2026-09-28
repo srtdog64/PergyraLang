@@ -155,6 +155,17 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         free(result);
                         result = ordered_result;
                     }
+                    /* A slot no bind has filled holds no subject for the
+                     * role's self: stop instead of calling through NULL. */
+                    if (result != NULL) {
+                        char *guarded = strdup_fmt(
+                            "({ if (%s.%s == NULL) PGY_RUNTIME_PANIC("
+                            "PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "
+                            "PGY_RUNTIME_PANIC_REASON_PARTY_SLOT_UNBOUND); %s; })",
+                            party_expr, slot_name, result);
+                        free(result);
+                        result = guarded;
+                    }
                     free(ordered_prefix);
                     codebuf_destroy(args_buf);
                     free(ability_name);

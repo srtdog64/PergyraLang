@@ -363,6 +363,8 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
             return runtime_none_scan_node(ast_transaction_block_body(node), scan);
         case AST_DEFER_STMT:
             return runtime_none_scan_node(ast_defer_body(node), scan);
+        case AST_BIND_STMT:
+            return runtime_none_scan_node(ast_bind_statement_subject(node), scan);
         default:
             return true;
     }

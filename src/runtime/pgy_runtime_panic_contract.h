@@ -83,6 +83,8 @@
     "operation would exceed the resource budget the content manifest imposed"
 #define PGY_RUNTIME_PANIC_REASON_FLOAT_TO_INT_OUT_OF_RANGE \
     "float-to-int conversion out of range (NaN or beyond the target bounds)"
+#define PGY_RUNTIME_PANIC_REASON_PARTY_SLOT_UNBOUND \
+    "party slot called before a subject was bound to it"
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
 #  define PGY_RUNTIME_NORETURN _Noreturn

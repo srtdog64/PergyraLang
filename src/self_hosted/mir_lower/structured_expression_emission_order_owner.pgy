@@ -184,6 +184,11 @@ func MirStructuredExpressionEmissionOrderAppendStatement(
             expression_order, row, AstExpressionLaneValue(), 0
         );
     }
+    if kind == "stmt" && source_type == "AST_BIND_STMT" {
+        return MirStructuredExpressionEmissionOrderAppend(
+            expression_order, row, AstExpressionLaneValue(), 0
+        );
+    }
     if kind != "stmt" || source_type != "AST_CALL" { return true; }
     if scalar.arg0 == "ArrayPop" {
         return MirStructuredExpressionEmissionOrderAppend(

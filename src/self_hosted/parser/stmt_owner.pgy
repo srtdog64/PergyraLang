@@ -44,12 +44,28 @@ func ParseOneStmtCore(content: String, start: Int, inout cursor_out: Array<Int>,
         let bind_lhs: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
         i = cursor_out[0];
         i = ParseExpectIn(location_context, content, i, "=", "statement");
+        // docs/206 section 1: the slot borrows a local subject through a role;
+        // a role alone leaves the role's self without a subject.
+        let subject_start: Int = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, subject_start);
+        let subject_name: String = ReadIdent(content, subject_start, cursor_out);
+        i = SkipWhitespaceAndComments(content, cursor_out[0]);
+        if StringLength(subject_name) == 0 || !MatchLanguageWord(content, i, LanguageWordId.WordAs) {
+            ParseRefuse(location_context, subject_start, "bind_subject_missing",
+                "construct", "bind", "subject", subject_name);
+        }
+        i = SkipWhitespaceAndComments(content, LanguageWordEnd(i, LanguageWordId.WordAs));
         ArraySet(cursor_out, 0, i);
-        let bind_rhs: String = ParseExprFactIn(location_context, content, i, cursor_out).text;
-        i = cursor_out[0];
-        i = ParseStatementTerminatorIn(location_context, content, i, "statement");
+        let role_name: String = ReadIdent(content, i, cursor_out);
+        if StringLength(role_name) == 0 {
+            ParseRefuse(location_context, i, "expected_token", "construct", "bind", "source_offset", ToString(i));
+        }
+        ParserExpressionGraphsAppendInto(expression_graphs, TypedAstKindBindStmtTag(),
+            AstExpressionLaneValue(), ParserExpressionLeaf(subject_name));
+        i = ParseStatementTerminatorIn(location_context, content, cursor_out[0], "statement");
         ArraySet(cursor_out, 0, i);
-        return Concat(IndentStr(stmt_indent), Concat("BindStmt: ", Concat(bind_lhs, Concat(" = ", bind_rhs))));
+        return Concat(IndentStr(stmt_indent), Concat("BindStmt: ", Concat(bind_lhs,
+            Concat(" = ", Concat(subject_name, Concat(" as ", role_name))))));
     }
     if MatchLanguageWord(content, head_start, LanguageWordId.WordIf) {
         return ParseIfStmt(content, i, cursor_out, stmt_indent, expression_graphs,

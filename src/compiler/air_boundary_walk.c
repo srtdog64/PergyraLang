@@ -261,6 +261,8 @@ air_walk_expr_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
         return air_walk_child(ctx, ast_transaction_block_body(node));
     case AST_DEFER_STMT:
         return air_walk_child(ctx, ast_defer_body(node));
+    case AST_BIND_STMT:
+        return air_walk_child(ctx, ast_bind_statement_subject(node));
     default:
         return true;
     }

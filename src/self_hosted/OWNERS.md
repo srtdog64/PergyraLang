@@ -666,6 +666,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_declaration_contract_owner.pgy` -- program-wide
   declaration contracts checked once after statement typing:
   `enum_variant_redeclaration` for a variant name two enums declare.
+- `src/self_hosted/semantic/ast_bound_party_escape_owner.pgy` -- a party a
+  function binds (docs/206 section 1) may not leave it: its identifier may
+  not be a let initializer, an assigned or returned value, or a call
+  argument (`bound_party_escape`). Flow-insensitive, like native; the body
+  type bundle runs it on source artifacts after the local name rule.
 - `src/self_hosted/semantic/ast_local_name_rule_owner.pgy` -- the local name
   rule (docs/206 section 3): a let, destructure, for or match binding may not
   reuse a name that a parameter or an earlier binding in its own or an

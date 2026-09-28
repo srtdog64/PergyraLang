@@ -554,6 +554,10 @@ llvm_domain_struct_register_default_fields(LLVMGenCtx *ctx,
                 field_index, slot_name, "vtable"))
             return false;
         field_index++;
+        if (!llvm_domain_struct_add_suffixed_field(ctx, entry, ctx->type_i8ptr,
+                field_index, slot_name, "impl"))
+            return false;
+        field_index++;
     }
     if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL) {
         if (!llvm_domain_add_projection_state_fields_from_zone_refresh_view(

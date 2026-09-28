@@ -1,7 +1,16 @@
 // Party role-slot bind verdicts from nominal, role, and local environment facts.
+//
+// docs/206 section 1 (PartySlotBinding.v): `bind party.slot = subject as Role`
+// borrows a local subject of the role's `for` type. The subject is the
+// statement's value expression graph. Its binding and the party's are `let`
+// locals of this function, and the subject's scope encloses the party's, so
+// the subject outlives the party (scoped_borrow_live).
 
 import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_role_fact_owner.pgy";
+import "ast_local_name_rule_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
 import "env_owner.pgy";
 import "diagnostic_owner.pgy";
 
@@ -11,15 +20,46 @@ struct SemanticAstBindStatementTypeVerdict {
     diagnostic_message: String;
 }
 
+func SemanticAstBindSubjectInvalid(subject_name: String, reason: String, detail: String
+) -> SemanticAstBindStatementTypeVerdict {
+    return SemanticAstBindStatementTypeVerdict(0, "bind_subject_invalid",
+        SemanticError3("bind_subject_invalid", "subject", subject_name, "reason", reason,
+            "detail", detail));
+}
+
+// The scope of the `let` binding of `name` visible at statement `node_id`:
+// declared before it in a scope that encloses it. The local name rule leaves
+// at most one; -1 when the name is a parameter or not a local of this function.
+func SemanticAstBindVisibleLetScope(
+    ref locals: SemanticAstLocalBindingFacts,
+    arena: AstArena, function_node: Int, name: String, node_id: Int
+) -> Int {
+    let row: Int = 0;
+    while row < ArrayLength(locals.node_ids) {
+        if locals.function_node_ids[row] == function_node && locals.names[row] == name &&
+            locals.node_ids[row] < node_id &&
+            SemanticAstScopeEncloses(arena, locals.scope_node_ids[row], node_id) {
+            return locals.scope_node_ids[row];
+        }
+        row = row + 1;
+    }
+    return 0 - 1;
+}
+
 func SemanticAstBindStatementTypeVerdictFor(
     constructors: SemanticAstNominalConstructorFacts,
     roles: SemanticAstRoleFacts,
     names: Array<String>,
     types: Array<String>,
-    party_binding: String,
-    role_name: String,
-    slot_name: String
+    ref statements: SemanticAstStatementFacts,
+    row: Int,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    artifact: AstTreeArtifact
 ) -> SemanticAstBindStatementTypeVerdict {
+    let party_binding: String = statements.payload_texts[row];
+    let role_name: String = statements.type_name_texts[row];
+    let slot_name: String = statements.auxiliary_texts[row];
     let party_type: String = EnvLookup(names, types, party_binding);
     let ability_type: Option<String> = SemanticAstNominalFieldType(
         constructors, party_type, slot_name
@@ -38,6 +78,46 @@ func SemanticAstBindStatementTypeVerdictFor(
                 "role", role_name
             )
         );
+    }
+    let node_id: Int = statements.node_ids[row];
+    let subject_name: String = "";
+    let subject_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        expression_surfaces, node_id, AstExpressionLaneValue());
+    if IsSome(subject_root) {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            expression_surfaces.expression_graph, UnwrapOption(subject_root));
+        let text: Option<String> = SemanticExpressionGraphNodeText(
+            expression_surfaces.expression_graph, UnwrapOption(subject_root));
+        if IsSome(kind) && IsSome(text) && UnwrapOption(kind) == AstExpressionNodeLeaf() {
+            subject_name = UnwrapOption(text);
+        }
+    }
+    let role_index: Option<Int> = SemanticAstRoleIndexForName(roles, role_name);
+    let target: Option<String> = None;
+    if IsSome(role_index) { target = SemanticAstRoleTargetTypeAt(roles, UnwrapOption(role_index)); }
+    let subject_type: String = EnvLookup(names, types, subject_name);
+    if subject_name == "" || subject_type == "" {
+        return SemanticAstBindSubjectInvalid(subject_name, "not_local", party_binding);
+    }
+    if !IsSome(target) || UnwrapOption(target) != subject_type {
+        let expected: String = "";
+        if IsSome(target) { expected = UnwrapOption(target); }
+        return SemanticAstBindSubjectInvalid(subject_name, "type",
+            Concat(subject_type, Concat(" is not ", expected)));
+    }
+    let function_node: Int = statements.function_node_ids[row];
+    let party_scope: Int = SemanticAstBindVisibleLetScope(
+        locals, artifact.arena, function_node, party_binding, node_id);
+    if party_scope < 0 {
+        return SemanticAstBindSubjectInvalid(subject_name, "party_not_local", party_binding);
+    }
+    let subject_scope: Int = SemanticAstBindVisibleLetScope(
+        locals, artifact.arena, function_node, subject_name, node_id);
+    if subject_scope < 0 {
+        return SemanticAstBindSubjectInvalid(subject_name, "not_local", party_binding);
+    }
+    if !SemanticAstScopeEncloses(artifact.arena, subject_scope, party_scope) {
+        return SemanticAstBindSubjectInvalid(subject_name, "scope", party_binding);
     }
     return SemanticAstBindStatementTypeVerdict(1, "", "");
 }

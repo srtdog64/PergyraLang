@@ -1,0 +1,104 @@
+// Bound party escape owner (docs/206 section 1, PartySlotBinding.v
+// inner_subject_dangles): a bind stores the address of a local subject in the
+// party's slot, so a party a function binds may not leave that function. Its
+// identifier may not be a let initializer, an assigned value, a returned
+// value, or a call argument (which covers spawn and channel sends). A member
+// use (`team.slot.Method()`, `team.hp`) reads the party in place.
+//
+// The check is flow-insensitive, like native's: a use written before the bind
+// is refused too.
+
+import "ast_statement_fact_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+import "ast_declaration_contract_owner.pgy";
+
+func SemanticAstBoundPartyNamed(
+    ref graph: SemanticExpressionGraphFacts, node: Int,
+    function_node: Int, ref bind_functions: Array<Int>, ref bind_parties: Array<String>
+) -> Bool {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+    let text: Option<String> = SemanticExpressionGraphNodeText(graph, node);
+    if !IsSome(kind) || !IsSome(text) || UnwrapOption(kind) != AstExpressionNodeLeaf() {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(bind_parties) {
+        if bind_functions[i] == function_node && bind_parties[i] == UnwrapOption(text) {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+// True when a call below `root` passes a bound party as an argument.
+func SemanticAstBoundPartyPassed(
+    ref graph: SemanticExpressionGraphFacts, root: Int,
+    function_node: Int, ref bind_functions: Array<Int>, ref bind_parties: Array<String>
+) -> Bool {
+    let pending: Array<Int> = [root];
+    let steps: Int = 0;
+    while ArrayLength(pending) > 0 && steps <= SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        let node: Int = pending[ArrayLength(pending) - 1];
+        ArrayPop(pending);
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+        if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeCallArgument() {
+            let argument: Option<Int> = SemanticExpressionGraphRightChild(graph, node);
+            if IsSome(argument) && SemanticAstBoundPartyNamed(graph, UnwrapOption(argument),
+                    function_node, bind_functions, bind_parties) {
+                return true;
+            }
+        }
+        let left: Option<Int> = SemanticExpressionGraphLeftChild(graph, node);
+        let right: Option<Int> = SemanticExpressionGraphRightChild(graph, node);
+        if IsSome(left) { ArrayPush(pending, UnwrapOption(left)); }
+        if IsSome(right) { ArrayPush(pending, UnwrapOption(right)); }
+        steps = steps + 1;
+    }
+    return false;
+}
+
+func SemanticAstBoundPartyEscapeVerdict(
+    ref statements: SemanticAstStatementFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts
+) -> SemanticAstDeclarationContractVerdict {
+    let bind_functions: Array<Int> = [];
+    let bind_parties: Array<String> = [];
+    let row: Int = 0;
+    while row < ArrayLength(statements.node_ids) {
+        if statements.kind_tags[row] == TypedAstKindBindStmtTag() {
+            ArrayPush(bind_functions, statements.function_node_ids[row]);
+            ArrayPush(bind_parties, statements.payload_texts[row]);
+        }
+        row = row + 1;
+    }
+    if ArrayLength(bind_parties) == 0 {
+        return SemanticAstDeclarationContractVerdict(true, "", "", 0 - 1);
+    }
+    row = 0;
+    while row < ArrayLength(statements.node_ids) {
+        let kind: Int = statements.kind_tags[row];
+        let function_node: Int = statements.function_node_ids[row];
+        let lane: Int = AstExpressionLaneAtom();
+        while lane <= AstExpressionLaneAuxiliary() {
+            let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                expression_surfaces, statements.node_ids[row], lane);
+            let value_lane: Bool = (kind == TypedAstKindLetStmtTag() && lane == AstExpressionLaneValue()) ||
+                (kind == TypedAstKindValueReturnStmtTag() && lane == AstExpressionLaneAtom()) ||
+                (kind == TypedAstKindAssignStmtTag() && lane == AstExpressionLaneValue());
+            if IsSome(root) && ((value_lane && SemanticAstBoundPartyNamed(
+                    expression_surfaces.expression_graph, UnwrapOption(root),
+                    function_node, bind_functions, bind_parties)) ||
+                SemanticAstBoundPartyPassed(expression_surfaces.expression_graph,
+                    UnwrapOption(root), function_node, bind_functions, bind_parties)) {
+                return SemanticAstDeclarationContractVerdict(false, "bound_party_escape",
+                    SemanticError1("bound_party_escape", "statement", statements.payload_texts[row]),
+                    statements.node_ids[row]);
+            }
+            lane = lane + 1;
+        }
+        row = row + 1;
+    }
+    return SemanticAstDeclarationContractVerdict(true, "", "", 0 - 1);
+}

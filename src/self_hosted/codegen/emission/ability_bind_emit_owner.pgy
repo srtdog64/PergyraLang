@@ -3,11 +3,13 @@
 import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "../input/semantic_statement_codegen_view_owner.pgy";
+import "../../semantic/ast_expression_graph_node_view_owner.pgy";
 
 func EmitAbilityBind(
     statements: SemanticAstStatementFacts,
     node_id: Int,
-    env: CodegenTypeEnv
+    env: CodegenTypeEnv,
+    subject_graph: SemanticExpressionGraphView
 ) -> String {
     let party_name: String = CodegenSemanticBindPartyOrDie(
         statements, node_id
@@ -33,11 +35,21 @@ func EmitAbilityBind(
         vtable_instance == "" {
         Die("ability bind is missing its party role-slot ABI fact");
     }
+    // docs/206 section 1: the slot borrows the subject, a `let` local.
+    let subject_name: Option<String> = SemanticExpressionGraphNodeText(
+        subject_graph.graph, subject_graph.root_id);
+    let subject_c: String = "";
+    if subject_graph.ok && IsSome(subject_name) {
+        subject_c = TypeEnvBindingCName(env, UnwrapOption(subject_name));
+    }
+    if subject_c == "" {
+        Die("ability bind is missing its subject binding fact");
+    }
     return Concat(
         bind_function, Concat("(&", Concat(
-            party_c, Concat(", NULL, &", Concat(
+            party_c, Concat(", &", Concat(subject_c, Concat(", &", Concat(
                 vtable_instance, ");"
-            ))
+            ))))
         ))
     );
 }

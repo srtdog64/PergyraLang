@@ -5,8 +5,9 @@ role Archer for Fighter { impl Combatable { func Attack(self) -> Int { return 20
 party Team { dyn role slot fighter: Combatable; shared hp: Int; }
 func Main() -> Void {
     let team: Team = Team();
-    bind team.fighter = Warrior;
+    let hero: Fighter = Fighter(1);
+    bind team.fighter = hero as Warrior;
     Log(ToString(team.fighter.Attack()));
-    bind team.fighter = Archer;
+    bind team.fighter = hero as Archer;
     Log(ToString(team.fighter.Attack()));
 }

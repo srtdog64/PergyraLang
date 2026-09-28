@@ -532,18 +532,22 @@ void ast_print(ASTNode* node, int indent) {
             ast_print(node->data.defer_stmt.body, indent + 1);
             break;
 
-        case AST_BIND_STMT:
-            printf("BindStmt: %s.%s = %s\n",
+        case AST_BIND_STMT: {
+            const char *subject =
+                ast_identifier_name(node->data.bind_stmt.subject);
+            printf("BindStmt: %s.%s = %s as %s\n",
                    node->data.bind_stmt.party_var != NULL
                        ? node->data.bind_stmt.party_var
                        : "<unknown>",
                    node->data.bind_stmt.slot_name != NULL
                        ? node->data.bind_stmt.slot_name
                        : "<unknown>",
+                   subject != NULL ? subject : "<unknown>",
                    node->data.bind_stmt.role_name != NULL
                        ? node->data.bind_stmt.role_name
                        : "<unknown>");
             break;
+        }
 
         case AST_BREAK:
             printf("Break");

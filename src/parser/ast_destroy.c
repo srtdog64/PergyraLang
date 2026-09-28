@@ -457,6 +457,7 @@ void ast_destroy(ASTNode* node) {
         case AST_BIND_STMT:
             free(node->data.bind_stmt.party_var);
             free(node->data.bind_stmt.slot_name);
+            ast_destroy(node->data.bind_stmt.subject);
             free(node->data.bind_stmt.role_name);
             break;
 

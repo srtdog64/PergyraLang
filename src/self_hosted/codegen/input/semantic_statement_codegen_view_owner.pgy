@@ -153,7 +153,7 @@ func CodegenSemanticBindRoleOrDie(
     let index: Int = CodegenSemanticStatementIndexOrDie(
         facts, node_id, TypedAstKindBindStmtTag()
     );
-    return facts.value_texts[index];
+    return facts.type_name_texts[index];
 }
 
 func CodegenSemanticBindSlotOrDie(

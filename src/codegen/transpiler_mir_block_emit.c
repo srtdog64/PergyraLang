@@ -405,10 +405,16 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             continue;
         }
         if (inst->name != NULL && strcmp(inst->name, "bind") == 0) {
-            if (inst->arg0 == NULL || inst->slot_anchor == NULL
-                || inst->arg1 == NULL
-                || !transpiler_emit_bind_statement_parts(
-                    ctx, inst->arg0, inst->slot_anchor, inst->arg1)) {
+            char *subject_expr = inst->expr0 != NULL
+                ? emit_expression_with_ssa_map(inst->expr0, ctx, ssa_map_out)
+                : NULL;
+            bool bound = inst->arg0 != NULL && inst->slot_anchor != NULL
+                && inst->arg1 != NULL && subject_expr != NULL
+                && transpiler_emit_bind_statement_parts(
+                    ctx, inst->arg0, inst->slot_anchor, inst->expr0,
+                    subject_expr, inst->arg1);
+            free(subject_expr);
+            if (!bound) {
                 if (reason != NULL && reason_cap > 0) {
                     transpiler_mir_reasonf(reason, reason_cap,
                         "MIR block %llu emission failed: bind statement missing MIR bind facts",

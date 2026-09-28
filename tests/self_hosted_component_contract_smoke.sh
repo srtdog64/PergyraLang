@@ -4396,7 +4396,7 @@ require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "CodegenPrefixOwnedStatementLine(emitted_assignment, pad, \"\", \"\\n\")"
 require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func EmitStmtList(" \
-    "CodegenPrefixOwnedStatementLine(EmitAbilityBind(statements, idx, env), pad, \"\", \"\\n\")"
+    "CodegenPrefixOwnedStatementLine(EmitAbilityBind(statements, idx, env, CodegenSemanticExpressionGraphOrDie(expression_surfaces, idx, AstExpressionLaneValue())), pad, \"\", \"\\n\")"
 require_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "func EmitStmtList(" \
     "CodegenPrefixOwnedStatementLine(EmitLog(log_type, env, log_graph), pad, \"\", \"\\n\")"

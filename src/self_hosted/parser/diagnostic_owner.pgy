@@ -125,6 +125,12 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "rename the binding, for example by adding a suffix"
         );
     }
+    if code == "bind_subject_missing" {
+        return ParseDiagnosticRow(
+            "a bind names a role without a local subject for its self",
+            "bind a subject through the role: `bind party.slot = <subject> as Role;`"
+        );
+    }
     if code == "field_name_reserved" {
         return ParseDiagnosticRow(
             "a reserved language word cannot name a field",
@@ -242,7 +248,7 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
         code == "statement_head_unexpected_token" ||
         code == "block_unclosed" || code == "expected_token" ||
         code == "expression_invalid" || code == "binding_name_reserved" ||
-        code == "field_name_reserved" ||
+        code == "field_name_reserved" || code == "bind_subject_missing" ||
         code == "declaration_name_missing" || code == "type_name_invalid" ||
         code == "import_source_missing" || code == "import_cycle" ||
         code == "statement_kind_unsupported" ||

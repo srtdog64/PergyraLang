@@ -240,6 +240,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     scope_enter(&ctx->scope, SCOPE_FUNCTION);
     resource_flow_universe_begin(ctx);
     loop_flow_summary_begin_function(ctx);
+    semantic_bound_party_begin_function(ctx);
     if (node->origin_path != NULL)
         ctx->current_module_path = node->origin_path;
 
@@ -466,6 +467,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     }
     loop_flow_summary_end_function(ctx);
     resource_flow_universe_end(ctx);
+    semantic_bound_party_end_function(ctx);
     scope_exit(&ctx->scope);
     return !ctx->has_error;
 }

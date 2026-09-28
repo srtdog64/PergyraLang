@@ -12,6 +12,8 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "action_contract_invalid",
         "action_ability_unsatisfied",
         "zone_authority_ability_unsatisfied",
+        "bind_subject_invalid",
+        "bound_party_escape",
         "task_lifecycle_invalid",
         "cancel_argument_invalid",
         "cancel_payload_unsupported",
@@ -111,7 +113,7 @@ func SemanticDiagnosticCodeCount() -> Int {
 }
 
 func SemanticDiagnosticPublicLayer(code: String) -> String {
-    if code == "borrow_boundary_escape" ||
+    if code == "borrow_boundary_escape" || code == "bound_party_escape" ||
         code == "inout_argument_alias" || code == "inout_argument_not_variable" ||
         code == "slice_storage_invalidation" ||
         code == "zone_value_copy_requires_transfer" ||
@@ -262,6 +264,8 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     if code == "parallel_unsafe_forbidden" { return "PGY_SEM_PARALLEL_SECURE_FORBIDDEN"; }
     if code == "action_ability_unsatisfied" { return "PGY_SEM_ABILITY_CONTRACT_INVALID"; }
     if code == "zone_authority_ability_unsatisfied" { return "PGY_SEM_ABILITY_CONTRACT_INVALID"; }
+    if code == "bind_subject_invalid" { return "PGY_SEM_ROLE_CONTRACT_INVALID"; }
+    if code == "bound_party_escape" { return "PGY_SEM_BORROW_ESCAPE"; }
     if code == "parse_syntax" {
         return "PGY_PARSE_SYNTAX";
     }

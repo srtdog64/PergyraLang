@@ -637,6 +637,9 @@ ast_assign_node(ASTNode *node, AstIdentityState *next_id)
     case AST_DEFER_STMT:
         ast_assign_node(node->data.defer_stmt.body, next_id);
         break;
+    case AST_BIND_STMT:
+        ast_assign_node(node->data.bind_stmt.subject, next_id);
+        break;
     default:
         break;
     }

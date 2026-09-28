@@ -97,11 +97,12 @@ test_misc_grammar_edges(void)
             "    }\n"
             "}\n"
             "party Team {\n"
-            "    role slot fighter: Combatable\n"
+            "    dyn role slot fighter: Combatable\n"
             "}\n"
             "func Main() -> Void {\n"
+            "    let hero: Fighter = Fighter(1);\n"
             "    let team: Team = Team();\n"
-            "    bind team.fighter = Warrior;\n"
+            "    bind team.fighter = hero as Warrior;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -137,8 +138,9 @@ test_misc_grammar_edges(void)
             "    role slot fighter: Combatable\n"
             "}\n"
             "func Main() -> Void {\n"
+            "    let hero: Fighter = Fighter(1);\n"
             "    let team: Team = Team();\n"
-            "    bind team.fighter = Speaker;\n"
+            "    bind team.fighter = hero as Speaker;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -179,8 +181,9 @@ test_misc_grammar_edges(void)
             "    role slot fighter: Combatable & Guardable\n"
             "}\n"
             "func Main() -> Void {\n"
+            "    let hero: Fighter = Fighter(1);\n"
             "    let team: Team = Team();\n"
-            "    bind team.fighter = Warrior;\n"
+            "    bind team.fighter = hero as Warrior;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -196,6 +199,66 @@ test_misc_grammar_edges(void)
         ast_destroy(program);
         parser_destroy(parser);
         lexer_destroy(lexer);
+    }
+
+    TEST("bind statement refuses a subject the slot cannot borrow");
+    {
+        /* docs/206 section 1: the slot borrows a local subject of the role's
+         * `for` type whose scope encloses the party's; only a dyn slot binds,
+         * and the party is a local of this function. Each row is one refusal. */
+        const char *prelude =
+            "subject Fighter { let hp: Int; }\n"
+            "ability Combatable { func Attack(self) -> Int; }\n"
+            "role Warrior for Fighter {\n"
+            "    impl ability Combatable {\n"
+            "        func Attack(self) -> Int { return self.hp; }\n"
+            "    }\n"
+            "}\n"
+            "party Team { dyn role slot fighter: Combatable }\n"
+            "party Fixed { role slot fighter: Combatable }\n";
+        const char *bodies[][2] = {
+            {"func Main() -> Void { let hero: Fighter = Fighter(1); let team: Fixed = Fixed();"
+             " bind team.fighter = hero as Warrior; }",
+             "is not a `dyn role slot`"},
+            {"func Main() -> Void { let n: Int = 1; let team: Team = Team();"
+             " bind team.fighter = n as Warrior; }",
+             "bind subject 'n' has type 'Int', but role 'Warrior' is for 'Fighter'"},
+            {"func Main() -> Void { let team: Team = Team();"
+             " if true { let hero: Fighter = Fighter(1); bind team.fighter = hero as Warrior; } }",
+             "declared in a scope that ends before party 'team'"},
+            {"func Use(team: Team) -> Void { let hero: Fighter = Fighter(1);"
+             " bind team.fighter = hero as Warrior; } func Main() -> Void { }",
+             "must be a local party binding of this function"},
+            {"func Use(hero: Fighter) -> Void { let team: Team = Team();"
+             " bind team.fighter = hero as Warrior; } func Main() -> Void { }",
+             "bind subject 'hero' must be a local `let` binding of this function"},
+            {"func Make() -> Team { let hero: Fighter = Fighter(1); let team: Team = Team();"
+             " bind team.fighter = hero as Warrior; return team; } func Main() -> Void { }",
+             "Party 'team' has a slot bound to a local subject"},
+            {"func Show(t: Team) -> Void { } func Main() -> Void { let hero: Fighter = Fighter(1);"
+             " let team: Team = Team(); Show(team); bind team.fighter = hero as Warrior; }",
+             "Party 'team' has a slot bound to a local subject"},
+            {"func Main() -> Void { let hero: Fighter = Fighter(1); let team: Team = Team();"
+             " bind team.fighter = hero as Warrior; let copy: Team = team; }",
+             "Party 'team' has a slot bound to a local subject"},
+        };
+        for (size_t row = 0; row < sizeof(bodies) / sizeof(bodies[0]); row++) {
+            char source[2048];
+            snprintf(source, sizeof(source), "%s%s", prelude, bodies[row][0]);
+            Lexer *lexer = lexer_create(source);
+            Parser *parser = parser_create(lexer);
+            ASTNode *program = parser_parse_program(parser);
+            SemanticResult *result = semantic_analyze(program);
+
+            EXPECT(!parser_has_error(parser));
+            EXPECT(result != NULL && result->error_count > 0);
+            EXPECT(ctx_has_diagnostic_substring_from_result(result, bodies[row][1]));
+
+            semantic_result_destroy(result);
+            ast_destroy(program);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+        }
     }
 
     TEST("else if chain type-checks nested branch structure");

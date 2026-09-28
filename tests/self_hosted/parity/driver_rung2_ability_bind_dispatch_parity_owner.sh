@@ -64,7 +64,8 @@ pgy_selfhost_verify_driver_rung2_ability_bind_dispatch_emitted_c() {
 
     for term in \
         'const Bufferable_Int_vtable *buffer_Bufferable_Int_vt;' \
-        'StorageParty_bind_buffer(&storage, NULL, &IntBuffer_Bufferable_Bufferable_Int_vtable_instance);' \
+        'StorageParty_bind_buffer(&storage, &bag, &IntBuffer_Bufferable_Bufferable_Int_vtable_instance);' \
+        'if (storage.buffer == NULL) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_PARTY_SLOT_UNBOUND);' \
         'storage.buffer_Bufferable_Int_vt->Put(storage.buffer, 7)'; do
         grep -Fq "$term" "$emitted_c" || {
             echo "[self-host-parity:driver-rung2] $backend ability-bind C ABI fact drifted: $term" >&2

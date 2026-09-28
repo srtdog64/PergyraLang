@@ -415,16 +415,39 @@ static ASTNode* parser_parse_statement_dispatch(Parser* parser) {
         return parser_finalize_statement(parser, parse_defer_statement(parser));
     }
 
-    // bind party.slot = Role;
+    // bind party.slot = subject as Role; (docs/206 section 1)
     if (parser_match(parser, TOKEN_BIND)) {
+        uint32_t bind_line = parser->previous_token.line;
+        uint32_t bind_column = parser->previous_token.column;
         Token party_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected party variable after 'bind'");
         parser_consume(parser, TOKEN_DOT, "Expected '.' after party variable");
         Token slot_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected slot name after '.'");
         parser_consume(parser, TOKEN_ASSIGN, "Expected '=' after slot name");
-        Token role_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected role name after '='");
+        Token subject_tok = parser_consume(parser, TOKEN_IDENTIFIER,
+            "Expected a subject name after '=': `bind party.slot = subject as Role;`");
+        if (parser_check(parser, TOKEN_SEMICOLON)) {
+            parser_error(parser,
+                "bind names only the role '%s' and no subject for its 'self'; "
+                "bind a subject through it: `bind %s.%s = <subject> as %s;`",
+                subject_tok.text, party_tok.text, slot_tok.text, subject_tok.text);
+            return NULL;
+        }
+        parser_consume(parser, TOKEN_AS,
+            "Expected 'as' and a role name after the bind subject; the subject is a local name");
+        Token role_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected role name after 'as'");
         parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after bind statement");
-        return parser_finalize_statement(parser,
-            ast_create_bind_statement(party_tok.text, slot_tok.text, role_tok.text));
+        ASTNode *subject = ast_create_identifier(subject_tok.text);
+        if (subject != NULL) {
+            subject->line = subject_tok.line;
+            subject->column = subject_tok.column;
+        }
+        ASTNode *bind = ast_create_bind_statement(party_tok.text, slot_tok.text,
+                                                  subject, role_tok.text);
+        if (bind != NULL) {
+            bind->line = bind_line;
+            bind->column = bind_column;
+        }
+        return parser_finalize_statement(parser, bind);
     }
 
     // roster declaration

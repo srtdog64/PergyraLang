@@ -1002,6 +1002,7 @@ main() {
         "tests/cases/backend_compare/role_include_methods"
         "tests/cases/backend_compare/party_role_bind"
         "tests/cases/backend_compare/party_role_bind_dispatch"
+        "tests/cases/backend_compare/party_slot_borrows_subject"
         "tests/cases/backend_compare/party_roster_host_methods"
         "tests/cases/backend_compare/result_custom_error"
         "tests/cases/backend_compare/result_unwrap_err"

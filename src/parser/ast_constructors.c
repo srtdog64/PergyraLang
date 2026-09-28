@@ -459,12 +459,22 @@ ASTNode* ast_create_defer_statement(ASTNode* body) {
     return node;
 }
 
-ASTNode* ast_create_bind_statement(const char* party_var, const char* slot_name, const char* role_name) {
+ASTNode* ast_create_bind_statement(const char* party_var, const char* slot_name,
+                                   ASTNode* subject, const char* role_name) {
     ASTNode* node = ast_create_node(AST_BIND_STMT);
     node->data.bind_stmt.party_var = pergyra_strdup(party_var);
     node->data.bind_stmt.slot_name = pergyra_strdup(slot_name);
+    node->data.bind_stmt.subject = subject;
     node->data.bind_stmt.role_name = pergyra_strdup(role_name);
     return node;
+}
+
+ASTNode*
+ast_bind_statement_subject(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_BIND_STMT)
+        return NULL;
+    return node->data.bind_stmt.subject;
 }
 
 const char*

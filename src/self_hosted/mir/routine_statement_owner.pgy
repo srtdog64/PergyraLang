@@ -5,6 +5,7 @@ import "routine_expression_use_owner.pgy";
 import "routine_local_ref_attachment_owner.pgy";
 import "../semantic/ast_statement_fact_owner.pgy";
 import "../semantic/ast_expression_graph_fact_owner.pgy";
+import "../semantic/ast_expression_graph_node_view_owner.pgy";
 import "../semantic/ast_expression_graph_member_view_owner.pgy";
 
 func SelfMirSimpleStatementKind(kind: Int) -> Bool {
@@ -62,6 +63,44 @@ func SelfMirCollectionMutationTargetLocal(
         node = member.receiver_node;
     }
     return None;
+}
+
+// The simple lane is the party role-slot bind. docs/206 section 1: the bind
+// reads its subject, the slot's borrowed self, from the value graph.
+func SelfMirLowerSimpleStatement(
+    build: SelfMirRoutineBuild,
+    kind: Int,
+    payload: String,
+    role_name: String,
+    auxiliary_payload: String,
+    subject_graph: SemanticExpressionGraphView
+) -> SelfMirRoutineBuild {
+    if kind != TypedAstKindBindStmtTag() {
+        return SelfMirRoutineBuildError(
+            build, "MIR simple statement requires an owned lowering lane"
+        );
+    }
+    let subject_name: Option<String> = None;
+    if subject_graph.ok {
+        subject_name = SemanticExpressionGraphNodeText(subject_graph.graph, subject_graph.root_id);
+    }
+    if payload == "" || role_name == "" || auxiliary_payload == "" ||
+        !IsSome(subject_name) {
+        return SelfMirRoutineBuildError(
+            build, "ability bind is missing party/slot/subject/role facts"
+        );
+    }
+    build = SelfMirRoutineAddInstruction(
+        build, "stmt", "bind", "", payload, role_name,
+        UnwrapOption(subject_name), "", "AST_BIND_STMT",
+        SelfMirExpressionGraphUses(build, subject_graph)
+    );
+    return SelfMirRoutineWithCfg(
+        build,
+        SelfMirCfgAttachLastSlotAnchor(
+            build.cfg, auxiliary_payload
+        )
+    );
 }
 
 func SelfMirLowerGraphOwnedSimpleStatement(
@@ -162,33 +201,3 @@ func SelfMirLowerCollectionMutationGraphOwnedSimpleStatement(
     );
 }
 
-func SelfMirLowerSimpleStatement(
-    build: SelfMirRoutineBuild,
-    kind: Int,
-    payload: String,
-    value_payload: String,
-    auxiliary_payload: String
-) -> SelfMirRoutineBuild {
-    if kind == TypedAstKindBindStmtTag() {
-        if payload == "" || value_payload == "" ||
-            auxiliary_payload == "" {
-            return SelfMirRoutineBuildError(
-                build, "ability bind is missing party/slot/role facts"
-            );
-        }
-        let bind_uses: Array<String> = [];
-        build = SelfMirRoutineAddInstruction(
-            build, "stmt", "bind", "", payload, value_payload,
-            "", "", "AST_BIND_STMT", bind_uses
-        );
-        return SelfMirRoutineWithCfg(
-            build,
-            SelfMirCfgAttachLastSlotAnchor(
-                build.cfg, auxiliary_payload
-            )
-        );
-    }
-    return SelfMirRoutineBuildError(
-        build, "MIR simple statement requires an owned lowering lane"
-    );
-}

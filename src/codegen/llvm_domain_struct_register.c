@@ -374,9 +374,9 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                         decl_name);
                     return;
                 }
-                fc = domain_slot_count + shared_view.count + dyn_slot_count + projection_count;
+                fc = domain_slot_count + shared_view.count + (dyn_slot_count * 2) + projection_count;
                 if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL)
-                    fc = domain_slot_count + shared_view.count + dyn_slot_count + (projection_count * 4);
+                    fc = domain_slot_count + shared_view.count + (dyn_slot_count * 2) + (projection_count * 4);
                 ftypes = pgy_arena_calloc(&ctx->scratch,
                     (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
                 if (ftypes == NULL) {
@@ -415,7 +415,8 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
-                for (size_t j = 0; j < dyn_slot_count; j++, idx++)
+                /* A dyn slot: its vtable, then the bound subject. */
+                for (size_t j = 0; j < dyn_slot_count * 2; j++, idx++)
                     ftypes[idx] = ctx->type_i8ptr;
                 if (projection_count > 0) {
                     for (size_t j = 0; j < domain_slot_count; j++) {

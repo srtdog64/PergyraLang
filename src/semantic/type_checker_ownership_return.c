@@ -96,6 +96,7 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
      * initializer or call argument; Clone's resolved boundary remains legal. */
     if (value != NULL && value->type == AST_MEMBER_ACCESS)
         semantic_reject_world_zone_member_escape(value, ctx);
+        semantic_bound_party_note_value_use(ctx, value);
     if (ret_type != NULL && ret_type->kind == TYPE_KIND_FUNCTION)
         callable_capability_record_return(ctx, value);
 

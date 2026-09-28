@@ -482,6 +482,9 @@ mir_generic_method_capture_node(MIRGenericMethodCaptureCtx *ctx,
         return mir_generic_method_capture_node(ctx, ast_defer_body(node));
     case AST_FAIL_STMT:
         return mir_generic_method_capture_node(ctx, ast_fail_stmt_reason(node));
+    case AST_BIND_STMT:
+        return mir_generic_method_capture_node(ctx,
+            ast_bind_statement_subject(node));
     default:
         return true;
     }

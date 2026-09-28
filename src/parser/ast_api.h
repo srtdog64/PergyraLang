@@ -427,8 +427,10 @@ ASTNode* ast_create_fail_statement(ASTNode* reason);
 ASTNode* ast_create_cast(ASTNode* operand, const char* target_type);
 ASTNode* ast_create_type_test(ASTNode* operand, const char* target_type);
 ASTNode* ast_create_defer_statement(ASTNode* body);
-ASTNode* ast_create_bind_statement(const char* party_var, const char* slot_name, const char* role_name);
+ASTNode* ast_create_bind_statement(const char* party_var, const char* slot_name,
+                                   ASTNode* subject, const char* role_name);
 const char* ast_bind_statement_party_var(const ASTNode* node);
+ASTNode* ast_bind_statement_subject(const ASTNode* node);
 const char* ast_bind_statement_slot_name(const ASTNode* node);
 const char* ast_bind_statement_role_name(const ASTNode* node);
 
