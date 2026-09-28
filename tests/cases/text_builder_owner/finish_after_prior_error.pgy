@@ -1,0 +1,21 @@
+// A prior function's diagnostic must not suppress a later owner transition.
+func Bad() -> Void
+{
+    let borrowed: Array<String> = ["borrowed"];
+    ArrayDropOwnedStrings(borrowed);
+}
+
+func Build() -> String
+{
+    let allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(2);
+    TextBuilderAppend(output, "x");
+    let result: String = TextBuilderFinish(output, allocator);
+    AllocatorDestroy(allocator);
+    return result;
+}
+
+func Main() -> Void
+{
+    Log(Build());
+}

@@ -1,0 +1,28 @@
+// Finish must consume the owner after a loop and before either return arm.
+func Build(flag: Bool) -> String
+{
+    if !flag
+    {
+        return "";
+    }
+    let allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(3);
+    let i: Int = 0;
+    while i < 1
+    {
+        TextBuilderAppend(output, "x");
+        i = i + 1;
+    }
+    let result: String = TextBuilderFinish(output, allocator);
+    AllocatorDestroy(allocator);
+    if flag
+    {
+        return result;
+    }
+    return result;
+}
+
+func Main() -> Void
+{
+    Log(Build(true));
+}

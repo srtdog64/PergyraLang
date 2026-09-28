@@ -4583,6 +4583,7 @@ generic-nested-failclosed-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/generic_nested_failclosed_smoke.sh
 
 text-builder-owner-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/text_builder_diagnostic_isolation_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/text_builder_owner_smoke.sh
 
 parallel-disjoint-test-smoke: $(PGY)

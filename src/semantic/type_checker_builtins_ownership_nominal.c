@@ -225,6 +225,7 @@ text_builder_require_named_type(ASTNode *call, SemanticContext *ctx,
 {
     ASTNode *arg = ast_call_argument(call, arg_index);
     Type *actual;
+    size_t diagnostic_start;
 
     if (symbol_out != NULL)
         *symbol_out = NULL;
@@ -238,6 +239,7 @@ text_builder_require_named_type(ASTNode *call, SemanticContext *ctx,
             (unsigned long long)(arg_index + 1));
         return false;
     }
+    diagnostic_start = ctx->diagnostic_count;
     actual = nominal_builtin_normalize_type(type_check_expression(arg, ctx));
     if (!type_equals(actual, expected)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
@@ -248,9 +250,14 @@ text_builder_require_named_type(ASTNode *call, SemanticContext *ctx,
             type_name_or_unknown(actual));
         return false;
     }
+    for (size_t i = diagnostic_start; i < ctx->diagnostic_count; i++) {
+        Diagnostic *diagnostic = ctx->diagnostics[i];
+        if (diagnostic != NULL && diagnostic->level == DIAG_ERROR)
+            return false;
+    }
     if (symbol_out != NULL)
         *symbol_out = scope_lookup(ctx->scope, ast_identifier_name(arg));
-    return !ctx->has_error;
+    return true;
 }
 
 static Type *
