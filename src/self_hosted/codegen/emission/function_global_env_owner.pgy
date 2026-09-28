@@ -34,7 +34,7 @@ func BuildFunctionEnv(
     while i < SemanticAstFunctionSignatureCount(signatures) {
         let c_name: String = CompilerSymbolCQualifiedName(
             receiver_facts.owners[i], receiver_facts.names[i]);
-        ArrayPush(c_names, c_name);
+        ArrayPushOwnedString(c_names, c_name);
         TextBuilderAppend(output, c_name); TextBuilderAppend(output, "=rc:");
         TextBuilderAppend(output, receiver_facts.carriages[i]); TextBuilderAppend(output, "|");
         TextBuilderAppend(output, c_name); TextBuilderAppend(output, "=rso:");

@@ -184,7 +184,7 @@ func SemanticAstAnalysisResolveCallReturnTypes(
             }
         }
         if type_name == "" { type_name = Concat("", ""); }
-        ArrayPush(call_return_types, type_name);
+        ArrayPushOwnedString(call_return_types, type_name);
         node_id = node_id + 1;
     }
     let arena: SemanticExpressionGraphArena =

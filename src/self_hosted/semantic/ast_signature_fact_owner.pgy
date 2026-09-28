@@ -529,7 +529,7 @@ func SemanticAstFunctionGenericNameAt(
 }
 
 func SemanticAstFunctionParamCountAt(
-    facts: SemanticAstFunctionSignatureFacts,
+    ref facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int
 ) -> Option<Int> {
     if signature_index < 0 ||
@@ -539,7 +539,7 @@ func SemanticAstFunctionParamCountAt(
 }
 
 func SemanticAstFunctionParamFlatIndex(
-    facts: SemanticAstFunctionSignatureFacts,
+    ref facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int,
     parameter_index: Int
 ) -> Option<Int> {
@@ -563,7 +563,7 @@ func SemanticAstFunctionParamNodeAt(
 }
 
 func SemanticAstFunctionParamNameAt(
-    facts: SemanticAstFunctionSignatureFacts,
+    ref facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int,
     parameter_index: Int
 ) -> Option<String> {
@@ -575,7 +575,7 @@ func SemanticAstFunctionParamNameAt(
 }
 
 func SemanticAstFunctionParamTypeAt(
-    facts: SemanticAstFunctionSignatureFacts,
+    ref facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int,
     parameter_index: Int
 ) -> Option<String> {
@@ -587,7 +587,7 @@ func SemanticAstFunctionParamTypeAt(
 }
 
 func SemanticAstFunctionParamModeAt(
-    facts: SemanticAstFunctionSignatureFacts,
+    ref facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int,
     parameter_index: Int
 ) -> Option<Int> {

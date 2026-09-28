@@ -1,0 +1,80 @@
+// Exact local-to-local Array<String> assignment identity.
+
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
+import "ast_assignment_type_fact_owner.pgy";
+
+struct SemanticAstCollectionOwnershipAssignmentAliasFact {
+    ok: Bool;
+    candidate: Bool;
+    syntax_node_id: Int;
+    expression_node_id: Int;
+    source_row: Int;
+    target_row: Int;
+}
+
+func SemanticAstCollectionOwnershipAssignmentAliasNone(
+) -> SemanticAstCollectionOwnershipAssignmentAliasFact {
+    return SemanticAstCollectionOwnershipAssignmentAliasFact(
+        true, false, -1, -1, -1, -1);
+}
+
+func SemanticAstCollectionOwnershipAssignmentAliasInvalid(
+    syntax_node_id: Int
+) -> SemanticAstCollectionOwnershipAssignmentAliasFact {
+    return SemanticAstCollectionOwnershipAssignmentAliasFact(
+        false, false, syntax_node_id, -1, -1, -1);
+}
+
+func SemanticAstCollectionOwnershipAssignmentAliasAt(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref assignment_types: SemanticAstAssignmentTypeFacts,
+    assignment_row: Int
+) -> SemanticAstCollectionOwnershipAssignmentAliasFact {
+    if assignment_row < 0 ||
+        assignment_row >= ArrayLength(assignments.node_ids) ||
+        assignment_row >= ArrayLength(assignment_types.node_ids) ||
+        assignments.node_ids[assignment_row] !=
+            assignment_types.node_ids[assignment_row] {
+        return SemanticAstCollectionOwnershipAssignmentAliasInvalid(
+            assignment_row);
+    }
+    if assignments.target_is_indexed[assignment_row] != 0 ||
+        assignments.target_texts[assignment_row] !=
+            assignments.target_root_names[assignment_row] ||
+        !SemanticAstCollectionOwnershipIsStringArray(
+            assignment_types.target_type_names[assignment_row]) ||
+        !SemanticAstCollectionOwnershipIsStringArray(
+            assignment_types.inferred_type_names[assignment_row]) {
+        return SemanticAstCollectionOwnershipAssignmentAliasNone();
+    }
+    let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, assignments.node_ids[assignment_row],
+        AstExpressionLaneValue());
+    if !IsSome(root) {
+        return SemanticAstCollectionOwnershipAssignmentAliasNone();
+    }
+    let source: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, initializer_types.inferred_type_names,
+            assignments.function_node_ids[assignment_row],
+            assignments.node_ids[assignment_row],
+            surfaces.expression_graph, UnwrapOption(root));
+    let target: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForName(
+            artifact, locals, initializer_types.inferred_type_names,
+            assignments.function_node_ids[assignment_row],
+            assignments.node_ids[assignment_row],
+            assignments.target_root_names[assignment_row]);
+    if !source.ok || !target.ok ||
+        SemanticAstLocalBindingIdentityEqual(source, target) {
+        return SemanticAstCollectionOwnershipAssignmentAliasNone();
+    }
+    return SemanticAstCollectionOwnershipAssignmentAliasFact(
+        true, true, assignments.node_ids[assignment_row],
+        UnwrapOption(root), source.row, target.row);
+}

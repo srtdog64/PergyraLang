@@ -1,0 +1,113 @@
+// Stable semantic events that may change Array<String> element ownership.
+//
+// The event identity is consumed when MIR attaches the receipt to one exact
+// instruction.  Global expression-graph row numbers are deliberately absent.
+
+struct SemanticAstCollectionOwnershipReceiptRows {
+    function_syntax_ids: Array<Int>;
+    owner_node_ids: Array<Int>;
+    lanes: Array<Int>;
+    local_call_ordinals: Array<Int>;
+    effect_kinds: Array<Int>;
+    receiver_binding_syntax_ids: Array<Int>;
+    source_binding_syntax_ids: Array<Int>;
+}
+
+func SemanticAstCollectionOwnershipEffectOwnedStringPush() -> Int {
+    return 1;
+}
+
+func SemanticAstCollectionOwnershipEffectShallowMutation() -> Int {
+    return 2;
+}
+
+func SemanticAstCollectionOwnershipEffectDrop() -> Int {
+    return 3;
+}
+
+func SemanticAstCollectionOwnershipReceiptRowsEmpty(
+) -> SemanticAstCollectionOwnershipReceiptRows {
+    let function_ids: Array<Int> = [];
+    let owner_ids: Array<Int> = [];
+    let lanes: Array<Int> = [];
+    let ordinals: Array<Int> = [];
+    let effects: Array<Int> = [];
+    let receiver_ids: Array<Int> = [];
+    let source_ids: Array<Int> = [];
+    return SemanticAstCollectionOwnershipReceiptRows(
+        function_ids, owner_ids, lanes, ordinals, effects,
+        receiver_ids, source_ids
+    );
+}
+
+func SemanticAstCollectionOwnershipReceiptRowsReady(
+    ref rows: SemanticAstCollectionOwnershipReceiptRows
+) -> Bool {
+    let count: Int = ArrayLength(rows.function_syntax_ids);
+    if count != ArrayLength(rows.owner_node_ids) ||
+        count != ArrayLength(rows.lanes) ||
+        count != ArrayLength(rows.local_call_ordinals) ||
+        count != ArrayLength(rows.effect_kinds) ||
+        count != ArrayLength(rows.receiver_binding_syntax_ids) ||
+        count != ArrayLength(rows.source_binding_syntax_ids) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if rows.function_syntax_ids[row] <= 0 ||
+            rows.owner_node_ids[row] <= 0 ||
+            rows.lanes[row] < 0 || rows.lanes[row] > 2 ||
+            rows.local_call_ordinals[row] < -1 ||
+            rows.effect_kinds[row] <
+                SemanticAstCollectionOwnershipEffectOwnedStringPush() ||
+            rows.effect_kinds[row] >
+                SemanticAstCollectionOwnershipEffectDrop() ||
+            rows.receiver_binding_syntax_ids[row] <= 0 ||
+            rows.source_binding_syntax_ids[row] != 0 {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if rows.function_syntax_ids[prior] ==
+                    rows.function_syntax_ids[row] &&
+                rows.owner_node_ids[prior] == rows.owner_node_ids[row] &&
+                rows.lanes[prior] == rows.lanes[row] &&
+                rows.local_call_ordinals[prior] ==
+                    rows.local_call_ordinals[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionOwnershipReceiptRowsAppend(
+    rows: SemanticAstCollectionOwnershipReceiptRows,
+    function_syntax_id: Int,
+    owner_node_id: Int,
+    lane: Int,
+    local_call_ordinal: Int,
+    effect_kind: Int,
+    receiver_binding_syntax_id: Int
+) -> SemanticAstCollectionOwnershipReceiptRows {
+    let function_ids: Array<Int> = rows.function_syntax_ids;
+    let owner_ids: Array<Int> = rows.owner_node_ids;
+    let lanes: Array<Int> = rows.lanes;
+    let ordinals: Array<Int> = rows.local_call_ordinals;
+    let effects: Array<Int> = rows.effect_kinds;
+    let receiver_ids: Array<Int> = rows.receiver_binding_syntax_ids;
+    let source_ids: Array<Int> = rows.source_binding_syntax_ids;
+    ArrayPush(function_ids, function_syntax_id);
+    ArrayPush(owner_ids, owner_node_id);
+    ArrayPush(lanes, lane);
+    ArrayPush(ordinals, local_call_ordinal);
+    ArrayPush(effects, effect_kind);
+    ArrayPush(receiver_ids, receiver_binding_syntax_id);
+    ArrayPush(source_ids, 0);
+    return SemanticAstCollectionOwnershipReceiptRows(
+        function_ids, owner_ids, lanes, ordinals, effects,
+        receiver_ids, source_ids
+    );
+}

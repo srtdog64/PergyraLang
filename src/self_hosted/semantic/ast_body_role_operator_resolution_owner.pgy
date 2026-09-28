@@ -117,7 +117,7 @@ func SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
                     SemanticAstExpressionIntentNodeAt(
                         analysis.expression_surfaces, analysis.intent_signatures, surface_index);
                 if surface_index != seeded_surface {
-                    SemanticAstExpressionEnvironmentClear(
+                    SemanticAstExpressionEnvironmentReset(
                         names, types, modes
                     );
                     if !SemanticAstBodyExpressionEnvironmentSeed(

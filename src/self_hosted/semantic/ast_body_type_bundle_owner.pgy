@@ -201,8 +201,8 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     if verdict.ok {
         collection_ownership =
             SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
-                artifact, analysis.local_bindings, initializer_types,
-                analysis.expression_surfaces, analysis.statements);
+                artifact, analysis.signatures, analysis.local_bindings, initializer_types,
+                analysis.expression_surfaces, analysis.statements, analysis.assignments, assignment_types);
         if !collection_ownership.ok {
             verdict = SemanticAstBodyVerdictError(
                 collection_ownership.diagnostic_code,

@@ -463,13 +463,13 @@ func SemanticAstExpressionSeedVisibleLocalModes(
     return true;
 }
 
-// Borrowed rows retain backing storage on reset; clear drops only an empty view.
+// Reset retains storage; Clear consumes the emptied descriptor exactly once.
 func SemanticAstExpressionEnvironmentReset(inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>) -> Void {
     while ArrayLength(names) > 0 { ArrayPop(names); }
     while ArrayLength(types) > 0 { ArrayPop(types); }
     while ArrayLength(modes) > 0 { ArrayPop(modes); }
 }
-func SemanticAstExpressionEnvironmentClear(inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>) -> Void {
+func SemanticAstExpressionEnvironmentClear(own names: Array<String>, own types: Array<String>, own modes: Array<String>) -> Void {
     SemanticAstExpressionEnvironmentReset(names, types, modes);
     ArrayDropOwnedStrings(names);
     ArrayDropOwnedStrings(types);
