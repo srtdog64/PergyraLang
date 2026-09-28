@@ -12,6 +12,11 @@
 > Pergyra를 production-ready, Rust-level memory safe, AI-first, quantum-ready,
 > zero-cost, fully proven 언어로 설명하지 않는다.
 
+현재 self-host 작업의 재개 지점은 [작업 handoff](current_work_handoff.md),
+컴파일러 fact의 소유자와 폐쇄 상태는
+[SoT owner registry](semantics/sot_owner_spine_registry.md)에서 확인한다.
+handoff는 탐색용 기록이며 현재 소스와 실행 게이트를 대신하지 않는다.
+
 > 서로 다른 자원을 같은 사고 체계로 다루기 위한 의미 통일 언어
 
 ## Intent의 정적 의미

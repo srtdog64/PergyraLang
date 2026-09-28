@@ -1,5 +1,65 @@
 # Current Work Handoff
 
+Updated: 2026-09-28 (Asia/Seoul). This top card is navigation only; the SoT
+registry, source owners, and executable gates own the compiler facts.
+
+Source checkpoint: `origin/main ==
+2f021b0b37722954d79818a6d6cb4661ef189ad7`. The isolated
+`codex/docs-curation` checkout was clean at that revision before this
+documentation edit. The shared `D:\PergyraLang` checkout has separate dirty
+work and is not evidence for this branch.
+
+## Active self-host context — collection ownership admission and cleanup
+
+Objective card:
+- Objective: carry one stable binding/expression ownership fact through
+  semantic analysis, MIR, installed self-host admission, and public C/LLVM
+  cleanup, with `UNKNOWN` origins failing closed before artifact publication.
+- Priority: prevent invalid deep drop/UAF, preserve stable syntax identity,
+  add `EMPTY` plus producer/transfer receipts, consume one exact-once CFG
+  cleanup plan, remove type/name fallback, then measure retained lifetime.
+- Production entrypoint and direct bypass: the installed
+  `pgy-self-driver --emit-mir-json-verified` route reaches the Pergyra owner;
+  native `pgy --native-pipeline --mir-json` still reaches the C owner
+  `semantic_collection_ownership_initialize_binding`. That C-owned decision
+  remains the direct bypass to replace, not a second authority to preserve.
+- Fact owner and last consumers: `semantic.hashmap_collection_ownership` owns
+  the identity. HIR/MIR projection, native JSON, both self-host readers, and
+  C/LLVM exit cleanup are the final consumers; none may reconstruct it from
+  descriptor type, spelling, Slot, generation, or pointer identity.
+- Forbidden fallback and gate: no automatic type/name-based deep drop and no
+  `UNKNOWN -> OWNED` promotion. The two focused ownership smoke gates plus the
+  pending unknown-origin fixtures below must reject without publishing an
+  artifact, while the owned-drop control remains admitted.
+
+- Active owner/rung: `semantic.hashmap_collection_ownership` is `ACTIVE` in
+  `docs/semantics/sot_owner_spine_registry.md`. Its stable binding rows reach
+  semantic, HIR, MIR, native JSON, self-host production, and both self-host
+  readers. The row is not closed: `EMPTY` and producer/transfer receipts,
+  `UNKNOWN` deep-drop refusal, borrow escape, parameter/return/inout facts,
+  and one exact-once CFG cleanup plan still lack full consumer evidence.
+- Last exact-SHA full push CI: run `36350754757` on
+  `226f69dbb68c44a8259f8424e3f6ff2a59ec5f07` succeeded in all 31 jobs,
+  including self-host bootstrap, Windows, Rocq, and backend comparison. The
+  current `2f021b0b` push run `36388322640` succeeded only in change
+  classification and the Markdown contract; ten compiler/platform jobs were
+  skipped. Neither run verifies this documentation edit or the shared dirty
+  checkout.
+- Next falsifier: the existing
+  `tests/concept_semantics/hashmap/unknown_string_array_drop.pgy` and
+  `shadowed_map_keys_drop.pgy` cases are outside the six negatives in
+  `tests/hashmap_owned_string_provenance_smoke.sh` and
+  `tests/self_hosted/parity/collection_ownership_semantic_owner.sh`. Extend
+  the focused native/public C/LLVM and installed-driver refusal gate so an
+  `UNKNOWN` origin cannot deep-drop or publish an artifact; then verify the
+  exact producer/transfer and CFG cleanup receipts. No current-HEAD focused
+  collection gate was run for this docs-only edit.
+
+## Historical archive boundary — earlier collection-ownership handoff
+
+The material below records its own revisions and observations. It is retained
+for evidence lookup and is not the active work queue.
+
 Updated: 2026-09-21 (Asia/Seoul). This is navigation only. Compiler owners,
 registries, and executable gates override it.
 

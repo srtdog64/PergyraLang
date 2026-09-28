@@ -1,6 +1,6 @@
 # PergyraLang Documentation Index
 
-Last updated: 2026-07-27
+Last updated: 2026-09-28
 
 Anti-hype update: 2026-04-29
 
@@ -16,6 +16,8 @@ not own status, decisions, or completion claims.
 
 | Document | Purpose |
 |---|---|
+| [`current_work_handoff.md`](current_work_handoff.md) | Current self-host work navigation; source owners and gates override the snapshot |
+| [`semantics/sot_owner_spine_registry.md`](semantics/sot_owner_spine_registry.md) | Canonical compiler fact-owner identities and closure states |
 | [`100_beta_readiness_checklist.md`](100_beta_readiness_checklist.md) | Lightweight index for the split beta readiness checklist |
 | [`100a_beta_active_status.md`](100a_beta_active_status.md) | Active status, current blockers, and recent closure context |
 | [`100b_beta_p0_semantics_systems_air.md`](100b_beta_p0_semantics_systems_air.md) | P0 formal semantics, systems baseline, CFG, AIR, and compiler quality gates |
