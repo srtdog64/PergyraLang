@@ -1,0 +1,39 @@
+// Cross-link sealed ownership transitions to their exact GraphPlan locals.
+
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
+import "abi_layout_row_owner.pgy";
+
+func DirectMirScalarProgramCollectionOwnershipTransitionReadyForPlan(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    if !DirectMirScalarProgramCollectionOwnershipTransitionFactReady(
+            plan.program.collection_ownership) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(
+            plan.program.collection_ownership.routine_ordinals) {
+        let routine: Int =
+            plan.program.collection_ownership.routine_ordinals[row];
+        let local_row: Int =
+            plan.program.collection_ownership.local_rows[row];
+        if routine < 0 || routine >= ArrayLength(plan.routines.roles) ||
+            local_row < 0 || local_row >= ArrayLength(plan.local_types) ||
+            DirectMirScalarCfgRoutinePartitionLocalOwner(
+                plan.routines, local_row) != routine ||
+            plan.routines.block_counts[routine] != 1 ||
+            plan.local_types[local_row] !=
+                CompilerAbiLayoutArrayStringTypeName() ||
+            plan.local_ref_value_ids[local_row] != Concat(
+                "declaration:", Concat(
+                    ToString(plan.program.collection_ownership.
+                        binding_syntax_ids[row]), ":0"
+                )
+            ) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}

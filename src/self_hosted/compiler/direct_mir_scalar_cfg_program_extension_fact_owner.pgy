@@ -1,6 +1,5 @@
 // Optional typed-expression/call seam carried by the scalar CFG graph plan.
 // CFG, SSA, phi, locals, and operations remain owned only by GraphPlan.
-
 import "direct_mir_scalar_program_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_callable_fact_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_owner.pgy";
@@ -9,6 +8,7 @@ import "direct_mir_scalar_program_array_string_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_callable_abi_owner.pgy";
 import "direct_mir_scalar_program_array_string_boundary_fact_owner.pgy";
 import "direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
 import "direct_mir_scalar_program_option_int_abi_owner.pgy";
 import "direct_mir_scalar_program_result_int_abi_owner.pgy";
 import "direct_mir_scalar_program_option_string_abi_owner.pgy";
@@ -17,7 +17,6 @@ import "direct_mir_scalar_program_array_int_value_result_fact_owner.pgy";
 import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
 import "direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
-
 struct DirectMirScalarCfgProgramExtensionFact {
     let valid: Bool;
     let digest: Int;
@@ -40,6 +39,7 @@ struct DirectMirScalarCfgProgramExtensionFact {
     let array_bool_abi: DirectMirScalarProgramArrayBoolAbiFact;
     let array_string_abi: DirectMirScalarProgramArrayStringAbiFact;
     let array_string_boundary: DirectMirScalarProgramArrayStringBoundaryFact;
+    let collection_ownership: DirectMirScalarProgramCollectionOwnershipTransitionFact;
     let owned_array_string_move: DirectMirScalarProgramOwnedArrayStringMoveFact;
 }
 
@@ -61,6 +61,8 @@ func DirectMirScalarCfgProgramExtensionFactEmpty() -> DirectMirScalarCfgProgramE
         DirectMirScalarProgramArrayBoolAbiFactCanonicalEmpty(),
         DirectMirScalarProgramArrayStringAbiFactEmpty(),
         DirectMirScalarProgramArrayStringBoundaryFactEmpty(),
+        DirectMirScalarProgramCollectionOwnershipTransitionFactWithDigest(
+            DirectMirScalarProgramCollectionOwnershipTransitionFactEmpty()),
         DirectMirScalarProgramOwnedArrayStringMoveFactCanonicalEmpty()
     );
 }
@@ -93,6 +95,7 @@ func DirectMirScalarCfgProgramExtensionFactDigest(
     hash = DirectMirCfgHashInt(hash, fact.array_bool_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_string_abi.digest);
     hash = DirectMirCfgHashInt(hash, fact.array_string_boundary.digest);
+    hash = DirectMirCfgHashInt(hash, fact.collection_ownership.digest);
     hash = DirectMirCfgHashInt(hash, fact.owned_array_string_move.digest);
     return DirectMirCfgBoundedDigest(hash);
 }
@@ -116,6 +119,7 @@ func DirectMirScalarCfgProgramExtensionFactWithDigest(
         fact.array_bool_abi,
         fact.array_string_abi,
         fact.array_string_boundary,
+        fact.collection_ownership,
         fact.owned_array_string_move
     );
 }

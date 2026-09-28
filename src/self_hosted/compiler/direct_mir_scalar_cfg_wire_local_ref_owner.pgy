@@ -16,14 +16,17 @@ struct DirectMirScalarCfgWireLocalRefs {
 
 func DirectMirScalarCfgWireLocalRefsEmpty(
 ) -> DirectMirScalarCfgWireLocalRefs {
-    let strings: Array<String> = [];
-    let ints: Array<Int> = [];
+    let primary: Array<String> = [];
+    let starts: Array<Int> = [];
+    let counts: Array<Int> = [];
+    let nodes: Array<Int> = [];
+    let refs: Array<String> = [];
     return DirectMirScalarCfgWireLocalRefs(
-        false, false, strings, ints, ints, ints, strings
+        false, false, primary, starts, counts, nodes, refs
     );
 }
 
-func DirectMirScalarCfgWireLocalRefsRequired(
+func DirectMirScalarCfgWireLocalRefsRouteIdentityRequired(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     ref index: MirRoutineFactIndex, ref parameter_names: Array<String>
 ) -> Bool {
@@ -44,6 +47,27 @@ func DirectMirScalarCfgWireLocalRefsRequired(
         instruction = instruction + 1;
     }
     return false;
+}
+
+func DirectMirScalarCfgWireLocalRefsRequired(
+    ref admitted: MirMachineLayerAdmittedJsonInput,
+    ref index: MirRoutineFactIndex, ref parameter_names: Array<String>
+) -> Bool {
+    // Mirror the producer contract exactly: empty-origin ownership facts need
+    // declaration identity even when the spelling is unique. Other ordinary
+    // locals do not silently widen the persisted wire shape.
+    let ownership_row: Int = 0;
+    while ownership_row < ArrayLength(
+            index.collection_ownership_facts.origins) {
+        if index.collection_ownership_facts.origins[ownership_row] ==
+                "empty-literal" {
+            return true;
+        }
+        ownership_row = ownership_row + 1;
+    }
+    return DirectMirScalarCfgWireLocalRefsRouteIdentityRequired(
+        admitted, index, parameter_names
+    );
 }
 
 func DirectMirScalarCfgWireLocalRefsFromOwners(

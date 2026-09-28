@@ -13,6 +13,7 @@ func DirectMirScalarCfgProgramExtensionFromOwners(
     ref callables: DirectMirScalarCfgProgramCallableInventory,
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     expressions: DirectMirScalarProgramExpressionSet,
+    collection_ownership: DirectMirScalarProgramCollectionOwnershipTransitionFact,
     option_int_abi: DirectMirOptionMatchAbiFact,
     result_int_abi: DirectMirResultIntAbiFact,
     option_string_abi: DirectMirOptionMatchAbiFact,
@@ -36,8 +37,7 @@ func DirectMirScalarCfgProgramExtensionFromOwners(
     }
     let sealed_expressions: DirectMirScalarProgramExpressionSet =
         DirectMirScalarProgramExpressionSetWithDigest(
-            expressions,
-            DirectMirScalarProgramExpressionSetDigest(expressions)
+            expressions, DirectMirScalarProgramExpressionSetDigest(expressions)
         );
     let abi: DirectMirScalarProgramExtensionAbiSeal =
         DirectMirScalarProgramExtensionAbiSealFromOwners(
@@ -61,7 +61,7 @@ func DirectMirScalarCfgProgramExtensionFromOwners(
             abi.payload_free_enum,
             abi.array_int_value_result,
             abi.array_bool,
-            abi.array_string, abi.boundary, owned_array_string_move
+            abi.array_string, abi.boundary, DirectMirScalarProgramCollectionOwnershipTransitionFactSealOrDie(collection_ownership), owned_array_string_move
         );
     let fact: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFactWithDigest(

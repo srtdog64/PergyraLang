@@ -1,0 +1,370 @@
+// Strict receipt parser and straight-line transition issuer for empty literals.
+
+import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_cfg_op_code_owner.pgy";
+import "../mir_lower/routine_fact_index_schema_owner.pgy";
+
+struct DirectMirCollectionOwnershipInstructionReceipt {
+    let valid: Bool;
+    let present: Bool;
+    let effect_kind: Int;
+    let receiver_binding_syntax_id: Int;
+}
+
+func DirectMirCollectionOwnershipInstructionReceiptInvalid(
+) -> DirectMirCollectionOwnershipInstructionReceipt {
+    return DirectMirCollectionOwnershipInstructionReceipt(
+        false, false, 0, 0
+    );
+}
+
+func DirectMirCollectionOwnershipInstructionReceiptFromJson(
+    ref instruction: JsonObjectFactTable
+) -> DirectMirCollectionOwnershipInstructionReceipt {
+    let kind_opt: Option<String> = JsonObjectFactValueKind(
+        instruction, "collection_ownership_receipt"
+    );
+    if !IsSome(kind_opt) {
+        return DirectMirCollectionOwnershipInstructionReceiptInvalid();
+    }
+    if UnwrapOption(kind_opt) == "null" {
+        return DirectMirCollectionOwnershipInstructionReceipt(
+            true, false, 0, 0
+        );
+    }
+    if UnwrapOption(kind_opt) != "object" {
+        return DirectMirCollectionOwnershipInstructionReceiptInvalid();
+    }
+    let receipt: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "collection_ownership_receipt"
+    );
+    let kind: Option<String> = JsonObjectFactStringFieldOpt(receipt, "kind");
+    let receiver: Option<String> = JsonObjectFactNumberFieldOpt(
+        receipt, "receiver_binding_syntax_id"
+    );
+    let source: Option<String> = JsonObjectFactNumberFieldOpt(
+        receipt, "source_binding_syntax_id"
+    );
+    if !JsonObjectFactTableReady(receipt) || JsonObjectFactCount(receipt) != 3 ||
+        !IsSome(kind) || !IsSome(receiver) || !IsSome(source) ||
+        ToString(ToInt(UnwrapOption(receiver))) != UnwrapOption(receiver) ||
+        ToString(ToInt(UnwrapOption(source))) != UnwrapOption(source) ||
+        ToInt(UnwrapOption(receiver)) <= 0 || ToInt(UnwrapOption(source)) != 0 {
+        return DirectMirCollectionOwnershipInstructionReceiptInvalid();
+    }
+    let effect: Int = 0;
+    if UnwrapOption(kind) == "owned-string-push" { effect = 1; }
+    else if UnwrapOption(kind) == "shallow-mutation" { effect = 2; }
+    else if UnwrapOption(kind) == "drop" { effect = 3; }
+    if effect == 0 {
+        return DirectMirCollectionOwnershipInstructionReceiptInvalid();
+    }
+    return DirectMirCollectionOwnershipInstructionReceipt(
+        true, true, effect, ToInt(UnwrapOption(receiver))
+    );
+}
+
+func DirectMirCollectionOwnershipTrackedRowForLocal(
+    ref fact: DirectMirScalarProgramCollectionOwnershipTransitionFact,
+    routine: Int,
+    local_row: Int
+) -> Int {
+    return DirectMirScalarProgramCollectionOwnershipTransitionRow(
+        fact, routine, local_row
+    );
+}
+
+func DirectMirCollectionOwnershipExpectedOperationEffect(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    operation: Int,
+    inout local_row: Int
+) -> Int {
+    local_row = -1;
+    if operation < 0 || operation >= ArrayLength(storage.operations.kinds) {
+        return 0;
+    }
+    let operation_kind: Int = storage.operations.kinds[operation];
+    if operation_kind == DirectMirScalarCfgOpLocalArrayStringPush() ||
+        operation_kind == DirectMirScalarCfgOpArrayStringSet() ||
+        operation_kind == DirectMirScalarCfgOpArrayStringPop() {
+        local_row = storage.operations.left_locals[operation];
+        return 2;
+    }
+    if operation_kind != DirectMirScalarCfgOpExpressionStatement() {
+        return 0;
+    }
+    let graph: Int = storage.operations.expression_rows[operation];
+    if graph < 0 || graph >= ArrayLength(expressions.graph_roots) {
+        return 0;
+    }
+    let root: Int = expressions.graph_roots[graph];
+    if root < 0 || root >= ArrayLength(expressions.node_kinds) {
+        return 0;
+    }
+    let effect: Int = 0;
+    if expressions.node_kinds[root] ==
+            DirectMirScalarProgramExprArrayStringPushOwned() {
+        effect = 1;
+    } else if expressions.node_kinds[root] ==
+            DirectMirScalarProgramExprArrayStringDropOwned() {
+        effect = 3;
+    }
+    if effect == 0 { return 0; }
+    let receiver: Int = expressions.node_lefts[root];
+    if receiver < 0 || receiver >= ArrayLength(expressions.node_kinds) ||
+        expressions.node_kinds[receiver] != DirectMirScalarProgramExprLocal() {
+        return 0;
+    }
+    local_row = expressions.node_local_rows[receiver];
+    return effect;
+}
+
+func DirectMirCollectionOwnershipNextState(
+    state: Int,
+    effect: Int
+) -> Int {
+    if effect == 1 &&
+        (state == DirectMirCollectionOwnershipStateEmpty() ||
+         state == DirectMirCollectionOwnershipStateOwned()) {
+        return DirectMirCollectionOwnershipStateOwned();
+    }
+    if effect == 2 &&
+        (state == DirectMirCollectionOwnershipStateEmpty() ||
+         state == DirectMirCollectionOwnershipStateBorrowed()) {
+        return DirectMirCollectionOwnershipStateBorrowed();
+    }
+    if effect == 3 &&
+        (state == DirectMirCollectionOwnershipStateEmpty() ||
+         state == DirectMirCollectionOwnershipStateOwned()) {
+        return DirectMirCollectionOwnershipStateRetired();
+    }
+    return 0;
+}
+
+func DirectMirCollectionOwnershipOperationKindProducesRow(kind: String) -> Bool {
+    return kind == "def" || kind == "assign" || kind == "stmt" ||
+        kind == "phi";
+}
+
+func DirectMirCollectionOwnershipInstructionSetHasTransitionReceipt(
+    json: String,
+    ref index: MirRoutineFactIndex,
+    binding_syntax_id: Int
+) -> Bool {
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let instruction_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            json, index.instruction_facts.starts[instruction],
+            index.instruction_facts.ends[instruction]
+        );
+        let receipt: DirectMirCollectionOwnershipInstructionReceipt =
+            DirectMirCollectionOwnershipInstructionReceiptFromJson(
+                instruction_object
+            );
+        if receipt.valid && receipt.present &&
+            receipt.receiver_binding_syntax_id == binding_syntax_id {
+            return true;
+        }
+        instruction = instruction + 1;
+    }
+    return false;
+}
+
+func DirectMirCollectionOwnershipOperationSetRequiresTransition(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    operation_start: Int,
+    operation_count: Int,
+    local_row: Int
+) -> Bool {
+    if operation_start < 0 || operation_count < 0 || local_row < 0 ||
+        operation_start + operation_count >
+            ArrayLength(storage.operations.kinds) {
+        return false;
+    }
+    let operation: Int = operation_start;
+    let operation_end: Int = operation_start + operation_count;
+    while operation < operation_end {
+        let operation_local: Int = -1;
+        let effect: Int = DirectMirCollectionOwnershipExpectedOperationEffect(
+            storage, expressions, operation, operation_local);
+        if effect != 0 && operation_local == local_row { return true; }
+        operation = operation + 1;
+    }
+    return false;
+}
+
+func DirectMirCollectionOwnershipEmptyBindingForLocal(
+    ref index: MirRoutineFactIndex,
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    local_row: Int
+) -> Int {
+    if local_row < 0 ||
+        local_row >= ArrayLength(storage.values.local_ref_value_ids) {
+        return 0;
+    }
+    let matched: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(
+            index.collection_ownership_facts.binding_syntax_ids) {
+        let binding: Int = index.collection_ownership_facts.
+            binding_syntax_ids[row];
+        if index.collection_ownership_facts.origins[row] ==
+                "empty-literal" &&
+            storage.values.local_ref_value_ids[local_row] == Concat(
+                "declaration:", Concat(ToString(binding), ":0")
+            ) {
+            if matched != 0 { return 0; }
+            matched = binding;
+        }
+        row = row + 1;
+    }
+    return matched;
+}
+
+func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
+    fact: DirectMirScalarProgramCollectionOwnershipTransitionFact,
+    json: String,
+    ref index: MirRoutineFactIndex,
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    routine: Int,
+    local_offset: Int,
+    operation_offset: Int
+) -> DirectMirScalarProgramCollectionOwnershipTransitionFact {
+    if !fact.valid || fact.digest != 0 || !index.valid ||
+        !index.collection_ownership_facts.valid ||
+        routine < 0 || local_offset < 0 || operation_offset < 0 {
+        return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+    }
+    let routines: Array<Int> = fact.routine_ordinals;
+    let locals: Array<Int> = fact.local_rows;
+    let bindings: Array<Int> = fact.binding_syntax_ids;
+    let states: Array<Int> = fact.terminal_states;
+    let added_start: Int = ArrayLength(routines);
+    let ownership_row: Int = 0;
+    while ownership_row < ArrayLength(
+            index.collection_ownership_facts.binding_syntax_ids) {
+        if index.collection_ownership_facts.origins[ownership_row] ==
+                "empty-literal" {
+            let binding: Int = index.collection_ownership_facts.
+                binding_syntax_ids[ownership_row];
+            let wanted: String = Concat(
+                "declaration:", Concat(ToString(binding), ":0")
+            );
+            let matched_local: Int = -1;
+            let candidate: Int = local_offset;
+            let local_end: Int = local_offset +
+                storage.routines.local_counts[routine];
+            while candidate < local_end {
+                if storage.values.local_ref_value_ids[candidate] == wanted {
+                    if matched_local >= 0 {
+                        return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+                    }
+                    matched_local = candidate;
+                }
+                candidate = candidate + 1;
+            }
+            if matched_local < 0 || storage.values.local_types[matched_local] !=
+                    CompilerAbiLayoutArrayStringTypeName() {
+                return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+            }
+            let requires_transition: Bool =
+                DirectMirCollectionOwnershipInstructionSetHasTransitionReceipt(
+                    json, index, binding) ||
+                DirectMirCollectionOwnershipOperationSetRequiresTransition(
+                    storage, expressions, operation_offset,
+                    storage.routines.operation_counts[routine], matched_local);
+            if requires_transition {
+                ArrayPush(routines, routine);
+                ArrayPush(locals, matched_local);
+                ArrayPush(bindings, binding);
+                ArrayPush(states, DirectMirCollectionOwnershipStateEmpty());
+            }
+        }
+        ownership_row = ownership_row + 1;
+    }
+    let added_count: Int = ArrayLength(routines) - added_start;
+    if added_count > 0 && ArrayLength(index.block_starts) != 1 {
+        return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+    }
+    let working: DirectMirScalarProgramCollectionOwnershipTransitionFact =
+        DirectMirScalarProgramCollectionOwnershipTransitionFact(
+            true, 0, routines, locals, bindings, states
+        );
+    let operation: Int = operation_offset;
+    let operation_end: Int = operation_offset +
+        storage.routines.operation_counts[routine];
+    // Read only the already bounded instruction objects; no program-root scan.
+    let instruction: Int = 0;
+    while instruction < ArrayLength(index.instruction_facts.starts) {
+        let instruction_object: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+            json, index.instruction_facts.starts[instruction],
+            index.instruction_facts.ends[instruction]
+        );
+        let kind: Option<String> = JsonObjectFactStringFieldOpt(
+            instruction_object, "kind"
+        );
+        let receipt: DirectMirCollectionOwnershipInstructionReceipt =
+            DirectMirCollectionOwnershipInstructionReceiptFromJson(
+                instruction_object
+            );
+        if !JsonObjectFactTableReady(instruction_object) || !IsSome(kind) ||
+            !receipt.valid {
+            return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+        }
+        if DirectMirCollectionOwnershipOperationKindProducesRow(
+                UnwrapOption(kind)) {
+            if operation < operation_offset || operation >= operation_end {
+                return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+            }
+            let local_row: Int = -1;
+            let expected_effect: Int =
+                DirectMirCollectionOwnershipExpectedOperationEffect(
+                    storage, expressions, operation, local_row
+                );
+            let tracked: Int =
+                DirectMirCollectionOwnershipTrackedRowForLocal(
+                    working, routine, local_row
+                );
+            if tracked >= 0 {
+                if expected_effect == 0 || !receipt.present ||
+                    receipt.effect_kind != expected_effect ||
+                    receipt.receiver_binding_syntax_id != bindings[tracked] {
+                    return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+                }
+                let next: Int = DirectMirCollectionOwnershipNextState(
+                    states[tracked], expected_effect
+                );
+                if next == 0 {
+                    return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+                }
+                ArraySet(states, tracked, next);
+            } else if receipt.present {
+                let empty_binding: Int =
+                    DirectMirCollectionOwnershipEmptyBindingForLocal(
+                        index, storage, local_row
+                    );
+                if expected_effect == 0 ||
+                    receipt.effect_kind != expected_effect ||
+                    receipt.effect_kind == 3 || empty_binding == 0 ||
+                    receipt.receiver_binding_syntax_id != empty_binding {
+                    return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+                }
+            }
+            operation = operation + 1;
+        } else if receipt.present {
+            return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+        }
+        instruction = instruction + 1;
+    }
+    if operation != operation_end {
+        return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+    }
+    return DirectMirScalarProgramCollectionOwnershipTransitionFact(
+        true, 0, routines, locals, bindings, states
+    );
+}

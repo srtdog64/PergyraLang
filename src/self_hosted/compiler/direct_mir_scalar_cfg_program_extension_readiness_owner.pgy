@@ -13,6 +13,7 @@ import "direct_mir_scalar_program_logical_record_assignment_readiness_owner.pgy"
 import "direct_mir_identity_cell_store_readiness_owner.pgy";
 import "direct_mir_scalar_program_enum_exhaustive_match_owner.pgy";
 import "direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_member_plan_readiness_owner.pgy";
 import "direct_mir_identity_cell_lifetime_owner.pgy";
 func DirectMirScalarCfgProgramExpressionUseCount(
@@ -208,6 +209,9 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
     }
     if !DirectMirScalarProgramArrayStringBoundaryReadyForPlan(plan) {
         return 14;
+    }
+    if !DirectMirScalarProgramCollectionOwnershipTransitionReadyForPlan(plan) {
+        return 26;
     }
     if !DirectMirScalarProgramOwnedArrayStringMoveReadyForPlan(plan) {
         return 23;

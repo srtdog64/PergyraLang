@@ -52,6 +52,9 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
                 fact.array_string_abi, fact.expressions) &&
             DirectMirScalarProgramArrayStringBoundaryFactCanonicalEmpty(
                 fact.array_string_boundary) &&
+            DirectMirScalarProgramCollectionOwnershipTransitionFactReady(
+                fact.collection_ownership) &&
+            ArrayLength(fact.collection_ownership.routine_ordinals) == 0 &&
             DirectMirScalarProgramOwnedArrayStringMoveFactReady(
                 fact.owned_array_string_move) &&
             !fact.owned_array_string_move.present { return 0; }
@@ -110,6 +113,8 @@ func DirectMirScalarCfgProgramExtensionFactReadinessCode(ref fact: DirectMirScal
     if !DirectMirScalarProgramArrayStringAbiReadyForExpressions(
             fact.array_string_abi, fact.expressions) { return 17; }
     if !array_boundary_ready { return 18; }
+    if !DirectMirScalarProgramCollectionOwnershipTransitionFactReady(
+            fact.collection_ownership) { return 21; }
     if !DirectMirScalarProgramOwnedArrayStringMoveReadyForAbi(
             fact.owned_array_string_move, fact.array_string_abi) { return 19; }
     return 0;

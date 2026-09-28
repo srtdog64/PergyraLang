@@ -5,7 +5,7 @@ import "direct_mir_scalar_program_array_string_literal_readiness_owner.pgy";
 import "direct_mir_scalar_program_owned_array_string_move_query_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 
-func DirectMirScalarProgramArrayStringLocalBorrowsElements(
+func DirectMirScalarProgramLegacyArrayStringLocalBorrowsElements(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local_row: Int
 ) -> Bool {
     if routine < 0 || routine >=
@@ -60,7 +60,23 @@ func DirectMirScalarProgramArrayStringLocalBorrowsElements(
 func DirectMirScalarProgramArrayStringCleanupDropSymbol(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local_row: Int
 ) -> String {
-    if DirectMirScalarProgramArrayStringLocalBorrowsElements(
+    let transition_row: Int =
+        DirectMirScalarProgramCollectionOwnershipTransitionRow(
+            plan.program.collection_ownership, routine, local_row
+        );
+    if transition_row >= 0 {
+        let state: Int = plan.program.collection_ownership.
+            terminal_states[transition_row];
+        if state == DirectMirCollectionOwnershipStateEmpty() ||
+            state == DirectMirCollectionOwnershipStateBorrowed() {
+            return CollectionRuntimeCDropStorageFn(2);
+        }
+        if state == DirectMirCollectionOwnershipStateOwned() {
+            return CollectionRuntimeCOwnedStringDropFn();
+        }
+        return "";
+    }
+    if DirectMirScalarProgramLegacyArrayStringLocalBorrowsElements(
             plan, routine, local_row) {
         return CollectionRuntimeCDropStorageFn(2);
     }
@@ -70,6 +86,15 @@ func DirectMirScalarProgramArrayStringCleanupDropSymbol(
 func DirectMirScalarProgramArrayStringLocalCleanupRequired(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local_row: Int
 ) -> Bool {
+    let transition_row: Int =
+        DirectMirScalarProgramCollectionOwnershipTransitionRow(
+            plan.program.collection_ownership, routine, local_row
+        );
+    if transition_row >= 0 && plan.program.collection_ownership.
+            terminal_states[transition_row] ==
+            DirectMirCollectionOwnershipStateRetired() {
+        return false;
+    }
     return !DirectMirScalarProgramOwnedArrayStringMoveRetiresLocal(
         plan.program.owned_array_string_move, routine, local_row);
 }

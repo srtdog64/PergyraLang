@@ -18,6 +18,7 @@ import "direct_mir_scalar_program_option_bool_abi_owner.pgy";
 import "direct_mir_scalar_program_return_expression_abi_owner.pgy";
 import "direct_mir_scalar_program_indexed_assignment_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_member_rebind_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy";
 struct DirectMirScalarCfgProgramRoutineAdmission {
     let valid: Bool;
     let storage: DirectMirScalarCfgProgramGraphStorage;
@@ -26,6 +27,8 @@ struct DirectMirScalarCfgProgramRoutineAdmission {
     let result_int_abi: DirectMirResultIntAbiFact;
     let option_string_abi: DirectMirOptionMatchAbiFact;
     let option_bool_abi: DirectMirOptionMatchAbiFact;
+    let collection_ownership:
+        DirectMirScalarProgramCollectionOwnershipTransitionFact;
 }
 func DirectMirScalarCfgProgramInputReady(
     ref input: DirectMirScalarCfgGraphInput
@@ -104,6 +107,8 @@ func DirectMirScalarCfgProgramAppendRoutine(
     ref input: DirectMirScalarCfgGraphInput,
     storage: DirectMirScalarCfgProgramGraphStorage,
     expressions: DirectMirScalarProgramExpressionSet,
+    collection_ownership:
+        DirectMirScalarProgramCollectionOwnershipTransitionFact,
     option_int_abi: DirectMirOptionMatchAbiFact,
     option_string_abi: DirectMirOptionMatchAbiFact,
     option_bool_abi: DirectMirOptionMatchAbiFact,
@@ -117,7 +122,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
 ) -> DirectMirScalarCfgProgramRoutineAdmission {
     let invalid: DirectMirScalarCfgProgramRoutineAdmission = DirectMirScalarCfgProgramRoutineAdmission(
             false, storage, expressions, option_int_abi, result_int_abi,
-            option_string_abi, option_bool_abi);
+            option_string_abi, option_bool_abi, collection_ownership);
     if !input.index.valid || !DirectMirScalarCfgProgramInputReady(input) {
         Die("direct MIR scalar program routine input has an external collection plan");
     }
@@ -398,9 +403,25 @@ func DirectMirScalarCfgProgramAppendRoutine(
             ArrayLength(blocks.succ_true) - block_offset,
             ArrayLength(operations.kinds) - operation_offset,
             ArrayLength(operations.phi_predecessor_blocks) - phi_offset);
+    let appended_storage: DirectMirScalarCfgProgramGraphStorage =
+        DirectMirScalarCfgProgramGraphStorage(
+            values, blocks, operations, routines
+        );
+    collection_ownership =
+        DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
+            collection_ownership, admitted.routines.source_json,
+            input.index, appended_storage, expressions,
+            routine_ordinal, local_offset, operation_offset
+        );
+    if !collection_ownership.valid {
+        DirectMirScalarCfgProgramRoutineAdmissionFailed(
+            "collection_ownership_transition", routine_ordinal,
+            -1, -1, ""
+        );
+        return invalid;
+    }
     return DirectMirScalarCfgProgramRoutineAdmission(
-        true, DirectMirScalarCfgProgramGraphStorage(
-            values, blocks, operations, routines), expressions,
+        true, appended_storage, expressions,
         option_int_abi, result_int_abi,
-        option_string_abi, option_bool_abi);
+        option_string_abi, option_bool_abi, collection_ownership);
 }

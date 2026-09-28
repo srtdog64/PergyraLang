@@ -1,0 +1,128 @@
+// Target-neutral terminal ownership state for receipt-tracked Array<String> locals.
+
+import "direct_mir_scalar_cfg_hash_owner.pgy";
+
+func DirectMirCollectionOwnershipStateEmpty() -> Int { return 1; }
+func DirectMirCollectionOwnershipStateBorrowed() -> Int { return 2; }
+func DirectMirCollectionOwnershipStateOwned() -> Int { return 3; }
+func DirectMirCollectionOwnershipStateRetired() -> Int { return 4; }
+
+struct DirectMirScalarProgramCollectionOwnershipTransitionFact {
+    let valid: Bool;
+    let digest: Int;
+    let routine_ordinals: Array<Int>;
+    let local_rows: Array<Int>;
+    let binding_syntax_ids: Array<Int>;
+    let terminal_states: Array<Int>;
+}
+
+func DirectMirScalarProgramCollectionOwnershipTransitionFactEmpty(
+) -> DirectMirScalarProgramCollectionOwnershipTransitionFact {
+    let routines: Array<Int> = [];
+    let locals: Array<Int> = [];
+    let bindings: Array<Int> = [];
+    let states: Array<Int> = [];
+    return DirectMirScalarProgramCollectionOwnershipTransitionFact(
+        true, 0, routines, locals, bindings, states
+    );
+}
+
+func DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid(
+) -> DirectMirScalarProgramCollectionOwnershipTransitionFact {
+    let routines: Array<Int> = [];
+    let locals: Array<Int> = [];
+    let bindings: Array<Int> = [];
+    let states: Array<Int> = [];
+    return DirectMirScalarProgramCollectionOwnershipTransitionFact(
+        false, 0, routines, locals, bindings, states
+    );
+}
+
+func DirectMirScalarProgramCollectionOwnershipTransitionFactDigest(
+    ref fact: DirectMirScalarProgramCollectionOwnershipTransitionFact
+) -> Int {
+    if !fact.valid { return 0; }
+    let hash: Long = DirectMirScalarCfgHashInts(
+        389L, fact.routine_ordinals
+    );
+    hash = DirectMirScalarCfgHashInts(hash, fact.local_rows);
+    hash = DirectMirScalarCfgHashInts(hash, fact.binding_syntax_ids);
+    hash = DirectMirScalarCfgHashInts(hash, fact.terminal_states);
+    return DirectMirCfgBoundedDigest(hash);
+}
+
+func DirectMirScalarProgramCollectionOwnershipTransitionFactWithDigest(
+    fact: DirectMirScalarProgramCollectionOwnershipTransitionFact
+) -> DirectMirScalarProgramCollectionOwnershipTransitionFact {
+    return DirectMirScalarProgramCollectionOwnershipTransitionFact(
+        fact.valid,
+        DirectMirScalarProgramCollectionOwnershipTransitionFactDigest(fact),
+        fact.routine_ordinals, fact.local_rows,
+        fact.binding_syntax_ids, fact.terminal_states
+    );
+}
+
+func DirectMirScalarProgramCollectionOwnershipTransitionFactSealOrDie(
+    fact: DirectMirScalarProgramCollectionOwnershipTransitionFact
+) -> DirectMirScalarProgramCollectionOwnershipTransitionFact {
+    let sealed: DirectMirScalarProgramCollectionOwnershipTransitionFact =
+        DirectMirScalarProgramCollectionOwnershipTransitionFactWithDigest(fact);
+    if !DirectMirScalarProgramCollectionOwnershipTransitionFactReady(sealed) {
+        Die("direct MIR collection ownership transition fact is invalid");
+    }
+    return sealed;
+}
+
+func DirectMirScalarProgramCollectionOwnershipTransitionFactReady(
+    ref fact: DirectMirScalarProgramCollectionOwnershipTransitionFact
+) -> Bool {
+    let count: Int = ArrayLength(fact.routine_ordinals);
+    if !fact.valid || fact.digest == 0 || fact.digest !=
+            DirectMirScalarProgramCollectionOwnershipTransitionFactDigest(fact) ||
+        count != ArrayLength(fact.local_rows) ||
+        count != ArrayLength(fact.binding_syntax_ids) ||
+        count != ArrayLength(fact.terminal_states) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if fact.routine_ordinals[row] < 0 || fact.local_rows[row] < 0 ||
+            fact.binding_syntax_ids[row] <= 0 ||
+            fact.terminal_states[row] <
+                DirectMirCollectionOwnershipStateEmpty() ||
+            fact.terminal_states[row] >
+                DirectMirCollectionOwnershipStateRetired() {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if (fact.routine_ordinals[prior] == fact.routine_ordinals[row] &&
+                    fact.local_rows[prior] == fact.local_rows[row]) ||
+                fact.binding_syntax_ids[prior] ==
+                    fact.binding_syntax_ids[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirScalarProgramCollectionOwnershipTransitionRow(
+    ref fact: DirectMirScalarProgramCollectionOwnershipTransitionFact,
+    routine: Int,
+    local_row: Int
+) -> Int {
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(fact.routine_ordinals) {
+        if fact.routine_ordinals[row] == routine &&
+            fact.local_rows[row] == local_row {
+            if found >= 0 { return -2; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}

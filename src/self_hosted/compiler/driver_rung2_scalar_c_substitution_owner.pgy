@@ -22,7 +22,10 @@ func DriverRung2ScalarCSubstitutionIfClaimed(
         let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(
             admitted.routines, row, MirProgramRoutineIndexBlockInstructionCountAt(admitted.routines, row, 0));
         if !DirectMirScalarControlFlowRoutineRouteClaimed(admitted, signature, index) { return None; }
-        if DirectMirScalarCfgWireLocalRefsRequired(admitted, index, signature.parameters.names) { identity_required = true; }
+        if DirectMirScalarCfgWireLocalRefsRouteIdentityRequired(
+                admitted, index, signature.parameters.names) {
+            identity_required = true;
+        }
         row = row + 1;
     }
     // The reached replacement is the identity-sensitive family. Primitive

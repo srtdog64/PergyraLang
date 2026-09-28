@@ -1,5 +1,4 @@
 // Sole arbitrary-routine issuer for the one immutable scalar GraphPlan.
-
 import "direct_mir_scalar_cfg_program_routine_admission_owner.pgy";
 import "direct_mir_scalar_cfg_program_routine_partition_owner.pgy";
 import "direct_mir_scalar_cfg_graph_plan_seal_owner.pgy";
@@ -8,7 +7,6 @@ import "direct_mir_scalar_program_callable_inventory_owner.pgy";
 import "direct_mir_option_match_abi_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_option_int_abi_owner.pgy";
 import "direct_mir_routine_instance_input_owner.pgy";
-
 func DirectMirScalarCfgProgramGraphPlanFromAdmitted(ref admitted: MirMachineLayerAdmittedJsonInput,
     own route: DirectMirScalarProgramRouteFact) -> DirectMirScalarCfgGraphPlan {
     if !DirectMirScalarProgramRouteFactReady(route) {
@@ -39,6 +37,8 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(ref admitted: MirMachineLaye
         DirectMirScalarCfgProgramGraphStorageEmpty();
     let expressions: DirectMirScalarProgramExpressionSet =
         DirectMirScalarProgramExpressionSetEmpty();
+    let collection_ownership: DirectMirScalarProgramCollectionOwnershipTransitionFact =
+        DirectMirScalarProgramCollectionOwnershipTransitionFactEmpty();
     let cfg_digests: Array<Int> = [];
     let option_int_abi: DirectMirOptionMatchAbiFact =
         DirectMirScalarProgramLogicalRecordOptionIntAbiFromFact(route.logical_record);
@@ -59,7 +59,7 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(ref admitted: MirMachineLaye
         let admission: DirectMirScalarCfgProgramRoutineAdmission =
             DirectMirScalarCfgProgramAppendRoutine(
                 admitted, route.routine_rows[ordinal], ordinal, callables, input,
-                storage, expressions, option_int_abi, option_string_abi,
+                storage, expressions, collection_ownership, option_int_abi, option_string_abi,
                 option_bool_abi, result_int_abi, route.logical_record,
                 route.payload_free_enum, route.referenced_enum,
                 route.array_int_value_result, route.array_bool_abi,
@@ -72,6 +72,7 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(ref admitted: MirMachineLaye
         }
         storage = admission.storage;
         expressions = admission.expressions;
+        collection_ownership = admission.collection_ownership;
         option_int_abi = admission.option_int_abi;
         result_int_abi = admission.result_int_abi;
         option_string_abi = admission.option_string_abi;
@@ -90,9 +91,8 @@ func DirectMirScalarCfgProgramGraphPlanFromAdmitted(ref admitted: MirMachineLaye
         );
     let program: DirectMirScalarCfgProgramExtensionFact =
         DirectMirScalarCfgProgramExtensionFromOwners(
-            admitted, route, callables, storage, expressions, option_int_abi,
-            result_int_abi,
-            option_string_abi,
+            admitted, route, callables, storage, expressions, collection_ownership,
+            option_int_abi, result_int_abi, option_string_abi,
             option_bool_abi,
             storage.blocks.condition_expression_rows,
             storage.operations.expression_rows,
