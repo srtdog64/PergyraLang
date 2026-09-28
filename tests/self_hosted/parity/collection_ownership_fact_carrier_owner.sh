@@ -11,6 +11,8 @@ LABEL="self-host-collection-ownership-carrier"
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 SOURCE="tests/concept_semantics/hashmap/map_keys_owned_drop_valid.pgy"
+EMPTY_SOURCE="tests/concept_semantics/hashmap/empty_string_array_fact_valid.pgy"
+UNKNOWN_SOURCE="tests/concept_semantics/hashmap/unknown_string_array_drop.pgy"
 PROBE="tests/self_hosted/parity/fixture/collection_ownership_fact_reader_probe.pgy"
 CC="${PGY_SELFHOST_CC:-gcc}"
 
@@ -26,12 +28,28 @@ WORK_REL="${WORK_DIR#"$ROOT_DIR/"}"
     fail "native MIR producer rejected the valid ownership fixture"
 grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/native.err" ||
     fail "native MIR producer emitted diagnostics"
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$EMPTY_SOURCE") \
+    >"$WORK_DIR/native-empty.json" 2>"$WORK_DIR/native-empty.err" ||
+    fail "native MIR producer rejected the empty-literal origin fixture"
+grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/native-empty.err" ||
+    fail "native empty MIR producer emitted diagnostics"
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle "$UNKNOWN_SOURCE") \
+    >"$WORK_DIR/native-unknown.json" 2>"$WORK_DIR/native-unknown.err" ||
+    fail "native MIR producer rejected the unknown-origin control"
+grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/native-unknown.err" ||
+    fail "native unknown-origin producer emitted diagnostics"
 
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE" \
     -o "$WORK_REL/self.json") >"$WORK_DIR/self.out" \
     2>"$WORK_DIR/self.err" ||
     fail "installed self-host MIR producer rejected the valid ownership fixture"
 [[ -s "$WORK_DIR/self.json" ]] || fail "installed self-host emitted no MIR"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$EMPTY_SOURCE" \
+    -o "$WORK_REL/self-empty.json") >"$WORK_DIR/self-empty.out" \
+    2>"$WORK_DIR/self-empty.err" ||
+    fail "installed self-host MIR producer rejected the empty-literal origin fixture"
+[[ -s "$WORK_DIR/self-empty.json" ]] ||
+    fail "installed self-host emitted no empty-ownership MIR"
 
 (cd "$ROOT_DIR" && "$PGY" "$PROBE" --native-pipeline --backend=c \
     -o "$WORK_REL/probe-native.exe") >"$WORK_DIR/probe-native.compile" 2>&1 || {
@@ -84,15 +102,49 @@ cmp -s "$WORK_DIR/native-meaning" "$WORK_DIR/self-meaning" || {
     fail "native/self-host collection ownership meaning drifted"
 }
 
+for producer in native-empty self-empty; do
+    for consumer in native self; do
+        (cd "$ROOT_DIR" && "$WORK_DIR/probe-$consumer.exe" \
+            "$WORK_REL/$producer.json") \
+            >"$WORK_DIR/$producer-$consumer.out" \
+            2>"$WORK_DIR/$producer-$consumer.err" || {
+            cat "$WORK_DIR/$producer-$consumer.out" \
+                "$WORK_DIR/$producer-$consumer.err" >&2
+            fail "$consumer reader rejected $producer MIR"
+        }
+        tr -d '\r' <"$WORK_DIR/$producer-$consumer.out" \
+            >"$WORK_DIR/$producer-$consumer.normalized"
+        row="$(cat "$WORK_DIR/$producer-$consumer.normalized")"
+        [[ "$row" =~ ^[1-9][0-9]*:[1-9][0-9]*:[1-9][0-9]*:0:unknown:live:empty-literal$ ]] ||
+            fail "$producer-$consumer lost the empty-literal origin: $row"
+    done
+done
+cmp -s "$WORK_DIR/native-empty-native.normalized" \
+    "$WORK_DIR/native-empty-self.normalized" ||
+    fail "native empty MIR identity changed between Pergyra reader builds"
+cmp -s "$WORK_DIR/self-empty-native.normalized" \
+    "$WORK_DIR/self-empty-self.normalized" ||
+    fail "self-host empty MIR identity changed between Pergyra reader builds"
+cut -d: -f4- "$WORK_DIR/native-empty-native.normalized" \
+    >"$WORK_DIR/native-empty-meaning"
+cut -d: -f4- "$WORK_DIR/self-empty-native.normalized" \
+    >"$WORK_DIR/self-empty-meaning"
+cmp -s "$WORK_DIR/native-empty-meaning" \
+    "$WORK_DIR/self-empty-meaning" ||
+    fail "native/self-host empty-literal origin meaning drifted"
+
 mkdir -p "$WORK_DIR/mutations"
-python3 - "$WORK_DIR/native.json" "$WORK_DIR/mutations" <<'PY'
+python3 - "$WORK_DIR/native.json" "$WORK_DIR/native-empty.json" \
+    "$WORK_DIR/native-unknown.json" "$WORK_DIR/mutations" <<'PY'
 import copy
 import json
 import pathlib
 import sys
 
 source = pathlib.Path(sys.argv[1])
-target = pathlib.Path(sys.argv[2])
+empty_source = pathlib.Path(sys.argv[2])
+unknown_path = pathlib.Path(sys.argv[3])
+target = pathlib.Path(sys.argv[4])
 document = json.loads(source.read_text(encoding="utf-8"))
 mains = [row for row in document.get("routines", []) if row.get("name") == "Main"]
 if len(mains) != 1:
@@ -236,6 +288,76 @@ if raw.count(needle) != 1:
 (target / "duplicate_field.json").write_text(
     raw.replace(needle, '"origin":"map-keys","origin":"map-keys"', 1),
     encoding="utf-8")
+
+empty_document = json.loads(empty_source.read_text(encoding="utf-8"))
+empty_mains = [
+    row for row in empty_document.get("routines", [])
+    if row.get("name") == "Main"
+]
+if len(empty_mains) != 1:
+    raise SystemExit(
+        f"expected one empty Main routine, found {len(empty_mains)}")
+empty_facts = empty_mains[0].get("collection_ownership_facts")
+if (empty_mains[0].get("collection_ownership_fact_count") != 1 or
+        not isinstance(empty_facts, list) or len(empty_facts) != 1):
+    raise SystemExit("empty baseline does not own exactly one collection row")
+empty_owned_document = copy.deepcopy(empty_document)
+empty_owned_main = next(
+    row for row in empty_owned_document["routines"]
+    if row.get("name") == "Main"
+)
+empty_owned_main["collection_ownership_facts"][0][
+    "element_ownership"
+] = "owned-elements"
+(target / "empty_literal_owned.json").write_text(
+    json.dumps(empty_owned_document, separators=(",", ":")),
+    encoding="utf-8")
+
+empty_graph_document = copy.deepcopy(empty_document)
+empty_graph_main = next(
+    row for row in empty_graph_document["routines"]
+    if row.get("name") == "Main"
+)
+empty_binding = empty_graph_main["collection_ownership_facts"][0][
+    "binding_syntax_id"
+]
+empty_ref = f"declaration:{empty_binding}:0"
+empty_definitions = [
+    instruction
+    for block in empty_graph_main.get("blocks", [])
+    for instruction in block.get("instructions", [])
+    if instruction.get("local_ref") == empty_ref
+]
+if len(empty_definitions) != 1:
+    raise SystemExit(
+        f"empty baseline definition receipt count: {len(empty_definitions)}")
+empty_graph = empty_definitions[0].get("expr0_graph")
+if (not isinstance(empty_graph, dict) or
+        len(empty_graph.get("nodes", [])) != 1 or
+        empty_graph["nodes"][0].get("kind") != "array_literal"):
+    raise SystemExit("empty baseline does not carry one literal graph")
+empty_graph["nodes"][0]["kind"] = "leaf"
+(target / "empty_literal_graph_kind.json").write_text(
+    json.dumps(empty_graph_document, separators=(",", ":")),
+    encoding="utf-8")
+
+unknown_document = json.loads(unknown_path.read_text(encoding="utf-8"))
+unknown_mains = [
+    row for row in unknown_document.get("routines", [])
+    if row.get("name") == "Main"
+]
+if len(unknown_mains) != 1:
+    raise SystemExit(
+        f"expected one unknown Main routine, found {len(unknown_mains)}")
+unknown_facts = unknown_mains[0].get("collection_ownership_facts")
+if (unknown_mains[0].get("collection_ownership_fact_count") != 1 or
+        not isinstance(unknown_facts, list) or len(unknown_facts) != 1 or
+        unknown_facts[0].get("origin") != "unknown"):
+    raise SystemExit("unknown baseline does not own one unknown row")
+unknown_facts[0]["origin"] = "empty-literal"
+(target / "unknown_relabelled_empty.json").write_text(
+    json.dumps(unknown_document, separators=(",", ":")),
+    encoding="utf-8")
 PY
 
 mutation_count=0
@@ -252,7 +374,7 @@ for mutation in "$WORK_DIR"/mutations/*.json; do
         fail "mutation $(basename "$mutation") did not fail at the ownership reader"
     }
 done
-[[ "$mutation_count" -ge 17 ]] ||
+[[ "$mutation_count" -ge 23 ]] ||
     fail "mutation corpus is incomplete: $mutation_count"
 
 echo "[$LABEL] native/self-host producer-consumer parity and $mutation_count malformed-row refusals PASS"

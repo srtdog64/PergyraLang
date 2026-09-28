@@ -173,7 +173,7 @@ mir_copy_collection_ownership_facts(MIRRoutine *routine,
                 && source->disposition
                     != PGY_COLLECTION_DISPOSITION_RETIRED)
             || (unsigned)source->origin
-                > (unsigned)PGY_COLLECTION_ORIGIN_BINDING
+                > (unsigned)PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
             || (source->origin == PGY_COLLECTION_ORIGIN_BINDING
                 && source->source_binding_syntax_id == 0)
             || (source->origin != PGY_COLLECTION_ORIGIN_BINDING
@@ -248,7 +248,7 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
                 && fact->element_ownership
                     != PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)
             || (unsigned)fact->origin
-                > (unsigned)PGY_COLLECTION_ORIGIN_BINDING) {
+                > (unsigned)PGY_COLLECTION_ORIGIN_EMPTY_LITERAL) {
             goto invalid;
         }
         for (size_t prior = 0; prior < i; prior++) {
@@ -299,6 +299,13 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
                         == PGY_COLLECTION_DISPOSITION_LIVE
                     && fact->disposition
                         == PGY_COLLECTION_DISPOSITION_LIVE;
+                break;
+            case PGY_COLLECTION_ORIGIN_EMPTY_LITERAL:
+                origin_consistent =
+                    fact->element_ownership
+                        == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
+                    && fact->source_binding_syntax_id == 0
+                    && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE;
                 break;
         }
         if (!origin_consistent)

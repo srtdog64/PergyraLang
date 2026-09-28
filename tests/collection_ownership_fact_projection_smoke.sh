@@ -32,6 +32,7 @@ grep -Fq 'collection_ownership_facts' \
 
 OWNED_JSON="$WORK_DIR/owned.json"
 BORROWED_JSON="$WORK_DIR/borrowed.json"
+EMPTY_JSON="$WORK_DIR/empty.json"
 
 (cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
     tests/concept_semantics/hashmap/map_keys_owned_drop_valid.pgy) \
@@ -41,8 +42,12 @@ BORROWED_JSON="$WORK_DIR/borrowed.json"
     tests/concept_semantics/hashmap/borrowed_string_array_fact_valid.pgy) \
     >"$BORROWED_JSON" 2>"$WORK_DIR/borrowed.err" ||
     fail "native oracle rejected the borrowed literal fixture"
+(cd "$ROOT_DIR" && "$PGY" --test-native-mir-json-oracle \
+    tests/concept_semantics/hashmap/empty_string_array_fact_valid.pgy) \
+    >"$EMPTY_JSON" 2>"$WORK_DIR/empty.err" ||
+    fail "native oracle rejected the empty literal fixture"
 
-python3 - "$OWNED_JSON" "$BORROWED_JSON" <<'PY'
+python3 - "$OWNED_JSON" "$BORROWED_JSON" "$EMPTY_JSON" <<'PY'
 import json
 import sys
 
@@ -98,11 +103,28 @@ if not (row["function_syntax_id"] > 0 and
         row["disposition"] == "live" and
         row["origin"] == "borrowed-literal"):
     raise SystemExit(f"borrowed row meaning drifted: {row}")
+
+empty = main_routine(sys.argv[3])
+if len(empty) != 1:
+    raise SystemExit(f"empty row cardinality: {len(empty)}")
+row = empty[0]
+if set(row) != expected_fields:
+    raise SystemExit(f"empty row fields drifted: {sorted(row)}")
+if not (row["function_syntax_id"] > 0 and
+        row["binding_syntax_id"] > 0 and
+        row["origin_syntax_id"] > 0 and
+        row["source_binding_syntax_id"] == 0 and
+        row["element_ownership"] == "unknown" and
+        row["disposition"] == "live" and
+        row["origin"] == "empty-literal"):
+    raise SystemExit(f"empty row meaning drifted: {row}")
 PY
 
 grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/owned.err" ||
     fail "owned oracle emitted diagnostics"
 grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/borrowed.err" ||
     fail "borrowed oracle emitted diagnostics"
+grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/empty.err" ||
+    fail "empty oracle emitted diagnostics"
 
-echo "[$LABEL] stable semantic -> HIR -> MIR rows and Symbol-owner deletion PASS"
+echo "[$LABEL] stable borrowed/owned/empty-literal semantic -> HIR -> MIR rows PASS"

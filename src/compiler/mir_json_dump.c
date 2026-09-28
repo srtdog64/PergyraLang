@@ -526,6 +526,8 @@ mir_json_collection_origin_name(PgyCollectionOrigin origin)
             return "map-keys";
         case PGY_COLLECTION_ORIGIN_BINDING:
             return "binding";
+        case PGY_COLLECTION_ORIGIN_EMPTY_LITERAL:
+            return "empty-literal";
     }
     return "invalid";
 }

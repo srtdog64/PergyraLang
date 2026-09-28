@@ -1,6 +1,10 @@
 // Fail-closed reader for semantic-owned Array<String> lifetime rows.
 
 import "json_fact_read.pgy";
+import "program_routine_index_owner.pgy";
+import "program_instruction_expression_index_owner.pgy";
+import "expression_graph_sequence_owner.pgy";
+import "../hir/ast_expression_graph_owner.pgy";
 
 struct MirCollectionOwnershipFacts {
     valid: Bool;
@@ -30,7 +34,82 @@ func MirCollectionOwnershipLocalRow(
     return found;
 }
 
+func MirCollectionOwnershipEmptyLiteralReceipt(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
+    binding_syntax_id: Int
+) -> Bool {
+    if !MirProgramRoutineIndexRowReady(routines, routine_row) ||
+        binding_syntax_id <= 0 {
+        return false;
+    }
+    let expected_ref: String = Concat(
+        "declaration:", Concat(ToString(binding_syntax_id), ":0")
+    );
+    let matched: Int = 0;
+    let receipt_ok: Bool = false;
+    let block_offset: Int = 0;
+    let block_start: Int = routines.routine_block_starts[routine_row];
+    let block_count: Int = routines.routine_block_counts[routine_row];
+    while block_offset < block_count {
+        let block: Int = block_start + block_offset;
+        let instruction_offset: Int = 0;
+        let instruction_start: Int =
+            routines.block_instruction_starts[block];
+        let instruction_count: Int =
+            routines.block_instruction_counts[block];
+        while instruction_offset < instruction_count {
+            let instruction: Int = instruction_start + instruction_offset;
+            let start: Int = routines.instruction_starts[instruction];
+            let end: Int = routines.instruction_ends[instruction];
+            let local_ref: String = "";
+            if MirObjectFieldOccurrenceCountAtBounds(
+                    routines.source_json, start, end, "local_ref") == 1 {
+                local_ref = MirObjectStringFactAtBounds(
+                    routines.source_json, start, end, "local_ref"
+                );
+            }
+            if local_ref == expected_ref &&
+                routines.instruction_kinds[instruction] == "def" &&
+                routines.instruction_source_types[instruction] ==
+                    "AST_LET_DECL" {
+                matched = matched + 1;
+                let expression: MirProgramInstructionExpressionFact =
+                    MirProgramInstructionExpressionIndexAt(
+                        routines.instruction_expressions, instruction
+                    );
+                let graph: JsonObjectFactTable =
+                    MirProgramInstructionExpressionGraphTable(
+                        routines.source_json, expression, 0
+                    );
+                let sequence: MirExpressionGraphSequence =
+                    MirExpressionGraphSequenceAppend(
+                        MirExpressionGraphSequenceEmpty(), graph
+                    );
+                let root: Int = 0 - 1;
+                if ArrayLength(sequence.roots) == 1 {
+                    root = sequence.roots[0];
+                }
+                let exact_empty_graph: Bool = sequence.ok &&
+                    sequence.ready_node_count == 1 && root == 0 &&
+                    ArrayLength(sequence.arena.topology.node_kinds) == 1 &&
+                    sequence.arena.topology.node_kinds[root] ==
+                        AstExpressionNodeArrayLiteral();
+                if !exact_empty_graph {
+                    return false;
+                }
+                receipt_ok = true;
+            }
+            instruction_offset = instruction_offset + 1;
+        }
+        block_offset = block_offset + 1;
+    }
+    return matched == 1 && receipt_ok;
+}
+
 func BuildMirCollectionOwnershipFacts(
+    ref routines: MirProgramRoutineIndex,
+    routine_row: Int,
     json: String,
     routine_start: Int,
     routine_end: Int,
@@ -133,6 +212,11 @@ func BuildMirCollectionOwnershipFacts(
                     ownership == "borrowed-elements" && source_id == "0") ||
                 (origin == "map-keys" &&
                     ownership == "map-keys-snapshot" && source_id == "0") ||
+                (origin == "empty-literal" &&
+                    ownership == "unknown" && source_id == "0" &&
+                    numeric &&
+                    MirCollectionOwnershipEmptyLiteralReceipt(
+                        routines, routine_row, ToInt(binding_id))) ||
                 (origin == "binding" && numeric &&
                     ToInt(source_id) > 0 &&
                     ToInt(source_id) != ToInt(binding_id) &&

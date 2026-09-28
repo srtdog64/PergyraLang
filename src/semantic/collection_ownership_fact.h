@@ -32,7 +32,8 @@ typedef enum
     PGY_COLLECTION_ORIGIN_UNKNOWN = 0,
     PGY_COLLECTION_ORIGIN_BORROWED_LITERAL,
     PGY_COLLECTION_ORIGIN_MAP_KEYS,
-    PGY_COLLECTION_ORIGIN_BINDING
+    PGY_COLLECTION_ORIGIN_BINDING,
+    PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
 } PgyCollectionOrigin;
 
 /* Semantic-owned stable row.  Symbol pointers are permitted only as a

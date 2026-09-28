@@ -42,6 +42,7 @@ func SemanticAstCollectionOriginUnknown() -> Int { return 0; }
 func SemanticAstCollectionOriginBorrowedLiteral() -> Int { return 1; }
 func SemanticAstCollectionOriginMapKeys() -> Int { return 2; }
 func SemanticAstCollectionOriginBinding() -> Int { return 3; }
+func SemanticAstCollectionOriginEmptyLiteral() -> Int { return 4; }
 
 func SemanticAstCollectionOwnershipVerdictOk(
 ) -> SemanticAstCollectionOwnershipVerdict {
@@ -121,6 +122,14 @@ func SemanticAstCollectionOwnershipLiteralIsBorrowed(
         i = i + 1;
     }
     return true;
+}
+
+func SemanticAstCollectionOwnershipLiteralIsEmpty(
+    ref graph: SemanticExpressionGraphFacts, root_id: Int
+) -> Bool {
+    let literal: SemanticArrayLiteralView =
+        SemanticArrayLiteralViewFromGraph(graph, root_id);
+    return literal.ok && ArrayLength(literal.element_nodes) == 0;
 }
 
 func SemanticAstCollectionOwnershipRootCallName(
@@ -241,7 +250,12 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                 locals.node_ids[local_row], -1);
         }
         let root_id: Int = UnwrapOption(root);
-        if SemanticAstCollectionOwnershipLiteralIsBorrowed(
+        if SemanticAstCollectionOwnershipLiteralIsEmpty(
+            surfaces.expression_graph, root_id) {
+            // Origin is exact; mutation/call-effect receipts must own any
+            // later current-state refinement away from UNKNOWN.
+            origins[local_row] = SemanticAstCollectionOriginEmptyLiteral();
+        } else if SemanticAstCollectionOwnershipLiteralIsBorrowed(
             surfaces.expression_graph, root_id) {
             ownership[local_row] =
                 SemanticAstCollectionOwnershipBorrowedElements();

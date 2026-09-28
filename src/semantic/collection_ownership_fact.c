@@ -45,6 +45,13 @@ collection_call_is_unshadowed_builtin(const ASTNode *expr,
 }
 
 static bool
+array_literal_is_empty(const ASTNode *expr)
+{
+    return expr != NULL && expr->type == AST_ARRAY_LITERAL
+        && ast_array_literal_count(expr) == 0;
+}
+
+static bool
 array_literal_is_entirely_borrowed_string_literals(const ASTNode *expr)
 {
     size_t count;
@@ -193,7 +200,11 @@ semantic_collection_ownership_initialize_binding(
     if (fact.binding_syntax_id == 0)
         return false;
 
-    if (collection_call_is_unshadowed_builtin(initializer, "MapKeys")) {
+    if (array_literal_is_empty(initializer)) {
+        /* The origin is exact, but the current element state remains UNKNOWN
+         * until mutation/call-effect receipts own every later transition. */
+        fact.origin = PGY_COLLECTION_ORIGIN_EMPTY_LITERAL;
+    } else if (collection_call_is_unshadowed_builtin(initializer, "MapKeys")) {
         fact.element_ownership = PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT;
         fact.origin = PGY_COLLECTION_ORIGIN_MAP_KEYS;
     } else if (array_literal_is_entirely_borrowed_string_literals(

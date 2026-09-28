@@ -377,7 +377,7 @@ hir_append_collection_ownership_fact(
         || (fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
             && fact->disposition != PGY_COLLECTION_DISPOSITION_RETIRED)
         || (unsigned)fact->origin
-            > (unsigned)PGY_COLLECTION_ORIGIN_BINDING
+            > (unsigned)PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
         || (fact->origin == PGY_COLLECTION_ORIGIN_MAP_KEYS
             && fact->element_ownership
                 != PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)
@@ -385,6 +385,9 @@ hir_append_collection_ownership_fact(
             && fact->element_ownership
                 != PGY_STRING_ARRAY_BORROWED_ELEMENTS)
         || (fact->origin == PGY_COLLECTION_ORIGIN_UNKNOWN
+            && fact->element_ownership
+                != PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN)
+        || (fact->origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
             && fact->element_ownership
                 != PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN)
         || (fact->origin == PGY_COLLECTION_ORIGIN_BINDING

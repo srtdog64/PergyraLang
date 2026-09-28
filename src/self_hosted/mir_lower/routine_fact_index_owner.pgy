@@ -263,6 +263,7 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
     }
     let collection_ownership_facts: MirCollectionOwnershipFacts =
         BuildMirCollectionOwnershipFacts(
+            routines, routine_row,
             json, routine_start, routine_end, source_syntax_id,
             source_local_types, source_local_binding_syntax_ids
         );

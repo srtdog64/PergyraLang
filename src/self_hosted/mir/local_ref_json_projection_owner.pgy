@@ -1,5 +1,4 @@
 // Conditional LocalRef wire projection for routines with ambiguous spelling.
-
 import "program_fact_owner.pgy";
 import "../lib/json_emit.pgy";
 
@@ -8,6 +7,21 @@ func SelfMirRoutineLocalRefWireRequired(
     routine_index: Int
 ) -> Bool {
     let rows: SelfMirRoutineRows = facts.routines;
+    let collection_offset: Int = 0;
+    let collection_start: Int =
+        rows.collection_ownership_facts.routine_starts[routine_index];
+    let collection_count: Int =
+        rows.collection_ownership_facts.routine_counts[routine_index];
+    while collection_offset < collection_count {
+        let collection_row: Int = collection_start + collection_offset;
+        if rows.collection_ownership_facts.origins[collection_row] ==
+            SemanticAstCollectionOriginEmptyLiteral() {
+            // Empty-literal readers join initializer evidence through the
+            // exact declaration identity, never through source spelling.
+            return true;
+        }
+        collection_offset = collection_offset + 1;
+    }
     let count: Int = rows.local_counts[routine_index];
     let start: Int = rows.local_starts[routine_index];
     if SelfMirLocalRefSpellingCollision(rows.local_names, start, count,

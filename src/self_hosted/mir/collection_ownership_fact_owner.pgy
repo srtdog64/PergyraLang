@@ -65,6 +65,9 @@ func SelfMirCollectionOriginName(value: Int) -> String {
     }
     if value == SemanticAstCollectionOriginMapKeys() { return "map-keys"; }
     if value == SemanticAstCollectionOriginBinding() { return "binding"; }
+    if value == SemanticAstCollectionOriginEmptyLiteral() {
+        return "empty-literal";
+    }
     return "unknown";
 }
 
@@ -199,6 +202,9 @@ func SelfMirCollectionOwnershipFactRowsAppendRoutine(
                 (origin == SemanticAstCollectionOriginMapKeys() &&
                     ownership ==
                         SemanticAstCollectionOwnershipMapKeysSnapshot() &&
+                    source_id == 0) ||
+                (origin == SemanticAstCollectionOriginEmptyLiteral() &&
+                    ownership == SemanticAstCollectionOwnershipUnknown() &&
                     source_id == 0) ||
                 (origin == SemanticAstCollectionOriginBinding() &&
                     source_id > 0 && source_id != binding_id &&

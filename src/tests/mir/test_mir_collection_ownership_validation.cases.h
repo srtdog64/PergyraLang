@@ -8,6 +8,11 @@ test_mir_collection_ownership_validation(void)
         "    let keys: Array<String> = MapKeys(values);\n"
         "    ArrayDropOwnedStrings(keys);\n"
         "}\n";
+    const char *empty_source =
+        "func Main() -> Void {\n"
+        "    let values: Array<String> = [];\n"
+        "    Log(ArrayLength(values));\n"
+        "}\n";
     HIRProgram *hir = NULL;
     RIRProgram *rir = NULL;
     MIRProgram *mir = NULL;
@@ -27,6 +32,8 @@ test_mir_collection_ownership_validation(void)
     bool rejects_retired_unknown = false;
     bool rejects_target_type = false;
     bool rejects_storage_mismatch = false;
+    bool empty_baseline = false;
+    bool rejects_empty_owned = false;
 
     if (lower_mir_from_source(source, &hir, &rir, &mir))
         routine = find_mir_routine_mut(mir, "Main", MIR_SCOPE_FUNCTION);
@@ -117,12 +124,49 @@ test_mir_collection_ownership_validation(void)
         routine->collection_ownership_fact_count = count;
     }
 
+    {
+        HIRProgram *empty_hir = NULL;
+        RIRProgram *empty_rir = NULL;
+        MIRProgram *empty_mir = NULL;
+        MIRRoutine *empty_routine = NULL;
+        MIRCollectionOwnershipFact *empty_fact = NULL;
+
+        if (lower_mir_from_source(
+                empty_source, &empty_hir, &empty_rir, &empty_mir))
+            empty_routine = find_mir_routine_mut(
+                empty_mir, "Main", MIR_SCOPE_FUNCTION);
+        if (empty_routine != NULL
+            && empty_routine->collection_ownership_fact_count == 1) {
+            empty_fact = &empty_routine->collection_ownership_facts[0];
+            empty_baseline =
+                empty_fact->element_ownership
+                    == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
+                && empty_fact->origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
+                && empty_fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE
+                && empty_fact->source_binding_syntax_id == 0
+                && mir_validate_collection_ownership_facts(
+                    empty_routine, &error);
+            free(error); error = NULL;
+            if (empty_baseline) {
+                empty_fact->element_ownership =
+                    PGY_STRING_ARRAY_OWNED_ELEMENTS;
+                rejects_empty_owned =
+                    !mir_validate_collection_ownership_facts(
+                        empty_routine, &error);
+                free(error); error = NULL;
+            }
+        }
+        mir_destroy(empty_mir);
+        rir_destroy(empty_rir);
+        hir_destroy(empty_hir);
+    }
+
     TEST("MIR collection ownership carrier rejects in-memory mutations");
     EXPECT(baseline && rejects_function && rejects_binding &&
            rejects_origin_id && rejects_source && rejects_ownership &&
            rejects_disposition && rejects_origin &&
            rejects_unknown_owned && rejects_retired_unknown &&
-           rejects_target_type &&
+           rejects_target_type && empty_baseline && rejects_empty_owned &&
            rejects_storage_mismatch);
     mir_destroy(mir);
     rir_destroy(rir);

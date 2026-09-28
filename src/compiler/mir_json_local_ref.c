@@ -11,6 +11,14 @@ mir_json_routine_local_refs_required(const MIRRoutine *routine)
 {
     if (routine == NULL)
         return false;
+    /* Empty-literal origin readers must join a carried row to the exact local
+     * definition before trusting initializer graph evidence. */
+    for (size_t row = 0; row < routine->collection_ownership_fact_count;
+         row++) {
+        if (routine->collection_ownership_facts[row].origin
+            == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL)
+            return true;
+    }
     for (size_t row = 0; row < routine->source_local_type_count; row++) {
         const char *name = routine->source_local_types[row].name;
         if (name == NULL)
