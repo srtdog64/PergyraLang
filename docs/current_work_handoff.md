@@ -1,13 +1,15 @@
 # Current Work Handoff
 
-Updated: 2026-09-28 (Asia/Seoul). This top card is navigation only; the SoT
+Updated: 2026-09-29 (Asia/Seoul). This top card is navigation only; the SoT
 registry, source owners, and executable gates own the compiler facts.
 
-Source checkpoint: `origin/main ==
-037efc8d138a31a6e4f169d9ecc665df139b18d7` before this documentation
-commit. The isolated `codex/docs-curation` checkout was rebased onto that
-revision and was clean before this edit. The shared `D:\PergyraLang`
-checkout has separate dirty work and is not evidence for this branch.
+Source checkpoint: `ee2d831a5540eafe6ee4446049bbaf22d4484f9c` before this
+handoff update, rebased on `origin/main ==
+f04c10ed840c8e18e866713fabded47868d01e80`. The tracked tree was clean at
+that checkpoint. `.agents/`,
+`docs/audits/whole_repository_redteam_reproduction.md`, and
+`tests/concept_semantics/hashmap/empty_owned_string_conditional_push_drop.pgy`
+remain untracked user-local material and are not part of this packet.
 
 ## Priority directive — compiler world realization (user, 2026-09-29)
 
@@ -25,58 +27,56 @@ merge into `collection_program_plan`. A registry row-count ratchet caps the
 registry at 95 rows. Each rung still names its production entrypoint, the direct bypass
 to delete, the fact owner, the last consumer, and one gate.
 
-## Active self-host context — collection ownership admission and cleanup
+## Active self-host context — collection ownership, tranche 1 of 3 landed
 
 Objective card:
-- Objective: carry one stable binding/expression ownership fact through
-  semantic analysis, MIR, installed self-host admission, and public C/LLVM
-  cleanup, with `UNKNOWN` origins failing closed before artifact publication.
-- Priority: prevent invalid deep drop/UAF, preserve stable syntax identity,
-  add `EMPTY` plus producer/transfer receipts, consume one exact-once CFG
-  cleanup plan, remove type/name fallback, then measure retained lifetime.
-- Production entrypoint and direct bypass: the installed
-  `pgy-self-driver --emit-mir-json-verified` route reaches the Pergyra owner;
-  native `pgy --native-pipeline --mir-json` still reaches the C owner
-  `semantic_collection_ownership_initialize_binding`. That C-owned decision
-  remains the direct bypass to replace, not a second authority to preserve.
+- Objective: complete P1 as one finite ownership-transition system without
+  growing one unreviewable patch. Land each semantic third on `main` only
+  after its focused gate and repository integration gate are green.
+- Priority: stable identity and one SoT, owner-directed transition receipts,
+  forbidden-fallback removal, negative ratchets, then patch size.
 - Fact owner and last consumers: `semantic.hashmap_collection_ownership` owns
-  the identity. HIR/MIR projection, native JSON, both self-host readers, and
-  C/LLVM exit cleanup are the final consumers; none may reconstruct it from
-  descriptor type, spelling, Slot, generation, or pointer identity.
-- Forbidden fallback and gate: no automatic type/name-based deep drop and no
-  `UNKNOWN -> OWNED` promotion. The two focused ownership smoke gates plus the
-  pending unknown-origin fixture below must reject without publishing an
-  artifact, while the owned-drop control remains admitted.
+  binding/expression ownership. HIR/MIR projection, native JSON, the installed
+  self-host readers, and direct C/LLVM cleanup are the final consumers. Slot,
+  descriptor type, spelling, generation, and pointer identity are forbidden
+  reconstruction paths.
+- Production entrypoint and remaining bypass: installed
+  `pgy-self-driver --emit-mir-json-verified` reaches the Pergyra owner. Native
+  `pgy --native-pipeline --mir-json` still reaches the C owner
+  `semantic_collection_ownership_initialize_binding`; whole-rung closure must
+  replace that bypass rather than preserve dual authority.
+- Gate and falsifier: the focused ownership gate must execute the admitted
+  control in public C and LLVM and must reject missing, moved, duplicate,
+  wrong-binding, wrong-kind, and wrong-source receipts without replacing a
+  previously published artifact.
 
-- Active owner/rung: `semantic.hashmap_collection_ownership` is `ACTIVE` in
-  `docs/semantics/sot_owner_spine_registry.md`. Its stable binding rows reach
-  semantic, HIR, MIR, native JSON, self-host production, and both self-host
-  readers. The row is not closed: `EMPTY` and producer/transfer receipts,
-  `UNKNOWN` deep-drop refusal, borrow escape, parameter/return/inout facts,
-  and one exact-once CFG cleanup plan still lack full consumer evidence.
-  `docs/206_minimal_unit_decisions.md` now model-checks move and clone as
-  distinct ownership units, but explicitly leaves their implementation to
-  this active lane; that proof is not substitution or closure evidence.
-- Last exact-SHA full push CI: run `36395466660` on
-  `037efc8d138a31a6e4f169d9ecc665df139b18d7` succeeded in all 31 jobs,
-  including self-host bootstrap, Windows, Rocq, and backend comparison. The
-  parent `78ff1127` TextBuilder argument-diagnostic isolation fix and this
-  revision's minimal-unit proofs landed independently; neither is progress on
-  the active collection-ownership rung. The run does not verify this
-  documentation refresh or the shared dirty checkout.
-- Next falsifier: `tests/concept_semantics/hashmap/unknown_string_array_drop.pgy`
-  is the collection-ownership `UNKNOWN` fail-open case outside the six
-  negatives in `tests/hashmap_owned_string_provenance_smoke.sh` and
-  `tests/self_hosted/parity/collection_ownership_semantic_owner.sh`.
-  `shadowed_map_keys_drop.pgy` is refused earlier because `MapKeys` is a
-  reserved `TYPED_PROTOCOL` name; keep it as separate name-reservation
-  diagnostic evidence, not an ownership falsifier. The next owner blocker is
-  to split `EMPTY` into a stable fact and carry the `[] -> push -> deep-drop`
-  transition receipt through both the C and Pergyra semantic owners before
-  `UNKNOWN` can fail closed. The focused native/public C/LLVM and installed
-  driver gate must then refuse the unknown-origin drop without publishing an
-  artifact while retaining a valid owned-drop control. No current-HEAD
-  focused collection gate was run for this docs-only edit.
+Reached tranche 1/3 at the source checkpoint:
+- A bounded straight-line `Array<String>` `EMPTY -> OWNED -> dropped`
+  transition now has stable push/drop receipts from the native and Pergyra
+  semantic owners through MIR to direct C and LLVM. The consumer emits one
+  explicit deep drop; it does not recover ownership from type or name.
+- Receipt mutation and omission fail closed before artifact replacement. The
+  self-host lifetime repairs in this packet remove in-place aliases and retire
+  owned fragments/candidates explicitly instead of hiding retained storage at
+  the renderer boundary.
+- Observed current-tree evidence: native `make -j4 pgy` succeeded; current-tree
+  bootstrap seed and installed DRV-2 succeeded;
+  `tests/self_hosted/parity/collection_ownership_semantic_owner.sh` reported
+  native fact -> installed self-host -> public C/LLVM ownership parity `PASS`;
+  `tests/self_hosted_component_contract_smoke.sh` reported structural and
+  removed-path ratchets `PASS`, with 2,511 line-cap requests, 1,047 function
+  extractions, and 710 reuses.
+
+The owner row remains `ACTIVE`; tranche 1 is not P1 closure and is not whole
+self-host closure. Tranche 2/3 owns move/clone plus argument, return, and inout
+transitions. Tranche 3/3 consolidates the shape projections into
+`collection_program_plan`, completes the finite table proof in
+`CollectionOwnershipTransfer.v`, enforces the 95-row registry cap, removes the
+last bypass, and then runs the final red team before the row may become
+`CLOSED`. The untracked
+`empty_owned_string_conditional_push_drop.pgy` remains the next multi-block
+falsifier; it is OPEN and is not evidence for tranche 1. Push CI for this
+checkpoint had not yet run when this navigation card was written.
 
 ## Historical archive boundary — earlier collection-ownership handoff
 
