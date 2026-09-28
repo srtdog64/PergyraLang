@@ -488,7 +488,6 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
     let chunks: Array<String> = [Concat(
         routine_indent, Concat(callable_label, Concat(routine, "\n"))
     )];
-
     let generic_count: Int = ArrayLength(header.generic_names);
     let constraint_text: String = "";
     if generic_count > 0 {
@@ -557,7 +556,6 @@ func EmitRoutineTreeWithContractAtRowWithExpressionOrder(
         }
         param_row = param_row + 1;
     }
-
     let rtype: String = header.return_type;
     ArrayPushOwnedString(chunks, Concat(ppad, Concat("Returns: ", Concat(rtype, "\n"))));
     if StringLength(contract_rows) > 0 {
