@@ -3,6 +3,7 @@
 #include "capability_analyze.h"
 #include "callable_capability_inference.h"
 #include "type_checker_internal.h"
+#include "type_checker_decls_a_helpers_internal.h"
 #include "type_checker_flow_loop_summary.h"
 #include "type_checker_flow_universe.h"
 #include "diag_codes.h"
@@ -104,10 +105,27 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             param_types[i] = TYPE_UNKNOWN;
             continue;
         }
-        /* Implicit 'self' type: if a parameter named "self" has no
-         * type annotation and we're inside a class scope, infer the
-         * enclosing class type. */
+        /* A role body's implicit 'self' is the role's `for` target
+         * (docs/206 section 1); left untyped, a read of a missing field
+         * passed and the backends read the wrong storage. */
         if (param->type == NULL && param->name != NULL
+            && strcmp(param->name, "self") == 0
+            && ctx->current_role_decl != NULL) {
+            ASTNode *for_type =
+                semantic_role_for_type_node(ctx->current_role_decl);
+            param_types[i] = for_type != NULL
+                ? semantic_host_resolve_type_ref(for_type, ctx) : NULL;
+            if (param_types[i] == NULL || param_types[i] == TYPE_UNKNOWN) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_ROLE_CONTRACT_INVALID,
+                    PGY_CAUSE_ROLE_CONTRACT,
+                    PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
+                    node,
+                    "Role method '%s' has no resolved 'for' target type for 'self'",
+                    name != NULL ? name : "<anonymous>");
+                param_types[i] = TYPE_UNKNOWN;
+            }
+        } else if (param->type == NULL && param->name != NULL
             && strcmp(param->name, "self") == 0
             && ctx->scope != NULL
             && (ctx->scope->kind == SCOPE_CLASS

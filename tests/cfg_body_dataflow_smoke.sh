@@ -2400,7 +2400,9 @@ NON_CFG_CORPUS=(
     "examples/lambda_test.pgy"
     "examples/dnd_tavern_campaign/combat_cards.pgy"
     "examples/dnd_tavern_campaign/events.pgy"
-    "examples/space_station/abilities.pgy"
+    # Role methods: abilities.pgy types `self` as a subject declared in
+    # another module, so it compiles as part of the whole program.
+    "examples/space_station/main.pgy"
 )
 NON_CFG_CORPUS_MIR="$WORK_DIR/non_cfg_corpus_mir.txt"
 for corpus_rel in "${NON_CFG_CORPUS[@]}"; do

@@ -191,7 +191,10 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
-    /* Check impl ability blocks */
+    /* Check impl ability blocks. Their `self` is the role's `for` target
+     * (docs/206 section 1). */
+    ASTNode *saved_role_decl = ctx->current_role_decl;
+    ctx->current_role_decl = node;
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     for (size_t i = 0; i < ast_role_impl_count(node); i++) {
         ASTNode *impl = ast_role_impl(node, i);
@@ -436,6 +439,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
     scope_exit(&ctx->scope);
+    ctx->current_role_decl = saved_role_decl;
 
     return !ctx->has_error;
 }

@@ -131,6 +131,57 @@ test_role_decl(void)
         lexer_destroy(lexer);
     }
 
+    TEST("role body self has the role's for target type");
+    {
+        /* docs/206 section 1: `self` in a role body is the `for` target.
+         * Untyped, a read of a missing field passed semantic analysis and
+         * the backends read the wrong storage. */
+        const char *sources[] = {
+            "subject Fighter {\n"
+            "    let power: Int;\n"
+            "}\n"
+            "ability Talkable {\n"
+            "    func Speak(self) -> Int;\n"
+            "}\n"
+            "role Warrior for Fighter {\n"
+            "    impl ability Talkable {\n"
+            "        func Speak(self) -> Int { return self.power + 1; }\n"
+            "    }\n"
+            "}\n",
+            "subject Fighter {\n"
+            "    let power: Int;\n"
+            "}\n"
+            "ability Talkable {\n"
+            "    func Speak(self) -> Int;\n"
+            "}\n"
+            "role Warrior for Fighter {\n"
+            "    impl ability Talkable {\n"
+            "        func Speak(self) -> Int { return self.missing + 1; }\n"
+            "    }\n"
+            "}\n"
+        };
+        for (size_t row = 0; row < 2; row++) {
+            Lexer *lexer = lexer_create(sources[row]);
+            Parser *parser = parser_create(lexer);
+            ASTNode *program = parser_parse_program(parser);
+            SemanticResult *result = semantic_analyze(program);
+
+            EXPECT(!parser_has_error(parser));
+            if (row == 0) {
+                EXPECT(result != NULL && result->error_count == 0);
+            } else {
+                EXPECT(result != NULL && result->error_count > 0);
+                EXPECT(ctx_has_diagnostic_substring_from_result(result,
+                    "Unknown member 'Fighter.missing'"));
+            }
+
+            semantic_result_destroy(result);
+            ast_destroy(program);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+        }
+    }
+
     TEST("role ability fields reject missing bound subject field");
     {
         const char *source =

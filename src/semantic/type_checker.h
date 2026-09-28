@@ -103,6 +103,8 @@ struct SemanticContext
     ASTNode*     current_relation; /* Enclosing relation decl       */
     ASTNode*     current_effect;   /* Enclosing effect decl         */
     ASTNode*     current_party;    /* Enclosing party decl when any */
+    ASTNode*     current_role_decl; /* Role whose impl bodies are checked;
+                                      * their `self` is its `for` target */
     ASTNode*     current_roster;   /* Enclosing roster decl when any */
     ASTNode*     current_nominal_decl; /* Enclosing nominal decl      */
     ASTNode*     current_zone;   /* Enclosing zone decl when any   */
