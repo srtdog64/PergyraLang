@@ -10,6 +10,7 @@ LABEL="self-host-collection-ownership"
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy"
+STATEMENT_TRANSITION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy"
 IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy"
 STATE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy"
 MEMBER_MOVE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy"
@@ -30,8 +31,16 @@ grep -Fq 'SemanticExpressionGraphRuntimeCallAbiId(' "$IDENTITY_OWNER" ||
     fail "owner does not consume carried runtime call identity"
 grep -Fq 'SemanticAstScopedLocalBindingIdentityForGraphLeaf(' "$IDENTITY_OWNER" ||
     fail "owner joins collection state by spelling instead of binding identity"
-grep -Fq 'TypedAstKindArrayPushStmtTag()' "$OWNER" ||
-    fail "owner ignores parser-owned collection mutation statements"
+grep -Fq 'import "ast_collection_ownership_statement_transition_owner.pgy";' \
+    "$OWNER" ||
+    fail "verdict owner does not import the collection statement transition owner"
+grep -Fq 'SemanticAstCollectionStatementTransitions(' "$OWNER" ||
+    fail "verdict owner does not consume collection statement transitions"
+for statement_tag in TypedAstKindArrayPushStmtTag \
+        TypedAstKindArraySetStmtTag TypedAstKindArrayPopStmtTag; do
+    grep -Fq "$statement_tag()" "$STATEMENT_TRANSITION_OWNER" ||
+        fail "statement transition owner ignores $statement_tag"
+done
 grep -Fq 'SemanticAstCollectionOwnershipVerdictFromResolvedFacts(' "$BUNDLE" ||
     fail "body admission does not consume collection ownership verdict"
 grep -Fq 'SemanticAstCollectionMemberMoveIdentityForNode(' "$MEMBER_MOVE_OWNER" ||
