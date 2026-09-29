@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Exact owned Array<String> return reaches C and LLVM and rejects forged ABI.
+# Owned ArrayString return consumes target projection and exact cleanup in C/LLVM.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
