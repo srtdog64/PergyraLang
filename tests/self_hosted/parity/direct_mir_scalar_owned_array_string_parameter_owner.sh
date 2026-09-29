@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# One last-use caller local moves into an owner-handle ArrayString parameter;
-# semantic ownership rejects source reuse and C/LLVM defend against forged MIR.
+# One last-use caller local moves into an owner-handle ArrayString parameter and C/LLVM reject use-after-move.
+# Semantic ownership rejects source reuse first; C/LLVM defend against forged MIR.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

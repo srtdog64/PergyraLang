@@ -32,6 +32,139 @@ Require Import Coq.Arith.PeanoNat.
 Require Import Coq.micromega.Lia.
 Import ListNotations.
 
+(*
+  Finite ownership-transition obligation table (P1).
+
+  This table does not guess whether a parameterized operation is admitted.
+  For example, push still distinguishes borrowed and owned element policy in
+  the executable semantic owner.  The table proves the narrower closure
+  obligation: every state/family pair is routed to exactly one named owner and
+  one executable gate family, so a future state or operation cannot appear
+  outside the table unnoticed.
+*)
+
+Inductive CollectionState : Type :=
+| EmptyState
+| OwnedState
+| MovedState
+| BorrowedState
+| UnknownState.
+
+Inductive CollectionOperation : Type :=
+| PushOperation
+| MoveOperation
+| CloneOperation
+| DropOperation
+| ArgumentOperation
+| ReturnOperation
+| InoutOperation.
+
+Inductive TransitionOwnerId : Type :=
+| SemanticCollectionOwnershipOwner.
+
+Inductive TransitionGateId : Type :=
+| PushOwnershipGate
+| MoveOwnershipGate
+| CloneOwnershipGate
+| DropOwnershipGate
+| ArgumentOwnershipGate
+| ReturnOwnershipGate
+| InoutOwnershipGate.
+
+Record TransitionObligation := {
+  obligation_state : CollectionState;
+  obligation_operation : CollectionOperation;
+  obligation_owner : TransitionOwnerId;
+  obligation_gate : TransitionGateId
+}.
+
+Definition gate_for (op : CollectionOperation) : TransitionGateId :=
+  match op with
+  | PushOperation => PushOwnershipGate
+  | MoveOperation => MoveOwnershipGate
+  | CloneOperation => CloneOwnershipGate
+  | DropOperation => DropOwnershipGate
+  | ArgumentOperation => ArgumentOwnershipGate
+  | ReturnOperation => ReturnOwnershipGate
+  | InoutOperation => InoutOwnershipGate
+  end.
+
+Definition obligation (state : CollectionState)
+    (op : CollectionOperation) : TransitionObligation :=
+  {| obligation_state := state;
+     obligation_operation := op;
+     obligation_owner := SemanticCollectionOwnershipOwner;
+     obligation_gate := gate_for op |}.
+
+Definition state_row (state : CollectionState) :
+    list TransitionObligation :=
+  [ obligation state PushOperation;
+    obligation state MoveOperation;
+    obligation state CloneOperation;
+    obligation state DropOperation;
+    obligation state ArgumentOperation;
+    obligation state ReturnOperation;
+    obligation state InoutOperation ].
+
+Definition transition_obligation_table : list TransitionObligation :=
+  state_row EmptyState ++
+  state_row OwnedState ++
+  state_row MovedState ++
+  state_row BorrowedState ++
+  state_row UnknownState.
+
+Definition collection_state_eqb (left right : CollectionState) : bool :=
+  match left, right with
+  | EmptyState, EmptyState
+  | OwnedState, OwnedState
+  | MovedState, MovedState
+  | BorrowedState, BorrowedState
+  | UnknownState, UnknownState => true
+  | _, _ => false
+  end.
+
+Definition collection_operation_eqb
+    (left right : CollectionOperation) : bool :=
+  match left, right with
+  | PushOperation, PushOperation
+  | MoveOperation, MoveOperation
+  | CloneOperation, CloneOperation
+  | DropOperation, DropOperation
+  | ArgumentOperation, ArgumentOperation
+  | ReturnOperation, ReturnOperation
+  | InoutOperation, InoutOperation => true
+  | _, _ => false
+  end.
+
+Definition matching_obligations (state : CollectionState)
+    (op : CollectionOperation) : list TransitionObligation :=
+  filter
+    (fun row => andb
+      (collection_state_eqb (obligation_state row) state)
+      (collection_operation_eqb (obligation_operation row) op))
+    transition_obligation_table.
+
+Theorem transition_obligation_table_has_35_rows :
+  length transition_obligation_table = 35.
+Proof. reflexivity. Qed.
+
+Theorem transition_obligation_table_complete_and_unique :
+  forall state op, length (matching_obligations state op) = 1.
+Proof.
+  intros state op. destruct state; destruct op; reflexivity.
+Qed.
+
+Theorem transition_obligation_has_one_owner_and_gate :
+  forall state op,
+    exists owner gate,
+      obligation_owner (obligation state op) = owner /\
+      obligation_gate (obligation state op) = gate.
+Proof.
+  intros state op.
+  exists SemanticCollectionOwnershipOwner, (gate_for op).
+  split; reflexivity.
+Qed.
+
 Record Heap := {
   owner   : nat -> option nat;   (* binding -> storage it owns *)
   content : nat -> nat           (* storage -> contents *)

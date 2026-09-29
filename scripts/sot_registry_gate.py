@@ -35,6 +35,7 @@ DERIVED_FIELDS = ("path", "primary_term", "owner_id", "relation")
 STATUSES = {"ACTIVE", "BRIDGE", "CLOSED"}
 DERIVED_RELATIONS = {"projection", "cache", "bridge", "local_view"}
 SOURCE_SUFFIXES = {".c", ".h", ".pgy"}
+MAX_OWNER_ROWS = 95
 
 
 class GateFailure(RuntimeError):
@@ -399,8 +400,9 @@ def validate_layer_inputs(root: pathlib.Path) -> None:
             fail(f"{rel}: public backend boundary accepts raw AST authority")
 
 
-def load_registry(root: pathlib.Path):
-    registry_path = root / "docs/semantics/sot_owner_spine_registry.md"
+def load_registry(root: pathlib.Path, registry_path: pathlib.Path | None = None):
+    if registry_path is None:
+        registry_path = root / "docs/semantics/sot_owner_spine_registry.md"
     text = registry_path.read_text(encoding="utf-8")
     owners = [
         OwnerRow(row)
@@ -410,16 +412,27 @@ def load_registry(root: pathlib.Path):
         DerivedRow(row)
         for row in block_rows(text, DERIVED_BEGIN, DERIVED_END, DERIVED_FIELDS)
     ]
+    if len(owners) > MAX_OWNER_ROWS:
+        fail(
+            "owner registry exceeds cap: "
+            f"{len(owners)} > {MAX_OWNER_ROWS}"
+        )
     return text, owners, derived
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("root", nargs="?", default=".")
+    parser.add_argument(
+        "--registry",
+        type=pathlib.Path,
+        help="registry document override used by fail-closed mutation gates",
+    )
     args = parser.parse_args()
     root = pathlib.Path(args.root).resolve()
     try:
-        text, owners, derived = load_registry(root)
+        registry_path = args.registry.resolve() if args.registry else None
+        text, owners, derived = load_registry(root, registry_path)
         indexed = source_index(
             root, [row["producer_term"] for row in owners]
         )
