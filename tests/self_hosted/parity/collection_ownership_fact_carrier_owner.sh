@@ -13,6 +13,7 @@ DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/p
 SOURCE="tests/concept_semantics/hashmap/map_keys_owned_drop_valid.pgy"
 EMPTY_SOURCE="tests/concept_semantics/hashmap/empty_string_array_fact_valid.pgy"
 UNKNOWN_SOURCE="tests/concept_semantics/hashmap/unknown_string_array_drop.pgy"
+CALL_RESULT_SOURCE="tests/concept_semantics/hashmap/call_result_string_array_fact_valid.pgy"
 PROBE="tests/self_hosted/parity/fixture/collection_ownership_fact_reader_probe.pgy"
 CC="${PGY_SELFHOST_CC:-gcc}"
 
@@ -50,6 +51,24 @@ grep -Fxq '0 error(s), 0 warning(s)' "$WORK_DIR/native-unknown.err" ||
     fail "installed self-host MIR producer rejected the empty-literal origin fixture"
 [[ -s "$WORK_DIR/self-empty.json" ]] ||
     fail "installed self-host emitted no empty-ownership MIR"
+printf '%s\n' preserved:unknown >"$WORK_DIR/self-unknown.json"
+if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$UNKNOWN_SOURCE" \
+    -o "$WORK_REL/self-unknown.json") >"$WORK_DIR/self-unknown.out" \
+    2>"$WORK_DIR/self-unknown.err"; then
+    fail "installed self-host admitted an unknown-provenance deep drop"
+fi
+[[ "$(cat "$WORK_DIR/self-unknown.json")" == preserved:unknown ]] ||
+    fail "unknown-provenance refusal replaced the prior artifact"
+grep -Fq 'borrow_boundary_escape' \
+    "$WORK_DIR/self-unknown.out" "$WORK_DIR/self-unknown.err" ||
+    fail "unknown-provenance refusal lost its semantic diagnostic"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$CALL_RESULT_SOURCE" -o "$WORK_REL/self-call-result.json") \
+    >"$WORK_DIR/self-call-result.out" 2>"$WORK_DIR/self-call-result.err" ||
+    fail "installed self-host rejected the call-result provenance control"
+[[ "$(grep -Fc '"origin":"call-result"' \
+    "$WORK_DIR/self-call-result.json")" == 1 ]] ||
+    fail "call-result provenance did not attach exactly once"
 
 (cd "$ROOT_DIR" && "$PGY" "$PROBE" --native-pipeline --backend=c \
     -o "$WORK_REL/probe-native.exe") >"$WORK_DIR/probe-native.compile" 2>&1 || {
@@ -135,7 +154,8 @@ cmp -s "$WORK_DIR/native-empty-meaning" \
 
 mkdir -p "$WORK_DIR/mutations"
 python3 - "$WORK_DIR/native.json" "$WORK_DIR/native-empty.json" \
-    "$WORK_DIR/native-unknown.json" "$WORK_DIR/mutations" <<'PY'
+    "$WORK_DIR/native-unknown.json" "$WORK_DIR/self-call-result.json" \
+    "$WORK_DIR/mutations" <<'PY'
 import copy
 import json
 import pathlib
@@ -144,7 +164,8 @@ import sys
 source = pathlib.Path(sys.argv[1])
 empty_source = pathlib.Path(sys.argv[2])
 unknown_path = pathlib.Path(sys.argv[3])
-target = pathlib.Path(sys.argv[4])
+call_result_path = pathlib.Path(sys.argv[4])
+target = pathlib.Path(sys.argv[5])
 document = json.loads(source.read_text(encoding="utf-8"))
 mains = [row for row in document.get("routines", []) if row.get("name") == "Main"]
 if len(mains) != 1:
@@ -358,6 +379,41 @@ unknown_facts[0]["origin"] = "empty-literal"
 (target / "unknown_relabelled_empty.json").write_text(
     json.dumps(unknown_document, separators=(",", ":")),
     encoding="utf-8")
+
+call_result_document = json.loads(call_result_path.read_text(encoding="utf-8"))
+call_result_main = next(
+    row for row in call_result_document.get("routines", [])
+    if row.get("name") == "Main"
+)
+call_result_facts = call_result_main.get("collection_ownership_facts")
+if (call_result_main.get("collection_ownership_fact_count") != 1 or
+        not isinstance(call_result_facts, list) or
+        len(call_result_facts) != 1 or
+        call_result_facts[0].get("origin") != "call-result"):
+    raise SystemExit("call-result baseline does not own one carried row")
+
+call_result_unknown = copy.deepcopy(call_result_document)
+unknown_main = next(
+    row for row in call_result_unknown["routines"] if row.get("name") == "Main")
+unknown_main["collection_ownership_facts"][0]["origin_syntax_id"] = 999999
+(target / "call_result_unknown_target.json").write_text(
+    json.dumps(call_result_unknown, separators=(",", ":")), encoding="utf-8")
+
+call_result_wrong_return = copy.deepcopy(call_result_document)
+wrong_main = next(
+    row for row in call_result_wrong_return["routines"] if row.get("name") == "Main")
+wrong_main["collection_ownership_facts"][0]["origin_syntax_id"] = \
+    wrong_main["source_syntax_id"]
+(target / "call_result_wrong_return_target.json").write_text(
+    json.dumps(call_result_wrong_return, separators=(",", ":")), encoding="utf-8")
+
+call_result_owned = copy.deepcopy(call_result_document)
+owned_main = next(
+    row for row in call_result_owned["routines"] if row.get("name") == "Main")
+owned_main["collection_ownership_facts"][0]["element_ownership"] = \
+    "owned-elements"
+(target / "call_result_owned_without_summary.json").write_text(
+    json.dumps(call_result_owned, separators=(",", ":")), encoding="utf-8")
 PY
 
 mutation_count=0
@@ -374,7 +430,7 @@ for mutation in "$WORK_DIR"/mutations/*.json; do
         fail "mutation $(basename "$mutation") did not fail at the ownership reader"
     }
 done
-[[ "$mutation_count" -ge 23 ]] ||
+[[ "$mutation_count" -ge 26 ]] ||
     fail "mutation corpus is incomplete: $mutation_count"
 
 echo "[$LABEL] native/self-host producer-consumer parity and $mutation_count malformed-row refusals PASS"

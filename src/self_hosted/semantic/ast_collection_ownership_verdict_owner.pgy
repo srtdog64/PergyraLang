@@ -119,6 +119,17 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                 SemanticAstCollectionOwnershipOwnedElements();
             origins[local_row] = SemanticAstCollectionOriginClone();
         } else if IsSome(root_kind) && UnwrapOption(root_kind) ==
+                AstExpressionNodeCall() {
+            let call_target: Option<Int> =
+                SemanticExpressionGraphCallTargetSyntaxId(
+                    surfaces.expression_graph, root_id
+                );
+            if IsSome(call_target) && UnwrapOption(call_target) > 0 {
+                origins[local_row] =
+                    SemanticAstCollectionOriginCallResult();
+                origin_syntax_ids[local_row] = UnwrapOption(call_target);
+            }
+        } else if IsSome(root_kind) && UnwrapOption(root_kind) ==
                 AstExpressionNodeMemberAccess() {
             let moved: SemanticAstCollectionMemberMoveIdentity =
                 SemanticAstCollectionMemberMoveIdentityForNode(
@@ -461,8 +472,10 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                                         SemanticAstCollectionOwnershipBorrowedElements() ||
                                      (state ==
                                         SemanticAstCollectionOwnershipUnknown() &&
-                                      origins[binding.row] ==
-                                        SemanticAstCollectionOriginMemberMove())) {
+                                      (origins[binding.row] ==
+                                        SemanticAstCollectionOriginMemberMove() ||
+                                       origins[binding.row] ==
+                                        SemanticAstCollectionOriginCallResult()))) {
                                     let boundary: String = name;
                                     if deep_drop {
                                         boundary = "owned_string_drop";

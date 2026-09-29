@@ -1,0 +1,9 @@
+func BuildStringsForRead() -> Array<String> {
+    let values: Array<String> = [];
+    return values;
+}
+
+func Main() -> Void {
+    let values: Array<String> = BuildStringsForRead();
+    Log(ArrayLength(values));
+}

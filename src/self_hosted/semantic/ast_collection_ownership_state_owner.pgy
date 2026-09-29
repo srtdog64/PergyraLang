@@ -17,6 +17,7 @@ func SemanticAstCollectionOriginBinding() -> Int { return 3; }
 func SemanticAstCollectionOriginEmptyLiteral() -> Int { return 4; }
 func SemanticAstCollectionOriginMemberMove() -> Int { return 5; }
 func SemanticAstCollectionOriginClone() -> Int { return 6; }
+func SemanticAstCollectionOriginCallResult() -> Int { return 7; }
 func SemanticAstCollectionTransitionUntracked() -> Int { return 0; }
 func SemanticAstCollectionTransitionEmpty() -> Int { return 1; }
 func SemanticAstCollectionTransitionBorrowed() -> Int { return 2; }

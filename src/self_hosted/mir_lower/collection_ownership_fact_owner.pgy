@@ -101,6 +101,31 @@ func MirCollectionOwnershipMemberSourceReady(
     );
 }
 
+func MirCollectionOwnershipCallResultSourceReady(
+    ref routines: MirProgramRoutineIndex,
+    origin_syntax_id: Int
+) -> Bool {
+    if origin_syntax_id <= 0 { return false; }
+    let matched: Int = 0;
+    let routine: Int = 0;
+    while routine < ArrayLength(routines.source_syntax_ids) {
+        if routines.source_syntax_ids[routine] ==
+                ToString(origin_syntax_id) {
+            if routine >= ArrayLength(routines.starts) ||
+                routine >= ArrayLength(routines.ends) ||
+                MirObjectStringFactAtBounds(
+                    routines.source_json, routines.starts[routine],
+                    routines.ends[routine], "return"
+                ) != "Array<String>" {
+                return false;
+            }
+            matched = matched + 1;
+        }
+        routine = routine + 1;
+    }
+    return matched == 1;
+}
+
 func MirCollectionOwnershipEmptyLiteralReceipt(
     ref routines: MirProgramRoutineIndex,
     routine_row: Int,
@@ -294,6 +319,10 @@ func BuildMirCollectionOwnershipFacts(
                         ToInt(source_id), ToInt(origin_id))) ||
                 (origin == "clone" &&
                     ownership == "owned-elements" && source_id == "0") ||
+                (origin == "call-result" && numeric &&
+                    ownership == "unknown" && source_id == "0" &&
+                    MirCollectionOwnershipCallResultSourceReady(
+                        routines, ToInt(origin_id))) ||
                 (origin == "binding" && numeric &&
                     ToInt(source_id) > 0 &&
                     ToInt(source_id) != ToInt(binding_id) &&

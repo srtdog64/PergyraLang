@@ -72,6 +72,9 @@ func SelfMirCollectionOriginName(value: Int) -> String {
         return "member-move";
     }
     if value == SemanticAstCollectionOriginClone() { return "clone"; }
+    if value == SemanticAstCollectionOriginCallResult() {
+        return "call-result";
+    }
     return "unknown";
 }
 
@@ -282,6 +285,9 @@ func SelfMirCollectionOwnershipFactRowsAppendRoutine(
                         source_id, facts.origin_syntax_ids[row])) ||
                 (origin == SemanticAstCollectionOriginClone() &&
                     ownership == SemanticAstCollectionOwnershipOwnedElements() &&
+                    source_id == 0) ||
+                (origin == SemanticAstCollectionOriginCallResult() &&
+                    ownership == SemanticAstCollectionOwnershipUnknown() &&
                     source_id == 0) ||
                 (origin == SemanticAstCollectionOriginBinding() &&
                     source_id > 0 && source_id != binding_id &&

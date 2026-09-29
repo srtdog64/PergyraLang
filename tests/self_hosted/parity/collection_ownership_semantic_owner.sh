@@ -41,6 +41,8 @@ grep -Fq 'SemanticAstCollectionFirstInvalidMemberMoveUse(' \
     fail "aggregate member move lacks ordered transition validation"
 grep -Fq 'SemanticAstCollectionOriginClone()' "$STATE_OWNER" ||
     fail "explicit Clone origin is missing from the collection state owner"
+grep -Fq 'SemanticAstCollectionOriginCallResult()' "$STATE_OWNER" ||
+    fail "unknown call-result origin is missing from the collection state owner"
 ! grep -Fq 'Slot<' "$OWNER" "$IDENTITY_OWNER" "$STATE_OWNER" \
         "$MEMBER_MOVE_OWNER" "$MEMBER_TRANSITION_OWNER" ||
     fail "ordinary collection ownership imported Slot semantics"
@@ -107,6 +109,35 @@ for name in "${NEGATIVE_CASES[@]}"; do
             "$WORK_DIR/native-$backend-$name.err" ||
             fail "native $backend path lost explicit diagnostic for $name"
     done
+done
+
+UNKNOWN_SOURCE="tests/concept_semantics/hashmap/unknown_string_array_drop.pgy"
+UNKNOWN_SELF_REL="$WORK_REL/unknown-self.mir.json"
+printf '%s\n' preserved:unknown:self >"$ROOT_DIR/$UNKNOWN_SELF_REL"
+if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$UNKNOWN_SOURCE" -o "$UNKNOWN_SELF_REL") \
+    >"$WORK_DIR/unknown-self.out" 2>"$WORK_DIR/unknown-self.err"; then
+    fail "installed self-host accepted unknown-provenance deep drop"
+fi
+[[ "$(cat "$ROOT_DIR/$UNKNOWN_SELF_REL")" == preserved:unknown:self ]] ||
+    fail "installed self-host refusal replaced the prior unknown artifact"
+grep -Fq 'borrow_boundary_escape' \
+    "$WORK_DIR/unknown-self.out" "$WORK_DIR/unknown-self.err" ||
+    fail "installed self-host lost the unknown-provenance diagnostic"
+for backend in c llvm; do
+    output_rel="$WORK_REL/unknown-public-$backend.exe"
+    rm -f "$ROOT_DIR/$output_rel"
+    if (cd "$ROOT_DIR" && "$PGY" "$UNKNOWN_SOURCE" "--backend=$backend" \
+        -o "$output_rel") >"$WORK_DIR/unknown-public-$backend.out" \
+        2>"$WORK_DIR/unknown-public-$backend.err"; then
+        fail "public $backend accepted unknown-provenance deep drop"
+    fi
+    [[ ! -e "$ROOT_DIR/$output_rel" ]] ||
+        fail "public $backend refusal left a stale unknown artifact"
+    grep -Fq 'borrow_boundary_escape' \
+        "$WORK_DIR/unknown-public-$backend.out" \
+        "$WORK_DIR/unknown-public-$backend.err" ||
+        fail "public $backend lost the unknown-provenance diagnostic"
 done
 
 EMPTY_VALID="tests/concept_semantics/hashmap/empty_owned_string_push_drop_valid.pgy"
