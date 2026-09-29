@@ -1,5 +1,6 @@
-// Named-enum coverage at source admission. Typed scrutinees, declaration
-// variants and admitted arm facts own the answer; no backend/source rescan.
+// Match subject admission and named-enum coverage at source admission.
+// Typed scrutinees, declaration variants and admitted arm facts own the
+// answer; no backend/source rescan.
 import "ast_body_verdict_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_statement_type_query_owner.pgy";
@@ -25,6 +26,33 @@ func SemanticAstNamedEnumMatchCoverageFromFacts(
         enums.artifact_node_count != artifact.count {
         return SemanticAstBodyVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "MatchCoverage"), -1);
+    }
+    // Native admits these subjects (flow_match_subject_is_beta_supported)
+    // and leaves an unknown type to the error that made it unknown.
+    let subject_row: Int = 0;
+    while subject_row < count {
+        let subject_node: Int = statements.node_ids[subject_row];
+        let subject_type: String = types.inferred_type_names[subject_row];
+        let subject_ok: Bool = statements.kind_tags[subject_row] !=
+            TypedAstKindMatchStmtTag() || subject_type == "" ||
+            subject_type == "Unknown" || subject_type == "Int" ||
+            subject_type == "Long" || subject_type == "Bool" ||
+            StartsWith(subject_type, "Option<") ||
+            StartsWith(subject_type, "Result<");
+        let enum_row: Int = 0;
+        while !subject_ok && enum_row < ArrayLength(enums.enum_names) {
+            subject_ok = enums.enum_names[enum_row] == subject_type;
+            enum_row = enum_row + 1;
+        }
+        if !subject_ok {
+            if types.node_ids[subject_row] != subject_node {
+                return SemanticAstMatchCoverageInvalid(subject_node, "crossed statement type identity");
+            }
+            return SemanticAstMatchCoverageInvalid(subject_node,
+                Concat("Match subject type '", Concat(subject_type,
+                    "' is not beta-stable; supported subjects are Int, Long, Bool, enum, Option<T>, and Result<T>")));
+        }
+        subject_row = subject_row + 1;
     }
     if ArrayLength(enums.enum_names) == 0 { return SemanticAstBodyVerdictOk(); }
     // Capture declaration ranges once. Variant rows are appended together by

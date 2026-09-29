@@ -113,6 +113,12 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "give the arm a statement, or list the values in one arm as `case A | B:`"
         );
     }
+    if code == "match_string_pattern" {
+        return ParseDiagnosticRow(
+            "a string literal is not a beta-stable case pattern; match subjects are Int, Long, Bool, enum, Option<T>, and Result<T>",
+            "compare the string with `==` in an if/else chain"
+        );
+    }
     if code == "expression_invalid" {
         return ParseDiagnosticRow(
             "the expression starting here cannot be parsed",
@@ -270,6 +276,13 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
         code == "declaration_clause_invalid" {
         return ParsePublicDiagnosticIdentity(
             true, "PGY_PARSE_SYNTAX", "parse:unexpected_token", "check-syntax"
+        );
+    }
+    // Native refuses a String match subject in semantic; keep its identity.
+    if code == "match_string_pattern" {
+        return ParsePublicDiagnosticIdentity(
+            true, "PGY_SEM_MATCH_PATTERN_INVALID", "semantic:match:pattern_shape",
+            "align-pattern-arity-or-kind"
         );
     }
     // Native checks the typed-intent outcome shape in semantic; keep its identity.

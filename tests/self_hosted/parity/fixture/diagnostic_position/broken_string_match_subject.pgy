@@ -1,0 +1,10 @@
+func Kind(s: String) -> Int {
+    match s {
+        default: return 0;
+    }
+    return 1;
+}
+
+func Main() -> Void {
+    Log(ToString(Kind("a")));
+}

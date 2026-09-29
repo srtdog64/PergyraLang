@@ -58,6 +58,12 @@ func ParseMatchStmt(
                 content, i, cursor_out
             );
             if !case_pattern.ok { ParseExpressionRefuse(location_context, case_pattern, i, "statement"); }
+            // Native refuses a String subject in semantic; its literal
+            // pattern would otherwise fail HIR as an artifact defect.
+            if StartsWith(case_pattern.text, "\"") {
+                ParseRefuse(location_context, i, "match_string_pattern",
+                    "construct", "match_arm", "", "");
+            }
             case_label = case_pattern.text;
             i = cursor_out[0];
             // Native reads `case A | B:` and `case A if cond:`; this parser

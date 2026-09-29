@@ -175,6 +175,8 @@ BROKEN_CASES=(
     "member_expression_statement|5|statement_kind_unsupported"
     "match_unclosed|3|block_unclosed"
     "empty_match_arm|3|match_arm_empty"
+    "string_match_pattern|3|match_string_pattern"
+    "string_match_subject|2|match_pattern_invalid"
     "intent_missing_name|1|declaration_name_missing"
     "intent_step_unclosed|2|block_unclosed"
     "intent_duplicate_guard|4|declaration_clause_duplicate"
