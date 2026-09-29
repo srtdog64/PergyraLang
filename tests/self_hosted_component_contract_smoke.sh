@@ -28387,6 +28387,12 @@ require_text \
 require_text \
     "src/self_hosted/semantic/ast_collection_ownership_verdict_carrier_owner.pgy" \
     'struct SemanticAstCollectionOwnershipVerdict {'
+require_text \
+    "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" \
+    'ref facts: SemanticAstAssignmentFacts,'
+require_text \
+    "src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy" \
+    'SemanticAstAssignmentContainsNode(assignments, syntax_id);'
 reject_text \
     "src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy" \
     'struct SemanticAstCollectionOwnershipVerdict {'

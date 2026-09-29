@@ -213,6 +213,24 @@ func SemanticAstAssignmentIndexForNode(
     return None;
 }
 
+func SemanticAstAssignmentContainsNode(
+    ref facts: SemanticAstAssignmentFacts,
+    node_id: Int
+) -> Bool {
+    let count: Int = ArrayLength(facts.node_ids);
+    if !facts.ok || node_id < 0 || node_id >= facts.artifact_node_count {
+        return false;
+    }
+    let low: Int = 0;
+    let high: Int = count;
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if facts.node_ids[middle] < node_id { low = middle + 1; }
+        else { high = middle; }
+    }
+    return low < count && facts.node_ids[low] == node_id;
+}
+
 func SemanticAstAssignmentFactsMatchArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,

@@ -51,8 +51,8 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                                 MapGet(active_members, identity.key) > 0 {
                             let source_id: Int =
                                 MapGet(active_members, identity.key);
-                            let assignment_exists: Bool = IsSome(
-                                SemanticAstAssignmentIndexForNode(assignments, syntax_id));
+                            let assignment_exists: Bool =
+                                SemanticAstAssignmentContainsNode(assignments, syntax_id);
                             let is_restore: Bool = false;
                             if root_slot % 3 == AstExpressionLaneAtom() &&
                                 assignment_exists {
