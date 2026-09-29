@@ -6,6 +6,7 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "mir_decl_headers.h"
 
 const MIRMatchBindingTypeFact *
 mir_routine_match_binding_type_fact(const MIRRoutine *routine,
@@ -173,10 +174,11 @@ mir_copy_collection_ownership_facts(MIRRoutine *routine,
                 && source->disposition
                     != PGY_COLLECTION_DISPOSITION_RETIRED)
             || (unsigned)source->origin
-                > (unsigned)PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
+                > (unsigned)PGY_COLLECTION_ORIGIN_CLONE
             || (source->origin == PGY_COLLECTION_ORIGIN_BINDING
                 && source->source_binding_syntax_id == 0)
             || (source->origin != PGY_COLLECTION_ORIGIN_BINDING
+                && source->origin != PGY_COLLECTION_ORIGIN_MEMBER_MOVE
                 && source->source_binding_syntax_id != 0)
             || mir_routine_collection_ownership_fact(
                 routine, source->binding_syntax_id) != NULL) {
@@ -211,6 +213,66 @@ mir_collection_source_local(const MIRRoutine *routine,
     return NULL;
 }
 
+static const char *
+mir_collection_binding_type_name(const MIRRoutine *routine,
+                                 uint32_t binding_syntax_id)
+{
+    const MIRSourceLocalType *local =
+        mir_collection_source_local(routine, binding_syntax_id);
+
+    if (local != NULL)
+        return local->type_name;
+    if (routine == NULL || binding_syntax_id == 0)
+        return NULL;
+    for (size_t i = 0; i < mir_routine_param_count(routine); i++) {
+        FuncParam *param = mir_routine_param(routine, i);
+        if (param != NULL
+            && ast_func_param_stable_id(param) == binding_syntax_id) {
+            return mir_routine_param_type_name(routine, i);
+        }
+    }
+    return NULL;
+}
+
+static bool
+mir_collection_member_source_matches(const MIRRoutine *routine,
+                                     uint32_t source_binding_syntax_id,
+                                     uint32_t field_syntax_id)
+{
+    const char *source_type = mir_collection_binding_type_name(
+        routine, source_binding_syntax_id);
+    const MIRDeclHeader *header = NULL;
+    size_t base_length;
+
+    if (routine == NULL || routine->program == NULL || source_type == NULL
+        || source_type[0] == '\0' || field_syntax_id == 0) {
+        return false;
+    }
+    base_length = strcspn(source_type, "<");
+    for (size_t i = 0; i < routine->program->decl_header_count; i++) {
+        const MIRDeclHeader *candidate = &routine->program->decl_headers[i];
+        const char *name = mir_decl_header_name(candidate);
+        if (name != NULL && strlen(name) == base_length
+            && strncmp(name, source_type, base_length) == 0) {
+            if (header != NULL)
+                return false;
+            header = candidate;
+        }
+    }
+    if (header == NULL)
+        return false;
+    for (size_t i = 0; i < mir_decl_header_field_count(header); i++) {
+        const MIRDeclField *field = mir_decl_header_field(header, i);
+        const char *field_type = mir_decl_field_type_name(field);
+        if (mir_decl_field_source_syntax_id(field) == field_syntax_id
+            && field_type != NULL
+            && strcmp(field_type, "Array<String>") == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool
 mir_validate_collection_ownership_facts(const MIRRoutine *routine,
                                         char **error_message)
@@ -230,7 +292,7 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
         const MIRSourceLocalType *target =
             mir_collection_source_local(routine, fact->binding_syntax_id);
         const MIRCollectionOwnershipFact *source_fact = NULL;
-        const MIRSourceLocalType *source_local = NULL;
+        const char *source_type = NULL;
         bool origin_consistent = false;
 
         if (fact->function_syntax_id != routine->source_syntax_id
@@ -243,12 +305,13 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
             || (fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
                 && fact->disposition != PGY_COLLECTION_DISPOSITION_RETIRED)
             || (fact->disposition == PGY_COLLECTION_DISPOSITION_RETIRED
+                && fact->origin != PGY_COLLECTION_ORIGIN_MEMBER_MOVE
                 && fact->element_ownership
                     != PGY_STRING_ARRAY_OWNED_ELEMENTS
                 && fact->element_ownership
                     != PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)
             || (unsigned)fact->origin
-                > (unsigned)PGY_COLLECTION_ORIGIN_EMPTY_LITERAL) {
+                > (unsigned)PGY_COLLECTION_ORIGIN_CLONE) {
             goto invalid;
         }
         for (size_t prior = 0; prior < i; prior++) {
@@ -260,7 +323,7 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
                 source_fact = &routine->collection_ownership_facts[prior];
         }
         if (fact->source_binding_syntax_id != 0)
-            source_local = mir_collection_source_local(
+            source_type = mir_collection_binding_type_name(
                 routine, fact->source_binding_syntax_id);
 
         switch (fact->origin) {
@@ -289,10 +352,8 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
                     fact->source_binding_syntax_id != 0
                     && fact->source_binding_syntax_id
                         != fact->binding_syntax_id
-                    && source_fact != NULL && source_local != NULL
-                    && source_local->type_name != NULL
-                    && strcmp(source_local->type_name,
-                              "Array<String>") == 0
+                    && source_fact != NULL && source_type != NULL
+                    && strcmp(source_type, "Array<String>") == 0
                     && source_fact->element_ownership
                         == fact->element_ownership
                     && source_fact->disposition
@@ -306,6 +367,27 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
                         == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
                     && fact->source_binding_syntax_id == 0
                     && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE;
+                break;
+            case PGY_COLLECTION_ORIGIN_MEMBER_MOVE:
+                origin_consistent =
+                    fact->element_ownership
+                        == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
+                    && fact->source_binding_syntax_id != 0
+                    && fact->source_binding_syntax_id
+                        != fact->binding_syntax_id
+                    && mir_collection_member_source_matches(
+                        routine, fact->source_binding_syntax_id,
+                        fact->origin_syntax_id)
+                    && (fact->disposition
+                            == PGY_COLLECTION_DISPOSITION_LIVE
+                        || fact->disposition
+                            == PGY_COLLECTION_DISPOSITION_RETIRED);
+                break;
+            case PGY_COLLECTION_ORIGIN_CLONE:
+                origin_consistent =
+                    fact->element_ownership
+                        == PGY_STRING_ARRAY_OWNED_ELEMENTS
+                    && fact->source_binding_syntax_id == 0;
                 break;
         }
         if (!origin_consistent)
@@ -327,8 +409,7 @@ invalid:
                      (unsigned)fact->disposition, (unsigned)fact->origin,
                      target != NULL && target->type_name != NULL
                          ? target->type_name : "<missing>",
-                     source_local != NULL && source_local->type_name != NULL
-                         ? source_local->type_name : "<missing>",
+                      source_type != NULL ? source_type : "<missing>",
                      source_fact != NULL ? "present" : "missing");
             *error_message = pergyra_strdup(detail);
         }

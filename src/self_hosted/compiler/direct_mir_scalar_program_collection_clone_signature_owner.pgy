@@ -1,0 +1,22 @@
+// Exact specialization of Clone for storage-owning scalar Array values.
+
+import "direct_mir_scalar_program_builtin_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
+
+func DirectMirScalarProgramCollectionCloneSignature(
+    ref fact: DirectMirScalarProgramBuiltinSignatureFact,
+    name: String, actual_types: Array<String>, expected_type: String
+) -> DirectMirScalarProgramBuiltinSignatureFact {
+    if name != "Clone" || ArrayLength(actual_types) != 1 ||
+            (actual_types[0] != CompilerAbiLayoutArrayIntTypeName() &&
+             actual_types[0] != CompilerAbiLayoutArrayStringTypeName()) ||
+            (expected_type != "" && expected_type != actual_types[0]) {
+        return DirectMirScalarProgramBuiltinSignatureFactInvalid();
+    }
+    let parameter_types: Array<String> = [actual_types[0]];
+    return DirectMirScalarProgramBuiltinSignatureFact(
+        true, fact.registry_row, fact.name, actual_types[0],
+        parameter_types, DirectMirScalarProgramExprArrayClone(),
+        fact.runtime_call_abi_id
+    );
+}

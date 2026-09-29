@@ -167,6 +167,9 @@ type_check_stdlib_array_call(ASTNode *expr,
             && semantic_collection_reject_unsafe_owned_string_mutation(
                 arg0, op_name, ctx))
             return TYPE_UNKNOWN;
+        if (kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING
+            && !semantic_collection_admit_owned_string_push(arg0, ctx))
+            return TYPE_UNKNOWN;
         val = stdlib_array_normalize_type(
             type_check_expression(arg1, ctx));
         reject_borrowed_boundary_container_store(

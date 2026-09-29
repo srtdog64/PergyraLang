@@ -517,6 +517,32 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             if (src == NULL)
                 return NULL;
             const char *tn = transpiler_expr_infer_type_name(ctx, arg0);
+            if ((tn == NULL || strcmp(tn, "Unknown") == 0)
+                && ctx->expected_type != NULL)
+                tn = ctx->expected_type;
+            if (tn != NULL && transpiler_type_name_is_array(tn)) {
+                const char *inner = NULL;
+                char inner_buf[128];
+                if (!transpiler_resolve_unary_constructed_inner(ctx,
+                        tn, "Array", inner_buf, sizeof(inner_buf), &inner)) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        "C backend: Clone requires concrete Array<T> metadata");
+                    free(src);
+                    return NULL;
+                }
+                transpiler_array_inner_sanitize_suffix(
+                    inner_buf, sizeof(inner_buf), &inner);
+                int tmp_id = ++ctx->tmp_counter;
+                char *result = strdup_fmt(
+                    "({ PgyArray_%s _pgy_array_clone_%d = %s; "
+                    "pgy_array_clone_%s(&_pgy_array_clone_%d); })",
+                    inner, tmp_id, src, inner, tmp_id);
+                free(src);
+                return result;
+            }
             if (tn != NULL && strncmp(tn, "Slot<", 5) == 0) {
                 char inner_buf[128];
                 const char *inner = NULL;

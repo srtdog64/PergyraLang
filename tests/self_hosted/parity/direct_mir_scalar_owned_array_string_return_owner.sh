@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Exact owned Array<String> return reaches C and LLVM and rejects forged ABI.
-# Owned ArrayString return consumes target projection and exact cleanup in C/LLVM.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -91,8 +90,9 @@ for backend in c llvm; do
             fail "C callable omitted the owned Array<String> return type"
         grep -Fq '= pgy_scalar_routine_' "$artifact" ||
             fail "C caller did not store the returned carrier"
-        grep -Fq 'return pgy_local_' "$artifact" ||
-            fail "C callable did not return its local carrier"
+        grep -Fq 'pgy_as pgy_return_' "$artifact" || fail "C callable omitted the explicit return carrier"
+        grep -Eq 'pgy_as pgy_return_[0-9]+ = pgy_local_[0-9]+;' "$artifact" || fail "C callable did not move its local into the return carrier"
+        grep -Eq 'return pgy_return_[0-9]+;' "$artifact" || fail "C callable did not return the moved carrier"
         [[ "$(grep -Fc 'pgy_as_drop_owned(&pgy_local_' "$artifact")" -ge 5 ]] ||
             fail "C caller omitted returned-carrier cleanup"
         command=("$CC" -x c -std=c11 "$artifact")

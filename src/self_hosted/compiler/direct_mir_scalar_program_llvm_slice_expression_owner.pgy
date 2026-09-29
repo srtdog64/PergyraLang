@@ -38,15 +38,24 @@ func DirectMirScalarProgramLlvmSliceExpressionAt(
 ) -> DirectMirScalarProgramLlvmStringExpression {
     if kind != DirectMirScalarProgramExprArraySlice() &&
         kind != DirectMirScalarProgramExprSliceCopy() &&
+        kind != DirectMirScalarProgramExprArrayClone() &&
         kind != DirectMirScalarProgramExprSliceIntIndex() &&
         kind != DirectMirScalarProgramExprSliceStringIndex() {
         return DirectMirScalarProgramLlvmStringExpressionMissing();
     }
     let slice_type: String = result_type;
     if kind == DirectMirScalarProgramExprSliceCopy() ||
+        kind == DirectMirScalarProgramExprArrayClone() ||
         kind == DirectMirScalarProgramExprSliceIntIndex() ||
         kind == DirectMirScalarProgramExprSliceStringIndex() {
         slice_type = left_type;
+    }
+    if kind == DirectMirScalarProgramExprArrayClone() {
+        if left_type == CompilerAbiLayoutArrayIntTypeName() {
+            slice_type = CompilerAbiLayoutSliceIntTypeName();
+        } else if left_type == CompilerAbiLayoutArrayStringTypeName() {
+            slice_type = CompilerAbiLayoutSliceStringTypeName();
+        }
     }
     let type_fact: DirectMirScalarProgramLlvmSliceTypeFact =
         DirectMirScalarProgramLlvmSliceTypeFactFor(slice_type);
@@ -84,6 +93,28 @@ func DirectMirScalarProgramLlvmSliceExpressionAt(
         }
         let instructions: String =
             "  ${result} = call ${llvm_array} @pgy.self.slice.copy.${suffix}(${llvm_slice} ${left})\n";
+        return DirectMirScalarProgramLlvmStringExpression(
+            true, true, instructions, result
+        );
+    }
+    if kind == DirectMirScalarProgramExprArrayClone() {
+        let expected_result: String = type_fact.source_array_type;
+        if left == "" || right != "" || result_type != expected_result ||
+            left_type != expected_result || ArrayLength(arguments) != 0 {
+            return DirectMirScalarProgramLlvmStringExpression(
+                true, false, "", ""
+            );
+        }
+        let data: String = Concat(result, ".data");
+        let length: String = Concat(result, ".length");
+        let with_data: String = Concat(result, ".slice.data");
+        let slice: String = Concat(result, ".slice");
+        let instructions: String =
+            "  ${data} = extractvalue ${llvm_array} ${left}, 0\n" +
+            "  ${length} = extractvalue ${llvm_array} ${left}, 1\n" +
+            "  ${with_data} = insertvalue ${llvm_slice} zeroinitializer, ptr ${data}, 0\n" +
+            "  ${slice} = insertvalue ${llvm_slice} ${with_data}, i64 ${length}, 1\n" +
+            "  ${result} = call ${llvm_array} @pgy.self.slice.copy.${suffix}(${llvm_slice} ${slice})\n";
         return DirectMirScalarProgramLlvmStringExpression(
             true, true, instructions, result
         );
@@ -229,7 +260,8 @@ func DirectMirScalarProgramSliceStringCopyReached(
 ) -> Bool {
     let row: Int = 0;
     while row < ArrayLength(expressions.node_kinds) {
-        if expressions.node_kinds[row] == DirectMirScalarProgramExprSliceCopy() &&
+        if (expressions.node_kinds[row] == DirectMirScalarProgramExprSliceCopy() ||
+                expressions.node_kinds[row] == DirectMirScalarProgramExprArrayClone()) &&
             expressions.node_types[row] == CompilerAbiLayoutArrayStringTypeName() {
             return true;
         }
@@ -243,6 +275,8 @@ func DirectMirScalarProgramSliceCopyReached(
 ) -> Bool {
     return DirectMirScalarProgramExpressionContainsKind(
         expressions, DirectMirScalarProgramExprSliceCopy()
+    ) || DirectMirScalarProgramExpressionContainsKind(
+        expressions, DirectMirScalarProgramExprArrayClone()
     );
 }
 
@@ -271,12 +305,16 @@ func DirectMirScalarProgramLlvmSlicePreamble(
                 type_name == CompilerAbiLayoutSliceIntTypeName()) ||
             (kind == DirectMirScalarProgramExprSliceCopy() &&
                 type_name == CompilerAbiLayoutArrayIntTypeName()) ||
+            (kind == DirectMirScalarProgramExprArrayClone() &&
+                type_name == CompilerAbiLayoutArrayIntTypeName()) ||
             kind == DirectMirScalarProgramExprSliceIntIndex() {
             int_reached = true;
         }
         if (kind == DirectMirScalarProgramExprArraySlice() &&
                 type_name == CompilerAbiLayoutSliceStringTypeName()) ||
             (kind == DirectMirScalarProgramExprSliceCopy() &&
+                type_name == CompilerAbiLayoutArrayStringTypeName()) ||
+            (kind == DirectMirScalarProgramExprArrayClone() &&
                 type_name == CompilerAbiLayoutArrayStringTypeName()) ||
             kind == DirectMirScalarProgramExprSliceStringIndex() {
             string_reached = true;
@@ -310,7 +348,8 @@ func DirectMirScalarProgramLlvmSlicePreamble(
     let int_copy: Bool = false;
     let string_copy: Bool = false;
     while copy_row < ArrayLength(expressions.node_kinds) {
-        if expressions.node_kinds[copy_row] == DirectMirScalarProgramExprSliceCopy() {
+        if expressions.node_kinds[copy_row] == DirectMirScalarProgramExprSliceCopy() ||
+            expressions.node_kinds[copy_row] == DirectMirScalarProgramExprArrayClone() {
             if expressions.node_types[copy_row] == CompilerAbiLayoutArrayIntTypeName() {
                 int_copy = true;
             }

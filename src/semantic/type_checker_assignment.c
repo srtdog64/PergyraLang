@@ -129,6 +129,11 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         value_type = TYPE_UNKNOWN;
     }
 
+    /* A direct field-to-local move may be closed only by assigning that exact
+     * local back to the exact source field.  Record the transition before the
+     * target read so member-use validation sees the restored state. */
+    (void)semantic_collection_restore_moved_member(target, value, ctx);
+
     if (target != NULL && target->type == AST_IDENTIFIER) {
         Symbol *target_sym = lookup_identifier_symbol(target, ctx);
         if (target_sym != NULL && target_sym->type != NULL &&

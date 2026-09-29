@@ -1,4 +1,5 @@
 // Stable normalized identities for the direct-MIR Slice expression family.
+import "direct_mir_scalar_program_array_clone_expression_kind_owner.pgy";
 func DirectMirScalarProgramExprArraySlice() -> Int { return 139; }
 func DirectMirScalarProgramExprSliceCopy() -> Int { return 140; }
 func DirectMirScalarProgramExprSliceIntIndex() -> Int { return 141; }

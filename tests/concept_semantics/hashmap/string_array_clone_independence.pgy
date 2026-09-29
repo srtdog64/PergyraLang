@@ -1,0 +1,10 @@
+// String elements are duplicated too. Releasing the clone must not release
+// the source element or its storage.
+func Main() -> Void {
+    let original: Array<String> = [];
+    ArrayPushOwnedString(original, Concat("", "alpha"));
+    let copied: Array<String> = Clone(original);
+    ArrayDropOwnedStrings(copied);
+    Log(original[0]);
+    ArrayDropOwnedStrings(original);
+}

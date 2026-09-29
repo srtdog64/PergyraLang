@@ -68,6 +68,10 @@ func SelfMirCollectionOriginName(value: Int) -> String {
     if value == SemanticAstCollectionOriginEmptyLiteral() {
         return "empty-literal";
     }
+    if value == SemanticAstCollectionOriginMemberMove() {
+        return "member-move";
+    }
+    if value == SemanticAstCollectionOriginClone() { return "clone"; }
     return "unknown";
 }
 
@@ -129,6 +133,65 @@ func SelfMirCollectionOwnershipInventoryRow(
     return found;
 }
 
+func SelfMirCollectionOwnershipBindingType(
+    ref local_types: Array<String>,
+    ref local_binding_syntax_ids: Array<Int>,
+    ref parameter_types: Array<String>,
+    ref parameter_binding_syntax_ids: Array<Int>,
+    binding_syntax_id: Int
+) -> String {
+    let local_row: Int = SelfMirCollectionOwnershipInventoryRow(
+        local_binding_syntax_ids, binding_syntax_id);
+    if local_row >= 0 { return local_types[local_row]; }
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(parameter_binding_syntax_ids) {
+        if parameter_binding_syntax_ids[row] == binding_syntax_id {
+            if found >= 0 { return ""; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    if found >= 0 { return parameter_types[found]; }
+    return "";
+}
+
+func SelfMirCollectionOwnershipMemberSourceReady(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref local_types: Array<String>,
+    ref local_binding_syntax_ids: Array<Int>,
+    ref parameter_types: Array<String>,
+    ref parameter_binding_syntax_ids: Array<Int>,
+    source_binding_syntax_id: Int,
+    field_syntax_id: Int
+) -> Bool {
+    let source_type: String = SelfMirCollectionOwnershipBindingType(
+        local_types, local_binding_syntax_ids,
+        parameter_types, parameter_binding_syntax_ids,
+        source_binding_syntax_id);
+    if source_type == "" || field_syntax_id <= 0 { return false; }
+    let source_shape: SemanticCanonicalTypeNameFact =
+        SemanticCanonicalTypeNameFactFrom(source_type);
+    let matched: Int = 0;
+    let constructor: Int = 0;
+    while constructor < SemanticAstNominalConstructorCount(constructors) {
+        if constructors.names[constructor] == source_shape.nominal_base_name {
+            let field: Int = 0;
+            while field < constructors.param_counts[constructor] {
+                let row: Int = constructors.param_starts[constructor] + field;
+                if constructors.field_source_syntax_ids[row] == field_syntax_id &&
+                    SemanticCanonicalTypeName(
+                        constructors.param_type_names[row]) == "Array<String>" {
+                    matched = matched + 1;
+                }
+                field = field + 1;
+            }
+        }
+        constructor = constructor + 1;
+    }
+    return matched == 1;
+}
+
 func SelfMirCollectionOwnershipFactRowsAppendRoutine(
     rows: SelfMirCollectionOwnershipFactRows,
     facts: SemanticAstCollectionOwnershipVerdict,
@@ -136,7 +199,10 @@ func SelfMirCollectionOwnershipFactRowsAppendRoutine(
     inventory_ok: Bool,
     ref inventory_names: Array<String>,
     ref inventory_types: Array<String>,
-    ref inventory_binding_syntax_ids: Array<Int>
+    ref inventory_binding_syntax_ids: Array<Int>,
+    ref parameter_types: Array<String>,
+    ref parameter_binding_syntax_ids: Array<Int>,
+    ref constructors: SemanticAstNominalConstructorFacts
 ) -> SelfMirCollectionOwnershipFactRows {
     let starts: Array<Int> = rows.routine_starts;
     let counts: Array<Int> = rows.routine_counts;
@@ -206,6 +272,17 @@ func SelfMirCollectionOwnershipFactRowsAppendRoutine(
                 (origin == SemanticAstCollectionOriginEmptyLiteral() &&
                     ownership == SemanticAstCollectionOwnershipUnknown() &&
                     source_id == 0) ||
+                (origin == SemanticAstCollectionOriginMemberMove() &&
+                    ownership == SemanticAstCollectionOwnershipUnknown() &&
+                    source_id > 0 && source_id != binding_id &&
+                    SelfMirCollectionOwnershipMemberSourceReady(
+                        constructors, inventory_types,
+                        inventory_binding_syntax_ids,
+                        parameter_types, parameter_binding_syntax_ids,
+                        source_id, facts.origin_syntax_ids[row])) ||
+                (origin == SemanticAstCollectionOriginClone() &&
+                    ownership == SemanticAstCollectionOwnershipOwnedElements() &&
+                    source_id == 0) ||
                 (origin == SemanticAstCollectionOriginBinding() &&
                     source_id > 0 && source_id != binding_id &&
                     source_row >= 0 &&
@@ -222,6 +299,7 @@ func SelfMirCollectionOwnershipFactRowsAppendRoutine(
                 (disposition != SemanticAstCollectionDispositionLive() &&
                  disposition != SemanticAstCollectionDispositionRetired()) ||
                 (disposition == SemanticAstCollectionDispositionRetired() &&
+                 origin != SemanticAstCollectionOriginMemberMove() &&
                  ownership != SemanticAstCollectionOwnershipOwnedElements() &&
                  ownership !=
                     SemanticAstCollectionOwnershipMapKeysSnapshot()) ||

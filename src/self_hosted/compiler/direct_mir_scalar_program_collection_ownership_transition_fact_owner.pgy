@@ -6,6 +6,7 @@ func DirectMirCollectionOwnershipStateEmpty() -> Int { return 1; }
 func DirectMirCollectionOwnershipStateBorrowed() -> Int { return 2; }
 func DirectMirCollectionOwnershipStateOwned() -> Int { return 3; }
 func DirectMirCollectionOwnershipStateRetired() -> Int { return 4; }
+func DirectMirCollectionOwnershipStateUnknown() -> Int { return 5; }
 
 struct DirectMirScalarProgramCollectionOwnershipTransitionFact {
     let valid: Bool;
@@ -88,10 +89,16 @@ func DirectMirScalarProgramCollectionOwnershipTransitionFactReady(
     while row < count {
         if fact.routine_ordinals[row] < 0 || fact.local_rows[row] < 0 ||
             fact.binding_syntax_ids[row] <= 0 ||
-            fact.terminal_states[row] <
-                DirectMirCollectionOwnershipStateEmpty() ||
-            fact.terminal_states[row] >
-                DirectMirCollectionOwnershipStateRetired() {
+            (fact.terminal_states[row] !=
+                DirectMirCollectionOwnershipStateEmpty() &&
+             fact.terminal_states[row] !=
+                DirectMirCollectionOwnershipStateBorrowed() &&
+             fact.terminal_states[row] !=
+                DirectMirCollectionOwnershipStateOwned() &&
+             fact.terminal_states[row] !=
+                DirectMirCollectionOwnershipStateRetired() &&
+             fact.terminal_states[row] !=
+                DirectMirCollectionOwnershipStateUnknown()) {
             return false;
         }
         let prior: Int = 0;

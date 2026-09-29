@@ -1,0 +1,89 @@
+// Target-neutral collection operation effects and state transitions.
+//
+// Admission joins receipts to operations; this owner alone decides which
+// operation changes a tracked collection and whether that transition is legal.
+
+import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_cfg_op_code_owner.pgy";
+
+func DirectMirCollectionOwnershipExpectedOperationEffect(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    operation: Int,
+    inout local_row: Int
+) -> Int {
+    local_row = -1;
+    if operation < 0 || operation >= ArrayLength(storage.operations.kinds) {
+        return 0;
+    }
+    let operation_kind: Int = storage.operations.kinds[operation];
+    if operation_kind == DirectMirScalarCfgOpLocalArrayStringPush() ||
+        operation_kind == DirectMirScalarCfgOpArrayStringSet() ||
+        operation_kind == DirectMirScalarCfgOpArrayStringPop() {
+        local_row = storage.operations.left_locals[operation];
+        return 2;
+    }
+    if operation_kind != DirectMirScalarCfgOpExpressionStatement() {
+        return 0;
+    }
+    let graph: Int = storage.operations.expression_rows[operation];
+    if graph < 0 || graph >= ArrayLength(expressions.graph_roots) {
+        return 0;
+    }
+    let root: Int = expressions.graph_roots[graph];
+    if root < 0 || root >= ArrayLength(expressions.node_kinds) {
+        return 0;
+    }
+    let effect: Int = 0;
+    if expressions.node_kinds[root] ==
+            DirectMirScalarProgramExprArrayStringPushOwned() {
+        effect = 1;
+    } else if expressions.node_kinds[root] ==
+            DirectMirScalarProgramExprArrayStringDropOwned() {
+        effect = 3;
+    }
+    if effect == 0 { return 0; }
+    let receiver: Int = expressions.node_lefts[root];
+    if receiver < 0 || receiver >= ArrayLength(expressions.node_kinds) ||
+        expressions.node_kinds[receiver] != DirectMirScalarProgramExprLocal() {
+        return 0;
+    }
+    local_row = expressions.node_local_rows[receiver];
+    return effect;
+}
+
+func DirectMirCollectionOwnershipNextState(
+    state: Int,
+    effect: Int
+) -> Int {
+    if effect == 1 &&
+        (state == DirectMirCollectionOwnershipStateEmpty() ||
+         state == DirectMirCollectionOwnershipStateOwned()) {
+        return DirectMirCollectionOwnershipStateOwned();
+    }
+    if effect == 2 &&
+        (state == DirectMirCollectionOwnershipStateEmpty() ||
+         state == DirectMirCollectionOwnershipStateBorrowed()) {
+        return DirectMirCollectionOwnershipStateBorrowed();
+    }
+    if effect == 3 &&
+        (state == DirectMirCollectionOwnershipStateEmpty() ||
+         state == DirectMirCollectionOwnershipStateOwned()) {
+        return DirectMirCollectionOwnershipStateRetired();
+    }
+    // A member move owns its descriptor/storage but carries no proof that
+    // every String element is releasable. Shallow mutation preserves that
+    // uncertainty; deep release or owned-element mixing must not be inferred.
+    if effect == 2 &&
+        state == DirectMirCollectionOwnershipStateUnknown() {
+        return DirectMirCollectionOwnershipStateUnknown();
+    }
+    return 0;
+}
+
+func DirectMirCollectionOwnershipOperationKindProducesRow(kind: String) -> Bool {
+    return kind == "def" || kind == "assign" || kind == "stmt" ||
+        kind == "phi";
+}

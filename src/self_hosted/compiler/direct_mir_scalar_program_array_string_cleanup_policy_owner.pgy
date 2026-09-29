@@ -68,7 +68,8 @@ func DirectMirScalarProgramArrayStringCleanupDropSymbol(
         let state: Int = plan.program.collection_ownership.
             terminal_states[transition_row];
         if state == DirectMirCollectionOwnershipStateEmpty() ||
-            state == DirectMirCollectionOwnershipStateBorrowed() {
+            state == DirectMirCollectionOwnershipStateBorrowed() ||
+            state == DirectMirCollectionOwnershipStateUnknown() {
             return CollectionRuntimeCDropStorageFn(2);
         }
         if state == DirectMirCollectionOwnershipStateOwned() {

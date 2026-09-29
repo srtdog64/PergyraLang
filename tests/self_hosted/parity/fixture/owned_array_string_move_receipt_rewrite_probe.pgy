@@ -37,7 +37,8 @@ func RewriteProbeMoveReceipts(
             prior_program.logical_record, prior_program.referenced_enum,
             prior_program.payload_free_enum, prior_program.array_int_value_result,
             prior_program.array_bool_abi, prior_program.array_string_abi,
-            prior_program.array_string_boundary, move_fact);
+            prior_program.array_string_boundary,
+            prior_program.collection_ownership, move_fact);
     program_fact = DirectMirScalarCfgProgramExtensionFactWithDigest(
         program_fact, DirectMirScalarCfgProgramExtensionFactDigest(program_fact));
     let rewritten: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgGraphPlan(

@@ -33,7 +33,9 @@ typedef enum
     PGY_COLLECTION_ORIGIN_BORROWED_LITERAL,
     PGY_COLLECTION_ORIGIN_MAP_KEYS,
     PGY_COLLECTION_ORIGIN_BINDING,
-    PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
+    PGY_COLLECTION_ORIGIN_EMPTY_LITERAL,
+    PGY_COLLECTION_ORIGIN_MEMBER_MOVE,
+    PGY_COLLECTION_ORIGIN_CLONE
 } PgyCollectionOrigin;
 
 typedef enum
@@ -67,6 +69,19 @@ bool semantic_collection_ownership_initialize_binding(
 bool semantic_collection_reject_unsafe_owned_string_mutation(
     ASTNode *receiver,
     const char *operation,
+    SemanticContext *ctx);
+
+bool semantic_collection_reject_moved_member_use(
+    ASTNode *member_access,
+    SemanticContext *ctx);
+
+bool semantic_collection_admit_owned_string_push(
+    ASTNode *receiver,
+    SemanticContext *ctx);
+
+bool semantic_collection_restore_moved_member(
+    ASTNode *target,
+    ASTNode *value,
     SemanticContext *ctx);
 
 bool semantic_collection_admit_owned_string_drop(

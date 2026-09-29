@@ -1,0 +1,22 @@
+// C projection for the explicit Clone ownership boundary.
+
+import "../../semantic/array_type_shape_owner.pgy";
+import "../runtime_abi/collection_runtime_owner.pgy";
+import "function_binding_env_owner.pgy";
+
+func RewriteSemanticCloneCall(
+    clone_type_name: String, argument: String, env: CodegenTypeEnv
+) -> String {
+    let array_element: Option<String> =
+        SemanticArrayElementType(clone_type_name);
+    if !IsSome(array_element) {
+        // Nominal/scalar values retain their established by-value projection.
+        return argument;
+    }
+    let runtime: CollectionRuntimeFact =
+        CollectionRuntimeFactFromTypeName(clone_type_name, env);
+    let clone_fn: String = CollectionRuntimeCCloneFn(
+        CollectionRuntimeKindCode(runtime.kind)
+    );
+    return "({ ${runtime.c_array_type} __pgy_clone_source = ${argument}; ${clone_fn}(&__pgy_clone_source); })";
+}

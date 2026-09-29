@@ -1,0 +1,11 @@
+struct Accumulator {
+    pieces: Array<String>;
+}
+
+// A field move transfers descriptor/storage ownership, not proof that every
+// existing String element may participate in an owned whole-array cleanup.
+func Main() -> Void {
+    let acc: Accumulator = Accumulator(["borrowed"]);
+    let pieces: Array<String> = acc.pieces;
+    ArrayPushOwnedString(pieces, Concat("owned", "-value"));
+}

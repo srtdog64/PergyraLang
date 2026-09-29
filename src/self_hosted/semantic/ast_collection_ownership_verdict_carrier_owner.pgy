@@ -1,0 +1,77 @@
+// Collection-ownership verdict carrier and its canonical constructors.
+//
+// State policy lives in ast_collection_ownership_state_owner.pgy; callers must
+// not rebuild success/error carriers with a parallel field order.
+
+import "ast_collection_ownership_receipt_owner.pgy";
+
+struct SemanticAstCollectionOwnershipVerdict {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    syntax_node_id: Int;
+    expression_node_id: Int;
+    function_syntax_ids: Array<Int>;
+    binding_syntax_ids: Array<Int>;
+    origin_syntax_ids: Array<Int>;
+    source_binding_syntax_ids: Array<Int>;
+    element_ownerships: Array<Int>;
+    dispositions: Array<Int>;
+    origins: Array<Int>;
+    receipts: SemanticAstCollectionOwnershipReceiptRows;
+}
+
+func SemanticAstCollectionOwnershipVerdictOk(
+) -> SemanticAstCollectionOwnershipVerdict {
+    let function_syntax_ids: Array<Int> = [];
+    let binding_syntax_ids: Array<Int> = [];
+    let origin_syntax_ids: Array<Int> = [];
+    let source_binding_syntax_ids: Array<Int> = [];
+    let element_ownerships: Array<Int> = [];
+    let dispositions: Array<Int> = [];
+    let origins: Array<Int> = [];
+    return SemanticAstCollectionOwnershipVerdict(
+        true, "", "", -1, -1,
+        function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
+        source_binding_syntax_ids, element_ownerships, dispositions, origins,
+        SemanticAstCollectionOwnershipReceiptRowsEmpty()
+    );
+}
+
+func SemanticAstCollectionOwnershipVerdictOkWithFacts(
+    function_syntax_ids: Array<Int>,
+    binding_syntax_ids: Array<Int>,
+    origin_syntax_ids: Array<Int>,
+    source_binding_syntax_ids: Array<Int>,
+    element_ownerships: Array<Int>,
+    dispositions: Array<Int>,
+    origins: Array<Int>,
+    receipts: SemanticAstCollectionOwnershipReceiptRows
+) -> SemanticAstCollectionOwnershipVerdict {
+    return SemanticAstCollectionOwnershipVerdict(
+        true, "", "", -1, -1,
+        function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
+        source_binding_syntax_ids, element_ownerships, dispositions, origins,
+        receipts
+    );
+}
+
+func SemanticAstCollectionOwnershipVerdictError(
+    code: String, message: String,
+    syntax_node_id: Int, expression_node_id: Int
+) -> SemanticAstCollectionOwnershipVerdict {
+    let function_syntax_ids: Array<Int> = [];
+    let binding_syntax_ids: Array<Int> = [];
+    let origin_syntax_ids: Array<Int> = [];
+    let source_binding_syntax_ids: Array<Int> = [];
+    let element_ownerships: Array<Int> = [];
+    let dispositions: Array<Int> = [];
+    let origins: Array<Int> = [];
+    return SemanticAstCollectionOwnershipVerdict(
+        false, code, message,
+        syntax_node_id, expression_node_id,
+        function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
+        source_binding_syntax_ids, element_ownerships, dispositions, origins,
+        SemanticAstCollectionOwnershipReceiptRowsEmpty()
+    );
+}

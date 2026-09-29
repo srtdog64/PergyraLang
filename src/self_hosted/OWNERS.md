@@ -576,6 +576,14 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   stable local-binding ownership and disposition facts for `Array<String>`
   elements at call boundaries. It consumes the admitted expression graph and
   forbids MIR or backend inference from projected collection type spelling.
+- `src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy` --
+  stable collection element-ownership, disposition, origin, and transition
+  identities. The verdict owner applies transitions; consumers may not
+  reconstruct these facts from type spelling or backend layout.
+- `src/self_hosted/semantic/ast_collection_ownership_verdict_carrier_owner.pgy`
+  -- the canonical collection verdict schema and success/error constructors.
+  State and transition policy remain outside this carrier owner; consumers may
+  not rebuild a parallel field order.
 - `src/self_hosted/semantic/ast_collection_ownership_receipt_owner.pgy` --
   stable semantic event rows for owned push, shallow mutation, and explicit
   drop. Call identity is consumed at MIR attachment; the persisted receipt is
@@ -588,6 +596,14 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- exact local-to-local `Array<String>` assignment identity. It reports the
   source and target binding rows; the verdict owner remains the sole state
   policy and rejects a tracked shallow alias.
+- `src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy` --
+  stable root-binding plus declared-field identity for direct
+  `Array<String>` extraction. It does not model ordinary values as Slots or
+  infer a field from flattened text.
+- `src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy`
+  -- ordered member-move, exact move-back, and retired-local transitions over
+  the admitted expression graph. Only the matching root, declared field, and
+  local binding restore ownership; every other reuse fails closed.
 - `src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy` --
   operand diagnostics for fully graph-owned scalar operator trees.
 - `src/self_hosted/semantic/ast_expression_graph_view_owner.pgy` -- borrowed
@@ -2032,6 +2048,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   call-spine and simple member-access consumption, ordered argument projection,
   parameter-mode handling, receiver insertion, and runtime/constructor/method
   symbol fact consumption, delegating List family calls to their named owner.
+- `src/self_hosted/codegen/emission/expr_semantic_clone_call_emit_owner.pgy` --
+  explicit Clone ownership-boundary projection. Storage-owning arrays call the
+  typed deep-clone runtime ABI; scalar and nominal values retain their admitted
+  by-value projection.
 - `src/self_hosted/codegen/emission/expr_semantic_slice_call_emit_owner.pgy` --
   exact C projection for `Array.Slice` view construction and `SliceCopy`
   ownership transfer from semantic call-spine and type facts.
@@ -3864,6 +3884,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   `Print` specialization admits exactly `String -> Void`; expression readiness
   and C/LLVM String emitters consume the canonical `string|print|pgy_print`
   runtime row without rewriting Print as newline-producing Log.
+- `src/self_hosted/compiler/direct_mir_scalar_program_collection_clone_signature_owner.pgy`
+  -- exact `Clone(Array<Int>|Array<String>)` specialization. It seals the
+  result and parameter type to the same storage-owning array identity and
+  selects the explicit array-clone expression kind.
 - `src/self_hosted/compiler/direct_mir_scalar_program_slice_builtin_owner.pgy`
   and
   `src/self_hosted/compiler/direct_mir_scalar_program_slice_expression_readiness_owner.pgy`
@@ -3942,6 +3966,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_readiness_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy`,
   and
@@ -3953,8 +3978,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   instruction-use and LocalRef receipts, plus semantic readiness and the
   stable expression kind identity.
   The transition owners parse instruction-bound receipts, join the exact
-  declaration LocalRef and empty-origin fact, and seal the one-block first
-  slice as EMPTY/BORROWED/OWNED/RETIRED. The cleanup policy consumes that
+  declaration LocalRef and empty-origin fact, own operation effects and legal
+  state changes, and seal the one-block first slice as
+  EMPTY/BORROWED/OWNED/RETIRED. The cleanup policy consumes that
   sealed plan for tracked locals; its legacy operation scan is restricted to
   untracked rows and is not an alternate transition authority. The obsolete
   one-literal program boundary is not an alternate cleanup authority.

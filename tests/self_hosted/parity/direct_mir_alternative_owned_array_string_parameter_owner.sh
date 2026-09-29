@@ -36,8 +36,12 @@ MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$SOURCE" -o "$MIR_REL") \
     || fail "positive MIR production failed"
-[[ "$(wc -c <"$MIR" | tr -d ' ')" == 16171 ]] ||
+[[ "$(wc -c <"$MIR" | tr -d ' ')" == 19028 ]] ||
     fail "positive MIR size drifted"
+[[ "$(grep -o '"collection_ownership_fact_count":' "$MIR" | wc -l | tr -d ' ')" == 3 ]] ||
+    fail "positive MIR omitted routine-owned collection fact counts"
+grep -Fq '"collection_ownership_fact_count":1,"collection_ownership_facts":[{"function_syntax_id":8,"binding_syntax_id":14' "$MIR" ||
+    fail "positive MIR omitted the stable EMPTY collection owner row"
 printf 'branch-released\nbranch-released\n' >"$WORK_DIR/expected.run"
 
 for backend in c llvm; do

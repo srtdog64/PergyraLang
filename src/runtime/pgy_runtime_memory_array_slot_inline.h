@@ -213,6 +213,7 @@ typedef struct { \
 } PgySlice_##SuffixName; \
 static inline PgyArray_##SuffixName pgy_array_new_in_##SuffixName(PgyAllocator *, size_t); \
 static inline PgyArray_##SuffixName pgy_array_new_##SuffixName(size_t); \
+static inline PgyArray_##SuffixName pgy_array_clone_##SuffixName(PgyArray_##SuffixName *); \
 static inline void pgy_array_drop_##SuffixName(PgyArray_##SuffixName *); \
 static inline void pgy_array_reserve_##SuffixName(PgyArray_##SuffixName *, size_t); \
 static inline void pgy_array_push_##SuffixName(PgyArray_##SuffixName *, CType); \
@@ -245,6 +246,23 @@ static inline PgyArray_##SuffixName \
 pgy_array_new_##SuffixName(size_t capacity) \
 { \
     return pgy_array_new_in_##SuffixName(NULL, capacity); \
+} \
+\
+static inline PgyArray_##SuffixName \
+pgy_array_clone_##SuffixName(PgyArray_##SuffixName *arr) \
+{ \
+    PgyArray_##SuffixName out; \
+    if (arr == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "array clone on null array"); \
+    if (arr->length > 0 && arr->data == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "array clone on array without backing storage"); \
+    out = pgy_array_new_##SuffixName(arr->length); \
+    for (size_t i = 0; i < arr->length; i++) \
+        pgy_array_push_##SuffixName(&out, \
+            PGY_ARRAY_COPY_VALUE_##SuffixName(arr->data[i])); \
+    return out; \
 } \
 \
 static inline void \

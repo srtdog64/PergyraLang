@@ -455,6 +455,9 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
 
     Type *object_type = type_check_expression(member_object, ctx);
 
+    if (semantic_collection_reject_moved_member_use(expr, ctx))
+        return TYPE_UNKNOWN;
+
     Type *projection_field = expr_ops_projection_member(expr, member_object,
         member_name, object_type, ctx);
     if (projection_field != NULL)

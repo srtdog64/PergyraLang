@@ -13,6 +13,7 @@ import "../runtime_abi/result_runtime_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "expr_semantic_call_argument_owner.pgy";
+import "expr_semantic_clone_call_emit_owner.pgy";
 import "call_argument_order_owner.pgy";
 import "expr_semantic_identity_bound_call_emit_owner.pgy";
 import "list_call_emit_owner.pgy";
@@ -366,19 +367,16 @@ func RewriteSemanticDirectCall(
         if ArrayLength(view.argument_nodes) != 1 {
             Die("Clone call requires exactly one argument graph");
         }
-        // Clone is an explicit ownership boundary in the language.  For the
-        // currently admitted by-value nominal ABI the C operation is the
-        // carried value itself, not an undeclared runtime call.
         let clone_type: Option<String> = CodegenExpressionTypeFromGraph(
             graph, view.argument_nodes[0], env
         );
         if !IsSome(clone_type) {
             Die("Clone call argument type fact is missing");
         }
-        return RewriteSemanticCallArgument(
-            graph, view.argument_nodes[0], UnwrapOption(clone_type),
-            "default", env
-        );
+        return RewriteSemanticCloneCall(
+            UnwrapOption(clone_type),
+            RewriteSemanticCallArgument(graph, view.argument_nodes[0],
+                UnwrapOption(clone_type), "default", env), env);
     }
     if LookupKindType(env, source_name, "s") == "struct" {
         return RewriteSemanticStructCall(graph, view, source_name, env);

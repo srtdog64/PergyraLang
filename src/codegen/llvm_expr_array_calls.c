@@ -255,6 +255,67 @@ llvm_slice_value_suffix(LLVMGenCtx *ctx, LLVMValueRef slice)
     return NULL;
 }
 
+static const char *
+llvm_array_value_suffix(LLVMGenCtx *ctx, LLVMValueRef array)
+{
+    LLVMTypeRef ty;
+
+    if (ctx == NULL || array == NULL)
+        return NULL;
+    ty = LLVMTypeOf(array);
+    if (ty == ctx->array_type_Int)    return "Int";
+    if (ty == ctx->array_type_Long)   return "Long";
+    if (ty == ctx->array_type_Float)  return "Float";
+    if (ty == ctx->array_type_Double) return "Double";
+    if (ty == ctx->array_type_Bool)   return "Bool";
+    if (ty == ctx->array_type_String) return "String";
+    return NULL;
+}
+
+bool
+llvm_emit_array_clone_value(ASTNode *node, LLVMGenCtx *ctx,
+                            LLVMValueRef value, LLVMValueRef *out)
+{
+    LLVMTypeRef value_type;
+    const char *type_name;
+    const char *suffix;
+    LLVMFuncEntry *fn;
+    LLVMValueRef address;
+    LLVMValueRef args[1];
+
+    if (out == NULL || ctx == NULL || value == NULL)
+        return false;
+    value_type = LLVMTypeOf(value);
+    if (LLVMGetTypeKind(value_type) != LLVMStructTypeKind)
+        return false;
+    type_name = LLVMGetStructName(value_type);
+    if (type_name == NULL || strncmp(type_name, "PgyArray_", 9) != 0)
+        return false;
+
+    suffix = llvm_array_value_suffix(ctx, value);
+    if (suffix == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM Clone requires a runtime-owned concrete Array<T> element type");
+        *out = NULL;
+        return true;
+    }
+    fn = llvm_array_required_suffix_runtime(ctx, node,
+        "Clone", "pgy_array_clone", suffix,
+        "LLVM Clone requires registered array-clone runtime function", out);
+    if (fn == NULL)
+        return true;
+
+    address = llvm_create_entry_alloca(ctx, value_type, "array.clone.addr");
+    LLVMBuildStore(ctx->builder, value, address);
+    args[0] = address;
+    *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+        args, 1, llvm_tmp_name(ctx));
+    return true;
+}
+
 /* ArrayMap/ArrayFilter: resolve the receiver, then hand the counted loop
  * to the higher-order owner. */
 static bool

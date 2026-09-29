@@ -103,7 +103,9 @@ for backend in c llvm; do
             fail "LLVM callable omitted early/fallthrough copy-out"
         grep -Fq 'call void @pgy_as_push(ptr %pgy.param.1.local' "$artifact" ||
             fail "LLVM callable did not mutate its copy-in carrier"
-        grep -Fq 'call void @pgy_as_push_owned(ptr %pgy.param.0.local, ptr %pgy.param.1)' "$artifact" ||
+        grep -Eq '%pgy\.expr\.[0-9]+\.[0-9]+ = load ptr, ptr %pgy\.param\.1\.local' "$artifact" ||
+            fail "LLVM owned push did not read the copied-in String parameter"
+        grep -Eq 'call void @pgy_as_push_owned\(ptr %pgy\.param\.0\.local, ptr %pgy\.expr\.[0-9]+\.[0-9]+\)' "$artifact" ||
             fail "LLVM owned push did not preserve the owned-string ABI"
         grep -Fq 'call void @pgy.scalar.routine.1(i64 2, ptr %pgy.local.' "$artifact" ||
             fail "LLVM caller did not pass an addressable local"

@@ -11,6 +11,9 @@ PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy"
 IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy"
+STATE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy"
+MEMBER_MOVE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy"
+MEMBER_TRANSITION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy"
 BUNDLE="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
 WORK_REL=".tmp/self_hosted/collection_ownership_semantic_owner"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
@@ -31,7 +34,15 @@ grep -Fq 'TypedAstKindArrayPushStmtTag()' "$OWNER" ||
     fail "owner ignores parser-owned collection mutation statements"
 grep -Fq 'SemanticAstCollectionOwnershipVerdictFromResolvedFacts(' "$BUNDLE" ||
     fail "body admission does not consume collection ownership verdict"
-! grep -Fq 'Slot<' "$OWNER" "$IDENTITY_OWNER" ||
+grep -Fq 'SemanticAstCollectionMemberMoveIdentityForNode(' "$MEMBER_MOVE_OWNER" ||
+    fail "aggregate member move lacks one stable identity owner"
+grep -Fq 'SemanticAstCollectionFirstInvalidMemberMoveUse(' \
+    "$MEMBER_TRANSITION_OWNER" ||
+    fail "aggregate member move lacks ordered transition validation"
+grep -Fq 'SemanticAstCollectionOriginClone()' "$STATE_OWNER" ||
+    fail "explicit Clone origin is missing from the collection state owner"
+! grep -Fq 'Slot<' "$OWNER" "$IDENTITY_OWNER" "$STATE_OWNER" \
+        "$MEMBER_MOVE_OWNER" "$MEMBER_TRANSITION_OWNER" ||
     fail "ordinary collection ownership imported Slot semantics"
 
 rm -rf "$WORK_DIR"
@@ -50,6 +61,8 @@ NEGATIVE_CASES=(
     map_keys_shallow_pop
     map_keys_shallow_copy
     map_keys_double_drop
+    collection_field_owned_push
+    collection_field_deep_drop
 )
 
 for name in "${NEGATIVE_CASES[@]}"; do
@@ -190,6 +203,98 @@ for backend in c llvm; do
         -o "$WORK_REL/valid-$backend.exe") \
         >"$WORK_DIR/valid-$backend.out" 2>"$WORK_DIR/valid-$backend.err" ||
         fail "public $backend path rejected valid owned drop"
+done
+
+# Explicit Clone and aggregate member moves are source-level ownership
+# transitions, not backend guesses. Exercise the installed self-host producer,
+# public route, and native oracle on both targets.
+MOVE_CLONE_CASES=(
+    array_clone_independence
+    string_array_clone_independence
+    collection_field_move_valid
+    collection_field_restore_valid
+)
+for name in "${MOVE_CLONE_CASES[@]}"; do
+    source="tests/concept_semantics/hashmap/$name.pgy"
+    mir_rel="$WORK_REL/$name.mir.json"
+    (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+        "$source" -o "$mir_rel") >"$WORK_DIR/$name-self.out" \
+        2>"$WORK_DIR/$name-self.err" ||
+        fail "installed self-host rejected $name"
+    [[ -s "$ROOT_DIR/$mir_rel" ]] ||
+        fail "installed self-host emitted no MIR for $name"
+    if [[ "$name" == string_array_clone_independence ]]; then
+        grep -Fq '"origin":"clone"' "$ROOT_DIR/$mir_rel" ||
+            fail "Clone ownership origin was not carried into MIR"
+    elif [[ "$name" == collection_field_move_valid ||
+            "$name" == collection_field_restore_valid ]]; then
+        grep -Fq '"origin":"member-move"' "$ROOT_DIR/$mir_rel" ||
+            fail "aggregate member-move origin was not carried into MIR"
+    fi
+
+    expected="$WORK_DIR/$name.expected"
+    if [[ "$name" == array_clone_independence ]]; then
+        printf '1\n99\n' >"$expected"
+    elif [[ "$name" == string_array_clone_independence ]]; then
+        printf 'alpha\n' >"$expected"
+    else
+        printf 'moved\n' >"$expected"
+    fi
+    for backend in c llvm; do
+        for lane in public native; do
+            output_rel="$WORK_REL/$name-$lane-$backend.exe"
+            command=("$PGY")
+            [[ "$lane" == native ]] && command+=(--native-pipeline)
+            command+=("$source" "--backend=$backend" --run -o "$output_rel")
+            (cd "$ROOT_DIR" && "${command[@]}") \
+                >"$WORK_DIR/$name-$lane-$backend.out" \
+                2>"$WORK_DIR/$name-$lane-$backend.err" ||
+                fail "$lane $backend path rejected $name"
+            tr -d '\r' <"$WORK_DIR/$name-$lane-$backend.out" |
+                sed '/^pgy:/d' >"$WORK_DIR/$name-$lane-$backend.run"
+            cmp -s "$expected" "$WORK_DIR/$name-$lane-$backend.run" ||
+                fail "$lane $backend runtime output drifted for $name"
+        done
+    done
+done
+
+MOVE_NEGATIVE_CASES=(
+    collection_field_use_after_move
+    collection_field_restored_local_use
+)
+for name in "${MOVE_NEGATIVE_CASES[@]}"; do
+    source="tests/concept_semantics/hashmap/$name.pgy"
+    self_rel="$WORK_REL/$name-self.mir.json"
+    if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+        "$source" -o "$self_rel") >"$WORK_DIR/$name-self.out" \
+        2>"$WORK_DIR/$name-self.err"; then
+        fail "installed self-host accepted $name"
+    fi
+    [[ ! -e "$ROOT_DIR/$self_rel" ]] ||
+        fail "installed self-host published MIR for rejected $name"
+    grep -Fq 'move_from_released' \
+        "$WORK_DIR/$name-self.out" "$WORK_DIR/$name-self.err" ||
+        fail "installed self-host lost move diagnostic for $name"
+
+    for backend in c llvm; do
+        for lane in public native; do
+            output_rel="$WORK_REL/$name-$lane-$backend.exe"
+            command=("$PGY")
+            [[ "$lane" == native ]] && command+=(--native-pipeline)
+            command+=("$source" "--backend=$backend" -o "$output_rel")
+            if (cd "$ROOT_DIR" && "${command[@]}") \
+                >"$WORK_DIR/$name-$lane-$backend.out" \
+                2>"$WORK_DIR/$name-$lane-$backend.err"; then
+                fail "$lane $backend path accepted $name"
+            fi
+            [[ ! -e "$ROOT_DIR/$output_rel" ]] ||
+                fail "$lane $backend path published rejected $name"
+            grep -Eq '(move_from_released|was moved|moved or released)' \
+                "$WORK_DIR/$name-$lane-$backend.out" \
+                "$WORK_DIR/$name-$lane-$backend.err" ||
+                fail "$lane $backend path lost move diagnostic for $name"
+        done
+    done
 done
 
 echo "[$LABEL] native fact -> installed self-host -> public C/LLVM ownership parity PASS"

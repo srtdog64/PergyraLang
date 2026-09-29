@@ -1,0 +1,63 @@
+// Stable direct-field identity and one-pass use-after-move detection for
+// Array<String> extraction. A field-to-local value transfer is a move; Clone
+// is the explicit operation that preserves both source and destination.
+
+import "ast_expression_graph_member_view_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+import "ast_local_binding_identity_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+
+struct SemanticAstCollectionMemberMoveIdentity {
+    ok: Bool;
+    key: String;
+    source_binding_syntax_id: Int;
+    field_syntax_id: Int;
+}
+
+func SemanticAstCollectionMemberMoveIdentityForNode(
+    artifact: AstTreeArtifact,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    function_node_id: Int, use_node_id: Int,
+    ref graph: SemanticExpressionGraphFacts, node_id: Int
+) -> SemanticAstCollectionMemberMoveIdentity {
+    let unresolved: SemanticAstCollectionMemberMoveIdentity =
+        SemanticAstCollectionMemberMoveIdentity(false, "", 0, 0);
+    let member: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(graph, node_id);
+    if !member.ok { return unresolved; }
+    let root: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, inferred_types, function_node_id,
+            use_node_id, graph, member.receiver_node);
+    let field_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, member.member_node);
+    if !root.ok || !IsSome(field_name) { return unresolved; }
+    let root_type: SemanticCanonicalTypeNameFact =
+        SemanticCanonicalTypeNameFactFrom(root.type_name);
+    let constructor: Int = 0;
+    while constructor < SemanticAstNominalConstructorCount(constructors) {
+        if constructors.names[constructor] == root_type.nominal_base_name {
+            let field: Int = 0;
+            while field < constructors.param_counts[constructor] {
+                let row: Int = constructors.param_starts[constructor] + field;
+                if constructors.field_names[row] == UnwrapOption(field_name) {
+                    let field_id: Int =
+                        constructors.field_source_syntax_ids[row];
+                    let key: String = Concat(
+                        ToString(function_node_id),
+                        Concat(":", Concat(ToString(root.declaration_node_id),
+                            Concat(":", ToString(field_id)))));
+                    return SemanticAstCollectionMemberMoveIdentity(
+                        true, key, root.declaration_node_id, field_id);
+                }
+                field = field + 1;
+            }
+            return unresolved;
+        }
+        constructor = constructor + 1;
+    }
+    return unresolved;
+}

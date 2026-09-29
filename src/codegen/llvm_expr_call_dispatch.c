@@ -65,8 +65,16 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMCallInlineOp inline_op = llvm_call_inline_lookup(callee_name, argc);
 
-    if (inline_op == LLVM_CALL_INLINE_OP_CLONE)
-        return llvm_emit_expression(ast_call_argument(node, 0), ctx);
+    if (inline_op == LLVM_CALL_INLINE_OP_CLONE) {
+        LLVMValueRef value = llvm_emit_expression(
+            ast_call_argument(node, 0), ctx);
+        LLVMValueRef clone = NULL;
+        if (value == NULL)
+            return NULL;
+        if (llvm_emit_array_clone_value(node, ctx, value, &clone))
+            return clone;
+        return value;
+    }
 
     {
         LLVMValueRef constructor_value = llvm_emit_constructor_call(node, ctx, callee_name);

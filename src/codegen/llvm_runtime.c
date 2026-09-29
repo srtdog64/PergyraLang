@@ -370,6 +370,14 @@ llvm_declare_runtime_entrypoints(LLVMGenCtx *ctx)
           }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, arr_ty); }
+        { LLVMTypeRef params[] = { arr_ptr_ty };
+          LLVMTypeRef ft = LLVMFunctionType(arr_ty, params, 1, 0);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "array_clone", suffix)) {
+              llvm_set_error(ctx, "Array clone runtime name is too long");
+              return;
+          }
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, arr_ty); }
         { LLVMTypeRef params[] = {
               ctx->type_i64, LLVMPointerType(ctx->type_allocator, 0) };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_i8ptr, params, 2, 0);

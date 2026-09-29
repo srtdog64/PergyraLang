@@ -37,16 +37,58 @@ func DirectMirScalarProgramCSliceRuntimeFact(
     );
 }
 
+// The direct-MIR carrier is the admitted four-field public ABI projection,
+// not the three-field collection runtime used to build the self-host binary.
+// Clone therefore owns a distinct materialization instead of pretending the
+// source Array is a Slice and accidentally reopening the other layout.
+func DirectMirScalarProgramCArrayCloneBlock(
+    fact: SliceRuntimeFact
+) -> String {
+    if !fact.ok || (fact.element_type != "Int" &&
+            fact.element_type != "String") {
+        Die("direct MIR C Array Clone runtime fact is invalid");
+    }
+    let clone_fn: String = CollectionRuntimeCCloneFn(
+        CollectionRuntimeKindCode(Concat("Array", fact.element_type))
+    );
+    let output: String = "static ${fact.c_array_type} ${clone_fn}(${fact.c_array_type} *array) {\n"
+        + "    if (array == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"array clone on null array\"); }\n"
+        + "    if (array->length > 0 && array->data == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"array clone on array without backing storage\"); }\n";
+    if fact.element_type == "String" {
+        return output
+            + "    ${fact.c_array_type} out = ${fact.c_array_new_fn}();\n"
+            + "    for (size_t i = 0; i < array->length; i++) { ${fact.c_array_push_fn}(&out, array->data[i]); }\n"
+            + "    return out;\n}\n\n";
+    }
+    return output
+        + "    ${fact.c_array_type} out = {NULL, 0, 0, NULL};\n"
+        + "    if (array->length == 0) { return out; }\n"
+        + "    if (array->length > (size_t)-1 / sizeof(${fact.c_element_type})) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); }\n"
+        + "    out.data = (${fact.c_element_type} *)malloc(array->length * sizeof(${fact.c_element_type}));\n"
+        + "    if (out.data == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); }\n"
+        + "    out.length = array->length; out.capacity = array->length; out.allocator = NULL;\n"
+        + "    for (size_t i = 0; i < array->length; i++) { out.data[i] = array->data[i]; }\n"
+        + "    return out;\n}\n\n";
+}
+
 func DirectMirScalarProgramCSliceExpression(
     kind: Int, result_type: String, left_type: String,
     left: String, right: String, arguments: Array<String>
 ) -> Option<String> {
     if kind != DirectMirScalarProgramExprArraySlice() &&
         kind != DirectMirScalarProgramExprSliceCopy() &&
+        kind != DirectMirScalarProgramExprArrayClone() &&
         kind != DirectMirScalarProgramExprSliceIntIndex() &&
         kind != DirectMirScalarProgramExprSliceStringIndex() { return None; }
     let slice_type: String = result_type;
     if kind != DirectMirScalarProgramExprArraySlice() { slice_type = left_type; }
+    if kind == DirectMirScalarProgramExprArrayClone() {
+        if left_type == CompilerAbiLayoutArrayIntTypeName() {
+            slice_type = CompilerAbiLayoutSliceIntTypeName();
+        } else if left_type == CompilerAbiLayoutArrayStringTypeName() {
+            slice_type = CompilerAbiLayoutSliceStringTypeName();
+        }
+    }
     let fact: SliceRuntimeFact =
         DirectMirScalarProgramCSliceRuntimeFact(slice_type);
     if !fact.ok { Die("direct MIR C Slice expression type is invalid"); }
@@ -64,6 +106,17 @@ func DirectMirScalarProgramCSliceExpression(
         }
         return Some(fact.c_slice_copy_fn + "(&(" + left + "))");
     }
+    if kind == DirectMirScalarProgramExprArrayClone() {
+        if left == "" || right != "" || ArrayLength(arguments) != 0 ||
+            result_type != fact.array_type || left_type != fact.array_type {
+            Die("direct MIR C Array Clone operands are invalid");
+        }
+        let clone_fn: String = CollectionRuntimeCCloneFn(
+            CollectionRuntimeKindCode(Concat("Array", fact.element_type))
+        );
+        return Some("({ ${fact.c_array_type} __pgy_clone_source = ${left}; "
+            + "${clone_fn}(&__pgy_clone_source); })");
+    }
     if left == "" || right == "" || ArrayLength(arguments) != 0 {
         Die("direct MIR C Slice index operands are invalid");
     }
@@ -76,9 +129,25 @@ func DirectMirScalarProgramCSlicePreamble(
 ) -> String {
     let int_reached: Bool = false;
     let string_reached: Bool = false;
+    let int_clone_reached: Bool = false;
+    let string_clone_reached: Bool = false;
     let row: Int = 0;
     while row < ArrayLength(expressions.node_kinds) {
         let kind: Int = expressions.node_kinds[row];
+        if kind == DirectMirScalarProgramExprArrayClone() {
+            if expressions.node_lefts[row] < 0 {
+                Die("direct MIR C Array Clone source is missing");
+            }
+            let clone_type: String =
+                expressions.node_types[expressions.node_lefts[row]];
+            if clone_type == CompilerAbiLayoutArrayIntTypeName() {
+                int_clone_reached = true;
+            } else if clone_type == CompilerAbiLayoutArrayStringTypeName() {
+                string_clone_reached = true;
+            } else {
+                Die("direct MIR C Array Clone preamble type is invalid");
+            }
+        }
         if kind == DirectMirScalarProgramExprArraySlice() ||
             kind == DirectMirScalarProgramExprSliceCopy() ||
             kind == DirectMirScalarProgramExprSliceIntIndex() ||
@@ -96,7 +165,8 @@ func DirectMirScalarProgramCSlicePreamble(
         }
         row = row + 1;
     }
-    if !int_reached && !string_reached { return ""; }
+    if !int_reached && !string_reached &&
+        !int_clone_reached && !string_clone_reached { return ""; }
     let output: String = "#include \"pgy_runtime_panic_contract.h\"\n";
     if int_reached {
         let fact: SliceRuntimeFact = DirectMirScalarProgramCSliceRuntimeFact(
@@ -109,6 +179,16 @@ func DirectMirScalarProgramCSlicePreamble(
             CompilerAbiLayoutSliceStringTypeName());
         output = output + SliceRuntimeCBlockForFact(
             fact, "length", "(pgy_as){NULL, 0, 0, NULL}");
+    }
+    if int_clone_reached {
+        output = output + DirectMirScalarProgramCArrayCloneBlock(
+            DirectMirScalarProgramCSliceRuntimeFact(
+                CompilerAbiLayoutSliceIntTypeName()));
+    }
+    if string_clone_reached {
+        output = output + DirectMirScalarProgramCArrayCloneBlock(
+            DirectMirScalarProgramCSliceRuntimeFact(
+                CompilerAbiLayoutSliceStringTypeName()));
     }
     return output;
 }

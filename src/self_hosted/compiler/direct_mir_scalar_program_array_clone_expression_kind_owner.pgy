@@ -1,0 +1,2 @@
+// Stable normalized identity for explicit storage-owning Array<T> Clone.
+func DirectMirScalarProgramExprArrayClone() -> Int { return 144; }

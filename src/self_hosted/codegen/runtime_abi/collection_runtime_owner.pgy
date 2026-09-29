@@ -154,6 +154,10 @@ func CollectionRuntimeCPushFn(kind_code: Int) -> String {
     return Concat(CollectionRuntimeCSymbolPrefix(kind_code), "_push");
 }
 
+func CollectionRuntimeCCloneFn(kind_code: Int) -> String {
+    return Concat(CollectionRuntimeCSymbolPrefix(kind_code), "_clone");
+}
+
 func CollectionRuntimeCSetFn(kind_code: Int) -> String {
     return Concat(CollectionRuntimeCSymbolPrefix(kind_code), "_set");
 }
@@ -295,6 +299,20 @@ func CollectionRuntimeCOwnedStringPushFn() -> String {
     return "pgy_as_push_owned";
 }
 
+func CollectionRuntimeCArrayCloneBlock(array_type: String, clone_fn: String,
+                                       new_fn: String, push_fn: String) -> String {
+    let block: String = Concat("static ", array_type);
+    block = Concat(block, Concat(" ", clone_fn));
+    block = Concat(block, Concat("(", array_type));
+    block = Concat(block, " *a) { ");
+    block = Concat(block, Concat(array_type, " out = "));
+    block = Concat(block, Concat(new_fn, "(); "));
+    block = Concat(block, "if (a == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"array clone on null array\"); } ");
+    block = Concat(block, "for (long long i = 0; i < a->len; i++) { ");
+    block = Concat(block, Concat(push_fn, "(&out, a->data[i]); } "));
+    return Concat(block, "return out; }\n");
+}
+
 func CollectionRuntimeCOwnedStringDropFn() -> String {
     return "pgy_as_drop_owned";
 }
@@ -336,6 +354,7 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, CollectionRuntimeCGuardedSet(CollectionRuntimeCSetFn(1), int_array_type, "int32_t"));
     block = Concat(block, Concat("static int32_t ", Concat(CollectionRuntimeCLenFn(1), Concat("(", Concat(int_array_type, " a) { return (int32_t)a.len; }\n")))));
     block = Concat(block, Concat("static int32_t ", Concat(CollectionRuntimeCPopFn(1), Concat("(", Concat(int_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : 0; }\n\n")))));
+    block = Concat(block, CollectionRuntimeCArrayCloneBlock(int_array_type, CollectionRuntimeCCloneFn(1), CollectionRuntimeCNewFn(1), CollectionRuntimeCPushFn(1)));
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCDropStorageFn(1), Concat("(", Concat(int_array_type, " *a) { if (a == NULL) return; free(a->data); a->data = NULL; a->len = 0; a->cap = 0; }\n\n")))));
     block = Concat(block, CollectionRuntimeCIntTransforms(int_array_type, "len", uses_array_sort, uses_array_reverse));
     if uses_array_map {
@@ -356,6 +375,7 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, CollectionRuntimeCGuardedSet(CollectionRuntimeCSetFn(7), long_array_type, "int64_t"));
     block = Concat(block, Concat("static int32_t ", Concat(CollectionRuntimeCLenFn(7), Concat("(", Concat(long_array_type, " a) { return (int32_t)a.len; }\n")))));
     block = Concat(block, Concat("static int64_t ", Concat(CollectionRuntimeCPopFn(7), Concat("(", Concat(long_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : 0; }\n\n")))));
+    block = Concat(block, CollectionRuntimeCArrayCloneBlock(long_array_type, CollectionRuntimeCCloneFn(7), CollectionRuntimeCNewFn(7), CollectionRuntimeCPushFn(7)));
     block = Concat(block, Concat("static ", Concat(string_array_type, Concat(" ", Concat(CollectionRuntimeCNewFn(2), Concat("(void) { ", Concat(string_array_type, " a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n")))))));
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCPushFn(2), Concat("(", Concat(string_array_type, " *a, const char *v) {\n")))));
     block = Concat(block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (const char **)realloc(a->data, (size_t)a->cap * sizeof(const char *)); }\n");
@@ -375,6 +395,7 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, "        if (next_data == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); }\n");
     block = Concat(block, "        a->data = next_data; a->cap = next_cap;\n    }\n");
     block = Concat(block, "    a->data[a->len++] = pgy_as_owned_copy(v);\n}\n");
+    block = Concat(block, CollectionRuntimeCArrayCloneBlock(string_array_type, CollectionRuntimeCCloneFn(2), CollectionRuntimeCNewFn(2), CollectionRuntimeCOwnedStringPushFn()));
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCOwnedStringDropFn(), Concat("(", Concat(string_array_type, " *a) {\n")))));
     block = Concat(block, "    if (a == NULL) { return; }\n");
     block = Concat(block, "    for (long long i = 0; i < a->len; i++) { free((void *)a->data[i]); }\n");
@@ -393,6 +414,7 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, CollectionRuntimeCGuardedSet(CollectionRuntimeCSetFn(4), bool_array_type, "bool"));
     block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(4), Concat("(", Concat(bool_array_type, " a) { return a.len; }\n")))));
     block = Concat(block, Concat("static bool ", Concat(CollectionRuntimeCPopFn(4), Concat("(", Concat(bool_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : false; }\n\n")))));
+    block = Concat(block, CollectionRuntimeCArrayCloneBlock(bool_array_type, CollectionRuntimeCCloneFn(4), CollectionRuntimeCNewFn(4), CollectionRuntimeCPushFn(4)));
     block = Concat(block, "typedef struct { float *data; long long len; long long cap; } pgy_af;\n");
     block = Concat(block, "static pgy_af pgy_af_new(void) { pgy_af a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n");
     block = Concat(block, "static void pgy_af_push(pgy_af *a, float v) {\n");
@@ -402,6 +424,7 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, "static void pgy_af_set(pgy_af *a, long long i, float v) { a->data[i] = v; }\n");
     block = Concat(block, "static long long pgy_af_len(pgy_af a) { return a.len; }\n");
     block = Concat(block, "static float pgy_af_pop(pgy_af *a) { return a->len > 0 ? a->data[--a->len] : 0.0f; }\n\n");
+    block = Concat(block, "static pgy_af pgy_af_clone(pgy_af *a) { pgy_af out = pgy_af_new(); if (a == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"array clone on null array\"); } for (long long i = 0; i < a->len; i++) { pgy_af_push(&out, a->data[i]); } return out; }\n");
     block = Concat(block, "typedef struct { double *data; long long len; long long cap; } pgy_ad;\n");
     block = Concat(block, "static pgy_ad pgy_ad_new(void) { pgy_ad a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n");
     block = Concat(block, "static void pgy_ad_push(pgy_ad *a, double v) {\n");
@@ -411,6 +434,7 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, "static void pgy_ad_set(pgy_ad *a, long long i, double v) { a->data[i] = v; }\n");
     block = Concat(block, "static long long pgy_ad_len(pgy_ad a) { return a.len; }\n");
     block = Concat(block, "static double pgy_ad_pop(pgy_ad *a) { return a->len > 0 ? a->data[--a->len] : 0.0; }\n\n");
+    block = Concat(block, "static pgy_ad pgy_ad_clone(pgy_ad *a) { pgy_ad out = pgy_ad_new(); if (a == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"array clone on null array\"); } for (long long i = 0; i < a->len; i++) { pgy_ad_push(&out, a->data[i]); } return out; }\n");
     return block;
 }
 

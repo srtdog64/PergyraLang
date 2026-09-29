@@ -17,109 +17,20 @@ import "ast_statement_fact_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_assignment_type_fact_owner.pgy";
 import "ast_collection_ownership_receipt_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
 import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_ownership_assignment_alias_owner.pgy";
+import "ast_collection_ownership_member_transition_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "diagnostic_owner.pgy";
 
-struct SemanticAstCollectionOwnershipVerdict {
-    ok: Bool;
-    diagnostic_code: String;
-    diagnostic_message: String;
-    syntax_node_id: Int;
-    expression_node_id: Int;
-    function_syntax_ids: Array<Int>;
-    binding_syntax_ids: Array<Int>;
-    origin_syntax_ids: Array<Int>;
-    source_binding_syntax_ids: Array<Int>;
-    element_ownerships: Array<Int>;
-    dispositions: Array<Int>;
-    origins: Array<Int>;
-    receipts: SemanticAstCollectionOwnershipReceiptRows;
-}
-
-func SemanticAstCollectionOwnershipUnknown() -> Int { return 0; }
-func SemanticAstCollectionOwnershipBorrowedElements() -> Int { return 1; }
-func SemanticAstCollectionOwnershipOwnedElements() -> Int { return 2; }
-func SemanticAstCollectionOwnershipMapKeysSnapshot() -> Int { return 3; }
-func SemanticAstCollectionOwnershipRetired() -> Int { return 4; }
-func SemanticAstCollectionDispositionLive() -> Int { return 0; }
-func SemanticAstCollectionDispositionRetired() -> Int { return 1; }
-func SemanticAstCollectionOriginUnknown() -> Int { return 0; }
-func SemanticAstCollectionOriginBorrowedLiteral() -> Int { return 1; }
-func SemanticAstCollectionOriginMapKeys() -> Int { return 2; }
-func SemanticAstCollectionOriginBinding() -> Int { return 3; }
-func SemanticAstCollectionOriginEmptyLiteral() -> Int { return 4; }
-func SemanticAstCollectionTransitionUntracked() -> Int { return 0; }
-func SemanticAstCollectionTransitionEmpty() -> Int { return 1; }
-func SemanticAstCollectionTransitionBorrowed() -> Int { return 2; }
-func SemanticAstCollectionTransitionOwned() -> Int { return 3; }
-func SemanticAstCollectionTransitionRetired() -> Int { return 4; }
-
-func SemanticAstCollectionOwnershipVerdictOk(
-) -> SemanticAstCollectionOwnershipVerdict {
-    let function_syntax_ids: Array<Int> = [];
-    let binding_syntax_ids: Array<Int> = [];
-    let origin_syntax_ids: Array<Int> = [];
-    let source_binding_syntax_ids: Array<Int> = [];
-    let element_ownerships: Array<Int> = [];
-    let dispositions: Array<Int> = [];
-    let origins: Array<Int> = [];
-    return SemanticAstCollectionOwnershipVerdict(
-        true, "", "", -1, -1,
-        function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
-        source_binding_syntax_ids, element_ownerships, dispositions, origins,
-        SemanticAstCollectionOwnershipReceiptRowsEmpty()
-    );
-}
-
-func SemanticAstCollectionOwnershipVerdictOkWithFacts(
-    function_syntax_ids: Array<Int>,
-    binding_syntax_ids: Array<Int>,
-    origin_syntax_ids: Array<Int>,
-    source_binding_syntax_ids: Array<Int>,
-    element_ownerships: Array<Int>,
-    dispositions: Array<Int>,
-    origins: Array<Int>,
-    receipts: SemanticAstCollectionOwnershipReceiptRows
-) -> SemanticAstCollectionOwnershipVerdict {
-    return SemanticAstCollectionOwnershipVerdict(
-        true, "", "", -1, -1,
-        function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
-        source_binding_syntax_ids, element_ownerships, dispositions, origins,
-        receipts
-    );
-}
-
-func SemanticAstCollectionOwnershipVerdictError(
-    code: String, message: String,
-    syntax_node_id: Int, expression_node_id: Int
-) -> SemanticAstCollectionOwnershipVerdict {
-    let function_syntax_ids: Array<Int> = [];
-    let binding_syntax_ids: Array<Int> = [];
-    let origin_syntax_ids: Array<Int> = [];
-    let source_binding_syntax_ids: Array<Int> = [];
-    let element_ownerships: Array<Int> = [];
-    let dispositions: Array<Int> = [];
-    let origins: Array<Int> = [];
-    return SemanticAstCollectionOwnershipVerdict(
-        false, code, message,
-        syntax_node_id, expression_node_id,
-        function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
-        source_binding_syntax_ids, element_ownerships, dispositions, origins,
-        SemanticAstCollectionOwnershipReceiptRowsEmpty()
-    );
-}
-
 func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
-    artifact: AstTreeArtifact,
-    ref signatures: SemanticAstFunctionSignatureFacts,
-    ref locals: SemanticAstLocalBindingFacts,
-    ref initializer_types: SemanticAstInitializerTypeFacts,
-    ref surfaces: SemanticAstExpressionSurfaceFacts,
-    ref statements: SemanticAstStatementFacts,
-    ref assignments: SemanticAstAssignmentFacts,
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
     ref assignment_types: SemanticAstAssignmentTypeFacts
 ) -> SemanticAstCollectionOwnershipVerdict {
     let local_count: Int = ArrayLength(locals.node_ids);
@@ -145,6 +56,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let source_binding_syntax_ids: Array<Int> = [];
     let receipts: SemanticAstCollectionOwnershipReceiptRows =
         SemanticAstCollectionOwnershipReceiptRowsEmpty();
+    let move_destinations: HashMap<String, Int> = MapNew();
     let local_row: Int = 0;
     while local_row < local_count {
         ArrayPush(ownership, SemanticAstCollectionOwnershipUnknown());
@@ -181,6 +93,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                 locals.node_ids[local_row], -1);
         }
         let root_id: Int = UnwrapOption(root);
+        let root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            surfaces.expression_graph, root_id);
         if SemanticAstCollectionOwnershipLiteralIsEmpty(
             surfaces.expression_graph, root_id) {
             // Origin is exact; mutation/call-effect receipts must own any
@@ -199,6 +113,29 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
             ownership[local_row] =
                 SemanticAstCollectionOwnershipMapKeysSnapshot();
             origins[local_row] = SemanticAstCollectionOriginMapKeys();
+        } else if SemanticAstCollectionOwnershipRootCallName(
+            surfaces.expression_graph, root_id) == "Clone" {
+            ownership[local_row] =
+                SemanticAstCollectionOwnershipOwnedElements();
+            origins[local_row] = SemanticAstCollectionOriginClone();
+        } else if IsSome(root_kind) && UnwrapOption(root_kind) ==
+                AstExpressionNodeMemberAccess() {
+            let moved: SemanticAstCollectionMemberMoveIdentity =
+                SemanticAstCollectionMemberMoveIdentityForNode(
+                    artifact, constructors, locals, initializer_types.inferred_type_names,
+                    locals.function_node_ids[local_row],
+                    locals.node_ids[local_row], surfaces.expression_graph,
+                    root_id);
+            if moved.ok {
+                origins[local_row] =
+                    SemanticAstCollectionOriginMemberMove();
+                origin_syntax_ids[local_row] = moved.field_syntax_id;
+                source_binding_syntax_ids[local_row] =
+                    moved.source_binding_syntax_id;
+                MapSet(move_destinations,
+                    SemanticAstCollectionMemberMoveEventKey(
+                        moved, locals.node_ids[local_row]), locals.node_ids[local_row]);
+            }
         } else {
             let source: SemanticAstLocalBindingIdentity =
                 SemanticAstScopedLocalBindingIdentityForGraphLeaf(
@@ -231,7 +168,17 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         }
         local_row = local_row + 1;
     }
-
+    let moved_use: SemanticAstCollectionMemberMoveUse =
+        SemanticAstCollectionFirstInvalidMemberMoveUse(
+            artifact, constructors, locals, initializer_types.inferred_type_names,
+            surfaces, assignments, move_destinations);
+    if moved_use.found {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "move_from_released",
+            SemanticError2("move_from_released", "boundary",
+                "member_use_after_move", "type", "Array<String>"),
+            moved_use.syntax_node_id, moved_use.expression_node_id);
+    }
     let assignment_row: Int = 0;
     while assignment_row < ArrayLength(assignments.node_ids) {
         let alias: SemanticAstCollectionOwnershipAssignmentAliasFact =
@@ -509,6 +456,25 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                                             effect,
                                             locals.node_ids[binding.row]
                                         );
+                                } else if (owned_push || deep_drop) &&
+                                    (state ==
+                                        SemanticAstCollectionOwnershipBorrowedElements() ||
+                                     (state ==
+                                        SemanticAstCollectionOwnershipUnknown() &&
+                                      origins[binding.row] ==
+                                        SemanticAstCollectionOriginMemberMove())) {
+                                    let boundary: String = name;
+                                    if deep_drop {
+                                        boundary = "owned_string_drop";
+                                    }
+                                    return SemanticAstCollectionOwnershipVerdictError(
+                                        "borrow_boundary_escape",
+                                        SemanticError2(
+                                            "borrow_boundary_escape",
+                                            "boundary", boundary,
+                                            "type", "borrowed or unknown Array<String>"
+                                        ),
+                                        surfaces.node_ids[root_slot / 3], node);
                                 } else if mutates_elements &&
                                     (state == SemanticAstCollectionOwnershipOwnedElements() ||
                                      state == SemanticAstCollectionOwnershipMapKeysSnapshot()) {
@@ -559,6 +525,13 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         }
         root_slot = root_slot + 1;
     }
+    // The transition scan above proves that no use occurs after an exact
+    // field restore.  Apply the terminal disposition only after earlier
+    // statement/call effects have been checked in source order; otherwise a
+    // valid mutation between move-out and move-back is seen as post-restore.
+    SemanticAstCollectionApplyMemberMoveRestorations(
+        locals, moved_use, dispositions
+    );
     let function_syntax_ids: Array<Int> = [];
     let binding_syntax_ids: Array<Int> = [];
     let carried_origin_syntax_ids: Array<Int> = [];

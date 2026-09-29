@@ -410,8 +410,7 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
     let routine_partition: DirectMirScalarCfgRoutinePartitionFact =
         DirectMirScalarCfgSingleRoutinePartitionFromOwners(
             admitted.routines, input.index, routine_row,
-            ArrayLength(local_refs.local_names),
-            ArrayLength(local_refs.value_names),
+            ArrayLength(local_names), ArrayLength(value_names),
             ArrayLength(block_succ_true), ArrayLength(operation_kinds),
             ArrayLength(phi_predecessor_blocks)
         );

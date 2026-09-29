@@ -8,6 +8,7 @@ func DirectMirScalarProgramSliceExpressionNodeReady(
     let kind: Int = facts.node_kinds[node];
     if kind != DirectMirScalarProgramExprArraySlice() &&
         kind != DirectMirScalarProgramExprSliceCopy() &&
+        kind != DirectMirScalarProgramExprArrayClone() &&
         kind != DirectMirScalarProgramExprSliceIntIndex() &&
         kind != DirectMirScalarProgramExprSliceStringIndex() { return None; }
     if facts.node_local_rows[node] != -1 ||
@@ -61,6 +62,15 @@ func DirectMirScalarProgramSliceExpressionNodeReady(
         ArrayLength(DirectMirScalarProgramNaryOperandRows(
             facts.nary_operands, node)) != 0 {
         return Some(false);
+    }
+    if kind == DirectMirScalarProgramExprArrayClone() {
+        return Some(
+            facts.node_types[left] == facts.node_types[node] &&
+            (facts.node_types[node] ==
+                CompilerAbiLayoutArrayIntTypeName() ||
+             facts.node_types[node] ==
+                CompilerAbiLayoutArrayStringTypeName())
+        );
     }
     return Some(
         (facts.node_types[left] == CompilerAbiLayoutSliceIntTypeName() &&

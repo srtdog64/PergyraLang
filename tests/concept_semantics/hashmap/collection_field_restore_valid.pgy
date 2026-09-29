@@ -1,0 +1,13 @@
+struct Accumulator {
+    pieces: Array<String>;
+}
+
+// Assigning the exact moved local back to the exact source field restores the
+// field and consumes the temporary owner.
+func Main() -> Void {
+    let acc: Accumulator = Accumulator(["original"]);
+    let pieces: Array<String> = acc.pieces;
+    ArrayPush(pieces, "moved");
+    acc.pieces = pieces;
+    Log(acc.pieces[1]);
+}

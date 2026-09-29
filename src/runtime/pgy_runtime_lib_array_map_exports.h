@@ -23,6 +23,8 @@ typedef struct {                                                                
     size_t  length;                                                              \
 } PgySlice_##Suffix;                                                             \
                                                                                  \
+void pgy_array_push_##Suffix(PgyArray_##Suffix *arr, CType value);                \
+                                                                                 \
 PgyArray_##Suffix pgy_array_new_##Suffix(size_t capacity)                        \
 {                                                                                \
     PgyArray_##Suffix arr;                                                       \
@@ -41,6 +43,24 @@ PgyArray_##Suffix pgy_array_new_##Suffix(size_t capacity)                       
                           PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);           \
     }                                                                            \
     return arr;                                                                  \
+}                                                                                \
+                                                                                 \
+PgyArray_##Suffix pgy_array_clone_##Suffix(PgyArray_##Suffix *arr)               \
+{                                                                                \
+    PgyArray_##Suffix out;                                                       \
+    if (arr == NULL) {                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
+                          "array clone on null array");                         \
+    }                                                                            \
+    if (arr->length > 0 && arr->data == NULL) {                                  \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
+                          "array clone on array without backing storage");      \
+    }                                                                            \
+    out = pgy_array_new_##Suffix(arr->length);                                   \
+    for (size_t i = 0; i < arr->length; i++)                                    \
+        pgy_array_push_##Suffix(&out,                                            \
+            PGY_ARRAY_EXPORT_COPY_VALUE_##Suffix(arr->data[i]));                 \
+    return out;                                                                  \
 }                                                                                \
                                                                                  \
 void pgy_array_push_##Suffix(PgyArray_##Suffix *arr, CType value)                \

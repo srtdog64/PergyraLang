@@ -2,6 +2,7 @@
 import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 import "direct_mir_scalar_program_builtin_signature_fact_owner.pgy";
 import "direct_mir_scalar_program_bool_to_string_builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_collection_clone_signature_owner.pgy";
 import "../semantic/builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_hashmap_owner.pgy";
 import "direct_mir_scalar_program_checked_int_owner.pgy";
@@ -164,6 +165,10 @@ func DirectMirScalarProgramBuiltinSignatureFactForCall(
             CompilerAbiLayoutIntTypeName(), parameter_types,
             fact.expression_kind, fact.runtime_call_abi_id);
     }
+    let collection_clone: DirectMirScalarProgramBuiltinSignatureFact =
+        DirectMirScalarProgramCollectionCloneSignature(
+            fact, name, actual_types, expected_type);
+    if collection_clone.valid { return collection_clone; }
     if name == "ToString" && ArrayLength(actual_types) == 1 &&
             (actual_types[0] == CompilerAbiLayoutIntTypeName() ||
              actual_types[0] == CompilerAbiLayoutLongTypeName() ||

@@ -211,7 +211,9 @@ func SelfMirAppendRoutine(facts: SelfMirProgramFacts, analysis: SemanticAstArtif
         SelfMirCollectionOwnershipFactRowsAppendRoutine(
             collection_ownership_facts, collection_ownership,
             function_node_id, inventory.ok, inventory.names,
-            inventory.types, inventory.binding_syntax_ids
+            inventory.types, inventory.binding_syntax_ids,
+            analysis.signatures.param_types,
+            analysis.signatures.param_node_ids, analysis.constructors
         );
     if collection_ownership_facts.routine_counts[
             ArrayLength(collection_ownership_facts.routine_counts) - 1

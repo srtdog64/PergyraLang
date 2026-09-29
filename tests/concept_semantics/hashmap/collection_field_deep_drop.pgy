@@ -1,0 +1,11 @@
+struct Accumulator {
+    pieces: Array<String>;
+}
+
+// Unknown element provenance cannot authorize a deep release after a field
+// move; only the moved descriptor/storage is known to belong to the local.
+func Main() -> Void {
+    let acc: Accumulator = Accumulator(["borrowed"]);
+    let pieces: Array<String> = acc.pieces;
+    ArrayDropOwnedStrings(pieces);
+}

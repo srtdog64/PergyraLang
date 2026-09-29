@@ -5,6 +5,7 @@ import "program_routine_index_owner.pgy";
 import "program_instruction_expression_index_owner.pgy";
 import "expression_graph_sequence_owner.pgy";
 import "../hir/ast_expression_graph_owner.pgy";
+import "../semantic/ast_type_name_canonical_owner.pgy";
 
 struct MirCollectionOwnershipFacts {
     valid: Bool;
@@ -32,6 +33,72 @@ func MirCollectionOwnershipLocalRow(
         row = row + 1;
     }
     return found;
+}
+
+func MirCollectionOwnershipParameterType(
+    json: String,
+    routine_start: Int,
+    routine_end: Int,
+    binding_syntax_id: Int
+) -> String {
+    let bounds: Array<Int> = [0, 0];
+    if binding_syntax_id <= 0 || !MirObjectArrayBoundsAtBounds(
+        json, routine_start, routine_end, "params", bounds
+    ) { return ""; }
+    let cursor: Int = bounds[0] + 1;
+    let row_bounds: Array<Int> = [0, 0];
+    let matched: Int = 0;
+    let found_type: String = "";
+    while JsonArrayNextObjectBounds(json, cursor, bounds[1], row_bounds) {
+        let source_id: String = MirObjectNumberFactAtBounds(
+            json, row_bounds[0], row_bounds[1], "source_syntax_id");
+        let type_name: String = MirObjectStringFactAtBounds(
+            json, row_bounds[0], row_bounds[1], "type");
+        if MirObjectFieldOccurrenceCountAtBounds(
+                json, row_bounds[0], row_bounds[1], "source_syntax_id") != 1 ||
+            MirObjectFieldOccurrenceCountAtBounds(
+                json, row_bounds[0], row_bounds[1], "type") != 1 ||
+            source_id == "" || ToString(ToInt(source_id)) != source_id ||
+            ToInt(source_id) <= 0 || type_name == "" {
+            return "";
+        }
+        if ToInt(source_id) == binding_syntax_id {
+            matched = matched + 1;
+            found_type = type_name;
+        }
+        cursor = row_bounds[1];
+    }
+    if matched == 1 { return found_type; }
+    return "";
+}
+
+func MirCollectionOwnershipMemberSourceReady(
+    ref routines: MirProgramRoutineIndex,
+    routine_start: Int,
+    routine_end: Int,
+    ref local_types: Array<String>,
+    ref local_binding_syntax_ids: Array<Int>,
+    source_binding_syntax_id: Int,
+    field_syntax_id: Int
+) -> Bool {
+    let source_type: String = "";
+    let source_row: Int = MirCollectionOwnershipLocalRow(
+        local_binding_syntax_ids, source_binding_syntax_id);
+    if source_row >= 0 {
+        source_type = local_types[source_row];
+    } else {
+        source_type = MirCollectionOwnershipParameterType(
+            routines.source_json, routine_start, routine_end,
+            source_binding_syntax_id);
+    }
+    if source_type == "" || field_syntax_id <= 0 { return false; }
+    let source_shape: SemanticCanonicalTypeNameFact =
+        SemanticCanonicalTypeNameFactFrom(source_type);
+    return MirProgramDeclarationFieldIdentitySourceMatchesType(
+        routines.declarations.field_identities,
+        source_shape.nominal_base_name, ToString(field_syntax_id),
+        "Array<String>"
+    );
 }
 
 func MirCollectionOwnershipEmptyLiteralReceipt(
@@ -217,6 +284,16 @@ func BuildMirCollectionOwnershipFacts(
                     numeric &&
                     MirCollectionOwnershipEmptyLiteralReceipt(
                         routines, routine_row, ToInt(binding_id))) ||
+                (origin == "member-move" && numeric &&
+                    ownership == "unknown" &&
+                    ToInt(source_id) > 0 &&
+                    ToInt(source_id) != ToInt(binding_id) &&
+                    MirCollectionOwnershipMemberSourceReady(
+                        routines, routine_start, routine_end,
+                        local_types, local_binding_syntax_ids,
+                        ToInt(source_id), ToInt(origin_id))) ||
+                (origin == "clone" &&
+                    ownership == "owned-elements" && source_id == "0") ||
                 (origin == "binding" && numeric &&
                     ToInt(source_id) > 0 &&
                     ToInt(source_id) != ToInt(binding_id) &&
@@ -243,7 +320,7 @@ func BuildMirCollectionOwnershipFacts(
                  ownership != "owned-elements" &&
                  ownership != "map-keys-snapshot") ||
                 (disposition != "live" && disposition != "retired") ||
-                (disposition == "retired" &&
+                (disposition == "retired" && origin != "member-move" &&
                  ownership != "owned-elements" &&
                  ownership != "map-keys-snapshot") ||
                 (origin == "binding" && disposition != "live") ||

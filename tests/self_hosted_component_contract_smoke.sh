@@ -11918,6 +11918,7 @@ reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_builtin_argument_prefix_owner.pgy" \
     "func DirectMirScalarProgramBuiltinArgumentPrefixReady(" 'expected = "Int"'
 require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" 230
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_collection_clone_signature_owner.pgy" 40
 require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_to_string_expression_readiness_owner.pgy" 30
 require_file "tests/self_hosted/fixtures/direct_mir_signed_integer_to_string.pgy"
 require_file "tests/self_hosted/parity/direct_mir_signed_integer_to_string_owner.sh"
@@ -23601,9 +23602,14 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy" \
     "func DirectMirScalarProgramExprPayloadEnumMember() -> Int { return 123; }"
+require_file \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_clone_expression_kind_owner.pgy"
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_clone_expression_kind_owner.pgy" \
+    "func DirectMirScalarProgramExprArrayClone() -> Int { return 144; }"
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_task_expression_kind_owner.pgy" \
-    "func DirectMirScalarProgramExpressionKindLast() -> Int { return DirectMirScalarProgramExprTaskIsCancelled(); }"
+    "return DirectMirScalarProgramExprArrayClone();"
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy"
 require_max_lines \
@@ -28355,13 +28361,18 @@ reject_text "src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_
 # responsibility instead of raising its cap.
 for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy:600 \
+    src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_ownership_verdict_carrier_owner.pgy:90 \
     src/self_hosted/semantic/ast_collection_ownership_receipt_owner.pgy:120 \
     src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy:200 \
     src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy:140 \
     src/self_hosted/mir/collection_ownership_receipt_fact_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_projection_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_json_projection_owner.pgy:100 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy:180 \
+    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy:120 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy:380 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy:100; do
     collection_owner="${collection_owner_cap%%:*}"
@@ -28372,6 +28383,15 @@ for collection_owner_cap in \
 done
 require_text \
     "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+    'import "ast_collection_ownership_verdict_carrier_owner.pgy";'
+require_text \
+    "src/self_hosted/semantic/ast_collection_ownership_verdict_carrier_owner.pgy" \
+    'struct SemanticAstCollectionOwnershipVerdict {'
+reject_text \
+    "src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy" \
+    'struct SemanticAstCollectionOwnershipVerdict {'
+require_text \
+    "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
     'SemanticAstCollectionOwnershipAssignmentAliasAt('
 reject_text \
     "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
@@ -28379,6 +28399,12 @@ reject_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy" \
     'DirectMirCollectionOwnershipOperationSetRequiresTransition('
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy" \
+    'import "direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy";'
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy" \
+    'func DirectMirCollectionOwnershipNextState('
 require_file \
     "tests/self_hosted/parity/collection_ownership_receipt_mutations.py"
 require_max_lines \

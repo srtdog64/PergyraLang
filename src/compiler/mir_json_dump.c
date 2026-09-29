@@ -556,6 +556,10 @@ mir_json_collection_origin_name(PgyCollectionOrigin origin)
             return "binding";
         case PGY_COLLECTION_ORIGIN_EMPTY_LITERAL:
             return "empty-literal";
+        case PGY_COLLECTION_ORIGIN_MEMBER_MOVE:
+            return "member-move";
+        case PGY_COLLECTION_ORIGIN_CLONE:
+            return "clone";
     }
     return "invalid";
 }

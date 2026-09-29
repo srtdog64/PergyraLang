@@ -1,0 +1,140 @@
+// Ordered field-move transitions over the admitted expression graph.
+// Exact field <- moved-local assignment restores the field and retires the
+// temporary; every other source-field or retired-local reuse fails closed.
+import "ast_assignment_fact_owner.pgy";
+import "ast_collection_ownership_member_move_owner.pgy";
+struct SemanticAstCollectionMemberMoveUse {
+    found: Bool;
+    syntax_node_id: Int;
+    expression_node_id: Int;
+    restored_binding_syntax_ids: Array<Int>;
+}
+func SemanticAstCollectionMemberMoveEventKey(
+    identity: SemanticAstCollectionMemberMoveIdentity, syntax_node_id: Int) -> String {
+    return Concat(identity.key, Concat(":", ToString(syntax_node_id)));
+}
+func SemanticAstCollectionFirstInvalidMemberMoveUse(
+    artifact: AstTreeArtifact,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts, own move_destinations: HashMap<String, Int>
+) -> SemanticAstCollectionMemberMoveUse {
+    let active_members: HashMap<String, Int> = MapNew();
+    let retired_locals: HashMap<String, Int> = MapNew();
+    let restored: Array<Int> = [];
+    let root_slot: Int = 0;
+    while root_slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[root_slot] {
+            let surface: Int = root_slot / 3;
+            let syntax_id: Int = surfaces.node_ids[surface];
+            let root_id: Int = surfaces.expression_graph.roots[root_slot];
+            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(
+                surfaces.expression_graph, root_id);
+            if IsSome(start) {
+                let node: Int = UnwrapOption(start);
+                while node <= root_id {
+                    let identity: SemanticAstCollectionMemberMoveIdentity =
+                        SemanticAstCollectionMemberMoveIdentityForNode(
+                            artifact, constructors, locals, inferred_types,
+                            surfaces.function_node_ids[surface], syntax_id,
+                            surfaces.expression_graph, node);
+                    if identity.ok {
+                        let event_key: String =
+                            SemanticAstCollectionMemberMoveEventKey(
+                                identity, syntax_id);
+                        if MapHas(move_destinations, event_key) {
+                            MapSet(active_members, identity.key,
+                                MapGet(move_destinations, event_key));
+                        } else if MapHas(active_members, identity.key) &&
+                                MapGet(active_members, identity.key) > 0 {
+                            let source_id: Int =
+                                MapGet(active_members, identity.key);
+                            let assignment_exists: Bool = IsSome(
+                                SemanticAstAssignmentIndexForNode(assignments, syntax_id));
+                            let is_restore: Bool = false;
+                            if root_slot % 3 == AstExpressionLaneAtom() &&
+                                assignment_exists {
+                                let value_root: Option<Int> =
+                                    SemanticAstExpressionGraphRootForNode(
+                                        surfaces, syntax_id,
+                                        AstExpressionLaneValue());
+                                if IsSome(value_root) {
+                                    let source:
+                                        SemanticAstLocalBindingIdentity =
+                                            SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                                                artifact, locals,
+                                                inferred_types,
+                                                surfaces.function_node_ids[surface],
+                                                syntax_id,
+                                                surfaces.expression_graph,
+                                                UnwrapOption(value_root));
+                                    if source.ok &&
+                                        source.declaration_node_id == source_id {
+                                        is_restore = true;
+                                        MapSet(active_members, identity.key, 0);
+                                        MapSet(retired_locals,
+                                            ToString(source_id), syntax_id);
+                                        ArrayPush(restored, source_id);
+                                    }
+                                }
+                            }
+                            if !is_restore {
+                                return SemanticAstCollectionMemberMoveUse(
+                                    true, syntax_id, node, restored);
+                            }
+                        }
+                    }
+                    // Postfix graph member selectors are leaves, but they are
+                    // field identity, not lexical local use.  The expression
+                    // identity owner applies the same topology rule when it
+                    // carries binding identities.
+                    let is_member_name: Bool = node + 1 <= root_id &&
+                        surfaces.expression_graph.arena.topology.node_kinds[
+                            node + 1] == AstExpressionNodeMemberAccess() &&
+                        surfaces.expression_graph.arena.topology.right_children[
+                            node + 1] == node;
+                    let binding_use: SemanticAstLocalBindingIdentity =
+                        SemanticAstLocalBindingIdentityUnresolved();
+                    if !is_member_name {
+                        binding_use =
+                            SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                                artifact, locals, inferred_types,
+                                surfaces.function_node_ids[surface], syntax_id,
+                                surfaces.expression_graph, node);
+                    }
+                    if binding_use.ok && MapHas(retired_locals,
+                            ToString(binding_use.declaration_node_id)) &&
+                        syntax_id > MapGet(retired_locals,
+                            ToString(binding_use.declaration_node_id)) {
+                        return SemanticAstCollectionMemberMoveUse(
+                            true, syntax_id, node, restored);
+                    }
+                    node = node + 1;
+                }
+            }
+        }
+        root_slot = root_slot + 1;
+    }
+    return SemanticAstCollectionMemberMoveUse(false, -1, -1, restored);
+}
+
+func SemanticAstCollectionApplyMemberMoveRestorations(
+    ref locals: SemanticAstLocalBindingFacts, ref moved_use: SemanticAstCollectionMemberMoveUse,
+    inout dispositions: Array<Int>
+) -> Void {
+    let restored: Int = 0;
+    while restored < ArrayLength(moved_use.restored_binding_syntax_ids) {
+        let local_row: Int = 0;
+        while local_row < ArrayLength(locals.node_ids) {
+            if locals.node_ids[local_row] ==
+                    moved_use.restored_binding_syntax_ids[restored] {
+                dispositions[local_row] =
+                    SemanticAstCollectionDispositionRetired();
+            }
+            local_row = local_row + 1;
+        }
+        restored = restored + 1;
+    }
+}

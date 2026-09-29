@@ -377,7 +377,7 @@ hir_append_collection_ownership_fact(
         || (fact->disposition != PGY_COLLECTION_DISPOSITION_LIVE
             && fact->disposition != PGY_COLLECTION_DISPOSITION_RETIRED)
         || (unsigned)fact->origin
-            > (unsigned)PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
+            > (unsigned)PGY_COLLECTION_ORIGIN_CLONE
         || (fact->origin == PGY_COLLECTION_ORIGIN_MAP_KEYS
             && fact->element_ownership
                 != PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)
@@ -390,6 +390,14 @@ hir_append_collection_ownership_fact(
         || (fact->origin == PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
             && fact->element_ownership
                 != PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN)
+        || (fact->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE
+            && (fact->element_ownership
+                    != PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN
+                || fact->source_binding_syntax_id == 0
+                || fact->source_binding_syntax_id == fact->binding_syntax_id))
+        || (fact->origin == PGY_COLLECTION_ORIGIN_CLONE
+            && fact->element_ownership
+                != PGY_STRING_ARRAY_OWNED_ELEMENTS)
         || (fact->origin == PGY_COLLECTION_ORIGIN_BINDING
             && fact->source_binding_syntax_id == 0)
         || (fact->origin == PGY_COLLECTION_ORIGIN_BINDING
@@ -402,8 +410,10 @@ hir_append_collection_ownership_fact(
                 || fact->disposition
                     != PGY_COLLECTION_DISPOSITION_LIVE))
         || (fact->origin != PGY_COLLECTION_ORIGIN_BINDING
+            && fact->origin != PGY_COLLECTION_ORIGIN_MEMBER_MOVE
             && fact->source_binding_syntax_id != 0)
         || (fact->disposition == PGY_COLLECTION_DISPOSITION_RETIRED
+            && fact->origin != PGY_COLLECTION_ORIGIN_MEMBER_MOVE
             && fact->element_ownership
                 != PGY_STRING_ARRAY_OWNED_ELEMENTS
             && fact->element_ownership

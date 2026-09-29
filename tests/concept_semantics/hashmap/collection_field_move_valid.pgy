@@ -1,0 +1,11 @@
+struct Accumulator {
+    pieces: Array<String>;
+}
+
+// Direct field extraction transfers the collection to the local binding.
+func Main() -> Void {
+    let acc: Accumulator = Accumulator(["original"]);
+    let pieces: Array<String> = acc.pieces;
+    ArrayPush(pieces, "moved");
+    Log(pieces[1]);
+}

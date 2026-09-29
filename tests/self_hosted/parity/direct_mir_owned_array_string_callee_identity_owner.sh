@@ -48,7 +48,20 @@ for name in first_callee late_callee independent_return real_join; do
             fi
             command+=(-lm -o "$bin")
         else
-            command=("$CLANG" -x ir "$artifact" -o "$bin")
+            runtime_object=()
+            if grep -Fq '@pgy_runtime_panic_internal_invariant_export' "$artifact"; then
+                runtime_object=("$WORK_DIR/$name.runtime.o")
+                "$CC" -std=c11 -O0 -DPGY_LLVM_ENABLED \
+                    -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" -pthread \
+                    -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
+                    -o "${runtime_object[0]}" \
+                    >"$WORK_DIR/$name.runtime.compile.log" 2>&1 || {
+                        cat "$WORK_DIR/$name.runtime.compile.log" >&2
+                        fail "$name LLVM runtime support did not compile"
+                    }
+            fi
+            command=("$CLANG" -x ir "$artifact" -x none \
+                "${runtime_object[@]}" -pthread -lm -o "$bin")
         fi
         "${command[@]}" >"$WORK_DIR/$name.$backend.compile.log" 2>&1 || {
             cat "$WORK_DIR/$name.$backend.compile.log" >&2; fail "$name/$backend compile failed";

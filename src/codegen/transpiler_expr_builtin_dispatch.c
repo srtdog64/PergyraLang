@@ -7,6 +7,7 @@
 #include "transpiler_expr_domain_query_builtin.h"
 #include "transpiler_expr_io_builtin.h"
 #include "transpiler_expr_projection_builtin.h"
+#include "transpiler_expr_stdlib_builtin.h"
 #include "transpiler_intent_observability_builtin_emit.h"
 #include "transpiler_slot_builtin_emit.h"
 #include "../semantic/diag_codes.h"
@@ -57,7 +58,8 @@ emit_call_builtin_dispatch(ASTNode *call,
         return emit_builtin_log_banner(call, ctx);
     case BUILTIN_CLONE:
         if (argc >= 1 && arg0 != NULL)
-            return emit_expression(arg0, ctx);
+            return emit_call_stdlib_builtin(
+                call, ast_call_callee(call), ctx);
         transpiler_set_backend_error_with_hints(
             ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,

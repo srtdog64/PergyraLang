@@ -1,0 +1,24 @@
+// Stable collection-ownership state identities.
+//
+// The verdict owner applies transitions.  Consumers must carry these facts;
+// they may not reconstruct ownership from type spelling or backend layout.
+
+func SemanticAstCollectionOwnershipUnknown() -> Int { return 0; }
+func SemanticAstCollectionOwnershipBorrowedElements() -> Int { return 1; }
+func SemanticAstCollectionOwnershipOwnedElements() -> Int { return 2; }
+func SemanticAstCollectionOwnershipMapKeysSnapshot() -> Int { return 3; }
+func SemanticAstCollectionOwnershipRetired() -> Int { return 4; }
+func SemanticAstCollectionDispositionLive() -> Int { return 0; }
+func SemanticAstCollectionDispositionRetired() -> Int { return 1; }
+func SemanticAstCollectionOriginUnknown() -> Int { return 0; }
+func SemanticAstCollectionOriginBorrowedLiteral() -> Int { return 1; }
+func SemanticAstCollectionOriginMapKeys() -> Int { return 2; }
+func SemanticAstCollectionOriginBinding() -> Int { return 3; }
+func SemanticAstCollectionOriginEmptyLiteral() -> Int { return 4; }
+func SemanticAstCollectionOriginMemberMove() -> Int { return 5; }
+func SemanticAstCollectionOriginClone() -> Int { return 6; }
+func SemanticAstCollectionTransitionUntracked() -> Int { return 0; }
+func SemanticAstCollectionTransitionEmpty() -> Int { return 1; }
+func SemanticAstCollectionTransitionBorrowed() -> Int { return 2; }
+func SemanticAstCollectionTransitionOwned() -> Int { return 3; }
+func SemanticAstCollectionTransitionRetired() -> Int { return 4; }

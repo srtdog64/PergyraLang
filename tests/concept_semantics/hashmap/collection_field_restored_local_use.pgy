@@ -1,0 +1,11 @@
+struct Accumulator {
+    pieces: Array<String>;
+}
+
+// Exact move-back restores the field, so the temporary local is retired.
+func Main() -> Void {
+    let acc: Accumulator = Accumulator(["original"]);
+    let pieces: Array<String> = acc.pieces;
+    acc.pieces = pieces;
+    Log(pieces[0]);
+}

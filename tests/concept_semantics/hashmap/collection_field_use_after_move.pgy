@@ -1,0 +1,11 @@
+struct Accumulator {
+    pieces: Array<String>;
+}
+
+// The source field is released after direct extraction.
+func Main() -> Void {
+    let acc: Accumulator = Accumulator(["original"]);
+    let pieces: Array<String> = acc.pieces;
+    ArrayPush(pieces, "owned");
+    Log(acc.pieces[0]);
+}

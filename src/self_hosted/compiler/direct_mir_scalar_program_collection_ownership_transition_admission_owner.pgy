@@ -1,9 +1,9 @@
 // Strict receipt parser and straight-line transition issuer for empty literals.
 
 import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy";
 import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
-import "direct_mir_scalar_cfg_op_code_owner.pgy";
 import "../mir_lower/routine_fact_index_schema_owner.pgy";
 
 struct DirectMirCollectionOwnershipInstructionReceipt {
@@ -74,79 +74,6 @@ func DirectMirCollectionOwnershipTrackedRowForLocal(
     return DirectMirScalarProgramCollectionOwnershipTransitionRow(
         fact, routine, local_row
     );
-}
-
-func DirectMirCollectionOwnershipExpectedOperationEffect(
-    ref storage: DirectMirScalarCfgProgramGraphStorage,
-    ref expressions: DirectMirScalarProgramExpressionSet,
-    operation: Int,
-    inout local_row: Int
-) -> Int {
-    local_row = -1;
-    if operation < 0 || operation >= ArrayLength(storage.operations.kinds) {
-        return 0;
-    }
-    let operation_kind: Int = storage.operations.kinds[operation];
-    if operation_kind == DirectMirScalarCfgOpLocalArrayStringPush() ||
-        operation_kind == DirectMirScalarCfgOpArrayStringSet() ||
-        operation_kind == DirectMirScalarCfgOpArrayStringPop() {
-        local_row = storage.operations.left_locals[operation];
-        return 2;
-    }
-    if operation_kind != DirectMirScalarCfgOpExpressionStatement() {
-        return 0;
-    }
-    let graph: Int = storage.operations.expression_rows[operation];
-    if graph < 0 || graph >= ArrayLength(expressions.graph_roots) {
-        return 0;
-    }
-    let root: Int = expressions.graph_roots[graph];
-    if root < 0 || root >= ArrayLength(expressions.node_kinds) {
-        return 0;
-    }
-    let effect: Int = 0;
-    if expressions.node_kinds[root] ==
-            DirectMirScalarProgramExprArrayStringPushOwned() {
-        effect = 1;
-    } else if expressions.node_kinds[root] ==
-            DirectMirScalarProgramExprArrayStringDropOwned() {
-        effect = 3;
-    }
-    if effect == 0 { return 0; }
-    let receiver: Int = expressions.node_lefts[root];
-    if receiver < 0 || receiver >= ArrayLength(expressions.node_kinds) ||
-        expressions.node_kinds[receiver] != DirectMirScalarProgramExprLocal() {
-        return 0;
-    }
-    local_row = expressions.node_local_rows[receiver];
-    return effect;
-}
-
-func DirectMirCollectionOwnershipNextState(
-    state: Int,
-    effect: Int
-) -> Int {
-    if effect == 1 &&
-        (state == DirectMirCollectionOwnershipStateEmpty() ||
-         state == DirectMirCollectionOwnershipStateOwned()) {
-        return DirectMirCollectionOwnershipStateOwned();
-    }
-    if effect == 2 &&
-        (state == DirectMirCollectionOwnershipStateEmpty() ||
-         state == DirectMirCollectionOwnershipStateBorrowed()) {
-        return DirectMirCollectionOwnershipStateBorrowed();
-    }
-    if effect == 3 &&
-        (state == DirectMirCollectionOwnershipStateEmpty() ||
-         state == DirectMirCollectionOwnershipStateOwned()) {
-        return DirectMirCollectionOwnershipStateRetired();
-    }
-    return 0;
-}
-
-func DirectMirCollectionOwnershipOperationKindProducesRow(kind: String) -> Bool {
-    return kind == "def" || kind == "assign" || kind == "stmt" ||
-        kind == "phi";
 }
 
 func DirectMirCollectionOwnershipInstructionSetHasTransitionReceipt(
@@ -244,12 +171,13 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
     let locals: Array<Int> = fact.local_rows;
     let bindings: Array<Int> = fact.binding_syntax_ids;
     let states: Array<Int> = fact.terminal_states;
-    let added_start: Int = ArrayLength(routines);
+    let retire_rows: Array<Int> = [];
     let ownership_row: Int = 0;
     while ownership_row < ArrayLength(
             index.collection_ownership_facts.binding_syntax_ids) {
-        if index.collection_ownership_facts.origins[ownership_row] ==
-                "empty-literal" {
+        let origin: String =
+            index.collection_ownership_facts.origins[ownership_row];
+        if origin == "empty-literal" || origin == "member-move" {
             let binding: Int = index.collection_ownership_facts.
                 binding_syntax_ids[ownership_row];
             let wanted: String = Concat(
@@ -272,24 +200,43 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                     CompilerAbiLayoutArrayStringTypeName() {
                 return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
             }
-            let requires_transition: Bool =
+            let requires_transition: Bool = origin == "member-move" ||
                 DirectMirCollectionOwnershipInstructionSetHasTransitionReceipt(
                     json, index, binding) ||
                 DirectMirCollectionOwnershipOperationSetRequiresTransition(
                     storage, expressions, operation_offset,
                     storage.routines.operation_counts[routine], matched_local);
             if requires_transition {
+                // This owner is deliberately the bounded straight-line
+                // transition issuer.  Existing CFG move/exit owners retain
+                // multi-block EMPTY locals until the cumulative graph rung;
+                // their receipts are still checked below.  A member move has
+                // no older owner to fall back to, so it must fail closed.
+                if ArrayLength(index.block_starts) != 1 {
+                    if origin == "member-move" {
+                        return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+                    }
+                    ownership_row = ownership_row + 1;
+                    continue;
+                }
                 ArrayPush(routines, routine);
                 ArrayPush(locals, matched_local);
                 ArrayPush(bindings, binding);
-                ArrayPush(states, DirectMirCollectionOwnershipStateEmpty());
+                let initial_state: Int =
+                    DirectMirCollectionOwnershipStateEmpty();
+                if origin == "member-move" {
+                    initial_state =
+                        DirectMirCollectionOwnershipStateUnknown();
+                }
+                ArrayPush(states, initial_state);
+                if origin == "member-move" &&
+                    index.collection_ownership_facts.dispositions[
+                        ownership_row] == "retired" {
+                    ArrayPush(retire_rows, ArrayLength(routines) - 1);
+                }
             }
         }
         ownership_row = ownership_row + 1;
-    }
-    let added_count: Int = ArrayLength(routines) - added_start;
-    if added_count > 0 && ArrayLength(index.block_starts) != 1 {
-        return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
     }
     let working: DirectMirScalarProgramCollectionOwnershipTransitionFact =
         DirectMirScalarProgramCollectionOwnershipTransitionFact(
@@ -331,14 +278,26 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                     working, routine, local_row
                 );
             if tracked >= 0 {
-                if expected_effect == 0 || !receipt.present ||
-                    receipt.effect_kind != expected_effect ||
-                    receipt.receiver_binding_syntax_id != bindings[tracked] {
-                    return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+                let next: Int = 0;
+                if states[tracked] ==
+                        DirectMirCollectionOwnershipStateUnknown() {
+                    if expected_effect != 2 || receipt.present {
+                        return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+                    }
+                    next = DirectMirCollectionOwnershipNextState(
+                        states[tracked], expected_effect
+                    );
+                } else {
+                    if expected_effect == 0 || !receipt.present ||
+                        receipt.effect_kind != expected_effect ||
+                        receipt.receiver_binding_syntax_id !=
+                            bindings[tracked] {
+                        return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+                    }
+                    next = DirectMirCollectionOwnershipNextState(
+                        states[tracked], expected_effect
+                    );
                 }
-                let next: Int = DirectMirCollectionOwnershipNextState(
-                    states[tracked], expected_effect
-                );
                 if next == 0 {
                     return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
                 }
@@ -363,6 +322,12 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
     }
     if operation != operation_end {
         return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+    }
+    let retire: Int = 0;
+    while retire < ArrayLength(retire_rows) {
+        ArraySet(states, retire_rows[retire],
+            DirectMirCollectionOwnershipStateRetired());
+        retire = retire + 1;
     }
     return DirectMirScalarProgramCollectionOwnershipTransitionFact(
         true, 0, routines, locals, bindings, states

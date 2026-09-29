@@ -19,6 +19,10 @@ func DirectMirScalarProgramCollectionBuiltinSignatureExpected(
         return ["Int", "Unknown", ToString(
             DirectMirScalarProgramExprArrayStringLength())];
     }
+    if name == "Clone" {
+        return ["Unknown", "Unknown", ToString(
+            DirectMirScalarProgramExprArrayClone())];
+    }
     if name == "ArrayDropOwnedStrings" {
         return ["Void", "Array<String>", ToString(
             DirectMirScalarProgramExprArrayStringDropOwned())];

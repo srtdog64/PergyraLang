@@ -1,0 +1,9 @@
+// Clone(Array<T>) is an explicit deep storage copy. Mutating the clone must
+// not change the source descriptor or its element storage.
+func Main() -> Void {
+    let original: Array<Int> = [1, 2];
+    let copied: Array<Int> = Clone(original);
+    ArraySet(copied, 0, 99);
+    Log(ToString(original[0]));
+    Log(ToString(copied[0]));
+}

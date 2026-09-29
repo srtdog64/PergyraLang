@@ -195,6 +195,32 @@ func MirProgramDeclarationFieldIdentityMatchesType(
         index.field_type_names[i] == expected_type_name;
 }
 
+func MirProgramDeclarationFieldIdentitySourceMatchesType(
+    ref index: MirProgramDeclarationFieldIdentityIndex,
+    owner_name: String,
+    source_syntax_id: String,
+    expected_type_name: String
+) -> Bool {
+    let owner_index: Int =
+        MirProgramDeclarationFieldIdentityDeclarationIndex(index, owner_name);
+    if owner_index < 0 ||
+        !MirProgramDeclarationFieldIdentityPositiveDecimal(source_syntax_id) ||
+        StringLength(expected_type_name) == 0 {
+        return false;
+    }
+    let matched: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(index.field_source_syntax_ids) {
+        if index.field_owner_indices[i] == owner_index &&
+            index.field_source_syntax_ids[i] == source_syntax_id &&
+            index.field_type_names[i] == expected_type_name {
+            matched = matched + 1;
+        }
+        i = i + 1;
+    }
+    return matched == 1;
+}
+
 func MirProgramDeclarationFieldIdentityDeclarationIndex(
     ref index: MirProgramDeclarationFieldIdentityIndex,
     owner_name: String
