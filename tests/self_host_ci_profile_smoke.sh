@@ -331,6 +331,7 @@ require_job_timeout "self-host-codegen-bootstrap-linux" 30
 require_job_timeout "backend-compare-toolchain-linux" 30
 require_job_timeout "build-linux" 30
 require_job_timeout "build-linux-self-host-contracts" 30
+require_job_timeout "sanitizers-linux" 25
 require_job_timeout "build-macos-c-only" 20
 require_job_timeout "build-windows" 35
 require_job_timeout "platform-full-linux-toolchain" 20 "$PLATFORM_WORKFLOW"

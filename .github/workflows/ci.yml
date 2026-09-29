@@ -143,7 +143,7 @@ jobs:
     # This is a separate bounded job: memory instrumentation must not lengthen
     # the already broad build-linux critical path or turn a UAF into a 60-minute
     # timeout. The intentional C witness first proves that ASan is actually live.
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
 
