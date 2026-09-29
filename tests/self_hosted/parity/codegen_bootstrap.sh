@@ -341,6 +341,14 @@ compare_artifact_with_owner() {
 }
 
 if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" == "1" ]]; then
+    codegen_seed_mode="${PGY_SELFHOST_CODEGEN_SEED_MODE:-build}"
+    case "$codegen_seed_mode" in
+        build|prebuilt) ;;
+        *)
+            echo "[self-host-bootstrap] invalid codegen seed mode: $codegen_seed_mode" >&2
+            exit 2
+            ;;
+    esac
     compile_parser_ast_producer
     set +e
     pgy_selfhost_codegen_seed_try_reuse "$ROOT_DIR" "$B" "$PGY" "$CC" "${BASH_SOURCE[0]}"
@@ -353,6 +361,10 @@ if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" == "1" ]]; then
         exit 0
     fi
     [[ "$seed_reuse_status" -eq 1 ]] || exit "$seed_reuse_status"
+    if [[ "$codegen_seed_mode" == "prebuilt" ]]; then
+        echo "[self-host-bootstrap] exact prebuilt gen2 seed is unavailable or stale" >&2
+        exit 1
+    fi
 fi
 # gen0 and scaffolding require --native-pipeline: they precede and independently
 # judge the installed self-host driver that ordinary compilation delegates to.

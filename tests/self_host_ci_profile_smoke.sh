@@ -14,6 +14,7 @@ PLATFORM_WORKFLOW="$ROOT_DIR/.github/workflows/platform_full.yml"
 PARITY_WORKFLOW="$ROOT_DIR/.github/workflows/self_host_parity.yml"
 CHANGE_SCOPE_OWNER="$ROOT_DIR/scripts/ci_change_scope_owner.sh"
 DRIVER_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap.sh"
+CODEGEN_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/codegen_bootstrap.sh"
 PLATFORM_PARITY_SHARD_OWNER="$ROOT_DIR/scripts/ci_self_host_platform_parity_shard_owner.sh"
 
 for file in \
@@ -29,6 +30,7 @@ for file in \
     "$PARITY_WORKFLOW" \
     "$CHANGE_SCOPE_OWNER" \
     "$DRIVER_BOOTSTRAP" \
+    "$CODEGEN_BOOTSTRAP" \
     "$PLATFORM_PARITY_SHARD_OWNER"; do
     if [[ ! -f "$file" ]]; then
         echo "[self-host-ci-profile] missing input: $file" >&2
@@ -79,8 +81,8 @@ for required in \
     fi
 done
 
-if [[ "$(grep -Fc 'needs: classify-changes' "$WORKFLOW")" != "7" ]] ||
-    [[ "$(grep -Fc 'needs: [classify-changes, backend-compare-toolchain-linux]' "$WORKFLOW")" != "4" ]] ||
+if [[ "$(grep -Fc 'needs: classify-changes' "$WORKFLOW")" != "6" ]] ||
+    [[ "$(grep -Fc 'needs: [classify-changes, backend-compare-toolchain-linux]' "$WORKFLOW")" != "5" ]] ||
     [[ "$(grep -Fc "if: needs.classify-changes.outputs.run_full == 'true'" "$WORKFLOW")" != "10" ]]; then
     echo "[self-host-ci-profile] full-only jobs are not all gated by one change-scope owner" >&2
     exit 1
@@ -382,6 +384,20 @@ bootstrap_job="$(
         '/^  self-host-bootstrap-linux:/,/^  self-host-codegen-bootstrap-linux:/p' \
         "$WORKFLOW"
 )"
+for required in \
+    'needs: [classify-changes, backend-compare-toolchain-linux]' \
+    'name: backend-compare-linux-toolchain' \
+    'name: self-host-codegen-linux-seed' \
+    'path: .tmp/self_hosted/codegen/bootstrap' \
+    'chmod +x .tmp/self_hosted/codegen/bootstrap/gen2.exe' \
+    'test -s .tmp/self_hosted/codegen/bootstrap/codegen-seed.output.receipt' \
+    'test -s .tmp/self_hosted/codegen/bootstrap/codegen-seed.prebuild.key' \
+    'PGY_SELFHOST_CODEGEN_SEED_MODE: prebuilt'; do
+    if ! grep -Fq "$required" <<<"$bootstrap_job"; then
+        echo "[self-host-ci-profile] fixed-point job lost exact prebuilt codegen seed admission: $required" >&2
+        exit 1
+    fi
+done
 if ! grep -Eq \
         'sudo apt-get install -y .*([[:space:]])libomp-dev([[:space:]]|$)' \
         <<<"$bootstrap_job"; then
@@ -700,13 +716,28 @@ for required in \
     'make LLVM_ENABLED=1 self-host-compiler' \
     'uses: actions/upload-artifact@v4' \
     'name: backend-compare-linux-toolchain' \
+    'name: self-host-codegen-linux-seed' \
     'bin/pgy' \
     'bin/pgy-self-driver' \
     'bin/pgy-self-driver.machine-layer-manifest.json' \
+    '.tmp/self_hosted/codegen/bootstrap/gen2.c' \
+    '.tmp/self_hosted/codegen/bootstrap/gen2.exe' \
+    '.tmp/self_hosted/codegen/bootstrap/codegen-seed.output.receipt' \
+    '.tmp/self_hosted/codegen/bootstrap/codegen-seed.prebuild.key' \
     'if-no-files-found: error' \
     'retention-days: 1'; do
     if ! grep -Fq "$required" <<<"$backend_compare_toolchain_job"; then
         echo "[self-host-ci-profile] backend compare toolchain owner lost contract: $required" >&2
+        exit 1
+    fi
+done
+for required in \
+    'PGY_SELFHOST_CODEGEN_SEED_MODE:-build' \
+    'build|prebuilt)' \
+    '[[ "$codegen_seed_mode" == "prebuilt" ]]' \
+    'exact prebuilt gen2 seed is unavailable or stale'; do
+    if ! grep -Fq "$required" "$CODEGEN_BOOTSTRAP"; then
+        echo "[self-host-ci-profile] codegen seed prebuilt mode lost fail-closed behavior: $required" >&2
         exit 1
     fi
 done

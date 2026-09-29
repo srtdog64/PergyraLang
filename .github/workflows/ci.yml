@@ -217,7 +217,7 @@ jobs:
         run: make LLVM_ENABLED=0 test-tsan
 
   self-host-bootstrap-linux:
-    needs: classify-changes
+    needs: [classify-changes, backend-compare-toolchain-linux]
     if: needs.classify-changes.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -236,9 +236,32 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc make llvm-dev llvm libomp-dev time
 
+      - name: Download the exact installed compiler pair
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-compare-linux-toolchain
+          path: bin
+
+      - name: Download the exact codegen seed
+        uses: actions/download-artifact@v4
+        with:
+          name: self-host-codegen-linux-seed
+          path: .tmp/self_hosted/codegen/bootstrap
+
+      - name: Admit the exact compiler pair and codegen seed
+        run: |
+          chmod +x bin/pgy bin/pgy-self-driver
+          chmod +x .tmp/self_hosted/codegen/bootstrap/gen2.exe
+          test -s bin/pgy-self-driver.machine-layer-manifest.json
+          test -s .tmp/self_hosted/codegen/bootstrap/gen2.c
+          test -s .tmp/self_hosted/codegen/bootstrap/codegen-seed.output.receipt
+          test -s .tmp/self_hosted/codegen/bootstrap/codegen-seed.prebuild.key
+
       - name: Run the full self-host fixed point and policy-corpus census
         # Reuse one fixed-point build. A second bootstrap job duplicates the
         # compiler-scale text artifacts and can exceed the runner memory budget.
+        env:
+          PGY_SELFHOST_CODEGEN_SEED_MODE: prebuilt
         run: |
           PGY_SELFHOST_PROFILE_REQUIRE_RESOURCE=1 \
           PGY_SELFHOST_FIXED_POINT_PROFILE_RECEIPT="$PWD/.tmp/self_hosted/driver/bootstrap/driver.fixed-point.profile.receipt" \
@@ -358,6 +381,18 @@ jobs:
             bin/pgy
             bin/pgy-self-driver
             bin/pgy-self-driver.machine-layer-manifest.json
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Publish the exact codegen seed
+        uses: actions/upload-artifact@v4
+        with:
+          name: self-host-codegen-linux-seed
+          path: |
+            .tmp/self_hosted/codegen/bootstrap/gen2.c
+            .tmp/self_hosted/codegen/bootstrap/gen2.exe
+            .tmp/self_hosted/codegen/bootstrap/codegen-seed.output.receipt
+            .tmp/self_hosted/codegen/bootstrap/codegen-seed.prebuild.key
           if-no-files-found: error
           retention-days: 1
 
