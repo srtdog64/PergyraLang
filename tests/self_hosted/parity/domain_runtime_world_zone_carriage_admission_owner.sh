@@ -64,10 +64,10 @@ cmp -s "$WORLD_EXPECTED" "$WORLD_THREADSAFE_OUT"
 # paths as the Pergyra codegen. It must preserve the caller-owned world identity
 # and bracket each embedded lock exactly once even in the thread-safe runtime.
 "$PGY_BIN" "$WORLD_SOURCE" --native-pipeline --emit-c -o "$WORLD_NATIVE_C"
-grep -Fq 'int32_t ReadWorld(CartWorld *compiler_world)' "$WORLD_NATIVE_C"
-grep -Fq 'int32_t ForwardWorld(CartWorld *compiler_world)' "$WORLD_NATIVE_C"
-grep -Fq 'return ReadWorld(compiler_world);' "$WORLD_NATIVE_C"
-grep -Fq 'ForwardWorld(&_pgy_ssa_compiler_world_1)' "$WORLD_NATIVE_C"
+grep -Fq 'int32_t pgy_u_ReadWorld(CartWorld *compiler_world)' "$WORLD_NATIVE_C"
+grep -Fq 'int32_t pgy_u_ForwardWorld(CartWorld *compiler_world)' "$WORLD_NATIVE_C"
+grep -Fq 'return pgy_u_ReadWorld(compiler_world);' "$WORLD_NATIVE_C"
+grep -Fq 'pgy_u_ForwardWorld(&_pgy_ssa_compiler_world_1)' "$WORLD_NATIVE_C"
 [[ "$(grep -Fc 'PGY_ZONE_LOCK_INIT(&_pgy_ssa_compiler_world_1.cart);' \
     "$WORLD_NATIVE_C")" == 1 ]]
 [[ "$(grep -Fc 'PGY_ZONE_LOCK_DESTROY(&_pgy_ssa_compiler_world_1.cart);' \
@@ -107,7 +107,7 @@ IDENTITY_NATIVE_THREADSAFE_BIN="$WORLD_BUILD_DIR/world-zone-identity-native-thre
 "$PGY_BIN" "$IDENTITY_SOURCE" --native-pipeline --emit-c \
     -o "$IDENTITY_NATIVE_C"
 grep -Fq 'int32_t ReadWorld(CartWorld *compiler_world)' "$IDENTITY_C"
-grep -Fq 'int32_t ReadWorld(CartWorld *compiler_world)' "$IDENTITY_NATIVE_C"
+grep -Fq 'int32_t pgy_u_ReadWorld(CartWorld *compiler_world)' "$IDENTITY_NATIVE_C"
 if grep -Eq 'CartWorld compiler_world[[:space:]]*=[[:space:]]*\*' \
     "$IDENTITY_C" "$IDENTITY_NATIVE_C"; then
     echo "default world identity regressed to a lock-bearing value copy" >&2

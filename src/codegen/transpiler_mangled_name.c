@@ -7,6 +7,9 @@
 
 #include "transpiler_mangled_name.h"
 
+#include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
+
 void
 append_mangled_type_name(CodeBuf *buf, const char *type_name)
 {
@@ -31,4 +34,28 @@ append_mangled_type_name(CodeBuf *buf, const char *type_name)
 
     if (!wrote)
         codebuf_write(buf, "Type");
+}
+
+const char *
+transpiler_c_user_callable_symbol(TranspilerCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL || name[0] == '\0')
+        return NULL;
+    return transpiler_scratch_fmt(ctx, "pgy_u_%s", name);
+}
+
+const char *
+transpiler_c_user_callable_reference_symbol(TranspilerCtx *ctx,
+                                            const char *name)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    decl = transpiler_find_named_decl_local(ctx, AST_FUNC_DECL, name);
+    if (decl != NULL && !transpiler_decl_is_extern_function(ctx, decl))
+        return transpiler_c_user_callable_symbol(ctx, name);
+    if (transpiler_find_named_decl_local(ctx, AST_INTENT_DECL, name) != NULL)
+        return transpiler_c_user_callable_symbol(ctx, name);
+    return NULL;
 }

@@ -38,13 +38,13 @@ user_bad="$ROOT_DIR/tests/cases/backend_compare/region_user_callee_bad/main.pgy"
 "$PGY_BIN" "$user_bad" --emit-c -o "$WORK/user_bad.c" >/dev/null
 "$PGY_BIN" "$user_bad" --emit-llvm -o "$WORK/user_bad.ll" >/dev/null
 
-direct_c="$(awk '/void Main\(\)/,/^}/' "$WORK/direct.c")"
+direct_c="$(awk '/void pgy_u_Main\(\)/,/^}/' "$WORK/direct.c")"
 direct_ll="$(awk '/define .*@Main/,/^}/' "$WORK/direct.ll")"
-heap_c="$(awk '/void Main\(\)/,/^}/' "$WORK/heap.c")"
+heap_c="$(awk '/void pgy_u_Main\(\)/,/^}/' "$WORK/heap.c")"
 heap_ll="$(awk '/define .*@Main/,/^}/' "$WORK/heap.ll")"
-user_good_c="$(awk '/void Main\(\)/,/^}/' "$WORK/user_good.c")"
+user_good_c="$(awk '/void pgy_u_Main\(\)/,/^}/' "$WORK/user_good.c")"
 user_good_ll="$(awk '/define .*@Main/,/^}/' "$WORK/user_good.ll")"
-user_bad_c="$(awk '/void Main\(\)/,/^}/' "$WORK/user_bad.c")"
+user_bad_c="$(awk '/void pgy_u_Main\(\)/,/^}/' "$WORK/user_bad.c")"
 user_bad_ll="$(awk '/define .*@Main/,/^}/' "$WORK/user_bad.ll")"
 
 grep -Fq 'pgy_region_create(0)' <<<"$direct_c"

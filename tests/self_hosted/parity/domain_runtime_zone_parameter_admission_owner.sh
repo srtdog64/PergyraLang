@@ -27,7 +27,7 @@ IDENTITY_NATIVE_THREADSAFE_BIN="$PARAMETER_BUILD_DIR/identity-native-threadsafe.
 "$PGY_BIN" "$IDENTITY_SOURCE" --native-pipeline --emit-c \
     -o "$IDENTITY_NATIVE_C"
 grep -Fq 'int32_t Observe(CounterZone *value)' "$IDENTITY_C"
-grep -Fq 'int32_t Observe(CounterZone *value)' "$IDENTITY_NATIVE_C"
+grep -Fq 'int32_t pgy_u_Observe(CounterZone *value)' "$IDENTITY_NATIVE_C"
 if grep -Eq 'CounterZone value[[:space:]]*=[[:space:]]*\*' \
     "$IDENTITY_C" "$IDENTITY_NATIVE_C"; then
     echo "default zone identity regressed to a lock-bearing value copy" >&2

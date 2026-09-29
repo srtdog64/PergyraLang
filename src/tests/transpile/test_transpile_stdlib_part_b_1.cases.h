@@ -337,7 +337,7 @@ test_stdlib_and_enum_emit(void)
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data,
-            "int32_t Apply(int32_t base, StrategyContext ctx, int32_t (*policy)(int32_t, StrategyContext))");
+            "int32_t pgy_u_Apply(int32_t base, StrategyContext ctx, int32_t (*policy)(int32_t, StrategyContext))");
         EXPECT(strstr(ctx->decls->data, "pgy_lambda_") != NULL
             || strstr(ctx->helpers->data, "pgy_lambda_") != NULL);
         EXPECT(strstr(ctx->decls->data, "int32_t base, StrategyContext ctx") != NULL
@@ -455,13 +455,13 @@ test_stdlib_and_enum_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data,
             ")(char*, bool, int32_t) = 0;");
         EXPECT_STR_CONTAINS(ctx->out->data,
-            "_pgy_ssa_checkoutFormatter_1 = Pick(\"verbose\");");
+            "_pgy_ssa_checkoutFormatter_1 = pgy_u_Pick(\"verbose\");");
         EXPECT_STR_CONTAINS(ctx->out->data,
             "char* (*_pgy_ssa_refundFormatter_");
         EXPECT_STR_CONTAINS(ctx->out->data,
             ")(char*, bool, int32_t) = 0;");
         EXPECT_STR_CONTAINS(ctx->out->data,
-            "_pgy_ssa_refundFormatter_1 = Compact;");
+            "_pgy_ssa_refundFormatter_1 = pgy_u_Compact;");
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);

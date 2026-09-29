@@ -121,7 +121,7 @@ static void test_mir_value_result_entry_storage(void)
     EXPECT(ok && ctx != NULL && ctx->out != NULL);
     if (ok && ctx != NULL && ctx->out != NULL) {
         EXPECT_STR_CONTAINS(ctx->out->data,
-            "return ReadWorld(compiler_world);");
+            "return pgy_u_ReadWorld(compiler_world);");
         EXPECT_STR_NOT_CONTAINS(ctx->out->data,
             "ReadWorld(&compiler_world)");
         EXPECT_STR_NOT_CONTAINS(ctx->out->data,

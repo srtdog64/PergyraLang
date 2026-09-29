@@ -24,6 +24,8 @@
 #include "transpiler_symbols.h"
 #include "transpiler_type_alias.h"
 #include "transpiler_zone_decl_emit.h"
+#include "transpiler_mangled_name.h"
+#include "transpiler_func_class_flow_emit.h"
 
 bool
 transpiler_emit_bind_statement_parts(TranspilerCtx *ctx,
@@ -180,7 +182,9 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         emit_let_destructure_statement(node, ctx);
         break;
     case AST_FUNC_DECL:
-        emit_func_decl(node, ctx);
+        emit_func_decl_named(node,
+            transpiler_c_user_callable_symbol(ctx, ast_declaration_name(node)),
+            ctx->out, ctx);
         break;
     case AST_CLASS_DECL:
         emit_class_decl(node, ctx);

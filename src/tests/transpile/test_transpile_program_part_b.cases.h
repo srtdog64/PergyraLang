@@ -248,7 +248,7 @@ test_program_emit_tail(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "void Touch(PgySlot_Vec2 *s)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "void pgy_u_Touch(PgySlot_Vec2 *s)");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_write_Vec2(s, (Vec2){ .x = 1, .y = 2 });");
         EXPECT_STR_CONTAINS(ctx->out->data, "Touch(&s);");
 
@@ -326,7 +326,7 @@ test_program_emit_tail(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "void ConsumeOuter(PgySecureSlot_Vec2 *s, PgyToken_Vec2 s_token)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "void pgy_u_ConsumeOuter(PgySecureSlot_Vec2 *s, PgyToken_Vec2 s_token)");
         EXPECT_STR_CONTAINS(ctx->out->data, "ConsumeInner(s, s_token);");
 
         transpiler_ctx_destroy(ctx);
@@ -366,8 +366,8 @@ test_program_emit_tail(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "void ConsumeOuter(PgySecureSlot_Vec2 *s, PgyToken_Vec2 s_token)");
-        EXPECT_STR_CONTAINS(ctx->out->data, "void ConsumeMiddle(PgySecureSlot_Vec2 *s, PgyToken_Vec2 s_token)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "void pgy_u_ConsumeOuter(PgySecureSlot_Vec2 *s, PgyToken_Vec2 s_token)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "void pgy_u_ConsumeMiddle(PgySecureSlot_Vec2 *s, PgyToken_Vec2 s_token)");
         EXPECT_STR_CONTAINS(ctx->out->data, "ConsumeMiddle(s, s_token);");
         EXPECT_STR_CONTAINS(ctx->out->data, "ConsumeInner(s, s_token);");
 

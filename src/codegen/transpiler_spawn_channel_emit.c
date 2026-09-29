@@ -25,6 +25,7 @@
 #include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
+#include "transpiler_mangled_name.h"
 
 static char *
 transpiler_spawn_channel_emit_expr(TranspilerCtx *ctx,
@@ -174,8 +175,10 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     }
 
     decl = find_function_decl(ctx, function_name);
-    emitted_function_name = function_name;
     callee_is_extern_func = transpiler_decl_is_extern_function(ctx, decl);
+    emitted_function_name = callee_is_extern_func
+        ? function_name
+        : transpiler_c_user_callable_symbol(ctx, function_name);
     if (decl != NULL && decl->type == AST_FUNC_DECL)
         callee_routine = transpiler_find_mir_function(ctx, decl);
     callee_is_generic_func =

@@ -1,7 +1,28 @@
+// PP-068: host headers the native C translation unit includes declare
+// ordinary API names. FindResource is a Win32 function-like macro; Escape,
+// Rectangle and Sleep are real Win32 declarations with other signatures.
 func FindResource(value: Int) -> Int {
     return value + 1;
 }
 
+func Escape(c: Int) -> String {
+    if c == 34 {
+        return "q";
+    }
+    return "";
+}
+
+func Rectangle(width: Int, height: Int) -> Int {
+    return width * height;
+}
+
+func Sleep(ms: Int) -> Int {
+    return ms + 2;
+}
+
 func Main() -> Void {
     Log(FindResource(41));
+    Log(Escape(34));
+    Log(Rectangle(6, 7));
+    Log(Sleep(40));
 }

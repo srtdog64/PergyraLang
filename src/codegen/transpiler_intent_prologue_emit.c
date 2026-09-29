@@ -17,6 +17,7 @@
 #include "transpiler_symbols.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
+#include "transpiler_mangled_name.h"
 
 static bool
 transpiler_intent_prologue_surface_desc(char *out, size_t out_size,
@@ -143,7 +144,8 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
         return false;
     }
 
-    codebuf_write(ctx->out, "\n%s\n%s(", return_c_type, intent_name);
+    codebuf_write(ctx->out, "\n%s\n%s(", return_c_type,
+        transpiler_c_user_callable_symbol(ctx, intent_name));
     {
         size_t binding_count = mir_routine != NULL
             ? mir_binding_count

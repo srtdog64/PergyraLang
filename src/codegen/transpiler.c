@@ -22,6 +22,7 @@
 #include "transpiler_func_forward_policy.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_log_normalize.h"
+#include "transpiler_mangled_name.h"
 #include "transpiler_mir_signature.h"
 #include "transpiler_nominal.h"
 #include "transpiler_operator.h"
@@ -137,14 +138,6 @@ emit_c_nominal_forward_decls(TranspilerCtx *ctx)
     return true;
 }
 
-static const char *
-transpiler_c_executable_emitted_name(const char *name)
-{
-    if (name != NULL && strcmp(name, "main") == 0)
-        return "__pgy_user_main_lowercase";
-    return name;
-}
-
 static bool
 transpiler_is_synthetic_executable_func(ASTNode *fn)
 {
@@ -175,45 +168,12 @@ emit_c_function_forwards_at_stage(TranspilerCtx *ctx,
             continue;
         }
         emit_func_forward_decl_named(functions[i],
-            transpiler_c_executable_emitted_name(
+            transpiler_c_user_callable_symbol(ctx,
                 ast_declaration_name(functions[i])),
             ctx->out, ctx);
     }
     if (synthetic != NULL)
         emit_func_forward_decl(synthetic, ctx->out, ctx);
-}
-
-/* Host headers may expose function-like macros with ordinary API names (for
- * example Win32's FindResource -> FindResourceA).  A Pergyra declaration owns
- * its generated translation-unit identifier, so remove any macro carrying the
- * same spelling after all runtime headers have been included.  Externs are
- * intentionally excluded: their exact host ABI spelling remains authoritative.
- */
-static void
-transpiler_emit_owned_callable_macro_hygiene(CodeBuf *out,
-                                             ASTNode **functions,
-                                             size_t function_count,
-                                             ASTNode **intents,
-                                             size_t intent_count)
-{
-    if (out == NULL)
-        return;
-    for (size_t i = 0; i < function_count; i++) {
-        const char *name = functions != NULL && functions[i] != NULL
-            ? ast_declaration_name(functions[i]) : NULL;
-        name = transpiler_c_executable_emitted_name(name);
-        if (name == NULL || name[0] == '\0')
-            continue;
-        codebuf_write(out, "#ifdef %s\n#undef %s\n#endif\n", name, name);
-    }
-    for (size_t i = 0; i < intent_count; i++) {
-        const char *name = intents != NULL && intents[i] != NULL
-            ? ast_declaration_name(intents[i]) : NULL;
-        if (name == NULL || name[0] == '\0')
-            continue;
-        codebuf_write(out, "#ifdef %s\n#undef %s\n#endif\n", name, name);
-    }
-    codebuf_write(out, "\n");
 }
 
 /* -----------------------------------------------------------------
@@ -360,8 +320,6 @@ emit_program(TranspilerCtx *ctx)
         "#ifndef PGY_EVENT_MAX_HANDLERS\n"
         "#define PGY_EVENT_MAX_HANDLERS 16\n"
         "#endif\n\n");
-    transpiler_emit_owned_callable_macro_hygiene(
-        ctx->out, functions, function_count, intents, intent_count);
 
     /*
      * Multi-pass strategy for valid C output:
@@ -560,7 +518,7 @@ emit_program(TranspilerCtx *ctx)
                 transpiler_find_mir_function(ctx, functions[i]), functions[i]))
             emit_func_forward_decl_named(
                 functions[i],
-                transpiler_c_executable_emitted_name(
+                transpiler_c_user_callable_symbol(ctx,
                     ast_declaration_name(functions[i])),
                 ctx->decls,
                 ctx);
@@ -586,7 +544,7 @@ emit_program(TranspilerCtx *ctx)
                     functions[i]))
                 emit_func_decl_named(
                     functions[i],
-                    transpiler_c_executable_emitted_name(
+                    transpiler_c_user_callable_symbol(ctx,
                         ast_declaration_name(functions[i])),
                     ctx->out,
                     ctx);
@@ -659,7 +617,7 @@ emit_program(TranspilerCtx *ctx)
         if (has_main_function) {
             write_indent(ctx);
             codebuf_write(ctx->out, "%s();\n",
-                transpiler_c_executable_emitted_name(main_function_name));
+                transpiler_c_user_callable_symbol(ctx, main_function_name));
         }
 
         /* Shutdown runtime */

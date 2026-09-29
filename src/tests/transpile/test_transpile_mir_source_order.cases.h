@@ -87,7 +87,7 @@ test_source_order_mir_emit(void)
         if (ok && ctx != NULL && ctx->out != NULL && ctx->out->data != NULL) {
             claim_pos = strstr(ctx->out->data,
                 "PgySlot_Int s = pgy_claim_Int();");
-            write_pos = strstr(ctx->out->data, "pgy_write_Int(&s, Cost())");
+            write_pos = strstr(ctx->out->data, "pgy_write_Int(&s, pgy_u_Cost())");
             read_pos = strstr(ctx->out->data, "pgy_read_Int(&s)");
             release_pos = strstr(ctx->out->data, "pgy_release_Int(&s)");
         }

@@ -12,6 +12,7 @@
 #include "transpiler_format.h"
 #include "transpiler_operator.h"
 #include "transpiler_symbols.h"
+#include "transpiler_mangled_name.h"
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
 
@@ -131,8 +132,18 @@ transpiler_binary_operation(ASTNode *expr, TranspilerCtx *ctx,
         overload = find_operator_overload_decl(ctx, stable_lt, op_type);
         if (overload != NULL) {
             const char *suffix = operator_overload_suffix(op_type);
-            char *result = strdup_fmt("operator_%s_%s(%s, %s)",
-                suffix, stable_lt, left, right);
+            char *operator_name = strdup_fmt("operator_%s_%s",
+                suffix, stable_lt);
+            const char *callable_symbol = operator_name != NULL
+                ? transpiler_c_user_callable_reference_symbol(ctx,
+                      operator_name)
+                : NULL;
+            char *result = operator_name != NULL
+                ? strdup_fmt("%s(%s, %s)",
+                      callable_symbol != NULL ? callable_symbol : operator_name,
+                      left, right)
+                : NULL;
+            free(operator_name);
             return result;
         }
     }

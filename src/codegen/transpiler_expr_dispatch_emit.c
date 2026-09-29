@@ -11,6 +11,7 @@
 #include "transpiler_async_parallel_emit.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_mangled_name.h"
 #include "transpiler_enum.h"
 #include "transpiler_expr_array_access_emit.h"
 #include "transpiler_expr_assignment_emit.h"
@@ -257,6 +258,13 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     projection_entry->source_slot);
             }
         }
+        if (projection_entry == NULL
+            && !transpiler_identifier_is_current_true_local(ctx, id_name)) {
+            const char *callable_symbol =
+                transpiler_c_user_callable_reference_symbol(ctx, id_name);
+            if (callable_symbol != NULL)
+                return pergyra_strdup(callable_symbol);
+        }
         return pergyra_strdup(id_name);
     }
 
@@ -300,13 +308,22 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             "member access", "receiver");
         if (obj == NULL)
             return NULL;
-        /* Enum variant access: Color.Red -> Color_Red. */
+        /* Enum variant access: Color.Red -> Color_Red. A module namespace
+         * member `Math.Add` names the normalized top-level function
+         * `Math_Add`, whose C symbol the callable owner spells. */
         if (member_object->type == AST_IDENTIFIER
             && ast_identifier_name(member_object) != NULL
             && ast_identifier_name(member_object)[0] >= 'A'
             && ast_identifier_name(member_object)[0] <= 'Z') {
             char *result = strdup_fmt("%s_%s", obj, member_name);
+            const char *callable_symbol = result != NULL
+                ? transpiler_c_user_callable_reference_symbol(ctx, result)
+                : NULL;
             free(obj);
+            if (callable_symbol != NULL) {
+                free(result);
+                return pergyra_strdup(callable_symbol);
+            }
             return result;
         }
         if (member_object->type == AST_IDENTIFIER

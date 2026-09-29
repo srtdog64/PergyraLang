@@ -12,6 +12,7 @@
 #include "transpiler_intent_zone_slot.h"
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_type_require.h"
+#include "transpiler_mangled_name.h"
 
 bool transpiler_can_forward_declare_type_early(TranspilerCtx *ctx,
                                                ASTNode *type_node);
@@ -198,7 +199,8 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         : (explicit_binding_count > 0
             ? explicit_binding_count
             : (involve_count + value_count));
-    codebuf_write(buf, "\n%s\n%s(", return_c_type, intent_name);
+    codebuf_write(buf, "\n%s\n%s(", return_c_type,
+        transpiler_c_user_callable_symbol(ctx, intent_name));
     for (size_t i = 0; i < binding_count; i++) {
         ASTNode *binding = mir_only_intent
             ? NULL

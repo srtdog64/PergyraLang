@@ -99,14 +99,14 @@ test_mir_vertical_slice_emit(void)
             EXPECT(routine != NULL);
             EXPECT(mir_count_reachable_non_cleanup_blocks(routine) >= 3);
             EXPECT(mir_count_exceptional_edges(routine) == 0);
-            EXPECT(strstr(output, "_pgy_mir_bb_Score_0:") != NULL);
-            EXPECT(strstr(output, "_pgy_mir_bb_Score_1:") != NULL);
-            EXPECT(strstr(output, "_pgy_mir_bb_Score_2:") != NULL);
-            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_0:", "if ("));
-            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_0:", "goto _pgy_mir_bb_Score_1;"));
-            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_0:", "goto _pgy_mir_bb_Score_2;"));
-            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_1:", "return 7;"));
-            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_2:", "return 3;"));
+            EXPECT(strstr(output, "_pgy_mir_bb_pgy_u_Score_0:") != NULL);
+            EXPECT(strstr(output, "_pgy_mir_bb_pgy_u_Score_1:") != NULL);
+            EXPECT(strstr(output, "_pgy_mir_bb_pgy_u_Score_2:") != NULL);
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_pgy_u_Score_0:", "if ("));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_pgy_u_Score_0:", "goto _pgy_mir_bb_pgy_u_Score_1;"));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_pgy_u_Score_0:", "goto _pgy_mir_bb_pgy_u_Score_2;"));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_pgy_u_Score_1:", "return 7;"));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_pgy_u_Score_2:", "return 3;"));
             EXPECT((strstr(output, "if (flag)") != NULL)
                    || (strstr(output, "if (_pgy_ssa_flag_") != NULL));
         }

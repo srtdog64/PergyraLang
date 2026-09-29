@@ -35,6 +35,7 @@
 #include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
+#include "transpiler_mangled_name.h"
 
 static char *
 transpiler_member_call_emit_part(TranspilerCtx *ctx,
@@ -427,11 +428,27 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         free(receiver_prefix);
                         return NULL;
                     }
-                    result = specialization != NULL
-                        ? strdup_fmt("%s(%s)", specialization->specialized_name,
-                              args_buf->data)
-                        : strdup_fmt("%s_%s(%s)",
-                              owned_type_name, method, args_buf->data);
+                    if (specialization != NULL) {
+                        result = strdup_fmt("%s(%s)",
+                            specialization->specialized_name, args_buf->data);
+                    } else {
+                        /* A module namespace call `Math.Add` names the
+                         * normalized top-level function `Math_Add`, whose
+                         * C symbol the callable owner spells. */
+                        char *flat_name = strdup_fmt("%s_%s",
+                            owned_type_name, method);
+                        const char *callable_symbol = flat_name != NULL
+                            ? transpiler_c_user_callable_reference_symbol(
+                                  ctx, flat_name)
+                            : NULL;
+                        result = flat_name != NULL
+                            ? strdup_fmt("%s(%s)",
+                                  callable_symbol != NULL
+                                      ? callable_symbol : flat_name,
+                                  args_buf->data)
+                            : NULL;
+                        free(flat_name);
+                    }
                     if ((ordered_prefix[0] != '\0' || receiver_prefix != NULL)
                         && result != NULL) {
                         char *ordered_result = strdup_fmt("({ %s%s%s; })",

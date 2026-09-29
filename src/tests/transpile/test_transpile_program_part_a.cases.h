@@ -46,7 +46,7 @@ test_program_emit_head(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t Add(int32_t a, int32_t b)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t pgy_u_Add(int32_t a, int32_t b)");
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
         rir_destroy(rir);
@@ -362,7 +362,7 @@ test_program_emit_head(void)
         ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "PgyBox_Vec2 MakeVec(");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgyBox_Vec2 pgy_u_MakeVec(");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_box_new_Vec2(");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_box_get_Vec2(");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_box_set_Vec2(");

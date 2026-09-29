@@ -324,14 +324,14 @@
         EXPECT_STR_CONTAINS(ctx->out->data,
             "PGY_HASHMAP_DEFINE(List_String, PgyList_String)");
         EXPECT_STR_CONTAINS(ctx->out->data,
-            "PgyHashMap_List_String BuildBuckets(void);");
+            "PgyHashMap_List_String pgy_u_BuildBuckets(void);");
         EXPECT_STR_CONTAINS(ctx->out->data,
-            "char* RenderBuckets(PgyHashMap_List_String buckets);");
+            "char* pgy_u_RenderBuckets(PgyHashMap_List_String buckets);");
 
         map_define_pos = strstr(ctx->out->data,
             "PGY_HASHMAP_DEFINE(List_String, PgyList_String)");
         build_decl_pos = strstr(ctx->out->data,
-            "PgyHashMap_List_String BuildBuckets(void);");
+            "PgyHashMap_List_String pgy_u_BuildBuckets(void);");
         EXPECT(map_define_pos != NULL && build_decl_pos != NULL && map_define_pos < build_decl_pos);
         EXPECT(map_define_pos != NULL
             && strstr(map_define_pos + 1,

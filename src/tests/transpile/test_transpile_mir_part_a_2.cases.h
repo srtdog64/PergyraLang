@@ -312,7 +312,7 @@
             EXPECT_STR_CONTAINS(output, ".active = false;");
             EXPECT(strstr(output, ".active = false;") != NULL
                    && strstr(strstr(output, ".active = false;"),
-                              "goto _pgy_mir_bb_Score_") != NULL);
+                              "goto _pgy_mir_bb_pgy_u_Score_") != NULL);
         }
 
         free(output);
