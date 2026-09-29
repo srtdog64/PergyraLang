@@ -242,8 +242,7 @@ func DirectMirRoleOverrideLiteralFromRoutine(
         !DirectMirObjectNumberEquals(instruction, "id", "0") ||
         admitted.routines.instruction_kinds[global] != "return" ||
         capture.name != "return" ||
-        admitted.routines.instruction_source_types[global] !=
-            "AST_IDENTIFIER" || capture.result != "" ||
+        admitted.routines.instruction_source_types[global] != "AST_IDENTIFIER" || capture.result != "" ||
         capture.arg0 != "" || capture.arg1 != "" ||
         capture.slot_anchor != "" ||
         !DirectMirInstructionHasNoPhysicalAbi(
@@ -252,13 +251,10 @@ func DirectMirRoleOverrideLiteralFromRoutine(
         !DirectMirObjectFieldKindEquals(instruction, "expr0_graph", "object") ||
         !DirectMirObjectFieldKindEquals(instruction, "expr1", "null") ||
         !DirectMirObjectFieldKindEquals(instruction, "expr1_graph", "null") ||
-        !DirectMirObjectFieldKindEquals(
-            instruction, "collection_ownership_receipt", "null"
-        ) ||
+        !DirectMirObjectFieldKindEquals(instruction, "collection_ownership_receipt", "null") ||
         !DirectMirObjectFieldKindEquals(instruction, "machine_layer", "null") ||
-        !JsonObjectFactStringFieldEquals(
-            instruction, "machine_contact_kind", ""
-        ) || !DirectMirObjectArrayEmpty(instruction, "match_patterns") ||
+        !JsonObjectFactStringFieldEquals(instruction, "machine_contact_kind", "") ||
+        !DirectMirObjectArrayEmpty(instruction, "match_patterns") ||
         !DirectMirObjectFieldKindEquals(instruction, "match_variant", "null") ||
         !DirectMirObjectArrayEmpty(instruction, "match_bindings") ||
         !DirectMirObjectArrayEmpty(instruction, "match_binding_types") ||
@@ -437,9 +433,7 @@ func DirectMirRoleOverrideMainFromRoutine(
         !DirectMirObjectFieldKindEquals(definition, "expr0_graph", "object") ||
         !DirectMirObjectFieldKindEquals(definition, "expr1", "string") ||
         !DirectMirObjectFieldKindEquals(definition, "expr1_graph", "null") ||
-        !DirectMirObjectFieldKindEquals(
-            definition, "collection_ownership_receipt", "null"
-        ) ||
+        !DirectMirObjectFieldKindEquals(definition, "collection_ownership_receipt", "null") ||
         !DirectMirObjectFieldKindEquals(definition, "machine_layer", "null") ||
         !DirectMirObjectArrayEmpty(definition, "match_patterns") ||
         !DirectMirObjectArrayEmpty(definition, "match_bindings") ||

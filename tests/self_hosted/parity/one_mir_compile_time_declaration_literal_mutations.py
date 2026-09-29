@@ -86,12 +86,8 @@ def main() -> int:
         "extra-instruction": lambda d: d["routines"][0]["blocks"][0]["instructions"].append(copy.deepcopy(d["routines"][0]["blocks"][0]["instructions"][0])),
         "unreachable-block": lambda d: d["routines"][0]["blocks"][0].update(reachable=False),
         "instruction-kind": lambda d: d["routines"][0]["blocks"][0]["instructions"][0].update(kind="def"),
-        "missing-ownership-receipt": lambda d: d["routines"][0]["blocks"][0][
-            "instructions"
-        ][0].pop("collection_ownership_receipt"),
-        "forged-ownership-receipt": lambda d: d["routines"][0]["blocks"][0][
-            "instructions"
-        ][0].update(
+        "missing-ownership-receipt": lambda d: d["routines"][0]["blocks"][0]["instructions"][0].pop("collection_ownership_receipt"),
+        "forged-ownership-receipt": lambda d: d["routines"][0]["blocks"][0]["instructions"][0].update(
             collection_ownership_receipt={
                 "kind": "drop",
                 "receiver_binding_syntax_id": 1,
