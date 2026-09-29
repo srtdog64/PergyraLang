@@ -136,6 +136,7 @@ ASTNode* parse_match_statement(Parser* parser) {
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         if (parser_match(parser, TOKEN_CASE)) {
+            Token case_tok = parser->previous_token;
             ASTNode* mc = ast_create_match_case();
             mc->line = parser->previous_token.line;
             mc->column = parser->previous_token.column;
@@ -157,6 +158,15 @@ ASTNode* parse_match_statement(Parser* parser) {
                 mc->data.match_case.guard = parser_parse_expression(parser);
 
             parser_consume(parser, TOKEN_COLON, "Expected ':' after case pattern");
+            /* Arms do not fall through: `case 401: case 403: ...` would run
+             * an empty arm for 401 and leave the match. */
+            if (parser_check(parser, TOKEN_CASE)
+                || parser_check(parser, TOKEN_DEFAULT)
+                || parser_check(parser, TOKEN_RBRACE))
+                parser_error_at(parser, &case_tok,
+                    "Empty match arm: a case needs a statement, and match "
+                    "arms do not fall through to the next arm; list the "
+                    "values in one arm as `case A | B:`");
 
             ASTNode* body = ast_create_block();
             while (!parser_check(parser, TOKEN_CASE) &&
@@ -412,6 +422,10 @@ ASTNode* parse_fail_statement(Parser* parser) {
 
 ASTNode* parse_return_statement(Parser* parser) {
     ASTNode* return_stmt = ast_create_return_statement();
+    /* The dispatcher consumed `return`; diagnostics such as an unreachable
+     * statement name the return by this position. */
+    return_stmt->line = parser->previous_token.line;
+    return_stmt->column = parser->previous_token.column;
 
     /* A return value is present only when it follows on the same line; a bare
      * `return` may end at a newline or '}' (newline-terminated style). */

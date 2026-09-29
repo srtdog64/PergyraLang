@@ -107,6 +107,12 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "insert the expected token or remove what stands in its place"
         );
     }
+    if code == "match_arm_empty" {
+        return ParseDiagnosticRow(
+            "a case arm has no statements, and match arms do not fall through to the next arm",
+            "give the arm a statement, or list the values in one arm as `case A | B:`"
+        );
+    }
     if code == "expression_invalid" {
         return ParseDiagnosticRow(
             "the expression starting here cannot be parsed",
@@ -247,6 +253,7 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
         code == "expression_statement_terminator" ||
         code == "statement_head_unexpected_token" ||
         code == "block_unclosed" || code == "expected_token" ||
+        code == "match_arm_empty" ||
         code == "expression_invalid" || code == "binding_name_reserved" ||
         code == "field_name_reserved" || code == "bind_subject_missing" ||
         code == "declaration_name_missing" || code == "type_name_invalid" ||

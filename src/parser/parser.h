@@ -149,6 +149,8 @@ void parser_consume_statement_terminator(Parser *parser, const char *message);
 bool        parser_has_error(const Parser *parser);
 const char *parser_get_error(const Parser *parser);
 void        parser_error(Parser *parser, const char *format, ...);
+void        parser_error_at(Parser *parser, const Token *at,
+                            const char *format, ...);
 void        parser_synchronize(Parser *parser);
 
 /*

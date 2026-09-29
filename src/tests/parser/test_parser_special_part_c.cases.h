@@ -667,3 +667,67 @@ run_parser_reentry_cleanup_test(void)
     printf("Parser success/error cleanup stays stable across repeated same-process runs!\n");
     return 0;
 }
+
+/* PP-070: an empty `case` arm is refused at its own `case`, because arms do
+ * not fall through; and a `return` carries its position, so a diagnostic
+ * about it (an unreachable statement) names a line instead of 0:0. */
+static int
+run_match_arm_and_return_position_test(void)
+{
+    const char *empty_arm =
+        "func Status(code: Int) -> String {\n"
+        "    match code {\n"
+        "        case 401:\n"
+        "        case 403: return \"auth\";\n"
+        "        default: return \"other\";\n"
+        "    }\n"
+        "}\n";
+    const char *returns =
+        "func F() -> Int {\n"
+        "    return 1;\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(empty_arm);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+    const char *rendered;
+
+    printf("\n=== Test: Match Arm And Return Positions ===\n");
+    rendered = parser != NULL ? parser_get_error(parser) : NULL;
+    if (parser == NULL || !parser_has_error(parser) || rendered == NULL
+        || strstr(rendered, "match arms do not fall through") == NULL
+        || strstr(rendered, "at line 3, column 9") == NULL) {
+        printf("[FAIL] empty case arm was not refused at 3:9: %s\n",
+               rendered != NULL ? rendered : "<no diagnostic>");
+        failed++;
+    }
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+
+    lexer = lexer_create(returns);
+    parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ast = parser != NULL ? parser_parse_program(parser) : NULL;
+    if (ast == NULL || parser_has_error(parser)
+        || ast->type != AST_PROGRAM || ast->data.program.count < 1) {
+        printf("[FAIL] return program did not parse\n");
+        failed++;
+    } else {
+        ASTNode *body = ast->data.program.statements[0]->data.func_decl.body;
+        ASTNode *ret = body != NULL && ast_block_statement_count(body) > 0
+            ? ast_block_statement(body, 0) : NULL;
+        if (ret == NULL || ret->type != AST_RETURN
+            || ret->line != 2 || ret->column != 5) {
+            printf("[FAIL] return statement lost its 2:5 position (%u:%u)\n",
+                   ret != NULL ? ret->line : 0U,
+                   ret != NULL ? ret->column : 0U);
+            failed++;
+        }
+    }
+    if (failed == 0)
+        printf("[PASS] empty arm refused at its case; return keeps 2:5\n");
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}

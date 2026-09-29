@@ -255,6 +255,8 @@ main(void)
     printf("\n");
     failures += run_fixed_sink_announces_clipping_test();
     printf("\n");
+    failures += run_match_arm_and_return_position_test();
+    printf("\n");
 
     printf("\n=== All tests completed ===\n");
     if (failures > 0) {

@@ -1,0 +1,11 @@
+func Status(code: Int) -> String {
+    match code {
+        case 401:
+        case 403: return "auth";
+        default: return "other";
+    }
+}
+
+func Main() -> Void {
+    Log(Status(401));
+}

@@ -178,14 +178,13 @@ void parser_consume_statement_terminator(Parser* parser, const char* message) {
  */
 #define PARSER_MAX_REPORTED_ERRORS 20
 
-void parser_error(Parser* parser, const char* format, ...) {
-    va_list args;
+static void parser_verror_at(Parser *parser, const Token *at,
+                             const char *format, va_list args)
+{
     char *message;
     char *rendered;
     bool first;
 
-    if (parser == NULL)
-        return;
     if (parser->panic_mode)
         return;
 
@@ -204,16 +203,14 @@ void parser_error(Parser* parser, const char* format, ...) {
      * code-prefix router in driver_diag) actually consumes, so no stage of
      * it may be clipped without saying so. The byte layout below is the
      * same one the old fixed-buffer path produced. */
-    va_start(args, format);
     message = pergyra_strdup_vprintf(format, args);
-    va_end(args);
 
-    if (parser->current_token.type == TOKEN_ERROR && parser->lexer != NULL) {
+    if (at->type == TOKEN_ERROR && parser->lexer != NULL) {
         const char *lex_error = lexer_get_error(parser->lexer);
         rendered = pergyra_strdup_printf(
             "%s at line %d, column %d",
             lex_error != NULL ? lex_error : "Lexer error",
-            parser->current_token.line, parser->current_token.column);
+            at->line, at->column);
     } else {
         rendered = pergyra_strdup_printf(
             "%s\nCode: %s\nReason: %s\nFix: %s at line %d, column %d",
@@ -221,7 +218,7 @@ void parser_error(Parser* parser, const char* format, ...) {
             PGY_CODE_PARSE_SYNTAX,
             PGY_CAUSE_PARSE_UNEXPECTED_TOKEN,
             PGY_FIX_CHECK_SYNTAX,
-            parser->current_token.line, parser->current_token.column);
+            at->line, at->column);
     }
     free(message);
 
@@ -239,6 +236,29 @@ void parser_error(Parser* parser, const char* format, ...) {
     } else {
         free(rendered);
     }
+}
+
+void parser_error(Parser* parser, const char* format, ...) {
+    va_list args;
+
+    if (parser == NULL)
+        return;
+    va_start(args, format);
+    parser_verror_at(parser, &parser->current_token, format, args);
+    va_end(args);
+}
+
+/* Report at a token already consumed, for a defect that is known only after
+ * the parser has read past that token (an empty match arm is known at the
+ * next arm, but it belongs to its own `case`). */
+void parser_error_at(Parser *parser, const Token *at, const char *format, ...) {
+    va_list args;
+
+    if (parser == NULL || at == NULL)
+        return;
+    va_start(args, format);
+    parser_verror_at(parser, at, format, args);
+    va_end(args);
 }
 
 // 에러 복구 - 다음 문장까지 건너뛰기

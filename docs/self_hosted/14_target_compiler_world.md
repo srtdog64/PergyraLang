@@ -216,6 +216,19 @@ owner, 마지막 consumer, 게이트 하나를 요구한다.
   - **H4. PP-069 기능.** 식 형태 `match`(`return match c { 34 => "q", _ => "" };`)와
     String 대상 `match`다. 언어 표면이 커지는 결정이라, `docs/206`처럼 최소
     단위 결정과 증명을 먼저 적고 두 경로에 함께 넣는다.
+  - **H5. PP-070.** 빈 `case N:`이 다음 갈래로 넘어가지도, 거부되지도
+    않았다. 두 경로 모두 401에서 빈 갈래를 실행하고 match를 끝냈다.
+    - 5a(이번 단위): 두 파서가 빈 `case` 갈래를 그 `case` 위치에서
+      거부한다(`match_arm_empty`). 저장소 `.pgy`에 빈 갈래는 0개였다.
+      self-host 파서는 `case A | B:`와 guard를 `expected ':'` 대신
+      `surface_not_covered`로 이름 붙여 거부한다. native `return`은 줄·열을
+      가져서 unreachable 경고가 `0:0`을 내지 않는다.
+    - 5b(다음): self-host가 `case A | B:`를 native처럼 받는다. native MIR은
+      `match_patterns`에 대안을 모두 싣는다. self-host는 HIR 패턴
+      owner(`"0 | 1"` 거부), MIR 행 검증(`pattern_counts == 1`), mir_lower
+      (`multi-pattern ... outside the self-host MIR subset`)에서 하나로
+      묶여 있다. 쉼표 철자(`case 401, 403:`)는 같은 뜻의 두 번째 철자라
+      더하지 않는다.
   - **PP-067(P1의 falsifier, Codex 소관).** `let pieces = acc.pieces;
     ArrayPush(pieces, x)`가 세 경로 모두 컴파일된다. 반대 방향(로컬을 필드에
     대입)은 native가 거부한다. push가 재할당하면 원래 `acc.pieces`는 해제된

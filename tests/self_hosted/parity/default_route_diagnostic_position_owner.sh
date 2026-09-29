@@ -174,6 +174,7 @@ BROKEN_CASES=(
     "expression_statement|3|statement_kind_unsupported"
     "member_expression_statement|5|statement_kind_unsupported"
     "match_unclosed|3|block_unclosed"
+    "empty_match_arm|3|match_arm_empty"
     "intent_missing_name|1|declaration_name_missing"
     "intent_step_unclosed|2|block_unclosed"
     "intent_duplicate_guard|4|declaration_clause_duplicate"
@@ -252,7 +253,8 @@ for row in "parallel_on|3|14|Expected '{' after 'parallel'" \
     "effect_bare_field|6|5|in effect body" \
     "effect_refresh_by|11|30|in effect body" \
     "relation_let_field|6|5|in relation body" \
-    "relation_bare_field|6|5|in relation body"; do
+    "relation_bare_field|6|5|in relation body" \
+    "empty_match_arm|3|9|match arms do not fall through"; do
     IFS='|' read -r name line column needle <<<"$row"
     native_log="$WORK_DIR/native-$name.log"
     if (cd "$ROOT_DIR" && "$PGY" "$FIXTURES/broken_$name.pgy" --native-pipeline \
@@ -280,6 +282,8 @@ UNCOVERED_CASES=(
     "zone_layer_projection_state_alias|30|surface_not_covered|- surface: zone apply of a state"
     "select_match_case|5|surface_not_covered|- surface: select statement"
     "pin_inside_for_loop|5|surface_not_covered|- surface: pin block"
+    "match_guard_or_pattern|3|surface_not_covered|- surface: match or-pattern"
+    "match_guard_enum_payload|17|surface_not_covered|- surface: match guard"
     "reflect_type_name|14|surface_not_covered|"
     "type_test|3|surface_not_covered|"
 )
