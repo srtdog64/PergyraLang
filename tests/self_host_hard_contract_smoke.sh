@@ -821,7 +821,7 @@ require_text \
     'DirectMirConstructedRecordArraySourceIdentitiesReady('
 require_text \
     "src/self_hosted/compiler/direct_mir_constructed_record_array_member_instruction_envelope_owner.pgy" \
-    'JsonObjectFactCount(instruction) == 25'
+    'JsonObjectFactCount(instruction) == 26'
 require_text \
     "src/self_hosted/compiler/direct_mir_constructed_record_array_member_plan_join_owner.pgy" \
     'DirectMirConstructedRecordArrayProgramJoinReady('
