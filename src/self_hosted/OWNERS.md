@@ -3967,6 +3967,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   `src/self_hosted/compiler/direct_mir_scalar_program_array_string_cleanup_policy_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy`,
   and
@@ -3979,7 +3980,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   stable expression kind identity.
   The transition owners parse instruction-bound receipts, join the exact
   declaration LocalRef and empty-origin fact, own operation effects and legal
-  state changes, and seal the one-block first slice as
+  state changes. The CFG flow owner joins reachable predecessor states to a
+  bounded fixed point and seals both straight-line and multi-block slices as
   EMPTY/BORROWED/OWNED/RETIRED. The cleanup policy consumes that
   sealed plan for tracked locals; its legacy operation scan is restricted to
   untracked rows and is not an alternate transition authority. The obsolete

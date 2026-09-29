@@ -1,0 +1,163 @@
+// CFG fixed-point owner for receipt-tracked collection ownership transitions.
+
+import "direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy";
+import "direct_mir_scalar_cfg_program_routine_partition_owner.pgy";
+import "../mir_lower/routine_fact_index_schema_owner.pgy";
+
+func DirectMirCollectionOwnershipCfgStateJoin(left: Int, right: Int) -> Int {
+    if left == 0 { return right; }
+    if right == 0 || left == right { return left; }
+    if (left == DirectMirCollectionOwnershipStateEmpty() &&
+            right == DirectMirCollectionOwnershipStateBorrowed()) ||
+        (left == DirectMirCollectionOwnershipStateBorrowed() &&
+            right == DirectMirCollectionOwnershipStateEmpty()) {
+        return DirectMirCollectionOwnershipStateBorrowed();
+    }
+    if (left == DirectMirCollectionOwnershipStateEmpty() &&
+            right == DirectMirCollectionOwnershipStateOwned()) ||
+        (left == DirectMirCollectionOwnershipStateOwned() &&
+            right == DirectMirCollectionOwnershipStateEmpty()) {
+        return DirectMirCollectionOwnershipStateOwned();
+    }
+    return 0 - 1;
+}
+
+func DirectMirCollectionOwnershipCfgBlockOutput(
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    block: Int,
+    local_row: Int,
+    input_state: Int
+) -> Int {
+    if block < 0 || block >= ArrayLength(storage.blocks.operation_starts) ||
+        block >= ArrayLength(storage.blocks.operation_counts) {
+        return 0;
+    }
+    let state: Int = input_state;
+    let operation: Int = storage.blocks.operation_starts[block];
+    let end: Int = operation + storage.blocks.operation_counts[block];
+    if operation < 0 || end > ArrayLength(storage.operations.kinds) {
+        return 0;
+    }
+    while operation < end {
+        let operation_local: Int = -1;
+        let effect: Int = DirectMirCollectionOwnershipExpectedOperationEffect(
+            storage, expressions, operation, operation_local
+        );
+        if effect != 0 && operation_local == local_row {
+            state = DirectMirCollectionOwnershipNextState(state, effect);
+            if state == 0 { return 0; }
+        }
+        operation = operation + 1;
+    }
+    return state;
+}
+
+func DirectMirCollectionOwnershipCfgTerminalState(
+    ref index: MirRoutineFactIndex,
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    routine: Int,
+    local_row: Int,
+    initial_state: Int
+) -> Int {
+    let block_count: Int = ArrayLength(index.block_starts);
+    let block_start: Int = DirectMirScalarProgramRoutinePartitionStart(
+        storage.routines.block_counts, routine
+    );
+    if !index.valid || routine < 0 || local_row < 0 || block_count <= 1 ||
+        block_start < 0 || routine >= ArrayLength(storage.routines.block_counts) ||
+        storage.routines.block_counts[routine] != block_count ||
+        block_count != ArrayLength(index.block_reachable) ||
+        block_count != ArrayLength(index.block_succ_true) ||
+        block_count != ArrayLength(index.block_succ_false) ||
+        block_start + block_count > ArrayLength(storage.blocks.operation_starts) ||
+        block_start + block_count > ArrayLength(storage.blocks.operation_counts) {
+        return 0;
+    }
+
+    let expected_operation: Int = storage.blocks.operation_starts[block_start];
+    let block_row: Int = 0;
+    while block_row < block_count {
+        let block: Int = block_start + block_row;
+        if storage.blocks.operation_starts[block] != expected_operation ||
+            storage.blocks.operation_counts[block] < 0 {
+            return 0;
+        }
+        expected_operation = expected_operation +
+            storage.blocks.operation_counts[block];
+        block_row = block_row + 1;
+    }
+
+    let inputs: Array<Int> = [];
+    let outputs: Array<Int> = [];
+    block_row = 0;
+    while block_row < block_count {
+        ArrayPush(inputs, 0);
+        ArrayPush(outputs, 0);
+        block_row = block_row + 1;
+    }
+
+    let changed: Bool = true;
+    let iteration: Int = 0;
+    let iteration_limit: Int = block_count * 8 + 1;
+    while changed && iteration < iteration_limit {
+        changed = false;
+        block_row = 0;
+        while block_row < block_count {
+            if index.block_reachable[block_row] {
+                let joined: Int = 0;
+                if block_row == 0 { joined = initial_state; }
+                let predecessor: Int = 0;
+                while predecessor < block_count {
+                    if index.block_reachable[predecessor] &&
+                        (index.block_succ_true[predecessor] == block_row ||
+                         index.block_succ_false[predecessor] == block_row) {
+                        joined = DirectMirCollectionOwnershipCfgStateJoin(
+                            joined, outputs[predecessor]
+                        );
+                        if joined < 0 { return 0; }
+                    }
+                    predecessor = predecessor + 1;
+                }
+                if joined != 0 {
+                    let output: Int = DirectMirCollectionOwnershipCfgBlockOutput(
+                        storage, expressions, block_start + block_row,
+                        local_row, joined
+                    );
+                    if output == 0 { return 0; }
+                    if inputs[block_row] != joined || outputs[block_row] != output {
+                        ArraySet(inputs, block_row, joined);
+                        ArraySet(outputs, block_row, output);
+                        changed = true;
+                    }
+                }
+            }
+            block_row = block_row + 1;
+        }
+        iteration = iteration + 1;
+    }
+    if changed { return 0; }
+
+    let terminal: Int = 0;
+    block_row = 0;
+    while block_row < block_count {
+        if index.block_reachable[block_row] {
+            if outputs[block_row] == 0 { return 0; }
+            let left: Int = index.block_succ_true[block_row];
+            let right: Int = index.block_succ_false[block_row];
+            if left < -1 || right < -1 || left >= block_count ||
+                right >= block_count {
+                return 0;
+            }
+            if left < 0 && right < 0 {
+                terminal = DirectMirCollectionOwnershipCfgStateJoin(
+                    terminal, outputs[block_row]
+                );
+                if terminal < 0 { return 0; }
+            }
+        }
+        block_row = block_row + 1;
+    }
+    return terminal;
+}

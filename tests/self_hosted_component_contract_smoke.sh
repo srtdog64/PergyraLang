@@ -28375,6 +28375,7 @@ for collection_owner_cap in \
     src/self_hosted/mir/collection_ownership_receipt_json_projection_owner.pgy:100 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy:180 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy:120 \
+    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy:220 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy:380 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy:100; do
     collection_owner="${collection_owner_cap%%:*}"
@@ -28410,6 +28411,9 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy" \
     'import "direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy";'
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy" \
+    'import "direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy";'
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy" \
     'func DirectMirCollectionOwnershipNextState('

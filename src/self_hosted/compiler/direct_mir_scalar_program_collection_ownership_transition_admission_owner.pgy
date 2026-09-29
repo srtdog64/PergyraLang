@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
 import "direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy";
 import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "../mir_lower/routine_fact_index_schema_owner.pgy";
@@ -172,6 +173,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
     let bindings: Array<Int> = fact.binding_syntax_ids;
     let states: Array<Int> = fact.terminal_states;
     let retire_rows: Array<Int> = [];
+    let cfg_rows: Array<Int> = [];
     let ownership_row: Int = 0;
     while ownership_row < ArrayLength(
             index.collection_ownership_facts.binding_syntax_ids) {
@@ -207,17 +209,10 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                     storage, expressions, operation_offset,
                     storage.routines.operation_counts[routine], matched_local);
             if requires_transition {
-                // This owner is deliberately the bounded straight-line
-                // transition issuer.  Existing CFG move/exit owners retain
-                // multi-block EMPTY locals until the cumulative graph rung;
-                // their receipts are still checked below.  A member move has
-                // no older owner to fall back to, so it must fail closed.
                 if ArrayLength(index.block_starts) != 1 {
                     if origin == "member-move" {
                         return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
                     }
-                    ownership_row = ownership_row + 1;
-                    continue;
                 }
                 ArrayPush(routines, routine);
                 ArrayPush(locals, matched_local);
@@ -227,6 +222,16 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                 if origin == "member-move" {
                     initial_state =
                         DirectMirCollectionOwnershipStateUnknown();
+                }
+                if ArrayLength(index.block_starts) != 1 {
+                    initial_state = DirectMirCollectionOwnershipCfgTerminalState(
+                        index, storage, expressions, routine, matched_local,
+                        initial_state
+                    );
+                    if initial_state == 0 {
+                        return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+                    }
+                    ArrayPush(cfg_rows, ArrayLength(routines) - 1);
                 }
                 ArrayPush(states, initial_state);
                 if origin == "member-move" &&
@@ -279,7 +284,20 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                 );
             if tracked >= 0 {
                 let next: Int = 0;
-                if states[tracked] ==
+                let cfg_tracked: Bool = false;
+                let cfg_index: Int = 0;
+                while cfg_index < ArrayLength(cfg_rows) {
+                    if cfg_rows[cfg_index] == tracked { cfg_tracked = true; }
+                    cfg_index = cfg_index + 1;
+                }
+                if cfg_tracked {
+                    if expected_effect == 0 || !receipt.present ||
+                        receipt.effect_kind != expected_effect ||
+                        receipt.receiver_binding_syntax_id != bindings[tracked] {
+                        return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
+                    }
+                    next = states[tracked];
+                } else if states[tracked] ==
                         DirectMirCollectionOwnershipStateUnknown() {
                     if expected_effect != 2 || receipt.present {
                         return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();

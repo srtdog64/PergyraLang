@@ -22,7 +22,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionReadyForPlan(
             local_row < 0 || local_row >= ArrayLength(plan.local_types) ||
             DirectMirScalarCfgRoutinePartitionLocalOwner(
                 plan.routines, local_row) != routine ||
-            plan.routines.block_counts[routine] != 1 ||
+            plan.routines.block_counts[routine] < 1 ||
             plan.local_types[local_row] !=
                 CompilerAbiLayoutArrayStringTypeName() ||
             plan.local_ref_value_ids[local_row] != Concat(

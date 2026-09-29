@@ -185,6 +185,81 @@ for backend in c llvm; do
         fail "native $backend path rejected exact empty-to-owned transition"
 done
 
+CONDITIONAL_VALID="tests/concept_semantics/hashmap/empty_owned_string_conditional_push_drop_valid.pgy"
+CONDITIONAL_MIR_REL="$WORK_REL/conditional-valid.mir.json"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$CONDITIONAL_VALID" -o "$CONDITIONAL_MIR_REL") \
+    >"$WORK_DIR/conditional-valid-self.out" \
+    2>"$WORK_DIR/conditional-valid-self.err" ||
+    fail "installed self-host rejected multi-block empty-to-owned transition"
+[[ "$(grep -Fc '"kind":"owned-string-push"' \
+    "$ROOT_DIR/$CONDITIONAL_MIR_REL")" == 1 ]] ||
+    fail "multi-block owned-string push receipt did not attach exactly once"
+[[ "$(grep -Fc '"kind":"drop"' "$ROOT_DIR/$CONDITIONAL_MIR_REL")" == 1 ]] ||
+    fail "multi-block drop receipt did not attach exactly once"
+
+for backend in c llvm; do
+    direct_rel="$WORK_REL/conditional-valid-direct.$backend"
+    (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
+        "$CONDITIONAL_MIR_REL" -o "$direct_rel") \
+        >"$WORK_DIR/conditional-valid-direct-$backend.out" \
+        2>"$WORK_DIR/conditional-valid-direct-$backend.err" ||
+        fail "direct $backend consumer rejected multi-block receipt MIR"
+    [[ -s "$ROOT_DIR/$direct_rel" ]] ||
+        fail "direct $backend consumer emitted no multi-block artifact"
+done
+[[ "$(grep -Fc '    pgy_as_drop_owned(&pgy_local_0);' \
+    "$WORK_DIR/conditional-valid-direct.c")" == 1 ]] ||
+    fail "direct C did not emit exactly one multi-block owned drop"
+! grep -Fq 'pgy_as_drop_storage(&pgy_local_0)' \
+    "$WORK_DIR/conditional-valid-direct.c" ||
+    fail "direct C retained legacy cleanup for a tracked multi-block local"
+[[ "$(grep -Fc '  call void @pgy_as_drop_owned(ptr %pgy.local.0)' \
+    "$WORK_DIR/conditional-valid-direct.llvm")" == 1 ]] ||
+    fail "direct LLVM did not emit exactly one multi-block owned drop"
+! grep -Fq 'call void @pgy_as_drop_storage(ptr %pgy.local.0)' \
+    "$WORK_DIR/conditional-valid-direct.llvm" ||
+    fail "direct LLVM retained legacy cleanup for a tracked multi-block local"
+
+CONDITIONAL_MUTATIONS="$WORK_DIR/conditional-mutations"
+python "$ROOT_DIR/tests/self_hosted/parity/collection_ownership_receipt_mutations.py" \
+    "$ROOT_DIR/$CONDITIONAL_MIR_REL" "$CONDITIONAL_MUTATIONS"
+for mutation in missing-push missing-drop all-missing wrong-binding wrong-kind \
+        moved-receipt duplicate-receipt wrong-source-binding; do
+    for backend in c llvm; do
+        mutated="$CONDITIONAL_MUTATIONS/$mutation.mir.json"
+        output_rel="$WORK_REL/conditional-$mutation.$backend"
+        marker="preserved:conditional:$mutation:$backend"
+        printf '%s\n' "$marker" >"$ROOT_DIR/$output_rel"
+        if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
+            "$mutated" -o "$output_rel") \
+            >"$WORK_DIR/conditional-$mutation-$backend.out" \
+            2>"$WORK_DIR/conditional-$mutation-$backend.err"; then
+            fail "direct $backend consumer accepted multi-block $mutation"
+        fi
+        [[ "$(cat "$ROOT_DIR/$output_rel")" == "$marker" ]] ||
+            fail "multi-block refusal replaced the prior $backend artifact"
+        grep -Eq '(CODEGEN ERROR|MIR-LOWER ERROR):' \
+            "$WORK_DIR/conditional-$mutation-$backend.out" \
+            "$WORK_DIR/conditional-$mutation-$backend.err" ||
+            fail "multi-block $backend refusal lost its diagnostic"
+    done
+done
+
+for backend in c llvm; do
+    for lane in public native; do
+        output_rel="$WORK_REL/conditional-valid-$lane-$backend.exe"
+        command=("$PGY")
+        [[ "$lane" == native ]] && command+=(--native-pipeline)
+        command+=("$CONDITIONAL_VALID" "--backend=$backend" --run \
+            -o "$output_rel")
+        (cd "$ROOT_DIR" && "${command[@]}") \
+            >"$WORK_DIR/conditional-valid-$lane-$backend.out" \
+            2>"$WORK_DIR/conditional-valid-$lane-$backend.err" ||
+            fail "$lane $backend rejected multi-block empty-to-owned transition"
+    done
+done
+
 (cd "$ROOT_DIR" && "$PGY" "$EMPTY_VALID" --backend=c --emit-c \
     -o "$WORK_REL/empty-valid.c") >"$WORK_DIR/empty-valid-c.out" \
     2>"$WORK_DIR/empty-valid-c.err" ||
