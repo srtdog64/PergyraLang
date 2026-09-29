@@ -3,13 +3,13 @@
 Updated: 2026-09-29 (Asia/Seoul). This top card is navigation only; the SoT
 registry, source owners, and executable gates own the compiler facts.
 
-Source checkpoint: `ee2d831a5540eafe6ee4446049bbaf22d4484f9c` before this
-handoff update, rebased on `origin/main ==
-f04c10ed840c8e18e866713fabded47868d01e80`. The tracked tree was clean at
-that checkpoint. `.agents/`,
-`docs/audits/whole_repository_redteam_reproduction.md`, and
+Implementation checkpoint: `0ae99bb2ced1a6c45c7aa0c2dc1ea2c9afd1cce9`
+before this handoff update, based on `origin/main ==
+6ccfe7782c00f5bdc9104c6ba091cc51bd614fd2`. That commit contains ownership
+tranche 2 only. `docs/00_vision.md` remains modified user-local material;
+`.agents/`, `docs/audits/whole_repository_redteam_reproduction.md`, and
 `tests/concept_semantics/hashmap/empty_owned_string_conditional_push_drop.pgy`
-remain untracked user-local material and are not part of this packet.
+remain ignored or untracked user-local material. None is part of this packet.
 
 ## Priority directive — compiler world realization (user, 2026-09-29)
 
@@ -26,9 +26,10 @@ type and operation are parameters, not new rows. The per-shape projection rows
 merge into `collection_program_plan`. A registry row-count ratchet caps the
 registry at 95 rows. The user also moved the harness reports H1-H4 (PP-068
 Win32 symbol clash, PP-069 String-match diagnostic, PP-066 `SubIndexOf`
-documentation, PP-069 match forms) ahead of P2. PP-067, a field-to-local
-array alias that reads freed memory on the default C route, is the next
-falsifier for the active collection-ownership rung. After that rung closes, the compiler moves to
+documentation, PP-069 match forms) ahead of P2. Tranche 2 addresses PP-067's
+bounded direct field-to-local array alias; multi-block ownership joins and
+parameter aggregate provenance remain falsifiers for the active rung. After
+that rung closes, the compiler moves to
 Pergyra style (S0-S6 in the same document): merge the per-shape `direct_mir`
 slices, turn parallel-array fact tables into record arrays, and use generics,
 `for-in`, `match` and methods. Each step first makes the self-host compile the
@@ -36,7 +37,7 @@ feature, then converts the compiler source. S0, a ratchet that stops
 `direct_mir_*` from growing past 979 files, can apply now. Each rung still names its production entrypoint, the direct bypass
 to delete, the fact owner, the last consumer, and one gate.
 
-## Active self-host context — collection ownership, tranche 1 of 3 landed
+## Active self-host context — collection ownership, tranche 2 of 3 landed
 
 Objective card:
 - Objective: complete P1 as one finite ownership-transition system without
@@ -59,33 +60,44 @@ Objective card:
   wrong-binding, wrong-kind, and wrong-source receipts without replacing a
   previously published artifact.
 
-Reached tranche 1/3 at the source checkpoint:
-- A bounded straight-line `Array<String>` `EMPTY -> OWNED -> dropped`
-  transition now has stable push/drop receipts from the native and Pergyra
-  semantic owners through MIR to direct C and LLVM. The consumer emits one
-  explicit deep drop; it does not recover ownership from type or name.
-- Receipt mutation and omission fail closed before artifact replacement. The
-  self-host lifetime repairs in this packet remove in-place aliases and retire
-  owned fragments/candidates explicitly instead of hiding retained storage at
-  the renderer boundary.
-- Observed current-tree evidence: native `make -j4 pgy` succeeded; current-tree
-  bootstrap seed and installed DRV-2 succeeded;
+Reached tranche 2/3 at the implementation checkpoint:
+- Native and self-host semantic owners now carry direct member-move identity,
+  exact move-back restoration, retired-local refusal, and stable `member-move`
+  and `clone` origins through HIR/MIR. Ordinary language values remain values;
+  no Slot or pointer identity was introduced as semantic authority.
+- `Clone(Array<Int>)` and `Clone(Array<String>)` have independent runtime
+  storage. Direct C and LLVM consume the admitted Clone expression and exact
+  collection ABI; copy independence is executed rather than inferred from
+  equal backend output.
+- Direct member moves own descriptor/storage but do not forge owned String
+  elements. Unsafe owned push or deep drop from unknown member provenance
+  fails closed; valid move-out, shallow use, exact restore, argument, return,
+  and inout/value-result routes retain their explicit carrier evidence.
+- The semantic verdict carrier and the target-neutral MIR operation/state
+  policy were split into named owners. Existing line caps were not raised:
+  the verdict is 571/600 lines and transition admission is 335/380 lines.
+- Observed current-tree evidence: native `make -j4 pgy` was current; installed
+  DRV-2 rebuilt successfully from typed Pergyra source;
   `tests/self_hosted/parity/collection_ownership_semantic_owner.sh` reported
   native fact -> installed self-host -> public C/LLVM ownership parity `PASS`;
-  `tests/self_hosted_component_contract_smoke.sh` reported structural and
-  removed-path ratchets `PASS`, with 2,511 line-cap requests, 1,047 function
+  `tests/self_hosted/parity/direct_mir_scalar_owned_array_string_return_owner.sh`
+  reported C/LLVM lifecycle and negative mutations `PASS`; and
+  `tests/self_hosted_component_contract_smoke.sh` reached its final structural
+  and removed-path ratchets with 2,522 line-cap requests, 1,047 function
   extractions, and 710 reuses.
 
-The owner row remains `ACTIVE`; tranche 1 is not P1 closure and is not whole
-self-host closure. Tranche 2/3 owns move/clone plus argument, return, and inout
-transitions. Tranche 3/3 consolidates the shape projections into
-`collection_program_plan`, completes the finite table proof in
-`CollectionOwnershipTransfer.v`, enforces the 95-row registry cap, removes the
-last bypass, and then runs the final red team before the row may become
-`CLOSED`. The untracked
+The owner row remains `ACTIVE`; tranche 2 is not P1 closure and is not whole
+self-host closure. The native compiler's aggregate-parameter member move still
+uses a bounded legacy admission at the parameter boundary; it preserves
+`UNKNOWN` and does not forge `OWNED`, but complete parameter/return provenance
+is still OPEN. The untracked
 `empty_owned_string_conditional_push_drop.pgy` remains the next multi-block
-falsifier; it is OPEN and is not evidence for tranche 1. Push CI for this
-checkpoint had not yet run when this navigation card was written.
+falsifier and is not evidence for this tranche. Tranche 3/3 must consolidate
+shape projections into `collection_program_plan`, complete the finite table
+proof in `CollectionOwnershipTransfer.v`, enforce the 95-row registry cap,
+remove the last native bypass, and run the final red team before the registry
+row may become `CLOSED`. Exact-head push CI had not yet run when this
+navigation card was written.
 
 ## Historical archive boundary — earlier collection-ownership handoff
 
