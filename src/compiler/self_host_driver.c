@@ -176,19 +176,18 @@ driver_materialize_self_host_c_artifact(const char *launcher_path,
         return 1;
     }
 
+    binary = driver_resolve_self_host_binary(launcher_path);
+    if (binary == NULL || !path_file_exists(binary)) {
+        fprintf(stderr,
+                "pgy: self-host driver is unavailable; run 'make self-host-compiler' or set PGY_SELF_DRIVER_BIN\n");
+        free(binary);
+        return 1;
+    }
     canonical_source_path =
         driver_self_host_source_identity_path_dup(source_path);
     if (canonical_source_path == NULL) {
         fprintf(stderr,
                 "pgy: could not canonicalize self-host source identity\n");
-        return 1;
-    }
-
-    binary = driver_resolve_self_host_binary(launcher_path);
-    if (binary == NULL || !path_file_exists(binary)) {
-        fprintf(stderr,
-                "pgy: self-host driver is unavailable; run 'make self-host-compiler' or set PGY_SELF_DRIVER_BIN\n");
-        free(canonical_source_path);
         free(binary);
         return 1;
     }
