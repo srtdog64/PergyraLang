@@ -42,6 +42,28 @@ These are compiler/runtime builtins, not `use` modules:
   `None` for a negative value, a value above `0x10FFFF`, a surrogate
   (`0xD800` to `0xDFFF`), and `0`: a `String` ends at its first NUL byte, so
   it cannot hold U+0000.
+- String windows (search without allocating a `Substring`). Each call reads
+  the byte window `s[start, start + len)`. A window that runs past the end
+  of `s` is cut at the end. A negative `start`, a `start` at or past the
+  end, or `len <= 0` gives an empty window.
+  - `SubIndexOf(s: String, start: Int, len: Int, needle: String) -> Int`
+    returns the byte offset of `needle` from the window start, or `-1`. An
+    empty `needle` returns `0`.
+  - `SubEquals(s, start, len, other) -> Bool` and
+    `SubContains(s, start, len, needle) -> Bool` compare the window.
+    `SubStartsWith(s, start, prefix) -> Bool` tests `s` from `start`.
+  - Each has a length-fact form that takes `source_len` after `s`:
+    `SubIndexOfWithLen`, `SubEqualsWithLen`, `SubContainsWithLen`, and
+    `SubStartsWithLen`. The runtime does not measure `s`, so `source_len`
+    must be `StringLength(s)`. A larger value reads past the string.
+    `stdlib/strview.pgy` (`StrView`, `ViewIndexOf`) carries that length for
+    you.
+  - Every route runs `SubIndexOfWithLen` and `SubEqualsWithLen`. The other
+    six run on the native pipeline and the default C route
+    (`--backend=c`). The default LLVM route refuses them with an
+    unpositioned `CODEGEN ERROR ... stage=builtin-call`. For a portable
+    allocation-free search, write
+    `SubIndexOfWithLen(s, StringLength(s), start, len, needle)`.
 - Numeric helpers: `Abs`, `Min`, `Max`.
 - Time helpers: `Now`, `Sleep`.
 - Process/tooling helpers: `Args`, `Exit`. `Args() -> Array<String>` returns

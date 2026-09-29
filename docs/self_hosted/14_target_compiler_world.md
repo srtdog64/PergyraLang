@@ -213,6 +213,15 @@ owner, 마지막 consumer, 게이트 하나를 요구한다.
     없는 검색 빌트인이다. 그런데 성능 문서에만 있고, 문자열 API 문서
     (`docs/108_stdlib_beta_freeze.md`)에는 없다. 새 이름을 더하지 않고 문서에
     올린다.
+    - 3a(문서): docs/108에 창 의미, `source_len` 전제, 경로별 표를 올렸다.
+    - 3b(다음): 경로를 재 보니 default LLVM 경로가 `SubIndexOfWithLen`과
+      `SubEqualsWithLen`만 받는다. 나머지 여섯(`SubIndexOf`, `SubEquals`,
+      `SubContains`, `SubStartsWith`, `SubContainsWithLen`,
+      `SubStartsWithLen`)은 위치 없는 `CODEGEN ERROR ... stage=builtin-call`로
+      멈춘다. 받는 목록은
+      `direct_mir_scalar_program_string_window_builtin_signature_owner.pgy`
+      다. 여섯을 같은 owner에 넣고, 못 받는 빌트인은 호출 위치를 단
+      진단으로 거부한다.
   - **H4. PP-069 기능.** 식 형태 `match`(`return match c { 34 => "q", _ => "" };`)와
     String 대상 `match`다. 언어 표면이 커지는 결정이라, `docs/206`처럼 최소
     단위 결정과 증명을 먼저 적고 두 경로에 함께 넣는다.
