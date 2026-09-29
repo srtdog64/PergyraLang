@@ -28,7 +28,12 @@ registry at 95 rows. The user also moved the harness reports H1-H4 (PP-068
 Win32 symbol clash, PP-069 String-match diagnostic, PP-066 `SubIndexOf`
 documentation, PP-069 match forms) ahead of P2. PP-067, a field-to-local
 array alias that reads freed memory on the default C route, is the next
-falsifier for the active collection-ownership rung. Each rung still names its production entrypoint, the direct bypass
+falsifier for the active collection-ownership rung. After that rung closes, the compiler moves to
+Pergyra style (S0-S6 in the same document): merge the per-shape `direct_mir`
+slices, turn parallel-array fact tables into record arrays, and use generics,
+`for-in`, `match` and methods. Each step first makes the self-host compile the
+feature, then converts the compiler source. S0, a ratchet that stops
+`direct_mir_*` from growing past 979 files, can apply now. Each rung still names its production entrypoint, the direct bypass
 to delete, the fact owner, the last consumer, and one gate.
 
 ## Active self-host context — collection ownership, tranche 1 of 3 landed

@@ -266,6 +266,86 @@ owner, 마지막 consumer, 게이트 하나를 요구한다.
   - LSP, `fmt`, `debug` 세션을 같은 world의 intent로 올린다.
   - 따로 가진 revision/store를 `CompilationRevisionZone`으로 합친다.
 
+### 컴파일러를 Pergyra 스타일로 (사용자 결정, 2026-09-29)
+
+활성 소유권 rung(`semantic.hashmap_collection_ownership`, Codex 소관)이 닫힌 뒤
+시작한다. 그전에 사실 표 구조를 바꾸면 같은 owner 파일에서 부딪친다.
+
+**측정(2026-09-29, `b09a925d`)**
+
+- 컴포넌트끼리 비교하면 Pergyra 쪽이 이미 작다.
+
+  | 영역 | C 줄 수 | Pergyra 줄 수 | 비율 |
+  |---|---:|---:|---:|
+  | parser·lexer | 27,258 | 12,484 | 0.46 |
+  | semantic | 65,706 | 44,649 | 0.68 |
+  | HIR/DIR/MIR/AIR | 77,163 | 56,321 | 0.73 |
+  | C 방출 | 64,235 | 20,850 | 0.32 |
+
+- 전체가 부푼 원인은 `src/self_hosted/compiler/direct_mir_*`다. 979개
+  파일, 94,436줄로, self-host 266,630줄의 35%를 차지한다. 모양마다
+  MIR→C 경로를 하나씩 붙인 두 번째 백엔드다.
+  - `scalar_program` 409개와 `scalar_cfg` 281개가 대부분이다.
+  - 8월 1일 24개에서 8월 15일 630개로 늘었다.
+  - BRIDGE의 모양별 행들이 이 묶음이다.
+- 컴파일러가 언어의 추상화를 거의 쓰지 않는다. Pergyra 문법으로 쓴 C에
+  가깝다.
+
+  | 항목 | 수 |
+  |---|---:|
+  | 제네릭 함수 | 9,246개 중 4개 |
+  | `match` | 54 |
+  | `for … in` | 7 (`while` 3,858) |
+  | `self` 메서드 | 10 |
+  | 구조체 필드 | `Array<…>` 7,567 대 스칼라 3,812 |
+  | 괄호만 있는 줄 | 38,711 (14.5%) |
+  | 함수 이름 평균 길이 | 36.1자 (`DirectMir` 접두사 2,850개) |
+  | `IsSome`/`UnwrapOption` 류 | 5,178줄 |
+
+**제약을 바로 적는다.** C와의 parity는 출력(MIR JSON, 생성 코드, 실행
+결과, 진단)을 맞추는 일이다. 소스 모양을 맞추라는 요구가 아니다. 실제
+제약은 fixpoint다. self-host 소스는 self-host 컴파일러 자신과 native
+bootstrap이 컴파일할 수 있는 기능만 쓸 수 있다. 그래서 각 전환은 이
+순서를 지킨다.
+
+1. 그 기능을 self-host가 제대로 컴파일하게 만든다. 이 단계 자체가 대체
+   진척이다.
+2. 컴파일러 소스를 그 기능으로 바꾼다.
+3. 줄 수, 빌드·실행 시간, 메모리, gen2==gen3를 잰다.
+
+한 번에 다 바꾸지 않고 사실 family 하나씩 바꾼다.
+
+**수정 사항(순서대로)**
+
+- **S0, 지금 적용.** `direct_mir_*` 파일 수가 979를 넘지 못하게 래칫을
+  건다. 새 모양은 기존 계획을 넓혀서 받는다. parity와 충돌하지 않는다.
+- **S1.** `direct_mir` 조각을 일반 계획으로 합친다. P1의 모양별 행
+  합치기, P2b의 직접 MIR→C와 같은 일이다. 줄 수가 가장 많이 걸린 곳이다.
+- **S2(파일럿).** 사실 표 하나를 레코드 배열로 바꾼다.
+  - 대상: `SemanticAstStatementFacts`를 `Array<StatementRow>`, 메서드,
+    `for-in`으로.
+  - 지금은 병렬 배열이라 열 하나를 더하면 8곳을 고친다. PP-064 3b의
+    `type_name_texts`가 그 예다.
+  - 잴 것: 줄 수, 성능, 메모리, fixpoint. 막히면 막힌 지점을 PP로
+    올린다.
+- **S3.** family마다 반복되는 조회(`…IndexForNode`, `…CountAt` 류)를 제네릭
+  함수 하나로 바꾼다. `mir.generic_specialization`이 self-host에서 그
+  모양을 받아야 한다.
+- **S4.** 수동 인덱스 `while`을 `for-in`으로, 문자열로 된 kind와 reason을
+  enum과 `match`로 바꾼다.
+- **S5.** 네임스페이스 접두사(`DirectMir…`, `SemanticAst…`)를 메서드와
+  모듈 이름공간으로 바꿔 줄바꿈을 줄인다.
+- **S6(언어 기능).** Option/Result 의식을 문법으로 줄인다(`if let`, `?`
+  류). AGENTS.md가 이미 DX 부채로 꼽은 항목이다. `docs/206`처럼 최소 단위
+  결정을 먼저 적는다.
+
+**래칫 후보**
+
+- `direct_mir_*` 파일 수가 늘지 않는다.
+- 새 owner의 사실 표는 레코드 배열로 만든다.
+- 제네릭 함수, `for-in`, `match` 사용 수와 괄호만 있는 줄의 비율을 측정값으로
+  기록한다.
+
 ## Shape
 
 ```mermaid
