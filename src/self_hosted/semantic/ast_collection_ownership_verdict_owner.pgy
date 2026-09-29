@@ -22,6 +22,7 @@ import "ast_collection_ownership_verdict_carrier_owner.pgy";
 import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_ownership_assignment_alias_owner.pgy";
 import "ast_collection_ownership_member_transition_owner.pgy";
+import "ast_collection_ownership_argument_transfer_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "diagnostic_owner.pgy";
@@ -189,6 +190,18 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
             SemanticError2("move_from_released", "boundary",
                 "member_use_after_move", "type", "Array<String>"),
             moved_use.syntax_node_id, moved_use.expression_node_id);
+    }
+    let transferred_use: SemanticAstCollectionOwnedArgumentUse =
+        SemanticAstCollectionFirstInvalidOwnedArgumentUse(
+            artifact, signatures, locals,
+            initializer_types.inferred_type_names, surfaces);
+    if transferred_use.found {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "move_from_released",
+            SemanticError2("move_from_released", "boundary",
+                "owned_argument_use_after_move", "type", "Array<String>"),
+            transferred_use.syntax_node_id,
+            transferred_use.expression_node_id);
     }
     let assignment_row: Int = 0;
     while assignment_row < ArrayLength(assignments.node_ids) {

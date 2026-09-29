@@ -517,7 +517,49 @@ def main():
         param = sole_parameter(document, "ReleaseOwnedArray")
         if param is None:
             raise SystemExit("fixture has no owned Array<String> parameter")
-        if kind.endswith("carriage"):
+        if kind.endswith("use-after-move"):
+            main = next((row for row in document.get("routines", [])
+                         if row.get("name") == "Main"), None)
+            instructions = [] if main is None else [
+                instruction
+                for block in main.get("blocks", [])
+                for instruction in block.get("instructions", [])
+            ]
+            log = next((instruction for instruction in instructions
+                        if instruction.get("arg0") == "Log"), None)
+            if log is None:
+                raise SystemExit("fixture has no terminal Log control")
+            log["expr0"] = "Log(ArrayLength(values))"
+            log["expr0_graph"] = {
+                "root": 3,
+                "digest": 1108432366,
+                "nodes": [
+                    {"kind": "leaf", "text": "ArrayLength",
+                     "call_target_kind": "none", "call_target_name": "",
+                     "call_target_syntax_id": 0, "runtime_call_abi_id": 0,
+                     "binding_syntax_id": 0, "binding_kind": "none",
+                     "binding_ordinal": None, "left": None, "right": None},
+                    {"kind": "call", "text": "ArrayLength()",
+                     "call_target_kind": "direct",
+                     "call_target_name": "ArrayLength",
+                     "call_target_syntax_id": 0, "runtime_call_abi_id": 0,
+                     "binding_syntax_id": 0, "binding_kind": "none",
+                     "binding_ordinal": None, "left": 0, "right": None},
+                    {"kind": "leaf", "text": "values",
+                     "call_target_kind": "none", "call_target_name": "",
+                     "call_target_syntax_id": 0, "runtime_call_abi_id": 0,
+                     "binding_syntax_id": 0, "binding_kind": "none",
+                     "binding_ordinal": None, "left": None, "right": None},
+                    {"kind": "call_argument",
+                     "text": "ArrayLength(values)",
+                     "call_target_kind": "none", "call_target_name": "",
+                     "call_target_syntax_id": 0, "runtime_call_abi_id": 0,
+                     "binding_syntax_id": 0, "binding_kind": "none",
+                     "binding_ordinal": None, "left": 1, "right": 2},
+                ],
+            }
+            log["uses"] = ["values.1"]
+        elif kind.endswith("carriage"):
             param["carriage"] = "value"
         elif kind.endswith("pass"):
             param["pass"] = "indirect"

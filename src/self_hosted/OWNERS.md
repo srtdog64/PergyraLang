@@ -604,6 +604,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- ordered member-move, exact move-back, and retired-local transitions over
   the admitted expression graph. Only the matching root, declared field, and
   local binding restore ownership; every other reuse fails closed.
+- `src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy`
+  -- ordered caller-local retirement for direct `own Array<String>` arguments.
+  Callee and formal-parameter identity come from carried SyntaxNodeIds; a
+  repeated caller use fails before MIR or either backend can reinterpret it.
 - `src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy` --
   operand diagnostics for fully graph-owned scalar operator trees.
 - `src/self_hosted/semantic/ast_expression_graph_view_owner.pgy` -- borrowed

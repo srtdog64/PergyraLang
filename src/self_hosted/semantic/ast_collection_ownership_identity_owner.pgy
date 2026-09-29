@@ -136,14 +136,14 @@ func SemanticAstCollectionOwnershipParameterModeForArgument(
         surface_index >= ArrayLength(surfaces.function_node_ids) {
         return 0;
     }
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        surfaces.expression_graph, argument_node_id);
-    let name: Option<String> = SemanticExpressionGraphNodeText(
-        surfaces.expression_graph, argument_node_id);
+    let binding: SemanticExpressionBindingIdentityFact =
+        SemanticExpressionGraphBindingIdentity(
+            surfaces.expression_graph, argument_node_id);
     let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
         signatures, surfaces.function_node_ids[surface_index]);
-    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeLeaf() ||
-        !IsSome(name) || !IsSome(signature) {
+    if !binding.ok || binding.kind !=
+            SemanticExpressionBindingFormalParameter() ||
+        !IsSome(signature) {
         return 0;
     }
     let signature_row: Int = UnwrapOption(signature);
@@ -152,15 +152,15 @@ func SemanticAstCollectionOwnershipParameterModeForArgument(
     if !IsSome(parameter_count) { return 0; }
     let parameter: Int = 0;
     while parameter < UnwrapOption(parameter_count) {
-        let parameter_name: Option<String> = SemanticAstFunctionParamNameAt(
+        let parameter_node: Option<Int> = SemanticAstFunctionParamNodeAt(
             signatures, signature_row, parameter);
         let parameter_type: Option<String> = SemanticAstFunctionParamTypeAt(
             signatures, signature_row, parameter);
         let parameter_mode: Option<Int> = SemanticAstFunctionParamModeAt(
             signatures, signature_row, parameter);
-        if IsSome(parameter_name) && IsSome(parameter_type) &&
+        if IsSome(parameter_node) && IsSome(parameter_type) &&
             IsSome(parameter_mode) &&
-            UnwrapOption(parameter_name) == UnwrapOption(name) &&
+            UnwrapOption(parameter_node) == binding.syntax_id &&
             SemanticAstCollectionOwnershipIsStringArray(
                 UnwrapOption(parameter_type)) {
             return UnwrapOption(parameter_mode) + 1;

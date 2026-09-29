@@ -1,5 +1,5 @@
-func ReleaseOwnedArray(own values: Array<String>) -> Void {
-    ArrayDropOwnedStrings(values);
+func ReleaseOwnedArray(own payload: Array<String>) -> Void {
+    ArrayDropOwnedStrings(payload);
 }
 
 func Main() -> Void {

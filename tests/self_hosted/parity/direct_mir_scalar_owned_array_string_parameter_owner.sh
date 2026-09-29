@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# One last-use caller local moves into an owner-handle ArrayString parameter and C/LLVM reject use-after-move.
+# One last-use caller local moves into an owner-handle ArrayString parameter;
+# semantic ownership rejects source reuse and C/LLVM defend against forged MIR.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -104,19 +105,26 @@ for backend in c llvm; do
         fail "$backend runtime output drifted"
 done
 
-negative_mir_rel="$WORK_REL/use-after-move.mir.json"
-(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
-    "$NEGATIVE_SOURCE" -o "$negative_mir_rel") ||
-    fail "use-after-move MIR production failed"
-for mutation in use-after-move owned-array-string-parameter-carriage \
+negative_mir_rel="$WORK_REL/use-after-move.source.mir.json"
+printf '%s\n' preserved:use-after-move >"$ROOT_DIR/$negative_mir_rel"
+if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$NEGATIVE_SOURCE" -o "$negative_mir_rel") \
+    >"$WORK_DIR/use-after-move.source.out" \
+    2>"$WORK_DIR/use-after-move.source.err"; then
+    fail "semantic ownership accepted source use-after-move"
+fi
+[[ "$(cat "$ROOT_DIR/$negative_mir_rel")" == preserved:use-after-move ]] ||
+    fail "semantic refusal replaced the prior MIR artifact"
+grep -Fq 'move_from_released' "$WORK_DIR/use-after-move.source.out" \
+    "$WORK_DIR/use-after-move.source.err" ||
+    fail "semantic refusal lost move_from_released"
+for mutation in owned-array-string-parameter-use-after-move \
+        owned-array-string-parameter-carriage \
         owned-array-string-parameter-pass \
         owned-array-string-parameter-abi-layout \
         owned-array-string-parameter-call-target; do
-    mutated_rel="$negative_mir_rel"
-    if [[ "$mutation" != use-after-move ]]; then
-        mutated_rel="$WORK_REL/$mutation.mir.json"
-        python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
-    fi
+    mutated_rel="$WORK_REL/$mutation.mir.json"
+    python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do
         output_rel="$WORK_REL/$mutation.$backend"
         rm -f "$ROOT_DIR/$output_rel"
