@@ -14,7 +14,7 @@ import "ast_expression_function_table_fact_owner.pgy";
 import "nominal_constructor_argument_policy_owner.pgy";
 import "ast_intent_signature_fact_owner.pgy";
 import "ast_generic_nominal_equality_owner.pgy";
-
+import "ast_expression_environment_storage_lifetime_owner.pgy";
 func SemanticAstExpressionMemberRootNames(constructors: SemanticAstNominalConstructorFacts,
     enums: SemanticAstEnumFacts, inout roots: Array<String>) -> Bool {
     if !SemanticAstNominalConstructorRowsReady(constructors) || !enums.ok {
@@ -471,9 +471,9 @@ func SemanticAstExpressionEnvironmentReset(inout names: Array<String>, inout typ
 }
 func SemanticAstExpressionEnvironmentClear(own names: Array<String>, own types: Array<String>, own modes: Array<String>) -> Void {
     SemanticAstExpressionEnvironmentReset(names, types, modes);
-    ArrayDropOwnedStrings(names);
-    ArrayDropOwnedStrings(types);
-    ArrayDropOwnedStrings(modes);
+    SemanticAstExpressionEnvironmentStorageRetire(names);
+    SemanticAstExpressionEnvironmentStorageRetire(types);
+    SemanticAstExpressionEnvironmentStorageRetire(modes);
 }
 
 func SemanticAstExpressionSeedVisibleIterationRows(

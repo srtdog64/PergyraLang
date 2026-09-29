@@ -42,6 +42,75 @@ compiler_internal_builtin_path_matches(const char *path,
 }
 
 static bool
+compiler_internal_builtin_type_text_match_at(const ASTNode *type_node,
+                                             const char **expected_cursor)
+{
+    const char *base_name;
+    const char *cursor;
+    GenericParams *generic_args;
+    size_t generic_count;
+
+    if (type_node == NULL || type_node->type != AST_TYPE
+        || expected_cursor == NULL || *expected_cursor == NULL)
+        return false;
+    base_name = ast_type_name(type_node);
+    cursor = *expected_cursor;
+    if (base_name == NULL || strncmp(cursor, base_name, strlen(base_name)) != 0)
+        return false;
+    cursor += strlen(base_name);
+
+    generic_args = ast_type_generic_args(type_node);
+    generic_count = ast_generic_param_count(generic_args);
+    if (generic_count == 0) {
+        *expected_cursor = cursor;
+        return true;
+    }
+    if (*cursor != '<')
+        return false;
+    cursor++;
+    for (size_t i = 0; i < generic_count; i++) {
+        GenericParam *arg = ast_generic_param_at(generic_args, i);
+        ASTNode *arg_type = ast_generic_param_constraint(arg);
+        const char *arg_name = ast_generic_param_name(arg);
+
+        if (i > 0) {
+            if (*cursor != ',')
+                return false;
+            cursor++;
+            if (*cursor == ' ')
+                cursor++;
+        }
+        if (arg_type != NULL) {
+            if (!compiler_internal_builtin_type_text_match_at(
+                    arg_type, &cursor))
+                return false;
+        } else {
+            size_t arg_name_length;
+            if (arg_name == NULL)
+                return false;
+            arg_name_length = strlen(arg_name);
+            if (strncmp(cursor, arg_name, arg_name_length) != 0)
+                return false;
+            cursor += arg_name_length;
+        }
+    }
+    if (*cursor != '>')
+        return false;
+    *expected_cursor = cursor + 1;
+    return true;
+}
+
+static bool
+compiler_internal_builtin_type_matches(const ASTNode *type_node,
+                                       const char *expected)
+{
+    const char *cursor = expected;
+
+    return compiler_internal_builtin_type_text_match_at(type_node, &cursor)
+        && cursor != NULL && *cursor == '\0';
+}
+
+static bool
 compiler_retire_array_storage_context_ready(SemanticContext *ctx)
 {
     const PgyBuiltinInfo *builtin =
@@ -50,8 +119,6 @@ compiler_retire_array_storage_context_ready(SemanticContext *ctx)
     FuncParam *param;
     ASTNode *return_type;
     const char *function_name;
-    const char *param_type_name;
-    const char *return_type_name;
 
     if (ctx == NULL || builtin == NULL
         || (builtin->flags & PGY_BUILTIN_FLAG_COMPILER_INTERNAL) == 0)
@@ -68,8 +135,6 @@ compiler_retire_array_storage_context_ready(SemanticContext *ctx)
         || return_type == NULL || ast_type_name(return_type) == NULL)
         return false;
     function_name = ast_declaration_name(function);
-    param_type_name = ast_type_name(param->type);
-    return_type_name = ast_type_name(return_type);
 #define PGY_COMPILER_INTERNAL_PARAM_OWN PARAM_MODE_OWN
 #define PGY_COMPILER_INTERNAL_BUILTIN_CALLER(                              \
     registry_builtin, module_path, caller_name, parameter_mode,            \
@@ -77,8 +142,10 @@ compiler_retire_array_storage_context_ready(SemanticContext *ctx)
     if (strcmp(builtin->name, (registry_builtin)) == 0                     \
         && strcmp(function_name, (caller_name)) == 0                       \
         && param->mode == (parameter_mode)                                 \
-        && strcmp(param_type_name, (parameter_type)) == 0                  \
-        && strcmp(return_type_name, (caller_return_type)) == 0             \
+        && compiler_internal_builtin_type_matches(                         \
+            param->type, (parameter_type))                                 \
+        && compiler_internal_builtin_type_matches(                         \
+            return_type, (caller_return_type))                             \
         && compiler_internal_builtin_path_matches(                         \
             ctx->current_module_path, (module_path)))                      \
         return true;
@@ -191,16 +258,23 @@ type_check_stdlib_array_call(ASTNode *expr,
                     type_name_or_unknown(arr));
             } else if (inner != NULL)
                 require_assignable(val, inner, arg1, ctx);
-            if (inner != NULL && type_equals(inner, TYPE_STRING)
-                && !semantic_collection_record_call_effect(
-                    expr, arg0,
+            if (inner != NULL && type_equals(inner, TYPE_STRING)) {
+                uint32_t owned_result_source = 0;
+                PgyCollectionOwnershipEffectKind effect =
                     kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING
                         ? PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH
-                        : PGY_COLLECTION_EFFECT_SHALLOW_MUTATION,
-                    ctx)) {
+                        : PGY_COLLECTION_EFFECT_SHALLOW_MUTATION;
+                if (kind == STDLIB_COLLECTION_ARRAY_PUSH
+                    && semantic_collection_owned_string_call_result(
+                        arg1, ctx, &owned_result_source)) {
+                    effect = PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH;
+                }
+                if (!semantic_collection_record_call_effect_from(
+                        expr, arg0, effect, owned_result_source, ctx)) {
                 semantic_error(ctx, expr,
                     "Could not seal Array<String> ownership transition receipt");
                 return TYPE_UNKNOWN;
+                }
             }
         }
         return TYPE_VOID;

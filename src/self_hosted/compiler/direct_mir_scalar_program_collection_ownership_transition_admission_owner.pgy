@@ -5,6 +5,7 @@ import "direct_mir_scalar_program_collection_ownership_transition_policy_owner.p
 import "direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy";
 import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_receipt_source_owner.pgy";
 import "../mir_lower/routine_fact_index_schema_owner.pgy";
 
 struct DirectMirCollectionOwnershipInstructionReceipt {
@@ -12,12 +13,13 @@ struct DirectMirCollectionOwnershipInstructionReceipt {
     let present: Bool;
     let effect_kind: Int;
     let receiver_binding_syntax_id: Int;
+    let source_binding_syntax_id: Int;
 }
 
 func DirectMirCollectionOwnershipInstructionReceiptInvalid(
 ) -> DirectMirCollectionOwnershipInstructionReceipt {
     return DirectMirCollectionOwnershipInstructionReceipt(
-        false, false, 0, 0
+        false, false, 0, 0, 0
     );
 }
 
@@ -32,7 +34,7 @@ func DirectMirCollectionOwnershipInstructionReceiptFromJson(
     }
     if UnwrapOption(kind_opt) == "null" {
         return DirectMirCollectionOwnershipInstructionReceipt(
-            true, false, 0, 0
+            true, false, 0, 0, 0
         );
     }
     if UnwrapOption(kind_opt) != "object" {
@@ -52,7 +54,7 @@ func DirectMirCollectionOwnershipInstructionReceiptFromJson(
         !IsSome(kind) || !IsSome(receiver) || !IsSome(source) ||
         ToString(ToInt(UnwrapOption(receiver))) != UnwrapOption(receiver) ||
         ToString(ToInt(UnwrapOption(source))) != UnwrapOption(source) ||
-        ToInt(UnwrapOption(receiver)) <= 0 || ToInt(UnwrapOption(source)) != 0 {
+        ToInt(UnwrapOption(receiver)) <= 0 || ToInt(UnwrapOption(source)) < 0 {
         return DirectMirCollectionOwnershipInstructionReceiptInvalid();
     }
     let effect: Int = 0;
@@ -62,8 +64,12 @@ func DirectMirCollectionOwnershipInstructionReceiptFromJson(
     if effect == 0 {
         return DirectMirCollectionOwnershipInstructionReceiptInvalid();
     }
+    if ToInt(UnwrapOption(source)) != 0 && effect != 1 {
+        return DirectMirCollectionOwnershipInstructionReceiptInvalid();
+    }
     return DirectMirCollectionOwnershipInstructionReceipt(
-        true, true, effect, ToInt(UnwrapOption(receiver))
+        true, true, effect, ToInt(UnwrapOption(receiver)),
+        ToInt(UnwrapOption(source))
     );
 }
 
@@ -159,6 +165,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
     ref index: MirRoutineFactIndex,
     ref storage: DirectMirScalarCfgProgramGraphStorage,
     ref expressions: DirectMirScalarProgramExpressionSet,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
     routine: Int,
     local_offset: Int,
     operation_offset: Int
@@ -293,7 +300,11 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                 if cfg_tracked {
                     if expected_effect == 0 || !receipt.present ||
                         receipt.effect_kind != expected_effect ||
-                        receipt.receiver_binding_syntax_id != bindings[tracked] {
+                        receipt.receiver_binding_syntax_id != bindings[tracked] ||
+                        !DirectMirCollectionOwnershipReceiptSourceReady(
+                            receipt.present, receipt.effect_kind,
+                            receipt.source_binding_syntax_id, callables,
+                            storage, expressions, operation) {
                         return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
                     }
                     next = states[tracked];
@@ -309,7 +320,11 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                     if expected_effect == 0 || !receipt.present ||
                         receipt.effect_kind != expected_effect ||
                         receipt.receiver_binding_syntax_id !=
-                            bindings[tracked] {
+                            bindings[tracked] ||
+                        !DirectMirCollectionOwnershipReceiptSourceReady(
+                            receipt.present, receipt.effect_kind,
+                            receipt.source_binding_syntax_id, callables,
+                            storage, expressions, operation) {
                         return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
                     }
                     next = DirectMirCollectionOwnershipNextState(
@@ -328,7 +343,11 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                 if expected_effect == 0 ||
                     receipt.effect_kind != expected_effect ||
                     receipt.effect_kind == 3 || empty_binding == 0 ||
-                    receipt.receiver_binding_syntax_id != empty_binding {
+                    receipt.receiver_binding_syntax_id != empty_binding ||
+                    !DirectMirCollectionOwnershipReceiptSourceReady(
+                        receipt.present, receipt.effect_kind,
+                        receipt.source_binding_syntax_id, callables,
+                        storage, expressions, operation) {
                     return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
                 }
             }

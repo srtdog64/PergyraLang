@@ -109,7 +109,7 @@ func CodegenFunctionOwnerFieldEnvRows(
         if field_type == "" {
             Die("method owner field type fact is missing");
         }
-        ArrayPush(rows, TypeEnvTypedValueBindingRows(
+        ArrayPushOwnedString(rows, TypeEnvTypedValueBindingRows(
             field_name, field_type,
             CodegenBindingEnvKind(field_type, env),
             Concat(

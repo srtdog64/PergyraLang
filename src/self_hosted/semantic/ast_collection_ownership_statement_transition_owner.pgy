@@ -1,0 +1,104 @@
+// Parser-owned Array<String> statement transitions.
+
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_collection_ownership_receipt_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_owned_string_result_fact_owner.pgy";
+
+struct SemanticAstCollectionStatementTransitionResult {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    syntax_node_id: Int;
+    receipts: SemanticAstCollectionOwnershipReceiptRows;
+}
+
+func SemanticAstCollectionStatementTransitions(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref ownership: Array<Int>, ref dispositions: Array<Int>,
+    ref origins: Array<Int>, inout transition_states: Array<Int>,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts,
+    receipts: SemanticAstCollectionOwnershipReceiptRows
+) -> SemanticAstCollectionStatementTransitionResult {
+    let carried: SemanticAstCollectionOwnershipReceiptRows = receipts;
+    let statement_row: Int = 0;
+    while statement_row < ArrayLength(statements.node_ids) {
+        let statement_kind: Int = statements.kind_tags[statement_row];
+        if statement_kind != TypedAstKindArrayPushStmtTag() &&
+            statement_kind != TypedAstKindArraySetStmtTag() &&
+            statement_kind != TypedAstKindArrayPopStmtTag() {
+            statement_row = statement_row + 1;
+            continue;
+        }
+        let operation: String = "ArrayPop";
+        if statement_kind == TypedAstKindArrayPushStmtTag() {
+            operation = "ArrayPush";
+        } else if statement_kind == TypedAstKindArraySetStmtTag() {
+            operation = "ArraySet";
+        }
+        let binding: SemanticAstLocalBindingIdentity =
+            SemanticAstCollectionOwnershipLocalForStatementTarget(
+                artifact, locals, inferred_types,
+                surfaces, statements, statement_row);
+        if !binding.ok {
+            statement_row = statement_row + 1;
+            continue;
+        }
+        let source_syntax_id: Int = 0;
+        if statement_kind == TypedAstKindArrayPushStmtTag() {
+            let value_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, statements.node_ids[statement_row],
+                AstExpressionLaneValue());
+            if IsSome(value_root) {
+                source_syntax_id = SemanticAstOwnedStringCallTarget(
+                    surfaces.expression_graph, UnwrapOption(value_root),
+                    owned_string_results);
+            }
+        }
+        let state: Int = ownership[binding.row];
+        if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() {
+            let transition: Int = transition_states[binding.row];
+            let owned_push: Bool = source_syntax_id > 0;
+            let expected: Int = SemanticAstCollectionTransitionBorrowed();
+            let effect: Int =
+                SemanticAstCollectionOwnershipEffectShallowMutation();
+            if owned_push {
+                expected = SemanticAstCollectionTransitionOwned();
+                effect = SemanticAstCollectionOwnershipEffectOwnedStringPush();
+            }
+            if (owned_push &&
+                    transition != SemanticAstCollectionTransitionEmpty() &&
+                    transition != SemanticAstCollectionTransitionOwned()) ||
+                (!owned_push &&
+                    transition != SemanticAstCollectionTransitionEmpty() &&
+                    transition != SemanticAstCollectionTransitionBorrowed()) {
+                return SemanticAstCollectionStatementTransitionResult(
+                    false, "borrow_boundary_escape",
+                    SemanticError2("borrow_boundary_escape", "boundary",
+                        operation, "type", "Array<String>"),
+                    statements.node_ids[statement_row], carried);
+            }
+            transition_states[binding.row] = expected;
+            carried = SemanticAstCollectionOwnershipReceiptRowsAppend(
+                carried, statements.function_node_ids[statement_row],
+                statements.node_ids[statement_row], AstExpressionLaneAtom(),
+                -1, effect, locals.node_ids[binding.row], source_syntax_id);
+        } else if state == SemanticAstCollectionOwnershipOwnedElements() ||
+            state == SemanticAstCollectionOwnershipMapKeysSnapshot() ||
+            dispositions[binding.row] ==
+                SemanticAstCollectionDispositionRetired() {
+            return SemanticAstCollectionStatementTransitionResult(
+                false, "borrow_boundary_escape",
+                SemanticError2("borrow_boundary_escape", "boundary",
+                    operation, "type", "Array<String>"),
+                statements.node_ids[statement_row], carried);
+        }
+        statement_row = statement_row + 1;
+    }
+    return SemanticAstCollectionStatementTransitionResult(
+        true, "", "", -1, carried);
+}

@@ -1,0 +1,158 @@
+// Callee-body proof for freshly owned String results. Return type alone never
+// grants ownership to a direct-call result.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
+import "runtime_value_call_abi_owner.pgy";
+import "runtime_call_abi_structured_fact_owner.pgy";
+
+func DirectMirScalarProgramOwnedStringDefinitionExpression(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local_row: Int
+) -> Int {
+    let found: Int = -1;
+    let operation: Int = plan.routines.operation_starts[routine];
+    let end: Int = operation + plan.routines.operation_counts[routine];
+    while operation < end {
+        let result: Int = plan.operation_result_values[operation];
+        if result >= 0 && result < ArrayLength(plan.value_local_rows) &&
+            plan.value_local_rows[result] == local_row {
+            if found >= 0 || plan.operation_kinds[operation] !=
+                    DirectMirScalarCfgOpExpressionDefinition() {
+                return -1;
+            }
+            found = plan.program.operation_expression_rows[operation];
+        }
+        operation = operation + 1;
+    }
+    return found;
+}
+
+func DirectMirScalarProgramOwnedStringAllocatorLocalReady(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, local_row: Int
+) -> Bool {
+    if local_row < 0 || local_row >= ArrayLength(plan.local_types) ||
+        plan.local_types[local_row] != "Allocator" ||
+        DirectMirScalarCfgRoutinePartitionLocalOwner(
+            plan.routines, local_row) != routine {
+        return false;
+    }
+    let expression: Int = DirectMirScalarProgramOwnedStringDefinitionExpression(
+        plan, routine, local_row);
+    if expression < 0 || expression >= ArrayLength(
+            plan.program.expressions.graph_roots) {
+        return false;
+    }
+    let root: Int = plan.program.expressions.graph_roots[expression];
+    if root < 0 || root >= ArrayLength(
+            plan.program.expressions.node_kinds) ||
+        plan.program.expressions.node_kinds[root] !=
+            DirectMirScalarProgramExprRuntimeValueCall() {
+        return false;
+    }
+    let call: CompilerRuntimeValueCallAbiFact =
+        CompilerRuntimeValueCallAbiFactForId(
+            plan.program.expressions.node_runtime_call_abi_ids[root]);
+    return call.valid && call.source_name == "AllocatorResult" &&
+        ArrayLength(call.parameter_types) == 0;
+}
+
+func DirectMirScalarProgramOwnedStringExpressionReady(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    node: Int, routine: Int, depth: Int
+) -> Bool {
+    if depth > ArrayLength(plan.routines.roles) || node < 0 ||
+        node >= ArrayLength(plan.program.expressions.node_kinds) ||
+        plan.program.expressions.node_types[node] !=
+            CompilerAbiLayoutStringTypeName() {
+        return false;
+    }
+    let kind: Int = plan.program.expressions.node_kinds[node];
+    if kind == DirectMirScalarProgramExprLocal() {
+        let local_row: Int = plan.program.expressions.node_local_rows[node];
+        if local_row < 0 || DirectMirScalarCfgRoutinePartitionLocalOwner(
+                plan.routines, local_row) != routine {
+            return false;
+        }
+        let expression: Int =
+            DirectMirScalarProgramOwnedStringDefinitionExpression(
+                plan, routine, local_row);
+        if expression < 0 || expression >= ArrayLength(
+                plan.program.expressions.graph_roots) {
+            return false;
+        }
+        return DirectMirScalarProgramOwnedStringExpressionReady(
+            plan, plan.program.expressions.graph_roots[expression],
+            routine, depth + 1);
+    }
+    if kind == DirectMirScalarProgramExprConcatString() {
+        let concat: CompilerRuntimeCallAbiFact =
+            CompilerRuntimeCallAbiStringConcatFact();
+        return CompilerRuntimeCallAbiStringConcatFactReady(concat) &&
+            plan.string_concat_runtime_call_abi_id ==
+                concat.runtime_call_abi_id;
+    }
+    if kind == DirectMirScalarProgramExprRuntimeValueCall() {
+        let call: CompilerRuntimeValueCallAbiFact =
+            CompilerRuntimeValueCallAbiFactForId(
+                plan.program.expressions.node_runtime_call_abi_ids[node]);
+        let allocator: Int = plan.program.expressions.node_rights[node];
+        return call.valid && call.source_name == "TextBuilderFinish" &&
+            ArrayLength(call.parameter_types) == 2 && allocator >= 0 &&
+            allocator < node && plan.program.expressions.node_kinds[allocator] ==
+                DirectMirScalarProgramExprLocal() &&
+            DirectMirScalarProgramOwnedStringAllocatorLocalReady(
+                plan, routine,
+                plan.program.expressions.node_local_rows[allocator]);
+    }
+    if kind != DirectMirScalarProgramExprDirectCall() { return false; }
+    let target: Int = plan.program.expressions.node_callable_rows[node];
+    return DirectMirScalarProgramFunctionReturnsOwnedString(
+        plan, target, depth + 1);
+}
+
+func DirectMirScalarProgramBlockHasProcessExit(
+    ref plan: DirectMirScalarCfgGraphPlan, block: Int
+) -> Bool {
+    let operation: Int = plan.block_operation_starts[block];
+    let end: Int = operation + plan.block_operation_counts[block];
+    while operation < end {
+        if plan.operation_kinds[operation] ==
+                DirectMirScalarCfgOpProcessExit() {
+            return true;
+        }
+        operation = operation + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramFunctionReturnsOwnedString(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int, depth: Int
+) -> Bool {
+    if depth > ArrayLength(plan.routines.roles) || routine <=
+            plan.routines.entrypoint_ordinal ||
+        routine >= ArrayLength(plan.routines.return_types) ||
+        plan.routines.return_types[routine] !=
+            CompilerAbiLayoutStringTypeName() {
+        return false;
+    }
+    let saw_return: Bool = false;
+    let block: Int = plan.routines.block_starts[routine];
+    let end: Int = block + plan.routines.block_counts[routine];
+    while block < end {
+        if plan.block_succ_true[block] < 0 &&
+            plan.block_succ_false[block] < 0 &&
+            !DirectMirScalarProgramBlockHasProcessExit(plan, block) {
+            let expression: Int =
+                plan.program.block_return_expression_rows[block];
+            if expression < 0 || expression >= ArrayLength(
+                    plan.program.expressions.graph_roots) ||
+                !DirectMirScalarProgramOwnedStringExpressionReady(
+                    plan, plan.program.expressions.graph_roots[expression],
+                    routine, depth + 1) {
+                return false;
+            }
+            saw_return = true;
+        }
+        block = block + 1;
+    }
+    return saw_return;
+}

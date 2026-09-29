@@ -410,7 +410,7 @@ func DirectMirScalarCfgProgramAppendRoutine(
     collection_ownership =
         DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
             collection_ownership, admitted.routines.source_json,
-            input.index, appended_storage, expressions,
+            input.index, appended_storage, expressions, callables,
             routine_ordinal, local_offset, operation_offset
         );
     if !collection_ownership.valid {

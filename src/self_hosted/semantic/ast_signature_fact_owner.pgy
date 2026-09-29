@@ -551,7 +551,7 @@ func SemanticAstFunctionParamFlatIndex(
 }
 
 func SemanticAstFunctionParamNodeAt(
-    facts: SemanticAstFunctionSignatureFacts,
+    ref facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int,
     parameter_index: Int
 ) -> Option<Int> {

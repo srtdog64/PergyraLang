@@ -44,6 +44,159 @@ collection_call_is_unshadowed_builtin(const ASTNode *expr,
         && ast_identifier_binding_syntax_id(callee) == 0;
 }
 
+static ASTNode *
+collection_direct_let_for_binding(ASTNode *body, uint32_t binding_syntax_id)
+{
+    if (body == NULL || body->type != AST_BLOCK || binding_syntax_id == 0)
+        return NULL;
+    for (size_t i = 0; i < ast_block_statement_count(body); i++) {
+        ASTNode *stmt = ast_block_statement(body, i);
+        if (stmt != NULL && stmt->type == AST_LET_DECL
+            && ast_node_stable_id(stmt) == binding_syntax_id)
+            return stmt;
+    }
+    return NULL;
+}
+
+static bool
+collection_direct_result_allocator_binding(ASTNode *body,
+                                           uint32_t binding_syntax_id)
+{
+    ASTNode *decl = collection_direct_let_for_binding(
+        body, binding_syntax_id);
+    return decl != NULL && !ast_let_is_mutable(decl)
+        && collection_call_is_unshadowed_builtin(
+            ast_let_initializer(decl), "AllocatorResult");
+}
+
+static bool
+collection_callable_type_returns_owned_string(const ASTNode *call,
+                                              SemanticContext *ctx,
+                                              uint32_t *producer_id_out)
+{
+    ASTNode *callee;
+    ASTNode *decl;
+    Symbol *symbol;
+    const char *name;
+    uint32_t producer_id;
+
+    if (producer_id_out != NULL)
+        *producer_id_out = 0;
+    if (call == NULL || call->type != AST_CALL || ctx == NULL)
+        return false;
+    producer_id = ast_call_semantic_callee_decl_id(call);
+    callee = ast_call_callee(call);
+    name = callee != NULL && callee->type == AST_IDENTIFIER
+        ? ast_identifier_name(callee) : NULL;
+    if (producer_id == 0 || name == NULL)
+        return false;
+    decl = semantic_find_callable_decl_by_name(ctx, name);
+    symbol = scope_lookup(ctx->scope, name);
+    if (decl == NULL || decl->type != AST_FUNC_DECL
+        || ast_node_stable_id(decl) != producer_id
+        || symbol == NULL || symbol->kind != SYMBOL_FUNCTION
+        || symbol->decl_syntax_id != producer_id
+        || symbol->type == NULL || symbol->type->kind != TYPE_KIND_FUNCTION
+        || !type_function_has_body_summary(symbol->type)
+        || !type_equals(type_function_return_type(symbol->type), TYPE_STRING)
+        || (type_function_body_summary(symbol->type)
+            & BODY_SUMMARY_RETURNS_OWNED_STRING) == 0) {
+        return false;
+    }
+    if (producer_id_out != NULL)
+        *producer_id_out = producer_id;
+    return true;
+}
+
+static bool
+collection_owned_string_expression_ready(ASTNode *body,
+                                         const ASTNode *expression,
+                                         SemanticContext *ctx,
+                                         unsigned depth)
+{
+    ASTNode *decl;
+    ASTNode *allocator;
+    uint32_t binding_id;
+
+    if (body == NULL || expression == NULL || depth > 8)
+        return false;
+    if (expression->type == AST_IDENTIFIER) {
+        binding_id = ast_identifier_binding_syntax_id(expression);
+        decl = collection_direct_let_for_binding(body, binding_id);
+        return decl != NULL && !ast_let_is_mutable(decl)
+            && collection_owned_string_expression_ready(
+                body, ast_let_initializer(decl), ctx, depth + 1);
+    }
+    if (expression->type != AST_CALL)
+        return false;
+    if (collection_call_is_unshadowed_builtin(expression, "Concat"))
+        return ast_call_arg_count(expression) == 2;
+    if (collection_call_is_unshadowed_builtin(
+            expression, "TextBuilderFinish")) {
+        if (ast_call_arg_count(expression) != 2)
+            return false;
+        allocator = ast_call_argument(expression, 1);
+        return allocator != NULL && allocator->type == AST_IDENTIFIER
+            && collection_direct_result_allocator_binding(
+                body, ast_identifier_binding_syntax_id(allocator));
+    }
+    return collection_callable_type_returns_owned_string(
+        expression, ctx, NULL);
+}
+
+bool
+semantic_collection_owned_string_call_result(
+    const ASTNode *expression,
+    SemanticContext *ctx,
+    uint32_t *producer_syntax_id_out)
+{
+    return collection_callable_type_returns_owned_string(
+        expression, ctx, producer_syntax_id_out);
+}
+
+void
+semantic_collection_record_owned_string_result_summary(
+    ASTNode *function_decl,
+    SemanticContext *ctx)
+{
+    ASTNode *body;
+    bool saw_return = false;
+
+    if (function_decl == NULL || function_decl->type != AST_FUNC_DECL
+        || ctx == NULL || !ctx->tracking_function_effects
+        || !type_equals(ctx->current_return, TYPE_STRING)) {
+        return;
+    }
+    body = ast_func_body(function_decl);
+    if (body == NULL || body->type != AST_BLOCK)
+        return;
+    for (size_t i = 0; i < ast_block_statement_count(body); i++) {
+        ASTNode *stmt = ast_block_statement(body, i);
+        if (stmt == NULL)
+            return;
+        if (stmt->type == AST_RETURN) {
+            ASTNode *value = ast_return_value(stmt);
+            saw_return = true;
+            if (!collection_owned_string_expression_ready(
+                    body, value, ctx, 0)) {
+                return;
+            }
+            continue;
+        }
+        /* A nested control owner could carry an additional return.  This
+         * bounded summary refuses it instead of guessing that the direct
+         * top-level returns are exhaustive. */
+        if (stmt->type != AST_LET_DECL && stmt->type != AST_CALL
+            && stmt->type != AST_ASSIGNMENT && stmt->type != AST_DEFER_STMT) {
+            return;
+        }
+    }
+    if (saw_return) {
+        semantic_record_body_summary(
+            ctx, BODY_SUMMARY_RETURNS_OWNED_STRING);
+    }
+}
+
 static bool
 array_literal_is_empty(const ASTNode *expr)
 {
@@ -459,13 +612,27 @@ semantic_collection_record_call_effect(
     PgyCollectionOwnershipEffectKind kind,
     SemanticContext *ctx)
 {
+    return semantic_collection_record_call_effect_from(
+        call, receiver, kind, 0, ctx);
+}
+
+bool
+semantic_collection_record_call_effect_from(
+    ASTNode *call,
+    ASTNode *receiver,
+    PgyCollectionOwnershipEffectKind kind,
+    uint32_t source_syntax_id,
+    SemanticContext *ctx)
+{
     Symbol *binding = NULL;
     PgyCollectionOwnershipFact *fact;
     uint32_t binding_id;
 
     if (call == NULL || call->type != AST_CALL || receiver == NULL
         || kind <= PGY_COLLECTION_EFFECT_NONE
-        || kind > PGY_COLLECTION_EFFECT_DROP) {
+        || kind > PGY_COLLECTION_EFFECT_DROP
+        || (source_syntax_id != 0
+            && kind != PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH)) {
         return false;
     }
     fact = receiver_collection_fact(receiver, ctx, &binding);
@@ -474,7 +641,7 @@ semantic_collection_record_call_effect(
     binding_id = receiver_binding_syntax_id(receiver, binding);
     return binding_id != 0
         && ast_call_set_semantic_collection_effect(
-            call, (uint32_t)kind, binding_id, 0);
+            call, (uint32_t)kind, binding_id, source_syntax_id);
 }
 
 static bool

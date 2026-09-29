@@ -81,20 +81,18 @@ for backend in c llvm; do
 done
 
 negative_mir_rel="$WORK_REL/use-after-move.mir.json"
-(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
-    "$NEGATIVE_SOURCE_REL" -o "$negative_mir_rel") ||
-    fail "use-after-move MIR production failed"
-for backend in c llvm; do
-    output_rel="$WORK_REL/use-after-move.$backend"
-    rm -f "$ROOT_DIR/$output_rel"
-    if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
-        "$negative_mir_rel" -o "$output_rel") \
-        >"$WORK_DIR/use-after-move.$backend.out" \
-        2>"$WORK_DIR/use-after-move.$backend.err"; then
-        fail "$backend accepted non-entrypoint use-after-move"
-    fi
-    [[ ! -e "$ROOT_DIR/$output_rel" ]] ||
-        fail "$backend published a use-after-move artifact"
-done
+printf 'preserved:use-after-move\n' >"$ROOT_DIR/$negative_mir_rel"
+if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$NEGATIVE_SOURCE_REL" -o "$negative_mir_rel") \
+    >"$WORK_DIR/use-after-move.out" \
+    2>"$WORK_DIR/use-after-move.err"; then
+    fail "semantic owner accepted non-entrypoint use-after-move"
+fi
+[[ "$(cat "$ROOT_DIR/$negative_mir_rel")" == \
+    "preserved:use-after-move" ]] ||
+    fail "semantic refusal replaced the prior MIR artifact"
+grep -Fq 'move_from_released' "$WORK_DIR/use-after-move.out" \
+    "$WORK_DIR/use-after-move.err" ||
+    fail "semantic refusal lost the use-after-move diagnostic"
 
 echo "[$LABEL] non-entrypoint owner move retirement C/LLVM + negative: PASS"

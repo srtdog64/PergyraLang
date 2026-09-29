@@ -1,0 +1,15 @@
+func MakeOwnedString() -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(output, "owned");
+    let result: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return result;
+}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPush(values, MakeOwnedString());
+    ArrayDropOwnedStrings(values);
+    Log("owned-string-call-result-ready");
+}

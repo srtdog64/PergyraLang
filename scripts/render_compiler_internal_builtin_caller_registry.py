@@ -77,8 +77,7 @@ def render(rows: list[CallerRow]) -> str:
             f'            true, "{row.builtin_name}", "{row.module_path}",',
             f'            "{row.function_name}", "{row.parameter_type}",',
             f'            "{row.return_type}"',
-            "        );",
-            "    }",
+            "        ); }",
         ])
     lines.extend([
         "    return SemanticCompilerInternalBuiltinCallerRow(",

@@ -52,7 +52,8 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
     let expected_param_count: Int = CodegenSemanticFunctionParamCountOrDie(
         signatures, signature_index
     );
-    let function_env_rows: Array<String> = [Concat("", "|")];
+    let function_env_rows: Array<String> = [];
+    ArrayPushOwnedString(function_env_rows, Concat("", "|"));
     if specialized_name != "" {
         ArrayPushOwnedString(function_env_rows, CodegenGenericSpecializationCallEnvRows(
             body_types.generic_specializations, specialized_name));

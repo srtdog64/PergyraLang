@@ -64,7 +64,10 @@ typedef enum
     BODY_SUMMARY_REQUIRES_ZONE  = 1u << 6,
     BODY_SUMMARY_SPAWNS_TASK    = 1u << 7,
     BODY_SUMMARY_SENDS_CHANNEL  = 1u << 8,
-    BODY_SUMMARY_CAUSES_EFFECT  = 1u << 9
+    BODY_SUMMARY_CAUSES_EFFECT  = 1u << 9,
+    /* Every admitted String return transfers a freshly allocated result.
+     * This is a semantic fact, not a spelling or ABI inference. */
+    BODY_SUMMARY_RETURNS_OWNED_STRING = 1u << 10
 } BodySummaryMask;
 
 typedef enum

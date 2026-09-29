@@ -13,10 +13,12 @@ BUILD_DIR="${PGY_COMPILER_INTERNAL_CALLER_TEST_DIR:-$ROOT_DIR/.tmp/self_hosted/c
 SEMANTIC_SOURCE="$ROOT_DIR/src/self_hosted/semantic/main.pgy"
 OWNER_ROUTINE="src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy"
 OWNER_ARENA="src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy"
+OWNER_ENVIRONMENT="src/self_hosted/semantic/ast_expression_environment_storage_lifetime_owner.pgy"
 WRONG_PATH="tests/self_hosted/semantic/fixture/compiler_retire_array_storage_owner_impersonation_rejected.pgy"
 EXTERNAL="tests/self_hosted/semantic/fixture/compiler_retire_array_storage_external_rejected.pgy"
 ARTIFACT_FIXTURE="$ROOT_DIR/tests/self_hosted/semantic/fixture/compiler_internal_builtin_artifact_provenance.pgy"
 DRIVER_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap.sh"
+CODEGEN_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/codegen_bootstrap.sh"
 
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
     PGY="${PGY}.exe"
@@ -35,6 +37,14 @@ grep -Fq '"$CODEGEN_BIN" --source "$driver_rel"' "$DRIVER_BOOTSTRAP" || {
 if grep -Fq 'PARSER_BIN=' "$DRIVER_BOOTSTRAP" ||
     grep -Fq 'driver_bootstrap.ast.txt' "$DRIVER_BOOTSTRAP"; then
     echo "[compiler-internal-caller] driver bootstrap restored the provenance-free AST-text bypass" >&2
+    exit 1
+fi
+grep -Fq -- '--source "$tool_source_rel"' "$CODEGEN_BOOTSTRAP" || {
+    echo "[compiler-internal-caller] codegen fixed point lost source provenance" >&2
+    exit 1
+}
+if grep -Fq 'AST_REL=' "$CODEGEN_BOOTSTRAP"; then
+    echo "[compiler-internal-caller] codegen fixed point restored the provenance-free AST bypass" >&2
     exit 1
 fi
 
@@ -91,6 +101,7 @@ for backend in c llvm; do
         "$BUILD_DIR/semantic_${backend}.compile.log"
     run_semantic_case "$checker" "$OWNER_ROUTINE" ok "${backend}_owner_routine"
     run_semantic_case "$checker" "$OWNER_ARENA" ok "${backend}_owner_arena"
+    run_semantic_case "$checker" "$OWNER_ENVIRONMENT" ok "${backend}_owner_environment"
     run_semantic_case "$checker" "$WRONG_PATH" reject "${backend}_wrong_path"
     run_semantic_case "$checker" "$EXTERNAL" reject "${backend}_external"
 

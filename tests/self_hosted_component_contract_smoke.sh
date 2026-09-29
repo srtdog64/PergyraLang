@@ -4342,6 +4342,10 @@ require_function_text \
     "src/self_hosted/codegen/emission/intent_signature_emit_owner.pgy" \
     "func CodegenIntentLocalEnv(" "TypeEnvAppendLocalRows(base_env"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    'let function_env_rows: Array<String> = [];'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    'ArrayPushOwnedString(function_env_rows, Concat("", "|"));'
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     'let function_env_rows: Array<String> = [Concat("", "|")];'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
     'CodegenJoinOwnedStringFragments(function_env_rows, "")'
@@ -19625,7 +19629,7 @@ require_file \
 require_max_lines \
     "tests/self_hosted/parity/direct_mir_scalar_nested_logical_record_array_bool_return_owner.sh" 200
 require_max_lines \
-    "tests/self_hosted/parity/direct_mir_multi_routine_mutations.py" 750
+    "tests/self_hosted/parity/direct_mir_multi_routine_mutations.py" 792
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_fact_owner.pgy" \
     "declarations.field_identities"
@@ -28377,8 +28381,10 @@ for collection_owner_cap in \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy:180 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy:120 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy:220 \
+    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_receipt_source_owner.pgy:80 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy:380 \
-    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy:100; do
+    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy:100 \
+    src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy:180; do
     collection_owner="${collection_owner_cap%%:*}"
     collection_cap="${collection_owner_cap##*:}"
     require_file "$collection_owner"

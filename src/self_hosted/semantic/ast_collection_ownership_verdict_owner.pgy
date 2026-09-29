@@ -23,6 +23,8 @@ import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_ownership_assignment_alias_owner.pgy";
 import "ast_collection_ownership_member_transition_owner.pgy";
 import "ast_collection_ownership_argument_transfer_owner.pgy";
+import "ast_collection_ownership_statement_transition_owner.pgy";
+import "ast_owned_string_result_fact_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "diagnostic_owner.pgy";
@@ -58,6 +60,16 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let receipts: SemanticAstCollectionOwnershipReceiptRows =
         SemanticAstCollectionOwnershipReceiptRowsEmpty();
     let move_destinations: HashMap<String, Int> = MapNew();
+    let owned_string_results: SemanticAstOwnedStringResultFacts =
+        SemanticAstOwnedStringResultFactsFromResolvedFacts(
+            artifact, signatures, locals, initializer_types, surfaces,
+            statements);
+    if !SemanticAstOwnedStringResultFactsReady(owned_string_results) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "SemanticAstOwnedStringResultFacts"), -1, -1);
+    }
     let local_row: Int = 0;
     while local_row < local_count {
         ArrayPush(ownership, SemanticAstCollectionOwnershipUnknown());
@@ -191,18 +203,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                 "member_use_after_move", "type", "Array<String>"),
             moved_use.syntax_node_id, moved_use.expression_node_id);
     }
-    let transferred_use: SemanticAstCollectionOwnedArgumentUse =
-        SemanticAstCollectionFirstInvalidOwnedArgumentUse(
-            artifact, signatures, locals,
-            initializer_types.inferred_type_names, surfaces);
-    if transferred_use.found {
-        return SemanticAstCollectionOwnershipVerdictError(
-            "move_from_released",
-            SemanticError2("move_from_released", "boundary",
-                "owned_argument_use_after_move", "type", "Array<String>"),
-            transferred_use.syntax_node_id,
-            transferred_use.expression_node_id);
-    }
     let assignment_row: Int = 0;
     while assignment_row < ArrayLength(assignments.node_ids) {
         let alias: SemanticAstCollectionOwnershipAssignmentAliasFact =
@@ -235,66 +235,18 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         assignment_row = assignment_row + 1;
     }
 
-    // ArrayPush/ArraySet/ArrayPop are parser-owned statement intrinsics, not
-    // expression-call nodes. Consume their admitted statement identity and
-    // the atom-lane receiver graph instead of rescanning source spellings.
-    let statement_row: Int = 0;
-    while statement_row < ArrayLength(statements.node_ids) {
-        let statement_kind: Int = statements.kind_tags[statement_row];
-        if statement_kind == TypedAstKindArrayPushStmtTag() ||
-            statement_kind == TypedAstKindArraySetStmtTag() ||
-            statement_kind == TypedAstKindArrayPopStmtTag() {
-            let operation: String = "ArrayPop";
-            if statement_kind == TypedAstKindArrayPushStmtTag() {
-                operation = "ArrayPush";
-            } else if statement_kind == TypedAstKindArraySetStmtTag() {
-                operation = "ArraySet";
-            }
-            let binding: SemanticAstLocalBindingIdentity =
-                SemanticAstCollectionOwnershipLocalForStatementTarget(
-                    artifact, locals, initializer_types.inferred_type_names,
-                    surfaces, statements, statement_row);
-            if binding.ok {
-                let state: Int = ownership[binding.row];
-                if origins[binding.row] ==
-                        SemanticAstCollectionOriginEmptyLiteral() {
-                    let transition: Int = transition_states[binding.row];
-                    if transition != SemanticAstCollectionTransitionEmpty() &&
-                        transition != SemanticAstCollectionTransitionBorrowed() {
-                        return SemanticAstCollectionOwnershipVerdictError(
-                            "borrow_boundary_escape",
-                            SemanticError2("borrow_boundary_escape",
-                                "boundary", operation,
-                                "type", "Array<String>"),
-                            statements.node_ids[statement_row], -1);
-                    }
-                    transition_states[binding.row] =
-                        SemanticAstCollectionTransitionBorrowed();
-                    receipts =
-                        SemanticAstCollectionOwnershipReceiptRowsAppend(
-                            receipts,
-                            statements.function_node_ids[statement_row],
-                            statements.node_ids[statement_row],
-                            AstExpressionLaneAtom(), -1,
-                            SemanticAstCollectionOwnershipEffectShallowMutation(),
-                            locals.node_ids[binding.row]
-                        );
-                } else if state ==
-                        SemanticAstCollectionOwnershipOwnedElements() ||
-                    state == SemanticAstCollectionOwnershipMapKeysSnapshot() ||
-                    dispositions[binding.row] ==
-                        SemanticAstCollectionDispositionRetired() {
-                    return SemanticAstCollectionOwnershipVerdictError(
-                        "borrow_boundary_escape",
-                        SemanticError2("borrow_boundary_escape",
-                            "boundary", operation,
-                            "type", "Array<String>"),
-                        statements.node_ids[statement_row], -1);
-                }
-            }
-        }
-        statement_row = statement_row + 1;
+    let statement_transitions: SemanticAstCollectionStatementTransitionResult =
+        SemanticAstCollectionStatementTransitions(
+            artifact, locals, initializer_types.inferred_type_names,
+            surfaces, statements, ownership, dispositions, origins,
+            transition_states, owned_string_results, receipts);
+    if !statement_transitions.ok {
+        return SemanticAstCollectionOwnershipVerdictError(
+            statement_transitions.diagnostic_code,
+            statement_transitions.diagnostic_message,
+            statement_transitions.syntax_node_id, -1);
     }
+    receipts = statement_transitions.receipts;
 
     let call_roots: SemanticCallSpineRoots =
         SemanticCallSpineRootsFromGraph(surfaces.expression_graph);
@@ -478,7 +430,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                                             identity.lane,
                                             identity.local_call_ordinal,
                                             effect,
-                                            locals.node_ids[binding.row]
+                                            locals.node_ids[binding.row], 0
                                         );
                                 } else if (owned_push || deep_drop) &&
                                     (state ==
@@ -550,6 +502,17 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
             last_root = root_id;
         }
         root_slot = root_slot + 1;
+    }
+    let transferred_use: SemanticAstCollectionOwnedArgumentUse =
+        SemanticAstCollectionFirstInvalidOwnedArgumentUse(
+            artifact, signatures, locals, initializer_types.inferred_type_names,
+            surfaces, ownership, dispositions, origins, transition_states);
+    if transferred_use.found {
+        return SemanticAstCollectionOwnershipVerdictError(
+            transferred_use.diagnostic_code,
+            SemanticError2(transferred_use.diagnostic_code, "boundary",
+                transferred_use.boundary, "type", "Array<String>"),
+            transferred_use.syntax_node_id, transferred_use.expression_node_id);
     }
     // The transition scan above proves that no use occurs after an exact
     // field restore.  Apply the terminal disposition only after earlier

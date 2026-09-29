@@ -5,9 +5,9 @@
 # run on the tool's own source, reproduces its own source-compilation exactly.
 #
 #   gen0 = C oracle-built tool      (pgy --backend=c main.pgy)
-#   gen1 = gen0(main.pgy AST) -> C  -> gcc -> gen1.exe
-#   gen2 = gen1.exe(main.pgy AST) -> C  -> gcc -> gen2.exe   (a Pergyra-built tool)
-#   gen3 = gen2.exe(main.pgy AST) -> C
+#   gen1 = gen0(--source main.pgy) -> C  -> gcc -> gen1.exe
+#   gen2 = gen1.exe(--source main.pgy) -> C  -> gcc -> gen2.exe
+#   gen3 = gen2.exe(--source main.pgy) -> C
 #   FIXPOINT: gen2 == gen3 byte-identical.
 # Full, fixpoint-only, and seed-only modes stop at their named evidence boundary.
 
@@ -271,7 +271,10 @@ run_native_stdout() {
 }
 
 emit() {  # emit <tool-exe> <out.c>
-    run_native_to_file "emit_$(basename "$2")" "$1" "$2" "$AST_REL"
+    local tool_source_rel
+    tool_source_rel="$(pgy_selfhost_path_relative_to_root "$TOOL_SOURCE")"
+    run_native_to_file "emit_$(basename "$2")" "$1" "$2" \
+        --source "$tool_source_rel"
 }
 
 compile_artifact_comparator() {
@@ -361,9 +364,6 @@ if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" != "1" ]]; then
 fi
 PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen0.exe" PGY_PARSER_BIN="$PARSER_BIN" bash "$ROOT_DIR/tests/self_hosted/parity/codegen_call_argument_graph.sh"
 PGY_BIN="$PGY" PGY_CODEGEN_BIN="$B/gen0.exe" bash "$ROOT_DIR/tests/self_hosted/parity/codegen_nominal_array_declaration.sh"
-# Repo-relative AST path: the native tool resolves it from cwd.
-AST_REL="$B_REL/main_ast.txt"
-emit_self_parser_ast "$TOOL_SOURCE" "$AST_REL"
 emit "$B/gen0.exe" "$B/gen1.c"
 if grep -q '^CODEGEN ERROR' "$B/gen1.c"; then
     echo "[self-host-bootstrap] tool rejects its own source (out of subset):" >&2

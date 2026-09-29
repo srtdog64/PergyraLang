@@ -63,7 +63,10 @@ func SemanticAstCollectionOwnershipReceiptRowsReady(
             rows.effect_kinds[row] >
                 SemanticAstCollectionOwnershipEffectDrop() ||
             rows.receiver_binding_syntax_ids[row] <= 0 ||
-            rows.source_binding_syntax_ids[row] != 0 {
+            rows.source_binding_syntax_ids[row] < 0 ||
+            (rows.source_binding_syntax_ids[row] != 0 &&
+             rows.effect_kinds[row] !=
+                SemanticAstCollectionOwnershipEffectOwnedStringPush()) {
             return false;
         }
         let prior: Int = 0;
@@ -90,7 +93,8 @@ func SemanticAstCollectionOwnershipReceiptRowsAppend(
     lane: Int,
     local_call_ordinal: Int,
     effect_kind: Int,
-    receiver_binding_syntax_id: Int
+    receiver_binding_syntax_id: Int,
+    source_binding_syntax_id: Int
 ) -> SemanticAstCollectionOwnershipReceiptRows {
     let function_ids: Array<Int> = rows.function_syntax_ids;
     let owner_ids: Array<Int> = rows.owner_node_ids;
@@ -105,7 +109,7 @@ func SemanticAstCollectionOwnershipReceiptRowsAppend(
     ArrayPush(ordinals, local_call_ordinal);
     ArrayPush(effects, effect_kind);
     ArrayPush(receiver_ids, receiver_binding_syntax_id);
-    ArrayPush(source_ids, 0);
+    ArrayPush(source_ids, source_binding_syntax_id);
     return SemanticAstCollectionOwnershipReceiptRows(
         function_ids, owner_ids, lanes, ordinals, effects,
         receiver_ids, source_ids

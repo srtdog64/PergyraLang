@@ -1,0 +1,39 @@
+// Exact producer identity for owned String elements carried by collection
+// transition receipts. Backends may not accept a type-only source claim.
+import "direct_mir_scalar_program_callable_inventory_owner.pgy";
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+
+func DirectMirCollectionOwnershipReceiptSourceReady(
+    receipt_present: Bool,
+    receipt_effect_kind: Int,
+    receipt_source_binding_syntax_id: Int,
+    ref callables: DirectMirScalarCfgProgramCallableInventory,
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    operation: Int
+) -> Bool {
+    if !receipt_present { return true; }
+    if receipt_effect_kind != 1 {
+        return receipt_source_binding_syntax_id == 0;
+    }
+    if operation < 0 || operation >= ArrayLength(storage.operations.kinds) ||
+        storage.operations.kinds[operation] !=
+            DirectMirScalarCfgOpLocalArrayStringPush() {
+        return receipt_source_binding_syntax_id == 0;
+    }
+    let graph: Int = storage.operations.expression_rows[operation];
+    if graph < 0 || graph >= ArrayLength(expressions.graph_roots) {
+        return false;
+    }
+    let root: Int = expressions.graph_roots[graph];
+    if root < 0 || root >= ArrayLength(expressions.node_kinds) ||
+        expressions.node_kinds[root] != DirectMirScalarProgramExprDirectCall() {
+        return false;
+    }
+    let callable: Int = expressions.node_callable_rows[root];
+    return callable > 0 &&
+        callable <= ArrayLength(callables.source_syntax_ids) &&
+        receipt_source_binding_syntax_id ==
+            callables.source_syntax_ids[callable - 1];
+}

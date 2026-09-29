@@ -72,20 +72,18 @@ for backend in c llvm; do
 done
 
 negative_mir_rel="$WORK_REL/duplicate-local.mir.json"
-(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
-    "$NEGATIVE_SOURCE_REL" -o "$negative_mir_rel") ||
-    fail "duplicate-local MIR production failed before move admission"
-for backend in c llvm; do
-    output_rel="$WORK_REL/duplicate-local.$backend"
-    rm -f "$ROOT_DIR/$output_rel"
-    if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \
-        "$negative_mir_rel" -o "$output_rel") \
-        >"$WORK_DIR/duplicate-local.$backend.out" \
-        2>"$WORK_DIR/duplicate-local.$backend.err"; then
-        fail "$backend accepted duplicate local retirement"
-    fi
-    [[ ! -e "$ROOT_DIR/$output_rel" ]] ||
-        fail "$backend published a duplicate-local artifact"
-done
+printf 'preserved:duplicate-local\n' >"$ROOT_DIR/$negative_mir_rel"
+if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$NEGATIVE_SOURCE_REL" -o "$negative_mir_rel") \
+    >"$WORK_DIR/duplicate-local.out" \
+    2>"$WORK_DIR/duplicate-local.err"; then
+    fail "semantic owner accepted duplicate local retirement"
+fi
+[[ "$(cat "$ROOT_DIR/$negative_mir_rel")" == \
+    "preserved:duplicate-local" ]] ||
+    fail "semantic refusal replaced the prior MIR artifact"
+grep -Fq 'move_from_released' "$WORK_DIR/duplicate-local.out" \
+    "$WORK_DIR/duplicate-local.err" ||
+    fail "semantic refusal lost the duplicate-local move diagnostic"
 
 echo "[$LABEL] two independent owner moves and cleanup retirement: PASS"

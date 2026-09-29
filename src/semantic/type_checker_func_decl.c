@@ -391,6 +391,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         func_type, ctx);
 
 
+    semantic_collection_record_owned_string_result_summary(node, ctx);
     type_function_set_body_summary(func_type,
         ctx->current_function_body_summary);
 

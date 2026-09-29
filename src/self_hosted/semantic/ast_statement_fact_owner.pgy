@@ -377,7 +377,7 @@ func SemanticAstStatementMatchPatternRowsReady(
     return binding_cursor == ArrayLength(facts.match_pattern_bindings);
 }
 func SemanticAstStatementRangeForFunction(
-    facts: SemanticAstStatementFacts,
+    ref facts: SemanticAstStatementFacts,
     function_node_id: Int
 ) -> SemanticAstLocalBindingFunctionRange {
     let count: Int = SemanticAstStatementCount(facts);

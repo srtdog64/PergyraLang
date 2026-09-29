@@ -15,7 +15,8 @@ CLANG="${PGY_SELFHOST_CLANG:-clang}"
 WORK_REL=".tmp/self_hosted/direct_mir_scalar_owned_array_string_parameter"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 SOURCE_REL="tests/self_hosted/fixtures/direct_mir_owned_array_string_parameter.pgy"
-NEGATIVE_SOURCE="tests/self_hosted/fixtures/direct_mir_owned_array_string_parameter_use_after_move.pgy"
+USE_AFTER_SOURCE="tests/self_hosted/fixtures/direct_mir_owned_array_string_parameter_use_after_move.pgy"
+BORROWED_SOURCE="tests/self_hosted/fixtures/direct_mir_borrowed_array_string_owned_parameter.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
 MIR="$ROOT_DIR/$MIR_REL"
 MUTATIONS="$ROOT_DIR/tests/self_hosted/parity/direct_mir_multi_routine_mutations.py"
@@ -105,19 +106,31 @@ for backend in c llvm; do
         fail "$backend runtime output drifted"
 done
 
-negative_mir_rel="$WORK_REL/use-after-move.source.mir.json"
-printf '%s\n' preserved:use-after-move >"$ROOT_DIR/$negative_mir_rel"
-if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
-    "$NEGATIVE_SOURCE" -o "$negative_mir_rel") \
-    >"$WORK_DIR/use-after-move.source.out" \
-    2>"$WORK_DIR/use-after-move.source.err"; then
-    fail "semantic ownership accepted source use-after-move"
-fi
-[[ "$(cat "$ROOT_DIR/$negative_mir_rel")" == preserved:use-after-move ]] ||
-    fail "semantic refusal replaced the prior MIR artifact"
-grep -Fq 'move_from_released' "$WORK_DIR/use-after-move.source.out" \
-    "$WORK_DIR/use-after-move.source.err" ||
-    fail "semantic refusal lost move_from_released"
+for negative in \
+        "use-after-move:$USE_AFTER_SOURCE:move_from_released" \
+        "borrowed-origin:$BORROWED_SOURCE:borrow_boundary_escape"; do
+    name="${negative%%:*}"; remainder="${negative#*:}"
+    source="${remainder%%:*}"; diagnostic="${remainder##*:}"
+    boundary="owned_argument_use_after_move"
+    if [[ "$name" == "borrowed-origin" ]]; then
+        boundary="owned_argument_without_owned_provenance"
+    fi
+    negative_mir_rel="$WORK_REL/$name.source.mir.json"
+    printf '%s\n' "preserved:$name" >"$ROOT_DIR/$negative_mir_rel"
+    if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+        "$source" -o "$negative_mir_rel") >"$WORK_DIR/$name.source.out" \
+        2>"$WORK_DIR/$name.source.err"; then
+        fail "semantic ownership accepted source $name"
+    fi
+    [[ "$(cat "$ROOT_DIR/$negative_mir_rel")" == "preserved:$name" ]] ||
+        fail "semantic $name refusal replaced the prior MIR artifact"
+    grep -Fq "$diagnostic" "$WORK_DIR/$name.source.out" \
+        "$WORK_DIR/$name.source.err" ||
+        fail "semantic $name refusal lost $diagnostic"
+    grep -Fq "boundary: $boundary" "$WORK_DIR/$name.source.out" \
+        "$WORK_DIR/$name.source.err" ||
+        fail "semantic $name refusal lost $boundary"
+done
 for mutation in owned-array-string-parameter-use-after-move \
         owned-array-string-parameter-carriage \
         owned-array-string-parameter-pass \

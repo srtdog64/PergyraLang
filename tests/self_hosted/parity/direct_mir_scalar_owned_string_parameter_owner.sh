@@ -75,7 +75,7 @@ for term in 'DirectMirScalarProgramExprLogicalRecordMember()' \
 done
 for term in 'target_carriage != "owner-handle"' \
     'facts.node_kinds[argument] != DirectMirScalarProgramExprDirectCall()' \
-    'routines.return_types[callable] == CompilerAbiLayoutStringTypeName()'; do
+    'DirectMirScalarProgramFunctionReturnsOwnedString('; do
     grep -Fq "$term" "$CALL_RESULT_ARGUMENT" ||
         fail "owned String call-result policy omits: $term"
 done

@@ -18,7 +18,7 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(ref plan: DirectMirScalarC
     let readonly_string: Bool = DirectMirScalarProgramVoidReadonlyStringTargetAt(plan.routines, target, ordinal);
     let owned_string_member: Bool = DirectMirScalarProgramOwnedStringMemberArgumentReady(plan.program.logical_record, facts, argument_node, graph_start, carriage, plan.routines.parameter_types[parameter_row]);
     let owned_string_call_result: Bool = DirectMirScalarProgramOwnedStringCallResultArgumentReady(
-        plan.routines, facts, argument_node, graph_start, carriage, plan.routines.parameter_types[parameter_row]);
+        plan, facts, argument_node, graph_start, carriage, plan.routines.parameter_types[parameter_row]);
     if argument_node < graph_start || argument_node >= node ||
         facts.node_types[argument_node] != plan.routines.parameter_types[parameter_row] ||
         (carriage != "value" &&

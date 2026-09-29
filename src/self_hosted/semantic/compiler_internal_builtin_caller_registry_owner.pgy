@@ -11,7 +11,7 @@ struct SemanticCompilerInternalBuiltinCallerRow {
     return_type: String;
 }
 
-func SemanticCompilerInternalBuiltinCallerCount() -> Int { return 4; }
+func SemanticCompilerInternalBuiltinCallerCount() -> Int { return 5; }
 
 func SemanticCompilerInternalBuiltinCallerRowAt(
     index: Int
@@ -21,29 +21,31 @@ func SemanticCompilerInternalBuiltinCallerRowAt(
             true, "CompilerRetireArrayStorage", "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy",
             "SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection", "AstTreeArtifact",
             "AstTreeArtifact"
-        );
-    }
+        ); }
     if index == 1 {
         return SemanticCompilerInternalBuiltinCallerRow(
             true, "CompilerRetireArrayStorage", "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy",
             "SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts", "AstTreeArtifact",
             "Void"
-        );
-    }
+        ); }
     if index == 2 {
         return SemanticCompilerInternalBuiltinCallerRow(
             true, "CompilerRetireArrayStorage", "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy",
             "SelfMirBodyTypeBundleStorageRetireAfterProgramFacts", "SemanticAstBodyTypeBundle",
             "Void"
-        );
-    }
+        ); }
     if index == 3 {
         return SemanticCompilerInternalBuiltinCallerRow(
             true, "CompilerRetireArrayStorage", "src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy",
             "SelfMirRoutineBuildStorageRetireAfterLastConsumer", "SelfMirRoutineBuild",
             "Void"
-        );
-    }
+        ); }
+    if index == 4 {
+        return SemanticCompilerInternalBuiltinCallerRow(
+            true, "CompilerRetireArrayStorage", "src/self_hosted/semantic/ast_expression_environment_storage_lifetime_owner.pgy",
+            "SemanticAstExpressionEnvironmentStorageRetire", "Array<String>",
+            "Void"
+        ); }
     return SemanticCompilerInternalBuiltinCallerRow(
         false, "", "", "", "", ""
     );

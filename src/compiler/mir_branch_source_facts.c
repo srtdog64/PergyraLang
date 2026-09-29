@@ -489,7 +489,15 @@ mir_collection_receipt_shape_ready(const MIRInstruction *inst,
     switch ((PgyCollectionOwnershipEffectKind)
                 inst->collection_ownership_effect_kind) {
     case PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH:
-        expected = strcmp(name, "ArrayPushOwnedString") == 0;
+        if (strcmp(name, "ArrayPushOwnedString") == 0) {
+            expected = inst->collection_ownership_source_binding_id == 0;
+        } else if (strcmp(name, "ArrayPush") == 0) {
+            ASTNode *value = ast_call_argument(inst->expr0, 1);
+            expected = value != NULL && value->type == AST_CALL
+                && inst->collection_ownership_source_binding_id != 0
+                && ast_call_semantic_callee_decl_id(value)
+                    == inst->collection_ownership_source_binding_id;
+        }
         break;
     case PGY_COLLECTION_EFFECT_SHALLOW_MUTATION:
         expected = strcmp(name, "ArrayPush") == 0
@@ -506,7 +514,9 @@ mir_collection_receipt_shape_ready(const MIRInstruction *inst,
     return inst->has_collection_ownership_receipt && expected
         && inst->collection_ownership_receiver_binding_id
             == binding_syntax_id
-        && inst->collection_ownership_source_binding_id == 0;
+        && (inst->collection_ownership_effect_kind
+                == PGY_COLLECTION_EFFECT_OWNED_STRING_PUSH
+            || inst->collection_ownership_source_binding_id == 0);
 }
 
 static bool
@@ -637,7 +647,6 @@ mir_validate_collection_ownership_transitions(const MIRRoutine *routine,
                 routine, inst->collection_ownership_receiver_binding_id);
             if (fact == NULL
                 || fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
-                || inst->collection_ownership_source_binding_id != 0
                 || !mir_collection_receipt_shape_ready(
                     inst, fact->binding_syntax_id)) {
                 return mir_collection_transition_error(

@@ -1,0 +1,205 @@
+// Stable proof that a source function returns a freshly owned String.
+//
+// The proof is deliberately structural and fail-closed: a return must name an
+// immutable local whose initializer is TextBuilderFinish with an
+// AllocatorResult allocator, or call another function already proven by this
+// owner.  Type alone never grants ownership.
+
+import "ast_collection_ownership_identity_owner.pgy";
+
+struct SemanticAstOwnedStringResultFacts {
+    ok: Bool;
+    function_syntax_ids: Array<Int>;
+}
+
+func SemanticAstOwnedStringResultFactsReady(
+    ref facts: SemanticAstOwnedStringResultFacts
+) -> Bool {
+    if !facts.ok { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(facts.function_syntax_ids) {
+        if facts.function_syntax_ids[row] <= 0 { return false; }
+        let prior: Int = 0;
+        while prior < row {
+            if facts.function_syntax_ids[prior] ==
+                    facts.function_syntax_ids[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstOwnedStringResultContains(
+    ref facts: SemanticAstOwnedStringResultFacts, function_syntax_id: Int
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(facts.function_syntax_ids) {
+        if facts.function_syntax_ids[row] == function_syntax_id { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstOwnedStringCallTarget(
+    ref graph: SemanticExpressionGraphFacts, root: Int,
+    ref facts: SemanticAstOwnedStringResultFacts
+) -> Int {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, root);
+    if !call.ok { return 0; }
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(
+        graph, call.call_node);
+    if !IsSome(target) || UnwrapOption(target) <= 0 ||
+        !SemanticAstOwnedStringResultContains(facts, UnwrapOption(target)) {
+        return 0;
+    }
+    return UnwrapOption(target);
+}
+
+func SemanticAstOwnedStringAllocatorBindingReady(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_syntax_id: Int, use_syntax_id: Int, binding_node: Int
+) -> Bool {
+    let binding: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, initializer_types.inferred_type_names,
+            function_syntax_id, use_syntax_id,
+            surfaces.expression_graph, binding_node);
+    let mode: Option<Int> = TypedAstArenaMode(
+        artifact.arena, binding.declaration_node_id);
+    if !binding.ok || binding.type_name != "Allocator" ||
+        locals.binding_kinds[binding.row] !=
+            SemanticAstLocalBindingKindNormal() ||
+        locals.binding_indices[binding.row] != 0 ||
+        !IsSome(mode) || UnwrapOption(mode) != 0 {
+        return false;
+    }
+    let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, binding.declaration_node_id, AstExpressionLaneValue());
+    return IsSome(root) && SemanticAstCollectionOwnershipRootCallName(
+        surfaces.expression_graph, UnwrapOption(root)) == "AllocatorResult";
+}
+
+func SemanticAstOwnedStringExpressionReady(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref facts: SemanticAstOwnedStringResultFacts,
+    function_syntax_id: Int, use_syntax_id: Int, root: Int, depth: Int
+) -> Bool {
+    if depth > 8 { return false; }
+    let target: Int = SemanticAstOwnedStringCallTarget(
+        surfaces.expression_graph, root, facts);
+    if target > 0 { return true; }
+    let binding: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, initializer_types.inferred_type_names,
+            function_syntax_id, use_syntax_id,
+            surfaces.expression_graph, root);
+    if binding.ok {
+        let mode: Option<Int> = TypedAstArenaMode(
+            artifact.arena, binding.declaration_node_id);
+        if binding.type_name != "String" ||
+            locals.binding_kinds[binding.row] !=
+                SemanticAstLocalBindingKindNormal() ||
+            locals.binding_indices[binding.row] != 0 ||
+            !IsSome(mode) || UnwrapOption(mode) != 0 {
+            return false;
+        }
+        let initializer: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            surfaces, binding.declaration_node_id, AstExpressionLaneValue());
+        return IsSome(initializer) && SemanticAstOwnedStringExpressionReady(
+            artifact, locals, initializer_types, surfaces, facts,
+            function_syntax_id, binding.declaration_node_id,
+            UnwrapOption(initializer), depth + 1);
+    }
+    if SemanticAstCollectionOwnershipRootCallName(
+            surfaces.expression_graph, root) != "TextBuilderFinish" {
+        return false;
+    }
+    let finish: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        surfaces.expression_graph, root);
+    if !finish.ok || ArrayLength(finish.argument_nodes) != 2 { return false; }
+    return SemanticAstOwnedStringAllocatorBindingReady(
+        artifact, locals, initializer_types, surfaces, function_syntax_id,
+        use_syntax_id, finish.argument_nodes[1]);
+}
+
+func SemanticAstFunctionReturnsOwnedString(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref facts: SemanticAstOwnedStringResultFacts,
+    signature_row: Int
+) -> Bool {
+    if signatures.return_types[signature_row] != "String" { return false; }
+    let function_syntax_id: Int = signatures.function_node_ids[signature_row];
+    let range: SemanticAstLocalBindingFunctionRange =
+        SemanticAstStatementRangeForFunction(statements, function_syntax_id);
+    if !range.ok { return false; }
+    let saw_return: Bool = false;
+    let row: Int = range.start;
+    while row < range.end {
+        if statements.kind_tags[row] == TypedAstKindValueReturnStmtTag() {
+            saw_return = true;
+            let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, statements.node_ids[row], AstExpressionLaneAtom());
+            if !IsSome(root) || !SemanticAstOwnedStringExpressionReady(
+                    artifact, locals, initializer_types, surfaces, facts,
+                    function_syntax_id, statements.node_ids[row],
+                    UnwrapOption(root), 0) {
+                return false;
+            }
+        }
+        row = row + 1;
+    }
+    return saw_return;
+}
+
+func SemanticAstOwnedStringResultFactsFromResolvedFacts(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts
+) -> SemanticAstOwnedStringResultFacts {
+    let ids: Array<Int> = [];
+    let facts: SemanticAstOwnedStringResultFacts =
+        SemanticAstOwnedStringResultFacts(true, ids);
+    if !signatures.ok || !locals.ok || !initializer_types.ok ||
+        !surfaces.ok || !statements.ok ||
+        ArrayLength(initializer_types.inferred_type_names) !=
+            ArrayLength(locals.node_ids) {
+        return SemanticAstOwnedStringResultFacts(false, ids);
+    }
+    let remaining: Int = ArrayLength(signatures.function_node_ids);
+    let changed: Bool = true;
+    while changed && remaining > 0 {
+        changed = false;
+        let row: Int = 0;
+        while row < ArrayLength(signatures.function_node_ids) {
+            let function_syntax_id: Int = signatures.function_node_ids[row];
+            if !SemanticAstOwnedStringResultContains(facts, function_syntax_id) &&
+                SemanticAstFunctionReturnsOwnedString(
+                    artifact, signatures, locals, initializer_types, surfaces,
+                    statements, facts, row) {
+                ArrayPush(facts.function_syntax_ids, function_syntax_id);
+                changed = true;
+            }
+            row = row + 1;
+        }
+        remaining = remaining - 1;
+    }
+    return facts;
+}

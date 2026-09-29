@@ -75,11 +75,19 @@ done
 for name in bypass_exit nested_use duplicate_return_move repeated_loop_move lazy_move \
     successor_use successor_condition missing_exit sequential_exits \
     constructor_use constructor_duplicate; do
-    (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    printf 'preserved:%s\n' "$name" >"$WORK_DIR/$name.mir.json"
+    if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
         "tests/self_hosted/fixtures/direct_mir_owned_array_string_$name.pgy" \
-        -o "$WORK_REL/$name.mir.json") >"$WORK_DIR/$name.producer.log" 2>&1 || {
-        cat "$WORK_DIR/$name.producer.log" >&2; fail "$name negative MIR production failed";
+        -o "$WORK_REL/$name.mir.json") >"$WORK_DIR/$name.producer.log" 2>&1; then
+        continue
+    fi
+    grep -Fq 'move_from_released' "$WORK_DIR/$name.producer.log" || {
+        cat "$WORK_DIR/$name.producer.log" >&2
+        fail "$name source refusal lost the move diagnostic"
     }
+    [[ "$(cat "$WORK_DIR/$name.mir.json")" == "preserved:$name" ]] ||
+        fail "$name semantic refusal replaced the prior MIR"
+    : >"$WORK_DIR/$name.semantic-rejected"
 done
 for name in missing-return-graph orphan-return-call duplicate-return-call-operand \
     missing-caller-identity missing-owned-parameter-abi missing-constructor-operand; do
@@ -91,6 +99,7 @@ for name in bypass_exit nested_use duplicate_return_move repeated_loop_move lazy
     constructor_use constructor_duplicate \
     missing-return-graph orphan-return-call duplicate-return-call-operand \
     missing-caller-identity missing-owned-parameter-abi missing-constructor-operand; do
+    [[ -e "$WORK_DIR/$name.semantic-rejected" ]] && continue
     for backend in c llvm; do
         output="$WORK_REL/$name.$backend"
         if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \

@@ -11,7 +11,7 @@ func CodegenCExpressionTextBorrowed(text: String) -> CodegenCExpressionText {
 func CodegenCExpressionTextOwned(
     inout fragments: Array<String>, text: String
 ) -> CodegenCExpressionText {
-    ArrayPush(fragments, text);
+    ArrayPushOwnedString(fragments, text);
     return CodegenCExpressionText(text, true);
 }
 func CodegenCExpressionTextCommitRoot(

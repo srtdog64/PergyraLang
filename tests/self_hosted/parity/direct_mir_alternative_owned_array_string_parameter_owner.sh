@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 # Both if/else arms retire one caller ArrayString; incomplete coverage fails.
 set -euo pipefail
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 pgy_prepend_windows_runtime_paths
-
 LABEL="self-host-direct-mir-alternative-owned-array-string-parameter"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 CC="${PGY_SELFHOST_CC:-gcc}"
@@ -82,6 +80,21 @@ for item in "one-sided:$ONE_SIDED" "later-use:$LATER_USE" \
     name="${item%%:*}"
     source="${item#*:}"
     negative_rel="$WORK_REL/$name.mir.json"
+    if [[ "$name" == duplicate-arm ]]; then
+        printf 'preserved:duplicate-arm\n' >"$ROOT_DIR/$negative_rel"
+        if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+            "$source" -o "$negative_rel") >"$WORK_DIR/$name.producer.out" \
+            2>"$WORK_DIR/$name.producer.err"; then
+            fail "semantic owner accepted duplicate-arm retirement"
+        fi
+        [[ "$(cat "$ROOT_DIR/$negative_rel")" == \
+            "preserved:duplicate-arm" ]] ||
+            fail "semantic refusal replaced the prior duplicate-arm MIR"
+        grep -Fq 'move_from_released' "$WORK_DIR/$name.producer.out" \
+            "$WORK_DIR/$name.producer.err" ||
+            fail "semantic refusal lost the duplicate-arm diagnostic"
+        continue
+    fi
     (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
         "$source" -o "$negative_rel") || fail "$name MIR production failed"
     for backend in c llvm; do

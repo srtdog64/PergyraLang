@@ -31,6 +31,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "match_pattern_invalid",
         "named_value_boundary_argument_required",
         "borrow_boundary_escape",
+        "move_from_released",
         "inout_argument_alias",
         "inout_argument_not_variable",
         "slice_storage_invalidation",
@@ -113,7 +114,8 @@ func SemanticDiagnosticCodeCount() -> Int {
 }
 
 func SemanticDiagnosticPublicLayer(code: String) -> String {
-    if code == "borrow_boundary_escape" || code == "bound_party_escape" ||
+    if code == "borrow_boundary_escape" || code == "move_from_released" ||
+        code == "bound_party_escape" ||
         code == "inout_argument_alias" || code == "inout_argument_not_variable" ||
         code == "slice_storage_invalidation" ||
         code == "zone_value_copy_requires_transfer" ||
@@ -142,6 +144,7 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     if code == "single_owner_handle_copy" { return "PGY_SEM_ANCHORED_HANDLE_COPY"; }
     if code == "single_owner_handle_owner_required" { return "PGY_SEM_BUILTIN_ARGS_INVALID"; }
     if code == "single_owner_handle_released" { return "PGY_SEM_MOVE_FROM_RELEASED"; }
+    if code == "move_from_released" { return "PGY_SEM_MOVE_FROM_RELEASED"; }
     if code == "single_owner_handle_not_consumed" { return "PGY_SEM_OWNER_NOT_CONSUMED"; }
     if code == "single_owner_handle_boundary" { return "PGY_SEM_TYPE_MISMATCH"; }
     if code == "generic_constraint_unsatisfied" { return "PGY_SEM_CLASS_CONTRACT_INVALID"; }

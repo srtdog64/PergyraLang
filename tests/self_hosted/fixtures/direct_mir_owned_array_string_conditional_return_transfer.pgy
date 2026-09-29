@@ -1,0 +1,19 @@
+func ConsumeFragments(own values: Array<String>) -> String {
+    let output: String = StringJoin(values, "");
+    ArrayDropOwnedStrings(values);
+    return output;
+}
+
+func BuildFragments(early: Bool) -> String {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Concat("", "left"));
+    if early {
+        return ConsumeFragments(values);
+    }
+    ArrayPushOwnedString(values, Concat("", "right"));
+    return ConsumeFragments(values);
+}
+
+func Main() -> Void {
+    Log(BuildFragments(false));
+}

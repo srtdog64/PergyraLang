@@ -73,20 +73,23 @@ for name in first_callee late_callee independent_return real_join; do
 done
 
 negative_rel="$WORK_REL/return-after-move.mir.json"
-(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+printf 'preserved:return-after-move\n' >"$ROOT_DIR/$negative_rel"
+if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
     tests/self_hosted/fixtures/direct_mir_owned_array_string_return_after_move.pgy \
-    -o "$negative_rel") >"$WORK_DIR/return-after-move.producer.log" 2>&1 || {
-    cat "$WORK_DIR/return-after-move.producer.log" >&2; fail "negative MIR production failed";
-}
-for mutation in return-after-move owned-array-string-parameter-carriage \
+    -o "$negative_rel") >"$WORK_DIR/return-after-move.producer.log" 2>&1; then
+    fail "semantic owner accepted return after move"
+fi
+[[ "$(cat "$ROOT_DIR/$negative_rel")" == \
+    "preserved:return-after-move" ]] ||
+    fail "semantic refusal replaced the prior return-after-move MIR"
+grep -Fq 'move_from_released' "$WORK_DIR/return-after-move.producer.log" ||
+    fail "semantic refusal lost the return-after-move diagnostic"
+for mutation in owned-array-string-parameter-carriage \
     owned-array-string-parameter-pass owned-array-string-parameter-abi-layout \
     owned-array-string-parameter-abi-missing owned-array-string-parameter-call-target; do
-    mutated_rel="$negative_rel"
-    if [[ "$mutation" != return-after-move ]]; then
-        mutated_rel="$WORK_REL/$mutation.mir.json"
-        python "$MUTATIONS" "$WORK_DIR/late_callee.mir.json" \
-            "$mutation" "$ROOT_DIR/$mutated_rel"
-    fi
+    mutated_rel="$WORK_REL/$mutation.mir.json"
+    python "$MUTATIONS" "$WORK_DIR/late_callee.mir.json" \
+        "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do
         artifact_rel="$WORK_REL/$mutation.$backend"
         if (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" \

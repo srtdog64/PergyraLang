@@ -608,6 +608,21 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- ordered caller-local retirement for direct `own Array<String>` arguments.
   Callee and formal-parameter identity come from carried SyntaxNodeIds; a
   repeated caller use fails before MIR or either backend can reinterpret it.
+- `src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy`
+  -- formal-parameter requirements derived from an admitted direct
+  `ArrayDropOwnedStrings` use. Container `own` transfers storage but does not
+  manufacture permission to release borrowed String elements.
+- `src/self_hosted/semantic/ast_expression_environment_storage_lifetime_owner.pgy`
+  -- compiler-internal storage-only retirement after environment rows have
+  been shallow-popped. It cannot deep-drop borrowed String elements.
+- `src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy` -- exact
+  callable-body proof for freshly owned String results. Return type alone is
+  insufficient; the proof follows stable local/call identities to an
+  immutable `TextBuilderFinish` value backed by `AllocatorResult`.
+- `src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy`
+  -- parser-owned Array push/set/pop transitions. A raw `ArrayPush` becomes an
+  owned-element transition only when its direct call target is present in the
+  owned String result facts, and the receipt carries that target SyntaxNodeId.
 - `src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy` --
   operand diagnostics for fully graph-owned scalar operator trees.
 - `src/self_hosted/semantic/ast_expression_graph_view_owner.pgy` -- borrowed
@@ -3972,6 +3987,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_receipt_source_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy`,
   and
@@ -3990,6 +4006,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   sealed plan for tracked locals; its legacy operation scan is restricted to
   untracked rows and is not an alternate transition authority. The obsolete
   one-literal program boundary is not an alternate cleanup authority.
+  The receipt-source owner joins an owned-element transition to the exact
+  direct-call declaration SyntaxNodeId; a return type or function name alone
+  cannot grant element ownership.
   The common seed owner is shared with nested `Array<Int>` admission and owns
   the one-seed/one-spine identity. Mixed literals retain source element order
   and derive `Array<String>` only from normalized String operands; they do not
@@ -4010,6 +4029,13 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   identity and one-use consumption. Source spelling guesses, untyped dynamic
   elements, mixed parameter ownership, and a second expression parser remain
   forbidden.
+- `src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy`
+  and
+  `src/self_hosted/compiler/direct_mir_scalar_program_owned_string_call_result_argument_owner.pgy`
+  -- target-neutral callee-body proof for a freshly owned String result and
+  its final owner-handle argument admission. The proof reaches immutable
+  `TextBuilderFinish` storage backed by `AllocatorResult`, follows only exact
+  callable identities, and never treats a String return type as ownership.
 - `src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy`,
   `direct_mir_scalar_program_owned_array_string_move_use_owner.pgy`, and
   `direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy` --

@@ -19,8 +19,20 @@ func DirectMirCollectionOwnershipExpectedOperationEffect(
         return 0;
     }
     let operation_kind: Int = storage.operations.kinds[operation];
-    if operation_kind == DirectMirScalarCfgOpLocalArrayStringPush() ||
-        operation_kind == DirectMirScalarCfgOpArrayStringSet() ||
+    if operation_kind == DirectMirScalarCfgOpLocalArrayStringPush() {
+        local_row = storage.operations.left_locals[operation];
+        let graph: Int = storage.operations.expression_rows[operation];
+        if graph >= 0 && graph < ArrayLength(expressions.graph_roots) {
+            let root: Int = expressions.graph_roots[graph];
+            if root >= 0 && root < ArrayLength(expressions.node_kinds) &&
+                expressions.node_kinds[root] ==
+                    DirectMirScalarProgramExprDirectCall() {
+                return 1;
+            }
+        }
+        return 2;
+    }
+    if operation_kind == DirectMirScalarCfgOpArrayStringSet() ||
         operation_kind == DirectMirScalarCfgOpArrayStringPop() {
         local_row = storage.operations.left_locals[operation];
         return 2;

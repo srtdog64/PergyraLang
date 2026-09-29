@@ -1,0 +1,8 @@
+func ReleaseOwnedArray(own payload: Array<String>) -> Void {
+    ArrayDropOwnedStrings(payload);
+}
+
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    ReleaseOwnedArray(values);
+}

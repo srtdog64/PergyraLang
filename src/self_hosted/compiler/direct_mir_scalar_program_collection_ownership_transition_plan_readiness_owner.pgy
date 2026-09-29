@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
+import "direct_mir_scalar_program_owned_string_call_result_argument_owner.pgy";
 import "abi_layout_row_owner.pgy";
 
 func DirectMirScalarProgramCollectionOwnershipTransitionReadyForPlan(
@@ -34,6 +35,28 @@ func DirectMirScalarProgramCollectionOwnershipTransitionReadyForPlan(
             return false;
         }
         row = row + 1;
+    }
+    let operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        if plan.operation_kinds[operation] ==
+                DirectMirScalarCfgOpLocalArrayStringPush() {
+            let expression: Int =
+                plan.program.operation_expression_rows[operation];
+            if expression < 0 || expression >= ArrayLength(
+                    plan.program.expressions.graph_roots) {
+                return false;
+            }
+            let root: Int = plan.program.expressions.graph_roots[expression];
+            if root >= 0 && root < ArrayLength(
+                    plan.program.expressions.node_kinds) &&
+                plan.program.expressions.node_kinds[root] ==
+                    DirectMirScalarProgramExprDirectCall() &&
+                !DirectMirScalarProgramFunctionReturnsOwnedString(
+                    plan, plan.program.expressions.node_callable_rows[root], 0) {
+                return false;
+            }
+        }
+        operation = operation + 1;
     }
     return true;
 }

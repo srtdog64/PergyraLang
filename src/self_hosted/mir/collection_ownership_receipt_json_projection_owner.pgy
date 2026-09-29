@@ -22,7 +22,9 @@ func SelfMirCollectionOwnershipReceiptJsonForInstruction(
     if effect_kind == 0 { return "null"; }
     let kind: String = SelfMirCollectionOwnershipReceiptKindName(effect_kind);
     if kind == "" || rows.receiver_binding_syntax_ids[instruction_index] <= 0 ||
-        rows.source_binding_syntax_ids[instruction_index] != 0 {
+        rows.source_binding_syntax_ids[instruction_index] < 0 ||
+        (rows.source_binding_syntax_ids[instruction_index] != 0 &&
+         effect_kind != 1) {
         return "";
     }
     return JsonEmitObject([

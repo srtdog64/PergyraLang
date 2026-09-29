@@ -7,6 +7,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_environment_owner.pgy"
+STORAGE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_environment_storage_lifetime_owner.pgy"
 OWNER_FIELDS="$ROOT_DIR/src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy"
 MATCH_BINDINGS="$ROOT_DIR/src/self_hosted/semantic/ast_match_binding_environment_owner.pgy"
 ITERATION_FACTS="$ROOT_DIR/src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy"
@@ -45,7 +46,7 @@ CODEGEN_FUNCTION_EMITTER="$ROOT_DIR/src/self_hosted/codegen/emission/function_em
 CODEGEN_RECEIVER_FACTS="$ROOT_DIR/src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy"
 CODEGEN_RUNTIME_HEADER="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/runtime_header_owner.pgy"
 
-for path in "$OWNER" "$OWNER_FIELDS" "$MATCH_BINDINGS" "$ITERATION_FACTS" \
+for path in "$OWNER" "$STORAGE_OWNER" "$OWNER_FIELDS" "$MATCH_BINDINGS" "$ITERATION_FACTS" \
     "$ASSIGNMENT_FACTS" "$CALL_TARGETS" "$BODY_ENV" "$BODY_TYPES" \
     "$PLACE_FACTS" "$GENERIC_FACTS" "$INITIALIZER_FACTS" \
     "$INITIALIZER_REFINEMENT" "$INITIALIZER_TABLE_BRIDGE" \
@@ -177,16 +178,24 @@ grep -Fq 'SemanticAstExpressionEnvironmentReset(names, types, modes);' <<<"$clea
     echo "[self-host-parity:semantic-environment-lifetime] last-consumer reset missing" >&2
     exit 1
 }
-grep -Fq 'ArrayDropOwnedStrings(names);' <<<"$clear_body" || {
+grep -Fq 'SemanticAstExpressionEnvironmentStorageRetire(names);' <<<"$clear_body" || {
     echo "[self-host-parity:semantic-environment-lifetime] empty names backing cleanup missing" >&2
     exit 1
 }
-grep -Fq 'ArrayDropOwnedStrings(types);' <<<"$clear_body" || {
+grep -Fq 'SemanticAstExpressionEnvironmentStorageRetire(types);' <<<"$clear_body" || {
     echo "[self-host-parity:semantic-environment-lifetime] types cleanup owner missing" >&2
     exit 1
 }
-grep -Fq 'ArrayDropOwnedStrings(modes);' <<<"$clear_body" || {
+grep -Fq 'SemanticAstExpressionEnvironmentStorageRetire(modes);' <<<"$clear_body" || {
     echo "[self-host-parity:semantic-environment-lifetime] modes cleanup owner missing" >&2
+    exit 1
+}
+if grep -Fq 'ArrayDropOwnedStrings(' <<<"$clear_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] empty environment restored a deep element drop" >&2
+    exit 1
+fi
+grep -Fq 'CompilerRetireArrayStorage(values);' "$STORAGE_OWNER" || {
+    echo "[self-host-parity:semantic-environment-lifetime] storage owner bypassed compiler retirement" >&2
     exit 1
 }
 if grep -Eq 'Array(Pop|Push)\((names|types|modes)' <<<"$clear_body"; then

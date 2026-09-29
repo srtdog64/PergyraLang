@@ -1,0 +1,54 @@
+// Formal Array<String> parameters whose callees directly deep-drop elements.
+// Container `own` transfers storage; it does not by itself prove that String
+// elements may be released.
+
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+import "ast_expression_surface_fact_owner.pgy";
+
+func SemanticAstCollectionOwnedElementParameterRequirements(
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref roots: SemanticCallSpineRoots
+) -> HashMap<String, Int> {
+    let required: HashMap<String, Int> = MapNew();
+    let last_root: Int = -1;
+    let root_slot: Int = 0;
+    while root_slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[root_slot] {
+            let root_id: Int = surfaces.expression_graph.roots[root_slot];
+            let node: Int = last_root + 1;
+            while node <= root_id {
+                let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+                    surfaces.expression_graph, node);
+                if IsSome(kind) && UnwrapOption(kind) ==
+                        AstExpressionNodeCall() {
+                    let target: Option<String> =
+                        SemanticExpressionGraphCallTargetName(
+                            surfaces.expression_graph, node);
+                    let call: SemanticCallSpineView =
+                        SemanticCallSpineViewFromGraph(
+                            surfaces.expression_graph,
+                            roots.root_nodes[node]);
+                    if IsSome(target) &&
+                        UnwrapOption(target) == "ArrayDropOwnedStrings" &&
+                        call.ok && call.call_node == node &&
+                        ArrayLength(call.argument_nodes) == 1 {
+                        let binding: SemanticExpressionBindingIdentityFact =
+                            SemanticExpressionGraphBindingIdentity(
+                                surfaces.expression_graph,
+                                call.argument_nodes[0]);
+                        if binding.ok && binding.kind ==
+                                SemanticExpressionBindingFormalParameter() &&
+                            binding.syntax_id > 0 {
+                            MapSet(required, ToString(binding.syntax_id), 1);
+                        }
+                    }
+                }
+                node = node + 1;
+            }
+            last_root = root_id;
+        }
+        root_slot = root_slot + 1;
+    }
+    return required;
+}

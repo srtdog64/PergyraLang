@@ -75,7 +75,7 @@ func EmitFunctionSet(
             else if after_function != local_cur[0] {
                 Die("generic specialization traversal diverged");
             }
-            ArrayPush(definitions, definition);
+            ArrayPushOwnedString(definitions, definition);
         }
         specialization_index = specialization_index + 1;
     }

@@ -101,6 +101,22 @@ bool semantic_collection_record_call_effect(
     PgyCollectionOwnershipEffectKind kind,
     SemanticContext *ctx);
 
+bool semantic_collection_record_call_effect_from(
+    ASTNode *call,
+    ASTNode *receiver,
+    PgyCollectionOwnershipEffectKind kind,
+    uint32_t source_syntax_id,
+    SemanticContext *ctx);
+
+bool semantic_collection_owned_string_call_result(
+    const ASTNode *expression,
+    SemanticContext *ctx,
+    uint32_t *producer_syntax_id_out);
+
+void semantic_collection_record_owned_string_result_summary(
+    ASTNode *function_decl,
+    SemanticContext *ctx);
+
 const PgyCollectionOwnershipFact *semantic_collection_ownership_fact_find(
     const SemanticContext *ctx,
     uint32_t function_syntax_id,
