@@ -13620,6 +13620,8 @@ reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" \
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCGetFn(kind_code: Int)"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCLenFn(kind_code: Int)"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCPushFn(kind_code: Int)"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCArrayCloneBlock(kind_code: Int)"
+reject_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCArrayCloneBlock(array_type: String"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeKindCode"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeKindCodeOrDie(kind_code: Int"
 require_function_text \
