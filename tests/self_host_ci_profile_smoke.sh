@@ -79,8 +79,8 @@ for required in \
     fi
 done
 
-if [[ "$(grep -Fc 'needs: classify-changes' "$WORKFLOW")" != "8" ]] ||
-    [[ "$(grep -Fc 'needs: [classify-changes, backend-compare-toolchain-linux]' "$WORKFLOW")" != "3" ]] ||
+if [[ "$(grep -Fc 'needs: classify-changes' "$WORKFLOW")" != "7" ]] ||
+    [[ "$(grep -Fc 'needs: [classify-changes, backend-compare-toolchain-linux]' "$WORKFLOW")" != "4" ]] ||
     [[ "$(grep -Fc "if: needs.classify-changes.outputs.run_full == 'true'" "$WORKFLOW")" != "10" ]]; then
     echo "[self-host-ci-profile] full-only jobs are not all gated by one change-scope owner" >&2
     exit 1
@@ -131,6 +131,29 @@ for required in \
         exit 1
     fi
 done
+sanitizers_scope="$(
+    sed -n '/^  sanitizers-linux:/,/^  tsan-linux:/p' "$WORKFLOW"
+)"
+for required in \
+    'needs: [classify-changes, backend-compare-toolchain-linux]' \
+    "if: needs.classify-changes.outputs.run_full == 'true'" \
+    'uses: actions/download-artifact@v4' \
+    'name: backend-compare-linux-toolchain' \
+    'chmod +x bin/pgy bin/pgy-self-driver' \
+    'test -s bin/pgy-self-driver.machine-layer-manifest.json' \
+    'PGY_SELF_DRIVER_BIN: ${{ github.workspace }}/bin/pgy-self-driver' \
+    'run: make LLVM_ENABLED=0 PGY_ASAN_CASES=40 test-asan' \
+    'run: make LLVM_ENABLED=0 PGY_EMITTED_SAN_CASES=40 emitted-c-sanitizer-test-smoke'; do
+    if ! grep -Fq "$required" <<<"$sanitizers_scope"; then
+        echo "[self-host-ci-profile] sanitizer shard lost exact shared toolchain admission: $required" >&2
+        exit 1
+    fi
+done
+if grep -Fq 'self-host-compiler' <<<"$sanitizers_scope"; then
+    echo "[self-host-ci-profile] sanitizer shard rebuilt the shared self-host toolchain" >&2
+    exit 1
+fi
+
 for markdown_gate in \
     'bash tests/agent_boundary_sentinel_smoke.sh' \
     'bash tests/object_action_boundary_contract_smoke.sh' \

@@ -137,12 +137,13 @@ jobs:
         run: make ci-push-linux
 
   sanitizers-linux:
-    needs: classify-changes
+    needs: [classify-changes, backend-compare-toolchain-linux]
     if: needs.classify-changes.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     # This is a separate bounded job: memory instrumentation must not lengthen
     # the already broad build-linux critical path or turn a UAF into a 60-minute
-    # timeout. The intentional C witness first proves that ASan is actually live.
+    # timeout. It consumes the exact same-run compiler pair instead of rebuilding
+    # the self-host driver, then the intentional C witness proves ASan is live.
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
@@ -159,15 +160,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc make
 
-      # pgy delegates ordinary compiles to the installed self-host driver, and
-      # bin/ is gitignored, so a fresh checkout has none and every compile
-      # reports "self-host driver is unavailable". PGY_SELF_DRIVER_BIN pins it
-      # because the sanitized compiler is built into bin-asan-*/, where the
-      # launcher-adjacent lookup would not find it.
-      - name: Build the installed self-host driver
-        run: make LLVM_ENABLED=0 self-host-compiler
+      - name: Download the exact installed compiler pair
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-compare-linux-toolchain
+          path: bin
+
+      - name: Admit the exact installed compiler pair
+        run: |
+          chmod +x bin/pgy bin/pgy-self-driver
+          test -x bin/pgy
+          test -x bin/pgy-self-driver
+          test -s bin/pgy-self-driver.machine-layer-manifest.json
 
       - name: Calibrate ASan and run the bounded compiler battery
+        # The sanitized compiler is built into bin-asan-*/, so its adjacent
+        # lookup cannot discover bin/pgy-self-driver. Pin the admitted exact
+        # same-run driver explicitly; a missing artifact has no rebuild path.
         env:
           PGY_SELF_DRIVER_BIN: ${{ github.workspace }}/bin/pgy-self-driver
         run: make LLVM_ENABLED=0 PGY_ASAN_CASES=40 test-asan
