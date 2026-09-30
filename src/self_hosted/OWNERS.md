@@ -613,9 +613,16 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   Callee and formal-parameter identity come from carried SyntaxNodeIds; a
   repeated caller use fails before MIR or either backend can reinterpret it.
 - `src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy`
-  -- formal-parameter requirements derived from an admitted direct
-  `ArrayDropOwnedStrings` use. Container `own` transfers storage but does not
-  manufacture permission to release borrowed String elements.
+  -- formal entry requirements derived from an exact builtin deep-drop and
+  propagated along admitted own-formal forwarding edges. Container `own`
+  transfers storage but does not manufacture String-element release permission.
+- `src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy`
+  -- consuming callable/formal identity from signature and carried syntax IDs.
+  It does not infer element lifetime from the parameter mode or type.
+- `src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy`
+  -- required String-element admission for local facts and forwarding formals
+  with propagated entry obligations. Missing named field or call-result proof
+  fails closed rather than bypassing the requirement.
 - `src/self_hosted/semantic/ast_expression_environment_storage_lifetime_owner.pgy`
   -- compiler-internal storage-only retirement after environment rows have
   been shallow-popped. It cannot deep-drop borrowed String elements.

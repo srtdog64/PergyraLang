@@ -28394,6 +28394,9 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy:140 \
     src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy:160 \
     src/self_hosted/mir/collection_ownership_receipt_fact_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_projection_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_json_projection_owner.pgy:100 \
@@ -28434,8 +28437,17 @@ require_text \
     "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
     'SemanticAstCollectionOwnStringArrayParameterNode('
 require_text \
-    "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
+    "src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy" \
     'SemanticExpressionGraphCallTargetSyntaxId('
+require_text \
+    "src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy" \
+    'SemanticAstCollectionOwnershipBuiltinCall('
+reject_text \
+    "src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy" \
+    'UnwrapOption(target) == "ArrayDropOwnedStrings"'
+require_text \
+    "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
+    'SemanticAstCollectionRequiredOwnedArgumentReady('
 reject_text \
     "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
     'SemanticAstFunctionParamNameAt('

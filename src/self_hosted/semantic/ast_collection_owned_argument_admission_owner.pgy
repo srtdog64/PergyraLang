@@ -1,0 +1,45 @@
+// Element admission is distinct from storage transfer. Missing local, formal,
+// or producer proof cannot become release permission at an `own` call.
+import "ast_collection_owned_parameter_identity_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+
+func SemanticAstCollectionOwnedArgumentSourceReady(
+    row: Int, ref ownerships: Array<Int>, ref dispositions: Array<Int>,
+    ref origins: Array<Int>, ref transitions: Array<Int>
+) -> Bool {
+    if row < 0 || row >= ArrayLength(ownerships) ||
+        row >= ArrayLength(dispositions) || row >= ArrayLength(origins) ||
+        row >= ArrayLength(transitions) || dispositions[row] !=
+            SemanticAstCollectionDispositionLive() { return false; }
+    if origins[row] == SemanticAstCollectionOriginEmptyLiteral() {
+        return transitions[row] == SemanticAstCollectionTransitionEmpty() ||
+            transitions[row] == SemanticAstCollectionTransitionOwned();
+    }
+    return ownerships[row] == SemanticAstCollectionOwnershipOwnedElements() ||
+        ownerships[row] == SemanticAstCollectionOwnershipMapKeysSnapshot();
+}
+
+func SemanticAstCollectionRequiredOwnedArgumentReady(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, surface: Int,
+    argument_node_id: Int, ref requirements: HashMap<String, Int>,
+    ref ownerships: Array<Int>, ref dispositions: Array<Int>,
+    ref origins: Array<Int>, ref transitions: Array<Int>
+) -> Bool {
+    let binding: SemanticAstLocalBindingIdentity =
+        SemanticAstCollectionOwnershipLocalForArgument(
+            artifact, locals, inferred_types, surfaces, surface,
+            argument_node_id);
+    if binding.ok {
+        return SemanticAstCollectionOwnedArgumentSourceReady(
+            binding.row, ownerships, dispositions, origins, transitions);
+    }
+    let formal: Int = SemanticAstCollectionOwnStringArrayFormalNode(
+        signatures, surfaces.function_node_ids[surface],
+        surfaces.expression_graph, argument_node_id);
+    // `own` alone is storage authority. A forwarding formal is admitted only
+    // when this same requirement has been propagated to its caller boundary.
+    return formal > 0 && MapHas(requirements, ToString(formal));
+}

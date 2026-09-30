@@ -1,0 +1,19 @@
+// Compile-only negative: the first forwarding retires this exact formal.
+// Never execute this program.
+func Retire(own values: Array<String>) -> Void
+{
+    ArrayDropOwnedStrings(values);
+}
+
+func Forward(own values: Array<String>) -> Void
+{
+    Retire(values);
+    Retire(values);
+}
+
+func Main() -> Void
+{
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "owned");
+    Forward(values);
+}

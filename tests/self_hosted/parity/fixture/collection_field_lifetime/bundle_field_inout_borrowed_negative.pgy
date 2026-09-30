@@ -1,0 +1,21 @@
+// Compile-only negative: inout/writeback does not prove element ownership.
+// Never execute this program.
+struct Bundle
+{
+    value: Array<String>;
+}
+
+func Consume(inout bundle: Bundle) -> Void
+{
+    let value: Array<String> = bundle.value;
+    ArrayDropOwnedStrings(value);
+    bundle.value = value;
+}
+
+func Main() -> Void
+{
+    let value: Array<String> = [];
+    ArrayPush(value, "borrowed");
+    let bundle: Bundle = Bundle(value);
+    Consume(bundle);
+}

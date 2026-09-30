@@ -1,16 +1,20 @@
-// Formal Array<String> parameters whose callees directly deep-drop elements.
+// Formal Array<String> entry obligations for reachable element deep-release.
 // Container `own` transfers storage; it does not by itself prove that String
 // elements may be released.
 
 import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_surface_fact_owner.pgy";
+import "ast_collection_owned_parameter_identity_owner.pgy";
 
 func SemanticAstCollectionOwnedElementParameterRequirements(
+    ref signatures: SemanticAstFunctionSignatureFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref roots: SemanticCallSpineRoots
 ) -> HashMap<String, Int> {
     let required: HashMap<String, Int> = MapNew();
+    let forwarding_sources: Array<Int> = [];
+    let forwarding_targets: Array<Int> = [];
     let last_root: Int = -1;
     let root_slot: Int = 0;
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
@@ -22,16 +26,14 @@ func SemanticAstCollectionOwnedElementParameterRequirements(
                     surfaces.expression_graph, node);
                 if IsSome(kind) && UnwrapOption(kind) ==
                         AstExpressionNodeCall() {
-                    let target: Option<String> =
-                        SemanticExpressionGraphCallTargetName(
-                            surfaces.expression_graph, node);
                     let call: SemanticCallSpineView =
                         SemanticCallSpineViewFromGraph(
                             surfaces.expression_graph,
                             roots.root_nodes[node]);
-                    if IsSome(target) &&
-                        UnwrapOption(target) == "ArrayDropOwnedStrings" &&
-                        call.ok && call.call_node == node &&
+                    if call.ok && call.call_node == node &&
+                        SemanticAstCollectionOwnershipBuiltinCall(
+                            surfaces.expression_graph, node,
+                            "ArrayDropOwnedStrings") &&
                         ArrayLength(call.argument_nodes) == 1 {
                         let binding: SemanticExpressionBindingIdentityFact =
                             SemanticExpressionGraphBindingIdentity(
@@ -43,12 +45,49 @@ func SemanticAstCollectionOwnedElementParameterRequirements(
                             MapSet(required, ToString(binding.syntax_id), 1);
                         }
                     }
+                    if call.ok && call.call_node == node {
+                        let argument: Int = 0;
+                        while argument < ArrayLength(call.argument_nodes) {
+                            let target: Int = SemanticAstCollectionOwnStringArrayParameterNode(
+                                signatures, surfaces.expression_graph, node,
+                                argument);
+                            if target > 0 {
+                                let source: Int = SemanticAstCollectionOwnStringArrayFormalNode(
+                                    signatures, surfaces.function_node_ids[root_slot / 3],
+                                    surfaces.expression_graph,
+                                    call.argument_nodes[argument]);
+                                if source > 0 {
+                                    ArrayPush(forwarding_sources, source);
+                                    ArrayPush(forwarding_targets, target);
+                                }
+                            }
+                            argument = argument + 1;
+                        }
+                    }
                 }
                 node = node + 1;
             }
             last_root = root_id;
         }
         root_slot = root_slot + 1;
+    }
+    // Build edges once, then propagate monotonically. At most one new source
+    // per edge can be admitted; cycles without a deep-drop seed grant nothing.
+    let remaining: Int = ArrayLength(forwarding_sources) + 1;
+    let changed: Bool = true;
+    while changed && remaining > 0 {
+        changed = false;
+        let edge: Int = 0;
+        while edge < ArrayLength(forwarding_sources) {
+            let source: String = ToString(forwarding_sources[edge]);
+            if MapHas(required, ToString(forwarding_targets[edge])) &&
+                !MapHas(required, source) {
+                MapSet(required, source, 1);
+                changed = true;
+            }
+            edge = edge + 1;
+        }
+        remaining = remaining - 1;
     }
     return required;
 }

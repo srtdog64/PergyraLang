@@ -7,6 +7,7 @@ source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 LABEL="self-host-collection-ownership"
+FOCUS="${PGY_COLLECTION_OWNERSHIP_FOCUS:-all}"
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy"
@@ -17,14 +18,20 @@ MEMBER_MOVE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_m
 MEMBER_TRANSITION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy"
 BUNDLE="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
 DIRECT_MOVE_PROBE="tests/self_hosted/parity/fixture/collection_ownership_binding_move_direct_c_probe.pgy"
+FIELD_FIXTURE_DIR="tests/self_hosted/parity/fixture/collection_field_lifetime"
 CC="${PGY_SELFHOST_CC:-gcc}"
 CLANG="${PGY_SELFHOST_CLANG:-clang}"
-WORK_REL=".tmp/self_hosted/collection_ownership_semantic_owner"
-WORK_DIR="$ROOT_DIR/$WORK_REL"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
+case "$FOCUS" in
+    all|owned-parameter|owned-parameter-self-host|aggregate-field) ;;
+    *) fail "unknown PGY_COLLECTION_OWNERSHIP_FOCUS=$FOCUS" ;;
+esac
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
+# The public launcher must consume the same selected driver, not a sibling
+# installed binary when a private acceptance pair is supplied.
+export PGY_SELF_DRIVER_BIN="$(pgy_path_for_compiler "$PGY" "$DRIVER")"
 
 grep -Fq 'SemanticAstCollectionOwnershipVerdictFromResolvedFacts(' "$OWNER" ||
     fail "semantic collection ownership owner is missing"
@@ -59,8 +66,107 @@ grep -Fq 'SemanticAstCollectionOriginCallResult()' "$STATE_OWNER" ||
         "$MEMBER_MOVE_OWNER" "$MEMBER_TRANSITION_OWNER" ||
     fail "ordinary collection ownership imported Slot semantics"
 
-rm -rf "$WORK_DIR"
-mkdir -p "$WORK_DIR"
+mkdir -p "$ROOT_DIR/.tmp/self_hosted"
+WORK_DIR="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/collection_ownership_semantic_owner.XXXXXX")"
+WORK_REL=".tmp/self_hosted/${WORK_DIR##*/}"
+echo "[$LABEL] focus=$FOCUS evidence=$WORK_REL launcher=$PGY driver=$DRIVER"
+
+# An own formal transfers storage, not necessarily its String elements. Its
+# deep-release requirement must survive source-call forwarding and exact
+# builtin identity. The production-only selector names its narrower scope;
+# strict parity continues to expose any native bootstrap disagreement.
+if [[ "$FOCUS" == owned-parameter || "$FOCUS" == owned-parameter-self-host ]]; then
+    OWN_LANES=(public)
+    [[ "$FOCUS" == owned-parameter ]] && OWN_LANES+=(native)
+    for row in own_wrapper_borrowed_negative:borrow_boundary_escape \
+            own_member_borrowed_negative:borrow_boundary_escape \
+            own_inline_borrowed_negative:named_value_boundary_argument_required \
+            own_formal_double_forward_negative:move_from_released \
+            own_formal_read_after_forward_negative:move_from_released; do
+        name="${row%%:*}"
+        diagnostic="${row#*:}"
+        source="$FIELD_FIXTURE_DIR/$name.pgy"
+        self_rel="$WORK_REL/$name.mir.json"
+        printf '%s\n' "preserved:$name:self" >"$ROOT_DIR/$self_rel"
+        if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+            "$source" -o "$self_rel") >"$WORK_DIR/$name-self.out" \
+            2>"$WORK_DIR/$name-self.err"; then
+            fail "self-host accepted $name (expected $diagnostic)"
+        fi
+        [[ "$(cat "$ROOT_DIR/$self_rel")" == "preserved:$name:self" ]] ||
+            fail "self-host refusal replaced the prior argument artifact for $name"
+        grep -Fq "$diagnostic" \
+            "$WORK_DIR/$name-self.out" "$WORK_DIR/$name-self.err" ||
+            fail "self-host lost $diagnostic for $name"
+        for backend in c llvm; do
+            for lane in "${OWN_LANES[@]}"; do
+                command=("$PGY")
+                [[ "$lane" == native ]] && command+=(--native-pipeline)
+                output_rel="$WORK_REL/$name-$lane-$backend.exe"
+                command+=("$source" "--backend=$backend" -o "$output_rel")
+                if (cd "$ROOT_DIR" && "${command[@]}") \
+                    >"$WORK_DIR/$name-$lane-$backend.out" \
+                    2>"$WORK_DIR/$name-$lane-$backend.err"; then
+                    fail "$lane $backend accepted $name (expected $diagnostic)"
+                fi
+                [[ ! -e "$ROOT_DIR/$output_rel" ]] ||
+                    fail "$lane $backend published the rejected argument for $name"
+                diagnostic_pattern="$diagnostic"
+                case "$lane:$name:$diagnostic" in
+                    native:own_member_borrowed_negative:*|native:own_inline_borrowed_negative:*)
+                        diagnostic_pattern='must use a named variable' ;;
+                    native:*:borrow_boundary_escape)
+                        diagnostic_pattern='(borrow_boundary_escape|PGY_SEM_BORROW_ESCAPE)' ;;
+                    native:*:move_from_released)
+                        diagnostic_pattern='(move_from_released|was moved|moved or released)' ;;
+                esac
+                grep -Eq "$diagnostic_pattern" \
+                    "$WORK_DIR/$name-$lane-$backend.out" \
+                    "$WORK_DIR/$name-$lane-$backend.err" ||
+                    fail "$lane $backend refusal lost $diagnostic for $name"
+            done
+        done
+    done
+    for row in shadow_owned_drop_callable_positive:compile-only \
+            own_wrapper_owned_positive:owned-wrapper-retired \
+            own_named_clone_positive:named-clone-retired; do
+        name="${row%%:*}"
+        source="$FIELD_FIXTURE_DIR/$name.pgy"
+        (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+            "$source" -o "$WORK_REL/$name.mir.json") \
+            >"$WORK_DIR/$name-self.out" 2>"$WORK_DIR/$name-self.err" ||
+            fail "self-host rejected exact own-formal evidence for $name"
+        [[ -s "$WORK_DIR/$name.mir.json" ]] ||
+            fail "self-host emitted no own-formal MIR for $name"
+        for backend in c llvm; do
+            for lane in "${OWN_LANES[@]}"; do
+                command=("$PGY")
+                [[ "$lane" == native ]] && command+=(--native-pipeline)
+                command+=("$source" "--backend=$backend" \
+                    -o "$WORK_REL/$name-$lane-$backend.exe")
+                [[ "${row#*:}" == compile-only ]] || command+=(--run)
+                (cd "$ROOT_DIR" && "${command[@]}") \
+                    >"$WORK_DIR/$name-$lane-$backend.out" \
+                    2>"$WORK_DIR/$name-$lane-$backend.err" ||
+                    fail "$lane $backend rejected exact own-formal evidence for $name"
+                [[ -s "$WORK_DIR/$name-$lane-$backend.exe" ]] ||
+                    fail "$lane $backend emitted no own-formal artifact for $name"
+                if [[ "${row#*:}" != compile-only ]]; then
+                    tr -d '\r' <"$WORK_DIR/$name-$lane-$backend.out" |
+                        sed '/^pgy:/d' >"$WORK_DIR/$name-$lane-$backend.run"
+                    [[ "$(cat "$WORK_DIR/$name-$lane-$backend.run")" == "${row#*:}" ]] ||
+                        fail "$lane $backend own-formal output drifted for $name"
+                fi
+            done
+        done
+    done
+    if [[ "$FOCUS" == owned-parameter ]]; then
+        echo "[$LABEL] focused own-formal native/self-host/public C/LLVM parity PASS (not aggregate/full closure)"
+    else
+        echo "[$LABEL] focused own-formal self-host/public C/LLVM boundary PASS (not native parity or aggregate/full closure)"
+    fi
+    exit 0
+fi
 
 NEGATIVE_CASES=(
     borrowed_string_array_deep_drop
@@ -81,9 +187,17 @@ NEGATIVE_CASES=(
     unknown_string_array_assignment_without_drop
     collection_parameter_direct_field_deep_drop
 )
+if [[ "$FOCUS" == aggregate-field ]]; then
+    NEGATIVE_CASES=(
+        bundle_field_byvalue_borrowed_negative
+        bundle_field_inout_borrowed_negative
+        callable_table_borrowed_negative
+    )
+fi
 
 for name in "${NEGATIVE_CASES[@]}"; do
     source="tests/concept_semantics/hashmap/$name.pgy"
+    [[ "$FOCUS" == aggregate-field ]] && source="$FIELD_FIXTURE_DIR/$name.pgy"
     self_rel="$WORK_REL/self-$name.mir.json"
     if (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
         "$source" -o "$self_rel") >"$WORK_DIR/self-$name.out" \
@@ -125,6 +239,44 @@ for name in "${NEGATIVE_CASES[@]}"; do
             fail "native $backend path lost explicit diagnostic for $name"
     done
 done
+
+if [[ "$FOCUS" == aggregate-field ]]; then
+    # Actual release-owner controls and the FromArtifact producer are candidates
+    # for the still-open field seam, not default CI or installed DRV-2 evidence.
+    for row in callable_table_empty_release_positive:empty-table-retired \
+            callable_table_owned_release_positive:owned-table-retired \
+            callable_table_from_artifact_release_probe:producer-table-retired; do
+        name="${row%%:*}"
+        source="$FIELD_FIXTURE_DIR/$name.pgy"
+        mir_rel="$WORK_REL/$name.mir.json"
+        (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+            "$source" -o "$mir_rel") >"$WORK_DIR/$name-self.out" \
+            2>"$WORK_DIR/$name-self.err" ||
+            fail "self-host rejected the actual callable-table lifecycle for $name"
+        [[ -s "$ROOT_DIR/$mir_rel" ]] ||
+            fail "self-host emitted no callable-table MIR for $name"
+        printf '%s\n' "${row#*:}" >"$WORK_DIR/$name.expected"
+        for backend in c llvm; do
+            for lane in public native; do
+                command=("$PGY")
+                [[ "$lane" == native ]] && command+=(--native-pipeline)
+                command+=("$source" "--backend=$backend" --run \
+                    -o "$WORK_REL/$name-$lane-$backend.exe")
+                (cd "$ROOT_DIR" && "${command[@]}") \
+                    >"$WORK_DIR/$name-$lane-$backend.out" \
+                    2>"$WORK_DIR/$name-$lane-$backend.err" ||
+                    fail "$lane $backend rejected callable-table release for $name"
+                tr -d '\r' <"$WORK_DIR/$name-$lane-$backend.out" |
+                    sed '/^pgy:/d' >"$WORK_DIR/$name-$lane-$backend.run"
+                cmp -s "$WORK_DIR/$name.expected" \
+                    "$WORK_DIR/$name-$lane-$backend.run" ||
+                    fail "$lane $backend callable-table retirement drifted for $name"
+            done
+        done
+    done
+    echo "[$LABEL] focused aggregate-field producer/release C/LLVM parity PASS (not whole-compiler/full SoT closure)"
+    exit 0
+fi
 
 UNKNOWN_SOURCE="tests/concept_semantics/hashmap/unknown_string_array_drop.pgy"
 UNKNOWN_SELF_REL="$WORK_REL/unknown-self.mir.json"
@@ -434,31 +586,69 @@ for backend in c llvm; do
         "$WORK_DIR/map-keys-retirement-broadened-$backend.err" ||
         fail "direct $backend broad-retirement refusal lost its stage"
 done
+RUNTIME_FEATURE_FLAGS=()
+case "$(uname -s 2>/dev/null || echo unknown)" in
+    MINGW*|MSYS*|CYGWIN*) ;;
+    Darwin) RUNTIME_FEATURE_FLAGS+=(-D_DARWIN_C_SOURCE -D_XOPEN_SOURCE=700) ;;
+    *) RUNTIME_FEATURE_FLAGS+=(-D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 \
+        -D_DEFAULT_SOURCE) ;;
+esac
+"$CLANG" -std=c11 -DPGY_LLVM_ENABLED "${RUNTIME_FEATURE_FLAGS[@]}" \
+    -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+    -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
+    -o "$WORK_DIR/collection-runtime.o" || fail "collection runtime object did not compile"
 for name in borrowed_string_array_shallow_copy \
-        unknown_string_array_alias_without_drop; do
+        unknown_string_array_alias_without_drop string_array_clone_independence; do
     mir_rel="$WORK_REL/$name.mir.json"
-    c_rel="$WORK_REL/$name-direct.c"
-    printf '%s\n' preserved:binding-move >"$ROOT_DIR/$c_rel"
-    (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-backend-probe.exe" \
-        "$mir_rel" c "$c_rel") >"$WORK_DIR/$name-direct.out" \
-        2>"$WORK_DIR/$name-direct.err" || {
-        cat "$WORK_DIR/$name-direct.out" "$WORK_DIR/$name-direct.err" >&2
-        fail "direct binding-move C owner rejected $name"
-    }
-    [[ "$(grep -Fc 'pgy_as_drop_storage(&pgy_local_1);' \
-            "$ROOT_DIR/$c_rel")" == 1 ]] ||
-        fail "direct binding-move C did not release the destination once for $name"
-    ! grep -Fq 'pgy_as_drop_storage(&pgy_local_0);' "$ROOT_DIR/$c_rel" ||
-        fail "direct binding-move C released the retired source for $name"
-    ! grep -Fq 'pgy_as values' "$ROOT_DIR/$c_rel" ||
-        fail "direct binding-move C fell back to reconstructed AST storage for $name"
-    "$CC" -std=c11 -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
-        "$ROOT_DIR/$c_rel" -o "$WORK_DIR/$name-direct.exe" ||
-        fail "generated direct binding-move C did not compile for $name"
-    "$WORK_DIR/$name-direct.exe" >"$WORK_DIR/$name-direct.run" ||
-        fail "generated direct binding-move C did not run for $name"
-    [[ "$(tr -d '\r\n' <"$WORK_DIR/$name-direct.run")" == 1 ]] ||
-        fail "generated direct binding-move C output drifted for $name"
+    expected=1
+    [[ "$name" == string_array_clone_independence ]] && expected=alpha
+    for backend in c llvm; do
+        output_rel="$WORK_REL/$name-direct.$backend"
+        (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-backend-probe.exe" \
+            "$mir_rel" "$backend" "$output_rel") \
+            >"$WORK_DIR/$name-direct-$backend.out" \
+            2>"$WORK_DIR/$name-direct-$backend.err" ||
+            fail "direct $backend owner rejected the admitted lifetime for $name"
+        artifact="$ROOT_DIR/$output_rel"
+        if [[ "$name" == string_array_clone_independence ]]; then
+            for local_row in 0 1; do
+                drop="pgy_as_drop_owned(&pgy_local_$local_row);"
+                [[ "$backend" == llvm ]] &&
+                    drop="call void @pgy_as_drop_owned(ptr %pgy.local.$local_row)"
+                [[ "$(grep -Fc "$drop" "$artifact")" == 1 ]] ||
+                    fail "direct $backend did not release the genuine Clone/source once"
+            done
+        else
+            destination="pgy_as_drop_storage(&pgy_local_1);"
+            source_drop="pgy_as_drop_storage(&pgy_local_0);"
+            if [[ "$backend" == llvm ]]; then
+                destination='call void @pgy_as_drop_storage(ptr %pgy.local.1)'
+                source_drop='call void @pgy_as_drop_storage(ptr %pgy.local.0)'
+            fi
+            [[ "$(grep -Fc "$destination" "$artifact")" == 1 ]] ||
+                fail "direct $backend did not release the moved destination once for $name"
+            ! grep -Fq "$source_drop" "$artifact" ||
+                fail "direct $backend released the retired move source for $name"
+            ! grep -Eq '(pgy_as_drop_owned\(&pgy_local_1|call void @pgy_as_drop_owned\(ptr %pgy.local.1)' \
+                "$artifact" || fail "direct $backend deep-dropped unproved elements for $name"
+            ! grep -Fq 'pgy_as values' "$artifact" ||
+                fail "direct $backend reconstructed AST storage for $name"
+        fi
+        executable="$WORK_DIR/$name-direct-$backend.exe"
+        if [[ "$backend" == c ]]; then
+            "$CC" -std=c11 -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+                "$artifact" -o "$executable" ||
+                fail "generated direct C did not compile for $name"
+        else
+            "$CLANG" -x ir "$artifact" -x none "$WORK_DIR/collection-runtime.o" \
+                -pthread -lm -o "$executable" ||
+                fail "generated direct LLVM did not link for $name"
+        fi
+        "$executable" >"$WORK_DIR/$name-direct-$backend.run" ||
+            fail "generated direct $backend did not run for $name"
+        [[ "$(tr -d '\r\n' <"$WORK_DIR/$name-direct-$backend.run")" == "$expected" ]] ||
+            fail "generated direct $backend output drifted for $name"
+    done
 done
 
 MAP_KEYS_MOVE_C_REL="$WORK_REL/map_keys_shallow_copy-direct.c"
@@ -505,19 +695,8 @@ MAP_KEYS_MOVE_LLVM="$ROOT_DIR/$MAP_KEYS_MOVE_LLVM_REL"
     "$MAP_KEYS_MOVE_LLVM" || fail "direct LLVM dropped the retired MapKeys source"
 [[ "$(grep -Fc 'call void @pgy_map_drop_raw_export(ptr %pgy.local.0)' \
     "$MAP_KEYS_MOVE_LLVM")" == 1 ]] || fail "direct LLVM did not drop the map once"
-RUNTIME_FEATURE_FLAGS=()
-case "$(uname -s 2>/dev/null || echo unknown)" in
-    MINGW*|MSYS*|CYGWIN*) ;;
-    Darwin) RUNTIME_FEATURE_FLAGS+=(-D_DARWIN_C_SOURCE -D_XOPEN_SOURCE=700) ;;
-    *) RUNTIME_FEATURE_FLAGS+=(-D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 \
-        -D_DEFAULT_SOURCE) ;;
-esac
-"$CLANG" -std=c11 -DPGY_LLVM_ENABLED "${RUNTIME_FEATURE_FLAGS[@]}" \
-    -I"$ROOT_DIR/src" \
-    -I"$ROOT_DIR/src/runtime" -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
-    -o "$WORK_DIR/map-keys-runtime.o" || fail "MapKeys runtime object did not compile"
 "$CLANG" -x ir "$MAP_KEYS_MOVE_LLVM" -x none \
-    "$WORK_DIR/map-keys-runtime.o" -pthread -lm \
+    "$WORK_DIR/collection-runtime.o" -pthread -lm \
     -o "$WORK_DIR/map-keys-direct-llvm.exe" || fail "generated MapKeys LLVM did not link"
 "$WORK_DIR/map-keys-direct-llvm.exe" >"$WORK_DIR/map-keys-direct-llvm.run" ||
     fail "generated MapKeys LLVM did not run"
@@ -549,44 +728,46 @@ for backend in c llvm; do
         fail "direct $backend lost the HashMap lifetime refusal identity"
 done
 
-HASHMAP_RETURN_SOURCE="tests/self_hosted/parity/fixture/direct_mir_hashmap_early_return_cleanup.pgy"
-HASHMAP_RETURN_MIR_REL="$WORK_REL/hashmap-early-return.mir.json"
-(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
-    "$HASHMAP_RETURN_SOURCE" -o "$HASHMAP_RETURN_MIR_REL") \
-    >"$WORK_DIR/hashmap-return-self.out" \
-    2>"$WORK_DIR/hashmap-return-self.err" ||
-    fail "installed self-host did not produce the HashMap return-path fixture"
-for backend in c llvm; do
-    output_rel="$WORK_REL/hashmap-early-return.$backend"
-    (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-backend-probe.exe" \
-        "$HASHMAP_RETURN_MIR_REL" "$backend" "$output_rel") \
-        >"$WORK_DIR/hashmap-return-$backend.out" \
-        2>"$WORK_DIR/hashmap-return-$backend.err" ||
-        fail "direct $backend rejected bounded HashMap return paths"
+# The first fixture executes only the early return. The second actually reaches
+# the closing brace; static cleanup counts alone do not cover that exit.
+for row in hashmap-early-return:2 hashmap-normal-exit:1; do
+    name="${row%%:*}"
+    source="tests/self_hosted/parity/fixture/direct_mir_hashmap_early_return_cleanup.pgy"
+    [[ "$name" == hashmap-normal-exit ]] &&
+        source="$FIELD_FIXTURE_DIR/hashmap_normal_exit_positive.pgy"
+    mir_rel="$WORK_REL/$name.mir.json"
+    (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+        "$source" -o "$mir_rel") >"$WORK_DIR/$name-self.out" \
+        2>"$WORK_DIR/$name-self.err" ||
+        fail "self-host did not produce the $name fixture"
+    for backend in c llvm; do
+        output_rel="$WORK_REL/$name.$backend"
+        (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-backend-probe.exe" \
+            "$mir_rel" "$backend" "$output_rel") \
+            >"$WORK_DIR/$name-$backend.out" \
+            2>"$WORK_DIR/$name-$backend.err" ||
+            fail "direct $backend rejected bounded $name cleanup"
+        drop='pgy_map_drop_int(&pgy_local_0);'
+        [[ "$backend" == llvm ]] &&
+            drop='call void @pgy_map_drop_raw_export(ptr %pgy.local.0)'
+        [[ "$(grep -Fc "$drop" "$ROOT_DIR/$output_rel")" == "${row#*:}" ]] ||
+            fail "direct $backend emitted the wrong cleanup count for $name"
+        executable="$WORK_DIR/$name-$backend.exe"
+        if [[ "$backend" == c ]]; then
+            "$CC" -std=c11 -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+                "$ROOT_DIR/$output_rel" -o "$executable" ||
+                fail "generated $name C did not compile"
+        else
+            "$CLANG" -x ir "$ROOT_DIR/$output_rel" -x none \
+                "$WORK_DIR/collection-runtime.o" -pthread -lm -o "$executable" ||
+                fail "generated $name LLVM did not link"
+        fi
+        "$executable" >"$WORK_DIR/$name-$backend.run" ||
+            fail "generated $name $backend did not run"
+        [[ "$(tr -d '\r\n' <"$WORK_DIR/$name-$backend.run")" == 1 ]] ||
+            fail "generated $name $backend output drifted"
+    done
 done
-HASHMAP_RETURN_C="$ROOT_DIR/$WORK_REL/hashmap-early-return.c"
-HASHMAP_RETURN_LLVM="$ROOT_DIR/$WORK_REL/hashmap-early-return.llvm"
-[[ "$(grep -Fc 'pgy_map_drop_int(&pgy_local_0);' \
-    "$HASHMAP_RETURN_C")" == 2 ]] ||
-    fail "direct C did not release the map on both normal exits"
-"$CC" -std=c11 -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
-    "$HASHMAP_RETURN_C" -o "$WORK_DIR/hashmap-return-c.exe" ||
-    fail "generated return-path HashMap C did not compile"
-"$WORK_DIR/hashmap-return-c.exe" >"$WORK_DIR/hashmap-return-c.run" ||
-    fail "generated return-path HashMap C did not run"
-[[ "$(tr -d '\r\n' <"$WORK_DIR/hashmap-return-c.run")" == 1 ]] ||
-    fail "generated return-path HashMap C output drifted"
-[[ "$(grep -Fc 'call void @pgy_map_drop_raw_export(ptr %pgy.local.0)' \
-    "$HASHMAP_RETURN_LLVM")" == 2 ]] ||
-    fail "direct LLVM did not release the map on both normal exits"
-"$CLANG" -x ir "$HASHMAP_RETURN_LLVM" -x none \
-    "$WORK_DIR/map-keys-runtime.o" -pthread -lm \
-    -o "$WORK_DIR/hashmap-return-llvm.exe" ||
-    fail "generated return-path HashMap LLVM did not link"
-"$WORK_DIR/hashmap-return-llvm.exe" >"$WORK_DIR/hashmap-return-llvm.run" ||
-    fail "generated return-path HashMap LLVM did not run"
-[[ "$(tr -d '\r\n' <"$WORK_DIR/hashmap-return-llvm.run")" == 1 ]] ||
-    fail "generated return-path HashMap LLVM output drifted"
 
 MOVE_NEGATIVE_CASES=(
     collection_field_use_after_move

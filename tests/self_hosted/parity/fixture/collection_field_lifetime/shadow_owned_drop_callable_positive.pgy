@@ -1,0 +1,12 @@
+// Compile/admission-only: this source callable is not the runtime deep drop.
+// Its own formal requires storage, not owned String elements.
+func ArrayDropOwnedStrings(own values: Array<String>) -> Void
+{
+    Log(ArrayLength(values));
+}
+
+func Main() -> Void
+{
+    let values: Array<String> = ["borrowed"];
+    ArrayDropOwnedStrings(values);
+}

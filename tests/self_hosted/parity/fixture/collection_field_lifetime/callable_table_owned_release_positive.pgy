@@ -1,0 +1,29 @@
+// Actual release-owner component control; owned pushes duplicate all elements.
+import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+
+func Main() -> Void
+{
+    let names: Array<String> = [];
+    let returns: Array<String> = [];
+    let params: Array<String> = [];
+    ArrayPushOwnedString(names, "OwnedCallable");
+    ArrayPushOwnedString(returns, "Void");
+    ArrayPushOwnedString(params, "");
+    let facts: SemanticAstExpressionFunctionTableFacts =
+        SemanticAstExpressionFunctionTableFacts(true, names, returns, params);
+    if !SemanticAstExpressionFunctionTableFactsReady(facts) ||
+        ArrayLength(facts.names) != 1
+    {
+        Log("owned-table-shape-invalid");
+        Exit(1);
+    }
+    SemanticAstExpressionFunctionTableFactsRelease(facts);
+    if facts.ok || SemanticAstExpressionFunctionTableFactsReady(facts) ||
+        ArrayLength(facts.names) != 0 || ArrayLength(facts.returns) != 0 ||
+        ArrayLength(facts.params) != 0
+    {
+        Log("owned-table-retirement-invalid");
+        Exit(1);
+    }
+    Log("owned-table-retired");
+}

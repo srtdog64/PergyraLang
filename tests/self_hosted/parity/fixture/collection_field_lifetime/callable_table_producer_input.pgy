@@ -1,0 +1,14 @@
+struct Candidate
+{
+    value: Int;
+}
+
+func CandidateValue(candidate: Candidate) -> Int
+{
+    return candidate.value;
+}
+
+func Main() -> Void
+{
+    Log(CandidateValue(Candidate(7)));
+}

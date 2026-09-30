@@ -1,0 +1,7 @@
+// The closing brace, rather than an explicit return, retires the map.
+func Main() -> Void
+{
+    let values: HashMap<String, Int> = MapNew();
+    MapSet(values, "owned", 1);
+    Log(MapGet(values, "owned"));
+}

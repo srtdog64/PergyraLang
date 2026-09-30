@@ -1,0 +1,18 @@
+// Compile-only nonlocal-boundary negative: a member is not a named own binding.
+// This refusal can precede element-lifetime admission; it is not field proof.
+// Never execute this program.
+struct Bundle
+{
+    values: Array<String>;
+}
+
+func Retire(own values: Array<String>) -> Void
+{
+    ArrayDropOwnedStrings(values);
+}
+
+func Main() -> Void
+{
+    let bundle: Bundle = Bundle(["borrowed"]);
+    Retire(bundle.values);
+}

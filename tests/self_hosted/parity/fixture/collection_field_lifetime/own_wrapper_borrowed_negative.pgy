@@ -1,0 +1,23 @@
+// Compile-only negative: the deep-release requirement crosses all three formals.
+// The callers precede their callees so a single order-dependent pass is unsound.
+// Never execute this program.
+func Forward(own values: Array<String>) -> Void
+{
+    Relay(values);
+}
+
+func Relay(own values: Array<String>) -> Void
+{
+    Retire(values);
+}
+
+func Retire(own values: Array<String>) -> Void
+{
+    ArrayDropOwnedStrings(values);
+}
+
+func Main() -> Void
+{
+    let values: Array<String> = ["borrowed"];
+    Forward(values);
+}

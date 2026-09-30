@@ -1,0 +1,23 @@
+// Same reverse-declaration-order forwarding as the borrowed negative.
+func Forward(own values: Array<String>) -> Void
+{
+    Relay(values);
+}
+
+func Relay(own values: Array<String>) -> Void
+{
+    Retire(values);
+}
+
+func Retire(own values: Array<String>) -> Void
+{
+    ArrayDropOwnedStrings(values);
+}
+
+func Main() -> Void
+{
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "owned");
+    Forward(values);
+    Log("owned-wrapper-retired");
+}

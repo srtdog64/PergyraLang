@@ -1,0 +1,69 @@
+// Exact callable/formal identity for consuming String-array boundaries.
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+
+func SemanticAstCollectionOwnStringArrayParameterNode(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts, call_node_id: Int,
+    argument_index: Int
+) -> Int {
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(
+        graph, call_node_id);
+    if !IsSome(target) || UnwrapOption(target) <= 0 || argument_index < 0 {
+        return 0; }
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        signatures, UnwrapOption(target));
+    if !IsSome(signature) { return 0; }
+    let signature_row: Int = UnwrapOption(signature);
+    // Consume the source-signature owner's receiver offset; never reconstruct
+    // an implicit self from spelling or the projected callable name.
+    if ArrayLength(signatures.receiver_source_param_offsets) !=
+        ArrayLength(signatures.function_node_ids) { return 0; }
+    let offset: Int = signatures.receiver_source_param_offsets[signature_row];
+    if offset < 0 || offset > 1 { return 0; }
+    let source_index: Int = argument_index + offset;
+    let parameter_count: Option<Int> = SemanticAstFunctionParamCountAt(
+        signatures, signature_row);
+    if !IsSome(parameter_count) || source_index >=
+            UnwrapOption(parameter_count) { return 0; }
+    let parameter_node: Option<Int> = SemanticAstFunctionParamNodeAt(
+        signatures, signature_row, source_index);
+    let parameter_type: Option<String> = SemanticAstFunctionParamTypeAt(
+        signatures, signature_row, source_index);
+    let parameter_mode: Option<Int> = SemanticAstFunctionParamModeAt(
+        signatures, signature_row, source_index);
+    if !IsSome(parameter_node) || !IsSome(parameter_type) ||
+        !IsSome(parameter_mode) || UnwrapOption(parameter_node) <= 0 ||
+        UnwrapOption(parameter_mode) != 2 ||
+        !SemanticAstCollectionOwnershipIsStringArray(
+            UnwrapOption(parameter_type)) { return 0; }
+    return UnwrapOption(parameter_node);
+}
+
+func SemanticAstCollectionOwnStringArrayFormalNode(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    function_node_id: Int, ref graph: SemanticExpressionGraphFacts,
+    argument_node_id: Int
+) -> Int {
+    let binding: SemanticExpressionBindingIdentityFact =
+        SemanticExpressionGraphBindingIdentity(graph, argument_node_id);
+    if !binding.ok || binding.kind !=
+            SemanticExpressionBindingFormalParameter() ||
+        binding.syntax_id <= 0 { return 0; }
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        signatures, function_node_id);
+    if !IsSome(signature) { return 0; }
+    let row: Int = UnwrapOption(signature);
+    let parameter: Int = 0;
+    while parameter < signatures.param_counts[row] {
+        let index: Int = signatures.param_starts[row] + parameter;
+        if signatures.param_node_ids[index] == binding.syntax_id &&
+            signatures.param_modes[index] == 2 &&
+            SemanticAstCollectionOwnershipIsStringArray(
+                signatures.param_types[index]) {
+            return binding.syntax_id;
+        }
+        parameter = parameter + 1;
+    }
+    return 0;
+}

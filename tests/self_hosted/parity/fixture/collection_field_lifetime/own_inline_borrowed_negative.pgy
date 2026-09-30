@@ -1,0 +1,12 @@
+// Compile-only nonlocal-boundary negative: a literal is not a named own binding.
+// This refusal can precede element-lifetime admission; it is not element proof.
+// Never execute this program.
+func Retire(own values: Array<String>) -> Void
+{
+    ArrayDropOwnedStrings(values);
+}
+
+func Main() -> Void
+{
+    Retire(["borrowed"]);
+}

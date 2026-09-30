@@ -1,0 +1,22 @@
+// Actual release-owner component control, not FromArtifact or DRV-2 evidence.
+import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+
+func Main() -> Void
+{
+    let facts: SemanticAstExpressionFunctionTableFacts =
+        SemanticAstExpressionFunctionTableFacts(true, [], [], []);
+    if !SemanticAstExpressionFunctionTableFactsReady(facts)
+    {
+        Log("empty-table-shape-invalid");
+        Exit(1);
+    }
+    SemanticAstExpressionFunctionTableFactsRelease(facts);
+    if facts.ok || SemanticAstExpressionFunctionTableFactsReady(facts) ||
+        ArrayLength(facts.names) != 0 || ArrayLength(facts.returns) != 0 ||
+        ArrayLength(facts.params) != 0
+    {
+        Log("empty-table-retirement-invalid");
+        Exit(1);
+    }
+    Log("empty-table-retired");
+}

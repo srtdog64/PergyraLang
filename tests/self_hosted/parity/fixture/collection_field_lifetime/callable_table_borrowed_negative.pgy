@@ -1,0 +1,16 @@
+// Compile-only negative: shape readiness is not element-lifetime evidence.
+// Never execute this program.
+import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+
+func Main() -> Void
+{
+    let facts: SemanticAstExpressionFunctionTableFacts =
+        SemanticAstExpressionFunctionTableFacts(
+            true, ["BorrowedCallable"], ["Void"], [""]);
+    if !SemanticAstExpressionFunctionTableFactsReady(facts)
+    {
+        Log("borrowed-table-shape-invalid");
+        Exit(1);
+    }
+    SemanticAstExpressionFunctionTableFactsRelease(facts);
+}
