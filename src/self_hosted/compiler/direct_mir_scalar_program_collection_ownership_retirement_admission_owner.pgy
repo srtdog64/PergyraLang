@@ -1,0 +1,87 @@
+// Exact evidence for receipt-free Array<String> retirement drops.
+
+import "direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy";
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "direct_mir_scalar_cfg_program_routine_partition_owner.pgy";
+import "direct_mir_scalar_cfg_op_code_owner.pgy";
+import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_array_clone_expression_kind_owner.pgy";
+import "abi_layout_row_owner.pgy";
+import "../mir_lower/routine_fact_index_schema_owner.pgy";
+
+func DirectMirCollectionOwnershipReceiptFreeRetirementReady(
+    ref index: MirRoutineFactIndex,
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    routine: Int,
+    local_row: Int,
+    binding_syntax_id: Int
+) -> Bool {
+    if DirectMirCollectionOwnershipMapKeysRetirementForBinding(
+            index, binding_syntax_id) {
+        return true;
+    }
+    if !index.collection_ownership_facts.valid ||
+        binding_syntax_id <= 0 || routine < 0 || local_row < 0 ||
+        local_row >= ArrayLength(storage.values.local_types) ||
+        storage.values.local_types[local_row] !=
+            CompilerAbiLayoutArrayStringTypeName() {
+        return false;
+    }
+    let fact_found: Bool = false;
+    let fact_row: Int = 0;
+    while fact_row < ArrayLength(
+            index.collection_ownership_facts.binding_syntax_ids) {
+        if index.collection_ownership_facts.binding_syntax_ids[fact_row] ==
+                binding_syntax_id {
+            if fact_found ||
+                index.collection_ownership_facts.origins[fact_row] != "clone" ||
+                index.collection_ownership_facts.element_ownerships[fact_row] !=
+                    "owned-elements" ||
+                index.collection_ownership_facts.dispositions[fact_row] !=
+                    "retired" ||
+                index.collection_ownership_facts.origin_syntax_ids[fact_row] !=
+                    binding_syntax_id ||
+                index.collection_ownership_facts.
+                    source_binding_syntax_ids[fact_row] != 0 {
+                return false;
+            }
+            fact_found = true;
+        }
+        fact_row = fact_row + 1;
+    }
+    if !fact_found { return false; }
+    let operation: Int = DirectMirScalarProgramRoutinePartitionStart(
+        storage.routines.operation_counts, routine
+    );
+    if operation < 0 { return false; }
+    let end: Int = operation + storage.routines.operation_counts[routine];
+    let clone_definition_found: Bool = false;
+    while operation < end {
+        let result: Int = storage.operations.result_values[operation];
+        if result >= ArrayLength(storage.values.value_local_rows) {
+            return false;
+        }
+        if result >= 0 &&
+            storage.values.value_local_rows[result] == local_row {
+            let graph: Int = storage.operations.expression_rows[operation];
+            if clone_definition_found ||
+                storage.operations.kinds[operation] !=
+                    DirectMirScalarCfgOpExpressionDefinition() ||
+                graph < 0 || graph >= ArrayLength(expressions.graph_roots) {
+                return false;
+            }
+            let root: Int = expressions.graph_roots[graph];
+            if root < 0 || root >= ArrayLength(expressions.node_kinds) ||
+                expressions.node_kinds[root] !=
+                    DirectMirScalarProgramExprArrayClone() ||
+                expressions.node_types[root] !=
+                    CompilerAbiLayoutArrayStringTypeName() {
+                return false;
+            }
+            clone_definition_found = true;
+        }
+        operation = operation + 1;
+    }
+    return clone_definition_found;
+}

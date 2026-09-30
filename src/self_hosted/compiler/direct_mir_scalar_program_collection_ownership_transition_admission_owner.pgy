@@ -6,6 +6,7 @@ import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_collection_ownership_receipt_source_owner.pgy";
 import "direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_retirement_admission_owner.pgy";
 import "../mir_lower/routine_fact_index_schema_owner.pgy";
 
 struct DirectMirCollectionOwnershipInstructionReceipt {
@@ -297,8 +298,9 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                 }
                 if expected_effect == 0 && !receipt.present { next = states[tracked]; }
                 else if expected_effect == 3 && !receipt.present &&
-                        DirectMirCollectionOwnershipMapKeysRetirementForBinding(
-                            index, bindings[tracked]) {
+                        DirectMirCollectionOwnershipReceiptFreeRetirementReady(
+                            index, storage, expressions, routine,
+                            locals[tracked], bindings[tracked]) {
                     next = DirectMirCollectionOwnershipNextState(
                         states[tracked], expected_effect);
                 } else if cfg_tracked {
