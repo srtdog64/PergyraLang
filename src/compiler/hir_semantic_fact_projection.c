@@ -406,18 +406,12 @@ hir_append_collection_ownership_fact(
                 || source_fact->element_ownership
                     != fact->element_ownership
                 || source_fact->disposition
-                    != PGY_COLLECTION_DISPOSITION_LIVE
+                    != PGY_COLLECTION_DISPOSITION_RETIRED
                 || fact->disposition
                     != PGY_COLLECTION_DISPOSITION_LIVE))
         || (fact->origin != PGY_COLLECTION_ORIGIN_BINDING
             && fact->origin != PGY_COLLECTION_ORIGIN_MEMBER_MOVE
-            && fact->source_binding_syntax_id != 0)
-        || (fact->disposition == PGY_COLLECTION_DISPOSITION_RETIRED
-            && fact->origin != PGY_COLLECTION_ORIGIN_MEMBER_MOVE
-            && fact->element_ownership
-                != PGY_STRING_ARRAY_OWNED_ELEMENTS
-            && fact->element_ownership
-                != PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)) {
+            && fact->source_binding_syntax_id != 0)) {
         if (error_message != NULL) {
             char detail[320];
             snprintf(detail, sizeof(detail),
@@ -463,6 +457,40 @@ hir_append_collection_ownership_fact(
     return true;
 }
 
+static bool
+hir_collection_retired_sources_have_destinations(const HIRRoutine *routine)
+{
+    if (routine == NULL)
+        return false;
+    for (size_t i = 0; i < routine->collection_ownership_fact_count; i++) {
+        const HIRCollectionOwnershipFact *source =
+            &routine->collection_ownership_facts[i];
+        size_t matched = 0;
+
+        if (source->disposition != PGY_COLLECTION_DISPOSITION_RETIRED
+            || source->origin == PGY_COLLECTION_ORIGIN_MEMBER_MOVE
+            || source->element_ownership == PGY_STRING_ARRAY_OWNED_ELEMENTS
+            || source->element_ownership
+                == PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT) {
+            continue;
+        }
+        for (size_t j = 0; j < routine->collection_ownership_fact_count; j++) {
+            const HIRCollectionOwnershipFact *destination =
+                &routine->collection_ownership_facts[j];
+            if (destination->origin == PGY_COLLECTION_ORIGIN_BINDING
+                && destination->source_binding_syntax_id
+                    == source->binding_syntax_id
+                && destination->element_ownership
+                    == source->element_ownership) {
+                matched++;
+            }
+        }
+        if (matched != 1)
+            return false;
+    }
+    return true;
+}
+
 bool
 hir_attach_collection_ownership_facts(
     HIRProgram *hir,
@@ -494,6 +522,15 @@ hir_attach_collection_ownership_facts(
             if (error_message != NULL && *error_message == NULL)
                 *error_message = pergyra_strdup(
                     "Invalid or unallocatable HIR collection ownership fact");
+            return false;
+        }
+    }
+    for (size_t r = 0; r < hir->routine_count; r++) {
+        if (!hir_collection_retired_sources_have_destinations(
+                &hir->routines[r])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "Retired HIR collection ownership source lacks one move destination");
             return false;
         }
     }

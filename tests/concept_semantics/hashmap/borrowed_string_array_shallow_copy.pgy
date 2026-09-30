@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    let alias: Array<String> = values;
+    Log(ArrayLength(alias));
+}

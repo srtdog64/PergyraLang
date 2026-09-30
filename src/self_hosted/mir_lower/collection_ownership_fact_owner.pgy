@@ -4,6 +4,7 @@ import "json_fact_read.pgy";
 import "program_routine_index_owner.pgy";
 import "program_instruction_expression_index_owner.pgy";
 import "expression_graph_sequence_owner.pgy";
+import "collection_ownership_binding_move_owner.pgy";
 import "../hir/ast_expression_graph_owner.pgy";
 import "../semantic/ast_type_name_canonical_owner.pgy";
 
@@ -206,6 +207,7 @@ func BuildMirCollectionOwnershipFacts(
     routine_start: Int,
     routine_end: Int,
     routine_syntax_id: String,
+    ref local_names: Array<String>,
     ref local_types: Array<String>,
     ref local_binding_syntax_ids: Array<Int>
 ) -> MirCollectionOwnershipFacts {
@@ -216,8 +218,13 @@ func BuildMirCollectionOwnershipFacts(
     let ownerships: Array<String> = [];
     let dispositions: Array<String> = [];
     let origins: Array<String> = [];
+    let binding_moves: MirCollectionOwnershipBindingMoveFacts =
+        BuildMirCollectionOwnershipBindingMoveFacts(
+            routines, routine_row, local_names,
+            local_binding_syntax_ids);
     let valid: Bool = StringLength(routine_syntax_id) > 0 &&
-        ArrayLength(local_types) == ArrayLength(local_binding_syntax_ids);
+        ArrayLength(local_types) == ArrayLength(local_binding_syntax_ids) &&
+        binding_moves.valid;
     let stage: String = "ok";
     let declared_count: String = MirObjectNumberFactAtBounds(
         json, routine_start, routine_end,
@@ -330,7 +337,10 @@ func BuildMirCollectionOwnershipFacts(
                     local_types[source_row] == "Array<String>" &&
                     source_fact_row >= 0 &&
                     ownerships[source_fact_row] == ownership &&
-                    dispositions[source_fact_row] == "live");
+                    dispositions[source_fact_row] == "retired" &&
+                    disposition == "live" &&
+                    MirCollectionOwnershipBindingMoveSourceReady(
+                        binding_moves, ToInt(binding_id), ToInt(source_id)));
             let duplicate: Bool = false;
             let prior: Int = 0;
             while numeric && prior < ArrayLength(binding_ids) {
@@ -349,10 +359,6 @@ func BuildMirCollectionOwnershipFacts(
                  ownership != "owned-elements" &&
                  ownership != "map-keys-snapshot") ||
                 (disposition != "live" && disposition != "retired") ||
-                (disposition == "retired" && origin != "member-move" &&
-                 ownership != "owned-elements" &&
-                 ownership != "map-keys-snapshot") ||
-                (origin == "binding" && disposition != "live") ||
                 !origin_consistent || duplicate {
                 valid = false;
                 stage = "collection_ownership_row";
@@ -367,6 +373,29 @@ func BuildMirCollectionOwnershipFacts(
             }
             cursor = row_bounds[1];
         }
+    }
+    let retired_row: Int = 0;
+    while valid && retired_row < ArrayLength(binding_ids) {
+        if dispositions[retired_row] == "retired" &&
+            origins[retired_row] != "member-move" &&
+            ownerships[retired_row] != "owned-elements" &&
+            ownerships[retired_row] != "map-keys-snapshot" {
+            let destination_count: Int = 0;
+            let destination: Int = 0;
+            while destination < ArrayLength(binding_ids) {
+                if origins[destination] == "binding" &&
+                    source_ids[destination] == binding_ids[retired_row] &&
+                    ownerships[destination] == ownerships[retired_row] {
+                    destination_count = destination_count + 1;
+                }
+                destination = destination + 1;
+            }
+            if destination_count != 1 {
+                valid = false;
+                stage = "collection_ownership_transfer";
+            }
+        }
+        retired_row = retired_row + 1;
     }
     if declared_count == "" ||
         ToInt(declared_count) != ArrayLength(binding_ids) {

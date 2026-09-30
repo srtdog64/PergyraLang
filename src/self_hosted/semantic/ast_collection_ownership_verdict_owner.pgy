@@ -21,6 +21,7 @@ import "ast_collection_ownership_state_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
 import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_ownership_assignment_alias_owner.pgy";
+import "ast_collection_ownership_binding_move_use_owner.pgy";
 import "ast_collection_ownership_member_transition_owner.pgy";
 import "ast_collection_ownership_argument_transfer_owner.pgy";
 import "ast_collection_ownership_statement_transition_owner.pgy";
@@ -60,6 +61,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let receipts: SemanticAstCollectionOwnershipReceiptRows =
         SemanticAstCollectionOwnershipReceiptRowsEmpty();
     let move_destinations: HashMap<String, Int> = MapNew();
+    let binding_move_points: HashMap<String, Int> = MapNew();
     let owned_string_results: SemanticAstOwnedStringResultFacts =
         SemanticAstOwnedStringResultFactsFromResolvedFacts(
             artifact, signatures, locals, initializer_types, surfaces,
@@ -167,30 +169,51 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                     locals.function_node_ids[local_row],
                     locals.node_ids[local_row],
                     surfaces.expression_graph, root_id);
-            if source.ok &&
-                (origins[source.row] ==
-                    SemanticAstCollectionOriginEmptyLiteral() ||
-                 dispositions[source.row] ==
-                    SemanticAstCollectionDispositionRetired() ||
-                 ownership[source.row] ==
-                    SemanticAstCollectionOwnershipMapKeysSnapshot() ||
-                 ownership[source.row] ==
-                    SemanticAstCollectionOwnershipOwnedElements()) {
-                return SemanticAstCollectionOwnershipVerdictError(
-                    "borrow_boundary_escape",
-                    SemanticError2("borrow_boundary_escape",
-                        "boundary", "shallow_copy",
-                        "type", "Array<String>"),
-                    locals.node_ids[local_row], root_id);
-            }
             if source.ok {
+                if dispositions[source.row] ==
+                        SemanticAstCollectionDispositionRetired() {
+                    return SemanticAstCollectionOwnershipVerdictError(
+                        "move_from_released",
+                        SemanticError2("move_from_released",
+                            "boundary", "binding_move",
+                            "type", "Array<String>"),
+                        locals.node_ids[local_row], root_id);
+                }
+                if origins[source.row] ==
+                        SemanticAstCollectionOriginEmptyLiteral() ||
+                    origins[source.row] ==
+                        SemanticAstCollectionOriginBinding() {
+                    return SemanticAstCollectionOwnershipVerdictError(
+                        "borrow_boundary_escape",
+                        SemanticError2("borrow_boundary_escape",
+                            "boundary", "untracked_binding_move",
+                            "type", "Array<String>"),
+                        locals.node_ids[local_row], root_id);
+                }
                 ownership[local_row] = ownership[source.row];
                 origins[local_row] = SemanticAstCollectionOriginBinding();
                 source_binding_syntax_ids[local_row] =
                     locals.node_ids[source.row];
+                dispositions[source.row] =
+                    SemanticAstCollectionDispositionRetired();
+                MapSet(binding_move_points,
+                    ToString(locals.node_ids[source.row]),
+                    locals.node_ids[local_row]);
             }
         }
         local_row = local_row + 1;
+    }
+    let binding_move_use: SemanticAstCollectionBindingMoveUse =
+        SemanticAstCollectionFirstInvalidBindingMoveUse(
+            artifact, locals, initializer_types.inferred_type_names,
+            surfaces, binding_move_points);
+    if binding_move_use.found {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "move_from_released",
+            SemanticError2("move_from_released", "boundary",
+                "binding_use_after_move", "type", "Array<String>"),
+            binding_move_use.syntax_node_id,
+            binding_move_use.expression_node_id);
     }
     let moved_use: SemanticAstCollectionMemberMoveUse =
         SemanticAstCollectionFirstInvalidMemberMoveUse(
@@ -216,15 +239,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                     "collection_ownership_assignment_join"),
                 assignments.node_ids[assignment_row], -1);
         }
-        if alias.candidate &&
-            (origins[alias.source_row] ==
-                SemanticAstCollectionOriginEmptyLiteral() ||
-             dispositions[alias.source_row] ==
-                SemanticAstCollectionDispositionRetired() ||
-             ownership[alias.source_row] ==
-                SemanticAstCollectionOwnershipMapKeysSnapshot() ||
-             ownership[alias.source_row] ==
-                SemanticAstCollectionOwnershipOwnedElements()) {
+        if alias.candidate {
             return SemanticAstCollectionOwnershipVerdictError(
                 "borrow_boundary_escape",
                 SemanticError2("borrow_boundary_escape",

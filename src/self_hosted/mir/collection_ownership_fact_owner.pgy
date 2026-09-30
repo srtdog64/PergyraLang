@@ -136,6 +136,27 @@ func SelfMirCollectionOwnershipInventoryRow(
     return found;
 }
 
+func SelfMirCollectionOwnershipRetiredSourceHasDestination(
+    facts: SemanticAstCollectionOwnershipVerdict,
+    function_syntax_id: Int,
+    source_binding_syntax_id: Int,
+    element_ownership: Int
+) -> Bool {
+    let matched: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(facts.binding_syntax_ids) {
+        if facts.function_syntax_ids[row] == function_syntax_id &&
+            facts.origins[row] == SemanticAstCollectionOriginBinding() &&
+            facts.source_binding_syntax_ids[row] ==
+                source_binding_syntax_id &&
+            facts.element_ownerships[row] == element_ownership {
+            matched = matched + 1;
+        }
+        row = row + 1;
+    }
+    return matched == 1;
+}
+
 func SelfMirCollectionOwnershipBindingType(
     ref local_types: Array<String>,
     ref local_binding_syntax_ids: Array<Int>,
@@ -296,7 +317,7 @@ func SelfMirCollectionOwnershipFactRowsAppendRoutine(
                     source_fact_row >= 0 &&
                     ownerships[source_fact_row] == ownership &&
                     dispositions[source_fact_row] ==
-                        SemanticAstCollectionDispositionLive());
+                        SemanticAstCollectionDispositionRetired());
             if binding_id <= 0 || facts.origin_syntax_ids[row] <= 0 ||
                 inventory_row < 0 ||
                 inventory_types[inventory_row] != "Array<String>" ||
@@ -308,9 +329,9 @@ func SelfMirCollectionOwnershipFactRowsAppendRoutine(
                  origin != SemanticAstCollectionOriginMemberMove() &&
                  ownership != SemanticAstCollectionOwnershipOwnedElements() &&
                  ownership !=
-                    SemanticAstCollectionOwnershipMapKeysSnapshot()) ||
-                (origin == SemanticAstCollectionOriginBinding() &&
-                 disposition != SemanticAstCollectionDispositionLive()) ||
+                    SemanticAstCollectionOwnershipMapKeysSnapshot() &&
+                 !SelfMirCollectionOwnershipRetiredSourceHasDestination(
+                    facts, function_syntax_id, binding_id, ownership)) ||
                 !origin_consistent || duplicate {
                 ArrayPush(counts, -1);
                 return SelfMirCollectionOwnershipFactRows(

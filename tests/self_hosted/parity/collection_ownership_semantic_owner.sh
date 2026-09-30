@@ -61,6 +61,7 @@ mkdir -p "$WORK_DIR"
 
 NEGATIVE_CASES=(
     borrowed_string_array_deep_drop
+    borrowed_string_array_shallow_assignment
     empty_shallow_string_push_drop
     empty_mixed_string_push_without_drop
     empty_string_array_shallow_copy
@@ -70,11 +71,11 @@ NEGATIVE_CASES=(
     map_keys_shallow_push
     map_keys_shallow_set
     map_keys_shallow_pop
-    map_keys_shallow_copy
     map_keys_double_drop
     collection_field_owned_push
     collection_field_deep_drop
     unknown_string_array_alias_drop
+    unknown_string_array_assignment_without_drop
     collection_parameter_direct_field_deep_drop
 )
 
@@ -330,6 +331,9 @@ MOVE_CLONE_CASES=(
     string_array_clone_independence
     collection_field_move_valid
     collection_field_restore_valid
+    borrowed_string_array_shallow_copy
+    unknown_string_array_alias_without_drop
+    map_keys_shallow_copy
 )
 for name in "${MOVE_CLONE_CASES[@]}"; do
     source="tests/concept_semantics/hashmap/$name.pgy"
@@ -347,6 +351,13 @@ for name in "${MOVE_CLONE_CASES[@]}"; do
             "$name" == collection_field_restore_valid ]]; then
         grep -Fq '"origin":"member-move"' "$ROOT_DIR/$mir_rel" ||
             fail "aggregate member-move origin was not carried into MIR"
+    elif [[ "$name" == borrowed_string_array_shallow_copy ||
+            "$name" == unknown_string_array_alias_without_drop ||
+            "$name" == map_keys_shallow_copy ]]; then
+        grep -Fq '"origin":"binding"' "$ROOT_DIR/$mir_rel" ||
+            fail "local declaration move origin was not carried into MIR"
+        grep -Fq '"disposition":"retired"' "$ROOT_DIR/$mir_rel" ||
+            fail "local declaration move did not retire its source"
     fi
 
     expected="$WORK_DIR/$name.expected"
@@ -354,6 +365,10 @@ for name in "${MOVE_CLONE_CASES[@]}"; do
         printf '1\n99\n' >"$expected"
     elif [[ "$name" == string_array_clone_independence ]]; then
         printf 'alpha\n' >"$expected"
+    elif [[ "$name" == borrowed_string_array_shallow_copy ||
+            "$name" == unknown_string_array_alias_without_drop ||
+            "$name" == map_keys_shallow_copy ]]; then
+        printf '1\n' >"$expected"
     else
         printf 'moved\n' >"$expected"
     fi
@@ -378,6 +393,7 @@ done
 MOVE_NEGATIVE_CASES=(
     collection_field_use_after_move
     collection_field_restored_local_use
+    borrowed_string_array_move_use_after_move
 )
 for name in "${MOVE_NEGATIVE_CASES[@]}"; do
     source="tests/concept_semantics/hashmap/$name.pgy"

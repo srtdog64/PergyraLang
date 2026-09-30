@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    let moved: Array<String> = values;
+    Log(ArrayLength(moved));
+    Log(ArrayLength(values));
+}

@@ -506,9 +506,9 @@ semantic_collection_ownership_initialize_binding(
     SemanticContext *ctx)
 {
     PgyCollectionOwnershipFact fact;
-    const PgyCollectionOwnershipFact *source_fact = NULL;
+    PgyCollectionOwnershipFact *source_fact = NULL;
     Symbol *source = NULL;
-    bool reject_shallow_owned_copy = false;
+    bool move_source_binding = false;
 
     if (binding == NULL || !is_array_string(binding_type))
         return true;
@@ -562,19 +562,37 @@ semantic_collection_ownership_initialize_binding(
             ast_identifier_binding_syntax_id(initializer);
         if (fact.source_binding_syntax_id == 0 && source != NULL)
             fact.source_binding_syntax_id = source->decl_syntax_id;
-        source_fact = semantic_collection_ownership_fact_find(
+        source_fact = collection_ownership_fact_find_mutable(
             ctx, fact.function_syntax_id, fact.source_binding_syntax_id);
         if (source_fact != NULL) {
+            if (source_fact->disposition !=
+                    PGY_COLLECTION_DISPOSITION_LIVE) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_MOVE_FROM_RELEASED,
+                    PGY_CAUSE_MOVE_FROM_RELEASED,
+                    PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE,
+                    initializer,
+                    "Array<String> binding '%s' was already moved or released",
+                    source != NULL && source->name != NULL
+                        ? source->name : "<source>");
+                return true;
+            }
+            if (source_fact->origin ==
+                    PGY_COLLECTION_ORIGIN_EMPTY_LITERAL ||
+                source_fact->origin == PGY_COLLECTION_ORIGIN_BINDING) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_BORROW_ESCAPE,
+                    PGY_CAUSE_BORROW_ESCAPE,
+                    PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                    initializer,
+                    "Array<String> binding '%s' cannot move until its current transition is carried to the destination",
+                    source != NULL && source->name != NULL
+                        ? source->name : "<source>");
+                return true;
+            }
             fact.element_ownership = source_fact->element_ownership;
             fact.origin = PGY_COLLECTION_ORIGIN_BINDING;
-            reject_shallow_owned_copy =
-                source_fact->disposition == PGY_COLLECTION_DISPOSITION_RETIRED
-                || source_fact->origin ==
-                    PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
-                || source_fact->element_ownership ==
-                    PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
-                || source_fact->element_ownership ==
-                    PGY_STRING_ARRAY_OWNED_ELEMENTS;
+            move_source_binding = true;
         } else {
             /* Parameter/return carriage is a separate ownership rung.  Until
              * it owns a stable source row, an unresolved identifier is an
@@ -585,23 +603,14 @@ semantic_collection_ownership_initialize_binding(
 
     if (!collection_ownership_fact_append(ctx, &fact))
         return false;
-    if (!reject_shallow_owned_copy)
-        return true;
-
-    semantic_error_with_hints(ctx,
-        PGY_CODE_SEM_BORROW_ESCAPE,
-        PGY_CAUSE_BORROW_ESCAPE,
-        PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-        initializer,
-        "Tracked Array<String> binding '%s' cannot be shallow-copied into '%s'.\n"
-        "Reason:\n"
-        "- both descriptors would share one element-storage lifetime\n"
-        "- a later ownership-producing mutation or release could leave an alias dangling\n"
-        "Fix:\n"
-        "- keep one binding as the owner\n"
-        "- or materialize a separately owned snapshot",
-        source != NULL && source->name != NULL ? source->name : "<source>",
-        binding->name != NULL ? binding->name : "<binding>");
+    if (move_source_binding) {
+        source_fact = collection_ownership_fact_find_mutable(
+            ctx, fact.function_syntax_id, fact.source_binding_syntax_id);
+        if (source_fact == NULL || source == NULL)
+            return false;
+        source_fact->disposition = PGY_COLLECTION_DISPOSITION_RETIRED;
+        source->is_consumed = true;
+    }
     return true;
 }
 
@@ -859,14 +868,7 @@ semantic_collection_reject_unsafe_string_array_assignment(
         return false;
     source_fact = semantic_collection_ownership_fact_find(
         ctx, current_function_syntax_id(ctx), source_id);
-    if (source_fact == NULL
-        || (source_fact->origin != PGY_COLLECTION_ORIGIN_EMPTY_LITERAL
-            && source_fact->disposition !=
-                PGY_COLLECTION_DISPOSITION_RETIRED
-            && source_fact->element_ownership !=
-                PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
-            && source_fact->element_ownership !=
-                PGY_STRING_ARRAY_OWNED_ELEMENTS)) {
+    if (source_fact == NULL) {
         return false;
     }
     semantic_error_with_hints(ctx,

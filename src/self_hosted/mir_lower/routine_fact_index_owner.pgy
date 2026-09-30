@@ -265,7 +265,8 @@ func BuildMirRoutineFactIndex(ref routines: MirProgramRoutineIndex, routine_row:
         BuildMirCollectionOwnershipFacts(
             routines, routine_row,
             json, routine_start, routine_end, source_syntax_id,
-            source_local_types, source_local_binding_syntax_ids
+            source_local_names, source_local_types,
+            source_local_binding_syntax_ids
         );
     if !source_local_binding_ids_valid {
         valid = false;

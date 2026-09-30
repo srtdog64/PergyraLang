@@ -596,6 +596,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- exact local-to-local `Array<String>` assignment identity. It reports the
   source and target binding rows; the verdict owner remains the sole state
   policy and rejects a tracked shallow alias.
+- `src/self_hosted/semantic/ast_collection_ownership_binding_move_use_owner.pgy`
+  -- ordered use-after-move rejection for direct local `Array<String>` binding
+  moves. It consumes stable declaration identity and never infers a move from
+  a variable name or projected type alone.
 - `src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy` --
   stable root-binding plus declared-field identity for direct
   `Array<String>` extraction. It does not model ordinary values as Slots or
@@ -1783,6 +1787,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   fail-closed admission of semantic-owned `Array<String>` element lifetime rows
   against the routine-local binding inventory; malformed, missing, duplicate,
   or inconsistent provenance cannot fall back to type or name inference.
+- `src/self_hosted/mir_lower/collection_ownership_binding_move_owner.pgy` --
+  exact direct-local move evidence joining destination declaration identity to
+  one earlier source SSA value and one admitted leaf graph; type spelling and
+  ownership-row claims cannot manufacture this relation.
 - `src/self_hosted/mir_lower/resource_flow_fact_owner.pgy` -- native
   ResourceFlowUniverse identity row parsing and count validation.
 - `src/self_hosted/mir_lower/resource_runtime_abi_fact_owner.pgy` -- carried

@@ -190,8 +190,10 @@ mir_copy_collection_ownership_facts(MIRRoutine *routine,
         routine->collection_ownership_facts[
             routine->collection_ownership_fact_count++] = *source;
     }
-    if (!mir_validate_collection_ownership_facts(routine, error_message))
-        goto fail;
+    /* HIR already sealed the carried rows.  Exact binding-move evidence uses
+     * MIR def/use identity and therefore cannot be checked until instruction
+     * population and SSA rename finish.  mir_validate() owns that final
+     * fail-closed check before any artifact is emitted. */
     return true;
 
 fail:
@@ -273,6 +275,86 @@ mir_collection_member_source_matches(const MIRRoutine *routine,
     return false;
 }
 
+static bool
+mir_collection_binding_move_source_value_matches(
+    const MIRRoutine *routine,
+    const MIRInstruction *destination,
+    uint32_t source_binding_syntax_id)
+{
+    if (routine == NULL || destination == NULL
+        || destination->use_count != 1 || destination->uses == NULL
+        || destination->uses[0] == NULL)
+        return false;
+    for (size_t b = 0; b < routine->block_count; b++) {
+        const MIRBasicBlock *block = &routine->blocks[b];
+        for (size_t i = 0; i < block->instruction_count; i++) {
+            const MIRInstruction *candidate = &block->instructions[i];
+            if (candidate == destination)
+                return false;
+            if (candidate->binding_syntax_id == source_binding_syntax_id
+                && candidate->result_name != NULL
+                && strcmp(candidate->result_name,
+                          destination->uses[0]) == 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool
+mir_collection_binding_move_matches(const MIRRoutine *routine,
+                                    uint32_t destination_binding_syntax_id,
+                                    uint32_t source_binding_syntax_id)
+{
+    size_t matched = 0;
+
+    if (routine == NULL || destination_binding_syntax_id == 0
+        || source_binding_syntax_id == 0
+        || destination_binding_syntax_id == source_binding_syntax_id)
+        return false;
+    for (size_t b = 0; b < routine->block_count; b++) {
+        const MIRBasicBlock *block = &routine->blocks[b];
+        for (size_t i = 0; i < block->instruction_count; i++) {
+            const MIRInstruction *instruction = &block->instructions[i];
+            if (instruction->binding_syntax_id
+                    != destination_binding_syntax_id)
+                continue;
+            if (instruction->kind != MIR_INST_DEF
+                || instruction->source_node_type != AST_LET_DECL
+                || instruction->expr0 == NULL
+                || instruction->expr0->type != AST_IDENTIFIER
+                || !mir_collection_binding_move_source_value_matches(
+                    routine, instruction, source_binding_syntax_id)) {
+                return false;
+            }
+            matched++;
+        }
+    }
+    return matched == 1;
+}
+
+static bool
+mir_collection_retired_source_has_destination(
+    const MIRRoutine *routine,
+    const MIRCollectionOwnershipFact *source)
+{
+    size_t matched = 0;
+
+    if (routine == NULL || source == NULL)
+        return false;
+    for (size_t i = 0; i < routine->collection_ownership_fact_count; i++) {
+        const MIRCollectionOwnershipFact *candidate =
+            &routine->collection_ownership_facts[i];
+        if (candidate->origin == PGY_COLLECTION_ORIGIN_BINDING
+            && candidate->source_binding_syntax_id
+                == source->binding_syntax_id
+            && candidate->element_ownership == source->element_ownership)
+            matched++;
+    }
+    return matched == 1;
+}
+
 bool
 mir_validate_collection_ownership_facts(const MIRRoutine *routine,
                                         char **error_message)
@@ -309,7 +391,9 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
                 && fact->element_ownership
                     != PGY_STRING_ARRAY_OWNED_ELEMENTS
                 && fact->element_ownership
-                    != PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT)
+                    != PGY_STRING_ARRAY_MAP_KEYS_SNAPSHOT
+                && !mir_collection_retired_source_has_destination(
+                    routine, fact))
             || (unsigned)fact->origin
                 > (unsigned)PGY_COLLECTION_ORIGIN_CLONE) {
             goto invalid;
@@ -331,15 +415,13 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
                 origin_consistent =
                     (fact->element_ownership
                          == PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN)
-                    && fact->source_binding_syntax_id == 0
-                    && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE;
+                    && fact->source_binding_syntax_id == 0;
                 break;
             case PGY_COLLECTION_ORIGIN_BORROWED_LITERAL:
                 origin_consistent =
                     fact->element_ownership
                         == PGY_STRING_ARRAY_BORROWED_ELEMENTS
-                    && fact->source_binding_syntax_id == 0
-                    && fact->disposition == PGY_COLLECTION_DISPOSITION_LIVE;
+                    && fact->source_binding_syntax_id == 0;
                 break;
             case PGY_COLLECTION_ORIGIN_MAP_KEYS:
                 origin_consistent =
@@ -357,9 +439,12 @@ mir_validate_collection_ownership_facts(const MIRRoutine *routine,
                     && source_fact->element_ownership
                         == fact->element_ownership
                     && source_fact->disposition
-                        == PGY_COLLECTION_DISPOSITION_LIVE
+                        == PGY_COLLECTION_DISPOSITION_RETIRED
                     && fact->disposition
-                        == PGY_COLLECTION_DISPOSITION_LIVE;
+                        == PGY_COLLECTION_DISPOSITION_LIVE
+                    && mir_collection_binding_move_matches(
+                        routine, fact->binding_syntax_id,
+                        fact->source_binding_syntax_id);
                 break;
             case PGY_COLLECTION_ORIGIN_EMPTY_LITERAL:
                 origin_consistent =
