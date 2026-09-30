@@ -146,6 +146,14 @@ for required in \
         exit 1
     fi
 done
+if ! grep -Fq \
+        'sudo apt-get install -y gcc make llvm-dev llvm libomp-dev' \
+        <<<"$build_linux_self_host_scope" ||
+    grep -Eq 'sudo apt-get install -y .*([[:space:]])coq([[:space:]]|$)' \
+        <<<"$build_linux_self_host_scope"; then
+    echo "[self-host-ci-profile] Linux self-host contract shard dependency surface drifted" >&2
+    exit 1
+fi
 sanitizers_scope="$(
     sed -n '/^  sanitizers-linux:/,/^  tsan-linux:/p' "$WORKFLOW"
 )"

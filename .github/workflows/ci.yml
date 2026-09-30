@@ -111,11 +111,14 @@ jobs:
 
       - name: Install dependencies
         timeout-minutes: 10
+        # This shard runs compiler/self-host contracts only. Coq remains owned
+        # by formal-proofs-rocq9 and the core Linux shard; installing it here
+        # pulls an unused OCaml/Coq toolchain into the bounded feedback path.
         run: |
           printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
             | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
           sudo apt-get update
-          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev coq
+          sudo apt-get install -y gcc make llvm-dev llvm libomp-dev
 
       - name: Download the exact installed compiler pair
         uses: actions/download-artifact@v4
