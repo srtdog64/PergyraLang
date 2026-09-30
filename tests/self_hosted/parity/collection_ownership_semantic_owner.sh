@@ -18,6 +18,7 @@ MEMBER_TRANSITION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_owner
 BUNDLE="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
 DIRECT_MOVE_PROBE="tests/self_hosted/parity/fixture/collection_ownership_binding_move_direct_c_probe.pgy"
 CC="${PGY_SELFHOST_CC:-gcc}"
+CLANG="${PGY_SELFHOST_CLANG:-clang}"
 WORK_REL=".tmp/self_hosted/collection_ownership_semantic_owner"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 
@@ -393,21 +394,20 @@ for name in "${MOVE_CLONE_CASES[@]}"; do
 done
 
 # A MIR binding move is owned by the direct plan. The source local is retired,
-# the destination alone releases borrowed/unknown storage, and an unsupported
-# MapKeys expression must fail before opening the requested artifact.
+# and the destination alone releases borrowed, unknown, or MapKeys storage.
 (cd "$ROOT_DIR" && "$PGY" "$DIRECT_MOVE_PROBE" --native-pipeline \
-    --backend=c -o "$WORK_REL/binding-move-direct-c-probe.exe") \
-    >"$WORK_DIR/binding-move-direct-c-probe.compile" 2>&1 || {
-    tail -c 65536 "$WORK_DIR/binding-move-direct-c-probe.compile" >&2
-    fail "native pipeline could not build the direct binding-move C probe"
+    --backend=c -o "$WORK_REL/binding-move-direct-backend-probe.exe") \
+    >"$WORK_DIR/binding-move-direct-backend-probe.compile" 2>&1 || {
+    tail -c 65536 "$WORK_DIR/binding-move-direct-backend-probe.compile" >&2
+    fail "native pipeline could not build the direct binding-move backend probe"
 }
 for name in borrowed_string_array_shallow_copy \
         unknown_string_array_alias_without_drop; do
     mir_rel="$WORK_REL/$name.mir.json"
     c_rel="$WORK_REL/$name-direct.c"
     printf '%s\n' preserved:binding-move >"$ROOT_DIR/$c_rel"
-    (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-c-probe.exe" \
-        "$mir_rel" "$c_rel") >"$WORK_DIR/$name-direct.out" \
+    (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-backend-probe.exe" \
+        "$mir_rel" c "$c_rel") >"$WORK_DIR/$name-direct.out" \
         2>"$WORK_DIR/$name-direct.err" || {
         cat "$WORK_DIR/$name-direct.out" "$WORK_DIR/$name-direct.err" >&2
         fail "direct binding-move C owner rejected $name"
@@ -429,17 +429,123 @@ for name in borrowed_string_array_shallow_copy \
 done
 
 MAP_KEYS_MOVE_C_REL="$WORK_REL/map_keys_shallow_copy-direct.c"
-printf '%s\n' preserved:map-keys >"$ROOT_DIR/$MAP_KEYS_MOVE_C_REL"
-if (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-c-probe.exe" \
-    "$WORK_REL/map_keys_shallow_copy.mir.json" "$MAP_KEYS_MOVE_C_REL") \
-    >"$WORK_DIR/map-keys-direct.out" 2>"$WORK_DIR/map-keys-direct.err"; then
-    fail "direct binding-move C owner silently admitted unsupported MapKeys expression"
-fi
-[[ "$(cat "$ROOT_DIR/$MAP_KEYS_MOVE_C_REL")" == preserved:map-keys ]] ||
-    fail "failed MapKeys direct admission replaced the prior artifact"
-grep -Fq 'stage=admitted-type' \
-    "$WORK_DIR/map-keys-direct.out" "$WORK_DIR/map-keys-direct.err" ||
-    fail "failed MapKeys direct admission lost its explicit stage"
+MAP_KEYS_MOVE_LLVM_REL="$WORK_REL/map_keys_shallow_copy-direct.ll"
+for backend in c llvm; do
+    output_rel="$MAP_KEYS_MOVE_C_REL"
+    [[ "$backend" == llvm ]] && output_rel="$MAP_KEYS_MOVE_LLVM_REL"
+    (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-backend-probe.exe" \
+        "$WORK_REL/map_keys_shallow_copy.mir.json" "$backend" "$output_rel") \
+        >"$WORK_DIR/map-keys-direct-$backend.out" \
+        2>"$WORK_DIR/map-keys-direct-$backend.err" || {
+        cat "$WORK_DIR/map-keys-direct-$backend.out" \
+            "$WORK_DIR/map-keys-direct-$backend.err" >&2
+        fail "direct binding-move $backend owner rejected MapKeys"
+    }
+done
+MAP_KEYS_MOVE_C="$ROOT_DIR/$MAP_KEYS_MOVE_C_REL"
+MAP_KEYS_MOVE_LLVM="$ROOT_DIR/$MAP_KEYS_MOVE_LLVM_REL"
+[[ "$(grep -Fc 'pgy_self_map_keys_HashMap_String_Int(&(pgy_local_0))' \
+    "$MAP_KEYS_MOVE_C")" == 1 ]] || fail "direct C lost the MapKeys bridge"
+[[ "$(grep -Fc 'pgy_as_drop_owned(&pgy_local_2);' \
+    "$MAP_KEYS_MOVE_C")" == 1 ]] || fail "direct C did not drop the moved snapshot once"
+! grep -Fq 'pgy_as_drop_owned(&pgy_local_1);' "$MAP_KEYS_MOVE_C" ||
+    fail "direct C dropped the retired MapKeys source"
+[[ "$(grep -Fc 'pgy_map_drop_int(&pgy_local_0);' \
+    "$MAP_KEYS_MOVE_C")" == 1 ]] || fail "direct C did not drop the map once"
+! grep -Fq 'pgy_as values' "$MAP_KEYS_MOVE_C" ||
+    fail "direct C fell back to reconstructed AST storage for MapKeys"
+"$CC" -std=c11 -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+    "$MAP_KEYS_MOVE_C" -o "$WORK_DIR/map-keys-direct-c.exe" ||
+    fail "generated MapKeys C did not compile"
+"$WORK_DIR/map-keys-direct-c.exe" >"$WORK_DIR/map-keys-direct-c.run" ||
+    fail "generated MapKeys C did not run"
+[[ "$(tr -d '\r\n' <"$WORK_DIR/map-keys-direct-c.run")" == 1 ]] ||
+    fail "generated MapKeys C output drifted"
+
+[[ "$(grep -Fc 'declare void @pgy_map_drop_raw_export(ptr)' \
+    "$MAP_KEYS_MOVE_LLVM")" == 1 ]] || fail "direct LLVM lost the map drop ABI"
+[[ "$(grep -Fc 'call void @pgy_map_keys_raw_export(ptr %pgy.local.0' \
+    "$MAP_KEYS_MOVE_LLVM")" == 1 ]] || fail "direct LLVM lost the MapKeys bridge"
+[[ "$(grep -Fc 'call void @pgy_as_drop_owned(ptr %pgy.local.2)' \
+    "$MAP_KEYS_MOVE_LLVM")" == 1 ]] || fail "direct LLVM did not drop the moved snapshot once"
+! grep -Fq 'call void @pgy_as_drop_owned(ptr %pgy.local.1)' \
+    "$MAP_KEYS_MOVE_LLVM" || fail "direct LLVM dropped the retired MapKeys source"
+[[ "$(grep -Fc 'call void @pgy_map_drop_raw_export(ptr %pgy.local.0)' \
+    "$MAP_KEYS_MOVE_LLVM")" == 1 ]] || fail "direct LLVM did not drop the map once"
+"$CLANG" -std=c11 -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" \
+    -I"$ROOT_DIR/src/runtime" -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
+    -o "$WORK_DIR/map-keys-runtime.o" || fail "MapKeys runtime object did not compile"
+"$CLANG" -x ir "$MAP_KEYS_MOVE_LLVM" -x none \
+    "$WORK_DIR/map-keys-runtime.o" -pthread -lm \
+    -o "$WORK_DIR/map-keys-direct-llvm.exe" || fail "generated MapKeys LLVM did not link"
+"$WORK_DIR/map-keys-direct-llvm.exe" >"$WORK_DIR/map-keys-direct-llvm.run" ||
+    fail "generated MapKeys LLVM did not run"
+[[ "$(tr -d '\r\n' <"$WORK_DIR/map-keys-direct-llvm.run")" == 1 ]] ||
+    fail "generated MapKeys LLVM output drifted"
+
+HASHMAP_ALIAS_SOURCE="tests/self_hosted/parity/fixture/direct_mir_hashmap_alias_lifetime_unproved.pgy"
+HASHMAP_ALIAS_MIR_REL="$WORK_REL/hashmap-alias-lifetime-unproved.mir.json"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$HASHMAP_ALIAS_SOURCE" -o "$HASHMAP_ALIAS_MIR_REL") \
+    >"$WORK_DIR/hashmap-alias-self.out" \
+    2>"$WORK_DIR/hashmap-alias-self.err" ||
+    fail "installed self-host did not produce the HashMap alias falsifier"
+for backend in c llvm; do
+    output_rel="$WORK_REL/hashmap-alias-lifetime-unproved.$backend"
+    marker="preserved:hashmap-alias:$backend"
+    printf '%s\n' "$marker" >"$ROOT_DIR/$output_rel"
+    if (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-backend-probe.exe" \
+        "$HASHMAP_ALIAS_MIR_REL" "$backend" "$output_rel") \
+        >"$WORK_DIR/hashmap-alias-$backend.out" \
+        2>"$WORK_DIR/hashmap-alias-$backend.err"; then
+        fail "direct $backend silently admitted unproved HashMap alias lifetime"
+    fi
+    [[ "$(cat "$ROOT_DIR/$output_rel")" == "$marker" ]] ||
+        fail "HashMap alias refusal replaced the prior $backend artifact"
+    grep -Fq 'program_readiness=27' \
+        "$WORK_DIR/hashmap-alias-$backend.out" \
+        "$WORK_DIR/hashmap-alias-$backend.err" ||
+        fail "direct $backend lost the HashMap lifetime refusal identity"
+done
+
+HASHMAP_RETURN_SOURCE="tests/self_hosted/parity/fixture/direct_mir_hashmap_early_return_cleanup.pgy"
+HASHMAP_RETURN_MIR_REL="$WORK_REL/hashmap-early-return.mir.json"
+(cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
+    "$HASHMAP_RETURN_SOURCE" -o "$HASHMAP_RETURN_MIR_REL") \
+    >"$WORK_DIR/hashmap-return-self.out" \
+    2>"$WORK_DIR/hashmap-return-self.err" ||
+    fail "installed self-host did not produce the HashMap return-path fixture"
+for backend in c llvm; do
+    output_rel="$WORK_REL/hashmap-early-return.$backend"
+    (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-backend-probe.exe" \
+        "$HASHMAP_RETURN_MIR_REL" "$backend" "$output_rel") \
+        >"$WORK_DIR/hashmap-return-$backend.out" \
+        2>"$WORK_DIR/hashmap-return-$backend.err" ||
+        fail "direct $backend rejected bounded HashMap return paths"
+done
+HASHMAP_RETURN_C="$ROOT_DIR/$WORK_REL/hashmap-early-return.c"
+HASHMAP_RETURN_LLVM="$ROOT_DIR/$WORK_REL/hashmap-early-return.llvm"
+[[ "$(grep -Fc 'pgy_map_drop_int(&pgy_local_0);' \
+    "$HASHMAP_RETURN_C")" == 2 ]] ||
+    fail "direct C did not release the map on both normal exits"
+"$CC" -std=c11 -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+    "$HASHMAP_RETURN_C" -o "$WORK_DIR/hashmap-return-c.exe" ||
+    fail "generated return-path HashMap C did not compile"
+"$WORK_DIR/hashmap-return-c.exe" >"$WORK_DIR/hashmap-return-c.run" ||
+    fail "generated return-path HashMap C did not run"
+[[ "$(tr -d '\r\n' <"$WORK_DIR/hashmap-return-c.run")" == 1 ]] ||
+    fail "generated return-path HashMap C output drifted"
+[[ "$(grep -Fc 'call void @pgy_map_drop_raw_export(ptr %pgy.local.0)' \
+    "$HASHMAP_RETURN_LLVM")" == 2 ]] ||
+    fail "direct LLVM did not release the map on both normal exits"
+"$CLANG" -x ir "$HASHMAP_RETURN_LLVM" -x none \
+    "$WORK_DIR/map-keys-runtime.o" -pthread -lm \
+    -o "$WORK_DIR/hashmap-return-llvm.exe" ||
+    fail "generated return-path HashMap LLVM did not link"
+"$WORK_DIR/hashmap-return-llvm.exe" >"$WORK_DIR/hashmap-return-llvm.run" ||
+    fail "generated return-path HashMap LLVM did not run"
+[[ "$(tr -d '\r\n' <"$WORK_DIR/hashmap-return-llvm.run")" == 1 ]] ||
+    fail "generated return-path HashMap LLVM output drifted"
 
 MOVE_NEGATIVE_CASES=(
     collection_field_use_after_move

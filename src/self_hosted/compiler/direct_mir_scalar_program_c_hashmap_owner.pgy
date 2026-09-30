@@ -1,0 +1,138 @@
+// C calls and specialization blocks from normalized HashMap expression facts.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_hashmap_owner.pgy";
+import "../codegen/runtime_abi/hashmap_runtime_owner.pgy";
+
+func DirectMirScalarProgramCHashMapExpressionAt(
+    ref facts: DirectMirScalarProgramExpressionSet,
+    node: Int, arguments: Array<String>
+) -> Option<String> {
+    let operation: String = DirectMirScalarProgramHashMapOperation(
+        facts.node_kinds[node]);
+    if operation == "" { return None; }
+    if !DirectMirScalarProgramHashMapNodeReady(facts, node) {
+        Die("direct MIR scalar C HashMap facts are invalid");
+    }
+    let rows: Array<Int> = DirectMirScalarProgramHashMapArgumentRows(
+        facts, node);
+    if ArrayLength(rows) != ArrayLength(arguments) {
+        Die("direct MIR scalar C HashMap operands are invalid");
+    }
+    let map_type: String = facts.node_types[node];
+    if ArrayLength(rows) > 0 { map_type = facts.node_types[rows[0]]; }
+    let runtime: CollectionHashMapRuntimeFact =
+        CollectionHashMapRuntimeFactFromTypeName(map_type);
+    let protocol: SemanticExpressionGraphCollectionCallProtocolFact =
+        SemanticExpressionGraphCollectionCallProtocolFromName(operation);
+    if !runtime.ok || !protocol.applies || protocol.family != "HashMap" {
+        Die("direct MIR scalar C HashMap ABI is invalid");
+    }
+    let function_name: String =
+        CollectionHashMapRuntimeCFunction(runtime, protocol);
+    if operation == "MapNew" {
+        return Some(function_name + "()");
+    }
+    if ArrayLength(rows) == 0 ||
+        facts.node_kinds[rows[0]] != DirectMirScalarProgramExprLocal() {
+        Die("direct MIR scalar C HashMap receiver is not a local owner");
+    }
+    let receiver: String = "&(" + arguments[0] + ")";
+    if operation == "MapSize" {
+        return Some(function_name + "(" + receiver + ")");
+    }
+    if operation == "MapKeys" {
+        return Some(
+            CollectionHashMapRuntimeCKeysBridgeName(runtime) +
+            "(" + receiver + ")");
+    }
+    let key_row: Option<Int> = CompilerAbiLayoutRowIndex(runtime.key_type);
+    if !IsSome(key_row) || ArrayLength(arguments) < 2 {
+        Die("direct MIR scalar C HashMap key ABI is invalid");
+    }
+    let key_c_type: String =
+        CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(key_row));
+    let call: String = function_name + "(" + receiver + ", (" +
+        key_c_type + ")(" + arguments[1] + ")";
+    if operation == "MapSet" {
+        if ArrayLength(arguments) != 3 {
+            Die("direct MIR scalar C MapSet value is missing");
+        }
+        call = call + ", (" + runtime.value_c_type + ")(" +
+            arguments[2] + ")";
+    }
+    return Some(call + ")");
+}
+
+func DirectMirScalarProgramCHashMapArgumentRows(
+    ref facts: DirectMirScalarProgramExpressionSet,
+    node: Int, fallback: Array<Int>
+) -> Array<Int> {
+    if DirectMirScalarProgramHashMapOperation(
+            facts.node_kinds[node]) == "" { return fallback; }
+    return DirectMirScalarProgramHashMapArgumentRows(facts, node);
+}
+
+func DirectMirScalarProgramCHashMapTypeUsesKeys(
+    ref facts: DirectMirScalarProgramExpressionSet, type_name: String
+) -> Bool {
+    let node: Int = 0;
+    while node < ArrayLength(facts.node_kinds) {
+        if facts.node_kinds[node] == DirectMirScalarProgramExprMapKeys() {
+            let rows: Array<Int> =
+                DirectMirScalarProgramHashMapArgumentRows(facts, node);
+            if ArrayLength(rows) == 1 &&
+                facts.node_types[rows[0]] == type_name { return true; }
+        }
+        node = node + 1;
+    }
+    return false;
+}
+
+func DirectMirScalarProgramCHashMapPreamble(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> String {
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows("|", "");
+    let seen_types: Array<String> = [];
+    let emitted_values: Array<String> = [];
+    let output: String = "";
+    let row: Int = 0;
+    while row < ArrayLength(plan.local_types) {
+        let runtime: CollectionHashMapRuntimeFact =
+            CollectionHashMapRuntimeFactFromTypeName(plan.local_types[row]);
+        if runtime.ok {
+            let seen: Bool = false;
+            let index: Int = 0;
+            while index < ArrayLength(seen_types) {
+                if seen_types[index] == runtime.type_name { seen = true; }
+                index = index + 1;
+            }
+            if !seen {
+                output = output +
+                    CollectionHashMapRuntimeValueSpecializationBlock(
+                        runtime, emitted_values);
+                if DirectMirScalarProgramCHashMapTypeUsesKeys(
+                        plan.program.expressions, runtime.type_name) {
+                    output = output + CollectionHashMapRuntimeKeysBridgeBlock(
+                        runtime, env);
+                }
+                ArrayPush(seen_types, runtime.type_name);
+                ArrayPush(emitted_values, runtime.value_type);
+            }
+        }
+        row = row + 1;
+    }
+    if output != "" { output = output + "\n"; }
+    return output;
+}
+
+func DirectMirScalarProgramCHashMapReached(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(plan.local_types) {
+        if CollectionHashMapRuntimeFactFromTypeName(
+                plan.local_types[row]).ok { return true; }
+        row = row + 1;
+    }
+    return false;
+}

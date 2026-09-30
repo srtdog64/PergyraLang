@@ -9,6 +9,7 @@ import "direct_mir_scalar_program_c_array_bool_empty_literal_expression_owner.pg
 import "direct_mir_scalar_program_c_array_bool_populated_literal_owner.pgy";
 import "direct_mir_scalar_program_c_numeric_cast_expression_owner.pgy";
 import "direct_mir_scalar_program_c_slice_expression_owner.pgy";
+import "direct_mir_scalar_program_c_hashmap_owner.pgy";
 import "direct_mir_scalar_program_c_logical_record_array_empty_literal_expression_owner.pgy";
 import "direct_mir_scalar_program_c_external_runtime_expression_owner.pgy";
 import "direct_mir_scalar_program_c_match_expression_owner.pgy";
@@ -32,8 +33,7 @@ func DirectMirScalarProgramCExpressionValues(
         }
         if expressions.node_rights[node] >= start { right = values[expressions.node_rights[node] - start]; }
         let arguments: Array<String> = [];
-        let argument_rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(
-            expressions.nary_operands, node);
+        let argument_rows: Array<Int> = DirectMirScalarProgramCHashMapArgumentRows(expressions, node, DirectMirScalarProgramNaryOperandRows(expressions.nary_operands, node));
         if kind == DirectMirScalarProgramExprDirectCall() {
             argument_rows = DirectMirScalarProgramDirectCallArgumentRows(expressions, node);
         } else if kind == DirectMirScalarProgramExprLogicalRecordConstructor() ||
@@ -73,11 +73,11 @@ func DirectMirScalarProgramCExpressionValues(
             argument = argument + 1;
         }
         let value: String = "";
-        let slice_value: Option<String> = DirectMirScalarProgramCSliceExpression(
-            kind, expressions.node_types[node], left_type, left, right, arguments);
-        let cast_value: Option<String> =
-            DirectMirScalarProgramCNumericCastExpressionValue(kind, left);
-        if IsSome(slice_value) { value = UnwrapOption(slice_value);
+        let slice_value: Option<String> = DirectMirScalarProgramCSliceExpression(kind, expressions.node_types[node], left_type, left, right, arguments);
+        let cast_value: Option<String> = DirectMirScalarProgramCNumericCastExpressionValue(kind, left);
+        let hashmap_value: Option<String> = DirectMirScalarProgramCHashMapExpressionAt(expressions, node, arguments);
+        if IsSome(hashmap_value) { value = UnwrapOption(hashmap_value);
+        } else if IsSome(slice_value) { value = UnwrapOption(slice_value);
         } else if IsSome(cast_value) { value = UnwrapOption(cast_value);
         } else if kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
                 kind == DirectMirScalarProgramExprIdentityCellMember() {

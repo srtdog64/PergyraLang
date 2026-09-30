@@ -2,6 +2,7 @@
 import "direct_mir_scalar_program_hashmap_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_type_owner.pgy";
+import "direct_mir_scalar_program_llvm_hashmap_cleanup_owner.pgy";
 
 func DirectMirScalarProgramLlvmHashMapExpressionAt(
     ref facts: DirectMirScalarProgramExpressionSet, node: Int,

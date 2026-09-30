@@ -85,7 +85,7 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
     let needs_strstr: Bool = plan.program.runtime_abi.string_index.runtime_call_abi_id != 0 ||
         plan.program.runtime_abi.string_contains_id != 0 ||
         plan.program.runtime_abi.string_split_id != 0 || replace;
-    let output: String = DirectMirScalarProgramLlvmHashMapDeclarations(plan.program.expressions);
+    let output: String = DirectMirScalarProgramLlvmHashMapDeclarations(plan.program.expressions) + DirectMirScalarProgramLlvmHashMapCleanupDeclarations(plan);
     output = Concat(output, DirectMirScalarProgramLlvmSliceForeignDeclarations(plan.program.expressions));
     let reached: Array<Int> = [DirectMirScalarProgramExprCheckedAddInt(), DirectMirScalarProgramExprCheckedMulInt(), DirectMirScalarProgramExprDivideInt(),
         DirectMirScalarProgramExprArrayIntSort(), DirectMirScalarProgramExprArrayIntReverse()];

@@ -4307,6 +4307,15 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- MIR-blind C projection of admitted `Set<String>` construction, mutation,
   and lookup through the canonical Set runtime symbol fact. It does not infer
   a carrier layout or builtin signature from source spelling.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_hashmap_owner.pgy`
+  -- MIR-blind C projection of normalized HashMap calls plus the exact runtime
+  value specialization and key-snapshot bridge reached by those calls.
+- `src/self_hosted/compiler/direct_mir_scalar_program_hashmap_lifetime_owner.pgy`,
+  `direct_mir_scalar_program_hashmap_expression_location_owner.pgy`,
+  `direct_mir_scalar_program_c_hashmap_cleanup_owner.pgy`, and
+  `direct_mir_scalar_program_llvm_hashmap_cleanup_owner.pgy` -- prove one fresh
+  entrypoint-local MapNew owner with no parameter, return, alias, or opaque
+  escape, then select exactly one target release on every normal exit.
 - `src/self_hosted/compiler/direct_mir_scalar_cfg_program_c_emission_owner.pgy`
   -- MIR-blind range-driven C program rendering. One routine renderer serves
   entrypoint and callable; it never reopens admitted MIR.
@@ -4327,8 +4336,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   non-empty backing storage uses the typed internal-invariant panic.
 - `src/self_hosted/compiler/direct_mir_scalar_program_c_slice_expression_owner.pgy`
   -- MIR-blind C consumer of the same sealed Slice expression kinds. It reuses
-  `SliceRuntimeFact` for view/index/copy calls and runtime materialization;
-  source spelling and a second Slice ABI layout are forbidden.
+  `SliceRuntimeFact` for view/index/copy calls and runtime materialization and
+  evaluates each receiver once in an addressable carrier; source spelling and
+  a second Slice ABI layout are forbidden.
 - `src/self_hosted/compiler/direct_mir_scalar_program_llvm_external_runtime_expression_owner.pgy`
   -- final LLVM call/declaration consumption of generated external runtime
   rows, including intent-observability ABI IDs and target symbol spellings.

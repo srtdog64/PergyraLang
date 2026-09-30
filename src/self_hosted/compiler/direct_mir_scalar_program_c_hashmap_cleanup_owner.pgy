@@ -1,0 +1,26 @@
+// C release calls selected only by the fresh-local HashMap lifetime proof.
+import "direct_mir_scalar_program_hashmap_lifetime_owner.pgy";
+import "../codegen/runtime_abi/hashmap_runtime_owner.pgy";
+
+func DirectMirScalarProgramCHashMapCleanup(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    if !DirectMirScalarProgramHashMapLifetimeReadyForPlan(plan) {
+        Die("direct MIR C HashMap lifetime is unproved");
+    }
+    if routine != plan.routines.entrypoint_ordinal { return ""; }
+    let output: String = "";
+    let rows: Array<Int> = DirectMirScalarProgramHashMapLocalRows(plan);
+    let index: Int = 0;
+    while index < ArrayLength(rows) {
+        let local_row: Int = rows[index];
+        let runtime: CollectionHashMapRuntimeFact =
+            CollectionHashMapRuntimeFactFromTypeName(plan.local_types[local_row]);
+        if !runtime.ok { Die("direct MIR C HashMap cleanup ABI is missing"); }
+        output = output + "    " +
+            CollectionHashMapRuntimeCDropFunction(runtime) +
+            "(&pgy_local_" + ToString(local_row) + ");\n";
+        index = index + 1;
+    }
+    return output;
+}

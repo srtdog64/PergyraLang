@@ -1,14 +1,24 @@
-// Executes the current Pergyra direct-MIR C owner without an installed-driver
-// fallback. The output file is opened only after the full artifact is ready.
+// Executes the current Pergyra direct-MIR backend owner without an
+// installed-driver fallback. The output opens only after emission succeeds.
 
 import "../../../../src/self_hosted/compiler/driver_rung2_owner.pgy";
+import "../../../../src/self_hosted/compiler/direct_mir_backend_projection_owner.pgy";
 
 func Main() -> Void with caps env, io_read, io_write {
     let args: Array<String> = Args();
-    if ArrayLength(args) != 2 {
-        Die("collection ownership direct C probe requires MIR input and C output");
+    if ArrayLength(args) != 3 {
+        Die("collection ownership probe requires MIR input, backend, and output");
     }
-    let artifact: CompilerEmissionArtifact = CompileMirJsonToCVerified(
-        args[0], SelfHostMachineLayerDeclarationEmpty());
-    WriteFile(args[1], artifact.payload);
+    let projection: String = "";
+    if args[1] == "c" { projection = CompilerTargetCpuCProjection(); }
+    else if args[1] == "llvm" { projection = CompilerTargetCpuLlvmProjection(); }
+    else { Die("collection ownership probe backend must be c or llvm"); }
+    let target: CompilerTargetProjectionFact =
+        CompilerTargetProjectionFactFromOwner(projection);
+    let emission: CompilerEmissionOutcome = CompileMirJsonToDirectBackendVerified(
+        args[0], SelfHostMachineLayerDeclarationEmpty(), target);
+    match emission {
+        case CompilerEmissionProduced(artifact): WriteFile(args[2], artifact.payload);
+        case CompilerEmissionRouteRefused(refusal): Die(CodegenRouteRefusalText(refusal));
+    }
 }

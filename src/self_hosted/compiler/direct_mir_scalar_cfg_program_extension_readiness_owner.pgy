@@ -16,6 +16,7 @@ import "direct_mir_scalar_program_owned_array_string_move_plan_readiness_owner.p
 import "direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_member_plan_readiness_owner.pgy";
 import "direct_mir_identity_cell_lifetime_owner.pgy";
+import "direct_mir_scalar_program_hashmap_lifetime_owner.pgy";
 func DirectMirScalarCfgProgramExpressionUseCount(
     ref plan: DirectMirScalarCfgGraphPlan, expression_row: Int
 ) -> Int {
@@ -219,6 +220,7 @@ func DirectMirScalarCfgProgramExtensionReadinessCode(
     if !DirectMirScalarProgramPayloadEnumMembersReadyForPlan(plan) { return 24; }
     if !DirectMirScalarProgramRuntimeValueLifecycleReady(plan) { return 22; }
     if !DirectMirIdentityCellLifetimeReady(plan) { return 25; }
+    if !DirectMirScalarProgramHashMapLifetimeReadyForPlan(plan) { return 27; }
     return 0;
 }
 

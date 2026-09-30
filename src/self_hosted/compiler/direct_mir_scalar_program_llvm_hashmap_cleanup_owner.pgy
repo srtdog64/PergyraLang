@@ -1,0 +1,54 @@
+// LLVM release calls and declarations from the same fresh-local proof as C.
+import "direct_mir_scalar_program_hashmap_lifetime_owner.pgy";
+import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
+
+func DirectMirScalarProgramLlvmHashMapCleanup(
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+) -> String {
+    if !DirectMirScalarProgramHashMapLifetimeReadyForPlan(plan) {
+        Die("direct MIR LLVM HashMap lifetime is unproved");
+    }
+    if routine != plan.routines.entrypoint_ordinal { return ""; }
+    let output: String = "";
+    let rows: Array<Int> = DirectMirScalarProgramHashMapLocalRows(plan);
+    let index: Int = 0;
+    while index < ArrayLength(rows) {
+        let local_row: Int = rows[index];
+        let runtime: CollectionHashMapLlvmFact =
+            CollectionHashMapLlvmFactFromTypeName(plan.local_types[local_row]);
+        if !runtime.ok { Die("direct MIR LLVM HashMap cleanup ABI is missing"); }
+        output = output + "  call void @" +
+            CollectionHashMapLlvmDropFunction(runtime) +
+            "(ptr %pgy.local." + ToString(local_row) + ")\n";
+        index = index + 1;
+    }
+    return output;
+}
+
+func DirectMirScalarProgramLlvmHashMapCleanupDeclarations(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> String {
+    let output: String = "";
+    let seen: Array<String> = [];
+    let rows: Array<Int> = DirectMirScalarProgramHashMapLocalRows(plan);
+    let index: Int = 0;
+    while index < ArrayLength(rows) {
+        let runtime: CollectionHashMapLlvmFact =
+            CollectionHashMapLlvmFactFromTypeName(
+                plan.local_types[rows[index]]);
+        let declaration: String =
+            CollectionHashMapLlvmDropDeclaration(runtime);
+        let known: Bool = false;
+        let seen_index: Int = 0;
+        while seen_index < ArrayLength(seen) {
+            if seen[seen_index] == declaration { known = true; }
+            seen_index = seen_index + 1;
+        }
+        if !known {
+            ArrayPush(seen, declaration);
+            output = output + declaration;
+        }
+        index = index + 1;
+    }
+    return output;
+}

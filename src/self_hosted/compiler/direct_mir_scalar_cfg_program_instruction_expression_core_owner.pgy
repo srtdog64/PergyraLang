@@ -7,6 +7,7 @@ import "direct_mir_scalar_program_payload_free_enum_match_condition_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_match_condition_owner.pgy";
 import "direct_mir_scalar_program_option_int_match_condition_owner.pgy";
 import "direct_mir_scalar_program_int_match_condition_owner.pgy";
+import "direct_mir_scalar_cfg_type_family_owner.pgy";
 
 func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
     inout expressions: DirectMirScalarProgramExpressionSet,
@@ -24,8 +25,7 @@ func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
     require_all_uses: Bool, expected_type: String, source_root: Int
 ) -> Option<Int> {
     let expression_row: Int = ArrayLength(expressions.graph_starts);
-    let admission: DirectMirScalarProgramExpressionAdmission =
-        DirectMirScalarProgramAppendExpression(
+    let admission: DirectMirScalarProgramExpressionAdmission = DirectMirScalarProgramAppendExpression(
             expressions, instruction, uses, index, global_row,
             local_instruction, locals, types, wire, local_offset,
             parameter_types, signature, callables, logical_record,
@@ -87,7 +87,8 @@ func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
         return None;
     }
     let root: Int = appended.graph_roots[expression_row];
-    if (expected_type != "" && appended.node_types[root] != expected_type) ||
+    if (expected_type != "" && !DirectMirScalarCfgSourceLocalTypeMatchesResolved(
+            expected_type, appended.node_types[root])) ||
             appended.node_types[root] == "" {
         if !failure.present {
             failure = DirectMirScalarProgramExpressionAdmissionFailureAt(

@@ -26,6 +26,7 @@ import "direct_mir_scalar_program_llvm_set_string_value_result_owner.pgy";
 import "direct_mir_scalar_program_process_exit_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_array_string_cleanup_owner.pgy";
+import "direct_mir_scalar_program_llvm_hashmap_cleanup_owner.pgy";
 import "direct_mir_scalar_cfg_llvm_foreign_declaration_owner.pgy";
 import "direct_mir_scalar_cfg_program_llvm_signature_owner.pgy";
 import "direct_mir_llvm_text_format_owner.pgy";
@@ -118,6 +119,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan,
                 TextBuilderAppend(output,
                     DirectMirScalarProgramLlvmStringArrayCleanup(
                         plan, routine));
+                TextBuilderAppend(output, DirectMirScalarProgramLlvmHashMapCleanup(plan, routine));
                 TextBuilderAppend(output, "  ret i32 0\n");
             } else {
                 TextBuilderAppend(output, DirectMirScalarProgramLlvmScalarValueResultCopyOut(plan, routine, block));
@@ -214,6 +216,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan,
         } else if routine == plan.routines.entrypoint_ordinal {
             TextBuilderAppend(output,
                 DirectMirScalarProgramLlvmStringArrayCleanup(plan, routine));
+            TextBuilderAppend(output, DirectMirScalarProgramLlvmHashMapCleanup(plan, routine));
             TextBuilderAppend(output, "  ret i32 0\n");
         } else if DirectMirScalarProgramBlockEndsWithProcessExit(
                 plan.operation_kinds, plan.block_operation_starts[block],

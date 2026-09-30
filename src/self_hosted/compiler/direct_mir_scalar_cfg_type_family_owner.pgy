@@ -39,6 +39,7 @@ func DirectMirScalarCfgSourceLocalTypeSupported(type_name: String) -> Bool {
 func DirectMirScalarCfgSourceLocalTypeMatchesResolved(source_type: String, resolved_type: String
 ) -> Bool {
     return source_type == resolved_type ||
+        CollectionHashMapLlvmTypeNamesEqual(source_type, resolved_type) ||
         (source_type == "Option<Unknown>" &&
          (resolved_type == CompilerAbiLayoutOptionIntTypeName() ||
           resolved_type == CompilerAbiLayoutOptionStringTypeName() ||

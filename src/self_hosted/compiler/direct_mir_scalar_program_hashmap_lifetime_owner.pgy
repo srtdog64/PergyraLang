@@ -1,0 +1,108 @@
+// Fresh local HashMap lifetime proof for the bounded direct-program rung.
+// Parameters, returns, branching ownership, aliases and opaque escapes remain
+// rejected until their transfer facts have an owner.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_hashmap_owner.pgy";
+import "direct_mir_scalar_program_hashmap_expression_location_owner.pgy";
+import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
+import "../mir/local_ref_identity_owner.pgy";
+func DirectMirScalarProgramHashMapLocalRows(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Array<Int> {
+    let rows: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(plan.local_types) {
+        if CollectionHashMapLlvmFactFromTypeName(
+                plan.local_types[row]).ok { ArrayPush(rows, row); }
+        row = row + 1;
+    }
+    return rows;
+}
+func DirectMirScalarProgramHashMapLifetimeReadyForPlan(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let map_rows: Array<Int> = DirectMirScalarProgramHashMapLocalRows(plan);
+    if ArrayLength(map_rows) == 0 { return true; }
+    let entrypoint: Int = plan.routines.entrypoint_ordinal;
+    if entrypoint < 0 || plan.routines.block_counts[entrypoint] < 1 ||
+        plan.routines.return_types[entrypoint] != "Void" {
+        return false;
+    }
+    let type_row: Int = 0;
+    while type_row < ArrayLength(plan.routines.parameter_types) {
+        if CollectionHashMapLlvmFactFromTypeName(
+                plan.routines.parameter_types[type_row]).ok { return false; }
+        type_row = type_row + 1;
+    }
+    let routine: Int = 0;
+    while routine < ArrayLength(plan.routines.return_types) {
+        if CollectionHashMapLlvmFactFromTypeName(
+                plan.routines.return_types[routine]).ok { return false; }
+        routine = routine + 1;
+    }
+    let creations: Array<Int> = [];
+    let creation_operations: Array<Int> = [];
+    let local_row: Int = 0;
+    while local_row < ArrayLength(plan.local_types) {
+        ArrayPush(creations, 0); ArrayPush(creation_operations, -1);
+        local_row = local_row + 1;
+    }
+    let operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        if plan.operation_kinds[operation] ==
+                DirectMirScalarCfgOpProcessExit() { return false; }
+        let result: Int = plan.operation_result_values[operation];
+        if result >= 0 && result < ArrayLength(plan.value_local_rows) {
+            let result_local: Int = plan.value_local_rows[result];
+            if result_local >= 0 && result_local <
+                    ArrayLength(plan.local_types) &&
+                CollectionHashMapLlvmFactFromTypeName(
+                    plan.local_types[result_local]).ok {
+                let expression: Int =
+                    plan.program.operation_expression_rows[operation];
+                if plan.operation_kinds[operation] !=
+                        DirectMirScalarCfgOpExpressionDefinition() ||
+                    expression < 0 || expression >= ArrayLength(
+                        plan.program.expressions.graph_roots) {
+                    return false;
+                }
+                let root: Int =
+                    plan.program.expressions.graph_roots[expression];
+                if plan.program.expressions.node_kinds[root] !=
+                        DirectMirScalarProgramExprMapNew() ||
+                    DirectMirScalarCfgRoutinePartitionRangeOwner(
+                        plan.block_operation_starts,
+                        plan.block_operation_counts, operation) !=
+                        plan.routines.block_starts[entrypoint] {
+                    return false;
+                }
+                ArraySet(creations, result_local,
+                    creations[result_local] + 1);
+                ArraySet(creation_operations, result_local, operation);
+            }
+        }
+        operation = operation + 1;
+    }
+    let index: Int = 0;
+    while index < ArrayLength(map_rows) {
+        let map_local: Int = map_rows[index];
+        if DirectMirScalarCfgRoutinePartitionLocalOwner(
+                plan.routines, map_local) != entrypoint ||
+            SelfMirLocalRefParameterOrdinalForOwner(
+                plan.local_ref_value_ids[map_local],
+                plan.routines.source_syntax_ids[entrypoint]) >= 0 ||
+            creations[map_local] != 1 { return false; }
+        let node: Int = 0;
+        while node < ArrayLength(plan.program.expressions.node_kinds) {
+            if plan.program.expressions.node_kinds[node] ==
+                    DirectMirScalarProgramExprLocal() &&
+                plan.program.expressions.node_local_rows[node] == map_local &&
+                !DirectMirScalarProgramHashMapLocalNodeUseReady(
+                    plan, node, map_local,
+                    creation_operations[map_local]) { return false; }
+            node = node + 1;
+        }
+        index = index + 1;
+    }
+    return true;
+}

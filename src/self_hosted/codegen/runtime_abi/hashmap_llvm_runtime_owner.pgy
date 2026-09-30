@@ -40,6 +40,11 @@ func CollectionHashMapLlvmFactFromTypeName(type_name: String) -> CollectionHashM
 func CollectionHashMapLlvmStorageType() -> String {
     return CollectionHashMapRawLlvmStorageType();
 }
+func CollectionHashMapLlvmTypeNamesEqual(left: String, right: String) -> Bool {
+    let a: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(left);
+    let b: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(right);
+    return a.ok && b.ok && a.type_name == b.type_name;
+}
 func CollectionHashMapLlvmFunction(fact: CollectionHashMapLlvmFact, operation: String) -> String {
     if !fact.ok { Die("HashMap raw runtime ABI fact is missing"); }
     if operation == "MapNew" { return "pgy_map_new_raw_export"; }
@@ -73,8 +78,8 @@ func CollectionHashMapLlvmDeclaration(fact: CollectionHashMapLlvmFact, operation
 }
 
 
-// Raw LLVM destruction stays separate from source-level Map operations.  A
-// future ownership-exit plan selects this symbol only for a proven last owner.
+// Raw LLVM destruction stays separate from source-level Map operations. The
+// direct HashMap lifetime owner selects it only for a proven last owner.
 func CollectionHashMapLlvmDropFunction(fact: CollectionHashMapLlvmFact) -> String {
     if !fact.ok { Die("HashMap raw release ABI fact is missing"); }
     if fact.value_type == "String" {

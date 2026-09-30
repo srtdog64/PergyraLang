@@ -12,6 +12,7 @@ import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "direct_mir_scalar_program_payload_enum_type_name_owner.pgy";
 import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
 import "runtime_value_representation_owner.pgy";
+import "../codegen/runtime_abi/hashmap_runtime_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
 func DirectMirScalarCfgCLocalDeclarationsInRange(
     ref plan: DirectMirScalarCfgGraphPlan, int_c_type: String, start: Int, count: Int, routine: Int
@@ -25,10 +26,10 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
     let output: String = "";
     let row: Int = start;
     while row < start + count {
-        let runtime_value: CompilerRuntimeValueRepresentation =
-            CompilerRuntimeValueRepresentationFor(plan.local_types[row]);
+        let hashmap: CollectionHashMapRuntimeFact = CollectionHashMapRuntimeFactFromTypeName(plan.local_types[row]); let runtime_value: CompilerRuntimeValueRepresentation = CompilerRuntimeValueRepresentationFor(plan.local_types[row]);
         output = Concat(output, "    ");
-        if runtime_value.valid {
+        if hashmap.ok { output = Concat(output, hashmap.c_value_type);
+        } else if runtime_value.valid {
             output = Concat(output, runtime_value.c_type);
         } else if plan.local_types[row] == CompilerAbiLayoutStringTypeName() {
             output = Concat(output, CompilerAbiLayoutStringCValueType());
@@ -82,7 +83,7 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
         output = Concat(output, " pgy_local_");
         output = Concat(output, ToString(row));
         let zero_aggregate: Bool =
-            runtime_value.valid ||
+            hashmap.ok || runtime_value.valid ||
             plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName() ||
             plan.local_types[row] == CompilerAbiLayoutArrayIntTypeName() ||
             plan.local_types[row] == CompilerAbiLayoutArrayBoolTypeName() ||
