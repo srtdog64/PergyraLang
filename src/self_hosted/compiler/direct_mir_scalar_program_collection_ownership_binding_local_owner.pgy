@@ -1,0 +1,46 @@
+// Exact source binding to scalar-program local-row join.
+
+import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
+import "../mir_lower/routine_fact_index_schema_owner.pgy";
+
+func DirectMirCollectionOwnershipBindingLocalRow(
+    ref index: MirRoutineFactIndex,
+    ref storage: DirectMirScalarCfgProgramGraphStorage,
+    binding_syntax_id: Int,
+    local_start: Int,
+    local_end: Int
+) -> Int {
+    if binding_syntax_id <= 0 || index.declared_source_local_count < 0 ||
+        index.declared_source_local_count >
+            ArrayLength(index.source_local_names) ||
+        index.declared_source_local_count >
+            ArrayLength(index.source_local_binding_syntax_ids) ||
+        local_start < 0 || local_end < local_start ||
+        local_end > ArrayLength(storage.values.local_names) {
+        return -1;
+    }
+    let source_name: String = "";
+    let source_row: Int = 0;
+    while source_row < index.declared_source_local_count {
+        if index.source_local_binding_syntax_ids[source_row] ==
+                binding_syntax_id {
+            if source_name != "" ||
+                index.source_local_names[source_row] == "" {
+                return -1;
+            }
+            source_name = index.source_local_names[source_row];
+        }
+        source_row = source_row + 1;
+    }
+    if source_name == "" { return -1; }
+    let matched: Int = -1;
+    let local_row: Int = local_start;
+    while local_row < local_end {
+        if storage.values.local_names[local_row] == source_name {
+            if matched >= 0 { return -1; }
+            matched = local_row;
+        }
+        local_row = local_row + 1;
+    }
+    return matched;
+}

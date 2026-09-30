@@ -1,11 +1,11 @@
 // Strict receipt parser and straight-line transition issuer for empty literals.
-
 import "direct_mir_scalar_program_collection_ownership_transition_fact_owner.pgy";
 import "direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy";
 import "direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy";
 import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_collection_ownership_receipt_source_owner.pgy";
+import "direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy";
 import "../mir_lower/routine_fact_index_schema_owner.pgy";
 
 struct DirectMirCollectionOwnershipInstructionReceipt {
@@ -186,47 +186,47 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
             index.collection_ownership_facts.binding_syntax_ids) {
         let origin: String =
             index.collection_ownership_facts.origins[ownership_row];
-        if origin == "empty-literal" || origin == "member-move" {
+        let retired: Bool = index.collection_ownership_facts.dispositions[
+            ownership_row] == "retired";
+        if origin == "empty-literal" || origin == "member-move" ||
+                origin == "binding" || retired {
             let binding: Int = index.collection_ownership_facts.
                 binding_syntax_ids[ownership_row];
-            let wanted: String = Concat(
-                "declaration:", Concat(ToString(binding), ":0")
-            );
-            let matched_local: Int = -1;
-            let candidate: Int = local_offset;
             let local_end: Int = local_offset +
                 storage.routines.local_counts[routine];
-            while candidate < local_end {
-                if storage.values.local_ref_value_ids[candidate] == wanted {
-                    if matched_local >= 0 {
-                        return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
-                    }
-                    matched_local = candidate;
-                }
-                candidate = candidate + 1;
-            }
+            let matched_local: Int =
+                DirectMirCollectionOwnershipBindingLocalRow(
+                    index, storage, binding, local_offset, local_end);
             if matched_local < 0 || storage.values.local_types[matched_local] !=
                     CompilerAbiLayoutArrayStringTypeName() {
                 return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
             }
             let requires_transition: Bool = origin == "member-move" ||
+                origin == "binding" || retired ||
                 DirectMirCollectionOwnershipInstructionSetHasTransitionReceipt(
                     json, index, binding) ||
                 DirectMirCollectionOwnershipOperationSetRequiresTransition(
                     storage, expressions, operation_offset,
                     storage.routines.operation_counts[routine], matched_local);
             if requires_transition {
-                if ArrayLength(index.block_starts) != 1 {
-                    if origin == "member-move" {
-                        return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
-                    }
+                if ArrayLength(index.block_starts) != 1 &&
+                    (origin == "member-move" || origin == "binding" ||
+                     retired) {
+                    return DirectMirScalarProgramCollectionOwnershipTransitionFactInvalid();
                 }
                 ArrayPush(routines, routine);
                 ArrayPush(locals, matched_local);
                 ArrayPush(bindings, binding);
                 let initial_state: Int =
                     DirectMirCollectionOwnershipStateEmpty();
-                if origin == "member-move" {
+                let ownership: String = index.collection_ownership_facts.
+                    element_ownerships[ownership_row];
+                if ownership == "borrowed-elements" {
+                    initial_state = DirectMirCollectionOwnershipStateBorrowed();
+                } else if ownership == "owned-elements" ||
+                        ownership == "map-keys-snapshot" {
+                    initial_state = DirectMirCollectionOwnershipStateOwned();
+                } else if origin != "empty-literal" {
                     initial_state =
                         DirectMirCollectionOwnershipStateUnknown();
                 }
@@ -241,9 +241,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                     ArrayPush(cfg_rows, ArrayLength(routines) - 1);
                 }
                 ArrayPush(states, initial_state);
-                if origin == "member-move" &&
-                    index.collection_ownership_facts.dispositions[
-                        ownership_row] == "retired" {
+                if retired {
                     ArrayPush(retire_rows, ArrayLength(routines) - 1);
                 }
             }
@@ -297,7 +295,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                     if cfg_rows[cfg_index] == tracked { cfg_tracked = true; }
                     cfg_index = cfg_index + 1;
                 }
-                if cfg_tracked {
+                if expected_effect == 0 && !receipt.present { next = states[tracked]; } else if cfg_tracked {
                     if expected_effect == 0 || !receipt.present ||
                         receipt.effect_kind != expected_effect ||
                         receipt.receiver_binding_syntax_id != bindings[tracked] ||

@@ -16,6 +16,8 @@ STATE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_state_o
 MEMBER_MOVE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy"
 MEMBER_TRANSITION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy"
 BUNDLE="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
+DIRECT_MOVE_PROBE="tests/self_hosted/parity/fixture/collection_ownership_binding_move_direct_c_probe.pgy"
+CC="${PGY_SELFHOST_CC:-gcc}"
 WORK_REL=".tmp/self_hosted/collection_ownership_semantic_owner"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 
@@ -389,6 +391,55 @@ for name in "${MOVE_CLONE_CASES[@]}"; do
         done
     done
 done
+
+# A MIR binding move is owned by the direct plan. The source local is retired,
+# the destination alone releases borrowed/unknown storage, and an unsupported
+# MapKeys expression must fail before opening the requested artifact.
+(cd "$ROOT_DIR" && "$PGY" "$DIRECT_MOVE_PROBE" --native-pipeline \
+    --backend=c -o "$WORK_REL/binding-move-direct-c-probe.exe") \
+    >"$WORK_DIR/binding-move-direct-c-probe.compile" 2>&1 || {
+    tail -c 65536 "$WORK_DIR/binding-move-direct-c-probe.compile" >&2
+    fail "native pipeline could not build the direct binding-move C probe"
+}
+for name in borrowed_string_array_shallow_copy \
+        unknown_string_array_alias_without_drop; do
+    mir_rel="$WORK_REL/$name.mir.json"
+    c_rel="$WORK_REL/$name-direct.c"
+    printf '%s\n' preserved:binding-move >"$ROOT_DIR/$c_rel"
+    (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-c-probe.exe" \
+        "$mir_rel" "$c_rel") >"$WORK_DIR/$name-direct.out" \
+        2>"$WORK_DIR/$name-direct.err" || {
+        cat "$WORK_DIR/$name-direct.out" "$WORK_DIR/$name-direct.err" >&2
+        fail "direct binding-move C owner rejected $name"
+    }
+    [[ "$(grep -Fc 'pgy_as_drop_storage(&pgy_local_1);' \
+            "$ROOT_DIR/$c_rel")" == 1 ]] ||
+        fail "direct binding-move C did not release the destination once for $name"
+    ! grep -Fq 'pgy_as_drop_storage(&pgy_local_0);' "$ROOT_DIR/$c_rel" ||
+        fail "direct binding-move C released the retired source for $name"
+    ! grep -Fq 'pgy_as values' "$ROOT_DIR/$c_rel" ||
+        fail "direct binding-move C fell back to reconstructed AST storage for $name"
+    "$CC" -std=c11 -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+        "$ROOT_DIR/$c_rel" -o "$WORK_DIR/$name-direct.exe" ||
+        fail "generated direct binding-move C did not compile for $name"
+    "$WORK_DIR/$name-direct.exe" >"$WORK_DIR/$name-direct.run" ||
+        fail "generated direct binding-move C did not run for $name"
+    [[ "$(tr -d '\r\n' <"$WORK_DIR/$name-direct.run")" == 1 ]] ||
+        fail "generated direct binding-move C output drifted for $name"
+done
+
+MAP_KEYS_MOVE_C_REL="$WORK_REL/map_keys_shallow_copy-direct.c"
+printf '%s\n' preserved:map-keys >"$ROOT_DIR/$MAP_KEYS_MOVE_C_REL"
+if (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-c-probe.exe" \
+    "$WORK_REL/map_keys_shallow_copy.mir.json" "$MAP_KEYS_MOVE_C_REL") \
+    >"$WORK_DIR/map-keys-direct.out" 2>"$WORK_DIR/map-keys-direct.err"; then
+    fail "direct binding-move C owner silently admitted unsupported MapKeys expression"
+fi
+[[ "$(cat "$ROOT_DIR/$MAP_KEYS_MOVE_C_REL")" == preserved:map-keys ]] ||
+    fail "failed MapKeys direct admission replaced the prior artifact"
+grep -Fq 'stage=admitted-type' \
+    "$WORK_DIR/map-keys-direct.out" "$WORK_DIR/map-keys-direct.err" ||
+    fail "failed MapKeys direct admission lost its explicit stage"
 
 MOVE_NEGATIVE_CASES=(
     collection_field_use_after_move

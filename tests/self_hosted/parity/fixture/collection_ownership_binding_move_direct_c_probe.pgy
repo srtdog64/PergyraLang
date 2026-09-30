@@ -1,0 +1,14 @@
+// Executes the current Pergyra direct-MIR C owner without an installed-driver
+// fallback. The output file is opened only after the full artifact is ready.
+
+import "../../../../src/self_hosted/compiler/driver_rung2_owner.pgy";
+
+func Main() -> Void with caps env, io_read, io_write {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 {
+        Die("collection ownership direct C probe requires MIR input and C output");
+    }
+    let artifact: CompilerEmissionArtifact = CompileMirJsonToCVerified(
+        args[0], SelfHostMachineLayerDeclarationEmpty());
+    WriteFile(args[1], artifact.payload);
+}

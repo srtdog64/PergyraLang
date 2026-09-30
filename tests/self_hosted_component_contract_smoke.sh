@@ -28401,8 +28401,10 @@ for collection_owner_cap in \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy:120 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy:220 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_receipt_source_owner.pgy:80 \
+    src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy:100 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy:380 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy:100 \
+    src/self_hosted/compiler/driver_rung2_scalar_c_substitution_owner.pgy:100 \
     src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy:180; do
     collection_owner="${collection_owner_cap%%:*}"
     collection_cap="${collection_owner_cap##*:}"
@@ -28455,9 +28457,25 @@ require_text \
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy" \
     'import "direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy";'
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy" \
+    'import "direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy";'
+require_text \
+    "src/self_hosted/compiler/driver_rung2_scalar_c_substitution_owner.pgy" \
+    'ArrayLength(index.collection_ownership_facts.binding_syntax_ids) > 0'
+reject_text \
+    "src/self_hosted/compiler/driver_rung2_scalar_c_substitution_owner.pgy" \
+    'if !identity_required { return None; }'
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy" \
     'func DirectMirCollectionOwnershipNextState('
+require_file \
+    "tests/self_hosted/parity/fixture/collection_ownership_binding_move_direct_c_probe.pgy"
+require_max_lines \
+    "tests/self_hosted/parity/fixture/collection_ownership_binding_move_direct_c_probe.pgy" 30
+require_text \
+    "tests/self_hosted/parity/collection_ownership_semantic_owner.sh" \
+    'collection_ownership_binding_move_direct_c_probe.pgy'
 require_file \
     "tests/self_hosted/parity/collection_ownership_receipt_mutations.py"
 require_max_lines \

@@ -25,13 +25,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionReadyForPlan(
                 plan.routines, local_row) != routine ||
             plan.routines.block_counts[routine] < 1 ||
             plan.local_types[local_row] !=
-                CompilerAbiLayoutArrayStringTypeName() ||
-            plan.local_ref_value_ids[local_row] != Concat(
-                "declaration:", Concat(
-                    ToString(plan.program.collection_ownership.
-                        binding_syntax_ids[row]), ":0"
-                )
-            ) {
+                CompilerAbiLayoutArrayStringTypeName() {
             return false;
         }
         row = row + 1;

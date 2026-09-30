@@ -3996,6 +3996,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_policy_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_cfg_flow_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_receipt_source_owner.pgy`,
+  `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_binding_local_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy`,
   `src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy`,
   and
@@ -4008,7 +4009,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   stable expression kind identity.
   The transition owners parse instruction-bound receipts, join the exact
   declaration LocalRef and empty-origin fact, own operation effects and legal
-  state changes. The CFG flow owner joins reachable predecessor states to a
+  state changes. The binding-local owner joins a binding move through the
+  source-local binding inventory and one unique program storage row; it never
+  reconstructs binding identity from an optional LocalRef string. The CFG flow
+  owner joins reachable predecessor states to a
   bounded fixed point and seals both straight-line and multi-block slices as
   EMPTY/BORROWED/OWNED/RETIRED. The cleanup policy consumes that
   sealed plan for tracked locals; its legacy operation scan is restricted to
@@ -4753,6 +4757,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   JSON inputs converge on one `AstTreeArtifact` verifier. For file-backed MIR,
   it snapshots the topology receipt and machine declaration, completes the
   typed codegen view, then retires the raw JSON input before C emission.
+- `src/self_hosted/compiler/driver_rung2_scalar_c_substitution_owner.pgy` --
+  terminal C substitution claim owner for direct scalar GraphPlan programs.
+  Any admitted collection-ownership row forces this owner to either emit from
+  the sealed MIR plan or fail closed; it cannot return to AST reconstruction.
 - `src/self_hosted/compiler/driver_rung2_enum_payload_variant_admission_owner.pgy`
   -- distinguishes a source-produced MIR whose source-semantic active-variant
   proof was consumed from external MIR that must be re-proved after semantic

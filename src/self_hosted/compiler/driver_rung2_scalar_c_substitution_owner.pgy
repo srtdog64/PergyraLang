@@ -16,22 +16,33 @@ func DriverRung2ScalarCSubstitutionIfClaimed(
         !JsonArrayObjectFactTableReady(admitted.document.declarations) ||
         JsonArrayObjectFactCount(admitted.document.declarations) != 0 { return None; }
     let identity_required: Bool = false;
+    let ownership_required: Bool = false;
+    let every_routine_claimed: Bool = true;
     let row: Int = 0;
     while row < MirProgramRoutineIndexCount(admitted.routines) {
         let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(admitted.routines, row);
         let signature: DirectMirRoutineSignatureFact = DirectMirRoutineSignatureFactAt(
             admitted.routines, row, MirProgramRoutineIndexBlockInstructionCountAt(admitted.routines, row, 0));
-        if !DirectMirScalarControlFlowRoutineRouteClaimed(admitted, signature, index) { return None; }
+        if !DirectMirScalarControlFlowRoutineRouteClaimed(
+                admitted, signature, index) {
+            every_routine_claimed = false;
+        }
         if DirectMirScalarCfgWireLocalRefsRouteIdentityRequired(
                 admitted, index, signature.parameters.names) {
             identity_required = true;
         }
+        // Collection ownership has one direct consumer. Falling through here
+        // would reconstruct cleanup from the AST and discard the MIR fact.
+        if ArrayLength(index.collection_ownership_facts.binding_syntax_ids) > 0 {
+            ownership_required = true;
+        }
         row = row + 1;
     }
-    // The reached replacement is the identity-sensitive family. Primitive
-    // local types alone do not prove every expression is in scalar GraphPlan
-    // (for example Log(1.5) has no source-local Float row).
-    if !identity_required { return None; }
+    // Primitive local types alone do not prove every expression is in scalar
+    // GraphPlan (for example Log(1.5) has no source-local Float row).
+    if !ownership_required && (!identity_required || !every_routine_claimed) {
+        return None;
+    }
     let calls: MirGenericCallOccurrenceIndex = MirGenericCallOccurrenceIndexFromDocument(admitted.document, admitted.routines);
     if !calls.valid { Die("scalar C substitution call identities are invalid"); }
     let instances: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(calls);
