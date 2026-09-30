@@ -96,15 +96,20 @@ func DirectMirScalarProgramCSliceExpression(
         if ArrayLength(arguments) != 3 {
             Die("direct MIR C Array.Slice operands are invalid");
         }
-        return Some(fact.c_array_slice_fn + "(&("
-            + arguments[0] + "), (long long)(" + arguments[1]
-            + "), (long long)(" + arguments[2] + "))");
+        // Every receiver is evaluated once into an addressable carrier.  This
+        // is required for function-return arrays as well as ordinary locals.
+        return Some("({ ${fact.c_array_type} __pgy_slice_receiver = "
+            + arguments[0] + "; long long __pgy_slice_start = (long long)("
+            + arguments[1] + "); long long __pgy_slice_length = (long long)("
+            + arguments[2] + "); " + fact.c_array_slice_fn
+            + "(&__pgy_slice_receiver, __pgy_slice_start, __pgy_slice_length); })");
     }
     if kind == DirectMirScalarProgramExprSliceCopy() {
         if left == "" || right != "" || ArrayLength(arguments) != 0 {
             Die("direct MIR C SliceCopy operands are invalid");
         }
-        return Some(fact.c_slice_copy_fn + "(&(" + left + "))");
+        return Some("({ ${fact.c_slice_type} __pgy_slice_copy = " + left
+            + "; " + fact.c_slice_copy_fn + "(&__pgy_slice_copy); })");
     }
     if kind == DirectMirScalarProgramExprArrayClone() {
         if left == "" || right != "" || ArrayLength(arguments) != 0 ||
@@ -120,8 +125,9 @@ func DirectMirScalarProgramCSliceExpression(
     if left == "" || right == "" || ArrayLength(arguments) != 0 {
         Die("direct MIR C Slice index operands are invalid");
     }
-    return Some(fact.c_slice_get_fn + "(&(" + left
-        + "), (long long)(" + right + "))");
+    return Some("({ ${fact.c_slice_type} __pgy_slice_get = " + left
+        + "; long long __pgy_slice_index = (long long)(" + right + "); "
+        + fact.c_slice_get_fn + "(&__pgy_slice_get, __pgy_slice_index); })");
 }
 
 func DirectMirScalarProgramCSlicePreamble(

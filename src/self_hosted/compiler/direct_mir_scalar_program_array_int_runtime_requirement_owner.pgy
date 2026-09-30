@@ -25,6 +25,14 @@ func DirectMirScalarProgramArrayIntRuntimeRequirementFromPlan(
                 DirectMirScalarCfgOpArrayIntPush() { push = true; }
         operation = operation + 1;
     }
+    let node: Int = 0;
+    while node < ArrayLength(plan.program.expressions.node_kinds) {
+        if plan.program.expressions.node_kinds[node] ==
+                DirectMirScalarProgramExprSliceCopy() &&
+            plan.program.expressions.node_types[node] ==
+                CompilerAbiLayoutArrayIntTypeName() { push = true; }
+        node = node + 1;
+    }
     let get: Bool = DirectMirScalarProgramExpressionContainsKind(
         plan.program.expressions, DirectMirScalarProgramExprArrayIntIndex());
     if (push || get) && !plan.program.array_int_value_result.present {
