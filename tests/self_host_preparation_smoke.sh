@@ -125,7 +125,7 @@ pgy_compiler_world_require_manifest_paths "$ROOT_DIR" ||
     fail "compiler world path manifest is incomplete"
 
 while IFS= read -r parser_owner; do
-    owner_lines="$(wc -l < "$parser_owner")"
+    owner_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$parser_owner")" || fail "source-size measurement failed"
     [[ "$owner_lines" -le 600 ]] ||
         fail "${parser_owner#$ROOT_DIR/} exceeds parser owner LOC cap: $owner_lines > 600"
 done < <(find "$ROOT_DIR/src/self_hosted/parser" -maxdepth 1 -name '*.pgy' -type f | sort)

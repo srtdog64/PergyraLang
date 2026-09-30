@@ -309,7 +309,7 @@ grep() {
     command grep "${original[@]}"
 }
 
-type_checker_loc="$(wc -l < src/semantic/type_checker.c | tr -d '[:space:]')"
+type_checker_loc="$(python3 "$ROOT/scripts/source_size_count.py" src/semantic/type_checker.c)" || fail "source-size measurement failed"
 if [ "$type_checker_loc" -gt 600 ]; then
     fail "src/semantic/type_checker.c is ${type_checker_loc} LOC; expected <= 600"
 fi
@@ -431,7 +431,7 @@ for path in \
     src/semantic/slot_analyzer_escape.c \
     src/semantic/slot_analyzer_summary.c
 do
-    loc="$(wc -l < "$path" | tr -d '[:space:]')"
+    loc="$(python3 "$ROOT/scripts/source_size_count.py" "$path")" || fail "source-size measurement failed"
     if [ "$loc" -gt 600 ]; then
         fail "$path is ${loc} LOC; expected <= 600"
     fi

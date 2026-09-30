@@ -15,7 +15,7 @@ for owner in "$ORCHESTRATOR" "$FACT_VALIDATOR" "$FACT_HEADER"; do
     [[ -f "$owner" ]] || fail "missing owner: $owner"
 done
 for owner in "$ORCHESTRATOR" "$FACT_VALIDATOR"; do
-    lines="$(wc -l < "$owner")"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$owner")" || fail "source-size measurement failed"
     (( lines <= 699 )) || fail "owner exceeds 699 LOC: $owner ($lines)"
 done
 

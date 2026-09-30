@@ -1,7 +1,7 @@
 # Size-policy owner shared by the component and production-size gates.
 # lookup requires one exact registered path; scan applies defaults only to
-# unregistered paths. Registered caps retain component record-count semantics;
-# other paths retain the production gate's batch wc newline counts.
+# unregistered paths. Source counts are supplied by source_size_count.py;
+# this owner owns limits, never a second physical/newline counting policy.
 function fail(message, error_status) {
     print "[self-host-owner-size] " message > "/dev/stderr"
     if (error_status == "") error_status = 1
@@ -23,15 +23,6 @@ function require_regular_file(path, diagnostic,    quoted_path, path_index, char
     if (preflight_status != 0)
         fail("regular-file preflight failed with status " preflight_status ": " path, 2)
 }
-function line_count(rel,    path, count, status, line) {
-    path = root "/" rel
-    require_regular_file(path, "unreadable source: " rel)
-    count = 0
-    while ((status = (getline line < path)) > 0) count++
-    close(path)
-    if (status < 0) fail("unreadable source: " rel)
-    return count
-}
 BEGIN {
     if (root == "") fail("missing repository root")
     if (mode != "lookup" && mode != "scan") fail("invalid policy mode")
@@ -49,7 +40,7 @@ BEGIN {
             fail("invalid responsibility cap row: " row)
         if (rel in caps) fail("duplicate responsibility cap: " rel)
         caps[rel] = cap + 0
-        counts[rel] = line_count(rel)
+        require_regular_file(root "/" rel, "unreadable source: " rel)
         registered++
     }
     close(manifest)
@@ -70,10 +61,9 @@ mode == "scan" {
     count = $1
     rel = $0
     sub(/^[ \t]*[0-9]+[ \t]+/, "", rel)
-    if (count !~ /^[0-9]+$/) fail("invalid newline-count row: " $0)
+    if (count !~ /^[0-9]+$/) fail("invalid source-count row: " $0)
     if (rel == "" || rel !~ /^src\/self_hosted\// || seen[rel]++)
         fail("invalid or duplicate scan path: " rel)
-    if (rel in counts) count = counts[rel]
     limit = general_limit + 0
     if (rel in caps) {
         limit = caps[rel]

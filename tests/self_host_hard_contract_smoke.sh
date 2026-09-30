@@ -606,7 +606,7 @@ require_file \
 shared_nominal_total=0
 while IFS='|' read -r owner cap; do
     require_file "src/self_hosted/compiler/$owner"
-    lines="$(wc -l < "src/self_hosted/compiler/$owner")"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "src/self_hosted/compiler/$owner")" || fail "source-size measurement failed"
     [[ "$lines" -le "$cap" ]] || fail "$owner hard cap exceeded: $lines/$cap"
     shared_nominal_total=$((shared_nominal_total + lines))
 done <<'SHARED_NOMINAL_OWNER_CAPS'
@@ -633,7 +633,8 @@ done
 mutable_identity_total=0
 while IFS='|' read -r owner cap; do
     require_file "src/self_hosted/compiler/$owner"
-    lines="$(wc -l < "src/self_hosted/compiler/$owner")"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "src/self_hosted/compiler/$owner")" ||
+        fail "source-size measurement failed: $owner"
     [[ "$lines" -le "$cap" ]] || fail "$owner hard cap exceeded: $lines/$cap"
     mutable_identity_total=$((mutable_identity_total + lines))
 done <<'MUTABLE_IDENTITY_OWNER_CAPS'
@@ -649,7 +650,8 @@ mutable_identity_inventory=(src/self_hosted/compiler/direct_mir_mutable_nominal_
     fail "mutable nominal identity owner cap exceeded: $mutable_identity_total/384"
 require_file \
     "src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy"
-[[ "$(wc -l < src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy)" -le 90 ]] || \
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy)" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 90 ]] || \
     fail "exact JSON-array cardinality owner hard cap exceeded"
 [[ ! -e src/self_hosted/compiler/direct_mir_inferred_generic_member_array_shape_owner.pgy ]] || \
     fail "retired inferred-family array-shape owner reappeared"

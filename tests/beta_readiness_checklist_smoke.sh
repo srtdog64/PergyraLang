@@ -18,7 +18,7 @@ require_max_lines() {
     local max_lines="$2"
     local line_count
 
-    line_count="$(wc -l < "$ROOT_DIR/$rel")"
+    line_count="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$rel")" || fail "source-size measurement failed: $rel"
     [[ "$line_count" -le "$max_lines" ]] ||
         fail "$rel has $line_count lines; expected <= $max_lines"
 }

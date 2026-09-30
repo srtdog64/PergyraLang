@@ -127,7 +127,8 @@ for retired in (
     assert retired not in projection
 PY
 
-if [[ "$(wc -l < "$PROJECTION" | tr -d ' ')" -gt 150 ]]; then
+projection_lines="$("$PYTHON_BIN" "$ROOT_DIR/scripts/source_size_count.py" "$PROJECTION")"
+if [[ "$projection_lines" -gt 150 ]]; then
     echo "[intent-observability-abi] row projection exceeds 150 lines" >&2
     exit 1
 fi

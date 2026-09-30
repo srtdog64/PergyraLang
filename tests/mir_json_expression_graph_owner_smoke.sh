@@ -16,7 +16,7 @@ for owner in "$ORCHESTRATOR" "$MATERIALIZER" "$MATERIALIZER_HEADER"; do
 done
 
 for owner in "$ORCHESTRATOR" "$MATERIALIZER"; do
-    lines="$(wc -l < "$owner")"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$owner")" || fail "source-size measurement failed"
     (( lines <= 699 )) || fail "owner exceeds 699 LOC: $owner ($lines)"
 done
 

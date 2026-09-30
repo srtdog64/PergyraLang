@@ -3,6 +3,7 @@
 set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 POLICY="$REPO_DIR/tests/self_hosted_owner_size_policy.awk"
+SOURCE_SIZE_COUNTER="$REPO_DIR/scripts/source_size_count.py"
 fail() { echo "[owner-size-policy-checker] $*" >&2; exit 1; }
 
 # BWK awk requires the regexp delimiter escaped inside this bracket expression.
@@ -25,8 +26,8 @@ scan() {
     for path in "${owners[@]}"; do [[ "$path" != "$target" ]] || registered=1; done
     (
         cd "$ROOT_DIR"
-        if [[ "$registered" -eq 1 ]]; then wc -l "${owners[@]}";
-        else wc -l "${owners[@]}" "$target"; fi
+        if [[ "$registered" -eq 1 ]]; then python3 "$SOURCE_SIZE_COUNTER" --rows "${owners[@]}";
+        else python3 "$SOURCE_SIZE_COUNTER" --rows "${owners[@]}" "$target"; fi
     ) | awk -v root="$ROOT_DIR" -v mode=scan \
         -v general_limit="${2:-699}" -v semantic_limit=599 \
         -v general_explicit="${3:-0}" -f "$POLICY"
@@ -80,11 +81,11 @@ make_lines "${owners[0]}" 700
 expect_rejection explicit-ceiling 'cap is 699' scan "${owners[0]}" 699 1
 make_lines "${owners[0]}" 0
 
-# Only registered sources use the component's record-count semantics. Keep
-# newline-count semantics for unregistered production sources unchanged.
+# Every source uses records, including an unterminated final line; registration
+# changes the cap owner, not how source is measured.
 printf 'a\r\nb' >"$ROOT_DIR/$generic"
-scan "$generic" 1 1
-expect_rejection newline-over 'cap is 0' scan "$generic" 0 1
+scan "$generic" 2 1
+expect_rejection unterminated-over 'cap is 1' scan "$generic" 1 1
 printf 'a\r\nb' >"$ROOT_DIR/${owners[0]}"
 scan "${owners[0]}" 2 1
 expect_rejection registered-unterminated-over 'cap is 1' scan "${owners[0]}" 1 1
