@@ -57,18 +57,10 @@ func DirectMirScalarCfgProgramCRoutine(ref plan: DirectMirScalarCfgGraphPlan, ro
         plan.routines.local_counts[routine], routine));
     let block_start: Int = plan.routines.block_starts[routine];
     let block_end: Int = block_start + plan.routines.block_counts[routine];
-    TextBuilderAppend(output, "    goto pgy_r");
-    TextBuilderAppend(output, ToString(routine));
-    TextBuilderAppend(output, "_block_");
-    TextBuilderAppend(output, ToString(block_start));
-    TextBuilderAppend(output, ";\n");
+    TextBuilderAppend(output, "    goto pgy_r${routine}_block_${block_start};\n");
     let block: Int = block_start;
     while block < block_end {
-        TextBuilderAppend(output, "pgy_r");
-        TextBuilderAppend(output, ToString(routine));
-        TextBuilderAppend(output, "_block_");
-        TextBuilderAppend(output, ToString(block));
-        TextBuilderAppend(output, ":\n");
+        TextBuilderAppend(output, "pgy_r${routine}_block_${block}:\n");
         let operation: Int = plan.block_operation_starts[block];
         let operation_end: Int = operation +
             plan.block_operation_counts[block];

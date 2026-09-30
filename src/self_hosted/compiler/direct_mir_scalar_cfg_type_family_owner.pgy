@@ -22,7 +22,6 @@ func DirectMirScalarCfgIterationTypePairSupported(binding_type: String, iterable
         (binding_type == CompilerAbiLayoutStringTypeName() &&
             iterable_type == CompilerAbiLayoutArrayStringTypeName());
 }
-
 func DirectMirScalarCfgSourceLocalTypeSupported(type_name: String) -> Bool {
     let hashmap: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(type_name);
     return DirectMirScalarCfgScalarTypeSupported(type_name) ||

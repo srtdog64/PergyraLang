@@ -310,8 +310,12 @@ done
     -o "$WORK_REL/empty-valid.c") >"$WORK_DIR/empty-valid-c.out" \
     2>"$WORK_DIR/empty-valid-c.err" ||
     fail "installed self-host failed to emit C for exact transition"
-[[ "$(grep -Fc 'pgy_as_drop_owned(&values);' "$WORK_DIR/empty-valid.c")" == 1 ]] ||
-    fail "explicit owned drop was duplicated by automatic cleanup"
+[[ "$(grep -Ec '^[[:space:]]+pgy_as_drop_owned\(&[[:alnum:]_]+\);$' \
+    "$WORK_DIR/empty-valid.c")" == 1 ]] ||
+    fail "public C did not emit exactly one explicit owned drop"
+! grep -Eq '^[[:space:]]+pgy_as_drop_storage\(&[[:alnum:]_]+\);$' \
+    "$WORK_DIR/empty-valid.c" ||
+    fail "explicit owned drop retained automatic storage cleanup"
 
 VALID="tests/concept_semantics/hashmap/map_keys_owned_drop_valid.pgy"
 (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$VALID" \

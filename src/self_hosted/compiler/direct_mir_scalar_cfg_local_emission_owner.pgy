@@ -80,8 +80,7 @@ func DirectMirScalarCfgCLocalDeclarationsInRange(
         } else if plan.local_types[row] == CompilerAbiLayoutIntTypeName() {
             output = Concat(output, int_c_type);
         } else { Die("direct MIR C local has no admitted type representation"); }
-        output = Concat(output, " pgy_local_");
-        output = Concat(output, ToString(row));
+        output = Concat(output, " pgy_local_${row}");
         let zero_aggregate: Bool =
             hashmap.ok || runtime_value.valid ||
             plan.local_types[row] == CompilerAbiLayoutArrayStringTypeName() ||

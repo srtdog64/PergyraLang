@@ -8,7 +8,6 @@ import "direct_mir_scalar_program_payload_enum_match_condition_owner.pgy";
 import "direct_mir_scalar_program_option_int_match_condition_owner.pgy";
 import "direct_mir_scalar_program_int_match_condition_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
-
 func DirectMirScalarCfgProgramAppendTypedExpressionFieldWithOptionIntMatch(
     inout expressions: DirectMirScalarProgramExpressionSet,
     inout failure: DirectMirScalarProgramExpressionAdmissionFailure,

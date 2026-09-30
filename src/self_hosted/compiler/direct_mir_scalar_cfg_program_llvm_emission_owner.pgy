@@ -75,11 +75,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan,
         plan, plan.routines.local_starts[routine], plan.routines.local_counts[routine], routine));
     let block_start: Int = plan.routines.block_starts[routine];
     let block_end: Int = block_start + plan.routines.block_counts[routine];
-    TextBuilderAppend(output, "  br label %pgy.r");
-    TextBuilderAppend(output, ToString(routine));
-    TextBuilderAppend(output, ".block.");
-    TextBuilderAppend(output, ToString(block_start));
-    TextBuilderAppend(output, "\n");
+    TextBuilderAppend(output, "  br label %pgy.r${routine}.block.${block_start}\n");
     let block: Int = block_start;
     while block < block_end {
         TextBuilderAppend(output, "\npgy.r");
