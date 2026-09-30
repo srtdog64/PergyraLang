@@ -101,7 +101,9 @@ if [[ "$FOCUS" == owned-parameter || "$FOCUS" == owned-parameter-self-host ]]; t
         for backend in c llvm; do
             for lane in "${OWN_LANES[@]}"; do
                 command=("$PGY")
-                [[ "$lane" == native ]] && command+=(--native-pipeline)
+                # Native text diagnostics omit stable codes. Read the owned
+                # JSON diagnostic so a generic compiler refusal cannot pass.
+                [[ "$lane" == native ]] && command+=(--native-pipeline --error-format=json)
                 output_rel="$WORK_REL/$name-$lane-$backend.exe"
                 command+=("$source" "--backend=$backend" -o "$output_rel")
                 if (cd "$ROOT_DIR" && "${command[@]}") \
@@ -118,7 +120,7 @@ if [[ "$FOCUS" == owned-parameter || "$FOCUS" == owned-parameter-self-host ]]; t
                     native:*:borrow_boundary_escape)
                         diagnostic_pattern='(borrow_boundary_escape|PGY_SEM_BORROW_ESCAPE)' ;;
                     native:*:move_from_released)
-                        diagnostic_pattern='(move_from_released|was moved|moved or released)' ;;
+                        diagnostic_pattern='PGY_SEM_MOVE_FROM_RELEASED' ;;
                 esac
                 grep -Eq "$diagnostic_pattern" \
                     "$WORK_DIR/$name-$lane-$backend.out" \

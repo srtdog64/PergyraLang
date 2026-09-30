@@ -560,6 +560,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_assign.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_array_store.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact.c \
+                   $(SEMANTIC_DIR)/collection_owned_element_requirement_owner.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_boundaries.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_call.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_destructure.c \

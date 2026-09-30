@@ -1,6 +1,7 @@
 # Collection field lifetime implementation
 
-Status: IN PROGRESS. Base: `d7abecfb76902368dee180ece99fc31a704f281b`.
+Status: PARTIAL IMPLEMENTATION; reached public consumer BLOCKED.
+Base: `d7abecfb76902368dee180ece99fc31a704f281b`.
 This directive coordinates implementation; it is not semantic authority.
 
 ## Shared objective card
@@ -44,9 +45,40 @@ This directive coordinates implementation; it is not semantic authority.
 
 Read-only source/Git inspection and patch edits within owned scopes are allowed.
 Static owner gates have a 60-second budget; focused parity five minutes;
-integration shard thirty minutes. No full matrix, commit, push, installation,
+integration shard thirty minutes. The user's later commit/push instruction
+authorizes root's reviewed implementation units and remote-SHA verification;
+agents still do not stage, commit or push. No full matrix, installation,
 registry CLOSED claim, or unsafe negative-binary execution in this directive.
 Builds and evidence use unique private paths. Root alone schedules the recorded
 native/driver pair after source is stable; test agents do not rebuild it.
 Outputs are implementation candidates until root independently observes the
 focused acceptance gates. Preparation reports remain historical evidence.
+
+## Observed continuation boundary
+
+Pergyra prerequisite unit `d6ee09f4` is committed and pushed. A fresh private
+gen2-built DRV-2 admitted the owned forwarding MIR and refused the five new
+negative fixtures. The native requirement consumer independently refused those
+negatives on C/LLVM and ran owned forwarding and named Clone on both backends.
+The private carrier gate passed 36 malformed-row refusals. The default semantic
+integration shard passed on a frozen script and the same private pair; it does
+not include the new own-formal selector or aggregate closure. Exact identities and
+limits are in `docs/audits/collection_owned_parameter_execution_2026-10-01.md`.
+
+The public positive remains BLOCKED at the reached direct-MIR consumer, not at
+an unavailable model or an unrun preparation step. Missing fact: own-formal
+source identity with routine-entry lifetime/last-use/all-exit coverage. Fact
+owner: the existing owned-array-string move admission/coverage owners. Last
+consumer: direct program extension readiness and C/LLVM emission/cleanup.
+Falsifier: `own_wrapper_owned_positive.pgy`, verified MIR followed by public C
+emission, which currently returns `code=19`. Do not merely allow ExprParameter:
+the current coverage requires a local definition and its digest/plan join must
+bind any new formal source identity. LLVM own-array descriptor reads also need
+to agree with the mutable `.local` descriptor before grow-and-forward support.
+This consumer continuation was sent to main; root did not edit that scope.
+
+No aggregate-field bypass was removed. Producer/inout/return/field-path proof
+and empty writeback remain required before `semantic.hashmap_collection_ownership`
+can leave ACTIVE. Do not start a third SoT-only unit by expanding the inventory;
+resume from the exact executable consumer/falsifier above or the named field
+fact chain, under the single-rung guard.

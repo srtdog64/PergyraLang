@@ -49,19 +49,90 @@ inference; the final control first binds a typed source, then calls Clone.
 
 ## Limits and next falsifier
 
-This is executed owner/component evidence, not a completed installed-driver,
-public C/LLVM, strict native parity or full ownership integration result.
-The private gen2-built DRV-2 is being built in `driver-build/` with output only
-under `driver-bin/`; installed binaries are not replaced.
-The current native MIR oracle incorrectly admitted the known-borrowed three-hop
-wrapper (exit 0). A bounded native requirement-consumer candidate is in progress;
-strict parity must retain this falsifier until independently observed fixed.
+This is not installed-binary, full fixed-point, CI or family-closure evidence.
+The gen2-built DRV-2 completed in `driver-build/` with output only under
+`driver-bin/`; installed binaries were not replaced. Its SHA-256 is
+`AF815E11989FC389D9C4BA5FF4A9CF50F81110CED9C16BB123814160AA4D62EB`.
+The initial native MIR oracle incorrectly admitted the known-borrowed three-hop
+wrapper (exit 0); no binary for that negative was executed.
+
+The native bootstrap now records exact typed stdlib deep-drop seeds, stable
+own-call targets, formal forwarding edges and caller element-state snapshots
+before the existing storage consumer. One post-Pass2 fixed point rejects known
+BORROWED actuals. This is a refusal ratchet, not UNKNOWN ownership permission;
+general UNKNOWN and aggregate-formal exemptions are still bootstrap debt.
+Private candidate native SHA-256:
+`F3F516DDC6C03C8AECA0DE51700B91AD879E1233118FF3109C0E9ABD03CBFA99`.
+The native build succeeded with six warnings in existing unrelated semantic
+files; no new owner warning was observed. The prior seed receipts still name
+the initial native bootstrap hash, not this later candidate.
+
+`owned-parameter-strict-json.log` and unique run
+`.tmp/self_hosted/collection_ownership_semantic_owner.LRQRI9/` observed all five
+driver MIR refusals with preserved sentinels and all five public C/LLVM plus
+native C/LLVM pre-artifact refusals. Native JSON codes were BORROW_ESCAPE for
+the wrapper, TYPE_MISMATCH with the exact named-variable requirement for
+member/inline, and MOVE_FROM_RELEASED for the two reuse cases. Native text mode
+omits these stable codes; the gate now requests JSON for native negatives.
+
+In `native-requirement-positives/`, owned wrapper and named Clone compiled and
+ran on native C/LLVM with their exact expected output (four executions).
+The shadow callable compiled on native C/LLVM without execution. The strict
+gate also admitted shadow MIR and compiled it on both public backends.
+The private carrier gate (`collection-carrier.log`) passed native/self-host
+producer-consumer parity and 36 malformed-row refusals.
+
+The default semantic integration shard was rerun with the script frozen at
+SHA-256 `551B0431979DDA549A6EA5B052D461A3C08E73E8FFC3DF3F4314B66F07AD3488`.
+`collection-semantic-all-stable.log` returned 0 and the final ownership parity
+PASS; its unique evidence is
+`.tmp/self_hosted/collection_ownership_semantic_owner.fXtCKb/`. The script hash
+was unchanged after completion. This includes the retained default negatives,
+borrowed/UNKNOWN binding-move C/LLVM execution, Clone controls and both actual
+HashMap early-return/normal-exit execution. Clang module-target-triple warnings
+were visible. The log's legacy "installed self-host" wording means the selected
+private driver in its first line here; repository installed binaries were not
+replaced, and this is not installed acceptance or the new own-formal selector.
+
+The first default run (`collection-semantic-all.log`, `5YTGUv`) is not overall
+green evidence: root edited the script while it was running, and it stopped at
+the final negative-array section with a command-not-found error. The current
+array declaration parsed independently; the fully frozen rerun above passed.
+No source-stability claim is made for the first run.
+
+The strict gate did not pass overall: public C refused the owned wrapper after
+verified MIR publication with `direct MIR scalar program extension ... code=19`.
+The unchanged final script was rerun in `owned-parameter-strict-final.log`
+with evidence `.tmp/self_hosted/collection_ownership_semantic_owner.xsqhqo/`;
+the typed negative checks passed and the same public C positive failed.
+An independent public LLVM probe (`public-wrapper-llvm.out/.err`) also returned
+1 with code 19 and did not publish its requested executable.
+The same failure was observed in the self-host-only selector before native
+integration. This is a real positive falsifier, not a generic diagnostic match.
+The owned-array-string move admission accepts only local expression sources,
+and its coverage requires a local definition operation. Forward/Relay carry
+formal parameters, whose lifetime starts at routine entry. Merely relaxing
+ExprLocal would leave last-use/exit coverage and the digest/plan join unproved.
+Current C/LLVM cleanup is local-only; no formal cleanup should be added as a
+substitute for the missing transfer fact. LLVM own-array mutation uses the
+`.local` descriptor while parameter reads can still use the original SSA value;
+grow-and-forward needs a consistent descriptor owner as well. Main was sent
+this exact consumer boundary. No direct-backend source was edited here.
 
 Lexical owner sizes observed: 66, 41, 88, 146 lines versus caps 100, 100, 160,
 180. Shell syntax and whitespace checks passed. The 14 component-checker unit
 tests passed, but the overall structural script did not complete successfully
 within its Windows static budget, at repeated responsibility-size lookup; no
 overall structural PASS is claimed.
+
+The native lexical-size gate also ran and returned 1 for four unchanged
+pre-existing owners: `collection_ownership_fact.c` 873,
+`type_checker_builtins_ownership_nominal.c` 611,
+`type_checker_call_generic_where.c` 655 and
+`type_checker_intent_step_sequence.c` 689, against 599. Those files have no
+diff in this implementation; unrelated splitting was not opened as a second
+track. The new native owner is 326 lexical lines, its header 27, and the two
+hooked program/call owners are 559/298. No overall native-size PASS is claimed.
 
 Future aggregate negatives/actual producer controls have an explicit
 `aggregate-field` selector. Default established cases are preserved. The

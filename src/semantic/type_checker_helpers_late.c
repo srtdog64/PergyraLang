@@ -9,6 +9,7 @@
 
 #include "type_checker_internal.h"
 #include "callable_capability_inference.h"
+#include "collection_owned_element_requirement_owner.h"
 #include "type_checker_visibility.h"
 #include "type_checker_generic_diag_internal.h"
 #include "type_checker_ownership_internal.h"
@@ -262,6 +263,11 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         OwnershipTypeClass arg_ownership =
             semantic_classify_ownership_type(arg_type, ctx);
         bool ownership_handled = false;
+
+        if (!semantic_collection_owned_element_requirement_record_argument(
+                expr, callable_decl, i, arg_expr, arg_type,
+                type_function_param_mode(sym->type, i), ctx))
+            continue;
 
         semantic_check_function_call_ownership_argument(
             arg_expr,

@@ -6,6 +6,7 @@
  */
 
 #include "type_checker_internal.h"
+#include "collection_owned_element_requirement_owner.h"
 #include "type_checker_builtins_internal.h"
 #include "type_checker_builtins_stdlib_collections_internal.h"
 #include "type_checker_collection_policy.h"
@@ -305,6 +306,9 @@ type_check_stdlib_array_call(ASTNode *expr,
                        expr, arg0, PGY_COLLECTION_EFFECT_DROP, ctx)) {
             semantic_error(ctx, expr,
                 "Could not seal Array<String> ownership transition receipt");
+            return TYPE_UNKNOWN;
+        } else if (!semantic_collection_owned_element_requirement_record_deep_drop(
+                       expr, arg0, arr, ctx)) {
             return TYPE_UNKNOWN;
         }
         return TYPE_VOID;

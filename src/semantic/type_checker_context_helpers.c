@@ -7,6 +7,7 @@
 #include "diag_payload.h"
 #include "type_checker_internal.h"
 #include "callable_capability_inference.h"
+#include "collection_owned_element_requirement_owner.h"
 #include "type_checker_flow_loop_summary.h"
 #include "type_checker_flow_universe.h"
 
@@ -203,6 +204,8 @@ semantic_context_destroy(SemanticContext *ctx)
     resource_flow_universe_end(ctx);
     function_param_flow_summary_store_destroy(ctx);
     callable_capability_destroy(ctx);
+    semantic_collection_owned_element_requirements_destroy(
+        ctx->collection_owned_element_requirements);
     scope_destroy(ctx->scope);
 
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {

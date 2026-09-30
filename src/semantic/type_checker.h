@@ -45,6 +45,7 @@ typedef struct LoopFlowSummaryStore LoopFlowSummaryStore;
 typedef struct CallableCapabilityStore CallableCapabilityStore;
 typedef struct CallableCapabilityRoutine CallableCapabilityRoutine;
 typedef struct FunctionParamFlowSummaryStore FunctionParamFlowSummaryStore;
+typedef struct CollectionOwnedElementRequirementStore CollectionOwnedElementRequirementStore;
 
 #define SEMANTIC_MAX_LOOP_DEPTH 64
 
@@ -190,6 +191,8 @@ struct SemanticContext
     PgyCollectionOwnershipFact *collection_ownership_facts;
     size_t       collection_ownership_fact_count;
     size_t       collection_ownership_fact_capacity;
+    /* Ephemeral bootstrap refusal ratchet, consumed once after Pass 2. */
+    CollectionOwnedElementRequirementStore *collection_owned_element_requirements;
 
     /* Semantic-owned domain runtime identities.  Later stages may carry these
      * rows losslessly, but must not reconstruct participant roles or member

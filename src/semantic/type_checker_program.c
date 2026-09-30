@@ -7,6 +7,7 @@
 #include "type_checker_internal.h"
 #include "capability_analyze.h"
 #include "callable_capability_inference.h"
+#include "collection_owned_element_requirement_owner.h"
 #include "diag_codes.h"
 
 /* PGY_DEBUG_SEMANTIC_TIMING sub-slots for type_check_program: which of the
@@ -115,6 +116,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     }
 
     ctx->program_root = program;
+    if (!semantic_collection_owned_element_requirements_begin(program, ctx))
+        return false;
     callable_capability_program_begin(ctx, program);
     if (!semantic_build_host_decl_index(ctx, program))
         return program_report_resolution_oom(ctx, program,
@@ -563,6 +566,11 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 t_worklist, t_pass2);
         type_check_expr_debug_visit_report();
         type_check_stmt_debug_visit_report();
+    }
+
+    if (!semantic_collection_owned_element_requirements_finalize(ctx)) {
+        free(topo_order);
+        return false;
     }
 
     /* Pass 2 normally consumes the precollected graph.  If a legacy checker
