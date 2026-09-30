@@ -405,6 +405,35 @@ done
     tail -c 65536 "$WORK_DIR/binding-move-direct-backend-probe.compile" >&2
     fail "native pipeline could not build the direct binding-move backend probe"
 }
+MAP_KEYS_BROADENED_REL="$WORK_REL/map-keys-retirement-broadened.mir.json"
+python - "$ROOT_DIR/$WORK_REL/valid.mir.json" \
+        "$ROOT_DIR/$MAP_KEYS_BROADENED_REL" <<'PY'
+import json, pathlib, sys
+source, output = map(pathlib.Path, sys.argv[1:])
+program = json.loads(source.read_text(encoding="utf-8"))
+facts = program["routines"][0]["collection_ownership_facts"]
+assert len(facts) == 1
+facts[0]["origin"] = "clone"
+facts[0]["element_ownership"] = "owned-elements"
+output.write_text(json.dumps(program, separators=(",", ":")), encoding="utf-8")
+PY
+for backend in c llvm; do
+    output_rel="$WORK_REL/map-keys-retirement-broadened.$backend"
+    marker="preserved:map-keys-retirement-broadened:$backend"
+    printf '%s\n' "$marker" >"$ROOT_DIR/$output_rel"
+    if (cd "$ROOT_DIR" && "$WORK_DIR/binding-move-direct-backend-probe.exe" \
+        "$MAP_KEYS_BROADENED_REL" "$backend" "$output_rel") \
+        >"$WORK_DIR/map-keys-retirement-broadened-$backend.out" \
+        2>"$WORK_DIR/map-keys-retirement-broadened-$backend.err"; then
+        fail "direct $backend broadly admitted a non-MapKeys retirement drop"
+    fi
+    [[ "$(cat "$ROOT_DIR/$output_rel")" == "$marker" ]] ||
+        fail "direct $backend broad-retirement refusal replaced its artifact"
+    grep -Fq 'stage=collection_ownership_transition' \
+        "$WORK_DIR/map-keys-retirement-broadened-$backend.out" \
+        "$WORK_DIR/map-keys-retirement-broadened-$backend.err" ||
+        fail "direct $backend broad-retirement refusal lost its stage"
+done
 for name in borrowed_string_array_shallow_copy \
         unknown_string_array_alias_without_drop; do
     mir_rel="$WORK_REL/$name.mir.json"

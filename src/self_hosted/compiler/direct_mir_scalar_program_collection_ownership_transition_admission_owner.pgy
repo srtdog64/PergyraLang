@@ -295,7 +295,13 @@ func DirectMirScalarProgramCollectionOwnershipTransitionAppendRoutine(
                     if cfg_rows[cfg_index] == tracked { cfg_tracked = true; }
                     cfg_index = cfg_index + 1;
                 }
-                if expected_effect == 0 && !receipt.present { next = states[tracked]; } else if cfg_tracked {
+                if expected_effect == 0 && !receipt.present { next = states[tracked]; }
+                else if expected_effect == 3 && !receipt.present &&
+                        DirectMirCollectionOwnershipMapKeysRetirementForBinding(
+                            index, bindings[tracked]) {
+                    next = DirectMirCollectionOwnershipNextState(
+                        states[tracked], expected_effect);
+                } else if cfg_tracked {
                     if expected_effect == 0 || !receipt.present ||
                         receipt.effect_kind != expected_effect ||
                         receipt.receiver_binding_syntax_id != bindings[tracked] ||

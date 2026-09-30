@@ -3,6 +3,28 @@
 import "direct_mir_scalar_cfg_program_graph_storage_owner.pgy";
 import "../mir_lower/routine_fact_index_schema_owner.pgy";
 
+func DirectMirCollectionOwnershipMapKeysRetirementForBinding(
+    ref index: MirRoutineFactIndex,
+    binding_syntax_id: Int
+) -> Bool {
+    if !index.collection_ownership_facts.valid || binding_syntax_id <= 0 {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(
+            index.collection_ownership_facts.binding_syntax_ids) {
+        if index.collection_ownership_facts.binding_syntax_ids[row] ==
+                binding_syntax_id {
+            return index.collection_ownership_facts.origins[row] == "map-keys" &&
+                index.collection_ownership_facts.element_ownerships[row] ==
+                    "map-keys-snapshot" &&
+                index.collection_ownership_facts.dispositions[row] == "retired";
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
 func DirectMirCollectionOwnershipBindingLocalRow(
     ref index: MirRoutineFactIndex,
     ref storage: DirectMirScalarCfgProgramGraphStorage,
