@@ -4,6 +4,7 @@
  * source path for comparison, but may not recreate function/signature tuples.
  * PGY_COMPILER_INTERNAL_BUILTIN_CALLER_ROWS_OWNER
  */
+PGY_COMPILER_INTERNAL_BUILTIN_CALLER("CompilerRetireArrayStorage", "src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy", "DirectMirScalarProgramOwnedStringProofStorageRetire", PGY_COMPILER_INTERNAL_PARAM_OWN, "Array<Int>", "Void")
 PGY_COMPILER_INTERNAL_BUILTIN_CALLER("CompilerRetireArrayStorage", "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy", "SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection", PGY_COMPILER_INTERNAL_PARAM_OWN, "AstTreeArtifact", "AstTreeArtifact")
 PGY_COMPILER_INTERNAL_BUILTIN_CALLER("CompilerRetireArrayStorage", "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy", "SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts", PGY_COMPILER_INTERNAL_PARAM_OWN, "AstTreeArtifact", "Void")
 PGY_COMPILER_INTERNAL_BUILTIN_CALLER("CompilerRetireArrayStorage", "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy", "SelfMirBodyTypeBundleStorageRetireAfterProgramFacts", PGY_COMPILER_INTERNAL_PARAM_OWN, "SemanticAstBodyTypeBundle", "Void")

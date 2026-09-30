@@ -3123,7 +3123,9 @@ require_max_lines "src/self_hosted/semantic/wrapper_type_owner.pgy" 300
 require_file "src/self_hosted/semantic/collection_mutation_policy_owner.pgy"
 require_max_lines "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" 300
 require_file "src/self_hosted/semantic/compiler_internal_builtin_caller_registry_owner.pgy"
-require_max_lines "src/self_hosted/semantic/compiler_internal_builtin_caller_registry_owner.pgy" 100
+# One exact Int proof-storage caller adds six generated data rows; no proof
+# algorithm cap or traversal allowance changes. Generator parity owns the data.
+require_max_lines "src/self_hosted/semantic/compiler_internal_builtin_caller_registry_owner.pgy" 105
 require_text "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" \
     'import "compiler_internal_builtin_caller_registry_owner.pgy";'
 require_text "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" \

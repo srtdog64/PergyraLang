@@ -1,0 +1,35 @@
+// Test entrypoint into real checked-MIR admission and scalar C/LLVM projection.
+// This deliberately excludes the source producer and public CLI dispatcher.
+import "../../../src/self_hosted/compiler/direct_mir_scalar_program_projection_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy";
+import "../../../src/self_hosted/mir_lower/mir_json_input_owner.pgy";
+import "../../../src/self_hosted/mir_lower/generic_instance_plan_owner.pgy";
+
+func Main() -> Void with caps env, io_read, io_write {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 4 { Die("expected MIR, machine declaration, backend and output"); }
+    let declaration: SelfHostMachineLayerDeclaration =
+        SelfHostMachineLayerDeclarationFromPath(args[1]);
+    if !SelfHostMachineLayerDeclarationReady(declaration) { Die("invalid machine declaration"); }
+    let admitted: MirMachineLayerAdmittedJsonInput =
+        MirJsonReadMachineAdmittedInput(args[0], declaration);
+    let calls: MirGenericCallOccurrenceIndex =
+        MirGenericCallOccurrenceIndexFromDocument(admitted.document, admitted.routines);
+    if !calls.valid { Die("invalid generic call occurrences"); }
+    let instances: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(calls);
+    if !instances.valid { Die(instances.diagnostic); }
+    let admission: DirectMirScalarProgramRouteAdmission =
+        DirectMirScalarProgramRouteAdmissionFromAdmitted(admitted, calls, instances);
+    if !DirectMirScalarProgramRouteAdmissionReady(admission) || !admission.route.claimed {
+        DirectMirScalarProgramRouteAdmissionDie(admission);
+    }
+    let projection: String = CompilerTargetCpuCProjection();
+    if args[2] == "llvm" { projection = CompilerTargetCpuLlvmProjection(); }
+    else if args[2] != "c" { Die("invalid backend"); }
+    let target: CompilerTargetProjectionFact = CompilerTargetProjectionFactFromOwner(projection);
+    let route: DirectMirScalarProgramRouteFact = admission.route;
+    let payload: String = CompileAdmittedDirectMirScalarProgramForTargetObserved(
+        admitted, route, target, false);
+    // Publication is last: refusal must preserve an existing projected artifact.
+    WriteFile(args[3], payload);
+}

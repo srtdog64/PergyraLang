@@ -16,5 +16,5 @@ func DirectMirScalarProgramOwnedStringCallResultArgumentReady(
         return false;
     }
     return DirectMirScalarProgramFunctionReturnsOwnedString(
-        plan, facts.node_callable_rows[argument], 0);
+        plan, facts.node_callable_rows[argument]);
 }

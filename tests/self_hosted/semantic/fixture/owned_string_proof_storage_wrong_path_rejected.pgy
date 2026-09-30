@@ -1,0 +1,9 @@
+// Exact function/type spelling does not grant compiler-internal authority.
+func DirectMirScalarProgramOwnedStringProofStorageRetire(own rows: Array<Int>) -> Void {
+    CompilerRetireArrayStorage(rows);
+}
+
+func Main() -> Void {
+    let rows: Array<Int> = [1];
+    DirectMirScalarProgramOwnedStringProofStorageRetire(rows);
+}

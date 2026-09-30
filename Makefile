@@ -3453,6 +3453,13 @@ self-host-direct-mir-scalar-owned-array-string-parameter-test-smoke: self-host-c
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_owned_array_string_parameter_owner.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_string_call_result_owner.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_string_result_composition.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_string_reachable_proof.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		PGY_SELFHOST_CC="$(CC)" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_string_scalar_projection.sh
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_non_entrypoint_owned_array_string_parameter_owner.sh
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \

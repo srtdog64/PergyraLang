@@ -11,36 +11,42 @@ struct SemanticCompilerInternalBuiltinCallerRow {
     return_type: String;
 }
 
-func SemanticCompilerInternalBuiltinCallerCount() -> Int { return 5; }
+func SemanticCompilerInternalBuiltinCallerCount() -> Int { return 6; }
 
 func SemanticCompilerInternalBuiltinCallerRowAt(
     index: Int
 ) -> SemanticCompilerInternalBuiltinCallerRow {
     if index == 0 {
         return SemanticCompilerInternalBuiltinCallerRow(
+            true, "CompilerRetireArrayStorage", "src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy",
+            "DirectMirScalarProgramOwnedStringProofStorageRetire", "Array<Int>",
+            "Void"
+        ); }
+    if index == 1 {
+        return SemanticCompilerInternalBuiltinCallerRow(
             true, "CompilerRetireArrayStorage", "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy",
             "SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection", "AstTreeArtifact",
             "AstTreeArtifact"
         ); }
-    if index == 1 {
+    if index == 2 {
         return SemanticCompilerInternalBuiltinCallerRow(
             true, "CompilerRetireArrayStorage", "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy",
             "SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts", "AstTreeArtifact",
             "Void"
         ); }
-    if index == 2 {
+    if index == 3 {
         return SemanticCompilerInternalBuiltinCallerRow(
             true, "CompilerRetireArrayStorage", "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy",
             "SelfMirBodyTypeBundleStorageRetireAfterProgramFacts", "SemanticAstBodyTypeBundle",
             "Void"
         ); }
-    if index == 3 {
+    if index == 4 {
         return SemanticCompilerInternalBuiltinCallerRow(
             true, "CompilerRetireArrayStorage", "src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy",
             "SelfMirRoutineBuildStorageRetireAfterLastConsumer", "SelfMirRoutineBuild",
             "Void"
         ); }
-    if index == 4 {
+    if index == 5 {
         return SemanticCompilerInternalBuiltinCallerRow(
             true, "CompilerRetireArrayStorage", "src/self_hosted/semantic/ast_expression_environment_storage_lifetime_owner.pgy",
             "SemanticAstExpressionEnvironmentStorageRetire", "Array<String>",

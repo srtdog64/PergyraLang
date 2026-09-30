@@ -1,0 +1,223 @@
+// Reaches the production owned-result owner with typed, minimal plan views.
+// This is not whole GraphPlan admission or a replacement ownership solver.
+import "../../../src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy";
+
+func OwnedResultProbePlan(layers: Int, mode: String) -> DirectMirScalarCfgGraphPlan
+{
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    let roles: Array<Int> = [DirectMirScalarCfgRoutineRoleEntrypoint()];
+    let sourceRows: Array<Int> = [0];
+    let syntaxIds: Array<Int> = [1];
+    let keys: Array<String> = [""];
+    let names: Array<String> = ["Main"];
+    let returnTypes: Array<String> = ["Void"];
+    let zeros: Array<Int> = [0];
+    let localStarts: Array<Int> = [0];
+    let localCounts: Array<Int> = [0];
+    let blockStarts: Array<Int> = [0];
+    let blockCounts: Array<Int> = [0];
+    let operationStarts: Array<Int> = [0];
+    let operationCounts: Array<Int> = [0];
+    let blockSuccessors: Array<Int> = [];
+    let blockOperationStarts: Array<Int> = [];
+    let blockOperationCounts: Array<Int> = [];
+    let blockReturns: Array<Int> = [];
+    let graphStarts: Array<Int> = [];
+    let graphCounts: Array<Int> = [];
+    let graphRoots: Array<Int> = [];
+    let kinds: Array<Int> = [];
+    let nodeTypes: Array<String> = [];
+    let targets: Array<Int> = [];
+    let absent: Array<Int> = [];
+    let literalStrings: Array<String> = [];
+    let localRows: Array<Int> = [];
+    let runtimeIds: Array<Int> = [];
+    let alias: Bool = mode == "alias-cycle" || mode == "missing-definition" ||
+        mode == "duplicate-definition" || mode == "foreign-local";
+    let arms: Int = 2;
+    if mode == "chain" { arms = 1; }
+    let row: Int = 1;
+    while row <= layers
+    {
+        ArrayPush(roles, DirectMirScalarCfgRoutineRoleCallable());
+        ArrayPush(sourceRows, row);
+        ArrayPush(syntaxIds, row + 1);
+        ArrayPush(keys, "");
+        ArrayPush(names, "Owned" + ToString(row));
+        ArrayPush(returnTypes, "String");
+        ArrayPush(zeros, 0);
+        ArrayPush(localStarts, 0);
+        ArrayPush(localCounts, 0);
+        ArrayPush(blockStarts, ArrayLength(blockReturns));
+        ArrayPush(blockCounts, arms);
+        ArrayPush(operationStarts, 0);
+        ArrayPush(operationCounts, 0);
+        let root: Int = ArrayLength(kinds);
+        let kind: Int = DirectMirScalarProgramExprDirectCall();
+        let target: Int = row + 1;
+        if row == layers
+        {
+            kind = DirectMirScalarProgramExprConcatString();
+            target = -1;
+        }
+        if mode == "direct-cycle" && row == 1 { target = 1; }
+        if mode == "mutual-cycle" && row == 2
+        {
+            kind = DirectMirScalarProgramExprDirectCall();
+            target = 1;
+        }
+        if mode == "invalid-target" && row == 1 { target = layers + 3; }
+        if mode == "entrypoint-target" && row == 1 { target = 0; }
+        if mode == "negative-target" && row == 1 { target = -1; }
+        if alias && row == 1
+        {
+            kind = DirectMirScalarProgramExprLocal();
+            target = -1;
+            localCounts[1] = 1;
+            operationCounts[1] = 1;
+        }
+        ArrayPush(graphStarts, root);
+        ArrayPush(graphCounts, 1);
+        ArrayPush(graphRoots, root);
+        ArrayPush(kinds, kind);
+        ArrayPush(nodeTypes, "String");
+        ArrayPush(targets, target);
+        ArrayPush(absent, -1);
+        ArrayPush(literalStrings, "");
+        ArrayPush(localRows, -1);
+        ArrayPush(runtimeIds, 0);
+        if alias && row == 1 { localRows[root] = 0; }
+        let arm: Int = 0;
+        while arm < arms
+        {
+            ArrayPush(blockSuccessors, -1);
+            ArrayPush(blockOperationStarts, 0);
+            ArrayPush(blockOperationCounts, 0);
+            ArrayPush(blockReturns, row - 1);
+            arm = arm + 1;
+        }
+        row = row + 1;
+    }
+    if mode == "borrowed-branch"
+    {
+        let root: Int = ArrayLength(kinds);
+        ArrayPush(graphStarts, root);
+        ArrayPush(graphCounts, 1);
+        ArrayPush(graphRoots, root);
+        ArrayPush(kinds, DirectMirScalarProgramExprStringLiteral());
+        ArrayPush(nodeTypes, "String");
+        ArrayPush(targets, -1);
+        ArrayPush(absent, -1);
+        ArrayPush(literalStrings, "borrowed");
+        ArrayPush(localRows, -1);
+        ArrayPush(runtimeIds, 0);
+        blockReturns[1] = ArrayLength(graphRoots) - 1;
+    }
+    if mode == "cross-edge"
+    {
+        // LIFO visits 2 while sibling 3 is queued; 2 also reaches 3.
+        // A queued sibling is not an active ancestor or a callable cycle.
+        targets[0] = 3;
+        let root: Int = ArrayLength(kinds);
+        ArrayPush(graphStarts, root);
+        ArrayPush(graphCounts, 1);
+        ArrayPush(graphRoots, root);
+        ArrayPush(kinds, DirectMirScalarProgramExprDirectCall());
+        ArrayPush(nodeTypes, "String");
+        ArrayPush(targets, 2);
+        ArrayPush(absent, -1);
+        ArrayPush(literalStrings, "");
+        ArrayPush(localRows, -1);
+        ArrayPush(runtimeIds, 0);
+        blockReturns[1] = ArrayLength(graphRoots) - 1;
+    }
+    if mode == "wrong-return-type" { returnTypes[2] = "Int"; }
+    if mode == "wrong-expression-type" { nodeTypes[0] = "Int"; }
+    if mode == "missing-terminal-expression" { blockReturns[0] = -1; }
+    if mode == "no-return"
+    {
+        blockSuccessors[0] = 0;
+        blockSuccessors[1] = 0;
+    }
+    let expressions: DirectMirScalarProgramExpressionSet =
+        DirectMirScalarProgramExpressionSet(true, 1, graphStarts, graphStarts,
+            graphCounts, graphRoots, kinds, nodeTypes, absent, absent,
+            localRows, absent, absent, literalStrings, targets, runtimeIds,
+            DirectMirScalarProgramNaryOperandsEmpty());
+    let empty: DirectMirScalarCfgProgramExtensionFact =
+        DirectMirScalarCfgProgramExtensionFactEmpty();
+    let operationExpressions: Array<Int> = [];
+    let operationKinds: Array<Int> = [];
+    let operationResults: Array<Int> = [];
+    let valueLocals: Array<Int> = [];
+    let localTypes: Array<String> = [];
+    if alias
+    {
+        ArrayPush(localTypes, "String");
+        ArrayPush(valueLocals, 0);
+        ArrayPush(operationExpressions, 0);
+        ArrayPush(operationKinds, DirectMirScalarCfgOpExpressionDefinition());
+        ArrayPush(operationResults, 0);
+        blockOperationCounts[0] = 1;
+    }
+    if mode == "missing-definition" { operationCounts[1] = 0; }
+    if mode == "duplicate-definition"
+    {
+        ArrayPush(operationExpressions, 0);
+        ArrayPush(operationKinds, DirectMirScalarCfgOpExpressionDefinition());
+        ArrayPush(operationResults, 0);
+        operationCounts[1] = 2;
+        blockOperationCounts[0] = 2;
+    }
+    if mode == "foreign-local"
+    {
+        localCounts[1] = 0;
+        localCounts[2] = 1;
+    }
+    if mode == "process-exit"
+    {
+        ArrayPush(operationExpressions, -1);
+        ArrayPush(operationKinds, DirectMirScalarCfgOpProcessExit());
+        ArrayPush(operationResults, -1);
+        operationCounts[1] = 1;
+        blockOperationCounts[0] = 1;
+        blockOperationCounts[1] = 1;
+    }
+    let partition: DirectMirScalarCfgRoutinePartitionFact =
+        DirectMirScalarCfgRoutinePartitionFact(true, 1, 0, roles, sourceRows,
+            syntaxIds, keys, names, returnTypes, zeros, zeros, strings, strings,
+            zeros, zeros, localStarts, localCounts, zeros, zeros, blockStarts,
+            blockCounts, operationStarts, operationCounts, zeros, zeros);
+    let program: DirectMirScalarCfgProgramExtensionFact =
+        DirectMirScalarCfgProgramExtensionFact(true, 1, empty.callable,
+            expressions, ints, operationExpressions, ints, blockReturns,
+            empty.closed_call_abi, empty.runtime_abi, empty.option_int_abi,
+            empty.result_int_abi, empty.option_string_abi, empty.option_bool_abi,
+            empty.logical_record, empty.referenced_enum, empty.payload_free_enum,
+            empty.array_int_value_result, empty.array_bool_abi,
+            empty.array_string_abi, empty.array_string_boundary,
+            empty.collection_ownership, empty.owned_array_string_move);
+    let concat: CompilerRuntimeCallAbiFact = CompilerRuntimeCallAbiStringConcatFact();
+    return DirectMirScalarCfgGraphPlan(true, "owner-probe", 1, 1, 1, 1,
+        "owner-probe", 1, partition, strings, localTypes, ints, strings, ints,
+        strings, strings, valueLocals, ints, blockSuccessors, blockSuccessors,
+        blockOperationStarts, blockOperationCounts, ints, ints, ints, ints, ints,
+        strings, strings, operationKinds, operationResults, ints, ints, ints,
+        ints, strings, strings, ints, ints, ints, ints,
+        DirectMirScalarCfgRangeFactSetEmpty(), DirectMirScalarCfgForEachFactSetEmpty(),
+        DirectMirScalarCfgForEachElementFactsEmpty(), DirectMirScalarCfgStringArrayPlanEmpty(),
+        DirectMirScalarCfgArrayIntProgramFactEmpty(), DirectMirScalarCfgCollectionPopProgramFactEmpty(),
+        DirectMirScalarCfgCollectionPlanEmpty(), concat.runtime_call_abi_id, program);
+}
+
+func Main() -> Void
+{
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Die("expected layers and mode"); }
+    let layers: Int = ToInt(args[0]);
+    if layers < 2 { Die("at least two callable layers required"); }
+    let plan: DirectMirScalarCfgGraphPlan = OwnedResultProbePlan(layers, args[1]);
+    let ready: Bool = DirectMirScalarProgramFunctionReturnsOwnedString(plan, 1);
+    Log(ToString(ready));
+}

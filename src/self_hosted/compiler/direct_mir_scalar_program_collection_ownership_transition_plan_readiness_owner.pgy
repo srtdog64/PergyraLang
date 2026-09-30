@@ -52,7 +52,7 @@ func DirectMirScalarProgramCollectionOwnershipTransitionReadyForPlan(
                 plan.program.expressions.node_kinds[root] ==
                     DirectMirScalarProgramExprDirectCall() &&
                 !DirectMirScalarProgramFunctionReturnsOwnedString(
-                    plan, plan.program.expressions.node_callable_rows[root], 0) {
+                    plan, plan.program.expressions.node_callable_rows[root]) {
                 return false;
             }
         }

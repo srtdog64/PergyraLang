@@ -1,0 +1,21 @@
+func Owned0() -> String
+{
+    let allocator: Allocator = AllocatorResult();
+    let builder: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(builder, "owned");
+    let value: String = TextBuilderFinish(builder, allocator);
+    let alias0: String = value;
+    let alias1: String = alias0;
+    let alias2: String = alias1;
+    let alias3: String = alias2;
+    AllocatorDestroy(allocator);
+    return alias3;
+}
+
+func Main() -> Void
+{
+    let values: Array<String> = [];
+    ArrayPush(values, Owned0());
+    ArrayDropOwnedStrings(values);
+    Log("owned-string-result-composition-ready");
+}

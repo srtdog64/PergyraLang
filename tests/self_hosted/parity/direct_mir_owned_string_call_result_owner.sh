@@ -16,6 +16,7 @@ CLANG="${PGY_SELFHOST_CLANG:-clang}"
 WORK_REL=".tmp/self_hosted/direct_mir_owned_string_call_result"
 WORK_DIR="$ROOT_DIR/$WORK_REL"
 OWNED_SOURCE="tests/self_hosted/fixtures/direct_mir_owned_string_call_result_push.pgy"
+WRAPPER_SOURCE="tests/self_hosted/fixtures/direct_mir_owned_string_wrapper_result_push.pgy"
 BORROWED_SOURCE="tests/self_hosted/fixtures/direct_mir_borrowed_string_call_result_push.pgy"
 CONDITIONAL_TRANSFER_SOURCE="tests/self_hosted/fixtures/direct_mir_owned_array_string_conditional_return_transfer.pgy"
 MIR_REL="$WORK_REL/program.mir.json"
@@ -103,6 +104,23 @@ for backend in c llvm; do
     "$binary" | tr -d '\r' >"$WORK_DIR/$backend.run"
     cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/$backend.run" ||
         fail "$backend runtime output drifted"
+done
+
+printf 'owned-string-wrapper-result-ready\n' >"$WORK_DIR/wrapper.expected.run"
+for backend in c llvm; do
+    output_rel="$WORK_REL/wrapper-$backend.exe"
+    (cd "$ROOT_DIR" && "$PGY" "$WRAPPER_SOURCE" "--backend=$backend" \
+        --run -o "$output_rel") >"$WORK_DIR/wrapper-$backend.out" \
+        2>"$WORK_DIR/wrapper-$backend.err" || {
+            cat "$WORK_DIR/wrapper-$backend.out" \
+                "$WORK_DIR/wrapper-$backend.err" >&2
+            fail "public $backend rejected a composed owned String result"
+        }
+    tr -d '\r' <"$WORK_DIR/wrapper-$backend.out" | sed '/^pgy:/d' \
+        >"$WORK_DIR/wrapper-$backend.run"
+    cmp -s "$WORK_DIR/wrapper.expected.run" \
+        "$WORK_DIR/wrapper-$backend.run" ||
+        fail "public $backend wrapper runtime output drifted"
 done
 
 printf 'preserved:borrowed\n' >"$WORK_DIR/borrowed.mir.json"
