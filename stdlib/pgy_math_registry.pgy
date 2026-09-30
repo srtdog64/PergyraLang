@@ -13,7 +13,7 @@ namespace PgyMathRegistry
 
     export func RegistryDigest() -> String
     {
-        return "sha256:1bc6e88600e1fa66fd7ee13eb6ec5478a3e9d1513d97ea25c7ac2f63dc7a0275";
+        return "sha256:259308f8794c838b557e6388ac85bd4487180e8ea0ca2c101ea66eab40fd1445";
     }
 
     export func HasTemplateId(value: String) -> Bool
