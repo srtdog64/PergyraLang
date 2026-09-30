@@ -178,7 +178,10 @@ for producer in native-binding-move self-binding-move; do
         }
         tr -d '\r' <"$WORK_DIR/$producer-$consumer.out" \
             >"$WORK_DIR/$producer-$consumer.normalized"
-        mapfile -t move_rows <"$WORK_DIR/$producer-$consumer.normalized"
+        move_rows=()
+        while IFS= read -r move_row; do
+            move_rows[${#move_rows[@]}]="$move_row"
+        done <"$WORK_DIR/$producer-$consumer.normalized"
         [[ "${#move_rows[@]}" == 2 ]] ||
             fail "$producer-$consumer did not carry exactly two move rows"
         IFS=: read -r source_function source_binding source_origin \
