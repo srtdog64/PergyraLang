@@ -1,6 +1,6 @@
 // Retires the final routine-build Array carrier after its last consumer.
-// Eighty-eight CFG backings were copied; five routine-state backings are
-// already dead. String elements remain shared and must not be freed.
+// CFG backings were copied; routine-state backings are already dead.
+// String elements remain shared and must not be freed.
 
 import "routine_build_owner.pgy";
 
@@ -9,6 +9,7 @@ func SelfMirRoutineBuildStorageRetireAfterLastConsumer(
 ) -> Void {
     let block_ids: Array<Int> = build.cfg.blocks.ids;
     let block_reachable: Array<Int> = build.cfg.blocks.reachable;
+    let block_intent_roles: Array<String> = build.cfg.blocks.intent_roles;
     let block_instruction_starts: Array<Int> = build.cfg.blocks.instruction_starts;
     let block_instruction_counts: Array<Int> = build.cfg.blocks.instruction_counts;
     let block_has_true: Array<Int> = build.cfg.blocks.has_succ_true;
@@ -17,6 +18,7 @@ func SelfMirRoutineBuildStorageRetireAfterLastConsumer(
     let block_succ_false: Array<Int> = build.cfg.blocks.succ_false;
 
     let instruction_ids: Array<Int> = build.cfg.instructions.ids;
+    let instruction_binding_source_syntax_ids: Array<Int> = build.cfg.instructions.binding_source_syntax_ids;
     let instruction_kinds: Array<String> = build.cfg.instructions.kinds;
     let instruction_names: Array<String> = build.cfg.instructions.names;
     let instruction_results: Array<String> = build.cfg.instructions.results;
@@ -98,6 +100,7 @@ func SelfMirRoutineBuildStorageRetireAfterLastConsumer(
     let runtime_value_ids: Array<Int> = build.cfg.instructions.runtime_call_abi.runtime_values.runtime_call_abi_ids;
 
     let local_primary_refs: Array<String> = build.cfg.local_refs.primary_refs;
+    let local_source_statement_syntax_ids: Array<Int> = build.cfg.local_refs.source_statement_syntax_ids;
     let local_expr0_starts: Array<Int> = build.cfg.local_refs.expr0_starts;
     let local_expr0_counts: Array<Int> = build.cfg.local_refs.expr0_counts;
     let local_expr0_nodes: Array<Int> = build.cfg.local_refs.expr0_nodes;
@@ -109,10 +112,12 @@ func SelfMirRoutineBuildStorageRetireAfterLastConsumer(
     let local_refs: Array<String> = build.local_refs;
 
     CompilerRetireArrayStorage(block_ids); CompilerRetireArrayStorage(block_reachable);
+    CompilerRetireArrayStorage(block_intent_roles);
     CompilerRetireArrayStorage(block_instruction_starts); CompilerRetireArrayStorage(block_instruction_counts);
     CompilerRetireArrayStorage(block_has_true); CompilerRetireArrayStorage(block_succ_true);
     CompilerRetireArrayStorage(block_has_false); CompilerRetireArrayStorage(block_succ_false);
     CompilerRetireArrayStorage(instruction_ids); CompilerRetireArrayStorage(instruction_kinds);
+    CompilerRetireArrayStorage(instruction_binding_source_syntax_ids);
     CompilerRetireArrayStorage(instruction_names); CompilerRetireArrayStorage(instruction_results);
     CompilerRetireArrayStorage(instruction_arg0s); CompilerRetireArrayStorage(instruction_arg1s);
     CompilerRetireArrayStorage(instruction_slot_anchors); CompilerRetireArrayStorage(instruction_expr0s);
@@ -151,6 +156,7 @@ func SelfMirRoutineBuildStorageRetireAfterLastConsumer(
     CompilerRetireArrayStorage(runtime_value_llvm_symbols); CompilerRetireArrayStorage(runtime_value_c_shapes);
     CompilerRetireArrayStorage(runtime_value_llvm_shapes); CompilerRetireArrayStorage(runtime_value_ids);
     CompilerRetireArrayStorage(local_primary_refs);
+    CompilerRetireArrayStorage(local_source_statement_syntax_ids);
     CompilerRetireArrayStorage(local_expr0_starts); CompilerRetireArrayStorage(local_expr0_counts);
     CompilerRetireArrayStorage(local_expr0_nodes); CompilerRetireArrayStorage(local_expr0_refs);
     CompilerRetireArrayStorage(terminated); CompilerRetireArrayStorage(local_names);

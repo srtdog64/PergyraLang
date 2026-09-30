@@ -59,7 +59,7 @@ def leaves(type_name, prefix, stack):
     direct = re.fullmatch(r"Array\s*<\s*([^>]+)\s*>", type_name.strip())
     if direct:
         element = direct.group(1).strip()
-        if element not in {"Int", "String"}:
+        if element not in {"Int", "String", "Bool"}:
             raise SystemExit(f"unsupported routine-build Array leaf {prefix}: {element}")
         return [(prefix, element)]
     name = type_name.strip()
@@ -97,7 +97,7 @@ if sorted(drops) != expected_locals or len(drops) != len(set(drops)):
 
 int_count = sum(element == "Int" for _, element in actual)
 string_count = sum(element == "String" for _, element in actual)
-if (int_count, string_count, len(actual)) != (43, 50, 93):
+if (int_count, string_count, len(actual)) != (45, 52, 97):
     raise SystemExit(
         f"routine-build leaf census drift: Int={int_count} String={string_count} total={len(actual)}"
     )
@@ -157,7 +157,7 @@ expected_body_leaves = leaves(
     "SemanticAstBodyTypeBundle", "body_types", set()
 )
 body_bindings = re.findall(
-    r"let\s+(\w+)\s*:\s*Array\s*<\s*(Int|String)\s*>\s*=\s*"
+    r"let\s+(\w+)\s*:\s*Array\s*<\s*(Int|String|Bool)\s*>\s*=\s*"
     r"(body_types(?:\.\w+)+)\s*;",
     body_lifetime_body,
 )
@@ -177,10 +177,11 @@ if sorted(body_drops) != sorted(body_locals.values()) or \
     raise SystemExit("body-type backing drop coverage is not exactly once per leaf")
 body_ints = sum(element == "Int" for _, element in actual_body_leaves)
 body_strings = sum(element == "String" for _, element in actual_body_leaves)
-if (body_ints, body_strings, len(actual_body_leaves)) != (20, 20, 40):
+body_bools = sum(element == "Bool" for _, element in actual_body_leaves)
+if (body_ints, body_strings, body_bools, len(actual_body_leaves)) != (47, 23, 2, 72):
     raise SystemExit(
         f"body-type leaf census drift: Int={body_ints} "
-        f"String={body_strings} total={len(actual_body_leaves)}"
+        f"String={body_strings} Bool={body_bools} total={len(actual_body_leaves)}"
     )
 if "ArrayDropOwnedStrings" in body_lifetime_body:
     raise SystemExit("body-type lifetime owner must not free shared String elements")
@@ -331,7 +332,8 @@ cleanup_calls = list(re.finditer(
     r"SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts\(",
     artifact_function[after_early_call:],
 ))
-if len(returns) != 6 or len(cleanup_calls) != 6:
+# Collection-row nonconsumption adds its own fail-closed return and cleanup.
+if len(returns) != 7 or len(cleanup_calls) != 7:
     raise SystemExit("typed-AST success/failure cleanup cardinality drift")
 prior_return = -1
 for returned in returns:
@@ -417,18 +419,13 @@ call_sites = []
 for path in (root / "src/self_hosted").rglob("*.pgy"):
     if "CompilerRetireArrayStorage(" in path.read_text(encoding="utf-8"):
         call_sites.append(path.relative_to(root).as_posix())
-if call_sites != [
-    "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy",
-    "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy",
-    "src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy",
-]:
-    raise SystemExit(f"compiler storage retirement call-site drift: {call_sites}")
-
 approved_internal_owners = {
     "SelfMirRoutineBuildStorageRetireAfterLastConsumer",
     "SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection",
     "SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts",
     "SelfMirBodyTypeBundleStorageRetireAfterProgramFacts",
+    "SemanticAstExpressionEnvironmentStorageRetire",
+    "DirectMirScalarProgramOwnedStringProofStorageRetire",
 }
 sys.path.insert(0, str(root / "scripts"))
 import render_compiler_internal_builtin_caller_registry as caller_registry
@@ -437,6 +434,8 @@ registry_rows = caller_registry.load_rows(
 )
 if {row.function_name for row in registry_rows} != approved_internal_owners:
     raise SystemExit("compiler-internal caller registry owner set drift")
+if set(call_sites) != {row.module_path for row in registry_rows}:
+    raise SystemExit(f"compiler storage retirement call-site drift: {call_sites}")
 native_admission = (
     root / "src/semantic/type_checker_builtins_stdlib_array.c"
 ).read_text(encoding="utf-8")
@@ -475,7 +474,8 @@ drop_emit_lines = [
     line for line in runtime_owner.splitlines()
     if "block =" in line and "CollectionRuntimeCDropStorageFn(" in line
 ]
-if len(drop_emit_lines) != 2:
+if {re.search(r"CollectionRuntimeCDropStorageFn\((\d+)\)", line).group(1)
+        for line in drop_emit_lines} != {"1", "2", "4"} or len(drop_emit_lines) != 3:
     raise SystemExit("self-host storage-drop emitter count drift")
 for line in drop_emit_lines:
     for required in ("free(a->data)", "a->data = NULL", "a->len = 0", "a->cap = 0"):
@@ -488,7 +488,10 @@ for line in drop_emit_lines:
 native_runtime = (
     root / "src/runtime/pgy_runtime_memory_array_slot_inline.h"
 ).read_text(encoding="utf-8")
-native_start = native_runtime.index("pgy_array_drop_##SuffixName")
+# Select the named-parameter definition, not the earlier forward declaration.
+native_start = native_runtime.index(
+    "pgy_array_drop_##SuffixName(PgyArray_##SuffixName *arr)"
+)
 native_end = native_runtime.index("pgy_array_reserve_##SuffixName", native_start)
 native_drop = native_runtime[native_start:native_end]
 for required in ("pgy_free(arr->allocator, arr->data", "arr->data = NULL", "arr->length = 0", "arr->capacity = 0"):
@@ -522,7 +525,8 @@ for path, pattern in sorted_tables:
     if "CompilerRetireArrayStorage" not in names or names != sorted(names):
         raise SystemExit(f"compiler retirement registry ordering drift: {path}")
 
-print("[routine-build-storage-lifetime] structural coverage ok: 43 Int + 50 String")
+print("[routine-build-storage-lifetime] structural coverage ok: 45 Int + 52 String")
+print("[routine-build-storage-lifetime] body coverage ok: 47 Int + 23 String + 2 Bool")
 PY
 
 grep -Fq 'PGY_BUILTIN_FLAG_COMPILER_INTERNAL' \
@@ -622,6 +626,13 @@ grep -Fq 'pgy_array_drop_String(&_pgy_ssa_generic_actual_types_' \
     echo "[routine-build-storage-lifetime] body-type String backing retirement is missing" >&2
     exit 1
 }
+for local in capability_deferred_uses capability_unknown_call_effects; do
+    grep -Fq "pgy_array_drop_Bool(&_pgy_ssa_${local}_" \
+        "$BUILD_DIR/body_type_lifetime.c" || {
+        echo "[routine-build-storage-lifetime] body-type Bool backing retirement is missing: $local" >&2
+        exit 1
+    }
+done
 "$PGY" "$OWNER" --native-pipeline --emit-c -o "$BUILD_DIR/owner.c" \
     >"$BUILD_DIR/owner.c.out" 2>"$BUILD_DIR/owner.c.err"
 grep -Fq 'pgy_array_drop_Int(&_pgy_ssa_block_ids_' "$BUILD_DIR/owner.c" || {

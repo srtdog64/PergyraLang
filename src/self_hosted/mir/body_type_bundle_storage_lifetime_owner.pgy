@@ -1,5 +1,6 @@
 // Retires semantic body-type Array carriers after MIR rows consume them.
 // String elements remain shared with MIR facts and must not be freed.
+// This boundary is MIR-only: source-C body views still borrow zone backings.
 
 import "../semantic/ast_body_type_bundle_owner.pgy";
 
@@ -57,6 +58,26 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
         body_types.collection_ownership.dispositions;
     let collection_origins: Array<Int> =
         body_types.collection_ownership.origins;
+    let receipt_function_ids: Array<Int> = body_types.collection_ownership.receipts.function_syntax_ids;
+    let receipt_owner_ids: Array<Int> = body_types.collection_ownership.receipts.owner_node_ids;
+    let receipt_lanes: Array<Int> = body_types.collection_ownership.receipts.lanes;
+    let receipt_call_ordinals: Array<Int> = body_types.collection_ownership.receipts.local_call_ordinals;
+    let receipt_effect_kinds: Array<Int> = body_types.collection_ownership.receipts.effect_kinds;
+    let receipt_receiver_ids: Array<Int> = body_types.collection_ownership.receipts.receiver_binding_syntax_ids;
+    let receipt_source_ids: Array<Int> = body_types.collection_ownership.receipts.source_binding_syntax_ids;
+    let zone_fresh_local_ids: Array<Int> = body_types.zone_carriage.fresh_local_node_ids;
+    let zone_resource_path_starts: Array<Int> = body_types.zone_carriage.resource_path_starts;
+    let zone_resource_path_counts: Array<Int> = body_types.zone_carriage.resource_path_counts;
+    let zone_resource_field_paths: Array<String> = body_types.zone_carriage.resource_field_paths;
+    let zone_mutable_borrow_parameter_ids: Array<Int> = body_types.zone_carriage.mutable_borrow_parameter_node_ids;
+    let capability_callable_ids: Array<Int> = body_types.capabilities.callable_node_ids;
+    let capability_declared_masks: Array<Int> = body_types.capabilities.declared_masks;
+    let capability_used_masks: Array<Int> = body_types.capabilities.used_masks;
+    let capability_exported_masks: Array<Int> = body_types.capabilities.exported_masks;
+    let capability_deferred_uses: Array<Bool> = body_types.capabilities.deferred_uses;
+    let capability_declared_effects: Array<Int> = body_types.capabilities.declared_effects;
+    let capability_known_call_effects: Array<Int> = body_types.capabilities.known_call_effects;
+    let capability_unknown_call_effects: Array<Bool> = body_types.capabilities.unknown_call_effects;
     let generic_call_node_ids: Array<Int> = body_types.generic_specializations.call_node_ids;
     let generic_owner_node_ids: Array<Int> = body_types.generic_specializations.source_owner_node_ids;
     let generic_source_lanes: Array<Int> = body_types.generic_specializations.source_lanes;
@@ -91,6 +112,16 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
     CompilerRetireArrayStorage(collection_ownerships);
     CompilerRetireArrayStorage(collection_dispositions);
     CompilerRetireArrayStorage(collection_origins);
+    CompilerRetireArrayStorage(receipt_function_ids); CompilerRetireArrayStorage(receipt_owner_ids);
+    CompilerRetireArrayStorage(receipt_lanes); CompilerRetireArrayStorage(receipt_call_ordinals);
+    CompilerRetireArrayStorage(receipt_effect_kinds); CompilerRetireArrayStorage(receipt_receiver_ids);
+    CompilerRetireArrayStorage(receipt_source_ids); CompilerRetireArrayStorage(zone_fresh_local_ids);
+    CompilerRetireArrayStorage(zone_resource_path_starts); CompilerRetireArrayStorage(zone_resource_path_counts);
+    CompilerRetireArrayStorage(zone_resource_field_paths); CompilerRetireArrayStorage(zone_mutable_borrow_parameter_ids);
+    CompilerRetireArrayStorage(capability_callable_ids); CompilerRetireArrayStorage(capability_declared_masks);
+    CompilerRetireArrayStorage(capability_used_masks); CompilerRetireArrayStorage(capability_exported_masks);
+    CompilerRetireArrayStorage(capability_deferred_uses); CompilerRetireArrayStorage(capability_declared_effects);
+    CompilerRetireArrayStorage(capability_known_call_effects); CompilerRetireArrayStorage(capability_unknown_call_effects);
     CompilerRetireArrayStorage(generic_call_node_ids); CompilerRetireArrayStorage(generic_owner_node_ids);
     CompilerRetireArrayStorage(generic_source_lanes); CompilerRetireArrayStorage(generic_call_ordinals);
     CompilerRetireArrayStorage(generic_signature_indexes); CompilerRetireArrayStorage(generic_actual_starts);

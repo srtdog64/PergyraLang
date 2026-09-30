@@ -521,7 +521,8 @@ require_max_lines "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy" 100
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy"
 require_file "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy"
-require_max_lines "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy" 100
+# Data-only lifetime inventory: 20 additional concrete Array leaves, no policy.
+require_max_lines "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy" 140
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy"
 require_file "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy"

@@ -1,0 +1,36 @@
+// The actual append owner copies evidence before the actual lifetime owner
+// retires the source routine's backings. No copy/drop policy is reproduced.
+import "../../../src/self_hosted/mir/routine_build_storage_lifetime_owner.pgy";
+import "../../../src/self_hosted/mir/routine_cfg_append_owner.pgy";
+import "../../../src/self_hosted/mir/intent_instruction_append_owner.pgy";
+import "../../../src/self_hosted/mir/routine_source_statement_attachment_owner.pgy";
+
+func RoutineBuildCopyRetireProbeSource() -> SelfMirRoutineBuild
+{
+    let build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
+    let uses: Array<String> = [];
+    build = SelfMirRoutineAddInstruction(build, "intent_bind", "IntentBinding",
+        "", "", "", "", "", "AST_INT", uses);
+    build = SelfMirIntentAttachBindingSource(build, 701);
+    build = SelfMirRoutineAttachLastSourceStatement(build, 809);
+    if !build.ok { Die(build.diagnostic_message); }
+    ArraySet(build.cfg.blocks.intent_roles, 0, Concat("en", "try"));
+    return build;
+}
+
+func Main() -> Void
+{
+    let source: SelfMirRoutineBuild = RoutineBuildCopyRetireProbeSource();
+    let target: SelfMirCfgRows = SelfMirAppendCfg(SelfMirCfgRowsEmpty(), source.cfg);
+    SelfMirRoutineBuildStorageRetireAfterLastConsumer(source);
+    if ArrayLength(target.blocks.intent_roles) != 1 ||
+        target.blocks.intent_roles[0] != "entry" ||
+        ArrayLength(target.instructions.binding_source_syntax_ids) != 1 ||
+        target.instructions.binding_source_syntax_ids[0] != 701 ||
+        ArrayLength(target.local_refs.source_statement_syntax_ids) != 1 ||
+        target.local_refs.source_statement_syntax_ids[0] != 809
+    {
+        Die("copied routine evidence did not survive source retirement");
+    }
+    Log("routine-build-copy-retire-ready");
+}

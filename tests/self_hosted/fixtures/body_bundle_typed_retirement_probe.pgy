@@ -1,0 +1,41 @@
+// A cleanup-only typed carrier: admission/error constructors supply its empty
+// leaves; the twenty omitted columns are populated without a drop copy.
+import "../../../src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy";
+import "../../../src/self_hosted/codegen/text/text_owner.pgy";
+
+func BodyBundleTypedRetirementProbeSource() -> SemanticAstBodyTypeBundle
+{
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleAdmissionError(artifact, "retirement-probe");
+    ArrayPush(bundle.collection_ownership.receipts.function_syntax_ids, 101);
+    ArrayPush(bundle.collection_ownership.receipts.owner_node_ids, 102);
+    ArrayPush(bundle.collection_ownership.receipts.lanes, 0);
+    ArrayPush(bundle.collection_ownership.receipts.local_call_ordinals, 0);
+    ArrayPush(bundle.collection_ownership.receipts.effect_kinds, 1);
+    ArrayPush(bundle.collection_ownership.receipts.receiver_binding_syntax_ids, 103);
+    ArrayPush(bundle.collection_ownership.receipts.source_binding_syntax_ids, 104);
+    ArrayPush(bundle.zone_carriage.fresh_local_node_ids, 105);
+    ArrayPush(bundle.zone_carriage.resource_path_starts, 0);
+    ArrayPush(bundle.zone_carriage.resource_path_counts, 1);
+    ArrayPush(bundle.zone_carriage.resource_field_paths, Concat("zone.", "entry"));
+    ArrayPush(bundle.zone_carriage.mutable_borrow_parameter_node_ids, 106);
+    ArrayPush(bundle.capabilities.callable_node_ids, 107);
+    ArrayPush(bundle.capabilities.declared_masks, 1);
+    ArrayPush(bundle.capabilities.used_masks, 1);
+    ArrayPush(bundle.capabilities.exported_masks, 1);
+    ArrayPush(bundle.capabilities.deferred_uses, true);
+    ArrayPush(bundle.capabilities.declared_effects, 1);
+    ArrayPush(bundle.capabilities.known_call_effects, 1);
+    ArrayPush(bundle.capabilities.unknown_call_effects, false);
+    return bundle;
+}
+
+func Main() -> Void
+{
+    let bundle: SemanticAstBodyTypeBundle = BodyBundleTypedRetirementProbeSource();
+    let path: String = bundle.zone_carriage.resource_field_paths[0];
+    SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(bundle);
+    if path != "zone.entry" { Die("shared zone payload was destroyed"); }
+    Log("body-bundle-typed-retirement-ready");
+}

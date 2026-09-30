@@ -4237,6 +4237,8 @@ self-host-expression-graph-identity-prefix-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/expression_graph_identity_prefix_owner_smoke.sh
 
 self-host-routine-build-storage-lifetime-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" "$(BASH)" tests/self_hosted/parity/routine_build_copy_retire_probe.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" "$(BASH)" tests/self_hosted/parity/body_bundle_typed_retirement_probe.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/routine_build_storage_lifetime_owner.sh
 
 self-host-compiler-internal-caller-provenance-test-smoke: $(PGY)

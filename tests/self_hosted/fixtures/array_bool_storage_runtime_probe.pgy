@@ -1,0 +1,36 @@
+// Emits the real self-host C runtime and the actual semantic call rewrite.
+// Typed graph overlays here are a unit input, not whole-body admission proof.
+import "../../../src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy";
+import "../../../src/self_hosted/parser/expr_precedence_owner.pgy";
+
+func ArrayBoolStorageProbeRewrite() -> String
+{
+    let cursor: Array<Int> = [0];
+    let source: String = "CompilerRetireArrayStorage(flags)";
+    let expression: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    if !expression.ok || cursor[0] != StringLength(source)
+    {
+        Die("Bool storage rewrite expression parse failed");
+    }
+    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFactsFromAstRows(
+        AstExpressionGraphRows(true, [TypedAstKindBareCallStmtTag()], [AstExpressionLaneAtom()],
+            [expression.root], expression.arena), [0], 1);
+    let view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, graph.roots[0]);
+    if !graph.ok || !view.ok || ArrayLength(view.argument_nodes) != 1
+    {
+        Die("Bool storage rewrite call-spine fact failed");
+    }
+    ArraySet(graph.arena.place_kinds, view.argument_nodes[0], SemanticExpressionPlaceBinding());
+    let env: CodegenTypeEnv = CodegenTypeEnvFromRows("|", "|flags=type:Array<Bool>|flags=cbind:flags|");
+    return RewriteSemanticCompilerRetireArrayStorageCall(graph, view, env);
+}
+
+func Main() -> Void
+{
+    Print(CollectionRuntimeCArrayBlock(false, false, false, false));
+    Log("/* bool-type=" + CompilerAbiLayoutArrayBoolCValueType() + " */");
+    Log("/* bool-new=" + CollectionRuntimeCNewFn(4) + " */");
+    Log("/* bool-push=" + CollectionRuntimeCPushFn(4) + " */");
+    Log("/* bool-drop=" + CollectionRuntimeCDropStorageFn(4) + " */");
+    Log("/* bool-rewrite=" + ArrayBoolStorageProbeRewrite() + " */");
+}
