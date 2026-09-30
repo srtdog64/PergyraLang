@@ -29,7 +29,8 @@ for pair in "$ADMISSION:120" "$OPERAND:120" "$READINESS:110" \
         "$MUTATIONS:80"; do
     owner="${pair%:*}"; cap="${pair##*:}"
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
-    [[ "$(wc -l <"$owner")" -le "$cap" ]] ||
+    source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$owner")" || fail "source-size measurement failed"
+    [[ "$source_size_lines" -le "$cap" ]] ||
         fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}"
 done
 grep -Fq 'DirectMirScalarCfgLeafOperandFromOwners(' "$OPERAND" ||

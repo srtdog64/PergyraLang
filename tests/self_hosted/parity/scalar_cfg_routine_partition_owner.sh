@@ -10,7 +10,7 @@ require_text() { grep -Fq -- "$2" "$ROOT_DIR/$1" || fail "missing $1: $2"; }
 reject_text() { ! grep -Fq -- "$2" "$ROOT_DIR/$1" || fail "forbidden $1: $2"; }
 
 while IFS='|' read -r owner cap; do
-    lines="$(wc -l <"$ROOT_DIR/$owner")"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$owner")" || fail "source-size measurement failed"
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <<'EOF'
 src/self_hosted/compiler/direct_mir_scalar_cfg_routine_partition_fact_owner.pgy|180

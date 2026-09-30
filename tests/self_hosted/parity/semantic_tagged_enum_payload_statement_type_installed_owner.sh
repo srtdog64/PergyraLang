@@ -41,7 +41,8 @@ grep -Fq 'SemanticExpressionGraphEnumPayloadTypeName(' "$STATEMENT_OWNER" ||
     fail "statement facts bypass the payload type projection"
 grep -Fq 'SemanticExpressionGraphEnumPayloadTypeName(' "$INITIALIZER_OWNER" ||
     fail "initializer and statement consumers no longer share one projection"
-[[ "$(wc -l <"$STATEMENT_OWNER" | tr -d ' ')" -le 540 ]] ||
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$STATEMENT_OWNER" | tr -d ' ')" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 540 ]] ||
     fail "statement fact owner exceeds its component limit"
 ! grep -Eq 'tagged_union|(^|[^[:alnum:]_])(Shape|Circle|Rect)([^[:alnum:]_]|$)|\._0|\._1' \
     "$STATEMENT_OWNER" "$PAYLOAD_OWNER" ||

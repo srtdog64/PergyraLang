@@ -47,7 +47,7 @@ component_line_budget() {
     local path="$1"
     local maximum="$2"
     local lines
-    lines="$(wc -l <"$path")"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$path")" || fail "source-size measurement failed"
     [[ "$lines" -le "$maximum" ]] \
         || fail "component exceeds $maximum-line owner budget: $path ($lines)"
 }

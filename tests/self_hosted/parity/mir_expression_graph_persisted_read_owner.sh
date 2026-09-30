@@ -22,9 +22,11 @@ NODE_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_persisted_node_
 SEQUENCE_OWNER="$ROOT_DIR/src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy"
 mkdir -p "$BUILD_DIR"
 
-[[ "$(wc -l <"$KIND_OWNER" | tr -d ' ')" -le 100 ]] ||
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$KIND_OWNER" | tr -d ' ')" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 100 ]] ||
     fail "persisted graph kind-code owner exceeds 100 lines"
-[[ "$(wc -l <"$NODE_OWNER" | tr -d ' ')" -le 300 ]] ||
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$NODE_OWNER" | tr -d ' ')" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 300 ]] ||
     fail "persisted graph node owner exceeds 300 lines"
 grep -Fq 'func MirExpressionGraphKindCodeWithin(' "$KIND_OWNER" ||
     fail "node kind vocabulary does not consume exact JSON bounds"

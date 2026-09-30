@@ -3,6 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+SOURCE_SIZE_COUNTER="$ROOT_DIR/scripts/source_size_count.py"
 LABEL="self-host-expression-graph-identity-carriage"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
@@ -10,7 +11,7 @@ require_text() { grep -Fq -- "$2" "$ROOT_DIR/$1" || fail "missing $1: $2"; }
 reject_text() { ! grep -Fq -- "$2" "$ROOT_DIR/$1" || fail "forbidden $1: $2"; }
 
 while IFS='|' read -r owner cap; do
-    lines="$(wc -l <"$ROOT_DIR/$owner")"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$owner")" || fail "source-size measurement failed"
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <<'EOF'
 src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy|125
@@ -42,7 +43,7 @@ require_scalar_identity_owner_caps() {
         ' "$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv")" ||
             fail "missing or invalid shared owner cap: $owner"
         [[ -f "$ROOT_DIR/$owner" ]] || fail "missing shared-cap source: $owner"
-        lines="$(awk 'END { print NR }' "$ROOT_DIR/$owner")" ||
+        lines="$(python3 "$SOURCE_SIZE_COUNTER" "$ROOT_DIR/$owner")" ||
             fail "unreadable shared-cap source: $owner"
         [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
     done

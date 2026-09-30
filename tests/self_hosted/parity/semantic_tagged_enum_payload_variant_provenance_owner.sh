@@ -72,9 +72,11 @@ if grep -Eq 'import ".*(/mir|/air|/compiler|/codegen)' \
     "$VARIANT_OWNER" "$IDENTITY_OWNER"; then
     fail "source-semantic proof depends on a downstream stage"
 fi
-[[ "$(awk 'END { print NR }' "$VARIANT_OWNER")" -le 1450 ]] ||
+variant_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$VARIANT_OWNER")" || fail "source-size measurement failed: $VARIANT_OWNER"
+[[ "$variant_lines" -le 1450 ]] ||
     fail "variant provenance owner exceeded its cohesive flow cap"
-[[ "$(awk 'END { print NR }' "$IDENTITY_OWNER")" -le 160 ]] ||
+identity_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$IDENTITY_OWNER")" || fail "source-size measurement failed: $IDENTITY_OWNER"
+[[ "$identity_lines" -le 160 ]] ||
     fail "local identity owner exceeded its component cap"
 
 positives=(

@@ -23,7 +23,8 @@ for pair in "$SEED:35" "$NESTED:70" \
         "$C_LITERAL:45" "$LLVM_LITERAL:90" "$MUTATIONS:80"; do
     owner="${pair%:*}"; cap="${pair##*:}"
     [[ -f "$owner" ]] || fail "missing owner: ${owner#"$ROOT_DIR/"}"
-    [[ "$(wc -l <"$owner")" -le "$cap" ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}"
+    source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$owner")" || fail "source-size measurement failed"
+    [[ "$source_size_lines" -le "$cap" ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}"
 done
 grep -Fq 'func DirectMirScalarProgramNestedArrayLiteralSeedMarkerReady(' "$SEED" || fail "common nested array seed owner is missing"
 grep -Fq 'normalized_types[operand] != CompilerAbiLayoutStringTypeName()' "$NESTED" || fail "nested String literal omits normalized operand type identity"

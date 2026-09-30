@@ -165,7 +165,8 @@ rm -f "$WORK"/*
 
 while IFS='|' read -r owner cap; do
     require "$ROOT_DIR/$owner"
-    [[ "$(wc -l <"$ROOT_DIR/$owner" | tr -d ' ')" -le "$cap" ]] ||
+    source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$owner" | tr -d ' ')" || fail "source-size measurement failed"
+    [[ "$source_size_lines" -le "$cap" ]] ||
         fail "$owner exceeds $cap lines"
 done <<'OWNERS'
 src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy|800
@@ -176,14 +177,11 @@ src/self_hosted/codegen/emission/implicit_receiver_c_parameter_owner.pgy|60
 src/self_hosted/codegen/emission/function_emit.pgy|500
 src/self_hosted/codegen/emission/function_prototype_block_owner.pgy|270
 OWNERS
-family_lines=$(wc -l \
-    <"$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy")
-family_lines=$((family_lines + $(wc -l \
-    <"$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_plan_owner.pgy")))
-family_lines=$((family_lines + $(wc -l \
-    <"$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_target_projection_owner.pgy")))
-family_lines=$((family_lines + $(wc -l \
-    <"$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_emission_owner.pgy")))
+family_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" --total \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_program_identity_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_plan_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_target_projection_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_emission_owner.pgy")" || fail "role override family measurement failed"
 [[ "$family_lines" -le 1250 ]] || fail "role override owner family exceeds 1250 lines"
 ! grep -Eiq '"OverrideTarget"|"OverrideSurface"|role_override_mir|"base"|"override"' \
     "$ROOT_DIR/src/self_hosted/compiler/direct_mir_role_override_"*.pgy ||

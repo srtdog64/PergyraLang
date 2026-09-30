@@ -146,21 +146,29 @@ fi
 if grep -Fq 'domain_graph_inventory_owner.pgy' "$DOMAIN_CENSUS"; then
     fail "normal MIR domain census rebuilt the debug program inventory"
 fi
-[[ "$(wc -l <"$INVENTORY" | tr -d ' ')" -le 650 ]] \
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$INVENTORY" | tr -d ' ')" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 650 ]] \
     || fail "DIR graph inventory owner exceeds 650 lines"
-[[ "$(wc -l <"$ROW_OWNER" | tr -d ' ')" -le 190 ]] \
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROW_OWNER" | tr -d ' ')" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 190 ]] \
     || fail "DIR graph row owner exceeds 190 lines"
-[[ "$(wc -l <"$ZONE_STATE" | tr -d ' ')" -le 300 ]] \
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ZONE_STATE" | tr -d ' ')" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 300 ]] \
     || fail "DIR zone-state row owner exceeds 300 lines"
-[[ "$(wc -l <"$RENDERER" | tr -d ' ')" -le 220 ]] \
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$RENDERER" | tr -d ' ')" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 220 ]] \
     || fail "DIR text artifact owner exceeds 220 lines"
-[[ "$(wc -l <"$INTENT_RENDERER" | tr -d ' ')" -le 220 ]] \
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$INTENT_RENDERER" | tr -d ' ')" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 220 ]] \
     || fail "DIR intent text artifact owner exceeds 220 lines"
-[[ "$(wc -l <"$INTENT_PROVENANCE" | tr -d ' ')" -le 190 ]] \
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$INTENT_PROVENANCE" | tr -d ' ')" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 190 ]] \
     || fail "DIR intent provenance owner exceeds 190 lines"
-[[ "$(wc -l <"$INTENT_HEADER" | tr -d ' ')" -le 240 ]] \
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$INTENT_HEADER" | tr -d ' ')" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 240 ]] \
     || fail "semantic intent-step header owner exceeds 240 lines"
-[[ "$(wc -l <"$INTENT_DEFAULTS" | tr -d ' ')" -le 100 ]] \
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$INTENT_DEFAULTS" | tr -d ' ')" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 100 ]] \
     || fail "intent-level default owner exceeds 100 lines"
 
 (cd "$ROOT_DIR" && "$PGY" --native-pipeline \

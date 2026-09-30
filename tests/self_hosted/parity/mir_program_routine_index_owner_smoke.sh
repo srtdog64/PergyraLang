@@ -34,7 +34,8 @@ fail() {
 lines_at_most() {
     local file="$1"
     local limit="$2"
-    [[ "$(wc -l <"$file" | tr -d ' ')" -le "$limit" ]] ||
+    source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$file" | tr -d ' ')" || fail "source-size measurement failed"
+    [[ "$source_size_lines" -le "$limit" ]] ||
         fail "${file#"$ROOT_DIR/"} exceeds $limit lines"
 }
 

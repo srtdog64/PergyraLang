@@ -30,7 +30,8 @@ pgy_require_runnable_binary_here "$LABEL" "$DRIVER" || exit 1
 command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "LLVM compiler is unavailable"
 
-[[ "$(wc -l <"$TARGET_OWNER")" -le 40 ]] || fail "target owner exceeded 40 lines"
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$TARGET_OWNER")" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 40 ]] || fail "target owner exceeded 40 lines"
 for anchor in 'routines.roles[routine] != DirectMirScalarCfgRoutineRoleCallable()' \
         'routines.return_types[routine] != CompilerAbiLayoutVoidTypeName()' \
         'routines.parameter_counts[routine] != 1' 'ordinal != 0' \

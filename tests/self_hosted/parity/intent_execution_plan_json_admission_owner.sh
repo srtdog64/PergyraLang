@@ -33,7 +33,7 @@ for owner in \
     intent_execution_json_rows_owner.pgy \
     intent_execution_identity_index_owner.pgy \
     intent_execution_plan_fact_owner.pgy; do
-    lines="$(wc -l < "$ROOT_DIR/src/self_hosted/mir_lower/$owner")"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/mir_lower/$owner")" || fail "source-size measurement failed"
     [[ "$lines" -le 600 ]] \
         || fail "$owner exceeded the 600-line component boundary: $lines"
 done

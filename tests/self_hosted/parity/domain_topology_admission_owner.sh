@@ -50,7 +50,8 @@ for term in 'struct MirProgramDeclarationFieldIdentityIndex' \
     grep -Fq -- "$term" "$FIELD_INDEX" \
         || fail "missing declaration field identity term: $term"
 done
-[[ "$(wc -l <"$FIELD_INDEX" | tr -d ' ')" -le 300 ]] ||
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$FIELD_INDEX" | tr -d ' ')" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 300 ]] ||
     fail "declaration field identity owner exceeds 300 lines"
 grep -Fq -- 'BuildMirProgramDeclarationFieldIdentityIndexFromDeclarationSpans' \
     "$DECL_INDEX" || fail "program declaration index does not compose field identity spans"

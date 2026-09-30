@@ -98,7 +98,8 @@ require_in_function "$OWNER" CompileMachineAdmittedMirJsonToCForTargetVerifiedOb
 
 grep -Fq -- 'DriverRung2MirProjectionFromAnalysisObserved(' "$DIRECT_PROBE" \
     || fail "external analysis probe no longer uses the checked raw boundary"
-[[ "$(wc -l < "$OWNER")" -le 500 ]] \
+source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$OWNER")" || fail "source-size measurement failed"
+[[ "$source_size_lines" -le 500 ]] \
     || fail "driver_rung2_owner.pgy exceeds its 500-line cap"
 
 mkdir -p "$BUILD_DIR"

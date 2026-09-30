@@ -87,7 +87,7 @@ if grep -Eiq -- 'AstTree|source_path|ReadFile\(|count_floor|from_zone' \
     fail "graph plan reopened AST/source/backend or count-floor authority"
 fi
 for file in "$PLAN_OWNER" "$BUILD_OWNER" "$SCHEDULE_OWNER" "$CONSUMER_OWNER"; do
-    lines="$(wc -l <"$file")"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$file")" || fail "source-size measurement failed"
     (( lines <= 600 )) || fail "owner exceeds 600-line component limit: ${file#"$ROOT_DIR/"} ($lines)"
 done
 
