@@ -58,9 +58,15 @@ func DirectMirScalarProgramHashMapLifetimeReadyForPlan(
                     ArrayLength(plan.local_types) &&
                 CollectionHashMapLlvmFactFromTypeName(
                     plan.local_types[result_local]).ok {
+                let result_routine: Int =
+                    DirectMirScalarCfgRoutinePartitionLocalOwner(
+                        plan.routines, result_local);
                 let expression: Int =
                     plan.program.operation_expression_rows[operation];
-                if plan.operation_kinds[operation] !=
+                if result_routine < 0 ||
+                    DirectMirScalarCfgRoutinePartitionOperationOwner(
+                        plan.routines, operation) != result_routine ||
+                    plan.operation_kinds[operation] !=
                         DirectMirScalarCfgOpExpressionDefinition() ||
                     expression < 0 || expression >= ArrayLength(
                         plan.program.expressions.graph_roots) {
@@ -73,7 +79,7 @@ func DirectMirScalarProgramHashMapLifetimeReadyForPlan(
                     DirectMirScalarCfgRoutinePartitionRangeOwner(
                         plan.block_operation_starts,
                         plan.block_operation_counts, operation) !=
-                        plan.routines.block_starts[entrypoint] {
+                        plan.routines.block_starts[result_routine] {
                     return false;
                 }
                 ArraySet(creations, result_local,
@@ -86,11 +92,12 @@ func DirectMirScalarProgramHashMapLifetimeReadyForPlan(
     let index: Int = 0;
     while index < ArrayLength(map_rows) {
         let map_local: Int = map_rows[index];
-        if DirectMirScalarCfgRoutinePartitionLocalOwner(
-                plan.routines, map_local) != entrypoint ||
+        let local_routine: Int = DirectMirScalarCfgRoutinePartitionLocalOwner(
+            plan.routines, map_local);
+        if local_routine < 0 ||
             SelfMirLocalRefParameterOrdinalForOwner(
                 plan.local_ref_value_ids[map_local],
-                plan.routines.source_syntax_ids[entrypoint]) >= 0 ||
+                plan.routines.source_syntax_ids[local_routine]) >= 0 ||
             creations[map_local] != 1 { return false; }
         let node: Int = 0;
         while node < ArrayLength(plan.program.expressions.node_kinds) {

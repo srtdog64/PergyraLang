@@ -91,6 +91,13 @@ for leg in native-c native-llvm default-c default-llvm; do
         { cat "$WORK_DIR/loop-$leg.log" >&2; fail "$leg did not compile the loop"; }
     run_expect loop "$leg"
 done
+compile loop-cleanup "$FIXTURES/loop_stack_storage.pgy" default-c --emit-c \
+    -o "$WORK_REL/loop-default-c.c" ||
+    { cat "$WORK_DIR/loop-cleanup-default-c.log" >&2;
+      fail "default C did not emit the loop cleanup artifact"; }
+[[ "$(grep -Ec '^[[:space:]]+pgy_map_drop_int\(&pgy_local_[0-9]+\);$' \
+        "$WORK_DIR/loop-default-c.c")" == 2 ]] ||
+    fail "default C did not release both routine-local maps"
 for leg in native-llvm default-llvm; do
     emit_ir loop "$FIXTURES/loop_stack_storage.pgy" "$leg"
     non_entry_allocas "$WORK_DIR/loop-$leg.ll" >"$WORK_DIR/loop-$leg.non-entry"
@@ -99,6 +106,9 @@ for leg in native-llvm default-llvm; do
         fail "$leg IR keeps an alloca outside the entry block"
     fi
 done
+[[ "$(grep -Ec '^[[:space:]]+call void @pgy_map_drop_raw_export\(ptr %pgy.local.[0-9]+\)$' \
+        "$WORK_DIR/loop-default-llvm.ll")" == 2 ]] ||
+    fail "default LLVM did not release both routine-local maps"
 # The storage this gate is about is present, so the checks above saw it.
 value_slots="$(grep -c '\.value = alloca ' "$WORK_DIR/loop-default-llvm.ll" || true)"
 map_slots="$(grep -c '\.map = alloca ' "$WORK_DIR/loop-default-llvm.ll" || true)"

@@ -135,6 +135,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan,
                 TextBuilderAppend(output,
                     DirectMirScalarProgramLlvmSetStringValueResultCopyOut(
                         plan, routine, block));
+                TextBuilderAppend(output, DirectMirScalarProgramLlvmHashMapCleanup(plan, routine));
                 TextBuilderAppend(output, "  ret void\n");
             }
         } else if return_row >= 0 {
@@ -165,6 +166,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan,
             TextBuilderAppend(output,
                 DirectMirScalarProgramLlvmSetStringValueResultCopyOut(
                     plan, routine, block));
+            TextBuilderAppend(output, DirectMirScalarProgramLlvmHashMapCleanup(plan, routine));
             TextBuilderAppend(output, "  ret ");
             TextBuilderAppend(output,
                 DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(

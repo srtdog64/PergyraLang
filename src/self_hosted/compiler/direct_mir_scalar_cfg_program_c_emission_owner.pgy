@@ -100,6 +100,7 @@ func DirectMirScalarCfgProgramCRoutine(ref plan: DirectMirScalarCfgGraphPlan, ro
                 TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordArrayValueResultCopyOut(plan, routine));
                 TextBuilderAppend(output, DirectMirScalarProgramCSetStringValueResultCopyOut(
                         plan, routine));
+                TextBuilderAppend(output, DirectMirScalarProgramCHashMapCleanup(plan, routine));
                 TextBuilderAppend(output, "    return;\n");
             }
         } else if return_row >= 0 {
@@ -130,6 +131,7 @@ func DirectMirScalarCfgProgramCRoutine(ref plan: DirectMirScalarCfgGraphPlan, ro
             TextBuilderAppend(output,
                 DirectMirScalarProgramCSetStringValueResultCopyOut(
                     plan, routine));
+            TextBuilderAppend(output, DirectMirScalarProgramCHashMapCleanup(plan, routine));
             TextBuilderAppend(output, "    return pgy_return_${block};\n");
         } else if plan.block_condition_kinds[block] ==
                 DirectMirScalarCfgConditionExpression() {

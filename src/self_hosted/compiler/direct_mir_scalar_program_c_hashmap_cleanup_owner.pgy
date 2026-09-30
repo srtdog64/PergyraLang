@@ -8,18 +8,20 @@ func DirectMirScalarProgramCHashMapCleanup(
     if !DirectMirScalarProgramHashMapLifetimeReadyForPlan(plan) {
         Die("direct MIR C HashMap lifetime is unproved");
     }
-    if routine != plan.routines.entrypoint_ordinal { return ""; }
     let output: String = "";
     let rows: Array<Int> = DirectMirScalarProgramHashMapLocalRows(plan);
     let index: Int = 0;
     while index < ArrayLength(rows) {
         let local_row: Int = rows[index];
-        let runtime: CollectionHashMapRuntimeFact =
-            CollectionHashMapRuntimeFactFromTypeName(plan.local_types[local_row]);
-        if !runtime.ok { Die("direct MIR C HashMap cleanup ABI is missing"); }
-        output = output + "    " +
-            CollectionHashMapRuntimeCDropFunction(runtime) +
-            "(&pgy_local_" + ToString(local_row) + ");\n";
+        if DirectMirScalarCfgRoutinePartitionLocalOwner(
+                plan.routines, local_row) == routine {
+            let runtime: CollectionHashMapRuntimeFact =
+                CollectionHashMapRuntimeFactFromTypeName(plan.local_types[local_row]);
+            if !runtime.ok { Die("direct MIR C HashMap cleanup ABI is missing"); }
+            output = output + "    " +
+                CollectionHashMapRuntimeCDropFunction(runtime) +
+                "(&pgy_local_" + ToString(local_row) + ");\n";
+        }
         index = index + 1;
     }
     return output;

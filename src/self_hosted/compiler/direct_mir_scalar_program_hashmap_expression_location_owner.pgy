@@ -65,6 +65,9 @@ func DirectMirScalarProgramHashMapLocalNodeUseReady(
     ref plan: DirectMirScalarCfgGraphPlan, node: Int,
     local_row: Int, creation_operation: Int
 ) -> Bool {
+    let local_routine: Int = DirectMirScalarCfgRoutinePartitionLocalOwner(
+        plan.routines, local_row);
+    if local_routine < 0 { return false; }
     let expression_row: Int =
         DirectMirScalarProgramHashMapExpressionRowContainingNode(
             plan.program.expressions, node);
@@ -76,7 +79,7 @@ func DirectMirScalarProgramHashMapLocalNodeUseReady(
         if operation <= creation_operation ||
             DirectMirScalarCfgRoutinePartitionOperationOwner(
                 plan.routines, operation) !=
-                plan.routines.entrypoint_ordinal { return false; }
+                local_routine { return false; }
         use_block = DirectMirScalarCfgRoutinePartitionRangeOwner(
             plan.block_operation_starts,
             plan.block_operation_counts, operation);
@@ -86,7 +89,7 @@ func DirectMirScalarProgramHashMapLocalNodeUseReady(
     } else { return false; }
     if use_block < 0 || DirectMirScalarCfgRoutinePartitionBlockOwner(
             plan.routines, use_block) !=
-            plan.routines.entrypoint_ordinal { return false; }
+            local_routine { return false; }
     let start: Int = plan.program.expressions.graph_starts[expression_row];
     let end: Int = start +
         plan.program.expressions.graph_counts[expression_row];
