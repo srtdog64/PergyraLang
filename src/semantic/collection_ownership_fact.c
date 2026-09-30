@@ -778,9 +778,25 @@ semantic_collection_admit_owned_string_drop(
                 name);
             return false;
         }
-        /* General String producer/transfer receipts are the next ownership
-         * rung.  Until they exist, retain the legacy admission instead of
-         * forging an owned carrier row from type or spelling. */
+        if (fact->origin == PGY_COLLECTION_ORIGIN_BINDING) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                receiver,
+                "ArrayDropOwnedStrings cannot deep-release shallow alias '%s' without element ownership proof.\n"
+                "Reason:\n"
+                "- the alias carries descriptor identity but no independent String-element lifetime\n"
+                "- releasing through it could double-free or invalidate the source binding\n"
+                "Fix:\n"
+                "- keep deep release with the proved source owner\n"
+                "- or Clone into an independent owned snapshot before release",
+                name);
+            return false;
+        }
+        /* This native bootstrap-oracle boundary still admits general UNKNOWN
+         * provenance. Admission here is not owned-element proof and must not
+         * be projected as an OWNED carrier row from type or spelling. */
         return true;
     }
     if (fact->disposition == PGY_COLLECTION_DISPOSITION_RETIRED) {

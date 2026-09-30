@@ -440,7 +440,9 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                                       (origins[binding.row] ==
                                         SemanticAstCollectionOriginMemberMove() ||
                                        origins[binding.row] ==
-                                        SemanticAstCollectionOriginCallResult()))) {
+                                        SemanticAstCollectionOriginCallResult() ||
+                                       origins[binding.row] ==
+                                        SemanticAstCollectionOriginBinding()))) {
                                     let boundary: String = name;
                                     if deep_drop {
                                         boundary = "owned_string_drop";

@@ -1,0 +1,10 @@
+func BorrowedStrings() -> Array<String> {
+    let values: Array<String> = ["borrowed"];
+    return values;
+}
+
+func Main() -> Void {
+    let returned: Array<String> = BorrowedStrings();
+    let aliased: Array<String> = returned;
+    ArrayDropOwnedStrings(aliased);
+}
