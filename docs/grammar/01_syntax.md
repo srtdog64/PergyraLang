@@ -631,9 +631,11 @@ match value {
 갈래는 다음 갈래로 넘어가지 않는다(fall through 없음). 그래서 문장이 없는
 `case` 갈래는 파스 오류다. C나 Java처럼 `case 401:` 바로 아래에
 `case 403:`을 쓰면 401에서 빈 갈래가 실행되고 match가 끝나는 함정이 되기
-때문이다. 여러 값은 `case 401 | 403:`로 한 갈래에 적는다. 지금 self-host
-기본 경로는 `|` 갈래와 guard를 아직 읽지 못해 `surface_not_covered`로
-거부하므로, 그 두 형태는 `--native-pipeline`으로 컴파일한다.
+때문이다. 여러 값은 `case 401 | 403:`로 한 갈래에 적는다. 대안은 Int
+리터럴이나 payload 없는 enum variant다. `Some(x) | None`처럼 payload를 푸는
+대안은 두 경로 모두 거부한다. 지금 self-host 기본 경로는 guard를 아직 읽지
+못해 `surface_not_covered`로 거부하므로, guard는 `--native-pipeline`으로
+컴파일한다.
 
 ### 5.3 Option 패턴 매칭
 

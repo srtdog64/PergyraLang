@@ -65,15 +65,39 @@ func ParseMatchStmt(
                     "construct", "match_arm", "", "");
             }
             case_label = case_pattern.text;
+            let pattern_at: Int = i;
             i = cursor_out[0];
-            // Native reads `case A | B:` and `case A if cond:`; this parser
-            // does not yet, so it names the form instead of a missing `:`.
+            // `case A | B:` lists values that share one arm, spelled on the
+            // atom as native prints it. An alternative carries no payload
+            // binding: native refuses `Some(x) | None` in semantic.
             let after_pattern: Int = SkipWhitespaceAndComments(content, i);
-            if ParserCharAt(content, after_pattern) == "|" &&
+            while ParserCharAt(content, after_pattern) == "|" &&
                 ParserCharAt(content, after_pattern + 1) != "|" {
-                ParseRefuse(location_context, after_pattern, "surface_not_covered",
-                    "surface", "match or-pattern", "construct", "statement");
+                if StringIndexOf(case_label, "(") >= 0 {
+                    ParseRefuse(location_context, pattern_at, "match_or_pattern_destructure",
+                        "construct", "match_arm", "", "");
+                }
+                i = SkipWhitespaceAndComments(content, after_pattern + 1);
+                pattern_at = i;
+                ArraySet(cursor_out, 0, i);
+                let alternative: ParserExpressionFact = ParseExprFact(
+                    content, i, cursor_out
+                );
+                if !alternative.ok { ParseExpressionRefuse(location_context, alternative, i, "statement"); }
+                if StartsWith(alternative.text, "\"") {
+                    ParseRefuse(location_context, i, "match_string_pattern",
+                        "construct", "match_arm", "", "");
+                }
+                if StringIndexOf(alternative.text, "(") >= 0 {
+                    ParseRefuse(location_context, i, "match_or_pattern_destructure",
+                        "construct", "match_arm", "", "");
+                }
+                case_label = Concat(case_label, Concat(" | ", alternative.text));
+                i = cursor_out[0];
+                after_pattern = SkipWhitespaceAndComments(content, i);
             }
+            // Native reads `case A if cond:`; this parser does not yet, so it
+            // names the form instead of a missing `:`.
             if MatchLanguageWord(content, after_pattern, LanguageWordId.WordIf) {
                 ParseRefuse(location_context, after_pattern, "surface_not_covered",
                     "surface", "match guard", "construct", "statement");

@@ -43,8 +43,8 @@ func BlockCondWithExpressionOrder(ref index: MirRoutineFactIndex,
         if StringLength(match_subject) == 0 || pattern_count == 0 {
             MirLowerFailClosed("match-case branch is missing MIR subject/pattern facts");
         }
-        if pattern_count > 1 {
-            MirLowerFailClosed("multi-pattern match cases are outside the self-host MIR subset");
+        if pattern_count > 1 && scalar.match_variant != "" {
+            MirLowerFailClosed("or-pattern match case carries a variant payload");
         }
         if !MirStructuredExpressionEmissionOrderAppend(
             expression_order, instruction.global_row,
@@ -52,7 +52,6 @@ func BlockCondWithExpressionOrder(ref index: MirRoutineFactIndex,
         ) {
             MirLowerFailClosed("match condition occurrence is invalid");
         }
-        let pattern: String = patterns[0];
         let variant: String = scalar.match_variant;
         // A user enum may spell a variant Some, None, Ok or Err; the carried
         // subject family keeps such a case on the enum comparison below.
@@ -72,20 +71,29 @@ func BlockCondWithExpressionOrder(ref index: MirRoutineFactIndex,
         if wrapper && variant == "Err" {
             return Concat("IsErr(", Concat(match_subject, ")"));
         }
-        let variant_name: String = variant;
-        if variant_name == "" { variant_name = pattern; }
-        let enum_owner: String = MirProgramEnumVariantOwnerForName(
-            routines.declarations.enum_variants, variant_name
-        );
-        if StringLength(enum_owner) > 0 {
-            return Concat(match_subject, Concat(" == ", Concat(enum_owner, Concat(".", variant_name))));
-        }
-        if ToString(ToInt(pattern)) != pattern {
-            MirLowerFailClosed(
-                "match enum variant declaration fact is missing"
+        // Each alternative of an or-pattern is one equality; native C emits
+        // `(s == 401) || (s == 403)` from the same MIR row.
+        let condition: String = "";
+        let alternative: Int = 0;
+        while alternative < pattern_count {
+            let variant_name: String = variant;
+            if variant_name == "" { variant_name = patterns[alternative]; }
+            let enum_owner: String = MirProgramEnumVariantOwnerForName(
+                routines.declarations.enum_variants, variant_name
             );
+            let equality: String = Concat(match_subject, Concat(" == ", patterns[alternative]));
+            if StringLength(enum_owner) > 0 {
+                equality = Concat(match_subject, Concat(" == ", Concat(enum_owner, Concat(".", variant_name))));
+            } else if ToString(ToInt(patterns[alternative])) != patterns[alternative] {
+                MirLowerFailClosed(
+                    "match enum variant declaration fact is missing"
+                );
+            }
+            if alternative > 0 { condition = Concat(condition, " || "); }
+            condition = Concat(condition, equality);
+            alternative = alternative + 1;
         }
-        return Concat(match_subject, Concat(" == ", pattern));
+        return condition;
     }
     if source_type == "AST_FOR_LOOP" {
         let binding: String = scalar.arg0;

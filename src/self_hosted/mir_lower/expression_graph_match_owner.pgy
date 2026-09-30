@@ -25,10 +25,21 @@ func MirExpressionGraphSequenceAppendMatchOccurrence(
     if !IsSome(source_type) ||
         UnwrapOption(source_type) != "AST_MATCH_CASE" ||
         !IsSome(match_value) || UnwrapOption(match_value) == "" ||
-        !IsSome(pattern_count) || UnwrapOption(pattern_count) != 1 ||
+        !IsSome(pattern_count) || UnwrapOption(pattern_count) < 1 ||
         !IsSome(binding_count) || !IsSome(binding_type_count) ||
         UnwrapOption(binding_type_count) != UnwrapOption(binding_count) {
         return MirExpressionGraphSequenceError(sequence);
+    }
+    if UnwrapOption(pattern_count) > 1 {
+        let capture: MirMatchInstructionCapture =
+            MirMatchInstructionCaptureFromTable(instruction);
+        if !capture.valid || lane != AstExpressionLaneAtom() || ordinal != 0 {
+            return MirExpressionGraphSequenceError(sequence);
+        }
+        return MirExpressionGraphSequenceAppendOrPatternMatchOccurrence(
+            sequence, enum_variants, instruction, subject_graph,
+            UnwrapOption(match_value), capture.patterns
+        );
     }
     let pattern_opt: Option<String> = MirMatchPatternAt(instruction, 0);
     if !IsSome(pattern_opt) {
