@@ -15,6 +15,7 @@ PARITY_WORKFLOW="$ROOT_DIR/.github/workflows/self_host_parity.yml"
 CHANGE_SCOPE_OWNER="$ROOT_DIR/scripts/ci_change_scope_owner.sh"
 DRIVER_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap.sh"
 CODEGEN_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/codegen_bootstrap.sh"
+CODEGEN_SEED_RECEIPT_OWNER="$ROOT_DIR/tests/self_hosted/parity/codegen_bootstrap_seed_receipt_owner.sh"
 PLATFORM_PARITY_SHARD_OWNER="$ROOT_DIR/scripts/ci_self_host_platform_parity_shard_owner.sh"
 
 for file in \
@@ -31,6 +32,7 @@ for file in \
     "$CHANGE_SCOPE_OWNER" \
     "$DRIVER_BOOTSTRAP" \
     "$CODEGEN_BOOTSTRAP" \
+    "$CODEGEN_SEED_RECEIPT_OWNER" \
     "$PLATFORM_PARITY_SHARD_OWNER"; do
     if [[ ! -f "$file" ]]; then
         echo "[self-host-ci-profile] missing input: $file" >&2
@@ -62,6 +64,16 @@ for required in \
     '[[ "$status" == C* ]]'; do
     if ! grep -Fq "$required" "$CHANGE_SCOPE_OWNER"; then
         echo "[self-host-ci-profile] change-scope owner lost fail-closed contract: $required" >&2
+        exit 1
+    fi
+done
+
+for required in \
+    'if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" == "1" ]]' \
+    'pgy_selfhost_codegen_seed_try_reuse' \
+    '[[ "$seed_reuse_status" -eq 1 ]] || exit "$seed_reuse_status"'; do
+    if ! grep -Fq "$required" "$CODEGEN_BOOTSTRAP"; then
+        echo "[self-host-ci-profile] codegen seed consumer wiring drifted: $required" >&2
         exit 1
     fi
 done
@@ -734,9 +746,9 @@ done
 for required in \
     'PGY_SELFHOST_CODEGEN_SEED_MODE:-build' \
     'build|prebuilt)' \
-    '[[ "$codegen_seed_mode" == "prebuilt" ]]' \
+    'pgy_selfhost_codegen_seed_mode_validate' \
     'exact prebuilt gen2 seed is unavailable or stale'; do
-    if ! grep -Fq "$required" "$CODEGEN_BOOTSTRAP"; then
+    if ! grep -Fq "$required" "$CODEGEN_SEED_RECEIPT_OWNER"; then
         echo "[self-host-ci-profile] codegen seed prebuilt mode lost fail-closed behavior: $required" >&2
         exit 1
     fi

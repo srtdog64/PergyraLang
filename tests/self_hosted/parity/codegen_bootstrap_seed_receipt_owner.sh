@@ -10,6 +10,41 @@ pgy_selfhost_codegen_seed_receipt_error() {
     return 2
 }
 
+pgy_selfhost_codegen_seed_mode_validate() {
+    case "${PGY_SELFHOST_CODEGEN_SEED_MODE:-build}" in
+        build|prebuilt) ;;
+        *)
+            pgy_selfhost_codegen_seed_receipt_error \
+                "invalid codegen seed mode: ${PGY_SELFHOST_CODEGEN_SEED_MODE}"
+            ;;
+    esac
+}
+
+pgy_selfhost_codegen_seed_reuse_miss() {
+    local reason="$1"
+    if [[ "${PGY_SELFHOST_CODEGEN_SEED_MODE:-build}" == "prebuilt" ]]; then
+        echo "[self-host-codegen-seed-receipt] exact prebuilt gen2 seed is unavailable or stale" >&2
+        return 2
+    fi
+    echo "[self-host-codegen-seed-receipt] $reason; rebuilding" >&2
+    return 1
+}
+
+pgy_selfhost_codegen_seed_key_stamp_matches() {
+    local stamp="$1"
+    local key="$2"
+    local expected="${stamp}.expected.${BASHPID:-$$}"
+    local status
+
+    [[ -f "$stamp" ]] || return 1
+    rm -f "$expected"
+    printf '%s\n' "$key" >"$expected" || return 2
+    cmp -s "$stamp" "$expected"
+    status=$?
+    rm -f "$expected"
+    return "$status"
+}
+
 pgy_selfhost_codegen_seed_render_artifact_receipt() {
     local source_artifact="$1"
     local binary_artifact="$2"
@@ -114,19 +149,24 @@ pgy_selfhost_codegen_seed_try_reuse() {
     local key stamp="$build_dir/codegen-seed.prebuild.key"
     local receipt="$build_dir/codegen-seed.output.receipt"
 
+    pgy_selfhost_codegen_seed_mode_validate || return $?
     key="$(pgy_selfhost_codegen_seed_current_key \
         "$root_dir" "$build_dir" "$native_pgy" "$cc" "$bootstrap_owner")" || return 2
-    if [[ ! -f "$stamp" ]] || ! grep -Fxq "$key" "$stamp"; then
-        return 1
+    local stamp_status=0
+    pgy_selfhost_codegen_seed_key_stamp_matches "$stamp" "$key" || stamp_status=$?
+    if [[ "$stamp_status" -ne 0 ]]; then
+        [[ "$stamp_status" -eq 1 ]] || return "$stamp_status"
+        pgy_selfhost_codegen_seed_reuse_miss "cached key is unavailable or stale"
+        return $?
     fi
     if ! pgy_selfhost_codegen_seed_validate_artifact_receipt \
         "$build_dir/gen2.c" "$build_dir/gen2.exe" "$receipt"; then
-        echo "[self-host-codegen-seed-receipt] cached output changed; rebuilding" >&2
-        return 1
+        pgy_selfhost_codegen_seed_reuse_miss "cached output changed"
+        return $?
     fi
     pgy_binary_is_runnable_here "$build_dir/gen2.exe" || {
-        echo "[self-host-codegen-seed-receipt] cached binary is not runnable; rebuilding" >&2
-        return 1
+        pgy_selfhost_codegen_seed_reuse_miss "cached binary is not runnable"
+        return $?
     }
 }
 

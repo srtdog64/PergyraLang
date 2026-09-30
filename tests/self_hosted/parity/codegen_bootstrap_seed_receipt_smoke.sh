@@ -53,6 +53,36 @@ key_one="$(seed_key one cc-v1)"
 key_two="$(seed_key two cc-v1)"
 [[ "$key_one" == "$key_two" ]] || fail "identical inputs changed prebuild key"
 
+STAMP="$BUILD_DIR/codegen-seed.prebuild.key"
+printf '%s\n' "$key_one" >"$STAMP"
+pgy_selfhost_codegen_seed_key_stamp_matches "$STAMP" "$key_one" ||
+    fail "exact single-key stamp was rejected"
+printf 'stale-key\n%s\n' "$key_one" >"$STAMP"
+if pgy_selfhost_codegen_seed_key_stamp_matches "$STAMP" "$key_one"; then
+    fail "multi-key stamp was admitted"
+fi
+printf '%s' "$key_one" >"$STAMP"
+if pgy_selfhost_codegen_seed_key_stamp_matches "$STAMP" "$key_one"; then
+    fail "unterminated key stamp was admitted"
+fi
+
+PGY_SELFHOST_CODEGEN_SEED_MODE=build
+pgy_selfhost_codegen_seed_mode_validate || fail "build seed mode was rejected"
+PGY_SELFHOST_CODEGEN_SEED_MODE=prebuilt
+pgy_selfhost_codegen_seed_mode_validate || fail "prebuilt seed mode was rejected"
+if pgy_selfhost_codegen_seed_reuse_miss "negative-smoke"; then
+    fail "prebuilt seed miss requested an implicit rebuild"
+else
+    [[ "$?" -eq 2 ]] || fail "prebuilt seed miss lost status 2"
+fi
+PGY_SELFHOST_CODEGEN_SEED_MODE=invalid
+if pgy_selfhost_codegen_seed_mode_validate; then
+    fail "invalid seed mode was admitted"
+else
+    [[ "$?" -eq 2 ]] || fail "invalid seed mode lost status 2"
+fi
+unset PGY_SELFHOST_CODEGEN_SEED_MODE
+
 printf 'func Main() -> Int { return 2; }\n' >"$GRAPH_DIR/main.pgy"
 key_source="$(seed_key source cc-v1)"
 [[ "$key_one" != "$key_source" ]] || fail "source mutation kept prebuild key"
