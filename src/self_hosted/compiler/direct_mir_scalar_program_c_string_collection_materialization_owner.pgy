@@ -4,6 +4,7 @@ import "direct_mir_scalar_program_c_process_args_materialization_owner.pgy";
 import "direct_mir_scalar_program_c_dir_walk_materialization_owner.pgy";
 import "direct_mir_scalar_program_c_file_exists_materialization_owner.pgy";
 import "direct_mir_scalar_program_c_read_file_materialization_owner.pgy";
+import "direct_mir_scalar_program_c_write_file_materialization_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_c_array_string_storage_materialization_owner.pgy";
@@ -33,6 +34,7 @@ func DirectMirScalarProgramCStringCollectionMaterialization(
         plan.program.runtime_abi.dir_walk_id != 0 ||
         plan.program.runtime_abi.file_exists_id != 0 ||
         plan.program.runtime_abi.read_file_id != 0 ||
+        plan.program.runtime_abi.write_file_id != 0 ||
         DirectMirScalarProgramArrayStringAbiFactReady(
             plan.program.array_string_abi);
     if !any { return ""; }
@@ -69,6 +71,8 @@ func DirectMirScalarProgramCStringCollectionMaterialization(
         DirectMirScalarProgramCFileExistsBlock(plan, runtime));
     output = Concat(output,
         DirectMirScalarProgramCReadFileBlock(plan, runtime));
+    output = Concat(output,
+        DirectMirScalarProgramCWriteFileBlock(plan, runtime));
     if plan.program.runtime_abi.string_contains_id != 0 {
         output = Concat(output, StringRuntimeCStringContainsBlock());
     }

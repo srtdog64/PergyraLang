@@ -3,3 +3,4 @@ func DirectMirScalarProgramExprProcessArgs() -> Int { return 94; }
 func DirectMirScalarProgramExprDirWalk() -> Int { return 95; }
 func DirectMirScalarProgramExprFileExists() -> Int { return 96; }
 func DirectMirScalarProgramExprReadFile() -> Int { return 97; }
+func DirectMirScalarProgramExprWriteFile() -> Int { return 145; }

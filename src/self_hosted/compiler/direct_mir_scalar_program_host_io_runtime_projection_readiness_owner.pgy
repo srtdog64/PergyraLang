@@ -38,6 +38,10 @@ func DirectMirScalarProgramHostIoRuntimeProjectionReady(
             CompilerRuntimeCallAbiMaterialGeneratedHelper() &&
           projection.read_file.call_shape == "string_to_string" &&
           fact.read_file_id == projection.read_file.runtime_call_abi_id)) &&
+        (fact.write_file_id == 0 ||
+         (DirectMirScalarProgramWriteFileRuntimeFactReady(
+              projection.write_file) && fact.write_file_id ==
+              projection.write_file.runtime_call_abi_id)) &&
         (fact.compiler_artifact_write_id == 0 ||
          (CompilerRuntimeCallAbiCompilerArtifactWriteFactReady(
               projection.compiler_artifact_write) &&

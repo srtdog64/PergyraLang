@@ -4,6 +4,7 @@ import "direct_mir_scalar_program_llvm_process_args_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_dir_walk_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_file_exists_materialization_owner.pgy";
 import "direct_mir_scalar_program_llvm_read_file_materialization_owner.pgy";
+import "direct_mir_scalar_program_llvm_write_file_materialization_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_readiness_owner.pgy";
 import "direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy";
 import "direct_mir_scalar_program_expression_kind_query_owner.pgy";
@@ -28,6 +29,7 @@ func DirectMirScalarProgramLlvmStringCollectionMaterialization(
         plan.program.runtime_abi.string_to_int_id != 0 ||
         plan.program.runtime_abi.file_exists_id != 0 || array_required;
     if plan.program.runtime_abi.read_file_id != 0 { any = true; }
+    if plan.program.runtime_abi.write_file_id != 0 { any = true; }
     if !any { return ""; }
     if !DirectMirScalarProgramRuntimeAbiProjectionReady(
             runtime, plan.program.runtime_abi) ||
@@ -89,6 +91,8 @@ func DirectMirScalarProgramLlvmStringCollectionMaterialization(
         DirectMirScalarProgramLlvmFileExistsBlock(plan, runtime));
     output = Concat(output,
         DirectMirScalarProgramLlvmReadFileBlock(plan, runtime));
+    output = Concat(output,
+        DirectMirScalarProgramLlvmWriteFileBlock(plan, runtime));
     if plan.program.runtime_abi.string_split_id != 0 {
         let abi: DirectMirArrayStringAbiProjection =
             UnwrapOption(projection_opt);

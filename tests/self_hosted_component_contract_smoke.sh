@@ -23633,7 +23633,7 @@ require_text \
     "func DirectMirScalarProgramExprArrayClone() -> Int { return 144; }"
 require_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_task_expression_kind_owner.pgy" \
-    "return DirectMirScalarProgramExprArrayClone();"
+    "return DirectMirScalarProgramExprWriteFile();"
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_compiler_artifact_builtin_signature_owner.pgy"
 require_max_lines \

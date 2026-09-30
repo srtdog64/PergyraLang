@@ -26,6 +26,7 @@ func DirectMirScalarProgramCollectionExpressionNodeReady(ref facts: DirectMirSca
             DirectMirScalarProgramExprDirWalk() && kind !=
             DirectMirScalarProgramExprFileExists() && kind !=
              DirectMirScalarProgramExprReadFile() && kind !=
+             DirectMirScalarProgramExprWriteFile() && kind !=
              DirectMirScalarProgramExprToIntString() && kind !=
              DirectMirScalarProgramExprSetStringNew() && kind !=
              DirectMirScalarProgramExprSetStringAdd() && kind !=
@@ -83,21 +84,14 @@ func DirectMirScalarProgramCollectionExpressionNodeReady(ref facts: DirectMirSca
             (left_kind == DirectMirScalarProgramExprLocal() ||
              left_kind == DirectMirScalarProgramExprParameter()));
     }
-    if kind == DirectMirScalarProgramExprDirWalk() {
-        return Some(type_name == CompilerAbiLayoutArrayStringTypeName() &&
-            right == -1 &&
-            facts.node_types[left] == CompilerAbiLayoutStringTypeName());
-    }
-    if kind == DirectMirScalarProgramExprFileExists() {
-        return Some(type_name == CompilerAbiLayoutBoolTypeName() &&
-            right == -1 &&
-            facts.node_types[left] == CompilerAbiLayoutStringTypeName());
-    }
-    if kind == DirectMirScalarProgramExprReadFile() {
-        return Some(type_name == CompilerAbiLayoutStringTypeName() &&
-            right == -1 &&
-            facts.node_types[left] == CompilerAbiLayoutStringTypeName());
-    }
+    if kind == DirectMirScalarProgramExprDirWalk() { return Some(type_name == CompilerAbiLayoutArrayStringTypeName() && right == -1 &&
+        facts.node_types[left] == CompilerAbiLayoutStringTypeName()); }
+    if kind == DirectMirScalarProgramExprFileExists() { return Some(type_name == CompilerAbiLayoutBoolTypeName() && right == -1 &&
+        facts.node_types[left] == CompilerAbiLayoutStringTypeName()); }
+    if kind == DirectMirScalarProgramExprReadFile() { return Some(type_name == CompilerAbiLayoutStringTypeName() && right == -1 &&
+        facts.node_types[left] == CompilerAbiLayoutStringTypeName()); }
+    if kind == DirectMirScalarProgramExprWriteFile() { return Some(type_name == CompilerAbiLayoutVoidTypeName() && right >= 0 &&
+        facts.node_types[left] == CompilerAbiLayoutStringTypeName() && facts.node_types[right] == CompilerAbiLayoutStringTypeName()); }
     if kind == DirectMirScalarProgramExprStringContains() ||
             kind == DirectMirScalarProgramExprStringSplit() {
         let expected: String = CompilerAbiLayoutBoolTypeName();

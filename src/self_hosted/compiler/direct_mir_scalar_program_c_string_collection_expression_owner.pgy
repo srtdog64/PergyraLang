@@ -19,11 +19,11 @@ func DirectMirScalarProgramCStringCollectionExpression(kind: Int, left_type: Str
     if kind == DirectMirScalarProgramExprDirWalk() {
         return Some(Concat(runtime.dir_walk.symbol, Concat("(", Concat(left, ")"))));
     }
-    if kind == DirectMirScalarProgramExprFileExists() {
-        return Some(Concat(runtime.file_exists.symbol, Concat("(", Concat(left, ")"))));
-    }
-    if kind == DirectMirScalarProgramExprReadFile() {
-        return Some(Concat(runtime.read_file.symbol, Concat("(", Concat(left, ")"))));
+    if kind == DirectMirScalarProgramExprFileExists() { return Some(Concat(runtime.file_exists.symbol, Concat("(", Concat(left, ")")))); }
+    if kind == DirectMirScalarProgramExprReadFile() { return Some(Concat(runtime.read_file.symbol, Concat("(", Concat(left, ")")))); }
+    if kind == DirectMirScalarProgramExprWriteFile() {
+        if !DirectMirScalarProgramWriteFileRuntimeFactReady(runtime.write_file) { return None; }
+        return Some(runtime.write_file.symbol + "(" + left + ", " + right + ")");
     }
     if kind == DirectMirScalarProgramExprArrayStringDropOwned() {
         return Some(Concat(CollectionRuntimeCOwnedStringDropFn(), Concat("(&", Concat(left, ")"))));

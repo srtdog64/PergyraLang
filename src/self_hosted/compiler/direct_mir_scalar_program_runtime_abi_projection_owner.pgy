@@ -4,6 +4,7 @@ import "runtime_call_abi_structured_fact_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
 import "direct_mir_scalar_program_case_math_runtime_projection_owner.pgy";
+import "direct_mir_scalar_program_write_file_runtime_owner.pgy";
 struct DirectMirScalarProgramRuntimeAbiProjection {
     let valid: Bool;
     let string_print: CompilerRuntimeCallAbiFact;
@@ -32,6 +33,7 @@ struct DirectMirScalarProgramRuntimeAbiProjection {
     let dir_walk: CompilerRuntimeCallAbiFact;
     let file_exists: CompilerRuntimeCallAbiFact;
     let read_file: CompilerRuntimeCallAbiFact;
+    let write_file: CompilerRuntimeCallAbiFact;
     let compiler_artifact_write: CompilerRuntimeCallAbiFact;
     let compiler_artifact_begin: CompilerRuntimeCallAbiFact;
     let compiler_artifact_commit: CompilerRuntimeCallAbiFact;
@@ -98,6 +100,7 @@ func DirectMirScalarProgramRuntimeAbiProjectionFromFact(
             CompilerRuntimeCallAbiRowInput(
                 "host-io", "read-file", HostIORuntimeCReadFileFn(),
                 CompilerRuntimeCallAbiMaterialGeneratedHelper())),
+        DirectMirScalarProgramWriteFileRuntimeFact(),
         CompilerRuntimeCallAbiCompilerArtifactWriteFact(),
         CompilerRuntimeCallAbiCompilerArtifactBeginFact(),
         CompilerRuntimeCallAbiCompilerArtifactCommitFact(),

@@ -13,9 +13,19 @@ fixture_dir = next(
     node for node in nodes
     if node.get("call_target_name") == "DirectMirDirWalkFixtureDir"
 )
+write_file = next(
+    node
+    for routine in document["routines"]
+    for block in routine["blocks"]
+    for instruction in block["instructions"]
+    for node in (instruction.get("expr0_graph") or {}).get("nodes", [])
+    if node.get("call_target_name") == "WriteFile"
+)
 
 if mode == "dirwalk-target-name":
     dir_walk["call_target_name"] = "DirWalkDrift"
+elif mode == "writefile-target-name":
+    write_file["call_target_name"] = "WriteFileDrift"
 elif mode == "dirwalk-target-syntax":
     dir_walk["call_target_syntax_id"] = 1
 elif mode == "fixture-target-syntax":

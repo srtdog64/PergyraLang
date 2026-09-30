@@ -1,0 +1,24 @@
+// Sealed projection of the canonical host-I/O write-file runtime row.
+import "runtime_call_abi_structured_fact_owner.pgy";
+import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
+
+func DirectMirScalarProgramWriteFileRuntimeFact(
+) -> CompilerRuntimeCallAbiFact {
+    return CompilerRuntimeCallAbiFactFromRowInput(
+        CompilerRuntimeCallAbiRowInput(
+            "host-io", "write-file", HostIORuntimeCWriteFileFn(),
+            CompilerRuntimeCallAbiMaterialGeneratedHelper()));
+}
+
+func DirectMirScalarProgramWriteFileRuntimeFactReady(
+    fact: CompilerRuntimeCallAbiFact
+) -> Bool {
+    return fact.ok && fact.domain == "host-io" &&
+        fact.operation == "write-file" &&
+        fact.symbol == HostIORuntimeCWriteFileFn() &&
+        fact.symbol_kind == "function" &&
+        fact.materialization == CompilerRuntimeCallAbiMaterialGeneratedHelper() &&
+        fact.call_shape == "string_string_to_bool" &&
+        fact.runtime_call_abi_id == CompilerRuntimeCallAbiRowId(
+            "host-io", "", "write-file");
+}

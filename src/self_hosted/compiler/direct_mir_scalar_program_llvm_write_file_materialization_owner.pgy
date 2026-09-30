@@ -1,0 +1,16 @@
+// LLVM adapter from the sealed host-io write-file receipt to native runtime ABI.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramLlvmWriteFileBlock(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> String {
+    if plan.program.runtime_abi.write_file_id == 0 { return ""; }
+    if !DirectMirScalarProgramWriteFileRuntimeFactReady(runtime.write_file) {
+        Die("direct MIR scalar LLVM write-file ABI is invalid");
+    }
+    return "declare void @pgy_write_file(ptr, ptr)\ndefine internal i1 @" +
+        runtime.write_file.symbol +
+        "(ptr %path, ptr %content) {\nentry:\n  call void @pgy_write_file(ptr %path, ptr %content)\n  ret i1 true\n}\n\n";
+}

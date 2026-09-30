@@ -265,7 +265,7 @@ func DirectMirScalarCfgEmitProgramC(
         compiler_artifact_header || checked_division_header || hashmap_runtime_header ||
         plan.program.runtime_abi.dir_walk_id != 0 ||
         plan.program.runtime_abi.file_exists_id != 0 ||
-        plan.program.runtime_abi.read_file_id != 0;
+        plan.program.runtime_abi.read_file_id != 0 || plan.program.runtime_abi.write_file_id != 0;
     TextBuilderAppend(output,
         DirectMirScalarProgramCBuiltinMaterialization(
             plan, runtime, runtime_header_owns_print));

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Registry-owned DirWalk with a direct-call path argument, C/LLVM exact parity.
+# Registry-owned WriteFile plus DirWalk direct-call composition, C/LLVM parity.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -57,6 +57,8 @@ printf 'b\n' >"$WORK_DIR/tree/sub/b.txt"
     2>"$WORK_DIR/producer.err" || fail "MIR production failed"
 grep -Fq '"call_target_name":"DirWalk"' "$MIR" ||
     fail "producer omitted DirWalk identity"
+grep -Fq '"call_target_name":"WriteFile"' "$MIR" ||
+    fail "producer omitted the composed WriteFile identity"
 grep -Fq '"call_target_name":"DirectMirDirWalkFixtureDir"' "$MIR" ||
     fail "producer omitted nested direct-call identity"
 printf '2\n' >"$WORK_DIR/expected.run"
@@ -81,13 +83,16 @@ for backend in c llvm; do
         "$CLANG" -x ir "$artifact" -x none "$runtime_obj" -pthread -o "$binary" ||
             fail "LLVM artifact did not compile"
     fi
+    rm -f "$WORK_DIR/tree/written.txt"
     (cd "$ROOT_DIR" && "$binary") | tr -d '\r' >"$WORK_DIR/$backend.run"
     cmp -s "$WORK_DIR/expected.run" "$WORK_DIR/$backend.run" ||
         fail "$backend runtime output drifted"
+    [[ "$(cat "$WORK_DIR/tree/written.txt")" == written ]] ||
+        fail "$backend WriteFile did not publish before the DirWalk fixture ended"
 done
 
-for mutation in dirwalk-target-name dirwalk-target-syntax fixture-target-syntax \
-    array-layout-offset; do
+for mutation in dirwalk-target-name writefile-target-name dirwalk-target-syntax \
+    fixture-target-syntax array-layout-offset; do
     mutated_rel="$WORK_REL/$mutation.mir.json"
     python "$MUTATIONS" "$MIR" "$mutation" "$ROOT_DIR/$mutated_rel"
     for backend in c llvm; do
@@ -102,4 +107,4 @@ for mutation in dirwalk-target-name dirwalk-target-syntax fixture-target-syntax 
     done
 done
 
-echo "[$LABEL] DirWalk nested path C/LLVM parity + negatives: PASS"
+echo "[$LABEL] WriteFile + DirWalk nested path C/LLVM parity + negatives: PASS"

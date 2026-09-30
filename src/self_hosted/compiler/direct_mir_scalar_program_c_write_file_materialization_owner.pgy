@@ -1,0 +1,15 @@
+// C adapter from the sealed host-io write-file receipt to native runtime facts.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+
+func DirectMirScalarProgramCWriteFileBlock(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    ref runtime: DirectMirScalarProgramRuntimeAbiProjection
+) -> String {
+    if plan.program.runtime_abi.write_file_id == 0 { return ""; }
+    if !DirectMirScalarProgramWriteFileRuntimeFactReady(runtime.write_file) {
+        Die("direct MIR scalar C write-file ABI is invalid");
+    }
+    return "#include \"pgy_runtime.h\"\nstatic int " + runtime.write_file.symbol +
+        "(const char *path, const char *content) { pgy_write_file(path, content); return 1; }\n\n";
+}

@@ -1,6 +1,7 @@
 // Stable normalized identity for task-observation expressions.
 import "direct_mir_scalar_program_array_clone_expression_kind_owner.pgy";
+import "direct_mir_scalar_program_external_runtime_expression_kind_owner.pgy";
 func DirectMirScalarProgramExprTaskIsCancelled() -> Int { return 143; }
 func DirectMirScalarProgramExpressionKindLast() -> Int {
-    return DirectMirScalarProgramExprArrayClone();
+    return DirectMirScalarProgramExprWriteFile();
 }

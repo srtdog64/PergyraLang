@@ -3861,8 +3861,12 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/compiler/direct_mir_scalar_program_host_io_runtime_requirement_owner.pgy`
   -- the single GraphPlan join from normalized host-I/O expression kinds to
   existing runtime-call ABI rows. It currently seals process Args, directory
-  walk, file-existence, and file-read IDs; String runtime admission only carries these
-  IDs and cannot recreate host-I/O symbols or call shapes.
+  walk, file-existence, file-read, and file-write IDs; String runtime admission
+  only carries these IDs and cannot recreate host-I/O symbols or call shapes.
+- `src/self_hosted/compiler/direct_mir_scalar_program_write_file_runtime_owner.pgy`
+  -- the exact projection and readiness predicate for the existing
+  `host-io/write-file` runtime row. It does not own filesystem policy or the
+  source builtin signature.
 - `src/self_hosted/compiler/direct_mir_scalar_program_c_file_exists_materialization_owner.pgy`
   and
   `direct_mir_scalar_program_llvm_file_exists_materialization_owner.pgy`
@@ -3874,6 +3878,12 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- target adapters for the sealed `host-io/read-file` row. Native
   `pgy_read_file` remains the capability, bounded-I/O, failure, and owned
   String authority; the adapters do not reconstruct file-reading policy.
+- `src/self_hosted/compiler/direct_mir_scalar_program_c_write_file_materialization_owner.pgy`
+  and
+  `direct_mir_scalar_program_llvm_write_file_materialization_owner.pgy`
+  -- target adapters for the sealed `host-io/write-file` row. Native
+  `pgy_write_file` remains the capability, path, failure, and filesystem
+  authority; the adapters only preserve the registered helper ABI.
 - `src/self_hosted/compiler/direct_mir_scalar_program_c_string_window_expression_owner.pgy`
   and
   `src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_window_expression_owner.pgy`

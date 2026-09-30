@@ -4,5 +4,6 @@ func DirectMirDirWalkFixtureDir() -> String {
 
 func Main() -> Void {
     let files: Array<String> = DirWalk(DirectMirDirWalkFixtureDir());
+    WriteFile(".tmp/self_hosted/direct_mir_scalar_dir_walk_direct_call/tree/written.txt", "written");
     Log(ToString(ArrayLength(files)));
 }

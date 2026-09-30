@@ -8,17 +8,14 @@ func DirectMirScalarProgramLlvmStringCollectionExpressionAt(
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection, ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
     let call: String = "";
-    if kind == DirectMirScalarProgramExprProcessArgs() {
-        call = Concat("call %pgy.array.string @", Concat(runtime.process_args.symbol, "()"));
-    } else if kind == DirectMirScalarProgramExprDirWalk() {
-        call = Concat("call %pgy.array.string @", Concat(runtime.dir_walk.symbol,
-            Concat("(ptr ", Concat(left, ")"))));
-    } else if kind == DirectMirScalarProgramExprFileExists() {
-        call = Concat("call i1 @", Concat(runtime.file_exists.symbol,
-            Concat("(ptr ", Concat(left, ")"))));
-    } else if kind == DirectMirScalarProgramExprReadFile() {
-        call = Concat("call ptr @", Concat(runtime.read_file.symbol,
-            Concat("(ptr ", Concat(left, ")"))));
+    if kind == DirectMirScalarProgramExprProcessArgs() { call = "call %pgy.array.string @" + runtime.process_args.symbol + "()";
+    } else if kind == DirectMirScalarProgramExprDirWalk() { call = "call %pgy.array.string @" + runtime.dir_walk.symbol + "(ptr " + left + ")";
+    } else if kind == DirectMirScalarProgramExprFileExists() { call = "call i1 @" + runtime.file_exists.symbol + "(ptr " + left + ")";
+    } else if kind == DirectMirScalarProgramExprReadFile() { call = "call ptr @" + runtime.read_file.symbol + "(ptr " + left + ")";
+    } else if kind == DirectMirScalarProgramExprWriteFile() {
+        if !DirectMirScalarProgramWriteFileRuntimeFactReady(runtime.write_file) { return DirectMirScalarProgramLlvmStringExpression(true, false, "", ""); }
+        let output: String = "  call i1 @" + runtime.write_file.symbol + "(ptr " + left + ", ptr " + right + ")\n";
+        return DirectMirScalarProgramLlvmStringExpression(true, true, output, "");
     } else if kind == DirectMirScalarProgramExprArrayStringDropOwned() {
         if left_address == "" || left_type != CompilerAbiLayoutArrayStringTypeName() {
             return DirectMirScalarProgramLlvmStringExpression(true, false, "", "");

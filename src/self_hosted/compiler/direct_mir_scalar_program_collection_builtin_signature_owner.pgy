@@ -47,6 +47,10 @@ func DirectMirScalarProgramCollectionBuiltinSignatureExpected(
         return ["String", "String", ToString(
             DirectMirScalarProgramExprReadFile())];
     }
+    if name == "WriteFile" {
+        return ["Void", "String|String", ToString(
+            DirectMirScalarProgramExprWriteFile())];
+    }
     if name == "ToInt" {
         return ["Int", "Unknown", ToString(
             DirectMirScalarProgramExprToIntString())];
