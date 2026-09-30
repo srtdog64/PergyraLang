@@ -113,6 +113,12 @@ func ParseDiagnosticRowForCode(code: String) -> ParseDiagnosticRow {
             "give the arm a statement, or list the values in one arm as `case A | B:`"
         );
     }
+    if code == "match_or_pattern_destructure" {
+        return ParseDiagnosticRow(
+            "an or-pattern cannot destructure a variant payload",
+            "give the payload variant its own case arm"
+        );
+    }
     if code == "match_string_pattern" {
         return ParseDiagnosticRow(
             "a string literal is not a beta-stable case pattern; match subjects are Int, Long, Bool, enum, Option<T>, and Result<T>",
@@ -278,8 +284,9 @@ func ParsePublicDiagnosticIdentityForOwnedCode(
             true, "PGY_PARSE_SYNTAX", "parse:unexpected_token", "check-syntax"
         );
     }
-    // Native refuses a String match subject in semantic; keep its identity.
-    if code == "match_string_pattern" {
+    // Native refuses a String match subject and a destructuring or-pattern
+    // in semantic; keep its identity.
+    if code == "match_string_pattern" || code == "match_or_pattern_destructure" {
         return ParsePublicDiagnosticIdentity(
             true, "PGY_SEM_MATCH_PATTERN_INVALID", "semantic:match:pattern_shape",
             "align-pattern-arity-or-kind"

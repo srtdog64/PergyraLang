@@ -25,7 +25,8 @@ func SelfMirMatchCaseFactForNode(
     if !fact.ok { return SelfMirMatchCaseFactInvalid(); }
     let binding_types: Array<String> = [];
     return SelfMirMatchCaseFact(
-        true, fact.pattern, fact.variant, fact.bindings, binding_types, ""
+        true, fact.pattern, fact.variant, fact.bindings, binding_types, "",
+        AstMatchCasePatternAlternatives(fact)
     );
 }
 
@@ -67,6 +68,31 @@ func SelfMirMatchCaseSubjectReady(
     match_value: String,
     fact: SelfMirMatchCaseFact
 ) -> Bool {
+    // Each or-pattern alternative is an Int literal or a payload-free
+    // variant of the subject enum.
+    if ArrayLength(fact.patterns) > 1 {
+        if fact.variant != "" || ArrayLength(fact.bindings) != 0 { return false; }
+        let alternative_subject: Option<String> = SelfMirMatchSubjectType(
+            input, match_node_id
+        );
+        let alternative: Int = 0;
+        while alternative < ArrayLength(fact.patterns) {
+            let value: String = fact.patterns[alternative];
+            let ready: Bool = ToString(ToInt(value)) == value;
+            let row: Int = 0;
+            while !ready && IsSome(alternative_subject) &&
+                row < ArrayLength(input.analysis.enums.variant_names) {
+                ready = input.analysis.enums.variant_enum_names[row] ==
+                        UnwrapOption(alternative_subject) &&
+                    input.analysis.enums.variant_names[row] == value &&
+                    input.analysis.enums.variant_param_counts[row] == 0;
+                row = row + 1;
+            }
+            if !ready { return false; }
+            alternative = alternative + 1;
+        }
+        return true;
+    }
     if fact.variant == "" &&
         ToString(ToInt(fact.pattern)) == fact.pattern {
         return ArrayLength(fact.bindings) == 0;
@@ -226,7 +252,7 @@ func SelfMirLowerMatchCaseBranch(
     }
     let carried_fact: SelfMirMatchCaseFact = SelfMirMatchCaseFact(
         fact.ok, fact.pattern, fact.variant, fact.bindings, binding_types,
-        SelfMirMatchSubjectFamily(input, match_node_id)
+        SelfMirMatchSubjectFamily(input, match_node_id), fact.patterns
     );
     if !match_graph.ok {
         return SelfMirRoutineBuildError(

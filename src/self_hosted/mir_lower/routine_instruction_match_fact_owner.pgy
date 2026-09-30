@@ -137,13 +137,14 @@ func MirRoutineInstructionMatchAtGlobal(
     let row: Int = global_row - facts.global_start;
     let bindings: Array<String> = [];
     let binding_types: Array<String> = [];
+    let patterns: Array<String> = [];
     if !facts.valid || facts.global_start < 0 || row < 0 ||
         row >= ArrayLength(facts.row_valid) ||
         row >= ArrayLength(facts.binding_starts) ||
         row >= ArrayLength(facts.binding_counts) ||
         row >= ArrayLength(facts.binding_type_counts) {
         return MirMatchInstructionCapture(
-            false, 0, "", "", 0, bindings, 0, binding_types);
+            false, 0, "", "", 0, bindings, 0, binding_types, patterns);
     }
     let start: Int = facts.binding_starts[row];
     let count: Int = facts.binding_counts[row];
@@ -151,7 +152,7 @@ func MirRoutineInstructionMatchAtGlobal(
         start > ArrayLength(facts.bindings) - count ||
         start > ArrayLength(facts.binding_types) - count {
         return MirMatchInstructionCapture(
-            false, 0, "", "", 0, bindings, 0, binding_types);
+            false, 0, "", "", 0, bindings, 0, binding_types, patterns);
     }
     let binding: Int = 0;
     while binding < count {
@@ -159,9 +160,11 @@ func MirRoutineInstructionMatchAtGlobal(
         ArrayPush(binding_types, facts.binding_types[start + binding]);
         binding = binding + 1;
     }
+    // One pattern per row here; an or-pattern row returns no alternatives.
+    if facts.pattern_counts[row] == 1 { ArrayPush(patterns, facts.patterns[row]); }
     return MirMatchInstructionCapture(
         facts.row_valid[row], facts.pattern_counts[row],
         facts.patterns[row], facts.variants[row],
-        count, bindings, count, binding_types
+        count, bindings, count, binding_types, patterns
     );
 }

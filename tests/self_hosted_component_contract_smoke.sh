@@ -9644,8 +9644,23 @@ require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
     'func AstMatchCasePatternFactContractReady()'
 require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
     'func AstMatchCasePatternFactDigest('
-require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
-    'AstMatchCasePatternFactFromText("0 | 1")'
+# Or-patterns (H5b): the HIR owner alone names an arm's alternatives, and its
+# contract refuses a destructuring alternative.
+require_function_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
+    'func AstMatchCasePatternFactContractReady(' \
+    'AstMatchCasePatternFactFromText("0 | Ready")'
+require_function_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
+    'func AstMatchCasePatternFactContractReady(' \
+    '!AstMatchCasePatternFactFromText("Pair(left) | Ready").ok'
+for or_pattern_consumer in \
+    src/self_hosted/semantic/ast_match_coverage_owner.pgy \
+    src/self_hosted/semantic/ast_body_flow_verdict_owner.pgy \
+    src/self_hosted/mir/routine_match_owner.pgy; do
+    require_text "$or_pattern_consumer" 'AstMatchCasePatternAlternatives('
+    reject_text "$or_pattern_consumer" 'Split(pattern.pattern'
+done
+reject_text "src/self_hosted/mir_lower/structured_condition_emission_owner.pgy" \
+    'multi-pattern match cases are outside the self-host MIR subset'
 reject_function_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
     'func AstMatchCasePatternFactFromArtifact(' 'expression_graphs'
 reject_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
@@ -17116,7 +17131,7 @@ require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negativ
 require_text "tests/self_hosted/parity/driver_rung2_resource_runtime_abi_negative_owner.sh" "stray-consumer-runtime-row"
 require_text "src/self_hosted/compiler/driver_rung2_mir_manifest_owner.pgy" "class_helper_method_chain/main.pgy"
 require_text "src/self_hosted/mir_lower/structured_condition_emission_owner.pgy" "MirObjectArrayStringFactsAtBounds("
-require_text "src/self_hosted/mir_lower/structured_condition_emission_owner.pgy" "let pattern: String = patterns[0]"
+require_text "src/self_hosted/mir_lower/structured_condition_emission_owner.pgy" "variant_name = patterns[alternative]"
 require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" \
     'let binding: String = bindings[binding_index]'
 require_text "src/self_hosted/mir_lower/match_binding_render_owner.pgy" \

@@ -305,10 +305,17 @@ func SemanticAstBodyFlowOfMatch(
             if !arm.valid { return arm; }
             let pattern: AstMatchCasePatternFact =
                 SemanticAstMatchCasePatternFactForNode(statements, arm_node);
+            // An or-pattern matches when one alternative does, and misses
+            // only when every alternative is known to miss.
             let literal: Int = -1;
-            if pattern.ok {
-                literal = SemanticAstBodyFlowCaseLiteralMatch(subject_int, subject_bool,
-                    pattern.pattern);
+            let alternatives: Array<String> = AstMatchCasePatternAlternatives(pattern);
+            let alternative: Int = 0;
+            if ArrayLength(alternatives) > 0 { literal = 0; }
+            while alternative < ArrayLength(alternatives) && literal != 1 {
+                let one: Int = SemanticAstBodyFlowCaseLiteralMatch(subject_int,
+                    subject_bool, alternatives[alternative]);
+                if one == 1 || (one == -1 && literal == 0) { literal = one; }
+                alternative = alternative + 1;
             }
             flow = SemanticAstBodyFlowJoinArm(flow, arm, !prior_static_match && literal != 0);
             if literal == 1 { prior_static_match = true; }

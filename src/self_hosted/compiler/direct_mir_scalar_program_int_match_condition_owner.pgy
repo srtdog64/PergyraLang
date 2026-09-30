@@ -1,4 +1,6 @@
 // A captured Int pattern becomes a typed equality in the same expression row.
+// An or-pattern compares the one subject node with each alternative and
+// joins the equalities with `||`, left to right.
 import "direct_mir_scalar_program_expression_mutation_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
 import "../mir_lower/match_json_fact_owner.pgy";
@@ -12,9 +14,14 @@ func DirectMirScalarProgramIntMatchConditionFromInstruction(
     let pattern: MirMatchInstructionCapture = MirMatchInstructionCaptureFromTable(instruction);
     if !facts.valid || !JsonObjectFactStringFieldEquals(instruction, "source_type", "AST_MATCH_CASE") ||
         expression_row < 0 || expression_row + 1 != ArrayLength(facts.graph_starts) ||
-        !pattern.valid || pattern.pattern_count != 1 || pattern.variant != "" ||
-        pattern.binding_count != 0 || pattern.binding_type_count != 0 ||
-        !DirectMirScalarCfgCanonicalInt(pattern.pattern) { return invalid; }
+        !pattern.valid || pattern.pattern_count < 1 ||
+        pattern.pattern_count != ArrayLength(pattern.patterns) || pattern.variant != "" ||
+        pattern.binding_count != 0 || pattern.binding_type_count != 0 { return invalid; }
+    let alternative: Int = 0;
+    while alternative < pattern.pattern_count {
+        if !DirectMirScalarCfgCanonicalInt(pattern.patterns[alternative]) { return invalid; }
+        alternative = alternative + 1;
+    }
     let root: Int = facts.graph_roots[expression_row];
     let count: Int = facts.graph_counts[expression_row];
     let start: Int = facts.graph_starts[expression_row];
@@ -33,17 +40,33 @@ func DirectMirScalarProgramIntMatchConditionFromInstruction(
     let literals: Array<String> = facts.node_literals;
     let callables: Array<Int> = facts.node_callable_rows;
     let runtime_ids: Array<Int> = facts.node_runtime_call_abi_ids;
-    let literal: Int = ArrayLength(kinds);
-    DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights,
-        locals, params, members, literals, callables, runtime_ids,
-        DirectMirScalarProgramExprIntLiteral(), CompilerAbiLayoutIntTypeName(),
-        -1, -1, -1, -1, -1, pattern.pattern, -1, -1);
-    let condition: Int = ArrayLength(kinds);
-    DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights,
-        locals, params, members, literals, callables, runtime_ids,
-        DirectMirScalarProgramExprEqualInt(), CompilerAbiLayoutBoolTypeName(),
-        root, literal, -1, -1, -1, "", -1, -1);
-    ArraySet(counts, expression_row, count + 2);
+    let first_added: Int = ArrayLength(kinds);
+    let condition: Int = -1;
+    alternative = 0;
+    while alternative < pattern.pattern_count {
+        let literal: Int = ArrayLength(kinds);
+        DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights,
+            locals, params, members, literals, callables, runtime_ids,
+            DirectMirScalarProgramExprIntLiteral(), CompilerAbiLayoutIntTypeName(),
+            -1, -1, -1, -1, -1, pattern.patterns[alternative], -1, -1);
+        let equality: Int = ArrayLength(kinds);
+        DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights,
+            locals, params, members, literals, callables, runtime_ids,
+            DirectMirScalarProgramExprEqualInt(), CompilerAbiLayoutBoolTypeName(),
+            root, literal, -1, -1, -1, "", -1, -1);
+        if condition < 0 {
+            condition = equality;
+        } else {
+            let joined: Int = ArrayLength(kinds);
+            DirectMirScalarProgramAppendExpressionNode(kinds, types, lefts, rights,
+                locals, params, members, literals, callables, runtime_ids,
+                DirectMirScalarProgramExprLogicalOr(), CompilerAbiLayoutBoolTypeName(),
+                condition, equality, -1, -1, -1, "", -1, -1);
+            condition = joined;
+        }
+        alternative = alternative + 1;
+    }
+    ArraySet(counts, expression_row, count + ArrayLength(kinds) - first_added);
     ArraySet(roots, expression_row, condition);
     return DirectMirScalarProgramExpressionSet(true, 0, facts.graph_global_rows,
         facts.graph_starts, counts, roots, kinds, types, lefts, rights,

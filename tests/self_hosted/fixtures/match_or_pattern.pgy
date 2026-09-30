@@ -1,0 +1,35 @@
+// `case A | B:` lists values that share one arm (PP-070, H5b). Int and
+// payload-free enum alternatives; the enum match has no default, so each
+// alternative must count toward coverage.
+enum Light {
+    Red,
+    Amber,
+    Green,
+}
+
+func Status(code: Int) -> String {
+    match code {
+        case 401 | 403: return "auth";
+        case 404: return "missing";
+        default: return "other";
+    }
+    return "";
+}
+
+func Stop(light: Light) -> Bool {
+    match light {
+        case Red | Amber: return true;
+        case Green: return false;
+    }
+    return false;
+}
+
+func Main() -> Void {
+    Log(Status(401));
+    Log(Status(403));
+    Log(Status(404));
+    Log(Status(500));
+    Log(ToString(Stop(Light.Red)));
+    Log(ToString(Stop(Light.Amber)));
+    Log(ToString(Stop(Light.Green)));
+}

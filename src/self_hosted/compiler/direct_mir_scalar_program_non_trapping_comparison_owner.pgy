@@ -14,7 +14,8 @@ func DirectMirScalarProgramNonTrappingComparisonKind(kind: Int) -> Bool {
         kind == DirectMirScalarProgramExprNotEqualLong() ||
         kind == DirectMirScalarProgramExprLessLong() ||
         kind == DirectMirScalarProgramExprEqualString() ||
-        kind == DirectMirScalarProgramExprNotEqualString();
+        kind == DirectMirScalarProgramExprNotEqualString() ||
+        kind == DirectMirScalarProgramExprEqualPayloadFreeEnum();
 }
 
 func DirectMirScalarProgramNonTrappingComparisonNode(
@@ -37,6 +38,16 @@ func DirectMirScalarProgramNonTrappingComparisonNode(
             facts, facts.node_lefts[node], CompilerAbiLayoutIntTypeName()) &&
             DirectMirScalarProgramNonTrappingIntegerNode(
                 facts, facts.node_rights[node], CompilerAbiLayoutIntTypeName());
+    }
+    // A match case compares its once-evaluated subject local or parameter
+    // with a variant literal; an or-pattern joins such equalities with `||`.
+    if kind == DirectMirScalarProgramExprEqualPayloadFreeEnum() {
+        let scrutinee: Int = facts.node_lefts[node];
+        let variant: Int = facts.node_rights[node];
+        return scrutinee >= 0 && scrutinee < node && variant >= 0 && variant < node &&
+            (facts.node_kinds[scrutinee] == DirectMirScalarProgramExprLocal() ||
+                facts.node_kinds[scrutinee] == DirectMirScalarProgramExprParameter()) &&
+            facts.node_kinds[variant] == DirectMirScalarProgramExprPayloadFreeEnumVariant();
     }
     if kind == DirectMirScalarProgramExprGreaterLong() ||
         kind == DirectMirScalarProgramExprEqualLong() ||

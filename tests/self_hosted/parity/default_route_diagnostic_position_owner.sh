@@ -284,7 +284,7 @@ UNCOVERED_CASES=(
     "zone_layer_projection_state_alias|30|surface_not_covered|- surface: zone apply of a state"
     "select_match_case|5|surface_not_covered|- surface: select statement"
     "pin_inside_for_loop|5|surface_not_covered|- surface: pin block"
-    "match_guard_or_pattern|3|surface_not_covered|- surface: match or-pattern"
+    "match_guard_or_pattern|5|surface_not_covered|- surface: match guard"
     "match_guard_enum_payload|17|surface_not_covered|- surface: match guard"
     "reflect_type_name|14|surface_not_covered|"
     "type_test|3|surface_not_covered|"

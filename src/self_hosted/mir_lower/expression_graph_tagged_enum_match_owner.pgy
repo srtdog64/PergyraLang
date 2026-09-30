@@ -136,3 +136,69 @@ func MirExpressionGraphSequenceAppendTaggedEnumMatchOccurrence(
         target_kinds, target_names, places
     );
 }
+
+// An or-pattern condition: one equality per alternative, folded left to
+// right into `||`, the shape of the condition text
+// (structured_condition_emission_owner) and of native's
+// `(s == 401) || (s == 403)`.
+func MirExpressionGraphSequenceAppendOrPatternMatchOccurrence(
+    sequence: MirExpressionGraphSequence,
+    ref enum_variants: MirProgramEnumVariantIndex,
+    instruction: JsonObjectFactTable,
+    subject_graph: JsonObjectFactTable,
+    match_value: String,
+    patterns: Array<String>
+) -> MirExpressionGraphSequence {
+    let base_root_count: Int = ArrayLength(sequence.roots);
+    let current: MirExpressionGraphSequence = sequence;
+    let no_variant: Option<String> = None;
+    let alternative: Int = 0;
+    while alternative < ArrayLength(patterns) {
+        current = MirExpressionGraphSequenceAppendTaggedEnumMatchOccurrence(
+            current, enum_variants, instruction, subject_graph, match_value,
+            patterns[alternative], no_variant, 0, AstExpressionLaneAtom(), 0
+        );
+        if !current.ok { return current; }
+        alternative = alternative + 1;
+    }
+    let roots: Array<Int> = current.roots;
+    if ArrayLength(patterns) < 2 ||
+        ArrayLength(roots) != base_root_count + ArrayLength(patterns) {
+        return MirExpressionGraphSequenceError(current);
+    }
+    let arena: SemanticExpressionGraphArena = current.arena;
+    let kinds: Array<Int> = arena.topology.node_kinds;
+    let texts: Array<String> = arena.node_texts;
+    let left: Array<Int> = arena.topology.left_children;
+    let right: Array<Int> = arena.topology.right_children;
+    let target_kinds: Array<Int> = arena.call_target_kinds;
+    let target_names: Array<String> = arena.call_target_names;
+    let places: Array<Int> = arena.place_kinds;
+    let folded: Int = roots[base_root_count];
+    let folded_text: String = texts[folded];
+    let next: Int = 1;
+    while next < ArrayLength(patterns) {
+        let equality: Int = roots[base_root_count + next];
+        folded_text = Concat(folded_text, Concat(" || ", texts[equality]));
+        let or_node: Int = ArrayLength(kinds);
+        ArrayPush(kinds, AstExpressionNodeLogicalOr());
+        ArrayPush(texts, folded_text);
+        ArrayPush(left, folded); ArrayPush(right, equality);
+        ArrayPush(target_kinds, SemanticCallTargetNone());
+        ArrayPush(target_names, "");
+        ArrayPush(places, SemanticExpressionPlaceUnknown());
+        folded = or_node;
+        next = next + 1;
+    }
+    let kept: Array<Int> = [];
+    let root_index: Int = 0;
+    while root_index < base_root_count {
+        ArrayPush(kept, roots[root_index]);
+        root_index = root_index + 1;
+    }
+    ArrayPush(kept, folded);
+    return MirExpressionGraphSequenceFromExtendedRows(
+        current, kept, kinds, texts, left, right,
+        target_kinds, target_names, places
+    );
+}

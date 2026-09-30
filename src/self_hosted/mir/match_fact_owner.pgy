@@ -41,7 +41,7 @@ func SelfMirMatchFactIndexForInstruction(
 func SelfMirMatchFactRowsAttachCase(
     rows: SelfMirMatchFactRows,
     instruction_index: Int,
-    pattern: String,
+    case_patterns: Array<String>,
     variant: String,
     case_bindings: Array<String>,
     case_binding_types: Array<String>,
@@ -57,10 +57,15 @@ func SelfMirMatchFactRowsAttachCase(
     let bindings: Array<String> = rows.bindings;
     let binding_types: Array<String> = rows.binding_types;
     let subject_families: Array<String> = rows.subject_families;
+    if ArrayLength(case_patterns) == 0 { return rows; }
     ArrayPush(instruction_indices, instruction_index);
     ArrayPush(pattern_starts, ArrayLength(patterns));
-    ArrayPush(pattern_counts, 1);
-    ArrayPush(patterns, pattern);
+    ArrayPush(pattern_counts, ArrayLength(case_patterns));
+    let pattern_index: Int = 0;
+    while pattern_index < ArrayLength(case_patterns) {
+        ArrayPush(patterns, case_patterns[pattern_index]);
+        pattern_index = pattern_index + 1;
+    }
     ArrayPush(variants, variant);
     ArrayPush(subject_families, subject_family);
     ArrayPush(binding_starts, ArrayLength(bindings));
@@ -167,10 +172,19 @@ func SelfMirMatchFactRowsValidationError(
             return "match instruction identity is invalid";
         }
         if rows.pattern_starts[i] != pattern_cursor ||
-            rows.pattern_counts[i] != 1 ||
-            pattern_cursor >= ArrayLength(rows.patterns) ||
+            rows.pattern_counts[i] < 1 ||
+            pattern_cursor + rows.pattern_counts[i] > ArrayLength(rows.patterns) ||
             rows.patterns[pattern_cursor] == "" {
             return "match pattern rows are invalid";
+        }
+        // An or-pattern row lists payload-free values only.
+        let alternative: Int = 1;
+        while alternative < rows.pattern_counts[i] {
+            if rows.patterns[pattern_cursor + alternative] == "" ||
+                rows.variants[i] != "" || rows.binding_counts[i] != 0 {
+                return "match or-pattern rows are invalid";
+            }
+            alternative = alternative + 1;
         }
         if rows.binding_starts[i] != binding_cursor ||
             rows.binding_counts[i] < 0 ||

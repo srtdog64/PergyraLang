@@ -8,9 +8,13 @@ struct SelfMirMatchCaseFact {
     binding_types: Array<String>;
     // "option", "result", "enum" or "" (docs/205 section 2.3).
     subject_family: String;
+    // The values the arm accepts (AstMatchCasePatternAlternatives): one
+    // entry, or each alternative of an or-pattern. MIR emits them as
+    // `match_patterns`.
+    patterns: Array<String>;
 }
 
 func SelfMirMatchCaseFactInvalid() -> SelfMirMatchCaseFact {
     let strings: Array<String> = [];
-    return SelfMirMatchCaseFact(false, "", "", strings, strings, "");
+    return SelfMirMatchCaseFact(false, "", "", strings, strings, "", strings);
 }

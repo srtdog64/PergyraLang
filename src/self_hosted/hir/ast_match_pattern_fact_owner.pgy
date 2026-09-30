@@ -38,8 +38,25 @@ func AstMatchCasePatternFactDigest(
     return digest;
 }
 
+// An or-pattern atom is `A | B`, the parser's canonical spelling. Each
+// alternative is an Int literal or a payload-free name; the parser refuses
+// a destructuring alternative.
 func AstMatchCasePatternFactFromText(pattern: String) -> AstMatchCasePatternFact {
     let text: String = StringTrim(pattern);
+    if StringIndexOf(text, " | ") >= 0 {
+        let parts: Array<String> = Split(text, "|");
+        let part: Int = 0;
+        while part < ArrayLength(parts) {
+            let alternative: String = StringTrim(parts[part]);
+            if alternative == "" || (!IsIdentifier(alternative) &&
+                ToString(ToInt(alternative)) != alternative) {
+                return AstMatchCasePatternFactInvalid();
+            }
+            part = part + 1;
+        }
+        let no_bindings: Array<String> = [];
+        return AstMatchCasePatternFact(true, text, "", no_bindings);
+    }
     let open: Int = StringIndexOf(text, "(");
     if open < 0 {
         if !IsIdentifier(text) && ToString(ToInt(text)) != text {
@@ -83,6 +100,27 @@ func AstMatchCasePatternFactFromText(pattern: String) -> AstMatchCasePatternFact
     return AstMatchCasePatternFact(true, text, variant, bindings);
 }
 
+// The values one arm accepts, in source order: the alternatives of an
+// or-pattern, or the one pattern. Consumers read this instead of splitting
+// the atom themselves.
+func AstMatchCasePatternAlternatives(
+    ref fact: AstMatchCasePatternFact
+) -> Array<String> {
+    let alternatives: Array<String> = [];
+    if !fact.ok { return alternatives; }
+    if fact.variant != "" || StringIndexOf(fact.pattern, " | ") < 0 {
+        ArrayPush(alternatives, fact.pattern);
+        return alternatives;
+    }
+    let parts: Array<String> = Split(fact.pattern, "|");
+    let part: Int = 0;
+    while part < ArrayLength(parts) {
+        ArrayPush(alternatives, StringTrim(parts[part]));
+        part = part + 1;
+    }
+    return alternatives;
+}
+
 func AstMatchCasePatternFactContractReady() -> Bool {
     let scalar: AstMatchCasePatternFact =
         AstMatchCasePatternFactFromText("1");
@@ -93,7 +131,19 @@ func AstMatchCasePatternFactContractReady() -> Bool {
     let changed: AstMatchCasePatternFact = AstMatchCasePatternFact(
         true, payload.pattern, "Other", payload.bindings
     );
-    return scalar.ok && scalar.variant == "" &&
+    let either: AstMatchCasePatternFact =
+        AstMatchCasePatternFactFromText("0 | Ready");
+    let either_values: Array<String> = AstMatchCasePatternAlternatives(either);
+    let single_values: Array<String> = AstMatchCasePatternAlternatives(payload);
+    return either.ok && either.variant == "" &&
+        ArrayLength(either.bindings) == 0 &&
+        ArrayLength(either_values) == 2 && either_values[0] == "0" &&
+        either_values[1] == "Ready" &&
+        ArrayLength(single_values) == 1 &&
+        single_values[0] == "Pair(left, right)" &&
+        !AstMatchCasePatternFactFromText("Pair(left) | Ready").ok &&
+        !AstMatchCasePatternFactFromText("0 | ").ok &&
+        scalar.ok && scalar.variant == "" &&
         AstMatchCasePatternFactDigest(scalar) != 0 &&
         ArrayLength(scalar.bindings) == 0 &&
         leaf.ok && leaf.pattern == "Ready" &&
@@ -103,7 +153,6 @@ func AstMatchCasePatternFactContractReady() -> Bool {
         ArrayLength(payload.bindings) == 2 &&
         payload.bindings[0] == "left" && payload.bindings[1] == "right" &&
         !AstMatchCasePatternFactFromText("").ok &&
-        !AstMatchCasePatternFactFromText("0 | 1").ok &&
         !AstMatchCasePatternFactFromText("\"text\"").ok &&
         !AstMatchCasePatternFactFromText("Pair(left, left)").ok &&
         !AstMatchCasePatternFactFromText("Pair(1)").ok &&

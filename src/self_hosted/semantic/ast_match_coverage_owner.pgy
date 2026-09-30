@@ -122,19 +122,26 @@ func SemanticAstNamedEnumMatchCoverageFromFacts(
                         return SemanticAstMatchCoverageInvalid(node, "missing admitted arm pattern");
                     }
                     // A payload-free identifier has an empty variant lane in
-                    // the bounded pattern fact; its admitted atom owns its name.
-                    let variant: String = pattern.variant;
-                    if variant == "" { variant = pattern.pattern; }
-                    let key: String = Concat(subject_type, Concat(":", variant));
-                    if !MapHas(arities, key) ||
-                        MapGet(arities, key) != ArrayLength(pattern.bindings) {
-                        return SemanticAstMatchCoverageInvalid(node,
-                            Concat("invalid variant or payload arity: ", key));
+                    // the bounded pattern fact; its admitted atom owns its
+                    // name. Each or-pattern alternative covers its variant.
+                    let alternatives: Array<String> =
+                        AstMatchCasePatternAlternatives(pattern);
+                    let alternative: Int = 0;
+                    while alternative < ArrayLength(alternatives) {
+                        let variant: String = pattern.variant;
+                        if variant == "" { variant = alternatives[alternative]; }
+                        let key: String = Concat(subject_type, Concat(":", variant));
+                        if !MapHas(arities, key) ||
+                            MapGet(arities, key) != ArrayLength(pattern.bindings) {
+                            return SemanticAstMatchCoverageInvalid(node,
+                                Concat("invalid variant or payload arity: ", key));
+                        }
+                        // Duplicate arms do not increase coverage. Native warns
+                        // about redundancy; it does not reject an otherwise total match.
+                        MapSet(covered, Concat(ToString(UnwrapOption(parent)),
+                            Concat(":", variant)), 1);
+                        alternative = alternative + 1;
                     }
-                    // Duplicate arms do not increase coverage. Native warns
-                    // about redundancy; it does not reject an otherwise total match.
-                    MapSet(covered, Concat(ToString(UnwrapOption(parent)),
-                        Concat(":", variant)), 1);
                 }
             }
         }
