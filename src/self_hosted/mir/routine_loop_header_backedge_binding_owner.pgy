@@ -40,11 +40,11 @@ func SelfMirLoopBindHeaderBackedgeLocalVersions(
             let backedge_row: Int = 0;
             while backedge_row < ArrayLength(backedges.blocks) {
                 let block: Int = backedges.blocks[backedge_row];
-                let version: Int = SelfMirLocalPredecessorVersionAt(
+                let version: Option<Int> = SelfMirLocalPredecessorVersionAt(
                     backedges, backedge_row, UnwrapOption(local_opt)
                 );
                 if block < 0 || block >= SelfMirCfgBlockCount(build.cfg) ||
-                    version < 0 ||
+                    !IsSome(version) ||
                     !((build.cfg.blocks.has_succ_true[block] == 1 &&
                         build.cfg.blocks.succ_true[block] == header) ||
                       (build.cfg.blocks.has_succ_false[block] == 1 &&
@@ -53,7 +53,9 @@ func SelfMirLoopBindHeaderBackedgeLocalVersions(
                         build, "MIR loop backedge snapshot is unbound"
                     );
                 }
-                ArrayPush(phi_uses, SelfMirSsaName(local_name, version));
+                ArrayPush(
+                    phi_uses, SelfMirSsaName(local_name, UnwrapOption(version))
+                );
                 backedge_row = backedge_row + 1;
             }
             build = SelfMirRoutineWithCfg(

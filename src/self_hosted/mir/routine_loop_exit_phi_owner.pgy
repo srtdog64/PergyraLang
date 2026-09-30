@@ -27,15 +27,15 @@ func SelfMirLoopExitMergeLocalVersions(
         }
         let break_row: Int = 0;
         while break_row < ArrayLength(break_exits.blocks) {
-            let version: Int = SelfMirLocalPredecessorVersionAt(
+            let version: Option<Int> = SelfMirLocalPredecessorVersionAt(
                 break_exits, break_row, local_row
             );
-            if version < 0 {
+            if !IsSome(version) {
                 return SelfMirRoutineBuildError(
                     build, "MIR loop break local version is missing"
                 );
             }
-            ArrayPush(incoming_versions, version);
+            ArrayPush(incoming_versions, UnwrapOption(version));
             break_row = break_row + 1;
         }
         if ArrayLength(incoming_versions) == 0 {

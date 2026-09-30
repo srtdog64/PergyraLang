@@ -399,7 +399,9 @@ SENTINEL_MAX=20
 # 5100 -> 5228 (2026-09-21): reconcile the reached typed HashMap ownership
 # carrier and current compiler-owner surface. Preserve the measured
 # Result/Option inventory while the execution/cleanup consumer remains open.
-RESULT_USE_MIN=5228
+# 5228 -> 5473 (2026-10-01): predecessor version lookup now owns absence as
+# Option<Int>; rebase to the reached error-as-data inventory.
+RESULT_USE_MIN=5473
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=22
 # The import closure declares 22 resource-zone types, but the runtime world

@@ -70,13 +70,13 @@ func SelfMirLocalPredecessorVersionAt(
     ref facts: SelfMirLocalPredecessorSnapshots,
     predecessor_row: Int,
     local_row: Int
-) -> Int {
+) -> Option<Int> {
     if !SelfMirLocalPredecessorSnapshotsReady(facts) ||
         predecessor_row < 0 || predecessor_row >= ArrayLength(facts.blocks) ||
         local_row < 0 || local_row >= facts.version_counts[predecessor_row] {
-        return -1;
+        return None;
     }
-    return facts.versions[
+    return Some(facts.versions[
         facts.version_starts[predecessor_row] + local_row
-    ];
+    ]);
 }
