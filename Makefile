@@ -4925,11 +4925,15 @@ semantic-tu-size-test-smoke:
 	"$(BASH)" tests/semantic_tu_size_smoke.sh
 
 production-header-size-test-smoke: $(PGY)
+	python3 tests/source_size_count_test.py
+	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" "$(BASH)" tests/self_hosted/parity/source_size_c_owner_probe.sh
 	"$(BASH)" tests/production_header_size_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/production_header_size_checker_parity.sh
 
 # Pergyra-side primary gate: no C-side smoke owns the .c file cap today.
 production-c-size-test-smoke: $(PGY)
+	python3 tests/source_size_count_test.py
+	PGY_BIN="$(abspath $(PGY))" PGY_SELFHOST_CC="$(CC)" "$(BASH)" tests/self_hosted/parity/source_size_c_owner_probe.sh
 	"$(BASH)" tests/self_hosted/parity/production_c_size_checker_parity.sh
 
 # Pergyra-side primary gate: examples/ inventory has no C-side smoke today.
