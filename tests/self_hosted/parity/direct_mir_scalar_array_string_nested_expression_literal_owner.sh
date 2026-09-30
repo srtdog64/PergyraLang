@@ -33,16 +33,14 @@ grep -Fq 'while sequence.arena.topology.node_kinds[cursor] ==' "$NESTED" || fail
 grep -Fq 'node != sequence.roots[0] ||' "$NESTED" || fail "nested String literal bypasses the single-leaf owner"
 grep -Fq 'DirectMirScalarProgramNestedArrayStringLiteralOperandRows(' "$ADMISSION" || fail "general expression admission omits nested String literal carriage"
 grep -Fq 'nary_operands, ArrayLength(kinds),' "$ADMISSION" || fail "mixed String literal omits ordered n-ary carriage"
-! rg -F 'DirectMirScalarProgramNestedSingleArrayStringLiteralOperandRow(' \
-    "$ROOT_DIR/src/self_hosted/compiler" >/dev/null ||
+! rg -F 'DirectMirScalarProgramNestedSingleArrayStringLiteralOperandRow(' "$ROOT_DIR/src/self_hosted/compiler" >/dev/null ||
     fail "retired single-element nested String owner returned"
 grep -Fq 'facts.node_types[operand] ==' "$READINESS" || fail "literal readiness omits normalized String expression operands"
 grep -Fq 'routines.parameter_carriages[parameter]' "$PARAMETER_CARRIAGE" ||
     fail "mixed String literal omits routine-owned parameter carriage"
 grep -Fq '(owned == 1 && ArrayLength(operands) == 1)' "$PARAMETER_CARRIAGE" ||
     fail "mixed String literal weakened the owner-handle singleton boundary"
-! rg -F 'DirectMirScalarProgramNestedArrayIntLiteralSeedMarkerReady' \
-    "$ROOT_DIR/src/self_hosted/compiler" >/dev/null ||
+! rg -F 'DirectMirScalarProgramNestedArrayIntLiteralSeedMarkerReady' "$ROOT_DIR/src/self_hosted/compiler" >/dev/null ||
     fail "retired type-specific array seed owner returned"
 grep -Fq 'DirectMirScalarProgramCStringArrayValuesFn()' "$C_LITERAL" ||
     fail "C populated literal omits growable backing materialization"

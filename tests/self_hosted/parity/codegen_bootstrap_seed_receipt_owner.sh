@@ -9,7 +9,6 @@ pgy_selfhost_codegen_seed_receipt_error() {
     echo "[self-host-codegen-seed-receipt] $*" >&2
     return 2
 }
-
 pgy_selfhost_codegen_seed_mode_validate() {
     case "${PGY_SELFHOST_CODEGEN_SEED_MODE:-build}" in
         build|prebuilt) ;;
@@ -19,7 +18,6 @@ pgy_selfhost_codegen_seed_mode_validate() {
             ;;
     esac
 }
-
 pgy_selfhost_codegen_seed_reuse_miss() {
     local reason="$1"
     if [[ "${PGY_SELFHOST_CODEGEN_SEED_MODE:-build}" == "prebuilt" ]]; then
@@ -29,7 +27,6 @@ pgy_selfhost_codegen_seed_reuse_miss() {
     echo "[self-host-codegen-seed-receipt] $reason; rebuilding" >&2
     return 1
 }
-
 pgy_selfhost_codegen_seed_key_stamp_matches() {
     local stamp="$1"
     local key="$2"
@@ -44,7 +41,6 @@ pgy_selfhost_codegen_seed_key_stamp_matches() {
     rm -f "$expected"
     return "$status"
 }
-
 pgy_selfhost_codegen_seed_render_artifact_receipt() {
     local source_artifact="$1"
     local binary_artifact="$2"
