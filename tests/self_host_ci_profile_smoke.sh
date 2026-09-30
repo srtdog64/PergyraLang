@@ -94,7 +94,8 @@ for required in \
 done
 
 if [[ "$(grep -Fc 'needs: classify-changes' "$WORKFLOW")" != "5" ]] ||
-    [[ "$(grep -Fc 'needs: [classify-changes, backend-compare-toolchain-linux]' "$WORKFLOW")" != "5" ]] ||
+    [[ "$(grep -Fc 'needs: [classify-changes, backend-compare-toolchain-linux]' "$WORKFLOW")" != "4" ]] ||
+    [[ "$(grep -Fc 'needs: [classify-changes, backend-compare-toolchain-linux, formal-proofs-rocq9]' "$WORKFLOW")" != "1" ]] ||
     [[ "$(grep -Fc 'needs: [classify-changes, self-host-codegen-bootstrap-linux]' "$WORKFLOW")" != "1" ]] ||
     [[ "$(grep -Fc "if: needs.classify-changes.outputs.run_full == 'true'" "$WORKFLOW")" != "10" ]]; then
     echo "[self-host-ci-profile] full-only jobs are not all gated by one change-scope owner" >&2
@@ -132,7 +133,7 @@ build_linux_self_host_scope="$(
     sed -n '/^  build-linux-self-host-contracts:/,/^  sanitizers-linux:/p' "$WORKFLOW"
 )"
 for required in \
-    'needs: [classify-changes, backend-compare-toolchain-linux]' \
+    'needs: [classify-changes, backend-compare-toolchain-linux, formal-proofs-rocq9]' \
     "if: needs.classify-changes.outputs.run_full == 'true'" \
     'uses: actions/download-artifact@v4' \
     'name: backend-compare-linux-toolchain' \
@@ -140,6 +141,7 @@ for required in \
     'test -s bin/pgy-self-driver.machine-layer-manifest.json' \
     'PGY_CI_SELF_HOST_MODE: prebuilt' \
     'PGY_CI_PUSH_LINUX_SHARD: self-host' \
+    'PGY_ALLOW_MISSING_COQ: "1"' \
     'run: make ci-push-linux'; do
     if ! grep -Fq "$required" <<<"$build_linux_self_host_scope"; then
         echo "[self-host-ci-profile] Linux self-host contract shard lost: $required" >&2

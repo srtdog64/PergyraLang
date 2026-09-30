@@ -99,7 +99,7 @@ jobs:
           bash tests/self_host_progress_metric_smoke.sh
 
   build-linux-self-host-contracts:
-    needs: [classify-changes, backend-compare-toolchain-linux]
+    needs: [classify-changes, backend-compare-toolchain-linux, formal-proofs-rocq9]
     if: needs.classify-changes.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     # The exact same-run compiler pair is shared with build-linux. This shard
@@ -111,9 +111,9 @@ jobs:
 
       - name: Install dependencies
         timeout-minutes: 10
-        # This shard runs compiler/self-host contracts only. Coq remains owned
-        # by formal-proofs-rocq9 and the core Linux shard; installing it here
-        # pulls an unused OCaml/Coq toolchain into the bounded feedback path.
+        # The required Coq corpus is kernel-checked by the same-run
+        # formal-proofs-rocq9 dependency. Do not duplicate its OCaml/Coq
+        # implementation toolchain in this bounded compiler-contract shard.
         run: |
           printf 'Acquire::Retries "3";\nAcquire::ForceIPv4 "true";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
             | sudo tee /etc/apt/apt.conf.d/99-pgy-ci-hardening >/dev/null
@@ -137,6 +137,7 @@ jobs:
         env:
           PGY_CI_SELF_HOST_MODE: prebuilt
           PGY_CI_PUSH_LINUX_SHARD: self-host
+          PGY_ALLOW_MISSING_COQ: "1"
         run: make ci-push-linux
 
   sanitizers-linux:
