@@ -71,7 +71,6 @@ func BuildMirCollectionOwnershipBindingMoveFacts(
             if declaration {
                 binding = MirCollectionOwnershipBindingForLocalName(
                     local_names, local_binding_syntax_ids, local_name);
-                if binding <= 0 { valid = false; }
             }
             let uses: Array<String> = MirObjectArrayStringFactsAtBounds(
                 routines.source_json, start, end, "uses");
