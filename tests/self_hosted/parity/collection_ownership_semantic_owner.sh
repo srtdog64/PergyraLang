@@ -75,6 +75,7 @@ NEGATIVE_CASES=(
     collection_field_owned_push
     collection_field_deep_drop
     unknown_string_array_alias_drop
+    collection_parameter_direct_field_deep_drop
 )
 
 for name in "${NEGATIVE_CASES[@]}"; do

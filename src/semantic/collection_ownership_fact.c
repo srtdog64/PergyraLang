@@ -712,6 +712,22 @@ semantic_collection_admit_owned_string_drop(
     const char *name = binding != NULL && binding->name != NULL
         ? binding->name : "<array>";
 
+    if (receiver == NULL)
+        return false;
+    if (receiver->type != AST_IDENTIFIER) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            receiver,
+            "ArrayDropOwnedStrings requires a named Array<String> owner.\n"
+            "Reason:\n"
+            "- a field or temporary expression carries no stable element-lifetime fact\n"
+            "Fix:\n"
+            "- move the value into one named binding with proved provenance first");
+        return false;
+    }
+
     if (fact == NULL) {
         if (binding != NULL && binding->is_parameter
             && is_array_string(binding->type)

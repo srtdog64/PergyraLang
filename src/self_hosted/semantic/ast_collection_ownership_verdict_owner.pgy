@@ -298,13 +298,12 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                                 SemanticAstCollectionOwnershipParameterModeForArgument(
                                     signatures, surfaces, root_slot / 3,
                                     call.argument_nodes[0]);
-                            if !binding.ok && deep_drop && parameter_mode > 0 &&
-                                parameter_mode != 3 {
+                            if !binding.ok && deep_drop && parameter_mode != 3 {
                                 return SemanticAstCollectionOwnershipVerdictError(
                                     "borrow_boundary_escape",
                                     SemanticError2(
                                         "borrow_boundary_escape",
-                                        "boundary", "parameter_without_owned_provenance",
+                                        "boundary", "deep_drop_without_binding_provenance",
                                         "type", "Array<String>"
                                     ),
                                     surfaces.node_ids[root_slot / 3], node);
