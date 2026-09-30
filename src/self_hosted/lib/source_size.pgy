@@ -1,0 +1,116 @@
+// Size-only C/header metric; TextScan.CountLines retains text newline semantics.
+// Blank records count; nonblank comment-only records do not. EOF is a record.
+// Invalid lexical input is a fatal checker boundary, never a guessed size.
+namespace SourceSize {
+    func ByteAfterLineSplices(content: String, n: Int, start: Int) -> Int {
+        let i: Int = start;
+        while i + 1 < n && CharCode(content, n, i) == 92 {
+            let end: Int = i + 1;
+            if CharCode(content, n, end) == 13 {
+                end = end + 1;
+            }
+            if end >= n || CharCode(content, n, end) != 10 {
+                break;
+            }
+            i = end + 1;
+        }
+        if i >= n {
+            return 0;
+        }
+        return CharCode(content, n, i);
+    }
+    export func CountCLinesOrDie(content: String, path: String) -> Int {
+        let n: Int = StringLength(content);
+        let i: Int = 0;
+        let total: Int = 0;
+        let block: Bool = false;
+        let line_comment: Bool = false;
+        let quote: Int = 0;
+        let escaped: Bool = false;
+        let blank: Bool = true;
+        let commented: Bool = false;
+        let code: Bool = false;
+        let previous: Int = 0;
+        if n >= 3 && CharCode(content, n, 0) == 239 &&
+            CharCode(content, n, 1) == 187 && CharCode(content, n, 2) == 191 {
+            i = 3;
+            if i == n {
+                return 0;
+            }
+        }
+        while i < n {
+            let c: Int = CharCode(content, n, i);
+            if c == 10 {
+                if blank || code || !commented {
+                    total = total + 1;
+                }
+                line_comment = line_comment && previous == 92;
+                blank = true;
+                commented = block || line_comment;
+                code = quote != 0;
+                escaped = false;
+                previous = 0;
+                i = i + 1;
+                continue;
+            }
+            let whitespace: Bool = c == 32 || c == 9 || c == 13 || c == 11 || c == 12;
+            if !whitespace {
+                blank = false;
+            }
+            let next: Int = 0;
+            if i + 1 < n {
+                next = CharCode(content, n, i + 1);
+            }
+            if !line_comment && quote == 0 && next == 92 && (c == 47 || (block && c == 42)) {
+                let tail: Int = ByteAfterLineSplices(content, n, i + 1);
+                if (!block && c == 47 && (tail == 47 || tail == 42)) || (block && c == 42 && tail == 47) {
+                    Log("[source-size] unsupported C comment delimiter formed by line splice: " + path);
+                    Exit(1);
+                }
+            }
+            if line_comment {
+                commented = true;
+            } else if block {
+                commented = true;
+                if c == 42 && next == 47 {
+                    block = false;
+                    i = i + 1;
+                }
+            } else if quote != 0 {
+                code = true;
+                if escaped {
+                    escaped = false;
+                } else if c == 92 {
+                    escaped = true;
+                } else if c == quote {
+                    quote = 0;
+                }
+            } else if c == 47 && next == 47 {
+                commented = true;
+                line_comment = true;
+                i = i + 1;
+            } else if c == 47 && next == 42 {
+                commented = true;
+                block = true;
+                i = i + 1;
+            } else if c == 34 || c == 39 {
+                code = true;
+                quote = c;
+            } else if !whitespace {
+                code = true;
+            }
+            if c != 13 {
+                previous = c;
+            }
+            i = i + 1;
+        }
+        if n > 0 && CharCode(content, n, n - 1) != 10 && (blank || code || !commented) {
+            total = total + 1;
+        }
+        if block || quote != 0 {
+            Log("[source-size] unterminated C comment or literal: " + path);
+            Exit(1);
+        }
+        return total;
+    }
+}

@@ -1,0 +1,24 @@
+// Test CLI only: imports the real C/header size owner, without a second lexer.
+import "../../../src/self_hosted/lib/source_size.pgy";
+
+func Main() -> Void with caps env, io_read
+{
+    let args: Array<String> = Args();
+    if ArrayLength(args) < 1 || ArrayLength(args) > 2
+    {
+        Log("source-size probe expects project-relative input and optional --cap600");
+        Exit(2);
+    }
+    if ArrayLength(args) == 2 && args[1] != "--cap600"
+    {
+        Log("source-size probe unknown mode");
+        Exit(2);
+    }
+    let count: Int = SourceSize.CountCLinesOrDie(ReadFile(args[0]), args[0]);
+    if ArrayLength(args) == 2 && count > 600
+    {
+        Log("[source-size-probe] cap600 rejected " + ToString(count));
+        Exit(1);
+    }
+    Log(ToString(count));
+}

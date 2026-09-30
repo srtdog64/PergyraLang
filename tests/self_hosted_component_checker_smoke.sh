@@ -3,6 +3,7 @@
 set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OWNER="$REPO_DIR/tests/self_hosted_component_contract_smoke.sh"
+SOURCE_SIZE_COUNTER="$REPO_DIR/scripts/source_size_count.py"
 mkdir -p "$REPO_DIR/.tmp/self_hosted/component_checker"
 ROOT_DIR="$(mktemp -d "$REPO_DIR/.tmp/self_hosted/component_checker/run.XXXXXX")"
 
@@ -259,4 +260,5 @@ expect_rejection missing-artifact-transport 'missing function:' check_transport_
     check_transport_snapshot
 )
 
-echo '[component-checker] line caps, missing inputs, selected function identity and negative predicates: PASS'
+python3 "$REPO_DIR/tests/source_size_count_test.py" LexicalMetricTests
+echo '[component-checker] line caps, lexical source sizes, missing inputs, selected function identity and negative predicates: PASS'
