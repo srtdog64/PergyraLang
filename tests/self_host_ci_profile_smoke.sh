@@ -93,8 +93,9 @@ for required in \
     fi
 done
 
-if [[ "$(grep -Fc 'needs: classify-changes' "$WORKFLOW")" != "6" ]] ||
+if [[ "$(grep -Fc 'needs: classify-changes' "$WORKFLOW")" != "5" ]] ||
     [[ "$(grep -Fc 'needs: [classify-changes, backend-compare-toolchain-linux]' "$WORKFLOW")" != "5" ]] ||
+    [[ "$(grep -Fc 'needs: [classify-changes, self-host-codegen-bootstrap-linux]' "$WORKFLOW")" != "1" ]] ||
     [[ "$(grep -Fc "if: needs.classify-changes.outputs.run_full == 'true'" "$WORKFLOW")" != "10" ]]; then
     echo "[self-host-ci-profile] full-only jobs are not all gated by one change-scope owner" >&2
     exit 1
@@ -689,7 +690,7 @@ for required in \
     'timeout-minutes: 20' \
     'timeout-minutes: 60' \
     'timeout-minutes: 30' \
-    'run: make self-host-codegen-bootstrap-test-smoke' \
+    'run: make LLVM_ENABLED=1 self-host-codegen-bootstrap-test-smoke' \
     'make self-host-driver-bootstrap-full-test-smoke' \
     'bash tests/selfhost_bootstrap_policy_corpus_smoke.sh' \
     'PGY_SELFHOST_PROFILE_REQUIRE_RESOURCE=1' \
@@ -719,21 +720,47 @@ backend_compare_toolchain_job="$(
         '/^  backend-compare-toolchain-linux:/,/^  backend-compare-linux:/p' \
         "$WORKFLOW"
 )"
+codegen_bootstrap_job="$(
+    sed -n \
+        '/^  self-host-codegen-bootstrap-linux:/,/^  formal-proofs-rocq9:/p' \
+        "$WORKFLOW"
+)"
 backend_compare_shard_job="$(
     sed -n \
         '/^  backend-compare-linux:/,/^  build-windows:/p' \
         "$WORKFLOW"
 )"
 for required in \
-    'make LLVM_ENABLED=1 self-host-compiler' \
+    'make LLVM_ENABLED=1 self-host-codegen-bootstrap-test-smoke' \
+    'name: self-host-codegen-linux-native' \
+    'name: self-host-codegen-linux-seed' \
+    'bin/pgy' \
+    '.tmp/self_hosted/codegen/bootstrap/gen2.c' \
+    '.tmp/self_hosted/codegen/bootstrap/gen2.exe' \
+    '.tmp/self_hosted/codegen/bootstrap/codegen-seed.output.receipt' \
+    '.tmp/self_hosted/codegen/bootstrap/codegen-seed.prebuild.key' \
+    'if-no-files-found: error' \
+    'retention-days: 1'; do
+    if ! grep -Fq "$required" <<<"$codegen_bootstrap_job"; then
+        echo "[self-host-ci-profile] codegen bootstrap owner lost exact artifact publication: $required" >&2
+        exit 1
+    fi
+done
+for required in \
+    'needs: [classify-changes, self-host-codegen-bootstrap-linux]' \
+    'uses: actions/download-artifact@v4' \
+    'name: self-host-codegen-linux-native' \
+    'name: self-host-codegen-linux-seed' \
+    'path: .tmp/self_hosted/codegen/bootstrap' \
+    'PGY_SELFHOST_CODEGEN_SEED_MODE: prebuilt' \
+    'PGY_SELFHOST_CODEGEN_SEED_ONLY: 1' \
+    'bash tests/self_hosted/parity/codegen_bootstrap.sh' \
+    'bash tests/self_hosted/parity/self_host_compiler_build.sh' \
     'uses: actions/upload-artifact@v4' \
     'name: backend-compare-linux-toolchain' \
-    'name: self-host-codegen-linux-seed' \
     'bin/pgy' \
     'bin/pgy-self-driver' \
     'bin/pgy-self-driver.machine-layer-manifest.json' \
-    '.tmp/self_hosted/codegen/bootstrap/gen2.c' \
-    '.tmp/self_hosted/codegen/bootstrap/gen2.exe' \
     '.tmp/self_hosted/codegen/bootstrap/codegen-seed.output.receipt' \
     '.tmp/self_hosted/codegen/bootstrap/codegen-seed.prebuild.key' \
     'if-no-files-found: error' \
@@ -743,6 +770,11 @@ for required in \
         exit 1
     fi
 done
+if [[ "$(grep -Fc 'self-host-codegen-bootstrap-test-smoke' <<<"$backend_compare_toolchain_job")" != "0" ]] ||
+    [[ "$(grep -Fc 'actions/upload-artifact@v4' <<<"$backend_compare_toolchain_job")" != "1" ]]; then
+    echo "[self-host-ci-profile] backend compare toolchain rebuilt or republished the shared codegen seed" >&2
+    exit 1
+fi
 for required in \
     'PGY_SELFHOST_CODEGEN_SEED_MODE:-build' \
     'build|prebuilt)' \

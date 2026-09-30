@@ -306,7 +306,27 @@ jobs:
           sudo apt-get install -y gcc make llvm-dev llvm
 
       - name: Run self-host codegen fixed point and breadth
-        run: make self-host-codegen-bootstrap-test-smoke
+        run: make LLVM_ENABLED=1 self-host-codegen-bootstrap-test-smoke
+
+      - name: Publish the exact native seed compiler
+        uses: actions/upload-artifact@v4
+        with:
+          name: self-host-codegen-linux-native
+          path: bin/pgy
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Publish the exact codegen seed
+        uses: actions/upload-artifact@v4
+        with:
+          name: self-host-codegen-linux-seed
+          path: |
+            .tmp/self_hosted/codegen/bootstrap/gen2.c
+            .tmp/self_hosted/codegen/bootstrap/gen2.exe
+            .tmp/self_hosted/codegen/bootstrap/codegen-seed.output.receipt
+            .tmp/self_hosted/codegen/bootstrap/codegen-seed.prebuild.key
+          if-no-files-found: error
+          retention-days: 1
 
   formal-proofs-rocq9:
     needs: classify-changes
@@ -355,7 +375,7 @@ jobs:
         run: OPAMROOT=/home/rocq/.opam opam exec -- bash tests/coq_kernel_check_selftest.sh
 
   backend-compare-toolchain-linux:
-    needs: classify-changes
+    needs: [classify-changes, self-host-codegen-bootstrap-linux]
     if: needs.classify-changes.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -370,8 +390,36 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc make llvm-dev llvm
 
-      - name: Build the installed backend-compare toolchain once
-        run: make LLVM_ENABLED=1 self-host-compiler
+      - name: Download the exact native seed compiler
+        uses: actions/download-artifact@v4
+        with:
+          name: self-host-codegen-linux-native
+          path: bin
+
+      - name: Download the exact codegen seed
+        uses: actions/download-artifact@v4
+        with:
+          name: self-host-codegen-linux-seed
+          path: .tmp/self_hosted/codegen/bootstrap
+
+      - name: Admit the exact codegen toolchain
+        env:
+          PGY_SELFHOST_CODEGEN_SEED_MODE: prebuilt
+          PGY_SELFHOST_CODEGEN_SEED_ONLY: 1
+          PGY_BIN: ${{ github.workspace }}/bin/pgy
+        run: |
+          chmod +x bin/pgy .tmp/self_hosted/codegen/bootstrap/gen2.exe
+          test -s .tmp/self_hosted/codegen/bootstrap/gen2.c
+          test -s .tmp/self_hosted/codegen/bootstrap/codegen-seed.output.receipt
+          test -s .tmp/self_hosted/codegen/bootstrap/codegen-seed.prebuild.key
+          bash tests/self_hosted/parity/codegen_bootstrap.sh
+
+      - name: Build the installed backend-compare driver once
+        env:
+          PGY_BIN: ${{ github.workspace }}/bin/pgy
+          PGY_SELF_DRIVER_BIN: ${{ github.workspace }}/bin/pgy-self-driver
+          PGY_SELFHOST_CC: gcc
+        run: bash tests/self_hosted/parity/self_host_compiler_build.sh
 
       - name: Publish the installed compiler pair
         uses: actions/upload-artifact@v4
@@ -381,18 +429,6 @@ jobs:
             bin/pgy
             bin/pgy-self-driver
             bin/pgy-self-driver.machine-layer-manifest.json
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Publish the exact codegen seed
-        uses: actions/upload-artifact@v4
-        with:
-          name: self-host-codegen-linux-seed
-          path: |
-            .tmp/self_hosted/codegen/bootstrap/gen2.c
-            .tmp/self_hosted/codegen/bootstrap/gen2.exe
-            .tmp/self_hosted/codegen/bootstrap/codegen-seed.output.receipt
-            .tmp/self_hosted/codegen/bootstrap/codegen-seed.prebuild.key
           if-no-files-found: error
           retention-days: 1
 
