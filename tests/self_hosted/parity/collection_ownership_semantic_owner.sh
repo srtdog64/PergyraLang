@@ -505,7 +505,15 @@ MAP_KEYS_MOVE_LLVM="$ROOT_DIR/$MAP_KEYS_MOVE_LLVM_REL"
     "$MAP_KEYS_MOVE_LLVM" || fail "direct LLVM dropped the retired MapKeys source"
 [[ "$(grep -Fc 'call void @pgy_map_drop_raw_export(ptr %pgy.local.0)' \
     "$MAP_KEYS_MOVE_LLVM")" == 1 ]] || fail "direct LLVM did not drop the map once"
-"$CLANG" -std=c11 -DPGY_LLVM_ENABLED -I"$ROOT_DIR/src" \
+RUNTIME_FEATURE_FLAGS=()
+case "$(uname -s 2>/dev/null || echo unknown)" in
+    MINGW*|MSYS*|CYGWIN*) ;;
+    Darwin) RUNTIME_FEATURE_FLAGS+=(-D_DARWIN_C_SOURCE -D_XOPEN_SOURCE=700) ;;
+    *) RUNTIME_FEATURE_FLAGS+=(-D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 \
+        -D_DEFAULT_SOURCE) ;;
+esac
+"$CLANG" -std=c11 -DPGY_LLVM_ENABLED "${RUNTIME_FEATURE_FLAGS[@]}" \
+    -I"$ROOT_DIR/src" \
     -I"$ROOT_DIR/src/runtime" -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
     -o "$WORK_DIR/map-keys-runtime.o" || fail "MapKeys runtime object did not compile"
 "$CLANG" -x ir "$MAP_KEYS_MOVE_LLVM" -x none \
