@@ -470,8 +470,8 @@ for required in \
         exit 1
     fi
 done
-if [[ "$(grep -Ec "^[[:space:]]*run '" "$PUSH_LINUX_STEPS")" != "65" ]]; then
-    echo "[self-host-ci-profile] Linux push shard inventory must retain 64 prebuilt gates plus the build-mode compiler step" >&2
+if [[ "$(grep -Ec "^[[:space:]]*run '" "$PUSH_LINUX_STEPS")" != "66" ]]; then
+    echo "[self-host-ci-profile] Linux push shard inventory must retain 65 prebuilt gates plus the build-mode compiler step" >&2
     exit 1
 fi
 # The core shard runs on the admitted compiler pair inside a 30-minute job. A
