@@ -1,0 +1,9 @@
+func Populate(inout values: Array<String>) -> Void {
+    let alias: Array<String> = values;
+    ArrayPush(alias, "borrowed");
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    Populate(values);
+    ArrayDropOwnedStrings(values);
+}

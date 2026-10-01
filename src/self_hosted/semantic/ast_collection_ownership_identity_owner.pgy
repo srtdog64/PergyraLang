@@ -2,6 +2,7 @@
 
 import "ast_expression_graph_array_literal_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_call_argument_edge_owner.pgy";
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
@@ -23,8 +24,14 @@ func SemanticAstCollectionOwnershipBuiltinCall(
         SemanticExpressionGraphCallTargetSyntaxId(graph, call_node_id);
     let runtime_abi_id: Option<Int> =
         SemanticExpressionGraphRuntimeCallAbiId(graph, call_node_id);
+    let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(graph, call_node_id);
+    if !IsSome(callee) { return false; }
+    let binding: SemanticExpressionBindingIdentityFact =
+        SemanticExpressionGraphBindingIdentity(graph, UnwrapOption(callee));
     return IsSome(kind) && IsSome(name) && IsSome(syntax_id) &&
         IsSome(runtime_abi_id) &&
+        binding.ok && binding.kind == SemanticExpressionBindingNone() &&
+        binding.syntax_id == 0 &&
         UnwrapOption(kind) == SemanticCallTargetDirect() &&
         UnwrapOption(name) == expected_name &&
         UnwrapOption(syntax_id) == 0 && UnwrapOption(runtime_abi_id) == 0;

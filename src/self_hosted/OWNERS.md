@@ -604,6 +604,25 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   stable callable, parameter-mode, literal-origin, and local-binding identity
   queries shared by the collection ownership verdict. It does not own state
   transitions or infer ownership from a descriptor type.
+- `src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy`
+  -- exact String-array formal inventory and carried source-call argument join.
+  Function/formal syntax IDs, source ordinal and receiver offset stay with the
+  admitted signature owner; a mode or type is not a clean-element certificate.
+- `src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy` -- narrow
+  body-derived readonly or conditional Live {Empty, Owned}-preserving effects.
+  Every physical use edge and lane root is checked; alias/store/index uses are
+  currently unknown, and an unproved forwarding cycle grants nothing.
+- `src/self_hosted/semantic/ast_collection_call_effect_owner.pgy` -- sticky
+  caller permission removal for unknown source effects and exact local moves.
+  Proven copy effects do not purify an input or revive retired storage. This
+  conservative prepass is not event-time aggregate release authority.
+- `src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy` --
+  conservative typed syntax-order bounds for mutable-call entry, including
+  nested argument consumption, branch/loop retirement and deferred execution.
+  A graph row is not invocation order; missing event-time proof grants nothing.
+- `src/self_hosted/semantic/ast_expression_graph_call_argument_edge_owner.pgy`
+  -- allocation-free physical argument/ordinal view, including alternate DAG
+  continuations. It borrows topology, not selected-spine or spelling authority.
 - `src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy`
   -- exact local-to-local `Array<String>` assignment identity. It reports the
   source and target binding rows; the verdict owner remains the sole state

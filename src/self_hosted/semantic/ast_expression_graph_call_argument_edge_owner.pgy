@@ -1,0 +1,53 @@
+// The physical argument edge, including alternate continuations of a DAG.
+// A scalar view needs no whole-spine vectors and owns no graph storage.
+import "ast_expression_graph_call_view_owner.pgy";
+
+struct SemanticCallArgumentEdgeView {
+    ok: Bool;
+    call_node: Int;
+    argument_node: Int;
+    ordinal: Int;
+}
+
+func SemanticCallBaseCalleeFromGraph(
+    ref graph: SemanticExpressionGraphFacts, call_node: Int
+) -> Option<Int> {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, call_node);
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeCall() { return None; }
+    let callee: Option<Int> = SemanticExpressionGraphLeftChild(graph, call_node);
+    let previous: Int = call_node;
+    while IsSome(callee) {
+        let node: Int = UnwrapOption(callee);
+        if node < 0 || node >= previous { return None; }
+        kind = SemanticExpressionGraphNodeKind(graph, node);
+        if !IsSome(kind) { return None; }
+        if UnwrapOption(kind) != AstExpressionNodeGenericCallee() {
+            if AstExpressionNodeIsCallableCallee(UnwrapOption(kind)) { return callee; }
+            return None;
+        }
+        previous = node;
+        callee = SemanticExpressionGraphLeftChild(graph, node);
+    }
+    return None;
+}
+
+func SemanticCallArgumentEdgeFromGraph(
+    ref graph: SemanticExpressionGraphFacts, edge_node: Int
+) -> SemanticCallArgumentEdgeView {
+    let invalid: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeView(false, 0, 0, -1);
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, edge_node);
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeCallArgument() { return invalid; }
+    let argument: Option<Int> = SemanticExpressionGraphRightChild(graph, edge_node);
+    if !IsSome(argument) { return invalid; }
+    let node: Int = edge_node;
+    let ordinal: Int = -1;
+    while IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeCallArgument() {
+        let previous: Option<Int> = SemanticExpressionGraphLeftChild(graph, node);
+        if !IsSome(previous) || UnwrapOption(previous) < 0 || UnwrapOption(previous) >= node { return invalid; }
+        node = UnwrapOption(previous);
+        ordinal = ordinal + 1;
+        kind = SemanticExpressionGraphNodeKind(graph, node);
+    }
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeCall() { return invalid; }
+    return SemanticCallArgumentEdgeView(true, node, UnwrapOption(argument), ordinal);
+}

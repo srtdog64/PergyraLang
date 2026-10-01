@@ -1,0 +1,7 @@
+func First(inout values: Array<String>) -> Void { Second(values); }
+func Second(inout values: Array<String>) -> Void { First(values); }
+func Main() -> Void {
+    let values: Array<String> = [];
+    First(values);
+    Log(ArrayLength(values));
+}

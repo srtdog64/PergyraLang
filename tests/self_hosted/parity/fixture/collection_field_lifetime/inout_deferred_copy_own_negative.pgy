@@ -1,0 +1,8 @@
+func Consume(own values: Array<String>) -> Void { ArrayDropOwnedStrings(values); }
+func Copy(inout values: Array<String>) -> Void { ArrayPushOwnedString(values, "copied"); }
+func Main() -> Void {
+    let borrowed: Array<String> = ["borrowed"];
+    let values: Array<String> = Clone(borrowed);
+    defer { Copy(values); }
+    Consume(values);
+}

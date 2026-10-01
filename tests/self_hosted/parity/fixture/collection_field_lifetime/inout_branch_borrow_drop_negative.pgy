@@ -1,0 +1,9 @@
+func Populate(inout values: Array<String>, flag: Bool) -> Void {
+    if flag { ArrayPush(values, "borrowed"); }
+    else { ArrayPushOwnedString(values, "copied"); }
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    Populate(values, true);
+    ArrayDropOwnedStrings(values);
+}

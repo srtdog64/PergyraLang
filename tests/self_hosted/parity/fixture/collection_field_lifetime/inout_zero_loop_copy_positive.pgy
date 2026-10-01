@@ -1,0 +1,10 @@
+func Populate(inout values: Array<String>) -> Bool {
+    let index: Int = 0;
+    while index < 0 { ArrayPushOwnedString(values, "copied"); index = index + 1; }
+    return false;
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    Log(Populate(values));
+    ArrayDropOwnedStrings(values);
+}

@@ -1,0 +1,9 @@
+func ArrayPushOwnedString(inout values: Array<String>, text: String) -> Void {
+    ArrayPush(values, text);
+}
+func Populate(inout values: Array<String>) -> Void { ArrayPushOwnedString(values, "borrowed"); }
+func Main() -> Void {
+    let values: Array<String> = [];
+    Populate(values);
+    ArrayDropOwnedStrings(values);
+}

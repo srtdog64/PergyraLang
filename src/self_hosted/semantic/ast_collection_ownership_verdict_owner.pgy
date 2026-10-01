@@ -25,6 +25,7 @@ import "ast_collection_ownership_binding_move_use_owner.pgy";
 import "ast_collection_ownership_member_transition_owner.pgy";
 import "ast_collection_ownership_argument_transfer_owner.pgy";
 import "ast_collection_ownership_statement_transition_owner.pgy";
+import "ast_collection_call_effect_owner.pgy";
 import "ast_owned_string_result_fact_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
@@ -250,6 +251,20 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         assignment_row = assignment_row + 1;
     }
 
+    let formal_effects: SemanticAstCollectionFormalEffects =
+        SemanticAstCollectionFormalEffectsFromResolvedFacts(signatures, surfaces);
+    if !formal_effects.ok {
+        return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "collection_formal_effect"), -1, -1);
+    }
+    let first_consuming_syntax_ids: Array<Int> = [];
+    let formal_row_map: HashMap<String, Int> = formal_effects.inventory.row_by_formal;
+    let formal_modes: Array<Int> = formal_effects.inventory.modes;
+    let proved_formal_effects: HashMap<String, Int> = formal_effects.effects;
+    let unknown_effect_rows: Array<Bool> = SemanticAstCollectionUnknownCallEffectRows(
+        artifact, signatures, locals, initializer_types.inferred_type_names,
+        surfaces, formal_row_map, formal_modes, proved_formal_effects, origins, source_binding_syntax_ids,
+        ownership, dispositions, transition_states, first_consuming_syntax_ids);
     let statement_transitions: SemanticAstCollectionStatementTransitionResult =
         SemanticAstCollectionStatementTransitions(
             artifact, locals, initializer_types.inferred_type_names,
@@ -280,6 +295,13 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
             while node <= root_id {
                 let kind: Option<Int> = SemanticExpressionGraphNodeKind(
                     surfaces.expression_graph, node);
+                if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeCallArgument() {
+                    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
+                    let preserving: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionPreservingArgumentVerdict(
+                        artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, root_slot / 3,
+                        edge, proved_formal_effects, ownership, dispositions, origins, transition_states, first_consuming_syntax_ids);
+                    if !preserving.ok { return preserving; }
+                }
                 if IsSome(kind) &&
                     UnwrapOption(kind) == AstExpressionNodeCall() {
                     let target: Option<String> =
@@ -396,6 +418,12 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                                                 SemanticAstCollectionTransitionEmpty() &&
                                             transition !=
                                                 SemanticAstCollectionTransitionOwned() {
+                                            if unknown_effect_rows[binding.row] {
+                                                return SemanticAstCollectionOwnershipVerdictError(
+                                                    "borrow_boundary_escape",
+                                                    SemanticError2("borrow_boundary_escape", "boundary", "unknown_call_effect",
+                                                        "type", "Array<String>"), surfaces.node_ids[root_slot / 3], node);
+                                            }
                                             return SemanticAstCollectionOwnershipVerdictError(
                                                 "ast_artifact_invalid",
                                                 SemanticError1(
@@ -449,14 +477,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                                 } else if (owned_push || deep_drop) &&
                                     (state ==
                                         SemanticAstCollectionOwnershipBorrowedElements() ||
-                                     (state ==
-                                        SemanticAstCollectionOwnershipUnknown() &&
-                                      (origins[binding.row] ==
-                                        SemanticAstCollectionOriginMemberMove() ||
-                                       origins[binding.row] ==
-                                        SemanticAstCollectionOriginCallResult() ||
-                                       origins[binding.row] ==
-                                        SemanticAstCollectionOriginBinding()))) {
+                                     state ==
+                                        SemanticAstCollectionOwnershipUnknown()) {
                                     let boundary: String = name;
                                     if deep_drop {
                                         boundary = "owned_string_drop";

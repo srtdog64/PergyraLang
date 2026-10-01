@@ -1,0 +1,8 @@
+func Element(inout values: Array<String>) -> String { return values[0]; }
+func Main() -> Void {
+    let borrowed: Array<String> = ["borrowed"];
+    let values: Array<String> = Clone(borrowed);
+    let text: String = Element(values);
+    ArrayDropOwnedStrings(values);
+    Log(text);
+}

@@ -1,0 +1,116 @@
+// Mutate freshly produced, sealed facts only AFTER body admission.
+// Each invocation owns its parse/bundle; no shared baseline arrays are reused.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Log("expected source and mutation"); Exit(2); }
+    let mutation: Int = ToInt(args[1]);
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Log("fixture parser refused"); Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !bundle.verdict.ok { Log(bundle.verdict.diagnostic_code); Exit(2); }
+    let signature: Int = -1;
+    let other: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(analysis.signatures.names) {
+        if analysis.signatures.names[row] == "Populate" { signature = row; }
+        if analysis.signatures.names[row] == "Forward" { other = row; }
+        row = row + 1;
+    }
+    if signature < 0 || other < 0 { Log("missing producer identities"); Exit(2); }
+    let formal: Int = UnwrapOption(SemanticAstFunctionParamNodeAt(analysis.signatures, signature, 0));
+    let foreign: Int = UnwrapOption(SemanticAstFunctionParamNodeAt(analysis.signatures, other, 0));
+    let changed: Bool = mutation == 0;
+    let slot: Int = 0;
+    let last: Int = -1;
+    while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
+        if analysis.expression_surfaces.expression_graph.has_roots[slot] {
+            let root: Int = analysis.expression_surfaces.expression_graph.roots[slot];
+            let node: Int = last + 1;
+            while node <= root {
+                let binding: SemanticExpressionBindingIdentityFact =
+                    SemanticExpressionGraphBindingIdentity(analysis.expression_surfaces.expression_graph, node);
+                if !changed && binding.kind == SemanticExpressionBindingFormalParameter() && binding.syntax_id == formal {
+                    if mutation == 1 { analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[node] = 0; }
+                    if mutation == 2 { analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[node] = foreign; }
+                    if mutation == 3 { analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[node] = 99; }
+                    if mutation == 4 { analysis.expression_surfaces.function_node_ids[slot / 3] = analysis.signatures.function_node_ids[other]; }
+                    if mutation >= 1 && mutation <= 4 { changed = true; }
+                }
+                if !changed && SemanticAstCollectionOwnershipBuiltinCall(
+                        analysis.expression_surfaces.expression_graph, node, "ArrayPushOwnedString") {
+                    if mutation == 6 { analysis.expression_surfaces.expression_graph.arena.identities.runtime_call_abi_ids[node] = 9; }
+                    if mutation == 7 { analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[node] = analysis.signatures.function_node_ids[other]; }
+                    if mutation == 8 {
+                        let callee: Int = UnwrapOption(SemanticExpressionGraphLeftChild(analysis.expression_surfaces.expression_graph, node));
+                        analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[callee] = SemanticExpressionBindingDeclaredCallable();
+                        analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[callee] = analysis.signatures.function_node_ids[other];
+                    }
+                    if mutation >= 6 && mutation <= 8 { changed = true; }
+                }
+                if !changed && mutation == 10 && analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() &&
+                    analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[node] == analysis.signatures.function_node_ids[signature] {
+                    analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[node] = 0;
+                    changed = true;
+                }
+                if !changed && mutation >= 11 && mutation <= 12 && analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() &&
+                    analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[node] == analysis.signatures.function_node_ids[other] {
+                    analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[node] = 0;
+                    changed = true;
+                }
+                node = node + 1;
+            }
+            last = root;
+        }
+        slot = slot + 1;
+    }
+    if mutation == 5 { analysis.signatures.action_contracts.body_node_ids[signature] = -1; changed = true; }
+    if mutation == 9 { ArrayPop(analysis.signatures.param_node_ids); changed = true; }
+    if !changed { Log("mutation did not reach its fact"); Exit(2); }
+    let effects: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
+        analysis.signatures, analysis.expression_surfaces);
+    let proved: HashMap<String, Int> = effects.effects;
+    let key: String = ToString(formal);
+    if mutation == 0 {
+        Log(effects.ok && MapHas(proved, key) && MapGet(proved, key) == 2 &&
+            MapHas(proved, ToString(foreign)) && MapGet(proved, ToString(foreign)) == 2);
+    } else if mutation == 10 {
+        Log(!effects.ok || !MapHas(proved, ToString(foreign)));
+    } else if mutation >= 11 && mutation <= 12 {
+        // A missing target must invalidate the caller, even though the source
+        // body itself is still proved. Empty and Owned are separate states.
+        let ownership: Array<Int> = [];
+        let dispositions: Array<Int> = [];
+        let transitions: Array<Int> = [];
+        let consuming: Array<Int> = [];
+        row = 0;
+        while row < ArrayLength(analysis.local_bindings.node_ids) {
+            let state: Int = SemanticAstCollectionOwnershipUnknown();
+            let transition: Int = SemanticAstCollectionTransitionEmpty();
+            if mutation == 12 { state = SemanticAstCollectionOwnershipOwnedElements(); transition = SemanticAstCollectionTransitionOwned(); }
+            ArrayPush(ownership, state); ArrayPush(dispositions, SemanticAstCollectionDispositionLive());
+            ArrayPush(transitions, transition); row = row + 1;
+        }
+        let formal_rows: HashMap<String, Int> = effects.inventory.row_by_formal;
+        let modes: Array<Int> = effects.inventory.modes;
+        let origins: Array<Int> = bundle.collection_ownership.origins;
+        let source_ids: Array<Int> = bundle.collection_ownership.source_binding_syntax_ids;
+        let unknown: Array<Bool> = SemanticAstCollectionUnknownCallEffectRows(
+            artifact, analysis.signatures, analysis.local_bindings,
+            bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
+            formal_rows, modes, proved, origins, source_ids, ownership, dispositions, transitions, consuming);
+        let invalidated: Bool = false;
+        row = 0;
+        while row < ArrayLength(unknown) {
+            if unknown[row] && ownership[row] == SemanticAstCollectionOwnershipUnknown() &&
+                transitions[row] == SemanticAstCollectionTransitionUntracked() { invalidated = true; }
+            row = row + 1;
+        }
+        Log(effects.ok && MapHas(proved, ToString(foreign)) && invalidated);
+    } else {
+        Log(!effects.ok || !MapHas(proved, key));
+    }
+}

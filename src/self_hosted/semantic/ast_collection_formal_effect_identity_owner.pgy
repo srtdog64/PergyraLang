@@ -1,0 +1,97 @@
+// Exact formal inventory and source-argument joins; no lifetime permission.
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_callable_receiver_source_parameter_owner.pgy";
+
+struct SemanticAstCollectionFormalEffectInventory {
+    ok: Bool;
+    formal_nodes: Array<Int>;
+    function_nodes: Array<Int>;
+    ordinals: Array<Int>;
+    modes: Array<Int>;
+    body_ready: Array<Bool>;
+    row_by_formal: HashMap<String, Int>;
+}
+
+func SemanticAstCollectionFormalEffectInventoryFromSignatures(
+    ref signatures: SemanticAstFunctionSignatureFacts
+) -> SemanticAstCollectionFormalEffectInventory {
+    let nodes: Array<Int> = [];
+    let functions: Array<Int> = [];
+    let ordinals: Array<Int> = [];
+    let modes: Array<Int> = [];
+    let bodies: Array<Bool> = [];
+    let rows: HashMap<String, Int> = MapNew();
+    let count: Int = ArrayLength(signatures.function_node_ids);
+    let flat_count: Int = ArrayLength(signatures.param_node_ids);
+    let ok: Bool = signatures.ok && signatures.action_contracts.ok &&
+        ArrayLength(signatures.param_starts) == count &&
+        ArrayLength(signatures.param_counts) == count &&
+        ArrayLength(signatures.action_contracts.callable_node_ids) == count &&
+        ArrayLength(signatures.action_contracts.body_node_ids) == count &&
+        ArrayLength(signatures.param_types) == flat_count &&
+        ArrayLength(signatures.param_modes) == flat_count;
+    let row: Int = 0;
+    let flat: Int = 0;
+    while ok && row < count {
+        let function: Int = signatures.function_node_ids[row];
+        let size: Int = signatures.param_counts[row];
+        if function <= 0 || signatures.param_starts[row] != flat || size < 0 ||
+            size > flat_count - flat ||
+            signatures.action_contracts.callable_node_ids[row] != function {
+            ok = false; break;
+        }
+        let ordinal: Int = 0;
+        while ok && ordinal < size {
+            let node: Int = signatures.param_node_ids[flat + ordinal];
+            let mode: Int = signatures.param_modes[flat + ordinal];
+            if node <= 0 || mode < 0 || mode > 3 { ok = false; break; }
+            if SemanticAstCollectionOwnershipIsStringArray(
+                    signatures.param_types[flat + ordinal]) {
+                let key: String = ToString(node);
+                if MapHas(rows, key) { ok = false; break; }
+                MapSet(rows, key, ArrayLength(nodes));
+                ArrayPush(nodes, node);
+                ArrayPush(functions, function);
+                ArrayPush(ordinals, ordinal);
+                ArrayPush(modes, mode);
+                ArrayPush(bodies, mode != 2 &&
+                    signatures.action_contracts.body_node_ids[row] > 0);
+            }
+            ordinal = ordinal + 1;
+        }
+        flat = flat + size;
+        row = row + 1;
+    }
+    ok = ok && flat == flat_count;
+    return SemanticAstCollectionFormalEffectInventory(
+        ok, nodes, functions, ordinals, modes, bodies, rows);
+}
+
+func SemanticAstCollectionSourceArrayFormalForArgument(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts,
+    call_node: Int, argument_ordinal: Int
+) -> Int {
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(graph, call_node);
+    let kind: Option<Int> = SemanticExpressionGraphCallTargetKind(graph, call_node);
+    if !IsSome(target) || UnwrapOption(target) <= 0 ||
+        !IsSome(kind) || argument_ordinal < 0 { return 0; }
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        signatures, UnwrapOption(target));
+    if !IsSome(signature) { return 0; }
+    let row: Int = UnwrapOption(signature);
+    let offset: Int = 0;
+    if UnwrapOption(kind) == SemanticCallTargetMember() {
+        // Borrow the source-signature offset row; a projected name is not self.
+        if ArrayLength(signatures.receiver_source_param_offsets) !=
+                ArrayLength(signatures.function_node_ids) { return 0; }
+        offset = signatures.receiver_source_param_offsets[row];
+        if offset < 0 || offset > 1 || offset > signatures.param_counts[row] { return 0; }
+    }
+    let ordinal: Int = argument_ordinal + offset;
+    let node: Option<Int> = SemanticAstFunctionParamNodeAt(signatures, row, ordinal);
+    let type_name: Option<String> = SemanticAstFunctionParamTypeAt(signatures, row, ordinal);
+    if !IsSome(node) || !IsSome(type_name) || UnwrapOption(node) <= 0 ||
+        !SemanticAstCollectionOwnershipIsStringArray(UnwrapOption(type_name)) { return 0; }
+    return UnwrapOption(node);
+}

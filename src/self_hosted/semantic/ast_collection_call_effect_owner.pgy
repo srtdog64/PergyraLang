@@ -1,0 +1,157 @@
+// Unknown source effects remove permission before unordered statement scans.
+// The sticky local mask is not a serialized call-point or release receipt.
+import "ast_collection_formal_effect_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+
+func SemanticAstCollectionUnknownCallEffectRows(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    formal_rows: HashMap<String, Int>, ref formal_modes: Array<Int>,
+    proved: HashMap<String, Int>,
+    ref origins: Array<Int>, ref source_binding_ids: Array<Int>,
+    inout ownership: Array<Int>, ref dispositions: Array<Int>,
+    inout transition_states: Array<Int>, inout first_consuming_syntax_ids: Array<Int>
+) -> Array<Bool> {
+    let unknown: Array<Bool> = [];
+    let row: Int = 0;
+    while row < ArrayLength(locals.node_ids) {
+        ArrayPush(unknown, false); ArrayPush(first_consuming_syntax_ids, -1); row = row + 1;
+    }
+    let last: Int = -1;
+    let slot: Int = 0;
+    while slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[slot] {
+            let root: Int = surfaces.expression_graph.roots[slot];
+            let node: Int = last + 1;
+            while node <= root {
+                if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCallArgument() {
+                    let call: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
+                    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, call.call_node);
+                    let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(surfaces.expression_graph, call.call_node);
+                    let declared: Bool = false;
+                    if IsSome(callee) {
+                        let identity: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
+                            surfaces.expression_graph, UnwrapOption(callee));
+                        declared = identity.kind != SemanticExpressionBindingNone() || identity.syntax_id > 0;
+                    }
+                    let ordinal: Int = call.ordinal;
+                    let releasing: Bool = call.ok && ordinal == 0 && (
+                        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "ArrayDropOwnedStrings") ||
+                        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "ArrayDrop") ||
+                        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "CompilerRetireArrayStorage"));
+                    if call.ok && ordinal >= 0 && IsSome(target) && (UnwrapOption(target) > 0 || declared || releasing) {
+                        let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+                            artifact, locals, inferred_types, surfaces, slot / 3, call.argument_node);
+                        if binding.ok && SemanticAstCollectionOwnershipIsStringArray(inferred_types[binding.row]) {
+                            let formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(
+                                signatures, surfaces.expression_graph, call.call_node, ordinal);
+                            let key: String = ToString(formal);
+                            let consuming: Bool = releasing;
+                            if MapHas(formal_rows, key) {
+                                consuming = formal_modes[MapGet(formal_rows, key)] == 2;
+                            }
+                            if consuming {
+                                // One syntax owner includes all argument evaluations. Base
+                                // Call graph rows precede arguments, not actual invocation.
+                                let consumed: Int = SemanticAstCollectionCallRetirementSite(artifact, surfaces.node_ids[slot / 3]);
+                                if first_consuming_syntax_ids[binding.row] < 0 || consumed < first_consuming_syntax_ids[binding.row] {
+                                    first_consuming_syntax_ids[binding.row] = consumed;
+                                }
+                            }
+                            if !consuming && !MapHas(proved, key) { unknown[binding.row] = true; }
+                        }
+                    }
+                }
+                node = node + 1;
+            }
+            last = root;
+        }
+        slot = slot + 1;
+    }
+    // Initialization already copied direct-move state. Carry removal across
+    // those exact source-binding edges, never across a fresh Clone result.
+    let changed: Bool = true;
+    let remaining: Int = ArrayLength(unknown) + 1;
+    while changed && remaining > 0 {
+        changed = false;
+        row = 0;
+        while row < ArrayLength(unknown) {
+            if origins[row] == SemanticAstCollectionOriginBinding() {
+                let source: Int = 0;
+                while source < ArrayLength(unknown) {
+                    if locals.node_ids[source] == source_binding_ids[row] {
+                        if unknown[source] && !unknown[row] { unknown[row] = true; changed = true; }
+                        let consumed: Int = first_consuming_syntax_ids[source];
+                        if consumed >= 0 && (first_consuming_syntax_ids[row] < 0 || consumed < first_consuming_syntax_ids[row]) {
+                            first_consuming_syntax_ids[row] = consumed; changed = true;
+                        }
+                        break;
+                    }
+                    source = source + 1;
+                }
+            }
+            row = row + 1;
+        }
+        remaining = remaining - 1;
+    }
+    row = 0;
+    while row < ArrayLength(unknown) {
+        if unknown[row] {
+            if ownership[row] != SemanticAstCollectionOwnershipRetired() {
+                ownership[row] = SemanticAstCollectionOwnershipUnknown();
+            }
+            if transition_states[row] != SemanticAstCollectionTransitionRetired() {
+                transition_states[row] = SemanticAstCollectionTransitionUntracked();
+            }
+        }
+        row = row + 1;
+    }
+    return unknown;
+}
+
+func SemanticAstCollectionPreservingArgumentVerdict(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
+    edge: SemanticCallArgumentEdgeView, proved: HashMap<String, Int>,
+    ref ownership: Array<Int>, ref dispositions: Array<Int>,
+    ref origins: Array<Int>, ref transition_states: Array<Int>,
+    ref first_consuming_syntax_ids: Array<Int>
+) -> SemanticAstCollectionOwnershipVerdict {
+    if !edge.ok {
+        return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "collection_call_argument_edge"), surfaces.node_ids[surface_row], -1);
+    }
+    let formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(
+        signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+    let key: String = ToString(formal);
+    if MapHas(proved, key) && MapGet(proved, key) == 2 {
+            let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+                artifact, locals, inferred_types, surfaces, surface_row, edge.argument_node);
+            if binding.ok {
+                let clean: Bool = ownership[binding.row] == SemanticAstCollectionOwnershipOwnedElements() ||
+                    ownership[binding.row] == SemanticAstCollectionOwnershipMapKeysSnapshot();
+                if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() {
+                    clean = transition_states[binding.row] == SemanticAstCollectionTransitionEmpty() ||
+                        transition_states[binding.row] == SemanticAstCollectionTransitionOwned();
+                }
+                let consumed: Int = first_consuming_syntax_ids[binding.row];
+                if !clean || dispositions[binding.row] == SemanticAstCollectionDispositionRetired() ||
+                    SemanticAstCollectionMutableCallMayBeRetired(artifact, surfaces.node_ids[surface_row], consumed) {
+                    return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+                        SemanticError2("borrow_boundary_escape", "boundary", "unproved_inout_copy_entry",
+                            "type", "borrowed, unknown or retired Array<String>"), surfaces.node_ids[surface_row], edge.call_node);
+                }
+            } else if SemanticAstCollectionOwnershipParameterModeForArgument(
+                    signatures, surfaces, surface_row, edge.argument_node) == 3 {
+                // Own-entry requirements do not prove this formal's call-point liveness.
+                return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+                    SemanticError2("borrow_boundary_escape", "boundary", "unproved_own_formal_copy_entry",
+                        "type", "Array<String>"), surfaces.node_ids[surface_row], edge.call_node);
+            }
+    }
+    return SemanticAstCollectionOwnershipVerdictOk();
+}

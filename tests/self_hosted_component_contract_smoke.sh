@@ -28431,6 +28431,11 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_verdict_carrier_owner.pgy:90 \
     src/self_hosted/semantic/ast_collection_ownership_receipt_owner.pgy:120 \
     src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy:200 \
+    src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy:120 \
+    src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection_call_effect_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy:80 \
+    src/self_hosted/semantic/ast_expression_graph_call_argument_edge_owner.pgy:60 \
     src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_ownership_binding_move_use_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy:80 \
@@ -28458,6 +28463,11 @@ for collection_owner_cap in \
     require_text "src/self_hosted/OWNERS.md" "$collection_owner"
 done
 require_file "src/self_hosted/mir_lower/collection_ownership_binding_move_owner.pgy"
+require_file "tests/self_hosted/parity/collection_inout_effect_owner.sh"
+require_file "tests/self_hosted/fixtures/collection_inout_effect_identity_probe.pgy"
+require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+    'import "ast_collection_call_effect_owner.pgy";'
+require_text "Makefile" 'self-host-collection-inout-effect-test-smoke'
 require_max_lines "src/self_hosted/mir_lower/collection_ownership_binding_move_owner.pgy" 140
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir_lower/collection_ownership_binding_move_owner.pgy"

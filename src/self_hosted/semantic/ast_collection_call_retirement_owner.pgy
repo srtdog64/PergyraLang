@@ -1,0 +1,38 @@
+// Conservative syntax-order bounds, not graph-row invocation order.
+// 0 means retirement may repeat/reorder; -1 means no admitted retirement site.
+import "../hir/ast_text_arena_projection_owner.pgy";
+
+func SemanticAstCollectionCallRetirementSite(
+    artifact: AstTreeArtifact, syntax_id: Int
+) -> Int {
+    let ancestor: Int = syntax_id;
+    let remaining: Int = artifact.count;
+    while ancestor >= 0 && remaining > 0 {
+        if TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindWhileStmtTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindForStmtTag()) ||
+            TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindDeferStmtTag()) { return 0; }
+        let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
+        if !IsSome(parent) { return syntax_id; }
+        ancestor = UnwrapOption(parent);
+        remaining = remaining - 1;
+    }
+    return 0;
+}
+
+func SemanticAstCollectionMutableCallMayBeRetired(
+    artifact: AstTreeArtifact, syntax_id: Int, first_retiring_syntax_id: Int
+) -> Bool {
+    if first_retiring_syntax_id < 0 { return false; }
+    // Equality also closes nested own consumption during argument evaluation.
+    if first_retiring_syntax_id <= syntax_id { return true; }
+    let ancestor: Int = syntax_id;
+    let remaining: Int = artifact.count;
+    while ancestor >= 0 && remaining > 0 {
+        if TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindDeferStmtTag()) { return true; }
+        let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
+        if !IsSome(parent) { return false; }
+        ancestor = UnwrapOption(parent);
+        remaining = remaining - 1;
+    }
+    return true;
+}

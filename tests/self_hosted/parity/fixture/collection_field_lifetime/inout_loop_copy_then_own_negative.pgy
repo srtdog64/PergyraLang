@@ -1,0 +1,7 @@
+func Consume(own values: Array<String>) -> Void { ArrayDropOwnedStrings(values); }
+func Copy(inout values: Array<String>) -> Void { ArrayPushOwnedString(values, "copied"); }
+func Main() -> Void {
+    let values: Array<String> = [];
+    let index: Int = 0;
+    while index < 2 { Copy(values); Consume(values); index = index + 1; }
+}

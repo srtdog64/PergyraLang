@@ -1,0 +1,148 @@
+// A whole-use conditional invariant, not an assertion that a formal is Owned.
+// 1 preserves all states; 2 preserves Live {Empty, Owned} without escape.
+import "ast_collection_formal_effect_identity_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+import "ast_expression_graph_call_argument_edge_owner.pgy";
+
+struct SemanticAstCollectionFormalEffects {
+    ok: Bool;
+    inventory: SemanticAstCollectionFormalEffectInventory;
+    effects: HashMap<String, Int>;
+}
+
+func SemanticAstCollectionFormalEffectsFromResolvedFacts(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts
+) -> SemanticAstCollectionFormalEffects {
+    let inventory: SemanticAstCollectionFormalEffectInventory =
+        SemanticAstCollectionFormalEffectInventoryFromSignatures(signatures);
+    let effects: HashMap<String, Int> = MapNew();
+    let formal_rows: HashMap<String, Int> = inventory.row_by_formal;
+    let blocked: Array<Bool> = [];
+    let mutations: Array<Bool> = [];
+    let node_rows: Array<Int> = [];
+    let sources: Array<Int> = [];
+    let targets: Array<Int> = [];
+    let count: Int = ArrayLength(inventory.formal_nodes);
+    let row: Int = 0;
+    while row < count {
+        ArrayPush(blocked, !inventory.body_ready[row]);
+        ArrayPush(mutations, false);
+        row = row + 1;
+    }
+    let ok: Bool = inventory.ok && surfaces.ok && surfaces.expression_graph.ok &&
+        ArrayLength(surfaces.function_node_ids) == ArrayLength(surfaces.node_ids) &&
+        ArrayLength(surfaces.expression_graph.roots) == ArrayLength(surfaces.node_ids) * 3 &&
+        ArrayLength(surfaces.expression_graph.has_roots) == ArrayLength(surfaces.expression_graph.roots);
+    let last: Int = -1;
+    let slot: Int = 0;
+    while ok && slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[slot] {
+            let root: Int = surfaces.expression_graph.roots[slot];
+            let node: Int = last + 1;
+            while ok && node <= root {
+                let binding: SemanticExpressionBindingIdentityFact =
+                    SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, node);
+                if !binding.ok { ok = false; break; }
+                let formal_row: Int = -1;
+                let key: String = ToString(binding.syntax_id);
+                if binding.ok && binding.kind == SemanticExpressionBindingFormalParameter() {
+                    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+                        signatures, surfaces.function_node_ids[slot / 3]);
+                    if !IsSome(signature) || !binding.has_ordinal { ok = false; break; }
+                    let parameter: Option<Int> = SemanticAstFunctionParamNodeAt(
+                        signatures, UnwrapOption(signature), binding.ordinal);
+                    if !IsSome(parameter) || UnwrapOption(parameter) != binding.syntax_id {
+                        ok = false; break;
+                    }
+                    if MapHas(formal_rows, key) {
+                        formal_row = MapGet(formal_rows, key);
+                        if binding.ordinal != inventory.ordinals[formal_row] ||
+                            surfaces.function_node_ids[slot / 3] != inventory.function_nodes[formal_row] {
+                            ok = false; break;
+                        }
+                    }
+                }
+                ArrayPush(node_rows, formal_row);
+                let edge: Int = 0;
+                while ok && edge < 2 {
+                    let child: Option<Int> = SemanticExpressionGraphLeftChild(
+                        surfaces.expression_graph, node);
+                    if edge == 1 { child = SemanticExpressionGraphRightChild(surfaces.expression_graph, node); }
+                    if IsSome(child) && UnwrapOption(child) < node && UnwrapOption(child) >= 0 {
+                        let used_row: Int = node_rows[UnwrapOption(child)];
+                        if used_row >= 0 {
+                            if edge != 1 || surfaces.expression_graph.arena.topology.node_kinds[node] !=
+                                    AstExpressionNodeCallArgument() {
+                                blocked[used_row] = true;
+                            } else {
+                                // Classify THIS physical argument edge, including DAG alternatives.
+                                let call: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(
+                                    surfaces.expression_graph, node);
+                                let ordinal: Int = call.ordinal;
+                                if !call.ok || ordinal < 0 { ok = false; break; }
+                                if ordinal == 0 && SemanticAstCollectionOwnershipBuiltinCall(
+                                        surfaces.expression_graph, call.call_node, "ArrayLength") {
+                                    // Metadata read cannot escape the formal or its elements.
+                                } else if ordinal == 0 && SemanticAstCollectionOwnershipBuiltinCall(
+                                        surfaces.expression_graph, call.call_node, "ArrayPushOwnedString") {
+                                    mutations[used_row] = true;
+                                } else {
+                                    let target: Int = SemanticAstCollectionSourceArrayFormalForArgument(
+                                        signatures, surfaces.expression_graph, call.call_node, ordinal);
+                                    let target_key: String = ToString(target);
+                                    if target <= 0 || !MapHas(formal_rows, target_key) {
+                                        blocked[used_row] = true;
+                                    } else {
+                                        ArrayPush(sources, used_row);
+                                        ArrayPush(targets, MapGet(formal_rows, target_key));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    edge = edge + 1;
+                }
+                node = node + 1;
+            }
+            if ok && node_rows[root] >= 0 { blocked[node_rows[root]] = true; }
+            last = root;
+        }
+        slot = slot + 1;
+    }
+    ok = ok && ArrayLength(node_rows) == SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena);
+    // Least proof fixed point: a forwarding cycle without a proved sink grants nothing.
+    let changed: Bool = true;
+    let remaining: Int = count + 1;
+    while ok && changed && remaining > 0 {
+        changed = false;
+        row = 0;
+        while row < count {
+            let key: String = ToString(inventory.formal_nodes[row]);
+            if !blocked[row] && !MapHas(effects, key) {
+                let ready: Bool = true;
+                let mutation: Bool = mutations[row];
+                let edge: Int = 0;
+                while edge < ArrayLength(sources) {
+                    if sources[edge] == row {
+                        let target: String = ToString(inventory.formal_nodes[targets[edge]]);
+                        if !MapHas(effects, target) { ready = false; }
+                        else if MapGet(effects, target) == 2 { mutation = true; }
+                    }
+                    edge = edge + 1;
+                }
+                if ready {
+                    let effect: Int = 1;
+                    if mutation { effect = 2; }
+                    MapSet(effects, key, effect);
+                    changed = true;
+                }
+            }
+            row = row + 1;
+        }
+        remaining = remaining - 1;
+    }
+    ArrayDrop(blocked); ArrayDrop(mutations); ArrayDrop(node_rows);
+    ArrayDrop(sources); ArrayDrop(targets);
+    return SemanticAstCollectionFormalEffects(ok, inventory, effects);
+}
