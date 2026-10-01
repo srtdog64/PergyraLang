@@ -1,5 +1,5 @@
 // A whole-use conditional invariant, not an assertion that a formal is Owned.
-// 1 preserves all states; 2 preserves Live {Empty, Owned} without escape.
+// 1 is metadata-only; 2 preserves Live {Empty, Owned}; 3 reads live elements.
 import "ast_collection_formal_effect_identity_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_call_argument_edge_owner.pgy";
@@ -20,7 +20,9 @@ func SemanticAstCollectionFormalEffectsFromResolvedFacts(
     let formal_rows: HashMap<String, Int> = inventory.row_by_formal;
     let blocked: Array<Bool> = [];
     let mutations: Array<Bool> = [];
+    let element_reads: Array<Bool> = [];
     let node_rows: Array<Int> = [];
+    let element_rows: Array<Int> = [];
     let sources: Array<Int> = [];
     let targets: Array<Int> = [];
     let count: Int = ArrayLength(inventory.formal_nodes);
@@ -28,6 +30,7 @@ func SemanticAstCollectionFormalEffectsFromResolvedFacts(
     while row < count {
         ArrayPush(blocked, !inventory.body_ready[row]);
         ArrayPush(mutations, false);
+        ArrayPush(element_reads, false);
         row = row + 1;
     }
     let ok: Bool = inventory.ok && surfaces.ok && surfaces.expression_graph.ok &&
@@ -64,6 +67,10 @@ func SemanticAstCollectionFormalEffectsFromResolvedFacts(
                     }
                 }
                 ArrayPush(node_rows, formal_row);
+                ArrayPush(element_rows, -1);
+                let kind: Int = surfaces.expression_graph.arena.topology.node_kinds[node];
+                let call_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(surfaces.expression_graph, node);
+                let primitive: Bool = IsSome(call_kind) && UnwrapOption(call_kind) == SemanticCallTargetNone();
                 let edge: Int = 0;
                 while ok && edge < 2 {
                     let child: Option<Int> = SemanticExpressionGraphLeftChild(
@@ -71,8 +78,16 @@ func SemanticAstCollectionFormalEffectsFromResolvedFacts(
                     if edge == 1 { child = SemanticExpressionGraphRightChild(surfaces.expression_graph, node); }
                     if IsSome(child) && UnwrapOption(child) < node && UnwrapOption(child) >= 0 {
                         let used_row: Int = node_rows[UnwrapOption(child)];
+                        let borrowed_row: Int = element_rows[UnwrapOption(child)];
+                        if borrowed_row >= 0 && (!primitive ||
+                            (kind != AstExpressionNodeEquality() && kind != AstExpressionNodeInequality())) {
+                            blocked[borrowed_row] = true;
+                        }
                         if used_row >= 0 {
-                            if edge != 1 || surfaces.expression_graph.arena.topology.node_kinds[node] !=
+                            if edge == 0 && primitive && kind == AstExpressionNodeIndex() {
+                                element_reads[used_row] = true;
+                                element_rows[node] = used_row;
+                            } else if edge != 1 || surfaces.expression_graph.arena.topology.node_kinds[node] !=
                                     AstExpressionNodeCallArgument() {
                                 blocked[used_row] = true;
                             } else {
@@ -106,6 +121,7 @@ func SemanticAstCollectionFormalEffectsFromResolvedFacts(
                 node = node + 1;
             }
             if ok && node_rows[root] >= 0 { blocked[node_rows[root]] = true; }
+            if ok && element_rows[root] >= 0 { blocked[element_rows[root]] = true; }
             last = root;
         }
         slot = slot + 1;
@@ -122,17 +138,20 @@ func SemanticAstCollectionFormalEffectsFromResolvedFacts(
             if !blocked[row] && !MapHas(effects, key) {
                 let ready: Bool = true;
                 let mutation: Bool = mutations[row];
+                let reads_elements: Bool = element_reads[row];
                 let edge: Int = 0;
                 while edge < ArrayLength(sources) {
                     if sources[edge] == row {
                         let target: String = ToString(inventory.formal_nodes[targets[edge]]);
                         if !MapHas(effects, target) { ready = false; }
                         else if MapGet(effects, target) == 2 { mutation = true; }
+                        else if MapGet(effects, target) == 3 { reads_elements = true; }
                     }
                     edge = edge + 1;
                 }
                 if ready {
                     let effect: Int = 1;
+                    if reads_elements { effect = 3; }
                     if mutation { effect = 2; }
                     MapSet(effects, key, effect);
                     changed = true;
@@ -143,6 +162,20 @@ func SemanticAstCollectionFormalEffectsFromResolvedFacts(
         remaining = remaining - 1;
     }
     ArrayDrop(blocked); ArrayDrop(mutations); ArrayDrop(node_rows);
+    ArrayDrop(element_reads); ArrayDrop(element_rows);
     ArrayDrop(sources); ArrayDrop(targets);
     return SemanticAstCollectionFormalEffects(ok, inventory, effects);
+}
+
+func SemanticAstCollectionFormalArgumentHasLiveEffect(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_row: Int, argument_node: Int, proved: HashMap<String, Int>
+) -> Bool {
+    let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
+        surfaces.expression_graph, argument_node);
+    let key: String = ToString(binding.syntax_id);
+    if !binding.ok || binding.kind != SemanticExpressionBindingFormalParameter() ||
+        SemanticAstCollectionOwnershipParameterModeForArgument(signatures, surfaces, surface_row, argument_node) <= 0 ||
+        !MapHas(proved, key) { return false; }
+    return MapGet(proved, key) == 2 || MapGet(proved, key) == 3;
 }

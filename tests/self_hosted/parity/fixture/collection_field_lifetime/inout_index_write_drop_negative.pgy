@@ -1,0 +1,8 @@
+func Replace(inout values: Array<String>) -> Void { values[0] = "borrowed"; }
+func Main() -> Void
+{
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "copied");
+    Replace(values);
+    ArrayDropOwnedStrings(values);
+}

@@ -1,0 +1,9 @@
+func Matches(values: Array<String>) -> Bool { return values[0] == "copied"; }
+func Opaque(inout values: Array<String>) -> Void { ArrayPush(values, "borrowed"); }
+func Main() -> Void
+{
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "copied");
+    Opaque(values);
+    Log(Matches(values));
+}

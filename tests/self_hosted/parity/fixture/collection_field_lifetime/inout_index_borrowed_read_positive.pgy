@@ -1,0 +1,6 @@
+func Matches(values: Array<String>) -> Bool { return values[0] == "borrowed"; }
+func Main() -> Void
+{
+    let values: Array<String> = ["borrowed"];
+    Log(Matches(values));
+}

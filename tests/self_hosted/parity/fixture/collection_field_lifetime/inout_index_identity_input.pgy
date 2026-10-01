@@ -1,0 +1,18 @@
+func Matches(values: Array<String>) -> Bool
+{
+    let matched: Bool = values[0] == "copied";
+    let decoy: Array<String> = ["ignored"];
+    return matched;
+}
+func Populate(inout values: Array<String>) -> Void
+{
+    ArrayPushOwnedString(values, "copied");
+    let matched: Bool = Matches(values);
+}
+func Forward(inout values: Array<String>) -> Void { Populate(values); }
+func Main() -> Void
+{
+    let values: Array<String> = [];
+    Forward(values);
+    ArrayDropOwnedStrings(values);
+}

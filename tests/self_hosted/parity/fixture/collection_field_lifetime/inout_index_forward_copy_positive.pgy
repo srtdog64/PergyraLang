@@ -1,0 +1,13 @@
+func Matches(values: Array<String>) -> Bool { return values[0] == "copied"; }
+func Populate(inout values: Array<String>) -> Bool
+{
+    ArrayPushOwnedString(values, "copied");
+    return Matches(values);
+}
+func Main() -> Void
+{
+    let values: Array<String> = [];
+    let matched: Bool = Populate(values);
+    ArrayDropOwnedStrings(values);
+    Log(matched);
+}

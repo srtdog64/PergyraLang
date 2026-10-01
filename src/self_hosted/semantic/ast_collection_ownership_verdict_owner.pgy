@@ -299,7 +299,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                     let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
                     let preserving: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionPreservingArgumentVerdict(
                         artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, root_slot / 3,
-                        edge, proved_formal_effects, ownership, dispositions, origins, transition_states, first_consuming_syntax_ids);
+                        edge, proved_formal_effects, ownership, dispositions, origins, transition_states, first_consuming_syntax_ids, unknown_effect_rows);
                     if !preserving.ok { return preserving; }
                 }
                 if IsSome(kind) &&

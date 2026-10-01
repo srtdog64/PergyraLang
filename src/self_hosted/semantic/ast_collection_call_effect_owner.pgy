@@ -53,7 +53,9 @@ func SemanticAstCollectionUnknownCallEffectRows(
                             if MapHas(formal_rows, key) {
                                 consuming = formal_modes[MapGet(formal_rows, key)] == 2;
                             }
-                            if consuming {
+                            let unproved: Bool = !MapHas(proved, key);
+                            if consuming || unproved {
+                                // Unknown effects may retire; this is a bound, not a receipt.
                                 // One syntax owner includes all argument evaluations. Base
                                 // Call graph rows precede arguments, not actual invocation.
                                 let consumed: Int = SemanticAstCollectionCallRetirementSite(artifact, surfaces.node_ids[slot / 3]);
@@ -61,7 +63,7 @@ func SemanticAstCollectionUnknownCallEffectRows(
                                     first_consuming_syntax_ids[binding.row] = consumed;
                                 }
                             }
-                            if !consuming && !MapHas(proved, key) { unknown[binding.row] = true; }
+                            if !consuming && unproved { unknown[binding.row] = true; }
                         }
                     }
                 }
@@ -119,7 +121,7 @@ func SemanticAstCollectionPreservingArgumentVerdict(
     edge: SemanticCallArgumentEdgeView, proved: HashMap<String, Int>,
     ref ownership: Array<Int>, ref dispositions: Array<Int>,
     ref origins: Array<Int>, ref transition_states: Array<Int>,
-    ref first_consuming_syntax_ids: Array<Int>
+    ref first_consuming_syntax_ids: Array<Int>, ref unknown_effect_rows: Array<Bool>
 ) -> SemanticAstCollectionOwnershipVerdict {
     if !edge.ok {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
@@ -128,7 +130,9 @@ func SemanticAstCollectionPreservingArgumentVerdict(
     let formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(
         signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
     let key: String = ToString(formal);
-    if MapHas(proved, key) && MapGet(proved, key) == 2 {
+    let effect: Int = 0;
+    if MapHas(proved, key) { effect = MapGet(proved, key); }
+    if effect == 2 || effect == 3 {
             let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
                 artifact, locals, inferred_types, surfaces, surface_row, edge.argument_node);
             if binding.ok {
@@ -139,17 +143,24 @@ func SemanticAstCollectionPreservingArgumentVerdict(
                         transition_states[binding.row] == SemanticAstCollectionTransitionOwned();
                 }
                 let consumed: Int = first_consuming_syntax_ids[binding.row];
-                if !clean || dispositions[binding.row] == SemanticAstCollectionDispositionRetired() ||
+                if (effect == 2 && (!clean || unknown_effect_rows[binding.row])) ||
+                    dispositions[binding.row] == SemanticAstCollectionDispositionRetired() ||
                     SemanticAstCollectionMutableCallMayBeRetired(artifact, surfaces.node_ids[surface_row], consumed) {
+                    let boundary: String = "unproved_inout_copy_entry";
+                    if effect == 3 { boundary = "unproved_indexed_read_entry"; }
                     return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
-                        SemanticError2("borrow_boundary_escape", "boundary", "unproved_inout_copy_entry",
-                            "type", "borrowed, unknown or retired Array<String>"), surfaces.node_ids[surface_row], edge.call_node);
+                        SemanticError2("borrow_boundary_escape", "boundary", boundary,
+                            "type", "Array<String>"), surfaces.node_ids[surface_row], edge.call_node);
                 }
             } else if SemanticAstCollectionOwnershipParameterModeForArgument(
-                    signatures, surfaces, surface_row, edge.argument_node) == 3 {
-                // Own-entry requirements do not prove this formal's call-point liveness.
+                    signatures, surfaces, surface_row, edge.argument_node) == 3 ||
+                    (effect == 3 && !SemanticAstCollectionFormalArgumentHasLiveEffect(
+                        signatures, surfaces, surface_row, edge.argument_node, proved)) {
+                // Forwarding requires the exact formal's whole-use live proof.
+                let boundary: String = "unproved_own_formal_copy_entry";
+                if effect == 3 { boundary = "unproved_formal_indexed_read_entry"; }
                 return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
-                    SemanticError2("borrow_boundary_escape", "boundary", "unproved_own_formal_copy_entry",
+                    SemanticError2("borrow_boundary_escape", "boundary", boundary,
                         "type", "Array<String>"), surfaces.node_ids[surface_row], edge.call_node);
             }
     }

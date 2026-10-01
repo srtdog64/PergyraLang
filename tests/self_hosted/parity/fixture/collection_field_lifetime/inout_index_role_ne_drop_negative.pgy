@@ -1,0 +1,14 @@
+ability TextInequality { func Ne(self, rhs: String) -> Bool; }
+role TextInequalityRole for String
+{
+    impl TextInequality { func Ne(self, rhs: String) -> Bool { return false; } }
+}
+func Differs(values: Array<String>) -> Bool { return values[0] != "copied"; }
+func Main() -> Void
+{
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "copied");
+    let different: Bool = Differs(values);
+    ArrayDropOwnedStrings(values);
+    Log(different);
+}

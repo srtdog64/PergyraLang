@@ -27,6 +27,13 @@ INPUTS=(
     inout_loop_copy_then_own_negative.pgy inout_copy_then_own_positive.pgy
     inout_nested_own_argument_copy_negative.pgy
     inout_deferred_copy_own_negative.pgy inout_deferred_copy_drop_negative.pgy inout_deferred_read_positive.pgy
+    inout_index_eq_owned_positive.pgy inout_index_ne_owned_positive.pgy inout_index_borrowed_read_positive.pgy
+    inout_index_forward_copy_positive.pgy inout_index_return_drop_negative.pgy inout_index_alias_escape_drop_negative.pgy
+    inout_index_append_drop_negative.pgy inout_index_write_drop_negative.pgy inout_index_deferred_own_negative.pgy
+    inout_index_branch_own_negative.pgy inout_index_before_own_positive.pgy inout_index_after_unknown_negative.pgy
+    inout_index_before_unknown_positive.pgy inout_index_role_eq_drop_negative.pgy inout_index_role_ne_drop_negative.pgy
+    inout_index_after_drop_negative.pgy inout_index_own_formal_drop_negative.pgy inout_index_nested_own_negative.pgy
+    inout_index_formal_unknown_negative.pgy inout_index_formal_deferred_unknown_negative.pgy
 )
 for i in "${!INPUTS[@]}"; do INPUTS[i]="$FIXTURES/${INPUTS[i]}"; done
 sha256sum "$PGY" >"$WORK/native.sha256"
@@ -38,7 +45,8 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" \
     src/self_hosted/semantic/ast_expression_graph_call_argument_edge_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy >"$WORK/owners.sha256"
-sha256sum "${INPUTS[@]}" >"$WORK/inputs.sha256"
+ACTUAL_INPUT="$FIXTURES/callable_table_from_artifact_release_probe.pgy"
+sha256sum "${INPUTS[@]}" "$FIXTURES/inout_index_identity_input.pgy" "$ACTUAL_INPUT" >"$WORK/inputs.sha256"
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$WORK/imports.sha256"
 for backend in c llvm; do
     timeout 120 "$PGY" --native-pipeline "$SOURCE_PROBE" "--backend=$backend" --opt=dev \
@@ -65,7 +73,21 @@ for backend in c llvm; do
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
     done
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions and thirteen identity/boundary checks PASS"
+    for ((mutation=13; mutation<=15; mutation++)); do
+        timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/inout_index_identity_input.pgy" "$mutation" \
+            >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
+        tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
+        [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
+    done
+    timeout 30 "$WORK/$backend-identity.exe" "$ACTUAL_INPUT" -1 \
+        >"$WORK/$backend-actual-producer.raw" 2>"$WORK/$backend-actual-producer.err"
+    tr -d '\r' <"$WORK/$backend-actual-producer.raw" | LC_ALL=C sort >"$WORK/$backend-actual-producer.run"
+    [[ ! -s "$WORK/$backend-actual-producer.err" ]]
+    printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
+    cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, sixteen identity/boundary and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

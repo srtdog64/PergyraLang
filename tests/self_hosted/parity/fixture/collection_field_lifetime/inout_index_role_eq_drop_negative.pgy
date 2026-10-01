@@ -1,0 +1,14 @@
+ability TextEquality { func Eq(self, rhs: String) -> Bool; }
+role TextEqualityRole for String
+{
+    impl TextEquality { func Eq(self, rhs: String) -> Bool { return true; } }
+}
+func Matches(values: Array<String>) -> Bool { return values[0] == "copied"; }
+func Main() -> Void
+{
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "copied");
+    let matched: Bool = Matches(values);
+    ArrayDropOwnedStrings(values);
+    Log(matched);
+}

@@ -1,0 +1,9 @@
+func Element(values: Array<String>) -> String { return values[0]; }
+func Main() -> Void
+{
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "copied");
+    let element: String = Element(values);
+    ArrayDropOwnedStrings(values);
+    Log(element);
+}

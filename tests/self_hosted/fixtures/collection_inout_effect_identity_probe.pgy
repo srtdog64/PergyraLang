@@ -11,19 +11,84 @@ func Main() -> Void with caps env, io_read {
     if !AstTreeArtifactReady(artifact) { Log("fixture parser refused"); Exit(2); }
     let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if mutation == -1 {
+        // Collection refusal is reached only AFTER identity sealing. An earlier
+        // body failure must never turn an unused/unbound graph into a proof.
+        let reached: Bool = bundle.verdict.ok || (!bundle.collection_ownership.ok &&
+            bundle.collection_ownership.diagnostic_code == "borrow_boundary_escape" &&
+            bundle.collection_ownership.syntax_node_id >= 0);
+        if !reached || !SemanticAstExpressionSurfaceBorrowReady(artifact, analysis.expression_surfaces) ||
+            !SemanticExpressionGraphCarriedCallTargetsReady(analysis.expression_surfaces.expression_graph) {
+            Log("actual producer did not reach sealed collection facts"); Exit(2);
+        }
+        let actual: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
+            analysis.signatures, analysis.expression_surfaces);
+        let proved_actual: HashMap<String, Int> = actual.effects;
+        if !actual.ok { Log("actual formal effects are invalid"); Exit(2); }
+        let observed: Int = 0;
+        let actual_row: Int = 0;
+        while actual_row < ArrayLength(analysis.signatures.names) {
+            let name: String = analysis.signatures.names[actual_row];
+            let suffix: String = "src/self_hosted/semantic/ast_expression_environment_owner.pgy";
+            let label: String = "";
+            let first: Int = 0;
+            let count: Int = 1;
+            let expected: Int = 3;
+            let mode: Int = 0;
+            if name == "SemanticAstExpressionFunctionRowIndex" { label = "row_index"; }
+            if name == "SeedSemanticOwnedBuiltinSignaturesUnclaimed" {
+                label = "seed"; suffix = "src/self_hosted/semantic/builtin_shadow_owner.pgy";
+                first = 1; count = 3; expected = 2; mode = 1;
+            }
+            if name == "SemanticAstExpressionFunctionTables" {
+                label = "tables"; first = 3; count = 3; expected = 2; mode = 1;
+            }
+            if label != "" {
+                let module: Option<String> = SemanticAstFunctionModulePathAt(analysis.signatures, actual_row);
+                if !IsSome(module) || !SemanticCompilerInternalBuiltinModulePathMatches(UnwrapOption(module), suffix) {
+                    Log("actual producer module mismatch"); Exit(2);
+                }
+                let ordinal: Int = first;
+                while ordinal < first + count {
+                    let actual_formal: Option<Int> = SemanticAstFunctionParamNodeAt(analysis.signatures, actual_row, ordinal);
+                    let param_mode: Option<Int> = SemanticAstFunctionParamModeAt(analysis.signatures, actual_row, ordinal);
+                    if !IsSome(actual_formal) || UnwrapOption(actual_formal) <= 0 || !IsSome(param_mode) || UnwrapOption(param_mode) != mode {
+                        Log("actual producer formal identity mismatch"); Exit(2);
+                    }
+                    let actual_key: String = ToString(UnwrapOption(actual_formal));
+                    if !MapHas(proved_actual, actual_key) || MapGet(proved_actual, actual_key) != expected {
+                        Log(Concat(label, Concat(":unproved=", ToString(ordinal)))); Exit(2);
+                    }
+                    Log(Concat(label, Concat(":", Concat(ToString(ordinal), Concat("=", ToString(expected))))));
+                    observed = observed + 1; ordinal = ordinal + 1;
+                }
+            }
+            actual_row = actual_row + 1;
+        }
+        if observed != 7 { Log("actual producer formal count mismatch"); Exit(2); }
+        return;
+    }
     if !bundle.verdict.ok { Log(bundle.verdict.diagnostic_code); Exit(2); }
     let signature: Int = -1;
     let other: Int = -1;
+    let indexed: Int = -1;
     let row: Int = 0;
     while row < ArrayLength(analysis.signatures.names) {
         if analysis.signatures.names[row] == "Populate" { signature = row; }
         if analysis.signatures.names[row] == "Forward" { other = row; }
+        if analysis.signatures.names[row] == "Matches" { indexed = row; }
         row = row + 1;
     }
     if signature < 0 || other < 0 { Log("missing producer identities"); Exit(2); }
     let formal: Int = UnwrapOption(SemanticAstFunctionParamNodeAt(analysis.signatures, signature, 0));
     let foreign: Int = UnwrapOption(SemanticAstFunctionParamNodeAt(analysis.signatures, other, 0));
-    let changed: Bool = mutation == 0;
+    let indexed_formal: Int = -1;
+    if mutation >= 13 {
+        if indexed < 0 { Log("missing indexed formal identity"); Exit(2); }
+        indexed_formal = UnwrapOption(SemanticAstFunctionParamNodeAt(analysis.signatures, indexed, 0));
+    }
+    let changed: Bool = mutation == 0 || mutation == 13;
+    let shared_index: Int = -1;
     let slot: Int = 0;
     let last: Int = -1;
     while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
@@ -33,6 +98,21 @@ func Main() -> Void with caps env, io_read {
             while node <= root {
                 let binding: SemanticExpressionBindingIdentityFact =
                     SemanticExpressionGraphBindingIdentity(analysis.expression_surfaces.expression_graph, node);
+                if mutation >= 14 && analysis.expression_surfaces.function_node_ids[slot / 3] ==
+                        analysis.signatures.function_node_ids[indexed] {
+                    let kind: Int = analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node];
+                    if kind == AstExpressionNodeIndex() { shared_index = node; }
+                    if !changed && mutation == 14 && kind == AstExpressionNodeEquality() {
+                        analysis.expression_surfaces.expression_graph.arena.call_target_kinds[node] = SemanticCallTargetRoleOperator();
+                        analysis.expression_surfaces.expression_graph.arena.call_target_names[node] = "TextEqualityRole.Eq";
+                        changed = true;
+                    }
+                    if !changed && mutation == 15 && kind == AstExpressionNodeArrayElement() && shared_index >= 0 {
+                        // A second physical parent escapes the same comparison operand.
+                        analysis.expression_surfaces.expression_graph.arena.topology.right_children[node] = shared_index;
+                        changed = true;
+                    }
+                }
                 if !changed && binding.kind == SemanticExpressionBindingFormalParameter() && binding.syntax_id == formal {
                     if mutation == 1 { analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[node] = 0; }
                     if mutation == 2 { analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[node] = foreign; }
@@ -70,11 +150,22 @@ func Main() -> Void with caps env, io_read {
     if mutation == 5 { analysis.signatures.action_contracts.body_node_ids[signature] = -1; changed = true; }
     if mutation == 9 { ArrayPop(analysis.signatures.param_node_ids); changed = true; }
     if !changed { Log("mutation did not reach its fact"); Exit(2); }
+    if mutation >= 14 && !SemanticExpressionGraphFactsReady(analysis.expression_surfaces.expression_graph,
+            ArrayLength(analysis.expression_surfaces.expression_graph.roots)) {
+        Log("indexed comparator graph shape is invalid"); Exit(2);
+    }
     let effects: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
         analysis.signatures, analysis.expression_surfaces);
     let proved: HashMap<String, Int> = effects.effects;
     let key: String = ToString(formal);
-    if mutation == 0 {
+    if mutation == 13 {
+        Log(effects.ok && MapHas(proved, key) && MapGet(proved, key) == 2 &&
+            MapHas(proved, ToString(foreign)) && MapGet(proved, ToString(foreign)) == 2 &&
+            MapHas(proved, ToString(indexed_formal)) && MapGet(proved, ToString(indexed_formal)) == 3);
+    } else if mutation >= 14 {
+        Log(effects.ok && !MapHas(proved, ToString(indexed_formal)) &&
+            !MapHas(proved, key) && !MapHas(proved, ToString(foreign)));
+    } else if mutation == 0 {
         Log(effects.ok && MapHas(proved, key) && MapGet(proved, key) == 2 &&
             MapHas(proved, ToString(foreign)) && MapGet(proved, ToString(foreign)) == 2);
     } else if mutation == 10 {

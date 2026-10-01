@@ -609,13 +609,17 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   Function/formal syntax IDs, source ordinal and receiver offset stay with the
   admitted signature owner; a mode or type is not a clean-element certificate.
 - `src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy` -- narrow
-  body-derived readonly or conditional Live {Empty, Owned}-preserving effects.
-  Every physical use edge and lane root is checked; alias/store/index uses are
-  currently unknown, and an unproved forwarding cycle grants nothing.
+  body-derived metadata, live indexed-read or Live {Empty, Owned} effects.
+  Every physical use edge and lane root is checked; indexed elements may only
+  feed primitive equality/inequality. Alias/store/write, custom operators and
+  unproved forwarding cycles grant nothing; formal forwarding needs its exact
+  whole-use live effect, never a type/name-based permission.
 - `src/self_hosted/semantic/ast_collection_call_effect_owner.pgy` -- sticky
   caller permission removal for unknown source effects and exact local moves.
-  Proven copy effects do not purify an input or revive retired storage. This
-  conservative prepass is not event-time aggregate release authority.
+  Copy and indexed-read entry consume possible-retirement syntax bounds;
+  unknown effects may retire, while metadata reads need no element liveness.
+  Copies do not purify inputs or revive storage. This conservative prepass is
+  not event-time aggregate release authority.
 - `src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy` --
   conservative typed syntax-order bounds for mutable-call entry, including
   nested argument consumption, branch/loop retirement and deferred execution.
