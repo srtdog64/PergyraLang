@@ -805,4 +805,5 @@ expect_panic exported_div_zero "$exported_div_zero_bin" "divide-by-zero"
 expect_panic exported_device_released "$exported_device_released_bin" "released-slot"
 expect_panic exported_device_double_release "$exported_device_double_release_bin" "double-release"
 
+CC="$CC_BIN" bash "$ROOT_DIR/tests/file_read_error_runtime_smoke.sh"
 echo "[runtime-panic-abi] inline and exported panic classes are executable"
