@@ -1,0 +1,33 @@
+// Exact ArrayDrop/ArrayLength value signature projection. Canonical callable
+// identity is already admitted; this type view grants no storage/lifetime proof.
+import "direct_mir_scalar_program_builtin_signature_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_value_result_policy_owner.pgy";
+import "../semantic/array_type_shape_owner.pgy";
+
+func DirectMirScalarProgramArrayValueSignatureForCall(
+    ref fact: DirectMirScalarProgramBuiltinSignatureFact,
+    ref actual_types: Array<String>,
+    ref logical_record: DirectMirScalarProgramLogicalRecordFact
+) -> DirectMirScalarProgramBuiltinSignatureFact {
+    let invalid: DirectMirScalarProgramBuiltinSignatureFact =
+        DirectMirScalarProgramBuiltinSignatureFactInvalid();
+    if !fact.valid || ArrayLength(actual_types) != 1 { return invalid; }
+    let result_type: String = "";
+    if fact.name == "ArrayDrop" {
+        if !IsSome(SemanticArrayElementType(actual_types[0])) { return invalid; }
+        result_type = CompilerAbiLayoutVoidTypeName();
+    } else if fact.name == "ArrayLength" {
+        let record_array: Bool = IsSome(
+            DirectMirScalarProgramLogicalRecordArrayElementType(logical_record, actual_types[0]));
+        if actual_types[0] != CompilerAbiLayoutArrayStringTypeName() &&
+            actual_types[0] != CompilerAbiLayoutArrayIntTypeName() &&
+            actual_types[0] != CompilerAbiLayoutArrayLongTypeName() &&
+            actual_types[0] != CompilerAbiLayoutArrayBoolTypeName() &&
+            !record_array { return invalid; }
+        result_type = CompilerAbiLayoutIntTypeName();
+    } else { return invalid; }
+    let parameters: Array<String> = [actual_types[0]];
+    return DirectMirScalarProgramBuiltinSignatureFact(
+        true, fact.registry_row, fact.name, result_type, parameters,
+        fact.expression_kind, fact.runtime_call_abi_id);
+}

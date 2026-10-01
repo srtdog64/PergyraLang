@@ -14,6 +14,7 @@ RUNTIME_FIXTURE="tests/self_hosted/fixtures/array_bool_storage_runtime_probe.pgy
 BODY_OWNER="src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy"
 RUNTIME_OWNER="src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy"
 REWRITE_OWNER="src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
+RELEASE_REWRITE_OWNER="src/self_hosted/codegen/emission/expr_array_storage_release_emit_owner.pgy"
 BUILD_TIMEOUT="${PGY_SELFHOST_PROBE_BUILD_TIMEOUT:-300}s"
 STEP_TIMEOUT="${PGY_SELFHOST_PROBE_TIMEOUT:-45}s"
 fail() { echo "[$LABEL] $*; evidence: ${WORK_DIR:-not-created}" >&2; exit 1; }
@@ -27,7 +28,7 @@ WORK_REL="${WORK_DIR#"$ROOT_DIR"/}"
 echo "[$LABEL] evidence: $WORK_DIR"
 cd "$ROOT_DIR"
 sha256sum "$BODY_FIXTURE" "$RUNTIME_FIXTURE" "$BODY_OWNER" "$RUNTIME_OWNER" \
-    "$REWRITE_OWNER" "$PGY" > "$WORK_DIR/source-before.sha256"
+    "$REWRITE_OWNER" "$RELEASE_REWRITE_OWNER" "$PGY" > "$WORK_DIR/source-before.sha256"
 export PGY_SELFHOST_CC_PROFILE=test
 pgy_selfhost_select_emitted_c_compile_profile
 
@@ -66,6 +67,7 @@ done
 
 # Observe real frees from the real lifetime owner, not a second leaf/drop
 # solver. Watch exactly the twenty new columns and the shared zone String.
+# Native emission uses the transpiler's reserved pgy_u_ user-function symbols.
 python - "$WORK_DIR/body.c" "$WORK_DIR/body-watched.c" <<'PY'
 import pathlib
 import sys
@@ -106,7 +108,7 @@ static void BodyProbeObserveFree(void *pointer) {
     free(pointer);
 }
 int main(void) {
-    SemanticAstBodyTypeBundle source = BodyBundleTypedRetirementProbeSource();
+    SemanticAstBodyTypeBundle source = pgy_u_BodyBundleTypedRetirementProbeSource();
 '''
 suffix += "\n".join("    probe_leaves[%d] = source.%s.data;" % (index, leaf)
                     for index, leaf in enumerate(leaves))
@@ -121,7 +123,7 @@ suffix += r'''
     }
     probe_zone_payload = source.zone_carriage.resource_field_paths.data[0];
     probe_watch = 1;
-    SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(source);
+    pgy_u_SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(source);
     probe_watch = 0;
     for (int i = 0; i < 20; ++i) if (probe_frees[i] != 1) {
         fprintf(stderr, "body leaf=%d free-count=%d\n", i, probe_frees[i]); return 1;
@@ -221,7 +223,7 @@ run_checked bool-runtime-watched
 grep -Fq 'bool-drop populated=once empty=no-free null=safe allocated-empty=once reset=complete rewrite=actual' \
     "$WORK_DIR/bool-runtime-watched.run.err" || fail "emitted Bool drop observation was missing"
 sha256sum "$BODY_FIXTURE" "$RUNTIME_FIXTURE" "$BODY_OWNER" "$RUNTIME_OWNER" \
-    "$REWRITE_OWNER" "$PGY" > "$WORK_DIR/source-after.sha256"
+    "$REWRITE_OWNER" "$RELEASE_REWRITE_OWNER" "$PGY" > "$WORK_DIR/source-after.sha256"
 cmp -s "$WORK_DIR/source-before.sha256" "$WORK_DIR/source-after.sha256" ||
     fail "probe/owners/launcher changed during the gate"
 sha256sum "$WORK_DIR/body.c" "$WORK_DIR/body.exe" "$WORK_DIR/body-watched.c" \

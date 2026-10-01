@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh"
 pgy_prepend_windows_runtime_paths
 LABEL=self-host-array-mutation-receiver-use-contract
 DRIVER="$(pgy_select_optional_exe_binary "$(pgy_path_for_bash_tool "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")")"
@@ -42,9 +43,10 @@ project() {
     return "$status"
 }
 
-"$CLANG" -std=c11 -O0 -DPGY_LLVM_ENABLED "-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" \
+pgy_selfhost_select_linked_runtime_compile_profile || fail "runtime compiler profile is invalid"
+"$CLANG" "${PGY_SELFHOST_RUNTIME_C_COMPILE_FLAGS[@]}" "-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" \
     -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$WORK_DIR/runtime.o" \
-    >"$WORK_DIR/runtime.compile.log" 2>&1 || fail "runtime object did not compile"
+    >"$WORK_DIR/runtime.compile.log" 2>&1 || { cat "$WORK_DIR/runtime.compile.log" >&2; fail "runtime object did not compile; evidence=$WORK_REL"; }
 printf 'case\tbackend\troute\tstdout\tproducer_unchanged\n' >"$WORK_DIR/positives.tsv"
 positives=(direct_mir_array_mutation_receiver_use_contract array_index_induction_preincrement_read \
     array_index_induction_decrement_break array_index_induction_literal_negative_break \

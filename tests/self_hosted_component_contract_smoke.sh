@@ -8464,6 +8464,10 @@ for intent_external_owner in \
 done
 require_file "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
 require_max_lines "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh" 20
+require_file "tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh"
+require_max_lines "tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh" 20
+require_text "tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh" \
+    "pgy_selfhost_select_linked_runtime_compile_profile()"
 require_text "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh" \
     "pgy_selfhost_emitted_c_uses_runtime_headers()"
 require_text "tests/self_hosted/parity/emitted_c_runtime_header_owner.sh" \
@@ -11922,6 +11926,19 @@ reject_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_builtin_argument_prefix_owner.pgy" \
     "func DirectMirScalarProgramBuiltinArgumentPrefixReady(" 'expected = "Int"'
 require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" 230
+require_file "src/self_hosted/compiler/direct_mir_scalar_program_array_value_signature_owner.pgy"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" \
+    "func DirectMirScalarProgramBuiltinSignatureFactForCall(" \
+    "DirectMirScalarProgramArrayValueSignatureForCall("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_value_signature_owner.pgy" \
+    "func DirectMirScalarProgramArrayValueSignatureForCall(" \
+    "fact.registry_row, fact.name, result_type, parameters"
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" \
+    "func DirectMirScalarProgramBuiltinSignatureFactForCall(" \
+    "let record_array: Bool"
 require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_collection_clone_signature_owner.pgy" 40
 require_max_lines "src/self_hosted/compiler/direct_mir_scalar_program_to_string_expression_readiness_owner.pgy" 30
 require_file "tests/self_hosted/fixtures/direct_mir_signed_integer_to_string.pgy"
@@ -12873,6 +12890,18 @@ reject_function_text \
     "func RewriteSemanticStructCall(" "out = Concat(out"
 reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticStructCall("
+require_file "src/self_hosted/codegen/emission/expr_array_storage_release_emit_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/expr_array_storage_release_emit_owner.pgy" 50
+for release_function in RewriteSemanticArrayDropCall RewriteSemanticCompilerRetireArrayStorageCall; do
+    require_text "src/self_hosted/codegen/emission/expr_array_storage_release_emit_owner.pgy" \
+        "func $release_function("
+    require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+        "return $release_function(graph, view, env);"
+    reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+        "func $release_function("
+done
+reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "ArrayDrop argument type fact is missing"
 require_function_text \
     "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberCall(" \
@@ -21122,8 +21151,8 @@ require_function_text \
     "func DirectMirScalarProgramLogicalRecordReadyForExpressions(" \
     "DirectMirScalarProgramLogicalRecordArrayIndexIdentityReady("
 require_function_text \
-    "src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy" \
-    "func DirectMirScalarProgramBuiltinSignatureFactForCall(" \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_value_signature_owner.pgy" \
+    "func DirectMirScalarProgramArrayValueSignatureForCall(" \
     "DirectMirScalarProgramLogicalRecordArrayElementType("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_logical_record_expression_readiness_owner.pgy" \
@@ -22956,6 +22985,17 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owner.pgy" \
     "func DirectMirScalarProgramLlvmOwnedArrayStringParameterCopyIn(" \
+    "DirectMirScalarProgramArrayStringAbiProjectionReadyForFact("
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owner.pgy" \
+    "func DirectMirScalarProgramLlvmOwnedArrayStringParameterCopyIn(" \
+    "let aggregate: String = projection.llvm_value_type"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owner.pgy" \
+    "func DirectMirScalarProgramLlvmOwnedArrayStringParameterCopyIn(" \
+    "let storage_align: String = ToString(projection.storage.align)"
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owner.pgy" \
     '".local = alloca %pgy.array.string, align 8'
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_owned_array_string_parameter_binding_owner.pgy" 40
@@ -23225,11 +23265,11 @@ require_function_text \
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
     "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
-    "owner_type != CompilerAbiLayoutStringTypeName()"
+    "DirectMirScalarProgramOwnedDirectParameterTypeReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_direct_call_expression_owner.pgy" \
     "func DirectMirScalarProgramLlvmDirectCallExpressionAt(" \
-    "types[ordinal] != CompilerAbiLayoutStringTypeName()"
+    "DirectMirScalarProgramOwnedDirectParameterTypeReady("
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_local_emission_owner.pgy" \
     "func DirectMirScalarCfgCLocalDeclarationsInRange(" \

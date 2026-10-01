@@ -3,6 +3,7 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
@@ -103,10 +104,11 @@ for name in negative double_negative default_negative ref_negative inout_negativ
 done
 fi
 if [[ "$STAGE" != native ]]; then
-    "${PGY_SELFHOST_CLANG:-clang}" -std=c11 -O0 -DPGY_LLVM_ENABLED \
+    pgy_selfhost_select_linked_runtime_compile_profile || fail "runtime compiler profile is invalid"
+    "${PGY_SELFHOST_CLANG:-clang}" "${PGY_SELFHOST_RUNTIME_C_COMPILE_FLAGS[@]}" \
         "-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
         -o "$WORK_DIR/runtime.o" >"$WORK_DIR/runtime.compile.out" 2>"$WORK_DIR/runtime.compile.err" ||
-        fail "runtime object compilation failed"
+        { cat "$WORK_DIR/runtime.compile.err" >&2; fail "runtime object compilation failed; evidence=$WORK_REL"; }
     for name in scalar own own_bool own_pair; do
         (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
             "$FIXTURES/public_array_drop_$name.pgy" -o "$WORK_REL/$name.mir.json") \

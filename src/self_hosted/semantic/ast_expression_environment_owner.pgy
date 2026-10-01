@@ -15,6 +15,7 @@ import "nominal_constructor_argument_policy_owner.pgy";
 import "ast_intent_signature_fact_owner.pgy";
 import "ast_generic_nominal_equality_owner.pgy";
 import "ast_expression_environment_storage_lifetime_owner.pgy";
+import "env_owner.pgy";
 func SemanticAstExpressionMemberRootNames(constructors: SemanticAstNominalConstructorFacts,
     enums: SemanticAstEnumFacts, inout roots: Array<String>) -> Bool {
     if !SemanticAstNominalConstructorRowsReady(constructors) || !enums.ok {

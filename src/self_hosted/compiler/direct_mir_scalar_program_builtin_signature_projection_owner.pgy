@@ -8,6 +8,7 @@ import "direct_mir_scalar_program_hashmap_owner.pgy";
 import "direct_mir_scalar_program_checked_int_owner.pgy";
 import "direct_mir_scalar_program_array_transform_owner.pgy";
 import "direct_mir_scalar_program_collection_builtin_signature_owner.pgy";
+import "direct_mir_scalar_program_array_value_signature_owner.pgy";
 import "direct_mir_scalar_program_case_math_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_string_window_builtin_signature_owner.pgy";
 import "direct_mir_scalar_program_string_transform_builtin_signature_owner.pgy";
@@ -139,13 +140,10 @@ func DirectMirScalarProgramBuiltinSignatureFactForCall(
 ) -> DirectMirScalarProgramBuiltinSignatureFact {
     let fact: DirectMirScalarProgramBuiltinSignatureFact = DirectMirScalarProgramBuiltinSignatureFactFromName(name);
     if !fact.valid { return fact; }
-    if name == "ArrayDrop" {
-        if ArrayLength(actual_types) != 1 || !IsSome(SemanticArrayElementType(actual_types[0])) {
-            return DirectMirScalarProgramBuiltinSignatureFactInvalid();
-        }
-        let parameters: Array<String> = [actual_types[0]];
-        return DirectMirScalarProgramBuiltinSignatureFact(true, fact.registry_row, fact.name,
-            CompilerAbiLayoutVoidTypeName(), parameters, fact.expression_kind, fact.runtime_call_abi_id);
+    if name == "ArrayDrop" || name == "ArrayLength" {
+        let array_value: DirectMirScalarProgramBuiltinSignatureFact =
+            DirectMirScalarProgramArrayValueSignatureForCall(fact, actual_types, logical_record);
+        if name == "ArrayDrop" || array_value.valid { return array_value; }
     }
     if DirectMirScalarProgramArrayTransformKind(fact.expression_kind) {
         if ArrayLength(actual_types) > 1 || (ArrayLength(actual_types) == 1 &&
@@ -158,20 +156,6 @@ func DirectMirScalarProgramBuiltinSignatureFactForCall(
     }
     if DirectMirScalarProgramHashMapOperation(fact.expression_kind) != "" {
         return DirectMirScalarProgramHashMapSignatureForCall(fact, actual_types, expected_type);
-    }
-    let record_array: Bool = false;
-    if name == "ArrayLength" && ArrayLength(actual_types) == 1 {
-        record_array = IsSome(DirectMirScalarProgramLogicalRecordArrayElementType(logical_record, actual_types[0]));
-    }
-    if name == "ArrayLength" && ArrayLength(actual_types) == 1 &&
-            (actual_types[0] == CompilerAbiLayoutArrayStringTypeName() ||
-             actual_types[0] == CompilerAbiLayoutArrayIntTypeName() ||
-             actual_types[0] == CompilerAbiLayoutArrayLongTypeName() ||
-             actual_types[0] == CompilerAbiLayoutArrayBoolTypeName() || record_array) {
-        let parameter_types: Array<String> = [actual_types[0]];
-        return DirectMirScalarProgramBuiltinSignatureFact(true, fact.registry_row, fact.name,
-            CompilerAbiLayoutIntTypeName(), parameter_types,
-            fact.expression_kind, fact.runtime_call_abi_id);
     }
     let collection_clone: DirectMirScalarProgramBuiltinSignatureFact =
         DirectMirScalarProgramCollectionCloneSignature(

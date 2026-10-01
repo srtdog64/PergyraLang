@@ -35,6 +35,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh"
 pgy_prepend_windows_runtime_paths
 LABEL=array-string-layout-consumer-closure
 STAGE="${PGY_ARRAY_STRING_LAYOUT_STAGE:-all}"
@@ -55,9 +56,10 @@ export PGY_SELF_DRIVER_BIN="$DRIVER"
 
 # The existing sources are reused, not unrelated shape/ownership inventories.
 # Adjacent gates retain their own stronger negative contracts.
-"$CLANG" -std=c11 -O0 -DPGY_LLVM_ENABLED "-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" \
+pgy_selfhost_select_linked_runtime_compile_profile || fail "runtime compiler profile is invalid"
+"$CLANG" "${PGY_SELFHOST_RUNTIME_C_COMPILE_FLAGS[@]}" "-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" \
     -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$WORK/runtime.o" \
-    >"$WORK/runtime.compile.log" 2>&1 || fail "runtime object compilation failed"
+    >"$WORK/runtime.compile.log" 2>&1 || { cat "$WORK/runtime.compile.log" >&2; fail "runtime object compilation failed; evidence=$REL"; }
 general=0; legacy=0
 names=(indexed push int-push builtins dirwalk args owned owned-return copyout readonly slice clone)
 [[ "$STAGE" != all ]] || names+=(foreach legacy-storage pop reverse)

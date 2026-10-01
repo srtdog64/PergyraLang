@@ -11,8 +11,9 @@ LABEL="self-host-direct-mir-scalar-array-index"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 CC="${PGY_SELFHOST_CC:-gcc}"
 CLANG="${PGY_SELFHOST_CLANG:-clang}"
-WORK_REL=".tmp/self_hosted/direct_mir_scalar_array_index"
-WORK_DIR="$ROOT_DIR/$WORK_REL"
+mkdir -p "$ROOT_DIR/.tmp/self_hosted"
+WORK_DIR="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/direct-mir-scalar-array-index.XXXXXX")"
+WORK_REL=".tmp/self_hosted/${WORK_DIR##*/}"
 POSITIVE="tests/self_hosted/fixtures/direct_mir_scalar_array_index.pgy"
 OOB="tests/self_hosted/fixtures/direct_mir_scalar_array_index_oob.pgy"
 MUTATE="$ROOT_DIR/tests/self_hosted/parity/direct_mir_scalar_array_index_mutations.py"
@@ -29,6 +30,7 @@ READY="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_collection_e
 C_VALUE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_logical_value_expression_owner.pgy"
 LLVM_VALUE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_logical_value_expression_owner.pgy"
 BUILTIN_SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_builtin_signature_projection_owner.pgy"
+ARRAY_VALUE_SIGNATURE="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_value_signature_owner.pgy"
 C_COLLECTION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_c_string_collection_expression_owner.pgy"
 LLVM_COLLECTION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_expression_owner.pgy"
 BOUNDS="$ROOT_DIR/src/self_hosted/codegen/runtime_abi/collection_bounds_owner.pgy"
@@ -38,8 +40,10 @@ for term in DirectMirScalarProgramExprArrayIntIndex DirectMirScalarProgramExprAr
     grep -Fq "$term" "$C_VALUE" || fail "C consumer omitted $term"
     grep -Fq "$term" "$LLVM_VALUE" || fail "LLVM consumer omitted $term"
 done
+grep -Fq 'DirectMirScalarProgramArrayValueSignatureForCall(' "$BUILTIN_SIGNATURE" ||
+    fail "builtin signature dispatcher lost the array value owner"
 for term in CompilerAbiLayoutArrayIntTypeName CompilerAbiLayoutArrayBoolTypeName; do
-    grep -Fq "$term" "$BUILTIN_SIGNATURE" ||
+    grep -Fq "$term" "$ARRAY_VALUE_SIGNATURE" ||
         fail "ArrayLength signature omitted $term"
     grep -Fq "$term" "$C_COLLECTION" ||
         fail "C ArrayLength consumer omitted $term"
@@ -54,8 +58,6 @@ scalar_c_body="$(sed -n '/DirectMirScalarProgramExprArrayIntIndex()/,/if kind !=
 ! grep -Eq '\.data\[[^]]+\]' <<<"$scalar_c_body" ||
     fail "C scalar-array consumer reopened raw indexing"
 
-mkdir -p "$WORK_DIR"
-rm -f "$WORK_DIR"/*
 for name in positive oob; do
     source="$POSITIVE"; [[ "$name" == oob ]] && source="$OOB"
     (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$source" \

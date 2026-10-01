@@ -5046,6 +5046,7 @@ call-argument-evaluation-order-test-smoke: $(PGY) array-member-mutation-test-smo
 
 .PHONY: self-host-public-array-drop-test-smoke
 self-host-public-array-drop-test-smoke: self-host-compiler
+	"$(BASH)" tests/self_hosted/parity/linked_runtime_compile_profile_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/public_array_drop_owner_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/public_array_drop.sh

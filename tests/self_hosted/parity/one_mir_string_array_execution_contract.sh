@@ -5,15 +5,17 @@
     return 1
 }
 source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh"
 CC="${CC:-gcc}"
 CLANG="${PGY_SELFHOST_CLANG:-clang}"
 command -v "$CC" >/dev/null || fail "C compiler is unavailable"
 command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 command -v timeout >/dev/null || fail "bounded execution tool is unavailable"
 pgy_selfhost_select_emitted_c_compile_profile || fail "emitted-C compiler profile is invalid"
-"$CLANG" -std=c11 -O0 -DPGY_LLVM_ENABLED "-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" \
+pgy_selfhost_select_linked_runtime_compile_profile || fail "runtime compiler profile is invalid"
+"$CLANG" "${PGY_SELFHOST_RUNTIME_C_COMPILE_FLAGS[@]}" "-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" \
     -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$WORK_DIR/runtime.o" \
-    >"$WORK_DIR/runtime.compile.log" 2>&1 || fail "runtime object did not compile"
+    >"$WORK_DIR/runtime.compile.log" 2>&1 || { cat "$WORK_DIR/runtime.compile.log" >&2; fail "runtime object did not compile; evidence=$WORK_DIR"; }
 
 compile_and_run() {
     local stem="$1" expected="$2"

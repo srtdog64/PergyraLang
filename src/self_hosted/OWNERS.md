@@ -2088,6 +2088,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   call-spine and simple member-access consumption, ordered argument projection,
   parameter-mode handling, receiver insertion, and runtime/constructor/method
   symbol fact consumption, delegating List family calls to their named owner.
+- `src/self_hosted/codegen/emission/expr_array_storage_release_emit_owner.pgy`
+  -- C storage-release materialization for public `ArrayDrop` and compiler-only
+  retirement from admitted call/type facts. The semantic lifetime owners still
+  grant release permission; this owner does not infer ownership from an array
+  descriptor or grant String-element release authority.
 - `src/self_hosted/codegen/emission/expr_semantic_clone_call_emit_owner.pgy` --
   explicit Clone ownership-boundary projection. Storage-owning arrays call the
   typed deep-clone runtime ABI; scalar and nominal values retain their admitted
@@ -3934,6 +3939,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   `Print` specialization admits exactly `String -> Void`; expression readiness
   and C/LLVM String emitters consume the canonical `string|print|pgy_print`
   runtime row without rewriting Print as newline-producing Log.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_value_signature_owner.pgy`
+  -- exact `ArrayDrop`/`ArrayLength` argument and result type projection from an
+  already admitted canonical builtin fact. Registry row, expression kind and
+  runtime ABI identity are preserved; this view owns no lifetime permission.
 - `src/self_hosted/compiler/direct_mir_scalar_program_collection_clone_signature_owner.pgy`
   -- exact `Clone(Array<Int>|Array<String>)` specialization. It seals the
   result and parameter type to the same storage-owning array identity and

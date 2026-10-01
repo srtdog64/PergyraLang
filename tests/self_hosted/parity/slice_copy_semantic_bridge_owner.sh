@@ -11,8 +11,9 @@ pgy_prepend_windows_runtime_paths
 LABEL="self-host-parity:slice-copy-semantic-bridge"
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
-WORK_REL=".tmp/self_hosted/slice_copy_semantic_bridge"
-WORK_DIR="$ROOT_DIR/$WORK_REL"
+mkdir -p "$ROOT_DIR/.tmp/self_hosted"
+WORK_DIR="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/slice_copy_semantic_bridge.XXXXXX")"
+WORK_REL=".tmp/self_hosted/${WORK_DIR##*/}"
 VALID_REL="tests/cases/backend_compare/slice_copy/main.pgy"
 INVALID_REL="tests/self_hosted/fixtures/slice_copy_reject_array_operand.pgy"
 GROWTH_REJECT_REL="tests/self_hosted/fixtures/slice_growth_after_borrow_reject.pgy"
@@ -41,8 +42,6 @@ DRIVER="$(cd "$(dirname "$DRIVER")" && pwd -P)/$(basename "$DRIVER")"
 suffix=""
 if [[ "$PGY" == *.exe ]]; then suffix=".exe"; fi
 
-rm -rf "$WORK_DIR"
-mkdir -p "$WORK_DIR"
 printf '2\n20\n30\n2\nred\nblue\n0\n' >"$WORK_DIR/expected.run"
 printf '99\n99\n' >"$WORK_DIR/growth-safe.expected"
 printf '3\n' >"$WORK_DIR/member-growth-safe.expected"
@@ -57,8 +56,12 @@ grep -Fq 'name != "Array_Slice" && name != "SliceCopy"' "$SLICE_OWNER" ||
     fail "direct-MIR Slice owner lost its exact builtin boundary"
 grep -Fq 'define internal %pgy.array.int @pgy.self.slice.copy.Int' "$LLVM_SLICE_OWNER" ||
     fail "LLVM Int SliceCopy no longer owns its aggregate-return ABI internally"
-grep -Fq 'define internal %pgy.array.string @pgy.self.slice.copy.String' "$LLVM_SLICE_OWNER" ||
+grep -Fq 'define internal ${array_type} @pgy.self.slice.copy.String' "$LLVM_SLICE_OWNER" &&
+    grep -Fq 'let array_type: String = abi.llvm_value_type;' "$LLVM_SLICE_OWNER" &&
+    grep -Fq 'DirectMirArrayStringAbiProjectionReadyFor(' "$LLVM_SLICE_OWNER" ||
     fail "LLVM String SliceCopy no longer owns its aggregate-return ABI internally"
+! grep -Fq 'define internal %pgy.array.string @pgy.self.slice.copy.String' "$LLVM_SLICE_OWNER" ||
+    fail "LLVM String SliceCopy restored a backend-local aggregate ABI spelling"
 if grep -Eq '@pgy_(array_slice|slice_copy)_' "$LLVM_SLICE_OWNER"; then
     fail "LLVM Slice projection reopened the external aggregate-return ABI"
 fi

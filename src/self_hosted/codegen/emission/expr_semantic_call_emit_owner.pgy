@@ -13,6 +13,7 @@ import "../runtime_abi/result_runtime_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../../compiler/runtime_call_abi_structured_fact_owner.pgy";
 import "expr_semantic_call_argument_owner.pgy";
+import "expr_array_storage_release_emit_owner.pgy";
 import "expr_semantic_clone_call_emit_owner.pgy";
 import "call_argument_order_owner.pgy";
 import "expr_semantic_identity_bound_call_emit_owner.pgy";
@@ -256,34 +257,6 @@ func RewriteSemanticOwnedStringArrayCall(
     Die("unsupported owned String array call");
     return "";
 }
-func RewriteSemanticCompilerRetireArrayStorageCall(
-    graph: SemanticExpressionGraphFacts,
-    view: SemanticCallSpineView,
-    env: CodegenTypeEnv
-) -> String {
-    if ArrayLength(view.argument_nodes) != 1 {
-        Die("CompilerRetireArrayStorage requires exactly one argument");
-    }
-    let array_type_opt: Option<String> = CodegenExpressionTypeFromGraph(
-        graph, view.argument_nodes[0], env
-    );
-    if !IsSome(array_type_opt) {
-        Die("CompilerRetireArrayStorage argument type fact is missing");
-    }
-    let array_type: String = UnwrapOption(array_type_opt);
-    let fact: CollectionRuntimeFact = CollectionRuntimeFactFromTypeName(
-        array_type, env
-    );
-    let array_arg: String = RewriteSemanticCallArgument(
-        graph, view.argument_nodes[0], array_type, "inout", env
-    );
-    return Concat(
-        CollectionRuntimeCDropStorageFn(
-            CollectionRuntimeKindCode(fact.kind)
-        ),
-        Concat("(", Concat(array_arg, ")"))
-    );
-}
 func RewriteSemanticDirectCall(
     graph: SemanticExpressionGraphFacts,
     root_id: Int,
@@ -349,11 +322,7 @@ func RewriteSemanticDirectCall(
         );
     }
     if source_name == "ArrayDrop" {
-        let argument_type: Option<String> = CodegenExpressionTypeFromGraph(graph, view.argument_nodes[0], env);
-        if !IsSome(argument_type) { Die("ArrayDrop argument type fact is missing"); }
-        let fact: CollectionRuntimeFact = CollectionRuntimeFactFromTypeName(UnwrapOption(argument_type), env);
-        let argument: String = RewriteSemanticCallArgument(graph, view.argument_nodes[0], UnwrapOption(argument_type), "inout", env);
-        return "(free((" + argument + ")->data), memset(" + argument + ", 0, sizeof(" + fact.c_array_type + ")))";
+        return RewriteSemanticArrayDropCall(graph, view, env);
     }
     if source_name == "CompilerRetireArrayStorage" {
         return RewriteSemanticCompilerRetireArrayStorageCall(graph, view, env);
