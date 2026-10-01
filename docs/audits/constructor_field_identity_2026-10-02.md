@@ -80,7 +80,9 @@ Native harness success is not installed/Pergyra-built evidence or a fixed point.
 The new native owner gate is a dependency of the existing collection semantic
 Makefile target, which is already called by the Linux push step owner.
 
-Baseline CI 36899513087 at exact base 53168fe9 completed with failure.
+Baseline CI 36899513087 at exact base 53168fe9 completed with failure:
+29 jobs succeeded, build-linux failed, and self-host-bootstrap-linux was
+cancelled. Cancellation cause was not inferred from its status.
 Build-linux job 110512829220 failed only push step 19/57:
 one_mir_string_case_math_projection.sh counted the unchanged signature owner
 with wc -l as 121/120. Its first line is comment-only; the existing lexical
@@ -93,6 +95,12 @@ raw wc read, keep the same cap, and fail closed if measurement fails. Do not
 remove comments/blanks, raise a cap, or stage the other dirty size gates.
 Verification is the existing lexical/CLI tests plus the unchanged installed
 String case/math projection gate. This is CI maintenance, not a lifetime rung.
+The one dirty consumer hunk was independently matched to the snapshot and
+adopted; other dirty size-gate hunks remain untouched. In the same isolated
+snapshot, the real lexical measurement is 120/120 and the complete installed
+String case/math C/LLVM projection gate passes. Gate/counter/owner and native,
+self-driver and manifest hashes stayed unchanged during that run. Target-triple
+warnings remain; this is not proof of current-source installed replacement.
 
 ## Parallel review and exact held boundary
 
