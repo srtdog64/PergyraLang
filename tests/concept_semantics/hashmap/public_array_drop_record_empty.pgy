@@ -1,0 +1,6 @@
+struct EmptyDropRecord { x: Int; flag: Bool; }
+func Main() -> Void {
+    let values: Array<EmptyDropRecord> = [];
+    ArrayDrop(values);
+    Log(9);
+}

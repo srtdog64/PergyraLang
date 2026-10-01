@@ -246,9 +246,11 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
         code == "call_effect_fact_unavailable" {
         return "PGY_SEM_EFFECT_CONFLICT";
     }
+    if code == "array_drop_storage_requires_binding" {
+        return "PGY_SEM_BORROW_ESCAPE";
+    }
     if code == "array_drop_storage_arity" ||
         code == "array_drop_storage_requires_array" ||
-        code == "array_drop_storage_requires_binding" ||
         code == "compiler_internal_builtin" {
         return "PGY_SEM_BUILTIN_ARGS_INVALID";
     }

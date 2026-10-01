@@ -1,0 +1,7 @@
+func ReturnAlias(values: Array<Int>) -> Array<Int> { return values; }
+func Main() -> Void {
+    let values: Array<Int> = [1];
+    let alias: Array<Int> = ReturnAlias(values);
+    ArrayDrop(values);
+    Log(alias[0]);
+}

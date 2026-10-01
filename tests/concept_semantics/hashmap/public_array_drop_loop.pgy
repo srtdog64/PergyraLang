@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let index: Int = 0;
+    while index < 3 {
+        let values: Array<Int> = [2];
+        Log(values[0]);
+        ArrayDrop(values);
+        index = index + 1;
+    }
+}

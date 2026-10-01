@@ -1,0 +1,2 @@
+func ArrayDrop(values: Int) -> Void {}
+func Main() -> Void { ArrayDrop(1); }

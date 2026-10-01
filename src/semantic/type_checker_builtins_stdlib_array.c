@@ -7,6 +7,7 @@
 
 #include "type_checker_internal.h"
 #include "collection_owned_element_requirement_owner.h"
+#include "array_storage_release_owner.h"
 #include "type_checker_builtins_internal.h"
 #include "type_checker_builtins_stdlib_collections_internal.h"
 #include "type_checker_collection_policy.h"
@@ -278,6 +279,17 @@ type_check_stdlib_array_call(ASTNode *expr,
                 }
             }
         }
+        return TYPE_VOID;
+    }
+    if (kind == STDLIB_COLLECTION_ARRAY_DROP_STORAGE) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *arr = stdlib_array_normalize_type(type_check_expression(arg0, ctx));
+        if (arr == TYPE_UNKNOWN || reject_array_storage_invalidation_with_live_slice(
+                arg0, "ArrayDrop", ctx)
+            || !semantic_array_storage_admit_drop(arg0, arr, ctx)
+            || !semantic_collection_owned_element_requirement_record_storage_drop(expr, arg0, ctx))
+            return TYPE_UNKNOWN;
         return TYPE_VOID;
     }
     if (kind == STDLIB_COLLECTION_ARRAY_DROP_OWNED_STRINGS) {

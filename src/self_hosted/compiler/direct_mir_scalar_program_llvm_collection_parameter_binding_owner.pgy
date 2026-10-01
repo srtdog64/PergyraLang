@@ -2,6 +2,7 @@
 
 import "direct_mir_scalar_cfg_routine_partition_fact_owner.pgy";
 import "direct_mir_scalar_program_llvm_type_owner.pgy";
+import "direct_mir_scalar_program_owned_array_value_parameter_policy_owner.pgy";
 
 func DirectMirScalarProgramLlvmCollectionParameterMutationAddress(
     ref routines: DirectMirScalarCfgRoutinePartitionFact,
@@ -12,9 +13,10 @@ func DirectMirScalarProgramLlvmCollectionParameterMutationAddress(
     let value_result_address: Bool = carriage == "value-result" &&
         (type_name == CompilerAbiLayoutSetStringTypeName() ||
          type_name == CompilerAbiLayoutArrayStringTypeName());
-    let owned_array_string_address: Bool = carriage == "owner-handle" &&
-        type_name == CompilerAbiLayoutArrayStringTypeName();
-    if !value_result_address && !owned_array_string_address { return ""; }
+    let owned_array_address: Bool = carriage == "owner-handle" &&
+        (type_name == CompilerAbiLayoutArrayStringTypeName() ||
+         DirectMirScalarProgramOwnedArrayValueTypeReady(type_name));
+    if !value_result_address && !owned_array_address { return ""; }
     return Concat("%pgy.param.", Concat(ToString(ordinal), ".local"));
 }
 

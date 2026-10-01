@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Structural inventory only; public_array_drop.sh owns behavioral evidence.
+set -euo pipefail
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+cd "$ROOT_DIR"
+PYTHON="${PYTHON_BIN:-python3}"
+"$PYTHON" scripts/source_size_count.py --caps <<'CAPS'
+150	src/semantic/array_storage_release_owner.c
+240	src/self_hosted/semantic/array_storage_release_verdict_owner.pgy
+110	src/self_hosted/semantic/array_storage_release_parameter_requirement_owner.pgy
+60	src/self_hosted/semantic/array_storage_element_lifetime_owner.pgy
+360	src/self_hosted/compiler/direct_mir_array_storage_release_lifetime_owner.pgy
+30	src/self_hosted/compiler/direct_mir_scalar_program_owned_array_value_parameter_policy_owner.pgy
+CAPS
+"$PYTHON" - <<'PY'
+import pathlib, re
+root = pathlib.Path("src/self_hosted/compiler")
+rows = []
+for path in root.glob("*expression_kind*owner.pgy"):
+    rows += [(name, int(identity)) for name, identity in re.findall(
+        r"func (DirectMirScalarProgramExpr\w+)\(\) -> Int \{ return (\d+); \}",
+        path.read_text(encoding="utf-8"))]
+assert [(n, i) for n, i in rows if i == 146] == [("DirectMirScalarProgramExprArrayDropStorage", 146)], rows
+assert [(n, i) for n, i in rows if i == 139] == [("DirectMirScalarProgramExprArraySlice", 139)], rows
+assert "return DirectMirScalarProgramExprArrayDropStorage();" in (
+    root / "direct_mir_scalar_program_task_expression_kind_owner.pgy").read_text(encoding="utf-8")
+native = pathlib.Path("src/semantic/builtin_name_reservation.def").read_text(encoding="utf-8")
+selfhost = pathlib.Path("src/self_hosted/semantic/builtin_shadow_owner.pgy").read_text(encoding="utf-8")
+assert native.count('PGY_BUILTIN_NAME_RESERVED(TYPED_PROTOCOL, "ArrayDrop")') == 1
+assert selfhost.count('"TYPED_PROTOCOL^ArrayDrop"') == 1
+assert '"ArrayDrop^Void^Unknown"' in pathlib.Path(
+    "src/self_hosted/semantic/builtin_signature_owner.pgy").read_text(encoding="utf-8")
+PY
+echo '[public-array-drop-owner] PASS (structural inventory; not execution proof)'

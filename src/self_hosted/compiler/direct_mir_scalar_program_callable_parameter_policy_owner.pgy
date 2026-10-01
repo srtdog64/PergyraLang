@@ -13,6 +13,7 @@ import "direct_mir_scalar_program_readonly_logical_record_array_string_value_res
 import "direct_mir_scalar_program_bool_two_array_string_two_array_int_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_owned_logical_record_return_policy_owner.pgy";
 import "direct_mir_scalar_program_owned_array_string_parameter_policy_owner.pgy";
+import "direct_mir_scalar_program_owned_array_value_parameter_policy_owner.pgy";
 import "direct_mir_scalar_program_readonly_logical_record_string_array_string_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_logical_record_return_array_string_value_result_policy_owner.pgy";
 import "direct_mir_scalar_program_void_logical_record_array_string_value_result_policy_owner.pgy";
@@ -86,6 +87,7 @@ func DirectMirScalarProgramCallableParameterSupported(
 ) -> Bool {
     if ordinal < 0 || ordinal >= signature.param_count { return false; }
     if DirectMirScalarProgramOwnedStringParameterReady(signature, ordinal) ||
+        DirectMirScalarProgramOwnedArrayValueParameterReady(signature, ordinal) ||
         DirectMirScalarProgramVoidReadonlyStringParameterReady(signature, ordinal) {
         return true;
     }

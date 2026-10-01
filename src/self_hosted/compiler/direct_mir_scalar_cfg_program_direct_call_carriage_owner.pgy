@@ -10,6 +10,7 @@ import "direct_mir_scalar_program_owned_string_call_result_argument_owner.pgy";
 import "direct_mir_scalar_program_void_readonly_string_target_owner.pgy";
 import "direct_mir_scalar_program_value_result_union_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
+import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
 func DirectMirScalarCfgProgramDirectCallCarriageReady(ref plan: DirectMirScalarCfgGraphPlan,
     ref facts: DirectMirScalarProgramExpressionSet, node: Int, routine: Int, graph_start: Int,
     target: Int, argument_node: Int, ordinal: Int) -> Bool {
@@ -104,9 +105,7 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(ref plan: DirectMirScalarC
         }
     } else if carriage == "owner-handle" {
         let owner_type: String = plan.routines.parameter_types[parameter_row];
-        if owner_type != CompilerAbiLayoutStringTypeName() &&
-            owner_type != CompilerAbiLayoutArrayStringTypeName() &&
-            !DirectMirScalarProgramLogicalRecordTypeReady(
+        if !DirectMirScalarProgramOwnedDirectParameterTypeReady(
                 plan.program.logical_record, owner_type) {
             return false;
         }

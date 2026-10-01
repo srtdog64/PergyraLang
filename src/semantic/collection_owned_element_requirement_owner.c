@@ -16,7 +16,7 @@ typedef struct
 {
     uint32_t function_id;
     uint32_t parameter_id;
-    bool required;
+    unsigned requirements;
 } OwnedElementParameter;
 
 typedef struct
@@ -30,6 +30,7 @@ typedef struct
     ASTNode *argument;
     size_t target;
     PgyStringArrayOwnership element_ownership;
+    bool exclusive_storage;
 } OwnedElementActualSnapshot;
 
 struct CollectionOwnedElementRequirementStore
@@ -198,7 +199,27 @@ semantic_collection_owned_element_requirement_record_deep_drop(
     if (!requirement_parameter_row(store,
             ast_node_stable_id(ctx->current_function_decl), binding_id, &row))
         return requirement_failure(ctx, call, "seed allocation or identity failed");
-    store->parameters[row].required = true;
+    store->parameters[row].requirements |= 1u;
+    return true;
+}
+
+bool
+semantic_collection_owned_element_requirement_record_storage_drop(
+    ASTNode *call, ASTNode *receiver, SemanticContext *ctx)
+{
+    Symbol *binding = lookup_identifier_symbol(receiver, ctx);
+    if (binding == NULL)
+        return requirement_failure(ctx, call, "missing ArrayDrop binding identity");
+    if (!binding->is_parameter)
+        return true;
+    CollectionOwnedElementRequirementStore *store = ctx->collection_owned_element_requirements;
+    size_t row;
+    if (store == NULL || binding->param_mode != PARAM_MODE_OWN
+        || own_formal_for_binding(ctx->current_function_decl, binding->decl_syntax_id) == NULL
+        || !requirement_parameter_row(store, ast_node_stable_id(ctx->current_function_decl),
+            binding->decl_syntax_id, &row))
+        return requirement_failure(ctx, call, "missing ArrayDrop own-formal identity");
+    store->parameters[row].requirements |= 2u;
     return true;
 }
 
@@ -216,7 +237,8 @@ semantic_collection_owned_element_requirement_record_argument(
     size_t target;
     PgyStringArrayOwnership ownership = PGY_STRING_ARRAY_OWNERSHIP_UNKNOWN;
 
-    if (parameter_mode != PARAM_MODE_OWN || !is_string_array(argument_type))
+    bool exclusive_storage = false;
+    if (parameter_mode != PARAM_MODE_OWN || !type_is_constructed_named(argument_type, "Array"))
         return true;
     store = ctx != NULL ? ctx->collection_owned_element_requirements : NULL;
     function_id = ast_node_stable_id(callee_decl);
@@ -247,9 +269,10 @@ semantic_collection_owned_element_requirement_record_argument(
             || binding_id != binding->decl_syntax_id)
             return requirement_failure(ctx, call, "missing actual binding identity");
         fact = semantic_collection_ownership_fact_find(ctx, caller_id, binding_id);
+        exclusive_storage = binding->has_exclusive_array_storage;
         if (fact != NULL) {
             ownership = fact->element_ownership;
-        } else if (!binding->is_parameter) {
+        } else if (!binding->is_parameter && is_string_array(argument_type)) {
             return requirement_failure(ctx, call, "missing local collection fact");
         }
         if (binding->is_parameter && binding->param_mode == PARAM_MODE_OWN) {
@@ -280,7 +303,7 @@ semantic_collection_owned_element_requirement_record_argument(
         return requirement_failure(ctx, call, "actual snapshot allocation failed");
     store->actuals = grown;
     store->actuals[store->actual_count++] = (OwnedElementActualSnapshot){
-        argument, target, ownership};
+        argument, target, ownership, exclusive_storage};
     return true;
 }
 
@@ -301,9 +324,10 @@ semantic_collection_owned_element_requirements_finalize(SemanticContext *ctx)
         changed = false;
         for (size_t i = 0; i < store->edge_count; i++) {
             OwnedElementForwardingEdge edge = store->edges[i];
-            if (store->parameters[edge.target].required
-                && !store->parameters[edge.source].required) {
-                store->parameters[edge.source].required = true;
+            unsigned merged = store->parameters[edge.source].requirements
+                | store->parameters[edge.target].requirements;
+            if (merged != store->parameters[edge.source].requirements) {
+                store->parameters[edge.source].requirements = merged;
                 changed = true;
             }
         }
@@ -316,7 +340,15 @@ semantic_collection_owned_element_requirements_finalize(SemanticContext *ctx)
         OwnedElementParameter target = store->parameters[actual.target];
         /* UNKNOWN stays bootstrap debt. This ratchet grants no permission:
          * it only falsifies a known borrowed actual at a required boundary. */
-        if (!target.required || actual.element_ownership !=
+        if ((target.requirements & 2u) != 0 && !actual.exclusive_storage) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                actual.argument,
+                "ArrayDrop release obligation requires exclusive owned storage at callable syntax %u parameter syntax %u",
+                target.function_id, target.parameter_id);
+            return false;
+        }
+        if ((target.requirements & 1u) == 0 || actual.element_ownership !=
                 PGY_STRING_ARRAY_BORROWED_ELEMENTS)
             continue;
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,

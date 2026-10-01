@@ -26,6 +26,7 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
         DirectMirScalarProgramArrayStringAbiFactReady(
             plan.program.array_string_abi) || array_int_runtime.push ||
         DirectMirScalarProgramArrayBoolPushRequired(plan.operation_kinds) ||
+        DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprArrayDropStorage()) ||
         DirectMirScalarProgramLogicalRecordArrayMutationRequired(plan.operation_kinds) || slice_any;
     let replace: Bool = plan.program.runtime_abi.case_math.replace_id != 0;
     let set_new: Bool = DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprSetStringNew());

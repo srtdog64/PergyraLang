@@ -7,6 +7,20 @@ func DirectMirScalarProgramLlvmStringCollectionExpressionAt(
     kind: Int, result: String, left_type: String, left: String, left_address: String, right: String,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection, ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> DirectMirScalarProgramLlvmStringExpression {
+    if kind == DirectMirScalarProgramExprArrayDropStorage() {
+        if left_address == "" { return DirectMirScalarProgramLlvmStringExpression(true, false, "", ""); }
+        let descriptor: String = "%pgy.array.int";
+        if left_type == CompilerAbiLayoutArrayBoolTypeName() { descriptor = "%pgy.array.bool"; }
+        else if left_type == CompilerAbiLayoutArrayLongTypeName() { descriptor = "%pgy.array.long"; }
+        else if left_type != CompilerAbiLayoutArrayIntTypeName() {
+            descriptor = DirectMirScalarProgramLlvmLogicalRecordArrayTypeName(logical_record, left_type);
+        }
+        if descriptor == "" { return DirectMirScalarProgramLlvmStringExpression(true, false, "", ""); }
+        let output: String = "  " + result + ".drop.data = extractvalue " + descriptor + " " + left + ", 0\n";
+        output = output + "  call void @free(ptr " + result + ".drop.data)\n";
+        output = output + "  store " + descriptor + " zeroinitializer, ptr " + left_address + "\n";
+        return DirectMirScalarProgramLlvmStringExpression(true, true, output, "");
+    }
     let call: String = "";
     if kind == DirectMirScalarProgramExprProcessArgs() { call = "call %pgy.array.string @" + runtime.process_args.symbol + "()";
     } else if kind == DirectMirScalarProgramExprDirWalk() { call = "call %pgy.array.string @" + runtime.dir_walk.symbol + "(ptr " + left + ")";

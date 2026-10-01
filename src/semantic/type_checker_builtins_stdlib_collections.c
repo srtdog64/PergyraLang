@@ -31,6 +31,7 @@ stdlib_collection_normalize_type(Type *type)
 static StdlibCollectionBuiltinKind stdlib_collection_builtin_kind(const char *name)
 {
     static const StdlibCollectionBuiltinSpec specs[] = {
+        { "ArrayDrop", STDLIB_COLLECTION_ARRAY_DROP_STORAGE },
         { "ArrayDropOwnedStrings", STDLIB_COLLECTION_ARRAY_DROP_OWNED_STRINGS },
         { "ArrayFilter", STDLIB_COLLECTION_ARRAY_FILTER },
         { "ArrayLength", STDLIB_COLLECTION_ARRAY_LENGTH },
@@ -83,6 +84,7 @@ static bool stdlib_collection_builtin_mutates_storage(StdlibCollectionBuiltinKin
         || kind == STDLIB_COLLECTION_ARRAY_PUSH
         || kind == STDLIB_COLLECTION_ARRAY_PUSH_OWNED_STRING
         || kind == STDLIB_COLLECTION_ARRAY_DROP_OWNED_STRINGS
+        || kind == STDLIB_COLLECTION_ARRAY_DROP_STORAGE
         || kind == STDLIB_COLLECTION_COMPILER_RETIRE_ARRAY_STORAGE
         || kind == STDLIB_COLLECTION_ARRAY_SET
         || kind == STDLIB_COLLECTION_ARRAY_POP

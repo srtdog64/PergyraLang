@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let values: Array<Int> = [7, 11];
+    Log(values[0]);
+    ArrayDrop(values);
+    let flags: Array<Bool> = [true, false];
+    Log(flags[0]);
+    ArrayDrop(flags);
+    let empty: Array<Int> = [];
+    ArrayDrop(empty);
+}

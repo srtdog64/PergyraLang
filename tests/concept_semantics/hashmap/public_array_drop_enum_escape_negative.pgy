@@ -1,0 +1,6 @@
+enum DropHolder { Hold(Array<Int>) }
+func Main() -> Void {
+    let values: Array<Int> = [1];
+    let held: DropHolder = DropHolder.Hold(values);
+    ArrayDrop(values);
+}

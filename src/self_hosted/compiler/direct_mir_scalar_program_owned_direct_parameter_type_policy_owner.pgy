@@ -2,6 +2,7 @@
 
 import "abi_layout_row_owner.pgy";
 import "direct_mir_scalar_program_logical_record_fact_owner.pgy";
+import "direct_mir_scalar_program_owned_array_value_parameter_policy_owner.pgy";
 
 func DirectMirScalarProgramOwnedDirectParameterTypeReady(
     ref logical_record: DirectMirScalarProgramLogicalRecordFact,
@@ -9,5 +10,6 @@ func DirectMirScalarProgramOwnedDirectParameterTypeReady(
 ) -> Bool {
     return type_name == CompilerAbiLayoutStringTypeName() ||
         type_name == CompilerAbiLayoutArrayStringTypeName() ||
+        DirectMirScalarProgramOwnedArrayValueTypeReady(type_name) ||
         DirectMirScalarProgramLogicalRecordTypeReady(logical_record, type_name);
 }

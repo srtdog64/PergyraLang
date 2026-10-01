@@ -1,0 +1,7 @@
+func Retire(own values: Array<Int>) -> Void { ArrayDrop(values); }
+func Forward(own values: Array<Int>) -> Void { Retire(values); }
+func Main() -> Void {
+    let values: Array<Int> = [5];
+    Log(values[0]);
+    Forward(values);
+}

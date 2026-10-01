@@ -348,6 +348,13 @@ func RewriteSemanticDirectCall(
             graph, view, source_name, env
         );
     }
+    if source_name == "ArrayDrop" {
+        let argument_type: Option<String> = CodegenExpressionTypeFromGraph(graph, view.argument_nodes[0], env);
+        if !IsSome(argument_type) { Die("ArrayDrop argument type fact is missing"); }
+        let fact: CollectionRuntimeFact = CollectionRuntimeFactFromTypeName(UnwrapOption(argument_type), env);
+        let argument: String = RewriteSemanticCallArgument(graph, view.argument_nodes[0], UnwrapOption(argument_type), "inout", env);
+        return "(free((" + argument + ")->data), memset(" + argument + ", 0, sizeof(" + fact.c_array_type + ")))";
+    }
     if source_name == "CompilerRetireArrayStorage" {
         return RewriteSemanticCompilerRetireArrayStorageCall(graph, view, env);
     }

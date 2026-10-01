@@ -89,6 +89,7 @@ func DirectMirScalarProgramAbiValueParameterReady(
          DirectMirScalarProgramCallableRuntimeValueParameterReady(
              signature, ordinal)) &&
         (signature.parameters.carriages[ordinal] == "value" ||
+         DirectMirScalarProgramOwnedArrayValueParameterReady(signature, ordinal) ||
          DirectMirScalarProgramOwnedArrayStringParameterReady(
             signature, ordinal)) &&
         DirectMirScalarProgramCallableParameterSupported(

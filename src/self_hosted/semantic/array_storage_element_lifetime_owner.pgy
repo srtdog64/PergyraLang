@@ -1,0 +1,44 @@
+// Storage-only release never assumes an element destructor. Type facts,
+// not source spelling or record names, prove the plain-value frontier.
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "ast_enum_fact_owner.pgy";
+
+func SemanticArrayStoragePlainElement(type_name: String,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref enums: SemanticAstEnumFacts, depth: Int) -> Bool {
+    if depth >= 32 { return false; }
+    if type_name == "Int" || type_name == "Long" || type_name == "Float" ||
+        type_name == "Double" || type_name == "Bool" || type_name == "Duration" {
+        return true;
+    }
+    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, type_name);
+    if IsSome(constructor) {
+        let row: Int = UnwrapOption(constructor);
+        if constructors.nominal_kinds[row] != "struct" { return false; }
+        let field: Int = constructors.param_starts[row];
+        let end: Int = field + constructors.param_counts[row];
+        while field < end {
+            if !SemanticArrayStoragePlainElement(constructors.param_type_names[field],
+                constructors, enums, depth + 1) { return false; }
+            field = field + 1;
+        }
+        return true;
+    }
+    let found: Bool = false;
+    let variant: Int = 0;
+    while variant < ArrayLength(enums.variant_enum_names) {
+        if enums.variant_enum_names[variant] == type_name {
+            found = true;
+            let payload: Int = enums.variant_param_starts[variant];
+            let end: Int = payload + enums.variant_param_counts[variant];
+            while payload < end {
+                if !SemanticArrayStoragePlainElement(enums.variant_param_type_names[payload],
+                    constructors, enums, depth + 1) { return false; }
+                payload = payload + 1;
+            }
+        }
+        variant = variant + 1;
+    }
+    return found;
+}

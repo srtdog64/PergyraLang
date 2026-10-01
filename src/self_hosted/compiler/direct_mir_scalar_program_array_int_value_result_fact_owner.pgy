@@ -5,6 +5,7 @@
 
 import "direct_mir_array_int_abi_fact_owner.pgy";
 import "direct_mir_array_storage_layout_contract_owner.pgy";
+import "direct_mir_scalar_program_owned_array_value_parameter_policy_owner.pgy";
 import "direct_mir_routine_instance_inventory_owner.pgy";
 import "direct_mir_scalar_program_parameter_fact_projection_owner.pgy";
 import "direct_mir_scalar_cfg_hash_owner.pgy";
@@ -141,7 +142,8 @@ func DirectMirScalarProgramArrayIntValueResultFactFromAdmitted(
                 let carriage: String =
                     signature.parameters.carriages[parameter];
                 if (carriage != "value" && carriage != "value-result" &&
-                    carriage != "readonly-ref") ||
+                    carriage != "readonly-ref" &&
+                    !DirectMirScalarProgramOwnedArrayValueParameterReady(signature, parameter)) ||
                     signature.parameters.resources[parameter] != "none" ||
                     signature.parameters.pass_shapes[parameter] != "direct" ||
                     !signature.parameters.abi_required[parameter] ||

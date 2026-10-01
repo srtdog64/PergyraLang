@@ -9,6 +9,15 @@ import "direct_mir_scalar_program_array_string_literal_parameter_carriage_owner.
 import "direct_mir_scalar_cfg_program_callable_expression_identity_readiness_owner.pgy";
 func DirectMirScalarCfgProgramExpressionIdentityReady(ref plan: DirectMirScalarCfgGraphPlan, ref facts: DirectMirScalarProgramExpressionSet, node: Int, routine: Int, graph_start: Int) -> Bool {
     let kind: Int = facts.node_kinds[node];
+    if kind == DirectMirScalarProgramExprArrayDropStorage() {
+        let left: Int = facts.node_lefts[node];
+        if left < graph_start || left >= node { return false; }
+        if facts.node_kinds[left] == DirectMirScalarProgramExprLocal() { return true; }
+        if facts.node_kinds[left] != DirectMirScalarProgramExprParameter() { return false; }
+        let ordinal: Int = facts.node_parameter_ordinals[left];
+        return ordinal >= 0 && ordinal < plan.routines.parameter_counts[routine] &&
+            plan.routines.parameter_carriages[plan.routines.parameter_starts[routine] + ordinal] == "owner-handle";
+    }
     if kind == DirectMirScalarProgramExprMapSet() || kind == DirectMirScalarProgramExprMapRemove() {
         let operands: Array<Int> = DirectMirScalarProgramHashMapArgumentRows(facts, node);
         if ArrayLength(operands) == 0 || operands[0] < graph_start || operands[0] >= node { return false; }

@@ -1,0 +1,12 @@
+struct DropValue { number: Int; }
+func Main() -> Void {
+    let values: Array<Int> = [6];
+    let first: Int = values[0];
+    Log(first);
+    ArrayDrop(values);
+    let records: Array<DropValue> = [];
+    ArrayPush(records, DropValue(10));
+    let copy: DropValue = records[0];
+    Log(copy.number);
+    ArrayDrop(records);
+}

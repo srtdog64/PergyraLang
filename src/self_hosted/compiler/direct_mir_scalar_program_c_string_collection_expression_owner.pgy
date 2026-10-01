@@ -6,6 +6,10 @@ import "direct_mir_scalar_program_array_transform_owner.pgy";
 func DirectMirScalarProgramCStringCollectionExpression(kind: Int, left_type: String, left: String, right: String,
     ref runtime: DirectMirScalarProgramRuntimeAbiProjection, ref logical_record: DirectMirScalarProgramLogicalRecordFact
 ) -> Option<String> {
+    if kind == DirectMirScalarProgramExprArrayDropStorage() {
+        // Lifetime admission owns exclusivity; projection retires only storage.
+        return Some("(free(" + left + ".data), memset(&" + left + ", 0, sizeof(" + left + ")))" );
+    }
     if DirectMirScalarProgramArrayTransformKind(kind) {
         let abi: CompilerRuntimeCallAbiFact = DirectMirScalarProgramArrayTransformRuntimeFact(kind);
         if !abi.ok || left_type != CompilerAbiLayoutArrayIntTypeName() { return None; }

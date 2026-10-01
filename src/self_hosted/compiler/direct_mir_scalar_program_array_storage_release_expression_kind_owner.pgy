@@ -1,0 +1,3 @@
+// Append-only identity: 139 already belongs to ArraySlice.
+import "direct_mir_scalar_program_external_runtime_expression_kind_owner.pgy";
+func DirectMirScalarProgramExprArrayDropStorage() -> Int { return 146; }

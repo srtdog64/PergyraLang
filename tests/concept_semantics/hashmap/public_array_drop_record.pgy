@@ -1,0 +1,7 @@
+struct DropRecord { x: Int; flag: Bool; }
+func Main() -> Void {
+    let values: Array<DropRecord> = [];
+    ArrayPush(values, DropRecord(9, true));
+    Log(values[0].x);
+    ArrayDrop(values);
+}

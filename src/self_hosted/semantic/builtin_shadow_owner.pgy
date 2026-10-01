@@ -87,6 +87,7 @@ func SemanticBuiltinNameReservationRows() -> Array<String> {
         "CONSTRUCTOR^None",
         "CONSTRUCTOR^Ok",
         "CONSTRUCTOR^Some",
+        "TYPED_PROTOCOL^ArrayDrop",
         "TYPED_PROTOCOL^ArrayFilter",
         "TYPED_PROTOCOL^ArrayMap",
         "TYPED_PROTOCOL^ArrayReverse",

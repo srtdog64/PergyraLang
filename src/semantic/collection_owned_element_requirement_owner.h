@@ -17,6 +17,8 @@ bool semantic_collection_owned_element_requirements_begin(
 bool semantic_collection_owned_element_requirement_record_deep_drop(
     ASTNode *call, ASTNode *receiver, const Type *array_type,
     SemanticContext *ctx);
+bool semantic_collection_owned_element_requirement_record_storage_drop(
+    ASTNode *call, ASTNode *receiver, SemanticContext *ctx);
 bool semantic_collection_owned_element_requirement_record_argument(
     ASTNode *call, ASTNode *callee_decl, size_t argument_index,
     ASTNode *argument, const Type *argument_type, ParamMode parameter_mode,

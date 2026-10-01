@@ -1,0 +1,8 @@
+func Compute(stop: Bool) -> Int {
+    let values: Array<Int> = [8];
+    if stop { ArrayDrop(values); return 4; }
+    let result: Int = values[0];
+    ArrayDrop(values);
+    return result;
+}
+func Main() -> Void { Log(Compute(true)); Log(Compute(false)); }

@@ -33,6 +33,7 @@ typedef struct {
 } LLVMArrayBuiltinSpec;
 
 static const LLVMArrayBuiltinSpec kArrayBuiltinSpecs[] = {
+    {"ArrayDrop", 1, LLVM_ARRAY_BUILTIN_DROP_STORAGE},
     {"ArrayDropOwnedStrings", 1, LLVM_ARRAY_BUILTIN_DROP_OWNED_STRINGS},
     {"ArrayFilter", 2, LLVM_ARRAY_BUILTIN_FILTER},
     {"ArrayLength", 1, LLVM_ARRAY_BUILTIN_LENGTH},

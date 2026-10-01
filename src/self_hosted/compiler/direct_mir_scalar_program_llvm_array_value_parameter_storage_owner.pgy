@@ -5,6 +5,7 @@ import "direct_mir_scalar_program_array_readonly_ref_policy_owner.pgy";
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_array_int_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_llvm_type_owner.pgy";
+import "direct_mir_scalar_program_owned_array_value_parameter_policy_owner.pgy";
 
 func DirectMirScalarProgramLlvmArrayValueParameterAddressableCopyIn(
     ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
@@ -17,6 +18,15 @@ func DirectMirScalarProgramLlvmArrayValueParameterAddressableCopyIn(
     while parameter < plan.routines.parameter_counts[routine] {
         let row: Int = plan.routines.parameter_starts[routine] + parameter;
         let type_name: String = plan.routines.parameter_types[row];
+        if plan.routines.parameter_carriages[row] == "owner-handle" &&
+            DirectMirScalarProgramOwnedArrayValueTypeReady(type_name) {
+            // The admitted signature owns the ABI layout; LLVM derives slot
+            // alignment from that descriptor type, not a new numeric policy.
+            let value: String = "%pgy.param." + ToString(parameter);
+            let llvm_type: String = DirectMirScalarProgramLlvmType(type_name);
+            TextBuilderAppend(output, "  ${value}.local = alloca ${llvm_type}\n");
+            TextBuilderAppend(output, "  store ${llvm_type} ${value}, ptr ${value}.local\n");
+        }
         if plan.routines.parameter_carriages[row] == "value" &&
             DirectMirScalarProgramReadonlyArrayTypeSupported(type_name) {
             let storage_align: Int = 0;

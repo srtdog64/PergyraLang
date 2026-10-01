@@ -3,6 +3,7 @@ import "direct_mir_scalar_program_expression_kind_id_owner.pgy";
 func DirectMirScalarProgramCollectionBuiltinSignatureExpected(
     name: String
 ) -> Array<String> {
+    if name == "ArrayDrop" { return ["Void", "Unknown", ToString(DirectMirScalarProgramExprArrayDropStorage())]; }
     if name == "ArraySort" { return ["Unknown", "Unknown", ToString(DirectMirScalarProgramExprArrayIntSort())]; }
     if name == "ArrayReverse" { return ["Unknown", "Unknown", ToString(DirectMirScalarProgramExprArrayIntReverse())]; }
     if name == "StringContains" {

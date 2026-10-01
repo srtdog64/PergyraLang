@@ -139,6 +139,14 @@ func DirectMirScalarProgramBuiltinSignatureFactForCall(
 ) -> DirectMirScalarProgramBuiltinSignatureFact {
     let fact: DirectMirScalarProgramBuiltinSignatureFact = DirectMirScalarProgramBuiltinSignatureFactFromName(name);
     if !fact.valid { return fact; }
+    if name == "ArrayDrop" {
+        if ArrayLength(actual_types) != 1 || !IsSome(SemanticArrayElementType(actual_types[0])) {
+            return DirectMirScalarProgramBuiltinSignatureFactInvalid();
+        }
+        let parameters: Array<String> = [actual_types[0]];
+        return DirectMirScalarProgramBuiltinSignatureFact(true, fact.registry_row, fact.name,
+            CompilerAbiLayoutVoidTypeName(), parameters, fact.expression_kind, fact.runtime_call_abi_id);
+    }
     if DirectMirScalarProgramArrayTransformKind(fact.expression_kind) {
         if ArrayLength(actual_types) > 1 || (ArrayLength(actual_types) == 1 &&
                 actual_types[0] != CompilerAbiLayoutArrayIntTypeName()) {

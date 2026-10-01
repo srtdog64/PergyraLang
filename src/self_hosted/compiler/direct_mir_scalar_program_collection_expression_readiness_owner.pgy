@@ -8,6 +8,15 @@ import "../semantic/array_type_shape_owner.pgy";
 func DirectMirScalarProgramCollectionExpressionNodeReady(ref facts: DirectMirScalarProgramExpressionSet, node: Int
 ) -> Option<Bool> {
     let kind: Int = facts.node_kinds[node];
+    if kind == DirectMirScalarProgramExprArrayDropStorage() {
+        let left: Int = facts.node_lefts[node];
+        return Some(facts.node_types[node] == "Void" && left >= 0 && left < node &&
+            facts.node_rights[node] == -1 && facts.node_local_rows[node] == -1 &&
+            facts.node_parameter_ordinals[node] == -1 && facts.node_callable_rows[node] == -1 &&
+            facts.node_literals[node] == "" && IsSome(SemanticArrayElementType(facts.node_types[left])) &&
+            (facts.node_kinds[left] == DirectMirScalarProgramExprLocal() ||
+                facts.node_kinds[left] == DirectMirScalarProgramExprParameter()));
+    }
     if kind == DirectMirScalarProgramExprArrayStringLiteral() {
         return Some(DirectMirScalarProgramArrayStringLiteralNodeReady(facts, node));
     }

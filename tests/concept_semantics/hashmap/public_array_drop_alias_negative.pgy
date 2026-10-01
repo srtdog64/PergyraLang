@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let values: Array<Int> = [1];
+    let alias: Array<Int> = values;
+    ArrayDrop(values);
+    Log(alias[0]);
+}

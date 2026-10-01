@@ -30,6 +30,18 @@ func SemanticPublicDiagnosticReceiptSchema() -> String {
 func SemanticPublicDiagnosticIdentityForOwnedCode(
     code: String
 ) -> SemanticPublicDiagnosticIdentity {
+    if code == "array_drop_storage_requires_binding" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:borrow_escape", "bind-to-named-variable-before-move");
+    }
+    if code == "slice_storage_invalidation" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:borrow_escape", "reduce-scope-or-retry");
+    }
+    if code == "compiler_internal_builtin" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:builtin:signature_mismatch", "match-builtin-signature");
+    }
+    if code == "builtin_name_reserved" {
+        return SemanticPublicDiagnosticIdentity(true, "semantic:function:builtin_name_reserved", "rename-identifier");
+    }
     if code == "task_lifecycle_invalid" {
         return SemanticPublicDiagnosticIdentity(true, "semantic:task:lifecycle", "await-task-before-exit");
     }

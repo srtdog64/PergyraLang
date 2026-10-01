@@ -7,6 +7,7 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
+#include "array_storage_release_owner.h"
 
 void
 reject_borrowed_array_literal_store(ASTNode *value_expr,
@@ -15,6 +16,7 @@ reject_borrowed_array_literal_store(ASTNode *value_expr,
 {
     if (value_expr == NULL || stored_value_type == NULL || ctx == NULL)
         return;
+    semantic_array_storage_escape(value_expr, stored_value_type, ctx);
     if (semantic_future_reject_aggregate_storage(
             value_expr, stored_value_type, ctx, "array literal"))
         return;

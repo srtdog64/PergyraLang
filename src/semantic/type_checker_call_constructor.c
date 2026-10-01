@@ -8,6 +8,7 @@
  */
 
 #include "type_checker_internal.h"
+#include "array_storage_release_owner.h"
 #include "type_checker_visibility.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "diag_codes.h"
@@ -383,6 +384,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                 arg_type->name != NULL ? arg_type->name : "<type>");
                         }
                         if (arg != NULL) {
+                            semantic_array_storage_escape(arg, arg_type, ctx);
                             const char *borrowed_name =
                                 semantic_borrowed_boundary_root_name(
                                     arg, ctx);

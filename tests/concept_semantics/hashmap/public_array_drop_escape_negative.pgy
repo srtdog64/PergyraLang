@@ -1,0 +1,7 @@
+struct DropContainer { values: Array<Int>; }
+func Main() -> Void {
+    let values: Array<Int> = [1];
+    let container: DropContainer = DropContainer(values);
+    ArrayDrop(values);
+    Log(container.values[0]);
+}

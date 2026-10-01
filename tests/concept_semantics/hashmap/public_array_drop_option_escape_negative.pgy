@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let values: Array<Int> = [1];
+    let held: Option<Array<Int>> = Some(values);
+    ArrayDrop(values);
+    Log(UnwrapOption(held)[0]);
+}

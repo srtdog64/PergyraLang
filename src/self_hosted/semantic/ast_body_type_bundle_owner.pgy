@@ -17,6 +17,7 @@ import "ast_body_role_operator_resolution_owner.pgy";
 import "ast_body_type_bundle_readiness_owner.pgy";
 import "ast_named_value_boundary_verdict_owner.pgy";
 import "ast_collection_ownership_verdict_owner.pgy";
+import "array_storage_release_verdict_owner.pgy";
 import "ast_zone_value_carriage_verdict_owner.pgy";
 import "ast_zone_spawn_transport_verdict_owner.pgy";
 import "ast_subject_value_boundary_owner.pgy";
@@ -210,6 +211,8 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
                 collection_ownership.syntax_node_id);
         }
     }
+    if verdict.ok { verdict = SemanticArrayStorageReleaseVerdict(artifact, analysis, initializer_types,
+        resolved_leaf_types, assignment_types, statement_types, exhaustive_match_nodes); }
     verdict = SemanticAstBodyZoneSpawnBoundaryVerdictFromAdmittedFacts(verdict, artifact, analysis.signatures, analysis.constructors, analysis.expression_surfaces);
     if verdict.ok { verdict = SemanticAstSingleOwnerHandleVerdictFromResolvedFacts(artifact, analysis,
         initializer_types, assignment_types, generic_specializations, resolved_leaf_types); }

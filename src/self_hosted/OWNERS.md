@@ -24,6 +24,12 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 
 ## Explicit lifetime, identity and target projection boundaries
 
+- `src/self_hosted/semantic/array_storage_element_lifetime_owner.pgy` -- Plain element lifetime admission for public storage-only release.
+- `src/self_hosted/semantic/array_storage_release_parameter_requirement_owner.pgy` -- Exact own-formal storage-release obligations and borrowed-call escape policy.
+- `src/self_hosted/semantic/array_storage_release_verdict_owner.pgy` -- Exclusive named storage provenance and source use-after-release refusal.
+- `src/self_hosted/compiler/direct_mir_array_storage_release_lifetime_owner.pgy` -- Re-admit release authority and CFG lifetime at the untrusted MIR boundary.
+- `src/self_hosted/compiler/direct_mir_scalar_program_array_storage_release_expression_kind_owner.pgy` -- Public storage-release expression ID 146; existing IDs stay stable.
+- `src/self_hosted/compiler/direct_mir_scalar_program_owned_array_value_parameter_policy_owner.pgy` -- Bounded Int/Bool owned-descriptor carriage over captured ABI layout.
 - `src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy` -- Owned C expression fragments retire at the selected root's lifetime epoch.
 - `src/self_hosted/mir/intent_execution_canonical_instruction_owner.pgy` -- Rebind typed Intent transitions to the canonical instruction epoch.
 - `src/self_hosted/semantic/ast_generic_specialization_constraint_owner.pgy` -- Declared generic-bound admission over sealed specialization facts.

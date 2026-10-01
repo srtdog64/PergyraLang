@@ -94,6 +94,7 @@ PGY_BUILTIN_EFFECT("Upper", EFFECT_NONE)
 
 /* Non-callback collections: local mutation is not a purity/heap-free promise. */
 PGY_BUILTIN_EFFECT("ArrayDropOwnedStrings", EFFECT_NONE)
+PGY_BUILTIN_EFFECT("ArrayDrop", EFFECT_NONE)
 PGY_BUILTIN_EFFECT("ArrayLength", EFFECT_NONE)
 PGY_BUILTIN_EFFECT("ArrayPop", EFFECT_NONE)
 PGY_BUILTIN_EFFECT("ArrayPush", EFFECT_NONE)

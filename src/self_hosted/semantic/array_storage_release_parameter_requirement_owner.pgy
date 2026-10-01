@@ -1,0 +1,84 @@
+// An `own` descriptor alone is insufficient when a reachable callee releases
+// storage. Carry that entry obligation through exact own-formal forwarding.
+import "ast_collection_owned_parameter_identity_owner.pgy";
+import "array_storage_element_lifetime_owner.pgy";
+
+func SemanticArrayStorageCallArgumentEscapes(ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts, call_node: Int, ordinal: Int,
+    ref constructors: SemanticAstNominalConstructorFacts, ref enums: SemanticAstEnumFacts) -> Bool {
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(graph, call_node);
+    if !IsSome(target) || UnwrapOption(target) <= 0 { return false; }
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, UnwrapOption(target));
+    if !IsSome(signature) { return true; }
+    let row: Int = UnwrapOption(signature);
+    let index: Int = ordinal + signatures.receiver_source_param_offsets[row];
+    if index < 0 || index >= signatures.param_counts[row] { return true; }
+    let mode: Int = signatures.param_modes[signatures.param_starts[row] + index];
+    if mode == 2 { return false; }
+    // Typed-AST ABI: inout=1, own=2, readonly ref=3.
+    if mode == 1 { return true; }
+    return signatures.return_types[row] != "Void" &&
+        !SemanticArrayStoragePlainElement(signatures.return_types[row], constructors, enums, 0);
+}
+
+func SemanticArrayStorageOwnParameterTarget(ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts, call_node: Int, ordinal: Int) -> Int {
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(graph, call_node);
+    if !IsSome(target) || UnwrapOption(target) <= 0 { return 0; }
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, UnwrapOption(target));
+    if !IsSome(signature) { return 0; }
+    let row: Int = UnwrapOption(signature);
+    let index: Int = ordinal + signatures.receiver_source_param_offsets[row];
+    if index < 0 || index >= signatures.param_counts[row] { return 0; }
+    let parameter: Int = signatures.param_starts[row] + index;
+    if signatures.param_modes[parameter] != 2 || !IsSome(SemanticArrayElementType(signatures.param_types[parameter])) { return 0; }
+    return signatures.param_node_ids[parameter];
+}
+
+func SemanticArrayStorageReleaseParameterRequirements(ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref roots: SemanticCallSpineRoots) -> HashMap<String, Int> {
+    let required: HashMap<String, Int> = MapNew();
+    let sources: Array<Int> = []; let targets: Array<Int> = [];
+    let node: Int = 0;
+    while node < ArrayLength(roots.root_nodes) {
+        if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() {
+            let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, roots.root_nodes[node]);
+            if call.ok && call.call_node == node {
+                if SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, node, "ArrayDrop") &&
+                    ArrayLength(call.argument_nodes) == 1 {
+                    let formal: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
+                        surfaces.expression_graph, call.argument_nodes[0]);
+                    if formal.ok && formal.kind == SemanticExpressionBindingFormalParameter() {
+                        MapSet(required, ToString(formal.syntax_id), 1);
+                    }
+                }
+                let argument: Int = 0;
+                while argument < ArrayLength(call.argument_nodes) {
+                    let target: Int = SemanticArrayStorageOwnParameterTarget(signatures, surfaces.expression_graph, node, argument);
+                    let source: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
+                        surfaces.expression_graph, call.argument_nodes[argument]);
+                    if target > 0 && source.ok && source.kind == SemanticExpressionBindingFormalParameter() {
+                        ArrayPush(sources, source.syntax_id); ArrayPush(targets, target);
+                    }
+                    argument = argument + 1;
+                }
+            }
+        }
+        node = node + 1;
+    }
+    let remaining: Int = ArrayLength(sources) + 1;
+    let changed: Bool = true;
+    while changed && remaining > 0 {
+        changed = false;
+        let edge: Int = 0;
+        while edge < ArrayLength(sources) {
+            let source: String = ToString(sources[edge]);
+            if MapHas(required, ToString(targets[edge])) && !MapHas(required, source) {
+                MapSet(required, source, 1); changed = true;
+            }
+            edge = edge + 1;
+        }
+        remaining = remaining - 1;
+    }
+    return required;
+}

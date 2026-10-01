@@ -21,6 +21,7 @@ typedef struct {
 } TranspilerToStringSpec;
 
 static const TranspilerArrayStdlibSpec kTranspilerArraySpecs[] = {
+    {"ArrayDrop", 1, TRANSPILER_ARRAY_OP_DROP_STORAGE},
     {"ArrayDropOwnedStrings", 1, TRANSPILER_ARRAY_OP_DROP_OWNED_STRINGS},
     {"ArrayFilter", 2, TRANSPILER_ARRAY_OP_FILTER},
     {"ArrayLength", 1, TRANSPILER_ARRAY_OP_LENGTH},

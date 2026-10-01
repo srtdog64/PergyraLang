@@ -1,0 +1,251 @@
+// Public release over resolved local/formal identities, never a raw-free alias.
+import "array_storage_element_lifetime_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_body_flow_verdict_owner.pgy";
+import "ast_assignment_type_fact_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "ast_expression_graph_array_literal_owner.pgy";
+import "array_storage_release_parameter_requirement_owner.pgy";
+
+func SemanticArrayStorageBinding(artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    surface: Int, node: Int) -> Int {
+    let binding_fact: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+        artifact, analysis.local_bindings, inferred, analysis.expression_surfaces, surface, node);
+    if binding_fact.ok { return binding_fact.declaration_node_id; }
+    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    let formal: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(graph, node);
+    if formal.ok && formal.kind == SemanticExpressionBindingFormalParameter() {
+        return formal.syntax_id;
+    }
+    return 0;
+}
+
+func SemanticArrayStorageOwnFormal(ref signatures: SemanticAstFunctionSignatureFacts,
+    binding: Int, function_id: Int) -> Bool {
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
+    if !IsSome(signature) { return false; }
+    let row: Int = UnwrapOption(signature);
+    let param: Int = signatures.param_starts[row];
+    let end: Int = param + signatures.param_counts[row];
+    while param < end {
+        if signatures.param_node_ids[param] == binding { return signatures.param_modes[param] == 2; }
+        param = param + 1;
+    }
+    return false;
+}
+
+func SemanticArrayStorageLocalFresh(artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis, ref inferred: Array<String>,
+    surface: Int, argument: Int) -> Bool {
+    let binding_fact: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+        artifact, analysis.local_bindings, inferred, analysis.expression_surfaces, surface, argument);
+    if !binding_fact.ok { return false; }
+    let root: Option<Int> = SemanticAstExpressionGraphRootForNode(analysis.expression_surfaces,
+        binding_fact.declaration_node_id, AstExpressionLaneValue());
+    if !IsSome(root) { return false; }
+    // Populated literals end at an ArrayElement chain rather than at the
+    // ArrayLiteral base node.  The canonical view owns that topology walk.
+    // General call results stay unproved until return ownership is carried.
+    return SemanticArrayLiteralViewFromGraph(
+        analysis.expression_surfaces.expression_graph, UnwrapOption(root)).ok;
+}
+
+func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis, ref initializers: SemanticAstInitializerTypeFacts,
+    ref leaf_types: Array<String>, ref assignments: SemanticAstAssignmentTypeFacts,
+    ref statement_types: SemanticAstStatementTypeFacts,
+    ref exhaustive: Array<Int>) -> SemanticAstBodyVerdict {
+    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    let roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(graph);
+    if !roots.ok { return SemanticAstBodyVerdictError("ast_artifact_invalid", "ArrayDrop call identity is missing", -1); }
+    let required: Bool = false;
+    let probe: Int = 0;
+    while probe < ArrayLength(roots.root_nodes) {
+        if SemanticAstCollectionOwnershipBuiltinCall(graph, probe, "ArrayDrop") { required = true; }
+        probe = probe + 1;
+    }
+    if !required { return SemanticAstBodyVerdictOk(); }
+    let requirements: HashMap<String, Int> = SemanticArrayStorageReleaseParameterRequirements(
+        analysis.signatures, analysis.expression_surfaces, roots);
+    let retired: HashMap<String, Int> = MapNew();
+    let release_sites: HashMap<String, Int> = MapNew();
+    let escaped: HashMap<String, Int> = MapNew();
+    // Leaf types cannot describe an index/member expression's result. Use the
+    // already-admitted initializer/assignment value types once at this seam.
+    let plain_values: HashMap<String, Int> = MapNew();
+    let value_row: Int = 0;
+    while value_row < ArrayLength(initializers.node_ids) {
+        if SemanticArrayStoragePlainElement(initializers.inferred_type_names[value_row],
+            analysis.constructors, analysis.enums, 0) {
+            MapSet(plain_values, ToString(initializers.node_ids[value_row]), 1);
+        }
+        value_row = value_row + 1;
+    }
+    value_row = 0;
+    while value_row < ArrayLength(assignments.node_ids) {
+        if SemanticArrayStoragePlainElement(assignments.inferred_type_names[value_row],
+            analysis.constructors, analysis.enums, 0) {
+            MapSet(plain_values, ToString(assignments.node_ids[value_row]), 1);
+        }
+        value_row = value_row + 1;
+    }
+    let slot: Int = 0;
+    while slot < ArrayLength(graph.roots) {
+        if graph.has_roots[slot] {
+            let surface: Int = slot / 3;
+            let syntax_id: Int = analysis.expression_surfaces.node_ids[surface];
+            let function_id: Int = analysis.expression_surfaces.function_node_ids[surface];
+            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(graph, graph.roots[slot]);
+            if !IsSome(start) { return SemanticAstBodyVerdictError("ast_artifact_invalid", "ArrayDrop expression range is missing", syntax_id); }
+            let node: Int = UnwrapOption(start);
+            while node <= graph.roots[slot] {
+                if node < ArrayLength(leaf_types) && IsSome(SemanticArrayElementType(leaf_types[node])) &&
+                    graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() {
+                    let binding: Int = SemanticArrayStorageBinding(artifact, analysis, initializers.inferred_type_names, surface, node);
+                    let key: String = ToString(binding);
+                    if binding > 0 && MapHas(retired, key) && syntax_id > MapGet(release_sites, key) &&
+                        SemanticAstExpressionScopeVisible(artifact.arena, MapGet(retired, key), syntax_id) {
+                        return SemanticAstBodyVerdictError("move_from_released", "ArrayDrop: binding was moved or released", syntax_id);
+                    }
+                    // A second descriptor/aggregate/element store destroys exclusive release authority.
+                    if binding > 0 && (node == graph.roots[slot] ||
+                        !MapHas(plain_values, ToString(syntax_id))) &&
+                        ((TypedAstArenaNodeKindIs(artifact.arena, syntax_id, TypedAstKindLetStmtTag()) &&
+                          slot % 3 == AstExpressionLaneValue()) ||
+                         TypedAstArenaNodeKindIs(artifact.arena, syntax_id, TypedAstKindAssignStmtTag())) {
+                        MapSet(escaped, key, syntax_id);
+                    }
+                }
+                if graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() {
+                    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, roots.root_nodes[node]);
+                    if call.ok && call.call_node == node {
+                        let target: String = graph.arena.call_target_names[node];
+                        if SemanticAstCollectionOwnershipBuiltinCall(graph, node, "ArrayDrop") {
+                            if ArrayLength(call.argument_nodes) != 1 { return SemanticAstBodyVerdictError("call_arity_mismatch", "ArrayDrop requires one argument", syntax_id); }
+                            let argument: Int = call.argument_nodes[0];
+                            let binding: Int = SemanticArrayStorageBinding(artifact, analysis, initializers.inferred_type_names, surface, argument);
+                            let key: String = ToString(binding);
+                            let element: Option<String> = SemanticArrayElementType(leaf_types[argument]);
+                            let block: Option<Int> = SemanticAstEnclosingBlockNode(artifact.arena, syntax_id);
+                            if !IsSome(block) { return SemanticAstBodyVerdictError("ast_artifact_invalid", "ArrayDrop block identity is missing", syntax_id); }
+                            if graph.arena.topology.node_kinds[argument] != AstExpressionNodeLeaf() || binding <= 0 {
+                                return SemanticAstBodyVerdictError("borrow_boundary_escape", "ArrayDrop requires one named owned storage binding", syntax_id);
+                            }
+                            // Call-spine nodes precede their argument leaves and may
+                            // be shared. Check the prior lifetime before replacing it.
+                            if MapHas(retired, key) && syntax_id > MapGet(release_sites, key) &&
+                                SemanticAstExpressionScopeVisible(artifact.arena, MapGet(retired, key), syntax_id) {
+                                return SemanticAstBodyVerdictError("move_from_released", "ArrayDrop: binding was moved or released", syntax_id);
+                            }
+                            // Surface rows are not a source-order contract.  Two releases in
+                            // one block are therefore a duplicate regardless of which row is
+                            // visited first; cross-block path-sensitive releases keep the
+                            // directional visibility check above.
+                            if MapHas(retired, key) && MapGet(retired, key) == UnwrapOption(block) {
+                                return SemanticAstBodyVerdictError("move_from_released", "ArrayDrop: binding was moved or released", syntax_id);
+                            }
+                            // A live Slice is the more specific failed contract.  Diagnose
+                            // storage invalidation before the generic descriptor-escape guard.
+                            let slice: SemanticExpressionGraphCollectionMutationFact = SemanticExpressionGraphArrayStorageMutationFact(
+                                artifact, analysis.local_bindings, initializers.inferred_type_names, analysis.expression_surfaces,
+                                function_id, syntax_id, argument, "ArrayDrop");
+                            if !slice.ok { return SemanticAstBodyVerdictError(slice.diagnostic_code, slice.diagnostic_message, syntax_id); }
+                            if MapHas(escaped, key) {
+                                return SemanticAstBodyVerdictError("borrow_boundary_escape", "ArrayDrop cannot release an aliased or escaped descriptor", syntax_id);
+                            }
+                            if !SemanticArrayStorageLocalFresh(artifact, analysis,
+                                    initializers.inferred_type_names, surface, argument) &&
+                                !SemanticArrayStorageOwnFormal(analysis.signatures, binding, function_id) {
+                                return SemanticAstBodyVerdictError("borrow_boundary_escape", "ArrayDrop storage provenance is unproved; require a literal or own formal", syntax_id);
+                            }
+                            if !IsSome(element) || !SemanticArrayStoragePlainElement(UnwrapOption(element),
+                                analysis.constructors, analysis.enums, 0) {
+                                return SemanticAstBodyVerdictError("builtin_arg_type_mismatch", "ArrayDrop requires plain value elements; owned strings require ArrayDropOwnedStrings", syntax_id);
+                            }
+                            let binding_fact: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+                                artifact, analysis.local_bindings, initializers.inferred_type_names, analysis.expression_surfaces, surface, argument);
+                            let owner_block: Int = -1;
+                            if binding_fact.ok { owner_block = analysis.local_bindings.scope_node_ids[binding_fact.row]; }
+                            else {
+                                let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, function_id);
+                                if IsSome(signature) {
+                                    let body: Option<Int> = SemanticAstBodyFlowBlockChild(artifact,
+                                        analysis.signatures.action_contracts.body_node_ids[UnwrapOption(signature)]);
+                                    if IsSome(body) { owner_block = UnwrapOption(body); }
+                                }
+                            }
+                            if owner_block < 0 { return SemanticAstBodyVerdictError("ast_artifact_invalid", "ArrayDrop binding scope is missing", syntax_id); }
+                            if UnwrapOption(block) != owner_block {
+                                let flow: SemanticAstBodyFlowFact = SemanticAstBodyFlowOfBlock(artifact, analysis.statements,
+                                    statement_types, analysis.expression_surfaces, exhaustive, UnwrapOption(block));
+                                if !flow.valid || flow.falls_through || flow.breaks || flow.continues {
+                                    return SemanticAstBodyVerdictError("borrow_boundary_escape", "ArrayDrop conditional release requires a terminating path", syntax_id);
+                                }
+                            }
+                            MapSet(retired, key, UnwrapOption(block));
+                            MapSet(release_sites, key, syntax_id);
+                        } else {
+                            let constructor: Bool = IsSome(SemanticAstNominalConstructorIndexForName(analysis.constructors, target)) ||
+                                target == "Some" || target == "Ok" || target == "Err";
+                            let variant: Int = 0;
+                            while variant < ArrayLength(analysis.enums.variant_names) {
+                                if target == analysis.enums.variant_enum_names[variant] + "." + analysis.enums.variant_names[variant] {
+                                    constructor = true;
+                                }
+                                variant = variant + 1;
+                            }
+                            let arg: Int = 0;
+                            while arg < ArrayLength(call.argument_nodes) {
+                                let binding: Int = SemanticArrayStorageBinding(artifact, analysis, initializers.inferred_type_names,
+                                    surface, call.argument_nodes[arg]);
+                                let parameter_node: Int = SemanticArrayStorageOwnParameterTarget(analysis.signatures, graph, node, arg);
+                                let key: String = ToString(binding);
+                                if binding > 0 && parameter_node > 0 {
+                                    // One call may not transfer a binding while
+                                    // another argument still carries its descriptor.
+                                    let other: Int = 0;
+                                    while other < ArrayLength(call.argument_nodes) {
+                                        if other != arg && SemanticArrayStorageBinding(artifact, analysis,
+                                            initializers.inferred_type_names, surface, call.argument_nodes[other]) == binding {
+                                            return SemanticAstBodyVerdictError("move_from_released",
+                                                "ArrayDrop: own transfer duplicates a binding in one call", syntax_id);
+                                        }
+                                        other = other + 1;
+                                    }
+                                }
+                                if binding > 0 && parameter_node > 0 && MapHas(retired, key) &&
+                                    syntax_id > MapGet(release_sites, key) &&
+                                    SemanticAstExpressionScopeVisible(artifact.arena, MapGet(retired, key), syntax_id) {
+                                    return SemanticAstBodyVerdictError("move_from_released", "ArrayDrop: binding was moved or released before own transfer", syntax_id);
+                                }
+                                if parameter_node > 0 && MapHas(requirements, ToString(parameter_node)) &&
+                                    (binding <= 0 || MapHas(escaped, key) || (!SemanticArrayStorageLocalFresh(artifact, analysis,
+                                        initializers.inferred_type_names, surface, call.argument_nodes[arg]) &&
+                                        !SemanticArrayStorageOwnFormal(analysis.signatures, binding, function_id))) {
+                                    return SemanticAstBodyVerdictError("borrow_boundary_escape", "ArrayDrop release obligation requires exclusive storage through own-formal forwarding", syntax_id);
+                                }
+                                if binding > 0 && (constructor || SemanticArrayStorageCallArgumentEscapes(
+                                    analysis.signatures, graph, node, arg, analysis.constructors, analysis.enums) ||
+                                    ((target == "ArrayPush" || target == "ArraySet" ||
+                                    target == "ArrayPushOwned" || target == "ListPush" || target == "MapSet" || target == "QueuePush") && arg > 0)) {
+                                    MapSet(escaped, key, syntax_id);
+                                }
+                                if binding > 0 && parameter_node > 0 {
+                                    let block: Option<Int> = SemanticAstEnclosingBlockNode(artifact.arena, syntax_id);
+                                    if !IsSome(block) { return SemanticAstBodyVerdictError("ast_artifact_invalid", "ArrayDrop owned argument block is missing", syntax_id); }
+                                    MapSet(retired, key, UnwrapOption(block));
+                                    MapSet(release_sites, key, syntax_id);
+                                }
+                                arg = arg + 1;
+                            }
+                        }
+                    }
+                }
+                node = node + 1;
+            }
+        }
+        slot = slot + 1;
+    }
+    return SemanticAstBodyVerdictOk();
+}

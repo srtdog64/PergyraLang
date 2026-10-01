@@ -10,6 +10,7 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
+#include "array_storage_release_owner.h"
 #include "diag_codes.h"
 #include "../common/match_variant_policy.h"
 
@@ -123,6 +124,7 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
             if (semantic_future_reject_aggregate_storage(
                     value, payload, ctx, "Option Some payload"))
                 return TYPE_UNKNOWN;
+            semantic_array_storage_escape(value, payload, ctx);
             option_type = wrap_constructed(TYPE_OPTION, payload);
             /* Native LLVM lays out Some(x) from this type when no consumer
              * declares an Option type for it; MIR types a local from it. */

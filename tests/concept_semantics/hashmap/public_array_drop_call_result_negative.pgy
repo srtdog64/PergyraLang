@@ -1,0 +1,7 @@
+func ReturnAlias(values: Array<Int>) -> Array<Int> { return values; }
+func Main() -> Void {
+    let source: Array<Int> = [41];
+    let result: Array<Int> = ReturnAlias(source);
+    ArrayDrop(result);
+    Log(source[0]);
+}

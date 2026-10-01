@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let values: Array<Int> = [1];
+    let holders: Array<Array<Int>> = [values];
+    ArrayDrop(values);
+    Log(holders[0][0]);
+}

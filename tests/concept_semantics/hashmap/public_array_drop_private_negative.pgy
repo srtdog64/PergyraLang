@@ -1,0 +1,1 @@
+func Main() -> Void { let values: Array<Int> = []; CompilerRetireArrayStorage(values); }

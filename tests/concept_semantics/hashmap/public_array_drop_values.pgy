@@ -1,0 +1,22 @@
+struct DropPoint { x: Int; y: Float; }
+enum DropTag { Empty, Value(Int) }
+func Retire(own values: Array<Int>) -> Void { ArrayDrop(values); }
+func Main() -> Void {
+    let numbers: Array<Int> = [7, 11];
+    Log(numbers[0]);
+    ArrayDrop(numbers);
+    let flags: Array<Bool> = [true, false];
+    Log(flags[0]);
+    ArrayDrop(flags);
+    let points: Array<DropPoint> = [];
+    ArrayPush(points, DropPoint(3, 4.0));
+    Log(points[0].x);
+    ArrayDrop(points);
+    let tags: Array<DropTag> = [];
+    ArrayPush(tags, DropTag.Empty);
+    ArrayDrop(tags);
+    let empty: Array<Int> = [];
+    ArrayDrop(empty);
+    let forwarded: Array<Int> = [19];
+    Retire(forwarded);
+}

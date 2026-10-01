@@ -14,6 +14,7 @@
 #include "callable_capability_inference.h"
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_let_internal.h"
+#include "array_storage_release_owner.h"
 #include "type_checker_ownership_support_internal.h"
 #include "type_checker_flow_universe.h"
 
@@ -530,6 +531,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     Symbol *sym = symbol_create_variable(name, decl_type,
                                          node->line, node->column);
     symbol_mark_declaration(sym, ast_node_stable_id(node), false);
+    semantic_array_storage_initialize(sym, init, ctx);
     callable_capability_record_binding(ctx, sym, init);
 
     if (type_is_constructed_named(decl_type, "DeviceSlot"))

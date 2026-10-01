@@ -90,6 +90,7 @@ func SemanticBuiltinFixedEffectMask(name: String) -> Int {
     if name == "Trim" { return SemanticEffectMaskForWord("local"); }
     if name == "Upper" { return SemanticEffectMaskForWord("local"); }
     if name == "ArrayDropOwnedStrings" { return SemanticEffectMaskForWord("local"); }
+    if name == "ArrayDrop" { return SemanticEffectMaskForWord("local"); }
     if name == "ArrayLength" { return SemanticEffectMaskForWord("local"); }
     if name == "ArrayPop" { return SemanticEffectMaskForWord("local"); }
     if name == "ArrayPush" { return SemanticEffectMaskForWord("local"); }

@@ -561,6 +561,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_array_store.c \
                    $(SEMANTIC_DIR)/collection_ownership_fact.c \
                    $(SEMANTIC_DIR)/collection_owned_element_requirement_owner.c \
+                   $(SEMANTIC_DIR)/array_storage_release_owner.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_boundaries.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_call.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_destructure.c \
@@ -5043,8 +5044,14 @@ long-literal-exactness-test-smoke: $(PGY)
 call-argument-evaluation-order-test-smoke: $(PGY) array-member-mutation-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/call_argument_evaluation_order_smoke.sh
 
+.PHONY: self-host-public-array-drop-test-smoke
+self-host-public-array-drop-test-smoke: self-host-compiler
+	"$(BASH)" tests/self_hosted/parity/public_array_drop_owner_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/public_array_drop.sh
+
 .PHONY: self-host-collection-ownership-semantic-test-smoke
-self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-compiler
+self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/collection_ownership_semantic_owner.sh
 

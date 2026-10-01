@@ -1,0 +1,8 @@
+func RetireAndRead(own first: Array<Int>, ref second: Array<Int>) -> Void {
+    ArrayDrop(first);
+    Log(second[0]);
+}
+func Main() -> Void {
+    let values: Array<Int> = [3];
+    RetireAndRead(values, values);
+}

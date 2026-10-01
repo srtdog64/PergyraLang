@@ -1,5 +1,6 @@
 // Admission capture for the program Array<Bool> ABI, copyout, and return identities.
 import "direct_mir_scalar_program_array_bool_abi_owner.pgy";
+import "direct_mir_scalar_program_owned_array_value_parameter_policy_owner.pgy";
 import "direct_mir_routine_instance_inventory_owner.pgy";
 import "direct_mir_scalar_program_parameter_fact_projection_owner.pgy";
 import "direct_mir_scalar_program_readonly_logical_record_array_bool_return_policy_owner.pgy";
@@ -39,7 +40,8 @@ func DirectMirScalarProgramArrayBoolAbiFactFromAdmitted(
                         admitted.routines, routine_row, parameter);
                 let carriage: String =
                     signature.parameters.carriages[parameter];
-                if (carriage != "value" && carriage != "value-result") ||
+                if (carriage != "value" && carriage != "value-result" &&
+                    !DirectMirScalarProgramOwnedArrayValueParameterReady(signature, parameter)) ||
                     signature.parameters.resources[parameter] != "none" ||
                     signature.parameters.pass_shapes[parameter] != "direct" ||
                     !signature.parameters.abi_required[parameter] ||

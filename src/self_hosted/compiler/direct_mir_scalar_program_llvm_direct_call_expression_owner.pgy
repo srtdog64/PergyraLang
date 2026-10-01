@@ -10,6 +10,7 @@ import "direct_mir_scalar_program_llvm_array_readonly_ref_owner.pgy";
 import "direct_mir_scalar_program_payload_free_enum_fact_owner.pgy";
 import "direct_mir_scalar_program_void_readonly_string_target_owner.pgy";
 import "direct_mir_identity_cell_store_readiness_owner.pgy";
+import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
 struct DirectMirScalarProgramLlvmCallArgument {
     let valid: Bool;
     let instructions: String;
@@ -139,9 +140,7 @@ func DirectMirScalarProgramLlvmDirectCallExpressionAt(
         } else if argument_carriages[ordinal] == "value" ||
                 argument_carriages[ordinal] == "owner-handle" {
             if argument_carriages[ordinal] == "owner-handle" &&
-                argument_types[ordinal] != CompilerAbiLayoutStringTypeName() &&
-                argument_types[ordinal] != CompilerAbiLayoutArrayStringTypeName() &&
-                !DirectMirScalarProgramLogicalRecordTypeReady(
+                !DirectMirScalarProgramOwnedDirectParameterTypeReady(
                     logical_record, argument_types[ordinal]) {
                 return DirectMirScalarProgramLlvmStringExpression(
                     true, false, "", "");

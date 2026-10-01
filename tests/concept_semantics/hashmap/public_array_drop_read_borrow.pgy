@@ -1,0 +1,6 @@
+func Observe(ref values: Array<Int>) -> Void { Log(values[0]); }
+func Main() -> Void {
+    let values: Array<Int> = [3];
+    Observe(values);
+    ArrayDrop(values);
+}

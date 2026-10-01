@@ -1,0 +1,5 @@
+struct DropResource { values: Array<Int>; }
+func Main() -> Void {
+    let values: Array<DropResource> = [];
+    ArrayDrop(values);
+}

@@ -79,7 +79,7 @@ func SemanticExpressionGraphArrayStorageMutationFact(
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     function_node_id: Int, use_node_id: Int, receiver_id: Int, callee: String
 ) -> SemanticExpressionGraphCollectionMutationFact {
-    if callee != "ArrayPush" && callee != "ArrayPop" {
+    if callee != "ArrayPush" && callee != "ArrayPop" && callee != "ArrayDrop" {
         return SemanticExpressionGraphCollectionMutationOk();
     }
     let row: Int = 0;
@@ -240,7 +240,7 @@ func SemanticExpressionGraphCollectionMutationFactFromGraph(
             )
         );
     }
-    if callee == "CompilerRetireArrayStorage" &&
+    if (callee == "CompilerRetireArrayStorage" || callee == "ArrayDrop") &&
         ArrayLength(call.argument_nodes) != 1 {
         return SemanticExpressionGraphCollectionMutationError(
             "ast_artifact_invalid",
@@ -267,7 +267,7 @@ func SemanticExpressionGraphCollectionMutationFactFromGraph(
             )
         );
     }
-    if callee == "CompilerRetireArrayStorage" &&
+    if (callee == "CompilerRetireArrayStorage" || callee == "ArrayDrop") &&
         (UnwrapOption(receiver_kind) != AstExpressionNodeLeaf() ||
          !IsIdentText(UnwrapOption(receiver_text))) {
         return SemanticExpressionGraphCollectionMutationError(

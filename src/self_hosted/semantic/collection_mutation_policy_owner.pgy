@@ -2,10 +2,11 @@
 
 import "diagnostic_owner.pgy";
 import "env_owner.pgy";
+import "array_type_shape_owner.pgy";
 import "compiler_internal_builtin_caller_registry_owner.pgy";
 
 func SemanticCollectionMutatorName(callee: String) -> Bool {
-    return callee == "CompilerRetireArrayStorage" || callee == "ArrayPush" ||
+    return callee == "ArrayDrop" || callee == "CompilerRetireArrayStorage" || callee == "ArrayPush" ||
         callee == "ArraySet" ||
         callee == "ArrayPop" || callee == "ListPush" ||
         callee == "ListSet" || callee == "ListRemove" ||
@@ -69,6 +70,16 @@ func SemanticCompilerRetireArrayStorageError(
     return "";
 }
 
+func SemanticPublicArrayDropReceiverError(receiver: String,
+    names: Array<String>, types: Array<String>, modes: Array<String>) -> String {
+    let mode: String = EnvMode(names, modes, receiver);
+    if !IsIdentText(receiver) || !IsSome(SemanticArrayElementType(EnvLookup(names, types, receiver))) ||
+        mode == "default_param" || mode == "ref_param" || mode == "inout_param" {
+        return "ArrayDrop requires one named owned Array<T> binding; borrowed parameters cannot release storage";
+    }
+    return "";
+}
+
 func SemanticCollectionTypeName(type_name: String) -> Bool {
     return StringContains(type_name, "Array<") ||
         StringContains(type_name, "List<") ||
@@ -85,6 +96,9 @@ func SemanticCollectionMutationError(
     modes: Array<String>,
     internal_caller_ready: Bool
 ) -> String {
+    if callee == "ArrayDrop" {
+        return SemanticPublicArrayDropReceiverError(receiver, names, types, modes);
+    }
     if callee == "CompilerRetireArrayStorage" {
         return SemanticCompilerRetireArrayStorageError(
             receiver, names, types, modes, internal_caller_ready

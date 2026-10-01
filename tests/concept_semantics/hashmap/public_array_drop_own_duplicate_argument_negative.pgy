@@ -1,0 +1,8 @@
+func RetirePair(own first: Array<Int>, own second: Array<Int>) -> Void {
+    ArrayDrop(first);
+    ArrayDrop(second);
+}
+func Main() -> Void {
+    let values: Array<Int> = [3];
+    RetirePair(values, values);
+}

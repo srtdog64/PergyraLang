@@ -1,0 +1,6 @@
+func RetireFlags(own values: Array<Bool>) -> Void { ArrayDrop(values); }
+func Main() -> Void {
+    let values: Array<Bool> = [true, false];
+    Log(values[0]);
+    RetireFlags(values);
+}

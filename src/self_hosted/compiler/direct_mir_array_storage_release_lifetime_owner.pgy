@@ -1,0 +1,301 @@
+// Public release is admitted again at the untrusted MIR boundary. A source
+// verdict is not a permit for a forged local, alias, element type, or CFG use.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "direct_mir_scalar_program_hashmap_expression_location_owner.pgy";
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+
+func DirectMirArrayStoragePlainType(ref plan: DirectMirScalarCfgGraphPlan,
+    type_name: String, depth: Int) -> Bool {
+    if depth >= 32 { return false; }
+    if type_name == "Int" || type_name == "Long" || type_name == "Float" ||
+        type_name == "Double" || type_name == "Bool" || type_name == "Duration" { return true; }
+    let record: Int = DirectMirScalarProgramLogicalRecordRow(plan.program.logical_record, type_name);
+    if record >= 0 {
+        let field: Int = plan.program.logical_record.field_starts[record];
+        let end: Int = field + plan.program.logical_record.field_counts[record];
+        while field < end {
+            if !DirectMirArrayStoragePlainType(plan, plan.program.logical_record.field_types[field], depth + 1) { return false; }
+            field = field + 1;
+        }
+        return true;
+    }
+    let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(plan.program.referenced_enum, type_name);
+    if enum_row < 0 { return false; }
+    let variant: Int = plan.program.referenced_enum.variant_starts[enum_row];
+    let end: Int = variant + plan.program.referenced_enum.variant_counts[enum_row];
+    while variant < end {
+        let payload: Int = plan.program.referenced_enum.variant_param_type_starts[variant];
+        let payload_end: Int = payload + plan.program.referenced_enum.variant_param_counts[variant];
+        while payload < payload_end {
+            if !DirectMirArrayStoragePlainType(plan, plan.program.referenced_enum.variant_param_types[payload], depth + 1) { return false; }
+            payload = payload + 1;
+        }
+        variant = variant + 1;
+    }
+    return true;
+}
+
+func DirectMirArrayStorageExpressionUses(ref expressions: DirectMirScalarProgramExpressionSet,
+    graph_row: Int, binding: Int, parameter: Bool) -> Bool {
+    if graph_row < 0 { return false; }
+    let node: Int = expressions.graph_starts[graph_row];
+    let end: Int = node + expressions.graph_counts[graph_row];
+    while node < end {
+        if parameter && expressions.node_kinds[node] == DirectMirScalarProgramExprParameter() &&
+            expressions.node_parameter_ordinals[node] == binding { return true; }
+        if !parameter && expressions.node_kinds[node] == DirectMirScalarProgramExprLocal() &&
+            expressions.node_local_rows[node] == binding { return true; }
+        node = node + 1;
+    }
+    return false;
+}
+
+func DirectMirArrayStorageOperationUses(ref plan: DirectMirScalarCfgGraphPlan,
+    operation: Int, binding: Int, parameter: Bool) -> Bool {
+    if !parameter && (plan.operation_left_locals[operation] == binding ||
+        plan.operation_right_locals[operation] == binding) { return true; }
+    return DirectMirArrayStorageExpressionUses(plan.program.expressions,
+        plan.program.operation_expression_rows[operation], binding, parameter) ||
+        DirectMirArrayStorageExpressionUses(plan.program.expressions,
+            plan.program.operation_secondary_expression_rows[operation], binding, parameter);
+}
+
+func DirectMirArrayStorageAfterDropReady(ref plan: DirectMirScalarCfgGraphPlan,
+    drop_operation: Int, binding: Int, parameter: Bool, routine: Int,
+    creation: Int) -> Bool {
+    let first: Int = DirectMirScalarCfgRoutinePartitionRangeOwner(
+        plan.block_operation_starts, plan.block_operation_counts, drop_operation);
+    let start: Int = plan.routines.block_starts[routine];
+    let count: Int = plan.routines.block_counts[routine];
+    if first < start || first >= start + count { return false; }
+    let seen: Array<Bool> = [];
+    let row: Int = 0;
+    while row < count { ArrayPush(seen, false); row = row + 1; }
+    let queue: Array<Int> = [first];
+    row = 0;
+    while row < ArrayLength(queue) {
+        let block: Int = queue[row];
+        let operation: Int = plan.block_operation_starts[block];
+        let end: Int = operation + plan.block_operation_counts[block];
+        if row == 0 { operation = drop_operation + 1; }
+        let reset: Bool = false;
+        while operation < end {
+            // A loop-local literal creates a new lifetime on re-entry. Stop
+            // this retired lifetime at that exact creation, not at an alias.
+            if !parameter && operation == creation { reset = true; break; }
+            if DirectMirArrayStorageOperationUses(plan, operation, binding, parameter) { return false; }
+            operation = operation + 1;
+        }
+        if reset { row = row + 1; continue; }
+        if DirectMirArrayStorageExpressionUses(plan.program.expressions,
+            plan.program.block_condition_expression_rows[block], binding, parameter) ||
+            DirectMirArrayStorageExpressionUses(plan.program.expressions,
+                plan.program.block_return_expression_rows[block], binding, parameter) { return false; }
+        let edge: Int = 0;
+        while edge < 2 {
+            let next: Int = plan.block_succ_true[block];
+            if edge == 1 { next = plan.block_succ_false[block]; }
+            if next >= 0 {
+                if next < start || next >= start + count { return false; }
+                if !seen[next - start] { ArraySet(seen, next - start, true); ArrayPush(queue, next); }
+            }
+            edge = edge + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func DirectMirArrayStorageExpressionEscapes(ref plan: DirectMirScalarCfgGraphPlan,
+    graph_row: Int, binding: Int, parameter: Bool, releasing_node: Int) -> Bool {
+    if graph_row < 0 { return false; }
+    let node: Int = plan.program.expressions.graph_starts[graph_row];
+    let end: Int = node + plan.program.expressions.graph_counts[graph_row];
+    while node < end {
+        let operands: Array<Int> = DirectMirScalarProgramDirectCallArgumentRows(plan.program.expressions, node);
+        let argument: Int = 0;
+        while argument < ArrayLength(operands) {
+            let source: Int = operands[argument];
+            let matches: Bool = parameter && plan.program.expressions.node_kinds[source] == DirectMirScalarProgramExprParameter() &&
+                plan.program.expressions.node_parameter_ordinals[source] == binding;
+            if !parameter && plan.program.expressions.node_kinds[source] == DirectMirScalarProgramExprLocal() &&
+                plan.program.expressions.node_local_rows[source] == binding { matches = true; }
+            if matches && node != releasing_node {
+                let kind: Int = plan.program.expressions.node_kinds[node];
+                if kind == DirectMirScalarProgramExprLogicalRecordConstructor() ||
+                    kind == DirectMirScalarProgramExprIdentityCellConstructor() ||
+                    kind == DirectMirScalarProgramExprPayloadEnumConstructor() ||
+                    IsSome(SemanticArrayElementType(plan.program.expressions.node_types[node])) { return true; }
+                if kind == DirectMirScalarProgramExprDirectCall() {
+                    let target: Int = plan.program.expressions.node_callable_rows[node];
+                    if target < 0 || target >= ArrayLength(plan.routines.parameter_counts) ||
+                        argument >= plan.routines.parameter_counts[target] { return true; }
+                    let carriage: String = plan.routines.parameter_carriages[plan.routines.parameter_starts[target] + argument];
+                    if carriage == "owner-handle" || carriage == "value-result" { return true; }
+                    if plan.routines.return_types[target] != "Void" &&
+                        !DirectMirArrayStoragePlainType(plan, plan.routines.return_types[target], 0) { return true; }
+                }
+            }
+            argument = argument + 1;
+        }
+        node = node + 1;
+    }
+    return false;
+}
+
+func DirectMirArrayStorageBindingReleaseReady(ref plan: DirectMirScalarCfgGraphPlan,
+    receiver: Int, releasing_node: Int, operation: Int, routine: Int) -> Bool {
+    let element: Option<String> = SemanticArrayElementType(plan.program.expressions.node_types[receiver]);
+    if !IsSome(element) || !DirectMirArrayStoragePlainType(plan, UnwrapOption(element), 0) { return false; }
+    let parameter: Bool = plan.program.expressions.node_kinds[receiver] == DirectMirScalarProgramExprParameter();
+    let binding: Int = plan.program.expressions.node_local_rows[receiver];
+    if parameter { binding = plan.program.expressions.node_parameter_ordinals[receiver]; }
+    else if plan.program.expressions.node_kinds[receiver] != DirectMirScalarProgramExprLocal() { return false; }
+    if binding < 0 { return false; }
+    if parameter && (binding >= plan.routines.parameter_counts[routine] ||
+        plan.routines.parameter_carriages[plan.routines.parameter_starts[routine] + binding] != "owner-handle") { return false; }
+    let creation: Int = -1;
+    let definitions: Int = 0;
+    let index: Int = plan.routines.operation_starts[routine];
+    let end: Int = index + plan.routines.operation_counts[routine];
+    while index < end {
+        let result: Int = plan.operation_result_values[index];
+        if !parameter && result >= 0 && plan.value_local_rows[result] == binding {
+            let initializer: Int = plan.program.operation_expression_rows[index];
+            if initializer < 0 || plan.operation_kinds[index] != DirectMirScalarCfgOpExpressionDefinition() { return false; }
+            let root: Int = plan.program.expressions.graph_roots[initializer];
+            let kind: Int = plan.program.expressions.node_kinds[root];
+            if kind != DirectMirScalarProgramExprArrayIntEmptyLiteral() &&
+                kind != DirectMirScalarProgramExprArrayIntPopulatedLiteral() &&
+                kind != DirectMirScalarProgramExprArrayBoolEmptyLiteral() &&
+                kind != DirectMirScalarProgramExprArrayBoolPopulatedLiteral() &&
+                kind != DirectMirScalarProgramExprLogicalRecordArrayEmptyLiteral() { return false; }
+            definitions = definitions + 1; creation = index;
+        }
+        if result >= 0 && (parameter || plan.value_local_rows[result] != binding) &&
+            IsSome(SemanticArrayElementType(plan.value_types[result])) &&
+            DirectMirArrayStorageOperationUses(plan, index, binding, parameter) { return false; }
+        if DirectMirArrayStorageExpressionEscapes(plan, plan.program.operation_expression_rows[index], binding, parameter, releasing_node) ||
+            DirectMirArrayStorageExpressionEscapes(plan, plan.program.operation_secondary_expression_rows[index], binding, parameter, releasing_node) { return false; }
+        index = index + 1;
+    }
+    let block: Int = plan.routines.block_starts[routine];
+    let block_end: Int = block + plan.routines.block_counts[routine];
+    while block < block_end {
+        if DirectMirArrayStorageExpressionEscapes(plan, plan.program.block_condition_expression_rows[block], binding, parameter, releasing_node) ||
+            DirectMirArrayStorageExpressionEscapes(plan, plan.program.block_return_expression_rows[block], binding, parameter, releasing_node) ||
+            DirectMirArrayStorageExpressionUses(plan.program.expressions, plan.program.block_return_expression_rows[block], binding, parameter) { return false; }
+        block = block + 1;
+    }
+    if !parameter && (definitions != 1 || creation >= operation) { return false; }
+    return DirectMirArrayStorageAfterDropReady(plan, operation, binding, parameter, routine, creation);
+}
+
+func DirectMirArrayStorageNodeRoutine(ref plan: DirectMirScalarCfgGraphPlan, node: Int) -> Int {
+    let graph_row: Int = DirectMirScalarProgramHashMapExpressionRowContainingNode(plan.program.expressions, node);
+    let operation: Int = DirectMirScalarProgramHashMapExpressionOperation(plan, graph_row);
+    if operation >= 0 { return DirectMirScalarCfgRoutinePartitionOperationOwner(plan.routines, operation); }
+    if operation != -1 { return -1; }
+    let block: Int = DirectMirScalarProgramHashMapBoundaryBlock(plan, graph_row);
+    return DirectMirScalarCfgRoutinePartitionBlockOwner(plan.routines, block);
+}
+
+func DirectMirArrayStorageReleaseRequirements(ref plan: DirectMirScalarCfgGraphPlan) -> HashMap<String, Int> {
+    let required: HashMap<String, Int> = MapNew();
+    let node: Int = 0;
+    while node < ArrayLength(plan.program.expressions.node_kinds) {
+        if plan.program.expressions.node_kinds[node] == DirectMirScalarProgramExprArrayDropStorage() {
+            let receiver: Int = plan.program.expressions.node_lefts[node];
+            if plan.program.expressions.node_kinds[receiver] == DirectMirScalarProgramExprParameter() {
+                let routine: Int = DirectMirArrayStorageNodeRoutine(plan, node);
+                if routine >= 0 { MapSet(required, ToString(plan.routines.parameter_starts[routine] +
+                    plan.program.expressions.node_parameter_ordinals[receiver]), 1); }
+            }
+        }
+        node = node + 1;
+    }
+    let changed: Bool = true;
+    let remaining: Int = ArrayLength(plan.routines.parameter_types) + 1;
+    while changed && remaining > 0 {
+        changed = false; node = 0;
+        while node < ArrayLength(plan.program.expressions.node_kinds) {
+            if plan.program.expressions.node_kinds[node] == DirectMirScalarProgramExprDirectCall() {
+                let target: Int = plan.program.expressions.node_callable_rows[node];
+                if target >= 0 && target < ArrayLength(plan.routines.parameter_counts) {
+                    let routine: Int = DirectMirArrayStorageNodeRoutine(plan, node);
+                    let arguments: Array<Int> = DirectMirScalarProgramDirectCallArgumentRows(plan.program.expressions, node);
+                    let arg: Int = 0;
+                    while arg < ArrayLength(arguments) && arg < plan.routines.parameter_counts[target] && routine >= 0 {
+                        let source: Int = arguments[arg];
+                        if plan.program.expressions.node_kinds[source] == DirectMirScalarProgramExprParameter() &&
+                            MapHas(required, ToString(plan.routines.parameter_starts[target] + arg)) {
+                            let key: String = ToString(plan.routines.parameter_starts[routine] + plan.program.expressions.node_parameter_ordinals[source]);
+                            if !MapHas(required, key) { MapSet(required, key, 1); changed = true; }
+                        }
+                        arg = arg + 1;
+                    }
+                }
+            }
+            node = node + 1;
+        }
+        remaining = remaining - 1;
+    }
+    return required;
+}
+
+func DirectMirArrayStorageReleaseLifetimeReady(ref plan: DirectMirScalarCfgGraphPlan) -> Bool {
+    let found: Bool = false;
+    let node: Int = 0;
+    while node < ArrayLength(plan.program.expressions.node_kinds) {
+        if plan.program.expressions.node_kinds[node] == DirectMirScalarProgramExprArrayDropStorage() { found = true; }
+        node = node + 1;
+    }
+    if !found { return true; }
+    let required: HashMap<String, Int> = DirectMirArrayStorageReleaseRequirements(plan);
+    node = 0;
+    while node < ArrayLength(plan.program.expressions.node_kinds) {
+        let kind: Int = plan.program.expressions.node_kinds[node];
+        if kind == DirectMirScalarProgramExprArrayDropStorage() || kind == DirectMirScalarProgramExprDirectCall() {
+            let graph_row: Int = DirectMirScalarProgramHashMapExpressionRowContainingNode(plan.program.expressions, node);
+            let operation: Int = DirectMirScalarProgramHashMapExpressionOperation(plan, graph_row);
+            let routine: Int = DirectMirArrayStorageNodeRoutine(plan, node);
+            if kind == DirectMirScalarProgramExprArrayDropStorage() {
+                if operation < 0 || plan.operation_kinds[operation] != DirectMirScalarCfgOpExpressionStatement() ||
+                    plan.program.expressions.graph_roots[graph_row] != node || routine < 0 { return false; }
+                if !DirectMirArrayStorageBindingReleaseReady(plan, plan.program.expressions.node_lefts[node], node, operation, routine) { return false; }
+            } else {
+                let target: Int = plan.program.expressions.node_callable_rows[node];
+                if target < 0 || target >= ArrayLength(plan.routines.parameter_counts) { return false; }
+                let arguments: Array<Int> = DirectMirScalarProgramDirectCallArgumentRows(plan.program.expressions, node);
+                let arg: Int = 0;
+                while arg < ArrayLength(arguments) {
+                    if MapHas(required, ToString(plan.routines.parameter_starts[target] + arg)) {
+                        if operation < 0 || routine < 0 || !DirectMirArrayStorageBindingReleaseReady(plan, arguments[arg], node, operation, routine) ||
+                            !DirectMirArrayStorageCallArgumentExclusive(plan.program.expressions, arguments, arg) { return false; }
+                    }
+                    arg = arg + 1;
+                }
+            }
+        }
+        node = node + 1;
+    }
+    return true;
+}
+
+func DirectMirArrayStorageCallArgumentExclusive(ref expressions: DirectMirScalarProgramExpressionSet,
+    ref arguments: Array<Int>, ordinal: Int) -> Bool {
+    let source: Int = arguments[ordinal];
+    let kind: Int = expressions.node_kinds[source];
+    let other: Int = 0;
+    while other < ArrayLength(arguments) {
+        let candidate: Int = arguments[other];
+        if other != ordinal && expressions.node_kinds[candidate] == kind &&
+            ((kind == DirectMirScalarProgramExprLocal() && expressions.node_local_rows[candidate] == expressions.node_local_rows[source]) ||
+             (kind == DirectMirScalarProgramExprParameter() && expressions.node_parameter_ordinals[candidate] == expressions.node_parameter_ordinals[source])) {
+            return false;
+        }
+        other = other + 1;
+    }
+    return true;
+}

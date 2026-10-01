@@ -1,0 +1,1 @@
+func Main() -> Void { ArrayDrop([1, 2]); }

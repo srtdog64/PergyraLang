@@ -1,0 +1,2 @@
+func Retire(inout values: Array<Int>) -> Void { ArrayDrop(values); }
+func Main() -> Void { let values: Array<Int> = [1]; Retire(values); }

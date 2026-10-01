@@ -6,6 +6,7 @@
  */
 
 #include "diag_codes.h"
+#include "array_storage_release_owner.h"
 #include "type_checker_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_internal.h"
@@ -16,6 +17,8 @@ semantic_check_assignment_borrow_rebind(ASTNode *expr,
                                         Type *target_type,
                                         Type *value_type)
 {
+    semantic_array_storage_escape(ast_assignment_value(expr), value_type, ctx);
+    semantic_array_storage_escape(ast_assignment_target(expr), target_type, ctx);
     OwnershipTypeClass target_ownership =
         semantic_classify_ownership_type(target_type, ctx);
     OwnershipTypeClass value_ownership =

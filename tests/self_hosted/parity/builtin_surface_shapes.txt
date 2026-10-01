@@ -79,6 +79,13 @@ func Main() -> Void {
     Log(ToString(ArrayLength(a)));
 }
 
+== ArrayDrop
+func Main() -> Void {
+    let values: Array<Int> = [1, 2];
+    ArrayDrop(values);
+    Log("released");
+}
+
 == ArrayLength
 func Main() -> Void {
     let xs: Array<Int> = [1, 2, 3];

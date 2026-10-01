@@ -160,6 +160,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "SetSize^Int^Unknown",
         "ArrayPushOwnedString^Void^Array<String>|String",
         "ArrayDropOwnedStrings^Void^Array<String>",
+        "ArrayDrop^Void^Unknown",
         "CompilerRetireArrayStorage^Void^Unknown",
         "CompilerArtifactAbort^Int^Int",
         "CompilerArtifactBegin^Int^String",
