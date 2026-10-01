@@ -335,4 +335,5 @@ for program in io cfc; do
     fi
 done
 
+CC="${CC:-gcc}" bash "$ROOT_DIR/tests/file_read_error_runtime_smoke.sh"
 echo "[$LABEL] $(wc -l < "$WORK_DIR/def.names" | tr -d ' ') IoError rows equal across runtime, self-host and docs; TryReadFile/TryWriteFile/CharFromCode equal on native C, native LLVM and default C: PASS"

@@ -80,9 +80,11 @@ pgy_try_file_read_result(int32_t fd)
             "io-boundary", "file-read"));
     }
     if (fgets(tmp, sizeof(tmp), _pgy_ftable[fd]) == NULL) {
+        PgyRuntimeIoStatus status = ferror(_pgy_ftable[fd])
+            ? PGY_RUNTIME_IO_STATUS_READ_FAILED : PGY_RUNTIME_IO_STATUS_EOF;
         pthread_mutex_unlock(&_pgy_ftable_mutex);
         return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
-            PGY_RUNTIME_IO_STATUS_EOF, "io-boundary", "file-read"));
+            status, "io-boundary", "file-read"));
     }
     pthread_mutex_unlock(&_pgy_ftable_mutex);
     size_t len = strlen(tmp);
