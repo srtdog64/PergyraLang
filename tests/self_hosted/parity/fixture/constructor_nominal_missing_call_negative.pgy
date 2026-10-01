@@ -1,0 +1,9 @@
+struct Pair {
+    first: Int;
+    second: Int;
+}
+
+func Main() -> Void {
+    let value: Pair = Pair(Missing(), 2);
+    Log(value.first);
+}

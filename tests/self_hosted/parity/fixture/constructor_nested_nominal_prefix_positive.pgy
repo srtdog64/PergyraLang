@@ -1,0 +1,9 @@
+struct Pair {
+    first: Int;
+    second: Int;
+}
+
+func Main() -> Void {
+    let items: Array<Pair> = [Pair(1)];
+    Log(ArrayLength(items));
+}

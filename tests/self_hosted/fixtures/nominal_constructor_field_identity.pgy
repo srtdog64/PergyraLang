@@ -1,0 +1,169 @@
+// Execute real current admission owners; synthetic call overlays are explicit.
+// No result here establishes String-element lifetime or compiles input programs.
+import "../../../src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_nominal_constructor_artifact_match_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_expression_graph_build_owner.pgy";
+
+func ConstructorArtifact() -> AstTreeArtifact {
+    return AstTreeArtifactFromText(
+        "Program:\n  Struct: Pair\n    Fields:\n      first: Array<String>\n      second: Array<String>\n  Struct: Seen\n    Fields:\n      values: Set<Int>\n  Zone: Gate\n    ObjectSlot: cache: Int\n    SubjectSlot: first: Int\n    TObjectSlot: published: Int\n    BindingSlot: second: Int\n  Relation: Link\n    ObjectSlot: cache: Int\n    SubjectSlot: first: Int\n    BindingSlot: second: Int\n  Effect: Buff\n    TObjectSlot: published: Int\n    SubjectSlot: first: Int\n    BindingSlot: second: Int\n");
+}
+
+func ConstructorGraph(expression: String, shadow: Int) -> SemanticExpressionGraphFacts {
+    let kinds: Array<Int> = []; let texts: Array<String> = [];
+    let lefts: Array<Int> = []; let rights: Array<Int> = [];
+    let targets: Array<Int> = []; let names: Array<String> = [];
+    let build: SemanticExpressionGraphBuild = SemanticExpressionGraphImportSerializedParserFact(
+        kinds, texts, lefts, rights, targets, names, expression);
+    if !build.ok { Log("constructor fixture parser refused"); Exit(2); }
+    let node: Int = 0;
+    while node < ArrayLength(kinds) {
+        if kinds[node] == AstExpressionNodeCall() {
+            targets[node] = SemanticCallTargetDirect(); names[node] = texts[lefts[node]];
+        }
+        node = node + 1;
+    }
+    let roots: Array<Int> = [build.root_id]; let has_roots: Array<Bool> = [true];
+    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(true, roots, has_roots,
+        SemanticExpressionGraphArenaUnclassified(kinds, texts, lefts, rights, targets, names));
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, build.root_id);
+    if !call.ok { Log("constructor fixture call view refused"); Exit(2); }
+    if shadow == 1 || shadow == 2 {
+        graph.arena.identities.call_target_syntax_ids[call.call_node] = 71;
+        graph.arena.identities.binding_syntax_ids[call.callee_node] = 71;
+        if shadow == 1 {
+            graph.arena.identities.binding_kinds[call.callee_node] = SemanticExpressionBindingDeclaredCallable();
+        } else {
+            graph.arena.identities.binding_kinds[call.callee_node] = SemanticExpressionBindingFormalParameter();
+            graph.arena.identities.binding_ordinals[call.callee_node] = 0;
+        }
+    }
+    if shadow == 3 { graph.arena.identities.runtime_call_abi_ids[call.call_node] = 9; }
+    if shadow == 4 { graph.arena.identities.binding_kinds[call.callee_node] = 99; }
+    if shadow == 5 { graph.arena.identities.binding_syntax_ids[call.callee_node] = 71; }
+    if shadow == 6 { graph.arena.identities.call_target_syntax_ids[call.call_node] = 71; }
+    return graph;
+}
+
+func ConstructorResult(expression: String, shadow: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    signatures: SemanticAstFunctionSignatureFacts
+) -> SemanticExpressionGraphNominalConstructorCallFact {
+    let graph: SemanticExpressionGraphFacts = ConstructorGraph(expression, shadow);
+    let names: Array<String> = []; let types: Array<String> = [];
+    if shadow == 7 { ArrayPush(names, "Pair"); ArrayPush(types, "func(Array<String>,Array<String>) -> Pair"); }
+    let functions: Array<String> = ["Pair","Seen","Gate","Link","Buff"];
+    let returns: Array<String> = ["Pair","Seen","Gate","Link","Buff"];
+    return SemanticExpressionGraphNominalConstructorCallFactFromGraph(
+        graph, graph.roots[0], constructors, signatures, names, types, functions, returns);
+}
+
+func ConstructorFieldsMatch(ref result: SemanticExpressionGraphNominalConstructorCallFact,
+    ref constructors: SemanticAstNominalConstructorFacts, name: String,
+    first: Int, second: Int, supplied: Int, expression: String
+) -> Bool {
+    let index: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, name);
+    if !IsSome(index) || !result.applies || !result.ok || result.return_type_name != name ||
+        result.constructor_source_syntax_id != constructors.node_ids[UnwrapOption(index)] ||
+        result.actual_argument_count != supplied {
+        return false;
+    }
+    let graph: SemanticExpressionGraphFacts = ConstructorGraph(expression, 0);
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, graph.roots[0]);
+    if !call.ok || ArrayLength(call.argument_nodes) != supplied { return false; }
+    let start: Int = constructors.param_starts[UnwrapOption(index)];
+    let names: Array<String> = []; let types: Array<String> = [];
+    let functions: Array<String> = ["Pair","Seen","Gate","Link","Buff"];
+    let returns: Array<String> = ["Pair","Seen","Gate","Link","Buff"];
+    let ordinal: Int = 0;
+    while ordinal < supplied {
+        let argument: SemanticExpressionGraphNominalConstructorArgumentFact =
+            SemanticExpressionGraphNominalConstructorArgumentFactFromGraph(
+                graph, call.argument_nodes[ordinal], constructors, UnwrapOption(index), ordinal,
+                names, types, functions, returns);
+        let expected: Int = first;
+        if ordinal == 1 { expected = second; }
+        if !argument.ok || !argument.assignable ||
+            argument.field_source_syntax_id != constructors.field_source_syntax_ids[start + expected] { return false; }
+        ordinal = ordinal + 1;
+    }
+    return true;
+}
+
+func ConstructorRefuses(ref result: SemanticExpressionGraphNominalConstructorCallFact, code: String) -> Bool {
+    return result.applies && !result.ok && result.diagnostic_code == code &&
+        result.constructor_source_syntax_id == 0;
+}
+
+func Main() -> Void {
+    let artifact: AstTreeArtifact = ConstructorArtifact();
+    let constructors: SemanticAstNominalConstructorFacts = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let signatures: SemanticAstFunctionSignatureFacts = SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    Log(constructors.ok && signatures.ok && SemanticAstNominalConstructorRowsReady(constructors));
+    let value: SemanticExpressionGraphNominalConstructorCallFact = ConstructorResult("Pair([], [])", 0, constructors, signatures);
+    Log(ConstructorFieldsMatch(value, constructors, "Pair", 0, 1, 2, "Pair([], [])"));
+    Log(!ConstructorFieldsMatch(value, constructors, "Pair", 1, 0, 2, "Pair([], [])"));
+    value = ConstructorResult("Pair([])", 0, constructors, signatures);
+    Log(ConstructorFieldsMatch(value, constructors, "Pair", 0, 1, 1, "Pair([])"));
+    value = ConstructorResult("Pair()", 0, constructors, signatures);
+    Log(ConstructorFieldsMatch(value, constructors, "Pair", 0, 1, 0, "Pair()"));
+    value = ConstructorResult("Pair([\"first\"], [\"second\"])", 0, constructors, signatures);
+    Log(ConstructorFieldsMatch(value, constructors, "Pair", 0, 1, 2, "Pair([\"first\"], [\"second\"])"));
+    value = ConstructorResult("Seen({})", 0, constructors, signatures);
+    Log(ConstructorFieldsMatch(value, constructors, "Seen", 0, 0, 1, "Seen({})"));
+    value = ConstructorResult("Seen({1, 2})", 0, constructors, signatures);
+    Log(ConstructorFieldsMatch(value, constructors, "Seen", 0, 0, 1, "Seen({1, 2})"));
+    value = ConstructorResult("Seen({\"wrong\"})", 0, constructors, signatures);
+    Log(ConstructorRefuses(value, "call_arg_type_mismatch"));
+    value = ConstructorResult("Gate(1, 2)", 0, constructors, signatures);
+    Log(ConstructorFieldsMatch(value, constructors, "Gate", 1, 3, 2, "Gate(1, 2)"));
+    value = ConstructorResult("Link(1, 2)", 0, constructors, signatures);
+    Log(ConstructorFieldsMatch(value, constructors, "Link", 1, 2, 2, "Link(1, 2)"));
+    value = ConstructorResult("Buff(1, 2)", 0, constructors, signatures);
+    Log(ConstructorFieldsMatch(value, constructors, "Buff", 1, 2, 2, "Buff(1, 2)"));
+    value = ConstructorResult("Pair([], [], [])", 0, constructors, signatures);
+    Log(ConstructorRefuses(value, "call_arity_mismatch"));
+    value = ConstructorResult("Pair([1])", 0, constructors, signatures);
+    Log(ConstructorRefuses(value, "call_arg_type_mismatch"));
+    let shadow: Int = 1;
+    while shadow <= 7 {
+        value = ConstructorResult("Pair([])", shadow, constructors, signatures);
+        Log(!value.applies && value.ok && value.constructor_source_syntax_id == 0);
+        shadow = shadow + 1;
+    }
+    Log(!IsSome(SemanticAstNominalConstructorArgumentFieldIndexAt(constructors, -1, 0)));
+    Log(!IsSome(SemanticAstNominalConstructorArgumentFieldIndexAt(constructors, 0, -1)));
+    Log(!IsSome(SemanticAstNominalConstructorArgumentFieldIndexAt(constructors, 0, 2)));
+    constructors.field_source_syntax_ids[0] = 0;
+    value = ConstructorResult("Pair([])", 0, constructors, signatures);
+    Log(ConstructorRefuses(value, "ast_artifact_invalid"));
+    constructors = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    constructors.param_type_names[0] = "Unknown";
+    value = ConstructorResult("Pair([])", 0, constructors, signatures);
+    Log(ConstructorRefuses(value, "ast_artifact_invalid"));
+    constructors = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let original: Int = constructors.field_source_syntax_ids[0];
+    constructors.field_source_syntax_ids[0] = constructors.field_source_syntax_ids[1];
+    constructors.field_source_syntax_ids[1] = original;
+    Log(SemanticAstNominalConstructorRowsReady(constructors) && !SemanticAstNominalConstructorFactsMatchArtifact(artifact, constructors));
+    constructors = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    ArrayPop(constructors.field_source_syntax_ids);
+    value = ConstructorResult("Buff()", 0, constructors, signatures);
+    Log(ConstructorRefuses(value, "ast_artifact_invalid"));
+    constructors = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    ArrayPop(constructors.nominal_kinds);
+    value = ConstructorResult("Buff()", 0, constructors, signatures);
+    Log(ConstructorRefuses(value, "ast_artifact_invalid"));
+    constructors = SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let declared_artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Pair\n    Parameters:\n      a: Array<String>\n      b: Array<String>\n    Returns: Pair\n    Body:\n      Return: Pair(a, b)\n");
+    signatures = SemanticAstFunctionSignatureFactsFromArtifact(declared_artifact);
+    // The initial graph has None/0 identity: source signature authority must
+    // exclude the function before late expression identity sealing.
+    value = ConstructorResult("Pair([])", 0, constructors, signatures);
+    Log(signatures.ok && SemanticAstFunctionSignatureCount(signatures) == 1 && !value.applies);
+    constructors.names[1] = "Pair";
+    signatures = SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    value = ConstructorResult("Pair([])", 0, constructors, signatures);
+    Log(!value.applies && value.constructor_source_syntax_id == 0);
+}

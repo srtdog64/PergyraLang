@@ -8902,6 +8902,18 @@ reject_function_text \
     "return -1;"
 require_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
     "func SemanticAstNominalConstructorArgumentTypeAt("
+require_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
+    "func SemanticAstNominalConstructorArgumentFieldIndexAt("
+require_function_text \
+    "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
+    "func SemanticAstNominalConstructorArgumentTypeAt(" \
+    "SemanticAstNominalConstructorArgumentFieldIndexAt("
+require_file "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_argument_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_argument_owner.pgy" 100
+require_text "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_argument_owner.pgy" \
+    "func SemanticExpressionGraphNominalConstructorArgumentFactFromGraph("
+reject_text "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_argument_owner.pgy" \
+    'param_starts[constructor_index] + argument_index'
 reject_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
     'kind == NominalFieldKindObjectSlot()'
 reject_text "src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy" \
@@ -8914,6 +8926,14 @@ require_file "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" 160
 require_text "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" \
     "func SemanticExpressionGraphNominalConstructorCallFactFromGraph("
+require_function_text \
+    "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" \
+    "func SemanticExpressionGraphNominalConstructorCallFactFromGraph(" \
+    "SemanticExpressionGraphNominalConstructorArgumentFactFromGraph("
+require_function_text \
+    "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
+    "func SemanticAstExpressionCallErrorFromGraph(" \
+    "SemanticExpressionGraphNominalConstructorCallFactFromGraph("
 reject_text "src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy" \
     "maximum_argument_count:"
 require_function_text \

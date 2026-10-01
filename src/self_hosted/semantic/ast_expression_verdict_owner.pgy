@@ -39,6 +39,11 @@ func SemanticAstExpressionCallErrorFromGraph(
     member_root_names: Array<String>,
     current_function_node_id: Int
 ) -> String {
+    let nominal: SemanticExpressionGraphNominalConstructorCallFact =
+        SemanticExpressionGraphNominalConstructorCallFactFromGraph(
+            graph, root_id, constructors, signatures, names, types,
+            function_names, function_returns);
+    if nominal.applies { return nominal.diagnostic_message; }
     let generic: SemanticExpressionGraphGenericCallFact =
         SemanticExpressionGraphGenericCallFactFromGraph(
             graph, root_id, signatures, constructors, names, types,
@@ -186,6 +191,7 @@ func SemanticAstExpressionCallTreeErrorFromGraphNode(
         );
     }
     let kind: Int = UnwrapOption(kind_fact);
+    let call_error: String = "";
     if AstExpressionNodeIsCallSpine(kind) && !inside_call_spine {
         let wrapper: SemanticExpressionGraphWrapperValueFact =
             SemanticExpressionGraphWrapperValueFactFromGraph(
@@ -196,14 +202,17 @@ func SemanticAstExpressionCallTreeErrorFromGraphNode(
             return wrapper.diagnostic_message;
         }
         if !wrapper.applies {
-            let call_error: String =
+            call_error =
                 SemanticAstExpressionCallErrorFromGraph(
                     graph, node_id,
                     constructors, enum_facts, signatures, names, types, modes,
                     function_names, function_returns, function_params,
                     member_root_names, current_function_node_id
                 );
-            if call_error != "" { return call_error; }
+            if call_error != "" {
+                let call_code: Option<String> = SemanticDiagnosticCodeFromMessage(call_error);
+                if !IsSome(call_code) || UnwrapOption(call_code) != "ast_artifact_invalid" { return call_error; }
+            }
         }
     }
     let arity: Int = AstExpressionNodeArity(kind);
@@ -237,14 +246,17 @@ func SemanticAstExpressionCallTreeErrorFromGraphNode(
                 "expression_graph_call_tree"
             );
         }
-        return SemanticAstExpressionCallTreeErrorFromGraphNode(
+        let right_error: String = SemanticAstExpressionCallTreeErrorFromGraphNode(
             graph, UnwrapOption(right), false,
             constructors, enum_facts, signatures, names, types, modes,
             function_names, function_returns, function_params,
             member_root_names, current_function_node_id
         );
+        if right_error != "" { return right_error; }
     }
-    return "";
+    // Diagnose a missing nested callee first, but retain this node's refusal
+    // when its children are valid. A parent Core need not revisit this call.
+    return call_error;
 }
 func SemanticAstExpressionVerdictFromGraphCore(
     expression: String,
@@ -408,7 +420,7 @@ func SemanticAstExpressionVerdictFromGraphCore(
     let nominal_constructor_call:
         SemanticExpressionGraphNominalConstructorCallFact =
         SemanticExpressionGraphNominalConstructorCallFactFromGraph(
-            graph, root_id, constructors, names, types,
+            graph, root_id, constructors, signatures, names, types,
             function_names, function_returns
         );
     if nominal_constructor_call.applies && !nominal_constructor_call.ok {

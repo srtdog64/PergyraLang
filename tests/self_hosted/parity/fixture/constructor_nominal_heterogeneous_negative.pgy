@@ -1,0 +1,8 @@
+struct Bag {
+    values: Array<Int>;
+}
+
+func Main() -> Void {
+    let bag: Bag = Bag([1, "x"]);
+    Log(ArrayLength(bag.values));
+}

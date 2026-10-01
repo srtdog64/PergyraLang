@@ -1,0 +1,65 @@
+// One admitted argument's canonical field identity and contextual type.
+// Identity is not an element-lifetime or descriptor-release permission.
+import "nominal_constructor_argument_policy_owner.pgy";
+import "ast_expression_graph_field_type_owner.pgy";
+import "ast_expression_graph_array_literal_owner.pgy";
+import "ast_expression_graph_set_literal_owner.pgy";
+
+struct SemanticExpressionGraphNominalConstructorArgumentFact {
+    ok: Bool;
+    assignable: Bool;
+    field_source_syntax_id: Int;
+    expected_type_name: String;
+    actual_type_name: String;
+}
+
+func SemanticExpressionGraphNominalConstructorArgumentFactFromGraph(
+    ref graph: SemanticExpressionGraphFacts, argument_node_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    constructor_index: Int, argument_index: Int,
+    names: Array<String>, types: Array<String>,
+    ref function_names: Array<String>, ref function_returns: Array<String>
+) -> SemanticExpressionGraphNominalConstructorArgumentFact {
+    let invalid: SemanticExpressionGraphNominalConstructorArgumentFact =
+        SemanticExpressionGraphNominalConstructorArgumentFact(false, false, 0, "", "");
+    let field: Option<Int> = SemanticAstNominalConstructorArgumentFieldIndexAt(
+        constructors, constructor_index, argument_index);
+    if !IsSome(field) || constructor_index >= ArrayLength(constructors.param_starts) {
+        return invalid;
+    }
+    let row: Int = constructors.param_starts[constructor_index] + UnwrapOption(field);
+    if row < 0 || row >= ArrayLength(constructors.field_source_syntax_ids) ||
+        row >= ArrayLength(constructors.param_type_names) ||
+        constructors.field_source_syntax_ids[row] <= 0 { return invalid; }
+    let expected: String = constructors.param_type_names[row];
+    if expected == "" || expected == "Unknown" { return invalid; }
+    let actual: Option<String> = SemanticExpressionGraphFieldValueTypeName(
+        graph, argument_node_id, constructors, names, types,
+        function_names, function_returns);
+    // The declared field contextualizes empty values; nonempty values retain
+    // their own type. The call owner consumes this same identity/type fact.
+    let array_view: SemanticArrayLiteralView =
+        SemanticArrayLiteralViewFromGraph(graph, argument_node_id);
+    let set_view: SemanticSetLiteralView =
+        SemanticSetLiteralViewFromGraph(graph, argument_node_id);
+    if set_view.ok {
+        actual = SemanticExpressionGraphSetLiteralTypeName(
+            graph, argument_node_id, constructors, names, types,
+            function_names, function_returns);
+    }
+    let empty: Bool =
+        (array_view.ok && ArrayLength(array_view.element_nodes) == 0) ||
+        (set_view.ok && ArrayLength(set_view.element_nodes) == 0);
+    if empty &&
+        (SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+            graph, argument_node_id, expected, constructors, names, types,
+            function_names, function_returns) ||
+         SemanticExpressionGraphSetLiteralMatchesDeclaredType(
+            graph, argument_node_id, expected, constructors, names, types,
+            function_names, function_returns)) { actual = Some(expected); }
+    if !IsSome(actual) { return invalid; }
+    return SemanticExpressionGraphNominalConstructorArgumentFact(
+        true, SemanticExpressionGraphFieldValueAssignableTo(
+            expected, UnwrapOption(actual), graph, argument_node_id),
+        constructors.field_source_syntax_ids[row], expected, UnwrapOption(actual));
+}

@@ -11,8 +11,11 @@ func SemanticAstNominalConstructorFieldIsArgument(
     constructor_index: Int,
     field_index: Int
 ) -> Bool {
-    if constructor_index < 0 ||
+    if !constructors.ok || constructor_index < 0 ||
         constructor_index >= SemanticAstNominalConstructorCount(constructors) ||
+        constructor_index >= ArrayLength(constructors.param_counts) ||
+        constructor_index >= ArrayLength(constructors.param_starts) ||
+        constructor_index >= ArrayLength(constructors.nominal_kinds) ||
         field_index < 0 ||
         field_index >= constructors.param_counts[constructor_index] {
         return false;
@@ -22,9 +25,9 @@ func SemanticAstNominalConstructorFieldIsArgument(
         nominal_kind != "effect" {
         return true;
     }
-    let kind: String = constructors.field_kinds[
-        constructors.param_starts[constructor_index] + field_index
-    ];
+    let row: Int = constructors.param_starts[constructor_index] + field_index;
+    if row < 0 || row >= ArrayLength(constructors.field_kinds) { return false; }
+    let kind: String = constructors.field_kinds[row];
     // A domain host receives identity-bearing subjects and explicit bindings.
     // object/tobject slots are projection products materialized by
     // refresh/publish; asking callers to construct them would create a
@@ -37,10 +40,24 @@ func SemanticAstNominalConstructorArgumentCountAt(
     ref constructors: SemanticAstNominalConstructorFacts,
     constructor_index: Int
 ) -> Option<Int> {
-    if constructor_index < 0 ||
-        constructor_index >= SemanticAstNominalConstructorCount(constructors) {
+    if !constructors.ok || constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(constructors) ||
+        constructor_index >= ArrayLength(constructors.param_counts) ||
+        constructor_index >= ArrayLength(constructors.param_starts) ||
+        constructor_index >= ArrayLength(constructors.nominal_kinds) ||
+        constructors.param_counts[constructor_index] < 0 {
         return None;
     }
+    let start: Int = constructors.param_starts[constructor_index];
+    let fields: Int = constructors.param_counts[constructor_index];
+    if start < 0 || start > ArrayLength(constructors.field_source_syntax_ids) ||
+        fields > ArrayLength(constructors.field_source_syntax_ids) - start {
+        return None;
+    }
+    let end: Int = start + fields;
+    if end > ArrayLength(constructors.field_names) ||
+        end > ArrayLength(constructors.field_kinds) ||
+        end > ArrayLength(constructors.param_type_names) { return None; }
     let count: Int = 0;
     let field_index: Int = 0;
     while field_index < constructors.param_counts[constructor_index] {
@@ -54,12 +71,15 @@ func SemanticAstNominalConstructorArgumentCountAt(
     return Some(count);
 }
 
-func SemanticAstNominalConstructorArgumentTypeAt(
+func SemanticAstNominalConstructorArgumentFieldIndexAt(
     ref constructors: SemanticAstNominalConstructorFacts,
     constructor_index: Int,
     argument_index: Int
-) -> Option<String> {
-    if argument_index < 0 { return None; }
+) -> Option<Int> {
+    let count: Option<Int> = SemanticAstNominalConstructorArgumentCountAt(
+        constructors, constructor_index);
+    if !IsSome(count) || argument_index < 0 ||
+        argument_index >= UnwrapOption(count) { return None; }
     let ordinal: Int = 0;
     let field_index: Int = 0;
     while field_index < constructors.param_counts[constructor_index] {
@@ -67,13 +87,22 @@ func SemanticAstNominalConstructorArgumentTypeAt(
             constructors, constructor_index, field_index
         ) {
             if ordinal == argument_index {
-                return Some(constructors.param_type_names[
-                    constructors.param_starts[constructor_index] + field_index
-                ]);
+                return Some(field_index);
             }
             ordinal = ordinal + 1;
         }
         field_index = field_index + 1;
     }
     return None;
+}
+
+func SemanticAstNominalConstructorArgumentTypeAt(
+    ref constructors: SemanticAstNominalConstructorFacts,
+    constructor_index: Int, argument_index: Int
+) -> Option<String> {
+    let field: Option<Int> = SemanticAstNominalConstructorArgumentFieldIndexAt(
+        constructors, constructor_index, argument_index);
+    if !IsSome(field) { return None; }
+    return Some(constructors.param_type_names[
+        constructors.param_starts[constructor_index] + UnwrapOption(field)]);
 }

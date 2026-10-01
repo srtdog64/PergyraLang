@@ -5065,9 +5065,13 @@ self-host-array-index-receiver-admission-test-smoke: self-host-compiler
 		"$(BASH)" tests/self_hosted/parity/array_mutation_receiver_use_contract.sh
 
 .PHONY: self-host-collection-ownership-semantic-test-smoke
-self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke
+self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke self-host-nominal-constructor-field-identity-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/collection_ownership_semantic_owner.sh
+
+.PHONY: self-host-nominal-constructor-field-identity-test-smoke
+self-host-nominal-constructor-field-identity-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/nominal_constructor_field_identity_owner.sh
 
 .PHONY: self-host-collection-ownership-fact-carrier-test-smoke
 self-host-collection-ownership-fact-carrier-test-smoke: self-host-compiler

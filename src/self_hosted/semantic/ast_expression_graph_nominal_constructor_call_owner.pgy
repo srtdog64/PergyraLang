@@ -7,9 +7,9 @@
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_graph_field_type_owner.pgy";
-import "ast_expression_graph_array_literal_owner.pgy";
-import "ast_expression_graph_set_literal_owner.pgy";
+import "ast_expression_graph_nominal_constructor_argument_owner.pgy";
 import "ast_nominal_constructor_lookup_owner.pgy";
+import "ast_expression_carried_callable_identity_owner.pgy";
 import "nominal_constructor_argument_policy_owner.pgy";
 import "diagnostic_owner.pgy";
 
@@ -20,12 +20,13 @@ struct SemanticExpressionGraphNominalConstructorCallFact {
     diagnostic_message: String;
     return_type_name: String;
     actual_argument_count: Int;
+    constructor_source_syntax_id: Int;
 }
 
 func SemanticExpressionGraphNominalConstructorCallNotApplicable(
 ) -> SemanticExpressionGraphNominalConstructorCallFact {
     return SemanticExpressionGraphNominalConstructorCallFact(
-        false, true, "", "", "", 0
+        false, true, "", "", "", 0, 0
     );
 }
 
@@ -36,7 +37,7 @@ func SemanticExpressionGraphNominalConstructorCallError(
 ) -> SemanticExpressionGraphNominalConstructorCallFact {
     return SemanticExpressionGraphNominalConstructorCallFact(
         true, false, code, message, "",
-        actual_argument_count
+        actual_argument_count, 0
     );
 }
 
@@ -44,6 +45,7 @@ func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
     ref function_names: Array<String>,
@@ -63,18 +65,44 @@ func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
     if !target.ok || target.kind != SemanticCallTargetDirect() {
         return SemanticExpressionGraphNominalConstructorCallNotApplicable();
     }
+    let binding: SemanticExpressionBindingIdentityFact =
+        SemanticExpressionGraphBindingIdentity(graph, call.callee_node);
+    let target_id: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(
+        graph, call.call_node);
+    let runtime_id: Option<Int> = SemanticExpressionGraphRuntimeCallAbiId(
+        graph, call.call_node);
+    if !binding.ok || binding.kind != SemanticExpressionBindingNone() ||
+        binding.syntax_id != 0 ||
+        !IsSome(target_id) || UnwrapOption(target_id) != 0 ||
+        !IsSome(runtime_id) || UnwrapOption(runtime_id) != 0 ||
+        SemanticAstCallableTypeShapeFromName(EnvLookup(names, types, target.name)).ok {
+        return SemanticExpressionGraphNominalConstructorCallNotApplicable();
+    }
     let constructor_index: Option<Int> =
         SemanticAstNominalConstructorIndexForName(constructors, target.name);
     if !IsSome(constructor_index) {
         return SemanticExpressionGraphNominalConstructorCallNotApplicable();
     }
     let index: Int = UnwrapOption(constructor_index);
+    // Initializer admission precedes identity sealing. Source signatures, not
+    // a not-yet-filled zero call ID, distinguish a declared function here.
+    let declared: Result<Int> = SemanticExpressionDeclaredFunctionSyntaxId(
+        signatures, target.name);
+    if !signatures.ok || IsErr(declared) {
+        return SemanticExpressionGraphNominalConstructorCallError(
+            "ast_artifact_invalid", SemanticError1("ast_artifact_invalid",
+                "owner", "nominal_constructor_callable_identity"),
+            ArrayLength(call.argument_nodes));
+    }
+    if Unwrap(declared) > 0 {
+        return SemanticExpressionGraphNominalConstructorCallNotApplicable();
+    }
     let maximum_opt: Option<Int> =
         SemanticAstNominalConstructorArgumentCountAt(
         constructors, index
     );
     let actual_count: Int = ArrayLength(call.argument_nodes);
-    if !IsSome(maximum_opt) {
+    if !IsSome(maximum_opt) || constructors.node_ids[index] <= 0 {
         return SemanticExpressionGraphNominalConstructorCallError(
             "ast_artifact_invalid",
             SemanticError1(
@@ -95,35 +123,11 @@ func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
     }
     let i: Int = 0;
     while i < actual_count {
-        let expected: Option<String> =
-            SemanticAstNominalConstructorArgumentTypeAt(
-                constructors, index, i
-            );
-        let actual: Option<String> = SemanticExpressionGraphFieldValueTypeName(
-            graph, call.argument_nodes[i], constructors, names, types,
-            function_names, function_returns
-        );
-        // The field type is the argument's storage site: an empty literal
-        // takes it, exactly as a call argument or an annotated let does. A
-        // non-empty literal keeps its own type and is checked below.
-        let array_view: SemanticArrayLiteralView =
-            SemanticArrayLiteralViewFromGraph(graph, call.argument_nodes[i]);
-        let set_view: SemanticSetLiteralView =
-            SemanticSetLiteralViewFromGraph(graph, call.argument_nodes[i]);
-        let empty_literal: Bool =
-            (array_view.ok && ArrayLength(array_view.element_nodes) == 0) ||
-            (set_view.ok && ArrayLength(set_view.element_nodes) == 0);
-        if IsSome(expected) && empty_literal &&
-            (SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
-                graph, call.argument_nodes[i], UnwrapOption(expected),
-                constructors, names, types, function_names, function_returns
-            ) || SemanticExpressionGraphSetLiteralMatchesDeclaredType(
-                graph, call.argument_nodes[i], UnwrapOption(expected),
-                constructors, names, types, function_names, function_returns
-            )) {
-            actual = expected;
-        }
-        if !IsSome(expected) || !IsSome(actual) {
+        let argument: SemanticExpressionGraphNominalConstructorArgumentFact =
+            SemanticExpressionGraphNominalConstructorArgumentFactFromGraph(
+                graph, call.argument_nodes[i], constructors, index, i,
+                names, types, function_names, function_returns);
+        if !argument.ok {
             return SemanticExpressionGraphNominalConstructorCallError(
                 "ast_artifact_invalid",
                 SemanticError3(
@@ -134,16 +138,13 @@ func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
                 ), actual_count
             );
         }
-        if !SemanticExpressionGraphFieldValueAssignableTo(
-            UnwrapOption(expected), UnwrapOption(actual),
-            graph, call.argument_nodes[i]
-        ) {
+        if !argument.assignable {
             return SemanticExpressionGraphNominalConstructorCallError(
                 "call_arg_type_mismatch",
                 SemanticError3(
                     "call_arg_type_mismatch", "func", target.name,
-                    "expected", UnwrapOption(expected),
-                    "actual", UnwrapOption(actual)
+                    "expected", argument.expected_type_name,
+                    "actual", argument.actual_type_name
                 ), actual_count
             );
         }
@@ -151,6 +152,6 @@ func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
     }
     return SemanticExpressionGraphNominalConstructorCallFact(
         true, true, "", "", constructors.return_type_names[index],
-        actual_count
+        actual_count, constructors.node_ids[index]
     );
 }

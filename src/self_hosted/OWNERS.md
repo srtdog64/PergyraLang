@@ -380,10 +380,16 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   second producer.
 - `src/self_hosted/semantic/nominal_constructor_argument_policy_owner.pgy` --
   semantic distinction between caller-supplied nominal constructor arguments
-  and domain storage fields that require a topology/runtime materializer.
+  and domain storage fields that require a topology/runtime materializer;
+  argument ordinals map to canonical storage-field indexes only here.
+- `src/self_hosted/semantic/ast_expression_graph_nominal_constructor_argument_owner.pgy`
+  -- one graph argument's contextual type and exact source field identity,
+  derived from admitted constructor rows; neither implies element lifetime.
 - `src/self_hosted/semantic/ast_expression_graph_nominal_constructor_call_owner.pgy`
   -- graph-owned nominal constructor prefix arity and argument-type verdicts;
-  ordinary function exact-arity policy is not a constructor fallback.
+  retains declaration identity; each admitted argument retains its field ID.
+  Ordinary function/formal callable
+  exact-arity policy is not a constructor fallback.
 - `src/self_hosted/semantic/ast_local_binding_fact_owner.pgy` -- artifact-bound
   local binding node, function, scope, name, declared-type, initializer
   payload, and per-name ordinal facts, including array-literal body and `Let`

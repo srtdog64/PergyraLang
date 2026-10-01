@@ -1,0 +1,13 @@
+struct Pair {
+    first: Int;
+    second: Int;
+}
+
+func Pair(first: Int, second: Int) -> Pair {
+    return Pair(first, second);
+}
+
+func Main() -> Void {
+    let value: Pair = Pair(1, 2);
+    Log(value.first);
+}
