@@ -3,6 +3,7 @@
 
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "direct_mir_scalar_program_runtime_abi_projection_owner.pgy";
+import "../codegen/runtime_abi/collection_bounds_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 
 func DirectMirScalarProgramLlvmOwnedStringArrayPushBlock() -> String { return Concat("define internal void @", Concat(CollectionRuntimeCOwnedStringPushFn(), "(ptr %array, ptr %value) {\nentry:\n  %source.length = call i64 @strlen(ptr %value)\n  %owned.size = add i64 %source.length, 1\n  %owned = call ptr @malloc(i64 %owned.size)\n  %copied = call ptr @memcpy(ptr %owned, ptr %value, i64 %owned.size)\n  call void @pgy_as_push(ptr %array, ptr %owned)\n  ret void\n}\n\n")); }
@@ -62,13 +63,19 @@ func DirectMirScalarProgramLlvmStringArrayAccessBlocks(
             "\n  ret i64 %length\n}\n\n")))));
     }
     if runtime.array_string_get.ok {
+        // Refuse the index before issuing an inbounds address, even when the
+        // general plan has no statically bounded induction fact.
         output = Concat(output, Concat("define internal ptr @",
             Concat(runtime.array_string_get.symbol,
-            Concat("(%pgy.array.string %array, i64 %index) {\nentry:\n  %data = extractvalue %pgy.array.string %array, ",
-            Concat(ToString(abi.data_index), Concat(
+            Concat("(%pgy.array.string %array, i64 %index) {\nentry:\n  %length = extractvalue %pgy.array.string %array, ",
+            Concat(ToString(abi.length_index),
+            "\n  %negative = icmp slt i64 %index, 0\n  %past.end = icmp sge i64 %index, %length\n  %invalid = or i1 %negative, %past.end\n  br i1 %invalid, label %panic, label %read\n\npanic:\n  call void @")))));
+        output = Concat(output, Concat(CollectionRuntimeLlvmBoundsPanicFn(),
+            "(ptr null)\n  unreachable\n\nread:\n  %data = extractvalue %pgy.array.string %array, "));
+        output = Concat(output, Concat(ToString(abi.data_index), Concat(
             "\n  %slot = getelementptr inbounds ptr, ptr %data, i64 %index\n  %value = load ptr, ptr %slot, align ",
             Concat(ToString(abi.element_align),
-            "\n  ret ptr %value\n}\n\n")))))));
+            "\n  ret ptr %value\n}\n\n"))));
     }
     return output;
 }

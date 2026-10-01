@@ -1,0 +1,62 @@
+// Derived execution obligations for bounds admission, not a constant optimizer.
+// Unknown Bool facts preserve both possible branches and the runtime guard.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+
+func DirectMirScalarProgramArrayIndexBooleanTruths(
+    ref expressions: DirectMirScalarProgramExpressionSet
+) -> Array<Int> {
+    let truths: Array<Int> = [];
+    let node: Int = 0;
+    while node < ArrayLength(expressions.node_kinds) {
+        let kind: Int = expressions.node_kinds[node];
+        let left: Int = expressions.node_lefts[node];
+        let right: Int = expressions.node_rights[node];
+        let truth: Int = 0;
+        if kind == DirectMirScalarProgramExprBoolLiteral() {
+            if expressions.node_literals[node] == "true" { truth = 1; }
+            else if expressions.node_literals[node] == "false" { truth = -1; }
+        } else if kind == DirectMirScalarProgramExprLogicalNot() && left >= 0 {
+            truth = 0 - truths[left];
+        } else if left >= 0 && right >= 0 && kind == DirectMirScalarProgramExprLogicalAnd() {
+            if truths[left] == -1 || truths[right] == -1 { truth = -1; }
+            else if truths[left] == 1 && truths[right] == 1 { truth = 1; }
+        } else if left >= 0 && right >= 0 && kind == DirectMirScalarProgramExprLogicalOr() {
+            if truths[left] == 1 || truths[right] == 1 { truth = 1; }
+            else if truths[left] == -1 && truths[right] == -1 { truth = -1; }
+        }
+        ArrayPush(truths, truth);
+        node = node + 1;
+    }
+    return truths;
+}
+
+func DirectMirScalarProgramArrayIndexExecutableBlocks(
+    ref plan: DirectMirScalarCfgGraphPlan, ref truths: Array<Int>
+) -> Array<Bool> {
+    let reachable: Array<Bool> = [];
+    let block: Int = 0;
+    while block < ArrayLength(plan.block_succ_true) {
+        ArrayPush(reachable, false); block = block + 1;
+    }
+    let pending: Array<Int> = [];
+    let routine: Int = 0;
+    // Every admitted routine can be a call target; use the same entry rows
+    // as the C/LLVM routine emitters, not only the program's Main routine.
+    while routine < ArrayLength(plan.routines.block_starts) {
+        ArrayPush(pending, plan.routines.block_starts[routine]);
+        routine = routine + 1;
+    }
+    while ArrayLength(pending) > 0 {
+        block = pending[ArrayLength(pending) - 1]; ArrayPop(pending);
+        if reachable[block] { continue; }
+        ArraySet(reachable, block, true);
+        let truth: Int = 0;
+        let expression: Int = plan.program.block_condition_expression_rows[block];
+        if expression >= 0 { truth = truths[plan.program.expressions.graph_roots[expression]]; }
+        let yes: Int = plan.block_succ_true[block];
+        let no: Int = plan.block_succ_false[block];
+        if yes >= 0 && (no < 0 || truth != -1) { ArrayPush(pending, yes); }
+        if no >= 0 && truth != 1 { ArrayPush(pending, no); }
+    }
+    return reachable;
+}

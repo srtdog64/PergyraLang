@@ -1,4 +1,4 @@
-"""Structured falsifiers for one while/read/static-set String-array plan."""
+"""Producer-derived falsifiers for one while/read/static-set String-array plan."""
 
 import copy
 import json

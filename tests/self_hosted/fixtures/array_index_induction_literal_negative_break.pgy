@@ -1,0 +1,12 @@
+// Literal negative assignment after the only read is not an invalid access.
+func Main() -> Void
+{
+    let values: Array<String> = ["zero", "one"];
+    let mut i: Int = 0;
+    while i < ArrayLength(values)
+    {
+        Log(values[i]);
+        i = -1;
+        break;
+    }
+}

@@ -3,6 +3,7 @@
 
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 import "direct_mir_scalar_cfg_array_c_materialization_owner.pgy";
+import "../codegen/runtime_abi/collection_bounds_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 
 func DirectMirScalarProgramCStringArrayOwnedSingleFn() -> String {
@@ -38,7 +39,11 @@ func DirectMirScalarProgramCStringArrayStorageBlock(
         "(const char *v) { pgy_as a = pgy_as_new(); ", Concat(
         CollectionRuntimeCPushFn(2), "(&a, v); return a; }\n")))));
     output = Concat(output,
-        "static long long pgy_as_len(pgy_as a) { return (long long)a.length; }\nstatic const char *pgy_as_get(pgy_as a, long long i) { return a.data[(size_t)i]; }\n");
+        "static long long pgy_as_len(pgy_as a) { return (long long)a.length; }\n#include \"pgy_runtime_panic_contract.h\"\n");
+    // General expressions do not carry the legacy induction proof; every
+    // indexed read retains the canonical runtime failure boundary.
+    output = Concat(output, CollectionRuntimeCGuardedGetWithLength(
+        "const char *", CollectionRuntimeCGetFn(2), type_name, "length"));
     output = Concat(output, Concat("static void ", Concat(
         CollectionRuntimeCOwnedStringDropFn(),
         "(pgy_as *a) { if (a == NULL) return; for (size_t i = 0; i < a->length; i++) free((void *)a->data[i]); free(a->data); a->data = NULL; a->length = 0; a->capacity = 0; }\n\n")));

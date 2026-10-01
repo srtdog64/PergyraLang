@@ -1,0 +1,90 @@
+// A definite negative induction on an upper-only length guard is rejected.
+// Other flows retain the canonical runtime bounds obligation, not a guessed proof.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_cfg_while_induction_owner.pgy";
+
+func DirectMirScalarProgramArrayIndexHasNegativeInduction(
+    ref plan: DirectMirScalarCfgGraphPlan, index_local: Int,
+    collection_local: Int, access_block: Int, access_operation: Int, known_extent: Int
+) -> Bool {
+    // An exposed or length-changing collection has no immutable extent proof;
+    // calls can also change the index through a composed inout boundary.
+    if access_operation < 0 || known_extent < 0 { return false; }
+    let phi: Int = -1; let definitions: Int = 0;
+    let operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        let result: Int = plan.operation_result_values[operation];
+        if result >= 0 && plan.value_local_rows[result] == index_local {
+            definitions = definitions + 1;
+            if plan.operation_kinds[operation] == DirectMirScalarCfgOpPhiInt() {
+                if phi >= 0 { return false; }
+                phi = operation;
+            }
+        }
+        operation = operation + 1;
+    }
+    if phi < 0 || definitions != 3 || plan.operation_phi_counts[phi] != 2 { return false; }
+    let phi_value: Int = plan.operation_result_values[phi];
+    let guard: Int = plan.value_definition_blocks[phi_value];
+    if guard < 0 || plan.block_succ_true[guard] != access_block { return false; }
+    let expression: Int = plan.program.block_condition_expression_rows[guard];
+    if expression < 0 { return false; }
+    let root: Int = plan.program.expressions.graph_roots[expression];
+    if plan.program.expressions.node_kinds[root] != DirectMirScalarProgramExprLessInt() { return false; }
+    let left: Int = plan.program.expressions.node_lefts[root];
+    let right: Int = plan.program.expressions.node_rights[root];
+    if left < 0 || right < 0 || plan.program.expressions.node_kinds[left] != DirectMirScalarProgramExprLocal() ||
+            plan.program.expressions.node_local_rows[left] != index_local ||
+            plan.program.expressions.node_kinds[right] != DirectMirScalarProgramExprArrayStringLength() { return false; }
+    let receiver: Int = plan.program.expressions.node_lefts[right];
+    if receiver < 0 || plan.program.expressions.node_kinds[receiver] != DirectMirScalarProgramExprLocal() ||
+            plan.program.expressions.node_local_rows[receiver] != collection_local { return false; }
+    let negative_init: Bool = false; let zero_init: Bool = false;
+    let negative_step: Bool = false;
+    let init_count: Int = 0; let step_count: Int = 0;
+    let incoming: Int = 0;
+    while incoming < plan.operation_phi_counts[phi] {
+        let incoming_row: Int = plan.operation_phi_starts[phi] + incoming;
+        let value: Int = plan.phi_incoming_values[incoming_row];
+        let predecessor: Int = plan.phi_predecessor_blocks[incoming_row];
+        operation = DirectMirScalarCfgResultOperation(plan, value);
+        if operation < 0 || plan.value_local_rows[value] != index_local ||
+                plan.operation_kinds[operation] != DirectMirScalarCfgOpExpressionDefinition() { return false; }
+        expression = plan.program.operation_expression_rows[operation];
+        if expression < 0 { return false; }
+        root = plan.program.expressions.graph_roots[expression];
+        let kind: Int = plan.program.expressions.node_kinds[root];
+        if kind == DirectMirScalarProgramExprIntLiteral() {
+            if predecessor == access_block || plan.value_definition_blocks[value] == access_block { return false; }
+            init_count = init_count + 1;
+            let literal: String = plan.program.expressions.node_literals[root];
+            negative_init = ToInt(literal) < 0; zero_init = literal == "0";
+        } else if kind == DirectMirScalarProgramExprAddInt() || kind == DirectMirScalarProgramExprSubtractInt() {
+            // The read must observe the phi, not a body update already executed.
+            if predecessor != access_block || plan.value_definition_blocks[value] != access_block ||
+                    operation <= access_operation { return false; }
+            step_count = step_count + 1;
+            left = plan.program.expressions.node_lefts[root];
+            right = plan.program.expressions.node_rights[root];
+            if left < 0 || right < 0 || plan.program.expressions.node_kinds[left] != DirectMirScalarProgramExprLocal() ||
+                    plan.program.expressions.node_local_rows[left] != index_local ||
+                    plan.program.expressions.node_kinds[right] != DirectMirScalarProgramExprIntLiteral() { return false; }
+            let step: Int = ToInt(plan.program.expressions.node_literals[right]);
+            negative_step = (kind == DirectMirScalarProgramExprAddInt() && step < 0) ||
+                (kind == DirectMirScalarProgramExprSubtractInt() && step > 0);
+        } else { return false; }
+        incoming = incoming + 1;
+    }
+    if init_count != 1 || step_count != 1 { return false; }
+    if negative_init { return true; }
+    // A decreasing body with an intervening break/branch need not read again.
+    if !zero_init || !negative_step || known_extent <= 0 ||
+            plan.block_succ_true[access_block] != guard || plan.block_succ_false[access_block] >= 0 { return false; }
+    operation = plan.block_operation_starts[access_block];
+    let end: Int = operation + plan.block_operation_counts[access_block];
+    while operation < end {
+        if plan.operation_kinds[operation] == DirectMirScalarCfgOpProcessExit() { return false; }
+        operation = operation + 1;
+    }
+    return true;
+}

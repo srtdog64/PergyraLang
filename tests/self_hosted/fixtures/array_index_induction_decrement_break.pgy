@@ -1,0 +1,12 @@
+// The negative next value cannot reach another read because the loop exits.
+func Main() -> Void
+{
+    let values: Array<String> = ["zero", "one"];
+    let mut i: Int = 0;
+    while i < ArrayLength(values)
+    {
+        Log(values[i]);
+        i = i - 1;
+        break;
+    }
+}

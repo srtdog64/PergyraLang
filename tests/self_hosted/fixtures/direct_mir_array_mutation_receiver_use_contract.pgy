@@ -1,0 +1,15 @@
+// Mutation receivers carry the latest ValueId for one exact local declaration.
+func Main() -> Void {
+    let mut values: Array<Int> = [1, 2];
+    let other: Array<Int> = [7, 8];
+    let marker: Int = 5;
+    values = [3, 4];
+    ArrayPush(values, values[0] + 1);
+    ArraySet(values, values[0] - 3, values[1] + 1);
+    ArrayPop(values);
+    Log(values[0]);
+    Log(values[1]);
+    Log(ArrayLength(values));
+    Log(other[0]);
+    Log(marker);
+}

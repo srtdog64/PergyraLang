@@ -1,0 +1,55 @@
+// Joins a local mutation receiver's carried ValueId to its exact LocalRef.
+import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "direct_mir_scalar_cfg_scoped_match_binding_operand_owner.pgy";
+
+func DirectMirScalarProgramArrayMutationReceiverUseReady(
+    ref uses: MirRoutineInstructionUseFacts, ref index: MirRoutineFactIndex,
+    ref locals: DirectMirScalarCfgLocalRefPlan,
+    ref types: DirectMirScalarCfgValueTypePlan,
+    ref wire: DirectMirScalarCfgWireLocalRefs,
+    ref target: DirectMirScalarProgramArrayMutationTarget,
+    global_row: Int, local_instruction: Int
+) -> Bool {
+    let local_row: Int = target.local_row;
+    if !target.valid || target.parameter_ordinal != -1 || !locals.valid ||
+        !types.valid || !wire.valid || !wire.required || local_row < 0 ||
+        local_row >= ArrayLength(locals.local_ref_value_ids) ||
+        local_row >= ArrayLength(types.local_types) || local_instruction < 0 ||
+        local_instruction >= ArrayLength(wire.primary_refs) ||
+        wire.primary_refs[local_instruction] !=
+            locals.local_ref_value_ids[local_row] { return false; }
+    let receiver: Option<String> =
+        MirRoutineInstructionUseAtGlobal(uses, global_row, 0);
+    if !IsSome(receiver) { return false; }
+    let value: Int = DirectMirScalarCfgGraphValueRow(
+        locals.value_names, UnwrapOption(receiver));
+    if value < 0 || value >= ArrayLength(locals.value_local_rows) ||
+        value >= ArrayLength(types.value_types) ||
+        locals.value_local_rows[value] != local_row ||
+        types.value_types[value] != types.local_types[local_row] {
+        return false;
+    }
+    let operand: DirectMirScalarCfgLeafOperand =
+        DirectMirScalarCfgLeafOperand(true, value, -1, 1);
+    let block: Int =
+        DirectMirScalarCfgInstructionBlockAt(index, local_instruction);
+    return DirectMirScalarCfgLeafOperandLatestValueReady(
+        index, locals, operand, local_instruction, block);
+}
+
+// Pop has no value/index lane after the local receiver or parameter identity.
+func DirectMirScalarProgramArrayPopReceiverShapeReady(
+    ref instruction: JsonObjectFactTable,
+    ref uses: MirRoutineInstructionUseFacts,
+    global_row: Int, expected_receiver_uses: Int
+) -> Bool {
+    if expected_receiver_uses != 0 && expected_receiver_uses != 1 {
+        return false;
+    }
+    let graph0: Option<String> = JsonObjectFactValueKind(instruction, "expr0_graph");
+    let graph1: Option<String> = JsonObjectFactValueKind(instruction, "expr1_graph");
+    return IsSome(graph0) && UnwrapOption(graph0) == "null" &&
+        IsSome(graph1) && UnwrapOption(graph1) == "null" &&
+        MirRoutineInstructionUseCountAtGlobal(uses, global_row) ==
+            expected_receiver_uses;
+}

@@ -1,0 +1,15 @@
+// Constant short-circuit skips both invalid RHS accesses; neither is executed.
+func Main() -> Void
+{
+    let names: Array<String> = ["ok"];
+    Log(false && names[1] == "x");
+    Log(true || names[-1] == "x");
+    Log(!true && names[1] == "x");
+    Log(!false || names[-1] == "x");
+    if false
+    {
+        Log(names[1]);
+        Log(names[-1]);
+    }
+    Log("short-circuit-ready");
+}

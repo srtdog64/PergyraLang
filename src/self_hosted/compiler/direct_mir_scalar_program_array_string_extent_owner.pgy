@@ -1,0 +1,66 @@
+// Derived immutable literal extents, valid only when no owner can change length.
+// -1 means a runtime bounds obligation, never an inferred zero-length array.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_array_string_literal_readiness_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+
+func DirectMirScalarProgramImmutableStringArrayExtents(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Array<Int> {
+    let counts: Array<Int> = [];
+    let definitions: Array<Int> = [];
+    let local_row: Int = 0;
+    while local_row < ArrayLength(plan.local_types) {
+        ArrayPush(counts, -1); ArrayPush(definitions, 0);
+        local_row = local_row + 1;
+    }
+    let operation: Int = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        let result: Int = plan.operation_result_values[operation];
+        if result >= 0 && plan.value_types[result] == "Array<String>" {
+            local_row = plan.value_local_rows[result];
+            if local_row >= 0 {
+                ArraySet(definitions, local_row, definitions[local_row] + 1);
+                let expression: Int = plan.program.operation_expression_rows[operation];
+                if plan.operation_kinds[operation] == DirectMirScalarCfgOpExpressionDefinition() && expression >= 0 {
+                    let root: Int = plan.program.expressions.graph_roots[expression];
+                    if plan.program.expressions.node_kinds[root] == DirectMirScalarProgramExprArrayStringLiteral() {
+                        ArraySet(counts, local_row, ArrayLength(DirectMirScalarProgramArrayStringLiteralOperandRows(
+                            plan.program.expressions, root)));
+                    }
+                }
+            }
+        }
+        operation = operation + 1;
+    }
+    // Any call can expose local storage through a composed value; no alias guess.
+    let exposed: Bool = false;
+    let node: Int = 0;
+    while node < ArrayLength(plan.program.expressions.node_kinds) {
+        let kind: Int = plan.program.expressions.node_kinds[node];
+        if kind == DirectMirScalarProgramExprDirectCall() || kind == DirectMirScalarProgramExprDeclaredCallable() ||
+                kind == DirectMirScalarProgramExprCallableParameterCall() { exposed = true; }
+        if kind == DirectMirScalarProgramExprArrayStringPushOwned() || kind == DirectMirScalarProgramExprArrayStringDropOwned() {
+            let left: Int = plan.program.expressions.node_lefts[node];
+            if left >= 0 && plan.program.expressions.node_kinds[left] == DirectMirScalarProgramExprLocal() {
+                ArraySet(definitions, plan.program.expressions.node_local_rows[left], 2);
+            }
+        }
+        node = node + 1;
+    }
+    operation = 0;
+    while operation < ArrayLength(plan.operation_kinds) {
+        local_row = plan.operation_left_locals[operation];
+        if local_row >= 0 && (DirectMirScalarProgramArrayPushKind(plan.operation_kinds[operation]) ||
+                DirectMirScalarProgramArrayPopKind(plan.operation_kinds[operation])) {
+            ArraySet(definitions, local_row, 2);
+        }
+        operation = operation + 1;
+    }
+    local_row = 0;
+    while local_row < ArrayLength(counts) {
+        if exposed || definitions[local_row] != 1 { ArraySet(counts, local_row, -1); }
+        local_row = local_row + 1;
+    }
+    return counts;
+}

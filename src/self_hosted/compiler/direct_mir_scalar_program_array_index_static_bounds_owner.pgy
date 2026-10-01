@@ -1,0 +1,93 @@
+// Target-neutral refusal of provably invalid String-array read/set indices.
+// Unknown cardinality is explicit: both target projections must guard it at runtime.
+import "direct_mir_scalar_program_array_string_extent_owner.pgy";
+import "direct_mir_scalar_program_array_index_induction_owner.pgy";
+import "direct_mir_scalar_program_array_index_execution_owner.pgy";
+
+func DirectMirScalarProgramArrayIndexLiteralReady(
+    ref plan: DirectMirScalarCfgGraphPlan, node: Int, extent: Int
+) -> Bool {
+    if plan.program.expressions.node_kinds[node] != DirectMirScalarProgramExprIntLiteral() { return true; }
+    let index: Int = ToInt(plan.program.expressions.node_literals[node]);
+    return index >= 0 && (extent < 0 || index < extent);
+}
+
+func DirectMirScalarProgramArrayIndexExpressionReady(
+    ref plan: DirectMirScalarCfgGraphPlan, expression: Int, block: Int, operation: Int,
+    ref extents: Array<Int>, ref truths: Array<Int>
+) -> Bool {
+    if expression < 0 { return true; }
+    let start: Int = plan.program.expressions.graph_starts[expression];
+    let count: Int = plan.program.expressions.graph_counts[expression];
+    let visited: Array<Bool> = [];
+    let row: Int = 0;
+    while row < count { ArrayPush(visited, false); row = row + 1; }
+    let pending: Array<Int> = [plan.program.expressions.graph_roots[expression]];
+    while ArrayLength(pending) > 0 {
+        let node: Int = pending[ArrayLength(pending) - 1];
+        ArrayPop(pending);
+        if node < start || node >= start + count { return false; }
+        if visited[node - start] { continue; }
+        ArraySet(visited, node - start, true);
+        let kind: Int = plan.program.expressions.node_kinds[node];
+        if kind == DirectMirScalarProgramExprArrayStringIndex() {
+            let left: Int = plan.program.expressions.node_lefts[node];
+            let right: Int = plan.program.expressions.node_rights[node];
+            let local_row: Int = -1; let extent: Int = -1;
+            if plan.program.expressions.node_kinds[left] == DirectMirScalarProgramExprLocal() {
+                local_row = plan.program.expressions.node_local_rows[left]; extent = extents[local_row];
+            }
+            if !DirectMirScalarProgramArrayIndexLiteralReady(plan, right, extent) { return false; }
+            if local_row >= 0 && plan.program.expressions.node_kinds[right] == DirectMirScalarProgramExprLocal() &&
+                    DirectMirScalarProgramArrayIndexHasNegativeInduction(plan,
+                        plan.program.expressions.node_local_rows[right], local_row, block, operation, extent) { return false; }
+        }
+        let left: Int = plan.program.expressions.node_lefts[node];
+        let right: Int = plan.program.expressions.node_rights[node];
+        if left >= 0 { ArrayPush(pending, left); }
+        // A provably non-executed RHS has no bounds obligation.
+        let skip_right: Bool = left >= 0 &&
+            ((kind == DirectMirScalarProgramExprLogicalAnd() && truths[left] == -1) ||
+                (kind == DirectMirScalarProgramExprLogicalOr() && truths[left] == 1));
+        if right >= 0 && !skip_right { ArrayPush(pending, right); }
+        let operands: Array<Int> = DirectMirScalarProgramNaryOperandRows(
+            plan.program.expressions.nary_operands, node);
+        row = 0;
+        while row < ArrayLength(operands) { ArrayPush(pending, operands[row]); row = row + 1; }
+    }
+    return true;
+}
+
+func DirectMirScalarProgramArrayIndexStaticBoundsReady(
+    ref plan: DirectMirScalarCfgGraphPlan
+) -> Bool {
+    let extents: Array<Int> = DirectMirScalarProgramImmutableStringArrayExtents(plan);
+    let truths: Array<Int> = DirectMirScalarProgramArrayIndexBooleanTruths(plan.program.expressions);
+    let reachable: Array<Bool> = DirectMirScalarProgramArrayIndexExecutableBlocks(plan, truths);
+    let block: Int = 0;
+    while block < ArrayLength(plan.block_succ_true) {
+        if !reachable[block] { block = block + 1; continue; }
+        if !DirectMirScalarProgramArrayIndexExpressionReady(plan,
+                plan.program.block_condition_expression_rows[block], block, -1, extents, truths) ||
+            !DirectMirScalarProgramArrayIndexExpressionReady(plan,
+                plan.program.block_return_expression_rows[block], block, -1, extents, truths) { return false; }
+        let operation: Int = plan.block_operation_starts[block];
+        let end: Int = operation + plan.block_operation_counts[block];
+        while operation < end {
+            if !DirectMirScalarProgramArrayIndexExpressionReady(plan,
+                    plan.program.operation_expression_rows[operation], block, operation, extents, truths) ||
+                !DirectMirScalarProgramArrayIndexExpressionReady(plan,
+                    plan.program.operation_secondary_expression_rows[operation], block, operation, extents, truths) { return false; }
+            if plan.operation_kinds[operation] == DirectMirScalarCfgOpArrayStringSet() {
+                let expression: Int = plan.program.operation_secondary_expression_rows[operation];
+                let extent: Int = -1; let local_row: Int = plan.operation_left_locals[operation];
+                if local_row >= 0 { extent = extents[local_row]; }
+                if expression < 0 || !DirectMirScalarProgramArrayIndexLiteralReady(plan,
+                        plan.program.expressions.graph_roots[expression], extent) { return false; }
+            }
+            operation = operation + 1;
+        }
+        block = block + 1;
+    }
+    return true;
+}

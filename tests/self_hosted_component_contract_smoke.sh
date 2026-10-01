@@ -28566,6 +28566,36 @@ reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy" \
     'func DirectMirScalarProgramArrayStringValueResultParameter('
 
+# Inventory only: executable receiver/index admission is owned by its parity gate.
+require_file "tests/self_hosted/parity/array_mutation_receiver_use_contract.sh"
+require_file "tests/self_hosted/parity/array_mutation_receiver_use_mutations.py"
+require_file "tests/self_hosted/parity/one_mir_string_array_emitted_contract.py"
+require_file "tests/self_hosted/parity/one_mir_string_array_execution_contract.sh"
+require_max_lines "tests/self_hosted/parity/one_mir_string_array_emitted_contract.py" 110
+require_max_lines "tests/self_hosted/parity/one_mir_string_array_execution_contract.sh" 50
+require_max_lines "tests/self_hosted/parity/array_mutation_receiver_use_contract.sh" 230
+require_max_lines "tests/self_hosted/parity/array_mutation_receiver_use_mutations.py" 220
+require_text "Makefile" "self-host-array-index-receiver-admission-test-smoke"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_extension_readiness_owner.pgy" \
+    'func DirectMirScalarCfgProgramExtensionReadinessCode(' \
+    'DirectMirScalarProgramArrayIndexStaticBoundsReady(plan)'
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_statement_admission_owner.pgy" \
+    'func DirectMirScalarCfgProgramAppendStatement(' \
+    'DirectMirScalarProgramArrayMutationReceiverUseReady('
+require_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_c_array_string_storage_materialization_owner.pgy" \
+    'CollectionRuntimeCGuardedGetWithLength('
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_array_string_storage_materialization_owner.pgy" \
+    'func DirectMirScalarProgramLlvmStringArrayAccessBlocks(' \
+    'CollectionRuntimeLlvmBoundsPanicFn()'
+for index_receiver_owner in array_string_extent array_index_induction array_index_static_bounds array_mutation_receiver_use array_index_execution; do
+    reject_text "src/self_hosted/compiler/direct_mir_scalar_program_${index_receiver_owner}_owner.pgy" 'source_json'
+    reject_text "src/self_hosted/compiler/direct_mir_scalar_program_${index_receiver_owner}_owner.pgy" 'ExprSequenceItem'
+done
+
 echo "[self-host-component-contract] checkpoint: checking line caps"
 run_line_cap_checks
 run_regex_scope_checks

@@ -2,6 +2,7 @@
 import "direct_mir_scalar_cfg_program_array_mutation_storage_owner.pgy";
 import "direct_mir_scalar_cfg_program_instruction_expression_owner.pgy";
 import "direct_mir_scalar_program_array_mutation_target_owner.pgy";
+import "direct_mir_scalar_program_array_mutation_receiver_use_owner.pgy";
 import "direct_mir_instruction_abi_absence_owner.pgy";
 
 struct DirectMirScalarCfgProgramStatementAdmission {
@@ -76,15 +77,16 @@ func DirectMirScalarCfgProgramAppendStatement(operations: DirectMirScalarCfgProg
         operation_kind = target.operation_kind;
         expected_type = target.element_type;
         if target.local_row >= 0 {
+            if !DirectMirScalarProgramArrayMutationReceiverUseReady(
+                    uses, index, locals, types, wire, target,
+                    global_row, local_instruction) { return invalid; }
             target_local = target.local_row + local_offset;
             use_offset = 1;
         }
         target_parameter = target.parameter_ordinal;
         if DirectMirScalarProgramArrayPopKind(operation_kind) {
-            if JsonObjectFactObjectTable(instruction, "expr0_graph").valid ||
-                JsonObjectFactObjectTable(instruction, "expr1_graph").valid {
-                return invalid;
-            }
+            if !DirectMirScalarProgramArrayPopReceiverShapeReady(
+                instruction, uses, global_row, use_offset) { return invalid; }
             operations = DirectMirScalarCfgProgramOperationsAppendArrayMutation(
                 operations, operation_kind, target_local, target_parameter,
                 -1, -1);

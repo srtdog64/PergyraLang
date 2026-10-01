@@ -14,6 +14,7 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
     if !array_int_runtime.valid { Die("direct MIR LLVM Array<Int> runtime requirement is invalid"); }
     let slice_any: Bool = DirectMirScalarProgramSliceAnyReached(plan.program.expressions);
     let slice_copy: Bool = DirectMirScalarProgramSliceCopyReached(plan.program.expressions);
+    let string_array_storage: Bool = DirectMirScalarProgramArrayStringAbiFactReady(plan.program.array_string_abi);
     let collection: Bool =
         plan.program.runtime_abi.string_contains_id != 0 ||
         plan.program.runtime_abi.string_split_id != 0 ||
@@ -23,8 +24,7 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
         plan.program.runtime_abi.array_string_get_id != 0 ||
         plan.program.runtime_abi.process_args_id != 0 ||
         plan.program.runtime_abi.dir_walk_id != 0 ||
-        DirectMirScalarProgramArrayStringAbiFactReady(
-            plan.program.array_string_abi) || array_int_runtime.push ||
+        string_array_storage || array_int_runtime.push ||
         DirectMirScalarProgramArrayBoolPushRequired(plan.operation_kinds) ||
         DirectMirScalarProgramExpressionContainsKind(plan.program.expressions, DirectMirScalarProgramExprArrayDropStorage()) ||
         DirectMirScalarProgramLogicalRecordArrayMutationRequired(plan.operation_kinds) || slice_any;
@@ -120,7 +120,8 @@ func DirectMirScalarCfgLlvmForeignDeclarations(ref plan: DirectMirScalarCfgGraph
     if collection { output = Concat(output, "declare ptr @realloc(ptr, i64)\ndeclare void @free(ptr)\n"); }
     if collection || plan.program.runtime_abi.string_length_id != 0 || plan.program.logical_record.present || slice_any { output = Concat(output, "declare void @abort()\n"); }
     output = Concat(output, DirectMirScalarProgramLlvmInternalInvariantPanicDeclarations(plan));
-    if scalar_array_index || bounded_array_set || slice_any || DirectMirScalarProgramExpressionContainsKind(
+    // Storage materialization includes get even without a source-level read.
+    if scalar_array_index || string_array_storage || bounded_array_set || slice_any || DirectMirScalarProgramExpressionContainsKind(
             plan.program.expressions, DirectMirScalarProgramExprArrayLongIndex()) {
         output = Concat(output, Concat("declare void @", Concat(
             CollectionRuntimeLlvmBoundsPanicFn(), "(ptr)\n"))); }
