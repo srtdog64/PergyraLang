@@ -86,7 +86,7 @@ func DirectMirScalarProgramLlvmStringCollectionMaterialization(
             DirectMirScalarProgramLlvmProcessArgsBlock(plan, runtime, abi));
     }
     output = Concat(output,
-        DirectMirScalarProgramLlvmDirWalkBlock(plan, runtime));
+            DirectMirScalarProgramLlvmDirWalkBlock(plan, runtime, projection_opt));
     output = Concat(output,
         DirectMirScalarProgramLlvmFileExistsBlock(plan, runtime));
     output = Concat(output,

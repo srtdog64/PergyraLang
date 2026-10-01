@@ -282,21 +282,6 @@ func DirectMirScalarProgramArrayStringValueResultAt(
     return false;
 }
 
-func DirectMirScalarProgramArrayStringValueResultParameter(
-    ref fact: DirectMirScalarProgramArrayStringAbiFact, routine: Int
-) -> Int {
-    let found: Int = -1;
-    let row: Int = 0;
-    while row < ArrayLength(fact.value_result_routine_ordinals) {
-        if fact.value_result_routine_ordinals[row] == routine {
-            if found >= 0 { return -1; }
-            found = fact.value_result_parameter_ordinals[row];
-        }
-        row = row + 1;
-    }
-    return found;
-}
-
 func DirectMirScalarProgramArrayStringAbiRequired(
     ref expressions: DirectMirScalarProgramExpressionSet
 ) -> Bool {

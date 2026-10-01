@@ -1,16 +1,55 @@
 // C spelling for one admitted array storage layout.
 
+import "direct_mir_array_storage_c_assertion_owner.pgy";
+
 func DirectMirScalarCfgArrayCStruct(
-    element_type: String, length_type: String, array_type: String
+    element_type: String, array_type: String,
+    ref storage: DirectMirArrayStorageAbiProjection
 ) -> String {
-    let output: String = "typedef struct {\n    ";
-    output = Concat(output, element_type);
-    output = Concat(output, " *data;\n    ");
-    output = Concat(output, length_type);
-    output = Concat(output, " length;\n    ");
-    output = Concat(output, length_type);
-    output = Concat(output, " capacity;\n    void *allocator;\n} ");
-    return Concat(output, Concat(array_type, ";\n"));
+    if !DirectMirArrayStorageAbiProjectionReadyFor(
+            storage, CompilerTargetCpuCProjection()) ||
+        element_type == "" || array_type == "" {
+        Die("direct MIR Array C materialization projection is invalid");
+    }
+    let fields: Array<String> = Split(storage.c_field_order, ",");
+    let output: String = "typedef struct {\n";
+    let row: Int = 0;
+    while row < ArrayLength(fields) {
+        let field: String = fields[row];
+        output = Concat(output, "    ");
+        if field == storage.data_field {
+            output = Concat(output, Concat(element_type, " *"));
+        } else if field == storage.length_field ||
+                field == storage.capacity_field {
+            output = Concat(output, Concat(storage.c_length_type, " "));
+        } else if field == storage.allocator_field {
+            output = Concat(output, "void *");
+        } else { Die("direct MIR Array C field projection is invalid"); }
+        output = Concat(output, Concat(field, ";\n"));
+        row = row + 1;
+    }
+    output = Concat(output, Concat("} ", Concat(array_type, ";\n")));
+    return Concat(output, DirectMirArrayStorageCAssertionBlock(
+        storage, array_type));
+}
+
+func DirectMirScalarCfgArrayCInitializer(
+    ref storage: DirectMirArrayStorageAbiProjection,
+    data: String, length: String, capacity: String, allocator: String
+) -> String {
+    if !DirectMirArrayStorageAbiProjectionReadyFor(
+            storage, CompilerTargetCpuCProjection()) || data == "" ||
+        length == "" || capacity == "" || allocator == "" {
+        Die("direct MIR Array C initialization projection is invalid");
+    }
+    let output: String = Concat("{.", storage.data_field);
+    output = Concat(output, Concat(" = ", data));
+    output = Concat(output, Concat(", .", storage.length_field));
+    output = Concat(output, Concat(" = ", length));
+    output = Concat(output, Concat(", .", storage.capacity_field));
+    output = Concat(output, Concat(" = ", capacity));
+    output = Concat(output, Concat(", .", storage.allocator_field));
+    return Concat(output, Concat(" = ", Concat(allocator, "}")));
 }
 
 func DirectMirScalarCfgArrayStringCElementList(

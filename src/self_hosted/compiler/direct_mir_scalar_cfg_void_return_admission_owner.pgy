@@ -1,0 +1,49 @@
+// One terminal-return contract shared by program and legacy scalar CFG routes.
+// Void does not erase operands, uses, physical ABI, or a successor edge.
+import "direct_mir_instruction_abi_absence_owner.pgy";
+import "../mir_lower/routine_instruction_use_fact_owner.pgy";
+
+func DirectMirScalarCfgTerminalReturnShapeReady(
+    ref index: MirRoutineFactIndex,
+    ref capture: MirRoutineInstructionScalarCapture,
+    block: Int, instruction_row: Int
+) -> Bool {
+    return index.valid && capture.valid && block >= 0 &&
+        block < ArrayLength(index.block_instruction_counts) &&
+        instruction_row >= 0 && instruction_row + 1 ==
+            index.block_instruction_counts[block] &&
+        index.block_succ_true[block] < 0 &&
+        index.block_succ_false[block] < 0 &&
+        capture.name == "return" &&
+        capture.result == "" && capture.arg0 == "" && capture.arg1 == "";
+}
+
+func DirectMirScalarCfgVoidReturnReady(
+    ref index: MirRoutineFactIndex,
+    ref uses: MirRoutineInstructionUseFacts,
+    ref instruction: JsonObjectFactTable,
+    ref capture: MirRoutineInstructionScalarCapture,
+    global_row: Int, block: Int, instruction_row: Int,
+    source: String, return_type: String
+) -> Bool {
+    if return_type != "Void" ||
+        !DirectMirScalarCfgTerminalReturnShapeReady(
+            index, capture, block, instruction_row) {
+        return false;
+    }
+    // Scalar captures intentionally omit dispatch metadata. The caller carries
+    // source from the admitted routine index, never from a guessed capture.
+    let public_void: Bool = source == "AST_RETURN_VOID" &&
+        capture.abi_type_name == "";
+    let native_void: Bool = source == "" &&
+        capture.abi_type_name == "Void";
+    let graph0: Option<String> = JsonObjectFactValueKind(instruction, "expr0_graph");
+    let graph1: Option<String> = JsonObjectFactValueKind(instruction, "expr1_graph");
+    return (public_void || native_void) && capture.expr0 == "" &&
+        capture.expr1 == "" &&
+        DirectMirInstructionHasNoPhysicalAbi(
+            instruction.json, capture, capture.abi_type_name) &&
+        IsSome(graph0) && UnwrapOption(graph0) == "null" &&
+        IsSome(graph1) && UnwrapOption(graph1) == "null" &&
+        MirRoutineInstructionUseCountAtGlobal(uses, global_row) == 0;
+}

@@ -1,0 +1,54 @@
+// Bounded scalar-CFG admission of canonical self-produced borrowed rows.
+import "abi_layout_row_owner.pgy";
+import "../mir_lower/routine_fact_index_owner.pgy";
+import "../mir_lower/collection_ownership_fact_owner.pgy";
+
+func DirectMirScalarCfgBorrowedCollectionFactsReady(
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    if !index.valid || !index.collection_ownership_facts.valid ||
+        index.declared_source_local_count < 0 ||
+        index.declared_source_local_count >
+            ArrayLength(index.source_local_types) ||
+        ArrayLength(index.source_local_binding_syntax_ids) !=
+            ArrayLength(index.source_local_types) {
+        return false;
+    }
+    let collection_count: Int = 0;
+    let local_row: Int = 0;
+    while local_row < index.declared_source_local_count {
+        if index.source_local_types[local_row] ==
+                CompilerAbiLayoutArrayStringTypeName() {
+            let binding_id: Int =
+                index.source_local_binding_syntax_ids[local_row];
+            let fact_row: Int = MirCollectionOwnershipLocalRow(
+                index.collection_ownership_facts.binding_syntax_ids,
+                binding_id);
+            if binding_id <= 0 ||
+                MirCollectionOwnershipLocalRow(
+                    index.source_local_binding_syntax_ids,
+                    binding_id) != local_row || fact_row < 0 {
+                return false;
+            }
+            // The semantic owner preserves the declaration origin for this
+            // literal subset. Do not substitute a guessed AST literal ID.
+            if index.collection_ownership_facts.origin_syntax_ids[
+                    fact_row] != binding_id ||
+                index.collection_ownership_facts.source_binding_syntax_ids[
+                    fact_row] != 0 ||
+                index.collection_ownership_facts.element_ownerships[
+                    fact_row] != "borrowed-elements" ||
+                index.collection_ownership_facts.dispositions[
+                    fact_row] != "live" ||
+                index.collection_ownership_facts.origins[
+                    fact_row] != "borrowed-literal" {
+                return false;
+            }
+            collection_count = collection_count + 1;
+        }
+        local_row = local_row + 1;
+    }
+    // A valid empty family table is not a proof for a declared String array.
+    return collection_count == ArrayLength(
+        index.collection_ownership_facts.binding_syntax_ids);
+}

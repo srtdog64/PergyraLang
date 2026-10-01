@@ -33,7 +33,7 @@ func DirectMirScalarCfgForEachTypedCPreamble(
                 );
             output = Concat(output, "\n");
             output = Concat(output, DirectMirScalarCfgArrayCStruct(
-                abi.c_element_type, abi.c_length_type, abi.c_array_type
+                abi.c_element_type, abi.c_array_type, abi.storage
             ));
             int_seen = true;
         } else if type_name == CompilerAbiLayoutStringTypeName() &&
@@ -46,7 +46,7 @@ func DirectMirScalarCfgForEachTypedCPreamble(
                 );
             output = Concat(output, "\n");
             output = Concat(output, DirectMirScalarCfgArrayCStruct(
-                abi.c_element_type, abi.c_length_type, abi.c_array_type
+                abi.c_element_type, abi.c_array_type, abi.storage
             ));
             string_seen = true;
         }
@@ -71,6 +71,8 @@ func DirectMirScalarCfgForEachTypedCDeclarations(
         let element_type: String = ""; let length_type: String = "";
         let array_type: String = ""; let element_list: String = "";
         let element_count: Int = ArrayLength(fact.elements);
+        let initializer: String = "";
+        let data: String = Concat("pgy_foreach_storage_", ToString(row));
         if type_name == CompilerAbiLayoutIntTypeName() {
             let abi: DirectMirArrayIntAbiProjection =
                 DirectMirArrayIntAbiProjectionFromCanonicalLayout(
@@ -81,6 +83,8 @@ func DirectMirScalarCfgForEachTypedCDeclarations(
             element_type = abi.c_element_type; length_type = abi.c_length_type;
             array_type = abi.c_array_type;
             element_list = DirectMirArrayIntCElementList(fact.elements);
+            initializer = DirectMirScalarCfgArrayCInitializer(abi.storage,
+                data, ToString(element_count), ToString(element_count), "NULL");
         } else if type_name == CompilerAbiLayoutStringTypeName() {
             let abi: DirectMirArrayStringAbiProjection =
                 DirectMirArrayStringAbiProjectionFromCanonicalLayout(
@@ -95,6 +99,8 @@ func DirectMirScalarCfgForEachTypedCDeclarations(
             element_type = abi.c_element_type; length_type = abi.c_length_type;
             array_type = abi.c_array_type;
             element_list = DirectMirScalarCfgArrayStringCElementList(strings);
+            initializer = DirectMirScalarCfgArrayCInitializer(abi.storage,
+                data, ToString(element_count), ToString(element_count), "NULL");
         } else { Die("direct MIR scalar CFG foreach C element type is invalid"); }
         let storage_row: Int = DirectMirScalarCfgForEachStorageRow(
             plan.foreach_iterations, row
@@ -109,11 +115,8 @@ func DirectMirScalarCfgForEachTypedCDeclarations(
             output = Concat(output, array_type);
             output = Concat(output, " pgy_foreach_collection_");
             output = Concat(output, ToString(row));
-            output = Concat(output, " = {pgy_foreach_storage_");
-            output = Concat(output, ToString(row));
-            output = Concat(output, Concat(", ", ToString(element_count)));
-            output = Concat(output, Concat(", ", ToString(element_count)));
-            output = Concat(output, ", NULL};\n");
+            output = Concat(output, Concat(" = ", initializer));
+            output = Concat(output, ";\n");
         }
         output = Concat(output, Concat("    ", length_type));
         output = Concat(output, " pgy_foreach_cursor_");

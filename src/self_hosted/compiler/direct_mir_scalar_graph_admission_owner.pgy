@@ -68,29 +68,9 @@ func DirectMirObjectNumberEquals(
     return IsSome(value_opt) && UnwrapOption(value_opt) == expected;
 }
 
-func DirectMirRoutineHasNoUnsupportedFacts(
-    ref routine: JsonObjectFactTable) -> Bool {
-    return DirectMirObjectArrayEmpty(routine, "generics") &&
-        DirectMirObjectArrayEmpty(routine, "params") &&
-        !JsonObjectFactHasField(routine, "function_param_flow_summary_count") &&
-        !JsonObjectFactHasField(routine, "function_param_flow_summaries") &&
-        DirectMirObjectArrayEmpty(routine, "resource_flow_symbols") &&
-        DirectMirObjectArrayEmpty(routine, "loop_flow_summaries") &&
-        DirectMirObjectArrayEmpty(routine, "loop_flow_states") &&
-        DirectMirObjectArrayEmpty(routine, "iteration_type_facts") &&
-        DirectMirObjectArrayEmpty(routine, "destructure_type_facts") &&
-        DirectMirObjectArrayEmpty(routine, "collection_ownership_facts") &&
-        DirectMirObjectNumberEquals(routine, "resource_flow_symbol_count", "0") &&
-        DirectMirObjectNumberEquals(routine, "loop_flow_summary_count", "0") &&
-        DirectMirObjectNumberEquals(routine, "loop_flow_state_count", "0") &&
-        DirectMirObjectNumberEquals(routine, "iteration_type_fact_count", "0") &&
-        DirectMirObjectNumberEquals(routine, "destructure_type_fact_count", "0") &&
-        DirectMirObjectNumberEquals(
-            routine, "collection_ownership_fact_count", "0"
-        );
-}
-
-func DirectMirRoutineHasNoUnsupportedFactsExceptLoop(
+// Collection admission belongs to the route; this shared frontier never
+// discards or grants permission for an owned lifetime row.
+func DirectMirRoutineHasNoUnsupportedMetadataExceptLoop(
     ref routine: JsonObjectFactTable
 ) -> Bool {
     return DirectMirObjectArrayEmpty(routine, "generics") &&
@@ -99,14 +79,29 @@ func DirectMirRoutineHasNoUnsupportedFactsExceptLoop(
         !JsonObjectFactHasField(routine, "function_param_flow_summaries") &&
         DirectMirObjectArrayEmpty(routine, "resource_flow_symbols") &&
         DirectMirObjectArrayEmpty(routine, "destructure_type_facts") &&
+        DirectMirObjectNumberEquals(routine, "resource_flow_symbol_count", "0") &&
+        DirectMirObjectNumberEquals(routine, "destructure_type_fact_count", "0");
+}
+
+func DirectMirRoutineHasNoUnsupportedFactsExceptLoop(
+    ref routine: JsonObjectFactTable
+) -> Bool {
+    return DirectMirRoutineHasNoUnsupportedMetadataExceptLoop(routine) &&
         DirectMirObjectArrayEmpty(routine, "collection_ownership_facts") &&
         DirectMirObjectNumberEquals(
-            routine, "resource_flow_symbol_count", "0"
-        ) && DirectMirObjectNumberEquals(
-            routine, "destructure_type_fact_count", "0"
-        ) && DirectMirObjectNumberEquals(
             routine, "collection_ownership_fact_count", "0"
         );
+}
+
+func DirectMirRoutineHasNoUnsupportedFacts(
+    ref routine: JsonObjectFactTable) -> Bool {
+    return DirectMirRoutineHasNoUnsupportedFactsExceptLoop(routine) &&
+        DirectMirObjectArrayEmpty(routine, "loop_flow_summaries") &&
+        DirectMirObjectArrayEmpty(routine, "loop_flow_states") &&
+        DirectMirObjectArrayEmpty(routine, "iteration_type_facts") &&
+        DirectMirObjectNumberEquals(routine, "loop_flow_summary_count", "0") &&
+        DirectMirObjectNumberEquals(routine, "loop_flow_state_count", "0") &&
+        DirectMirObjectNumberEquals(routine, "iteration_type_fact_count", "0");
 }
 
 func DirectMirAsciiLiteralContent(literal: String) -> Option<String> {

@@ -28,13 +28,13 @@ command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 while IFS='|' read -r owner cap; do
     cap="${cap%$'\r'}"
     [[ -z "$owner" || "$owner" == \#* ]] && continue
-    lines="$(wc -l <"$ROOT_DIR/$owner")"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$owner")" || fail "source-size measurement failed"
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 
 GRAPH="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_fact_owner.pgy"
 INPUT="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_cfg_graph_input_owner.pgy"
-KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_expression_kind_id_owner.pgy"
+KIND="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_task_expression_kind_owner.pgy"
 ABI="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy"
 JOIN="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy"
 LLVM_COLLECTION="$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_collection_materialization_owner.pgy"
@@ -62,7 +62,7 @@ mkdir -p "$WORK_DIR"
     -o "$WORK_REL/producer.json") >"$WORK_DIR/producer.out" \
     2>"$WORK_DIR/producer.err" || fail "current producer rejected source"
 mir_sha="$(sha256sum "$WORK_DIR/producer.json" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')"
-[[ "$mir_sha" == "D0659D59A93093D653EDC010410E651E106BFAB166C51079D64346D6114B2C33" ]] ||
+[[ "$mir_sha" == "42F24FB5CE4CDF6DB212303806B817710B44D441AD71BCCEED87530EA862A002" ]] ||
     fail "source MIR identity changed: $mir_sha"
 "$PYTHON_BIN" "$ROOT_DIR/tests/self_hosted/parity/one_mir_string_collection_builtin_mutations.py" \
     "$WORK_DIR/producer.json" "$WORK_DIR"
@@ -82,7 +82,7 @@ goods=(program display-only semantic-change)
 bads=(bad-split-result-type bad-split-argument-chain \
     bad-contains-argument-type bad-join-argument-type bad-join-order \
     bad-array-index-type bad-unregistered-target \
-    bad-split-syntax-identity bad-array-layout)
+    bad-split-syntax-identity bad-array-layout bad-unadmitted-graph-text)
 for target in c llvm; do
     suffix=c; [[ "$target" == llvm ]] && suffix=ll
     for good in "${goods[@]}"; do

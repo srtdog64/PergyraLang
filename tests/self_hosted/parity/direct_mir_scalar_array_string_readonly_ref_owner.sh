@@ -111,7 +111,8 @@ for backend in c llvm; do
             fail "LLVM signature omitted the read-only Array<String> pointer"
         grep -Fq '= load %pgy.array.string, ptr %pgy.param.0, align 8' "$artifact" ||
             fail "LLVM parameter read omitted the array load"
-        grep -Eq 'call i1 @pgy\.scalar\.routine\.[0-9]+\(ptr %pgy\.param\.0, ptr %pgy\.param\.1\)' "$artifact" ||
+        # The array pointer must be forwarded unchanged; String is a loaded SSA value.
+        grep -Eq 'call i1 @pgy\.scalar\.routine\.[0-9]+\(ptr %pgy\.param\.0, ptr %[A-Za-z0-9_.]+\)' "$artifact" ||
             fail "LLVM forwarding call rebuilt the read-only array"
         command=("$CLANG" -x ir "$artifact" -x none "$runtime_obj" \
             -pthread -lm -o "$bin")

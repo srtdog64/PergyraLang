@@ -20,7 +20,7 @@ func DirectMirScalarCfgStringArrayCPreamble(
     return Concat(
         "#include <stdint.h>\n#include <stddef.h>\n",
         DirectMirScalarCfgArrayCStruct(
-            abi.c_element_type, abi.c_length_type, abi.c_array_type
+            abi.c_element_type, abi.c_array_type, abi.storage
         )
     );
 }
@@ -59,13 +59,12 @@ func DirectMirScalarCfgStringArrayCDeclarations(
         }
         output = Concat(output, Concat("    ", abi.c_array_type));
         output = Concat(output, " pgy_indexed_collection_");
-        output = Concat(output, Concat(ToString(row), " = {") );
-        if capacity > 0 { output = Concat(output,
-            Concat("pgy_indexed_storage_", ToString(row))); }
-        else { output = Concat(output, "NULL"); }
-        output = Concat(output, Concat(", ", ToString(initial)));
-        output = Concat(output, Concat(", ", ToString(capacity)));
-        output = Concat(output, ", NULL};\n");
+        output = Concat(output, Concat(ToString(row), " = "));
+        let data: String = "NULL";
+        if capacity > 0 { data = Concat("pgy_indexed_storage_", ToString(row)); }
+        output = Concat(output, DirectMirScalarCfgArrayCInitializer(
+            abi.storage, data, ToString(initial), ToString(capacity), "NULL"));
+        output = Concat(output, ";\n");
         row = row + 1;
     }
     return output;

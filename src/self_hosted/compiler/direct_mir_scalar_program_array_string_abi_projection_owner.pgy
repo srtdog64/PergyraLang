@@ -16,6 +16,18 @@ func DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
         projection.storage.capacity_offset == fact.capacity_offset &&
         projection.storage.allocator_offset == fact.allocator_offset;
 }
+func DirectMirScalarProgramLlvmArrayStringStorageProjection(
+    ref fact: DirectMirScalarProgramArrayStringAbiFact,
+    projection_opt: Option<DirectMirArrayStringAbiProjection>, context: String
+) -> DirectMirArrayStringAbiProjection {
+    if !IsSome(projection_opt) { Die(context + " Array<String> projection is missing"); }
+    let projection: DirectMirArrayStringAbiProjection = UnwrapOption(projection_opt);
+    if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+            fact, projection, CompilerTargetCpuLlvmProjection()) {
+        Die(context + " Array<String> projection drifted");
+    }
+    return projection;
+}
 func DirectMirScalarProgramCArrayStringCarrierType(
     ref fact: DirectMirScalarProgramArrayStringAbiFact,
     ref projection: DirectMirArrayStringAbiProjection

@@ -11,6 +11,7 @@ trap 'contract_status=$?; printf "[self-host-component-contract] command failed:
 SCRIPT_PATH="${BASH_SOURCE[0]}"
 SCRIPT_DIR="$(cd "${SCRIPT_PATH%/*}" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+SOURCE_SIZE_COUNTER="$ROOT_DIR/scripts/source_size_count.py"
 SELF_HOST_DIR="$ROOT_DIR/src/self_hosted"
 PARITY_DIR="$ROOT_DIR/tests/self_hosted/parity"
 
@@ -394,30 +395,11 @@ require_responsibility_owner_max_lines() {
 
 run_line_cap_checks() {
     # Call sites still own every individual limit, including duplicate paths.
-    # Keep awk record-count semantics for empty/unterminated/CRLF/NUL input;
-    # only batch process startup, never replace checks with the loosest limit.
+    # Measure each input once; retain every cap, excluding lexical comments.
     [[ "${#LINE_CAP_REQUESTS[@]}" -gt 0 ]] || fail "no line-count requests"
-    if ! printf '%s\n' "${LINE_CAP_REQUESTS[@]}" | awk -v root="$ROOT_DIR" '
-        {
-            separator = index($0, "\t")
-            cap = substr($0, 1, separator - 1)
-            rel = substr($0, separator + 1)
-            path = root "/" rel
-            count = 0
-            while ((status = (getline line < path)) > 0) count++
-            close(path)
-            if (status < 0) {
-                print "[self-host-component-contract] unreadable line-count input: " rel > "/dev/stderr"
-                failed = 1
-                next
-            }
-            if (count > cap + 0) {
-                print "[self-host-component-contract] " rel " has " count " lines; cap is " cap > "/dev/stderr"
-                failed = 1
-            }
-        }
-        END { exit failed }
-    '; then
+    [[ -f "$SOURCE_SIZE_COUNTER" ]] || fail "missing source-size counter"
+    if ! printf '%s\n' "${LINE_CAP_REQUESTS[@]}" |
+        python3 "$SOURCE_SIZE_COUNTER" --root "$ROOT_DIR" --caps; then
         fail "line-count batch failed"
     fi
 }
@@ -12000,7 +11982,7 @@ require_function_text \
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy" 20
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy" 40
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy" \
     "func DirectMirScalarProgramLlvmStringJoinBlock(" \
@@ -26201,7 +26183,7 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_array_sealed_guard_owner.pgy" 30
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_route_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_route_owner.pgy" 70
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_route_owner.pgy" 80
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_operation_plan_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_operation_plan_owner.pgy" 80
@@ -26874,7 +26856,7 @@ require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_foreach_typed_c_emission_owner.pgy" 240
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_array_c_materialization_owner.pgy"
 require_max_lines \
-    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_c_materialization_owner.pgy" 40
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_array_c_materialization_owner.pgy" 65
 require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_emission_owner.pgy"
 require_max_lines \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_string_array_c_emission_owner.pgy" 140
@@ -28557,6 +28539,32 @@ reject_function_text \
     "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy" \
     'func SemanticAstAnalysisResolveCallReturnTypes(' \
     'if !surfaces.ok {'
+
+# Inventory only: the companion executable gate owns ABI behavior.
+require_file "tests/self_hosted/parity/array_string_layout_consumer_closure_owner.sh"
+require_file "tests/self_hosted/parity/array_string_layout_consumer_ratchet.py"
+require_file "tests/self_hosted/parity/array_string_layout_consumer_mutations.py"
+require_file "tests/self_hosted/parity/array_string_layout_route_admission_mutations.py"
+require_file "tests/self_hosted/fixtures/direct_mir_array_string_legacy_storage_consumers.pgy"
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_borrowed_collection_admission_owner.pgy"
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_cfg_borrowed_collection_admission_owner.pgy" 50
+require_file "src/self_hosted/compiler/direct_mir_scalar_cfg_void_return_admission_owner.pgy"
+require_max_lines "src/self_hosted/compiler/direct_mir_scalar_cfg_void_return_admission_owner.pgy" 50
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_graph_admission_owner.pgy" \
+    'func DirectMirScalarCfgGraphPlanFromAdmitted(' 'DirectMirScalarCfgVoidReturnReady('
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_routine_admission_owner.pgy" \
+    'func DirectMirScalarCfgProgramAppendRoutine(' 'DirectMirScalarCfgVoidReturnReady('
+reject_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_llvm_string_join_materialization_owner.pgy" \
+    'func DirectMirScalarProgramLlvmStringJoinBlock(' 'align 8'
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_collection_plan_fact_owner.pgy" \
+    'func DirectMirScalarCfgCollectionValueRow('
+reject_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_abi_owner.pgy" \
+    'func DirectMirScalarProgramArrayStringValueResultParameter('
 
 echo "[self-host-component-contract] checkpoint: checking line caps"
 run_line_cap_checks

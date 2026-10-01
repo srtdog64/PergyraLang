@@ -1,6 +1,8 @@
 // C projection for Slice expressions already sealed in the GraphPlan.
 
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
+import "direct_mir_scalar_cfg_array_c_materialization_owner.pgy";
 import "../codegen/runtime_abi/slice_runtime_owner.pgy";
 
 func DirectMirScalarProgramCSliceRuntimeFact(
@@ -131,7 +133,9 @@ func DirectMirScalarProgramCSliceExpression(
 }
 
 func DirectMirScalarProgramCSlicePreamble(
-    ref expressions: DirectMirScalarProgramExpressionSet
+    ref expressions: DirectMirScalarProgramExpressionSet,
+    ref array_string_abi: DirectMirScalarProgramArrayStringAbiFact,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>
 ) -> String {
     let int_reached: Bool = false;
     let string_reached: Bool = false;
@@ -180,21 +184,35 @@ func DirectMirScalarProgramCSlicePreamble(
         output = output + SliceRuntimeCBlockForFact(
             fact, "length", "(pgy_ai){NULL, 0, 0, NULL}");
     }
-    if string_reached {
+    if string_reached || string_clone_reached {
+        if !IsSome(array_string_projection) {
+            Die("direct MIR C Slice Array<String> projection is missing");
+        }
+        let projection: DirectMirArrayStringAbiProjection =
+            UnwrapOption(array_string_projection);
+        let type_name: String = DirectMirScalarProgramCArrayStringCarrierType(
+            array_string_abi, projection);
         let fact: SliceRuntimeFact = DirectMirScalarProgramCSliceRuntimeFact(
             CompilerAbiLayoutSliceStringTypeName());
-        output = output + SliceRuntimeCBlockForFact(
-            fact, "length", "(pgy_as){NULL, 0, 0, NULL}");
+        fact.c_array_type = type_name;
+        if string_reached {
+            // The borrowed Slice keeps its own layout. Only the copied Array
+            // descriptor is initialized from the admitted storage projection.
+            let empty: String = DirectMirScalarCfgArrayCInitializer(
+                projection.storage, "NULL", "0", "0", "NULL");
+            let empty_array: String = Concat("(", Concat(type_name,
+                Concat(")", empty)));
+            output = output + SliceRuntimeCBlockForFact(
+                fact, projection.storage.length_field, empty_array);
+        }
+        if string_clone_reached {
+            output = output + DirectMirScalarProgramCArrayCloneBlock(fact);
+        }
     }
     if int_clone_reached {
         output = output + DirectMirScalarProgramCArrayCloneBlock(
             DirectMirScalarProgramCSliceRuntimeFact(
                 CompilerAbiLayoutSliceIntTypeName()));
-    }
-    if string_clone_reached {
-        output = output + DirectMirScalarProgramCArrayCloneBlock(
-            DirectMirScalarProgramCSliceRuntimeFact(
-                CompilerAbiLayoutSliceStringTypeName()));
     }
     return output;
 }

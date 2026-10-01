@@ -30,7 +30,7 @@ func DirectMirScalarCfgCollectionPlanCPreamble(
                         plan.collections.values.allocator_offsets[row]
                     );
                 output = Concat(output, DirectMirScalarCfgArrayCStruct(
-                    abi.c_element_type, abi.c_length_type, abi.c_array_type
+                    abi.c_element_type, abi.c_array_type, abi.storage
                 ));
                 int_emitted = true;
             } else if plan.collections.values.element_types[row] ==
@@ -46,7 +46,7 @@ func DirectMirScalarCfgCollectionPlanCPreamble(
                         plan.collections.values.allocator_offsets[row]
                     );
                 output = Concat(output, DirectMirScalarCfgArrayCStruct(
-                    abi.c_element_type, abi.c_length_type, abi.c_array_type
+                    abi.c_element_type, abi.c_array_type, abi.storage
                 ));
                 string_emitted = true;
             }
@@ -68,6 +68,8 @@ func DirectMirScalarCfgCollectionPlanCDeclarations(
                 plan.collections.values.initial_element_counts[row];
             let element_type: String = "";
             let array_type: String = "";
+            let initializer: String = "";
+            let data: String = Concat("pgy_collection_storage_", ToString(row));
             if plan.collections.values.element_types[row] == "Int" {
                 let abi: DirectMirArrayIntAbiProjection =
                     DirectMirArrayIntAbiProjectionFromCanonicalLayout(
@@ -80,7 +82,9 @@ func DirectMirScalarCfgCollectionPlanCDeclarations(
                         plan.collections.values.allocator_offsets[row]
                     );
                 element_type = abi.c_element_type; array_type = abi.c_array_type;
-            } else {
+                initializer = DirectMirScalarCfgArrayCInitializer(abi.storage,
+                    data, ToString(length), ToString(length), "NULL");
+            } else if plan.collections.values.element_types[row] == "String" {
                 let abi: DirectMirArrayStringAbiProjection =
                     DirectMirArrayStringAbiProjectionFromCanonicalLayout(
                         target, plan.collections.values.abi_layout_ids[row],
@@ -92,7 +96,9 @@ func DirectMirScalarCfgCollectionPlanCDeclarations(
                         plan.collections.values.allocator_offsets[row]
                     );
                 element_type = abi.c_element_type; array_type = abi.c_array_type;
-            }
+                initializer = DirectMirScalarCfgArrayCInitializer(abi.storage,
+                    data, ToString(length), ToString(length), "NULL");
+            } else { Die("direct MIR C collection element type is invalid"); }
             output = Concat(output, Concat("    ", element_type));
             output = Concat(output, Concat(" pgy_collection_storage_",
                 Concat(ToString(row), Concat("[", ToString(length)))));
@@ -121,11 +127,9 @@ func DirectMirScalarCfgCollectionPlanCDeclarations(
             }
             output = Concat(output, "};\n    ");
             output = Concat(output, Concat(array_type,
-                Concat(" pgy_collection_", Concat(ToString(row), " = {"))));
-            output = Concat(output, Concat("pgy_collection_storage_",
-                Concat(ToString(row), Concat(", ", ToString(length)))));
-            output = Concat(output, Concat(", ", ToString(length)));
-            output = Concat(output, ", NULL};\n");
+                Concat(" pgy_collection_", Concat(ToString(row), " = "))));
+            output = Concat(output, initializer);
+            output = Concat(output, ";\n");
         }
         row = row + 1;
     }

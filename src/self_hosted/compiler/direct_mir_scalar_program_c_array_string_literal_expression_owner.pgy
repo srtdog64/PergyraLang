@@ -29,8 +29,10 @@ func DirectMirScalarProgramCArrayStringLiteralExpression(
             Concat("(", Concat(values[0], ")"))));
     }
     if ArrayLength(values) == 0 {
+        let empty: String = DirectMirScalarCfgArrayCInitializer(
+            projection.storage, "NULL", "0", "0", "NULL");
         return Some(Concat("((", Concat(type_name,
-            "){NULL, 0, 0, NULL})")));
+            Concat(")", Concat(empty, ")")))));
     }
     let output: String = Concat(
         DirectMirScalarProgramCStringArrayValuesFn(), "((const char *[]){");

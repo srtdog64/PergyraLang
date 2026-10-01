@@ -40,7 +40,7 @@ func DirectMirScalarCfgEmitLlvmCollectionOperation(
         }
         return DirectMirScalarCfgLlvmCollectionOperationEmission(
             true, DirectMirScalarCfgStringArrayLlvmLengthLog(
-                plan, operation, formatted_print
+                plan, target, operation, formatted_print
             )
         );
     }

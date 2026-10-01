@@ -19,6 +19,7 @@ import "direct_mir_scalar_program_return_expression_abi_owner.pgy";
 import "direct_mir_scalar_program_indexed_assignment_fact_owner.pgy";
 import "direct_mir_scalar_program_logical_record_member_rebind_owner.pgy";
 import "direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy";
+import "direct_mir_scalar_cfg_void_return_admission_owner.pgy";
 struct DirectMirScalarCfgProgramRoutineAdmission {
     let valid: Bool;
     let storage: DirectMirScalarCfgProgramGraphStorage;
@@ -338,25 +339,15 @@ func DirectMirScalarCfgProgramAppendRoutine(
                     condition_row = UnwrapOption(condition_row_opt);
                 }
             } else if kind == "return" {
-                if instruction_row + 1 !=
-                        input.index.block_instruction_counts[block] ||
-                    input.index.block_succ_true[block] >= 0 ||
-                    input.index.block_succ_false[block] >= 0 ||
-                    capture.name != "return" || capture.result != "" ||
-                    capture.arg0 != "" || capture.arg1 != "" {
+                if !DirectMirScalarCfgTerminalReturnShapeReady(
+                        input.index, capture, block, instruction_row) {
                     DirectMirScalarCfgProgramRoutineAdmissionFailed("return_shape", routine_ordinal, block, global_row, source); return invalid;
                 }
                 if signature.return_type == "Void" {
-                    let public_void: Bool = source == "AST_RETURN_VOID" &&
-                        capture.abi_type_name == "";
-                    let native_void: Bool = source == "" &&
-                        capture.abi_type_name == "Void";
-                    if (!public_void && !native_void) || capture.expr0 != "" ||
-                        capture.expr1 != "" ||
-                        !DirectMirInstructionHasNoPhysicalAbi(instruction.json, capture, capture.abi_type_name) ||
-                        JsonObjectFactObjectTable(instruction, "expr0_graph").valid ||
-                        JsonObjectFactObjectTable(instruction, "expr1_graph").valid ||
-                        MirRoutineInstructionUseCountAtGlobal(input.use_facts, global_row) != 0 {
+                    if !DirectMirScalarCfgVoidReturnReady(
+                            input.index, input.use_facts, instruction, capture,
+                            global_row, block, instruction_row,
+                            source, signature.return_type) {
                         DirectMirScalarCfgProgramRoutineAdmissionFailed("void_return", routine_ordinal, block, global_row, source); return invalid;
                     }
                     return_row =

@@ -9,6 +9,30 @@ import "../mir_lower/routine_fact_index_owner.pgy";
 import "../mir_lower/routine_instruction_match_fact_owner.pgy";
 import "../mir_lower/routine_instruction_use_fact_owner.pgy";
 
+func DirectMirOptionMatchCfgRouteClaimed(
+    ref admitted: MirMachineLayerAdmittedJsonInput
+) -> Bool {
+    if !MirProgramRoutineIndexRowReady(admitted.routines, 0) ||
+        MirProgramRoutineIndexCount(admitted.routines) != 1 ||
+        admitted.routines.routine_block_counts[0] != 7 {
+        return false;
+    }
+    let matches: MirRoutineInstructionMatchFacts =
+        BuildMirRoutineInstructionMatchFacts(admitted.routines, 0);
+    if !MirRoutineInstructionMatchFactsReady(
+            matches, ArrayLength(matches.row_valid)) { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(matches.row_valid) {
+        // Claim carried match intent only. The certificate still owns exact
+        // Option variant/type/topology/ABI admission and every refusal.
+        if matches.pattern_counts[row] > 0 || matches.variants[row] != "" {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
 func DirectMirOptionMatchCfgPlanFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> DirectMirOptionMatchCfgPlan {

@@ -63,7 +63,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan,
     TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayIntValueResultCopyIn(plan, routine));
     TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayBoolValueResultCopyIn(plan, routine));
     TextBuilderAppend(output, DirectMirScalarProgramLlvmOwnedArrayStringParameterCopyIn(
-            plan, routine));
+            plan, routine, array_string_projection));
     TextBuilderAppend(output, DirectMirScalarProgramLlvmArrayStringValueResultCopyIn(
         plan, routine, array_string_projection));
     TextBuilderAppend(output, DirectMirScalarProgramLlvmLogicalRecordValueResultCopyIn(
@@ -72,7 +72,7 @@ func DirectMirScalarCfgProgramLlvmRoutine(ref plan: DirectMirScalarCfgGraphPlan,
     TextBuilderAppend(output, DirectMirScalarProgramLlvmSetStringValueResultCopyIn(plan, routine));
     TextBuilderAppend(output, DirectMirScalarCfgProgramLlvmRuntimeValueParameterStorage(plan, routine));
     TextBuilderAppend(output, DirectMirScalarCfgLlvmLocalDeclarationsInRange(
-        plan, plan.routines.local_starts[routine], plan.routines.local_counts[routine], routine));
+        plan, plan.routines.local_starts[routine], plan.routines.local_counts[routine], routine, array_string_projection));
     let block_start: Int = plan.routines.block_starts[routine];
     let block_end: Int = block_start + plan.routines.block_counts[routine];
     TextBuilderAppend(output, "  br label %pgy.r${routine}.block.${block_start}\n");
@@ -276,7 +276,8 @@ func DirectMirScalarCfgEmitProgramLlvm(
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmArrayIntValueResultPreamble(
             plan.program.array_int_value_result, array_int_runtime, array_int_projection));
-    TextBuilderAppend(output, DirectMirScalarProgramLlvmSlicePreamble(plan.program.expressions));
+    TextBuilderAppend(output, DirectMirScalarProgramLlvmSlicePreamble(
+        plan.program.expressions, array_string_projection, target));
     TextBuilderAppend(output,
         DirectMirScalarProgramLlvmLogicalRecordPreamble(
             plan.program.logical_record, target));

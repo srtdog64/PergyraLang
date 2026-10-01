@@ -2,23 +2,34 @@
 
 import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
 import "direct_mir_scalar_program_owned_array_string_parameter_target_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 
 func DirectMirScalarProgramLlvmOwnedArrayStringParameterCopyIn(
-    ref plan: DirectMirScalarCfgGraphPlan, routine: Int
+    ref plan: DirectMirScalarCfgGraphPlan, routine: Int,
+    projection_opt: Option<DirectMirArrayStringAbiProjection>
 ) -> String {
     let output: String = "";
     let parameter: Int = 0;
     while parameter < plan.routines.parameter_counts[routine] {
         if DirectMirScalarProgramOwnedArrayStringMutationParameterAt(
                 plan.routines, routine, parameter) {
+            if !IsSome(projection_opt) { Die(
+                "direct MIR LLVM owned Array<String> parameter projection is missing"); }
+            let projection: DirectMirArrayStringAbiProjection = UnwrapOption(projection_opt);
+            if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
+                    plan.program.array_string_abi, projection,
+                    CompilerTargetCpuLlvmProjection()) { Die(
+                "direct MIR LLVM owned Array<String> parameter projection drifted"); }
+            let aggregate: String = projection.llvm_value_type;
+            let storage_align: String = ToString(projection.storage.align);
             let spelling: String = ToString(parameter);
             output = Concat(output, Concat("  %pgy.param.", spelling));
+            output = Concat(output, Concat(".local = alloca ", Concat(
+                aggregate, Concat(", align ", Concat(storage_align, "\n")))));
             output = Concat(output,
-                ".local = alloca %pgy.array.string, align 8\n");
-            output = Concat(output,
-                Concat("  store %pgy.array.string %pgy.param.", spelling));
+                Concat("  store ", Concat(aggregate, Concat(" %pgy.param.", spelling))));
             output = Concat(output, Concat(", ptr %pgy.param.", spelling));
-            output = Concat(output, ".local, align 8\n");
+            output = Concat(output, Concat(".local, align ", Concat(storage_align, "\n")));
         }
         parameter = parameter + 1;
     }

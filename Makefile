@@ -5050,6 +5050,11 @@ self-host-public-array-drop-test-smoke: self-host-compiler
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/public_array_drop.sh
 
+.PHONY: self-host-array-string-layout-consumer-closure-test-smoke
+self-host-array-string-layout-consumer-closure-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/array_string_layout_consumer_closure_owner.sh
+
 .PHONY: self-host-collection-ownership-semantic-test-smoke
 self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \

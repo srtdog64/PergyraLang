@@ -212,7 +212,7 @@ func CompileAdmittedDirectMirForTargetObserved(
                             );
                         }
                     }
-                } else if block_count == 7 {
+                } else if DirectMirOptionMatchCfgRouteClaimed(admitted) {
                     let formatted_print: CompilerRuntimeCallAbiFact =
                         CompilerRuntimeCallAbiFormattedPrintFact();
                     if !CompilerRuntimeCallAbiFlatFactOwnerReady(

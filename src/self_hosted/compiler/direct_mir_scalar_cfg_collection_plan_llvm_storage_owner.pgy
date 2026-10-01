@@ -60,6 +60,7 @@ func DirectMirScalarCfgCollectionPlanLlvmDeclarations(
             let llvm_element: String = "i32";
             let element_align: String = "4";
             let aggregate: String = "";
+            let storage_align: String = "";
             let data_index: Int = -1;
             let length_index: Int = -1;
             let capacity_index: Int = -1;
@@ -76,10 +77,11 @@ func DirectMirScalarCfgCollectionPlanLlvmDeclarations(
                         plan.collections.values.allocator_offsets[row]
                     );
                 aggregate = abi.llvm_aggregate_type;
+                storage_align = ToString(abi.storage.align);
                 data_index = abi.data_index; length_index = abi.length_index;
                 capacity_index = abi.capacity_index;
                 allocator_index = abi.allocator_index;
-            } else {
+            } else if plan.collections.values.element_types[row] == "String" {
                 let abi: DirectMirArrayStringAbiProjection =
                     DirectMirArrayStringAbiProjectionFromCanonicalLayout(
                         target, plan.collections.values.abi_layout_ids[row],
@@ -90,12 +92,14 @@ func DirectMirScalarCfgCollectionPlanLlvmDeclarations(
                         plan.collections.values.capacity_offsets[row],
                         plan.collections.values.allocator_offsets[row]
                     );
-                llvm_element = "ptr"; element_align = "8";
+                llvm_element = abi.llvm_element_type;
+                element_align = ToString(abi.element_align);
                 aggregate = abi.llvm_aggregate_type;
+                storage_align = ToString(abi.storage.align);
                 data_index = abi.data_index; length_index = abi.length_index;
                 capacity_index = abi.capacity_index;
                 allocator_index = abi.allocator_index;
-            }
+            } else { Die("direct MIR collection LLVM storage element type is unsupported"); }
             let prefix: String = Concat("collection.", ToString(row));
             output = Concat(output, Concat("  %pgy.array.", prefix));
             output = Concat(output, Concat(".storage = alloca [",
@@ -137,7 +141,7 @@ func DirectMirScalarCfgCollectionPlanLlvmDeclarations(
             output = Concat(output, ".storage, i64 0, i64 0\n");
             output = Concat(output, Concat("  %pgy.array.", prefix));
             output = Concat(output, Concat(".object = alloca ", aggregate));
-            output = Concat(output, ", align 8\n");
+            output = Concat(output, Concat(", align ", Concat(storage_align, "\n")));
             output = Concat(output,
                 DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
                     prefix, aggregate, "data", data_index));
@@ -152,16 +156,16 @@ func DirectMirScalarCfgCollectionPlanLlvmDeclarations(
                     prefix, aggregate, "allocator", allocator_index));
             output = Concat(output, Concat("  store ptr %pgy.array.", prefix));
             output = Concat(output, Concat(".data, ptr %pgy.array.", prefix));
-            output = Concat(output, ".data.field, align 8\n");
+            output = Concat(output, Concat(".data.field, align ", Concat(storage_align, "\n")));
             output = Concat(output, Concat("  store i64 ", ToString(length)));
             output = Concat(output, Concat(", ptr %pgy.array.", prefix));
-            output = Concat(output, ".length.field, align 8\n");
+            output = Concat(output, Concat(".length.field, align ", Concat(storage_align, "\n")));
             output = Concat(output, Concat("  store i64 ", ToString(length)));
             output = Concat(output, Concat(", ptr %pgy.array.", prefix));
-            output = Concat(output, ".capacity.field, align 8\n");
+            output = Concat(output, Concat(".capacity.field, align ", Concat(storage_align, "\n")));
             output = Concat(output, Concat(
                 "  store ptr null, ptr %pgy.array.", prefix));
-            output = Concat(output, ".allocator.field, align 8\n");
+            output = Concat(output, Concat(".allocator.field, align ", Concat(storage_align, "\n")));
         }
         row = row + 1;
     }

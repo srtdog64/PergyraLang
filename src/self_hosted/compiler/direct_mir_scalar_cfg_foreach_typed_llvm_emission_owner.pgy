@@ -92,7 +92,7 @@ func DirectMirScalarCfgForEachTypedLlvmBlockEntry(
                 );
             aggregate_type = abi.llvm_aggregate_type;
             element_type = abi.llvm_element_type;
-            data_index = abi.data_index; align = 8;
+            data_index = abi.data_index; align = abi.element_align;
         } else { Die("direct MIR scalar CFG foreach LLVM element type is invalid"); }
         let stem: String = Concat("%pgy.foreach.", Concat(ToString(row), "."));
         let storage_row: Int = DirectMirScalarCfgForEachStorageRow(

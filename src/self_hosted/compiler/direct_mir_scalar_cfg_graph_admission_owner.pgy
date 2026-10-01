@@ -17,6 +17,7 @@ import "direct_mir_scalar_cfg_collection_plan_expression_owner.pgy";
 import "direct_mir_scalar_cfg_collection_plan_binding_owner.pgy";
 import "direct_mir_scalar_cfg_phi_operation_admission_owner.pgy";
 import "direct_mir_scalar_cfg_expression_base_owner.pgy";
+import "direct_mir_scalar_cfg_void_return_admission_owner.pgy";
 func DirectMirScalarCfgGraphPlanFromAdmitted(
     ref admitted: MirMachineLayerAdmittedJsonInput,
     routine_row: Int,
@@ -383,6 +384,18 @@ func DirectMirScalarCfgGraphPlanFromAdmitted(
                     expression.kind, -1, expression,
                     ArrayLength(phi_predecessor_blocks), 0
                 );
+            } else if kind == "return" {
+                let capture: MirRoutineInstructionScalarCapture =
+                    MirRoutineInstructionFactBundleAtGlobal(
+                        input.index.instruction_facts, global_row);
+                if !DirectMirScalarCfgVoidReturnReady(
+                        input.index, input.use_facts, instruction, capture,
+                        global_row, block, instruction_row,
+                        source, signature.return_type) {
+                    Die("direct MIR scalar CFG terminal Void return is invalid");
+                }
+                // The admitted terminal block already projects to return;
+                // no synthetic expression or payload operation is issued.
             } else if kind == "branch" {
                 condition = DirectMirScalarCfgBranchConditionFromOwners(
                     input.index, use_facts, range_iterations,

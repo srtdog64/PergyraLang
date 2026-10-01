@@ -76,6 +76,7 @@ func DirectMirScalarCfgStringArrayLlvmDeclarations(
                 fact.allocator_offset
             );
         let prefix: String = Concat("indexed.", ToString(row));
+        let storage_align: String = ToString(abi.storage.align); let element_align: String = ToString(abi.element_align);
         let initial: Int = ArrayLength(fact.elements);
         let capacity: Int = DirectMirScalarCfgStringArrayStaticCapacity(
             plan.string_arrays, row
@@ -87,7 +88,8 @@ func DirectMirScalarCfgStringArrayLlvmDeclarations(
         if capacity > 0 {
             output = Concat(output, Concat("  %pgy.array.", prefix));
             output = Concat(output, Concat(".storage = alloca [",
-                Concat(ToString(capacity), " x ptr], align 8\n")));
+                Concat(ToString(capacity), Concat(" x ptr], align ",
+                    Concat(element_align, "\n")))));
             let item: Int = 0;
             while item < initial {
                 output = Concat(output, Concat("  %pgy.array.", prefix));
@@ -100,7 +102,7 @@ func DirectMirScalarCfgStringArrayLlvmDeclarations(
                     Concat(ToString(row), Concat(".", ToString(item)))));
                 output = Concat(output, Concat(", ptr %pgy.array.",
                     Concat(prefix, Concat(".slot.", ToString(item)))));
-                output = Concat(output, ", align 8\n");
+                output = Concat(output, Concat(", align ", Concat(element_align, "\n")));
                 item = item + 1;
             }
             output = Concat(output, Concat("  %pgy.array.", prefix));
@@ -112,7 +114,8 @@ func DirectMirScalarCfgStringArrayLlvmDeclarations(
         }
         output = Concat(output, Concat("  %pgy.array.", prefix));
         output = Concat(output, Concat(".object = alloca ",
-            Concat(abi.llvm_aggregate_type, ", align 8\n")));
+            Concat(abi.llvm_aggregate_type, Concat(", align ",
+                Concat(storage_align, "\n")))));
         output = Concat(output, DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
             prefix, abi.llvm_aggregate_type, "data", abi.data_index));
         output = Concat(output, DirectMirScalarCfgStringArrayLlvmObjectFieldDeclaration(
@@ -123,15 +126,15 @@ func DirectMirScalarCfgStringArrayLlvmDeclarations(
             prefix, abi.llvm_aggregate_type, "allocator", abi.allocator_index));
         output = Concat(output, Concat("  store ptr ", data));
         output = Concat(output, Concat(", ptr %pgy.array.",
-            Concat(prefix, ".data.field, align 8\n")));
+            Concat(prefix, Concat(".data.field, align ", Concat(storage_align, "\n")))));
         output = Concat(output, Concat("  store i64 ", ToString(initial)));
         output = Concat(output, Concat(", ptr %pgy.array.",
-            Concat(prefix, ".length.field, align 8\n")));
+            Concat(prefix, Concat(".length.field, align ", Concat(storage_align, "\n")))));
         output = Concat(output, Concat("  store i64 ", ToString(capacity)));
         output = Concat(output, Concat(", ptr %pgy.array.",
-            Concat(prefix, ".capacity.field, align 8\n")));
+            Concat(prefix, Concat(".capacity.field, align ", Concat(storage_align, "\n")))));
         output = Concat(output, Concat("  store ptr null, ptr %pgy.array.",
-            Concat(prefix, ".allocator.field, align 8\n")));
+            Concat(prefix, Concat(".allocator.field, align ", Concat(storage_align, "\n")))));
         row = row + 1;
     }
     return output;

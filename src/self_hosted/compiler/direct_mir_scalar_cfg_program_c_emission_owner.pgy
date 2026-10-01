@@ -248,7 +248,8 @@ func DirectMirScalarCfgEmitProgramC(
     }
     let array_string_projection: Option<DirectMirArrayStringAbiProjection> = DirectMirScalarProgramArrayStringAbiProjectionFromFact(plan.program.array_string_abi, target);
     TextBuilderAppend(output, DirectMirScalarProgramCStringCollectionMaterialization(plan, runtime, array_string_projection)); TextBuilderAppend(output, DirectMirScalarProgramCHashMapPreamble(plan));
-    TextBuilderAppend(output, DirectMirScalarProgramCSlicePreamble(plan.program.expressions));
+    TextBuilderAppend(output, DirectMirScalarProgramCSlicePreamble(
+        plan.program.expressions, plan.program.array_string_abi, array_string_projection));
     TextBuilderAppend(output,
         DirectMirScalarProgramCOptionResultPreamble(plan, target));
     TextBuilderAppend(output, DirectMirScalarProgramCLogicalRecordPreamble(

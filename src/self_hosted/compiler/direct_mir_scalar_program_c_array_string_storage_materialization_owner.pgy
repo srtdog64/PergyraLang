@@ -2,6 +2,7 @@
 // Array<String> carrier. Public PgyArray_String naming remains a separate ABI.
 
 import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
+import "direct_mir_scalar_cfg_array_c_materialization_owner.pgy";
 import "../codegen/runtime_abi/collection_runtime_owner.pgy";
 
 func DirectMirScalarProgramCStringArrayOwnedSingleFn() -> String {
@@ -15,37 +16,21 @@ func DirectMirScalarProgramCStringArrayStorageBlock(
 ) -> String {
     if !DirectMirScalarProgramArrayStringAbiProjectionReadyForFact(
             abi, projection, CompilerTargetCpuCProjection()) {
-        return "";
+        Die("direct MIR C Array<String> storage projection is invalid");
     }
     let type_name: String = DirectMirScalarProgramCArrayStringCarrierType(
         abi, projection);
-    let output: String = "typedef struct { const char **";
-    output = Concat(output, projection.storage.data_field);
-    output = Concat(output, Concat("; ", projection.storage.c_length_type));
-    output = Concat(output, Concat(" ", projection.storage.length_field));
-    output = Concat(output, Concat("; ", projection.storage.c_length_type));
-    output = Concat(output, Concat(" ", projection.storage.capacity_field));
-    output = Concat(output, Concat("; void *", projection.storage.allocator_field));
-    output = Concat(output, Concat("; } ", Concat(type_name, ";\n")));
-    output = Concat(output, Concat("_Static_assert(sizeof(pgy_as) == ",
-        Concat(ToString(projection.storage.size), ", \"Array<String> size\");\n")));
-    output = Concat(output, Concat("_Static_assert(_Alignof(pgy_as) == ",
-        Concat(ToString(projection.storage.align), ", \"Array<String> align\");\n")));
-    output = Concat(output, Concat("_Static_assert(offsetof(pgy_as, ",
-        Concat(projection.storage.data_field, Concat(") == ", Concat(
-        ToString(projection.storage.data_offset), ", \"Array<String> data\");\n")))));
-    output = Concat(output, Concat("_Static_assert(offsetof(pgy_as, ",
-        Concat(projection.storage.length_field, Concat(") == ", Concat(
-        ToString(projection.storage.length_offset), ", \"Array<String> length\");\n")))));
-    output = Concat(output, Concat("_Static_assert(offsetof(pgy_as, ",
-        Concat(projection.storage.capacity_field, Concat(") == ", Concat(
-        ToString(projection.storage.capacity_offset), ", \"Array<String> capacity\");\n")))));
-    output = Concat(output, Concat("_Static_assert(offsetof(pgy_as, ",
-        Concat(projection.storage.allocator_field, Concat(") == ", Concat(
-        ToString(projection.storage.allocator_offset),
-        ", \"Array<String> allocator\");\n\n")))));
+    // This private read view keeps const-qualified elements; descriptor
+    // order and every physical field still come from the admitted projection.
+    let output: String = DirectMirScalarCfgArrayCStruct(
+        Concat("const ", projection.c_element_type), type_name, projection.storage);
+    let empty: String = DirectMirScalarCfgArrayCInitializer(
+        projection.storage, "NULL", "0", "0", "NULL");
+    output = Concat(output, Concat("static ", Concat(type_name, Concat(
+        " pgy_as_new(void) { ", Concat(type_name, Concat(" a = ",
+        Concat(empty, "; return a; }\n")))))));
     output = Concat(output,
-        "static pgy_as pgy_as_new(void) { pgy_as a = {NULL, 0, 0, NULL}; return a; }\nstatic void pgy_as_push(pgy_as *a, const char *v) {\n    if (a->length == a->capacity) { size_t n = a->capacity ? a->capacity * 2 : 4; const char **p = (const char **)realloc(a->data, n * sizeof(const char *)); if (p == NULL) abort(); a->data = p; a->capacity = n; }\n    a->data[a->length++] = v;\n}\n");
+        "static void pgy_as_push(pgy_as *a, const char *v) {\n    if (a->length == a->capacity) { size_t n = a->capacity ? a->capacity * 2 : 4; const char **p = (const char **)realloc(a->data, n * sizeof(const char *)); if (p == NULL) abort(); a->data = p; a->capacity = n; }\n    a->data[a->length++] = v;\n}\n");
     output = Concat(output, Concat("static void ", Concat(CollectionRuntimeCOwnedStringPushFn(), "(pgy_as *a, const char *v) { const char *source = v != NULL ? v : \"\"; size_t n = strlen(source); char *owned = (char *)malloc(n + 1); if (owned == NULL) abort(); memcpy(owned, source, n + 1); pgy_as_push(a, owned); }\n")));
     output = Concat(output, Concat("static pgy_as ", Concat(DirectMirScalarProgramCStringArrayValuesFn(), "(const char **v, size_t n) { pgy_as a = pgy_as_new(); for (size_t i = 0; i < n; i++) pgy_as_push(&a, v[i]); return a; }\n")));
     output = Concat(output, Concat("static pgy_as ", Concat(

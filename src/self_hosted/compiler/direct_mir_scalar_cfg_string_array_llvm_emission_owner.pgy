@@ -4,6 +4,25 @@ import "direct_mir_scalar_cfg_llvm_operand_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_graph_readiness_owner.pgy";
 import "direct_mir_scalar_cfg_string_array_llvm_storage_emission_owner.pgy";
 
+struct DirectMirScalarCfgStringArrayLlvmAddressFact {
+    let instructions: String;
+    let pointer: String;
+    let element_align: String;
+}
+
+func DirectMirScalarCfgStringArrayLlvmProjectionAt(
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact, collection_row: Int
+) -> DirectMirArrayStringAbiProjection {
+    let fact: DirectMirScalarCfgArrayStringCollectionFact =
+        DirectMirScalarCfgStringArrayCollectionAt(plan.string_arrays, collection_row);
+    if !fact.valid { Die("direct MIR String array LLVM projection source is missing"); }
+    return DirectMirArrayStringAbiProjectionFromCanonicalLayout(
+        target, fact.abi_layout_id, fact.abi_size, fact.abi_align,
+        fact.data_offset, fact.length_offset, fact.capacity_offset,
+        fact.allocator_offset);
+}
+
 func DirectMirScalarCfgStringArrayLlvmIndex(
     ref plan: DirectMirScalarCfgGraphPlan,
     fact: DirectMirScalarCfgStringArrayIndexFact,
@@ -28,17 +47,9 @@ func DirectMirScalarCfgStringArrayLlvmAddress(
     target: CompilerTargetProjectionFact,
     fact: DirectMirScalarCfgStringArrayAccessFact,
     stem: String
-) -> Array<String> {
-    let abi_fact: DirectMirScalarCfgArrayStringCollectionFact =
-        DirectMirScalarCfgStringArrayCollectionAt(
-            plan.string_arrays, fact.collection_row
-        );
+) -> DirectMirScalarCfgStringArrayLlvmAddressFact {
     let abi: DirectMirArrayStringAbiProjection =
-        DirectMirArrayStringAbiProjectionFromCanonicalLayout(
-            target, abi_fact.abi_layout_id, abi_fact.abi_size,
-            abi_fact.abi_align, abi_fact.data_offset, abi_fact.length_offset,
-            abi_fact.capacity_offset, abi_fact.allocator_offset
-        );
+        DirectMirScalarCfgStringArrayLlvmProjectionAt(plan, target, fact.collection_row);
     let index: Array<String> = DirectMirScalarCfgStringArrayLlvmIndex(
         plan, fact.index, stem
     );
@@ -47,13 +58,14 @@ func DirectMirScalarCfgStringArrayLlvmAddress(
     output = Concat(output, Concat(abi.llvm_element_type,
         ", ptr %pgy.array.indexed."));
     output = Concat(output, Concat(ToString(fact.collection_row),
-        ".data.field, align 8\n  "));
+        Concat(".data.field, align ", Concat(ToString(abi.storage.align), "\n  "))));
     output = Concat(output, Concat(stem,
         Concat(".array.ptr = getelementptr inbounds ",
             Concat(abi.llvm_element_type, ", ptr "))));
     output = Concat(output, Concat(stem, Concat(".array.data, i64 ", index[1])));
     output = Concat(output, "\n");
-    return [output, Concat(stem, ".array.ptr")];
+    return DirectMirScalarCfgStringArrayLlvmAddressFact(
+        output, Concat(stem, ".array.ptr"), ToString(abi.element_align));
 }
 
 func DirectMirScalarCfgStringArrayLlvmRead(
@@ -71,14 +83,15 @@ func DirectMirScalarCfgStringArrayLlvmRead(
     let stem: String = Concat("%pgy.op.", ToString(operation));
     let fact: DirectMirScalarCfgStringArrayAccessFact =
         DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
-    let address: Array<String> = DirectMirScalarCfgStringArrayLlvmAddress(
+    let address: DirectMirScalarCfgStringArrayLlvmAddressFact = DirectMirScalarCfgStringArrayLlvmAddress(
         plan, target, fact, stem
     );
-    let output: String = address[0];
+    let output: String = address.instructions;
     output = Concat(output, Concat("  ", Concat(stem, Concat(
         Concat(".", result_name), " = load ptr, ptr "
     ))));
-    output = Concat(output, Concat(address[1], ", align 8\n"));
+    output = Concat(output, Concat(address.pointer,
+        Concat(", align ", Concat(address.element_align, "\n"))));
     return output;
 }
 
@@ -96,13 +109,14 @@ func DirectMirScalarCfgStringArrayLlvmSet(
     let stem: String = Concat("%pgy.op.", ToString(operation));
     let fact: DirectMirScalarCfgStringArrayAccessFact =
         DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
-    let address: Array<String> = DirectMirScalarCfgStringArrayLlvmAddress(
+    let address: DirectMirScalarCfgStringArrayLlvmAddressFact = DirectMirScalarCfgStringArrayLlvmAddress(
         plan, target, fact, stem
     );
-    let output: String = address[0];
+    let output: String = address.instructions;
     output = Concat(output, Concat("  store ptr @.pgy.scalar.cfg.indexed.set.",
         ToString(row)));
-    return Concat(output, Concat(", ptr ", Concat(address[1], ", align 8\n")));
+    return Concat(output, Concat(", ptr ", Concat(address.pointer,
+        Concat(", align ", Concat(address.element_align, "\n")))));
 }
 
 func DirectMirScalarCfgStringArrayLlvmCondition(
@@ -115,16 +129,8 @@ func DirectMirScalarCfgStringArrayLlvmCondition(
     if row < 0 { Die("direct MIR String array LLVM condition is missing"); }
     let fact: DirectMirScalarCfgStringArrayLengthFact =
         DirectMirScalarCfgStringArrayLengthAt(plan.string_arrays, row);
-    let abi_fact: DirectMirScalarCfgArrayStringCollectionFact =
-        DirectMirScalarCfgStringArrayCollectionAt(
-            plan.string_arrays, fact.collection_row
-        );
     let abi: DirectMirArrayStringAbiProjection =
-        DirectMirArrayStringAbiProjectionFromCanonicalLayout(
-            target, abi_fact.abi_layout_id, abi_fact.abi_size,
-            abi_fact.abi_align, abi_fact.data_offset, abi_fact.length_offset,
-            abi_fact.capacity_offset, abi_fact.allocator_offset
-        );
+        DirectMirScalarCfgStringArrayLlvmProjectionAt(plan, target, fact.collection_row);
     let stem: String = Concat("%pgy.cond.", ToString(block));
     let index: Array<String> = DirectMirScalarCfgStringArrayLlvmIndex(
         plan, fact.index, stem
@@ -134,7 +140,7 @@ func DirectMirScalarCfgStringArrayLlvmCondition(
     output = Concat(output, Concat(abi.llvm_length_type,
         ", ptr %pgy.array.indexed."));
     output = Concat(output, Concat(ToString(fact.collection_row),
-        ".length.field, align 8\n  "));
+        Concat(".length.field, align ", Concat(ToString(abi.storage.align), "\n  "))));
     output = Concat(output, Concat(stem, " = icmp ult i64 "));
     output = Concat(output, Concat(index[1], Concat(", ", stem)));
     return Concat(output, ".length");

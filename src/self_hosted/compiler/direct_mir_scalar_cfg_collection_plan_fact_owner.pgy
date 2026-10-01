@@ -115,21 +115,6 @@ func DirectMirScalarCfgCollectionPlanAbsent(
         ArrayLength(plan.observations.kinds) == 0;
 }
 
-func DirectMirScalarCfgCollectionValueRow(
-    ref plan: DirectMirScalarCfgCollectionPlan, wanted: String
-) -> Int {
-    let found: Int = -1;
-    let row: Int = 0;
-    while row < ArrayLength(plan.values.value_ids) {
-        if plan.values.value_ids[row] == wanted {
-            if found >= 0 { return -1; }
-            found = row;
-        }
-        row = row + 1;
-    }
-    return found;
-}
-
 func DirectMirScalarCfgCollectionSourceDefinition(
     ref plan: DirectMirScalarCfgCollectionPlan, global: Int
 ) -> Bool {

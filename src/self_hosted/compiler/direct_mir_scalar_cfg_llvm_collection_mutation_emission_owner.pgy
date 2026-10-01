@@ -19,11 +19,11 @@ func DirectMirScalarCfgEmitLlvmCollectionMutation(
     }
     if kind == DirectMirScalarCfgOpArrayPushString() {
         return DirectMirScalarCfgLlvmCollectionOperationEmission(
-            true, DirectMirScalarCfgStringArrayLlvmPush(plan, operation));
+            true, DirectMirScalarCfgStringArrayLlvmPush(plan, target, operation));
     }
     if kind == DirectMirScalarCfgOpArrayPopString() {
         return DirectMirScalarCfgLlvmCollectionOperationEmission(
-            true, DirectMirScalarCfgStringArrayLlvmPop(plan, operation));
+            true, DirectMirScalarCfgStringArrayLlvmPop(plan, target, operation));
     }
     if kind == DirectMirScalarCfgOpArrayPushInt() {
         return DirectMirScalarCfgLlvmCollectionOperationEmission(

@@ -1,5 +1,6 @@
 // Exact route classifier for the general scalar CFG graph plan.
 import "direct_mir_scalar_graph_admission_owner.pgy";
+import "direct_mir_scalar_cfg_borrowed_collection_admission_owner.pgy";
 import "direct_mir_scalar_cfg_type_family_owner.pgy";
 import "direct_mir_scalar_cfg_array_int_reverse_route_owner.pgy";
 import "direct_mir_scalar_cfg_array_pop_route_owner.pgy";
@@ -17,13 +18,14 @@ func DirectMirScalarCfgRoutineRouteClaimed(
         admitted.routines.source_json, admitted.routines.starts[routine_row],
         admitted.routines.ends[routine_row]
     );
-    if !DirectMirRoutineHasNoUnsupportedFactsExceptLoop(routine) {
+    if !DirectMirRoutineHasNoUnsupportedMetadataExceptLoop(routine) {
         return false;
     }
     let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
         admitted.routines, routine_row
     );
-    if !DirectMirScalarCfgRoutineSourceLocalTypesSupported(index) {
+    if !DirectMirScalarCfgRoutineSourceLocalTypesSupported(index) ||
+        !DirectMirScalarCfgBorrowedCollectionFactsReady(index) {
         return false;
     }
     let reverse_claimed: Bool =
@@ -47,6 +49,8 @@ func DirectMirScalarCfgRoutineRouteClaimed(
             if source != "AST_CALL" { return false; }
         } else if kind == "loop-init" {
             if source != "AST_FOR_LOOP" { return false; }
+        } else if kind == "return" {
+            if source != "AST_RETURN_VOID" && source != "" { return false; }
         } else if kind == "branch" {
             if source != "AST_BINARY" && source != "AST_IDENTIFIER" &&
                 source != "AST_BREAK" && source != "AST_CONTINUE" &&
@@ -65,6 +69,6 @@ func DirectMirScalarCfgRoutineRouteClaimed(
 func DirectMirScalarCfgGraphRouteClaimed(
     ref admitted: MirMachineLayerAdmittedJsonInput
 ) -> Bool {
-    return DirectMirCfgProgramEnvelopeReady(admitted) &&
+    return DirectMirProgramBaseEnvelopeReady(admitted) &&
         DirectMirScalarCfgRoutineRouteClaimed(admitted, 0);
 }

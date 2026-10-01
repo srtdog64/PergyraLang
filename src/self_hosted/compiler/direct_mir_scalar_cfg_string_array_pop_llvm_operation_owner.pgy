@@ -1,9 +1,11 @@
 // Live-length LLVM effect for the String-array pop access receipt.
 
 import "direct_mir_scalar_cfg_string_array_plan_lookup_owner.pgy";
+import "direct_mir_scalar_cfg_string_array_llvm_emission_owner.pgy";
 
 func DirectMirScalarCfgStringArrayLlvmPop(
-    ref plan: DirectMirScalarCfgGraphPlan, operation: Int
+    ref plan: DirectMirScalarCfgGraphPlan,
+    target: CompilerTargetProjectionFact, operation: Int
 ) -> String {
     let row: Int = DirectMirScalarCfgStringArrayAccessRowAtOperation(
         plan.string_arrays, operation
@@ -14,6 +16,9 @@ func DirectMirScalarCfgStringArrayLlvmPop(
     }
     let fact: DirectMirScalarCfgStringArrayAccessFact =
         DirectMirScalarCfgStringArrayAccessAt(plan.string_arrays, row);
+    let abi: DirectMirArrayStringAbiProjection =
+        DirectMirScalarCfgStringArrayLlvmProjectionAt(plan, target, fact.collection_row);
+    let storage_align: String = ToString(abi.storage.align);
     let stem: String = Concat("%pgy.op.", ToString(operation));
     let field: String = Concat(
         "%pgy.array.indexed.", Concat(
@@ -23,10 +28,10 @@ func DirectMirScalarCfgStringArrayLlvmPop(
     let output: String = Concat("  ", Concat(
         stem, Concat(".pop.length = load i64, ptr ", field)
     ));
-    output = Concat(output, Concat(", align 8\n  ", stem));
+    output = Concat(output, Concat(", align ", Concat(storage_align, Concat("\n  ", stem))));
     output = Concat(output, Concat(
         ".pop.next = sub i64 ", Concat(stem, ".pop.length, 1\n  store i64 ")
     ));
     output = Concat(output, Concat(stem, ".pop.next, ptr "));
-    return Concat(output, Concat(field, ", align 8\n"));
+    return Concat(output, Concat(field, Concat(", align ", Concat(storage_align, "\n"))));
 }

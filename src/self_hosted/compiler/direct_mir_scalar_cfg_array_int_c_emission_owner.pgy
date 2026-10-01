@@ -11,9 +11,10 @@ func DirectMirScalarCfgArrayIntCPreamble(
     ref plan: DirectMirScalarCfgGraphPlan,
     target: CompilerTargetProjectionFact
 ) -> String {
-    if DirectMirScalarCfgArrayIntProgramAbsent(
-        plan.array_int_program
-    ) { return ""; }
+    // Prefix pop mutates the admitted foreach storage; its owner emits the ABI.
+    if DirectMirScalarCfgArrayIntProgramAbsent(plan.array_int_program) ||
+        plan.array_int_program.mode ==
+            DirectMirScalarCfgArrayIntForEachPrefixPopMode() { return ""; }
     let abi: DirectMirArrayIntAbiProjection =
         DirectMirArrayIntAbiProjectionFromCanonicalLayout(
             target, plan.array_int_program.collection.abi_layout_id,
@@ -27,7 +28,7 @@ func DirectMirScalarCfgArrayIntCPreamble(
     return Concat(
         "#include <stdint.h>\n#include <stddef.h>\n",
         DirectMirScalarCfgArrayCStruct(
-            abi.c_element_type, abi.c_length_type, "PgyArray_Int"
+            abi.c_element_type, abi.c_array_type, abi.storage
         )
     );
 }

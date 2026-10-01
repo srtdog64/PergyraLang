@@ -1,0 +1,20 @@
+// The Int foreach reaches legacy CFG; String accesses share one storage receipt.
+func Main() -> Void {
+    let names: Array<String> = ["alice", "bob", "carol"];
+    ArrayPush(names, "dave");
+    ArraySet(names, 1, "BOB");
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        Log(names[i]);
+        i = i + 1;
+    }
+    Log(names[1]);
+    Log(ToString(ArrayLength(names)));
+
+    let nums: Array<Int> = [10, 20, 30];
+    let total: Int = 0;
+    for n in nums {
+        total = total + n;
+    }
+    Log(ToString(total));
+}

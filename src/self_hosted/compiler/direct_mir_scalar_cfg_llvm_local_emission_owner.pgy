@@ -11,8 +11,10 @@ import "direct_mir_scalar_program_owned_direct_parameter_type_policy_owner.pgy";
 import "runtime_value_representation_owner.pgy";
 import "../codegen/runtime_abi/hashmap_llvm_runtime_owner.pgy";
 import "../mir/local_ref_identity_owner.pgy";
+import "direct_mir_scalar_program_array_string_abi_projection_owner.pgy";
 func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
-    ref plan: DirectMirScalarCfgGraphPlan, start: Int, count: Int, routine: Int) -> String {
+    ref plan: DirectMirScalarCfgGraphPlan, start: Int, count: Int, routine: Int,
+    array_string_projection: Option<DirectMirArrayStringAbiProjection>) -> String {
     if start < 0 || count < 0 || start + count > ArrayLength(plan.local_names) || routine < 0 ||
         routine >= ArrayLength(plan.routines.roles) ||
         start != plan.routines.local_starts[routine] ||
@@ -23,6 +25,13 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
     let row: Int = start;
     while row < start + count {
         let llvm_type: String = "i64";
+        let storage_align: String = "8";
+        // Only Array<String> changes copy-in load alignment; other families keep their existing contract.
+        let parameter_load_align: String = "8";
+        if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
+            storage_align = "1";
+        } else if plan.local_types[row] == CompilerAbiLayoutOptionIntTypeName() ||
+            plan.local_types[row] == CompilerAbiLayoutOptionBoolTypeName() { storage_align = "4"; }
         let hashmap: CollectionHashMapLlvmFact = CollectionHashMapLlvmFactFromTypeName(plan.local_types[row]);
         let runtime_value: CompilerRuntimeValueRepresentation =
             CompilerRuntimeValueRepresentationFor(plan.local_types[row]);
@@ -47,10 +56,12 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
             );
         } else if plan.local_types[row] ==
                 CompilerAbiLayoutArrayStringTypeName() {
-            llvm_type = "%pgy.array.string";
-            output = Concat(output,
-                " = alloca %pgy.array.string, align 8\n  store %pgy.array.string zeroinitializer, ptr %pgy.local."
-            );
+            let projection: DirectMirArrayStringAbiProjection = DirectMirScalarProgramLlvmArrayStringStorageProjection(
+                plan.program.array_string_abi, array_string_projection, "direct MIR LLVM local storage");
+            llvm_type = projection.llvm_value_type;
+            storage_align = ToString(projection.storage.align); parameter_load_align = storage_align;
+            output = output + " = alloca " + llvm_type + ", align " + storage_align +
+                "\n  store " + llvm_type + " zeroinitializer, ptr %pgy.local.";
         } else if plan.local_types[row] ==
                 CompilerAbiLayoutArrayIntTypeName() {
             llvm_type = "%pgy.array.int";
@@ -157,12 +168,7 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
             " = alloca i64, align 8\n  store i64 0, ptr %pgy.local."
         ); } else { Die("direct MIR LLVM local has no admitted type representation"); }
         output = Concat(output, ToString(row));
-        if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
-            output = Concat(output, ", align 1\n");
-        } else if plan.local_types[row] == CompilerAbiLayoutOptionIntTypeName() ||
-                plan.local_types[row] == CompilerAbiLayoutOptionBoolTypeName() {
-            output = Concat(output, ", align 4\n");
-        } else { output = Concat(output, ", align 8\n"); }
+        output = output + ", align " + storage_align + "\n";
         let parameter_ordinal: Int =
             SelfMirLocalRefParameterOrdinalForOwner(
                 plan.local_ref_value_ids[row],
@@ -187,21 +193,14 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
                 output = Concat(output, Concat("  ", loaded));
                 output = Concat(output, Concat(" = load ", llvm_type));
                 output = Concat(output, Concat(", ptr ", parameter_value));
-                output = Concat(output, ".local, align 8\n");
+                output = output + ".local, align " + parameter_load_align + "\n";
                 parameter_value = loaded;
             }
             output = Concat(output, Concat("  store ", llvm_type));
             output = Concat(output, Concat(" ", parameter_value));
             output = Concat(output, Concat(", ptr %pgy.local.",
                 ToString(row)));
-            if plan.local_types[row] == CompilerAbiLayoutBoolTypeName() {
-                output = Concat(output, ", align 1\n");
-            } else if plan.local_types[row] ==
-                    CompilerAbiLayoutOptionIntTypeName() ||
-                    plan.local_types[row] ==
-                    CompilerAbiLayoutOptionBoolTypeName() {
-                output = Concat(output, ", align 4\n");
-            } else { output = Concat(output, ", align 8\n"); }
+            output = output + ", align " + storage_align + "\n";
         }
         row = row + 1;
     }
@@ -210,6 +209,7 @@ func DirectMirScalarCfgLlvmLocalDeclarationsInRange(
 func DirectMirScalarCfgLlvmLocalDeclarations(
     ref plan: DirectMirScalarCfgGraphPlan
 ) -> String {
+    let array_string_projection: Option<DirectMirArrayStringAbiProjection> = None();
     return DirectMirScalarCfgLlvmLocalDeclarationsInRange(
-        plan, 0, ArrayLength(plan.local_names), 0);
+        plan, 0, ArrayLength(plan.local_names), 0, array_string_projection);
 }

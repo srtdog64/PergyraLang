@@ -128,17 +128,18 @@ func DirectMirScalarCfgProgramLlvmOperation(
     }
     if kind == DirectMirScalarCfgOpExpressionDefinition() {
         let result: Int = plan.operation_result_values[operation];
-        let local_binding: Int = plan.value_local_rows[result];
-        let llvm_type: String =
-            DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(
-            plan.value_types[result],
-            plan.program.logical_record, plan.program.payload_free_enum,
-            plan.program.referenced_enum);
-        output = Concat(output, Concat("  store ", Concat(llvm_type, " ")));
-        output = Concat(output, Concat(expression.value, ", ptr %pgy.local."));
-        output = Concat(output, ToString(local_binding));
-        if llvm_type == "i1" { return Concat(output, ", align 1\n"); }
-        return Concat(output, ", align 8\n");
+        let llvm_type: String = ""; let storage_align: String = "8";
+        if plan.value_types[result] == CompilerAbiLayoutArrayStringTypeName() {
+            let projection: DirectMirArrayStringAbiProjection = DirectMirScalarProgramLlvmArrayStringStorageProjection(
+                plan.program.array_string_abi, array_string_projection, "direct MIR LLVM operation result store");
+            llvm_type = projection.llvm_value_type; storage_align = ToString(projection.storage.align);
+        } else {
+            llvm_type = DirectMirScalarProgramLlvmTypeForProgramWithReferencedEnum(plan.value_types[result],
+                plan.program.logical_record, plan.program.payload_free_enum, plan.program.referenced_enum);
+        }
+        output = output + "  store " + llvm_type + " " + expression.value + ", ptr %pgy.local." + ToString(plan.value_local_rows[result]);
+        if llvm_type == "i1" { storage_align = "1"; }
+        return output + ", align " + storage_align + "\n";
     }
     let format_name: String = "@.pgy.scalar.cfg.string.format";
     let line_format: String = string_line_format; let value_type: String = "ptr";
