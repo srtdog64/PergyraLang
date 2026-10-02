@@ -1,0 +1,9 @@
+struct Bundle { left: Array<String>; right: Array<String>; }
+func Main() -> Void
+{
+    let bundle: Bundle = Bundle(["left"], ["right"]);
+    let left: Array<String> = bundle.left;
+    let right: Array<String> = bundle.right;
+    Log(ArrayLength(left));
+    Log(ArrayLength(right));
+}

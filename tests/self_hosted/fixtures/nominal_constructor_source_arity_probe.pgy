@@ -4,7 +4,12 @@ import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
 
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
-    if ArrayLength(args) != 1 { Log("expected one source path"); Exit(2); }
+    if ArrayLength(args) < 1 || ArrayLength(args) > 2 { Log("expected source path and optional diagnostic mode"); Exit(2); }
+    let diagnostic: Bool = false;
+    if ArrayLength(args) == 2 {
+        if args[1] != "diagnostic" { Log("unknown source observation mode"); Exit(2); }
+        diagnostic = true;
+    }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("source parser refused"); Exit(2); }
     let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
@@ -12,4 +17,30 @@ func Main() -> Void with caps env, io_read {
     let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     Log(Concat("body_ok=", ToString(bundle.verdict.ok)));
     Log(Concat("body_diagnostic=", bundle.verdict.diagnostic_code));
+    if diagnostic {
+        Log(Concat("body_message=", bundle.verdict.diagnostic_message));
+        Log(Concat("body_syntax=", ToString(bundle.verdict.first_node_id)));
+        let atom: Option<String> = TypedAstArenaAtomText(artifact.arena, bundle.verdict.first_node_id);
+        let value: Option<String> = TypedAstArenaValueText(artifact.arena, bundle.verdict.first_node_id);
+        if IsSome(atom) { Log(Concat("body_atom=", UnwrapOption(atom))); }
+        if IsSome(value) { Log(Concat("body_value=", UnwrapOption(value))); }
+        let ancestor: Int = bundle.verdict.first_node_id;
+        let remaining: Int = artifact.count;
+        while ancestor >= 0 && ancestor < artifact.count && remaining > 0 {
+            if TypedAstArenaNodeKindIsCallable(artifact.arena, ancestor) {
+                let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(analysis.signatures, ancestor);
+                if IsSome(signature) {
+                    let name: Option<String> = SemanticAstFunctionNameAt(analysis.signatures, UnwrapOption(signature));
+                    let module: Option<String> = SemanticAstFunctionModulePathAt(analysis.signatures, UnwrapOption(signature));
+                    if !IsSome(name) || !IsSome(module) { Log("invalid diagnostic callable identity"); Exit(2); }
+                    Log(Concat("body_function=", UnwrapOption(name)));
+                    Log(Concat("body_module=", UnwrapOption(module)));
+                }
+                break;
+            }
+            let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
+            if !IsSome(parent) { break; }
+            ancestor = UnwrapOption(parent); remaining = remaining - 1;
+        }
+    }
 }

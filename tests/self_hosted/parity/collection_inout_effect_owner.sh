@@ -15,6 +15,8 @@ SOURCE_PROBE=tests/self_hosted/fixtures/nominal_constructor_source_arity_probe.p
 IDENTITY_PROBE=tests/self_hosted/fixtures/collection_inout_effect_identity_probe.pgy
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 INPUTS=(
+    member_double_move_negative.pgy member_reuse_while_moved_negative.pgy
+    member_distinct_moves_positive.pgy member_restore_then_move_positive.pgy
     inout_borrowed_push_drop_negative.pgy inout_borrowed_push_read_positive.pgy
     inout_owned_push_drop_positive.pgy inout_forward_owned_push_drop_positive.pgy
     inout_readonly_drop_positive.pgy inout_shadow_drop_negative.pgy inout_shadow_read_positive.pgy
@@ -44,6 +46,7 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" \
     src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy \
     src/self_hosted/semantic/ast_expression_graph_call_argument_edge_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy >"$WORK/owners.sha256"
 ACTUAL_INPUT="$FIXTURES/callable_table_from_artifact_release_probe.pgy"
 sha256sum "${INPUTS[@]}" "$FIXTURES/inout_index_identity_input.pgy" "$ACTUAL_INPUT" >"$WORK/inputs.sha256"
@@ -51,20 +54,50 @@ find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256su
 for backend in c llvm; do
     timeout 120 "$PGY" --native-pipeline "$SOURCE_PROBE" "--backend=$backend" --opt=dev \
         -o "$REL/$backend-source.exe" >"$WORK/$backend-source.compile" 2>&1
-    timeout 120 "$PGY" --native-pipeline "$IDENTITY_PROBE" "--backend=$backend" --opt=dev \
-        -o "$REL/$backend-identity.exe" >"$WORK/$backend-identity.compile" 2>&1
     for input in "${INPUTS[@]}"; do
         name="${input##*/}"
         timeout 30 "$WORK/$backend-source.exe" "$input" >"$WORK/$backend-$name.raw" 2>"$WORK/$backend-$name.err"
         tr -d '\r' <"$WORK/$backend-$name.raw" >"$WORK/$backend-$name.run"
         [[ ! -s "$WORK/$backend-$name.err" ]]
         case "$name" in
+            member_*_negative.pgy) printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             *_negative.pgy) printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             *_positive.pgy) printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             *) echo "unclassified inout fixture: $name" >&2; exit 1 ;;
         esac
         cmp "$WORK/expected" "$WORK/$backend-$name.run"
     done
+    timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/member_double_move_negative.pgy" diagnostic \
+        >"$WORK/$backend-diagnostic.raw" 2>"$WORK/$backend-diagnostic.err"
+    tr -d '\r' <"$WORK/$backend-diagnostic.raw" >"$WORK/$backend-diagnostic.run"
+    [[ ! -s "$WORK/$backend-diagnostic.err" ]]
+    grep -Fxq 'body_ok=false' "$WORK/$backend-diagnostic.run"
+    grep -Fxq 'body_diagnostic=move_from_released' "$WORK/$backend-diagnostic.run"
+    grep -Fxq 'body_atom=second' "$WORK/$backend-diagnostic.run"
+    grep -Fxq 'body_value=bundle.values' "$WORK/$backend-diagnostic.run"
+    grep -Fxq 'body_function=Main' "$WORK/$backend-diagnostic.run"
+    grep -Fxq "body_module=$FIXTURES/member_double_move_negative.pgy" "$WORK/$backend-diagnostic.run"
+    grep -Eq '^body_syntax=[0-9]+$' "$WORK/$backend-diagnostic.run"
+    for mode_case in missing extra unknown; do
+        args=()
+        case "$mode_case" in
+            missing) printf 'expected source path and optional diagnostic mode\n' >"$WORK/expected" ;;
+            extra) args=("$FIXTURES/member_double_move_negative.pgy" diagnostic extra)
+                printf 'expected source path and optional diagnostic mode\n' >"$WORK/expected" ;;
+            unknown) args=("$FIXTURES/member_double_move_negative.pgy" unknown)
+                printf 'unknown source observation mode\n' >"$WORK/expected" ;;
+        esac
+        if timeout 30 "$WORK/$backend-source.exe" ${args[@]+"${args[@]}"} >"$WORK/$backend-mode-$mode_case.raw" 2>"$WORK/$backend-mode-$mode_case.err"; then
+            echo "source observer accepted $mode_case arguments" >&2; exit 1
+        else
+            [[ "$?" -eq 2 ]]
+        fi
+        [[ ! -s "$WORK/$backend-mode-$mode_case.err" ]]
+        tr -d '\r' <"$WORK/$backend-mode-$mode_case.raw" >"$WORK/$backend-mode-$mode_case.run"
+        cmp "$WORK/expected" "$WORK/$backend-mode-$mode_case.run"
+    done
+    timeout 120 "$PGY" --native-pipeline "$IDENTITY_PROBE" "--backend=$backend" --opt=dev \
+        -o "$REL/$backend-identity.exe" >"$WORK/$backend-identity.compile" 2>&1
     for ((mutation=0; mutation<=12; mutation++)); do
         timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/inout_forward_owned_push_drop_positive.pgy" "$mutation" \
             >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
@@ -87,7 +120,7 @@ for backend in c llvm; do
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, sixteen identity/boundary and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, four observer mode, sixteen identity/boundary and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

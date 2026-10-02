@@ -1,0 +1,9 @@
+// Analyze only: the earlier push must not inherit a future opaque call's state.
+func Opaque(inout values: Array<String>) -> Void {
+    ArrayPush(values, "later");
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPush(values, "before");
+    Opaque(values);
+}

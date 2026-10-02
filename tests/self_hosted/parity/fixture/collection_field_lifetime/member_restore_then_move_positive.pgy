@@ -1,0 +1,9 @@
+struct Bundle { values: Array<String>; }
+func Main() -> Void
+{
+    let bundle: Bundle = Bundle(["borrowed"]);
+    let first: Array<String> = bundle.values;
+    bundle.values = first;
+    let second: Array<String> = bundle.values;
+    Log(ArrayLength(second));
+}

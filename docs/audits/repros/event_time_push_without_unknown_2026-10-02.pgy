@@ -1,0 +1,8 @@
+// Paired source control: identical earlier push, with no future opaque call.
+func Opaque(inout values: Array<String>) -> Void {
+    ArrayPush(values, "later");
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPush(values, "before");
+}
