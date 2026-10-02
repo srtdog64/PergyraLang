@@ -1,0 +1,5 @@
+import "sink.pgy";
+func Main() -> Void {
+    let fact: OwnedStringFact = OwnedStringFact("borrowed");
+    ReleaseOwnedString(fact.value);
+}

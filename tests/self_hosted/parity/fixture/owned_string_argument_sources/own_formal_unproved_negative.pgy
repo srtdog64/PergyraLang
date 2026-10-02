@@ -1,0 +1,7 @@
+import "sink.pgy";
+// Mode alone cannot discharge the missing forwarding transfer contract.
+func Forward(own value: String) -> Void { ReleaseOwnedString(value); }
+func Main() -> Void {
+    let value: String = Concat("fresh", "-input");
+    Forward(value);
+}

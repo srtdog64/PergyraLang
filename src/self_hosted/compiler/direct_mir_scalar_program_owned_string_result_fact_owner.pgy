@@ -60,6 +60,28 @@ func DirectMirScalarProgramOwnedStringAllocatorLocalReady(
         ArrayLength(call.parameter_types) == 0;
 }
 
+// One allocation predicate serves return proof and bound caller provenance.
+func DirectMirScalarProgramOwnedStringAllocatingExpressionReady(ref plan: DirectMirScalarCfgGraphPlan, node: Int, routine: Int) -> Bool {
+    if node < 0 || node >= ArrayLength(plan.program.expressions.node_kinds) ||
+        plan.program.expressions.node_types[node] != CompilerAbiLayoutStringTypeName() { return false; }
+    let kind: Int = plan.program.expressions.node_kinds[node];
+    if kind == DirectMirScalarProgramExprConcatString() {
+        let concat: CompilerRuntimeCallAbiFact = CompilerRuntimeCallAbiStringConcatFact();
+        return CompilerRuntimeCallAbiStringConcatFactReady(concat) &&
+            plan.string_concat_runtime_call_abi_id == concat.runtime_call_abi_id;
+    }
+    if kind != DirectMirScalarProgramExprRuntimeValueCall() { return false; }
+    let call: CompilerRuntimeValueCallAbiFact = CompilerRuntimeValueCallAbiFactForId(
+        plan.program.expressions.node_runtime_call_abi_ids[node]);
+    let allocator: Int = plan.program.expressions.node_rights[node];
+    return call.valid && call.source_name == "TextBuilderFinish" &&
+        ArrayLength(call.parameter_types) == 2 && allocator >= 0 &&
+        allocator < node && plan.program.expressions.node_kinds[allocator] ==
+            DirectMirScalarProgramExprLocal() &&
+        DirectMirScalarProgramOwnedStringAllocatorLocalReady(
+            plan, routine, plan.program.expressions.node_local_rows[allocator]);
+}
+
 func DirectMirScalarProgramOwnedStringExpressionReady(
     ref plan: DirectMirScalarCfgGraphPlan, node: Int, routine: Int,
     inout pending: Array<Int>
@@ -82,21 +104,10 @@ func DirectMirScalarProgramOwnedStringExpressionReady(
             node = plan.program.expressions.graph_roots[expression];
             steps = steps + 1;
         } else {
-            if kind == DirectMirScalarProgramExprConcatString() {
-                let concat: CompilerRuntimeCallAbiFact = CompilerRuntimeCallAbiStringConcatFact();
-                return CompilerRuntimeCallAbiStringConcatFactReady(concat) &&
-                    plan.string_concat_runtime_call_abi_id == concat.runtime_call_abi_id;
-            }
-            if kind == DirectMirScalarProgramExprRuntimeValueCall() {
-                let call: CompilerRuntimeValueCallAbiFact = CompilerRuntimeValueCallAbiFactForId(
-                    plan.program.expressions.node_runtime_call_abi_ids[node]);
-                let allocator: Int = plan.program.expressions.node_rights[node];
-                return call.valid && call.source_name == "TextBuilderFinish" &&
-                    ArrayLength(call.parameter_types) == 2 && allocator >= 0 &&
-                    allocator < node && plan.program.expressions.node_kinds[allocator] ==
-                        DirectMirScalarProgramExprLocal() &&
-                    DirectMirScalarProgramOwnedStringAllocatorLocalReady(
-                        plan, routine, plan.program.expressions.node_local_rows[allocator]);
+            if kind == DirectMirScalarProgramExprConcatString() ||
+                kind == DirectMirScalarProgramExprRuntimeValueCall() {
+                return DirectMirScalarProgramOwnedStringAllocatingExpressionReady(
+                    plan, node, routine);
             }
             if kind != DirectMirScalarProgramExprDirectCall() { return false; }
             let target: Int = plan.program.expressions.node_callable_rows[node];

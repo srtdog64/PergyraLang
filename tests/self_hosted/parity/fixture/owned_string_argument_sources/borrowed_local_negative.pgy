@@ -1,0 +1,5 @@
+import "sink.pgy";
+func Main() -> Void {
+    let value: String = "borrowed";
+    ReleaseOwnedString(value);
+}

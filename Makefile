@@ -3450,6 +3450,12 @@ self-host-direct-mir-scalar-owned-string-parameter-test-smoke: self-host-compile
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_owned_string_parameter_owner.sh
 
+self-host-direct-mir-owned-string-argument-source-test-smoke: self-host-compiler
+	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
+		"$(BASH)" tests/self_hosted/parity/direct_mir_owned_string_argument_source.sh
+
+.PHONY: self-host-direct-mir-owned-string-argument-source-test-smoke
+
 self-host-direct-mir-scalar-owned-array-string-parameter-test-smoke: self-host-compiler
 	PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/direct_mir_scalar_owned_array_string_parameter_owner.sh
@@ -3817,6 +3823,7 @@ self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-a
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-entrypoint-early-return-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-namespace-internal-call-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-owned-string-parameter-test-smoke
+self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-owned-string-argument-source-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-owned-array-string-parameter-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-array-named-value-boundary-test-smoke
 self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-owned-sequence-named-value-boundary-test-smoke

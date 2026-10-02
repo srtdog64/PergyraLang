@@ -1,0 +1,76 @@
+// Fresh allocation provenance at the reached String owner-handle boundary.
+// This narrows admission; it does not issue a current-value or field lease.
+// Alias/forwarding sources need a carried transfer proof, not a type or mode.
+import "direct_mir_scalar_program_owned_string_result_fact_owner.pgy";
+import "direct_mir_scalar_program_owned_string_member_argument_owner.pgy";
+
+func DirectMirScalarProgramOwnedStringFreshExpressionReady(
+    ref plan: DirectMirScalarCfgGraphPlan, node: Int, routine: Int
+) -> Bool {
+    if node < 0 || node >= ArrayLength(plan.program.expressions.node_kinds) ||
+        plan.program.expressions.node_types[node] !=
+            CompilerAbiLayoutStringTypeName() { return false; }
+    let kind: Int = plan.program.expressions.node_kinds[node];
+    if kind == DirectMirScalarProgramExprDirectCall() {
+        return DirectMirScalarProgramFunctionReturnsOwnedString(
+            plan, plan.program.expressions.node_callable_rows[node]);
+    }
+    // Do not recurse through a copied local and invent a second allocation.
+    return DirectMirScalarProgramOwnedStringAllocatingExpressionReady(
+        plan, node, routine);
+}
+
+func DirectMirScalarProgramOwnedStringBoundArgumentSourceReady(
+    ref plan: DirectMirScalarCfgGraphPlan, argument: Int, routine: Int,
+    graph_start: Int
+) -> Bool {
+    if argument < graph_start || argument >=
+            ArrayLength(plan.program.expressions.node_kinds) ||
+        plan.program.expressions.node_types[argument] !=
+            CompilerAbiLayoutStringTypeName() { return false; }
+    let kind: Int = plan.program.expressions.node_kinds[argument];
+    let local_row: Int = -1;
+    let member: Int = -1;
+    if kind == DirectMirScalarProgramExprLocal() {
+        local_row = plan.program.expressions.node_local_rows[argument];
+    } else if DirectMirScalarProgramOwnedStringMemberArgumentReady(
+            plan.program.logical_record, plan.program.expressions, argument,
+            graph_start, "owner-handle", CompilerAbiLayoutStringTypeName()) {
+        let base: Int = plan.program.expressions.node_lefts[argument];
+        local_row = plan.program.expressions.node_local_rows[base];
+        member = plan.program.expressions.node_member_ordinals[argument];
+    }
+    // Even an own formal is only an entry obligation. Its forwarding caller
+    // contract has not been carried by this rung and therefore fails closed.
+    if local_row < 0 || local_row >= ArrayLength(plan.local_types) ||
+        DirectMirScalarCfgRoutinePartitionLocalOwner(plan.routines, local_row) !=
+            routine { return false; }
+    let definition: Int = DirectMirScalarProgramOwnedStringDefinitionExpression(
+        plan, routine, local_row);
+    if definition < 0 || definition >=
+            ArrayLength(plan.program.expressions.graph_roots) { return false; }
+    let source: Int = plan.program.expressions.graph_roots[definition];
+    if member >= 0 {
+        if source < 0 || source >= ArrayLength(plan.program.expressions.node_kinds) ||
+            plan.program.expressions.node_kinds[source] !=
+                DirectMirScalarProgramExprLogicalRecordConstructor() ||
+            plan.program.expressions.node_types[source] != plan.local_types[local_row] {
+            return false;
+        }
+        let entry: Int = DirectMirScalarProgramNaryOperandEntry(
+            plan.program.expressions.nary_operands, source);
+        if entry >= 0 {
+            if member >= plan.program.expressions.nary_operands.counts[entry] {
+                return false;
+            }
+            source = plan.program.expressions.nary_operands.operand_rows[
+                plan.program.expressions.nary_operands.starts[entry] + member];
+        } else if member == 0 {
+            source = plan.program.expressions.node_lefts[source];
+        } else if member == 1 {
+            source = plan.program.expressions.node_rights[source];
+        } else { return false; }
+    }
+    return DirectMirScalarProgramOwnedStringFreshExpressionReady(
+        plan, source, routine);
+}

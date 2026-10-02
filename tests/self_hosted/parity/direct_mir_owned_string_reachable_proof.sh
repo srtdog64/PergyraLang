@@ -80,12 +80,39 @@ source = source.replace(
     "    pgy_test_watch_scratch(rows.data);\n" + drop,
     1,
 )
+# Observe in the same translation unit, after the real typed definitions. Do
+# not redeclare owner functions with erased pointer/value parameter types.
+source += '\n#undef free\n#include "call_counts.c"\n'
 pathlib.Path(sys.argv[2]).write_text(source, encoding="utf-8")
 PY
 
 # Instrument actual generated-owner function entry points, never a second
 # ownership implementation. BlockHasProcessExit is called for each inspected
 # terminal block; the positive DAG has exactly two terminal blocks per body.
+python - "$WORK_DIR/probe.c" "$WORK_DIR/call_symbols.h" <<'PY'
+import pathlib
+import re
+import sys
+
+source = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
+definitions = re.findall(
+    r"^(?:bool|int32_t|void) ([A-Za-z_][A-Za-z0-9_]*)\([^;\n]*\)\n\{",
+    source, re.MULTILINE,
+)
+logical_names = (
+    "DirectMirScalarProgramFunctionReturnsOwnedString",
+    "DirectMirScalarProgramBlockHasProcessExit",
+    "DirectMirScalarProgramOwnedStringDefinitionExpression",
+    "DirectMirScalarProgramOwnedStringProofStorageRetire",
+)
+rows = []
+for logical_name in logical_names:
+    symbols = [symbol for symbol in definitions if symbol.endswith(logical_name)]
+    if len(symbols) != 1:
+        raise SystemExit("generated owner definition is missing or ambiguous: " + logical_name)
+    rows.append("#define " + logical_name + " " + symbols[0] + "\n")
+pathlib.Path(sys.argv[2]).write_text("".join(rows), encoding="utf-8")
+PY
 python - "$WORK_DIR/call_counts.c" <<'PY'
 import pathlib
 import sys
@@ -94,10 +121,7 @@ pathlib.Path(sys.argv[1]).write_text(r'''
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-extern bool DirectMirScalarProgramFunctionReturnsOwnedString(const void *, int32_t);
-extern bool DirectMirScalarProgramBlockHasProcessExit(const void *, int32_t);
-extern int32_t DirectMirScalarProgramOwnedStringDefinitionExpression(const void *, int32_t, int32_t);
-extern void DirectMirScalarProgramOwnedStringProofStorageRetire(void);
+#include "call_symbols.h"
 static uint64_t queries, terminals, definitions, retirements;
 static void *scratch_backings[2];
 static uint64_t scratch_registers, scratch_frees[2];
@@ -146,12 +170,13 @@ export PGY_SELFHOST_CC_PROFILE=test
 pgy_selfhost_select_emitted_c_compile_profile
 if ! timeout "$BUILD_TIMEOUT" "$CC" -x c -std=gnu11 \
     "${PGY_SELFHOST_EMITTED_C_COMPILE_FLAGS[@]}" -finstrument-functions \
-    -Isrc -Isrc/runtime -pthread "$WORK_DIR/probe-watched.c" "$WORK_DIR/call_counts.c" \
+    -Isrc -Isrc/runtime -pthread "$WORK_DIR/probe-watched.c" \
     -lm -o "$WORK_DIR/probe.exe" > "$WORK_DIR/compile.out" 2> "$WORK_DIR/compile.err"; then
     cat "$WORK_DIR/compile.err" >&2
     fail "instrumented owner probe compilation failed"
 fi
 sha256sum "$WORK_DIR/probe.c" "$WORK_DIR/probe-watched.c" \
+    "$WORK_DIR/call_symbols.h" "$WORK_DIR/call_counts.c" \
     "$WORK_DIR/probe.exe" > "$WORK_DIR/artifacts.sha256"
 
 check_case() {

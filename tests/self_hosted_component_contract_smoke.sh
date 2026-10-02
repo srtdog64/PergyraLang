@@ -23318,6 +23318,16 @@ require_text "Makefile" \
     "self-host-direct-mir-scalar-owned-string-parameter-test-smoke: self-host-compiler"
 require_text "Makefile" \
     "self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-owned-string-parameter-test-smoke"
+require_file "src/self_hosted/compiler/direct_mir_scalar_program_owned_string_argument_source_owner.pgy"
+require_file "tests/self_hosted/parity/direct_mir_owned_string_argument_source.sh"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
+    "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \
+    "DirectMirScalarProgramOwnedStringBoundArgumentSourceReady("
+require_text "Makefile" \
+    "self-host-direct-mir-owned-string-argument-source-test-smoke: self-host-compiler"
+require_text "Makefile" \
+    "self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-owned-string-argument-source-test-smoke"
 require_file \
     "src/self_hosted/compiler/direct_mir_scalar_program_readonly_logical_record_string_array_string_value_result_policy_owner.pgy"
 require_max_lines \
@@ -28472,7 +28482,8 @@ for collection_owner_cap in \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_admission_owner.pgy:380 \
     src/self_hosted/compiler/direct_mir_scalar_program_collection_ownership_transition_plan_readiness_owner.pgy:100 \
     src/self_hosted/compiler/driver_rung2_scalar_c_substitution_owner.pgy:100 \
-    src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy:180; do
+    src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy:180 \
+    src/self_hosted/compiler/direct_mir_scalar_program_owned_string_argument_source_owner.pgy:90; do
     collection_owner="${collection_owner_cap%%:*}"
     collection_cap="${collection_owner_cap##*:}"
     require_file "$collection_owner"

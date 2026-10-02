@@ -1,0 +1,6 @@
+import "sink.pgy";
+func Main() -> Void {
+    let value: String = Concat("fresh", "-input");
+    value = "borrowed";
+    ReleaseOwnedString(value);
+}

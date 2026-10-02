@@ -7,6 +7,7 @@ import "direct_mir_scalar_program_set_string_value_result_target_owner.pgy";
 import "direct_mir_scalar_program_array_readonly_ref_target_owner.pgy";
 import "direct_mir_scalar_program_owned_string_member_argument_owner.pgy";
 import "direct_mir_scalar_program_owned_string_call_result_argument_owner.pgy";
+import "direct_mir_scalar_program_owned_string_argument_source_owner.pgy";
 import "direct_mir_scalar_program_void_readonly_string_target_owner.pgy";
 import "direct_mir_scalar_program_value_result_union_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
@@ -109,6 +110,12 @@ func DirectMirScalarCfgProgramDirectCallCarriageReady(ref plan: DirectMirScalarC
                 plan.program.logical_record, owner_type) {
             return false;
         }
+        // A direct result already has the callee-body verdict above. Reuse it;
+        // bound values still need their exact allocation-source join.
+        if owner_type == CompilerAbiLayoutStringTypeName() &&
+            !owned_string_call_result &&
+            !DirectMirScalarProgramOwnedStringBoundArgumentSourceReady(
+                plan, argument_node, routine, graph_start) { return false; }
     } else if carriage == "mutable-identity" {
         return DirectMirScalarProgramIdentityCellParameterCarriageReady(
             plan.program.logical_record.identity_cells, plan.routines.parameter_types[parameter_row], carriage);

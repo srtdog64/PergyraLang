@@ -4217,6 +4217,14 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   its final owner-handle argument admission. The proof reaches immutable
   `TextBuilderFinish` storage backed by `AllocatorResult`, follows only exact
   callable identities, and never treats a String return type as ownership.
+- `src/self_hosted/compiler/direct_mir_scalar_program_owned_string_argument_source_owner.pgy`
+  -- reached String owner-handle allocation-source admission. Bound arguments
+  require one definition and the exact fresh initializer or physical constructor
+  field; borrowed literals, copied local/record sources, and formal forwarding
+  without a carried contract fail closed. Direct-result admission reuses the
+  existing callee-body verdict. This narrows caller admission only: current
+  scalar lifetime, exclusivity, alias retirement, literal element transfer and
+  aggregate field leases remain separate obligations, not grants from this row.
 - `src/self_hosted/compiler/direct_mir_scalar_program_owned_array_string_move_fact_owner.pgy`,
   `direct_mir_scalar_program_owned_array_string_move_use_owner.pgy`, and
   `direct_mir_scalar_program_owned_array_string_move_admission_owner.pgy` --

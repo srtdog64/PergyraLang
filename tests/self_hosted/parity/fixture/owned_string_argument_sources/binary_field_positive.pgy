@@ -1,0 +1,7 @@
+import "sink.pgy";
+struct Pair { let tag: Int; let value: String; }
+func Main() -> Void {
+    let fact: Pair = Pair(1, Concat("fresh", "-right-field"));
+    ReleaseOwnedString(fact.value);
+    Log("owned-string-source-ready");
+}

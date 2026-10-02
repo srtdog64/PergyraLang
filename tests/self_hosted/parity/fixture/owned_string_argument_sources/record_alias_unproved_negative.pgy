@@ -1,0 +1,6 @@
+import "sink.pgy";
+func Main() -> Void {
+    let fact: OwnedStringFact = OwnedStringFact(Concat("fresh", "-field"));
+    let alias: OwnedStringFact = fact;
+    ReleaseOwnedString(alias.value);
+}

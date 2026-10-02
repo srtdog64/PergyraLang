@@ -1,0 +1,6 @@
+import "sink.pgy";
+struct Triple { let first: String; let value: String; let last: String; }
+func Main() -> Void {
+    let fact: Triple = Triple("borrowed-first", Concat("fresh", "-nary-field"), "borrowed-last");
+    ReleaseOwnedString(fact.last);
+}

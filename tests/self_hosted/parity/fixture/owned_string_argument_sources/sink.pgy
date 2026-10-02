@@ -1,0 +1,7 @@
+// Explicit pointer-consuming boundary shared by source-origin falsifiers.
+func ReleaseOwnedString(own value: String) -> Void {
+    if value == "" { return; }
+    let owned_values: Array<String> = [value];
+    ArrayDropOwnedStrings(owned_values);
+}
+struct OwnedStringFact { let value: String; }

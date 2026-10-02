@@ -1,0 +1,7 @@
+import "sink.pgy";
+struct MutableStringFact { let mut value: String; }
+func Main() -> Void {
+    let fact: MutableStringFact = MutableStringFact(Concat("fresh", "-field"));
+    fact.value = "borrowed";
+    ReleaseOwnedString(fact.value);
+}
