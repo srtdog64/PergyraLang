@@ -1,0 +1,18 @@
+// A real intent step passes one physical inline-empty field to its participant.
+// Intent surface identity is not a function identity or an ownership grant.
+struct Carrier { values: Array<String>; }
+subject Worker {
+    action Observe(self, packet: Carrier) -> Int { return ArrayLength(packet.values); }
+}
+zone WorkZone { subject slot worker: Worker }
+intent Inspect(work: WorkZone, worker: Worker) {
+    step ReadPacket {
+        using: work;
+        who: worker;
+        on outcome: worker.Observe(Carrier([]));
+        expect: outcome == 0;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void {}

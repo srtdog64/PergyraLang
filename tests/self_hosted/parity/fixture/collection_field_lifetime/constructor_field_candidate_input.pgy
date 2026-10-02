@@ -1,0 +1,16 @@
+// Scalar constructor parameters are not pending ArrayString field inputs.
+// ArrayString formals in every mode and direct array-producing calls remain
+// pending, without granting storage or element ownership.
+struct Carrier { count: Int; active: Bool; title: String; values: Array<String>; }
+func DefaultInput(values: Array<String>) -> Void { let record: Carrier = Carrier(1, true, "default", values); }
+func RefInput(ref values: Array<String>) -> Void { let record: Carrier = Carrier(2, false, "ref", values); }
+func InoutInput(inout values: Array<String>) -> Void { let record: Carrier = Carrier(3, true, "inout", values); }
+func OwnInput(own values: Array<String>) -> Void { let record: Carrier = Carrier(4, false, "own", values); }
+func Main() -> Void {
+    let seed: Array<String> = ["seed"];
+    let count: Int = 5;
+    let active: Bool = true;
+    let title: String = "named-scalars";
+    let record: Carrier = Carrier(count, active, title, Clone(seed));
+    Log(ArrayLength(record.values));
+}

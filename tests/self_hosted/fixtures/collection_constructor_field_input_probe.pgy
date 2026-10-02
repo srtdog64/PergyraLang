@@ -1,0 +1,136 @@
+// Observe the production pending-input collector; never emit/run supplied code.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Log("expected source and observation mode"); Exit(2); }
+    let mode: Int = ToInt(args[1]);
+    if args[1] != ToString(mode) || mode < -2 || mode > 31 { Log("invalid observation mode"); Exit(2); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Log("fixture parser refused"); Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok { Log("fixture declaration refused"); Exit(2); }
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    let reached: Bool = bundle.verdict.ok || (!bundle.collection_ownership.ok &&
+        bundle.collection_ownership.diagnostic_code == "borrow_boundary_escape" && bundle.collection_ownership.syntax_node_id > 0);
+    if !reached || !SemanticExpressionGraphCarriedCallTargetsReady(analysis.expression_surfaces.expression_graph) {
+        Log("fixture did not reach sealed collection admission"); Exit(2);
+    }
+    let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
+    let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
+        analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
+    let formals: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
+        analysis.signatures, analysis.expression_surfaces);
+    if !definitions.ok || !storage.ok || !formals.ok { Log("fixture source facts refused"); Exit(2); }
+    let effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        analysis.expression_surfaces, formals.inventory.row_by_formal, formals.inventory.modes, formals.effects, definitions, storage);
+    let inputs: SemanticAstCollectionConstructorFieldInputs = effects.constructor_inputs;
+    if !SemanticAstCollectionCallEffectFactsReady(effects, ArrayLength(analysis.local_bindings.node_ids)) ||
+        !SemanticAstCollectionConstructorFieldInputsPendingReady(artifact, inputs, analysis.constructors, analysis.local_bindings,
+            bundle.initializer_types.inferred_type_names, definitions, analysis.expression_surfaces) ||
+        (mode >= 0 && ArrayLength(inputs.edge_nodes) < 1) {
+        Log("production input collector refused"); Exit(2);
+    }
+    if mode == -2 {
+        if !bundle.verdict.ok { Log("source admission refused"); Exit(1); }
+        Log("body_ok=true"); return;
+    }
+    if mode == -1 {
+        let named: Int = 0; let empty: Int = 0; let unproved: Int = 0; let replaced: Int = 0; let purposes: Int = 0;
+        let row: Int = 0;
+        while row < ArrayLength(inputs.edge_nodes) {
+            if inputs.intent_ids[row] > 0 { purposes = purposes + 1; }
+            if inputs.producer_kinds[row] == 1 {
+                named = named + 1;
+                if inputs.definition_ids[row] != inputs.binding_ids[row] { replaced = replaced + 1; }
+            } else if inputs.producer_kinds[row] == 2 { empty = empty + 1; }
+            else { unproved = unproved + 1; }
+            row = row + 1;
+        }
+        Log(Concat("inputs=", ToString(ArrayLength(inputs.edge_nodes))));
+        Log(Concat("named=", ToString(named))); Log(Concat("empty=", ToString(empty)));
+        Log(Concat("unproved=", ToString(unproved))); Log(Concat("replaced=", ToString(replaced)));
+        Log(Concat("intents=", ToString(purposes)));
+        return;
+    }
+    // Fresh artifact per invocation. Mutation units are carrier falsifiers,
+    // not field lifetime grants, call discharge, or MIR execution evidence.
+    if mode == 1 { inputs.constructor_ids[0] = 0; }
+    else if mode == 2 { inputs.field_ids[0] = 0; }
+    else if mode == 3 { inputs.field_ids[0] = inputs.field_ids[1]; }
+    else if mode == 4 { inputs.constructor_ids[0] = inputs.constructor_ids[0] + 1; }
+    else if mode == 5 { inputs.definition_ids[0] = inputs.definition_ids[0] + 1; }
+    else if mode == 6 { inputs.binding_ids[0] = inputs.binding_ids[0] + 1; }
+    else if mode == 7 { inputs.edge_nodes[0] = inputs.argument_nodes[0]; }
+    else if mode == 8 { inputs.argument_nodes[0] = inputs.argument_nodes[1]; }
+    else if mode == 9 { inputs.ordinals[0] = inputs.ordinals[0] + 1; }
+    else if mode == 10 { inputs.function_ids[0] = inputs.function_ids[0] + 1; }
+    else if mode == 11 { inputs.syntax_ids[0] = inputs.syntax_ids[0] + 1; }
+    else if mode == 12 { analysis.constructors.param_type_names[inputs.field_rows[0]] = "Array<Int>"; }
+    else if mode == 13 { ArrayPop(inputs.argument_nodes); }
+    else if mode == 14 { inputs.ok = false; }
+    else if mode == 15 { inputs.producer_kinds[0] = 3; }
+    else if mode == 16 { inputs.field_rows[0] = inputs.field_rows[1]; }
+    else if mode == 17 { analysis.expression_surfaces.expression_graph.arena.identities.runtime_call_abi_ids[inputs.call_nodes[0]] = 1; }
+    else if mode == 18 { analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[inputs.call_nodes[0]] = 1; }
+    else if mode == 19 { inputs.call_nodes[0] = inputs.call_nodes[0] + 1; }
+    else if mode == 20 { inputs = SemanticAstCollectionConstructorFieldInputsEmpty(); }
+    else if mode == 21 {
+        if ArrayLength(inputs.edge_nodes) < 2 || inputs.edge_nodes[0] == inputs.edge_nodes[1] { Log("duplicate fixture has no distinct edges"); Exit(2); }
+        inputs.surface_slots[1] = inputs.surface_slots[0]; inputs.function_ids[1] = inputs.function_ids[0]; inputs.syntax_ids[1] = inputs.syntax_ids[0];
+        inputs.intent_ids[1] = inputs.intent_ids[0];
+        inputs.edge_nodes[1] = inputs.edge_nodes[0]; inputs.call_nodes[1] = inputs.call_nodes[0]; inputs.argument_nodes[1] = inputs.argument_nodes[0];
+        inputs.ordinals[1] = inputs.ordinals[0]; inputs.constructor_ids[1] = inputs.constructor_ids[0]; inputs.field_ids[1] = inputs.field_ids[0];
+        inputs.constructor_rows[1] = inputs.constructor_rows[0]; inputs.field_rows[1] = inputs.field_rows[0]; inputs.producer_kinds[1] = inputs.producer_kinds[0];
+        inputs.definition_rows[1] = inputs.definition_rows[0]; inputs.definition_ids[1] = inputs.definition_ids[0]; inputs.binding_ids[1] = inputs.binding_ids[0];
+    } else if mode == 22 || mode == 23 || mode == 25 {
+        let old: Int = -1; let fresh: Int = -1; let row: Int = 0;
+        while row < ArrayLength(inputs.edge_nodes) {
+            if inputs.producer_kinds[row] == 1 {
+                if old < 0 { old = row; }
+                else if inputs.binding_ids[row] == inputs.binding_ids[old] && inputs.field_ids[row] == inputs.field_ids[old] &&
+                    inputs.definition_ids[row] != inputs.definition_ids[old] && inputs.syntax_ids[row] != inputs.syntax_ids[old] { fresh = row; break; }
+            }
+            row = row + 1;
+        }
+        if old < 0 || fresh < 0 || inputs.surface_slots[old] == inputs.surface_slots[fresh] { Log("fixture has no replacement pair"); Exit(2); }
+        if mode == 22 {
+            inputs.definition_rows[fresh] = inputs.definition_rows[old]; inputs.definition_ids[fresh] = inputs.definition_ids[old];
+        } else if mode == 25 {
+            inputs.definition_rows[old] = inputs.definition_rows[fresh]; inputs.definition_ids[old] = inputs.definition_ids[fresh];
+        } else {
+            inputs.edge_nodes[fresh] = inputs.edge_nodes[old]; inputs.call_nodes[fresh] = inputs.call_nodes[old];
+            inputs.argument_nodes[fresh] = inputs.argument_nodes[old]; inputs.ordinals[fresh] = inputs.ordinals[old];
+        }
+    } else if mode == 24 {
+        let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(analysis.expression_surfaces.expression_graph, inputs.call_nodes[0]);
+        if !IsSome(callee) { Log("fixture has no base callee"); Exit(2); }
+        let node: Int = UnwrapOption(callee);
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[node] = SemanticExpressionBindingDeclaredCallable();
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[node] = inputs.function_ids[0];
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[node] = SemanticExpressionBindingOrdinalAbsent();
+    } else if mode == 26 {
+        ArrayPop(inputs.surface_slots); ArrayPop(inputs.function_ids); ArrayPop(inputs.intent_ids); ArrayPop(inputs.syntax_ids);
+        ArrayPop(inputs.edge_nodes); ArrayPop(inputs.call_nodes); ArrayPop(inputs.argument_nodes); ArrayPop(inputs.ordinals);
+        ArrayPop(inputs.constructor_ids); ArrayPop(inputs.field_ids); ArrayPop(inputs.constructor_rows); ArrayPop(inputs.field_rows);
+        ArrayPop(inputs.producer_kinds); ArrayPop(inputs.definition_rows); ArrayPop(inputs.definition_ids); ArrayPop(inputs.binding_ids);
+    } else if mode == 27 {
+        if inputs.producer_kinds[0] != 1 { Log("fixture has no named producer"); Exit(2); }
+        inputs.producer_kinds[0] = 0; inputs.definition_rows[0] = -1; inputs.definition_ids[0] = 0; inputs.binding_ids[0] = 0;
+    } else if mode >= 28 {
+        if inputs.intent_ids[0] <= 0 || inputs.function_ids[0] != -1 { Log("fixture has no intent-owned input"); Exit(2); }
+        if mode == 28 { inputs.intent_ids[0] = -1; }
+        else if mode == 29 { inputs.function_ids[0] = analysis.signatures.function_node_ids[0]; }
+        else if mode == 30 {
+            inputs.function_ids[0] = analysis.signatures.function_node_ids[0]; inputs.intent_ids[0] = -1;
+        } else { inputs.intent_ids[0] = inputs.intent_ids[0] + 1; }
+    }
+    let ready: Bool = SemanticAstCollectionConstructorFieldInputsPendingReady(artifact, inputs, analysis.constructors,
+        analysis.local_bindings, bundle.initializer_types.inferred_type_names, definitions, analysis.expression_surfaces);
+    if (mode == 0 && !ready) || (mode != 0 && ready) { Log("constructor input carrier mismatch"); Exit(1); }
+    Log("true");
+}

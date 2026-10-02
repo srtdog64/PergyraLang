@@ -1,8 +1,7 @@
 // The local projection is selected from one definition-bound effect table.
 // Selection never filters an old earliest event or reconstructs lost events.
-import "ast_collection_assignment_definition_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
-
+import "ast_collection_constructor_field_input_owner.pgy";
 struct SemanticAstCollectionCallEffectFacts {
     ok: Bool;
     first_unknown_sites: Array<Int>;
@@ -17,11 +16,12 @@ struct SemanticAstCollectionCallEffectFacts {
     formal_unknown_sites: HashMap<String, Int>;
     formal_retiring_sites: HashMap<String, Int>;
     formal_non_deep_drop_sites: HashMap<String, Int>;
+    constructor_inputs: SemanticAstCollectionConstructorFieldInputs;
 }
 
 func SemanticAstCollectionCallEffectFactsReady(ref facts: SemanticAstCollectionCallEffectFacts, local_count: Int) -> Bool {
     let n: Int = ArrayLength(facts.definition_unknown_sites);
-    return facts.ok && ArrayLength(facts.first_unknown_sites) == local_count &&
+    return facts.ok && SemanticAstCollectionConstructorFieldInputsShapeReady(facts.constructor_inputs) && ArrayLength(facts.first_unknown_sites) == local_count &&
         ArrayLength(facts.first_retiring_sites) == local_count && ArrayLength(facts.first_non_deep_drop_retiring_sites) == local_count &&
         n >= local_count && ArrayLength(facts.definition_retiring_sites) == n && ArrayLength(facts.definition_non_deep_drop_sites) == n &&
         ArrayLength(facts.first_storage_escape_sites) == local_count && ArrayLength(facts.definition_storage_escape_sites) == n;

@@ -1,0 +1,6 @@
+// A genuine constructor-free input has complete, empty pending coverage.
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    let count: Int = ArrayLength(values);
+    Log(count);
+}

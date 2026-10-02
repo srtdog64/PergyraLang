@@ -28435,6 +28435,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy:160 \
     src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy:200 \
     src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy:90 \
@@ -28486,7 +28487,25 @@ require_text "src/self_hosted/semantic/ast_collection_constructor_storage_escape
 require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
     'SemanticAstCollectionArgumentPermissionEffectFromEdge('
 require_text "src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy" \
-    'effect.storage_escape = Unwrap(escape) > 0;'
+    'effect.storage_escape = effect.constructor_field.field_syntax_id > 0;'
+require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
+    'constructor_inputs: SemanticAstCollectionConstructorFieldInputs;'
+require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
+    'SemanticAstCollectionConstructorFieldInputRecord('
+require_text "src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy" \
+    'let definition: Int = current[binding_row];'
+require_text "src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy" \
+    'func SemanticAstCollectionConstructorFieldInputsPendingReady('
+require_text "src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy" \
+    'intent_ids: Array<Int>;'
+require_text "src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy" \
+    'return row == ArrayLength(facts.edge_nodes);'
+reject_text "src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy" \
+    'func SemanticAstCollectionConstructorFieldInputsReady('
+reject_text "src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy" \
+    'SemanticAstCollectionOwnershipOwnedElements('
+reject_text "src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy" \
+    'TypedAstArenaParentId('
 require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
     'SemanticAstCollectionFormalStoragePermissionUnproved('
 require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \

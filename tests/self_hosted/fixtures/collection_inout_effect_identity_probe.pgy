@@ -486,7 +486,8 @@ func InspectOwnArgumentOccurrenceOrder(
     let no_formal_retiring: HashMap<String, Int> = MapNew();
     let no_formal_non_deep: HashMap<String, Int> = MapNew();
     let effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFacts(
-        true, [], [], [], [], [], [], [], [], no_formal_escape, no_formal_unknown, no_formal_retiring, no_formal_non_deep);
+        true, [], [], [], [], [], [], [], [], no_formal_escape, no_formal_unknown, no_formal_retiring, no_formal_non_deep,
+        SemanticAstCollectionConstructorFieldInputsEmpty());
     let verdict: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionFirstInvalidOwnedArgumentUse(
         artifact, analysis.signatures, no_locals, strings, projected, definitions, effects, analysis.statements, analysis.assignments);
     if mutation == 24 { return verdict.found && verdict.diagnostic_code == "ast_artifact_invalid"; }

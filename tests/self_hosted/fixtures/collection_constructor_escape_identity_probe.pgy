@@ -11,7 +11,8 @@ func InspectConstructorEffectFrame(mutation: Int) -> Bool {
     let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFacts(
         true, [101, 102], [201, 202], [301, 302],
         [101, 102, 103], [201, 202, 203], [301, 302, 303],
-        [401, 402], [401, 402, 403], no_formal_escape, no_formal_unknown, no_formal_retiring, no_formal_non_deep);
+        [401, 402], [401, 402, 403], no_formal_escape, no_formal_unknown, no_formal_retiring, no_formal_non_deep,
+        SemanticAstCollectionConstructorFieldInputsEmpty());
     if !SemanticAstCollectionCallEffectFactsReady(facts, 2) { return false; }
     if mutation == 14 {
         ArrayPop(facts.first_storage_escape_sites);
@@ -141,12 +142,24 @@ func Main() -> Void with caps env, io_read {
         if !second.ok { Log("fixture second edge missing"); Exit(2); }
         edge = second; expected = constructors.field_source_syntax_ids[field + 1];
     }
-    let escape: Result<Int> = SemanticAstCollectionConstructorStorageEscapeField(
+    let escape: SemanticAstCollectionConstructorFieldIdentity = SemanticAstCollectionConstructorStorageEscapeField(
         artifact, constructors, locals, inferred, surfaces, surface, edge);
     let passed: Bool = false;
-    if mutation == 0 || mutation == 13 { passed = IsOk(escape) && Unwrap(escape) == expected && expected > 0; }
-    else if mutation >= 10 { passed = IsOk(escape) && Unwrap(escape) == 0; }
-    else { passed = IsErr(escape); }
+    if mutation == 0 || mutation == 13 {
+        if escape.ok {
+            let identity: SemanticAstCollectionConstructorFieldIdentity = escape;
+            passed = identity.field_syntax_id == expected && expected > 0 &&
+                identity.constructor_syntax_id == constructors.node_ids[owner] && identity.constructor_row == owner;
+        }
+    }
+    else if mutation >= 10 {
+        if escape.ok {
+            let identity: SemanticAstCollectionConstructorFieldIdentity = escape;
+            passed = identity.field_syntax_id == 0 && identity.constructor_syntax_id == 0 && identity.field_type_name == "" &&
+                identity.constructor_row == -1 && identity.field_row == -1;
+        }
+    }
+    else { passed = !escape.ok; }
     if !passed { Log("constructor escape identity mismatch"); Exit(1); }
     Log("true");
 }

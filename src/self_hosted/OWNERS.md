@@ -637,6 +637,15 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   definition release/own-entry/descriptor-mutation permission without consuming
   its storage or granting lifetime to the field. Scoped callable shadows remain nonconstructors;
   duplicate constructor names and missing field identity fail closed.
+- `src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy`
+  -- pending physical constructor field inputs retain exact declaration/field
+  IDs, exact function-or-intent surface owner, argument occurrence and the selected named definition or inline-empty
+  occurrence. Private offsets only accelerate checked joins. These inputs
+  cover each eligible admitted surface edge exactly once and replay the
+  prepass's selected Assign definition; scalar exclusions grant no permission.
+  Pending replay is not runtime occurrence, dominance or Live evidence. They
+  neither reserve storage nor seal an aggregate value, grant elements, discharge
+  a formal, or authorize a drop; unproved inputs remain explicitly unproved.
 - `src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy`
   -- monotone current-definition effect closure. Known storage escape remains
   distinct from opaque-call Unknown/retirement: readonly indexed effects retain

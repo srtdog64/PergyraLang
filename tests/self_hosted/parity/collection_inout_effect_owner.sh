@@ -128,6 +128,7 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy \
+    src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy \
     src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy \
     src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy \

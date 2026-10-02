@@ -9,6 +9,7 @@ struct SemanticAstCollectionArgumentPermissionEffect {
     retiring: Bool;
     non_deep: Bool;
     storage_escape: Bool;
+    constructor_field: SemanticAstCollectionConstructorFieldIdentity;
 }
 
 func SemanticAstCollectionArgumentPermissionEffectFromEdge(
@@ -19,11 +20,13 @@ func SemanticAstCollectionArgumentPermissionEffectFromEdge(
     edge: SemanticCallArgumentEdgeView, formal_rows: HashMap<String, Int>,
     ref formal_modes: Array<Int>, proved: HashMap<String, Int>
 ) -> SemanticAstCollectionArgumentPermissionEffect {
-    let effect: SemanticAstCollectionArgumentPermissionEffect = SemanticAstCollectionArgumentPermissionEffect(false, false, false, false, false);
-    let escape: Result<Int> = SemanticAstCollectionConstructorStorageEscapeField(
+    let absent: SemanticAstCollectionConstructorFieldIdentity = SemanticAstCollectionConstructorFieldIdentity(true, 0, 0, "", -1, -1);
+    let effect: SemanticAstCollectionArgumentPermissionEffect = SemanticAstCollectionArgumentPermissionEffect(false, false, false, false, false, absent);
+    let escape: SemanticAstCollectionConstructorFieldIdentity = SemanticAstCollectionConstructorStorageEscapeField(
         artifact, constructors, locals, inferred_types, surfaces, surface, edge);
-    if IsErr(escape) { return effect; }
-    effect.storage_escape = Unwrap(escape) > 0;
+    if !escape.ok { return effect; }
+    effect.constructor_field = escape;
+    effect.storage_escape = effect.constructor_field.field_syntax_id > 0;
     let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, edge.call_node);
     let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(surfaces.expression_graph, edge.call_node);
     if !edge.ok || !IsSome(target) || !IsSome(callee) { return effect; }

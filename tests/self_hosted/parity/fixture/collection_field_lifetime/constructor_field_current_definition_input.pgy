@@ -1,0 +1,11 @@
+// Pending field identity must select the replacement, not the old Let row.
+// Read-only construction does not consume or grant deep-release authority.
+struct Carrier { values: Array<String>; other: Array<String>; }
+func Main() -> Void {
+    let seed: Array<String> = ["seed"];
+    let values: Array<String> = Clone(seed);
+    let old: Carrier = Carrier(values, []);
+    values = Clone(seed);
+    let fresh: Carrier = Carrier(values, ["borrowed"]);
+    Log(ArrayLength(old.values) + ArrayLength(fresh.values));
+}
