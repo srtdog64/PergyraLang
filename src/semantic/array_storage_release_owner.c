@@ -14,10 +14,11 @@ array_storage_plain_element(const Type *type, SemanticContext *ctx, unsigned dep
 {
     if (type == NULL || depth >= 32)
         return false;
-    if (type_equals(type, TYPE_INT) || type_equals(type, TYPE_LONG)
-        || type_equals(type, TYPE_FLOAT) || type_equals(type, TYPE_DOUBLE)
-        || type_equals(type, TYPE_BOOL) || type_equals(type, TYPE_DURATION))
-        return true;
+    if (type_equals(type, TYPE_INT) || type_equals(type, TYPE_LONG) || type_equals(type, TYPE_FLOAT)
+        || type_equals(type, TYPE_DOUBLE) || type_equals(type, TYPE_BOOL) || type_equals(type, TYPE_DURATION)) return true;
+    if (type_is_constructed_named(type, "Result"))
+        return type_constructed_arg_count(type) == 2 && array_storage_plain_element(type_get_constructed_arg(type, 0), ctx, depth + 1)
+            && array_storage_plain_element(type_get_constructed_arg(type, 1), ctx, depth + 1);
     if (type->kind == TYPE_KIND_ENUM) {
         ASTNode *decl = semantic_find_enum_decl_by_name(ctx, type->name);
         size_t count = 0;
@@ -26,23 +27,19 @@ array_storage_plain_element(const Type *type, SemanticContext *ctx, unsigned dep
         (void)ast_enum_variants(decl, &count);
         for (size_t v = 0; v < count; v++) {
             for (size_t p = 0; p < ast_enum_variant_param_count(decl, v); p++) {
-                Type *payload = semantic_type_resolution_lookup_metadata_type_ref(
-                    ctx, ast_enum_variant_param(decl, v, p));
+                Type *payload = semantic_type_resolution_lookup_metadata_type_ref(ctx, ast_enum_variant_param(decl, v, p));
                 if (!array_storage_plain_element(payload, ctx, depth + 1))
                     return false;
             }
         }
         return count != 0;
     }
-    if (type->kind != TYPE_KIND_CLASS || type->nominal_flavor != TYPE_NOMINAL_STRUCT)
-        return false;
+    if (type->kind != TYPE_KIND_CLASS || type->nominal_flavor != TYPE_NOMINAL_STRUCT) return false;
     ASTNode *decl = semantic_host_decl_for_type(ctx, type);
-    if (decl == NULL || decl->type != AST_CLASS_DECL)
-        return false;
+    if (decl == NULL || decl->type != AST_CLASS_DECL) return false;
     PgyDeclField *fields = NULL;
     size_t count = 0;
-    if (!pgy_class_decl_field_model_try_build(decl, &fields, &count))
-        return false;
+    if (!pgy_class_decl_field_model_try_build(decl, &fields, &count)) return false;
     bool plain = true;
     for (size_t i = 0; i < count && plain; i++) {
         Type *field = semantic_type_resolution_lookup_metadata_type_ref(
@@ -58,13 +55,11 @@ array_storage_invalidate_exclusivity(ASTNode *source, const Type *type,
     bool stored_alias, SemanticContext *ctx)
 {
     if (ctx == NULL || source == NULL || source->type != AST_IDENTIFIER
-        || !type_is_constructed_named(type, "Array"))
-        return;
+        || !type_is_constructed_named(type, "Array")) return;
     Symbol *binding = scope_lookup(ctx->scope, ast_identifier_name(source));
     if (binding != NULL) {
         binding->has_exclusive_array_storage = false;
-        if (stored_alias)
-            binding->has_escaped_array_storage = true;
+        if (stored_alias) binding->has_escaped_array_storage = true;
     }
 }
 

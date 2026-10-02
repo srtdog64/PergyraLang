@@ -1,0 +1,16 @@
+enum ArrayReadError { ArrayReadEmpty }
+
+func ObserveAlias(ref values: Array<Int>) -> Result<Array<Int>, ArrayReadError> {
+    if ArrayLength(values) == 0 { return Err(ArrayReadError.ArrayReadEmpty); }
+    return Ok(values);
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [7];
+    let observed: Result<Array<Int>, ArrayReadError> = ObserveAlias(values);
+    ArrayDrop(values);
+    match observed {
+        case Ok(alias): Log(alias[0]);
+        case Err(_): Exit(1);
+    }
+}

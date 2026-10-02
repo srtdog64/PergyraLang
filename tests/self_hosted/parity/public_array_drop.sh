@@ -23,7 +23,7 @@ echo "[$LABEL] stage=$STAGE evidence=$WORK_REL launcher=$PGY driver=$DRIVER"
 lanes=(native)
 [[ "$STAGE" == all ]] && lanes+=(public)
 if [[ "$STAGE" != mir ]]; then
-for name in scalar record_empty early_return own own_bool loop read_borrow own_pair; do
+for name in scalar record_empty early_return own own_bool loop read_borrow own_pair ref_result_plain; do
     expected=$'7\ntrue'
     [[ "$name" == record_empty ]] && expected=9
     [[ "$name" == early_return ]] && expected=$'4\n8'
@@ -32,6 +32,7 @@ for name in scalar record_empty early_return own own_bool loop read_borrow own_p
     [[ "$name" == loop ]] && expected=$'2\n2\n2'
     [[ "$name" == read_borrow ]] && expected=3
     [[ "$name" == own_pair ]] && expected=$'3\n4'
+    [[ "$name" == ref_result_plain ]] && expected='ARRAY RESULT READ RELEASE PASS'
     for lane in "${lanes[@]}"; do
         for backend in c llvm; do
             command=("$PGY")
@@ -74,7 +75,7 @@ for name in negative double_negative default_negative ref_negative inout_negativ
     owned_string_negative nested_resource_negative conditional_negative private_negative shadow_negative \
     own_alias_negative builtin_alias_negative call_result_negative option_escape_negative \
     enum_escape_negative own_conditional_negative return_alias_escape_negative inout_rebind_negative literal_escape_negative \
-    own_double_negative own_duplicate_argument_negative own_borrow_argument_negative; do
+    own_double_negative own_duplicate_argument_negative own_borrow_argument_negative ref_result_resource_negative; do
     source="$FIXTURES/public_array_drop_$name.pgy"
     [[ "$name" == negative ]] && source="$FIXTURES/public_array_drop_negative.pgy"
     for lane in "${lanes[@]}"; do
@@ -163,5 +164,5 @@ fi
 if [[ "$STAGE" == mir ]]; then
     echo "[$LABEL] PASS stage=mir (4 issued MIR inputs executed and 5 preserved-artifact refusals per C/LLVM backend; no source gate claimed)"
 else
-    echo "[$LABEL] PASS stage=$STAGE (native C/LLVM: 10 positives each; all-stage source-C: 10 and public LLVM: 8; 27 preserved-artifact refusals per lane; all-stage also executes 4 issued MIR inputs and checks 5 MIR refusals per backend)"
+    echo "[$LABEL] PASS stage=$STAGE (native C/LLVM: 11 positives each; all-stage source-C: 11 and public LLVM: 9; 28 preserved-artifact refusals per lane; all-stage also executes 4 issued MIR inputs and checks 5 MIR refusals per backend)"
 fi

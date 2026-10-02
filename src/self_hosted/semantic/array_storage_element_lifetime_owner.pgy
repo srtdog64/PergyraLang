@@ -3,6 +3,7 @@
 import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_nominal_constructor_lookup_owner.pgy";
 import "ast_enum_fact_owner.pgy";
+import "wrapper_type_owner.pgy";
 
 func SemanticArrayStoragePlainElement(type_name: String,
     ref constructors: SemanticAstNominalConstructorFacts,
@@ -11,6 +12,13 @@ func SemanticArrayStoragePlainElement(type_name: String,
     if type_name == "Int" || type_name == "Long" || type_name == "Float" ||
         type_name == "Double" || type_name == "Bool" || type_name == "Duration" {
         return true;
+    }
+    let result_payload: Option<String> = ResultPayloadTypeOpt(type_name);
+    let result_error: Option<String> = ResultErrorTypeOpt(type_name);
+    if IsSome(result_payload) || IsSome(result_error) {
+        return IsSome(result_payload) && IsSome(result_error) &&
+            SemanticArrayStoragePlainElement(UnwrapOption(result_payload), constructors, enums, depth + 1) &&
+            SemanticArrayStoragePlainElement(UnwrapOption(result_error), constructors, enums, depth + 1);
     }
     let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, type_name);
     if IsSome(constructor) {

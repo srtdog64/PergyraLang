@@ -1,0 +1,16 @@
+enum ArrayReadError { ArrayReadEmpty }
+
+func ObserveFirst(ref values: Array<Int>) -> Result<Int, ArrayReadError> {
+    if ArrayLength(values) == 0 { return Err(ArrayReadError.ArrayReadEmpty); }
+    return Ok(values[0]);
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [7];
+    match ObserveFirst(values) {
+        case Ok(value): if value != 7 { Exit(1); }
+        case Err(_): Exit(1);
+    }
+    ArrayDrop(values);
+    Log("ARRAY RESULT READ RELEASE PASS");
+}
