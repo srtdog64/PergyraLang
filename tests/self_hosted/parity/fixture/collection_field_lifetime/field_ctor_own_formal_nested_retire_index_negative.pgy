@@ -1,0 +1,6 @@
+func Consume(own values: Array<String>) -> String {
+    ArrayDropOwnedStrings(values);
+    return "retired";
+}
+func Store(own values: Array<String>) -> Void { values[0] = Consume(values); }
+func Main() -> Void {}

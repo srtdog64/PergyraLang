@@ -1,0 +1,9 @@
+struct Carrier { values: Array<String>; }
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    let values: Array<String> = Clone(seed);
+    let record: Carrier = Carrier(values);
+    let renamed: Array<String> = values;
+    ArrayDropOwnedStrings(renamed);
+    Log(ArrayLength(record.values));
+}

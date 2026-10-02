@@ -1,0 +1,59 @@
+// A stored descriptor loses exclusive release permission; no field lifetime
+// or universal aggregate move is inferred. Consume one admitted physical edge.
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
+import "nominal_constructor_argument_policy_owner.pgy";
+import "ast_callable_type_shape_owner.pgy";
+
+func SemanticAstCollectionConstructorStorageEscapeField(
+    artifact: AstTreeArtifact, ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, surface: Int,
+    edge: SemanticCallArgumentEdgeView
+) -> Result<Int> {
+    if !edge.ok || surface < 0 || surface >= ArrayLength(surfaces.node_ids) {
+        return Err("constructor_storage_escape_identity");
+    }
+    let target: Option<Int> =
+        SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, edge.call_node);
+    let kind: Option<Int> =
+        SemanticExpressionGraphCallTargetKind(surfaces.expression_graph, edge.call_node);
+    let name: Option<String> =
+        SemanticExpressionGraphCallTargetName(surfaces.expression_graph, edge.call_node);
+    let runtime: Option<Int> =
+        SemanticExpressionGraphRuntimeCallAbiId(surfaces.expression_graph, edge.call_node);
+    let callee: Option<Int> =
+        SemanticCallBaseCalleeFromGraph(surfaces.expression_graph, edge.call_node);
+    if !IsSome(target) || !IsSome(kind) || !IsSome(name) || !IsSome(runtime) ||
+        !IsSome(callee) || UnwrapOption(target) < 0 || UnwrapOption(runtime) < 0 {
+        return Err("constructor_storage_escape_identity");
+    }
+    let binding: SemanticExpressionBindingIdentityFact =
+        SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, UnwrapOption(callee));
+    if !binding.ok { return Err("constructor_storage_escape_identity"); }
+    if UnwrapOption(target) > 0 || UnwrapOption(kind) != SemanticCallTargetDirect() ||
+        UnwrapOption(runtime) != 0 || binding.kind != SemanticExpressionBindingNone() ||
+        binding.syntax_id != 0 { return Ok(0); }
+    // Ordinary local callable identity intentionally carries no declaration ID.
+    // Resolve only that exact leaf through the existing scoped binding owner.
+    let lexical: SemanticAstLocalBindingIdentity =
+        SemanticAstCollectionOwnershipLocalForArgument(
+            artifact, locals, inferred_types, surfaces, surface, UnwrapOption(callee));
+    if lexical.ok && SemanticAstCallableTypeShapeFromName(lexical.type_name).ok {
+        return Ok(0);
+    }
+    let index: Result<Int> =
+        SemanticAstNominalConstructorUniqueIndexForName(constructors, UnwrapOption(name));
+    if IsErr(index) { return Err("constructor_storage_escape_identity"); }
+    if Unwrap(index) < 0 { return Ok(0); }
+    let field: Option<Int> =
+        SemanticAstNominalConstructorArgumentFieldIndexAt(constructors, Unwrap(index), edge.ordinal);
+    if !IsSome(field) || constructors.node_ids[Unwrap(index)] <= 0 {
+        return Err("constructor_storage_escape_identity");
+    }
+    let row: Int = constructors.param_starts[Unwrap(index)] + UnwrapOption(field);
+    if constructors.field_source_syntax_ids[row] <= 0 {
+        return Err("constructor_storage_escape_identity");
+    }
+    return Ok(constructors.field_source_syntax_ids[row]);
+}

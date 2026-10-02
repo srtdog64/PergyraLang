@@ -1,0 +1,10 @@
+struct Carrier { values: Array<String>; }
+func Consume(own values: Array<String>) -> Void { Log(ArrayLength(values)); }
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    let values: Array<String> = Clone(seed);
+    let record: Carrier = Carrier(values);
+    let renamed: Array<String> = values;
+    Consume(renamed);
+    Log(ArrayLength(record.values));
+}

@@ -20,7 +20,9 @@ func SemanticAstCollectionOwnedArgumentVerdict(
     if parameter <= 0 { return SemanticAstCollectionOwnershipVerdictOk(); }
     let live: Bool = SemanticAstCollectionOwnStringArrayFormalNode(signatures,
         surfaces.function_node_ids[surface_row], surfaces.expression_graph, edge.argument_node) > 0;
-    if binding.ok { live = !borrowed_storage && !unknown && SemanticAstCollectionOwnedArgumentStorageLive(binding.row,
+    if binding.ok { live = !borrowed_storage && !unknown &&
+        !SemanticAstCollectionStorageEscapedAtUse(artifact, call_effects, binding.row, surfaces.node_ids[surface_row]) &&
+        SemanticAstCollectionOwnedArgumentStorageLive(binding.row,
         surfaces.node_ids[surface_row], call_effects.first_retiring_sites[binding.row], ownership, dispositions, transition_states); }
     if !live {
         return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",

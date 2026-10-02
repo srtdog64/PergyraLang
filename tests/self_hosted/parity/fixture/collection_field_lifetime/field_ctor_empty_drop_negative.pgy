@@ -1,0 +1,9 @@
+// Owned-element pushes do not preserve exclusive storage after field escape.
+struct Carrier { values: Array<String>; }
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "owned");
+    let record: Carrier = Carrier(values);
+    ArrayDropOwnedStrings(values);
+    Log(ArrayLength(record.values));
+}

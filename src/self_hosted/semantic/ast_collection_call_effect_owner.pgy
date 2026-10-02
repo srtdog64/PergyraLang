@@ -5,9 +5,13 @@ import "ast_collection_ownership_state_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
 import "ast_collection_call_effect_fact_owner.pgy";
 import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_argument_permission_effect_owner.pgy";
+import "ast_collection_definition_effect_closure_owner.pgy";
+import "ast_collection_owned_parameter_identity_owner.pgy";
 
 func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     formal_rows: HashMap<String, Int>, ref formal_modes: Array<Int>,
@@ -17,12 +21,19 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
     let unknown: Array<Int> = [];
     let retiring: Array<Int> = [];
     let non_deep_drop: Array<Int> = [];
+    let escaping: Array<Int> = [];
     let local_unknown: Array<Int> = [];
     let local_retiring: Array<Int> = [];
     let local_non_deep: Array<Int> = [];
+    let local_escape: Array<Int> = [];
     let zero_unknown: Array<Bool> = [];
     let zero_retiring: Array<Bool> = [];
     let zero_non_deep: Array<Bool> = [];
+    let zero_escape: Array<Bool> = [];
+    let formal_escape: HashMap<String, Int> = MapNew();
+    let formal_unknown: HashMap<String, Int> = MapNew();
+    let formal_retiring: HashMap<String, Int> = MapNew();
+    let formal_non_deep: HashMap<String, Int> = MapNew();
     let parents: Array<Int> = [];
     let count: Int = ArrayLength(definitions.syntax_ids);
     let current: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
@@ -30,13 +41,15 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         ArrayLength(storage.borrowed_seed_sources) != count ||
         ArrayLength(inferred_types) != definitions.local_count ||
         !SemanticAstExpressionSurfaceBorrowReady(artifact, surfaces) {
-        return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop);
+        return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep);
     }
     let row: Int = 0;
     while row < count {
         ArrayPush(unknown, -1); ArrayPush(retiring, -1); ArrayPush(non_deep_drop, -1); ArrayPush(parents, storage.borrowed_seed_sources[row]);
+        ArrayPush(escaping, -1);
         if row < definitions.local_count {
             ArrayPush(local_unknown, -1); ArrayPush(local_retiring, -1); ArrayPush(local_non_deep, -1);
+            ArrayPush(local_escape, -1); ArrayPush(zero_escape, false);
             ArrayPush(zero_unknown, false); ArrayPush(zero_retiring, false); ArrayPush(zero_non_deep, false);
         }
         row = row + 1;
@@ -50,52 +63,33 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
             while node <= root {
                 if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCallArgument() {
                     let call: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
-                    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, call.call_node);
-                    let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(surfaces.expression_graph, call.call_node);
-                    let declared: Bool = false;
-                    if IsSome(callee) {
-                        let identity: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
-                            surfaces.expression_graph, UnwrapOption(callee));
-                        declared = identity.kind != SemanticExpressionBindingNone() || identity.syntax_id > 0;
-                    }
-                    let ordinal: Int = call.ordinal;
-                    let deep_drop: Bool = SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "ArrayDropOwnedStrings");
-                    let releasing: Bool = call.ok && ordinal == 0 && (deep_drop ||
-                        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "ArrayDrop") ||
-                        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "CompilerRetireArrayStorage"));
-                    if call.ok && ordinal >= 0 && IsSome(target) && (UnwrapOption(target) > 0 || declared || releasing) {
-                        let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
-                            artifact, locals, inferred_types, surfaces, slot / 3, call.argument_node);
-                        if binding.ok && SemanticAstCollectionOwnershipIsStringArray(inferred_types[binding.row]) {
-                            let formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(
-                                signatures, surfaces.expression_graph, call.call_node, ordinal);
-                            let key: String = ToString(formal);
-                            let consuming: Bool = releasing;
-                            if MapHas(formal_rows, key) {
-                                let formal_row: Int = MapGet(formal_rows, key);
-                                if formal_row < 0 || formal_row >= ArrayLength(formal_modes) {
-                                    return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop);
-                                }
-                                consuming = formal_modes[formal_row] == 2;
-                            }
-                            let unproved: Bool = !MapHas(proved, key);
-                            if consuming || unproved {
-                                // One syntax includes argument evaluation; graph base Call
-                                // order is not invocation order. 0 covers repeat/reorder.
-                                let site: Int = SemanticAstCollectionCallRetirementSite(artifact, surfaces.node_ids[slot / 3]);
-                                let definition: Int = current[binding.row];
-                                if retiring[definition] < 0 || site < retiring[definition] { retiring[definition] = site; }
-                                if !deep_drop && (non_deep_drop[definition] < 0 || site < non_deep_drop[definition]) { non_deep_drop[definition] = site; }
-                                if !consuming && unproved && (unknown[definition] < 0 || site < unknown[definition]) {
-                                    unknown[definition] = site;
-                                }
-                                // Deferred/repeated uses read the binding later, not a
-                                // proved snapshot of this definition's storage.
-                                if site == 0 {
-                                    zero_retiring[binding.row] = true;
-                                    if !deep_drop { zero_non_deep[binding.row] = true; }
-                                    if !consuming && unproved { zero_unknown[binding.row] = true; }
-                                }
+                    let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+                        artifact, locals, inferred_types, surfaces, slot / 3, call.argument_node);
+                    let source: Int = 0;
+                    if !binding.ok { source = SemanticAstCollectionOwnStringArrayFormalNode(
+                        signatures, surfaces.function_node_ids[slot / 3], surfaces.expression_graph, call.argument_node); }
+                    if source > 0 || (binding.ok && SemanticAstCollectionOwnershipIsStringArray(inferred_types[binding.row])) {
+                        let effect: SemanticAstCollectionArgumentPermissionEffect = SemanticAstCollectionArgumentPermissionEffectFromEdge(
+                            artifact, signatures, constructors, locals, inferred_types, surfaces, slot / 3, call, formal_rows, formal_modes, proved);
+                        if !effect.ok { return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep); }
+                        let site: Int = SemanticAstCollectionCallRetirementSite(artifact, surfaces.node_ids[slot / 3]);
+                        if source > 0 {
+                            SemanticAstCollectionRecordFormalPermissionEffectAtSite(
+                                source, site, effect, formal_unknown, formal_retiring, formal_non_deep, formal_escape);
+                        }
+                        if binding.ok {
+                            let definition: Int = current[binding.row];
+                            if effect.storage_escape && (escaping[definition] < 0 || site < escaping[definition]) { escaping[definition] = site; }
+                            if effect.retiring && (retiring[definition] < 0 || site < retiring[definition]) { retiring[definition] = site; }
+                            if effect.non_deep && (non_deep_drop[definition] < 0 || site < non_deep_drop[definition]) { non_deep_drop[definition] = site; }
+                            if effect.unknown && (unknown[definition] < 0 || site < unknown[definition]) { unknown[definition] = site; }
+                            // Repeat/reorder reads the binding later, not a
+                            // proved snapshot of this definition's storage.
+                            if site == 0 {
+                                if effect.storage_escape { zero_escape[binding.row] = true; }
+                                if effect.retiring { zero_retiring[binding.row] = true; }
+                                if effect.non_deep { zero_non_deep[binding.row] = true; }
+                                if effect.unknown { zero_unknown[binding.row] = true; }
                             }
                         }
                     }
@@ -124,41 +118,13 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         if zero_unknown[binding] { unknown[row] = 0; }
         if zero_retiring[binding] { retiring[row] = 0; }
         if zero_non_deep[binding] { non_deep_drop[row] = 0; }
+        if zero_escape[binding] { escaping[row] = 0; }
         row = row + 1;
     }
-    // A consuming Let inherits its exact source. A proved borrowed Let shares
-    // that storage: real effects must reach ancestors and sibling views too.
-    let pass: Int = 0;
-    while pass < 2 {
-        let changed: Bool = true;
-        let remaining: Int = count + 1;
-        while changed && remaining > 0 {
-            changed = false;
-            row = 0;
-            while row < count {
-                let source: Int = parents[row];
-                if source >= 0 {
-                    if SemanticAstCollectionMergeDefinitionEffectBounds(unknown, retiring, non_deep_drop, source, row) { changed = true; }
-                    if pass == 0 && SemanticAstCollectionDefinitionStorageBorrowed(storage, row) &&
-                        SemanticAstCollectionMergeDefinitionEffectBounds(unknown, retiring, non_deep_drop, row, source) { changed = true; }
-                }
-                row = row + 1;
-            }
-            remaining = remaining - 1;
-        }
-        // Missing Assign production proof is local permission loss, not an
-        // actual earlier shared-storage effect. Descendants inherit it only.
-        if pass == 0 {
-            row = definitions.local_count;
-            while row < count {
-                if !definitions.fresh[row] { unknown[row] = 0; retiring[row] = 0; non_deep_drop[row] = 0; }
-                row = row + 1;
-            }
-        }
-        pass = pass + 1;
-    }
+    SemanticAstCollectionDefinitionEffectClosure(
+        definitions, storage, parents, unknown, retiring, non_deep_drop, escaping);
     let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFacts(
-        true, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop);
+        true, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep);
     row = 0;
     while row < definitions.local_count { SemanticAstCollectionSelectDefinitionEffects(facts, row, row); row = row + 1; }
     return facts;

@@ -1,0 +1,8 @@
+struct Carrier { values: Array<String>; }
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "owned");
+    let record: Carrier = Carrier(values);
+    ArrayPushOwnedString(values, "next");
+    Log(ArrayLength(record.values));
+}

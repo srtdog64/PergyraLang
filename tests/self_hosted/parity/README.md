@@ -80,11 +80,34 @@ baseline and 42 mutations), two constructor-carrier negatives and five invalid
 observer mode/arity refusals per backend. Its optional reuse directory must be
 inside this checkout's ignored artifact directory with matching native, source,
 input and transitive-import hashes, plus an exact two-binary receipt. The inout
-gate retains its separate exact four-binary receipt. Neither gate grants
+gate retains its separate exact six-binary receipt (C/LLVM source, formal and
+constructor observers). Neither gate grants
 aggregate storage/element lifetime or proves actual Release execution.
 Run the focused member gate with
 `make self-host-collection-member-identity-test-smoke`; it is also a prerequisite
 of `self-host-collection-ownership-semantic-test-smoke`.
+
+The constructor prerequisite keeps descriptor escape distinct from opaque
+call Unknown/retirement. Exact current-definition escape bounds forbid deep
+release, own forwarding and descriptor mutation, but preserve known Live
+element facts for proved readonly indexed calls. Direct Let/shared-storage
+lineage inherits the bound; a fresh Clone Assign does not. Source controls
+include alias laundering, own-formal direct drop/forwarding, duplicate readonly
+descriptor inputs, nested Clone and fresh Assign. Local and own-formal parser
+Push/Pop/Set/indexed targets, own-string push and nested/deferred mutation also
+consume the exclusive permission boundary. Collected formal effects include
+later argument consumption and future opaque/constructor stores in defer;
+ordinary mutation before a store and unescaped/fresh storage remain controls.
+Nineteen constructor units
+check two same-typed physical fields, duplicate/missing identity and callable/
+nonconstructor exclusion; five of those units check synthetic vector readiness,
+current-definition selection and escape-only closure, not actual producer
+identity. Four invalid CLI modes are refused per backend.
+`field_ctor_generic_type_held.pgy` and `field_ctor_callable_type_held.pgy`
+remain earlier type-admission controls, excluded from permission-loss counts.
+This is not exclusive field-entry, aggregate return, MIR receipt, native-oracle
+or installed-driver lifetime evidence. Actual callable-table Release remains
+the active falsifier; do not remove its three deep drops or writebacks.
 
 - run the existing C or shell oracle against the same input;
 - run the Pergyra tool against the same input;

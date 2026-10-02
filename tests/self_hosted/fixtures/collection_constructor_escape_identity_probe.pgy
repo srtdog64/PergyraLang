@@ -1,0 +1,152 @@
+// Mutate one freshly admitted graph/fact frame. No supplied program is emitted.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+// Synthetic vector/closure units do not grant storage or validate a producer.
+func InspectConstructorEffectFrame(mutation: Int) -> Bool {
+    let no_formal_escape: HashMap<String, Int> = MapNew();
+    let no_formal_unknown: HashMap<String, Int> = MapNew();
+    let no_formal_retiring: HashMap<String, Int> = MapNew();
+    let no_formal_non_deep: HashMap<String, Int> = MapNew();
+    let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFacts(
+        true, [101, 102], [201, 202], [301, 302],
+        [101, 102, 103], [201, 202, 203], [301, 302, 303],
+        [401, 402], [401, 402, 403], no_formal_escape, no_formal_unknown, no_formal_retiring, no_formal_non_deep);
+    if !SemanticAstCollectionCallEffectFactsReady(facts, 2) { return false; }
+    if mutation == 14 {
+        ArrayPop(facts.first_storage_escape_sites);
+        return !SemanticAstCollectionCallEffectFactsReady(facts, 2);
+    }
+    if mutation == 15 {
+        ArrayPop(facts.definition_storage_escape_sites);
+        return !SemanticAstCollectionCallEffectFactsReady(facts, 2);
+    }
+    if mutation == 16 {
+        SemanticAstCollectionSelectDefinitionEffects(facts, 1, 2);
+        if facts.first_unknown_sites[1] != 103 || facts.first_retiring_sites[1] != 203 ||
+            facts.first_non_deep_drop_retiring_sites[1] != 303 || facts.first_storage_escape_sites[1] != 403 ||
+            facts.first_unknown_sites[0] != 101 || facts.first_retiring_sites[0] != 201 ||
+            facts.first_non_deep_drop_retiring_sites[0] != 301 || facts.first_storage_escape_sites[0] != 401 { return false; }
+        SemanticAstCollectionSelectDefinitionEffects(facts, 1, 0);
+        if facts.first_unknown_sites[1] != 101 || facts.first_retiring_sites[1] != 201 ||
+            facts.first_non_deep_drop_retiring_sites[1] != 301 || facts.first_storage_escape_sites[1] != 401 { return false; }
+        facts.definition_storage_escape_sites[2] = -1;
+        SemanticAstCollectionSelectDefinitionEffects(facts, 1, 2);
+        return facts.first_storage_escape_sites[1] == -1 && facts.first_unknown_sites[1] == 103 &&
+            facts.first_retiring_sites[1] == 203 && facts.first_non_deep_drop_retiring_sites[1] == 303;
+    }
+    let ints: Array<Int> = [1, 2, 3];
+    let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFacts(
+        true, 3, ints, ints, ints, ints, ints, ints, ints, ints, ints, ints, [true, true, true]);
+    let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFacts(
+        true, [false, true, true], [-1, -1, -1]);
+    let parents: Array<Int> = [-1, 0, 0];
+    let unknown: Array<Int> = [-1, -1, -1];
+    let retiring: Array<Int> = [-1, -1, -1];
+    let non_deep: Array<Int> = [-1, -1, -1];
+    let escaping: Array<Int> = [-1, -1, 43];
+    if mutation == 18 { storage.borrowed_definitions = [false, false, false]; }
+    SemanticAstCollectionDefinitionEffectClosure(definitions, storage, parents, unknown, retiring, non_deep, escaping);
+    if unknown[0] != -1 || unknown[1] != -1 || unknown[2] != -1 ||
+        retiring[0] != -1 || retiring[1] != -1 || retiring[2] != -1 ||
+        non_deep[0] != -1 || non_deep[1] != -1 || non_deep[2] != -1 { return false; }
+    if mutation == 17 { return escaping[0] == 43 && escaping[1] == 43 && escaping[2] == 43; }
+    if escaping[0] != -1 || escaping[1] != -1 || escaping[2] != 43 { return false; }
+    escaping = [43, -1, -1];
+    SemanticAstCollectionDefinitionEffectClosure(definitions, storage, parents, unknown, retiring, non_deep, escaping);
+    return escaping[0] == 43 && escaping[1] == 43 && escaping[2] == 43 &&
+        unknown[0] == -1 && unknown[1] == -1 && unknown[2] == -1 &&
+        retiring[0] == -1 && retiring[1] == -1 && retiring[2] == -1 &&
+        non_deep[0] == -1 && non_deep[1] == -1 && non_deep[2] == -1;
+}
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Log("expected source and mutation"); Exit(2); }
+    let mutation: Int = ToInt(args[1]);
+    if mutation < 0 || mutation > 18 || args[1] != ToString(mutation) {
+        Log("invalid mutation"); Exit(2);
+    }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Log("fixture parser refused"); Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !bundle.verdict.ok { Log("fixture body refused"); Exit(2); }
+    if mutation >= 14 {
+        if !InspectConstructorEffectFrame(mutation) { Log("constructor effect frame mismatch"); Exit(1); }
+        Log("true"); return;
+    }
+    let constructors: SemanticAstNominalConstructorFacts = analysis.constructors;
+    let surfaces: SemanticAstExpressionSurfaceFacts = analysis.expression_surfaces;
+    let inferred: Array<String> = bundle.initializer_types.inferred_type_names;
+    let locals: SemanticAstLocalBindingFacts = analysis.local_bindings;
+    let surface: Int = -1;
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeView(false, 0, 0, -1);
+    let second: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeView(false, 0, 0, -1);
+    let slot: Int = 0;
+    let last: Int = -1;
+    while slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[slot] {
+            let root: Int = surfaces.expression_graph.roots[slot];
+            let node: Int = last + 1;
+            while node <= root {
+                if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCallArgument() {
+                    let candidate: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
+                    if candidate.ok && surfaces.expression_graph.arena.call_target_names[candidate.call_node] == "Carrier" {
+                        if candidate.ordinal == 0 {
+                            if edge.ok { Log("duplicate fixture edge"); Exit(2); }
+                            edge = candidate; surface = slot / 3;
+                        } else if candidate.ordinal == 1 { second = candidate; }
+                    }
+                }
+                node = node + 1;
+            }
+            last = root;
+        }
+        slot = slot + 1;
+    }
+    let index: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, "Carrier");
+    let decoy: Option<Int> = SemanticAstNominalConstructorIndexForName(constructors, "Decoy");
+    let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(surfaces.expression_graph, edge.call_node);
+    if !edge.ok || !IsSome(index) || !IsSome(decoy) || !IsSome(callee) { Log("fixture identity missing"); Exit(2); }
+    let owner: Int = UnwrapOption(index);
+    let field: Int = constructors.param_starts[owner];
+    let expected: Int = constructors.field_source_syntax_ids[field];
+    if mutation == 1 { constructors.names[UnwrapOption(decoy)] = "Carrier"; }
+    else if mutation == 2 { constructors.field_source_syntax_ids[field] = 0; }
+    else if mutation == 3 { constructors.node_ids[owner] = 0; }
+    else if mutation == 4 { edge.ordinal = 2; }
+    else if mutation == 5 { constructors.param_starts[owner] = -1; }
+    else if mutation == 6 { constructors.param_counts[owner] = ArrayLength(constructors.field_source_syntax_ids) + 1; }
+    else if mutation == 7 { surfaces.expression_graph.arena.identities.call_target_syntax_ids[edge.call_node] = -1; }
+    else if mutation == 8 { surfaces.expression_graph.arena.identities.runtime_call_abi_ids[edge.call_node] = -1; }
+    else if mutation == 9 { ArrayPop(constructors.names); }
+    else if mutation == 10 { surfaces.expression_graph.arena.call_target_kinds[edge.call_node] = SemanticCallTargetMember(); }
+    else if mutation == 11 { surfaces.expression_graph.arena.identities.runtime_call_abi_ids[edge.call_node] = 1; }
+    else if mutation == 12 {
+        // Same nominal spelling, but the exact scoped local is a callable.
+        let row: Int = 0;
+        let found: Bool = false;
+        while row < ArrayLength(locals.names) {
+            if locals.names[row] == "seed" {
+                locals.names[row] = "Carrier";
+                locals.declared_type_names[row] = "func(Array<String>)->Int";
+                inferred[row] = "func(Array<String>)->Int";
+                found = true;
+            }
+            row = row + 1;
+        }
+        if !found { Log("fixture callable missing"); Exit(2); }
+    } else if mutation == 13 {
+        if !second.ok { Log("fixture second edge missing"); Exit(2); }
+        edge = second; expected = constructors.field_source_syntax_ids[field + 1];
+    }
+    let escape: Result<Int> = SemanticAstCollectionConstructorStorageEscapeField(
+        artifact, constructors, locals, inferred, surfaces, surface, edge);
+    let passed: Bool = false;
+    if mutation == 0 || mutation == 13 { passed = IsOk(escape) && Unwrap(escape) == expected && expected > 0; }
+    else if mutation >= 10 { passed = IsOk(escape) && Unwrap(escape) == 0; }
+    else { passed = IsErr(escape); }
+    if !passed { Log("constructor escape identity mismatch"); Exit(1); }
+    Log("true");
+}

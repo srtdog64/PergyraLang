@@ -1,0 +1,10 @@
+struct Carrier { values: Array<String>; }
+func Main() -> Void {
+    let values: Array<String> = ["original"];
+    ArrayPush(values, "next");
+    ArraySet(values, 0, "set");
+    values[0] = "indexed";
+    ArrayPop(values);
+    let record: Carrier = Carrier(values);
+    Log(ArrayLength(record.values));
+}

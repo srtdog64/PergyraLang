@@ -1,0 +1,9 @@
+// HELD: current type admission refuses this before the storage-escape boundary.
+struct Cell<T> { value: T; }
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    let values: Array<String> = Clone(seed);
+    let record: Cell<Array<String>> = Cell<Array<String>>(values);
+    ArrayDropOwnedStrings(values);
+    Log(ArrayLength(record.value));
+}

@@ -1,0 +1,9 @@
+struct Carrier { values: Array<String>; }
+func AppendCopy(inout values: Array<String>) -> Void { ArrayPushOwnedString(values, "next"); }
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    let values: Array<String> = Clone(seed);
+    let record: Carrier = Carrier(values);
+    AppendCopy(values);
+    Log(ArrayLength(record.values));
+}

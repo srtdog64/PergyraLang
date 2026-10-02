@@ -1,0 +1,7 @@
+struct Pair { left: Array<String>; right: Array<String>; }
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    let values: Array<String> = Clone(seed);
+    let record: Pair = Pair(values, values);
+    Log(ArrayLength(values) + ArrayLength(record.left) + ArrayLength(record.right));
+}

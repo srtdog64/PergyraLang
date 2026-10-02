@@ -1,0 +1,6 @@
+func Opaque(inout values: Array<String>) -> Void { ArrayPush(values, "borrowed"); }
+func Store(own values: Array<String>) -> Void {
+    defer { ArrayPushOwnedString(values, "deferred"); }
+    Opaque(values);
+}
+func Main() -> Void {}

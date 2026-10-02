@@ -1,0 +1,5 @@
+func Append(own values: Array<String>) -> Void {
+    ArrayPushOwnedString(values, "next");
+    Log(ArrayLength(values));
+}
+func Main() -> Void {}

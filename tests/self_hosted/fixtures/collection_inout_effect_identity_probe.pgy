@@ -212,7 +212,7 @@ func Main() -> Void with caps env, io_read {
         let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
             analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
         let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
-            artifact, analysis.signatures, analysis.local_bindings,
+            artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
             bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
             formal_rows, modes, proved, definitions, storage);
         if caller_row < 0 || unknown_call_syntax < 0 || !SemanticAstCollectionCallEffectFactsReady(facts, ArrayLength(ownership)) {
@@ -303,7 +303,7 @@ func InspectOwnStorageAdmission(
                         let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
                             analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
                         let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
-                            artifact, analysis.signatures, analysis.local_bindings,
+                            artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
                             bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
                             formal_rows, modes, proved, definitions, storage);
                         if !effects.ok || !SemanticAstCollectionCallEffectFactsReady(facts, 1) { return false; }
@@ -470,7 +470,6 @@ func InspectOwnArgumentOccurrenceOrder(
     let projected: SemanticAstExpressionSurfaceFacts = SemanticAstExpressionSurfaceFacts(
         true, -1, "", artifact.count, [syntax], [caller], [-1],
         [true], ["candidate"], [false], [""], [false], [""], ["candidate"], [""], [""], [], graph);
-    let proved: HashMap<String, Int> = MapNew();
     // The projection contains formal events only, not the original Let roots.
     // Keep its local owner empty instead of treating omitted initializers as facts.
     let ints: Array<Int> = [];
@@ -482,8 +481,14 @@ func InspectOwnArgumentOccurrenceOrder(
         artifact, analysis.signatures, no_locals, strings,
         projected, analysis.assignments, bundle.assignment_types);
     if !definitions.ok { return false; }
+    let no_formal_escape: HashMap<String, Int> = MapNew();
+    let no_formal_unknown: HashMap<String, Int> = MapNew();
+    let no_formal_retiring: HashMap<String, Int> = MapNew();
+    let no_formal_non_deep: HashMap<String, Int> = MapNew();
+    let effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFacts(
+        true, [], [], [], [], [], [], [], [], no_formal_escape, no_formal_unknown, no_formal_retiring, no_formal_non_deep);
     let verdict: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionFirstInvalidOwnedArgumentUse(
-        artifact, analysis.signatures, no_locals, strings, projected, definitions, proved);
+        artifact, analysis.signatures, no_locals, strings, projected, definitions, effects, analysis.statements, analysis.assignments);
     if mutation == 24 { return verdict.found && verdict.diagnostic_code == "ast_artifact_invalid"; }
     if mutation == 25 { return !verdict.found; }
     return verdict.found && verdict.diagnostic_code == "move_from_released" &&

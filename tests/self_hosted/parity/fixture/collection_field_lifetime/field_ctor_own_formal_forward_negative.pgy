@@ -1,0 +1,8 @@
+struct Carrier { values: Array<String>; }
+func Consume(own values: Array<String>) -> Void { Log(ArrayLength(values)); }
+func Store(own values: Array<String>) -> Void {
+    let record: Carrier = Carrier(values);
+    Consume(values);
+    Log(ArrayLength(record.values));
+}
+func Main() -> Void {}

@@ -1,0 +1,65 @@
+// One admitted argument edge owns the negative storage effects for locals and
+// formals. Content and liveness grants remain with their existing owners.
+import "ast_collection_constructor_storage_escape_owner.pgy";
+import "ast_collection_formal_effect_owner.pgy";
+
+struct SemanticAstCollectionArgumentPermissionEffect {
+    ok: Bool;
+    unknown: Bool;
+    retiring: Bool;
+    non_deep: Bool;
+    storage_escape: Bool;
+}
+
+func SemanticAstCollectionArgumentPermissionEffectFromEdge(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, surface: Int,
+    edge: SemanticCallArgumentEdgeView, formal_rows: HashMap<String, Int>,
+    ref formal_modes: Array<Int>, proved: HashMap<String, Int>
+) -> SemanticAstCollectionArgumentPermissionEffect {
+    let effect: SemanticAstCollectionArgumentPermissionEffect = SemanticAstCollectionArgumentPermissionEffect(false, false, false, false, false);
+    let escape: Result<Int> = SemanticAstCollectionConstructorStorageEscapeField(
+        artifact, constructors, locals, inferred_types, surfaces, surface, edge);
+    if IsErr(escape) { return effect; }
+    effect.storage_escape = Unwrap(escape) > 0;
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, edge.call_node);
+    let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(surfaces.expression_graph, edge.call_node);
+    if !edge.ok || !IsSome(target) || !IsSome(callee) { return effect; }
+    let identity: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, UnwrapOption(callee));
+    if !identity.ok { return effect; }
+    let declared: Bool = identity.kind != SemanticExpressionBindingNone() || identity.syntax_id > 0;
+    let deep_drop: Bool = SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayDropOwnedStrings");
+    let releasing: Bool = edge.ordinal == 0 && (deep_drop ||
+        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayDrop") ||
+        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "CompilerRetireArrayStorage"));
+    if edge.ordinal >= 0 && (UnwrapOption(target) > 0 || declared || releasing) {
+        let formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+        let key: String = ToString(formal);
+        let consuming: Bool = releasing;
+        if MapHas(formal_rows, key) {
+            let row: Int = MapGet(formal_rows, key);
+            if row < 0 || row >= ArrayLength(formal_modes) { return effect; }
+            consuming = formal_modes[row] == 2;
+        }
+        let unproved: Bool = !MapHas(proved, key);
+        effect.unknown = !consuming && unproved;
+        effect.retiring = consuming || unproved;
+        effect.non_deep = effect.retiring && !deep_drop;
+    }
+    effect.ok = true;
+    return effect;
+}
+
+func SemanticAstCollectionRecordFormalPermissionEffectAtSite(
+    source: Int, site: Int, effect: SemanticAstCollectionArgumentPermissionEffect,
+    inout unknown: HashMap<String, Int>, inout retiring: HashMap<String, Int>,
+    inout non_deep: HashMap<String, Int>, inout escaping: HashMap<String, Int>
+) -> Void {
+    let key: String = ToString(source);
+    if effect.unknown && (!MapHas(unknown, key) || site < MapGet(unknown, key)) { MapSet(unknown, key, site); }
+    if effect.retiring && (!MapHas(retiring, key) || site < MapGet(retiring, key)) { MapSet(retiring, key, site); }
+    if effect.non_deep && (!MapHas(non_deep, key) || site < MapGet(non_deep, key)) { MapSet(non_deep, key, site); }
+    if effect.storage_escape && (!MapHas(escaping, key) || site < MapGet(escaping, key)) { MapSet(escaping, key, site); }
+}

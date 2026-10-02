@@ -254,7 +254,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let formal_modes: Array<Int> = formal_effects.inventory.modes;
     let proved_formal_effects: HashMap<String, Int> = formal_effects.effects;
     let call_effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
-        artifact, signatures, locals, initializer_types.inferred_type_names,
+        artifact, signatures, constructors, locals, initializer_types.inferred_type_names,
         surfaces, formal_row_map, formal_modes, proved_formal_effects, definitions, storage);
     if !SemanticAstCollectionCallEffectFactsReady(call_effects, local_count) {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
@@ -350,7 +350,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                                 let may_retire: Bool = SemanticAstCollectionMutableCallMayBeRetired(artifact, surfaces.node_ids[root_slot / 3], call_effects.first_non_deep_drop_retiring_sites[binding.row]);
                                 if !deep_drop { may_retire = SemanticAstCollectionMutationMayBeRetired(artifact, surfaces.node_ids[root_slot / 3], call_effects.first_retiring_sites[binding.row], call_effects.first_non_deep_drop_retiring_sites[binding.row]); }
                                 if (!deep_drop && dispositions[binding.row] == SemanticAstCollectionDispositionRetired()) ||
-                                    may_retire {
+                                    may_retire || SemanticAstCollectionStorageEscapedAtUse(
+                                        artifact, call_effects, binding.row, surfaces.node_ids[root_slot / 3]) {
                                     return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
                                         SemanticError2("borrow_boundary_escape", "boundary", name, "type", "Array<String>"), surfaces.node_ids[root_slot / 3], node);
                                 }
@@ -550,7 +551,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let transferred_use: SemanticAstCollectionOwnedArgumentUse =
         SemanticAstCollectionFirstInvalidOwnedArgumentUse(
             artifact, signatures, locals, initializer_types.inferred_type_names,
-            surfaces, definitions, proved_formal_effects);
+            surfaces, definitions, call_effects, statements, assignments);
     if transferred_use.found {
         return SemanticAstCollectionOwnershipVerdictError(
             transferred_use.diagnostic_code,

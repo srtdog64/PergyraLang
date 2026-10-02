@@ -74,7 +74,8 @@ func SemanticAstCollectionStatementTransitionForSyntax(
     }
     let unknown: Bool = SemanticAstCollectionApplyUnknownCallStateAtUse(
         artifact, call_effects, binding.row, syntax_id, ownership, dispositions, transition_states);
-    if unknown || SemanticAstCollectionMutationMayBeRetired(artifact, syntax_id,
+    if unknown || SemanticAstCollectionStorageEscapedAtUse(artifact, call_effects, binding.row, syntax_id) ||
+        SemanticAstCollectionMutationMayBeRetired(artifact, syntax_id,
             call_effects.first_retiring_sites[binding.row], call_effects.first_non_deep_drop_retiring_sites[binding.row]) {
         return SemanticAstCollectionStatementTransitionResult(false, "borrow_boundary_escape",
             SemanticError2("borrow_boundary_escape", "boundary", operation, "type", "Array<String>"), syntax_id, carried);

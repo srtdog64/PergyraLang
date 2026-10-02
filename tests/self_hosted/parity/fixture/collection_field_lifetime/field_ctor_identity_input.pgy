@@ -1,0 +1,8 @@
+struct Carrier { values: Array<String>; other: Array<String>; }
+struct Decoy { values: Array<String>; }
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    let values: Array<String> = Clone(seed);
+    let record: Carrier = Carrier(values, []);
+    Log(ArrayLength(values) + ArrayLength(record.values) + ArrayLength(record.other));
+}

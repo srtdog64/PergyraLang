@@ -1,0 +1,10 @@
+// Analyzer-only: a constructor stores this descriptor, so the source is no
+// longer an exclusive deep-release owner. The aggregate acquires no grant.
+struct Carrier { values: Array<String>; }
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    let values: Array<String> = Clone(seed);
+    let record: Carrier = Carrier(values);
+    ArrayDropOwnedStrings(values);
+    Log(ArrayLength(record.values));
+}

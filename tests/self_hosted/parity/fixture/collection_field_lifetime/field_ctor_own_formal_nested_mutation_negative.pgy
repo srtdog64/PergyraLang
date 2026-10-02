@@ -1,0 +1,6 @@
+struct Carrier { values: Array<String>; }
+func Stamp(record: Carrier) -> String { return "next"; }
+func Store(own values: Array<String>) -> Void {
+    ArrayPushOwnedString(values, Stamp(Carrier(values)));
+}
+func Main() -> Void {}

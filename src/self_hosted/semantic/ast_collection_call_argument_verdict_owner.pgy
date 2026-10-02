@@ -47,6 +47,7 @@ func SemanticAstCollectionCallArgumentVerdict(
                 clean = SemanticAstCollectionTransitionAllowsOwned(transition_states[binding.row]);
             }
             if unknown || (effect == 2 && !clean) || dispositions[binding.row] == SemanticAstCollectionDispositionRetired() ||
+                (effect == 2 && SemanticAstCollectionStorageEscapedAtUse(artifact, call_effects, binding.row, surfaces.node_ids[surface_row])) ||
                 SemanticAstCollectionMutableCallMayBeRetired(artifact, surfaces.node_ids[surface_row], call_effects.first_retiring_sites[binding.row]) {
                 let boundary: String = "unproved_inout_copy_entry";
                 if effect == 3 { boundary = "unproved_indexed_read_entry"; }

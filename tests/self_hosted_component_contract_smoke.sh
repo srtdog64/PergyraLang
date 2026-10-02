@@ -28434,6 +28434,10 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy:120 \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy:90 \
     src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy:60 \
     src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy:170 \
     src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy:90 \
@@ -28473,6 +28477,47 @@ done
 require_file "src/self_hosted/mir_lower/collection_ownership_binding_move_owner.pgy"
 require_file "tests/self_hosted/parity/collection_inout_effect_owner.sh"
 require_file "tests/self_hosted/fixtures/collection_inout_effect_identity_probe.pgy"
+require_file "tests/self_hosted/fixtures/collection_constructor_escape_identity_probe.pgy"
+require_text "src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy" \
+    'SemanticAstNominalConstructorArgumentFieldIndexAt('
+require_text "src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy" \
+    'SemanticAstNominalConstructorUniqueIndexForName('
+require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
+    'SemanticAstCollectionArgumentPermissionEffectFromEdge('
+require_text "src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy" \
+    'effect.storage_escape = Unwrap(escape) > 0;'
+require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
+    'SemanticAstCollectionFormalStoragePermissionUnproved('
+require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
+    'SemanticAstCollectionOwnFormalStatementMutationUnproved('
+reject_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
+    'MapSet(unknown,'
+reject_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
+    'SemanticAstCollectionConstructorStorageEscapeField('
+require_text "src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy" \
+    'SemanticAstCollectionSourceFormalIdentity('
+require_text "src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy" \
+    'SemanticAstStatementIndexForNode('
+require_text "src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy" \
+    'SemanticAstAssignmentIndexForNode('
+require_text "src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy" \
+    'SemanticAstCollectionStorageEscapedAtUse('
+reject_text "src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy" \
+    'SemanticAstCollectionOwnershipOwnedElements('
+require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
+    'definition_storage_escape_sites: Array<Int>;'
+require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
+    'formal_storage_escape_sites: HashMap<String, Int>;'
+require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
+    'formal_non_deep_drop_sites: HashMap<String, Int>;'
+require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
+    'facts.definition_storage_escape_sites[definition]'
+require_text "src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy" \
+    'SemanticAstCollectionMergeDefinitionEffectBounds('
+reject_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
+    'while pass < 2'
+reject_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
+    'func SemanticAstCollectionMergeDefinitionEffectBounds('
 require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
     'import "ast_collection_call_effect_owner.pgy";'
 require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
@@ -28520,8 +28565,8 @@ require_text "src/self_hosted/semantic/ast_collection_call_argument_verdict_owne
     'SemanticAstCollectionDefinitionStorageBorrowed(storage, current_definitions[binding.row])'
 require_text "src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy" \
     'SemanticAstCollectionDefinitionStorageBorrowed(storage, definition)'
-require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
-    'SemanticAstCollectionMergeDefinitionEffectBounds(unknown, retiring, non_deep_drop, row, source)'
+require_text "src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy" \
+    'SemanticAstCollectionMergeDefinitionEffectBounds(unknown, retiring, non_deep, escaping, row, source)'
 require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
     'ArrayPush(parents, storage.borrowed_seed_sources[row])'
 require_text "src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy" \

@@ -1,0 +1,10 @@
+// An escaped old definition cannot poison an independently produced replacement.
+struct Carrier { values: Array<String>; }
+func Main() -> Void {
+    let seed: Array<String> = ["old"];
+    let values: Array<String> = Clone(seed);
+    let record: Carrier = Carrier(values);
+    values = Clone(seed);
+    ArrayDropOwnedStrings(values);
+    Log(ArrayLength(record.values));
+}

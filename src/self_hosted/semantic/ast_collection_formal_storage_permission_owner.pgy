@@ -1,0 +1,88 @@
+// Known escape and opaque entry only remove formal descriptor permission.
+import "ast_collection_owned_parameter_identity_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+
+// A scalar lookup does not retain a borrowed fact's container descriptor.
+func SemanticAstCollectionFormalPermissionSite(
+    sites: HashMap<String, Int>, source: Int
+) -> Int {
+    let key: String = ToString(source);
+    if !MapHas(sites, key) { return -1; }
+    return MapGet(sites, key);
+}
+
+func SemanticAstCollectionFormalStoragePermissionUnproved(
+    artifact: AstTreeArtifact, syntax_id: Int, source: Int,
+    ref effects: SemanticAstCollectionCallEffectFacts
+) -> Bool {
+    let unknown: Int = SemanticAstCollectionFormalPermissionSite(effects.formal_unknown_sites, source);
+    let escaped: Int = SemanticAstCollectionFormalPermissionSite(effects.formal_storage_escape_sites, source);
+    return SemanticAstCollectionMutableCallMayBeRetired(artifact, syntax_id, unknown) ||
+        SemanticAstCollectionMutableCallMayBeRetired(artifact, syntax_id, escaped);
+}
+
+func SemanticAstCollectionFormalStorageMutationUnproved(
+    artifact: AstTreeArtifact, syntax_id: Int, source: Int,
+    ref effects: SemanticAstCollectionCallEffectFacts
+) -> Bool {
+    if SemanticAstCollectionFormalStoragePermissionUnproved(artifact, syntax_id, source, effects) { return true; }
+    let retiring: Int = SemanticAstCollectionFormalPermissionSite(effects.formal_retiring_sites, source);
+    let non_deep: Int = SemanticAstCollectionFormalPermissionSite(effects.formal_non_deep_drop_sites, source);
+    return SemanticAstCollectionMutationMayBeRetired(artifact, syntax_id, retiring, non_deep);
+}
+
+func SemanticAstCollectionStorageMutationCall(
+    ref graph: SemanticExpressionGraphFacts, call_node: Int
+) -> Bool {
+    return SemanticAstCollectionOwnershipBuiltinCall(graph, call_node, "ArrayPushOwnedString") ||
+        SemanticAstCollectionOwnershipBuiltinCall(graph, call_node, "ArrayPush") ||
+        SemanticAstCollectionOwnershipBuiltinCall(graph, call_node, "ArraySet") ||
+        SemanticAstCollectionOwnershipBuiltinCall(graph, call_node, "ArrayPop");
+}
+
+func SemanticAstCollectionOwnFormalStatementMutationUnproved(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, syntax_id: Int, lane: Int,
+    ref graph: SemanticExpressionGraphFacts, root: Int,
+    ref effects: SemanticAstCollectionCallEffectFacts
+) -> Result<Bool> {
+    // Parser mutators carry their receiver in the admitted Atom lane, not a
+    // CallArgument. Indexed Assign consumes only the target's base receiver.
+    if lane != AstExpressionLaneAtom() { return Ok(false); }
+    let target: Int = root;
+    if TypedAstArenaNodeKindIs(artifact.arena, syntax_id, TypedAstKindAssignStmtTag()) {
+        let assigned: Option<Int> = SemanticAstAssignmentIndexForNode(assignments, syntax_id);
+        let count: Int = ArrayLength(assignments.node_ids);
+        if !IsSome(assigned) || ArrayLength(assignments.function_node_ids) != count ||
+            ArrayLength(assignments.target_is_indexed) != count ||
+            assignments.function_node_ids[UnwrapOption(assigned)] != function_id { return Err("statement_mutation_identity"); }
+        if assignments.target_is_indexed[UnwrapOption(assigned)] == 0 { return Ok(false); }
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, root);
+        if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeIndex() { return Err("statement_mutation_identity"); }
+        let base: Option<Int> = SemanticExpressionGraphLeftChild(graph, root);
+        if !IsSome(base) { return Err("statement_mutation_identity"); }
+        target = UnwrapOption(base);
+    } else if !TypedAstArenaNodeKindIs(artifact.arena, syntax_id, TypedAstKindArrayPushStmtTag()) &&
+        !TypedAstArenaNodeKindIs(artifact.arena, syntax_id, TypedAstKindArraySetStmtTag()) &&
+        !TypedAstArenaNodeKindIs(artifact.arena, syntax_id, TypedAstKindArrayPopStmtTag()) { return Ok(false); }
+    else {
+        let statement: Option<Int> = SemanticAstStatementIndexForNode(statements, syntax_id);
+        let count: Int = ArrayLength(statements.node_ids);
+        if !IsSome(statement) || ArrayLength(statements.function_node_ids) != count ||
+            ArrayLength(statements.kind_tags) != count ||
+            statements.function_node_ids[UnwrapOption(statement)] != function_id ||
+            !TypedAstArenaNodeKindIs(artifact.arena, syntax_id, statements.kind_tags[UnwrapOption(statement)]) {
+            return Err("statement_mutation_identity");
+        }
+    }
+    let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(graph, target);
+    if !binding.ok { return Err("statement_mutation_identity"); }
+    if binding.kind != SemanticExpressionBindingFormalParameter() { return Ok(false); }
+    let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(signatures, function_id, graph, target);
+    if !formal.ok { return Err("statement_mutation_identity"); }
+    return Ok(formal.mode == 2 && SemanticAstCollectionOwnershipIsStringArray(formal.declared_type_name) &&
+        SemanticAstCollectionFormalStorageMutationUnproved(artifact, syntax_id, formal.syntax_id, effects));
+}

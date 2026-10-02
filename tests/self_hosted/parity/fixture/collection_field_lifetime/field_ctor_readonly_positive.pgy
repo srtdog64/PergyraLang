@@ -1,0 +1,8 @@
+// Shallow construction is not a universal move. Non-owning reads stay legal.
+struct Carrier { values: Array<String>; }
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    let values: Array<String> = Clone(seed);
+    let record: Carrier = Carrier(values);
+    Log(ArrayLength(values) + ArrayLength(record.values));
+}

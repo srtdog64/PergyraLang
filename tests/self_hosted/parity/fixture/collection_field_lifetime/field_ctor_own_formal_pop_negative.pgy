@@ -1,0 +1,7 @@
+struct Carrier { values: Array<String>; }
+func Store(own values: Array<String>) -> Void {
+    let record: Carrier = Carrier(values);
+    ArrayPop(values);
+    Log(ArrayLength(record.values));
+}
+func Main() -> Void {}

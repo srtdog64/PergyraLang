@@ -13,8 +13,26 @@ REL="${WORK#"$ROOT_DIR/"}"
 cd "$ROOT_DIR"
 SOURCE_PROBE=tests/self_hosted/fixtures/nominal_constructor_source_arity_probe.pgy
 IDENTITY_PROBE=tests/self_hosted/fixtures/collection_inout_effect_identity_probe.pgy
+CONSTRUCTOR_PROBE=tests/self_hosted/fixtures/collection_constructor_escape_identity_probe.pgy
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 INPUTS=(
+    field_ctor_clone_drop_negative.pgy field_ctor_empty_drop_negative.pgy
+    field_ctor_own_argument_negative.pgy field_ctor_fresh_assign_positive.pgy field_ctor_readonly_positive.pgy
+    field_ctor_own_formal_drop_negative.pgy field_ctor_own_formal_forward_negative.pgy field_ctor_own_formal_readonly_positive.pgy
+    field_ctor_alias_drop_negative.pgy field_ctor_alias_own_negative.pgy
+    field_ctor_duplicate_readonly_positive.pgy field_ctor_nested_clone_positive.pgy field_ctor_identity_input.pgy
+    field_ctor_indexed_readonly_positive.pgy
+    field_ctor_alias_indexed_readonly_positive.pgy field_ctor_inout_mutation_negative.pgy field_ctor_owned_push_negative.pgy
+    field_ctor_own_formal_mutation_negative.pgy field_ctor_own_formal_unescaped_mutation_positive.pgy
+    field_ctor_local_push_negative.pgy field_ctor_local_pop_negative.pgy field_ctor_local_set_negative.pgy field_ctor_local_index_negative.pgy
+    field_ctor_own_formal_push_negative.pgy field_ctor_own_formal_pop_negative.pgy field_ctor_own_formal_set_negative.pgy field_ctor_own_formal_index_negative.pgy
+    field_ctor_local_unescaped_statements_positive.pgy field_ctor_own_formal_unescaped_statements_positive.pgy
+    field_ctor_fresh_statement_assign_positive.pgy field_ctor_old_alias_mutation_negative.pgy
+    field_ctor_own_formal_mutation_before_positive.pgy field_ctor_local_mutation_before_positive.pgy
+    field_ctor_own_formal_deferred_mutation_negative.pgy field_ctor_own_formal_deferred_statement_negative.pgy
+    field_ctor_local_deferred_statement_negative.pgy field_ctor_own_formal_nested_mutation_negative.pgy
+    field_ctor_own_formal_nested_retire_mutation_negative.pgy field_ctor_own_formal_nested_retire_statement_negative.pgy
+    field_ctor_own_formal_nested_retire_index_negative.pgy field_ctor_own_formal_deferred_opaque_mutation_negative.pgy
     member_formal_double_move_negative.pgy member_formal_restore_positive.pgy
     member_generic_double_move_negative.pgy member_generic_restore_positive.pgy
     member_formal_index_target_negative.pgy member_local_index_target_negative.pgy member_formal_identity_input.pgy
@@ -105,11 +123,16 @@ INPUTS+=(
     docs/audits/repros/ref_formal_let_storage_alias_2026-10-02.pgy
 )
 sha256sum "$PGY" >"$WORK/native.sha256"
-sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" \
+sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
+    src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy \
+    src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy \
+    src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy \
+    src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy \
+    src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy \
     src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy \
     src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy \
     src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy \
@@ -147,10 +170,10 @@ if [[ -n "$PROBE_DIR" ]]; then
         cmp "$WORK/$manifest.sha256" "$PROBE_DIR/$manifest.sha256"
         sha256sum --quiet -c "$PROBE_DIR/$manifest.sha256"
     done
-    # A valid subset is not a complete proof. Pin exactly the four binaries
+    # A valid subset is not a complete proof. Pin exactly the six binaries
     # about to be copied, accepting old relative or new absolute receipt paths.
-    sha256sum --binary "$PROBE_DIR/c-source.exe" "$PROBE_DIR/c-identity.exe" \
-        "$PROBE_DIR/llvm-source.exe" "$PROBE_DIR/llvm-identity.exe" \
+    sha256sum --binary "$PROBE_DIR/c-source.exe" "$PROBE_DIR/c-identity.exe" "$PROBE_DIR/c-constructor.exe" \
+        "$PROBE_DIR/llvm-source.exe" "$PROBE_DIR/llvm-identity.exe" "$PROBE_DIR/llvm-constructor.exe" \
         | LC_ALL=C sort >"$WORK/reuse-expected-binaries.sha256"
     while IFS= read -r line || [[ -n "$line" ]]; do
         [[ "${line:0:64}" =~ ^[0-9a-f]{64}$ &&
@@ -189,11 +212,53 @@ for backend in c llvm; do
             member_*_negative.pgy|own_storage_nested_same_binding_negative.pgy|own_storage_formal_retired_negative.pgy|own_storage_formal_child_retired_negative.pgy|own_storage_return_duplicate_negative.pgy|own_formal_*_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             *_negative.pgy) printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
-            *_positive.pgy|member_formal_identity_input.pgy) printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
+            *_positive.pgy|member_formal_identity_input.pgy|field_ctor_identity_input.pgy) printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             *) echo "unclassified inout fixture: $name" >&2; exit 1 ;;
         esac
         cmp "$WORK/expected" "$WORK/$backend-$name.run"
     done
+    while IFS='|' read -r input boundary atom function value; do
+        timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
+            >"$WORK/$backend-$input-constructor.raw" 2>"$WORK/$backend-$input-constructor.err"
+        tr -d '\r' <"$WORK/$backend-$input-constructor.raw" >"$WORK/$backend-$input-constructor.run"
+        [[ ! -s "$WORK/$backend-$input-constructor.err" ]]
+        grep -Fxq 'body_ok=false' "$WORK/$backend-$input-constructor.run"
+        grep -Fxq 'body_diagnostic=borrow_boundary_escape' "$WORK/$backend-$input-constructor.run"
+        grep -Fxq -- "- boundary: $boundary" "$WORK/$backend-$input-constructor.run"
+        grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-constructor.run"
+        if [[ -n "$value" ]]; then grep -Fxq "body_value=$value" "$WORK/$backend-$input-constructor.run"; fi
+        grep -Fxq "body_function=$function" "$WORK/$backend-$input-constructor.run"
+        grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-$input-constructor.run"
+        grep -Eq '^body_syntax=[1-9][0-9]*$' "$WORK/$backend-$input-constructor.run"
+    done <<'CONSTRUCTOR_DIAGNOSTICS'
+field_ctor_clone_drop_negative.pgy|ArrayDropOwnedStrings|ArrayDropOwnedStrings(values)|Main
+field_ctor_empty_drop_negative.pgy|ArrayDropOwnedStrings|ArrayDropOwnedStrings(values)|Main
+field_ctor_own_argument_negative.pgy|owned_argument_storage_not_live|Consume(values)|Main
+field_ctor_own_formal_drop_negative.pgy|owned_argument_storage_unproved|ArrayDropOwnedStrings(values)|Store
+field_ctor_own_formal_forward_negative.pgy|owned_argument_storage_unproved|Consume(values)|Store
+field_ctor_alias_drop_negative.pgy|ArrayDropOwnedStrings|ArrayDropOwnedStrings(renamed)|Main
+field_ctor_alias_own_negative.pgy|owned_argument_storage_not_live|Consume(renamed)|Main
+field_ctor_inout_mutation_negative.pgy|unproved_inout_copy_entry|AppendCopy(values)|Main
+field_ctor_owned_push_negative.pgy|ArrayPushOwnedString|ArrayPushOwnedString(values, "next")|Main
+field_ctor_own_formal_mutation_negative.pgy|owned_argument_storage_unproved|ArrayPushOwnedString(values, "next")|Store
+field_ctor_local_push_negative.pgy|ArrayPush|values|Main|"next"
+field_ctor_local_pop_negative.pgy|ArrayPop|values|Main
+field_ctor_local_set_negative.pgy|ArraySet|values|Main|0
+field_ctor_local_index_negative.pgy|ArraySet|values[0]|Main|"next"
+field_ctor_own_formal_push_negative.pgy|owned_argument_storage_unproved|values|Store|"next"
+field_ctor_own_formal_pop_negative.pgy|owned_argument_storage_unproved|values|Store
+field_ctor_own_formal_set_negative.pgy|owned_argument_storage_unproved|values|Store|0
+field_ctor_own_formal_index_negative.pgy|owned_argument_storage_unproved|values[0]|Store|"next"
+field_ctor_old_alias_mutation_negative.pgy|ArrayPush|old|Main|"next"
+field_ctor_own_formal_deferred_mutation_negative.pgy|owned_argument_storage_unproved|ArrayPushOwnedString(values, "late")|Store
+field_ctor_own_formal_deferred_statement_negative.pgy|owned_argument_storage_unproved|values|Store|"late"
+field_ctor_local_deferred_statement_negative.pgy|ArrayPush|values|Main|"late"
+field_ctor_own_formal_nested_mutation_negative.pgy|owned_argument_storage_unproved|ArrayPushOwnedString(values, Stamp(Carrier(values)))|Store
+field_ctor_own_formal_nested_retire_mutation_negative.pgy|owned_argument_storage_unproved|ArrayPushOwnedString(values, Consume(values))|Store
+field_ctor_own_formal_nested_retire_statement_negative.pgy|owned_argument_storage_unproved|values|Store|Consume(values)
+field_ctor_own_formal_nested_retire_index_negative.pgy|owned_argument_storage_unproved|values[0]|Store|Consume(values)
+field_ctor_own_formal_deferred_opaque_mutation_negative.pgy|owned_argument_storage_unproved|ArrayPushOwnedString(values, "deferred")|Store
+CONSTRUCTOR_DIAGNOSTICS
     timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/member_double_move_negative.pgy" diagnostic \
         >"$WORK/$backend-diagnostic.raw" 2>"$WORK/$backend-diagnostic.err"
     tr -d '\r' <"$WORK/$backend-diagnostic.raw" >"$WORK/$backend-diagnostic.run"
@@ -357,6 +422,32 @@ BORROW_FORMAL_DIAGNOSTICS
             -o "$REL/$backend-identity.exe" >"$WORK/$backend-identity.compile" 2>&1
     fi
     sha256sum "$WORK/$backend-identity.exe" >>"$WORK/probe-binaries.sha256"
+    if [[ -n "$PROBE_DIR" ]]; then
+        cp "$PROBE_DIR/$backend-constructor.exe" "$WORK/$backend-constructor.exe"
+        cmp "$PROBE_DIR/$backend-constructor.exe" "$WORK/$backend-constructor.exe"
+    else
+        timeout 120 "$PGY" --native-pipeline "$CONSTRUCTOR_PROBE" "--backend=$backend" --opt=dev \
+            -o "$REL/$backend-constructor.exe" >"$WORK/$backend-constructor.compile" 2>&1
+    fi
+    sha256sum "$WORK/$backend-constructor.exe" >>"$WORK/probe-binaries.sha256"
+    for ((mutation=0; mutation<=18; mutation++)); do
+        timeout 30 "$WORK/$backend-constructor.exe" "$FIXTURES/field_ctor_identity_input.pgy" "$mutation" \
+            >"$WORK/$backend-constructor-$mutation.raw" 2>"$WORK/$backend-constructor-$mutation.err"
+        tr -d '\r' <"$WORK/$backend-constructor-$mutation.raw" >"$WORK/$backend-constructor-$mutation.run"
+        [[ ! -s "$WORK/$backend-constructor-$mutation.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-constructor-$mutation.run"
+    done
+    for mode in garbage 19 -1 01; do
+        if "$WORK/$backend-constructor.exe" "$FIXTURES/field_ctor_identity_input.pgy" "$mode" \
+            >"$WORK/$backend-constructor-mode-$mode.raw" 2>"$WORK/$backend-constructor-mode-$mode.err"; then
+            echo "constructor observer accepted invalid mode $mode" >&2; exit 1
+        else
+            [[ $? == 2 && ! -s "$WORK/$backend-constructor-mode-$mode.err" ]]
+        fi
+        tr -d '\r' <"$WORK/$backend-constructor-mode-$mode.raw" >"$WORK/$backend-constructor-mode-$mode.run"
+        grep -Fxq 'invalid mutation' "$WORK/$backend-constructor-mode-$mode.run"
+    done
     for ((mutation=0; mutation<=12; mutation++)); do
         timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/inout_forward_owned_push_drop_positive.pgy" "$mutation" \
             >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
@@ -411,7 +502,7 @@ BORROW_FORMAL_DIAGNOSTICS
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, forty-four diagnostic locations, three observer mode, fifty-one identity/boundary and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, seventy-one diagnostic locations, three observer mode, fifty-one identity/boundary, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

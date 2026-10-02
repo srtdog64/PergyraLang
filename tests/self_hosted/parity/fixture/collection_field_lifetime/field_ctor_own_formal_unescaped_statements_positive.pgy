@@ -1,0 +1,5 @@
+func Append(own values: Array<String>) -> Void { ArrayPush(values, "next"); }
+func Pop(own values: Array<String>) -> Void { ArrayPop(values); }
+func Set(own values: Array<String>) -> Void { ArraySet(values, 0, "set"); }
+func Indexed(own values: Array<String>) -> Void { values[0] = "indexed"; }
+func Main() -> Void {}

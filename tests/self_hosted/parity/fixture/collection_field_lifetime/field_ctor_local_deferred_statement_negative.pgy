@@ -1,0 +1,7 @@
+struct Carrier { values: Array<String>; }
+func Main() -> Void {
+    let values: Array<String> = ["original"];
+    defer { ArrayPush(values, "late"); }
+    let record: Carrier = Carrier(values);
+    Log(ArrayLength(record.values));
+}

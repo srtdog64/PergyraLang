@@ -628,7 +628,31 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy` --
   definition-bound effect table and its selected local projection. Current-use
   and terminal consumers read that projection; no old earliest-event filtering
-  or declaration-wide bound reset reconstructs a lost event.
+  or declaration-wide bound reset reconstructs a lost event. Exact formal
+  permission bounds share this admitted edge collection; there is no streaming
+  constructor/opaque prepass beside it.
+- `src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy`
+  -- admitted direct constructor / unshadowed base-callee / physical ordinal
+  join to one declared field. A stored ArrayString descriptor removes current-
+  definition release/own-entry/descriptor-mutation permission without consuming
+  its storage or granting lifetime to the field. Scoped callable shadows remain nonconstructors;
+  duplicate constructor names and missing field identity fail closed.
+- `src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy`
+  -- monotone current-definition effect closure. Known storage escape remains
+  distinct from opaque-call Unknown/retirement: readonly indexed effects retain
+  known Live element facts, while own, release and descriptor mutation consumers
+  refuse the escape bound. No prior alias edge crosses a fresh definition.
+- `src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy`
+  -- one physical argument edge's constructor escape, opaque entry and
+  retirement classification, shared by locals and exact own formals. It records
+  conservative syntax bounds only; neither element ownership nor Live storage
+  is granted. Missing constructor/callee/formal-row identity fails closed.
+- `src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy`
+  -- own-formal exclusive storage entry and mutation consume the collected
+  bounds, including same-syntax argument evaluation and deferred execution.
+  Parser mutation joins the statement/assignment inventory and exact Atom
+  receiver with one strict formal fact; it never follows index/RHS operands or
+  grants aggregate fields. Mutation does not consume/retire the formal.
 - `src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy` --
   joined typed whole-local Assign and normal Let storage-definition identity.
   Scoped local resolution owns declaration identity; ordinary local leaves do
@@ -684,7 +708,7 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   local binding restore ownership; every other reuse fails closed.
 - `src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy`
   -- definition-ID local and exact formal retirement, Let/Assign transfer and formal
-  opaque-call bounds. Physical argument events and ordinary reads are folded
+  permission-bound consumption. Physical argument events and ordinary reads are folded
   in occurrence order; RHS reads precede definition transfer and activation.
   Both fresh scratch arrays are created, consumed and retired here. Element
   ownership is not promoted or rejudged from final state.

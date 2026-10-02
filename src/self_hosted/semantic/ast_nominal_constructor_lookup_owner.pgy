@@ -3,22 +3,33 @@
 
 import "ast_nominal_constructor_fact_owner.pgy";
 
-func SemanticAstNominalConstructorIndexForName(
+func SemanticAstNominalConstructorUniqueIndexForName(
     ref facts: SemanticAstNominalConstructorFacts,
     name: String
-) -> Option<Int> {
-    if !facts.ok || name == "" { return None; }
+) -> Result<Int> {
+    if !facts.ok || name == "" ||
+        ArrayLength(facts.names) != ArrayLength(facts.node_ids) {
+        return Err("nominal_constructor_identity");
+    }
     let found: Int = -1;
     let i: Int = 0;
     while i < SemanticAstNominalConstructorCount(facts) {
         if facts.names[i] == name {
-            if found >= 0 { return None; }
+            if found >= 0 { return Err("nominal_constructor_identity"); }
             found = i;
         }
         i = i + 1;
     }
-    if found < 0 { return None; }
-    return Some(found);
+    return Ok(found);
+}
+
+func SemanticAstNominalConstructorIndexForName(
+    ref facts: SemanticAstNominalConstructorFacts, name: String
+) -> Option<Int> {
+    let found: Result<Int> =
+        SemanticAstNominalConstructorUniqueIndexForName(facts, name);
+    if IsErr(found) || Unwrap(found) < 0 { return None; }
+    return Some(Unwrap(found));
 }
 
 // Field identity is scoped by the owning declaration, never by field type.

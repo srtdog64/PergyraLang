@@ -1,0 +1,8 @@
+// A stored descriptor no longer admits exclusive own-formal mutation.
+struct Carrier { values: Array<String>; }
+func Store(own values: Array<String>) -> Void {
+    let record: Carrier = Carrier(values);
+    ArrayPushOwnedString(values, "next");
+    Log(ArrayLength(record.values));
+}
+func Main() -> Void {}
