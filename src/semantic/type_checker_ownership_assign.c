@@ -17,8 +17,8 @@ semantic_check_assignment_borrow_rebind(ASTNode *expr,
                                         Type *target_type,
                                         Type *value_type)
 {
-    semantic_array_storage_escape(ast_assignment_value(expr), value_type, ctx);
-    semantic_array_storage_escape(ast_assignment_target(expr), target_type, ctx);
+    semantic_array_storage_assignment(ast_assignment_target(expr), target_type,
+        ast_assignment_value(expr), value_type, ctx);
     OwnershipTypeClass target_ownership =
         semantic_classify_ownership_type(target_type, ctx);
     OwnershipTypeClass value_ownership =

@@ -11,6 +11,8 @@ void semantic_array_storage_escape(ASTNode *source, const Type *type,
                                    SemanticContext *ctx);
 void semantic_array_storage_call_argument(ASTNode *source, const Type *type,
     const Type *result_type, ParamMode mode, bool constructor, SemanticContext *ctx);
+void semantic_array_storage_assignment(ASTNode *target, const Type *target_type,
+    ASTNode *value, const Type *value_type, SemanticContext *ctx);
 bool semantic_array_storage_admit_drop(ASTNode *receiver, Type *array_type,
                                       SemanticContext *ctx);
 

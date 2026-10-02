@@ -1,0 +1,10 @@
+// Analyzer-only: moving an escaped binding cannot erase its stored alias.
+struct Carrier { values: Array<String>; }
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    let values: Array<String> = Clone(seed);
+    let record: Carrier = Carrier(values);
+    let renamed: Array<String> = values;
+    ArrayPushOwnedString(renamed, "next");
+    Log(ArrayLength(record.values));
+}

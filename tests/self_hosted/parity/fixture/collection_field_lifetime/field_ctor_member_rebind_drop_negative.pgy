@@ -1,0 +1,11 @@
+// Assign cannot keep an earlier Clone grant for a stored field descriptor.
+struct Carrier { values: Array<String>; }
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    let stored: Array<String> = Clone(seed);
+    let record: Carrier = Carrier(stored);
+    let values: Array<String> = Clone(seed);
+    values = record.values;
+    ArrayDropOwnedStrings(values);
+    Log(ArrayLength(record.values));
+}

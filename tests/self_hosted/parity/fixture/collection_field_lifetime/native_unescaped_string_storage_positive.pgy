@@ -1,0 +1,20 @@
+// Independent storage, including a consuming Let move, remains releasable.
+func Push(inout values: Array<String>) -> Void {
+    ArrayPushOwnedString(values, "builder");
+}
+func Main() -> Void {
+    let seed: Array<String> = ["borrowed"];
+    let copied: Array<String> = Clone(seed);
+    ArrayDropOwnedStrings(copied);
+    let moved_source: Array<String> = Clone(seed);
+    let moved: Array<String> = moved_source;
+    Log(ArrayLength(moved));
+    let map: HashMap<String, Int> = MapNew();
+    MapSet(map, "key", 1);
+    let keys: Array<String> = MapKeys(map);
+    ArrayDropOwnedStrings(keys);
+    let built: Array<String> = [];
+    Push(built);
+    ArrayDropOwnedStrings(built);
+    Log("safe-owned-storage");
+}

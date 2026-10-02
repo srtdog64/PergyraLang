@@ -1,0 +1,10 @@
+// A deferred replacement has not executed at the following deep-drop frontier.
+struct Carrier { values: Array<String>; }
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    let values: Array<String> = Clone(seed);
+    let record: Carrier = Carrier(values);
+    defer { values = Clone(seed); }
+    ArrayDropOwnedStrings(values);
+    Log(ArrayLength(record.values));
+}

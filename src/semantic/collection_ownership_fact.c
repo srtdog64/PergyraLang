@@ -438,6 +438,13 @@ semantic_collection_admit_owned_string_push(ASTNode *receiver,
     const char *name = binding != NULL && binding->name != NULL
         ? binding->name : "<array>";
 
+    if (binding != NULL && binding->has_escaped_array_storage) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            receiver, "ArrayPushOwnedString cannot mutate escaped array storage in '%s'",
+            name);
+        return false;
+    }
     if (fact == NULL)
         return true;
     if (fact->element_ownership != PGY_STRING_ARRAY_BORROWED_ELEMENTS
@@ -737,6 +744,15 @@ semantic_collection_admit_owned_string_drop(
         return false;
     }
 
+    /* Element ownership alone cannot retire storage retained by a field or
+     * container. Unknown storage production is a separate bootstrap boundary. */
+    if (binding != NULL && binding->has_escaped_array_storage) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+            PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            receiver, "ArrayDropOwnedStrings cannot release escaped array storage in '%s'",
+            name);
+        return false;
+    }
     if (fact == NULL) {
         if (binding != NULL && binding->is_parameter
             && is_array_string(binding->type)

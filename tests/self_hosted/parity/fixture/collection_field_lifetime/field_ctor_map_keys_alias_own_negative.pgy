@@ -1,0 +1,11 @@
+struct Carrier { values: Array<String>; }
+func Consume(own values: Array<String>) -> Void { Log(ArrayLength(values)); }
+func Main() -> Void {
+    let map: HashMap<String, Int> = MapNew();
+    MapSet(map, "owned", 1);
+    let values: Array<String> = MapKeys(map);
+    let record: Carrier = Carrier(values);
+    let renamed: Array<String> = values;
+    Consume(renamed);
+    Log(ArrayLength(record.values));
+}

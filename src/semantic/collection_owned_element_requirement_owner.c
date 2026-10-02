@@ -268,6 +268,15 @@ semantic_collection_owned_element_requirement_record_argument(
         if (binding == NULL || binding_id == 0
             || binding_id != binding->decl_syntax_id)
             return requirement_failure(ctx, call, "missing actual binding identity");
+        /* An own handoff consumes storage even when the callee has no
+         * element-drop seed. Do not forward a known stored descriptor alias. */
+        if (binding->has_escaped_array_storage) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE, PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                argument, "An own Array argument cannot transfer escaped array storage from '%s'",
+                binding->name != NULL ? binding->name : "<array>");
+            return false;
+        }
         fact = semantic_collection_ownership_fact_find(ctx, caller_id, binding_id);
         exclusive_storage = binding->has_exclusive_array_storage;
         if (fact != NULL) {

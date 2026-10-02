@@ -345,7 +345,10 @@ type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx)
             destroy_resource_snapshot(&before_defer);
             return false;
         }
+        bool prior_defer = ctx->in_defer_cleanup;
+        ctx->in_defer_cleanup = true;
         (void)type_check_block_flow(body, ctx, NULL);
+        ctx->in_defer_cleanup = prior_defer;
         restore_resource_states(&before_defer);
         destroy_resource_snapshot(&before_defer);
     }

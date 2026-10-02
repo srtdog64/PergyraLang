@@ -105,6 +105,8 @@ struct Symbol
     bool       is_consumed;
     /* Public ArrayDrop authority; descriptor copies/escapes invalidate it. */
     bool       has_exclusive_array_storage;
+    /* A recorded descriptor store is distinct from unproved call-result storage. */
+    bool       has_escaped_array_storage;
     PgyFutureLifecycleState future_lifecycle_state;
     bool       future_lifecycle_reported;
     bool       is_parameter;

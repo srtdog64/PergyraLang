@@ -1,0 +1,11 @@
+// A conditional replacement does not prove retirement of the escaped current value.
+struct Carrier { values: Array<String>; }
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    let values: Array<String> = Clone(seed);
+    let record: Carrier = Carrier(values);
+    let replace: Bool = false;
+    if replace { values = Clone(seed); }
+    ArrayDropOwnedStrings(values);
+    Log(ArrayLength(record.values));
+}

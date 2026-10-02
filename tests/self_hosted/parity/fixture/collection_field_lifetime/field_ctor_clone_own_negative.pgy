@@ -1,0 +1,10 @@
+// Analyzer-only: own storage consumption cannot bypass a retained descriptor.
+struct Carrier { values: Array<String>; }
+func Consume(own values: Array<String>) -> Void { Log(ArrayLength(values)); }
+func Main() -> Void {
+    let seed: Array<String> = ["owned"];
+    let values: Array<String> = Clone(seed);
+    let record: Carrier = Carrier(values);
+    Consume(values);
+    Log(ArrayLength(record.values));
+}

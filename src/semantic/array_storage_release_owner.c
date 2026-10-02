@@ -4,6 +4,7 @@
 #include "type_checker_internal.h"
 #include "type_checker_resolution_internal.h"
 #include "collection_owned_element_requirement_owner.h"
+#include "builtin_kind.h"
 #include "compiler/decl_field_model.h"
 #include "diag_codes.h"
 #include <stdlib.h>
@@ -52,16 +53,26 @@ array_storage_plain_element(const Type *type, SemanticContext *ctx, unsigned dep
     return plain;
 }
 
-void
-semantic_array_storage_escape(ASTNode *source, const Type *type,
-                              SemanticContext *ctx)
+static void
+array_storage_invalidate_exclusivity(ASTNode *source, const Type *type,
+    bool stored_alias, SemanticContext *ctx)
 {
     if (ctx == NULL || source == NULL || source->type != AST_IDENTIFIER
         || !type_is_constructed_named(type, "Array"))
         return;
     Symbol *binding = scope_lookup(ctx->scope, ast_identifier_name(source));
-    if (binding != NULL)
+    if (binding != NULL) {
         binding->has_exclusive_array_storage = false;
+        if (stored_alias)
+            binding->has_escaped_array_storage = true;
+    }
+}
+
+void
+semantic_array_storage_escape(ASTNode *source, const Type *type,
+                              SemanticContext *ctx)
+{
+    array_storage_invalidate_exclusivity(source, type, true, ctx);
 }
 
 void
@@ -74,7 +85,9 @@ semantic_array_storage_call_argument(ASTNode *source, const Type *type,
     if (constructor || (mode != PARAM_MODE_OWN && (mode == PARAM_MODE_MUT_REF
         || (!type_equals(result_type, TYPE_VOID)
             && !array_storage_plain_element(result_type, ctx, 0)))))
-        semantic_array_storage_escape(source, type, ctx);
+        /* A possible call-result alias is not a recorded descriptor store.
+         * Preserve that distinction for legacy Clone/MapKeys deep cleanup. */
+        array_storage_invalidate_exclusivity(source, type, constructor, ctx);
 }
 
 void
@@ -88,7 +101,46 @@ semantic_array_storage_initialize(Symbol *binding, const ASTNode *initializer,
      * ownership rung; callable identity alone is not storage provenance. */
     binding->has_exclusive_array_storage = ctx->current_function_decl != NULL
         && initializer != NULL && initializer->type == AST_ARRAY_LITERAL;
+    if (initializer != NULL && initializer->type == AST_IDENTIFIER) {
+        Symbol *source = scope_lookup(ctx->scope, ast_identifier_name(initializer));
+        /* A local move cannot erase a store retained by another descriptor.
+         * Capture the prior state before this handoff invalidates the source. */
+        binding->has_escaped_array_storage = source == NULL
+            || ast_identifier_binding_syntax_id(initializer) != source->decl_syntax_id
+            || source->has_escaped_array_storage;
+    }
     semantic_array_storage_escape((ASTNode *)initializer, binding->type, ctx);
+}
+
+void
+semantic_array_storage_assignment(ASTNode *target, const Type *target_type,
+    ASTNode *value, const Type *value_type, SemanticContext *ctx)
+{
+    Symbol *binding = target != NULL && target->type == AST_IDENTIFIER
+        ? lookup_identifier_symbol(target, ctx) : NULL;
+    Symbol *source = value != NULL && value->type == AST_IDENTIFIER
+        ? lookup_identifier_symbol(value, ctx) : NULL;
+    if (binding != NULL && binding == source)
+        return;
+    semantic_array_storage_escape(value, value_type, ctx);
+    bool alias = source != NULL || (value != NULL
+        && (value->type == AST_MEMBER_ACCESS || value->type == AST_ARRAY_ACCESS));
+    array_storage_invalidate_exclusivity(target, target_type, alias, ctx);
+    if (binding == NULL || ctx->in_defer_cleanup
+        || !type_is_constructed_named(target_type, "Array")
+        || scope_lookup_current(ctx->scope, binding->name) != binding)
+        return;
+    uint32_t builtin = 0;
+    bool fresh = value != NULL && ((value->type == AST_ARRAY_LITERAL
+        && ast_array_literal_count(value) == 0)
+        || (value->type == AST_CALL
+            && ast_call_semantic_callee_builtin_kind(value, &builtin)
+            && builtin == BUILTIN_CLONE));
+    /* Only an exact independent producer at this lexical frontier replaces
+     * the escaped storage. No element fact or exclusive grant is invented;
+     * outer bindings written in branch/loop/defer scopes stay unproved. */
+    if (fresh)
+        binding->has_escaped_array_storage = false;
 }
 
 bool

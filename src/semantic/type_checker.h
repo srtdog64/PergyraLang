@@ -150,6 +150,7 @@ struct SemanticContext
     size_t       future_lifecycle_unreachable_depth;
                                     /* Static flow path excluded from joins */
     bool         in_parallel;    /* Inside parallel block          */
+    bool         in_defer_cleanup; /* Deferred writes do not replace current storage. */
     bool         in_parallel_join_expr; /* Inside an expression-form
                                     * parallel join body (docs/181 R2):
                                     * the only scope where `give` is
