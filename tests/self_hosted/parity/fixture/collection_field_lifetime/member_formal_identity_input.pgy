@@ -1,0 +1,29 @@
+// Read-only body admission for exact aggregate roots; no release permission.
+struct Pair { left: Array<String>; right: Array<String>; }
+struct Other { left: Array<String>; }
+
+func Observe(a: Pair, inout b: Pair, own c: Pair, ref d: Pair) -> Int {
+    let shadow_seed: Pair = Pair(["seed-left"], ["seed-right"]);
+    let first_left: Array<String> = a.left;
+    let first_right: Array<String> = a.right;
+    let second_left: Array<String> = b.left;
+    let own_left: Array<String> = c.left;
+    let ref_left: Array<String> = d.left;
+    return ArrayLength(first_left) + ArrayLength(first_right) +
+        ArrayLength(second_left) + ArrayLength(own_left) + ArrayLength(ref_left);
+}
+
+func Generic<T>(bundle: T) -> Int where T: Pair {
+    let generic_left: Array<String> = bundle.left;
+    return ArrayLength(generic_left);
+}
+
+func Foreign(a: Pair) -> Int { return ArrayLength(a.left); }
+
+func Local() -> Int {
+    let root: Pair = Pair(["local-left"], ["local-right"]);
+    let local_left: Array<String> = root.left;
+    return ArrayLength(local_left);
+}
+
+func Main() -> Void { Log("member-identity-input"); }

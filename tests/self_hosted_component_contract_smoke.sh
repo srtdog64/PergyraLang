@@ -28445,6 +28445,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_ownership_binding_move_use_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy:90 \
     src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy:140 \
     src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy:80 \
@@ -28497,6 +28498,18 @@ require_text "src/self_hosted/semantic/ast_collection_owned_argument_admission_o
     '!borrowed_storage && !unknown'
 require_text "src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy" \
     'struct SemanticAstCollectionFormalStorageIdentity {'
+require_text "src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy" \
+    'func SemanticAstCollectionSourceFormalIdentity('
+require_text "src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy" \
+    'SemanticAstCollectionSourceFormalIdentity('
+reject_text "src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy" \
+    'SemanticAstFunctionParamNodeAt('
+reject_text "src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy" \
+    'while constructor <'
+require_file "tests/self_hosted/fixtures/collection_member_identity_probe.pgy"
+require_file "tests/self_hosted/parity/collection_member_identity_owner.sh"
+require_text "Makefile" 'self-host-collection-member-identity-test-smoke: $(PGY)'
+require_text "Makefile" '"$(BASH)" tests/self_hosted/parity/collection_member_identity_owner.sh'
 require_text "src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy" \
     'SemanticAstCollectionStringArrayFormalIdentity('
 reject_text "src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy" \

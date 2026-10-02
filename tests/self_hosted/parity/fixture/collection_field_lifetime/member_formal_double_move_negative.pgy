@@ -1,0 +1,11 @@
+// Analyze only. A formal field is still one identity after its first extraction.
+struct Pair { value: Array<String>; }
+func Count(inout pair: Pair) -> Int {
+    let first: Array<String> = pair.value;
+    let rejected_second: Array<String> = pair.value;
+    return ArrayLength(first) + ArrayLength(rejected_second);
+}
+func Main() -> Void {
+    let pair: Pair = Pair(["borrowed"]);
+    Log(Count(pair));
+}

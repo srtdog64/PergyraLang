@@ -15,6 +15,9 @@ SOURCE_PROBE=tests/self_hosted/fixtures/nominal_constructor_source_arity_probe.p
 IDENTITY_PROBE=tests/self_hosted/fixtures/collection_inout_effect_identity_probe.pgy
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 INPUTS=(
+    member_formal_double_move_negative.pgy member_formal_restore_positive.pgy
+    member_generic_double_move_negative.pgy member_generic_restore_positive.pgy
+    member_formal_index_target_negative.pgy member_local_index_target_negative.pgy member_formal_identity_input.pgy
     borrow_formal_ref_own_negative.pgy borrow_formal_inout_own_negative.pgy borrow_formal_default_own_negative.pgy
     borrow_formal_chain_own_negative.pgy borrow_formal_chain_read_positive.pgy borrow_formal_modes_read_clone_positive.pgy
     borrow_formal_fresh_clone_positive.pgy borrow_formal_fresh_empty_positive.pgy borrow_formal_fresh_own_positive.pgy
@@ -126,6 +129,7 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" \
     src/self_hosted/semantic/ast_assignment_fact_owner.pgy \
     src/self_hosted/semantic/ast_expression_graph_call_argument_edge_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy >"$WORK/owners.sha256"
 ACTUAL_INPUT="$FIXTURES/callable_table_from_artifact_release_probe.pgy"
@@ -185,7 +189,7 @@ for backend in c llvm; do
             member_*_negative.pgy|own_storage_nested_same_binding_negative.pgy|own_storage_formal_retired_negative.pgy|own_storage_formal_child_retired_negative.pgy|own_storage_return_duplicate_negative.pgy|own_formal_*_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             *_negative.pgy) printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
-            *_positive.pgy) printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
+            *_positive.pgy|member_formal_identity_input.pgy) printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             *) echo "unclassified inout fixture: $name" >&2; exit 1 ;;
         esac
         cmp "$WORK/expected" "$WORK/$backend-$name.run"
@@ -201,6 +205,25 @@ for backend in c llvm; do
     grep -Fxq 'body_function=Main' "$WORK/$backend-diagnostic.run"
     grep -Fxq "body_module=$FIXTURES/member_double_move_negative.pgy" "$WORK/$backend-diagnostic.run"
     grep -Eq '^body_syntax=[0-9]+$' "$WORK/$backend-diagnostic.run"
+    while IFS='|' read -r input atom value function; do
+        timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
+            >"$WORK/$backend-$input-member.raw" 2>"$WORK/$backend-$input-member.err"
+        tr -d '\r' <"$WORK/$backend-$input-member.raw" >"$WORK/$backend-$input-member.run"
+        [[ ! -s "$WORK/$backend-$input-member.err" ]]
+        grep -Fxq 'body_ok=false' "$WORK/$backend-$input-member.run"
+        grep -Fxq 'body_diagnostic=move_from_released' "$WORK/$backend-$input-member.run"
+        grep -Fxq -- '- boundary: member_use_after_move' "$WORK/$backend-$input-member.run"
+        grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-member.run"
+        grep -Fxq "body_value=$value" "$WORK/$backend-$input-member.run"
+        grep -Fxq "body_function=$function" "$WORK/$backend-$input-member.run"
+        grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-$input-member.run"
+        grep -Eq '^body_syntax=[0-9]+$' "$WORK/$backend-$input-member.run"
+    done <<'MEMBER_DIAGNOSTICS'
+member_formal_double_move_negative.pgy|rejected_second|pair.value|Count
+member_generic_double_move_negative.pgy|rejected_second|pair.value|Count
+member_formal_index_target_negative.pgy|slots[At(pair.value)]|value|Count
+member_local_index_target_negative.pgy|slots[At(pair.value)]|value|Main
+MEMBER_DIAGNOSTICS
     # A false verdict alone also passes an unordered implementation. Pin the
     # later event, not the earlier valid Copy, without hardcoding syntax IDs.
     while IFS='|' read -r input boundary atom value; do
@@ -388,7 +411,7 @@ BORROW_FORMAL_DIAGNOSTICS
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, forty diagnostic locations, three observer mode, fifty-one identity/boundary and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, forty-four diagnostic locations, three observer mode, fifty-one identity/boundary and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

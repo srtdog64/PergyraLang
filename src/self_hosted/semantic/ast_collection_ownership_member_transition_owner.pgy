@@ -15,9 +15,11 @@ func SemanticAstCollectionMemberMoveEventKey(
 }
 func SemanticAstCollectionFirstInvalidMemberMoveUse(
     artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
     ref constructors: SemanticAstNominalConstructorFacts,
     ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref assignments: SemanticAstAssignmentFacts, own move_destinations: HashMap<String, Int>
 ) -> SemanticAstCollectionMemberMoveUse {
@@ -37,7 +39,7 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                 while node <= root_id {
                     let identity: SemanticAstCollectionMemberMoveIdentity =
                         SemanticAstCollectionMemberMoveIdentityForNode(
-                            artifact, constructors, locals, inferred_types,
+                            artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types,
                             surfaces.function_node_ids[surface], syntax_id,
                             surfaces.expression_graph, node);
                     if identity.ok {
@@ -59,7 +61,7 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                                 SemanticAstAssignmentContainsNode(assignments, syntax_id);
                             let is_restore: Bool = false;
                             if root_slot % 3 == AstExpressionLaneAtom() &&
-                                assignment_exists {
+                                assignment_exists && node == root_id {
                                 let value_root: Option<Int> =
                                     SemanticAstExpressionGraphRootForNode(
                                         surfaces, syntax_id,

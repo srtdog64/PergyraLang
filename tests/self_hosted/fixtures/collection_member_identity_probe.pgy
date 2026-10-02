@@ -1,0 +1,213 @@
+// Fresh body admission precedes typed-owner unit mutations. This probe never
+// emits or runs its input and never fabricates a final MIR/ownership receipt.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Log("expected source and member mutation"); Exit(2); }
+    let mutation: Int = ToInt(args[1]);
+    if mutation < 0 || mutation > 44 || ToString(mutation) != args[1] {
+        Log("unknown member mutation"); Exit(2);
+    }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Log("member input parser refused"); Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !analysis.verdict.ok || !bundle.verdict.ok { Log("member input body refused"); Exit(2); }
+    let ok: Bool = InspectMemberIdentity(artifact, analysis, bundle, mutation);
+    Log(ok);
+    if !ok { Exit(2); }
+}
+
+func InspectMemberIdentity(
+    artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis,
+    ref bundle: SemanticAstBodyTypeBundle, mutation: Int
+) -> Bool {
+    let signature: Int = -1;
+    let foreign: Int = -1;
+    let generic: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(analysis.signatures.names) {
+        if analysis.signatures.names[row] == "Observe" { signature = row; }
+        if analysis.signatures.names[row] == "Foreign" { foreign = row; }
+        if analysis.signatures.names[row] == "Generic" { generic = row; }
+        row = row + 1;
+    }
+    if signature < 0 || foreign < 0 || generic < 0 { return false; }
+    let local_row: Int = -1;
+    let right: Int = -1;
+    let other: Int = -1;
+    let generic_local: Int = -1;
+    let lexical: Int = -1;
+    let shadow: Int = -1;
+    let lexical_root: Int = -1;
+    row = 0;
+    while row < ArrayLength(analysis.local_bindings.names) {
+        let name: String = analysis.local_bindings.names[row];
+        if name == "first_left" { local_row = row; }
+        if name == "first_right" { right = row; }
+        if name == "second_left" { other = row; }
+        if name == "generic_left" { generic_local = row; }
+        if name == "local_left" { lexical = row; }
+        if name == "shadow_seed" { shadow = row; }
+        if name == "root" { lexical_root = row; }
+        row = row + 1;
+    }
+    if local_row < 0 || right < 0 || other < 0 || generic_local < 0 ||
+        lexical < 0 || shadow < 0 || lexical_root < 0 { return false; }
+    let roots: Array<Int> = [];
+    let leaves: Array<Int> = [];
+    let chosen: Array<Int> = [local_row, right, other, generic_local, lexical];
+    let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
+    let types: Array<String> = [];
+    row = 0;
+    while row < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        ArrayPush(types, "Unknown"); row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(chosen) {
+        let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            analysis.expression_surfaces, analysis.local_bindings.node_ids[chosen[row]], AstExpressionLaneValue());
+        if !IsSome(root) { return false; }
+        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, UnwrapOption(root));
+        if !member.ok { return false; }
+        ArrayPush(roots, UnwrapOption(root)); ArrayPush(leaves, member.receiver_node);
+        // Unit-only projection of this fixture's admitted nominal-bound type.
+        // Source observer controls separately exercise the real body producer.
+        types[member.receiver_node] = "Pair";
+        row = row + 1;
+    }
+    let function: Int = analysis.signatures.function_node_ids[signature];
+    let leaf: Int = leaves[0];
+    let root: Int = roots[0];
+    let use_syntax: Int = analysis.local_bindings.node_ids[local_row];
+    let parameter: Int = analysis.signatures.param_starts[signature];
+    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(analysis.constructors, "Pair");
+    if !IsSome(constructor) { return false; }
+    let owner: Int = UnwrapOption(constructor);
+    let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(analysis.constructors, owner, "left");
+    if !IsSome(field) { return false; }
+    let field_row: Int = UnwrapOption(field);
+    if mutation == 0 {
+        let first: SemanticAstCollectionMemberMoveIdentity = MemberIdentityAt(artifact, analysis, bundle, types, local_row, root);
+        let second: SemanticAstCollectionMemberMoveIdentity = MemberIdentityAt(artifact, analysis, bundle, types, right, roots[1]);
+        let distinct: SemanticAstCollectionMemberMoveIdentity = MemberIdentityAt(artifact, analysis, bundle, types, other, roots[2]);
+        let bound: SemanticAstCollectionMemberMoveIdentity = MemberIdentityAt(artifact, analysis, bundle, types, generic_local, roots[3]);
+        let scoped: SemanticAstCollectionMemberMoveIdentity = MemberIdentityAt(artifact, analysis, bundle, types, lexical, roots[4]);
+        if !first.ok || !second.ok || !distinct.ok || !bound.ok || !scoped.ok ||
+            first.field_syntax_id == second.field_syntax_id || first.key == second.key ||
+            first.field_syntax_id != distinct.field_syntax_id || first.key == distinct.key ||
+            bound.source_binding_syntax_id != analysis.signatures.param_node_ids[analysis.signatures.param_starts[generic]] ||
+            scoped.source_binding_syntax_id != analysis.local_bindings.node_ids[lexical_root] { return false; }
+        row = 0;
+        while row < ArrayLength(analysis.local_bindings.names) {
+            if analysis.local_bindings.function_node_ids[row] == function &&
+                analysis.local_bindings.names[row] != "shadow_seed" {
+                let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                    analysis.expression_surfaces, analysis.local_bindings.node_ids[row], AstExpressionLaneValue());
+                if !IsSome(value) { return false; }
+                let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, UnwrapOption(value));
+                if !member.ok { return false; }
+                let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionSourceFormalIdentity(
+                    analysis.signatures, function, graph, member.receiver_node);
+                if !formal.ok || formal.declared_type_name != "Pair" || formal.ordinal < 0 ||
+                    formal.ordinal > 3 || formal.mode != formal.ordinal { return false; }
+                types[member.receiver_node] = "Pair";
+                if !MemberIdentityAt(artifact, analysis, bundle, types, row, UnwrapOption(value)).ok { return false; }
+            }
+            row = row + 1;
+        }
+        return true;
+    }
+    if mutation == 1 { graph.arena.identities.binding_syntax_ids[leaf] = analysis.signatures.param_node_ids[analysis.signatures.param_starts[foreign]]; }
+    if mutation == 2 { graph.arena.identities.binding_ordinals[leaf] = 1; }
+    if mutation == 3 { graph.arena.identities.binding_ordinals[leaf] = -1; }
+    if mutation == 4 {
+        graph.arena.identities.binding_kinds[leaf] = SemanticExpressionBindingDeclaredCallable();
+        graph.arena.identities.binding_ordinals[leaf] = -1;
+    }
+    if mutation == 5 {
+        graph.arena.identities.binding_kinds[leaf] = SemanticExpressionBindingNone();
+        graph.arena.identities.binding_ordinals[leaf] = -1;
+    }
+    if mutation == 6 { graph.arena.identities.binding_syntax_ids[leaf] = 0; }
+    if mutation == 7 { graph.arena.topology.node_kinds[leaf] = AstExpressionNodeIndex(); }
+    if mutation == 8 { analysis.signatures.param_modes[parameter] = -1; }
+    if mutation == 9 { analysis.signatures.param_modes[parameter] = 4; }
+    if mutation == 10 { ArrayPop(analysis.signatures.param_modes); }
+    if mutation == 11 { analysis.signatures.param_types[parameter] = ""; }
+    if mutation == 12 { analysis.signatures.param_types[parameter] = "Unknown"; }
+    if mutation == 13 { types[leaf] = "Unknown"; }
+    if mutation == 14 { while ArrayLength(types) > leaf { ArrayPop(types); } }
+    if mutation == 15 { analysis.signatures.ok = false; }
+    if mutation == 16 { analysis.signatures.param_starts[signature] = 2147483647; }
+    if mutation == 17 { analysis.signatures.param_counts[signature] = 2147483647; }
+    if mutation == 18 { ArrayPop(analysis.signatures.param_types); }
+    if mutation == 19 { function = analysis.signatures.function_node_ids[foreign]; }
+    if mutation == 20 { types[leaf] = ""; }
+    if mutation == 21 {
+        local_row = generic_local; leaf = leaves[3]; root = roots[3];
+        function = analysis.local_bindings.function_node_ids[local_row]; use_syntax = analysis.local_bindings.node_ids[local_row];
+        types[leaf] = "Unknown";
+    }
+    if mutation >= 32 && mutation != 38 {
+        local_row = generic_local; leaf = leaves[3]; root = roots[3];
+        function = analysis.local_bindings.function_node_ids[local_row]; use_syntax = analysis.local_bindings.node_ids[local_row];
+        signature = generic; parameter = analysis.signatures.param_starts[generic];
+    }
+    if mutation == 22 { analysis.signatures.param_types[parameter] = "Int"; }
+    if mutation == 23 {
+        local_row = lexical; leaf = leaves[4]; root = roots[4];
+        function = analysis.local_bindings.function_node_ids[local_row]; use_syntax = analysis.local_bindings.node_ids[local_row];
+        graph.arena.identities.binding_syntax_ids[leaf] = analysis.local_bindings.node_ids[lexical_root];
+    }
+    if mutation == 24 {
+        graph.arena.identities.binding_ordinals[leaf] = 99;
+        analysis.local_bindings.names[shadow] = "a";
+    }
+    if mutation == 25 { graph.arena.identities.binding_syntax_ids[leaf] = analysis.signatures.param_node_ids[parameter + 1]; }
+    if mutation == 26 { graph.arena.node_texts[graph.arena.topology.right_children[root]] = "missing"; }
+    if mutation == 27 { analysis.constructors.field_source_syntax_ids[field_row] = 0; }
+    if mutation == 28 { analysis.constructors.field_names[field_row + 1] = "left"; }
+    if mutation == 29 {
+        let other_owner: Option<Int> = SemanticAstNominalConstructorIndexForName(analysis.constructors, "Other");
+        if !IsSome(other_owner) { return false; }
+        analysis.constructors.names[UnwrapOption(other_owner)] = "Pair";
+    }
+    if mutation == 30 || mutation == 31 {
+        let field_id: Int = analysis.constructors.field_source_syntax_ids[field_row];
+        analysis.constructors.field_source_syntax_ids[field_row] = analysis.constructors.field_source_syntax_ids[field_row + 1];
+        analysis.constructors.field_source_syntax_ids[field_row + 1] = field_id;
+        if mutation == 31 { ArrayPop(analysis.constructors.field_source_syntax_ids); }
+        return !SemanticAstNominalConstructorFactsMatchArtifact(artifact, analysis.constructors);
+    }
+    if mutation == 32 { analysis.signatures.generic_starts[signature] = -1; }
+    if mutation == 33 { analysis.signatures.generic_starts[signature] = 2147483647; }
+    if mutation == 34 { analysis.signatures.generic_counts[signature] = 2147483647; }
+    if mutation == 35 { analysis.signatures.generic_counts[signature] = -1; }
+    if mutation == 36 { ArrayPop(analysis.signatures.generic_names); }
+    if mutation == 37 || mutation == 38 { analysis.signatures.type_expressions.ok = false; }
+    if mutation == 39 { analysis.signatures.type_expressions.parameter_roots[parameter] = -1; }
+    if mutation == 40 { analysis.signatures.type_expressions.parameter_roots[parameter] = 2147483647; }
+    if mutation == 41 { ArrayPop(analysis.signatures.type_expressions.parameter_roots); }
+    if mutation == 42 { analysis.signatures.generic_counts[signature] = 0; }
+    if mutation == 43 { ArrayPop(analysis.signatures.type_expressions.child_starts); }
+    if mutation == 44 { analysis.signatures.generic_starts[signature] = ArrayLength(analysis.signatures.generic_names); }
+    analysis.expression_surfaces.expression_graph = graph;
+    let result: SemanticAstCollectionMemberMoveIdentity = SemanticAstCollectionMemberMoveIdentityForNode(
+        artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+        bundle.initializer_types.inferred_type_names, types, function, use_syntax, graph, root);
+    return !result.ok;
+}
+
+func MemberIdentityAt(
+    artifact: AstTreeArtifact, ref analysis: SemanticAstArtifactAnalysis,
+    ref bundle: SemanticAstBodyTypeBundle, ref types: Array<String>, local_row: Int, node: Int
+) -> SemanticAstCollectionMemberMoveIdentity {
+    return SemanticAstCollectionMemberMoveIdentityForNode(
+        artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+        bundle.initializer_types.inferred_type_names, types,
+        analysis.local_bindings.function_node_ids[local_row], analysis.local_bindings.node_ids[local_row],
+        analysis.expression_surfaces.expression_graph, node);
+}

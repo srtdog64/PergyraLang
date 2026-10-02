@@ -4,8 +4,8 @@
 
 import "ast_expression_graph_member_view_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
-import "ast_local_binding_identity_owner.pgy";
-import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_collection_ownership_member_root_identity_owner.pgy";
+import "ast_nominal_constructor_lookup_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 
 struct SemanticAstCollectionMemberMoveIdentity {
@@ -17,9 +17,11 @@ struct SemanticAstCollectionMemberMoveIdentity {
 
 func SemanticAstCollectionMemberMoveIdentityForNode(
     artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
     ref constructors: SemanticAstNominalConstructorFacts,
     ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
     function_node_id: Int, use_node_id: Int,
     ref graph: SemanticExpressionGraphFacts, node_id: Int
 ) -> SemanticAstCollectionMemberMoveIdentity {
@@ -28,36 +30,26 @@ func SemanticAstCollectionMemberMoveIdentityForNode(
     let member: SemanticMemberAccessView =
         SemanticMemberAccessViewFromGraph(graph, node_id);
     if !member.ok { return unresolved; }
-    let root: SemanticAstLocalBindingIdentity =
-        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
-            artifact, locals, inferred_types, function_node_id,
+    let root: SemanticAstCollectionMemberRootIdentity =
+        SemanticAstCollectionMemberRootIdentityForNode(
+            artifact, signatures, locals, inferred_types, resolved_leaf_types, function_node_id,
             use_node_id, graph, member.receiver_node);
     let field_name: Option<String> = SemanticExpressionGraphNodeText(
         graph, member.member_node);
     if !root.ok || !IsSome(field_name) { return unresolved; }
     let root_type: SemanticCanonicalTypeNameFact =
         SemanticCanonicalTypeNameFactFrom(root.type_name);
-    let constructor: Int = 0;
-    while constructor < SemanticAstNominalConstructorCount(constructors) {
-        if constructors.names[constructor] == root_type.nominal_base_name {
-            let field: Int = 0;
-            while field < constructors.param_counts[constructor] {
-                let row: Int = constructors.param_starts[constructor] + field;
-                if constructors.field_names[row] == UnwrapOption(field_name) {
-                    let field_id: Int =
-                        constructors.field_source_syntax_ids[row];
-                    let key: String = Concat(
-                        ToString(function_node_id),
-                        Concat(":", Concat(ToString(root.declaration_node_id),
-                            Concat(":", ToString(field_id)))));
-                    return SemanticAstCollectionMemberMoveIdentity(
-                        true, key, root.declaration_node_id, field_id);
-                }
-                field = field + 1;
-            }
-            return unresolved;
-        }
-        constructor = constructor + 1;
+    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(
+        constructors, root_type.nominal_base_name);
+    if !IsSome(constructor) { return unresolved; }
+    let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(
+        constructors, UnwrapOption(constructor), UnwrapOption(field_name));
+    if !IsSome(field) || UnwrapOption(field) >= ArrayLength(constructors.field_source_syntax_ids) {
+        return unresolved;
     }
-    return unresolved;
+    let field_id: Int = constructors.field_source_syntax_ids[UnwrapOption(field)];
+    if field_id <= 0 { return unresolved; }
+    let key: String = Concat(ToString(function_node_id),
+        Concat(":", Concat(ToString(root.source_binding_syntax_id), Concat(":", ToString(field_id)))));
+    return SemanticAstCollectionMemberMoveIdentity(true, key, root.source_binding_syntax_id, field_id);
 }

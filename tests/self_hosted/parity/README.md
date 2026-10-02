@@ -71,6 +71,21 @@ Formal identity owner units mutate freshly admitted facts and check final
 authority refusal. These checks are not MIR, installed-driver, aggregate-field
 release, hard C substitution or registry-closure evidence.
 
+Its formal/member source controls require exact root/declared-field identity,
+reject repeated extraction and indexed-target false restoration, and retain
+whole-field writeback. Generic source controls consume the real admitted body
+type view; unit-projected nominal types alone do not establish that producer.
+`collection_member_identity_owner.sh` pairs 43 member identity units (one
+baseline and 42 mutations), two constructor-carrier negatives and five invalid
+observer mode/arity refusals per backend. Its optional reuse directory must be
+inside this checkout's ignored artifact directory with matching native, source,
+input and transitive-import hashes, plus an exact two-binary receipt. The inout
+gate retains its separate exact four-binary receipt. Neither gate grants
+aggregate storage/element lifetime or proves actual Release execution.
+Run the focused member gate with
+`make self-host-collection-member-identity-test-smoke`; it is also a prerequisite
+of `self-host-collection-ownership-semantic-test-smoke`.
+
 - run the existing C or shell oracle against the same input;
 - run the Pergyra tool against the same input;
 - compile and run the Pergyra tool through both C and LLVM when the current

@@ -77,7 +77,8 @@ func SemanticAstAnalysisResolveExpressionIdentities(
     }
     // The existing lexical environment owns local types even where the
     // persisted identity protocol intentionally carries no local binding ID.
-    // This transient projection dies after world-zone value-use admission.
+    // Collection field identity and later boundary verdicts borrow this
+    // same-graph transient projection; it never grants element ownership.
     let type_row: Int = 0;
     while type_row < count { ArrayPush(leaf_type_names, "Unknown"); type_row = type_row + 1; }
     let last_root: Int = -1;

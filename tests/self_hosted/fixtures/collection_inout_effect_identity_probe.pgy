@@ -546,9 +546,16 @@ func InspectFormalStorageAuthority(
         analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
     let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
         analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
+    // This array-only owner unit has no aggregate receiver. Unknown entries
+    // preserve the required same-graph extent without inventing field types.
+    let leaf_types: Array<String> = [];
+    row = 0;
+    while row < SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena) {
+        ArrayPush(leaf_types, "Unknown"); row = row + 1;
+    }
     let verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
-        bundle.initializer_types, analysis.expression_surfaces, analysis.statements,
+        bundle.initializer_types, analysis.expression_surfaces, leaf_types, analysis.statements,
         analysis.assignments, bundle.assignment_types);
     if mutation == 37 {
         if !definitions.ok || !storage.ok || !verdict.ok { return false; }

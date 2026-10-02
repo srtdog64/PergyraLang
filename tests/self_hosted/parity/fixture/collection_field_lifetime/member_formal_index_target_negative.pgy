@@ -1,0 +1,13 @@
+// Analyze only: an index-call argument is not the whole field writeback target.
+struct Pair { value: Array<String>; }
+func At(values: Array<String>) -> Int { return 0; }
+func Count(inout pair: Pair) -> Int {
+    let value: Array<String> = pair.value;
+    let slots: Array<Array<String>> = [["slot"]];
+    slots[At(pair.value)] = value;
+    return ArrayLength(pair.value);
+}
+func Main() -> Void {
+    let pair: Pair = Pair(["borrowed"]);
+    Log(Count(pair));
+}

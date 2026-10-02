@@ -1,0 +1,10 @@
+// Analyze only: a nested target operand cannot restore a moved local-root field.
+struct Pair { value: Array<String>; }
+func At(values: Array<String>) -> Int { return 0; }
+func Main() -> Void {
+    let pair: Pair = Pair(["borrowed"]);
+    let value: Array<String> = pair.value;
+    let slots: Array<Array<String>> = [["slot"]];
+    slots[At(pair.value)] = value;
+    Log(ArrayLength(pair.value));
+}

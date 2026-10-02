@@ -1,0 +1,12 @@
+// Real generic body type production, exact field restoration, no release grant.
+struct Pair { value: Array<String>; }
+func Count<T>(inout pair: T) -> Int where T: Pair {
+    let first: Array<String> = pair.value;
+    pair.value = first;
+    let second: Array<String> = pair.value;
+    return ArrayLength(second);
+}
+func Main() -> Void {
+    let pair: Pair = Pair(["borrowed"]);
+    Log(Count(pair));
+}

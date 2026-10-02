@@ -1,0 +1,11 @@
+// Analyze only: the real nominal-bound body view must identify both extractions.
+struct Pair { value: Array<String>; }
+func Count<T>(inout pair: T) -> Int where T: Pair {
+    let first: Array<String> = pair.value;
+    let rejected_second: Array<String> = pair.value;
+    return ArrayLength(first) + ArrayLength(rejected_second);
+}
+func Main() -> Void {
+    let pair: Pair = Pair(["borrowed"]);
+    Log(Count(pair));
+}

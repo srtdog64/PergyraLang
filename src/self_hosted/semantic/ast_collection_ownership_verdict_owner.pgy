@@ -38,6 +38,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
     ref initializer_types: SemanticAstInitializerTypeFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref resolved_leaf_types: Array<String>,
     ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
     ref assignment_types: SemanticAstAssignmentTypeFacts
 ) -> SemanticAstCollectionOwnershipVerdict {
@@ -48,6 +49,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         ArrayLength(initializer_types.node_ids) != local_count ||
         !SemanticExpressionGraphCarriedCallTargetsReady(
             surfaces.expression_graph) || !statements.ok ||
+        ArrayLength(resolved_leaf_types) != SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena) ||
         !assignments.ok || !assignment_types.ok ||
         ArrayLength(assignments.node_ids) !=
             ArrayLength(assignment_types.node_ids) {
@@ -164,7 +166,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                 AstExpressionNodeMemberAccess() {
             let moved: SemanticAstCollectionMemberMoveIdentity =
                 SemanticAstCollectionMemberMoveIdentityForNode(
-                    artifact, constructors, locals, initializer_types.inferred_type_names,
+                    artifact, signatures, constructors, locals, initializer_types.inferred_type_names, resolved_leaf_types,
                     locals.function_node_ids[local_row],
                     locals.node_ids[local_row], surfaces.expression_graph,
                     root_id);
@@ -209,7 +211,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     }
     let moved_use: SemanticAstCollectionMemberMoveUse =
         SemanticAstCollectionFirstInvalidMemberMoveUse(
-            artifact, constructors, locals, initializer_types.inferred_type_names,
+            artifact, signatures, constructors, locals, initializer_types.inferred_type_names, resolved_leaf_types,
             surfaces, assignments, move_destinations);
     if moved_use.found {
         return SemanticAstCollectionOwnershipVerdictError(

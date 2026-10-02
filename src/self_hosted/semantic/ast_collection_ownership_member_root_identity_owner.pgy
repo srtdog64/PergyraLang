@@ -1,0 +1,65 @@
+// Exact aggregate root identity; the admitted same-graph type view supplies
+// generic nominal equality, never storage or String-element release authority.
+import "ast_collection_ownership_identity_owner.pgy";
+
+struct SemanticAstCollectionMemberRootIdentity {
+    ok: Bool;
+    source_binding_syntax_id: Int;
+    type_name: String;
+}
+
+func SemanticAstCollectionMemberRootIdentityForNode(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    function_node_id: Int, use_node_id: Int,
+    ref graph: SemanticExpressionGraphFacts, node_id: Int
+) -> SemanticAstCollectionMemberRootIdentity {
+    let unresolved: SemanticAstCollectionMemberRootIdentity =
+        SemanticAstCollectionMemberRootIdentity(false, 0, "");
+    let binding: SemanticExpressionBindingIdentityFact =
+        SemanticExpressionGraphBindingIdentity(graph, node_id);
+    if !binding.ok { return unresolved; }
+    if binding.kind == SemanticExpressionBindingFormalParameter() {
+        let formal: SemanticAstCollectionFormalStorageIdentity =
+            SemanticAstCollectionSourceFormalIdentity(signatures, function_node_id, graph, node_id);
+        if !formal.ok || node_id >= ArrayLength(resolved_leaf_types) {
+            return unresolved;
+        }
+        let resolved_type: String = resolved_leaf_types[node_id];
+        if resolved_type == "" || resolved_type == "Unknown" { return unresolved; }
+        let signature: Int = formal.signature_row;
+        let parameter: Int = signatures.param_starts[signature] + formal.ordinal;
+        if !signatures.type_expressions.ok ||
+            ArrayLength(signatures.type_expressions.parameter_roots) != ArrayLength(signatures.param_node_ids) ||
+            ArrayLength(signatures.generic_starts) != ArrayLength(signatures.function_node_ids) ||
+            ArrayLength(signatures.generic_counts) != ArrayLength(signatures.function_node_ids) ||
+            ArrayLength(signatures.generic_constraint_type_names) != ArrayLength(signatures.generic_names) ||
+            parameter >= ArrayLength(signatures.type_expressions.parameter_roots) {
+            return unresolved;
+        }
+        let start: Int = signatures.generic_starts[signature];
+        let count: Int = signatures.generic_counts[signature];
+        let type_root: Int = signatures.type_expressions.parameter_roots[parameter];
+        if start < 0 || count < 0 || start > ArrayLength(signatures.generic_names) ||
+            count > ArrayLength(signatures.generic_names) - start || type_root < 0 ||
+            type_root >= ArrayLength(signatures.type_expressions.node_names) { return unresolved; }
+        // Only a declared generic occurrence may differ from its source type.
+        // The body environment remains the sole producer of the resolved view.
+        if resolved_type != formal.declared_type_name &&
+            !SemanticAstSignatureTypeExpressionRootHasFormal(
+                signatures.type_expressions, type_root, start, count,
+                signatures.generic_names) { return unresolved; }
+        return SemanticAstCollectionMemberRootIdentity(true, formal.syntax_id, resolved_type);
+    }
+    // A malformed carried formal/callable never retries by lexical spelling.
+    // Ordinary locals have exactly None/id0/absent ordinal in this protocol.
+    if binding.kind != SemanticExpressionBindingNone() || binding.syntax_id != 0 {
+        return unresolved;
+    }
+    let root: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, inferred_types, function_node_id, use_node_id, graph, node_id);
+    if !root.ok { return unresolved; }
+    return SemanticAstCollectionMemberRootIdentity(true, root.declaration_node_id, root.type_name);
+}

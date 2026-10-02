@@ -669,10 +669,15 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   moves. It consumes the current definition of a stable declaration, treats a
   whole-local store target as a place, and never infers a storage move from
   a variable name or projected type alone.
+- `src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy`
+  -- exact current-function formal or scoped local aggregate root. It borrows
+  one strict source-formal fact and the admitted same-graph nominal-bound type
+  view. Missing/malformed identity fails closed; type/mode grants no lifetime.
 - `src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy` --
   stable root-binding plus declared-field identity for direct
   `Array<String>` extraction. It does not model ordinary values as Slots or
-  infer a field from flattened text.
+  infer a field from flattened text. Duplicate nominal/field names fail closed
+  through the existing constructor lookup owner; IDs remain declaration-owned.
 - `src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy`
   -- ordered member-move, exact move-back, and retired-local transitions over
   the admitted expression graph. Only the matching root, declared field, and
