@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let values: Array<Int> = [1];
+    for element in values { element = element + 1; Log(element); }
+    let optional: Option<Int> = Some(4);
+    match optional {
+        case Some(payload): payload = payload + 1;
+        case None: Log("none");
+    }
+}

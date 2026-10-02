@@ -13,6 +13,18 @@ func SemanticAstExpressionOwnerFieldType(
         !SemanticAstNominalConstructorRowsReady(constructors) {
         return None;
     }
+    return SemanticAstExpressionOwnerFieldTypeFromAdmittedFacts(
+        signatures, constructors, function_node_id, field_name);
+}
+
+// Admitted body consumers must not reopen the complete field-set proof for
+// each write. The signature still selects the exact owner of this field.
+func SemanticAstExpressionOwnerFieldTypeFromAdmittedFacts(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    function_node_id: Int, field_name: String
+) -> Option<String> {
+    if !signatures.ok || !constructors.ok || field_name == "" { return None; }
     let signature_index: Option<Int> =
         SemanticAstFunctionSignatureIndexForNode(
             signatures, function_node_id

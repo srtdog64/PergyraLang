@@ -86,8 +86,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let current_definitions: Array<Int> = [];
     let owned_string_results: SemanticAstOwnedStringResultFacts =
         SemanticAstOwnedStringResultFactsFromResolvedFacts(
-            artifact, signatures, locals, initializer_types, surfaces,
-            statements);
+            artifact, signatures, constructors, locals, initializer_types, surfaces,
+            statements, assignments, assignment_types);
     if !SemanticAstOwnedStringResultFactsReady(owned_string_results) {
         return SemanticAstCollectionOwnershipVerdictError(
             "ast_artifact_invalid",

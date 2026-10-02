@@ -18,6 +18,12 @@ EVENT_PROBE=tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy
 STORAGE_PROBE=tests/self_hosted/fixtures/collection_storage_producer_probe.pgy
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 INPUTS=(
+    owned_string_result_reassigned_negative.pgy owned_string_allocator_reassigned_negative.pgy
+    owned_string_result_unassigned_positive.pgy
+    owned_string_result_alias_reassigned_negative.pgy owned_string_result_branch_reassigned_negative.pgy
+    owned_string_result_shadow_assignment_positive.pgy
+    owned_string_result_implicit_field_positive.pgy
+    owned_string_result_synthetic_binding_positive.pgy
     storage_opaque_return_own_negative.pgy storage_opaque_assign_own_negative.pgy
     storage_opaque_alias_own_negative.pgy storage_opaque_return_read_positive.pgy storage_shadowed_clone_own_negative.pgy
     builtin_completion_nested_other_positive.pgy builtin_completion_nested_same_positive.pgy
@@ -123,6 +129,8 @@ INPUTS=(
 )
 for i in "${!INPUTS[@]}"; do INPUTS[i]="$FIXTURES/${INPUTS[i]}"; done
 INPUTS+=(
+    tests/cases/backend_compare/subject_class_dispatch/main.pgy
+    tests/self_hosted/parity/fixture/intent_zone_authority_transition.pgy
     docs/audits/repros/own_formal_local_storage_alias_2026-10-02.pgy
     docs/audits/repros/own_same_expression_read_after_transfer_2026-10-02.pgy
     docs/audits/repros/own_formal_assignment_storage_alias_2026-10-02.pgy
@@ -130,6 +138,7 @@ INPUTS+=(
 )
 sha256sum "$PGY" >"$WORK/native.sha256"
 sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" "$STORAGE_PROBE" \
+    tests/self_hosted/fixtures/owned_string_local_reassignment_unit.pgy \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
@@ -165,7 +174,9 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy \
-    src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy >"$WORK/owners.sha256"
+    src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy \
+    src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy \
+    src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy >"$WORK/owners.sha256"
 ACTUAL_INPUT="$FIXTURES/callable_table_from_artifact_release_probe.pgy"
 sha256sum "${INPUTS[@]}" "$FIXTURES/inout_index_identity_input.pgy" \
     "$FIXTURES/own_storage_identity_input.pgy" "$FIXTURES/own_event_order_identity_input.pgy" \
@@ -208,6 +219,20 @@ for backend in c llvm; do
             -o "$REL/$backend-source.exe" >"$WORK/$backend-source.compile" 2>&1
     fi
     sha256sum "$WORK/$backend-source.exe" >>"$WORK/probe-binaries.sha256"
+    for mode in current missing-leaf foreign-function carried-kind wrong-type untracked-type missing-row crossed-row; do
+        timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/owned_string_result_reassigned_negative.pgy" \
+            "owned-string-reassignment-$mode" >"$WORK/$backend-reassignment-$mode.raw" 2>"$WORK/$backend-reassignment-$mode.err"
+        tr -d '\r' <"$WORK/$backend-reassignment-$mode.raw" >"$WORK/$backend-reassignment-$mode.run"
+        [[ ! -s "$WORK/$backend-reassignment-$mode.err" ]]
+        grep -Fxq 'owned-string-reassignment-unit:PASS' "$WORK/$backend-reassignment-$mode.run"
+    done
+    for mode in owner-field owner-field-missing owner-field-type owner-field-mode; do
+        timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/owned_string_result_implicit_field_positive.pgy" \
+            "owned-string-reassignment-$mode" >"$WORK/$backend-reassignment-$mode.raw" 2>"$WORK/$backend-reassignment-$mode.err"
+        tr -d '\r' <"$WORK/$backend-reassignment-$mode.raw" >"$WORK/$backend-reassignment-$mode.run"
+        [[ ! -s "$WORK/$backend-reassignment-$mode.err" ]]
+        grep -Fxq 'owned-string-reassignment-unit:PASS' "$WORK/$backend-reassignment-$mode.run"
+    done
     for input in "${INPUTS[@]}"; do
         name="${input##*/}"
         timeout 30 "$WORK/$backend-source.exe" "$input" >"$WORK/$backend-$name.raw" 2>"$WORK/$backend-$name.err"
@@ -223,7 +248,7 @@ for backend in c llvm; do
             member_*_negative.pgy|own_storage_nested_same_binding_negative.pgy|own_storage_formal_retired_negative.pgy|own_storage_formal_child_retired_negative.pgy|own_storage_return_duplicate_negative.pgy|own_formal_*_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             *_negative.pgy) printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
-            *_positive.pgy|member_formal_identity_input.pgy|field_ctor_identity_input.pgy) printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
+            *_positive.pgy|member_formal_identity_input.pgy|field_ctor_identity_input.pgy|main.pgy|intent_zone_authority_transition.pgy) printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             *) echo "unclassified inout fixture: $name" >&2; exit 1 ;;
         esac
         cmp "$WORK/expected" "$WORK/$backend-$name.run"
@@ -558,7 +583,7 @@ BORROW_FORMAL_DIAGNOSTICS
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, seventy-five diagnostic locations, three observer mode, fifty-one identity/boundary, thirty-five occurrence/root/element-step, four completion/receipt and ten storage-producer units, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, twelve result-witness units, seventy-five diagnostic locations, three observer mode, fifty-one identity/boundary, thirty-five occurrence/root/element-step, four completion/receipt and ten storage-producer units, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

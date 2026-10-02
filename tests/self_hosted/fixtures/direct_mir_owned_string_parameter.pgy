@@ -5,6 +5,7 @@ func ReleaseOwnedString(own value: String) -> Void {
     ArrayDropOwnedStrings(owned_values);
 }
 struct OwnedStringFact { let value: String; }
+func OtherStringFormal(value: String) -> Bool { return value == ""; }
 func ReleaseOwnedMember() -> Void {
     let fact: OwnedStringFact = OwnedStringFact(Concat("owned", "-member"));
     ReleaseOwnedString(fact.value);

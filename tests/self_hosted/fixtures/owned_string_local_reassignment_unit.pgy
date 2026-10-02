@@ -1,0 +1,84 @@
+// Mutate source-derived facts, never execute the supplied program.
+import "../../../src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy";
+
+func InspectOwnedStringLocalReassignment(
+    artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis,
+    inout bundle: SemanticAstBodyTypeBundle, mode: String
+) -> Bool {
+    let row: Int = 0; let selected: Int = -1;
+    while row < ArrayLength(analysis.assignments.node_ids) {
+        if analysis.assignments.target_texts[row] == "result" {
+            if selected >= 0 { return false; }
+            selected = row;
+        }
+        row = row + 1;
+    }
+    if selected < 0 { return false; }
+    let syntax_id: Int = analysis.assignments.node_ids[selected];
+    let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        analysis.expression_surfaces, syntax_id, AstExpressionLaneAtom());
+    if !IsSome(root) { return false; }
+    let node: Int = UnwrapOption(root);
+    let baseline: SemanticAstOwnedStringLocalReassignmentFacts =
+        SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
+            artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, bundle.initializer_types,
+            analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
+    let binding: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+            analysis.assignments.function_node_ids[selected], syntax_id,
+            analysis.expression_surfaces.expression_graph, node);
+    if StartsWith(mode, "owned-string-reassignment-owner-field") {
+        if !baseline.ok || binding.ok ||
+            bundle.assignment_types.target_binding_modes[selected] != "owner_field" { return false; }
+        if mode == "owned-string-reassignment-owner-field" { return true; }
+        if mode == "owned-string-reassignment-owner-field-missing" {
+            analysis.expression_surfaces.expression_graph.arena.node_texts[node] = "missing";
+        } else if mode == "owned-string-reassignment-owner-field-type" {
+            bundle.assignment_types.target_type_names[selected] = "Int";
+        } else if mode == "owned-string-reassignment-owner-field-mode" {
+            bundle.assignment_types.target_binding_modes[selected] = "local";
+        } else { return false; }
+        let invalid_field: SemanticAstOwnedStringLocalReassignmentFacts =
+            SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
+                artifact, analysis.signatures, analysis.constructors,
+                analysis.local_bindings, bundle.initializer_types,
+                analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
+        return !invalid_field.ok;
+    }
+    if !baseline.ok || !binding.ok ||
+        SemanticAstOwnedStringLocalNotReassigned(baseline, binding) { return false; }
+    if mode == "owned-string-reassignment-current" { return true; }
+    if mode == "owned-string-reassignment-missing-leaf" {
+        analysis.expression_surfaces.expression_graph.arena.node_texts[node] = "";
+    } else if mode == "owned-string-reassignment-foreign-function" {
+        let foreign: Int = -1;
+        row = 0;
+        while row < ArrayLength(analysis.signatures.function_node_ids) {
+            if analysis.signatures.names[row] == "Main" {
+                foreign = analysis.signatures.function_node_ids[row];
+            }
+            row = row + 1;
+        }
+        if foreign <= 0 || foreign == analysis.assignments.function_node_ids[selected] { return false; }
+        analysis.assignments.function_node_ids[selected] = foreign;
+    } else if mode == "owned-string-reassignment-carried-kind" {
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[node] =
+            SemanticExpressionBindingDeclaredCallable();
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[node] =
+            analysis.assignments.function_node_ids[selected];
+    } else if mode == "owned-string-reassignment-wrong-type" {
+        bundle.assignment_types.target_type_names[selected] = "Allocator";
+    } else if mode == "owned-string-reassignment-untracked-type" {
+        bundle.assignment_types.target_type_names[selected] = "Int";
+    } else if mode == "owned-string-reassignment-missing-row" {
+        ArrayPop(analysis.assignments.function_node_ids);
+    } else if mode == "owned-string-reassignment-crossed-row" {
+        bundle.assignment_types.node_ids[selected] = syntax_id + 1;
+    } else { return false; }
+    let invalid: SemanticAstOwnedStringLocalReassignmentFacts =
+        SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
+            artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, bundle.initializer_types,
+            analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
+    return !invalid.ok;
+}

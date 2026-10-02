@@ -1,0 +1,24 @@
+func MakeString() -> String {
+    // An earlier child scope has distinct declarations with the same names.
+    // Rebinding an enclosing live name is forbidden by the language itself.
+    if true {
+        let result: String = "inner";
+        result = "changed-inner";
+        Log(result);
+        let allocator: Allocator = AllocatorResult();
+        AllocatorDestroy(allocator);
+        allocator = AllocatorPool(64);
+        AllocatorDestroy(allocator);
+    }
+    let allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(output, "owned");
+    let result: String = TextBuilderFinish(output, allocator);
+    AllocatorDestroy(allocator);
+    return result;
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPush(values, MakeString());
+    ArrayDropOwnedStrings(values);
+}

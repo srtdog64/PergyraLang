@@ -1,11 +1,13 @@
 // Stable proof that a source function returns a freshly owned String.
 //
 // The proof is deliberately structural and fail-closed: a return must name an
-// immutable local whose initializer is TextBuilderFinish with an
-// AllocatorResult allocator, or call another function already proven by this
-// owner.  Type alone never grants ownership.
+// local with no whole-local reassignment whose initializer is TextBuilderFinish
+// with an unreassigned AllocatorResult allocator, or call another function
+// already proven by this owner. This is not alias/exclusivity or effect proof.
+// Type and the declaration initializer alone never grant ownership.
 
 import "ast_collection_ownership_identity_owner.pgy";
+import "ast_owned_string_local_reassignment_owner.pgy";
 
 struct SemanticAstOwnedStringResultFacts {
     ok: Bool;
@@ -64,6 +66,7 @@ func SemanticAstOwnedStringAllocatorBindingReady(
     ref locals: SemanticAstLocalBindingFacts,
     ref initializer_types: SemanticAstInitializerTypeFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref reassignments: SemanticAstOwnedStringLocalReassignmentFacts,
     function_syntax_id: Int, use_syntax_id: Int, binding_node: Int
 ) -> Bool {
     let binding: SemanticAstLocalBindingIdentity =
@@ -73,7 +76,8 @@ func SemanticAstOwnedStringAllocatorBindingReady(
             surfaces.expression_graph, binding_node);
     let mode: Option<Int> = TypedAstArenaMode(
         artifact.arena, binding.declaration_node_id);
-    if !binding.ok || binding.type_name != "Allocator" ||
+    if !SemanticAstOwnedStringLocalNotReassigned(reassignments, binding) ||
+        binding.type_name != "Allocator" ||
         locals.binding_kinds[binding.row] !=
             SemanticAstLocalBindingKindNormal() ||
         locals.binding_indices[binding.row] != 0 ||
@@ -91,6 +95,7 @@ func SemanticAstOwnedStringExpressionReady(
     ref locals: SemanticAstLocalBindingFacts,
     ref initializer_types: SemanticAstInitializerTypeFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref reassignments: SemanticAstOwnedStringLocalReassignmentFacts,
     ref facts: SemanticAstOwnedStringResultFacts,
     function_syntax_id: Int, use_syntax_id: Int, root: Int, depth: Int
 ) -> Bool {
@@ -106,7 +111,8 @@ func SemanticAstOwnedStringExpressionReady(
     if binding.ok {
         let mode: Option<Int> = TypedAstArenaMode(
             artifact.arena, binding.declaration_node_id);
-        if binding.type_name != "String" ||
+        if !SemanticAstOwnedStringLocalNotReassigned(reassignments, binding) ||
+            binding.type_name != "String" ||
             locals.binding_kinds[binding.row] !=
                 SemanticAstLocalBindingKindNormal() ||
             locals.binding_indices[binding.row] != 0 ||
@@ -116,7 +122,7 @@ func SemanticAstOwnedStringExpressionReady(
         let initializer: Option<Int> = SemanticAstExpressionGraphRootForNode(
             surfaces, binding.declaration_node_id, AstExpressionLaneValue());
         return IsSome(initializer) && SemanticAstOwnedStringExpressionReady(
-            artifact, locals, initializer_types, surfaces, facts,
+            artifact, locals, initializer_types, surfaces, reassignments, facts,
             function_syntax_id, binding.declaration_node_id,
             UnwrapOption(initializer), depth + 1);
     }
@@ -128,7 +134,7 @@ func SemanticAstOwnedStringExpressionReady(
         surfaces.expression_graph, root);
     if !finish.ok || ArrayLength(finish.argument_nodes) != 2 { return false; }
     return SemanticAstOwnedStringAllocatorBindingReady(
-        artifact, locals, initializer_types, surfaces, function_syntax_id,
+        artifact, locals, initializer_types, surfaces, reassignments, function_syntax_id,
         use_syntax_id, finish.argument_nodes[1]);
 }
 
@@ -139,6 +145,7 @@ func SemanticAstFunctionReturnsOwnedString(
     ref initializer_types: SemanticAstInitializerTypeFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref statements: SemanticAstStatementFacts,
+    ref reassignments: SemanticAstOwnedStringLocalReassignmentFacts,
     ref facts: SemanticAstOwnedStringResultFacts,
     signature_row: Int
 ) -> Bool {
@@ -155,7 +162,7 @@ func SemanticAstFunctionReturnsOwnedString(
             let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
                 surfaces, statements.node_ids[row], AstExpressionLaneAtom());
             if !IsSome(root) || !SemanticAstOwnedStringExpressionReady(
-                    artifact, locals, initializer_types, surfaces, facts,
+                    artifact, locals, initializer_types, surfaces, reassignments, facts,
                     function_syntax_id, statements.node_ids[row],
                     UnwrapOption(root), 0) {
                 return false;
@@ -169,10 +176,13 @@ func SemanticAstFunctionReturnsOwnedString(
 func SemanticAstOwnedStringResultFactsFromResolvedFacts(
     artifact: AstTreeArtifact,
     ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
     ref locals: SemanticAstLocalBindingFacts,
     ref initializer_types: SemanticAstInitializerTypeFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
-    ref statements: SemanticAstStatementFacts
+    ref statements: SemanticAstStatementFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref assignment_types: SemanticAstAssignmentTypeFacts
 ) -> SemanticAstOwnedStringResultFacts {
     let ids: Array<Int> = [];
     let facts: SemanticAstOwnedStringResultFacts =
@@ -181,6 +191,13 @@ func SemanticAstOwnedStringResultFactsFromResolvedFacts(
         !surfaces.ok || !statements.ok ||
         ArrayLength(initializer_types.inferred_type_names) !=
             ArrayLength(locals.node_ids) {
+        return SemanticAstOwnedStringResultFacts(false, ids);
+    }
+    let reassignments: SemanticAstOwnedStringLocalReassignmentFacts =
+        SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
+            artifact, signatures, constructors, locals, initializer_types, surfaces, assignments,
+            assignment_types);
+    if !reassignments.ok {
         return SemanticAstOwnedStringResultFacts(false, ids);
     }
     let remaining: Int = ArrayLength(signatures.function_node_ids);
@@ -193,7 +210,7 @@ func SemanticAstOwnedStringResultFactsFromResolvedFacts(
             if !SemanticAstOwnedStringResultContains(facts, function_syntax_id) &&
                 SemanticAstFunctionReturnsOwnedString(
                     artifact, signatures, locals, initializer_types, surfaces,
-                    statements, facts, row) {
+                    statements, reassignments, facts, row) {
                 ArrayPush(facts.function_syntax_ids, function_syntax_id);
                 changed = true;
             }

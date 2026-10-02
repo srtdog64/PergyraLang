@@ -1,0 +1,15 @@
+func MakeString() -> String {
+    let allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(output, "owned");
+    let result: String = TextBuilderFinish(output, allocator);
+    AllocatorDestroy(allocator);
+    let returned: String = result;
+    returned = "borrowed";
+    return returned;
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPush(values, MakeString());
+    ArrayDropOwnedStrings(values);
+}

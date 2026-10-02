@@ -90,6 +90,14 @@ func DirectMirScalarProgramArrayStringSingleElementFromOwners(
             CompilerAbiLayoutStringTypeName() {
         return invalid;
     }
+    // An owning operand must bind this exact formal, not another declaration
+    // with the same type, name and physical ordinal.
+    if owned_parameter &&
+        (signature.parameters.source_syntax_ids[ordinal] <= 0 ||
+         sequence.arena.identities.binding_syntax_ids[1] !=
+            signature.parameters.source_syntax_ids[ordinal]) {
+        return invalid;
+    }
     let wire_ref: String = DirectMirScalarCfgWireExprRefAt(
         wire, local_instruction, 1);
     let expected_ref: String = SelfMirLocalRef(

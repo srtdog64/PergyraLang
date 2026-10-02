@@ -1,0 +1,9 @@
+subject TextOwner {
+    let result: String;
+    action Replace(self) -> Void { result = "changed"; }
+}
+func Main() -> Void {
+    let owner: TextOwner = TextOwner("initial");
+    owner.Replace();
+    Log(owner.result);
+}

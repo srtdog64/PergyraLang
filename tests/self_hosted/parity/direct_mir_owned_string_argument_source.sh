@@ -18,15 +18,18 @@ PROBE="tests/self_hosted/fixtures/direct_mir_owned_string_scalar_projection_prob
 FIXTURES="tests/self_hosted/parity/fixture/owned_string_argument_sources"
 OWNER="src/self_hosted/compiler/direct_mir_scalar_program_owned_string_argument_source_owner.pgy"
 CALLER="src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy"
+LITERAL_OWNER="src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy"
+IDENTITY_MUTATOR="tests/self_hosted/parity/direct_mir_owned_string_literal_identity_mutations.py"
 POSITIVES=(existing binary_field_positive nary_field_positive)
 NEGATIVES=(borrowed_local_negative borrowed_member_negative default_formal_negative
     own_formal_unproved_negative local_alias_unproved_negative
     record_alias_unproved_negative nary_first_borrowed_negative nary_last_borrowed_negative
     reassigned_local_negative reassigned_member_negative)
+IDENTITY_NEGATIVES=(literal_foreign_formal literal_foreign_routine literal_receiver_binding)
 fail() { echo "[$LABEL] $*; evidence: ${WORK_DIR:-not-created}" >&2; exit 1; }
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
 [[ -s "$MANIFEST" ]] || fail "missing issued machine declaration"
-for tool in "$CC" "$CLANG" timeout mktemp sha256sum cmp cp find sort xargs; do
+for tool in "$CC" "$CLANG" python3 timeout mktemp sha256sum cmp cp find sort xargs; do
     command -v "$tool" >/dev/null 2>&1 || fail "missing tool: $tool"
 done
 cd "$ROOT_DIR"
@@ -43,7 +46,7 @@ run_checked() {
 }
 cp -- "$MANIFEST" "$WORK_DIR/machine-layer.json"
 cmp -s "$MANIFEST" "$WORK_DIR/machine-layer.json" || fail "issued declaration copy changed"
-sha256sum "$PGY" "$MANIFEST" "$PROBE" "$OWNER" "$CALLER" \
+sha256sum "$PGY" "$MANIFEST" "$PROBE" "$OWNER" "$CALLER" "$LITERAL_OWNER" "$IDENTITY_MUTATOR" \
     src/self_hosted/compiler/direct_mir_scalar_program_owned_string_result_fact_owner.pgy \
     tests/self_hosted/fixtures/direct_mir_owned_string_parameter.pgy \
     "$FIXTURES"/*.pgy >"$WORK_DIR/inputs.sha256"
@@ -65,6 +68,10 @@ for case_name in "${POSITIVES[@]}" "${NEGATIVES[@]}"; do
     run_checked "$case_name.produce" "$STEP_TIMEOUT" "$PGY" \
         --native-pipeline --mir-json "$source_path"
     cp -- "$WORK_DIR/$case_name.produce.out" "$WORK_DIR/$case_name.mir.json"
+done
+for case_name in "${IDENTITY_NEGATIVES[@]}"; do
+    run_checked "$case_name.mutate" "$STEP_TIMEOUT" python3 "$IDENTITY_MUTATOR" \
+        "$WORK_DIR/existing.mir.json" "$case_name" "$WORK_DIR/$case_name.mir.json"
 done
 for case_name in "${POSITIVES[@]}"; do
     expected="owned-string-source-ready"
@@ -90,7 +97,7 @@ for case_name in "${POSITIVES[@]}"; do
             fail "$case_name/$backend runtime output drifted"
     done
 done
-for case_name in "${NEGATIVES[@]}"; do
+for case_name in "${NEGATIVES[@]}" "${IDENTITY_NEGATIVES[@]}"; do
     for backend in c llvm; do
         artifact="$WORK_DIR/$case_name.$backend.sentinel"
         printf 'not-published\n' >"$artifact"
@@ -109,6 +116,8 @@ for case_name in "${NEGATIVES[@]}"; do
             # This lane is still unsupported by the earlier assignment owner;
             # do not attribute its refusal to the newly reached source guard.
             diagnostic='stage=identity_cell_store_target ordinal=0 block=0 row=6 source=AST_ASSIGNMENT'
+        elif [[ "$case_name" == literal_* ]]; then
+            diagnostic="$(cat "$WORK_DIR/$case_name.mutate.out")"
         fi
         grep -Fq "$diagnostic" \
             "$WORK_DIR/$case_name.$backend.out" "$WORK_DIR/$case_name.$backend.err" ||
@@ -119,4 +128,4 @@ done
 sha256sum -c "$WORK_DIR/inputs.sha256" >"$WORK_DIR/inputs-verified.out" || fail "inputs changed"
 sha256sum -c "$WORK_DIR/owners.sha256" >"$WORK_DIR/owners-verified.out" || fail "owners changed"
 sha256sum -c "$WORK_DIR/probe.sha256" >"$WORK_DIR/probe-verified.out" || fail "issued probe changed"
-echo "[$LABEL] three C/LLVM programs, eight caller-refusal and two earlier assignment-refusal pairs: PASS"
+echo "[$LABEL] three C/LLVM programs; eight caller, two earlier assignment and three exact literal-ID refusal pairs: PASS"

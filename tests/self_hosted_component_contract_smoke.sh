@@ -22283,6 +22283,14 @@ require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy" \
     "func DirectMirScalarProgramArrayStringSingleElementFromOwners(" \
     "wire.required && wire_ref != expected_ref"
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy" \
+    "func DirectMirScalarProgramArrayStringSingleElementFromOwners(" \
+    "sequence.arena.identities.binding_syntax_ids[1] !="
+require_function_text \
+    "src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy" \
+    "func DirectMirScalarProgramArrayStringSingleElementFromOwners(" \
+    "signature.parameters.source_syntax_ids[ordinal]"
 reject_text \
     "src/self_hosted/compiler/direct_mir_scalar_program_array_string_literal_operand_admission_owner.pgy" \
     "ParserExpressionLeaf"
@@ -23335,6 +23343,50 @@ require_text "Makefile" \
     "self-host-direct-mir-scalar-graph-plan-test-smoke: self-host-direct-mir-scalar-owned-string-parameter-test-smoke"
 require_file "src/self_hosted/compiler/direct_mir_scalar_program_owned_string_argument_source_owner.pgy"
 require_file "tests/self_hosted/parity/direct_mir_owned_string_argument_source.sh"
+require_file "tests/self_hosted/parity/direct_mir_owned_string_literal_identity_mutations.py"
+for literal_identity_mutation in \
+    literal_foreign_formal literal_foreign_routine literal_receiver_binding; do
+    require_text "tests/self_hosted/parity/direct_mir_owned_string_argument_source.sh" \
+        "$literal_identity_mutation"
+    require_text "tests/self_hosted/parity/direct_mir_owned_string_literal_identity_mutations.py" \
+        "\"$literal_identity_mutation\""
+done
+require_file "src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy"
+require_file "tests/self_hosted/fixtures/owned_string_local_reassignment_unit.pgy"
+require_function_text "src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy" \
+    "func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(" \
+    "surfaces.function_node_ids[UnwrapOption(surface)] !="
+require_text "tests/self_hosted/fixtures/owned_string_local_reassignment_unit.pgy" \
+    'mode == "owned-string-reassignment-missing-leaf"'
+require_text "tests/self_hosted/fixtures/owned_string_local_reassignment_unit.pgy" \
+    'mode == "owned-string-reassignment-foreign-function"'
+require_text "tests/self_hosted/fixtures/owned_string_local_reassignment_unit.pgy" \
+    'mode == "owned-string-reassignment-untracked-type"'
+require_max_lines "src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy" 120
+require_function_text "src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy" \
+    "func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(" \
+    "SemanticAstExpressionOwnerFieldTypeFromAdmittedFacts("
+reject_function_text "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
+    "func SemanticAstExpressionOwnerFieldTypeFromAdmittedFacts(" \
+    "SemanticAstNominalConstructorRowsReady("
+require_function_text "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
+    "func SemanticAstExpressionOwnerFieldType(" \
+    "SemanticAstNominalConstructorRowsReady(constructors)"
+require_function_text "src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy" \
+    "func SemanticAstOwnedStringExpressionReady(" \
+    "SemanticAstOwnedStringLocalNotReassigned(reassignments, binding)"
+require_function_text "src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy" \
+    "func SemanticAstOwnedStringAllocatorBindingReady(" \
+    "SemanticAstOwnedStringLocalNotReassigned(reassignments, binding)"
+require_function_text "src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy" \
+    "func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(" \
+    "SemanticAstScopedLocalBindingIdentityForGraphLeaf("
+require_text "tests/self_hosted/parity/collection_inout_effect_owner.sh" \
+    "owned_string_result_shadow_assignment_positive.pgy"
+require_text "tests/self_hosted/parity/collection_inout_effect_owner.sh" \
+    "owned_string_result_reassigned_negative.pgy"
+require_text "tests/self_hosted/parity/collection_inout_effect_owner.sh" \
+    "owned_string_allocator_reassigned_negative.pgy"
 require_function_text \
     "src/self_hosted/compiler/direct_mir_scalar_cfg_program_direct_call_carriage_owner.pgy" \
     "func DirectMirScalarCfgProgramDirectCallCarriageReady(" \

@@ -1,20 +1,29 @@
 // Analyze the actual source producer's initializer route. Never emit/run input.
 import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "owned_string_local_reassignment_unit.pgy";
 
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
     if ArrayLength(args) < 1 || ArrayLength(args) > 2 { Log("expected source path and optional diagnostic mode"); Exit(2); }
     let diagnostic: Bool = false;
+    let reassignment_mode: String = "";
     if ArrayLength(args) == 2 {
-        if args[1] != "diagnostic" { Log("unknown source observation mode"); Exit(2); }
-        diagnostic = true;
+        if args[1] == "diagnostic" { diagnostic = true; }
+        else if StartsWith(args[1], "owned-string-reassignment-") { reassignment_mode = args[1]; }
+        else { Log("unknown source observation mode"); Exit(2); }
     }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("source parser refused"); Exit(2); }
     let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok { Log(analysis.verdict.diagnostic_code); Exit(2); }
     let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if reassignment_mode != "" {
+        if !InspectOwnedStringLocalReassignment(artifact, analysis, bundle, reassignment_mode) {
+            Log("owned-string reassignment unit failed"); Exit(3);
+        }
+        Log("owned-string-reassignment-unit:PASS"); return;
+    }
     Log(Concat("body_ok=", ToString(bundle.verdict.ok)));
     Log(Concat("body_diagnostic=", bundle.verdict.diagnostic_code));
     if diagnostic {
