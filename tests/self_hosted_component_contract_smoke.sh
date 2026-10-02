@@ -28456,6 +28456,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy:120 \
     src/self_hosted/mir/collection_ownership_receipt_fact_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_projection_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_json_projection_owner.pgy:100 \
@@ -28605,6 +28606,27 @@ require_text \
 reject_text \
     "src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy" \
     'UnwrapOption(target) == "ArrayDropOwnedStrings"'
+require_text "src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy" \
+    'SemanticAstCollectionAggregateFieldEntryRequirementRecord(signatures, locals,'
+require_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy" \
+    'MapSize(rows) != count'
+require_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy" \
+    'facts.formal_modes[row] < 0 || facts.formal_modes[row] > 3'
+require_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy" \
+    'facts.local_ids[row] == local_id'
+require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+    'aggregate_field_entry_unproved'
+for entry_forbidden in 'SemanticAstCollectionOwnershipOwnedElements()' 'SemanticAstCollectionTransitionClean()' 'TypedAstArena'; do
+    reject_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy" "$entry_forbidden"
+done
+require_file "tests/self_hosted/fixtures/collection_aggregate_entry_requirement_probe.pgy"
+require_max_lines "tests/self_hosted/fixtures/collection_aggregate_entry_requirement_probe.pgy" 180
+require_file "tests/self_hosted/parity/collection_aggregate_entry_requirement_owner.sh"
+require_max_lines "tests/self_hosted/parity/collection_aggregate_entry_requirement_owner.sh" 140
+require_text "Makefile" 'self-host-collection-aggregate-entry-requirement-test-smoke'
+require_text "tests/self_hosted/parity/collection_ownership_semantic_owner.sh" 'collection_artifact_from_mir "$name" "$backend" "$mir_rel"'
+require_text "tests/self_hosted/parity/collection_ownership_semantic_owner.sh" 'unknown issued MIR backend=$backend'
+require_text "tests/self_hosted/parity/collection_ownership_semantic_owner.sh" '"$WORK_DIR/collection-runtime.o" -pthread -lm'
 require_text \
     "src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy" \
     'SemanticAstCollectionRequiredOwnedArgumentReady('

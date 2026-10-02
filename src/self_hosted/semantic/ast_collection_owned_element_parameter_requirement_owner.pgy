@@ -6,13 +6,24 @@ import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_surface_fact_owner.pgy";
 import "ast_collection_owned_parameter_identity_owner.pgy";
+import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
 
 func SemanticAstCollectionOwnedElementParameterRequirements(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref origins: Array<Int>,
+    ref source_binding_ids: Array<Int>, ref origin_syntax_ids: Array<Int>,
     ref signatures: SemanticAstFunctionSignatureFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
-    ref roots: SemanticCallSpineRoots
+    ref roots: SemanticCallSpineRoots,
+    inout field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements
 ) -> HashMap<String, Int> {
     let required: HashMap<String, Int> = MapNew();
+    let count: Int = ArrayLength(locals.node_ids);
+    if ArrayLength(locals.function_node_ids) != count || ArrayLength(inferred_types) != count ||
+        ArrayLength(origins) != count || ArrayLength(source_binding_ids) != count || ArrayLength(origin_syntax_ids) != count {
+        field_requirements.ok = false; return required;
+    }
     let forwarding_sources: Array<Int> = [];
     let forwarding_targets: Array<Int> = [];
     let last_root: Int = -1;
@@ -43,6 +54,15 @@ func SemanticAstCollectionOwnedElementParameterRequirements(
                                 SemanticExpressionBindingFormalParameter() &&
                             binding.syntax_id > 0 {
                             MapSet(required, ToString(binding.syntax_id), 1);
+                        }
+                        let member_binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+                            artifact, locals, inferred_types, surfaces, root_slot / 3, call.argument_nodes[0]);
+                        if member_binding.ok && origins[member_binding.row] == SemanticAstCollectionOriginMemberMove() &&
+                            !SemanticAstCollectionAggregateFieldEntryRequirementRecord(signatures, locals,
+                                locals.function_node_ids[member_binding.row], source_binding_ids[member_binding.row],
+                                origin_syntax_ids[member_binding.row], locals.node_ids[member_binding.row], field_requirements) {
+                            field_requirements.ok = false;
+                            return required;
                         }
                     }
                     if call.ok && call.call_node == node {

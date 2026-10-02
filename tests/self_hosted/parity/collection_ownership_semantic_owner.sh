@@ -4,6 +4,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/emitted_c_runtime_header_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/linked_runtime_compile_profile_owner.sh"
 pgy_prepend_windows_runtime_paths
 
 LABEL="self-host-collection-ownership"
@@ -23,8 +25,49 @@ CC="${PGY_SELFHOST_CC:-gcc}"
 CLANG="${PGY_SELFHOST_CLANG:-clang}"
 
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
+
+# This consumer takes the issued MIR bytes, not a source recompilation. The
+# compatibility public/native source lanes below remain separate evidence.
+collection_artifact_from_mir() {
+    local name="$1" backend="$2" mir_rel="$3" expected="$4"
+    local -a compile_command
+    local extension
+    case "$backend" in
+        c) extension=c ;;
+        llvm) extension=ll ;;
+        *) fail "unknown issued MIR backend=$backend" ;;
+    esac
+    local artifact_rel="$WORK_REL/$name-issued-$backend.$extension"
+    local executable="$WORK_DIR/$name-issued-$backend.exe"
+    local receipt="$WORK_DIR/$name-issued-$backend.mir.sha256"
+    sha256sum "$ROOT_DIR/$mir_rel" >"$receipt"
+    (cd "$ROOT_DIR" && "$DRIVER" "--mir-json-backend=$backend" "$mir_rel" -o "$artifact_rel") \
+        >"$WORK_DIR/$name-issued-$backend.project.out" \
+        2>"$WORK_DIR/$name-issued-$backend.project.err" ||
+        fail "issued MIR $backend rejected callable-table release for $name"
+    [[ -s "$ROOT_DIR/$artifact_rel" ]] || fail "issued MIR $backend emitted no artifact for $name"
+    sha256sum --quiet -c "$receipt" || fail "issued MIR changed during $backend projection for $name"
+    if [[ "$backend" == c ]]; then
+        compile_command=("$CC" -std=c11 "$ROOT_DIR/$artifact_rel")
+        if pgy_selfhost_emitted_c_uses_runtime_headers "$ROOT_DIR/$artifact_rel"; then
+            compile_command+=("-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -pthread)
+        fi
+        compile_command+=(-o "$executable")
+    else
+        [[ -s "$WORK_DIR/collection-runtime.o" ]] || fail "issued MIR LLVM runtime object is missing"
+        compile_command=("$CLANG" -x ir "$ROOT_DIR/$artifact_rel" -x none "$WORK_DIR/collection-runtime.o" -pthread -lm -o "$executable")
+    fi
+    "${compile_command[@]}" >"$WORK_DIR/$name-issued-$backend.compile.out" \
+        2>"$WORK_DIR/$name-issued-$backend.compile.err" || fail "issued MIR $backend failed to compile $name"
+    (cd "$ROOT_DIR" && timeout 30 "$executable") >"$WORK_DIR/$name-issued-$backend.raw" \
+        2>"$WORK_DIR/$name-issued-$backend.err" || fail "issued MIR $backend execution failed for $name"
+    [[ ! -s "$WORK_DIR/$name-issued-$backend.err" ]] || fail "issued MIR $backend runtime stderr for $name"
+    tr -d '\r' <"$WORK_DIR/$name-issued-$backend.raw" >"$WORK_DIR/$name-issued-$backend.run"
+    cmp -s "$expected" "$WORK_DIR/$name-issued-$backend.run" || fail "issued MIR $backend retirement drifted for $name"
+    sha256sum --quiet -c "$receipt" || fail "issued MIR changed during $backend execution for $name"
+}
 case "$FOCUS" in
-    all|owned-parameter|owned-parameter-self-host|aggregate-field) ;;
+    all|owned-parameter|owned-parameter-self-host|aggregate-field|issued-mir-consumer) ;;
     *) fail "unknown PGY_COLLECTION_OWNERSHIP_FOCUS=$FOCUS" ;;
 esac
 pgy_require_runnable_binary_here "$LABEL" "$PGY" || exit 1
@@ -72,6 +115,54 @@ mkdir -p "$ROOT_DIR/.tmp/self_hosted"
 WORK_DIR="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/collection_ownership_semantic_owner.XXXXXX")"
 WORK_REL=".tmp/self_hosted/${WORK_DIR##*/}"
 echo "[$LABEL] focus=$FOCUS evidence=$WORK_REL launcher=$PGY driver=$DRIVER"
+if [[ "$FOCUS" == all || "$FOCUS" == aggregate-field || "$FOCUS" == issued-mir-consumer ]]; then
+    pgy_selfhost_select_linked_runtime_compile_profile || fail "collection runtime profile is invalid"
+    "$CLANG" "${PGY_SELFHOST_RUNTIME_C_COMPILE_FLAGS[@]}" -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
+        -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" -o "$WORK_DIR/collection-runtime.o" \
+        >"$WORK_DIR/collection-runtime.compile.out" 2>"$WORK_DIR/collection-runtime.compile.err" ||
+        fail "collection runtime object did not compile"
+fi
+if [[ "$FOCUS" == all || "$FOCUS" == issued-mir-consumer ]]; then
+    # These safe controls test this exact consumer independently of the open
+    # aggregate grant. Issue each source once; both backends consume its bytes.
+    sha256sum "$DRIVER" >"$WORK_DIR/issued-driver.sha256"
+    payload="$ROOT_DIR/.tmp/self_hosted/direct_mir_scalar_read_file_direct_call/payload.txt"
+    printf 'payload' >"$WORK_DIR/payload.expected"
+    if [[ -e "$payload" ]]; then
+        cmp "$payload" "$WORK_DIR/payload.expected" || fail "existing read-file payload differs; preserved"
+    else
+        mkdir -p "${payload%/*}"
+        printf 'payload' >"$payload"
+    fi
+    sha256sum "$payload" >"$WORK_DIR/issued-payload.sha256"
+    for backend in '' garbage; do
+        name=invalid-empty; [[ -z "$backend" ]] || name=invalid-garbage
+        if (collection_artifact_from_mir "$name" "$backend" missing.mir.json missing.expected) \
+            >"$WORK_DIR/$name.out" 2>"$WORK_DIR/$name.err"; then fail "invalid issued backend accepted"; fi
+        grep -Fxq "[$LABEL] unknown issued MIR backend=$backend" "$WORK_DIR/$name.err" || fail "invalid issued backend diagnostic"
+        [[ -z "$(find "$WORK_DIR" -maxdepth 1 -name "$name-issued-*")" ]] || fail "invalid backend reached artifact work"
+    done
+    for row in 'owned:tests/concept_semantics/hashmap/empty_owned_string_push_drop_valid.pgy' \
+            'read-file:tests/self_hosted/fixtures/direct_mir_read_file_direct_call.pgy'; do
+        name="${row%%:*}"; source="${row#*:}"
+        sha256sum "$ROOT_DIR/$source" >"$WORK_DIR/$name-source.sha256"
+        mir_rel="$WORK_REL/$name.mir.json"
+        (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified "$source" -o "$mir_rel") \
+            >"$WORK_DIR/$name-issue.out" 2>"$WORK_DIR/$name-issue.err" || fail "$name MIR issue failed"
+        printf '' >"$WORK_DIR/$name.expected"
+        [[ "$name" != read-file ]] || printf 'payload\n' >"$WORK_DIR/$name.expected"
+        sha256sum "$ROOT_DIR/$mir_rel" >"$WORK_DIR/$name-issued.sha256"
+        for backend in c llvm; do
+            (cd "$WORK_DIR" && collection_artifact_from_mir "$name" "$backend" "$mir_rel" "$WORK_DIR/$name.expected")
+        done
+        sha256sum --quiet -c "$WORK_DIR/$name-source.sha256" || fail "$name source changed"
+        sha256sum --quiet -c "$WORK_DIR/$name-issued.sha256" || fail "$name issued MIR changed"
+    done
+    sha256sum --quiet -c "$WORK_DIR/issued-driver.sha256" || fail "issued consumer driver changed"
+    sha256sum --quiet -c "$WORK_DIR/issued-payload.sha256" || fail "issued consumer payload changed"
+    echo "[$LABEL] two issued MIRs / four C-LLVM consumers / two early backend refusals PASS; aggregate grant not exercised"
+    [[ "$FOCUS" != issued-mir-consumer ]] || exit 0
+fi
 
 # An own formal transfers storage, not necessarily its String elements. Its
 # deep-release requirement must survive source-call forwarding and exact
@@ -260,7 +351,9 @@ if [[ "$FOCUS" == aggregate-field ]]; then
         [[ -s "$ROOT_DIR/$mir_rel" ]] ||
             fail "self-host emitted no callable-table MIR for $name"
         printf '%s\n' "${row#*:}" >"$WORK_DIR/$name.expected"
+        sha256sum "$ROOT_DIR/$mir_rel" >"$WORK_DIR/$name.issued.sha256"
         for backend in c llvm; do
+            collection_artifact_from_mir "$name" "$backend" "$mir_rel" "$WORK_DIR/$name.expected"
             for lane in public native; do
                 command=("$PGY")
                 [[ "$lane" == native ]] && command+=(--native-pipeline)
@@ -276,6 +369,7 @@ if [[ "$FOCUS" == aggregate-field ]]; then
                     "$WORK_DIR/$name-$lane-$backend.run" ||
                     fail "$lane $backend callable-table retirement drifted for $name"
             done
+            sha256sum --quiet -c "$WORK_DIR/$name.issued.sha256" || fail "callable-table MIR changed between consumers for $name"
         done
     done
     echo "[$LABEL] focused aggregate-field producer/release C/LLVM parity PASS (not whole-compiler/full SoT closure)"
@@ -590,17 +684,6 @@ for backend in c llvm; do
         "$WORK_DIR/map-keys-retirement-broadened-$backend.err" ||
         fail "direct $backend broad-retirement refusal lost its stage"
 done
-RUNTIME_FEATURE_FLAGS=()
-case "$(uname -s 2>/dev/null || echo unknown)" in
-    MINGW*|MSYS*|CYGWIN*) ;;
-    Darwin) RUNTIME_FEATURE_FLAGS+=(-D_DARWIN_C_SOURCE -D_XOPEN_SOURCE=700) ;;
-    *) RUNTIME_FEATURE_FLAGS+=(-D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 \
-        -D_DEFAULT_SOURCE) ;;
-esac
-"$CLANG" -std=c11 -DPGY_LLVM_ENABLED "${RUNTIME_FEATURE_FLAGS[@]}" \
-    -I"$ROOT_DIR/src" -I"$ROOT_DIR/src/runtime" \
-    -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
-    -o "$WORK_DIR/collection-runtime.o" || fail "collection runtime object did not compile"
 for name in borrowed_string_array_shallow_copy \
         unknown_string_array_alias_without_drop string_array_clone_independence; do
     mir_rel="$WORK_REL/$name.mir.json"

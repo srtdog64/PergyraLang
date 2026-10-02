@@ -1,0 +1,128 @@
+// Conditional entry obligations, not storage or element ownership grants.
+// Consume the already admitted member-origin rows; never rebuild their AST.
+import "ast_signature_fact_owner.pgy";
+import "ast_local_binding_fact_owner.pgy";
+
+struct SemanticAstCollectionAggregateFieldEntryRequirements {
+    ok: Bool;
+    function_ids: Array<Int>;
+    formal_ids: Array<Int>;
+    formal_ordinals: Array<Int>;
+    formal_modes: Array<Int>;
+    field_ids: Array<Int>;
+    local_ids: Array<Int>;
+    row_by_local: HashMap<String, Int>;
+}
+
+func SemanticAstCollectionAggregateFieldEntryRequirementsEmpty() -> SemanticAstCollectionAggregateFieldEntryRequirements {
+    let functions: Array<Int> = [];
+    let formals: Array<Int> = [];
+    let ordinals: Array<Int> = [];
+    let modes: Array<Int> = [];
+    let fields: Array<Int> = [];
+    let locals: Array<Int> = [];
+    let rows: HashMap<String, Int> = MapNew();
+    return SemanticAstCollectionAggregateFieldEntryRequirements(true, functions, formals, ordinals, modes, fields, locals, rows);
+}
+
+// Validate the exact index domain without retaining a ref fact's descriptor.
+func SemanticAstCollectionAggregateFieldEntryIndexReady(rows: HashMap<String, Int>, ref local_ids: Array<Int>) -> Bool {
+    let count: Int = ArrayLength(local_ids);
+    if MapSize(rows) != count { return false; }
+    let row: Int = 0;
+    while row < count {
+        let key: String = ToString(local_ids[row]);
+        if !MapHas(rows, key) || MapGet(rows, key) != row { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateFieldEntryIndexRow(rows: HashMap<String, Int>, local_id: Int) -> Int {
+    let key: String = ToString(local_id);
+    if !MapHas(rows, key) { return -1; }
+    return MapGet(rows, key);
+}
+
+func SemanticAstCollectionAggregateFieldEntryRequirementsReady(
+    ref facts: SemanticAstCollectionAggregateFieldEntryRequirements
+) -> Bool {
+    let count: Int = ArrayLength(facts.local_ids);
+    if !facts.ok || ArrayLength(facts.function_ids) != count || ArrayLength(facts.formal_ids) != count ||
+        ArrayLength(facts.formal_ordinals) != count || ArrayLength(facts.formal_modes) != count || ArrayLength(facts.field_ids) != count {
+        return false;
+    }
+    if !SemanticAstCollectionAggregateFieldEntryIndexReady(facts.row_by_local, facts.local_ids) { return false; }
+    let row: Int = 0;
+    while row < count {
+        if facts.function_ids[row] <= 0 || facts.formal_ids[row] <= 0 || facts.formal_ordinals[row] < 0 ||
+            facts.formal_modes[row] < 0 || facts.formal_modes[row] > 3 || facts.field_ids[row] <= 0 || facts.local_ids[row] <= 0 { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+// The member identity owner already joined the field and root. This owner
+// joins that exact root to this function's formal, retaining ordinal and mode.
+func SemanticAstCollectionAggregateFieldEntryRequirementRecord(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref locals: SemanticAstLocalBindingFacts,
+    function_id: Int, root_id: Int, field_id: Int, local_id: Int,
+    inout facts: SemanticAstCollectionAggregateFieldEntryRequirements
+) -> Bool {
+    let signature_count: Int = ArrayLength(signatures.function_node_ids);
+    if !signatures.ok || !SemanticAstCollectionAggregateFieldEntryRequirementsReady(facts) ||
+        ArrayLength(signatures.param_starts) != signature_count || ArrayLength(signatures.param_counts) != signature_count ||
+        ArrayLength(signatures.param_node_ids) != ArrayLength(signatures.param_modes) ||
+        ArrayLength(locals.node_ids) != ArrayLength(locals.function_node_ids) { return false; }
+    let destination: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, local_id);
+    if !locals.ok || !IsSome(destination) || locals.function_node_ids[UnwrapOption(destination)] != function_id { return false; }
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
+    if !IsSome(signature) || root_id <= 0 || field_id <= 0 || local_id <= 0 { return false; }
+    let selected: Int = UnwrapOption(signature);
+    let start: Int = signatures.param_starts[selected];
+    let length: Int = signatures.param_counts[selected];
+    if start < 0 || length < 0 || start > ArrayLength(signatures.param_node_ids) ||
+        length > ArrayLength(signatures.param_node_ids) - start ||
+        (selected > 0 && signatures.function_node_ids[selected - 1] == function_id) ||
+        (selected + 1 < signature_count && signatures.function_node_ids[selected + 1] == function_id) { return false; }
+    let count: Option<Int> = SemanticAstFunctionParamCountAt(signatures, UnwrapOption(signature));
+    if !IsSome(count) { return false; }
+    let ordinal: Int = 0;
+    let found: Int = -1;
+    let mode: Int = 0;
+    while ordinal < UnwrapOption(count) {
+        let formal: Option<Int> = SemanticAstFunctionParamNodeAt(signatures, UnwrapOption(signature), ordinal);
+        if !IsSome(formal) || UnwrapOption(formal) <= 0 { return false; }
+        if UnwrapOption(formal) == root_id {
+            if found >= 0 { return false; }
+            let declared_mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, UnwrapOption(signature), ordinal);
+            if !IsSome(declared_mode) { return false; }
+            found = ordinal; mode = UnwrapOption(declared_mode);
+        }
+        ordinal = ordinal + 1;
+    }
+    // Only an admitted local of this function is a non-formal root. A foreign
+    // formal or a missing root must not silently erase the entry obligation.
+    if found < 0 {
+        let root: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, root_id);
+        return IsSome(root) && locals.function_node_ids[UnwrapOption(root)] == function_id;
+    }
+    // Preserve the signature owner's raw modes: default=0/inout=1/own=2/ref=3.
+    if mode < 0 || mode > 3 { return false; }
+    let indexed: Int = SemanticAstCollectionAggregateFieldEntryIndexRow(facts.row_by_local, local_id);
+    if indexed >= 0 {
+        let row: Int = indexed;
+        return row >= 0 && row < ArrayLength(facts.local_ids) && facts.function_ids[row] == function_id &&
+            facts.local_ids[row] == local_id && facts.formal_ids[row] == root_id && facts.formal_ordinals[row] == found && facts.formal_modes[row] == mode && facts.field_ids[row] == field_id;
+    }
+    let row: Int = ArrayLength(facts.local_ids);
+    ArrayPush(facts.function_ids, function_id); ArrayPush(facts.formal_ids, root_id);
+    ArrayPush(facts.formal_ordinals, found); ArrayPush(facts.formal_modes, mode);
+    ArrayPush(facts.field_ids, field_id); ArrayPush(facts.local_ids, local_id);
+    // This mutable owner writes the potentially grown descriptor back. It is
+    // not a retained view of a ref fact and never crosses an async boundary.
+    let rows: HashMap<String, Int> = facts.row_by_local;
+    MapSet(rows, ToString(local_id), row);
+    facts.row_by_local = rows;
+    return true;
+}

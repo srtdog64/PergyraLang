@@ -719,8 +719,15 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   This projection is not a graph admission or backend value-reuse authority.
 - `src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy`
   -- formal entry requirements derived from an exact builtin deep-drop and
-  propagated along admitted own-formal forwarding edges. Container `own`
+  propagated along admitted own-formal forwarding edges. Direct member-local
+  drops also record conditional aggregate-field entry obligations. Container `own`
   transfers storage but does not manufacture String-element release permission.
+- `src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy`
+  -- exact function/formal/raw mode/ordinal/declared-field/extracted-local entry
+  obligations consumed from admitted initial member origins. The local-row index
+  has an exact domain; foreign/missing roots and conflicting rows fail closed.
+  These rows are not current-definition, exclusive-storage, element-lifetime,
+  caller-transfer, or terminal MIR proof and never grant release permission.
 - `src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy`
   -- consuming callable/formal identity from signature and carried syntax IDs.
   It does not infer element lifetime from the parameter mode or type.

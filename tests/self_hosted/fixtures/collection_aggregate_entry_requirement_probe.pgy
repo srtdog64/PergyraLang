@@ -1,0 +1,164 @@
+// Conditional-entry fact units over an actual parsed Release declaration.
+// Neither the supplied source nor these mutated facts are emitted or executed.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Log("expected source and entry mutation"); Exit(2); }
+    let mutation: Int = ToInt(args[1]);
+    if mutation < 0 || mutation > 34 || args[1] != ToString(mutation) { Log("invalid entry mutation"); Exit(2); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Log("entry source parser refused"); Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok { Log("entry declaration admission refused"); Exit(2); }
+    if !InspectAggregateEntryRequirements(analysis, mutation) { Log("entry contract mismatch"); Exit(1); }
+    Log("true");
+}
+
+func InspectAggregateEntryRequirements(inout analysis: SemanticAstArtifactAnalysis, mutation: Int) -> Bool {
+    let selected: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(analysis.signatures.names) {
+        if analysis.signatures.names[row] == "SemanticAstExpressionFunctionTableFactsRelease" {
+            if selected >= 0 { return false; }
+            selected = row;
+        }
+        row = row + 1;
+    }
+    if selected < 0 || analysis.signatures.param_counts[selected] != 1 { return false; }
+    let function_id: Int = analysis.signatures.function_node_ids[selected];
+    let parameter: Int = analysis.signatures.param_starts[selected];
+    let formal: Int = analysis.signatures.param_node_ids[parameter];
+    let owner: Option<Int> = SemanticAstNominalConstructorIndexForName(analysis.constructors, "SemanticAstExpressionFunctionTableFacts");
+    if !IsSome(owner) { return false; }
+    let labels: Array<String> = ["names", "returns", "params"];
+    let fields: Array<Int> = [];
+    let destinations: Array<Int> = [];
+    row = 0;
+    while row < 3 {
+        let field: Option<Int> = SemanticAstNominalConstructorFieldRowForName(analysis.constructors, UnwrapOption(owner), labels[row]);
+        if !IsSome(field) { return false; }
+        ArrayPush(fields, analysis.constructors.field_source_syntax_ids[UnwrapOption(field)]);
+        let destination: Int = -1;
+        let binding: Int = 0;
+        while binding < ArrayLength(analysis.local_bindings.node_ids) {
+            if analysis.local_bindings.function_node_ids[binding] == function_id && analysis.local_bindings.names[binding] == labels[row] {
+                if destination >= 0 { return false; }
+                destination = analysis.local_bindings.node_ids[binding];
+            }
+            binding = binding + 1;
+        }
+        if destination <= 0 { return false; }
+        ArrayPush(destinations, destination);
+        row = row + 1;
+    }
+    let facts: SemanticAstCollectionAggregateFieldEntryRequirements = SemanticAstCollectionAggregateFieldEntryRequirementsEmpty();
+    if !SemanticAstCollectionAggregateFieldEntryRequirementsReady(facts) || ArrayLength(facts.local_ids) != 0 { return false; }
+    if mutation == 33 || mutation == 34 {
+        let local_root: Int = -1;
+        let local_destination: Int = -1;
+        let local_function: Int = -1;
+        row = 0;
+        while row < ArrayLength(analysis.local_bindings.node_ids) {
+            if analysis.local_bindings.function_node_ids[row] != function_id {
+                if analysis.local_bindings.names[row] == "facts" { local_root = analysis.local_bindings.node_ids[row]; local_function = analysis.local_bindings.function_node_ids[row]; }
+                if analysis.local_bindings.names[row] == "names" { local_destination = analysis.local_bindings.node_ids[row]; }
+            }
+            row = row + 1;
+        }
+        if local_root <= 0 || local_destination <= 0 || local_function <= 0 { return false; }
+        if mutation == 34 { local_function = function_id; local_destination = destinations[0]; }
+        let recorded: Bool = SemanticAstCollectionAggregateFieldEntryRequirementRecord(analysis.signatures, analysis.local_bindings,
+            local_function, local_root, fields[0], local_destination, facts);
+        return recorded == (mutation == 33) && SemanticAstCollectionAggregateFieldEntryRequirementsReady(facts) && ArrayLength(facts.local_ids) == 0;
+    }
+    if mutation >= 1 && mutation <= 4 { analysis.signatures.param_modes[parameter] = mutation - 1; }
+    if mutation == 5 { analysis.signatures.param_modes[parameter] = -1; }
+    if mutation == 6 { analysis.signatures.param_modes[parameter] = 4; }
+    if mutation == 7 { analysis.signatures.ok = false; }
+    if mutation == 8 { ArrayPop(analysis.signatures.param_counts); }
+    if mutation == 9 { ArrayPop(analysis.signatures.param_starts); }
+    if mutation == 10 { ArrayPop(analysis.signatures.param_modes); }
+    if mutation == 11 { analysis.signatures.param_starts[selected] = -1; }
+    if mutation == 12 { analysis.signatures.param_starts[selected] = ArrayLength(analysis.signatures.param_node_ids) + 1; }
+    if mutation == 13 { analysis.signatures.param_counts[selected] = -1; }
+    if mutation == 14 { analysis.signatures.param_counts[selected] = ArrayLength(analysis.signatures.param_node_ids) + 1; }
+    if mutation == 15 {
+        // Release is the last formal-bearing declaration in this bounded input.
+        if parameter + 1 != ArrayLength(analysis.signatures.param_node_ids) { return false; }
+        ArrayPush(analysis.signatures.param_node_ids, formal);
+        ArrayPush(analysis.signatures.param_modes, 1);
+        analysis.signatures.param_counts[selected] = 2;
+    }
+    if mutation == 16 { ArrayPop(analysis.local_bindings.function_node_ids); }
+    if mutation == 17 { analysis.local_bindings.ok = false; }
+    let root: Int = formal;
+    let destination: Int = destinations[0];
+    if mutation == 18 {
+        if parameter == 0 { return false; }
+        root = analysis.signatures.param_node_ids[0];
+    }
+    if mutation == 19 { destination = analysis.local_bindings.artifact_node_count + 1; }
+    if mutation == 27 {
+        let foreign: Int = -1;
+        row = 0;
+        while row < ArrayLength(analysis.local_bindings.node_ids) {
+            if analysis.local_bindings.function_node_ids[row] != function_id { foreign = analysis.local_bindings.node_ids[row]; break; }
+            row = row + 1;
+        }
+        if foreign <= 0 { return false; }
+        destination = foreign;
+    }
+    if (mutation >= 5 && mutation <= 19) || mutation == 27 {
+        return !SemanticAstCollectionAggregateFieldEntryRequirementRecord(analysis.signatures, analysis.local_bindings,
+            function_id, root, fields[0], destination, facts) && ArrayLength(facts.local_ids) == 0;
+    }
+    row = 0;
+    while row < 3 {
+        if !SemanticAstCollectionAggregateFieldEntryRequirementRecord(analysis.signatures, analysis.local_bindings,
+            function_id, formal, fields[row], destinations[row], facts) { return false; }
+        row = row + 1;
+    }
+    if !SemanticAstCollectionAggregateFieldEntryRequirementsReady(facts) || ArrayLength(facts.local_ids) != 3 { return false; }
+    if mutation <= 4 {
+        row = 0;
+        while row < 3 {
+            if facts.function_ids[row] != function_id || facts.formal_ids[row] != formal || facts.formal_ordinals[row] != 0 ||
+                facts.formal_modes[row] != analysis.signatures.param_modes[parameter] || facts.field_ids[row] != fields[row] ||
+                facts.local_ids[row] != destinations[row] ||
+                !SemanticAstCollectionAggregateFieldEntryRequirementRecord(analysis.signatures, analysis.local_bindings,
+                    function_id, formal, fields[row], destinations[row], facts) { return false; }
+            row = row + 1;
+        }
+        return ArrayLength(facts.local_ids) == 3;
+    }
+    if mutation == 20 || mutation == 21 {
+        let rows: HashMap<String, Int> = facts.row_by_local;
+        if mutation == 20 { MapSet(rows, ToString(analysis.local_bindings.artifact_node_count + 1), 0); }
+        else { MapSet(rows, ToString(destinations[0]), 1); }
+        facts.row_by_local = rows;
+    }
+    if mutation == 22 { ArrayPop(facts.field_ids); }
+    if mutation == 23 { facts.local_ids[1] = facts.local_ids[0]; }
+    if mutation == 24 {
+        return !SemanticAstCollectionAggregateFieldEntryRequirementRecord(analysis.signatures, analysis.local_bindings,
+            function_id, formal, fields[1], destinations[0], facts);
+    }
+    if mutation == 25 {
+        analysis.signatures.param_modes[parameter] = 2;
+        return !SemanticAstCollectionAggregateFieldEntryRequirementRecord(analysis.signatures, analysis.local_bindings,
+            function_id, formal, fields[0], destinations[0], facts);
+    }
+    if mutation == 26 {
+        facts.formal_ordinals[0] = 1;
+        return !SemanticAstCollectionAggregateFieldEntryRequirementRecord(analysis.signatures, analysis.local_bindings,
+            function_id, formal, fields[0], destinations[0], facts);
+    }
+    if mutation == 28 { facts.field_ids[0] = 0; }
+    if mutation == 29 { facts.ok = false; }
+    if mutation == 30 { let empty_rows: HashMap<String, Int> = MapNew(); facts.row_by_local = empty_rows; }
+    if mutation == 31 { facts.formal_modes[0] = 4; }
+    if mutation == 32 { facts.formal_modes[0] = -1; }
+    return !SemanticAstCollectionAggregateFieldEntryRequirementsReady(facts);
+}

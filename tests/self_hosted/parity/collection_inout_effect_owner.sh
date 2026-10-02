@@ -144,6 +144,7 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" \
     src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy \
     src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy \
+    src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy \
     src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy \
     src/self_hosted/semantic/ast_local_binding_fact_owner.pgy \

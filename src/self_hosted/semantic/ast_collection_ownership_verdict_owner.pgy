@@ -269,8 +269,14 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
             SemanticError1("ast_artifact_invalid", "owner",
                 "collection_ownership_call_roots"), -1, -1);
     }
-    let element_requirements: HashMap<String, Int> =
-        SemanticAstCollectionOwnedElementParameterRequirements(signatures, surfaces, call_roots);
+    let field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements = SemanticAstCollectionAggregateFieldEntryRequirementsEmpty();
+    let element_requirements: HashMap<String, Int> = SemanticAstCollectionOwnedElementParameterRequirements(
+        artifact, locals, initializer_types.inferred_type_names, origins, source_binding_syntax_ids, origin_syntax_ids,
+        signatures, surfaces, call_roots, field_requirements);
+    if !SemanticAstCollectionAggregateFieldEntryRequirementsReady(field_requirements) {
+        return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "aggregate_field_entry_requirements"), -1, -1);
+    }
     let last_root: Int = -1;
     let root_slot: Int = 0;
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
@@ -485,6 +491,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                                     let boundary: String = name;
                                     if deep_drop {
                                         boundary = "owned_string_drop";
+                                        if SemanticAstCollectionAggregateFieldEntryIndexRow(field_requirements.row_by_local, locals.node_ids[binding.row]) >= 0 { boundary = "aggregate_field_entry_unproved"; }
                                     }
                                     return SemanticAstCollectionOwnershipVerdictError(
                                         "borrow_boundary_escape",
