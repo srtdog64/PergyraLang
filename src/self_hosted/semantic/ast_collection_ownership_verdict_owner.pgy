@@ -81,7 +81,9 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let receipts: SemanticAstCollectionOwnershipReceiptRows =
         SemanticAstCollectionOwnershipReceiptRowsEmpty();
     let move_destinations: HashMap<String, Int> = MapNew();
-    let current_definitions: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
+    // Inventory rows are not evaluated values. Only Value completion selects
+    // a definition, so a producer cannot authorize its own unfinished RHS.
+    let current_definitions: Array<Int> = [];
     let owned_string_results: SemanticAstOwnedStringResultFacts =
         SemanticAstOwnedStringResultFactsFromResolvedFacts(
             artifact, signatures, locals, initializer_types, surfaces,
@@ -94,6 +96,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     }
     let local_row: Int = 0;
     while local_row < local_count {
+        ArrayPush(current_definitions, -1);
         ArrayPush(ownership, SemanticAstCollectionOwnershipUnknown());
         ArrayPush(dispositions, SemanticAstCollectionDispositionLive());
         ArrayPush(origins, SemanticAstCollectionOriginUnknown());
@@ -325,7 +328,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                     let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
                     let argument_verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
                         artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, root_slot / 3,
-                        edge, proved_formal_effects, element_requirements, ownership, dispositions, origins, transition_states, call_effects, storage, current_definitions);
+                        edge, proved_formal_effects, element_requirements, ownership, dispositions, origins, transition_states, call_effects, storage, definitions, current_definitions);
                     if !argument_verdict.ok {
                         ArrayDrop(pending); ArrayDrop(prefixes);
                         return argument_verdict;

@@ -13,7 +13,7 @@ func SemanticAstCollectionCallArgumentVerdict(
     inout ownership: Array<Int>, ref dispositions: Array<Int>,
     ref origins: Array<Int>, inout transition_states: Array<Int>,
     ref call_effects: SemanticAstCollectionCallEffectFacts,
-    ref storage: SemanticAstCollectionStorageAuthorityFacts, ref current_definitions: Array<Int>
+    ref storage: SemanticAstCollectionStorageAuthorityFacts, ref definitions: SemanticAstCollectionDefinitionFacts, ref current_definitions: Array<Int>
 ) -> SemanticAstCollectionOwnershipVerdict {
     if !edge.ok {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
@@ -35,9 +35,10 @@ func SemanticAstCollectionCallArgumentVerdict(
     }
     let borrowed_storage: Bool = false;
     if binding.ok { borrowed_storage = SemanticAstCollectionDefinitionStorageBorrowed(storage, current_definitions[binding.row]); }
+    let owned_storage: Bool = binding.ok && SemanticAstCollectionDefinitionStorageSource(storage, definitions, binding.row, current_definitions[binding.row]) > 0;
     let owned: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnedArgumentVerdict(
         artifact, signatures, locals, inferred_types, surfaces, surface_row, edge, binding, unknown,
-        borrowed_storage, call_effects, element_requirements, ownership, dispositions, origins, transition_states);
+        borrowed_storage, owned_storage, call_effects, element_requirements, ownership, dispositions, origins, transition_states);
     if !owned.ok { return owned; }
     if effect == 2 || effect == 3 {
         if binding.ok {

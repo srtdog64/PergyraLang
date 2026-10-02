@@ -150,7 +150,7 @@ func SemanticAstCollectionFirstInvalidOwnedArgumentUse(
                 // Initializer reads precede its move. Element facts stay with their owner.
                 MapSet(retired, ToString(moved), SemanticAstCollectionCallRetirementSite(artifact, syntax_id));
             }
-            if completed >= 0 && definitions.fresh[completed] { current[definitions.binding_rows[completed]] = completed; }
+            if completed >= 0 { current[definitions.binding_rows[completed]] = completed; }
         }
         root_slot = root_slot + 1;
     }

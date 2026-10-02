@@ -10,7 +10,7 @@ func SemanticAstCollectionOwnedArgumentVerdict(
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
     edge: SemanticCallArgumentEdgeView, binding: SemanticAstLocalBindingIdentity,
-    unknown: Bool, borrowed_storage: Bool, ref call_effects: SemanticAstCollectionCallEffectFacts,
+    unknown: Bool, borrowed_storage: Bool, owned_storage: Bool, ref call_effects: SemanticAstCollectionCallEffectFacts,
     ref element_requirements: HashMap<String, Int>,
     ref ownership: Array<Int>, ref dispositions: Array<Int>,
     ref origins: Array<Int>, ref transition_states: Array<Int>
@@ -20,7 +20,7 @@ func SemanticAstCollectionOwnedArgumentVerdict(
     if parameter <= 0 { return SemanticAstCollectionOwnershipVerdictOk(); }
     let live: Bool = SemanticAstCollectionOwnStringArrayFormalNode(signatures,
         surfaces.function_node_ids[surface_row], surfaces.expression_graph, edge.argument_node) > 0;
-    if binding.ok { live = !borrowed_storage && !unknown &&
+    if binding.ok { live = !borrowed_storage && !unknown && owned_storage &&
         !SemanticAstCollectionStorageEscapedAtUse(artifact, call_effects, binding.row, surfaces.node_ids[surface_row]) &&
         SemanticAstCollectionOwnedArgumentStorageLive(binding.row,
         surfaces.node_ids[surface_row], call_effects.first_retiring_sites[binding.row], ownership, dispositions, transition_states); }

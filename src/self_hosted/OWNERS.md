@@ -680,6 +680,14 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   fresh redefinition selects a new fact, not a declaration-wide borrowed ban.
   Typed Assign selects lineage even without a fresh/exclusive production proof;
   only the transition owner activates Live storage and its disposition.
+- `src/self_hosted/semantic/ast_collection_definition_storage_producer_owner.pgy`
+  -- positive storage source identity from an actual array literal or exact
+  allocation builtin. Strict own formals use the storage owner's existing
+  query; local handoffs preserve their source identity there. Opaque returns
+  remain unproved; inventory presence, freshness and a non-borrowed tag never
+  activate permission. The
+  reached own consumer requires the exact RHS-completed current definition;
+  this source fact grants neither deep elements nor an aggregate field lifetime.
 - `src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy` --
   RHS-completion activation of the current storage definition and its element
   provenance, including direct Let moves from the current value. Own storage

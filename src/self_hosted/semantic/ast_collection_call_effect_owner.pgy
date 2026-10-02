@@ -40,6 +40,7 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
     let current: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
     if !definitions.ok || !storage.ok || ArrayLength(storage.borrowed_definitions) != count ||
         ArrayLength(storage.borrowed_seed_sources) != count ||
+        ArrayLength(storage.producer_source_ids) != count ||
         ArrayLength(inferred_types) != definitions.local_count ||
         !SemanticAstExpressionSurfaceBorrowReady(artifact, surfaces) {
         return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop, local_escape, escaping, formal_escape, formal_unknown, formal_retiring, formal_non_deep, constructor_inputs);

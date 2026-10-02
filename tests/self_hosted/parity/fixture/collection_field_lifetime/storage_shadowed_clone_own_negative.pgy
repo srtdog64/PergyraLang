@@ -1,0 +1,8 @@
+// A declaration named Clone is not the allocation-owning builtin.
+func Clone(ref values: Array<String>) -> Array<String> { return []; }
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Main() -> Void {
+    let seed: Array<String> = ["borrowed"];
+    let values: Array<String> = Clone(seed);
+    Log(Metadata(values));
+}

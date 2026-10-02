@@ -1,0 +1,6 @@
+func Opaque() -> Array<String> { return []; }
+func Main() -> Void {
+    let seed: Array<String> = ["borrowed"];
+    let values: Array<String> = Opaque();
+    Log(ArrayLength(values));
+}

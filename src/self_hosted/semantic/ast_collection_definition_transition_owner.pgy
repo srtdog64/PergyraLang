@@ -15,12 +15,15 @@ func SemanticAstCollectionCompleteDefinition(
     let definition: Int = SemanticAstCollectionDefinitionCompletedAtSlot(definitions, locals, surfaces, slot);
     if definition < 0 { return SemanticAstCollectionOwnershipVerdictOk(); }
     let row: Int = definitions.binding_rows[definition];
+    // Current value follows every completed typed write. Freshness may restore
+    // Live, but cannot select an earlier value or prove storage ownership.
+    current[row] = definition;
     if definition >= definitions.local_count {
         ownership[row] = definitions.ownerships[definition];
         origins[row] = definitions.origins[definition];
         transitions[row] = definitions.transitions[definition];
         source_binding_ids[row] = 0;
-        if definitions.fresh[definition] { dispositions[row] = SemanticAstCollectionDispositionLive(); current[row] = definition; }
+        if definitions.fresh[definition] { dispositions[row] = SemanticAstCollectionDispositionLive(); }
         SemanticAstCollectionSelectDefinitionEffects(effects, row, definition);
     } else if definitions.local_sources[definition] >= 0 {
         let source: Int = definitions.local_sources[definition];

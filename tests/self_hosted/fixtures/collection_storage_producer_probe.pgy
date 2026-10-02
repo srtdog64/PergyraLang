@@ -1,0 +1,124 @@
+// Source-derived owner units. No supplied program is emitted or executed.
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis, ref bundle: SemanticAstBodyTypeBundle, mode: Int) -> Bool {
+    let locals: SemanticAstLocalBindingFacts = analysis.local_bindings;
+    let surfaces: SemanticAstExpressionSurfaceFacts = analysis.expression_surfaces;
+    let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+        artifact, analysis.signatures, locals, bundle.initializer_types.inferred_type_names, surfaces, analysis.assignments, bundle.assignment_types);
+    let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
+        analysis.signatures, locals, surfaces, definitions);
+    let formal: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(analysis.signatures, surfaces);
+    if !definitions.ok || !storage.ok || !formal.ok { return false; }
+    let empty: Int = -1; let copied: Int = -1; let moved: Int = -1; let owned: Int = -1; let view: Int = -1; let unknown: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(locals.node_ids) {
+        if locals.names[row] == "empty" { empty = row; }
+        if locals.names[row] == "copied" { copied = row; }
+        if locals.names[row] == "moved" { moved = row; }
+        if locals.names[row] == "owned" { owned = row; }
+        if locals.names[row] == "view" { view = row; }
+        if locals.names[row] == "unknown" { unknown = row; }
+        row = row + 1;
+    }
+    if empty < 0 || copied < 0 || moved < 0 || owned < 0 || view < 0 || unknown < 0 { return false; }
+    let effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.constructors, locals, bundle.initializer_types.inferred_type_names,
+        surfaces, formal.inventory.row_by_formal, formal.inventory.modes, formal.effects, definitions, storage);
+    if !SemanticAstCollectionCallEffectFactsReady(effects, definitions.local_count) { return false; }
+    if mode == 85 {
+        return SemanticAstCollectionDefinitionStorageSource(storage, definitions, empty, empty) == locals.node_ids[empty] &&
+            SemanticAstCollectionDefinitionStorageSource(storage, definitions, copied, copied) == locals.node_ids[copied] &&
+            SemanticAstCollectionDefinitionStorageSource(storage, definitions, moved, moved) == locals.node_ids[copied] &&
+            SemanticAstCollectionDefinitionStorageSource(storage, definitions, owned, owned) == definitions.own_sources[owned] && definitions.own_sources[owned] > 0 &&
+            SemanticAstCollectionDefinitionStorageSource(storage, definitions, view, view) == 0 &&
+            SemanticAstCollectionDefinitionStorageSource(storage, definitions, unknown, unknown) == 0;
+    }
+    if mode == 86 { storage.producer_source_ids[owned] = 0; return SemanticAstCollectionDefinitionStorageSource(storage, definitions, owned, owned) == 0; }
+    if mode == 87 { storage.borrowed_definitions[owned] = true; return SemanticAstCollectionDefinitionStorageSource(storage, definitions, owned, owned) == 0; }
+    if mode == 88 { storage.ok = false; return SemanticAstCollectionDefinitionStorageSource(storage, definitions, owned, owned) == 0; }
+    if mode == 89 {
+        ArrayPop(storage.producer_source_ids);
+        let invalid: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
+            artifact, analysis.signatures, analysis.constructors, locals, bundle.initializer_types.inferred_type_names,
+            surfaces, formal.inventory.row_by_formal, formal.inventory.modes, formal.effects, definitions, storage);
+        return !invalid.ok;
+    }
+    if mode == 91 { return SemanticAstCollectionDefinitionStorageSource(storage, definitions, owned, copied) == 0; }
+    let slot: Int = -1; let argument_surface: Int = -1;
+    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeView(false, 0, 0, -1);
+    let surface: Int = 0;
+    while surface < ArrayLength(surfaces.node_ids) {
+        if surfaces.node_ids[surface] == locals.node_ids[owned] { slot = (surface * 3) + AstExpressionLaneValue(); }
+        if mode == 92 || mode == 94 {
+            let candidate: Int = definitions.surface_rows[surface];
+            let target: Int = empty;
+            if mode == 94 { target = unknown; }
+            if candidate >= definitions.local_count && definitions.binding_rows[candidate] == target { slot = (surface * 3) + AstExpressionLaneValue(); }
+        }
+        surface = surface + 1;
+    }
+    let node: Int = 0;
+    while node < SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena) {
+        if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCallArgument() {
+            let candidate: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
+            if candidate.ok && SemanticAstCollectionOwnStringArrayParameterNode(analysis.signatures, surfaces.expression_graph, candidate.call_node, candidate.ordinal) > 0 {
+                surface = 0;
+                while surface < ArrayLength(surfaces.node_ids) {
+                    let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+                        artifact, locals, bundle.initializer_types.inferred_type_names, surfaces, surface, candidate.argument_node);
+                    if binding.ok && binding.row == owned { edge = candidate; argument_surface = surface; }
+                    surface = surface + 1;
+                }
+            }
+        }
+        node = node + 1;
+    }
+    if slot < 0 || !edge.ok || argument_surface < 0 { return false; }
+    let current: Array<Int> = [];
+    let ownership: Array<Int> = []; let dispositions: Array<Int> = []; let origins: Array<Int> = [];
+    let transitions: Array<Int> = []; let source_ids: Array<Int> = [];
+    row = 0;
+    while row < definitions.local_count {
+        ArrayPush(current, -1); ArrayPush(ownership, SemanticAstCollectionOwnershipUnknown());
+        ArrayPush(dispositions, SemanticAstCollectionDispositionLive()); ArrayPush(origins, SemanticAstCollectionOriginUnknown());
+        ArrayPush(transitions, SemanticAstCollectionTransitionUntracked()); ArrayPush(source_ids, 0); row = row + 1;
+    }
+    let requirements: HashMap<String, Int> = MapNew();
+    let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+        artifact, locals, bundle.initializer_types.inferred_type_names, surfaces, argument_surface, edge.argument_node);
+    let ok: Bool = true;
+    if mode == 90 || mode == 93 {
+        let before: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
+            artifact, analysis.signatures, locals, bundle.initializer_types.inferred_type_names, surfaces, argument_surface,
+            edge, formal.effects, requirements, ownership, dispositions, origins, transitions, effects, storage, definitions, current);
+        ok = !before.ok && before.diagnostic_code == "borrow_boundary_escape" && current[owned] == -1;
+        if mode == 93 { slot = slot - AstExpressionLaneValue(); }
+    } else {
+        let target: Int = empty;
+        if mode == 94 { target = unknown; }
+        current[target] = target;
+        if mode == 92 { dispositions[target] = SemanticAstCollectionDispositionRetired(); }
+        ok = SemanticAstCollectionDefinitionStorageSource(storage, definitions, unknown, current[unknown]) == 0;
+    }
+    let completed: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCompleteDefinition(
+        artifact, locals, surfaces, definitions, storage, slot, current, effects, ownership, dispositions, origins, transitions, source_ids);
+    if mode == 90 {
+        let after: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
+            artifact, analysis.signatures, locals, bundle.initializer_types.inferred_type_names, surfaces, argument_surface,
+            edge, formal.effects, requirements, ownership, dispositions, origins, transitions, effects, storage, definitions, current);
+        ok = ok && completed.ok && current[owned] == owned && after.ok;
+    } else if mode == 93 { ok = ok && completed.ok && current[owned] == -1; }
+    else if mode == 92 {
+        ok = ok && completed.ok && current[empty] >= definitions.local_count && !definitions.fresh[current[empty]] &&
+            SemanticAstCollectionDefinitionStorageSource(storage, definitions, empty, current[empty]) == 0 &&
+            effects.first_unknown_sites[empty] == 0 && dispositions[empty] == SemanticAstCollectionDispositionRetired();
+    } else if mode == 94 {
+        ok = ok && completed.ok && current[unknown] >= definitions.local_count &&
+            SemanticAstCollectionDefinitionStorageSource(storage, definitions, unknown, current[unknown]) == definitions.syntax_ids[current[unknown]];
+    }
+    // These bounded synthetic vectors belong to this one observer process.
+    // This unit does not claim public retirement of buffers lent to owners.
+    return ok;
+}

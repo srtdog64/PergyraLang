@@ -63,7 +63,7 @@ func SemanticAstCollectionFirstInvalidBindingMoveUse(
                 if source >= 0 && !SemanticAstCollectionDefinitionStorageBorrowed(storage, completed) {
                     MapSet(move_points, ToString(definitions.syntax_ids[current[source]]), syntax_id);
                 }
-                if definitions.fresh[completed] { current[definitions.binding_rows[completed]] = completed; }
+                current[definitions.binding_rows[completed]] = completed;
             }
         }
         root_slot = root_slot + 1;

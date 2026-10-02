@@ -1,0 +1,8 @@
+func Opaque() -> Array<String> { return []; }
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Main() -> Void {
+    let seed: Array<String> = ["borrowed"];
+    let values: Array<String> = [];
+    values = Opaque();
+    Log(Metadata(values));
+}

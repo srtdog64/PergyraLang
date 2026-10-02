@@ -28442,6 +28442,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy:60 \
     src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy:170 \
     src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy:90 \
+    src/self_hosted/semantic/ast_collection_definition_storage_producer_owner.pgy:60 \
     src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy:70 \
     src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy:140 \
@@ -28597,6 +28598,25 @@ require_text "src/self_hosted/semantic/ast_collection_definition_storage_authori
     'current[definitions.binding_rows[completed]] = completed;'
 reject_text "src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy" \
     'if definitions.fresh[completed]'
+require_text "src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy" \
+    'producer_source_ids: Array<Int>;'
+require_text "src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy" \
+    'SemanticAstCollectionDefinitionDirectStorageSource('
+require_text "src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy" \
+    'SemanticAstCollectionDefinitionStorageSource(storage, definitions, binding.row, current_definitions[binding.row])'
+require_text "src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy" \
+    '!borrowed_storage && !unknown && owned_storage'
+require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+    'ArrayPush(current_definitions, -1);'
+reject_text "src/self_hosted/semantic/ast_collection_definition_storage_producer_owner.pgy" 'SemanticAstExpressionGraphRootForNode('
+require_file "tests/self_hosted/fixtures/collection_storage_producer_probe.pgy"
+require_max_lines "tests/self_hosted/fixtures/collection_storage_producer_probe.pgy" 160
+for current_definition_consumer in src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_binding_move_use_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy; do
+    reject_text "$current_definition_consumer" 'if definitions.fresh[completed] { current['
+    reject_text "$current_definition_consumer" 'completed >= 0 && definitions.fresh[completed]'
+done
 require_text "Makefile" 'self-host-collection-inout-effect-test-smoke'
 require_max_lines "src/self_hosted/mir_lower/collection_ownership_binding_move_owner.pgy" 140
 require_text "src/self_hosted/OWNERS.md" \

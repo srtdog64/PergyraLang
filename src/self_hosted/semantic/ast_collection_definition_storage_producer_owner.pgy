@@ -1,0 +1,23 @@
+// Positive allocation source identity, separate from element/drop permission.
+// A completed definition activates this evidence; inventory presence does not.
+import "ast_collection_assignment_definition_owner.pgy";
+
+func SemanticAstCollectionDefinitionDirectStorageSource(
+    ref locals: SemanticAstLocalBindingFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref definitions: SemanticAstCollectionDefinitionFacts,
+    definition: Int
+) -> Int {
+    if !definitions.ok || definition < 0 || definition >= ArrayLength(definitions.syntax_ids) ||
+        definition >= ArrayLength(definitions.value_nodes) || definition >= ArrayLength(definitions.binding_rows) ||
+        definition >= ArrayLength(definitions.fresh) || definitions.syntax_ids[definition] <= 0 { return 0; }
+    let row: Int = definitions.binding_rows[definition];
+    let value: Int = definitions.value_nodes[definition];
+    if row < 0 || row >= ArrayLength(locals.function_node_ids) || locals.function_node_ids[row] <= 0 ||
+        value < 0 || (definition >= definitions.local_count && !definitions.fresh[definition]) { return 0; }
+    let literal: SemanticArrayLiteralView = SemanticArrayLiteralViewFromGraph(surfaces.expression_graph, value);
+    if literal.ok { return definitions.syntax_ids[definition]; }
+    let builtin: String = SemanticAstCollectionOwnershipRootCallName(surfaces.expression_graph, value);
+    if builtin == "Clone" || builtin == "MapKeys" { return definitions.syntax_ids[definition]; }
+    // Opaque returns, borrowed formals and local handoffs need their own proof.
+    return 0;
+}

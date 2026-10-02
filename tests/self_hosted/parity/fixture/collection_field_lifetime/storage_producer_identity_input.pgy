@@ -1,0 +1,19 @@
+func Opaque() -> Array<String> { return []; }
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Forward(own incoming: Array<String>, ref borrowed: Array<String>) -> Int {
+    let empty: Array<String> = [];
+    let seed: Array<String> = ["borrowed"];
+    let copied: Array<String> = Clone(seed);
+    let moved: Array<String> = copied;
+    let owned: Array<String> = incoming;
+    let view: Array<String> = borrowed;
+    let unknown: Array<String> = Opaque();
+    empty = Opaque();
+    unknown = Clone(seed);
+    return Metadata(owned) + ArrayLength(moved) + ArrayLength(view) + ArrayLength(unknown);
+}
+func Main() -> Void {
+    let a: Array<String> = ["a"];
+    let b: Array<String> = ["b"];
+    Log(Forward(a, b));
+}

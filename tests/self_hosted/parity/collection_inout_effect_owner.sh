@@ -15,8 +15,11 @@ SOURCE_PROBE=tests/self_hosted/fixtures/nominal_constructor_source_arity_probe.p
 IDENTITY_PROBE=tests/self_hosted/fixtures/collection_inout_effect_identity_probe.pgy
 CONSTRUCTOR_PROBE=tests/self_hosted/fixtures/collection_constructor_escape_identity_probe.pgy
 EVENT_PROBE=tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy
+STORAGE_PROBE=tests/self_hosted/fixtures/collection_storage_producer_probe.pgy
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 INPUTS=(
+    storage_opaque_return_own_negative.pgy storage_opaque_assign_own_negative.pgy
+    storage_opaque_alias_own_negative.pgy storage_opaque_return_read_positive.pgy storage_shadowed_clone_own_negative.pgy
     builtin_completion_nested_other_positive.pgy builtin_completion_nested_same_positive.pgy
     builtin_completion_nested_borrowed_negative.pgy builtin_completion_nested_borrowed_other_positive.pgy
     field_ctor_clone_drop_negative.pgy field_ctor_empty_drop_negative.pgy
@@ -126,7 +129,7 @@ INPUTS+=(
     docs/audits/repros/ref_formal_let_storage_alias_2026-10-02.pgy
 )
 sha256sum "$PGY" >"$WORK/native.sha256"
-sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" \
+sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" "$STORAGE_PROBE" \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
@@ -139,6 +142,7 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy \
     src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy \
     src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy \
+    src/self_hosted/semantic/ast_collection_definition_storage_producer_owner.pgy \
     src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_binding_move_use_owner.pgy \
@@ -165,7 +169,7 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
 ACTUAL_INPUT="$FIXTURES/callable_table_from_artifact_release_probe.pgy"
 sha256sum "${INPUTS[@]}" "$FIXTURES/inout_index_identity_input.pgy" \
     "$FIXTURES/own_storage_identity_input.pgy" "$FIXTURES/own_event_order_identity_input.pgy" \
-    "$FIXTURES/borrow_formal_identity_input.pgy" "$ACTUAL_INPUT" >"$WORK/inputs.sha256"
+    "$FIXTURES/borrow_formal_identity_input.pgy" "$FIXTURES/storage_producer_identity_input.pgy" "$ACTUAL_INPUT" >"$WORK/inputs.sha256"
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$WORK/imports.sha256"
 # Root-coordinated reuse within a frozen source stage, not a compiler install
 # or a cache lookup. Refuse a different source/input/native or mutated binary.
@@ -403,6 +407,19 @@ borrow_formal_seed_sibling_read_negative.pgy|unproved_indexed_read_entry|Matches
 borrow_formal_assign_shared_read_negative.pgy|unproved_indexed_read_entry|Matches(first)
 borrow_formal_assign_alias_shared_read_negative.pgy|unproved_indexed_read_entry|Matches(first)
 BORROW_FORMAL_DIAGNOSTICS
+    for input in storage_opaque_return_own_negative.pgy storage_opaque_assign_own_negative.pgy storage_opaque_alias_own_negative.pgy storage_shadowed_clone_own_negative.pgy; do
+        timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
+            >"$WORK/$backend-$input-diagnostic.raw" 2>"$WORK/$backend-$input-diagnostic.err"
+        tr -d '\r' <"$WORK/$backend-$input-diagnostic.raw" >"$WORK/$backend-$input-diagnostic.run"
+        [[ ! -s "$WORK/$backend-$input-diagnostic.err" ]]
+        grep -Fxq 'body_diagnostic=borrow_boundary_escape' "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq -- '- boundary: owned_argument_storage_not_live' "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq 'body_function=Main' "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-$input-diagnostic.run"
+        atom='Metadata(values)'
+        if [[ "$input" == storage_opaque_alias_own_negative.pgy ]]; then atom='Metadata(alias)'; fi
+        grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-diagnostic.run"
+    done
     for mode_case in missing extra unknown; do
         args=()
         case "$mode_case" in
@@ -519,13 +536,21 @@ BORROW_FORMAL_DIAGNOSTICS
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
     done
+    for ((mutation=85; mutation<=94; mutation++)); do
+        timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/storage_producer_identity_input.pgy" "$mutation" \
+            >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
+        tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
+        [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
+    done
     timeout 30 "$WORK/$backend-identity.exe" "$ACTUAL_INPUT" -1 \
         >"$WORK/$backend-actual-producer.raw" 2>"$WORK/$backend-actual-producer.err"
     tr -d '\r' <"$WORK/$backend-actual-producer.raw" | LC_ALL=C sort >"$WORK/$backend-actual-producer.run"
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, seventy-one diagnostic locations, three observer mode, fifty-one identity/boundary, twenty-eight occurrence/root/step and four completion/receipt units, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, seventy-five diagnostic locations, three observer mode, fifty-one identity/boundary, twenty-eight occurrence/root/step, four completion/receipt and ten storage-producer units, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

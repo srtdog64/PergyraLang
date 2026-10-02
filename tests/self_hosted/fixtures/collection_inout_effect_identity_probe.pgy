@@ -3,6 +3,7 @@
 import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
 import "collection_lifetime_event_probe.pgy";
+import "collection_storage_producer_probe.pgy";
 
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
@@ -70,6 +71,9 @@ func Main() -> Void with caps env, io_read {
         return;
     }
     if !bundle.verdict.ok { Log(bundle.verdict.diagnostic_code); Exit(2); }
+    if mutation >= 85 && mutation <= 94 {
+        Log(InspectCollectionStorageProducer(artifact, analysis, bundle, mutation)); return;
+    }
     if mutation >= 51 && mutation <= 78 {
         Log(InspectCollectionLifetimeEventProjection(mutation)); return;
     }
@@ -321,11 +325,11 @@ func InspectOwnStorageAdmission(
                         let syntax: Int = analysis.expression_surfaces.node_ids[slot / 3];
                         let live: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnedArgumentVerdict(
                             artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
-                            analysis.expression_surfaces, slot / 3, edge, binding, false, false, facts, requirements,
+                            analysis.expression_surfaces, slot / 3, edge, binding, false, false, true, facts, requirements,
                             ownership, dispositions, bundle.collection_ownership.origins, transitions);
                         let unknown: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnedArgumentVerdict(
                             artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
-                            analysis.expression_surfaces, slot / 3, edge, binding, true, false, facts, requirements,
+                            analysis.expression_surfaces, slot / 3, edge, binding, true, false, true, facts, requirements,
                             ownership, dispositions, bundle.collection_ownership.origins, transitions);
                         let clean: Bool = live.ok && !unknown.ok && ownership[0] == SemanticAstCollectionOwnershipBorrowedElements() &&
                             transitions[0] == SemanticAstCollectionTransitionUntracked() &&
