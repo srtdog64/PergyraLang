@@ -1,0 +1,19 @@
+// Calls the production writer, not a replacement cleanup implementation.
+import "../../../src/self_hosted/lib/json_emit.pgy";
+
+func Main() -> Void with caps env, io_write {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Exit(2); }
+    let output: Int = CompilerArtifactBegin(args[0]);
+    if output < 0 { Exit(3); }
+    let allocator: Allocator = AllocatorResult();
+    let empty_builder: TextBuilder = TextBuilderNew(0);
+    let empty: String = TextBuilderFinish(empty_builder, allocator);
+    let text_builder: TextBuilder = TextBuilderNew(0);
+    TextBuilderAppend(text_builder, "payload");
+    let text: String = TextBuilderFinish(text_builder, allocator);
+    AllocatorDestroy(allocator);
+    JsonOwnedFragmentWriteFile(output, empty);
+    JsonOwnedFragmentWriteFile(output, text);
+    if CompilerArtifactCommit(output) != 0 { Exit(4); }
+}

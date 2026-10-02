@@ -1,0 +1,10 @@
+// Serialization input: participant rows without projection members.
+subject WriterPlayer {
+    let value: Int;
+}
+
+effect WriterMarker for bearer: WriterPlayer { }
+
+func Main() -> Void {
+    Log(0);
+}

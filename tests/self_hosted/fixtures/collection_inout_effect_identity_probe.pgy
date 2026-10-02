@@ -74,7 +74,7 @@ func Main() -> Void with caps env, io_read {
     if mutation >= 85 && mutation <= 94 {
         Log(InspectCollectionStorageProducer(artifact, analysis, bundle, mutation)); return;
     }
-    if mutation >= 51 && mutation <= 78 {
+    if (mutation >= 51 && mutation <= 78) || (mutation >= 95 && mutation <= 101) {
         Log(InspectCollectionLifetimeEventProjection(mutation)); return;
     }
     if mutation >= 81 && mutation <= 84 {

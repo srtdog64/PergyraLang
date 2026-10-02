@@ -20,10 +20,18 @@ if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
 fi
 [[ -x "$PGY" ]] || { echo "missing pgy: $PGY" >&2; exit 1; }
 
-B="$ROOT_DIR/.tmp/self_hosted/mir_json_instruction_writer"
+mkdir -p "$ROOT_DIR/.tmp/self_hosted"
+B="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/mir_json_writer_byte_parity.XXXXXX")"
 TOOL="$ROOT_DIR/src/self_hosted/tools/mir_json_instruction_writer_probe/main.pgy"
 BACKENDS="${PGY_MIR_JSON_WRITER_BACKENDS:-c llvm}"
-mkdir -p "$B"
+pipeline_args=()
+probe_build='configured driver'
+case "${PGY_MIR_JSON_WRITER_NATIVE_PIPELINE:-0}" in
+    0) ;;
+    1) pipeline_args=(--native-pipeline); probe_build='native bootstrap only' ;;
+    *) echo 'invalid writer probe pipeline selection' >&2; exit 1 ;;
+esac
+echo "[mir-json-writer-byte-parity] evidence: $B; probe build: $probe_build"
 
 fixtures=(
     "src/self_hosted/mir_lower/fixture/let_log.pgy"
@@ -32,6 +40,9 @@ fixtures=(
     "src/self_hosted/mir_lower/fixture/array_destructure.pgy"
     "src/self_hosted/codegen/fixture/option_string_core.pgy"
     "tests/self_hosted/fixtures/mir_json_writer_escape_surface.pgy"
+    "tests/self_hosted/fixtures/domain_runtime_zone_sync_zero.pgy"
+    "tests/cases/backend_compare/zone_layer_projection_runtime/main.pgy"
+    "tests/self_hosted/fixtures/mir_json_writer_roles_only.pgy"
 )
 
 diagnose_raw_difference() {
@@ -50,6 +61,7 @@ for backend in $BACKENDS; do
     log="$B/writer_probe_${backend}.compile.log"
     if ! (cd "$ROOT_DIR" && "$PGY" \
         "$(pgy_path_for_compiler "$PGY" "$TOOL")" \
+        ${pipeline_args[@]+"${pipeline_args[@]}"} \
         "--backend=$backend" \
         -o "$(pgy_path_for_compiler "$PGY" "$bin")" \
         >"$log" 2>&1); then
@@ -123,5 +135,12 @@ grep -Fq '"destructure_element_type":' "$B/array_destructure_c.stream.json"
 grep -Fq '"abi_layout_required":true' "$B/option_string_core_c.stream.json"
 grep -Fq '"abi_type_name":null,"abi_layout_id":0,"abi_layout_required":false,"abi_layout":null' \
     "$B/option_string_core_c.stream.json"
+! grep -Fq '"domain_topology":' "$B/let_log_c.stream.json"
+grep -Eq '"domain_topology":\{"domain_graph_id":[1-9][0-9]*,"rows":\[\]\}' \
+    "$B/domain_runtime_zone_sync_zero_c.stream.json"
+! grep -Fq '"domain_runtime_assignments":' "$B/domain_runtime_zone_sync_zero_c.stream.json"
+grep -Fq '"domain_runtime_assignments":' "$B/main_c.stream.json"
+grep -Fq '"participant_roles":[{' "$B/mir_json_writer_roles_only_c.stream.json"
+grep -Fq '"projection_members":[]' "$B/mir_json_writer_roles_only_c.stream.json"
 
 echo "[mir-json-writer-byte-parity] raw String/file bytes and invalid pre-open rejection ok (backends=${built_backends[*]} fixtures=${#fixtures[@]})"

@@ -117,7 +117,7 @@ func JsonOwnedFragmentWriteFile(
     own fragment: String
 ) -> Void {
     CompilerArtifactWrite(output, fragment);
-    if fragment == "" { return; }
+    // Empty content is not borrowed storage: AllocatorResult still owns it.
     let owned_fragment: Array<String> = [fragment];
     ArrayDropOwnedStrings(owned_fragment);
 }

@@ -14,6 +14,12 @@ reject() { ! grep -Fq "$2" "$1" || fail "$1 retained: $2"; }
 
 require "$JSON_EMIT" 'func JsonOwnedFragmentWriteFile('
 require "$JSON_EMIT" 'ArrayDropOwnedStrings(owned_fragment);'
+reject "$JSON_EMIT" 'if fragment == "" { return; }'
+require "$PROGRAM_WRITER" 'if facts.domain_topology.present {'
+require "$PROGRAM_WRITER" 'if facts.domain_runtime_assignments.present &&'
+require "$PROGRAM_WRITER" 'if !SelfMirProgramFactsReady(facts) {'
+require "$INSTRUCTION_WRITER" 'instruction_index] == 0 {'
+require "$INSTRUCTION_WRITER" 'if machine.contact_kind == "" {'
 require "$JSON_EMIT" 'func JsonEscapeTokenAt('
 require "$JSON_EMIT" 'if !JsonStringLiteralRequiresEscape(value, value_length) {'
 require "$JSON_EMIT" 'CompilerArtifactWrite(output, value);'
@@ -38,7 +44,8 @@ done
 
 # String is copy-only today, so `own fragment` alone cannot reject a borrowed
 # fact String. Parse calls across line wrapping and admit only renderer/number
-# results plus the verified non-empty ABI-layout local.
+# results plus the source-inventoried ABI-layout and receipt locals. This is a structural
+# ratchet, not caller allocation/lifetime or semantic permission evidence.
 calls="$(awk '
     /JsonOwnedFragmentWriteFile[[:space:]]*\(/ { collecting = 1 }
     collecting {
@@ -55,9 +62,9 @@ while IFS= read -r call; do
     [[ -n "$call" ]] || continue
     case "$call" in
         *'ToString('*|*'JsonEmitField'*|*'JsonEmitObject('*) ;;
-        *'SelfMirJson'*|*'SelfMirDomain'*|*'output, abi_layout);'*) ;;
+        *'SelfMirJson'*|*'SelfMirDomain'*|*'output, abi_layout);'*|*'output, collection_ownership_receipt);'*) ;;
         *) fail "non-renderer owned-fragment argument: $call" ;;
     esac
 done <<<"$calls"
 
-echo "[mir-json-writer-lifetime] owned fragments, escape SoT, and borrowed-fact exclusion PASS"
+echo "[mir-json-writer-lifetime] structural writer lifetime ratchet PASS"

@@ -18,6 +18,17 @@ func MirJsonInstructionWriterInvalidFacts(
     return invalid;
 }
 
+func MirJsonInstructionWriterInvalidAssignments(
+    facts: SelfMirProgramFacts
+) -> SelfMirProgramFacts {
+    let invalid: SelfMirProgramFacts = facts;
+    let assignments: SelfMirDomainRuntimeAssignmentFacts =
+        invalid.domain_runtime_assignments;
+    assignments.ok = false;
+    invalid.domain_runtime_assignments = assignments;
+    return invalid;
+}
+
 func Main() -> Void with caps env, io_read, io_write {
     let args: Array<String> = Args();
     if ArrayLength(args) != 4 {
@@ -39,6 +50,14 @@ func Main() -> Void with caps env, io_read, io_write {
     }
 
     WriteFile(args[3], "writer-preopen-sentinel");
+    // The conditional prefix writer may rely only on the public wrapper's
+    // admitted domain facts, never on empty text masking invalid rows.
+    let invalid_assignments: SelfMirProgramFacts =
+        MirJsonInstructionWriterInvalidAssignments(projection.facts);
+    if SelfMirProgramJsonWriteFile(invalid_assignments, args[3]) ||
+        ReadFile(args[3]) != "writer-preopen-sentinel" {
+        Die("invalid domain assignments passed the pre-open boundary");
+    }
     let invalid: SelfMirProgramFacts =
         MirJsonInstructionWriterInvalidFacts(projection.facts);
     if SelfMirProgramJsonWriteFile(invalid, args[3]) {

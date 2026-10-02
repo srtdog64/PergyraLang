@@ -30,11 +30,13 @@ func SemanticAstCollectionLifetimeEventStepFromGraph(
     if ok && entry >= 0 {
         left_prefix = graph.arena.topology.node_kinds[entry] == AstExpressionNodeCallArgument();
     }
-    if ok && entry < 0 && !prefix {
+    if ok && entry < 0 {
         let node: Int = 0 - entry - 1;
         let kind: Int = graph.arena.topology.node_kinds[node];
-        if kind == AstExpressionNodeCall() { event = node; completed = node; }
-        else if kind == AstExpressionNodeCallArgument() {
+        // Literal transfer happens after the element value, not at its leaf.
+        if kind == AstExpressionNodeArrayElement() { event = node; }
+        else if !prefix && kind == AstExpressionNodeCall() { event = node; completed = node; }
+        else if !prefix && kind == AstExpressionNodeCallArgument() {
             let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, node);
             ok = edge.ok;
             if ok { completed = edge.call_node; }

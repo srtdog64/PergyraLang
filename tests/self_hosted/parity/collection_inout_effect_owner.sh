@@ -544,13 +544,21 @@ BORROW_FORMAL_DIAGNOSTICS
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
     done
+    for ((mutation=95; mutation<=101; mutation++)); do
+        timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/own_event_order_identity_input.pgy" "$mutation" \
+            >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
+        tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
+        [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
+    done
     timeout 30 "$WORK/$backend-identity.exe" "$ACTUAL_INPUT" -1 \
         >"$WORK/$backend-actual-producer.raw" 2>"$WORK/$backend-actual-producer.err"
     tr -d '\r' <"$WORK/$backend-actual-producer.raw" | LC_ALL=C sort >"$WORK/$backend-actual-producer.run"
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, seventy-five diagnostic locations, three observer mode, fifty-one identity/boundary, twenty-eight occurrence/root/step, four completion/receipt and ten storage-producer units, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, seventy-five diagnostic locations, three observer mode, fifty-one identity/boundary, thirty-five occurrence/root/element-step, four completion/receipt and ten storage-producer units, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

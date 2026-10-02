@@ -357,15 +357,19 @@ func SelfMirProgramJsonWriteArtifactVerified(
     }
 
     CompilerArtifactWrite(output, "]");
-    JsonOwnedFragmentWriteFile(
-        output, SelfMirDomainTopologyJsonPrefix(facts.domain_topology)
-    );
-    JsonOwnedFragmentWriteFile(
-        output,
-        SelfMirDomainRuntimeAssignmentsJsonPrefix(
+    // Absent prefixes are borrowed empty literals, not allocation results.
+    if facts.domain_topology.present {
+        JsonOwnedFragmentWriteFile(
+            output, SelfMirDomainTopologyJsonPrefix(facts.domain_topology)
+        );
+    }
+    if facts.domain_runtime_assignments.present &&
+        (ArrayLength(facts.domain_runtime_assignments.participant_roles.roles) > 0 ||
+         ArrayLength(facts.domain_runtime_assignments.projection_members.owner_names) > 0) {
+        JsonOwnedFragmentWriteFile(output, SelfMirDomainRuntimeAssignmentsJsonPrefix(
             facts.domain_runtime_assignments
-        )
-    );
+        ));
+    }
     CompilerArtifactWrite(output, ",\"routines\":[");
     let routine_i: Int = 0;
     while routine_i < ArrayLength(facts.routines.names) {

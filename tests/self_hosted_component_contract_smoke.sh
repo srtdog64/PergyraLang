@@ -1123,6 +1123,21 @@ require_function_text "src/self_hosted/lib/json_emit.pgy" \
 require_function_text "src/self_hosted/lib/json_emit.pgy" \
     'func JsonOwnedFragmentWriteFile(' \
     'ArrayDropOwnedStrings(owned_fragment);'
+reject_function_text "src/self_hosted/lib/json_emit.pgy" \
+    'func JsonOwnedFragmentWriteFile(' 'if fragment == ""'
+require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'if facts.domain_topology.present {'
+require_text "src/self_hosted/mir/program_json_artifact_writer_owner.pgy" \
+    'if facts.domain_runtime_assignments.present &&'
+require_file "tests/self_hosted/fixtures/json_owned_fragment_empty.pgy"
+require_max_lines "tests/self_hosted/fixtures/json_owned_fragment_empty.pgy" 30
+require_file "tests/self_hosted/parity/json_owned_fragment_empty_runtime.sh"
+require_max_lines "tests/self_hosted/parity/json_owned_fragment_empty_runtime.sh" 95
+require_text "tests/self_hosted/parity/json_owned_fragment_empty_runtime.sh" \
+    'observed_fragment_free_mismatch watches=2 empty=0 text=1'
+require_text "Makefile" 'self-host-json-owned-fragment-empty-test-smoke: $(PGY)'
+require_file "tests/self_hosted/fixtures/mir_json_writer_roles_only.pgy"
+require_max_lines "tests/self_hosted/fixtures/mir_json_writer_roles_only.pgy" 15
 require_text "src/self_hosted/lib/json_emit.pgy" \
     'let transient_allocator: Allocator = AllocatorPool('
 require_text "src/self_hosted/lib/json_emit.pgy" \
@@ -28708,7 +28723,9 @@ require_text "src/self_hosted/semantic/ast_collection_argument_event_order_owner
 require_text "src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy" \
     'SemanticAstCollectionArgumentEventStepFromGraph(graph, entry)'
 require_text "src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy" \
-    'entry < 0 && !prefix'
+    'if kind == AstExpressionNodeArrayElement() { event = node; }'
+require_text "src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy" \
+    'else if !prefix && kind == AstExpressionNodeCall()'
 require_text "src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy" \
     'if !call.ok || call.call_node != node'
 require_file "tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy"
@@ -28730,6 +28747,7 @@ reject_text "src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.
 reject_text "src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy" 'CompilerRetireArrayStorage('
 require_text "tests/self_hosted/parity/collection_inout_effect_owner.sh" 'mutation=51; mutation<=78'
 require_text "tests/self_hosted/parity/collection_inout_effect_owner.sh" 'mutation=81; mutation<=84'
+require_text "tests/self_hosted/parity/collection_inout_effect_owner.sh" 'mutation=95; mutation<=101'
 for retired_selected_spine_path in SemanticCallSpineViewFromGraph SemanticCallSpineRootsFromGraph SemanticExpressionGraphSubtreeStart; do
     reject_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" "$retired_selected_spine_path"
 done

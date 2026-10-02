@@ -4259,6 +4259,11 @@ self-host-mir-json-instruction-writer-parity-test-smoke: $(PGY)
 self-host-mir-json-artifact-writer-lifetime-test-smoke:
 	"$(BASH)" tests/self_hosted/parity/mir_json_artifact_writer_lifetime_owner.sh
 
+self-host-json-owned-fragment-empty-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/json_owned_fragment_empty_runtime.sh
+
+.PHONY: self-host-json-owned-fragment-empty-test-smoke
+
 .PHONY: self-host-domain-topology-admission-test-smoke self-host-dir-graph-inventory-test-smoke self-host-intent-execution-plan-admission-test-smoke self-host-domain-runtime-assignment-test-smoke self-host-domain-runtime-zone-sync-test-smoke self-host-mir-cfg-graph-query-test-smoke self-host-mir-program-routine-index-owner-test-smoke self-host-json-bounded-string-test-smoke self-host-codegen-type-env-preseal-epoch-test-smoke self-host-expression-graph-identity-prefix-test-smoke self-host-routine-build-storage-lifetime-test-smoke self-host-compiler-internal-caller-provenance-test-smoke self-host-mir-json-instruction-writer-parity-test-smoke self-host-mir-json-artifact-writer-lifetime-test-smoke
 
 match-binding-type-fact-test-smoke: $(PGY)
