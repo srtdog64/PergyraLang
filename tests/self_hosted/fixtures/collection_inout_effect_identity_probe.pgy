@@ -2,6 +2,7 @@
 // Each invocation owns its parse/bundle; no shared baseline arrays are reused.
 import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "collection_lifetime_event_probe.pgy";
 
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
@@ -69,6 +70,12 @@ func Main() -> Void with caps env, io_read {
         return;
     }
     if !bundle.verdict.ok { Log(bundle.verdict.diagnostic_code); Exit(2); }
+    if mutation >= 51 && mutation <= 78 {
+        Log(InspectCollectionLifetimeEventProjection(mutation)); return;
+    }
+    if mutation >= 81 && mutation <= 84 {
+        Log(InspectCollectionBuiltinCompletion(artifact, analysis, bundle, mutation)); return;
+    }
     if mutation >= 37 && mutation <= 50 {
         Log(InspectFormalStorageAuthority(artifact, analysis, bundle, mutation)); return;
     }

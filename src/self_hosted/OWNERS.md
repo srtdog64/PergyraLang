@@ -588,6 +588,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   stable local-binding ownership and disposition facts for `Array<String>`
   elements at call boundaries. It consumes the admitted expression graph and
   forbids MIR or backend inference from projected collection type spelling.
+- `src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy` --
+  builtin element poststate, exact base-call diagnostics and receipts at the
+  evaluated terminal spine, after physical argument admission. It does not
+  derive completion from arena order or manufacture aggregate-field grants.
 - `src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy` --
   stable collection element-ownership, disposition, origin, and transition
   identities. The verdict owner applies transitions; consumers may not
@@ -726,6 +730,12 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   Physical argument edges follow their argument reads, including non-numeric
   postorder and repeated shared DAG reads; base Calls do not consume storage.
   This projection is not a graph admission or backend value-reuse authority.
+- `src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy`
+  -- scalar terminal-call completion over the same admitted argument steps.
+  Occurrence-local prefix facts preserve zero-argument, alternate and repeated
+  DAG completions. Raw roots cannot impersonate internal negative markers.
+  Callers own and publicly retire their local traversal stacks; this owner
+  has no aggregate scratch storage, field permission, or private-retire bridge.
 - `src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy`
   -- formal entry requirements derived from an exact builtin deep-drop and
   propagated along admitted own-formal forwarding edges. Direct member-local

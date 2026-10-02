@@ -2,7 +2,7 @@
 import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_owned_parameter_identity_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
-import "ast_collection_argument_event_order_owner.pgy";
+import "ast_collection_lifetime_event_order_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "ast_collection_assignment_definition_owner.pgy";
 import "ast_collection_formal_storage_permission_owner.pgy";
@@ -30,6 +30,10 @@ func SemanticAstCollectionFirstInvalidOwnedArgumentUse(
             let surface: Int = root_slot / 3;
             let syntax_id: Int = surfaces.node_ids[surface];
             let root_id: Int = surfaces.expression_graph.roots[root_slot];
+            if !SemanticAstCollectionLifetimeRootReady(surfaces.expression_graph, root_id) {
+                return SemanticAstCollectionOwnedArgumentUse(
+                    true, "ast_artifact_invalid", "owned_argument_event_order", syntax_id, root_id);
+            }
             let order: Array<Int> = [];
             let pending: Array<Int> = [root_id];
             let ordered: Bool = true;

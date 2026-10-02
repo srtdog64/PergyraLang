@@ -28454,6 +28454,8 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy:140 \
     src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy:280 \
     src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy:160 \
@@ -28633,7 +28635,7 @@ require_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requ
     'facts.formal_modes[row] < 0 || facts.formal_modes[row] > 3'
 require_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy" \
     'facts.local_ids[row] == local_id'
-require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy" \
     'aggregate_field_entry_unproved'
 for entry_forbidden in 'SemanticAstCollectionOwnershipOwnedElements()' 'SemanticAstCollectionTransitionClean()' 'TypedAstArena'; do
     reject_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy" "$entry_forbidden"
@@ -28670,6 +28672,33 @@ require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfe
     'ArrayDrop(pending);'
 require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
     'ArrayDrop(order);'
+require_text "src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy" \
+    'if !AstExpressionNodeKindKnown(kind)'
+require_text "src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy" \
+    'SemanticAstCollectionArgumentEventStepFromGraph(graph, entry)'
+require_text "src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy" \
+    'entry < 0 && !prefix'
+require_text "src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy" \
+    'if !call.ok || call.call_node != node'
+require_file "tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy"
+require_max_lines "tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy" 220
+for completion_consumer in src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy; do
+    require_text "$completion_consumer" 'SemanticAstCollectionLifetimeRootReady('
+done
+require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+    'SemanticAstCollectionLifetimeEventStepFromGraph('
+require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+    'SemanticAstCollectionBuiltinTransitionAtCompletion('
+require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+    'ArrayDrop(prefixes);'
+for retired_inline_completion_path in 'let owned_push: Bool' 'let deep_drop: Bool' 'let node: Int = last_root + 1'; do
+    reject_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" "$retired_inline_completion_path"
+done
+reject_text "src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy" 'SemanticCallSpineRootsFromGraph('
+reject_text "src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy" 'CompilerRetireArrayStorage('
+require_text "tests/self_hosted/parity/collection_inout_effect_owner.sh" 'mutation=51; mutation<=78'
+require_text "tests/self_hosted/parity/collection_inout_effect_owner.sh" 'mutation=81; mutation<=84'
 for retired_selected_spine_path in SemanticCallSpineViewFromGraph SemanticCallSpineRootsFromGraph SemanticExpressionGraphSubtreeStart; do
     reject_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" "$retired_selected_spine_path"
 done

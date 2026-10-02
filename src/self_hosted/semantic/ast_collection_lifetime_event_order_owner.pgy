@@ -1,0 +1,45 @@
+// One scalar occurrence-order contract; stack storage stays with each caller.
+// Arena IDs are identity, not evaluation order. Suppress only this occurrence's
+// call-spine prefix; alternate/repeated DAG completions remain distinct.
+import "ast_collection_argument_event_order_owner.pgy";
+import "ast_expression_graph_call_argument_edge_owner.pgy";
+
+struct SemanticAstCollectionLifetimeEventStep {
+    ok: Bool;
+    event_node: Int;
+    completed_call: Int;
+    completion: Int;
+    left: Int;
+    right: Int;
+    left_prefix: Bool;
+}
+
+// Raw roots cannot impersonate the walker's internal negative markers.
+func SemanticAstCollectionLifetimeRootReady(ref graph: SemanticExpressionGraphFacts, root: Int) -> Bool {
+    return graph.ok && root >= 0 && root < SemanticExpressionGraphArenaNodeCount(graph.arena);
+}
+
+func SemanticAstCollectionLifetimeEventStepFromGraph(
+    ref graph: SemanticExpressionGraphFacts, entry: Int, prefix: Bool
+) -> SemanticAstCollectionLifetimeEventStep {
+    let step: SemanticAstCollectionArgumentEventStep = SemanticAstCollectionArgumentEventStepFromGraph(graph, entry);
+    let event: Int = step.event_node;
+    let completed: Int = -1;
+    let left_prefix: Bool = false;
+    let ok: Bool = step.ok;
+    if ok && entry >= 0 {
+        left_prefix = graph.arena.topology.node_kinds[entry] == AstExpressionNodeCallArgument();
+    }
+    if ok && entry < 0 && !prefix {
+        let node: Int = 0 - entry - 1;
+        let kind: Int = graph.arena.topology.node_kinds[node];
+        if kind == AstExpressionNodeCall() { event = node; completed = node; }
+        else if kind == AstExpressionNodeCallArgument() {
+            let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, node);
+            ok = edge.ok;
+            if ok { completed = edge.call_node; }
+        }
+    }
+    return SemanticAstCollectionLifetimeEventStep(
+        ok, event, completed, step.completion, step.left, step.right, left_prefix);
+}

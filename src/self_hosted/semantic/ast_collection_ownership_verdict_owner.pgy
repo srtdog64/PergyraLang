@@ -29,6 +29,8 @@ import "ast_collection_owned_element_parameter_requirement_owner.pgy";
 import "ast_collection_ownership_statement_transition_owner.pgy";
 import "ast_collection_call_effect_owner.pgy";
 import "ast_collection_call_argument_verdict_owner.pgy";
+import "ast_collection_lifetime_event_order_owner.pgy";
+import "ast_collection_builtin_transition_owner.pgy";
 import "ast_owned_string_result_fact_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
@@ -277,7 +279,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "aggregate_field_entry_requirements"), -1, -1);
     }
-    let last_root: Int = -1;
     let root_slot: Int = 0;
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
         // Each syntax event precedes its own call lanes, not every call in the
@@ -295,259 +296,52 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
             receipts = statement_transitions.receipts;
         }
         if surfaces.expression_graph.has_roots[root_slot] {
-            let root_id: Int = surfaces.expression_graph.roots[root_slot];
-            let node: Int = last_root + 1;
-            while node <= root_id {
-                let kind: Option<Int> = SemanticExpressionGraphNodeKind(
-                    surfaces.expression_graph, node);
+            let root: Int = surfaces.expression_graph.roots[root_slot];
+            if !SemanticAstCollectionLifetimeRootReady(surfaces.expression_graph, root) {
+                return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
+                    SemanticError1("ast_artifact_invalid", "owner", "collection_lifetime_event_order"),
+                    surfaces.node_ids[root_slot / 3], root);
+            }
+            let pending: Array<Int> = [root];
+            let prefixes: Array<Bool> = [false];
+            while ArrayLength(pending) > 0 {
+                let entry: Int = pending[ArrayLength(pending) - 1];
+                let prefix: Bool = prefixes[ArrayLength(prefixes) - 1];
+                ArrayPop(pending); ArrayPop(prefixes);
+                let step: SemanticAstCollectionLifetimeEventStep = SemanticAstCollectionLifetimeEventStepFromGraph(
+                    surfaces.expression_graph, entry, prefix);
+                if !step.ok {
+                    ArrayDrop(pending); ArrayDrop(prefixes);
+                    return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
+                        SemanticError1("ast_artifact_invalid", "owner", "collection_lifetime_event_order"),
+                        surfaces.node_ids[root_slot / 3], root);
+                }
+                if step.completion < 0 { ArrayPush(pending, step.completion); ArrayPush(prefixes, prefix); }
+                if step.right >= 0 { ArrayPush(pending, step.right); ArrayPush(prefixes, false); }
+                if step.left >= 0 { ArrayPush(pending, step.left); ArrayPush(prefixes, step.left_prefix); }
+                let node: Int = step.event_node;
+                let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
                 if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeCallArgument() {
                     let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
                     let argument_verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
                         artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, root_slot / 3,
                         edge, proved_formal_effects, element_requirements, ownership, dispositions, origins, transition_states, call_effects, storage, current_definitions);
-                    if !argument_verdict.ok { return argument_verdict; }
-                }
-                if IsSome(kind) &&
-                    UnwrapOption(kind) == AstExpressionNodeCall() {
-                    let target: Option<String> =
-                        SemanticExpressionGraphCallTargetName(
-                            surfaces.expression_graph, node);
-                    let call: SemanticCallSpineView =
-                        SemanticCallSpineViewFromGraph(
-                            surfaces.expression_graph,
-                            call_roots.root_nodes[node]);
-                    if IsSome(target) && call.ok &&
-                        call.call_node == node &&
-                        SemanticAstCollectionOwnershipBuiltinCall(
-                            surfaces.expression_graph, node,
-                            UnwrapOption(target)) &&
-                        ArrayLength(call.argument_nodes) > 0 {
-                        let name: String = UnwrapOption(target);
-                        let owned_push: Bool =
-                            name == "ArrayPushOwnedString";
-                        let mutates_elements: Bool = name == "ArrayPush" ||
-                            name == "ArraySet" || name == "ArrayPop";
-                        let deep_drop: Bool =
-                            name == "ArrayDropOwnedStrings";
-                        if owned_push || mutates_elements || deep_drop {
-                            let binding: SemanticAstLocalBindingIdentity =
-                                SemanticAstCollectionOwnershipLocalForArgument(
-                                    artifact, locals,
-                                    initializer_types.inferred_type_names,
-                                    surfaces, root_slot / 3,
-                                    call.argument_nodes[0]);
-                            let parameter_mode: Int =
-                                SemanticAstCollectionOwnershipParameterModeForArgument(
-                                    signatures, surfaces, root_slot / 3,
-                                    call.argument_nodes[0]);
-                            if !binding.ok && deep_drop && parameter_mode != 3 {
-                                return SemanticAstCollectionOwnershipVerdictError(
-                                    "borrow_boundary_escape",
-                                    SemanticError2(
-                                        "borrow_boundary_escape",
-                                        "boundary", "deep_drop_without_binding_provenance",
-                                        "type", "Array<String>"
-                                    ),
-                                    surfaces.node_ids[root_slot / 3], node);
-                            }
-                            if binding.ok {
-                                let unknown: Bool = SemanticAstCollectionApplyUnknownCallStateAtUse(
-                                    artifact, call_effects, binding.row, surfaces.node_ids[root_slot / 3], ownership, dispositions, transition_states);
-                                let may_retire: Bool = SemanticAstCollectionMutableCallMayBeRetired(artifact, surfaces.node_ids[root_slot / 3], call_effects.first_non_deep_drop_retiring_sites[binding.row]);
-                                if !deep_drop { may_retire = SemanticAstCollectionMutationMayBeRetired(artifact, surfaces.node_ids[root_slot / 3], call_effects.first_retiring_sites[binding.row], call_effects.first_non_deep_drop_retiring_sites[binding.row]); }
-                                if (!deep_drop && dispositions[binding.row] == SemanticAstCollectionDispositionRetired()) ||
-                                    may_retire || SemanticAstCollectionStorageEscapedAtUse(
-                                        artifact, call_effects, binding.row, surfaces.node_ids[root_slot / 3]) {
-                                    return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
-                                        SemanticError2("borrow_boundary_escape", "boundary", name, "type", "Array<String>"), surfaces.node_ids[root_slot / 3], node);
-                                }
-                                let state: Int = ownership[binding.row];
-                                if origins[binding.row] ==
-                                        SemanticAstCollectionOriginEmptyLiteral() {
-                                    let transition: Int =
-                                        transition_states[binding.row];
-                                    if owned_push {
-                                        if !SemanticAstCollectionTransitionAllowsOwned(transition) {
-                                            return SemanticAstCollectionOwnershipVerdictError(
-                                                "borrow_boundary_escape",
-                                                SemanticError2(
-                                                    "borrow_boundary_escape",
-                                                    "boundary", name,
-                                                    "type", "Array<String>"
-                                                ),
-                                                surfaces.node_ids[root_slot / 3],
-                                                node
-                                            );
-                                        }
-                                        transition_states[binding.row] =
-                                            SemanticAstCollectionTransitionOwned();
-                                    } else if mutates_elements {
-                                        if transition !=
-                                                SemanticAstCollectionTransitionEmpty() &&
-                                            transition !=
-                                                SemanticAstCollectionTransitionBorrowed() {
-                                            return SemanticAstCollectionOwnershipVerdictError(
-                                                "borrow_boundary_escape",
-                                                SemanticError2(
-                                                    "borrow_boundary_escape",
-                                                    "boundary", name,
-                                                    "type", "Array<String>"
-                                                ),
-                                                surfaces.node_ids[root_slot / 3],
-                                                node
-                                            );
-                                        }
-                                        transition_states[binding.row] =
-                                            SemanticAstCollectionTransitionBorrowed();
-                                    } else if deep_drop {
-                                        if transition ==
-                                                SemanticAstCollectionTransitionBorrowed() {
-                                            return SemanticAstCollectionOwnershipVerdictError(
-                                                "borrow_boundary_escape",
-                                                SemanticError2(
-                                                    "borrow_boundary_escape",
-                                                    "boundary", "owned_string_drop",
-                                                    "type", "borrowed Array<String>"
-                                                ),
-                                                surfaces.node_ids[root_slot / 3],
-                                                node
-                                            );
-                                        }
-                                        if transition ==
-                                                SemanticAstCollectionTransitionRetired() {
-                                            return SemanticAstCollectionOwnershipVerdictError(
-                                                "borrow_boundary_escape",
-                                                SemanticError2(
-                                                    "borrow_boundary_escape",
-                                                    "boundary", "double_drop",
-                                                    "type", "Array<String>"
-                                                ),
-                                                surfaces.node_ids[root_slot / 3],
-                                                node
-                                            );
-                                        }
-                                        if !SemanticAstCollectionTransitionAllowsOwned(transition) {
-                                            if unknown {
-                                                return SemanticAstCollectionOwnershipVerdictError(
-                                                    "borrow_boundary_escape",
-                                                    SemanticError2("borrow_boundary_escape", "boundary", "unknown_call_effect",
-                                                        "type", "Array<String>"), surfaces.node_ids[root_slot / 3], node);
-                                            }
-                                            return SemanticAstCollectionOwnershipVerdictError(
-                                                "ast_artifact_invalid",
-                                                SemanticError1(
-                                                    "ast_artifact_invalid",
-                                                    "owner",
-                                                    "collection_ownership_transition"
-                                                ),
-                                                surfaces.node_ids[root_slot / 3],
-                                                node
-                                            );
-                                        }
-                                        transition_states[binding.row] =
-                                            SemanticAstCollectionTransitionRetired();
-                                    }
-                                    let identity:
-                                        SemanticExpressionCallIdentity =
-                                            SemanticExpressionCallIdentityForNode(
-                                                surfaces, node);
-                                    if !identity.ok {
-                                        return SemanticAstCollectionOwnershipVerdictError(
-                                            "ast_artifact_invalid",
-                                            SemanticError1(
-                                                "ast_artifact_invalid",
-                                                "owner",
-                                                "collection_ownership_call_identity"
-                                            ),
-                                            surfaces.node_ids[root_slot / 3],
-                                            node
-                                        );
-                                    }
-                                    let effect: Int =
-                                        SemanticAstCollectionOwnershipEffectDrop();
-                                    if owned_push {
-                                        effect =
-                                            SemanticAstCollectionOwnershipEffectOwnedStringPush();
-                                    } else if mutates_elements {
-                                        effect =
-                                            SemanticAstCollectionOwnershipEffectShallowMutation();
-                                    }
-                                    receipts =
-                                        SemanticAstCollectionOwnershipReceiptRowsAppend(
-                                            receipts,
-                                            surfaces.function_node_ids[
-                                                root_slot / 3],
-                                            identity.owner_node_id,
-                                            identity.lane,
-                                            identity.local_call_ordinal,
-                                            effect,
-                                            locals.node_ids[binding.row], 0
-                                        );
-                                } else if (owned_push || deep_drop) &&
-                                    (state ==
-                                        SemanticAstCollectionOwnershipBorrowedElements() ||
-                                     state ==
-                                        SemanticAstCollectionOwnershipUnknown()) {
-                                    let boundary: String = name;
-                                    if deep_drop {
-                                        boundary = "owned_string_drop";
-                                        if SemanticAstCollectionAggregateFieldEntryIndexRow(field_requirements.row_by_local, locals.node_ids[binding.row]) >= 0 { boundary = "aggregate_field_entry_unproved"; }
-                                    }
-                                    return SemanticAstCollectionOwnershipVerdictError(
-                                        "borrow_boundary_escape",
-                                        SemanticError2(
-                                            "borrow_boundary_escape",
-                                            "boundary", boundary,
-                                            "type", "borrowed or unknown Array<String>"
-                                        ),
-                                        surfaces.node_ids[root_slot / 3], node);
-                                } else if mutates_elements &&
-                                    (state == SemanticAstCollectionOwnershipOwnedElements() ||
-                                     state == SemanticAstCollectionOwnershipMapKeysSnapshot()) {
-                                    return SemanticAstCollectionOwnershipVerdictError(
-                                        "borrow_boundary_escape",
-                                        SemanticError2("borrow_boundary_escape",
-                                            "boundary", name,
-                                            "type", "Array<String>"),
-                                        surfaces.node_ids[root_slot / 3], node);
-                                }
-                                if origins[binding.row] !=
-                                        SemanticAstCollectionOriginEmptyLiteral() &&
-                                    deep_drop && state ==
-                                        SemanticAstCollectionOwnershipBorrowedElements() {
-                                    return SemanticAstCollectionOwnershipVerdictError(
-                                        "borrow_boundary_escape",
-                                        SemanticError2("borrow_boundary_escape",
-                                            "boundary", "owned_string_drop",
-                                            "type", "borrowed Array<String>"),
-                                        surfaces.node_ids[root_slot / 3], node);
-                                }
-                                if origins[binding.row] !=
-                                        SemanticAstCollectionOriginEmptyLiteral() &&
-                                    deep_drop && dispositions[binding.row] ==
-                                        SemanticAstCollectionDispositionRetired() {
-                                    return SemanticAstCollectionOwnershipVerdictError(
-                                        "borrow_boundary_escape",
-                                        SemanticError2("borrow_boundary_escape",
-                                            "boundary", "double_drop",
-                                            "type", "Array<String>"),
-                                        surfaces.node_ids[root_slot / 3], node);
-                                }
-                                if origins[binding.row] !=
-                                        SemanticAstCollectionOriginEmptyLiteral() &&
-                                    deep_drop &&
-                                    (state == SemanticAstCollectionOwnershipOwnedElements() ||
-                                     state == SemanticAstCollectionOwnershipMapKeysSnapshot()) {
-                                    dispositions[binding.row] =
-                                        SemanticAstCollectionDispositionRetired();
-                                }
-                            }
-                        }
+                    if !argument_verdict.ok {
+                        ArrayDrop(pending); ArrayDrop(prefixes);
+                        return argument_verdict;
                     }
                 }
-                node = node + 1;
+                if step.completed_call >= 0 {
+                    let builtin_transition: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionBuiltinTransitionAtCompletion(
+                        artifact, locals, initializer_types.inferred_type_names, signatures, surfaces, root_slot / 3,
+                        step.completed_call, node, call_effects, field_requirements, ownership, dispositions, origins, transition_states, receipts);
+                    if !builtin_transition.ok {
+                        ArrayDrop(pending); ArrayDrop(prefixes);
+                        return builtin_transition;
+                    }
+                }
             }
-            last_root = root_id;
+            ArrayDrop(pending); ArrayDrop(prefixes);
         }
         let completed: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCompleteDefinition(
             artifact, locals, surfaces, definitions, storage, root_slot, current_definitions, call_effects,

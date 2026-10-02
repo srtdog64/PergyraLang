@@ -1,0 +1,8 @@
+func Stamp(inout values: Array<String>) -> String {
+    ArrayPush(values, "borrowed");
+    return "outer";
+}
+func Main() -> Void {
+    let a: Array<String> = [];
+    ArrayPushOwnedString(a, Stamp(a));
+}

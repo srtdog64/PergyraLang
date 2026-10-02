@@ -1,0 +1,9 @@
+func Stamp(inout values: Array<String>) -> String {
+    ArrayPushOwnedString(values, "nested");
+    return "outer";
+}
+func Main() -> Void {
+    let a: Array<String> = [];
+    ArrayPushOwnedString(a, Stamp(a));
+    ArrayDropOwnedStrings(a);
+}

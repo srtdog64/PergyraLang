@@ -14,8 +14,11 @@ cd "$ROOT_DIR"
 SOURCE_PROBE=tests/self_hosted/fixtures/nominal_constructor_source_arity_probe.pgy
 IDENTITY_PROBE=tests/self_hosted/fixtures/collection_inout_effect_identity_probe.pgy
 CONSTRUCTOR_PROBE=tests/self_hosted/fixtures/collection_constructor_escape_identity_probe.pgy
+EVENT_PROBE=tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 INPUTS=(
+    builtin_completion_nested_other_positive.pgy builtin_completion_nested_same_positive.pgy
+    builtin_completion_nested_borrowed_negative.pgy builtin_completion_nested_borrowed_other_positive.pgy
     field_ctor_clone_drop_negative.pgy field_ctor_empty_drop_negative.pgy
     field_ctor_own_argument_negative.pgy field_ctor_fresh_assign_positive.pgy field_ctor_readonly_positive.pgy
     field_ctor_own_formal_drop_negative.pgy field_ctor_own_formal_forward_negative.pgy field_ctor_own_formal_readonly_positive.pgy
@@ -123,7 +126,7 @@ INPUTS+=(
     docs/audits/repros/ref_formal_let_storage_alias_2026-10-02.pgy
 )
 sha256sum "$PGY" >"$WORK/native.sha256"
-sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" \
+sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
@@ -148,6 +151,8 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" \
     src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy \
     src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy \
+    src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy \
+    src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy \
     src/self_hosted/semantic/ast_local_binding_fact_owner.pgy \
     src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy \
@@ -498,13 +503,29 @@ BORROW_FORMAL_DIAGNOSTICS
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
     done
+    for ((mutation=51; mutation<=78; mutation++)); do
+        timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/own_event_order_identity_input.pgy" "$mutation" \
+            >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
+        tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
+        [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
+    done
+    for ((mutation=81; mutation<=84; mutation++)); do
+        timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/builtin_completion_nested_other_positive.pgy" "$mutation" \
+            >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
+        tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
+        [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
+    done
     timeout 30 "$WORK/$backend-identity.exe" "$ACTUAL_INPUT" -1 \
         >"$WORK/$backend-actual-producer.raw" 2>"$WORK/$backend-actual-producer.err"
     tr -d '\r' <"$WORK/$backend-actual-producer.raw" | LC_ALL=C sort >"$WORK/$backend-actual-producer.run"
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, seventy-one diagnostic locations, three observer mode, fifty-one identity/boundary, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, seventy-one diagnostic locations, three observer mode, fifty-one identity/boundary, twenty-eight occurrence/root/step and four completion/receipt units, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

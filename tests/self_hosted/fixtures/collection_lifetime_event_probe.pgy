@@ -1,0 +1,198 @@
+// Synthetic ordering units never issue source or MIR ownership grants.
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func InspectCollectionLifetimeEventProjection(mode: Int) -> Bool {
+    let kinds: Array<Int> = [0, 17, 0, 18, 0, 18];
+    let left: Array<Int> = [-1, 0, -1, 1, -1, 3];
+    let right: Array<Int> = [-1, -1, -1, 2, -1, 4];
+    let expected_nodes: Array<Int> = [0, 2, 3, 4, 5];
+    let expected_calls: Array<Int> = [-1, -1, -1, -1, 1];
+    let root: Int = 5;
+    let root_prefix: Bool = false;
+    let positive: Bool = mode <= 56 || (mode >= 72 && mode <= 76 && mode != 74);
+    if mode == 51 || mode == 73 {
+        kinds = [0, 17]; left = [-1, 0]; right = [-1, -1]; root = 1;
+        expected_nodes = [0, 1]; expected_calls = [-1, 1];
+        if mode == 73 { root_prefix = true; expected_nodes = [0]; expected_calls = [-1]; }
+    } else if mode == 53 {
+        kinds = [0, 17, 0, 17, 0, 18, 18];
+        left = [-1, 0, -1, 2, -1, 3, 1]; right = [-1, -1, -1, -1, -1, 4, 5]; root = 6;
+        expected_nodes = [0, 2, 4, 5, 6]; expected_calls = [-1, -1, -1, 3, 1];
+    } else if mode == 54 {
+        kinds = [0, 17, 0, 18, 0, 18, 9];
+        left = [-1, 0, -1, 1, -1, 1, 3]; right = [-1, -1, -1, 2, -1, 4, 5]; root = 6;
+        expected_nodes = [0, 2, 3, 0, 4, 5]; expected_calls = [-1, -1, 1, -1, -1, 1];
+    } else if mode == 55 || mode == 56 {
+        kinds = [0, 17, 0, 18, 9];
+        left = [-1, 0, -1, 1, 3]; right = [-1, -1, -1, 2, 3]; root = 4;
+        expected_nodes = [0, 2, 3, 0, 2, 3]; expected_calls = [-1, -1, 1, -1, -1, 1];
+        if mode == 56 {
+            left[4] = 1; expected_nodes = [0, 1, 0, 2, 3]; expected_calls = [-1, 1, -1, -1, 1];
+        }
+    }
+    if mode == 57 { root = -1; }
+    if mode == 58 { root = -2; }
+    if mode == 59 { root = ArrayLength(kinds); }
+    if mode == 60 { right[5] = 5; }
+    if mode == 61 { right[5] = 6; }
+    if mode == 62 { left[3] = 5; }
+    if mode == 63 { right[5] = -1; }
+    if mode == 64 { kinds[5] = 999; }
+    if mode == 65 { left[1] = 1; }
+    if mode == 66 { left[3] = -1; }
+    if mode == 67 || mode == 74 { left[3] = 2; }
+    if mode == 69 { kinds = [0, 17, 0, 18, 0]; }
+    if mode == 70 { left = [-1, 0, -1, 1, -1]; }
+    if mode == 71 { right = [-1, -1, -1, 2, -1]; }
+    if mode == 72 { root_prefix = true; expected_calls = [-1, -1, -1, -1, -1]; }
+    if mode == 75 { root = 3; expected_nodes = [0, 2, 3]; expected_calls = [-1, -1, 1]; }
+    if mode == 76 { root = 0; expected_nodes = [0]; expected_calls = [-1]; }
+    if mode == 78 { kinds = []; left = []; right = []; root = 0; }
+    let texts: Array<String> = []; let zeros: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(kinds) { ArrayPush(texts, "unit"); ArrayPush(zeros, 0); row = row + 1; }
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArenaFromTopology(
+        AstExpressionArena(kinds, texts, left, right), texts, zeros, texts, texts, zeros);
+    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(true, [root, 0, 0], [true, false, false], arena);
+    if mode == 68 { graph.ok = false; }
+    if mode == 77 { return !SemanticAstCollectionLifetimeEventStepFromGraph(graph, -999, false).ok; }
+    if !SemanticAstCollectionLifetimeRootReady(graph, root) { return !positive; }
+    let pending: Array<Int> = [root]; let prefixes: Array<Bool> = [root_prefix];
+    let nodes: Array<Int> = []; let calls: Array<Int> = [];
+    let ordered: Bool = true;
+    while ArrayLength(pending) > 0 && ordered {
+        let entry: Int = pending[ArrayLength(pending) - 1];
+        let prefix: Bool = prefixes[ArrayLength(prefixes) - 1];
+        ArrayPop(pending); ArrayPop(prefixes);
+        let step: SemanticAstCollectionLifetimeEventStep = SemanticAstCollectionLifetimeEventStepFromGraph(graph, entry, prefix);
+        ordered = step.ok;
+        if ordered {
+            if step.completion < 0 { ArrayPush(pending, step.completion); ArrayPush(prefixes, prefix); }
+            if step.right >= 0 { ArrayPush(pending, step.right); ArrayPush(prefixes, false); }
+            if step.left >= 0 { ArrayPush(pending, step.left); ArrayPush(prefixes, step.left_prefix); }
+            if step.event_node >= 0 { ArrayPush(nodes, step.event_node); ArrayPush(calls, step.completed_call); }
+        }
+    }
+    let ok: Bool = !positive && !ordered;
+    if positive {
+        ok = ordered && ArrayLength(nodes) == ArrayLength(expected_nodes) && ArrayLength(calls) == ArrayLength(expected_calls);
+        row = 0;
+        while row < ArrayLength(expected_nodes) && ok {
+            ok = nodes[row] == expected_nodes[row] && calls[row] == expected_calls[row]; row = row + 1;
+        }
+    }
+    ArrayDrop(pending); ArrayDrop(prefixes); ArrayDrop(nodes); ArrayDrop(calls);
+    return ok;
+}
+
+// Direct completion policy units start only after actual source admission.
+// Mutated scratch/receipt rows are falsifiers, never emitted artifact evidence.
+func InspectCollectionBuiltinCompletion(
+    artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis,
+    ref bundle: SemanticAstBodyTypeBundle, mode: Int
+) -> Bool {
+    let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
+    let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
+        analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
+    let formals: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(analysis.signatures, analysis.expression_surfaces);
+    let effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        analysis.expression_surfaces, formals.inventory.row_by_formal, formals.inventory.modes, formals.effects, definitions, storage);
+    let fields: SemanticAstCollectionAggregateFieldEntryRequirements = SemanticAstCollectionAggregateFieldEntryRequirementsEmpty();
+    let ownership: Array<Int> = []; let dispositions: Array<Int> = []; let transitions: Array<Int> = []; let origins: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(analysis.local_bindings.node_ids) {
+        ArrayPush(ownership, SemanticAstCollectionOwnershipUnknown()); ArrayPush(dispositions, SemanticAstCollectionDispositionLive());
+        let transition: Int = SemanticAstCollectionTransitionUntracked();
+        let origin: Int = SemanticAstCollectionOriginUnknown();
+        let carried: Int = 0;
+        while carried < ArrayLength(bundle.collection_ownership.binding_syntax_ids) {
+            if bundle.collection_ownership.binding_syntax_ids[carried] == analysis.local_bindings.node_ids[row] &&
+                bundle.collection_ownership.function_syntax_ids[carried] == analysis.local_bindings.function_node_ids[row] {
+                origin = bundle.collection_ownership.origins[carried];
+            }
+            carried = carried + 1;
+        }
+        ArrayPush(origins, origin);
+        if origin == SemanticAstCollectionOriginEmptyLiteral() { transition = SemanticAstCollectionTransitionEmpty(); }
+        ArrayPush(transitions, transition); row = row + 1;
+    }
+    let call_roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(analysis.expression_surfaces.expression_graph);
+    let call: Int = -1; let terminal: Int = -1; let surface: Int = -1; let nested_terminal: Int = -1;
+    let main_node: Int = -1;
+    row = 0;
+    while row < ArrayLength(analysis.signatures.names) {
+        if analysis.signatures.names[row] == "Main" { main_node = analysis.signatures.function_node_ids[row]; }
+        row = row + 1;
+    }
+    // Select only the actual parsed control. DAG occurrence checks above do
+    // not use this first-root fixture selector as evaluation authority.
+    row = 0;
+    while row < SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena) {
+        let name: Option<String> = SemanticExpressionGraphCallTargetName(analysis.expression_surfaces.expression_graph, row);
+        if IsSome(name) && UnwrapOption(name) == "Stamp" { nested_terminal = call_roots.root_nodes[row]; }
+        if SemanticAstCollectionOwnershipBuiltinCall(analysis.expression_surfaces.expression_graph, row, "ArrayPushOwnedString") {
+            let identity: SemanticExpressionCallIdentity = SemanticExpressionCallIdentityForNode(analysis.expression_surfaces, row);
+            let at: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(analysis.expression_surfaces, identity.owner_node_id);
+            if identity.ok && IsSome(at) && analysis.expression_surfaces.function_node_ids[UnwrapOption(at)] == main_node {
+                call = row; terminal = call_roots.root_nodes[row]; surface = UnwrapOption(at);
+            }
+        }
+        row = row + 1;
+    }
+    if !call_roots.ok || call < 0 || surface < 0 || terminal < 0 || nested_terminal < 0 || !definitions.ok || !storage.ok || !formals.ok ||
+        !SemanticAstCollectionCallEffectFactsReady(effects, ArrayLength(analysis.local_bindings.node_ids)) { return false; }
+    let spine: SemanticCallSpineView = SemanticCallSpineViewFromGraph(analysis.expression_surfaces.expression_graph, terminal);
+    let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+        artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names, analysis.expression_surfaces, surface, spine.argument_nodes[0]);
+    if !binding.ok || origins[binding.row] != SemanticAstCollectionOriginEmptyLiteral() {
+        return false;
+    }
+    let actual: SemanticExpressionCallIdentity = SemanticExpressionCallIdentityForNode(analysis.expression_surfaces, call);
+    let observed: Int = 0;
+    row = 0;
+    while row < ArrayLength(bundle.collection_ownership.receipts.function_syntax_ids) {
+        if bundle.collection_ownership.receipts.owner_node_ids[row] == actual.owner_node_id &&
+            bundle.collection_ownership.receipts.lanes[row] == actual.lane &&
+            bundle.collection_ownership.receipts.local_call_ordinals[row] == actual.local_call_ordinal &&
+            bundle.collection_ownership.receipts.effect_kinds[row] == SemanticAstCollectionOwnershipEffectOwnedStringPush() { observed = observed + 1; }
+        row = row + 1;
+    }
+    if observed != 1 || !SemanticAstCollectionOwnershipReceiptRowsReady(bundle.collection_ownership.receipts) { return false; }
+    let receipts: SemanticAstCollectionOwnershipReceiptRows = SemanticAstCollectionOwnershipReceiptRowsEmpty();
+    let checked_call: Int = call; let checked_terminal: Int = terminal;
+    if mode == 82 { checked_terminal = nested_terminal; }
+    if mode == 84 { checked_call = terminal; }
+    let verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionBuiltinTransitionAtCompletion(
+        artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names, analysis.signatures,
+        analysis.expression_surfaces, surface, checked_call, checked_terminal, effects, fields,
+        ownership, dispositions, origins, transitions, receipts);
+    let ok: Bool = verdict.ok && actual.ok && ArrayLength(receipts.function_syntax_ids) == 1 &&
+        receipts.owner_node_ids[0] == actual.owner_node_id && receipts.lanes[0] == actual.lane &&
+        receipts.local_call_ordinals[0] == actual.local_call_ordinal &&
+        transitions[binding.row] == SemanticAstCollectionTransitionOwned() && SemanticAstCollectionOwnershipReceiptRowsReady(receipts);
+    if mode == 82 || mode == 84 {
+        ok = !verdict.ok && verdict.diagnostic_code == "ast_artifact_invalid" &&
+            StringContains(verdict.diagnostic_message, "collection_call_completion") &&
+            verdict.syntax_node_id == analysis.expression_surfaces.node_ids[surface] &&
+            verdict.expression_node_id == checked_call && transitions[binding.row] == SemanticAstCollectionTransitionEmpty() &&
+            ArrayLength(receipts.function_syntax_ids) == 0;
+        row = 0;
+        while row < ArrayLength(ownership) && ok {
+            let expected: Int = SemanticAstCollectionTransitionUntracked();
+            if origins[row] == SemanticAstCollectionOriginEmptyLiteral() { expected = SemanticAstCollectionTransitionEmpty(); }
+            ok = ownership[row] == SemanticAstCollectionOwnershipUnknown() &&
+                dispositions[row] == SemanticAstCollectionDispositionLive() && transitions[row] == expected;
+            row = row + 1;
+        }
+    } else if mode == 83 && ok {
+        let repeated: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionBuiltinTransitionAtCompletion(
+            artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names, analysis.signatures,
+            analysis.expression_surfaces, surface, call, terminal, effects, fields,
+            ownership, dispositions, origins, transitions, receipts);
+        ok = repeated.ok && ArrayLength(receipts.function_syntax_ids) == 2 && !SemanticAstCollectionOwnershipReceiptRowsReady(receipts);
+    }
+    return ok;
+}

@@ -22,6 +22,9 @@ func SemanticAstCollectionArgumentEventStepFromGraph(
         return SemanticAstCollectionArgumentEventStep(false, -1, 0, -1, -1);
     }
     let kind: Int = graph.arena.topology.node_kinds[node];
+    if !AstExpressionNodeKindKnown(kind) {
+        return SemanticAstCollectionArgumentEventStep(false, -1, 0, -1, -1);
+    }
     if entry < 0 {
         if kind == AstExpressionNodeLeaf() || kind == AstExpressionNodeCallArgument() {
             return SemanticAstCollectionArgumentEventStep(true, node, 0, -1, -1);
