@@ -1,0 +1,13 @@
+func Matches(values: Array<String>) -> Bool { return values[0] == "borrowed"; }
+func Opaque(inout values: Array<String>) -> Void { ArrayPush(values, "opaque"); }
+func Observe(ref values: Array<String>) -> Bool {
+    let first: Array<String> = values;
+    let second: Array<String> = values;
+    let observed: Bool = Matches(first);
+    Opaque(second);
+    return observed;
+}
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    Log(Observe(values));
+}

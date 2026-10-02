@@ -4,13 +4,15 @@ import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_ownership_state_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
 import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_definition_storage_authority_owner.pgy";
 
 func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     formal_rows: HashMap<String, Int>, ref formal_modes: Array<Int>,
-    proved: HashMap<String, Int>, ref definitions: SemanticAstCollectionDefinitionFacts
+    proved: HashMap<String, Int>, ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts
 ) -> SemanticAstCollectionCallEffectFacts {
     let unknown: Array<Int> = [];
     let retiring: Array<Int> = [];
@@ -24,13 +26,15 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
     let parents: Array<Int> = [];
     let count: Int = ArrayLength(definitions.syntax_ids);
     let current: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
-    if !definitions.ok || ArrayLength(inferred_types) != definitions.local_count ||
+    if !definitions.ok || !storage.ok || ArrayLength(storage.borrowed_definitions) != count ||
+        ArrayLength(storage.borrowed_seed_sources) != count ||
+        ArrayLength(inferred_types) != definitions.local_count ||
         !SemanticAstExpressionSurfaceBorrowReady(artifact, surfaces) {
         return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop);
     }
     let row: Int = 0;
     while row < count {
-        ArrayPush(unknown, -1); ArrayPush(retiring, -1); ArrayPush(non_deep_drop, -1); ArrayPush(parents, -1);
+        ArrayPush(unknown, -1); ArrayPush(retiring, -1); ArrayPush(non_deep_drop, -1); ArrayPush(parents, storage.borrowed_seed_sources[row]);
         if row < definitions.local_count {
             ArrayPush(local_unknown, -1); ArrayPush(local_retiring, -1); ArrayPush(local_non_deep, -1);
             ArrayPush(zero_unknown, false); ArrayPush(zero_retiring, false); ArrayPush(zero_non_deep, false);
@@ -104,11 +108,6 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                 if assigned >= definitions.local_count {
                     let target_row: Int = definitions.binding_rows[assigned];
                     current[target_row] = assigned;
-                    if !definitions.fresh[assigned] {
-                        // No storage-production/dominance proof: never admit
-                        // fresh own storage from the type of this assignment.
-                        retiring[assigned] = 0; non_deep_drop[assigned] = 0; unknown[assigned] = 0;
-                    }
                 } else {
                     let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, surfaces.node_ids[slot / 3]);
                     if IsSome(declared) && definitions.local_sources[UnwrapOption(declared)] >= 0 {
@@ -127,25 +126,36 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         if zero_non_deep[binding] { non_deep_drop[row] = 0; }
         row = row + 1;
     }
-    // Propagate only along the exact definition consumed by a direct Let move.
-    let changed: Bool = true;
-    let remaining: Int = count + 1;
-    while changed && remaining > 0 {
-        changed = false;
-        row = 0;
-        while row < count {
-            let source: Int = parents[row];
-            if source >= 0 {
-                        let site: Int = unknown[source];
-                        if site >= 0 && (unknown[row] < 0 || site < unknown[row]) { unknown[row] = site; changed = true; }
-                        site = retiring[source];
-                        if site >= 0 && (retiring[row] < 0 || site < retiring[row]) { retiring[row] = site; changed = true; }
-                        site = non_deep_drop[source];
-                        if site >= 0 && (non_deep_drop[row] < 0 || site < non_deep_drop[row]) { non_deep_drop[row] = site; changed = true; }
+    // A consuming Let inherits its exact source. A proved borrowed Let shares
+    // that storage: real effects must reach ancestors and sibling views too.
+    let pass: Int = 0;
+    while pass < 2 {
+        let changed: Bool = true;
+        let remaining: Int = count + 1;
+        while changed && remaining > 0 {
+            changed = false;
+            row = 0;
+            while row < count {
+                let source: Int = parents[row];
+                if source >= 0 {
+                    if SemanticAstCollectionMergeDefinitionEffectBounds(unknown, retiring, non_deep_drop, source, row) { changed = true; }
+                    if pass == 0 && SemanticAstCollectionDefinitionStorageBorrowed(storage, row) &&
+                        SemanticAstCollectionMergeDefinitionEffectBounds(unknown, retiring, non_deep_drop, row, source) { changed = true; }
+                }
+                row = row + 1;
             }
-            row = row + 1;
+            remaining = remaining - 1;
         }
-        remaining = remaining - 1;
+        // Missing Assign production proof is local permission loss, not an
+        // actual earlier shared-storage effect. Descendants inherit it only.
+        if pass == 0 {
+            row = definitions.local_count;
+            while row < count {
+                if !definitions.fresh[row] { unknown[row] = 0; retiring[row] = 0; non_deep_drop[row] = 0; }
+                row = row + 1;
+            }
+        }
+        pass = pass + 1;
     }
     let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFacts(
         true, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop);

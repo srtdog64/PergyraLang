@@ -1,12 +1,13 @@
 // Value evaluation finishes before a storage definition becomes current.
 // Element provenance is the RHS fact; `own` transfers storage only.
-import "ast_collection_assignment_definition_owner.pgy";
+import "ast_collection_definition_storage_authority_owner.pgy";
 import "ast_collection_call_effect_fact_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
 
 func SemanticAstCollectionCompleteDefinition(
     artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
     slot: Int, inout current: Array<Int>, inout effects: SemanticAstCollectionCallEffectFacts,
     inout ownership: Array<Int>, inout dispositions: Array<Int>, inout origins: Array<Int>,
     inout transitions: Array<Int>, inout source_binding_ids: Array<Int>
@@ -23,6 +24,11 @@ func SemanticAstCollectionCompleteDefinition(
         SemanticAstCollectionSelectDefinitionEffects(effects, row, definition);
     } else if definitions.local_sources[definition] >= 0 {
         let source: Int = definitions.local_sources[definition];
+        if SemanticAstCollectionDefinitionStorageBorrowed(storage, definition) {
+            ownership[row] = SemanticAstCollectionOwnershipUnknown(); origins[row] = SemanticAstCollectionOriginUnknown();
+            transitions[row] = SemanticAstCollectionTransitionUntracked(); source_binding_ids[row] = 0;
+            return SemanticAstCollectionOwnershipVerdictOk();
+        }
         SemanticAstCollectionApplyUnknownCallStateAtUse(artifact, effects, source, definitions.syntax_ids[definition], ownership, dispositions, transitions);
         if dispositions[source] == SemanticAstCollectionDispositionRetired() {
             return SemanticAstCollectionOwnershipVerdictError("move_from_released",

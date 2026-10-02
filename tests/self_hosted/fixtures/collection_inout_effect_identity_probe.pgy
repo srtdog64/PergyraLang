@@ -69,6 +69,9 @@ func Main() -> Void with caps env, io_read {
         return;
     }
     if !bundle.verdict.ok { Log(bundle.verdict.diagnostic_code); Exit(2); }
+    if mutation >= 37 && mutation <= 50 {
+        Log(InspectFormalStorageAuthority(artifact, analysis, bundle, mutation)); return;
+    }
     if mutation >= 26 && mutation <= 36 {
         Log(InspectAssignmentDefinitionAdmission(artifact, analysis, bundle, mutation)); return;
     }
@@ -206,10 +209,12 @@ func Main() -> Void with caps env, io_read {
         let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
             artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
             analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
+        let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
+            analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
         let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
             artifact, analysis.signatures, analysis.local_bindings,
             bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
-            formal_rows, modes, proved, definitions);
+            formal_rows, modes, proved, definitions, storage);
         if caller_row < 0 || unknown_call_syntax < 0 || !SemanticAstCollectionCallEffectFactsReady(facts, ArrayLength(ownership)) {
             Log("missing exact caller effect frame"); Exit(2);
         }
@@ -295,10 +300,12 @@ func InspectOwnStorageAdmission(
                         let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
                             artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
                             analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
+                        let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
+                            analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
                         let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                             artifact, analysis.signatures, analysis.local_bindings,
                             bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
-                            formal_rows, modes, proved, definitions);
+                            formal_rows, modes, proved, definitions, storage);
                         if !effects.ok || !SemanticAstCollectionCallEffectFactsReady(facts, 1) { return false; }
                         let ownership: Array<Int> = [SemanticAstCollectionOwnershipBorrowedElements()];
                         let dispositions: Array<Int> = [SemanticAstCollectionDispositionLive()];
@@ -307,11 +314,11 @@ func InspectOwnStorageAdmission(
                         let syntax: Int = analysis.expression_surfaces.node_ids[slot / 3];
                         let live: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnedArgumentVerdict(
                             artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
-                            analysis.expression_surfaces, slot / 3, edge, binding, false, facts, requirements,
+                            analysis.expression_surfaces, slot / 3, edge, binding, false, false, facts, requirements,
                             ownership, dispositions, bundle.collection_ownership.origins, transitions);
                         let unknown: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnedArgumentVerdict(
                             artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
-                            analysis.expression_surfaces, slot / 3, edge, binding, true, facts, requirements,
+                            analysis.expression_surfaces, slot / 3, edge, binding, true, false, facts, requirements,
                             ownership, dispositions, bundle.collection_ownership.origins, transitions);
                         let clean: Bool = live.ok && !unknown.ok && ownership[0] == SemanticAstCollectionOwnershipBorrowedElements() &&
                             transitions[0] == SemanticAstCollectionTransitionUntracked() &&
@@ -464,14 +471,110 @@ func InspectOwnArgumentOccurrenceOrder(
         true, -1, "", artifact.count, [syntax], [caller], [-1],
         [true], ["candidate"], [false], [""], [false], [""], ["candidate"], [""], [""], [], graph);
     let proved: HashMap<String, Int> = MapNew();
+    // The projection contains formal events only, not the original Let roots.
+    // Keep its local owner empty instead of treating omitted initializers as facts.
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    let no_locals: SemanticAstLocalBindingFacts = SemanticAstLocalBindingFacts(
+        true, "", "", SemanticDiagnosticMessageFactEmpty(), artifact.count,
+        ints, ints, ints, strings, strings, ints, strings, ints, ints, ints);
     let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
-        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        artifact, analysis.signatures, no_locals, strings,
         projected, analysis.assignments, bundle.assignment_types);
+    if !definitions.ok { return false; }
     let verdict: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionFirstInvalidOwnedArgumentUse(
-        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names, projected, definitions, proved);
+        artifact, analysis.signatures, no_locals, strings, projected, definitions, proved);
     if mutation == 24 { return verdict.found && verdict.diagnostic_code == "ast_artifact_invalid"; }
     if mutation == 25 { return !verdict.found; }
     return verdict.found && verdict.diagnostic_code == "move_from_released" &&
         verdict.boundary == "owned_argument_use_after_move" && verdict.syntax_node_id == syntax &&
         verdict.expression_node_id == 4;
+}
+
+// Strict formal join and final own-entry refusal after unchanged admission.
+// Mutated owner facts are unit negatives, not forged final-artifact evidence.
+func InspectFormalStorageAuthority(
+    artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis,
+    ref bundle: SemanticAstBodyTypeBundle, mutation: Int
+) -> Bool {
+    let signature: Int = -1;
+    let foreign: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(analysis.signatures.names) {
+        if analysis.signatures.names[row] == "Modes" { signature = row; }
+        if analysis.signatures.names[row] == "Foreign" { foreign = row; }
+        row = row + 1;
+    }
+    if signature < 0 || foreign < 0 { return false; }
+    let function_id: Int = analysis.signatures.function_node_ids[signature];
+    let binding_row: Int = -1;
+    row = 0;
+    while row < ArrayLength(analysis.local_bindings.node_ids) {
+        if analysis.local_bindings.function_node_ids[row] == function_id && analysis.local_bindings.names[row] == "own_alias" { binding_row = row; }
+        row = row + 1;
+    }
+    if binding_row < 0 { return false; }
+    let surface: Int = UnwrapOption(SemanticAstExpressionSurfaceIndexForNode(analysis.expression_surfaces, analysis.local_bindings.node_ids[binding_row]));
+    let node: Int = UnwrapOption(SemanticAstExpressionGraphRootForNode(analysis.expression_surfaces,
+        analysis.local_bindings.node_ids[binding_row], AstExpressionLaneValue()));
+    let parameter: Int = analysis.signatures.param_starts[signature] + 2;
+    if mutation == 38 { analysis.local_bindings.function_node_ids[binding_row] = analysis.signatures.function_node_ids[foreign]; }
+    if mutation == 39 { analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[node] = 99; }
+    if mutation == 40 { analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[node] = -1; }
+    if mutation == 41 {
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[node] = SemanticExpressionBindingDeclaredCallable();
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[node] = -1;
+    }
+    if mutation == 42 {
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[node] = SemanticExpressionBindingNone();
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[node] = 0;
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[node] = -1;
+    }
+    if mutation == 43 { analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[node] = 0; }
+    if mutation == 44 { analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node] = AstExpressionNodeIndex(); }
+    if mutation == 45 { analysis.signatures.param_types[parameter] = "Int"; }
+    if mutation == 46 { ArrayPop(analysis.signatures.param_modes); }
+    if mutation == 47 { analysis.signatures.param_modes[parameter] = 7; }
+    if mutation == 48 {
+        analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[node] =
+            UnwrapOption(SemanticAstFunctionParamNodeAt(analysis.signatures, foreign, 0));
+    }
+    if mutation == 49 { analysis.expression_surfaces.expression_graph.has_roots[(surface * 3) + AstExpressionLaneValue()] = false; }
+    if mutation == 50 { analysis.signatures.param_modes[parameter] = 3; }
+    let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
+    let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
+        analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
+    let verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
+        artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+        bundle.initializer_types, analysis.expression_surfaces, analysis.statements,
+        analysis.assignments, bundle.assignment_types);
+    if mutation == 37 {
+        if !definitions.ok || !storage.ok || !verdict.ok { return false; }
+        let modes: Array<Int> = [0, 1, 2, 3];
+        let observed: Int = 0;
+        row = 0;
+        while row < ArrayLength(analysis.local_bindings.node_ids) {
+            if analysis.local_bindings.function_node_ids[row] == function_id {
+                let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionStringArrayFormalIdentity(
+                    analysis.signatures, function_id, analysis.expression_surfaces.expression_graph, definitions.value_nodes[row]);
+                if !formal.ok || formal.ordinal != observed || formal.mode != modes[observed] ||
+                    formal.syntax_id != UnwrapOption(SemanticAstFunctionParamNodeAt(analysis.signatures, signature, observed)) ||
+                    SemanticAstCollectionDefinitionStorageBorrowed(storage, row) != (formal.mode != 2) { return false; }
+                observed = observed + 1;
+            }
+            row = row + 1;
+        }
+        return observed == 4;
+    }
+    let identity: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionStringArrayFormalIdentity(
+        analysis.signatures, analysis.local_bindings.function_node_ids[binding_row], analysis.expression_surfaces.expression_graph, node);
+    if mutation == 50 {
+        return identity.ok && identity.mode == 3 && storage.ok &&
+            SemanticAstCollectionDefinitionStorageBorrowed(storage, binding_row) &&
+            !verdict.ok && verdict.diagnostic_code == "borrow_boundary_escape";
+    }
+    if mutation == 49 { return !definitions.ok && !storage.ok && !verdict.ok && verdict.diagnostic_code == "ast_artifact_invalid"; }
+    return !identity.ok && !storage.ok && !verdict.ok && verdict.diagnostic_code == "ast_artifact_invalid";
 }

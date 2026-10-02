@@ -28436,6 +28436,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy:160 \
     src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy:60 \
     src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy:170 \
+    src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy:90 \
     src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy:70 \
     src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy:140 \
@@ -28492,6 +28493,30 @@ require_text "src/self_hosted/semantic/ast_collection_call_argument_verdict_owne
     'SemanticAstCollectionOwnedArgumentVerdict('
 require_text "src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy" \
     'SemanticAstCollectionOwnedArgumentStorageLive('
+require_text "src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy" \
+    '!borrowed_storage && !unknown'
+require_text "src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy" \
+    'struct SemanticAstCollectionFormalStorageIdentity {'
+require_text "src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy" \
+    'SemanticAstCollectionStringArrayFormalIdentity('
+reject_text "src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy" \
+    'while ordinal < count'
+require_text "src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy" \
+    'SemanticAstCollectionOwnershipIsStringArray(inferred_types[row]) && !IsSome(value)'
+require_text "src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy" \
+    'SemanticAstCollectionDefinitionStorageBorrowed(storage, current_definitions[binding.row])'
+require_text "src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy" \
+    'SemanticAstCollectionDefinitionStorageBorrowed(storage, definition)'
+require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
+    'SemanticAstCollectionMergeDefinitionEffectBounds(unknown, retiring, non_deep_drop, row, source)'
+require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
+    'ArrayPush(parents, storage.borrowed_seed_sources[row])'
+require_text "src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy" \
+    'ToString(formal.syntax_id)'
+require_text "src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy" \
+    'current[definitions.binding_rows[completed]] = completed;'
+reject_text "src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy" \
+    'if definitions.fresh[completed]'
 require_text "Makefile" 'self-host-collection-inout-effect-test-smoke'
 require_max_lines "src/self_hosted/mir_lower/collection_ownership_binding_move_owner.pgy" 140
 require_text "src/self_hosted/OWNERS.md" \

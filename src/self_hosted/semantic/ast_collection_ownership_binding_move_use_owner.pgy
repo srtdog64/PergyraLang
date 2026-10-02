@@ -1,6 +1,6 @@
 // Direct binding moves retire one storage definition, not every future value
 // ever stored under that local declaration.
-import "ast_collection_assignment_definition_owner.pgy";
+import "ast_collection_definition_storage_authority_owner.pgy";
 
 struct SemanticAstCollectionBindingMoveUse {
     found: Bool;
@@ -12,7 +12,8 @@ func SemanticAstCollectionFirstInvalidBindingMoveUse(
     artifact: AstTreeArtifact,
     ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>,
-    ref surfaces: SemanticAstExpressionSurfaceFacts, ref definitions: SemanticAstCollectionDefinitionFacts
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts
 ) -> SemanticAstCollectionBindingMoveUse {
     let move_points: HashMap<String, Int> = MapNew();
     let current: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
@@ -59,7 +60,9 @@ func SemanticAstCollectionFirstInvalidBindingMoveUse(
             let completed: Int = SemanticAstCollectionDefinitionCompletedAtSlot(definitions, locals, surfaces, root_slot);
             if completed >= 0 {
                 let source: Int = definitions.local_sources[completed];
-                if source >= 0 { MapSet(move_points, ToString(definitions.syntax_ids[current[source]]), syntax_id); }
+                if source >= 0 && !SemanticAstCollectionDefinitionStorageBorrowed(storage, completed) {
+                    MapSet(move_points, ToString(definitions.syntax_ids[current[source]]), syntax_id);
+                }
                 if definitions.fresh[completed] { current[definitions.binding_rows[completed]] = completed; }
             }
         }

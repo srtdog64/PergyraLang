@@ -1,0 +1,8 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Observe(ref values: Array<String>) -> Int {
+    let first: Array<String> = values;
+    let second: Array<String> = first;
+    let third: Array<String> = second;
+    return Metadata(third);
+}
+func Main() -> Void { let values: Array<String> = ["borrowed"]; Log(Observe(values)); }

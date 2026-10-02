@@ -1,0 +1,77 @@
+// A live borrowed descriptor is not exclusive storage. Borrow facts follow
+// exact definition handoffs without fabricating Unknown/retirement effects.
+import "ast_collection_assignment_definition_owner.pgy";
+
+struct SemanticAstCollectionStorageAuthorityFacts {
+    ok: Bool;
+    borrowed_definitions: Array<Bool>;
+    borrowed_seed_sources: Array<Int>;
+}
+
+func SemanticAstCollectionStorageAuthorityFromDefinitions(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref definitions: SemanticAstCollectionDefinitionFacts
+) -> SemanticAstCollectionStorageAuthorityFacts {
+    let borrowed: Array<Bool> = [];
+    let seeds: Array<Int> = [];
+    let facts: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFacts(false, borrowed, seeds);
+    let row_by_formal: HashMap<String, Int> = MapNew();
+    let n: Int = ArrayLength(definitions.syntax_ids);
+    if !definitions.ok || definitions.local_count != ArrayLength(locals.node_ids) ||
+        ArrayLength(definitions.value_nodes) != n || ArrayLength(definitions.local_sources) != n ||
+        ArrayLength(definitions.binding_rows) != n || ArrayLength(definitions.fresh) != n { return facts; }
+    let row: Int = 0;
+    while row < n {
+        let is_borrowed: Bool = false;
+        let seed_source: Int = -1;
+        let value: Int = definitions.value_nodes[row];
+        if value >= 0 {
+            let identity: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, value);
+            let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, value);
+            if !identity.ok || !IsSome(kind) { return facts; }
+            if identity.kind == SemanticExpressionBindingFormalParameter() {
+                let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionStringArrayFormalIdentity(
+                    signatures, locals.function_node_ids[definitions.binding_rows[row]], surfaces.expression_graph, value);
+                if !formal.ok { return facts; }
+                is_borrowed = formal.mode != 2;
+                // Independent Let seeds of one exact formal are shared views,
+                // not unrelated live descriptors. No spelling or AST rescan.
+                if is_borrowed {
+                    let key: String = ToString(formal.syntax_id);
+                    if MapHas(row_by_formal, key) { seed_source = MapGet(row_by_formal, key); }
+                    else { MapSet(row_by_formal, key, row); }
+                }
+            } else if UnwrapOption(kind) == AstExpressionNodeLeaf() &&
+                (identity.kind != SemanticExpressionBindingNone() || identity.syntax_id != 0 ||
+                 (row < definitions.local_count && definitions.local_sources[row] < 0)) {
+                return facts;
+            }
+        }
+        ArrayPush(facts.borrowed_definitions, is_borrowed);
+        ArrayPush(facts.borrowed_seed_sources, seed_source);
+        row = row + 1;
+    }
+    let current: Array<Int> = [];
+    row = 0;
+    while row < definitions.local_count { ArrayPush(current, row); row = row + 1; }
+    let slot: Int = 0;
+    while slot < ArrayLength(surfaces.expression_graph.roots) {
+        let completed: Int = SemanticAstCollectionDefinitionCompletedAtSlot(definitions, locals, surfaces, slot);
+        if completed >= 0 {
+            let source: Int = definitions.local_sources[completed];
+            if source >= 0 { facts.borrowed_definitions[completed] = facts.borrowed_definitions[current[source]]; }
+            // Lineage selects every typed Assign; only the transition owner
+            // may activate exclusive/fresh storage or change dispositions.
+            current[definitions.binding_rows[completed]] = completed;
+        }
+        slot = slot + 1;
+    }
+    ArrayDrop(current);
+    facts.ok = true;
+    return facts;
+}
+
+func SemanticAstCollectionDefinitionStorageBorrowed(ref facts: SemanticAstCollectionStorageAuthorityFacts, definition: Int) -> Bool {
+    if !facts.ok || definition < 0 || definition >= ArrayLength(facts.borrowed_definitions) { return true; }
+    return facts.borrowed_definitions[definition];
+}

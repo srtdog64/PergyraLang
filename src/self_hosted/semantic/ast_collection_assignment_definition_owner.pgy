@@ -47,6 +47,7 @@ func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
         let value_node: Int = -1;
         let own_source: Int = 0;
         let local_source: Int = -1;
+        if SemanticAstCollectionOwnershipIsStringArray(inferred_types[row]) && !IsSome(value) { return facts; }
         if IsSome(value) && SemanticAstCollectionOwnershipIsStringArray(inferred_types[row]) {
             value_node = UnwrapOption(value);
             own_source = SemanticAstCollectionOwnStringArrayFormalNode(signatures, locals.function_node_ids[row], surfaces.expression_graph, value_node);

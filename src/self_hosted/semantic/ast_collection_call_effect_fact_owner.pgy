@@ -26,6 +26,20 @@ func SemanticAstCollectionSelectDefinitionEffects(inout facts: SemanticAstCollec
     facts.first_non_deep_drop_retiring_sites[row] = facts.definition_non_deep_drop_sites[definition];
 }
 
+// Monotone minimum over one exact definition edge; no state or permission grant.
+func SemanticAstCollectionMergeDefinitionEffectBounds(
+    inout unknown: Array<Int>, inout retiring: Array<Int>, inout non_deep: Array<Int>, source: Int, target: Int
+) -> Bool {
+    let changed: Bool = false;
+    let site: Int = unknown[source];
+    if site >= 0 && (unknown[target] < 0 || site < unknown[target]) { unknown[target] = site; changed = true; }
+    site = retiring[source];
+    if site >= 0 && (retiring[target] < 0 || site < retiring[target]) { retiring[target] = site; changed = true; }
+    site = non_deep[source];
+    if site >= 0 && (non_deep[target] < 0 || site < non_deep[target]) { non_deep[target] = site; changed = true; }
+    return changed;
+}
+
 func SemanticAstCollectionApplyUnknownCallStateAtUse(
     artifact: AstTreeArtifact, ref facts: SemanticAstCollectionCallEffectFacts,
     row: Int, syntax_id: Int, inout ownership: Array<Int>, ref dispositions: Array<Int>, inout transitions: Array<Int>

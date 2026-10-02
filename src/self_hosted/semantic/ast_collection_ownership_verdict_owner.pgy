@@ -62,6 +62,12 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "collection_assignment_definition"), -1, -1);
     }
+    let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
+        signatures, locals, surfaces, definitions);
+    if !storage.ok {
+        return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "collection_storage_authority"), -1, -1);
+    }
     let ownership: Array<Int> = [];
     let dispositions: Array<Int> = [];
     let origins: Array<Int> = [];
@@ -192,7 +198,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let binding_move_use: SemanticAstCollectionBindingMoveUse =
         SemanticAstCollectionFirstInvalidBindingMoveUse(
             artifact, locals, initializer_types.inferred_type_names,
-            surfaces, definitions);
+            surfaces, definitions, storage);
     if binding_move_use.found {
         return SemanticAstCollectionOwnershipVerdictError(
             "move_from_released",
@@ -247,7 +253,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let proved_formal_effects: HashMap<String, Int> = formal_effects.effects;
     let call_effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         artifact, signatures, locals, initializer_types.inferred_type_names,
-        surfaces, formal_row_map, formal_modes, proved_formal_effects, definitions);
+        surfaces, formal_row_map, formal_modes, proved_formal_effects, definitions, storage);
     if !SemanticAstCollectionCallEffectFactsReady(call_effects, local_count) {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "collection_call_effect_facts"), -1, -1);
@@ -290,7 +296,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                     let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
                     let argument_verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
                         artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, root_slot / 3,
-                        edge, proved_formal_effects, element_requirements, ownership, dispositions, origins, transition_states, call_effects);
+                        edge, proved_formal_effects, element_requirements, ownership, dispositions, origins, transition_states, call_effects, storage, current_definitions);
                     if !argument_verdict.ok { return argument_verdict; }
                 }
                 if IsSome(kind) &&
@@ -534,7 +540,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
             last_root = root_id;
         }
         let completed: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCompleteDefinition(
-            artifact, locals, surfaces, definitions, root_slot, current_definitions, call_effects,
+            artifact, locals, surfaces, definitions, storage, root_slot, current_definitions, call_effects,
             ownership, dispositions, origins, transition_states, source_binding_syntax_ids);
         if !completed.ok { return completed; }
         root_slot = root_slot + 1;

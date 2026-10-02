@@ -1,0 +1,27 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Matches(values: Array<String>) -> Bool { return values[0] == "borrowed"; }
+func ByRef(ref values: Array<String>) -> Int {
+    let alias: Array<String> = values;
+    let copied: Array<String> = Clone(alias);
+    let copiedLength: Int = Metadata(copied);
+    if Matches(alias) { return copiedLength + ArrayLength(values); }
+    return 0;
+}
+func ByInout(inout values: Array<String>) -> Int {
+    let alias: Array<String> = values;
+    let copied: Array<String> = Clone(alias);
+    let copiedLength: Int = Metadata(copied);
+    if Matches(alias) { return copiedLength + ArrayLength(values); }
+    return 0;
+}
+func ByDefault(values: Array<String>) -> Int {
+    let alias: Array<String> = values;
+    let copied: Array<String> = Clone(alias);
+    let copiedLength: Int = Metadata(copied);
+    if Matches(alias) { return copiedLength + ArrayLength(values); }
+    return 0;
+}
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    Log(ByRef(values)); Log(ByInout(values)); Log(ByDefault(values));
+}

@@ -1,0 +1,10 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Independent() -> Int {
+    let values: Array<String> = ["independent"];
+    return Metadata(values);
+}
+func Observe(ref values: Array<String>) -> Int {
+    let alias: Array<String> = values;
+    return Independent() + ArrayLength(alias) + ArrayLength(values);
+}
+func Main() -> Void { let values: Array<String> = ["borrowed"]; Log(Observe(values)); }

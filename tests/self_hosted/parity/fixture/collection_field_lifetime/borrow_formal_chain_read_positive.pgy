@@ -1,0 +1,8 @@
+func Matches(values: Array<String>) -> Bool { return values[0] == "borrowed"; }
+func Observe(ref values: Array<String>) -> Bool {
+    let first: Array<String> = values;
+    let second: Array<String> = first;
+    let third: Array<String> = second;
+    return Matches(first) && Matches(second) && Matches(third) && ArrayLength(values) > 0;
+}
+func Main() -> Void { let values: Array<String> = ["borrowed"]; Log(Observe(values)); }

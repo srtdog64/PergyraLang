@@ -15,6 +15,16 @@ SOURCE_PROBE=tests/self_hosted/fixtures/nominal_constructor_source_arity_probe.p
 IDENTITY_PROBE=tests/self_hosted/fixtures/collection_inout_effect_identity_probe.pgy
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 INPUTS=(
+    borrow_formal_ref_own_negative.pgy borrow_formal_inout_own_negative.pgy borrow_formal_default_own_negative.pgy
+    borrow_formal_chain_own_negative.pgy borrow_formal_chain_read_positive.pgy borrow_formal_modes_read_clone_positive.pgy
+    borrow_formal_fresh_clone_positive.pgy borrow_formal_fresh_empty_positive.pgy borrow_formal_fresh_own_positive.pgy
+    borrow_formal_fresh_binding_move_positive.pgy borrow_formal_old_view_after_fresh_positive.pgy
+    borrow_formal_fresh_deferred_negative.pgy borrow_formal_same_name_local_positive.pgy borrow_formal_assign_old_empty_negative.pgy
+    borrow_formal_alias_unknown_read_negative.pgy borrow_formal_alias_deferred_read_negative.pgy
+    borrow_formal_alias_sibling_read_negative.pgy borrow_formal_alias_read_before_positive.pgy borrow_formal_alias_fresh_isolated_positive.pgy
+    borrow_formal_seed_sibling_read_negative.pgy borrow_formal_seed_read_before_positive.pgy borrow_formal_seed_fresh_isolated_positive.pgy
+    borrow_formal_assign_read_before_positive.pgy borrow_formal_assign_shared_read_negative.pgy
+    borrow_formal_assign_alias_shared_read_negative.pgy borrow_formal_assign_alias_before_positive.pgy
     own_assign_single_positive.pgy own_assign_read_before_positive.pgy
     own_assign_original_read_negative.pgy own_assign_duplicate_redefine_negative.pgy own_assign_self_retired_negative.pgy
     own_assign_distinct_redefine_positive.pgy own_assign_old_drop_positive.pgy own_assign_old_clone_drop_positive.pgy
@@ -89,6 +99,7 @@ INPUTS+=(
     docs/audits/repros/own_formal_local_storage_alias_2026-10-02.pgy
     docs/audits/repros/own_same_expression_read_after_transfer_2026-10-02.pgy
     docs/audits/repros/own_formal_assignment_storage_alias_2026-10-02.pgy
+    docs/audits/repros/ref_formal_let_storage_alias_2026-10-02.pgy
 )
 sha256sum "$PGY" >"$WORK/native.sha256"
 sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" \
@@ -97,6 +108,7 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy \
     src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy \
+    src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy \
     src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_binding_move_use_owner.pgy \
@@ -118,7 +130,8 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" \
     src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy >"$WORK/owners.sha256"
 ACTUAL_INPUT="$FIXTURES/callable_table_from_artifact_release_probe.pgy"
 sha256sum "${INPUTS[@]}" "$FIXTURES/inout_index_identity_input.pgy" \
-    "$FIXTURES/own_storage_identity_input.pgy" "$FIXTURES/own_event_order_identity_input.pgy" "$ACTUAL_INPUT" >"$WORK/inputs.sha256"
+    "$FIXTURES/own_storage_identity_input.pgy" "$FIXTURES/own_event_order_identity_input.pgy" \
+    "$FIXTURES/borrow_formal_identity_input.pgy" "$ACTUAL_INPUT" >"$WORK/inputs.sha256"
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$WORK/imports.sha256"
 # Root-coordinated reuse within a frozen source stage, not a compiler install
 # or a cache lookup. Refuse a different source/input/native or mutated binary.
@@ -163,6 +176,8 @@ for backend in c llvm; do
         tr -d '\r' <"$WORK/$backend-$name.raw" >"$WORK/$backend-$name.run"
         [[ ! -s "$WORK/$backend-$name.err" ]]
         case "$name" in
+            ref_formal_let_storage_alias_2026-10-02.pgy)
+                printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             own_event_formal_local_unknown_negative.pgy|own_event_formal_local_loop_negative.pgy|own_event_formal_local_deferred_negative.pgy|own_event_formal_local_deep_drop_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             own_assign_original_read_negative.pgy|own_assign_duplicate_redefine_negative.pgy|own_assign_self_retired_negative.pgy|own_formal_assignment_storage_alias_2026-10-02.pgy|own_event_*_negative.pgy|own_formal_local_storage_alias_2026-10-02.pgy|own_same_expression_read_after_transfer_2026-10-02.pgy)
@@ -267,6 +282,32 @@ own_assign_stale_copy_negative.pgy|borrow_boundary_escape|unproved_inout_copy_en
 own_assign_stale_required_owned_negative.pgy|borrow_boundary_escape|owned_argument_without_owned_provenance:callee=DropElements|DropElements(moved)||Forward
 own_assign_conditional_empty_negative.pgy|borrow_boundary_escape|ArrayDropOwnedStrings|ArrayDropOwnedStrings(moved)||Main
 ASSIGN_DIAGNOSTICS
+    while IFS='|' read -r input boundary atom; do
+        timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
+            >"$WORK/$backend-$input-diagnostic.raw" 2>"$WORK/$backend-$input-diagnostic.err"
+        tr -d '\r' <"$WORK/$backend-$input-diagnostic.raw" >"$WORK/$backend-$input-diagnostic.run"
+        [[ ! -s "$WORK/$backend-$input-diagnostic.err" ]]
+        grep -Fxq 'body_ok=false' "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq 'body_diagnostic=borrow_boundary_escape' "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq -- "- boundary: $boundary" "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq 'body_function=Observe' "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-$input-diagnostic.run"
+        grep -Eq '^body_syntax=[0-9]+$' "$WORK/$backend-$input-diagnostic.run"
+    done <<'BORROW_FORMAL_DIAGNOSTICS'
+borrow_formal_ref_own_negative.pgy|owned_argument_storage_not_live|Metadata(alias)
+borrow_formal_inout_own_negative.pgy|owned_argument_storage_not_live|Metadata(alias)
+borrow_formal_default_own_negative.pgy|owned_argument_storage_not_live|Metadata(alias)
+borrow_formal_chain_own_negative.pgy|owned_argument_storage_not_live|Metadata(third)
+borrow_formal_fresh_deferred_negative.pgy|owned_argument_storage_not_live|Metadata(alias)
+borrow_formal_assign_old_empty_negative.pgy|owned_argument_storage_not_live|Metadata(alias)
+borrow_formal_alias_unknown_read_negative.pgy|unproved_indexed_read_entry|Matches(first)
+borrow_formal_alias_deferred_read_negative.pgy|unproved_indexed_read_entry|Matches(first)
+borrow_formal_alias_sibling_read_negative.pgy|unproved_indexed_read_entry|Matches(right)
+borrow_formal_seed_sibling_read_negative.pgy|unproved_indexed_read_entry|Matches(first)
+borrow_formal_assign_shared_read_negative.pgy|unproved_indexed_read_entry|Matches(first)
+borrow_formal_assign_alias_shared_read_negative.pgy|unproved_indexed_read_entry|Matches(first)
+BORROW_FORMAL_DIAGNOSTICS
     for mode_case in missing extra unknown; do
         args=()
         case "$mode_case" in
@@ -333,13 +374,21 @@ ASSIGN_DIAGNOSTICS
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
     done
+    for ((mutation=37; mutation<=50; mutation++)); do
+        timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/borrow_formal_identity_input.pgy" "$mutation" \
+            >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
+        tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
+        [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
+    done
     timeout 30 "$WORK/$backend-identity.exe" "$ACTUAL_INPUT" -1 \
         >"$WORK/$backend-actual-producer.raw" 2>"$WORK/$backend-actual-producer.err"
     tr -d '\r' <"$WORK/$backend-actual-producer.raw" | LC_ALL=C sort >"$WORK/$backend-actual-producer.run"
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, twenty-eight diagnostic locations, three observer mode, thirty-seven identity/boundary and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, forty diagnostic locations, three observer mode, fifty-one identity/boundary and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

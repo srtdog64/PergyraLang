@@ -62,6 +62,15 @@ current unless its `tests/self_hosted/parity/<tool>_parity.sh` rung passes.
 
 Minimum parity contract for each tool:
 
+The focused `collection_inout_effect_owner.sh` is analyzer-only: supplied
+negative programs are not emitted or run. It pairs borrowed default/inout/ref
+formal own-entry refusal with readonly alias chains and fresh-definition
+controls. Exact-definition borrowed edges propagate real effects to shared
+views, not synthetic Unknown bounds; later fresh storage is independent.
+Formal identity owner units mutate freshly admitted facts and check final
+authority refusal. These checks are not MIR, installed-driver, aggregate-field
+release, hard C substitution or registry-closure evidence.
+
 - run the existing C or shell oracle against the same input;
 - run the Pergyra tool against the same input;
 - compile and run the Pergyra tool through both C and LLVM when the current

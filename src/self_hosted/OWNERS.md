@@ -604,6 +604,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   stable callable, parameter-mode, literal-origin, and local-binding identity
   queries shared by the collection ownership verdict. It does not own state
   transitions or infer ownership from a descriptor type.
+  The strict source-formal fact joins current function, Leaf, exact ID/ordinal,
+  type and mode once; own and parameter-mode queries project that fact.
 - `src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy`
   -- exact String-array formal inventory and carried source-call argument join.
   Function/formal syntax IDs, source ordinal and receiver offset stay with the
@@ -619,6 +621,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   traversal, propagated across the exact definition consumed by a direct move.
   Same-binding deferred/repeated zero bounds affect every storage definition.
   Production never changes element permission or retires storage.
+  Only proved borrowed definition links share actual bounds bidirectionally; consuming
+  moves inherit source bounds and fresh Assign never inherits an old alias edge.
+  Unsupported Assign permission loss flows to descendants only, after real
+  shared effects; it cannot invalidate an earlier observation of the source.
 - `src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy` --
   definition-bound effect table and its selected local projection. Current-use
   and terminal consumers read that projection; no old earliest-event filtering
@@ -629,10 +635,19 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   not yet carry declaration IDs in the expression identity protocol. Formal
   transfers consume exact carried parameter ID/ordinal and keep elements Unknown.
   Child-block definitions have no dominance/join proof and grant no freshness.
+  A missing String-array Let Value root fails closed before any fresh grant.
+- `src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy`
+  -- per-definition borrowed storage authority from the strict formal fact and
+  exact local Let source. Independent seeds of one exact formal share a storage
+  edge; names never establish that connection. Live/Unknown and elements stay separate;
+  fresh redefinition selects a new fact, not a declaration-wide borrowed ban.
+  Typed Assign selects lineage even without a fresh/exclusive production proof;
+  only the transition owner activates Live storage and its disposition.
 - `src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy` --
   RHS-completion activation of the current storage definition and its element
   provenance, including direct Let moves from the current value. Own storage
   mode never grants Empty/Clone elements or reuses a previous definition's bound.
+  Borrowed Let handoffs are non-consuming and carry no element-release grant.
 - `src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy`
   -- reached argument events consume own storage/element admission separately
   from conditional copy/indexed-read entry and caller output. A proved copy
@@ -683,7 +698,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy`
   -- current-event storage-live admission, separate from required String-element
   admission for local facts and forwarding formals with propagated obligations.
-  A live borrowed-element descriptor may transfer storage but cannot deep-drop.
+  A fresh descriptor with borrowed elements may transfer storage, not deep-drop.
+  Borrowed formal storage and its local views never acquire exclusive own entry.
   Direct field/unnamed-result storage grants fail closed; named call-result
   locals still need independent element and exclusive-release proof.
 - `src/self_hosted/semantic/ast_expression_environment_storage_lifetime_owner.pgy`

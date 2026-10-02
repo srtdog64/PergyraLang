@@ -1,0 +1,20 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Matches(values: Array<String>) -> Bool { return values[0] == "borrowed"; }
+func Foreign(ref values: Array<String>) -> Int { return ArrayLength(values); }
+func Modes(default_values: Array<String>, inout inout_values: Array<String>, own own_values: Array<String>, ref ref_values: Array<String>) -> Int {
+    let default_alias: Array<String> = default_values;
+    let inout_alias: Array<String> = inout_values;
+    let own_alias: Array<String> = own_values;
+    let ref_alias: Array<String> = ref_values;
+    Log(Matches(default_alias));
+    Log(Matches(inout_alias));
+    Log(Matches(ref_alias));
+    return Metadata(own_alias);
+}
+func Main() -> Void {
+    let a: Array<String> = ["borrowed"];
+    let b: Array<String> = ["borrowed"];
+    let c: Array<String> = ["borrowed"];
+    let d: Array<String> = ["borrowed"];
+    Log(Modes(a, b, c, d));
+}

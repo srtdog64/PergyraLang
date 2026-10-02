@@ -134,48 +134,49 @@ func SemanticAstCollectionOwnershipLocalForStatementTarget(
     );
 }
 
-// Returns parameter mode + 1 so default mode 0 remains distinguishable from
-// "not a visible Array<String> parameter". Typed-AST mode 2 is `own`.
+struct SemanticAstCollectionFormalStorageIdentity {
+    ok: Bool;
+    syntax_id: Int;
+    ordinal: Int;
+    mode: Int;
+}
+
+// Source-formal ordinals already include a hosted receiver. Only a callee
+// argument projection applies the source-signature receiver offset.
+func SemanticAstCollectionStringArrayFormalIdentity(
+    ref signatures: SemanticAstFunctionSignatureFacts, function_node_id: Int,
+    ref graph: SemanticExpressionGraphFacts, node: Int
+) -> SemanticAstCollectionFormalStorageIdentity {
+    let missing: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionFormalStorageIdentity(false, 0, -1, -1);
+    let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(graph, node);
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_node_id);
+    if !signatures.ok || !binding.ok || binding.kind != SemanticExpressionBindingFormalParameter() ||
+        binding.syntax_id <= 0 || !binding.has_ordinal || !IsSome(kind) ||
+        UnwrapOption(kind) != AstExpressionNodeLeaf() || !IsSome(signature) { return missing; }
+    let row: Int = UnwrapOption(signature);
+    if ArrayLength(signatures.param_starts) != ArrayLength(signatures.function_node_ids) ||
+        ArrayLength(signatures.param_counts) != ArrayLength(signatures.function_node_ids) ||
+        ArrayLength(signatures.param_types) != ArrayLength(signatures.param_node_ids) ||
+        ArrayLength(signatures.param_modes) != ArrayLength(signatures.param_node_ids) ||
+        signatures.param_starts[row] < 0 || signatures.param_counts[row] < 0 ||
+        signatures.param_starts[row] + signatures.param_counts[row] > ArrayLength(signatures.param_node_ids) ||
+        binding.ordinal < 0 || binding.ordinal >= signatures.param_counts[row] { return missing; }
+    let parameter: Int = signatures.param_starts[row] + binding.ordinal;
+    if signatures.param_node_ids[parameter] != binding.syntax_id ||
+        !SemanticAstCollectionOwnershipIsStringArray(signatures.param_types[parameter]) ||
+        signatures.param_modes[parameter] < 0 || signatures.param_modes[parameter] > 3 { return missing; }
+    return SemanticAstCollectionFormalStorageIdentity(true, binding.syntax_id, binding.ordinal, signatures.param_modes[parameter]);
+}
+
+// mode+1 distinguishes valid default mode0 from a missing source-formal fact.
 func SemanticAstCollectionOwnershipParameterModeForArgument(
-    ref signatures: SemanticAstFunctionSignatureFacts,
-    ref surfaces: SemanticAstExpressionSurfaceFacts,
-    surface_index: Int,
-    argument_node_id: Int
+    ref signatures: SemanticAstFunctionSignatureFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_index: Int, argument_node_id: Int
 ) -> Int {
-    if surface_index < 0 ||
-        surface_index >= ArrayLength(surfaces.function_node_ids) {
-        return 0;
-    }
-    let binding: SemanticExpressionBindingIdentityFact =
-        SemanticExpressionGraphBindingIdentity(
-            surfaces.expression_graph, argument_node_id);
-    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
-        signatures, surfaces.function_node_ids[surface_index]);
-    if !binding.ok || binding.kind !=
-            SemanticExpressionBindingFormalParameter() ||
-        !IsSome(signature) {
-        return 0;
-    }
-    let signature_row: Int = UnwrapOption(signature);
-    let parameter_count: Option<Int> = SemanticAstFunctionParamCountAt(
-        signatures, signature_row);
-    if !IsSome(parameter_count) { return 0; }
-    let parameter: Int = 0;
-    while parameter < UnwrapOption(parameter_count) {
-        let parameter_node: Option<Int> = SemanticAstFunctionParamNodeAt(
-            signatures, signature_row, parameter);
-        let parameter_type: Option<String> = SemanticAstFunctionParamTypeAt(
-            signatures, signature_row, parameter);
-        let parameter_mode: Option<Int> = SemanticAstFunctionParamModeAt(
-            signatures, signature_row, parameter);
-        if IsSome(parameter_node) && IsSome(parameter_type) &&
-            IsSome(parameter_mode) &&
-            UnwrapOption(parameter_node) == binding.syntax_id &&
-            SemanticAstCollectionOwnershipIsStringArray(
-                UnwrapOption(parameter_type)) {
-            return UnwrapOption(parameter_mode) + 1;
-        }
-        parameter = parameter + 1;
-    }
-    return 0;
+    if surface_index < 0 || surface_index >= ArrayLength(surfaces.function_node_ids) { return 0; }
+    let formal: SemanticAstCollectionFormalStorageIdentity = SemanticAstCollectionStringArrayFormalIdentity(
+        signatures, surfaces.function_node_ids[surface_index], surfaces.expression_graph, argument_node_id);
+    if !formal.ok { return 0; }
+    return formal.mode + 1;
 }
