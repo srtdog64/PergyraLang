@@ -1,0 +1,41 @@
+// Value evaluation finishes before a storage definition becomes current.
+// Element provenance is the RHS fact; `own` transfers storage only.
+import "ast_collection_assignment_definition_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+
+func SemanticAstCollectionCompleteDefinition(
+    artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref definitions: SemanticAstCollectionDefinitionFacts,
+    slot: Int, inout current: Array<Int>, inout effects: SemanticAstCollectionCallEffectFacts,
+    inout ownership: Array<Int>, inout dispositions: Array<Int>, inout origins: Array<Int>,
+    inout transitions: Array<Int>, inout source_binding_ids: Array<Int>
+) -> SemanticAstCollectionOwnershipVerdict {
+    let definition: Int = SemanticAstCollectionDefinitionCompletedAtSlot(definitions, locals, surfaces, slot);
+    if definition < 0 { return SemanticAstCollectionOwnershipVerdictOk(); }
+    let row: Int = definitions.binding_rows[definition];
+    if definition >= definitions.local_count {
+        ownership[row] = definitions.ownerships[definition];
+        origins[row] = definitions.origins[definition];
+        transitions[row] = definitions.transitions[definition];
+        source_binding_ids[row] = 0;
+        if definitions.fresh[definition] { dispositions[row] = SemanticAstCollectionDispositionLive(); current[row] = definition; }
+        SemanticAstCollectionSelectDefinitionEffects(effects, row, definition);
+    } else if definitions.local_sources[definition] >= 0 {
+        let source: Int = definitions.local_sources[definition];
+        SemanticAstCollectionApplyUnknownCallStateAtUse(artifact, effects, source, definitions.syntax_ids[definition], ownership, dispositions, transitions);
+        if dispositions[source] == SemanticAstCollectionDispositionRetired() {
+            return SemanticAstCollectionOwnershipVerdictError("move_from_released",
+                SemanticError2("move_from_released", "boundary", "binding_move", "type", "Array<String>"), definitions.syntax_ids[definition], definitions.value_nodes[definition]);
+        }
+        if origins[source] == SemanticAstCollectionOriginEmptyLiteral() || origins[source] == SemanticAstCollectionOriginBinding() {
+            return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+                SemanticError2("borrow_boundary_escape", "boundary", "untracked_binding_move", "type", "Array<String>"), definitions.syntax_ids[definition], definitions.value_nodes[definition]);
+        }
+        ownership[row] = ownership[source];
+        origins[row] = SemanticAstCollectionOriginBinding();
+        source_binding_ids[row] = locals.node_ids[source];
+        dispositions[source] = SemanticAstCollectionDispositionRetired();
+    }
+    return SemanticAstCollectionOwnershipVerdictOk();
+}

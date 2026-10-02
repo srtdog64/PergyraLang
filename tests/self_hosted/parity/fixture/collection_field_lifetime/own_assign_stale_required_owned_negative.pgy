@@ -1,0 +1,7 @@
+func DropElements(own values: Array<String>) -> Int { ArrayDropOwnedStrings(values); return 0; }
+func Forward(own values: Array<String>) -> Int {
+    let moved: Array<String> = [];
+    moved = values;
+    return DropElements(moved);
+}
+func Main() -> Void { let values: Array<String> = ["borrowed"]; Log(Forward(values)); }

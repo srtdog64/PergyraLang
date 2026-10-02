@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let moved: Array<String> = ["borrowed"];
+    if false { moved = []; }
+    ArrayDropOwnedStrings(moved);
+}

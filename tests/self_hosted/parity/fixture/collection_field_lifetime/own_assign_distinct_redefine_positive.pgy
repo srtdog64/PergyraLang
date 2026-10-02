@@ -1,0 +1,14 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Forward(own first: Array<String>, own second: Array<String>) -> Int {
+    let moved: Array<String> = [];
+    let old: Int = Metadata(moved);
+    moved = first;
+    let a: Int = Metadata(moved);
+    moved = second;
+    return old + a + Metadata(moved);
+}
+func Main() -> Void {
+    let first: Array<String> = ["first"];
+    let second: Array<String> = ["second"];
+    Log(Forward(first, second));
+}

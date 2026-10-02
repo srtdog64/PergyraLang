@@ -21,6 +21,7 @@ import "ast_collection_ownership_state_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
 import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_ownership_assignment_alias_owner.pgy";
+import "ast_collection_definition_transition_owner.pgy";
 import "ast_collection_ownership_binding_move_use_owner.pgy";
 import "ast_collection_ownership_member_transition_owner.pgy";
 import "ast_collection_ownership_argument_transfer_owner.pgy";
@@ -55,6 +56,12 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
             SemanticError1("ast_artifact_invalid", "owner",
                 "SemanticAstCollectionOwnershipVerdict"), -1, -1);
     }
+    let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+        artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, assignments, assignment_types);
+    if !definitions.ok {
+        return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner", "collection_assignment_definition"), -1, -1);
+    }
     let ownership: Array<Int> = [];
     let dispositions: Array<Int> = [];
     let origins: Array<Int> = [];
@@ -64,7 +71,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let receipts: SemanticAstCollectionOwnershipReceiptRows =
         SemanticAstCollectionOwnershipReceiptRowsEmpty();
     let move_destinations: HashMap<String, Int> = MapNew();
-    let binding_move_points: HashMap<String, Int> = MapNew();
+    let current_definitions: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
     let owned_string_results: SemanticAstOwnedStringResultFacts =
         SemanticAstOwnedStringResultFactsFromResolvedFacts(
             artifact, signatures, locals, initializer_types, surfaces,
@@ -173,35 +180,11 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                     locals.node_ids[local_row],
                     surfaces.expression_graph, root_id);
             if source.ok {
-                if dispositions[source.row] ==
-                        SemanticAstCollectionDispositionRetired() {
-                    return SemanticAstCollectionOwnershipVerdictError(
-                        "move_from_released",
-                        SemanticError2("move_from_released",
-                            "boundary", "binding_move",
-                            "type", "Array<String>"),
-                        locals.node_ids[local_row], root_id);
-                }
-                if origins[source.row] ==
-                        SemanticAstCollectionOriginEmptyLiteral() ||
-                    origins[source.row] ==
-                        SemanticAstCollectionOriginBinding() {
-                    return SemanticAstCollectionOwnershipVerdictError(
-                        "borrow_boundary_escape",
-                        SemanticError2("borrow_boundary_escape",
-                            "boundary", "untracked_binding_move",
-                            "type", "Array<String>"),
-                        locals.node_ids[local_row], root_id);
-                }
-                ownership[local_row] = ownership[source.row];
+                // The current RHS definition, not this initializer inventory,
+                // owns element state and source retirement at Value completion.
                 origins[local_row] = SemanticAstCollectionOriginBinding();
                 source_binding_syntax_ids[local_row] =
                     locals.node_ids[source.row];
-                dispositions[source.row] =
-                    SemanticAstCollectionDispositionRetired();
-                MapSet(binding_move_points,
-                    ToString(locals.node_ids[source.row]),
-                    locals.node_ids[local_row]);
             }
         }
         local_row = local_row + 1;
@@ -209,7 +192,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let binding_move_use: SemanticAstCollectionBindingMoveUse =
         SemanticAstCollectionFirstInvalidBindingMoveUse(
             artifact, locals, initializer_types.inferred_type_names,
-            surfaces, binding_move_points);
+            surfaces, definitions);
     if binding_move_use.found {
         return SemanticAstCollectionOwnershipVerdictError(
             "move_from_released",
@@ -264,7 +247,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let proved_formal_effects: HashMap<String, Int> = formal_effects.effects;
     let call_effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         artifact, signatures, locals, initializer_types.inferred_type_names,
-        surfaces, formal_row_map, formal_modes, proved_formal_effects, origins, source_binding_syntax_ids);
+        surfaces, formal_row_map, formal_modes, proved_formal_effects, definitions);
     if !SemanticAstCollectionCallEffectFactsReady(call_effects, local_count) {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "collection_call_effect_facts"), -1, -1);
@@ -550,12 +533,16 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
             }
             last_root = root_id;
         }
+        let completed: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCompleteDefinition(
+            artifact, locals, surfaces, definitions, root_slot, current_definitions, call_effects,
+            ownership, dispositions, origins, transition_states, source_binding_syntax_ids);
+        if !completed.ok { return completed; }
         root_slot = root_slot + 1;
     }
     let transferred_use: SemanticAstCollectionOwnedArgumentUse =
         SemanticAstCollectionFirstInvalidOwnedArgumentUse(
             artifact, signatures, locals, initializer_types.inferred_type_names,
-            surfaces, proved_formal_effects);
+            surfaces, definitions, proved_formal_effects);
     if transferred_use.found {
         return SemanticAstCollectionOwnershipVerdictError(
             transferred_use.diagnostic_code,

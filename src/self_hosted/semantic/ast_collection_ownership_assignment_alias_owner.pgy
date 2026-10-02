@@ -64,12 +64,15 @@ func SemanticAstCollectionOwnershipAssignmentAliasAt(
             assignments.function_node_ids[assignment_row],
             assignments.node_ids[assignment_row],
             surfaces.expression_graph, UnwrapOption(root));
+    let target_root: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces,
+        assignments.node_ids[assignment_row], AstExpressionLaneAtom());
+    if !IsSome(target_root) { return SemanticAstCollectionOwnershipAssignmentAliasInvalid(assignments.node_ids[assignment_row]); }
     let target: SemanticAstLocalBindingIdentity =
-        SemanticAstScopedLocalBindingIdentityForName(
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
             artifact, locals, initializer_types.inferred_type_names,
             assignments.function_node_ids[assignment_row],
             assignments.node_ids[assignment_row],
-            assignments.target_root_names[assignment_row]);
+            surfaces.expression_graph, UnwrapOption(target_root));
     if !source.ok || !target.ok ||
         SemanticAstLocalBindingIdentityEqual(source, target) {
         return SemanticAstCollectionOwnershipAssignmentAliasNone();

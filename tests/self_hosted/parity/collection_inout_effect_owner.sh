@@ -2,7 +2,7 @@
 # Current-source native C/LLVM analyzers; supplied programs are never emitted/run.
 set -Eeuo pipefail
 trap 'status=$?; echo "[collection-inout-effect] failed at line $LINENO (status $status); evidence: ${REL:-not-created}" >&2' ERR
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
@@ -15,6 +15,14 @@ SOURCE_PROBE=tests/self_hosted/fixtures/nominal_constructor_source_arity_probe.p
 IDENTITY_PROBE=tests/self_hosted/fixtures/collection_inout_effect_identity_probe.pgy
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 INPUTS=(
+    own_assign_single_positive.pgy own_assign_read_before_positive.pgy
+    own_assign_original_read_negative.pgy own_assign_duplicate_redefine_negative.pgy own_assign_self_retired_negative.pgy
+    own_assign_distinct_redefine_positive.pgy own_assign_old_drop_positive.pgy own_assign_old_clone_drop_positive.pgy
+    own_assign_old_unknown_positive.pgy own_assign_old_new_unknown_negative.pgy
+    own_assign_old_drop_new_drop_negative.pgy own_assign_stale_empty_drop_negative.pgy own_assign_stale_clone_drop_negative.pgy
+    own_assign_stale_owned_push_negative.pgy own_assign_stale_copy_negative.pgy own_assign_stale_required_owned_negative.pgy
+    own_assign_alias_metadata_positive.pgy own_assign_alias_unknown_drop_negative.pgy own_assign_binding_move_redefine_positive.pgy
+    own_assign_conditional_empty_negative.pgy own_assign_deferred_old_effect_negative.pgy own_assign_loop_transfer_negative.pgy
     own_event_formal_local_single_positive.pgy
     own_event_formal_local_reuse_negative.pgy
     own_event_formal_local_duplicate_negative.pgy
@@ -80,12 +88,18 @@ for i in "${!INPUTS[@]}"; do INPUTS[i]="$FIXTURES/${INPUTS[i]}"; done
 INPUTS+=(
     docs/audits/repros/own_formal_local_storage_alias_2026-10-02.pgy
     docs/audits/repros/own_same_expression_read_after_transfer_2026-10-02.pgy
+    docs/audits/repros/own_formal_assignment_storage_alias_2026-10-02.pgy
 )
 sha256sum "$PGY" >"$WORK/native.sha256"
 sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
+    src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy \
+    src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy \
+    src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_binding_move_use_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy \
@@ -95,6 +109,7 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" \
     src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy \
     src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy \
     src/self_hosted/semantic/ast_local_binding_fact_owner.pgy \
+    src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy \
     src/self_hosted/semantic/ast_assignment_fact_owner.pgy \
     src/self_hosted/semantic/ast_expression_graph_call_argument_edge_owner.pgy \
@@ -105,9 +120,43 @@ ACTUAL_INPUT="$FIXTURES/callable_table_from_artifact_release_probe.pgy"
 sha256sum "${INPUTS[@]}" "$FIXTURES/inout_index_identity_input.pgy" \
     "$FIXTURES/own_storage_identity_input.pgy" "$FIXTURES/own_event_order_identity_input.pgy" "$ACTUAL_INPUT" >"$WORK/inputs.sha256"
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$WORK/imports.sha256"
+# Root-coordinated reuse within a frozen source stage, not a compiler install
+# or a cache lookup. Refuse a different source/input/native or mutated binary.
+PROBE_DIR="${PGY_COLLECTION_EFFECT_PROBE_DIR:-}"
+if [[ -n "$PROBE_DIR" ]]; then
+    PROBE_DIR="$(cd "$PROBE_DIR" && pwd -P)"
+    case "$PROBE_DIR/" in "$ROOT_DIR/.tmp/self_hosted/"*) ;; *) echo 'probe reuse must stay in this checkout artifact directory' >&2; exit 1 ;; esac
+    for manifest in native owners inputs imports; do
+        cmp "$WORK/$manifest.sha256" "$PROBE_DIR/$manifest.sha256"
+        sha256sum --quiet -c "$PROBE_DIR/$manifest.sha256"
+    done
+    # A valid subset is not a complete proof. Pin exactly the four binaries
+    # about to be copied, accepting old relative or new absolute receipt paths.
+    sha256sum --binary "$PROBE_DIR/c-source.exe" "$PROBE_DIR/c-identity.exe" \
+        "$PROBE_DIR/llvm-source.exe" "$PROBE_DIR/llvm-identity.exe" \
+        | LC_ALL=C sort >"$WORK/reuse-expected-binaries.sha256"
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ "${line:0:64}" =~ ^[0-9a-f]{64}$ &&
+            ( "${line:64:2}" == ' *' || "${line:64:2}" == '  ' ) ]] || {
+            echo 'invalid probe binary hash receipt' >&2; exit 1;
+        }
+        binary_path="$(realpath -- "${line:66}")"
+        printf '%s *%s\n' "${line:0:64}" "$binary_path"
+    done <"$PROBE_DIR/probe-binaries.sha256" \
+        | LC_ALL=C sort >"$WORK/reuse-declared-binaries.sha256"
+    cmp "$WORK/reuse-expected-binaries.sha256" "$WORK/reuse-declared-binaries.sha256"
+    sha256sum --quiet -c "$WORK/reuse-declared-binaries.sha256"
+    echo "[collection-inout-effect] exact-source probe reuse: ${PROBE_DIR#"$ROOT_DIR/"}"
+fi
 for backend in c llvm; do
-    timeout 120 "$PGY" --native-pipeline "$SOURCE_PROBE" "--backend=$backend" --opt=dev \
-        -o "$REL/$backend-source.exe" >"$WORK/$backend-source.compile" 2>&1
+    if [[ -n "$PROBE_DIR" ]]; then
+        cp "$PROBE_DIR/$backend-source.exe" "$WORK/$backend-source.exe"
+        cmp "$PROBE_DIR/$backend-source.exe" "$WORK/$backend-source.exe"
+    else
+        timeout 120 "$PGY" --native-pipeline "$SOURCE_PROBE" "--backend=$backend" --opt=dev \
+            -o "$REL/$backend-source.exe" >"$WORK/$backend-source.compile" 2>&1
+    fi
+    sha256sum "$WORK/$backend-source.exe" >>"$WORK/probe-binaries.sha256"
     for input in "${INPUTS[@]}"; do
         name="${input##*/}"
         timeout 30 "$WORK/$backend-source.exe" "$input" >"$WORK/$backend-$name.raw" 2>"$WORK/$backend-$name.err"
@@ -116,7 +165,7 @@ for backend in c llvm; do
         case "$name" in
             own_event_formal_local_unknown_negative.pgy|own_event_formal_local_loop_negative.pgy|own_event_formal_local_deferred_negative.pgy|own_event_formal_local_deep_drop_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
-            own_event_*_negative.pgy|own_formal_local_storage_alias_2026-10-02.pgy|own_same_expression_read_after_transfer_2026-10-02.pgy)
+            own_assign_original_read_negative.pgy|own_assign_duplicate_redefine_negative.pgy|own_assign_self_retired_negative.pgy|own_formal_assignment_storage_alias_2026-10-02.pgy|own_event_*_negative.pgy|own_formal_local_storage_alias_2026-10-02.pgy|own_same_expression_read_after_transfer_2026-10-02.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             member_*_negative.pgy|own_storage_nested_same_binding_negative.pgy|own_storage_formal_retired_negative.pgy|own_storage_formal_child_retired_negative.pgy|own_storage_return_duplicate_negative.pgy|own_formal_*_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
@@ -195,6 +244,29 @@ own_event_formal_local_unknown_negative.pgy|owned_argument_storage_unproved|reje
 own_event_read_after_negative.pgy|owned_argument_use_after_move|rejected_after|(Metadata(values) + ArrayLength(values))
 own_event_argument_read_after_negative.pgy|owned_argument_use_after_move|rejected_argument_after|OwnFirst(values, ArrayLength(values))
 OWN_EVENT_DIAGNOSTICS
+    while IFS='|' read -r input code boundary atom value function; do
+        timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
+            >"$WORK/$backend-$input-diagnostic.raw" 2>"$WORK/$backend-$input-diagnostic.err"
+        tr -d '\r' <"$WORK/$backend-$input-diagnostic.raw" >"$WORK/$backend-$input-diagnostic.run"
+        [[ ! -s "$WORK/$backend-$input-diagnostic.err" ]]
+        grep -Fxq "body_diagnostic=$code" "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq -- "- boundary: $boundary" "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-diagnostic.run"
+        if [[ -n "$value" ]]; then grep -Fxq "body_value=$value" "$WORK/$backend-$input-diagnostic.run"; fi
+        grep -Fxq "body_function=$function" "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-$input-diagnostic.run"
+    done <<'ASSIGN_DIAGNOSTICS'
+own_assign_original_read_negative.pgy|move_from_released|owned_argument_use_after_move|rejected_original_read|ArrayLength(values)|Forward
+own_assign_duplicate_redefine_negative.pgy|move_from_released|owned_argument_use_after_move|moved|first|Forward
+own_assign_self_retired_negative.pgy|move_from_released|owned_argument_use_after_move|moved|moved|Forward
+own_assign_old_new_unknown_negative.pgy|borrow_boundary_escape|owned_argument_storage_not_live|rejected_new_unknown|Metadata(moved)|Forward
+own_assign_stale_empty_drop_negative.pgy|borrow_boundary_escape|owned_string_drop|ArrayDropOwnedStrings(moved)||Forward
+own_assign_stale_clone_drop_negative.pgy|borrow_boundary_escape|owned_string_drop|ArrayDropOwnedStrings(moved)||Forward
+own_assign_old_drop_new_drop_negative.pgy|borrow_boundary_escape|owned_string_drop|ArrayDropOwnedStrings(moved)||Forward
+own_assign_stale_copy_negative.pgy|borrow_boundary_escape|unproved_inout_copy_entry|rejected_copy|Copy(moved)|Forward
+own_assign_stale_required_owned_negative.pgy|borrow_boundary_escape|owned_argument_without_owned_provenance:callee=DropElements|DropElements(moved)||Forward
+own_assign_conditional_empty_negative.pgy|borrow_boundary_escape|ArrayDropOwnedStrings|ArrayDropOwnedStrings(moved)||Main
+ASSIGN_DIAGNOSTICS
     for mode_case in missing extra unknown; do
         args=()
         case "$mode_case" in
@@ -213,8 +285,14 @@ OWN_EVENT_DIAGNOSTICS
         tr -d '\r' <"$WORK/$backend-mode-$mode_case.raw" >"$WORK/$backend-mode-$mode_case.run"
         cmp "$WORK/expected" "$WORK/$backend-mode-$mode_case.run"
     done
-    timeout 120 "$PGY" --native-pipeline "$IDENTITY_PROBE" "--backend=$backend" --opt=dev \
-        -o "$REL/$backend-identity.exe" >"$WORK/$backend-identity.compile" 2>&1
+    if [[ -n "$PROBE_DIR" ]]; then
+        cp "$PROBE_DIR/$backend-identity.exe" "$WORK/$backend-identity.exe"
+        cmp "$PROBE_DIR/$backend-identity.exe" "$WORK/$backend-identity.exe"
+    else
+        timeout 120 "$PGY" --native-pipeline "$IDENTITY_PROBE" "--backend=$backend" --opt=dev \
+            -o "$REL/$backend-identity.exe" >"$WORK/$backend-identity.compile" 2>&1
+    fi
+    sha256sum "$WORK/$backend-identity.exe" >>"$WORK/probe-binaries.sha256"
     for ((mutation=0; mutation<=12; mutation++)); do
         timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/inout_forward_owned_push_drop_positive.pgy" "$mutation" \
             >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
@@ -247,16 +325,26 @@ OWN_EVENT_DIAGNOSTICS
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
     done
+    for ((mutation=26; mutation<=36; mutation++)); do
+        timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/own_assign_single_positive.pgy" "$mutation" \
+            >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
+        tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
+        [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
+    done
     timeout 30 "$WORK/$backend-identity.exe" "$ACTUAL_INPUT" -1 \
         >"$WORK/$backend-actual-producer.raw" 2>"$WORK/$backend-actual-producer.err"
     tr -d '\r' <"$WORK/$backend-actual-producer.raw" | LC_ALL=C sort >"$WORK/$backend-actual-producer.run"
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, eighteen diagnostic locations, three observer mode, twenty-six identity/boundary and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, twenty-eight diagnostic locations, three observer mode, thirty-seven identity/boundary and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"
 sha256sum -c "$WORK/inputs.sha256"
 sha256sum --quiet -c "$WORK/imports.sha256"
+sha256sum --quiet -c "$WORK/probe-binaries.sha256"
+if [[ -n "$PROBE_DIR" ]]; then sha256sum --quiet -c "$PROBE_DIR/probe-binaries.sha256"; fi
 echo "[collection-inout-effect] evidence: $REL (analyze-only inputs)"

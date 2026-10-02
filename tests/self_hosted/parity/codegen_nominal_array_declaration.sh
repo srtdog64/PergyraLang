@@ -33,8 +33,12 @@ done
 SOURCE=tests/self_hosted/parity/fixture/mir_collection_receiver_root.pgy
 "$PGY" --native-pipeline --emit-c "$SOURCE" -o "$B/root-native.c" \
     >"$B/root-native.out" 2>"$B/root-native.err" || fail "native rejected the MIR root control"
-"$CODEGEN" --source "$SOURCE" >"$B/root-codegen.c" 2>"$B/root-codegen.err" ||
+if ! "$CODEGEN" --source "$SOURCE" >"$B/root-codegen.c" 2>"$B/root-codegen.err"; then
+    # Keep the actual owned diagnostic visible in CI, as for the first control.
+    # The gate label alone does not identify a semantic/ABI rejection cause.
+    sed -n '1,40p' "$B/root-codegen.c" "$B/root-codegen.err" >&2
     fail "codegen rejected the MIR root control"
+fi
 printf '1\ndeclaration:200:0\n1\nfalse\nfalse\nfalse\n' >"$B/root-expected.txt"
 for producer in native codegen; do
     compile_c_artifact_with_bounded_log "root-$producer" "$B/root-$producer.c" \

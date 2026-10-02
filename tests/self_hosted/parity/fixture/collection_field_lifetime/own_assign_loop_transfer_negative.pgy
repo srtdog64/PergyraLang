@@ -1,0 +1,8 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Forward(own values: Array<String>) -> Int {
+    let moved: Array<String> = [];
+    let turn: Int = 0;
+    while turn < 2 { moved = values; turn = turn + 1; }
+    return Metadata(moved);
+}
+func Main() -> Void { let values: Array<String> = ["borrowed"]; Log(Forward(values)); }

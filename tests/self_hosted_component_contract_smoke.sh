@@ -28434,6 +28434,9 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy:120 \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy:60 \
+    src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy:170 \
+    src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy:70 \
     src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy:140 \
     src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy:80 \
@@ -28472,7 +28475,7 @@ require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pg
     'import "ast_collection_call_effect_owner.pgy";'
 require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
     'import "ast_collection_call_argument_verdict_owner.pgy";'
-require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
     'struct SemanticAstCollectionCallEffectFacts {'
 for retired_collection_path in SemanticAstCollectionUnknownCallEffectRows unknown_effect_rows SemanticAstCollectionStatementTransitions; do
     reject_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" "$retired_collection_path"
@@ -28526,7 +28529,17 @@ for retired_own_entry_path in SemanticAstCollectionRequiredOwnedArgumentReady Se
     reject_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" "$retired_own_entry_path"
 done
 require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
+    'SemanticAstCollectionDefinitionCompletedAtSlot('
+reject_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
     'SemanticAstCollectionOwnFormalMovedToLocal('
+require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
+    'SemanticAstCollectionDefinitionWriteTarget('
+require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
+    'facts.definition_retiring_sites[definition]'
+for assignment_identity_consumer in src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy; do
+    reject_text "$assignment_identity_consumer" 'SemanticAstScopedLocalBindingIdentityForName('
+done
 require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
     'SemanticAstCollectionArgumentEventStepFromGraph('
 require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \

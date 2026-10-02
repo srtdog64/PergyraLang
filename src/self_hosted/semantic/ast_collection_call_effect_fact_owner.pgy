@@ -1,0 +1,46 @@
+// The local projection is selected from one definition-bound effect table.
+// Selection never filters an old earliest event or reconstructs lost events.
+import "ast_collection_assignment_definition_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+
+struct SemanticAstCollectionCallEffectFacts {
+    ok: Bool;
+    first_unknown_sites: Array<Int>;
+    first_retiring_sites: Array<Int>;
+    first_non_deep_drop_retiring_sites: Array<Int>;
+    definition_unknown_sites: Array<Int>;
+    definition_retiring_sites: Array<Int>;
+    definition_non_deep_drop_sites: Array<Int>;
+}
+
+func SemanticAstCollectionCallEffectFactsReady(ref facts: SemanticAstCollectionCallEffectFacts, local_count: Int) -> Bool {
+    let n: Int = ArrayLength(facts.definition_unknown_sites);
+    return facts.ok && ArrayLength(facts.first_unknown_sites) == local_count &&
+        ArrayLength(facts.first_retiring_sites) == local_count && ArrayLength(facts.first_non_deep_drop_retiring_sites) == local_count &&
+        n >= local_count && ArrayLength(facts.definition_retiring_sites) == n && ArrayLength(facts.definition_non_deep_drop_sites) == n;
+}
+
+func SemanticAstCollectionSelectDefinitionEffects(inout facts: SemanticAstCollectionCallEffectFacts, row: Int, definition: Int) -> Void {
+    facts.first_unknown_sites[row] = facts.definition_unknown_sites[definition];
+    facts.first_retiring_sites[row] = facts.definition_retiring_sites[definition];
+    facts.first_non_deep_drop_retiring_sites[row] = facts.definition_non_deep_drop_sites[definition];
+}
+
+func SemanticAstCollectionApplyUnknownCallStateAtUse(
+    artifact: AstTreeArtifact, ref facts: SemanticAstCollectionCallEffectFacts,
+    row: Int, syntax_id: Int, inout ownership: Array<Int>, ref dispositions: Array<Int>, inout transitions: Array<Int>
+) -> Bool {
+    let unknown: Bool = SemanticAstCollectionMutableCallMayBeRetired(artifact, syntax_id, facts.first_unknown_sites[row]);
+    if unknown { SemanticAstCollectionRemoveCallPermission(row, ownership, dispositions, transitions); }
+    return unknown;
+}
+
+func SemanticAstCollectionApplyTerminalCallEffects(
+    ref facts: SemanticAstCollectionCallEffectFacts, inout ownership: Array<Int>, ref dispositions: Array<Int>, inout transitions: Array<Int>
+) -> Void {
+    let row: Int = 0;
+    while row < ArrayLength(facts.first_unknown_sites) {
+        if facts.first_unknown_sites[row] >= 0 { SemanticAstCollectionRemoveCallPermission(row, ownership, dispositions, transitions); }
+        row = row + 1;
+    }
+}

@@ -69,6 +69,9 @@ func Main() -> Void with caps env, io_read {
         return;
     }
     if !bundle.verdict.ok { Log(bundle.verdict.diagnostic_code); Exit(2); }
+    if mutation >= 26 && mutation <= 36 {
+        Log(InspectAssignmentDefinitionAdmission(artifact, analysis, bundle, mutation)); return;
+    }
     if mutation >= 22 && mutation <= 25 {
         Log(InspectOwnArgumentOccurrenceOrder(artifact, analysis, bundle, mutation)); return;
     }
@@ -200,10 +203,13 @@ func Main() -> Void with caps env, io_read {
         let modes: Array<Int> = effects.inventory.modes;
         let origins: Array<Int> = bundle.collection_ownership.origins;
         let source_ids: Array<Int> = bundle.collection_ownership.source_binding_syntax_ids;
+        let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+            artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+            analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
         let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
             artifact, analysis.signatures, analysis.local_bindings,
             bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
-            formal_rows, modes, proved, origins, source_ids);
+            formal_rows, modes, proved, definitions);
         if caller_row < 0 || unknown_call_syntax < 0 || !SemanticAstCollectionCallEffectFactsReady(facts, ArrayLength(ownership)) {
             Log("missing exact caller effect frame"); Exit(2);
         }
@@ -286,11 +292,13 @@ func InspectOwnStorageAdmission(
                         let formal_rows: HashMap<String, Int> = effects.inventory.row_by_formal;
                         let modes: Array<Int> = effects.inventory.modes;
                         let proved: HashMap<String, Int> = effects.effects;
+                        let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+                            artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+                            analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
                         let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                             artifact, analysis.signatures, analysis.local_bindings,
                             bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
-                            formal_rows, modes, proved, bundle.collection_ownership.origins,
-                            bundle.collection_ownership.source_binding_syntax_ids);
+                            formal_rows, modes, proved, definitions);
                         if !effects.ok || !SemanticAstCollectionCallEffectFactsReady(facts, 1) { return false; }
                         let ownership: Array<Int> = [SemanticAstCollectionOwnershipBorrowedElements()];
                         let dispositions: Array<Int> = [SemanticAstCollectionDispositionLive()];
@@ -328,6 +336,59 @@ func InspectOwnStorageAdmission(
         slot = slot + 1;
     }
     return false;
+}
+
+// Owner-unit mutation after the unchanged source has passed full admission.
+// These probes do not substitute for negative artifact admission or execution.
+func InspectAssignmentDefinitionAdmission(
+    artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis,
+    inout bundle: SemanticAstBodyTypeBundle, mutation: Int
+) -> Bool {
+    let assignment: Int = -1;
+    let row: Int = 0;
+    let foreign_local: Int = -1;
+    let foreign_formal: Int = -1;
+    let function_id: Int = -1;
+    let signature: Int = 0;
+    while signature < ArrayLength(analysis.signatures.names) {
+        if analysis.signatures.names[signature] == "Forward" { function_id = analysis.signatures.function_node_ids[signature]; }
+        if analysis.signatures.names[signature] == "Metadata" { foreign_formal = UnwrapOption(SemanticAstFunctionParamNodeAt(analysis.signatures, signature, 0)); }
+        signature = signature + 1;
+    }
+    while row < ArrayLength(analysis.assignments.node_ids) {
+        if analysis.assignments.function_node_ids[row] == function_id { assignment = row; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(analysis.local_bindings.node_ids) {
+        if analysis.local_bindings.function_node_ids[row] != function_id { foreign_local = row; }
+        row = row + 1;
+    }
+    if assignment < 0 || foreign_local < 0 || foreign_formal <= 0 { return false; }
+    let syntax: Int = analysis.assignments.node_ids[assignment];
+    let surface: Int = UnwrapOption(SemanticAstExpressionSurfaceIndexForNode(analysis.expression_surfaces, syntax));
+    let target: Int = UnwrapOption(SemanticAstExpressionGraphRootForNode(analysis.expression_surfaces, syntax, AstExpressionLaneAtom()));
+    let value: Int = UnwrapOption(SemanticAstExpressionGraphRootForNode(analysis.expression_surfaces, syntax, AstExpressionLaneValue()));
+    if mutation == 27 { bundle.assignment_types.node_ids[assignment] = 0; }
+    if mutation == 28 { bundle.assignment_types.verified[assignment] = 0; }
+    if mutation == 29 { analysis.expression_surfaces.expression_graph.has_roots[(surface * 3) + AstExpressionLaneAtom()] = false; }
+    if mutation == 30 { analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[target] = analysis.local_bindings.node_ids[foreign_local]; }
+    if mutation == 31 { analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[target] = SemanticExpressionBindingDeclaredCallable(); }
+    if mutation == 32 { analysis.assignments.function_node_ids[assignment] = analysis.local_bindings.function_node_ids[foreign_local]; }
+    if mutation == 33 { analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[value] = foreign_formal; }
+    if mutation == 34 { analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[value] = 99; }
+    if mutation == 35 { bundle.assignment_types.target_type_names[assignment] = "Int"; }
+    if mutation == 36 { analysis.expression_surfaces.expression_graph.has_roots[(surface * 3) + AstExpressionLaneValue()] = false; }
+    let facts: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
+    if mutation >= 27 && mutation <= 32 || mutation >= 35 { return !facts.ok; }
+    if !facts.ok || facts.surface_rows[surface] < facts.local_count { return false; }
+    let definition: Int = facts.surface_rows[surface];
+    if mutation == 33 || mutation == 34 { return facts.own_sources[definition] == 0 && !facts.fresh[definition]; }
+    return facts.syntax_ids[definition] == syntax && facts.target_nodes[definition] == target &&
+        facts.value_nodes[definition] == value && facts.own_sources[definition] > 0 && facts.fresh[definition] &&
+        facts.origins[definition] == SemanticAstCollectionOriginUnknown() && facts.ownerships[definition] == SemanticAstCollectionOwnershipUnknown();
 }
 
 // Fresh exact-ID unit projection, not forged final-artifact admission evidence.
@@ -403,8 +464,11 @@ func InspectOwnArgumentOccurrenceOrder(
         true, -1, "", artifact.count, [syntax], [caller], [-1],
         [true], ["candidate"], [false], [""], [false], [""], ["candidate"], [""], [""], [], graph);
     let proved: HashMap<String, Int> = MapNew();
+    let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
+        projected, analysis.assignments, bundle.assignment_types);
     let verdict: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionFirstInvalidOwnedArgumentUse(
-        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names, projected, proved);
+        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names, projected, definitions, proved);
     if mutation == 24 { return verdict.found && verdict.diagnostic_code == "ast_artifact_invalid"; }
     if mutation == 25 { return !verdict.found; }
     return verdict.found && verdict.diagnostic_code == "move_from_released" &&

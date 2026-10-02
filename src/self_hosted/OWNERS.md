@@ -615,9 +615,24 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   unproved forwarding cycles grant nothing; formal forwarding needs its exact
   whole-use live effect, never a type/name-based permission.
 - `src/self_hosted/semantic/ast_collection_call_effect_owner.pgy` -- typed
-  per-local Unknown and possible-retirement syntax bounds, propagated only
-  across exact direct moves. Production is state-free; event/terminal folds
-  remove permission through the state owner without reviving retired storage.
+  per-definition Unknown and possible-retirement syntax bounds from one edge
+  traversal, propagated across the exact definition consumed by a direct move.
+  Same-binding deferred/repeated zero bounds affect every storage definition.
+  Production never changes element permission or retires storage.
+- `src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy` --
+  definition-bound effect table and its selected local projection. Current-use
+  and terminal consumers read that projection; no old earliest-event filtering
+  or declaration-wide bound reset reconstructs a lost event.
+- `src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy` --
+  joined typed whole-local Assign and normal Let storage-definition identity.
+  Scoped local resolution owns declaration identity; ordinary local leaves do
+  not yet carry declaration IDs in the expression identity protocol. Formal
+  transfers consume exact carried parameter ID/ordinal and keep elements Unknown.
+  Child-block definitions have no dominance/join proof and grant no freshness.
+- `src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy` --
+  RHS-completion activation of the current storage definition and its element
+  provenance, including direct Let moves from the current value. Own storage
+  mode never grants Empty/Clone elements or reuses a previous definition's bound.
 - `src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy`
   -- reached argument events consume own storage/element admission separately
   from conditional copy/indexed-read entry and caller output. A proved copy
@@ -636,7 +651,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   policy and rejects a tracked shallow alias.
 - `src/self_hosted/semantic/ast_collection_ownership_binding_move_use_owner.pgy`
   -- ordered use-after-move rejection for direct local `Array<String>` binding
-  moves. It consumes stable declaration identity and never infers a move from
+  moves. It consumes the current definition of a stable declaration, treats a
+  whole-local store target as a place, and never infers a storage move from
   a variable name or projected type alone.
 - `src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy` --
   stable root-binding plus declared-field identity for direct
@@ -647,9 +663,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   the admitted expression graph. Only the matching root, declared field, and
   local binding restore ownership; every other reuse fails closed.
 - `src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy`
-  -- exact-ID caller/formal retirement, normal declaration transfer and formal
+  -- definition-ID local and exact formal retirement, Let/Assign transfer and formal
   opaque-call bounds. Physical argument events and ordinary reads are folded
-  in occurrence order; initializer reads precede declaration transfer.
+  in occurrence order; RHS reads precede definition transfer and activation.
   Both fresh scratch arrays are created, consumed and retired here. Element
   ownership is not promoted or rejudged from final state.
 - `src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy`

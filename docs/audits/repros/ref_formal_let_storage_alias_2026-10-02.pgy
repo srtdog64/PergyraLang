@@ -1,0 +1,12 @@
+// Retained observation candidate: borrowing a formal must not create storage
+// transfer authority merely by naming it in a local Let. Analyze only.
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Observe(ref values: Array<String>) -> Int {
+    let alias: Array<String> = values;
+    return Metadata(alias);
+}
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    Log(Observe(values));
+    Log(ArrayLength(values));
+}

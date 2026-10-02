@@ -237,7 +237,7 @@ func SemanticAstExpressionSurfaceAuxiliaryAt(
 }
 
 func SemanticAstExpressionSurfaceIndexForNode(
-    facts: SemanticAstExpressionSurfaceFacts,
+    ref facts: SemanticAstExpressionSurfaceFacts,
     node_id: Int
 ) -> Option<Int> {
     if !facts.ok || node_id < 0 || node_id >= facts.artifact_node_count {

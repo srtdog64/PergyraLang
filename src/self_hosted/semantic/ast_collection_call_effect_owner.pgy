@@ -3,41 +3,39 @@ import "ast_collection_formal_effect_owner.pgy";
 import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_ownership_state_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
-
-struct SemanticAstCollectionCallEffectFacts {
-    ok: Bool;
-    first_unknown_sites: Array<Int>;
-    first_retiring_sites: Array<Int>;
-    first_non_deep_drop_retiring_sites: Array<Int>;
-}
-
-func SemanticAstCollectionCallEffectFactsReady(
-    ref facts: SemanticAstCollectionCallEffectFacts, local_count: Int
-) -> Bool {
-    return facts.ok && ArrayLength(facts.first_unknown_sites) == local_count &&
-        ArrayLength(facts.first_retiring_sites) == local_count &&
-        ArrayLength(facts.first_non_deep_drop_retiring_sites) == local_count;
-}
+import "ast_collection_call_effect_fact_owner.pgy";
 
 func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     formal_rows: HashMap<String, Int>, ref formal_modes: Array<Int>,
-    proved: HashMap<String, Int>, ref origins: Array<Int>, ref source_binding_ids: Array<Int>
+    proved: HashMap<String, Int>, ref definitions: SemanticAstCollectionDefinitionFacts
 ) -> SemanticAstCollectionCallEffectFacts {
     let unknown: Array<Int> = [];
     let retiring: Array<Int> = [];
     let non_deep_drop: Array<Int> = [];
-    let count: Int = ArrayLength(locals.node_ids);
-    if ArrayLength(inferred_types) != count || ArrayLength(origins) != count ||
-        ArrayLength(source_binding_ids) != count ||
+    let local_unknown: Array<Int> = [];
+    let local_retiring: Array<Int> = [];
+    let local_non_deep: Array<Int> = [];
+    let zero_unknown: Array<Bool> = [];
+    let zero_retiring: Array<Bool> = [];
+    let zero_non_deep: Array<Bool> = [];
+    let parents: Array<Int> = [];
+    let count: Int = ArrayLength(definitions.syntax_ids);
+    let current: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
+    if !definitions.ok || ArrayLength(inferred_types) != definitions.local_count ||
         !SemanticAstExpressionSurfaceBorrowReady(artifact, surfaces) {
-        return SemanticAstCollectionCallEffectFacts(false, unknown, retiring, non_deep_drop);
+        return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop);
     }
     let row: Int = 0;
     while row < count {
-        ArrayPush(unknown, -1); ArrayPush(retiring, -1); ArrayPush(non_deep_drop, -1); row = row + 1;
+        ArrayPush(unknown, -1); ArrayPush(retiring, -1); ArrayPush(non_deep_drop, -1); ArrayPush(parents, -1);
+        if row < definitions.local_count {
+            ArrayPush(local_unknown, -1); ArrayPush(local_retiring, -1); ArrayPush(local_non_deep, -1);
+            ArrayPush(zero_unknown, false); ArrayPush(zero_retiring, false); ArrayPush(zero_non_deep, false);
+        }
+        row = row + 1;
     }
     let last: Int = -1;
     let slot: Int = 0;
@@ -72,7 +70,7 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                             if MapHas(formal_rows, key) {
                                 let formal_row: Int = MapGet(formal_rows, key);
                                 if formal_row < 0 || formal_row >= ArrayLength(formal_modes) {
-                                    return SemanticAstCollectionCallEffectFacts(false, unknown, retiring, non_deep_drop);
+                                    return SemanticAstCollectionCallEffectFacts(false, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop);
                                 }
                                 consuming = formal_modes[formal_row] == 2;
                             }
@@ -81,10 +79,18 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                                 // One syntax includes argument evaluation; graph base Call
                                 // order is not invocation order. 0 covers repeat/reorder.
                                 let site: Int = SemanticAstCollectionCallRetirementSite(artifact, surfaces.node_ids[slot / 3]);
-                                if retiring[binding.row] < 0 || site < retiring[binding.row] { retiring[binding.row] = site; }
-                                if !deep_drop && (non_deep_drop[binding.row] < 0 || site < non_deep_drop[binding.row]) { non_deep_drop[binding.row] = site; }
-                                if !consuming && unproved && (unknown[binding.row] < 0 || site < unknown[binding.row]) {
-                                    unknown[binding.row] = site;
+                                let definition: Int = current[binding.row];
+                                if retiring[definition] < 0 || site < retiring[definition] { retiring[definition] = site; }
+                                if !deep_drop && (non_deep_drop[definition] < 0 || site < non_deep_drop[definition]) { non_deep_drop[definition] = site; }
+                                if !consuming && unproved && (unknown[definition] < 0 || site < unknown[definition]) {
+                                    unknown[definition] = site;
+                                }
+                                // Deferred/repeated uses read the binding later, not a
+                                // proved snapshot of this definition's storage.
+                                if site == 0 {
+                                    zero_retiring[binding.row] = true;
+                                    if !deep_drop { zero_non_deep[binding.row] = true; }
+                                    if !consuming && unproved { zero_unknown[binding.row] = true; }
                                 }
                             }
                         }
@@ -93,58 +99,57 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                 node = node + 1;
             }
             last = root;
+            if slot % 3 == AstExpressionLaneValue() {
+                let assigned: Int = definitions.surface_rows[slot / 3];
+                if assigned >= definitions.local_count {
+                    let target_row: Int = definitions.binding_rows[assigned];
+                    current[target_row] = assigned;
+                    if !definitions.fresh[assigned] {
+                        // No storage-production/dominance proof: never admit
+                        // fresh own storage from the type of this assignment.
+                        retiring[assigned] = 0; non_deep_drop[assigned] = 0; unknown[assigned] = 0;
+                    }
+                } else {
+                    let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, surfaces.node_ids[slot / 3]);
+                    if IsSome(declared) && definitions.local_sources[UnwrapOption(declared)] >= 0 {
+                        parents[UnwrapOption(declared)] = current[definitions.local_sources[UnwrapOption(declared)]];
+                    }
+                }
+            }
         }
         slot = slot + 1;
     }
-    // Propagate only along exact direct-move edges, never fresh Clone results.
+    row = 0;
+    while row < count {
+        let binding: Int = definitions.binding_rows[row];
+        if zero_unknown[binding] { unknown[row] = 0; }
+        if zero_retiring[binding] { retiring[row] = 0; }
+        if zero_non_deep[binding] { non_deep_drop[row] = 0; }
+        row = row + 1;
+    }
+    // Propagate only along the exact definition consumed by a direct Let move.
     let changed: Bool = true;
     let remaining: Int = count + 1;
     while changed && remaining > 0 {
         changed = false;
         row = 0;
         while row < count {
-            if origins[row] == SemanticAstCollectionOriginBinding() {
-                let source: Int = 0;
-                while source < count {
-                    if locals.node_ids[source] == source_binding_ids[row] {
+            let source: Int = parents[row];
+            if source >= 0 {
                         let site: Int = unknown[source];
                         if site >= 0 && (unknown[row] < 0 || site < unknown[row]) { unknown[row] = site; changed = true; }
                         site = retiring[source];
                         if site >= 0 && (retiring[row] < 0 || site < retiring[row]) { retiring[row] = site; changed = true; }
                         site = non_deep_drop[source];
                         if site >= 0 && (non_deep_drop[row] < 0 || site < non_deep_drop[row]) { non_deep_drop[row] = site; changed = true; }
-                        break;
-                    }
-                    source = source + 1;
-                }
             }
             row = row + 1;
         }
         remaining = remaining - 1;
     }
-    return SemanticAstCollectionCallEffectFacts(true, unknown, retiring, non_deep_drop);
-}
-
-func SemanticAstCollectionApplyUnknownCallStateAtUse(
-    artifact: AstTreeArtifact, ref facts: SemanticAstCollectionCallEffectFacts,
-    row: Int, syntax_id: Int, inout ownership: Array<Int>,
-    ref dispositions: Array<Int>, inout transitions: Array<Int>
-) -> Bool {
-    let unknown: Bool = SemanticAstCollectionMutableCallMayBeRetired(
-        artifact, syntax_id, facts.first_unknown_sites[row]);
-    if unknown { SemanticAstCollectionRemoveCallPermission(row, ownership, dispositions, transitions); }
-    return unknown;
-}
-
-func SemanticAstCollectionApplyTerminalCallEffects(
-    ref facts: SemanticAstCollectionCallEffectFacts, inout ownership: Array<Int>,
-    ref dispositions: Array<Int>, inout transitions: Array<Int>
-) -> Void {
-    let row: Int = 0;
-    while row < ArrayLength(facts.first_unknown_sites) {
-        if facts.first_unknown_sites[row] >= 0 {
-            SemanticAstCollectionRemoveCallPermission(row, ownership, dispositions, transitions);
-        }
-        row = row + 1;
-    }
+    let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFacts(
+        true, local_unknown, local_retiring, local_non_deep, unknown, retiring, non_deep_drop);
+    row = 0;
+    while row < definitions.local_count { SemanticAstCollectionSelectDefinitionEffects(facts, row, row); row = row + 1; }
+    return facts;
 }

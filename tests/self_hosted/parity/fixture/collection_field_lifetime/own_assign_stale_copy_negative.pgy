@@ -1,0 +1,8 @@
+func Copy(inout values: Array<String>) -> Int { ArrayPushOwnedString(values, "copied"); return 0; }
+func Forward(own values: Array<String>) -> Int {
+    let moved: Array<String> = [];
+    moved = values;
+    let rejected_copy: Int = Copy(moved);
+    return rejected_copy;
+}
+func Main() -> Void { let values: Array<String> = ["borrowed"]; Log(Forward(values)); }

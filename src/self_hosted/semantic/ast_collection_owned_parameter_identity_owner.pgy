@@ -47,17 +47,22 @@ func SemanticAstCollectionOwnStringArrayFormalNode(
 ) -> Int {
     let binding: SemanticExpressionBindingIdentityFact =
         SemanticExpressionGraphBindingIdentity(graph, argument_node_id);
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, argument_node_id);
     if !binding.ok || binding.kind !=
             SemanticExpressionBindingFormalParameter() ||
-        binding.syntax_id <= 0 { return 0; }
+        binding.syntax_id <= 0 || !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeLeaf() { return 0; }
     let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
         signatures, function_node_id);
     if !IsSome(signature) { return 0; }
     let row: Int = UnwrapOption(signature);
+    if signatures.param_starts[row] < 0 || signatures.param_counts[row] < 0 ||
+        signatures.param_starts[row] + signatures.param_counts[row] > ArrayLength(signatures.param_node_ids) ||
+        ArrayLength(signatures.param_modes) != ArrayLength(signatures.param_node_ids) ||
+        ArrayLength(signatures.param_types) != ArrayLength(signatures.param_node_ids) { return 0; }
     let parameter: Int = 0;
     while parameter < signatures.param_counts[row] {
         let index: Int = signatures.param_starts[row] + parameter;
-        if signatures.param_node_ids[index] == binding.syntax_id &&
+        if binding.has_ordinal && binding.ordinal == parameter && signatures.param_node_ids[index] == binding.syntax_id &&
             signatures.param_modes[index] == 2 &&
             SemanticAstCollectionOwnershipIsStringArray(
                 signatures.param_types[index]) {

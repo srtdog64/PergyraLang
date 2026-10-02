@@ -1,4 +1,6 @@
-// Reject every local use ordered after a direct Array<String> binding move.
+// Direct binding moves retire one storage definition, not every future value
+// ever stored under that local declaration.
+import "ast_collection_assignment_definition_owner.pgy";
 
 struct SemanticAstCollectionBindingMoveUse {
     found: Bool;
@@ -10,9 +12,10 @@ func SemanticAstCollectionFirstInvalidBindingMoveUse(
     artifact: AstTreeArtifact,
     ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>,
-    ref surfaces: SemanticAstExpressionSurfaceFacts,
-    own move_points: HashMap<String, Int>
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref definitions: SemanticAstCollectionDefinitionFacts
 ) -> SemanticAstCollectionBindingMoveUse {
+    let move_points: HashMap<String, Int> = MapNew();
+    let current: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
     let root_slot: Int = 0;
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
         if surfaces.expression_graph.has_roots[root_slot] {
@@ -34,7 +37,7 @@ func SemanticAstCollectionFirstInvalidBindingMoveUse(
                             node + 1] == AstExpressionNodeMemberAccess() &&
                         surfaces.expression_graph.arena.topology.right_children[
                             node + 1] == node;
-                    if !is_callable && !is_member_name {
+                    if !is_callable && !is_member_name && !SemanticAstCollectionDefinitionWriteTarget(definitions, root_slot, node) {
                         let binding: SemanticAstLocalBindingIdentity =
                             SemanticAstScopedLocalBindingIdentityForGraphLeaf(
                                 artifact, locals, inferred_types,
@@ -42,7 +45,7 @@ func SemanticAstCollectionFirstInvalidBindingMoveUse(
                                 surfaces.expression_graph, node);
                         if binding.ok {
                             let key: String = ToString(
-                                binding.declaration_node_id);
+                                definitions.syntax_ids[current[binding.row]]);
                             if MapHas(move_points, key) && syntax_id >
                                     MapGet(move_points, key) {
                                 return SemanticAstCollectionBindingMoveUse(
@@ -52,6 +55,12 @@ func SemanticAstCollectionFirstInvalidBindingMoveUse(
                     }
                     node = node + 1;
                 }
+            }
+            let completed: Int = SemanticAstCollectionDefinitionCompletedAtSlot(definitions, locals, surfaces, root_slot);
+            if completed >= 0 {
+                let source: Int = definitions.local_sources[completed];
+                if source >= 0 { MapSet(move_points, ToString(definitions.syntax_ids[current[source]]), syntax_id); }
+                if definitions.fresh[completed] { current[definitions.binding_rows[completed]] = completed; }
             }
         }
         root_slot = root_slot + 1;
