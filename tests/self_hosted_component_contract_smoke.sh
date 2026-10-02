@@ -28443,6 +28443,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy:140 \
     src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy:160 \
@@ -28524,6 +28525,19 @@ require_text \
 for retired_own_entry_path in SemanticAstCollectionRequiredOwnedArgumentReady SemanticAstCollectionOwnedArgumentSameBlock TypedAstKindValueReturnStmtTag; do
     reject_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" "$retired_own_entry_path"
 done
+require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
+    'SemanticAstCollectionOwnFormalMovedToLocal('
+require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
+    'SemanticAstCollectionArgumentEventStepFromGraph('
+require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
+    'ArrayDrop(pending);'
+require_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
+    'ArrayDrop(order);'
+for retired_selected_spine_path in SemanticCallSpineViewFromGraph SemanticCallSpineRootsFromGraph SemanticExpressionGraphSubtreeStart; do
+    reject_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" "$retired_selected_spine_path"
+done
+reject_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" \
+    'func SemanticAstLocalBindingCount(facts:'
 reject_text \
     "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
     'SemanticAstFunctionParamNameAt('

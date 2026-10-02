@@ -69,6 +69,9 @@ func Main() -> Void with caps env, io_read {
         return;
     }
     if !bundle.verdict.ok { Log(bundle.verdict.diagnostic_code); Exit(2); }
+    if mutation >= 22 && mutation <= 25 {
+        Log(InspectOwnArgumentOccurrenceOrder(artifact, analysis, bundle, mutation)); return;
+    }
     if mutation >= 16 && mutation <= 21 {
         Log(InspectOwnStorageAdmission(artifact, analysis, bundle, mutation)); return;
     }
@@ -325,4 +328,86 @@ func InspectOwnStorageAdmission(
         slot = slot + 1;
     }
     return false;
+}
+
+// Fresh exact-ID unit projection, not forged final-artifact admission evidence.
+func InspectOwnArgumentOccurrenceOrder(
+    artifact: AstTreeArtifact, ref analysis: SemanticAstArtifactAnalysis,
+    ref bundle: SemanticAstBodyTypeBundle, mutation: Int
+) -> Bool {
+    let own_target: Int = 0;
+    let read_target: Int = 0;
+    let caller: Int = 0;
+    let formal: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(analysis.signatures.names) {
+        if analysis.signatures.names[row] == "OwnFirst" { own_target = analysis.signatures.function_node_ids[row]; }
+        if analysis.signatures.names[row] == "ReadFirst" { read_target = analysis.signatures.function_node_ids[row]; }
+        if analysis.signatures.names[row] == "Forward" {
+            caller = analysis.signatures.function_node_ids[row];
+            let source: Option<Int> = SemanticAstFunctionParamNodeAt(analysis.signatures, row, 0);
+            if !IsSome(source) { return false; }
+            formal = UnwrapOption(source);
+        }
+        row = row + 1;
+    }
+    let syntax: Int = 0;
+    row = 0;
+    while row < ArrayLength(analysis.local_bindings.node_ids) {
+        if analysis.local_bindings.function_node_ids[row] == caller { syntax = analysis.local_bindings.node_ids[row]; }
+        row = row + 1;
+    }
+    if own_target <= 0 || read_target <= 0 || caller <= 0 || formal <= 0 || syntax <= 0 { return false; }
+    let kinds: Array<Int> = [0, 17, 0, 17, 0, 18, 0, 18, 18];
+    let texts: Array<String> = ["OwnFirst", "OwnFirst", "ArrayLength", "ArrayLength",
+        "values", "ArrayLength(values)", "values", "OwnFirst(values)", "OwnFirst(values, ArrayLength(values))"];
+    let left: Array<Int> = [-1, 0, -1, 2, -1, 3, -1, 1, 7];
+    let right: Array<Int> = [-1, -1, -1, -1, -1, 4, -1, 6, 5];
+    let targets: Array<Int> = [0, own_target, 0, 0, 0, 0, 0, 0, 0];
+    let binding_ids: Array<Int> = [own_target, 0, 0, 0, formal, 0, formal, 0, 0];
+    let binding_kinds: Array<Int> = [2, 0, 0, 0, 1, 0, 1, 0, 0];
+    let ordinals: Array<Int> = [-1, -1, -1, -1, 0, -1, 0, -1, -1];
+    let target_kinds: Array<Int> = [0, 3, 0, 3, 0, 0, 0, 0, 0];
+    let names: Array<String> = ["", "OwnFirst", "", "ArrayLength", "", "", "", "", ""];
+    let root: Int = 8;
+    if mutation == 23 {
+        kinds = [0, 17, 0, 17, 0, 18, 18, 18];
+        texts = ["OwnFirst", "OwnFirst", "ArrayLength", "ArrayLength",
+            "values", "ArrayLength(values)", "OwnFirst(values)", "OwnFirst(values, ArrayLength(values))"];
+        left = [-1, 0, -1, 2, -1, 3, 1, 6];
+        right = [-1, -1, -1, -1, -1, 4, 4, 5];
+        targets = [0, own_target, 0, 0, 0, 0, 0, 0];
+        binding_ids = [own_target, 0, 0, 0, formal, 0, 0, 0];
+        binding_kinds = [2, 0, 0, 0, 1, 0, 0, 0];
+        ordinals = [-1, -1, -1, -1, 0, -1, -1, -1];
+        target_kinds = [0, 3, 0, 3, 0, 0, 0, 0];
+        names = ["", "OwnFirst", "", "ArrayLength", "", "", "", ""];
+        root = 7;
+    }
+    if mutation == 24 { right[5] = 5; }
+    if mutation == 25 {
+        right[7] = 5; right[8] = 6;
+        targets[1] = read_target; binding_ids[0] = read_target;
+        names[1] = "ReadFirst"; texts[0] = "ReadFirst"; texts[1] = "ReadFirst";
+        texts[7] = "ReadFirst(ArrayLength(values))"; texts[8] = "ReadFirst(ArrayLength(values), values)";
+    }
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArenaFromTopology(
+        AstExpressionArena(kinds, texts, left, right), texts, target_kinds, names,
+        texts, target_kinds);
+    let runtime_ids: Array<Int> = [];
+    row = 0;
+    while row < ArrayLength(kinds) { ArrayPush(runtime_ids, 0); row = row + 1; }
+    arena.identities = SemanticExpressionIdentityRows(targets, runtime_ids, binding_ids, binding_kinds, ordinals);
+    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(true, [root, 0, 0], [true, false, false], arena);
+    let projected: SemanticAstExpressionSurfaceFacts = SemanticAstExpressionSurfaceFacts(
+        true, -1, "", artifact.count, [syntax], [caller], [-1],
+        [true], ["candidate"], [false], [""], [false], [""], ["candidate"], [""], [""], [], graph);
+    let proved: HashMap<String, Int> = MapNew();
+    let verdict: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionFirstInvalidOwnedArgumentUse(
+        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names, projected, proved);
+    if mutation == 24 { return verdict.found && verdict.diagnostic_code == "ast_artifact_invalid"; }
+    if mutation == 25 { return !verdict.found; }
+    return verdict.found && verdict.diagnostic_code == "move_from_released" &&
+        verdict.boundary == "owned_argument_use_after_move" && verdict.syntax_node_id == syntax &&
+        verdict.expression_node_id == 4;
 }

@@ -229,7 +229,7 @@ func SemanticAstLocalBindingFactsFromArtifact(
     );
 }
 
-func SemanticAstLocalBindingCount(facts: SemanticAstLocalBindingFacts) -> Int {
+func SemanticAstLocalBindingCount(ref facts: SemanticAstLocalBindingFacts) -> Int {
     return ArrayLength(facts.node_ids);
 }
 
@@ -308,7 +308,7 @@ func SemanticAstLocalBindingRangeForFunction(
 }
 
 func SemanticAstLocalBindingIndexForNode(
-    facts: SemanticAstLocalBindingFacts,
+    ref facts: SemanticAstLocalBindingFacts,
     node_id: Int
 ) -> Option<Int> {
     let count: Int = SemanticAstLocalBindingCount(facts);

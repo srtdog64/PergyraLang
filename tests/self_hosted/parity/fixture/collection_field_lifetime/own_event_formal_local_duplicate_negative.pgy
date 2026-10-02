@@ -1,0 +1,10 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Forward(own values: Array<String>) -> Int {
+    let first: Array<String> = values;
+    let rejected_second_move: Array<String> = values;
+    return Metadata(first) + Metadata(rejected_second_move);
+}
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    Log(Forward(values));
+}

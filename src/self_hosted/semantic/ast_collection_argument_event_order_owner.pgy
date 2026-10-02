@@ -1,0 +1,49 @@
+// Scalar steps for left/right storage-use occurrences, never a scratch owner.
+// Node IDs are identity, not execution order; shared occurrences stay repeated.
+import "ast_expression_graph_node_view_owner.pgy";
+
+struct SemanticAstCollectionArgumentEventStep {
+    ok: Bool;
+    event_node: Int;
+    completion: Int;
+    left: Int;
+    right: Int;
+}
+
+func SemanticAstCollectionArgumentEventStepFromGraph(
+    ref graph: SemanticExpressionGraphFacts, entry: Int
+) -> SemanticAstCollectionArgumentEventStep {
+    let count: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    let node: Int = entry;
+    if entry < 0 { node = 0 - entry - 1; }
+    if !graph.ok || node < 0 || node >= count ||
+        ArrayLength(graph.arena.topology.left_children) != count ||
+        ArrayLength(graph.arena.topology.right_children) != count {
+        return SemanticAstCollectionArgumentEventStep(false, -1, 0, -1, -1);
+    }
+    let kind: Int = graph.arena.topology.node_kinds[node];
+    if entry < 0 {
+        if kind == AstExpressionNodeLeaf() || kind == AstExpressionNodeCallArgument() {
+            return SemanticAstCollectionArgumentEventStep(true, node, 0, -1, -1);
+        }
+        return SemanticAstCollectionArgumentEventStep(true, -1, 0, -1, -1);
+    }
+    let arity: Int = AstExpressionNodeArity(kind);
+    if arity < 0 { return SemanticAstCollectionArgumentEventStep(false, -1, 0, -1, -1); }
+    let left: Int = -1;
+    let right: Int = -1;
+    // A field selector is spelling, not a second runtime value read.
+    if arity == 2 && kind != AstExpressionNodeMemberAccess() {
+        right = graph.arena.topology.right_children[node];
+        if right < 0 || right >= node {
+            return SemanticAstCollectionArgumentEventStep(false, -1, 0, -1, -1);
+        }
+    }
+    if arity > 0 {
+        left = graph.arena.topology.left_children[node];
+        if left < 0 || left >= node {
+            return SemanticAstCollectionArgumentEventStep(false, -1, 0, -1, -1);
+        }
+    }
+    return SemanticAstCollectionArgumentEventStep(true, -1, 0 - node - 1, left, right);
+}

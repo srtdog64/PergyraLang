@@ -647,9 +647,16 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   the admitted expression graph. Only the matching root, declared field, and
   local binding restore ownership; every other reuse fails closed.
 - `src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy`
-  -- exact-ID caller/formal retirement and formal opaque-call bounds for direct
-  `own Array<String>` arguments. Child-block use and duplicate return operands
-  cannot bypass retirement. It does not rejudge past entry from final state.
+  -- exact-ID caller/formal retirement, normal declaration transfer and formal
+  opaque-call bounds. Physical argument events and ordinary reads are folded
+  in occurrence order; initializer reads precede declaration transfer.
+  Both fresh scratch arrays are created, consumed and retired here. Element
+  ownership is not promoted or rejudged from final state.
+- `src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy`
+  -- pure scalar left/right completion steps from the admitted graph.
+  Physical argument edges follow their argument reads, including non-numeric
+  postorder and repeated shared DAG reads; base Calls do not consume storage.
+  This projection is not a graph admission or backend value-reuse authority.
 - `src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy`
   -- formal entry requirements derived from an exact builtin deep-drop and
   propagated along admitted own-formal forwarding edges. Container `own`

@@ -1,0 +1,10 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Scalars(first: Int, second: Int) -> Int { return first + second; }
+func Forward(own values: Array<String>) -> Int {
+    let accepted_nested_before: Int = Scalars(ArrayLength(values), Metadata(values));
+    return accepted_nested_before;
+}
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    Log(Forward(values));
+}

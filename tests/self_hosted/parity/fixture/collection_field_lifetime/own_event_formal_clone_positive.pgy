@@ -1,0 +1,9 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Forward(own values: Array<String>) -> Int {
+    let copied: Array<String> = Clone(values);
+    return Metadata(values) + Metadata(copied);
+}
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    Log(Forward(values));
+}

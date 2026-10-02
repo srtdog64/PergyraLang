@@ -1,0 +1,6 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    let accepted_local_before: Int = ArrayLength(values) + Metadata(values);
+    Log(accepted_local_before);
+}

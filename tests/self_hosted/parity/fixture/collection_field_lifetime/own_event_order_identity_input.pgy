@@ -1,0 +1,10 @@
+func OwnFirst(own values: Array<String>, count: Int) -> Int { return count + ArrayLength(values); }
+func ReadFirst(count: Int, own values: Array<String>) -> Int { return count + ArrayLength(values); }
+func Forward(own values: Array<String>) -> Int {
+    let candidate: Int = ReadFirst(ArrayLength(values), values);
+    return candidate;
+}
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    Log(Forward(values));
+}

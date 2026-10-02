@@ -1,0 +1,13 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Forward(own values: Array<String>) -> Int {
+    let count: Int = 0;
+    while count < 2 {
+        let rejected_loop_move: Array<String> = values;
+        count = count + Metadata(rejected_loop_move);
+    }
+    return count;
+}
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    Log(Forward(values));
+}

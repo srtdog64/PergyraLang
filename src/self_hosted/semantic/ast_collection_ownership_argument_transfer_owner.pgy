@@ -1,9 +1,10 @@
-// Ordered `own Array<String>` transfer keyed only by admitted SyntaxNodeIds.
+// Ordered own storage transfer keyed only by admitted SyntaxNodeIds.
 import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_owned_parameter_identity_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
-import "ast_expression_graph_call_view_owner.pgy";
+import "ast_collection_argument_event_order_owner.pgy";
 import "ast_signature_fact_owner.pgy";
+
 struct SemanticAstCollectionOwnedArgumentUse {
     found: Bool;
     diagnostic_code: String;
@@ -11,17 +12,35 @@ struct SemanticAstCollectionOwnedArgumentUse {
     syntax_node_id: Int;
     expression_node_id: Int;
 }
+
+func SemanticAstCollectionOwnFormalMovedToLocal(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, slot: Int
+) -> Int {
+    let surface: Int = slot / 3;
+    if slot % 3 != AstExpressionLaneValue() { return 0; }
+    let row: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, surfaces.node_ids[surface]);
+    if !IsSome(row) { return 0; }
+    let index: Int = UnwrapOption(row);
+    if locals.binding_kinds[index] != SemanticAstLocalBindingKindNormal() ||
+        locals.binding_indices[index] != 0 || locals.binding_arities[index] != 1 ||
+        locals.function_node_ids[index] != surfaces.function_node_ids[surface] ||
+        !SemanticAstCollectionOwnershipIsStringArray(inferred_types[index]) {
+        return 0;
+    }
+    let root: Int = surfaces.expression_graph.roots[slot];
+    if surfaces.expression_graph.arena.topology.node_kinds[root] != AstExpressionNodeLeaf() { return 0; }
+    return SemanticAstCollectionOwnStringArrayFormalNode(signatures,
+        surfaces.function_node_ids[surface], surfaces.expression_graph, root);
+}
+
 func SemanticAstCollectionFirstInvalidOwnedArgumentUse(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     proved: HashMap<String, Int>
 ) -> SemanticAstCollectionOwnedArgumentUse {
-    let roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(surfaces.expression_graph);
-    if !roots.ok {
-        return SemanticAstCollectionOwnedArgumentUse(
-            true, "ast_artifact_invalid", "owned_argument_call_roots", -1, -1);
-    }
     let retired: HashMap<String, Int> = MapNew();
     let unknown: HashMap<String, Int> = MapNew();
     let root_slot: Int = 0;
@@ -30,121 +49,121 @@ func SemanticAstCollectionFirstInvalidOwnedArgumentUse(
             let surface: Int = root_slot / 3;
             let syntax_id: Int = surfaces.node_ids[surface];
             let root_id: Int = surfaces.expression_graph.roots[root_slot];
-            let start: Option<Int> = SemanticExpressionGraphSubtreeStart(
-                surfaces.expression_graph, root_id);
-            if IsSome(start) {
-                let node: Int = UnwrapOption(start);
-                while node <= root_id {
-                    if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCallArgument() {
-                        let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
-                        let source: Int = SemanticAstCollectionOwnStringArrayFormalNode(signatures,
-                            surfaces.function_node_ids[surface], surfaces.expression_graph, edge.argument_node);
-                        let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, edge.call_node);
-                        let formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(signatures,
-                            surfaces.expression_graph, edge.call_node, edge.ordinal);
-                        if edge.ok && source > 0 && IsSome(target) && UnwrapOption(target) > 0 &&
-                            SemanticAstCollectionOwnStringArrayParameterNode(signatures, surfaces.expression_graph, edge.call_node, edge.ordinal) <= 0 &&
-                            !MapHas(proved, ToString(formal)) {
-                            MapSet(unknown, ToString(source), SemanticAstCollectionCallRetirementSite(artifact, syntax_id));
-                        }
-                    }
-                    let carried: SemanticExpressionBindingIdentityFact =
-                        SemanticExpressionGraphBindingIdentity(
-                            surfaces.expression_graph, node);
-                    let is_callable: Bool = carried.ok && carried.kind ==
-                        SemanticExpressionBindingDeclaredCallable();
-                    let is_member_name: Bool = node + 1 <= root_id &&
-                        surfaces.expression_graph.arena.topology.node_kinds[
-                            node + 1] == AstExpressionNodeMemberAccess() &&
-                        surfaces.expression_graph.arena.topology.right_children[
-                            node + 1] == node;
-                    let binding: SemanticAstLocalBindingIdentity =
-                        SemanticAstLocalBindingIdentityUnresolved();
-                    if !is_callable && !is_member_name {
-                        binding = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
-                            artifact, locals, inferred_types,
-                            surfaces.function_node_ids[surface], syntax_id,
-                            surfaces.expression_graph, node);
-                    }
-                    let key: String = "";
-                    if binding.ok { key = ToString(binding.declaration_node_id); }
-                    if !binding.ok && !is_callable && !is_member_name {
-                        let formal: Int = SemanticAstCollectionOwnStringArrayFormalNode(
-                            signatures, surfaces.function_node_ids[surface],
-                            surfaces.expression_graph, node);
-                        if formal > 0 { key = ToString(formal); }
-                    }
-                    if key != "" && MapHas(retired, key) &&
-                        SemanticAstCollectionMutableCallMayBeRetired(
-                            artifact, syntax_id, MapGet(retired, key)) {
+            let order: Array<Int> = [];
+            let pending: Array<Int> = [root_id];
+            let ordered: Bool = true;
+            while ArrayLength(pending) > 0 && ordered {
+                let step: SemanticAstCollectionArgumentEventStep = SemanticAstCollectionArgumentEventStepFromGraph(
+                    surfaces.expression_graph, pending[ArrayLength(pending) - 1]);
+                ArrayPop(pending);
+                ordered = step.ok;
+                if ordered {
+                    if step.event_node >= 0 { ArrayPush(order, step.event_node); }
+                    if step.completion < 0 { ArrayPush(pending, step.completion); }
+                    if step.right >= 0 { ArrayPush(pending, step.right); }
+                    if step.left >= 0 { ArrayPush(pending, step.left); }
+                }
+            }
+            ArrayDrop(pending);
+            if !ordered {
+                ArrayDrop(order);
+                return SemanticAstCollectionOwnedArgumentUse(
+                    true, "ast_artifact_invalid", "owned_argument_event_order", syntax_id, root_id);
+            }
+            // Retain conservative same-expression opaque entry bounds, but
+            // never use this prepass to consume storage or inspect later reads.
+            let index: Int = 0;
+            while index < ArrayLength(order) {
+                let node: Int = order[index];
+                if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCallArgument() {
+                    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
+                    if !edge.ok {
+                        ArrayDrop(order);
                         return SemanticAstCollectionOwnedArgumentUse(
-                            true, "move_from_released",
-                            "owned_argument_use_after_move", syntax_id, node);
+                            true, "ast_artifact_invalid", "owned_argument_edge", syntax_id, node);
                     }
-                    node = node + 1;
+                    let source: Int = SemanticAstCollectionOwnStringArrayFormalNode(signatures,
+                        surfaces.function_node_ids[surface], surfaces.expression_graph, edge.argument_node);
+                    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, edge.call_node);
+                    let formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(signatures,
+                        surfaces.expression_graph, edge.call_node, edge.ordinal);
+                    if source > 0 && IsSome(target) && UnwrapOption(target) > 0 &&
+                        SemanticAstCollectionOwnStringArrayParameterNode(signatures, surfaces.expression_graph, edge.call_node, edge.ordinal) <= 0 &&
+                        !MapHas(proved, ToString(formal)) {
+                        MapSet(unknown, ToString(source), SemanticAstCollectionCallRetirementSite(artifact, syntax_id));
+                    }
                 }
-                node = UnwrapOption(start);
-                while node <= root_id {
-                    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
-                        surfaces.expression_graph, node);
-                    if IsSome(kind) && UnwrapOption(kind) ==
-                            AstExpressionNodeCall() {
-                        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
-                            surfaces.expression_graph, roots.root_nodes[node]);
-                        if call.ok && call.call_node == node {
-                            let argument: Int = 0;
-                            while argument < ArrayLength(call.argument_nodes) {
-                                let parameter_node: Int = SemanticAstCollectionOwnStringArrayParameterNode(
-                                    signatures, surfaces.expression_graph, node, argument);
-                                if parameter_node > 0 {
-                                    let binding: SemanticAstLocalBindingIdentity =
-                                        SemanticAstCollectionOwnershipLocalForArgument(
-                                            artifact, locals, inferred_types, surfaces,
-                                            surface, call.argument_nodes[argument]);
-                                    let source_id: Int = 0;
-                                    if binding.ok { source_id = binding.declaration_node_id; }
-                                    else {
-                                        source_id = SemanticAstCollectionOwnStringArrayFormalNode(
-                                            signatures, surfaces.function_node_ids[surface],
-                                            surfaces.expression_graph, call.argument_nodes[argument]);
-                                    }
-                                    let key: String = ToString(source_id);
-                                    if source_id > 0 && MapHas(retired, key) &&
-                                        SemanticAstCollectionMutableCallMayBeRetired(
-                                            artifact, syntax_id, MapGet(retired, key)) {
-                                        return SemanticAstCollectionOwnedArgumentUse(
-                                            true, "move_from_released", "owned_argument_use_after_move",
-                                            syntax_id, call.argument_nodes[argument]);
-                                    }
-                                    if !binding.ok && source_id > 0 &&
-                                        (SemanticAstCollectionCallRetirementSite(artifact, syntax_id) == 0 ||
-                                         (MapHas(unknown, key) && SemanticAstCollectionMutableCallMayBeRetired(
-                                            artifact, syntax_id, MapGet(unknown, key)))) {
-                                        return SemanticAstCollectionOwnedArgumentUse(
-                                            true, "borrow_boundary_escape",
-                                            "owned_argument_storage_unproved",
-                                            syntax_id, call.argument_nodes[argument]);
-                                    }
-                                    if source_id > 0 {
-                                        // Return still needs same-expression duplicate/nested refusal.
-                                        MapSet(retired, key, SemanticAstCollectionCallRetirementSite(artifact, syntax_id));
-                                    }
-                                }
-                                argument = argument + 1;
-                            }
-                            let releasing: Bool = ArrayLength(call.argument_nodes) == 1 &&
-                                (SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, node, "ArrayDropOwnedStrings") ||
-                                 SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, node, "ArrayDrop") ||
-                                 SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, node, "CompilerRetireArrayStorage"));
-                            if releasing {
-                                let source: Int = SemanticAstCollectionOwnStringArrayFormalNode(signatures,
-                                    surfaces.function_node_ids[surface], surfaces.expression_graph, call.argument_nodes[0]);
-                                if source > 0 { MapSet(retired, ToString(source), SemanticAstCollectionCallRetirementSite(artifact, syntax_id)); }
-                            }
+                index = index + 1;
+            }
+            index = 0;
+            while index < ArrayLength(order) {
+                let node: Int = order[index];
+                if surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() {
+                    let carried: SemanticExpressionBindingIdentityFact =
+                        SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, node);
+                    let binding: SemanticAstLocalBindingIdentity = SemanticAstLocalBindingIdentityUnresolved();
+                    if !carried.ok || carried.kind != SemanticExpressionBindingDeclaredCallable() {
+                        binding = SemanticAstCollectionOwnershipLocalForArgument(
+                            artifact, locals, inferred_types, surfaces, surface, node);
+                    }
+                    let source: Int = 0;
+                    if binding.ok { source = binding.declaration_node_id; }
+                    else { source = SemanticAstCollectionOwnStringArrayFormalNode(signatures,
+                        surfaces.function_node_ids[surface], surfaces.expression_graph, node); }
+                    if source > 0 && MapHas(retired, ToString(source)) &&
+                        SemanticAstCollectionMutableCallMayBeRetired(artifact, syntax_id, MapGet(retired, ToString(source))) {
+                        ArrayDrop(order);
+                        return SemanticAstCollectionOwnedArgumentUse(
+                            true, "move_from_released", "owned_argument_use_after_move", syntax_id, node);
+                    }
+                } else {
+                    let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
+                    let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
+                        artifact, locals, inferred_types, surfaces, surface, edge.argument_node);
+                    let formal_source: Int = SemanticAstCollectionOwnStringArrayFormalNode(signatures,
+                        surfaces.function_node_ids[surface], surfaces.expression_graph, edge.argument_node);
+                    let own_parameter: Int = SemanticAstCollectionOwnStringArrayParameterNode(
+                        signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+                    let source: Int = formal_source;
+                    if binding.ok { source = binding.declaration_node_id; }
+                    let releasing: Bool = edge.ordinal == 0 &&
+                        (SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayDropOwnedStrings") ||
+                         SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "ArrayDrop") ||
+                         SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, edge.call_node, "CompilerRetireArrayStorage"));
+                    if own_parameter > 0 && source > 0 {
+                        if MapHas(retired, ToString(source)) &&
+                            SemanticAstCollectionMutableCallMayBeRetired(artifact, syntax_id, MapGet(retired, ToString(source))) {
+                            ArrayDrop(order);
+                            return SemanticAstCollectionOwnedArgumentUse(
+                                true, "move_from_released", "owned_argument_use_after_move", syntax_id, edge.argument_node);
                         }
+                        if !binding.ok &&
+                            (SemanticAstCollectionCallRetirementSite(artifact, syntax_id) == 0 ||
+                             (MapHas(unknown, ToString(source)) && SemanticAstCollectionMutableCallMayBeRetired(
+                                artifact, syntax_id, MapGet(unknown, ToString(source))))) {
+                            ArrayDrop(order);
+                            return SemanticAstCollectionOwnedArgumentUse(
+                                true, "borrow_boundary_escape", "owned_argument_storage_unproved", syntax_id, edge.argument_node);
+                        }
+                        MapSet(retired, ToString(source), SemanticAstCollectionCallRetirementSite(artifact, syntax_id));
+                    } else if releasing && formal_source > 0 {
+                        // Keep local-drop metadata rules separate from own-source retirement.
+                        MapSet(retired, ToString(formal_source), SemanticAstCollectionCallRetirementSite(artifact, syntax_id));
                     }
-                    node = node + 1;
                 }
+                index = index + 1;
+            }
+            ArrayDrop(order);
+            let moved: Int = SemanticAstCollectionOwnFormalMovedToLocal(signatures, locals, inferred_types, surfaces, root_slot);
+            if moved > 0 {
+                if SemanticAstCollectionCallRetirementSite(artifact, syntax_id) == 0 ||
+                    (MapHas(unknown, ToString(moved)) && SemanticAstCollectionMutableCallMayBeRetired(
+                        artifact, syntax_id, MapGet(unknown, ToString(moved)))) {
+                    return SemanticAstCollectionOwnedArgumentUse(
+                        true, "borrow_boundary_escape", "owned_argument_storage_unproved", syntax_id, root_id);
+                }
+                // Initializer reads precede its move. Element facts stay with their owner.
+                MapSet(retired, ToString(moved), SemanticAstCollectionCallRetirementSite(artifact, syntax_id));
             }
         }
         root_slot = root_slot + 1;
