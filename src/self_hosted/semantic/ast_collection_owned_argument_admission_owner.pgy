@@ -1,7 +1,57 @@
-// Element admission is distinct from storage transfer. Missing local, formal,
-// or producer proof cannot become release permission at an `own` call.
+// Storage-live admission and deep-element permission are separate obligations.
+// Missing local, formal or producer facts cannot become release permission.
 import "ast_collection_owned_parameter_identity_owner.pgy";
 import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_call_effect_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+
+func SemanticAstCollectionOwnedArgumentVerdict(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
+    edge: SemanticCallArgumentEdgeView, binding: SemanticAstLocalBindingIdentity,
+    unknown: Bool, ref call_effects: SemanticAstCollectionCallEffectFacts,
+    ref element_requirements: HashMap<String, Int>,
+    ref ownership: Array<Int>, ref dispositions: Array<Int>,
+    ref origins: Array<Int>, ref transition_states: Array<Int>
+) -> SemanticAstCollectionOwnershipVerdict {
+    let parameter: Int = SemanticAstCollectionOwnStringArrayParameterNode(
+        signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+    if parameter <= 0 { return SemanticAstCollectionOwnershipVerdictOk(); }
+    let live: Bool = SemanticAstCollectionOwnStringArrayFormalNode(signatures,
+        surfaces.function_node_ids[surface_row], surfaces.expression_graph, edge.argument_node) > 0;
+    if binding.ok { live = !unknown && SemanticAstCollectionOwnedArgumentStorageLive(binding.row,
+        surfaces.node_ids[surface_row], call_effects.first_retiring_sites[binding.row], ownership, dispositions, transition_states); }
+    if !live {
+        return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary", "owned_argument_storage_not_live", "type", "Array<String>"), surfaces.node_ids[surface_row], edge.argument_node);
+    }
+    if MapHas(element_requirements, ToString(parameter)) && !SemanticAstCollectionRequiredOwnedArgumentReady(
+            artifact, signatures, locals, inferred_types, surfaces, surface_row, edge.argument_node,
+            element_requirements, ownership, dispositions, origins, transition_states) {
+        return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary", Concat("owned_argument_without_owned_provenance:callee=",
+                surfaces.expression_graph.arena.call_target_names[edge.call_node]), "type", "Array<String>"), surfaces.node_ids[surface_row], edge.argument_node);
+    }
+    return SemanticAstCollectionOwnershipVerdictOk();
+}
+
+func SemanticAstCollectionOwnedArgumentStorageLive(
+    row: Int, syntax_id: Int, first_retiring_site: Int,
+    ref ownerships: Array<Int>, ref dispositions: Array<Int>,
+    ref transitions: Array<Int>
+) -> Bool {
+    // The admitted own call contributes its own syntax bound. Equality is
+    // live entry, not prior consumption; 0 means repeat/reorder is unproved.
+    if row < 0 || row >= ArrayLength(ownerships) ||
+        row >= ArrayLength(dispositions) || row >= ArrayLength(transitions) ||
+        syntax_id <= 0 || first_retiring_site != syntax_id ||
+        dispositions[row] != SemanticAstCollectionDispositionLive() {
+        return false;
+    }
+    return ownerships[row] != SemanticAstCollectionOwnershipRetired() &&
+        transitions[row] != SemanticAstCollectionTransitionRetired();
+}
 
 func SemanticAstCollectionOwnedArgumentSourceReady(
     row: Int, ref ownerships: Array<Int>, ref dispositions: Array<Int>,

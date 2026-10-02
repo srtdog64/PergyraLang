@@ -1,12 +1,14 @@
-// Conditional call admission and its caller output share the exact local ID.
+// Reached argument admission: storage transfer and conditional preservation.
 import "ast_collection_call_effect_owner.pgy";
+import "ast_collection_owned_argument_admission_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
 
-func SemanticAstCollectionPreservingArgumentVerdict(
+func SemanticAstCollectionCallArgumentVerdict(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
     edge: SemanticCallArgumentEdgeView, proved: HashMap<String, Int>,
+    ref element_requirements: HashMap<String, Int>,
     inout ownership: Array<Int>, ref dispositions: Array<Int>,
     ref origins: Array<Int>, inout transition_states: Array<Int>,
     ref call_effects: SemanticAstCollectionCallEffectFacts
@@ -29,6 +31,10 @@ func SemanticAstCollectionPreservingArgumentVerdict(
         unknown = SemanticAstCollectionApplyUnknownCallStateAtUse(artifact, call_effects,
             binding.row, surfaces.node_ids[surface_row], ownership, dispositions, transition_states);
     }
+    let owned: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnedArgumentVerdict(
+        artifact, signatures, locals, inferred_types, surfaces, surface_row, edge, binding, unknown,
+        call_effects, element_requirements, ownership, dispositions, origins, transition_states);
+    if !owned.ok { return owned; }
     if effect == 2 || effect == 3 {
         if binding.ok {
             let clean: Bool = ownership[binding.row] == SemanticAstCollectionOwnershipOwnedElements() ||

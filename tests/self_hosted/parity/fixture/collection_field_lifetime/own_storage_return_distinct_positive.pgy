@@ -1,0 +1,9 @@
+func Pair(own a: Array<String>, own b: Array<String>) -> Int {
+    return ArrayLength(a) + ArrayLength(b);
+}
+func Forward(own a: Array<String>, own b: Array<String>) -> Int { return Pair(a, b); }
+func Main() -> Void {
+    let a: Array<String> = ["a"];
+    let b: Array<String> = ["b"];
+    Log(Forward(a, b));
+}

@@ -1,0 +1,8 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Main() -> Void {
+    let borrowed: Array<String> = ["borrowed"];
+    let values: Array<String> = Clone(borrowed);
+    ArrayDropOwnedStrings(values);
+    let rejected_clone: Int = Metadata(values);
+    Log(rejected_clone);
+}

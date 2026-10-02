@@ -1,0 +1,9 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayDropOwnedStrings(values);
+    defer {
+        let rejected_deferred: Int = Metadata(values);
+        Log(rejected_deferred);
+    }
+}

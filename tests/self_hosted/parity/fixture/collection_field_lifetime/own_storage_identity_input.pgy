@@ -1,0 +1,6 @@
+func Metadata(own values: Array<String>) -> Void { Log(ArrayLength(values)); }
+func Other(ref values: Array<String>) -> Void { Log(ArrayLength(values)); }
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    Metadata(values);
+}

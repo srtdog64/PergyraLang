@@ -618,10 +618,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   per-local Unknown and possible-retirement syntax bounds, propagated only
   across exact direct moves. Production is state-free; event/terminal folds
   remove permission through the state owner without reviving retired storage.
-- `src/self_hosted/semantic/ast_collection_preserving_argument_verdict_owner.pgy`
-  -- exact conditional copy/indexed-read entry and caller output at an admitted
-  syntax event. A proved copy carries scratch Live {Empty, Owned}, never a
-  fabricated push receipt, type-based grant or aggregate release certificate.
+- `src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy`
+  -- reached argument events consume own storage/element admission separately
+  from conditional copy/indexed-read entry and caller output. A proved copy
+  carries scratch Live {Empty, Owned}, never a fabricated push receipt,
+  type-based grant or aggregate release certificate.
 - `src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy` --
   conservative typed syntax-order bounds for mutable-call entry, including
   nested argument consumption, branch/loop retirement and deferred execution.
@@ -646,9 +647,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   the admitted expression graph. Only the matching root, declared field, and
   local binding restore ownership; every other reuse fails closed.
 - `src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy`
-  -- ordered caller-local retirement for direct `own Array<String>` arguments.
-  Callee and formal-parameter identity come from carried SyntaxNodeIds; a
-  repeated caller use fails before MIR or either backend can reinterpret it.
+  -- exact-ID caller/formal retirement and formal opaque-call bounds for direct
+  `own Array<String>` arguments. Child-block use and duplicate return operands
+  cannot bypass retirement. It does not rejudge past entry from final state.
 - `src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy`
   -- formal entry requirements derived from an exact builtin deep-drop and
   propagated along admitted own-formal forwarding edges. Container `own`
@@ -657,9 +658,11 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- consuming callable/formal identity from signature and carried syntax IDs.
   It does not infer element lifetime from the parameter mode or type.
 - `src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy`
-  -- required String-element admission for local facts and forwarding formals
-  with propagated entry obligations. Missing named field or call-result proof
-  fails closed rather than bypassing the requirement.
+  -- current-event storage-live admission, separate from required String-element
+  admission for local facts and forwarding formals with propagated obligations.
+  A live borrowed-element descriptor may transfer storage but cannot deep-drop.
+  Direct field/unnamed-result storage grants fail closed; named call-result
+  locals still need independent element and exclusive-release proof.
 - `src/self_hosted/semantic/ast_expression_environment_storage_lifetime_owner.pgy`
   -- compiler-internal storage-only retirement after environment rows have
   been shallow-popped. It cannot deep-drop borrowed String elements.

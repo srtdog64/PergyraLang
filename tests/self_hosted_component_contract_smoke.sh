@@ -28434,7 +28434,7 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy:120 \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy:160 \
-    src/self_hosted/semantic/ast_collection_preserving_argument_verdict_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy:140 \
     src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy:80 \
     src/self_hosted/semantic/ast_expression_graph_call_argument_edge_owner.pgy:60 \
@@ -28470,7 +28470,7 @@ require_file "tests/self_hosted/fixtures/collection_inout_effect_identity_probe.
 require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
     'import "ast_collection_call_effect_owner.pgy";'
 require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
-    'import "ast_collection_preserving_argument_verdict_owner.pgy";'
+    'import "ast_collection_call_argument_verdict_owner.pgy";'
 require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
     'struct SemanticAstCollectionCallEffectFacts {'
 for retired_collection_path in SemanticAstCollectionUnknownCallEffectRows unknown_effect_rows SemanticAstCollectionStatementTransitions; do
@@ -28478,8 +28478,16 @@ for retired_collection_path in SemanticAstCollectionUnknownCallEffectRows unknow
     reject_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" "$retired_collection_path"
     reject_text "src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy" "$retired_collection_path"
 done
-reject_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
-    'func SemanticAstCollectionPreservingArgumentVerdict('
+reject_file "src/self_hosted/semantic/ast_collection_preserving_argument_verdict_owner.pgy"
+for collection_event_consumer in src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy \
+    src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy; do
+    reject_text "$collection_event_consumer" 'SemanticAstCollectionPreservingArgumentVerdict('
+done
+require_text "src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy" \
+    'SemanticAstCollectionOwnedArgumentVerdict('
+require_text "src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy" \
+    'SemanticAstCollectionOwnedArgumentStorageLive('
 require_text "Makefile" 'self-host-collection-inout-effect-test-smoke'
 require_max_lines "src/self_hosted/mir_lower/collection_ownership_binding_move_owner.pgy" 140
 require_text "src/self_hosted/OWNERS.md" \
@@ -28511,8 +28519,11 @@ reject_text \
     "src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy" \
     'UnwrapOption(target) == "ArrayDropOwnedStrings"'
 require_text \
-    "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
+    "src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy" \
     'SemanticAstCollectionRequiredOwnedArgumentReady('
+for retired_own_entry_path in SemanticAstCollectionRequiredOwnedArgumentReady SemanticAstCollectionOwnedArgumentSameBlock TypedAstKindValueReturnStmtTag; do
+    reject_text "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" "$retired_own_entry_path"
+done
 reject_text \
     "src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy" \
     'SemanticAstFunctionParamNameAt('

@@ -1,0 +1,14 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Forward(own values: Array<String>) -> Int {
+    ArrayDropOwnedStrings(values);
+    if true {
+        let rejected_formal_child: Int = Metadata(values);
+        return rejected_formal_child;
+    }
+    return 0;
+}
+func Main() -> Void {
+    let borrowed: Array<String> = ["borrowed"];
+    let values: Array<String> = Clone(borrowed);
+    Log(Forward(values));
+}

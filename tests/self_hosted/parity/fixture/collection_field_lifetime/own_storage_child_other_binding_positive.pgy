@@ -1,0 +1,8 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Main() -> Void {
+    let a: Array<String> = [];
+    let b: Array<String> = [];
+    if true { ArrayDropOwnedStrings(b); }
+    let accepted_other: Int = Metadata(a);
+    Log(accepted_other);
+}

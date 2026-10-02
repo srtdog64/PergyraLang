@@ -1,0 +1,10 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func WithMarker(own values: Array<String>, marker: Int) -> Int {
+    return ArrayLength(values) + marker;
+}
+func Main() -> Void {
+    let a: Array<String> = [];
+    let b: Array<String> = [];
+    let accepted_nested: Int = WithMarker(a, Metadata(b));
+    Log(accepted_nested);
+}

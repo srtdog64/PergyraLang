@@ -1,0 +1,8 @@
+func Pair(own a: Array<String>, own b: Array<String>) -> Int {
+    return ArrayLength(a) + ArrayLength(b);
+}
+func Forward(own values: Array<String>) -> Int { return Pair(values, values); }
+func Main() -> Void {
+    let values: Array<String> = ["borrowed"];
+    Log(Forward(values));
+}

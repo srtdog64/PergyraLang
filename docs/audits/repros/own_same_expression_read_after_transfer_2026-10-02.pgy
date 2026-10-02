@@ -1,0 +1,13 @@
+// Analyze only: a later read in the same scalar expression is not own entry.
+func Retire(own values: Array<String>) -> Int {
+    ArrayDropOwnedStrings(values);
+    return 0;
+}
+func Forward(own values: Array<String>) -> Int {
+    return Retire(values) + ArrayLength(values);
+}
+func Main() -> Void {
+    let borrowed: Array<String> = ["borrowed"];
+    let values: Array<String> = Clone(borrowed);
+    Log(Forward(values));
+}

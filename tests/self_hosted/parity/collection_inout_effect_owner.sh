@@ -15,6 +15,16 @@ SOURCE_PROBE=tests/self_hosted/fixtures/nominal_constructor_source_arity_probe.p
 IDENTITY_PROBE=tests/self_hosted/fixtures/collection_inout_effect_identity_probe.pgy
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 INPUTS=(
+    own_storage_retired_empty_negative.pgy own_storage_retired_clone_negative.pgy
+    own_storage_live_empty_positive.pgy own_storage_live_borrowed_positive.pgy
+    own_storage_child_retired_negative.pgy own_storage_child_other_binding_positive.pgy
+    own_storage_repeated_negative.pgy own_storage_nested_other_binding_positive.pgy
+    own_storage_nested_same_binding_negative.pgy own_storage_loop_negative.pgy own_storage_deferred_negative.pgy
+    own_storage_formal_retired_negative.pgy own_storage_formal_child_retired_negative.pgy
+    own_storage_formal_forward_positive.pgy own_storage_formal_unknown_negative.pgy
+    own_storage_return_duplicate_negative.pgy own_storage_return_distinct_positive.pgy
+    own_named_clone_positive.pgy own_wrapper_borrowed_negative.pgy
+    own_formal_read_after_forward_negative.pgy own_formal_double_forward_negative.pgy
     inout_event_push_before_unknown_positive.pgy inout_event_copy_before_unknown_positive.pgy
     inout_event_copy_after_unknown_negative.pgy inout_event_borrowed_push_after_copy_negative.pgy
     inout_event_nested_other_binding_positive.pgy inout_event_nested_same_binding_negative.pgy
@@ -53,10 +63,13 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
-    src/self_hosted/semantic/ast_collection_preserving_argument_verdict_owner.pgy \
+    src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy \
     src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy \
+    src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy \
+    src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy \
     src/self_hosted/semantic/ast_assignment_fact_owner.pgy \
     src/self_hosted/semantic/ast_expression_graph_call_argument_edge_owner.pgy \
@@ -64,7 +77,8 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" \
     src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy >"$WORK/owners.sha256"
 ACTUAL_INPUT="$FIXTURES/callable_table_from_artifact_release_probe.pgy"
-sha256sum "${INPUTS[@]}" "$FIXTURES/inout_index_identity_input.pgy" "$ACTUAL_INPUT" >"$WORK/inputs.sha256"
+sha256sum "${INPUTS[@]}" "$FIXTURES/inout_index_identity_input.pgy" \
+    "$FIXTURES/own_storage_identity_input.pgy" "$ACTUAL_INPUT" >"$WORK/inputs.sha256"
 find src/self_hosted -name '*.pgy' -type f -print0 | sort -z | xargs -0 sha256sum >"$WORK/imports.sha256"
 for backend in c llvm; do
     timeout 120 "$PGY" --native-pipeline "$SOURCE_PROBE" "--backend=$backend" --opt=dev \
@@ -75,7 +89,8 @@ for backend in c llvm; do
         tr -d '\r' <"$WORK/$backend-$name.raw" >"$WORK/$backend-$name.run"
         [[ ! -s "$WORK/$backend-$name.err" ]]
         case "$name" in
-            member_*_negative.pgy) printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
+            member_*_negative.pgy|own_storage_nested_same_binding_negative.pgy|own_storage_formal_retired_negative.pgy|own_storage_formal_child_retired_negative.pgy|own_storage_return_duplicate_negative.pgy|own_formal_*_negative.pgy)
+                printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             *_negative.pgy) printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             *_positive.pgy) printf 'body_ok=true\nbody_diagnostic=\n' >"$WORK/expected" ;;
             *) echo "unclassified inout fixture: $name" >&2; exit 1 ;;
@@ -113,7 +128,27 @@ inout_event_copy_after_unknown_negative.pgy|unproved_inout_copy_entry|rejected_c
 inout_event_borrowed_push_after_copy_negative.pgy|ArrayPush|values|"borrowed"
 inout_event_nested_same_binding_negative.pgy|unproved_inout_copy_entry|rejected_nested|Copy(a, Mark(a))
 inout_event_index_write_after_copy_negative.pgy|ArraySet|values[0]|"borrowed"
+own_storage_retired_empty_negative.pgy|owned_argument_storage_not_live|rejected_own|Metadata(values)
+own_storage_retired_clone_negative.pgy|owned_argument_storage_not_live|rejected_clone|Metadata(values)
+own_storage_child_retired_negative.pgy|owned_argument_storage_not_live|rejected_child|Metadata(a)
+own_storage_repeated_negative.pgy|owned_argument_storage_not_live|rejected_second|Metadata(values)
+own_storage_loop_negative.pgy|owned_argument_storage_not_live|rejected_loop|Metadata(values)
 EVENT_DIAGNOSTICS
+    while IFS='|' read -r input boundary atom value function; do
+        timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
+            >"$WORK/$backend-$input-diagnostic.raw" 2>"$WORK/$backend-$input-diagnostic.err"
+        tr -d '\r' <"$WORK/$backend-$input-diagnostic.raw" >"$WORK/$backend-$input-diagnostic.run"
+        [[ ! -s "$WORK/$backend-$input-diagnostic.err" ]]
+        grep -Fxq -- "- boundary: $boundary" "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq "body_value=$value" "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq "body_function=$function" "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-$input-diagnostic.run"
+    done <<'OWN_FORMAL_DIAGNOSTICS'
+own_storage_formal_retired_negative.pgy|owned_argument_use_after_move|rejected_formal|Metadata(values)|Forward
+own_storage_formal_child_retired_negative.pgy|owned_argument_use_after_move|rejected_formal_child|Metadata(values)|Forward
+own_storage_formal_unknown_negative.pgy|owned_argument_storage_unproved|rejected_unknown_formal|Metadata(values)|Forward
+OWN_FORMAL_DIAGNOSTICS
     for mode_case in missing extra unknown; do
         args=()
         case "$mode_case" in
@@ -150,13 +185,21 @@ EVENT_DIAGNOSTICS
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
     done
+    for ((mutation=16; mutation<=21; mutation++)); do
+        timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/own_storage_identity_input.pgy" "$mutation" \
+            >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
+        tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
+        [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
+    done
     timeout 30 "$WORK/$backend-identity.exe" "$ACTUAL_INPUT" -1 \
         >"$WORK/$backend-actual-producer.raw" 2>"$WORK/$backend-actual-producer.err"
     tr -d '\r' <"$WORK/$backend-actual-producer.raw" | LC_ALL=C sort >"$WORK/$backend-actual-producer.run"
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, five diagnostic locations, three observer mode, sixteen identity/boundary and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, thirteen diagnostic locations, three observer mode, twenty-two identity/boundary and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

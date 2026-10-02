@@ -1,0 +1,9 @@
+func Metadata(own values: Array<String>) -> Int { return ArrayLength(values); }
+func Main() -> Void {
+    let a: Array<String> = [];
+    let b: Array<String> = [];
+    if true { ArrayDropOwnedStrings(a); }
+    let rejected_child: Int = Metadata(a);
+    ArrayDropOwnedStrings(b);
+    Log(rejected_child);
+}

@@ -24,9 +24,10 @@ import "ast_collection_ownership_assignment_alias_owner.pgy";
 import "ast_collection_ownership_binding_move_use_owner.pgy";
 import "ast_collection_ownership_member_transition_owner.pgy";
 import "ast_collection_ownership_argument_transfer_owner.pgy";
+import "ast_collection_owned_element_parameter_requirement_owner.pgy";
 import "ast_collection_ownership_statement_transition_owner.pgy";
 import "ast_collection_call_effect_owner.pgy";
-import "ast_collection_preserving_argument_verdict_owner.pgy";
+import "ast_collection_call_argument_verdict_owner.pgy";
 import "ast_owned_string_result_fact_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
@@ -277,6 +278,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
             SemanticError1("ast_artifact_invalid", "owner",
                 "collection_ownership_call_roots"), -1, -1);
     }
+    let element_requirements: HashMap<String, Int> =
+        SemanticAstCollectionOwnedElementParameterRequirements(signatures, surfaces, call_roots);
     let last_root: Int = -1;
     let root_slot: Int = 0;
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
@@ -302,10 +305,10 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                     surfaces.expression_graph, node);
                 if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeCallArgument() {
                     let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
-                    let preserving: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionPreservingArgumentVerdict(
+                    let argument_verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
                         artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, root_slot / 3,
-                        edge, proved_formal_effects, ownership, dispositions, origins, transition_states, call_effects);
-                    if !preserving.ok { return preserving; }
+                        edge, proved_formal_effects, element_requirements, ownership, dispositions, origins, transition_states, call_effects);
+                    if !argument_verdict.ok { return argument_verdict; }
                 }
                 if IsSome(kind) &&
                     UnwrapOption(kind) == AstExpressionNodeCall() {
@@ -552,7 +555,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let transferred_use: SemanticAstCollectionOwnedArgumentUse =
         SemanticAstCollectionFirstInvalidOwnedArgumentUse(
             artifact, signatures, locals, initializer_types.inferred_type_names,
-            surfaces, ownership, dispositions, origins, transition_states);
+            surfaces, proved_formal_effects);
     if transferred_use.found {
         return SemanticAstCollectionOwnershipVerdictError(
             transferred_use.diagnostic_code,
