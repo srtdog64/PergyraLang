@@ -44,10 +44,12 @@ grep -Fq 'SemanticAstScopedLocalBindingIdentityForGraphLeaf(' "$IDENTITY_OWNER" 
 grep -Fq 'import "ast_collection_ownership_statement_transition_owner.pgy";' \
     "$OWNER" ||
     fail "verdict owner does not import the collection statement transition owner"
-grep -Fq 'SemanticAstCollectionStatementTransitions(' "$OWNER" ||
-    fail "verdict owner does not consume collection statement transitions"
+grep -Fq 'SemanticAstCollectionStatementTransitionForSyntax(' "$OWNER" ||
+    fail "verdict owner does not consume syntax-ordered collection transitions"
+! grep -Fq 'SemanticAstCollectionStatementTransitions(' "$OWNER" "$STATEMENT_TRANSITION_OWNER" ||
+    fail "unordered collection statement transition path returned"
 for statement_tag in TypedAstKindArrayPushStmtTag \
-        TypedAstKindArraySetStmtTag TypedAstKindArrayPopStmtTag; do
+        TypedAstKindArraySetStmtTag TypedAstKindArrayPopStmtTag TypedAstKindAssignStmtTag; do
     grep -Fq "$statement_tag()" "$STATEMENT_TRANSITION_OWNER" ||
         fail "statement transition owner ignores $statement_tag"
 done

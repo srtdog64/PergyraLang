@@ -614,12 +614,14 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   feed primitive equality/inequality. Alias/store/write, custom operators and
   unproved forwarding cycles grant nothing; formal forwarding needs its exact
   whole-use live effect, never a type/name-based permission.
-- `src/self_hosted/semantic/ast_collection_call_effect_owner.pgy` -- sticky
-  caller permission removal for unknown source effects and exact local moves.
-  Copy and indexed-read entry consume possible-retirement syntax bounds;
-  unknown effects may retire, while metadata reads need no element liveness.
-  Copies do not purify inputs or revive storage. This conservative prepass is
-  not event-time aggregate release authority.
+- `src/self_hosted/semantic/ast_collection_call_effect_owner.pgy` -- typed
+  per-local Unknown and possible-retirement syntax bounds, propagated only
+  across exact direct moves. Production is state-free; event/terminal folds
+  remove permission through the state owner without reviving retired storage.
+- `src/self_hosted/semantic/ast_collection_preserving_argument_verdict_owner.pgy`
+  -- exact conditional copy/indexed-read entry and caller output at an admitted
+  syntax event. A proved copy carries scratch Live {Empty, Owned}, never a
+  fabricated push receipt, type-based grant or aggregate release certificate.
 - `src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy` --
   conservative typed syntax-order bounds for mutable-call entry, including
   nested argument consumption, branch/loop retirement and deferred execution.
@@ -666,7 +668,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   insufficient; the proof follows stable local/call identities to an
   immutable `TextBuilderFinish` value backed by `AllocatorResult`.
 - `src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy`
-  -- parser-owned Array push/set/pop transitions. A raw `ArrayPush` becomes an
+  -- syntax-ordered parser-owned Array push/set/pop and indexed-write transitions.
+  A raw `ArrayPush` becomes an
   owned-element transition only when its direct call target is present in the
   owned String result facts, and the receipt carries that target SyntaxNodeId.
 - `src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy` --

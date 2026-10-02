@@ -23,3 +23,23 @@ func SemanticAstCollectionTransitionEmpty() -> Int { return 1; }
 func SemanticAstCollectionTransitionBorrowed() -> Int { return 2; }
 func SemanticAstCollectionTransitionOwned() -> Int { return 3; }
 func SemanticAstCollectionTransitionRetired() -> Int { return 4; }
+// A conditional effect preserves Live {Empty, Owned}; it need not push.
+// This scratch union is not a serialized element-ownership fact or receipt.
+func SemanticAstCollectionTransitionClean() -> Int { return 5; }
+func SemanticAstCollectionTransitionAllowsOwned(transition: Int) -> Bool {
+    return transition == SemanticAstCollectionTransitionEmpty() ||
+        transition == SemanticAstCollectionTransitionOwned() ||
+        transition == SemanticAstCollectionTransitionClean();
+}
+func SemanticAstCollectionRemoveCallPermission(
+    row: Int, inout ownership: Array<Int>, ref dispositions: Array<Int>,
+    inout transitions: Array<Int>
+) -> Void {
+    if dispositions[row] == SemanticAstCollectionDispositionRetired() { return; }
+    if ownership[row] != SemanticAstCollectionOwnershipRetired() {
+        ownership[row] = SemanticAstCollectionOwnershipUnknown();
+    }
+    if transitions[row] != SemanticAstCollectionTransitionRetired() {
+        transitions[row] = SemanticAstCollectionTransitionUntracked();
+    }
+}

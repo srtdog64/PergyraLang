@@ -1,0 +1,7 @@
+func Copy(inout values: Array<String>) -> Void { ArrayPushOwnedString(values, "copied"); }
+func Main() -> Void {
+    let values: Array<String> = [];
+    Copy(values);
+    values[0] = "borrowed";
+    ArrayDropOwnedStrings(values);
+}

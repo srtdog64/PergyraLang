@@ -1,24 +1,43 @@
-// Unknown source effects remove permission before unordered statement scans.
-// The sticky local mask is not a serialized call-point or release receipt.
+// Possible effects are syntax bounds, never permission changes in a prepass.
 import "ast_collection_formal_effect_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_ownership_state_owner.pgy";
-import "ast_collection_ownership_verdict_carrier_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
 
-func SemanticAstCollectionUnknownCallEffectRows(
+struct SemanticAstCollectionCallEffectFacts {
+    ok: Bool;
+    first_unknown_sites: Array<Int>;
+    first_retiring_sites: Array<Int>;
+    first_non_deep_drop_retiring_sites: Array<Int>;
+}
+
+func SemanticAstCollectionCallEffectFactsReady(
+    ref facts: SemanticAstCollectionCallEffectFacts, local_count: Int
+) -> Bool {
+    return facts.ok && ArrayLength(facts.first_unknown_sites) == local_count &&
+        ArrayLength(facts.first_retiring_sites) == local_count &&
+        ArrayLength(facts.first_non_deep_drop_retiring_sites) == local_count;
+}
+
+func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     formal_rows: HashMap<String, Int>, ref formal_modes: Array<Int>,
-    proved: HashMap<String, Int>,
-    ref origins: Array<Int>, ref source_binding_ids: Array<Int>,
-    inout ownership: Array<Int>, ref dispositions: Array<Int>,
-    inout transition_states: Array<Int>, inout first_consuming_syntax_ids: Array<Int>
-) -> Array<Bool> {
-    let unknown: Array<Bool> = [];
+    proved: HashMap<String, Int>, ref origins: Array<Int>, ref source_binding_ids: Array<Int>
+) -> SemanticAstCollectionCallEffectFacts {
+    let unknown: Array<Int> = [];
+    let retiring: Array<Int> = [];
+    let non_deep_drop: Array<Int> = [];
+    let count: Int = ArrayLength(locals.node_ids);
+    if ArrayLength(inferred_types) != count || ArrayLength(origins) != count ||
+        ArrayLength(source_binding_ids) != count ||
+        !SemanticAstExpressionSurfaceBorrowReady(artifact, surfaces) {
+        return SemanticAstCollectionCallEffectFacts(false, unknown, retiring, non_deep_drop);
+    }
     let row: Int = 0;
-    while row < ArrayLength(locals.node_ids) {
-        ArrayPush(unknown, false); ArrayPush(first_consuming_syntax_ids, -1); row = row + 1;
+    while row < count {
+        ArrayPush(unknown, -1); ArrayPush(retiring, -1); ArrayPush(non_deep_drop, -1); row = row + 1;
     }
     let last: Int = -1;
     let slot: Int = 0;
@@ -38,8 +57,8 @@ func SemanticAstCollectionUnknownCallEffectRows(
                         declared = identity.kind != SemanticExpressionBindingNone() || identity.syntax_id > 0;
                     }
                     let ordinal: Int = call.ordinal;
-                    let releasing: Bool = call.ok && ordinal == 0 && (
-                        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "ArrayDropOwnedStrings") ||
+                    let deep_drop: Bool = SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "ArrayDropOwnedStrings");
+                    let releasing: Bool = call.ok && ordinal == 0 && (deep_drop ||
                         SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "ArrayDrop") ||
                         SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "CompilerRetireArrayStorage"));
                     if call.ok && ordinal >= 0 && IsSome(target) && (UnwrapOption(target) > 0 || declared || releasing) {
@@ -51,19 +70,23 @@ func SemanticAstCollectionUnknownCallEffectRows(
                             let key: String = ToString(formal);
                             let consuming: Bool = releasing;
                             if MapHas(formal_rows, key) {
-                                consuming = formal_modes[MapGet(formal_rows, key)] == 2;
+                                let formal_row: Int = MapGet(formal_rows, key);
+                                if formal_row < 0 || formal_row >= ArrayLength(formal_modes) {
+                                    return SemanticAstCollectionCallEffectFacts(false, unknown, retiring, non_deep_drop);
+                                }
+                                consuming = formal_modes[formal_row] == 2;
                             }
                             let unproved: Bool = !MapHas(proved, key);
                             if consuming || unproved {
-                                // Unknown effects may retire; this is a bound, not a receipt.
-                                // One syntax owner includes all argument evaluations. Base
-                                // Call graph rows precede arguments, not actual invocation.
-                                let consumed: Int = SemanticAstCollectionCallRetirementSite(artifact, surfaces.node_ids[slot / 3]);
-                                if first_consuming_syntax_ids[binding.row] < 0 || consumed < first_consuming_syntax_ids[binding.row] {
-                                    first_consuming_syntax_ids[binding.row] = consumed;
+                                // One syntax includes argument evaluation; graph base Call
+                                // order is not invocation order. 0 covers repeat/reorder.
+                                let site: Int = SemanticAstCollectionCallRetirementSite(artifact, surfaces.node_ids[slot / 3]);
+                                if retiring[binding.row] < 0 || site < retiring[binding.row] { retiring[binding.row] = site; }
+                                if !deep_drop && (non_deep_drop[binding.row] < 0 || site < non_deep_drop[binding.row]) { non_deep_drop[binding.row] = site; }
+                                if !consuming && unproved && (unknown[binding.row] < 0 || site < unknown[binding.row]) {
+                                    unknown[binding.row] = site;
                                 }
                             }
-                            if !consuming && unproved { unknown[binding.row] = true; }
                         }
                     }
                 }
@@ -73,23 +96,23 @@ func SemanticAstCollectionUnknownCallEffectRows(
         }
         slot = slot + 1;
     }
-    // Initialization already copied direct-move state. Carry removal across
-    // those exact source-binding edges, never across a fresh Clone result.
+    // Propagate only along exact direct-move edges, never fresh Clone results.
     let changed: Bool = true;
-    let remaining: Int = ArrayLength(unknown) + 1;
+    let remaining: Int = count + 1;
     while changed && remaining > 0 {
         changed = false;
         row = 0;
-        while row < ArrayLength(unknown) {
+        while row < count {
             if origins[row] == SemanticAstCollectionOriginBinding() {
                 let source: Int = 0;
-                while source < ArrayLength(unknown) {
+                while source < count {
                     if locals.node_ids[source] == source_binding_ids[row] {
-                        if unknown[source] && !unknown[row] { unknown[row] = true; changed = true; }
-                        let consumed: Int = first_consuming_syntax_ids[source];
-                        if consumed >= 0 && (first_consuming_syntax_ids[row] < 0 || consumed < first_consuming_syntax_ids[row]) {
-                            first_consuming_syntax_ids[row] = consumed; changed = true;
-                        }
+                        let site: Int = unknown[source];
+                        if site >= 0 && (unknown[row] < 0 || site < unknown[row]) { unknown[row] = site; changed = true; }
+                        site = retiring[source];
+                        if site >= 0 && (retiring[row] < 0 || site < retiring[row]) { retiring[row] = site; changed = true; }
+                        site = non_deep_drop[source];
+                        if site >= 0 && (non_deep_drop[row] < 0 || site < non_deep_drop[row]) { non_deep_drop[row] = site; changed = true; }
                         break;
                     }
                     source = source + 1;
@@ -99,70 +122,29 @@ func SemanticAstCollectionUnknownCallEffectRows(
         }
         remaining = remaining - 1;
     }
-    row = 0;
-    while row < ArrayLength(unknown) {
-        if unknown[row] {
-            if ownership[row] != SemanticAstCollectionOwnershipRetired() {
-                ownership[row] = SemanticAstCollectionOwnershipUnknown();
-            }
-            if transition_states[row] != SemanticAstCollectionTransitionRetired() {
-                transition_states[row] = SemanticAstCollectionTransitionUntracked();
-            }
-        }
-        row = row + 1;
-    }
+    return SemanticAstCollectionCallEffectFacts(true, unknown, retiring, non_deep_drop);
+}
+
+func SemanticAstCollectionApplyUnknownCallStateAtUse(
+    artifact: AstTreeArtifact, ref facts: SemanticAstCollectionCallEffectFacts,
+    row: Int, syntax_id: Int, inout ownership: Array<Int>,
+    ref dispositions: Array<Int>, inout transitions: Array<Int>
+) -> Bool {
+    let unknown: Bool = SemanticAstCollectionMutableCallMayBeRetired(
+        artifact, syntax_id, facts.first_unknown_sites[row]);
+    if unknown { SemanticAstCollectionRemoveCallPermission(row, ownership, dispositions, transitions); }
     return unknown;
 }
 
-func SemanticAstCollectionPreservingArgumentVerdict(
-    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
-    ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
-    ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
-    edge: SemanticCallArgumentEdgeView, proved: HashMap<String, Int>,
-    ref ownership: Array<Int>, ref dispositions: Array<Int>,
-    ref origins: Array<Int>, ref transition_states: Array<Int>,
-    ref first_consuming_syntax_ids: Array<Int>, ref unknown_effect_rows: Array<Bool>
-) -> SemanticAstCollectionOwnershipVerdict {
-    if !edge.ok {
-        return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
-            SemanticError1("ast_artifact_invalid", "owner", "collection_call_argument_edge"), surfaces.node_ids[surface_row], -1);
+func SemanticAstCollectionApplyTerminalCallEffects(
+    ref facts: SemanticAstCollectionCallEffectFacts, inout ownership: Array<Int>,
+    ref dispositions: Array<Int>, inout transitions: Array<Int>
+) -> Void {
+    let row: Int = 0;
+    while row < ArrayLength(facts.first_unknown_sites) {
+        if facts.first_unknown_sites[row] >= 0 {
+            SemanticAstCollectionRemoveCallPermission(row, ownership, dispositions, transitions);
+        }
+        row = row + 1;
     }
-    let formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(
-        signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
-    let key: String = ToString(formal);
-    let effect: Int = 0;
-    if MapHas(proved, key) { effect = MapGet(proved, key); }
-    if effect == 2 || effect == 3 {
-            let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
-                artifact, locals, inferred_types, surfaces, surface_row, edge.argument_node);
-            if binding.ok {
-                let clean: Bool = ownership[binding.row] == SemanticAstCollectionOwnershipOwnedElements() ||
-                    ownership[binding.row] == SemanticAstCollectionOwnershipMapKeysSnapshot();
-                if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() {
-                    clean = transition_states[binding.row] == SemanticAstCollectionTransitionEmpty() ||
-                        transition_states[binding.row] == SemanticAstCollectionTransitionOwned();
-                }
-                let consumed: Int = first_consuming_syntax_ids[binding.row];
-                if (effect == 2 && (!clean || unknown_effect_rows[binding.row])) ||
-                    dispositions[binding.row] == SemanticAstCollectionDispositionRetired() ||
-                    SemanticAstCollectionMutableCallMayBeRetired(artifact, surfaces.node_ids[surface_row], consumed) {
-                    let boundary: String = "unproved_inout_copy_entry";
-                    if effect == 3 { boundary = "unproved_indexed_read_entry"; }
-                    return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
-                        SemanticError2("borrow_boundary_escape", "boundary", boundary,
-                            "type", "Array<String>"), surfaces.node_ids[surface_row], edge.call_node);
-                }
-            } else if SemanticAstCollectionOwnershipParameterModeForArgument(
-                    signatures, surfaces, surface_row, edge.argument_node) == 3 ||
-                    (effect == 3 && !SemanticAstCollectionFormalArgumentHasLiveEffect(
-                        signatures, surfaces, surface_row, edge.argument_node, proved)) {
-                // Forwarding requires the exact formal's whole-use live proof.
-                let boundary: String = "unproved_own_formal_copy_entry";
-                if effect == 3 { boundary = "unproved_formal_indexed_read_entry"; }
-                return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
-                    SemanticError2("borrow_boundary_escape", "boundary", boundary,
-                        "type", "Array<String>"), surfaces.node_ids[surface_row], edge.call_node);
-            }
-    }
-    return SemanticAstCollectionOwnershipVerdictOk();
 }

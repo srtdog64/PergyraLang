@@ -36,3 +36,16 @@ func SemanticAstCollectionMutableCallMayBeRetired(
     }
     return true;
 }
+
+func SemanticAstCollectionMutationMayBeRetired(
+    artifact: AstTreeArtifact, syntax_id: Int,
+    first_retiring_site: Int, first_non_deep_drop_site: Int
+) -> Bool {
+    let bound: Int = first_non_deep_drop_site;
+    // A deferred/repeated mutation can execute after a lexically later drop.
+    // Ordinary mutation still precedes a known future deferred cleanup.
+    if first_retiring_site >= 0 && SemanticAstCollectionCallRetirementSite(artifact, syntax_id) == 0 {
+        bound = first_retiring_site;
+    }
+    return SemanticAstCollectionMutableCallMayBeRetired(artifact, syntax_id, bound);
+}

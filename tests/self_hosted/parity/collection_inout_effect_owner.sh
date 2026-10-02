@@ -15,6 +15,16 @@ SOURCE_PROBE=tests/self_hosted/fixtures/nominal_constructor_source_arity_probe.p
 IDENTITY_PROBE=tests/self_hosted/fixtures/collection_inout_effect_identity_probe.pgy
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 INPUTS=(
+    inout_event_push_before_unknown_positive.pgy inout_event_copy_before_unknown_positive.pgy
+    inout_event_copy_after_unknown_negative.pgy inout_event_borrowed_push_after_copy_negative.pgy
+    inout_event_nested_other_binding_positive.pgy inout_event_nested_same_binding_negative.pgy
+    inout_event_index_write_after_copy_negative.pgy inout_event_index_write_borrowed_positive.pgy
+    inout_event_nested_own_push_negative.pgy inout_event_deferred_push_unknown_negative.pgy
+    inout_event_owned_push_after_copy_positive.pgy
+    inout_event_transferred_child_drop_negative.pgy
+    inout_event_unknown_then_owned_transfer_negative.pgy
+    inout_event_owned_push_deferred_drop_positive.pgy inout_event_clone_drop_then_push_negative.pgy
+    inout_event_deferred_push_after_drop_negative.pgy inout_event_loop_push_drop_negative.pgy
     member_double_move_negative.pgy member_reuse_while_moved_negative.pgy
     member_distinct_moves_positive.pgy member_restore_then_move_positive.pgy
     inout_borrowed_push_drop_negative.pgy inout_borrowed_push_read_positive.pgy
@@ -43,7 +53,12 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
+    src/self_hosted/semantic/ast_collection_preserving_argument_verdict_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy \
+    src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy \
+    src/self_hosted/semantic/ast_assignment_fact_owner.pgy \
     src/self_hosted/semantic/ast_expression_graph_call_argument_edge_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy \
@@ -78,6 +93,27 @@ for backend in c llvm; do
     grep -Fxq 'body_function=Main' "$WORK/$backend-diagnostic.run"
     grep -Fxq "body_module=$FIXTURES/member_double_move_negative.pgy" "$WORK/$backend-diagnostic.run"
     grep -Eq '^body_syntax=[0-9]+$' "$WORK/$backend-diagnostic.run"
+    # A false verdict alone also passes an unordered implementation. Pin the
+    # later event, not the earlier valid Copy, without hardcoding syntax IDs.
+    while IFS='|' read -r input boundary atom value; do
+        timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
+            >"$WORK/$backend-$input-diagnostic.raw" 2>"$WORK/$backend-$input-diagnostic.err"
+        tr -d '\r' <"$WORK/$backend-$input-diagnostic.raw" >"$WORK/$backend-$input-diagnostic.run"
+        [[ ! -s "$WORK/$backend-$input-diagnostic.err" ]]
+        grep -Fxq 'body_ok=false' "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq 'body_diagnostic=borrow_boundary_escape' "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq -- "- boundary: $boundary" "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq "body_value=$value" "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq 'body_function=Main' "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-$input-diagnostic.run"
+        grep -Eq '^body_syntax=[0-9]+$' "$WORK/$backend-$input-diagnostic.run"
+    done <<'EVENT_DIAGNOSTICS'
+inout_event_copy_after_unknown_negative.pgy|unproved_inout_copy_entry|rejected_copy|Copy(values, 2)
+inout_event_borrowed_push_after_copy_negative.pgy|ArrayPush|values|"borrowed"
+inout_event_nested_same_binding_negative.pgy|unproved_inout_copy_entry|rejected_nested|Copy(a, Mark(a))
+inout_event_index_write_after_copy_negative.pgy|ArraySet|values[0]|"borrowed"
+EVENT_DIAGNOSTICS
     for mode_case in missing extra unknown; do
         args=()
         case "$mode_case" in
@@ -120,7 +156,7 @@ for backend in c llvm; do
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, four observer mode, sixteen identity/boundary and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, five diagnostic locations, three observer mode, sixteen identity/boundary and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

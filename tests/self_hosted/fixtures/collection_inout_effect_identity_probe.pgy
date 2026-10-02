@@ -72,11 +72,13 @@ func Main() -> Void with caps env, io_read {
     let signature: Int = -1;
     let other: Int = -1;
     let indexed: Int = -1;
+    let main_node: Int = -1;
     let row: Int = 0;
     while row < ArrayLength(analysis.signatures.names) {
         if analysis.signatures.names[row] == "Populate" { signature = row; }
         if analysis.signatures.names[row] == "Forward" { other = row; }
         if analysis.signatures.names[row] == "Matches" { indexed = row; }
+        if analysis.signatures.names[row] == "Main" { main_node = analysis.signatures.function_node_ids[row]; }
         row = row + 1;
     }
     if signature < 0 || other < 0 { Log("missing producer identities"); Exit(2); }
@@ -89,6 +91,7 @@ func Main() -> Void with caps env, io_read {
     }
     let changed: Bool = mutation == 0 || mutation == 13;
     let shared_index: Int = -1;
+    let unknown_call_syntax: Int = -1;
     let slot: Int = 0;
     let last: Int = -1;
     while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
@@ -139,6 +142,7 @@ func Main() -> Void with caps env, io_read {
                 if !changed && mutation >= 11 && mutation <= 12 && analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() &&
                     analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[node] == analysis.signatures.function_node_ids[other] {
                     analysis.expression_surfaces.expression_graph.arena.identities.call_target_syntax_ids[node] = 0;
+                    unknown_call_syntax = analysis.expression_surfaces.node_ids[slot / 3];
                     changed = true;
                 }
                 node = node + 1;
@@ -171,36 +175,64 @@ func Main() -> Void with caps env, io_read {
     } else if mutation == 10 {
         Log(!effects.ok || !MapHas(proved, ToString(foreign)));
     } else if mutation >= 11 && mutation <= 12 {
-        // A missing target must invalidate the caller, even though the source
-        // body itself is still proved. Empty and Owned are separate states.
+        // Bounds production cannot change state. Only the exact Main.values
+        // event loses permission; retirement must remain sticky afterwards.
         let ownership: Array<Int> = [];
         let dispositions: Array<Int> = [];
         let transitions: Array<Int> = [];
-        let consuming: Array<Int> = [];
+        let caller_row: Int = -1;
         row = 0;
         while row < ArrayLength(analysis.local_bindings.node_ids) {
             let state: Int = SemanticAstCollectionOwnershipUnknown();
             let transition: Int = SemanticAstCollectionTransitionEmpty();
             if mutation == 12 { state = SemanticAstCollectionOwnershipOwnedElements(); transition = SemanticAstCollectionTransitionOwned(); }
             ArrayPush(ownership, state); ArrayPush(dispositions, SemanticAstCollectionDispositionLive());
+            if analysis.local_bindings.names[row] == "values" && analysis.local_bindings.function_node_ids[row] == main_node { caller_row = row; }
             ArrayPush(transitions, transition); row = row + 1;
         }
         let formal_rows: HashMap<String, Int> = effects.inventory.row_by_formal;
         let modes: Array<Int> = effects.inventory.modes;
         let origins: Array<Int> = bundle.collection_ownership.origins;
         let source_ids: Array<Int> = bundle.collection_ownership.source_binding_syntax_ids;
-        let unknown: Array<Bool> = SemanticAstCollectionUnknownCallEffectRows(
+        let facts: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
             artifact, analysis.signatures, analysis.local_bindings,
             bundle.initializer_types.inferred_type_names, analysis.expression_surfaces,
-            formal_rows, modes, proved, origins, source_ids, ownership, dispositions, transitions, consuming);
-        let invalidated: Bool = false;
+            formal_rows, modes, proved, origins, source_ids);
+        if caller_row < 0 || unknown_call_syntax < 0 || !SemanticAstCollectionCallEffectFactsReady(facts, ArrayLength(ownership)) {
+            Log("missing exact caller effect frame"); Exit(2);
+        }
+        let initial_state: Int = SemanticAstCollectionOwnershipUnknown();
+        let initial_transition: Int = SemanticAstCollectionTransitionEmpty();
+        if mutation == 12 { initial_state = SemanticAstCollectionOwnershipOwnedElements(); initial_transition = SemanticAstCollectionTransitionOwned(); }
+        let unchanged: Bool = true;
         row = 0;
-        while row < ArrayLength(unknown) {
-            if unknown[row] && ownership[row] == SemanticAstCollectionOwnershipUnknown() &&
-                transitions[row] == SemanticAstCollectionTransitionUntracked() { invalidated = true; }
+        while row < ArrayLength(ownership) {
+            if ownership[row] != initial_state || transitions[row] != initial_transition || dispositions[row] != SemanticAstCollectionDispositionLive() { unchanged = false; }
             row = row + 1;
         }
-        Log(effects.ok && MapHas(proved, ToString(foreign)) && invalidated);
+        let site: Int = SemanticAstCollectionCallRetirementSite(artifact, unknown_call_syntax);
+        let bounded: Bool = facts.first_unknown_sites[caller_row] == site && facts.first_retiring_sites[caller_row] == site && facts.first_non_deep_drop_retiring_sites[caller_row] == site;
+        let before: Bool = SemanticAstCollectionApplyUnknownCallStateAtUse(artifact, facts, caller_row,
+            analysis.local_bindings.node_ids[caller_row], ownership, dispositions, transitions);
+        let before_unchanged: Bool = !before && ownership[caller_row] == initial_state && transitions[caller_row] == initial_transition;
+        let reached_unknown: Bool = SemanticAstCollectionApplyUnknownCallStateAtUse(artifact, facts, caller_row,
+            unknown_call_syntax, ownership, dispositions, transitions);
+        let invalidated: Bool = reached_unknown && ownership[caller_row] == SemanticAstCollectionOwnershipUnknown() && transitions[caller_row] == SemanticAstCollectionTransitionUntracked();
+        ownership[caller_row] = SemanticAstCollectionOwnershipRetired(); transitions[caller_row] = SemanticAstCollectionTransitionRetired();
+        let repeated: Bool = SemanticAstCollectionApplyUnknownCallStateAtUse(artifact, facts, caller_row,
+            unknown_call_syntax, ownership, dispositions, transitions);
+        let sticky: Bool = repeated && ownership[caller_row] == SemanticAstCollectionOwnershipRetired() && transitions[caller_row] == SemanticAstCollectionTransitionRetired();
+        dispositions[caller_row] = SemanticAstCollectionDispositionRetired();
+        SemanticAstCollectionApplyTerminalCallEffects(facts, ownership, dispositions, transitions);
+        sticky = sticky && dispositions[caller_row] == SemanticAstCollectionDispositionRetired() && ownership[caller_row] == SemanticAstCollectionOwnershipRetired() && transitions[caller_row] == SemanticAstCollectionTransitionRetired();
+        ownership[caller_row] = initial_state; transitions[caller_row] = initial_transition;
+        let disposed: Bool = SemanticAstCollectionApplyUnknownCallStateAtUse(artifact, facts, caller_row,
+            unknown_call_syntax, ownership, dispositions, transitions);
+        let disposition_sticky: Bool = disposed && ownership[caller_row] == initial_state && transitions[caller_row] == initial_transition;
+        SemanticAstCollectionApplyTerminalCallEffects(facts, ownership, dispositions, transitions);
+        disposition_sticky = disposition_sticky && ownership[caller_row] == initial_state && transitions[caller_row] == initial_transition;
+        ArrayPop(facts.first_unknown_sites);
+        Log(effects.ok && MapHas(proved, ToString(foreign)) && unchanged && bounded && before_unchanged && invalidated && sticky && disposition_sticky && !SemanticAstCollectionCallEffectFactsReady(facts, ArrayLength(ownership)));
     } else {
         Log(!effects.ok || !MapHas(proved, key));
     }

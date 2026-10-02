@@ -1,0 +1,9 @@
+func Copy(inout values: Array<String>, marker: Int) -> Int {
+    ArrayPushOwnedString(values, "copied");
+    return marker;
+}
+func Mark(inout values: Array<String>) -> Int { ArrayPush(values, "borrowed"); return 1; }
+func Main() -> Void {
+    let a: Array<String> = [];
+    let rejected_nested: Int = Copy(a, Mark(a));
+}

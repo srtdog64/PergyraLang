@@ -186,12 +186,12 @@ func SemanticAstAssignmentFactsFromArtifact(
     );
 }
 
-func SemanticAstAssignmentCount(facts: SemanticAstAssignmentFacts) -> Int {
+func SemanticAstAssignmentCount(ref facts: SemanticAstAssignmentFacts) -> Int {
     return ArrayLength(facts.node_ids);
 }
 
 func SemanticAstAssignmentIndexForNode(
-    facts: SemanticAstAssignmentFacts,
+    ref facts: SemanticAstAssignmentFacts,
     node_id: Int
 ) -> Option<Int> {
     let count: Int = SemanticAstAssignmentCount(facts);

@@ -1,0 +1,12 @@
+func Copy(inout values: Array<String>, marker: Int) -> Int {
+    ArrayPushOwnedString(values, "copied");
+    return marker;
+}
+func Mark(inout values: Array<String>) -> Int { ArrayPush(values, "borrowed"); return 1; }
+func Main() -> Void {
+    let a: Array<String> = [];
+    let b: Array<String> = [];
+    let copied_nested: Int = Copy(a, Mark(b));
+    ArrayPushOwnedString(a, "after nested");
+    ArrayDropOwnedStrings(a);
+}

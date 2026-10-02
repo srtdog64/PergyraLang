@@ -1,0 +1,8 @@
+func Consume(own values: Array<String>) -> String {
+    ArrayDropOwnedStrings(values);
+    return "retired";
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Consume(values));
+}

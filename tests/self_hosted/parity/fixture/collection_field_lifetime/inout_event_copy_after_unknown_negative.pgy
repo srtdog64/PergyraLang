@@ -1,0 +1,10 @@
+func Copy(inout values: Array<String>, marker: Int) -> Int {
+    ArrayPushOwnedString(values, "copied");
+    return marker;
+}
+func Opaque(inout values: Array<String>) -> Void { ArrayPush(values, "earlier"); }
+func Main() -> Void {
+    let values: Array<String> = [];
+    Opaque(values);
+    let rejected_copy: Int = Copy(values, 2);
+}

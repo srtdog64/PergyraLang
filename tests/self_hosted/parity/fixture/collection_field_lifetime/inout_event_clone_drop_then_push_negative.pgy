@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let borrowed: Array<String> = ["owned"];
+    let values: Array<String> = Clone(borrowed);
+    ArrayDropOwnedStrings(values);
+    ArrayPushOwnedString(values, "after release");
+}

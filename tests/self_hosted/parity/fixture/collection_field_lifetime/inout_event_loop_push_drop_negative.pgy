@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let values: Array<String> = [];
+    let iteration: Int = 0;
+    while iteration < 2 {
+        ArrayPushOwnedString(values, "copied");
+        ArrayDropOwnedStrings(values);
+        iteration = iteration + 1;
+    }
+}

@@ -3,6 +3,8 @@
 import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_ownership_receipt_owner.pgy";
 import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_call_effect_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
 import "ast_owned_string_result_fact_owner.pgy";
 
 struct SemanticAstCollectionStatementTransitionResult {
@@ -13,91 +15,115 @@ struct SemanticAstCollectionStatementTransitionResult {
     receipts: SemanticAstCollectionOwnershipReceiptRows;
 }
 
-func SemanticAstCollectionStatementTransitions(
+func SemanticAstCollectionStatementTransitionForSyntax(
     artifact: AstTreeArtifact,
     ref locals: SemanticAstLocalBindingFacts,
     ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
-    ref statements: SemanticAstStatementFacts,
-    ref ownership: Array<Int>, ref dispositions: Array<Int>,
+    ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
+    syntax_id: Int, ref call_effects: SemanticAstCollectionCallEffectFacts,
+    inout ownership: Array<Int>, ref dispositions: Array<Int>,
     ref origins: Array<Int>, inout transition_states: Array<Int>,
     ref owned_string_results: SemanticAstOwnedStringResultFacts,
     receipts: SemanticAstCollectionOwnershipReceiptRows
 ) -> SemanticAstCollectionStatementTransitionResult {
     let carried: SemanticAstCollectionOwnershipReceiptRows = receipts;
-    let statement_row: Int = 0;
-    while statement_row < ArrayLength(statements.node_ids) {
-        let statement_kind: Int = statements.kind_tags[statement_row];
-        if statement_kind != TypedAstKindArrayPushStmtTag() &&
-            statement_kind != TypedAstKindArraySetStmtTag() &&
-            statement_kind != TypedAstKindArrayPopStmtTag() {
-            statement_row = statement_row + 1;
-            continue;
+    let indexed: Option<Int> = SemanticAstStatementIndexForNode(statements, syntax_id);
+    let statement_kind: Int = TypedAstKindAssignStmtTag();
+    let function_id: Int = -1;
+    if IsSome(indexed) {
+        let statement_row: Int = UnwrapOption(indexed);
+        statement_kind = statements.kind_tags[statement_row];
+        function_id = statements.function_node_ids[statement_row];
+    } else {
+        // Assignments have their own admitted inventory, not statement rows.
+        let assigned: Option<Int> = SemanticAstAssignmentIndexForNode(assignments, syntax_id);
+        if !IsSome(assigned) { return SemanticAstCollectionStatementTransitionResult(true, "", "", -1, carried); }
+        let assignment_row: Int = UnwrapOption(assigned);
+        if assignments.target_is_indexed[assignment_row] == 0 || assignments.target_base_names[assignment_row] != assignments.target_root_names[assignment_row] {
+            return SemanticAstCollectionStatementTransitionResult(true, "", "", -1, carried);
         }
-        let operation: String = "ArrayPop";
-        if statement_kind == TypedAstKindArrayPushStmtTag() {
-            operation = "ArrayPush";
-        } else if statement_kind == TypedAstKindArraySetStmtTag() {
-            operation = "ArraySet";
+        function_id = assignments.function_node_ids[assignment_row];
+    }
+    if statement_kind != TypedAstKindArrayPushStmtTag() &&
+        statement_kind != TypedAstKindArraySetStmtTag() &&
+        statement_kind != TypedAstKindArrayPopStmtTag() &&
+        statement_kind != TypedAstKindAssignStmtTag() {
+        return SemanticAstCollectionStatementTransitionResult(true, "", "", -1, carried);
+    }
+    if statement_kind == TypedAstKindAssignStmtTag() {
+        let target: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, syntax_id, AstExpressionLaneAtom());
+        if !IsSome(target) { return SemanticAstCollectionStatementTransitionResult(false, "ast_artifact_invalid", SemanticError1("ast_artifact_invalid", "owner", "indexed_collection_target"), syntax_id, carried); }
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, UnwrapOption(target));
+        if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeIndex() {
+            return SemanticAstCollectionStatementTransitionResult(false, "ast_artifact_invalid", SemanticError1("ast_artifact_invalid", "owner", "indexed_collection_target"), syntax_id, carried);
         }
-        let binding: SemanticAstLocalBindingIdentity =
-            SemanticAstCollectionOwnershipLocalForStatementTarget(
-                artifact, locals, inferred_types,
-                surfaces, statements, statement_row);
-        if !binding.ok {
-            statement_row = statement_row + 1;
-            continue;
+    }
+    let operation: String = "ArrayPop";
+    if statement_kind == TypedAstKindArrayPushStmtTag() {
+        operation = "ArrayPush";
+    } else if statement_kind == TypedAstKindArraySetStmtTag() || statement_kind == TypedAstKindAssignStmtTag() {
+        operation = "ArraySet";
+    }
+    let binding: SemanticAstLocalBindingIdentity =
+        SemanticAstCollectionOwnershipLocalForStatementTarget(
+            artifact, locals, inferred_types,
+                surfaces, function_id, syntax_id);
+    if !binding.ok {
+        return SemanticAstCollectionStatementTransitionResult(true, "", "", -1, carried);
+    }
+    let unknown: Bool = SemanticAstCollectionApplyUnknownCallStateAtUse(
+        artifact, call_effects, binding.row, syntax_id, ownership, dispositions, transition_states);
+    if unknown || SemanticAstCollectionMutationMayBeRetired(artifact, syntax_id,
+            call_effects.first_retiring_sites[binding.row], call_effects.first_non_deep_drop_retiring_sites[binding.row]) {
+        return SemanticAstCollectionStatementTransitionResult(false, "borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary", operation, "type", "Array<String>"), syntax_id, carried);
+    }
+    let source_syntax_id: Int = 0;
+    if statement_kind == TypedAstKindArrayPushStmtTag() {
+        let value_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, syntax_id,
+            AstExpressionLaneValue());
+        if IsSome(value_root) {
+            source_syntax_id = SemanticAstOwnedStringCallTarget(
+                surfaces.expression_graph, UnwrapOption(value_root),
+                owned_string_results);
         }
-        let source_syntax_id: Int = 0;
-        if statement_kind == TypedAstKindArrayPushStmtTag() {
-            let value_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
-                surfaces, statements.node_ids[statement_row],
-                AstExpressionLaneValue());
-            if IsSome(value_root) {
-                source_syntax_id = SemanticAstOwnedStringCallTarget(
-                    surfaces.expression_graph, UnwrapOption(value_root),
-                    owned_string_results);
-            }
+    }
+    let state: Int = ownership[binding.row];
+    if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() {
+        let transition: Int = transition_states[binding.row];
+        let owned_push: Bool = source_syntax_id > 0;
+        let expected: Int = SemanticAstCollectionTransitionBorrowed();
+        let effect: Int =
+            SemanticAstCollectionOwnershipEffectShallowMutation();
+        if owned_push {
+            expected = SemanticAstCollectionTransitionOwned();
+            effect = SemanticAstCollectionOwnershipEffectOwnedStringPush();
         }
-        let state: Int = ownership[binding.row];
-        if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() {
-            let transition: Int = transition_states[binding.row];
-            let owned_push: Bool = source_syntax_id > 0;
-            let expected: Int = SemanticAstCollectionTransitionBorrowed();
-            let effect: Int =
-                SemanticAstCollectionOwnershipEffectShallowMutation();
-            if owned_push {
-                expected = SemanticAstCollectionTransitionOwned();
-                effect = SemanticAstCollectionOwnershipEffectOwnedStringPush();
-            }
-            if (owned_push &&
-                    transition != SemanticAstCollectionTransitionEmpty() &&
-                    transition != SemanticAstCollectionTransitionOwned()) ||
-                (!owned_push &&
-                    transition != SemanticAstCollectionTransitionEmpty() &&
-                    transition != SemanticAstCollectionTransitionBorrowed()) {
-                return SemanticAstCollectionStatementTransitionResult(
-                    false, "borrow_boundary_escape",
-                    SemanticError2("borrow_boundary_escape", "boundary",
-                        operation, "type", "Array<String>"),
-                    statements.node_ids[statement_row], carried);
-            }
-            transition_states[binding.row] = expected;
-            carried = SemanticAstCollectionOwnershipReceiptRowsAppend(
-                carried, statements.function_node_ids[statement_row],
-                statements.node_ids[statement_row], AstExpressionLaneAtom(),
-                -1, effect, locals.node_ids[binding.row], source_syntax_id);
-        } else if state == SemanticAstCollectionOwnershipOwnedElements() ||
-            state == SemanticAstCollectionOwnershipMapKeysSnapshot() ||
-            dispositions[binding.row] ==
-                SemanticAstCollectionDispositionRetired() {
+        if (owned_push && !SemanticAstCollectionTransitionAllowsOwned(transition)) ||
+            (!owned_push &&
+                transition != SemanticAstCollectionTransitionEmpty() &&
+                transition != SemanticAstCollectionTransitionBorrowed()) {
             return SemanticAstCollectionStatementTransitionResult(
                 false, "borrow_boundary_escape",
                 SemanticError2("borrow_boundary_escape", "boundary",
                     operation, "type", "Array<String>"),
-                statements.node_ids[statement_row], carried);
+                syntax_id, carried);
         }
-        statement_row = statement_row + 1;
+        transition_states[binding.row] = expected;
+        carried = SemanticAstCollectionOwnershipReceiptRowsAppend(
+            carried, function_id, syntax_id, AstExpressionLaneAtom(),
+            -1, effect, locals.node_ids[binding.row], source_syntax_id);
+    } else if state == SemanticAstCollectionOwnershipOwnedElements() ||
+        state == SemanticAstCollectionOwnershipMapKeysSnapshot() ||
+        dispositions[binding.row] ==
+            SemanticAstCollectionDispositionRetired() {
+        return SemanticAstCollectionStatementTransitionResult(
+            false, "borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary",
+                operation, "type", "Array<String>"),
+            syntax_id, carried);
     }
     return SemanticAstCollectionStatementTransitionResult(
         true, "", "", -1, carried);

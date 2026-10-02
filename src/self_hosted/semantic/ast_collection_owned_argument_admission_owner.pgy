@@ -12,8 +12,7 @@ func SemanticAstCollectionOwnedArgumentSourceReady(
         row >= ArrayLength(transitions) || dispositions[row] !=
             SemanticAstCollectionDispositionLive() { return false; }
     if origins[row] == SemanticAstCollectionOriginEmptyLiteral() {
-        return transitions[row] == SemanticAstCollectionTransitionEmpty() ||
-            transitions[row] == SemanticAstCollectionTransitionOwned();
+        return SemanticAstCollectionTransitionAllowsOwned(transitions[row]);
     }
     return ownerships[row] == SemanticAstCollectionOwnershipOwnedElements() ||
         ownerships[row] == SemanticAstCollectionOwnershipMapKeysSnapshot();
