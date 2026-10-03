@@ -795,6 +795,18 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   exact typed whole-local and formal String/Allocator write inventory. A write
   invalidates the declaration/entry allocation witness; synthetic binders and owner fields
   stay distinct from ordinary locals. This is not a current-token proof.
+- `src/self_hosted/semantic/builtin_argument_retention_projection_owner.pgy`
+  -- generated Pergyra projection of the canonical builtin argument-retention
+  registry. It owns exact name/ordinal lookup only; it cannot invent retention
+  policy or allocation permission outside the registry definition.
+- `src/self_hosted/semantic/ast_owned_string_actual_exclusivity_owner.pgy`
+  -- exact single-owner proof for an allocated String actual across local and
+  declared-result chains. Retaining, deferred, member-alias and non-comparison
+  observers fail closed; this owner does not grant allocation provenance.
+- `src/self_hosted/semantic/ast_owned_string_literal_transfer_owner.pgy` --
+  exact straight-line transfer state from one `own String` formal into one
+  singleton `Array<String>` definition and its exact deep drop. Caller-side
+  allocation and exclusivity remain independent required facts.
 - `src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy`
   -- syntax-ordered parser-owned Array push/set/pop and indexed-write transitions.
   A raw `ArrayPush` becomes an

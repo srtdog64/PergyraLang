@@ -204,6 +204,7 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/self_hosted/semantic/ast_owned_string_expression_domain_owner.pgy \
     src/self_hosted/semantic/ast_owned_string_call_result_admission_owner.pgy \
     src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy \
+    src/self_hosted/semantic/ast_owned_string_actual_exclusivity_owner.pgy \
     src/self_hosted/semantic/ast_owned_string_literal_transfer_owner.pgy \
     src/self_hosted/semantic/builtin_argument_retention_projection_owner.pgy \
     src/semantic/builtin_argument_retention_registry.def \

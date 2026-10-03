@@ -1,0 +1,232 @@
+// Exact single-owner use proof for an allocated String actual. This owner
+// admits only allocation-producing roots whose local/result chain has no
+// retaining, deferred, member-alias, or non-comparison observer.
+
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_expression_graph_node_view_owner.pgy";
+import "ast_expression_call_identity_owner.pgy";
+import "ast_owned_string_expression_domain_owner.pgy";
+import "builtin_argument_retention_projection_owner.pgy";
+
+func SemanticAstOwnedStringLiteralTransferBorrowUseExclusive(
+    ref graph: SemanticExpressionGraphFacts,
+    start: Int, root: Int, use_node: Int
+) -> Bool {
+    let found: Bool = false;
+    let node: Int = start;
+    while node <= root {
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+        if IsSome(kind) && UnwrapOption(kind) ==
+                AstExpressionNodeCallArgument() {
+            let edge: SemanticCallArgumentEdgeView =
+                SemanticCallArgumentEdgeFromGraph(graph, node);
+            if !edge.ok { return false; }
+            if edge.argument_node == use_node {
+                let name: Option<String> =
+                    SemanticExpressionGraphCallTargetName(
+                        graph, edge.call_node);
+                if !IsSome(name) ||
+                    !SemanticAstCollectionOwnershipBuiltinCall(
+                        graph, edge.call_node, UnwrapOption(name)) ||
+                    !SemanticBuiltinArgumentBorrowedForCall(
+                        UnwrapOption(name), edge.ordinal) {
+                    return false;
+                }
+                found = true;
+            }
+        }
+        node = node + 1;
+    }
+    return found;
+}
+
+func SemanticAstOwnedStringLiteralTransferComparisonUseExclusive(
+    ref graph: SemanticExpressionGraphFacts,
+    start: Int, root: Int, use_node: Int
+) -> Bool {
+    let found: Bool = false;
+    let node: Int = start;
+    while node <= root {
+        let left: Option<Int> =
+            SemanticExpressionGraphLeftChild(graph, node);
+        let right: Option<Int> =
+            SemanticExpressionGraphRightChild(graph, node);
+        if (IsSome(left) && UnwrapOption(left) == use_node) ||
+            (IsSome(right) && UnwrapOption(right) == use_node) {
+            let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+                graph, node);
+            if !IsSome(kind) ||
+                (UnwrapOption(kind) != AstExpressionNodeEquality() &&
+                 UnwrapOption(kind) != AstExpressionNodeInequality()) {
+                return false;
+            }
+            found = true;
+        }
+        node = node + 1;
+    }
+    return found;
+}
+
+func SemanticAstOwnedStringLiteralTransferLocalUsesExclusive(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref binding: SemanticAstLocalBindingIdentity
+) -> Bool {
+    let slot: Int = 0;
+    while slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[slot] &&
+            surfaces.function_node_ids[slot / 3] ==
+                locals.function_node_ids[binding.row] {
+            let start: Option<Int> =
+                SemanticExpressionGraphRootStartAt(
+                    surfaces.expression_graph, slot);
+            if !IsSome(start) { return false; }
+            let root: Int = surfaces.expression_graph.roots[slot];
+            let node: Int = UnwrapOption(start);
+            while node <= root {
+                let occurrence: SemanticAstLocalBindingIdentity =
+                    SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                        artifact, locals, inferred_types,
+                        locals.function_node_ids[binding.row],
+                        surfaces.node_ids[slot / 3],
+                        surfaces.expression_graph, node);
+                if occurrence.ok && occurrence.row == binding.row {
+                    let return_root: Bool =
+                        slot % 3 == AstExpressionLaneAtom() &&
+                        node == root &&
+                        TypedAstArenaNodeKindIs(
+                            artifact.arena,
+                            surfaces.node_ids[slot / 3],
+                            TypedAstKindValueReturnStmtTag());
+                    if !return_root &&
+                        !SemanticAstOwnedStringLiteralTransferBorrowUseExclusive(
+                            surfaces.expression_graph,
+                            UnwrapOption(start), root, node) &&
+                        !SemanticAstOwnedStringLiteralTransferComparisonUseExclusive(
+                            surfaces.expression_graph,
+                            UnwrapOption(start), root, node) {
+                        return false;
+                    }
+                }
+                node = node + 1;
+            }
+        }
+        slot = slot + 1;
+    }
+    return true;
+}
+
+func SemanticAstOwnedStringLiteralTransferFunctionResultExclusive(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref results: SemanticAstOwnedStringResultFacts,
+    ref numeric: SemanticAstNumericStringAllocationCalls,
+    function_id: Int, depth: Int
+) -> Bool {
+    if depth > 16 { return false; }
+    let saw_return: Bool = false;
+    let surface: Int = 0;
+    while surface < ArrayLength(surfaces.node_ids) {
+        if surfaces.function_node_ids[surface] == function_id &&
+            TypedAstArenaNodeKindIs(
+                artifact.arena, surfaces.node_ids[surface],
+                TypedAstKindValueReturnStmtTag()) {
+            let root: Option<Int> =
+                SemanticAstExpressionGraphRootForNode(
+                    surfaces, surfaces.node_ids[surface],
+                    AstExpressionLaneAtom());
+            if !IsSome(root) ||
+                !SemanticAstOwnedStringLiteralTransferExpressionExclusive(
+                    artifact, signatures, locals, initializer_types,
+                    surfaces, results, numeric, function_id,
+                    surfaces.node_ids[surface], AstExpressionLaneAtom(),
+                    UnwrapOption(root), depth + 1) {
+                return false;
+            }
+            saw_return = true;
+        }
+        surface = surface + 1;
+    }
+    return saw_return;
+}
+
+func SemanticAstOwnedStringLiteralTransferExpressionExclusive(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref results: SemanticAstOwnedStringResultFacts,
+    ref numeric: SemanticAstNumericStringAllocationCalls,
+    function_id: Int, use_id: Int, lane: Int, root: Int, depth: Int
+) -> Bool {
+    if depth > 16 { return false; }
+    let domain: SemanticAstOwnedStringAllocationDomain =
+        SemanticAstOwnedStringExpressionAllocationDomain(
+            artifact, signatures, locals, initializer_types, surfaces,
+            results.writes, results.domain_exposures, results, numeric,
+            function_id, use_id, lane, root, 0);
+    if domain.kind == 0 { return false; }
+    if SemanticAstNumericStringAllocationCallReady(
+            numeric, surfaces, use_id, lane, root) {
+        return true;
+    }
+    let binding: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, initializer_types.inferred_type_names,
+            function_id, use_id, surfaces.expression_graph, root);
+    if binding.ok {
+        if binding.type_name != "String" ||
+            !SemanticAstOwnedStringLocalNotReassigned(
+                results.writes, binding) ||
+            !SemanticAstOwnedStringValueDomainPreserved(
+                results.domain_exposures,
+                binding.declaration_node_id) ||
+            !SemanticAstOwnedStringLiteralTransferLocalUsesExclusive(
+                artifact, locals,
+                initializer_types.inferred_type_names,
+                surfaces, binding) {
+            return false;
+        }
+        let initializer: Option<Int> =
+            SemanticAstExpressionGraphRootForNode(
+                surfaces, binding.declaration_node_id,
+                AstExpressionLaneValue());
+        return IsSome(initializer) &&
+            SemanticAstOwnedStringLiteralTransferExpressionExclusive(
+                artifact, signatures, locals, initializer_types,
+                surfaces, results, numeric, function_id,
+                binding.declaration_node_id, AstExpressionLaneValue(),
+                UnwrapOption(initializer), depth + 1);
+    }
+    let call: SemanticCallSpineView =
+        SemanticCallSpineViewFromGraph(
+            surfaces.expression_graph, root);
+    let start: Int = SemanticAstOwnedStringExpressionSourceStart(
+        surfaces, function_id, use_id, lane, root);
+    if !SemanticAstOwnedStringCallSourceReady(call, start, root) {
+        return false;
+    }
+    if SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node,
+            "TextBuilderFinish") {
+        return true;
+    }
+    let signature: Option<Int> =
+        SemanticAstOwnedStringDeclaredCallSignature(
+            signatures, surfaces.expression_graph, call.call_node);
+    if !IsSome(signature) { return false; }
+    let row: Int = UnwrapOption(signature);
+    return SemanticAstOwnedStringResultDomainForFunction(
+            results, signatures.function_node_ids[row]).kind > 0 &&
+        SemanticAstOwnedStringLiteralTransferFunctionResultExclusive(
+            artifact, signatures, locals, initializer_types,
+            surfaces, results, numeric,
+            signatures.function_node_ids[row], depth + 1);
+}
