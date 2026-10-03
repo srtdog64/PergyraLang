@@ -9,7 +9,8 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
         artifact, analysis.signatures, locals, bundle.initializer_types.inferred_type_names, surfaces, analysis.assignments, bundle.assignment_types);
     let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
         analysis.signatures, locals, surfaces, definitions);
-    let formal: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(analysis.signatures, surfaces);
+    let formal: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.function_scopes, surfaces);
     if !definitions.ok || !storage.ok || !formal.ok { return false; }
     let empty: Int = -1; let copied: Int = -1; let moved: Int = -1; let owned: Int = -1; let view: Int = -1; let unknown: Int = -1;
     let row: Int = 0;

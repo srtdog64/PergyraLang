@@ -358,7 +358,9 @@ func MirExpressionIdentityEpochRebindGraph(
         SemanticExpressionIdentityRows(
             targets, graph.arena.identities.runtime_call_abi_ids,
             bindings, graph.arena.identities.binding_kinds,
-            graph.arena.identities.binding_ordinals
+            graph.arena.identities.binding_ordinals,
+            graph.arena.identities.builtin_argument_retention_calls,
+            false, 0
         );
     let arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArenaFromTopologyWithIdentities(

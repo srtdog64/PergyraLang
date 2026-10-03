@@ -86,6 +86,8 @@ func SemanticAstIterationSyntheticGraphRootsAttach(
         graph.arena.identities.binding_kinds;
     let binding_ordinals: Array<Int> =
         graph.arena.identities.binding_ordinals;
+    let retention_calls: Array<SemanticAstBuiltinArgumentRetentionCallFact> =
+        graph.arena.identities.builtin_argument_retention_calls;
     let place_kinds: Array<Int> = graph.arena.place_kinds;
     let synthetic_names: Array<String> = facts.synthetic_names;
     let synthetic_roots: Array<Int> = facts.synthetic_graph_root_ids;
@@ -132,7 +134,8 @@ func SemanticAstIterationSyntheticGraphRootsAttach(
             call_return_types,
             SemanticExpressionIdentityRows(
                 call_target_syntax_ids, runtime_call_abi_ids,
-                binding_syntax_ids, binding_kinds, binding_ordinals),
+                binding_syntax_ids, binding_kinds, binding_ordinals,
+                retention_calls, false, 0),
             place_kinds
         );
     let attached: SemanticExpressionGraphFacts =

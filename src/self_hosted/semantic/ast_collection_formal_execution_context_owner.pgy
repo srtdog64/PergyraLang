@@ -1,0 +1,150 @@
+// Callable contexts whose complete collection-formal use inventory is visible
+// to the self-host AST. Opaque or deferred bodies fail closed.
+import "ast_collection_formal_effect_identity_owner.pgy";
+import "ast_function_scope_fact_owner.pgy";
+struct SemanticAstCollectionFormalExecutionContexts {
+    ok: Bool;
+    unsafe_functions: HashMap<String, Int>;
+}
+// The callable body is not a synchronous, fully observed effect program.
+// Calls carrying an Array<String> across this boundary must fail closed.
+func SemanticAstCollectionFormalOpaqueExecutionEffect() -> Int { return 4; }
+func SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact: AstTreeArtifact,
+    syntax_id: Int) -> Bool {
+    let ancestor: Int = syntax_id;
+    let remaining: Int = artifact.count;
+    while ancestor >= 0 && remaining > 0 {
+        if TypedAstArenaNodeKindIs(
+                artifact.arena, ancestor, TypedAstKindDeferStmtTag()) ||
+            TypedAstArenaNodeKindIs(
+                artifact.arena, ancestor, TypedAstKindParallelBlockTag()) ||
+            TypedAstArenaNodeKindIs(
+                artifact.arena, ancestor, TypedAstKindAsyncBlockTag()) {
+            return true;
+        }
+        let parent: Option<Int> = TypedAstArenaParentId(
+            artifact.arena, ancestor);
+        if !IsSome(parent) { return false; }
+        ancestor = UnwrapOption(parent);
+        remaining = remaining - 1;
+    }
+    return true;
+}
+func SemanticAstCollectionFormalArtifactNodeOmitsExecution(artifact: AstTreeArtifact, node_id: Int) -> Bool {
+    if TypedAstArenaNodeKindIsCallable(artifact.arena, node_id) {
+        let mode: Option<Int> = TypedAstArenaMode(artifact.arena, node_id);
+        return !IsSome(mode) ||
+            UnwrapOption(mode) == TypedAstModeCallableAsync();
+    }
+    if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindAsyncBlockTag()) ||
+        TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindChannelSendStmtTag()) {
+        return true;
+    }
+    if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindEventSubscribeStmtTag()) {
+        let provenance: Option<String> = TypedAstArenaProvenanceText(
+            artifact.arena, node_id);
+        return !IsSome(provenance) || StringIndexOf(
+            UnwrapOption(provenance), " += lambda(") >= 0;
+    }
+    return false;
+}
+func SemanticAstCollectionFormalGraphNodeOmitsExecution(ref graph: SemanticExpressionGraphFacts,
+    node_id: Int) -> Bool {
+    let kind: Int = graph.arena.topology.node_kinds[node_id];
+    if kind == AstExpressionNodeSpawn() { return true; }
+    if kind == AstExpressionNodeStringLiteral() { return false; }
+    let text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, node_id);
+    if !IsSome(text) { return true; }
+    return StartsWith(UnwrapOption(text), "lambda(") ||
+        UnwrapOption(text) == "parallel {...}";
+}
+func SemanticAstCollectionFormalExecutionContextsFromFacts(artifact: AstTreeArtifact,
+    ref inventory: SemanticAstCollectionFormalEffectInventory,
+    ref scopes: SemanticAstFunctionScopeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts
+) -> SemanticAstCollectionFormalExecutionContexts {
+    let unsafe_functions: HashMap<String, Int> = MapNew();
+    let candidate_functions: HashMap<String, Int> = MapNew();
+    let surface_count: Int = ArrayLength(surfaces.node_ids);
+    let ok: Bool = inventory.ok && artifact.identity_digest > 0 &&
+        TypedAstArenaParallelRowsReady(artifact.arena) &&
+        TypedAstArenaNodeCount(artifact.arena) == artifact.count &&
+        scopes.ok && scopes.artifact_node_count == artifact.count &&
+        ArrayLength(scopes.function_node_ids) == artifact.count &&
+        surfaces.ok && surfaces.artifact_node_count == artifact.count &&
+        surfaces.expression_graph.ok &&
+        ArrayLength(surfaces.function_node_ids) == surface_count &&
+        ArrayLength(surfaces.has_atoms) == surface_count &&
+        ArrayLength(surfaces.atoms) == surface_count &&
+        ArrayLength(surfaces.has_values) == surface_count &&
+        ArrayLength(surfaces.values) == surface_count &&
+        ArrayLength(surfaces.has_auxiliary_values) == surface_count &&
+        ArrayLength(surfaces.auxiliary_values) == surface_count &&
+        ArrayLength(surfaces.expression_graph.roots) == surface_count * 3 &&
+        ArrayLength(surfaces.expression_graph.has_roots) ==
+            ArrayLength(surfaces.expression_graph.roots);
+    let row: Int = 0;
+    while ok && row < ArrayLength(inventory.function_nodes) {
+        let function_node_id: Int = inventory.function_nodes[row];
+        let key: String = ToString(function_node_id);
+        if function_node_id <= 0 { ok = false; break; }
+        if !MapHas(candidate_functions, key) {
+            MapSet(candidate_functions, key, 1);
+        }
+        row = row + 1;
+    }
+    let node_id: Int = 0;
+    while ok && node_id < artifact.count {
+        let key: String = ToString(scopes.function_node_ids[node_id]);
+        if MapHas(candidate_functions, key) &&
+            SemanticAstCollectionFormalArtifactNodeOmitsExecution(
+                artifact, node_id) { MapSet(unsafe_functions, key, 1); }
+        node_id = node_id + 1;
+    }
+    let surface: Int = 0;
+    while ok && surface < surface_count {
+        let function_node_id: Int = surfaces.function_node_ids[surface];
+        let key: String = ToString(function_node_id);
+        if MapHas(candidate_functions, key) {
+            let scope: Option<Int> = SemanticAstFunctionScopeNodeId(scopes,
+                surfaces.node_ids[surface]);
+            if !IsSome(scope) || UnwrapOption(scope) != function_node_id {
+                ok = false; break;
+            }
+            if SemanticAstCollectionFormalEffectSyntaxIsDeferred(
+                    artifact, surfaces.node_ids[surface]) {
+                MapSet(unsafe_functions, key, 1);
+            }
+        }
+        surface = surface + 1;
+    }
+    let last: Int = -1;
+    let slot: Int = 0;
+    while ok && slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[slot] {
+            let root: Int = surfaces.expression_graph.roots[slot];
+            let function_node_id: Int =
+                surfaces.function_node_ids[slot / 3];
+            let key: String = ToString(function_node_id);
+            if MapHas(candidate_functions, key) &&
+                    !MapHas(unsafe_functions, key) {
+                let node: Int = last + 1;
+                while node <= root {
+                    if SemanticAstCollectionFormalGraphNodeOmitsExecution(
+                            surfaces.expression_graph, node) {
+                        MapSet(unsafe_functions, key, 1);
+                    }
+                    node = node + 1;
+                }
+            }
+            last = root;
+        }
+        slot = slot + 1;
+    }
+    ok = ok && last + 1 == SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena);
+    return SemanticAstCollectionFormalExecutionContexts(ok, unsafe_functions);
+}

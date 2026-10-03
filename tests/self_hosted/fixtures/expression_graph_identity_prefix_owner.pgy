@@ -44,7 +44,8 @@ func Main() -> Void {
             ["prefix"], [SemanticCallTargetNone()], [""], [""],
             SemanticExpressionIdentityRows(
                 [0], [0], [713],
-                [SemanticExpressionBindingFormalParameter()], [4]
+                [SemanticExpressionBindingFormalParameter()], [4],
+                [], false, 0
             ),
             [SemanticExpressionPlaceBinding()]
         );

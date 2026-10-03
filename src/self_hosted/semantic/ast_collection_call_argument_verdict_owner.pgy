@@ -24,6 +24,13 @@ func SemanticAstCollectionCallArgumentVerdict(
     let key: String = ToString(formal);
     let effect: Int = 0;
     if MapHas(proved, key) { effect = MapGet(proved, key); }
+    if effect == SemanticAstCollectionFormalUnprovedElementUseEffect() || effect == SemanticAstCollectionFormalOpaqueExecutionEffect() {
+        let boundary: String = "unproved_formal_execution_context";
+        if effect == SemanticAstCollectionFormalUnprovedElementUseEffect() { boundary = "unproved_formal_element_use_entry"; }
+        return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary", boundary, "type", "Array<String>"),
+            surfaces.node_ids[surface_row], edge.call_node);
+    }
     let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
         artifact, locals, inferred_types, surfaces, surface_row, edge.argument_node);
     let unknown: Bool = false;

@@ -35,6 +35,7 @@ import "ast_collection_aggregate_release_plan_owner.pgy";
 import "ast_collection_aggregate_release_transition_owner.pgy";
 import "ast_owned_string_result_domain_owner.pgy";
 import "ast_owned_string_literal_transfer_owner.pgy";
+import "ast_builtin_argument_retention_call_fact_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "diagnostic_owner.pgy";
@@ -43,6 +44,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
     ref initializer_types: SemanticAstInitializerTypeFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref function_scopes: SemanticAstFunctionScopeFacts,
     ref resolved_leaf_types: Array<String>,
     ref numeric_string_allocations: SemanticAstNumericStringAllocationCalls,
     ref call_roots: SemanticCallSpineRoots,
@@ -59,6 +61,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
             surfaces.expression_graph) || !statements.ok ||
         ArrayLength(resolved_leaf_types) != SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena) ||
         !SemanticAstNumericStringAllocationCallsReady(numeric_string_allocations) ||
+        !SemanticAstBuiltinArgumentRetentionCallFactsReady(
+            surfaces) ||
         !call_roots.ok || ArrayLength(call_roots.root_nodes) != SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena) ||
         !assignments.ok || !assignment_types.ok ||
         ArrayLength(assignments.node_ids) !=
@@ -264,7 +268,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     }
 
     let formal_effects: SemanticAstCollectionFormalEffects =
-        SemanticAstCollectionFormalEffectsFromResolvedFacts(signatures, surfaces);
+        SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
+            artifact, signatures, function_scopes, surfaces);
     if !formal_effects.ok {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "collection_formal_effect"), -1, -1);
@@ -374,7 +379,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                         SemanticAstOwnedStringLiteralTransferCallArgumentVerdict(
                             artifact, signatures, locals, initializer_types,
                             surfaces, owned_string_results,
-                            numeric_string_allocations, literal_transfers,
+                            numeric_string_allocations,
+                            literal_transfers,
                             root_slot / 3, root_slot % 3, edge);
                     if !scalar_transfer_verdict.ok {
                         ArrayDrop(pending); ArrayDrop(prefixes);

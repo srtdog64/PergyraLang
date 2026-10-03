@@ -1,0 +1,17 @@
+func EscapeIndexedString(value: String) -> String {
+    return value;
+}
+
+func ReturnedIndexMatches(values: Array<String>) -> Bool {
+    return values[0] == "escaped";
+}
+
+func EscapeAndMatch(values: Array<String>) -> Bool {
+    let escaped: String = EscapeIndexedString(values[0]);
+    return ReturnedIndexMatches(values) && escaped == "escaped";
+}
+
+func Main() -> Void {
+    let values: Array<String> = ["escaped"];
+    Log(EscapeAndMatch(values));
+}

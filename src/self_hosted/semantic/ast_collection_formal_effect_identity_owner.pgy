@@ -12,6 +12,10 @@ struct SemanticAstCollectionFormalEffectInventory {
     row_by_formal: HashMap<String, Int>;
 }
 
+func SemanticAstCollectionFormalUnprovedElementUseEffect() -> Int {
+    return 5;
+}
+
 func SemanticAstCollectionFormalEffectInventoryFromSignatures(
     ref signatures: SemanticAstFunctionSignatureFacts
 ) -> SemanticAstCollectionFormalEffectInventory {

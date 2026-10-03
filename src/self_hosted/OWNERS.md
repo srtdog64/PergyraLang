@@ -614,11 +614,17 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- exact String-array formal inventory and carried source-call argument join.
   Function/formal syntax IDs, source ordinal and receiver offset stay with the
   admitted signature owner; a mode or type is not a clean-element certificate.
+- `src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy`
+  -- callable-level completeness for collection-formal use evidence. Deferred,
+  spawned, lambda, parallel, and anonymous-async bodies that are not fully
+  represented by the typed expression graph fail closed.
+- `src/self_hosted/semantic/ast_collection_formal_use_owner.pgy` -- exact
+  physical use-edge classification consumed by the formal-effect fixed point.
+  Indexed String elements may reach only primitive equality or a canonical
+  synchronous non-retaining builtin argument; unknown calls remain blocked.
 - `src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy` -- narrow
   body-derived metadata, live indexed-read or Live {Empty, Owned} effects.
-  Every physical use edge and lane root is checked; indexed elements may only
-  feed primitive equality/inequality. Alias/store/write, custom operators and
-  unproved forwarding cycles grant nothing; formal forwarding needs its exact
+  Unproved forwarding cycles grant nothing; formal forwarding needs its exact
   whole-use live effect, never a type/name-based permission.
 - `src/self_hosted/semantic/ast_collection_call_effect_owner.pgy` -- typed
   per-definition Unknown and possible-retirement syntax bounds from one edge
@@ -824,6 +830,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- sparse derived join between the sealed expression-call identity and the
   selected canonical builtin row. Same-name program/local callables, member or
   runtime-ABI calls, and unresolved spellings issue no retention fact.
+- `src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_validation_owner.pgy`
+  -- one-pass completeness and coordinate validation for the sealed sparse
+  retention facts; it issues no policy, identity, or ownership permission.
 - `src/self_hosted/semantic/ast_owned_string_actual_exclusivity_owner.pgy`
   -- exact single-owner proof for an allocated String actual across local and
   declared-result chains. Retaining, deferred, member-alias and non-comparison

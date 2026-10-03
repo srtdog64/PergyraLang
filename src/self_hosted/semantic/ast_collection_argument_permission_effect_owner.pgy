@@ -46,7 +46,12 @@ func SemanticAstCollectionArgumentPermissionEffectFromEdge(
             if row < 0 || row >= ArrayLength(formal_modes) { return effect; }
             consuming = formal_modes[row] == 2;
         }
-        let unproved: Bool = !MapHas(proved, key);
+        let opaque: Bool = MapHas(proved, key) && MapGet(proved, key) ==
+            SemanticAstCollectionFormalOpaqueExecutionEffect();
+        let unproved: Bool = !MapHas(proved, key) || opaque ||
+            MapGet(proved, key) ==
+                SemanticAstCollectionFormalUnprovedElementUseEffect();
+        effect.storage_escape = effect.storage_escape || opaque;
         effect.unknown = !consuming && unproved;
         effect.retiring = consuming || unproved;
         effect.non_deep = effect.retiring && !deep_drop;

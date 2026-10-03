@@ -1,0 +1,12 @@
+func CustomObserver(value: String) -> Bool {
+    return value == "observed";
+}
+
+func ObserveIndexedString(values: Array<String>) -> Bool {
+    return CustomObserver(values[0]);
+}
+
+func Main() -> Void {
+    let values: Array<String> = ["observed"];
+    Log(ObserveIndexedString(values));
+}

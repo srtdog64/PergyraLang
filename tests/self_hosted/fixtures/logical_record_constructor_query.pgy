@@ -90,7 +90,8 @@ func ConstructorInput(arguments: Int, corruption: Int) -> ConstructorQueryInput 
         kinds, texts, lefts, rights, targets, target_names);
     let identities: SemanticExpressionIdentityRows = SemanticExpressionIdentityRows(call_ids,
         arena.identities.runtime_call_abi_ids, arena.identities.binding_syntax_ids,
-        arena.identities.binding_kinds, arena.identities.binding_ordinals);
+        arena.identities.binding_kinds, arena.identities.binding_ordinals,
+        [], false, 0);
     arena = SemanticExpressionGraphArena(arena.topology, arena.node_texts,
         arena.call_target_kinds, arena.call_target_names, arena.call_return_type_names,
         identities, arena.place_kinds);

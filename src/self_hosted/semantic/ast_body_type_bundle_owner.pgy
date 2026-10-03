@@ -199,12 +199,13 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
         if !call_roots.ok { verdict = SemanticAstBodyVerdictError(
             "expression_identity_unresolved", "semantic call spine roots are incomplete", -1); }
     }
-    if verdict.ok && !SemanticAstAnalysisResolveExpressionIdentities(
-        artifact, analysis, initializer_types.inferred_type_names,
-        iteration_types, match_materializations.synthetic_graph_root_ids, function_tables, call_roots,
-        require_carried_expression_identities, resolved_leaf_types, numeric_string_allocations) {
-        verdict = SemanticAstBodyVerdictError("expression_identity_unresolved",
-            "semantic expression identity rows are incomplete", -1);
+    if verdict.ok && (!SemanticAstAnalysisResolveExpressionIdentities(
+            artifact, analysis, initializer_types.inferred_type_names,
+            iteration_types, match_materializations.synthetic_graph_root_ids,
+            function_tables, call_roots, require_carried_expression_identities,
+            resolved_leaf_types, numeric_string_allocations) ||
+            !numeric_string_allocations.ok) {
+        verdict = SemanticAstBodyVerdictError("expression_identity_unresolved", "semantic expression identity rows are incomplete", -1);
     }
     // One body-owned projection is shared by admission and downstream readers.
     let owned_string_result_domains: SemanticAstOwnedStringResultFacts = SemanticAstOwnedStringResultFactsEmpty();
@@ -221,11 +222,10 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     let collection_ownership: SemanticAstCollectionOwnershipVerdict =
         SemanticAstCollectionOwnershipVerdictOk();
     if verdict.ok {
-        collection_ownership =
-            SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
-                artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
-                initializer_types, analysis.expression_surfaces, resolved_leaf_types, numeric_string_allocations, call_roots, owned_string_result_domains,
-                analysis.statements, analysis.assignments, assignment_types);
+        collection_ownership = SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
+            artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, initializer_types,
+            analysis.expression_surfaces, analysis.function_scopes, resolved_leaf_types, numeric_string_allocations,
+            call_roots, owned_string_result_domains, analysis.statements, analysis.assignments, assignment_types);
         if !collection_ownership.ok {
             verdict = SemanticAstBodyVerdictError(
                 collection_ownership.diagnostic_code,

@@ -1,0 +1,87 @@
+// Linear completeness and identity validation for sealed builtin retention facts.
+
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "builtin_argument_retention_projection_owner.pgy";
+import "builtin_signature_owner.pgy";
+
+func SemanticAstBuiltinArgumentRetentionCallFactsReady(
+    ref surfaces: SemanticAstExpressionSurfaceFacts
+) -> Bool {
+    let node_count: Int = SemanticExpressionGraphArenaNodeCount(
+        surfaces.expression_graph.arena);
+    if !surfaces.expression_graph.arena.identities
+            .builtin_argument_retention_calls_sealed ||
+        !SemanticExpressionIdentityRowsReady(
+            surfaces.expression_graph.arena.identities, node_count) {
+        return false;
+    }
+    let fact_count: Int =
+        ArrayLength(surfaces.expression_graph.arena.identities
+            .builtin_argument_retention_calls);
+    let fact_row: Int = 0;
+    let last_root: Int = -1;
+    let slot: Int = 0;
+    while slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[slot] {
+            let surface_row: Int = slot / 3;
+            let root: Int = surfaces.expression_graph.roots[slot];
+            if surface_row < 0 ||
+                surface_row >= SemanticAstExpressionSurfaceCount(surfaces) ||
+                root <= last_root || root >= node_count {
+                return false;
+            }
+            let local_call_ordinal: Int = 0;
+            let node: Int = last_root + 1;
+            while node <= root {
+                let is_call: Bool = surfaces.expression_graph.arena.topology
+                    .node_kinds[node] == AstExpressionNodeCall();
+                let source_name: String = "";
+                let required: Bool = false;
+                if is_call {
+                    let target: Option<String> =
+                        SemanticExpressionGraphCallTargetName(
+                            surfaces.expression_graph, node);
+                    if IsSome(target) {
+                        source_name = UnwrapOption(target);
+                        required =
+                            SemanticBuiltinRetentionSourceSignatureKnown(source_name) &&
+                            SemanticAstCollectionOwnershipBuiltinCall(
+                                surfaces.expression_graph, node, source_name);
+                    }
+                }
+                let present: Bool = fact_row < fact_count &&
+                    surfaces.expression_graph.arena.identities
+                        .builtin_argument_retention_calls[fact_row]
+                        .call_node == node;
+                if present != required { return false; }
+                if present {
+                    let retention: SemanticBuiltinArgumentRetentionRow =
+                        SemanticBuiltinArgumentRetentionRowAt(surfaces.expression_graph
+                            .arena.identities.builtin_argument_retention_calls[fact_row]
+                                .retention_row);
+                    if !retention.valid ||
+                        retention.source_name != source_name ||
+                        !SemanticBuiltinRetentionSourceSignatureKnown(
+                            retention.source_name) ||
+                        surfaces.expression_graph.arena.identities
+                            .builtin_argument_retention_calls[fact_row].owner_node_id !=
+                                surfaces.node_ids[surface_row] ||
+                        surfaces.expression_graph.arena.identities
+                            .builtin_argument_retention_calls[fact_row].lane != slot % 3 ||
+                        surfaces.expression_graph.arena.identities
+                            .builtin_argument_retention_calls[fact_row]
+                                .local_call_ordinal != local_call_ordinal {
+                        return false;
+                    }
+                    fact_row = fact_row + 1;
+                }
+                if is_call { local_call_ordinal = local_call_ordinal + 1; }
+                node = node + 1;
+            }
+            last_root = root;
+        }
+        slot = slot + 1;
+    }
+    return fact_row == fact_count;
+}

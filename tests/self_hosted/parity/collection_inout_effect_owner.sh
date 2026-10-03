@@ -137,12 +137,28 @@ INPUTS=(
     inout_nested_own_argument_copy_negative.pgy
     inout_deferred_copy_own_negative.pgy inout_deferred_copy_drop_negative.pgy inout_deferred_read_positive.pgy
     inout_index_eq_owned_positive.pgy inout_index_ne_owned_positive.pgy inout_index_borrowed_read_positive.pgy
+    inout_index_string_observer_positive.pgy
+    builtin_retention_string_length_positive.pgy builtin_retention_char_code_positive.pgy
+    builtin_retention_alias_negative.pgy builtin_retention_custom_call_negative.pgy
+    builtin_retention_no_ownership_negative.pgy builtin_retention_return_negative.pgy
+    builtin_retention_shadow_negative.pgy builtin_retention_store_negative.pgy
+    builtin_retention_unregistered_call_negative.pgy
+    inout_index_string_marker_literal_positive.pgy
+    inout_index_string_return_negative.pgy
+    inout_index_string_lambda_negative.pgy inout_index_string_async_negative.pgy
     inout_index_forward_copy_positive.pgy inout_index_return_drop_negative.pgy inout_index_alias_escape_drop_negative.pgy
     inout_index_append_drop_negative.pgy inout_index_write_drop_negative.pgy inout_index_deferred_own_negative.pgy
     inout_index_branch_own_negative.pgy inout_index_before_own_positive.pgy inout_index_after_unknown_negative.pgy
     inout_index_before_unknown_positive.pgy inout_index_role_eq_drop_negative.pgy inout_index_role_ne_drop_negative.pgy
     inout_index_after_drop_negative.pgy inout_index_own_formal_drop_negative.pgy inout_index_nested_own_negative.pgy
     inout_index_formal_unknown_negative.pgy inout_index_formal_deferred_unknown_negative.pgy
+    aggregate_release_source_reuse_negative.pgy aggregate_release_duplicate_storage_negative.pgy
+    aggregate_release_formal_root_reuse_negative.pgy aggregate_release_preextract_field_write_negative.pgy
+    aggregate_release_aggregate_alias_observe_negative.pgy
+    aggregate_release_repeated_negative.pgy aggregate_release_source_reassign_positive.pgy
+    aggregate_release_outer_restore_positive.pgy aggregate_release_outer_restore_missing_negative.pgy
+    aggregate_release_outer_wrong_field_negative.pgy aggregate_release_branch_drop_negative.pgy
+    aggregate_release_field_writeback_missing_negative.pgy aggregate_release_wrong_field_writeback_negative.pgy
 )
 for i in "${!INPUTS[@]}"; do INPUTS[i]="$FIXTURES/${INPUTS[i]}"; done
 INPUTS+=(
@@ -169,6 +185,8 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy \
     src/self_hosted/semantic/ast_body_type_bundle_readiness_owner.pgy \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy \
+    src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy \
+    src/self_hosted/semantic/ast_collection_formal_use_owner.pgy \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy \
@@ -191,12 +209,20 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy \
     src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy \
+    src/self_hosted/semantic/ast_collection_aggregate_release_plan_schema_owner.pgy \
+    src/self_hosted/semantic/ast_collection_aggregate_value_exclusivity_owner.pgy \
+    src/self_hosted/semantic/ast_collection_aggregate_value_lineage_owner.pgy \
+    src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy \
+    src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy \
     src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy \
     src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy \
     src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy \
     src/self_hosted/semantic/ast_local_binding_fact_owner.pgy \
     src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy \
+    src/self_hosted/semantic/ast_expression_identity_fact_owner.pgy \
+    src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy \
+    src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_validation_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy \
     src/self_hosted/semantic/ast_assignment_fact_owner.pgy \
     src/self_hosted/semantic/ast_expression_graph_call_argument_edge_owner.pgy \
@@ -330,6 +356,8 @@ for backend in c llvm; do
                 printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             own_assign_original_read_negative.pgy|own_assign_duplicate_redefine_negative.pgy|own_assign_self_retired_negative.pgy|own_formal_assignment_storage_alias_2026-10-02.pgy|own_event_*_negative.pgy|own_formal_local_storage_alias_2026-10-02.pgy|own_same_expression_read_after_transfer_2026-10-02.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
+            aggregate_release_source_reuse_negative.pgy)
+                printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             member_*_negative.pgy|own_storage_nested_same_binding_negative.pgy|own_storage_formal_retired_negative.pgy|own_storage_formal_child_retired_negative.pgy|own_storage_return_duplicate_negative.pgy|own_formal_*_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             *_negative.pgy) printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
@@ -338,6 +366,45 @@ for backend in c llvm; do
         esac
         cmp "$WORK/expected" "$WORK/$backend-$name.run"
     done
+    while IFS='|' read -r input atom; do
+        timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
+            >"$WORK/$backend-$input-opaque.raw" \
+            2>"$WORK/$backend-$input-opaque.err"
+        tr -d '\r' <"$WORK/$backend-$input-opaque.raw" \
+            >"$WORK/$backend-$input-opaque.run"
+        [[ ! -s "$WORK/$backend-$input-opaque.err" ]]
+        grep -Fxq 'body_ok=false' "$WORK/$backend-$input-opaque.run"
+        grep -Fxq 'body_diagnostic=borrow_boundary_escape' \
+            "$WORK/$backend-$input-opaque.run"
+        grep -Fxq -- '- boundary: unproved_formal_execution_context' \
+            "$WORK/$backend-$input-opaque.run"
+        grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-opaque.run"
+        grep -Fxq 'body_function=Main' "$WORK/$backend-$input-opaque.run"
+    done <<'OPAQUE_EXECUTION_DIAGNOSTICS'
+inout_index_string_lambda_negative.pgy|CaptureIndexedRead(values)
+inout_index_string_async_negative.pgy|AsyncIndexedRead(values)
+OPAQUE_EXECUTION_DIAGNOSTICS
+    while IFS='|' read -r input boundary atom function; do
+        timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
+            >"$WORK/$backend-$input-retention.raw" 2>"$WORK/$backend-$input-retention.err"
+        tr -d '\r' <"$WORK/$backend-$input-retention.raw" >"$WORK/$backend-$input-retention.run"
+        [[ ! -s "$WORK/$backend-$input-retention.err" ]]
+        grep -Fxq 'body_ok=false' "$WORK/$backend-$input-retention.run"
+        grep -Fxq 'body_diagnostic=borrow_boundary_escape' "$WORK/$backend-$input-retention.run"
+        grep -Fxq -- "- boundary: $boundary" "$WORK/$backend-$input-retention.run"
+        grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-retention.run"
+        grep -Fxq "body_function=$function" "$WORK/$backend-$input-retention.run"
+        grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-$input-retention.run"
+        grep -Eq '^body_syntax=[1-9][0-9]*$' "$WORK/$backend-$input-retention.run"
+    done <<'BUILTIN_RETENTION_DIAGNOSTICS'
+builtin_retention_alias_negative.pgy|unproved_formal_element_use_entry|AliasIndexedString(values)|Main
+builtin_retention_custom_call_negative.pgy|unproved_formal_element_use_entry|ObserveIndexedString(values)|Main
+builtin_retention_no_ownership_negative.pgy|owned_string_drop|ArrayDropOwnedStrings(values)|Main
+builtin_retention_return_negative.pgy|unproved_formal_element_use_entry|EscapeIndexedString(values)|Main
+builtin_retention_shadow_negative.pgy|unproved_formal_element_use_entry|ObserveIndexedString(values)|Main
+builtin_retention_store_negative.pgy|unproved_formal_element_use_entry|StoreIndexedString(values, destination)|Main
+builtin_retention_unregistered_call_negative.pgy|unproved_formal_element_use_entry|ObserveIndexedString(values)|Main
+BUILTIN_RETENTION_DIAGNOSTICS
     while IFS='|' read -r input boundary atom function value; do
         timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
             >"$WORK/$backend-$input-constructor.raw" 2>"$WORK/$backend-$input-constructor.err"
@@ -421,7 +488,7 @@ MEMBER_DIAGNOSTICS
         grep -Fxq 'body_diagnostic=borrow_boundary_escape' "$WORK/$backend-$input-diagnostic.run"
         grep -Fxq -- "- boundary: $boundary" "$WORK/$backend-$input-diagnostic.run"
         grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-diagnostic.run"
-        grep -Fxq "body_value=$value" "$WORK/$backend-$input-diagnostic.run"
+        if [[ -n "$value" ]]; then grep -Fxq "body_value=$value" "$WORK/$backend-$input-diagnostic.run"; fi
         grep -Fxq 'body_function=Main' "$WORK/$backend-$input-diagnostic.run"
         grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-$input-diagnostic.run"
         grep -Eq '^body_syntax=[0-9]+$' "$WORK/$backend-$input-diagnostic.run"
@@ -443,13 +510,13 @@ EVENT_DIAGNOSTICS
         [[ ! -s "$WORK/$backend-$input-diagnostic.err" ]]
         grep -Fxq -- "- boundary: $boundary" "$WORK/$backend-$input-diagnostic.run"
         grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-diagnostic.run"
-        grep -Fxq "body_value=$value" "$WORK/$backend-$input-diagnostic.run"
+        if [[ -n "$value" ]]; then grep -Fxq "body_value=$value" "$WORK/$backend-$input-diagnostic.run"; fi
         grep -Fxq "body_function=$function" "$WORK/$backend-$input-diagnostic.run"
         grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-$input-diagnostic.run"
     done <<'OWN_FORMAL_DIAGNOSTICS'
 own_storage_formal_retired_negative.pgy|owned_argument_use_after_move|rejected_formal|Metadata(values)|Forward
 own_storage_formal_child_retired_negative.pgy|owned_argument_use_after_move|rejected_formal_child|Metadata(values)|Forward
-own_storage_formal_unknown_negative.pgy|owned_argument_storage_unproved|rejected_unknown_formal|Metadata(values)|Forward
+own_storage_formal_unknown_negative.pgy|unproved_formal_element_use_entry|Opaque(values)||Forward
 OWN_FORMAL_DIAGNOSTICS
     while IFS='|' read -r input boundary atom value; do
         timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
@@ -458,13 +525,13 @@ OWN_FORMAL_DIAGNOSTICS
         [[ ! -s "$WORK/$backend-$input-diagnostic.err" ]]
         grep -Fxq -- "- boundary: $boundary" "$WORK/$backend-$input-diagnostic.run"
         grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-diagnostic.run"
-        grep -Fxq "body_value=$value" "$WORK/$backend-$input-diagnostic.run"
+        if [[ -n "$value" ]]; then grep -Fxq "body_value=$value" "$WORK/$backend-$input-diagnostic.run"; fi
         grep -Fxq 'body_function=Forward' "$WORK/$backend-$input-diagnostic.run"
         grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-$input-diagnostic.run"
     done <<'OWN_EVENT_DIAGNOSTICS'
 own_event_formal_local_reuse_negative.pgy|owned_argument_use_after_move|rejected_original_read|ArrayLength(values)
 own_event_formal_local_duplicate_negative.pgy|owned_argument_use_after_move|rejected_second_move|values
-own_event_formal_local_unknown_negative.pgy|owned_argument_storage_unproved|rejected_unknown_move|values
+own_event_formal_local_unknown_negative.pgy|unproved_formal_element_use_entry|Opaque(values)|
 own_event_read_after_negative.pgy|owned_argument_use_after_move|rejected_after|(Metadata(values) + ArrayLength(values))
 own_event_argument_read_after_negative.pgy|owned_argument_use_after_move|rejected_argument_after|OwnFirst(values, ArrayLength(values))
 OWN_EVENT_DIAGNOSTICS
@@ -591,7 +658,7 @@ BORROW_FORMAL_DIAGNOSTICS
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
     done
-    for ((mutation=13; mutation<=15; mutation++)); do
+    for mutation in 13 14 15 102; do
         timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/inout_index_identity_input.pgy" "$mutation" \
             >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
         tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
@@ -599,6 +666,25 @@ BORROW_FORMAL_DIAGNOSTICS
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
     done
+    for ((mutation=103; mutation<=118; mutation++)); do
+        timeout 30 "$WORK/$backend-identity.exe" \
+            "$FIXTURES/builtin_retention_string_length_positive.pgy" "$mutation" \
+            >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
+        tr -d '\r' <"$WORK/$backend-mutation-$mutation.raw" >"$WORK/$backend-mutation-$mutation.run"
+        [[ ! -s "$WORK/$backend-mutation-$mutation.err" ]]
+        printf 'true\n' >"$WORK/expected"
+        cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
+    done
+    timeout 30 "$WORK/$backend-identity.exe" \
+        "$FIXTURES/inout_index_string_observer_positive.pgy" 119 \
+        >"$WORK/$backend-mutation-119.raw" 2>"$WORK/$backend-mutation-119.err"
+    tr -d '\r' <"$WORK/$backend-mutation-119.raw" >"$WORK/$backend-mutation-119.run"
+    [[ ! -s "$WORK/$backend-mutation-119.err" ]]
+    grep -Eq '^semantic carried expression identity mismatch: node=[0-9]+ text=CharCode\(\).*runtime_abi=9/0' \
+        "$WORK/$backend-mutation-119.run"
+    printf 'true\n' >"$WORK/expected"
+    tail -n 1 "$WORK/$backend-mutation-119.run" >"$WORK/$backend-mutation-119-result.run"
+    cmp "$WORK/expected" "$WORK/$backend-mutation-119-result.run"
     for ((mutation=16; mutation<=21; mutation++)); do
         timeout 30 "$WORK/$backend-identity.exe" "$FIXTURES/own_storage_identity_input.pgy" "$mutation" \
             >"$WORK/$backend-mutation-$mutation.raw" 2>"$WORK/$backend-mutation-$mutation.err"
@@ -663,13 +749,15 @@ BORROW_FORMAL_DIAGNOSTICS
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-mutation-$mutation.run"
     done
-    timeout 30 "$WORK/$backend-identity.exe" "$ACTUAL_INPUT" -1 \
+    # Import-composed identity sealing is intentionally the one compiler-scale
+    # unit in this focused gate. Cold local observations span 25-45 seconds.
+    timeout 60 "$WORK/$backend-identity.exe" "$ACTUAL_INPUT" -1 \
         >"$WORK/$backend-actual-producer.raw" 2>"$WORK/$backend-actual-producer.err"
     tr -d '\r' <"$WORK/$backend-actual-producer.raw" | LC_ALL=C sort >"$WORK/$backend-actual-producer.run"
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, one generic-default selection, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, seventy-six diagnostic locations, three observer mode, fifty-one identity/boundary, thirty-five occurrence/root/element-step, four completion/receipt and ten storage-producer units, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, one generic-default selection, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, seventy-six diagnostic locations, three observer mode, sixty-nine identity/boundary, thirty-five occurrence/root/element-step, four completion/receipt and ten storage-producer units, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

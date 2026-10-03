@@ -7,30 +7,30 @@ import "ast_expression_graph_call_argument_edge_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 import "ast_expression_call_identity_owner.pgy";
 import "ast_owned_string_expression_domain_owner.pgy";
-import "builtin_argument_retention_projection_owner.pgy";
+import "ast_builtin_argument_retention_call_fact_owner.pgy";
 
 func SemanticAstOwnedStringLiteralTransferBorrowUseExclusive(
-    ref graph: SemanticExpressionGraphFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
     start: Int, root: Int, use_node: Int
 ) -> Bool {
     let found: Bool = false;
     let node: Int = start;
     while node <= root {
-        let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            surfaces.expression_graph, node);
         if IsSome(kind) && UnwrapOption(kind) ==
                 AstExpressionNodeCallArgument() {
             let edge: SemanticCallArgumentEdgeView =
-                SemanticCallArgumentEdgeFromGraph(graph, node);
+                SemanticCallArgumentEdgeFromGraph(
+                    surfaces.expression_graph, node);
             if !edge.ok { return false; }
             if edge.argument_node == use_node {
-                let name: Option<String> =
-                    SemanticExpressionGraphCallTargetName(
-                        graph, edge.call_node);
-                if !IsSome(name) ||
-                    !SemanticAstCollectionOwnershipBuiltinCall(
-                        graph, edge.call_node, UnwrapOption(name)) ||
-                    !SemanticBuiltinArgumentBorrowedForCall(
-                        UnwrapOption(name), edge.ordinal) {
+                let identity: Option<String> =
+                    SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts(
+                        surfaces, edge.call_node);
+                if !IsSome(identity) ||
+                    !SemanticBuiltinArgumentBorrowedForIdentity(
+                        UnwrapOption(identity), edge.ordinal) {
                     return false;
                 }
                 found = true;
@@ -103,8 +103,7 @@ func SemanticAstOwnedStringLiteralTransferLocalUsesExclusive(
                             TypedAstKindValueReturnStmtTag());
                     if !return_root &&
                         !SemanticAstOwnedStringLiteralTransferBorrowUseExclusive(
-                            surfaces.expression_graph,
-                            UnwrapOption(start), root, node) &&
+                            surfaces, UnwrapOption(start), root, node) &&
                         !SemanticAstOwnedStringLiteralTransferComparisonUseExclusive(
                             surfaces.expression_graph,
                             UnwrapOption(start), root, node) {

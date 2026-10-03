@@ -562,5 +562,6 @@ func SemanticExpressionGraphFactsEqual(
         }
         i = i + 1;
     }
-    return true;
+    return SemanticExpressionBuiltinRetentionCallFactsEqual(
+        left.arena.identities, right.arena.identities);
 }

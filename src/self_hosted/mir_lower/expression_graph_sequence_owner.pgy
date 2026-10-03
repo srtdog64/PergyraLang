@@ -64,7 +64,8 @@ func MirExpressionGraphSequenceFromExtendedRows(sequence: MirExpressionGraphSequ
             AstExpressionArena(kinds, texts, lefts, rights), texts,
             target_kinds, target_names, return_types,
             SemanticExpressionIdentityRows(
-                syntax_ids, runtime_ids, binding_ids, binding_kinds, binding_ordinals
+                syntax_ids, runtime_ids, binding_ids, binding_kinds,
+                binding_ordinals, [], false, 0
             ), places
         );
     let unbound_calls: Array<Int> = [];
@@ -292,7 +293,9 @@ func MirExpressionGraphSequenceAppend(
             texts, call_target_kinds, call_target_names,
             call_return_type_names,
             SemanticExpressionIdentityRows(
-                call_target_syntax_ids, runtime_call_abi_ids, binding_syntax_ids, binding_kinds, binding_ordinals
+                call_target_syntax_ids, runtime_call_abi_ids,
+                binding_syntax_ids, binding_kinds, binding_ordinals,
+                [], false, 0
             ), place_kinds
         );
     if !MirExpressionGraphRangeReachable(

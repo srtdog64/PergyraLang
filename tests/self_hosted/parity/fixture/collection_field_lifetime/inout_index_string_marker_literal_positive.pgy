@@ -1,0 +1,11 @@
+func ObserveQuotedMarkers(values: Array<String>) -> Bool {
+    let lambda_marker: String = "lambda(";
+    let parallel_marker: String = "parallel {...}";
+    let length: Int = StringLength(values[0]);
+    return length > 0 && lambda_marker != parallel_marker;
+}
+
+func Main() -> Void {
+    let values: Array<String> = ["visible"];
+    Log(ObserveQuotedMarkers(values));
+}

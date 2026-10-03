@@ -1,11 +1,23 @@
 // Stable semantic identities carried beside expression-graph topology.
 
+struct SemanticAstBuiltinArgumentRetentionCallFact {
+    call_node: Int;
+    owner_node_id: Int;
+    lane: Int;
+    local_call_ordinal: Int;
+    retention_row: Int;
+}
+
 struct SemanticExpressionIdentityRows {
     call_target_syntax_ids: Array<Int>;
     runtime_call_abi_ids: Array<Int>;
     binding_syntax_ids: Array<Int>;
     binding_kinds: Array<Int>;
     binding_ordinals: Array<Int>;
+    builtin_argument_retention_calls:
+        Array<SemanticAstBuiltinArgumentRetentionCallFact>;
+    builtin_argument_retention_calls_sealed: Bool;
+    builtin_argument_retention_call_sealed_count: Int;
 }
 
 struct SemanticExpressionBindingIdentityFact {
@@ -68,6 +80,8 @@ func SemanticExpressionIdentityRowsUnknown(
     let binding_ids: Array<Int> = [];
     let kinds: Array<Int> = [];
     let ordinals: Array<Int> = [];
+    let retention_calls:
+        Array<SemanticAstBuiltinArgumentRetentionCallFact> = [];
     let row: Int = 0;
     while row < count {
         ArrayPush(targets, 0);
@@ -78,7 +92,8 @@ func SemanticExpressionIdentityRowsUnknown(
         row = row + 1;
     }
     return SemanticExpressionIdentityRows(
-        targets, runtime_ids, binding_ids, kinds, ordinals);
+        targets, runtime_ids, binding_ids, kinds, ordinals,
+        retention_calls, false, 0);
 }
 
 func SemanticExpressionIdentityRowsReady(
@@ -88,7 +103,14 @@ func SemanticExpressionIdentityRowsReady(
         ArrayLength(rows.runtime_call_abi_ids) != count ||
         ArrayLength(rows.binding_syntax_ids) != count ||
         ArrayLength(rows.binding_kinds) != count ||
-        ArrayLength(rows.binding_ordinals) != count {
+        ArrayLength(rows.binding_ordinals) != count ||
+        rows.builtin_argument_retention_call_sealed_count < 0 ||
+        (!rows.builtin_argument_retention_calls_sealed &&
+         (rows.builtin_argument_retention_call_sealed_count != 0 ||
+          ArrayLength(rows.builtin_argument_retention_calls) != 0)) ||
+        (rows.builtin_argument_retention_calls_sealed &&
+         rows.builtin_argument_retention_call_sealed_count !=
+            ArrayLength(rows.builtin_argument_retention_calls)) {
         return false;
     }
     let row: Int = 0;
@@ -99,6 +121,56 @@ func SemanticExpressionIdentityRowsReady(
             rows.runtime_call_abi_ids[row] < 0 ||
             rows.binding_syntax_ids[row] < 0 ||
             !binding.ok {
+            return false;
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(rows.builtin_argument_retention_calls) {
+        if rows.builtin_argument_retention_calls[row].call_node < 0 ||
+            rows.builtin_argument_retention_calls[row].call_node >= count ||
+            rows.builtin_argument_retention_calls[row].owner_node_id < 0 ||
+            rows.builtin_argument_retention_calls[row].lane < 0 ||
+            rows.builtin_argument_retention_calls[row].lane > 2 ||
+            rows.builtin_argument_retention_calls[row]
+                .local_call_ordinal < 0 ||
+            rows.builtin_argument_retention_calls[row].retention_row < 0 ||
+            (row > 0 &&
+             rows.builtin_argument_retention_calls[row - 1].call_node >=
+                rows.builtin_argument_retention_calls[row].call_node) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticExpressionBuiltinRetentionCallFactsEqual(
+    ref left: SemanticExpressionIdentityRows,
+    ref right: SemanticExpressionIdentityRows
+) -> Bool {
+    if left.builtin_argument_retention_calls_sealed !=
+            right.builtin_argument_retention_calls_sealed ||
+        left.builtin_argument_retention_call_sealed_count !=
+            right.builtin_argument_retention_call_sealed_count ||
+        ArrayLength(left.builtin_argument_retention_calls) !=
+        ArrayLength(right.builtin_argument_retention_calls) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(left.builtin_argument_retention_calls) {
+        if left.builtin_argument_retention_calls[row].call_node !=
+                right.builtin_argument_retention_calls[row].call_node ||
+            left.builtin_argument_retention_calls[row].owner_node_id !=
+                right.builtin_argument_retention_calls[row].owner_node_id ||
+            left.builtin_argument_retention_calls[row].lane !=
+                right.builtin_argument_retention_calls[row].lane ||
+            left.builtin_argument_retention_calls[row]
+                .local_call_ordinal !=
+                right.builtin_argument_retention_calls[row]
+                    .local_call_ordinal ||
+            left.builtin_argument_retention_calls[row].retention_row !=
+                right.builtin_argument_retention_calls[row].retention_row {
             return false;
         }
         row = row + 1;

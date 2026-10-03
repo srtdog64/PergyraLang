@@ -112,7 +112,9 @@ func InspectCollectionBuiltinCompletion(
         analysis.expression_surfaces, analysis.assignments, bundle.assignment_types);
     let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
         analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
-    let formals: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(analysis.signatures, analysis.expression_surfaces);
+    let formals: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.function_scopes,
+        analysis.expression_surfaces);
     let effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
         analysis.expression_surfaces, formals.inventory.row_by_formal, formals.inventory.modes, formals.effects, definitions, storage);
@@ -178,13 +180,16 @@ func InspectCollectionBuiltinCompletion(
     }
     if observed != 1 || !SemanticAstCollectionOwnershipReceiptRowsReady(bundle.collection_ownership.receipts) { return false; }
     let receipts: SemanticAstCollectionOwnershipReceiptRows = SemanticAstCollectionOwnershipReceiptRowsEmpty();
+    let aggregate_release_plan: SemanticAstCollectionAggregateReleasePlan =
+        SemanticAstCollectionAggregateReleasePlanEmpty();
     let checked_call: Int = call; let checked_terminal: Int = terminal;
     if mode == 82 { checked_terminal = nested_terminal; }
     if mode == 84 { checked_call = terminal; }
     let verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionBuiltinTransitionAtCompletion(
         artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names, analysis.signatures,
         analysis.expression_surfaces, surface, checked_call, checked_terminal, effects, fields,
-        ownership, dispositions, origins, transitions, receipts);
+        aggregate_release_plan, ownership, dispositions, origins, transitions,
+        receipts);
     let ok: Bool = verdict.ok && actual.ok && ArrayLength(receipts.function_syntax_ids) == 1 &&
         receipts.owner_node_ids[0] == actual.owner_node_id && receipts.lanes[0] == actual.lane &&
         receipts.local_call_ordinals[0] == actual.local_call_ordinal &&
@@ -207,7 +212,8 @@ func InspectCollectionBuiltinCompletion(
         let repeated: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionBuiltinTransitionAtCompletion(
             artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names, analysis.signatures,
             analysis.expression_surfaces, surface, call, terminal, effects, fields,
-            ownership, dispositions, origins, transitions, receipts);
+            aggregate_release_plan, ownership, dispositions, origins,
+            transitions, receipts);
         ok = repeated.ok && ArrayLength(receipts.function_syntax_ids) == 2 && !SemanticAstCollectionOwnershipReceiptRowsReady(receipts);
     }
     return ok;

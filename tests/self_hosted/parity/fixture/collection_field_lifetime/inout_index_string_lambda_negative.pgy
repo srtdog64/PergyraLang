@@ -1,0 +1,13 @@
+event OnIndexedRead(value: Int);
+
+func CaptureIndexedRead(values: Array<String>) -> Bool {
+    OnIndexedRead += (ignored: Int) => {
+        Log(StringLength(values[0]));
+    };
+    return true;
+}
+
+func Main() -> Void {
+    let values: Array<String> = ["captured"];
+    Log(CaptureIndexedRead(values));
+}

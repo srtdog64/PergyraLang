@@ -12,19 +12,67 @@ func Main() -> Void with caps env, io_read {
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("fixture parser refused"); Exit(2); }
     let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
-    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if mutation == 119 {
+        let admitted: SemanticAstBodyTypeBundle =
+            SemanticAstBodyTypeBundleFromAdmittedAnalysis(artifact, analysis);
+        if !admitted.verdict.ok {
+            Log("baseline identity admission failed"); Exit(2);
+        }
+        while ArrayLength(analysis.expression_surfaces.expression_graph.arena
+                .identities.builtin_argument_retention_calls) > 0 {
+            ArrayPop(analysis.expression_surfaces.expression_graph.arena
+                .identities.builtin_argument_retention_calls);
+        }
+        analysis.expression_surfaces.expression_graph.arena.identities
+            .builtin_argument_retention_calls_sealed = false;
+        analysis.expression_surfaces.expression_graph.arena.identities
+            .builtin_argument_retention_call_sealed_count = 0;
+        let char_code_call: Int = -1;
+        let node: Int = 0;
+        while node < SemanticExpressionGraphArenaNodeCount(
+                analysis.expression_surfaces.expression_graph.arena) {
+            if analysis.expression_surfaces.expression_graph.arena
+                    .call_target_names[node] == "CharCode" {
+                char_code_call = node;
+            }
+            node = node + 1;
+        }
+        if char_code_call < 0 { Log("missing CharCode call"); Exit(2); }
+        analysis.expression_surfaces.expression_graph.arena.identities
+            .runtime_call_abi_ids[char_code_call] = 9;
+        let failed: SemanticAstBodyTypeBundle =
+            SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
+                artifact, analysis, false, true, true, true);
+        Log(!failed.verdict.ok &&
+            failed.verdict.diagnostic_code == "expression_identity_unresolved" &&
+            !analysis.expression_surfaces.expression_graph.arena.identities
+                .builtin_argument_retention_calls_sealed &&
+            analysis.expression_surfaces.expression_graph.arena.identities
+                .builtin_argument_retention_call_sealed_count == 0 &&
+            ArrayLength(analysis.expression_surfaces.expression_graph.arena
+                .identities.builtin_argument_retention_calls) == 0 &&
+            !SemanticAstBuiltinArgumentRetentionCallFactsReady(
+                analysis.expression_surfaces));
+        return;
+    }
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if mutation == -1 {
         // Collection refusal is reached only AFTER identity sealing. An earlier
         // body failure must never turn an unused/unbound graph into a proof.
-        let reached: Bool = bundle.verdict.ok || (!bundle.collection_ownership.ok &&
-            bundle.collection_ownership.diagnostic_code == "borrow_boundary_escape" &&
-            bundle.collection_ownership.syntax_node_id >= 0);
-        if !reached || !SemanticAstExpressionSurfaceBorrowReady(artifact, analysis.expression_surfaces) ||
+        let reached: Bool = bundle.verdict.ok ||
+            (!bundle.collection_ownership.ok &&
+             bundle.collection_ownership.diagnostic_code ==
+                "borrow_boundary_escape" &&
+             bundle.collection_ownership.syntax_node_id >= 0);
+        if !reached || !SemanticAstExpressionSurfaceBorrowReady(
+                artifact, analysis.expression_surfaces) ||
             !SemanticExpressionGraphCarriedCallTargetsReady(analysis.expression_surfaces.expression_graph) {
             Log("actual producer did not reach sealed collection facts"); Exit(2);
         }
         let actual: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
-            analysis.signatures, analysis.expression_surfaces);
+            artifact, analysis.signatures, analysis.function_scopes,
+            analysis.expression_surfaces);
         let proved_actual: HashMap<String, Int> = actual.effects;
         if !actual.ok { Log("actual formal effects are invalid"); Exit(2); }
         let observed: Int = 0;
@@ -92,6 +140,98 @@ func Main() -> Void with caps env, io_read {
     if mutation >= 16 && mutation <= 21 {
         Log(InspectOwnStorageAdmission(artifact, analysis, bundle, mutation)); return;
     }
+    if mutation >= 103 && mutation <= 113 {
+        let retention_calls: Array<SemanticAstBuiltinArgumentRetentionCallFact> =
+            analysis.expression_surfaces.expression_graph.arena.identities
+                .builtin_argument_retention_calls;
+        if ArrayLength(retention_calls) != 1 {
+            Log("expected one builtin retention fact"); Exit(2);
+        }
+        let original: SemanticAstBuiltinArgumentRetentionCallFact = retention_calls[0];
+        if mutation == 103 {
+            let identity: Option<String> =
+                SemanticAstBuiltinArgumentRetentionIdentityForCall(
+                    analysis.expression_surfaces, original.call_node);
+            Log(SemanticAstBuiltinArgumentRetentionCallFactsReady(
+                    analysis.expression_surfaces) && IsSome(identity) &&
+                UnwrapOption(identity) == "STRING_LENGTH");
+            return;
+        }
+        ArrayPop(retention_calls);
+        if mutation != 104 {
+            let call_node: Int = original.call_node;
+            let owner_node_id: Int = original.owner_node_id;
+            let lane: Int = original.lane;
+            let local_call_ordinal: Int = original.local_call_ordinal;
+            let retention_row: Int = original.retention_row;
+            if mutation == 105 || mutation == 113 { retention_row = 2; }
+            if mutation == 106 { owner_node_id = owner_node_id + 1; }
+            if mutation == 107 {
+                if lane == AstExpressionLaneAtom() { lane = AstExpressionLaneValue(); }
+                else { lane = AstExpressionLaneAtom(); }
+            }
+            if mutation == 108 { local_call_ordinal = local_call_ordinal + 1; }
+            if mutation == 109 {
+                call_node = call_node + 1;
+                if call_node >= SemanticExpressionGraphArenaNodeCount(
+                        analysis.expression_surfaces.expression_graph.arena) {
+                    call_node = 0;
+                }
+            }
+            if mutation == 111 { retention_row = 7; }
+            if mutation == 112 { retention_row = 999; }
+            ArrayPush(retention_calls,
+                SemanticAstBuiltinArgumentRetentionCallFact(
+                    call_node, owner_node_id, lane,
+                    local_call_ordinal, retention_row));
+            if mutation == 110 { ArrayPush(retention_calls, original); }
+            if mutation == 113 {
+                analysis.expression_surfaces.expression_graph.arena
+                    .call_target_names[original.call_node] = "LogRaw";
+            }
+        }
+        analysis.expression_surfaces.expression_graph.arena.identities
+            .builtin_argument_retention_calls = retention_calls;
+        let identity: Option<String> =
+            SemanticAstBuiltinArgumentRetentionIdentityForCall(
+                analysis.expression_surfaces, original.call_node);
+        Log(!SemanticAstBuiltinArgumentRetentionCallFactsReady(
+                analysis.expression_surfaces) && !IsSome(identity));
+        return;
+    }
+    if mutation >= 114 && mutation <= 118 {
+        let tables: SemanticAstExpressionFunctionTableFacts =
+            SemanticAstExpressionFunctionTableFactsFromArtifact(
+                artifact, analysis.signatures, analysis.constructors,
+                analysis.enums);
+        if !SemanticAstExpressionFunctionTableFactsReady(tables) {
+            Log("builtin signature table is invalid"); Exit(2);
+        }
+        let string_length: Int = -1;
+        let table_row: Int = 0;
+        while table_row < ArrayLength(tables.names) {
+            if tables.names[table_row] == "StringLength" {
+                string_length = table_row;
+            }
+            table_row = table_row + 1;
+        }
+        if string_length < 0 {
+            Log("StringLength signature is missing"); Exit(2);
+        }
+        if mutation == 114 { tables.names[string_length] = "MissingStringLength"; }
+        if mutation == 115 {
+            ArrayPush(tables.names, tables.names[string_length]);
+            ArrayPush(tables.returns, tables.returns[string_length]);
+            ArrayPush(tables.params, tables.params[string_length]);
+        }
+        if mutation == 116 { tables.returns[string_length] = "String"; }
+        if mutation == 117 { tables.params[string_length] = "Unknown"; }
+        let selection: Int = SemanticAstBuiltinArgumentRetentionSelectionFromFacts(
+            analysis.signatures, tables);
+        if mutation == 118 { Log(selection >= 0); }
+        else { Log(selection < 0); }
+        return;
+    }
     let signature: Int = -1;
     let other: Int = -1;
     let indexed: Int = -1;
@@ -120,6 +260,16 @@ func Main() -> Void with caps env, io_read {
     while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
         if analysis.expression_surfaces.expression_graph.has_roots[slot] {
             let root: Int = analysis.expression_surfaces.expression_graph.roots[slot];
+            let surface_row: Int = slot / 3;
+            if !changed && mutation == 102 &&
+                    analysis.expression_surfaces.function_node_ids[surface_row] ==
+                        analysis.signatures.function_node_ids[indexed] {
+                // Preserve the scope vector extent while crossing its owner.
+                let syntax: Int = analysis.expression_surfaces.node_ids[surface_row];
+                analysis.function_scopes.function_node_ids[syntax] =
+                    analysis.signatures.function_node_ids[other];
+                changed = true;
+            }
             let node: Int = last + 1;
             while node <= root {
                 let binding: SemanticExpressionBindingIdentityFact =
@@ -182,15 +332,30 @@ func Main() -> Void with caps env, io_read {
         Log("indexed comparator graph shape is invalid"); Exit(2);
     }
     let effects: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
-        analysis.signatures, analysis.expression_surfaces);
+        artifact, analysis.signatures, analysis.function_scopes,
+        analysis.expression_surfaces);
     let proved: HashMap<String, Int> = effects.effects;
     let key: String = ToString(formal);
     if mutation == 13 {
         Log(effects.ok && MapHas(proved, key) && MapGet(proved, key) == 2 &&
             MapHas(proved, ToString(foreign)) && MapGet(proved, ToString(foreign)) == 2 &&
             MapHas(proved, ToString(indexed_formal)) && MapGet(proved, ToString(indexed_formal)) == 3);
+    } else if mutation == 14 || mutation == 15 {
+        // An admitted but unsafe indexed use is retained as an explicit
+        // rejecting effect; an earlier seal failure may omit it entirely.
+        let indexed_rejected: Bool = !MapHas(proved, ToString(indexed_formal));
+        if !indexed_rejected {
+            indexed_rejected = MapGet(proved, ToString(indexed_formal)) ==
+                SemanticAstCollectionFormalUnprovedElementUseEffect();
+        }
+        // Unrelated Populate/Forward proofs remain valid; only the mutated
+        // Matches formal must lose reusable read permission.
+        Log(effects.ok && indexed_rejected);
     } else if mutation >= 14 {
-        Log(effects.ok && !MapHas(proved, ToString(indexed_formal)) &&
+        // A sealed artifact or a structurally admitted graph may reject the
+        // post-admission mutation at different boundaries. Neither path may
+        // leave a reusable formal proof behind.
+        Log(!MapHas(proved, ToString(indexed_formal)) &&
             !MapHas(proved, key) && !MapHas(proved, ToString(foreign)));
     } else if mutation == 0 {
         Log(effects.ok && MapHas(proved, key) && MapGet(proved, key) == 2 &&
@@ -304,7 +469,9 @@ func InspectOwnStorageAdmission(
                             artifact, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
                             analysis.expression_surfaces, slot / 3, edge.argument_node);
                         if !binding.ok || ArrayLength(analysis.local_bindings.node_ids) != 1 || binding.row != 0 { return false; }
-                        let effects: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(analysis.signatures, analysis.expression_surfaces);
+                        let effects: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
+                            artifact, analysis.signatures, analysis.function_scopes,
+                            analysis.expression_surfaces);
                         let formal_rows: HashMap<String, Int> = effects.inventory.row_by_formal;
                         let modes: Array<Int> = effects.inventory.modes;
                         let proved: HashMap<String, Int> = effects.effects;
@@ -476,7 +643,9 @@ func InspectOwnArgumentOccurrenceOrder(
     let runtime_ids: Array<Int> = [];
     row = 0;
     while row < ArrayLength(kinds) { ArrayPush(runtime_ids, 0); row = row + 1; }
-    arena.identities = SemanticExpressionIdentityRows(targets, runtime_ids, binding_ids, binding_kinds, ordinals);
+    arena.identities = SemanticExpressionIdentityRows(
+        targets, runtime_ids, binding_ids, binding_kinds, ordinals,
+        [], false, 0);
     let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(true, [root, 0, 0], [true, false, false], arena);
     let projected: SemanticAstExpressionSurfaceFacts = SemanticAstExpressionSurfaceFacts(
         true, -1, "", artifact.count, [syntax], [caller], [-1],
@@ -578,7 +747,10 @@ func InspectFormalStorageAuthority(
         analysis.statements, analysis.assignments, bundle.assignment_types);
     let verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
-        bundle.initializer_types, analysis.expression_surfaces, leaf_types, bundle.numeric_string_allocations, call_roots, owned_string_results, analysis.statements,
+        bundle.initializer_types, analysis.expression_surfaces,
+        analysis.function_scopes, leaf_types,
+        bundle.numeric_string_allocations, call_roots,
+        owned_string_results, analysis.statements,
         analysis.assignments, bundle.assignment_types);
     if mutation == 37 {
         if !definitions.ok || !storage.ok || !verdict.ok { return false; }

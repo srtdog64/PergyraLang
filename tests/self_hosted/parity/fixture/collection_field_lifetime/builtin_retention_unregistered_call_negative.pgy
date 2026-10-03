@@ -1,0 +1,8 @@
+func ObserveIndexedString(values: Array<String>) -> Bool {
+    return StringIndexOf(values[0], "observed") >= 0;
+}
+
+func Main() -> Void {
+    let values: Array<String> = ["observed"];
+    Log(ObserveIndexedString(values));
+}

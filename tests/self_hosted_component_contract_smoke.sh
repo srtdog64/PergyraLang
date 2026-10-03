@@ -23382,12 +23382,21 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/semantic/ast_numeric_s
 require_file "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy" 200
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy"
+require_file "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_validation_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_validation_owner.pgy" 100
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_validation_owner.pgy"
 require_function_text "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy" \
     "func SemanticAstBuiltinArgumentRetentionRecordResolvedCall(" \
     "SemanticAstCollectionOwnershipBuiltinCall("
 require_function_text "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy" \
-    "func SemanticAstBuiltinArgumentRetentionIdentityForCall(" \
+    "func SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts(" \
     "SemanticExpressionCallIdentityEqual("
+require_function_text "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy" \
+    "func SemanticAstBuiltinArgumentRetentionIdentityForCall(" \
+    "SemanticAstBuiltinArgumentRetentionCallFactsReady("
+require_function_text "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy" \
+    "func SemanticAstBuiltinArgumentRetentionIdentityForCall(" \
+    "SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts("
 require_function_text "src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy" \
     "func SemanticAstNumericStringAllocationRecordResolvedCall(" \
     "SemanticExpressionGraphScalarTypeName("
@@ -28585,7 +28594,9 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_receipt_owner.pgy:120 \
     src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy:200 \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy:120 \
-    src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection_formal_execution_context_owner.pgy:150 \
+    src/self_hosted/semantic/ast_collection_formal_use_owner.pgy:260 \
+    src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy:40 \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy:160 \
     src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy:200 \
@@ -28814,8 +28825,6 @@ require_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requ
     'facts.formal_modes[row] < 0 || facts.formal_modes[row] > 3'
 require_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy" \
     'facts.local_ids[row] == local_id'
-require_text "src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy" \
-    'aggregate_field_entry_unproved'
 for entry_forbidden in 'SemanticAstCollectionOwnershipOwnedElements()' 'SemanticAstCollectionTransitionClean()' 'TypedAstArena'; do
     reject_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy" "$entry_forbidden"
 done

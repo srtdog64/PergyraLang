@@ -13,7 +13,7 @@ import "ast_expression_call_identity_owner.pgy";
 import "ast_owned_string_expression_domain_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
 import "diagnostic_owner.pgy";
-import "builtin_argument_retention_projection_owner.pgy";
+import "ast_builtin_argument_retention_call_fact_owner.pgy";
 import "ast_owned_string_actual_exclusivity_owner.pgy";
 
 struct SemanticAstOwnedStringLiteralTransferFacts {
@@ -71,22 +71,26 @@ func SemanticAstOwnedStringLiteralTransferDirectDefinition(
 }
 
 func SemanticAstOwnedStringLiteralTransferBorrowUseReady(
-    ref graph: SemanticExpressionGraphFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
     start: Int, root: Int, use_node: Int
 ) -> Bool {
     let node: Int = start;
     while node <= root {
-        let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            surfaces.expression_graph, node);
         if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeCallArgument() {
             let edge: SemanticCallArgumentEdgeView =
-                SemanticCallArgumentEdgeFromGraph(graph, node);
+                SemanticCallArgumentEdgeFromGraph(
+                    surfaces.expression_graph, node);
             if !edge.ok { return false; }
             if edge.argument_node == use_node {
-                return edge.ordinal == 1 &&
-                    SemanticAstCollectionOwnershipBuiltinCall(
-                        graph, edge.call_node, "CompilerArtifactWrite") &&
-                    SemanticBuiltinArgumentBorrowedForCall(
-                        "CompilerArtifactWrite", edge.ordinal);
+                let identity: Option<String> =
+                    SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts(
+                        surfaces, edge.call_node);
+                return IsSome(identity) &&
+                    UnwrapOption(identity) == "COMPILER_ARTIFACT_WRITE" &&
+                    SemanticBuiltinArgumentBorrowedForIdentity(
+                        UnwrapOption(identity), edge.ordinal);
             }
         }
         node = node + 1;
@@ -131,8 +135,7 @@ func SemanticAstOwnedStringLiteralTransferUsesReady(
                             artifact, function_id,
                             surfaces.node_ids[slot / 3]) ||
                         !SemanticAstOwnedStringLiteralTransferBorrowUseReady(
-                            surfaces.expression_graph, UnwrapOption(start),
-                            root, node) {
+                            surfaces, UnwrapOption(start), root, node) {
                         return false;
                     }
                 }
@@ -211,7 +214,7 @@ func SemanticAstOwnedStringLiteralTransferFactsFromDefinitions(
 ) -> SemanticAstOwnedStringLiteralTransferFacts {
     let facts: SemanticAstOwnedStringLiteralTransferFacts =
         SemanticAstOwnedStringLiteralTransferFactsEmpty();
-    if !SemanticBuiltinArgumentRetentionProjectionReady() ||
+    if !SemanticAstBuiltinArgumentRetentionCallFactsReady(surfaces) ||
         !definitions.ok || !signatures.ok || !locals.ok || !surfaces.ok ||
         ArrayLength(inferred_types) != ArrayLength(locals.node_ids) ||
         definitions.local_count != ArrayLength(locals.node_ids) {

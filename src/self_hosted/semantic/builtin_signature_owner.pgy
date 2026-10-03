@@ -199,6 +199,23 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
     return rows;
 }
 
+func SemanticBuiltinRetentionSourceSignatureKnown(name: String) -> Bool {
+    return name == "Print" || name == "Log" || name == "CompilerArtifactWrite" ||
+        name == "StringLength" || name == "CharCode" || name == "Concat";
+}
+
+func SemanticBuiltinRetentionSourceSignatureMatches(
+    name: String, return_type: String, param_types: String
+) -> Bool {
+    if name == "Print" { return return_type == "Void" && param_types == "Unknown"; }
+    if name == "Log" { return return_type == "Unknown" && param_types == "Unknown"; }
+    if name == "CompilerArtifactWrite" { return return_type == "Bool" && param_types == "Int|String"; }
+    if name == "StringLength" { return return_type == "Int" && param_types == "String"; }
+    if name == "CharCode" { return return_type == "Int" && param_types == "String|Int|Int"; }
+    if name == "Concat" { return return_type == "String" && param_types == "String|String"; }
+    return false;
+}
+
 // Parser artifacts carry builtin member calls without a declaration syntax
 // identity. Keep the exact source-member to canonical-callable mapping here,
 // beside the signature row that owns the callable.
