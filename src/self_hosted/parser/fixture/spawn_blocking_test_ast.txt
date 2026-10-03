@@ -10,7 +10,7 @@ Program:
           Block:
             Assign: result = (result + i)
         Return: result
-  Function: Main
+  Function: Main [async]
     Parameters:
     Returns: Void
     Body:

@@ -444,9 +444,10 @@ func ParseDeclsInto(
             continue;
         }
 
-        // Optional `async` modifier on the next `func` — the C printer
-        // drops it from the AST output, so we just consume and ignore.
+        // Preserve the async execution boundary in the canonical callable row.
+        let is_async_decl: Bool = false;
         if MatchLanguageWord(content, i, LanguageWordId.WordAsync) {
+            is_async_decl = true;
             i = LanguageWordEnd(i, LanguageWordId.WordAsync);
             i = SkipWhitespaceAndComments(content, i);
         }
@@ -455,7 +456,8 @@ func ParseDeclsInto(
         if MatchLanguageWord(content, i, LanguageWordId.WordFunc) {
             ArraySet(cursor_out, 0, i);
             let fn_block: String = ParseFunctionObserved(
-                content, i, cursor_out, decl_prefix, effective_export, 2,
+                content, i, cursor_out, decl_prefix, effective_export,
+                is_async_decl, 2,
                 LanguageWordId.WordFunc, "Function: ", false, active_within_zone,
                 expression_graphs, location_context, source_locations,
                 diagnostic_projection

@@ -5922,7 +5922,8 @@ reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func CodegenAstT
 require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" 'import "ast_text_scan_owner.pgy";'
 require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "struct CodegenAstTextRowFactInput"
 require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "let aux_payload: String"
-require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "func CodegenAstTextParamModeForPayload"
+require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "func CodegenAstTextNodeModeForPayload"
+require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "func CodegenAstTextPayloadHasAsyncSuffix"
 require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "func CodegenAstTextParamPayloadForMode"
 require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput)"
 require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput)"
@@ -5970,6 +5971,8 @@ reject_function_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
 require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstKindProgramTag"
 require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstKindFuncDeclTag"
 require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstKindParamTag"
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstKindAsyncBlockTag"
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstModeCallableAsync"
 require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" 'import "ast_node_kind_owner.pgy";'
 require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "TypedAstKindOwnerReady()"
 reject_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "enum NodeKind"

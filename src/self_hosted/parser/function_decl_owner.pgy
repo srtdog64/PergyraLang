@@ -156,6 +156,7 @@ func ParseFunctionObserved(
     inout cursor_out: Array<Int>,
     name_prefix: String,
     is_export: Bool,
+    is_async: Bool,
     base_indent: Int,
     fn_word: LanguageWordId,
     fn_label: String,
@@ -470,7 +471,9 @@ func ParseFunctionObserved(
     if is_export {
         label_text = Concat("[export] ", label_text);
     }
-    let block: String = Concat(header_prefix, Concat(label_text, Concat(name_prefix, fn_name)));
+    let callable_name: String = Concat(name_prefix, fn_name);
+    if is_async { callable_name = Concat(callable_name, " [async]"); }
+    let block: String = Concat(header_prefix, Concat(label_text, callable_name));
     if StringLength(generic_params) > 0 {
         block = AppendLine(block, Concat(IndentStr(base_indent + 2), Concat("Generic params: ", generic_params)));
     }
@@ -547,7 +550,7 @@ func ParseFunction(
         ParserSourceLocationContextWithoutObservation(location_context);
     let locations: Array<ParserSourceLocationObservation> = [];
     return ParseFunctionObserved(
-        content, start, cursor_out, name_prefix, is_export, base_indent,
+        content, start, cursor_out, name_prefix, is_export, false, base_indent,
         fn_word, fn_label, is_signature, within_zone_arg,
         expression_graphs, context, locations, location_context.projection
     );

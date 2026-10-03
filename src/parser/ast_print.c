@@ -142,10 +142,11 @@ void ast_print(ASTNode* node, int indent) {
             break;
 
         case AST_FUNC_DECL:
-            printf("%s: %s\n",
+            printf("%s: %s%s\n",
                    (!node->is_async_decl && node->data.func_decl.is_action)
                        ? "Action" : "Function",
-                   node->data.func_decl.name);
+                   node->data.func_decl.name,
+                   node->is_async_decl ? " [async]" : "");
             if (node->data.func_decl.generic_params) {
                 ast_print_indent(indent + 1);
                 printf("Generic params: ");

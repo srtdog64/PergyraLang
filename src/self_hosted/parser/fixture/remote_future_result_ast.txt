@@ -1,5 +1,5 @@
 Program:
-  Function: Main
+  Function: Main [async]
     Parameters:
     Returns: Void
     Body:

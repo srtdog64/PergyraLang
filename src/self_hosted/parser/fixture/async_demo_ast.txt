@@ -1,5 +1,5 @@
 Program:
-  Function: Inc
+  Function: Inc [async]
     Parameters:
       x: Int
     Returns: Int
@@ -13,7 +13,7 @@ Program:
     Body:
       Block:
         Return: (x * 2)
-  Function: Main
+  Function: Main [async]
     Parameters:
     Returns: Void
     Body:

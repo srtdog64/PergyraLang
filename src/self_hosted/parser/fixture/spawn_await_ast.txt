@@ -1,5 +1,5 @@
 Program:
-  Function: Add
+  Function: Add [async]
     Parameters:
       a: Int
       b: Int
@@ -7,7 +7,7 @@ Program:
     Body:
       Block:
         Return: (a + b)
-  Function: Main
+  Function: Main [async]
     Parameters:
     Returns: Void
     Body:

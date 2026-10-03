@@ -12,9 +12,21 @@ struct CodegenAstTextRowFactInput {
     let mode: Int;
 }
 
-func CodegenAstTextParamModeForPayload(kind: Int, payload: String) -> Int {
+func CodegenAstTextPayloadHasAsyncSuffix(payload: String) -> Bool {
+    let suffix: String = " [async]";
+    let length: Int = StringLength(payload);
+    let suffix_length: Int = StringLength(suffix);
+    return length >= suffix_length &&
+        Substring(payload, length - suffix_length, suffix_length) == suffix;
+}
+
+func CodegenAstTextNodeModeForPayload(kind: Int, payload: String) -> Int {
     // Mode is kind-discriminated: field 0=mutable, 1=immutable;
     // local let 0=immutable, 1=mutable. Parameter modes retain their ABI.
+    if kind == TypedAstKindFuncDeclTag() &&
+        CodegenAstTextPayloadHasAsyncSuffix(payload) {
+        return TypedAstModeCallableAsync();
+    }
     if kind == TypedAstKindLetStmtTag() && StartsWith(payload, "mut ") {
         return 1;
     }
@@ -58,6 +70,13 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
         kind == TypedAstKindNominalDeclTag() ||
         kind == TypedAstKindEnumDeclTag() ||
         kind == TypedAstKindImplAbilityTag() {
+        if kind == TypedAstKindFuncDeclTag() &&
+            CodegenAstTextPayloadHasAsyncSuffix(payload) {
+            return Substring(
+                payload, 0,
+                StringLength(payload) - StringLength(" [async]")
+            );
+        }
         return payload;
     }
     if kind == TypedAstKindRoleDeclTag() {

@@ -73,6 +73,9 @@ func TypedAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Function:") {
         return TypedAstKindFuncDeclTag();
     }
+    if text == "AsyncBlock:" {
+        return TypedAstKindAsyncBlockTag();
+    }
     if StartsWith(text, "Action:") {
         return TypedAstKindActionDeclTag();
     }
@@ -652,7 +655,7 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
             }
             let payload: String = CodegenAstTextPayloadFor(trimmed, kind);
             let aux_payload: String = CodegenAstTextAuxPayloadFor(trimmed, kind);
-            let mode: Int = CodegenAstTextParamModeForPayload(kind, payload);
+            let mode: Int = CodegenAstTextNodeModeForPayload(kind, payload);
             let row_input: CodegenAstTextRowFactInput = CodegenAstTextRowFactInput(kind, payload, aux_payload, mode);
             ArrayPush(nodes, CodegenAstTextNode(
                 indent,

@@ -1,5 +1,5 @@
 Program:
-  Function: Compute
+  Function: Compute [async]
     Parameters:
       x: Int
     Returns: Int
