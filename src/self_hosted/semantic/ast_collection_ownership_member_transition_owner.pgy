@@ -8,24 +8,22 @@ struct SemanticAstCollectionMemberMoveUse {
     syntax_node_id: Int;
     expression_node_id: Int;
     restored_binding_syntax_ids: Array<Int>;
+    restoration_syntax_ids: Array<Int>;
 }
-func SemanticAstCollectionMemberMoveEventKey(
-    identity: SemanticAstCollectionMemberMoveIdentity, syntax_node_id: Int) -> String {
+func SemanticAstCollectionMemberMoveEventKey(identity: SemanticAstCollectionMemberMoveIdentity, syntax_node_id: Int) -> String {
     return Concat(identity.key, Concat(":", ToString(syntax_node_id)));
 }
 func SemanticAstCollectionFirstInvalidMemberMoveUse(
-    artifact: AstTreeArtifact,
-    ref signatures: SemanticAstFunctionSignatureFacts,
-    ref constructors: SemanticAstNominalConstructorFacts,
-    ref locals: SemanticAstLocalBindingFacts,
-    ref inferred_types: Array<String>,
-    ref resolved_leaf_types: Array<String>,
-    ref surfaces: SemanticAstExpressionSurfaceFacts,
-    ref assignments: SemanticAstAssignmentFacts, own move_destinations: HashMap<String, Int>
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>, ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref assignments: SemanticAstAssignmentFacts,
+    own move_destinations: HashMap<String, Int>
 ) -> SemanticAstCollectionMemberMoveUse {
     let active_members: HashMap<String, Int> = MapNew();
     let retired_locals: HashMap<String, Int> = MapNew();
     let restored: Array<Int> = [];
+    let restoration_sites: Array<Int> = [];
     let root_slot: Int = 0;
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
         if surfaces.expression_graph.has_roots[root_slot] {
@@ -39,7 +37,8 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                 while node <= root_id {
                     let identity: SemanticAstCollectionMemberMoveIdentity =
                         SemanticAstCollectionMemberMoveIdentityForNode(
-                            artifact, signatures, constructors, locals, inferred_types, resolved_leaf_types,
+                            artifact, signatures, constructors, locals,
+                            inferred_types, resolved_leaf_types,
                             surfaces.function_node_ids[surface], syntax_id,
                             surfaces.expression_graph, node);
                     if identity.ok {
@@ -49,7 +48,9 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                         if MapHas(move_destinations, event_key) {
                             // A new extraction cannot overwrite an outstanding move.
                             if MapHas(active_members, identity.key) && MapGet(active_members, identity.key) > 0 {
-                                return SemanticAstCollectionMemberMoveUse(true, syntax_id, node, restored);
+                                return SemanticAstCollectionMemberMoveUse(
+                                    true, syntax_id, node, restored,
+                                    restoration_sites);
                             }
                             MapSet(active_members, identity.key,
                                 MapGet(move_destinations, event_key));
@@ -67,15 +68,12 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                                         surfaces, syntax_id,
                                         AstExpressionLaneValue());
                                 if IsSome(value_root) {
-                                    let source:
-                                        SemanticAstLocalBindingIdentity =
-                                            SemanticAstScopedLocalBindingIdentityForGraphLeaf(
-                                                artifact, locals,
-                                                inferred_types,
-                                                surfaces.function_node_ids[surface],
-                                                syntax_id,
-                                                surfaces.expression_graph,
-                                                UnwrapOption(value_root));
+                                    let source: SemanticAstLocalBindingIdentity =
+                                        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                                            artifact, locals, inferred_types,
+                                            surfaces.function_node_ids[surface],
+                                            syntax_id, surfaces.expression_graph,
+                                            UnwrapOption(value_root));
                                     if source.ok &&
                                         source.declaration_node_id == source_id {
                                         is_restore = true;
@@ -83,12 +81,15 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                                         MapSet(retired_locals,
                                             ToString(source_id), syntax_id);
                                         ArrayPush(restored, source_id);
+                                        ArrayPush(restoration_sites,
+                                            syntax_id);
                                     }
                                 }
                             }
                             if !is_restore {
                                 return SemanticAstCollectionMemberMoveUse(
-                                    true, syntax_id, node, restored);
+                                    true, syntax_id, node, restored,
+                                    restoration_sites);
                             }
                         }
                     }
@@ -115,7 +116,8 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                         syntax_id > MapGet(retired_locals,
                             ToString(binding_use.declaration_node_id)) {
                         return SemanticAstCollectionMemberMoveUse(
-                            true, syntax_id, node, restored);
+                            true, syntax_id, node, restored,
+                            restoration_sites);
                     }
                     node = node + 1;
                 }
@@ -123,7 +125,8 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
         }
         root_slot = root_slot + 1;
     }
-    return SemanticAstCollectionMemberMoveUse(false, -1, -1, restored);
+    return SemanticAstCollectionMemberMoveUse(
+        false, -1, -1, restored, restoration_sites);
 }
 
 func SemanticAstCollectionApplyMemberMoveRestorations(

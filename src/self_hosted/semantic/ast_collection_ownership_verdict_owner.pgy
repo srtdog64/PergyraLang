@@ -31,6 +31,8 @@ import "ast_collection_call_effect_owner.pgy";
 import "ast_collection_call_argument_verdict_owner.pgy";
 import "ast_collection_lifetime_event_order_owner.pgy";
 import "ast_collection_builtin_transition_owner.pgy";
+import "ast_collection_aggregate_release_plan_owner.pgy";
+import "ast_collection_aggregate_release_transition_owner.pgy";
 import "ast_owned_string_result_domain_owner.pgy";
 import "ast_owned_string_literal_transfer_owner.pgy";
 import "ast_signature_fact_owner.pgy";
@@ -286,6 +288,21 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "aggregate_field_entry_requirements"), -1, -1);
     }
+    let aggregate_release_plan: SemanticAstCollectionAggregateReleasePlan =
+        SemanticAstCollectionAggregateReleasePlanFromRequirements(
+            artifact, signatures, constructors, locals,
+            initializer_types.inferred_type_names, resolved_leaf_types,
+            surfaces, statements, assignments, field_requirements,
+            call_effects, storage, definitions);
+    if !SemanticAstCollectionAggregateReleasePlanShapeReady(
+            aggregate_release_plan) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary",
+                "aggregate_release_plan_unproved", "type",
+                "Array<String>"),
+            aggregate_release_plan.diagnostic_syntax_id, -1);
+    }
     let root_slot: Int = 0;
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
         // Each syntax event precedes its own call lanes, not every call in the
@@ -327,6 +344,18 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                 if step.right >= 0 { ArrayPush(pending, step.right); ArrayPush(prefixes, false); }
                 if step.left >= 0 { ArrayPush(pending, step.left); ArrayPush(prefixes, step.left_prefix); }
                 let node: Int = step.event_node;
+                let aggregate_source_use:
+                    SemanticAstCollectionOwnershipVerdict =
+                    SemanticAstCollectionAggregateReleaseSourceUseAtEvent(
+                        artifact, locals,
+                        initializer_types.inferred_type_names, surfaces,
+                        root_slot, node, definitions, current_definitions,
+                        call_effects.constructor_inputs,
+                        aggregate_release_plan);
+                if !aggregate_source_use.ok {
+                    ArrayDrop(pending); ArrayDrop(prefixes);
+                    return aggregate_source_use;
+                }
                 let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
                 if IsSome(kind) && UnwrapOption(kind) ==
                         AstExpressionNodeArrayElement() &&
@@ -360,9 +389,24 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                     }
                 }
                 if step.completed_call >= 0 {
+                    let aggregate_reservation:
+                        SemanticAstCollectionOwnershipVerdict =
+                        SemanticAstCollectionAggregateReleaseReserveAtCompletion(
+                            artifact, locals, surfaces, root_slot / 3,
+                            step.completed_call, call_effects, storage,
+                            definitions, current_definitions, ownership,
+                            dispositions, origins, transition_states,
+                            aggregate_release_plan);
+                    if !aggregate_reservation.ok {
+                        ArrayDrop(pending); ArrayDrop(prefixes);
+                        return aggregate_reservation;
+                    }
                     let builtin_transition: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionBuiltinTransitionAtCompletion(
                         artifact, locals, initializer_types.inferred_type_names, signatures, surfaces, root_slot / 3,
-                        step.completed_call, node, call_effects, field_requirements, ownership, dispositions, origins, transition_states, receipts);
+                        step.completed_call, node, call_effects,
+                        field_requirements, aggregate_release_plan,
+                        ownership, dispositions, origins, transition_states,
+                        receipts);
                     if !builtin_transition.ok {
                         ArrayDrop(pending); ArrayDrop(prefixes);
                         return builtin_transition;
@@ -415,6 +459,18 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     SemanticAstCollectionApplyMemberMoveRestorations(
         locals, moved_use, dispositions
     );
+    if !SemanticAstCollectionAggregateReleasePlanFinalized(
+            artifact, signatures, constructors, locals,
+            initializer_types.inferred_type_names, resolved_leaf_types,
+            surfaces, assignments, aggregate_release_plan,
+            field_requirements,
+            call_effects.constructor_inputs, statements, moved_use) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary",
+                "aggregate_release_incomplete", "type", "Array<String>"),
+            aggregate_release_plan.diagnostic_syntax_id, -1);
+    }
     SemanticAstCollectionApplyTerminalCallEffects(call_effects, ownership, dispositions, transition_states);
     // Returned bound-array retirement remains unproved; a shallow field copy
     // cannot satisfy public ArrayDrop's exclusive named-binding contract.

@@ -1,0 +1,20 @@
+import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+
+struct OuterFacts {
+    tables: SemanticAstExpressionFunctionTableFacts;
+    other: SemanticAstExpressionFunctionTableFacts;
+}
+
+func Main() -> Void {
+    let names: Array<String> = [];
+    let returns: Array<String> = [];
+    let params: Array<String> = [];
+    let tables_seed: SemanticAstExpressionFunctionTableFacts =
+        SemanticAstExpressionFunctionTableFacts(
+            true, names, returns, params);
+    let outer: OuterFacts = OuterFacts(tables_seed,
+        SemanticAstExpressionFunctionTableFacts(true, [], [], []));
+    let tables: SemanticAstExpressionFunctionTableFacts = outer.tables;
+    SemanticAstExpressionFunctionTableFactsRelease(tables);
+    outer.other = tables;
+}

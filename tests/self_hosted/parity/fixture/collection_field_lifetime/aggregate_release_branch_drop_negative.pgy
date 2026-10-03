@@ -1,0 +1,13 @@
+struct Carrier { values: Array<String>; }
+
+func RetireCarrier(inout carrier: Carrier) -> Void {
+    let values: Array<String> = carrier.values;
+    if true { ArrayDropOwnedStrings(values); }
+    carrier.values = values;
+}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    let carrier: Carrier = Carrier(values);
+    RetireCarrier(carrier);
+}

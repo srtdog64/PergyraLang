@@ -1,0 +1,187 @@
+// Conditional lifetime plan for aggregate fields that are deep-released.
+//
+// An entry requirement is only an obligation.  This plan follows each exact
+// caller value back to the constructor occurrence that populated the physical
+// field.  It never grants from a nominal type, formal mode, or Ready predicate.
+// Only demanded constructor fields are selected, so a readonly constructor may
+// continue to alias descriptors without becoming a consuming operation.
+
+
+import "ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+
+struct SemanticAstCollectionAggregateReleasePlan {
+    ok: Bool;
+    diagnostic_syntax_id: Int;
+    call_surface_rows: Array<Int>;
+    call_function_ids: Array<Int>;
+    call_syntax_ids: Array<Int>;
+    call_edge_nodes: Array<Int>;
+    call_nodes: Array<Int>;
+    call_argument_nodes: Array<Int>;
+    call_ordinals: Array<Int>;
+    call_target_ids: Array<Int>;
+    requirement_local_ids: Array<Int>;
+    drop_syntax_ids: Array<Int>;
+    drop_expression_nodes: Array<Int>;
+    demand_edge_nodes: Array<Int>;
+    aggregate_origin_ids: Array<Int>;
+    requirement_rows: Array<Int>;
+    constructor_input_rows: Array<Int>;
+    reserved: Array<Bool>;
+    validated_input_rows: Array<Int>;
+    carrier_function_ids: Array<Int>;
+    carrier_local_ids: Array<Int>;
+    carrier_scope_ids: Array<Int>;
+    carrier_source_binding_ids: Array<Int>;
+    carrier_field_ids: Array<Int>;
+    carrier_release_edge_nodes: Array<Int>;
+    carrier_restoration_syntax_ids: Array<Int>;
+}
+
+struct SemanticAstCollectionAggregateTrace {
+    path_field_ids: Array<Int>;
+    path_parent_rows: Array<Int>;
+    invocation_call_nodes: Array<Int>;
+    invocation_caller_functions: Array<Int>;
+    invocation_caller_syntax_ids: Array<Int>;
+}
+
+func SemanticAstCollectionAggregateReleasePlanEmpty(
+) -> SemanticAstCollectionAggregateReleasePlan {
+    let call_surface_rows: Array<Int> = []; let call_function_ids: Array<Int> = [];
+    let call_syntax_ids: Array<Int> = []; let call_edge_nodes: Array<Int> = [];
+    let call_nodes: Array<Int> = []; let call_argument_nodes: Array<Int> = [];
+    let call_ordinals: Array<Int> = [];
+    let call_target_ids: Array<Int> = [];
+    let requirement_local_ids: Array<Int> = [];
+    let drop_syntax_ids: Array<Int> = [];
+    let drop_expression_nodes: Array<Int> = [];
+    let demand_edge_nodes: Array<Int> = [];
+    let aggregate_origin_ids: Array<Int> = [];
+    let requirement_rows: Array<Int> = [];
+    let constructor_input_rows: Array<Int> = [];
+    let flags: Array<Bool> = [];
+    let validated_input_rows: Array<Int> = [];
+    let carrier_function_ids: Array<Int> = [];
+    let carrier_local_ids: Array<Int> = [];
+    let carrier_scope_ids: Array<Int> = [];
+    let carrier_source_binding_ids: Array<Int> = [];
+    let carrier_field_ids: Array<Int> = [];
+    let carrier_release_edge_nodes: Array<Int> = [];
+    let carrier_restoration_syntax_ids: Array<Int> = [];
+    return SemanticAstCollectionAggregateReleasePlan(
+        true, -1,
+        call_surface_rows, call_function_ids, call_syntax_ids,
+        call_edge_nodes, call_nodes, call_argument_nodes,
+        call_ordinals, call_target_ids,
+        requirement_local_ids, drop_syntax_ids, drop_expression_nodes,
+        demand_edge_nodes, aggregate_origin_ids, requirement_rows,
+        constructor_input_rows, flags, validated_input_rows,
+        carrier_function_ids, carrier_local_ids, carrier_scope_ids,
+        carrier_source_binding_ids, carrier_field_ids,
+        carrier_release_edge_nodes, carrier_restoration_syntax_ids
+    );
+}
+
+func SemanticAstCollectionAggregateTraceEmpty(
+) -> SemanticAstCollectionAggregateTrace {
+    let path_field_ids: Array<Int> = [];
+    let path_parent_rows: Array<Int> = [];
+    let invocation_call_nodes: Array<Int> = [];
+    let invocation_caller_functions: Array<Int> = [];
+    let invocation_caller_syntax_ids: Array<Int> = [];
+    return SemanticAstCollectionAggregateTrace(
+        path_field_ids, path_parent_rows, invocation_call_nodes,
+        invocation_caller_functions, invocation_caller_syntax_ids
+    );
+}
+
+func SemanticAstCollectionAggregateTracePathAppend(
+    field_id: Int, parent_row: Int,
+    inout trace: SemanticAstCollectionAggregateTrace
+) -> Int {
+    if field_id <= 0 || parent_row >= ArrayLength(trace.path_field_ids) ||
+        ArrayLength(trace.path_field_ids) !=
+            ArrayLength(trace.path_parent_rows) {
+        return -1;
+    }
+    let row: Int = ArrayLength(trace.path_field_ids);
+    ArrayPush(trace.path_field_ids, field_id);
+    ArrayPush(trace.path_parent_rows, parent_row);
+    return row;
+}
+
+func SemanticAstCollectionAggregateReleasePlanShapeReady(
+    ref plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    let calls: Int = ArrayLength(plan.call_nodes);
+    let requirements: Int = ArrayLength(plan.requirement_local_ids);
+    let demands: Int = ArrayLength(plan.constructor_input_rows);
+    let carriers: Int = ArrayLength(plan.carrier_local_ids);
+    return plan.ok && ArrayLength(plan.call_surface_rows) == calls &&
+        ArrayLength(plan.call_function_ids) == calls &&
+        ArrayLength(plan.call_syntax_ids) == calls &&
+        ArrayLength(plan.call_edge_nodes) == calls &&
+        ArrayLength(plan.call_argument_nodes) == calls &&
+        ArrayLength(plan.call_ordinals) == calls &&
+        ArrayLength(plan.call_target_ids) == calls &&
+        ArrayLength(plan.drop_syntax_ids) == requirements &&
+        ArrayLength(plan.drop_expression_nodes) == requirements &&
+        ArrayLength(plan.demand_edge_nodes) == demands &&
+        ArrayLength(plan.aggregate_origin_ids) == demands &&
+        ArrayLength(plan.requirement_rows) == demands &&
+        ArrayLength(plan.reserved) == demands &&
+        ArrayLength(plan.carrier_function_ids) == carriers &&
+        ArrayLength(plan.carrier_scope_ids) == carriers &&
+        ArrayLength(plan.carrier_source_binding_ids) == carriers &&
+        ArrayLength(plan.carrier_field_ids) == carriers &&
+        ArrayLength(plan.carrier_release_edge_nodes) == carriers &&
+        ArrayLength(plan.carrier_restoration_syntax_ids) == carriers;
+}
+
+func SemanticAstCollectionAggregateReleasePlanCallInventory(
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    let last: Int = -1;
+    let slot: Int = 0;
+    while slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[slot] {
+            let root: Int = surfaces.expression_graph.roots[slot];
+            if root <= last || slot / 3 >= ArrayLength(surfaces.node_ids) ||
+                slot / 3 >= ArrayLength(surfaces.function_node_ids) {
+                return false;
+            }
+            let node: Int = last + 1;
+            while node <= root {
+                if surfaces.expression_graph.arena.topology.node_kinds[node] ==
+                    AstExpressionNodeCallArgument() {
+                    let edge: SemanticCallArgumentEdgeView =
+                        SemanticCallArgumentEdgeFromGraph(
+                            surfaces.expression_graph, node
+                        );
+                    let target: Option<Int> =
+                        SemanticExpressionGraphCallTargetSyntaxId(
+                            surfaces.expression_graph, edge.call_node
+                        );
+                    if !edge.ok || !IsSome(target) { return false; }
+                    ArrayPush(plan.call_surface_rows, slot / 3);
+                    ArrayPush(plan.call_function_ids,
+                        surfaces.function_node_ids[slot / 3]);
+                    ArrayPush(plan.call_syntax_ids,
+                        surfaces.node_ids[slot / 3]);
+                    ArrayPush(plan.call_edge_nodes, node);
+                    ArrayPush(plan.call_nodes, edge.call_node);
+                    ArrayPush(plan.call_argument_nodes, edge.argument_node);
+                    ArrayPush(plan.call_ordinals, edge.ordinal);
+                    ArrayPush(plan.call_target_ids, UnwrapOption(target));
+                }
+                node = node + 1;
+            }
+            last = root;
+        }
+        slot = slot + 1;
+    }
+    return true;
+}

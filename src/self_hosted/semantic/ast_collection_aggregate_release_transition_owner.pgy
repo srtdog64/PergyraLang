@@ -1,0 +1,518 @@
+// Ordered reservation and conditional retirement for release-bound aggregate
+// fields.  The lineage plan names candidates; only this event replay may
+// reserve current storage or discharge one exact deep-drop obligation.
+
+import "ast_collection_aggregate_release_plan_owner.pgy";
+import "ast_collection_aggregate_value_exclusivity_owner.pgy";
+import "ast_collection_ownership_member_transition_owner.pgy";
+import "ast_collection_owned_argument_admission_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_statement_fact_owner.pgy";
+
+func SemanticAstCollectionAggregateReleaseError(
+    boundary: String, syntax_id: Int, expression_node: Int
+) -> SemanticAstCollectionOwnershipVerdict {
+    return SemanticAstCollectionOwnershipVerdictError(
+        "borrow_boundary_escape",
+        SemanticError2("borrow_boundary_escape", "boundary", boundary,
+            "type", "Array<String>"), syntax_id, expression_node);
+}
+
+func SemanticAstCollectionAggregateValidatedInputContains(
+    ref plan: SemanticAstCollectionAggregateReleasePlan, input_row: Int
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(plan.validated_input_rows) {
+        if plan.validated_input_rows[row] == input_row { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstCollectionAggregateReleaseSourceUseAtEvent(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    root_slot: Int, expression_node: Int,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref current_definitions: Array<Int>,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    ref plan: SemanticAstCollectionAggregateReleasePlan
+) -> SemanticAstCollectionOwnershipVerdict {
+    if SemanticAstCollectionDefinitionWriteTarget(
+            definitions, root_slot, expression_node) {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    let surface: Int = root_slot / 3;
+    let binding: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, inferred_types,
+            surfaces.function_node_ids[surface], surfaces.node_ids[surface],
+            surfaces.expression_graph, expression_node);
+    if !binding.ok || binding.row < 0 ||
+        binding.row >= ArrayLength(current_definitions) ||
+        current_definitions[binding.row] < 0 {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    let definition: Int = current_definitions[binding.row];
+    let validated: Int = 0;
+    while validated < ArrayLength(plan.validated_input_rows) {
+        let input: Int = plan.validated_input_rows[validated];
+        if input < 0 || input >= ArrayLength(inputs.definition_rows) {
+            return SemanticAstCollectionAggregateReleaseError(
+                "aggregate_release_input_missing",
+                surfaces.node_ids[surface], expression_node);
+        }
+        if inputs.producer_kinds[input] == 1 &&
+            inputs.definition_rows[input] == definition {
+            return SemanticAstCollectionOwnershipVerdictError(
+                "move_from_released",
+                SemanticError2("move_from_released", "boundary",
+                    "aggregate_release_source_use", "type",
+                    "Array<String>"), surfaces.node_ids[surface],
+                expression_node);
+        }
+        validated = validated + 1;
+    }
+    return SemanticAstCollectionOwnershipVerdictOk();
+}
+
+func SemanticAstCollectionAggregateReleaseReserveAtCompletion(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_row: Int, call_node: Int,
+    ref call_effects: SemanticAstCollectionCallEffectFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref current_definitions: Array<Int>,
+    inout ownership: Array<Int>, inout dispositions: Array<Int>,
+    ref origins: Array<Int>, inout transition_states: Array<Int>,
+    inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> SemanticAstCollectionOwnershipVerdict {
+    if !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) ||
+        !call_effects.ok {
+        return SemanticAstCollectionAggregateReleaseError(
+            "aggregate_release_plan_invalid", -1, call_node);
+    }
+    let demand: Int = 0;
+    while demand < ArrayLength(plan.constructor_input_rows) {
+        let input: Int = plan.constructor_input_rows[demand];
+        if input < 0 || input >= ArrayLength(
+                call_effects.constructor_inputs.call_nodes) {
+            return SemanticAstCollectionAggregateReleaseError(
+                "aggregate_release_input_missing", -1, call_node);
+        }
+        if call_effects.constructor_inputs.call_nodes[input] != call_node {
+            demand = demand + 1;
+            continue;
+        }
+        let syntax_id: Int = surfaces.node_ids[surface_row];
+        if call_effects.constructor_inputs.function_ids[input] !=
+                surfaces.function_node_ids[surface_row] ||
+            call_effects.constructor_inputs.syntax_ids[input] != syntax_id {
+            return SemanticAstCollectionAggregateReleaseError(
+                "aggregate_release_input_identity", syntax_id, call_node);
+        }
+        if call_effects.constructor_inputs.producer_kinds[input] == 2 {
+            plan.reserved[demand] = true;
+            demand = demand + 1;
+            continue;
+        }
+        if call_effects.constructor_inputs.producer_kinds[input] != 1 {
+            return SemanticAstCollectionAggregateReleaseError(
+                "aggregate_release_source_unproved", syntax_id, call_node);
+        }
+        if !SemanticAstCollectionAggregateValidatedInputContains(
+                plan, input) {
+            let definition: Int =
+                call_effects.constructor_inputs.definition_rows[input];
+            if definition < 0 ||
+                definition >= ArrayLength(definitions.binding_rows) {
+                return SemanticAstCollectionAggregateReleaseError(
+                    "aggregate_release_definition_missing", syntax_id,
+                    call_node);
+            }
+            let binding: Int = definitions.binding_rows[definition];
+            if binding < 0 || binding >= ArrayLength(current_definitions) ||
+                current_definitions[binding] != definition ||
+                definitions.syntax_ids[definition] !=
+                    call_effects.constructor_inputs.definition_ids[input] ||
+                locals.node_ids[binding] !=
+                    call_effects.constructor_inputs.binding_ids[input] ||
+                SemanticAstCollectionDefinitionStorageSource(
+                    storage, definitions, binding, definition) <= 0 {
+                return SemanticAstCollectionAggregateReleaseError(
+                    "aggregate_release_stale_source", syntax_id, call_node);
+            }
+            let site: Int =
+                SemanticAstCollectionCallRetirementSite(
+                    artifact, syntax_id);
+            if site <= 0 ||
+                definition >= ArrayLength(
+                    call_effects.definition_storage_escape_sites) ||
+                call_effects.definition_storage_escape_sites[definition] !=
+                    site ||
+                call_effects.definition_unknown_sites[definition] >= 0 ||
+                call_effects.definition_retiring_sites[definition] >= 0 ||
+                call_effects.definition_non_deep_drop_sites[definition] >=
+                    0 ||
+                !SemanticAstCollectionOwnedArgumentSourceReady(
+                    binding, ownership, dispositions, origins,
+                    transition_states) {
+                return SemanticAstCollectionAggregateReleaseError(
+                    "aggregate_release_source_not_live", syntax_id,
+                    call_node);
+            }
+            dispositions[binding] =
+                SemanticAstCollectionDispositionRetired();
+            ownership[binding] = SemanticAstCollectionOwnershipRetired();
+            transition_states[binding] =
+                SemanticAstCollectionTransitionRetired();
+            ArrayPush(plan.validated_input_rows, input);
+        }
+        plan.reserved[demand] = true;
+        demand = demand + 1;
+    }
+    return SemanticAstCollectionOwnershipVerdictOk();
+}
+
+func SemanticAstCollectionAggregateReleaseRecordDrop(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_row: Int, call_node: Int, binding_row: Int,
+    requirement_row: Int,
+    inout ownership: Array<Int>, inout dispositions: Array<Int>,
+    inout transition_states: Array<Int>,
+    inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> SemanticAstCollectionOwnershipVerdict {
+    if !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) ||
+        requirement_row < 0 ||
+        requirement_row >= ArrayLength(plan.requirement_local_ids) ||
+        binding_row < 0 || binding_row >= ArrayLength(locals.node_ids) ||
+        plan.requirement_local_ids[requirement_row] !=
+            locals.node_ids[binding_row] {
+        return SemanticAstCollectionAggregateReleaseError(
+            "aggregate_release_drop_identity", -1, call_node);
+    }
+    let syntax_id: Int = surfaces.node_ids[surface_row];
+    if plan.drop_syntax_ids[requirement_row] >= 0 ||
+        SemanticAstCollectionCallRetirementSite(artifact, syntax_id) <= 0 {
+        return SemanticAstCollectionAggregateReleaseError(
+            "aggregate_release_drop_repeated", syntax_id, call_node);
+    }
+    plan.drop_syntax_ids[requirement_row] = syntax_id;
+    plan.drop_expression_nodes[requirement_row] = call_node;
+    dispositions[binding_row] = SemanticAstCollectionDispositionRetired();
+    ownership[binding_row] = SemanticAstCollectionOwnershipRetired();
+    transition_states[binding_row] =
+        SemanticAstCollectionTransitionRetired();
+    return SemanticAstCollectionOwnershipVerdictOk();
+}
+
+func SemanticAstCollectionAggregateReleaseControlKind(kind: Int) -> Bool {
+    return kind == TypedAstKindForStmtTag() ||
+        kind == TypedAstKindWhileStmtTag() ||
+        kind == TypedAstKindIfStmtTag() ||
+        kind == TypedAstKindElseStmtTag() ||
+        kind == TypedAstKindDeferStmtTag() ||
+        kind == TypedAstKindBreakStmtTag() ||
+        kind == TypedAstKindContinueStmtTag() ||
+        kind == TypedAstKindMatchStmtTag() ||
+        kind == TypedAstKindMatchCaseStmtTag() ||
+        kind == TypedAstKindMatchDefaultStmtTag() ||
+        kind == TypedAstKindBareReturnStmtTag() ||
+        kind == TypedAstKindValueReturnStmtTag() ||
+        kind == TypedAstKindExitStmtTag() ||
+        kind == TypedAstKindFailStmtTag();
+}
+
+func SemanticAstCollectionAggregateReleaseFunctionStraightLine(
+    ref statements: SemanticAstStatementFacts, function_id: Int
+) -> Bool {
+    if !statements.ok || function_id <= 0 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(statements.node_ids) {
+        if statements.function_node_ids[row] == function_id &&
+            SemanticAstCollectionAggregateReleaseControlKind(
+                statements.kind_tags[row]) { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateReleaseIntervalStraightLine(
+    ref statements: SemanticAstStatementFacts,
+    function_id: Int, scope_id: Int,
+    start_syntax_id: Int, end_syntax_id: Int
+) -> Bool {
+    if !statements.ok || function_id <= 0 || scope_id <= 0 ||
+        start_syntax_id <= 0 || end_syntax_id <= start_syntax_id {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(statements.node_ids) {
+        if statements.function_node_ids[row] == function_id &&
+            statements.scope_node_ids[row] == scope_id &&
+            statements.node_ids[row] > start_syntax_id &&
+            statements.node_ids[row] < end_syntax_id &&
+            SemanticAstCollectionAggregateReleaseControlKind(
+                statements.kind_tags[row]) { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateReleaseSyntaxForEdge(
+    ref plan: SemanticAstCollectionAggregateReleasePlan, edge_node: Int
+) -> Int {
+    let syntax_id: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(plan.call_edge_nodes) {
+        if plan.call_edge_nodes[row] == edge_node {
+            if syntax_id >= 0 { return -1; }
+            syntax_id = plan.call_syntax_ids[row];
+        }
+        row = row + 1;
+    }
+    return syntax_id;
+}
+
+func SemanticAstCollectionAggregateReleaseEnclosingBlock(
+    artifact: AstTreeArtifact, node_id: Int
+) -> Int {
+    let node: Int = node_id;
+    let remaining: Int = artifact.count;
+    while node >= 0 && remaining > 0 {
+        if TypedAstArenaNodeKindIs(
+                artifact.arena, node, TypedAstKindBlockTag()) {
+            return node;
+        }
+        let parent: Option<Int> =
+            TypedAstArenaParentId(artifact.arena, node);
+        if !IsSome(parent) { return -1; }
+        node = UnwrapOption(parent);
+        remaining = remaining - 1;
+    }
+    return -1;
+}
+
+func SemanticAstCollectionAggregateCarrierNestedExtractionUse(
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    source_binding_id: Int, syntax_id: Int
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(plan.carrier_local_ids) {
+        if plan.carrier_source_binding_ids[row] == source_binding_id &&
+            plan.carrier_local_ids[row] == syntax_id {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstCollectionAggregateCarrierRestorationsReady(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref statements: SemanticAstStatementFacts,
+    inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    let carrier: Int = 0;
+    while carrier < ArrayLength(plan.carrier_local_ids) {
+        let function_id: Int = plan.carrier_function_ids[carrier];
+        let local_id: Int = plan.carrier_local_ids[carrier];
+        let source_id: Int = plan.carrier_source_binding_ids[carrier];
+        let field_id: Int = plan.carrier_field_ids[carrier];
+        let release_syntax: Int =
+            SemanticAstCollectionAggregateReleaseSyntaxForEdge(
+                plan, plan.carrier_release_edge_nodes[carrier]);
+        if release_syntax <= local_id ||
+            SemanticAstCollectionAggregateReleaseEnclosingBlock(
+                artifact, release_syntax) != plan.carrier_scope_ids[carrier] {
+            return false;
+        }
+        let restoration_count: Int = 0;
+        let restoration_syntax: Int = -1;
+        let assignment: Int = 0;
+        while assignment < ArrayLength(assignments.node_ids) {
+            let syntax_id: Int = assignments.node_ids[assignment];
+            if assignments.function_node_ids[assignment] == function_id &&
+                assignments.scope_node_ids[assignment] ==
+                    plan.carrier_scope_ids[carrier] &&
+                syntax_id > release_syntax {
+                let atom: Option<Int> =
+                    SemanticAstExpressionGraphRootForNode(
+                        surfaces, syntax_id, AstExpressionLaneAtom());
+                let value: Option<Int> =
+                    SemanticAstExpressionGraphRootForNode(
+                        surfaces, syntax_id, AstExpressionLaneValue());
+                if IsSome(atom) && IsSome(value) {
+                    let target: SemanticAstCollectionMemberMoveIdentity =
+                        SemanticAstCollectionMemberMoveIdentityForNode(
+                            artifact, signatures,
+                            constructors, locals, inferred_types,
+                            resolved_leaf_types, function_id, syntax_id,
+                            surfaces.expression_graph,
+                            UnwrapOption(atom));
+                    let source: SemanticAstLocalBindingIdentity =
+                        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                            artifact, locals, inferred_types, function_id,
+                            syntax_id, surfaces.expression_graph,
+                            UnwrapOption(value));
+                    if target.ok && source.ok &&
+                        target.source_binding_syntax_id == source_id &&
+                        target.field_syntax_id == field_id &&
+                        source.declaration_node_id == local_id {
+                        restoration_count = restoration_count + 1;
+                        restoration_syntax = syntax_id;
+                    }
+                }
+            }
+            assignment = assignment + 1;
+        }
+        if restoration_count != 1 || restoration_syntax <= release_syntax ||
+            !SemanticAstCollectionAggregateReleaseIntervalStraightLine(
+                statements, function_id, plan.carrier_scope_ids[carrier],
+                release_syntax, restoration_syntax) {
+            return false;
+        }
+        plan.carrier_restoration_syntax_ids[carrier] = restoration_syntax;
+        let root_slot: Int = 0;
+        while root_slot < ArrayLength(surfaces.expression_graph.roots) {
+            if surfaces.expression_graph.has_roots[root_slot] {
+                let surface: Int = root_slot / 3;
+                let syntax_id: Int = surfaces.node_ids[surface];
+                if surfaces.function_node_ids[surface] == function_id &&
+                    syntax_id > local_id &&
+                    syntax_id <= restoration_syntax {
+                    let root: Int = surfaces.expression_graph.roots[root_slot];
+                    let start: Option<Int> =
+                        SemanticExpressionGraphSubtreeStart(
+                            surfaces.expression_graph, root);
+                    if !IsSome(start) { return false; }
+                    let node: Int = UnwrapOption(start);
+                    while node <= root {
+                        let binding_use: SemanticAstLocalBindingIdentity =
+                            SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                                artifact, locals, inferred_types, function_id,
+                                syntax_id, surfaces.expression_graph, node);
+                        if binding_use.ok &&
+                            binding_use.declaration_node_id == local_id &&
+                            syntax_id > release_syntax &&
+                            syntax_id != restoration_syntax {
+                            return false;
+                        }
+                        let aggregate_use: Int =
+                            SemanticAstCollectionAggregateValueBindingForNode(
+                                artifact, signatures, locals, inferred_types,
+                                resolved_leaf_types, function_id, syntax_id,
+                                surfaces, node);
+                        if aggregate_use == source_id &&
+                            syntax_id < restoration_syntax &&
+                            syntax_id != restoration_syntax &&
+                            !SemanticAstCollectionAggregateCarrierNestedExtractionUse(
+                                plan, source_id, syntax_id) {
+                            return false;
+                        }
+                        node = node + 1;
+                    }
+                }
+            }
+            root_slot = root_slot + 1;
+        }
+        carrier = carrier + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateReleasePlanFinalized(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    inout plan: SemanticAstCollectionAggregateReleasePlan,
+    ref requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    ref statements: SemanticAstStatementFacts,
+    ref moved_use: SemanticAstCollectionMemberMoveUse
+) -> Bool {
+    if !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) ||
+        !SemanticAstCollectionAggregateFieldEntryRequirementsReady(
+            requirements) ||
+        !SemanticAstCollectionConstructorFieldInputsShapeReady(inputs) ||
+        moved_use.found ||
+        ArrayLength(moved_use.restored_binding_syntax_ids) !=
+            ArrayLength(moved_use.restoration_syntax_ids) {
+        return false;
+    }
+    if !SemanticAstCollectionAggregateCarrierRestorationsReady(
+            artifact, signatures, constructors, locals, inferred_types,
+            resolved_leaf_types, surfaces, assignments, statements, plan) {
+        return false;
+    }
+    if !SemanticAstCollectionAggregateReleaseAliasesReady(
+            artifact, signatures, locals, inferred_types,
+            resolved_leaf_types, surfaces, assignments, plan) {
+        return false;
+    }
+    let demand: Int = 0;
+    while demand < ArrayLength(plan.reserved) {
+        if !plan.reserved[demand] { return false; }
+        demand = demand + 1;
+    }
+    let requirement: Int = 0;
+    while requirement < ArrayLength(plan.requirement_local_ids) {
+        if plan.drop_syntax_ids[requirement] <= 0 ||
+            plan.drop_expression_nodes[requirement] < 0 ||
+            !SemanticAstCollectionAggregateReleaseFunctionStraightLine(
+                statements, requirements.function_ids[requirement]) {
+            return false;
+        }
+        let restoration_count: Int = 0;
+        let restoration_site: Int = -1;
+        let restored: Int = 0;
+        while restored <
+                ArrayLength(moved_use.restored_binding_syntax_ids) {
+            if moved_use.restored_binding_syntax_ids[restored] ==
+                    plan.requirement_local_ids[requirement] {
+                restoration_count = restoration_count + 1;
+                restoration_site = moved_use.restoration_syntax_ids[restored];
+            }
+            restored = restored + 1;
+        }
+        if restoration_count != 1 ||
+            restoration_site <= plan.drop_syntax_ids[requirement] {
+            return false;
+        }
+        requirement = requirement + 1;
+    }
+    let validated: Int = 0;
+    while validated < ArrayLength(plan.validated_input_rows) {
+        let input: Int = plan.validated_input_rows[validated];
+        if input < 0 || input >= ArrayLength(inputs.producer_kinds) ||
+            inputs.producer_kinds[input] != 1 {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < validated {
+            if plan.validated_input_rows[prior] == input { return false; }
+            prior = prior + 1;
+        }
+        validated = validated + 1;
+    }
+    return true;
+}

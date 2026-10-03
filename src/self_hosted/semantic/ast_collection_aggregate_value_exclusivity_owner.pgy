@@ -1,0 +1,158 @@
+// Current aggregate generation and no-copy proof for release-bound values.
+// A nominal type or matching field name never substitutes for exact binding,
+// field, occurrence, and restoration identities.
+
+import "ast_collection_aggregate_release_plan_schema_owner.pgy";
+import "ast_collection_ownership_member_move_owner.pgy";
+import "ast_collection_ownership_member_root_identity_owner.pgy";
+import "ast_assignment_fact_owner.pgy";
+
+func SemanticAstCollectionAggregateValueBindingForNode(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    function_id: Int, syntax_id: Int,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, node: Int
+) -> Int {
+    let identity: SemanticAstCollectionMemberRootIdentity =
+        SemanticAstCollectionMemberRootIdentityForNode(
+            artifact, signatures, locals, inferred_types,
+            resolved_leaf_types, function_id, syntax_id,
+            surfaces.expression_graph, node);
+    if !identity.ok { return 0; }
+    return identity.source_binding_syntax_id;
+}
+
+func SemanticAstCollectionAggregateFieldCurrentAtUse(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    function_id: Int, source_binding_id: Int,
+    field_id: Int, use_syntax_id: Int
+) -> Bool {
+    if function_id <= 0 || source_binding_id <= 0 || field_id <= 0 ||
+        use_syntax_id <= 0 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(assignments.node_ids) {
+        let syntax_id: Int = assignments.node_ids[row];
+        if assignments.function_node_ids[row] == function_id &&
+            syntax_id < use_syntax_id {
+            let atom: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, syntax_id, AstExpressionLaneAtom());
+            if IsSome(atom) {
+                let member: SemanticAstCollectionMemberMoveIdentity =
+                    SemanticAstCollectionMemberMoveIdentityForNode(
+                        artifact, signatures, constructors, locals,
+                        inferred_types, resolved_leaf_types, function_id,
+                        syntax_id, surfaces.expression_graph,
+                        UnwrapOption(atom));
+                if member.ok &&
+                    member.source_binding_syntax_id == source_binding_id &&
+                    member.field_syntax_id == field_id {
+                    return false;
+                }
+                let target_binding: Int =
+                    SemanticAstCollectionAggregateValueBindingForNode(
+                        artifact, signatures, locals, inferred_types,
+                        resolved_leaf_types, function_id, syntax_id,
+                        surfaces, UnwrapOption(atom));
+                if target_binding == source_binding_id { return false; }
+            }
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateProtectedBinding(
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    binding_id: Int
+) -> Bool {
+    if binding_id <= 0 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(plan.aggregate_origin_ids) {
+        if plan.aggregate_origin_ids[row] == binding_id { return true; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(plan.carrier_local_ids) {
+        if plan.carrier_local_ids[row] == binding_id ||
+            plan.carrier_source_binding_ids[row] == binding_id {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstCollectionAggregateRestorationForValue(
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    binding_id: Int, syntax_id: Int
+) -> Bool {
+    let matched: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(plan.carrier_local_ids) {
+        if plan.carrier_local_ids[row] == binding_id &&
+            plan.carrier_restoration_syntax_ids[row] == syntax_id {
+            matched = matched + 1;
+        }
+        row = row + 1;
+    }
+    return matched == 1;
+}
+
+func SemanticAstCollectionAggregateReleaseAliasesReady(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref resolved_leaf_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    if !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) { return false; }
+    let local_row: Int = 0;
+    while local_row < ArrayLength(locals.node_ids) {
+        let initializer: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            surfaces, locals.node_ids[local_row], AstExpressionLaneValue());
+        if IsSome(initializer) {
+            let source: Int = SemanticAstCollectionAggregateValueBindingForNode(
+                artifact, signatures, locals, inferred_types,
+                resolved_leaf_types, locals.function_node_ids[local_row],
+                locals.node_ids[local_row], surfaces, UnwrapOption(initializer));
+            if source > 0 && source != locals.node_ids[local_row] &&
+                SemanticAstCollectionAggregateProtectedBinding(plan, source) {
+                return false;
+            }
+        }
+        local_row = local_row + 1;
+    }
+    let assignment: Int = 0;
+    while assignment < ArrayLength(assignments.node_ids) {
+        let syntax_id: Int = assignments.node_ids[assignment];
+        let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            surfaces, syntax_id, AstExpressionLaneValue());
+        if IsSome(value) {
+            let source: Int = SemanticAstCollectionAggregateValueBindingForNode(
+                artifact, signatures, locals, inferred_types,
+                resolved_leaf_types,
+                assignments.function_node_ids[assignment], syntax_id,
+                surfaces, UnwrapOption(value));
+            if SemanticAstCollectionAggregateProtectedBinding(plan, source) &&
+                !SemanticAstCollectionAggregateRestorationForValue(
+                    plan, source, syntax_id) {
+                return false;
+            }
+        }
+        assignment = assignment + 1;
+    }
+    return true;
+}

@@ -755,6 +755,26 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   has an exact domain; foreign/missing roots and conflicting rows fail closed.
   These rows are not current-definition, exclusive-storage, element-lifetime,
   caller-transfer, or terminal MIR proof and never grant release permission.
+- `src/self_hosted/semantic/ast_collection_aggregate_release_plan_schema_owner.pgy`
+  -- bounded row schema and exact call inventory for aggregate-release calls,
+  requirements, constructor inputs, reservations, and outer-carrier
+  restorations. Shape readiness grants no lifetime authority.
+- `src/self_hosted/semantic/ast_collection_aggregate_value_exclusivity_owner.pgy`
+  -- exact current aggregate/field generation and no-copy checks for values
+  whose fields will be released. Formal and local roots share one binding
+  identity path; exact carrier writeback is the only allowed aliasing write.
+- `src/self_hosted/semantic/ast_collection_aggregate_value_lineage_owner.pgy`
+  -- backwards value lineage from one demanded field through locals, formals,
+  returns, nested aggregates, and an exact constructor input. It preserves the
+  original demand edge and refuses aliases, duplicate routes, and unknown
+  constructor sources rather than inferring ownership from a nominal type.
+- `src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy`
+  -- joins entry obligations to one unique constructor/storage generation and
+  rejects duplicate storage reservation or repeated aggregate release plans.
+- `src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy`
+  -- event-time reservation, source retirement/use rejection, exact deep-drop,
+  same-field writeback, and outer-carrier restoration. This source proof still
+  requires a versioned MIR receipt before a target backend may consume it.
 - `src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy`
   -- consuming callable/formal identity from signature and carried syntax IDs.
   It does not infer element lifetime from the parameter mode or type.

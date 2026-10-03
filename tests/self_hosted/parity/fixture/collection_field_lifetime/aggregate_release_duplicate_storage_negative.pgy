@@ -1,0 +1,10 @@
+import "../../../../../src/self_hosted/semantic/ast_expression_function_table_fact_owner.pgy";
+
+func Main() -> Void {
+    let seed: Array<String> = ["x"];
+    let values: Array<String> = Clone(seed);
+    let facts: SemanticAstExpressionFunctionTableFacts =
+        SemanticAstExpressionFunctionTableFacts(
+            true, values, values, values);
+    SemanticAstExpressionFunctionTableFactsRelease(facts);
+}

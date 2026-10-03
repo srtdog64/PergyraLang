@@ -28604,6 +28604,11 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy:160 \
     src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy:120 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_plan_schema_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection_aggregate_value_exclusivity_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection_aggregate_value_lineage_owner.pgy:520 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy:520 \
     src/self_hosted/mir/collection_ownership_receipt_fact_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_projection_owner.pgy:180 \
     src/self_hosted/mir/collection_ownership_receipt_json_projection_owner.pgy:100 \
@@ -28809,6 +28814,33 @@ require_max_lines "tests/self_hosted/fixtures/collection_aggregate_entry_require
 require_file "tests/self_hosted/parity/collection_aggregate_entry_requirement_owner.sh"
 require_max_lines "tests/self_hosted/parity/collection_aggregate_entry_requirement_owner.sh" 140
 require_text "Makefile" 'self-host-collection-aggregate-entry-requirement-test-smoke'
+require_text "src/self_hosted/semantic/ast_collection_aggregate_release_plan_owner.pgy" \
+    'SemanticAstCollectionAggregateReleasePlanUnique('
+require_text "src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy" \
+    'SemanticAstCollectionAggregateReleaseReserveAtCompletion('
+require_text "src/self_hosted/semantic/ast_collection_aggregate_release_transition_owner.pgy" \
+    'SemanticAstCollectionAggregateReleasePlanFinalized('
+reject_text "src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy" \
+    'aggregate_field_entry_unproved'
+require_file "tests/self_hosted/parity/collection_aggregate_release_source_owner.sh"
+require_max_lines "tests/self_hosted/parity/collection_aggregate_release_source_owner.sh" 120
+require_text "Makefile" 'self-host-collection-aggregate-release-source-test-smoke'
+for aggregate_release_fixture in \
+    aggregate_release_source_reuse_negative.pgy \
+    aggregate_release_formal_root_reuse_negative.pgy \
+    aggregate_release_preextract_field_write_negative.pgy \
+    aggregate_release_aggregate_alias_observe_negative.pgy \
+    aggregate_release_duplicate_storage_negative.pgy \
+    aggregate_release_repeated_negative.pgy \
+    aggregate_release_source_reassign_positive.pgy \
+    aggregate_release_outer_restore_positive.pgy \
+    aggregate_release_outer_restore_missing_negative.pgy \
+    aggregate_release_outer_wrong_field_negative.pgy \
+    aggregate_release_branch_drop_negative.pgy \
+    aggregate_release_field_writeback_missing_negative.pgy \
+    aggregate_release_wrong_field_writeback_negative.pgy; do
+    require_file "tests/self_hosted/parity/fixture/collection_field_lifetime/$aggregate_release_fixture"
+done
 require_text "tests/self_hosted/parity/collection_ownership_semantic_owner.sh" 'collection_artifact_from_mir "$name" "$backend" "$mir_rel"'
 require_text "tests/self_hosted/parity/collection_ownership_semantic_owner.sh" 'unknown issued MIR backend=$backend'
 require_text "tests/self_hosted/parity/collection_ownership_semantic_owner.sh" '"$WORK_DIR/collection-runtime.o" -pthread -lm'

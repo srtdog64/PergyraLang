@@ -6,6 +6,7 @@ import "ast_collection_call_effect_fact_owner.pgy";
 import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_ownership_state_owner.pgy";
 import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
+import "ast_collection_aggregate_release_transition_owner.pgy";
 import "ast_expression_call_identity_owner.pgy";
 import "diagnostic_owner.pgy";
 
@@ -15,6 +16,7 @@ func SemanticAstCollectionBuiltinTransitionAtCompletion(
     ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
     node: Int, terminal_root: Int, ref call_effects: SemanticAstCollectionCallEffectFacts,
     ref field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
+    inout aggregate_release_plan: SemanticAstCollectionAggregateReleasePlan,
     inout ownership: Array<Int>, inout dispositions: Array<Int>,
     ref origins: Array<Int>, inout transition_states: Array<Int>,
     inout receipts: SemanticAstCollectionOwnershipReceiptRows
@@ -206,7 +208,17 @@ func SemanticAstCollectionBuiltinTransitionAtCompletion(
                     let boundary: String = name;
                     if deep_drop {
                         boundary = "owned_string_drop";
-                        if SemanticAstCollectionAggregateFieldEntryIndexRow(field_requirements.row_by_local, locals.node_ids[binding.row]) >= 0 { boundary = "aggregate_field_entry_unproved"; }
+                        let requirement: Int =
+                            SemanticAstCollectionAggregateFieldEntryIndexRow(
+                                field_requirements.row_by_local,
+                                locals.node_ids[binding.row]);
+                        if requirement >= 0 {
+                            return SemanticAstCollectionAggregateReleaseRecordDrop(
+                                artifact, locals, surfaces, surface_row,
+                                node, binding.row, requirement,
+                                ownership, dispositions, transition_states,
+                                aggregate_release_plan);
+                        }
                     }
                     return SemanticAstCollectionOwnershipVerdictError(
                         "borrow_boundary_escape",
