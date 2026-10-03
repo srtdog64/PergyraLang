@@ -1,0 +1,38 @@
+func InspectGenericDefaultSelection(
+    ref analysis: SemanticAstArtifactAnalysis
+) -> Bool {
+    let signature_index: Int = -1;
+    let row: Int = 0;
+    while row < SemanticAstFunctionSignatureCount(analysis.signatures) {
+        let name: Option<String> = SemanticAstFunctionNameAt(
+            analysis.signatures, row);
+        if IsSome(name) && UnwrapOption(name) == "Keep" {
+            signature_index = row;
+            break;
+        }
+        row = row + 1;
+    }
+    if signature_index < 0 { return false; }
+    let first_param: Option<String> = SemanticAstFunctionParamTypeAt(
+        analysis.signatures, signature_index, 0);
+    let second_param: Option<String> = SemanticAstFunctionParamTypeAt(
+        analysis.signatures, signature_index, 1);
+    let return_type: Option<String> = SemanticAstFunctionReturnTypeAt(
+        analysis.signatures, signature_index);
+    let constructor: Option<Int> = SemanticAstNominalConstructorIndexForName(
+        analysis.constructors, "GenericDefaultBox");
+    if !IsSome(first_param) || !IsSome(second_param) ||
+        !IsSome(return_type) || !IsSome(constructor) {
+        return false;
+    }
+    let first_field: Option<String> = SemanticAstNominalConstructorParamTypeAt(
+        analysis.constructors, UnwrapOption(constructor), 0);
+    let second_field: Option<String> = SemanticAstNominalConstructorParamTypeAt(
+        analysis.constructors, UnwrapOption(constructor), 1);
+    return IsSome(first_field) && IsSome(second_field) &&
+        UnwrapOption(first_param) == "HashMap<String, Int>" &&
+        UnwrapOption(second_param) == "String" &&
+        UnwrapOption(return_type) == "HashMap<String, Int>" &&
+        UnwrapOption(first_field) == "HashMap<String, Int>" &&
+        UnwrapOption(second_field) == "String";
+}

@@ -165,6 +165,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             );
             continue;
         }
+        let ability_default_count: Int = SemanticAstGenericDefaultRowCountOrDie(ArrayLength(ability_generic_names), ArrayLength(ability_generic_defaults));
 
         let saw_generic_params: Bool = false;
         let saw_parameters: Bool = false;
@@ -254,9 +255,11 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                     if IsSome(param_type) {
                         resolved_param_type = SemanticCanonicalTypeName(
                             UnwrapOption(param_type));
-                        resolved_param_type = SemanticAstGenericDefaultTypeForName(
-                            ability_generic_names, ability_generic_defaults,
-                            resolved_param_type);
+                        let default_row: Int = 0;
+                        while default_row < ability_default_count {
+                            if ability_generic_names[default_row] == resolved_param_type && ability_generic_defaults[default_row] != "" { resolved_param_type = ability_generic_defaults[default_row]; break; }
+                            default_row = default_row + 1;
+                        }
                     } else if owner_self {
                         resolved_param_type = UnwrapOption(owner).receiver_type;
                         receiver_source_param_offset = 1;
@@ -316,10 +319,11 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                 return_type = SemanticCanonicalTypeName(
                     UnwrapOption(return_type_fact)
                 );
-                return_type = SemanticAstGenericDefaultTypeForName(
-                    ability_generic_names, ability_generic_defaults,
-                    return_type
-                );
+                let default_row: Int = 0;
+                while default_row < ability_default_count {
+                    if ability_generic_names[default_row] == return_type && ability_generic_defaults[default_row] != "" { return_type = ability_generic_defaults[default_row]; break; }
+                    default_row = default_row + 1;
+                }
             }
             child_index = child_index + 1;
             child = TypedAstArenaChildAt(

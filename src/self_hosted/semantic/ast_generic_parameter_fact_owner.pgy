@@ -195,7 +195,19 @@ func SemanticAstAbilityGenericParameterDefaultRowsFromNode(
     let row: String = UnwrapOption(provenance);
     let open: Int = StringIndexOf(row, "<");
     if open < 0 { return true; }
-    let close: Int = StringIndexOf(row, ">");
+    let close: Int = -1;
+    let depth: Int = 0;
+    let cursor: Int = open;
+    while cursor < StringLength(row) {
+        let c: String = CharAt(row, cursor);
+        if c == "<" { depth = depth + 1; }
+        else if c == ">" {
+            depth = depth - 1;
+            if depth == 0 { close = cursor; break; }
+            if depth < 0 { return false; }
+        }
+        cursor = cursor + 1;
+    }
     if close <= open { return false; }
     let generic_row: String = Substring(row, open, close - open + 1);
     let parsed: Bool = SemanticAstGenericParameterDefaultRowsFromText(
@@ -224,21 +236,14 @@ func SemanticAstGenericParameterRowsFromNode(
     return true;
 }
 
-func SemanticAstGenericDefaultTypeForName(
-    names: Array<String>, default_type_names: Array<String>, type_name: String
-) -> String {
-    if ArrayLength(names) != ArrayLength(default_type_names) {
+func SemanticAstGenericDefaultRowCountOrDie(
+    name_count: Int, default_type_count: Int
+) -> Int {
+    if name_count != default_type_count {
         Log("semantic generic parameter default rows are misaligned");
         Exit(1);
     }
-    let i: Int = 0;
-    while i < ArrayLength(names) {
-        if names[i] == type_name && default_type_names[i] != "" {
-            return default_type_names[i];
-        }
-        i = i + 1;
-    }
-    return type_name;
+    return name_count;
 }
 
 func SemanticAstGenericParameterFactContractReady() -> Bool {
@@ -269,9 +274,8 @@ func SemanticAstGenericParameterFactContractReady() -> Bool {
         SemanticAstGenericParameterDefaultRowsFromNode(
             default_artifact.arena, UnwrapOption(default_node),
             default_names, default_types
-        ) && ArrayLength(default_names) == 1 && default_names[0] == "T" &&
-        default_types[0] == "HashMap<String, Int>" &&
-        SemanticAstGenericDefaultTypeForName(
-            default_names, default_types, "T"
-        ) == "HashMap<String, Int>";
+        ) && SemanticAstGenericDefaultRowCountOrDie(
+            ArrayLength(default_names), ArrayLength(default_types)
+        ) == 1 && default_names[0] == "T" &&
+        default_types[0] == "HashMap<String, Int>";
 }

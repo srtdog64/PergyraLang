@@ -38,6 +38,7 @@ INPUTS=(
     owned_string_result_unassigned_positive.pgy
     owned_string_result_alias_reassigned_negative.pgy owned_string_result_branch_reassigned_negative.pgy
     owned_string_result_shadow_assignment_positive.pgy
+    generic_default_local_selection_positive.pgy generic_default_borrowed_return_negative.pgy
     owned_string_result_implicit_field_positive.pgy
     owned_string_result_synthetic_binding_positive.pgy
     storage_opaque_return_own_negative.pgy storage_opaque_assign_own_negative.pgy
@@ -157,8 +158,13 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     tests/self_hosted/fixtures/owned_string_local_reassignment_unit.pgy \
     tests/self_hosted/fixtures/numeric_string_allocation_unit.pgy \
     tests/self_hosted/fixtures/owned_string_allocator_domain_unit.pgy \
+    tests/self_hosted/fixtures/generic_default_selection_unit.pgy \
     src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy \
     src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy \
+    src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy \
+    src/self_hosted/semantic/ast_signature_fact_owner.pgy \
+    src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy \
+    src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy \
     src/self_hosted/semantic/ast_body_type_bundle_owner.pgy \
     src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy \
     src/self_hosted/semantic/ast_body_type_bundle_readiness_owner.pgy \
@@ -210,6 +216,17 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/semantic/builtin_argument_retention_registry.def \
     scripts/render_builtin_argument_retention_registry.py \
     tests/builtin_argument_retention_registry_smoke.sh >"$WORK/owners.sha256"
+if grep -R -Fq --include='*.pgy' 'SemanticAstGenericDefaultTypeForName' src/self_hosted; then
+    echo 'legacy borrowed generic-default return path remains' >&2
+    exit 1
+fi
+grep -Fq 'func SemanticAstGenericDefaultRowCountOrDie(' \
+    src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy
+if grep -Fq 'let close: Int = StringIndexOf(row, ">");' \
+    src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy; then
+    echo 'nested ability generic defaults use the first closing angle' >&2
+    exit 1
+fi
 ACTUAL_INPUT="$FIXTURES/callable_table_from_artifact_release_probe.pgy"
 sha256sum "${INPUTS[@]}" "$FIXTURES/inout_index_identity_input.pgy" \
     "$FIXTURES/own_storage_identity_input.pgy" "$FIXTURES/own_event_order_identity_input.pgy" \
@@ -283,6 +300,13 @@ for backend in c llvm; do
         [[ ! -s "$WORK/$backend-reassignment-$mode.err" ]]
         grep -Fxq 'owned-string-reassignment-unit:PASS' "$WORK/$backend-reassignment-$mode.run"
     done
+    timeout 30 "$WORK/$backend-source.exe" \
+        "$FIXTURES/generic_default_local_selection_positive.pgy" \
+        generic-default-selection >"$WORK/$backend-generic-default.raw" \
+        2>"$WORK/$backend-generic-default.err"
+    tr -d '\r' <"$WORK/$backend-generic-default.raw" >"$WORK/$backend-generic-default.run"
+    [[ ! -s "$WORK/$backend-generic-default.err" ]]
+    grep -Fxq 'generic-default-selection-unit:PASS' "$WORK/$backend-generic-default.run"
     for input in "${INPUTS[@]}"; do
         name="${input##*/}"
         timeout 30 "$WORK/$backend-source.exe" "$input" >"$WORK/$backend-$name.raw" 2>"$WORK/$backend-$name.err"
@@ -456,7 +480,7 @@ own_assign_stale_copy_negative.pgy|borrow_boundary_escape|unproved_inout_copy_en
 own_assign_stale_required_owned_negative.pgy|borrow_boundary_escape|owned_argument_without_owned_provenance:callee=DropElements|DropElements(moved)||Forward
 own_assign_conditional_empty_negative.pgy|borrow_boundary_escape|ArrayDropOwnedStrings|ArrayDropOwnedStrings(moved)||Main
 ASSIGN_DIAGNOSTICS
-    while IFS='|' read -r input boundary atom; do
+    while IFS='|' read -r input boundary atom function; do
         timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
             >"$WORK/$backend-$input-diagnostic.raw" 2>"$WORK/$backend-$input-diagnostic.err"
         tr -d '\r' <"$WORK/$backend-$input-diagnostic.raw" >"$WORK/$backend-$input-diagnostic.run"
@@ -465,22 +489,23 @@ ASSIGN_DIAGNOSTICS
         grep -Fxq 'body_diagnostic=borrow_boundary_escape' "$WORK/$backend-$input-diagnostic.run"
         grep -Fxq -- "- boundary: $boundary" "$WORK/$backend-$input-diagnostic.run"
         grep -Fxq "body_atom=$atom" "$WORK/$backend-$input-diagnostic.run"
-        grep -Fxq 'body_function=Observe' "$WORK/$backend-$input-diagnostic.run"
+        grep -Fxq "body_function=$function" "$WORK/$backend-$input-diagnostic.run"
         grep -Fxq "body_module=$FIXTURES/$input" "$WORK/$backend-$input-diagnostic.run"
         grep -Eq '^body_syntax=[0-9]+$' "$WORK/$backend-$input-diagnostic.run"
     done <<'BORROW_FORMAL_DIAGNOSTICS'
-borrow_formal_ref_own_negative.pgy|owned_argument_storage_not_live|Metadata(alias)
-borrow_formal_inout_own_negative.pgy|owned_argument_storage_not_live|Metadata(alias)
-borrow_formal_default_own_negative.pgy|owned_argument_storage_not_live|Metadata(alias)
-borrow_formal_chain_own_negative.pgy|owned_argument_storage_not_live|Metadata(third)
-borrow_formal_fresh_deferred_negative.pgy|owned_argument_storage_not_live|Metadata(alias)
-borrow_formal_assign_old_empty_negative.pgy|owned_argument_storage_not_live|Metadata(alias)
-borrow_formal_alias_unknown_read_negative.pgy|unproved_indexed_read_entry|Matches(first)
-borrow_formal_alias_deferred_read_negative.pgy|unproved_indexed_read_entry|Matches(first)
-borrow_formal_alias_sibling_read_negative.pgy|unproved_indexed_read_entry|Matches(right)
-borrow_formal_seed_sibling_read_negative.pgy|unproved_indexed_read_entry|Matches(first)
-borrow_formal_assign_shared_read_negative.pgy|unproved_indexed_read_entry|Matches(first)
-borrow_formal_assign_alias_shared_read_negative.pgy|unproved_indexed_read_entry|Matches(first)
+borrow_formal_ref_own_negative.pgy|owned_argument_storage_not_live|Metadata(alias)|Observe
+borrow_formal_inout_own_negative.pgy|owned_argument_storage_not_live|Metadata(alias)|Observe
+borrow_formal_default_own_negative.pgy|owned_argument_storage_not_live|Metadata(alias)|Observe
+borrow_formal_chain_own_negative.pgy|owned_argument_storage_not_live|Metadata(third)|Observe
+borrow_formal_fresh_deferred_negative.pgy|owned_argument_storage_not_live|Metadata(alias)|Observe
+borrow_formal_assign_old_empty_negative.pgy|owned_argument_storage_not_live|Metadata(alias)|Observe
+borrow_formal_alias_unknown_read_negative.pgy|unproved_indexed_read_entry|Matches(first)|Observe
+borrow_formal_alias_deferred_read_negative.pgy|unproved_indexed_read_entry|Matches(first)|Observe
+borrow_formal_alias_sibling_read_negative.pgy|unproved_indexed_read_entry|Matches(right)|Observe
+borrow_formal_seed_sibling_read_negative.pgy|unproved_indexed_read_entry|Matches(first)|Observe
+borrow_formal_assign_shared_read_negative.pgy|unproved_indexed_read_entry|Matches(first)|Observe
+borrow_formal_assign_alias_shared_read_negative.pgy|unproved_indexed_read_entry|Matches(first)|Observe
+generic_default_borrowed_return_negative.pgy|unproved_indexed_read_entry|GenericDefaultMatches(first)|Observe
 BORROW_FORMAL_DIAGNOSTICS
     for input in storage_opaque_return_own_negative.pgy storage_opaque_assign_own_negative.pgy storage_opaque_alias_own_negative.pgy storage_shadowed_clone_own_negative.pgy; do
         timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
@@ -633,7 +658,7 @@ BORROW_FORMAL_DIAGNOSTICS
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, seventy-five diagnostic locations, three observer mode, fifty-one identity/boundary, thirty-five occurrence/root/element-step, four completion/receipt and ten storage-producer units, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, one generic-default selection, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, seventy-six diagnostic locations, three observer mode, fifty-one identity/boundary, thirty-five occurrence/root/element-step, four completion/receipt and ten storage-producer units, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

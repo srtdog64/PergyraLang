@@ -1,0 +1,19 @@
+func GenericDefaultMatches(defaults: Array<String>) -> Bool {
+    return defaults[0] == "Int";
+}
+
+func Opaque(inout values: Array<String>) -> Void {
+    ArrayPush(values, "opaque");
+}
+
+func Observe(ref defaults: Array<String>) -> Bool {
+    let first: Array<String> = defaults;
+    let second: Array<String> = first;
+    Opaque(second);
+    return GenericDefaultMatches(first);
+}
+
+func Main() -> Void {
+    let defaults: Array<String> = ["Int"];
+    Log(Observe(defaults));
+}

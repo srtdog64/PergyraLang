@@ -1575,7 +1575,17 @@ require_text "src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy" \
     "SemanticNestedCommaRangeFactsFromSource(inner)"
 reject_text "src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy" \
     'Split(Substring(row, 1, n - 2), ",")'
-require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" \
+reject_text "src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy" \
+    'let close: Int = StringIndexOf(row, ">");'
+require_text "src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy" \
+    "func SemanticAstGenericDefaultRowCountOrDie("
+reject_text "src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy" \
+    "func SemanticAstGenericDefaultTypeForName("
+reject_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" \
+    "SemanticAstGenericDefaultTypeForName("
+reject_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" \
+    "SemanticAstGenericDefaultTypeForName("
+reject_text "src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy" \
     "SemanticAstGenericDefaultTypeForName("
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'source_type == "AST_RETURN_VOID"'

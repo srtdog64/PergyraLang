@@ -1,0 +1,12 @@
+ability GenericDefaultProbe<T = HashMap<String, Int>, U = String> {
+    func Keep(value: T, label: U) -> T;
+}
+
+class GenericDefaultBox<T = HashMap<String, Int>, U = String> {
+    let value: T;
+    let label: U;
+}
+
+func Main() -> Void {
+    return;
+}

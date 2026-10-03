@@ -42,6 +42,9 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
     ) {
         return false;
     }
+    let ability_default_count: Int = SemanticAstGenericDefaultRowCountOrDie(
+        ArrayLength(ability_generic_names),
+        ArrayLength(ability_generic_defaults));
 
     let saw_generic_params: Bool = false;
     let saw_parameters: Bool = false;
@@ -125,10 +128,14 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
                 } else {
                     return false;
                 }
-                resolved_type = SemanticAstGenericDefaultTypeForName(
-                    ability_generic_names, ability_generic_defaults,
-                    resolved_type
-                );
+                let default_row: Int = 0;
+                while default_row < ability_default_count {
+                    if ability_generic_names[default_row] == resolved_type &&
+                        ability_generic_defaults[default_row] != "" {
+                        resolved_type = ability_generic_defaults[default_row]; break;
+                    }
+                    default_row = default_row + 1;
+                }
                 if !TypedAstArenaNodeKindIs(
                     artifact.arena, parameter_id, TypedAstKindParamTag()
                 ) || !IsSome(parameter_name) || !IsSome(parameter_mode) ||
@@ -155,10 +162,16 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
             );
             let resolved_return_type: String = "";
             if IsSome(return_type) {
-                resolved_return_type = SemanticAstGenericDefaultTypeForName(
-                    ability_generic_names, ability_generic_defaults,
-                    SemanticCanonicalTypeName(UnwrapOption(return_type))
-                );
+                resolved_return_type = SemanticCanonicalTypeName(
+                    UnwrapOption(return_type));
+                let default_row: Int = 0;
+                while default_row < ability_default_count {
+                    if ability_generic_names[default_row] == resolved_return_type &&
+                        ability_generic_defaults[default_row] != "" {
+                        resolved_return_type = ability_generic_defaults[default_row]; break;
+                    }
+                    default_row = default_row + 1;
+                }
             }
             if !IsSome(return_type) || resolved_return_type !=
                 facts.return_types[signature_index] {

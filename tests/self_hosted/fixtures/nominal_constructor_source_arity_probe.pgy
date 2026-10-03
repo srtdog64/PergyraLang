@@ -4,6 +4,7 @@ import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
 import "owned_string_local_reassignment_unit.pgy";
 import "numeric_string_allocation_unit.pgy";
 import "owned_string_allocator_domain_unit.pgy";
+import "generic_default_selection_unit.pgy";
 
 func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
@@ -12,11 +13,13 @@ func Main() -> Void with caps env, io_read {
     let reassignment_mode: String = "";
     let numeric_mode: String = "";
     let allocator_mode: String = "";
+    let generic_default_mode: Bool = false;
     if ArrayLength(args) == 2 {
         if args[1] == "diagnostic" { diagnostic = true; }
         else if StartsWith(args[1], "owned-string-reassignment-") { reassignment_mode = args[1]; }
         else if StartsWith(args[1], "numeric-string-") { numeric_mode = args[1]; }
         else if StartsWith(args[1], "allocator-domain-") { allocator_mode = args[1]; }
+        else if args[1] == "generic-default-selection" { generic_default_mode = true; }
         else { Log("unknown source observation mode"); Exit(2); }
     }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
@@ -24,6 +27,12 @@ func Main() -> Void with caps env, io_read {
     let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
     if !analysis.verdict.ok { Log(analysis.verdict.diagnostic_code); Exit(2); }
     let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if generic_default_mode {
+        if !InspectGenericDefaultSelection(analysis) {
+            Log("generic default selection unit failed"); Exit(3);
+        }
+        Log("generic-default-selection-unit:PASS"); return;
+    }
     if allocator_mode != "" {
         if !InspectOwnedStringAllocatorDomain(artifact, analysis, bundle, allocator_mode) {
             Log("owned String allocator domain unit failed"); Exit(3);
