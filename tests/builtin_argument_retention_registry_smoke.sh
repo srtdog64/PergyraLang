@@ -15,6 +15,9 @@ trap 'rm -rf "$TMP_DIR"' EXIT
     "$REGISTRY" "$PROJECTION" --check
 
 grep -Fq '#include "builtin_argument_retention_registry.def"' "$NATIVE_OWNER"
+grep -Fq 'builtin_identity: String;' "$PROJECTION"
+grep -Fq 'SemanticBuiltinArgumentRetentionIdentityForSourceName(' "$PROJECTION"
+grep -Fq 'SemanticBuiltinArgumentBorrowedForIdentity(' "$PROJECTION"
 grep -Fq 'SemanticBuiltinArgumentRetentionProjectionReady()' "$TRANSFER_OWNER"
 grep -Fq 'SemanticAstCollectionOwnershipBuiltinCall(' "$TRANSFER_OWNER"
 grep -Fq 'SemanticBuiltinArgumentBorrowedForCall(' "$TRANSFER_OWNER"
@@ -40,5 +43,9 @@ expect_registry_rejected missing-close \
     'PGY_BUILTIN_ARGUMENT_RETENTION(WRITE, "Write", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL'
 expect_registry_rejected parenthesized-ordinal \
     'PGY_BUILTIN_ARGUMENT_RETENTION(WRITE, "Write", (0), PGY_REGION_RETENTION_BORROWED_FOR_CALL)'
+expect_registry_rejected duplicate-identity \
+    'PGY_BUILTIN_ARGUMENT_RETENTION(PRINT, "OtherPrint", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL)'
+expect_registry_rejected duplicate-source-name \
+    'PGY_BUILTIN_ARGUMENT_RETENTION(OTHER_PRINT, "Print", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL)'
 
 echo 'builtin argument retention registry smoke: ok'

@@ -3,49 +3,92 @@
 
 struct SemanticBuiltinArgumentRetentionRow {
     valid: Bool;
+    builtin_identity: String;
     source_name: String;
     argument_ordinal: Int;
     any_argument: Bool;
 }
 
-func SemanticBuiltinArgumentRetentionCount() -> Int { return 6; }
+func SemanticBuiltinArgumentRetentionCount() -> Int { return 9; }
 
 func SemanticBuiltinArgumentRetentionRowAt(index: Int) -> SemanticBuiltinArgumentRetentionRow {
-    if index == 0 { return SemanticBuiltinArgumentRetentionRow(true, "Print", 0, false); }
-    if index == 1 { return SemanticBuiltinArgumentRetentionRow(true, "Log", -1, true); }
-    if index == 2 { return SemanticBuiltinArgumentRetentionRow(true, "LogRaw", 0, false); }
-    if index == 3 { return SemanticBuiltinArgumentRetentionRow(true, "LogBanner", 0, false); }
-    if index == 4 { return SemanticBuiltinArgumentRetentionRow(true, "LogBlock", 0, false); }
-    if index == 5 { return SemanticBuiltinArgumentRetentionRow(true, "CompilerArtifactWrite", 1, false); }
-    return SemanticBuiltinArgumentRetentionRow(false, "", -1, false);
+    if index == 0 { return SemanticBuiltinArgumentRetentionRow(true, "PRINT", "Print", 0, false); }
+    if index == 1 { return SemanticBuiltinArgumentRetentionRow(true, "LOG", "Log", -1, true); }
+    if index == 2 { return SemanticBuiltinArgumentRetentionRow(true, "LOG_RAW", "LogRaw", 0, false); }
+    if index == 3 { return SemanticBuiltinArgumentRetentionRow(true, "LOG_BANNER", "LogBanner", 0, false); }
+    if index == 4 { return SemanticBuiltinArgumentRetentionRow(true, "LOG_BLOCK", "LogBlock", 0, false); }
+    if index == 5 { return SemanticBuiltinArgumentRetentionRow(true, "COMPILER_ARTIFACT_WRITE", "CompilerArtifactWrite", 1, false); }
+    if index == 6 { return SemanticBuiltinArgumentRetentionRow(true, "STRING_LENGTH", "StringLength", 0, false); }
+    if index == 7 { return SemanticBuiltinArgumentRetentionRow(true, "CHAR_CODE", "CharCode", 0, false); }
+    if index == 8 { return SemanticBuiltinArgumentRetentionRow(true, "CONCAT", "Concat", -1, true); }
+    return SemanticBuiltinArgumentRetentionRow(false, "", "", -1, false);
 }
 
-func SemanticBuiltinArgumentBorrowedForCall(source_name: String, argument_ordinal: Int) -> Bool {
-    if argument_ordinal < 0 { return false; }
+func SemanticBuiltinArgumentRetentionIdentityForSourceName(source_name: String) -> Option<String> {
+    if source_name == "" { return None; }
     let row_index: Int = 0;
     while row_index < SemanticBuiltinArgumentRetentionCount() {
         let row: SemanticBuiltinArgumentRetentionRow = SemanticBuiltinArgumentRetentionRowAt(row_index);
-        if row.valid && row.source_name == source_name &&
+        if row.valid && row.source_name == source_name {
+            return Some(row.builtin_identity);
+        }
+        row_index = row_index + 1;
+    }
+    return None;
+}
+
+func SemanticBuiltinArgumentBorrowedForIdentity(builtin_identity: String, argument_ordinal: Int) -> Bool {
+    if builtin_identity == "" || argument_ordinal < 0 { return false; }
+    let row_index: Int = 0;
+    while row_index < SemanticBuiltinArgumentRetentionCount() {
+        let row: SemanticBuiltinArgumentRetentionRow = SemanticBuiltinArgumentRetentionRowAt(row_index);
+        if row.valid && row.builtin_identity == builtin_identity &&
             (row.any_argument || row.argument_ordinal == argument_ordinal) { return true; }
         row_index = row_index + 1;
     }
     return false;
 }
 
+func SemanticBuiltinArgumentBorrowedForCall(source_name: String, argument_ordinal: Int) -> Bool {
+    let identity: Option<String> =
+        SemanticBuiltinArgumentRetentionIdentityForSourceName(source_name);
+    return IsSome(identity) && SemanticBuiltinArgumentBorrowedForIdentity(
+        UnwrapOption(identity), argument_ordinal);
+}
+
 func SemanticBuiltinArgumentRetentionProjectionReady() -> Bool {
-    let seen: HashMap<String, Int> = MapNew();
+    let seen_identities: HashMap<String, Int> = MapNew();
+    let seen_names: HashMap<String, Int> = MapNew();
     let row_index: Int = 0;
     while row_index < SemanticBuiltinArgumentRetentionCount() {
         let row: SemanticBuiltinArgumentRetentionRow = SemanticBuiltinArgumentRetentionRowAt(row_index);
-        if !row.valid || row.source_name == "" ||
+        if !row.valid || row.builtin_identity == "" || row.source_name == "" ||
             (row.any_argument && row.argument_ordinal != -1) ||
             (!row.any_argument && row.argument_ordinal < 0) ||
-            MapHas(seen, row.source_name) { return false; }
-        MapSet(seen, row.source_name, 1);
+            MapHas(seen_identities, row.builtin_identity) ||
+            MapHas(seen_names, row.source_name) { return false; }
+        MapSet(seen_identities, row.builtin_identity, 1);
+        MapSet(seen_names, row.source_name, 1);
         row_index = row_index + 1;
     }
-    return SemanticBuiltinArgumentBorrowedForCall("CompilerArtifactWrite", 1) &&
+    let string_length: Option<String> =
+        SemanticBuiltinArgumentRetentionIdentityForSourceName("StringLength");
+    let unknown: Option<String> =
+        SemanticBuiltinArgumentRetentionIdentityForSourceName("UserCompilerArtifactWrite");
+    return IsSome(string_length) &&
+        UnwrapOption(string_length) == "STRING_LENGTH" && !IsSome(unknown) &&
+        SemanticBuiltinArgumentBorrowedForIdentity("COMPILER_ARTIFACT_WRITE", 1) &&
+        !SemanticBuiltinArgumentBorrowedForIdentity("COMPILER_ARTIFACT_WRITE", 0) &&
+        SemanticBuiltinArgumentBorrowedForIdentity("LOG", 7) &&
+        SemanticBuiltinArgumentBorrowedForIdentity("STRING_LENGTH", 0) &&
+        !SemanticBuiltinArgumentBorrowedForIdentity("STRING_LENGTH", 1) &&
+        SemanticBuiltinArgumentBorrowedForIdentity("CHAR_CODE", 0) &&
+        !SemanticBuiltinArgumentBorrowedForIdentity("CHAR_CODE", 1) &&
+        SemanticBuiltinArgumentBorrowedForIdentity("CONCAT", 0) &&
+        SemanticBuiltinArgumentBorrowedForIdentity("CONCAT", 1) &&
+        !SemanticBuiltinArgumentBorrowedForIdentity("StringLength", 0) &&
+        SemanticBuiltinArgumentBorrowedForCall("CompilerArtifactWrite", 1) &&
         !SemanticBuiltinArgumentBorrowedForCall("CompilerArtifactWrite", 0) &&
-        SemanticBuiltinArgumentBorrowedForCall("Log", 7) &&
+        SemanticBuiltinArgumentBorrowedForCall("StringLength", 0) &&
         !SemanticBuiltinArgumentBorrowedForCall("UserCompilerArtifactWrite", 1);
 }

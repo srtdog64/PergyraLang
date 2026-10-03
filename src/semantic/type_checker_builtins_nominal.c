@@ -292,6 +292,12 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         /* Checks the Int code and types the call Never (docs/205 L1); the
          * default below used to leave Exit unchecked and Unknown. */
         return type_check_stdlib_call(call, "Exit", ctx);
+    case BUILTIN_STRING_LENGTH:
+        return type_check_stdlib_call(call, "StringLength", ctx);
+    case BUILTIN_CHAR_CODE:
+        return type_check_stdlib_call(call, "CharCode", ctx);
+    case BUILTIN_CONCAT:
+        return type_check_stdlib_call(call, "Concat", ctx);
     default:
         return TYPE_UNKNOWN;
     }

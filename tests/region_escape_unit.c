@@ -79,6 +79,30 @@ static void test_retention_summary_owner(void)
               (uint32_t)BUILTIN_COMPILER_ARTIFACT_WRITE, 0, &kind)
           && kind == PGY_REGION_RETENTION_UNKNOWN,
           "CompilerArtifactWrite handle is not a borrowed String payload");
+    CHECK(semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_STRING_LENGTH, 0, &kind)
+          && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+          "StringLength borrows its String only for the call");
+    CHECK(!semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_STRING_LENGTH, 1, &kind)
+          && kind == PGY_REGION_RETENTION_UNKNOWN,
+          "StringLength has no borrowed argument beyond ordinal zero");
+    CHECK(semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_CHAR_CODE, 0, &kind)
+          && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+          "CharCode borrows its String only for the call");
+    CHECK(!semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_CHAR_CODE, 1, &kind)
+          && kind == PGY_REGION_RETENTION_UNKNOWN,
+          "CharCode scalar ordinals do not gain a borrowed String receipt");
+    CHECK(semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_CONCAT, 0, &kind)
+          && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+          "Concat borrows its first String only for the call");
+    CHECK(semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_CONCAT, 7, &kind)
+          && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+          "Concat variadic String arguments share the borrowed-call policy");
 }
 
 static ASTNode mk_string(const char *v)
