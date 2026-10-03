@@ -42,9 +42,8 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                             surfaces.function_node_ids[surface], syntax_id,
                             surfaces.expression_graph, node);
                     if identity.ok {
-                        let event_key: String =
-                            SemanticAstCollectionMemberMoveEventKey(
-                                identity, syntax_id);
+                        let event_key: String = SemanticAstCollectionMemberMoveEventKey(
+                            identity, syntax_id);
                         if MapHas(move_destinations, event_key) {
                             // A new extraction cannot overwrite an outstanding move.
                             if MapHas(active_members, identity.key) && MapGet(active_members, identity.key) > 0 {
