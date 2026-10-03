@@ -1,0 +1,19 @@
+func BuildMixed(value: Int, left_allocator: Allocator, right_allocator: Allocator) -> String {
+    let left_builder: TextBuilder = TextBuilderNew(16);
+    let right_builder: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(left_builder, "left");
+    TextBuilderAppend(right_builder, "right");
+    let left: String = TextBuilderFinish(left_builder, left_allocator);
+    let right: String = TextBuilderFinish(right_builder, right_allocator);
+    if value == 0 { return left; }
+    return right;
+}
+func Main() -> Void {
+    let left_allocator: Allocator = AllocatorResult();
+    let right_allocator: Allocator = AllocatorResult();
+    let values: Array<String> = [];
+    ArrayPush(values, BuildMixed(1, left_allocator, right_allocator));
+    ArrayDropOwnedStrings(values);
+    AllocatorDestroy(left_allocator);
+    AllocatorDestroy(right_allocator);
+}

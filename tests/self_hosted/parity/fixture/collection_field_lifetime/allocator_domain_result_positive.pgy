@@ -1,0 +1,32 @@
+func BuildWithAllocator(value: String, result_allocator: Allocator) -> String {
+    let builder: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(builder, value);
+    let result: String = TextBuilderFinish(builder, result_allocator);
+    return result;
+}
+func ForwardWithAllocator(value: String, result_allocator: Allocator) -> String {
+    return BuildWithAllocator(value, result_allocator);
+}
+func MakeHeap() -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let result: String = ForwardWithAllocator("heap", result_allocator);
+    AllocatorDestroy(result_allocator);
+    return result;
+}
+func ObservePool() -> Void {
+    let result_allocator: Allocator = AllocatorPool(64);
+    let builder: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(builder, "pool");
+    let result: String = TextBuilderFinish(builder, result_allocator);
+    Log(result);
+    AllocatorDestroy(result_allocator);
+}
+func Main() -> Void {
+    let result_allocator: Allocator = AllocatorResult();
+    let values: Array<String> = [];
+    ArrayPush(values, MakeHeap());
+    ArrayPush(values, BuildWithAllocator("direct", result_allocator));
+    ArrayDropOwnedStrings(values);
+    AllocatorDestroy(result_allocator);
+    Log("allocator-domain-result-runtime:PASS");
+}

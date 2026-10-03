@@ -6320,7 +6320,8 @@ reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "Chec
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 313
+# Body assembly also seals and carries the one result-domain projection.
+require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 325
 # Body flow has one owner; the conservative Never tail rule stays deleted.
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
     "SemanticAstBodyFlowVerdictFromFacts("
@@ -20499,7 +20500,7 @@ reject_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
     "struct SemanticAstBodyTypeBundle"
 reject_text "src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy" \
     "SemanticAstCollectionOwnershipVerdictFromResolvedFacts("
-require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 305
+require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 325
 require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" \
     'if code == "borrow_boundary_escape" { return "PGY_SEM_BORROW_ESCAPE"; }'
 require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" 'ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount()'
@@ -23377,7 +23378,7 @@ require_text "tests/self_hosted/fixtures/owned_string_local_reassignment_unit.pg
     'mode == "owned-string-reassignment-foreign-function"'
 require_text "tests/self_hosted/fixtures/owned_string_local_reassignment_unit.pgy" \
     'mode == "owned-string-reassignment-untracked-type"'
-require_max_lines "src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy" 120
+require_max_lines "src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy" 140
 require_function_text "src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy" \
     "func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(" \
     "SemanticAstExpressionOwnerFieldTypeFromAdmittedFacts("
@@ -23387,12 +23388,40 @@ reject_function_text "src/self_hosted/semantic/ast_expression_owner_field_enviro
 require_function_text "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
     "func SemanticAstExpressionOwnerFieldType(" \
     "SemanticAstNominalConstructorRowsReady(constructors)"
-require_function_text "src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy" \
-    "func SemanticAstOwnedStringExpressionReady(" \
-    "SemanticAstOwnedStringLocalNotReassigned(reassignments, binding)"
-require_function_text "src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy" \
-    "func SemanticAstOwnedStringAllocatorBindingReady(" \
-    "SemanticAstOwnedStringLocalNotReassigned(reassignments, binding)"
+require_function_text "src/self_hosted/semantic/ast_owned_string_expression_domain_owner.pgy" \
+    "func SemanticAstOwnedStringExpressionAllocationDomain(" \
+    "SemanticAstOwnedStringLocalNotReassigned(writes, binding)"
+require_function_text "src/self_hosted/semantic/ast_owned_string_expression_domain_owner.pgy" \
+    "func SemanticAstOwnedStringAllocatorExpressionDomain(" \
+    "SemanticAstOwnedStringLocalNotReassigned(writes, binding)"
+for domain_owner in result_domain domain_exposure expression_domain call_result_admission; do
+    require_file "src/self_hosted/semantic/ast_owned_string_${domain_owner}_owner.pgy"
+    require_text "src/self_hosted/OWNERS.md" "src/self_hosted/semantic/ast_owned_string_${domain_owner}_owner.pgy"
+    reject_text "src/self_hosted/semantic/ast_owned_string_${domain_owner}_owner.pgy" \
+        "SemanticAstOwnedStringResultContains("
+done
+require_max_lines "src/self_hosted/semantic/ast_owned_string_result_domain_owner.pgy" 170
+require_max_lines "src/self_hosted/semantic/ast_owned_string_domain_exposure_owner.pgy" 160
+require_max_lines "src/self_hosted/semantic/ast_owned_string_expression_domain_owner.pgy" 200
+require_max_lines "src/self_hosted/semantic/ast_owned_string_call_result_admission_owner.pgy" 30
+require_max_lines "src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy" 100
+require_max_lines "tests/self_hosted/fixtures/owned_string_allocator_domain_unit.pgy" 175
+require_text "src/self_hosted/semantic/ast_owned_string_result_domain_owner.pgy" "allocator_formal_syntax_ids: Array<Int>;"
+require_text "src/self_hosted/semantic/ast_owned_string_result_domain_owner.pgy" "allocator_formal_ordinals: Array<Int>;"
+require_text "src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy" \
+    "owned_string_result_domains: SemanticAstOwnedStringResultFacts;"
+require_text "src/self_hosted/semantic/ast_body_type_bundle_readiness_owner.pgy" \
+    "SemanticAstOwnedStringResultFactsReady(bundle.owned_string_result_domains, analysis.signatures)"
+require_function_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    "func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(" \
+    "owned_string_result_domains = SemanticAstOwnedStringResultFactsFromResolvedFacts("
+reject_function_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+    "func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(" \
+    "SemanticAstOwnedStringResultFactsFromResolvedFacts("
+reject_text "src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy" "SemanticAstOwnedStringResultContains("
+require_file "tests/self_hosted/fixtures/owned_string_allocator_domain_unit.pgy"
+require_text "tests/self_hosted/parity/collection_inout_effect_owner.sh" 'allocator-domain-$mode'
+require_text "tests/self_hosted/parity/collection_inout_effect_owner.sh" "allocator_domain_string_inout_negative.pgy"
 require_function_text "src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy" \
     "func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(" \
     "SemanticAstScopedLocalBindingIdentityForGraphLeaf("

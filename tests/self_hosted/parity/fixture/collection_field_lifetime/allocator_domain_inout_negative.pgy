@@ -1,0 +1,14 @@
+func Rewrite(inout value: Allocator) -> Void { value = AllocatorPool(64); }
+func MakeResult() -> String {
+    let allocator: Allocator = AllocatorResult();
+    Rewrite(allocator);
+    let builder: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(builder, "changed");
+    let result: String = TextBuilderFinish(builder, allocator);
+    return result;
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPush(values, MakeResult());
+    ArrayDropOwnedStrings(values);
+}

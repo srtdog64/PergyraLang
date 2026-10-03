@@ -1,0 +1,14 @@
+func BuildMixed(value: Int, result_allocator: Allocator) -> String {
+    let builder: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(builder, "dependent");
+    let result: String = TextBuilderFinish(builder, result_allocator);
+    if value == 0 { return ToString(value); }
+    return result;
+}
+func Main() -> Void {
+    let result_allocator: Allocator = AllocatorResult();
+    let values: Array<String> = [];
+    ArrayPush(values, BuildMixed(1, result_allocator));
+    ArrayDropOwnedStrings(values);
+    AllocatorDestroy(result_allocator);
+}

@@ -6,10 +6,12 @@ import "ast_assignment_type_fact_owner.pgy";
 import "ast_local_binding_identity_owner.pgy";
 import "ast_expression_surface_fact_owner.pgy";
 import "ast_expression_owner_field_environment_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
 
 struct SemanticAstOwnedStringLocalReassignmentFacts {
     ok: Bool;
     written_binding_rows: Array<Int>;
+    written_parameter_syntax_ids: Array<Int>;
 }
 
 func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
@@ -22,6 +24,7 @@ func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
     ref assignment_types: SemanticAstAssignmentTypeFacts
 ) -> SemanticAstOwnedStringLocalReassignmentFacts {
     let written: Array<Int> = [];
+    let parameters: Array<Int> = [];
     let count: Int = ArrayLength(locals.node_ids);
     if !SemanticAstLocalBindingIdentityRowsReady(
             locals, initializer_types.inferred_type_names) ||
@@ -33,14 +36,14 @@ func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
         ArrayLength(assignments.node_ids) != ArrayLength(assignment_types.node_ids) ||
         ArrayLength(assignments.node_ids) != ArrayLength(assignments.target_texts) ||
         ArrayLength(assignments.node_ids) != ArrayLength(assignment_types.target_binding_modes) {
-        return SemanticAstOwnedStringLocalReassignmentFacts(false, written);
+        return SemanticAstOwnedStringLocalReassignmentFacts(false, written, parameters);
     }
     let row: Int = 0;
     while row < count { ArrayPush(written, 0); row = row + 1; }
     row = 0;
     while row < ArrayLength(assignments.node_ids) {
         if assignments.node_ids[row] != assignment_types.node_ids[row] {
-            return SemanticAstOwnedStringLocalReassignmentFacts(false, written);
+            return SemanticAstOwnedStringLocalReassignmentFacts(false, written, parameters);
         }
         let type_name: String = assignment_types.target_type_names[row];
         let surface: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(
@@ -50,12 +53,12 @@ func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
         if !IsSome(root) || !IsSome(surface) ||
             surfaces.function_node_ids[UnwrapOption(surface)] !=
                 assignments.function_node_ids[row] {
-            return SemanticAstOwnedStringLocalReassignmentFacts(false, written);
+            return SemanticAstOwnedStringLocalReassignmentFacts(false, written, parameters);
         }
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(
             surfaces.expression_graph, UnwrapOption(root));
         if !IsSome(kind) {
-            return SemanticAstOwnedStringLocalReassignmentFacts(false, written);
+            return SemanticAstOwnedStringLocalReassignmentFacts(false, written, parameters);
         }
         if UnwrapOption(kind) != AstExpressionNodeLeaf() { row = row + 1; continue; }
         let carried: SemanticExpressionBindingIdentityFact =
@@ -65,7 +68,7 @@ func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
             surfaces.expression_graph, UnwrapOption(root));
         if !carried.ok || !IsSome(text) ||
             UnwrapOption(text) != assignments.target_texts[row] {
-            return SemanticAstOwnedStringLocalReassignmentFacts(false, written);
+            return SemanticAstOwnedStringLocalReassignmentFacts(false, written, parameters);
         }
         let binding: SemanticAstLocalBindingIdentity =
             SemanticAstScopedLocalBindingIdentityForGraphLeaf(
@@ -78,24 +81,32 @@ func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
             if binding.row < 0 || binding.row >= count ||
                 locals.node_ids[binding.row] != binding.declaration_node_id ||
                 carried.kind != SemanticExpressionBindingNone() || carried.syntax_id != 0 {
-                return SemanticAstOwnedStringLocalReassignmentFacts(false, written);
+                return SemanticAstOwnedStringLocalReassignmentFacts(false, written, parameters);
             }
             // Check the actual local type before excluding a fact family.
             // A supplied Int row cannot hide a String/Allocator write.
             if binding.type_name == "String" || binding.type_name == "Allocator" ||
                 type_name == "String" || type_name == "Allocator" {
                 if binding.type_name != type_name {
-                    return SemanticAstOwnedStringLocalReassignmentFacts(false, written);
+                    return SemanticAstOwnedStringLocalReassignmentFacts(false, written, parameters);
                 }
                 written[binding.row] = 1;
             }
         } else if carried.kind == SemanticExpressionBindingFormalParameter() &&
             carried.syntax_id > 0 && carried.ordinal >= 0 {
-            // No local declaration witness is derived from a formal write.
+            let formal: SemanticAstCollectionFormalStorageIdentity =
+                SemanticAstCollectionSourceFormalIdentity(signatures,
+                    assignments.function_node_ids[row], surfaces.expression_graph, UnwrapOption(root));
+            if !formal.ok || formal.declared_type_name != type_name {
+                return SemanticAstOwnedStringLocalReassignmentFacts(false, written, parameters);
+            }
+            if type_name == "String" || type_name == "Allocator" {
+                ArrayPush(parameters, formal.syntax_id);
+            }
         } else {
             if !IsSome(text) || carried.kind != SemanticExpressionBindingNone() ||
                 carried.syntax_id != 0 {
-                return SemanticAstOwnedStringLocalReassignmentFacts(false, written);
+                return SemanticAstOwnedStringLocalReassignmentFacts(false, written, parameters);
             }
             let mode: String = assignment_types.target_binding_modes[row];
             // Admitted synthetic binders are not ordinary local declarations.
@@ -103,17 +114,29 @@ func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(
             // must still join the exact assignment target payload above.
             if mode == "loop_binding" || mode == "match_binding" { row = row + 1; continue; }
             if mode != "owner_field" {
-                return SemanticAstOwnedStringLocalReassignmentFacts(false, written);
+                return SemanticAstOwnedStringLocalReassignmentFacts(false, written, parameters);
             }
             let field_type: Option<String> = SemanticAstExpressionOwnerFieldTypeFromAdmittedFacts(
                 signatures, constructors, assignments.function_node_ids[row], UnwrapOption(text));
             if !IsSome(field_type) || UnwrapOption(field_type) != type_name {
-                return SemanticAstOwnedStringLocalReassignmentFacts(false, written);
+                return SemanticAstOwnedStringLocalReassignmentFacts(false, written, parameters);
             }
         }
         row = row + 1;
     }
-    return SemanticAstOwnedStringLocalReassignmentFacts(true, written);
+    return SemanticAstOwnedStringLocalReassignmentFacts(true, written, parameters);
+}
+
+func SemanticAstOwnedStringParameterNotReassigned(
+    ref facts: SemanticAstOwnedStringLocalReassignmentFacts, parameter_id: Int
+) -> Bool {
+    if !facts.ok || parameter_id <= 0 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(facts.written_parameter_syntax_ids) {
+        if facts.written_parameter_syntax_ids[row] == parameter_id { return false; }
+        row = row + 1;
+    }
+    return true;
 }
 
 func SemanticAstOwnedStringLocalNotReassigned(

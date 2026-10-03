@@ -25,6 +25,7 @@ struct SemanticAstBodyTypeBundle {
     generic_specializations: SemanticAstGenericSpecializationFacts;
     capabilities: SemanticAstCapabilityFacts;
     numeric_string_allocations: SemanticAstNumericStringAllocationCalls;
+    owned_string_result_domains: SemanticAstOwnedStringResultFacts;
 }
 
 func SemanticAstBodyTypeBundleAdmissionError(
@@ -55,6 +56,7 @@ func SemanticAstBodyTypeBundleAdmissionError(
             empty_ints, empty_ints, empty_ints, empty_ints, empty_strings
         ),
         SemanticAstCapabilityFactsError(artifact, message),
-        SemanticAstNumericStringAllocationCallsEmpty()
+        SemanticAstNumericStringAllocationCallsEmpty(),
+        SemanticAstOwnedStringResultFactsEmpty()
     );
 }

@@ -768,25 +768,38 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_expression_environment_storage_lifetime_owner.pgy`
   -- compiler-internal storage-only retirement after environment rows have
   been shallow-popped. It cannot deep-drop borrowed String elements.
-- `src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy` -- exact
-  callable-body proof for freshly owned String results. Return type alone is
-  insufficient; the proof follows stable local/call identities to an
-  immutable `TextBuilderFinish` value backed by `AllocatorResult`, or an admitted
-  numeric `ToString` call. This is not completed-current or exclusive transfer.
+- `src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy` -- all-return
+  join and monotone source result-domain summary. A result is HeapOrNull or
+  depends on one exact source allocator formal; mixed domains grant nothing.
+  This is not completed-current or exclusive transfer.
+- `src/self_hosted/semantic/ast_owned_string_result_domain_owner.pgy` -- typed
+  domain carrier, signature shape/identity joins and exact declared call query.
+  Conditional rows never become a freeable function-ID membership set.
+  These domain subowners belong to the existing ACTIVE
+  `semantic.hashmap_collection_ownership` family, not new top-level SoT families.
+- `src/self_hosted/semantic/ast_owned_string_domain_exposure_owner.pgy` --
+  immutable admitted-call exposure inventory; unknown, ref/inout/own or
+  unproved allocator exposures invalidate a declaration/entry domain witness.
+  String inout/unproved rebinding invalidates its old initializer witness.
+- `src/self_hosted/semantic/ast_owned_string_expression_domain_owner.pgy` --
+  exact local/formal domain dependencies and callsite actual substitution,
+  preserving the source signature receiver offset and selected expression lane.
+- `src/self_hosted/semantic/ast_owned_string_call_result_admission_owner.pgy` --
+  source push consumer of the exact call's substituted HeapOrNull contract.
 - `src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy` --
   numeric `ToString` heap-or-null runtime contract from the identity resolver's
   existing typed lexical visit, joined to owner/lane/call ordinal. Bool, String,
   unknown and declared targets issue no allocation row. No formal/literal
   retirement permission is derived from this call contract alone.
 - `src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy` --
-  exact typed whole-local String/Allocator write inventory. A write invalidates
-  the declaration-only allocation witness; synthetic binders and owner fields
+  exact typed whole-local and formal String/Allocator write inventory. A write
+  invalidates the declaration/entry allocation witness; synthetic binders and owner fields
   stay distinct from ordinary locals. This is not a current-token proof.
 - `src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy`
   -- syntax-ordered parser-owned Array push/set/pop and indexed-write transitions.
   A raw `ArrayPush` becomes an
-  owned-element transition only when its direct call target is present in the
-  owned String result facts, and the receipt carries that target SyntaxNodeId.
+  owned-element transition only from the actual-substituted result domain,
+  and the receipt carries the exact positive source target SyntaxNodeId.
 - `src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy` --
   operand diagnostics for fully graph-owned scalar operator trees.
 - `src/self_hosted/semantic/ast_expression_graph_view_owner.pgy` -- borrowed

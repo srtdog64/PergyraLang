@@ -1,0 +1,18 @@
+func Observe(value: String) -> Void { Log(value); }
+func ObserveRef(ref value: String) -> Void { Log(value); }
+func MakeObserved() -> String {
+    let result_allocator: Allocator = AllocatorResult();
+    let builder: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(builder, "heap");
+    let result: String = TextBuilderFinish(builder, result_allocator);
+    Observe(result);
+    ObserveRef(result);
+    Log(result);
+    AllocatorDestroy(result_allocator);
+    return result;
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPush(values, MakeObserved());
+    ArrayDropOwnedStrings(values);
+}

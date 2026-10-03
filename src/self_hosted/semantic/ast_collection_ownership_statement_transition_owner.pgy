@@ -6,6 +6,7 @@ import "ast_collection_ownership_state_owner.pgy";
 import "ast_collection_call_effect_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_owned_string_result_fact_owner.pgy";
+import "ast_owned_string_call_result_admission_owner.pgy";
 
 struct SemanticAstCollectionStatementTransitionResult {
     ok: Bool;
@@ -17,8 +18,9 @@ struct SemanticAstCollectionStatementTransitionResult {
 
 func SemanticAstCollectionStatementTransitionForSyntax(
     artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts,
-    ref inferred_types: Array<String>,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
     syntax_id: Int, ref call_effects: SemanticAstCollectionCallEffectFacts,
@@ -67,7 +69,7 @@ func SemanticAstCollectionStatementTransitionForSyntax(
     }
     let binding: SemanticAstLocalBindingIdentity =
         SemanticAstCollectionOwnershipLocalForStatementTarget(
-            artifact, locals, inferred_types,
+            artifact, locals, initializer_types.inferred_type_names,
                 surfaces, function_id, syntax_id);
     if !binding.ok {
         return SemanticAstCollectionStatementTransitionResult(true, "", "", -1, carried);
@@ -86,9 +88,15 @@ func SemanticAstCollectionStatementTransitionForSyntax(
                 surfaces, syntax_id,
             AstExpressionLaneValue());
         if IsSome(value_root) {
+            let source_surface: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(surfaces, syntax_id);
+            if !IsSome(source_surface) {
+                return SemanticAstCollectionStatementTransitionResult(false, "ast_artifact_invalid",
+                    SemanticError1("ast_artifact_invalid", "owner", "owned_string_push_surface"), syntax_id, carried);
+            }
             source_syntax_id = SemanticAstOwnedStringCallTarget(
-                surfaces.expression_graph, UnwrapOption(value_root),
-                owned_string_results);
+                artifact, signatures, locals, initializer_types, surfaces, owned_string_results,
+                UnwrapOption(source_surface),
+                UnwrapOption(value_root));
         }
     }
     let state: Int = ownership[binding.row];

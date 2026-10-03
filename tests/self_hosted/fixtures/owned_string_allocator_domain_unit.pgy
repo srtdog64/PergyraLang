@@ -1,0 +1,155 @@
+// Inspect source-derived domain rows and exact caller substitutions, not runtime.
+import "../../../src/self_hosted/semantic/ast_owned_string_call_result_admission_owner.pgy";
+
+func InspectOwnedStringAllocatorDomain(
+    artifact: AstTreeArtifact, inout analysis: SemanticAstArtifactAnalysis,
+    inout bundle: SemanticAstBodyTypeBundle, mode: String
+) -> Bool {
+    if !bundle.verdict.ok { return false; }
+    let roots: SemanticCallSpineRoots =
+        SemanticCallSpineRootsFromGraph(analysis.expression_surfaces.expression_graph);
+    let facts: SemanticAstOwnedStringResultFacts = bundle.owned_string_result_domains;
+    if !SemanticAstOwnedStringResultFactsReady(facts, analysis.signatures) { return false; }
+    let helper: Int = -1; let wrapper: Int = -1; let forward: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(analysis.signatures.function_node_ids) {
+        if analysis.signatures.names[row] == "BuildWithAllocator" { helper = row; }
+        if analysis.signatures.names[row] == "MakeHeap" { wrapper = row; }
+        if analysis.signatures.names[row] == "ForwardWithAllocator" { forward = row; }
+        row = row + 1;
+    }
+    if helper < 0 || wrapper < 0 || forward < 0 { return false; }
+    let helper_id: Int = analysis.signatures.function_node_ids[helper];
+    let allocator: Int = analysis.signatures.param_node_ids[analysis.signatures.param_starts[helper] + 1];
+    let domain: SemanticAstOwnedStringAllocationDomain =
+        SemanticAstOwnedStringResultDomainForFunction(facts, helper_id);
+    let heap: SemanticAstOwnedStringAllocationDomain =
+        SemanticAstOwnedStringResultDomainForFunction(facts, analysis.signatures.function_node_ids[wrapper]);
+    let forwarding: SemanticAstOwnedStringAllocationDomain =
+        SemanticAstOwnedStringResultDomainForFunction(facts, analysis.signatures.function_node_ids[forward]);
+    if domain.kind != 2 || domain.allocator_formal_syntax_id != allocator ||
+        domain.allocator_formal_ordinal != 1 || heap.kind != 1 || forwarding.kind != 2 ||
+        forwarding.allocator_formal_syntax_id != analysis.signatures.param_node_ids[analysis.signatures.param_starts[forward] + 1] {
+        return false;
+    }
+    let fact_row: Int = -1; row = 0;
+    while row < ArrayLength(facts.function_syntax_ids) {
+        if facts.function_syntax_ids[row] == helper_id { fact_row = row; }
+        row = row + 1;
+    }
+    let surface: Int = -1; let foreign: Int = -1; let root: Int = -1;
+    row = 0;
+    while row < ArrayLength(analysis.statements.node_ids) {
+        if analysis.statements.kind_tags[row] == TypedAstKindArrayPushStmtTag() {
+            let value: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                analysis.expression_surfaces, analysis.statements.node_ids[row], AstExpressionLaneValue());
+            let source: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(
+                analysis.expression_surfaces, analysis.statements.node_ids[row]);
+            if !IsSome(value) || !IsSome(source) { return false; }
+            let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+                analysis.expression_surfaces.expression_graph, UnwrapOption(value));
+            let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(
+                analysis.expression_surfaces.expression_graph, call.call_node);
+            if !call.ok || !IsSome(target) { return false; }
+            if UnwrapOption(target) == helper_id { surface = UnwrapOption(source); root = UnwrapOption(value); }
+            else { foreign = UnwrapOption(source); }
+        }
+        row = row + 1;
+    }
+    if fact_row < 0 || surface < 0 || foreign < 0 || root < 0 ||
+        SemanticAstOwnedStringCallTarget(artifact, analysis.signatures, analysis.local_bindings,
+            bundle.initializer_types, analysis.expression_surfaces, facts, surface, root) != helper_id {
+        return false;
+    }
+    if mode == "allocator-domain-current" { return true; }
+    if mode == "allocator-domain-foreign-finish" {
+        let slot: Int = 0;
+        let checked: Int = 0;
+        while slot < ArrayLength(analysis.expression_surfaces.expression_graph.roots) {
+            if analysis.expression_surfaces.expression_graph.has_roots[slot] {
+                let finish: Int = analysis.expression_surfaces.expression_graph.roots[slot];
+                if SemanticAstCollectionOwnershipRootCallName(analysis.expression_surfaces.expression_graph, finish) == "TextBuilderFinish" {
+                    checked = checked + 1;
+                    let foreign_domain: SemanticAstOwnedStringAllocationDomain = SemanticAstOwnedStringExpressionAllocationDomain(
+                        artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types,
+                        analysis.expression_surfaces, facts.writes, facts.domain_exposures, facts,
+                        bundle.numeric_string_allocations, analysis.expression_surfaces.function_node_ids[surface],
+                        analysis.expression_surfaces.node_ids[surface], AstExpressionLaneValue(), finish, 0);
+                    if foreign_domain.kind != 0 { return false; }
+                }
+            }
+            slot = slot + 1;
+        }
+        return checked == 2;
+    }
+    if mode == "allocator-domain-cross-base" || mode == "allocator-domain-cross-callee" || mode == "allocator-domain-cross-actual" {
+        let node: Int = 0; let donor: Int = -1;
+        while node < root && donor < 0 {
+            if analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() {
+                let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(analysis.expression_surfaces.expression_graph, node);
+                if IsSome(target) && UnwrapOption(target) == helper_id { donor = roots.root_nodes[node]; }
+            }
+            node = node + 1;
+        }
+        if donor < 0 { return false; }
+        let current: SemanticCallSpineView = SemanticCallSpineViewFromGraph(analysis.expression_surfaces.expression_graph, root);
+        let other: SemanticCallSpineView = SemanticCallSpineViewFromGraph(analysis.expression_surfaces.expression_graph, donor);
+        if !current.ok || !other.ok || ArrayLength(other.argument_nodes) != 2 { return false; }
+        if mode == "allocator-domain-cross-base" {
+            analysis.expression_surfaces.expression_graph.arena.topology.left_children[root] =
+                analysis.expression_surfaces.expression_graph.arena.topology.left_children[donor];
+        } else if mode == "allocator-domain-cross-callee" {
+            analysis.expression_surfaces.expression_graph.arena.topology.left_children[current.call_node] = other.callee_node;
+        } else {
+            analysis.expression_surfaces.expression_graph.arena.topology.right_children[root] = other.argument_nodes[1];
+        }
+        let invalid: SemanticAstOwnedStringResultFacts = SemanticAstOwnedStringResultFactsFromResolvedFacts(
+            artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, bundle.initializer_types,
+            analysis.expression_surfaces, bundle.numeric_string_allocations, roots, analysis.statements,
+            analysis.assignments, bundle.assignment_types);
+        return !invalid.ok && SemanticAstOwnedStringCallTarget(artifact, analysis.signatures, analysis.local_bindings,
+            bundle.initializer_types, analysis.expression_surfaces, facts, surface, root) == 0;
+    }
+    if mode == "allocator-domain-missing-domain" { ArrayPop(facts.domain_kinds); }
+    else if mode == "allocator-domain-missing-formal" { ArrayPop(facts.allocator_formal_syntax_ids); }
+    else if mode == "allocator-domain-wrong-formal" {
+        facts.allocator_formal_syntax_ids[fact_row] =
+            analysis.signatures.param_node_ids[analysis.signatures.param_starts[forward] + 1];
+    } else if mode == "allocator-domain-wrong-ordinal" { facts.allocator_formal_ordinals[fact_row] = 0; }
+    else if mode == "allocator-domain-wrong-receiver" { analysis.signatures.receiver_source_param_offsets[helper] = 1; }
+    else if mode == "allocator-domain-foreign-owner" { surface = foreign; }
+    else if mode == "allocator-domain-missing-return-column" { ArrayPop(analysis.signatures.return_types); }
+    else if mode == "allocator-domain-missing-mode-column" { ArrayPop(analysis.signatures.param_modes); }
+    else if mode == "allocator-domain-producer-missing-return" || mode == "allocator-domain-producer-missing-mode" {
+        if mode == "allocator-domain-producer-missing-return" { ArrayPop(analysis.signatures.return_types); }
+        else { ArrayPop(analysis.signatures.param_modes); }
+        let invalid: SemanticAstOwnedStringResultFacts = SemanticAstOwnedStringResultFactsFromResolvedFacts(
+            artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, bundle.initializer_types,
+            analysis.expression_surfaces, bundle.numeric_string_allocations, roots, analysis.statements,
+            analysis.assignments, bundle.assignment_types);
+        return !invalid.ok;
+    } else if mode == "allocator-domain-family-deleted" {
+        let empty: Array<Int> = [];
+        facts.function_syntax_ids = empty; facts.domain_kinds = empty;
+        facts.allocator_formal_syntax_ids = empty; facts.allocator_formal_ordinals = empty;
+    } else if mode == "allocator-domain-wrong-callee-binding" || mode == "allocator-domain-foreign-allocator-binding" {
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+            analysis.expression_surfaces.expression_graph, root);
+        let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(
+            analysis.expression_surfaces.expression_graph, call.call_node);
+        if !call.ok || !IsSome(callee) || ArrayLength(call.argument_nodes) != 2 { return false; }
+        let node: Int = UnwrapOption(callee);
+        if mode == "allocator-domain-wrong-callee-binding" {
+            analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[node] =
+                analysis.signatures.function_node_ids[wrapper];
+        } else {
+            node = call.argument_nodes[1];
+            analysis.expression_surfaces.expression_graph.arena.identities.binding_kinds[node] =
+                SemanticExpressionBindingFormalParameter();
+            analysis.expression_surfaces.expression_graph.arena.identities.binding_syntax_ids[node] = allocator;
+            analysis.expression_surfaces.expression_graph.arena.identities.binding_ordinals[node] = 1;
+        }
+    } else { return false; }
+    return SemanticAstOwnedStringCallTarget(artifact, analysis.signatures, analysis.local_bindings,
+        bundle.initializer_types, analysis.expression_surfaces, facts, surface, root) == 0;
+}

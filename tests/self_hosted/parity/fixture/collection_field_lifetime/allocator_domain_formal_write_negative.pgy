@@ -1,0 +1,13 @@
+func BuildWithAllocator(value: String, result_allocator: Allocator) -> String {
+    result_allocator = AllocatorPool(64);
+    let builder: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(builder, value);
+    return TextBuilderFinish(builder, result_allocator);
+}
+func Main() -> Void {
+    let result_allocator: Allocator = AllocatorResult();
+    let values: Array<String> = [];
+    ArrayPush(values, BuildWithAllocator("changed", result_allocator));
+    ArrayDropOwnedStrings(values);
+    AllocatorDestroy(result_allocator);
+}

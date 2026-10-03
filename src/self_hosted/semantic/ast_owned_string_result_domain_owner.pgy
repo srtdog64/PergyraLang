@@ -1,0 +1,168 @@
+// A returned allocation domain is a contract, not a current/exclusive token.
+// Formal-dependent rows are substituted at the exact caller; they never join
+// a freeable function-ID set merely because their return type is String.
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_owned_string_local_reassignment_owner.pgy";
+
+struct SemanticAstOwnedStringAllocationDomain {
+    kind: Int;
+    allocator_formal_syntax_id: Int;
+    allocator_formal_ordinal: Int;
+}
+
+func SemanticAstOwnedStringSignatureRowReady(
+    ref signatures: SemanticAstFunctionSignatureFacts, row: Int
+) -> Bool {
+    let count: Int = ArrayLength(signatures.function_node_ids);
+    let parameters: Int = ArrayLength(signatures.param_node_ids);
+    if !signatures.ok || row < 0 || row >= count ||
+        ArrayLength(signatures.return_types) != count || ArrayLength(signatures.runtime_callables) != count ||
+        ArrayLength(signatures.param_starts) != count || ArrayLength(signatures.param_counts) != count ||
+        ArrayLength(signatures.receiver_source_param_offsets) != count ||
+        ArrayLength(signatures.param_types) != parameters || ArrayLength(signatures.param_modes) != parameters {
+        return false;
+    }
+    let start: Int = signatures.param_starts[row];
+    let size: Int = signatures.param_counts[row];
+    let offset: Int = signatures.receiver_source_param_offsets[row];
+    return start >= 0 && size >= 0 && start <= parameters && size <= parameters - start &&
+        offset >= 0 && offset <= 1 && offset <= size;
+}
+
+func SemanticAstOwnedStringDeclaredCallSignature(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref graph: SemanticExpressionGraphFacts, call: Int
+) -> Option<Int> {
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(graph, call);
+    let kind: Option<Int> = SemanticExpressionGraphCallTargetKind(graph, call);
+    let abi: Option<Int> = SemanticExpressionGraphRuntimeCallAbiId(graph, call);
+    if !IsSome(target) || UnwrapOption(target) <= 0 || !IsSome(kind) ||
+        (UnwrapOption(kind) != SemanticCallTargetDirect() && UnwrapOption(kind) != SemanticCallTargetNamespace()) ||
+        !IsSome(abi) || UnwrapOption(abi) != 0 { return None; }
+    let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(graph, call);
+    if !IsSome(callee) { return None; }
+    let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(graph, UnwrapOption(callee));
+    if !binding.ok || binding.kind != SemanticExpressionBindingDeclaredCallable() ||
+        binding.syntax_id != UnwrapOption(target) || binding.has_ordinal { return None; }
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, UnwrapOption(target));
+    if !IsSome(signature) || !SemanticAstOwnedStringSignatureRowReady(signatures, UnwrapOption(signature)) { return None; }
+    if !signatures.runtime_callables[UnwrapOption(signature)] ||
+        signatures.receiver_source_param_offsets[UnwrapOption(signature)] != 0 { return None; }
+    return signature;
+}
+
+func SemanticAstOwnedStringDomainUnknown() -> SemanticAstOwnedStringAllocationDomain {
+    return SemanticAstOwnedStringAllocationDomain(0, 0, -1);
+}
+
+func SemanticAstOwnedStringDomainHeapOrNull() -> SemanticAstOwnedStringAllocationDomain {
+    return SemanticAstOwnedStringAllocationDomain(1, 0, -1);
+}
+
+func SemanticAstOwnedStringDomainAllocatorFormal(
+    source_id: Int, ordinal: Int
+) -> SemanticAstOwnedStringAllocationDomain {
+    if source_id <= 0 || ordinal < 0 { return SemanticAstOwnedStringDomainUnknown(); }
+    return SemanticAstOwnedStringAllocationDomain(2, source_id, ordinal);
+}
+
+func SemanticAstOwnedStringDomainsEqual(
+    left: SemanticAstOwnedStringAllocationDomain,
+    right: SemanticAstOwnedStringAllocationDomain
+) -> Bool {
+    return left.kind == right.kind &&
+        left.allocator_formal_syntax_id == right.allocator_formal_syntax_id &&
+        left.allocator_formal_ordinal == right.allocator_formal_ordinal;
+}
+
+struct SemanticAstOwnedStringDomainExposureFacts {
+    ok: Bool;
+    source_syntax_ids: Array<Int>;
+    call_nodes: Array<Int>;
+    argument_ordinals: Array<Int>;
+    string_written_source_syntax_ids: Array<Int>;
+}
+
+struct SemanticAstOwnedStringResultFacts {
+    ok: Bool;
+    function_syntax_ids: Array<Int>;
+    domain_kinds: Array<Int>;
+    allocator_formal_syntax_ids: Array<Int>;
+    allocator_formal_ordinals: Array<Int>;
+    writes: SemanticAstOwnedStringLocalReassignmentFacts;
+    domain_exposures: SemanticAstOwnedStringDomainExposureFacts;
+}
+
+func SemanticAstOwnedStringResultFactsEmpty() -> SemanticAstOwnedStringResultFacts {
+    let rows: Array<Int> = [];
+    return SemanticAstOwnedStringResultFacts(false, rows, rows, rows, rows,
+        SemanticAstOwnedStringLocalReassignmentFacts(false, rows, rows),
+        SemanticAstOwnedStringDomainExposureFacts(false, rows, rows, rows, rows));
+}
+
+func SemanticAstOwnedStringResultDomainForFunction(
+    ref facts: SemanticAstOwnedStringResultFacts, function_syntax_id: Int
+) -> SemanticAstOwnedStringAllocationDomain {
+    let count: Int = ArrayLength(facts.function_syntax_ids);
+    if !facts.ok || !facts.writes.ok || !facts.domain_exposures.ok || function_syntax_id <= 0 ||
+        ArrayLength(facts.domain_kinds) != count ||
+        ArrayLength(facts.allocator_formal_syntax_ids) != count ||
+        ArrayLength(facts.allocator_formal_ordinals) != count {
+        return SemanticAstOwnedStringDomainUnknown();
+    }
+    let row: Int = 0;
+    while row < count {
+        if facts.function_syntax_ids[row] == function_syntax_id {
+            let domain: SemanticAstOwnedStringAllocationDomain = SemanticAstOwnedStringAllocationDomain(
+                facts.domain_kinds[row], facts.allocator_formal_syntax_ids[row],
+                facts.allocator_formal_ordinals[row]);
+            if (domain.kind == 1 && domain.allocator_formal_syntax_id == 0 && domain.allocator_formal_ordinal == -1) ||
+                (domain.kind == 2 && domain.allocator_formal_syntax_id > 0 && domain.allocator_formal_ordinal >= 0) {
+                return domain;
+            }
+            return SemanticAstOwnedStringDomainUnknown();
+        }
+        row = row + 1;
+    }
+    return SemanticAstOwnedStringDomainUnknown();
+}
+
+func SemanticAstOwnedStringResultFactsReady(
+    ref facts: SemanticAstOwnedStringResultFacts,
+    ref signatures: SemanticAstFunctionSignatureFacts
+) -> Bool {
+    let count: Int = ArrayLength(facts.function_syntax_ids);
+    if !facts.ok || !signatures.ok || !facts.writes.ok || !facts.domain_exposures.ok ||
+        ArrayLength(facts.domain_exposures.source_syntax_ids) != ArrayLength(facts.domain_exposures.call_nodes) ||
+        ArrayLength(facts.domain_exposures.source_syntax_ids) != ArrayLength(facts.domain_exposures.argument_ordinals) ||
+        ArrayLength(facts.domain_kinds) != count ||
+        ArrayLength(facts.allocator_formal_syntax_ids) != count ||
+        ArrayLength(facts.allocator_formal_ordinals) != count { return false; }
+    let row: Int = 0;
+    while row < count {
+        let id: Int = facts.function_syntax_ids[row];
+        let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, id);
+        if id <= 0 || !IsSome(signature) || !SemanticAstOwnedStringSignatureRowReady(signatures, UnwrapOption(signature)) ||
+            signatures.return_types[UnwrapOption(signature)] != "String" ||
+            !signatures.runtime_callables[UnwrapOption(signature)] { return false; }
+        let domain: SemanticAstOwnedStringAllocationDomain =
+            SemanticAstOwnedStringResultDomainForFunction(facts, id);
+        if domain.kind == 1 {
+            if domain.allocator_formal_syntax_id != 0 ||
+                domain.allocator_formal_ordinal != -1 { return false; }
+        } else if domain.kind == 2 {
+            let parameter: Option<Int> = SemanticAstFunctionParamFlatIndex(
+                signatures, UnwrapOption(signature), domain.allocator_formal_ordinal);
+            if !IsSome(parameter) || domain.allocator_formal_syntax_id <= 0 ||
+                signatures.param_node_ids[UnwrapOption(parameter)] != domain.allocator_formal_syntax_id ||
+                signatures.param_types[UnwrapOption(parameter)] != "Allocator" ||
+                signatures.param_modes[UnwrapOption(parameter)] != 0 { return false; }
+        } else { return false; }
+        let prior: Int = 0;
+        while prior < row {
+            if facts.function_syntax_ids[prior] == id { return false; }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}

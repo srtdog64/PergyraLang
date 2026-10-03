@@ -1,0 +1,176 @@
+// Symbolic allocation domains use exact definitions and actual substitutions.
+// No declaration/type/mode is a completed current or exclusive value token.
+import "ast_owned_string_domain_exposure_owner.pgy";
+import "ast_owned_string_local_reassignment_owner.pgy";
+import "ast_numeric_string_allocation_call_owner.pgy";
+
+func SemanticAstOwnedStringExpressionSourceStart(
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    function_id: Int, use_id: Int, lane: Int, root: Int
+) -> Int {
+    let surface: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(surfaces, use_id);
+    if !surfaces.ok || !IsSome(surface) || lane < 0 || lane > 2 ||
+        ArrayLength(surfaces.function_node_ids) != ArrayLength(surfaces.node_ids) ||
+        surfaces.function_node_ids[UnwrapOption(surface)] != function_id ||
+        ArrayLength(surfaces.expression_graph.has_roots) != ArrayLength(surfaces.expression_graph.roots) {
+        return -1;
+    }
+    let slot: Int = UnwrapOption(surface) * 3 + lane;
+    let start: Option<Int> = SemanticExpressionGraphRootStartAt(surfaces.expression_graph, slot);
+    if !IsSome(start) || root < UnwrapOption(start) || root > surfaces.expression_graph.roots[slot] {
+        return -1;
+    }
+    return UnwrapOption(start);
+}
+
+func SemanticAstOwnedStringCallSourceReady(ref call: SemanticCallSpineView, start: Int, root: Int) -> Bool {
+    if !call.ok || start < 0 || call.call_node < start || call.call_node > root ||
+        call.callee_node < start || call.callee_node >= call.call_node { return false; }
+    let actual: Int = 0;
+    while actual < ArrayLength(call.argument_nodes) {
+        if call.argument_nodes[actual] < start || call.argument_nodes[actual] >= root { return false; }
+        actual = actual + 1;
+    }
+    return true;
+}
+
+func SemanticAstOwnedStringAllocatorExpressionDomain(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref writes: SemanticAstOwnedStringLocalReassignmentFacts,
+    ref exposures: SemanticAstOwnedStringDomainExposureFacts,
+    ref results: SemanticAstOwnedStringResultFacts,
+    function_id: Int, use_id: Int, lane: Int, root: Int
+) -> SemanticAstOwnedStringAllocationDomain {
+    let start: Int = SemanticAstOwnedStringExpressionSourceStart(surfaces, function_id, use_id, lane, root);
+    if start < 0 { return SemanticAstOwnedStringDomainUnknown(); }
+    let result_root: Int = root;
+    let formal: SemanticAstCollectionFormalStorageIdentity =
+        SemanticAstCollectionSourceFormalIdentity(signatures, function_id, surfaces.expression_graph, root);
+    if formal.ok {
+        if formal.declared_type_name != "Allocator" || formal.mode != 0 ||
+            !SemanticAstOwnedStringParameterNotReassigned(writes, formal.syntax_id) ||
+            !SemanticAstOwnedStringAllocatorDomainPreserved(
+                exposures, signatures, surfaces.expression_graph, results, formal.syntax_id) {
+            return SemanticAstOwnedStringDomainUnknown();
+        }
+        return SemanticAstOwnedStringDomainAllocatorFormal(formal.syntax_id, formal.ordinal);
+    }
+    let carried: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
+        surfaces.expression_graph, root);
+    if !carried.ok || carried.kind != SemanticExpressionBindingNone() ||
+        carried.syntax_id != 0 || carried.has_ordinal { return SemanticAstOwnedStringDomainUnknown(); }
+    let binding: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, initializer_types.inferred_type_names, function_id, use_id, surfaces.expression_graph, root);
+    if binding.ok {
+        let mode: Option<Int> = TypedAstArenaMode(artifact.arena, binding.declaration_node_id);
+        if binding.type_name != "Allocator" ||
+            !SemanticAstOwnedStringLocalNotReassigned(writes, binding) ||
+            locals.binding_kinds[binding.row] != SemanticAstLocalBindingKindNormal() ||
+            locals.binding_indices[binding.row] != 0 || !IsSome(mode) || UnwrapOption(mode) != 0 ||
+            !SemanticAstOwnedStringAllocatorDomainPreserved(
+                exposures, signatures, surfaces.expression_graph, results, binding.declaration_node_id) {
+            return SemanticAstOwnedStringDomainUnknown();
+        }
+        let initializer: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            surfaces, binding.declaration_node_id, AstExpressionLaneValue());
+        if !IsSome(initializer) { return SemanticAstOwnedStringDomainUnknown(); }
+        result_root = UnwrapOption(initializer);
+        start = SemanticAstOwnedStringExpressionSourceStart(
+            surfaces, function_id, binding.declaration_node_id, AstExpressionLaneValue(), result_root);
+    }
+    let result_call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, result_root);
+    if SemanticAstOwnedStringCallSourceReady(result_call, start, result_root) &&
+        ArrayLength(result_call.argument_nodes) == 0 &&
+        SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, result_call.call_node, "AllocatorResult") {
+        return SemanticAstOwnedStringDomainHeapOrNull();
+    }
+    return SemanticAstOwnedStringDomainUnknown();
+}
+
+func SemanticAstOwnedStringCallAllocationDomain(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref writes: SemanticAstOwnedStringLocalReassignmentFacts,
+    ref exposures: SemanticAstOwnedStringDomainExposureFacts,
+    ref results: SemanticAstOwnedStringResultFacts, function_id: Int, use_id: Int, lane: Int, root: Int
+) -> SemanticAstOwnedStringAllocationDomain {
+    let start: Int = SemanticAstOwnedStringExpressionSourceStart(surfaces, function_id, use_id, lane, root);
+    if start < 0 { return SemanticAstOwnedStringDomainUnknown(); }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, root);
+    if !SemanticAstOwnedStringCallSourceReady(call, start, root) { return SemanticAstOwnedStringDomainUnknown(); }
+    let signature: Option<Int> = SemanticAstOwnedStringDeclaredCallSignature(
+        signatures, surfaces.expression_graph, call.call_node);
+    if !IsSome(signature) { return SemanticAstOwnedStringDomainUnknown(); }
+    let row: Int = UnwrapOption(signature);
+    let offset: Int = signatures.receiver_source_param_offsets[row];
+    let domain: SemanticAstOwnedStringAllocationDomain =
+        SemanticAstOwnedStringResultDomainForFunction(results, signatures.function_node_ids[row]);
+    if signatures.return_types[row] != "String" || !signatures.runtime_callables[row] ||
+        offset < 0 || offset > 1 || ArrayLength(call.argument_nodes) != signatures.param_counts[row] - offset {
+        return SemanticAstOwnedStringDomainUnknown();
+    }
+    if domain.kind == 1 { return domain; }
+    let parameter: Option<Int> = SemanticAstFunctionParamFlatIndex(
+        signatures, row, domain.allocator_formal_ordinal);
+    let argument: Int = domain.allocator_formal_ordinal - offset;
+    if domain.kind != 2 || !IsSome(parameter) || argument < 0 || argument >= ArrayLength(call.argument_nodes) ||
+        signatures.param_node_ids[UnwrapOption(parameter)] != domain.allocator_formal_syntax_id ||
+        signatures.param_types[UnwrapOption(parameter)] != "Allocator" ||
+        signatures.param_modes[UnwrapOption(parameter)] != 0 { return SemanticAstOwnedStringDomainUnknown(); }
+    return SemanticAstOwnedStringAllocatorExpressionDomain(
+        artifact, signatures, locals, initializer_types, surfaces, writes, exposures, results,
+        function_id, use_id, lane, call.argument_nodes[argument]);
+}
+
+func SemanticAstOwnedStringExpressionAllocationDomain(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref writes: SemanticAstOwnedStringLocalReassignmentFacts,
+    ref exposures: SemanticAstOwnedStringDomainExposureFacts,
+    ref results: SemanticAstOwnedStringResultFacts,
+    ref numeric: SemanticAstNumericStringAllocationCalls,
+    function_id: Int, use_id: Int, lane: Int, root: Int, depth: Int
+) -> SemanticAstOwnedStringAllocationDomain {
+    let start: Int = SemanticAstOwnedStringExpressionSourceStart(surfaces, function_id, use_id, lane, root);
+    if depth > 8 || start < 0 { return SemanticAstOwnedStringDomainUnknown(); }
+    if SemanticAstNumericStringAllocationCallReady(numeric, surfaces, use_id, lane, root) {
+        return SemanticAstOwnedStringDomainHeapOrNull();
+    }
+    let call_domain: SemanticAstOwnedStringAllocationDomain = SemanticAstOwnedStringCallAllocationDomain(
+        artifact, signatures, locals, initializer_types, surfaces, writes, exposures, results,
+        function_id, use_id, lane, root);
+    if call_domain.kind > 0 { return call_domain; }
+    let carried: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
+        surfaces.expression_graph, root);
+    if !carried.ok || carried.kind != SemanticExpressionBindingNone() ||
+        carried.syntax_id != 0 || carried.has_ordinal { return SemanticAstOwnedStringDomainUnknown(); }
+    let binding: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+        artifact, locals, initializer_types.inferred_type_names, function_id, use_id, surfaces.expression_graph, root);
+    if binding.ok {
+        let mode: Option<Int> = TypedAstArenaMode(artifact.arena, binding.declaration_node_id);
+        if binding.type_name != "String" || !SemanticAstOwnedStringLocalNotReassigned(writes, binding) ||
+            !SemanticAstOwnedStringValueDomainPreserved(exposures, binding.declaration_node_id) ||
+            locals.binding_kinds[binding.row] != SemanticAstLocalBindingKindNormal() ||
+            locals.binding_indices[binding.row] != 0 || !IsSome(mode) || UnwrapOption(mode) != 0 {
+            return SemanticAstOwnedStringDomainUnknown();
+        }
+        let initializer: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            surfaces, binding.declaration_node_id, AstExpressionLaneValue());
+        if !IsSome(initializer) { return SemanticAstOwnedStringDomainUnknown(); }
+        return SemanticAstOwnedStringExpressionAllocationDomain(
+            artifact, signatures, locals, initializer_types, surfaces, writes, exposures, results, numeric,
+            function_id, binding.declaration_node_id, AstExpressionLaneValue(), UnwrapOption(initializer), depth + 1);
+    }
+    let finish: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, root);
+    if !SemanticAstOwnedStringCallSourceReady(finish, start, root) || ArrayLength(finish.argument_nodes) != 2 ||
+        !SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, finish.call_node, "TextBuilderFinish") {
+        return SemanticAstOwnedStringDomainUnknown();
+    }
+    return SemanticAstOwnedStringAllocatorExpressionDomain(
+        artifact, signatures, locals, initializer_types, surfaces, writes, exposures, results,
+        function_id, use_id, lane, finish.argument_nodes[1]);
+}

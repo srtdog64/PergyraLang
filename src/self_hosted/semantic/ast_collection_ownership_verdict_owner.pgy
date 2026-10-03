@@ -31,7 +31,7 @@ import "ast_collection_call_effect_owner.pgy";
 import "ast_collection_call_argument_verdict_owner.pgy";
 import "ast_collection_lifetime_event_order_owner.pgy";
 import "ast_collection_builtin_transition_owner.pgy";
-import "ast_owned_string_result_fact_owner.pgy";
+import "ast_owned_string_result_domain_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "diagnostic_owner.pgy";
@@ -43,6 +43,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     ref resolved_leaf_types: Array<String>,
     ref numeric_string_allocations: SemanticAstNumericStringAllocationCalls,
     ref call_roots: SemanticCallSpineRoots,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts,
     ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
     ref assignment_types: SemanticAstAssignmentTypeFacts
 ) -> SemanticAstCollectionOwnershipVerdict {
@@ -88,11 +89,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     // Inventory rows are not evaluated values. Only Value completion selects
     // a definition, so a producer cannot authorize its own unfinished RHS.
     let current_definitions: Array<Int> = [];
-    let owned_string_results: SemanticAstOwnedStringResultFacts =
-        SemanticAstOwnedStringResultFactsFromResolvedFacts(
-            artifact, signatures, constructors, locals, initializer_types, surfaces, numeric_string_allocations,
-            statements, assignments, assignment_types);
-    if !SemanticAstOwnedStringResultFactsReady(owned_string_results) {
+    if !SemanticAstOwnedStringResultFactsReady(owned_string_results, signatures) {
         return SemanticAstCollectionOwnershipVerdictError(
             "ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner",
@@ -285,7 +282,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         if root_slot % 3 == 0 {
             let statement_transitions: SemanticAstCollectionStatementTransitionResult =
                 SemanticAstCollectionStatementTransitionForSyntax(
-                    artifact, locals, initializer_types.inferred_type_names, surfaces, statements, assignments,
+                    artifact, signatures, locals, initializer_types, surfaces, statements, assignments,
                     surfaces.node_ids[root_slot / 3], call_effects, ownership, dispositions, origins,
                     transition_states, owned_string_results, receipts);
             if !statement_transitions.ok {

@@ -1,0 +1,152 @@
+// Immutable possible-domain-write inventory over admitted physical argument edges.
+// It is not another evaluation/lifetime walk. A summary may use an entry/local
+// allocator/String only when every exposure has a preserved-domain contract.
+import "ast_owned_string_result_domain_owner.pgy";
+import "builtin_signature_owner.pgy";
+
+func SemanticAstOwnedStringCallMayRebindString(
+    ref signatures: SemanticAstFunctionSignatureFacts, ref graph: SemanticExpressionGraphFacts,
+    call: Int, ordinal: Int, builtin_value_names: HashMap<String, Int>
+) -> Bool {
+    // Canonical builtins pass immutable String values, not an inout String
+    // slot. This proves no rebinding, not no-retain or no-consume.
+    let name: Option<String> = SemanticExpressionGraphCallTargetName(graph, call);
+    if IsSome(name) && MapHas(builtin_value_names, UnwrapOption(name)) &&
+        SemanticAstCollectionOwnershipBuiltinCall(graph, call, UnwrapOption(name)) { return false; }
+    let signature: Option<Int> = SemanticAstOwnedStringDeclaredCallSignature(signatures, graph, call);
+    if !IsSome(signature) { return true; }
+    let parameter: Option<Int> = SemanticAstFunctionParamFlatIndex(signatures, UnwrapOption(signature), ordinal);
+    // Typed source modes are 0=default, 1=inout, 2=own, 3=ref.
+    return !IsSome(parameter) || signatures.param_types[UnwrapOption(parameter)] != "String" ||
+        (signatures.param_modes[UnwrapOption(parameter)] != 0 && signatures.param_modes[UnwrapOption(parameter)] != 3);
+}
+
+func SemanticAstOwnedStringDomainExposureFactsFromResolvedFacts(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref roots: SemanticCallSpineRoots
+) -> SemanticAstOwnedStringDomainExposureFacts {
+    let ids: Array<Int> = [];
+    let calls: Array<Int> = [];
+    let ordinals: Array<Int> = [];
+    let string_writes: Array<Int> = [];
+    let facts: SemanticAstOwnedStringDomainExposureFacts =
+        SemanticAstOwnedStringDomainExposureFacts(false, ids, calls, ordinals, string_writes);
+    if !roots.ok || ArrayLength(roots.root_nodes) !=
+        SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena) { return facts; }
+    let builtin_value_names: HashMap<String, Int> = MapNew();
+    let builtin_rows: Array<String> = SemanticBuiltinSignatureRows();
+    let builtin: Int = 0;
+    while builtin < ArrayLength(builtin_rows) {
+        let columns: Array<String> = Split(builtin_rows[builtin], "^");
+        if ArrayLength(columns) != 3 { return facts; }
+        MapSet(builtin_value_names, columns[0], 1); builtin = builtin + 1;
+    }
+    let last_root: Int = -1;
+    let slot: Int = 0;
+    while slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[slot] {
+            let root: Int = surfaces.expression_graph.roots[slot];
+            let node: Int = last_root + 1;
+            while node <= root {
+                let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
+                if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeCallArgument() {
+                    // Every edge is admitted, including alternate DAG continuations;
+                    // a first-spine projection cannot hide an opaque actual.
+                    let edge: SemanticCallArgumentEdgeView =
+                        SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
+                    if !edge.ok || edge.call_node <= last_root || edge.argument_node <= last_root ||
+                        edge.argument_node >= node { return facts; }
+                    let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(surfaces.expression_graph, edge.call_node);
+                    if !IsSome(callee) || UnwrapOption(callee) <= last_root { return facts; }
+                    let value: Int = edge.argument_node;
+                    let source: Int = 0;
+                    let source_type: String = "";
+                    let binding: SemanticAstLocalBindingIdentity =
+                        SemanticAstCollectionOwnershipLocalForArgument(
+                            artifact, locals, initializer_types.inferred_type_names, surfaces, slot / 3, value);
+                    if binding.ok && (binding.type_name == "Allocator" || binding.type_name == "String") {
+                        let carried: SemanticExpressionBindingIdentityFact =
+                            SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, value);
+                        if !carried.ok || carried.kind != SemanticExpressionBindingNone() ||
+                            carried.syntax_id != 0 || carried.has_ordinal { return facts; }
+                        source = binding.declaration_node_id;
+                        source_type = binding.type_name;
+                    } else {
+                        let carried: SemanticExpressionBindingIdentityFact =
+                            SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, value);
+                        let formal: SemanticAstCollectionFormalStorageIdentity =
+                            SemanticAstCollectionSourceFormalIdentity(
+                                signatures, surfaces.function_node_ids[slot / 3], surfaces.expression_graph, value);
+                        if carried.ok && carried.kind == SemanticExpressionBindingFormalParameter() && !formal.ok { return facts; }
+                        if formal.ok && (formal.declared_type_name == "Allocator" || formal.declared_type_name == "String") {
+                            source = formal.syntax_id; source_type = formal.declared_type_name;
+                        }
+                    }
+                    if source > 0 && source_type == "Allocator" {
+                        ArrayPush(facts.source_syntax_ids, source);
+                        ArrayPush(facts.call_nodes, edge.call_node);
+                        ArrayPush(facts.argument_ordinals, edge.ordinal);
+                    } else if source > 0 && SemanticAstOwnedStringCallMayRebindString(
+                        signatures, surfaces.expression_graph, edge.call_node, edge.ordinal, builtin_value_names) {
+                        ArrayPush(facts.string_written_source_syntax_ids, source);
+                    }
+                }
+                node = node + 1;
+            }
+            last_root = root;
+        }
+        slot = slot + 1;
+    }
+    facts.ok = true;
+    return facts;
+}
+
+func SemanticAstOwnedStringAllocatorDomainPreserved(
+    ref exposures: SemanticAstOwnedStringDomainExposureFacts,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts,
+    ref results: SemanticAstOwnedStringResultFacts, source_syntax_id: Int
+) -> Bool {
+    let count: Int = ArrayLength(exposures.source_syntax_ids);
+    if !exposures.ok || source_syntax_id <= 0 ||
+        ArrayLength(exposures.call_nodes) != count ||
+        ArrayLength(exposures.argument_ordinals) != count { return false; }
+    let row: Int = 0;
+    while row < count {
+        if exposures.source_syntax_ids[row] == source_syntax_id {
+            let call: Int = exposures.call_nodes[row];
+            let argument: Int = exposures.argument_ordinals[row];
+            if (argument == 1 && SemanticAstCollectionOwnershipBuiltinCall(graph, call, "TextBuilderFinish")) ||
+                (argument == 0 && SemanticAstCollectionOwnershipBuiltinCall(graph, call, "AllocatorDestroy")) {
+                row = row + 1; continue;
+            }
+            let signature: Option<Int> = SemanticAstOwnedStringDeclaredCallSignature(signatures, graph, call);
+            if !IsSome(signature) { return false; }
+            let domain: SemanticAstOwnedStringAllocationDomain =
+                SemanticAstOwnedStringResultDomainForFunction(results, signatures.function_node_ids[UnwrapOption(signature)]);
+            let offset: Int = signatures.receiver_source_param_offsets[UnwrapOption(signature)];
+            let parameter: Option<Int> = SemanticAstFunctionParamFlatIndex(
+                signatures, UnwrapOption(signature), domain.allocator_formal_ordinal);
+            if domain.kind != 2 || !IsSome(parameter) || offset < 0 || offset > 1 ||
+                domain.allocator_formal_ordinal - offset != argument ||
+                signatures.param_node_ids[UnwrapOption(parameter)] != domain.allocator_formal_syntax_id ||
+                signatures.param_types[UnwrapOption(parameter)] != "Allocator" ||
+                signatures.param_modes[UnwrapOption(parameter)] != 0 { return false; }
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstOwnedStringValueDomainPreserved(
+    ref exposures: SemanticAstOwnedStringDomainExposureFacts, source_syntax_id: Int
+) -> Bool {
+    if !exposures.ok || source_syntax_id <= 0 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(exposures.string_written_source_syntax_ids) {
+        if exposures.string_written_source_syntax_ids[row] == source_syntax_id { return false; }
+        row = row + 1;
+    }
+    return true;
+}

@@ -60,6 +60,9 @@ func SemanticAstBodyTypeBundleReadinessError(
     if !SemanticAstNumericStringAllocationCallsReady(bundle.numeric_string_allocations) {
         return "numeric_string_allocation_calls";
     }
+    if !SemanticAstOwnedStringResultFactsReady(bundle.owned_string_result_domains, analysis.signatures) {
+        return "owned_string_result_domains";
+    }
     if !SemanticAstCapabilityFactsReady(artifact, analysis, bundle.capabilities) ||
         !bundle.capabilities.contract_ok { return "capability_facts"; }
     if !SemanticAstMatchMaterializationFactsReady(

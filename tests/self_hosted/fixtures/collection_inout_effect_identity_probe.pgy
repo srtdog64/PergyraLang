@@ -571,9 +571,14 @@ func InspectFormalStorageAuthority(
         ArrayPush(leaf_types, "Unknown"); row = row + 1;
     }
     let call_roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(analysis.expression_surfaces.expression_graph);
+    // Mutation units must derive their domain facts from the same mutated graph.
+    let owned_string_results: SemanticAstOwnedStringResultFacts = SemanticAstOwnedStringResultFactsFromResolvedFacts(
+        artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
+        bundle.initializer_types, analysis.expression_surfaces, bundle.numeric_string_allocations, call_roots,
+        analysis.statements, analysis.assignments, bundle.assignment_types);
     let verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
-        bundle.initializer_types, analysis.expression_surfaces, leaf_types, bundle.numeric_string_allocations, call_roots, analysis.statements,
+        bundle.initializer_types, analysis.expression_surfaces, leaf_types, bundle.numeric_string_allocations, call_roots, owned_string_results, analysis.statements,
         analysis.assignments, bundle.assignment_types);
     if mutation == 37 {
         if !definitions.ok || !storage.ok || !verdict.ok { return false; }

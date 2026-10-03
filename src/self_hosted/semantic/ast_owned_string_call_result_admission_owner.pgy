@@ -1,0 +1,22 @@
+// A push may consume only the exact callsite's substituted HeapOrNull contract.
+// A conditional callee row alone is never a freeable source-function grant.
+import "ast_owned_string_expression_domain_owner.pgy";
+
+func SemanticAstOwnedStringCallTarget(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts, ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref facts: SemanticAstOwnedStringResultFacts, surface_row: Int, root: Int
+) -> Int {
+    if surface_row < 0 || surface_row >= ArrayLength(surfaces.node_ids) ||
+        surface_row >= ArrayLength(surfaces.function_node_ids) { return 0; }
+    let domain: SemanticAstOwnedStringAllocationDomain = SemanticAstOwnedStringCallAllocationDomain(
+        artifact, signatures, locals, initializer_types, surfaces, facts.writes, facts.domain_exposures, facts,
+        surfaces.function_node_ids[surface_row], surfaces.node_ids[surface_row], AstExpressionLaneValue(), root);
+    if domain.kind != 1 { return 0; }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, root);
+    if !call.ok { return 0; }
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(surfaces.expression_graph, call.call_node);
+    if !IsSome(target) || UnwrapOption(target) <= 0 { return 0; }
+    return UnwrapOption(target);
+}
