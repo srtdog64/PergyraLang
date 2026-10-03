@@ -1,0 +1,6 @@
+func MakeString(value: Bool) -> String { return ToString(value); }
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPush(values, MakeString(true));
+    ArrayDropOwnedStrings(values);
+}

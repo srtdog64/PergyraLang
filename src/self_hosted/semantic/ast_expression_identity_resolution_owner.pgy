@@ -5,6 +5,7 @@ import "ast_iteration_type_fact_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
 import "ast_signature_type_expression_fact_owner.pgy";
 import "ast_expression_carried_callable_identity_owner.pgy";
+import "ast_numeric_string_allocation_call_owner.pgy";
 import "../lib/intent_observability_abi_projection_owner.pgy";
 func SemanticExpressionDirectTargetSyntaxId(
     signatures: SemanticAstFunctionSignatureFacts,
@@ -63,8 +64,10 @@ func SemanticAstAnalysisResolveExpressionIdentities(
     iteration_types: SemanticAstIterationTypeFacts,
     match_synthetic_graph_root_ids: Array<Int>,
     function_tables: SemanticAstExpressionFunctionTableFacts,
+    ref call_roots: SemanticCallSpineRoots,
     require_carried_identities: Bool,
-    inout leaf_type_names: Array<String>
+    inout leaf_type_names: Array<String>,
+    inout numeric_string_allocations: SemanticAstNumericStringAllocationCalls
 ) -> Bool {
     let graph: SemanticExpressionGraphFacts =
         analysis.expression_surfaces.expression_graph;
@@ -72,9 +75,11 @@ func SemanticAstAnalysisResolveExpressionIdentities(
     if !SemanticExpressionGraphFactsReady(graph, ArrayLength(graph.roots)) ||
         !SemanticExpressionGraphPlaceKindsReady(graph) ||
         !SemanticAstExpressionFunctionTableFactsReady(function_tables) ||
+        !call_roots.ok || ArrayLength(call_roots.root_nodes) != count ||
         !SemanticExpressionIdentityRowsReady(graph.arena.identities, count) {
         return false;
     }
+    numeric_string_allocations = SemanticAstNumericStringAllocationCallsEmpty();
     // The existing lexical environment owns local types even where the
     // persisted identity protocol intentionally carries no local binding ID.
     // Collection field identity and later boundary verdicts borrow this
@@ -123,6 +128,7 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                     }
                 }
                 let node: Int = last_root + 1;
+                let local_call_ordinal: Int = 0;
                 while node <= root_id && valid {
                     if graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() {
                         leaf_type_names[node] = EnvLookup(names, types, graph.arena.node_texts[node]);
@@ -415,6 +421,13 @@ func SemanticAstAnalysisResolveExpressionIdentities(
                         Log(detail);
                         valid = false;
                     }
+                    if graph.arena.topology.node_kinds[node] == AstExpressionNodeCall() {
+                        if valid && !SemanticAstNumericStringAllocationRecordResolvedCall(
+                            numeric_string_allocations, graph, analysis.constructors,
+                            function_tables, names, types, use_node_id, root_slot % 3,
+                            local_call_ordinal, node, call_roots.root_nodes[node]) { valid = false; }
+                        local_call_ordinal = local_call_ordinal + 1;
+                    }
                     node = node + 1;
                 }
             }
@@ -477,5 +490,6 @@ func SemanticAstAnalysisResolveExpressionIdentities(
         valid = false;
     }
     analysis.expression_surfaces.expression_graph = graph;
+    numeric_string_allocations.ok = valid;
     return valid;
 }

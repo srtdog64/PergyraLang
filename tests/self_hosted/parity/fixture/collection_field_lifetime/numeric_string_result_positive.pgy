@@ -1,0 +1,28 @@
+func MakeInt(value: Int) -> String { return ToString(value); }
+func MakeLong(value: Long) -> String { return ToString(value); }
+func MakeFloat(value: Float) -> String { return ToString(value); }
+func MakeDouble(value: Double) -> String { return ToString(value); }
+func MakeDelta(ref values: Array<Int>, index: Int, start: Int) -> String {
+    return ToString(values[index] - start);
+}
+func MakeLength(ref values: Array<Int>) -> String { return ToString(ArrayLength(values)); }
+func ReadNumber() -> Int { return 11; }
+func MakeCall() -> String { return ToString(ReadNumber()); }
+func MakeLocal(value: Int) -> String {
+    let result: String = ToString(value);
+    return result;
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    let double_value: Double = 2.5;
+    ArrayPush(values, MakeInt(42));
+    ArrayPush(values, MakeLong(9000000000L));
+    ArrayPush(values, MakeFloat(1.25));
+    ArrayPush(values, MakeDouble(double_value));
+    ArrayPush(values, MakeCall());
+    ArrayPush(values, MakeLocal(9));
+    let i: Int = 0;
+    while i < ArrayLength(values) { Log(values[i]); i = i + 1; }
+    ArrayDropOwnedStrings(values);
+    Log("numeric-string-allocation-runtime:PASS");
+}

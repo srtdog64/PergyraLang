@@ -18,6 +18,10 @@ EVENT_PROBE=tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy
 STORAGE_PROBE=tests/self_hosted/fixtures/collection_storage_producer_probe.pgy
 FIXTURES=tests/self_hosted/parity/fixture/collection_field_lifetime
 INPUTS=(
+    numeric_string_result_positive.pgy
+    numeric_string_bool_negative.pgy numeric_string_string_negative.pgy
+    numeric_string_nested_negative.pgy numeric_string_mixed_negative.pgy
+    numeric_string_reassigned_negative.pgy numeric_string_shadow_negative.pgy
     owned_string_result_reassigned_negative.pgy owned_string_allocator_reassigned_negative.pgy
     owned_string_result_unassigned_positive.pgy
     owned_string_result_alias_reassigned_negative.pgy owned_string_result_branch_reassigned_negative.pgy
@@ -139,6 +143,12 @@ INPUTS+=(
 sha256sum "$PGY" >"$WORK/native.sha256"
 sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" "$STORAGE_PROBE" \
     tests/self_hosted/fixtures/owned_string_local_reassignment_unit.pgy \
+    tests/self_hosted/fixtures/numeric_string_allocation_unit.pgy \
+    src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy \
+    src/self_hosted/semantic/ast_expression_identity_resolution_owner.pgy \
+    src/self_hosted/semantic/ast_body_type_bundle_owner.pgy \
+    src/self_hosted/semantic/ast_body_type_bundle_schema_owner.pgy \
+    src/self_hosted/semantic/ast_body_type_bundle_readiness_owner.pgy \
     src/self_hosted/semantic/ast_collection_formal_effect_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
@@ -219,6 +229,14 @@ for backend in c llvm; do
             -o "$REL/$backend-source.exe" >"$WORK/$backend-source.compile" 2>&1
     fi
     sha256sum "$WORK/$backend-source.exe" >>"$WORK/probe-binaries.sha256"
+    for mode in current missing-owner missing-type foreign-owner crossed-node crossed-lane crossed-ordinal \
+        borrowed-type unknown-type family-deleted declared-target runtime-abi callee-binding; do
+        timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/numeric_string_result_positive.pgy" \
+            "numeric-string-$mode" >"$WORK/$backend-numeric-$mode.raw" 2>"$WORK/$backend-numeric-$mode.err"
+        tr -d '\r' <"$WORK/$backend-numeric-$mode.raw" >"$WORK/$backend-numeric-$mode.run"
+        [[ ! -s "$WORK/$backend-numeric-$mode.err" ]]
+        grep -Fxq 'numeric-string-allocation-unit:PASS' "$WORK/$backend-numeric-$mode.run"
+    done
     for mode in current missing-leaf foreign-function carried-kind wrong-type untracked-type missing-row crossed-row; do
         timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/owned_string_result_reassigned_negative.pgy" \
             "owned-string-reassignment-$mode" >"$WORK/$backend-reassignment-$mode.raw" 2>"$WORK/$backend-reassignment-$mode.err"
@@ -583,7 +601,7 @@ BORROW_FORMAL_DIAGNOSTICS
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, twelve result-witness units, seventy-five diagnostic locations, three observer mode, fifty-one identity/boundary, thirty-five occurrence/root/element-step, four completion/receipt and ten storage-producer units, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, thirteen numeric-allocation and twelve result-witness units, seventy-five diagnostic locations, three observer mode, fifty-one identity/boundary, thirty-five occurrence/root/element-step, four completion/receipt and ten storage-producer units, nineteen constructor units, four constructor CLI refusals and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

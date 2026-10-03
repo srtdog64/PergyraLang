@@ -57,6 +57,9 @@ func SemanticAstBodyTypeBundleReadinessError(
     if !bundle.iteration_types.ok { return "iteration_types"; }
     if !bundle.assignment_types.ok { return "assignment_types"; }
     if !bundle.statement_types.ok { return "statement_types"; }
+    if !SemanticAstNumericStringAllocationCallsReady(bundle.numeric_string_allocations) {
+        return "numeric_string_allocation_calls";
+    }
     if !SemanticAstCapabilityFactsReady(artifact, analysis, bundle.capabilities) ||
         !bundle.capabilities.contract_ok { return "capability_facts"; }
     if !SemanticAstMatchMaterializationFactsReady(

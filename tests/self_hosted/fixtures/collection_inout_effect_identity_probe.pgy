@@ -570,9 +570,10 @@ func InspectFormalStorageAuthority(
     while row < SemanticExpressionGraphArenaNodeCount(analysis.expression_surfaces.expression_graph.arena) {
         ArrayPush(leaf_types, "Unknown"); row = row + 1;
     }
+    let call_roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(analysis.expression_surfaces.expression_graph);
     let verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
-        bundle.initializer_types, analysis.expression_surfaces, leaf_types, analysis.statements,
+        bundle.initializer_types, analysis.expression_surfaces, leaf_types, bundle.numeric_string_allocations, call_roots, analysis.statements,
         analysis.assignments, bundle.assignment_types);
     if mutation == 37 {
         if !definitions.ok || !storage.ok || !verdict.ok { return false; }

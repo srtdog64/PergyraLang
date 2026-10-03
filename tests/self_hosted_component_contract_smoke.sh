@@ -6320,7 +6320,7 @@ reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "Chec
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 305
+require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 313
 # Body flow has one owner; the conservative Never tail rule stays deleted.
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
     "SemanticAstBodyFlowVerdictFromFacts("
@@ -23352,6 +23352,21 @@ for literal_identity_mutation in \
         "\"$literal_identity_mutation\""
 done
 require_file "src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy"
+require_file "src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy" 120
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy"
+require_function_text "src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy" \
+    "func SemanticAstNumericStringAllocationRecordResolvedCall(" \
+    "SemanticExpressionGraphScalarTypeName("
+require_function_text "src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy" \
+    "func SemanticAstNumericStringAllocationCallReady(" \
+    "SemanticExpressionCallIdentityEqual("
+reject_function_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+    "func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(" \
+    "SemanticCallSpineRootsFromGraph("
+require_file "tests/self_hosted/fixtures/numeric_string_allocation_unit.pgy"
+require_text "tests/self_hosted/parity/collection_inout_effect_owner.sh" 'numeric-string-$mode'
+require_text "tests/self_hosted/parity/collection_inout_effect_owner.sh" "numeric_string_shadow_negative.pgy"
 require_file "tests/self_hosted/fixtures/owned_string_local_reassignment_unit.pgy"
 require_function_text "src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy" \
     "func SemanticAstOwnedStringLocalReassignmentFactsFromResolvedFacts(" \

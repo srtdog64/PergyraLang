@@ -1,0 +1,110 @@
+// Numeric ToString's runtime allocation contract, keyed by the sealed call.
+// Heap-or-null is freeable, not non-null, nonempty, current or exclusive.
+// The identity resolver produces these rows in its existing lexical visit;
+// consumers must not recover operand types from a String result or spelling.
+import "ast_collection_ownership_identity_owner.pgy";
+import "ast_expression_call_identity_owner.pgy";
+import "ast_expression_graph_scalar_type_owner.pgy";
+import "ast_expression_function_table_fact_owner.pgy";
+
+struct SemanticAstNumericStringAllocationCalls {
+    ok: Bool;
+    call_nodes: Array<Int>;
+    terminal_nodes: Array<Int>;
+    owner_node_ids: Array<Int>;
+    lanes: Array<Int>;
+    local_call_ordinals: Array<Int>;
+    operand_types: Array<String>;
+}
+
+func SemanticAstNumericStringAllocationCallsEmpty() -> SemanticAstNumericStringAllocationCalls {
+    return SemanticAstNumericStringAllocationCalls(false, [], [], [], [], [], []);
+}
+
+func SemanticAstNumericStringAllocationOperandType(type_name: String) -> Bool {
+    return type_name == "Int" || type_name == "Long" ||
+        type_name == "Float" || type_name == "Double";
+}
+
+func SemanticAstNumericStringAllocationCallsReady(
+    ref facts: SemanticAstNumericStringAllocationCalls
+) -> Bool {
+    let count: Int = ArrayLength(facts.call_nodes);
+    if !facts.ok || ArrayLength(facts.terminal_nodes) != count || ArrayLength(facts.owner_node_ids) != count ||
+        ArrayLength(facts.lanes) != count ||
+        ArrayLength(facts.local_call_ordinals) != count ||
+        ArrayLength(facts.operand_types) != count { return false; }
+    let row: Int = 0;
+    while row < count {
+        if facts.call_nodes[row] < 0 || facts.terminal_nodes[row] <= facts.call_nodes[row] || facts.owner_node_ids[row] < 0 ||
+            facts.lanes[row] < AstExpressionLaneAtom() ||
+            facts.lanes[row] > AstExpressionLaneAuxiliary() ||
+            facts.local_call_ordinals[row] < 0 ||
+            !SemanticAstNumericStringAllocationOperandType(facts.operand_types[row]) ||
+            (row > 0 && facts.call_nodes[row - 1] >= facts.call_nodes[row]) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+// Non-numeric, unknown and declared ToString calls deliberately issue no row.
+func SemanticAstNumericStringAllocationRecordResolvedCall(
+    inout facts: SemanticAstNumericStringAllocationCalls,
+    ref graph: SemanticExpressionGraphFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref function_tables: SemanticAstExpressionFunctionTableFacts,
+    names: Array<String>, types: Array<String>,
+    owner_node_id: Int, lane: Int, local_call_ordinal: Int, call_node: Int, terminal_node: Int
+) -> Bool {
+    if !SemanticAstCollectionOwnershipBuiltinCall(graph, call_node, "ToString") { return true; }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(graph, terminal_node);
+    if !call.ok || call.call_node != call_node || ArrayLength(call.argument_nodes) != 1 { return false; }
+    let operand_type: String = SemanticExpressionGraphScalarTypeName(
+        graph, call.argument_nodes[0], constructors, names, types,
+        function_tables.names, function_tables.returns);
+    if !SemanticAstNumericStringAllocationOperandType(operand_type) { return true; }
+    if owner_node_id < 0 || lane < AstExpressionLaneAtom() ||
+        lane > AstExpressionLaneAuxiliary() || local_call_ordinal < 0 ||
+        (ArrayLength(facts.call_nodes) > 0 &&
+         facts.call_nodes[ArrayLength(facts.call_nodes) - 1] >= call_node) { return false; }
+    ArrayPush(facts.call_nodes, call_node);
+    ArrayPush(facts.terminal_nodes, terminal_node);
+    ArrayPush(facts.owner_node_ids, owner_node_id);
+    ArrayPush(facts.lanes, lane);
+    ArrayPush(facts.local_call_ordinals, local_call_ordinal);
+    ArrayPush(facts.operand_types, operand_type);
+    return true;
+}
+
+// Node indexes only locate a row. The owner/lane/ordinal tuple must still join
+// the existing stable call-identity owner, including after graph rebasing.
+func SemanticAstNumericStringAllocationCallReady(
+    ref facts: SemanticAstNumericStringAllocationCalls,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    use_syntax_id: Int, lane: Int, root: Int
+) -> Bool {
+    let count: Int = ArrayLength(facts.call_nodes);
+    if !facts.ok || ArrayLength(facts.terminal_nodes) != count || ArrayLength(facts.owner_node_ids) != count ||
+        ArrayLength(facts.lanes) != count || ArrayLength(facts.local_call_ordinals) != count ||
+        ArrayLength(facts.operand_types) != count { return false; }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, root);
+    if !call.ok || ArrayLength(call.argument_nodes) != 1 { return false; }
+    let low: Int = 0; let high: Int = ArrayLength(facts.call_nodes);
+    while low < high {
+        let middle: Int = low + (high - low) / 2;
+        if facts.call_nodes[middle] < call.call_node { low = middle + 1; }
+        else { high = middle; }
+    }
+    if low >= ArrayLength(facts.call_nodes) || facts.call_nodes[low] != call.call_node ||
+        facts.terminal_nodes[low] != root ||
+        facts.owner_node_ids[low] != use_syntax_id || facts.lanes[low] != lane ||
+        !SemanticAstNumericStringAllocationOperandType(facts.operand_types[low]) ||
+        !SemanticAstCollectionOwnershipBuiltinCall(surfaces.expression_graph, call.call_node, "ToString") { return false; }
+    let identity: SemanticExpressionCallIdentity = SemanticExpressionCallIdentityForNode(surfaces, call.call_node);
+    return call.ok && ArrayLength(call.argument_nodes) == 1 && identity.ok &&
+        SemanticExpressionCallIdentityEqual(use_syntax_id, lane,
+            facts.local_call_ordinals[low], identity.owner_node_id,
+            identity.lane, identity.local_call_ordinal);
+}

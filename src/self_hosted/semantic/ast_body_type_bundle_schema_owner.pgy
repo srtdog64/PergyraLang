@@ -11,6 +11,7 @@ import "ast_collection_ownership_verdict_owner.pgy";
 import "ast_zone_value_carriage_verdict_owner.pgy";
 import "ast_generic_specialization_fact_owner.pgy";
 import "ast_capability_fact_owner.pgy";
+import "ast_numeric_string_allocation_call_owner.pgy";
 
 struct SemanticAstBodyTypeBundle {
     verdict: SemanticAstBodyVerdict;
@@ -23,6 +24,7 @@ struct SemanticAstBodyTypeBundle {
     zone_carriage: SemanticAstZoneValueCarriageVerdict;
     generic_specializations: SemanticAstGenericSpecializationFacts;
     capabilities: SemanticAstCapabilityFacts;
+    numeric_string_allocations: SemanticAstNumericStringAllocationCalls;
 }
 
 func SemanticAstBodyTypeBundleAdmissionError(
@@ -52,6 +54,7 @@ func SemanticAstBodyTypeBundleAdmissionError(
             "body_analysis_admission", message,
             empty_ints, empty_ints, empty_ints, empty_ints, empty_strings
         ),
-        SemanticAstCapabilityFactsError(artifact, message)
+        SemanticAstCapabilityFactsError(artifact, message),
+        SemanticAstNumericStringAllocationCallsEmpty()
     );
 }

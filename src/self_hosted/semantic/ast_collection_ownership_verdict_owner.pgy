@@ -41,6 +41,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
     ref initializer_types: SemanticAstInitializerTypeFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref resolved_leaf_types: Array<String>,
+    ref numeric_string_allocations: SemanticAstNumericStringAllocationCalls,
+    ref call_roots: SemanticCallSpineRoots,
     ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
     ref assignment_types: SemanticAstAssignmentTypeFacts
 ) -> SemanticAstCollectionOwnershipVerdict {
@@ -52,6 +54,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         !SemanticExpressionGraphCarriedCallTargetsReady(
             surfaces.expression_graph) || !statements.ok ||
         ArrayLength(resolved_leaf_types) != SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena) ||
+        !SemanticAstNumericStringAllocationCallsReady(numeric_string_allocations) ||
+        !call_roots.ok || ArrayLength(call_roots.root_nodes) != SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena) ||
         !assignments.ok || !assignment_types.ok ||
         ArrayLength(assignments.node_ids) !=
             ArrayLength(assignment_types.node_ids) {
@@ -86,7 +90,7 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     let current_definitions: Array<Int> = [];
     let owned_string_results: SemanticAstOwnedStringResultFacts =
         SemanticAstOwnedStringResultFactsFromResolvedFacts(
-            artifact, signatures, constructors, locals, initializer_types, surfaces,
+            artifact, signatures, constructors, locals, initializer_types, surfaces, numeric_string_allocations,
             statements, assignments, assignment_types);
     if !SemanticAstOwnedStringResultFactsReady(owned_string_results) {
         return SemanticAstCollectionOwnershipVerdictError(
@@ -266,14 +270,6 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
             SemanticError1("ast_artifact_invalid", "owner", "collection_call_effect_facts"), -1, -1);
     }
 
-    let call_roots: SemanticCallSpineRoots =
-        SemanticCallSpineRootsFromGraph(surfaces.expression_graph);
-    if !call_roots.ok {
-        return SemanticAstCollectionOwnershipVerdictError(
-            "ast_artifact_invalid",
-            SemanticError1("ast_artifact_invalid", "owner",
-                "collection_ownership_call_roots"), -1, -1);
-    }
     let field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements = SemanticAstCollectionAggregateFieldEntryRequirementsEmpty();
     let element_requirements: HashMap<String, Int> = SemanticAstCollectionOwnedElementParameterRequirements(
         artifact, locals, initializer_types.inferred_type_names, origins, source_binding_syntax_ids, origin_syntax_ids,

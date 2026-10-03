@@ -771,7 +771,17 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy` -- exact
   callable-body proof for freshly owned String results. Return type alone is
   insufficient; the proof follows stable local/call identities to an
-  immutable `TextBuilderFinish` value backed by `AllocatorResult`.
+  immutable `TextBuilderFinish` value backed by `AllocatorResult`, or an admitted
+  numeric `ToString` call. This is not completed-current or exclusive transfer.
+- `src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy` --
+  numeric `ToString` heap-or-null runtime contract from the identity resolver's
+  existing typed lexical visit, joined to owner/lane/call ordinal. Bool, String,
+  unknown and declared targets issue no allocation row. No formal/literal
+  retirement permission is derived from this call contract alone.
+- `src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy` --
+  exact typed whole-local String/Allocator write inventory. A write invalidates
+  the declaration-only allocation witness; synthetic binders and owner fields
+  stay distinct from ordinary locals. This is not a current-token proof.
 - `src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy`
   -- syntax-ordered parser-owned Array push/set/pop and indexed-write transitions.
   A raw `ArrayPush` becomes an

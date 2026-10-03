@@ -180,6 +180,9 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
         }
     }
     let resolved_leaf_types: Array<String> = [];
+    let numeric_string_allocations: SemanticAstNumericStringAllocationCalls =
+        SemanticAstNumericStringAllocationCallsEmpty();
+    let call_roots: SemanticCallSpineRoots = SemanticCallSpineRoots(false, []);
     let exhaustive_match_nodes: Array<Int> = [];
     if verdict.ok {
         verdict = SemanticAstNamedEnumMatchCoverageFromFacts(
@@ -190,10 +193,15 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, initializer_types, analysis.expression_surfaces);
     }
+    if verdict.ok {
+        call_roots = SemanticCallSpineRootsFromGraph(analysis.expression_surfaces.expression_graph);
+        if !call_roots.ok { verdict = SemanticAstBodyVerdictError(
+            "expression_identity_unresolved", "semantic call spine roots are incomplete", -1); }
+    }
     if verdict.ok && !SemanticAstAnalysisResolveExpressionIdentities(
         artifact, analysis, initializer_types.inferred_type_names,
-        iteration_types, match_materializations.synthetic_graph_root_ids, function_tables,
-        require_carried_expression_identities, resolved_leaf_types) {
+        iteration_types, match_materializations.synthetic_graph_root_ids, function_tables, call_roots,
+        require_carried_expression_identities, resolved_leaf_types, numeric_string_allocations) {
         verdict = SemanticAstBodyVerdictError("expression_identity_unresolved",
             "semantic expression identity rows are incomplete", -1);
     }
@@ -203,7 +211,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
         collection_ownership =
             SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                 artifact, analysis.signatures, analysis.constructors, analysis.local_bindings,
-                initializer_types, analysis.expression_surfaces, resolved_leaf_types,
+                initializer_types, analysis.expression_surfaces, resolved_leaf_types, numeric_string_allocations, call_roots,
                 analysis.statements, analysis.assignments, assignment_types);
         if !collection_ownership.ok {
             verdict = SemanticAstBodyVerdictError(
@@ -274,7 +282,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     return SemanticAstBodyTypeBundle(verdict,
         initializer_types, iteration_types, assignment_types, statement_types, match_materializations,
         collection_ownership,
-        zone_carriage, generic_specializations, capabilities);
+        zone_carriage, generic_specializations, capabilities, numeric_string_allocations);
 }
 func SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved(artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis, observe_pressure: Bool

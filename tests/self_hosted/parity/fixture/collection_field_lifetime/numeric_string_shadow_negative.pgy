@@ -1,0 +1,7 @@
+func ToString(value: Int) -> String { return "static"; }
+func MakeString(value: Int) -> String { return ToString(value); }
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPush(values, MakeString(42));
+    ArrayDropOwnedStrings(values);
+}
