@@ -1,3 +1,32 @@
+func GenericParameterFactRowsRollbackReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Broken\n" +
+        "    Generic params: <T = HashMap<String, Int>>\n" +
+        "    Constraints: where T: Sortable, T:\n" +
+        "    Parameters:\n    Returns: T\n    Body:\n      Block:\n"
+    );
+    let owner_node_id: Int = -1;
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        let name: Option<String> = TypedAstArenaAtomText(artifact.arena, node_id);
+        if TypedAstArenaNodeKindIsCallable(artifact.arena, node_id) &&
+            IsSome(name) && UnwrapOption(name) == "Broken" {
+            owner_node_id = node_id;
+            break;
+        }
+        node_id = node_id + 1;
+    }
+    if owner_node_id < 0 { return false; }
+    let names: Array<String> = ["Seed"];
+    let defaults: Array<String> = ["String"];
+    let constraints: Array<String> = ["SeedBound"];
+    return !SemanticAstGenericParameterFactRowsFromOwnerNode(
+        artifact.arena, owner_node_id, names, defaults, constraints
+    ) && ArrayLength(names) == 1 && ArrayLength(defaults) == 1 &&
+        ArrayLength(constraints) == 1 && names[0] == "Seed" &&
+        defaults[0] == "String" && constraints[0] == "SeedBound";
+}
+
 func InspectGenericDefaultSelection(
     ref analysis: SemanticAstArtifactAnalysis
 ) -> Bool {
@@ -34,5 +63,6 @@ func InspectGenericDefaultSelection(
         UnwrapOption(second_param) == "String" &&
         UnwrapOption(return_type) == "HashMap<String, Int>" &&
         UnwrapOption(first_field) == "HashMap<String, Int>" &&
-        UnwrapOption(second_field) == "String";
+        UnwrapOption(second_field) == "String" &&
+        GenericParameterFactRowsRollbackReady();
 }

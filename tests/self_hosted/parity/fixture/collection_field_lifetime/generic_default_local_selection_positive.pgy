@@ -1,5 +1,10 @@
-ability GenericDefaultProbe<T = HashMap<String, Int>, U = String> {
+ability GenericDefaultProbe<T = HashMap<String, Int>, U = String>
+    where T: HashMap<String, Int>, U: String {
     func Keep(value: T, label: U) -> T;
+}
+
+ability OtherGenericProbe<T = Int> where T: Int {
+    func Other(value: T) -> T;
 }
 
 class GenericDefaultBox<T = HashMap<String, Int>, U = String> {

@@ -8,89 +8,6 @@ import "ast_type_name_canonical_owner.pgy";
 import "delimited_range_fact_owner.pgy";
 import "expression_normalization_owner.pgy";
 
-func SemanticAstGenericConstraintRowsFromNode(
-    arena: AstArena,
-    owner_node_id: Int,
-    generic_start: Int,
-    generic_count: Int,
-    generic_names: Array<String>,
-    inout generic_constraints: Array<String>
-) -> Bool {
-    if generic_start < 0 || generic_count < 0 ||
-        generic_start + generic_count > ArrayLength(generic_names) ||
-        ArrayLength(generic_constraints) != generic_start {
-        return false;
-    }
-    let generic_i: Int = 0;
-    while generic_i < generic_count {
-        ArrayPush(generic_constraints, "");
-        generic_i = generic_i + 1;
-    }
-    let child_index: Int = 0;
-    let child: Option<Int> = TypedAstArenaChildAt(
-        arena, owner_node_id, child_index
-    );
-    while IsSome(child) {
-        let child_id: Int = UnwrapOption(child);
-        if TypedAstArenaNodeKindIs(
-            arena, child_id, TypedAstKindGenericConstraintsTag()
-        ) {
-            let row_opt: Option<String> = TypedAstArenaAtomText(arena, child_id);
-            if !IsSome(row_opt) { return false; }
-            let row: String = UnwrapOption(row_opt);
-            if StartsWith(row, "where ") {
-                row = SemanticTrimSourceRangeReuse(
-                    row, 6, StringLength(row)
-                );
-            }
-            let parts: SemanticDelimitedRangeFacts =
-                SemanticNestedCommaRangeFactsFromSource(row);
-            if SemanticDelimitedRangeCount(parts) == 0 {
-                return false;
-            }
-            let part_i: Int = 0;
-            while part_i < SemanticDelimitedRangeCount(parts) {
-                let part: String = SemanticDelimitedRangeText(parts, row, part_i);
-                let colon: Int = StringIndexOf(part, ":");
-                if colon <= 0 {
-                    return false;
-                }
-                let name: String = SemanticTrimSourceRangeReuse(
-                    part, 0, colon
-                );
-                let bounds: String = SemanticTrimSourceRangeReuse(
-                    part, colon + 1, StringLength(part)
-                );
-                let name_i: Int = 0;
-                let found: Bool = false;
-                while name_i < generic_count {
-                    if generic_names[generic_start + name_i] == name {
-                        if generic_constraints[generic_start + name_i] != "" ||
-                            bounds == "" {
-                            return false;
-                        }
-                        generic_constraints[generic_start + name_i] = bounds;
-                        found = true;
-                    }
-                    name_i = name_i + 1;
-                }
-                if !found {
-                    // A clause on a callable that declares no type
-                    // parameters binds nothing. The native artifact keeps
-                    // its text and publishes no constraint row, so parity
-                    // admits the same shape and still refuses a crossed
-                    // name where parameters do exist.
-                    if generic_count > 0 { return false; }
-                }
-                part_i = part_i + 1;
-            }
-        }
-        child_index = child_index + 1;
-        child = TypedAstArenaChildAt(arena, owner_node_id, child_index);
-    }
-    return true;
-}
-
 func SemanticAstGenericParameterDefaultRowsFromText(
     row: String,
     inout names: Array<String>,
@@ -155,6 +72,43 @@ func SemanticAstGenericParameterDefaultRowsFromNode(
     );
 }
 
+func SemanticAstAbilityGenericParameterDefaultRowsFromProvenance(
+    arena: AstArena,
+    ability_node_id: Int,
+    inout names: Array<String>,
+    inout default_type_names: Array<String>
+) -> Bool {
+    if !TypedAstArenaNodeKindIs(
+        arena, ability_node_id, TypedAstKindAbilityDeclTag()
+    ) {
+        return false;
+    }
+    let provenance: Option<String> = TypedAstArenaProvenanceText(
+        arena, ability_node_id
+    );
+    if !IsSome(provenance) { return false; }
+    let row: String = UnwrapOption(provenance);
+    let open: Int = StringIndexOf(row, "<");
+    if open < 0 { return true; }
+    let close: Int = -1;
+    let depth: Int = 0;
+    let cursor: Int = open;
+    while cursor < StringLength(row) {
+        let c: String = CharAt(row, cursor);
+        if c == "<" { depth = depth + 1; }
+        else if c == ">" {
+            depth = depth - 1;
+            if depth == 0 { close = cursor; break; }
+            if depth < 0 { return false; }
+        }
+        cursor = cursor + 1;
+    }
+    if close <= open { return false; }
+    return SemanticAstGenericParameterDefaultRowsFromText(
+        Substring(row, open, close - open + 1), names, default_type_names
+    );
+}
+
 func SemanticAstAbilityGenericParameterDefaultRowsFromNode(
     arena: AstArena,
     ability_node_id: Int,
@@ -188,50 +142,120 @@ func SemanticAstAbilityGenericParameterDefaultRowsFromNode(
         child = TypedAstArenaChildAt(arena, ability_node_id, child_index);
     }
     if generic_child_count == 1 { return true; }
-    let provenance: Option<String> = TypedAstArenaProvenanceText(
-        arena, ability_node_id
+    return SemanticAstAbilityGenericParameterDefaultRowsFromProvenance(
+        arena, ability_node_id, names, default_type_names
     );
-    if !IsSome(provenance) { return false; }
-    let row: String = UnwrapOption(provenance);
-    let open: Int = StringIndexOf(row, "<");
-    if open < 0 { return true; }
-    let close: Int = -1;
-    let depth: Int = 0;
-    let cursor: Int = open;
-    while cursor < StringLength(row) {
-        let c: String = CharAt(row, cursor);
-        if c == "<" { depth = depth + 1; }
-        else if c == ">" {
-            depth = depth - 1;
-            if depth == 0 { close = cursor; break; }
-            if depth < 0 { return false; }
-        }
-        cursor = cursor + 1;
-    }
-    if close <= open { return false; }
-    let generic_row: String = Substring(row, open, close - open + 1);
-    let parsed: Bool = SemanticAstGenericParameterDefaultRowsFromText(
-        generic_row, names, default_type_names
-    );
-    return parsed;
 }
 
-func SemanticAstGenericParameterRowsFromNode(
+func SemanticAstGenericParameterFactRowsFromOwnerNode(
     arena: AstArena,
-    node_id: Int,
-    inout names: Array<String>
+    owner_node_id: Int,
+    inout names: Array<String>,
+    inout default_type_names: Array<String>,
+    inout constraint_type_names: Array<String>
 ) -> Bool {
-    let row_names: Array<String> = [];
-    let defaults: Array<String> = [];
-    if !SemanticAstGenericParameterDefaultRowsFromNode(
-        arena, node_id, row_names, defaults
-    ) {
+    let row_start: Int = ArrayLength(names);
+    if ArrayLength(default_type_names) != row_start ||
+        ArrayLength(constraint_type_names) != row_start {
         return false;
     }
-    let i: Int = 0;
-    while i < ArrayLength(row_names) {
-        ArrayPush(names, row_names[i]);
-        i = i + 1;
+    let row_names: Array<String> = [];
+    let row_defaults: Array<String> = [];
+    let row_constraints: Array<String> = [];
+    let ability_owner: Bool = TypedAstArenaNodeKindIs(
+        arena, owner_node_id, TypedAstKindAbilityDeclTag()
+    );
+    if !ability_owner &&
+        !TypedAstArenaNodeKindIsCallable(arena, owner_node_id) {
+        return false;
+    }
+    let generic_parameter_node_id: Int = -1;
+    let constraint_node_ids: Array<Int> = [];
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(
+        arena, owner_node_id, child_index
+    );
+    while IsSome(child) {
+        let child_id: Int = UnwrapOption(child);
+        if TypedAstArenaNodeKindIs(
+            arena, child_id, TypedAstKindGenericParamsTag()
+        ) {
+            if generic_parameter_node_id >= 0 { return false; }
+            generic_parameter_node_id = child_id;
+        } else if TypedAstArenaNodeKindIs(
+            arena, child_id, TypedAstKindGenericConstraintsTag()
+        ) {
+            ArrayPush(constraint_node_ids, child_id);
+        }
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(arena, owner_node_id, child_index);
+    }
+    if generic_parameter_node_id >= 0 {
+        if !SemanticAstGenericParameterDefaultRowsFromNode(
+            arena, generic_parameter_node_id, row_names, row_defaults
+        ) { return false; }
+    } else if ability_owner &&
+        !SemanticAstAbilityGenericParameterDefaultRowsFromProvenance(
+            arena, owner_node_id, row_names, row_defaults
+        ) {
+        return false;
+    }
+    if ArrayLength(row_names) != ArrayLength(row_defaults) {
+        return false;
+    }
+    let generic_i: Int = 0;
+    while generic_i < ArrayLength(row_names) {
+        ArrayPush(row_constraints, "");
+        generic_i = generic_i + 1;
+    }
+    let constraint_index: Int = 0;
+    while constraint_index < ArrayLength(constraint_node_ids) {
+        let child_id: Int = constraint_node_ids[constraint_index];
+        let row_opt: Option<String> = TypedAstArenaAtomText(arena, child_id);
+        if !IsSome(row_opt) { return false; }
+        let row: String = UnwrapOption(row_opt);
+        if StartsWith(row, "where ") {
+            row = SemanticTrimSourceRangeReuse(
+                row, 6, StringLength(row)
+            );
+        }
+        let parts: SemanticDelimitedRangeFacts =
+            SemanticNestedCommaRangeFactsFromSource(row);
+        if SemanticDelimitedRangeCount(parts) == 0 { return false; }
+        let part_i: Int = 0;
+        while part_i < SemanticDelimitedRangeCount(parts) {
+            let part: String = SemanticDelimitedRangeText(parts, row, part_i);
+            let colon: Int = StringIndexOf(part, ":");
+            if colon <= 0 { return false; }
+            let name: String = SemanticTrimSourceRangeReuse(part, 0, colon);
+            let bounds: String = SemanticTrimSourceRangeReuse(
+                part, colon + 1, StringLength(part)
+            );
+            let name_i: Int = 0;
+            let found: Bool = false;
+            while name_i < ArrayLength(row_names) {
+                if row_names[name_i] == name {
+                    if row_constraints[name_i] != "" || bounds == "" {
+                        return false;
+                    }
+                    row_constraints[name_i] = bounds;
+                    found = true;
+                }
+                name_i = name_i + 1;
+            }
+            // Native parity keeps a well-formed clause on a callable
+            // with no generic parameters, but crossed named rows fail.
+            if !found && ArrayLength(row_names) > 0 { return false; }
+            part_i = part_i + 1;
+        }
+        constraint_index = constraint_index + 1;
+    }
+    let publish_i: Int = 0;
+    while publish_i < ArrayLength(row_names) {
+        ArrayPush(names, row_names[publish_i]);
+        ArrayPush(default_type_names, row_defaults[publish_i]);
+        ArrayPush(constraint_type_names, row_constraints[publish_i]);
+        publish_i = publish_i + 1;
     }
     return true;
 }

@@ -210,16 +210,10 @@ func SemanticAstRoleFactsFromArtifact(
             } else {
                 let generic_start: Int = ArrayLength(ability_generic_names);
                 let method_start: Int = ArrayLength(ability_method_node_ids);
-                if !SemanticAstAbilityGenericParameterDefaultRowsFromNode(
+                if !SemanticAstGenericParameterFactRowsFromOwnerNode(
                     artifact.arena, node_id,
-                    ability_generic_names, ability_generic_defaults
-                ) {
-                    ok = false;
-                }
-                if ok && !SemanticAstGenericConstraintRowsFromNode(
-                    artifact.arena, node_id, generic_start,
-                    ArrayLength(ability_generic_names) - generic_start,
-                    ability_generic_names, ability_generic_constraints
+                    ability_generic_names, ability_generic_defaults,
+                    ability_generic_constraints
                 ) {
                     ok = false;
                 }

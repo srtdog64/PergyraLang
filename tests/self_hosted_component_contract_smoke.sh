@@ -1579,6 +1579,18 @@ reject_text "src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy" \
     'let close: Int = StringIndexOf(row, ">");'
 require_text "src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy" \
     "func SemanticAstGenericDefaultRowCountOrDie("
+require_text "src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy" \
+    "func SemanticAstGenericParameterFactRowsFromOwnerNode("
+reject_text "src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy" \
+    "func SemanticAstGenericConstraintRowsFromNode("
+reject_text "src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy" \
+    "func SemanticAstGenericParameterRowsFromNode("
+require_text "src/self_hosted/semantic/ast_role_fact_owner.pgy" \
+    "SemanticAstGenericParameterFactRowsFromOwnerNode("
+require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" \
+    "SemanticAstGenericParameterFactRowsFromOwnerNode("
+require_text "src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy" \
+    "SemanticAstGenericParameterFactRowsFromOwnerNode("
 reject_text "src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy" \
     "func SemanticAstGenericDefaultTypeForName("
 reject_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" \

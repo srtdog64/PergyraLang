@@ -104,6 +104,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
     let generic_starts: Array<Int> = [];
     let generic_counts: Array<Int> = [];
     let generic_names: Array<String> = [];
+    let generic_default_type_names: Array<String> = [];
     let generic_constraint_type_names: Array<String> = [];
     let param_starts: Array<Int> = [];
     let param_counts: Array<Int> = [];
@@ -183,10 +184,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             if TypedAstArenaNodeKindIs(
                 artifact.arena, child_id, TypedAstKindGenericParamsTag()
             ) {
-                if saw_generic_params ||
-                    !SemanticAstGenericParameterRowsFromNode(
-                        artifact.arena, child_id, generic_names
-                    ) {
+                if saw_generic_params {
                     ok = false;
                     diagnostic_fact = SemanticDiagnosticMessageFact2(
                         "function_signature_invalid",
@@ -351,24 +349,24 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             );
             continue;
         }
-        if !SemanticAstGenericConstraintRowsFromNode(
-            artifact.arena, node_id, generic_start,
-            ArrayLength(generic_names) - generic_start,
-            generic_names, generic_constraint_type_names
-        ) {
-            ok = false;
-            diagnostic_fact = SemanticDiagnosticMessageFact2(
-                "function_signature_invalid", "node_id", ToString(node_id),
-                "missing_fact", "generic_constraint_rows"
-            );
-            continue;
-        }
         let module_path: String = "";
         let module_path_opt: Option<String> = AstSourceModulePathForNode(artifact.source_modules, artifact.arena, node_id);
         if IsSome(module_path_opt) { module_path = UnwrapOption(module_path_opt); }
         else if artifact.source_modules.known {
             ok = false;
             diagnostic_fact = SemanticDiagnosticMessageFact2("function_signature_invalid", "node_id", ToString(node_id), "missing_fact", "source_module_path");
+            continue;
+        }
+        if !SemanticAstGenericParameterFactRowsFromOwnerNode(
+            artifact.arena, node_id,
+            generic_names, generic_default_type_names,
+            generic_constraint_type_names
+        ) {
+            ok = false;
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "function_signature_invalid", "node_id", ToString(node_id),
+                "missing_fact", "generic_parameter_fact_rows"
+            );
             continue;
         }
         ArrayPush(function_node_ids, node_id);

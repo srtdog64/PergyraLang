@@ -220,8 +220,19 @@ if grep -R -Fq --include='*.pgy' 'SemanticAstGenericDefaultTypeForName' src/self
     echo 'legacy borrowed generic-default return path remains' >&2
     exit 1
 fi
+if grep -R -Fq --include='*.pgy' 'SemanticAstGenericConstraintRowsFromNode' src/self_hosted ||
+    grep -R -Fq --include='*.pgy' 'SemanticAstGenericParameterRowsFromNode' src/self_hosted; then
+    echo 'legacy split generic-parameter fact path remains' >&2
+    exit 1
+fi
 grep -Fq 'func SemanticAstGenericDefaultRowCountOrDie(' \
     src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy
+grep -Fq 'func SemanticAstGenericParameterFactRowsFromOwnerNode(' \
+    src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy
+for generic_fact_consumer in ast_role_fact_owner.pgy ast_signature_fact_owner.pgy ast_signature_artifact_match_owner.pgy; do
+    grep -Fq 'SemanticAstGenericParameterFactRowsFromOwnerNode(' \
+        "src/self_hosted/semantic/$generic_fact_consumer"
+done
 if grep -Fq 'let close: Int = StringIndexOf(row, ">");' \
     src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy; then
     echo 'nested ability generic defaults use the first closing angle' >&2
