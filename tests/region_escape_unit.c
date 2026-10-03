@@ -71,6 +71,14 @@ static void test_retention_summary_owner(void)
               (uint32_t)BUILTIN_LOG_BLOCK, 0, &kind)
           && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
           "LogBlock argument retention summary is borrowed");
+    CHECK(semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_COMPILER_ARTIFACT_WRITE, 1, &kind)
+          && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+          "CompilerArtifactWrite payload is borrowed only for the call");
+    CHECK(!semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_COMPILER_ARTIFACT_WRITE, 0, &kind)
+          && kind == PGY_REGION_RETENTION_UNKNOWN,
+          "CompilerArtifactWrite handle is not a borrowed String payload");
 }
 
 static ASTNode mk_string(const char *v)

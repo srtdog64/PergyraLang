@@ -2786,12 +2786,16 @@ region-plan-unit-test-smoke: $(REGION_PLAN_UNIT_BIN)
 # missing-fact case fail-closed.
 REGION_ESCAPE_UNIT_BIN := $(BUILD_DIR)/region_escape_unit$(EXEEXT)
 
-$(REGION_ESCAPE_UNIT_BIN): tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c src/parser/ast_expr_call_accessors.c src/parser/ast_async_lambda_accessors.c
-	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c src/parser/ast_expr_call_accessors.c src/parser/ast_async_lambda_accessors.c
+$(REGION_ESCAPE_UNIT_BIN): tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/semantic/region_retention_summary.h src/semantic/builtin_argument_retention_registry.def src/common/numeric_parse.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c src/parser/ast_expr_call_accessors.c src/parser/ast_async_lambda_accessors.c
+	$(CC) $(CFLAGS) -I src/compiler -I src -o $@ tests/region_escape_unit.c src/semantic/region_escape_fact.c src/semantic/region_retention_summary.c src/common/numeric_parse.c src/parser/ast_identity.c src/parser/ast_constructors.c src/parser/ast_func_accessors.c src/parser/ast_block_match_event_accessors.c src/parser/ast_expr_control_accessors.c src/parser/ast_expr_call_accessors.c src/parser/ast_async_lambda_accessors.c
 
 region-escape-unit-test-smoke: $(REGION_ESCAPE_UNIT_BIN)
 	$(REGION_ESCAPE_UNIT_BIN)
 .PHONY: region-escape-unit-test-smoke
+
+.PHONY: builtin-argument-retention-registry-test-smoke
+builtin-argument-retention-registry-test-smoke: region-escape-unit-test-smoke
+	"$(BASH)" tests/builtin_argument_retention_registry_smoke.sh
 
 # "No mechanism without a consumer": censuses each declared mechanism against
 # its actual consumers, both directions. See reachability_owner.pgy.
@@ -5090,7 +5094,7 @@ self-host-nominal-constructor-field-identity-test-smoke: $(PGY)
 collection-native-storage-escape-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_native_storage_escape_owner.sh
 
-self-host-collection-inout-effect-test-smoke: $(PGY)
+self-host-collection-inout-effect-test-smoke: builtin-argument-retention-registry-test-smoke $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_inout_effect_owner.sh
 
 .PHONY: self-host-collection-constructor-field-input-test-smoke

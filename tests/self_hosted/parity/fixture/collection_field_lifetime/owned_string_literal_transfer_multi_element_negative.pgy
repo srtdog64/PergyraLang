@@ -1,0 +1,6 @@
+func Retire(own fragment: String) -> Void {
+    let fragments: Array<String> = [fragment, "borrowed"];
+    ArrayDropOwnedStrings(fragments);
+}
+
+func Main() -> Void {}

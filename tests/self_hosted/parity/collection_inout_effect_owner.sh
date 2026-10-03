@@ -27,6 +27,13 @@ INPUTS=(
     numeric_string_bool_negative.pgy numeric_string_string_negative.pgy
     numeric_string_nested_negative.pgy numeric_string_mixed_negative.pgy
     numeric_string_reassigned_negative.pgy numeric_string_shadow_negative.pgy
+    owned_string_literal_transfer_positive.pgy
+    owned_string_literal_transfer_exclusive_result_positive.pgy
+    owned_string_literal_transfer_aliased_result_negative.pgy
+    owned_string_literal_transfer_borrowed_negative.pgy
+    owned_string_literal_transfer_deferred_borrow_negative.pgy
+    owned_string_literal_transfer_after_use_negative.pgy
+    owned_string_literal_transfer_multi_element_negative.pgy
     owned_string_result_reassigned_negative.pgy owned_string_allocator_reassigned_negative.pgy
     owned_string_result_unassigned_positive.pgy
     owned_string_result_alias_reassigned_negative.pgy owned_string_result_branch_reassigned_negative.pgy
@@ -196,7 +203,12 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/self_hosted/semantic/ast_owned_string_domain_exposure_owner.pgy \
     src/self_hosted/semantic/ast_owned_string_expression_domain_owner.pgy \
     src/self_hosted/semantic/ast_owned_string_call_result_admission_owner.pgy \
-    src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy >"$WORK/owners.sha256"
+    src/self_hosted/semantic/ast_owned_string_local_reassignment_owner.pgy \
+    src/self_hosted/semantic/ast_owned_string_literal_transfer_owner.pgy \
+    src/self_hosted/semantic/builtin_argument_retention_projection_owner.pgy \
+    src/semantic/builtin_argument_retention_registry.def \
+    scripts/render_builtin_argument_retention_registry.py \
+    tests/builtin_argument_retention_registry_smoke.sh >"$WORK/owners.sha256"
 ACTUAL_INPUT="$FIXTURES/callable_table_from_artifact_release_probe.pgy"
 sha256sum "${INPUTS[@]}" "$FIXTURES/inout_index_identity_input.pgy" \
     "$FIXTURES/own_storage_identity_input.pgy" "$FIXTURES/own_event_order_identity_input.pgy" \

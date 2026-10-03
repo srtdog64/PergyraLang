@@ -1,0 +1,9 @@
+func Retire(output: Int, own fragment: String) -> Void {
+    CompilerArtifactWrite(output, fragment);
+    let fragments: Array<String> = [fragment];
+    ArrayDropOwnedStrings(fragments);
+}
+
+func Main() -> Void {
+    Retire(0, "borrowed");
+}

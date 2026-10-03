@@ -32,6 +32,7 @@ import "ast_collection_call_argument_verdict_owner.pgy";
 import "ast_collection_lifetime_event_order_owner.pgy";
 import "ast_collection_builtin_transition_owner.pgy";
 import "ast_owned_string_result_domain_owner.pgy";
+import "ast_owned_string_literal_transfer_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "diagnostic_owner.pgy";
@@ -76,6 +77,16 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     if !storage.ok {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "collection_storage_authority"), -1, -1);
+    }
+    let literal_transfers: SemanticAstOwnedStringLiteralTransferFacts =
+        SemanticAstOwnedStringLiteralTransferFactsFromDefinitions(
+            artifact, signatures, locals,
+            initializer_types.inferred_type_names, surfaces, definitions);
+    if !SemanticAstOwnedStringLiteralTransferFactsReady(literal_transfers) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "owned_string_literal_transfer"), -1, -1);
     }
     let ownership: Array<Int> = [];
     let dispositions: Array<Int> = [];
@@ -317,8 +328,29 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                 if step.left >= 0 { ArrayPush(pending, step.left); ArrayPush(prefixes, step.left_prefix); }
                 let node: Int = step.event_node;
                 let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, node);
+                if IsSome(kind) && UnwrapOption(kind) ==
+                        AstExpressionNodeArrayElement() &&
+                    !SemanticAstOwnedStringLiteralTransferObserveElement(
+                        node, literal_transfers) {
+                    ArrayDrop(pending); ArrayDrop(prefixes);
+                    return SemanticAstCollectionOwnershipVerdictError(
+                        "borrow_boundary_escape",
+                        SemanticError2("borrow_boundary_escape", "boundary",
+                            "owned_string_literal_transfer", "type",
+                            "String"), surfaces.node_ids[root_slot / 3], node);
+                }
                 if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeCallArgument() {
                     let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(surfaces.expression_graph, node);
+                    let scalar_transfer_verdict: SemanticAstCollectionOwnershipVerdict =
+                        SemanticAstOwnedStringLiteralTransferCallArgumentVerdict(
+                            artifact, signatures, locals, initializer_types,
+                            surfaces, owned_string_results,
+                            numeric_string_allocations, literal_transfers,
+                            root_slot / 3, root_slot % 3, edge);
+                    if !scalar_transfer_verdict.ok {
+                        ArrayDrop(pending); ArrayDrop(prefixes);
+                        return scalar_transfer_verdict;
+                    }
                     let argument_verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
                         artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, root_slot / 3,
                         edge, proved_formal_effects, element_requirements, ownership, dispositions, origins, transition_states, call_effects, storage, definitions, current_definitions);
@@ -343,7 +375,27 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
             artifact, locals, surfaces, definitions, storage, root_slot, current_definitions, call_effects,
             ownership, dispositions, origins, transition_states, source_binding_syntax_ids);
         if !completed.ok { return completed; }
+        let completed_definition: Int =
+            SemanticAstCollectionDefinitionCompletedAtSlot(
+                definitions, locals, surfaces, root_slot);
+        if !SemanticAstOwnedStringLiteralTransferCompleteDefinition(
+                root_slot, completed_definition, literal_transfers,
+                ownership, dispositions, origins, transition_states,
+                origin_syntax_ids, source_binding_syntax_ids) {
+            return SemanticAstCollectionOwnershipVerdictError(
+                "borrow_boundary_escape",
+                SemanticError2("borrow_boundary_escape", "boundary",
+                    "owned_string_literal_transfer_completion", "type",
+                    "String"), surfaces.node_ids[root_slot / 3], -1);
+        }
         root_slot = root_slot + 1;
+    }
+    if !SemanticAstOwnedStringLiteralTransfersConsumed(literal_transfers) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary",
+                "owned_string_literal_transfer_incomplete", "type",
+                "String"), -1, -1);
     }
     let transferred_use: SemanticAstCollectionOwnedArgumentUse =
         SemanticAstCollectionFirstInvalidOwnedArgumentUse(

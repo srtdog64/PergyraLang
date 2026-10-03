@@ -1,0 +1,17 @@
+/* PGY_BUILTIN_ARGUMENT_RETENTION_ROWS
+ *
+ * Canonical builtin-argument retention registry. A row means that the exact
+ * builtin argument is borrowed only for the duration of the synchronous call.
+ * Missing rows fail closed. PGY_RETENTION_ARGUMENT_ANY applies to every
+ * non-negative argument ordinal of the named variadic builtin.
+ *
+ * PGY_BUILTIN_ARGUMENT_RETENTION(
+ *     builtin_identity, source_name, argument_ordinal, retention_kind)
+ */
+
+PGY_BUILTIN_ARGUMENT_RETENTION(PRINT, "Print", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
+PGY_BUILTIN_ARGUMENT_RETENTION(LOG, "Log", PGY_RETENTION_ARGUMENT_ANY, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
+PGY_BUILTIN_ARGUMENT_RETENTION(LOG_RAW, "LogRaw", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
+PGY_BUILTIN_ARGUMENT_RETENTION(LOG_BANNER, "LogBanner", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
+PGY_BUILTIN_ARGUMENT_RETENTION(LOG_BLOCK, "LogBlock", 0, PGY_REGION_RETENTION_BORROWED_FOR_CALL)
+PGY_BUILTIN_ARGUMENT_RETENTION(COMPILER_ARTIFACT_WRITE, "CompilerArtifactWrite", 1, PGY_REGION_RETENTION_BORROWED_FOR_CALL)

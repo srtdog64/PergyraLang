@@ -1,0 +1,21 @@
+struct StringHolder {
+    text: String
+}
+
+func ProduceAliasedString(inout holder: StringHolder) -> String {
+    let value: String = ToString(42);
+    holder.text = value;
+    return value;
+}
+
+func Retire(output: Int, own fragment: String) -> Void {
+    CompilerArtifactWrite(output, fragment);
+    let fragments: Array<String> = [fragment];
+    ArrayDropOwnedStrings(fragments);
+}
+
+func Main() -> Void {
+    let holder: StringHolder = StringHolder("");
+    Retire(0, ProduceAliasedString(holder));
+    Log(holder.text);
+}

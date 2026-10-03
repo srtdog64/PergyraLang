@@ -1,0 +1,14 @@
+func ProduceExclusiveString() -> String {
+    let value: String = ToString(42);
+    return value;
+}
+
+func Retire(output: Int, own fragment: String) -> Void {
+    CompilerArtifactWrite(output, fragment);
+    let fragments: Array<String> = [fragment];
+    ArrayDropOwnedStrings(fragments);
+}
+
+func Main() -> Void {
+    Retire(0, ProduceExclusiveString());
+}

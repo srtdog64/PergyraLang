@@ -108,14 +108,13 @@ func SemanticCanonicalTypeNameFactFrom(
 func SemanticConstructedTypeNameFactFrom(
     type_name: String
 ) -> SemanticConstructedTypeNameFact {
-    let actuals: Array<String> = [];
     let canonical: String = SemanticCanonicalTypeName(type_name);
     let n: Int = StringLength(canonical);
     let open: Int = StringIndexOf(canonical, "<");
     if open <= 0 || n < open + 3 ||
         SourceByteAt(canonical, n, n - 1) != SourceByteOf(">") {
         return SemanticConstructedTypeNameFact(
-            false, canonical, "", actuals
+            false, canonical, "", []
         );
     }
     let base: String = SemanticTrimSourceRangeReuse(canonical, 0, open);
@@ -125,24 +124,25 @@ func SemanticConstructedTypeNameFactFrom(
     let count: Int = SemanticDelimitedRangeCount(ranges);
     if base == "" || count == 0 {
         return SemanticConstructedTypeNameFact(
-            false, canonical, base, actuals
+            false, canonical, base, []
         );
     }
+    let actuals: Array<String> = [];
     let i: Int = 0;
-    while i < count {
+    let actuals_ok: Bool = true;
+    while i < count && actuals_ok {
         let actual: String = SemanticCanonicalTypeName(
             SemanticDelimitedRangeText(ranges, inner, i)
         );
         if actual == "" {
-            return SemanticConstructedTypeNameFact(
-                false, canonical, base, actuals
-            );
+            actuals_ok = false;
+        } else {
+            ArrayPush(actuals, actual);
         }
-        ArrayPush(actuals, actual);
         i = i + 1;
     }
     return SemanticConstructedTypeNameFact(
-        true, canonical, base, actuals
+        actuals_ok, canonical, base, actuals
     );
 }
 
