@@ -817,8 +817,13 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   stay distinct from ordinary locals. This is not a current-token proof.
 - `src/self_hosted/semantic/builtin_argument_retention_projection_owner.pgy`
   -- generated Pergyra projection of the canonical builtin argument-retention
-  registry. It owns exact name/ordinal lookup only; it cannot invent retention
-  policy or allocation permission outside the registry definition.
+  registry. It owns stable identity/name projection and identity/ordinal lookup;
+  it cannot invent retention policy or allocation permission outside the
+  registry definition.
+- `src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy`
+  -- sparse derived join between the sealed expression-call identity and the
+  selected canonical builtin row. Same-name program/local callables, member or
+  runtime-ABI calls, and unresolved spellings issue no retention fact.
 - `src/self_hosted/semantic/ast_owned_string_actual_exclusivity_owner.pgy`
   -- exact single-owner proof for an allocated String actual across local and
   declared-result chains. Retaining, deferred, member-alias and non-comparison

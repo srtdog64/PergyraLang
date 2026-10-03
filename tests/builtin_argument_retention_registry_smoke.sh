@@ -17,6 +17,7 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 grep -Fq '#include "builtin_argument_retention_registry.def"' "$NATIVE_OWNER"
 grep -Fq 'builtin_identity: String;' "$PROJECTION"
 grep -Fq 'SemanticBuiltinArgumentRetentionIdentityForSourceName(' "$PROJECTION"
+grep -Fq 'SemanticBuiltinArgumentRetentionSourceNameForIdentity(' "$PROJECTION"
 grep -Fq 'SemanticBuiltinArgumentBorrowedForIdentity(' "$PROJECTION"
 grep -Fq 'SemanticBuiltinArgumentRetentionProjectionReady()' "$TRANSFER_OWNER"
 grep -Fq 'SemanticAstCollectionOwnershipBuiltinCall(' "$TRANSFER_OWNER"

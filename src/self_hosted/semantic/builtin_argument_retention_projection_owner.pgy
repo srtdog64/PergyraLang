@@ -37,6 +37,19 @@ func SemanticBuiltinArgumentRetentionIdentityForSourceName(source_name: String) 
     return None;
 }
 
+func SemanticBuiltinArgumentRetentionSourceNameForIdentity(builtin_identity: String) -> Option<String> {
+    if builtin_identity == "" { return None; }
+    let row_index: Int = 0;
+    while row_index < SemanticBuiltinArgumentRetentionCount() {
+        let row: SemanticBuiltinArgumentRetentionRow = SemanticBuiltinArgumentRetentionRowAt(row_index);
+        if row.valid && row.builtin_identity == builtin_identity {
+            return Some(row.source_name);
+        }
+        row_index = row_index + 1;
+    }
+    return None;
+}
+
 func SemanticBuiltinArgumentBorrowedForIdentity(builtin_identity: String, argument_ordinal: Int) -> Bool {
     if builtin_identity == "" || argument_ordinal < 0 { return false; }
     let row_index: Int = 0;
@@ -75,8 +88,14 @@ func SemanticBuiltinArgumentRetentionProjectionReady() -> Bool {
         SemanticBuiltinArgumentRetentionIdentityForSourceName("StringLength");
     let unknown: Option<String> =
         SemanticBuiltinArgumentRetentionIdentityForSourceName("UserCompilerArtifactWrite");
+    let string_length_name: Option<String> =
+        SemanticBuiltinArgumentRetentionSourceNameForIdentity("STRING_LENGTH");
+    let unknown_name: Option<String> =
+        SemanticBuiltinArgumentRetentionSourceNameForIdentity("USER_STRING_LENGTH");
     return IsSome(string_length) &&
         UnwrapOption(string_length) == "STRING_LENGTH" && !IsSome(unknown) &&
+        IsSome(string_length_name) &&
+        UnwrapOption(string_length_name) == "StringLength" && !IsSome(unknown_name) &&
         SemanticBuiltinArgumentBorrowedForIdentity("COMPILER_ARTIFACT_WRITE", 1) &&
         !SemanticBuiltinArgumentBorrowedForIdentity("COMPILER_ARTIFACT_WRITE", 0) &&
         SemanticBuiltinArgumentBorrowedForIdentity("LOG", 7) &&

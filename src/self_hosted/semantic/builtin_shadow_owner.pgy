@@ -178,6 +178,14 @@ func SemanticProgramFunctionClaimsName(
     return false;
 }
 
+func SemanticBuiltinSignatureSelectedForProgram(
+    signatures: SemanticAstFunctionSignatureFacts,
+    name: String
+) -> Bool {
+    return SemanticBuiltinNameReservationFor(name).reserved ||
+        !SemanticProgramFunctionClaimsName(signatures, name);
+}
+
 // A reserved spelling keeps its builtin row, so a declaration that reaches
 // the table without the admission check below still fails the table.
 func SeedSemanticOwnedBuiltinSignaturesUnclaimed(
@@ -193,8 +201,7 @@ func SeedSemanticOwnedBuiltinSignaturesUnclaimed(
         if ArrayLength(parts) != 3 {
             return false;
         }
-        if SemanticBuiltinNameReservationFor(parts[0]).reserved ||
-            !SemanticProgramFunctionClaimsName(signatures, parts[0]) {
+        if SemanticBuiltinSignatureSelectedForProgram(signatures, parts[0]) {
             let param_types: String = parts[2];
             if param_types == "none" {
                 param_types = "";

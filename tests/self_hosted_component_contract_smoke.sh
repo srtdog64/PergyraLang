@@ -23379,6 +23379,15 @@ require_file "src/self_hosted/semantic/ast_owned_string_local_reassignment_owner
 require_file "src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy" 120
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy"
+require_file "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy" 200
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy"
+require_function_text "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy" \
+    "func SemanticAstBuiltinArgumentRetentionRecordResolvedCall(" \
+    "SemanticAstCollectionOwnershipBuiltinCall("
+require_function_text "src/self_hosted/semantic/ast_builtin_argument_retention_call_fact_owner.pgy" \
+    "func SemanticAstBuiltinArgumentRetentionIdentityForCall(" \
+    "SemanticExpressionCallIdentityEqual("
 require_function_text "src/self_hosted/semantic/ast_numeric_string_allocation_call_owner.pgy" \
     "func SemanticAstNumericStringAllocationRecordResolvedCall(" \
     "SemanticExpressionGraphScalarTypeName("
