@@ -163,7 +163,8 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
          * the declared-copy boundary for a world-owned zone (docs/157). */
         semantic_reject_world_zone_member_escape(expr, ctx);
         semantic_bound_party_note_value_use(ctx, expr);
-        if (bk != BUILTIN_NOT_BUILTIN)
+        if (bk != BUILTIN_NOT_BUILTIN
+            && !builtin_kind_requires_stdlib_target_fact(bk))
             return type_check_builtin_call(expr, bk, ctx);
 
         /* A lexical value owns this call target, including a non-callable

@@ -6,6 +6,8 @@
 #ifndef PERGYRA_BUILTIN_KIND_H
 #define PERGYRA_BUILTIN_KIND_H
 
+#include <stdbool.h>
+
 typedef enum
 {
     BUILTIN_CLAIM_SLOT,
@@ -92,5 +94,6 @@ typedef enum
 } BuiltinKind;
 
 BuiltinKind builtin_resolve(const char *name);
+bool builtin_kind_requires_stdlib_target_fact(BuiltinKind kind);
 
 #endif /* PERGYRA_BUILTIN_KIND_H */

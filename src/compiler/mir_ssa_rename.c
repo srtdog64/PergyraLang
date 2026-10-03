@@ -195,7 +195,9 @@ mir_collect_expr_identifier_uses(ASTNode *node,
             && ast_call_semantic_callee_value_binding_id(node) == 0
             && ast_identifier_binding_syntax_id(callee) == 0
             && ast_call_semantic_callee_builtin_kind(node, &builtin)
-            && (builtin < (uint32_t)BUILTIN_NOT_BUILTIN
+            && ((builtin < (uint32_t)BUILTIN_NOT_BUILTIN
+                 && !builtin_kind_requires_stdlib_target_fact(
+                     (BuiltinKind)builtin))
                 || ast_call_semantic_callee_is_stdlib(node));
         if (!builtin_target && !mir_collect_expr_identifier_uses(callee,
                                               uses,

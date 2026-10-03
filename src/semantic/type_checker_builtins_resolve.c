@@ -132,3 +132,11 @@ builtin_resolve(const char *name)
 
     return entry != NULL ? entry->kind : BUILTIN_NOT_BUILTIN;
 }
+
+bool
+builtin_kind_requires_stdlib_target_fact(BuiltinKind kind)
+{
+    return kind == BUILTIN_STRING_LENGTH
+        || kind == BUILTIN_CHAR_CODE
+        || kind == BUILTIN_CONCAT;
+}
