@@ -737,6 +737,22 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   provenance, including direct Let moves from the current value. Own storage
   mode never grants Empty/Clone elements or reuses a previous definition's bound.
   Borrowed Let handoffs are non-consuming and carry no element-release grant.
+- `src/self_hosted/semantic/ast_collection_owned_result_plan_owner.pgy` --
+  bounded fixed-point rows for exact runtime callables whose `Array<String>`
+  result has fresh exclusive storage and empty-or-owned elements. Type spelling,
+  function names, opaque empty returns and ungrounded recursion grant no row.
+- `src/self_hosted/semantic/ast_collection_owned_result_definition_owner.pgy`
+  -- exact initial-definition attachment for a proved result-call target.
+  Assignment rows remain unproved so an earlier result cannot authorize a later
+  write.
+- `src/self_hosted/semantic/ast_collection_owned_result_return_owner.pgy` --
+  return-event seal for the current live exclusive definition. It consumes the
+  exact result plan and retires a transferred local; missing storage, borrowed
+  elements, opaque effects and prior release fail closed.
+- `src/self_hosted/semantic/ast_declared_runtime_call_identity_owner.pgy` --
+  shared direct/namespace declared-call identity joined to exact binding,
+  runtime ABI, signature row, arity and return facts. A carried target ID alone
+  is not callable authority.
 - `src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy`
   -- resolves one reached physical argument, binding and storage source before
   delegating only its selected formal effect.

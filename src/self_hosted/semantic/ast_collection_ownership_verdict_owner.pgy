@@ -22,6 +22,9 @@ import "ast_collection_ownership_verdict_carrier_owner.pgy";
 import "ast_collection_ownership_identity_owner.pgy";
 import "ast_collection_ownership_assignment_alias_owner.pgy";
 import "ast_collection_definition_transition_owner.pgy";
+import "ast_collection_owned_result_plan_owner.pgy";
+import "ast_collection_owned_result_definition_owner.pgy";
+import "ast_collection_owned_result_return_owner.pgy";
 import "ast_collection_ownership_binding_move_use_owner.pgy";
 import "ast_collection_ownership_member_transition_owner.pgy";
 import "ast_collection_ownership_argument_transfer_owner.pgy";
@@ -76,11 +79,29 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
             SemanticError1("ast_artifact_invalid", "owner",
                 "SemanticAstCollectionOwnershipVerdict"), -1, -1);
     }
+    let owned_result_plan: SemanticAstFreshOwnedStringArrayResultPlan =
+        SemanticAstFreshOwnedStringArrayResultPlanFromResolvedFacts(
+            artifact, signatures, locals, initializer_types, surfaces,
+            statements);
+    if !SemanticAstFreshOwnedStringArrayResultPlanReady(
+            owned_result_plan, signatures) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "collection_owned_result_plan"), -1, -1);
+    }
     let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFactsFromResolvedFacts(
         artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, assignments, assignment_types);
     if !definitions.ok {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "collection_assignment_definition"), -1, -1);
+    }
+    if !SemanticAstCollectionOwnedResultDefinitionsApply(
+            signatures, surfaces, owned_result_plan, definitions) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "collection_owned_result_definition"), -1, -1);
     }
     let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFromDefinitions(
         signatures, locals, surfaces, definitions);
@@ -498,6 +519,13 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
                     "owned_string_literal_transfer_completion", "type",
                     "String"), surfaces.node_ids[root_slot / 3], -1);
         }
+        let returned_owned_result: SemanticAstCollectionOwnershipVerdict =
+            SemanticAstFreshOwnedStringArrayReturnTransfer(
+                artifact, signatures, locals, initializer_types, surfaces,
+                statements, owned_result_plan, definitions, storage,
+                call_effects, current_definitions, root_slot, ownership,
+                dispositions, origins, transition_states);
+        if !returned_owned_result.ok { return returned_owned_result; }
         if !SemanticAstIndexedStringBorrowCompleteValue(
                 artifact, locals, initializer_types.inferred_type_names,
                 surfaces, assignments, definitions, storage,
@@ -585,7 +613,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
     return SemanticAstCollectionOwnershipVerdictOkWithFacts(
         function_syntax_ids, binding_syntax_ids, carried_origin_syntax_ids,
         carried_source_binding_syntax_ids, element_ownerships,
-        carried_dispositions, carried_origins, receipts
+        carried_dispositions, carried_origins,
+        owned_result_plan.function_syntax_ids, receipts
     );
 }
 

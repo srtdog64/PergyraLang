@@ -23,6 +23,7 @@ func SemanticAstCollectionStorageAuthorityFromDefinitions(
     if !definitions.ok || definitions.local_count != ArrayLength(locals.node_ids) ||
         ArrayLength(definitions.value_nodes) != n || ArrayLength(definitions.local_sources) != n ||
         ArrayLength(definitions.binding_rows) != n || ArrayLength(definitions.fresh) != n ||
+        ArrayLength(definitions.owned_result_function_syntax_ids) != n ||
         ArrayLength(definitions.shallow_alias_admitted) != n { return facts; }
     let row: Int = 0;
     while row < n {
@@ -55,7 +56,7 @@ func SemanticAstCollectionStorageAuthorityFromDefinitions(
         }
         ArrayPush(facts.borrowed_definitions, is_borrowed);
         ArrayPush(facts.borrowed_seed_sources, seed_source);
-        if source_id <= 0 { source_id = SemanticAstCollectionDefinitionDirectStorageSource(locals, surfaces, definitions, row); }
+        if source_id <= 0 { source_id = SemanticAstCollectionDefinitionDirectStorageSource(signatures, locals, surfaces, definitions, row); }
         ArrayPush(facts.producer_source_ids, source_id);
         row = row + 1;
     }

@@ -3476,6 +3476,14 @@ require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "stru
 require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "func SemanticTopLevelOperatorFactsFromExpression"
 require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "assignment_index: Int;"
 require_function_text "src/self_hosted/semantic/body_check_owner.pgy" \
+    "func CheckBody(" 'let mutation_error: String = SemanticCollectionMutationError('
+require_function_text "src/self_hosted/semantic/body_check_owner.pgy" \
+    "func CheckBody(" '"ArraySet", receiver,'
+for collection_environment_view in names types modes; do
+    require_function_text "src/self_hosted/semantic/body_check_owner.pgy" \
+        "func CheckBody(" "$collection_environment_view.Slice(0, ArrayLength($collection_environment_view))"
+done
+reject_function_text "src/self_hosted/semantic/body_check_owner.pgy" \
     "func CheckBody(" '"ArraySet", receiver, names, types, modes, internal_caller_ready'
 require_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "struct SemanticDelimitedRangeFacts"
 require_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "func SemanticNestedCommaRangeFactsFromSource"
@@ -20532,7 +20540,11 @@ require_max_lines "tests/self_hosted/parity/direct_mir_cfg_identity_digest_refer
 # Readonly source boundary inventory.
 require_max_lines "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" 300
 require_function_text "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" \
-    "func SemanticCollectionMutationError(" 'mode != "default_param" && mode != "ref_param"'
+    "func SemanticCollectionMutationResolvedError(" 'mode != "default_param" && mode != "ref_param"'
+require_function_text "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" \
+    "func SemanticCollectionMutationError(" 'return SemanticCollectionMutationResolvedError('
+reject_function_text "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" \
+    "func SemanticCollectionMutationError(" 'mode != "default_param"'
 require_max_lines "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" 286
 require_function_text "src/self_hosted/semantic/ast_named_value_boundary_verdict_owner.pgy" \
     "func SemanticAstReadonlySequenceBoundaryVerdict(" 'SemanticExpressionGraphPlaceKind('
@@ -28905,8 +28917,12 @@ require_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requ
     'MapSize(rows) != count'
 require_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy" \
     'facts.formal_modes[row] < 0 || facts.formal_modes[row] > 3'
-require_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy" \
-    'facts.local_ids[row] == local_id'
+require_function_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy" \
+    "func SemanticAstCollectionAggregateFieldEntryRequirementRecord(" \
+    'facts.local_ids[row] != local_id'
+require_function_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy" \
+    "func SemanticAstCollectionAggregateFieldEntryRequirementRecord(" \
+    'SemanticAstCollectionAggregateFieldEntryIndexRow(facts.row_by_local, local_id)'
 for entry_forbidden in 'SemanticAstCollectionOwnershipOwnedElements()' 'SemanticAstCollectionTransitionClean()' 'TypedAstArena'; do
     reject_text "src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy" "$entry_forbidden"
 done

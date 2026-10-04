@@ -18,7 +18,7 @@ func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
     let alias_flags: Array<Bool> = [];
     let facts: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFacts(
         false, ArrayLength(locals.node_ids), ints, ints, ints, ints, ints, ints,
-        ints, ints, ints, ints, flags, alias_flags);
+        ints, ints, ints, ints, ints, flags, alias_flags);
     let n: Int = ArrayLength(assignments.node_ids);
     if !assignments.ok || !types.ok || !SemanticAstLocalBindingIdentityRowsReady(locals, inferred_types) ||
         ArrayLength(locals.scope_node_ids) != facts.local_count ||
@@ -52,7 +52,9 @@ func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
         ArrayPush(facts.own_sources, own_source); ArrayPush(facts.local_sources, local_source);
         ArrayPush(facts.origins, SemanticAstCollectionOriginUnknown());
         ArrayPush(facts.ownerships, SemanticAstCollectionOwnershipUnknown());
-        ArrayPush(facts.transitions, SemanticAstCollectionTransitionUntracked()); ArrayPush(facts.fresh, true);
+        ArrayPush(facts.transitions, SemanticAstCollectionTransitionUntracked());
+        ArrayPush(facts.owned_result_function_syntax_ids, 0);
+        ArrayPush(facts.fresh, true);
         ArrayPush(facts.shallow_alias_admitted,
             local_source >= 0 || borrowed_formal_source);
         row = row + 1;
@@ -125,7 +127,9 @@ func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
         ArrayPush(facts.target_nodes, target_node); ArrayPush(facts.value_nodes, value_node);
         ArrayPush(facts.own_sources, own_source); ArrayPush(facts.local_sources, local_source);
         ArrayPush(facts.origins, origin); ArrayPush(facts.ownerships, state);
-        ArrayPush(facts.transitions, transition); ArrayPush(facts.fresh, fresh);
+        ArrayPush(facts.transitions, transition);
+        ArrayPush(facts.owned_result_function_syntax_ids, 0);
+        ArrayPush(facts.fresh, fresh);
         ArrayPush(facts.shallow_alias_admitted, shallow_alias_admitted);
         row = row + 1;
     }

@@ -22,7 +22,10 @@ func DirectMirRoutineInstanceTypeName(
     let sources: Array<String> = [source_type];
     let parameters: Array<String> = [];
     let expressions: SemanticAstSignatureTypeExpressionFacts = SemanticAstSignatureTypeExpressionFactsFromRows(sources, parameters);
-    return SemanticAstSignatureReturnTypeResolveAt(expressions, 0, 0, ArrayLength(formals), formals, actuals);
+    return SemanticAstSignatureReturnTypeResolveAt(
+        expressions, 0, 0, ArrayLength(formals),
+        formals.Slice(0, ArrayLength(formals)),
+        actuals.Slice(0, ArrayLength(actuals)));
 }
 
 func DirectMirRoutineInstanceInstructionCapture(

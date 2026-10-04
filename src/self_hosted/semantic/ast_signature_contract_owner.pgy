@@ -142,7 +142,9 @@ func SemanticAstFunctionSignatureFactsContractReady() -> Bool {
         SemanticAstSignatureReturnTypeResolveAt(
             generic_facts.type_expressions, 0,
             generic_facts.generic_starts[0], generic_facts.generic_counts[0],
-            generic_facts.generic_names, bindings
+            generic_facts.generic_names.Slice(
+                0, ArrayLength(generic_facts.generic_names)),
+            bindings.Slice(0, ArrayLength(bindings))
         );
     return SemanticAstFunctionSignatureFactsMatchArtifact(
         generic_artifact, generic_facts

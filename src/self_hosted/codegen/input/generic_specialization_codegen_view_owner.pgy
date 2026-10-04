@@ -320,7 +320,10 @@ func CodegenGenericResolvedParamTypeOrDie(
             signatures.type_expressions,
             signatures.type_expressions.parameter_roots[UnwrapOption(flat)],
             signatures.generic_starts[signature_index],
-            UnwrapOption(generic_count), signatures.generic_names, actuals
+            UnwrapOption(generic_count),
+            signatures.generic_names.Slice(
+                0, ArrayLength(signatures.generic_names)),
+            actuals.Slice(0, ArrayLength(actuals))
         );
     if !IsSome(resolved) {
         Die("generic specialization parameter type is unresolved");
@@ -348,7 +351,10 @@ func CodegenGenericResolvedReturnTypeOrDie(
     let resolved: Option<String> = SemanticAstSignatureReturnTypeResolveAt(
         signatures.type_expressions, signature_index,
         signatures.generic_starts[signature_index],
-        UnwrapOption(generic_count), signatures.generic_names, actuals
+        UnwrapOption(generic_count),
+        signatures.generic_names.Slice(
+            0, ArrayLength(signatures.generic_names)),
+        actuals.Slice(0, ArrayLength(actuals))
     );
     if !IsSome(resolved) {
         Die("generic specialization return type is unresolved");

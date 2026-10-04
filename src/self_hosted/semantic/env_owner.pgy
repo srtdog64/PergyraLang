@@ -34,3 +34,29 @@ func EnvMode(
     }
     return "unknown";
 }
+
+func EnvSliceLookup(
+    names: Slice<String>, types: Slice<String>, name: String
+) -> String {
+    if ArrayLength(names) != ArrayLength(types) { return "Unknown"; }
+    let i: Int = ArrayLength(names) - 1;
+    while i >= 0 {
+        let candidate: String = Concat("", names[i]);
+        if candidate == name { return Concat("", types[i]); }
+        i = i - 1;
+    }
+    return "Unknown";
+}
+
+func EnvSliceMode(
+    names: Slice<String>, modes: Slice<String>, name: String
+) -> String {
+    if ArrayLength(names) != ArrayLength(modes) { return "unknown"; }
+    let i: Int = ArrayLength(names) - 1;
+    while i >= 0 {
+        let candidate: String = Concat("", names[i]);
+        if candidate == name { return Concat("", modes[i]); }
+        i = i - 1;
+    }
+    return "unknown";
+}

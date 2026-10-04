@@ -10,7 +10,7 @@ func SemanticAstFunctionStringResultAllocationDomain(
     ref facts: SemanticAstOwnedStringResultFacts,
     ref numeric: SemanticAstNumericStringAllocationCalls, signature_row: Int
 ) -> SemanticAstOwnedStringAllocationDomain {
-    if !SemanticAstOwnedStringSignatureRowReady(signatures, signature_row) ||
+    if !SemanticAstRuntimeCallableSignatureRowReady(signatures, signature_row) ||
         signatures.return_types[signature_row] != "String" || !signatures.runtime_callables[signature_row] {
         return SemanticAstOwnedStringDomainUnknown();
     }
@@ -51,7 +51,7 @@ func SemanticAstOwnedStringResultFactsFromResolvedFacts(
 ) -> SemanticAstOwnedStringResultFacts {
     let signature_row: Int = 0;
     while signature_row < ArrayLength(signatures.function_node_ids) {
-        if !SemanticAstOwnedStringSignatureRowReady(signatures, signature_row) {
+        if !SemanticAstRuntimeCallableSignatureRowReady(signatures, signature_row) {
             return SemanticAstOwnedStringResultFactsEmpty();
         }
         signature_row = signature_row + 1;

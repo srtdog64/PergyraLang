@@ -38,11 +38,8 @@ func SemanticCompilerRetireArrayStorageCallerError(
     );
 }
 
-func SemanticCompilerRetireArrayStorageError(
-    receiver: String,
-    names: Array<String>,
-    types: Array<String>,
-    modes: Array<String>,
+func SemanticCompilerRetireArrayStorageResolvedError(
+    receiver: String, receiver_type: String, mode: String,
     internal_caller_ready: Bool
 ) -> String {
     let caller_error: String =
@@ -53,14 +50,12 @@ func SemanticCompilerRetireArrayStorageError(
             "array_drop_storage_requires_binding", "receiver", receiver
         );
     }
-    let receiver_type: String = EnvLookup(names, types, receiver);
     if !StringContains(receiver_type, "Array<") {
         return SemanticError2(
             "array_drop_storage_requires_array", "receiver", receiver,
             "type", receiver_type
         );
     }
-    let mode: String = EnvMode(names, modes, receiver);
     if mode == "default_param" || mode == "ref_param" {
         return SemanticError3(
             "value_param_collection_mutation", "func", "CompilerRetireArrayStorage",
@@ -70,14 +65,33 @@ func SemanticCompilerRetireArrayStorageError(
     return "";
 }
 
-func SemanticPublicArrayDropReceiverError(receiver: String,
-    names: Array<String>, types: Array<String>, modes: Array<String>) -> String {
-    let mode: String = EnvMode(names, modes, receiver);
-    if !IsIdentText(receiver) || !IsSome(SemanticArrayElementType(EnvLookup(names, types, receiver))) ||
+func SemanticCompilerRetireArrayStorageError(
+    receiver: String, names: Slice<String>, types: Slice<String>,
+    modes: Slice<String>, internal_caller_ready: Bool
+) -> String {
+    return SemanticCompilerRetireArrayStorageResolvedError(
+        receiver, EnvSliceLookup(names, types, receiver),
+        EnvSliceMode(names, modes, receiver), internal_caller_ready);
+}
+
+func SemanticPublicArrayDropResolvedError(
+    receiver: String, receiver_type: String, mode: String
+) -> String {
+    if !IsIdentText(receiver) ||
+        !IsSome(SemanticArrayElementType(receiver_type)) ||
         mode == "default_param" || mode == "ref_param" || mode == "inout_param" {
         return "ArrayDrop requires one named owned Array<T> binding; borrowed parameters cannot release storage";
     }
     return "";
+}
+
+func SemanticPublicArrayDropReceiverError(
+    receiver: String, names: Slice<String>, types: Slice<String>,
+    modes: Slice<String>
+) -> String {
+    return SemanticPublicArrayDropResolvedError(
+        receiver, EnvSliceLookup(names, types, receiver),
+        EnvSliceMode(names, modes, receiver));
 }
 
 func SemanticCollectionTypeName(type_name: String) -> Bool {
@@ -88,28 +102,23 @@ func SemanticCollectionTypeName(type_name: String) -> Bool {
         StringContains(type_name, "HashMap<");
 }
 
-func SemanticCollectionMutationError(
-    callee: String,
-    receiver: String,
-    names: Array<String>,
-    types: Array<String>,
-    modes: Array<String>,
+func SemanticCollectionMutationResolvedError(
+    callee: String, receiver: String, receiver_type: String, mode: String,
     internal_caller_ready: Bool
 ) -> String {
     if callee == "ArrayDrop" {
-        return SemanticPublicArrayDropReceiverError(receiver, names, types, modes);
+        return SemanticPublicArrayDropResolvedError(
+            receiver, receiver_type, mode);
     }
     if callee == "CompilerRetireArrayStorage" {
-        return SemanticCompilerRetireArrayStorageError(
-            receiver, names, types, modes, internal_caller_ready
+        return SemanticCompilerRetireArrayStorageResolvedError(
+            receiver, receiver_type, mode, internal_caller_ready
         );
     }
     if !SemanticCollectionMutatorName(callee) || !IsIdentText(receiver) {
         return "";
     }
-    let mode: String = EnvMode(names, modes, receiver);
     if mode != "default_param" && mode != "ref_param" { return ""; }
-    let receiver_type: String = EnvLookup(names, types, receiver);
     if !SemanticCollectionTypeName(receiver_type) { return ""; }
     let mode_name: String = "default";
     if mode == "ref_param" { mode_name = "ref"; }
@@ -119,35 +128,42 @@ func SemanticCollectionMutationError(
     );
 }
 
+func SemanticCollectionMutationError(
+    callee: String, receiver: String, names: Slice<String>,
+    types: Slice<String>, modes: Slice<String>, internal_caller_ready: Bool
+) -> String {
+    return SemanticCollectionMutationResolvedError(
+        callee, receiver, EnvSliceLookup(names, types, receiver),
+        EnvSliceMode(names, modes, receiver), internal_caller_ready);
+}
+
 func SemanticCollectionMutationPolicyContractReady() -> Bool {
     return SemanticCollectionMutatorName("CompilerRetireArrayStorage") &&
         SemanticCollectionMutatorName("ArrayPush") &&
         SemanticCollectionMutatorName("MapRemove") &&
         !SemanticCollectionMutatorName("ArrayLength") &&
         SemanticCollectionTypeName("Array<Int>") &&
-        StringLength(SemanticCollectionMutationError(
-            "ArrayPush", "xs", ["xs"], ["Array<Int>"],
-            ["default_param"], false
-        )) > 0 && StringLength(SemanticCollectionMutationError(
-            "ArrayPush", "xs", ["xs"], ["Array<Int>"],
-            ["ref_param"], false
-        )) > 0 && StringLength(SemanticCollectionMutationError(
-            "ArraySet", "xs", ["xs"], ["Array<Int>"],
-            ["ref_param"], false
-        )) > 0 && SemanticCollectionMutationError(
-            "ArrayLength", "xs", ["xs"], ["Array<Int>"],
-            ["ref_param"], false
-        ) == "" && StringLength(SemanticCollectionMutationError(
-            "ListPush", "xs", ["xs"], ["List<Int>"],
-            ["ref_param"], false
-        )) > 0 && SemanticCollectionMutationError(
-            "ArrayPush", "xs", ["xs"], ["Array<Int>"], ["inout_param"],
-            false
-        ) == "" && StringLength(SemanticCompilerRetireArrayStorageError(
-            "xs", ["xs"], ["Array<Int>"], ["ref_param"], true
-        )) > 0 && SemanticCompilerRetireArrayStorageError(
-            "xs", ["xs"], ["Array<Int>"], ["local"], true
-        ) == "" && StringLength(SemanticCompilerRetireArrayStorageError(
-            "xs", ["xs"], ["Array<Int>"], ["local"], false
-        )) > 0;
+        StringLength(SemanticCollectionMutationResolvedError(
+            "ArrayPush", "xs", "Array<Int>", "default_param", false
+        )) > 0 && StringLength(SemanticCollectionMutationResolvedError(
+            "ArrayPush", "xs", "Array<Int>", "ref_param", false
+        )) > 0 && StringLength(SemanticCollectionMutationResolvedError(
+            "ArraySet", "xs", "Array<Int>", "ref_param", false
+        )) > 0 && SemanticCollectionMutationResolvedError(
+            "ArrayLength", "xs", "Array<Int>", "ref_param", false
+        ) == "" && StringLength(SemanticCollectionMutationResolvedError(
+            "ListPush", "xs", "List<Int>", "ref_param", false
+        )) > 0 && SemanticCollectionMutationResolvedError(
+            "ArrayPush", "xs", "Array<Int>", "inout_param", false
+        ) == "" && StringLength(
+            SemanticCompilerRetireArrayStorageResolvedError(
+                "xs", "Array<Int>", "ref_param", true
+            )
+        ) > 0 && SemanticCompilerRetireArrayStorageResolvedError(
+            "xs", "Array<Int>", "local", true
+        ) == "" && StringLength(
+            SemanticCompilerRetireArrayStorageResolvedError(
+                "xs", "Array<Int>", "local", false
+            )
+        ) > 0;
 }

@@ -102,7 +102,7 @@ func SemanticAstOwnedStringCallAllocationDomain(
     if start < 0 { return SemanticAstOwnedStringDomainUnknown(); }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(surfaces.expression_graph, root);
     if !SemanticAstOwnedStringCallSourceReady(call, start, root) { return SemanticAstOwnedStringDomainUnknown(); }
-    let signature: Option<Int> = SemanticAstOwnedStringDeclaredCallSignature(
+    let signature: Option<Int> = SemanticAstDeclaredRuntimeCallSignature(
         signatures, surfaces.expression_graph, call.call_node);
     if !IsSome(signature) { return SemanticAstOwnedStringDomainUnknown(); }
     let row: Int = UnwrapOption(signature);

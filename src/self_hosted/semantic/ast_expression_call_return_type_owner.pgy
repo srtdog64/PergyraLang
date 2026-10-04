@@ -89,7 +89,10 @@ func SemanticExpressionCallReturnProjectionAt(
             SemanticAstSignatureReturnTypeResolveAt(
                 signatures.type_expressions, signature_index,
                 signatures.generic_starts[signature_index],
-                UnwrapOption(generic_count), signatures.generic_names, actuals
+                UnwrapOption(generic_count),
+                signatures.generic_names.Slice(
+                    0, ArrayLength(signatures.generic_names)),
+                actuals.Slice(0, ArrayLength(actuals))
             );
         if !IsSome(resolved) || UnwrapOption(resolved) == "" ||
             SemanticTypeNameContainsUnresolvedUnknown(UnwrapOption(resolved)) {

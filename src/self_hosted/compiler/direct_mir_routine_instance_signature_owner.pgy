@@ -34,7 +34,9 @@ func DirectMirRoutineInstanceParameters(
     let row: Int = 0;
     while row < ArrayLength(source.names) {
         let resolved: Option<String> = SemanticAstSignatureTypeExpressionResolveRoot(
-            types, types.parameter_roots[row], 0, ArrayLength(formals), formals, actuals);
+            types, types.parameter_roots[row], 0, ArrayLength(formals),
+            formals.Slice(0, ArrayLength(formals)),
+            actuals.Slice(0, ArrayLength(actuals)));
         if !IsSome(resolved) { return DirectMirRoutineParameterSetFactInvalid(); }
         let type_name: String = UnwrapOption(resolved);
         if type_name != source.type_names[row] {
@@ -123,7 +125,9 @@ func DirectMirRoutineInstanceSignatureFromClosure(
     let types: SemanticAstSignatureTypeExpressionFacts = SemanticAstSignatureTypeExpressionFactsFromRows(
         returns, source.parameters.type_names);
     let return_type: Option<String> = SemanticAstSignatureReturnTypeResolveAt(
-        types, 0, 0, ArrayLength(formals), formals, actuals);
+        types, 0, 0, ArrayLength(formals),
+        formals.Slice(0, ArrayLength(formals)),
+        actuals.Slice(0, ArrayLength(actuals)));
     if !IsSome(return_type) || (UnwrapOption(return_type) != source.return_type &&
             !DirectMirScalarCfgScalarTypeSupported(UnwrapOption(return_type))) {
         return DirectMirRoutineInstanceSignatureError("generic routine instance return ABI requires a concrete non-scalar receipt");

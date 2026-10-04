@@ -130,7 +130,7 @@ func InspectConstructorEffectFrame(mutation: Int) -> Bool {
     }
     let ints: Array<Int> = [1, 2, 3];
     let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFacts(
-        true, 3, ints, ints, ints, ints, ints, ints, ints, ints, ints, ints,
+        true, 3, ints, ints, ints, ints, ints, ints, ints, ints, ints, ints, ints,
         [true, true, true], [false, true, true]);
     let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFacts(
         true, [false, true, true], [-1, -1, -1], [1, 0, 0]);

@@ -403,7 +403,10 @@ func SemanticAstExpressionVerdictFromGraphCore(
     }
     let collection_mutation: SemanticExpressionGraphCollectionMutationFact =
         SemanticExpressionGraphCollectionMutationFactFromGraph(
-            graph, root_id, names, types, modes,
+            graph, root_id,
+            names.Slice(0, ArrayLength(names)),
+            types.Slice(0, ArrayLength(types)),
+            modes.Slice(0, ArrayLength(modes)),
             SemanticCompilerRetireArrayStorageCallerReady(
                 signatures, current_function_node_id
             )

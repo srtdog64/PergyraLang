@@ -93,8 +93,84 @@ grep -Fq 'SemanticAstSignatureReturnTypeResolveAt(' "$GENERIC_CALL_OWNER" ||
     { echo "[$LABEL] composite return ignores typed return facts" >&2; exit 1; }
 grep -Fq 'SemanticAstSignatureParameterTypesBind(' "$GENERIC_CALL_OWNER" ||
     { echo "[$LABEL] batched nested parameter binding ignores typed parameter facts" >&2; exit 1; }
-grep -Fq 'own bindings: Array<String>' "$TYPE_BINDING_OWNER" ||
-    { echo "[$LABEL] generic binding does not consume its prior row" >&2; exit 1; }
+binding_body="$(sed -n '/^func SemanticAstSignatureParameterTypesBind(/,/^}/p' \
+    "$TYPE_BINDING_OWNER")"
+binding_signature="$(sed -n '1,/) -> Array<String> {/p' <<<"$binding_body")"
+grep -Eq '^\) -> Array<String> \{[[:space:]]*$' <<<"$binding_signature" ||
+    { echo "[$LABEL] named binding signature lacks an Array<String> result" >&2; exit 1; }
+grep -Eq '^[[:space:]]*own parameter_indices: Array<Int>,[[:space:]]*$' \
+    <<<"$binding_signature" ||
+    { echo "[$LABEL] generic binding does not consume its index row" >&2; exit 1; }
+for view in generic_names parameter_actual_types bindings; do
+    grep -Eq "^[[:space:]]*$view: Slice<String>,?[[:space:]]*$" \
+        <<<"$binding_signature" || {
+        echo "[$LABEL] named binding signature lacks borrowed view: $view" >&2
+        exit 1
+    }
+done
+grep -Fq 'func SemanticAstSignatureTypeExpressionFormalIndex(' \
+    "$TYPE_EXPRESSION_OWNER" ||
+    { echo "[$LABEL] generic-name view owner is missing" >&2; exit 1; }
+if grep -Eq 'own (generic_names|parameter_actual_types|bindings):' \
+    <<<"$binding_signature"; then
+    echo "[$LABEL] generic binding revived read-then-consume input authority" >&2
+    exit 1
+fi
+# Structural inventory only; the C/LLVM oracle below owns executable parity.
+binding_spine="$(tr -d '[:space:]' <<<"$binding_body")"
+for term in \
+    'letnext_bindings:Array<String>=[];' \
+    'ArrayPushOwnedString(next_bindings,existing_binding);' \
+    'ArrayPushOwnedString(next_bindings,update_type_names[update_row]);' \
+    'ArrayDrop(parameter_indices);' \
+    'returnnext_bindings;'; do
+    grep -Fq "$term" <<<"$binding_spine" || {
+        echo "[$LABEL] named binding owner lacks fresh-result materialization: $term" >&2
+        exit 1
+    }
+done
+if grep -Eq 'Array(Drop(OwnedStrings)?|Set|Push(OwnedString)?)\((generic_names|parameter_actual_types|bindings)[,)]' \
+    <<<"$binding_spine"; then
+    echo "[$LABEL] named binding owner retires or mutates a borrowed input" >&2
+    exit 1
+fi
+if grep -Fq 'SemanticAstSignatureParameterTypeBindAt(' \
+    "$TYPE_BINDING_OWNER" "$GENERIC_CALL_OWNER" "$SOURCE"; then
+    echo "[$LABEL] live generic binding code revived the retired per-parameter wrapper" >&2
+    exit 1
+fi
+while IFS='|' read -r caller name actual prior result; do
+    caller_body="$(sed -n "/^func $name(/,/^}/p" "$caller")"
+    call_spine="$(sed -n \
+        '/^[[:space:]]*SemanticAstSignatureParameterTypesBind(/,/^[[:space:]]*);[[:space:]]*$/p' \
+        <<<"$caller_body" | tr -d '[:space:]')"
+    for view in 'signatures.generic_names' "$actual" "$prior"; do
+        grep -Fq "$view.Slice(0,ArrayLength($view))" <<<"$call_spine" || {
+            echo "[$LABEL] $name does not pass a call-bounded input view: $view" >&2
+            exit 1
+        }
+    done
+    awk -v actual="ArrayDropOwnedStrings($actual);" \
+        -v prior="ArrayDropOwnedStrings($prior);" \
+        -v result="ArrayDropOwnedStrings($result);" '
+        index($0, "SemanticAstSignatureParameterTypesBind(") { in_call = 1 }
+        in_call && /^[[:space:]]*\);[[:space:]]*$/ { returned = 1; in_call = 0 }
+        index($0, actual) { if (!returned) bad = 1; actual_count++ }
+        index($0, prior) { if (!returned) bad = 1; prior_count++ }
+        index($0, result) {
+            if (!returned || actual_count != 1 || prior_count != 1) bad = 1
+            result_count++
+        }
+        END { exit (!bad && returned && actual_count == 1 &&
+            prior_count == 1 && result_count == 1) ? 0 : 1 }
+    ' <<<"$caller_body" || {
+        echo "[$LABEL] $name lacks ordered caller-owned input/result retirement" >&2
+        exit 1
+    }
+done <<EOF
+$GENERIC_CALL_OWNER|SemanticExpressionGraphGenericCallFactCaptureFromGraph|binding_actual_type_names|bindings|resolved_bindings
+$SOURCE|GenericReturnProbeNestedMismatchRejected|actual_types|bindings|after_binding
+EOF
 grep -Fq 'SemanticAstSignatureTypeBindingContractReady()' "$SOURCE" ||
     { echo "[$LABEL] binding contract is not executable" >&2; exit 1; }
 if grep -Fq 'ArraySet(' "$TYPE_BINDING_OWNER"; then

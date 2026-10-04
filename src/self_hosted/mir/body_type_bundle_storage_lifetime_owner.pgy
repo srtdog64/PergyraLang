@@ -63,6 +63,8 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
         body_types.collection_ownership.dispositions;
     let collection_origins: Array<Int> =
         body_types.collection_ownership.origins;
+    let collection_owned_result_function_ids: Array<Int> =
+        body_types.collection_ownership.fresh_owned_result_function_syntax_ids;
     let receipt_function_ids: Array<Int> = body_types.collection_ownership.receipts.function_syntax_ids;
     let receipt_owner_ids: Array<Int> = body_types.collection_ownership.receipts.owner_node_ids;
     let receipt_lanes: Array<Int> = body_types.collection_ownership.receipts.lanes;
@@ -136,6 +138,7 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
     CompilerRetireArrayStorage(collection_ownerships);
     CompilerRetireArrayStorage(collection_dispositions);
     CompilerRetireArrayStorage(collection_origins);
+    CompilerRetireArrayStorage(collection_owned_result_function_ids);
     CompilerRetireArrayStorage(receipt_function_ids); CompilerRetireArrayStorage(receipt_owner_ids);
     CompilerRetireArrayStorage(receipt_lanes); CompilerRetireArrayStorage(receipt_call_ordinals);
     CompilerRetireArrayStorage(receipt_effect_kinds); CompilerRetireArrayStorage(receipt_receiver_ids);

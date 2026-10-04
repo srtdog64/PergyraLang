@@ -138,7 +138,9 @@ func CodegenValueWrapperUsageSurfaceHasFormal(
             (IsSome(parent) && UnwrapOption(parent) == function_node)) &&
             SemanticAstSignatureReturnTypeHasFormalAt(
                 signatures.type_expressions, signature_index,
-                generic_start, generic_count, signatures.generic_names
+                generic_start, generic_count,
+                signatures.generic_names.Slice(
+                    0, ArrayLength(signatures.generic_names))
             ) {
             return true;
         }
@@ -157,7 +159,8 @@ func CodegenValueWrapperUsageSurfaceHasFormal(
                 SemanticAstSignatureParameterTypeHasFormalAt(
                     signatures.type_expressions,
                     flat_parameter, generic_start,
-                    generic_count, signatures.generic_names
+                    generic_count, signatures.generic_names.Slice(
+                        0, ArrayLength(signatures.generic_names))
                 ) {
                 return true;
             }

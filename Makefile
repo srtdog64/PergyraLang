@@ -5082,7 +5082,7 @@ self-host-array-index-receiver-admission-test-smoke: self-host-compiler
 		"$(BASH)" tests/self_hosted/parity/array_mutation_receiver_use_contract.sh
 
 .PHONY: self-host-collection-ownership-semantic-test-smoke
-self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke self-host-nominal-constructor-field-identity-test-smoke self-host-collection-inout-effect-test-smoke self-host-collection-member-identity-test-smoke self-host-collection-aggregate-entry-requirement-test-smoke self-host-collection-aggregate-release-source-test-smoke self-host-collection-constructor-field-input-test-smoke collection-native-storage-escape-test-smoke
+self-host-collection-ownership-semantic-test-smoke: collection-ownership-fact-projection-test-smoke self-host-collection-ownership-fact-carrier-test-smoke hashmap-key-storage-runtime-test-smoke hashmap-admission-test-smoke self-host-public-array-drop-test-smoke self-host-nominal-constructor-field-identity-test-smoke self-host-collection-inout-effect-test-smoke self-host-collection-owned-result-test-smoke self-host-collection-member-identity-test-smoke self-host-collection-aggregate-entry-requirement-test-smoke self-host-collection-aggregate-release-source-test-smoke self-host-collection-constructor-field-input-test-smoke collection-native-storage-escape-test-smoke
 	PGY_BIN="$(abspath $(PGY))" PGY_SELF_DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" \
 		"$(BASH)" tests/self_hosted/parity/collection_ownership_semantic_owner.sh
 
@@ -5097,6 +5097,10 @@ collection-native-storage-escape-test-smoke: $(PGY)
 
 self-host-collection-inout-effect-test-smoke: builtin-argument-retention-registry-test-smoke $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_inout_effect_owner.sh
+
+.PHONY: self-host-collection-owned-result-test-smoke
+self-host-collection-owned-result-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_owned_result_owner.sh
 
 .PHONY: self-host-collection-constructor-field-input-test-smoke
 self-host-collection-constructor-field-input-test-smoke: $(PGY)

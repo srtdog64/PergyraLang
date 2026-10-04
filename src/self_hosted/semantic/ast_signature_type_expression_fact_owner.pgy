@@ -188,14 +188,17 @@ func SemanticAstSignatureTypeExpressionFormalIndex(
     type_row: Int,
     generic_start: Int,
     generic_count: Int,
-    ref generic_names: Array<String>
+    generic_names: Slice<String>
 ) -> Option<Int> {
     if type_row < 0 || type_row >= ArrayLength(facts.node_names) {
         return None;
     }
     let i: Int = 0;
     while i < generic_count {
-        if generic_names[generic_start + i] == facts.node_names[type_row] {
+        let generic_name: String = Concat(
+            "", generic_names[generic_start + i]
+        );
+        if generic_name == facts.node_names[type_row] {
             return Some(i);
         }
         i = i + 1;
@@ -252,7 +255,7 @@ func SemanticAstSignatureTypeBindingRowAppend(
 }
 
 func SemanticAstSignatureTypeBindingRowFrom(
-    ref bindings: Array<String>
+    bindings: Slice<String>
 ) -> String {
     let binding_row: String = "";
     let binding_index: Int = 0;
@@ -267,7 +270,7 @@ func SemanticAstSignatureTypeBindingRowFrom(
 }
 
 func SemanticAstSignatureTypeBindingRowFromRange(
-    ref values: Array<String>,
+    values: Slice<String>,
     start: Int,
     count: Int
 ) -> Option<String> {
@@ -447,8 +450,8 @@ func SemanticAstSignatureTypeExpressionResolveRoot(
     root: Int,
     generic_start: Int,
     generic_count: Int,
-    ref generic_names: Array<String>,
-    ref bindings: Array<String>
+    generic_names: Slice<String>,
+    bindings: Slice<String>
 ) -> Option<String> {
     if ArrayLength(bindings) != generic_count { return None; }
     let generic_name_row: Option<String> =
@@ -493,8 +496,8 @@ func SemanticAstSignatureReturnTypeResolveAt(
     signature_index: Int,
     generic_start: Int,
     generic_count: Int,
-    ref generic_names: Array<String>,
-    ref bindings: Array<String>
+    generic_names: Slice<String>,
+    bindings: Slice<String>
 ) -> Option<String> {
     if !facts.ok || signature_index < 0 ||
         signature_index >= ArrayLength(facts.return_roots) {
@@ -511,7 +514,7 @@ func SemanticAstSignatureTypeExpressionRootHasFormal(
     root: Int,
     generic_start: Int,
     generic_count: Int,
-    ref generic_names: Array<String>
+    generic_names: Slice<String>
 ) -> Bool {
     if !facts.ok || root < 0 || root >= ArrayLength(facts.node_names) ||
         ArrayLength(facts.child_starts) != ArrayLength(facts.node_names) ||
@@ -552,7 +555,7 @@ func SemanticAstSignatureReturnTypeHasFormalAt(
     signature_index: Int,
     generic_start: Int,
     generic_count: Int,
-    ref generic_names: Array<String>
+    generic_names: Slice<String>
 ) -> Bool {
     if signature_index < 0 ||
         signature_index >= ArrayLength(facts.return_roots) {
@@ -569,7 +572,7 @@ func SemanticAstSignatureParameterTypeHasFormalAt(
     parameter_index: Int,
     generic_start: Int,
     generic_count: Int,
-    ref generic_names: Array<String>
+    generic_names: Slice<String>
 ) -> Bool {
     if parameter_index < 0 ||
         parameter_index >= ArrayLength(facts.parameter_roots) {
@@ -596,7 +599,9 @@ func SemanticAstSignatureTypeExpressionFactsMatchRows(
     let i: Int = 0;
     while i < ArrayLength(return_types) {
         let rendered: Option<String> = SemanticAstSignatureReturnTypeResolveAt(
-            facts, i, 0, 0, empty_names, empty_bindings
+            facts, i, 0, 0,
+            empty_names.Slice(0, ArrayLength(empty_names)),
+            empty_bindings.Slice(0, ArrayLength(empty_bindings))
         );
         if !IsSome(rendered) || UnwrapOption(rendered) != return_types[i] {
             return false;
@@ -608,7 +613,8 @@ func SemanticAstSignatureTypeExpressionFactsMatchRows(
         let rendered_parameter: Option<String> =
             SemanticAstSignatureTypeExpressionResolveRoot(
                 facts, facts.parameter_roots[i], 0, 0,
-                empty_names, empty_bindings
+                empty_names.Slice(0, ArrayLength(empty_names)),
+                empty_bindings.Slice(0, ArrayLength(empty_bindings))
             );
         if !IsSome(rendered_parameter) ||
             UnwrapOption(rendered_parameter) != parameter_types[i] {
@@ -643,7 +649,9 @@ func SemanticAstSignatureTypeExpressionFactContractReady() -> Bool {
     let no_bindings: Array<String> = [];
     let resolved_function: Option<String> =
         SemanticAstSignatureReturnTypeResolveAt(
-            function_facts, 0, 0, 0, no_names, no_bindings
+            function_facts, 0, 0, 0,
+            no_names.Slice(0, ArrayLength(no_names)),
+            no_bindings.Slice(0, ArrayLength(no_bindings))
         );
     let invalid_function_returns: Array<String> = [];
     let invalid_parameters: Array<String> = [];

@@ -218,7 +218,7 @@ func SemanticAstOwnedStringLiteralTransferExpressionExclusive(
         return true;
     }
     let signature: Option<Int> =
-        SemanticAstOwnedStringDeclaredCallSignature(
+        SemanticAstDeclaredRuntimeCallSignature(
             signatures, surfaces.expression_graph, call.call_node);
     if !IsSome(signature) { return false; }
     let row: Int = UnwrapOption(signature);

@@ -574,12 +574,12 @@ func SemanticAstExpressionSeedVisibleIterationRows(
             SemanticAstExpressionScopeVisible(
                 artifact.arena, iteration_node_ids[i], use_node_id
             ) {
-            let binding_type: String = iteration_binding_types[i];
-            if binding_type == "" || binding_type == "Unknown" {
+            if iteration_binding_types[i] == "" ||
+                iteration_binding_types[i] == "Unknown" {
                 return false;
             }
             ArrayPushOwnedString(names, iteration_binding_names[i]);
-            ArrayPushOwnedString(types, binding_type);
+            ArrayPushOwnedString(types, iteration_binding_types[i]);
             ArrayPushOwnedString(modes, "loop_binding");
         }
         i = i + 1;

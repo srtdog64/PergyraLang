@@ -130,13 +130,22 @@ func GenericReturnProbeNestedMismatchRejected(
         ArrayPushOwnedString(bindings, "");
         i = i + 1;
     }
+    let parameter_indices: Array<Int> = [];
+    ArrayPush(parameter_indices, UnwrapOption(parameter));
+    let actual_types: Array<String> = [];
+    ArrayPushOwnedString(actual_types, Concat("", "Int"));
     let after_binding: Array<String> =
-        SemanticAstSignatureParameterTypeBindAt(
-        signatures.type_expressions, UnwrapOption(parameter),
+        SemanticAstSignatureParameterTypesBind(
+        signatures.type_expressions, parameter_indices,
         signatures.generic_starts[signature_index],
-        UnwrapOption(generic_count), signatures.generic_names,
-        "Int", bindings
+        UnwrapOption(generic_count),
+        signatures.generic_names.Slice(
+            0, ArrayLength(signatures.generic_names)),
+        actual_types.Slice(0, ArrayLength(actual_types)),
+        bindings.Slice(0, ArrayLength(bindings))
     );
+    ArrayDropOwnedStrings(actual_types);
+    ArrayDropOwnedStrings(bindings);
     let accepted: Bool =
         ArrayLength(after_binding) == UnwrapOption(generic_count);
     ArrayDropOwnedStrings(after_binding);

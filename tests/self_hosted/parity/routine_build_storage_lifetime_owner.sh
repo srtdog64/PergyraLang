@@ -187,7 +187,7 @@ if sorted(body_drops) != sorted(body_locals.values()) or \
 body_ints = sum(element == "Int" for _, element in actual_body_leaves)
 body_strings = sum(element == "String" for _, element in actual_body_leaves)
 body_bools = sum(element == "Bool" for _, element in actual_body_leaves)
-if (body_ints, body_strings, body_bools, len(actual_body_leaves)) != (66, 24, 3, 93):
+if (body_ints, body_strings, body_bools, len(actual_body_leaves)) != (67, 24, 3, 94):
     raise SystemExit(
         f"body-type leaf census drift: Int={body_ints} "
         f"String={body_strings} Bool={body_bools} total={len(actual_body_leaves)}"
@@ -536,7 +536,7 @@ for path, pattern in sorted_tables:
         raise SystemExit(f"compiler retirement registry ordering drift: {path}")
 
 print("[routine-build-storage-lifetime] structural coverage ok: 45 Int + 52 String")
-print("[routine-build-storage-lifetime] body coverage ok: 66 Int + 24 String + 3 Bool")
+print("[routine-build-storage-lifetime] body coverage ok: 67 Int + 24 String + 3 Bool")
 PY
 
 grep -Fq 'PGY_BUILTIN_FLAG_COMPILER_INTERNAL' \

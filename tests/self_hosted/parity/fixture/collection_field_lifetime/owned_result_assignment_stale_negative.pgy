@@ -1,0 +1,11 @@
+func FreshResult() -> Array<String> {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Concat("", "owned"));
+    return values;
+}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    values = FreshResult();
+    ArrayDropOwnedStrings(values);
+}

@@ -1,53 +1,13 @@
 // A returned allocation domain is a contract, not a current/exclusive token.
 // Formal-dependent rows are substituted at the exact caller; they never join
 // a freeable function-ID set merely because their return type is String.
-import "ast_collection_ownership_identity_owner.pgy";
+import "ast_declared_runtime_call_identity_owner.pgy";
 import "ast_owned_string_local_reassignment_owner.pgy";
 
 struct SemanticAstOwnedStringAllocationDomain {
     kind: Int;
     allocator_formal_syntax_id: Int;
     allocator_formal_ordinal: Int;
-}
-
-func SemanticAstOwnedStringSignatureRowReady(
-    ref signatures: SemanticAstFunctionSignatureFacts, row: Int
-) -> Bool {
-    let count: Int = ArrayLength(signatures.function_node_ids);
-    let parameters: Int = ArrayLength(signatures.param_node_ids);
-    if !signatures.ok || row < 0 || row >= count ||
-        ArrayLength(signatures.return_types) != count || ArrayLength(signatures.runtime_callables) != count ||
-        ArrayLength(signatures.param_starts) != count || ArrayLength(signatures.param_counts) != count ||
-        ArrayLength(signatures.receiver_source_param_offsets) != count ||
-        ArrayLength(signatures.param_types) != parameters || ArrayLength(signatures.param_modes) != parameters {
-        return false;
-    }
-    let start: Int = signatures.param_starts[row];
-    let size: Int = signatures.param_counts[row];
-    let offset: Int = signatures.receiver_source_param_offsets[row];
-    return start >= 0 && size >= 0 && start <= parameters && size <= parameters - start &&
-        offset >= 0 && offset <= 1 && offset <= size;
-}
-
-func SemanticAstOwnedStringDeclaredCallSignature(
-    ref signatures: SemanticAstFunctionSignatureFacts, ref graph: SemanticExpressionGraphFacts, call: Int
-) -> Option<Int> {
-    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(graph, call);
-    let kind: Option<Int> = SemanticExpressionGraphCallTargetKind(graph, call);
-    let abi: Option<Int> = SemanticExpressionGraphRuntimeCallAbiId(graph, call);
-    if !IsSome(target) || UnwrapOption(target) <= 0 || !IsSome(kind) ||
-        (UnwrapOption(kind) != SemanticCallTargetDirect() && UnwrapOption(kind) != SemanticCallTargetNamespace()) ||
-        !IsSome(abi) || UnwrapOption(abi) != 0 { return None; }
-    let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(graph, call);
-    if !IsSome(callee) { return None; }
-    let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(graph, UnwrapOption(callee));
-    if !binding.ok || binding.kind != SemanticExpressionBindingDeclaredCallable() ||
-        binding.syntax_id != UnwrapOption(target) || binding.has_ordinal { return None; }
-    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, UnwrapOption(target));
-    if !IsSome(signature) || !SemanticAstOwnedStringSignatureRowReady(signatures, UnwrapOption(signature)) { return None; }
-    if !signatures.runtime_callables[UnwrapOption(signature)] ||
-        signatures.receiver_source_param_offsets[UnwrapOption(signature)] != 0 { return None; }
-    return signature;
 }
 
 func SemanticAstOwnedStringDomainUnknown() -> SemanticAstOwnedStringAllocationDomain {
@@ -141,7 +101,7 @@ func SemanticAstOwnedStringResultFactsReady(
     while row < count {
         let id: Int = facts.function_syntax_ids[row];
         let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, id);
-        if id <= 0 || !IsSome(signature) || !SemanticAstOwnedStringSignatureRowReady(signatures, UnwrapOption(signature)) ||
+        if id <= 0 || !IsSome(signature) || !SemanticAstRuntimeCallableSignatureRowReady(signatures, UnwrapOption(signature)) ||
             signatures.return_types[UnwrapOption(signature)] != "String" ||
             !signatures.runtime_callables[UnwrapOption(signature)] { return false; }
         let domain: SemanticAstOwnedStringAllocationDomain =

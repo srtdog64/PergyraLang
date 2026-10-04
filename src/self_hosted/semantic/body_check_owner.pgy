@@ -297,7 +297,11 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
                     if SkipWhitespaceAndComments(receiver_text, cursor[0]) ==
                         StringLength(receiver_text) {
                         let mutation_error: String = SemanticCollectionMutationError(
-                            "ArraySet", receiver, names, types, modes, internal_caller_ready
+                            "ArraySet", receiver,
+                            names.Slice(0, ArrayLength(names)),
+                            types.Slice(0, ArrayLength(types)),
+                            modes.Slice(0, ArrayLength(modes)),
+                            internal_caller_ready
                         );
                         if mutation_error != "" { return mutation_error; }
                     }

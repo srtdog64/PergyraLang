@@ -19,6 +19,7 @@ import "ast_match_materialization_fact_owner.pgy";
 import "ast_body_role_operator_resolution_owner.pgy";
 import "ast_zone_resource_carriage_rows_owner.pgy";
 import "ast_collection_formal_effect_readiness_owner.pgy";
+import "ast_collection_owned_result_plan_owner.pgy";
 
 func SemanticAstBodyTypeBundleReadinessError(
     artifact: AstTreeArtifact,
@@ -67,6 +68,11 @@ func SemanticAstBodyTypeBundleReadinessError(
     if !SemanticAstCollectionFormalEffectsReadyFor(
             bundle.collection_formal_effects, analysis.signatures) {
         return "collection_formal_effects";
+    }
+    if !SemanticAstFreshOwnedStringArrayResultRowsReady(
+            bundle.collection_ownership.fresh_owned_result_function_syntax_ids,
+            analysis.signatures) {
+        return "collection_owned_result_rows";
     }
     if !SemanticAstCapabilityFactsReady(artifact, analysis, bundle.capabilities) ||
         !bundle.capabilities.contract_ok { return "capability_facts"; }

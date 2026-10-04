@@ -1,0 +1,66 @@
+// Exact declared runtime-call identity shared by semantic result contracts.
+// A carried target ID is not sufficient without the callable binding, ABI,
+// signature shape, and runtime-body row that own that ID.
+import "ast_collection_ownership_identity_owner.pgy";
+
+func SemanticAstRuntimeCallableSignatureRowReady(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    row: Int
+) -> Bool {
+    let count: Int = ArrayLength(signatures.function_node_ids);
+    let parameters: Int = ArrayLength(signatures.param_node_ids);
+    if !signatures.ok || row < 0 || row >= count ||
+        ArrayLength(signatures.return_types) != count ||
+        ArrayLength(signatures.runtime_callables) != count ||
+        ArrayLength(signatures.param_starts) != count ||
+        ArrayLength(signatures.param_counts) != count ||
+        ArrayLength(signatures.receiver_source_param_offsets) != count ||
+        ArrayLength(signatures.param_types) != parameters ||
+        ArrayLength(signatures.param_modes) != parameters {
+        return false;
+    }
+    let start: Int = signatures.param_starts[row];
+    let size: Int = signatures.param_counts[row];
+    let offset: Int = signatures.receiver_source_param_offsets[row];
+    return start >= 0 && size >= 0 && start <= parameters &&
+        size <= parameters - start && offset >= 0 && offset <= 1 &&
+        offset <= size;
+}
+
+func SemanticAstDeclaredRuntimeCallSignature(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts,
+    call: Int
+) -> Option<Int> {
+    let target: Option<Int> =
+        SemanticExpressionGraphCallTargetSyntaxId(graph, call);
+    let kind: Option<Int> = SemanticExpressionGraphCallTargetKind(graph, call);
+    let abi: Option<Int> =
+        SemanticExpressionGraphRuntimeCallAbiId(graph, call);
+    if !IsSome(target) || UnwrapOption(target) <= 0 || !IsSome(kind) ||
+        (UnwrapOption(kind) != SemanticCallTargetDirect() &&
+         UnwrapOption(kind) != SemanticCallTargetNamespace()) ||
+        !IsSome(abi) || UnwrapOption(abi) != 0 {
+        return None;
+    }
+    let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(graph, call);
+    if !IsSome(callee) { return None; }
+    let binding: SemanticExpressionBindingIdentityFact =
+        SemanticExpressionGraphBindingIdentity(graph, UnwrapOption(callee));
+    if !binding.ok ||
+        binding.kind != SemanticExpressionBindingDeclaredCallable() ||
+        binding.syntax_id != UnwrapOption(target) || binding.has_ordinal {
+        return None;
+    }
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        signatures, UnwrapOption(target));
+    if !IsSome(signature) || !SemanticAstRuntimeCallableSignatureRowReady(
+            signatures, UnwrapOption(signature)) {
+        return None;
+    }
+    if !signatures.runtime_callables[UnwrapOption(signature)] ||
+        signatures.receiver_source_param_offsets[UnwrapOption(signature)] != 0 {
+        return None;
+    }
+    return signature;
+}

@@ -14,11 +14,37 @@ func SemanticAstCollectionCompleteDefinition(
 ) -> SemanticAstCollectionOwnershipVerdict {
     let definition: Int = SemanticAstCollectionDefinitionCompletedAtSlot(definitions, locals, surfaces, slot);
     if definition < 0 { return SemanticAstCollectionOwnershipVerdictOk(); }
+    if definition >= ArrayLength(
+            definitions.owned_result_function_syntax_ids) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "collection_owned_result_definition"),
+            definitions.syntax_ids[definition], -1);
+    }
     let row: Int = definitions.binding_rows[definition];
     // Current value follows every completed typed write. Freshness may restore
     // Live, but cannot select an earlier value or prove storage ownership.
     current[row] = definition;
-    if definition >= definitions.local_count {
+    let owned_result_function: Int =
+        definitions.owned_result_function_syntax_ids[definition];
+    if owned_result_function > 0 {
+        if definition >= definitions.local_count ||
+            SemanticAstCollectionDefinitionStorageSource(
+                storage, definitions, row, definition) <= 0 {
+            return SemanticAstCollectionOwnershipVerdictError(
+                "ast_artifact_invalid",
+                SemanticError1("ast_artifact_invalid", "owner",
+                    "collection_owned_result_activation"),
+                definitions.syntax_ids[definition],
+                definitions.value_nodes[definition]);
+        }
+        ownership[row] = SemanticAstCollectionOwnershipOwnedElements();
+        dispositions[row] = SemanticAstCollectionDispositionLive();
+        origins[row] = SemanticAstCollectionOriginCallResult();
+        transitions[row] = SemanticAstCollectionTransitionOwned();
+        source_binding_ids[row] = 0;
+    } else if definition >= definitions.local_count {
         ownership[row] = definitions.ownerships[definition];
         origins[row] = definitions.origins[definition];
         transitions[row] = definitions.transitions[definition];

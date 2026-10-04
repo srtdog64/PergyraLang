@@ -1,0 +1,13 @@
+func BuildMaybeOwned(value: String) -> Array<String> {
+    if value == "" { return []; }
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Concat("", value));
+    return values;
+}
+
+func Main() -> Void {
+    let empty: Array<String> = BuildMaybeOwned("");
+    ArrayDropOwnedStrings(empty);
+    let filled: Array<String> = BuildMaybeOwned("value");
+    ArrayDropOwnedStrings(filled);
+}

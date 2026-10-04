@@ -49,7 +49,10 @@ func SemanticAstCollectionMemberRootIdentityForNode(
         if resolved_type != formal.declared_type_name &&
             !SemanticAstSignatureTypeExpressionRootHasFormal(
                 signatures.type_expressions, type_root, start, count,
-                signatures.generic_names) { return unresolved; }
+                signatures.generic_names.Slice(
+                    0, ArrayLength(signatures.generic_names))) {
+            return unresolved;
+        }
         return SemanticAstCollectionMemberRootIdentity(true, formal.syntax_id, resolved_type);
     }
     // A malformed carried formal/callable never retries by lexical spelling.

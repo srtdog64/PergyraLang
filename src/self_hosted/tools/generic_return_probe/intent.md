@@ -1,8 +1,8 @@
 # Generic Return Probe -- Intent / Contract
 
-**Status:** soft self-host parity candidate. An executable proof that generic
-function return types substitute correctly -- both the exact case (`T -> T`) and
-the composite case (`T -> Option<T>`, `Array<T> -> T`) -- and that generic
+**Status:** soft self-host parity candidate. The executable semantic probe checks
+that generic function return types substitute correctly -- both the exact case
+(`T -> T`) and the composite case (`T -> Option<T>`, `Array<T> -> T`) -- and that generic
 argument/return mismatches are rejected. The C checker remains the oracle; this
 Pergyra origin is the parity candidate.
 
@@ -12,7 +12,7 @@ When a generic function is called, its declared return type must be substituted
 with the call's actual type arguments before the result feeds an initializer. If
 that substitution is skipped or reconstructed from source text, a call like
 `Wrap(2): Option<T>` loses its `Option<Int>` result type and a mismatched
-argument goes unnoticed. This probe proves substitution reaches the initializer
+argument goes unnoticed. This probe checks substitution reaches the initializer
 type facts for four shapes and that three distinct mismatches are rejected:
 
 - **exact / composite substitution** -- over an in-memory program
@@ -35,16 +35,28 @@ type facts for four shapes and that three distinct mismatches are rejected:
   proven accepted by the clean run.
 - **explicit_mismatch.pgy** -- an explicit generic call with a mismatched
   argument, for the `--explicit-mismatch` mode.
-- The exact/composite and `--target-mismatch` / `--nested-mismatch` cases run
-  against an in-memory `AstTreeArtifactFromText` program mutated through the
-  graph arena, not a fixture file.
+- The exact/composite and `--target-mismatch` cases use an in-memory
+  `ParserAstTreeArtifactFromText` program. The target case changes the graph
+  arena's carried target; the nested case instead calls the signature-owned
+  parameter binder with an `Int` actual for an `Array<T>` parameter.
+- `--callable-resolution` checks exact, empty-owner, missing, colliding, and
+  invalid-node callable identity rows against `callable_resolution_expected.txt`.
 
 Paths are fixed relative to repository root; the CLI surface is the mode
-selector (`--explicit-mismatch`, `--target-mismatch`, `--nested-mismatch`;
-default is the clean-proof run). `main.pgy` is entrypoint-only and consumes the
-semantic owners `ast_body_type_bundle_owner` (typed body bundle) and
+selector (`--explicit-mismatch`, `--target-mismatch`, `--nested-mismatch`,
+`--callable-resolution`;
+default is the clean-proof run). `main.pgy` constructs and checks probe inputs;
+it consumes the semantic owners `ast_body_type_bundle_owner` (typed body bundle) and
 `program_parse_owner` (parse); generic facts must come from the signature owner,
 not from source-text type reconstruction.
+
+`SemanticAstSignatureParameterTypesBind` consumes an `own Array<Int>` parameter
+index row and reads three call-bounded `Slice<String>` views: generic names,
+actual types, and prior bindings. It does not consume those String backing
+arrays. It materializes an independent `Array<String>` binding row; the caller
+retires its temporary actual/prior arrays after return and later retires the
+result. An empty result means binding failure (`generic_count > 0` is required).
+Passing this probe is not a general non-retention guarantee for Slice or `inout`.
 
 ## Output Contract
 
@@ -70,16 +82,28 @@ Mismatch modes -- one line on stdout, matching the paired expected file:
 Each exits `1` on correct rejection and `2` (with a `... was not rejected`
 message) if the mismatch was accepted.
 
+`--callable-resolution` exits `0` with five lines matching
+`callable_resolution_expected.txt`; a violated comparison contract logs
+`callable canonical comparison contract failed` and exits `1`.
+
 ## Oracle
 
-The C backend is the oracle. `tests/self_hosted/parity/generic_return_probe_parity.sh`
-runs the fixtures through `--backend=c`, then compiles the probe on both the C
-and LLVM legs, runs each mode, and byte-compares stdout against `expected.txt`
-and the three mismatch expected files through the shared backend-output
-comparator, so the two backends must produce identical output. The parity
-script also pins the ownership boundary: generic parameter/return facts come
+The C checker is the semantic oracle. The parity script compiles and runs this
+probe for the selected backend legs (default: C and LLVM) and compares each
+mode's stdout with its expected artifact through the shared backend-output
+comparator. The probe analyzes its in-memory programs and source fixtures;
+those programs/fixtures are not emitted or run. Probe execution and generic
+program runtime execution are different evidence scopes.
+
+An LLVM-only result proves only that selected leg; it does not establish C/LLVM
+parity, installed-driver admission, or self-host bootstrap. The last observed
+native LLVM-only receipt was PASS (`exec-563b114f`); installed C failed with
+`compiler_internal_builtin` against its stale admitted caller registry.
+New source/gate revisions require their own receipts.
+
+The script also pins the ownership boundary: generic parameter/return facts come
 from the signature owner (`SemanticAstSignatureReturnTypeResolveAt`,
-`SemanticAstSignatureParameterTypeBindAt`, `generic_actual_type_names`,
+`SemanticAstSignatureParameterTypesBind`, `generic_actual_type_names`,
 `SemanticExpressionGraphGenericCallFactFromGraph`) and the generic-call owner
 must not reopen source-text typing (`ExprType(` is forbidden).
 

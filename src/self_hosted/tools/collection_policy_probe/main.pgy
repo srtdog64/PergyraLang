@@ -63,18 +63,34 @@ func CollectionPolicyProbeGraphOwned() -> Bool {
         return false;
     }
     let root_id: Int = graph.roots[0];
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let default_modes: Array<String> = [];
+    let inout_modes: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("", "xs"));
+    ArrayPushOwnedString(types, Concat("", "Array<Int>"));
+    ArrayPushOwnedString(default_modes, Concat("", "default_param"));
+    ArrayPushOwnedString(inout_modes, Concat("", "inout_param"));
     let rejected: SemanticExpressionGraphCollectionMutationFact =
         SemanticExpressionGraphCollectionMutationFactFromGraph(
-            graph, root_id, ["xs"], ["Array<Int>"], ["default_param"],
-            false
+            graph, root_id, names.Slice(0, ArrayLength(names)),
+            types.Slice(0, ArrayLength(types)),
+            default_modes.Slice(0, ArrayLength(default_modes)), false
         );
     let admitted: SemanticExpressionGraphCollectionMutationFact =
         SemanticExpressionGraphCollectionMutationFactFromGraph(
-            graph, root_id, ["xs"], ["Array<Int>"], ["inout_param"], false
+            graph, root_id, names.Slice(0, ArrayLength(names)),
+            types.Slice(0, ArrayLength(types)),
+            inout_modes.Slice(0, ArrayLength(inout_modes)), false
         );
-    return rejected.applies && !rejected.ok &&
+    let ready: Bool = rejected.applies && !rejected.ok &&
         rejected.diagnostic_code == "value_param_collection_mutation" &&
         admitted.applies && admitted.ok;
+    ArrayDropOwnedStrings(names);
+    ArrayDropOwnedStrings(types);
+    ArrayDropOwnedStrings(default_modes);
+    ArrayDropOwnedStrings(inout_modes);
+    return ready;
 }
 
 func CollectionPolicyProbeRejectsTargetDrift() -> Bool {
@@ -92,13 +108,24 @@ func CollectionPolicyProbeRejectsTargetDrift() -> Bool {
     }
     if call_node < 0 { return false; }
     graph.arena.call_target_names[call_node] = "Log";
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let modes: Array<String> = [];
+    ArrayPushOwnedString(names, Concat("", "xs"));
+    ArrayPushOwnedString(types, Concat("", "Array<Int>"));
+    ArrayPushOwnedString(modes, Concat("", "default_param"));
     let fact: SemanticExpressionGraphCollectionMutationFact =
         SemanticExpressionGraphCollectionMutationFactFromGraph(
-            graph, graph.roots[0], ["xs"], ["Array<Int>"],
-            ["default_param"], false
+            graph, graph.roots[0], names.Slice(0, ArrayLength(names)),
+            types.Slice(0, ArrayLength(types)),
+            modes.Slice(0, ArrayLength(modes)), false
         );
-    return fact.applies && !fact.ok &&
+    let ready: Bool = fact.applies && !fact.ok &&
         fact.diagnostic_code == "ast_artifact_invalid";
+    ArrayDropOwnedStrings(names);
+    ArrayDropOwnedStrings(types);
+    ArrayDropOwnedStrings(modes);
+    return ready;
 }
 
 func Main() -> Void with caps io_read, env {

@@ -196,7 +196,11 @@ func SemanticAstAssignmentTypeFactsFromAdmittedArtifact(
                 }
             }
             if row_code == "" && assignments.target_is_indexed[i] == 1 {
-                let mutation_error: String = SemanticCollectionMutationError("ArraySet", target_root, names, types, modes, false);
+                let mutation_error: String = SemanticCollectionMutationError(
+                    "ArraySet", target_root,
+                    names.Slice(0, ArrayLength(names)),
+                    types.Slice(0, ArrayLength(types)),
+                    modes.Slice(0, ArrayLength(modes)), false);
                 if StringLength(mutation_error) > 0 { row_code = "value_param_collection_mutation"; row_message = mutation_error; }
             }
             if row_code == "" && assignments.target_is_indexed[i] == 1 {

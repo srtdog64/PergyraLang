@@ -94,12 +94,12 @@ func AstSourceLocationFactsFromParserRows(
     if row_count == 0 {
         return AstSourceLocationFactsUnknown();
     }
-    let node_paths: Array<String> = [];
+    let node_rows: Array<Int> = [];
     let node_lines: Array<Int> = [];
     let node_columns: Array<Int> = [];
     let node_id: Int = 0;
     while node_id < node_count {
-        ArrayPush(node_paths, "");
+        ArrayPush(node_rows, -1);
         ArrayPush(node_lines, 0);
         ArrayPush(node_columns, 0);
         node_id = node_id + 1;
@@ -108,25 +108,44 @@ func AstSourceLocationFactsFromParserRows(
     let row: Int = 0;
     while row < row_count {
         if paths[row] == "" || lines[row] < 1 || columns[row] < 1 {
+            ArrayDrop(node_rows);
+            ArrayDrop(node_lines);
+            ArrayDrop(node_columns);
             return AstSourceLocationFactsInvalid();
         }
+        let callable_name: String = Concat("", callable_names[row]);
         let matched_node: Int = 0 - 1;
         while search_node < node_count && matched_node < 0 {
             if AstSourceLocationRowMatches(
-                arena, search_node, kinds[row], callable_names[row]
+                arena, search_node, kinds[row], callable_name
             ) {
                 matched_node = search_node;
             }
             search_node = search_node + 1;
         }
         if matched_node < 0 || node_lines[matched_node] != 0 {
+            ArrayDrop(node_rows);
+            ArrayDrop(node_lines);
+            ArrayDrop(node_columns);
             return AstSourceLocationFactsInvalid();
         }
-        ArraySet(node_paths, matched_node, paths[row]);
+        ArraySet(node_rows, matched_node, row);
         ArraySet(node_lines, matched_node, lines[row]);
         ArraySet(node_columns, matched_node, columns[row]);
         row = row + 1;
     }
+    let node_paths: Array<String> = [];
+    node_id = 0;
+    while node_id < node_count {
+        let source_row: Int = node_rows[node_id];
+        if source_row >= 0 {
+            ArrayPushOwnedString(node_paths, paths[source_row]);
+        } else {
+            ArrayPushOwnedString(node_paths, "");
+        }
+        node_id = node_id + 1;
+    }
+    ArrayDrop(node_rows);
     return AstSourceLocationFacts(
         true, true, display_root, node_paths, node_lines, node_columns
     );

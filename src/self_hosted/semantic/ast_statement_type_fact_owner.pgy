@@ -279,7 +279,10 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
             let mutation: SemanticExpressionGraphCollectionMutationFact =
                 SemanticExpressionGraphCollectionReceiverMutationFact(
                     mutator_name, expression_surfaces.expression_graph,
-                    UnwrapOption(target_root), names, types, modes, false);
+                    UnwrapOption(target_root),
+                    names.Slice(0, ArrayLength(names)),
+                    types.Slice(0, ArrayLength(types)),
+                    modes.Slice(0, ArrayLength(modes)), false);
             if mutation.ok {
                 mutation = SemanticExpressionGraphArrayStorageMutationFact(
                     artifact, locals, initializer_types.inferred_type_names,

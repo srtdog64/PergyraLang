@@ -97,9 +97,9 @@ func SemanticAstScopedLocalBindingIdentityForName(
     }
     let type_name: String = "";
     if locals.has_declared_types[selected] != 0 {
-        type_name = locals.declared_type_names[selected];
+        type_name = Concat("", locals.declared_type_names[selected]);
     } else if selected < ArrayLength(inferred_types) {
-        type_name = inferred_types[selected];
+        type_name = Concat("", inferred_types[selected]);
     }
     if type_name == "" || type_name == "Unknown" ||
         locals.node_ids[selected] <= 0 ||

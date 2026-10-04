@@ -1,0 +1,344 @@
+// Conservative fresh owned Array<String> result plan.
+//
+// A row proves one inseparable contract: the returned descriptor has fresh,
+// exclusive storage and its elements are either empty or uniformly owned.
+// Return spelling and type alone never create the row. The bounded fixed point
+// is grounded by an exact owned-push builder, Clone/MapKeys, or an already
+// proved exact result call. The collection verdict seals current definitions
+// and every return before publishing these function identities.
+import "ast_declared_runtime_call_identity_owner.pgy";
+import "ast_initializer_type_fact_owner.pgy";
+import "ast_statement_fact_owner.pgy";
+
+struct SemanticAstFreshOwnedStringArrayResultPlan {
+    ok: Bool;
+    function_syntax_ids: Array<Int>;
+}
+
+struct SemanticAstFreshOwnedStringArrayResultSource {
+    ok: Bool;
+    grounded: Bool;
+    local_row: Int;
+}
+
+func SemanticAstFreshOwnedStringArrayResultPlanEmpty(
+) -> SemanticAstFreshOwnedStringArrayResultPlan {
+    let rows: Array<Int> = [];
+    return SemanticAstFreshOwnedStringArrayResultPlan(false, rows);
+}
+
+func SemanticAstFreshOwnedStringArrayResultPlanContains(
+    ref plan: SemanticAstFreshOwnedStringArrayResultPlan,
+    function_syntax_id: Int
+) -> Bool {
+    if !plan.ok || function_syntax_id <= 0 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(plan.function_syntax_ids) {
+        if plan.function_syntax_ids[row] == function_syntax_id { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstFreshOwnedStringArrayExactCallTarget(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts,
+    root: Int
+) -> Int {
+    let call: SemanticCallSpineView =
+        SemanticCallSpineViewFromGraph(graph, root);
+    if !call.ok { return 0; }
+    let signature: Option<Int> = SemanticAstDeclaredRuntimeCallSignature(
+        signatures, graph, call.call_node);
+    if !IsSome(signature) { return 0; }
+    let row: Int = UnwrapOption(signature);
+    if !SemanticAstCollectionOwnershipIsStringArray(
+            signatures.return_types[row]) ||
+        ArrayLength(call.argument_nodes) != signatures.param_counts[row] {
+        return 0;
+    }
+    return signatures.function_node_ids[row];
+}
+
+func SemanticAstFreshOwnedStringArrayResultCallTarget(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts,
+    ref plan: SemanticAstFreshOwnedStringArrayResultPlan,
+    root: Int
+) -> Int {
+    let target: Int = SemanticAstFreshOwnedStringArrayExactCallTarget(
+        signatures, graph, root);
+    if target <= 0 || !SemanticAstFreshOwnedStringArrayResultPlanContains(
+            plan, target) {
+        return 0;
+    }
+    return target;
+}
+
+func SemanticAstFreshOwnedStringArrayResultSourceInvalid(
+) -> SemanticAstFreshOwnedStringArrayResultSource {
+    return SemanticAstFreshOwnedStringArrayResultSource(false, false, -1);
+}
+
+func SemanticAstFreshOwnedStringArrayDirectSource(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts,
+    ref plan: SemanticAstFreshOwnedStringArrayResultPlan,
+    root: Int
+) -> SemanticAstFreshOwnedStringArrayResultSource {
+    if SemanticAstCollectionOwnershipLiteralIsEmpty(graph, root) {
+        return SemanticAstFreshOwnedStringArrayResultSource(true, false, -1);
+    }
+    let call: SemanticCallSpineView =
+        SemanticCallSpineViewFromGraph(graph, root);
+    if call.ok && ArrayLength(call.argument_nodes) == 1 &&
+        (SemanticAstCollectionOwnershipBuiltinCall(
+             graph, call.call_node, "Clone") ||
+         SemanticAstCollectionOwnershipBuiltinCall(
+             graph, call.call_node, "MapKeys")) {
+        return SemanticAstFreshOwnedStringArrayResultSource(true, true, -1);
+    }
+    if SemanticAstFreshOwnedStringArrayResultCallTarget(
+            signatures, graph, plan, root) > 0 {
+        return SemanticAstFreshOwnedStringArrayResultSource(true, true, -1);
+    }
+    return SemanticAstFreshOwnedStringArrayResultSourceInvalid();
+}
+
+func SemanticAstFreshOwnedStringArrayReturnSource(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref plan: SemanticAstFreshOwnedStringArrayResultPlan,
+    function_syntax_id: Int,
+    return_syntax_id: Int,
+    root: Int
+) -> SemanticAstFreshOwnedStringArrayResultSource {
+    let direct: SemanticAstFreshOwnedStringArrayResultSource =
+        SemanticAstFreshOwnedStringArrayDirectSource(
+            signatures, surfaces.expression_graph, plan, root);
+    if direct.ok { return direct; }
+    let binding: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, initializer_types.inferred_type_names,
+            function_syntax_id, return_syntax_id,
+            surfaces.expression_graph, root);
+    if !binding.ok ||
+        !SemanticAstCollectionOwnershipIsStringArray(binding.type_name) ||
+        locals.binding_kinds[binding.row] !=
+            SemanticAstLocalBindingKindNormal() ||
+        locals.binding_indices[binding.row] != 0 {
+        return SemanticAstFreshOwnedStringArrayResultSourceInvalid();
+    }
+    let initializer: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, binding.declaration_node_id, AstExpressionLaneValue());
+    if !IsSome(initializer) {
+        return SemanticAstFreshOwnedStringArrayResultSourceInvalid();
+    }
+    let source: SemanticAstFreshOwnedStringArrayResultSource =
+        SemanticAstFreshOwnedStringArrayDirectSource(
+            signatures, surfaces.expression_graph, plan,
+            UnwrapOption(initializer));
+    if !source.ok { return source; }
+    return SemanticAstFreshOwnedStringArrayResultSource(
+        true, source.grounded, binding.row);
+}
+
+func SemanticAstFreshOwnedStringArrayReturnedLocalContains(
+    ref rows: Array<Int>, local_row: Int
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(rows) {
+        if rows[row] == local_row { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstFreshOwnedStringArrayReturnedLocalHasOwnedPush(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts,
+    function_syntax_id: Int,
+    ref returned_local_rows: Array<Int>
+) -> Bool {
+    let range: SemanticAstLocalBindingFunctionRange =
+        SemanticAstStatementRangeForFunction(statements, function_syntax_id);
+    if !range.ok { return false; }
+    let row: Int = range.start;
+    while row < range.end {
+        let surface: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(
+            surfaces, statements.node_ids[row]);
+        let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+            surfaces, statements.node_ids[row], AstExpressionLaneAtom());
+        if IsSome(surface) && IsSome(root) {
+            let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+                surfaces.expression_graph, UnwrapOption(root));
+            if call.ok && ArrayLength(call.argument_nodes) == 2 &&
+                SemanticAstCollectionOwnershipBuiltinCall(
+                    surfaces.expression_graph, call.call_node,
+                    "ArrayPushOwnedString") {
+                let receiver: SemanticAstLocalBindingIdentity =
+                    SemanticAstCollectionOwnershipLocalForArgument(
+                        artifact, locals,
+                        initializer_types.inferred_type_names, surfaces,
+                        UnwrapOption(surface), call.argument_nodes[0]);
+                if receiver.ok &&
+                    SemanticAstFreshOwnedStringArrayReturnedLocalContains(
+                        returned_local_rows, receiver.row) {
+                    return true;
+                }
+            }
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstFunctionFreshOwnedStringArrayResultCandidate(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref plan: SemanticAstFreshOwnedStringArrayResultPlan,
+    signature_row: Int
+) -> Bool {
+    if !SemanticAstRuntimeCallableSignatureRowReady(
+            signatures, signature_row) ||
+        !SemanticAstCollectionOwnershipIsStringArray(
+            signatures.return_types[signature_row]) ||
+        !signatures.runtime_callables[signature_row] {
+        return false;
+    }
+    let function_id: Int = signatures.function_node_ids[signature_row];
+    let range: SemanticAstLocalBindingFunctionRange =
+        SemanticAstStatementRangeForFunction(statements, function_id);
+    if !range.ok { return false; }
+    let returned_locals: Array<Int> = [];
+    let saw_return: Bool = false;
+    let grounded: Bool = false;
+    let row: Int = range.start;
+    while row < range.end {
+        if statements.kind_tags[row] == TypedAstKindBareReturnStmtTag() {
+            return false;
+        }
+        if statements.kind_tags[row] == TypedAstKindValueReturnStmtTag() {
+            let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, statements.node_ids[row], AstExpressionLaneAtom());
+            if !IsSome(root) { return false; }
+            let source: SemanticAstFreshOwnedStringArrayResultSource =
+                SemanticAstFreshOwnedStringArrayReturnSource(
+                    artifact, signatures, locals, initializer_types,
+                    surfaces, plan, function_id, statements.node_ids[row],
+                    UnwrapOption(root));
+            if !source.ok { return false; }
+            if source.local_row >= 0 {
+                if SemanticAstFreshOwnedStringArrayReturnedLocalContains(
+                        returned_locals, source.local_row) {
+                    return false;
+                }
+                ArrayPush(returned_locals, source.local_row);
+            }
+            if source.grounded { grounded = true; }
+            saw_return = true;
+        }
+        row = row + 1;
+    }
+    if !saw_return { return false; }
+    if !grounded {
+        grounded = SemanticAstFreshOwnedStringArrayReturnedLocalHasOwnedPush(
+            artifact, locals, initializer_types, surfaces, statements,
+            function_id, returned_locals);
+    }
+    return grounded;
+}
+
+func SemanticAstFreshOwnedStringArrayResultPlanFromResolvedFacts(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts
+) -> SemanticAstFreshOwnedStringArrayResultPlan {
+    let ids: Array<Int> = [];
+    let plan: SemanticAstFreshOwnedStringArrayResultPlan =
+        SemanticAstFreshOwnedStringArrayResultPlan(false, ids);
+    if !signatures.ok ||
+        !SemanticAstLocalBindingIdentityRowsReady(
+            locals, initializer_types.inferred_type_names) ||
+        !initializer_types.ok || !surfaces.ok || !statements.ok {
+        return plan;
+    }
+    let signature_row: Int = 0;
+    while signature_row < ArrayLength(signatures.function_node_ids) {
+        if !SemanticAstRuntimeCallableSignatureRowReady(
+                signatures, signature_row) {
+            return plan;
+        }
+        signature_row = signature_row + 1;
+    }
+    plan.ok = true;
+    let remaining: Int = ArrayLength(signatures.function_node_ids);
+    let changed: Bool = true;
+    while changed && remaining > 0 {
+        changed = false;
+        signature_row = 0;
+        while signature_row < ArrayLength(signatures.function_node_ids) {
+            let function_id: Int =
+                signatures.function_node_ids[signature_row];
+            if !SemanticAstFreshOwnedStringArrayResultPlanContains(
+                    plan, function_id) &&
+                SemanticAstFunctionFreshOwnedStringArrayResultCandidate(
+                    artifact, signatures, locals, initializer_types,
+                    surfaces, statements, plan, signature_row) {
+                ArrayPush(plan.function_syntax_ids, function_id);
+                changed = true;
+            }
+            signature_row = signature_row + 1;
+        }
+        remaining = remaining - 1;
+    }
+    return plan;
+}
+
+func SemanticAstFreshOwnedStringArrayResultRowsReady(
+    ref function_syntax_ids: Array<Int>,
+    ref signatures: SemanticAstFunctionSignatureFacts
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(function_syntax_ids) {
+        let id: Int = function_syntax_ids[row];
+        let signature: Option<Int> =
+            SemanticAstFunctionSignatureIndexForNode(signatures, id);
+        if id <= 0 || !IsSome(signature) ||
+            !SemanticAstRuntimeCallableSignatureRowReady(
+                signatures, UnwrapOption(signature)) ||
+            !SemanticAstCollectionOwnershipIsStringArray(
+                signatures.return_types[UnwrapOption(signature)]) ||
+            !signatures.runtime_callables[UnwrapOption(signature)] {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if function_syntax_ids[prior] == id { return false; }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstFreshOwnedStringArrayResultPlanReady(
+    ref plan: SemanticAstFreshOwnedStringArrayResultPlan,
+    ref signatures: SemanticAstFunctionSignatureFacts
+) -> Bool {
+    return plan.ok && SemanticAstFreshOwnedStringArrayResultRowsReady(
+        plan.function_syntax_ids, signatures);
+}

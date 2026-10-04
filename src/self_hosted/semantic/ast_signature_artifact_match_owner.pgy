@@ -240,7 +240,8 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
         let rendered: Option<String> =
             SemanticAstSignatureReturnTypeResolveAt(
                 facts.type_expressions, type_row, 0, 0,
-                empty_names, empty_bindings
+                empty_names.Slice(0, ArrayLength(empty_names)),
+                empty_bindings.Slice(0, ArrayLength(empty_bindings))
             );
         if !IsSome(rendered) ||
             UnwrapOption(rendered) != facts.return_types[type_row] {
@@ -254,7 +255,8 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
             SemanticAstSignatureTypeExpressionResolveRoot(
                 facts.type_expressions,
                 facts.type_expressions.parameter_roots[type_row], 0, 0,
-                empty_names, empty_bindings
+                empty_names.Slice(0, ArrayLength(empty_names)),
+                empty_bindings.Slice(0, ArrayLength(empty_bindings))
             );
         if !IsSome(rendered_parameter) ||
             UnwrapOption(rendered_parameter) != facts.param_types[type_row] {

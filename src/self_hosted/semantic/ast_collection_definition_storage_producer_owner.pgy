@@ -1,14 +1,17 @@
 // Positive allocation source identity, separate from element/drop permission.
 // A completed definition activates this evidence; inventory presence does not.
 import "ast_collection_assignment_definition_owner.pgy";
+import "ast_collection_owned_result_plan_owner.pgy";
 
 func SemanticAstCollectionDefinitionDirectStorageSource(
+    ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts, ref definitions: SemanticAstCollectionDefinitionFacts,
     definition: Int
 ) -> Int {
     if !definitions.ok || definition < 0 || definition >= ArrayLength(definitions.syntax_ids) ||
         definition >= ArrayLength(definitions.value_nodes) || definition >= ArrayLength(definitions.binding_rows) ||
+        definition >= ArrayLength(definitions.owned_result_function_syntax_ids) ||
         definition >= ArrayLength(definitions.fresh) || definitions.syntax_ids[definition] <= 0 { return 0; }
     let row: Int = definitions.binding_rows[definition];
     let value: Int = definitions.value_nodes[definition];
@@ -16,6 +19,16 @@ func SemanticAstCollectionDefinitionDirectStorageSource(
         value < 0 || (definition >= definitions.local_count && !definitions.fresh[definition]) { return 0; }
     let literal: SemanticArrayLiteralView = SemanticArrayLiteralViewFromGraph(surfaces.expression_graph, value);
     if literal.ok { return definitions.syntax_ids[definition]; }
+    let owned_result_function: Int =
+        definitions.owned_result_function_syntax_ids[definition];
+    if definition < definitions.local_count && owned_result_function > 0 {
+        if SemanticAstFreshOwnedStringArrayExactCallTarget(
+                signatures, surfaces.expression_graph, value) ==
+                owned_result_function {
+            return definitions.syntax_ids[definition];
+        }
+        return 0;
+    }
     let builtin: String = SemanticAstCollectionOwnershipRootCallName(surfaces.expression_graph, value);
     if builtin == "Clone" || builtin == "MapKeys" { return definitions.syntax_ids[definition]; }
     // Opaque returns, borrowed formals and local handoffs need their own proof.

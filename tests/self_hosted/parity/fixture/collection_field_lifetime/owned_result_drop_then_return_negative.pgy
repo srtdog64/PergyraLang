@@ -1,0 +1,11 @@
+func ReleasedResult() -> Array<String> {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Concat("", "owned"));
+    ArrayDropOwnedStrings(values);
+    return values;
+}
+
+func Main() -> Void {
+    let values: Array<String> = ReleasedResult();
+    ArrayDropOwnedStrings(values);
+}

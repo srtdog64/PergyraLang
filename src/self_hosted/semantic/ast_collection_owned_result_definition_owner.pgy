@@ -1,0 +1,36 @@
+// Attach a proved fresh owned Array<String> result identity to its exact
+// initial definition. Assignment definitions remain unproved in this rung so
+// a stale earlier result fact cannot survive a later write.
+import "ast_collection_assignment_definition_owner.pgy";
+import "ast_collection_owned_result_plan_owner.pgy";
+
+func SemanticAstCollectionOwnedResultDefinitionsApply(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref plan: SemanticAstFreshOwnedStringArrayResultPlan,
+    inout definitions: SemanticAstCollectionDefinitionFacts
+) -> Bool {
+    let count: Int = ArrayLength(definitions.syntax_ids);
+    if !definitions.ok ||
+        !SemanticAstFreshOwnedStringArrayResultPlanReady(plan, signatures) ||
+        definitions.local_count < 0 || definitions.local_count > count ||
+        ArrayLength(definitions.value_nodes) != count ||
+        ArrayLength(definitions.owned_result_function_syntax_ids) != count {
+        return false;
+    }
+    let definition: Int = 0;
+    while definition < count {
+        if definitions.owned_result_function_syntax_ids[definition] != 0 {
+            return false;
+        }
+        if definition < definitions.local_count &&
+            definitions.value_nodes[definition] >= 0 {
+            definitions.owned_result_function_syntax_ids[definition] =
+                SemanticAstFreshOwnedStringArrayResultCallTarget(
+                    signatures, surfaces.expression_graph, plan,
+                    definitions.value_nodes[definition]);
+        }
+        definition = definition + 1;
+    }
+    return true;
+}

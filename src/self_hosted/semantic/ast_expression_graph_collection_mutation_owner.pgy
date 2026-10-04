@@ -84,9 +84,11 @@ func SemanticExpressionGraphArrayStorageMutationFact(
     }
     let row: Int = 0;
     while row < ArrayLength(locals.node_ids) {
-        let local_type: String = inferred_types[row];
+        let local_type: String = "";
         if locals.has_declared_types[row] != 0 {
-            local_type = locals.declared_type_names[row];
+            local_type = Concat("", locals.declared_type_names[row]);
+        } else {
+            local_type = Concat("", inferred_types[row]);
         }
         if locals.function_node_ids[row] == function_node_id &&
             locals.node_ids[row] < use_node_id &&
@@ -133,8 +135,8 @@ func SemanticExpressionGraphArrayStorageMutationFact(
 // A member projection cannot turn a readonly root into mutable storage.
 func SemanticExpressionGraphCollectionReceiverMutationFact(
     callee: String, ref graph: SemanticExpressionGraphFacts,
-    receiver_id: Int, names: Array<String>, types: Array<String>,
-    modes: Array<String>, internal_caller_ready: Bool
+    receiver_id: Int, names: Slice<String>, types: Slice<String>,
+    modes: Slice<String>, internal_caller_ready: Bool
 ) -> SemanticExpressionGraphCollectionMutationFact {
     if ArrayLength(names) != ArrayLength(types) ||
         ArrayLength(names) != ArrayLength(modes) {
@@ -156,7 +158,8 @@ func SemanticExpressionGraphCollectionReceiverMutationFact(
         } else if UnwrapOption(kind) == AstExpressionNodeLeaf() &&
             IsIdentText(UnwrapOption(text)) {
             let receiver: String = UnwrapOption(text);
-            if node != receiver_id && EnvMode(names, modes, receiver) == "ref_param" {
+            if node != receiver_id &&
+                EnvSliceMode(names, modes, receiver) == "ref_param" {
                 return SemanticExpressionGraphCollectionMutationError(
                     "value_param_collection_mutation", SemanticError3(
                         "value_param_collection_mutation", "func", callee,
@@ -181,9 +184,9 @@ func SemanticExpressionGraphCollectionReceiverMutationFact(
 func SemanticExpressionGraphCollectionMutationFactFromGraph(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
-    names: Array<String>,
-    types: Array<String>,
-    modes: Array<String>,
+    names: Slice<String>,
+    types: Slice<String>,
+    modes: Slice<String>,
     internal_caller_ready: Bool
 ) -> SemanticExpressionGraphCollectionMutationFact {
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(

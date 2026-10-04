@@ -1,0 +1,14 @@
+func ArrayPushOwnedString(ref values: Array<String>, value: String) -> Void {
+    Log(value);
+}
+
+func ShadowBuilder() -> Array<String> {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "not a builtin");
+    return values;
+}
+
+func Main() -> Void {
+    let values: Array<String> = ShadowBuilder();
+    ArrayDropOwnedStrings(values);
+}

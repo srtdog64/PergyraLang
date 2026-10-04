@@ -1,0 +1,10 @@
+func OwnedKeys() -> Array<String> {
+    let values: HashMap<String, Int> = MapNew();
+    MapSet(values, "key", 1);
+    return MapKeys(values);
+}
+
+func Main() -> Void {
+    let keys: Array<String> = OwnedKeys();
+    ArrayDropOwnedStrings(keys);
+}

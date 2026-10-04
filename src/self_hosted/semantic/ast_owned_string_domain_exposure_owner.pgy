@@ -13,7 +13,7 @@ func SemanticAstOwnedStringCallMayRebindString(
     let name: Option<String> = SemanticExpressionGraphCallTargetName(graph, call);
     if IsSome(name) && MapHas(builtin_value_names, UnwrapOption(name)) &&
         SemanticAstCollectionOwnershipBuiltinCall(graph, call, UnwrapOption(name)) { return false; }
-    let signature: Option<Int> = SemanticAstOwnedStringDeclaredCallSignature(signatures, graph, call);
+    let signature: Option<Int> = SemanticAstDeclaredRuntimeCallSignature(signatures, graph, call);
     if !IsSome(signature) { return true; }
     let parameter: Option<Int> = SemanticAstFunctionParamFlatIndex(signatures, UnwrapOption(signature), ordinal);
     // Typed source modes are 0=default, 1=inout, 2=own, 3=ref.
@@ -121,7 +121,7 @@ func SemanticAstOwnedStringAllocatorDomainPreserved(
                 (argument == 0 && SemanticAstCollectionOwnershipBuiltinCall(graph, call, "AllocatorDestroy")) {
                 row = row + 1; continue;
             }
-            let signature: Option<Int> = SemanticAstOwnedStringDeclaredCallSignature(signatures, graph, call);
+            let signature: Option<Int> = SemanticAstDeclaredRuntimeCallSignature(signatures, graph, call);
             if !IsSome(signature) { return false; }
             let domain: SemanticAstOwnedStringAllocationDomain =
                 SemanticAstOwnedStringResultDomainForFunction(results, signatures.function_node_ids[UnwrapOption(signature)]);

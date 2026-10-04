@@ -27,7 +27,10 @@ func CodegenSemanticLocalBindingsForInstance(
             let source_types: Array<String> = [type_name]; let parameters: Array<String> = [];
             let expressions: SemanticAstSignatureTypeExpressionFacts = SemanticAstSignatureTypeExpressionFactsFromRows(source_types, parameters);
             let resolved: Option<String> = SemanticAstSignatureReturnTypeResolveAt(expressions, 0,
-                signatures.generic_starts[signature_index], UnwrapOption(generic_count), signatures.generic_names, actuals);
+                signatures.generic_starts[signature_index], UnwrapOption(generic_count),
+                signatures.generic_names.Slice(
+                    0, ArrayLength(signatures.generic_names)),
+                actuals.Slice(0, ArrayLength(actuals)));
             if !IsSome(resolved) { Die("generic local instance type is unresolved"); }
             type_name = UnwrapOption(resolved);
         }

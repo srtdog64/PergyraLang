@@ -18,6 +18,7 @@ struct SemanticAstCollectionOwnershipVerdict {
     element_ownerships: Array<Int>;
     dispositions: Array<Int>;
     origins: Array<Int>;
+    fresh_owned_result_function_syntax_ids: Array<Int>;
     receipts: SemanticAstCollectionOwnershipReceiptRows;
 }
 
@@ -30,10 +31,12 @@ func SemanticAstCollectionOwnershipVerdictOk(
     let element_ownerships: Array<Int> = [];
     let dispositions: Array<Int> = [];
     let origins: Array<Int> = [];
+    let fresh_owned_result_function_syntax_ids: Array<Int> = [];
     return SemanticAstCollectionOwnershipVerdict(
         true, "", "", -1, -1,
         function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
         source_binding_syntax_ids, element_ownerships, dispositions, origins,
+        fresh_owned_result_function_syntax_ids,
         SemanticAstCollectionOwnershipReceiptRowsEmpty()
     );
 }
@@ -46,12 +49,14 @@ func SemanticAstCollectionOwnershipVerdictOkWithFacts(
     element_ownerships: Array<Int>,
     dispositions: Array<Int>,
     origins: Array<Int>,
+    fresh_owned_result_function_syntax_ids: Array<Int>,
     receipts: SemanticAstCollectionOwnershipReceiptRows
 ) -> SemanticAstCollectionOwnershipVerdict {
     return SemanticAstCollectionOwnershipVerdict(
         true, "", "", -1, -1,
         function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
         source_binding_syntax_ids, element_ownerships, dispositions, origins,
+        fresh_owned_result_function_syntax_ids,
         receipts
     );
 }
@@ -67,11 +72,13 @@ func SemanticAstCollectionOwnershipVerdictError(
     let element_ownerships: Array<Int> = [];
     let dispositions: Array<Int> = [];
     let origins: Array<Int> = [];
+    let fresh_owned_result_function_syntax_ids: Array<Int> = [];
     return SemanticAstCollectionOwnershipVerdict(
         false, code, message,
         syntax_node_id, expression_node_id,
         function_syntax_ids, binding_syntax_ids, origin_syntax_ids,
         source_binding_syntax_ids, element_ownerships, dispositions, origins,
+        fresh_owned_result_function_syntax_ids,
         SemanticAstCollectionOwnershipReceiptRowsEmpty()
     );
 }

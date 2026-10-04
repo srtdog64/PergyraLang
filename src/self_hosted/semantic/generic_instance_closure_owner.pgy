@@ -259,10 +259,16 @@ func GenericInstanceClosureFromRecipes(
                     if expressions.child_counts[root] > 0 &&
                         SemanticAstSignatureTypeExpressionRootHasFormal(expressions, root,
                             templates.generic_starts[caller], templates.generic_counts[caller],
-                            templates.generic_names) { expands = true; }
+                            templates.generic_names.Slice(
+                                0, ArrayLength(templates.generic_names))) {
+                        expands = true;
+                    }
                     let bound: Option<String> = SemanticAstSignatureTypeExpressionResolveRoot(
                         expressions, root, templates.generic_starts[caller],
-                        templates.generic_counts[caller], templates.generic_names, caller_actuals);
+                        templates.generic_counts[caller],
+                        templates.generic_names.Slice(
+                            0, ArrayLength(templates.generic_names)),
+                        caller_actuals.Slice(0, ArrayLength(caller_actuals)));
                     if !IsSome(bound) {
                         return GenericInstanceClosureError("generic caller substitution is incomplete");
                     }

@@ -13,6 +13,7 @@ struct SemanticAstCollectionDefinitionFacts {
     origins: Array<Int>;
     ownerships: Array<Int>;
     transitions: Array<Int>;
+    owned_result_function_syntax_ids: Array<Int>;
     fresh: Array<Bool>;
     shallow_alias_admitted: Array<Bool>;
 }

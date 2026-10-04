@@ -1,0 +1,7 @@
+func LeftResult() -> Array<String> { return RightResult(); }
+func RightResult() -> Array<String> { return LeftResult(); }
+
+func Main() -> Void {
+    let values: Array<String> = LeftResult();
+    ArrayDropOwnedStrings(values);
+}

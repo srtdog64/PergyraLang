@@ -1,0 +1,115 @@
+// Seal a provisional fresh-owned result fact at each exact value return.
+// The return transfers the current live definition; type spelling or a plan
+// row alone never grants element ownership.
+import "ast_collection_owned_result_plan_owner.pgy";
+import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+
+func SemanticAstFreshOwnedStringArrayReturnTransfer(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref plan: SemanticAstFreshOwnedStringArrayResultPlan,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref call_effects: SemanticAstCollectionCallEffectFacts,
+    ref current_definitions: Array<Int>,
+    root_slot: Int,
+    inout ownership: Array<Int>,
+    inout dispositions: Array<Int>,
+    ref origins: Array<Int>,
+    inout transitions: Array<Int>
+) -> SemanticAstCollectionOwnershipVerdict {
+    if root_slot < 0 || root_slot % 3 != AstExpressionLaneAtom() {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    let surface: Int = root_slot / 3;
+    if surface < 0 || surface >= ArrayLength(surfaces.node_ids) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "collection_owned_result_return_surface"), -1, -1);
+    }
+    let syntax_id: Int = surfaces.node_ids[surface];
+    let statement: Option<Int> =
+        SemanticAstStatementIndexForNode(statements, syntax_id);
+    if !IsSome(statement) || statements.kind_tags[UnwrapOption(statement)] !=
+            TypedAstKindValueReturnStmtTag() {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    let function_id: Int =
+        statements.function_node_ids[UnwrapOption(statement)];
+    if !SemanticAstFreshOwnedStringArrayResultPlanContains(
+            plan, function_id) {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, syntax_id, AstExpressionLaneAtom());
+    if !IsSome(root) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "collection_owned_result_return_root"), syntax_id, -1);
+    }
+    let source: SemanticAstFreshOwnedStringArrayResultSource =
+        SemanticAstFreshOwnedStringArrayReturnSource(
+            artifact, signatures, locals, initializer_types, surfaces,
+            plan, function_id, syntax_id, UnwrapOption(root));
+    if !source.ok {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary",
+                "owned_array_result_return_unproved", "type",
+                "Array<String>"), syntax_id, UnwrapOption(root));
+    }
+    if source.local_row < 0 {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    let row: Int = source.local_row;
+    if row >= ArrayLength(current_definitions) ||
+        row >= ArrayLength(ownership) || row >= ArrayLength(dispositions) ||
+        row >= ArrayLength(origins) || row >= ArrayLength(transitions) {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "collection_owned_result_return_state"), syntax_id,
+            UnwrapOption(root));
+    }
+    let definition: Int = current_definitions[row];
+    if definition < 0 || definition >= ArrayLength(definitions.binding_rows) ||
+        definitions.binding_rows[definition] != row ||
+        SemanticAstCollectionDefinitionStorageSource(
+            storage, definitions, row, definition) <= 0 {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary",
+                "owned_array_result_storage_unproved", "type",
+                "Array<String>"), syntax_id, UnwrapOption(root));
+    }
+    let unknown: Bool = SemanticAstCollectionApplyUnknownCallStateAtUse(
+        artifact, call_effects, row, syntax_id, ownership, dispositions,
+        transitions);
+    let ready: Bool = !unknown &&
+        !SemanticAstCollectionStorageEscapedAtUse(
+            artifact, call_effects, row, syntax_id) &&
+        dispositions[row] == SemanticAstCollectionDispositionLive() &&
+        (ownership[row] == SemanticAstCollectionOwnershipOwnedElements() ||
+         ownership[row] == SemanticAstCollectionOwnershipMapKeysSnapshot() ||
+         (origins[row] == SemanticAstCollectionOriginEmptyLiteral() &&
+          SemanticAstCollectionTransitionAllowsOwned(transitions[row])));
+    if !ready {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary",
+                "owned_array_result_return_unproved", "type",
+                "Array<String>"), syntax_id, UnwrapOption(root));
+    }
+    ownership[row] = SemanticAstCollectionOwnershipRetired();
+    dispositions[row] = SemanticAstCollectionDispositionRetired();
+    transitions[row] = SemanticAstCollectionTransitionRetired();
+    return SemanticAstCollectionOwnershipVerdictOk();
+}

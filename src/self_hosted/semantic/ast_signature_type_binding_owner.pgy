@@ -14,64 +14,92 @@ func SemanticAstSignatureTypeTextChildren(
     base: String
 ) -> Array<String> {
     let shape: Array<String> = [];
-    if start < 0 || end < start || end > StringLength(source) ||
-        canonical == "" || base == "" {
-        return shape;
-    }
-    ArrayPushOwnedString(shape, canonical);
-    ArrayPushOwnedString(shape, base);
-    if start == end { return shape; }
-    let open_angle: Int = SourceByteOf("<");
-    let close_angle: Int = SourceByteOf(">");
-    let open_paren: Int = SourceByteOf("(");
-    let close_paren: Int = SourceByteOf(")");
-    let open_bracket: Int = SourceByteOf("[");
-    let close_bracket: Int = SourceByteOf("]");
-    let comma: Int = SourceByteOf(",");
-    let angle_depth: Int = 0;
-    let paren_depth: Int = 0;
-    let bracket_depth: Int = 0;
-    let range_start: Int = start;
-    let i: Int = start;
-    let ok: Bool = true;
-    while i <= end && ok {
-        let at_end: Bool = i == end;
-        let c: Int = -1;
-        if !at_end { c = SourceByteAt(source, StringLength(source), i); }
-        if !at_end && c == open_angle {
-            angle_depth = angle_depth + 1;
-        } else if !at_end && c == close_angle {
-            if angle_depth == 0 { ok = false; }
-            else { angle_depth = angle_depth - 1; }
-        } else if !at_end && c == open_paren {
-            paren_depth = paren_depth + 1;
-        } else if !at_end && c == close_paren {
-            if paren_depth == 0 { ok = false; }
-            else { paren_depth = paren_depth - 1; }
-        } else if !at_end && c == open_bracket {
-            bracket_depth = bracket_depth + 1;
-        } else if !at_end && c == close_bracket {
-            if bracket_depth == 0 { ok = false; }
-            else { bracket_depth = bracket_depth - 1; }
-        }
-        if ok && (at_end || (c == comma && angle_depth == 0 &&
-            paren_depth == 0 && bracket_depth == 0)) {
-            let child: String = SemanticTrimSourceRangeReuse(
-                source, range_start, i
-            );
-            if child == "" {
-                ok = false;
-            } else {
-                ArrayPushOwnedString(shape, child);
+    if start >= 0 && end >= start && end <= StringLength(source) &&
+        canonical != "" && base != "" {
+        let open_angle: Int = SourceByteOf("<");
+        let close_angle: Int = SourceByteOf(">");
+        let open_paren: Int = SourceByteOf("(");
+        let close_paren: Int = SourceByteOf(")");
+        let open_bracket: Int = SourceByteOf("[");
+        let close_bracket: Int = SourceByteOf("]");
+        let comma: Int = SourceByteOf(",");
+        let angle_depth: Int = 0;
+        let paren_depth: Int = 0;
+        let bracket_depth: Int = 0;
+        let range_start: Int = start;
+        let i: Int = start;
+        let ok: Bool = true;
+        while start < end && i <= end && ok {
+            let at_end: Bool = i == end;
+            let c: Int = -1;
+            if !at_end {
+                c = SourceByteAt(source, StringLength(source), i);
+            }
+            if !at_end && c == open_angle {
+                angle_depth = angle_depth + 1;
+            } else if !at_end && c == close_angle {
+                if angle_depth == 0 { ok = false; }
+                else { angle_depth = angle_depth - 1; }
+            } else if !at_end && c == open_paren {
+                paren_depth = paren_depth + 1;
+            } else if !at_end && c == close_paren {
+                if paren_depth == 0 { ok = false; }
+                else { paren_depth = paren_depth - 1; }
+            } else if !at_end && c == open_bracket {
+                bracket_depth = bracket_depth + 1;
+            } else if !at_end && c == close_bracket {
+                if bracket_depth == 0 { ok = false; }
+                else { bracket_depth = bracket_depth - 1; }
+            }
+            if ok && (at_end || (c == comma && angle_depth == 0 &&
+                paren_depth == 0 && bracket_depth == 0)) {
+                let child: String = SemanticTrimSourceRangeReuse(
+                    source, range_start, i);
+                if child == "" { ok = false; }
                 range_start = i + 1;
             }
+            i = i + 1;
         }
-        i = i + 1;
-    }
-    if !ok || angle_depth != 0 || paren_depth != 0 ||
-        bracket_depth != 0 {
-        ArrayDropOwnedStrings(shape);
-        return [];
+        if angle_depth != 0 || paren_depth != 0 || bracket_depth != 0 {
+            ok = false;
+        }
+        if ok {
+            ArrayPushOwnedString(shape, canonical);
+            ArrayPushOwnedString(shape, base);
+            angle_depth = 0;
+            paren_depth = 0;
+            bracket_depth = 0;
+            range_start = start;
+            i = start;
+            while start < end && i <= end {
+                let at_end: Bool = i == end;
+                let c: Int = -1;
+                if !at_end {
+                    c = SourceByteAt(source, StringLength(source), i);
+                }
+                if !at_end && c == open_angle {
+                    angle_depth = angle_depth + 1;
+                } else if !at_end && c == close_angle {
+                    angle_depth = angle_depth - 1;
+                } else if !at_end && c == open_paren {
+                    paren_depth = paren_depth + 1;
+                } else if !at_end && c == close_paren {
+                    paren_depth = paren_depth - 1;
+                } else if !at_end && c == open_bracket {
+                    bracket_depth = bracket_depth + 1;
+                } else if !at_end && c == close_bracket {
+                    bracket_depth = bracket_depth - 1;
+                }
+                if at_end || (c == comma && angle_depth == 0 &&
+                    paren_depth == 0 && bracket_depth == 0) {
+                    ArrayPushOwnedString(shape,
+                        SemanticTrimSourceRangeReuse(
+                            source, range_start, i));
+                    range_start = i + 1;
+                }
+                i = i + 1;
+            }
+        }
     }
     return shape;
 }
@@ -103,8 +131,9 @@ func SemanticAstSignatureTypeTextShape(
         let shape: Array<String> = SemanticAstSignatureTypeTextChildren(
             text, 5, close, text, "func"
         );
-        if ArrayLength(shape) < 2 { return shape; }
-        ArrayPushOwnedString(shape, return_type);
+        if ArrayLength(shape) >= 2 {
+            ArrayPushOwnedString(shape, return_type);
+        }
         return shape;
     }
     let open: Int = StringIndexOf(text, "<");
@@ -133,10 +162,6 @@ func SemanticAstSignatureTypeTextShape(
     let shape: Array<String> = SemanticAstSignatureTypeTextChildren(
         text, open + 1, n - 1, text, base
     );
-    if ArrayLength(shape) <= 2 {
-        ArrayDropOwnedStrings(shape);
-        return [];
-    }
     return shape;
 }
 
@@ -168,18 +193,19 @@ func SemanticAstSignatureTypeTextValid(type_name: String) -> Bool {
     return ready;
 }
 
-// Consumes the current binding row and returns the next complete row. The
+// Reads borrowed input views and returns a fresh complete binding row. The
 // empty result means failure; callers invoke this only for generic_count > 0.
 // Existing slots are copied, inferred slots are materialized once, and no
-// element replacement or borrowed alias survives the call.
+// borrowed element alias survives in the returned array. Each caller retains
+// and retires the Array storage from which these call-bounded views originate.
 func SemanticAstSignatureParameterTypesBind(
     ref facts: SemanticAstSignatureTypeExpressionFacts,
     own parameter_indices: Array<Int>,
     generic_start: Int,
     generic_count: Int,
-    ref generic_names: Array<String>,
-    own parameter_actual_types: Array<String>,
-    own bindings: Array<String>
+    generic_names: Slice<String>,
+    parameter_actual_types: Slice<String>,
+    bindings: Slice<String>
 ) -> Array<String> {
     if !facts.ok ||
         ArrayLength(parameter_indices) != ArrayLength(parameter_actual_types) ||
@@ -187,8 +213,6 @@ func SemanticAstSignatureParameterTypesBind(
         generic_start + generic_count > ArrayLength(generic_names) ||
         ArrayLength(bindings) != generic_count {
         ArrayDrop(parameter_indices);
-        ArrayDropOwnedStrings(parameter_actual_types);
-        ArrayDropOwnedStrings(bindings);
         return [];
     }
     let expected_nodes: Array<Int> = [];
@@ -243,12 +267,19 @@ func SemanticAstSignatureParameterTypesBind(
                         );
                     if IsSome(formal) {
                         let binding_index: Int = UnwrapOption(formal);
+                        let existing_binding: String = "";
+                        if binding_index >= 0 &&
+                            binding_index < generic_count {
+                            existing_binding = Concat(
+                                "", bindings[binding_index]
+                            );
+                        }
                         if expected_count != 0 || binding_index < 0 ||
                             binding_index >= generic_count ||
                             !SemanticAstSignatureTypeTextValid(shape[0]) {
                             ok = false;
-                        } else if bindings[binding_index] != "" {
-                            ok = bindings[binding_index] == shape[0];
+                        } else if existing_binding != "" {
+                            ok = existing_binding == shape[0];
                         } else {
                             let update_row: Int = -1;
                             let row: Int = 0;
@@ -299,9 +330,12 @@ func SemanticAstSignatureParameterTypesBind(
     if ok {
         let binding_index: Int = 0;
         while binding_index < generic_count {
-            if bindings[binding_index] != "" {
+            let existing_binding: String = Concat(
+                "", bindings[binding_index]
+            );
+            if existing_binding != "" {
                 ArrayPushOwnedString(
-                    next_bindings, bindings[binding_index]
+                    next_bindings, existing_binding
                 );
             } else {
                 let update_row: Int = -1;
@@ -329,28 +363,7 @@ func SemanticAstSignatureParameterTypesBind(
     ArrayDrop(update_indices);
     ArrayDropOwnedStrings(update_type_names);
     ArrayDrop(parameter_indices);
-    ArrayDropOwnedStrings(parameter_actual_types);
-    ArrayDropOwnedStrings(bindings);
     return next_bindings;
-}
-
-func SemanticAstSignatureParameterTypeBindAt(
-    ref facts: SemanticAstSignatureTypeExpressionFacts,
-    parameter_index: Int,
-    generic_start: Int,
-    generic_count: Int,
-    ref generic_names: Array<String>,
-    actual_type: String,
-    own bindings: Array<String>
-) -> Array<String> {
-    let parameter_indices: Array<Int> = [parameter_index];
-    let actual_types: Array<String> = [];
-    ArrayPushOwnedString(actual_types, actual_type);
-    let result: Array<String> = SemanticAstSignatureParameterTypesBind(
-        facts, parameter_indices, generic_start, generic_count,
-        generic_names, actual_types, bindings
-    );
-    return result;
 }
 
 func SemanticAstSignatureTypeBindingMissingIndex(
@@ -383,22 +396,48 @@ func SemanticAstSignatureTypeBindingContractReady() -> Bool {
     let bindings: Array<String> = [];
     ArrayPushOwnedString(names, "T");
     ArrayPushOwnedString(bindings, "");
-    let first: Array<String> = SemanticAstSignatureParameterTypeBindAt(
-        facts, 0, 0, 1, names, "Array<Int>", bindings
+    let first_parameters: Array<Int> = [0];
+    let first_actuals: Array<String> = [];
+    ArrayPushOwnedString(first_actuals, Concat("", "Array<Int>"));
+    let first: Array<String> = SemanticAstSignatureParameterTypesBind(
+        facts, first_parameters, 0, 1,
+        names.Slice(0, ArrayLength(names)),
+        first_actuals.Slice(0, ArrayLength(first_actuals)),
+        bindings.Slice(0, ArrayLength(bindings))
     );
+    ArrayDropOwnedStrings(first_actuals);
+    ArrayDropOwnedStrings(bindings);
     let same_seed: Array<String> = [];
     ArrayPushOwnedString(same_seed, "Int");
-    let same: Array<String> = SemanticAstSignatureParameterTypeBindAt(
-        facts, 0, 0, 1, names, "Array<Int>", same_seed
+    let same_parameters: Array<Int> = [0];
+    let same_actuals: Array<String> = [];
+    ArrayPushOwnedString(same_actuals, Concat("", "Array<Int>"));
+    let same: Array<String> = SemanticAstSignatureParameterTypesBind(
+        facts, same_parameters, 0, 1,
+        names.Slice(0, ArrayLength(names)),
+        same_actuals.Slice(0, ArrayLength(same_actuals)),
+        same_seed.Slice(0, ArrayLength(same_seed))
     );
+    ArrayDropOwnedStrings(same_actuals);
+    ArrayDropOwnedStrings(same_seed);
     let resolved: Option<String> = SemanticAstSignatureReturnTypeResolveAt(
-        facts, 0, 0, 1, names, same
+        facts, 0, 0, 1,
+        names.Slice(0, ArrayLength(names)),
+        same.Slice(0, ArrayLength(same))
     );
     let conflict_seed: Array<String> = [];
     ArrayPushOwnedString(conflict_seed, "Int");
-    let conflict: Array<String> = SemanticAstSignatureParameterTypeBindAt(
-        facts, 0, 0, 1, names, "Array<String>", conflict_seed
+    let conflict_parameters: Array<Int> = [0];
+    let conflict_actuals: Array<String> = [];
+    ArrayPushOwnedString(conflict_actuals, Concat("", "Array<String>"));
+    let conflict: Array<String> = SemanticAstSignatureParameterTypesBind(
+        facts, conflict_parameters, 0, 1,
+        names.Slice(0, ArrayLength(names)),
+        conflict_actuals.Slice(0, ArrayLength(conflict_actuals)),
+        conflict_seed.Slice(0, ArrayLength(conflict_seed))
     );
+    ArrayDropOwnedStrings(conflict_actuals);
+    ArrayDropOwnedStrings(conflict_seed);
     let ready: Bool = ArrayLength(first) == 1 && first[0] == "Int" &&
         ArrayLength(same) == 1 && same[0] == "Int" &&
         ArrayLength(conflict) == 0 &&
