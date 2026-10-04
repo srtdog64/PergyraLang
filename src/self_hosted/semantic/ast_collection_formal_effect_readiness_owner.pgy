@@ -57,7 +57,7 @@ func SemanticAstCollectionFormalEffectsReadyFor(
             let parameter: Int = flat + ordinal;
             let mode: Int = signatures.param_modes[parameter];
             if mode < 0 || mode > 3 { return false; }
-            if SemanticAstCollectionOwnershipIsStringArray(
+            if SemanticAstCollectionOwnershipIsStringSequence(
                     signatures.param_types[parameter]) {
                 if expected >= count { return false; }
                 let node: Int = signatures.param_node_ids[parameter];
@@ -86,7 +86,9 @@ func SemanticAstCollectionFormalEffectsReadyFor(
                     if effect < 1 || effect > 6 { return false; }
                 }
                 if MapHas(owned_push_leaf_formals, key) {
-                    if facts.inventory.modes[expected] != 1 ||
+                    if !SemanticAstCollectionOwnershipIsStringArray(
+                            signatures.param_types[parameter]) ||
+                        facts.inventory.modes[expected] != 1 ||
                         !facts.inventory.body_ready[expected] || effect != 2 ||
                         MapGet(owned_push_leaf_formals, key) < 0 {
                         return false;

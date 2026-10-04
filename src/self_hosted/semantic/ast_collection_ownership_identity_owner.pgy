@@ -3,6 +3,7 @@
 import "ast_expression_graph_array_literal_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_expression_graph_member_view_owner.pgy";
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_node_view_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
@@ -11,6 +12,7 @@ import "ast_initializer_type_fact_owner.pgy";
 import "ast_statement_fact_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
+import "builtin_signature_owner.pgy";
 
 func SemanticAstCollectionOwnershipBuiltinCall(
     ref graph: SemanticExpressionGraphFacts,
@@ -37,9 +39,59 @@ func SemanticAstCollectionOwnershipBuiltinCall(
         UnwrapOption(syntax_id) == 0 && UnwrapOption(runtime_abi_id) == 0;
 }
 
+// Array.Slice is a member builtin, not a direct builtin call. Admit only the
+// carried canonical identity and the registry-owned source member spelling.
+// This proves the view constructor; whether the view may escape remains with
+// the formal-use graph and its last consumer.
+func SemanticAstCollectionOwnershipArraySliceCall(
+    ref graph: SemanticExpressionGraphFacts, call_node_id: Int
+) -> Bool {
+    let kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        graph, call_node_id);
+    let name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, call_node_id);
+    let syntax_id: Option<Int> =
+        SemanticExpressionGraphCallTargetSyntaxId(graph, call_node_id);
+    let runtime_abi_id: Option<Int> =
+        SemanticExpressionGraphRuntimeCallAbiId(graph, call_node_id);
+    let callee: Option<Int> = SemanticCallBaseCalleeFromGraph(
+        graph, call_node_id);
+    if !IsSome(kind) || !IsSome(name) || !IsSome(syntax_id) ||
+        !IsSome(runtime_abi_id) || !IsSome(callee) ||
+        UnwrapOption(kind) != SemanticCallTargetMember() ||
+        UnwrapOption(name) != "Array_Slice" ||
+        UnwrapOption(syntax_id) != 0 || UnwrapOption(runtime_abi_id) != 0 {
+        return false;
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, call_node_id);
+    let member: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(graph, UnwrapOption(callee));
+    if !call.ok || call.call_node != call_node_id ||
+        call.callee_node != UnwrapOption(callee) || !member.ok {
+        return false;
+    }
+    let source_member: Option<String> = SemanticExpressionGraphNodeText(
+        graph, member.member_node);
+    return IsSome(source_member) && SemanticBuiltinMemberCallableMatches(
+        "Array_Slice", UnwrapOption(source_member));
+}
+
 func SemanticAstCollectionOwnershipIsStringArray(type_name: String) -> Bool {
     let element: Option<String> = SemanticArrayElementType(type_name);
     return IsSome(element) && UnwrapOption(element) == "String";
+}
+
+func SemanticAstCollectionOwnershipIsStringSlice(type_name: String) -> Bool {
+    let element: Option<String> = SemanticSliceElementType(type_name);
+    return IsSome(element) && UnwrapOption(element) == "String";
+}
+
+func SemanticAstCollectionOwnershipIsStringSequence(
+    type_name: String
+) -> Bool {
+    return SemanticAstCollectionOwnershipIsStringArray(type_name) ||
+        SemanticAstCollectionOwnershipIsStringSlice(type_name);
 }
 
 func SemanticAstCollectionOwnershipLiteralIsBorrowed(

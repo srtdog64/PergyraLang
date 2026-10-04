@@ -18,12 +18,36 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
     ref statements: SemanticAstStatementFacts,
     ref owned_string_results: SemanticAstOwnedStringResultFacts
 ) -> SemanticAstCollectionFormalEffects {
+    let no_synthetic_roots: Array<Int> = [];
+    let order: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(
+        surfaces, no_synthetic_roots, no_synthetic_roots);
+    return SemanticAstCollectionFormalEffectsWithSurfaceOrder(
+        artifact, signatures, scopes, locals, initializer_types, surfaces,
+        statements, owned_string_results, order);
+}
+func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref scopes: SemanticAstFunctionScopeFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts,
+    ref order: SemanticExpressionGraphSurfaceOrder
+) -> SemanticAstCollectionFormalEffects {
     let inventory: SemanticAstCollectionFormalEffectInventory =
         SemanticAstCollectionFormalEffectInventoryFromSignatures(signatures);
     let effects: HashMap<String, Int> = MapNew();
+    // An empty, validated String-sequence formal inventory has no element-use
+    // obligations. Unrelated plain-array uses belong to their storage owner.
+    if inventory.ok && ArrayLength(inventory.formal_nodes) == 0 {
+        let no_owned_push: HashMap<String, Int> = MapNew();
+        return SemanticAstCollectionFormalEffects(true, inventory, effects, no_owned_push);
+    }
     let contexts: SemanticAstCollectionFormalExecutionContexts =
-        SemanticAstCollectionFormalExecutionContextsFromFacts(
-            artifact, inventory, scopes, surfaces);
+        SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(
+            artifact, inventory, scopes, surfaces, order);
     let unsafe_functions: HashMap<String, Int> = contexts.unsafe_functions;
     let non_straightline_functions: HashMap<String, Int> =
         SemanticAstCollectionNonStraightLineFunctions(statements);
@@ -38,6 +62,8 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
     let owned_push_leaf_disqualified: Array<Bool> = [];
     let node_rows: Array<Int> = [];
     let element_rows: Array<Int> = [];
+    let slice_member_rows: Array<Int> = [];
+    let slice_value_rows: Array<Int> = [];
     let sources: Array<Int> = [];
     let targets: Array<Int> = [];
     let count: Int = ArrayLength(inventory.formal_nodes);
@@ -78,10 +104,15 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
         SemanticBuiltinArgumentRetentionProjectionReady() &&
         statement_effects.ok;
     let last: Int = -1;
-    let slot: Int = 0;
-    while ok && slot < ArrayLength(surfaces.expression_graph.roots) {
-        if surfaces.expression_graph.has_roots[slot] {
-            let root: Int = surfaces.expression_graph.roots[slot];
+    let root: Int = 0;
+    while ok && root < ArrayLength(order.slots_by_root) {
+        let slot: Int = order.slots_by_root[root];
+        if slot == -2 {
+            ArrayPush(node_rows, -1); ArrayPush(element_rows, -1);
+            ArrayPush(slice_member_rows, -1); ArrayPush(slice_value_rows, -1);
+            last = root;
+        }
+        if slot >= 0 {
             let node: Int = last + 1;
             while ok && node <= root {
                 let binding: SemanticExpressionBindingIdentityFact =
@@ -118,6 +149,8 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
                 }
                 ArrayPush(node_rows, formal_row);
                 ArrayPush(element_rows, -1);
+                ArrayPush(slice_member_rows, -1);
+                ArrayPush(slice_value_rows, -1);
                 let kind: Int =
                     surfaces.expression_graph.arena.topology.node_kinds[node];
                 let call_kind: Option<Int> =
@@ -139,6 +172,75 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
                         let child_node: Int = UnwrapOption(child);
                         let used_row: Int = node_rows[child_node];
                         let borrowed_row: Int = element_rows[child_node];
+                        let slice_member_row: Int =
+                            slice_member_rows[child_node];
+                        let slice_value_row: Int =
+                            slice_value_rows[child_node];
+                        if slice_member_row >= 0 {
+                            if edge == 0 && kind == AstExpressionNodeCall() &&
+                                SemanticAstCollectionOwnershipArraySliceCall(
+                                    surfaces.expression_graph, node) {
+                                slice_value_rows[node] = slice_member_row;
+                            } else {
+                                blocked[slice_member_row] = true;
+                            }
+                        }
+                        if slice_value_row >= 0 {
+                            if edge == 0 && kind ==
+                                    AstExpressionNodeCallArgument() {
+                                let continuation: SemanticCallArgumentEdgeView =
+                                    SemanticCallArgumentEdgeFromGraph(
+                                        surfaces.expression_graph, node);
+                                if continuation.ok &&
+                                    SemanticAstCollectionOwnershipArraySliceCall(
+                                        surfaces.expression_graph,
+                                        continuation.call_node) {
+                                    slice_value_rows[node] = slice_value_row;
+                                } else {
+                                    blocked[slice_value_row] = true;
+                                }
+                            } else if edge == 0 && primitive &&
+                                    kind == AstExpressionNodeIndex() {
+                                element_reads[slice_value_row] = true;
+                                element_rows[node] = slice_value_row;
+                            } else if edge == 1 && kind ==
+                                    AstExpressionNodeCallArgument() {
+                                let slice_argument:
+                                    SemanticCallArgumentEdgeView =
+                                    SemanticCallArgumentEdgeFromGraph(
+                                        surfaces.expression_graph, node);
+                                if !slice_argument.ok ||
+                                    slice_argument.argument_node != child_node {
+                                    ok = false; break;
+                                }
+                                if slice_argument.ordinal == 0 &&
+                                    SemanticAstCollectionOwnershipBuiltinCall(
+                                        surfaces.expression_graph,
+                                        slice_argument.call_node,
+                                        "ArrayLength") {
+                                } else {
+                                    let slice_target: Int =
+                                        SemanticAstCollectionSourceStringSliceFormalForArgument(
+                                            signatures,
+                                            surfaces.expression_graph,
+                                            slice_argument.call_node,
+                                            slice_argument.ordinal);
+                                    let slice_target_key: String =
+                                        ToString(slice_target);
+                                    if slice_target <= 0 ||
+                                        !MapHas(formal_rows,
+                                            slice_target_key) {
+                                        blocked[slice_value_row] = true;
+                                    } else {
+                                        ArrayPush(sources, slice_value_row);
+                                        ArrayPush(targets, MapGet(
+                                            formal_rows, slice_target_key));
+                                    }
+                                }
+                            } else {
+                                blocked[slice_value_row] = true;
+                            }
+                        }
                         let observed_element: Bool = false;
                         if borrowed_row >= 0 && edge == 1 &&
                             kind == AstExpressionNodeCallArgument() {
@@ -168,6 +270,9 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
                                 kind == AstExpressionNodeIndex() {
                                 element_reads[used_row] = true;
                                 element_rows[node] = used_row;
+                            } else if edge == 0 && primitive &&
+                                kind == AstExpressionNodeMemberAccess() {
+                                slice_member_rows[node] = used_row;
                             } else if edge != 1 || kind !=
                                     AstExpressionNodeCallArgument() {
                                 blocked[used_row] = true;
@@ -209,7 +314,7 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
                                     shallow_mutations[used_row] = true;
                                 } else {
                                     let target: Int =
-                                        SemanticAstCollectionSourceArrayFormalForArgument(
+                                        SemanticAstCollectionSourceStringSequenceFormalForArgument(
                                             signatures,
                                             surfaces.expression_graph,
                                             call.call_node, ordinal);
@@ -256,13 +361,22 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
                     blocked[source_row] = true;
                 }
             }
+            if ok && slice_member_rows[root] >= 0 {
+                blocked[slice_member_rows[root]] = true;
+            }
+            if ok && slice_value_rows[root] >= 0 {
+                blocked[slice_value_rows[root]] = true;
+            }
             last = root;
         }
-        slot = slot + 1;
+        root = root + 1;
     }
     ok = ok && ArrayLength(node_rows) ==
         SemanticExpressionGraphArenaNodeCount(
             surfaces.expression_graph.arena);
+    ok = ok && ArrayLength(element_rows) == ArrayLength(node_rows) &&
+        ArrayLength(slice_member_rows) == ArrayLength(node_rows) &&
+        ArrayLength(slice_value_rows) == ArrayLength(node_rows);
     ok = ok && ArrayLength(blocked) == count &&
         ArrayLength(mutations) == count &&
         ArrayLength(shallow_mutations) == count &&
@@ -299,6 +413,8 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
     }
     ArrayDrop(node_rows);
     ArrayDrop(element_rows);
+    ArrayDrop(slice_member_rows);
+    ArrayDrop(slice_value_rows);
     ArrayDrop(blocked); ArrayDrop(mutations); ArrayDrop(shallow_mutations);
     ArrayDrop(element_reads);
     ArrayDrop(direct_use_counts); ArrayDrop(direct_owned_push_counts);

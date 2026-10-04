@@ -1,0 +1,79 @@
+// A complete, disjoint expression occurrence partition. Match and foreach
+// owners append isolated binding nodes after ordinary expression surfaces.
+// Only their exact carried handles can account for those non-execution nodes.
+import "ast_expression_surface_fact_owner.pgy";
+
+struct SemanticExpressionGraphSurfaceOrder {
+    ok: Bool;
+    slots_by_root: Array<Int>;
+}
+
+func SemanticExpressionGraphSurfaceOrderFromFacts(
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref iteration_roots: Array<Int>, ref match_roots: Array<Int>
+) -> SemanticExpressionGraphSurfaceOrder {
+    let slots: Array<Int> = [];
+    let count: Int = SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena);
+    let node: Int = 0;
+    while node < count { ArrayPush(slots, -1); node = node + 1; }
+    let ok: Bool = surfaces.ok && surfaces.expression_graph.ok &&
+        ArrayLength(surfaces.expression_graph.roots) == ArrayLength(surfaces.node_ids) * 3 &&
+        ArrayLength(surfaces.expression_graph.has_roots) == ArrayLength(surfaces.expression_graph.roots);
+    let slot: Int = 0;
+    while ok && slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[slot] {
+            let root: Int = surfaces.expression_graph.roots[slot];
+            if root < 0 || root >= count || slots[root] >= 0 { ok = false; break; }
+            slots[root] = slot;
+        }
+        slot = slot + 1;
+    }
+    let family: Int = 0;
+    while ok && family < 2 {
+        let size: Int = ArrayLength(iteration_roots);
+        if family == 1 { size = ArrayLength(match_roots); }
+        let row: Int = 0;
+        while ok && row < size {
+            let root: Int = -1;
+            if family == 0 { root = iteration_roots[row]; }
+            else { root = match_roots[row]; }
+            if root >= 0 {
+                if root >= count || slots[root] != -1 { ok = false; break; }
+                let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(surfaces.expression_graph, root);
+                if surfaces.expression_graph.arena.topology.node_kinds[root] != AstExpressionNodeLeaf() ||
+                    !binding.ok || binding.kind != SemanticExpressionBindingNone() || binding.syntax_id != 0 || binding.has_ordinal ||
+                    surfaces.expression_graph.arena.call_target_kinds[root] != SemanticCallTargetNone() ||
+                    surfaces.expression_graph.arena.identities.call_target_syntax_ids[root] != 0 ||
+                    surfaces.expression_graph.arena.identities.runtime_call_abi_ids[root] != 0 ||
+                    surfaces.expression_graph.arena.place_kinds[root] != SemanticExpressionPlaceBinding() { ok = false; break; }
+                slots[root] = -2;
+            } else if root != -1 || family == 1 { ok = false; }
+            row = row + 1;
+        }
+        family = family + 1;
+    }
+    let start: Int = 0; let root: Int = 0;
+    while ok && root < count {
+        if slots[root] == -2 {
+            if start != root { ok = false; break; }
+            start = root + 1;
+        } else if slots[root] >= 0 {
+            node = start;
+            while ok && node <= root {
+                let edge: Int = 0;
+                while edge < 2 {
+                    let child: Option<Int> = SemanticExpressionGraphLeftChild(surfaces.expression_graph, node);
+                    if edge == 1 { child = SemanticExpressionGraphRightChild(surfaces.expression_graph, node); }
+                    if IsSome(child) && (UnwrapOption(child) < start || UnwrapOption(child) >= node) {
+                        ok = false; break;
+                    }
+                    edge = edge + 1;
+                }
+                node = node + 1;
+            }
+            start = root + 1;
+        }
+        root = root + 1;
+    }
+    return SemanticExpressionGraphSurfaceOrder(ok && start == count, slots);
+}

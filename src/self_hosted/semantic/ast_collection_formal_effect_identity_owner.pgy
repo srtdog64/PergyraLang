@@ -12,6 +12,13 @@ struct SemanticAstCollectionFormalEffectInventory {
     row_by_formal: HashMap<String, Int>;
 }
 
+struct SemanticAstCollectionArgumentFormalTarget {
+    ok: Bool;
+    syntax_id: Int;
+    signature_row: Int;
+    ordinal: Int;
+}
+
 func SemanticAstCollectionFormalUnprovedElementUseEffect() -> Int {
     return 5;
 }
@@ -54,7 +61,7 @@ func SemanticAstCollectionFormalEffectInventoryFromSignatures(
             let node: Int = signatures.param_node_ids[flat + ordinal];
             let mode: Int = signatures.param_modes[flat + ordinal];
             if node <= 0 || mode < 0 || mode > 3 { ok = false; break; }
-            if SemanticAstCollectionOwnershipIsStringArray(
+            if SemanticAstCollectionOwnershipIsStringSequence(
                     signatures.param_types[flat + ordinal]) {
                 let key: String = ToString(node);
                 if MapHas(rows, key) { ok = false; break; }
@@ -76,31 +83,85 @@ func SemanticAstCollectionFormalEffectInventoryFromSignatures(
         ok, nodes, functions, ordinals, modes, bodies, rows);
 }
 
-func SemanticAstCollectionSourceArrayFormalForArgument(
+func SemanticAstCollectionArgumentFormalTargetForArgument(
     ref signatures: SemanticAstFunctionSignatureFacts,
     ref graph: SemanticExpressionGraphFacts,
     call_node: Int, argument_ordinal: Int
-) -> Int {
+) -> SemanticAstCollectionArgumentFormalTarget {
+    let missing: SemanticAstCollectionArgumentFormalTarget =
+        SemanticAstCollectionArgumentFormalTarget(false, 0, -1, -1);
     let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(graph, call_node);
     let kind: Option<Int> = SemanticExpressionGraphCallTargetKind(graph, call_node);
     if !IsSome(target) || UnwrapOption(target) <= 0 ||
-        !IsSome(kind) || argument_ordinal < 0 { return 0; }
+        !IsSome(kind) || argument_ordinal < 0 { return missing; }
     let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
         signatures, UnwrapOption(target));
-    if !IsSome(signature) { return 0; }
+    if !IsSome(signature) { return missing; }
     let row: Int = UnwrapOption(signature);
     let offset: Int = 0;
     if UnwrapOption(kind) == SemanticCallTargetMember() {
         // Borrow the source-signature offset row; a projected name is not self.
         if ArrayLength(signatures.receiver_source_param_offsets) !=
-                ArrayLength(signatures.function_node_ids) { return 0; }
+                ArrayLength(signatures.function_node_ids) { return missing; }
         offset = signatures.receiver_source_param_offsets[row];
-        if offset < 0 || offset > 1 || offset > signatures.param_counts[row] { return 0; }
+        if offset < 0 || offset > 1 || offset > signatures.param_counts[row] {
+            return missing;
+        }
     }
     let ordinal: Int = argument_ordinal + offset;
     let node: Option<Int> = SemanticAstFunctionParamNodeAt(signatures, row, ordinal);
-    let type_name: Option<String> = SemanticAstFunctionParamTypeAt(signatures, row, ordinal);
-    if !IsSome(node) || !IsSome(type_name) || UnwrapOption(node) <= 0 ||
-        !SemanticAstCollectionOwnershipIsStringArray(UnwrapOption(type_name)) { return 0; }
-    return UnwrapOption(node);
+    if !IsSome(node) || UnwrapOption(node) <= 0 { return missing; }
+    return SemanticAstCollectionArgumentFormalTarget(
+        true, UnwrapOption(node), row, ordinal);
+}
+
+func SemanticAstCollectionSourceArrayFormalForArgument(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts,
+    call_node: Int, argument_ordinal: Int
+) -> Int {
+    let target: SemanticAstCollectionArgumentFormalTarget =
+        SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, graph, call_node, argument_ordinal);
+    if !target.ok { return 0; }
+    let type_name: Option<String> = SemanticAstFunctionParamTypeAt(
+        signatures, target.signature_row, target.ordinal);
+    if !IsSome(type_name) ||
+        !SemanticAstCollectionOwnershipIsStringArray(
+            UnwrapOption(type_name)) { return 0; }
+    return target.syntax_id;
+}
+
+func SemanticAstCollectionSourceStringSequenceFormalForArgument(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts,
+    call_node: Int, argument_ordinal: Int
+) -> Int {
+    let target: SemanticAstCollectionArgumentFormalTarget =
+        SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, graph, call_node, argument_ordinal);
+    if !target.ok { return 0; }
+    let type_name: Option<String> = SemanticAstFunctionParamTypeAt(
+        signatures, target.signature_row, target.ordinal);
+    if !IsSome(type_name) ||
+        !SemanticAstCollectionOwnershipIsStringSequence(
+            UnwrapOption(type_name)) { return 0; }
+    return target.syntax_id;
+}
+
+func SemanticAstCollectionSourceStringSliceFormalForArgument(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts,
+    call_node: Int, argument_ordinal: Int
+) -> Int {
+    let target: SemanticAstCollectionArgumentFormalTarget =
+        SemanticAstCollectionArgumentFormalTargetForArgument(
+            signatures, graph, call_node, argument_ordinal);
+    if !target.ok { return 0; }
+    let type_name: Option<String> = SemanticAstFunctionParamTypeAt(
+        signatures, target.signature_row, target.ordinal);
+    if !IsSome(type_name) ||
+        !SemanticAstCollectionOwnershipIsStringSlice(
+            UnwrapOption(type_name)) { return 0; }
+    return target.syntax_id;
 }

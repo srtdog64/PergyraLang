@@ -3,6 +3,7 @@
 import "ast_collection_formal_effect_identity_owner.pgy";
 import "ast_function_scope_fact_owner.pgy";
 import "ast_statement_fact_owner.pgy";
+import "ast_expression_graph_surface_order_owner.pgy";
 struct SemanticAstCollectionFormalExecutionContexts {
     ok: Bool;
     unsafe_functions: HashMap<String, Int>;
@@ -75,23 +76,24 @@ func SemanticAstCollectionNonStraightLineFunctions(
     }
     return functions;
 }
-func SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact: AstTreeArtifact,
+func SemanticAstCollectionFormalEffectSyntaxIsDeferred(ref artifact: AstTreeArtifact,
     syntax_id: Int) -> Bool {
+    if syntax_id < 0 || syntax_id >= artifact.count ||
+        ArrayLength(artifact.arena.parents) != artifact.count ||
+        ArrayLength(artifact.arena.kinds) != artifact.count { return true; }
     let ancestor: Int = syntax_id;
     let remaining: Int = artifact.count;
     while ancestor >= 0 && remaining > 0 {
-        if TypedAstArenaNodeKindIs(
-                artifact.arena, ancestor, TypedAstKindDeferStmtTag()) ||
-            TypedAstArenaNodeKindIs(
-                artifact.arena, ancestor, TypedAstKindParallelBlockTag()) ||
-            TypedAstArenaNodeKindIs(
-                artifact.arena, ancestor, TypedAstKindAsyncBlockTag()) {
+        if ancestor >= artifact.count { return true; }
+        let kind: Int = artifact.arena.kinds[ancestor];
+        if kind == TypedAstKindDeferStmtTag() ||
+            kind == TypedAstKindParallelBlockTag() ||
+            kind == TypedAstKindAsyncBlockTag() {
             return true;
         }
-        let parent: Option<Int> = TypedAstArenaParentId(
-            artifact.arena, ancestor);
-        if !IsSome(parent) { return false; }
-        ancestor = UnwrapOption(parent);
+        let parent: Int = artifact.arena.parents[ancestor];
+        if parent < 0 { return false; }
+        ancestor = parent;
         remaining = remaining - 1;
     }
     return true;
@@ -133,10 +135,22 @@ func SemanticAstCollectionFormalExecutionContextsFromFacts(artifact: AstTreeArti
     ref scopes: SemanticAstFunctionScopeFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts
 ) -> SemanticAstCollectionFormalExecutionContexts {
+    let no_synthetic_roots: Array<Int> = [];
+    let order: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(
+        surfaces, no_synthetic_roots, no_synthetic_roots);
+    return SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(
+        artifact, inventory, scopes, surfaces, order);
+}
+func SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(artifact: AstTreeArtifact,
+    ref inventory: SemanticAstCollectionFormalEffectInventory,
+    ref scopes: SemanticAstFunctionScopeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref order: SemanticExpressionGraphSurfaceOrder
+) -> SemanticAstCollectionFormalExecutionContexts {
     let unsafe_functions: HashMap<String, Int> = MapNew();
     let candidate_functions: HashMap<String, Int> = MapNew();
     let surface_count: Int = ArrayLength(surfaces.node_ids);
-    let ok: Bool = inventory.ok && artifact.identity_digest > 0 &&
+    let ok: Bool = inventory.ok && order.ok && artifact.identity_digest > 0 &&
         TypedAstArenaParallelRowsReady(artifact.arena) &&
         TypedAstArenaNodeCount(artifact.arena) == artifact.count &&
         scopes.ok && scopes.artifact_node_count == artifact.count &&
@@ -189,10 +203,11 @@ func SemanticAstCollectionFormalExecutionContextsFromFacts(artifact: AstTreeArti
         surface = surface + 1;
     }
     let last: Int = -1;
-    let slot: Int = 0;
-    while ok && slot < ArrayLength(surfaces.expression_graph.roots) {
-        if surfaces.expression_graph.has_roots[slot] {
-            let root: Int = surfaces.expression_graph.roots[slot];
+    let root: Int = 0;
+    while ok && root < ArrayLength(order.slots_by_root) {
+        let slot: Int = order.slots_by_root[root];
+        if slot == -2 { last = root; }
+        if slot >= 0 {
             let function_node_id: Int =
                 surfaces.function_node_ids[slot / 3];
             let key: String = ToString(function_node_id);
@@ -209,7 +224,7 @@ func SemanticAstCollectionFormalExecutionContextsFromFacts(artifact: AstTreeArti
             }
             last = root;
         }
-        slot = slot + 1;
+        root = root + 1;
     }
     ok = ok && last + 1 == SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena);
     return SemanticAstCollectionFormalExecutionContexts(ok, unsafe_functions);
