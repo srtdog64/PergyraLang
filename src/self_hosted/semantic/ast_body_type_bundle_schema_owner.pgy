@@ -20,6 +20,7 @@ struct SemanticAstBodyTypeBundle {
     assignment_types: SemanticAstAssignmentTypeFacts;
     statement_types: SemanticAstStatementTypeFacts;
     match_materializations: SemanticAstMatchMaterializationFacts;
+    collection_formal_effects: SemanticAstCollectionFormalEffects;
     collection_ownership: SemanticAstCollectionOwnershipVerdict;
     zone_carriage: SemanticAstZoneValueCarriageVerdict;
     generic_specializations: SemanticAstGenericSpecializationFacts;
@@ -45,6 +46,7 @@ func SemanticAstBodyTypeBundleAdmissionError(
             artifact, "BodyAnalysisAdmission"
         ),
         SemanticAstMatchMaterializationError(artifact),
+        SemanticAstCollectionFormalEffectsEmpty(),
         SemanticAstCollectionOwnershipVerdictError(
             "body_analysis_admission", message, -1, -1
         ),

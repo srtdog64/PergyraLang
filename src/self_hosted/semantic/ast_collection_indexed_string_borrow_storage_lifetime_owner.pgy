@@ -1,0 +1,15 @@
+// Exact last-consumer boundary for indexed-String borrow analysis scratch.
+// The caller first replaces the record fields, so these named arrays are the
+// only remaining descriptors when compiler-internal storage retirement runs.
+
+func SemanticAstIndexedStringBorrowInvalidationStorageRetire(
+    own values: Array<Bool>
+) -> Void {
+    CompilerRetireArrayStorage(values);
+}
+
+func SemanticAstIndexedStringBorrowSourceStorageRetire(
+    own values: Array<Int>
+) -> Void {
+    CompilerRetireArrayStorage(values);
+}

@@ -248,8 +248,8 @@ func LookupQualifiedKindType(
     env: CodegenTypeEnv, owner: String, member: String, kind: String
 ) -> String {
     let key: String = CodegenTypeOwnedQualifiedKey(owner, member);
-    let value: String = LookupKindType(env, key, kind);
     let retired: Array<String> = [key];
+    let value: String = LookupKindType(env, retired[0], kind);
     ArrayDropOwnedStrings(retired);
     return value;
 }

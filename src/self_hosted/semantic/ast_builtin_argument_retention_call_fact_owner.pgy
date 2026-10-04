@@ -106,10 +106,9 @@ func SemanticAstBuiltinArgumentRetentionRecordResolvedCall(
 }
 
 // The owning consumer must validate CallFactsReady once before repeated use.
-func SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts(
-    ref surfaces: SemanticAstExpressionSurfaceFacts,
-    call_node: Int
-) -> Option<String> {
+func SemanticAstBuiltinArgumentRetentionFactRowForCall(
+    ref surfaces: SemanticAstExpressionSurfaceFacts, call_node: Int
+) -> Int {
     let low: Int = 0;
     let high: Int = ArrayLength(surfaces.expression_graph.arena.identities.builtin_argument_retention_calls);
     while low < high {
@@ -121,8 +120,18 @@ func SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts(
     if low >= ArrayLength(surfaces.expression_graph.arena.identities.builtin_argument_retention_calls) ||
         surfaces.expression_graph.arena.identities
             .builtin_argument_retention_calls[low].call_node != call_node {
-        return None;
+        return -1;
     }
+    return low;
+}
+
+func SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts(
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    call_node: Int
+) -> Option<String> {
+    let low: Int = SemanticAstBuiltinArgumentRetentionFactRowForCall(
+        surfaces, call_node);
+    if low < 0 { return None; }
     let retention: SemanticBuiltinArgumentRetentionRow =
         SemanticBuiltinArgumentRetentionRowAt(surfaces.expression_graph.arena.identities
             .builtin_argument_retention_calls[low].retention_row);
@@ -141,6 +150,58 @@ func SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts(
                 .local_call_ordinal,
             identity.owner_node_id, identity.lane,
             identity.local_call_ordinal) { return None; }
+    return Some(retention.builtin_identity);
+}
+
+// Context-bound lookup for a consumer that already owns the exact expression
+// root start, syntax owner, and lane. This preserves the sealed call identity
+// without rescanning every preceding expression root for each domain query.
+func SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    call_node: Int, root_start: Int, owner_node_id: Int, lane: Int
+) -> Option<String> {
+    let fact_row: Int = SemanticAstBuiltinArgumentRetentionFactRowForCall(
+        surfaces, call_node);
+    if fact_row < 0 || root_start < 0 || call_node < root_start ||
+        lane < AstExpressionLaneAtom() ||
+        lane > AstExpressionLaneAuxiliary() {
+        return None;
+    }
+    let local_call_ordinal: Int = 0;
+    let node: Int = root_start;
+    while node <= call_node {
+        if surfaces.expression_graph.arena.topology.node_kinds[node] ==
+                AstExpressionNodeCall() {
+            if node == call_node { break; }
+            local_call_ordinal = local_call_ordinal + 1;
+        }
+        node = node + 1;
+    }
+    if node != call_node ||
+        surfaces.expression_graph.arena.topology.node_kinds[call_node] !=
+            AstExpressionNodeCall() {
+        return None;
+    }
+    let retention: SemanticBuiltinArgumentRetentionRow =
+        SemanticBuiltinArgumentRetentionRowAt(
+            surfaces.expression_graph.arena.identities
+                .builtin_argument_retention_calls[fact_row].retention_row);
+    if !retention.valid ||
+        !SemanticBuiltinRetentionSourceSignatureKnown(
+            retention.source_name) ||
+        !SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call_node,
+            retention.source_name) ||
+        surfaces.expression_graph.arena.identities
+            .builtin_argument_retention_calls[fact_row].owner_node_id !=
+                owner_node_id ||
+        surfaces.expression_graph.arena.identities
+            .builtin_argument_retention_calls[fact_row].lane != lane ||
+        surfaces.expression_graph.arena.identities
+            .builtin_argument_retention_calls[fact_row]
+                .local_call_ordinal != local_call_ordinal {
+        return None;
+    }
     return Some(retention.builtin_identity);
 }
 

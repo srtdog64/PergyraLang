@@ -1,4 +1,9 @@
-// C symbol facts for explicit Result<T, E> specializations.
+// C symbol facts for Result specializations.
+//
+// A one-argument Result<T> has the language's implicit String error lane.
+// Int, Bool, and String are the scalar specializations materialized by the
+// self-host C preamble. Explicit Result<T, E> values remain declaration-graph
+// nodes emitted from their two owned type arguments.
 
 import "../../compiler/symbol_table_owner.pgy";
 import "../../semantic/ast_type_name_canonical_owner.pgy";
@@ -25,8 +30,51 @@ func ResultRuntimeFactInvalid(type_name: String) -> ResultRuntimeFact {
     );
 }
 
+func ResultRuntimeFactIsBuiltinScalar(type_name: String) -> Bool {
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    return canonical == "Result<Int>" ||
+        canonical == "Result<Bool>" ||
+        canonical == "Result<String>";
+}
+
+func ResultRuntimeBuiltinScalarFact(
+    canonical: String
+) -> ResultRuntimeFact {
+    if canonical == "Result<Int>" {
+        return ResultRuntimeFact(
+            true, canonical, "Int", "String", "pgy_result_int",
+            "pgy_result_ok", "pgy_result_err",
+            "pgy_result_is_ok", "pgy_result_is_err",
+            "pgy_result_unwrap", "pgy_result_unwrap_err",
+            "pgy_result_unwrap_or"
+        );
+    }
+    if canonical == "Result<Bool>" {
+        return ResultRuntimeFact(
+            true, canonical, "Bool", "String", "pgy_result_bool",
+            "pgy_result_ok_bool", "pgy_result_err_bool",
+            "pgy_result_is_ok_bool", "pgy_result_is_err_bool",
+            "pgy_result_unwrap_bool", "pgy_result_unwrap_err_bool",
+            "pgy_result_unwrap_or_bool"
+        );
+    }
+    if canonical == "Result<String>" {
+        return ResultRuntimeFact(
+            true, canonical, "String", "String", "pgy_result_string",
+            "pgy_result_ok_string", "pgy_result_err_string",
+            "pgy_result_is_ok_string", "pgy_result_is_err_string",
+            "pgy_result_unwrap_string", "pgy_result_unwrap_err_string",
+            "pgy_result_unwrap_or_string"
+        );
+    }
+    return ResultRuntimeFactInvalid(canonical);
+}
+
 func ResultRuntimeFactForType(type_name: String) -> ResultRuntimeFact {
     let canonical: String = SemanticCanonicalTypeName(type_name);
+    if ResultRuntimeFactIsBuiltinScalar(canonical) {
+        return ResultRuntimeBuiltinScalarFact(canonical);
+    }
     let payload: Option<String> = ResultPayloadTypeOpt(canonical);
     let error: Option<String> = ResultErrorTypeOpt(canonical);
     if !IsSome(payload) || !IsSome(error) ||

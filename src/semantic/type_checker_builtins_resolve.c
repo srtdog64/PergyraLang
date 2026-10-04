@@ -20,6 +20,7 @@ static const BuiltinEntry k_builtin_entries[] = {
     {"AllocatorSystem", BUILTIN_ALLOCATOR_SYSTEM},
     {"AllocatorTracing", BUILTIN_ALLOCATOR_TRACING},
     {"Args", BUILTIN_ARGS},
+    {"ArrayPushOwnedString", BUILTIN_ARRAY_PUSH_OWNED_STRING},
     {"Box", BUILTIN_BOX},
     {"BoxArray", BUILTIN_BOX_ARRAY},
     {"BoxDrop", BUILTIN_BOX_DROP},
@@ -138,5 +139,6 @@ builtin_kind_requires_stdlib_target_fact(BuiltinKind kind)
 {
     return kind == BUILTIN_STRING_LENGTH
         || kind == BUILTIN_CHAR_CODE
-        || kind == BUILTIN_CONCAT;
+        || kind == BUILTIN_CONCAT
+        || kind == BUILTIN_ARRAY_PUSH_OWNED_STRING;
 }

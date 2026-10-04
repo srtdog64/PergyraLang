@@ -16,6 +16,11 @@ func SemanticAstCollectionFormalUnprovedElementUseEffect() -> Int {
     return 5;
 }
 
+func SemanticAstCollectionFormalShallowMutationEffect() -> Int {
+    return 6;
+}
+
+
 func SemanticAstCollectionFormalEffectInventoryFromSignatures(
     ref signatures: SemanticAstFunctionSignatureFacts
 ) -> SemanticAstCollectionFormalEffectInventory {

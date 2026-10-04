@@ -57,10 +57,10 @@ func SemanticAstExpressionSeedMatchCaseBindings(
         return false;
     }
     let subject_type_fact: Option<String> =
-        SemanticExpressionGraphValueReceiverTypeName(
+        SemanticExpressionGraphValueReceiverTypeNameFromFunctionTables(
             expression_surfaces.expression_graph,
             UnwrapOption(subject_root), constructors, names, types,
-            function_tables.names, function_tables.returns
+            function_tables
         );
     if !IsSome(subject_type_fact) {
         return false;

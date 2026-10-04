@@ -20,11 +20,19 @@ func GenericParameterFactRowsRollbackReady() -> Bool {
     let names: Array<String> = ["Seed"];
     let defaults: Array<String> = ["String"];
     let constraints: Array<String> = ["SeedBound"];
-    return !SemanticAstGenericParameterFactRowsFromOwnerNode(
-        artifact.arena, owner_node_id, names, defaults, constraints
-    ) && ArrayLength(names) == 1 && ArrayLength(defaults) == 1 &&
+    let rows: SemanticAstGenericParameterFactRows =
+        SemanticAstGenericParameterFactRowsFromOwnerNode(
+            artifact.arena, owner_node_id
+        );
+    // The rejected carrier retains any partial owned rows so its single
+    // caller-owned retirement path can release them without a second return
+    // source.  The pre-existing seed arrays remain outside that transaction.
+    let ready: Bool = !rows.ok && ArrayLength(rows.names) > 0 &&
+        ArrayLength(names) == 1 && ArrayLength(defaults) == 1 &&
         ArrayLength(constraints) == 1 && names[0] == "Seed" &&
         defaults[0] == "String" && constraints[0] == "SeedBound";
+    SemanticAstGenericParameterFactRowsDrop(rows);
+    return ready;
 }
 
 func InspectGenericDefaultSelection(

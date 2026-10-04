@@ -11,7 +11,16 @@ struct SemanticAstCollectionAggregateFieldEntryRequirements {
     formal_modes: Array<Int>;
     field_ids: Array<Int>;
     local_ids: Array<Int>;
+    effect_masks: Array<Int>;
     row_by_local: HashMap<String, Int>;
+}
+
+func SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() -> Int {
+    return 1;
+}
+
+func SemanticAstCollectionAggregateFieldEntryEffectOwnedPush() -> Int {
+    return 2;
 }
 
 func SemanticAstCollectionAggregateFieldEntryRequirementsEmpty() -> SemanticAstCollectionAggregateFieldEntryRequirements {
@@ -21,8 +30,11 @@ func SemanticAstCollectionAggregateFieldEntryRequirementsEmpty() -> SemanticAstC
     let modes: Array<Int> = [];
     let fields: Array<Int> = [];
     let locals: Array<Int> = [];
+    let effects: Array<Int> = [];
     let rows: HashMap<String, Int> = MapNew();
-    return SemanticAstCollectionAggregateFieldEntryRequirements(true, functions, formals, ordinals, modes, fields, locals, rows);
+    return SemanticAstCollectionAggregateFieldEntryRequirements(
+        true, functions, formals, ordinals, modes, fields, locals, effects,
+        rows);
 }
 
 // Validate the exact index domain without retaining a ref fact's descriptor.
@@ -49,14 +61,16 @@ func SemanticAstCollectionAggregateFieldEntryRequirementsReady(
 ) -> Bool {
     let count: Int = ArrayLength(facts.local_ids);
     if !facts.ok || ArrayLength(facts.function_ids) != count || ArrayLength(facts.formal_ids) != count ||
-        ArrayLength(facts.formal_ordinals) != count || ArrayLength(facts.formal_modes) != count || ArrayLength(facts.field_ids) != count {
+        ArrayLength(facts.formal_ordinals) != count || ArrayLength(facts.formal_modes) != count || ArrayLength(facts.field_ids) != count ||
+        ArrayLength(facts.effect_masks) != count {
         return false;
     }
     if !SemanticAstCollectionAggregateFieldEntryIndexReady(facts.row_by_local, facts.local_ids) { return false; }
     let row: Int = 0;
     while row < count {
         if facts.function_ids[row] <= 0 || facts.formal_ids[row] <= 0 || facts.formal_ordinals[row] < 0 ||
-            facts.formal_modes[row] < 0 || facts.formal_modes[row] > 3 || facts.field_ids[row] <= 0 || facts.local_ids[row] <= 0 { return false; }
+            facts.formal_modes[row] < 0 || facts.formal_modes[row] > 3 || facts.field_ids[row] <= 0 || facts.local_ids[row] <= 0 ||
+            facts.effect_masks[row] <= 0 || facts.effect_masks[row] > 3 { return false; }
         row = row + 1;
     }
     return true;
@@ -67,6 +81,7 @@ func SemanticAstCollectionAggregateFieldEntryRequirementsReady(
 func SemanticAstCollectionAggregateFieldEntryRequirementRecord(
     ref signatures: SemanticAstFunctionSignatureFacts, ref locals: SemanticAstLocalBindingFacts,
     function_id: Int, root_id: Int, field_id: Int, local_id: Int,
+    effect_mask: Int,
     inout facts: SemanticAstCollectionAggregateFieldEntryRequirements
 ) -> Bool {
     let signature_count: Int = ArrayLength(signatures.function_node_ids);
@@ -77,7 +92,11 @@ func SemanticAstCollectionAggregateFieldEntryRequirementRecord(
     let destination: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, local_id);
     if !locals.ok || !IsSome(destination) || locals.function_node_ids[UnwrapOption(destination)] != function_id { return false; }
     let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, function_id);
-    if !IsSome(signature) || root_id <= 0 || field_id <= 0 || local_id <= 0 { return false; }
+    if !IsSome(signature) || root_id <= 0 || field_id <= 0 || local_id <= 0 ||
+        (effect_mask != SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() &&
+         effect_mask != SemanticAstCollectionAggregateFieldEntryEffectOwnedPush()) {
+        return false;
+    }
     let selected: Int = UnwrapOption(signature);
     let start: Int = signatures.param_starts[selected];
     let length: Int = signatures.param_counts[selected];
@@ -112,13 +131,24 @@ func SemanticAstCollectionAggregateFieldEntryRequirementRecord(
     let indexed: Int = SemanticAstCollectionAggregateFieldEntryIndexRow(facts.row_by_local, local_id);
     if indexed >= 0 {
         let row: Int = indexed;
-        return row >= 0 && row < ArrayLength(facts.local_ids) && facts.function_ids[row] == function_id &&
-            facts.local_ids[row] == local_id && facts.formal_ids[row] == root_id && facts.formal_ordinals[row] == found && facts.formal_modes[row] == mode && facts.field_ids[row] == field_id;
+        if row < 0 || row >= ArrayLength(facts.local_ids) ||
+            facts.function_ids[row] != function_id ||
+            facts.local_ids[row] != local_id || facts.formal_ids[row] != root_id ||
+            facts.formal_ordinals[row] != found ||
+            facts.formal_modes[row] != mode || facts.field_ids[row] != field_id {
+            return false;
+        }
+        if facts.effect_masks[row] != effect_mask &&
+            facts.effect_masks[row] != 3 {
+            facts.effect_masks[row] = facts.effect_masks[row] + effect_mask;
+        }
+        return true;
     }
     let row: Int = ArrayLength(facts.local_ids);
     ArrayPush(facts.function_ids, function_id); ArrayPush(facts.formal_ids, root_id);
     ArrayPush(facts.formal_ordinals, found); ArrayPush(facts.formal_modes, mode);
     ArrayPush(facts.field_ids, field_id); ArrayPush(facts.local_ids, local_id);
+    ArrayPush(facts.effect_masks, effect_mask);
     // This mutable owner writes the potentially grown descriptor back. It is
     // not a retained view of a ref fact and never crosses an async boundary.
     let rows: HashMap<String, Int> = facts.row_by_local;

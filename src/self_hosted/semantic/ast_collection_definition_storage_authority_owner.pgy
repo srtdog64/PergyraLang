@@ -22,7 +22,8 @@ func SemanticAstCollectionStorageAuthorityFromDefinitions(
     let n: Int = ArrayLength(definitions.syntax_ids);
     if !definitions.ok || definitions.local_count != ArrayLength(locals.node_ids) ||
         ArrayLength(definitions.value_nodes) != n || ArrayLength(definitions.local_sources) != n ||
-        ArrayLength(definitions.binding_rows) != n || ArrayLength(definitions.fresh) != n { return facts; }
+        ArrayLength(definitions.binding_rows) != n || ArrayLength(definitions.fresh) != n ||
+        ArrayLength(definitions.shallow_alias_admitted) != n { return facts; }
     let row: Int = 0;
     while row < n {
         let is_borrowed: Bool = false;

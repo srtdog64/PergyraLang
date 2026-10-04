@@ -1,0 +1,17 @@
+// Compile-only negative: a nested member does not evade a missing lifetime fact.
+// Never execute this program.
+struct Bundle { value: Array<String>; }
+struct Envelope { bundle: Bundle; }
+
+func Consume(envelope: Envelope) -> Void {
+    let value: Array<String> = envelope.bundle.value;
+    ArrayDropOwnedStrings(value);
+}
+
+func Main() -> Void {
+    let value: Array<String> = [];
+    ArrayPush(value, "borrowed");
+    let bundle: Bundle = Bundle(value);
+    let envelope: Envelope = Envelope(bundle);
+    Consume(envelope);
+}

@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, Concat("owned", "-value"));
+    let borrowed: String = values[0];
+    ArrayDropOwnedStrings(values);
+    Log(borrowed);
+}

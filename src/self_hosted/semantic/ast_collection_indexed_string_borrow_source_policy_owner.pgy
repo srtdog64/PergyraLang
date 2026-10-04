@@ -1,0 +1,94 @@
+// May-alias lattice for indexed String borrow sources. Zero is proved
+// independent, positive values are exact storage SyntaxIds, and -1 is an
+// unresolved or multi-source loan that every deep drop may invalidate.
+import "ast_collection_definition_storage_authority_owner.pgy";
+
+func SemanticAstIndexedStringBorrowUnknownSource() -> Int { return -1; }
+
+func SemanticAstIndexedStringBorrowSourceJoin(
+    current: Int, incoming: Int
+) -> Int {
+    if current == 0 { return incoming; }
+    if incoming == 0 || current == incoming { return current; }
+    return SemanticAstIndexedStringBorrowUnknownSource();
+}
+
+func SemanticAstIndexedStringBorrowInvalidatedByDrop(
+    borrow_source: Int, dropped_source: Int
+) -> Bool {
+    return borrow_source == SemanticAstIndexedStringBorrowUnknownSource() ||
+        dropped_source == SemanticAstIndexedStringBorrowUnknownSource() ||
+        borrow_source == dropped_source;
+}
+
+func SemanticAstIndexedStringBorrowSourceForRoot(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref current_definitions: Array<Int>,
+    ref borrow_sources: Array<Int>,
+    surface_row: Int, root: Int
+) -> Int {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        surfaces.expression_graph, root
+    );
+    if !IsSome(kind) {
+        return SemanticAstIndexedStringBorrowUnknownSource();
+    }
+    if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+        let alias: SemanticAstLocalBindingIdentity =
+            SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+                artifact, locals, inferred_types,
+                surfaces.function_node_ids[surface_row],
+                surfaces.node_ids[surface_row],
+                surfaces.expression_graph, root
+            );
+        if alias.ok && alias.type_name == "String" &&
+            alias.row < ArrayLength(borrow_sources) {
+            return borrow_sources[alias.row];
+        }
+        return 0;
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        surfaces.expression_graph, root
+    );
+    if call.ok &&
+        (SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "Concat") ||
+         SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "StringConcat")) {
+        return 0;
+    }
+    if UnwrapOption(kind) != AstExpressionNodeIndex() {
+        return SemanticAstIndexedStringBorrowUnknownSource();
+    }
+    let base: Option<Int> = SemanticExpressionGraphLeftChild(
+        surfaces.expression_graph, root
+    );
+    if !IsSome(base) {
+        return SemanticAstIndexedStringBorrowUnknownSource();
+    }
+    let source: SemanticAstLocalBindingIdentity =
+        SemanticAstScopedLocalBindingIdentityForGraphLeaf(
+            artifact, locals, inferred_types,
+            surfaces.function_node_ids[surface_row],
+            surfaces.node_ids[surface_row], surfaces.expression_graph,
+            UnwrapOption(base)
+        );
+    if !source.ok ||
+        !SemanticAstCollectionOwnershipIsStringArray(source.type_name) ||
+        source.row >= ArrayLength(current_definitions) {
+        return SemanticAstIndexedStringBorrowUnknownSource();
+    }
+    let definition: Int = current_definitions[source.row];
+    let source_id: Int = SemanticAstCollectionDefinitionStorageSource(
+        storage, definitions, source.row, definition
+    );
+    if source_id <= 0 {
+        return SemanticAstIndexedStringBorrowUnknownSource();
+    }
+    return source_id;
+}

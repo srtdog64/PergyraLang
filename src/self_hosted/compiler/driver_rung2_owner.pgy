@@ -114,6 +114,8 @@ func DriverRung2MirProjectionFromVerifiedFactsObserved(
     machine_declaration: SelfHostMachineLayerDeclaration,
     observe_pressure: Bool
 ) -> DriverRung2MirProjection {
+    // Bind reuse to the exact artifact and body facts; a stale receipt is not
+    // permission to reconstruct a second semantic answer here.
     if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(
         verified.body_type_admission, artifact,
         verified.analysis, verified.body_types
@@ -129,6 +131,8 @@ func DriverRung2MirProjectionFromVerifiedFactsObserved(
         verified.body_types.generic_specializations,
         machine_declaration, observe_pressure
     );
+    // MIR rows have consumed these carriers. Retire only their backing arrays;
+    // String payloads remain shared with the projected facts.
     let terminal_body_types: SemanticAstBodyTypeBundle = verified.body_types;
     SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(terminal_body_types);
     SelfMirArtifactPressureStage(observe_pressure, "canonical-ids:start");
@@ -374,7 +378,9 @@ func CompileMachineAdmittedMirJsonToCForTargetVerifiedObserved(
     DriverRung2PressureStage(observe_pressure, "consumer:codegen-view:done");
     let expired_function_tables: SemanticAstExpressionFunctionTableFacts =
         codegen_analysis.function_tables;
-    SemanticAstExpressionFunctionTableFactsRelease(expired_function_tables);
+    SemanticAstExpressionFunctionTableFactsRelease(
+        expired_function_tables
+    );
     codegen_analysis.function_tables = expired_function_tables;
     DriverRung2PressureStage(observe_pressure, "consumer:function-tables:released");
     let codegen_body_types: CodegenSemanticBodyTypeFacts = codegen_view.body_types;

@@ -1,0 +1,16 @@
+// Ordinary nested field reads do not require deep-release authority.
+struct Bundle { value: Array<String>; }
+struct Envelope { bundle: Bundle; }
+
+func Count(envelope: Envelope) -> Int {
+    let value: Array<String> = envelope.bundle.value;
+    return ArrayLength(value);
+}
+
+func Main() -> Void {
+    let value: Array<String> = [];
+    ArrayPush(value, "borrowed");
+    let bundle: Bundle = Bundle(value);
+    let envelope: Envelope = Envelope(bundle);
+    Log(Count(envelope));
+}

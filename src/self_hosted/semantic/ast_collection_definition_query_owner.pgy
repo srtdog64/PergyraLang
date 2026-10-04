@@ -1,0 +1,45 @@
+// Exact queries over the canonical collection-definition fact rows.
+import "ast_collection_definition_fact_owner.pgy";
+import "ast_collection_ownership_identity_owner.pgy";
+
+func SemanticAstCollectionDefinitionShallowAliasAdmitted(
+    ref facts: SemanticAstCollectionDefinitionFacts, definition: Int
+) -> Bool {
+    return facts.ok && definition >= 0 &&
+        definition < ArrayLength(facts.shallow_alias_admitted) &&
+        facts.shallow_alias_admitted[definition];
+}
+
+func SemanticAstCollectionInitialDefinitions(
+    ref facts: SemanticAstCollectionDefinitionFacts
+) -> Array<Int> {
+    let current: Array<Int> = [];
+    let row: Int = 0;
+    while row < facts.local_count {
+        ArrayPush(current, row); row = row + 1;
+    }
+    return current;
+}
+
+func SemanticAstCollectionDefinitionWriteTarget(
+    ref facts: SemanticAstCollectionDefinitionFacts, slot: Int, node: Int
+) -> Bool {
+    if slot % 3 != AstExpressionLaneAtom() { return false; }
+    let definition: Int = facts.surface_rows[slot / 3];
+    return definition >= facts.local_count &&
+        facts.target_nodes[definition] == node;
+}
+
+func SemanticAstCollectionDefinitionCompletedAtSlot(
+    ref facts: SemanticAstCollectionDefinitionFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, slot: Int
+) -> Int {
+    if slot % 3 != AstExpressionLaneValue() { return -1; }
+    let assigned: Int = facts.surface_rows[slot / 3];
+    if assigned >= facts.local_count { return assigned; }
+    let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(
+        locals, surfaces.node_ids[slot / 3]);
+    if IsSome(declared) { return UnwrapOption(declared); }
+    return -1;
+}

@@ -3,6 +3,7 @@
 import "ast_owned_string_domain_exposure_owner.pgy";
 import "ast_owned_string_local_reassignment_owner.pgy";
 import "ast_numeric_string_allocation_call_owner.pgy";
+import "ast_builtin_argument_retention_call_fact_owner.pgy";
 
 func SemanticAstOwnedStringExpressionSourceStart(
     ref surfaces: SemanticAstExpressionSurfaceFacts,
@@ -144,6 +145,20 @@ func SemanticAstOwnedStringExpressionAllocationDomain(
         artifact, signatures, locals, initializer_types, surfaces, writes, exposures, results,
         function_id, use_id, lane, root);
     if call_domain.kind > 0 { return call_domain; }
+    let builtin_call: SemanticCallSpineView =
+        SemanticCallSpineViewFromGraph(surfaces.expression_graph, root);
+    // All callers run after expression-identity resolution has sealed and
+    // globally validated the retention facts. Repeating the whole readiness
+    // scan here would turn this per-expression lookup into quadratic work.
+    let builtin_identity: Option<String> =
+        SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
+            surfaces, builtin_call.call_node, start, use_id, lane);
+    if SemanticAstOwnedStringCallSourceReady(builtin_call, start, root) &&
+        ArrayLength(builtin_call.argument_nodes) == 2 &&
+        IsSome(builtin_identity) &&
+        UnwrapOption(builtin_identity) == "CONCAT" {
+        return SemanticAstOwnedStringDomainHeapOrNull();
+    }
     let carried: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
         surfaces.expression_graph, root);
     if !carried.ok || carried.kind != SemanticExpressionBindingNone() ||

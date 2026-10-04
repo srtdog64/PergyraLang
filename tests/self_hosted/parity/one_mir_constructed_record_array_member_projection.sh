@@ -27,7 +27,7 @@ assert_owner_ratchet() {
     local owner lines total=0
     while IFS= read -r owner; do
         require_file "$owner"
-        lines="$(wc -l <"$owner")"
+        lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$owner")" || fail "source-size measurement failed"
         [[ "$lines" -le 220 ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/220"
         total=$((total + lines))
     done <<EOF
@@ -53,12 +53,14 @@ EOF
     [[ "$total" -le 2100 ]] || fail "constructed record Array family cap exceeded: $total/2100"
     for shared_owner in direct_mir_array_storage_layout_contract_owner.pgy direct_mir_array_storage_abi_projection_owner.pgy direct_mir_array_storage_symbol_owner.pgy direct_mir_array_storage_c_assertion_owner.pgy; do
         require_file "$ROOT_DIR/src/self_hosted/compiler/$shared_owner"
-        [[ "$(wc -l <"$ROOT_DIR/src/self_hosted/compiler/$shared_owner")" -le 140 ]] || fail "shared Array storage owner hard cap exceeded: $shared_owner"
+        source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/$shared_owner")" || fail "source-size measurement failed"
+        [[ "$source_size_lines" -le 140 ]] || fail "shared Array storage owner hard cap exceeded: $shared_owner"
     done
     for aggregate_owner_cap in direct_mir_aggregate_value_flow_fact_owner.pgy:220 direct_mir_aggregate_value_flow_target_projection_owner.pgy:100; do
         local aggregate_owner="${aggregate_owner_cap%%:*}" aggregate_cap="${aggregate_owner_cap##*:}"
         require_file "$ROOT_DIR/src/self_hosted/compiler/$aggregate_owner"
-        [[ "$(wc -l <"$ROOT_DIR/src/self_hosted/compiler/$aggregate_owner")" -le "$aggregate_cap" ]] || fail "aggregate owner hard cap exceeded: $aggregate_owner"
+        source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/$aggregate_owner")" || fail "source-size measurement failed"
+        [[ "$source_size_lines" -le "$aggregate_cap" ]] || fail "aggregate owner hard cap exceeded: $aggregate_owner"
     done
     grep -Fq 'DirectMirThreeRoutineMixedConstructedGenericMember()' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_classification_owner.pgy" || fail "mixed classification is not owned"
     grep -Fq 'CompileAdmittedDirectMirConstructedRecordArrayMember(' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_three_routine_projection_owner.pgy" || fail "record Array projection is not routed"

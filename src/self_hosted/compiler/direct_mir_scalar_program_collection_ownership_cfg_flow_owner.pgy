@@ -5,6 +5,8 @@ import "direct_mir_scalar_cfg_program_routine_partition_owner.pgy";
 import "../mir_lower/routine_fact_index_schema_owner.pgy";
 
 func DirectMirCollectionOwnershipCfgStateJoin(left: Int, right: Int) -> Int {
+    // Zero is pending predecessor evidence, not semantic UNKNOWN ownership.
+    // A negative join marks incompatible paths and is refused by the caller.
     if left == 0 { return right; }
     if right == 0 || left == right { return left; }
     if (left == DirectMirCollectionOwnershipStateEmpty() &&
@@ -137,6 +139,7 @@ func DirectMirCollectionOwnershipCfgTerminalState(
         }
         iteration = iteration + 1;
     }
+    // The iteration budget is a refusal boundary, not a partial-proof fallback.
     if changed { return 0; }
 
     let terminal: Int = 0;

@@ -1,0 +1,48 @@
+// Formal-effect closure over exact physical-use edges. Acyclic dependencies
+// resolve once; recursive components inherit only proved reachable sinks.
+import "ast_collection_formal_effect_closure_owner.pgy";
+
+func SemanticAstCollectionFormalEffectFixedPoint(
+    ref inventory: SemanticAstCollectionFormalEffectInventory,
+    ref blocked: Array<Bool>, ref mutations: Array<Bool>,
+    ref shallow_mutations: Array<Bool>, ref element_reads: Array<Bool>,
+    ref sources: Array<Int>, ref targets: Array<Int>,
+    inout effects: HashMap<String, Int>,
+    inout status: SemanticAstCollectionFormalEffectResolutionStatus
+) -> Void {
+    if !status.ok { return; }
+    let count: Int = ArrayLength(inventory.formal_nodes);
+    if ArrayLength(blocked) != count || ArrayLength(mutations) != count ||
+        ArrayLength(shallow_mutations) != count ||
+        ArrayLength(element_reads) != count ||
+        ArrayLength(sources) != ArrayLength(targets) {
+        status.ok = false; return;
+    }
+    let edge: Int = 0;
+    while edge < ArrayLength(sources) {
+        if sources[edge] < 0 || sources[edge] >= count ||
+            targets[edge] < 0 || targets[edge] >= count {
+            status.ok = false; return;
+        }
+        edge = edge + 1;
+    }
+    let incoming_heads: Array<Int> = [];
+    let next_edges: Array<Int> = [];
+    let row: Int = 0;
+    while row < count { ArrayPush(incoming_heads, -1); row = row + 1; }
+    edge = 0;
+    while edge < ArrayLength(sources) {
+        ArrayPush(next_edges, incoming_heads[targets[edge]]);
+        incoming_heads[targets[edge]] = edge;
+        edge = edge + 1;
+    }
+    SemanticAstCollectionFormalEffectResolveAcyclic(
+        incoming_heads, next_edges, inventory, blocked, mutations,
+        shallow_mutations, element_reads, sources, effects, status);
+    if status.ok {
+        SemanticAstCollectionFormalEffectResolveRecursive(
+            incoming_heads, next_edges, inventory, blocked, mutations,
+            shallow_mutations, element_reads, sources, effects, status);
+    }
+    ArrayDrop(incoming_heads); ArrayDrop(next_edges);
+}

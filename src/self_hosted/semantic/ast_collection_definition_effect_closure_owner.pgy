@@ -45,11 +45,21 @@ func SemanticAstCollectionDefinitionEffectClosure(
             remaining = remaining - 1;
         }
         // Unsupported Assign loses local permission, not an earlier alias's
-        // known content or storage authority. Only descendants inherit it.
+        // known content or storage authority. An exact shallow assignment of
+        // borrowed storage is a supported descriptor alias: its real effects
+        // continue to propagate in both directions and keep their event site.
         if pass == 0 {
             let row: Int = definitions.local_count;
             while row < count {
-                if !definitions.fresh[row] { unknown[row] = 0; retiring[row] = 0; non_deep[row] = 0; }
+                if !definitions.fresh[row] &&
+                    !(SemanticAstCollectionDefinitionShallowAliasAdmitted(
+                          definitions, row) &&
+                      SemanticAstCollectionDefinitionStorageBorrowed(
+                          storage, row)) {
+                    unknown[row] = 0;
+                    retiring[row] = 0;
+                    non_deep[row] = 0;
+                }
                 row = row + 1;
             }
         }

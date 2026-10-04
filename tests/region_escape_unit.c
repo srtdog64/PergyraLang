@@ -103,6 +103,14 @@ static void test_retention_summary_owner(void)
               (uint32_t)BUILTIN_CONCAT, 7, &kind)
           && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
           "Concat variadic String arguments share the borrowed-call policy");
+    CHECK(semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_TEXT_BUILDER_APPEND, 1, &kind)
+          && kind == PGY_REGION_RETENTION_BORROWED_FOR_CALL,
+          "TextBuilderAppend copies its String during the call");
+    CHECK(!semantic_region_retention_summary_for_builtin(
+              (uint32_t)BUILTIN_TEXT_BUILDER_APPEND, 0, &kind)
+          && kind == PGY_REGION_RETENTION_UNKNOWN,
+          "TextBuilderAppend builder handle is not a borrowed String payload");
 }
 
 static ASTNode mk_string(const char *v)

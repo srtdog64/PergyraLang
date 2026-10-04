@@ -34,7 +34,7 @@ func SelfMirCollectionOwnershipReceiptRowsReady(
                 (rows.receiver_binding_syntax_ids[row] != 0 ||
                  rows.source_binding_syntax_ids[row] != 0)) ||
             (effect != 0 &&
-                (effect < 1 || effect > 3 ||
+                (effect < 1 || effect > 4 ||
                  rows.receiver_binding_syntax_ids[row] <= 0 ||
                  rows.source_binding_syntax_ids[row] < 0 ||
                  (rows.source_binding_syntax_ids[row] != 0 && effect != 1))) {

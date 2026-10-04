@@ -37,17 +37,6 @@ struct SemanticAstActionContractFacts {
     effect_names: Array<String>;
 }
 
-func SemanticAstActionContractRangeContains(
-    names: Array<String>, start: Int, name: String
-) -> Bool {
-    let i: Int = start;
-    while i < ArrayLength(names) {
-        if names[i] == name { return true; }
-        i = i + 1;
-    }
-    return false;
-}
-
 func SemanticAstActionContractAppendList(
     payload: String,
     vocabulary_axis: Int,
@@ -65,9 +54,15 @@ func SemanticAstActionContractAppendList(
                 vocabulary_axis, item
             );
         }
+        let duplicate: Bool = false;
+        let prior: Int = start;
+        while prior < ArrayLength(names) && !duplicate {
+            duplicate = names[prior] == item;
+            prior = prior + 1;
+        }
         if StringLength(item) == 0 ||
             (vocabulary_axis > 0 && vocabulary_index < 0) ||
-            SemanticAstActionContractRangeContains(names, start, item) {
+            duplicate {
             return false;
         }
         if vocabulary_axis == CallableContractVocabularyEffectAxis() {
@@ -76,8 +71,9 @@ func SemanticAstActionContractAppendList(
             ) == CallableContractVocabularyZeroExclusive();
             let i: Int = start;
             while i < ArrayLength(names) {
+                let existing_name: String = Concat("", names[i]);
                 let existing: Int = CallableContractVocabularyFindIndex(
-                    vocabulary_axis, names[i]
+                    vocabulary_axis, existing_name
                 );
                 if item_zero || (existing >= 0 &&
                     CallableContractVocabularyZeroPolicyAt(existing) ==
@@ -87,7 +83,7 @@ func SemanticAstActionContractAppendList(
                 i = i + 1;
             }
         }
-        ArrayPush(names, item);
+        ArrayPushOwnedString(names, item);
         range = range + 1;
     }
     return ArrayLength(names) > start;
@@ -349,9 +345,9 @@ func SemanticAstActionContractFactsFromArtifact(
         ArrayPush(requires_starts, requires_start);
         ArrayPush(requires_counts, ArrayLength(requires_names) - requires_start);
         ArrayPush(within_node_ids, within_node_id);
-        ArrayPush(within_zone_names, within_zone_name);
+        ArrayPushOwnedString(within_zone_names, within_zone_name);
         ArrayPush(causes_node_ids, causes_node_id);
-        ArrayPush(causes_names, causes_name);
+        ArrayPushOwnedString(causes_names, causes_name);
         ArrayPush(authorized_by_node_ids, authorized_by_node_id);
         ArrayPush(authorized_by_starts, authorized_by_start);
         ArrayPush(
@@ -378,7 +374,7 @@ func SemanticAstActionContractFactsFromArtifact(
 }
 
 func SemanticAstActionContractFactsReady(
-    artifact: AstTreeArtifact, facts: SemanticAstActionContractFacts
+    artifact: AstTreeArtifact, ref facts: SemanticAstActionContractFacts
 ) -> Bool {
     let count: Int = ArrayLength(facts.callable_node_ids);
     if !facts.ok || facts.artifact_node_count != artifact.count ||
@@ -433,19 +429,6 @@ func SemanticAstActionContractFactsReady(
     return true;
 }
 
-func SemanticAstActionContractJoinRange(
-    names: Array<String>, start: Int, count: Int
-) -> String {
-    let out: String = "";
-    let i: Int = 0;
-    while i < count {
-        if i > 0 { out = Concat(out, ", "); }
-        out = Concat(out, names[start + i]);
-        i = i + 1;
-    }
-    return out;
-}
-
 func SemanticAstActionContractChildCount(
     arena: AstArena, callable_node_id: Int, expected_kind: Int
 ) -> Int {
@@ -487,7 +470,7 @@ func SemanticAstActionContractNodeMatches(
 }
 
 func SemanticAstActionContractFactsMatchArtifact(
-    artifact: AstTreeArtifact, facts: SemanticAstActionContractFacts
+    artifact: AstTreeArtifact, ref facts: SemanticAstActionContractFacts
 ) -> Bool {
     if !SemanticAstActionContractFactsReady(artifact, facts) {
         return false;
@@ -505,22 +488,56 @@ func SemanticAstActionContractFactsMatchArtifact(
                 TypedAstNominalSubkindSubject()) {
             return false;
         }
-        let requires_payload: String =
-            SemanticAstActionContractJoinRange(
-                facts.requires_names, facts.requires_starts[i],
-                facts.requires_counts[i]
+        let requires_payload: String = "";
+        let range_index: Int = 0;
+        while range_index < facts.requires_counts[i] {
+            if range_index > 0 {
+                requires_payload = Concat(requires_payload, ", ");
+            }
+            requires_payload = Concat(
+                requires_payload,
+                facts.requires_names[facts.requires_starts[i] + range_index]
             );
-        let authority_payload: String =
-            SemanticAstActionContractJoinRange(
-                facts.authorized_by_names, facts.authorized_by_starts[i],
-                facts.authorized_by_counts[i]
+            range_index = range_index + 1;
+        }
+        let authority_payload: String = "";
+        range_index = 0;
+        while range_index < facts.authorized_by_counts[i] {
+            if range_index > 0 {
+                authority_payload = Concat(authority_payload, ", ");
+            }
+            authority_payload = Concat(
+                authority_payload,
+                facts.authorized_by_names[
+                    facts.authorized_by_starts[i] + range_index
+                ]
             );
-        let caps_payload: String = SemanticAstActionContractJoinRange(
-            facts.cap_names, facts.cap_starts[i], facts.cap_counts[i]
-        );
-        let effects_payload: String = SemanticAstActionContractJoinRange(
-            facts.effect_names, facts.effect_starts[i], facts.effect_counts[i]
-        );
+            range_index = range_index + 1;
+        }
+        let caps_payload: String = "";
+        range_index = 0;
+        while range_index < facts.cap_counts[i] {
+            if range_index > 0 {
+                caps_payload = Concat(caps_payload, ", ");
+            }
+            caps_payload = Concat(
+                caps_payload,
+                facts.cap_names[facts.cap_starts[i] + range_index]
+            );
+            range_index = range_index + 1;
+        }
+        let effects_payload: String = "";
+        range_index = 0;
+        while range_index < facts.effect_counts[i] {
+            if range_index > 0 {
+                effects_payload = Concat(effects_payload, ", ");
+            }
+            effects_payload = Concat(
+                effects_payload,
+                facts.effect_names[facts.effect_starts[i] + range_index]
+            );
+            range_index = range_index + 1;
+        }
         if !SemanticAstActionContractNodeMatches(
             artifact.arena, callable_node_id, facts.requires_node_ids[i],
             TypedAstKindActionRequiresTag(), requires_payload

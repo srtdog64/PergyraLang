@@ -1,0 +1,13 @@
+func CustomObserver(value: String) -> Bool {
+    return value == "observed";
+}
+
+func ObserveCopiedIndexedString(values: Array<String>) -> Bool {
+    let copied: String = Concat("", values[0]);
+    return CustomObserver(copied);
+}
+
+func Main() -> Void {
+    let values: Array<String> = ["observed"];
+    Log(ObserveCopiedIndexedString(values));
+}

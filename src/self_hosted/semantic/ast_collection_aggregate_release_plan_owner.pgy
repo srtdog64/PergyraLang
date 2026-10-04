@@ -4,9 +4,84 @@ import "ast_collection_aggregate_release_plan_schema_owner.pgy";
 import "ast_collection_aggregate_value_lineage_owner.pgy";
 import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
 import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
 import "ast_collection_definition_storage_authority_owner.pgy";
 
+func SemanticAstCollectionAggregateReleaseDemandCallRow(
+    ref plan: SemanticAstCollectionAggregateReleasePlan, demand: Int
+) -> Int {
+    if demand < 0 || demand >= ArrayLength(plan.demand_edge_nodes) {
+        return -1;
+    }
+    let found: Int = -1;
+    let row: Int = 0;
+    while row < ArrayLength(plan.call_edge_nodes) {
+        if plan.call_edge_nodes[row] == plan.demand_edge_nodes[demand] {
+            if found >= 0 { return -1; }
+            found = row;
+        }
+        row = row + 1;
+    }
+    return found;
+}
+
+func SemanticAstCollectionAggregateReleaseSharedDemandReady(
+    artifact: AstTreeArtifact,
+    ref plan: SemanticAstCollectionAggregateReleasePlan,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    prior: Int, current: Int
+) -> Bool {
+    if prior < 0 || current <= prior ||
+        current >= ArrayLength(plan.requirement_rows) ||
+        prior >= ArrayLength(plan.requirement_rows) ||
+        plan.aggregate_origin_ids[prior] !=
+            plan.aggregate_origin_ids[current] {
+        return false;
+    }
+    let prior_input: Int = plan.constructor_input_rows[prior];
+    let current_input: Int = plan.constructor_input_rows[current];
+    if prior_input < 0 || current_input < 0 ||
+        prior_input >= ArrayLength(inputs.field_ids) ||
+        current_input >= ArrayLength(inputs.field_ids) ||
+        inputs.field_ids[prior_input] != inputs.field_ids[current_input] {
+        return false;
+    }
+    let prior_requirement: Int = plan.requirement_rows[prior];
+    let current_requirement: Int = plan.requirement_rows[current];
+    if prior_requirement < 0 || current_requirement < 0 ||
+        prior_requirement >= ArrayLength(plan.requirement_effect_masks) ||
+        current_requirement >= ArrayLength(plan.requirement_effect_masks) {
+        return false;
+    }
+    let prior_call: Int =
+        SemanticAstCollectionAggregateReleaseDemandCallRow(plan, prior);
+    let current_call: Int =
+        SemanticAstCollectionAggregateReleaseDemandCallRow(plan, current);
+    if prior_call < 0 || current_call < 0 ||
+        plan.call_function_ids[prior_call] !=
+            plan.call_function_ids[current_call] ||
+        plan.call_syntax_ids[prior_call] ==
+            plan.call_syntax_ids[current_call] ||
+        SemanticAstCollectionCallRetirementSite(
+            artifact, plan.call_syntax_ids[prior_call]) <= 0 ||
+        SemanticAstCollectionCallRetirementSite(
+            artifact, plan.call_syntax_ids[current_call]) <= 0 {
+        return false;
+    }
+    let earlier_requirement: Int = prior_requirement;
+    if plan.call_syntax_ids[current_call] <
+            plan.call_syntax_ids[prior_call] {
+        earlier_requirement = current_requirement;
+    }
+    let earlier_mask: Int =
+        plan.requirement_effect_masks[earlier_requirement];
+    return earlier_mask !=
+            SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() &&
+        earlier_mask != 3;
+}
+
 func SemanticAstCollectionAggregateReleasePlanUnique(
+    artifact: AstTreeArtifact,
     ref plan: SemanticAstCollectionAggregateReleasePlan,
     ref inputs: SemanticAstCollectionConstructorFieldInputs,
     ref storage: SemanticAstCollectionStorageAuthorityFacts,
@@ -23,7 +98,9 @@ func SemanticAstCollectionAggregateReleasePlanUnique(
             let prior_input: Int = plan.constructor_input_rows[prior];
             if plan.aggregate_origin_ids[prior] ==
                     plan.aggregate_origin_ids[row] &&
-                inputs.field_ids[prior_input] == inputs.field_ids[input] {
+                inputs.field_ids[prior_input] == inputs.field_ids[input] &&
+                !SemanticAstCollectionAggregateReleaseSharedDemandReady(
+                    artifact, plan, inputs, prior, row) {
                 return false;
             }
             if inputs.producer_kinds[prior_input] == 1 &&
@@ -45,8 +122,10 @@ func SemanticAstCollectionAggregateReleasePlanUnique(
                      ((prior_input != input &&
                        inputs.function_ids[prior_input] ==
                             inputs.function_ids[input]) ||
-                      plan.aggregate_origin_ids[prior] ==
-                            plan.aggregate_origin_ids[row])) {
+                      (plan.aggregate_origin_ids[prior] ==
+                            plan.aggregate_origin_ids[row] &&
+                       !SemanticAstCollectionAggregateReleaseSharedDemandReady(
+                            artifact, plan, inputs, prior, row)))) {
                     return false;
                 }
             }
@@ -92,8 +171,18 @@ func SemanticAstCollectionAggregateReleasePlanFromRequirements(
             plan.diagnostic_syntax_id = requirements.local_ids[row];
             return plan;
         }
+        if !SemanticAstCollectionAggregateReleaseRecordProtectedBinding(
+                requirements.formal_ids[row], plan) {
+            plan.ok = false;
+            plan.diagnostic_syntax_id = requirements.local_ids[row];
+            return plan;
+        }
         ArrayPush(plan.requirement_local_ids,
             requirements.local_ids[row]);
+        ArrayPush(plan.requirement_effect_masks,
+            requirements.effect_masks[row]);
+        ArrayPush(plan.owned_push_syntax_ids, -1);
+        ArrayPush(plan.owned_push_expression_nodes, -1);
         ArrayPush(plan.drop_syntax_ids, -1);
         ArrayPush(plan.drop_expression_nodes, -1);
         let path_row: Int =
@@ -141,7 +230,8 @@ func SemanticAstCollectionAggregateReleasePlanFromRequirements(
         row = row + 1;
     }
     if !SemanticAstCollectionAggregateReleasePlanUnique(
-            plan, call_effects.constructor_inputs, storage, definitions) {
+            artifact, plan, call_effects.constructor_inputs, storage,
+            definitions) {
         plan.ok = false;
         if plan.diagnostic_syntax_id < 0 &&
             ArrayLength(requirements.local_ids) > 0 {

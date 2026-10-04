@@ -1,0 +1,20 @@
+// Fail-closed public admission wrapper for the retained formal-effect owner.
+import "ast_collection_formal_use_owner.pgy";
+
+func SemanticAstCollectionFormalEffectsFromResolvedFacts(artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref scopes: SemanticAstFunctionScopeFacts, ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, ref statements: SemanticAstStatementFacts,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts) -> SemanticAstCollectionFormalEffects {
+    if !SemanticAstBuiltinArgumentRetentionCallFactsReady(surfaces) ||
+        !SemanticAstInitializerTypeFactsReadyProjection(
+            artifact, locals, initializer_types) ||
+        !SemanticAstOwnedStringResultFactsReady(
+            owned_string_results, signatures) {
+        let no_effects: HashMap<String, Int> = MapNew();
+        return SemanticAstCollectionFormalEffects(false, SemanticAstCollectionFormalEffectInventoryFromSignatures(signatures), no_effects);
+    }
+    return SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
+        artifact, signatures, scopes, locals, initializer_types, surfaces,
+        statements, owned_string_results);
+}

@@ -1,84 +1,77 @@
-// Reached argument admission: storage transfer and conditional preservation.
-import "ast_collection_call_effect_owner.pgy";
+// Reached argument admission: resolve one physical edge, its storage source,
+// then delegate only the selected formal effect policy.
 import "ast_collection_owned_argument_admission_owner.pgy";
-import "ast_collection_ownership_verdict_carrier_owner.pgy";
 import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_call_argument_effect_verdict_owner.pgy";
 
 func SemanticAstCollectionCallArgumentVerdict(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
-    edge: SemanticCallArgumentEdgeView, proved: HashMap<String, Int>,
+    edge: SemanticCallArgumentEdgeView,
+    literal_read_ready: Bool, proved: HashMap<String, Int>,
     ref element_requirements: HashMap<String, Int>,
     inout ownership: Array<Int>, ref dispositions: Array<Int>,
     ref origins: Array<Int>, inout transition_states: Array<Int>,
     ref call_effects: SemanticAstCollectionCallEffectFacts,
-    ref storage: SemanticAstCollectionStorageAuthorityFacts, ref definitions: SemanticAstCollectionDefinitionFacts, ref current_definitions: Array<Int>
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref current_definitions: Array<Int>
 ) -> SemanticAstCollectionOwnershipVerdict {
     if !edge.ok {
-        return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
-            SemanticError1("ast_artifact_invalid", "owner", "collection_call_argument_edge"), surfaces.node_ids[surface_row], -1);
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "collection_call_argument_edge"),
+            surfaces.node_ids[surface_row], -1);
     }
     let formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(
         signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
     let key: String = ToString(formal);
     let effect: Int = 0;
     if MapHas(proved, key) { effect = MapGet(proved, key); }
-    if effect == SemanticAstCollectionFormalUnprovedElementUseEffect() || effect == SemanticAstCollectionFormalOpaqueExecutionEffect() {
+    if effect == SemanticAstCollectionFormalUnprovedElementUseEffect() ||
+        effect == SemanticAstCollectionFormalOpaqueExecutionEffect() {
         let boundary: String = "unproved_formal_execution_context";
-        if effect == SemanticAstCollectionFormalUnprovedElementUseEffect() { boundary = "unproved_formal_element_use_entry"; }
-        return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
-            SemanticError2("borrow_boundary_escape", "boundary", boundary, "type", "Array<String>"),
+        if effect == SemanticAstCollectionFormalUnprovedElementUseEffect() {
+            boundary = "unproved_formal_element_use_entry";
+        }
+        return SemanticAstCollectionOwnershipVerdictError(
+            "borrow_boundary_escape",
+            SemanticError2("borrow_boundary_escape", "boundary", boundary,
+                "type", "Array<String>"),
             surfaces.node_ids[surface_row], edge.call_node);
     }
-    let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
-        artifact, locals, inferred_types, surfaces, surface_row, edge.argument_node);
+    let binding: SemanticAstLocalBindingIdentity =
+        SemanticAstCollectionOwnershipLocalForArgument(
+            artifact, locals, inferred_types, surfaces,
+            surface_row, edge.argument_node);
     let unknown: Bool = false;
     if binding.ok {
-        // Generic calls also reach this edge. Their Unknown event must remove
-        // permission before later own-argument admission, not only at packing.
-        unknown = SemanticAstCollectionApplyUnknownCallStateAtUse(artifact, call_effects,
-            binding.row, surfaces.node_ids[surface_row], ownership, dispositions, transition_states);
+        unknown = SemanticAstCollectionApplyUnknownCallStateAtUse(
+            artifact, call_effects, binding.row,
+            surfaces.node_ids[surface_row], ownership,
+            dispositions, transition_states);
     }
-    let borrowed_storage: Bool = false;
-    if binding.ok { borrowed_storage = SemanticAstCollectionDefinitionStorageBorrowed(storage, current_definitions[binding.row]); }
-    let owned_storage: Bool = binding.ok && SemanticAstCollectionDefinitionStorageSource(storage, definitions, binding.row, current_definitions[binding.row]) > 0;
-    let owned: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnedArgumentVerdict(
-        artifact, signatures, locals, inferred_types, surfaces, surface_row, edge, binding, unknown,
-        borrowed_storage, owned_storage, call_effects, element_requirements, ownership, dispositions, origins, transition_states);
+    let borrowed_storage: Bool = binding.ok &&
+        SemanticAstCollectionDefinitionShallowAliasAdmitted(
+            definitions, current_definitions[binding.row]) &&
+        SemanticAstCollectionDefinitionStorageBorrowed(
+            storage, current_definitions[binding.row]);
+    let owned_storage: Bool = binding.ok &&
+        SemanticAstCollectionDefinitionStorageSource(
+            storage, definitions, binding.row,
+            current_definitions[binding.row]) > 0;
+    let owned: SemanticAstCollectionOwnershipVerdict =
+        SemanticAstCollectionOwnedArgumentVerdict(
+            artifact, signatures, locals, inferred_types, surfaces,
+            surface_row, edge, binding, unknown, borrowed_storage,
+            owned_storage, call_effects, element_requirements,
+            ownership, dispositions, origins, transition_states);
     if !owned.ok { return owned; }
-    if effect == 2 || effect == 3 {
-        if binding.ok {
-            let clean: Bool = ownership[binding.row] == SemanticAstCollectionOwnershipOwnedElements() ||
-                ownership[binding.row] == SemanticAstCollectionOwnershipMapKeysSnapshot();
-            if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() {
-                clean = SemanticAstCollectionTransitionAllowsOwned(transition_states[binding.row]);
-            }
-            if unknown || (effect == 2 && !clean) || dispositions[binding.row] == SemanticAstCollectionDispositionRetired() ||
-                (effect == 2 && SemanticAstCollectionStorageEscapedAtUse(artifact, call_effects, binding.row, surfaces.node_ids[surface_row])) ||
-                SemanticAstCollectionMutableCallMayBeRetired(artifact, surfaces.node_ids[surface_row], call_effects.first_retiring_sites[binding.row]) {
-                let boundary: String = "unproved_inout_copy_entry";
-                if effect == 3 { boundary = "unproved_indexed_read_entry"; }
-                return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
-                    SemanticError2("borrow_boundary_escape", "boundary", boundary,
-                        "type", "Array<String>"), surfaces.node_ids[surface_row], edge.call_node);
-            }
-            // A conditional copy may execute zero times. Preserve Owned, but
-            // widen exact Empty to Clean rather than inventing a push receipt.
-            if effect == 2 && origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() &&
-                transition_states[binding.row] == SemanticAstCollectionTransitionEmpty() {
-                transition_states[binding.row] = SemanticAstCollectionTransitionClean();
-            }
-        } else if SemanticAstCollectionOwnershipParameterModeForArgument(
-                signatures, surfaces, surface_row, edge.argument_node) == 3 ||
-                (effect == 3 && !SemanticAstCollectionFormalArgumentHasLiveEffect(
-                    signatures, surfaces, surface_row, edge.argument_node, proved)) {
-            let boundary: String = "unproved_own_formal_copy_entry";
-            if effect == 3 { boundary = "unproved_formal_indexed_read_entry"; }
-            return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
-                SemanticError2("borrow_boundary_escape", "boundary", boundary,
-                    "type", "Array<String>"), surfaces.node_ids[surface_row], edge.call_node);
-        }
-    }
-    return SemanticAstCollectionOwnershipVerdictOk();
+    return SemanticAstCollectionCallArgumentEffectVerdict(
+        artifact, signatures, surfaces, surface_row, edge,
+        literal_read_ready, proved, effect, binding, unknown,
+        borrowed_storage, owned_storage, ownership, dispositions,
+        origins, transition_states, call_effects);
 }

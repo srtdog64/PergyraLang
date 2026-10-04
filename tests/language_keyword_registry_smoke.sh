@@ -69,7 +69,8 @@ for part in "${PROJECTION_PARTS[@]}"; do
         language_keyword_compatibility_projection_owner.pgy) part_cap=250 ;;
         *) fail "projection cap is not owned for $part" ;;
     esac
-    [[ "$(wc -l < "$part_path")" -le "$part_cap" ]] ||
+    part_lines="$("$PYTHON_BIN" "$ROOT_DIR/scripts/source_size_count.py" "$part_path")" || fail "source-size measurement failed: $part"
+    [[ "$part_lines" -le "$part_cap" ]] ||
         fail "generated projection exceeds $part_cap lines: $part"
     grep -Fq "import \"$part\";" "$PROJECTION" ||
         fail "projection hub does not import $part"
@@ -78,7 +79,8 @@ for retired_part in "${RETIRED_PROJECTION_PARTS[@]}"; do
     [[ ! -e "$ROOT_DIR/src/self_hosted/lexer/$retired_part" ]] ||
         fail "retired parallel projection still exists: $retired_part"
 done
-[[ "$(wc -l < "$PROJECTION")" -le 80 ]] ||
+projection_lines="$("$PYTHON_BIN" "$ROOT_DIR/scripts/source_size_count.py" "$PROJECTION")" || fail "source-size measurement failed: $PROJECTION"
+[[ "$projection_lines" -le 80 ]] ||
     fail "generated projection hub exceeds 80 lines"
 
 ROW_PROJECTION="$ROOT_DIR/src/self_hosted/lexer/language_word_row_projection_owner.pgy"

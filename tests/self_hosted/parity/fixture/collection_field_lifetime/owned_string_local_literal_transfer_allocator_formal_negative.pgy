@@ -1,0 +1,13 @@
+func Retire(result_allocator: Allocator) -> Void {
+    let builder: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(builder, "pool-owned");
+    let value: String = TextBuilderFinish(builder, result_allocator);
+    let retired: Array<String> = [value];
+    ArrayDropOwnedStrings(retired);
+}
+
+func Main() -> Void {
+    let result_allocator: Allocator = AllocatorPool(64);
+    Retire(result_allocator);
+    AllocatorDestroy(result_allocator);
+}

@@ -18,6 +18,8 @@ func CanonicalizeMirArtifactWithAdmittedTopology(
             artifact, verified, machine_declaration, false
         );
     let facts: SelfMirProgramFacts = projection.facts;
+    // Rebind the admitted identities, not the ownership decisions. Missing
+    // identity correspondence must fail rather than be guessed from spelling.
     let rebound: CanonicalMirProgramIdentityEpoch =
         CanonicalMirIdentityEpochRebindProgramFacts(
             facts, admitted, identity_epoch, constructors

@@ -1,51 +1,15 @@
 // Converts an already parsed expression fact into semantic graph storage.
 //
-// The six row arrays cross recursive build boundaries independently. Passing
+// The parser-fact importer mutates the six row arrays directly. Passing
 // SemanticExpressionGraphArena as inout would copy a compiler-scale aggregate
-// at every edge and has a different LLVM ABI shape from the C backend.
+// and has a different LLVM ABI shape from the C backend; a nested append call
+// would also reopen six independent shallow-mutation boundaries per node.
 
 import "ast_expression_graph_fact_owner.pgy";
 import "../parser/ast_text_artifact_parse_owner.pgy";
 
 func SemanticExpressionGraphInvalidBuild() -> SemanticExpressionGraphBuild {
     return SemanticExpressionGraphBuild(false, 0);
-}
-
-func SemanticExpressionGraphAppendNode(
-    inout node_kinds: Array<Int>,
-    inout node_texts: Array<String>,
-    inout left_children: Array<Int>,
-    inout right_children: Array<Int>,
-    inout call_target_kinds: Array<Int>,
-    inout call_target_names: Array<String>,
-    kind: Int,
-    text: String,
-    left: Int,
-    right: Int
-) -> SemanticExpressionGraphBuild {
-    let root_id: Int = ArrayLength(node_kinds);
-    if ArrayLength(node_texts) != root_id ||
-        ArrayLength(left_children) != root_id ||
-        ArrayLength(right_children) != root_id ||
-        ArrayLength(call_target_kinds) != root_id ||
-        ArrayLength(call_target_names) != root_id || text == "" ||
-        !AstExpressionNodeKindKnown(kind) {
-        return SemanticExpressionGraphInvalidBuild();
-    }
-    let arity: Int = AstExpressionNodeArity(kind);
-    if (arity == 0 && (left != 0 || right != 0)) ||
-        (arity >= 1 && (left < 0 || left >= root_id)) ||
-        (arity == 1 && right != 0) ||
-        (arity == 2 && (right < 0 || right >= root_id)) {
-        return SemanticExpressionGraphInvalidBuild();
-    }
-    ArrayPush(node_kinds, kind);
-    ArrayPush(node_texts, text);
-    ArrayPush(left_children, left);
-    ArrayPush(right_children, right);
-    ArrayPush(call_target_kinds, SemanticCallTargetNone());
-    ArrayPush(call_target_names, "");
-    return SemanticExpressionGraphBuild(true, root_id);
 }
 
 func SemanticExpressionGraphBuildFromParserFact(
@@ -71,13 +35,26 @@ func SemanticExpressionGraphBuildFromParserFact(
         let right: Int = 0;
         if arity >= 1 { left = offset + parsed.arena.left_children[i]; }
         if arity == 2 { right = offset + parsed.arena.right_children[i]; }
-        let appended: SemanticExpressionGraphBuild =
-            SemanticExpressionGraphAppendNode(
-                node_kinds, node_texts, left_children, right_children,
-                call_target_kinds, call_target_names, kind,
-                parsed.arena.node_texts[i], left, right
-            );
-        if !appended.ok { return appended; }
+        let root_id: Int = ArrayLength(node_kinds);
+        let text: String = parsed.arena.node_texts[i];
+        if ArrayLength(node_texts) != root_id ||
+            ArrayLength(left_children) != root_id ||
+            ArrayLength(right_children) != root_id ||
+            ArrayLength(call_target_kinds) != root_id ||
+            ArrayLength(call_target_names) != root_id || text == "" ||
+            !AstExpressionNodeKindKnown(kind) ||
+            (arity == 0 && (left != 0 || right != 0)) ||
+            (arity >= 1 && (left < 0 || left >= root_id)) ||
+            (arity == 1 && right != 0) ||
+            (arity == 2 && (right < 0 || right >= root_id)) {
+            return SemanticExpressionGraphInvalidBuild();
+        }
+        ArrayPush(node_kinds, kind);
+        ArrayPush(node_texts, text);
+        ArrayPush(left_children, left);
+        ArrayPush(right_children, right);
+        ArrayPush(call_target_kinds, SemanticCallTargetNone());
+        ArrayPush(call_target_names, "");
         i = i + 1;
     }
     return SemanticExpressionGraphBuild(true, offset + parsed.root);

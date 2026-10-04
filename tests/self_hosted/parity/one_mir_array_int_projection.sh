@@ -67,7 +67,7 @@ assert_owner_ratchet() {
         require_file "$owner"
     done
     while IFS='|' read -r owner cap; do
-        lines="$(wc -l < "$owner")"
+        lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$owner")" || fail "source-size measurement failed"
         [[ "$lines" -le "$cap" ]] ||
             fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/$cap"
     done <<EOF

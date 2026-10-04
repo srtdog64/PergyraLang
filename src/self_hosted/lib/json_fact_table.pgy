@@ -277,90 +277,118 @@ func JsonScalarToken(json: String, start: Int, end: Int) -> String {
     return Substring(json, value_start, end - value_start);
 }
 
-func JsonCollectScalarFieldValues(
-    json: String,
-    start: Int,
-    end: Int,
-    field: String,
-    inout values: Array<String>
-) -> Void {
-    if start < 0 || end <= start {
-        return;
-    }
-    let n: Int = end;
-    let open: Int = JsonCharCodeAt(json, n, start);
-    if open == JsonAsciiCode("{") {
-        let i: Int = start + 1;
-        while i < end {
-            i = JsonSkipWhitespace(json, i, end);
-            if i >= end || JsonCharCodeAt(json, n, i) == JsonAsciiCode("}") {
-                return;
-            }
-            if JsonCharCodeAt(json, n, i) == JsonAsciiCode(",") {
-                i = i + 1;
-                continue;
-            }
-            if JsonCharCodeAt(json, n, i) != JsonAsciiCode("\"") {
-                return;
-            }
-            let key_read: Option<JsonStringRead> = JsonReadStringBounded(json, i, end);
-            if !IsSome(key_read) {
-                return;
-            }
-            let key: String = UnwrapOption(key_read).value;
-            i = JsonSkipWhitespace(json, UnwrapOption(key_read).end, end);
-            if i >= end || JsonCharCodeAt(json, n, i) != JsonAsciiCode(":") {
-                return;
-            }
-            i = JsonSkipWhitespace(json, i + 1, end);
-            let value_end_opt: Option<Int> = JsonValueEndWithin(json, i, end);
-            if !IsSome(value_end_opt) {
-                return;
-            }
-            let value_end: Int = UnwrapOption(value_end_opt);
-            if key == field {
-                ArrayPush(values, JsonScalarToken(json, i, value_end));
-            }
-            let value_open: Int = JsonCharCodeAt(json, n, i);
-            if value_open == JsonAsciiCode("{") || value_open == JsonAsciiCode("[") {
-                JsonCollectScalarFieldValues(json, i, value_end, field, values);
-            }
-            i = value_end;
-        }
-        return;
-    }
-    if open == JsonAsciiCode("[") {
-        let j: Int = start + 1;
-        while j < end {
-            j = JsonSkipWhitespace(json, j, end);
-            if j >= end || JsonCharCodeAt(json, n, j) == JsonAsciiCode("]") {
-                return;
-            }
-            if JsonCharCodeAt(json, n, j) == JsonAsciiCode(",") {
-                j = j + 1;
-                continue;
-            }
-            let item_end_opt: Option<Int> = JsonValueEndWithin(json, j, end);
-            if !IsSome(item_end_opt) {
-                return;
-            }
-            let item_end: Int = UnwrapOption(item_end_opt);
-            let item_open: Int = JsonCharCodeAt(json, n, j);
-            if item_open == JsonAsciiCode("{") || item_open == JsonAsciiCode("[") {
-                JsonCollectScalarFieldValues(json, j, item_end, field, values);
-            }
-            j = item_end;
-        }
-    }
-}
-
 func JsonScalarFieldValues(json: String, field: String) -> Array<String> {
     let values: Array<String> = [];
     let root: JsonObjectFactTable = JsonDocumentObjectFactTable(json);
     if !JsonObjectFactTableReady(root) {
         return values;
     }
-    JsonCollectScalarFieldValues(json, root.start, root.end, field, values);
+    // Preserve recursive depth-first document order without forwarding a
+    // growable Array through a recursive inout boundary.  Each frame owns the
+    // current container bounds plus the next cursor to visit.  The parent
+    // cursor advances before a nested frame is pushed, so returning from that
+    // frame resumes at the exact next sibling.
+    let frame_starts: Array<Int> = [root.start];
+    let frame_ends: Array<Int> = [root.end];
+    let frame_cursors: Array<Int> = [root.start + 1];
+    while ArrayLength(frame_starts) > 0 {
+        let frame: Int = ArrayLength(frame_starts) - 1;
+        let start: Int = frame_starts[frame];
+        let end: Int = frame_ends[frame];
+        let cursor: Int = JsonSkipWhitespace(
+            json, frame_cursors[frame], end
+        );
+        let open: Int = JsonCharCodeAt(json, end, start);
+        if cursor >= end ||
+            (open == JsonAsciiCode("{") &&
+             JsonCharCodeAt(json, end, cursor) == JsonAsciiCode("}")) ||
+            (open == JsonAsciiCode("[") &&
+             JsonCharCodeAt(json, end, cursor) == JsonAsciiCode("]")) ||
+            (open != JsonAsciiCode("{") && open != JsonAsciiCode("[")) {
+            ArrayPop(frame_starts);
+            ArrayPop(frame_ends);
+            ArrayPop(frame_cursors);
+            continue;
+        }
+        if JsonCharCodeAt(json, end, cursor) == JsonAsciiCode(",") {
+            frame_cursors[frame] = cursor + 1;
+            continue;
+        }
+        if open == JsonAsciiCode("{") {
+            if JsonCharCodeAt(json, end, cursor) != JsonAsciiCode("\"") {
+                ArrayPop(frame_starts);
+                ArrayPop(frame_ends);
+                ArrayPop(frame_cursors);
+                continue;
+            }
+            let key_read: Option<JsonStringRead> = JsonReadStringBounded(
+                json, cursor, end
+            );
+            if !IsSome(key_read) {
+                ArrayPop(frame_starts);
+                ArrayPop(frame_ends);
+                ArrayPop(frame_cursors);
+                continue;
+            }
+            let key: String = UnwrapOption(key_read).value;
+            let value_start: Int = JsonSkipWhitespace(
+                json, UnwrapOption(key_read).end, end
+            );
+            if value_start >= end ||
+                JsonCharCodeAt(json, end, value_start) != JsonAsciiCode(":") {
+                ArrayPop(frame_starts);
+                ArrayPop(frame_ends);
+                ArrayPop(frame_cursors);
+                continue;
+            }
+            value_start = JsonSkipWhitespace(json, value_start + 1, end);
+            let value_end_opt: Option<Int> = JsonValueEndWithin(
+                json, value_start, end
+            );
+            if !IsSome(value_end_opt) {
+                ArrayPop(frame_starts);
+                ArrayPop(frame_ends);
+                ArrayPop(frame_cursors);
+                continue;
+            }
+            let value_end: Int = UnwrapOption(value_end_opt);
+            frame_cursors[frame] = value_end;
+            if key == field {
+                ArrayPush(
+                    values, JsonScalarToken(json, value_start, value_end)
+                );
+            }
+            let value_open: Int = JsonCharCodeAt(json, end, value_start);
+            if value_open == JsonAsciiCode("{") ||
+                value_open == JsonAsciiCode("[") {
+                ArrayPush(frame_starts, value_start);
+                ArrayPush(frame_ends, value_end);
+                ArrayPush(frame_cursors, value_start + 1);
+            }
+            continue;
+        }
+        let item_end_opt: Option<Int> = JsonValueEndWithin(
+            json, cursor, end
+        );
+        if !IsSome(item_end_opt) {
+            ArrayPop(frame_starts);
+            ArrayPop(frame_ends);
+            ArrayPop(frame_cursors);
+            continue;
+        }
+        let item_end: Int = UnwrapOption(item_end_opt);
+        frame_cursors[frame] = item_end;
+        let item_open: Int = JsonCharCodeAt(json, end, cursor);
+        if item_open == JsonAsciiCode("{") ||
+            item_open == JsonAsciiCode("[") {
+            ArrayPush(frame_starts, cursor);
+            ArrayPush(frame_ends, item_end);
+            ArrayPush(frame_cursors, cursor + 1);
+        }
+    }
+    ArrayDrop(frame_starts);
+    ArrayDrop(frame_ends);
+    ArrayDrop(frame_cursors);
     return values;
 }
 

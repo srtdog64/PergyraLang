@@ -84,18 +84,29 @@ func AstDestructureGraphCount(
     return AstDestructureGraphCountFromReadyRows(rows);
 }
 
+struct AstDestructurePatternBindingNameRows {
+    ok: Bool;
+    names: Array<String>;
+}
+
+func AstDestructurePatternBindingNameRowsDrop(
+    inout rows: AstDestructurePatternBindingNameRows
+) -> Void {
+    let names: Array<String> = rows.names;
+    ArrayDropOwnedStrings(names);
+    rows.names = names;
+}
+
 func AstDestructurePatternBindingNames(
     ref rows: AstExpressionGraphRows,
-    pattern_root: Int,
-    inout names: Array<String>
-) -> Bool {
-    if pattern_root < 0 ||
-        pattern_root >= AstExpressionArenaNodeCount(rows.arena) {
-        return false;
-    }
-    let reversed: Array<String> = [];
+    pattern_root: Int
+) -> AstDestructurePatternBindingNameRows {
+    let reversed: Array<Int> = [];
+    let names: Array<String> = [];
+    let ok: Bool = pattern_root >= 0 &&
+        pattern_root < AstExpressionArenaNodeCount(rows.arena);
     let spine: Int = pattern_root;
-    while rows.arena.node_kinds[spine] ==
+    while ok && rows.arena.node_kinds[spine] ==
         AstExpressionNodeArrayElement() {
         let left: Int = rows.arena.left_children[spine];
         let right: Int = rows.arena.right_children[spine];
@@ -103,22 +114,28 @@ func AstDestructurePatternBindingNames(
             right < 0 || right >= AstExpressionArenaNodeCount(rows.arena) ||
             rows.arena.node_kinds[right] != AstExpressionNodeLeaf() ||
             rows.arena.node_texts[right] == "" {
-            return false;
+            ok = false;
+        } else {
+            ArrayPush(reversed, right);
+            spine = left;
         }
-        ArrayPush(reversed, rows.arena.node_texts[right]);
-        spine = left;
     }
-    if rows.arena.node_kinds[spine] != AstExpressionNodeArrayLiteral() ||
-        rows.arena.node_texts[spine] != "[]" ||
-        ArrayLength(reversed) == 0 {
-        return false;
+    if ok &&
+        (rows.arena.node_kinds[spine] != AstExpressionNodeArrayLiteral() ||
+         rows.arena.node_texts[spine] != "[]" ||
+         ArrayLength(reversed) == 0) {
+        ok = false;
     }
-    let i: Int = ArrayLength(reversed);
-    while i > 0 {
-        ArrayPush(names, reversed[i - 1]);
+    let i: Int = 0;
+    if ok { i = ArrayLength(reversed); }
+    while ok && i > 0 {
+        ArrayPushOwnedString(
+            names, rows.arena.node_texts[reversed[i - 1]]
+        );
         i = i - 1;
     }
-    return true;
+    ArrayDrop(reversed);
+    return AstDestructurePatternBindingNameRows(ok, names);
 }
 
 func AstTreeArtifactBindDestructurePayloads(

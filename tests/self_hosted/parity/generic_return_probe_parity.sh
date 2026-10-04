@@ -40,6 +40,7 @@ GENERIC_ROW_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_generic_parameter_fact
 NORMALIZATION_OWNER="$ROOT_DIR/src/self_hosted/semantic/expression_normalization_owner.pgy"
 TYPE_CANONICAL_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_type_name_canonical_owner.pgy"
 TYPE_EXPRESSION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy"
+TYPE_BINDING_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_signature_type_binding_owner.pgy"
 GENERIC_CALL_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy"
 EXPRESSION_VERDICT="$ROOT_DIR/src/self_hosted/semantic/ast_expression_verdict_owner.pgy"
 mkdir -p "$BUILD_DIR"
@@ -50,6 +51,7 @@ for input in "$SOURCE" "$EXPECTED" "$CALLABLE_EXPECTED" "$MISMATCH_EXPECTED" \
     "$POSTFIX_OWNER" "$CALL_VIEW_OWNER" \
     "$INVENTORY_OWNER" "$SIGNATURE_OWNER" "$GENERIC_ROW_OWNER" \
     "$NORMALIZATION_OWNER" "$TYPE_CANONICAL_OWNER" "$TYPE_EXPRESSION_OWNER" \
+    "$TYPE_BINDING_OWNER" \
     "$GENERIC_CALL_OWNER" \
     "$EXPRESSION_VERDICT"; do
     [[ -f "$input" ]] || { echo "[$LABEL] missing input: $input" >&2; exit 1; }
@@ -80,15 +82,29 @@ grep -Fq 'TypedAstKindGenericParamsTag()' "$KIND_OWNER" "$INVENTORY_OWNER" ||
     { echo "[$LABEL] generic parameter row is not typed HIR" >&2; exit 1; }
 grep -Fq 'generic_starts: Array<Int>' "$SIGNATURE_OWNER" ||
     { echo "[$LABEL] signature owner lacks formal generic rows" >&2; exit 1; }
-grep -Fq 'SemanticAstGenericParameterRowsFromNode(' "$SIGNATURE_OWNER" ||
-    { echo "[$LABEL] signature owner ignores typed generic rows" >&2; exit 1; }
+grep -Fq 'SemanticAstGenericParameterFactRowsFromOwnerNode(' "$SIGNATURE_OWNER" ||
+    { echo "[$LABEL] signature owner ignores atomic typed generic rows" >&2; exit 1; }
+! grep -Fq 'SemanticAstGenericParameterRowsFromNode(' "$SIGNATURE_OWNER" ||
+    { echo "[$LABEL] signature owner revived the retired split generic row path" >&2; exit 1; }
 grep -Fq 'type_expressions: SemanticAstSignatureTypeExpressionFacts' \
     "$SIGNATURE_OWNER" ||
     { echo "[$LABEL] signature owner lacks unified type-expression facts" >&2; exit 1; }
 grep -Fq 'SemanticAstSignatureReturnTypeResolveAt(' "$GENERIC_CALL_OWNER" ||
     { echo "[$LABEL] composite return ignores typed return facts" >&2; exit 1; }
-grep -Fq 'SemanticAstSignatureParameterTypeBindAt(' "$GENERIC_CALL_OWNER" ||
-    { echo "[$LABEL] nested parameter binding ignores typed parameter facts" >&2; exit 1; }
+grep -Fq 'SemanticAstSignatureParameterTypesBind(' "$GENERIC_CALL_OWNER" ||
+    { echo "[$LABEL] batched nested parameter binding ignores typed parameter facts" >&2; exit 1; }
+grep -Fq 'own bindings: Array<String>' "$TYPE_BINDING_OWNER" ||
+    { echo "[$LABEL] generic binding does not consume its prior row" >&2; exit 1; }
+grep -Fq 'SemanticAstSignatureTypeBindingContractReady()' "$SOURCE" ||
+    { echo "[$LABEL] binding contract is not executable" >&2; exit 1; }
+if grep -Fq 'ArraySet(' "$TYPE_BINDING_OWNER"; then
+    echo "[$LABEL] generic binding revived element replacement" >&2
+    exit 1
+fi
+if grep -Fq 'inout bindings:' "$TYPE_BINDING_OWNER"; then
+    echo "[$LABEL] generic binding revived borrowed mutation" >&2
+    exit 1
+fi
 grep -Fq 'ParserExpressionGenericCalleeActual(' "$POSTFIX_OWNER" ||
     { echo "[$LABEL] parser drops explicit generic actuals" >&2; exit 1; }
 grep -Fq 'generic_actual_type_names: Array<String>' "$CALL_VIEW_OWNER" ||

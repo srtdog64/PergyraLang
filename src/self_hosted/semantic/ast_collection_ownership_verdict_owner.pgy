@@ -29,10 +29,13 @@ import "ast_collection_owned_element_parameter_requirement_owner.pgy";
 import "ast_collection_ownership_statement_transition_owner.pgy";
 import "ast_collection_call_effect_owner.pgy";
 import "ast_collection_call_argument_verdict_owner.pgy";
+import "ast_collection_read_literal_argument_owner.pgy";
 import "ast_collection_lifetime_event_order_owner.pgy";
 import "ast_collection_builtin_transition_owner.pgy";
+import "ast_collection_indexed_string_borrow_owner.pgy";
 import "ast_collection_aggregate_release_plan_owner.pgy";
 import "ast_collection_aggregate_release_transition_owner.pgy";
+import "ast_collection_formal_use_owner.pgy";
 import "ast_owned_string_result_domain_owner.pgy";
 import "ast_owned_string_literal_transfer_owner.pgy";
 import "ast_builtin_argument_retention_call_fact_owner.pgy";
@@ -40,7 +43,7 @@ import "ast_signature_fact_owner.pgy";
 import "array_type_shape_owner.pgy";
 import "diagnostic_owner.pgy";
 
-func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
+func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref constructors: SemanticAstNominalConstructorFacts, ref locals: SemanticAstLocalBindingFacts,
     ref initializer_types: SemanticAstInitializerTypeFacts, ref surfaces: SemanticAstExpressionSurfaceFacts,
@@ -50,7 +53,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     ref call_roots: SemanticCallSpineRoots,
     ref owned_string_results: SemanticAstOwnedStringResultFacts,
     ref statements: SemanticAstStatementFacts, ref assignments: SemanticAstAssignmentFacts,
-    ref assignment_types: SemanticAstAssignmentTypeFacts
+    ref assignment_types: SemanticAstAssignmentTypeFacts,
+    ref formal_effects: SemanticAstCollectionFormalEffects
 ) -> SemanticAstCollectionOwnershipVerdict {
     let local_count: Int = ArrayLength(locals.node_ids);
     if !SemanticAstExpressionSurfaceBorrowReady(artifact, surfaces) ||
@@ -86,8 +90,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
     }
     let literal_transfers: SemanticAstOwnedStringLiteralTransferFacts =
         SemanticAstOwnedStringLiteralTransferFactsFromDefinitions(
-            artifact, signatures, locals,
-            initializer_types.inferred_type_names, surfaces, definitions);
+            artifact, signatures, locals, initializer_types, surfaces,
+            owned_string_results, numeric_string_allocations, definitions);
     if !SemanticAstOwnedStringLiteralTransferFactsReady(literal_transfers) {
         return SemanticAstCollectionOwnershipVerdictError(
             "ast_artifact_invalid",
@@ -267,19 +271,15 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         assignment_row = assignment_row + 1;
     }
 
-    let formal_effects: SemanticAstCollectionFormalEffects =
-        SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
-            artifact, signatures, function_scopes, surfaces);
     if !formal_effects.ok {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "collection_formal_effect"), -1, -1);
     }
-    let formal_row_map: HashMap<String, Int> = formal_effects.inventory.row_by_formal;
-    let formal_modes: Array<Int> = formal_effects.inventory.modes;
-    let proved_formal_effects: HashMap<String, Int> = formal_effects.effects;
     let call_effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         artifact, signatures, constructors, locals, initializer_types.inferred_type_names,
-        surfaces, formal_row_map, formal_modes, proved_formal_effects, definitions, storage);
+        surfaces, formal_effects.inventory.row_by_formal,
+        formal_effects.inventory.modes, formal_effects.effects,
+        definitions, storage);
     if !SemanticAstCollectionCallEffectFactsReady(call_effects, local_count) {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "collection_call_effect_facts"), -1, -1);
@@ -308,6 +308,15 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                 "Array<String>"),
             aggregate_release_plan.diagnostic_syntax_id, -1);
     }
+    let indexed_string_borrows: SemanticAstIndexedStringBorrowState =
+        SemanticAstIndexedStringBorrowStateForLocals(locals);
+    if !indexed_string_borrows.ok {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "indexed_string_borrow_state"), -1, -1);
+    }
+    defer { SemanticAstIndexedStringBorrowStateRetire(indexed_string_borrows); };
     let root_slot: Int = 0;
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
         // Each syntax event precedes its own call lanes, not every call in the
@@ -349,6 +358,16 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                 if step.right >= 0 { ArrayPush(pending, step.right); ArrayPush(prefixes, false); }
                 if step.left >= 0 { ArrayPush(pending, step.left); ArrayPush(prefixes, step.left_prefix); }
                 let node: Int = step.event_node;
+                let indexed_string_use: SemanticAstCollectionOwnershipVerdict =
+                    SemanticAstIndexedStringBorrowUseAtEvent(
+                        artifact, locals,
+                        initializer_types.inferred_type_names, surfaces,
+                        assignments, indexed_string_borrows, root_slot, node
+                    );
+                if !indexed_string_use.ok {
+                    ArrayDrop(pending); ArrayDrop(prefixes);
+                    return indexed_string_use;
+                }
                 let aggregate_source_use:
                     SemanticAstCollectionOwnershipVerdict =
                     SemanticAstCollectionAggregateReleaseSourceUseAtEvent(
@@ -386,9 +405,18 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                         ArrayDrop(pending); ArrayDrop(prefixes);
                         return scalar_transfer_verdict;
                     }
+                    let literal_read_ready: Bool =
+                        SemanticAstCollectionReadLiteralArgumentReady(
+                            artifact, signatures, locals, initializer_types,
+                            surfaces, owned_string_results,
+                            numeric_string_allocations, formal_effects.effects,
+                            root_slot / 3, root_slot % 3, edge);
                     let argument_verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
                         artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, root_slot / 3,
-                        edge, proved_formal_effects, element_requirements, ownership, dispositions, origins, transition_states, call_effects, storage, definitions, current_definitions);
+                        edge, literal_read_ready, formal_effects.effects,
+                        element_requirements, ownership, dispositions, origins,
+                        transition_states, call_effects, storage, definitions,
+                        current_definitions);
                     if !argument_verdict.ok {
                         ArrayDrop(pending); ArrayDrop(prefixes);
                         return argument_verdict;
@@ -417,6 +445,20 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                         ArrayDrop(pending); ArrayDrop(prefixes);
                         return builtin_transition;
                     }
+                    if !SemanticAstIndexedStringBorrowRecordDeepDrop(
+                            artifact, locals,
+                            initializer_types.inferred_type_names, surfaces,
+                            definitions, storage, current_definitions,
+                            indexed_string_borrows, root_slot / 3,
+                            step.completed_call, node) {
+                        ArrayDrop(pending); ArrayDrop(prefixes);
+                        return SemanticAstCollectionOwnershipVerdictError(
+                            "ast_artifact_invalid",
+                            SemanticError1("ast_artifact_invalid", "owner",
+                                "indexed_string_deep_drop"),
+                            surfaces.node_ids[root_slot / 3], node
+                        );
+                    }
                 }
             }
             ArrayDrop(pending); ArrayDrop(prefixes);
@@ -437,6 +479,17 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
                 SemanticError2("borrow_boundary_escape", "boundary",
                     "owned_string_literal_transfer_completion", "type",
                     "String"), surfaces.node_ids[root_slot / 3], -1);
+        }
+        if !SemanticAstIndexedStringBorrowCompleteValue(
+                artifact, locals, initializer_types.inferred_type_names,
+                surfaces, assignments, definitions, storage,
+                current_definitions, indexed_string_borrows, root_slot) {
+            return SemanticAstCollectionOwnershipVerdictError(
+                "ast_artifact_invalid",
+                SemanticError1("ast_artifact_invalid", "owner",
+                    "indexed_string_borrow_completion"),
+                surfaces.node_ids[root_slot / 3], -1
+            );
         }
         root_slot = root_slot + 1;
     }
@@ -516,4 +569,31 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
         carried_source_binding_syntax_ids, element_ownerships,
         carried_dispositions, carried_origins, receipts
     );
+}
+
+func SemanticAstCollectionOwnershipVerdictFromResolvedFacts(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref function_scopes: SemanticAstFunctionScopeFacts,
+    ref resolved_leaf_types: Array<String>,
+    ref numeric_string_allocations: SemanticAstNumericStringAllocationCalls,
+    ref call_roots: SemanticCallSpineRoots,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref assignment_types: SemanticAstAssignmentTypeFacts
+) -> SemanticAstCollectionOwnershipVerdict {
+    let formal_effects: SemanticAstCollectionFormalEffects =
+        SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
+            artifact, signatures, function_scopes, locals,
+            initializer_types, surfaces, statements,
+            owned_string_results);
+    return SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
+        artifact, signatures, constructors, locals, initializer_types,
+        surfaces, function_scopes, resolved_leaf_types,
+        numeric_string_allocations, call_roots, owned_string_results,
+        statements, assignments, assignment_types, formal_effects);
 }

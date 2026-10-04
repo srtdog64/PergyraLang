@@ -210,13 +210,32 @@ func SemanticAstRoleFactsFromArtifact(
             } else {
                 let generic_start: Int = ArrayLength(ability_generic_names);
                 let method_start: Int = ArrayLength(ability_method_node_ids);
-                if !SemanticAstGenericParameterFactRowsFromOwnerNode(
-                    artifact.arena, node_id,
-                    ability_generic_names, ability_generic_defaults,
-                    ability_generic_constraints
-                ) {
+                let generic_rows: SemanticAstGenericParameterFactRows =
+                    SemanticAstGenericParameterFactRowsFromOwnerNode(
+                        artifact.arena, node_id
+                    );
+                let generic_rows_ok: Bool = generic_rows.ok;
+                if !generic_rows_ok {
                     ok = false;
+                } else {
+                    let generic_row: Int = 0;
+                    while generic_row < ArrayLength(generic_rows.names) {
+                        ArrayPushOwnedString(
+                            ability_generic_names,
+                            generic_rows.names[generic_row]
+                        );
+                        ArrayPushOwnedString(
+                            ability_generic_defaults,
+                            generic_rows.default_type_names[generic_row]
+                        );
+                        ArrayPushOwnedString(
+                            ability_generic_constraints,
+                            generic_rows.constraint_type_names[generic_row]
+                        );
+                        generic_row = generic_row + 1;
+                    }
                 }
+                SemanticAstGenericParameterFactRowsDrop(generic_rows);
                 let child: Int = 0;
                 while child < artifact.count && ok {
                     let parent: Option<Int> = TypedAstArenaParentId(

@@ -1,16 +1,18 @@
 // Self-host semantic local environment owner.
 
-func EnvLookup(names: Array<String>, types: Array<String>, name: String) -> String {
+func EnvLookup(
+    ref names: Array<String>, ref types: Array<String>, name: String
+) -> String {
     let i: Int = ArrayLength(names) - 1;
     while i >= 0 {
         if names[i] == name {
-            return types[i];
+            return Concat("", types[i]);
         }
         i = i - 1;
     }
     return "Unknown";
 }
-func EnvContainsName(names: Array<String>, name: String) -> Bool {
+func EnvContainsName(ref names: Array<String>, name: String) -> Bool {
     let i: Int = ArrayLength(names) - 1;
     while i >= 0 {
         if names[i] == name {
@@ -20,11 +22,13 @@ func EnvContainsName(names: Array<String>, name: String) -> Bool {
     }
     return false;
 }
-func EnvMode(names: Array<String>, modes: Array<String>, name: String) -> String {
+func EnvMode(
+    ref names: Array<String>, ref modes: Array<String>, name: String
+) -> String {
     let i: Int = ArrayLength(names) - 1;
     while i >= 0 {
         if names[i] == name {
-            return modes[i];
+            return Concat("", modes[i]);
         }
         i = i - 1;
     }

@@ -1,0 +1,16 @@
+func OwnedText() -> String {
+    let allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(output, "owned");
+    let text: String = TextBuilderFinish(output, allocator);
+    AllocatorDestroy(allocator);
+    return text;
+}
+
+func FirstMatches(values: Array<String>) -> Bool {
+    return values[0] == "owned";
+}
+
+func Main() -> Void {
+    Log(FirstMatches([OwnedText()]));
+}

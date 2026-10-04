@@ -89,23 +89,6 @@ func SemanticCallableCanonicalDeclaredNameEquals(
         );
 }
 
-func SemanticCallableHasLocalSuffix(
-    declared_name: String,
-    local_name: String
-) -> Bool {
-    let declared_len: Int = StringLength(declared_name);
-    let local_len: Int = StringLength(local_name);
-    if local_len == 0 || declared_len <= local_len {
-        return false;
-    }
-    let start: Int = declared_len - local_len;
-    return SourceByteAt(declared_name, declared_len, start - 1) ==
-        SourceByteOf("_") &&
-        SubEqualsWithLen(
-            declared_name, declared_len, start, local_len, local_name
-        );
-}
-
 func SemanticCallableIndex(
     ref declared_names: Array<String>,
     source_name: String
@@ -139,7 +122,24 @@ func SemanticCallableIndex(
     let suffix_count: Int = 0;
     i = 0;
     while i < ArrayLength(declared_names) {
-        if SemanticCallableHasLocalSuffix(declared_names[i], source_name) {
+        let declared_len: Int = StringLength(declared_names[i]);
+        let local_len: Int = StringLength(source_name);
+        let matches: Bool = local_len > 0 && declared_len > local_len;
+        let start: Int = declared_len - local_len;
+        if matches && CharCode(
+                declared_names[i], declared_len, start - 1) !=
+                SourceByteOf("_") {
+            matches = false;
+        }
+        let offset: Int = 0;
+        while matches && offset < local_len {
+            if CharCode(declared_names[i], declared_len, start + offset) !=
+                CharCode(source_name, local_len, offset) {
+                matches = false;
+            }
+            offset = offset + 1;
+        }
+        if matches {
             suffix = i;
             suffix_count = suffix_count + 1;
         }

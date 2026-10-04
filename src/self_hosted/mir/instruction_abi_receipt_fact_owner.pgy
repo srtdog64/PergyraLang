@@ -35,7 +35,7 @@ func SelfMirInstructionAbiReceiptRowsAppend(
         let kind: Int = 0;
         let nominal: Option<Int> = SelfMirNominalUniqueStructIndex(
             declarations.names, declarations.nominal_kinds,
-            abi_type_names[instruction_i]
+            abi_type_names, instruction_i
         );
         if IsSome(nominal) {
             declaration_row = UnwrapOption(nominal);

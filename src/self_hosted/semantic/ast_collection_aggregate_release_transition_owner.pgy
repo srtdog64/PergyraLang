@@ -8,6 +8,7 @@ import "ast_collection_ownership_member_transition_owner.pgy";
 import "ast_collection_owned_argument_admission_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_collection_ownership_state_owner.pgy";
 import "ast_statement_fact_owner.pgy";
 
 func SemanticAstCollectionAggregateReleaseError(
@@ -26,6 +27,20 @@ func SemanticAstCollectionAggregateValidatedInputContains(
     while row < ArrayLength(plan.validated_input_rows) {
         if plan.validated_input_rows[row] == input_row { return true; }
         row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstCollectionAggregateRequirementHasEffect(
+    effect_mask: Int, effect: Int
+) -> Bool {
+    if effect ==
+            SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() {
+        return effect_mask == effect || effect_mask == 3;
+    }
+    if effect ==
+            SemanticAstCollectionAggregateFieldEntryEffectOwnedPush() {
+        return effect_mask == effect || effect_mask == 3;
     }
     return false;
 }
@@ -194,7 +209,10 @@ func SemanticAstCollectionAggregateReleaseRecordDrop(
         requirement_row >= ArrayLength(plan.requirement_local_ids) ||
         binding_row < 0 || binding_row >= ArrayLength(locals.node_ids) ||
         plan.requirement_local_ids[requirement_row] !=
-            locals.node_ids[binding_row] {
+            locals.node_ids[binding_row] ||
+        !SemanticAstCollectionAggregateRequirementHasEffect(
+            plan.requirement_effect_masks[requirement_row],
+            SemanticAstCollectionAggregateFieldEntryEffectDeepDrop()) {
         return SemanticAstCollectionAggregateReleaseError(
             "aggregate_release_drop_identity", -1, call_node);
     }
@@ -210,6 +228,44 @@ func SemanticAstCollectionAggregateReleaseRecordDrop(
     ownership[binding_row] = SemanticAstCollectionOwnershipRetired();
     transition_states[binding_row] =
         SemanticAstCollectionTransitionRetired();
+    return SemanticAstCollectionOwnershipVerdictOk();
+}
+
+func SemanticAstCollectionAggregateReleaseRecordOwnedPush(
+    ref locals: SemanticAstLocalBindingFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_row: Int, call_node: Int, binding_row: Int,
+    requirement_row: Int,
+    inout ownership: Array<Int>, inout dispositions: Array<Int>,
+    inout transition_states: Array<Int>,
+    inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> SemanticAstCollectionOwnershipVerdict {
+    if !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) ||
+        requirement_row < 0 ||
+        requirement_row >= ArrayLength(plan.requirement_local_ids) ||
+        binding_row < 0 || binding_row >= ArrayLength(locals.node_ids) ||
+        plan.requirement_local_ids[requirement_row] !=
+            locals.node_ids[binding_row] ||
+        !SemanticAstCollectionAggregateRequirementHasEffect(
+            plan.requirement_effect_masks[requirement_row],
+            SemanticAstCollectionAggregateFieldEntryEffectOwnedPush()) {
+        return SemanticAstCollectionAggregateReleaseError(
+            "aggregate_owned_push_identity", -1, call_node);
+    }
+    let syntax_id: Int = surfaces.node_ids[surface_row];
+    if plan.owned_push_syntax_ids[requirement_row] >= 0 &&
+        plan.owned_push_syntax_ids[requirement_row] != syntax_id {
+        return SemanticAstCollectionAggregateReleaseError(
+            "aggregate_owned_push_repeated", syntax_id, call_node);
+    }
+    if plan.owned_push_syntax_ids[requirement_row] < 0 {
+        plan.owned_push_syntax_ids[requirement_row] = syntax_id;
+        plan.owned_push_expression_nodes[requirement_row] = call_node;
+    }
+    dispositions[binding_row] = SemanticAstCollectionDispositionLive();
+    ownership[binding_row] = SemanticAstCollectionOwnershipOwnedElements();
+    transition_states[binding_row] =
+        SemanticAstCollectionTransitionOwned();
     return SemanticAstCollectionOwnershipVerdictOk();
 }
 
@@ -435,6 +491,60 @@ func SemanticAstCollectionAggregateCarrierRestorationsReady(
     return true;
 }
 
+func SemanticAstCollectionAggregateOwnedMutationControlReady(
+    ref statements: SemanticAstStatementFacts,
+    function_id: Int, local_id: Int, restoration_site: Int
+) -> Bool {
+    if !statements.ok || function_id <= 0 || local_id <= 0 ||
+        restoration_site <= local_id {
+        return false;
+    }
+    let row: Int = 0;
+    while row < ArrayLength(statements.node_ids) {
+        if statements.function_node_ids[row] == function_id {
+            let kind: Int = statements.kind_tags[row];
+            if kind == TypedAstKindDeferStmtTag() { return false; }
+            if statements.node_ids[row] > local_id &&
+                statements.node_ids[row] < restoration_site &&
+                (kind == TypedAstKindBareReturnStmtTag() ||
+                 kind == TypedAstKindValueReturnStmtTag() ||
+                 kind == TypedAstKindExitStmtTag() ||
+                 kind == TypedAstKindFailStmtTag() ||
+                 kind == TypedAstKindBreakStmtTag() ||
+                 kind == TypedAstKindContinueStmtTag()) {
+                return false;
+            }
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateDirectRestorationReady(
+    artifact: AstTreeArtifact,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
+    requirement: Int, restoration_site: Int
+) -> Bool {
+    if requirement < 0 ||
+        requirement >= ArrayLength(requirements.local_ids) ||
+        restoration_site <= 0 {
+        return false;
+    }
+    let local_index: Option<Int> = SemanticAstLocalBindingIndexForNode(
+        locals, requirements.local_ids[requirement]);
+    if !IsSome(local_index) { return false; }
+    let row: Int = UnwrapOption(local_index);
+    if row < 0 || row >= ArrayLength(locals.scope_node_ids) ||
+        locals.function_node_ids[row] !=
+            requirements.function_ids[requirement] ||
+        locals.scope_node_ids[row] <= 0 {
+        return false;
+    }
+    return SemanticAstCollectionAggregateReleaseEnclosingBlock(
+        artifact, restoration_site) == locals.scope_node_ids[row];
+}
+
 func SemanticAstCollectionAggregateReleasePlanFinalized(
     artifact: AstTreeArtifact,
     ref signatures: SemanticAstFunctionSignatureFacts,
@@ -466,7 +576,7 @@ func SemanticAstCollectionAggregateReleasePlanFinalized(
     }
     if !SemanticAstCollectionAggregateReleaseAliasesReady(
             artifact, signatures, locals, inferred_types,
-            resolved_leaf_types, surfaces, assignments, plan) {
+            resolved_leaf_types, surfaces, assignments, statements, plan) {
         return false;
     }
     let demand: Int = 0;
@@ -476,11 +586,36 @@ func SemanticAstCollectionAggregateReleasePlanFinalized(
     }
     let requirement: Int = 0;
     while requirement < ArrayLength(plan.requirement_local_ids) {
-        if plan.drop_syntax_ids[requirement] <= 0 ||
-            plan.drop_expression_nodes[requirement] < 0 ||
-            !SemanticAstCollectionAggregateReleaseFunctionStraightLine(
-                statements, requirements.function_ids[requirement]) {
-            return false;
+        let effect_mask: Int =
+            plan.requirement_effect_masks[requirement];
+        let needs_drop: Bool =
+            SemanticAstCollectionAggregateRequirementHasEffect(
+                effect_mask,
+                SemanticAstCollectionAggregateFieldEntryEffectDeepDrop());
+        let needs_owned_push: Bool =
+            SemanticAstCollectionAggregateRequirementHasEffect(
+                effect_mask,
+                SemanticAstCollectionAggregateFieldEntryEffectOwnedPush());
+        if !needs_drop && !needs_owned_push { return false; }
+        let last_effect_site: Int = -1;
+        if needs_drop {
+            if plan.drop_syntax_ids[requirement] <= 0 ||
+                plan.drop_expression_nodes[requirement] < 0 ||
+                !SemanticAstCollectionAggregateReleaseFunctionStraightLine(
+                    statements, requirements.function_ids[requirement]) {
+                return false;
+            }
+            last_effect_site = plan.drop_syntax_ids[requirement];
+        }
+        if needs_owned_push {
+            if plan.owned_push_syntax_ids[requirement] <= 0 ||
+                plan.owned_push_expression_nodes[requirement] < 0 {
+                return false;
+            }
+            if plan.owned_push_syntax_ids[requirement] > last_effect_site {
+                last_effect_site =
+                    plan.owned_push_syntax_ids[requirement];
+            }
         }
         let restoration_count: Int = 0;
         let restoration_site: Int = -1;
@@ -495,7 +630,14 @@ func SemanticAstCollectionAggregateReleasePlanFinalized(
             restored = restored + 1;
         }
         if restoration_count != 1 ||
-            restoration_site <= plan.drop_syntax_ids[requirement] {
+            restoration_site <= last_effect_site ||
+            !SemanticAstCollectionAggregateDirectRestorationReady(
+                artifact, locals, requirements, requirement,
+                restoration_site) ||
+            (needs_owned_push &&
+             !SemanticAstCollectionAggregateOwnedMutationControlReady(
+                statements, requirements.function_ids[requirement],
+                requirements.local_ids[requirement], restoration_site)) {
             return false;
         }
         requirement = requirement + 1;

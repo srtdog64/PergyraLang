@@ -144,8 +144,9 @@ func MirAbiSelectedObjectBoundsWithin(
         let selected: Int = 0 - 1;
         let key_row: Int = 0;
         while key_row < ArrayLength(keys) {
+            let expected: String = Concat("", keys[key_row]);
             if JsonObjectKeyEqualsWithin(
-                json, i, key_end, keys[key_row]
+                json, i, key_end, expected
             ) {
                 selected = key_row;
                 key_row = ArrayLength(keys);

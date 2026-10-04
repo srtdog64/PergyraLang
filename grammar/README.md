@@ -1,6 +1,9 @@
 # Pergyra Grammar Examples
 
 This folder is a compact syntax map, not a full language specification.
+The full reference — syntax surface plus semantics — lives in
+[`language_reference.md`](language_reference.md).
+
 The examples are gated by `make grammar-examples-compile-test-smoke`, which
 requires every `.pgy` file here to parse and emit C through the live compiler.
 

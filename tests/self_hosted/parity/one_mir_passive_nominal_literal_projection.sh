@@ -26,7 +26,7 @@ require_file() { [[ -f "$1" ]] || fail "missing $1"; }
 assert_owner_ratchet() {
     local shared_total=0 owner cap lines
     while IFS='|' read -r owner cap; do
-        lines="$(wc -l < "$owner" | tr -d ' ')"
+        lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$owner" | tr -d ' ')" || fail "source-size measurement failed"
         [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/$cap"
         shared_total=$((shared_total + lines))
     done <<EOF
@@ -49,7 +49,8 @@ EOF
     grep -Fq 'CallableReceiverNominalKindUsesMutableLiteralIdentity(kind)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_nominal_literal_route_fact_owner.pgy" || fail "literal route claims passive values again"
     grep -Fq 'CallableReceiverNominalKindUsesValue(declarations.nominal_kinds[declaration_row])' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_declaration_envelope_owner.pgy" || fail "logical records lost the canonical value policy"
     grep -Fq 'MirAbiAllBoundsPresent(starts, ends)' "$ROOT_DIR/src/self_hosted/compiler/direct_mir_scalar_program_logical_record_declaration_envelope_owner.pgy" || fail "logical records lost their exact ABI envelope"
-    [[ "$(wc -l < "$ROOT_DIR/src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy" | tr -d ' ')" -le 90 ]] || fail "exact JSON-array cardinality owner hard cap exceeded"
+    source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/direct_mir_exact_json_array_cardinality_owner.pgy" | tr -d ' ')" || fail "source-size measurement failed"
+    [[ "$source_size_lines" -le 90 ]] || fail "exact JSON-array cardinality owner hard cap exceeded"
     [[ ! -e "$ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_member_array_shape_owner.pgy" ]] || fail "retired inferred-family array-shape owner reappeared"
     ! grep -R -Eq 'DirectMirInferredGenericMemberExact(Object|String)ArrayCount' "$ROOT_DIR/src/self_hosted/compiler" || fail "exact JSON-array cardinality retained a family-local owner"
     [[ "$(grep -R -F 'DirectMirNominalLiteralRouteFactFromAdmitted(' "$ROOT_DIR/src/self_hosted/compiler" | wc -l | tr -d ' ')" -eq 2 ]] || fail "nominal literal route constructor escaped one definition and one call"

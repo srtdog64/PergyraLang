@@ -1,0 +1,8 @@
+func Retire(ref suffix: String) -> Void {
+    let retired: Array<String> = [suffix];
+    ArrayDropOwnedStrings(retired);
+}
+
+func Main() -> Void {
+    Retire(".Get");
+}

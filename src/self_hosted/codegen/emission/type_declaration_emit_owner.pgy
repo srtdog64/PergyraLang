@@ -57,6 +57,9 @@ func CodegenTypeDeclarationDependencyReady(
     wrapper_emitted: Array<Int>
 ) -> Bool {
     let canonical: String = SemanticCanonicalTypeName(type_name);
+    if ResultRuntimeFactIsBuiltinScalar(canonical) {
+        return true;
+    }
     let option_inner: Option<String> =
         OptionResultRuntimeOptionInnerTypeName(canonical);
     if IsSome(option_inner) {

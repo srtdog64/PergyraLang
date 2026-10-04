@@ -43,10 +43,10 @@ func SelfMirOptionNominalAbiLayoutRowsCapture(
     let ready: Bool = true;
     if !nominal.ready || ArrayLength(names) != ArrayLength(nominal_kinds) ||
         ArrayLength(names) != ArrayLength(nominal.required) {
-        return SelfMirOptionNominalAbiLayoutRows(
-            false, type_names, requireds, layout_ids, sizes, aligns,
-            value_offsets, value_sizes, value_aligns
-        );
+        let invalid: SelfMirOptionNominalAbiLayoutRows =
+            SelfMirOptionNominalAbiLayoutRowsEmpty();
+        invalid.ready = false;
+        return invalid;
     }
     let row: Int = 0;
     while row < ArrayLength(names) {
@@ -78,7 +78,7 @@ func SelfMirOptionNominalAbiLayoutRowsCapture(
                 }
             }
         }
-        ArrayPush(type_names, type_name);
+        ArrayPushOwnedString(type_names, Concat("", type_name));
         ArrayPush(requireds, required);
         ArrayPush(layout_ids, layout_id);
         ArrayPush(sizes, size);

@@ -300,6 +300,18 @@ func SemanticAstCollectionAggregateTraceExpression(
             expression_node
         );
     if formal.ok {
+        if !SemanticAstCollectionAggregateReleaseRecordProtectedBinding(
+                formal.syntax_id, plan) {
+            return false;
+        }
+        let formal_mode: Option<Int> =
+            SemanticAstFunctionParamModeAt(
+                signatures, formal.signature_row, formal.ordinal);
+        if !IsSome(formal_mode) ||
+            (UnwrapOption(formal_mode) != 1 &&
+             UnwrapOption(formal_mode) != 2) {
+            return false;
+        }
         let explicit_ordinal: Int = formal.ordinal -
             signatures.receiver_source_param_offsets[formal.signature_row];
         if explicit_ordinal >= 0 {
@@ -312,6 +324,10 @@ func SemanticAstCollectionAggregateTraceExpression(
                     if plan.call_nodes[row] == call_node &&
                         plan.call_ordinals[row] == explicit_ordinal {
                         matching_argument_count = matching_argument_count + 1;
+                        if !SemanticAstCollectionAggregateReleaseRecordLineageEdge(
+                                plan.call_edge_nodes[row], plan) {
+                            return false;
+                        }
                         result = SemanticAstCollectionAggregateTraceExpression(
                             artifact, signatures, constructors, locals,
                             inferred_types, resolved_leaf_types, surfaces,
@@ -335,6 +351,10 @@ func SemanticAstCollectionAggregateTraceExpression(
                     if plan.call_target_ids[row] == function_id &&
                         plan.call_ordinals[row] == explicit_ordinal {
                         saw = true;
+                        if !SemanticAstCollectionAggregateReleaseRecordLineageEdge(
+                                plan.call_edge_nodes[row], plan) {
+                            return false;
+                        }
                         if !SemanticAstCollectionAggregateTraceExpression(
                                 artifact, signatures, constructors, locals,
                                 inferred_types, resolved_leaf_types, surfaces,

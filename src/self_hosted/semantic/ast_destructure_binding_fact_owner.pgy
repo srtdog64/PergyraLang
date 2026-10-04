@@ -50,7 +50,10 @@ func SemanticAstDestructureBindingFactsFromArtifact(
             AstDestructureGraphViewForOrdinal(
                 artifact.expression_graphs, ordinal
             );
-        let binding_names: Array<String> = [];
+        let binding_rows: AstDestructurePatternBindingNameRows =
+            AstDestructurePatternBindingNames(
+                artifact.expression_graphs, view.pattern_root
+            );
         let scope: Option<Int> = TypedAstArenaParentId(
             artifact.arena, node_id
         );
@@ -60,9 +63,9 @@ func SemanticAstDestructureBindingFactsFromArtifact(
         let initializer: Option<String> = TypedAstArenaValueText(
             artifact.arena, node_id
         );
-        if !view.ok || !AstDestructurePatternBindingNames(
-            artifact.expression_graphs, view.pattern_root, binding_names
-        ) || !IsSome(scope) || !TypedAstArenaNodeKindIs(
+        let binding_names_ok: Bool = binding_rows.ok;
+        if !view.ok || !binding_names_ok ||
+            !IsSome(scope) || !TypedAstArenaNodeKindIs(
             artifact.arena, UnwrapOption(scope), TypedAstKindBlockTag()
         ) || !IsSome(function_node) || !IsSome(initializer) ||
             UnwrapOption(initializer) == "" {
@@ -73,33 +76,35 @@ func SemanticAstDestructureBindingFactsFromArtifact(
                 "node_id", ToString(node_id),
                 "missing_fact", "pattern_scope_or_initializer"
             );
-            continue;
-        }
-        let i: Int = 0;
-        while i < ArrayLength(binding_names) && ok {
-            let j: Int = 0;
-            while j < i {
-                if binding_names[j] == binding_names[i] {
-                    ok = false;
-                    diagnostic_code = "destructure_binding_invalid";
-                    diagnostic_message = SemanticError2(
-                        "destructure_binding_invalid",
-                        "node_id", ToString(node_id),
-                        "duplicate_binding", binding_names[i]
-                    );
+        } else {
+            let i: Int = 0;
+            while i < ArrayLength(binding_rows.names) && ok {
+                let j: Int = 0;
+                while j < i {
+                    if binding_rows.names[j] == binding_rows.names[i] {
+                        ok = false;
+                        diagnostic_code = "destructure_binding_invalid";
+                        diagnostic_message = SemanticError2(
+                            "destructure_binding_invalid",
+                            "node_id", ToString(node_id),
+                            "duplicate_binding", binding_rows.names[i]
+                        );
+                    }
+                    j = j + 1;
                 }
-                j = j + 1;
+                if ok {
+                    ArrayPush(node_ids, node_id);
+                    ArrayPush(function_node_ids, UnwrapOption(function_node));
+                    ArrayPush(scope_node_ids, UnwrapOption(scope));
+                    ArrayPush(binding_indices, i);
+                    ArrayPushOwnedString(names, binding_rows.names[i]);
+                    ArrayPush(initializer_texts, UnwrapOption(initializer));
+                }
+                i = i + 1;
             }
-            if ok {
-                ArrayPush(node_ids, node_id);
-                ArrayPush(function_node_ids, UnwrapOption(function_node));
-                ArrayPush(scope_node_ids, UnwrapOption(scope));
-                ArrayPush(binding_indices, i);
-                ArrayPush(names, binding_names[i]);
-                ArrayPush(initializer_texts, UnwrapOption(initializer));
-            }
-            i = i + 1;
         }
+        AstDestructurePatternBindingNameRowsDrop(binding_rows);
+        if !ok { continue; }
         ordinal = ordinal + 1;
         node_id = node_id + 1;
     }

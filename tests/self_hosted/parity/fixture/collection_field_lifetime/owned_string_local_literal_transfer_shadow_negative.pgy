@@ -1,0 +1,13 @@
+func Concat(left: String, right: String) -> String {
+    return left;
+}
+
+func Retire(member: String) -> Void {
+    let suffix: String = Concat(".", member);
+    let retired: Array<String> = [suffix];
+    ArrayDropOwnedStrings(retired);
+}
+
+func Main() -> Void {
+    Retire("Get");
+}

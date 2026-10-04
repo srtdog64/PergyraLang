@@ -4,7 +4,7 @@ import "ast_signature_fact_owner.pgy";
 
 func SemanticAstFunctionSignatureRowMatchesArtifact(
     artifact: AstTreeArtifact,
-    facts: SemanticAstFunctionSignatureFacts,
+    ref facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int
 ) -> Bool {
     let function_node_id: Int = facts.function_node_ids[signature_index];
@@ -166,53 +166,54 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
             artifact.arena, function_node_id, child_index
         );
     }
-    let parsed_names: Array<String> = [];
-    let parsed_defaults: Array<String> = [];
-    let parsed_constraints: Array<String> = [];
-    if !SemanticAstGenericParameterFactRowsFromOwnerNode(
-        artifact.arena, function_node_id,
-        parsed_names, parsed_defaults, parsed_constraints
-    ) { return false; }
+    let parsed_rows: SemanticAstGenericParameterFactRows =
+        SemanticAstGenericParameterFactRowsFromOwnerNode(
+            artifact.arena, function_node_id
+        );
+    let parsed_rows_ok: Bool = parsed_rows.ok;
     let generic_index: Int = 0;
-    while generic_index < ArrayLength(parsed_names) {
-        let flat_generic: Int =
-            facts.generic_starts[signature_index] + generic_index;
-        if generic_index >= facts.generic_counts[signature_index] ||
-            facts.generic_names[flat_generic] != parsed_names[generic_index] ||
-            facts.generic_constraint_type_names[flat_generic] !=
-                parsed_constraints[generic_index] {
-            return false;
+    let generic_rows_match: Bool = parsed_rows_ok;
+    while parsed_rows_ok &&
+        generic_index < ArrayLength(parsed_rows.names) && generic_rows_match {
+        if generic_index >= facts.generic_counts[signature_index] {
+            generic_rows_match = false;
+        } else {
+            let flat_generic: Int =
+                facts.generic_starts[signature_index] + generic_index;
+            if facts.generic_names[flat_generic] !=
+                parsed_rows.names[generic_index] ||
+                facts.generic_constraint_type_names[flat_generic] !=
+                    parsed_rows.constraint_type_names[generic_index] {
+                generic_rows_match = false;
+            }
         }
         generic_index = generic_index + 1;
     }
-    generic_count = ArrayLength(parsed_names);
-    return saw_parameters && saw_returns &&
+    generic_count = ArrayLength(parsed_rows.names);
+    let matches: Bool = parsed_rows_ok && generic_rows_match &&
+        saw_parameters && saw_returns &&
         generic_count == facts.generic_counts[signature_index] &&
         parameter_count == facts.param_counts[signature_index] &&
         receiver_source_param_offset ==
             facts.receiver_source_param_offsets[signature_index];
+    SemanticAstGenericParameterFactRowsDrop(parsed_rows);
+    return matches;
 }
 
 func SemanticAstFunctionSignatureFactsMatchArtifact(
     artifact: AstTreeArtifact,
-    facts: SemanticAstFunctionSignatureFacts
+    ref facts: SemanticAstFunctionSignatureFacts
 ) -> Bool {
     let n: Int = SemanticAstFunctionSignatureCount(facts);
     let gn: Int = ArrayLength(facts.generic_names);
     let pn: Int = ArrayLength(facts.param_node_ids);
     if !AstTreeArtifactReady(artifact) || !facts.ok ||
         facts.artifact_node_count != artifact.count ||
-        !SemanticAstActionContractFactsMatchArtifact(
-            artifact, facts.action_contracts
-        ) ||
         ArrayLength(facts.module_paths) != n ||
         ArrayLength(facts.owner_names) != n ||
         ArrayLength(facts.runtime_callables) != n ||
         ArrayLength(facts.names) != n ||
         ArrayLength(facts.return_types) != n ||
-        !SemanticAstSignatureTypeExpressionFactsMatchRows(
-            facts.type_expressions, facts.return_types, facts.param_types
-        ) ||
         ArrayLength(facts.generic_starts) != n ||
         ArrayLength(facts.generic_counts) != n ||
         ArrayLength(facts.generic_constraint_type_names) != gn ||
@@ -221,7 +222,47 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
         ArrayLength(facts.receiver_source_param_offsets) != n ||
         ArrayLength(facts.param_names) != pn ||
         ArrayLength(facts.param_types) != pn ||
-        ArrayLength(facts.param_modes) != pn {
+        ArrayLength(facts.param_modes) != pn ||
+        !SemanticAstActionContractFactsMatchArtifact(
+            artifact, facts.action_contracts
+        ) {
+        return false;
+    }
+    let type_rows_match: Bool = facts.type_expressions.ok &&
+        ArrayLength(facts.type_expressions.return_roots) ==
+            ArrayLength(facts.return_types) &&
+        ArrayLength(facts.type_expressions.parameter_roots) ==
+            ArrayLength(facts.param_types);
+    let empty_names: Array<String> = [];
+    let empty_bindings: Array<String> = [];
+    let type_row: Int = 0;
+    while type_rows_match && type_row < ArrayLength(facts.return_types) {
+        let rendered: Option<String> =
+            SemanticAstSignatureReturnTypeResolveAt(
+                facts.type_expressions, type_row, 0, 0,
+                empty_names, empty_bindings
+            );
+        if !IsSome(rendered) ||
+            UnwrapOption(rendered) != facts.return_types[type_row] {
+            type_rows_match = false;
+        }
+        type_row = type_row + 1;
+    }
+    type_row = 0;
+    while type_rows_match && type_row < ArrayLength(facts.param_types) {
+        let rendered_parameter: Option<String> =
+            SemanticAstSignatureTypeExpressionResolveRoot(
+                facts.type_expressions,
+                facts.type_expressions.parameter_roots[type_row], 0, 0,
+                empty_names, empty_bindings
+            );
+        if !IsSome(rendered_parameter) ||
+            UnwrapOption(rendered_parameter) != facts.param_types[type_row] {
+            type_rows_match = false;
+        }
+        type_row = type_row + 1;
+    }
+    if !type_rows_match {
         return false;
     }
     let i: Int = 0;

@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let source: String = Concat("a", "b");
+    let alias: String = source;
+    let retired: Array<String> = [alias];
+    ArrayDropOwnedStrings(retired);
+    Log(source);
+}

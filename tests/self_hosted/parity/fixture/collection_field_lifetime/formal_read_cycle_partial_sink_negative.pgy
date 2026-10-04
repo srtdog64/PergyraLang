@@ -1,0 +1,24 @@
+func ReadSink(ref values: Array<String>) -> Bool {
+    return values[0] == "x";
+}
+
+func CycleC(ref values: Array<String>) -> Bool {
+    return CycleD(values);
+}
+
+func CycleD(ref values: Array<String>) -> Bool {
+    return CycleC(values);
+}
+
+func MixedRead(ref values: Array<String>) -> Bool {
+    let observed: Bool = ReadSink(values);
+    if observed { return true; }
+    return CycleC(values);
+}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "x");
+    Log(MixedRead(values));
+    ArrayDropOwnedStrings(values);
+}

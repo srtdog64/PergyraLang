@@ -132,7 +132,7 @@ func CallReturnType(text: String, ref func_names: Array<String>, ref func_rets: 
     }
     let index: Option<Int> = SemanticCallableIndex(func_names, callee);
     if IsSome(index) {
-        return func_rets[UnwrapOption(index)];
+        return Concat("", func_rets[UnwrapOption(index)]);
     }
     return "Unknown";
 }

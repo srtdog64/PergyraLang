@@ -33,6 +33,36 @@ func SemanticAstCollectionFormalStorageMutationUnproved(
     return SemanticAstCollectionMutationMayBeRetired(artifact, syntax_id, retiring, non_deep);
 }
 
+func SemanticAstCollectionFormalShallowMutationUnproved(
+    artifact: AstTreeArtifact, syntax_id: Int, source: Int,
+    ref effects: SemanticAstCollectionCallEffectFacts
+) -> Bool {
+    if SemanticAstCollectionFormalStoragePermissionUnproved(
+            artifact, syntax_id, source, effects) {
+        return true;
+    }
+    return SemanticAstCollectionShallowMutationHasPriorEffect(
+        artifact, syntax_id,
+        SemanticAstCollectionFormalPermissionSite(
+            effects.formal_retiring_sites, source),
+        SemanticAstCollectionFormalPermissionSite(
+            effects.formal_non_deep_drop_sites, source));
+}
+
+func SemanticAstCollectionFormalReadPermissionUnproved(
+    artifact: AstTreeArtifact, syntax_id: Int, source: Int,
+    ref effects: SemanticAstCollectionCallEffectFacts
+) -> Bool {
+    if SemanticAstCollectionFormalStoragePermissionUnproved(
+            artifact, syntax_id, source, effects) {
+        return true;
+    }
+    return SemanticAstCollectionMutableCallMayBeRetired(
+        artifact, syntax_id,
+        SemanticAstCollectionFormalPermissionSite(
+            effects.formal_retiring_sites, source));
+}
+
 func SemanticAstCollectionStorageMutationCall(
     ref graph: SemanticExpressionGraphFacts, call_node: Int
 ) -> Bool {

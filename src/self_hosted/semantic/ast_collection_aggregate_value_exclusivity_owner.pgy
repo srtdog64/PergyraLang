@@ -6,6 +6,8 @@ import "ast_collection_aggregate_release_plan_schema_owner.pgy";
 import "ast_collection_ownership_member_move_owner.pgy";
 import "ast_collection_ownership_member_root_identity_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
+import "ast_expression_graph_call_argument_edge_owner.pgy";
+import "ast_statement_fact_owner.pgy";
 
 func SemanticAstCollectionAggregateValueBindingForNode(
     artifact: AstTreeArtifact,
@@ -89,6 +91,27 @@ func SemanticAstCollectionAggregateProtectedBinding(
         }
         row = row + 1;
     }
+    row = 0;
+    while row < ArrayLength(plan.protected_binding_ids) {
+        if plan.protected_binding_ids[row] == binding_id { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstCollectionAggregateLineageEdge(
+    ref plan: SemanticAstCollectionAggregateReleasePlan, edge_node: Int
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(plan.demand_edge_nodes) {
+        if plan.demand_edge_nodes[row] == edge_node { return true; }
+        row = row + 1;
+    }
+    row = 0;
+    while row < ArrayLength(plan.lineage_call_edge_nodes) {
+        if plan.lineage_call_edge_nodes[row] == edge_node { return true; }
+        row = row + 1;
+    }
     return false;
 }
 
@@ -116,6 +139,7 @@ func SemanticAstCollectionAggregateReleaseAliasesReady(
     ref resolved_leaf_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref assignments: SemanticAstAssignmentFacts,
+    ref statements: SemanticAstStatementFacts,
     ref plan: SemanticAstCollectionAggregateReleasePlan
 ) -> Bool {
     if !SemanticAstCollectionAggregateReleasePlanShapeReady(plan) { return false; }
@@ -153,6 +177,63 @@ func SemanticAstCollectionAggregateReleaseAliasesReady(
             }
         }
         assignment = assignment + 1;
+    }
+    let statement: Int = 0;
+    while statement < ArrayLength(statements.node_ids) {
+        if statements.kind_tags[statement] ==
+                TypedAstKindValueReturnStmtTag() {
+            let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+                surfaces, statements.node_ids[statement],
+                AstExpressionLaneAtom());
+            if !IsSome(root) { return false; }
+            let source: Int =
+                SemanticAstCollectionAggregateValueBindingForNode(
+                    artifact, signatures, locals, inferred_types,
+                    resolved_leaf_types,
+                    statements.function_node_ids[statement],
+                    statements.node_ids[statement], surfaces,
+                    UnwrapOption(root));
+            if SemanticAstCollectionAggregateProtectedBinding(
+                    plan, source) {
+                return false;
+            }
+        }
+        statement = statement + 1;
+    }
+    let last: Int = -1;
+    let slot: Int = 0;
+    while slot < ArrayLength(surfaces.expression_graph.roots) {
+        if surfaces.expression_graph.has_roots[slot] {
+            let root: Int = surfaces.expression_graph.roots[slot];
+            let node: Int = last + 1;
+            while node <= root {
+                let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+                    surfaces.expression_graph, node);
+                if IsSome(kind) && UnwrapOption(kind) ==
+                        AstExpressionNodeCallArgument() {
+                    let edge: SemanticCallArgumentEdgeView =
+                        SemanticCallArgumentEdgeFromGraph(
+                            surfaces.expression_graph, node);
+                    if !edge.ok { return false; }
+                    let source: Int =
+                        SemanticAstCollectionAggregateValueBindingForNode(
+                            artifact, signatures, locals, inferred_types,
+                            resolved_leaf_types,
+                            surfaces.function_node_ids[slot / 3],
+                            surfaces.node_ids[slot / 3], surfaces,
+                            edge.argument_node);
+                    if SemanticAstCollectionAggregateProtectedBinding(
+                            plan, source) &&
+                        !SemanticAstCollectionAggregateLineageEdge(
+                            plan, node) {
+                        return false;
+                    }
+                }
+                node = node + 1;
+            }
+            last = root;
+        }
+        slot = slot + 1;
     }
     return true;
 }

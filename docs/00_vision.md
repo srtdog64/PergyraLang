@@ -103,6 +103,143 @@ boundary transitions, while runtime handles validate generation, token, and
 resource state. This is a deliberate design choice, not a missing Rust borrow
 checker.
 
+## Compiler World Vision — Pergyra 자체를 닮은 컴파일러
+
+Pergyra로 작성된 컴파일러의 목표는 기존 C 컴파일러의 폴더와 pass를
+`world`, `zone`, `subject`, `action`, `intent`로 이름만 바꾸는 것이 아니다.
+언어의 구문을 사용했다는 사실과 언어가 추구하는 구조를 실제로 따랐다는
+사실은 다르다. 최종 컴파일러는 **목적에 따라 소유된 fact를 만들고, 검증된
+projection을 거쳐, typed outcome과 artifact를 발행하는 compiler world**여야
+한다.
+
+### 구성체를 쓰는 기준
+
+- `world`는 한 compiler singleton이나 모든 fact의 거대한 저장소가 아니다.
+  compile, check, format, debug처럼 외부에 의미 있는 목적과 그 목적이 사용하는
+  resource/authority 경계를 조합하는 composition root다.
+- `intent`는 pass 목록이 아니다. `CompileProgram`, `CheckProgram`,
+  `FormatSource`, `DebugProgram`처럼 성공, 실패, 참여자, authority, effect,
+  compensation, trace의 귀속이 필요한 실제 목적을 묶는다. 모든 도구 동작을 한
+  거대한 compiler intent에 넣지 않는다.
+- `zone`은 IR 이름을 분류하는 namespace가 아니다. compilation revision,
+  target environment, artifact transaction처럼 lifetime, resource, authority가
+  실제로 갈리는 경계에만 둔다. Fact 묶음은 별도 lifetime이나 authority가
+  없다면 zone이 아니라 typed graph/value다.
+- `subject`는 compilation session이나 artifact publisher처럼 stable identity와
+  authority를 가진 주체에 사용한다. Lexer, parser, type solver가 순수 변환일
+  뿐이라면 억지로 subject로 승격하지 않는다.
+- `action`은 admitted request, state, resource, artifact의 실제 전이를 소유할 때
+  사용한다. 단순 readiness Bool이나 한 번의 함수 위임은 action을 정당화하지
+  않는다.
+- 순수한 lexing, parsing, unification, graph construction, CFG analysis,
+  optimization은 기본적으로 `func`와 `struct`로 남는다. Pergyra의 도메인
+  구성체는 모든 계산을 감싸는 장식이 아니다.
+
+### Slot과 저수준 identity
+
+Slot은 Pergyra의 중요한 resource-boundary 도구지만 compiler 전체의 보편적인
+저수준 ontology는 아니다. Zone 안에서 자원 점유와 전송을 표현하는 Slot,
+소스 프로그램이 선언한 binding slot, compiler 내부의 SSA value와 syntax
+identity를 서로 같은 개념으로 취급하지 않는다.
+
+Compiler 내부의 규범적 저수준 형태는 다음과 같다.
+
+```text
+CompilationRevisionId
+  -> immutable arena / fact table
+  -> typed stable handle
+  -> semantic and execution overlays
+  -> verified projection plan
+```
+
+Raw pointer, 주소, 컨테이너 재할당 위치, Slot ordinal, generation counter,
+display spelling은 semantic identity의 주인이 될 수 없다. 구현 내부에서 주소를
+일시적으로 사용하더라도 owner 경계를 넘어 의미 권위로 운반해서는 안 된다.
+Cross-stage와 serialized artifact에는 revision에 결속된 typed handle과 명시적인
+identity relation을 사용한다. 이 원칙은 resource Slot 모델을 약화하는 것이
+아니라, Slot을 실제 resource boundary에만 강하게 남기는 규칙이다.
+
+### 소유된 fact graph와 projection
+
+목표 구조는 복사된 tree의 선형 pass 사슬이 아니라, 같은 stable identity를
+공유하는 직교 fact graph다.
+
+```text
+PgyCompilerWorld
+  -> Compile / Check / Format / Debug intent
+  -> CompilationRevision boundary
+       -> Source facts and provenance
+       -> TypeDag + HIR semantic entities
+       -> DIR domain and purpose relations
+       -> RIR resource, authority, and transfer facts
+       -> MIR execution, CFG, SSA, ownership, and cleanup facts
+       -> AIR evidence certificate
+  -> ABI and target-capability facts
+  -> VerifiedProjectionPlan
+       -> C projection
+       -> LLVM projection
+       -> self-host projection
+  -> ArtifactTransaction boundary
+       -> published artifact | typed rejection
+```
+
+DIR, RIR, MIR, AIR은 같은 것을 다른 파일에 복사한 계층이 아니다. Domain
+relation, resource transition, executable behavior, proof/evidence라는 서로 다른
+의미 축을 소유한다. Backend는 source text, AST payload, 이름, Slot 모양에서
+그 의미를 복구하지 않는다. AIR 자체도 backend input이 아니다. AIR의 compact
+certificate와 MIR/ABI/target facts를 소비해 만든 하나의
+`VerifiedProjectionPlan`을 C, LLVM, self-host가 peer projection으로 소비한다.
+
+Generic은 semantic boundary와 target specialization에서 강하게 사용하되,
+실행 hot path의 projection plan은 구체적이어야 한다.
+
+> **Generic at semantic boundaries, concrete in hot paths.**
+
+### SoT 폐쇄 장치와 최종 구조의 분리
+
+SoT registry, bridge receipt, parity oracle, negative gate는 migration을 안전하게
+닫기 위한 장치다. 이것들의 개수나 파일 수는 compiler architecture의 진척이
+아니다. Owner identity는 책임과 evidence lifetime을 고정하지만 owner마다
+반드시 별도 파일, wrapper, serializer, plan을 만들라는 뜻이 아니다.
+
+한 row가 닫힐 때는 consumer migration, missing-fact refusal, old-path deletion,
+negative gate가 남아야 한다. 반대로 임시 dual-read, compatibility wrapper,
+fixture-shaped plan, 반복 validation과 중간 serialization은 줄어야 한다.
+폐쇄할수록 compiler의 production path가 더 단순해져야 하며, 이행 구조를
+영구적인 architecture로 굳혀서는 안 된다.
+
+이 비전의 현재 구현 등급은 항상
+[`self_hosted/17_pergyra_native_dogfood_contract.md`](self_hosted/17_pergyra_native_dogfood_contract.md),
+[`semantics/sot_owner_spine_registry.md`](semantics/sot_owner_spine_registry.md),
+[`current_work_handoff.md`](current_work_handoff.md)의 현재 evidence로 판정한다.
+[`self_hosted/14_target_compiler_world.md`](self_hosted/14_target_compiler_world.md)와
+[`180_compiler_logical_spine_handles_gates.md`](180_compiler_logical_spine_handles_gates.md)는
+목표 frame과 migration protocol을 제공하지만, 그 자체로 self-hosting 완료나
+production substitution을 증명하지 않는다.
+
+### `WHAT MUST HOLD`와 외부 설계 근거의 경계
+
+Pergyra의 언어 의미론은 컴파일러가 판정할 수 있는 현재 사실과 계약만
+소유한다. `state`, `invariant`, `authority`, `ownership`, `capability`,
+`effect`, `transition`, `intent`, `type`, `boundary`가 여기에 해당한다.
+`intent` 역시 자연어 설명이 아니라 참여자, 권한, 효과, 성공과 실패,
+보상과 trace 의무를 검사할 수 있는 목적 경계다.
+
+반대로 어떤 선택의 조직적·사업적 이유, 기각된 대안, 회의 기록은 언어
+semantics가 아니다. ADR, issue, requirement, design document, commit과 같은
+외부 engineering artifact가 그 이력을 소유한다. IDE는 stable semantic
+identity를 통해 이 자료를 연결해 보여줄 수 있지만, 그 prose를 컴파일러의
+권위나 판정 근거로 승격하지 않는다.
+
+기계가 발행하는 `reason`은 예외다. 닫힌 code/domain을 가지며 owner fact와
+gate로 검증되는 diagnostic·projection reason은 설명문이 아니라 판정 결과다.
+자유 형식 rationale 문자열은 여기에 해당하지 않는다.
+
+따라서 Pergyra는 Naur가 말한 programmer theory 전체를 언어 안에 저장하려
+하지 않는다. 인간이 유지하는 theory가 깨졌을 때 드러나는 구조적 위반을
+검증 가능한 semantic constraint로 최대한 일찍 거부한다. 목표는 더 많은
+설명문이 아니라, 잘못된 구현을 표현할 수 없게 하는 더 적고 강한 사실이다.
+
 ## 한 문장 정의
 
 **Pergyra는 포인터를 숨기기 위한 언어가 아니라, 추적하기 어려운 자원을 슬롯 단위로 통제하기 위한 언어다.**

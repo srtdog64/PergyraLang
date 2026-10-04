@@ -1,0 +1,10 @@
+func AppendBorrowed(inout values: Array<String>, value: String) -> Void {
+    ArrayPush(values, value);
+}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    AppendBorrowed(values, "first");
+    AppendBorrowed(values, "second");
+    Log(ArrayLength(values));
+}

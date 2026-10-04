@@ -199,7 +199,7 @@ fi
 violations="$(
     cd "$ROOT_DIR"
     find src/tests -name '*.cases.h' -print0 \
-        | xargs -0 wc -l \
+        | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
         | awk -v limit="$LIMIT" '$2 != "total" && $1 > limit { print }'
 )"
 
@@ -215,7 +215,7 @@ production_violations="$(
         ! -path 'src/tests/*' \
         ! -name 'test_*.c' \
         -print0 \
-        | xargs -0 wc -l \
+        | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
         | awk -v limit="$PRODUCTION_LIMIT" '$2 != "total" && $1 > limit { print }'
 )"
 
@@ -236,7 +236,7 @@ fi
         ! -path '*/expected/*' \
         ! -path 'src/self_hosted/tools/*' \
         -print0 \
-        | xargs -0 wc -l \
+        | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
         | awk -v root="$ROOT_DIR" -v mode=scan \
             -v general_limit="$SELF_HOSTED_OWNER_LIMIT" -v semantic_limit=599 \
             -v general_explicit="$SELF_HOSTED_OWNER_EXPLICIT" \
@@ -246,7 +246,7 @@ fi
 self_hosted_tool_violations="$(
     cd "$ROOT_DIR"
     find src/self_hosted/tools -type f -name '*.pgy' -print0 \
-        | xargs -0 wc -l \
+        | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
         | awk -v limit="$SELF_HOSTED_TOOL_LIMIT" \
             '$2 != "total" && $1 > limit { print }'
 )"
@@ -260,7 +260,8 @@ fi
 semantic_owner_violations="$(
     cd "$ROOT_DIR"
     find src/semantic -maxdepth 1 -type f \
-        \( -name '*.c' -o -name '*.h' \) -exec wc -l {} + \
+        \( -name '*.c' -o -name '*.h' \) -print0 \
+        | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
         | awk '$2 != "total" && $1 > 599 { print }'
 )"
 
@@ -271,8 +272,8 @@ if [[ -n "$semantic_owner_violations" ]]; then
 fi
 
 semantic_diagnostic_owner_lines="$(
-    wc -l < "$ROOT_DIR/src/self_hosted/semantic/diagnostic_owner.pgy" |
-        tr -d ' '
+    python3 "$ROOT_DIR/scripts/source_size_count.py" \
+        "$ROOT_DIR/src/self_hosted/semantic/diagnostic_owner.pgy"
 )"
 if [[ "$semantic_diagnostic_owner_lines" -gt "$SEMANTIC_DIAGNOSTIC_OWNER_LIMIT" ]]; then
     echo "semantic diagnostic owner size violation: ${semantic_diagnostic_owner_lines} > ${SEMANTIC_DIAGNOSTIC_OWNER_LIMIT} LOC" >&2
@@ -312,7 +313,7 @@ grep -Fq "struct MIRProgram" "$ROOT_DIR/src/compiler/mir_program.h" || {
 
 type_system_owner_violations="$(
     cd "$ROOT_DIR"
-    wc -l "${type_system_owners[@]}" \
+    python3 "$ROOT_DIR/scripts/source_size_count.py" --rows "${type_system_owners[@]}" \
         | awk '$2 != "total" && $1 > 599 { print }'
 )"
 
@@ -355,7 +356,7 @@ helper_violations="$(
         ! -path 'src/tests/*' \
         ! -name 'test_*.c' \
         -print0 \
-        | xargs -0 wc -l \
+        | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
         | awk -v limit="$HELPER_LIMIT" '$2 != "total" && $1 > limit { print }'
 )"
 

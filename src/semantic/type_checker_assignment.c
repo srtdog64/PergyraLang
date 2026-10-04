@@ -3,6 +3,7 @@
 #include "type_checker_assignment.h"
 #include "type_checker_builtins_internal.h"
 #include "collection_ownership_fact.h"
+#include "indexed_string_borrow_owner.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_resolution_internal.h"
 #include "diag_codes.h"
@@ -274,5 +275,10 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     }
 
     require_assignable(value_type, target_type, expr, ctx);
+    if (!ctx->has_error && target != NULL && target->type == AST_IDENTIFIER) {
+        Symbol *target_sym = lookup_identifier_symbol(target, ctx);
+        semantic_indexed_string_borrow_record_assignment(
+            target_sym, value, expr, ctx);
+    }
     return target_type;
 }

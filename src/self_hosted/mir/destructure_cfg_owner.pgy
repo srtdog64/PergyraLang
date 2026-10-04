@@ -14,10 +14,10 @@ func SelfMirCfgAttachLastDestructure(
         return cfg;
     }
     let destructure_facts: SelfMirDestructureFactRows =
-        SelfMirDestructureFactRowsAttach(
-            instructions.destructure_facts, instruction_index,
-            element_type, bindings
-        );
+        instructions.destructure_facts;
+    SelfMirDestructureFactRowsAttach(
+        destructure_facts, instruction_index, element_type, bindings
+    );
     return SelfMirCfgRows(
         cfg.blocks,
         SelfMirInstructionRows(

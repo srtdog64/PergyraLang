@@ -7,14 +7,10 @@ DEFAULT_LIMIT="${PRODUCTION_HEADER_MAX_LINES:-600}"
 cd "$ROOT_DIR"
 
 violations="$(
-    while IFS= read -r -d '' file; do
-        lines="$(wc -l < "$file")"
-        lines="${lines//[[:space:]]/}"
-        if [ "$lines" -gt "$DEFAULT_LIMIT" ]; then
-            printf "%d %s > %d\n" "$lines" "$file" "$DEFAULT_LIMIT"
-        fi
-    done < <(find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp \
-        -name '*.h' -type f -print0)
+    find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp \
+        -name '*.h' -type f -print0 \
+        | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
+        | awk -v limit="$DEFAULT_LIMIT" '$1 > limit { print $1, $2, ">", limit }'
 )"
 
 if [ -n "$violations" ]; then

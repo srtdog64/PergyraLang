@@ -69,8 +69,17 @@ func SemanticAstCollectionCallEffectFactsFromResolvedFacts(
                     let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
                         artifact, locals, inferred_types, surfaces, slot / 3, call.argument_node);
                     let source: Int = 0;
-                    if !binding.ok { source = SemanticAstCollectionOwnStringArrayFormalNode(
-                        signatures, surfaces.function_node_ids[slot / 3], surfaces.expression_graph, call.argument_node); }
+                    if !binding.ok {
+                        let formal: SemanticAstCollectionFormalStorageIdentity =
+                            SemanticAstCollectionStringArrayFormalIdentity(
+                                signatures,
+                                surfaces.function_node_ids[slot / 3],
+                                surfaces.expression_graph,
+                                call.argument_node);
+                        if formal.ok {
+                            source = formal.syntax_id;
+                        }
+                    }
                     let local_array: Bool = binding.ok && SemanticAstCollectionOwnershipIsStringArray(inferred_types[binding.row]);
                     if source <= 0 && !local_array && !SemanticAstCollectionConstructorFieldInputCandidate(surfaces.expression_graph, call.argument_node, binding) {
                         node = node + 1;

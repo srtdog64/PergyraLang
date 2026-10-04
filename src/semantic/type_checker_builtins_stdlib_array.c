@@ -8,6 +8,7 @@
 #include "type_checker_internal.h"
 #include "collection_owned_element_requirement_owner.h"
 #include "array_storage_release_owner.h"
+#include "indexed_string_borrow_owner.h"
 #include "type_checker_builtins_internal.h"
 #include "type_checker_builtins_stdlib_collections_internal.h"
 #include "type_checker_collection_policy.h"
@@ -322,6 +323,8 @@ type_check_stdlib_array_call(ASTNode *expr,
         } else if (!semantic_collection_owned_element_requirement_record_deep_drop(
                        expr, arg0, arr, ctx)) {
             return TYPE_UNKNOWN;
+        } else {
+            semantic_indexed_string_borrow_invalidate_deep_drop(arg0, ctx);
         }
         return TYPE_VOID;
     }

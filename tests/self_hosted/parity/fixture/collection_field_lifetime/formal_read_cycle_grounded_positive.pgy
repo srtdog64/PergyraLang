@@ -1,0 +1,17 @@
+func ReadCycleA(ref values: Array<String>) -> Bool {
+    return ReadCycleB(values);
+}
+
+func ReadCycleB(ref values: Array<String>) -> Bool {
+    if ArrayLength(values) == 0 {
+        return ReadCycleA(values);
+    }
+    return values[0] == "x";
+}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "x");
+    Log(ReadCycleA(values));
+    ArrayDropOwnedStrings(values);
+}

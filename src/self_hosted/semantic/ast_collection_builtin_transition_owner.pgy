@@ -78,6 +78,37 @@ func SemanticAstCollectionBuiltinTransitionAtCompletion(
                     return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
                         SemanticError2("borrow_boundary_escape", "boundary", name, "type", "Array<String>"), surfaces.node_ids[surface_row], node);
                 }
+                let aggregate_requirement: Int = -1;
+                if origins[binding.row] ==
+                        SemanticAstCollectionOriginMemberMove() &&
+                    (owned_push || deep_drop) {
+                    aggregate_requirement =
+                        SemanticAstCollectionAggregateFieldEntryIndexRow(
+                            field_requirements.row_by_local,
+                            locals.node_ids[binding.row]);
+                }
+                if aggregate_requirement >= 0 {
+                    if unknown {
+                        return SemanticAstCollectionOwnershipVerdictError(
+                            "borrow_boundary_escape",
+                            SemanticError2("borrow_boundary_escape",
+                                "boundary", "unknown_call_effect",
+                                "type", "Array<String>"),
+                            surfaces.node_ids[surface_row], node);
+                    }
+                    if owned_push {
+                        return SemanticAstCollectionAggregateReleaseRecordOwnedPush(
+                            locals, surfaces, surface_row,
+                            node, binding.row, aggregate_requirement,
+                            ownership, dispositions, transition_states,
+                            aggregate_release_plan);
+                    }
+                    return SemanticAstCollectionAggregateReleaseRecordDrop(
+                        artifact, locals, surfaces, surface_row,
+                        node, binding.row, aggregate_requirement,
+                        ownership, dispositions, transition_states,
+                        aggregate_release_plan);
+                }
                 let state: Int = ownership[binding.row];
                 if origins[binding.row] ==
                         SemanticAstCollectionOriginEmptyLiteral() {
@@ -208,17 +239,6 @@ func SemanticAstCollectionBuiltinTransitionAtCompletion(
                     let boundary: String = name;
                     if deep_drop {
                         boundary = "owned_string_drop";
-                        let requirement: Int =
-                            SemanticAstCollectionAggregateFieldEntryIndexRow(
-                                field_requirements.row_by_local,
-                                locals.node_ids[binding.row]);
-                        if requirement >= 0 {
-                            return SemanticAstCollectionAggregateReleaseRecordDrop(
-                                artifact, locals, surfaces, surface_row,
-                                node, binding.row, requirement,
-                                ownership, dispositions, transition_states,
-                                aggregate_release_plan);
-                        }
                     }
                     return SemanticAstCollectionOwnershipVerdictError(
                         "borrow_boundary_escape",

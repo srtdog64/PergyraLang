@@ -1,0 +1,17 @@
+struct Rows { values: Array<String>; }
+func MakeRows() -> Rows { return Rows([]); }
+func Append(inout rows: Rows) -> Void {
+    let values: Array<String> = rows.values;
+    ArrayPushOwnedString(values, "x");
+    rows.values = values;
+}
+func Retire(inout rows: Rows) -> Void {
+    let values: Array<String> = rows.values;
+    ArrayDropOwnedStrings(values);
+    rows.values = values;
+}
+func Main() -> Void {
+    let rows: Rows = MakeRows();
+    Append(rows);
+    Retire(rows);
+}

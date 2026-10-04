@@ -1,0 +1,16 @@
+func ArrayPushOwnedString(
+    inout destination: Array<String>, value: String
+) -> Void {
+}
+
+func CopyIndexedString(
+    ref source: Array<String>, inout destination: Array<String>
+) -> Void {
+    ArrayPushOwnedString(destination, source[0]);
+}
+
+func Main() -> Void {
+    let source: Array<String> = ["shadowed"];
+    let destination: Array<String> = [];
+    CopyIndexedString(source, destination);
+}

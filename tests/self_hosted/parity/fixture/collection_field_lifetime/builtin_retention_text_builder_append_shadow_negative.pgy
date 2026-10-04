@@ -1,0 +1,14 @@
+func TextBuilderAppend(builder: TextBuilder, value: String) -> Void {
+}
+
+func AppendIndexedString(values: Array<String>) -> Bool {
+    let output: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(output, values[0]);
+    TextBuilderDrop(output);
+    return true;
+}
+
+func Main() -> Void {
+    let values: Array<String> = ["shadowed"];
+    Log(AppendIndexedString(values));
+}

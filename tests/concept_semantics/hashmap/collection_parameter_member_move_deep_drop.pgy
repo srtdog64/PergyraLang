@@ -1,0 +1,13 @@
+struct Bundle {
+    values: Array<String>;
+}
+
+func Consume(bundle: Bundle) -> Void {
+    let values: Array<String> = bundle.values;
+    ArrayDropOwnedStrings(values);
+}
+
+func Main() -> Void {
+    let bundle: Bundle = Bundle(["borrowed"]);
+    Consume(bundle);
+}

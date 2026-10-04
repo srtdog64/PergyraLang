@@ -1,0 +1,12 @@
+struct Rows { values: Array<String>; }
+func Append(inout rows: Rows) -> Void {
+    let values: Array<String> = rows.values;
+    ArrayPushOwnedString(values, "x");
+    rows.values = values;
+}
+func Main() -> Void {
+    let rows: Rows = Rows([]);
+    let alias: Rows = rows;
+    Append(rows);
+    Log(ArrayLength(alias.values));
+}

@@ -49,7 +49,9 @@ func SemanticAstExpressionCallErrorFromGraph(
             graph, root_id, signatures, constructors, names, types,
             function_names, function_returns
         );
-    if generic.applies { return generic.diagnostic_message; }
+    let generic_applies: Bool = generic.applies;
+    let generic_message: String = generic.diagnostic_message;
+    if generic_applies { return generic_message; }
     let facts: SemanticExpressionGraphResolvedCallArgumentFacts =
         SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
             graph, root_id, constructors, signatures, names, types,
@@ -439,12 +441,22 @@ func SemanticAstExpressionVerdictFromGraphCore(
             graph, root_id, signatures, constructors, names, types,
             function_names, function_returns
         );
-    let generic_value: SemanticExpressionGraphGenericCallFact = generic_call;
-    if generic_spawn.applies { generic_value = generic_spawn; }
-    if generic_value.applies && !generic_value.ok {
+    let generic_applies: Bool = generic_call.applies;
+    let generic_ok: Bool = generic_call.ok;
+    let generic_diagnostic_code: String = generic_call.diagnostic_code;
+    let generic_diagnostic_message: String = generic_call.diagnostic_message;
+    let generic_return_type_name: String = generic_call.return_type_name;
+    if generic_spawn.applies {
+        generic_applies = true;
+        generic_ok = generic_spawn.ok;
+        generic_diagnostic_code = generic_spawn.diagnostic_code;
+        generic_diagnostic_message = generic_spawn.diagnostic_message;
+        generic_return_type_name = generic_spawn.return_type_name;
+    }
+    if generic_applies && !generic_ok {
         return SemanticAstExpressionVerdict(
-            false, generic_value.diagnostic_code,
-            generic_value.diagnostic_message, text, "Unknown"
+            false, generic_diagnostic_code,
+            generic_diagnostic_message, text, "Unknown"
         );
     }
     let concrete_scalar_value_owned: Bool =
@@ -471,7 +483,7 @@ func SemanticAstExpressionVerdictFromGraphCore(
         call_error = SemanticExpressionGraphConcreteScalarValueError(
             graph, root_id, constructors, signatures, names, types,
             function_names, function_returns, function_params);
-    } else if call_view.ok && !graph_owned_intrinsic && !generic_value.applies &&
+    } else if call_view.ok && !graph_owned_intrinsic && !generic_applies &&
         !wrapper.applies && !nominal_constructor_call.applies &&
         !domain_queries.applies {
         call_error = SemanticAstExpressionCallErrorFromGraph(
@@ -534,8 +546,8 @@ func SemanticAstExpressionVerdictFromGraphCore(
         inferred = "Set<Unknown>";
     } else if wrapper.applies {
         inferred = wrapper.type_name;
-    } else if generic_value.applies {
-        inferred = generic_value.return_type_name;
+    } else if generic_applies {
+        inferred = generic_return_type_name;
     } else if nominal_constructor_call.applies {
         inferred = nominal_constructor_call.return_type_name;
     } else if graph_owned_intrinsic {

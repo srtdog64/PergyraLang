@@ -1,0 +1,18 @@
+// Canonical collection-definition fact rows. Construction and queries live in
+// separate responsibility owners; consumers must not rebuild this field order.
+struct SemanticAstCollectionDefinitionFacts {
+    ok: Bool;
+    local_count: Int;
+    syntax_ids: Array<Int>;
+    binding_rows: Array<Int>;
+    surface_rows: Array<Int>;
+    target_nodes: Array<Int>;
+    value_nodes: Array<Int>;
+    own_sources: Array<Int>;
+    local_sources: Array<Int>;
+    origins: Array<Int>;
+    ownerships: Array<Int>;
+    transitions: Array<Int>;
+    fresh: Array<Bool>;
+    shallow_alias_admitted: Array<Bool>;
+}

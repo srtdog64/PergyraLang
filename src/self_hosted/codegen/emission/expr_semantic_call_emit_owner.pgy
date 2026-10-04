@@ -425,26 +425,19 @@ func RewriteSemanticDirectCall(
         }
         let result_fact: ResultRuntimeFact =
             ResultRuntimeFactForType(UnwrapOption(result_type));
-        if result_fact.ok {
-            if source_name == "IsOk" {
-                call_symbol = result_fact.is_ok_fn;
-            } else if source_name == "IsErr" {
-                call_symbol = result_fact.is_err_fn;
-            } else if source_name == "Unwrap" {
-                call_symbol = result_fact.unwrap_fn;
-            } else if source_name == "UnwrapOr" {
-                call_symbol = result_fact.unwrap_or_fn;
-            } else {
-                call_symbol = result_fact.unwrap_err_fn;
-            }
-        } else if source_name == "UnwrapErr" {
-            Die("UnwrapErr requires an explicit Result<T, E> type fact");
+        if !result_fact.ok {
+            Die("Result projection runtime ABI fact is missing");
+        }
+        if source_name == "IsOk" {
+            call_symbol = result_fact.is_ok_fn;
+        } else if source_name == "IsErr" {
+            call_symbol = result_fact.is_err_fn;
+        } else if source_name == "Unwrap" {
+            call_symbol = result_fact.unwrap_fn;
+        } else if source_name == "UnwrapOr" {
+            call_symbol = result_fact.unwrap_or_fn;
         } else {
-            let result_symbol: Option<String> = RuntimeCallCName(source_name);
-            if !IsSome(result_symbol) {
-                Die("Result projection runtime ABI row is missing");
-            }
-            call_symbol = UnwrapOption(result_symbol);
+            call_symbol = result_fact.unwrap_err_fn;
         }
     } else if source_name == "ToString" {
         if ArrayLength(view.argument_nodes) != 1 {

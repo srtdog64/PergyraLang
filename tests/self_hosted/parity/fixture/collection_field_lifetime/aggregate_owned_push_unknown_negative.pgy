@@ -1,0 +1,9 @@
+struct Rows { values: Array<String>; }
+func Opaque(inout values: Array<String>) -> Void { ArrayPush(values, "borrowed"); }
+func Append(inout rows: Rows) -> Void {
+    let values: Array<String> = rows.values;
+    Opaque(values);
+    ArrayPushOwnedString(values, "x");
+    rows.values = values;
+}
+func Main() -> Void { let rows: Rows = Rows([]); Append(rows); }

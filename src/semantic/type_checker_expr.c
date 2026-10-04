@@ -4,6 +4,7 @@
 #include <time.h>
 #include "type_checker_internal.h"
 #include "type_checker_visibility.h"
+#include "indexed_string_borrow_owner.h"
 #include "diag_codes.h"
 #include "../common/match_variant_policy.h"
 
@@ -155,6 +156,8 @@ type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         }
         if (!semantic_future_validate_use(sym, expr, ctx))
+            return TYPE_UNKNOWN;
+        if (!semantic_indexed_string_borrow_validate_use(sym, expr, ctx))
             return TYPE_UNKNOWN;
         if ((type_is_general_boundary_type(sym->type, ctx)
              || type_is_constructed_named(sym->type, "Array")

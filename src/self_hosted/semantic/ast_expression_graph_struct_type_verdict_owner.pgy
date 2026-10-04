@@ -93,19 +93,48 @@ func SemanticExpressionGraphStructValueTypeError(
         );
     }
     let expected_count: Int = constructors.param_counts[constructor_index];
-    if ArrayLength(view.field_names) != expected_count {
+    if view.field_count != expected_count {
         return SemanticError3(
             "call_arity_mismatch", "func", nominal,
             "expected", ToString(expected_count),
-            "actual", ToString(ArrayLength(view.field_names))
+            "actual", ToString(view.field_count)
         );
     }
     i = 0;
-    while i < ArrayLength(view.field_names) {
-        let field_name: String = view.field_names[i];
+    while i < view.field_count {
+        let field: SemanticStructLiteralFieldView =
+            SemanticStructLiteralFieldAt(graph, view, i);
+        if !field.ok {
+            return SemanticError1(
+                "ast_artifact_invalid", "owner", "struct_literal_field"
+            );
+        }
+        let field_name_opt: Option<String> =
+            SemanticExpressionGraphNodeText(graph, field.name_node);
+        if !IsSome(field_name_opt) ||
+            !IsIdentifier(UnwrapOption(field_name_opt)) {
+            return SemanticError1(
+                "ast_artifact_invalid", "owner", "struct_literal_field_name"
+            );
+        }
+        let field_name: String = UnwrapOption(field_name_opt);
         let j: Int = 0;
         while j < i {
-            if view.field_names[j] == field_name {
+            let previous_field: SemanticStructLiteralFieldView =
+                SemanticStructLiteralFieldAt(graph, view, j);
+            let previous_name: Option<String> = None;
+            if previous_field.ok {
+                previous_name = SemanticExpressionGraphNodeText(
+                    graph, previous_field.name_node
+                );
+            }
+            if !previous_field.ok || !IsSome(previous_name) {
+                return SemanticError1(
+                    "ast_artifact_invalid", "owner",
+                    "struct_literal_field_name"
+                );
+            }
+            if UnwrapOption(previous_name) == field_name {
                 return SemanticError1(
                     "undefined_symbol", "name",
                     Concat(nominal, Concat(".", field_name))
@@ -128,18 +157,22 @@ func SemanticExpressionGraphStructValueTypeError(
         }
         let generic_call: SemanticExpressionGraphGenericCallFact =
             SemanticExpressionGraphGenericCallFactFromGraph(
-                graph, view.value_nodes[i], signatures, constructors,
+                graph, field.value_node, signatures, constructors,
                 names, types, function_names, function_returns
             );
-        if generic_call.applies && !generic_call.ok {
-            return generic_call.diagnostic_message;
+        let generic_applies: Bool = generic_call.applies;
+        let generic_ok: Bool = generic_call.ok;
+        let generic_message: String = generic_call.diagnostic_message;
+        let generic_return_type: String = generic_call.return_type_name;
+        if generic_applies && !generic_ok {
+            return generic_message;
         }
         let actual_opt: Option<String> = None;
-        if generic_call.applies {
-            actual_opt = Some(generic_call.return_type_name);
+        if generic_applies {
+            actual_opt = Some(generic_return_type);
         } else {
             actual_opt = SemanticExpressionGraphFieldValueTypeName(
-                graph, view.value_nodes[i], constructors, names, types,
+                graph, field.value_node, constructors, names, types,
                 function_names, function_returns
             );
         }
@@ -148,7 +181,7 @@ func SemanticExpressionGraphStructValueTypeError(
         let expected: String = constructors.param_type_names[field_row];
         if !IsSome(actual_opt) ||
             !SemanticExpressionGraphFieldValueAssignableTo(
-                expected, actual, graph, view.value_nodes[i]
+                expected, actual, graph, field.value_node
             ) {
             return SemanticError3(
                 "call_arg_type_mismatch",

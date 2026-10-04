@@ -1,0 +1,24 @@
+// Stable schema for the one-time semantic body admission receipt.
+
+tobject SemanticAstBodyTypeBundleAdmissionReceipt {
+    schema: String;
+    admitted: Bool;
+    artifact_identity_digest: Int;
+    artifact_node_count: Int;
+    expression_graph_node_count: Int;
+    initializer_count: Int;
+    iteration_count: Int;
+    assignment_count: Int;
+    statement_count: Int;
+    collection_formal_count: Int;
+    collection_formal_proved_count: Int;
+    collection_formal_effect_digest: Int;
+    zone_resource_identity_count: Int;
+    zone_resource_path_count: Int;
+    zone_mutable_borrow_count: Int;
+    generic_count: Int;
+}
+
+func SemanticAstBodyTypeBundleAdmissionSchema() -> String {
+    return "pgy.semantic-body-type-bundle-admission.v4";
+}

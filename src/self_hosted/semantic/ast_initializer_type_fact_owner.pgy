@@ -508,10 +508,10 @@ func SemanticAstInitializerTypeCount(
 
 func SemanticAstInitializerTypeFactsReadyProjection(
     artifact: AstTreeArtifact,
-    locals: SemanticAstLocalBindingFacts,
-    facts: SemanticAstInitializerTypeFacts
+    ref locals: SemanticAstLocalBindingFacts,
+    ref facts: SemanticAstInitializerTypeFacts
 ) -> Bool {
-    let count: Int = SemanticAstInitializerTypeCount(facts);
+    let count: Int = ArrayLength(facts.node_ids);
     if !facts.ok || facts.artifact_node_count != artifact.count ||
         count != SemanticAstLocalBindingCount(locals) ||
         ArrayLength(facts.inferred_type_names) != count ||

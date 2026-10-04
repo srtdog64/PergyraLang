@@ -1,0 +1,11 @@
+func Retire(member: String, condition: Bool) -> Void {
+    let suffix: String = Concat(".", member);
+    if condition {
+        let retired: Array<String> = [suffix];
+        ArrayDropOwnedStrings(retired);
+    }
+}
+
+func Main() -> Void {
+    Retire("Get", true);
+}

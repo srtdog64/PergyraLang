@@ -129,9 +129,10 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         no_destructure_facts, no_abi_type_names, no_runtime_call_abi, [0]
     );
     let destructure_facts: SelfMirDestructureFactRows =
-        SelfMirDestructureFactRowsAttach(
-            SelfMirDestructureFactRowsEmpty(), 0, "String", ["a", "b"]
-        );
+        SelfMirDestructureFactRowsEmpty();
+    SelfMirDestructureFactRowsAttach(
+        destructure_facts, 0, "String", ["a", "b"]
+    );
     let valid_destructure: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["destructure"], ["destructure"], [""], [""], [""], [""],
         ["Split(csv, \",\")"], [""], ["AST_LET_DESTRUCTURE"],

@@ -24,7 +24,9 @@ func Main() -> Void with caps env, io_read {
         analysis.signatures, analysis.local_bindings, analysis.expression_surfaces, definitions);
     let formals: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
         artifact, analysis.signatures, analysis.function_scopes,
-        analysis.expression_surfaces);
+        analysis.local_bindings, bundle.initializer_types,
+        analysis.expression_surfaces, analysis.statements,
+        bundle.owned_string_result_domains);
     if !definitions.ok || !storage.ok || !formals.ok { Log("fixture source facts refused"); Exit(2); }
     let effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFactsFromResolvedFacts(
         artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, bundle.initializer_types.inferred_type_names,

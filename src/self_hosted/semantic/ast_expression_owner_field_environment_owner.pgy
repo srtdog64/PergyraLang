@@ -96,25 +96,6 @@ func SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
     return true;
 }
 
-// Checked compatibility entry for callers that do not hold the body-analysis
-// admission receipt.  Keep the expensive structural proof here, outside the
-// per-expression admitted core.
-func SemanticAstExpressionSeedOwnerFields(
-    signatures: SemanticAstFunctionSignatureFacts,
-    constructors: SemanticAstNominalConstructorFacts,
-    function_node_id: Int,
-    inout names: Array<String>,
-    inout types: Array<String>,
-    inout modes: Array<String>
-) -> Bool {
-    if !SemanticAstNominalConstructorRowsReady(constructors) {
-        return false;
-    }
-    return SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
-        signatures, constructors, function_node_id, names, types, modes
-    );
-}
-
 func SemanticAstExpressionOwnerFieldEnvironmentContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Class: Box\n    Fields:\n      value: Int\n      limit: Long\n    Methods:\n      Function: Read\n        Parameters:\n          self\n        Returns: Int\n        Body:\n          Block:\n            Return: value\n"
@@ -137,13 +118,18 @@ func SemanticAstExpressionOwnerFieldEnvironmentContractReady() -> Bool {
             signatures, constructors, UnwrapOption(function_node), "limit"
         );
     }
+    let seeded: Bool = false;
+    if IsSome(function_node) &&
+        SemanticAstNominalConstructorRowsReady(constructors) {
+        seeded = SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
+            signatures, constructors, UnwrapOption(function_node),
+            names, types, modes
+        );
+    }
     return IsSome(function_node) && IsSome(value_type) &&
         IsSome(limit_type) && UnwrapOption(value_type) == "Int" &&
-        UnwrapOption(limit_type) == "Long" &&
-        SemanticAstExpressionSeedOwnerFields(
-        signatures, constructors, UnwrapOption(function_node),
-        names, types, modes
-    ) && ArrayLength(names) == 2 && names[0] == "value" &&
+        UnwrapOption(limit_type) == "Long" && seeded &&
+        ArrayLength(names) == 2 && names[0] == "value" &&
         names[1] == "limit" && types[0] == "Int" && types[1] == "Long" &&
         modes[0] == "owner_field" && modes[1] == "owner_field";
 }

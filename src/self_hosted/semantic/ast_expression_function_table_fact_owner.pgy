@@ -3,6 +3,8 @@
 // The table is immutable after production. Consumer owners borrow its rows;
 // they must not rebuild the same callable universe for each body pass.
 
+import "callable_resolution_owner.pgy";
+
 struct SemanticAstExpressionFunctionTableFacts {
     ok: Bool;
     names: Array<String>;
@@ -17,6 +19,63 @@ func SemanticAstExpressionFunctionTableFactsReady(
         ArrayLength(facts.names) == ArrayLength(facts.params);
 }
 
+func SemanticAstExpressionFunctionTableCallableIndex(
+    ref facts: SemanticAstExpressionFunctionTableFacts,
+    source_name: String
+) -> Option<Int> {
+    if !facts.ok ||
+        ArrayLength(facts.names) != ArrayLength(facts.returns) ||
+        ArrayLength(facts.names) != ArrayLength(facts.params) ||
+        !SemanticCallableSourceNameValid(source_name) {
+        return None;
+    }
+    let lookup_name: String =
+        SemanticCallableCanonicalLookupName(source_name);
+    let exact: Int = -1;
+    let exact_count: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(facts.names) {
+        if facts.names[row] == lookup_name {
+            exact = row;
+            exact_count = exact_count + 1;
+        }
+        row = row + 1;
+    }
+    if exact_count == 1 { return Some(exact); }
+    if exact_count > 1 || StringIndexOf(source_name, ".") >= 0 {
+        return None;
+    }
+    let suffix: Int = -1;
+    let suffix_count: Int = 0;
+    row = 0;
+    while row < ArrayLength(facts.names) {
+        let declared_len: Int = StringLength(facts.names[row]);
+        let local_len: Int = StringLength(source_name);
+        let matches: Bool = local_len > 0 && declared_len > local_len;
+        let start: Int = declared_len - local_len;
+        if matches && CharCode(
+                facts.names[row], declared_len, start - 1) !=
+                SourceByteOf("_") {
+            matches = false;
+        }
+        let offset: Int = 0;
+        while matches && offset < local_len {
+            if CharCode(facts.names[row], declared_len, start + offset) !=
+                CharCode(source_name, local_len, offset) {
+                matches = false;
+            }
+            offset = offset + 1;
+        }
+        if matches {
+            suffix = row;
+            suffix_count = suffix_count + 1;
+        }
+        row = row + 1;
+    }
+    if suffix_count == 1 { return Some(suffix); }
+    return None;
+}
+
 // Builtins and earlier declarations keep their unqualified callable identity.
 // Every enum variant still owns its qualified row; only a free short name may
 // acquire the additional unqualified projection.
@@ -26,8 +85,9 @@ func SemanticAstUnqualifiedEnumVariantMayOwnCallableRow(
     return existing_index < 0;
 }
 
-// Body analysis owns the last legitimate consumer. Release only after the
-// body bundle has materialized all derived facts; a stale fact must fail closed.
+// Release after the actual initializer, MIR-JSON or source-C intent/codegen
+// consumer has materialized its facts. Body analysis alone is not the last
+// consumer; Ready proves row shape, not authority to release String elements.
 func SemanticAstExpressionFunctionTableFactsRelease(
     inout facts: SemanticAstExpressionFunctionTableFacts
 ) -> Void {

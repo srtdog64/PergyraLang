@@ -1,0 +1,9 @@
+func CopyIndexedString(values: Array<String>) -> String {
+    return Concat("", values[0]);
+}
+
+func Main() -> Void {
+    let values: Array<String> = ["copied"];
+    let copied: String = CopyIndexedString(values);
+    Log(copied == "copied");
+}

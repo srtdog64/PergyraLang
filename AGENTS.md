@@ -101,8 +101,9 @@ cosmetic reshuffling.
 
 - Keep one active self-host rung in this order: production entrypoint, direct C
   bypass to delete, Pergyra fact owner, last orchestration consumer, focused
-  parity/negative gate, installed-driver evidence, then bounded performance
-  evidence when execution is the blocker.
+  parity/negative gate, and installed-driver evidence. Bounded optimization
+  may unblock the next closure step under the policy below; it is not a
+  separate track or a phase deferred until every SoT row is closed.
 - Do not start a general query engine, cache architecture, library adoption, or
   unrelated SoT cleanup while an executable rung is open. Instrument only the
   reached Pergyra owner needed to identify the next falsifying case.
@@ -141,6 +142,30 @@ cosmetic reshuffling.
 - Budget the edit loop: 60 seconds for static owner gates, 5 minutes for focused
   parity, and 30 minutes for an integration shard. Full matrices belong at
   scheduled or merge boundaries.
+
+## Closure-Blocking Optimization Policy
+
+- SoT closure is the default work. Optimize only when observed execution cost
+  blocks the next named closure step of the active executable rung within its
+  existing validation budget. Do not defer all optimization until every SoT
+  row is closed, or pursue performance as an independent objective.
+- Before optimizing, record the exact revision/dirty source and executable,
+  fixed semantic input, blocked gate, observed execution cost, reached fact
+  owner, last consumer, and repeated owned operation. Source repetition alone
+  is not a measured bottleneck; a timeout is incomplete evidence, not a
+  semantic verdict or permission to mark a row CLOSED.
+- Change only that blocking operation behind its existing owner. Preserve
+  semantic identity, evidence lifetime, fail-closed admission, and negative
+  gates. Reuse admitted facts only within their validated generation; do not
+  replace a raw boundary check with an unchecked assumption.
+- Do not expand into general benchmarking, cache/query architecture, parallel
+  implementation, weaker safety conditions, smaller correctness inputs, or
+  larger time/memory allowances to make the blocked gate appear green.
+- Re-run the named gate on the same semantic input with an identified new
+  executable and its relevant parity/negative checks. Once it can establish
+  the required closure evidence, return immediately to consumer migration,
+  old-path deletion, and actual C-path substitution. Faster execution alone
+  is not SoT closure or self-host replacement progress.
 
 ## Hard Pergyra-Native Dogfood Guard
 

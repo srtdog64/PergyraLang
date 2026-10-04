@@ -1,0 +1,11 @@
+func DropMaybe(flag: Bool) -> Void {
+    let values: Array<String> = [];
+    if flag {
+        ArrayPushOwnedString(values, Concat("conditional", "-value"));
+    }
+    ArrayDropOwnedStrings(values);
+}
+
+func Main() -> Void {
+    DropMaybe(false);
+}

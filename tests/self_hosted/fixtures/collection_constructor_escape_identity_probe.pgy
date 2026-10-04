@@ -2,6 +2,98 @@
 import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
 
+// Synthetic fixed-point frames falsify graph shape, cycle and transactional
+// effect claims without granting a source-program ownership receipt.
+func InspectFormalEffectFixedPointFrame(mutation: Int) -> Bool {
+    let row_by_formal: HashMap<String, Int> = MapNew();
+    MapSet(row_by_formal, "101", 0);
+    MapSet(row_by_formal, "102", 1);
+    MapSet(row_by_formal, "103", 2);
+    let inventory: SemanticAstCollectionFormalEffectInventory =
+        SemanticAstCollectionFormalEffectInventory(
+            true, [101, 102, 103], [11, 12, 13], [0, 0, 0],
+            [0, 0, 0], [true, true, true], row_by_formal);
+    let blocked: Array<Bool> = [false, false, false];
+    let mutations: Array<Bool> = [false, false, false];
+    let shallow: Array<Bool> = [false, false, false];
+    let reads: Array<Bool> = [false, false, false];
+    let sources: Array<Int> = [];
+    let targets: Array<Int> = [];
+    let effects: HashMap<String, Int> = MapNew();
+    if mutation == 19 {
+        ArrayPush(sources, 0);
+        let status: SemanticAstCollectionFormalEffectResolutionStatus =
+            SemanticAstCollectionFormalEffectResolutionStatus(true);
+        SemanticAstCollectionFormalEffectFixedPoint(
+            inventory, blocked, mutations, shallow, reads,
+            sources, targets, effects, status);
+        return !status.ok;
+    }
+    if mutation == 20 || mutation == 21 {
+        let source: Int = 0;
+        let target: Int = 0;
+        if mutation == 20 { source = -1; }
+        if mutation == 21 { target = 3; }
+        ArrayPush(sources, source);
+        ArrayPush(targets, target);
+        let status: SemanticAstCollectionFormalEffectResolutionStatus =
+            SemanticAstCollectionFormalEffectResolutionStatus(true);
+        SemanticAstCollectionFormalEffectFixedPoint(
+            inventory, blocked, mutations, shallow, reads,
+            sources, targets, effects, status);
+        return !status.ok;
+    }
+    if mutation == 22 || mutation == 23 {
+        ArrayPush(sources, 0); ArrayPush(targets, 0);
+        if mutation == 23 { reads[0] = true; }
+        let status: SemanticAstCollectionFormalEffectResolutionStatus =
+            SemanticAstCollectionFormalEffectResolutionStatus(true);
+        SemanticAstCollectionFormalEffectFixedPoint(
+            inventory, blocked, mutations, shallow, reads,
+            sources, targets, effects, status);
+        if mutation == 22 { return status.ok && !MapHas(effects, "101"); }
+        return status.ok && MapHas(effects, "101") &&
+            MapGet(effects, "101") == 3;
+    }
+    if mutation == 24 {
+        MapSet(effects, "102", 2); MapSet(effects, "103", 2);
+        let first_sources: Array<Int> = [0, 0];
+        let first_targets: Array<Int> = [1, 2];
+        let first_status: SemanticAstCollectionFormalEffectResolutionStatus =
+            SemanticAstCollectionFormalEffectResolutionStatus(true);
+        SemanticAstCollectionFormalEffectFixedPoint(
+            inventory, blocked, mutations, shallow, reads,
+            first_sources, first_targets, effects, first_status);
+        let reordered_effects: HashMap<String, Int> = MapNew();
+        MapSet(reordered_effects, "102", 2);
+        MapSet(reordered_effects, "103", 2);
+        let reordered_sources: Array<Int> = [0, 0];
+        let reordered_targets: Array<Int> = [2, 1];
+        let reordered_status: SemanticAstCollectionFormalEffectResolutionStatus =
+            SemanticAstCollectionFormalEffectResolutionStatus(true);
+        SemanticAstCollectionFormalEffectFixedPoint(
+            inventory, blocked, mutations, shallow, reads,
+            reordered_sources, reordered_targets, reordered_effects,
+            reordered_status);
+        return first_status.ok && reordered_status.ok &&
+            MapHas(effects, "101") &&
+            MapHas(reordered_effects, "101") &&
+            MapGet(effects, "101") == 2 &&
+            MapGet(reordered_effects, "101") == 2;
+    }
+    if mutation == 25 {
+        MapSet(effects, "103", 7);
+        let status: SemanticAstCollectionFormalEffectResolutionStatus =
+            SemanticAstCollectionFormalEffectResolutionStatus(true);
+        SemanticAstCollectionFormalEffectFixedPoint(
+            inventory, blocked, mutations, shallow, reads,
+            sources, targets, effects, status);
+        return !status.ok && !MapHas(effects, "101") &&
+            !MapHas(effects, "102") && MapGet(effects, "103") == 7;
+    }
+    return false;
+}
+
 // Synthetic vector/closure units do not grant storage or validate a producer.
 func InspectConstructorEffectFrame(mutation: Int) -> Bool {
     let no_formal_escape: HashMap<String, Int> = MapNew();
@@ -38,7 +130,8 @@ func InspectConstructorEffectFrame(mutation: Int) -> Bool {
     }
     let ints: Array<Int> = [1, 2, 3];
     let definitions: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFacts(
-        true, 3, ints, ints, ints, ints, ints, ints, ints, ints, ints, ints, [true, true, true]);
+        true, 3, ints, ints, ints, ints, ints, ints, ints, ints, ints, ints,
+        [true, true, true], [false, true, true]);
     let storage: SemanticAstCollectionStorageAuthorityFacts = SemanticAstCollectionStorageAuthorityFacts(
         true, [false, true, true], [-1, -1, -1], [1, 0, 0]);
     let parents: Array<Int> = [-1, 0, 0];
@@ -65,8 +158,14 @@ func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
     if ArrayLength(args) != 2 { Log("expected source and mutation"); Exit(2); }
     let mutation: Int = ToInt(args[1]);
-    if mutation < 0 || mutation > 18 || args[1] != ToString(mutation) {
+    if mutation < 0 || mutation > 25 || args[1] != ToString(mutation) {
         Log("invalid mutation"); Exit(2);
+    }
+    if mutation >= 19 {
+        if !InspectFormalEffectFixedPointFrame(mutation) {
+            Log("formal effect fixed-point mismatch"); Exit(1);
+        }
+        Log("true"); return;
     }
     let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
     if !AstTreeArtifactReady(artifact) { Log("fixture parser refused"); Exit(2); }

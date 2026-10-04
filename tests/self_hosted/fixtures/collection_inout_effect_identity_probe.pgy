@@ -2,6 +2,7 @@
 // Each invocation owns its parse/bundle; no shared baseline arrays are reused.
 import "../../../src/self_hosted/parser/program_parse_owner.pgy";
 import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_owner.pgy";
 import "collection_lifetime_event_probe.pgy";
 import "collection_storage_producer_probe.pgy";
 
@@ -57,6 +58,50 @@ func Main() -> Void with caps env, io_read {
     }
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if mutation >= 120 && mutation <= 124 {
+        if !bundle.verdict.ok { Log("baseline receipt admission failed"); Exit(2); }
+        let receipt: SemanticAstBodyTypeBundleAdmissionReceipt =
+            SemanticAstBodyTypeBundleAdmissionReceiptFromFacts(
+                artifact, analysis, bundle);
+        if !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(
+                receipt, artifact, analysis, bundle) {
+            Log("baseline formal effect receipt failed"); Exit(2);
+        }
+        if mutation == 120 {
+            bundle.collection_formal_effects.ok = false;
+            Log(SemanticAstBodyTypeBundleReadinessError(
+                    artifact, analysis, bundle) == "collection_formal_effects" &&
+                !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(
+                    receipt, artifact, analysis, bundle));
+            return;
+        }
+        let schema: String = receipt.schema;
+        let formal_count: Int = receipt.collection_formal_count;
+        let proved_count: Int = receipt.collection_formal_proved_count;
+        let effect_digest: Int = receipt.collection_formal_effect_digest;
+        if mutation == 121 {
+            schema = "pgy.semantic-body-type-bundle-admission.v3";
+        }
+        if mutation == 122 { formal_count = formal_count + 1; }
+        if mutation == 123 { proved_count = proved_count + 1; }
+        if mutation == 124 { effect_digest = effect_digest + 1; }
+        let mutated: SemanticAstBodyTypeBundleAdmissionReceipt =
+            SemanticAstBodyTypeBundleAdmissionReceipt(
+                schema, receipt.admitted, receipt.artifact_identity_digest,
+                receipt.artifact_node_count, receipt.expression_graph_node_count,
+                receipt.initializer_count, receipt.iteration_count,
+                receipt.assignment_count, receipt.statement_count,
+                formal_count, proved_count, effect_digest,
+                receipt.zone_resource_identity_count,
+                receipt.zone_resource_path_count,
+                receipt.zone_mutable_borrow_count, receipt.generic_count
+            );
+        Log(SemanticAstBodyTypeBundleReadinessError(
+                artifact, analysis, bundle) == "" &&
+            !SemanticAstBodyTypeBundleAdmissionReceiptReadyFor(
+                mutated, artifact, analysis, bundle));
+        return;
+    }
     if mutation == -1 {
         // Collection refusal is reached only AFTER identity sealing. An earlier
         // body failure must never turn an unused/unbound graph into a proof.
@@ -70,9 +115,8 @@ func Main() -> Void with caps env, io_read {
             !SemanticExpressionGraphCarriedCallTargetsReady(analysis.expression_surfaces.expression_graph) {
             Log("actual producer did not reach sealed collection facts"); Exit(2);
         }
-        let actual: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
-            artifact, analysis.signatures, analysis.function_scopes,
-            analysis.expression_surfaces);
+        let actual: SemanticAstCollectionFormalEffects =
+            bundle.collection_formal_effects;
         let proved_actual: HashMap<String, Int> = actual.effects;
         if !actual.ok { Log("actual formal effects are invalid"); Exit(2); }
         let observed: Int = 0;
@@ -85,7 +129,9 @@ func Main() -> Void with caps env, io_read {
             let count: Int = 1;
             let expected: Int = 3;
             let mode: Int = 0;
-            if name == "SemanticAstExpressionFunctionRowIndex" { label = "row_index"; }
+            if name == "SemanticAstExpressionFunctionRowIndex" {
+                label = "row_index"; mode = 3;
+            }
             if name == "SeedSemanticOwnedBuiltinSignaturesUnclaimed" {
                 label = "seed"; suffix = "src/self_hosted/semantic/builtin_shadow_owner.pgy";
                 first = 1; count = 3; expected = 2; mode = 1;
@@ -333,7 +379,9 @@ func Main() -> Void with caps env, io_read {
     }
     let effects: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
         artifact, analysis.signatures, analysis.function_scopes,
-        analysis.expression_surfaces);
+        analysis.local_bindings, bundle.initializer_types,
+        analysis.expression_surfaces, analysis.statements,
+        bundle.owned_string_result_domains);
     let proved: HashMap<String, Int> = effects.effects;
     let key: String = ToString(formal);
     if mutation == 13 {
@@ -471,7 +519,9 @@ func InspectOwnStorageAdmission(
                         if !binding.ok || ArrayLength(analysis.local_bindings.node_ids) != 1 || binding.row != 0 { return false; }
                         let effects: SemanticAstCollectionFormalEffects = SemanticAstCollectionFormalEffectsFromResolvedFacts(
                             artifact, analysis.signatures, analysis.function_scopes,
-                            analysis.expression_surfaces);
+                            analysis.local_bindings, bundle.initializer_types,
+                            analysis.expression_surfaces, analysis.statements,
+                            bundle.owned_string_result_domains);
                         let formal_rows: HashMap<String, Int> = effects.inventory.row_by_formal;
                         let modes: Array<Int> = effects.inventory.modes;
                         let proved: HashMap<String, Int> = effects.effects;

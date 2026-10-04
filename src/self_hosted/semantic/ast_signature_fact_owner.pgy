@@ -357,18 +357,36 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             diagnostic_fact = SemanticDiagnosticMessageFact2("function_signature_invalid", "node_id", ToString(node_id), "missing_fact", "source_module_path");
             continue;
         }
-        if !SemanticAstGenericParameterFactRowsFromOwnerNode(
-            artifact.arena, node_id,
-            generic_names, generic_default_type_names,
-            generic_constraint_type_names
-        ) {
+        let generic_rows: SemanticAstGenericParameterFactRows =
+            SemanticAstGenericParameterFactRowsFromOwnerNode(
+                artifact.arena, node_id
+            );
+        let generic_rows_ok: Bool = generic_rows.ok;
+        if !generic_rows_ok {
             ok = false;
             diagnostic_fact = SemanticDiagnosticMessageFact2(
                 "function_signature_invalid", "node_id", ToString(node_id),
                 "missing_fact", "generic_parameter_fact_rows"
             );
-            continue;
+        } else {
+            let generic_row: Int = 0;
+            while generic_row < ArrayLength(generic_rows.names) {
+                ArrayPushOwnedString(
+                    generic_names, generic_rows.names[generic_row]
+                );
+                ArrayPushOwnedString(
+                    generic_default_type_names,
+                    generic_rows.default_type_names[generic_row]
+                );
+                ArrayPushOwnedString(
+                    generic_constraint_type_names,
+                    generic_rows.constraint_type_names[generic_row]
+                );
+                generic_row = generic_row + 1;
+            }
         }
+        SemanticAstGenericParameterFactRowsDrop(generic_rows);
+        if !generic_rows_ok { continue; }
         ArrayPush(function_node_ids, node_id);
         ArrayPush(module_paths, module_path);
         ArrayPush(owner_names, UnwrapOption(owner).name);
@@ -416,6 +434,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
     }
     let entrypoint: SemanticAstEntrypointSelectionFact =
         SemanticAstEntrypointSelectionFinish(entrypoint_accumulator);
+    ArrayDropOwnedStrings(generic_default_type_names);
     return SemanticAstFunctionSignatureFacts(
         ok, diagnostic_fact.code,
         SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,

@@ -22,6 +22,9 @@ struct SemanticAstCollectionAggregateReleasePlan {
     call_ordinals: Array<Int>;
     call_target_ids: Array<Int>;
     requirement_local_ids: Array<Int>;
+    requirement_effect_masks: Array<Int>;
+    owned_push_syntax_ids: Array<Int>;
+    owned_push_expression_nodes: Array<Int>;
     drop_syntax_ids: Array<Int>;
     drop_expression_nodes: Array<Int>;
     demand_edge_nodes: Array<Int>;
@@ -37,6 +40,8 @@ struct SemanticAstCollectionAggregateReleasePlan {
     carrier_field_ids: Array<Int>;
     carrier_release_edge_nodes: Array<Int>;
     carrier_restoration_syntax_ids: Array<Int>;
+    protected_binding_ids: Array<Int>;
+    lineage_call_edge_nodes: Array<Int>;
 }
 
 struct SemanticAstCollectionAggregateTrace {
@@ -55,6 +60,9 @@ func SemanticAstCollectionAggregateReleasePlanEmpty(
     let call_ordinals: Array<Int> = [];
     let call_target_ids: Array<Int> = [];
     let requirement_local_ids: Array<Int> = [];
+    let requirement_effect_masks: Array<Int> = [];
+    let owned_push_syntax_ids: Array<Int> = [];
+    let owned_push_expression_nodes: Array<Int> = [];
     let drop_syntax_ids: Array<Int> = [];
     let drop_expression_nodes: Array<Int> = [];
     let demand_edge_nodes: Array<Int> = [];
@@ -70,17 +78,22 @@ func SemanticAstCollectionAggregateReleasePlanEmpty(
     let carrier_field_ids: Array<Int> = [];
     let carrier_release_edge_nodes: Array<Int> = [];
     let carrier_restoration_syntax_ids: Array<Int> = [];
+    let protected_binding_ids: Array<Int> = [];
+    let lineage_call_edge_nodes: Array<Int> = [];
     return SemanticAstCollectionAggregateReleasePlan(
         true, -1,
         call_surface_rows, call_function_ids, call_syntax_ids,
         call_edge_nodes, call_nodes, call_argument_nodes,
         call_ordinals, call_target_ids,
-        requirement_local_ids, drop_syntax_ids, drop_expression_nodes,
+        requirement_local_ids, requirement_effect_masks,
+        owned_push_syntax_ids, owned_push_expression_nodes,
+        drop_syntax_ids, drop_expression_nodes,
         demand_edge_nodes, aggregate_origin_ids, requirement_rows,
         constructor_input_rows, flags, validated_input_rows,
         carrier_function_ids, carrier_local_ids, carrier_scope_ids,
         carrier_source_binding_ids, carrier_field_ids,
-        carrier_release_edge_nodes, carrier_restoration_syntax_ids
+        carrier_release_edge_nodes, carrier_restoration_syntax_ids,
+        protected_binding_ids, lineage_call_edge_nodes
     );
 }
 
@@ -126,6 +139,9 @@ func SemanticAstCollectionAggregateReleasePlanShapeReady(
         ArrayLength(plan.call_argument_nodes) == calls &&
         ArrayLength(plan.call_ordinals) == calls &&
         ArrayLength(plan.call_target_ids) == calls &&
+        ArrayLength(plan.requirement_effect_masks) == requirements &&
+        ArrayLength(plan.owned_push_syntax_ids) == requirements &&
+        ArrayLength(plan.owned_push_expression_nodes) == requirements &&
         ArrayLength(plan.drop_syntax_ids) == requirements &&
         ArrayLength(plan.drop_expression_nodes) == requirements &&
         ArrayLength(plan.demand_edge_nodes) == demands &&
@@ -137,7 +153,69 @@ func SemanticAstCollectionAggregateReleasePlanShapeReady(
         ArrayLength(plan.carrier_source_binding_ids) == carriers &&
         ArrayLength(plan.carrier_field_ids) == carriers &&
         ArrayLength(plan.carrier_release_edge_nodes) == carriers &&
-        ArrayLength(plan.carrier_restoration_syntax_ids) == carriers;
+        ArrayLength(plan.carrier_restoration_syntax_ids) == carriers &&
+        SemanticAstCollectionAggregateReleasePositiveUnique(
+            plan.protected_binding_ids) &&
+        SemanticAstCollectionAggregateReleaseNonNegativeUnique(
+            plan.lineage_call_edge_nodes);
+}
+
+func SemanticAstCollectionAggregateReleaseNonNegativeUnique(
+    ref values: Array<Int>
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(values) {
+        if values[row] < 0 { return false; }
+        let prior: Int = 0;
+        while prior < row {
+            if values[prior] == values[row] { return false; }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateReleasePositiveUnique(
+    ref values: Array<Int>
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(values) {
+        if values[row] <= 0 { return false; }
+        let prior: Int = 0;
+        while prior < row {
+            if values[prior] == values[row] { return false; }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionAggregateReleaseRecordProtectedBinding(
+    binding_id: Int, inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    if binding_id <= 0 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(plan.protected_binding_ids) {
+        if plan.protected_binding_ids[row] == binding_id { return true; }
+        row = row + 1;
+    }
+    ArrayPush(plan.protected_binding_ids, binding_id);
+    return true;
+}
+
+func SemanticAstCollectionAggregateReleaseRecordLineageEdge(
+    edge_node: Int, inout plan: SemanticAstCollectionAggregateReleasePlan
+) -> Bool {
+    if edge_node < 0 { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(plan.lineage_call_edge_nodes) {
+        if plan.lineage_call_edge_nodes[row] == edge_node { return true; }
+        row = row + 1;
+    }
+    ArrayPush(plan.lineage_call_edge_nodes, edge_node);
+    return true;
 }
 
 func SemanticAstCollectionAggregateReleasePlanCallInventory(

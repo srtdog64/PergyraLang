@@ -26,7 +26,7 @@ hash_file() { sha256sum "$1" | awk '{print $1}'; }
 assert_owner_ratchet() {
     local owner cap lines total=0
     while IFS='|' read -r owner cap; do
-        require_file "$owner"; lines="$(wc -l <"$owner")"
+        require_file "$owner"; lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$owner")"
         [[ "$lines" -le "$cap" ]] ||
             fail "owner hard cap exceeded: ${owner#"$ROOT_DIR/"}=$lines/$cap"
         total=$((total + lines))
@@ -49,7 +49,7 @@ $ROOT_DIR/src/self_hosted/compiler/direct_mir_inferred_generic_nominal_projectio
 EOF
     [[ "$total" -le 1800 ]] ||
         fail "inferred generic nominal owner family cap exceeded: $total/1800"
-    lines="$(wc -l <"$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy")"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy")" || fail "source-size measurement failed"
     [[ "$lines" -le 110 ]] || fail "multi-routine root cap exceeded: $lines/110"
     grep -Fq 'DirectMirTwoRoutineClassificationFromAdmitted(admitted)' \
         "$ROOT_DIR/src/self_hosted/compiler/direct_mir_multi_routine_projection_owner.pgy" ||

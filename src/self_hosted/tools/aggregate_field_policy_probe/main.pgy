@@ -54,10 +54,12 @@ func AggregateFieldProbeRoot(
                     SemanticStructLiteralViewFromGraph(
                         graph, UnwrapOption(struct_root)
                     );
-                if view.ok && ArrayLength(view.value_nodes) == 2 {
+                let first_field: SemanticStructLiteralFieldView =
+                    SemanticStructLiteralFieldAt(graph, view, 0);
+                if view.ok && view.field_count == 2 && first_field.ok {
                     let first_text: Option<String> =
                         SemanticExpressionGraphNodeText(
-                            graph, view.value_nodes[0]
+                            graph, first_field.value_node
                         );
                     if IsSome(first_text) &&
                         UnwrapOption(first_text) == "1 + 2" {
@@ -87,7 +89,10 @@ func AggregateFieldProbeMutationRejected(missing_child: Bool) -> Bool {
         graph, UnwrapOption(struct_root)
     );
     if !view.ok { return false; }
-    let value_node: Int = view.value_nodes[0];
+    let first_field: SemanticStructLiteralFieldView =
+        SemanticStructLiteralFieldAt(graph, view, 0);
+    if !first_field.ok { return false; }
+    let value_node: Int = first_field.value_node;
     let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
         graph, value_node
     );
@@ -139,11 +144,14 @@ func AggregateFieldProbeGenericMutationRejected() -> Bool {
                         graph, UnwrapOption(struct_root)
                     );
                 let j: Int = 0;
-                while view.ok && j < ArrayLength(view.value_nodes) &&
+                while view.ok && j < view.field_count &&
                     !IsSome(generic_root) {
+                    let field: SemanticStructLiteralFieldView =
+                        SemanticStructLiteralFieldAt(graph, view, j);
+                    if !field.ok { return false; }
                     let call: SemanticCallSpineView =
                         SemanticCallSpineViewFromGraph(
-                            graph, view.value_nodes[j]
+                            graph, field.value_node
                         );
                     let callee: Option<String> = None;
                     if call.ok {
@@ -156,7 +164,7 @@ func AggregateFieldProbeGenericMutationRejected() -> Bool {
                         ArrayLength(call.argument_nodes) == 1 &&
                         ArrayLength(call.generic_actual_type_names) == 1 {
                         generic_root = Some(root_id);
-                        generic_value = view.value_nodes[j];
+                        generic_value = field.value_node;
                     }
                     j = j + 1;
                 }

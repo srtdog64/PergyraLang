@@ -26,7 +26,7 @@ command -v "$CLANG" >/dev/null || fail "clang is unavailable"
 
 while IFS='|' read -r owner cap; do
     [[ -f "$ROOT_DIR/$owner" ]] || fail "missing owner: $owner"
-    lines="$(wc -l <"$ROOT_DIR/$owner")"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$owner")" || fail "source-size measurement failed"
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <<'EOF'
 src/self_hosted/compiler/direct_mir_collection_local_context_fact_owner.pgy|100

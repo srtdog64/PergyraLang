@@ -1,18 +1,22 @@
-// Whole-expression use inventory and its collection-formal proof fixed point.
+// Whole-expression use inventory consumed by the formal-effect fixed point.
 import "ast_collection_formal_execution_context_owner.pgy";
+import "ast_collection_formal_effect_fixed_point_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_call_argument_edge_owner.pgy";
 import "ast_builtin_argument_retention_call_fact_owner.pgy";
-struct SemanticAstCollectionFormalEffects {
-    ok: Bool;
-    inventory: SemanticAstCollectionFormalEffectInventory;
-    effects: HashMap<String, Int>;
-}
+import "ast_statement_fact_owner.pgy";
+import "ast_owned_string_call_result_admission_owner.pgy";
+import "ast_collection_formal_statement_effect_owner.pgy";
+
 func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
     artifact: AstTreeArtifact,
     ref signatures: SemanticAstFunctionSignatureFacts,
     ref scopes: SemanticAstFunctionScopeFacts,
-    ref surfaces: SemanticAstExpressionSurfaceFacts
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref statements: SemanticAstStatementFacts,
+    ref owned_string_results: SemanticAstOwnedStringResultFacts
 ) -> SemanticAstCollectionFormalEffects {
     let inventory: SemanticAstCollectionFormalEffectInventory =
         SemanticAstCollectionFormalEffectInventoryFromSignatures(signatures);
@@ -24,18 +28,33 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
     let formal_rows: HashMap<String, Int> = inventory.row_by_formal;
     let blocked: Array<Bool> = [];
     let mutations: Array<Bool> = [];
+    let shallow_mutations: Array<Bool> = [];
     let element_reads: Array<Bool> = [];
     let node_rows: Array<Int> = [];
     let element_rows: Array<Int> = [];
     let sources: Array<Int> = [];
     let targets: Array<Int> = [];
     let count: Int = ArrayLength(inventory.formal_nodes);
+    let statement_effects: SemanticAstCollectionFormalStatementEffects =
+        SemanticAstCollectionFormalStatementEffectsFromFacts(
+            artifact, signatures, locals, initializer_types, surfaces,
+            statements, owned_string_results, inventory, formal_rows);
+    let statement_owned_formals: HashMap<String, Int> =
+        statement_effects.owned_formals;
+    let statement_shallow_formals: HashMap<String, Int> =
+        statement_effects.shallow_formals;
+    let statement_target_rows: HashMap<String, Int> =
+        statement_effects.target_rows;
     let row: Int = 0;
     while row < count {
+        let formal_key: String = ToString(inventory.formal_nodes[row]);
         let opaque: Bool = MapHas(unsafe_functions,
             ToString(inventory.function_nodes[row]));
         ArrayPush(blocked, !inventory.body_ready[row] || opaque);
-        ArrayPush(mutations, false);
+        ArrayPush(mutations, MapHas(
+            statement_owned_formals, formal_key));
+        ArrayPush(shallow_mutations, MapHas(
+            statement_shallow_formals, formal_key));
         ArrayPush(element_reads, false);
         if opaque {
             MapSet(effects, ToString(inventory.formal_nodes[row]),
@@ -44,7 +63,8 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
         row = row + 1;
     }
     let ok: Bool = contexts.ok && inventory.ok && signatures.ok &&
-        SemanticBuiltinArgumentRetentionProjectionReady();
+        SemanticBuiltinArgumentRetentionProjectionReady() &&
+        statement_effects.ok;
     let last: Int = -1;
     let slot: Int = 0;
     while ok && slot < ArrayLength(surfaces.expression_graph.roots) {
@@ -154,6 +174,17 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
                                         call.call_node,
                                         "ArrayPushOwnedString") {
                                     mutations[used_row] = true;
+                                } else if ordinal == 0 &&
+                                    (SemanticAstCollectionOwnershipBuiltinCall(
+                                        surfaces.expression_graph,
+                                        call.call_node, "ArrayPush") ||
+                                     SemanticAstCollectionOwnershipBuiltinCall(
+                                        surfaces.expression_graph,
+                                        call.call_node, "ArraySet") ||
+                                     SemanticAstCollectionOwnershipBuiltinCall(
+                                        surfaces.expression_graph,
+                                        call.call_node, "ArrayPop")) {
+                                    shallow_mutations[used_row] = true;
                                 } else {
                                     let target: Int =
                                         SemanticAstCollectionSourceArrayFormalForArgument(
@@ -177,11 +208,25 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
                 }
                 node = node + 1;
             }
-            if ok && node_rows[root] >= 0 {
+            let statement_mutation_row: Int = -1;
+            let root_key: String = ToString(root);
+            if MapHas(statement_target_rows, root_key) {
+                statement_mutation_row = MapGet(
+                    statement_target_rows, root_key);
+            }
+            if ok && node_rows[root] >= 0 &&
+                node_rows[root] != statement_mutation_row {
                 blocked[node_rows[root]] = true;
             }
             if ok && element_rows[root] >= 0 {
-                blocked[element_rows[root]] = true;
+                let source_row: Int = element_rows[root];
+                // A borrowed element stored into another growable descriptor
+                // needs a cross-storage lifetime relation. Parameter order or
+                // an inout target does not express that relation, so this use
+                // remains fail-closed until the language has an owned transfer.
+                if source_row != statement_mutation_row {
+                    blocked[source_row] = true;
+                }
             }
             last = root;
         }
@@ -192,69 +237,19 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
             surfaces.expression_graph.arena);
     ok = ok && ArrayLength(blocked) == count &&
         ArrayLength(mutations) == count &&
+        ArrayLength(shallow_mutations) == count &&
         ArrayLength(element_reads) == count &&
         ArrayLength(sources) == ArrayLength(targets);
-    // Least proof fixed point: a forwarding cycle without a proved sink
-    // grants nothing.
-    let changed: Bool = true;
-    let remaining: Int = count + 1;
-    while ok && changed && remaining > 0 {
-        changed = false;
-        row = 0;
-        while row < count {
-            let formal_key: String = ToString(inventory.formal_nodes[row]);
-            if blocked[row] && element_reads[row] &&
-                !MapHas(effects, formal_key) {
-                MapSet(effects, formal_key, SemanticAstCollectionFormalUnprovedElementUseEffect()); changed = true;
-            } else if !blocked[row] && !MapHas(effects, formal_key) {
-                let ready: Bool = true;
-                let mutation: Bool = mutations[row];
-                let reads_elements: Bool = element_reads[row];
-                let opaque: Bool = false;
-                let unproved_element: Bool = false;
-                let use_edge: Int = 0;
-                while use_edge < ArrayLength(sources) {
-                    if sources[use_edge] == row {
-                        let target_key: String = ToString(inventory.formal_nodes[targets[use_edge]]);
-                        if !MapHas(effects, target_key) { ready = false; }
-                        else if MapGet(effects, target_key) ==
-                                SemanticAstCollectionFormalOpaqueExecutionEffect() { opaque = true; }
-                        else if MapGet(effects, target_key) == 2 {
-                            mutation = true;
-                        } else if MapGet(effects, target_key) == 3 {
-                            reads_elements = true;
-                        } else if MapGet(effects, target_key) == SemanticAstCollectionFormalUnprovedElementUseEffect() {
-                            unproved_element = true; }
-                    }
-                    use_edge = use_edge + 1;
-                }
-                if ready {
-                    let effect: Int = 1;
-                    if reads_elements { effect = 3; }
-                    if mutation { effect = 2; }
-                    if unproved_element { effect = SemanticAstCollectionFormalUnprovedElementUseEffect(); }
-                    if opaque {
-                        effect = SemanticAstCollectionFormalOpaqueExecutionEffect();
-                    }
-                    MapSet(effects, formal_key, effect);
-                    changed = true;
-                }
-            }
-            row = row + 1;
-        }
-        remaining = remaining - 1;
-    }
+    let fixed_point_status: SemanticAstCollectionFormalEffectResolutionStatus =
+        SemanticAstCollectionFormalEffectResolutionStatus(ok);
+    SemanticAstCollectionFormalEffectFixedPoint(
+        inventory, blocked, mutations, shallow_mutations, element_reads,
+        sources, targets, effects, fixed_point_status);
+    ok = fixed_point_status.ok;
     ArrayDrop(node_rows);
     ArrayDrop(element_rows);
-    ArrayDrop(blocked); ArrayDrop(mutations); ArrayDrop(element_reads);
+    ArrayDrop(blocked); ArrayDrop(mutations); ArrayDrop(shallow_mutations);
+    ArrayDrop(element_reads);
     ArrayDrop(sources); ArrayDrop(targets);
     return SemanticAstCollectionFormalEffects(ok, inventory, effects);
-}
-func SemanticAstCollectionFormalEffectsFromResolvedFacts(artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
-    ref scopes: SemanticAstFunctionScopeFacts, ref surfaces: SemanticAstExpressionSurfaceFacts) -> SemanticAstCollectionFormalEffects {
-    if !SemanticAstBuiltinArgumentRetentionCallFactsReady(surfaces) {
-        let no_effects: HashMap<String, Int> = MapNew();
-        return SemanticAstCollectionFormalEffects(false, SemanticAstCollectionFormalEffectInventoryFromSignatures(signatures), no_effects);
-    }
-    return SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(artifact, signatures, scopes, surfaces);
 }

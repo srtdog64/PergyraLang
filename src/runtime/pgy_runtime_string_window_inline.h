@@ -8,6 +8,10 @@
  * access is O(n) and a tight scan loop (a lexer) is O(n^2). CharAtN takes the
  * caller-precomputed length, so a single character read is O(1). Kept in its own
  * small header so the (size-capped) io/qubit runtime header does not grow.
+ *
+ * SubstringWithLen/CharAtN/CharCode require source_len/len to equal strlen(s)
+ * for the same live string. These primitives do not verify that precondition;
+ * an inflated length can read outside storage despite the index guards below.
  */
 #ifndef PGY_RUNTIME_STRING_WINDOW_INLINE_H
 #define PGY_RUNTIME_STRING_WINDOW_INLINE_H

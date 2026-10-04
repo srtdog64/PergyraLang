@@ -1,0 +1,8 @@
+func FirstMatches(values: Array<String>) -> Bool {
+    return values[0] == "borrowed";
+}
+
+func Main() -> Void {
+    let source: Array<String> = ["borrowed"];
+    Log(FirstMatches([source[0]]));
+}

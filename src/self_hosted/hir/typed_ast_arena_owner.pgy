@@ -323,15 +323,11 @@ func ChildAt(arena: AstArena, node: AstNode, i: Int) -> Option<Int> {
     return ChildAtFromEdges(arena.children, node.first_child, node.child_count, i);
 }
 
-func AtomTextFromTable(atom_table: Array<String>, has_atom: Bool, atom: Int) -> Option<String> {
-    if !has_atom {
+func AtomText(arena: AstArena, node: AstNode) -> Option<String> {
+    if !node.has_atom {
         return None;
     }
-    return Some(atom_table[atom]);
-}
-
-func AtomText(arena: AstArena, node: AstNode) -> Option<String> {
-    return AtomTextFromTable(arena.atom_table, node.has_atom, node.atom);
+    return Some(Concat("", arena.atom_table[node.atom]));
 }
 
 func TypedAstArenaPayloadSchema() -> String {

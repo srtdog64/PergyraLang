@@ -1,0 +1,13 @@
+// Ordinary generic field reads remain legal without deep-release authority.
+struct Bundle { value: Array<String>; }
+
+func Count<T>(bundle: T) -> Int where T: Bundle {
+    return ArrayLength(bundle.value);
+}
+
+func Main() -> Void {
+    let value: Array<String> = [];
+    ArrayPush(value, "borrowed");
+    let bundle: Bundle = Bundle(value);
+    Log(Count(bundle));
+}

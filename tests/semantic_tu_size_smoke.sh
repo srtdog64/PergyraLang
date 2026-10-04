@@ -8,7 +8,7 @@ cd "$ROOT_DIR"
 
 violations="$(
     find src/semantic -maxdepth 1 -type f -name '*.c' -print0 \
-        | xargs -0 wc -l \
+        | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
         | awk -v limit="$LIMIT" \
             '$2 != "total" && $1 > limit { print $1, $2, ">", limit }'
 )"

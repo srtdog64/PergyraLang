@@ -214,18 +214,35 @@ for producer in \
 done
 require_borrowed_environment_push "$OWNER_FIELDS" \
     'SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors'
-checked_owner_fields_body="$(function_body "$OWNER_FIELDS" \
-    'SemanticAstExpressionSeedOwnerFields')"
-grep -Fq 'SemanticAstNominalConstructorRowsReady(constructors)' \
-    <<<"$checked_owner_fields_body" || {
-    echo "[self-host-parity:semantic-environment-lifetime] checked owner-field seed lost constructor row proof" >&2
+if grep -Fq 'func SemanticAstExpressionSeedOwnerFields(' "$OWNER_FIELDS"; then
+    echo "[self-host-parity:semantic-environment-lifetime] retired checked owner-field wrapper returned" >&2
     exit 1
-}
-grep -Fq 'SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(' \
-    <<<"$checked_owner_fields_body" || {
-    echo "[self-host-parity:semantic-environment-lifetime] checked owner-field seed bypasses its admitted core" >&2
+fi
+admitted_owner_fields_body="$(function_body "$OWNER_FIELDS" \
+    'SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors')"
+if grep -Fq 'SemanticAstNominalConstructorRowsReady(' \
+    <<<"$admitted_owner_fields_body"; then
+    echo "[self-host-parity:semantic-environment-lifetime] admitted owner-field seed reopened constructor row proof" >&2
     exit 1
-}
+fi
+for checked_owner_field_contract in \
+    "$OWNER_FIELDS|SemanticAstExpressionOwnerFieldEnvironmentContractReady" \
+    "$OWNER|SemanticAstExpressionEnvironmentContractReady"; do
+    checked_owner_field_path="${checked_owner_field_contract%%|*}"
+    checked_owner_field_function="${checked_owner_field_contract#*|}"
+    checked_owner_fields_body="$(function_body \
+        "$checked_owner_field_path" "$checked_owner_field_function")"
+    grep -Fq 'SemanticAstNominalConstructorRowsReady(constructors)' \
+        <<<"$checked_owner_fields_body" || {
+        echo "[self-host-parity:semantic-environment-lifetime] checked owner-field contract lost constructor row proof: $checked_owner_field_function" >&2
+        exit 1
+    }
+    grep -Fq 'SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(' \
+        <<<"$checked_owner_fields_body" || {
+        echo "[self-host-parity:semantic-environment-lifetime] checked owner-field contract bypasses admitted core: $checked_owner_field_function" >&2
+        exit 1
+    }
+done
 require_borrowed_environment_push "$MATCH_BINDINGS" 'SemanticAstExpressionSeedMatchCaseBindings'
 require_borrowed_environment_push "$ITERATION_FACTS" 'SemanticAstIterationSeedVisibleRows'
 
@@ -746,6 +763,7 @@ assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysisObserved('
 assert_exact_call_files 'SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(' \
     'src/self_hosted/compiler/driver_rung2_owner.pgy' \
     'src/self_hosted/debug/session_owner.pgy' \
+    'src/self_hosted/semantic/ast_body_type_bundle_assembly_owner.pgy' \
     'src/self_hosted/semantic/ast_body_type_bundle_owner.pgy'
 
 for production_body in \

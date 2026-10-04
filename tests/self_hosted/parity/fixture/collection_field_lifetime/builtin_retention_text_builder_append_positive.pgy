@@ -1,0 +1,14 @@
+func AppendIndexedString(values: Array<String>) -> Bool {
+    let output: TextBuilder = TextBuilderNew(16);
+    TextBuilderAppend(output, values[0]);
+    let result_allocator: Allocator = AllocatorResult();
+    let rendered: String = TextBuilderFinish(output, result_allocator);
+    let matched: Bool = rendered == "appended";
+    AllocatorDestroy(result_allocator);
+    return matched;
+}
+
+func Main() -> Void {
+    let values: Array<String> = ["appended"];
+    Log(AppendIndexedString(values));
+}

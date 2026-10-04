@@ -127,7 +127,7 @@ mkdir -p "$NEG_ROOT/$(dirname "$OVER_CAP_FIXTURE_PATH")"
 mkdir -p "$NEG_ROOT/.tmp"
 {
     for k in $(seq 1 "$OVER_CAP_LINE_COUNT"); do
-        echo "// synthetic line $k"
+        echo "int synthetic_header_line_$k; // counted code"
     done
 } > "$NEG_ROOT/$OVER_CAP_FIXTURE_PATH"
 

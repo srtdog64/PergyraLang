@@ -18,7 +18,8 @@ fail() { echo "[$LABEL] $*" >&2; exit 1; }
 rel() { pgy_selfhost_path_relative_to_root "$1"; }
 require() { [[ -f "$1" ]] || fail "missing file: ${1#"$ROOT_DIR"/}"; }
 lines_at_most() {
-    [[ "$(wc -l <"$ROOT_DIR/$1" | tr -d ' ')" -le "$2" ]] ||
+    source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$1" | tr -d ' ')" || fail "source-size measurement failed"
+    [[ "$source_size_lines" -le "$2" ]] ||
         fail "$1 exceeds $2 lines"
 }
 hash_file() { sha256sum "$1" | awk '{print $1}'; }
@@ -91,7 +92,7 @@ lines_at_most "$DECL" 310; lines_at_most "$PLAN" 560
 lines_at_most "$ABI" 140; lines_at_most "$EMITTER" 150
 family_lines=0
 for file in "$DECL" "$PLAN" "$ABI" "$EMITTER"; do
-    family_lines=$((family_lines + $(wc -l <"$ROOT_DIR/$file")))
+    family_lines=$((family_lines + $(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$file")))
 done
 [[ "$family_lines" -le 1200 ]] || fail "role direct owner family exceeds 1200 lines"
 grep -Fq 'SemanticRoleOperatorKindSupported(kind)' "$ROOT_DIR/$GRAPH" ||

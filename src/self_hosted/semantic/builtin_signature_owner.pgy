@@ -201,7 +201,8 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
 
 func SemanticBuiltinRetentionSourceSignatureKnown(name: String) -> Bool {
     return name == "Print" || name == "Log" || name == "CompilerArtifactWrite" ||
-        name == "StringLength" || name == "CharCode" || name == "Concat";
+        name == "StringLength" || name == "CharCode" || name == "Concat" ||
+        name == "TextBuilderAppend" || name == "ArrayPushOwnedString";
 }
 
 func SemanticBuiltinRetentionSourceSignatureMatches(
@@ -213,6 +214,8 @@ func SemanticBuiltinRetentionSourceSignatureMatches(
     if name == "StringLength" { return return_type == "Int" && param_types == "String"; }
     if name == "CharCode" { return return_type == "Int" && param_types == "String|Int|Int"; }
     if name == "Concat" { return return_type == "String" && param_types == "String|String"; }
+    if name == "TextBuilderAppend" { return return_type == "Void" && param_types == "TextBuilder|String"; }
+    if name == "ArrayPushOwnedString" { return return_type == "Void" && param_types == "Array<String>|String"; }
     return false;
 }
 
@@ -227,6 +230,21 @@ func SemanticBuiltinMemberCallableMatches(
         source_member_name == "Slice";
 }
 
+// Resolve an indexed callable table row without carrying its borrowed String
+// element across a call boundary. The canonical result is a stable builtin
+// identity, not a view into the caller's Array<String> storage.
+func SemanticBuiltinMemberCallableNameAt(
+    ref canonical_names: Array<String>, index: Int,
+    source_member_name: String
+) -> Option<String> {
+    if index < 0 || index >= ArrayLength(canonical_names) ||
+        canonical_names[index] != "Array_Slice" ||
+        source_member_name != "Slice" {
+        return None;
+    }
+    return Some("Array_Slice");
+}
+
 func SemanticBuiltinMemberSourceParameterOffset(
     canonical_name: String
 ) -> Option<Int> {
@@ -234,45 +252,24 @@ func SemanticBuiltinMemberSourceParameterOffset(
     return None;
 }
 
-func SeedSemanticBuiltinSignaturesInto(
-    inout names: Array<String>,
-    inout returns: Array<String>,
-    inout params: Array<String>,
-    owned: Bool
-) -> Bool {
-    let rows: Array<String> = SemanticBuiltinSignatureRows();
-    let i: Int = 0;
-    while i < ArrayLength(rows) {
-        let parts: Array<String> = Split(rows[i], "^");
-        if ArrayLength(parts) != 3 {
-            return false;
-        }
-        let param_types: String = parts[2];
-        if param_types == "none" {
-            param_types = "";
-        }
-        if owned {
-            ArrayPushOwnedString(names, parts[0]);
-            ArrayPushOwnedString(returns, parts[1]);
-            ArrayPushOwnedString(params, param_types);
-        } else {
-            ArrayPush(names, parts[0]);
-            ArrayPush(returns, parts[1]);
-            ArrayPush(params, param_types);
-        }
-        i = i + 1;
-    }
-    return true;
-}
-
 func SeedSemanticBuiltinSignatures(
     inout names: Array<String>,
     inout returns: Array<String>,
     inout params: Array<String>
 ) -> Bool {
-    return SeedSemanticBuiltinSignaturesInto(
-        names, returns, params, false
-    );
+    let rows: Array<String> = SemanticBuiltinSignatureRows();
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        let parts: Array<String> = Split(rows[i], "^");
+        if ArrayLength(parts) != 3 { return false; }
+        let param_types: String = parts[2];
+        if param_types == "none" { param_types = ""; }
+        ArrayPush(names, parts[0]);
+        ArrayPush(returns, parts[1]);
+        ArrayPush(params, param_types);
+        i = i + 1;
+    }
+    return true;
 }
 
 func SeedSemanticOwnedBuiltinSignatures(
@@ -280,18 +277,28 @@ func SeedSemanticOwnedBuiltinSignatures(
     inout returns: Array<String>,
     inout params: Array<String>
 ) -> Bool {
-    return SeedSemanticBuiltinSignaturesInto(
-        names, returns, params, true
-    );
+    let rows: Array<String> = SemanticBuiltinSignatureRows();
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        let parts: Array<String> = Split(rows[i], "^");
+        if ArrayLength(parts) != 3 { return false; }
+        let param_types: String = parts[2];
+        if param_types == "none" { param_types = ""; }
+        ArrayPushOwnedString(names, parts[0]);
+        ArrayPushOwnedString(returns, parts[1]);
+        ArrayPushOwnedString(params, param_types);
+        i = i + 1;
+    }
+    return true;
 }
 
 // Verifies any consumer projection directly against the registry rows. A
 // caller may append owner-local functions after the builtin prefix, so only
 // the canonical prefix length is required here.
 func SemanticBuiltinSignatureProjectionPrefixReady(
-    names: Array<String>,
-    returns: Array<String>,
-    params: Array<String>
+    ref names: Array<String>,
+    ref returns: Array<String>,
+    ref params: Array<String>
 ) -> Bool {
     let rows: Array<String> = SemanticBuiltinSignatureRows();
     if ArrayLength(names) < ArrayLength(rows) ||
@@ -337,7 +344,7 @@ func SemanticBuiltinPairedScalarSignatureOpt(name: String, first_type: String) -
 
 func SemanticPolymorphicBuiltinReturnTypeOpt(
     name: String,
-    argument_types: Array<String>
+    ref argument_types: Array<String>
 ) -> Option<String> {
     let expected_count: Int = 0;
     if name == "Abs" { expected_count = 1; }
@@ -365,7 +372,7 @@ func SemanticPolymorphicBuiltinReturnTypeOpt(
     if ArrayLength(argument_types) != expected_count {
         return None;
     }
-    let result_type: String = argument_types[0];
+    let result_type: String = Concat("", argument_types[0]);
     if name == "Read" {
         return SlotPayloadTypeOpt(result_type);
     }
@@ -542,7 +549,7 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
         SemanticContextualBuiltinReturnTypeOpt(
             "ClaimDeviceSlot", 0, Some("DeviceSlot<Int>")
         );
-    if !SeedSemanticBuiltinSignatures(names, returns, params) ||
+    if !SeedSemanticOwnedBuiltinSignatures(names, returns, params) ||
         !SemanticBuiltinSignatureProjectionPrefixReady(names, returns, params) ||
         !IntentObservabilityAbiReady() ||
         ArrayLength(returns) != ArrayLength(names) ||

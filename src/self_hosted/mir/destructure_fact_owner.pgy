@@ -8,64 +8,91 @@ struct SelfMirDestructureFactRows {
     bindings: Array<String>;
 }
 
-func SelfMirDestructureFactRowsEmpty() -> SelfMirDestructureFactRows {
-    let ints: Array<Int> = [];
-    let strings: Array<String> = [];
-    return SelfMirDestructureFactRows(
-        ints, strings, ints, ints, strings
-    );
+// Owns the only transition that turns a borrowed destructure spelling into a
+// retained string row. The runtime operation duplicates the input and the
+// matching routine-storage owner deep-releases the resulting array.
+func SelfMirDestructureOwnedStringStoreAppend(
+    inout values: Array<String>,
+    value: String
+) -> Void {
+    ArrayPushOwnedString(values, value);
 }
 
-func SelfMirDestructureFactRowsAttach(
-    rows: SelfMirDestructureFactRows,
-    instruction_index: Int,
-    element_type: String,
-    bindings_in: Array<String>
-) -> SelfMirDestructureFactRows {
-    let instruction_indices: Array<Int> = rows.instruction_indices;
-    let element_types: Array<String> = rows.element_types;
-    let binding_starts: Array<Int> = rows.binding_starts;
-    let binding_counts: Array<Int> = rows.binding_counts;
-    let bindings: Array<String> = rows.bindings;
-    ArrayPush(instruction_indices, instruction_index);
-    ArrayPush(element_types, element_type);
-    ArrayPush(binding_starts, ArrayLength(bindings));
-    ArrayPush(binding_counts, ArrayLength(bindings_in));
-    let i: Int = 0;
-    while i < ArrayLength(bindings_in) {
-        ArrayPush(bindings, bindings_in[i]);
-        i = i + 1;
-    }
+func SelfMirDestructureFactRowsEmpty() -> SelfMirDestructureFactRows {
+    let instruction_indices: Array<Int> = [];
+    let element_types: Array<String> = [];
+    let binding_starts: Array<Int> = [];
+    let binding_counts: Array<Int> = [];
+    let bindings: Array<String> = [];
     return SelfMirDestructureFactRows(
         instruction_indices, element_types, binding_starts, binding_counts,
         bindings
     );
 }
 
+func SelfMirDestructureFactRowsAttach(
+    inout rows: SelfMirDestructureFactRows,
+    instruction_index: Int,
+    element_type: String,
+    bindings_in: Array<String>
+) -> Void {
+    let instruction_indices: Array<Int> = rows.instruction_indices;
+    let element_types: Array<String> = rows.element_types;
+    let binding_starts: Array<Int> = rows.binding_starts;
+    let binding_counts: Array<Int> = rows.binding_counts;
+    let bindings: Array<String> = rows.bindings;
+    ArrayPush(instruction_indices, instruction_index);
+    SelfMirDestructureOwnedStringStoreAppend(element_types, element_type);
+    ArrayPush(binding_starts, ArrayLength(bindings));
+    ArrayPush(binding_counts, ArrayLength(bindings_in));
+    let i: Int = 0;
+    while i < ArrayLength(bindings_in) {
+        SelfMirDestructureOwnedStringStoreAppend(bindings, bindings_in[i]);
+        i = i + 1;
+    }
+    rows.instruction_indices = instruction_indices;
+    rows.element_types = element_types;
+    rows.binding_starts = binding_starts;
+    rows.binding_counts = binding_counts;
+    rows.bindings = bindings;
+}
+
 func SelfMirDestructureFactRowsAppend(
-    target: SelfMirDestructureFactRows,
-    source: SelfMirDestructureFactRows,
+    inout target: SelfMirDestructureFactRows,
+    ref source: SelfMirDestructureFactRows,
     instruction_offset: Int
-) -> SelfMirDestructureFactRows {
-    let out: SelfMirDestructureFactRows = target;
+) -> Void {
+    let instruction_indices: Array<Int> = target.instruction_indices;
+    let element_types: Array<String> = target.element_types;
+    let binding_starts: Array<Int> = target.binding_starts;
+    let binding_counts: Array<Int> = target.binding_counts;
+    let bindings: Array<String> = target.bindings;
     let row: Int = 0;
     while row < ArrayLength(source.instruction_indices) {
-        let names: Array<String> = [];
+        ArrayPush(
+            instruction_indices,
+            source.instruction_indices[row] + instruction_offset
+        );
+        SelfMirDestructureOwnedStringStoreAppend(
+            element_types, source.element_types[row]
+        );
+        ArrayPush(binding_starts, ArrayLength(bindings));
+        ArrayPush(binding_counts, source.binding_counts[row]);
         let i: Int = 0;
         while i < source.binding_counts[row] {
-            ArrayPush(
-                names,
+            SelfMirDestructureOwnedStringStoreAppend(
+                bindings,
                 source.bindings[source.binding_starts[row] + i]
             );
             i = i + 1;
         }
-        out = SelfMirDestructureFactRowsAttach(
-            out, source.instruction_indices[row] + instruction_offset,
-            source.element_types[row], names
-        );
         row = row + 1;
     }
-    return out;
+    target.instruction_indices = instruction_indices;
+    target.element_types = element_types;
+    target.binding_starts = binding_starts;
+    target.binding_counts = binding_counts;
+    target.bindings = bindings;
 }
 
 func SelfMirDestructureFactIndexForInstruction(

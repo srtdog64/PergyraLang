@@ -127,15 +127,20 @@ func GenericReturnProbeNestedMismatchRejected(
     let bindings: Array<String> = [];
     i = 0;
     while i < UnwrapOption(generic_count) {
-        ArrayPush(bindings, "");
+        ArrayPushOwnedString(bindings, "");
         i = i + 1;
     }
-    if SemanticAstSignatureParameterTypeBindAt(
+    let after_binding: Array<String> =
+        SemanticAstSignatureParameterTypeBindAt(
         signatures.type_expressions, UnwrapOption(parameter),
         signatures.generic_starts[signature_index],
         UnwrapOption(generic_count), signatures.generic_names,
         "Int", bindings
-    ) {
+    );
+    let accepted: Bool =
+        ArrayLength(after_binding) == UnwrapOption(generic_count);
+    ArrayDropOwnedStrings(after_binding);
+    if accepted {
         return false;
     }
     Log("call_arg_type_mismatch");
@@ -312,7 +317,9 @@ func Main() -> Void with caps io_read, env {
         Log("nested generic mismatch was not rejected");
         Exit(2);
     }
-    if !SemanticAstBodyTypeBundleReady(artifact, analysis, body_types) ||
+    if !SemanticAstSignatureTypeExpressionFactContractReady() ||
+        !SemanticAstSignatureTypeBindingContractReady() ||
+        !SemanticAstBodyTypeBundleReady(artifact, analysis, body_types) ||
         SemanticAstInitializerTypeCount(body_types.initializer_types) != 4 ||
         body_types.initializer_types.verified[0] != 1 ||
         body_types.initializer_types.inferred_type_names[0] != "Int" ||

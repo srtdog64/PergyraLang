@@ -20,7 +20,7 @@ func SelfMirInstructionAbiReceiptRowsReady(
         let kind: Int = rows.kinds[instruction_i];
         let nominal: Option<Int> = SelfMirNominalUniqueStructIndex(
             declarations.names, declarations.nominal_kinds,
-            abi_type_names[instruction_i]
+            abi_type_names, instruction_i
         );
         if IsSome(nominal) && declarations.nominal_abi_layouts.required[
                 UnwrapOption(nominal)

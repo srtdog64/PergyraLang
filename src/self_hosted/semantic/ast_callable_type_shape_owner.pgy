@@ -9,6 +9,11 @@ struct SemanticAstCallableTypeShape {
     return_type: String;
 }
 
+func SemanticAstCallableTypeShapeInvalid() -> SemanticAstCallableTypeShape {
+    let parameters: Array<String> = [];
+    return SemanticAstCallableTypeShape(false, parameters, "");
+}
+
 func SemanticAstSignatureFunctionTypeClose(
     text: String
 ) -> Option<Int> {
@@ -41,7 +46,7 @@ func SemanticAstCallableTypeShapeFromName(
     let close_opt: Option<Int> =
         SemanticAstSignatureFunctionTypeClose(text);
     if !IsSome(close_opt) {
-        return SemanticAstCallableTypeShape(false, parameters, "");
+        return SemanticAstCallableTypeShapeInvalid();
     }
     let close: Int = UnwrapOption(close_opt);
     let arrow: Int = close + 1;
@@ -52,13 +57,13 @@ func SemanticAstCallableTypeShapeFromName(
     }
     if arrow + 2 > n || CharAt(text, arrow) != "-" ||
         CharAt(text, arrow + 1) != ">" {
-        return SemanticAstCallableTypeShape(false, parameters, "");
+        return SemanticAstCallableTypeShapeInvalid();
     }
     let return_type: String = SemanticTrimSourceRangeReuse(
         text, arrow + 2, n
     );
     if return_type == "" {
-        return SemanticAstCallableTypeShape(false, parameters, "");
+        return SemanticAstCallableTypeShapeInvalid();
     }
     let parameter_text: String = Substring(text, 5, close - 5);
     if SemanticTrimSourceReuse(parameter_text) != "" {
@@ -70,13 +75,14 @@ func SemanticAstCallableTypeShapeFromName(
                 SemanticDelimitedRangeText(ranges, parameter_text, i)
             );
             if parameter_type == "" {
-                return SemanticAstCallableTypeShape(false, parameters, "");
+                return SemanticAstCallableTypeShapeInvalid();
             }
-            ArrayPush(parameters, parameter_type);
+            ArrayPushOwnedString(parameters, Concat("", parameter_type));
             i = i + 1;
         }
     }
-    return SemanticAstCallableTypeShape(true, parameters, return_type);
+    return SemanticAstCallableTypeShape(
+        true, parameters, Concat("", return_type));
 }
 
 func SemanticAstCallableTypeParameterSignature(

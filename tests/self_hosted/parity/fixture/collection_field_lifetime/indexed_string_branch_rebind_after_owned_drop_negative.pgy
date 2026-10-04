@@ -1,0 +1,12 @@
+func Observe(replace: Bool) -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "owned-value");
+    let borrowed: String = values[0];
+    if replace { borrowed = "replacement"; }
+    ArrayDropOwnedStrings(values);
+    Log(borrowed);
+}
+
+func Main() -> Void {
+    Observe(false);
+}

@@ -4387,7 +4387,7 @@ for owner in \
     "src/compiler/mir_source_local_expr_binding_facts.c" \
     "src/compiler/mir_source_local_expr_call_facts.c" \
     "src/compiler/mir_source_local_expr_types.c"; do
-    owner_lines="$(wc -l < "$ROOT_DIR/$owner")"
+    owner_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$owner")" || fail "source-size measurement failed"
     if (( owner_lines >= 600 )); then
         fail "$owner is ${owner_lines} LOC; source-local type owners must stay below 600"
     fi

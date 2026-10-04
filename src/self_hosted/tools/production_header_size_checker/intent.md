@@ -2,7 +2,9 @@
 
 **Status:** *rung-2 DirWalk-owned* (2026-07-06). Enumerates production header
 paths through `DirWalk("src")`, filters the same six owner prefixes as
-`tests/production_header_size_smoke.sh`, reads each file, counts newlines, and
+`tests/production_header_size_smoke.sh`, reads each file, counts LF records
+minus nonblank lexical comment-only records (including an unterminated final
+record), and
 asserts <= 600 LOC per the BDFL split-review threshold. Reports any over-cap
 headers in `findings[]`.
 
@@ -67,7 +69,8 @@ The parity rung (`tests/self_hosted/parity/`) asserts:
 - Emitted JSON byte-matches `expected/clean.json` with `max_lines` normalized
   to avoid fixture churn on ordinary line-count drift.
 - A synthetic over-cap fixture (a 701-line `.h` under `src/runtime`) yields
-  `rc=1` and byte-matches `expected/over_cap.json`.
+  `rc=1` and byte-matches `expected/over_cap.json`. Its records contain code,
+  not comments; comment-only volume must not create an over-cap verdict.
 - Both C and LLVM legs compile the same self-hosted checker.
 
 If clean inventory semantics drift, update the committed expected artifact or
@@ -86,4 +89,4 @@ a realistic scale.
 
 - Auto-fix / suggested split points.
 - `.c` file size gating (different threshold, different review process).
-- Whitespace-stripped LOC counting (raw newline count is the gate).
+- Whitespace-stripped LOC counting (blank records still count).

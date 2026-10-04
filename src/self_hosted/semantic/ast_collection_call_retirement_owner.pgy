@@ -49,3 +49,21 @@ func SemanticAstCollectionMutationMayBeRetired(
     }
     return SemanticAstCollectionMutableCallMayBeRetired(artifact, syntax_id, bound);
 }
+
+// A proved shallow mutation owns its exact straight-line event. It invalidates
+// sibling descriptors after that event, but must not reject the mutation call
+// merely because the precomputed bound includes the call itself. A repeated or
+// reordered site has bound zero and cannot claim this exception.
+func SemanticAstCollectionShallowMutationHasPriorEffect(
+    artifact: AstTreeArtifact, syntax_id: Int,
+    first_retiring_site: Int, first_non_deep_site: Int
+) -> Bool {
+    let current_site: Int = SemanticAstCollectionCallRetirementSite(
+        artifact, syntax_id);
+    let bound: Int = first_non_deep_site;
+    if current_site == 0 {
+        return first_retiring_site >= 0 || first_non_deep_site >= 0;
+    }
+    if bound < 0 { return false; }
+    return bound < current_site;
+}

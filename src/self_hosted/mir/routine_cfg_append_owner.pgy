@@ -166,11 +166,12 @@ func SelfMirAppendCfg(
         instruction_offset
     );
     let destructure_facts: SelfMirDestructureFactRows =
-        SelfMirDestructureFactRowsAppend(
-            target.instructions.destructure_facts,
-            source.instructions.destructure_facts,
-            instruction_offset
-        );
+        target.instructions.destructure_facts;
+    SelfMirDestructureFactRowsAppend(
+        destructure_facts,
+        source.instructions.destructure_facts,
+        instruction_offset
+    );
     return SelfMirCfgRows(
         SelfMirBlockRows(
             block_ids, reachable, instruction_starts, instruction_counts,

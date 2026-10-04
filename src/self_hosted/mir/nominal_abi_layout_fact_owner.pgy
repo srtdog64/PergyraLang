@@ -4,7 +4,7 @@
 // ordered fields with the admitted MIR scalar target policy exactly once;
 // JSON and backends only consume the resulting receipt.
 
-import "../mir_lower/abi_layout_fact_owner.pgy";
+import "nominal_abi_layout_identity_owner.pgy";
 import "../compiler/abi_layout_target_policy_owner.pgy";
 
 struct SelfMirNominalAbiLayoutRows {
@@ -43,12 +43,17 @@ func SelfMirNominalAlignUp(value: Int, align: Int) -> Int {
 }
 
 func SelfMirNominalUniqueStructIndex(
-    ref names: Array<String>, ref nominal_kinds: Array<String>, name: String
+    ref names: Array<String>, ref nominal_kinds: Array<String>,
+    ref candidate_names: Array<String>, candidate_row: Int
 ) -> Option<Int> {
+    if candidate_row < 0 || candidate_row >= ArrayLength(candidate_names) {
+        return None;
+    }
     let found: Int = 0 - 1;
     let row: Int = 0;
     while row < ArrayLength(names) {
-        if nominal_kinds[row] == "struct" && names[row] == name {
+        if nominal_kinds[row] == "struct" &&
+            names[row] == candidate_names[candidate_row] {
             if found >= 0 { return None; }
             found = row;
         }
@@ -59,15 +64,20 @@ func SelfMirNominalUniqueStructIndex(
 }
 
 func SelfMirNominalFieldLayoutForType(
-    type_name: String, names: Array<String>, nominal_kinds: Array<String>,
-    required: Array<Int>, layout_ids: Array<Int>,
-    layout_sizes: Array<Int>, layout_aligns: Array<Int>
+    ref type_names: Array<String>, type_row: Int,
+    ref names: Array<String>, ref nominal_kinds: Array<String>,
+    ref required: Array<Int>, ref layout_ids: Array<Int>,
+    ref layout_sizes: Array<Int>, ref layout_aligns: Array<Int>
 ) -> SelfMirNominalFieldLayout {
-    if CompilerAbiLayoutTargetPolicyReady() && type_name == "Int" {
+    if type_row < 0 || type_row >= ArrayLength(type_names) {
+        return SelfMirNominalFieldLayout(false, 0, 0);
+    }
+    if CompilerAbiLayoutTargetPolicyReady() &&
+        type_names[type_row] == "Int" {
         return SelfMirNominalFieldLayout(true, 4, 4);
     }
     let declaration_index: Option<Int> = SelfMirNominalUniqueStructIndex(
-        names, nominal_kinds, type_name
+        names, nominal_kinds, type_names, type_row
     );
     if !IsSome(declaration_index) {
         return SelfMirNominalFieldLayout(false, 0, 0);
@@ -82,39 +92,11 @@ func SelfMirNominalFieldLayoutForType(
     );
 }
 
-func SelfMirNominalAbiLayoutId(
-    type_name: String, size: Int, align: Int,
-    field_names: Array<String>, field_offsets: Array<Int>,
-    field_sizes: Array<Int>, field_aligns: Array<Int>
-) -> Int {
-    let hash: Long = 60621699L;
-    hash = MirAbiLayoutHashString(hash, type_name);
-    hash = MirAbiLayoutHashU32(hash, size as Long);
-    hash = MirAbiLayoutHashU32(hash, align as Long);
-    hash = MirAbiLayoutHashU32(hash, ArrayLength(field_names) as Long);
-    let row: Int = 0;
-    while row < ArrayLength(field_names) {
-        hash = MirAbiLayoutHashString(hash, field_names[row]);
-        hash = MirAbiLayoutHashU32(hash, field_offsets[row] as Long);
-        hash = MirAbiLayoutHashU32(hash, field_sizes[row] as Long);
-        hash = MirAbiLayoutHashU32(hash, field_aligns[row] as Long);
-        row = row + 1;
-    }
-    hash = MirAbiLayoutHashString(hash, "");
-    hash = MirAbiLayoutHashString(hash, "");
-    hash = MirAbiLayoutHashU32(hash, 0L);
-    hash = MirAbiLayoutHashString(hash, "");
-    hash = MirAbiLayoutHashU32(hash, 0L);
-    hash = MirAbiLayoutHashU32(hash, 0L);
-    hash = MirAbiLayoutHashString(hash, "");
-    return (536870912L + (hash % MirAbiLayoutModulus())) as Int;
-}
-
 func SelfMirNominalAbiLayoutsCapture(
-    names: Array<String>, nominal_kinds: Array<String>,
-    field_starts: Array<Int>, field_counts: Array<Int>,
-    field_names: Array<String>, field_kinds: Array<String>,
-    field_types: Array<String>
+    ref names: Array<String>, ref nominal_kinds: Array<String>,
+    ref field_starts: Array<Int>, ref field_counts: Array<Int>,
+    ref field_names: Array<String>, ref field_kinds: Array<String>,
+    ref field_types: Array<String>
 ) -> SelfMirNominalAbiLayoutRows {
     let layouts: SelfMirNominalAbiLayoutRows =
         SelfMirNominalAbiLayoutRowsEmpty();
@@ -133,7 +115,7 @@ func SelfMirNominalAbiLayoutsCapture(
     let layout_aligns: Array<Int> = layouts.aligns;
     let layout_field_starts: Array<Int> = layouts.field_starts;
     let layout_field_counts: Array<Int> = layouts.field_counts;
-    let layout_field_names: Array<String> = layouts.field_names;
+    let layout_field_names: Array<String> = [];
     let layout_field_offsets: Array<Int> = layouts.field_offsets;
     let layout_field_sizes: Array<Int> = layouts.field_sizes;
     let layout_field_aligns: Array<Int> = layouts.field_aligns;
@@ -170,7 +152,7 @@ func SelfMirNominalAbiLayoutsCapture(
                 let field_row: Int = start + field_i;
                 let physical: SelfMirNominalFieldLayout =
                     SelfMirNominalFieldLayoutForType(
-                        field_types[field_row], names, nominal_kinds,
+                        field_types, field_row, names, nominal_kinds,
                         required, layout_ids, layout_sizes, layout_aligns
                     );
                 if field_kinds[field_row] != "field" ||
@@ -194,15 +176,9 @@ func SelfMirNominalAbiLayoutsCapture(
             }
             let total_size: Int = SelfMirNominalAlignUp(cursor, max_align);
             if complete && total_size > 0 {
-                let owned_names: Array<String> = [];
-                field_i = 0;
-                while field_i < count {
-                    ArrayPush(owned_names, field_names[start + field_i]);
-                    field_i = field_i + 1;
-                }
                 let layout_id: Int = SelfMirNominalAbiLayoutId(
-                    names[row], total_size, max_align,
-                    owned_names, offsets, sizes, aligns
+                    names, row, total_size, max_align,
+                    field_names, offsets, sizes, aligns, start, count
                 );
                 if layout_id > 0 {
                     ArraySet(required, row, 1);
@@ -216,7 +192,9 @@ func SelfMirNominalAbiLayoutsCapture(
                     ArraySet(layout_field_counts, row, count);
                     field_i = 0;
                     while field_i < count {
-                        ArrayPush(layout_field_names, owned_names[field_i]);
+                        ArrayPushOwnedString(
+                            layout_field_names,
+                            Concat("", field_names[start + field_i]));
                         ArrayPush(layout_field_offsets, offsets[field_i]);
                         ArrayPush(layout_field_sizes, sizes[field_i]);
                         ArrayPush(layout_field_aligns, aligns[field_i]);

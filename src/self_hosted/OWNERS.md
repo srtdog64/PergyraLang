@@ -353,8 +353,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   codegen, and direct-MIR consumers share this exact first-order view.
 - `src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy` --
   one flat parameter/return type-expression arena captured with signature
-  rows; generic call consumers unify and materialize nodes without reparsing
-  source text.
+  rows; generic consumers render arena nodes without reparsing source text.
+- `src/self_hosted/semantic/ast_signature_type_binding_owner.pgy` -- immutable
+  generic-formal binding updates, conflict detection, scratch-arena retirement,
+  and one owned materialization in declaration order.
 - `src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy` -- reverse
   artifact validation for signature rows; production and query ownership stays
   in the signature fact owner.
@@ -550,8 +552,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- capability, arity, operand, and argument-type verdicts for graph-owned
   scalar trees composed from leaves, operators, and concrete direct calls.
 - `src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy` --
-  canonical nominal type, field-name, and value-handle projection over
-  parser-owned struct literal spines; semantic and codegen share this view.
+  canonical nominal type plus numeric field-name/value handle projection over
+  parser-owned struct literal spines. The view owns no copied String or array
+  payload; semantic and codegen query the graph through those stable handles.
 - `src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy`
   -- nominal constructor field/cardinality/type verdicts over that graph view.
 - `src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy` --
@@ -588,6 +591,18 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   stable local-binding ownership and disposition facts for `Array<String>`
   elements at call boundaries. It consumes the admitted expression graph and
   forbids MIR or backend inference from projected collection type spelling.
+- `src/self_hosted/semantic/ast_collection_indexed_string_borrow_owner.pgy` --
+  exact storage-source liveness for a `String` borrowed through an
+  `Array<String>` index. Deep release invalidates aliases joined to that source;
+  a copied String has no such relation, and names or raw addresses are not
+  lifetime authority.
+- `src/self_hosted/semantic/ast_collection_indexed_string_borrow_source_policy_owner.pgy`
+  -- the may-alias lattice for indexed-String sources. It keeps exact storage
+  SyntaxIds when proved, joins conflicting or unresolved sources to a
+  fail-closed sentinel, and admits only named owned-copy builtins as independent.
+- `src/self_hosted/semantic/ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy`
+  -- compiler-internal last-consumer retirement for the indexed-String analysis
+  scalar scratch arrays after their aggregate fields have been replaced.
 - `src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy` --
   builtin element poststate, exact base-call diagnostics and receipts at the
   evaluated terminal spine, after physical argument admission. It does not
@@ -621,7 +636,25 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_collection_formal_use_owner.pgy` -- exact
   physical use-edge classification consumed by the formal-effect fixed point.
   Indexed String elements may reach only primitive equality or a canonical
-  synchronous non-retaining builtin argument; unknown calls remain blocked.
+  synchronous non-retaining builtin argument; unknown calls and cross-storage
+  borrowed-element stores remain blocked until an owned transfer exists.
+- `src/self_hosted/semantic/ast_collection_formal_effect_fact_owner.pgy` --
+  canonical body-owned formal-effect carrier and its empty admission value.
+- `src/self_hosted/semantic/ast_collection_formal_statement_effect_owner.pgy`
+  -- exact parser-statement mutation effects attached to admitted formals.
+- `src/self_hosted/semantic/ast_collection_formal_effect_admission_owner.pgy`
+  -- fail-closed public admission wrapper over ready identity projections.
+- `src/self_hosted/semantic/ast_collection_formal_effect_fixed_point_owner.pgy`
+  -- single reverse-adjacency lifetime and ordered acyclic/recursive phases.
+- `src/self_hosted/semantic/ast_collection_formal_effect_graph_owner.pgy` --
+  acyclic target-to-source effect propagation with transactional seed checks.
+- `src/self_hosted/semantic/ast_collection_formal_effect_closure_owner.pgy` --
+  recursive flag and unresolved-branch worklists. A component inherits effects
+  only when every reachable dependency is grounded by a proved sink; a
+  sinkless or partially grounded branch remains absent from the effect map.
+- `src/self_hosted/semantic/ast_collection_formal_effect_readiness_owner.pgy`
+  -- exact retained-carrier identity validation and compact receipt facts;
+  it does not rescan the expression graph that produced the effects.
 - `src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy` -- narrow
   body-derived metadata, live indexed-read or Live {Empty, Owned} effects.
   Unproved forwarding cycles grant nothing; formal forwarding needs its exact
@@ -660,7 +693,9 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   -- monotone current-definition effect closure. Known storage escape remains
   distinct from opaque-call Unknown/retirement: readonly indexed effects retain
   known Live element facts, while own, release and descriptor mutation consumers
-  refuse the escape bound. No prior alias edge crosses a fresh definition.
+  refuse the escape bound. Only an exact same-scope shallow-alias definition may
+  preserve a borrowed assignment's event site; child-block assignments remain
+  unproved. No prior alias edge crosses a fresh definition.
 - `src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy`
   -- one physical argument edge's constructor escape, opaque entry and
   retirement classification, shared by locals and exact own formals. It records
@@ -677,8 +712,15 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   Scoped local resolution owns declaration identity; ordinary local leaves do
   not yet carry declaration IDs in the expression identity protocol. Formal
   transfers consume exact carried parameter ID/ordinal and keep elements Unknown.
-  Child-block definitions have no dominance/join proof and grant no freshness.
+  The fact records shallow-alias admission separately from borrowed storage:
+  only a same-scope exact local or non-own-formal RHS is admitted. Child-block
+  definitions have no dominance/join proof and grant no freshness or mutation.
   A missing String-array Let Value root fails closed before any fresh grant.
+- `src/self_hosted/semantic/ast_collection_definition_fact_owner.pgy` --
+  canonical definition-row schema; consumers may not recreate its field order.
+- `src/self_hosted/semantic/ast_collection_definition_query_owner.pgy` --
+  exact current-definition, completion and shallow-alias queries over that
+  schema, without creating storage or element permission.
 - `src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy`
   -- per-definition borrowed storage authority from the strict formal fact and
   exact local Let source. Independent seeds of one exact formal share a storage
@@ -700,10 +742,19 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   mode never grants Empty/Clone elements or reuses a previous definition's bound.
   Borrowed Let handoffs are non-consuming and carry no element-release grant.
 - `src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy`
-  -- reached argument events consume own storage/element admission separately
-  from conditional copy/indexed-read entry and caller output. A proved copy
+  -- resolves one reached physical argument, binding and storage source before
+  delegating only its selected formal effect.
+- `src/self_hosted/semantic/ast_collection_call_argument_effect_verdict_owner.pgy`
+  -- conditional copy/indexed-read and shallow-mutation entry policy. A proved copy
   carries scratch Live {Empty, Owned}, never a fabricated push receipt,
-  type-based grant or aggregate release certificate.
+  type-based grant or aggregate release certificate. Shallow mutation consumes
+  the current definition's explicit alias-admission and storage facts; borrowed
+  storage alone is not a scope or dominance proof.
+- `src/self_hosted/semantic/ast_collection_read_literal_argument_owner.pgy`
+  -- exact effect-3 inline `Array<String>` read admission. Static String
+  literals or exact allocated single-consumer element roots may reach the
+  synchronous last consumer; literal topology and borrowed indexed elements
+  grant nothing.
 - `src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy` --
   conservative typed syntax-order bounds for mutable-call entry, including
   nested argument consumption, branch/loop retirement and deferred execution.
@@ -876,8 +927,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   body-type bundle record and fail-closed admission-error construction; it
   neither assembles body facts nor re-derives collection ownership.
 - `src/self_hosted/semantic/ast_body_type_bundle_owner.pgy` -- canonical
-  one-pass assembly of initializer, iteration, assignment, and statement type
-  facts consumed by driver and codegen projections.
+  public admitted/deep-analysis entrypoints and the canonical Ready predicate.
+- `src/self_hosted/semantic/ast_body_type_bundle_assembly_owner.pgy` --
+  one-pass graph-wide assembly of initializer, iteration, assignment,
+  statement, formal-effect and collection facts consumed by those entrypoints.
 - `src/self_hosted/semantic/ast_intent_boundary_predicate_admission_owner.pgy`
   -- Bool pre/invariant admission in the pre-outcome environment, including
   explicit refusal where the typed-enum plan lacks predicate-failure edges.
@@ -894,6 +947,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   graph-wide body-type readiness admission performed once at the driver seam;
   downstream codegen consumes its fixed-size receipt instead of revalidating
   the cumulative semantic bundle.
+- `src/self_hosted/semantic/ast_body_type_bundle_admission_receipt_schema_owner.pgy`
+  -- versioned fixed-size admission receipt field order and schema identity.
 - `src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy` --
   body-fixpoint resolution of canonical expression call-target rows.
 - `src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy` --
@@ -2018,6 +2073,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   ABI layout rows and stable-identity validation. Integer token materialization
   delegates to the exact-bounded JSON integer owner and never remeasures the
   complete MIR document.
+- `src/self_hosted/mir/nominal_abi_layout_identity_owner.pgy` -- stable nominal
+  layout identity over exact declaration and field index ranges. Indexed String
+  rows stay borrowed through canonical synchronous String observers; no scalar
+  element pointer or reconstructed name becomes authority.
 - `src/self_hosted/mir_lower/routine_inventory_owner.pgy` -- routine inventory
   facts. Parameter source identities must be either complete and unique or
   entirely absent; partial carriage fails closed. This MIR-to-AST breadth owner

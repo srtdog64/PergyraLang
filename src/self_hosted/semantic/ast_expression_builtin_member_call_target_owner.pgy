@@ -4,48 +4,51 @@ import "builtin_signature_owner.pgy";
 
 func SemanticExpressionBuiltinMemberCallTargetExpected(
     ref graph: SemanticExpressionGraphFacts,
-    ref callable_names: Array<String>,
+    ref function_tables: SemanticAstExpressionFunctionTableFacts,
     call_node: Int,
     callee_node: Int
-) -> Option<SemanticExpressionCallTargetFact> {
-    let builtin: Option<Int> = SemanticCallableIndex(
-        callable_names, graph.arena.call_target_names[call_node]
-    );
+) -> SemanticExpressionCallTargetFact {
+    let builtin: Option<Int> =
+        SemanticAstExpressionFunctionTableCallableIndex(
+            function_tables,
+            graph.arena.call_target_names[call_node]);
     let member: SemanticMemberAccessView =
         SemanticMemberAccessViewFromGraph(graph, callee_node);
-    if !IsSome(builtin) || !member.ok { return None; }
+    if !IsSome(builtin) || !member.ok {
+        return SemanticExpressionCallTargetFact(
+            false, SemanticCallTargetMember(), "", 1);
+    }
     let source_member_name: Option<String> =
         SemanticExpressionGraphNodeText(graph, member.member_node);
-    let builtin_name: String = callable_names[UnwrapOption(builtin)];
     if !IsSome(source_member_name) ||
         graph.arena.identities.call_target_syntax_ids[call_node] != 0 ||
+        function_tables.names[UnwrapOption(builtin)] != "Array_Slice" ||
         !SemanticBuiltinMemberCallableMatches(
-            builtin_name, UnwrapOption(source_member_name)
-        ) {
-        return None;
+            "Array_Slice", UnwrapOption(source_member_name)) {
+        return SemanticExpressionCallTargetFact(
+            false, SemanticCallTargetMember(), "", 1);
     }
-    return Some(SemanticExpressionCallTargetFact(
-        true, SemanticCallTargetMember(), builtin_name, 1
-    ));
+    return SemanticExpressionCallTargetFact(
+        true, SemanticCallTargetMember(), "Array_Slice", 1
+    );
 }
 
-func SemanticExpressionCarriedMemberCallTargetExpected(
+func SemanticExpressionBuiltinMemberCallTargetReady(
     ref graph: SemanticExpressionGraphFacts,
-    ref callable_names: Array<String>,
-    member_names: Array<String>,
-    call_node: Int,
-    callee_node: Int
-) -> Option<SemanticExpressionCallTargetFact> {
-    let carried: Option<Int> = SemanticCallableIndex(
-        member_names, graph.arena.call_target_names[call_node]
-    );
-    if IsSome(carried) {
-        return Some(SemanticExpressionCallTargetFact(
-            true, SemanticCallTargetMember(),
-            member_names[UnwrapOption(carried)], 1
-        ));
+    ref function_tables: SemanticAstExpressionFunctionTableFacts,
+    call_node: Int
+) -> Bool {
+    let call: SemanticCallSpineView =
+        SemanticCallSpineViewFromGraph(graph, call_node);
+    if !call.ok || call.call_node != call_node ||
+        graph.arena.call_target_kinds[call_node] !=
+            SemanticCallTargetMember() {
+        return false;
     }
-    return SemanticExpressionBuiltinMemberCallTargetExpected(
-        graph, callable_names, call_node, callee_node
-    );
+    let builtin: SemanticExpressionCallTargetFact =
+        SemanticExpressionBuiltinMemberCallTargetExpected(
+            graph, function_tables, call_node, call.callee_node);
+    return builtin.ok && builtin.kind == SemanticCallTargetMember() &&
+        builtin.parameter_offset == 1 &&
+        graph.arena.call_target_names[call_node] == builtin.name;
 }

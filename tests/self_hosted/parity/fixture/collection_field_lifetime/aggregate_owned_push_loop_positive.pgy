@@ -1,0 +1,21 @@
+struct Rows { values: Array<String>; }
+func Append(inout rows: Rows, ref inputs: Array<String>) -> Void {
+    let values: Array<String> = rows.values;
+    let i: Int = 0;
+    while i < ArrayLength(inputs) {
+        ArrayPushOwnedString(values, inputs[i]);
+        i = i + 1;
+    }
+    rows.values = values;
+}
+func Retire(inout rows: Rows) -> Void {
+    let values: Array<String> = rows.values;
+    ArrayDropOwnedStrings(values);
+    rows.values = values;
+}
+func Main() -> Void {
+    let rows: Rows = Rows([]);
+    let inputs: Array<String> = ["x", "y"];
+    Append(rows, inputs);
+    Retire(rows);
+}

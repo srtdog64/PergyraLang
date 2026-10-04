@@ -26,7 +26,7 @@ large_impl_headers="$(
     cd "$ROOT_DIR"
     find src -name '*.h' -type f \
         ! -path 'src/tests/*' \
-        -exec wc -l {} + \
+        -print0 | python3 "$ROOT_DIR/scripts/source_size_count.py" --paths0 --rows \
         | awk '$2 != "total" && $1 > 600 { print }'
 )"
 if [ -n "$large_impl_headers" ]; then

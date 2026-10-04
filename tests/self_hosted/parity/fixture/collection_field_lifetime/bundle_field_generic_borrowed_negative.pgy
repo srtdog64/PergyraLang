@@ -1,0 +1,15 @@
+// Compile-only negative: a nominal-bound type is not a lifetime witness.
+// Never execute this program.
+struct Bundle { value: Array<String>; }
+
+func Consume<T>(bundle: T) -> Void where T: Bundle {
+    let value: Array<String> = bundle.value;
+    ArrayDropOwnedStrings(value);
+}
+
+func Main() -> Void {
+    let value: Array<String> = [];
+    ArrayPush(value, "borrowed");
+    let bundle: Bundle = Bundle(value);
+    Consume(bundle);
+}

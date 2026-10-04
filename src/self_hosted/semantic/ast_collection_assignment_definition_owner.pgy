@@ -5,22 +5,7 @@ import "ast_collection_owned_parameter_identity_owner.pgy";
 import "ast_collection_ownership_state_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_assignment_type_fact_owner.pgy";
-
-struct SemanticAstCollectionDefinitionFacts {
-    ok: Bool;
-    local_count: Int;
-    syntax_ids: Array<Int>;
-    binding_rows: Array<Int>;
-    surface_rows: Array<Int>;
-    target_nodes: Array<Int>;
-    value_nodes: Array<Int>;
-    own_sources: Array<Int>;
-    local_sources: Array<Int>;
-    origins: Array<Int>;
-    ownerships: Array<Int>;
-    transitions: Array<Int>;
-    fresh: Array<Bool>;
-}
+import "ast_collection_definition_query_owner.pgy";
 
 func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
@@ -30,9 +15,10 @@ func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
 ) -> SemanticAstCollectionDefinitionFacts {
     let ints: Array<Int> = [];
     let flags: Array<Bool> = [];
+    let alias_flags: Array<Bool> = [];
     let facts: SemanticAstCollectionDefinitionFacts = SemanticAstCollectionDefinitionFacts(
         false, ArrayLength(locals.node_ids), ints, ints, ints, ints, ints, ints,
-        ints, ints, ints, ints, flags);
+        ints, ints, ints, ints, flags, alias_flags);
     let n: Int = ArrayLength(assignments.node_ids);
     if !assignments.ok || !types.ok || !SemanticAstLocalBindingIdentityRowsReady(locals, inferred_types) ||
         ArrayLength(locals.scope_node_ids) != facts.local_count ||
@@ -47,10 +33,16 @@ func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
         let value_node: Int = -1;
         let own_source: Int = 0;
         let local_source: Int = -1;
+        let borrowed_formal_source: Bool = false;
         if SemanticAstCollectionOwnershipIsStringArray(inferred_types[row]) && !IsSome(value) { return facts; }
         if IsSome(value) && SemanticAstCollectionOwnershipIsStringArray(inferred_types[row]) {
             value_node = UnwrapOption(value);
             own_source = SemanticAstCollectionOwnStringArrayFormalNode(signatures, locals.function_node_ids[row], surfaces.expression_graph, value_node);
+            let formal: SemanticAstCollectionFormalStorageIdentity =
+                SemanticAstCollectionStringArrayFormalIdentity(
+                    signatures, locals.function_node_ids[row],
+                    surfaces.expression_graph, value_node);
+            borrowed_formal_source = formal.ok && formal.mode != 2;
             let source: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
                 artifact, locals, inferred_types, locals.function_node_ids[row], locals.node_ids[row], surfaces.expression_graph, value_node);
             if source.ok { local_source = source.row; }
@@ -61,6 +53,8 @@ func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
         ArrayPush(facts.origins, SemanticAstCollectionOriginUnknown());
         ArrayPush(facts.ownerships, SemanticAstCollectionOwnershipUnknown());
         ArrayPush(facts.transitions, SemanticAstCollectionTransitionUntracked()); ArrayPush(facts.fresh, true);
+        ArrayPush(facts.shallow_alias_admitted,
+            local_source >= 0 || borrowed_formal_source);
         row = row + 1;
     }
     row = 0;
@@ -99,6 +93,16 @@ func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
         let source: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
             artifact, locals, inferred_types, assignments.function_node_ids[row], assignments.node_ids[row], surfaces.expression_graph, value_node);
         if source.ok && SemanticAstLocalBindingIdentityEqual(source, binding) { row = row + 1; continue; }
+        let local_source: Int = -1;
+        if source.ok { local_source = source.row; }
+        let formal_source: SemanticAstCollectionFormalStorageIdentity =
+            SemanticAstCollectionStringArrayFormalIdentity(
+                signatures, assignments.function_node_ids[row],
+                surfaces.expression_graph, value_node);
+        let same_scope: Bool = assignments.scope_node_ids[row] ==
+            locals.scope_node_ids[binding.row];
+        let shallow_alias_admitted: Bool = same_scope &&
+            (source.ok || (formal_source.ok && formal_source.mode != 2));
         let own_source: Int = SemanticAstCollectionOwnStringArrayFormalNode(signatures,
             assignments.function_node_ids[row], surfaces.expression_graph, value_node);
         let origin: Int = SemanticAstCollectionOriginUnknown();
@@ -119,36 +123,12 @@ func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
         facts.surface_rows[UnwrapOption(surface)] = ArrayLength(facts.syntax_ids);
         ArrayPush(facts.syntax_ids, assignments.node_ids[row]); ArrayPush(facts.binding_rows, binding.row);
         ArrayPush(facts.target_nodes, target_node); ArrayPush(facts.value_nodes, value_node);
-        ArrayPush(facts.own_sources, own_source); ArrayPush(facts.local_sources, -1);
+        ArrayPush(facts.own_sources, own_source); ArrayPush(facts.local_sources, local_source);
         ArrayPush(facts.origins, origin); ArrayPush(facts.ownerships, state);
         ArrayPush(facts.transitions, transition); ArrayPush(facts.fresh, fresh);
+        ArrayPush(facts.shallow_alias_admitted, shallow_alias_admitted);
         row = row + 1;
     }
     facts.ok = true;
     return facts;
-}
-
-func SemanticAstCollectionInitialDefinitions(ref facts: SemanticAstCollectionDefinitionFacts) -> Array<Int> {
-    let current: Array<Int> = [];
-    let row: Int = 0;
-    while row < facts.local_count { ArrayPush(current, row); row = row + 1; }
-    return current;
-}
-
-func SemanticAstCollectionDefinitionWriteTarget(ref facts: SemanticAstCollectionDefinitionFacts, slot: Int, node: Int) -> Bool {
-    if slot % 3 != AstExpressionLaneAtom() { return false; }
-    let definition: Int = facts.surface_rows[slot / 3];
-    return definition >= facts.local_count && facts.target_nodes[definition] == node;
-}
-
-func SemanticAstCollectionDefinitionCompletedAtSlot(
-    ref facts: SemanticAstCollectionDefinitionFacts, ref locals: SemanticAstLocalBindingFacts,
-    ref surfaces: SemanticAstExpressionSurfaceFacts, slot: Int
-) -> Int {
-    if slot % 3 != AstExpressionLaneValue() { return -1; }
-    let assigned: Int = facts.surface_rows[slot / 3];
-    if assigned >= facts.local_count { return assigned; }
-    let declared: Option<Int> = SemanticAstLocalBindingIndexForNode(locals, surfaces.node_ids[slot / 3]);
-    if IsSome(declared) { return UnwrapOption(declared); }
-    return -1;
 }

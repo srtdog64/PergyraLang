@@ -9,7 +9,7 @@ struct SemanticBuiltinArgumentRetentionRow {
     any_argument: Bool;
 }
 
-func SemanticBuiltinArgumentRetentionCount() -> Int { return 9; }
+func SemanticBuiltinArgumentRetentionCount() -> Int { return 11; }
 
 func SemanticBuiltinArgumentRetentionRowAt(index: Int) -> SemanticBuiltinArgumentRetentionRow {
     if index == 0 { return SemanticBuiltinArgumentRetentionRow(true, "PRINT", "Print", 0, false); }
@@ -21,6 +21,8 @@ func SemanticBuiltinArgumentRetentionRowAt(index: Int) -> SemanticBuiltinArgumen
     if index == 6 { return SemanticBuiltinArgumentRetentionRow(true, "STRING_LENGTH", "StringLength", 0, false); }
     if index == 7 { return SemanticBuiltinArgumentRetentionRow(true, "CHAR_CODE", "CharCode", 0, false); }
     if index == 8 { return SemanticBuiltinArgumentRetentionRow(true, "CONCAT", "Concat", -1, true); }
+    if index == 9 { return SemanticBuiltinArgumentRetentionRow(true, "TEXT_BUILDER_APPEND", "TextBuilderAppend", 1, false); }
+    if index == 10 { return SemanticBuiltinArgumentRetentionRow(true, "ARRAY_PUSH_OWNED_STRING", "ArrayPushOwnedString", 1, false); }
     return SemanticBuiltinArgumentRetentionRow(false, "", "", -1, false);
 }
 
@@ -105,6 +107,10 @@ func SemanticBuiltinArgumentRetentionProjectionReady() -> Bool {
         !SemanticBuiltinArgumentBorrowedForIdentity("CHAR_CODE", 1) &&
         SemanticBuiltinArgumentBorrowedForIdentity("CONCAT", 0) &&
         SemanticBuiltinArgumentBorrowedForIdentity("CONCAT", 1) &&
+        SemanticBuiltinArgumentBorrowedForIdentity("TEXT_BUILDER_APPEND", 1) &&
+        !SemanticBuiltinArgumentBorrowedForIdentity("TEXT_BUILDER_APPEND", 0) &&
+        SemanticBuiltinArgumentBorrowedForIdentity("ARRAY_PUSH_OWNED_STRING", 1) &&
+        !SemanticBuiltinArgumentBorrowedForIdentity("ARRAY_PUSH_OWNED_STRING", 0) &&
         !SemanticBuiltinArgumentBorrowedForIdentity("StringLength", 0) &&
         SemanticBuiltinArgumentBorrowedForCall("CompilerArtifactWrite", 1) &&
         !SemanticBuiltinArgumentBorrowedForCall("CompilerArtifactWrite", 0) &&

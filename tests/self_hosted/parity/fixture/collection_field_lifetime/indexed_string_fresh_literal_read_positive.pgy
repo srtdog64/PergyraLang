@@ -1,0 +1,7 @@
+func FirstMatches(values: Array<String>) -> Bool {
+    return values[0] == "fresh";
+}
+
+func Main() -> Void {
+    Log(FirstMatches(["fresh"]));
+}

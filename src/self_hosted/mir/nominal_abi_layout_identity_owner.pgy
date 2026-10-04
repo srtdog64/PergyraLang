@@ -1,0 +1,56 @@
+// Stable nominal layout identity over indexed declaration rows.
+
+import "../mir_lower/abi_layout_fact_owner.pgy";
+
+func SelfMirNominalHashStringAt(
+    hash: Long, ref values: Array<String>, row: Int
+) -> Long {
+    let out: Long = hash;
+    let i: Int = 0;
+    let length: Int = StringLength(values[row]);
+    while i < length {
+        out = MirAbiLayoutHashByte(
+            out, CharCode(values[row], length, i) as Long);
+        i = i + 1;
+    }
+    return MirAbiLayoutHashByte(out, 255L);
+}
+
+func SelfMirNominalAbiLayoutId(
+    ref type_names: Array<String>, type_row: Int,
+    size: Int, align: Int,
+    ref field_names: Array<String>, ref field_offsets: Array<Int>,
+    ref field_sizes: Array<Int>, ref field_aligns: Array<Int>,
+    field_start: Int, field_count: Int
+) -> Int {
+    if type_row < 0 || type_row >= ArrayLength(type_names) ||
+        field_start < 0 || field_count < 0 ||
+        field_start + field_count > ArrayLength(field_names) ||
+        ArrayLength(field_offsets) != field_count ||
+        ArrayLength(field_sizes) != field_count ||
+        ArrayLength(field_aligns) != field_count {
+        return 0;
+    }
+    let hash: Long = 60621699L;
+    hash = SelfMirNominalHashStringAt(hash, type_names, type_row);
+    hash = MirAbiLayoutHashU32(hash, size as Long);
+    hash = MirAbiLayoutHashU32(hash, align as Long);
+    hash = MirAbiLayoutHashU32(hash, field_count as Long);
+    let row: Int = 0;
+    while row < field_count {
+        hash = SelfMirNominalHashStringAt(
+            hash, field_names, field_start + row);
+        hash = MirAbiLayoutHashU32(hash, field_offsets[row] as Long);
+        hash = MirAbiLayoutHashU32(hash, field_sizes[row] as Long);
+        hash = MirAbiLayoutHashU32(hash, field_aligns[row] as Long);
+        row = row + 1;
+    }
+    hash = MirAbiLayoutHashString(hash, "");
+    hash = MirAbiLayoutHashString(hash, "");
+    hash = MirAbiLayoutHashU32(hash, 0L);
+    hash = MirAbiLayoutHashString(hash, "");
+    hash = MirAbiLayoutHashU32(hash, 0L);
+    hash = MirAbiLayoutHashU32(hash, 0L);
+    hash = MirAbiLayoutHashString(hash, "");
+    return (536870912L + (hash % MirAbiLayoutModulus())) as Int;
+}

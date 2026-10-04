@@ -2,19 +2,18 @@
 //
 // Status: rung-2 DirWalk-owned (2026-06-15). Enumerates production header
 // owners through DirWalk("src"), filters the same prefixes as
-// tests/production_header_size_smoke.sh, counts newlines, and asserts <= 600
-// LOC. Reports any over-cap headers in findings[].
+// tests/production_header_size_smoke.sh, excludes comment-only records, and
+// asserts <= 600 source records. Blank records and inline code still count.
 //
 // Cwd contract: the parity harness cd's into the repo root before running.
 //
-// CountLines moved to src/self_hosted/lib/text_scan.pgy (2026-05-27, lifted
-// once a third consumer adopted it).
+// SourceSize owns this metric; TextScan retains non-size text semantics.
 //
 // Contract: see intent.md in the same directory.
 
 import "../../lib/json.pgy";
 import "../../lib/json_emit.pgy";
-import "../../lib/text_scan.pgy";
+import "../../lib/source_size.pgy";
 
 func OverCapFinding(path: String, lines: Int) -> String {
     let fields: Array<String> = [
@@ -74,7 +73,7 @@ func Main() -> Void {
         if IsProductionHeader(path) {
             headers = headers + 1;
             let content: String = ReadFile(path);
-            let lines: Int = TextScan.CountLines(content);
+            let lines: Int = SourceSize.CountCLinesOrDie(content, path);
             if lines > max_lines {
                 max_lines = lines;
             }

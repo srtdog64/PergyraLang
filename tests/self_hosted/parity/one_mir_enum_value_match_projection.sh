@@ -17,7 +17,11 @@ CLANG="${PGY_SELFHOST_CLANG:-clang}"
 fail() { echo "[$LABEL] $*" >&2; exit 1; }
 rel() { pgy_selfhost_path_relative_to_root "$1"; }
 require() { [[ -f "$1" ]] || fail "missing file: ${1#"$ROOT_DIR"/}"; }
-lines_at_most() { [[ "$(wc -l <"$ROOT_DIR/$1" | tr -d ' ')" -le "$2" ]] || fail "$1 exceeds $2 lines"; }
+lines_at_most() {
+    local source_size_lines
+    source_size_lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$1")" || fail "source-size measurement failed: $1"
+    [[ "$source_size_lines" -le "$2" ]] || fail "$1 exceeds $2 lines"
+}
 hash_file() { sha256sum "$1" | awk '{print $1}'; }
 
 project() {
@@ -85,7 +89,7 @@ lines_at_most "$PLAN" 420; lines_at_most "$PLAN_MUTATION" 70; lines_at_most "$AI
 lines_at_most "$AIR_MUTATION" 50; lines_at_most "$INDEX" 240; lines_at_most "$EMITTER" 500
 family_lines=0
 for file in "$ROUTE" "$ABI" "$PLAN_FACT" "$PLAN" "$PLAN_MUTATION"; do
-    family_lines=$((family_lines + $(wc -l <"$ROOT_DIR/$file")))
+    family_lines=$((family_lines + $(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$file")))
 done
 [[ "$family_lines" -le 770 ]] || fail "enum semantic owner family exceeds 770 lines"
 [[ "$(grep -R -F --include='*.pgy' 'DirectMirEnumValueMatchRouteFactFromAdmitted(' "$ROOT_DIR/src/self_hosted" | wc -l | tr -d ' ')" == 2 ]] || fail "enum route must have one definition and one issuer"

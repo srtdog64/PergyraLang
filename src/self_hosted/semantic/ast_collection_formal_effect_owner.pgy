@@ -3,23 +3,3 @@
 // function so ownership never crosses a struct-field or inout alias boundary.
 
 import "ast_collection_formal_use_owner.pgy";
-
-func SemanticAstCollectionFormalArgumentHasLiveEffect(
-    ref signatures: SemanticAstFunctionSignatureFacts,
-    ref surfaces: SemanticAstExpressionSurfaceFacts,
-    surface_row: Int, argument_node: Int,
-    proved: HashMap<String, Int>
-) -> Bool {
-    let binding: SemanticExpressionBindingIdentityFact =
-        SemanticExpressionGraphBindingIdentity(
-            surfaces.expression_graph, argument_node);
-    let key: String = ToString(binding.syntax_id);
-    if !binding.ok || binding.kind !=
-            SemanticExpressionBindingFormalParameter() ||
-        SemanticAstCollectionOwnershipParameterModeForArgument(
-            signatures, surfaces, surface_row, argument_node) <= 0 ||
-        !MapHas(proved, key) {
-        return false;
-    }
-    return MapGet(proved, key) == 2 || MapGet(proved, key) == 3;
-}

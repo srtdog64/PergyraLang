@@ -29,7 +29,7 @@ pgy_selfhost_select_emitted_c_compile_profile || fail "emitted C compile profile
 while IFS='|' read -r owner cap; do
     cap="${cap%$'\r'}"
     [[ -z "$owner" || "$owner" == \#* ]] && continue
-    lines="$(wc -l <"$ROOT_DIR/$owner")"
+    lines="$(python3 "$ROOT_DIR/scripts/source_size_count.py" "$ROOT_DIR/$owner")" || fail "source-size measurement failed"
     [[ "$lines" -le "$cap" ]] || fail "owner hard cap exceeded: $owner=$lines/$cap"
 done <"$ROOT_DIR/tests/self_hosted/parity/scalar_program_owner_caps.tsv"
 

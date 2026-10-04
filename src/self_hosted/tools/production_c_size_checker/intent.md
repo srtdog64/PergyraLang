@@ -20,6 +20,9 @@ helper bucket.
 - **filter**: `test_inc_size_production_c_scope`, meaning `src/**/*.c` files
   excluding `src/tests/*` and files whose basename starts with `test_`.
 - Each `.c` file content is `ReadFile`d relative to repository root.
+- Size is LF records minus nonblank lexical comment-only records, with an
+  unterminated final record included. Blank records and inline code count.
+  `SourceSize` owns this size-only metric; `TextScan.CountLines` is unchanged.
 
 ## Output Contract
 
@@ -82,6 +85,5 @@ own production C inventory through `DirWalk`.
 ## Not In Scope
 
 - Auto-split suggestions.
-- Comment/whitespace-stripped LOC counts (raw newline counts mirror the
-  `wc -l` gate).
+- Whitespace-stripped LOC counts (blank records still count).
 - `.h` files (covered by tool 8).

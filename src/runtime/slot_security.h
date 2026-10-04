@@ -3,10 +3,18 @@
  * All rights reserved.
  *
  * Slot Security System - Secure Token-based Memory Access Control
- * 
- * This module implements a security layer that prevents external memory
- * manipulation tools (like Cheat Engine) from modifying slot values.
- * It uses hardware-bound cryptographic tokens for access control.
+ *
+ * This module implements a capability/token access-control layer for
+ * SecureSlot<T>: 256-bit capability tokens, generation counters, and pin-state
+ * checks gate every Read/Write/Release, and sealed payloads detect tampering.
+ * This is a runtime authority boundary, not a memory-safety proof (see
+ * docs/security/02_red_team_threat_model.md). It is NOT a security boundary
+ * against an attacker who already runs at the same privilege level as the
+ * process (e.g. a debugger such as Cheat Engine): such a process can read the
+ * master key and plaintext from memory, so client-binary secrets are not a
+ * security boundary (docs/00_vision.md). Hardware-bound tokens bind to a
+ * platform fingerprint to deter cross-machine token replay; they do not defeat
+ * a same-machine debugger.
  */
 
 #ifndef PERGYRA_SLOT_SECURITY_H

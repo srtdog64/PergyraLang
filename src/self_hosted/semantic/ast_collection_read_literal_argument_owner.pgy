@@ -1,0 +1,56 @@
+// Exact inline Array<String> element-lifetime admission for synchronous reads.
+// Literal topology alone grants nothing: each non-static element must carry an
+// exact heap allocation domain and single-consumer proof through this call.
+
+import "ast_collection_formal_effect_identity_owner.pgy";
+import "ast_owned_string_actual_exclusivity_owner.pgy";
+
+func SemanticAstCollectionReadLiteralArgumentReady(
+    artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref initializer_types: SemanticAstInitializerTypeFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    ref results: SemanticAstOwnedStringResultFacts,
+    ref numeric: SemanticAstNumericStringAllocationCalls,
+    proved: HashMap<String, Int>, surface_row: Int, lane: Int,
+    edge: SemanticCallArgumentEdgeView
+) -> Bool {
+    if !edge.ok || surface_row < 0 ||
+        surface_row >= ArrayLength(surfaces.node_ids) || lane < 0 || lane > 2 {
+        return false;
+    }
+    let formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(
+        signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
+    let key: String = ToString(formal);
+    if formal <= 0 || !MapHas(proved, key) || MapGet(proved, key) != 3 {
+        return false;
+    }
+    let literal: SemanticArrayLiteralView = SemanticArrayLiteralViewFromGraph(
+        surfaces.expression_graph, edge.argument_node);
+    if !literal.ok { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(literal.element_nodes) {
+        let element: Int = literal.element_nodes[row];
+        let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            surfaces.expression_graph, element);
+        if IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeStringLiteral() {
+            row = row + 1;
+            continue;
+        }
+        let domain: SemanticAstOwnedStringAllocationDomain =
+            SemanticAstOwnedStringExpressionAllocationDomain(
+                artifact, signatures, locals, initializer_types, surfaces,
+                results.writes, results.domain_exposures, results, numeric,
+                surfaces.function_node_ids[surface_row], surfaces.node_ids[surface_row],
+                lane, element, 0);
+        if domain.kind != 1 ||
+            !SemanticAstOwnedStringLiteralTransferExpressionExclusive(
+                artifact, signatures, locals, initializer_types, surfaces,
+                results, numeric, surfaces.function_node_ids[surface_row],
+                surfaces.node_ids[surface_row], lane, element, 0) {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}

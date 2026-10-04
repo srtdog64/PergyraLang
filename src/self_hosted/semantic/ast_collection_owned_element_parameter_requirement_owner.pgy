@@ -41,26 +41,42 @@ func SemanticAstCollectionOwnedElementParameterRequirements(
                         SemanticCallSpineViewFromGraph(
                             surfaces.expression_graph,
                             roots.root_nodes[node]);
-                    if call.ok && call.call_node == node &&
+                    let deep_drop: Bool = call.ok &&
+                        call.call_node == node &&
                         SemanticAstCollectionOwnershipBuiltinCall(
                             surfaces.expression_graph, node,
                             "ArrayDropOwnedStrings") &&
-                        ArrayLength(call.argument_nodes) == 1 {
+                        ArrayLength(call.argument_nodes) == 1;
+                    let owned_push: Bool = call.ok &&
+                        call.call_node == node &&
+                        SemanticAstCollectionOwnershipBuiltinCall(
+                            surfaces.expression_graph, node,
+                            "ArrayPushOwnedString") &&
+                        ArrayLength(call.argument_nodes) == 2;
+                    if deep_drop || owned_push {
                         let binding: SemanticExpressionBindingIdentityFact =
                             SemanticExpressionGraphBindingIdentity(
                                 surfaces.expression_graph,
                                 call.argument_nodes[0]);
-                        if binding.ok && binding.kind ==
+                        if deep_drop && binding.ok && binding.kind ==
                                 SemanticExpressionBindingFormalParameter() &&
                             binding.syntax_id > 0 {
                             MapSet(required, ToString(binding.syntax_id), 1);
+                        }
+                        let effect: Int =
+                            SemanticAstCollectionAggregateFieldEntryEffectDeepDrop();
+                        if owned_push {
+                            effect =
+                                SemanticAstCollectionAggregateFieldEntryEffectOwnedPush();
                         }
                         let member_binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
                             artifact, locals, inferred_types, surfaces, root_slot / 3, call.argument_nodes[0]);
                         if member_binding.ok && origins[member_binding.row] == SemanticAstCollectionOriginMemberMove() &&
                             !SemanticAstCollectionAggregateFieldEntryRequirementRecord(signatures, locals,
                                 locals.function_node_ids[member_binding.row], source_binding_ids[member_binding.row],
-                                origin_syntax_ids[member_binding.row], locals.node_ids[member_binding.row], field_requirements) {
+                                origin_syntax_ids[member_binding.row], locals.node_ids[member_binding.row],
+                                effect,
+                                field_requirements) {
                             field_requirements.ok = false;
                             return required;
                         }

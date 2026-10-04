@@ -490,7 +490,7 @@ func GenerateCUnitFromReadySemanticFacts(
     }
     if uses_seed_random { TextBuilderAppend(output, MathRuntimeCSeedRandomBlock()); }
     if usage.uses_clock { TextBuilderAppend(output, HostIORuntimeCClockBlock()); }
-    if uses_result { TextBuilderAppend(output, OptionResultRuntimeCResultIntBlock()); if usage.uses_remote_future { TextBuilderAppend(output, CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitHelperBlock()); } }
+    if uses_result { TextBuilderAppend(output, OptionResultRuntimeCBuiltinScalarResultBlock()); if usage.uses_remote_future { TextBuilderAppend(output, CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitHelperBlock()); } }
     if uses_option {
         TextBuilderAppend(output, OptionResultRuntimeCOptionScalarBlock());
     }

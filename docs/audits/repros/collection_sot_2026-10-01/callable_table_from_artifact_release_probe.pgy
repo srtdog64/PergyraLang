@@ -1,0 +1,49 @@
+// UNEXECUTED real-producer component candidate; not DRV-2 acceptance.
+// Run from the repository root only after main establishes a current-source pair.
+import "../../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../../src/self_hosted/semantic/ast_expression_environment_owner.pgy";
+
+func Main() -> Void with caps io_read
+{
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(
+        "docs/audits/repros/collection_sot_2026-10-01/callable_table_producer_input.pgy");
+    if !AstTreeArtifactReady(artifact)
+    {
+        Log("producer-artifact-invalid");
+        Exit(1);
+    }
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsWithBuiltinNames(artifact);
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let enums: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
+    let facts: SemanticAstExpressionFunctionTableFacts =
+        SemanticAstExpressionFunctionTableFactsFromArtifact(
+            artifact, signatures, constructors, enums);
+    if !SemanticAstExpressionFunctionTableFactsReady(facts)
+    {
+        Log("producer-table-invalid");
+        Exit(1);
+    }
+    let row: Int = SemanticAstExpressionFunctionRowIndex(
+        facts.names, "CandidateValue");
+    if row < 0
+    {
+        Log("producer-user-row-missing");
+        Exit(1);
+    }
+    if facts.returns[row] != "Int" || facts.params[row] != "Candidate"
+    {
+        Log("producer-user-row-mismatch");
+        Exit(1);
+    }
+    SemanticAstExpressionFunctionTableFactsRelease(facts);
+    if facts.ok || SemanticAstExpressionFunctionTableFactsReady(facts) ||
+        ArrayLength(facts.names) != 0 || ArrayLength(facts.returns) != 0 ||
+        ArrayLength(facts.params) != 0
+    {
+        Log("producer-table-retirement-invalid");
+        Exit(1);
+    }
+    Log("producer-table-retired");
+}

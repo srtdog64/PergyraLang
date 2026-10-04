@@ -63,21 +63,24 @@ func AstSourceModuleFactsReady(
         return ArrayLength(facts.declaration_node_ids) == 0 &&
             ArrayLength(facts.module_paths) == 0;
     }
-    let rebuilt: AstSourceModuleFacts =
-        AstSourceModuleFactsFromTopLevelPaths(arena, facts.module_paths);
-    if !rebuilt.ok || !rebuilt.known ||
-        ArrayLength(rebuilt.declaration_node_ids) !=
-            ArrayLength(facts.declaration_node_ids) {
+    if !TypedAstArenaParallelRowsReady(arena) ||
+        !TypedAstArenaNodeKindIs(arena, 0, TypedAstKindProgramTag()) {
         return false;
     }
-    let i: Int = 0;
-    while i < ArrayLength(facts.declaration_node_ids) {
-        if rebuilt.declaration_node_ids[i] != facts.declaration_node_ids[i] {
+    let child_index: Int = 0;
+    let child: Option<Int> = TypedAstArenaChildAt(arena, 0, child_index);
+    while IsSome(child) {
+        if child_index >= ArrayLength(facts.declaration_node_ids) ||
+            child_index >= ArrayLength(facts.module_paths) ||
+            facts.module_paths[child_index] == "" ||
+            facts.declaration_node_ids[child_index] != UnwrapOption(child) {
             return false;
         }
-        i = i + 1;
+        child_index = child_index + 1;
+        child = TypedAstArenaChildAt(arena, 0, child_index);
     }
-    return true;
+    return child_index == ArrayLength(facts.declaration_node_ids) &&
+        child_index == ArrayLength(facts.module_paths);
 }
 
 func AstSourceModulePathForNode(

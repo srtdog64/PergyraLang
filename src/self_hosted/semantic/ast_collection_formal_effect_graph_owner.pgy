@@ -1,0 +1,148 @@
+// Acyclic formal-effect resolution over reverse physical-use adjacency. Each
+// forwarding edge is visited once after its exact target becomes known.
+import "ast_collection_formal_execution_context_owner.pgy";
+
+struct SemanticAstCollectionFormalEffectResolutionStatus {
+    ok: Bool;
+}
+
+func SemanticAstCollectionFormalEffectFromFlags(
+    blocked: Bool, mutation: Bool, shallow: Bool, reads: Bool,
+    opaque: Bool, unproved: Bool
+) -> Option<Int> {
+    if blocked {
+        if reads || unproved {
+            return Some(SemanticAstCollectionFormalUnprovedElementUseEffect());
+        }
+        return None;
+    }
+    let effect: Int = 1;
+    if reads { effect = 3; }
+    if shallow { effect = SemanticAstCollectionFormalShallowMutationEffect(); }
+    if mutation { effect = 2; }
+    if (mutation && shallow) || unproved {
+        effect = SemanticAstCollectionFormalUnprovedElementUseEffect();
+    }
+    if opaque { effect = SemanticAstCollectionFormalOpaqueExecutionEffect(); }
+    return Some(effect);
+}
+
+func SemanticAstCollectionFormalEffectResolveAcyclic(
+    ref incoming_heads: Array<Int>, ref next_edges: Array<Int>,
+    ref inventory: SemanticAstCollectionFormalEffectInventory,
+    ref blocked: Array<Bool>, ref mutations: Array<Bool>,
+    ref shallow_mutations: Array<Bool>, ref element_reads: Array<Bool>,
+    ref sources: Array<Int>,
+    inout effects: HashMap<String, Int>,
+    inout status: SemanticAstCollectionFormalEffectResolutionStatus
+) -> Void {
+    if !status.ok { return; }
+    let count: Int = ArrayLength(inventory.formal_nodes);
+    if ArrayLength(incoming_heads) != count ||
+        ArrayLength(next_edges) != ArrayLength(sources) {
+        status.ok = false; return;
+    }
+    // Validate every caller-owned seed before the first MapSet. A malformed
+    // map fails transactionally instead of leaving a partly derived result.
+    let row: Int = 0;
+    while row < count {
+        let key: String = ToString(inventory.formal_nodes[row]);
+        if MapHas(effects, key) {
+            let effect: Int = MapGet(effects, key);
+            if effect < 1 || effect > 6 { status.ok = false; return; }
+        }
+        row = row + 1;
+    }
+    let remaining: Array<Int> = [];
+    let values: Array<Int> = [];
+    let known: Array<Bool> = [];
+    let aggregate_mutations: Array<Bool> = [];
+    let aggregate_shallow: Array<Bool> = [];
+    let aggregate_reads: Array<Bool> = [];
+    let aggregate_opaque: Array<Bool> = [];
+    let aggregate_unproved: Array<Bool> = [];
+    let queue: Array<Int> = [];
+    row = 0;
+    while row < count {
+        ArrayPush(remaining, 0); ArrayPush(values, 0);
+        ArrayPush(known, false); ArrayPush(aggregate_mutations, false);
+        ArrayPush(aggregate_shallow, false);
+        ArrayPush(aggregate_reads, false);
+        ArrayPush(aggregate_opaque, false); ArrayPush(aggregate_unproved, false);
+        // Borrowed collection elements select a copied scalar literal; they
+        // are not retained as the scratch array's owned element source.
+        if mutations[row] { aggregate_mutations[row] = true; }
+        if shallow_mutations[row] { aggregate_shallow[row] = true; }
+        if element_reads[row] { aggregate_reads[row] = true; }
+        row = row + 1;
+    }
+    let edge: Int = 0;
+    while edge < ArrayLength(sources) {
+        remaining[sources[edge]] = remaining[sources[edge]] + 1;
+        edge = edge + 1;
+    }
+    row = 0;
+    while status.ok && row < count {
+        let key: String = ToString(inventory.formal_nodes[row]);
+        if MapHas(effects, key) {
+            values[row] = MapGet(effects, key);
+            known[row] = true; ArrayPush(queue, row);
+        } else if remaining[row] == 0 {
+            let row_blocked: Bool = blocked[row];
+            let row_mutation: Bool = aggregate_mutations[row];
+            let row_shallow: Bool = aggregate_shallow[row];
+            let row_read: Bool = aggregate_reads[row];
+            let effect: Option<Int> = SemanticAstCollectionFormalEffectFromFlags(
+                row_blocked, row_mutation, row_shallow, row_read,
+                false, false);
+            if IsSome(effect) {
+                let resolved_effect: Int = UnwrapOption(effect);
+                values[row] = resolved_effect; known[row] = true;
+                MapSet(effects, key, resolved_effect); ArrayPush(queue, row);
+            }
+        }
+        row = row + 1;
+    }
+    let cursor: Int = 0;
+    while status.ok && cursor < ArrayLength(queue) {
+        let target: Int = queue[cursor]; edge = incoming_heads[target];
+        while status.ok && edge >= 0 {
+            let source: Int = sources[edge];
+            let target_effect: Int = values[target];
+            if target_effect == 2 { aggregate_mutations[source] = true; }
+            else if target_effect == 3 { aggregate_reads[source] = true; }
+            else if target_effect == SemanticAstCollectionFormalOpaqueExecutionEffect() {
+                aggregate_opaque[source] = true;
+            } else if target_effect == SemanticAstCollectionFormalUnprovedElementUseEffect() {
+                aggregate_unproved[source] = true;
+            } else if target_effect == SemanticAstCollectionFormalShallowMutationEffect() {
+                aggregate_shallow[source] = true;
+            }
+            remaining[source] = remaining[source] - 1;
+            if remaining[source] < 0 { status.ok = false; }
+            else if remaining[source] == 0 && !known[source] {
+                let source_blocked: Bool = blocked[source];
+                let source_mutation: Bool = aggregate_mutations[source];
+                let source_shallow: Bool = aggregate_shallow[source];
+                let source_read: Bool = aggregate_reads[source];
+                let source_opaque: Bool = aggregate_opaque[source];
+                let source_unproved: Bool = aggregate_unproved[source];
+                let resolved: Option<Int> = SemanticAstCollectionFormalEffectFromFlags(
+                    source_blocked, source_mutation, source_shallow,
+                    source_read, source_opaque, source_unproved);
+                if IsSome(resolved) {
+                    let resolved_effect: Int = UnwrapOption(resolved);
+                    values[source] = resolved_effect; known[source] = true;
+                    let key: String = ToString(inventory.formal_nodes[source]);
+                    MapSet(effects, key, resolved_effect); ArrayPush(queue, source);
+                }
+            }
+            edge = next_edges[edge];
+        }
+        cursor = cursor + 1;
+    }
+    ArrayDrop(remaining);
+    ArrayDrop(values); ArrayDrop(known); ArrayDrop(aggregate_mutations);
+    ArrayDrop(aggregate_shallow); ArrayDrop(aggregate_reads);
+    ArrayDrop(aggregate_opaque); ArrayDrop(aggregate_unproved); ArrayDrop(queue);
+}

@@ -1,6 +1,7 @@
 // Retires the final routine-build Array carrier after its last consumer.
 // CFG backings were copied; routine-state backings are already dead.
-// String elements remain shared and must not be freed.
+// Most String elements remain shared. Destructure facts are copied by their
+// owner and are the bounded exception released below with their elements.
 
 import "routine_build_owner.pgy";
 
@@ -138,9 +139,9 @@ func SelfMirRoutineBuildStorageRetireAfterLastConsumer(
     CompilerRetireArrayStorage(match_variants); CompilerRetireArrayStorage(match_binding_starts);
     CompilerRetireArrayStorage(match_binding_counts); CompilerRetireArrayStorage(match_bindings);
     CompilerRetireArrayStorage(match_binding_types); CompilerRetireArrayStorage(match_subject_families);
-    CompilerRetireArrayStorage(destructure_instruction_indices); CompilerRetireArrayStorage(destructure_element_types);
+    CompilerRetireArrayStorage(destructure_instruction_indices); ArrayDropOwnedStrings(destructure_element_types);
     CompilerRetireArrayStorage(destructure_binding_starts); CompilerRetireArrayStorage(destructure_binding_counts);
-    CompilerRetireArrayStorage(destructure_bindings); CompilerRetireArrayStorage(abi_present);
+    ArrayDropOwnedStrings(destructure_bindings); CompilerRetireArrayStorage(abi_present);
     CompilerRetireArrayStorage(abi_owners); CompilerRetireArrayStorage(abi_domains);
     CompilerRetireArrayStorage(abi_type_names); CompilerRetireArrayStorage(abi_operations);
     CompilerRetireArrayStorage(abi_symbols); CompilerRetireArrayStorage(abi_target_kinds);

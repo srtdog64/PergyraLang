@@ -13,19 +13,29 @@ struct SemanticExpressionCallTargetCapture {
     failure_node_id: Int;
     failure_lane: String;
 }
-func SemanticExpressionCallTargetExpected(
+struct SemanticExpressionCallTargetDecision {
+    ok: Bool;
+    kind: Int;
+    name_source: Int;
+    name_index: Int;
+    parameter_offset: Int;
+}
+func SemanticExpressionCallTargetNameNone() -> Int { return 0; }
+func SemanticExpressionCallTargetNameCallable() -> Int { return 1; }
+func SemanticExpressionCallTargetNameGraphNode() -> Int { return 2; }
+func SemanticExpressionCallTargetNameCarried() -> Int { return 3; }
+func SemanticExpressionCallTargetDecisionForNode(
     ref graph: SemanticExpressionGraphFacts, signatures: SemanticAstFunctionSignatureFacts,
     intents: SemanticAstIntentSignatureFacts,
-    ref callable_names: Array<String>,
-    member_names: Array<String>,
+    ref function_tables: SemanticAstExpressionFunctionTableFacts,
     require_carried: Bool,
     node_id: Int
-) -> SemanticExpressionCallTargetFact {
+) -> SemanticExpressionCallTargetDecision {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
     if !IsSome(kind) {
-        return SemanticExpressionCallTargetFact(
-            false, SemanticCallTargetNone(), "", 0
-        );
+        return SemanticExpressionCallTargetDecision(
+            false, SemanticCallTargetNone(),
+            SemanticExpressionCallTargetNameNone(), -1, 0);
     }
     if UnwrapOption(kind) != AstExpressionNodeCall() {
         if require_carried &&
@@ -33,44 +43,43 @@ func SemanticExpressionCallTargetExpected(
                 SemanticCallTargetRoleOperator() &&
             graph.arena.call_target_names[node_id] != "" &&
             SemanticRoleOperatorKindSupported(UnwrapOption(kind)) {
-            return SemanticExpressionCallTargetFact(
+            return SemanticExpressionCallTargetDecision(
                 true, SemanticCallTargetRoleOperator(),
-                graph.arena.call_target_names[node_id], 0
-            );
+                SemanticExpressionCallTargetNameCarried(), node_id, 0);
         }
-        return SemanticExpressionCallTargetFact(
-            true, SemanticCallTargetNone(), "", 0
-        );
+        return SemanticExpressionCallTargetDecision(
+            true, SemanticCallTargetNone(),
+            SemanticExpressionCallTargetNameNone(), -1, 0);
     }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, node_id
     );
     if !call.ok || call.call_node != node_id {
-        return SemanticExpressionCallTargetFact(
-            false, SemanticCallTargetNone(), "", 0
-        );
+        return SemanticExpressionCallTargetDecision(
+            false, SemanticCallTargetNone(),
+            SemanticExpressionCallTargetNameNone(), -1, 0);
     }
     let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
         graph, call.callee_node);
     if !IsSome(callee_kind) {
-        return SemanticExpressionCallTargetFact(
-            false, SemanticCallTargetNone(), "", 0
-        );
+        return SemanticExpressionCallTargetDecision(
+            false, SemanticCallTargetNone(),
+            SemanticExpressionCallTargetNameNone(), -1, 0);
     }
     if UnwrapOption(callee_kind) == AstExpressionNodeLeaf() {
         let source_name: Option<String> = SemanticExpressionGraphNodeText(
             graph, call.callee_node);
         if !IsSome(source_name) {
-            return SemanticExpressionCallTargetFact(
-                false, SemanticCallTargetNone(), "", 0
-            );
+            return SemanticExpressionCallTargetDecision(
+                false, SemanticCallTargetNone(),
+                SemanticExpressionCallTargetNameNone(), -1, 0);
         }
         let binding: SemanticExpressionBindingIdentityFact = SemanticExpressionGraphBindingIdentity(
             graph, call.callee_node);
         if !binding.ok {
-            return SemanticExpressionCallTargetFact(
-                false, SemanticCallTargetNone(), "", 0
-            );
+            return SemanticExpressionCallTargetDecision(
+                false, SemanticCallTargetNone(),
+                SemanticExpressionCallTargetNameNone(), -1, 0);
         }
         let binding_ordinal: Option<Int> = SemanticExpressionBindingIdentityOrdinal(binding);
         if require_carried && binding.kind ==
@@ -88,31 +97,35 @@ func SemanticExpressionCallTargetExpected(
                     signatures, carried_target_syntax_id,
                     UnwrapOption(binding_ordinal),
                     UnwrapOption(source_name)) {
-                return SemanticExpressionCallTargetFact(
-                    false, SemanticCallTargetDirect(), "", 0);
+                return SemanticExpressionCallTargetDecision(
+                    false, SemanticCallTargetDirect(),
+                    SemanticExpressionCallTargetNameNone(), -1, 0);
             }
-            return SemanticExpressionCallTargetFact(
+            return SemanticExpressionCallTargetDecision(
                 true, SemanticCallTargetDirect(),
-                UnwrapOption(source_name), 0);
+                SemanticExpressionCallTargetNameGraphNode(),
+                call.callee_node, 0);
         }
-        let direct: Option<Int> = SemanticCallableIndex(
-            callable_names, UnwrapOption(source_name)
-        );
+        let direct: Option<Int> =
+            SemanticAstExpressionFunctionTableCallableIndex(
+                function_tables, UnwrapOption(source_name));
         if !IsSome(direct) {
             let protocol: SemanticAstDomainQueryProtocol =
                 SemanticAstDomainQueryProtocolFromName(
                     UnwrapOption(source_name)
                 );
             if protocol.applies {
-                return SemanticExpressionCallTargetFact(
-                    true, SemanticCallTargetDirect(), protocol.name, 0
-                );
+                return SemanticExpressionCallTargetDecision(
+                    true, SemanticCallTargetDirect(),
+                    SemanticExpressionCallTargetNameGraphNode(),
+                    call.callee_node, 0);
             }
-            return SemanticExpressionCallTargetFact(
-                true, SemanticCallTargetNone(), "", 0
-            );
+            return SemanticExpressionCallTargetDecision(
+                true, SemanticCallTargetNone(),
+                SemanticExpressionCallTargetNameNone(), -1, 0);
         }
-        let canonical_target_name: String = callable_names[UnwrapOption(direct)];
+        let canonical_target_name: String =
+            function_tables.names[UnwrapOption(direct)];
         let declared_callable: Bool =
             SemanticExpressionDeclaredCallableTargetExists(
                 signatures, intents, canonical_target_name);
@@ -126,57 +139,53 @@ func SemanticExpressionCallTargetExpected(
                 !SemanticExpressionDeclaredCallableCarriedIdentityReady(
                     signatures, intents, canonical_target_name,
                     carried_target_syntax_id) {
-                return SemanticExpressionCallTargetFact(
-                    false, SemanticCallTargetDirect(), "", 0);
+                return SemanticExpressionCallTargetDecision(
+                    false, SemanticCallTargetDirect(),
+                    SemanticExpressionCallTargetNameNone(), -1, 0);
             }
         } else if require_carried &&
             (graph.arena.identities.call_target_syntax_ids[node_id] != 0 ||
              binding.kind != SemanticExpressionBindingNone() ||
              IsSome(binding_ordinal) || binding.syntax_id != 0) {
-            return SemanticExpressionCallTargetFact(
-                false, SemanticCallTargetDirect(), "", 0);
+            return SemanticExpressionCallTargetDecision(
+                false, SemanticCallTargetDirect(),
+                SemanticExpressionCallTargetNameNone(), -1, 0);
         }
-        return SemanticExpressionCallTargetFact(
-            true, SemanticCallTargetDirect(), canonical_target_name, 0);
+        return SemanticExpressionCallTargetDecision(
+            true, SemanticCallTargetDirect(),
+            SemanticExpressionCallTargetNameCallable(),
+            UnwrapOption(direct), 0);
     }
     if UnwrapOption(callee_kind) != AstExpressionNodeMemberAccess() {
-        return SemanticExpressionCallTargetFact(
-            true, SemanticCallTargetNone(), "", 0
-        );
+        return SemanticExpressionCallTargetDecision(
+            true, SemanticCallTargetNone(),
+            SemanticExpressionCallTargetNameNone(), -1, 0);
     }
     let source_name: Option<String> = SemanticExpressionGraphNodeText(
         graph, call.callee_node
     );
     if !IsSome(source_name) {
-        return SemanticExpressionCallTargetFact(
-            false, SemanticCallTargetNone(), "", 0
-        );
+        return SemanticExpressionCallTargetDecision(
+            false, SemanticCallTargetNone(),
+            SemanticExpressionCallTargetNameNone(), -1, 0);
     }
-    let target: Option<Int> = SemanticCallableIndex(
-        callable_names, UnwrapOption(source_name)
-    );
+    let target: Option<Int> =
+        SemanticAstExpressionFunctionTableCallableIndex(
+            function_tables, UnwrapOption(source_name));
     if IsSome(target) {
-        return SemanticExpressionCallTargetFact(
+        return SemanticExpressionCallTargetDecision(
             true, SemanticCallTargetNamespace(),
-            callable_names[UnwrapOption(target)], 0
-        );
-    }
-    if require_carried &&
-        graph.arena.call_target_kinds[node_id] ==
-            SemanticCallTargetMember() {
-        let member_target: Option<SemanticExpressionCallTargetFact> =
-            SemanticExpressionCarriedMemberCallTargetExpected(
-                graph, callable_names, member_names, node_id, call.callee_node);
-        if IsSome(member_target) { return UnwrapOption(member_target); }
+            SemanticExpressionCallTargetNameCallable(),
+            UnwrapOption(target), 0);
     }
     if require_carried {
-        return SemanticExpressionCallTargetFact(
-            false, SemanticCallTargetMember(), "", 1
-        );
+        return SemanticExpressionCallTargetDecision(
+            false, SemanticCallTargetMember(),
+            SemanticExpressionCallTargetNameNone(), -1, 1);
     }
-    return SemanticExpressionCallTargetFact(
-        true, SemanticCallTargetNone(), "", 0
-    );
+    return SemanticExpressionCallTargetDecision(
+        true, SemanticCallTargetNone(),
+        SemanticExpressionCallTargetNameNone(), -1, 0);
 }
 func SemanticExpressionGraphCallTargetCaptureFromSignatures(
     graph: SemanticExpressionGraphFacts, signatures: SemanticAstFunctionSignatureFacts,
@@ -229,25 +238,73 @@ func SemanticExpressionGraphCallTargetCaptureFromSignatures(
     let failure_node_id: Int = -1;
     let failure_lane: String = "";
     while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) && valid {
-        let expected: SemanticExpressionCallTargetFact =
-            SemanticExpressionCallTargetExpected(
-                graph, signatures, intents, function_tables.names, member_names,
-                require_carried, node_id
-            );
-        if !expected.ok {
-            valid = false;
-            failure_node_id = node_id;
-            failure_lane = "call_target_expected";
-        } else if require_carried {
-            if target_kinds[node_id] != expected.kind ||
-                target_names[node_id] != expected.name {
+        if require_carried && target_kinds[node_id] ==
+                SemanticCallTargetMember() {
+            let declared_member: Bool = IsSome(SemanticCallableIndex(
+                member_names, target_names[node_id]));
+            if !declared_member &&
+                !SemanticExpressionBuiltinMemberCallTargetReady(
+                    graph, function_tables, node_id) {
                 valid = false;
                 failure_node_id = node_id;
                 failure_lane = "call_target_carried";
             }
         } else {
-            ArraySet(target_kinds, node_id, expected.kind);
-            ArraySet(target_names, node_id, expected.name);
+            let expected: SemanticExpressionCallTargetDecision =
+                SemanticExpressionCallTargetDecisionForNode(
+                    graph, signatures, intents, function_tables,
+                    require_carried, node_id
+                );
+            if !expected.ok {
+                valid = false;
+                failure_node_id = node_id;
+                failure_lane = "call_target_expected";
+            } else {
+                let expected_name: String = "";
+                let expected_name_ready: Bool = true;
+                if expected.name_source ==
+                        SemanticExpressionCallTargetNameCallable() {
+                    if expected.name_index < 0 || expected.name_index >=
+                            ArrayLength(function_tables.names) {
+                        expected_name_ready = false;
+                    } else {
+                        expected_name =
+                            function_tables.names[expected.name_index];
+                    }
+                } else if expected.name_source ==
+                        SemanticExpressionCallTargetNameGraphNode() {
+                    let graph_name: Option<String> =
+                        SemanticExpressionGraphNodeText(
+                            graph, expected.name_index);
+                    if !IsSome(graph_name) { expected_name_ready = false; }
+                    else { expected_name = UnwrapOption(graph_name); }
+                } else if expected.name_source ==
+                        SemanticExpressionCallTargetNameCarried() {
+                    if expected.name_index < 0 || expected.name_index >=
+                            ArrayLength(target_names) {
+                        expected_name_ready = false;
+                    } else {
+                        expected_name = target_names[expected.name_index];
+                    }
+                } else if expected.name_source !=
+                        SemanticExpressionCallTargetNameNone() {
+                    expected_name_ready = false;
+                }
+                if !expected_name_ready {
+                    valid = false;
+                    failure_node_id = node_id;
+                    failure_lane = "call_target_name_owner";
+                } else if require_carried &&
+                    (target_kinds[node_id] != expected.kind ||
+                     target_names[node_id] != expected_name) {
+                    valid = false;
+                    failure_node_id = node_id;
+                    failure_lane = "call_target_carried";
+                } else if !require_carried {
+                    ArraySet(target_kinds, node_id, expected.kind);
+                    ArraySet(target_names, node_id, expected_name);
+                }
+            }
         }
         node_id = node_id + 1;
     }

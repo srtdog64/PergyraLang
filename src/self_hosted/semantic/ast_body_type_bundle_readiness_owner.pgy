@@ -18,6 +18,7 @@ import "ast_iteration_graph_root_owner.pgy";
 import "ast_match_materialization_fact_owner.pgy";
 import "ast_body_role_operator_resolution_owner.pgy";
 import "ast_zone_resource_carriage_rows_owner.pgy";
+import "ast_collection_formal_effect_readiness_owner.pgy";
 
 func SemanticAstBodyTypeBundleReadinessError(
     artifact: AstTreeArtifact,
@@ -62,6 +63,10 @@ func SemanticAstBodyTypeBundleReadinessError(
     }
     if !SemanticAstOwnedStringResultFactsReady(bundle.owned_string_result_domains, analysis.signatures) {
         return "owned_string_result_domains";
+    }
+    if !SemanticAstCollectionFormalEffectsReadyFor(
+            bundle.collection_formal_effects, analysis.signatures) {
+        return "collection_formal_effects";
     }
     if !SemanticAstCapabilityFactsReady(artifact, analysis, bundle.capabilities) ||
         !bundle.capabilities.contract_ok { return "capability_facts"; }

@@ -1,0 +1,11 @@
+func OwnedKey(owner: String, member: String) -> String {
+    let suffix: String = Concat(".", member);
+    let key: String = Concat(owner, suffix);
+    let retired: Array<String> = [suffix];
+    ArrayDropOwnedStrings(retired);
+    return key;
+}
+
+func Main() -> Void {
+    Log(OwnedKey("Box", "Get"));
+}

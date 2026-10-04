@@ -55,8 +55,11 @@ func RewriteSemanticExpectedValue(graph: SemanticExpressionGraphFacts, node_id: 
         if call.ok {
             target = SemanticExpressionGraphCallTargetName(graph, call.call_node);
         }
-        if result_fact.ok && IsSome(target) && (UnwrapOption(target) == "Ok" ||
+        if IsSome(target) && (UnwrapOption(target) == "Ok" ||
              UnwrapOption(target) == "Err") {
+            if !result_fact.ok {
+                Die("Result constructor runtime ABI fact is missing");
+            }
             if ArrayLength(call.argument_nodes) != 1 {
                 Die("Result constructor requires one argument graph");
             }
@@ -320,9 +323,20 @@ func RewriteSemanticStructLiteralValue(
     }
     let c_type: String = AbiLayoutCStructTypeName(expected_type);
     let values: Array<String> = [];
+    let field_name_nodes: Array<Int> = [];
     let i: Int = 0;
-    while i < ArrayLength(view.field_names) {
-        let field_name: String = view.field_names[i];
+    while i < view.field_count {
+        let field: SemanticStructLiteralFieldView =
+            SemanticStructLiteralFieldAt(graph, view, i);
+        if !field.ok {
+            Die("semantic struct-literal field fact is invalid");
+        }
+        let field_name_opt: Option<String> =
+            SemanticExpressionGraphNodeText(graph, field.name_node);
+        if !IsSome(field_name_opt) {
+            Die("semantic struct-literal field name fact is invalid");
+        }
+        let field_name: String = UnwrapOption(field_name_opt);
         let field_type: String = LookupFieldType(
             env, expected_type, field_name
         );
@@ -331,8 +345,9 @@ func RewriteSemanticStructLiteralValue(
                 Concat(expected_type, Concat(".", field_name))));
         }
         let value: String = RewriteSemanticExpectedValue(
-            graph, view.value_nodes[i], field_type, env
+            graph, field.value_node, field_type, env
         );
+        ArrayPush(field_name_nodes, field.name_node);
         ArrayPush(values, value);
         i = i + 1;
     }
@@ -350,8 +365,13 @@ func RewriteSemanticStructLiteralValue(
         Concat(temporary, " = {0}; "))));
     i = 0;
     while i < ArrayLength(values) {
+        let output_field_name: Option<String> =
+            SemanticExpressionGraphNodeText(graph, field_name_nodes[i]);
+        if !IsSome(output_field_name) {
+            Die("semantic struct-literal field name fact is invalid");
+        }
         out = Concat(out, Concat(temporary, Concat(".", Concat(
-            CompilerSymbolCFieldName(view.field_names[i]),
+            CompilerSymbolCFieldName(UnwrapOption(output_field_name)),
             Concat(" = (", Concat(values[i], "); "))))));
         i = i + 1;
     }

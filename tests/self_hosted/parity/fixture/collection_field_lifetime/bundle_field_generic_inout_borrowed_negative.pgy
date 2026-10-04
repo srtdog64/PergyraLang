@@ -1,0 +1,16 @@
+// Compile-only negative: exact generic field identity still needs lifetime proof.
+// Never execute this program.
+struct Bundle { value: Array<String>; }
+
+func Consume<T>(inout bundle: T) -> Void where T: Bundle {
+    let value: Array<String> = bundle.value;
+    ArrayDropOwnedStrings(value);
+    bundle.value = value;
+}
+
+func Main() -> Void {
+    let value: Array<String> = [];
+    ArrayPush(value, "borrowed");
+    let bundle: Bundle = Bundle(value);
+    Consume(bundle);
+}

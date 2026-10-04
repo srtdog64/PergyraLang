@@ -1,0 +1,126 @@
+// Exact readiness and compact receipt facts for the retained body-owned
+// formal-effect projection. This validates identity without rescanning the
+// expression graph that originally produced the effects.
+import "ast_collection_formal_effect_fact_owner.pgy";
+
+func SemanticAstCollectionFormalEffectRowIndexMatches(
+    rows: HashMap<String, Int>, key: String, expected: Int
+) -> Bool {
+    if !MapHas(rows, key) { return false; }
+    return MapGet(rows, key) == expected;
+}
+
+func SemanticAstCollectionFormalEffectForNode(
+    effects: HashMap<String, Int>, node: Int
+) -> Int {
+    let key: String = ToString(node);
+    if !MapHas(effects, key) { return 0; }
+    return MapGet(effects, key);
+}
+
+func SemanticAstCollectionFormalEffectsReadyFor(
+    facts: SemanticAstCollectionFormalEffects,
+    ref signatures: SemanticAstFunctionSignatureFacts
+) -> Bool {
+    let count: Int = ArrayLength(facts.inventory.formal_nodes);
+    let signature_count: Int = ArrayLength(signatures.function_node_ids);
+    let flat_count: Int = ArrayLength(signatures.param_node_ids);
+    if !facts.ok || !facts.inventory.ok || !signatures.ok ||
+        !signatures.action_contracts.ok ||
+        ArrayLength(facts.inventory.function_nodes) != count ||
+        ArrayLength(facts.inventory.ordinals) != count ||
+        ArrayLength(facts.inventory.modes) != count ||
+        ArrayLength(facts.inventory.body_ready) != count ||
+        ArrayLength(signatures.param_starts) != signature_count ||
+        ArrayLength(signatures.param_counts) != signature_count ||
+        ArrayLength(signatures.param_types) != flat_count ||
+        ArrayLength(signatures.param_modes) != flat_count ||
+        ArrayLength(signatures.action_contracts.callable_node_ids) !=
+            signature_count ||
+        ArrayLength(signatures.action_contracts.body_node_ids) !=
+            signature_count { return false; }
+    let signature: Int = 0;
+    let flat: Int = 0;
+    let expected: Int = 0;
+    while signature < signature_count {
+        let function: Int = signatures.function_node_ids[signature];
+        let size: Int = signatures.param_counts[signature];
+        if function <= 0 || signatures.param_starts[signature] != flat ||
+            size < 0 || size > flat_count - flat ||
+            signatures.action_contracts.callable_node_ids[signature] !=
+                function { return false; }
+        let ordinal: Int = 0;
+        while ordinal < size {
+            let parameter: Int = flat + ordinal;
+            let mode: Int = signatures.param_modes[parameter];
+            if mode < 0 || mode > 3 { return false; }
+            if SemanticAstCollectionOwnershipIsStringArray(
+                    signatures.param_types[parameter]) {
+                if expected >= count { return false; }
+                let node: Int = signatures.param_node_ids[parameter];
+                let key: String = ToString(node);
+                if node <= 0 ||
+                    facts.inventory.formal_nodes[expected] != node {
+                    return false;
+                }
+                if facts.inventory.function_nodes[expected] != function ||
+                    facts.inventory.ordinals[expected] != ordinal ||
+                    facts.inventory.modes[expected] != mode {
+                    return false;
+                }
+                if facts.inventory.body_ready[expected] !=
+                    (mode != 2 &&
+                     signatures.action_contracts.body_node_ids[signature] > 0) {
+                    return false;
+                }
+                if !SemanticAstCollectionFormalEffectRowIndexMatches(
+                        facts.inventory.row_by_formal, key, expected) {
+                    return false;
+                }
+                let effect: Int = SemanticAstCollectionFormalEffectForNode(
+                    facts.effects, node);
+                if effect != 0 {
+                    if effect < 1 || effect > 6 { return false; }
+                }
+                expected = expected + 1;
+            }
+            ordinal = ordinal + 1;
+        }
+        flat = flat + size;
+        signature = signature + 1;
+    }
+    return flat == flat_count && expected == count;
+}
+
+func SemanticAstCollectionFormalEffectProvedCount(
+    facts: SemanticAstCollectionFormalEffects
+) -> Int {
+    let count: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(facts.inventory.formal_nodes) {
+        if SemanticAstCollectionFormalEffectForNode(
+                facts.effects, facts.inventory.formal_nodes[row]) != 0 {
+            count = count + 1;
+        }
+        row = row + 1;
+    }
+    return count;
+}
+
+func SemanticAstCollectionFormalEffectReceiptDigest(
+    facts: SemanticAstCollectionFormalEffects
+) -> Int {
+    let digest: Int = 17;
+    let row: Int = 0;
+    while row < ArrayLength(facts.inventory.formal_nodes) {
+        let node: Int = facts.inventory.formal_nodes[row];
+        let effect: Int = SemanticAstCollectionFormalEffectForNode(
+            facts.effects, node);
+        // Keep every intermediate inside signed Int. With a 15,000,000
+        // modulus the largest valid step is 1,965,732,972, below Int32 max.
+        digest = ((digest * 131) + ((node % 104729) * 7) +
+            effect + 1) % 15000000;
+        row = row + 1;
+    }
+    return digest;
+}

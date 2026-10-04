@@ -1,0 +1,171 @@
+// Effect-specific argument admission after the physical edge, binding and
+// storage source have been resolved by the orchestration owner.
+import "ast_collection_call_effect_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_collection_formal_storage_permission_owner.pgy";
+
+func SemanticAstCollectionFormalIndexedReadReady(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_row: Int, argument_node: Int,
+    ref call_effects: SemanticAstCollectionCallEffectFacts
+) -> Bool {
+    let formal: SemanticAstCollectionFormalStorageIdentity =
+        SemanticAstCollectionStringArrayFormalIdentity(
+            signatures, surfaces.function_node_ids[surface_row],
+            surfaces.expression_graph, argument_node);
+    return formal.ok && formal.mode != 2 &&
+        !SemanticAstCollectionFormalReadPermissionUnproved(
+            artifact, surfaces.node_ids[surface_row],
+            formal.syntax_id, call_effects);
+}
+
+func SemanticAstCollectionCallArgumentEffectVerdict(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
+    edge: SemanticCallArgumentEdgeView,
+    literal_read_ready: Bool, proved: HashMap<String, Int>, effect: Int,
+    binding: SemanticAstLocalBindingIdentity,
+    unknown: Bool, borrowed_storage: Bool, owned_storage: Bool,
+    inout ownership: Array<Int>, ref dispositions: Array<Int>,
+    ref origins: Array<Int>, inout transition_states: Array<Int>,
+    ref call_effects: SemanticAstCollectionCallEffectFacts
+) -> SemanticAstCollectionOwnershipVerdict {
+    if effect == SemanticAstCollectionFormalShallowMutationEffect() {
+        if binding.ok {
+            let borrowed: Bool = ownership[binding.row] ==
+                    SemanticAstCollectionOwnershipBorrowedElements() ||
+                borrowed_storage || owned_storage;
+            let ordered_empty_continuation: Bool = false;
+            if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() {
+                borrowed = owned_storage || transition_states[binding.row] ==
+                        SemanticAstCollectionTransitionEmpty() ||
+                    transition_states[binding.row] ==
+                        SemanticAstCollectionTransitionBorrowed();
+                // Only the exact live descriptor produced by this empty-local
+                // generation can continue after its first proved shallow
+                // mutation. Alias/formal receivers have no Empty origin, and
+                // loop/defer sites have no stable straight-line event order.
+                ordered_empty_continuation = owned_storage &&
+                    transition_states[binding.row] ==
+                        SemanticAstCollectionTransitionBorrowed() &&
+                    SemanticAstCollectionCallRetirementSite(
+                        artifact, surfaces.node_ids[surface_row]) > 0;
+            }
+            if unknown || !borrowed ||
+                dispositions[binding.row] ==
+                    SemanticAstCollectionDispositionRetired() ||
+                SemanticAstCollectionStorageEscapedAtUse(
+                    artifact, call_effects, binding.row,
+                    surfaces.node_ids[surface_row]) ||
+                (SemanticAstCollectionShallowMutationHasPriorEffect(
+                        artifact, surfaces.node_ids[surface_row],
+                        call_effects.first_retiring_sites[binding.row],
+                        call_effects.first_non_deep_drop_retiring_sites[
+                            binding.row]) &&
+                    !ordered_empty_continuation) {
+                return SemanticAstCollectionOwnershipVerdictError(
+                    "borrow_boundary_escape",
+                    SemanticError2(
+                        "borrow_boundary_escape", "boundary",
+                        "unproved_shallow_mutation_entry",
+                        "type", "Array<String>"),
+                    surfaces.node_ids[surface_row], edge.call_node);
+            }
+            if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() &&
+                owned_storage && transition_states[binding.row] !=
+                    SemanticAstCollectionTransitionBorrowed() {
+                transition_states[binding.row] =
+                    SemanticAstCollectionTransitionBorrowed();
+            }
+        } else {
+            let actual_formal: SemanticAstCollectionFormalStorageIdentity =
+                SemanticAstCollectionStringArrayFormalIdentity(
+                    signatures, surfaces.function_node_ids[surface_row],
+                    surfaces.expression_graph, edge.argument_node);
+            let actual_effect_ready: Bool = false;
+            if actual_formal.ok {
+                let actual_key: String = ToString(actual_formal.syntax_id);
+                if MapHas(proved, actual_key) {
+                    let actual_effect: Int = MapGet(proved, actual_key);
+                    actual_effect_ready = actual_effect !=
+                            SemanticAstCollectionFormalOpaqueExecutionEffect() &&
+                        actual_effect !=
+                            SemanticAstCollectionFormalUnprovedElementUseEffect();
+                }
+            }
+            if !actual_formal.ok ||
+                (actual_formal.mode != 1 && actual_formal.mode != 2) ||
+                !actual_effect_ready ||
+                SemanticAstCollectionFormalShallowMutationUnproved(
+                    artifact, surfaces.node_ids[surface_row],
+                    actual_formal.syntax_id, call_effects) {
+                return SemanticAstCollectionOwnershipVerdictError(
+                    "borrow_boundary_escape",
+                    SemanticError2(
+                        "borrow_boundary_escape", "boundary",
+                        "unproved_formal_shallow_mutation_entry",
+                        "type", "Array<String>"),
+                    surfaces.node_ids[surface_row], edge.call_node);
+            }
+        }
+    }
+    if effect == 2 || effect == 3 {
+        if binding.ok {
+            let clean: Bool = ownership[binding.row] ==
+                    SemanticAstCollectionOwnershipOwnedElements() ||
+                ownership[binding.row] ==
+                    SemanticAstCollectionOwnershipMapKeysSnapshot();
+            if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() {
+                clean = SemanticAstCollectionTransitionAllowsOwned(
+                    transition_states[binding.row]);
+            }
+            if unknown || (effect == 2 && !clean) ||
+                dispositions[binding.row] ==
+                    SemanticAstCollectionDispositionRetired() ||
+                (effect == 2 && SemanticAstCollectionStorageEscapedAtUse(
+                    artifact, call_effects, binding.row,
+                    surfaces.node_ids[surface_row])) ||
+                SemanticAstCollectionMutableCallMayBeRetired(
+                    artifact, surfaces.node_ids[surface_row],
+                    call_effects.first_retiring_sites[binding.row]) {
+                let boundary: String = "unproved_inout_copy_entry";
+                if effect == 3 { boundary = "unproved_indexed_read_entry"; }
+                return SemanticAstCollectionOwnershipVerdictError(
+                    "borrow_boundary_escape",
+                    SemanticError2("borrow_boundary_escape", "boundary",
+                        boundary, "type", "Array<String>"),
+                    surfaces.node_ids[surface_row], edge.call_node);
+            }
+            if effect == 2 &&
+                origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() &&
+                transition_states[binding.row] ==
+                    SemanticAstCollectionTransitionEmpty() {
+                transition_states[binding.row] =
+                    SemanticAstCollectionTransitionClean();
+            }
+        } else {
+            let formal_read_ready: Bool = effect == 3 &&
+                SemanticAstCollectionFormalIndexedReadReady(
+                    artifact, signatures, surfaces, surface_row,
+                    edge.argument_node, call_effects);
+            if SemanticAstCollectionOwnershipParameterModeForArgument(
+                    signatures, surfaces, surface_row,
+                    edge.argument_node) == 3 ||
+                (effect == 3 && !literal_read_ready && !formal_read_ready) {
+                let boundary: String = "unproved_own_formal_copy_entry";
+                if effect == 3 {
+                    boundary = "unproved_formal_indexed_read_entry";
+                }
+                return SemanticAstCollectionOwnershipVerdictError(
+                    "borrow_boundary_escape",
+                    SemanticError2("borrow_boundary_escape", "boundary",
+                        boundary, "type", "Array<String>"),
+                    surfaces.node_ids[surface_row], edge.call_node);
+            }
+        }
+    }
+    return SemanticAstCollectionOwnershipVerdictOk();
+}

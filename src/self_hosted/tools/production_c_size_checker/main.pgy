@@ -2,20 +2,19 @@
 //
 // Status: rung-2 DirWalk-owned (2026-06-15). Sister tool to tool 8 --
 // enumerates production `.c` owners through DirWalk("src"), filters the same
-// production owner scope as tests/test_inc_size_smoke.sh, counts newlines,
-// and asserts the current production C size cap.
+// production owner scope as tests/test_inc_size_smoke.sh, excludes comment-only
+// records, and asserts the current production C size cap. Blank records count.
 //
 // Cwd contract: the parity harness cd's into the repo root before running.
 //
 // Pattern reused from tool 8 (`production_header_size_checker`): DirWalk-owned
-// inventory + per-file I/O loop. `CountLines` lifted to
-// src/self_hosted/lib/text_scan.pgy (2026-05-27).
+// inventory + per-file I/O loop. SourceSize owns size-only lexical counting.
 //
 // Contract: see intent.md in the same directory.
 
 import "../../lib/json.pgy";
 import "../../lib/json_emit.pgy";
-import "../../lib/text_scan.pgy";
+import "../../lib/source_size.pgy";
 
 func OverCapFinding(path: String, lines: Int) -> String {
     let fields: Array<String> = [
@@ -94,7 +93,7 @@ func Main() -> Void {
         if IsProductionCSource(path) {
             c_files = c_files + 1;
             let content: String = ReadFile(path);
-            let lines: Int = TextScan.CountLines(content);
+            let lines: Int = SourceSize.CountCLinesOrDie(content, path);
             if lines > max_lines {
                 max_lines = lines;
             }
