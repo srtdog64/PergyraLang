@@ -8,134 +8,125 @@ SoT registry, admitted contracts, and executable gates override this note.
 ### Checkpoint
 
 - Branch: `main`.
-- Whole-tree functional checkpoint:
-  `c29f801c5e00261774dc486ea00526090054c8c1`
-  (`checkpoint: consolidate ownership closure work`), parent
-  `165c66b28721867716631056d464eeb3bdc23652`.
-- This navigation refresh is the doc-only descendant of that functional
-  checkpoint. Verify its exact HEAD and remote identity with `git rev-parse`
-  when resuming; publication status is recorded below after push.
-- The checkpoint has broad accumulated compiler, fixture, gate,
-  audit, grammar, and vision changes. It is an explicit checkpoint, not proof
-  that every included experiment is a closed SoT or that CI is green.
-- No OpenAI/Codex co-author trailer belongs on the commits.
-
-Publication record: functional checkpoint `c29f801c5e00261774dc486ea00526090054c8c1`
-was pushed to `origin/main` and its remote identity was observed. The following
-cleanup/navigation commit removes only three byte-identical, unconsumed root
-copies of canonical `src/self_hosted/lexer/language_*` projections and records
-this handoff; verify the final remote SHA when resuming.
+- Functional checkpoint:
+  `c8863017` (`checkpoint: advance collection ownership lifetime closure`).
+- This handoff refresh is the doc-only descendant of that functional commit.
+  Verify the exact local and remote HEADs with `git rev-parse HEAD` and
+  `git ls-remote origin refs/heads/main` when resuming.
+- Untracked `deployment_optimization_guide.md` and `gmon.out` were deliberately
+  excluded. They are not evidence for this rung.
+- The checkpoint is an OPEN executable-rung checkpoint. It is not a claim that
+  the ownership SoT, installed driver, bootstrap, CI, or self-hosting is closed.
 
 ### One active executable rung
 
 The active registry row remains
-`semantic.hashmap_collection_ownership` (`ACTIVE`). Current registry census is
-`CLOSED=70 BRIDGE=23 ACTIVE=2`. No row is promoted by this checkpoint.
+`semantic.hashmap_collection_ownership` (`ACTIVE`). No registry row is promoted
+by this checkpoint.
 
 Production entrypoint:
 `SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects` in
 `src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy`.
 
-Direct native ownership consumers remain reachable through
-`src/semantic/collection_ownership_fact.c`,
-`src/semantic/array_storage_release_owner.c`, and related type-checker paths.
-Therefore C-owned compiler-path substitution is not complete.
-
-The active bounded slice prevents a `String` obtained by indexing an
-`Array<String>` from being used after `ArrayDropOwnedStrings` retires its exact
-storage source. Stable SyntaxNodeId/storage-definition identity is authority;
-names, `Symbol *`, raw addresses, and container positions are not.
+Direct native C consumers remain reachable through collection ownership,
+storage-release, and type-checker paths. Therefore Pergyra has not yet replaced
+the complete C-owned compiler path.
 
 ### Objective card
 
-- Objective: make indexed-String use after deep drop inexpressible in native
-  and self-host semantic admission while preserving an explicit owned copy.
-- Priority: exact identity; fail-closed unknown/multi-source join; negative
-  ratchet; C/LLVM parity; then broader mutation and interprocedural coverage.
-- Fact owner: native
-  `src/semantic/indexed_string_borrow_owner.c` and self-host
-  `ast_collection_indexed_string_borrow_*_owner.pgy`.
-- Last reached consumers: native identifier-use validation and self-host
-  collection ownership verdict event fold.
-- Forbidden fallback: clearing a loan because an expression is unsupported,
-  because one branch rebinds the String, or because a call is named
-  `ToString`.
-- Falsifiers: direct alias after drop, branch-only reassignment, unresolved
-  user-call pass-through, and `ToString(String)` pass-through. The positive
-  control is `Concat("", values[0])` before drop.
+- Objective: move aggregate and lexical collection lifetime decisions behind
+  exact Pergyra owners until the reached production path no longer depends on
+  C-owned reconstruction.
+- Priority: stable identity and one owner; fail-closed missing facts; delete the
+  former owner; add a negative ratchet; then parity and bounded performance.
+- Fact owner: the self-host collection ownership verdict and its admitted
+  formal-use, exact-leaf-transfer, environment, and storage-lifetime facts.
+- Last reached consumer: the MIR-root self-host bootstrap route exercised by
+  `tests/self_hosted/parity/fixture/mir_collection_receiver_root.pgy`.
+- Forbidden fallback: name/address/container-position identity, shallow copy as
+  ownership transfer, a whitelist for the reached call, or retaining the old
+  cursor/storage owner beside the replacement.
+- Current falsifier: bootstrap node `45859`, boundary
+  `ArrayPushOwnedString`, diagnosed as `borrowed or unknown Array<String>` in
+  `codegen-nominal-array-declaration`.
 
-### Current implementation and observed evidence
+### Landed implementation
 
-- Native and self-host owners carry exact source storage identities and a
-  conservative unknown/multi-source sentinel. Assignment joins provenance; it
-  does not erase a possible loan.
-- `Concat`/`StringConcat` are admitted as explicit independent copies through
-  resolved stdlib identity. `ToString(String)` is not a copy and preserves an
-  unresolved possible loan.
-- Deep drop invalidates exact-source aliases and unknown/multi-source aliases.
-- Native `make -j2 pgy` passed on 2026-10-04.
-- Native direct diagnostics rejected all four negative fixtures with
-  `PGY_SEM_BORROW_ESCAPE` / `indexed_string_use_after_deep_drop`:
-  direct alias, branch rebind, unresolved call, and ToString pass-through.
-- Native C and LLVM executed the explicit `Concat` copy control and printed
-  `owned-value` with zero errors and warnings.
-- Current self-host source compiled through native C and LLVM with zero errors
-  and nine existing unreachable-statement warnings per backend.
-- The issued C and LLVM self-host analyzers rejected the same four negatives
-  and admitted the explicit-copy positive (`body_ok=true`).
-- The early component-contract checks passed, including 14 component-checker
-  tests, line caps, lexical sizes, query signatures, record-shape order, and
-  constructor order. The 60-second budget expired after the
-  `match-pattern placement` checkpoint; this is a timeout, not a full gate
-  PASS.
-- During that run, two independent dirty-tree inconsistencies were corrected:
-  the retired recursive `JsonCollectScalarFieldValues` path is now negatively
-  gated, and a direct `Die` consumer imports `text_owner.pgy`.
-- `git diff --check` and `git diff --cached --check` passed before publication.
+- Lexical expression environments now own their lifetime directly. The former
+  expression-environment storage-lifetime owner was deleted.
+- Initializer environment rows replaced the separate cursor owner and its old
+  cursor gate; the retired owner and gate were deleted.
+- Aggregate member moves carry an exact owned-push leaf receipt. One positive
+  loop fixture and eight alias/borrow/defer/restore/duplicate/push negatives
+  ratchet the admitted shape.
+- Owned formal forwarding admits the exact shallow-forward case while rejecting
+  use after the transferred value is dropped.
+- Indexed String copy policy admits the owned results of `StringJoin` and
+  `TextBuilderFinish` without treating arbitrary calls as copies.
+- Routine body storage retirement now accounts for 93 backing leaves:
+  `66 Array<Int>`, `24 Array<String>`, and `3 Array<Bool>`. The two genuinely
+  deep destructure arrays still use `ArrayDropOwnedStrings`; other backing
+  arrays retire through `CompilerRetireArrayStorage`.
+- Three resolved call-target names and one resolved call return type now
+  materialize independent String results instead of returning indexed borrows.
+
+### Observed verification
+
+- `git diff --cached --check`: PASS before the functional commit.
+- All changed shell gates: `bash -n` PASS.
+- `make -j2 pgy`: PASS; current native `bin/pgy.exe` rebuilt.
+- Compiler-internal builtin registry generator `--check`: PASS.
+- `semantic_expression_environment_owned_lifetime_smoke.sh`: PASS.
+- `routine_build_storage_lifetime_owner.sh`: PASS, including the 93-leaf body
+  backing census.
+- Exact owned-push leaf fixture: C and LLVM positive execution PASS; all eight
+  negative boundary expectations PASS in both backends.
+- The component contract passed its early 14 checker tests, line caps, lexical
+  sizes, query signatures, record-shape order, and constructor order. The
+  60-second budget expired afterward, so this is not a full gate PASS.
+- The formal-effect report for the first bootstrap blocker changed
+  `function_names` from effect `5` to `3`; the next independent return-boundary
+  fix advanced bootstrap from node `45047` to node `45859`.
 
 ### Explicit OPEN boundaries
 
-- This slice does not yet invalidate indexed String loans for every storage-
-  changing operation. `ArrayPush`, `ArrayPushOwnedString`, `ArraySet`, and
-  `ArrayPop` realloc/mutation effects need their own exact transition evidence
-  and negative fixtures before the indexed-loan seam is complete.
-- Whole-program interprocedural String return/retention provenance remains
-  conservative. An unresolved call is not treated as an owned copy.
-- Loop/back-edge completeness has not been independently demonstrated beyond
-  the existing collection transition gates.
-- The GUI prerequisite is separate: caller storage after `inout` remains OPEN
-  until callable non-retention/exclusivity proves that the caller may release
-  it. The indexed-String deep-drop guard does not close that contract.
-- No installed-driver, fixed-point bootstrap, full platform matrix, performance
-  acceptance, or exact-HEAD CI green result is claimed here.
-- The full `semantic.hashmap_collection_ownership` row remains ACTIVE until
-  owner/last-consumer migration, missing-fact refusal, old-path deletion,
-  negative gates, installed-driver evidence, and exact-head CI all exist.
+- Seed bootstrap is FAIL at node `45859`; its last observed work directory was
+  `.tmp/self_hosted/codegen_nominal_array_declaration/run.BhN0Xc`.
+- Initializer-projection and compiler-internal provenance gates still delegate
+  to a stale installed `pgy-self-driver.exe` and fail against the current
+  registry. Native rebuild success is not installed-driver evidence.
+- Exact-head CI green, fixed-point bootstrap, installed-driver parity, full
+  component gate completion, and the platform matrix are not established.
+- The collection formal-effect graph scan remains the main measured performance
+  blocker (about 40-45 seconds inside an about 88-second body run; the full
+  producer was about 106 seconds). Two attempted indexing optimizations did not
+  materially improve it and were reverted.
+- The GUI prerequisite remains separate: caller storage after `inout` is OPEN
+  until callable non-retention/exclusivity proves that release is legal.
+- The row stays ACTIVE until owner and last-consumer migration, missing-fact
+  refusal, old-path deletion, negative gates, installed-driver evidence, and
+  exact-head CI all exist.
 
-### Language/IDE boundary retained
+### Language and IDE boundary
 
-Pergyra owns only machine-verifiable `WHAT MUST HOLD`: state, invariant,
-authority, ownership, capability, effect, transition, intent, type, and
-boundary. Human rationale remains in ADRs, issues, requirements, design notes,
-commits, and discussions. IDEs may link those external artifacts by stable
-semantic identity, but prose is not compiler authority. The corresponding
-vision text is in `docs/00_vision.md`.
+Pergyra owns machine-verifiable `WHAT MUST HOLD`: state, invariant, authority,
+ownership, capability, effect, transition, intent, type, and boundary. Human
+`WHY` or rationale remains in ADRs, issues, requirements, design notes, commits,
+and discussions. IDEs may link those external artifacts by stable semantic
+identity, but prose is not compiler authority and must not become language
+syntax. `docs/00_vision.md` owns this boundary.
 
 ### Next falsifying case
 
-Add exact storage-version invalidation for the smallest reallocating operation,
-starting with `ArrayPushOwnedString`: borrow `values[0]`, mutate the same exact
-storage, then use the alias. The negative must reject in native and issued
-self-host C/LLVM while an unrelated-array mutation and a final use before
-mutation remain positive. Do not broaden syntax or create another SoT row.
-
-After that slice, return to the separate GUI prerequisite: replace blanket
-post-`inout` invalidation with an existing callable effect/non-retention proof,
-then rerun the frozen Alrescha receipt with the exact current launcher hash.
+Map bootstrap node `45859` exactly in
+`tests/self_hosted/parity/fixture/mir_collection_receiver_root.pgy`. Identify
+the `ArrayPushOwnedString` receiver's storage source, its last legitimate
+consumer, and the missing transition fact. Fix only that owner seam and add a
+focused positive/negative gate. Do not add a name whitelist, compatibility
+fallback, duplicate SoT row, or general query/cache architecture.
 
 ## Historical archive boundary
 
-The former 3,223-line accumulated archive was removed from this navigation
-file on 2026-10-04. It remains recoverable in Git history. Do not reconstruct
-old cards here; consult the relevant commit, audit, registry row, or executable
-gate when historical evidence is needed.
+Older checkpoints are evidence in Git history, not an active work queue. Do
+not revive them unless the current source, registry, or reached falsifier points
+back to them.
