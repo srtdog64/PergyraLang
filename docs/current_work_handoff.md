@@ -8,15 +8,23 @@ SoT registry, admitted contracts, and executable gates override this note.
 ### Checkpoint
 
 - Branch: `main`.
-- Published base and `origin/main`: `165c66b28721867716631056d464eeb3bdc23652`
-  (`chore: restore self-host source caps`).
-- The current whole-tree checkpoint is being prepared from one checkout. The
-  exact published commit and remote SHA must be filled in by the follow-up
-  handoff commit after publication.
-- The pre-publication tree has broad accumulated compiler, fixture, gate,
+- Whole-tree functional checkpoint:
+  `c29f801c5e00261774dc486ea00526090054c8c1`
+  (`checkpoint: consolidate ownership closure work`), parent
+  `165c66b28721867716631056d464eeb3bdc23652`.
+- This navigation refresh is the doc-only descendant of that functional
+  checkpoint. Verify its exact HEAD and remote identity with `git rev-parse`
+  when resuming; publication status is recorded below after push.
+- The checkpoint has broad accumulated compiler, fixture, gate,
   audit, grammar, and vision changes. It is an explicit checkpoint, not proof
   that every included experiment is a closed SoT or that CI is green.
 - No OpenAI/Codex co-author trailer belongs on the commits.
+
+Publication record: functional checkpoint `c29f801c5e00261774dc486ea00526090054c8c1`
+was pushed to `origin/main` and its remote identity was observed. The following
+cleanup/navigation commit removes only three byte-identical, unconsumed root
+copies of canonical `src/self_hosted/lexer/language_*` projections and records
+this handoff; verify the final remote SHA when resuming.
 
 ### One active executable rung
 
