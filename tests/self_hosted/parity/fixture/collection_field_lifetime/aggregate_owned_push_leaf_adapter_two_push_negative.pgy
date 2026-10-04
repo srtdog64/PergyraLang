@@ -1,0 +1,11 @@
+struct Rows { values: Array<String>; }
+func StoreTwice(inout values: Array<String>, value: String) -> Void {
+    ArrayPushOwnedString(values, value);
+    ArrayPushOwnedString(values, value);
+}
+func Append(inout rows: Rows) -> Void {
+    let values: Array<String> = rows.values;
+    StoreTwice(values, "next");
+    rows.values = values;
+}
+func Main() -> Void { let rows: Rows = Rows([]); Append(rows); }

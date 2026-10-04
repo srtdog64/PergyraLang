@@ -140,20 +140,16 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
     if !SemanticAstExpressionMemberRootNames(constructors, enum_facts, member_root_names) {
         return SemanticAstStatementTypeStructuralError(artifact, "member_root_environment");
     }
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let modes: Array<String> = [];
-    if !SemanticAstExpressionSeedEnumValues(enum_facts, names, types, modes) {
-        return SemanticAstStatementTypeStructuralError(artifact, "enum_environment");
-    }
-    let enum_environment_count: Int = ArrayLength(names);
     let i: Int = 0;
     while i < SemanticAstStatementCount(statements) {
-        while ArrayLength(names) > enum_environment_count { ArrayPop(names); }
-        while ArrayLength(types) > enum_environment_count { ArrayPop(types); }
-        while ArrayLength(modes) > enum_environment_count { ArrayPop(modes); }
+        let names: Array<String> = [];
+        let types: Array<String> = [];
+        let modes: Array<String> = [];
         let environment_fact: String = "";
-        if !SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
+        if !SemanticAstExpressionSeedEnumValues(
+            enum_facts, names, types, modes
+        ) { environment_fact = "enum_environment"; }
+        else if !SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
             signatures, constructors, statements.function_node_ids[i],
             names, types, modes
         ) { environment_fact = "owner_field_environment"; }
@@ -187,6 +183,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
             environment_fact = "environment_row_count";
         }
         if environment_fact != "" {
+            SemanticAstExpressionEnvironmentClear(names, types, modes);
             return SemanticAstStatementTypeStructuralError(
                 artifact, environment_fact
             );
@@ -215,6 +212,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                     AstExpressionLaneAtom()
                 );
             if !IsSome(graph_root) {
+                SemanticAstExpressionEnvironmentClear(names, types, modes);
                 return SemanticAstStatementTypeStructuralError(
                     artifact, "expression_graph"
                 );
@@ -275,6 +273,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
             let target_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
                 expression_surfaces, statements.node_ids[i], AstExpressionLaneAtom());
             if !IsSome(target_root) {
+                SemanticAstExpressionEnvironmentClear(names, types, modes);
                 return SemanticAstStatementTypeStructuralError(artifact, "array_target_graph");
             }
             let mutation: SemanticExpressionGraphCollectionMutationFact =
@@ -320,6 +319,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                         AstExpressionLaneValue()
                     );
                 if !IsSome(index_root) {
+                    SemanticAstExpressionEnvironmentClear(names, types, modes);
                     return SemanticAstStatementTypeStructuralError(
                         artifact, "array_set_index_graph"
                     );
@@ -366,6 +366,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                         value_lane
                     );
                 if !IsSome(value_root) {
+                    SemanticAstExpressionEnvironmentClear(names, types, modes);
                     return SemanticAstStatementTypeStructuralError(
                         artifact, "collection_value_graph"
                     );
@@ -418,6 +419,7 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
                         AstExpressionLaneAtom()
                     );
                 if !IsSome(return_root) {
+                    SemanticAstExpressionEnvironmentClear(names, types, modes);
                     return SemanticAstStatementTypeStructuralError(
                         artifact, "return_expression_graph"
                     );
@@ -516,9 +518,9 @@ func SemanticAstStatementTypeFactsFromAdmittedArtifact(
         ArrayPush(verified, row_verified);
         ArrayPush(diagnostic_codes, row_code);
         ArrayPush(diagnostic_messages, row_message);
+        SemanticAstExpressionEnvironmentClear(names, types, modes);
         i = i + 1;
     }
-    SemanticAstExpressionEnvironmentClear(names, types, modes);
     let contract: SemanticAstDeclarationContractVerdict =
         SemanticAstDeclarationContractVerdictFrom(signatures, enum_facts);
     if !contract.ok {

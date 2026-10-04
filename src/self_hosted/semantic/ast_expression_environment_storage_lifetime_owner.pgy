@@ -1,8 +1,0 @@
-// Storage-only retirement after the environment owner has shallow-popped all
-// borrowed names, types, and modes. No element deep-drop is permitted here.
-
-func SemanticAstExpressionEnvironmentStorageRetire(
-    own values: Array<String>
-) -> Void {
-    CompilerRetireArrayStorage(values);
-}

@@ -288,7 +288,8 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
     let field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements = SemanticAstCollectionAggregateFieldEntryRequirementsEmpty();
     let element_requirements: HashMap<String, Int> = SemanticAstCollectionOwnedElementParameterRequirements(
         artifact, locals, initializer_types.inferred_type_names, origins, source_binding_syntax_ids, origin_syntax_ids,
-        signatures, surfaces, call_roots, field_requirements);
+        signatures, surfaces, call_roots,
+        formal_effects.owned_push_leaf_formals, field_requirements);
     if !SemanticAstCollectionAggregateFieldEntryRequirementsReady(field_requirements) {
         return SemanticAstCollectionOwnershipVerdictError("ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner", "aggregate_field_entry_requirements"), -1, -1);
@@ -414,7 +415,9 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
                     let argument_verdict: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
                         artifact, signatures, locals, initializer_types.inferred_type_names, surfaces, root_slot / 3,
                         edge, literal_read_ready, formal_effects.effects,
-                        element_requirements, ownership, dispositions, origins,
+                        formal_effects.owned_push_leaf_formals,
+                        element_requirements, field_requirements,
+                        ownership, dispositions, origins,
                         transition_states, call_effects, storage, definitions,
                         current_definitions);
                     if !argument_verdict.ok {
@@ -434,6 +437,21 @@ func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
                     if !aggregate_reservation.ok {
                         ArrayDrop(pending); ArrayDrop(prefixes);
                         return aggregate_reservation;
+                    }
+                    let aggregate_owned_push_leaf:
+                        SemanticAstCollectionOwnershipVerdict =
+                        SemanticAstCollectionAggregateOwnedPushLeafAtCompletion(
+                            artifact, signatures, locals,
+                            initializer_types.inferred_type_names,
+                            surfaces, root_slot / 3,
+                            step.completed_call, node,
+                            formal_effects.owned_push_leaf_formals,
+                            field_requirements, aggregate_release_plan,
+                            ownership, dispositions, origins,
+                            transition_states);
+                    if !aggregate_owned_push_leaf.ok {
+                        ArrayDrop(pending); ArrayDrop(prefixes);
+                        return aggregate_owned_push_leaf;
                     }
                     let builtin_transition: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionBuiltinTransitionAtCompletion(
                         artifact, locals, initializer_types.inferred_type_names, signatures, surfaces, root_slot / 3,

@@ -668,16 +668,16 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
     return false;
 }
 
-func ProbeInitializerCursorVisibility(mode: String) -> Bool {
+func ProbeInitializerEnvironmentVisibility(mode: String) -> Bool {
     let artifact_text: String =
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x = x\n        Return: 0\n";
-    if mode == "--cursor-outer-shadow-positive" {
+    if mode == "--environment-outer-read-positive" {
         artifact_text =
-            "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: true\n          Then:\n            Block:\n              Let: x : Int = x\n        Return: x\n";
-    } else if mode == "--cursor-nested-exit-positive" {
+            "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: true\n          Then:\n            Block:\n              Let: y : Int = x\n        Return: x\n";
+    } else if mode == "--environment-nested-exit-positive" {
         artifact_text =
-            "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: true\n          Then:\n            Block:\n              Let: x : String = \"inner\"\n        Let: y : Int = x\n        Return: y\n";
-    } else if mode == "--cursor-sibling-leak" {
+            "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: true\n          Then:\n            Block:\n              Let: inner : String = \"inner\"\n        Let: y : Int = x\n        Return: y\n";
+    } else if mode == "--environment-sibling-leak" {
         artifact_text =
             "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        If: true\n          Then:\n            Block:\n              Let: hidden : Int = 1\n        If: true\n          Then:\n            Block:\n              Let: leaked = hidden\n        Return: 0\n";
     }
@@ -690,8 +690,8 @@ func ProbeInitializerCursorVisibility(mode: String) -> Bool {
     let initializer_types: SemanticAstInitializerTypeFacts =
         body_types.initializer_types;
 
-    if mode == "--cursor-self-reference" ||
-        mode == "--cursor-sibling-leak" {
+    if mode == "--environment-self-reference" ||
+        mode == "--environment-sibling-leak" {
         let i: Int = 0;
         while i < SemanticAstInitializerTypeCount(initializer_types) {
             if initializer_types.verified[i] != 1 &&
@@ -704,21 +704,21 @@ func ProbeInitializerCursorVisibility(mode: String) -> Bool {
             }
             i = i + 1;
         }
-        Log("cursor visibility damage did not fail closed");
+        Log("initializer environment visibility damage did not fail closed");
         return true;
     }
     if !SemanticAstBodyTypeBundleReady(artifact, analysis, body_types) {
         Log(body_types.verdict.diagnostic_message);
         return false;
     }
-    if mode == "--cursor-outer-shadow-positive" {
+    if mode == "--environment-outer-read-positive" {
         if SemanticAstInitializerTypeCount(initializer_types) != 2 ||
             initializer_types.verified[1] != 1 ||
             initializer_types.inferred_type_names[1] != "Int" {
             Log("outer shadow initializer did not read the prior binding");
             return false;
         }
-        Log("cursor-outer-shadow=Int");
+        Log("environment-outer-read=Int");
         return true;
     }
     if SemanticAstInitializerTypeCount(initializer_types) != 3 ||
@@ -727,11 +727,11 @@ func ProbeInitializerCursorVisibility(mode: String) -> Bool {
         Log("nested scope exit did not restore the outer binding");
         return false;
     }
-    Log("cursor-nested-exit=Int");
+    Log("environment-nested-exit=Int");
     return true;
 }
 
-func ProbeInitializerCursorDestructureAtomic() -> Bool {
+func ProbeInitializerEnvironmentDestructureAtomic() -> Bool {
     let artifact: AstTreeArtifact = ProbeInitializerArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: seed : Int = 1\n        Return: seed\n"
     );
@@ -757,44 +757,36 @@ func ProbeInitializerCursorDestructureAtomic() -> Bool {
             SemanticAstLocalBindingKindDestructure()],
         [0, 1], [2, 2]
     );
+    let inferred: Array<String> = ["Int", "Int"];
     let names: Array<String> = [];
     let types: Array<String> = [];
     let modes: Array<String> = [];
-    let inferred: Array<String> = ["Int", "Int"];
-    let cursor: SemanticAstInitializerEnvironmentCursor =
-        SemanticAstInitializerEnvironmentCursorEmpty();
-    cursor = SemanticAstInitializerEnvironmentCursorAdvance(
-        artifact, signatures, constructors, enums, fake, 0,
-        names, types, modes, cursor
-    );
-    let base_count: Int = ArrayLength(names);
-    cursor = SemanticAstInitializerEnvironmentCursorCommitCompletedNode(
-        fake, inferred, 0, names, types, modes, cursor
-    );
-    if !cursor.ok || ArrayLength(names) != base_count {
-        Log("destructure binding was visible before its syntax node completed");
-        return false;
-    }
-    cursor = SemanticAstInitializerEnvironmentCursorAdvance(
-        artifact, signatures, constructors, enums, fake, 1,
-        names, types, modes, cursor
-    );
-    if !cursor.ok || ArrayLength(names) != base_count {
+    if !SemanticAstExpressionSeedVisibleLocals(
+        artifact, fake, inferred, actual.function_node_ids[0],
+        actual.node_ids[0], names, types
+    ) || !SemanticAstExpressionSeedVisibleLocalModes(
+        artifact, fake, actual.function_node_ids[0], actual.node_ids[0], modes
+    ) || ArrayLength(names) != 0 || ArrayLength(types) != 0 ||
+        ArrayLength(modes) != 0 {
         Log("destructure sibling observed an earlier binding from the group");
         return false;
     }
-    cursor = SemanticAstInitializerEnvironmentCursorCommitCompletedNode(
-        fake, inferred, 1, names, types, modes, cursor
-    );
-    if !cursor.ok || ArrayLength(names) != base_count + 2 ||
-        names[base_count] != "left" || names[base_count + 1] != "right" ||
-        types[base_count] != "Int" || types[base_count + 1] != "Int" ||
-        modes[base_count] != "local" || modes[base_count + 1] != "local" {
+    let later_use_node_id: Int = artifact.count - 1;
+    if !SemanticAstExpressionSeedVisibleLocals(
+        artifact, fake, inferred, actual.function_node_ids[0],
+        later_use_node_id, names, types
+    ) || !SemanticAstExpressionSeedVisibleLocalModes(
+        artifact, fake, actual.function_node_ids[0], later_use_node_id, modes
+    ) || ArrayLength(names) != 2 ||
+        names[0] != "left" || names[1] != "right" ||
+        types[0] != "Int" || types[1] != "Int" ||
+        modes[0] != "local" || modes[1] != "local" {
         Log("completed destructure syntax node was not published atomically");
+        SemanticAstExpressionEnvironmentClear(names, types, modes);
         return false;
     }
     SemanticAstExpressionEnvironmentClear(names, types, modes);
-    Log("cursor-destructure=atomic");
+    Log("environment-destructure=atomic");
     return true;
 }
 
@@ -802,15 +794,15 @@ func Main() -> Void with caps env {
     let args: Array<String> = Args();
     let mode: String = "";
     if ArrayLength(args) > 0 { mode = args[0]; }
-    if mode == "--cursor-destructure-atomic-positive" {
-        if !ProbeInitializerCursorDestructureAtomic() { Exit(1); }
+    if mode == "--environment-destructure-atomic-positive" {
+        if !ProbeInitializerEnvironmentDestructureAtomic() { Exit(1); }
         return;
     }
-    if mode == "--cursor-outer-shadow-positive" ||
-        mode == "--cursor-nested-exit-positive" ||
-        mode == "--cursor-self-reference" ||
-        mode == "--cursor-sibling-leak" {
-        if !ProbeInitializerCursorVisibility(mode) { Exit(1); }
+    if mode == "--environment-outer-read-positive" ||
+        mode == "--environment-nested-exit-positive" ||
+        mode == "--environment-self-reference" ||
+        mode == "--environment-sibling-leak" {
+        if !ProbeInitializerEnvironmentVisibility(mode) { Exit(1); }
         return;
     }
     if mode == "--direct-call-positive" ||

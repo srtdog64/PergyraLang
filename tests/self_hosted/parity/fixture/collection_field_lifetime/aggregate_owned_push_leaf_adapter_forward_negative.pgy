@@ -1,0 +1,13 @@
+struct Rows { values: Array<String>; }
+func StoreOwned(inout values: Array<String>, value: String) -> Void {
+    ArrayPushOwnedString(values, value);
+}
+func ForwardStore(inout values: Array<String>, value: String) -> Void {
+    StoreOwned(values, value);
+}
+func Append(inout rows: Rows) -> Void {
+    let values: Array<String> = rows.values;
+    ForwardStore(values, "next");
+    rows.values = values;
+}
+func Main() -> Void { let rows: Rows = Rows([]); Append(rows); }

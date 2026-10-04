@@ -6,7 +6,6 @@ import "ast_local_binding_fact_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
 import "expr_type_owner.pgy";
 import "ast_expression_environment_owner.pgy";
-import "ast_initializer_environment_cursor_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
@@ -137,22 +136,33 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             SemanticAstLocalBindingCount(locals)) {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let modes: Array<String> = [];
-    let environment_cursor: SemanticAstInitializerEnvironmentCursor =
-        SemanticAstInitializerEnvironmentCursorEmpty();
     let i: Int = 0;
     while i < SemanticAstLocalBindingCount(locals) {
         SemanticAstInitializerTypePressureRow(
             observe_pressure, "row:start", i
         );
-        environment_cursor =
-            SemanticAstInitializerEnvironmentCursorAdvance(
-                artifact, signatures, constructors, enum_facts, locals, i,
-                names, types, modes, environment_cursor
-            );
-        if !environment_cursor.ok {
+        let names: Array<String> = [];
+        let types: Array<String> = [];
+        let modes: Array<String> = [];
+        let environment_ok: Bool = SemanticAstExpressionSeedEnumValues(
+            enum_facts, names, types, modes
+        ) && SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
+            signatures, constructors, locals.function_node_ids[i],
+            names, types, modes
+        ) && SemanticAstExpressionSeedParameters(
+            signatures, constructors, locals.function_node_ids[i], names, types
+        ) && SemanticAstExpressionSeedParameterModes(
+            signatures, locals.function_node_ids[i], modes
+        ) && SemanticAstExpressionSeedVisibleLocals(
+            artifact, locals, inferred_type_names,
+            locals.function_node_ids[i], locals.node_ids[i], names, types
+        ) && SemanticAstExpressionSeedVisibleLocalModes(
+            artifact, locals, locals.function_node_ids[i],
+            locals.node_ids[i], modes
+        );
+        if !environment_ok || ArrayLength(names) != ArrayLength(types) ||
+            ArrayLength(names) != ArrayLength(modes) {
+            SemanticAstExpressionEnvironmentClear(names, types, modes);
             return SemanticAstInitializerTypeStructuralError(artifact);
         }
         let persistent_environment_count: Int = ArrayLength(names);
@@ -162,6 +172,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             iteration_verified, locals.function_node_ids[i],
             locals.node_ids[i], names, types, modes
         ) {
+            SemanticAstExpressionEnvironmentClear(names, types, modes);
             return SemanticAstInitializerTypeStructuralError(artifact);
         }
         let iteration_environment_visible: Bool =
@@ -178,19 +189,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             );
             ArrayPush(binding_kinds, base_facts.binding_kinds[i]);
             ArrayPush(binding_indices, base_facts.binding_indices[i]);
-            if !SemanticAstInitializerEnvironmentTruncateTransient(
-                persistent_environment_count, names, types, modes
-            ) {
-                return SemanticAstInitializerTypeStructuralError(artifact);
-            }
-            environment_cursor =
-                SemanticAstInitializerEnvironmentCursorCommitCompletedNode(
-                    locals, inferred_type_names, i, names, types, modes,
-                    environment_cursor
-                );
-            if !environment_cursor.ok {
-                return SemanticAstInitializerTypeStructuralError(artifact);
-            }
+            SemanticAstExpressionEnvironmentClear(names, types, modes);
             i = i + 1;
             continue;
         }
@@ -200,6 +199,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             locals.function_node_ids[i],
             locals.node_ids[i], names, types, modes, function_tables
         ) || ArrayLength(names) != ArrayLength(modes) {
+            SemanticAstExpressionEnvironmentClear(names, types, modes);
             return SemanticAstInitializerTypeStructuralError(artifact);
         }
         SemanticAstInitializerTypePressureRow(
@@ -212,6 +212,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
                 AstExpressionLaneValue()
             );
         if !IsSome(graph_root) {
+            SemanticAstExpressionEnvironmentClear(names, types, modes);
             return SemanticAstInitializerTypeStructuralError(artifact);
         }
         SemanticAstInitializerTypePressureRow(
@@ -251,6 +252,7 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
             }
         } else if locals.binding_kinds[i] !=
             SemanticAstLocalBindingKindNormal() {
+            SemanticAstExpressionEnvironmentClear(names, types, modes);
             return SemanticAstInitializerTypeStructuralError(artifact);
         }
         let declared: Option<String> =
@@ -341,25 +343,12 @@ func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObserve
         ArrayPush(diagnostic_messages, row_message);
         ArrayPush(binding_kinds, locals.binding_kinds[i]);
         ArrayPush(binding_indices, locals.binding_indices[i]);
-        if !SemanticAstInitializerEnvironmentTruncateTransient(
-            persistent_environment_count, names, types, modes
-        ) {
-            return SemanticAstInitializerTypeStructuralError(artifact);
-        }
-        environment_cursor =
-            SemanticAstInitializerEnvironmentCursorCommitCompletedNode(
-                locals, inferred_type_names, i, names, types, modes,
-                environment_cursor
-            );
-        if !environment_cursor.ok {
-            return SemanticAstInitializerTypeStructuralError(artifact);
-        }
+        SemanticAstExpressionEnvironmentClear(names, types, modes);
         SemanticAstInitializerTypePressureRow(
             observe_pressure, "row:done", i
         );
         i = i + 1;
     }
-    SemanticAstExpressionEnvironmentClear(names, types, modes);
     return SemanticAstInitializerTypeFacts(
         true, "", "", artifact.count, node_ids,
         inferred_type_names, verified, diagnostic_codes,

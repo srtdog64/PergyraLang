@@ -46,20 +46,26 @@ expression_produces_independent_string(ASTNode *expression)
 {
     ASTNode *callee;
     const char *name;
+    uint32_t builtin_kind = 0;
 
     if (expression == NULL)
         return false;
     if (expression->type == AST_STRING)
         return true;
-    if (expression->type != AST_CALL
-        || !ast_call_semantic_callee_is_stdlib(expression))
+    if (expression->type != AST_CALL)
+        return false;
+    if (ast_call_semantic_callee_builtin_kind(expression, &builtin_kind)
+        && builtin_kind == BUILTIN_TEXT_BUILDER_FINISH)
+        return true;
+    if (!ast_call_semantic_callee_is_stdlib(expression))
         return false;
     callee = ast_call_callee(expression);
     if (callee == NULL || callee->type != AST_IDENTIFIER)
         return false;
     name = ast_identifier_name(callee);
     return name != NULL && (strcmp(name, "Concat") == 0
-        || strcmp(name, "StringConcat") == 0);
+        || strcmp(name, "StringConcat") == 0
+        || strcmp(name, "StringJoin") == 0);
 }
 
 static uint32_t

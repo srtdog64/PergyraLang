@@ -3064,7 +3064,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_hosted/parity/semantic_tagged_enum_payload_variant_provenance_owner.sh
 	"$(BASH)" tests/self_hosted/parity/semantic_enum_fact_lifetime_owner_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/semantic_expression_environment_owned_lifetime_smoke.sh
-	"$(BASH)" tests/self_hosted/parity/semantic_initializer_environment_cursor_owner_smoke.sh
+	"$(BASH)" tests/self_hosted/parity/semantic_initializer_environment_row_owner_smoke.sh
 	"$(BASH)" tests/self_hosted/parity/driver_rung2_let_graph_use_owner.sh
 	"$(BASH)" tests/self_hosted/parity/driver_rung2_if_graph_use_owner.sh
 	"$(BASH)" tests/self_hosted/parity/driver_rung2_while_graph_use_owner.sh

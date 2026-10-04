@@ -23,6 +23,8 @@ func SemanticAstCollectionFormalEffectsReadyFor(
     ref signatures: SemanticAstFunctionSignatureFacts
 ) -> Bool {
     let count: Int = ArrayLength(facts.inventory.formal_nodes);
+    let owned_push_leaf_formals: HashMap<String, Int> =
+        facts.owned_push_leaf_formals;
     let signature_count: Int = ArrayLength(signatures.function_node_ids);
     let flat_count: Int = ArrayLength(signatures.param_node_ids);
     if !facts.ok || !facts.inventory.ok || !signatures.ok ||
@@ -42,6 +44,7 @@ func SemanticAstCollectionFormalEffectsReadyFor(
     let signature: Int = 0;
     let flat: Int = 0;
     let expected: Int = 0;
+    let owned_push_leaf_count: Int = 0;
     while signature < signature_count {
         let function: Int = signatures.function_node_ids[signature];
         let size: Int = signatures.param_counts[signature];
@@ -82,6 +85,14 @@ func SemanticAstCollectionFormalEffectsReadyFor(
                 if effect != 0 {
                     if effect < 1 || effect > 6 { return false; }
                 }
+                if MapHas(owned_push_leaf_formals, key) {
+                    if facts.inventory.modes[expected] != 1 ||
+                        !facts.inventory.body_ready[expected] || effect != 2 ||
+                        MapGet(owned_push_leaf_formals, key) < 0 {
+                        return false;
+                    }
+                    owned_push_leaf_count = owned_push_leaf_count + 1;
+                }
                 expected = expected + 1;
             }
             ordinal = ordinal + 1;
@@ -89,7 +100,8 @@ func SemanticAstCollectionFormalEffectsReadyFor(
         flat = flat + size;
         signature = signature + 1;
     }
-    return flat == flat_count && expected == count;
+    return flat == flat_count && expected == count &&
+        owned_push_leaf_count == MapSize(owned_push_leaf_formals);
 }
 
 func SemanticAstCollectionFormalEffectProvedCount(
@@ -111,14 +123,23 @@ func SemanticAstCollectionFormalEffectReceiptDigest(
     facts: SemanticAstCollectionFormalEffects
 ) -> Int {
     let digest: Int = 17;
+    let owned_push_leaf_formals: HashMap<String, Int> =
+        facts.owned_push_leaf_formals;
     let row: Int = 0;
     while row < ArrayLength(facts.inventory.formal_nodes) {
         let node: Int = facts.inventory.formal_nodes[row];
         let effect: Int = SemanticAstCollectionFormalEffectForNode(
             facts.effects, node);
+        let owned_push_leaf_call: Int = -1;
+        let key: String = ToString(node);
+        if MapHas(owned_push_leaf_formals, key) {
+            owned_push_leaf_call =
+                MapGet(owned_push_leaf_formals, key);
+        }
         // Keep every intermediate inside signed Int. With a 15,000,000
-        // modulus the largest valid step is 1,965,732,972, below Int32 max.
+        // modulus the largest valid step remains below Int32 max.
         digest = ((digest * 131) + ((node % 104729) * 7) +
+            (((owned_push_leaf_call + 1) % 104729) * 11) +
             effect + 1) % 15000000;
         row = row + 1;
     }

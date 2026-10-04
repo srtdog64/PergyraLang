@@ -14,7 +14,6 @@ import "ast_expression_function_table_fact_owner.pgy";
 import "nominal_constructor_argument_policy_owner.pgy";
 import "ast_intent_signature_fact_owner.pgy";
 import "ast_generic_nominal_equality_owner.pgy";
-import "ast_expression_environment_storage_lifetime_owner.pgy";
 import "env_owner.pgy";
 func SemanticAstExpressionMemberRootNames(constructors: SemanticAstNominalConstructorFacts,
     enums: SemanticAstEnumFacts, inout roots: Array<String>) -> Bool {
@@ -71,9 +70,9 @@ func SemanticAstExpressionSeedEnumValues(
                 name_index = name_index + 1;
             }
             if !qualified_exists {
-                ArrayPush(names, qualified);
-                ArrayPush(types, enum_name);
-                ArrayPush(modes, "enum_value");
+                ArrayPushOwnedString(names, qualified);
+                ArrayPushOwnedString(types, enum_name);
+                ArrayPushOwnedString(modes, "enum_value");
             }
             let variant_exists: Bool = false;
             name_index = 0;
@@ -82,9 +81,9 @@ func SemanticAstExpressionSeedEnumValues(
                 name_index = name_index + 1;
             }
             if !variant_exists {
-                ArrayPush(names, variant);
-                ArrayPush(types, enum_name);
-                ArrayPush(modes, "enum_value");
+                ArrayPushOwnedString(names, variant);
+                ArrayPushOwnedString(types, enum_name);
+                ArrayPushOwnedString(modes, "enum_value");
             }
         }
         i = i + 1;
@@ -362,7 +361,7 @@ func SemanticAstExpressionSeedParameterModes(
         } else if mode == 3 {
             mode_name = "ref_param";
         }
-        ArrayPush(modes, mode_name);
+        ArrayPushOwnedString(modes, mode_name);
         i = i + 1;
     }
     return true;
@@ -458,8 +457,8 @@ func SemanticAstExpressionSeedParameters(
         if !IsSome(name) || !IsSome(body_type) {
             return false;
         }
-        ArrayPush(names, UnwrapOption(name));
-        ArrayPush(types, UnwrapOption(body_type));
+        ArrayPushOwnedString(names, UnwrapOption(name));
+        ArrayPushOwnedString(types, UnwrapOption(body_type));
         i = i + 1;
     }
     return true;
@@ -492,16 +491,16 @@ func SemanticAstExpressionSeedVisibleLocals(
                 if type_name == "" || type_name == "Unknown" {
                     return false;
                 }
-                ArrayPush(names, locals.names[i]);
-                ArrayPush(types, type_name);
+                ArrayPushOwnedString(names, locals.names[i]);
+                ArrayPushOwnedString(types, type_name);
             } else {
                 if i >= ArrayLength(inferred_types) ||
                     inferred_types[i] == "" ||
                     inferred_types[i] == "Unknown" {
                     return false;
                 }
-                ArrayPush(names, locals.names[i]);
-                ArrayPush(types, inferred_types[i]);
+                ArrayPushOwnedString(names, locals.names[i]);
+                ArrayPushOwnedString(types, inferred_types[i]);
             }
         }
         i = i + 1;
@@ -527,24 +526,24 @@ func SemanticAstExpressionSeedVisibleLocalModes(
             SemanticAstExpressionScopeVisible(
                 artifact.arena, locals.scope_node_ids[i], use_node_id
             ) {
-            ArrayPush(modes, "local");
+            ArrayPushOwnedString(modes, "local");
         }
         i = i + 1;
     }
     return true;
 }
 
-// Reset retains storage; Clear consumes the emptied descriptor exactly once.
-func SemanticAstExpressionEnvironmentReset(inout names: Array<String>, inout types: Array<String>, inout modes: Array<String>) -> Void {
-    while ArrayLength(names) > 0 { ArrayPop(names); }
-    while ArrayLength(types) > 0 { ArrayPop(types); }
-    while ArrayLength(modes) > 0 { ArrayPop(modes); }
-}
-func SemanticAstExpressionEnvironmentClear(own names: Array<String>, own types: Array<String>, own modes: Array<String>) -> Void {
-    SemanticAstExpressionEnvironmentReset(names, types, modes);
-    SemanticAstExpressionEnvironmentStorageRetire(names);
-    SemanticAstExpressionEnvironmentStorageRetire(types);
-    SemanticAstExpressionEnvironmentStorageRetire(modes);
+// Expression-environment rows own independent String copies. Callers create
+// one lexical environment per semantic execution unit and transfer it here at
+// the last consumer; an inout reset cannot prove element-release authority.
+func SemanticAstExpressionEnvironmentClear(
+    own names: Array<String>,
+    own types: Array<String>,
+    own modes: Array<String>
+) -> Void {
+    ArrayDropOwnedStrings(names);
+    ArrayDropOwnedStrings(types);
+    ArrayDropOwnedStrings(modes);
 }
 
 func SemanticAstExpressionSeedVisibleIterationRows(
@@ -579,9 +578,9 @@ func SemanticAstExpressionSeedVisibleIterationRows(
             if binding_type == "" || binding_type == "Unknown" {
                 return false;
             }
-            ArrayPush(names, iteration_binding_names[i]);
-            ArrayPush(types, binding_type);
-            ArrayPush(modes, "loop_binding");
+            ArrayPushOwnedString(names, iteration_binding_names[i]);
+            ArrayPushOwnedString(types, binding_type);
+            ArrayPushOwnedString(modes, "loop_binding");
         }
         i = i + 1;
     }

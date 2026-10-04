@@ -23,6 +23,20 @@ func SemanticAstCollectionAggregateFieldEntryEffectOwnedPush() -> Int {
     return 2;
 }
 
+func SemanticAstCollectionAggregateRequirementHasEffect(
+    effect_mask: Int, effect: Int
+) -> Bool {
+    if effect ==
+            SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() {
+        return effect_mask == effect || effect_mask == 3;
+    }
+    if effect ==
+            SemanticAstCollectionAggregateFieldEntryEffectOwnedPush() {
+        return effect_mask == effect || effect_mask == 3;
+    }
+    return false;
+}
+
 func SemanticAstCollectionAggregateFieldEntryRequirementsEmpty() -> SemanticAstCollectionAggregateFieldEntryRequirements {
     let functions: Array<Int> = [];
     let formals: Array<Int> = [];

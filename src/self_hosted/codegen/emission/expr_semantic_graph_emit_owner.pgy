@@ -583,10 +583,16 @@ func RewriteExpectedValueWithSemanticGraph(
 }
 func WrapExprWithSemanticGraph(expression: String, env: CodegenTypeEnv, view: SemanticExpressionGraphView) -> String {
     let owned_fragments: Array<String> = []; let value: CodegenCExpressionText = RewriteExprWithSemanticGraphTracked(expression, env, view, owned_fragments);
-    let wrapped: String = CodegenCParenthesizedExpression(value.text);
+    let wrapped_source: String = CodegenCParenthesizedExpression(value.text);
+    // The callee materializes independent text, but interprocedural String
+    // return provenance is not yet an admitted semantic fact.  Make the copy
+    // explicit before either source lifetime is retired.
+    let wrapped: String = Concat("", wrapped_source);
     if value.owned && (ArrayLength(owned_fragments) == 0 || owned_fragments[ArrayLength(owned_fragments) - 1] != value.text) {
         Die("owned wrapped C expression root is not the final lifetime fragment");
     }
+    let retired_wrapped_source: Array<String> = [wrapped_source];
+    ArrayDropOwnedStrings(retired_wrapped_source);
     ArrayDropOwnedStrings(owned_fragments);
     return wrapped;
 }

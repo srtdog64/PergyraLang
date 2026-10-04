@@ -1,0 +1,9 @@
+func Reset(inout values: Array<String>) -> Void {
+    ArrayPop(values);
+}
+
+func Forward(own values: Array<String>) -> Void {
+    Reset(values);
+}
+
+func Main() -> Void {}

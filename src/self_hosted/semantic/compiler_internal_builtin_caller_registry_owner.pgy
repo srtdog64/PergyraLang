@@ -11,7 +11,7 @@ struct SemanticCompilerInternalBuiltinCallerRow {
     return_type: String;
 }
 
-func SemanticCompilerInternalBuiltinCallerCount() -> Int { return 8; }
+func SemanticCompilerInternalBuiltinCallerCount() -> Int { return 7; }
 
 func SemanticCompilerInternalBuiltinCallerRowAt(
     index: Int
@@ -56,12 +56,6 @@ func SemanticCompilerInternalBuiltinCallerRowAt(
         return SemanticCompilerInternalBuiltinCallerRow(
             true, "CompilerRetireArrayStorage", "src/self_hosted/semantic/ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy",
             "SemanticAstIndexedStringBorrowSourceStorageRetire", "Array<Int>",
-            "Void"
-        ); }
-    if index == 7 {
-        return SemanticCompilerInternalBuiltinCallerRow(
-            true, "CompilerRetireArrayStorage", "src/self_hosted/semantic/ast_expression_environment_storage_lifetime_owner.pgy",
-            "SemanticAstExpressionEnvironmentStorageRetire", "Array<String>",
             "Void"
         ); }
     return SemanticCompilerInternalBuiltinCallerRow(

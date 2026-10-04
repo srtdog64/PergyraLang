@@ -89,13 +89,19 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
         ArrayPush(transitions, SemanticAstCollectionTransitionUntracked()); ArrayPush(source_ids, 0); row = row + 1;
     }
     let requirements: HashMap<String, Int> = MapNew();
+    let owned_push_leaf_formals: HashMap<String, Int> = MapNew();
+    let field_requirements:
+        SemanticAstCollectionAggregateFieldEntryRequirements =
+        SemanticAstCollectionAggregateFieldEntryRequirementsEmpty();
     let binding: SemanticAstLocalBindingIdentity = SemanticAstCollectionOwnershipLocalForArgument(
         artifact, locals, bundle.initializer_types.inferred_type_names, surfaces, argument_surface, edge.argument_node);
     let ok: Bool = true;
     if mode == 90 || mode == 93 {
         let before: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
             artifact, analysis.signatures, locals, bundle.initializer_types.inferred_type_names, surfaces, argument_surface,
-            edge, false, formal.effects, requirements, ownership, dispositions, origins, transitions, effects, storage, definitions, current);
+            edge, false, formal.effects, owned_push_leaf_formals,
+            requirements, field_requirements, ownership, dispositions,
+            origins, transitions, effects, storage, definitions, current);
         ok = !before.ok && before.diagnostic_code == "borrow_boundary_escape" && current[owned] == -1;
         if mode == 93 { slot = slot - AstExpressionLaneValue(); }
     } else {
@@ -110,7 +116,9 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
     if mode == 90 {
         let after: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
             artifact, analysis.signatures, locals, bundle.initializer_types.inferred_type_names, surfaces, argument_surface,
-            edge, false, formal.effects, requirements, ownership, dispositions, origins, transitions, effects, storage, definitions, current);
+            edge, false, formal.effects, owned_push_leaf_formals,
+            requirements, field_requirements, ownership, dispositions,
+            origins, transitions, effects, storage, definitions, current);
         ok = ok && completed.ok && current[owned] == owned && after.ok;
     } else if mode == 93 { ok = ok && completed.ok && current[owned] == -1; }
     else if mode == 92 {

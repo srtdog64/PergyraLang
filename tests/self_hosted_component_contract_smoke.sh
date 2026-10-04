@@ -504,7 +504,7 @@ require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/ast_arena_storage_lifetime_owner.pgy"
 require_file "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy"
 # Data-only lifetime inventory: 20 additional concrete Array leaves, no policy.
-require_max_lines "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy" 140
+require_max_lines "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy" 165
 require_text "src/self_hosted/OWNERS.md" \
     "src/self_hosted/mir/body_type_bundle_storage_lifetime_owner.pgy"
 require_file "src/self_hosted/codegen/input/callable_receiver_codegen_view_owner.pgy"
@@ -6220,9 +6220,12 @@ reject_function_text \
     "while i < SemanticAstLocalBindingCount(locals)"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionMemberRootNames("
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionSeedEnumValues("
-require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 'ArrayPush(modes, "enum_value");'
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
+    'ArrayPushOwnedString(modes, "enum_value");'
+reject_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
     "func SemanticAstExpressionEnvironmentReset("
+reject_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
+    "func SemanticAstExpressionEnvironmentTruncateOwned("
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
     "func SemanticAstExpressionEnvironmentClear("
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
@@ -6325,17 +6328,16 @@ require_text "src/self_hosted/semantic/ast_initializer_type_contract_owner.pgy" 
     'import "ast_initializer_type_query_owner.pgy";'
 require_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" \
     'import "ast_initializer_type_query_owner.pgy";'
-require_file "src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy"
-require_max_lines "src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy" 260
-require_text "src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy" \
-    "struct SemanticAstInitializerEnvironmentCursor"
-require_text "src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy" \
-    "func SemanticAstInitializerEnvironmentCursorAdvance("
+reject_file "src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy"
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
-    "SemanticAstInitializerEnvironmentCursorCommitCompletedNode("
-require_file "tests/self_hosted/parity/semantic_initializer_environment_cursor_owner_smoke.sh"
+    "SemanticAstExpressionSeedVisibleLocals("
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "SemanticAstExpressionEnvironmentClear(names, types, modes);"
+reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "SemanticAstInitializerEnvironmentCursor"
+require_file "tests/self_hosted/parity/semantic_initializer_environment_row_owner_smoke.sh"
 require_text "Makefile" \
-    "tests/self_hosted/parity/semantic_initializer_environment_cursor_owner_smoke.sh"
+    "tests/self_hosted/parity/semantic_initializer_environment_row_owner_smoke.sh"
 require_file "src/self_hosted/semantic/ast_initializer_type_contract_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_initializer_type_contract_owner.pgy" 200
 require_text "src/self_hosted/semantic/ast_initializer_type_contract_owner.pgy" "func SemanticAstInitializerTypeFactsContractReady"
@@ -6406,15 +6408,19 @@ require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy
 require_function_text \
     "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
     "func SemanticAstGenericSpecializationFactsFromAdmittedBody(" \
-    "let enum_environment_count: Int = ArrayLength(names);"
+    "let names: Array<String> = [];"
 require_function_text \
     "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
     "func SemanticAstGenericSpecializationFactsFromAdmittedBody(" \
-    "while ArrayLength(names) > enum_environment_count { ArrayPop(names); }"
+    "SemanticAstExpressionEnvironmentClear(names, types, modes);"
 reject_function_text \
     "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
     "func SemanticAstGenericSpecializationFactsFromAdmittedBody(" \
     "SemanticAstExpressionEnvironmentReset(names, types, modes);"
+reject_function_text \
+    "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
+    "func SemanticAstGenericSpecializationFactsFromAdmittedBody(" \
+    "SemanticAstExpressionEnvironmentTruncateOwned("
 require_file "src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_generic_specialization_query_owner.pgy" 92
 require_text "src/self_hosted/OWNERS.md" \
@@ -6555,13 +6561,16 @@ require_file "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 540
 require_function_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
     "func SemanticAstStatementTypeFactsFromAdmittedArtifact(" \
-    "let enum_environment_count: Int = ArrayLength(names);"
+    "let names: Array<String> = [];"
 require_function_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
     "func SemanticAstStatementTypeFactsFromAdmittedArtifact(" \
-    "while ArrayLength(names) > enum_environment_count { ArrayPop(names); }"
+    "SemanticAstExpressionEnvironmentClear(names, types, modes);"
 reject_function_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
     "func SemanticAstStatementTypeFactsFromAdmittedArtifact(" \
     "SemanticAstExpressionEnvironmentReset(names, types, modes);"
+reject_function_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    "func SemanticAstStatementTypeFactsFromAdmittedArtifact(" \
+    "SemanticAstExpressionEnvironmentTruncateOwned("
 require_text "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" \
     "func SemanticAstStatementTypeFactsMatchArtifact"
 reject_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
@@ -7050,7 +7059,7 @@ for admitted_owner_field_consumer in \
     "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy|func SemanticAstIterationTypeFactsFromAdmittedArtifactWithFunctionTables(" \
     "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy|func SemanticAstStatementTypeFactsFromAdmittedArtifact(" \
     "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy|func SemanticAstGenericSpecializationFactsFromAdmittedBody(" \
-    "src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy|func SemanticAstInitializerEnvironmentCursorAdvance("; do
+    "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy|func SemanticAstInitializerTypeFactsFromAdmittedArtifactWithIterationRowsObservedWithFunctionTables("; do
     admitted_owner_field_path="${admitted_owner_field_consumer%%|*}"
     admitted_owner_field_function="${admitted_owner_field_consumer#*|}"
     require_function_text "$admitted_owner_field_path" \
@@ -7069,7 +7078,7 @@ require_function_text \
     "func SemanticAstAnalysisResolveCallTargetsFromBody(" \
     "SemanticAstNominalConstructorRowsReady(analysis.constructors)"
 require_text "src/self_hosted/semantic/ast_expression_owner_field_environment_owner.pgy" \
-    'ArrayPush(modes, "owner_field")'
+    'ArrayPushOwnedString(modes, "owner_field")'
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
     "SemanticAstExpressionOwnerFieldEnvironmentContractReady()"
 require_max_lines "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" 300
@@ -12954,7 +12963,11 @@ require_function_text \
 require_function_text \
     "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy" \
     "func CodegenCExpressionTextCommitRoot(" \
-    "let root: String = fragments[ArrayLength(fragments) - 1];"
+    'let root: String = Concat("", fragments[ArrayLength(fragments) - 1]);'
+reject_function_text \
+    "src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy" \
+    "func CodegenCExpressionTextCommitRoot(" \
+    "ArrayPop(fragments);"
 require_file \
     "src/self_hosted/codegen/emission/expr_semantic_struct_call_emit_owner.pgy"
 require_max_lines \
@@ -28840,7 +28853,9 @@ require_text "src/self_hosted/semantic/ast_collection_definition_storage_authori
 require_text "src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy" \
     'SemanticAstCollectionDefinitionDirectStorageSource('
 require_text "src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy" \
-    'SemanticAstCollectionDefinitionStorageSource(storage, definitions, binding.row, current_definitions[binding.row])'
+    'SemanticAstCollectionDefinitionStorageSource('
+require_text "src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy" \
+    'current_definitions[binding.row]) > 0;'
 require_text "src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy" \
     '!borrowed_storage && !unknown && owned_storage'
 require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \

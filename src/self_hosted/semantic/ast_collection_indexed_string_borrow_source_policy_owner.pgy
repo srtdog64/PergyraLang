@@ -59,7 +59,11 @@ func SemanticAstIndexedStringBorrowSourceForRoot(
         (SemanticAstCollectionOwnershipBuiltinCall(
             surfaces.expression_graph, call.call_node, "Concat") ||
          SemanticAstCollectionOwnershipBuiltinCall(
-            surfaces.expression_graph, call.call_node, "StringConcat")) {
+            surfaces.expression_graph, call.call_node, "StringConcat") ||
+         SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "StringJoin") ||
+         SemanticAstCollectionOwnershipBuiltinCall(
+            surfaces.expression_graph, call.call_node, "TextBuilderFinish")) {
         return 0;
     }
     if UnwrapOption(kind) != AstExpressionNodeIndex() {

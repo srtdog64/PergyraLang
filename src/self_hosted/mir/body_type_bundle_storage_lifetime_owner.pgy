@@ -44,6 +44,11 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
     let match_materialization_type_names: Array<String> = body_types.match_materializations.type_names;
     let match_materialization_synthetic_names: Array<String> = body_types.match_materializations.synthetic_names;
     let match_materialization_synthetic_roots: Array<Int> = body_types.match_materializations.synthetic_graph_root_ids;
+    let formal_nodes: Array<Int> = body_types.collection_formal_effects.inventory.formal_nodes;
+    let formal_function_nodes: Array<Int> = body_types.collection_formal_effects.inventory.function_nodes;
+    let formal_ordinals: Array<Int> = body_types.collection_formal_effects.inventory.ordinals;
+    let formal_modes: Array<Int> = body_types.collection_formal_effects.inventory.modes;
+    let formal_body_ready: Array<Bool> = body_types.collection_formal_effects.inventory.body_ready;
     let collection_function_ids: Array<Int> =
         body_types.collection_ownership.function_syntax_ids;
     let collection_binding_ids: Array<Int> =
@@ -86,6 +91,22 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
     let generic_actual_starts: Array<Int> = body_types.generic_specializations.actual_starts;
     let generic_actual_counts: Array<Int> = body_types.generic_specializations.actual_counts;
     let generic_actual_types: Array<String> = body_types.generic_specializations.actual_type_names;
+    let numeric_call_nodes: Array<Int> = body_types.numeric_string_allocations.call_nodes;
+    let numeric_terminal_nodes: Array<Int> = body_types.numeric_string_allocations.terminal_nodes;
+    let numeric_owner_nodes: Array<Int> = body_types.numeric_string_allocations.owner_node_ids;
+    let numeric_lanes: Array<Int> = body_types.numeric_string_allocations.lanes;
+    let numeric_ordinals: Array<Int> = body_types.numeric_string_allocations.local_call_ordinals;
+    let numeric_operand_types: Array<String> = body_types.numeric_string_allocations.operand_types;
+    let result_function_ids: Array<Int> = body_types.owned_string_result_domains.function_syntax_ids;
+    let result_domain_kinds: Array<Int> = body_types.owned_string_result_domains.domain_kinds;
+    let result_allocator_ids: Array<Int> = body_types.owned_string_result_domains.allocator_formal_syntax_ids;
+    let result_allocator_ordinals: Array<Int> = body_types.owned_string_result_domains.allocator_formal_ordinals;
+    let result_written_rows: Array<Int> = body_types.owned_string_result_domains.writes.written_binding_rows;
+    let result_written_formals: Array<Int> = body_types.owned_string_result_domains.writes.written_parameter_syntax_ids;
+    let exposure_call_nodes: Array<Int> = body_types.owned_string_result_domains.domain_exposures.call_nodes;
+    let exposure_ordinals: Array<Int> = body_types.owned_string_result_domains.domain_exposures.argument_ordinals;
+    let exposure_source_ids: Array<Int> = body_types.owned_string_result_domains.domain_exposures.source_syntax_ids;
+    let exposure_written_ids: Array<Int> = body_types.owned_string_result_domains.domain_exposures.string_written_source_syntax_ids;
     CompilerRetireArrayStorage(initializer_node_ids); CompilerRetireArrayStorage(initializer_inferred_types);
     CompilerRetireArrayStorage(initializer_verified); CompilerRetireArrayStorage(initializer_diagnostic_codes);
     CompilerRetireArrayStorage(initializer_diagnostic_messages); CompilerRetireArrayStorage(initializer_binding_kinds);
@@ -105,6 +126,9 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
     CompilerRetireArrayStorage(match_materialization_node_ids); CompilerRetireArrayStorage(match_materialization_function_node_ids);
     CompilerRetireArrayStorage(match_materialization_type_names); CompilerRetireArrayStorage(match_materialization_synthetic_names);
     CompilerRetireArrayStorage(match_materialization_synthetic_roots);
+    CompilerRetireArrayStorage(formal_nodes); CompilerRetireArrayStorage(formal_function_nodes);
+    CompilerRetireArrayStorage(formal_ordinals); CompilerRetireArrayStorage(formal_modes);
+    CompilerRetireArrayStorage(formal_body_ready);
     CompilerRetireArrayStorage(collection_function_ids);
     CompilerRetireArrayStorage(collection_binding_ids);
     CompilerRetireArrayStorage(collection_origin_ids);
@@ -126,4 +150,12 @@ func SelfMirBodyTypeBundleStorageRetireAfterProgramFacts(
     CompilerRetireArrayStorage(generic_source_lanes); CompilerRetireArrayStorage(generic_call_ordinals);
     CompilerRetireArrayStorage(generic_signature_indexes); CompilerRetireArrayStorage(generic_actual_starts);
     CompilerRetireArrayStorage(generic_actual_counts); CompilerRetireArrayStorage(generic_actual_types);
+    CompilerRetireArrayStorage(numeric_call_nodes); CompilerRetireArrayStorage(numeric_terminal_nodes);
+    CompilerRetireArrayStorage(numeric_owner_nodes); CompilerRetireArrayStorage(numeric_lanes);
+    CompilerRetireArrayStorage(numeric_ordinals); CompilerRetireArrayStorage(numeric_operand_types);
+    CompilerRetireArrayStorage(result_function_ids); CompilerRetireArrayStorage(result_domain_kinds);
+    CompilerRetireArrayStorage(result_allocator_ids); CompilerRetireArrayStorage(result_allocator_ordinals);
+    CompilerRetireArrayStorage(result_written_rows); CompilerRetireArrayStorage(result_written_formals);
+    CompilerRetireArrayStorage(exposure_call_nodes); CompilerRetireArrayStorage(exposure_ordinals);
+    CompilerRetireArrayStorage(exposure_source_ids); CompilerRetireArrayStorage(exposure_written_ids);
 }

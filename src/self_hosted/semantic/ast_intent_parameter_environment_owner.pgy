@@ -30,12 +30,12 @@ func SemanticAstIntentExpressionSeedParameters(
             if names[prior] == facts.param_names[row] { return false; }
             prior = prior + 1;
         }
-        ArrayPush(names, facts.param_names[row]);
-        ArrayPush(types, facts.param_types[row]);
+        ArrayPushOwnedString(names, facts.param_names[row]);
+        ArrayPushOwnedString(types, facts.param_types[row]);
         if facts.param_is_values[row] {
-            ArrayPush(modes, "intent_value");
+            ArrayPushOwnedString(modes, "intent_value");
         } else {
-            ArrayPush(modes, "intent_participant");
+            ArrayPushOwnedString(modes, "intent_participant");
         }
         p = p + 1;
     }

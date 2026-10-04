@@ -8,9 +8,9 @@ struct SelfMirDestructureFactRows {
     bindings: Array<String>;
 }
 
-// Owns the only transition that turns a borrowed destructure spelling into a
-// retained string row. The runtime operation duplicates the input and the
-// matching routine-storage owner deep-releases the resulting array.
+// This is deliberately a single synchronous leaf owned-push carrier. The
+// semantic owner preserves the caller's exact aggregate field identity across
+// this inout boundary and records the transition at call completion.
 func SelfMirDestructureOwnedStringStoreAppend(
     inout values: Array<String>,
     value: String

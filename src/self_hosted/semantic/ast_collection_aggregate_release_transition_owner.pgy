@@ -9,7 +9,9 @@ import "ast_collection_owned_argument_admission_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
 import "ast_collection_ownership_state_owner.pgy";
+import "ast_collection_formal_execution_context_owner.pgy";
 import "ast_statement_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
 
 func SemanticAstCollectionAggregateReleaseError(
     boundary: String, syntax_id: Int, expression_node: Int
@@ -27,20 +29,6 @@ func SemanticAstCollectionAggregateValidatedInputContains(
     while row < ArrayLength(plan.validated_input_rows) {
         if plan.validated_input_rows[row] == input_row { return true; }
         row = row + 1;
-    }
-    return false;
-}
-
-func SemanticAstCollectionAggregateRequirementHasEffect(
-    effect_mask: Int, effect: Int
-) -> Bool {
-    if effect ==
-            SemanticAstCollectionAggregateFieldEntryEffectDeepDrop() {
-        return effect_mask == effect || effect_mask == 3;
-    }
-    if effect ==
-            SemanticAstCollectionAggregateFieldEntryEffectOwnedPush() {
-        return effect_mask == effect || effect_mask == 3;
     }
     return false;
 }
@@ -269,35 +257,79 @@ func SemanticAstCollectionAggregateReleaseRecordOwnedPush(
     return SemanticAstCollectionOwnershipVerdictOk();
 }
 
+// A proved leaf adapter carries exactly one owned-push effect from its inout
+// formal back to the caller. Preserve the caller's member-move identity and
+// record the transition only when the physical call spine completes.
+func SemanticAstCollectionAggregateOwnedPushLeafAtCompletion(
+    artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
+    ref inferred_types: Array<String>,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    surface_row: Int, call_node: Int, terminal_root: Int,
+    owned_push_leaf_formals: HashMap<String, Int>,
+    ref requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
+    inout plan: SemanticAstCollectionAggregateReleasePlan,
+    inout ownership: Array<Int>, inout dispositions: Array<Int>,
+    ref origins: Array<Int>, inout transition_states: Array<Int>
+) -> SemanticAstCollectionOwnershipVerdict {
+    let call: SemanticCallSpineView =
+        SemanticCallSpineViewFromGraph(
+            surfaces.expression_graph, terminal_root);
+    if !call.ok || call.call_node != call_node {
+        return SemanticAstCollectionOwnershipVerdictError(
+            "ast_artifact_invalid",
+            SemanticError1("ast_artifact_invalid", "owner",
+                "aggregate_owned_push_leaf_completion"),
+            surfaces.node_ids[surface_row], call_node);
+    }
+    let argument: Int = 0;
+    while argument < ArrayLength(call.argument_nodes) {
+        let target_formal: Int =
+            SemanticAstCollectionSourceArrayFormalForArgument(
+                signatures, surfaces.expression_graph,
+                call_node, argument);
+        if target_formal > 0 && MapHas(
+                owned_push_leaf_formals, ToString(target_formal)) {
+            let binding: SemanticAstLocalBindingIdentity =
+                SemanticAstCollectionOwnershipLocalForArgument(
+                    artifact, locals, inferred_types, surfaces,
+                    surface_row, call.argument_nodes[argument]);
+            if binding.ok && origins[binding.row] ==
+                    SemanticAstCollectionOriginMemberMove() {
+                let requirement: Int =
+                    SemanticAstCollectionAggregateFieldEntryIndexRow(
+                        requirements.row_by_local,
+                        locals.node_ids[binding.row]);
+                if requirement < 0 {
+                    return SemanticAstCollectionOwnershipVerdictError(
+                        "ast_artifact_invalid",
+                        SemanticError1("ast_artifact_invalid", "owner",
+                            "aggregate_owned_push_leaf_requirement"),
+                        surfaces.node_ids[surface_row], call_node);
+                }
+                let transition: SemanticAstCollectionOwnershipVerdict =
+                    SemanticAstCollectionAggregateReleaseRecordOwnedPush(
+                        locals, surfaces, surface_row, call_node,
+                        binding.row, requirement, ownership, dispositions,
+                        transition_states, plan);
+                if !transition.ok { return transition; }
+            }
+        }
+        argument = argument + 1;
+    }
+    return SemanticAstCollectionOwnershipVerdictOk();
+}
+
 func SemanticAstCollectionAggregateReleaseControlKind(kind: Int) -> Bool {
-    return kind == TypedAstKindForStmtTag() ||
-        kind == TypedAstKindWhileStmtTag() ||
-        kind == TypedAstKindIfStmtTag() ||
-        kind == TypedAstKindElseStmtTag() ||
-        kind == TypedAstKindDeferStmtTag() ||
-        kind == TypedAstKindBreakStmtTag() ||
-        kind == TypedAstKindContinueStmtTag() ||
-        kind == TypedAstKindMatchStmtTag() ||
-        kind == TypedAstKindMatchCaseStmtTag() ||
-        kind == TypedAstKindMatchDefaultStmtTag() ||
-        kind == TypedAstKindBareReturnStmtTag() ||
-        kind == TypedAstKindValueReturnStmtTag() ||
-        kind == TypedAstKindExitStmtTag() ||
-        kind == TypedAstKindFailStmtTag();
+    return SemanticAstCollectionSynchronousStraightLineControlKind(kind);
 }
 
 func SemanticAstCollectionAggregateReleaseFunctionStraightLine(
     ref statements: SemanticAstStatementFacts, function_id: Int
 ) -> Bool {
-    if !statements.ok || function_id <= 0 { return false; }
-    let row: Int = 0;
-    while row < ArrayLength(statements.node_ids) {
-        if statements.function_node_ids[row] == function_id &&
-            SemanticAstCollectionAggregateReleaseControlKind(
-                statements.kind_tags[row]) { return false; }
-        row = row + 1;
-    }
-    return true;
+    return SemanticAstCollectionSynchronousStraightLineFunction(
+        statements, function_id);
 }
 
 func SemanticAstCollectionAggregateReleaseIntervalStraightLine(

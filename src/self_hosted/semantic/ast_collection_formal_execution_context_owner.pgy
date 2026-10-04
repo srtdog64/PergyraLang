@@ -2,6 +2,7 @@
 // to the self-host AST. Opaque or deferred bodies fail closed.
 import "ast_collection_formal_effect_identity_owner.pgy";
 import "ast_function_scope_fact_owner.pgy";
+import "ast_statement_fact_owner.pgy";
 struct SemanticAstCollectionFormalExecutionContexts {
     ok: Bool;
     unsafe_functions: HashMap<String, Int>;
@@ -9,6 +10,71 @@ struct SemanticAstCollectionFormalExecutionContexts {
 // The callable body is not a synchronous, fully observed effect program.
 // Calls carrying an Array<String> across this boundary must fail closed.
 func SemanticAstCollectionFormalOpaqueExecutionEffect() -> Int { return 4; }
+
+// One shared predicate owns the control forms that prevent a lexical call
+// site from proving one unconditional synchronous effect. Aggregate field
+// transitions and leaf-formal receipts must agree on this boundary.
+func SemanticAstCollectionSynchronousStraightLineControlKind(
+    kind: Int
+) -> Bool {
+    return kind == TypedAstKindForStmtTag() ||
+        kind == TypedAstKindWhileStmtTag() ||
+        kind == TypedAstKindIfStmtTag() ||
+        kind == TypedAstKindElseStmtTag() ||
+        kind == TypedAstKindDeferStmtTag() ||
+        kind == TypedAstKindBreakStmtTag() ||
+        kind == TypedAstKindContinueStmtTag() ||
+        kind == TypedAstKindMatchStmtTag() ||
+        kind == TypedAstKindMatchCaseStmtTag() ||
+        kind == TypedAstKindMatchDefaultStmtTag() ||
+        kind == TypedAstKindBareReturnStmtTag() ||
+        kind == TypedAstKindValueReturnStmtTag() ||
+        kind == TypedAstKindExitStmtTag() ||
+        kind == TypedAstKindFailStmtTag();
+}
+
+func SemanticAstCollectionSynchronousStraightLineFunction(
+    ref statements: SemanticAstStatementFacts, function_id: Int
+) -> Bool {
+    let count: Int = ArrayLength(statements.node_ids);
+    if !statements.ok || function_id <= 0 ||
+        ArrayLength(statements.kind_tags) != count ||
+        ArrayLength(statements.function_node_ids) != count {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if statements.function_node_ids[row] == function_id &&
+            SemanticAstCollectionSynchronousStraightLineControlKind(
+                statements.kind_tags[row]) { return false; }
+        row = row + 1;
+    }
+    return true;
+}
+
+// Build the negative set once for compiler-scale formal inventories. Calling
+// the full statement scan once per candidate is quadratic in program size.
+func SemanticAstCollectionNonStraightLineFunctions(
+    ref statements: SemanticAstStatementFacts
+) -> HashMap<String, Int> {
+    let functions: HashMap<String, Int> = MapNew();
+    let count: Int = ArrayLength(statements.node_ids);
+    if !statements.ok ||
+        ArrayLength(statements.kind_tags) != count ||
+        ArrayLength(statements.function_node_ids) != count {
+        return functions;
+    }
+    let row: Int = 0;
+    while row < count {
+        if SemanticAstCollectionSynchronousStraightLineControlKind(
+                statements.kind_tags[row]) {
+            MapSet(functions,
+                ToString(statements.function_node_ids[row]), 1);
+        }
+        row = row + 1;
+    }
+    return functions;
+}
 func SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact: AstTreeArtifact,
     syntax_id: Int) -> Bool {
     let ancestor: Int = syntax_id;

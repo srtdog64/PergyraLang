@@ -62,6 +62,7 @@ INPUTS=(
     field_ctor_own_formal_mutation_negative.pgy field_ctor_own_formal_unescaped_mutation_positive.pgy
     field_ctor_local_push_negative.pgy field_ctor_local_pop_negative.pgy field_ctor_local_set_negative.pgy field_ctor_local_index_negative.pgy
     field_ctor_own_formal_push_negative.pgy field_ctor_own_formal_pop_negative.pgy field_ctor_own_formal_set_negative.pgy field_ctor_own_formal_index_negative.pgy
+    own_formal_shallow_forward_positive.pgy own_formal_shallow_after_drop_negative.pgy
     field_ctor_local_unescaped_statements_positive.pgy field_ctor_own_formal_unescaped_statements_positive.pgy
     field_ctor_fresh_statement_assign_positive.pgy field_ctor_old_alias_mutation_negative.pgy
     field_ctor_own_formal_mutation_before_positive.pgy field_ctor_local_mutation_before_positive.pgy
@@ -165,6 +166,8 @@ INPUTS=(
     indexed_string_fresh_owned_result_read_positive.pgy
     indexed_string_fresh_borrowed_element_negative.pgy
     indexed_string_copy_before_owned_drop_positive.pgy
+    indexed_string_stringjoin_before_owned_drop_positive.pgy
+    indexed_string_text_builder_finish_before_owned_drop_positive.pgy
     indexed_string_alias_after_owned_drop_negative.pgy
     indexed_string_branch_rebind_after_owned_drop_negative.pgy
     indexed_string_unknown_call_after_owned_drop_negative.pgy
@@ -190,6 +193,15 @@ INPUTS=(
     aggregate_owned_push_opaque_aggregate_negative.pgy aggregate_owned_push_duplicate_site_negative.pgy
     aggregate_owned_push_borrowed_input_negative.pgy aggregate_owned_push_wrong_field_negative.pgy
     aggregate_owned_push_alias_negative.pgy aggregate_owned_push_factory_alias_negative.pgy
+    aggregate_owned_push_leaf_adapter_loop_positive.pgy
+    aggregate_owned_push_leaf_adapter_borrowed_input_negative.pgy
+    aggregate_owned_push_leaf_adapter_missing_restore_negative.pgy
+    aggregate_owned_push_leaf_adapter_conditional_restore_negative.pgy
+    aggregate_owned_push_leaf_adapter_duplicate_site_negative.pgy
+    aggregate_owned_push_leaf_adapter_two_push_negative.pgy
+    aggregate_owned_push_leaf_adapter_forward_negative.pgy
+    aggregate_owned_push_leaf_adapter_deferred_negative.pgy
+    aggregate_owned_push_leaf_adapter_alias_negative.pgy
 )
 for i in "${!INPUTS[@]}"; do INPUTS[i]="$FIXTURES/${INPUTS[i]}"; done
 INPUTS+=(
@@ -410,6 +422,28 @@ for backend in c llvm; do
         esac
         cmp "$WORK/expected" "$WORK/$backend-$name.run"
     done
+    while IFS='|' read -r input boundary; do
+        timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
+            >"$WORK/$backend-$input-leaf.raw" \
+            2>"$WORK/$backend-$input-leaf.err"
+        tr -d '\r' <"$WORK/$backend-$input-leaf.raw" \
+            >"$WORK/$backend-$input-leaf.run"
+        [[ ! -s "$WORK/$backend-$input-leaf.err" ]]
+        grep -Fxq 'body_ok=false' "$WORK/$backend-$input-leaf.run"
+        grep -Fxq 'body_diagnostic=borrow_boundary_escape' \
+            "$WORK/$backend-$input-leaf.run"
+        grep -Fxq -- "- boundary: $boundary" \
+            "$WORK/$backend-$input-leaf.run"
+    done <<'OWNED_PUSH_LEAF_DIAGNOSTICS'
+aggregate_owned_push_leaf_adapter_alias_negative.pgy|aggregate_release_incomplete
+aggregate_owned_push_leaf_adapter_borrowed_input_negative.pgy|aggregate_release_source_not_live
+aggregate_owned_push_leaf_adapter_conditional_restore_negative.pgy|aggregate_release_incomplete
+aggregate_owned_push_leaf_adapter_deferred_negative.pgy|unproved_formal_execution_context
+aggregate_owned_push_leaf_adapter_duplicate_site_negative.pgy|aggregate_owned_push_repeated
+aggregate_owned_push_leaf_adapter_forward_negative.pgy|unproved_inout_copy_entry
+aggregate_owned_push_leaf_adapter_missing_restore_negative.pgy|aggregate_release_incomplete
+aggregate_owned_push_leaf_adapter_two_push_negative.pgy|unproved_inout_copy_entry
+OWNED_PUSH_LEAF_DIAGNOSTICS
     while IFS='|' read -r input atom; do
         timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/$input" diagnostic \
             >"$WORK/$backend-$input-opaque.raw" \
@@ -496,7 +530,7 @@ field_ctor_own_formal_nested_mutation_negative.pgy|owned_argument_storage_unprov
 field_ctor_own_formal_nested_retire_mutation_negative.pgy|owned_argument_storage_unproved|ArrayPushOwnedString(values, Consume(values))|Store
 field_ctor_own_formal_nested_retire_statement_negative.pgy|owned_argument_storage_unproved|values|Store|Consume(values)
 field_ctor_own_formal_nested_retire_index_negative.pgy|owned_argument_storage_unproved|values[0]|Store|Consume(values)
-field_ctor_own_formal_deferred_opaque_mutation_negative.pgy|unproved_formal_shallow_mutation_entry|Opaque(values)|Store
+field_ctor_own_formal_deferred_opaque_mutation_negative.pgy|owned_argument_storage_unproved|ArrayPushOwnedString(values, "deferred")|Store
 CONSTRUCTOR_DIAGNOSTICS
     timeout 30 "$WORK/$backend-source.exe" "$FIXTURES/member_double_move_negative.pgy" diagnostic \
         >"$WORK/$backend-diagnostic.raw" 2>"$WORK/$backend-diagnostic.err"

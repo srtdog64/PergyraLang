@@ -16,6 +16,7 @@ func SemanticAstCollectionOwnedElementParameterRequirements(
     ref signatures: SemanticAstFunctionSignatureFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts,
     ref roots: SemanticCallSpineRoots,
+    owned_push_leaf_formals: HashMap<String, Int>,
     inout field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements
 ) -> HashMap<String, Int> {
     let required: HashMap<String, Int> = MapNew();
@@ -84,6 +85,37 @@ func SemanticAstCollectionOwnedElementParameterRequirements(
                     if call.ok && call.call_node == node {
                         let argument: Int = 0;
                         while argument < ArrayLength(call.argument_nodes) {
+                            let owned_push_target: Int =
+                                SemanticAstCollectionSourceArrayFormalForArgument(
+                                    signatures, surfaces.expression_graph,
+                                    node, argument);
+                            let owned_push_target_key: String =
+                                ToString(owned_push_target);
+                            if owned_push_target > 0 &&
+                                MapHas(owned_push_leaf_formals,
+                                    owned_push_target_key) {
+                                let member_binding:
+                                    SemanticAstLocalBindingIdentity =
+                                    SemanticAstCollectionOwnershipLocalForArgument(
+                                        artifact, locals, inferred_types,
+                                        surfaces, root_slot / 3,
+                                        call.argument_nodes[argument]);
+                                if member_binding.ok &&
+                                    origins[member_binding.row] ==
+                                        SemanticAstCollectionOriginMemberMove() &&
+                                    !SemanticAstCollectionAggregateFieldEntryRequirementRecord(
+                                        signatures, locals,
+                                        locals.function_node_ids[
+                                            member_binding.row],
+                                        source_binding_ids[member_binding.row],
+                                        origin_syntax_ids[member_binding.row],
+                                        locals.node_ids[member_binding.row],
+                                        SemanticAstCollectionAggregateFieldEntryEffectOwnedPush(),
+                                        field_requirements) {
+                                    field_requirements.ok = false;
+                                    return required;
+                                }
+                            }
                             let target: Int = SemanticAstCollectionOwnStringArrayParameterNode(
                                 signatures, surfaces.expression_graph, node,
                                 argument);

@@ -1,0 +1,9 @@
+struct Rows { values: Array<String>; }
+func StoreOwned(inout values: Array<String>, value: String) -> Void {
+    ArrayPushOwnedString(values, value);
+}
+func Append(inout rows: Rows) -> Void {
+    let values: Array<String> = rows.values;
+    StoreOwned(values, "next");
+}
+func Main() -> Void { let rows: Rows = Rows([]); Append(rows); }

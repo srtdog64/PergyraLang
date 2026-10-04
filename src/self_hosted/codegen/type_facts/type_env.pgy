@@ -249,7 +249,11 @@ func LookupQualifiedKindType(
 ) -> String {
     let key: String = CodegenTypeOwnedQualifiedKey(owner, member);
     let retired: Array<String> = [key];
-    let value: String = LookupKindType(env, retired[0], kind);
+    // LookupKindType may return storage owned by the environment, but never
+    // the temporary qualified key.  Materialize that non-aliasing boundary
+    // before retiring the key because user-function return summaries are not
+    // yet part of indexed-String borrow provenance.
+    let value: String = Concat("", LookupKindType(env, retired[0], kind));
     ArrayDropOwnedStrings(retired);
     return value;
 }

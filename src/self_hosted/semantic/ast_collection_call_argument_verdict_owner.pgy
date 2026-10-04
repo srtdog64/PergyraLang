@@ -10,7 +10,10 @@ func SemanticAstCollectionCallArgumentVerdict(
     ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
     edge: SemanticCallArgumentEdgeView,
     literal_read_ready: Bool, proved: HashMap<String, Int>,
+    owned_push_leaf_formals: HashMap<String, Int>,
     ref element_requirements: HashMap<String, Int>,
+    ref field_requirements:
+        SemanticAstCollectionAggregateFieldEntryRequirements,
     inout ownership: Array<Int>, ref dispositions: Array<Int>,
     ref origins: Array<Int>, inout transition_states: Array<Int>,
     ref call_effects: SemanticAstCollectionCallEffectFacts,
@@ -70,8 +73,9 @@ func SemanticAstCollectionCallArgumentVerdict(
             ownership, dispositions, origins, transition_states);
     if !owned.ok { return owned; }
     return SemanticAstCollectionCallArgumentEffectVerdict(
-        artifact, signatures, surfaces, surface_row, edge,
-        literal_read_ready, proved, effect, binding, unknown,
+        artifact, signatures, locals, surfaces, surface_row, edge,
+        literal_read_ready, proved, effect, owned_push_leaf_formals,
+        field_requirements, binding, unknown,
         borrowed_storage, owned_storage, ownership, dispositions,
         origins, transition_states, call_effects);
 }

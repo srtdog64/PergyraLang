@@ -200,6 +200,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
         if !call_roots.ok { verdict = SemanticAstBodyVerdictError(
             "expression_identity_unresolved", "semantic call spine roots are incomplete", -1); }
     }
+    SemanticAstBodyTypeStage(observe_pressure, "expression-identity:start");
     if verdict.ok && (!SemanticAstAnalysisResolveExpressionIdentities(
             artifact, analysis, initializer_types.inferred_type_names,
             iteration_types, match_materializations.synthetic_graph_root_ids,
@@ -208,8 +209,10 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
             !numeric_string_allocations.ok) {
         verdict = SemanticAstBodyVerdictError("expression_identity_unresolved", "semantic expression identity rows are incomplete", -1);
     }
+    SemanticAstBodyTypeStage(observe_pressure, "expression-identity:done");
     // One body-owned projection is shared by admission and downstream readers.
     let owned_string_result_domains: SemanticAstOwnedStringResultFacts = SemanticAstOwnedStringResultFactsEmpty();
+    SemanticAstBodyTypeStage(observe_pressure, "owned-string-results:start");
     if verdict.ok {
         owned_string_result_domains = SemanticAstOwnedStringResultFactsFromResolvedFacts(
             artifact, analysis.signatures, analysis.constructors, analysis.local_bindings, initializer_types,
@@ -220,11 +223,13 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
                 SemanticError1("ast_artifact_invalid", "owner", "SemanticAstOwnedStringResultFacts"), -1);
         }
     }
+    SemanticAstBodyTypeStage(observe_pressure, "owned-string-results:done");
     // Formal effects are a body-owned projection. Collection admission and
     // downstream identity checks consume this same result; neither rescans the
     // whole expression graph to reconstruct it.
     let collection_formal_effects: SemanticAstCollectionFormalEffects =
         SemanticAstCollectionFormalEffectsEmpty();
+    SemanticAstBodyTypeStage(observe_pressure, "collection-formal-effects:start");
     if verdict.ok {
         collection_formal_effects =
             SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
@@ -233,8 +238,10 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
                 analysis.expression_surfaces, analysis.statements,
                 owned_string_result_domains);
     }
+    SemanticAstBodyTypeStage(observe_pressure, "collection-formal-effects:done");
     let collection_ownership: SemanticAstCollectionOwnershipVerdict =
         SemanticAstCollectionOwnershipVerdictOk();
+    SemanticAstBodyTypeStage(observe_pressure, "collection-ownership:start");
     if verdict.ok {
         collection_ownership =
             SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(
@@ -250,6 +257,7 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
                 collection_ownership.syntax_node_id);
         }
     }
+    SemanticAstBodyTypeStage(observe_pressure, "collection-ownership:done");
     if verdict.ok { verdict = SemanticArrayStorageReleaseVerdict(artifact, analysis, initializer_types,
         resolved_leaf_types, assignment_types, statement_types, exhaustive_match_nodes); }
     verdict = SemanticAstBodyZoneSpawnBoundaryVerdictFromAdmittedFacts(verdict, artifact, analysis.signatures, analysis.constructors, analysis.expression_surfaces);

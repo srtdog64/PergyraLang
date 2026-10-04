@@ -112,7 +112,7 @@ func SemanticExpressionGraphResolvedCallTarget(
         }
         return SemanticExpressionCallTargetFact(
             true, SemanticCallTargetDirect(),
-            function_names[UnwrapOption(direct)], 0
+            Concat("", function_names[UnwrapOption(direct)]), 0
         );
     }
     let member: SemanticMemberAccessView =
@@ -136,7 +136,7 @@ func SemanticExpressionGraphResolvedCallTarget(
     if IsSome(namespace_target) {
         return SemanticExpressionCallTargetFact(
             true, SemanticCallTargetNamespace(),
-            function_names[UnwrapOption(namespace_target)], 0
+            Concat("", function_names[UnwrapOption(namespace_target)]), 0
         );
     }
     let member_name: Option<String> = SemanticExpressionGraphNodeText(
@@ -195,7 +195,7 @@ func SemanticExpressionGraphResolvedCallTarget(
     }
     return SemanticExpressionCallTargetFact(
         true, SemanticCallTargetMember(),
-        function_names[UnwrapOption(method)], 1
+        Concat("", function_names[UnwrapOption(method)]), 1
     );
 }
 

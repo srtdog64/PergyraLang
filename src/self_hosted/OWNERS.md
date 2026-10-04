@@ -407,17 +407,13 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy` -- artifact-
   native initializer expression type verdicts joined from signature, scope,
   local-binding, and parser expression-graph facts without source re-scanning
-  or projection-text recovery; declared List<T> sequence literals are
-  contextualized here from the graph-owned element compatibility fact.
+  or projection-text recovery; each initializer row owns an independent
+  lexical `Array<String>` environment and retires it after the row's last
+  consumer. Declared List<T> sequence literals are contextualized here from
+  the graph-owned element compatibility fact.
 - `src/self_hosted/semantic/ast_initializer_type_query_owner.pgy` -- read-only
   verification, first-diagnostic, and artifact-compatibility queries over
   initializer type facts; it does not produce or repair verdict rows.
-- `src/self_hosted/semantic/ast_initializer_environment_cursor_owner.pgy` --
-  initializer-only sequential visibility cursor. Local identity, order, and
-  scope remain owned by local-binding/typed-AST facts; this owner keeps the
-  function base environment and active lexical-local suffix, publishes all
-  bindings from one destructure node atomically, and removes row-by-row full
-  function scans.
 - `src/self_hosted/semantic/ast_initializer_type_function_table_bridge_owner.pgy`
   -- routes the shared callable-table fact into initializer base/refinement
   consumers without rebuilding it per pass.
@@ -842,9 +838,6 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   Borrowed formal storage and its local views never acquire exclusive own entry.
   Direct field/unnamed-result storage grants fail closed; named call-result
   locals still need independent element and exclusive-release proof.
-- `src/self_hosted/semantic/ast_expression_environment_storage_lifetime_owner.pgy`
-  -- compiler-internal storage-only retirement after environment rows have
-  been shallow-popped. It cannot deep-drop borrowed String elements.
 - `src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy` -- all-return
   join and monotone source result-domain summary. A result is HeapOrNull or
   depends on one exact source allocator formal; mixed domains grant nothing.

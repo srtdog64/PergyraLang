@@ -4,6 +4,7 @@ import "ast_body_verdict_owner.pgy";
 import "ast_artifact_verdict_owner.pgy";
 import "ast_intent_expression_environment_owner.pgy";
 import "ast_expression_function_table_fact_owner.pgy";
+import "ast_expression_environment_owner.pgy";
 
 func SemanticAstIntentBoundaryPredicateAdmission(
     artifact: AstTreeArtifact,
@@ -51,6 +52,7 @@ func SemanticAstIntentBoundaryPredicateAdmission(
                 !SemanticAstIntentExpressionSeedEnvironment(artifact,
                     analysis.signatures, analysis.intent_signatures,
                     analysis.intent_transitions, intent_node, node_id, names, types, modes) {
+                SemanticAstExpressionEnvironmentClear(names, types, modes);
                 return SemanticAstBodyVerdictError("ast_artifact_invalid",
                     SemanticError1("ast_artifact_invalid", "owner", "IntentPredicateEnvironment"), node_id);
             }
@@ -63,14 +65,27 @@ func SemanticAstIntentBoundaryPredicateAdmission(
                     function_tables.names, function_tables.returns,
                     function_tables.params, member_roots, -1);
             if !expression.ok {
-                return SemanticAstBodyVerdictError(expression.diagnostic_code,
-                    expression.diagnostic_message, node_id);
+                let diagnostic_code: String = Concat(
+                    "", expression.diagnostic_code
+                );
+                let diagnostic_message: String = Concat(
+                    "", expression.diagnostic_message
+                );
+                SemanticAstExpressionEnvironmentClear(names, types, modes);
+                return SemanticAstBodyVerdictError(
+                    diagnostic_code, diagnostic_message, node_id
+                );
             }
             if expression.inferred_type_name != "Bool" {
+                let actual_type: String = Concat(
+                    "", expression.inferred_type_name
+                );
+                SemanticAstExpressionEnvironmentClear(names, types, modes);
                 return SemanticAstBodyVerdictError("condition_not_bool",
                     SemanticError2("condition_not_bool", "expected", "Bool",
-                        "actual", expression.inferred_type_name), node_id);
+                        "actual", actual_type), node_id);
             }
+            SemanticAstExpressionEnvironmentClear(names, types, modes);
         }
         row = row + 1;
     }

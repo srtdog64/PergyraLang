@@ -93,10 +93,6 @@ func SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
     let last_root: Int = -1;
     let root_slot: Int = 0;
     let valid: Bool = true;
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let modes: Array<String> = [];
-    let seeded_surface: Int = -1;
     while root_slot < ArrayLength(graph.roots) && valid {
         if graph.has_roots[root_slot] {
             let root_id: Int = graph.roots[root_slot];
@@ -106,6 +102,9 @@ func SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
             ) || root_id <= last_root {
                 valid = false;
             } else {
+                let names: Array<String> = [];
+                let types: Array<String> = [];
+                let modes: Array<String> = [];
                 let use_node_id: Int =
                     analysis.expression_surfaces.node_ids[surface_index];
                 let function_node_id: Option<Int> =
@@ -116,20 +115,13 @@ func SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
                 let intent_node_id: Option<Int> =
                     SemanticAstExpressionIntentNodeAt(
                         analysis.expression_surfaces, analysis.intent_signatures, surface_index);
-                if surface_index != seeded_surface {
-                    SemanticAstExpressionEnvironmentReset(
-                        names, types, modes
-                    );
-                    if !SemanticAstBodyExpressionEnvironmentSeed(
-                        artifact, analysis, inferred_types, iteration_types,
-                        function_tables, analysis.intent_signatures,
-                        function_node_id, intent_node_id, use_node_id,
-                        names, types, modes
-                    ) {
-                        valid = false;
-                    } else {
-                        seeded_surface = surface_index;
-                    }
+                if !SemanticAstBodyExpressionEnvironmentSeed(
+                    artifact, analysis, inferred_types, iteration_types,
+                    function_tables, analysis.intent_signatures,
+                    function_node_id, intent_node_id, use_node_id,
+                    names, types, modes
+                ) {
+                    valid = false;
                 }
                 if valid {
                     let node_id: Int = last_root + 1;
@@ -192,6 +184,7 @@ func SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
                         node_id = node_id + 1;
                     }
                 }
+                SemanticAstExpressionEnvironmentClear(names, types, modes);
             }
             last_root = root_id;
         }
@@ -200,7 +193,6 @@ func SemanticAstAnalysisResolveRoleOperatorTargetsFromAdmittedBody(
     if last_root + 1 != SemanticExpressionGraphArenaNodeCount(graph.arena) {
         valid = false;
     }
-    SemanticAstExpressionEnvironmentClear(names, types, modes);
     analysis.expression_surfaces.expression_graph = graph;
     return valid && SemanticExpressionGraphRoleOperatorTargetsReady(
         analysis.expression_surfaces.expression_graph, true

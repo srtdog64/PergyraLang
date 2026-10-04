@@ -25,11 +25,17 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
         SemanticAstCollectionFormalExecutionContextsFromFacts(
             artifact, inventory, scopes, surfaces);
     let unsafe_functions: HashMap<String, Int> = contexts.unsafe_functions;
+    let non_straightline_functions: HashMap<String, Int> =
+        SemanticAstCollectionNonStraightLineFunctions(statements);
     let formal_rows: HashMap<String, Int> = inventory.row_by_formal;
     let blocked: Array<Bool> = [];
     let mutations: Array<Bool> = [];
     let shallow_mutations: Array<Bool> = [];
     let element_reads: Array<Bool> = [];
+    let direct_use_counts: Array<Int> = [];
+    let direct_owned_push_counts: Array<Int> = [];
+    let direct_owned_push_call_nodes: Array<Int> = [];
+    let owned_push_leaf_disqualified: Array<Bool> = [];
     let node_rows: Array<Int> = [];
     let element_rows: Array<Int> = [];
     let sources: Array<Int> = [];
@@ -56,6 +62,12 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
         ArrayPush(shallow_mutations, MapHas(
             statement_shallow_formals, formal_key));
         ArrayPush(element_reads, false);
+        ArrayPush(direct_use_counts, 0);
+        ArrayPush(direct_owned_push_counts, 0);
+        ArrayPush(direct_owned_push_call_nodes, -1);
+        ArrayPush(owned_push_leaf_disqualified,
+            MapHas(statement_owned_formals, formal_key) ||
+            MapHas(statement_shallow_formals, formal_key));
         if opaque {
             MapSet(effects, ToString(inventory.formal_nodes[row]),
                 SemanticAstCollectionFormalOpaqueExecutionEffect());
@@ -149,6 +161,9 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
                             blocked[borrowed_row] = true;
                         }
                         if used_row >= 0 {
+                            direct_use_counts[used_row] =
+                                direct_use_counts[used_row] + 1;
+                            let exact_owned_push_receiver: Bool = false;
                             if edge == 0 && primitive &&
                                 kind == AstExpressionNodeIndex() {
                                 element_reads[used_row] = true;
@@ -174,6 +189,13 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
                                         call.call_node,
                                         "ArrayPushOwnedString") {
                                     mutations[used_row] = true;
+                                    exact_owned_push_receiver = true;
+                                    direct_owned_push_counts[used_row] =
+                                        direct_owned_push_counts[used_row] + 1;
+                                    if direct_owned_push_call_nodes[used_row] < 0 {
+                                        direct_owned_push_call_nodes[used_row] =
+                                            call.call_node;
+                                    }
                                 } else if ordinal == 0 &&
                                     (SemanticAstCollectionOwnershipBuiltinCall(
                                         surfaces.expression_graph,
@@ -201,6 +223,9 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
                                             MapGet(formal_rows, target_key));
                                     }
                                 }
+                            if !exact_owned_push_receiver {
+                                owned_push_leaf_disqualified[used_row] = true;
+                            }
                             }
                         }
                     }
@@ -217,6 +242,9 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
             if ok && node_rows[root] >= 0 &&
                 node_rows[root] != statement_mutation_row {
                 blocked[node_rows[root]] = true;
+                direct_use_counts[node_rows[root]] =
+                    direct_use_counts[node_rows[root]] + 1;
+                owned_push_leaf_disqualified[node_rows[root]] = true;
             }
             if ok && element_rows[root] >= 0 {
                 let source_row: Int = element_rows[root];
@@ -239,6 +267,10 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
         ArrayLength(mutations) == count &&
         ArrayLength(shallow_mutations) == count &&
         ArrayLength(element_reads) == count &&
+        ArrayLength(direct_use_counts) == count &&
+        ArrayLength(direct_owned_push_counts) == count &&
+        ArrayLength(direct_owned_push_call_nodes) == count &&
+        ArrayLength(owned_push_leaf_disqualified) == count &&
         ArrayLength(sources) == ArrayLength(targets);
     let fixed_point_status: SemanticAstCollectionFormalEffectResolutionStatus =
         SemanticAstCollectionFormalEffectResolutionStatus(ok);
@@ -246,10 +278,33 @@ func SemanticAstCollectionFormalEffectsWithReadyBuiltinRetention(
         inventory, blocked, mutations, shallow_mutations, element_reads,
         sources, targets, effects, fixed_point_status);
     ok = fixed_point_status.ok;
+    let owned_push_leaf_formals: HashMap<String, Int> = MapNew();
+    row = 0;
+    while ok && row < count {
+        let formal_key: String = ToString(inventory.formal_nodes[row]);
+        let function_key: String = ToString(inventory.function_nodes[row]);
+        if inventory.modes[row] == 1 && inventory.body_ready[row] &&
+            direct_use_counts[row] == 1 &&
+            direct_owned_push_counts[row] == 1 &&
+            direct_owned_push_call_nodes[row] >= 0 &&
+            !owned_push_leaf_disqualified[row] &&
+            !MapHas(unsafe_functions, function_key) &&
+            !MapHas(non_straightline_functions, function_key) &&
+            MapHas(effects, formal_key) &&
+            MapGet(effects, formal_key) == 2 {
+            MapSet(owned_push_leaf_formals, formal_key,
+                direct_owned_push_call_nodes[row]);
+        }
+        row = row + 1;
+    }
     ArrayDrop(node_rows);
     ArrayDrop(element_rows);
     ArrayDrop(blocked); ArrayDrop(mutations); ArrayDrop(shallow_mutations);
     ArrayDrop(element_reads);
+    ArrayDrop(direct_use_counts); ArrayDrop(direct_owned_push_counts);
+    ArrayDrop(direct_owned_push_call_nodes);
+    ArrayDrop(owned_push_leaf_disqualified);
     ArrayDrop(sources); ArrayDrop(targets);
-    return SemanticAstCollectionFormalEffects(ok, inventory, effects);
+    return SemanticAstCollectionFormalEffects(
+        ok, inventory, effects, owned_push_leaf_formals);
 }

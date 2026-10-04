@@ -119,16 +119,7 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
         analysis.expression_surfaces.expression_graph;
     let last_root: Int = -1;
     let root_slot: Int = 0;
-    let names: Array<String> = [];
-    let types: Array<String> = [];
-    let modes: Array<String> = [];
-    let valid: Bool = SemanticAstExpressionSeedEnumValues(
-        analysis.enums, names, types, modes
-    );
-    let enum_environment_count: Int = ArrayLength(names);
-    // Three lanes share one surface env. Enum rows are program-global, while
-    // the remaining borrowed rows and their backing are reused per surface.
-    let seeded_surface: Int = -1;
+    let valid: Bool = true;
     while root_slot < ArrayLength(graph.roots) && valid {
         if graph.has_roots[root_slot] {
             let root_id: Int = graph.roots[root_slot];
@@ -138,6 +129,9 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
             ) || root_id <= last_root {
                 valid = false;
             } else {
+                let names: Array<String> = [];
+                let types: Array<String> = [];
+                let modes: Array<String> = [];
                 let use_node_id: Int =
                     analysis.expression_surfaces.node_ids[surface_index];
                 let function_node_id: Option<Int> =
@@ -148,18 +142,10 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
                 let intent_node_id: Option<Int> =
                     SemanticAstExpressionIntentNodeAt(
                         analysis.expression_surfaces, analysis.intent_signatures, surface_index);
-                if surface_index != seeded_surface {
-                    while ArrayLength(names) > enum_environment_count {
-                        ArrayPop(names);
-                    }
-                    while ArrayLength(types) > enum_environment_count {
-                        ArrayPop(types);
-                    }
-                    while ArrayLength(modes) > enum_environment_count {
-                        ArrayPop(modes);
-                    }
-                    let environment_ok: Bool = true;
-                    if IsSome(function_node_id) {
+                let environment_ok: Bool = SemanticAstExpressionSeedEnumValues(
+                    analysis.enums, names, types, modes
+                );
+                if environment_ok && IsSome(function_node_id) {
                         environment_ok =
                             SemanticAstExpressionSeedOwnerFieldsFromAdmittedConstructors(
                             analysis.signatures, analysis.constructors,
@@ -194,24 +180,21 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
                             UnwrapOption(function_node_id), use_node_id,
                             names, types, modes, function_tables
                         );
-                    } else if IsSome(intent_node_id) {
-                        environment_ok = SemanticAstIntentExpressionSeedEnvironment(
-                            artifact, analysis.signatures,
-                            analysis.intent_signatures,
-                            analysis.intent_transitions,
-                            UnwrapOption(intent_node_id), use_node_id,
-                            names, types, modes
-                        );
-                    } else {
-                        environment_ok = false;
-                    }
-                    if !environment_ok ||
-                        ArrayLength(names) != ArrayLength(types) ||
-                        ArrayLength(names) != ArrayLength(modes) {
-                        valid = false;
-                    } else {
-                        seeded_surface = surface_index;
-                    }
+                } else if environment_ok && IsSome(intent_node_id) {
+                    environment_ok = SemanticAstIntentExpressionSeedEnvironment(
+                        artifact, analysis.signatures,
+                        analysis.intent_signatures,
+                        analysis.intent_transitions,
+                        UnwrapOption(intent_node_id), use_node_id,
+                        names, types, modes
+                    );
+                } else {
+                    environment_ok = false;
+                }
+                if !environment_ok ||
+                    ArrayLength(names) != ArrayLength(types) ||
+                    ArrayLength(names) != ArrayLength(modes) {
+                    valid = false;
                 }
                 if valid {
                     let node_id: Int = last_root + 1;
@@ -229,12 +212,12 @@ func SemanticAstAnalysisResolveExpressionPlacesFromAdmittedBody(
                         node_id = node_id + 1;
                     }
                 }
+                SemanticAstExpressionEnvironmentClear(names, types, modes);
             }
             last_root = root_id;
         }
         root_slot = root_slot + 1;
     }
-    SemanticAstExpressionEnvironmentClear(names, types, modes);
     if last_root + 1 != SemanticExpressionGraphArenaNodeCount(graph.arena) {
         valid = false;
     }

@@ -91,9 +91,20 @@ if len(actual) != len(set(actual)):
 
 locals_by_path = {path: local for local, _, path in bindings}
 drops = re.findall(r"CompilerRetireArrayStorage\((\w+)\)\s*;", owner)
+owned_string_drops = re.findall(r"ArrayDropOwnedStrings\((\w+)\)\s*;", owner)
 expected_locals = sorted(locals_by_path.values())
-if sorted(drops) != expected_locals or len(drops) != len(set(drops)):
+expected_owned_string_drops = {
+    "destructure_element_types",
+    "destructure_bindings",
+}
+all_drops = drops + owned_string_drops
+if sorted(all_drops) != expected_locals or len(all_drops) != len(set(all_drops)):
     raise SystemExit("routine-build backing drop coverage is not exactly once per leaf")
+if set(owned_string_drops) != expected_owned_string_drops:
+    raise SystemExit(
+        "routine-build owned destructure backing deep-drop set drift: "
+        f"{owned_string_drops}"
+    )
 
 int_count = sum(element == "Int" for _, element in actual)
 string_count = sum(element == "String" for _, element in actual)
@@ -102,8 +113,6 @@ if (int_count, string_count, len(actual)) != (45, 52, 97):
         f"routine-build leaf census drift: Int={int_count} String={string_count} total={len(actual)}"
     )
 
-if "ArrayDropOwnedStrings" in owner:
-    raise SystemExit("routine-build lifetime owner must not free shared String elements")
 for forbidden in (r"(?<!\w)facts\.", r"(?<!\w)analysis\.",
                   r"(?<!\w)input\.", r"(?<!\w)expression_graph\b"):
     if re.search(forbidden, owner):
@@ -178,7 +187,7 @@ if sorted(body_drops) != sorted(body_locals.values()) or \
 body_ints = sum(element == "Int" for _, element in actual_body_leaves)
 body_strings = sum(element == "String" for _, element in actual_body_leaves)
 body_bools = sum(element == "Bool" for _, element in actual_body_leaves)
-if (body_ints, body_strings, body_bools, len(actual_body_leaves)) != (47, 23, 2, 72):
+if (body_ints, body_strings, body_bools, len(actual_body_leaves)) != (66, 24, 3, 93):
     raise SystemExit(
         f"body-type leaf census drift: Int={body_ints} "
         f"String={body_strings} Bool={body_bools} total={len(actual_body_leaves)}"
@@ -424,7 +433,8 @@ approved_internal_owners = {
     "SelfMirAstArenaNonTraversalStorageRetireAfterDomainProjection",
     "SelfMirAstArenaTraversalStorageRetireAfterRoutineFacts",
     "SelfMirBodyTypeBundleStorageRetireAfterProgramFacts",
-    "SemanticAstExpressionEnvironmentStorageRetire",
+    "SemanticAstIndexedStringBorrowInvalidationStorageRetire",
+    "SemanticAstIndexedStringBorrowSourceStorageRetire",
     "DirectMirScalarProgramOwnedStringProofStorageRetire",
 }
 sys.path.insert(0, str(root / "scripts"))
@@ -526,7 +536,7 @@ for path, pattern in sorted_tables:
         raise SystemExit(f"compiler retirement registry ordering drift: {path}")
 
 print("[routine-build-storage-lifetime] structural coverage ok: 45 Int + 52 String")
-print("[routine-build-storage-lifetime] body coverage ok: 47 Int + 23 String + 2 Bool")
+print("[routine-build-storage-lifetime] body coverage ok: 66 Int + 24 String + 3 Bool")
 PY
 
 grep -Fq 'PGY_BUILTIN_FLAG_COMPILER_INTERNAL' \

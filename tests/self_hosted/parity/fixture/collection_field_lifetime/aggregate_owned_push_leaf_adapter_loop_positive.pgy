@@ -1,0 +1,23 @@
+struct Rows { values: Array<String>; }
+func StoreOwned(inout values: Array<String>, value: String) -> Void {
+    ArrayPushOwnedString(values, value);
+}
+func Append(inout rows: Rows) -> Void {
+    let values: Array<String> = rows.values;
+    let i: Int = 0;
+    while i < 2 {
+        StoreOwned(values, "loop");
+        i = i + 1;
+    }
+    rows.values = values;
+}
+func Retire(inout rows: Rows) -> Void {
+    let values: Array<String> = rows.values;
+    ArrayDropOwnedStrings(values);
+    rows.values = values;
+}
+func Main() -> Void {
+    let rows: Rows = Rows([]);
+    Append(rows);
+    Retire(rows);
+}

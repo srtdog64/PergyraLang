@@ -38,6 +38,7 @@ ROUTINE_LOWER="$ROOT_DIR/src/self_hosted/mir/routine_lower_owner.pgy"
 ROUTINE_LET="$ROOT_DIR/src/self_hosted/mir/routine_let_owner.pgy"
 ROUTINE_INPUT="$ROOT_DIR/src/self_hosted/mir/routine_input_owner.pgy"
 BODY_TYPE_BUNDLE="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
+BODY_TYPE_ASSEMBLY="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_assembly_owner.pgy"
 EXPRESSION_VERDICT="$ROOT_DIR/src/self_hosted/semantic/ast_expression_verdict_owner.pgy"
 CONCRETE_SCALAR_VERDICT="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy"
 RESOLVED_CALL_TYPE="$ROOT_DIR/src/self_hosted/semantic/ast_expression_graph_resolved_call_type_owner.pgy"
@@ -65,6 +66,7 @@ for input in "$SOURCE" "$EXPECTED" "$DIRECT_CALL_EXPECTED" \
     "$NOMINAL_CALL_EXPECTED" \
     "$ARTIFACT_LOWER" "$ROUTINE_LOWER" \
     "$ROUTINE_LET" "$ROUTINE_INPUT" "$BODY_TYPE_BUNDLE" \
+    "$BODY_TYPE_ASSEMBLY" \
     "$EXPRESSION_VERDICT" "$CONCRETE_SCALAR_VERDICT" \
     "$RESOLVED_CALL_TYPE" "$CALL_TARGET_OWNER" "$CALL_TARGET_CAPTURE" \
     "$MEMBER_VIEW_OWNER" \
@@ -106,7 +108,7 @@ grep -Fq 'SemanticExpressionGraphScalarOperatorError(' \
 grep -Fq 'SemanticExpressionGraphResolvedCallReturnTypeName(' "$EXPRESSION_VERDICT" ||
     { echo "[$LABEL] resolved call return is not graph-owned" >&2; exit 1; }
 grep -Fq 'SemanticExpressionGraphResolvedCallConcreteScalarTypeName(' \
-    "$CONCRETE_SCALAR_VERDICT" ||
+    "$RESOLVED_CALL_TYPE" ||
     { echo "[$LABEL] concrete scalar call capability is not explicit" >&2; exit 1; }
 if grep -Fq 'SemanticExpressionGraphResolvedCallTypeName' \
     "$EXPRESSION_VERDICT" "$CONCRETE_SCALAR_VERDICT" \
@@ -148,7 +150,7 @@ grep -Fq 'target_fact.parameter_offset' "$CONCRETE_SCALAR_VERDICT" ||
 grep -Fq 'SemanticCallableCanonicalDeclaredName(' "$EXPRESSION_ENV" ||
     { echo "[$LABEL] callable table discards declaration ownership" >&2; exit 1; }
 grep -Fq 'SemanticAstAnalysisResolveCallTargetsFromAdmittedBody(' \
-    "$BODY_TYPE_BUNDLE" ||
+    "$BODY_TYPE_ASSEMBLY" ||
     { echo "[$LABEL] body fixpoint does not carry resolved call targets" >&2; exit 1; }
 grep -Fq 'inout analysis: SemanticAstArtifactAnalysis' \
     "$BODY_TYPE_BUNDLE" ||
@@ -355,22 +357,22 @@ run_probe() {
         "$LABEL" "$BUILD_DIR" "$NOMINAL_CALL_EXPECTED" \
         "$nominal_call_out" "run_output"
 
-    local cursor_case cursor_mode cursor_expected cursor_raw cursor_out
-    for cursor_case in \
-        'outer_shadow|--cursor-outer-shadow-positive|cursor-outer-shadow=Int' \
-        'nested_exit|--cursor-nested-exit-positive|cursor-nested-exit=Int' \
-        'destructure|--cursor-destructure-atomic-positive|cursor-destructure=atomic'; do
-        cursor_mode="${cursor_case#*|}"
-        cursor_mode="${cursor_mode%%|*}"
-        cursor_expected="${cursor_case##*|}"
-        cursor_raw="$BUILD_DIR/probe_${backend}.cursor_${cursor_case%%|*}.raw"
-        cursor_out="$BUILD_DIR/probe_${backend}.cursor_${cursor_case%%|*}.out"
+    local environment_case environment_mode environment_expected environment_raw environment_out
+    for environment_case in \
+        'outer_read|--environment-outer-read-positive|environment-outer-read=Int' \
+        'nested_exit|--environment-nested-exit-positive|environment-nested-exit=Int' \
+        'destructure|--environment-destructure-atomic-positive|environment-destructure=atomic'; do
+        environment_mode="${environment_case#*|}"
+        environment_mode="${environment_mode%%|*}"
+        environment_expected="${environment_case##*|}"
+        environment_raw="$BUILD_DIR/probe_${backend}.environment_${environment_case%%|*}.raw"
+        environment_out="$BUILD_DIR/probe_${backend}.environment_${environment_case%%|*}.out"
         run_positive_probe_capture \
-            "$backend" "$bin" "$cursor_raw" "$cursor_mode"
-        pgy_selfhost_normalize_text_artifact <"$cursor_raw" >"$cursor_out"
-        grep -Fxq "$cursor_expected" "$cursor_out" || {
-            echo "[$LABEL] backend=$backend $cursor_mode output drifted" >&2
-            cat "$cursor_out" >&2
+            "$backend" "$bin" "$environment_raw" "$environment_mode"
+        pgy_selfhost_normalize_text_artifact <"$environment_raw" >"$environment_out"
+        grep -Fxq "$environment_expected" "$environment_out" || {
+            echo "[$LABEL] backend=$backend $environment_mode output drifted" >&2
+            cat "$environment_out" >&2
             exit 1
         }
     done
@@ -386,7 +388,7 @@ run_probe() {
         missing-carried-direct-target \
         missing-carried-generic-member-target \
         missing-carried-chained-member-target \
-        cursor-self-reference cursor-sibling-leak; do
+        environment-self-reference environment-sibling-leak; do
         diagnostic='matching initializer and iteration type facts'
         if [[ "$mode" == "unknown-scalar-operand" ]]; then
             diagnostic='undefined_symbol'
@@ -413,8 +415,8 @@ run_probe() {
                 "$mode" == "missing-carried-generic-member-target" || \
                 "$mode" == "missing-carried-chained-member-target" ]]; then
             diagnostic='MIR producer requires matching semantic artifact facts'
-        elif [[ "$mode" == "cursor-self-reference" || \
-                "$mode" == "cursor-sibling-leak" ]]; then
+        elif [[ "$mode" == "environment-self-reference" || \
+                "$mode" == "environment-sibling-leak" ]]; then
             diagnostic='undefined_symbol'
         fi
         set +e
@@ -483,16 +485,16 @@ if [[ " $BACKENDS " == *" llvm "* ]]; then
             "$BUILD_DIR/probe_llvm.nominal_call.out"
         assert_llvm_leg_with_artifact_owner \
             "$LABEL" "$BUILD_DIR" \
-            "$BUILD_DIR/probe_c.cursor_outer_shadow.out" \
-            "$BUILD_DIR/probe_llvm.cursor_outer_shadow.out"
+            "$BUILD_DIR/probe_c.environment_outer_read.out" \
+            "$BUILD_DIR/probe_llvm.environment_outer_read.out"
         assert_llvm_leg_with_artifact_owner \
             "$LABEL" "$BUILD_DIR" \
-            "$BUILD_DIR/probe_c.cursor_nested_exit.out" \
-            "$BUILD_DIR/probe_llvm.cursor_nested_exit.out"
+            "$BUILD_DIR/probe_c.environment_nested_exit.out" \
+            "$BUILD_DIR/probe_llvm.environment_nested_exit.out"
         assert_llvm_leg_with_artifact_owner \
             "$LABEL" "$BUILD_DIR" \
-            "$BUILD_DIR/probe_c.cursor_destructure.out" \
-            "$BUILD_DIR/probe_llvm.cursor_destructure.out"
+            "$BUILD_DIR/probe_c.environment_destructure.out" \
+            "$BUILD_DIR/probe_llvm.environment_destructure.out"
     elif [[ "$llvm_rc" -eq 2 ]]; then
         echo "[$LABEL] llvm-leg skipped (compiler built without LLVM backend support)"
     else

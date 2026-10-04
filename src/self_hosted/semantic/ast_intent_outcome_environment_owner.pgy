@@ -42,11 +42,11 @@ func SemanticAstIntentExpressionSeedOutcome(
         if terminal_index < 0 || EnvContainsName(
             names, transitions.terminal_payload_source_names[terminal_index]
         ) { return false; }
-        ArrayPush(names,
+        ArrayPushOwnedString(names,
             transitions.terminal_payload_source_names[terminal_index]);
-        ArrayPush(types,
+        ArrayPushOwnedString(types,
             transitions.terminal_payload_type_names[terminal_index]);
-        ArrayPush(modes, "intent_terminal_payload");
+        ArrayPushOwnedString(modes, "intent_terminal_payload");
         return ArrayLength(names) == ArrayLength(types) &&
             ArrayLength(names) == ArrayLength(modes);
     }
@@ -94,10 +94,12 @@ func SemanticAstIntentExpressionSeedOutcome(
                 if payload_name == "" || EnvContainsName(names, payload_name) {
                     return false;
                 }
-                ArrayPush(names, payload_name);
-                ArrayPush(types,
+                ArrayPushOwnedString(names, payload_name);
+                ArrayPushOwnedString(types,
                     transitions.success_payload_type_names[predecessor_row]);
-                ArrayPush(modes, "intent_predecessor_success_payload");
+                ArrayPushOwnedString(
+                    modes, "intent_predecessor_success_payload"
+                );
                 return ArrayLength(names) == ArrayLength(types) &&
                     ArrayLength(names) == ArrayLength(modes);
             }
@@ -157,9 +159,9 @@ func SemanticAstIntentExpressionSeedOutcome(
     if !action_call.ok || action_call.return_type_name == "" ||
         action_call.return_type_name == "Unknown" ||
         action_call.return_type_name == "Void" { return false; }
-    ArrayPush(names, outcome_name);
-    ArrayPush(types, action_call.return_type_name);
-    ArrayPush(modes, "intent_outcome");
+    ArrayPushOwnedString(names, outcome_name);
+    ArrayPushOwnedString(types, action_call.return_type_name);
+    ArrayPushOwnedString(modes, "intent_outcome");
     return ArrayLength(names) == ArrayLength(types) &&
         ArrayLength(names) == ArrayLength(modes);
 }

@@ -3,6 +3,7 @@
 import "ast_collection_call_effect_owner.pgy";
 import "ast_collection_ownership_verdict_carrier_owner.pgy";
 import "ast_collection_formal_storage_permission_owner.pgy";
+import "ast_collection_aggregate_field_entry_requirement_owner.pgy";
 
 func SemanticAstCollectionFormalIndexedReadReady(
     artifact: AstTreeArtifact,
@@ -24,9 +25,13 @@ func SemanticAstCollectionFormalIndexedReadReady(
 func SemanticAstCollectionCallArgumentEffectVerdict(
     artifact: AstTreeArtifact,
     ref signatures: SemanticAstFunctionSignatureFacts,
+    ref locals: SemanticAstLocalBindingFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
     edge: SemanticCallArgumentEdgeView,
     literal_read_ready: Bool, proved: HashMap<String, Int>, effect: Int,
+    owned_push_leaf_formals: HashMap<String, Int>,
+    ref field_requirements:
+        SemanticAstCollectionAggregateFieldEntryRequirements,
     binding: SemanticAstLocalBindingIdentity,
     unknown: Bool, borrowed_storage: Bool, owned_storage: Bool,
     inout ownership: Array<Int>, ref dispositions: Array<Int>,
@@ -85,8 +90,15 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
                 SemanticAstCollectionStringArrayFormalIdentity(
                     signatures, surfaces.function_node_ids[surface_row],
                     surfaces.expression_graph, edge.argument_node);
-            let actual_effect_ready: Bool = false;
-            if actual_formal.ok {
+            // An `own` formal is already the exclusive storage authority in
+            // this body. It is intentionally not reusable as a caller-side
+            // formal summary, so absence from `proved` is not missing
+            // evidence here. Borrowed/inout formals still require their exact
+            // fixed-point effect before they may be forwarded to a shallow
+            // mutator.
+            let actual_effect_ready: Bool = actual_formal.ok &&
+                actual_formal.mode == 2;
+            if actual_formal.ok && actual_formal.mode != 2 {
                 let actual_key: String = ToString(actual_formal.syntax_id);
                 if MapHas(proved, actual_key) {
                     let actual_effect: Int = MapGet(proved, actual_key);
@@ -114,10 +126,32 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
     }
     if effect == 2 || effect == 3 {
         if binding.ok {
+            let aggregate_owned_push_entry: Bool = false;
+            if effect == 2 && origins[binding.row] ==
+                    SemanticAstCollectionOriginMemberMove() {
+                let target_formal: Int =
+                    SemanticAstCollectionSourceArrayFormalForArgument(
+                        signatures, surfaces.expression_graph,
+                        edge.call_node, edge.ordinal);
+                let requirement_row: Int =
+                    SemanticAstCollectionAggregateFieldEntryIndexRow(
+                        field_requirements.row_by_local,
+                        locals.node_ids[binding.row]);
+                aggregate_owned_push_entry = target_formal > 0 &&
+                    MapHas(owned_push_leaf_formals,
+                        ToString(target_formal)) &&
+                    requirement_row >= 0 &&
+                    requirement_row <
+                        ArrayLength(field_requirements.effect_masks) &&
+                    SemanticAstCollectionAggregateRequirementHasEffect(
+                        field_requirements.effect_masks[requirement_row],
+                        SemanticAstCollectionAggregateFieldEntryEffectOwnedPush());
+            }
             let clean: Bool = ownership[binding.row] ==
                     SemanticAstCollectionOwnershipOwnedElements() ||
                 ownership[binding.row] ==
-                    SemanticAstCollectionOwnershipMapKeysSnapshot();
+                    SemanticAstCollectionOwnershipMapKeysSnapshot() ||
+                aggregate_owned_push_entry;
             if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() {
                 clean = SemanticAstCollectionTransitionAllowsOwned(
                     transition_states[binding.row]);
