@@ -134,7 +134,9 @@ func SemanticExpressionGraphWrapperValueFactFromGraph(
             )
         );
     }
-    let signature_text: String = function_params[UnwrapOption(signature_index)];
+    let signature_text: String = Concat(
+        "", function_params[UnwrapOption(signature_index)]
+    );
     let signature_facts: SemanticDelimitedRangeFacts =
         SemanticSignatureRangeFactsFromSource(signature_text);
     let expected_count: Int =

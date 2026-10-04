@@ -103,7 +103,7 @@ func SemanticExpressionGraphConcreteScalarValueOwned(ref graph: SemanticExpressi
             function_names, target_fact.name
         );
         if !IsSome(target) { return false; }
-        signature = function_params[UnwrapOption(target)];
+        signature = Concat("", function_params[UnwrapOption(target)]);
     }
     let signature_facts: SemanticDelimitedRangeFacts =
         SemanticSignatureRangeFactsFromSource(signature);
@@ -168,7 +168,7 @@ func SemanticExpressionGraphContextualCallArgumentsOwned(
             function_names, target_fact.name
         );
         if !IsSome(target) { return false; }
-        signature = function_params[UnwrapOption(target)];
+        signature = Concat("", function_params[UnwrapOption(target)]);
     }
     let signature_facts: SemanticDelimitedRangeFacts =
         SemanticSignatureRangeFactsFromSource(signature);
@@ -324,7 +324,7 @@ func SemanticExpressionGraphResolvedCallArgumentFactsFromGraph(
                 call, target_fact, false, "", empty_ranges, 0
             );
         }
-        signature = function_params[UnwrapOption(target)];
+        signature = Concat("", function_params[UnwrapOption(target)]);
     }
     if !local_callable.ok && target_fact.kind == SemanticCallTargetDirect() &&
         SemanticBuiltinUsesFirstArgumentPair(target_fact.name) &&

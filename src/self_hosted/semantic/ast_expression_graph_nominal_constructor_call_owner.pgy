@@ -151,7 +151,7 @@ func SemanticExpressionGraphNominalConstructorCallFactFromGraph(
         i = i + 1;
     }
     return SemanticExpressionGraphNominalConstructorCallFact(
-        true, true, "", "", constructors.return_type_names[index],
+        true, true, "", "", Concat("", constructors.return_type_names[index]),
         actual_count, constructors.node_ids[index]
     );
 }

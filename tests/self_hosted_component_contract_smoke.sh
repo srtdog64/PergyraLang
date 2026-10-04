@@ -235,6 +235,29 @@ require_function_text() {
         fail "$rel function $signature missing term: $term"
 }
 
+check_concrete_scalar_signature_materialization() {
+    local rel="src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy"
+    local signature
+
+    # Inventory only: keep indexed borrows out of these signature consumers.
+    # Executable formal-use admission still owns the full-root proof.
+    for signature in \
+        'func SemanticExpressionGraphConcreteScalarValueOwned(' \
+        'func SemanticExpressionGraphContextualCallArgumentsOwned(' \
+        'func SemanticExpressionGraphResolvedCallArgumentFactsFromGraph('; do
+        require_function_text "$rel" "$signature" \
+            'ArrayLength(function_names) != ArrayLength(function_params)'
+        require_function_text "$rel" "$signature" \
+            'if !IsSome(target)'
+        require_function_text "$rel" "$signature" \
+            'signature = Concat("", function_params[UnwrapOption(target)]);'
+        require_function_text "$rel" "$signature" \
+            'SemanticSignatureRangeFactsFromSource(signature);'
+        reject_function_text "$rel" "$signature" \
+            'signature = function_params[UnwrapOption(target)];'
+    done
+}
+
 check_artifact_comparison_transport_placement() {
     local rel="tests/self_hosted/parity/llvm_leg_helpers.sh"
     local signature='pgy_selfhost_compare_expected_text_artifact_file_with_owner() {'
@@ -29134,6 +29157,7 @@ require_function_text \
     "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy" \
     'func SemanticAstAnalysisResolveCallReturnTypes(' \
     'ArrayDropOwnedStrings(call_return_types);'
+check_concrete_scalar_signature_materialization
 reject_function_text \
     "src/self_hosted/semantic/ast_expression_call_return_type_owner.pgy" \
     'func SemanticAstAnalysisResolveCallReturnTypes(' \
