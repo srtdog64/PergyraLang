@@ -27,7 +27,8 @@ The starting checkout has 57 dirty paths; preserve existing work.
 - Root: `tests/self_hosted_component_contract_smoke.sh`, this directive,
   integration review, Git staging/commit/push, exact-head CI verification.
 - `generic_return_gate`: only
-  `tests/self_hosted/parity/generic_return_probe_parity.sh`.
+  `tests/self_hosted/parity/generic_return_probe_parity.sh` (completed), then
+  `tests/self_hosted_component_checker_smoke.sh` for the isolated dry-run tests.
 - `handoff_refresh`: only `docs/current_work_handoff.md` and
   `src/self_hosted/tools/generic_return_probe/intent.md`.
 - `ci_failure_triage`: read-only workflow, exact-head run/job/log inspection;
@@ -54,3 +55,22 @@ Root is the integration and Git owner. Agent completion is supporting evidence
 only; Root rechecks diffs, source ownership and observed gates before publishing.
 The next source revision and terminal CI receipts, not this directive, determine
 whether the user's request is complete.
+
+## Reached structural-gate boundary
+
+- Objective: make the source-only replacement-frontier inventory independent
+  of a previous native build while preserving all three graph assertions.
+- Priority: unchanged Makefile graph authority, explicit dry-run failure,
+  isolated generated response files, focused positive/negative checks.
+- Fact owner: Makefile installed, standalone, and admitted target graphs.
+- Last consumer: the component inventory's frontier bootstrap-count assertion.
+- Forbidden fallback: creating a fake compiler, skipping the graph assertion,
+  modifying the production build directory, or executing build recipes.
+- Gate: the checker exercises the inventory owner's actual graph checker on
+  an unbuilt fixture, including unexpected bootstrap and failed Make cases.
+- Falsifier: the dry-run depends on an existing build directory, changes caller
+  artifacts, executes a recipe, or accepts an invalid target graph.
+
+This is an inventory transport fix, not another compiler implementation rung.
+The full component gate keeps its 60-second execution budget. Preparation for
+an exported source snapshot is separate from evidence for that gate.

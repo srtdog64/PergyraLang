@@ -8,21 +8,24 @@ SoT registry, admitted contracts, and executable gates override this note.
 ### Checkpoint
 
 - Branch: `main`.
-- Published base: `1e2fd61d9ec45f902dc4ef805963e6ca0780e269`
-  (`docs: refresh active ownership handoff`), following functional checkpoint
-  `c8863017`.
-- The source checkpoint carrying this card includes owned-result evidence,
+- Published compiler checkpoint: `8abceacd04aad7144edd87f7495e160205f2d0ab`
+  (`checkpoint: integrate owned-result and borrowed-view contracts`). Root
+  verified that `origin/main` matches this SHA after push.
+- This 63-file source checkpoint includes owned-result evidence,
   borrowed String views for signature binding, collection mutation policy,
-  source-module/location ownership, and their gates. The revision above is the
-  pre-publication base, not the new checkpoint's exact-head CI receipt.
-  Resolve the checkpoint with
-  `git log -1 --format=%H -- docs/current_work_handoff.md`; verify local HEAD,
+  source-module/location ownership, and their gates. The follow-on commit
+  carrying this card changes only inventory transport, its checker fixtures,
+  and coordination/handoff documents; compiler implementation remains at this
+  checkpoint. Resolve the inventory revision with
+  `git log -1 --format=%H -- tests/self_hosted_component_contract_smoke.sh`.
+  Only `gmon.out` is intentionally excluded from publication. Verify local HEAD,
   dirty paths, and remote HEAD when resuming.
 - Root owns integration and Git publication; Main owns the reached compiler
   implementation. Parallel edit scopes are fixed in
   `docs/agent_work_directives/ownership_checkpoint_green_2026-10-05.md`.
-- Preserve `deployment_optimization_guide.md` unchanged for inclusion as a user
-  document. Preserve `gmon.out` locally and exclude it from staging. Neither is
+- `deployment_optimization_guide.md` was preserved unchanged in published user
+  document commit `9157646e538a0528a85188f54012a059cf6e0c0a`. Preserve `gmon.out`
+  locally and exclude it from staging. Neither is
   compiler semantic authority or evidence for this rung.
 - This remains an OPEN executable-rung checkpoint, not ownership SoT,
   installed-driver, bootstrap, CI, or whole-compiler closure.
@@ -63,8 +66,16 @@ the complete C-owned compiler path.
   parameter is the reached node. The reduced import graph passes, but the
   full-root formal-effect chain still rejects this entry. Numerical node
   movement is not closure.
+- Executable rung: BLOCKED at that formal-use entry, not closed by inventory
+  fixes. The missing fact is a successful full-root formal-element-use proof
+  for the reached `types` parameter and its call chain. The producer is
+  `SemanticAstCollectionFormalEffectsFromResolvedFacts` through the formal-use
+  and fixed-point owners; the last admission consumer is
+  `SemanticAstCollectionCallArgumentVerdict`, followed by the MIR-root bootstrap.
+  The falsifying input remains `mir_collection_receiver_root.pgy` in the full
+  import context. Do not substitute a reduced graph's PASS for this proof.
 
-### Published implementation and pending delta
+### Published implementation
 
 - Lexical expression environments now own their lifetime directly. The former
   expression-environment storage-lifetime owner was deleted.
@@ -79,11 +90,11 @@ the complete C-owned compiler path.
   `TextBuilderFinish` without treating arbitrary calls as copies.
 - Three resolved call-target names and one resolved call return type now
   materialize independent String results instead of returning indexed borrows.
-- Pending owned-result plan, definition, and return owners derive grounded fresh
+- Owned-result plan, definition, and return owners derive grounded fresh
   `Array<String>` results from exact declared callable identity. The verdict
   carries `fresh_owned_result_function_syntax_ids`; this is not a name allowlist
   or permission to promote unknown/borrowed results.
-- Pending routine body retirement covers 94 backing leaves:
+- Routine body retirement covers 94 backing leaves:
   `67 Array<Int>`, `24 Array<String>`, and `3 Array<Bool>`, including the new
   owned-result function-ID carrier. The two deep destructure arrays retain
   `ArrayDropOwnedStrings`; other backing arrays use
@@ -96,9 +107,9 @@ the complete C-owned compiler path.
 
 ### Observed verification
 
-These are observed receipts, not results for every later dirty-source change.
-Root independently checked the cited Main receipts; this documentation refresh
-does not run compiler or parity gates.
+These are observed receipts, not results for every later revision. Root checked
+the cited Main receipts and its own structural checks; this documentation
+refresh does not run compiler or parity gates.
 
 - `routine_build_storage_lifetime_owner.sh`: PASS, 94-leaf body census
   (`exec-ceb9cb8b-c271-4d5b-915c-33386c8fe824`). This is backing-retirement
@@ -113,9 +124,17 @@ does not run compiler or parity gates.
   probe execution/refusal PASS (`exec-29c8ffc3`), not installed C evidence.
 - Root's changed component-inventory predicates and the generic-return gate's
   structural prefix PASS. `bash -n` and `git diff --check` PASS. The full
-  component inventory on Windows exceeded its unchanged 60-second budget
-  (native shell exit `124`); PowerShell had previously collapsed this to `1`.
-  This is neither a full component PASS nor a semantic rejection receipt.
+  component inventory on both Windows and mounted WSL exceeded its unchanged
+  60-second budget (exit `124`); PowerShell had previously collapsed the native
+  shell result to `1`. Neither run is a full component PASS or a semantic
+  rejection receipt.
+- Follow-on inventory transport isolates GNU make's response-file expansion in
+  a temporary `BUILD_DIR`; installed/standalone/admitted bootstrap counts remain
+  `0/1/0`. Root independently ran the actual checker on two positive and eight
+  negative fixture cases plus the existing 14 lexical unit tests: PASS, exit
+  `0`, within 60 seconds. Syntax and diff checks PASS. The production Makefile
+  graph check on mounted WSL reached exit `124`; full component completion is
+  still OPEN. GNU 3.x fixture support is present but GNU 3.x/macOS was not run.
 - The reduced collection-mutation import graph produced `body_ok=true` with
   no effect-5 rows (`exec-c8b28a2c`). The current full-source native C emission
   succeeded with 0 errors and 16 warnings (`exec-730c1fe7`). The subsequent
@@ -135,17 +154,28 @@ does not run compiler or parity gates.
   `46983`, same `unproved_formal_element_use_entry`, work directory
   `.tmp/self_hosted/codegen_nominal_array_declaration/run.bTaLNs`. Mapping
   `exec-ced9ee76` identifies the `types` Slice parameter of the reached function.
-- Exact-head [CI run 37211217648](https://github.com/srtdog64/PergyraLang/actions/runs/37211217648)
+- Prior exact-head [CI run 37211217648](https://github.com/srtdog64/PergyraLang/actions/runs/37211217648)
   on base `1e2fd61d` completed with failure: bootstrap failed, six downstream
   Linux jobs skipped, and five other jobs succeeded. It is not current green.
+- Published-checkpoint [CI run 37223614427](https://github.com/srtdog64/PergyraLang/actions/runs/37223614427)
+  on `8abceacd04aad7144edd87f7495e160205f2d0ab` selected `run_full=true`.
+  [Codegen job 111498732648](https://github.com/srtdog64/PergyraLang/actions/runs/37223614427/job/111498732648)
+  failed in step 4 at `2026-10-04T18:20:46Z`: node `46983`, boundary
+  `unproved_formal_element_use_entry`, diagnostic type `Array<String>`,
+  nominal MIR-root control refusal, Make exit `2`. Native/codegen seed
+  publication steps 5 and 6 were skipped. The CI diagnostic type is not the
+  source parameter spelling `Slice<String>` from the local mapping above.
+  The run completed with failure: 5 jobs succeeded, codegen failed, and 6
+  downstream job families were skipped. This published checkpoint is not green.
 
 ### Explicit OPEN boundaries
 
-- The last seed bootstrap failed. Pending mutation-view changes do not supply a
+- The last seed bootstrap failed. Published mutation-view changes do not supply a
   successful fixed-point or same-input terminal receipt by themselves.
 - Installed `pgy-self-driver.exe` admission is stale. Native/analyzer build
   success is not installation or installed-driver evidence.
-- Pending publication, exact-head CI green, fixed-point bootstrap, full C/LLVM
+- Publication is complete for the source checkpoint above. Exact-head CI green,
+  fixed-point bootstrap, full C/LLVM
   parity, full component gate completion, and the platform matrix are OPEN.
 - Optimize only an observed operation blocking the next named closure step,
   behind its existing owner and on the same semantic input. Prior timing or
@@ -176,8 +206,8 @@ mapped receiver-mutation owner to interpret the next terminal bootstrap
 receipt. Check exact formal-use evidence, view lifetime, and the last consumer
 against current source. Fix only the reached owner seam; do not substitute a
 smaller input, name whitelist, native bypass, compatibility fallback, duplicate
-SoT row, or a general query/cache architecture. Publication and a green claim
-require receipts for the exact new HEAD, not this navigation snapshot.
+SoT row, or a general query/cache architecture. A green claim requires terminal
+receipts for the exact published source HEAD, not this navigation snapshot.
 
 ## Historical archive boundary
 

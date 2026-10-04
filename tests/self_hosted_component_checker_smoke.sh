@@ -10,7 +10,7 @@ ROOT_DIR="$(mktemp -d "$REPO_DIR/.tmp/self_hosted/component_checker/run.XXXXXX")
 # Exercise the owner's actual functions without running the full inventory.
 # Definitions end at a column-zero brace; embedded awk programs are indented.
 definitions="$(awk '
-    /^(fail|load_text_cache|function_body_text|load_function_body_cache|require_function_text|reject_function_text|require_max_lines|run_line_cap_checks|check_match_pattern_consumer_placement|check_artifact_comparison_transport_placement|reject_regex_under|run_regex_scope_checks)\(\) \{/ { capture = 1 }
+    /^(fail|load_text_cache|function_body_text|load_function_body_cache|require_function_text|reject_function_text|require_max_lines|run_line_cap_checks|check_match_pattern_consumer_placement|check_artifact_comparison_transport_placement|check_replacement_frontier_build_graph|reject_regex_under|run_regex_scope_checks)\(\) \{/ { capture = 1 }
     capture { print }
     /^}/ { capture = 0 }
 ' "$OWNER")"
@@ -18,23 +18,12 @@ eval "$definitions"
 for checker in fail load_text_cache function_body_text load_function_body_cache \
         require_function_text reject_function_text require_max_lines run_line_cap_checks \
         check_match_pattern_consumer_placement check_artifact_comparison_transport_placement \
-        reject_regex_under run_regex_scope_checks; do
+        check_replacement_frontier_build_graph reject_regex_under run_regex_scope_checks; do
     declare -F "$checker" >/dev/null || {
         echo "[component-checker] missing checker function: $checker" >&2
         exit 1
     }
 done
-
-# Bash 3.2 treats an empty array's unguarded expansion as unset under nounset.
-[[ "$definitions" == *'${checked_dirs[@]+"${checked_dirs[@]}"}'* ]] ||
-    fail 'regex scope checker must guard its empty array for Bash 3.2'
-
-LINE_CAP_REQUESTS=()
-FUNCTION_BODY_CACHE_REL=""
-FUNCTION_BODY_CACHE_SIGNATURE=""
-FUNCTION_BODY_CACHE_CONTENT=""
-FUNCTION_BODY_EXTRACTIONS=0
-FUNCTION_BODY_REUSES=0
 
 expect_rejection() {
     local label="$1" diagnostic="$2"; shift 2
@@ -48,6 +37,111 @@ expect_rejection() {
     grep -Fq -- "$diagnostic" "$ROOT_DIR/$label.out" ||
         fail "$label lost its diagnostic: $diagnostic"
 }
+
+# A dry-run is not side-effect-free: GNU make evaluates $(file ...) while
+# expanding recipes. Exercise the actual graph checker without build products.
+# Production supports GNU make 3.x too; its fixture uses a shell expansion for
+# the same response-file isolation obligation because $(file ...) is absent.
+frontier_fixture_dir="$ROOT_DIR/frontier-build-graph"
+mkdir -p "$frontier_fixture_dir"
+write_replacement_frontier_make_fixture() {
+    printf 'FIXTURE_CASE := %s\n' "$1" >"$frontier_fixture_dir/Makefile"
+    printf '%s\n' \
+        'BUILD_DIR ?= build' \
+        'PGY_SELF_HOST_COMPILER_ADMITTED ?= 0' \
+        '.PHONY: native-fixture self-host-compiler self-host-replacement-frontier-installed-test-smoke self-host-replacement-frontier-test-smoke' \
+        'native-fixture:' \
+        'ifneq ($(filter 3.%,$(MAKE_VERSION)),)' \
+        $'\t$(shell printf "fixture-owned-response\\n" > "$(BUILD_DIR)/compiler_sources.rsp")' \
+        'else' \
+        $'\t$(file >$(BUILD_DIR)/compiler_sources.rsp,fixture-owned-response)' \
+        'endif' \
+        $'\t@printf "executed\\n" >> "$(CURDIR)/recipes.executed"' \
+        'self-host-replacement-frontier-installed-test-smoke: native-fixture' \
+        'ifeq ($(FIXTURE_CASE),installed-bootstrap)' \
+        $'\t@echo tests/self_hosted/parity/self_host_compiler_build.sh' \
+        'endif' \
+        'ifeq ($(FIXTURE_CASE),installed-make-failure)' \
+        $'\t$(error fixture installed make failure)' \
+        'endif' \
+        $'\t@printf "executed\\n" >> "$(CURDIR)/recipes.executed"' \
+        'self-host-compiler:' \
+        'ifeq ($(PGY_SELF_HOST_COMPILER_ADMITTED),1)' \
+        'ifeq ($(FIXTURE_CASE),admitted-rebuild)' \
+        $'\t@echo tests/self_hosted/parity/self_host_compiler_build.sh' \
+        'endif' \
+        'ifeq ($(FIXTURE_CASE),admitted-make-failure)' \
+        $'\t$(error fixture admitted make failure)' \
+        'endif' \
+        'else' \
+        'ifneq ($(FIXTURE_CASE),standalone-missing)' \
+        $'\t@echo tests/self_hosted/parity/self_host_compiler_build.sh' \
+        'endif' \
+        'ifeq ($(FIXTURE_CASE),standalone-duplicate)' \
+        $'\t@echo tests/self_hosted/parity/self_host_compiler_build.sh' \
+        'endif' \
+        'ifeq ($(FIXTURE_CASE),standalone-make-failure)' \
+        $'\t$(error fixture standalone make failure)' \
+        'endif' \
+        'endif' \
+        $'\t@printf "executed\\n" >> "$(CURDIR)/recipes.executed"' \
+        'self-host-replacement-frontier-test-smoke: self-host-compiler self-host-replacement-frontier-installed-test-smoke' \
+        $'\t@printf "executed\\n" >> "$(CURDIR)/recipes.executed"' \
+        >>"$frontier_fixture_dir/Makefile"
+}
+check_replacement_frontier_fixture() (
+    ROOT_DIR="$frontier_fixture_dir"
+    case "${1:-ordinary}" in
+        exported-admitted) export PGY_SELF_HOST_COMPILER_ADMITTED=1 ;;
+        missing-make) PATH="$frontier_fixture_dir/no-make" ;;
+    esac
+    check_replacement_frontier_build_graph
+)
+write_replacement_frontier_make_fixture baseline
+[[ ! -d "$frontier_fixture_dir/build" ]] || fail 'frontier fixture is not unbuilt'
+check_replacement_frontier_fixture
+[[ ! -d "$frontier_fixture_dir/build" ]] ||
+    fail 'frontier dry-run created the caller build directory'
+frontier_responses=("$frontier_fixture_dir"/.tmp/self_hosted/frontier_graph.*/compiler_sources.rsp)
+[[ "${#frontier_responses[@]}" -eq 1 && -f "${frontier_responses[0]}" ]] ||
+    fail 'frontier response file was not isolated in its dry-run directory'
+grep -Fxq 'fixture-owned-response' "${frontier_responses[0]}" ||
+    fail 'frontier fixture did not exercise the make response-file expansion'
+mkdir -p "$frontier_fixture_dir/build"
+printf 'caller-owned response\n' >"$frontier_fixture_dir/build/compiler_sources.rsp"
+cp "$frontier_fixture_dir/build/compiler_sources.rsp" "$frontier_fixture_dir/caller-before.rsp"
+check_replacement_frontier_fixture exported-admitted
+for variant in installed-bootstrap standalone-missing standalone-duplicate admitted-rebuild \
+        installed-make-failure standalone-make-failure admitted-make-failure; do
+    write_replacement_frontier_make_fixture "$variant"
+    case "$variant" in
+        installed-bootstrap) diagnostic='installed replacement frontier must be bootstrap-free' ;;
+        standalone-missing|standalone-duplicate) diagnostic='standalone replacement frontier must bootstrap exactly once' ;;
+        admitted-rebuild) diagnostic='an admitted compiler pair must not be rebuilt' ;;
+        installed-make-failure) diagnostic='installed replacement frontier dry-run failed' ;;
+        standalone-make-failure) diagnostic='standalone replacement frontier dry-run failed' ;;
+        admitted-make-failure) diagnostic='admitted replacement frontier dry-run failed' ;;
+    esac
+    expect_rejection "frontier-$variant" "$diagnostic" check_replacement_frontier_fixture
+done
+write_replacement_frontier_make_fixture baseline
+expect_rejection frontier-missing-make 'replacement frontier inventory requires make' \
+    check_replacement_frontier_fixture missing-make
+cmp -s "$frontier_fixture_dir/caller-before.rsp" "$frontier_fixture_dir/build/compiler_sources.rsp" ||
+    fail 'frontier dry-run changed a caller-owned response file'
+[[ ! -e "$frontier_fixture_dir/recipes.executed" ]] ||
+    fail 'frontier graph inventory executed a fixture recipe'
+
+# Bash 3.2 treats an empty array's unguarded expansion as unset under nounset.
+[[ "$definitions" == *'${checked_dirs[@]+"${checked_dirs[@]}"}'* ]] ||
+    fail 'regex scope checker must guard its empty array for Bash 3.2'
+
+LINE_CAP_REQUESTS=()
+FUNCTION_BODY_CACHE_REL=""
+FUNCTION_BODY_CACHE_SIGNATURE=""
+FUNCTION_BODY_CACHE_CONTENT=""
+FUNCTION_BODY_EXTRACTIONS=0
+FUNCTION_BODY_REUSES=0
 
 check_one_cap() {
     LINE_CAP_REQUESTS=()
@@ -261,4 +355,4 @@ expect_rejection missing-artifact-transport 'missing function:' check_transport_
 )
 
 python3 "$REPO_DIR/tests/source_size_count_test.py" LexicalMetricTests
-echo '[component-checker] line caps, lexical source sizes, missing inputs, selected function identity and negative predicates: PASS'
+echo '[component-checker] line caps, lexical source sizes, missing inputs, selected function identity, isolated frontier graph and negative predicates: PASS'

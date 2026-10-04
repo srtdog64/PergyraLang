@@ -113,6 +113,51 @@ reject_make_target_text() {
         fail "Makefile target $target must not contain: $term"
 }
 
+check_replacement_frontier_build_graph() {
+    local dry_run_build_dir installed_frontier_dry_run
+    local standalone_frontier_dry_run admitted_frontier_dry_run
+    local installed_bootstraps standalone_bootstraps admitted_bootstraps
+
+    command -v make >/dev/null 2>&1 || fail "replacement frontier inventory requires make"
+    mkdir -p "$ROOT_DIR/.tmp/self_hosted" || fail "could not prepare frontier graph inventory"
+    dry_run_build_dir="$(mktemp -d "$ROOT_DIR/.tmp/self_hosted/frontier_graph.XXXXXX")" ||
+        fail "could not isolate frontier graph inventory"
+    # GNU make expands $(file ...) even with -n. Keep response files away from
+    # the caller's build and require no prior compiler artifact or build directory.
+    installed_frontier_dry_run="$(
+        env -u PGY_SELF_HOST_COMPILER_ADMITTED \
+        make -C "$ROOT_DIR" --no-print-directory -n \
+            BUILD_DIR="$dry_run_build_dir" \
+            self-host-replacement-frontier-installed-test-smoke
+    )" || fail "installed replacement frontier dry-run failed"
+    standalone_frontier_dry_run="$(
+        env -u PGY_SELF_HOST_COMPILER_ADMITTED \
+        make -C "$ROOT_DIR" --no-print-directory -n \
+            BUILD_DIR="$dry_run_build_dir" \
+            self-host-replacement-frontier-test-smoke
+    )" || fail "standalone replacement frontier dry-run failed"
+    admitted_frontier_dry_run="$(
+        make -C "$ROOT_DIR" --no-print-directory -n \
+            BUILD_DIR="$dry_run_build_dir" PGY_SELF_HOST_COMPILER_ADMITTED=1 \
+            self-host-replacement-frontier-test-smoke
+    )" || fail "admitted replacement frontier dry-run failed"
+    installed_bootstraps="$(grep -F -c \
+        'tests/self_hosted/parity/self_host_compiler_build.sh' \
+        <<<"$installed_frontier_dry_run" || true)"
+    standalone_bootstraps="$(grep -F -c \
+        'tests/self_hosted/parity/self_host_compiler_build.sh' \
+        <<<"$standalone_frontier_dry_run" || true)"
+    admitted_bootstraps="$(grep -F -c \
+        'tests/self_hosted/parity/self_host_compiler_build.sh' \
+        <<<"$admitted_frontier_dry_run" || true)"
+    [[ "$installed_bootstraps" -eq 0 ]] ||
+        fail "installed replacement frontier must be bootstrap-free"
+    [[ "$standalone_bootstraps" -eq 1 ]] ||
+        fail "standalone replacement frontier must bootstrap exactly once"
+    [[ "$admitted_bootstraps" -eq 0 ]] ||
+        fail "an admitted compiler pair must not be rebuilt"
+}
+
 reject_text() {
     local rel="$1"
     local term="$2"
@@ -25938,41 +25983,9 @@ for installed_frontier_forbidden in \
 done
 require_text "Makefile" \
     "self-host-replacement-frontier-test-smoke: self-host-compiler"
-if command -v make >/dev/null 2>&1; then
-    # These dry-runs read the build-mode Makefile. A push CI job exports
-    # PGY_SELF_HOST_COMPILER_ADMITTED=1, which turns self-host-compiler into an
-    # admission check, so clear it here and test the admitted form below.
-    installed_frontier_dry_run="$(
-        env -u PGY_SELF_HOST_COMPILER_ADMITTED \
-        make -C "$ROOT_DIR" --no-print-directory -n \
-            self-host-replacement-frontier-installed-test-smoke
-    )" || fail "installed replacement frontier dry-run failed"
-    standalone_frontier_dry_run="$(
-        env -u PGY_SELF_HOST_COMPILER_ADMITTED \
-        make -C "$ROOT_DIR" --no-print-directory -n \
-            self-host-replacement-frontier-test-smoke
-    )" || fail "standalone replacement frontier dry-run failed"
-    admitted_frontier_dry_run="$(
-        make -C "$ROOT_DIR" --no-print-directory -n \
-            PGY_SELF_HOST_COMPILER_ADMITTED=1 \
-            self-host-replacement-frontier-test-smoke
-    )" || fail "admitted replacement frontier dry-run failed"
-    installed_bootstraps="$(grep -F -c \
-        'tests/self_hosted/parity/self_host_compiler_build.sh' \
-        <<<"$installed_frontier_dry_run" || true)"
-    standalone_bootstraps="$(grep -F -c \
-        'tests/self_hosted/parity/self_host_compiler_build.sh' \
-        <<<"$standalone_frontier_dry_run" || true)"
-    admitted_bootstraps="$(grep -F -c \
-        'tests/self_hosted/parity/self_host_compiler_build.sh' \
-        <<<"$admitted_frontier_dry_run" || true)"
-    [[ "$installed_bootstraps" -eq 0 ]] ||
-        fail "installed replacement frontier must be bootstrap-free"
-    [[ "$standalone_bootstraps" -eq 1 ]] ||
-        fail "standalone replacement frontier must bootstrap exactly once"
-    [[ "$admitted_bootstraps" -eq 0 ]] ||
-        fail "an admitted compiler pair must not be rebuilt"
-fi
+# Inspect both build-mode graphs independently of an admitted CI environment,
+# then the admitted graph. Compiler generation remains forbidden in this gate.
+check_replacement_frontier_build_graph
 require_text "scripts/ci_push_linux_steps.sh" \
     "self-host-replacement-frontier-installed-test-smoke"
 require_text "scripts/ci_linux_steps.sh" \
