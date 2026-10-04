@@ -65,17 +65,36 @@ func SemanticAstCollectionCallArgumentVerdict(
         SemanticAstCollectionDefinitionStorageSource(
             storage, definitions, binding.row,
             current_definitions[binding.row]) > 0;
+    let repeated_fresh_generation: Bool = false;
+    if binding.ok {
+        let definition: Int = current_definitions[binding.row];
+        if definition >= 0 &&
+            definition < ArrayLength(definitions.syntax_ids) &&
+            definition < ArrayLength(definitions.fresh) &&
+            definitions.fresh[definition] && owned_storage &&
+            definitions.syntax_ids[definition] ==
+                locals.node_ids[binding.row] &&
+            call_effects.first_retiring_sites[binding.row] == 0 {
+            repeated_fresh_generation =
+                SemanticAstCollectionRepeatedLocalGenerationPrecedesUse(
+                    artifact, definitions.syntax_ids[definition],
+                    surfaces.node_ids[surface_row],
+                    locals.scope_node_ids[binding.row]
+                );
+        }
+    }
     let owned: SemanticAstCollectionOwnershipVerdict =
         SemanticAstCollectionOwnedArgumentVerdict(
             artifact, signatures, locals, inferred_types, surfaces,
             surface_row, edge, binding, unknown, borrowed_storage,
             owned_storage, call_effects, element_requirements,
-            ownership, dispositions, origins, transition_states);
+            ownership, dispositions, origins, transition_states,
+            definitions, current_definitions);
     if !owned.ok { return owned; }
     return SemanticAstCollectionCallArgumentEffectVerdict(
         artifact, signatures, locals, surfaces, surface_row, edge,
         literal_read_ready, proved, effect, owned_push_leaf_formals,
         field_requirements, binding, unknown,
-        borrowed_storage, owned_storage, ownership, dispositions,
-        origins, transition_states, call_effects);
+        borrowed_storage, owned_storage, repeated_fresh_generation,
+        ownership, dispositions, origins, transition_states, call_effects);
 }

@@ -128,6 +128,8 @@ INPUTS=(
     inout_event_nested_own_push_negative.pgy inout_event_deferred_push_unknown_negative.pgy
     inout_event_ordered_shallow_continuation_positive.pgy
     inout_event_owned_push_after_copy_positive.pgy
+    inout_event_loop_fresh_generation_positive.pgy
+    inout_event_loop_fresh_defer_negative.pgy
     inout_event_transferred_child_drop_negative.pgy
     inout_event_unknown_then_owned_transfer_negative.pgy
     inout_event_owned_push_deferred_drop_positive.pgy inout_event_clone_drop_then_push_negative.pgy

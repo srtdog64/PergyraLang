@@ -1,0 +1,82 @@
+// A lexical loop-local definition starts a new storage generation. This owner
+// proves event scope only; storage and element authority remain with their owners.
+import "ast_collection_definition_fact_owner.pgy";
+import "ast_local_binding_fact_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_formal_execution_context_owner.pgy";
+
+func SemanticAstCollectionFreshLocalGenerationAtUse(
+    ref artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    row: Int, definition: Int, use_id: Int
+) -> Bool {
+    if !locals.ok || !definitions.ok || row < 0 || definition < 0 ||
+        definition >= definitions.local_count || row >= ArrayLength(locals.node_ids) ||
+        row >= ArrayLength(locals.scope_node_ids) ||
+        definition >= ArrayLength(definitions.syntax_ids) ||
+        definition >= ArrayLength(definitions.binding_rows) ||
+        definition >= ArrayLength(definitions.fresh) ||
+        definitions.binding_rows[definition] != row || !definitions.fresh[definition] ||
+        definitions.syntax_ids[definition] != locals.node_ids[row] ||
+        ArrayLength(artifact.arena.parents) != artifact.count ||
+        ArrayLength(artifact.arena.kinds) != artifact.count { return false; }
+    let source: Int = definitions.syntax_ids[definition];
+    let scope: Int = locals.scope_node_ids[row];
+    if source < 0 || source >= use_id || use_id >= artifact.count ||
+        scope < 0 || scope >= artifact.count ||
+        artifact.arena.kinds[scope] != TypedAstKindBlockTag() { return false; }
+    let anchor: Int = use_id;
+    let node: Int = artifact.arena.parents[use_id];
+    let remaining: Int = artifact.count;
+    while node != scope && remaining > 0 {
+        if node < 0 || node >= artifact.count { return false; }
+        let kind: Int = artifact.arena.kinds[node];
+        // Conditional lexical scopes do not repeat or detach the generation.
+        // Nested loops, deferred/worker bodies and unknown scopes are absent.
+        if kind != TypedAstKindBlockTag() && kind != TypedAstKindThenTag() &&
+            kind != TypedAstKindElseStmtTag() && kind != TypedAstKindIfStmtTag() {
+            return false;
+        }
+        anchor = node; node = artifact.arena.parents[node]; remaining = remaining - 1;
+    }
+    // The existing retirement owner owns the definition/loop ordering fact;
+    // this owner only joins it to exact definition and conditional-use scopes.
+    return node == scope && SemanticAstCollectionRepeatedLocalGenerationPrecedesUse(
+        artifact, source, anchor, scope) &&
+        !SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, use_id);
+}
+
+func SemanticAstCollectionOwnRetirementVisibleAtUse(
+    ref artifact: AstTreeArtifact, retirement: Int, use_id: Int,
+    fresh_generation: Bool
+) -> Bool {
+    if !fresh_generation || retirement <= 0 || retirement >= use_id {
+        return SemanticAstCollectionMutableCallMayBeRetired(artifact, use_id, retirement);
+    }
+    if retirement >= artifact.count || use_id >= artifact.count ||
+        ArrayLength(artifact.arena.parents) != artifact.count ||
+        ArrayLength(artifact.arena.kinds) != artifact.count ||
+        ArrayLength(artifact.arena.child_counts) != artifact.count ||
+        ArrayLength(artifact.arena.first_children) != artifact.count { return true; }
+    let scope: Int = artifact.arena.parents[retirement];
+    if scope < 0 || scope >= artifact.count ||
+        artifact.arena.kinds[scope] != TypedAstKindBlockTag() { return true; }
+    let count: Int = artifact.arena.child_counts[scope];
+    let edge: Int = artifact.arena.first_children[scope] + count - 1;
+    if count <= 0 || edge < 0 || edge >= ArrayLength(artifact.arena.children) { return true; }
+    let terminal: Int = artifact.arena.children[edge];
+    if terminal < 0 || terminal >= artifact.count { return true; }
+    let kind: Int = artifact.arena.kinds[terminal];
+    if kind != TypedAstKindBareReturnStmtTag() && kind != TypedAstKindValueReturnStmtTag() &&
+        kind != TypedAstKindContinueStmtTag() && kind != TypedAstKindBreakStmtTag() &&
+        kind != TypedAstKindExitStmtTag() { return true; }
+    // The transfer still retires every use in this scope, including the return
+    // expression. Only another normal path outside its unconditional exit is live.
+    let node: Int = use_id; let remaining: Int = artifact.count;
+    while remaining > 0 {
+        if node < 0 { return false; }
+        if node >= artifact.count || node == scope { return true; }
+        node = artifact.arena.parents[node]; remaining = remaining - 1;
+    }
+    return true;
+}

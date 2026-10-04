@@ -1,0 +1,10 @@
+func Retire(own values: Array<String>) -> Void { ArrayDropOwnedStrings(values); }
+func Main() -> Void {
+    let iteration: Int = 0;
+    while iteration < 2 {
+        let values: Array<String> = [];
+        if iteration == 0 { Retire(values); }
+        Log(ArrayLength(values));
+        iteration = iteration + 1;
+    }
+}

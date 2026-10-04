@@ -34,6 +34,7 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
         SemanticAstCollectionAggregateFieldEntryRequirements,
     binding: SemanticAstLocalBindingIdentity,
     unknown: Bool, borrowed_storage: Bool, owned_storage: Bool,
+    repeated_fresh_generation: Bool,
     inout ownership: Array<Int>, ref dispositions: Array<Int>,
     ref origins: Array<Int>, inout transition_states: Array<Int>,
     ref call_effects: SemanticAstCollectionCallEffectFacts
@@ -162,9 +163,10 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
                 (effect == 2 && SemanticAstCollectionStorageEscapedAtUse(
                     artifact, call_effects, binding.row,
                     surfaces.node_ids[surface_row])) ||
-                SemanticAstCollectionMutableCallMayBeRetired(
+                (SemanticAstCollectionMutableCallMayBeRetired(
                     artifact, surfaces.node_ids[surface_row],
-                    call_effects.first_retiring_sites[binding.row]) {
+                    call_effects.first_retiring_sites[binding.row]) &&
+                    !repeated_fresh_generation) {
                 let boundary: String = "unproved_inout_copy_entry";
                 if effect == 3 { boundary = "unproved_indexed_read_entry"; }
                 return SemanticAstCollectionOwnershipVerdictError(

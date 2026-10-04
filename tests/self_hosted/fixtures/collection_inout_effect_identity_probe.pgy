@@ -540,28 +540,29 @@ func InspectOwnStorageAdmission(
                         let transitions: Array<Int> = [SemanticAstCollectionTransitionUntracked()];
                         let requirements: HashMap<String, Int> = MapNew();
                         let syntax: Int = analysis.expression_surfaces.node_ids[slot / 3];
+                        let current_definitions: Array<Int> = SemanticAstCollectionInitialDefinitions(definitions);
                         let live: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnedArgumentVerdict(
                             artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
                             analysis.expression_surfaces, slot / 3, edge, binding, false, false, true, facts, requirements,
-                            ownership, dispositions, bundle.collection_ownership.origins, transitions);
+                            ownership, dispositions, bundle.collection_ownership.origins, transitions, definitions, current_definitions);
                         let unknown: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionOwnedArgumentVerdict(
                             artifact, analysis.signatures, analysis.local_bindings, bundle.initializer_types.inferred_type_names,
                             analysis.expression_surfaces, slot / 3, edge, binding, true, false, true, facts, requirements,
-                            ownership, dispositions, bundle.collection_ownership.origins, transitions);
+                            ownership, dispositions, bundle.collection_ownership.origins, transitions, definitions, current_definitions);
                         let clean: Bool = live.ok && !unknown.ok && ownership[0] == SemanticAstCollectionOwnershipBorrowedElements() &&
                             transitions[0] == SemanticAstCollectionTransitionUntracked() &&
                             bundle.collection_ownership.element_ownerships[0] == SemanticAstCollectionOwnershipBorrowedElements();
-                        clean = clean && !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, -1, ownership, dispositions, transitions) &&
-                            !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, 0, ownership, dispositions, transitions) &&
-                            !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, syntax + 1, ownership, dispositions, transitions);
+                        clean = clean && !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, -1, false, ownership, dispositions, transitions) &&
+                            !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, 0, false, ownership, dispositions, transitions) &&
+                            !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, syntax + 1, false, ownership, dispositions, transitions);
                         dispositions[0] = SemanticAstCollectionDispositionRetired();
-                        clean = clean && !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, syntax, ownership, dispositions, transitions);
+                        clean = clean && !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, syntax, false, ownership, dispositions, transitions);
                         dispositions[0] = SemanticAstCollectionDispositionLive(); ownership[0] = SemanticAstCollectionOwnershipRetired();
-                        clean = clean && !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, syntax, ownership, dispositions, transitions);
+                        clean = clean && !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, syntax, false, ownership, dispositions, transitions);
                         ownership[0] = SemanticAstCollectionOwnershipBorrowedElements(); transitions[0] = SemanticAstCollectionTransitionRetired();
-                        clean = clean && !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, syntax, ownership, dispositions, transitions);
+                        clean = clean && !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, syntax, false, ownership, dispositions, transitions);
                         ArrayPop(transitions);
-                        return clean && !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, syntax, ownership, dispositions, transitions);
+                        return clean && !SemanticAstCollectionOwnedArgumentStorageLive(0, syntax, syntax, false, ownership, dispositions, transitions);
                     }
                 }
                 node = node + 1;

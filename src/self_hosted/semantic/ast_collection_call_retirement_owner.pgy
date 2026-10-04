@@ -19,19 +19,61 @@ func SemanticAstCollectionCallRetirementSite(
     return 0;
 }
 
+// A fresh local definition inside one repeated body starts a new storage
+// generation on every iteration.  Exact lexical binding owns visibility; this
+// owner only proves that the selected definition and use share that generation
+// and that deferred execution cannot reorder the use past its cleanup.
+func SemanticAstCollectionRepeatedLocalGenerationPrecedesUse(
+    ref artifact: AstTreeArtifact, definition_syntax_id: Int,
+    use_syntax_id: Int, scope_syntax_id: Int
+) -> Bool {
+    // The collection verdict entrypoint already admitted the artifact.  This
+    // per-argument predicate must not repeat the whole-artifact readiness walk.
+    if (artifact.count <= 0 || definition_syntax_id < 0 || use_syntax_id < 0 ||
+        definition_syntax_id >= use_syntax_id ||
+        definition_syntax_id >= artifact.count ||
+        use_syntax_id >= artifact.count || scope_syntax_id < 0 ||
+        scope_syntax_id >= artifact.count ||
+        ArrayLength(artifact.arena.parents) != artifact.count ||
+        ArrayLength(artifact.arena.kinds) != artifact.count) {
+        return false;
+    }
+    let definition_parent: Int =
+        artifact.arena.parents[definition_syntax_id];
+    let use_parent: Int = artifact.arena.parents[use_syntax_id];
+    let repeated_owner: Int = artifact.arena.parents[scope_syntax_id];
+    if definition_parent != scope_syntax_id ||
+        use_parent != scope_syntax_id || repeated_owner < 0 ||
+        repeated_owner >= artifact.count {
+        return false;
+    }
+    let use_kind: Int = artifact.arena.kinds[use_syntax_id];
+    if use_kind == TypedAstKindDeferStmtTag() ||
+        use_kind == TypedAstKindParallelBlockTag() ||
+        use_kind == TypedAstKindAsyncBlockTag() {
+        return false;
+    }
+    let repeated_kind: Int = artifact.arena.kinds[repeated_owner];
+    return repeated_kind == TypedAstKindWhileStmtTag() ||
+        repeated_kind == TypedAstKindForStmtTag();
+}
+
 func SemanticAstCollectionMutableCallMayBeRetired(
-    artifact: AstTreeArtifact, syntax_id: Int, first_retiring_syntax_id: Int
+    ref artifact: AstTreeArtifact, syntax_id: Int, first_retiring_syntax_id: Int
 ) -> Bool {
     if first_retiring_syntax_id < 0 { return false; }
     // Equality also closes nested own consumption during argument evaluation.
     if first_retiring_syntax_id <= syntax_id { return true; }
+    if syntax_id < 0 || syntax_id >= artifact.count ||
+        ArrayLength(artifact.arena.parents) != artifact.count ||
+        ArrayLength(artifact.arena.kinds) != artifact.count { return true; }
     let ancestor: Int = syntax_id;
     let remaining: Int = artifact.count;
     while ancestor >= 0 && remaining > 0 {
-        if TypedAstArenaNodeKindIs(artifact.arena, ancestor, TypedAstKindDeferStmtTag()) { return true; }
-        let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, ancestor);
-        if !IsSome(parent) { return false; }
-        ancestor = UnwrapOption(parent);
+        if ancestor >= artifact.count || artifact.arena.kinds[ancestor] == TypedAstKindDeferStmtTag() { return true; }
+        let parent: Int = artifact.arena.parents[ancestor];
+        if parent < 0 { return false; }
+        ancestor = parent;
         remaining = remaining - 1;
     }
     return true;
