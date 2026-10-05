@@ -1,0 +1,42 @@
+// Recursively plain element and result lifetimes at the MIR boundary.
+import "direct_mir_scalar_cfg_graph_fact_owner.pgy";
+import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
+import "../semantic/wrapper_type_owner.pgy";
+
+func DirectMirArrayStoragePlainType(ref plan: DirectMirScalarCfgGraphPlan,
+    type_name: String, depth: Int) -> Bool {
+    if depth >= 32 { return false; }
+    if type_name == "Int" || type_name == "Long" || type_name == "Float" ||
+        type_name == "Double" || type_name == "Bool" || type_name == "Duration" { return true; }
+    let result_payload: Option<String> = ResultPayloadTypeOpt(type_name);
+    let result_error: Option<String> = ResultErrorTypeOpt(type_name);
+    if IsSome(result_payload) || IsSome(result_error) {
+        return IsSome(result_payload) && IsSome(result_error) &&
+            DirectMirArrayStoragePlainType(plan, UnwrapOption(result_payload), depth + 1) &&
+            DirectMirArrayStoragePlainType(plan, UnwrapOption(result_error), depth + 1);
+    }
+    let record: Int = DirectMirScalarProgramLogicalRecordRow(plan.program.logical_record, type_name);
+    if record >= 0 {
+        let field: Int = plan.program.logical_record.field_starts[record];
+        let end: Int = field + plan.program.logical_record.field_counts[record];
+        while field < end {
+            if !DirectMirArrayStoragePlainType(plan, plan.program.logical_record.field_types[field], depth + 1) { return false; }
+            field = field + 1;
+        }
+        return true;
+    }
+    let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(plan.program.referenced_enum, type_name);
+    if enum_row < 0 { return false; }
+    let variant: Int = plan.program.referenced_enum.variant_starts[enum_row];
+    let end: Int = variant + plan.program.referenced_enum.variant_counts[enum_row];
+    while variant < end {
+        let payload: Int = plan.program.referenced_enum.variant_param_type_starts[variant];
+        let payload_end: Int = payload + plan.program.referenced_enum.variant_param_counts[variant];
+        while payload < payload_end {
+            if !DirectMirArrayStoragePlainType(plan, plan.program.referenced_enum.variant_param_types[payload], depth + 1) { return false; }
+            payload = payload + 1;
+        }
+        variant = variant + 1;
+    }
+    return true;
+}

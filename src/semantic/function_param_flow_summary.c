@@ -338,6 +338,7 @@ function_param_flow_add(FunctionParamFlowSummaryStore *store,
     store->entries[index].param_index = param_index;
     store->entries[index].function_decl = function_decl;
     store->entries[index].mask = SLOT_PARAM_SUMMARY_NONE;
+    store->entries[index].array_storage_unproved = false;
     store->entries[index].state = FUNCTION_PARAM_FLOW_UNSEEN;
 
     slot = function_param_flow_key_hash(function_id, param_index)
@@ -409,6 +410,7 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     SlotFunctionLookup lookup;
     unsigned candidate;
     unsigned previous;
+    bool storage_unproved;
 
     if (store == NULL || index >= store->count)
         return SLOT_PARAM_SUMMARY_ALL;
@@ -464,12 +466,18 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     root_count = program_points->root_counts[store->entries[index].param_index];
     candidate = slot_param_summary_in_program_points(
         roots, root_count, param->name, &lookup, &origin);
+    storage_unproved = function_param_array_storage_unproved_in_program_points(
+        roots, root_count, &origin, &lookup);
 
     /* Recursive demands may grow the entries array, so reacquire by index. */
     previous = store->entries[index].mask;
     candidate |= previous;
     if (candidate != previous) {
         store->entries[index].mask = candidate;
+        store->changed = true;
+    }
+    if (storage_unproved && !store->entries[index].array_storage_unproved) {
+        store->entries[index].array_storage_unproved = true;
         store->changed = true;
     }
     store->entries[index].state = FUNCTION_PARAM_FLOW_EVALUATED;
@@ -571,7 +579,7 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
         store->fixed_point_passes++;
         if (store->failed)
             break;
-        if (passes > (store->count - store->active_start + 1) * 6 + 1) {
+        if (passes > (store->count - store->active_start + 1) * 7 + 1) {
             function_param_flow_fail(store, function_decl,
                 "recursive summary fixed point did not converge");
             for (size_t i = store->active_start; i < store->count; i++)
@@ -601,4 +609,27 @@ function_param_flow_summary_for_param(SemanticContext *ctx,
 
     return function_param_flow_summary_demand(&lookup, function_decl,
                                               param_index);
+}
+
+bool
+function_param_flow_preserves_array_storage(SemanticContext *ctx,
+                                           ASTNode *function_decl,
+                                           size_t param_index)
+{
+    FunctionParamFlowSummaryStore *store;
+    size_t index;
+    FuncParam *param = ast_func_param(function_decl, param_index);
+
+    if (ctx == NULL || function_decl == NULL || param == NULL
+        || ast_func_body(function_decl) == NULL || function_decl->is_async_decl
+        || param->mode == PARAM_MODE_OWN || param->type == NULL
+        || ast_type_name(param->type) == NULL
+        || strcmp(ast_type_name(param->type), "Array") != 0)
+        return false;
+    (void)function_param_flow_summary_for_param(ctx, function_decl, param_index);
+    store = ctx->function_param_flow_summaries;
+    if (store == NULL || store->failed)
+        return false;
+    index = function_param_flow_find(store, ast_node_stable_id(function_decl), param_index);
+    return index != SIZE_MAX && !store->entries[index].array_storage_unproved;
 }

@@ -261,7 +261,8 @@ func SemanticAstBodyTypeBundleFromAdmittedAnalysisObservedWithIdentityPolicy(
     }
     SemanticAstBodyTypeStage(observe_pressure, "collection-ownership:done");
     if verdict.ok { verdict = SemanticArrayStorageReleaseVerdict(artifact, analysis, initializer_types,
-        resolved_leaf_types, assignment_types, statement_types, exhaustive_match_nodes); }
+        resolved_leaf_types, assignment_types, statement_types, exhaustive_match_nodes,
+        occurrence_order); }
     verdict = SemanticAstBodyZoneSpawnBoundaryVerdictFromAdmittedFacts(verdict, artifact, analysis.signatures, analysis.constructors, analysis.expression_surfaces);
     if verdict.ok { verdict = SemanticAstSingleOwnerHandleVerdictFromResolvedFacts(artifact, analysis,
         initializer_types, assignment_types, generic_specializations, resolved_leaf_types); }

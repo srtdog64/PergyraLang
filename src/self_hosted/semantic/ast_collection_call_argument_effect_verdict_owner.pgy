@@ -28,13 +28,14 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
     ref locals: SemanticAstLocalBindingFacts,
     ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
     edge: SemanticCallArgumentEdgeView,
-    literal_read_ready: Bool, proved: HashMap<String, Int>, effect: Int,
+    literal_read_ready: Bool, member_read_ready: Bool, proved: HashMap<String, Int>, effect: Int,
     owned_push_leaf_formals: HashMap<String, Int>,
     ref field_requirements:
         SemanticAstCollectionAggregateFieldEntryRequirements,
     binding: SemanticAstLocalBindingIdentity,
     unknown: Bool, borrowed_storage: Bool, owned_storage: Bool,
-    repeated_fresh_generation: Bool,
+    repeated_fresh_generation: Bool, current_definition: Int,
+    retains_descriptor: Bool,
     inout ownership: Array<Int>, ref dispositions: Array<Int>,
     ref origins: Array<Int>, inout transition_states: Array<Int>,
     ref call_effects: SemanticAstCollectionCallEffectFacts
@@ -44,40 +45,44 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
             let borrowed: Bool = ownership[binding.row] ==
                     SemanticAstCollectionOwnershipBorrowedElements() ||
                 borrowed_storage || owned_storage;
-            let ordered_empty_continuation: Bool = false;
+            let current_empty_descriptor: Bool = false;
+            let exact_retention_entry: Bool = retains_descriptor &&
+                call_effects.first_storage_escape_sites[binding.row] ==
+                    surfaces.node_ids[surface_row];
             if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() {
                 borrowed = owned_storage || transition_states[binding.row] ==
                         SemanticAstCollectionTransitionEmpty() ||
                     transition_states[binding.row] ==
                         SemanticAstCollectionTransitionBorrowed();
-                // Only the exact live descriptor produced by this empty-local
-                // generation can continue after its first proved shallow
-                // mutation. Alias/formal receivers have no Empty origin, and
-                // loop/defer sites have no stable straight-line event order.
-                ordered_empty_continuation = owned_storage &&
-                    transition_states[binding.row] ==
-                        SemanticAstCollectionTransitionBorrowed() &&
-                    SemanticAstCollectionCallRetirementSite(
-                        artifact, surfaces.node_ids[surface_row]) > 0;
+                // The current exclusive descriptor receives shallow copyout;
+                // sibling invalidation is not its consumption. The separate
+                // definition-bound negative fact includes real retirement.
+                current_empty_descriptor = owned_storage &&
+                    SemanticAstCollectionCurrentDescriptorLiveAtUse(
+                        artifact, call_effects, current_definition,
+                        surfaces.node_ids[surface_row]) &&
+                    !SemanticAstCollectionFormalEffectSyntaxIsDeferred(
+                        artifact, surfaces.node_ids[surface_row]);
             }
             if unknown || !borrowed ||
                 dispositions[binding.row] ==
                     SemanticAstCollectionDispositionRetired() ||
-                SemanticAstCollectionStorageEscapedAtUse(
+                (SemanticAstCollectionStorageEscapedAtUse(
                     artifact, call_effects, binding.row,
-                    surfaces.node_ids[surface_row]) ||
+                    surfaces.node_ids[surface_row]) &&
+                    !exact_retention_entry) ||
                 (SemanticAstCollectionShallowMutationHasPriorEffect(
                         artifact, surfaces.node_ids[surface_row],
                         call_effects.first_retiring_sites[binding.row],
                         call_effects.first_non_deep_drop_retiring_sites[
                             binding.row]) &&
-                    !ordered_empty_continuation) {
+                    !current_empty_descriptor) {
                 return SemanticAstCollectionOwnershipVerdictError(
                     "borrow_boundary_escape",
-                    SemanticError2(
-                        "borrow_boundary_escape", "boundary",
-                        "unproved_shallow_mutation_entry",
-                        "type", "Array<String>"),
+                    SemanticError3("borrow_boundary_escape", "boundary",
+                        "unproved_shallow_mutation_entry", "type",
+                        "Array<String>", "binding",
+                        Concat("", locals.names[binding.row])),
                     surfaces.node_ids[surface_row], edge.call_node);
             }
             if origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() &&
@@ -157,6 +162,18 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
                 clean = SemanticAstCollectionTransitionAllowsOwned(
                     transition_states[binding.row]);
             }
+            // A proved shallow call writes the grown descriptor back to this
+            // fresh local. The borrowed transition permits reads, not owned
+            // elements. Its own retirement fact, not a sibling invalidation
+            // bound, decides liveness. Detached reads earn no exception.
+            let current_borrowed_read: Bool = effect == 3 && owned_storage &&
+                origins[binding.row] == SemanticAstCollectionOriginEmptyLiteral() &&
+                transition_states[binding.row] == SemanticAstCollectionTransitionBorrowed() &&
+                SemanticAstCollectionCurrentDescriptorLiveAtUse(artifact,
+                    call_effects, current_definition, surfaces.node_ids[surface_row]) &&
+                !SemanticAstCollectionStorageEscapedAtUse(artifact, call_effects,
+                    binding.row, surfaces.node_ids[surface_row]) &&
+                !SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, surfaces.node_ids[surface_row]);
             if unknown || (effect == 2 && !clean) ||
                 dispositions[binding.row] ==
                     SemanticAstCollectionDispositionRetired() ||
@@ -166,13 +183,14 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
                 (SemanticAstCollectionMutableCallMayBeRetired(
                     artifact, surfaces.node_ids[surface_row],
                     call_effects.first_retiring_sites[binding.row]) &&
-                    !repeated_fresh_generation) {
+                    !repeated_fresh_generation && !current_borrowed_read) {
                 let boundary: String = "unproved_inout_copy_entry";
                 if effect == 3 { boundary = "unproved_indexed_read_entry"; }
                 return SemanticAstCollectionOwnershipVerdictError(
                     "borrow_boundary_escape",
-                    SemanticError2("borrow_boundary_escape", "boundary",
-                        boundary, "type", "Array<String>"),
+                    SemanticError3("borrow_boundary_escape", "boundary",
+                        boundary, "type", "Array<String>", "binding",
+                        Concat("", locals.names[binding.row])),
                     surfaces.node_ids[surface_row], edge.call_node);
             }
             if effect == 2 &&
@@ -190,7 +208,7 @@ func SemanticAstCollectionCallArgumentEffectVerdict(
             if SemanticAstCollectionOwnershipParameterModeForArgument(
                     signatures, surfaces, surface_row,
                     edge.argument_node) == 3 ||
-                (effect == 3 && !literal_read_ready && !formal_read_ready) {
+                (effect == 3 && !literal_read_ready && !formal_read_ready && !member_read_ready) {
                 let boundary: String = "unproved_own_formal_copy_entry";
                 if effect == 3 {
                     boundary = "unproved_formal_indexed_read_entry";

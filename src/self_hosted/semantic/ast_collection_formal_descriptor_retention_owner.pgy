@@ -1,0 +1,161 @@
+// Formal descriptor retention is a summary; continuing local escape is a
+// separate use-site fact. A terminal branch contributes to the summary but
+// cannot invalidate the continuation that did not take that branch.
+import "ast_collection_ownership_state_owner.pgy";
+
+struct SemanticAstCollectionFormalDescriptorRetention {
+    ok: Bool;
+    retained_formals: Array<Int>;
+    formal_sources: Array<Int>;
+    formal_targets: Array<Int>;
+    formal_sites: Array<Int>;
+    formal_terminal: Array<Bool>;
+    local_definitions: Array<Int>;
+    local_bindings: Array<Int>;
+    local_targets: Array<Int>;
+    local_sites: Array<Int>;
+    local_terminal: Array<Bool>;
+}
+
+func SemanticAstCollectionFormalDescriptorRetentionEmpty(
+) -> SemanticAstCollectionFormalDescriptorRetention {
+    let retained: Array<Int> = [];
+    let formal_sources: Array<Int> = [];
+    let formal_targets: Array<Int> = [];
+    let formal_sites: Array<Int> = [];
+    let formal_terminal: Array<Bool> = [];
+    let local_definitions: Array<Int> = [];
+    let local_bindings: Array<Int> = [];
+    let local_targets: Array<Int> = [];
+    let local_sites: Array<Int> = [];
+    let local_terminal: Array<Bool> = [];
+    return SemanticAstCollectionFormalDescriptorRetention(
+        true, retained, formal_sources, formal_targets, formal_sites,
+        formal_terminal, local_definitions, local_bindings, local_targets,
+        local_sites, local_terminal);
+}
+
+func SemanticAstCollectionFormalDescriptorRetentionContains(
+    ref retained_formals: Array<Int>, formal: Int
+) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(retained_formals) {
+        if retained_formals[row] == formal { return true; }
+        row = row + 1;
+    }
+    return false;
+}
+
+func SemanticAstCollectionEffectSiteTerminatesFlow(
+    ref artifact: AstTreeArtifact, syntax_id: Int
+) -> Bool {
+    if syntax_id < 0 || syntax_id >= artifact.count ||
+        ArrayLength(artifact.arena.kinds) != artifact.count { return false; }
+    let kind: Int = artifact.arena.kinds[syntax_id];
+    return kind == TypedAstKindBareReturnStmtTag() ||
+        kind == TypedAstKindValueReturnStmtTag() ||
+        kind == TypedAstKindExitStmtTag() ||
+        kind == TypedAstKindFailStmtTag();
+}
+
+func SemanticAstCollectionFormalDescriptorRetentionRecord(
+    inout facts: SemanticAstCollectionFormalDescriptorRetention,
+    source_formal: Int, target_formal: Int, direct_retention: Bool,
+    definition: Int, binding: Int, site: Int, terminal: Bool
+) -> Void {
+    if source_formal > 0 {
+        if direct_retention &&
+            !SemanticAstCollectionFormalDescriptorRetentionContains(
+                facts.retained_formals, source_formal) {
+            ArrayPush(facts.retained_formals, source_formal);
+        }
+        if target_formal > 0 {
+            ArrayPush(facts.formal_sources, source_formal);
+            ArrayPush(facts.formal_targets, target_formal);
+            ArrayPush(facts.formal_sites, site);
+            ArrayPush(facts.formal_terminal, terminal);
+        }
+    } else if definition >= 0 && binding >= 0 && target_formal > 0 {
+        ArrayPush(facts.local_definitions, definition);
+        ArrayPush(facts.local_bindings, binding);
+        ArrayPush(facts.local_targets, target_formal);
+        ArrayPush(facts.local_sites, site);
+        ArrayPush(facts.local_terminal, terminal);
+    }
+}
+
+func SemanticAstCollectionFormalDescriptorRetentionSeal(
+    inout facts: SemanticAstCollectionFormalDescriptorRetention,
+    inout formal_escape: HashMap<String, Int>,
+    inout definition_escape: Array<Int>, inout zero_escape: Array<Bool>
+) -> Bool {
+    let edge_count: Int = ArrayLength(facts.formal_sources);
+    let local_count: Int = ArrayLength(facts.local_definitions);
+    if (!facts.ok || ArrayLength(facts.formal_targets) != edge_count ||
+        ArrayLength(facts.formal_sites) != edge_count ||
+        ArrayLength(facts.formal_terminal) != edge_count ||
+        ArrayLength(facts.local_bindings) != local_count ||
+        ArrayLength(facts.local_targets) != local_count ||
+        ArrayLength(facts.local_sites) != local_count ||
+        ArrayLength(facts.local_terminal) != local_count) { return false; }
+    let changed: Bool = true;
+    let remaining: Int = edge_count + 1;
+    while changed && remaining > 0 {
+        changed = false;
+        let edge: Int = 0;
+        while edge < edge_count {
+            let source: Int = facts.formal_sources[edge];
+            if SemanticAstCollectionFormalDescriptorRetentionContains(
+                    facts.retained_formals, facts.formal_targets[edge]) &&
+                !SemanticAstCollectionFormalDescriptorRetentionContains(
+                    facts.retained_formals, source) {
+                ArrayPush(facts.retained_formals, source); changed = true;
+            }
+            edge = edge + 1;
+        }
+        remaining = remaining - 1;
+    }
+    if changed { facts.ok = false; return false; }
+    let edge: Int = 0;
+    while edge < edge_count {
+        let source_key: String = ToString(facts.formal_sources[edge]);
+        if !facts.formal_terminal[edge] &&
+            SemanticAstCollectionFormalDescriptorRetentionContains(
+                facts.retained_formals, facts.formal_targets[edge]) &&
+            (!MapHas(formal_escape, source_key) ||
+                facts.formal_sites[edge] < MapGet(formal_escape, source_key)) {
+            MapSet(formal_escape, source_key, facts.formal_sites[edge]);
+        }
+        edge = edge + 1;
+    }
+    let row: Int = 0;
+    while row < local_count {
+        let definition: Int = facts.local_definitions[row];
+        let binding: Int = facts.local_bindings[row];
+        let site: Int = facts.local_sites[row];
+        if !facts.local_terminal[row] &&
+            SemanticAstCollectionFormalDescriptorRetentionContains(
+                facts.retained_formals, facts.local_targets[row]) {
+            if definition < 0 || definition >= ArrayLength(definition_escape) ||
+                binding < 0 || binding >= ArrayLength(zero_escape) {
+                facts.ok = false; return false;
+            }
+            if definition_escape[definition] < 0 ||
+                site < definition_escape[definition] {
+                definition_escape[definition] = site;
+            }
+            if site == 0 { zero_escape[binding] = true; }
+        }
+        row = row + 1;
+    }
+    return facts.ok;
+}
+
+func SemanticAstCollectionFormalRetainsDescriptor(
+    ref facts: SemanticAstCollectionFormalDescriptorRetention,
+    formal: Int
+) -> Bool {
+    return facts.ok && formal > 0 &&
+        SemanticAstCollectionFormalDescriptorRetentionContains(
+            facts.retained_formals, formal);
+}

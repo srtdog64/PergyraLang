@@ -41,12 +41,23 @@ func SelfMirMatchFactIndexForInstruction(
 func SelfMirMatchFactRowsAttachCase(
     rows: SelfMirMatchFactRows,
     instruction_index: Int,
-    case_patterns: Array<String>,
+    ref case_patterns: Array<String>,
     variant: String,
-    case_bindings: Array<String>,
-    case_binding_types: Array<String>,
+    ref case_bindings: Array<String>,
+    ref case_binding_types: Array<String>,
     subject_family: String
 ) -> SelfMirMatchFactRows {
+    // Validate the whole incoming case before growing any existing row array.
+    if ArrayLength(case_patterns) == 0 { return rows; }
+    let binding_count: Int = ArrayLength(case_bindings);
+    if ArrayLength(case_binding_types) != binding_count { return rows; }
+    let check_binding: Int = 0;
+    while check_binding < binding_count {
+        if case_bindings[check_binding] == "" ||
+            case_binding_types[check_binding] == "" ||
+            case_binding_types[check_binding] == "Unknown" { return rows; }
+        check_binding = check_binding + 1;
+    }
     let instruction_indices: Array<Int> = rows.instruction_indices;
     let pattern_starts: Array<Int> = rows.pattern_starts;
     let pattern_counts: Array<Int> = rows.pattern_counts;
@@ -57,29 +68,21 @@ func SelfMirMatchFactRowsAttachCase(
     let bindings: Array<String> = rows.bindings;
     let binding_types: Array<String> = rows.binding_types;
     let subject_families: Array<String> = rows.subject_families;
-    if ArrayLength(case_patterns) == 0 { return rows; }
     ArrayPush(instruction_indices, instruction_index);
     ArrayPush(pattern_starts, ArrayLength(patterns));
     ArrayPush(pattern_counts, ArrayLength(case_patterns));
     let pattern_index: Int = 0;
     while pattern_index < ArrayLength(case_patterns) {
-        ArrayPush(patterns, case_patterns[pattern_index]);
+        ArrayPush(patterns, Concat("", case_patterns[pattern_index]));
         pattern_index = pattern_index + 1;
     }
-    ArrayPush(variants, variant);
-    ArrayPush(subject_families, subject_family);
+    ArrayPush(variants, Concat("", variant));
+    ArrayPush(subject_families, Concat("", subject_family));
     ArrayPush(binding_starts, ArrayLength(bindings));
-    let binding_count: Int = ArrayLength(case_bindings);
-    if ArrayLength(case_binding_types) != binding_count { return rows; }
     let binding_index: Int = 0;
     while binding_index < binding_count {
-        if case_bindings[binding_index] == "" ||
-            case_binding_types[binding_index] == "" ||
-            case_binding_types[binding_index] == "Unknown" {
-            return rows;
-        }
-        ArrayPush(bindings, case_bindings[binding_index]);
-        ArrayPush(binding_types, case_binding_types[binding_index]);
+        ArrayPush(bindings, Concat("", case_bindings[binding_index]));
+        ArrayPush(binding_types, Concat("", case_binding_types[binding_index]));
         binding_index = binding_index + 1;
     }
     ArrayPush(binding_counts, binding_count);
@@ -92,7 +95,7 @@ func SelfMirMatchFactRowsAttachCase(
 
 func SelfMirMatchFactRowsAppend(
     target: SelfMirMatchFactRows,
-    source: SelfMirMatchFactRows,
+    ref source: SelfMirMatchFactRows,
     instruction_offset: Int
 ) -> SelfMirMatchFactRows {
     let instruction_indices: Array<Int> = target.instruction_indices;
@@ -117,25 +120,25 @@ func SelfMirMatchFactRowsAppend(
         while pattern_i < source.pattern_counts[row] {
             ArrayPush(
                 patterns,
-                source.patterns[source.pattern_starts[row] + pattern_i]
+                Concat("", source.patterns[source.pattern_starts[row] + pattern_i])
             );
             pattern_i = pattern_i + 1;
         }
-        ArrayPush(variants, source.variants[row]);
-        ArrayPush(subject_families, source.subject_families[row]);
+        ArrayPush(variants, Concat("", source.variants[row]));
+        ArrayPush(subject_families, Concat("", source.subject_families[row]));
         ArrayPush(binding_starts, ArrayLength(bindings));
         ArrayPush(binding_counts, source.binding_counts[row]);
         let binding_i: Int = 0;
         while binding_i < source.binding_counts[row] {
             ArrayPush(
                 bindings,
-                source.bindings[source.binding_starts[row] + binding_i]
+                Concat("", source.bindings[source.binding_starts[row] + binding_i])
             );
             ArrayPush(
                 binding_types,
-                source.binding_types[
+                Concat("", source.binding_types[
                     source.binding_starts[row] + binding_i
-                ]
+                ])
             );
             binding_i = binding_i + 1;
         }

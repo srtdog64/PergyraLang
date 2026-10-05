@@ -1,0 +1,13 @@
+func Matches(values: Array<String>) -> Bool { return values[0] == "before"; }
+func Grow(inout values: Array<String>) -> Bool {
+    ArrayPush(values, "after");
+    return true;
+}
+func Observe(ref values: Array<String>) -> Bool {
+    let first: Array<String> = values;
+    let second: Array<String> = first;
+    return Grow(second) && Matches(first);
+}
+
+// An unused declaration still must not admit an invalid body.
+func Main() -> Void { Log(false); }

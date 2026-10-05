@@ -153,11 +153,20 @@ func SemanticAstCollectionAggregateReleaseReserveAtCompletion(
             let site: Int =
                 SemanticAstCollectionCallRetirementSite(
                     artifact, syntax_id);
+            // Terminal inputs do not contribute a continuing escape bound.
+            // Their exact constructor/definition identity was checked above;
+            // this ordered completion owns the transfer, not an inferred
+            // continuation effect. Any prior escape still blocks reservation.
+            let terminal_input: Bool =
+                SemanticAstCollectionEffectSiteTerminatesFlow(
+                    artifact, syntax_id);
             if site <= 0 ||
                 definition >= ArrayLength(
                     call_effects.definition_storage_escape_sites) ||
-                call_effects.definition_storage_escape_sites[definition] !=
-                    site ||
+                (call_effects.definition_storage_escape_sites[definition] !=
+                    site && !(terminal_input &&
+                    call_effects.definition_storage_escape_sites[definition]
+                        < 0)) ||
                 call_effects.definition_unknown_sites[definition] >= 0 ||
                 call_effects.definition_retiring_sites[definition] >= 0 ||
                 call_effects.definition_non_deep_drop_sites[definition] >=

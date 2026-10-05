@@ -1,0 +1,6 @@
+// effect/events.pgy — 도메인 이벤트 신호
+//
+// 단일 책임: 구독/해지(+/-=) 가능한 event.
+
+event OnTradeComplete(amount: Int);
+event OnBattleEnd(winner: String);

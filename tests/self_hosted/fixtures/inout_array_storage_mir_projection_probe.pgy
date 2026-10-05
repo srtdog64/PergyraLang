@@ -1,0 +1,25 @@
+// Exercise the production scalar MIR projection owner, not an installed CLI.
+import "../../../src/self_hosted/compiler/direct_mir_scalar_program_projection_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy";
+import "../../../src/self_hosted/compiler/machine_layer_declaration_consumer.pgy";
+import "../../../src/self_hosted/mir_lower/mir_json_input_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 3 { Exit(2); }
+    let target: CompilerTargetProjectionFact = CompilerTargetProjectionFactEmpty();
+    if args[2] == "c" {
+        target = CompilerTargetProjectionFactFromOwner(CompilerTargetCpuCProjection());
+    } else if args[2] == "llvm" {
+        target = CompilerTargetProjectionFactFromOwner(CompilerTargetCpuLlvmProjection());
+    } else { Exit(2); }
+    let declaration: SelfHostMachineLayerDeclaration = SelfHostMachineLayerDeclarationFromPath(args[1]);
+    let admitted: MirMachineLayerAdmittedJsonInput = MirJsonReadMachineAdmittedInput(args[0], declaration);
+    let calls: MirGenericCallOccurrenceIndex = MirGenericCallOccurrenceIndexFromDocument(admitted.document, admitted.routines);
+    let instances: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(calls);
+    if !calls.valid || !instances.valid { Exit(2); }
+    let admission: DirectMirScalarProgramRouteAdmission = DirectMirScalarProgramRouteAdmissionFromAdmitted(admitted, calls, instances);
+    if !DirectMirScalarProgramRouteAdmissionReady(admission) || !admission.route.claimed { Exit(2); }
+    let route: DirectMirScalarProgramRouteFact = admission.route;
+    Log(CompileAdmittedDirectMirScalarProgramForTarget(admitted, route, target));
+}

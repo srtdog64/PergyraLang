@@ -1,0 +1,12 @@
+struct Rows { values: Array<String>; }
+struct Pair { rows: Rows; changed: Bool; }
+func Grow(inout values: Array<String>) -> Bool {
+    ArrayPushOwnedString(values, "x");
+    return true;
+}
+func Probe() -> Pair {
+    let seed: Array<String> = ["x"];
+    let values: Array<String> = Clone(seed);
+    return Pair(Rows(values), Grow(values));
+}
+func Main() -> Void { Log(false); }

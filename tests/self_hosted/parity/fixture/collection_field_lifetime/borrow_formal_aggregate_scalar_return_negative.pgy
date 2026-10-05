@@ -1,0 +1,25 @@
+struct TypeIdentity {
+    ok: Bool;
+    source_id: Int;
+    type_name: String;
+}
+func Resolve(ref type_names: Array<String>, row: Int) -> TypeIdentity {
+    if row < 0 || row >= ArrayLength(type_names) {
+        return TypeIdentity(false, 0, "");
+    }
+    let type_name: String = type_names[row];
+    if type_name == "" || type_name == "Unknown" {
+        return TypeIdentity(false, 0, "");
+    }
+    return TypeIdentity(true, row + 1, type_name);
+}
+func Main() -> Void {
+    let type_names: Array<String> = [];
+    ArrayPushOwnedString(type_names, "Box<String>");
+    let identity: TypeIdentity = Resolve(type_names, 0);
+    ArrayDropOwnedStrings(type_names);
+    if !identity.ok || identity.source_id != 1 || identity.type_name != "Box<String>" {
+        Exit(1);
+    }
+    Log(identity.type_name);
+}

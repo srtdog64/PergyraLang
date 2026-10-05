@@ -1,0 +1,28 @@
+// Read-only MIR admission observer. It neither publishes nor executes input.
+import "../../../src/self_hosted/compiler/direct_mir_scalar_cfg_program_graph_admission_owner.pgy";
+import "../../../src/self_hosted/compiler/direct_mir_scalar_program_route_admission_owner.pgy";
+import "../../../src/self_hosted/compiler/machine_layer_declaration_consumer.pgy";
+import "../../../src/self_hosted/mir_lower/mir_json_input_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Exit(2); }
+    let declaration: SelfHostMachineLayerDeclaration = SelfHostMachineLayerDeclarationFromPath(args[1]);
+    let admitted: MirMachineLayerAdmittedJsonInput = MirJsonReadMachineAdmittedInput(args[0], declaration);
+    let calls: MirGenericCallOccurrenceIndex = MirGenericCallOccurrenceIndexFromDocument(admitted.document, admitted.routines);
+    let instances: GenericInstanceClosure = MirGenericInstanceClosureFromOccurrences(calls);
+    if !calls.valid || !instances.valid { Exit(2); }
+    let admission: DirectMirScalarProgramRouteAdmission = DirectMirScalarProgramRouteAdmissionFromAdmitted(admitted, calls, instances);
+    if !DirectMirScalarProgramRouteAdmissionReady(admission) || !admission.route.claimed { Exit(2); }
+    let route: DirectMirScalarProgramRouteFact = admission.route;
+    let plan: DirectMirScalarCfgGraphPlan = DirectMirScalarCfgProgramGraphPlanFromAdmitted(admitted, route);
+    Log("plan_ok=" + ToString(DirectMirScalarCfgGraphPlanReady(plan)));
+    let proved: HashMap<String, Int> = DirectMirArrayStoragePreservingParameters(plan);
+    let flat: Int = 0;
+    while flat < ArrayLength(plan.routines.parameter_types) {
+        if IsSome(SemanticArrayElementType(plan.routines.parameter_types[flat])) {
+            Log("parameter=" + ToString(flat) + ":preserved=" + ToString(MapHas(proved, ToString(flat))));
+        }
+        flat = flat + 1;
+    }
+}

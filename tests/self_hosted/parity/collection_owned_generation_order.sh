@@ -29,7 +29,7 @@ for backend in c llvm; do
         "$SOURCE_PROBE" \
         -o "$observer" >"$WORK/$backend.compile.log" 2>&1 || fail "$backend observer did not compile"
     for name in own_generation_cleanup_return_positive own_generation_cleanup_continue_positive \
-        inout_event_loop_fresh_generation_positive own_storage_live_empty_positive; do
+        inout_event_loop_fresh_generation_positive own_storage_live_empty_positive own_generation_indexed_read_positive; do
         observe "$name"
         grep -Fxq 'body_ok=true' "$WORK/$backend-$name.log" || fail "$backend refused $name"
     done
@@ -48,4 +48,4 @@ for backend in c llvm; do
         grep -Eq '^body_diagnostic=(borrow_boundary_escape|move_from_released)$' "$WORK/$backend-$name.log" || fail "$name lost ownership diagnosis"
     done
 done
-echo "[collection-owned-generation] PASS (C/LLVM analysis: 4 positives and 10 compile-only refusals each; not installed-driver proof); evidence=$REL"
+echo "[collection-owned-generation] PASS (C/LLVM analysis: 5 positives and 10 compile-only refusals each; not installed-driver proof); evidence=$REL"

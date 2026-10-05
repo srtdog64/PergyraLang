@@ -45,4 +45,7 @@ Type *type_check_stdlib_array_call(ASTNode *expr,
                                    StdlibCollectionBuiltinKind kind,
                                    SemanticContext *ctx);
 
+bool semantic_stdlib_array_argument_preserves_storage(const ASTNode *call,
+                                                       size_t ordinal);
+
 #endif

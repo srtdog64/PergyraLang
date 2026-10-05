@@ -2,10 +2,12 @@
 // storage. Carry that entry obligation through exact own-formal forwarding.
 import "ast_collection_owned_parameter_identity_owner.pgy";
 import "array_storage_element_lifetime_owner.pgy";
+import "array_storage_call_preservation_owner.pgy";
 
 func SemanticArrayStorageCallArgumentEscapes(ref signatures: SemanticAstFunctionSignatureFacts,
     ref graph: SemanticExpressionGraphFacts, call_node: Int, ordinal: Int,
-    ref constructors: SemanticAstNominalConstructorFacts, ref enums: SemanticAstEnumFacts) -> Bool {
+    ref constructors: SemanticAstNominalConstructorFacts, ref enums: SemanticAstEnumFacts,
+    preserving_formals: HashMap<String, Int>) -> Bool {
     let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(graph, call_node);
     if !IsSome(target) || UnwrapOption(target) <= 0 { return false; }
     let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, UnwrapOption(target));
@@ -16,7 +18,10 @@ func SemanticArrayStorageCallArgumentEscapes(ref signatures: SemanticAstFunction
     let mode: Int = signatures.param_modes[signatures.param_starts[row] + index];
     if mode == 2 { return false; }
     // Typed-AST ABI: inout=1, own=2, readonly ref=3.
-    if mode == 1 { return true; }
+    if mode == 1 {
+        let formal: Int = SemanticArrayStorageBorrowedParameterTarget(signatures, graph, call_node, ordinal);
+        if formal <= 0 || !MapHas(preserving_formals, ToString(formal)) { return true; }
+    }
     return signatures.return_types[row] != "Void" &&
         !SemanticArrayStoragePlainElement(signatures.return_types[row], constructors, enums, 0);
 }

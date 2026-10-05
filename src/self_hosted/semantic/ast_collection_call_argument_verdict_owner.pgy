@@ -3,25 +3,26 @@
 import "ast_collection_owned_argument_admission_owner.pgy";
 import "ast_collection_definition_storage_authority_owner.pgy";
 import "ast_collection_call_argument_effect_verdict_owner.pgy";
+import "ast_collection_owned_generation_order_owner.pgy";
+import "ast_collection_descriptor_retention_entry_owner.pgy";
 
 func SemanticAstCollectionCallArgumentVerdict(
     artifact: AstTreeArtifact, ref signatures: SemanticAstFunctionSignatureFacts,
     ref locals: SemanticAstLocalBindingFacts, ref inferred_types: Array<String>,
     ref surfaces: SemanticAstExpressionSurfaceFacts, surface_row: Int,
     edge: SemanticCallArgumentEdgeView,
-    literal_read_ready: Bool, proved: HashMap<String, Int>,
+    literal_read_ready: Bool, member_read_ready: Bool, proved: HashMap<String, Int>,
     owned_push_leaf_formals: HashMap<String, Int>,
     ref element_requirements: HashMap<String, Int>,
-    ref field_requirements:
-        SemanticAstCollectionAggregateFieldEntryRequirements,
+    ref field_requirements: SemanticAstCollectionAggregateFieldEntryRequirements,
     inout ownership: Array<Int>, ref dispositions: Array<Int>,
     ref origins: Array<Int>, inout transition_states: Array<Int>,
     ref call_effects: SemanticAstCollectionCallEffectFacts,
     ref storage: SemanticAstCollectionStorageAuthorityFacts,
     ref definitions: SemanticAstCollectionDefinitionFacts,
-    ref current_definitions: Array<Int>
+    ref current_definitions: Array<Int>, inout retained_definitions: Array<Bool>
 ) -> SemanticAstCollectionOwnershipVerdict {
-    if !edge.ok {
+    if !edge.ok || ArrayLength(retained_definitions) != ArrayLength(definitions.syntax_ids) {
         return SemanticAstCollectionOwnershipVerdictError(
             "ast_artifact_invalid",
             SemanticError1("ast_artifact_invalid", "owner",
@@ -30,8 +31,8 @@ func SemanticAstCollectionCallArgumentVerdict(
     }
     let formal: Int = SemanticAstCollectionSourceArrayFormalForArgument(
         signatures, surfaces.expression_graph, edge.call_node, edge.ordinal);
-    let key: String = ToString(formal);
-    let effect: Int = 0;
+    let key: String = ToString(formal); let effect: Int = 0;
+    let retains_descriptor: Bool = SemanticAstCollectionFormalRetainsDescriptor(call_effects.formal_descriptor_retention, formal);
     if MapHas(proved, key) { effect = MapGet(proved, key); }
     if effect == SemanticAstCollectionFormalUnprovedElementUseEffect() ||
         effect == SemanticAstCollectionFormalOpaqueExecutionEffect() {
@@ -50,11 +51,17 @@ func SemanticAstCollectionCallArgumentVerdict(
             artifact, locals, inferred_types, surfaces,
             surface_row, edge.argument_node);
     let unknown: Bool = false;
+    let current_definition: Int = -1;
     if binding.ok {
+        current_definition = current_definitions[binding.row];
+        let prior_retention: Bool = current_definition >= 0 && retained_definitions[current_definition];
         unknown = SemanticAstCollectionApplyUnknownCallStateAtUse(
             artifact, call_effects, binding.row,
             surfaces.node_ids[surface_row], ownership,
             dispositions, transition_states);
+        let retention_entry: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionDescriptorRetentionEntryVerdict(
+            artifact, surfaces.node_ids[surface_row], edge.call_node, locals.names[binding.row], retains_descriptor, prior_retention);
+        if !retention_entry.ok { return retention_entry; }
     }
     let borrowed_storage: Bool = binding.ok &&
         SemanticAstCollectionDefinitionShallowAliasAdmitted(
@@ -65,23 +72,19 @@ func SemanticAstCollectionCallArgumentVerdict(
         SemanticAstCollectionDefinitionStorageSource(
             storage, definitions, binding.row,
             current_definitions[binding.row]) > 0;
+    let terminal_entry: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionTerminalStorageEffectEntryVerdict(
+        artifact, surfaces.node_ids[surface_row], surfaces.function_node_ids[surface_row], signatures, surfaces, edge, retains_descriptor, effect,
+        binding.row, current_definition, definitions, storage, current_definitions, call_effects.constructor_inputs,
+        proved, call_effects.formal_descriptor_retention);
+    if !terminal_entry.ok { return terminal_entry; }
     let repeated_fresh_generation: Bool = false;
-    if binding.ok {
-        let definition: Int = current_definitions[binding.row];
-        if definition >= 0 &&
-            definition < ArrayLength(definitions.syntax_ids) &&
-            definition < ArrayLength(definitions.fresh) &&
-            definitions.fresh[definition] && owned_storage &&
-            definitions.syntax_ids[definition] ==
-                locals.node_ids[binding.row] &&
-            call_effects.first_retiring_sites[binding.row] == 0 {
-            repeated_fresh_generation =
-                SemanticAstCollectionRepeatedLocalGenerationPrecedesUse(
-                    artifact, definitions.syntax_ids[definition],
-                    surfaces.node_ids[surface_row],
-                    locals.scope_node_ids[binding.row]
-                );
-        }
+    if binding.ok && owned_storage &&
+        call_effects.first_retiring_sites[binding.row] == 0 {
+        // The generation owner requires a unique event: an intervening loop
+        // needs function exit, and detached scopes remain inadmissible.
+        repeated_fresh_generation = SemanticAstCollectionFreshLocalGenerationAtUse(
+            artifact, locals, definitions, binding.row, current_definition,
+            surfaces.node_ids[surface_row], false);
     }
     let owned: SemanticAstCollectionOwnershipVerdict =
         SemanticAstCollectionOwnedArgumentVerdict(
@@ -91,10 +94,16 @@ func SemanticAstCollectionCallArgumentVerdict(
             ownership, dispositions, origins, transition_states,
             definitions, current_definitions);
     if !owned.ok { return owned; }
-    return SemanticAstCollectionCallArgumentEffectVerdict(
+    let result: SemanticAstCollectionOwnershipVerdict =
+        SemanticAstCollectionCallArgumentEffectVerdict(
         artifact, signatures, locals, surfaces, surface_row, edge,
-        literal_read_ready, proved, effect, owned_push_leaf_formals,
+        literal_read_ready, member_read_ready, proved, effect, owned_push_leaf_formals,
         field_requirements, binding, unknown,
         borrowed_storage, owned_storage, repeated_fresh_generation,
+        current_definition, retains_descriptor,
         ownership, dispositions, origins, transition_states, call_effects);
+    if result.ok && binding.ok { SemanticAstCollectionDescriptorRetentionApplyAtCall(
+        artifact, surfaces.node_ids[surface_row], retains_descriptor, binding.row, current_definition, retained_definitions,
+        ownership, dispositions, transition_states); }
+    return result;
 }

@@ -1,0 +1,213 @@
+// Caller storage permission is preserved only by a complete, exact formal-use
+// program. This is descriptor retention, not String-element ownership or Slot
+// access permission. Consumers never reopen a callee body.
+import "array_storage_element_lifetime_owner.pgy";
+import "ast_collection_formal_execution_context_owner.pgy";
+import "ast_collection_owned_parameter_identity_owner.pgy";
+import "ast_artifact_verdict_owner.pgy";
+
+func SemanticArrayStorageBorrowedParameterTarget(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts, call_node: Int, ordinal: Int
+) -> Int {
+    let target: Option<Int> = SemanticExpressionGraphCallTargetSyntaxId(graph, call_node);
+    let kind: Option<Int> = SemanticExpressionGraphCallTargetKind(graph, call_node);
+    if !IsSome(target) || UnwrapOption(target) <= 0 || !IsSome(kind) || ordinal < 0 {
+        return 0;
+    }
+    let signature: Option<Int> = SemanticAstFunctionSignatureIndexForNode(signatures, UnwrapOption(target));
+    if !IsSome(signature) { return 0; }
+    let row: Int = UnwrapOption(signature);
+    let offset: Int = 0;
+    if UnwrapOption(kind) == SemanticCallTargetMember() {
+        if ArrayLength(signatures.receiver_source_param_offsets) != ArrayLength(signatures.function_node_ids) { return 0; }
+        offset = signatures.receiver_source_param_offsets[row];
+        if offset < 0 || offset > 1 { return 0; }
+    }
+    let index: Int = ordinal + offset;
+    if index < 0 || index >= signatures.param_counts[row] { return 0; }
+    let flat: Int = signatures.param_starts[row] + index;
+    if signatures.param_modes[flat] == 2 || !IsSome(SemanticArrayElementType(signatures.param_types[flat])) { return 0; }
+    return signatures.param_node_ids[flat];
+}
+
+func SemanticArrayStorageBuiltinArgumentPreserves(
+    ref graph: SemanticExpressionGraphFacts, call_node: Int, ordinal: Int
+) -> Bool {
+    if ordinal != 0 { return false; }
+    // These exact intrinsic receivers never retain a descriptor. Stored
+    // element arguments, slices, callbacks and storage retirement are absent.
+    return SemanticAstCollectionOwnershipBuiltinCall(graph, call_node, "ArrayLength") ||
+        SemanticAstCollectionOwnershipBuiltinCall(graph, call_node, "ArrayPush") ||
+        SemanticAstCollectionOwnershipBuiltinCall(graph, call_node, "ArraySet") ||
+        SemanticAstCollectionOwnershipBuiltinCall(graph, call_node, "ArrayPop") ||
+        SemanticAstCollectionOwnershipBuiltinCall(graph, call_node, "ArrayReverse");
+}
+
+func SemanticArrayStorageFormalInventory(
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts, ref enums: SemanticAstEnumFacts
+) -> SemanticAstCollectionFormalEffectInventory {
+    let nodes: Array<Int> = []; let functions: Array<Int> = [];
+    let ordinals: Array<Int> = []; let modes: Array<Int> = [];
+    let bodies: Array<Bool> = []; let rows: HashMap<String, Int> = MapNew();
+    let count: Int = ArrayLength(signatures.function_node_ids);
+    let flat_count: Int = ArrayLength(signatures.param_node_ids);
+    let ok: Bool = signatures.ok && signatures.action_contracts.ok &&
+        ArrayLength(signatures.param_starts) == count && ArrayLength(signatures.param_counts) == count &&
+        ArrayLength(signatures.action_contracts.callable_node_ids) == count &&
+        ArrayLength(signatures.action_contracts.body_node_ids) == count &&
+        ArrayLength(signatures.param_types) == flat_count && ArrayLength(signatures.param_modes) == flat_count;
+    let row: Int = 0; let flat: Int = 0;
+    while ok && row < count {
+        let size: Int = signatures.param_counts[row];
+        if signatures.function_node_ids[row] <= 0 || signatures.param_starts[row] != flat ||
+            size < 0 || size > flat_count - flat || signatures.action_contracts.callable_node_ids[row] != signatures.function_node_ids[row] {
+            ok = false; break;
+        }
+        let ordinal: Int = 0;
+        while ok && ordinal < size {
+            let node: Int = signatures.param_node_ids[flat + ordinal];
+            let mode: Int = signatures.param_modes[flat + ordinal];
+            if node <= 0 || mode < 0 || mode > 3 { ok = false; break; }
+            let element: Option<String> = SemanticArrayElementType(signatures.param_types[flat + ordinal]);
+            if IsSome(element) && SemanticArrayStoragePlainElement(UnwrapOption(element), constructors, enums, 0) {
+                let key: String = ToString(node);
+                if MapHas(rows, key) { ok = false; break; }
+                MapSet(rows, key, ArrayLength(nodes));
+                ArrayPush(nodes, node); ArrayPush(functions, signatures.function_node_ids[row]);
+                ArrayPush(ordinals, ordinal); ArrayPush(modes, mode);
+                ArrayPush(bodies, mode != 2 && signatures.action_contracts.body_node_ids[row] > 0);
+            }
+            ordinal = ordinal + 1;
+        }
+        flat = flat + size; row = row + 1;
+    }
+    return SemanticAstCollectionFormalEffectInventory(ok && flat == flat_count,
+        nodes, functions, ordinals, modes, bodies, rows);
+}
+
+func SemanticArrayStoragePreservingFormals(
+    artifact: AstTreeArtifact, ref analysis: SemanticAstArtifactAnalysis,
+    ref order: SemanticExpressionGraphSurfaceOrder
+) -> HashMap<String, Int> {
+    let proved: HashMap<String, Int> = MapNew();
+    let inventory: SemanticAstCollectionFormalEffectInventory = SemanticArrayStorageFormalInventory(
+        analysis.signatures, analysis.constructors, analysis.enums);
+    let contexts: SemanticAstCollectionFormalExecutionContexts = SemanticAstCollectionFormalExecutionContextsWithSurfaceOrder(
+        artifact, inventory, analysis.function_scopes, analysis.expression_surfaces, order);
+    if !inventory.ok || !contexts.ok || !analysis.statements.ok { return proved; }
+    let formal_rows: HashMap<String, Int> = inventory.row_by_formal;
+    let unsafe_functions: HashMap<String, Int> = contexts.unsafe_functions;
+    let blocked: Array<Bool> = []; let node_rows: Array<Int> = [];
+    let sources: Array<Int> = []; let targets: Array<Int> = [];
+    let row: Int = 0;
+    while row < ArrayLength(inventory.formal_nodes) {
+        ArrayPush(blocked, !inventory.body_ready[row] || MapHas(unsafe_functions, ToString(inventory.function_nodes[row])));
+        row = row + 1;
+    }
+    let ok: Bool = true; let last: Int = -1; let root: Int = 0;
+    while ok && root < ArrayLength(order.slots_by_root) {
+        let slot: Int = order.slots_by_root[root];
+        if slot == -2 { ArrayPush(node_rows, -1); last = root; }
+        if slot >= 0 {
+            let node: Int = last + 1;
+            let function_id: Int = analysis.expression_surfaces.function_node_ids[slot / 3];
+            while ok && node <= root {
+                let binding: SemanticExpressionBindingIdentityFact =
+                    SemanticExpressionGraphBindingIdentity(
+                        analysis.expression_surfaces.expression_graph, node);
+                if !binding.ok { ok = false; break; }
+                let formal_row: Int = -1; let key: String = ToString(binding.syntax_id);
+                // Indexed scalar results carry their base binding identity,
+                // but are not array descriptors. Only a formal leaf denotes
+                // the storage whose retention is being proved here.
+                if binding.kind == SemanticExpressionBindingFormalParameter() &&
+                    analysis.expression_surfaces.expression_graph.arena.topology.node_kinds[node] == AstExpressionNodeLeaf() &&
+                    MapHas(formal_rows, key) {
+                    formal_row = MapGet(formal_rows, key);
+                    if !binding.has_ordinal || binding.ordinal != inventory.ordinals[formal_row] ||
+                        function_id != inventory.function_nodes[formal_row] { ok = false; break; }
+                }
+                ArrayPush(node_rows, formal_row);
+                let kind: Int = analysis.expression_surfaces.expression_graph
+                    .arena.topology.node_kinds[node];
+                let edge: Int = 0;
+                while ok && edge < 2 {
+                    let child: Option<Int> = SemanticExpressionGraphLeftChild(
+                        analysis.expression_surfaces.expression_graph, node);
+                    if edge == 1 {
+                        child = SemanticExpressionGraphRightChild(
+                            analysis.expression_surfaces.expression_graph,
+                            node);
+                    }
+                    if IsSome(child) && UnwrapOption(child) >= 0 && UnwrapOption(child) < node {
+                        let used: Int = node_rows[UnwrapOption(child)];
+                        if used >= 0 {
+                            if edge == 0 && kind == AstExpressionNodeIndex() {
+                                // The inventory admits only recursively plain elements.
+                            } else if edge == 1 && kind == AstExpressionNodeCallArgument() {
+                                let call: SemanticCallArgumentEdgeView =
+                                    SemanticCallArgumentEdgeFromGraph(
+                                        analysis.expression_surfaces
+                                            .expression_graph,
+                                        node);
+                                if !call.ok || call.argument_node != UnwrapOption(child) { ok = false; break; }
+                                if !SemanticArrayStorageBuiltinArgumentPreserves(
+                                        analysis.expression_surfaces
+                                            .expression_graph,
+                                        call.call_node, call.ordinal) {
+                                    let target: Int =
+                                        SemanticArrayStorageBorrowedParameterTarget(
+                                            analysis.signatures,
+                                            analysis.expression_surfaces
+                                                .expression_graph,
+                                            call.call_node, call.ordinal);
+                                    let target_key: String = ToString(target);
+                                    if target <= 0 || !MapHas(formal_rows, target_key) { blocked[used] = true; }
+                                    else { ArrayPush(sources, used); ArrayPush(targets, MapGet(formal_rows, target_key)); }
+                                }
+                            } else { blocked[used] = true; }
+                        }
+                    }
+                    edge = edge + 1;
+                }
+                node = node + 1;
+            }
+            if ok && node_rows[root] >= 0 {
+                let syntax_id: Int = analysis.expression_surfaces.node_ids[slot / 3];
+                let receiver_statement: Bool = slot % 3 == AstExpressionLaneAtom() &&
+                    (TypedAstArenaNodeKindIs(artifact.arena, syntax_id, TypedAstKindArrayPushStmtTag()) ||
+                     TypedAstArenaNodeKindIs(artifact.arena, syntax_id, TypedAstKindArraySetStmtTag()) ||
+                     TypedAstArenaNodeKindIs(artifact.arena, syntax_id, TypedAstKindArrayPopStmtTag()));
+                if !receiver_statement { blocked[node_rows[root]] = true; }
+            }
+            last = root;
+        }
+        root = root + 1;
+    }
+    ok = ok && ArrayLength(node_rows) ==
+        SemanticExpressionGraphArenaNodeCount(
+            analysis.expression_surfaces.expression_graph.arena);
+    // Invalidations form a finite monotone graph, including mutually recursive
+    // callees. Unknown or retaining targets propagate to every caller formal.
+    let remaining: Int = ArrayLength(inventory.formal_nodes) + 1; let changed: Bool = true;
+    while ok && changed && remaining > 0 {
+        changed = false; let edge: Int = 0;
+        while edge < ArrayLength(sources) {
+            if blocked[targets[edge]] && !blocked[sources[edge]] {
+                blocked[sources[edge]] = true; changed = true;
+            }
+            edge = edge + 1;
+        }
+        remaining = remaining - 1;
+    }
+    if changed { ok = false; }
+    row = 0;
+    while ok && row < ArrayLength(inventory.formal_nodes) {
+        if !blocked[row] { MapSet(proved, ToString(inventory.formal_nodes[row]), 1); }
+        row = row + 1;
+    }
+    ArrayDrop(node_rows); ArrayDrop(blocked); ArrayDrop(sources); ArrayDrop(targets);
+    return proved;
+}

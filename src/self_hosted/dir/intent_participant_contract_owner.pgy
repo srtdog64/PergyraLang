@@ -1,0 +1,75 @@
+// Participant membership consumes direct readonly views of admitted DIR rows.
+// FactsReady alone derives these views from its canonical whole-facts owner.
+import "intent_row_owner.pgy";
+import "intent_step_target_contract_owner.pgy";
+
+func SelfDirIntentParticipantIndex(ref aliases: Array<String>, start: Int, count: Int, alias: String
+) -> Int {
+    let size: Int = ArrayLength(aliases);
+    if start < 0 || count < 0 || start > size || count > size - start { return -1; }
+    let i: Int = 0;
+    while i < count {
+        if aliases[start + i] == alias { return start + i; }
+        i = i + 1;
+    }
+    return -1;
+}
+
+func SelfDirIntentStepParticipantContractReady(
+    ref participants: SelfDirIntentParticipantFacts,
+    participant_start: Int, participant_count: Int,
+    ref steps: SelfDirIntentStepFacts, step_index: Int
+) -> Bool {
+    let size: Int = ArrayLength(participants.aliases);
+    let step_count: Int = ArrayLength(steps.node_ids);
+    if participant_start < 0 || participant_count < 0 || participant_start > size ||
+        participant_count > size - participant_start ||
+        ArrayLength(participants.is_values) != size ||
+        ArrayLength(participants.type_names) != size || step_index < 0 || step_index >= step_count ||
+        ArrayLength(steps.target_kinds) != step_count ||
+        ArrayLength(steps.using_aliases) != step_count ||
+        ArrayLength(steps.where_zone_names) != step_count ||
+        ArrayLength(steps.receiver_aliases) != step_count ||
+        ArrayLength(steps.who_starts) != step_count ||
+        ArrayLength(steps.who_counts) != step_count ||
+        ArrayLength(steps.authorized_starts) != step_count ||
+        ArrayLength(steps.authorized_counts) != step_count { return false; }
+    let who_start: Int = steps.who_starts[step_index];
+    let who_count: Int = steps.who_counts[step_index];
+    let authorized_start: Int = steps.authorized_starts[step_index];
+    let authorized_count: Int = steps.authorized_counts[step_index];
+    if who_start < 0 || who_count < 0 || who_start > ArrayLength(steps.who_names) ||
+        who_count > ArrayLength(steps.who_names) - who_start ||
+        authorized_start < 0 || authorized_count < 0 ||
+        authorized_start > ArrayLength(steps.authorized_names) ||
+        authorized_count > ArrayLength(steps.authorized_names) - authorized_start { return false; }
+    let using_row: Int = SelfDirIntentParticipantIndex(
+        participants.aliases, participant_start, participant_count,
+        steps.using_aliases[step_index]
+    );
+    if (steps.target_kinds[step_index] == "action" || steps.using_aliases[step_index] != "") &&
+        (using_row < 0 || participants.is_values[using_row] ||
+         participants.type_names[using_row] != steps.where_zone_names[step_index]) { return false; }
+    if !SelfDirIntentStepPlacementReceiverReady(
+        participants, participant_start, participant_count, steps, step_index
+    ) { return false; }
+    let name_i: Int = 0;
+    while name_i < who_count {
+        let participant_row: Int = SelfDirIntentParticipantIndex(
+            participants.aliases, participant_start, participant_count,
+            steps.who_names[who_start + name_i]
+        );
+        if participant_row < 0 || participants.is_values[participant_row] { return false; }
+        name_i = name_i + 1;
+    }
+    name_i = 0;
+    while name_i < authorized_count {
+        let participant_row: Int = SelfDirIntentParticipantIndex(
+            participants.aliases, participant_start, participant_count,
+            steps.authorized_names[authorized_start + name_i]
+        );
+        if participant_row < 0 || participants.is_values[participant_row] { return false; }
+        name_i = name_i + 1;
+    }
+    return true;
+}

@@ -1,0 +1,18 @@
+func Append(inout values: Array<String>, value: String) -> Void {
+    ArrayPush(values, value);
+}
+
+func FirstCopied(ref values: Array<String>) -> String {
+    return Concat("", values[0]);
+}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    let sibling: Array<String> = values;
+    let i: Int = 0;
+    while i < 2 {
+        Append(values, "live");
+        i = i + 1;
+    }
+    Log(FirstCopied(sibling));
+}

@@ -1,0 +1,12 @@
+func Grow(inout values: Array<String>) -> Bool {
+    ArrayPushOwnedString(values, "x");
+    return true;
+}
+func Matches(ref values: Array<String>) -> Bool { return values[0] == "x"; }
+func Probe() -> Bool {
+    let seed: Array<String> = ["x"];
+    let values: Array<String> = Clone(seed);
+    let alias: Array<String> = values;
+    return Grow(values) && Matches(alias);
+}
+func Main() -> Void { Log(false); }

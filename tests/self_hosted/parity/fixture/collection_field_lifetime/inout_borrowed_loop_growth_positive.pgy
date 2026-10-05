@@ -1,0 +1,14 @@
+func Append(inout values: Array<String>, value: String) -> Void {
+    ArrayPush(values, value);
+}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    let i: Int = 0;
+    while i < 3 {
+        Append(values, "live");
+        i = i + 1;
+    }
+    Log(ArrayLength(values));
+    Log(values[2]);
+}

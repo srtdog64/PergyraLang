@@ -1,0 +1,22 @@
+struct Participant { alias: String; type_name: String; }
+func Resolve(aliases: Array<String>, type_names: Array<String>, row: Int) -> Participant {
+    let alias: String = aliases[row];
+    let type_name: String = type_names[row];
+    return Participant(alias, type_name);
+}
+func Main() -> Void {
+    let aliases: Array<String> = [];
+    let type_names: Array<String> = [];
+    let row: Int = 0;
+    while row < 2 {
+        ArrayPushOwnedString(aliases, "compiler");
+        ArrayPushOwnedString(type_names, "Compiler");
+        let participant: Participant = Resolve(aliases, type_names, row);
+        Log(participant.alias);
+        Log(participant.type_name);
+        row = row + 1;
+    }
+    ArrayDropOwnedStrings(aliases);
+    ArrayDropOwnedStrings(type_names);
+    Log("PARTICIPANT SCALAR COPY PASS");
+}

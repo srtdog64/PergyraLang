@@ -130,6 +130,56 @@ INPUTS=(
     inout_event_owned_push_after_copy_positive.pgy
     inout_event_loop_fresh_generation_positive.pgy
     inout_event_loop_fresh_defer_negative.pgy
+    own_generation_cleanup_return_positive.pgy own_generation_cleanup_continue_positive.pgy
+    own_generation_indexed_read_positive.pgy
+    inout_borrowed_push_indexed_read_positive.pgy inout_owned_push_indexed_read_positive.pgy
+    inout_borrowed_push_sibling_indexed_negative.pgy inout_borrowed_push_deferred_indexed_negative.pgy
+    inout_borrowed_loop_growth_positive.pgy inout_borrowed_conditional_loop_growth_positive.pgy
+    inout_borrowed_loop_terminal_transfer_positive.pgy
+    inout_borrowed_loop_consume_negative.pgy inout_borrowed_loop_sibling_negative.pgy
+    inout_terminal_hides_later_retention_negative.pgy
+    inout_repeated_descriptor_retention_negative.pgy
+    inout_terminal_compound_retention_negative.pgy
+    inout_terminal_formal_retention_negative.pgy inout_terminal_shallow_sibling_negative.pgy
+    inout_terminal_short_circuit_growth_positive.pgy own_terminal_cleanup_positive.pgy
+    inout_terminal_owned_mutation_read_positive.pgy inout_terminal_owned_mutation_sibling_negative.pgy
+    inout_terminal_owned_mutation_capture_negative.pgy
+    inout_terminal_formal_mutation_chain_positive.pgy
+    inout_owned_loop_conditional_generation_positive.pgy
+    inout_owned_loop_nested_read_positive.pgy inout_owned_loop_nested_consumption_negative.pgy
+    inout_owned_loop_retired_read_negative.pgy
+    own_generation_terminal_hides_consumption_negative.pgy
+    inout_owned_loop_nested_terminal_cleanup_positive.pgy
+    inout_owned_loop_nested_break_cleanup_negative.pgy
+    inout_owned_loop_nested_continue_cleanup_negative.pgy
+    inout_owned_loop_nested_terminal_reuse_negative.pgy
+    inout_owned_accumulator_loop_positive.pgy
+    inout_shallow_accumulator_owned_mutation_negative.pgy
+    borrow_formal_indexed_scalar_copy_positive.pgy
+    borrow_formal_indexed_scalar_call_unproved_negative.pgy
+    borrow_formal_selected_scalar_copy_positive.pgy
+    borrow_formal_selected_scalar_return_negative.pgy
+    borrow_formal_mapped_owned_accumulator_positive.pgy
+    borrow_formal_mapped_shallow_accumulator_negative.pgy
+    inout_member_owned_clone_positive.pgy inout_member_unproved_ownership_negative.pgy
+    member_scalar_owned_accumulator_positive.pgy member_scalar_shallow_accumulator_negative.pgy
+    participant_loop_scalar_copy_positive.pgy participant_loop_scalar_borrow_negative.pgy
+    borrow_formal_direct_owned_seed_positive.pgy borrow_formal_retained_owned_seed_negative.pgy
+    borrow_formal_aggregate_scalar_copy_positive.pgy borrow_formal_aggregate_scalar_return_negative.pgy
+    borrow_formal_sync_typed_result_cleanup_positive.pgy borrow_formal_deferred_typed_result_cleanup_negative.pgy
+    borrow_formal_member_array_snapshot_positive.pgy borrow_formal_member_array_return_negative.pgy
+    borrow_formal_row_scalar_copy_positive.pgy borrow_formal_row_scalar_return_negative.pgy
+    own_generation_double_transfer_negative.pgy own_generation_nonterminal_cleanup_negative.pgy
+    own_generation_nested_loop_negative.pgy own_generation_return_use_negative.pgy
+    member_indexed_read_default_positive.pgy member_indexed_read_ref_positive.pgy
+    member_indexed_read_forwarded_positive.pgy member_indexed_read_moved_negative.pgy
+    member_indexed_read_nested_forwarded_positive.pgy member_indexed_read_nested_alias_negative.pgy
+    member_indexed_read_value_formal_negative.pgy
+    member_composed_views_positive.pgy member_composed_views_alias_negative.pgy
+    member_indexed_read_root_copy_negative.pgy member_indexed_read_root_own_negative.pgy
+    member_indexed_read_root_inout_negative.pgy member_indexed_read_deferred_negative.pgy
+    member_indexed_read_mutator_negative.pgy member_indexed_read_forwarded_alias_negative.pgy
+    member_indexed_read_forwarded_move_negative.pgy
     inout_event_transferred_child_drop_negative.pgy
     inout_event_unknown_then_owned_transfer_negative.pgy
     inout_event_owned_push_deferred_drop_positive.pgy inout_event_clone_drop_then_push_negative.pgy
@@ -179,10 +229,12 @@ INPUTS=(
     inout_index_forward_copy_positive.pgy inout_index_return_drop_negative.pgy inout_index_alias_escape_drop_negative.pgy
     inout_index_append_drop_negative.pgy inout_index_write_drop_negative.pgy inout_index_deferred_own_negative.pgy
     inout_index_branch_own_negative.pgy inout_index_before_own_positive.pgy inout_index_after_unknown_negative.pgy
+    inout_index_after_shallow_positive.pgy
     inout_index_before_unknown_positive.pgy inout_index_role_eq_drop_negative.pgy inout_index_role_ne_drop_negative.pgy
     inout_index_after_drop_negative.pgy inout_index_own_formal_drop_negative.pgy inout_index_nested_own_negative.pgy
     inout_index_formal_unknown_negative.pgy inout_index_formal_deferred_unknown_negative.pgy
     aggregate_release_source_reuse_negative.pgy aggregate_release_duplicate_storage_negative.pgy
+    aggregate_terminal_owned_return_positive.pgy aggregate_terminal_borrowed_return_negative.pgy
     aggregate_release_formal_root_reuse_negative.pgy aggregate_release_preextract_field_write_negative.pgy
     aggregate_release_aggregate_alias_observe_negative.pgy
     aggregate_release_repeated_negative.pgy aggregate_release_source_reassign_positive.pgy
@@ -244,6 +296,9 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/self_hosted/semantic/ast_collection_formal_effect_readiness_owner.pgy \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
+    src/self_hosted/semantic/ast_collection_formal_descriptor_retention_owner.pgy \
+    src/self_hosted/semantic/ast_collection_descriptor_retention_entry_owner.pgy \
+    src/self_hosted/semantic/ast_collection_terminal_storage_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy \
     src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy \
     src/self_hosted/semantic/ast_nominal_constructor_lookup_owner.pgy \
@@ -262,6 +317,7 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_argument_effect_verdict_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy \
+    src/self_hosted/semantic/ast_collection_repeated_local_generation_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy \
     src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy \
     src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy \
@@ -287,6 +343,7 @@ sha256sum "$SOURCE_PROBE" "$IDENTITY_PROBE" "$CONSTRUCTOR_PROBE" "$EVENT_PROBE" 
     src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy \
+    src/self_hosted/semantic/ast_collection_member_read_permission_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy \
     src/self_hosted/semantic/ast_owned_string_result_fact_owner.pgy \
     src/self_hosted/semantic/ast_owned_string_result_domain_owner.pgy \
@@ -408,6 +465,12 @@ for backend in c llvm; do
         tr -d '\r' <"$WORK/$backend-$name.raw" >"$WORK/$backend-$name.run"
         [[ ! -s "$WORK/$backend-$name.err" ]]
         case "$name" in
+            member_indexed_read_mutator_negative.pgy)
+                printf 'body_ok=false\nbody_diagnostic=inout_argument_not_variable\n' >"$WORK/expected" ;;
+            member_composed_views_alias_negative.pgy|member_scalar_shallow_accumulator_negative.pgy|member_indexed_read_root_copy_negative.pgy|member_indexed_read_root_own_negative.pgy|member_indexed_read_root_inout_negative.pgy|member_indexed_read_deferred_negative.pgy|member_indexed_read_forwarded_alias_negative.pgy|member_indexed_read_forwarded_move_negative.pgy|member_indexed_read_nested_alias_negative.pgy|member_indexed_read_value_formal_negative.pgy)
+                printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
+            inout_borrowed_loop_sibling_negative.pgy|inout_borrowed_push_sibling_indexed_negative.pgy|inout_terminal_owned_mutation_sibling_negative.pgy|own_generation_double_transfer_negative.pgy|own_generation_nonterminal_cleanup_negative.pgy|own_generation_return_use_negative.pgy)
+                printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             ref_formal_let_storage_alias_2026-10-02.pgy)
                 printf 'body_ok=false\nbody_diagnostic=borrow_boundary_escape\n' >"$WORK/expected" ;;
             own_event_formal_local_unknown_negative.pgy|own_event_formal_local_loop_negative.pgy|own_event_formal_local_deferred_negative.pgy|own_event_formal_local_deep_drop_negative.pgy)
@@ -415,6 +478,8 @@ for backend in c llvm; do
             own_assign_original_read_negative.pgy|own_assign_duplicate_redefine_negative.pgy|own_assign_self_retired_negative.pgy|own_formal_assignment_storage_alias_2026-10-02.pgy|own_event_*_negative.pgy|own_formal_local_storage_alias_2026-10-02.pgy|own_same_expression_read_after_transfer_2026-10-02.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             aggregate_release_source_reuse_negative.pgy)
+                printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
+            inout_owned_loop_nested_terminal_reuse_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
             member_*_negative.pgy|own_storage_nested_same_binding_negative.pgy|own_storage_formal_retired_negative.pgy|own_storage_formal_child_retired_negative.pgy|own_storage_return_duplicate_negative.pgy|own_formal_*_negative.pgy)
                 printf 'body_ok=false\nbody_diagnostic=move_from_released\n' >"$WORK/expected" ;;
@@ -722,7 +787,7 @@ BORROW_FORMAL_DIAGNOSTICS
             -o "$REL/$backend-constructor.exe" >"$WORK/$backend-constructor.compile" 2>&1
     fi
     sha256sum "$WORK/$backend-constructor.exe" >>"$WORK/probe-binaries.sha256"
-    for ((mutation=0; mutation<=25; mutation++)); do
+    for ((mutation=0; mutation<=28; mutation++)); do
         timeout 30 "$WORK/$backend-constructor.exe" "$FIXTURES/field_ctor_identity_input.pgy" "$mutation" \
             >"$WORK/$backend-constructor-$mutation.raw" 2>"$WORK/$backend-constructor-$mutation.err"
         tr -d '\r' <"$WORK/$backend-constructor-$mutation.raw" >"$WORK/$backend-constructor-$mutation.run"
@@ -730,7 +795,7 @@ BORROW_FORMAL_DIAGNOSTICS
         printf 'true\n' >"$WORK/expected"
         cmp "$WORK/expected" "$WORK/$backend-constructor-$mutation.run"
     done
-    for mode in garbage 26 -1 01; do
+    for mode in garbage 29 -1 01; do
         if "$WORK/$backend-constructor.exe" "$FIXTURES/field_ctor_identity_input.pgy" "$mode" \
             >"$WORK/$backend-constructor-mode-$mode.raw" 2>"$WORK/$backend-constructor-mode-$mode.err"; then
             echo "constructor observer accepted invalid mode $mode" >&2; exit 1
@@ -858,7 +923,7 @@ BORROW_FORMAL_DIAGNOSTICS
     [[ ! -s "$WORK/$backend-actual-producer.err" ]]
     printf 'row_index:0=3\nseed:1=2\nseed:2=2\nseed:3=2\ntables:3=2\ntables:4=2\ntables:5=2\n' >"$WORK/expected"
     cmp "$WORK/expected" "$WORK/$backend-actual-producer.run"
-    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, one generic-default selection, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, seventy-six diagnostic locations, three observer mode, seventy-four identity/boundary, thirty-five occurrence/root/element-step, eight completion/receipt and ten storage-producer units, twenty-six constructor units, four constructor CLI refusals and seven actual formal checks PASS"
+    echo "[collection-inout-effect] native-$backend: ${#INPUTS[@]} source admissions, one generic-default selection, eighteen allocator-domain, thirteen numeric-allocation and twelve result-witness units, seventy-six diagnostic locations, three observer mode, seventy-four identity/boundary, thirty-five occurrence/root/element-step, eight completion/receipt and ten storage-producer units, twenty-nine constructor units, four constructor CLI refusals and seven actual formal checks PASS"
 done
 sha256sum -c "$WORK/native.sha256"
 sha256sum -c "$WORK/owners.sha256"

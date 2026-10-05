@@ -1,0 +1,29 @@
+struct CheckVerdict { ok: Bool; code: String; }
+func Check(ref types: Array<String>, inout scratch: Array<Bool>,
+    inout verdict: CheckVerdict) -> Void {
+    if ArrayLength(types) == 0 {
+        verdict = CheckVerdict(false, "missing");
+        return;
+    }
+    scratch[0] = types[0] == "Int";
+    verdict = CheckVerdict(scratch[0], "checked");
+}
+func Evaluate(ref types: Array<String>) -> CheckVerdict {
+    let scratch: Array<Bool> = [false];
+    let verdict: CheckVerdict = CheckVerdict(false, "pending");
+    defer { ArrayDrop(scratch); };
+    Check(types, scratch, verdict);
+    return verdict;
+}
+func Forward(ref types: Array<String>) -> CheckVerdict { return Evaluate(types); }
+func Main() -> Void {
+    let types: Array<String> = [];
+    ArrayPushOwnedString(types, "Int");
+    let good: CheckVerdict = Forward(types);
+    ArrayDropOwnedStrings(types);
+    let empty: Array<String> = [];
+    let bad: CheckVerdict = Forward(empty);
+    ArrayDropOwnedStrings(empty);
+    if !good.ok || good.code != "checked" || bad.ok || bad.code != "missing" { Exit(1); }
+    Log("TYPED VERDICT CLEANUP PASS");
+}

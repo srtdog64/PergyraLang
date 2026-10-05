@@ -1,0 +1,13 @@
+func Copy(inout values: Array<String>) -> Void { ArrayPushOwnedString(values, "copied"); }
+func Retire(own values: Array<String>) -> Void { ArrayDropOwnedStrings(values); }
+func Reads(ref values: Array<String>) -> Bool { return values[0] == "copied"; }
+func Main() -> Void {
+    let outer: Int = 0;
+    while outer < 2 {
+        let values: Array<String> = [];
+        Copy(values);
+        Retire(values);
+        Log(Reads(values));
+        outer = outer + 1;
+    }
+}

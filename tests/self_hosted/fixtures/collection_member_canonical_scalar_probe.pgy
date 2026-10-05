@@ -1,0 +1,19 @@
+// A canonical type result must survive cleanup of its readonly String input.
+import "../../../src/self_hosted/semantic/ast_type_name_canonical_owner.pgy";
+
+func Resolve(ref types: Array<String>, row: Int) -> SemanticCanonicalTypeNameFact {
+    return SemanticCanonicalTypeNameFactFrom(Concat("", types[row]));
+}
+func Main() -> Void {
+    let types: Array<String> = [];
+    ArrayPushOwnedString(types, "Box<item: Int>");
+    ArrayPushOwnedString(types, "Int");
+    let generic_fact: SemanticCanonicalTypeNameFact = Resolve(types, 0);
+    let scalar: SemanticCanonicalTypeNameFact = Resolve(types, 1);
+    ArrayDropOwnedStrings(types);
+    if generic_fact.canonical_name != "Box<Int>" || generic_fact.nominal_base_name != "Box" ||
+        scalar.canonical_name != "Int" || scalar.nominal_base_name != "Int" {
+        Exit(1);
+    }
+    Log("CANONICAL SCALAR COPY PASS");
+}

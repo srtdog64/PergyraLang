@@ -1,0 +1,20 @@
+// Maps one owned syntax handle without running a body proof or emitting input.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_function_scope_fact_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Exit(2); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Exit(2); }
+    let node: Int = ToInt(args[1]);
+    let remaining: Int = 8;
+    while node >= 0 && node < artifact.count && remaining > 0 {
+        Log("syntax=" + ToString(node));
+        let text: Option<String> = TypedAstArenaProvenanceText(artifact.arena, node);
+        if IsSome(text) { Log(UnwrapOption(text)); }
+        let parent: Option<Int> = TypedAstArenaParentId(artifact.arena, node);
+        if !IsSome(parent) { break; }
+        node = UnwrapOption(parent); remaining = remaining - 1;
+    }
+}

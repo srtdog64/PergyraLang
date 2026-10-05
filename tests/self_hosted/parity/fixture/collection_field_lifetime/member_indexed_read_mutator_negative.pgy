@@ -1,0 +1,4 @@
+struct Table { names: Array<String>; }
+func Change(inout names: Array<String>) -> Void { ArrayPush(names, "x"); }
+func Observe(table: Table) -> Void { Change(table.names); }
+func Main() -> Void {}

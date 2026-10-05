@@ -39,4 +39,9 @@ unsigned function_param_flow_summary_for_param(SemanticContext *ctx,
                                                ASTNode *function_decl,
                                                size_t param_index);
 
+/* Preserve existing caller authority; this never grants ownership to a borrow. */
+bool function_param_flow_preserves_array_storage(SemanticContext *ctx,
+                                                ASTNode *function_decl,
+                                                size_t param_index);
+
 #endif /* PERGYRA_SLOT_SUMMARY_H */

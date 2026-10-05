@@ -248,8 +248,9 @@ func SemanticAstCollectionFormalEffectsWithSurfaceOrder(
                                 SemanticCallArgumentEdgeFromGraph(
                                     surfaces.expression_graph, node);
                             let identity: Option<String> =
-                                SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts(
-                                    surfaces, argument.call_node);
+                                SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext(
+                                    surfaces, argument.call_node, last + 1,
+                                    surfaces.node_ids[slot / 3], slot % 3);
                             observed_element = argument.ok &&
                                 argument.argument_node == child_node &&
                                 IsSome(identity) &&

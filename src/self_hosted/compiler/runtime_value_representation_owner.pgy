@@ -158,12 +158,12 @@ func CompilerRuntimeValueTypesPresent(
 ) -> Bool {
     let row: Int = 0;
     while row < ArrayLength(local_types) {
-        if CompilerRuntimeValueTypeReady(local_types[row]) { return true; }
+        if CompilerRuntimeValueTypeReady(Concat("", local_types[row])) { return true; }
         row = row + 1;
     }
     row = 0;
     while row < ArrayLength(parameter_types) {
-        if CompilerRuntimeValueTypeReady(parameter_types[row]) { return true; }
+        if CompilerRuntimeValueTypeReady(Concat("", parameter_types[row])) { return true; }
         row = row + 1;
     }
     return false;

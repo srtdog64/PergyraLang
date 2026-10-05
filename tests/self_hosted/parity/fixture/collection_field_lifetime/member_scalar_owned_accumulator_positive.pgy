@@ -1,0 +1,20 @@
+struct ParticipantTable { aliases: Array<String>; type_names: Array<String>; }
+func Observe(ref table: ParticipantTable) -> Void {
+    let aliases: Array<String> = [];
+    let type_names: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(table.aliases) {
+        ArrayPushOwnedString(aliases, table.aliases[i]);
+        ArrayPushOwnedString(type_names, table.type_names[i]);
+        i = i + 1;
+    }
+    Log(aliases[0]);
+    Log(type_names[0]);
+    ArrayDropOwnedStrings(aliases);
+    ArrayDropOwnedStrings(type_names);
+    Log(table.aliases[0]);
+}
+func Main() -> Void {
+    let table: ParticipantTable = ParticipantTable(["compiler"], ["Compiler"]);
+    Observe(table);
+}

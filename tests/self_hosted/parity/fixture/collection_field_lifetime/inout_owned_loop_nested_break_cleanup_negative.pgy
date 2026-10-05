@@ -1,0 +1,28 @@
+func Copy(inout values: Array<String>) -> Void {
+    ArrayPushOwnedString(values, "copied");
+}
+func Retire(own values: Array<String>) -> Void {
+    ArrayDropOwnedStrings(values);
+}
+func Reads(ref values: Array<String>) -> Bool {
+    return values[0] == "copied";
+}
+func Run() -> Void {
+    let iteration: Int = 0;
+    while iteration < 2 {
+        let values: Array<String> = [];
+        Copy(values);
+        let pending: Int = 0;
+        while pending < 2 {
+            if pending == 1 {
+                Retire(values);
+                break;
+            }
+            pending = pending + 1;
+        }
+        Log(Reads(values));
+        Retire(values);
+        iteration = iteration + 1;
+    }
+}
+func Main() -> Void { Run(); }

@@ -1,0 +1,12 @@
+func Replace(inout target: Array<Int>, source: Array<Int>) -> Void {
+    target = source;
+}
+func Forward(inout target: Array<Int>, source: Array<Int>) -> Void {
+    Replace(target, source);
+}
+func Main() -> Void {
+    let mut values: Array<Int> = [7];
+    let source: Array<Int> = [9];
+    Forward(values, source);
+    ArrayDrop(values);
+}

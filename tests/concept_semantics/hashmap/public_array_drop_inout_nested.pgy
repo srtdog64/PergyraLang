@@ -1,0 +1,29 @@
+enum BufferError { Empty }
+
+func Clear(inout values: Array<Int>) -> Void {
+    while ArrayLength(values) > 0 { ArrayPop(values); }
+}
+
+func Append(inout values: Array<Int>, count: Int) -> Void {
+    for i in 0..count { ArrayPush(values, i + 7); }
+}
+
+func Rewrite(inout values: Array<Int>) -> Result<Int, BufferError> {
+    Clear(values);
+    Append(values, 3);
+    if ArrayLength(values) == 0 { return Err(BufferError.Empty); }
+    values[0] = values[0] + 4;
+    ArraySet(values, 2, 19);
+    return Ok(ArrayLength(values));
+}
+
+func Main() -> Void {
+    let mut values: Array<Int> = [1, 2];
+    match Rewrite(values) {
+        case Ok(count): if count != 3 { Exit(1); }
+        case Err(_): Exit(1);
+    }
+    if values[0] != 11 || values[1] != 8 || values[2] != 19 { Exit(1); }
+    ArrayDrop(values);
+    Log("ARRAY NESTED INOUT RELEASE PASS");
+}

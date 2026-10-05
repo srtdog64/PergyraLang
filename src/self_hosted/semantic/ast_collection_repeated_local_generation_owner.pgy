@@ -1,0 +1,28 @@
+// A fresh local definition inside one repeated body starts a new storage
+// generation on every iteration. Exact lexical binding owns visibility; this
+// owner proves only definition/use membership in that generation.
+import "../hir/ast_text_arena_projection_owner.pgy";
+
+func SemanticAstCollectionRepeatedLocalGenerationPrecedesUse(
+    ref artifact: AstTreeArtifact, definition_syntax_id: Int,
+    use_syntax_id: Int, scope_syntax_id: Int
+) -> Bool {
+    if artifact.count <= 0 || definition_syntax_id < 0 || use_syntax_id < 0 ||
+        definition_syntax_id >= use_syntax_id ||
+        definition_syntax_id >= artifact.count || use_syntax_id >= artifact.count ||
+        scope_syntax_id < 0 || scope_syntax_id >= artifact.count ||
+        ArrayLength(artifact.arena.parents) != artifact.count ||
+        ArrayLength(artifact.arena.kinds) != artifact.count { return false; }
+    let definition_parent: Int = artifact.arena.parents[definition_syntax_id];
+    let use_parent: Int = artifact.arena.parents[use_syntax_id];
+    let repeated_owner: Int = artifact.arena.parents[scope_syntax_id];
+    if definition_parent != scope_syntax_id || use_parent != scope_syntax_id ||
+        repeated_owner < 0 || repeated_owner >= artifact.count { return false; }
+    let use_kind: Int = artifact.arena.kinds[use_syntax_id];
+    if use_kind == TypedAstKindDeferStmtTag() ||
+        use_kind == TypedAstKindParallelBlockTag() ||
+        use_kind == TypedAstKindAsyncBlockTag() { return false; }
+    let repeated_kind: Int = artifact.arena.kinds[repeated_owner];
+    return repeated_kind == TypedAstKindWhileStmtTag() ||
+        repeated_kind == TypedAstKindForStmtTag();
+}

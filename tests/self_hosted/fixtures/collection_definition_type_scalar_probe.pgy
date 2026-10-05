@@ -1,0 +1,20 @@
+import "../../../src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy";
+
+func Classify(ref types: Array<String>, row: Int) -> Bool {
+    let type_name: String = Concat("", types[row]);
+    return SemanticAstCollectionOwnershipIsStringArray(type_name);
+}
+func Main() -> Void {
+    let types: Array<String> = [];
+    ArrayPushOwnedString(types, "Array<String>");
+    ArrayPushOwnedString(types, "Array<Int>");
+    ArrayPushOwnedString(types, "Slice<String>");
+    ArrayPushOwnedString(types, "Option<Array<String>>");
+    let string_array: Bool = Classify(types, 0);
+    let int_array: Bool = Classify(types, 1);
+    let string_slice: Bool = Classify(types, 2);
+    let nested_array: Bool = Classify(types, 3);
+    ArrayDropOwnedStrings(types);
+    if !string_array || int_array || string_slice || nested_array { Exit(1); }
+    Log("ARRAY TYPE SCALAR COPY PASS");
+}

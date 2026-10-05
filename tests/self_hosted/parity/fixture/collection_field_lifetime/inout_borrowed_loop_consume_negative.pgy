@@ -1,0 +1,15 @@
+func Append(inout values: Array<String>, value: String) -> Void {
+    ArrayPush(values, value);
+}
+
+func Consume(own values: Array<String>) -> Void {}
+
+func Main() -> Void {
+    let values: Array<String> = [];
+    let i: Int = 0;
+    while i < 2 {
+        Append(values, "live");
+        Consume(values);
+        i = i + 1;
+    }
+}

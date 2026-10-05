@@ -18,7 +18,8 @@ llvm_init_all_targets(void)
 }
 
 LLVMTargetMachineRef
-llvm_create_host_machine(char **triple_out, char **cpu_out, char **features_out)
+llvm_create_host_machine(bool release_opt, char **triple_out,
+                         char **cpu_out, char **features_out)
 {
     char *triple;
     char *cpu;
@@ -50,7 +51,10 @@ llvm_create_host_machine(char **triple_out, char **cpu_out, char **features_out)
             triple,
             cpu != NULL ? cpu : "generic",
             features != NULL ? features : "",
-            LLVMCodeGenLevelAggressive,
+            /* Dev already carries verified, O2-optimized IR. Re-running
+             * aggressive machine passes on every compiler-scale routine
+             * defeats its bounded edit loop; release keeps that policy. */
+            release_opt ? LLVMCodeGenLevelAggressive : LLVMCodeGenLevelNone,
             LLVMRelocDefault,
             LLVMCodeModelDefault);
     }

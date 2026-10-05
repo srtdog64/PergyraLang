@@ -1,0 +1,46 @@
+// Read-only source admission observer. No input program is emitted or run.
+import "../../../src/self_hosted/parser/program_parse_owner.pgy";
+import "../../../src/self_hosted/semantic/ast_body_type_bundle_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 { Exit(2); }
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(args[0]);
+    if !AstTreeArtifactReady(artifact) { Exit(2); }
+    let analysis: SemanticAstArtifactAnalysis = SemanticAstArtifactAnalyzeTyped(artifact, true);
+    if !analysis.verdict.ok { Log(analysis.verdict.diagnostic_code); Exit(2); }
+    let bundle: SemanticAstBodyTypeBundle = SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    Log("body_ok=" + ToString(bundle.verdict.ok));
+    Log("body_diagnostic=" + bundle.verdict.diagnostic_code);
+    if !bundle.verdict.ok { Log("body_message=" + bundle.verdict.diagnostic_message); }
+    let order: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(
+        analysis.expression_surfaces, bundle.iteration_types.synthetic_graph_root_ids,
+        bundle.match_materializations.synthetic_graph_root_ids);
+    Log("coverage_ok=" + ToString(order.ok));
+    let proved: HashMap<String, Int> = SemanticArrayStoragePreservingFormals(artifact, analysis, order);
+    let row: Int = 0;
+    while row < ArrayLength(analysis.signatures.function_node_ids) {
+        let param: Int = analysis.signatures.param_starts[row];
+        let end: Int = param + analysis.signatures.param_counts[row];
+        while param < end {
+            if IsSome(SemanticArrayElementType(analysis.signatures.param_types[param])) {
+                Log("formal=" + analysis.signatures.names[row] + ":" +
+                    ToString(analysis.signatures.param_node_ids[param]) + ":" +
+                    ToString(MapHas(proved, ToString(analysis.signatures.param_node_ids[param]))));
+            }
+            param = param + 1;
+        }
+        row = row + 1;
+    }
+    if ArrayLength(bundle.match_materializations.synthetic_graph_root_ids) > 0 {
+        let no_roots: Array<Int> = [];
+        let missing: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(
+            analysis.expression_surfaces, bundle.iteration_types.synthetic_graph_root_ids, no_roots);
+        let root: Int = bundle.match_materializations.synthetic_graph_root_ids[0];
+        let duplicates: Array<Int> = [root, root];
+        let duplicate: SemanticExpressionGraphSurfaceOrder = SemanticExpressionGraphSurfaceOrderFromFacts(
+            analysis.expression_surfaces, bundle.iteration_types.synthetic_graph_root_ids, duplicates);
+        Log("missing_tail_refused=" + ToString(!missing.ok));
+        Log("duplicate_tail_refused=" + ToString(!duplicate.ok));
+    }
+}

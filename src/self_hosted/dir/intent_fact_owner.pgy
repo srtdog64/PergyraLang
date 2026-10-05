@@ -19,6 +19,7 @@ import "intent_mode_fact_owner.pgy";
 import "intent_priority_fact_owner.pgy";
 import "intent_result_contract_owner.pgy";
 import "intent_exact_identity_contract_owner.pgy";
+import "intent_participant_contract_owner.pgy";
 func SelfDirIntentFactsFromArtifact(artifact: AstTreeArtifact, ref rows: SelfMirDeclarationRows,
     signatures: SemanticAstFunctionSignatureFacts,
     ref signature_facts: SemanticAstIntentSignatureFacts,
@@ -127,9 +128,9 @@ func SelfDirIntentFactsFromArtifact(artifact: AstTreeArtifact, ref rows: SelfMir
             ArrayPush(participant_node_ids,
                 signature_facts.param_node_ids[source_row]);
             ArrayPush(participant_is_values, is_value);
-            ArrayPush(participant_aliases,
+            ArrayPushOwnedString(participant_aliases,
                 signature_facts.param_names[source_row]);
-            ArrayPush(participant_type_names, type_name);
+            ArrayPushOwnedString(participant_type_names, type_name);
             ArrayPush(participant_declaration_indices, declaration_index);
             edge_count = edge_count + 1;
             p = p + 1;
@@ -172,7 +173,7 @@ func SelfDirIntentFactsFromArtifact(artifact: AstTreeArtifact, ref rows: SelfMir
                     ArrayLength(step_node_ids) - step_start;
                 let resolved: SelfDirIntentResolvedStep =
                     SelfDirIntentStepFromArtifact(
-                        artifact, rows, signatures, signature_facts,
+                        artifact, rows, signatures, signatures.action_contracts, signature_facts,
                         expression_surfaces, intent_index, child_id,
                         participant_aliases, participant_type_names,
                         participant_is_values, participant_start,
@@ -431,45 +432,10 @@ func SelfDirIntentFactsReady(
                     ArrayLength(facts.steps.authorized_names) {
                 return false;
             }
-            let using_row: Int = SelfDirIntentParticipantIndex(
-                facts.participants.aliases, p_start, p_count,
-                facts.steps.using_aliases[step_row]
-            );
-            if (facts.steps.target_kinds[step_row] == "action" ||
-                facts.steps.using_aliases[step_row] != "") &&
-                (using_row < 0 || facts.participants.is_values[using_row] ||
-                 facts.participants.type_names[using_row] !=
-                    facts.steps.where_zone_names[step_row]) {
-                return false;
-            }
-            if !SelfDirIntentStepPlacementReceiverReady(
+            if !SelfDirIntentStepParticipantContractReady(
                 facts.participants, p_start, p_count, facts.steps, step_row
             ) {
                 return false;
-            }
-            let name_i: Int = 0;
-            while name_i < who_count {
-                let participant_row: Int = SelfDirIntentParticipantIndex(
-                    facts.participants.aliases, p_start, p_count,
-                    facts.steps.who_names[who_start + name_i]
-                );
-                if participant_row < 0 ||
-                    facts.participants.is_values[participant_row] {
-                    return false;
-                }
-                name_i = name_i + 1;
-            }
-            name_i = 0;
-            while name_i < authorized_count {
-                let participant_row: Int = SelfDirIntentParticipantIndex(
-                    facts.participants.aliases, p_start, p_count,
-                    facts.steps.authorized_names[authorized_start + name_i]
-                );
-                if participant_row < 0 ||
-                    facts.participants.is_values[participant_row] {
-                    return false;
-                }
-                name_i = name_i + 1;
             }
             expected_who_start = expected_who_start + who_count;
             expected_requires_start = expected_requires_start + requires_count;

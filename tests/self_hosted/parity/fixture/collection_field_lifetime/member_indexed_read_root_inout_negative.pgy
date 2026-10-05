@@ -1,0 +1,8 @@
+struct Table { names: Array<String>; }
+func Reads(ref names: Array<String>) -> Bool { return names[0] == "x"; }
+func Change(inout table: Table) -> Void { Log(ArrayLength(table.names)); }
+func Observe(table: Table) -> Bool {
+    Change(table);
+    return Reads(table.names);
+}
+func Main() -> Void {}

@@ -5,36 +5,8 @@ import "direct_mir_scalar_program_logical_record_array_target_owner.pgy";
 import "direct_mir_scalar_program_hashmap_expression_location_owner.pgy";
 import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
 
-func DirectMirArrayStoragePlainType(ref plan: DirectMirScalarCfgGraphPlan,
-    type_name: String, depth: Int) -> Bool {
-    if depth >= 32 { return false; }
-    if type_name == "Int" || type_name == "Long" || type_name == "Float" ||
-        type_name == "Double" || type_name == "Bool" || type_name == "Duration" { return true; }
-    let record: Int = DirectMirScalarProgramLogicalRecordRow(plan.program.logical_record, type_name);
-    if record >= 0 {
-        let field: Int = plan.program.logical_record.field_starts[record];
-        let end: Int = field + plan.program.logical_record.field_counts[record];
-        while field < end {
-            if !DirectMirArrayStoragePlainType(plan, plan.program.logical_record.field_types[field], depth + 1) { return false; }
-            field = field + 1;
-        }
-        return true;
-    }
-    let enum_row: Int = DirectMirScalarProgramReferencedEnumRow(plan.program.referenced_enum, type_name);
-    if enum_row < 0 { return false; }
-    let variant: Int = plan.program.referenced_enum.variant_starts[enum_row];
-    let end: Int = variant + plan.program.referenced_enum.variant_counts[enum_row];
-    while variant < end {
-        let payload: Int = plan.program.referenced_enum.variant_param_type_starts[variant];
-        let payload_end: Int = payload + plan.program.referenced_enum.variant_param_counts[variant];
-        while payload < payload_end {
-            if !DirectMirArrayStoragePlainType(plan, plan.program.referenced_enum.variant_param_types[payload], depth + 1) { return false; }
-            payload = payload + 1;
-        }
-        variant = variant + 1;
-    }
-    return true;
-}
+import "direct_mir_array_storage_element_lifetime_owner.pgy";
+import "direct_mir_array_storage_call_preservation_owner.pgy";
 
 func DirectMirArrayStorageExpressionUses(ref expressions: DirectMirScalarProgramExpressionSet,
     graph_row: Int, binding: Int, parameter: Bool) -> Bool {
@@ -108,7 +80,8 @@ func DirectMirArrayStorageAfterDropReady(ref plan: DirectMirScalarCfgGraphPlan,
 }
 
 func DirectMirArrayStorageExpressionEscapes(ref plan: DirectMirScalarCfgGraphPlan,
-    graph_row: Int, binding: Int, parameter: Bool, releasing_node: Int) -> Bool {
+    graph_row: Int, binding: Int, parameter: Bool, releasing_node: Int,
+    preserving_parameters: HashMap<String, Int>) -> Bool {
     if graph_row < 0 { return false; }
     let node: Int = plan.program.expressions.graph_starts[graph_row];
     let end: Int = node + plan.program.expressions.graph_counts[graph_row];
@@ -132,7 +105,8 @@ func DirectMirArrayStorageExpressionEscapes(ref plan: DirectMirScalarCfgGraphPla
                     if target < 0 || target >= ArrayLength(plan.routines.parameter_counts) ||
                         argument >= plan.routines.parameter_counts[target] { return true; }
                     let carriage: String = plan.routines.parameter_carriages[plan.routines.parameter_starts[target] + argument];
-                    if carriage == "owner-handle" || carriage == "value-result" { return true; }
+                    if carriage == "owner-handle" || (carriage == "value-result" &&
+                        !MapHas(preserving_parameters, ToString(plan.routines.parameter_starts[target] + argument))) { return true; }
                     if plan.routines.return_types[target] != "Void" &&
                         !DirectMirArrayStoragePlainType(plan, plan.routines.return_types[target], 0) { return true; }
                 }
@@ -145,7 +119,8 @@ func DirectMirArrayStorageExpressionEscapes(ref plan: DirectMirScalarCfgGraphPla
 }
 
 func DirectMirArrayStorageBindingReleaseReady(ref plan: DirectMirScalarCfgGraphPlan,
-    receiver: Int, releasing_node: Int, operation: Int, routine: Int) -> Bool {
+    receiver: Int, releasing_node: Int, operation: Int, routine: Int,
+    preserving_parameters: HashMap<String, Int>) -> Bool {
     let element: Option<String> = SemanticArrayElementType(plan.program.expressions.node_types[receiver]);
     if !IsSome(element) || !DirectMirArrayStoragePlainType(plan, UnwrapOption(element), 0) { return false; }
     let parameter: Bool = plan.program.expressions.node_kinds[receiver] == DirectMirScalarProgramExprParameter();
@@ -176,15 +151,15 @@ func DirectMirArrayStorageBindingReleaseReady(ref plan: DirectMirScalarCfgGraphP
         if result >= 0 && (parameter || plan.value_local_rows[result] != binding) &&
             IsSome(SemanticArrayElementType(plan.value_types[result])) &&
             DirectMirArrayStorageOperationUses(plan, index, binding, parameter) { return false; }
-        if DirectMirArrayStorageExpressionEscapes(plan, plan.program.operation_expression_rows[index], binding, parameter, releasing_node) ||
-            DirectMirArrayStorageExpressionEscapes(plan, plan.program.operation_secondary_expression_rows[index], binding, parameter, releasing_node) { return false; }
+        if DirectMirArrayStorageExpressionEscapes(plan, plan.program.operation_expression_rows[index], binding, parameter, releasing_node, preserving_parameters) ||
+            DirectMirArrayStorageExpressionEscapes(plan, plan.program.operation_secondary_expression_rows[index], binding, parameter, releasing_node, preserving_parameters) { return false; }
         index = index + 1;
     }
     let block: Int = plan.routines.block_starts[routine];
     let block_end: Int = block + plan.routines.block_counts[routine];
     while block < block_end {
-        if DirectMirArrayStorageExpressionEscapes(plan, plan.program.block_condition_expression_rows[block], binding, parameter, releasing_node) ||
-            DirectMirArrayStorageExpressionEscapes(plan, plan.program.block_return_expression_rows[block], binding, parameter, releasing_node) ||
+        if DirectMirArrayStorageExpressionEscapes(plan, plan.program.block_condition_expression_rows[block], binding, parameter, releasing_node, preserving_parameters) ||
+            DirectMirArrayStorageExpressionEscapes(plan, plan.program.block_return_expression_rows[block], binding, parameter, releasing_node, preserving_parameters) ||
             DirectMirArrayStorageExpressionUses(plan.program.expressions, plan.program.block_return_expression_rows[block], binding, parameter) { return false; }
         block = block + 1;
     }
@@ -252,6 +227,7 @@ func DirectMirArrayStorageReleaseLifetimeReady(ref plan: DirectMirScalarCfgGraph
         node = node + 1;
     }
     if !found { return true; }
+    let preserving_parameters: HashMap<String, Int> = DirectMirArrayStoragePreservingParameters(plan);
     let required: HashMap<String, Int> = DirectMirArrayStorageReleaseRequirements(plan);
     node = 0;
     while node < ArrayLength(plan.program.expressions.node_kinds) {
@@ -263,7 +239,7 @@ func DirectMirArrayStorageReleaseLifetimeReady(ref plan: DirectMirScalarCfgGraph
             if kind == DirectMirScalarProgramExprArrayDropStorage() {
                 if operation < 0 || plan.operation_kinds[operation] != DirectMirScalarCfgOpExpressionStatement() ||
                     plan.program.expressions.graph_roots[graph_row] != node || routine < 0 { return false; }
-                if !DirectMirArrayStorageBindingReleaseReady(plan, plan.program.expressions.node_lefts[node], node, operation, routine) { return false; }
+                if !DirectMirArrayStorageBindingReleaseReady(plan, plan.program.expressions.node_lefts[node], node, operation, routine, preserving_parameters) { return false; }
             } else {
                 let target: Int = plan.program.expressions.node_callable_rows[node];
                 if target < 0 || target >= ArrayLength(plan.routines.parameter_counts) { return false; }
@@ -271,7 +247,7 @@ func DirectMirArrayStorageReleaseLifetimeReady(ref plan: DirectMirScalarCfgGraph
                 let arg: Int = 0;
                 while arg < ArrayLength(arguments) {
                     if MapHas(required, ToString(plan.routines.parameter_starts[target] + arg)) {
-                        if operation < 0 || routine < 0 || !DirectMirArrayStorageBindingReleaseReady(plan, arguments[arg], node, operation, routine) ||
+                        if operation < 0 || routine < 0 || !DirectMirArrayStorageBindingReleaseReady(plan, arguments[arg], node, operation, routine, preserving_parameters) ||
                             !DirectMirArrayStorageCallArgumentExclusive(plan.program.expressions, arguments, arg) { return false; }
                     }
                     arg = arg + 1;

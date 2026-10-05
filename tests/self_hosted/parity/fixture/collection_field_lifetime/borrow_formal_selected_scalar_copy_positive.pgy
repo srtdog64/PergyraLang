@@ -1,0 +1,23 @@
+func Select(ref aliases: Array<String>, ref type_names: Array<String>,
+    start: Int, count: Int, type_name: String) -> String {
+    let found: String = "";
+    let i: Int = 0;
+    while i < count {
+        let row: Int = start + i;
+        if type_names[row] == type_name {
+            if found != "" { return ""; }
+            found = Concat("", aliases[row]);
+        }
+        i = i + 1;
+    }
+    return found;
+}
+func Main() -> Void {
+    let aliases: Array<String> = [];
+    let type_names: Array<String> = [];
+    ArrayPushOwnedString(aliases, "compiler");
+    ArrayPushOwnedString(type_names, "Compiler");
+    Log(Select(aliases, type_names, 0, 1, "Compiler"));
+    ArrayDropOwnedStrings(type_names);
+    ArrayDropOwnedStrings(aliases);
+}

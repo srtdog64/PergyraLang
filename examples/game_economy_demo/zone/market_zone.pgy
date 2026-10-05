@@ -1,0 +1,22 @@
+// zone/market_zone.pgy — 거래 존
+//
+// 단일 책임: MarketZone 하나(슬롯·권한·상태·refresh).
+import "subject/player.pgy";
+import "effect/effects.pgy";
+import "effect/relations.pgy";
+
+zone MarketZone {
+    subject slot seller: Player
+    subject slot buyer: Player
+    object slot sellerView: PlayerSnapshot
+    effect slot tax: Spent
+    relation slot trade: TradeLink
+
+    state taxed: effect tax on seller
+    apply tax to seller by seller
+    link trade between seller, buyer by seller
+    refresh sellerView from seller by seller
+    maintain taxed by seller
+    authority seller requires Tradable
+    forbids unsafe
+}

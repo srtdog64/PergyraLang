@@ -1,0 +1,21 @@
+func Append(inout values: Array<String>, ref actuals: Array<String>) -> Void {
+    let index: Int = 0;
+    while index < ArrayLength(actuals) {
+        ArrayPushOwnedString(values, actuals[index]);
+        index = index + 1;
+    }
+}
+func Capture(inout values: Array<String>) -> Void {
+    ArrayPushOwnedString(values, "captured");
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    let actuals: Array<String> = ["seed"];
+    Append(values, actuals);
+    let iteration: Int = 0;
+    while iteration < 2 {
+        Capture(values);
+        iteration = iteration + 1;
+    }
+    ArrayDropOwnedStrings(values);
+}

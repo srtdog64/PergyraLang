@@ -16,13 +16,40 @@ must originate from an array literal and retain exclusive storage provenance,
 or an `own` parameter must transfer that authority explicitly. General call
 results remain refused until return ownership has an explicit carrier. A live
 `Slice` prevents invalidating its backing storage. Aliased/escaped descriptors
-and unproved field/element extraction fail closed. An inout handoff or a borrowed
-call returning a resource-bearing result also ends unproved exclusive storage
-provenance; naming a temporary alone does not manufacture ownership.
+and unproved field/element extraction fail closed. A synchronous `inout` call
+preserves the caller's existing release authority only when its exact formal-use
+summary proves no descriptor retention or rebind. Plain element mutation is not
+a descriptor escape. Unknown targets, owned forwarding, opaque/deferred execution
+and borrowed calls returning resource-bearing results remain unproved; naming a
+temporary alone does not manufacture ownership. The callee's borrowed parameter
+never gains release authority from this caller-side preservation fact.
 
 A non-escaping read-only borrow does not consume storage. An `own` argument
 cannot share its binding with another argument of the same call, including a
 read-only borrow; callee ordering is not proof of independent release authority.
+
+```pgy
+func Fill(inout values: Array<Int>) -> Void { ArrayPush(values, 7); }
+func Main() -> Void {
+    let mut values: Array<Int> = [];
+    Fill(values);
+    ArrayDrop(values);
+}
+```
+
+The demanded native parameter-flow owner carries a separate preservation facet;
+the six existing Slot mask bits are not a retention certificate. Self-host source
+and untrusted MIR admission prove the same obligation from their owned facts.
+Source graph coverage includes only exact match/foreach synthetic binding handles,
+never an exemption based on generated-name spelling or an ignored graph tail.
+
+The reached source collection-call owner distinguishes shallow descriptor
+copyout from consumption in its definition-bound negative effects. A proved
+shallow call can update the exact current exclusive descriptor repeatedly;
+stale sibling descriptors still inherit invalidation. Consume/release, unknown
+effects, storage escape and detached use remain separate negative obligations.
+This distinction does not grant owned-string element cleanup or release rights
+to a borrowed formal.
 
 `CompilerRetireArrayStorage` remains private to its exact registered compiler
 lifetime owners. Public release does not weaken that caller registry.

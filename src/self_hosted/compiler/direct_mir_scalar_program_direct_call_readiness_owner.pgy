@@ -2,14 +2,54 @@
 import "direct_mir_scalar_program_expression_fact_owner.pgy";
 import "direct_mir_scalar_program_callable_parameter_policy_owner.pgy";
 
+struct DirectMirScalarProgramArgumentView {
+    valid: Bool; nary: Bool; start: Int; count: Int; left: Int; right: Int;
+}
+
+// A scalar view of the canonical operand span avoids a new descriptor for a
+// read-only use. Binary and n-ary encodings remain owned by this one reader.
+func DirectMirScalarProgramArgumentViewFromNode(ref facts: DirectMirScalarProgramExpressionSet,
+    node: Int) -> DirectMirScalarProgramArgumentView {
+    let missing: DirectMirScalarProgramArgumentView = DirectMirScalarProgramArgumentView(false, false, -1, 0, -1, -1);
+    if node < 0 || node >= ArrayLength(facts.node_kinds) ||
+        ArrayLength(facts.node_lefts) != ArrayLength(facts.node_kinds) ||
+        ArrayLength(facts.node_rights) != ArrayLength(facts.node_kinds) || !facts.nary_operands.valid { return missing; }
+    let entry: Int = DirectMirScalarProgramNaryOperandEntry(facts.nary_operands, node);
+    if entry >= 0 {
+        if entry >= ArrayLength(facts.nary_operands.starts) || entry >= ArrayLength(facts.nary_operands.counts) { return missing; }
+        let start: Int = facts.nary_operands.starts[entry]; let count: Int = facts.nary_operands.counts[entry];
+        if start < 0 || count < 0 || start > ArrayLength(facts.nary_operands.operand_rows) ||
+            count > ArrayLength(facts.nary_operands.operand_rows) - start { return missing; }
+        if count > 0 { return DirectMirScalarProgramArgumentView(true, true, start, count, -1, -1); }
+    }
+    let left: Int = facts.node_lefts[node]; let right: Int = facts.node_rights[node];
+    if left >= node || right >= node { return missing; }
+    let count: Int = 0;
+    if left >= 0 { count = count + 1; }
+    if right >= 0 { count = count + 1; }
+    return DirectMirScalarProgramArgumentView(true, false, -1, count, left, right);
+}
+
+func DirectMirScalarProgramArgumentViewAt(ref facts: DirectMirScalarProgramExpressionSet,
+    view: DirectMirScalarProgramArgumentView, ordinal: Int) -> Int {
+    if !view.valid || ordinal < 0 || ordinal >= view.count { return -1; }
+    if view.nary { return facts.nary_operands.operand_rows[view.start + ordinal]; }
+    if ordinal == 0 && view.left >= 0 { return view.left; }
+    return view.right;
+}
+
 func DirectMirScalarProgramDirectCallArgumentRows(ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Array<Int> {
-    let rows: Array<Int> = DirectMirScalarProgramNaryOperandRows(facts.nary_operands, node);
-    if ArrayLength(rows) != 0 { return rows; }
-    if facts.node_lefts[node] >= 0 { ArrayPush(rows, facts.node_lefts[node]); }
-    if facts.node_rights[node] >= 0 { ArrayPush(rows, facts.node_rights[node]); }
+    let rows: Array<Int> = [];
+    let view: DirectMirScalarProgramArgumentView = DirectMirScalarProgramArgumentViewFromNode(facts, node);
+    let ordinal: Int = 0;
+    while view.valid && ordinal < view.count {
+        ArrayPush(rows, DirectMirScalarProgramArgumentViewAt(facts, view, ordinal));
+        ordinal = ordinal + 1;
+    }
     return rows;
 }
 func DirectMirScalarProgramDirectCallNodeReady(ref facts: DirectMirScalarProgramExpressionSet, node: Int) -> Bool {
+    if !DirectMirScalarProgramArgumentViewFromNode(facts, node).valid { return false; }
     let arguments: Array<Int> =
         DirectMirScalarProgramDirectCallArgumentRows(facts, node);
     if facts.node_kinds[node] != DirectMirScalarProgramExprDirectCall() ||

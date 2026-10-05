@@ -1,0 +1,22 @@
+struct Facts { names: Array<String>; }
+
+func ErrorFacts(names: Array<String>) -> Facts { return Facts(names); }
+
+func Append(inout names: Array<String>) -> Void {
+    ArrayPush(names, "live");
+}
+
+func Build(stop: Bool) -> Facts {
+    let names: Array<String> = [];
+    Append(names);
+    if stop { return ErrorFacts(names); }
+    let retained: Facts = ErrorFacts(names);
+    Append(names);
+    Log(ArrayLength(retained.names));
+    return Facts(names);
+}
+
+func Main() -> Void {
+    let facts: Facts = Build(false);
+    Log(ArrayLength(facts.names));
+}

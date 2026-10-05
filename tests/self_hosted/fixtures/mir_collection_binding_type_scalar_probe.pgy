@@ -1,0 +1,27 @@
+import "../../../src/self_hosted/mir/collection_ownership_fact_owner.pgy";
+
+func Main() -> Void {
+    let local_types: Array<String> = [];
+    ArrayPushOwnedString(local_types, "Box<String>");
+    let local_ids: Array<Int> = [10];
+    let parameter_types: Array<String> = [];
+    ArrayPushOwnedString(parameter_types, "String");
+    ArrayPushOwnedString(parameter_types, "Bool");
+    ArrayPushOwnedString(parameter_types, "Array<Int>");
+    let parameter_ids: Array<Int> = [20, 20, 30];
+    // Native arbitrary String results have no independent-lifetime carrier.
+    // This probe copies at its boundary and checks lookup values, not that grant.
+    let local_type: String = Concat("", SelfMirCollectionOwnershipBindingType(
+        local_types, local_ids, parameter_types, parameter_ids, 10));
+    let parameter_type: String = Concat("", SelfMirCollectionOwnershipBindingType(
+        local_types, local_ids, parameter_types, parameter_ids, 30));
+    let duplicate_type: String = Concat("", SelfMirCollectionOwnershipBindingType(
+        local_types, local_ids, parameter_types, parameter_ids, 20));
+    let missing_type: String = Concat("", SelfMirCollectionOwnershipBindingType(
+        local_types, local_ids, parameter_types, parameter_ids, 99));
+    ArrayDropOwnedStrings(local_types);
+    ArrayDropOwnedStrings(parameter_types);
+    if local_type != "Box<String>" || parameter_type != "Array<Int>" ||
+        duplicate_type != "" || missing_type != "" { Exit(1); }
+    Log("MIR BINDING TYPE SCALAR COPY PASS");
+}

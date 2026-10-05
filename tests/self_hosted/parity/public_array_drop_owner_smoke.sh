@@ -6,10 +6,17 @@ cd "$ROOT_DIR"
 PYTHON="${PYTHON_BIN:-python3}"
 "$PYTHON" scripts/source_size_count.py --caps <<'CAPS'
 150	src/semantic/array_storage_release_owner.c
+60	src/semantic/array_storage_element_lifetime_owner.c
+170	src/semantic/function_param_array_storage_transfer_owner.c
+210	src/self_hosted/semantic/array_storage_call_preservation_owner.pgy
+80	src/self_hosted/semantic/ast_expression_graph_surface_order_owner.pgy
 240	src/self_hosted/semantic/array_storage_release_verdict_owner.pgy
 110	src/self_hosted/semantic/array_storage_release_parameter_requirement_owner.pgy
 60	src/self_hosted/semantic/array_storage_element_lifetime_owner.pgy
 360	src/self_hosted/compiler/direct_mir_array_storage_release_lifetime_owner.pgy
+180	src/self_hosted/compiler/direct_mir_array_storage_call_preservation_owner.pgy
+60	src/self_hosted/compiler/direct_mir_array_storage_element_lifetime_owner.pgy
+130	src/self_hosted/compiler/direct_mir_scalar_program_direct_call_readiness_owner.pgy
 30	src/self_hosted/compiler/direct_mir_scalar_program_owned_array_value_parameter_policy_owner.pgy
 CAPS
 "$PYTHON" - <<'PY'
@@ -26,6 +33,21 @@ assert "return DirectMirScalarProgramExprArrayDropStorage();" in (
     root / "direct_mir_scalar_program_task_expression_kind_owner.pgy").read_text(encoding="utf-8")
 native = pathlib.Path("src/semantic/builtin_name_reservation.def").read_text(encoding="utf-8")
 selfhost = pathlib.Path("src/self_hosted/semantic/builtin_shadow_owner.pgy").read_text(encoding="utf-8")
+release = pathlib.Path("src/semantic/array_storage_release_owner.c").read_text(encoding="utf-8")
+assert "function_param_flow_preserves_array_storage(ctx, callee_decl, ordinal)" in release
+assert "static bool\narray_storage_plain_element" not in release
+summary = pathlib.Path("src/semantic/function_param_flow_summary.c").read_text(encoding="utf-8")
+assert "function_param_array_storage_unproved_in_program_points(" in summary
+assert "array_storage_unproved" in summary
+storage = pathlib.Path("src/self_hosted/semantic/array_storage_release_parameter_requirement_owner.pgy").read_text(encoding="utf-8")
+assert "if mode == 1 { return true; }" not in storage
+assert "!MapHas(preserving_formals, ToString(formal))" in storage
+mir_release = (root / "direct_mir_array_storage_release_lifetime_owner.pgy").read_text(encoding="utf-8")
+assert "DirectMirArrayStoragePreservingParameters(plan)" in mir_release
+assert '!MapHas(preserving_parameters, ToString(plan.routines.parameter_starts[target] + argument))' in mir_release
+mir_proof = (root / "direct_mir_array_storage_call_preservation_owner.pgy").read_text(encoding="utf-8")
+assert "DirectMirScalarProgramArgumentViewFromNode(" in mir_proof
+assert "DirectMirScalarProgramDirectCallArgumentRows(" not in mir_proof
 assert native.count('PGY_BUILTIN_NAME_RESERVED(TYPED_PROTOCOL, "ArrayDrop")') == 1
 assert selfhost.count('"TYPED_PROTOCOL^ArrayDrop"') == 1
 assert '"ArrayDrop^Void^Unknown"' in pathlib.Path(

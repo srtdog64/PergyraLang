@@ -581,7 +581,7 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
     llvm_debug_dump_module_ir(ctx, "PGY_LLVM_DUMP_OBJ_IR");
 
     llvm_debug_stage("codegen_to_object:create_machine");
-    machine = llvm_create_host_machine(&triple, &cpu, &features);
+    machine = llvm_create_host_machine(release_opt, &triple, &cpu, &features);
     if (machine == NULL) {
         LLVMGenResult *res = llvm_result_error("Cannot create LLVM target machine");
         llvm_ctx_destroy(ctx);

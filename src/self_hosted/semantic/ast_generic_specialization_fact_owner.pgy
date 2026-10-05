@@ -93,7 +93,8 @@ func SemanticAstGenericSpecializationAppend(
     let i: Int = 0;
     while i < ArrayLength(actuals) {
         if actuals[i] == "" { return false; }
-        ArrayPush(actual_type_names, Concat("", actuals[i]));
+        // This persistent accumulator owns copies across later inout captures.
+        ArrayPushOwnedString(actual_type_names, actuals[i]);
         i = i + 1;
     }
     return true;

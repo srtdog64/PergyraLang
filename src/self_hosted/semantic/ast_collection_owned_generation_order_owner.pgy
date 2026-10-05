@@ -3,12 +3,13 @@
 import "ast_collection_definition_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_repeated_local_generation_owner.pgy";
 import "ast_collection_formal_execution_context_owner.pgy";
 
 func SemanticAstCollectionFreshLocalGenerationAtUse(
     ref artifact: AstTreeArtifact, ref locals: SemanticAstLocalBindingFacts,
     ref definitions: SemanticAstCollectionDefinitionFacts,
-    row: Int, definition: Int, use_id: Int
+    row: Int, definition: Int, use_id: Int, allow_nested_read: Bool
 ) -> Bool {
     if !locals.ok || !definitions.ok || row < 0 || definition < 0 ||
         definition >= definitions.local_count || row >= ArrayLength(locals.node_ids) ||
@@ -31,10 +32,14 @@ func SemanticAstCollectionFreshLocalGenerationAtUse(
     while node != scope && remaining > 0 {
         if node < 0 || node >= artifact.count { return false; }
         let kind: Int = artifact.arena.kinds[node];
-        // Conditional lexical scopes do not repeat or detach the generation.
-        // Nested loops, deferred/worker bodies and unknown scopes are absent.
+        // Reads may repeat. Consumption through another loop is unique only
+        // when this exact scope exits the function, not merely that loop.
+        // Neither path admits detached scopes or a missing exit fact.
         if kind != TypedAstKindBlockTag() && kind != TypedAstKindThenTag() &&
-            kind != TypedAstKindElseStmtTag() && kind != TypedAstKindIfStmtTag() {
+            kind != TypedAstKindElseStmtTag() && kind != TypedAstKindIfStmtTag() &&
+            !((kind == TypedAstKindWhileStmtTag() || kind == TypedAstKindForStmtTag()) &&
+                (allow_nested_read || SemanticAstCollectionTerminatingRetirementScope(
+                    artifact, use_id, true) >= 0)) {
             return false;
         }
         anchor = node; node = artifact.arena.parents[node]; remaining = remaining - 1;
@@ -46,6 +51,31 @@ func SemanticAstCollectionFreshLocalGenerationAtUse(
         !SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, use_id);
 }
 
+// The existing exit-scope fact is shared by continuing-effect projection and
+// ordered retirement visibility. Missing shape is never a terminal certificate.
+func SemanticAstCollectionTerminatingRetirementScope(
+    ref artifact: AstTreeArtifact, retirement: Int, require_function_exit: Bool
+) -> Int {
+    if retirement <= 0 || retirement >= artifact.count ||
+        ArrayLength(artifact.arena.parents) != artifact.count ||
+        ArrayLength(artifact.arena.kinds) != artifact.count ||
+        ArrayLength(artifact.arena.child_counts) != artifact.count ||
+        ArrayLength(artifact.arena.first_children) != artifact.count { return -1; }
+    let scope: Int = artifact.arena.parents[retirement];
+    if scope < 0 || scope >= artifact.count ||
+        artifact.arena.kinds[scope] != TypedAstKindBlockTag() { return -1; }
+    let count: Int = artifact.arena.child_counts[scope];
+    let edge: Int = artifact.arena.first_children[scope] + count - 1;
+    if count <= 0 || edge < 0 || edge >= ArrayLength(artifact.arena.children) { return -1; }
+    let terminal: Int = artifact.arena.children[edge];
+    if terminal < retirement || terminal >= artifact.count { return -1; }
+    let kind: Int = artifact.arena.kinds[terminal];
+    if kind == TypedAstKindBareReturnStmtTag() || kind == TypedAstKindValueReturnStmtTag() ||
+        kind == TypedAstKindExitStmtTag() || (!require_function_exit &&
+            (kind == TypedAstKindContinueStmtTag() || kind == TypedAstKindBreakStmtTag())) { return scope; }
+    return -1;
+}
+
 func SemanticAstCollectionOwnRetirementVisibleAtUse(
     ref artifact: AstTreeArtifact, retirement: Int, use_id: Int,
     fresh_generation: Bool
@@ -53,23 +83,8 @@ func SemanticAstCollectionOwnRetirementVisibleAtUse(
     if !fresh_generation || retirement <= 0 || retirement >= use_id {
         return SemanticAstCollectionMutableCallMayBeRetired(artifact, use_id, retirement);
     }
-    if retirement >= artifact.count || use_id >= artifact.count ||
-        ArrayLength(artifact.arena.parents) != artifact.count ||
-        ArrayLength(artifact.arena.kinds) != artifact.count ||
-        ArrayLength(artifact.arena.child_counts) != artifact.count ||
-        ArrayLength(artifact.arena.first_children) != artifact.count { return true; }
-    let scope: Int = artifact.arena.parents[retirement];
-    if scope < 0 || scope >= artifact.count ||
-        artifact.arena.kinds[scope] != TypedAstKindBlockTag() { return true; }
-    let count: Int = artifact.arena.child_counts[scope];
-    let edge: Int = artifact.arena.first_children[scope] + count - 1;
-    if count <= 0 || edge < 0 || edge >= ArrayLength(artifact.arena.children) { return true; }
-    let terminal: Int = artifact.arena.children[edge];
-    if terminal < 0 || terminal >= artifact.count { return true; }
-    let kind: Int = artifact.arena.kinds[terminal];
-    if kind != TypedAstKindBareReturnStmtTag() && kind != TypedAstKindValueReturnStmtTag() &&
-        kind != TypedAstKindContinueStmtTag() && kind != TypedAstKindBreakStmtTag() &&
-        kind != TypedAstKindExitStmtTag() { return true; }
+    let scope: Int = SemanticAstCollectionTerminatingRetirementScope(artifact, retirement, false);
+    if scope < 0 || use_id >= artifact.count { return true; }
     // The transfer still retires every use in this scope, including the return
     // expression. Only another normal path outside its unconditional exit is live.
     let node: Int = use_id; let remaining: Int = artifact.count;

@@ -1,0 +1,17 @@
+func Encode(value: String) -> String { return Concat("T", value); }
+func Name(ref values: Array<String>) -> String {
+    let output: String = "";
+    let index: Int = 0;
+    while index < ArrayLength(values) {
+        output = Concat(output, Encode(Concat("", values[index])));
+        index = index + 1;
+    }
+    return output;
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "Int");
+    let name: String = Name(values);
+    Log(name);
+    ArrayDropOwnedStrings(values);
+}

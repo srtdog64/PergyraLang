@@ -82,6 +82,9 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
     let current: Array<Int> = [];
     let ownership: Array<Int> = []; let dispositions: Array<Int> = []; let origins: Array<Int> = [];
     let transitions: Array<Int> = []; let source_ids: Array<Int> = [];
+    let retained: Array<Bool> = [];
+    row = 0;
+    while row < ArrayLength(definitions.syntax_ids) { ArrayPush(retained, false); row = row + 1; }
     row = 0;
     while row < definitions.local_count {
         ArrayPush(current, -1); ArrayPush(ownership, SemanticAstCollectionOwnershipUnknown());
@@ -99,9 +102,9 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
     if mode == 90 || mode == 93 {
         let before: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
             artifact, analysis.signatures, locals, bundle.initializer_types.inferred_type_names, surfaces, argument_surface,
-            edge, false, formal.effects, owned_push_leaf_formals,
+            edge, false, false, formal.effects, owned_push_leaf_formals,
             requirements, field_requirements, ownership, dispositions,
-            origins, transitions, effects, storage, definitions, current);
+            origins, transitions, effects, storage, definitions, current, retained);
         ok = !before.ok && before.diagnostic_code == "borrow_boundary_escape" && current[owned] == -1;
         if mode == 93 { slot = slot - AstExpressionLaneValue(); }
     } else {
@@ -116,9 +119,9 @@ func InspectCollectionStorageProducer(artifact: AstTreeArtifact,
     if mode == 90 {
         let after: SemanticAstCollectionOwnershipVerdict = SemanticAstCollectionCallArgumentVerdict(
             artifact, analysis.signatures, locals, bundle.initializer_types.inferred_type_names, surfaces, argument_surface,
-            edge, false, formal.effects, owned_push_leaf_formals,
+            edge, false, false, formal.effects, owned_push_leaf_formals,
             requirements, field_requirements, ownership, dispositions,
-            origins, transitions, effects, storage, definitions, current);
+            origins, transitions, effects, storage, definitions, current, retained);
         ok = ok && completed.ok && current[owned] == owned && after.ok;
     } else if mode == 93 { ok = ok && completed.ok && current[owned] == -1; }
     else if mode == 92 {

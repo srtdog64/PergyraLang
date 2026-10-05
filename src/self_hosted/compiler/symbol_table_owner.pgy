@@ -306,8 +306,9 @@ func CompilerSymbolCGenericSpecializationName(
     let out: String = CompilerSymbolCIdentifier(base_name);
     let i: Int = 0;
     while i < ArrayLength(actual_type_names) {
+        // The encoder receives a scalar copy, not a borrowed array element.
         out = Concat(out, Concat(
-            "_", CompilerSymbolCGenericActualName(actual_type_names[i])
+            "_", CompilerSymbolCGenericActualName(Concat("", actual_type_names[i]))
         ));
         i = i + 1;
     }

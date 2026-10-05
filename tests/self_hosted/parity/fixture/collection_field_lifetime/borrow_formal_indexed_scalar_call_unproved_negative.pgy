@@ -1,0 +1,11 @@
+func Keep(value: String) -> String { return value; }
+func Name(ref values: Array<String>) -> String {
+    return Keep(values[0]);
+}
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "Int");
+    let name: String = Name(values);
+    ArrayDropOwnedStrings(values);
+    Log(name);
+}

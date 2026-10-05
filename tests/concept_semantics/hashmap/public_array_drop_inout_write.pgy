@@ -1,0 +1,8 @@
+func WriteValue(inout values: Array<Int>) -> Void { values[0] = 7; }
+
+func Main() -> Void {
+    let mut values: Array<Int> = [0];
+    WriteValue(values);
+    Log(ToString(values[0]));
+    ArrayDrop(values);
+}

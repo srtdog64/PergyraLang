@@ -1,0 +1,109 @@
+// Read borrowing of a direct formal field, never storage/release authority.
+// The ordered member owner supplies current-field identity; a whole-root
+// alias or unproved handoff disqualifies this narrow proof for the body.
+import "ast_collection_ownership_member_move_owner.pgy";
+import "ast_collection_formal_execution_context_owner.pgy";
+
+struct SemanticAstCollectionMemberRootReadOccurrence {
+    source: Int;
+    target: Int;
+    blocked: Bool;
+}
+
+func SemanticAstCollectionMemberReadFormalRoot(
+    ref artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref graph: SemanticExpressionGraphFacts,
+    function_id: Int, syntax_id: Int, node: Int,
+    identity: SemanticAstCollectionMemberMoveIdentity
+) -> Int {
+    let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, node);
+    if !identity.ok || !member.ok || identity.field_syntax_id <= 0 ||
+        SemanticAstCollectionFormalEffectSyntaxIsDeferred(artifact, syntax_id) { return 0; }
+    let formal: SemanticAstCollectionFormalStorageIdentity =
+        SemanticAstCollectionSourceFormalIdentity(signatures, function_id, graph, member.receiver_node);
+    if !formal.ok || (formal.mode != 0 && formal.mode != 3) ||
+        formal.syntax_id != identity.source_binding_syntax_id { return 0; }
+    return formal.syntax_id;
+}
+
+func SemanticAstCollectionMemberRootReadOccurrenceFromGraph(
+    ref artifact: AstTreeArtifact,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    ref resolved_leaf_types: Array<String>,
+    ref graph: SemanticExpressionGraphFacts,
+    function_id: Int, node: Int, root: Int
+) -> SemanticAstCollectionMemberRootReadOccurrence {
+    let absent: SemanticAstCollectionMemberRootReadOccurrence = SemanticAstCollectionMemberRootReadOccurrence(0, 0, false);
+    let formal: SemanticAstCollectionFormalStorageIdentity =
+        SemanticAstCollectionSourceFormalIdentity(signatures, function_id, graph, node);
+    if !formal.ok || (formal.mode != 0 && formal.mode != 3) ||
+        node < 0 || node >= ArrayLength(resolved_leaf_types) { return absent; }
+    let type_fact: SemanticCanonicalTypeNameFact =
+        SemanticCanonicalTypeNameFactFrom(Concat("", resolved_leaf_types[node]));
+    if !IsSome(SemanticAstNominalConstructorIndexForName(constructors,
+            type_fact.nominal_base_name)) { return absent; }
+    // The parser's direct member occurrence is receiver, selector, member.
+    // Only exact topology permits the root leaf to remain a field borrow.
+    if node + 2 <= root {
+        let member: SemanticMemberAccessView = SemanticMemberAccessViewFromGraph(graph, node + 2);
+        if member.ok && member.receiver_node == node { return SemanticAstCollectionMemberRootReadOccurrence(formal.syntax_id, 0, false); }
+    }
+    if node + 1 <= root {
+        let edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(graph, node + 1);
+        if edge.ok && edge.argument_node == node {
+            let target: SemanticAstCollectionArgumentFormalTarget =
+                SemanticAstCollectionArgumentFormalTargetForArgument(signatures, graph, edge.call_node, edge.ordinal);
+            if target.ok {
+                let mode: Option<Int> = SemanticAstFunctionParamModeAt(signatures, target.signature_row, target.ordinal);
+                let callee: Int = signatures.function_node_ids[target.signature_row];
+                if IsSome(mode) && (UnwrapOption(mode) == 0 || UnwrapOption(mode) == 3) &&
+                    signatures.action_contracts.body_node_ids[target.signature_row] > 0 &&
+                    callee > 0 && callee < artifact.count &&
+                    ArrayLength(artifact.arena.modes) == artifact.count &&
+                    artifact.arena.modes[callee] >= 0 &&
+                    artifact.arena.modes[callee] != TypedAstModeCallableAsync() {
+                    return SemanticAstCollectionMemberRootReadOccurrence(formal.syntax_id, target.syntax_id, false);
+                }
+            }
+        }
+    }
+    return SemanticAstCollectionMemberRootReadOccurrence(formal.syntax_id, 0, true);
+}
+
+// Physical forwarding edges carry the same negative borrow obligation to the
+// caller. A declared default/ref mode alone cannot prove the callee safe.
+// Each edge can introduce its source at most once, bounding this closure.
+func SemanticAstCollectionMemberReadBlockedRootsClosure(
+    ref sources: Array<Int>, ref targets: Array<Int>,
+    inout blocked: HashMap<String, Int>
+) -> Bool {
+    let count: Int = ArrayLength(sources);
+    if ArrayLength(targets) != count { return false; }
+    let changed: Bool = true;
+    let remaining: Int = count + 1;
+    while changed && remaining > 0 {
+        changed = false;
+        let edge: Int = 0;
+        while edge < count {
+            if sources[edge] <= 0 || targets[edge] <= 0 { return false; }
+            let source: String = ToString(sources[edge]);
+            if !MapHas(blocked, source) && MapHas(blocked, ToString(targets[edge])) {
+                MapSet(blocked, source, 1); changed = true;
+            }
+            edge = edge + 1;
+        }
+        remaining = remaining - 1;
+    }
+    return !changed;
+}
+
+func SemanticAstCollectionMemberIndexedReadReady(
+    reads: HashMap<String, Int>, blocked_roots: HashMap<String, Int>, node: Int
+) -> Bool {
+    let key: String = ToString(node);
+    if !MapHas(reads, key) { return false; }
+    let root: Int = MapGet(reads, key);
+    return root > 0 && !MapHas(blocked_roots, ToString(root));
+}

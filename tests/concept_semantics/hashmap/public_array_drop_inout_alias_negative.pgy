@@ -1,0 +1,9 @@
+func Aliased(inout values: Array<Int>) -> Void {
+    let other: Array<Int> = values;
+    Log(ArrayLength(other));
+}
+func Main() -> Void {
+    let mut values: Array<Int> = [7];
+    Aliased(values);
+    ArrayDrop(values);
+}

@@ -1,0 +1,9 @@
+func Retire(own values: Array<String>) -> Int {
+    ArrayDropOwnedStrings(values);
+    return 1;
+}
+func Run() -> Int {
+    let values: Array<String> = [];
+    return Retire(values);
+}
+func Main() -> Void { Log(Run()); }

@@ -1,0 +1,8 @@
+func Append(inout values: Array<String>) -> Void { ArrayPush(values, "borrowed"); }
+func Reads(ref values: Array<String>) -> Bool { return values[0] == "borrowed"; }
+func Main() -> Void {
+    let values: Array<String> = [];
+    Append(values);
+    let iteration: Int = 0;
+    while iteration < 2 { Log(Reads(values)); iteration = iteration + 1; }
+}

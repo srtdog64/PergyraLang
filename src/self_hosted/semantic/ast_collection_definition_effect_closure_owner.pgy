@@ -5,6 +5,7 @@ import "ast_collection_definition_storage_authority_owner.pgy";
 func SemanticAstCollectionMergeDefinitionEffectBounds(
     inout unknown: Array<Int>, inout retiring: Array<Int>,
     inout non_deep: Array<Int>, inout escaping: Array<Int>,
+    inout descriptor_retiring: Array<Int>,
     source: Int, target: Int
 ) -> Bool {
     let changed: Bool = false;
@@ -16,6 +17,8 @@ func SemanticAstCollectionMergeDefinitionEffectBounds(
     if site >= 0 && (non_deep[target] < 0 || site < non_deep[target]) { non_deep[target] = site; changed = true; }
     site = escaping[source];
     if site >= 0 && (escaping[target] < 0 || site < escaping[target]) { escaping[target] = site; changed = true; }
+    site = descriptor_retiring[source];
+    if site >= 0 && (descriptor_retiring[target] < 0 || site < descriptor_retiring[target]) { descriptor_retiring[target] = site; changed = true; }
     return changed;
 }
 
@@ -23,7 +26,8 @@ func SemanticAstCollectionDefinitionEffectClosure(
     ref definitions: SemanticAstCollectionDefinitionFacts,
     ref storage: SemanticAstCollectionStorageAuthorityFacts, ref parents: Array<Int>,
     inout unknown: Array<Int>, inout retiring: Array<Int>,
-    inout non_deep: Array<Int>, inout escaping: Array<Int>
+    inout non_deep: Array<Int>, inout escaping: Array<Int>,
+    inout descriptor_retiring: Array<Int>
 ) -> Void {
     let count: Int = ArrayLength(definitions.syntax_ids);
     let pass: Int = 0;
@@ -36,9 +40,9 @@ func SemanticAstCollectionDefinitionEffectClosure(
             while row < count {
                 let source: Int = parents[row];
                 if source >= 0 {
-                    if SemanticAstCollectionMergeDefinitionEffectBounds(unknown, retiring, non_deep, escaping, source, row) { changed = true; }
+                    if SemanticAstCollectionMergeDefinitionEffectBounds(unknown, retiring, non_deep, escaping, descriptor_retiring, source, row) { changed = true; }
                     if pass == 0 && SemanticAstCollectionDefinitionStorageBorrowed(storage, row) &&
-                        SemanticAstCollectionMergeDefinitionEffectBounds(unknown, retiring, non_deep, escaping, row, source) { changed = true; }
+                        SemanticAstCollectionMergeDefinitionEffectBounds(unknown, retiring, non_deep, escaping, descriptor_retiring, row, source) { changed = true; }
                 }
                 row = row + 1;
             }
@@ -59,6 +63,7 @@ func SemanticAstCollectionDefinitionEffectClosure(
                     unknown[row] = 0;
                     retiring[row] = 0;
                     non_deep[row] = 0;
+                    descriptor_retiring[row] = 0;
                 }
                 row = row + 1;
             }

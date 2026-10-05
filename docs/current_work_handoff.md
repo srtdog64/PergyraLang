@@ -5,6 +5,353 @@ SoT registry, admitted contracts, and executable gates override this note.
 
 ## Active self-host context
 
+### P0: caller cleanup after synchronous inout
+
+- Priority: finish caller ArrayDrop after synchronous inout before general SoT.
+  Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
+- Checkout: main @ d0fa49ea95928c007a6670f2e2fbfb7b7479441b, P0 source/tests/docs
+  dirty. Root owns P0 integration and Git; Main is stopped following the user's
+  explicit choice. The user also authorized committing all current user/other-
+  worker changes, including the new examples and deleted deployment guide.
+  Preserve/exclude generated gmon.out. This is a checkpoint, not a green claim.
+- Objective/owner boundaries:
+  docs/agent_work_directives/inout_array_release_2026-10-05.md.
+  Native parameter-flow descriptor preservation, source call-preservation and
+  untrusted direct-MIR lifetime owners independently supply cleanup evidence.
+  Existing definition/order, formal-effect and member-read owners keep their
+  facts. No mode-only grant, guessed callee, alias promotion or C fallback.
+- Native v3 SHA-256:
+  4bdb8869388dce2a8c02a5791f1670ada26b9e1cacd47c0b7d8195353e4673ce.
+  Native public gate passed 15 executed positives/backend and 30 refusals;
+  four C/LLVM dev/release inout/drop assertions ran. Not installed evidence.
+  Exact LLVM observer compile passed in 57.46 seconds under original 120s
+  budget after the measured development machine-emission fix.
+- Latest scalar/storage gate45: C/LLVM each 28 analyzer positives/41 compile-
+  only refusals plus actual copied type and typed success/failure cleanup
+  values, independent numeric-array snapshot mutation, binding type guards
+  with explicit caller copies, and match fact snapshots/no-mutation, exit 0.
+  Imported match-owner source admission also passed for C/LLVM.
+  .tmp/self_hosted/collection-borrowed-descriptor-read.mNokLy,
+  .tmp/inout-array-release-borrowed-read-gate45.log. Inner Break/Continue,
+  same-scope reuse, retained raw scalars and shallow-to-owned mutation refuse.
+- Latest member gate7: C/LLVM each 5 positives/11 compile-only refusals, exit 0.
+  .tmp/self_hosted/member-indexed-read.eXURNt,
+  .tmp/inout-array-release-member-read-gate7.log. Composed direct readonly
+  views admit; copied/owned/inout/deferred roots and value-formal handoff refuse.
+- Reached producer corrections use existing contracts: owned String insertion
+  and scalar copy, mutable clause-array Clone, required canonical contract ref.
+  Native value probes passed exact naming, participant selection, inherited
+  names, cloned input survival, repeated resolver and copied-record values
+  after input cleanup. Actual canonical generic/scalar parsing and String-array
+  classification values passed native C/LLVM. These are not whole-root or
+  default-installation receipts; detailed history is in the directive above.
+- DIR gate6 passed exact oracle/mutation rows and native C/LLVM malformed-view
+  guards. FactsReady still owns the public shape/receipt/range boundary; its
+  inner membership predicate receives direct views derived by that wrapper,
+  not external replacement views. No new artifact admission was added.
+  .tmp/inout-array-release-dir-graph-participant-view-gate6.log.
+- Latest official seed v32 passed call-effect construction and refused node
+  70449 at unproved_formal_execution_context. Two scratch cleanup defers in
+  the ownership verdict made its whole callable opaque under the unchanged
+  execution-context contract. The old scan moved to ownership_scan_owner:
+  same 21 success/error exits now fill the existing typed verdict and return
+  Void. The admission/preparation caller alone retires both scratch buffers
+  after the scan, for success/failure alike. No context relaxation, copied
+  type arrays, new error API or private user-array release was introduced.
+  .tmp/inout-array-release-bootstrap-v32-exact-boundary-context.log,
+  .tmp/self_hosted/codegen_nominal_array_declaration/run.6vkeOW.
+- Native AIR on the full analyzer import graph passed, existing warnings,
+  .tmp/inout-array-release-ownership-scan-native-air.log, 0 errors/9 warnings.
+  Gate38 then passed explicit typed success/failure cleanup and retained the
+  deferred-context counterexample. No whole-root or installed proof yet.
+  Official seed v33 refused node 70281: canonical verdict argument 7 retained
+  the readonly result-plan Array<Int> member. Publication now clones that
+  member through the existing Clone contract; no borrow/release rule changed.
+  .tmp/inout-array-release-codegen-bootstrap-v33.log,
+  .tmp/inout-array-release-bootstrap-v33-exact-boundary-context.log.
+  Gate42 passed: snapshot independence plus raw-member ordinary-call refusal,
+  matching the reached canonical verdict constructor function.
+  Numeric member/extracted-array public cleanup remains outside the existing
+  release frontier; no member cleanup claim is made by that new fixture.
+  Official seed v34 passed verdict publication, then refused node 70720 in
+  SelfMirCollectionOwnershipMemberSourceReady. The binding-type owner now
+  copies only its selected local/parameter String; canonical field-type input
+  also copies its selected scalar. Gate43's new value probe was refused because
+  native ordinary String-result lifetime is unknown. Gate44 uses explicit
+  caller copies to check values/missing/duplicate guards, not that missing
+  lifetime grant. Gate44 passed values and missing/duplicate guards with those
+  explicit copies. The native fail-closed contract stays unchanged. Logs:
+  .tmp/inout-array-release-codegen-bootstrap-v34.log.
+  .tmp/inout-array-release-bootstrap-v34-exact-boundary-context.log.
+  Seed v35's handle was missing after goal continuation; process inventory
+  confirmed no matching bootstrap/codegen process. Its log stops after status
+  checks without a semantic verdict or gen2 receipt. This is incomplete
+  execution, not admission or a timeout-based semantic verdict.
+  .tmp/inout-array-release-codegen-bootstrap-v35.log.
+  Official seed v36 passed binding-type lookup and refused node 71293:
+  match case publication retained raw indexed String payloads. The existing
+  match owner now copies retained scalars and validates incoming binding rows
+  before destination mutation. Gate45 passed values and unchanged-row guards;
+  destination deep-release authority is not promoted. Seed v37 is not yet run.
+  .tmp/inout-array-release-codegen-bootstrap-v36.log.
+  Next falsifier is whole-root admission on the original MIR control, not a
+  narrow formal-effect count, native value check or elapsed-time inference.
+- OPEN: full integration10 timed out at its original 60s actual C unit; its
+  unchanged isolated unit later passed seven rows in 46.35s, not full-shard
+  evidence. A development C whole-MIR-root observer timed out at 300s; the
+  LLVM observer reached a semantic refusal. Neither timeout is admission.
+  Fresh seed/fixed-point/installed pair, full C/LLVM integration, 16 structural
+  cap failures and current-head CI remain OPEN. All-current-work checkpoint
+  commit/push is the user's immediate instruction; subsequent CI repair remains
+  required. The new user examples are included without an execution claim.
+  The collection cap block was directly rechecked: 17 -> 16 after the reached
+  scan/lifetime split, without raising caps; not a full inventory pass.
+  semantic.hashmap_collection_ownership stays ACTIVE; published CI 37244277987
+  failed. Next after seed: serial full integration, official fresh driver,
+  public all-lane gate and default C/LLVM execution of Alrescha's
+  F:/JDW_project/alrescha/tests/repros/array_inout_release_frontier.pgy.
+- Current official bin hashes are still native 88526595396deba7532991e55d6ae3d74f260e3f34c3c15bea9ecf117a55f3de
+  and driver 707dcd40049a1697a5827b2a7c8d3cf509573aa3c0031f2eee338c9fa0d78ec7,
+  independently read here. The consumer's current receipt still reports native
+  C/LLVM inout/drop refusals. Tested isolated native v3 is not that installation.
+- No completion message sent to Alrescha GUI 프레임워크 1단계. Send it only after
+  complete P0 verification/current CI. Then resume the reached SoT rung.
+
+## Historical archive boundary
+
+Everything below is lookup evidence, not an active work queue. Current source,
+the top card, exact executable receipts and the SoT registry override old status.
+
+### P0 evidence history
+
+- User priority: finish the GUI-blocking caller `ArrayDrop` contract before
+  reopening general SoT closure. Alrescha is a separate, read-only consumer at
+  `F:\JDW_project\alrescha`; no compiler integration or callee whitelist.
+- Verified local HEAD and `origin/main`:
+  `d0fa49ea95928c007a6670f2e2fbfb7b7479441b`. Main independently published
+  indexed-signature materialization, exact formal-use order and fresh-generation
+  cleanup slices. The P0 implementation below is still uncommitted; Root owns
+  its integration. Preserve local `gmon.out` outside the integration commit.
+- Objective card and edit boundaries:
+  `docs/agent_work_directives/inout_array_release_2026-10-05.md`. Native demanded
+  parameter-flow ownership carries a separate descriptor-preservation facet;
+  self-host source and direct-MIR consumers independently prove preservation.
+  No six-bit Slot mask reinterpretation or previously absent permission grant.
+- Last legitimate consumers: native `semantic_array_storage_call_argument`,
+  source `SemanticArrayStorageCallArgumentEscapes`, and direct-MIR storage
+  lifetime admission. Plain element mutation may preserve caller cleanup;
+  descriptor rebind, alias retention, resource results and deferred/worker
+  handoff remain negative obligations.
+- Observed native gate: 15 executed positives per C/LLVM and 30 compile-only,
+  preserved-artifact refusals; exit 0. Receipt:
+  `.tmp/inout-array-release-native-v2-gate.log`, evidence
+  `.tmp/self_hosted/public-array-drop.h3c9Ps`.
+- Demanded flow owner gate: PASS including the unchanged 4096-work budget and
+  independent 4097-demand refusal. Receipt:
+  `.tmp/inout-array-release-param-flow-v2.log`.
+- Earlier C/LLVM admission observers: six positives, five ownership
+  refusals and four missing/duplicate synthetic-identity refusals each; exit 0.
+  Receipt `.tmp/inout-array-release-source-admission-gate2.log`, evidence
+  `.tmp/self_hosted/inout-array-storage.BAv0fj`. These are analyzer verdicts,
+  not installed-driver or input-program execution evidence.
+- The benign Alrescha `array_inout_release_frontier.pgy` ran successfully using
+  the native C/LLVM routes. Fresh default/installed C/LLVM remains OPEN.
+- Latest terminal official seed v9 passed the previous indexed-read,
+  repeated-call and terminal-tail boundaries but failed before generation 2:
+  node `10473`, `aggregate_release_source_not_live`; evidence
+  `.tmp/self_hosted/codegen_nominal_array_declaration/run.oQXyuf`, log
+  `.tmp/inout-array-release-codegen-bootstrap-v9.log`. Exact parser mapping is
+  the return of `SemanticAstGenericParameterFactRowsFromOwnerNode` in
+  `ast_generic_parameter_fact_owner.pgy`. Terminal constructor inputs were
+  incorrectly required to have a continuing escape bound. The current
+  reservation candidate instead consumes their exact admitted input identity
+  at ordered completion, preserving all prior escape/element obligations.
+- The fresh-generation cleanup candidate passed focused C/LLVM analysis:
+  four positives and ten compile-only ownership refusals each. Evidence:
+  `.tmp/self_hosted/collection-owned-generation.bXzBSA`. Terminal return and
+  continue branches do not revive a consumed generation; same-scope use,
+  duplicate transfer and nested repeated/deferred use remain refused. The
+  current candidate reuses the existing retirement owner's loop-order proof.
+- Readonly-field prerequisite: three positives and eight compile-only refusals
+  per C/LLVM analyzer passed. Evidence
+  `.tmp/self_hosted/member-indexed-read.d42Idl`, log
+  `.tmp/inout-array-release-member-read-gate5.log`. This reuses the ordered
+  member pass and propagates a negative whole-root borrow obligation through
+  exact forwarding edges. Copies, transfers, field moves and deferred use do
+  not become read permission. This is focused analysis, not installation.
+- Current-local-read and repeated-call candidate: five positives and eleven
+  compile-only refusals per C/LLVM analyzer passed in
+  `.tmp/self_hosted/collection-borrowed-descriptor-read.ZS61LG`, log
+  `.tmp/inout-array-release-borrowed-read-gate4.log`. The negative effect owner
+  and existing definition closure carry descriptor consumption separately from
+  sibling invalidation. Exact current owned storage receives shallow copyout;
+  alias, unknown, detached and repeated consuming cases remain refused.
+- A later terminal-site candidate passed 6 positives/11 refusals in
+  `.tmp/self_hosted/collection-borrowed-descriptor-read.aA3bHJ`, but Root
+  independently found C/LLVM both wrongly accepting
+  `.tmp/inout-array-release/terminal-hides-later-retention-negative.pgy`.
+  It is **not an accepted integration candidate**. Findings:
+  `docs/audits/inout_array_release_terminal_bounds_2026-10-05.md`.
+- Source-issued MIR contract shard: five executed positives per C/LLVM,
+  two source refusals and five MIR storage-lifetime refusals per backend; exit
+  0. Evidence `.tmp/self_hosted/inout-array-storage-mir.54XVsd`, log
+  `.tmp/inout-array-release-mir-contract-gate2.log`. Scaffolds were native-built
+  calls into current production owners, not an installed driver. Subsequent
+  cleanup-owner changes still require a fresh integrated receipt.
+- The user selected Main interruption and sole completion here. Main was
+  observed idle/interrupted; Root now owns source, integration and Git. No
+  new Main work queue or worktree. Preserve all pre-existing P0 edits.
+- Current terminal/continuing descriptor candidate: C/LLVM each passed 11
+  analyzer positives and 19 compile-only ownership refusals, including normal
+  path retention, compound terminal retention, stale sibling read, legitimate
+  short-circuit RHS/own cleanup, owned aggregate return and borrowed aggregate
+  refusal. Receipt `.tmp/inout-array-release-borrowed-read-gate14.log`, evidence
+  `.tmp/self_hosted/collection-borrowed-descriptor-read.M0zIPw`. This is not
+  installed-driver or self-host fixed-point proof.
+- Full collection integration7 reached its final compiler-scale C actual
+  producer unit but timed out at the unchanged 60-second limit; LLVM was not
+  reached. Receipt `.tmp/inout-array-release-collection-integration7.log`,
+  evidence `.tmp/self_hosted/collection-inout-effect.F86gp4`. A diagnostic
+  run on the same source input observed 152.48 seconds and an element-use
+  refusal, not semantic PASS. Do not enlarge the gate budget to call it green.
+- Next falsifiers: the exact owned aggregate return at the unchanged official
+  seed, then default installed C/LLVM caller cleanup. Seed v10 was interrupted
+  during gen0 compilation when its process handle disappeared; no receipt was
+  completed. Fresh official seed v11 uses
+  `.tmp/inout-array-release/codegen-bootstrap-v11` and
+  `.tmp/inout-array-release-codegen-bootstrap-v11.log`; inspect the live process
+  or final result rather than inferring success from generated files.
+- Seed v11 has since terminated with an owned-mutation compound-return refusal:
+  node `10504`, `compound_terminal_storage_effect`, evidence
+  `.tmp/self_hosted/codegen_nominal_array_declaration/run.OyB1fW`. It passed the
+  prior aggregate reservation boundary. Exact parser mapping is the final
+  Boolean return in `SemanticAstGenericParameterFactContractReady`, which
+  populates two fresh arrays before reading their current elements. The current
+  terminal-entry candidate requires unshared exact storage for owned-content
+  mutation; aliases and constructor capture still prevent that proof.
+- Measured formal-use lookup delta: the unchanged compiler-scale C actual
+  producer unit passed all seven formal observations in 49.55 seconds, within
+  its original 60-second budget. Receipt
+  `.tmp/inout-array-release-identity-context-c-actual.log`, executable/hash
+  `.tmp/inout-array-release/identity-context-c.exe` and
+  `.tmp/inout-array-release-identity-context-c.sha256`. Only the repeated global
+  retention identity lookup changed to the existing context-bound owner.
+  Full C/LLVM integration and post-terminal-entry revalidation are still OPEN.
+- Fresh paired installed-driver parity, seed/fixed-point completion and
+  exact-head CI are OPEN. Published run `37244277987` for `d0fa49ea` failed its
+  nominal MIR-root bootstrap at `unproved_formal_indexed_read_entry`; it is not
+  green. Do not mark the SoT row CLOSED or
+  send a completion handoff to `Alrescha GUI 프레임워크 1단계` yet.
+- Optimization remains permitted only at an observed operation blocking this
+  named closure step. No new cache, query engine or parallel implementation rung.
+- Current focused terminal-entry receipt: C/LLVM each passed 13 analyzer
+  positives and 21 compile-only refusals. Evidence
+  `.tmp/self_hosted/collection-borrowed-descriptor-read.pDJC5H`, log
+  `.tmp/inout-array-release-borrowed-read-gate18.log`. Complete direct-inout
+  formal-use and absent-retention facts admit chained terminal mutation;
+  formal retention, aliases and same-expression constructor capture remain
+  refused. This is not installed-driver evidence.
+- Collection integration9 passed its full C leg, including all 371 source
+  inputs, forged-identity checks and the unchanged 60-second actual producer
+  unit. It then timed out compiling the LLVM source observer at the existing
+  120-second limit, before LLVM execution. Evidence
+  `.tmp/self_hosted/collection-inout-effect.McarMK`, log
+  `.tmp/inout-array-release-collection-integration9.log`. Later source changes
+  and the additional formal-chain fixture require a new integrated receipt.
+- Seed v12 passed the fresh-local terminal mutation case and refused node
+  `31679` in `SemanticAstIntentExpressionSeedEnvironment` at
+  `compound_terminal_storage_effect`. Evidence
+  `.tmp/self_hosted/codegen_nominal_array_declaration/run.5UKIwY`. The current
+  direct-formal candidate passed focused gate18; official seed v13 later passed
+  that boundary and refused node `51211`, `unproved_inout_copy_entry`, in the
+  generic-specialization environment assignment. Evidence
+  `.tmp/self_hosted/codegen_nominal_array_declaration/run.8F0FHm`; exact mapping
+  `.tmp/inout-array-release-bootstrap-v13-exact-boundary-context.log`.
+- LLVM compile diagnostic on the exact unchanged observer input took 228.07
+  seconds; pipeline timing attributes 214.394 seconds to the backend. Receipt
+  `.tmp/inout-array-release-source-context-llvm-profile.log`. This diagnostic
+  used a separate 300-second inspection bound, not a larger acceptance budget
+  or a collection integration PASS. The timestamped diagnostic subsequently
+  took 144.82 seconds: approximately 7 seconds IR emission, 34 seconds IR
+  optimization and 95 seconds aggressive target object emission. The existing
+  dev profile now selects unoptimized machine emission while keeping the O2 IR
+  pipeline, mandatory verification and release's aggressive policy. This
+  candidate still requires a fresh native executable and unchanged integration
+  gate. The local Clang native build failed linking unavailable `libomp`;
+  an isolated rebuild uses the existing GCC toolchain instead.
+- The collection structural size inventory currently has 17 cap failures,
+  including retained pre-existing owner growth. Do not report the complete
+  component contract green or raise those caps silently. No SoT row closes
+  from a focused observer, seed or documentation update.
+- Focused gate19 passed 14 positives and 23 compile-only refusals each on
+  C/LLVM. Evidence `.tmp/self_hosted/collection-borrowed-descriptor-read.6KckA7`,
+  log `.tmp/inout-array-release-borrowed-read-gate19.log`. Call admission now
+  consumes the existing conditional fresh-generation proof; its duplicated
+  narrower definition check was removed, and the file is 105 counted lines
+  under its restored 115-line cap. No intervening loop/deferred boundary was
+  admitted. Official seed v14 is running on that frozen candidate; judge its
+  terminal receipt before installed-driver work or further semantic edits.
+- Fresh GCC native v3 build completed with existing repository warnings;
+  SHA-256 `4bdb8869388dce2a8c02a5791f1670ada26b9e1cacd47c0b7d8195353e4673ce`.
+  Native public ArrayDrop revalidation passed 15 executed positives per C/LLVM
+  and 30 native compile-only preserved-artifact refusals. Evidence
+  `.tmp/self_hosted/public-array-drop.paDMfA`, log
+  `.tmp/inout-array-release-native-v3-gate.log`. This native-only stage did not
+  execute public self-host or direct-MIR lanes despite their summary text.
+- The inout/drop assertion also ran successfully with native v3 on C/LLVM in
+  both dev and release profiles: four fresh executed artifacts, pinned by
+  `.tmp/inout-array-release-native-v3-profile.sha256`. Full collection
+  integration10 subsequently timed out at its final C actual producer unit
+  (unchanged 60 seconds), before the LLVM leg. Evidence
+  `.tmp/self_hosted/collection-inout-effect.xYfWKR`, log
+  `.tmp/inout-array-release-collection-integration10.log`. Do not infer a full
+  integration PASS from the earlier small-case or native receipts.
+- Exact LLVM source-observer compilation with native v3 completed in 57.46
+  seconds under the original 120-second limit; backend timing is 49.917 seconds.
+  Receipt `.tmp/inout-array-release-source-context-llvm-dev-v3.log`. This fixes
+  that compile-budget blocker but is not the complete C/LLVM integration gate.
+- Official seed v14 passed conditional mutation and refused node `51242`,
+  `unproved_indexed_read_entry`, at generic-call capture inside an inner work
+  loop. Evidence `.tmp/self_hosted/codegen_nominal_array_declaration/run.XgxCl9`,
+  exact mapping `.tmp/inout-array-release-bootstrap-v14-exact-boundary-context.log`.
+  Next falsifier: a fresh outer-loop descriptor read repeatedly before its
+  generation's later owned cleanup. Preserve real prior/nested/deferred
+  consumption, alias and escape refusals; do not skip a zero retirement bound
+  in a read consumer.
+- Separate unchanged-input C pressure diagnostic: parse 5359 ms, analysis
+  3172 ms, body 69438 ms, total 78.36 seconds; body verdict remains
+  `unproved_formal_element_use_entry`. Receipt
+  `.tmp/inout-array-release-body-stage-pressure-run.log` and its SHA manifest.
+  It is diagnostic, not gate success. The same-input timestamped rerun finished
+  in 48.73 seconds with that refusal; no further performance change followed.
+- Integration10's isolated, unchanged C actual producer unit subsequently
+  passed the exact seven expected formal rows in 46.35 seconds under its
+  original 60-second limit. Receipt
+  `.tmp/inout-array-release-integration10-c-actual-isolated.time` and adjacent
+  raw/error/expected-row files. This does not supersede the full shard timeout.
+- Focused gate20 rejected the first generation-relative retirement candidate
+  at `unproved_indexed_read_entry`. Gate21 then rejected its terminal-scope
+  revision at `owned_argument_storage_not_live`: an early terminal own call
+  preceded a later continuing cleanup. Neither rejected candidate is accepted.
+- Current focused gate22 passed C/LLVM analysis: 15 positives and 26 compile-
+  only ownership refusals each. Evidence
+  `.tmp/self_hosted/collection-borrowed-descriptor-read.X2bzgH`, log
+  `.tmp/inout-array-release-borrowed-read-gate22.log`. Known, unique consumption
+  is projected at its generation-relative site; nested reads prove membership,
+  not repeatable transfer. A terminal own entry may precede a later continuing
+  bound, but cannot erase a prior one. Post-transfer, nested-consumption,
+  terminal-hides-normal-consumption and deferred negatives remain refused.
+- Official seed v15 is running alone on that frozen candidate at
+  `.tmp/inout-array-release/codegen-bootstrap-v15`, log
+  `.tmp/inout-array-release-codegen-bootstrap-v15.log`. Seed/fixed-point,
+  fresh installed-driver, full collection integration and current CI are OPEN.
+
+### Earlier collection checkpoint
+
+The previous collection-ownership checkpoint below is lookup evidence only,
+not the active work queue. Current source, exact executable receipts and the
+SoT registry override its older status.
+
 ### Checkpoint
 
 - Branch: `main`.
@@ -208,8 +555,6 @@ against current source. Fix only the reached owner seam; do not substitute a
 smaller input, name whitelist, native bypass, compatibility fallback, duplicate
 SoT row, or a general query/cache architecture. A green claim requires terminal
 receipts for the exact published source HEAD, not this navigation snapshot.
-
-## Historical archive boundary
 
 Older checkpoints are evidence in Git history, not an active work queue. Do
 not revive them unless the current source, registry, or reached falsifier points

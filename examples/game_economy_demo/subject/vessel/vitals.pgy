@@ -1,0 +1,21 @@
+// subject/vessel/vitals.pgy — 내부 상태 컨테이너
+//
+// 단일 책임: 생명·스태미나 같은 subject 내부 상태 묶음.
+
+vessel Vitals {
+    current: Int;
+    max: Int;
+
+    func IsAlive(self) -> Bool {
+        return current > 0;
+    }
+
+    func IsExhausted(self) -> Bool {
+        return current <= 0;
+    }
+
+    func Ratio(self) -> Float {
+        if max <= 0 { return 0.0; }
+        return Float(current) / Float(max);
+    }
+}

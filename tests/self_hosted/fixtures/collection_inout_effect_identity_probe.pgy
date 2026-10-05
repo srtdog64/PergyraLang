@@ -398,7 +398,13 @@ func Main() -> Void with caps env, io_read {
         }
         // Unrelated Populate/Forward proofs remain valid; only the mutated
         // Matches formal must lose reusable read permission.
-        Log(effects.ok && indexed_rejected);
+        // A second parent in another surface violates the shared graph's
+        // root-interval seal. That earlier refusal must leave no reusable
+        // proofs, rather than manufacturing an isolated rejecting effect.
+        let seal_rejected: Bool = !effects.ok &&
+            !MapHas(proved, ToString(indexed_formal)) &&
+            !MapHas(proved, key) && !MapHas(proved, ToString(foreign));
+        Log((effects.ok && indexed_rejected) || (mutation == 15 && seal_rejected));
     } else if mutation >= 14 {
         // A sealed artifact or a structurally admitted graph may reject the
         // post-admission mutation at different boundaries. Neither path may
@@ -718,7 +724,8 @@ func InspectOwnArgumentOccurrenceOrder(
     let no_formal_non_deep: HashMap<String, Int> = MapNew();
     let effects: SemanticAstCollectionCallEffectFacts = SemanticAstCollectionCallEffectFacts(
         true, [], [], [], [], [], [], [], [], no_formal_escape, no_formal_unknown, no_formal_retiring, no_formal_non_deep,
-        SemanticAstCollectionConstructorFieldInputsEmpty());
+        SemanticAstCollectionConstructorFieldInputsEmpty(), [],
+        SemanticAstCollectionFormalDescriptorRetentionEmpty());
     let verdict: SemanticAstCollectionOwnedArgumentUse = SemanticAstCollectionFirstInvalidOwnedArgumentUse(
         artifact, analysis.signatures, no_locals, strings, projected, definitions, effects, analysis.statements, analysis.assignments);
     if mutation == 24 { return verdict.found && verdict.diagnostic_code == "ast_artifact_invalid"; }

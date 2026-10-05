@@ -372,4 +372,15 @@ grep -Fq "references unknown target slot 'missing'" \
     "$BUILD_DIR/state-invalid.native.err" \
     || fail "native wrong-endpoint oracle lost its semantic diagnostic"
 
-echo "[self-host-dir-inventory] exact rows including zone state, admitted intent defaults, transfer detail, and inline sub-intents match native; count-only, provenance/transfer mutations, and wrong-endpoint paths fail closed"
+for backend in c llvm; do
+    participant_probe="$BUILD_DIR/participant-contract-$backend.exe"
+    (cd "$ROOT_DIR" && "$PGY" --native-pipeline --opt=dev "--backend=$backend" \
+        tests/self_hosted/fixtures/dir_intent_participant_contract_probe.pgy -o "$participant_probe") \
+        >"$BUILD_DIR/participant-contract-$backend.compile.log" 2>&1 || fail "$backend participant contract did not compile"
+    "$participant_probe" >"$BUILD_DIR/participant-contract-$backend.run.raw" || fail "$backend participant contract failed"
+    tr -d '\r' <"$BUILD_DIR/participant-contract-$backend.run.raw" >"$BUILD_DIR/participant-contract-$backend.run.log"
+    [[ "$(cat "$BUILD_DIR/participant-contract-$backend.run.log")" == 'DIR PARTICIPANT CONTRACT PASS' ]] ||
+        fail "$backend participant contract lost its value/negative oracle"
+done
+
+echo "[self-host-dir-inventory] exact rows including zone state, admitted intent defaults, transfer detail, and inline sub-intents match native; count-only, provenance/transfer mutations, and wrong-endpoint paths fail closed; C/LLVM participant membership and malformed-view guards passed"

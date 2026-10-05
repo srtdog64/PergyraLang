@@ -2029,7 +2029,33 @@ intent_fact_digest_assignment_sources="$(
     "src/self_hosted/dir/intent_exact_identity_contract_owner.pgy" ]] ||
     fail "SelfDirIntentFacts digest assignment escaped its receipt owner: $intent_fact_digest_assignment_sources"
 require_file "src/self_hosted/dir/intent_step_fact_owner.pgy"
+require_file "src/self_hosted/dir/intent_participant_contract_owner.pgy"
+require_max_lines "src/self_hosted/dir/intent_participant_contract_owner.pgy" 100
+require_function_text "src/self_hosted/dir/intent_participant_contract_owner.pgy" \
+    'func SelfDirIntentParticipantIndex(' 'ref aliases: Array<String>'
+require_function_text "src/self_hosted/dir/intent_fact_owner.pgy" \
+    'func SelfDirIntentFactsReady(' 'SelfDirIntentStepParticipantContractReady('
+reject_text "src/self_hosted/dir/intent_step_fact_owner.pgy" 'func SelfDirIntentParticipantIndex('
+reject_text "src/self_hosted/dir/intent_fact_owner.pgy" 'let using_row: Int = SelfDirIntentParticipantIndex('
 require_max_lines "src/self_hosted/dir/intent_step_fact_owner.pgy" 540
+require_function_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    'func SelfDirIntentStepFromArtifact(' 'ref contracts: SemanticAstActionContractFacts'
+require_function_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    'func SelfDirIntentStepAppendActionContractRange(' 'ref names: Array<String>'
+require_function_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    'func SelfDirIntentStepFromArtifact(' 'Clone(clauses.requires_names)'
+require_function_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    'func SelfDirIntentStepFromArtifact(' 'Clone(clauses.authorized_names)'
+reject_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
+    'let contracts: SemanticAstActionContractFacts = signatures.action_contracts;'
+require_function_text "src/self_hosted/dir/intent_fact_owner.pgy" \
+    'func SelfDirIntentFactsFromArtifact(' 'signatures.action_contracts, signature_facts'
+require_function_text "src/self_hosted/dir/intent_fact_owner.pgy" \
+    'func SelfDirIntentFactsFromArtifact(' 'ArrayPushOwnedString(participant_aliases,'
+require_function_text "src/self_hosted/dir/intent_fact_owner.pgy" \
+    'func SelfDirIntentFactsFromArtifact(' 'ArrayPushOwnedString(participant_type_names, type_name)'
+reject_text "src/self_hosted/dir/intent_fact_owner.pgy" 'ArrayPush(participant_aliases,'
+reject_text "src/self_hosted/dir/intent_fact_owner.pgy" 'ArrayPush(participant_type_names,'
 reject_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
     'clauses.intent_text != header.intent_text'
 require_text "src/self_hosted/dir/intent_step_fact_owner.pgy" \
@@ -28671,6 +28697,7 @@ reject_text "src/self_hosted/compiler/direct_mir_scalar_program_array_int_value_
 # responsibility instead of raising its cap.
 for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy:600 \
+    src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy:400 \
     src/self_hosted/semantic/ast_collection_indexed_string_borrow_owner.pgy:240 \
     src/self_hosted/semantic/ast_collection_indexed_string_borrow_source_policy_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_indexed_string_borrow_storage_lifetime_owner.pgy:20 \
@@ -28689,35 +28716,40 @@ for collection_owner_cap in \
     src/self_hosted/semantic/ast_collection_formal_effect_closure_owner.pgy:160 \
     src/self_hosted/semantic/ast_collection_formal_effect_readiness_owner.pgy:120 \
     src/self_hosted/semantic/ast_collection_formal_effect_owner.pgy:40 \
-    src/self_hosted/semantic/ast_collection_call_effect_owner.pgy:160 \
+    src/self_hosted/semantic/ast_collection_call_effect_owner.pgy:200 \
+    src/self_hosted/semantic/ast_collection_formal_descriptor_retention_owner.pgy:170 \
+    src/self_hosted/semantic/ast_collection_descriptor_retention_entry_owner.pgy:45 \
+    src/self_hosted/semantic/ast_collection_terminal_storage_effect_owner.pgy:140 \
     src/self_hosted/semantic/ast_collection_constructor_storage_escape_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy:200 \
     src/self_hosted/semantic/ast_collection_definition_effect_closure_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_argument_permission_effect_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_formal_storage_permission_owner.pgy:90 \
-    src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy:60 \
+    src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_definition_fact_owner.pgy:40 \
     src/self_hosted/semantic/ast_collection_definition_query_owner.pgy:60 \
     src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy:170 \
     src/self_hosted/semantic/ast_collection_definition_storage_authority_owner.pgy:90 \
     src/self_hosted/semantic/ast_collection_definition_storage_producer_owner.pgy:60 \
     src/self_hosted/semantic/ast_collection_definition_transition_owner.pgy:70 \
-    src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy:80 \
-    src/self_hosted/semantic/ast_collection_call_argument_effect_verdict_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy:115 \
+    src/self_hosted/semantic/ast_collection_call_argument_effect_verdict_owner.pgy:210 \
     src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy:140 \
     src/self_hosted/semantic/ast_collection_call_retirement_owner.pgy:80 \
+    src/self_hosted/semantic/ast_collection_repeated_local_generation_owner.pgy:40 \
     src/self_hosted/semantic/ast_expression_graph_call_argument_edge_owner.pgy:60 \
     src/self_hosted/semantic/ast_collection_ownership_assignment_alias_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_ownership_binding_move_use_owner.pgy:100 \
     src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy:90 \
-    src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy:140 \
+    src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy:180 \
+    src/self_hosted/semantic/ast_collection_member_read_permission_owner.pgy:120 \
     src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy:180 \
     src/self_hosted/semantic/ast_collection_argument_event_order_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy:80 \
     src/self_hosted/semantic/ast_collection_builtin_transition_owner.pgy:280 \
     src/self_hosted/semantic/ast_collection_owned_parameter_identity_owner.pgy:100 \
-    src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy:100 \
+    src/self_hosted/semantic/ast_collection_owned_argument_admission_owner.pgy:110 \
     src/self_hosted/semantic/ast_collection_owned_element_parameter_requirement_owner.pgy:160 \
     src/self_hosted/semantic/ast_collection_aggregate_field_entry_requirement_owner.pgy:120 \
     src/self_hosted/semantic/ast_collection_aggregate_release_plan_schema_owner.pgy:180 \
@@ -28758,6 +28790,32 @@ require_text "src/self_hosted/semantic/ast_collection_argument_permission_effect
     'effect.storage_escape = effect.constructor_field.field_syntax_id > 0;'
 require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
     'constructor_inputs: SemanticAstCollectionConstructorFieldInputs;'
+require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
+    'formal_descriptor_retention:'
+require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
+    'SemanticAstCollectionFormalDescriptorRetentionSeal('
+require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
+    'SemanticAstCollectionFreshLocalGenerationAtUse('
+require_text "src/self_hosted/semantic/ast_collection_owned_generation_order_owner.pgy" \
+    'retirement: Int, require_function_exit: Bool'
+require_text "src/self_hosted/semantic/ast_collection_owned_generation_order_owner.pgy" \
+    'artifact, use_id, true) >= 0'
+require_text "src/self_hosted/semantic/ast_collection_formal_use_owner.pgy" \
+    'SemanticAstBuiltinArgumentRetentionIdentityForReadyCallContext('
+reject_text "src/self_hosted/semantic/ast_collection_formal_use_owner.pgy" \
+    'SemanticAstBuiltinArgumentRetentionIdentityForReadyCallFacts('
+require_text "src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy" \
+    'SemanticAstCollectionDescriptorRetentionApplyAtCall('
+require_text "src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy" \
+    'SemanticAstCollectionDescriptorRetentionEntryVerdict('
+require_text "src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy" \
+    'SemanticAstCollectionFreshLocalGenerationAtUse('
+reject_text "src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy" \
+    'SemanticAstCollectionRepeatedLocalGenerationPrecedesUse('
+require_text "src/codegen/llvm_api.c" \
+    'llvm_create_host_machine(release_opt, &triple, &cpu, &features)'
+require_text "src/codegen/llvm_target_machine.c" \
+    'release_opt ? LLVMCodeGenLevelAggressive : LLVMCodeGenLevelNone'
 require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
     'SemanticAstCollectionConstructorFieldInputRecord('
 require_text "src/self_hosted/semantic/ast_collection_constructor_field_input_owner.pgy" \
@@ -28826,21 +28884,38 @@ require_text "src/self_hosted/semantic/ast_collection_indexed_string_borrow_stor
     'CompilerRetireArrayStorage(values);'
 reject_text "src/self_hosted/semantic/ast_collection_indexed_string_borrow_owner.pgy" \
     'ArrayDrop(state.'
-require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \
     'SemanticAstIndexedStringBorrowRecordDeepDrop('
 require_function_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
     'func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(' \
     'SemanticAstIndexedStringBorrowStateRetire(indexed_string_borrows);'
+require_function_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+    'func SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(' \
+    'SemanticAstCollectionOwnershipScanIntoVerdict('
+require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+    'ArrayDrop(retained_definitions);'
+require_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \
+    'inout verdict: SemanticAstCollectionOwnershipVerdict'
+require_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \
+    ') -> Void {'
+reject_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" 'defer {'
+reject_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" 'defer {'
+reject_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" 'let root_slot: Int = 0;'
+reject_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" 'CompilerRetireArrayStorage('
+require_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \
+    'Clone(owned_result_plan.function_syntax_ids), receipts'
 require_text "src/self_hosted/semantic/ast_collection_call_effect_fact_owner.pgy" \
     'struct SemanticAstCollectionCallEffectFacts {'
 for retired_collection_path in SemanticAstCollectionUnknownCallEffectRows unknown_effect_rows SemanticAstCollectionStatementTransitions; do
     reject_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" "$retired_collection_path"
     reject_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" "$retired_collection_path"
+    reject_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" "$retired_collection_path"
     reject_text "src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy" "$retired_collection_path"
 done
 reject_file "src/self_hosted/semantic/ast_collection_preserving_argument_verdict_owner.pgy"
 for collection_event_consumer in src/self_hosted/semantic/ast_collection_call_effect_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy \
+    src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy \
     src/self_hosted/semantic/ast_collection_call_argument_verdict_owner.pgy; do
     reject_text "$collection_event_consumer" 'SemanticAstCollectionPreservingArgumentVerdict('
 done
@@ -28856,6 +28931,24 @@ require_text "src/self_hosted/semantic/ast_collection_ownership_identity_owner.p
     'func SemanticAstCollectionSourceFormalIdentity('
 require_text "src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy" \
     'SemanticAstCollectionSourceFormalIdentity('
+require_text "src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy" \
+    'let resolved_type: String = Concat("", resolved_leaf_types[node_id]);'
+require_text "src/self_hosted/semantic/ast_collection_member_read_permission_owner.pgy" \
+    'SemanticCanonicalTypeNameFactFrom(Concat("", resolved_leaf_types[node]));'
+require_text "src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy" \
+    'let inferred_type: String = Concat("", inferred_types[row]);'
+require_text "src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy" \
+    'let binding_type: String = Concat("", inferred_types[binding.row]);'
+reject_text "src/self_hosted/semantic/ast_collection_assignment_definition_owner.pgy" \
+    'SemanticAstCollectionOwnershipIsStringArray(inferred_types['
+require_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
+    'binding.ok && SemanticAstCollectionOwnershipIsStringArray(Concat("", inferred_types[binding.row]));'
+reject_text "src/self_hosted/semantic/ast_collection_call_effect_owner.pgy" \
+    'SemanticAstCollectionOwnershipIsStringArray(inferred_types['
+reject_text "src/self_hosted/semantic/ast_collection_member_read_permission_owner.pgy" \
+    'SemanticCanonicalTypeNameFactFrom(resolved_leaf_types[node]);'
+reject_text "src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy" \
+    'let resolved_type: String = resolved_leaf_types[node_id];'
 reject_text "src/self_hosted/semantic/ast_collection_ownership_member_root_identity_owner.pgy" \
     'SemanticAstFunctionParamNodeAt('
 reject_text "src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy" \
@@ -29033,18 +29126,19 @@ require_text "src/self_hosted/semantic/ast_collection_builtin_transition_owner.p
     'if !call.ok || call.call_node != node'
 require_file "tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy"
 require_max_lines "tests/self_hosted/fixtures/collection_lifetime_event_probe.pgy" 220
-for completion_consumer in src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy \
+for completion_consumer in src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy \
     src/self_hosted/semantic/ast_collection_ownership_argument_transfer_owner.pgy; do
     require_text "$completion_consumer" 'SemanticAstCollectionLifetimeRootReady('
 done
-require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \
     'SemanticAstCollectionLifetimeEventStepFromGraph('
-require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \
     'SemanticAstCollectionBuiltinTransitionAtCompletion('
-require_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" \
     'ArrayDrop(prefixes);'
 for retired_inline_completion_path in 'let owned_push: Bool' 'let deep_drop: Bool' 'let node: Int = last_root + 1'; do
     reject_text "src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy" "$retired_inline_completion_path"
+    reject_text "src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy" "$retired_inline_completion_path"
 done
 reject_text "src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy" 'SemanticCallSpineRootsFromGraph('
 reject_text "src/self_hosted/semantic/ast_collection_lifetime_event_order_owner.pgy" 'CompilerRetireArrayStorage('

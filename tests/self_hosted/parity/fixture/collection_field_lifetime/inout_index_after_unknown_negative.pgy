@@ -1,5 +1,8 @@
 func Matches(values: Array<String>) -> Bool { return values[0] == "copied"; }
-func Opaque(inout values: Array<String>) -> Void { ArrayPush(values, "borrowed"); }
+// Detached execution, not a callee name, makes this formal effect opaque.
+func Opaque(inout values: Array<String>) -> Void {
+    defer { ArrayPush(values, "borrowed"); }
+}
 func Main() -> Void
 {
     let values: Array<String> = [];

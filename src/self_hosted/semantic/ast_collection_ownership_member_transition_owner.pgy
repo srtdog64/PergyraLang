@@ -3,12 +3,16 @@
 // temporary; every other source-field or retired-local reuse fails closed.
 import "ast_assignment_fact_owner.pgy";
 import "ast_collection_ownership_member_move_owner.pgy";
+import "ast_collection_member_read_permission_owner.pgy";
 struct SemanticAstCollectionMemberMoveUse {
     found: Bool;
     syntax_node_id: Int;
     expression_node_id: Int;
     restored_binding_syntax_ids: Array<Int>;
     restoration_syntax_ids: Array<Int>;
+    readable_members: HashMap<String, Int>;
+    unproved_read_roots: HashMap<String, Int>;
+    read_permission_ready: Bool;
 }
 func SemanticAstCollectionMemberMoveEventKey(identity: SemanticAstCollectionMemberMoveIdentity, syntax_node_id: Int) -> String {
     return Concat(identity.key, Concat(":", ToString(syntax_node_id)));
@@ -24,6 +28,10 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
     let retired_locals: HashMap<String, Int> = MapNew();
     let restored: Array<Int> = [];
     let restoration_sites: Array<Int> = [];
+    let readable_members: HashMap<String, Int> = MapNew();
+    let unproved_read_roots: HashMap<String, Int> = MapNew();
+    let read_sources: Array<Int> = [];
+    let read_targets: Array<Int> = [];
     let root_slot: Int = 0;
     while root_slot < ArrayLength(surfaces.expression_graph.roots) {
         if surfaces.expression_graph.has_roots[root_slot] {
@@ -35,6 +43,13 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
             if IsSome(start) {
                 let node: Int = UnwrapOption(start);
                 while node <= root_id {
+                    let read_use: SemanticAstCollectionMemberRootReadOccurrence = SemanticAstCollectionMemberRootReadOccurrenceFromGraph(
+                        artifact, signatures, constructors, resolved_leaf_types, surfaces.expression_graph,
+                        surfaces.function_node_ids[surface], node, root_id);
+                    if read_use.blocked { MapSet(unproved_read_roots, ToString(read_use.source), 1); }
+                    if read_use.target > 0 {
+                        ArrayPush(read_sources, read_use.source); ArrayPush(read_targets, read_use.target);
+                    }
                     let identity: SemanticAstCollectionMemberMoveIdentity =
                         SemanticAstCollectionMemberMoveIdentityForNode(
                             artifact, signatures, constructors, locals,
@@ -45,11 +60,13 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                         let event_key: String = SemanticAstCollectionMemberMoveEventKey(
                             identity, syntax_id);
                         if MapHas(move_destinations, event_key) {
+                            MapSet(unproved_read_roots, ToString(identity.source_binding_syntax_id), 1);
                             // A new extraction cannot overwrite an outstanding move.
                             if MapHas(active_members, identity.key) && MapGet(active_members, identity.key) > 0 {
+                                ArrayDrop(read_sources); ArrayDrop(read_targets);
                                 return SemanticAstCollectionMemberMoveUse(
                                     true, syntax_id, node, restored,
-                                    restoration_sites);
+                                    restoration_sites, readable_members, unproved_read_roots, true);
                             }
                             MapSet(active_members, identity.key,
                                 MapGet(move_destinations, event_key));
@@ -86,11 +103,16 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                                 }
                             }
                             if !is_restore {
+                                ArrayDrop(read_sources); ArrayDrop(read_targets);
                                 return SemanticAstCollectionMemberMoveUse(
                                     true, syntax_id, node, restored,
-                                    restoration_sites);
+                                    restoration_sites, readable_members, unproved_read_roots, true);
                             }
                         }
+                        let read_root: Int = SemanticAstCollectionMemberReadFormalRoot(
+                            artifact, signatures, surfaces.expression_graph,
+                            surfaces.function_node_ids[surface], syntax_id, node, identity);
+                        if read_root > 0 { MapSet(readable_members, ToString(node), read_root); }
                     }
                     // Postfix graph member selectors are leaves, but they are
                     // field identity, not lexical local use.  The expression
@@ -114,9 +136,10 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
                             ToString(binding_use.declaration_node_id)) &&
                         syntax_id > MapGet(retired_locals,
                             ToString(binding_use.declaration_node_id)) {
+                        ArrayDrop(read_sources); ArrayDrop(read_targets);
                         return SemanticAstCollectionMemberMoveUse(
                             true, syntax_id, node, restored,
-                            restoration_sites);
+                            restoration_sites, readable_members, unproved_read_roots, true);
                     }
                     node = node + 1;
                 }
@@ -124,8 +147,10 @@ func SemanticAstCollectionFirstInvalidMemberMoveUse(
         }
         root_slot = root_slot + 1;
     }
+    let closed: Bool = SemanticAstCollectionMemberReadBlockedRootsClosure(read_sources, read_targets, unproved_read_roots);
+    ArrayDrop(read_sources); ArrayDrop(read_targets);
     return SemanticAstCollectionMemberMoveUse(
-        false, -1, -1, restored, restoration_sites);
+        false, -1, -1, restored, restoration_sites, readable_members, unproved_read_roots, closed);
 }
 
 func SemanticAstCollectionApplyMemberMoveRestorations(

@@ -10,7 +10,8 @@ void semantic_array_storage_initialize(Symbol *binding, const ASTNode *initializ
 void semantic_array_storage_escape(ASTNode *source, const Type *type,
                                    SemanticContext *ctx);
 void semantic_array_storage_call_argument(ASTNode *source, const Type *type,
-    const Type *result_type, ParamMode mode, bool constructor, SemanticContext *ctx);
+    const Type *result_type, ParamMode mode, bool constructor,
+    ASTNode *call, ASTNode *callee_decl, size_t ordinal, SemanticContext *ctx);
 void semantic_array_storage_assignment(ASTNode *target, const Type *target_type,
     ASTNode *value, const Type *value_type, SemanticContext *ctx);
 bool semantic_array_storage_admit_drop(ASTNode *receiver, Type *array_type,

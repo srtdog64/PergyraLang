@@ -74,3 +74,13 @@ for mutation in {0..44}; do cmp "$WORK/c-$mutation.run" "$WORK/llvm-$mutation.ru
 for manifest in native member-probe-source member-input imports; do sha256sum --quiet -c "$WORK/$manifest.sha256"; done
 sha256sum --quiet -c "$WORK/member-probe-binaries.sha256"
 echo "[collection-member-identity] C/LLVM each43 member units (baseline +42 negatives),2 constructor-carrier negatives,5 observer refusals PASS; evidence=$REL"
+
+for backend in c llvm; do
+    timeout 120 "$PGY" --native-pipeline --opt=dev "--backend=$backend" \
+        tests/self_hosted/fixtures/collection_member_canonical_scalar_probe.pgy \
+        -o "$REL/$backend-canonical-scalar.exe" >"$WORK/$backend-canonical-scalar.compile" 2>&1
+    timeout 30 "$WORK/$backend-canonical-scalar.exe" >"$WORK/$backend-canonical-scalar.raw" 2>&1
+    tr -d '\r' <"$WORK/$backend-canonical-scalar.raw" >"$WORK/$backend-canonical-scalar.run"
+    [[ "$(cat "$WORK/$backend-canonical-scalar.run")" == 'CANONICAL SCALAR COPY PASS' ]]
+done
+echo "[collection-member-identity] native C/LLVM canonical scalar values after input cleanup PASS; not installed-driver proof"

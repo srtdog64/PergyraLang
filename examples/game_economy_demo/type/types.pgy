@@ -1,0 +1,52 @@
+// type/types.pgy — 핵심 타입 + ADT 모델링
+//
+// 단일 책임: 프로그램 전반에서 쓰는 타입·ADT·별칭·제네릭.
+
+// 재귀 ADT (고급 기법: 재귀 + 패턴 매칭)
+enum Catalog {
+    Leaf(Int),
+    Node(Catalog, Catalog)
+}
+
+// 태그 페이로드 ADT
+enum GameResult {
+    Victory(Int),
+    Defeat(String),
+    Draw
+}
+
+enum ItemKind { Weapon, Armor, Potion }
+
+type Gold = Int
+type ItemId = Int
+
+struct Item {
+    kind: ItemKind;
+    id: ItemId;
+}
+
+tobject TradeReceipt {
+    gold: Gold;
+    item: String;
+}
+
+object PlayerSnapshot {
+    gold: Gold;
+    hp: Int;
+}
+
+func SumCatalog(c: Catalog) -> Int {
+    match c {
+        case Leaf(n): return n;
+        case Node(l, r): return SumCatalog(l) + SumCatalog(r);
+    }
+}
+
+func Identity<T>(x: T) -> T {
+    return x;
+}
+
+func Max<T>(a: T, b: T) -> T {
+    if a > b { return a; }
+    return b;
+}

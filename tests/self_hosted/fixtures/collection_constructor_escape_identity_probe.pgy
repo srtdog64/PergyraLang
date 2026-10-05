@@ -104,8 +104,17 @@ func InspectConstructorEffectFrame(mutation: Int) -> Bool {
         true, [101, 102], [201, 202], [301, 302],
         [101, 102, 103], [201, 202, 203], [301, 302, 303],
         [401, 402], [401, 402, 403], no_formal_escape, no_formal_unknown, no_formal_retiring, no_formal_non_deep,
-        SemanticAstCollectionConstructorFieldInputsEmpty());
+        SemanticAstCollectionConstructorFieldInputsEmpty(), [501, 502, 503],
+        SemanticAstCollectionFormalDescriptorRetentionEmpty());
     if !SemanticAstCollectionCallEffectFactsReady(facts, 2) { return false; }
+    if mutation == 26 {
+        ArrayPop(facts.definition_descriptor_retiring_sites);
+        return !SemanticAstCollectionCallEffectFactsReady(facts, 2);
+    }
+    if mutation == 27 {
+        ArrayPush(facts.definition_descriptor_retiring_sites, 0);
+        return !SemanticAstCollectionCallEffectFactsReady(facts, 2);
+    }
     if mutation == 14 {
         ArrayPop(facts.first_storage_escape_sites);
         return !SemanticAstCollectionCallEffectFactsReady(facts, 2);
@@ -139,15 +148,22 @@ func InspectConstructorEffectFrame(mutation: Int) -> Bool {
     let retiring: Array<Int> = [-1, -1, -1];
     let non_deep: Array<Int> = [-1, -1, -1];
     let escaping: Array<Int> = [-1, -1, 43];
+    let descriptor_retiring: Array<Int> = [-1, -1, -1];
+    if mutation == 28 { descriptor_retiring[2] = 43; }
     if mutation == 18 { storage.borrowed_definitions = [false, false, false]; }
-    SemanticAstCollectionDefinitionEffectClosure(definitions, storage, parents, unknown, retiring, non_deep, escaping);
+    SemanticAstCollectionDefinitionEffectClosure(definitions, storage, parents, unknown, retiring, non_deep, escaping, descriptor_retiring);
+    if mutation == 28 {
+        return descriptor_retiring[0] == 43 && descriptor_retiring[1] == 43 &&
+            descriptor_retiring[2] == 43 && unknown[0] == -1 &&
+            retiring[0] == -1 && non_deep[0] == -1;
+    }
     if unknown[0] != -1 || unknown[1] != -1 || unknown[2] != -1 ||
         retiring[0] != -1 || retiring[1] != -1 || retiring[2] != -1 ||
         non_deep[0] != -1 || non_deep[1] != -1 || non_deep[2] != -1 { return false; }
     if mutation == 17 { return escaping[0] == 43 && escaping[1] == 43 && escaping[2] == 43; }
     if escaping[0] != -1 || escaping[1] != -1 || escaping[2] != 43 { return false; }
     escaping = [43, -1, -1];
-    SemanticAstCollectionDefinitionEffectClosure(definitions, storage, parents, unknown, retiring, non_deep, escaping);
+    SemanticAstCollectionDefinitionEffectClosure(definitions, storage, parents, unknown, retiring, non_deep, escaping, descriptor_retiring);
     return escaping[0] == 43 && escaping[1] == 43 && escaping[2] == 43 &&
         unknown[0] == -1 && unknown[1] == -1 && unknown[2] == -1 &&
         retiring[0] == -1 && retiring[1] == -1 && retiring[2] == -1 &&
@@ -158,8 +174,14 @@ func Main() -> Void with caps env, io_read {
     let args: Array<String> = Args();
     if ArrayLength(args) != 2 { Log("expected source and mutation"); Exit(2); }
     let mutation: Int = ToInt(args[1]);
-    if mutation < 0 || mutation > 25 || args[1] != ToString(mutation) {
+    if mutation < 0 || mutation > 28 || args[1] != ToString(mutation) {
         Log("invalid mutation"); Exit(2);
+    }
+    if mutation >= 26 {
+        if !InspectConstructorEffectFrame(mutation) {
+            Log("descriptor retirement frame mismatch"); Exit(1);
+        }
+        Log("true"); return;
     }
     if mutation >= 19 {
         if !InspectFormalEffectFixedPointFrame(mutation) {

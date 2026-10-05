@@ -1,0 +1,14 @@
+func Populate(inout names: Array<String>, inout types: Array<String>) -> Bool {
+    ArrayPushOwnedString(names, "T");
+    ArrayPushOwnedString(types, "Int");
+    return true;
+}
+func Probe() -> Bool {
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    return Populate(names, types) && names[0] == "T" && types[0] == "Int";
+}
+func Main() -> Void {
+    let future_local: Int = 0;
+    if future_local == 0 { Log(Probe()); }
+}

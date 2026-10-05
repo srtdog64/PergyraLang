@@ -55,7 +55,7 @@ func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
     analysis: SemanticAstArtifactAnalysis, ref initializers: SemanticAstInitializerTypeFacts,
     ref leaf_types: Array<String>, ref assignments: SemanticAstAssignmentTypeFacts,
     ref statement_types: SemanticAstStatementTypeFacts,
-    ref exhaustive: Array<Int>) -> SemanticAstBodyVerdict {
+    ref exhaustive: Array<Int>, ref order: SemanticExpressionGraphSurfaceOrder) -> SemanticAstBodyVerdict {
     let graph: SemanticExpressionGraphFacts = analysis.expression_surfaces.expression_graph;
     let roots: SemanticCallSpineRoots = SemanticCallSpineRootsFromGraph(graph);
     if !roots.ok { return SemanticAstBodyVerdictError("ast_artifact_invalid", "ArrayDrop call identity is missing", -1); }
@@ -66,6 +66,7 @@ func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
         probe = probe + 1;
     }
     if !required { return SemanticAstBodyVerdictOk(); }
+    let preserving_formals: HashMap<String, Int> = SemanticArrayStoragePreservingFormals(artifact, analysis, order);
     let requirements: HashMap<String, Int> = SemanticArrayStorageReleaseParameterRequirements(
         analysis.signatures, analysis.expression_surfaces, roots);
     let retired: HashMap<String, Int> = MapNew();
@@ -226,7 +227,7 @@ func SemanticArrayStorageReleaseVerdict(artifact: AstTreeArtifact,
                                     return SemanticAstBodyVerdictError("borrow_boundary_escape", "ArrayDrop release obligation requires exclusive storage through own-formal forwarding", syntax_id);
                                 }
                                 if binding > 0 && (constructor || SemanticArrayStorageCallArgumentEscapes(
-                                    analysis.signatures, graph, node, arg, analysis.constructors, analysis.enums) ||
+                                    analysis.signatures, graph, node, arg, analysis.constructors, analysis.enums, preserving_formals) ||
                                     ((target == "ArrayPush" || target == "ArraySet" ||
                                     target == "ArrayPushOwned" || target == "ListPush" || target == "MapSet" || target == "QueuePush") && arg > 0)) {
                                     MapSet(escaped, key, syntax_id);

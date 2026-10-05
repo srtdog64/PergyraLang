@@ -1,0 +1,105 @@
+﻿// main.pgy — 진입점
+//
+// 단일 책임: 모든 모듈을 합성하고 실행한다.
+import "type/types.pgy";
+import "subject/player.pgy";
+import "subject/enemy.pgy";
+import "ability/tradable.pgy";
+import "ability/combatant.pgy";
+import "effect/effects.pgy";
+import "effect/relations.pgy";
+import "effect/events.pgy";
+import "zone/market_zone.pgy";
+import "zone/battle_zone.pgy";
+import "world/game_world.pgy";
+import "intent/trade_intent.pgy";
+import "intent/battle_intent.pgy";
+import "async/async_lib.pgy";
+import "util/utils.pgy";
+
+func HandleTrade(amount: Int) -> Void {
+    Log("trade.complete=" + ToString(amount));
+}
+
+func Main() -> Void {
+    // ADT: 재귀 + 패턴 매칭
+    let tree: Catalog = Node(Leaf(1), Node(Leaf(2), Leaf(3)));
+    Log(SumCatalog(tree));
+
+    let result: GameResult = Victory(100);
+    match result {
+        case Victory(g): Log("victory=" + ToString(g));
+        case Defeat(s): Log("defeat=" + s);
+        case Draw: Log("draw");
+    }
+
+    // 제네릭
+    Log(Identity(42));
+
+    // subject / vessel
+    let seller: Player = Player("Alice", 200, Vitals(100, 100), 1);
+    let buyer: Player = Player("Bob", 100, Vitals(100, 100), 2);
+    Log(seller.IsAlive());
+    Log(buyer.CanAfford(50));
+
+    // zone / world
+    let market: MarketZone = MarketZone(seller, buyer);
+    let hero: Player = Player("Hero", 100, Vitals(100, 100), 3);
+    let foe: Enemy = Enemy("Goblin", 50);
+    let battle: BattleZone = BattleZone(hero, foe);
+    let game: GameWorld = GameWorld(Clone(market), Clone(battle));
+
+    Log(game.MarketSellerGold());
+
+    // intent 실행
+    let tradeOk: Bool = ExecuteTrade(market, seller, buyer, 50);
+    Log(tradeOk);
+    let battleOk: Bool = RunBattle(battle, hero, foe);
+    Log(battleOk);
+
+    // event 구독/해지 (+= / -=)
+    OnTradeComplete += HandleTrade;
+    OnTradeComplete -= HandleTrade;
+
+    // Slot / SecureSlot / with
+    let s: Slot<Int> = ClaimSlot<Int>();
+    Write(s, 42);
+    Log(Read(s));
+    Release(s);
+
+    let (sec, tok) = ClaimSecureSlot<Int>(SECURITY_LEVEL_HARDWARE);
+    Write(sec, 7, tok);
+    Log(Read(sec, tok));
+    Release(sec, tok);
+
+    with slot<Int> as counter {
+        Write(counter, 100);
+        Log(Read(counter));
+    }
+
+    // defer / unsafe
+    defer { Log("cleanup"); }
+    unsafe { Log("unsafe boundary"); }
+
+    // 제어 흐름
+    let i: Int = 0;
+    loop {
+        i = i + 1;
+        if i == 2 { continue; }
+        if i >= 3 { break; }
+    }
+    for n in 0..3 { Log(n); }
+    let w: Int = 0;
+    while w < 2 { w = w + 1; }
+
+    // Option/Result + 파이프
+    Log(Utils.FindGold(Some(PlayerSnapshot(100, 100))));
+    Log(Unwrap(Utils.SafeDiv(10, 2)));
+    Log(PipelineDemo());
+
+    // 비동기 + 트랜잭션
+    RunAsyncPipeline();
+    TransactionDemo();
+
+    Log("=== Game Economy Demo Complete ===");
+}

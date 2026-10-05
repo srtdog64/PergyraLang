@@ -1,0 +1,44 @@
+// Reached caller entry for a proved descriptor-retaining formal. The summary
+// owner identifies retention; this owner alone rejects repeated/reused entry
+// and applies the successful continuing-call transition.
+import "ast_collection_formal_descriptor_retention_owner.pgy";
+import "ast_collection_call_retirement_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_collection_formal_storage_permission_owner.pgy";
+import "ast_collection_terminal_storage_effect_owner.pgy";
+
+func SemanticAstCollectionDescriptorRetentionEntryVerdict(
+    ref artifact: AstTreeArtifact, syntax_id: Int, expression_id: Int,
+    binding_name: String, retained: Bool, prior_retention: Bool
+) -> SemanticAstCollectionOwnershipVerdict {
+    let terminal: Bool = SemanticAstCollectionEffectSiteTerminatesFlow(artifact, syntax_id);
+    let repeated: Bool = retained &&
+        !terminal &&
+        SemanticAstCollectionCallRetirementSite(artifact, syntax_id) == 0;
+    if !repeated && !prior_retention {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    let boundary: String = "descriptor_retention_reuse";
+    if repeated { boundary = "repeated_descriptor_retention_entry"; }
+    return SemanticAstCollectionOwnershipVerdictError(
+        "borrow_boundary_escape",
+        SemanticError3("borrow_boundary_escape", "boundary", boundary,
+            "type", "Array<String>", "binding", binding_name),
+        syntax_id, expression_id);
+}
+
+func SemanticAstCollectionDescriptorRetentionApplyAtCall(
+    ref artifact: AstTreeArtifact, syntax_id: Int, retained: Bool, row: Int,
+    definition: Int, inout retained_definitions: Array<Bool>,
+    inout ownership: Array<Int>, ref dispositions: Array<Int>,
+    inout transitions: Array<Int>
+) -> Void {
+    if retained && row >= 0 && row < ArrayLength(ownership) &&
+        row < ArrayLength(dispositions) && row < ArrayLength(transitions) &&
+        definition >= 0 && definition < ArrayLength(retained_definitions) &&
+        !SemanticAstCollectionEffectSiteTerminatesFlow(artifact, syntax_id) {
+        retained_definitions[definition] = true;
+        SemanticAstCollectionRemoveCallPermission(
+            row, ownership, dispositions, transitions);
+    }
+}

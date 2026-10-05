@@ -1,0 +1,38 @@
+// intent/trade_intent.pgy — 거래 오케스트레이션
+//
+// 단일 책임: ExecuteTrade intent 하나.
+import "zone/market_zone.pgy";
+import "subject/player.pgy";
+
+intent ExecuteTrade(market: MarketZone, seller: Player, buyer: Player, amount: Int) {
+    exclusive;
+    priority: 5;
+    rollback: full;
+    who: buyer;
+    where: MarketZone;
+    involves seller: Player;
+
+    step Verify after Setup {
+        using: market;
+        on: buyer.CanAfford(amount);
+        guard: amount > 0;
+        post: true;
+        expect: true;
+    }
+
+    step Deduct {
+        using: market;
+        on: buyer.Spend(amount);
+        compensate: buyer.Earn(amount);
+        transfer: buyer -> seller;
+    }
+
+    step Credit {
+        using: market;
+        on: seller.Earn(amount);
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}

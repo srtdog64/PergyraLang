@@ -1,0 +1,6 @@
+// effect/relations.pgy — 쌍 단위 도메인 연결
+//
+// 단일 책임: relation.
+import "subject/player.pgy";
+
+relation TradeLink for source: Player, target: Player { }

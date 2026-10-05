@@ -10,6 +10,7 @@ struct SemanticAstCollectionArgumentPermissionEffect {
     non_deep: Bool;
     storage_escape: Bool;
     constructor_field: SemanticAstCollectionConstructorFieldIdentity;
+    descriptor_retiring: Bool;
 }
 
 func SemanticAstCollectionArgumentPermissionEffectFromEdge(
@@ -21,7 +22,7 @@ func SemanticAstCollectionArgumentPermissionEffectFromEdge(
     ref formal_modes: Array<Int>, proved: HashMap<String, Int>
 ) -> SemanticAstCollectionArgumentPermissionEffect {
     let absent: SemanticAstCollectionConstructorFieldIdentity = SemanticAstCollectionConstructorFieldIdentity(true, 0, 0, "", -1, -1);
-    let effect: SemanticAstCollectionArgumentPermissionEffect = SemanticAstCollectionArgumentPermissionEffect(false, false, false, false, false, absent);
+    let effect: SemanticAstCollectionArgumentPermissionEffect = SemanticAstCollectionArgumentPermissionEffect(false, false, false, false, false, absent, false);
     let escape: SemanticAstCollectionConstructorFieldIdentity = SemanticAstCollectionConstructorStorageEscapeField(
         artifact, constructors, locals, inferred_types, surfaces, surface, edge);
     if !escape.ok { return effect; }
@@ -57,6 +58,9 @@ func SemanticAstCollectionArgumentPermissionEffectFromEdge(
         effect.unknown = !consuming && unproved;
         effect.retiring = consuming || unproved || shallow;
         effect.non_deep = effect.retiring && !deep_drop;
+        // Shallow copyout invalidates siblings, not the descriptor written
+        // back to the exact caller binding. Consumption still invalidates both.
+        effect.descriptor_retiring = consuming || unproved;
     }
     effect.ok = true;
     return effect;

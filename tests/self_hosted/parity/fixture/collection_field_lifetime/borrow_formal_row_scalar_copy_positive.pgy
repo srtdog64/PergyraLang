@@ -1,0 +1,18 @@
+struct Rows { names: Array<String>; }
+func Append(rows: Rows, ref source: Array<String>) -> Rows {
+    let names: Array<String> = rows.names;
+    let row: Int = 0;
+    while row < ArrayLength(source) {
+        ArrayPush(names, Concat("", source[row]));
+        row = row + 1;
+    }
+    return Rows(names);
+}
+func Main() -> Void {
+    let source: Array<String> = [];
+    ArrayPushOwnedString(source, "copied");
+    let rows: Rows = Append(Rows(["prior"]), source);
+    ArrayDropOwnedStrings(source);
+    if ArrayLength(rows.names) != 2 || rows.names[0] != "prior" ||
+        rows.names[1] != "copied" { Exit(1); }
+}

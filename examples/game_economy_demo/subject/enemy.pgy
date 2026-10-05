@@ -1,0 +1,17 @@
+// subject/enemy.pgy — 적 개체
+//
+// 단일 책임: Enemy 하나.
+
+subject Enemy {
+    let name: String;
+    let mut hp: Int;
+
+    action Strike(self) -> Void
+        requires Combatant
+        within BattleZone
+        authorized by self
+        causes Damaged
+    {
+        hp = hp - 10;
+    }
+}

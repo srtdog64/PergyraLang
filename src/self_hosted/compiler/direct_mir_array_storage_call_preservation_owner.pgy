@@ -1,0 +1,163 @@
+// MIR independently proves descriptor preservation. Source admission is not a
+// certificate for an untrusted MIR input, and unknown uses remove permission.
+import "direct_mir_array_storage_element_lifetime_owner.pgy";
+import "direct_mir_scalar_program_direct_call_readiness_owner.pgy";
+import "direct_mir_scalar_program_hashmap_expression_location_owner.pgy";
+
+func DirectMirArrayStorageReceiverObserves(kind: Int) -> Bool {
+    return kind == DirectMirScalarProgramExprArrayStringLength() ||
+        kind == DirectMirScalarProgramExprArrayIntIndex() ||
+        kind == DirectMirScalarProgramExprArrayBoolIndex() ||
+        kind == DirectMirScalarProgramExprArrayLongIndex() ||
+        kind == DirectMirScalarProgramExprLogicalRecordArrayIndex();
+}
+
+func DirectMirArrayStoragePreservingParameters(ref plan: DirectMirScalarCfgGraphPlan) -> HashMap<String, Int> {
+    let proved: HashMap<String, Int> = MapNew();
+    let owners: Array<Int> = [];
+    let owner_graph: Int = 0;
+    while owner_graph < ArrayLength(plan.program.expressions.graph_roots) { ArrayPush(owners, -1); owner_graph = owner_graph + 1; }
+    let owner_routine: Int = 0;
+    while owner_routine < ArrayLength(plan.routines.parameter_counts) {
+        let operation: Int = plan.routines.operation_starts[owner_routine];
+        let end: Int = operation + plan.routines.operation_counts[owner_routine];
+        while operation < end {
+            let lane: Int = 0;
+            while lane < 2 {
+                owner_graph = plan.program.operation_expression_rows[operation];
+                if lane == 1 { owner_graph = plan.program.operation_secondary_expression_rows[operation]; }
+                if owner_graph >= 0 && owner_graph < ArrayLength(owners) {
+                    if owners[owner_graph] >= 0 && owners[owner_graph] != owner_routine { ArrayDrop(owners); return proved; }
+                    owners[owner_graph] = owner_routine;
+                }
+                lane = lane + 1;
+            }
+            operation = operation + 1;
+        }
+        let block: Int = plan.routines.block_starts[owner_routine];
+        end = block + plan.routines.block_counts[owner_routine];
+        while block < end {
+            let lane: Int = 0;
+            while lane < 2 {
+                owner_graph = plan.program.block_condition_expression_rows[block];
+                if lane == 1 { owner_graph = plan.program.block_return_expression_rows[block]; }
+                if owner_graph >= 0 && owner_graph < ArrayLength(owners) {
+                    if owners[owner_graph] >= 0 && owners[owner_graph] != owner_routine { ArrayDrop(owners); return proved; }
+                    owners[owner_graph] = owner_routine;
+                }
+                lane = lane + 1;
+            }
+            block = block + 1;
+        }
+        owner_routine = owner_routine + 1;
+    }
+    let blocked: Array<Bool> = []; let node_parameters: Array<Int> = [];
+    let sources: Array<Int> = []; let targets: Array<Int> = [];
+    let flat: Int = 0;
+    while flat < ArrayLength(plan.routines.parameter_types) {
+        let element: Option<String> = SemanticArrayElementType(plan.routines.parameter_types[flat]);
+        ArrayPush(blocked, !IsSome(element) ||
+            !DirectMirArrayStoragePlainType(plan, UnwrapOption(element), 0) ||
+            plan.routines.parameter_carriages[flat] == "owner-handle");
+        flat = flat + 1;
+    }
+    let ok: Bool = true; let graph: Int = 0;
+    while ok && graph < ArrayLength(owners) {
+        let routine: Int = owners[graph];
+        let node: Int = plan.program.expressions.graph_starts[graph];
+        let end: Int = node + plan.program.expressions.graph_counts[graph];
+        if node != ArrayLength(node_parameters) { ok = false; break; }
+        while ok && node < end {
+            let parameter: Int = -1; let kind: Int = plan.program.expressions.node_kinds[node];
+            if kind == DirectMirScalarProgramExprParameter() && IsSome(SemanticArrayElementType(plan.program.expressions.node_types[node])) {
+                let ordinal: Int = plan.program.expressions.node_parameter_ordinals[node];
+                if routine < 0 || routine >= ArrayLength(plan.routines.parameter_counts) ||
+                    ordinal < 0 || ordinal >= plan.routines.parameter_counts[routine] { ok = false; break; }
+                parameter = plan.routines.parameter_starts[routine] + ordinal;
+                if plan.program.expressions.node_types[node] != plan.routines.parameter_types[parameter] { ok = false; break; }
+            }
+            ArrayPush(node_parameters, parameter);
+            let arguments: DirectMirScalarProgramArgumentView = DirectMirScalarProgramArgumentViewFromNode(
+                plan.program.expressions, node);
+            if !arguments.valid { ok = false; break; }
+            let arg: Int = 0;
+            while ok && (kind == DirectMirScalarProgramExprDirectCall() || arguments.nary) && arg < arguments.count {
+                let child: Int = DirectMirScalarProgramArgumentViewAt(plan.program.expressions, arguments, arg);
+                if child < 0 || child >= node { ok = false; break; }
+                let source: Int = node_parameters[child];
+                if source >= 0 {
+                    let target: Int = plan.program.expressions.node_callable_rows[node];
+                    if kind != DirectMirScalarProgramExprDirectCall() || target < 0 ||
+                        target >= ArrayLength(plan.routines.parameter_counts) || arg >= plan.routines.parameter_counts[target] {
+                        blocked[source] = true;
+                    } else {
+                        ArrayPush(sources, source); ArrayPush(targets, plan.routines.parameter_starts[target] + arg);
+                    }
+                }
+                arg = arg + 1;
+            }
+            let edge: Int = 0;
+            while ok && edge < 2 {
+                let child: Int = plan.program.expressions.node_lefts[node];
+                if edge == 1 { child = plan.program.expressions.node_rights[node]; }
+                if child >= 0 {
+                    if child >= node { ok = false; break; }
+                    let source: Int = node_parameters[child];
+                    if source >= 0 && !(edge == 0 && DirectMirArrayStorageReceiverObserves(kind)) &&
+                        !(kind == DirectMirScalarProgramExprDirectCall() && !arguments.nary && arguments.count > 0) {
+                        blocked[source] = true;
+                    }
+                }
+                edge = edge + 1;
+            }
+            node = node + 1;
+        }
+        if ok {
+            let root: Int = plan.program.expressions.graph_roots[graph];
+            if root >= 0 && root < ArrayLength(node_parameters) && node_parameters[root] >= 0 {
+                // A bare descriptor root is a store/return, not an element read.
+                blocked[node_parameters[root]] = true;
+            }
+        }
+        graph = graph + 1;
+    }
+    // Array value definitions without a local identity cannot establish that
+    // a caller descriptor was not rebound through an unmodelled SSA target.
+    let routine: Int = 0;
+    while ok && routine < ArrayLength(plan.routines.parameter_counts) {
+        let operation: Int = plan.routines.operation_starts[routine];
+        let end: Int = operation + plan.routines.operation_counts[routine];
+        let unknown_definition: Bool = false;
+        while operation < end {
+            let result: Int = plan.operation_result_values[operation];
+            if result >= 0 && plan.value_local_rows[result] < 0 && IsSome(SemanticArrayElementType(plan.value_types[result])) {
+                unknown_definition = true;
+            }
+            operation = operation + 1;
+        }
+        if unknown_definition {
+            flat = plan.routines.parameter_starts[routine]; end = flat + plan.routines.parameter_counts[routine];
+            while flat < end { blocked[flat] = true; flat = flat + 1; }
+        }
+        routine = routine + 1;
+    }
+    let remaining: Int = ArrayLength(blocked) + 1; let changed: Bool = true;
+    while ok && changed && remaining > 0 {
+        changed = false; let edge: Int = 0;
+        while edge < ArrayLength(sources) {
+            if blocked[targets[edge]] && !blocked[sources[edge]] {
+                blocked[sources[edge]] = true; changed = true;
+            }
+            edge = edge + 1;
+        }
+        remaining = remaining - 1;
+    }
+    if changed { ok = false; }
+    flat = 0;
+    while ok && flat < ArrayLength(blocked) {
+        if !blocked[flat] { MapSet(proved, ToString(flat), 1); }
+        flat = flat + 1;
+    }
+    ArrayDrop(owners); ArrayDrop(blocked); ArrayDrop(node_parameters); ArrayDrop(sources); ArrayDrop(targets);
+    return proved;
+}

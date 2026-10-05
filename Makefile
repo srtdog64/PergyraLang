@@ -563,6 +563,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/indexed_string_borrow_owner.c \
                    $(SEMANTIC_DIR)/collection_owned_element_requirement_owner.c \
                    $(SEMANTIC_DIR)/array_storage_release_owner.c \
+                   $(SEMANTIC_DIR)/array_storage_element_lifetime_owner.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_boundaries.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_call.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_destructure.c \
@@ -662,6 +663,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/slot_analyzer_escape.c \
                    $(SEMANTIC_DIR)/slot_analyzer_summary.c \
                    $(SEMANTIC_DIR)/function_param_flow_summary.c \
+                   $(SEMANTIC_DIR)/function_param_array_storage_transfer_owner.c \
                    $(SEMANTIC_DIR)/function_param_flow_fact_snapshot.c \
                    $(SEMANTIC_DIR)/function_param_flow_store_destroy.c \
                    $(SEMANTIC_DIR)/iteration_type_fact.c \

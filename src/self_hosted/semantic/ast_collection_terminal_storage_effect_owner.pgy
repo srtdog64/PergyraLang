@@ -1,0 +1,127 @@
+// Omitted continuation effects require a terminal tail. An owned-content
+// mutator has a narrower exception: its exact descriptor must be unshared.
+import "ast_collection_formal_descriptor_retention_owner.pgy";
+import "ast_collection_definition_storage_authority_owner.pgy";
+import "ast_collection_call_effect_fact_owner.pgy";
+import "ast_collection_ownership_verdict_carrier_owner.pgy";
+import "ast_collection_formal_storage_permission_owner.pgy";
+
+func SemanticAstCollectionTerminalOwnedMutationUnshared(
+    syntax_id: Int, binding_row: Int, definition: Int,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref current_definitions: Array<Int>,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs
+) -> Bool {
+    let source: Int = SemanticAstCollectionDefinitionStorageSource(
+        storage, definitions, binding_row, definition);
+    if source <= 0 || !inputs.ok ||
+        ArrayLength(current_definitions) != definitions.local_count ||
+        ArrayLength(storage.producer_source_ids) !=
+            ArrayLength(definitions.syntax_ids) { return false; }
+    let row: Int = 0;
+    while row < ArrayLength(current_definitions) {
+        let other: Int = current_definitions[row];
+        // The ordered definition owner uses -1 for an unreached declaration.
+        // It is not an alias or a missing source fact for the current input.
+        if other == -1 { row = row + 1; continue; }
+        if other < 0 || other >= ArrayLength(definitions.syntax_ids) {
+            return false;
+        }
+        if row != binding_row && definitions.syntax_ids[other] <= syntax_id &&
+            storage.producer_source_ids[other] == source { return false; }
+        row = row + 1;
+    }
+    // A constructor can retain a descriptor even when no later deep-drop
+    // demand reserves it. Such an input is not evidence of unshared storage.
+    row = 0;
+    while row < ArrayLength(inputs.definition_rows) {
+        if inputs.syntax_ids[row] == syntax_id &&
+            inputs.producer_kinds[row] == 1 {
+            let captured: Int = inputs.definition_rows[row];
+            if captured < 0 || captured >= ArrayLength(storage.producer_source_ids) ||
+                storage.producer_source_ids[captured] == source { return false; }
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func SemanticAstCollectionTerminalStorageEffectEntryVerdict(
+    ref artifact: AstTreeArtifact, syntax_id: Int, function_id: Int,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref surfaces: SemanticAstExpressionSurfaceFacts,
+    edge: SemanticCallArgumentEdgeView, retained: Bool, effect: Int,
+    binding_row: Int, definition: Int,
+    ref definitions: SemanticAstCollectionDefinitionFacts,
+    ref storage: SemanticAstCollectionStorageAuthorityFacts,
+    ref current_definitions: Array<Int>,
+    ref inputs: SemanticAstCollectionConstructorFieldInputs,
+    proved: HashMap<String, Int>,
+    ref retention: SemanticAstCollectionFormalDescriptorRetention
+) -> SemanticAstCollectionOwnershipVerdict {
+    if !SemanticAstCollectionEffectSiteTerminatesFlow(artifact, syntax_id) {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    let consuming: Bool = SemanticAstCollectionOwnStringArrayParameterNode(
+        signatures, surfaces.expression_graph, edge.call_node, edge.ordinal) > 0;
+    // Consuming transfers already have an ordered own-use owner. This guard
+    // closes only the borrowed descriptor effects omitted from continuation.
+    let sensitive: Bool = !consuming && (retained || effect == 2 ||
+        effect == SemanticAstCollectionFormalShallowMutationEffect() ||
+        (edge.ordinal == 0 && SemanticAstCollectionStorageMutationCall(
+            surfaces.expression_graph, edge.call_node)));
+    if !sensitive { return SemanticAstCollectionOwnershipVerdictOk(); }
+    // Direct inout forwarding uses its complete formal-use proof. Descriptor
+    // copies/views and unobserved uses block that proof; retention is a separate
+    // summary and must also be absent. This is not a mode-only permission.
+    let source: SemanticAstCollectionFormalStorageIdentity =
+        SemanticAstCollectionStringArrayFormalIdentity(
+            signatures, function_id,
+            surfaces.expression_graph, edge.argument_node);
+    let source_key: String = ToString(source.syntax_id);
+    if !retained && (effect == 2 ||
+            effect == SemanticAstCollectionFormalShallowMutationEffect()) &&
+        source.ok && source.mode == 1 && retention.ok && MapHas(proved, source_key) &&
+        (MapGet(proved, source_key) == 2 ||
+            (effect == SemanticAstCollectionFormalShallowMutationEffect() &&
+                MapGet(proved, source_key) == SemanticAstCollectionFormalShallowMutationEffect())) &&
+        !SemanticAstCollectionFormalRetainsDescriptor(retention, source.syntax_id) {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    if effect == 2 && !retained &&
+        SemanticAstCollectionTerminalOwnedMutationUnshared(
+            syntax_id, binding_row, definition, definitions, storage,
+            current_definitions, inputs) {
+        return SemanticAstCollectionOwnershipVerdictOk();
+    }
+    let root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, syntax_id, AstExpressionLaneAtom());
+    // Short-circuit RHS and logical negation have no later operand. Earlier
+    // retaining/shallow calls still cannot skip their same-expression effects.
+    if IsSome(root) {
+        let tail: Int = UnwrapOption(root);
+        let remaining: Int = SemanticExpressionGraphArenaNodeCount(surfaces.expression_graph.arena);
+        while remaining > 0 {
+            let kind: Option<Int> = SemanticExpressionGraphNodeKind(surfaces.expression_graph, tail);
+            if !IsSome(kind) { break; }
+            let next: Option<Int> = None;
+            if UnwrapOption(kind) == AstExpressionNodeLogicalAnd() || UnwrapOption(kind) == AstExpressionNodeLogicalOr() {
+                next = SemanticExpressionGraphRightChild(surfaces.expression_graph, tail);
+            } else if UnwrapOption(kind) == AstExpressionNodeLogicalNot() {
+                next = SemanticExpressionGraphLeftChild(surfaces.expression_graph, tail);
+            } else { break; }
+            if !IsSome(next) || UnwrapOption(next) < 0 || UnwrapOption(next) >= tail { break; }
+            tail = UnwrapOption(next); remaining = remaining - 1;
+        }
+        let root_edge: SemanticCallArgumentEdgeView = SemanticCallArgumentEdgeFromGraph(
+            surfaces.expression_graph, tail);
+        if root_edge.ok && root_edge.call_node == edge.call_node {
+            return SemanticAstCollectionOwnershipVerdictOk();
+        }
+    }
+    return SemanticAstCollectionOwnershipVerdictError("borrow_boundary_escape",
+        SemanticError2("borrow_boundary_escape", "boundary",
+            "compound_terminal_storage_effect", "type", "Array<String>"),
+        syntax_id, edge.call_node);
+}

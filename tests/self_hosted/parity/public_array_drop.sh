@@ -23,7 +23,7 @@ echo "[$LABEL] stage=$STAGE evidence=$WORK_REL launcher=$PGY driver=$DRIVER"
 lanes=(native)
 [[ "$STAGE" == all ]] && lanes+=(public)
 if [[ "$STAGE" != mir ]]; then
-for name in scalar record_empty early_return own own_bool loop read_borrow own_pair ref_result_plain; do
+for name in scalar record_empty early_return own own_bool loop read_borrow own_pair ref_result_plain inout_mutation inout_nested inout_write; do
     expected=$'7\ntrue'
     [[ "$name" == record_empty ]] && expected=9
     [[ "$name" == early_return ]] && expected=$'4\n8'
@@ -33,6 +33,9 @@ for name in scalar record_empty early_return own own_bool loop read_borrow own_p
     [[ "$name" == read_borrow ]] && expected=3
     [[ "$name" == own_pair ]] && expected=$'3\n4'
     [[ "$name" == ref_result_plain ]] && expected='ARRAY RESULT READ RELEASE PASS'
+    [[ "$name" == inout_mutation ]] && expected='ARRAY INOUT RELEASE PASS'
+    [[ "$name" == inout_nested ]] && expected='ARRAY NESTED INOUT RELEASE PASS'
+    [[ "$name" == inout_write ]] && expected=7
     for lane in "${lanes[@]}"; do
         for backend in c llvm; do
             command=("$PGY")
@@ -53,7 +56,7 @@ done
 # storage-release claim above.
 record_lanes=(native-c native-llvm)
 [[ "$STAGE" != all ]] || record_lanes+=(public-c)
-for name in record read_value; do
+for name in record read_value inout_record; do
 for lane_backend in "${record_lanes[@]}"; do
     lane="${lane_backend%-*}"
     backend="${lane_backend#*-}"
@@ -62,6 +65,7 @@ for lane_backend in "${record_lanes[@]}"; do
     output="$WORK_REL/$name-$lane-$backend.exe"
     expected=9
     [[ "$name" != read_value ]] || expected=$'6\n10'
+    [[ "$name" != inout_record ]] || expected='ARRAY RECORD INOUT RELEASE PASS'
     (cd "$ROOT_DIR" && env -u PGY_NATIVE_PIPELINE "${command[@]}" "$FIXTURES/public_array_drop_$name.pgy" \
         "--backend=$backend" -o "$output") >"$WORK_DIR/$name-$lane-$backend.build" 2>&1 ||
         fail "$name $lane $backend build refused; see evidence"
@@ -75,7 +79,8 @@ for name in negative double_negative default_negative ref_negative inout_negativ
     owned_string_negative nested_resource_negative conditional_negative private_negative shadow_negative \
     own_alias_negative builtin_alias_negative call_result_negative option_escape_negative \
     enum_escape_negative own_conditional_negative return_alias_escape_negative inout_rebind_negative literal_escape_negative \
-    own_double_negative own_duplicate_argument_negative own_borrow_argument_negative ref_result_resource_negative; do
+    own_double_negative own_duplicate_argument_negative own_borrow_argument_negative ref_result_resource_negative \
+    inout_alias_negative inout_nested_rebind_negative; do
     source="$FIXTURES/public_array_drop_$name.pgy"
     [[ "$name" == negative ]] && source="$FIXTURES/public_array_drop_negative.pgy"
     for lane in "${lanes[@]}"; do
@@ -110,7 +115,7 @@ if [[ "$STAGE" != native ]]; then
         "-I$ROOT_DIR/src" "-I$ROOT_DIR/src/runtime" -c "$ROOT_DIR/src/runtime/pgy_runtime_lib.c" \
         -o "$WORK_DIR/runtime.o" >"$WORK_DIR/runtime.compile.out" 2>"$WORK_DIR/runtime.compile.err" ||
         { cat "$WORK_DIR/runtime.compile.err" >&2; fail "runtime object compilation failed; evidence=$WORK_REL"; }
-    for name in scalar own own_bool own_pair; do
+    for name in scalar own own_bool own_pair inout_write; do
         (cd "$ROOT_DIR" && "$DRIVER" --emit-mir-json-verified \
             "$FIXTURES/public_array_drop_$name.pgy" -o "$WORK_REL/$name.mir.json") \
             >"$WORK_DIR/$name.mir.out" 2>"$WORK_DIR/$name.mir.err" ||
@@ -119,6 +124,7 @@ if [[ "$STAGE" != native ]]; then
         [[ "$name" == scalar ]] && expected=$'7\ntrue'
         [[ "$name" == own_bool ]] && expected=true
         [[ "$name" == own_pair ]] && expected=$'3\n4'
+        [[ "$name" == inout_write ]] && expected=7
         mir_hash="$(sha256sum "$WORK_DIR/$name.mir.json" | cut -d' ' -f1)"
         for backend in c llvm; do
             suffix=c
@@ -162,7 +168,7 @@ if [[ "$STAGE" != native ]]; then
     done
 fi
 if [[ "$STAGE" == mir ]]; then
-    echo "[$LABEL] PASS stage=mir (4 issued MIR inputs executed and 5 preserved-artifact refusals per C/LLVM backend; no source gate claimed)"
+    echo "[$LABEL] PASS stage=mir (5 issued MIR inputs executed and 5 preserved-artifact refusals per C/LLVM backend; no source gate claimed)"
 else
-    echo "[$LABEL] PASS stage=$STAGE (native C/LLVM: 11 positives each; all-stage source-C: 11 and public LLVM: 9; 28 preserved-artifact refusals per lane; all-stage also executes 4 issued MIR inputs and checks 5 MIR refusals per backend)"
+    echo "[$LABEL] PASS stage=$STAGE (native C/LLVM: 15 positives each; all-stage source-C: 15 and public LLVM: 12; 30 preserved-artifact refusals per lane; all-stage also executes 5 issued MIR inputs and checks 5 MIR refusals per backend)"
 fi

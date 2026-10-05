@@ -1,0 +1,18 @@
+func Seed(ref source: Array<String>, inout destination: Array<String>) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(source) {
+        if source[i] == "" || source[i] == "Unknown" { return false; }
+        ArrayPushOwnedString(destination, source[i]);
+        i = i + 1;
+    }
+    return true;
+}
+func Main() -> Void {
+    let source: Array<String> = [];
+    ArrayPushOwnedString(source, "Int");
+    let destination: Array<String> = [];
+    if !Seed(source, destination) { Exit(1); }
+    Log(destination[0]);
+    ArrayDropOwnedStrings(destination);
+    ArrayDropOwnedStrings(source);
+}

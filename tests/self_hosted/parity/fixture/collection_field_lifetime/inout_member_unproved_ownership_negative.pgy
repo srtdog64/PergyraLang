@@ -1,0 +1,22 @@
+struct Table { names: Array<String>; }
+func Append(ref source: Array<String>, inout destination: Array<String>) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(source) {
+        let name: String = Concat("", source[i]);
+        let prior: Int = 0;
+        while prior < ArrayLength(destination) {
+            if destination[prior] == name { return false; }
+            prior = prior + 1;
+        }
+        ArrayPushOwnedString(destination, name);
+        i = i + 1;
+    }
+    return true;
+}
+func Resolve(ref table: Table) -> Void {
+    let names: Array<String> = table.names;
+    let source: Array<String> = ["extra"];
+    if !Append(source, names) { Exit(1); }
+    Log(names[0]);
+}
+func Main() -> Void {}

@@ -1,0 +1,13 @@
+struct Facts { names: Array<String>; }
+
+func Retain(names: Array<String>) -> Facts { return Facts(names); }
+
+func Main() -> Void {
+    let names: Array<String> = [];
+    let i: Int = 0;
+    while i < 2 {
+        let retained: Facts = Retain(names);
+        Log(ArrayLength(retained.names));
+        i = i + 1;
+    }
+}

@@ -1,0 +1,9 @@
+struct Table { names: Array<String>; }
+struct ContractEnvelope { contracts: Table; }
+func Reads(ref names: Array<String>) -> Bool { return names[0] == "x"; }
+func Ready(ref contracts: Table) -> Bool { return Reads(contracts.names); }
+func Observe(ref input: ContractEnvelope) -> Bool { return Ready(input.contracts); }
+func Main() -> Void {
+    let input: ContractEnvelope = ContractEnvelope(Table(["x"]));
+    Log(Observe(input));
+}

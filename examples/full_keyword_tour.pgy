@@ -1,0 +1,358 @@
+// ============================================================================
+// Pergyra 전체 키워드 투어 (도메인 우선)
+//
+// 구성 순서는 Pergyra의 정체성 순서를 따른다:
+//   world → intent → zone → subject/action → ability/role
+//   → effect/relation/event → vessel → party/roster → class/namespace
+//   → generic/type → slot/secure/ownership → async/parallel/transaction
+//   → control flow → basic types
+//
+// 시나리오: 게임 거래 시스템 (플레이어 간 아이템/골드 거래)
+// ============================================================================
+
+// ============ 0. 선행 타입 선언 ============================================
+enum TradeStatus { Pending, Accepted, Rejected }
+
+struct Item { id: Int }
+
+tobject Receipt { gold: Int; name: String }
+
+object PlayerView { gold: Int }
+
+// ============ 1. WORLD (최상위 경계) ========================================
+world GameWorld {
+    zone market: MarketZone
+    state marketActive: zone market
+    activate market
+
+    func ShowWorld(self) -> Void {
+        Log("world.hasZone=" + ToString(HasZone(marketActive)));
+    }
+}
+
+// ============ 2. INTENT (오케스트레이션 척추) =================================
+intent ExecuteTrade(market: MarketZone, seller: Player, buyer: Player) {
+    exclusive;                      // 또는 concurrent
+    priority: 5;
+    rollback: full;                 // full | current | none
+    who: buyer;
+    where: MarketZone;
+    involves seller: Player;
+    with amount: Int;
+
+    step Verify after Setup {
+        using: market;
+        on: buyer.CanAfford(50);
+        guard: buyer.gold > 50;
+        post: true;
+        expect: true;
+    }
+
+    step Deduct {
+        using: market;
+        on: buyer.Spend(50);
+        compensate: buyer.Undo(50);
+        transfer: buyer -> seller;
+    }
+
+    success: true;
+    failure: false;
+}
+
+// ============ 3. ZONE (자원·권한 경계) =======================================
+zone MarketZone {
+    subject slot seller: Player
+    subject slot buyer: Player
+    object slot sellerView: PlayerView
+    effect slot tax: Taxed
+    relation slot trade: TradeLink
+
+    state taxed: effect tax on seller
+    apply tax to seller by seller
+    link trade between seller, buyer by seller
+    refresh sellerView from seller by seller
+    maintain taxed by seller
+    authority seller
+    forbids unsafe
+
+    func ShowState(self) -> Void {
+        Log("market.hasLayer=" + ToString(HasLayer(tax)));
+    }
+}
+
+// ============ 4. SUBJECT / ACTION ============================================
+subject Player {
+    let name: String;
+    let mut gold: Int;
+    vessel hp: HP;
+
+    action Spend(self, amount: Int) -> Void
+        requires Tradable
+        within MarketZone
+        authorized by self
+        causes Spent
+    {
+        gold = gold - amount;
+    }
+
+    action Undo(self, amount: Int) -> Void {
+        gold = gold + amount;
+    }
+
+    func CanAfford(self, price: Int) -> Bool {
+        return gold >= price;
+    }
+}
+
+// ============ 5. ABILITY / ROLE ==============================================
+ability Tradable {
+    fields gold: Int
+    func CanTrade() -> Bool
+}
+
+role PlayerTrader for Player {
+    impl ability Tradable {
+        func CanTrade() -> Bool {
+            return true;
+        }
+    }
+}
+
+// ============ 6. EFFECT / RELATION / EVENT ===================================
+effect Spent for bearer: Player { }
+
+effect Taxed for bearer: Player { }
+
+relation TradeLink for source: Player, target: Player { }
+
+event OnTradeComplete(price: Int);
+
+func HandleTradeLog(price: Int) -> Void {
+    Log("trade.price=" + ToString(price));
+}
+
+// ============ 7. VESSEL (내부 상태 컨테이너) ==================================
+vessel HP {
+    current: Int;
+    max: Int;
+
+    func IsAlive(self) -> Bool {
+        return current > 0;
+    }
+}
+
+// ============ 8. CLASS / NAMESPACE / MODULE ==================================
+class PriceCalculator {
+    private let baseRate: Int;
+
+    public func Calculate(self, quantity: Int) -> Int {
+        return baseRate * quantity;
+    }
+}
+
+namespace TradeUtils {
+    export func FormatGold(amount: Int) -> String {
+        return ToString(amount) + "G";
+    }
+}
+
+// ============ 9. GENERIC / TYPE ALIAS ========================================
+type Id = Int;
+
+func Identity<T>(x: T) -> T where T: Tradable {
+    return x;
+}
+
+// ============ 10. SLOT / SECURE / OWNERSHIP ==================================
+func SlotDemo() -> Void {
+    // 일반 Slot: Claim/Write/Read/Release
+    let s: Slot<Int> = ClaimSlot<Int>();
+    Write(s, 42);
+    let v: Int = Read(s);
+    Release(s);
+    Log("slot=" + ToString(v));
+
+    // with block: 스코프 종료 시 자동 해제
+    with slot<Int> as counter {
+        Write(counter, 100);
+        Log(Read(counter));
+    }
+}
+
+// SecureSlot: 토큰 기반 접근 제어 (secure)
+func SecureDemo() -> Void {
+    let (slot, token) = ClaimSecureSlot<Int>(SECURITY_LEVEL_HARDWARE);
+    Write(slot, 100, token);
+    let hp: Int = Read(slot, token);
+    Release(slot, token);
+    Log("secure=" + ToString(hp));
+
+    // with SecureSlot 블록: 자동 해제
+    with SecureSlot<Int>(SECURITY_LEVEL_ENCRYPTED) as score {
+        score.Write(0);
+        Log(score.Read());
+    }
+}
+
+// 소유·참조 수식자: own / ref / inout / &(읽기 수신자)
+func Consume(own s: Slot<Int>) -> Void {
+    Release(s);
+}
+
+func Peek(ref s: Slot<Int>) -> Int {
+    return Read(s);
+}
+
+func Bump(inout x: Int) -> Void {
+    x = x + 1;
+}
+
+// unsafe: 경계 표시 (Slot/권한 우회 수단이 아님)
+func UnsafeDemo() -> Void {
+    unsafe {
+        Log("unsafe boundary");
+    }
+}
+
+// ============ 11. ASYNC / PARALLEL / TRANSACTION =============================
+async func Inc(x: Int) -> Int {
+    return x + 1;
+}
+
+func Work(x: Int) -> Int {
+    return x * 2;
+}
+
+async func RunAsync() -> Void {
+    // spawn + await
+    let task: Future<Int> = spawn Inc(4);
+    let localValue: Int = await task;
+    Log(localValue);
+
+    // parallel + channel
+    let ch: Channel<Int> = Channel(4);
+    parallel {
+        ch <- Work(3);
+        ch <- Work(4);
+    }
+    let a: Int = <- ch;
+    let b: Int = <- ch;
+    Log(a + b);
+
+    // select
+    let ch2: Channel<Int> = Channel(1);
+    ch2 <- 7;
+    select {
+        case v = <-ch2:
+            Log("recv=" + ToString(v));
+        default:
+            Log("empty");
+    }
+
+    // cancel
+    let cancellable: Future<Int> = spawn Inc(40);
+    let requested: Bool = Cancel(cancellable);
+    Log(requested);
+}
+
+func RunTransaction() -> Void {
+    transaction {
+        Log("step 1");
+        compensate Log("undo step 1");
+        Log("step 2");
+        compensate Log("undo step 2");
+        fail
+    }
+    Log("after transaction");
+}
+
+// ============ 12. CONTROL FLOW / MATCH / BASIC ===============================
+func Main() -> Void {
+    // 기본 타입
+    let price: Int = 50;
+    let gold: Long = 42L;
+    let ratio: Float = 3.14;
+    let alive: Bool = true;
+    let dead: Bool = false;
+    let name: String = "Pergyra";
+    let interpolated: String = "price=${price}";
+
+    // 연산자
+    let total: Int = price + 10;
+    if total > 0 && !dead { Log("positive"); }
+    else { Log("other"); }
+
+    // for (범위) / while / loop / break / continue
+    let sum: Int = 0;
+    for i in 0..5 {
+        if i == 2 { continue; }
+        if i == 4 { break; }
+        sum = sum + i;
+    }
+
+    let count: Int = 0;
+    while count < 3 { count = count + 1; }
+
+    // match / case / default
+    let status: TradeStatus = Pending;
+    match status {
+        case Pending: Log("pending");
+        case Accepted: Log("accepted");
+        default: Log("other");
+    }
+
+    // 배열 / 슬라이싱 / 인덱싱
+    let items: Array<Int> = [10, 20, 30];
+    Log(ArrayLength(items));
+    Log(items[1]);
+
+    // 파이프 + try + Result/Option
+    let piped: Int = 5 |> Work |> Work;
+    let r: Result<Int> = Ok(piped);
+    let maybe: Option<Int> = Some(1);
+    Log(Unwrap(r));
+
+    // 이벤트 구독/해지 (+= / -=)
+    OnTradeComplete += HandleTradeLog;
+    OnTradeComplete -= HandleTradeLog;
+
+    // defer
+    defer { Log("defer.cleanup"); };
+
+    // 도메인 구성
+    let seller: Player = Player("Alice", 200, HP(100, 100));
+    let buyer: Player = Player("Bob", 100, HP(100, 100));
+    let market: MarketZone = MarketZone(seller, buyer);
+    let world: GameWorld = GameWorld(Clone(market));
+
+    let calc: PriceCalculator = PriceCalculator(10);
+    Log(calc.Calculate(5));
+    Log(TradeUtils.FormatGold(100));
+
+    SlotDemo();
+    SecureDemo();
+    UnsafeDemo();
+
+    // own/ref/inout 호출
+    let temp: Slot<Int> = ClaimSlot<Int>();
+    Write(temp, 7);
+    Log(Peek(temp));
+    Consume(temp);          // own: 소유권 이전 후 Release
+
+    let n: Int = 1;
+    Bump(n);
+    Log(n);
+
+    RunAsync();
+    RunTransaction();
+
+    Log("=== Full Keyword Tour Complete ===");
+}
+
+// ============================================================================
+// 예약됨 / 아직 미구현 키워드 (fail-closed — 사용하면 명시적 거부)
+//   as, is, dyn, reflect, collapse, extends, override, innate, include,
+//   nondeterministic, remote, pin, party, roster, import(파일 필요)
+// 이들은 문법/토큰이 예약되어 있으나 베타에서 의도적으로 배제되므로,
+// 컴파일되는 프로그램 본문에는 등장하지 않는다 (등장하면 진단으로 거부).
+// ============================================================================

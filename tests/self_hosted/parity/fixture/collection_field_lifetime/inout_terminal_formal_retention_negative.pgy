@@ -1,0 +1,12 @@
+struct Facts { names: Array<String>; }
+struct Pair { facts: Facts; read: Bool; }
+
+func ErrorFacts(names: Array<String>) -> Facts { return Facts(names); }
+func Matches(names: Array<String>) -> Bool { return names[0] == "live"; }
+
+func Build(inout names: Array<String>) -> Pair {
+    return Pair(ErrorFacts(names), Matches(names));
+}
+
+// Keep the body proof observable without an unrelated caller-side refusal.
+func Main() -> Void { Log(false); }

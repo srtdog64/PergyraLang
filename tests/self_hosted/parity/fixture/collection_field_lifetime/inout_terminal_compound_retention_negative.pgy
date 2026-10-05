@@ -1,0 +1,17 @@
+struct Facts { names: Array<String>; }
+struct Pair { facts: Facts; read: Bool; }
+
+func ErrorFacts(names: Array<String>) -> Facts { return Facts(names); }
+func Matches(names: Array<String>) -> Bool { return names[0] == "live"; }
+func Append(inout names: Array<String>) -> Void { ArrayPush(names, "live"); }
+
+func Build() -> Pair {
+    let names: Array<String> = [];
+    Append(names);
+    return Pair(ErrorFacts(names), Matches(names));
+}
+
+func Main() -> Void {
+    let pair: Pair = Build();
+    Log(pair.read);
+}

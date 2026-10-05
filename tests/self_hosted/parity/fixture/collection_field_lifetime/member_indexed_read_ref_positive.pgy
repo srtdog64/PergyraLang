@@ -1,0 +1,4 @@
+struct Table { names: Array<String>; }
+func Reads(ref names: Array<String>) -> Bool { return names[0] == "x"; }
+func Observe(ref table: Table) -> Bool { return Reads(table.names); }
+func Main() -> Void { let table: Table = Table(["x"]); Log(Observe(table)); }

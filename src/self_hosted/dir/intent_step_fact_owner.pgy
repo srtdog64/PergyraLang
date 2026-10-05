@@ -12,6 +12,7 @@ import "../mir/declaration_fact_owner.pgy";
 import "domain_topology_row_owner.pgy";
 import "intent_step_clause_fact_owner.pgy";
 import "intent_step_provenance_fact_owner.pgy";
+import "intent_participant_contract_owner.pgy";
 
 struct SelfDirIntentResolvedStep {
     ok: Bool;
@@ -67,16 +68,6 @@ func SelfDirIntentResolvedStepError(message: String) -> SelfDirIntentResolvedSte
         SelfDirIntentStepProvenanceRowEmpty(), 0);
 }
 
-func SelfDirIntentParticipantIndex(aliases: Array<String>, start: Int, count: Int, alias: String
-) -> Int {
-    let i: Int = 0;
-    while i < count {
-        if aliases[start + i] == alias { return start + i; }
-        i = i + 1;
-    }
-    return -1;
-}
-
 func SelfDirIntentUniqueParticipantForType(aliases: Array<String>, type_names: Array<String>,
     start: Int, count: Int, type_name: String) -> String {
     let found: String = "";
@@ -85,7 +76,7 @@ func SelfDirIntentUniqueParticipantForType(aliases: Array<String>, type_names: A
         let row: Int = start + i;
         if type_names[row] == type_name {
             if found != "" { return ""; }
-            found = aliases[row];
+            found = Concat("", aliases[row]);
         }
         i = i + 1;
     }
@@ -93,20 +84,20 @@ func SelfDirIntentUniqueParticipantForType(aliases: Array<String>, type_names: A
 }
 
 func SelfDirIntentStepAppendActionContractRange(
-    names: Array<String>, start: Int, count: Int,
+    ref names: Array<String>, start: Int, count: Int,
     receiver_alias: String, map_self: Bool,
     inout destination: Array<String>
 ) -> Bool {
     let i: Int = 0;
     while i < count {
-        let name: String = names[start + i];
+        let name: String = Concat("", names[start + i]);
         if map_self && name == "self" { name = receiver_alias; }
         let prior: Int = 0;
         while prior < ArrayLength(destination) {
             if destination[prior] == name { return false; }
             prior = prior + 1;
         }
-        ArrayPush(destination, name);
+        ArrayPushOwnedString(destination, name);
         i = i + 1;
     }
     return true;
@@ -116,6 +107,7 @@ func SelfDirIntentStepFromArtifact(
     artifact: AstTreeArtifact,
     ref rows: SelfMirDeclarationRows,
     signatures: SemanticAstFunctionSignatureFacts,
+    ref contracts: SemanticAstActionContractFacts,
     ref intent_signatures: SemanticAstIntentSignatureFacts,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     source_intent_index: Int,
@@ -180,8 +172,8 @@ func SelfDirIntentStepFromArtifact(
     }
     let explicit_causes: String = clauses.explicit_causes;
     let who_names: Array<String> = clauses.who_names;
-    let requires_names: Array<String> = clauses.requires_names;
-    let authorized_names: Array<String> = clauses.authorized_names;
+    let requires_names: Array<String> = Clone(clauses.requires_names);
+    let authorized_names: Array<String> = Clone(clauses.authorized_names);
     let inherited: SelfDirIntentStepProvenanceRow =
         SelfDirIntentStepProvenanceRowEmpty();
     if clauses.provenance_text != "" {
@@ -280,7 +272,6 @@ func SelfDirIntentStepFromArtifact(
         }
         outcome_type_name = target_return_type_name;
     }
-    let contracts: SemanticAstActionContractFacts = signatures.action_contracts;
     let where_zone: String = header.where_zone_name;
     let action_where_default: Bool = false;
     if action_call.ok && where_zone == "" {
@@ -311,10 +302,10 @@ func SelfDirIntentStepFromArtifact(
             );
         }
         let from_declaration: Int = SelfDirDeclarationIndexForName(
-            rows, participant_type_names[from_row]
+            rows, Concat("", participant_type_names[from_row])
         );
         let to_declaration: Int = SelfDirDeclarationIndexForName(
-            rows, participant_type_names[to_row]
+            rows, Concat("", participant_type_names[to_row])
         );
         if from_declaration < 0 || to_declaration < 0 ||
             rows.nominal_kinds[from_declaration] != "zone" ||
@@ -323,7 +314,7 @@ func SelfDirIntentStepFromArtifact(
                 "self-host DIR intent transfer endpoint is not a zone"
             );
         }
-        let transfer_zone: String = participant_type_names[to_row];
+        let transfer_zone: String = Concat("", participant_type_names[to_row]);
         if where_zone == "" {
             where_zone = transfer_zone;
             where_from_transfer = true;
@@ -349,7 +340,7 @@ func SelfDirIntentStepFromArtifact(
     let where_from_using: Bool = false;
     if where_zone == "" && using_row >= 0 &&
         using_row < ArrayLength(participant_type_names) {
-        where_zone = participant_type_names[using_row];
+        where_zone = Concat("", participant_type_names[using_row]);
         where_from_using = true;
     }
     let where_index: Int = -1;
@@ -368,7 +359,7 @@ func SelfDirIntentStepFromArtifact(
         participant_type_names[using_row] != where_zone) {
         let using_type: String = "<missing>";
         if using_row >= 0 && using_row < ArrayLength(participant_type_names) {
-            using_type = participant_type_names[using_row];
+            using_type = Concat("", participant_type_names[using_row]);
         }
         let diagnostic: String = Concat(
             "self-host DIR intent step using binding is unresolved: step=",
@@ -392,12 +383,12 @@ func SelfDirIntentStepFromArtifact(
         while participant_i < participant_count {
             let participant_row: Int = participant_start + participant_i;
             let declaration_index: Int = SelfDirDeclarationIndexForName(
-                rows, participant_type_names[participant_row]
+                rows, Concat("", participant_type_names[participant_row])
             );
             if !participant_is_values[participant_row] &&
                 declaration_index >= 0 &&
                 rows.nominal_kinds[declaration_index] == "subject" {
-                subject_alias = participant_aliases[participant_row];
+                subject_alias = Concat("", participant_aliases[participant_row]);
                 subject_count = subject_count + 1;
             }
             participant_i = participant_i + 1;

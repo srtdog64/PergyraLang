@@ -1,0 +1,36 @@
+import "../../../src/self_hosted/mir/match_fact_owner.pgy";
+
+func Main() -> Void {
+    let patterns: Array<String> = [];
+    let bindings: Array<String> = [];
+    let types: Array<String> = [];
+    ArrayPushOwnedString(patterns, "Some(value)");
+    ArrayPushOwnedString(bindings, "value");
+    ArrayPushOwnedString(types, "Int");
+    let rows: SelfMirMatchFactRows = SelfMirMatchFactRowsAttachCase(
+        SelfMirMatchFactRowsEmpty(), 2, patterns, "Some", bindings, types, "option");
+    ArrayDropOwnedStrings(patterns);
+    ArrayDropOwnedStrings(bindings);
+    ArrayDropOwnedStrings(types);
+    if SelfMirMatchFactRowsValidationError(rows, 4) != "" ||
+        rows.patterns[0] != "Some(value)" || rows.variants[0] != "Some" ||
+        rows.bindings[0] != "value" || rows.binding_types[0] != "Int" ||
+        rows.subject_families[0] != "option" { Exit(1); }
+    let appended: SelfMirMatchFactRows = SelfMirMatchFactRowsAppend(
+        SelfMirMatchFactRowsEmpty(), rows, 5);
+    if SelfMirMatchFactRowsValidationError(appended, 8) != "" ||
+        appended.instruction_indices[0] != 7 ||
+        appended.patterns[0] != "Some(value)" || appended.bindings[0] != "value" ||
+        appended.binding_types[0] != "Int" { Exit(1); }
+    let invalid_patterns: Array<String> = ["Some(other)"];
+    let invalid_bindings: Array<String> = ["other"];
+    let invalid_types: Array<String> = [];
+    let unchanged: SelfMirMatchFactRows = SelfMirMatchFactRowsAttachCase(
+        rows, 3, invalid_patterns, "Some", invalid_bindings, invalid_types, "option");
+    if SelfMirMatchFactRowsValidationError(unchanged, 4) != "" ||
+        ArrayLength(unchanged.instruction_indices) != 1 ||
+        ArrayLength(unchanged.patterns) != 1 || unchanged.patterns[0] != "Some(value)" {
+        Exit(1);
+    }
+    Log("MIR MATCH FACT SNAPSHOT PASS");
+}

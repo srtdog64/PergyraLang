@@ -164,9 +164,10 @@ func SelfMirCollectionOwnershipBindingType(
     ref parameter_binding_syntax_ids: Array<Int>,
     binding_syntax_id: Int
 ) -> String {
+    // The selected type text leaves the readonly inventory's lifetime.
     let local_row: Int = SelfMirCollectionOwnershipInventoryRow(
         local_binding_syntax_ids, binding_syntax_id);
-    if local_row >= 0 { return local_types[local_row]; }
+    if local_row >= 0 { return Concat("", local_types[local_row]); }
     let found: Int = -1;
     let row: Int = 0;
     while row < ArrayLength(parameter_binding_syntax_ids) {
@@ -176,7 +177,7 @@ func SelfMirCollectionOwnershipBindingType(
         }
         row = row + 1;
     }
-    if found >= 0 { return parameter_types[found]; }
+    if found >= 0 { return Concat("", parameter_types[found]); }
     return "";
 }
 
@@ -205,7 +206,7 @@ func SelfMirCollectionOwnershipMemberSourceReady(
                 let row: Int = constructors.param_starts[constructor] + field;
                 if constructors.field_source_syntax_ids[row] == field_syntax_id &&
                     SemanticCanonicalTypeName(
-                        constructors.param_type_names[row]) == "Array<String>" {
+                        Concat("", constructors.param_type_names[row])) == "Array<String>" {
                     matched = matched + 1;
                 }
                 field = field + 1;

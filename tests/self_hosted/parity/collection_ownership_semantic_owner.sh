@@ -13,12 +13,13 @@ FOCUS="${PGY_COLLECTION_OWNERSHIP_FOCUS:-all}"
 PGY="$(pgy_select_optional_exe_binary "${PGY_BIN:-$ROOT_DIR/bin/pgy}")"
 DRIVER="$(pgy_select_optional_exe_binary "${PGY_SELF_DRIVER_BIN:-$ROOT_DIR/bin/pgy-self-driver}")"
 OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy"
+SCAN_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy"
 STATEMENT_TRANSITION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_statement_transition_owner.pgy"
 IDENTITY_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_identity_owner.pgy"
 STATE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_state_owner.pgy"
 MEMBER_MOVE_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_move_owner.pgy"
 MEMBER_TRANSITION_OWNER="$ROOT_DIR/src/self_hosted/semantic/ast_collection_ownership_member_transition_owner.pgy"
-BUNDLE="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
+BUNDLE="$ROOT_DIR/src/self_hosted/semantic/ast_body_type_bundle_assembly_owner.pgy"
 DIRECT_MOVE_PROBE="tests/self_hosted/parity/fixture/collection_ownership_binding_move_direct_c_probe.pgy"
 FIELD_FIXTURE_DIR="tests/self_hosted/parity/fixture/collection_field_lifetime"
 CC="${PGY_SELFHOST_CC:-gcc}"
@@ -87,17 +88,19 @@ grep -Fq 'SemanticAstScopedLocalBindingIdentityForGraphLeaf(' "$IDENTITY_OWNER" 
 grep -Fq 'import "ast_collection_ownership_statement_transition_owner.pgy";' \
     "$OWNER" ||
     fail "verdict owner does not import the collection statement transition owner"
-grep -Fq 'SemanticAstCollectionStatementTransitionForSyntax(' "$OWNER" ||
-    fail "verdict owner does not consume syntax-ordered collection transitions"
-! grep -Fq 'SemanticAstCollectionStatementTransitions(' "$OWNER" "$STATEMENT_TRANSITION_OWNER" ||
+grep -Fq 'SemanticAstCollectionStatementTransitionForSyntax(' "$SCAN_OWNER" ||
+    fail "ownership scan does not consume syntax-ordered collection transitions"
+! grep -Fq 'SemanticAstCollectionStatementTransitions(' "$OWNER" "$SCAN_OWNER" "$STATEMENT_TRANSITION_OWNER" ||
     fail "unordered collection statement transition path returned"
 for statement_tag in TypedAstKindArrayPushStmtTag \
         TypedAstKindArraySetStmtTag TypedAstKindArrayPopStmtTag TypedAstKindAssignStmtTag; do
     grep -Fq "$statement_tag()" "$STATEMENT_TRANSITION_OWNER" ||
         fail "statement transition owner ignores $statement_tag"
 done
-grep -Fq 'SemanticAstCollectionOwnershipVerdictFromResolvedFacts(' "$BUNDLE" ||
+grep -Fq 'SemanticAstCollectionOwnershipVerdictFromResolvedFactsWithFormalEffects(' "$BUNDLE" ||
     fail "body admission does not consume collection ownership verdict"
+! grep -Fq 'SemanticAstCollectionOwnershipVerdictFromResolvedFacts(' "$BUNDLE" ||
+    fail "body admission reconstructs its already-issued formal effects"
 grep -Fq 'SemanticAstCollectionMemberMoveIdentityForNode(' "$MEMBER_MOVE_OWNER" ||
     fail "aggregate member move lacks one stable identity owner"
 grep -Fq 'SemanticAstCollectionFirstInvalidMemberMoveUse(' \

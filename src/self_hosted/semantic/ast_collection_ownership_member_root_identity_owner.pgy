@@ -26,7 +26,8 @@ func SemanticAstCollectionMemberRootIdentityForNode(
         if !formal.ok || node_id >= ArrayLength(resolved_leaf_types) {
             return unresolved;
         }
-        let resolved_type: String = resolved_leaf_types[node_id];
+        // The returned root record must not retain an indexed borrowed scalar.
+        let resolved_type: String = Concat("", resolved_leaf_types[node_id]);
         if resolved_type == "" || resolved_type == "Unknown" { return unresolved; }
         let signature: Int = formal.signature_row;
         let parameter: Int = signatures.param_starts[signature] + formal.ordinal;

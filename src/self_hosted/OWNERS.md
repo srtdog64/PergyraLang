@@ -25,9 +25,19 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 ## Explicit lifetime, identity and target projection boundaries
 
 - `src/self_hosted/semantic/array_storage_element_lifetime_owner.pgy` -- Plain element lifetime admission for public storage-only release.
+- `src/self_hosted/semantic/array_storage_call_preservation_owner.pgy` -- Exact synchronous formal descriptor preservation over the shared admitted occurrence order; no element ownership grant.
+- `src/self_hosted/semantic/ast_expression_graph_surface_order_owner.pgy` -- One attested ordinary/synthetic occurrence partition, with exact carried match/iteration root identities.
+- `src/self_hosted/semantic/ast_collection_owned_generation_order_owner.pgy` -- Exact fresh-generation membership versus unique consuming events and terminal-branch visibility. Only unconditional function exit permits consumption through an intervening loop; Break/Continue do not provide that fact. Storage and element authority stay separate.
+- `src/self_hosted/semantic/ast_collection_repeated_local_generation_owner.pgy` -- Exact definition/use membership in one loop-local storage generation; it grants no storage or element authority.
+- `src/self_hosted/semantic/ast_collection_formal_descriptor_retention_owner.pgy` -- Fixed-point formal descriptor-retention summary. Terminal paths contribute callee effects without invalidating an untaken continuation; a successful continuing retention removes later caller reuse permission.
+- `src/self_hosted/semantic/ast_collection_descriptor_retention_entry_owner.pgy` -- Reached call-entry rejection for repeated retention or observed definition-bound reuse, plus the successful continuing-call permission transition.
+- `src/self_hosted/semantic/ast_collection_terminal_storage_effect_owner.pgy` -- Terminal tail restriction and the exact unshared current-descriptor proof for an owned-content mutation followed by a read. Consumes definition/storage and constructor-input facts; does not rescan source roots or infer exclusivity from a type.
+- `src/self_hosted/semantic/ast_collection_member_read_permission_owner.pgy` -- Borrow-only current formal-field reads and negative whole-root forwarding closure, consumed from the existing member-transition pass.
 - `src/self_hosted/semantic/array_storage_release_parameter_requirement_owner.pgy` -- Exact own-formal storage-release obligations and borrowed-call escape policy.
 - `src/self_hosted/semantic/array_storage_release_verdict_owner.pgy` -- Exclusive named storage provenance and source use-after-release refusal.
 - `src/self_hosted/compiler/direct_mir_array_storage_release_lifetime_owner.pgy` -- Re-admit release authority and CFG lifetime at the untrusted MIR boundary.
+- `src/self_hosted/compiler/direct_mir_array_storage_call_preservation_owner.pgy` -- Independently admit exact MIR value-result descriptor preservation before caller storage release.
+- `src/self_hosted/compiler/direct_mir_array_storage_element_lifetime_owner.pgy` -- Plain MIR element lifetime policy for storage-only release; owner handles remain excluded.
 - `src/self_hosted/compiler/direct_mir_scalar_program_array_storage_release_expression_kind_owner.pgy` -- Public storage-release expression ID 146; existing IDs stay stable.
 - `src/self_hosted/compiler/direct_mir_scalar_program_owned_array_value_parameter_policy_owner.pgy` -- Bounded Int/Bool owned-descriptor carriage over captured ABI layout.
 - `src/self_hosted/codegen/emission/expression_c_text_epoch_owner.pgy` -- Owned C expression fragments retire at the selected root's lifetime epoch.
@@ -584,9 +594,17 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   rejects Push/Pop while that borrowed view is live without conflating sibling
   fields of the same root.
 - `src/self_hosted/semantic/ast_collection_ownership_verdict_owner.pgy` --
-  stable local-binding ownership and disposition facts for `Array<String>`
-  elements at call boundaries. It consumes the admitted expression graph and
-  forbids MIR or backend inference from projected collection type spelling.
+  admission/preparation and caller-owned scratch lifetime boundary. It delegates
+  once to the ordered scan, then retires indexed-borrow scratch and continuing-
+  retention flags before returning the typed success/failure verdict. It has
+  no deferred cleanup or duplicate event scan.
+  Stable local-binding identity owns Array<String> element facts; MIR and
+  backends cannot infer them from projected type spelling.
+- `src/self_hosted/semantic/ast_collection_ownership_scan_owner.pgy` -- ordered
+  statement/call/value transitions and finalization over those admitted facts.
+  It fills the existing typed verdict on every normal exit and returns Void;
+  the caller retains scratch cleanup authority. It owns no admission fallback,
+  new error protocol, private user-array release or deferred-execution grant.
 - `src/self_hosted/semantic/ast_collection_indexed_string_borrow_owner.pgy` --
   exact storage-source liveness for a `String` borrowed through an
   `Array<String>` index. Deep release invalidates aliases joined to that source;
@@ -660,6 +678,15 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   traversal, propagated across the exact definition consumed by a direct move.
   Same-binding deferred/repeated zero bounds affect every storage definition.
   Production never changes element permission or retires storage.
+- `src/self_hosted/semantic/ast_collection_formal_descriptor_retention_owner.pgy`
+  -- closes direct and forwarded formal descriptor-retention facts, projects
+  only reachable continuing escapes to caller definitions, and never treats a
+  terminal-only local path as continuation state.
+- `src/self_hosted/semantic/ast_collection_descriptor_retention_entry_owner.pgy`
+- `src/self_hosted/semantic/ast_collection_terminal_storage_effect_owner.pgy`
+  -- rejects repeated retention and reuse after retention at one reached
+  argument edge, then removes caller reuse permission after successful
+  continuing retention.
   Only proved borrowed definition links share actual bounds bidirectionally; consuming
   moves inherit source bounds and fresh Assign never inherits an old alias edge.
   Unsupported Assign permission loss flows to descendants only, after real
@@ -1782,6 +1809,10 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
 - `src/self_hosted/dir/intent_fact_owner.pgy` -- exact intent declaration,
   participant/value range, ordered-step range, and intent-edge census owner;
   it validates typed identities and never rescans source text.
+- `src/self_hosted/dir/intent_participant_contract_owner.pgy` -- exact readonly
+  participant lookup and using/who/authority membership validation for one
+  intent step. FactsReady derives both views from its canonical whole facts;
+  this inner predicate is not a second artifact-admission boundary.
 - `src/self_hosted/dir/intent_exact_identity_contract_owner.pgy` -- exact
   declaration-row, participant, direct-step, provenance, and ordered
   compensation identity seal for an admitted intent DIR receipt. It
@@ -1816,7 +1847,8 @@ gate own behavioral evidence. Neither claims whole-driver bootstrap closure.
   resolution owner for `on` receiver/action binding, semantic action-contract
   defaults, transfer endpoints, zone/using/who/requires/causes/authorized
   identities, and ordered predecessor edges. It consumes the clause and header
-  owners without source rescans and carries guard/post/expect plus ordered
+  owners without source rescans and borrows canonical action contracts through
+  a required direct ref input, not a copied local aggregate. It carries guard/post/expect plus ordered
   compensation identities into DIR.
 - `src/self_hosted/dir/intent_outcome_contract_owner.pgy` -- exact step-to-intent
   membership, participant receiver, subject-action signature, outcome node,

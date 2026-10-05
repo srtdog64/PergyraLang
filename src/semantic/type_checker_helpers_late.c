@@ -255,7 +255,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             call_arg_types[i] = arg_type;
         semantic_array_storage_call_argument(arg_expr, arg_type,
             type_function_return_type(sym->type), type_function_param_mode(sym->type, i),
-            sym->kind == SYMBOL_ENUM_CONSTRUCTOR, ctx);
+            sym->kind == SYMBOL_ENUM_CONSTRUCTOR, expr, callable_decl, i, ctx);
         if (arg_type == TYPE_UNKNOWN
             && (invalid_future_use
                 || ctx->diagnostic_count > argument_diagnostic_base)) {

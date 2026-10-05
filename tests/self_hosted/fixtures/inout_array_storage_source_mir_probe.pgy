@@ -1,0 +1,12 @@
+// Invoke the current source-to-MIR owner for focused contract evidence.
+// This native-built test scaffold is not an installed compiler driver.
+import "../../../src/self_hosted/compiler/driver_rung2_owner.pgy";
+import "../../../src/self_hosted/compiler/machine_layer_declaration_consumer.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 { Exit(2); }
+    let declaration: SelfHostMachineLayerDeclaration =
+        SelfHostMachineLayerDeclarationFromPath(args[1]);
+    Log(CompileSourceToMirJsonVerified(args[0], declaration, false));
+}

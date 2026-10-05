@@ -114,14 +114,13 @@ func SemanticAstIterationSeedVisibleRows(
         );
         if statements.function_node_ids[statement_index] == function_node_id &&
             iteration_node_ids[i] < use_node_id && visible {
-            let binding_type: String = binding_type_names[i];
-            if binding_type == "" || binding_type == "Unknown" {
+            if binding_type_names[i] == "" || binding_type_names[i] == "Unknown" {
                 return false;
             }
             ArrayPushOwnedString(
                 names, statements.payload_texts[statement_index]
             );
-            ArrayPushOwnedString(types, binding_type);
+            ArrayPushOwnedString(types, binding_type_names[i]);
             ArrayPushOwnedString(modes, "loop_binding");
         }
         i = i + 1;

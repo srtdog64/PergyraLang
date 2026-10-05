@@ -29,13 +29,14 @@ func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
         ArrayLength(assignments.target_root_names) != n { return facts; }
     let row: Int = 0;
     while row < facts.local_count {
+        let inferred_type: String = Concat("", inferred_types[row]);
         let value: Option<Int> = SemanticAstExpressionGraphRootForNode(surfaces, locals.node_ids[row], AstExpressionLaneValue());
         let value_node: Int = -1;
         let own_source: Int = 0;
         let local_source: Int = -1;
         let borrowed_formal_source: Bool = false;
-        if SemanticAstCollectionOwnershipIsStringArray(inferred_types[row]) && !IsSome(value) { return facts; }
-        if IsSome(value) && SemanticAstCollectionOwnershipIsStringArray(inferred_types[row]) {
+        if SemanticAstCollectionOwnershipIsStringArray(inferred_type) && !IsSome(value) { return facts; }
+        if IsSome(value) && SemanticAstCollectionOwnershipIsStringArray(inferred_type) {
             value_node = UnwrapOption(value);
             own_source = SemanticAstCollectionOwnStringArrayFormalNode(signatures, locals.function_node_ids[row], surfaces.expression_graph, value_node);
             let formal: SemanticAstCollectionFormalStorageIdentity =
@@ -79,7 +80,8 @@ func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
             if SemanticAstCollectionOwnershipParameterModeForArgument(signatures, surfaces, UnwrapOption(surface), target_node) > 0 { row = row + 1; continue; }
             return facts;
         }
-        if !SemanticAstCollectionOwnershipIsStringArray(inferred_types[binding.row]) {
+        let binding_type: String = Concat("", inferred_types[binding.row]);
+        if !SemanticAstCollectionOwnershipIsStringArray(binding_type) {
             if SemanticAstCollectionOwnershipIsStringArray(types.target_type_names[row]) { return facts; }
             row = row + 1; continue;
         }
@@ -91,7 +93,7 @@ func SemanticAstCollectionDefinitionFactsFromResolvedFacts(
         if !SemanticAstCollectionOwnershipIsStringArray(types.target_type_names[row]) ||
             !SemanticAstCollectionOwnershipIsStringArray(types.inferred_type_names[row]) { return facts; }
         if locals.binding_kinds[binding.row] != SemanticAstLocalBindingKindNormal() || locals.binding_indices[binding.row] != 0 ||
-            locals.binding_arities[binding.row] != 1 || !SemanticAstCollectionOwnershipIsStringArray(inferred_types[binding.row]) { return facts; }
+            locals.binding_arities[binding.row] != 1 || !SemanticAstCollectionOwnershipIsStringArray(binding_type) { return facts; }
         let source: SemanticAstLocalBindingIdentity = SemanticAstScopedLocalBindingIdentityForGraphLeaf(
             artifact, locals, inferred_types, assignments.function_node_ids[row], assignments.node_ids[row], surfaces.expression_graph, value_node);
         if source.ok && SemanticAstLocalBindingIdentityEqual(source, binding) { row = row + 1; continue; }

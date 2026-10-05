@@ -1,0 +1,8 @@
+func Matches(values: Array<String>) -> Bool { return values[0] == "copied"; }
+func AppendBorrowed(inout values: Array<String>) -> Void { ArrayPush(values, "borrowed"); }
+func Main() -> Void {
+    let values: Array<String> = [];
+    ArrayPushOwnedString(values, "copied");
+    AppendBorrowed(values);
+    Log(Matches(values));
+}

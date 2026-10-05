@@ -2,6 +2,7 @@
 #define PERGYRA_SEMANTIC_FUNCTION_PARAM_FLOW_SUMMARY_INTERNAL_H
 
 #include "type_checker.h"
+#include "slot_analyzer_internal.h"
 
 typedef enum
 {
@@ -17,6 +18,8 @@ typedef struct
     size_t param_index;
     ASTNode *function_decl;
     unsigned mask;
+    /* Independent descriptor-retention facet; Slot access bits do not prove it. */
+    bool array_storage_unproved;
     FunctionParamFlowSummaryState state;
 } FunctionParamFlowSummaryEntry;
 
@@ -61,5 +64,9 @@ struct FunctionParamFlowSummaryStore
 
 void function_param_flow_program_point_index_destroy(
     FunctionParamFlowProgramPointIndex *index);
+
+bool function_param_array_storage_unproved_in_program_points(
+    ASTNode *const *roots, size_t count, const SlotSummaryOrigin *origin,
+    const SlotFunctionLookup *lookup);
 
 #endif

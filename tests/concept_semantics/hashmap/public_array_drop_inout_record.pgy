@@ -1,0 +1,13 @@
+struct DropRecord { x: Int; flag: Bool; }
+
+func FillRecords(inout values: Array<DropRecord>) -> Void {
+    ArrayPush(values, DropRecord(9, true));
+}
+
+func Main() -> Void {
+    let mut values: Array<DropRecord> = [];
+    FillRecords(values);
+    if ArrayLength(values) != 1 || values[0].x != 9 || !values[0].flag { Exit(1); }
+    ArrayDrop(values);
+    Log("ARRAY RECORD INOUT RELEASE PASS");
+}

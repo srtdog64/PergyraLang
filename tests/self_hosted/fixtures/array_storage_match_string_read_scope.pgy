@@ -1,0 +1,8 @@
+func CountNames(ref names: Array<String>) -> Int { return ArrayLength(names); }
+enum CheckError { Missing }
+func Check() -> Result<Int, CheckError> { return Ok(7); }
+
+func Main() -> Void {
+    let names: Array<String> = ["one"];
+    match Check() { case Ok(value): Log(ToString(CountNames(names))); case Err(_): Exit(1); }
+}

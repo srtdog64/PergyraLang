@@ -1,0 +1,10 @@
+struct Table { names: Array<String>; }
+func Reads(ref names: Array<String>) -> Bool { return names[0] == "x"; }
+func Alias(table: Table) -> Table { return table; }
+func Forward(table: Table) -> Table { return Alias(table); }
+func Observe(table: Table) -> Bool {
+    let alias: Table = Forward(table);
+    Log(ArrayLength(alias.names));
+    return Reads(table.names);
+}
+func Main() -> Void {}

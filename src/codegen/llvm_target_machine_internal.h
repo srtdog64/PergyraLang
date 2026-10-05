@@ -10,7 +10,8 @@
 
 #include "llvm_internal.h"
 
-LLVMTargetMachineRef llvm_create_host_machine(char **triple_out,
+LLVMTargetMachineRef llvm_create_host_machine(bool release_opt,
+                                              char **triple_out,
                                               char **cpu_out,
                                               char **features_out);
 void llvm_apply_target_machine(LLVMGenCtx *ctx,

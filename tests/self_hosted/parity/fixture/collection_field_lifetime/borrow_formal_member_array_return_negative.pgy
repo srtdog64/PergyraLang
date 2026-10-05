@@ -1,0 +1,16 @@
+struct ResultPlan { ids: Array<Int>; }
+struct Verdict { ids: Array<Int>; }
+func Publish(ids: Array<Int>) -> Verdict { return Verdict(ids); }
+func Snapshot(ref plan: ResultPlan) -> Verdict {
+    return Publish(plan.ids);
+}
+func Main() -> Void {
+    let plan: ResultPlan = ResultPlan([2, 7]);
+    let verdict: Verdict = Snapshot(plan);
+    plan.ids[0] = 99;
+    if ArrayLength(verdict.ids) != 2 || verdict.ids[0] != 2 || verdict.ids[1] != 7 ||
+        plan.ids[0] != 99 {
+        Exit(1);
+    }
+    Log("MEMBER ARRAY SNAPSHOT PASS");
+}

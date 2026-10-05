@@ -1,0 +1,17 @@
+struct ParticipantsView { aliases: Array<String>; }
+struct StepsView { using_aliases: Array<String>; }
+struct IntentFactsView { participants: ParticipantsView; steps: StepsView; }
+func Lookup(ref aliases: Array<String>, alias: String) -> Int {
+    if aliases[0] == alias { return 0; }
+    return -1;
+}
+func CheckViews(ref participants: ParticipantsView, ref steps: StepsView) -> Bool {
+    return Lookup(participants.aliases, steps.using_aliases[0]) == 0;
+}
+func Validate(ref facts: IntentFactsView) -> Bool {
+    return CheckViews(facts.participants, facts.steps);
+}
+func Main() -> Void {
+    let facts: IntentFactsView = IntentFactsView(ParticipantsView(["compiler"]), StepsView(["compiler"]));
+    Log(Validate(facts));
+}

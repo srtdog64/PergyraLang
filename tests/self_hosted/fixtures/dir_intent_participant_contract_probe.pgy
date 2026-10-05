@@ -1,0 +1,54 @@
+import "../../../src/self_hosted/dir/intent_participant_contract_owner.pgy";
+func Require(value: Bool, name: String) -> Void {
+    if !value { Log(name); Exit(1); }
+}
+func Main() -> Void {
+    let participants: SelfDirIntentParticipantFacts = SelfDirIntentParticipantFacts(
+        [7], [false], ["compiler"], ["Compiler"], [0]);
+    let steps: SelfDirIntentStepFacts = SelfDirIntentStepFactsEmpty();
+    steps.node_ids = [10];
+    steps.target_kinds = ["action"];
+    steps.using_aliases = ["compiler"];
+    steps.where_zone_names = ["Compiler"];
+    steps.receiver_aliases = ["compiler"];
+    steps.who_starts = [0];
+    steps.who_counts = [1];
+    steps.who_names = ["compiler"];
+    steps.authorized_starts = [0];
+    steps.authorized_counts = [1];
+    steps.authorized_names = ["compiler"];
+    Require(SelfDirIntentStepParticipantContractReady(participants, 0, 1, steps, 0), "valid");
+    Require(!SelfDirIntentStepParticipantContractReady(participants, 0, 1, steps, -1), "negative step");
+    Require(!SelfDirIntentStepParticipantContractReady(participants, 0, 1, steps, 1), "past step");
+    Require(!SelfDirIntentStepParticipantContractReady(participants, -1, 1, steps, 0), "negative start");
+    Require(!SelfDirIntentStepParticipantContractReady(participants, 1, 1, steps, 0), "past participant");
+    Require(!SelfDirIntentStepParticipantContractReady(participants, 0, 2147483647, steps, 0), "huge count");
+    Require(SelfDirIntentParticipantIndex(participants.aliases, 0, 2147483647, "compiler") == -1, "lookup range");
+    steps.using_aliases = ["missing"];
+    Require(!SelfDirIntentStepParticipantContractReady(participants, 0, 1, steps, 0), "missing using");
+    steps.using_aliases = ["compiler"];
+    participants.is_values = [true];
+    Require(!SelfDirIntentStepParticipantContractReady(participants, 0, 1, steps, 0), "value participant");
+    participants.is_values = [false];
+    steps.where_zone_names = ["Other"];
+    Require(!SelfDirIntentStepParticipantContractReady(participants, 0, 1, steps, 0), "wrong type");
+    steps.where_zone_names = ["Compiler"];
+    steps.who_names = ["missing"];
+    Require(!SelfDirIntentStepParticipantContractReady(participants, 0, 1, steps, 0), "missing who");
+    steps.who_names = ["compiler"];
+    steps.authorized_names = ["missing"];
+    Require(!SelfDirIntentStepParticipantContractReady(participants, 0, 1, steps, 0), "missing authority");
+    steps.authorized_names = ["compiler"];
+    steps.who_starts = [2147483647];
+    Require(!SelfDirIntentStepParticipantContractReady(participants, 0, 1, steps, 0), "huge who start");
+    steps.who_starts = [0];
+    steps.authorized_counts = [2];
+    Require(!SelfDirIntentStepParticipantContractReady(participants, 0, 1, steps, 0), "past authority");
+    steps.authorized_counts = [1];
+    participants.type_names = [];
+    Require(!SelfDirIntentStepParticipantContractReady(participants, 0, 1, steps, 0), "missing column");
+    participants.type_names = ["Compiler"];
+    steps.node_ids = [];
+    Require(!SelfDirIntentStepParticipantContractReady(participants, 0, 1, steps, 0), "missing step");
+    Log("DIR PARTICIPANT CONTRACT PASS");
+}

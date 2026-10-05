@@ -74,7 +74,7 @@ func SemanticAstCollectionFirstInvalidOwnedArgumentUse(
                         surfaces.function_node_ids[surface], surfaces.expression_graph, node); }
                     let fresh_generation: Bool = binding.ok &&
                         SemanticAstCollectionFreshLocalGenerationAtUse(artifact, locals, definitions,
-                            binding.row, current[binding.row], syntax_id);
+                            binding.row, current[binding.row], syntax_id, true);
                     if source > 0 && MapHas(retired, ToString(source)) &&
                         SemanticAstCollectionOwnRetirementVisibleAtUse(artifact,
                             MapGet(retired, ToString(source)), syntax_id, fresh_generation) {
@@ -105,7 +105,7 @@ func SemanticAstCollectionFirstInvalidOwnedArgumentUse(
                     if own_parameter > 0 && source > 0 {
                         let fresh_generation: Bool = binding.ok &&
                             SemanticAstCollectionFreshLocalGenerationAtUse(artifact, locals, definitions,
-                                binding.row, current[binding.row], syntax_id);
+                                binding.row, current[binding.row], syntax_id, false);
                         if MapHas(retired, ToString(source)) &&
                             SemanticAstCollectionOwnRetirementVisibleAtUse(artifact,
                                 MapGet(retired, ToString(source)), syntax_id, fresh_generation) {
