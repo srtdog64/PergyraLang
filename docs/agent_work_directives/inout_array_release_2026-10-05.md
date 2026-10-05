@@ -1012,3 +1012,29 @@ readonly local-type inventory. Mapping:
   value/guard oracle separately on unchanged source. Receipt:
   `.tmp/inout-array-release-runtime-abi-type.sha256`; source gate evidence:
   `.tmp/self_hosted/collection-borrowed-descriptor-read.9GMYnb`.
+
+## Reached routine resource type consumer migration
+
+Official seed v38 passed the expression ABI lookup, then refused node 71741:
+the routine ABI consumer duplicated the same raw local-type return. Mapping:
+`.tmp/inout-array-release-bootstrap-v38-exact-boundary-context.log`.
+
+- Objective/priority: one exact last-binding type lookup; preserve values and
+  malformed/missing guards; delete the borrowed-return duplicate; same MIR root.
+- Owner: SelfMirExpressionRuntimeAbiLocalType, already imported by the routine
+  ABI owner. Last consumer: both branches of SelfMirRoutineExpressionResourceType.
+- Forbidden fallback: the old SelfMirRoutineExpressionRuntimeAbiLocalType,
+  a second lookup or new/old dispatch, missing-type defaults, permission grants.
+- Gate/falsifier: source admission of the imported routine ABI owner, native
+  C/LLVM existing type-value/guard oracle, structural old-symbol refusal and
+  original whole-root seed. This is a reached query migration, not a claim of
+  a new C-path substitution or a CLOSED registry row.
+- Native C/LLVM values and last-binding/missing/malformed guards passed with
+  the routine import. Two migrated calls and old-symbol deletion were checked;
+  `.tmp/inout-array-release-routine-abi.sha256` identifies source/binaries.
+  The full source observer did not return a verdict within 60s, not admission.
+  Linux CI 37307402549 independently refused the same 71741 boundary as v38.
+- Installed P0 remains BLOCKED on an admitted whole-root body bundle owned by
+  SemanticAstBodyTypeBundleFromAnalysis. Last consumer is the gen0 nominal-root
+  codegen boundary; exact falsifier is mir_collection_receiver_root.pgy. The
+  next original-input seed tests that boundary; no registry row is closed.

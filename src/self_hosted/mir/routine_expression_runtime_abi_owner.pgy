@@ -12,18 +12,6 @@ struct SelfMirRoutineExpressionRuntimeAbiResult {
     cfg: SelfMirCfgRows;
 }
 
-func SelfMirRoutineExpressionRuntimeAbiLocalType(
-    local_names: Array<String>, local_types: Array<String>, name: String
-) -> String {
-    if ArrayLength(local_names) != ArrayLength(local_types) { return ""; }
-    let i: Int = ArrayLength(local_names) - 1;
-    while i >= 0 {
-        if local_names[i] == name { return local_types[i]; }
-        i = i - 1;
-    }
-    return "";
-}
-
 func SelfMirRoutineExpressionRuntimeAbiSsaBaseName(
     ssa_name: String
 ) -> String {
@@ -37,12 +25,12 @@ func SelfMirRoutineExpressionResourceType(
     ref cfg: SelfMirCfgRows,
     instruction_index: Int,
     operation: String,
-    local_names: Array<String>,
-    local_types: Array<String>
+    ref local_names: Array<String>,
+    ref local_types: Array<String>
 ) -> String {
     if !view.ok { return ""; }
     if operation == "Claim" {
-        return SelfMirRoutineExpressionRuntimeAbiLocalType(
+        return SelfMirExpressionRuntimeAbiLocalType(
             local_names, local_types,
             SelfMirRoutineExpressionRuntimeAbiSsaBaseName(
                 cfg.instructions.results[instruction_index]));
@@ -76,7 +64,7 @@ func SelfMirRoutineExpressionResourceType(
     if !IsSome(receiver_name) || UnwrapOption(receiver_name) == "" {
         return "";
     }
-    return SelfMirRoutineExpressionRuntimeAbiLocalType(
+    return SelfMirExpressionRuntimeAbiLocalType(
         local_names, local_types, UnwrapOption(receiver_name));
 }
 

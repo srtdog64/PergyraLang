@@ -9,13 +9,14 @@ SoT registry, admitted contracts, and executable gates override this note.
 
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
-- Checkout: main @ 15e99c0ecda000149c3e23f7ad09b8929e687689, reached runtime ABI
-  scalar publication and registry corrections dirty. Root owns P0 integration
+- Checkout: main @ 5deb67b4a27d972fcc90aa2ddd975ee3aeb300d5, reached routine ABI
+  query migration and negative inventory pins dirty. Root owns P0 integration
   and Git; Main is stopped following the user's
   explicit choice. The user also authorized committing all current user/other-
   worker changes, including the new examples and deleted deployment guide.
   All 184 changed files were committed/pushed as checkpoint 4415adf4; the
-  subsequent external documentation commit was fast-forwarded locally.
+  subsequent external documentation commit was fast-forwarded locally and
+  runtime ABI scalar/registry correction 5deb67b4 was committed/pushed.
   Preserve/exclude generated gmon.out. This is not a green/installed claim.
 - Objective/owner boundaries:
   docs/agent_work_directives/inout_array_release_2026-10-05.md.
@@ -46,6 +47,14 @@ SoT registry, admitted contracts, and executable gates override this note.
   .tmp/self_hosted/collection-borrowed-descriptor-read.9GMYnb,
   .tmp/inout-array-release-borrowed-read-gate46.log,
   .tmp/inout-array-release-runtime-abi-type.sha256.
+- The routine ABI consumer's duplicate lookup was removed; its two branches
+  now use the existing expression ABI lookup. Native C/LLVM exact values and
+  last-binding/missing/malformed guards passed with the routine import, and
+  both migrated calls/old-symbol deletion were checked. Receipt:
+  .tmp/inout-array-release-routine-abi.sha256.
+  Its full imported source observer reached the unchanged 60s limit without
+  a verdict; do not infer source admission. The original MIR root remains the
+  integration falsifier instead of repeatedly validating that cumulative graph.
 - Latest member gate7: C/LLVM each 5 positives/11 compile-only refusals, exit 0.
   .tmp/self_hosted/member-indexed-read.eXURNt,
   .tmp/inout-array-release-member-read-gate7.log. Composed direct readonly
@@ -111,6 +120,11 @@ SoT registry, admitted contracts, and executable gates override this note.
   No native ordinary String-result lifetime grant is inferred.
   .tmp/inout-array-release-codegen-bootstrap-v36.log.
   .tmp/inout-array-release-codegen-bootstrap-v37.log.
+  Seed v38 passed that query, then refused node 71741 in the duplicate routine
+  lookup. Linux CI 37307402549 independently refused the same node/boundary.
+  .tmp/inout-array-release-codegen-bootstrap-v38.log,
+  .tmp/inout-array-release-bootstrap-v38-exact-boundary-context.log,
+  .tmp/inout-array-release-ci-37307402549-codegen.log.
   Next falsifier is whole-root admission on the original MIR control, not a
   narrow formal-effect count, native value check or elapsed-time inference.
 - OPEN: full integration10 timed out at its original 60s actual C unit; its
@@ -120,8 +134,13 @@ SoT registry, admitted contracts, and executable gates override this note.
   Fresh seed/fixed-point/installed pair, full C/LLVM integration, 16 structural
   cap failures and current-head CI remain OPEN. The all-current-work checkpoint
   is published; subsequent CI repair remains required. The new user examples
-  are included without an execution claim. Seed v38 is the next original-root
+  are included without an execution claim. Seed v39 is the next original-root
   falsifier, not yet run.
+  Installed P0 rung remains BLOCKED on the admitted whole-root body bundle:
+  SemanticAstBodyTypeBundleFromAnalysis is the owner, gen0's nominal-root
+  codegen boundary is the last consumer, and mir_collection_receiver_root.pgy
+  is the exact falsifier before seed/driver installation. This is not a CLOSED
+  row or self-host replacement-progress claim.
   The collection cap block was directly rechecked: 17 -> 16 after the reached
   scan/lifetime split, without raising caps; not a full inventory pass.
   semantic.hashmap_collection_ownership stays ACTIVE. CI 37305685187 was

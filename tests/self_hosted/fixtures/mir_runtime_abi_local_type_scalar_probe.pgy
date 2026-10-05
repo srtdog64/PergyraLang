@@ -1,4 +1,4 @@
-import "../../../src/self_hosted/mir/expression_runtime_abi_owner.pgy";
+import "../../../src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy";
 
 func Main() -> Void {
     let names: Array<String> = [];

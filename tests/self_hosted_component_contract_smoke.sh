@@ -17327,6 +17327,10 @@ require_text "src/self_hosted/mir/cfg_instruction_mutation_owner.pgy" "SelfMirCf
 require_text "src/self_hosted/mir/cfg_instruction_mutation_owner.pgy" "SelfMirCfgAttachLastRuntimeValueCallAbi"
 require_text "src/self_hosted/mir/expression_runtime_abi_owner.pgy" "SemanticExpressionGraphCallTargetName"
 require_text "src/self_hosted/mir/expression_runtime_abi_owner.pgy" "CompilerRuntimeCallAbiConstructedKind"
+require_text "src/self_hosted/mir/expression_runtime_abi_owner.pgy" 'return Concat("", local_types[i]);'
+require_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" "SelfMirExpressionRuntimeAbiLocalType("
+reject_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" "SelfMirRoutineExpressionRuntimeAbiLocalType"
+reject_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" "return local_types[i]"
 require_text "src/self_hosted/mir/routine_build_owner.pgy" "SelfMirRoutineExpressionRuntimeAbiAttach("
 require_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" "CompilerRuntimeCallAbiFactForNativeResource"
 require_text "src/self_hosted/mir/routine_expression_runtime_abi_owner.pgy" "SelfMirExpressionRuntimeValueCallProjectionFromGraph(view)"
