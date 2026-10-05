@@ -33,18 +33,18 @@ llvm_emit_hosted_self_arg(ASTNode *arg_node, LLVMGenCtx *ctx,
         : NULL;
     if (param_class == NULL || !param_class->is_pointer_self_host)
         return fallback;
-    if (arg_node == NULL || arg_node->type != AST_IDENTIFIER)
-        return fallback;
 
-    const char *arg_name = ast_identifier_name(arg_node);
-    LLVMVarEntry arg_var;
-    if (!llvm_scope_lookup_snapshot(ctx, arg_name, &arg_var))
-        return fallback;
-    if (LLVMGetTypeKind(arg_var.type) == LLVMPointerTypeKind) {
-        return LLVMBuildLoad2(ctx->builder, arg_var.type,
-                              arg_var.alloca, llvm_tmp_name(ctx));
+    LLVMValueRef address =
+        llvm_subject_argument_address(ctx, arg_node, param_class);
+    if (address == NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, arg_node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+            "LLVM subject argument of type '%s' requires addressable storage",
+            param_type_name != NULL ? param_type_name : "(subject)");
     }
-    return arg_var.alloca;
+    return address;
 }
 
 static FuncParam *

@@ -150,15 +150,21 @@ llvm_member_call_adjust_pointer_self_arg(LLVMGenCtx *ctx,
             ptn = ast_type_name(p->type);
         param_cls = ptn != NULL ? llvm_lookup_class(ctx, ptn) : NULL;
         if (param_cls != NULL && param_cls->is_pointer_self_host
-            && arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
-            const char *arg_name = ast_identifier_name(arg_node);
-            LLVMVarEntry arg_var;
-            if (llvm_scope_lookup_snapshot(ctx, arg_name, &arg_var)) {
-                if (arg_var.type == LLVMPointerType(param_cls->struct_type, 0))
-                    return LLVMBuildLoad2(ctx->builder, arg_var.type,
-                        arg_var.alloca, llvm_tmp_name(ctx));
-                return arg_var.alloca;
+            && arg_node != NULL) {
+            /* A subject parameter takes the participant's address. */
+            LLVMValueRef address =
+                llvm_subject_argument_address(ctx, arg_node, param_cls);
+            if (address == NULL && !ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, arg_node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+                    "LLVM subject argument %zu for '%s.%s' requires addressable storage",
+                    logical_index + 1,
+                    class_name != NULL ? class_name : "(anonymous)",
+                    method_name != NULL ? method_name : "(anonymous)");
             }
+            return address;
         }
         break;
     }

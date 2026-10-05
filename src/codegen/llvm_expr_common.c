@@ -9,6 +9,7 @@
 
 #include "llvm_internal.h"
 #include "llvm_internal_api.h"
+#include "llvm_expr_member_lvalue.h"
 
 bool
 llvm_is_upper_ident(ASTNode *node)
@@ -56,24 +57,59 @@ llvm_identifier_base_ptr(LLVMGenCtx *ctx, const char *name, LLVMClassTypeEntry *
         return base_ptr;
     }
 
-    {
-        const char *host_name = llvm_current_host_class_name(ctx);
-        LLVMClassTypeEntry *parent_cls = host_name != NULL
-            ? llvm_lookup_class(ctx, host_name) : NULL;
-        int parent_field_idx;
-        LLVMValueRef self_ptr;
-        if (parent_cls == NULL)
-            return NULL;
-        parent_field_idx = llvm_class_field_index(parent_cls, name);
-        if (parent_field_idx < 0)
-            return NULL;
-        self_ptr = llvm_current_self_base_ptr(ctx, parent_cls);
-        if (self_ptr == NULL)
-            return NULL;
-        return LLVMBuildStructGEP2(ctx->builder, parent_cls->struct_type, self_ptr,
-            (unsigned)parent_field_idx, llvm_tmp_name(ctx));
-    }
+    return llvm_implicit_host_field_ptr(ctx, name, NULL);
+}
 
+/* A bare name inside a host method that is not a local is the host's own
+ * field (a zone's shared state, a world's zone member). Returns its storage
+ * address and, when asked, its field type; NULL when the host has no such
+ * field. */
+LLVMValueRef
+llvm_implicit_host_field_ptr(LLVMGenCtx *ctx, const char *name,
+                             LLVMTypeRef *field_type_out)
+{
+    const char *host_name;
+    LLVMClassTypeEntry *parent_cls;
+    int parent_field_idx;
+    LLVMValueRef self_ptr;
+
+    if (field_type_out != NULL)
+        *field_type_out = NULL;
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    host_name = llvm_current_host_class_name(ctx);
+    parent_cls = host_name != NULL ? llvm_lookup_class(ctx, host_name) : NULL;
+    if (parent_cls == NULL)
+        return NULL;
+    parent_field_idx = llvm_class_field_index(parent_cls, name);
+    if (parent_field_idx < 0)
+        return NULL;
+    self_ptr = llvm_current_self_base_ptr(ctx, parent_cls);
+    if (self_ptr == NULL)
+        return NULL;
+    if (field_type_out != NULL)
+        *field_type_out = llvm_class_field_type_at_index(parent_cls,
+            parent_field_idx);
+    return LLVMBuildStructGEP2(ctx->builder, parent_cls->struct_type, self_ptr,
+        (unsigned)parent_field_idx, llvm_tmp_name(ctx));
+}
+
+/* A subject parameter takes the participant's storage address, never a
+ * loaded copy: a local or parameter binding, an implicit host field such as
+ * a world's zone member, or a member path through them. NULL means the
+ * argument has no addressable storage; the caller reports that, because a
+ * by-value subject cannot match the pointer parameter. */
+LLVMValueRef
+llvm_subject_argument_address(LLVMGenCtx *ctx, ASTNode *arg_node,
+                              LLVMClassTypeEntry *param_cls)
+{
+    if (ctx == NULL || arg_node == NULL || param_cls == NULL)
+        return NULL;
+    if (arg_node->type == AST_IDENTIFIER)
+        return llvm_identifier_base_ptr(ctx, ast_identifier_name(arg_node),
+            param_cls);
+    if (arg_node->type == AST_MEMBER_ACCESS)
+        return llvm_emit_member_lvalue_ptr(arg_node, ctx, NULL);
     return NULL;
 }
 

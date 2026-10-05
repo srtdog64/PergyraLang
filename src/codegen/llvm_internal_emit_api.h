@@ -15,6 +15,11 @@ LLVMValueRef llvm_current_self_base_ptr(LLVMGenCtx *ctx,
                                         LLVMClassTypeEntry *cls);
 LLVMValueRef llvm_identifier_base_ptr(LLVMGenCtx *ctx, const char *name,
                                       LLVMClassTypeEntry *cls);
+LLVMValueRef llvm_implicit_host_field_ptr(LLVMGenCtx *ctx, const char *name,
+                                          LLVMTypeRef *field_type_out);
+LLVMValueRef llvm_subject_argument_address(LLVMGenCtx *ctx,
+                                           ASTNode *arg_node,
+                                           LLVMClassTypeEntry *param_cls);
 LLVMValueRef llvm_current_self_call_arg(LLVMGenCtx *ctx);
 LLVMValueRef llvm_operand_value_for_storage(LLVMGenCtx *ctx,
                                             ASTNode *operand,

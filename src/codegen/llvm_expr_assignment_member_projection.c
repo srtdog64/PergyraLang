@@ -143,10 +143,16 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
                 if (llvm_scope_lookup_snapshot(ctx, name, &arr_var)) {
                     array_ptr = arr_var.alloca;
                     array_type = arr_var.type;
+                    elem_type = entry != NULL
+                        ? entry->elem_type
+                        : llvm_stmt_resolve_array_elem_type(ctx, array_node, NULL);
+                } else {
+                    /* The host's own Array field, e.g. a zone's shared
+                     * state written inside a zone method. Its element type
+                     * comes from the runtime struct name below. */
+                    array_ptr = llvm_implicit_host_field_ptr(ctx, name,
+                        &array_type);
                 }
-                elem_type = entry != NULL
-                    ? entry->elem_type
-                    : llvm_stmt_resolve_array_elem_type(ctx, array_node, NULL);
             } else if (array_node->type == AST_MEMBER_ACCESS) {
                 array_ptr = llvm_emit_member_lvalue_ptr(
                     array_node, ctx, &array_type);

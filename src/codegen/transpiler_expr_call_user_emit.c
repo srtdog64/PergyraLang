@@ -202,9 +202,51 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     codebuf_destroy(args_buf);
                     return NULL;
                 }
+                /* A subject parameter is a slot handle: the hosted method
+                 * takes it by pointer, as a receiver-qualified call does. */
+                FuncParam *param = NULL;
+                const char *param_type_name = NULL;
+                {
+                    size_t param_index = i;
+                    size_t param_count =
+                        transpiler_mir_decl_method_param_count(host_method_meta);
+                    FuncParam *first = param_count > 0
+                        ? transpiler_mir_decl_method_param(host_method_meta, 0)
+                        : NULL;
+                    if (first != NULL && first->name != NULL
+                        && strcmp(first->name, "self") == 0)
+                        param_index++;
+                    if (param_index < param_count) {
+                        param = transpiler_mir_decl_method_param(
+                            host_method_meta, param_index);
+                        param_type_name =
+                            transpiler_mir_decl_method_param_type_name(
+                                host_method_meta, param_index);
+                    }
+                }
+                bool pass_subject_address =
+                    transpiler_call_arg_needs_subject_address(
+                        ctx, param, param_type_name, NULL, NULL)
+                    && !transpiler_call_arg_is_indirect_ref(ctx, arg_node);
+                if (pass_subject_address
+                    && !transpiler_call_arg_can_take_subject_address(ctx, arg_node)) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+                        "C backend: subject argument %zu for hosted method '%s.%s' requires addressable storage",
+                        i + 1, host_name,
+                        callee_name != NULL ? callee_name : "<call>");
+                    free(arg);
+                    codebuf_destroy(args_buf);
+                    return NULL;
+                }
                 codebuf_write(args_buf, ", ");
                 hosted_starts[i] = args_buf->len;
-                codebuf_write(args_buf, "%s", arg);
+                if (pass_subject_address)
+                    codebuf_write(args_buf, "&(%s)", arg);
+                else
+                    codebuf_write(args_buf, "%s", arg);
                 hosted_ends[i] = args_buf->len;
                 free(arg);
             }

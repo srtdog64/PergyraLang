@@ -86,11 +86,20 @@ llvm_array_required_receiver_binding(LLVMGenCtx *ctx, ASTNode *node,
         *entry_out = NULL;
     /* A field can hold the array as readily as a local can. Its storage is
      * the projected field pointer and its element type is carried by the
-     * runtime struct name, so no registered local is involved. */
-    if (receiver != NULL && receiver->type == AST_MEMBER_ACCESS) {
+     * runtime struct name, so no registered local is involved. A bare name
+     * that is not a local is the host's own field. */
+    bool implicit_host_field = receiver != NULL
+        && receiver->type == AST_IDENTIFIER
+        && ast_identifier_name(receiver) != NULL
+        && !llvm_scope_lookup_snapshot(ctx, ast_identifier_name(receiver), &var)
+        && llvm_current_host_class_name(ctx) != NULL;
+    if (receiver != NULL
+        && (receiver->type == AST_MEMBER_ACCESS || implicit_host_field)) {
         LLVMTypeRef field_type = NULL;
-        LLVMValueRef field_ptr =
-            llvm_emit_member_lvalue_ptr(receiver, ctx, &field_type);
+        LLVMValueRef field_ptr = implicit_host_field
+            ? llvm_implicit_host_field_ptr(ctx, ast_identifier_name(receiver),
+                &field_type)
+            : llvm_emit_member_lvalue_ptr(receiver, ctx, &field_type);
         const char *struct_name = field_type != NULL
             && LLVMGetTypeKind(field_type) == LLVMStructTypeKind
             ? LLVMGetStructName(field_type) : NULL;

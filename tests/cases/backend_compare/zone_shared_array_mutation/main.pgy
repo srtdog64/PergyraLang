@@ -1,0 +1,71 @@
+// A zone owns an Array in its shared state and its methods write elements
+// by index and through ArraySet, on the C and the LLVM backend alike.
+
+enum LedgerError { InsufficientFunds, UnknownAccount }
+
+subject Clerk {
+    let name: String;
+    let mut posted: Int;
+
+    action Post(self) -> Int {
+        posted = posted + 1;
+        return posted;
+    }
+}
+
+object ClerkCard {
+    let name: String;
+}
+
+zone Ledger {
+    subject slot clerk: Clerk
+    object slot card: ClerkCard
+    shared balances: Array<Int> = [0, 0, 0, 0]
+
+    func Credit(self, account: Int, amount: Int) -> Int {
+        balances[account] = balances[account] + amount;
+        clerk.Post();
+        return balances[account];
+    }
+
+    func Debit(self, account: Int, amount: Int) -> Result<Int, LedgerError> {
+        if account < 0 || account >= ArrayLength(balances) {
+            return Err(UnknownAccount);
+        }
+        if balances[account] < amount {
+            return Err(InsufficientFunds);
+        }
+        ArraySet(balances, account, balances[account] - amount);
+        clerk.Post();
+        return Ok(balances[account]);
+    }
+
+    func Held(self) -> Int {
+        let total: Int = 0;
+        for i in 0..ArrayLength(balances) {
+            total = total + balances[i];
+        }
+        return total;
+    }
+}
+
+func Describe(result: Result<Int, LedgerError>) -> String {
+    match result {
+        case Ok(left): return "ok " + ToString(left);
+        case Err(error):
+            match error {
+                case InsufficientFunds: return "refused funds";
+                case UnknownAccount: return "refused account";
+            }
+    }
+}
+
+func Main() -> Void {
+    let ledger: Ledger = Ledger(Clerk("Ana", 0));
+    ledger.Credit(1, 120);
+    ledger.Credit(2, 80);
+    Log(Describe(ledger.Debit(2, 30)));
+    Log(Describe(ledger.Debit(2, 500)));
+    Log(Describe(ledger.Debit(7, 1)));
+    Log("held=" + ToString(ledger.Held()) + " posted=" + ToString(ledger.clerk.posted));
+}
