@@ -1428,3 +1428,17 @@ hashes matched through the terminal failure. No seed or installed receipt.
   Initial cleanup-added recursive fixtures were refused by native/source; those
   release claims were removed from the read-only fixture rather than weakening
   cleanup guards. No recursive release or default installation is claimed.
+- Publication/terminal integration: all 17 changes are committed/pushed as
+  d2fe7ab6ef5dbfac4589585d6933c669beb7da76. Fresh official v48 used fixpoint-only
+  mode within 1800s, passed the unchanged original C controls, then refused gen1
+  syntax 55727 / owned_string_drop. The production parser identifies
+  CodegenExpressionMemberTypeFromGraph's branch-local [variant_key] deep-drop.
+  Source/input/native hashes matched through failure. This read-permission
+  correction has passed its focused gate; its larger executable rung remains OPEN.
+  .tmp/inout-array-release-codegen-bootstrap-v48.log,
+  .tmp/inout-array-release-bootstrap-v48-boundary.log.
+- CI 37355012849 independently failed that same new node/boundary; Windows,
+  macOS, TSAN and Rocq passed, dependent Linux jobs skipped. The next reached
+  inspection belongs to existing owned-String domain/literal-transfer owners;
+  do not revive the withdrawn Slice trial or infer heap/exclusive ownership from
+  a String return type. No fixed point/default GUI completion is claimed.

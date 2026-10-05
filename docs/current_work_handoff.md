@@ -10,9 +10,10 @@ SoT registry, admitted contracts, and executable gates override this note.
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
 - Checkout observed before this checkpoint commit: main @
-  bebfc16440367b68b52af2e8b6e245b291312151, reached synchronous formal current-
-  descriptor permission; the call-effect carrier/consumer, regression fixtures,
-  diagnostic observer, focused gate and navigation are dirty.
+  d2fe7ab6ef5dbfac4589585d6933c669beb7da76, reached branch-local singleton
+  String retirement. All 17 prior source/test/navigation changes are committed
+  and pushed; only this navigation refresh is dirty. Generated gmon.out remains
+  preserved/excluded.
   Root owns P0 integration
   and Git; Main is stopped following the user's
   explicit choice. The user also authorized committing all current user/other-
@@ -152,8 +153,9 @@ SoT registry, admitted contracts, and executable gates override this note.
   the original wrapper implementation and original bootstrap/MIR input remain.
   A former "unknown" fixture contained only a proved synchronous shallow call;
   that success case is now separate from a genuinely unproved deferred mutator.
-  Next exact integration falsifier: fresh official seed v48 on the unchanged
-  compiler source/MIR controls, then fixed-point/driver/default GUI evidence.
+  This correction is committed/pushed as d2fe7ab6. The next observed integration
+  boundary is the branch-local String retirement below, not the withdrawn Slice
+  trial, general returned-array cleanup, or an unrelated SoT/performance track.
 - Current focused gate4 passed within 300s on native v4: C/LLVM production
   wrapper and recursive-current-read value oracles, three source positives and
   twelve preserved refusals per backend. The fresh LLVM owner observer then
@@ -172,6 +174,33 @@ SoT registry, admitted contracts, and executable gates override this note.
   Its corrected whole inventory rerun reached the unchanged 60s limit without
   a terminal verdict: .tmp/inout-array-release-current-formal-descriptor-inventory2.log.
   Keep that omission explicit; no cap or time allowance was raised.
+- Official v48 used fresh fixpoint-only mode with the same 1800s integration
+  budget and original compiler/MIR input. It passed four original C controls
+  and eight cycle refusals, then gen1 source admission stopped at syntax 55727 /
+  owned_string_drop. The production parser maps this handle to
+  CodegenExpressionMemberTypeFromGraph in expr_semantic_type_owner.pgy:
+  ArrayDropOwnedStrings(retired_variant_key), where [variant_key] is created
+  under IsSome(receiver_type). All source/input/native hashes matched at failure.
+  No gen1/gen2 executable, fixed point, default installation or GUI receipt exists.
+  .tmp/inout-array-release-codegen-bootstrap-v48.log,
+  .tmp/inout-array-release-bootstrap-v48-boundary.log,
+  .tmp/inout-array-release-codegen-bootstrap-v48-source.sha256.
+- Exact-code-head CI 37355012849 independently passed the original C controls
+  and refused the same 55727 / owned_string_drop. Windows/macOS/TSAN/Rocq
+  passed, dependent Linux jobs skipped. This is still RED, not whole CI green.
+  .tmp/inout-array-release-ci-37355012849-codegen.log.
+- Next missing proof: branch-local String allocation/exclusivity and singleton
+  literal transfer on the continuing path. Inspect existing
+  ast_owned_string_expression_domain_owner, ast_owned_string_result_fact_owner
+  and ast_owned_string_literal_transfer_owner; the latter's DirectDefinition
+  guard currently rejects If ancestors. Verify actual allocation-domain and
+  last-use facts before attributing the entire refusal to that one guard.
+  Last consumer: the retired_variant_key deep-drop, then gen1 source admission.
+  Next falsifier: the same temporary-key/conditional-return/cleanup path, with
+  borrowed/aliased/reassigned/escaping and repeated/deferred negatives. No guessed
+  heap result, copied-and-freed replacement that leaks the original, deleted
+  cleanup, helper-name whitelist, safety weakening or native bypass.
+  Resume from this one reached boundary; source is frozen at published d2fe7ab6.
 - Current native v4 SHA-256:
   c4f4dd1fb3e735f5afa0516a7c9d0485e481f74833febedf0092ef1a8e074f98.
   Fresh GCC build passed with 12 observed warnings. Native public gate16 passed
