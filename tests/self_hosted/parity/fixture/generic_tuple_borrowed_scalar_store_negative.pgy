@@ -1,0 +1,11 @@
+// Analysis-only falsifier: the returned tuple must not retain a borrowed element.
+func Tuple(ref types: Array<String>) -> Array<String> {
+    let tuple: Array<String> = [];
+    ArrayPush(tuple, types[0]);
+    return tuple;
+}
+func Main() -> Void {
+    let types: Array<String> = ["Int"];
+    let tuple: Array<String> = Tuple(types);
+    Log(ArrayLength(tuple));
+}

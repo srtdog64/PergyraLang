@@ -1,0 +1,19 @@
+// Retiring a caller's owned text must not invalidate the closure's copy.
+import "../../../../src/self_hosted/semantic/generic_instance_closure_owner.pgy";
+
+func Main() -> Void {
+    let templates: GenericInstanceTemplates = GenericInstanceTemplates(
+        true, [11], [0], [1], ["T"]);
+    let closure: GenericInstanceClosure = GenericInstanceClosureEmpty();
+    let parents: Array<Int> = [];
+    let actuals: Array<String> = [];
+    ArrayPushOwnedString(actuals, "Int");
+    let target: Int = GenericInstanceAppend(templates, closure, parents,
+        0, actuals, -1, false);
+    ArrayDropOwnedStrings(actuals);
+    if target != 0 || closure.actual_types[0] != "Int" { Exit(1); }
+    let projected: Array<String> = GenericInstanceActuals(closure, target);
+    ArrayDropOwnedStrings(projected);
+    if closure.actual_types[0] != "Int" { Exit(1); }
+    Log("GENERIC OWNED ACTUALS PASS");
+}

@@ -10,8 +10,8 @@ SoT registry, admitted contracts, and executable gates override this note.
 - Priority: finish caller ArrayDrop after synchronous inout before general SoT.
   Alrescha is a separate read-only consumer; no compiler coupling or whitelist.
 - Checkout observed before this checkpoint commit: main @
-  7e054c1ff5da65f1eed9d77f63429225ec1ae285, reached private Slice C namespace,
-  exact ABI consumer, coexistence fixture/gate and navigation dirty.
+  32d2b1a922d0285b57c0a692e191ec5710263a77, reached generic tuple text
+  publication, value/admission/refusal fixtures/gate and navigation dirty.
   Root owns P0 integration
   and Git; Main is stopped following the user's
   explicit choice. The user also authorized committing all current user/other-
@@ -100,8 +100,32 @@ SoT registry, admitted contracts, and executable gates override this note.
   values; the gate forbids reopened native Slice typedef/function definitions.
   .tmp/inout-array-release-slice-length-gate4.log,
   .tmp/self_hosted/slice-length-codegen.WPgus8.
-  Next exact integration falsifier: fresh official seed v46 on the unchanged
-  original MIR root, then fixed-point/driver receipts. Default install remains OPEN.
+  This fix is committed/pushed as 32d2b1a9. Default install remains OPEN.
+- Official seed v46 passed the unchanged original MIR root: native/self-host C
+  compile/exact execution, four controls and eight cycle refusals. Gen0 compiling
+  its own source then refused borrow_boundary_escape, syntax 49433, ArrayPush.
+  The production parser mapped that handle to GenericInstanceClosureFromRecipes
+  in generic_instance_closure_owner.pgy: borrowed recipe/substitution text was
+  retained in actuals. Source/input/native hashes matched after failure. Exact-
+  head CI 37340961801 independently passed the root and refused that same node;
+  four other jobs passed, dependent Linux jobs skipped. Not a seed/fixed point.
+  .tmp/inout-array-release-codegen-bootstrap-v46.log,
+  .tmp/inout-array-release-bootstrap-v46-boundary.log,
+  .tmp/inout-array-release-ci-37340961801-codegen.log.
+- Current generic owner fix: actual tuple projection, append and recipe
+  publication copy retained text with ArrayPushOwnedString. Append copies the
+  existing member text into a fresh owned buffer before adding new elements;
+  native's unknown-uniform-ownership guard remains intact. Numeric identity,
+  deduplication, expansion and missing-fact rules are unchanged.
+  Generic gate4 passed within 300s, native C/LLVM tuple/finite/epoch values and
+  caller cleanup independence, source owner admission, raw-retention entry
+  refusal and unproved returned-array deep-drop refusal. That last value fixture
+  executes natively but remains refused by source at ArrayDropOwnedStrings(projected);
+  no general returned-String-array cleanup grant is inferred.
+  .tmp/inout-array-release-generic-owned-actuals-gate4.log,
+  .tmp/self_hosted/generic-owned-actuals.uRErHr.
+  Next exact integration falsifier: fresh official seed v47 on unchanged compiler
+  source/MIR controls, then fixed-point/driver receipts and installed GUI proof.
 - Current native v4 SHA-256:
   c4f4dd1fb3e735f5afa0516a7c9d0485e481f74833febedf0092ef1a8e074f98.
   Fresh GCC build passed with 12 observed warnings. Native public gate16 passed

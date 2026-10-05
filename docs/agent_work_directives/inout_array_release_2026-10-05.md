@@ -1325,3 +1325,45 @@ hashes matched through the terminal failure. No seed or installed receipt.
   redefining native Slice type/function names. No original-root/fixed-point claim.
   `.tmp/inout-array-release-slice-length-gate4.log`,
   `.tmp/self_hosted/slice-length-codegen.WPgus8`.
+
+## Reached generic tuple text publication (2026-10-06)
+
+- Observed checkout: main @ 32d2b1a922d0285b57c0a692e191ec5710263a77.
+  Official seed v46 passed the original MIR root's C compile/exact execution,
+  four native/self-host controls and eight cycle refusals. Gen0 compiling its
+  own source then refused borrow_boundary_escape at syntax 49433, ArrayPush.
+  The production parser mapped that handle to GenericInstanceClosureFromRecipes,
+  `ArrayPush(actuals, actual)`, where actual is a readonly recipe/substitution
+  String. Current source/input/native hashes matched after the terminal failure.
+- Objective/priority: publish owned tuple text, preserving template/instance
+  identity, ordered deduplication, finite-closure refusal and fail-closed borrowing.
+- Fact owner: existing GenericInstanceClosure and its tuple projection/append/
+  recipe publication functions. No formal mode or lifetime permission change.
+- Last consumers: closure.actual_types and the returned actual tuple, then
+  codegen's admitted specialization facts and self-host source admission.
+- Forbidden fallback: retaining indexed borrowed strings with ArrayPush,
+  allowing readonly input mutation, relaxing borrow escape or native bypass.
+- Edit scope: the owner's three String publication sites use ArrayPushOwnedString;
+  the append site first copies its existing member text into a fresh owned buffer
+  with the same primitive. Native rejects OwnedPush on an unproved member view.
+  A SliceCopy trial passed native values but source admission could not prove
+  uniform ownership for its result; that trial was withdrawn instead of relaxing
+  either guard. Numeric storage, identity and expansion rules remain unchanged.
+- Gates: native C/LLVM tuple values after caller cleanup, existing finite/expanding/
+  missing/epoch cases, current source owner admission and raw-retention refusal;
+  then fresh official seed v47 on the same compiler source/MIR controls and budgets.
+- Native owned-copy values include cleanup of the returned actual tuple. Source
+  admission of that extra value fixture still refuses its returned-array deep-drop
+  at owned_string_drop; the production owner algorithm itself is admitted. Keep
+  this separate unproved returned-array grant OPEN and ratchet its refusal rather
+  than weakening it or presenting native lifetime evidence as source permission.
+- Final focused gate4 passed within 300s on native v4: C/LLVM execute existing
+  ordered/forwarding/dedup/finite/expanding/missing/epoch oracles and copied text
+  after caller/returned-tuple cleanup. Both source observers admit the production
+  owner algorithm and retain the raw formal-element entry and unproved returned-
+  array drop refusals. No unsafe input is emitted or executed. Import/input/binary
+  hashes are recorded. `.tmp/inout-array-release-generic-owned-actuals-gate4.log`,
+  `.tmp/self_hosted/generic-owned-actuals.uRErHr`.
+- CI 37340961801 independently passed the original root C controls and then
+  refused exactly syntax 49433/ArrayPush in gen1 source admission, matching v46.
+  Windows/macOS/TSAN/Rocq passed; current integration/default install remains OPEN.

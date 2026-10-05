@@ -118,7 +118,7 @@ func GenericInstanceActuals(ref closure: GenericInstanceClosure, instance: Int) 
     }
     let i: Int = 0;
     while i < closure.actual_counts[instance] {
-        ArrayPush(actuals, closure.actual_types[closure.actual_starts[instance] + i]);
+        ArrayPushOwnedString(actuals, closure.actual_types[closure.actual_starts[instance] + i]);
         i = i + 1;
     }
     return actuals;
@@ -165,14 +165,20 @@ func GenericInstanceAppend(
     let template_rows: Array<Int> = closure.template_rows;
     let actual_starts: Array<Int> = closure.actual_starts;
     let actual_counts: Array<Int> = closure.actual_counts;
-    let actual_types: Array<String> = closure.actual_types;
+    // A member view has no uniform element-ownership grant; publish into fresh storage.
+    let actual_types: Array<String> = [];
+    let prior: Int = 0;
+    while prior < ArrayLength(closure.actual_types) {
+        ArrayPushOwnedString(actual_types, closure.actual_types[prior]);
+        prior = prior + 1;
+    }
     ArrayPush(template_rows, target);
     ArrayPush(actual_starts, ArrayLength(actual_types));
     ArrayPush(actual_counts, ArrayLength(actuals));
     ArrayPush(parents, parent);
     let i: Int = 0;
     while i < ArrayLength(actuals) {
-        ArrayPush(actual_types, actuals[i]);
+        ArrayPushOwnedString(actual_types, actuals[i]);
         i = i + 1;
     }
     closure.template_rows = template_rows;
@@ -274,7 +280,8 @@ func GenericInstanceClosureFromRecipes(
                     }
                     actual = UnwrapOption(bound);
                 }
-                ArrayPush(actuals, actual);
+                // Published tuples outlive the readonly recipe/substitution view.
+                ArrayPushOwnedString(actuals, actual);
                 a = a + 1;
             }
             let target: Int = GenericInstanceAppend(templates, result, parents,
